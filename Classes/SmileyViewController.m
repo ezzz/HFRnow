@@ -48,7 +48,7 @@
 
 @implementation SmileyViewController
 
-@synthesize smileyCache, collectionViewSmileysDefault, collectionViewSmileysSearch, textFieldSmileys, btnSmileySearch, btnSmileyDefault, btnReduce, tableViewSearch;
+@synthesize smileyCache, collectionViewSmileysDefault, collectionViewSmileysSearch, collectionViewSmileysFavorites, textFieldSmileys, btnSmileySearch, btnSmileyDefault, btnSmileyFavorites, btnReduce, tableViewSearch;
 @synthesize arrayTmpsmileySearch, arrSearch, arrTopSearchSorted, arrLastSearchSorted, arrTopSearchSortedFiltered, arrLastSearchSortedFiltered, request, requestSmile, bModeFullScreen, bActivateSmileySearchTable, labelNoResult;
 
 #pragma mark -
@@ -84,13 +84,20 @@
      [self.collectionViewSmileysDefault  setDataSource:self];
      [self.collectionViewSmileysDefault  setDelegate:self];
      
-     // Configure Collection Smileys search
+    // Configure Collection Smileys search
     [self.collectionViewSmileysSearch setHidden:NO];
     [self.collectionViewSmileysSearch setAlpha:0];
     [self.collectionViewSmileysSearch registerClass:[SmileyCollectionCell class] forCellWithReuseIdentifier:@"SmileyCollectionCellId"];
     [self.collectionViewSmileysSearch  setDataSource:self];
     [self.collectionViewSmileysSearch  setDelegate:self];
-    
+   
+    // Configure Collection Smileys favorites
+    [self.collectionViewSmileysFavorites setHidden:NO];
+    [self.collectionViewSmileysFavorites setAlpha:0];
+    [self.collectionViewSmileysFavorites registerClass:[SmileyCollectionCell class] forCellWithReuseIdentifier:@"SmileyCollectionCellId"];
+    [self.collectionViewSmileysFavorites  setDataSource:self];
+    [self.collectionViewSmileysFavorites  setDelegate:self];
+   
     // Dic of search smileys
     NSFileManager *fileManager = [[NSFileManager alloc] init];
     NSString *directory = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) lastObject];
@@ -163,9 +170,11 @@
     self.view.backgroundColor = [UIColor clearColor];
 
     [self.btnSmileyDefault setImageEdgeInsets:UIEdgeInsetsMake(7, 17, 7, 17)];
+    [self.btnSmileyFavorites setImageEdgeInsets:UIEdgeInsetsMake(7, 17, 7, 17)];
     [self.btnSmileySearch setImageEdgeInsets:UIEdgeInsetsMake(7, 17, 7, 17)];
 
     [self.btnSmileyDefault addTarget:self action:@selector(actionSmileysDefaults:) forControlEvents:UIControlEventTouchUpInside];
+    [self.btnSmileyFavorites addTarget:self action:@selector(actionSmileysFavorites:) forControlEvents:UIControlEventTouchUpInside];
     [self.btnSmileySearch addTarget:self action:@selector(actionSmileysSearch:) forControlEvents:UIControlEventTouchUpInside];
     if (self.smileyCache.arrCurrentSmileyArray.count == 0) {
         [self.btnSmileySearch setEnabled:NO];
@@ -197,6 +206,7 @@
     [self.btnReduce setImage:[ThemeColors tintImage:[UIImage imageNamed:@"rectangle.expand"] withTheme:theme] forState:UIControlStateHighlighted];
     self.collectionViewSmileysSearch.backgroundColor = [ThemeColors addMessageBackgroundColor:[[ThemeManager sharedManager] theme]];
     self.collectionViewSmileysDefault.backgroundColor = [ThemeColors addMessageBackgroundColor:[[ThemeManager sharedManager] theme]];
+    self.collectionViewSmileysFavorites.backgroundColor = [ThemeColors addMessageBackgroundColor:[[ThemeManager sharedManager] theme]];
     self.tableViewSearch.backgroundColor = [ThemeColors addMessageBackgroundColor:[[ThemeManager sharedManager] theme]];
     [[ThemeManager sharedManager] applyThemeToTextField:self.textFieldSmileys];
     self.textFieldSmileys.keyboardAppearance = [ThemeColors keyboardAppearance:[[ThemeManager sharedManager] theme]];
@@ -204,6 +214,7 @@
     self.view.backgroundColor = [UIColor clearColor];
     [self.collectionViewSmileysDefault reloadData];
     [self.collectionViewSmileysSearch reloadData];
+    [self.collectionViewSmileysFavorites reloadData];
 }
 
 - (void) changeDisplayMode:(DisplayModeEnum)newMode animate:(BOOL)bAnimate
@@ -222,21 +233,31 @@
         case DisplayModeEnumSmileysDefault:
             [self.collectionViewSmileysDefault setAlpha:1];
             [self.collectionViewSmileysSearch setAlpha:0];
+            [self.collectionViewSmileysFavorites setAlpha:0];
             [self.tableViewSearch setAlpha:0];
             [self.textFieldSmileys resignFirstResponder];
             [self.collectionViewSmileysDefault reloadData];
             break;
+        case DisplayModeEnumSmileysFavorites:
+            [self.collectionViewSmileysDefault setAlpha:0];
+            [self.collectionViewSmileysSearch setAlpha:0];
+            [self.collectionViewSmileysFavorites setAlpha:1];
+            [self.tableViewSearch setAlpha:0];
+            [self.textFieldSmileys resignFirstResponder];
+            [self.collectionViewSmileysFavorites reloadData];
+            break;
         case DisplayModeEnumSmileysSearch:
             [self.collectionViewSmileysDefault setAlpha:0];
             [self.collectionViewSmileysSearch setAlpha:1];
+            [self.collectionViewSmileysFavorites setAlpha:0];
             [self.tableViewSearch setAlpha:0];
             [self.textFieldSmileys resignFirstResponder];
             [self.collectionViewSmileysSearch reloadData];
             break;
         case DisplayModeEnumTableSearch:
-            NSLog(@"SMILEY changeDisplayMode -> DisplayModeEnumTableSearch");
             [self.collectionViewSmileysDefault setAlpha:0];
             [self.collectionViewSmileysSearch setAlpha:0];
+            [self.collectionViewSmileysFavorites setAlpha:0];
             [self.tableViewSearch reloadData];
             [self.tableViewSearch setAlpha:1];
             break;
@@ -271,6 +292,10 @@ static CGFloat fCellImageSize = 1;
         if (collectionView == self.collectionViewSmileysDefault) {
             // Default smileys
             image = [self.smileyCache getImageDefaultSmileyForIndex:(int)indexPath.row];
+        }
+        else if (collectionView == self.collectionViewSmileysFavorites) {
+            // Favorites smileys
+            image = [self.smileyCache getImageFavoriteSmileyForIndex:(int)indexPath.row];
         }
         else {
             image = [self.smileyCache getImageForIndex:(int)indexPath.row forCollection:collectionView];
@@ -317,17 +342,25 @@ static CGFloat fCellImageSize = 1;
         NSString* sCode = self.smileyCache.dicCommonSmileys[indexPath.row][@"code"];
         [self didSelectSmile:sCode];
     }
+    else if (collectionView == self.collectionViewSmileysFavorites) {
+        // Default smileys
+        // TODO
+        NSString* sCode = self.smileyCache.dicFavoritesSmileys[indexPath.row][@"code"];
+        [self didSelectSmile:sCode];
+    }
     else {
         NSString* sCode = [self.smileyCache getSmileyCodeForIndex:(int)indexPath.row];
         [self didSelectSmile:sCode];
     }
-    //[self.addMessageVC actionHideSmileys];
 }
 
 - (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section
 {
     if (collectionView == self.collectionViewSmileysDefault) {
         return self.smileyCache.dicCommonSmileys.count;
+    }
+    else if (collectionView == self.collectionViewSmileysFavorites) {
+        return self.smileyCache.dicFavoritesSmileys.count;
     }
     else {
         return self.smileyCache.arrCurrentSmileyArray.count;
@@ -342,6 +375,9 @@ static CGFloat fCellImageSize = 1;
 - (CGSize)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout*)collectionViewLayout sizeForItemAtIndexPath:(NSIndexPath *)indexPath
 {
     if (collectionView == self.collectionViewSmileysDefault) {
+        return CGSizeMake(70*fCellSizeDefault, 50*fCellSizeDefault);
+    }
+    else if (collectionView == self.collectionViewSmileysFavorites) {
         return CGSizeMake(70*fCellSizeDefault, 50*fCellSizeDefault);
     }
     else {
@@ -809,7 +845,12 @@ static CGFloat fCellImageSize = 1;
     self.arrLastSearchSortedFiltered = self.arrLastSearchSorted;
 }
 
-- (void)actionSmileysDefaults:(id)sender {
+- (void)actionSmileysDefaults:(id)sender
+{
+    if (self.displayMode == DisplayModeEnumSmileysDefault) {
+        return;
+    }
+    
     if (self.bModeFullScreen) {
         [self changeDisplayMode:DisplayModeEnumSmileysDefault animate:NO];
         [self.addMessageVC updateExpandCompressSmiley];
@@ -828,8 +869,37 @@ static CGFloat fCellImageSize = 1;
     }
 }
 
+- (void)actionSmileysFavorites:(id)sender
+{
+    if (self.displayMode == DisplayModeEnumSmileysFavorites) {
+        return;
+    }
+    
+    if (self.bModeFullScreen) {
+        [self changeDisplayMode:DisplayModeEnumSmileysFavorites animate:NO];
+        [self.addMessageVC updateExpandCompressSmiley];
+        [self resignFirstResponder];
+    }
+    else {
+        BOOL bSetFirstResponder = NO;
+        if (self.displayMode != DisplayModeEnumSmileysFavorites) {
+            bSetFirstResponder = YES;
+        }
+        [self changeDisplayMode:DisplayModeEnumSmileysFavorites animate:NO];
+        [self.addMessageVC updateExpandCompressSmiley];
+        if (bSetFirstResponder) {
+            [self.addMessageVC.textView becomeFirstResponder];
+        }
+    }
+}
 
-- (void)actionSmileysSearch:(id)sender {
+
+- (void)actionSmileysSearch:(id)sender
+{
+    if (self.displayMode == DisplayModeEnumSmileysSearch) {
+        return;
+    }
+    
     if (self.bModeFullScreen) {
         [self changeDisplayMode:DisplayModeEnumSmileysSearch animate:NO];
         [self.addMessageVC updateExpandCompressSmiley];
