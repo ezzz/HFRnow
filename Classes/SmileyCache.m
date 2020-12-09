@@ -16,13 +16,14 @@
 
 #define IMAGE_CACHE_MAX_ELEMENTS 1000
 #define IMAGE_CACHE_SMILEYS_DEFAULTS_MAX_ELEMENTS 50
+#define IMAGE_CACHE_SMILEYS_FAVORITES_MAX_ELEMENTS 1000
 
 @implementation SmileyRequest
 @end
 
 @implementation SmileyCache
 
-@synthesize arrCurrentSmileyArray, cacheSmileys, cacheSmileysDefaults, bStopLoadingSmileysToCache, dicCommonSmileys, dicSearchSmileys, bSearchSmileysActivated;
+@synthesize arrCurrentSmileyArray, cacheSmileys, cacheSmileysDefaults, cacheSmileysFavorites, bStopLoadingSmileysToCache, dicCommonSmileys, dicFavoritesSmileys, dicSearchSmileys, bSearchSmileysActivated;
 
 static SmileyCache *_shared = nil;    // static instance variable
 
@@ -41,6 +42,8 @@ static SmileyCache *_shared = nil;    // static instance variable
         self.cacheSmileys.countLimit = IMAGE_CACHE_MAX_ELEMENTS;
         self.cacheSmileysDefaults = [[NSCache alloc] init];
         self.cacheSmileysDefaults.countLimit = IMAGE_CACHE_SMILEYS_DEFAULTS_MAX_ELEMENTS;
+        self.cacheSmileysFavorites = [[NSCache alloc] init];
+        self.cacheSmileysFavorites.countLimit = IMAGE_CACHE_SMILEYS_FAVORITES_MAX_ELEMENTS;
         self.bStopLoadingSmileysToCache = NO;
         self.bSearchSmileysActivated = NO;
         NSString *plistPath = [[NSBundle mainBundle] pathForResource:@"commonsmile" ofType:@"plist"];
@@ -56,6 +59,8 @@ static SmileyCache *_shared = nil;    // static instance variable
                 NSLog(@"index %ld not imported", (long)index);
             }
         }
+        
+        self.dicFavoritesSmileys = [[NSMutableArray alloc] init];
     }
     return self;
 }
@@ -145,6 +150,21 @@ static SmileyCache *_shared = nil;    // static instance variable
 }
 
 - (UIImage*) getImageDefaultSmileyForIndex:(int)index
+{
+    NSString *filename = [self.dicCommonSmileys[index][@"resource"] stringByReplacingOccurrencesOfString:@"http://forum-images.hardware.fr/" withString:@""];
+    UIImage* image = [self.cacheSmileysDefaults objectForKey:filename];
+    if (image == nil) {
+        NSString *filenameShort = [filename stringByDeletingPathExtension];
+        NSString* filepath = [[NSBundle mainBundle] pathForResource:filenameShort ofType:@"gif"];
+        NSData* imgData = [NSData dataWithContentsOfFile:filepath];
+        image = [UIImage sd_animatedGIFWithData:imgData];
+        //NSLog(@"%@ size : (%f) %f x %f", filename, image.scale, image.size.width, image.size.height);
+        [self.cacheSmileysDefaults setObject:image forKey:filename];
+    }
+    return image;
+}
+
+- (UIImage*) getImageFavoriteSmileyForIndex:(int)index
 {
     NSString *filename = [self.dicCommonSmileys[index][@"resource"] stringByReplacingOccurrencesOfString:@"http://forum-images.hardware.fr/" withString:@""];
     UIImage* image = [self.cacheSmileysDefaults objectForKey:filename];

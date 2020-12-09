@@ -20,21 +20,25 @@
 @end
 
 
+
 @interface SmileyCache : NSObject {
 }
 
 @property (nonatomic, strong) NSMutableArray* arrCurrentSmileyArray;
 @property (nonatomic, strong) NSCache* cacheSmileys;
 @property (nonatomic, strong) NSCache* cacheSmileysDefaults;
+@property (nonatomic, strong) NSCache* cacheSmileysFavorites;
 @property (nonatomic, strong) NSCache* cacheSmileyRequests;
 @property BOOL bStopLoadingSmileysToCache;
 @property BOOL bSearchSmileysActivated;
 @property (nonatomic, strong) NSMutableArray *dicCommonSmileys;
 @property (nonatomic, strong) NSMutableArray *dicSearchSmileys;
+@property (nonatomic, strong) NSMutableArray *dicFavoritesSmileys;
 
 + (SmileyCache *) shared;
 - (void) handleSmileyArray:(NSMutableArray*)arrSmileys forCollection:(UICollectionView*)cv spinner:(UIActivityIndicatorView*)spinner;
 - (UIImage*) getImageDefaultSmileyForIndex:(int)index;
+- (UIImage*) getImageFavoriteSmileyForIndex:(int)index;
 - (UIImage*) getImageForIndex:(int)index forCollection:(UICollectionView*)cv;
 - (NSMutableArray*) getSmileyListForText:(NSString*)sTextSmileys;
 - (NSString*) getSmileyCodeForIndex:(int)index;
