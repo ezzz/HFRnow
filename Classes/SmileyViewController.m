@@ -228,6 +228,7 @@
     if (newMode == self.displayMode) {
         return;
     }
+    DisplayModeEnum oldMode = self.displayMode;
     
     switch (newMode) {
         case DisplayModeEnumSmileysDefault:
@@ -270,6 +271,9 @@
         [UIView commitAnimations];
     }
     self.displayMode = newMode;
+    if (oldMode == DisplayModeEnumTableSearch && (newMode == DisplayModeEnumSmileysSearch || newMode == DisplayModeEnumSmileysDefault)) {
+        [self.addMessageVC updateExpandCompressSmiley];
+    }
 }
 
 #pragma mark - Collection management
@@ -280,7 +284,7 @@ static CGFloat fCellImageSize = 1;
 
 - (float) getDisplayHeight {
     //return 150 * 0.85;
-    return fCellSizeSearch * 2 * 50 + 34;
+    return fCellSizeSearch * 2 * 50 + 44;
 }
 
 - (__kindof UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath
@@ -853,7 +857,7 @@ static CGFloat fCellImageSize = 1;
     
     if (self.bModeFullScreen) {
         [self changeDisplayMode:DisplayModeEnumSmileysDefault animate:NO];
-        [self.addMessageVC updateExpandCompressSmiley];
+        //[self.addMessageVC updateExpandCompressSmiley];
         [self resignFirstResponder];
     }
     else {
@@ -902,7 +906,7 @@ static CGFloat fCellImageSize = 1;
     
     if (self.bModeFullScreen) {
         [self changeDisplayMode:DisplayModeEnumSmileysSearch animate:NO];
-        [self.addMessageVC updateExpandCompressSmiley];
+        //[self.addMessageVC updateExpandCompressSmiley];
         [self resignFirstResponder];
     }
     else {
