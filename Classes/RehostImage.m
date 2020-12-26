@@ -163,9 +163,13 @@
 }
 
 -(void)loadDataChevereto:(NSData *)jpegImageData {
-    //Example : https://img3.super-h.fr/api/1/upload/?key=af34631bb9b18fd4ef1ee46acae65976&source=https://img.super-h.fr/upload/images/U28P.jpg&format=json
+    //Example : https://img3.super-h.fr/api/1/upload/?key=CHEVERETO_KEY&source=https://img.super-h.fr/upload/images/U28P.jpg&format=json
     ASIFormDataRequest* request = [ASIFormDataRequest requestWithURL:
+<<<<<<< HEAD
+                                   [NSURL URLWithString:[NSString stringWithFormat:@"https://img3.super-h.fr/api/1/upload/?key=%@", CHEVERETO_KEY]]];//&format=txt"]];
+=======
                                    [NSURL URLWithString:[NSString stringWithFormat: @"https://img3.super-h.fr/api/1/upload/?key=%@", API_KEY_CHEVERETO_IMG3]]];
+>>>>>>> release/2.1.14
     
     
     NSString* filename = [NSString stringWithFormat:@"snapshot_%d.jpg", rand()];
