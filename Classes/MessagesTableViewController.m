@@ -1365,6 +1365,9 @@
                 sImgUrl = [sImgUrl stringByReplacingOccurrencesOfString:@"reho.st/thumb/" withString:@"reho.st/preview/"];
             }
         }
+<<<<<<< HEAD
+        NSLog(@"url> %@", sImgUrl);
+=======
         else if ([[imgNode getAttributeNamed:@"alt"] containsString:@"imgur.com/"]) { // imgur
             NSString* sLongdesc = [imgNode getAttributeNamed:@"longdesc"];
             if (sLongdesc.length > 0) {
@@ -1374,6 +1377,7 @@
         
         NSLog(@"url> %@", sImgUrl);
         NSLog(@"longdesc> %@", [imgNode getAttributeNamed:@"longdesc"]);
+>>>>>>> release/2.1.14
         [imageArray addObject:[MWPhoto photoWithURL:[NSURL URLWithString:sImgUrl]]];
                                                      
         if ([selectedURL isEqualToString:[imgNode getAttributeNamed:@"alt"]]) {
