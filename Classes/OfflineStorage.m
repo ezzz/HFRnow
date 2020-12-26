@@ -455,6 +455,8 @@ static OfflineStorage *_shared = nil;    // static instance variable
     [self copyFromBundleToCacheForFilename:@"avatar_male_gray_on_light_48x48.png"];
     [self copyFromBundleToCacheForFilename:@"avatar_male_gray_on_dark_48x48.png"];
     [self copyFromBundleToCacheForFilename:@"08-chat.png"];
+    [self copyFromBundleToCacheForFilename:@"121-landscapebig.png"];
+    [self copyFromBundleToCacheForFilename:@"121-landscapebig-white.png"];
     [self copyFromBundleToCacheForFilename:@"photoDefaultClic.png"];
     [self copyFromBundleToCacheForFilename:@"photoDefaultfailmini.png"];
     [self copyFromBundleToCacheForFilename:@"loadinfo-white@2x.gif"];
