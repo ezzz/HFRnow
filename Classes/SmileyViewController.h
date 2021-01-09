@@ -29,7 +29,7 @@ typedef enum {
 
 
 @interface SmileyViewController : UIViewController <UITextViewDelegate, UITextFieldDelegate, UINavigationControllerDelegate, UICollectionViewDelegate, UICollectionViewDataSource, UITableViewDelegate, UITableViewDataSource> {
-    
+    UICollectionView *collectionViewSmileysDefault;
 }
 
 @property (strong, nonatomic) IBOutlet UICollectionView *collectionViewSmileysDefault;
