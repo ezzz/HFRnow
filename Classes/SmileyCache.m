@@ -168,22 +168,29 @@ static SmileyCache *_shared = nil;    // static instance variable
                 source  = [[self.arrCurrentSmileyArray objectAtIndex:index] objectForKey:@"source"];
             }
             else {
-                source  = [[self.arrCustomSmileys objectAtIndex:index] objectForKey:@"source"];
+                if (index < self.arrCustomSmileys.count) {
+                    source  = [[self.arrCustomSmileys objectAtIndex:index] objectForKey:@"source"];
+                }
+                else {
+                    NSLog(@"ERROR in index of arrCustomSmileys. index %ld / %ld", (long)index, (long)self.arrCustomSmileys.count);
+                }
             }
 
-            NSData* imgData = [NSData dataWithContentsOfURL:[NSURL URLWithString:[NSString stringWithFormat:@"%@", [source stringByAddingPercentEscapesUsingEncoding:NSASCIIStringEncoding]]]];
-            if (imgData) {
-                UIImage* image = [UIImage sd_animatedGIFWithData:imgData];
-                [self.cacheSmileys setObject:image forKey:filename];
-            }
+            if (source) {
+                NSData* imgData = [NSData dataWithContentsOfURL:[NSURL URLWithString:[NSString stringWithFormat:@"%@", [source stringByAddingPercentEscapesUsingEncoding:NSASCIIStringEncoding]]]];
+                if (imgData) {
+                    UIImage* image = [UIImage sd_animatedGIFWithData:imgData];
+                    [self.cacheSmileys setObject:image forKey:filename];
+                }
 
-            // Says VC that cell can be reloaded
-            dispatch_async(dispatch_get_main_queue(), ^{
-                //[cv reloadData];
-                NSIndexPath* ip = [NSIndexPath indexPathForRow:index inSection:0];
-                NSArray *myArray = [[NSArray alloc] initWithObjects:ip, nil];
-                [cv reloadItemsAtIndexPaths:myArray];
-            });
+                // Says VC that cell can be reloaded
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    //[cv reloadData];
+                    NSIndexPath* ip = [NSIndexPath indexPathForRow:index inSection:0];
+                    NSArray *myArray = [[NSArray alloc] initWithObjects:ip, nil];
+                    [cv reloadItemsAtIndexPaths:myArray];
+                });
+            }
         });
     }
 
