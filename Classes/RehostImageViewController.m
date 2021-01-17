@@ -22,7 +22,7 @@
 @implementation RehostImageViewController
 
 @synthesize rehostImagesArray, rehostImagesSortedArray, bModeFullScreen;
-@synthesize popover = _popover, tableViewImages, collectionImages, btnCamera, btnPhoto, btnBBCodeType, btnMaxSize, btnReduce, progressView;
+@synthesize popover = _popover, picker, tableViewImages, collectionImages, btnCamera, btnPhoto, btnBBCodeType, btnMaxSize, btnReduce, progressView;
 
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil {
     if ((self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil])) {
@@ -241,49 +241,19 @@
 {
     if ([UIImagePickerController isSourceTypeAvailable:sourceType])
     {
-        HFRUIImagePickerController *picker = [[HFRUIImagePickerController alloc] init];
-        picker.delegate = self;
-        picker.allowsEditing = NO;
-        picker.sourceType = sourceType;
-        picker.modalPresentationStyle = UIModalPresentationFullScreen;
+        self.picker = [[HFRUIImagePickerController alloc] init];
+        self.picker.delegate = self;
+        self.picker.allowsEditing = NO;
+        self.picker.sourceType = sourceType;
+        self.picker.modalPresentationStyle = UIModalPresentationFullScreen;
 
-        
-        if ([self respondsToSelector:@selector(traitCollection)] && [HFRplusAppDelegate sharedAppDelegate].window.traitCollection.horizontalSizeClass == UIUserInterfaceSizeClassCompact){
-            
-            [self presentViewController:picker animated:YES completion:^{
-                //NSLog(@"présenté");
-            }];
-        }
-        else if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
-            self.popover = nil;
-            UIPopoverController *popover = [[UIPopoverController alloc] initWithContentViewController:picker];
-            [popover presentPopoverFromRect:sender.frame inView:[self.tableViewImages tableHeaderView] permittedArrowDirections:UIPopoverArrowDirectionAny animated:YES];
-            self.popover = popover;
-        } else {
-            [self presentViewController:picker animated:YES completion:^{
-                //NSLog(@"présenté");
-            }];
-            //[self presentModalViewController:picker animated:YES];
-        }
+        [self presentViewController:self.picker animated:YES completion:nil];
     }
-    
 }
 
 - (void)imagePickerControllerDidCancel:(UIImagePickerController *)picker
 {
-    
-    NSLog(@"imagePickerControllerDidCancel");
-    if ([self respondsToSelector:@selector(traitCollection)] && [HFRplusAppDelegate sharedAppDelegate].window.traitCollection.horizontalSizeClass == UIUserInterfaceSizeClassCompact)
-    {
-        [picker dismissModalViewControllerAnimated:YES];
-    }
-    else if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
-        [_popover dismissPopoverAnimated:YES];
-    }
-    else
-    {
-        [picker dismissModalViewControllerAnimated:YES];
-    }
+    [self.picker dismissViewControllerAnimated:YES completion:nil];
     
     if (self.bModeFullScreen == NO) {
         // Give back focus to textview
@@ -393,7 +363,7 @@
         cell.accessoryType = UITableViewCellAccessoryNone;
         cell.selectionStyle = UITableViewCellSelectionStyleNone;
     }
-
+    NSLog(@"Configure image %ld / %ld", (long)indexPath.row, (long)self.rehostImagesSortedArray.count);
     [cell configureWithRehostImage:[self.rehostImagesSortedArray objectAtIndex:indexPath.row]];
     [[ThemeManager sharedManager] applyThemeToCell:cell];
     return cell;

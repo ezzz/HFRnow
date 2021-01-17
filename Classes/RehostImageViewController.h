@@ -30,6 +30,7 @@
 // UI
 
 @property (nonatomic, strong) id popover;
+@property UIImagePickerController* picker;
 @property (strong, nonatomic) IBOutlet UITableView *tableViewImages;
 @property (strong, nonatomic) IBOutlet UICollectionView *collectionImages;
 @property (strong, nonatomic) IBOutlet UIButton *btnCamera;

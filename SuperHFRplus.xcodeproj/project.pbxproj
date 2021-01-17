@@ -109,7 +109,6 @@
 		15AEFFED222AB07C003A2E5F /* bgbigipad3.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 15AEFFEC222AB07C003A2E5F /* bgbigipad3.jpg */; };
 		15B245AA22E6F9870091B513 /* ThemeSettingsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 15B245A922E6F9870091B513 /* ThemeSettingsViewController.m */; };
 		15B245AC22E6FD080091B513 /* ThemeSettingsViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 15B245AB22E6FD080091B513 /* ThemeSettingsViewController.xib */; };
-		15C34BB525AE23FC0094923B /* RehostImageViewController~ipad.xib in Resources */ = {isa = PBXBuildFile; fileRef = 15C34BB425AE23FC0094923B /* RehostImageViewController~ipad.xib */; };
 		15C673CC22552B6900B9E0BE /* FavoriteCellView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 15C673CB22552B6900B9E0BE /* FavoriteCellView.xib */; };
 		15C673D122567A7300B9E0BE /* FavoriteCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = 15C673D022567A7300B9E0BE /* FavoriteCellView.m */; };
 		15DE2D1B249F59DD00A80C7C /* fullscreen.png in Resources */ = {isa = PBXBuildFile; fileRef = 15DE2D18249F59DC00A80C7C /* fullscreen.png */; };
@@ -989,7 +988,6 @@
 		15B245A822E6F94C0091B513 /* ThemeSettingsViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ThemeSettingsViewController.h; sourceTree = "<group>"; };
 		15B245A922E6F9870091B513 /* ThemeSettingsViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ThemeSettingsViewController.m; sourceTree = "<group>"; };
 		15B245AB22E6FD080091B513 /* ThemeSettingsViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = ThemeSettingsViewController.xib; sourceTree = "<group>"; };
-		15C34BB425AE23FC0094923B /* RehostImageViewController~ipad.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = "RehostImageViewController~ipad.xib"; sourceTree = "<group>"; };
 		15C673CB22552B6900B9E0BE /* FavoriteCellView.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = FavoriteCellView.xib; sourceTree = "<group>"; };
 		15C673CF22567A3C00B9E0BE /* FavoriteCellView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FavoriteCellView.h; sourceTree = "<group>"; };
 		15C673D022567A7300B9E0BE /* FavoriteCellView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FavoriteCellView.m; sourceTree = "<group>"; };
@@ -3091,7 +3089,6 @@
 				154F823A24C8899300BC46B2 /* RehostImageViewController.h */,
 				154F823824C8898000BC46B2 /* RehostImageViewController.m */,
 				154F823624C8893500BC46B2 /* RehostImageViewController.xib */,
-				15C34BB425AE23FC0094923B /* RehostImageViewController~ipad.xib */,
 				1591C0F3249DF5DA0025560A /* SimpleCellView.h */,
 				1591C0F4249DF5F00025560A /* SimpleCellView.m */,
 				1591C0F6249DF60D0025560A /* SimpleCellView.xib */,
@@ -3886,7 +3883,6 @@
 				CA7C70B3185EF50E00B348BA /* style-liste-retina.css in Resources */,
 				CA7C70B4185EF50E00B348BA /* buttonendhover@2x.png in Resources */,
 				CA7C70B5185EF50E00B348BA /* loading.gif in Resources */,
-				15C34BB525AE23FC0094923B /* RehostImageViewController~ipad.xib in Resources */,
 				1543743722ECAE3100AF00A5 /* ThemeColorCellView.xib in Resources */,
 				4CB132C71B9098880081B44D /* ContactCardFilled-20@2x.png in Resources */,
 				D8DDF2B11E58810A002F1484 /* ToolBarPlay_on_tinted.png in Resources */,
