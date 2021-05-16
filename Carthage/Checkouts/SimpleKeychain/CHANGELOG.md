@@ -1,5 +1,23 @@
 # Change Log
 
+## [0.12.2](https://github.com/auth0/SimpleKeychain/tree/0.12.2) (2021-02-11)
+[Full Changelog](https://github.com/auth0/SimpleKeychain/compare/0.12.1...0.12.2)
+
+**Fixed**
+- Fixed Mac Catalyst warnings related to deprecated accessibility options [\#105](https://github.com/auth0/SimpleKeychain/pull/105) ([eaceto](https://github.com/eaceto))
+
+## [0.12.1](https://github.com/auth0/SimpleKeychain/tree/0.12.1) (2020-10-19)
+[Full Changelog](https://github.com/auth0/SimpleKeychain/compare/0.12.0...0.12.1)
+
+**Fixed**
+- Fixed macOS version check on Big Sur [\#99](https://github.com/auth0/SimpleKeychain/pull/99) ([Widcket](https://github.com/Widcket))
+
+## [0.12.0](https://github.com/auth0/SimpleKeychain/tree/0.12.0) (2020-10-15)
+[Full Changelog](https://github.com/auth0/SimpleKeychain/compare/0.11.1...0.12.0)
+
+**Changed**
+- Updated Quick and Nimble [\#97](https://github.com/auth0/SimpleKeychain/pull/97) ([Widcket](https://github.com/Widcket))
+
 ## [0.11.1](https://github.com/auth0/SimpleKeychain/tree/0.11.1) (2020-03-26)
 [Full Changelog](https://github.com/auth0/SimpleKeychain/compare/0.11.0...0.11.1)
 
