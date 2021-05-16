@@ -12,7 +12,6 @@
 #import "HFRTextView.h"
 
 @import GiphyUISDK;
-@import GiphyCoreSDK;
 
 @protocol AddMessageViewControllerDelegate;
 @class SmileyViewController, RehostImageViewController;

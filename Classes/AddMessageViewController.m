@@ -30,8 +30,6 @@
 #define TOOLBAR_HEIGHT_IMAGES 50
 
 @import GiphyUISDK;
-@import GiphyCoreSDK;
-
 
 @implementation AddMessageViewController
 
