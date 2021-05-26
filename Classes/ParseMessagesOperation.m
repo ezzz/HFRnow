@@ -252,9 +252,10 @@
                 // Parse for video
                 NSArray *hrefNodeArray = [bodyNode findChildrenWithAttribute:@"class" matchingName:@"cLink" allowPartial:NO]; //Get links for cat
                 for (HTMLNode * hrefNode in hrefNodeArray) {
+                    HTMLNode * hrefNodeParent1 = [hrefNode parent];
                     HTMLNode * hrefNodeParent3 = [[[hrefNode parent] parent] parent];
                     NSString* sHref = [hrefNode getAttributeNamed:@"href"];
-                    if ([[hrefNodeParent3 getAttributeNamed:@"class"] isEqualToString:@"messCase2"]) {
+                    if ([[hrefNodeParent3 getAttributeNamed:@"class"] isEqualToString:@"messCase2"] && ![[hrefNodeParent1 getAttributeNamed:@"class"] isEqualToString:@"signature"] ) {
                         //NSLog(@"Checking URL :%@", sHref);
                         for (NSString* regexp in arr) {
                             NSArray  *capturesArray = [sHref arrayOfCaptureComponentsMatchedByRegex:regexp];
