@@ -870,9 +870,8 @@
     swipeLeftRecognizer.direction = UISwipeGestureRecognizerDirectionLeft;
     self.swipeLeftRecognizer = (UISwipeGestureRecognizer *)recognizer;
 	
-    self.messagesWebView.scrollView.alwaysBounceVertical = YES;
-    self.messagesWebView.scrollView.alwaysBounceHorizontal = NO;
-
+    self.messagesWebView.scrollView.contentInset = UIEdgeInsetsMake(0, -0.5, 0, 0);
+    
     //Bouton Repondre message
     if (self.isSearchInstra) {
         UIBarButtonItem *optionsBarItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemSearch target:self action:@selector(searchTopic)];
@@ -1982,12 +1981,6 @@
     NSLog(@"didFinishNavigation");
     [UIApplication sharedApplication].networkActivityIndicatorVisible = NO;
     [self finishWebViewLoading];
-}
-
--(void)scrollViewDidScroll:(UIScrollView *)scrollView
-{
-    if (scrollView.contentOffset.x > 0  ||  scrollView.contentOffset.x < 0 )
-        scrollView.contentOffset = CGPointMake(0, scrollView.contentOffset.y);
 }
 
 - (void)finishWebViewLoading {
