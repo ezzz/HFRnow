@@ -163,38 +163,76 @@
 }
 
 -(void)loadDataChevereto:(NSData *)jpegImageData {
-    //Example : https://img3.super-h.fr/api/1/upload/?key=CHEVERETO_KEY&source=https://img.super-h.fr/upload/images/U28P.jpg&format=json
-    ASIFormDataRequest* request = [ASIFormDataRequest requestWithURL:
-                                   [NSURL URLWithString:[NSString stringWithFormat: @"https://img3.super-h.fr/api/1/upload/?key=%@", API_KEY_CHEVERETO_IMG3]]];
     
     NSString* filename = [NSString stringWithFormat:@"snapshot_%d.jpg", rand()];
+
     
-    [request setData:jpegImageData withFileName:filename andContentType:@"image/jpeg" forKey:@"source"];
-    [request setPostValue:@"Envoyer" forKey:@"submit"];
-    [request setShouldRedirect:NO];
-    [request setShowAccurateProgress:YES];
     
-    request.uploadProgressDelegate = self;
+    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:[NSString stringWithFormat:@"https://img3.super-h.fr/api/1/upload/?key=%@", API_KEY_CHEVERETO_IMG3]]];
+        
+        NSData *imageData = jpegImageData;
+
+        [request setCachePolicy:NSURLRequestReloadIgnoringLocalCacheData];
+        [request setHTTPShouldHandleCookies:NO];
+        [request setTimeoutInterval:60];
+        [request setHTTPMethod:@"POST"];
+        
+        NSString *boundary = @"unique-consistent-string";
+        
+        // set Content-Type in HTTP header
+        NSString *contentType = [NSString stringWithFormat:@"multipart/form-data; boundary=%@", boundary];
+        [request setValue:contentType forHTTPHeaderField: @"Content-Type"];
+        
+        // post body
+        NSMutableData *body = [NSMutableData data];
+        
+        // add params (all params are strings)
+        [body appendData:[[NSString stringWithFormat:@"--%@\r\n", boundary] dataUsingEncoding:NSUTF8StringEncoding]];
+        [body appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=%@\r\n\r\n", @"imageCaption"] dataUsingEncoding:NSUTF8StringEncoding]];
+        [body appendData:[[NSString stringWithFormat:@"%@\r\n", @"Some Caption"] dataUsingEncoding:NSUTF8StringEncoding]];
+        
+        // add image data
+        if (imageData) {
+            [body appendData:[[NSString stringWithFormat:@"--%@\r\n", boundary] dataUsingEncoding:NSUTF8StringEncoding]];
+            [body appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=%@; filename=%@.jpg\r\n", @"source", filename] dataUsingEncoding:NSUTF8StringEncoding]];
+            [body appendData:[@"Content-Type: image/jpeg\r\n\r\n" dataUsingEncoding:NSUTF8StringEncoding]];
+            [body appendData:imageData];
+            [body appendData:[[NSString stringWithFormat:@"\r\n"] dataUsingEncoding:NSUTF8StringEncoding]];
+        }
+        
+        [body appendData:[[NSString stringWithFormat:@"--%@--\r\n", boundary] dataUsingEncoding:NSUTF8StringEncoding]];
+        
+        // setting the body of the post to the reqeust
+        [request setHTTPBody:body];
+        
+        // set the content-length
+        NSString *postLength = [NSString stringWithFormat:@"%d", [body length]];
+        [request setValue:postLength forHTTPHeaderField:@"Content-Length"];
+        
+        
+    NSURLSession *session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration] delegate:self delegateQueue:nil];
+    NSURLSessionDataTask *task = [session dataTaskWithRequest:request
+                                            completionHandler:
+        ^(NSData *responseData, NSURLResponse *response, NSError *error) {
+        NSLog(@"fetchContentCompleteChevereto");
+        if(error){
+            [self performSelectorOnMainThread:@selector(fetchContentFailed) withObject:nil waitUntilDone:NO];
+        }else{
+            [self performSelectorOnMainThread:@selector(fetchContentCompleteChevereto:) withObject:responseData waitUntilDone:NO];
+        }
+    }];
+       
+    [task resume];
     
-    [request setDelegate:self];
     
-    [request setDidStartSelector:@selector(fetchContentStarted:)];
-    [request setDidFinishSelector:@selector(fetchContentCompleteChevereto:)];
-    [request setDidFailSelector:@selector(fetchContentFailed:)];
-    
-    [request startAsynchronous];
 }
 
-- (void)setProgress:(float)progress
+- (void)setUploadProgress:(NSNumber *)number
 {
     //NSLog(@"progress %f", progress);
-    [[NSNotificationCenter defaultCenter] postNotificationName:@"uploadProgress" object:[NSDictionary dictionaryWithObject:[NSNumber numberWithFloat:progress] forKey:@"progress"]];
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"uploadProgress" object:[NSDictionary dictionaryWithObject:number forKey:@"progress"]];
 }
 
-- (void)fetchContentStarted:(ASIHTTPRequest *)theRequest
-{
-	//NSLog(@"fetchContentStarted");
-}
 
 - (void)fetchContentCompleteRehost:(ASIHTTPRequest *)theRequest
 {
@@ -238,9 +276,9 @@
 
 }
 
-- (void)fetchContentCompleteChevereto:(ASIHTTPRequest *)theRequest
+- (void)fetchContentCompleteChevereto:(NSData *)responseData
 {
-    NSLog(@"fetchContentCompleteChevereto %@", [theRequest responseString]);
+    //NSLog(@"fetchContentCompleteChevereto %@", [theRequest responseString]);
     /* Example
      {
      "status_code": 200,
@@ -311,7 +349,7 @@
     BOOL bSuccess = NO;
     @try {
         NSError* error = nil;
-        NSDictionary* dReply = [NSJSONSerialization JSONObjectWithData:[theRequest responseData] options: NSJSONReadingMutableContainers error: &error];
+        NSDictionary* dReply = [NSJSONSerialization JSONObjectWithData:responseData options: NSJSONReadingMutableContainers error: &error];
         
         if ([[dReply objectForKey:@"status_code"] intValue] == CHEVERETO_UPLOAD_SUCCESS_OK) {
             bSuccess = YES;
@@ -355,7 +393,7 @@
 }
 
 
-- (void)fetchContentFailed:(ASIHTTPRequest *)theRequest
+- (void)fetchContentFailed
 {
     //NSLog(@"fetchContentFailed %@", [theRequest responseString]);
 
@@ -439,6 +477,13 @@
     if (pasteboard.string.length) {
         [[NSNotificationCenter defaultCenter] postNotificationName:@"imageReceived" object:pasteboard.string];
     }
+}
+
+-(void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didSendBodyData:(int64_t)bytesSent totalBytesSent:(int64_t)totalBytesSent totalBytesExpectedToSend:(int64_t)totalBytesExpectedToSend{
+    float progress = totalBytesSent/totalBytesExpectedToSend;
+    NSNumber *numb = [NSNumber numberWithFloat:progress];
+    [self performSelectorOnMainThread:@selector(setUploadProgress:) withObject:numb waitUntilDone:NO];
+    
 }
 
 
