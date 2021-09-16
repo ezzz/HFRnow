@@ -1074,8 +1074,10 @@
     v.backgroundColor = [UIColor clearColor];
     [self.topicsTableView setTableFooterView:v];
 
-	self.topicsTableView.contentOffset = CGPointMake(0, self.searchDisplayController.searchBar.frame.size.height);
-	
+	//self.topicsTableView.contentOffset = CGPointMake(0, self.searchDisplayController.searchBar.frame.size.height);
+    if (@available(iOS 15.0, *)) {
+        self.topicsTableView.sectionHeaderTopPadding = 0;
+    }
 	//NSLog(@"%f", self.searchDisplayController.searchBar.frame.size.height);
 	
     
