@@ -25,7 +25,7 @@
 #import "MWPhotoBrowser.h"
 
 @class HTMLNode, MessageDetailViewController, ASIHTTPRequest, FilterPostsQuotes;
-@class MessageDetailViewController;
+@class MessageDetailViewController, SmileyCodeTableViewController;
 @class ASIHTTPRequest;
 
 
@@ -140,6 +140,7 @@
 
 @property (nonatomic, strong) MessageDetailViewController *detailViewController;
 @property (nonatomic, strong) MessagesTableViewController *messagesTableViewController;
+@property (nonatomic, strong) SmileyCodeTableViewController *smileyCodeTableViewController;
 
 @property (nonatomic, strong) UISwipeGestureRecognizer *swipeLeftRecognizer;
 @property (nonatomic, strong) UISwipeGestureRecognizer *swipeRightRecognizer;
@@ -193,6 +194,9 @@
 @property NSMutableArray* arrFilteredPosts;
 @property (nonatomic, strong) UIAlertController *alertProgress;
 @property (nonatomic, strong) UIProgressView *progressView;
+
+@property NSString* sSelectedSmileyCode;
+@property NSString* sSelectedSmileyImageURL;
 
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil andUrl:(NSString *)theTopicUrl;
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil andUrl:(NSString *)theTopicUrl displaySeparator:(BOOL)isSeparatorNewMessages;
