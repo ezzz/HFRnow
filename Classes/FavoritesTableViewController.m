@@ -639,7 +639,9 @@
 
     //Supprime les lignes vides à la fin de la liste
     self.favoritesTableView.tableFooterView = [[UIView alloc] initWithFrame:CGRectZero];
-    
+    if (@available(iOS 15.0, *)) {
+        self.favoritesTableView.sectionHeaderTopPadding = 0;
+    }
     
 	[(ShakeView*)self.view setShakeDelegate:self];
 	
