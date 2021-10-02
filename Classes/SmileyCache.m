@@ -20,6 +20,27 @@
 @implementation SmileyRequest
 @end
 
+@implementation ImageInCache
+@synthesize image;
+
+- (BOOL)beginContentAccess {
+    if (!self.image)
+        return NO;
+    return YES;
+}
+
+- (void)endContentAccess {
+}
+
+- (void)discardContentIfPossible {
+    self.image = nil;
+}
+
+- (BOOL)isContentDiscarded {
+    return self.image == nil;
+}
+@end
+
 @implementation SmileyCache
 
 @synthesize arrCurrentSmileyArray, arrCustomSmileys, cacheSmileys, cacheSmileysDefaults, bStopLoadingSmileysSearchToCache, bStopLoadingSmileysCustomToCache, dicCommonSmileys, dicSearchSmileys, bSearchSmileysActivated;
@@ -83,7 +104,10 @@ static SmileyCache *_shared = nil;    // static instance variable
         if (imgData) {
             UIImage *image = [UIImage sd_animatedGIFWithData:imgData];
             if (image != nil) {
-                [self.cacheSmileys setObject:image forKey:filename];
+                NSLog(@"SmileyCache2 ADD: %@",filename);
+                ImageInCache* iic = [[ImageInCache alloc] init];
+                iic.image = image;
+                [self.cacheSmileys setObject:iic forKey:filename];
             }
         }
         else {
@@ -129,7 +153,10 @@ static SmileyCache *_shared = nil;    // static instance variable
         if (imgData) {
             UIImage *image = [UIImage sd_animatedGIFWithData:imgData];
             if (image != nil) {
-                [self.cacheSmileys setObject:image forKey:filename];
+                NSLog(@"SmileyCache3 ADD: %@",filename);
+                ImageInCache* iic = [[ImageInCache alloc] init];
+                iic.image = image;
+                [self.cacheSmileys setObject:iic forKey:filename];
             }
         }
         else {
@@ -155,43 +182,54 @@ static SmileyCache *_shared = nil;    // static instance variable
         filename = [[[self.arrCurrentSmileyArray objectAtIndex:index] objectForKey:@"source"] stringByReplacingOccurrencesOfString:@"http://forum-images.hardware.fr/" withString:@""];
     }
     filename = [filename stringByReplacingOccurrencesOfString:@"https://forum-images.hardware.fr/" withString:@""];
-    
-    UIImage* image = [self.cacheSmileys objectForKey:filename];
-
-    if (image == nil && ((!bCustomSmiley && self.bStopLoadingSmileysSearchToCache) || (bCustomSmiley && self.bStopLoadingSmileysCustomToCache)))
-    {
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        
-            NSLog(@"Reloading image at index (%d) : %@", index, filename);
-            NSString* source = nil;
-            if (bCustomSmiley) {
-                source  = [[self.arrCurrentSmileyArray objectAtIndex:index] objectForKey:@"source"];
-            }
-            else {
-                if (index < self.arrCustomSmileys.count) {
-                    source  = [[self.arrCustomSmileys objectAtIndex:index] objectForKey:@"source"];
+    UIImage* image = nil;
+    ImageInCache* iic = [self.cacheSmileys objectForKey:filename];
+    if (iic) {
+        image = iic.image;
+        if (image == nil) {
+            NSLog(@"SmileyCache GET (empty): %@",filename);
+        }
+        else {
+            NSLog(@"SmileyCache GET (OK): %@",filename);
+        }
+        if (image == nil && ((!bCustomSmiley && self.bStopLoadingSmileysSearchToCache) || (bCustomSmiley && self.bStopLoadingSmileysCustomToCache)))
+        {
+            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            
+                NSLog(@"Reloading image at index (%d) : %@", index, filename);
+                NSString* source = nil;
+                if (bCustomSmiley) {
+                    source  = [[self.arrCurrentSmileyArray objectAtIndex:index] objectForKey:@"source"];
                 }
                 else {
-                    NSLog(@"ERROR in index of arrCustomSmileys. index %ld / %ld", (long)index, (long)self.arrCustomSmileys.count);
-                }
-            }
-
-            if (source) {
-                NSData* imgData = [NSData dataWithContentsOfURL:[NSURL URLWithString:[NSString stringWithFormat:@"%@", [source stringByAddingPercentEscapesUsingEncoding:NSASCIIStringEncoding]]]];
-                if (imgData) {
-                    UIImage* image = [UIImage sd_animatedGIFWithData:imgData];
-                    [self.cacheSmileys setObject:image forKey:filename];
+                    if (index < self.arrCustomSmileys.count) {
+                        source  = [[self.arrCustomSmileys objectAtIndex:index] objectForKey:@"source"];
+                    }
+                    else {
+                        NSLog(@"ERROR in index of arrCustomSmileys. index %ld / %ld", (long)index, (long)self.arrCustomSmileys.count);
+                    }
                 }
 
-                // Says VC that cell can be reloaded
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    //[cv reloadData];
-                    NSIndexPath* ip = [NSIndexPath indexPathForRow:index inSection:0];
-                    NSArray *myArray = [[NSArray alloc] initWithObjects:ip, nil];
-                    [cv reloadItemsAtIndexPaths:myArray];
-                });
-            }
-        });
+                if (source) {
+                    NSData* imgData = [NSData dataWithContentsOfURL:[NSURL URLWithString:[NSString stringWithFormat:@"%@", [source stringByAddingPercentEscapesUsingEncoding:NSASCIIStringEncoding]]]];
+                    if (imgData) {
+                        UIImage* image = [UIImage sd_animatedGIFWithData:imgData];
+                        ImageInCache* iic = [[ImageInCache alloc] init];
+                        iic.image = image;
+                        NSLog(@"SmileyCache1 ADD: %@",filename);
+                        [self.cacheSmileys setObject:iic forKey:filename];
+                    }
+
+                    // Says VC that cell can be reloaded
+                    dispatch_async(dispatch_get_main_queue(), ^{
+                        //[cv reloadData];
+                        NSIndexPath* ip = [NSIndexPath indexPathForRow:index inSection:0];
+                        NSArray *myArray = [[NSArray alloc] initWithObjects:ip, nil];
+                        [cv reloadItemsAtIndexPaths:myArray];
+                    });
+                }
+            });
+        }
     }
 
     return image;

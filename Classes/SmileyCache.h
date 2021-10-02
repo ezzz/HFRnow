@@ -19,7 +19,10 @@
 
 @end
 
+@interface ImageInCache : NSObject<NSDiscardableContent>
+@property (nonatomic, strong) UIImage* image;
 
+@end
 @interface SmileyCache : NSObject {
 }
 

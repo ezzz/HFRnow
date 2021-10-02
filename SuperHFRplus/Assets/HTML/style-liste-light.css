@@ -594,13 +594,12 @@ div[id^=para] {
     margin-bottom: 10px !important;
 }
 
-/* Commenté car cela pose pb dans les citations: le texte est collé à l'entête: "xxx a écrit"
 .content br {
     display: block;
     margin-bottom: 2px;
-    font-size:2px;
+    font-size:10px;
     line-height: 2px;
-}*/
+}
 
 a#searchintra_nextbutton {
     position: fixed;
