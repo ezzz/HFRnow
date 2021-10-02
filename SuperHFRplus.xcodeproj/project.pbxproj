@@ -978,6 +978,7 @@
 		159CE14E24801DFA00BC17DA /* SmileyCache.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SmileyCache.h; sourceTree = "<group>"; };
 		159CE14F24801E1500BC17DA /* SmileyCache.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SmileyCache.m; sourceTree = "<group>"; };
 		15A1238C22D659CB00C3DFEC /* Heart-20.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Heart-20.png"; sourceTree = "<group>"; };
+		15A5F3B32708E55800DAE8FE /* Notes.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Notes.md; sourceTree = "<group>"; };
 		15ABB27B2488397100E30B48 /* gif.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = gif.png; sourceTree = "<group>"; };
 		15ABB27C2488397200E30B48 /* gif@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "gif@2x.png"; sourceTree = "<group>"; };
 		15AEF9FC223E9052005E6739 /* Icon-BLUE@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-BLUE@3x.png"; sourceTree = "<group>"; };
@@ -2121,6 +2122,7 @@
 		29B97314FDCFA39411CA2CEA /* CustomTemplate */ = {
 			isa = PBXGroup;
 			children = (
+				15A5F3B32708E55800DAE8FE /* Notes.md */,
 				15B5FC4A264FAB71006CBEF0 /* Cartfile */,
 				CA00C35417C2FC620067B457 /* SuperHFRplus */,
 				080E96DDFE201D6D7F000001 /* Classes */,

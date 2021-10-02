@@ -120,7 +120,10 @@
     v.backgroundColor = [ThemeColors addMessageBackgroundColor:[[ThemeManager sharedManager] theme]];
     [self.tableViewSearch setTableFooterView:v];
     [self.tableViewSearch registerNib:[UINib nibWithNibName:@"SimpleCellView" bundle:nil] forCellReuseIdentifier:@"SimpleCellId"];
-    
+    if (@available(iOS 15.0, *)) {
+        self.tableViewSearch.sectionHeaderTopPadding = 0;
+    }
+
     // Observe keyboard hide and show notifications to resize the text view appropriately.
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardWillShowNotification object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardDidShowNotification object:nil];
@@ -464,6 +467,9 @@ static CGFloat fCellImageSize = 1;
                 cell.labelText.text = s.sSearchText;
                 if (indexPath.section == 1) {
                     [cell.labelText boldSubstring: self.textFieldSmileys.text];
+                }
+                else {
+                    [cell.labelText boldSubstring: @""];
                 }
                 iResults = [s.nSearchNumber intValue];
             }
@@ -822,13 +828,16 @@ static CGFloat fCellImageSize = 1;
 
     // Save search when smiley is selected (this confirms the search is OK)
     if (self.textFieldSmileys.text.length >= 3) {
+        //NSLog(@"SS saving %@", self.textFieldSmileys.text);
         NSArray *arrFound = [self.arrSearch filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(SmileySearch* s, NSDictionary *bindings) {
             return [s.sSearchText isEqualToString:self.textFieldSmileys.text];  // Return YES for each object you want in filteredArray.
         }]];
         if (arrFound.count > 0) {
+
             SmileySearch* ss = (SmileySearch*)arrFound[0];
             ss.nSearchNumber = [NSNumber numberWithInt:[ss.nSearchNumber intValue] + 1];
             ss.dLastSearch = [NSDate date];
+            //NSLog(@"SS %@ found, n:%d", self.textFieldSmileys.text, [ss.nSearchNumber intValue]);
         }
         else {
             SmileySearch* ss = [[SmileySearch alloc] init];
@@ -839,6 +848,7 @@ static CGFloat fCellImageSize = 1;
                 self.arrSearch = [[NSMutableArray alloc] init];
             }
             [self.arrSearch addObject:ss];
+            //NSLog(@"SS %@ is new, n:%d", self.textFieldSmileys.text, [ss.nSearchNumber intValue]);
         }
         
         [self updateSearchArraySorted];
