@@ -18,9 +18,9 @@
 
 - (void)layoutSubviews {
     [super layoutSubviews];
-    CGRect adjustedFrame = self.accessoryView.frame;
+    /*CGRect adjustedFrame = self.accessoryView.frame;
     adjustedFrame.origin.x += 10.0f;
-    self.accessoryView.frame = adjustedFrame;
+    self.accessoryView.frame = adjustedFrame;*/
     [self applyTheme];
 }
 

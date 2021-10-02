@@ -41,6 +41,7 @@
 - (UIImage*) getImageForIndex:(int)index forCollection:(UICollectionView*)cv customSmiley:(BOOL)bCustomSmiley;
 - (NSMutableArray*) getSmileyListForText:(NSString*)sTextSmileys;
 - (NSString*) getSmileyCodeForIndex:(int)index;
+- (NSString*) getSmileyImgUrlForIndex:(int)index;
 
 @end
 

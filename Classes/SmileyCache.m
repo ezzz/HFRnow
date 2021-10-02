@@ -219,7 +219,11 @@ static SmileyCache *_shared = nil;    // static instance variable
     NSString *code = [[self.arrCurrentSmileyArray objectAtIndex:index] objectForKey:@"code"];
     return code;
 }
-
+- (NSString*) getSmileyImgUrlForIndex:(int)index
+{
+    NSString *imgUrl = [[self.arrCurrentSmileyArray objectAtIndex:index] objectForKey:@"source"];
+    return imgUrl;
+}
 
 - (NSMutableArray*) getSmileyListForText:(NSString*)sTextSmileys
 {
