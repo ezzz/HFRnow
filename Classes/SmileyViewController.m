@@ -16,6 +16,7 @@
 #import "HFRAlertView.h"
 #import "SimpleCellView.h"
 #import "UILabel+Boldify.h"
+#import "SmileyAlertView.h"
 
 #if !defined(MIN)
     #define MIN(A,B)    ((A) < (B) ? (A) : (B))
@@ -124,6 +125,17 @@
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardWillShowNotification object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardDidShowNotification object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
+    
+    // attach long press gesture to collectionView
+    UILongPressGestureRecognizer *lpgr = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleLongPress:)];
+    lpgr.delegate = self;
+    lpgr.delaysTouchesBegan = YES;
+    [self.collectionViewSmileysDefault addGestureRecognizer:lpgr];
+    
+    UILongPressGestureRecognizer *lpgr2 = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleLongPress:)];
+    lpgr2.delegate = self;
+    lpgr2.delaysTouchesBegan = YES;
+    [self.collectionViewSmileysSearch addGestureRecognizer:lpgr2];
 }
 
 - (void)modifyClearButtonWithImage:(UIImage *)image {
@@ -162,8 +174,8 @@
 
     self.view.backgroundColor = [UIColor clearColor];
 
-    [self.btnSmileyDefault setImageEdgeInsets:UIEdgeInsetsMake(11, 16, 11, 16)];
-    [self.btnSmileySearch setImageEdgeInsets:UIEdgeInsetsMake(11, 16, 11, 16)];
+    //[self.btnSmileyDefault setImageEdgeInsets:UIEdgeInsetsMake(11, 16, 11, 16)];
+    //[self.btnSmileySearch setImageEdgeInsets:UIEdgeInsetsMake(11, 16, 11, 16)];
 
     [self.btnSmileyDefault addTarget:self action:@selector(actionSmileysDefaults:) forControlEvents:UIControlEventTouchUpInside];
     [self.btnSmileySearch addTarget:self action:@selector(actionSmileysSearch:) forControlEvents:UIControlEventTouchUpInside];
@@ -517,6 +529,46 @@ static CGFloat fCellImageSize = 1;
     //TODO: implement search deletion
 }
 */
+
+-(void)handleLongPress:(UILongPressGestureRecognizer *)gestureRecognizer
+{
+
+    @try {
+        /* A activer pour la suppression (pb requete suppression pour le moment)
+        if (self.displayMode == DisplayModeEnumSmileysDefault) {
+            CGPoint p = [gestureRecognizer locationInView:self.collectionViewSmileysDefault];
+            NSIndexPath *indexPath = [self.collectionViewSmileysDefault indexPathForItemAtPoint:p];
+            // Default smileys
+            if ((int)indexPath.row >= self.smileyCache.dicCommonSmileys.count) {
+                NSString* sSmileyCode = self.smileyCache.arrCustomSmileys[indexPath.row - self.smileyCache.dicCommonSmileys.count][@"code"];
+                NSString* sSmileyImgUrl = self.smileyCache.arrCustomSmileys[indexPath.row - self.smileyCache.dicCommonSmileys.count][@"source"];
+                [[SmileyAlertView shared] displaySmileyRetirerCancel:sSmileyCode withUrl:sSmileyImgUrl showKeyworkds:NO baseController:self];
+            }
+        }
+        else
+        */
+        // En mode toolbar (non fullscreen), l'alertview provoque des clignotements avec l'affichage/masquage du clavier
+        if (self.bModeFullScreen && self.displayMode == DisplayModeEnumSmileysSearch) {
+            CGPoint p = [gestureRecognizer locationInView:self.collectionViewSmileysSearch];
+            NSIndexPath *indexPath = [self.collectionViewSmileysSearch indexPathForItemAtPoint:p];
+            NSString* sSmileyCode = [self.smileyCache getSmileyCodeForIndex:(int)indexPath.row];
+            NSString* sSmileyImgUrlRaw = [[self.smileyCache getSmileyImgUrlForIndex:(int)indexPath.row] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+            NSString* sSmileyImgUrlOK = [sSmileyImgUrlRaw stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
+            NSLog(@"sSmileyCode :%@", sSmileyCode);
+            NSLog(@"sSmileyImgUrlRaw :%@", sSmileyImgUrlRaw);
+            NSLog(@"sSmileyImgUrlOK :%@", sSmileyImgUrlOK);
+            [[SmileyAlertView shared] displaySmileyAjouterCancel:sSmileyCode withUrl:sSmileyImgUrlOK showKeyworkds:NO baseController:self];
+        }
+    } @catch (NSException *e) {
+        NSLog(@"Error in smiley selection: %@", e);
+    }
+
+}
+
+- (void)showSmileyDetails:(NSString*)sSmileyCode andUrl:(NSString*)sSmileyImgUrl
+{
+}
+
 #pragma mark - Responding to keyboard events
 
 - (void)keyboardWillShow:(NSNotification *)notification {

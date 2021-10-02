@@ -43,6 +43,7 @@
 		1543743722ECAE3100AF00A5 /* ThemeColorCellView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1543743622ECAE3100AF00A5 /* ThemeColorCellView.xib */; };
 		1543743922ECB1C300AF00A5 /* ThemeColorCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1543743822ECB1C300AF00A5 /* ThemeColorCellView.m */; };
 		1543743D22EDDF7400AF00A5 /* ColorPickerViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1543743C22EDDF7400AF00A5 /* ColorPickerViewController.m */; };
+		154ACDFB26FA45EA00BAF716 /* SmileyAlertView.m in Sources */ = {isa = PBXBuildFile; fileRef = 154ACDFA26FA45EA00BAF716 /* SmileyAlertView.m */; };
 		154C0D03250FD66F00294ECC /* person.3.fill-2.png in Resources */ = {isa = PBXBuildFile; fileRef = 154C0D01250FD66E00294ECC /* person.3.fill-2.png */; };
 		154C0D04250FD66F00294ECC /* person.3.fill-2@2.png in Resources */ = {isa = PBXBuildFile; fileRef = 154C0D02250FD66E00294ECC /* person.3.fill-2@2.png */; };
 		154F823724C8893500BC46B2 /* RehostImageViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 154F823624C8893500BC46B2 /* RehostImageViewController.xib */; };
@@ -916,6 +917,8 @@
 		1543743A22ECB1DD00AF00A5 /* ThemeColorCellView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ThemeColorCellView.h; sourceTree = "<group>"; };
 		1543743B22EDDF5E00AF00A5 /* ColorPickerViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ColorPickerViewController.h; sourceTree = "<group>"; };
 		1543743C22EDDF7400AF00A5 /* ColorPickerViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ColorPickerViewController.m; sourceTree = "<group>"; };
+		154ACDF926FA45EA00BAF716 /* SmileyAlertView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SmileyAlertView.h; sourceTree = "<group>"; };
+		154ACDFA26FA45EA00BAF716 /* SmileyAlertView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SmileyAlertView.m; sourceTree = "<group>"; };
 		154C0D01250FD66E00294ECC /* person.3.fill-2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "person.3.fill-2.png"; sourceTree = "<group>"; };
 		154C0D02250FD66E00294ECC /* person.3.fill-2@2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "person.3.fill-2@2.png"; sourceTree = "<group>"; };
 		154F823624C8893500BC46B2 /* RehostImageViewController.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = RehostImageViewController.xib; sourceTree = "<group>"; };
@@ -1923,6 +1926,8 @@
 		01BF8A0C121D7450007624B6 /* Common */ = {
 			isa = PBXGroup;
 			children = (
+				154ACDF926FA45EA00BAF716 /* SmileyAlertView.h */,
+				154ACDFA26FA45EA00BAF716 /* SmileyAlertView.m */,
 				1D3623240D0F684500981E51 /* HFRplusAppDelegate.h */,
 				1D3623250D0F684500981E51 /* HFRplusAppDelegate.m */,
 				01BF8C4A121DBB09007624B6 /* UIAlertViewURL.h */,
@@ -3276,9 +3281,7 @@
 				LastUpgradeCheck = 1020;
 				TargetAttributes = {
 					CA7C6FA3185EF50E00B348BA = {
-						DevelopmentTeam = NCJNK4ZZ54;
 						LastSwiftMigration = 0910;
-						ProvisioningStyle = Manual;
 						SystemCapabilities = {
 							com.apple.Keychain = {
 								enabled = 1;
@@ -3955,6 +3958,7 @@
 				1591C0E02490170D0025560A /* SmileyViewController.m in Sources */,
 				4C0B8E051BA45B0100D329BA /* ForumCellView.m in Sources */,
 				CA7C70DF185EF50E00B348BA /* AddMessageViewController.m in Sources */,
+				154ACDFB26FA45EA00BAF716 /* SmileyAlertView.m in Sources */,
 				D80DBD6E1E55BE730051B751 /* ASIDataDecompressor.m in Sources */,
 				D86ED58820447D1200A2D541 /* LuminosityHandler.m in Sources */,
 				15F4F46522F1D32F00A7AC97 /* ThemeBrightnessCellView.m in Sources */,
@@ -4250,12 +4254,12 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = "Classic-Red";
 				ASSETCATALOG_COMPILER_OPTIMIZATION = time;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = YES;
 				CURRENT_PROJECT_VERSION = 90;
-				DEVELOPMENT_TEAM = NCJNK4ZZ54;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4288,7 +4292,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super;
 				PRODUCT_NAME = SuperHFRplusSwift;
-				PROVISIONING_PROFILE_SPECIFIER = "SuperHFRplus App Store";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "SuperHFRplus/SuperHFRplus-Bridging-Header.h";
 				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

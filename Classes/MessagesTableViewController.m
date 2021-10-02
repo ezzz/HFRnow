@@ -39,7 +39,7 @@
 #import "OfflineStorage.h"
 #import "FilterPostsQuotes.h"
 #import "Bookmark.h"
-#import "UIImage+GIF.h"
+#import "SmileyAlertView.h"
 
 @implementation MessagesTableViewController
 
@@ -1415,59 +1415,6 @@
     
 }
 
-#pragma mark - Smileys tap handling
-
-- (void)didSelectSmiley:(NSString *)sSmileyCode withUrl:(NSString *)sSmileyImgUrl
-{
-    self.sSelectedSmileyCode = sSmileyCode;
-    self.sSelectedSmileyImageURL = sSmileyImgUrl;
-
-    UIAlertController* alert = [UIAlertController alertControllerWithTitle:nil message:[NSString stringWithFormat:@"\n\n\n\n\n%@", sSmileyCode]
-                                                            preferredStyle:UIAlertControllerStyleAlert];
-    UIAlertAction* actionYes = [UIAlertAction actionWithTitle:@"Ajouter aux favoris" style:UIAlertActionStyleDefault
-                                                      handler:^(UIAlertAction * action) { }];
-    UIAlertAction* actionNo = [UIAlertAction actionWithTitle:@"Codes du smiley" style:UIAlertActionStyleDefault
-                                                     handler:^(UIAlertAction * action) { [self showSmileyKeywords]; }];
-    UIAlertAction* actionDel = [UIAlertAction actionWithTitle:@"Annuler" style:UIAlertActionStyleCancel
-                                                      handler:^(UIAlertAction * action) { }];
-    
-    [alert addAction:actionYes];
-    [alert addAction:actionNo];
-    [alert addAction:actionDel];
-    NSURL *url = [NSURL URLWithString:sSmileyImgUrl];
-    NSData *data = [NSData dataWithContentsOfURL:url];
-    UIImage *bkgImg = [UIImage sd_animatedGIFWithData:data];
-    CGFloat f = 1.45;
-    CGFloat w = f*70;
-    CGFloat h = f*50;
-    UIImageView *imageView = nil;
-    if (bkgImg.size.width/bkgImg.size.height > 70/50) {
-        w = f*70;
-        h = f*bkgImg.size.height/bkgImg.size.width*70;
-        imageView = [[UIImageView alloc] initWithFrame:CGRectMake(85, 20+(f*50-h)/2, w, h)];
-    }
-    else {
-        w = f*bkgImg.size.width/bkgImg.size.height*50;
-        h = f*50;
-        imageView = [[UIImageView alloc] initWithFrame:CGRectMake(85+(f*70-w)/2, 20, w, h)];
-    }
-    NSLog(@"W:%f X:%f (%@) w:%f h:%f", alert.view.frame.size.width, (alert.view.frame.size.width - 70)/2, NSStringFromCGRect(alert.view.frame), w, h);
-    [imageView setImage:bkgImg];
-    [alert.view addSubview:imageView];
-    [self presentViewController:alert animated:YES completion:nil];
-    [[ThemeManager sharedManager] applyThemeToAlertController:alert];
-}
-
-- (void)showSmileyKeywords
-{
-    if (self.smileyCodeTableViewController == nil)
-    {
-        self.smileyCodeTableViewController = [[SmileyCodeTableViewController alloc] init];
-    }
-    self.smileyCodeTableViewController.sSmileyName = self.sSelectedSmileyCode;
-    [self.navigationController pushViewController:self.smileyCodeTableViewController animated:YES];
-}
-
 #pragma mark - searchNewMessages
 
 -(void)searchNewMessages:(int)from {
@@ -2249,9 +2196,10 @@
         {
             NSLog(@"URL %@", [aRequest.URL absoluteString]);
             NSString *regularExpressionString = @"oijlkajsdoihjlkjasdosmiley://([^/]+)/(.*)";
-            NSString* sSmileyCode = [[aRequest.URL absoluteString] stringByMatching:regularExpressionString capture:1L];
-            NSString* sSmileyUrl = [[[[aRequest.URL absoluteString] stringByMatching:regularExpressionString capture:2L] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];;
-            [self didSelectSmiley:sSmileyCode withUrl:sSmileyUrl];
+            NSString* sSmileyCode = [[[aRequest.URL absoluteString] stringByMatching:regularExpressionString capture:1L] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+            NSString* sSmileyImgUrl = [[[[aRequest.URL absoluteString] stringByMatching:regularExpressionString capture:2L] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+            NSLog(@"sSmileyImgUrl :%@",sSmileyImgUrl);
+            [[SmileyAlertView shared] displaySmileyAjouterCancel:sSmileyCode withUrl:sSmileyImgUrl showKeyworkds:YES baseController:self];
             bAllow = NO;
         }
         else {

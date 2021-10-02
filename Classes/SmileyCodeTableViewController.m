@@ -35,7 +35,8 @@
 
     self.title = sSmileyName;
     self.navigationController.navigationBar.translucent = NO;
-    self.codeListTableView.tableFooterView = [[UIView alloc] initWithFrame:CGRectZero];
+    //self.codeListTableView.tableFooterView = [[UIView alloc] initWithFrame:CGRectZero];
+    self.codeListTableView.contentInset = UIEdgeInsetsMake(0, 0, 0, 0);
 }
 
 - (void) viewWillAppear:(BOOL)animated
@@ -47,7 +48,8 @@
     /*if (self.codeListTableView.indexPathForSelectedRow) {
         [self.codeListTableView deselectRowAtIndexPath:self.plusTableView.indexPathForSelectedRow animated:NO];
     }*/
-    [self requestSmileyCode];
+    [self.loadingView setHidden:YES];
+    [self.codeListTableView reloadData];
 }
 
 /*
@@ -67,10 +69,11 @@
     SmileyCodeCellView *cell = [tableView dequeueReusableCellWithIdentifier:@"SmileyCodeCellId"];
     cell.titleLabel.text = [self.arrCodeList objectAtIndex:indexPath.row];
             
-    cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
-    cell.selectionStyle = UITableViewCellSelectionStyleNone;
+    cell.accessoryType = UITableViewCellAccessoryNone;
 
     [[ThemeManager sharedManager] applyThemeToCell:cell];
+
+    cell.selectionStyle = UITableViewCellSelectionStyleNone;
 
     return cell;
 }
@@ -84,48 +87,7 @@
     return 45;
 }
 
-- (void)requestSmileyCode
-{
-    //Url wiki details : https://forum.hardware.fr/wikismilies.php?config=hfr.inc&detail=%5B%3Aezzz%5D
-    NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"https://forum.hardware.fr/wikismilies.php?config=hfr.inc&detail=%@", [self.sSmileyName stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLHostAllowedCharacterSet]]]];
-    ASIHTTPRequest* request = [ASIHTTPRequest requestWithURL:url];
-    [request setShouldRedirect:NO];
-    [request setDelegate:self];
-    request.timeOutSeconds = 2;
-    [request setDidFinishSelector:@selector(requestSmileyComplete:)];
-    [request setDidFailSelector:@selector(requestSmileyFailed:)];
-    [request startAsynchronous];
-    [self.loadingView setHidden:NO];
-}
 
-- (void)requestSmileyComplete:(ASIHTTPRequest *)request
-{
-    NSString* content = [request responseString];
-    self.arrCodeList = [[NSMutableArray alloc] init];
-    if (content) {
-        @try {
-            NSError *error;
-            //NSLog(@"\n----------------------------------------------------\n%@\n----------------------------------------------------", content);
-            HTMLParser *myParser = [[HTMLParser alloc] initWithString:content error:&error];
-            HTMLNode * bodyNode = [myParser body]; //Find the body tag
-            HTMLNode *inputNode = [bodyNode findChildWithAttribute:@"name" matchingName:@"keywords0" allowPartial:NO];
-            NSString* text = [inputNode getAttributeNamed:@"value"];
-            NSLog(@"Lol: %@", text);
-            self.arrCodeList = [[text componentsSeparatedByString:@" "] copy];
-            [self.loadingView setHidden:YES];
-        }
-        @catch (NSException * e) {
-            NSLog(@"Exception: %@", e);
-        }
-        @finally {}
-    }
-    [self.codeListTableView reloadData];
-    [self.loadingView setHidden:YES];
-}
-
-- (void)requestSmileyFailed:(ASIHTTPRequest *)request
-{
-}
 
 @end
 
