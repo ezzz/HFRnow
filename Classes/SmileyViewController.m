@@ -284,6 +284,8 @@ static CGFloat fCellImageSize = 1;
 - (__kindof UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath
 {
     @try {
+        //NSLog(@"Loading cell %d",indexPath.row);
+        
         //CGRect f = self.collectionSmileys.frame;
         SmileyCollectionCell* cell = [collectionView dequeueReusableCellWithReuseIdentifier:@"SmileyCollectionCellId" forIndexPath:indexPath];
         UIImage* image = nil;//[UIImage imageNamed:@"19-gear"];
@@ -293,11 +295,13 @@ static CGFloat fCellImageSize = 1;
                 image = [self.smileyCache getImageDefaultSmileyForIndex:(int)indexPath.row];
             }
             else {
-                image = [self.smileyCache getImageForIndex:(int)(indexPath.row - self.smileyCache.dicCommonSmileys.count) forCollection:collectionView customSmiley:YES];
+                image = [self.smileyCache getImageForIndex:(int)(indexPath.row - self.smileyCache.dicCommonSmileys.count)
+                                             forCollection:collectionView andIndexPath:indexPath customSmiley:YES];
             }
         }
         else {
-            image = [self.smileyCache getImageForIndex:(int)indexPath.row forCollection:collectionView customSmiley:NO];
+            image = [self.smileyCache getImageForIndex:(int)indexPath.row
+                                         forCollection:collectionView andIndexPath:indexPath customSmiley:NO];
         }
 
         CGFloat ch = cell.bounds.size.height;

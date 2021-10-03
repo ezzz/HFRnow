@@ -41,7 +41,7 @@
 - (void) handleSearchSmileyArray:(NSMutableArray*)arrSmileys forCollection:(UICollectionView*)cv spinner:(UIActivityIndicatorView*)spinner;
 - (void) handleCustomSmileyArray:(NSMutableArray*)arrSmileys;
 - (UIImage*) getImageDefaultSmileyForIndex:(int)index;
-- (UIImage*) getImageForIndex:(int)index forCollection:(UICollectionView*)cv customSmiley:(BOOL)bCustomSmiley;
+- (UIImage*) getImageForIndex:(int)index forCollection:(UICollectionView*)cv andIndexPath:(NSIndexPath*)ip customSmiley:(BOOL)bCustomSmiley;
 - (NSMutableArray*) getSmileyListForText:(NSString*)sTextSmileys;
 - (NSString*) getSmileyCodeForIndex:(int)index;
 - (NSString*) getSmileyImgUrlForIndex:(int)index;
