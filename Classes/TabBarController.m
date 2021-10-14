@@ -60,6 +60,7 @@
     }
 }
 
+/*
 -(UITraitCollection *)traitCollection
 {
     //NSLog(@"traitCollection");
@@ -67,11 +68,11 @@
     *realTraits = [super traitCollection],
     *lieTrait = [UITraitCollection traitCollectionWithHorizontalSizeClass:UIUserInterfaceSizeClassCompact];
 
-    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
-        return [UITraitCollection traitCollectionWithTraitsFromCollections:@[realTraits, lieTrait]];
-    } else {
+    /*if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+        return [UITraitCollection traitCollectionWithTraitsFromCollections:@[realTraits]];//, lieTrait]];
+    } else {*/
         return [UITraitCollection traitCollectionWithTraitsFromCollections:@[realTraits]];
-    }
+    //}
 }
 
 -(void)setThemeFromNotification:(NSNotification *)notification{
@@ -168,6 +169,10 @@
                                              selector:@selector(setThemeFromNotification:)
                                             name:kThemeChangedNotification
                                                object:nil];
+}
+
+- (void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
+    [super viewWillTransitionToSize:size withTransitionCoordinator:coordinator];
 }
 
 - (void)viewDidLayoutSubviews{
