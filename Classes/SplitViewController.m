@@ -50,12 +50,36 @@
     //[self setPreferredDisplayMode:UISplitViewControllerDisplayModeAllVisible];
 }
 
-- (void)viewDidUnload
+/*
+- (void)viewDidLayoutSubviews
 {
+    const CGFloat kMasterViewWidth = [UIScreen mainScreen].bounds.size.width * 1/4;
+    if ((UIInterfaceOrientationIsPortrait(self.interfaceOrientation))) {
+        kMasterViewWidth = [UIScreen mainScreen].bounds.size.width * 2/5;
+    }
     
-    [super viewDidUnload];
-    // Release any retained subviews of the main view.
-}
+    UIViewController *masterViewController = [self.viewControllers objectAtIndex:0];
+    UIViewController *detailViewController = [self.viewControllers objectAtIndex:1];
+    
+    if (detailViewController.view.frame.origin.x > 0.0) {
+        // Adjust the width of the master view
+        CGRect masterViewFrame = masterViewController.view.frame;
+        CGFloat deltaX = masterViewFrame.size.width - kMasterViewWidth;
+        masterViewFrame.size.width -= deltaX;
+        masterViewController.view.frame = masterViewFrame;
+
+        // Adjust the width of the detail view
+        CGRect detailViewFrame = detailViewController.view.frame;
+        detailViewFrame.origin.x -= deltaX;
+        detailViewFrame.size.width += deltaX;
+        detailViewController.view.frame = detailViewFrame;
+
+        [masterViewController.view setNeedsLayout];
+        [detailViewController.view setNeedsLayout];
+    }
+    
+    [super viewWillLayoutSubviews];
+}*/
 
 - (UIStatusBarStyle)preferredStatusBarStyle {
     if ([[ThemeManager sharedManager] theme] == ThemeLight) {
