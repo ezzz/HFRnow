@@ -157,7 +157,7 @@ NSString *const PLACEHOLDER = @"Attention : le message que vous écrivez ici ser
         [HFRAlertView  DisplayOKAlertViewWithTitle:[[messagesNode contents] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] andMessage:nil handlerOK:^(UIAlertAction * action) {
             [[NSNotificationCenter defaultCenter] postNotificationName:@"VisibilityChanged" object:nil];
             [self.delegate alertModoViewControllerDidFinish:self];
-        }];
+        } baseController:self];
     }
     else {
         HTMLNode * fastAnswerNode = [bodyNode findChildWithAttribute:@"action" matchingName:@"modo.php" allowPartial:YES];
@@ -232,7 +232,7 @@ NSString *const PLACEHOLDER = @"Attention : le message que vous écrivez ici ser
             [HFRAlertView DisplayAlertViewWithTitle:@"Hooray !" andMessage:[[messagesNode contents] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] forDuration:(long)1 completion:^{
                 [[NSNotificationCenter defaultCenter] postNotificationName:@"VisibilityChanged" object:nil];
                 [self.delegate alertModoViewControllerDidFinishOK:self];
-            }];
+            } baseController:self];
         }
     }
 }
