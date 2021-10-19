@@ -715,6 +715,7 @@
 		D8685928214D5E200054617C /* style-liste-retina-oled.css in Resources */ = {isa = PBXBuildFile; fileRef = D8685926214D5E200054617C /* style-liste-retina-oled.css */; };
 		D86ED58520445F5C00A2D541 /* UIImage+BezierPath.m in Sources */ = {isa = PBXBuildFile; fileRef = D86ED58420445F5C00A2D541 /* UIImage+BezierPath.m */; };
 		D86ED58820447D1200A2D541 /* LuminosityHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = D86ED58720447D1200A2D541 /* LuminosityHandler.m */; };
+		D873E007271DBC5B006262C8 /* HFRplusTabBar.m in Sources */ = {isa = PBXBuildFile; fileRef = D873E006271DBC5B006262C8 /* HFRplusTabBar.m */; };
 		D87BB73F216266BA0079690C /* CompteTableViewCell.xib in Resources */ = {isa = PBXBuildFile; fileRef = D87BB73E216266BA0079690C /* CompteTableViewCell.xib */; };
 		D87BB742216266F00079690C /* CompteTableViewCell.m in Sources */ = {isa = PBXBuildFile; fileRef = D87BB740216266F00079690C /* CompteTableViewCell.m */; };
 		D8835E841E5F13C70073398C /* MKAnnotationView+WebCache.m in Sources */ = {isa = PBXBuildFile; fileRef = D8835E631E5F13C70073398C /* MKAnnotationView+WebCache.m */; };
@@ -1680,6 +1681,8 @@
 		D86ED58420445F5C00A2D541 /* UIImage+BezierPath.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "UIImage+BezierPath.m"; sourceTree = "<group>"; };
 		D86ED58620447D1200A2D541 /* LuminosityHandler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LuminosityHandler.h; sourceTree = "<group>"; };
 		D86ED58720447D1200A2D541 /* LuminosityHandler.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LuminosityHandler.m; sourceTree = "<group>"; };
+		D873E005271DBC05006262C8 /* HFRplusTabBar.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HFRplusTabBar.h; sourceTree = "<group>"; };
+		D873E006271DBC5B006262C8 /* HFRplusTabBar.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HFRplusTabBar.m; sourceTree = "<group>"; };
 		D87BB73E216266BA0079690C /* CompteTableViewCell.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = CompteTableViewCell.xib; sourceTree = "<group>"; };
 		D87BB740216266F00079690C /* CompteTableViewCell.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CompteTableViewCell.m; sourceTree = "<group>"; };
 		D87BB741216266F00079690C /* CompteTableViewCell.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CompteTableViewCell.h; sourceTree = "<group>"; };
@@ -2601,6 +2604,8 @@
 				152D2D492456E56500D9D644 /* ASIHTTPRequest+Tools.m */,
 				1553568A24A87EA200917DE1 /* UILabel+Boldify.h */,
 				1553568B24A87EBC00917DE1 /* UILabel+Boldify.m */,
+				D873E005271DBC05006262C8 /* HFRplusTabBar.h */,
+				D873E006271DBC5B006262C8 /* HFRplusTabBar.m */,
 			);
 			path = Helpers;
 			sourceTree = "<group>";
@@ -4056,6 +4061,7 @@
 				4C3903671BCACEC200FD6F1F /* PSTCollectionViewUpdateItem.m in Sources */,
 				1503755821FF794200A5F7E1 /* PlusCellView.m in Sources */,
 				151DE8D723AAC74D003E6D1B /* OldFavoritesTableViewController.m in Sources */,
+				D873E007271DBC5B006262C8 /* HFRplusTabBar.m in Sources */,
 				4C00313E1BD0404500F87F13 /* UIWebView+FLUIWebView.m in Sources */,
 				4C3903591BCACEC200FD6F1F /* PSTCollectionView.m in Sources */,
 				4C39036F1BCACEC200FD6F1F /* PSTGridLayoutSection.m in Sources */,
