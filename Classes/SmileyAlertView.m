@@ -16,6 +16,7 @@
 #import "HTMLParser.h"
 #import "ASIFormDataRequest.h"
 #import "HFRplusAppDelegate.h"
+#import "SmileyCache.h"
 
 @implementation SmileyAlertView
 
@@ -40,28 +41,28 @@ static SmileyAlertView *_shared = nil;    // static instance variable
 }
 
 #pragma mark - Smiley alertview methods
-- (void) displaySmileyAjouterCancel:(NSString *)sSmileyCode withUrl:(NSString *)sSmileyImgUrl showKeyworkds:(BOOL)bShowKeywords baseController:(UIViewController*)vc
+- (void) displaySmileyAjouterCancel:(NSString *)sSmileyCode withUrl:(NSString *)sSmileyImgUrl handlerDone:(dispatch_block_t)handlerDone handlerFailed:(dispatch_block_t)handlerFailed showKeyworkds:(BOOL)bShowKeywords baseController:(UIViewController*)vc
 {
     self.bAddSmiley = YES;
     self.bShowKeywords = bShowKeywords;
     [self displaySmileyActionCancel:(NSString*)sSmileyCode withUrl:(NSString*)sSmileyImgUrl
-                     handlerOK:^(UIAlertAction * action) { [self addAsPersonalSmileyConfirm]; }
-                     handlerCancel:nil
+                        handlerDone:handlerDone
+                      handlerFailed:handlerFailed
                      baseController:(UIViewController*)vc];
 }
 
-- (void) displaySmileyRetirerCancel:(NSString *)sSmileyCode withUrl:(NSString *)sSmileyImgUrl showKeyworkds:(BOOL)bShowKeywords baseController:(UIViewController*)vc
+- (void) displaySmileyRetirerCancel:(NSString *)sSmileyCode withUrl:(NSString *)sSmileyImgUrl handlerDone:(dispatch_block_t)handlerDone handlerFailed:(dispatch_block_t)handlerFailed showKeyworkds:(BOOL)bShowKeywords baseController:(UIViewController*)vc
 {
     self.bAddSmiley = NO;
     self.bShowKeywords = bShowKeywords;
     [self displaySmileyActionCancel:(NSString*)sSmileyCode withUrl:(NSString*)sSmileyImgUrl
-                     handlerOK:^(UIAlertAction * action) { [self addAsPersonalSmileyConfirm]; }
-                     handlerCancel:nil
+                        handlerDone:handlerDone
+                      handlerFailed:handlerFailed
                      baseController:(UIViewController*)vc];
 }
 
 
-- (void) displaySmileyActionCancel:(NSString *)sSmileyCode withUrl:(NSString *)sSmileyImgUrl handlerOK:(void (^ __nullable)(UIAlertAction *action))handlerOK handlerCancel:(void (^ __nullable)(UIAlertAction *action))handlerCancel baseController:(UIViewController*)vc
+- (void) displaySmileyActionCancel:(NSString *)sSmileyCode withUrl:(NSString *)sSmileyImgUrl handlerDone:(dispatch_block_t)handlerDone handlerFailed:(dispatch_block_t)handlerFailed baseController:(UIViewController*)vc
 {
     self.sSelectedSmileyCode = sSmileyCode;
     self.sSelectedSmileyImageURL = sSmileyImgUrl;
@@ -75,8 +76,15 @@ static SmileyAlertView *_shared = nil;    // static instance variable
         sActionName = @"Retirer des favoris";
     }
 
-    UIAlertAction* actionYes = [UIAlertAction actionWithTitle:sActionName style:UIAlertActionStyleDefault
-                                                      handler:^(UIAlertAction * action) { [self addAsPersonalSmileyConfirm]; }];
+    UIAlertAction* actionYes = nil;
+    if (self.bAddSmiley) {
+        actionYes = [UIAlertAction actionWithTitle:sActionName style:UIAlertActionStyleDefault
+                                           handler:^(UIAlertAction * action) { [self addToFavoriteSmileys:handlerDone handlerFailed:handlerFailed]; }];
+    }
+    else {
+        actionYes = [UIAlertAction actionWithTitle:sActionName style:UIAlertActionStyleDefault
+                                                          handler:^(UIAlertAction * action) { [self removeFromFavoriteSmileys:handlerDone handlerFailed:handlerFailed]; }];
+    }
     UIAlertAction* actionDel = [UIAlertAction actionWithTitle:@"Annuler" style:UIAlertActionStyleCancel
                                                       handler:^(UIAlertAction * action) { }];
     if (self.bShowKeywords) {
@@ -84,24 +92,25 @@ static SmileyAlertView *_shared = nil;    // static instance variable
                                                    handler:^(UIAlertAction * action) { [self showSmileyKeywords:vc]; }];
         [self.actionSmileyCode setEnabled:NO];
     }
-    //[alert addAction:actionYes];
+    [alert addAction:actionYes];
     if (self.bShowKeywords) {
         [alert addAction:self.actionSmileyCode];
     }
     [alert addAction:actionDel];
-    NSURL *url = [NSURL URLWithString:sSmileyImgUrl];
+    NSURL *url = [NSURL URLWithString:[sSmileyImgUrl stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]]];
     NSData *data = [NSData dataWithContentsOfURL:url];
+    UIImage *bkgImg;
+
+    CGFloat f = 1.45;
+    CGFloat w = f*70;
+    CGFloat h = f*50;
+    UIImageView *imageView = nil;
+
     if (data) {
-        UIImage *bkgImg = [UIImage sd_animatedGIFWithData:data];
-        CGFloat f = 1.45;
-        CGFloat w = f*70;
-        CGFloat h = f*50;
-        UIImageView *imageView = nil;
-        
+        bkgImg = [UIImage sd_animatedGIFWithData:data];
         CGFloat w2 = bkgImg.size.width;
         CGFloat h2 = bkgImg.size.height;
         NSLog(@"Image w:%f h:%f", w2, h2);
-        //ori if (bkgImg.size.width/bkgImg.size.height > 70/50) {
         if (f*bkgImg.size.height/bkgImg.size.width*70 <= 50) {
             w = f*70;
             h = f*bkgImg.size.height/bkgImg.size.width*70;
@@ -112,35 +121,36 @@ static SmileyAlertView *_shared = nil;    // static instance variable
             h = f*50;
             imageView = [[UIImageView alloc] initWithFrame:CGRectMake(85+(f*70-w)/2, 20, w, h)];
         }
-        NSLog(@"W:%f X:%f (%@) w:%f h:%f", alert.view.frame.size.width, (alert.view.frame.size.width - 70)/2, NSStringFromCGRect(alert.view.frame), w, h);
-        [imageView setImage:bkgImg];
-        [alert.view addSubview:imageView];
-        if (self.bShowKeywords) {
-            [self requestSmileyCode];
-        }
-        [vc presentViewController:alert animated:YES completion:nil];
-        [[ThemeManager sharedManager] applyThemeToAlertController:alert];
     }
+    else {
+        f = 0.5;
+        bkgImg = [UIImage imageNamed:@"clear"];
+        w = f*bkgImg.size.width/bkgImg.size.height*50;
+        h = f*50;
+        imageView = [[UIImageView alloc] initWithFrame:CGRectMake(85+(100-w)/2, 40, w, h)];
+    }
+        
+    //NSLog(@"W:%f X:%f (%@) w:%f h:%f", alert.view.frame.size.width, (alert.view.frame.size.width - 70)/2, NSStringFromCGRect(alert.view.frame), w, h);
+    [imageView setImage:bkgImg];
+    [alert.view addSubview:imageView];
+    if (self.bShowKeywords) {
+        [self requestSmileyCode];
+    }
+    [vc presentViewController:alert animated:YES completion:nil];
+    [[ThemeManager sharedManager] applyThemeToAlertController:alert];
+    
 }
 
-
-- (void)addAsPersonalSmileyConfirm
+- (void)addToFavoriteSmileys:(dispatch_block_t)handlerDone handlerFailed:(dispatch_block_t)handlerFailed
 {
-    if (self.bAddSmiley) {
-        [HFRAlertView DisplayOKCancelAlertViewWithTitle:@"Ajouter ce smiley aux souriards perso ?"
-                                          andMessage:nil
-                                          handlerOK:^(UIAlertAction * action) {[self addAsPersonalSmiley];}];
+    if ([[SmileyCache shared] AddAndSaveDicFavorites:self.sSelectedSmileyCode source:self.sSelectedSmileyImageURL addSmiley:YES]) {
+        dispatch_async(dispatch_get_main_queue(), handlerDone);
     }
-    else
-    {
-        [HFRAlertView DisplayOKCancelAlertViewWithTitle:@"Retirer ce smiley des souriards perso ?"
-                                          andMessage:nil
-                                          handlerOK:^(UIAlertAction * action) {[self removeFromPersonalSmiley];}];
+    else {
+        dispatch_async(dispatch_get_main_queue(), handlerFailed);
     }
-}
 
-- (void)addAsPersonalSmiley
-{
+    /*
     NSString* s = @"https://forum.hardware.fr/user/addperso.php?config=hfr.inc";
 
     ASIFormDataRequest  *arequest = [[ASIFormDataRequest  alloc]  initWithURL:[NSURL URLWithString:s]];
@@ -163,57 +173,16 @@ static SmileyAlertView *_shared = nil;    // static instance variable
             NSString* msg = [[messagesNode contents] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
             [HFRAlertView DisplayAlertViewWithTitle:nil andMessage:msg forDuration:(long)1 completion:nil];
         }
-    }
+    }*/
 }
 
-- (void)removeFromPersonalSmiley
+- (void)removeFromFavoriteSmileys:(dispatch_block_t)handlerDone handlerFailed:(dispatch_block_t)handlerFailed
 {
-    
-    // Note ezzz: currently not working. Request returns nil :/ Surely an issue with the parameter codehex missing.
-    /*
-     <form name="test" action="supprperso_validation.php?config=hfr.inc&amp;codehex=9219174314d59fb81e5c1b0369d65559" method="post">
-    <input type="hidden" name="hash_check" value="3e64a94aabae7c490aff10da4da92036"><table class="main hfr4kMainTab" cellspacing="0" cellpadding="4">
-        <tbody><tr class="cBackHeader">
-            <th colspan="3">Enlever un  smilie personnalisé de votre liste des favoris</th>
-        </tr>
-        <tr class="cBackHeader">
-            <th>Ce que vous allez taper</th>
-            <th>Le smilie qui va apparaitre</th>
-            <th>Del.</th>
-        </tr>
-        <tr class="s2Topic">
-            <th class="cBackTab2">[:casediscute]</th>
-            <th class="cBackTab1"><img src="https://forum-images.hardware.fr/images/perso/casediscute.gif" alt="[:casediscute]"></th>
-            <th class="cBackTab1"><input type="hidden" name="smiley0" value="[:casediscute]"><input type="checkbox" name="delete0"></th>
-        </tr>
-
-    <input type="submit" value="Supprimer les smilies de votre liste de smilies préférés">
-    </form>*/
-    
-    
-    NSString* s = @"https://forum.hardware.fr/user/supprperso_validation.php?config=hfr.inc";
-
-    ASIFormDataRequest  *arequest = [[ASIFormDataRequest  alloc]  initWithURL:[NSURL URLWithString:s]];
-    [arequest setPostValue:[[HFRplusAppDelegate sharedAppDelegate] hash_check] forKey:@"hash_check"];
-    [arequest setPostValue:[self.sSelectedSmileyCode stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLHostAllowedCharacterSet]] forKey:@"smiley0"];
-    [arequest setPostValue:@"1" forKey:@"delete0"];
-    [arequest startSynchronous];
-    
-    if (arequest) {
-        if ([arequest error]) {
-            // Popup erreur
-            [HFRAlertView DisplayAlertViewWithTitle:@"Oooops !" andMessage:@"Smiley non retiré :'(" forDuration:(long)1 completion:nil];
-        }
-        else if ([arequest safeResponseString])
-        {
-            NSLog(@"Smileys persos request: %@", [arequest safeResponseString]);
-            NSError * error = nil;
-            HTMLParser *myParser = [[HTMLParser alloc] initWithString:[arequest safeResponseString] error:&error];
-            HTMLNode * bodyNode = [myParser body]; //Find the body tag
-            HTMLNode * messagesNode = [bodyNode findChildWithAttribute:@"class" matchingName:@"hop" allowPartial:NO]; //Get all the <img alt="" />
-            NSString* msg = [[messagesNode contents] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-            [HFRAlertView DisplayAlertViewWithTitle:nil andMessage:msg forDuration:(long)1 completion:nil];
-        }
+    if ([[SmileyCache shared] AddAndSaveDicFavorites:self.sSelectedSmileyCode source:self.sSelectedSmileyImageURL addSmiley:NO]) {
+        dispatch_async(dispatch_get_main_queue(), handlerDone);
+    }
+    else {
+        dispatch_async(dispatch_get_main_queue(), handlerFailed);
     }
 }
 

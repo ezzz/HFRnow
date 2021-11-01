@@ -21,11 +21,7 @@
 @property SmileyCodeTableViewController* smileyCodeTableViewController;
 + (SmileyAlertView *)shared;
 
-- (void) displaySmileyAjouterCancel:(NSString *)sSmileyCode withUrl:(NSString *)sSmileyImgUrl showKeyworkds:(BOOL)bShowKeywords baseController:(UIViewController*)vc;
-- (void) displaySmileyRetirerCancel:(NSString *)sSmileyCode withUrl:(NSString *)sSmileyImgUrl showKeyworkds:(BOOL)bShowKeywords baseController:(UIViewController*)vc;
+- (void) displaySmileyAjouterCancel:(NSString *)sSmileyCode withUrl:(NSString *)sSmileyImgUrl handlerDone:(dispatch_block_t)handlerDone handlerFailed:(dispatch_block_t)handlerDone showKeyworkds:(BOOL)bShowKeywords baseController:(UIViewController*)vc;
+- (void) displaySmileyRetirerCancel:(NSString *)sSmileyCode withUrl:(NSString *)sSmileyImgUrl handlerDone:(dispatch_block_t)handlerDone handlerFailed:(dispatch_block_t)handlerDone showKeyworkds:(BOOL)bShowKeywords baseController:(UIViewController*)vc;
 
-/*
- - (void) displaySmileyActionCancel:(NSString *)sSmileyCode withUrl:(NSString *)sSmileyImgUrl handlerOK:(void (^ __nullable)(UIAlertAction *action))handlerOK handlerCancel:(void (^ __nullable)(UIAlertAction *action))handlerCancel baseController:(UIViewController*)vc;
-
-*/
 @end

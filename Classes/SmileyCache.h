@@ -10,6 +10,12 @@
 
 #import <Foundation/Foundation.h>
 
+typedef enum {
+    ArraySmileysDefault           = 0,
+    ArraySmileysSearch            = 1,
+    ArraySmileysFavorites         = 2,
+} SmileArrayEnum;
+
 @interface SmileyRequest : NSObject {
 }
 
@@ -28,23 +34,27 @@
 
 @property (nonatomic, strong) NSMutableArray* arrCurrentSmileyArray;
 @property (nonatomic, strong) NSMutableArray* arrCustomSmileys;
+@property (nonatomic, strong) NSMutableArray* arrFavoritesSmileys;
 @property (nonatomic, strong) NSCache* cacheSmileys;
 @property (nonatomic, strong) NSCache* cacheSmileysDefaults;
 @property (nonatomic, strong) NSCache* cacheSmileyRequests;
 @property BOOL bStopLoadingSmileysSearchToCache;
+@property BOOL bStopLoadingSmileysFavoritesToCache;
 @property BOOL bStopLoadingSmileysCustomToCache;
 @property BOOL bSearchSmileysActivated;
 @property (nonatomic, strong) NSMutableArray *dicCommonSmileys;
 @property (nonatomic, strong) NSMutableArray *dicSearchSmileys;
-
+@property (nonatomic, strong) NSMutableDictionary *dicFavoritesSmileys;
+@property int iNbFailuresLoadingSmileys;
 + (SmileyCache *) shared;
 - (void) handleSearchSmileyArray:(NSMutableArray*)arrSmileys forCollection:(UICollectionView*)cv spinner:(UIActivityIndicatorView*)spinner;
-- (void) handleCustomSmileyArray:(NSMutableArray*)arrSmileys;
+- (void) handleCustomSmileyArray:(NSMutableArray*)arrSmileys forCollection:(UICollectionView*)cv;
 - (UIImage*) getImageDefaultSmileyForIndex:(int)index;
-- (UIImage*) getImageForIndex:(int)index forCollection:(UICollectionView*)cv andIndexPath:(NSIndexPath*)ip customSmiley:(BOOL)bCustomSmiley;
+- (UIImage*) getImageForIndex:(int)index forCollection:(UICollectionView*)cv andIndexPath:(NSIndexPath*)ip customSmiley:(SmileArrayEnum)eSmileyArrayType;
 - (NSMutableArray*) getSmileyListForText:(NSString*)sTextSmileys;
-- (NSString*) getSmileyCodeForIndex:(int)index;
-- (NSString*) getSmileyImgUrlForIndex:(int)index;
+- (NSString*) getSmileyCodeForIndex:(int)index bCustom:(BOOL)bCustom;
+- (NSString*) getSmileyImgUrlForIndex:(int)index bCustom:(BOOL)bCustom;
+- (BOOL)AddAndSaveDicFavorites:(NSString*)sCode source:(NSString*)sSource addSmiley:(BOOL)bAdd;
 
 @end
 
