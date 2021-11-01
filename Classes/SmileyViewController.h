@@ -13,7 +13,8 @@
 typedef enum {
     DisplayModeEnumSmileysDefault           = 0,
     DisplayModeEnumSmileysSearch            = 1,
-    DisplayModeEnumTableSearch              = 2,
+    DisplayModeEnumSmileysFavorites         = 2,
+    DisplayModeEnumTableSearch              = 3,
 } DisplayModeEnum;
 
 @interface SmileySearch : NSObject<NSCoding>
@@ -28,15 +29,17 @@ typedef enum {
 @end
 
 
-@interface SmileyViewController : UIViewController <UITextViewDelegate, UITextFieldDelegate, UINavigationControllerDelegate, UICollectionViewDelegate, UICollectionViewDataSource, UITableViewDelegate, UITableViewDataSource> {
-    
+@interface SmileyViewController : UIViewController <UITextViewDelegate, UITextFieldDelegate, UINavigationControllerDelegate, UICollectionViewDelegate, UICollectionViewDataSource, UITableViewDelegate, UITableViewDataSource, UIGestureRecognizerDelegate> {
+    UICollectionView *collectionViewSmileysDefault;
 }
 
 @property (strong, nonatomic) IBOutlet UICollectionView *collectionViewSmileysDefault;
 @property (strong, nonatomic) IBOutlet UICollectionView *collectionViewSmileysSearch;
+@property (strong, nonatomic) IBOutlet UICollectionView *collectionViewSmileysFavorites;
 @property (strong, nonatomic) IBOutlet UITextField *textFieldSmileys;
 @property (strong, nonatomic) IBOutlet UIButton *btnSmileySearch;
 @property (strong, nonatomic) IBOutlet UIButton *btnSmileyDefault;
+@property (strong, nonatomic) IBOutlet UIButton *btnSmileyFavorites;
 @property (strong, nonatomic) IBOutlet UIButton *btnReduce;
 @property (strong, nonatomic) IBOutlet UIActivityIndicatorView *spinnerSmileySearch;
 @property (strong, nonatomic) IBOutlet UITableView *tableViewSearch;

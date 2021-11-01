@@ -48,8 +48,6 @@
         [self.navigationBar addGestureRecognizer:tapRecon];
         self.navigationBar.barStyle = [ThemeColors barStyle:[[ThemeManager sharedManager] theme]];
     }
-
-
 }
 
 -(void)viewWillAppear:(BOOL)animated {
@@ -59,9 +57,8 @@
         if (![self.topViewController isKindOfClass:[MWPhotoBrowser class]]) {
             [self.navigationBar setBottomBorderColor:[UIColor colorWithRed:204.0/255.0 green:204.0/255.0 blue:204.0/255.0 alpha:1.0] height:1];
         }
-  
     }
-
+    [self refreshTheme];
 }
 
 - (void)navigationController:(UINavigationController *)navigationController willShowViewController:(UIViewController *)viewController animated:(BOOL)animated {
@@ -113,7 +110,20 @@
     if ([self.topViewController isKindOfClass:[IASKSpecifierValuesViewController class]]) {
         [(IASKSpecifierValuesViewController *)self.topViewController setThemeColors:theme];
     }
+    
+    [self refreshTheme];
+    
     return @"";
+}
+
+- (void)refreshTheme
+{
+     if (@available(iOS 15.0, *)) {
+         UINavigationBarAppearance *app = [UINavigationBarAppearance new];
+         [app configureWithOpaqueBackground];
+         app.backgroundColor = [ThemeColors navBackgroundColor:[[ThemeManager sharedManager] theme]];
+         self.navigationBar.scrollEdgeAppearance = self.navigationBar.standardAppearance = app;
+     }
 }
 
 -(void)dealloc {

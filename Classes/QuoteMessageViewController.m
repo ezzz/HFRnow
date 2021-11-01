@@ -15,6 +15,9 @@
 #import "ThemeColors.h"
 #import "ThemeManager.h"
 #import "ASIHTTPRequest+Tools.h"
+#import "SmileyCache.h"
+#import "SmileyViewController.h"
+
 
 @implementation QuoteMessageViewController
 @synthesize urlQuote;
@@ -166,7 +169,7 @@
 
     //Traitement des smileys (to Array)
     //[self.smileyArray removeAllObjects]; //RaZ
-    
+    self.arrSmileyCustom = [[NSMutableArray alloc] init];
     for (HTMLNode * imgNode in tmpImageArray) { //Loop through all the tags
         
         NSString *filename = [[imgNode getAttributeNamed:@"src"] stringByReplacingOccurrencesOfString:@"http://forum-images.hardware.fr/" withString:@""];
@@ -188,7 +191,8 @@
         
         
         self.smileyCustom = [self.smileyCustom stringByAppendingFormat:@"<img class=\"smile\" src=\"%@\" alt=\"%@\"/>", key, [imgNode getAttributeNamed:@"alt"]];
-        
+        [self.arrSmileyCustom addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:[imgNode getAttributeNamed:@"src"], [imgNode getAttributeNamed:@"alt"], nil] forKeys:[NSArray arrayWithObjects:@"source", @"code", nil]]];
+        NSLog(@"Custom smiley:%@ - %@",[imgNode getAttributeNamed:@"alt"],[imgNode getAttributeNamed:@"src"]);
         
         
         //self.smileyCustom = [self.smileyCustom stringByAppendingFormat:@"<img class=\"smile\" src=\"%@\" alt=\"%@\"/>", [imgNode getAttributeNamed:@"src"], [imgNode getAttributeNamed:@"alt"]];
@@ -199,7 +203,8 @@
     //NSLog(@"smileyNode %@", rawContentsOfNode([smileyNode _node], [myParser _doc]));
     //NSLog(@"smileyCustom %@", self.smileyCustom);
 
-    
+    [[SmileyCache shared] handleCustomSmileyArray:self.arrSmileyCustom];
+    [self.viewControllerSmileys.collectionViewSmileysDefault reloadData];
     // SMILEY PERSO
     
 	HTMLNode * fastAnswerNode = [bodyNode findChildWithAttribute:@"name" matchingName:@"hop" allowPartial:NO];

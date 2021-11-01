@@ -10,6 +10,7 @@
 #import "MessagesTableViewController.h"
 #import "MessagesSearchTableViewController.h"
 #import "MessageDetailViewController.h"
+#import "SmileyCodeTableViewController.h"
 #import "TopicsTableViewController.h"
 #import "PollTableViewController.h"
 
@@ -38,10 +39,11 @@
 #import "OfflineStorage.h"
 #import "FilterPostsQuotes.h"
 #import "Bookmark.h"
+#import "SmileyAlertView.h"
 
 @implementation MessagesTableViewController
 
-@synthesize loaded, isLoading, _topicName, topicAnswerUrl, loadingView, errorLabelView, messagesWebView, arrayData, updatedArrayData, detailViewController, messagesTableViewController, pollNode, pollParser, isNewPoll;
+@synthesize loaded, isLoading, _topicName, topicAnswerUrl, loadingView, errorLabelView, messagesWebView, arrayData, updatedArrayData, detailViewController, messagesTableViewController, smileyCodeTableViewController, pollNode, pollParser, isNewPoll;
 @synthesize swipeLeftRecognizer, swipeRightRecognizer, overview, arrayActionsMessages, lastStringFlagTopic;
 @synthesize searchBg, searchBox, searchKeyword, searchPseudo, searchFilter, searchFromFP, searchInputData, isSearchInstra, errorReported, isSeparatorNewMessages;
 @synthesize queue;
@@ -53,6 +55,7 @@
 @synthesize request, arrayAction, curPostID;
 @synthesize firstDate;
 @synthesize actionCreateAQ, actionCreateBookmark, canSaveDrapalInMPStorage, topic, filterPostsQuotes, arrFilteredPosts, alertProgress, progressView;
+@synthesize sSelectedSmileyCode, sSelectedSmileyImageURL;
 
 - (void)setTopicName:(NSString *)n {
     _topicName = [n filterTU];
@@ -870,9 +873,8 @@
     swipeLeftRecognizer.direction = UISwipeGestureRecognizerDirectionLeft;
     self.swipeLeftRecognizer = (UISwipeGestureRecognizer *)recognizer;
 	
-    self.messagesWebView.scrollView.alwaysBounceVertical = YES;
-    self.messagesWebView.scrollView.alwaysBounceHorizontal = NO;
-
+    self.messagesWebView.scrollView.contentInset = UIEdgeInsetsMake(0, -0.5, 0, 0);
+    
     //Bouton Repondre message
     if (self.isSearchInstra) {
         UIBarButtonItem *optionsBarItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemSearch target:self action:@selector(searchTopic)];
@@ -1327,7 +1329,8 @@
 	}
 }
 
-- (void) didSelectImage:(int)index withUrl:(NSString *)selectedURL {
+- (void) didSelectImage:(int)index withUrl:(NSString *)selectedURL
+{
 	if (self.isAnimating) {
 		return;
 	}
@@ -1365,9 +1368,6 @@
                 sImgUrl = [sImgUrl stringByReplacingOccurrencesOfString:@"reho.st/thumb/" withString:@"reho.st/preview/"];
             }
         }
-<<<<<<< HEAD
-        NSLog(@"url> %@", sImgUrl);
-=======
         else if ([[imgNode getAttributeNamed:@"alt"] containsString:@"imgur.com/"]) { // imgur
             NSString* sLongdesc = [imgNode getAttributeNamed:@"longdesc"];
             if (sLongdesc.length > 0) {
@@ -1375,9 +1375,6 @@
             }
         }
         
-        NSLog(@"url> %@", sImgUrl);
-        NSLog(@"longdesc> %@", [imgNode getAttributeNamed:@"longdesc"]);
->>>>>>> release/2.1.14
         [imageArray addObject:[MWPhoto photoWithURL:[NSURL URLWithString:sImgUrl]]];
                                                      
         if ([selectedURL isEqualToString:[imgNode getAttributeNamed:@"alt"]]) {
@@ -1418,8 +1415,7 @@
     
 }
 
-#pragma mark -
-#pragma mark searchNewMessages
+#pragma mark - searchNewMessages
 
 -(void)searchNewMessages:(int)from {
     
@@ -1973,7 +1969,12 @@
             }
         }
     } else {
-        [[MPStorage shared] removeMPFlagAsynchronous:[self.arrayInputData[@"post"] intValue]];
+        @try {
+            [[MPStorage shared] removeMPFlagAsynchronous:[self.arrayInputData[@"post"] intValue]];
+        } @catch (NSException *exception) {
+            NSLog(@"Error in [[MPStorage shared] removeMPFlagAsynchronous:[self.arrayInputData[@\"post\"] intValue]];");
+        } @finally {
+        }
     }
 }
 
@@ -1983,12 +1984,6 @@
     NSLog(@"didFinishNavigation");
     [UIApplication sharedApplication].networkActivityIndicatorVisible = NO;
     [self finishWebViewLoading];
-}
-
--(void)scrollViewDidScroll:(UIScrollView *)scrollView
-{
-    if (scrollView.contentOffset.x > 0  ||  scrollView.contentOffset.x < 0 )
-        scrollView.contentOffset = CGPointMake(0, scrollView.contentOffset.y);
 }
 
 - (void)finishWebViewLoading {
@@ -2195,6 +2190,16 @@
             
             [self didSelectImage:[[[[aRequest.URL absoluteString] pathComponents] objectAtIndex:1] intValue] withUrl:imgUrl];
 
+            bAllow = NO;
+        }
+        else if ([[aRequest.URL scheme] isEqualToString:@"oijlkajsdoihjlkjasdosmiley"])
+        {
+            NSLog(@"URL %@", [aRequest.URL absoluteString]);
+            NSString *regularExpressionString = @"oijlkajsdoihjlkjasdosmiley://([^/]+)/(.*)";
+            NSString* sSmileyCode = [[[aRequest.URL absoluteString] stringByMatching:regularExpressionString capture:1L] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+            NSString* sSmileyImgUrl = [[[[aRequest.URL absoluteString] stringByMatching:regularExpressionString capture:2L] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+            NSLog(@"sSmileyImgUrl :%@",sSmileyImgUrl);
+            [[SmileyAlertView shared] displaySmileyAjouterCancel:sSmileyCode withUrl:sSmileyImgUrl showKeyworkds:YES baseController:self];
             bAllow = NO;
         }
         else {

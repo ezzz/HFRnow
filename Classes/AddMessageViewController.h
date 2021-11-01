@@ -12,7 +12,6 @@
 #import "HFRTextView.h"
 
 @import GiphyUISDK;
-@import GiphyCoreSDK;
 
 @protocol AddMessageViewControllerDelegate;
 @class SmileyViewController, RehostImageViewController;
@@ -96,6 +95,7 @@
 
 @property (nonatomic, strong) IBOutlet WKWebView *smileView;
 @property (nonatomic, strong) NSString *smileyCustom;
+@property (nonatomic, strong) NSMutableArray *arrSmileyCustom;
 
 @property (weak, nonatomic) IBOutlet UIButton *btnToolbarImage;
 @property (strong, nonatomic) IBOutlet UIButton *btnToolbarGIF;

@@ -1,4 +1,4 @@
-// swift-tools-version:5.0
+// swift-tools-version:5.2
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -15,11 +15,11 @@ let package = Package(
         .library(
             name: "SimpleKeychain",
             targets: ["SimpleKeychain"]
-        ),
+        )
     ],
     dependencies: [
-        .package(url: "https://github.com/Quick/Quick", from: "2.0.0"),
-        .package(url: "https://github.com/Quick/Nimble", from: "8.0.0"),
+        .package(name: "Quick", url: "https://github.com/Quick/Quick.git", .upToNextMajor(from: "3.0.0")),
+        .package(name: "Nimble", url: "https://github.com/Quick/Nimble.git", .upToNextMajor(from: "9.0.0"))
     ],
     targets: [
         .target(
@@ -31,6 +31,6 @@ let package = Package(
             name: "SimpleKeychainTests",
             dependencies: ["SimpleKeychain", "Quick", "Nimble"],
             path: "SimpleKeychainTests"
-        ),
+        )
     ]
 )

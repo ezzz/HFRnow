@@ -21,7 +21,7 @@ typedef NS_ENUM(NSInteger, bbcodeLinkType) {
     bbcodeLinkOnly
 };
 
-@interface RehostImage : NSObject <NSCoding> {
+@interface RehostImage : NSObject <NSCoding, NSURLSessionDelegate, NSURLSessionTaskDelegate, NSURLSessionDataDelegate> {
 }
 
 @property (nonatomic, strong) NSString *full_width;

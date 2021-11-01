@@ -597,7 +597,7 @@ div[id^=para] {
 .content br {
     display: block;
     margin-bottom: 2px;
-    font-size:2px;
+    font-size:10px;
     line-height: 2px;
 }
 

@@ -19,25 +19,32 @@
 
 @end
 
+@interface ImageInCache : NSObject<NSDiscardableContent>
+@property (nonatomic, strong) UIImage* image;
 
+@end
 @interface SmileyCache : NSObject {
 }
 
 @property (nonatomic, strong) NSMutableArray* arrCurrentSmileyArray;
+@property (nonatomic, strong) NSMutableArray* arrCustomSmileys;
 @property (nonatomic, strong) NSCache* cacheSmileys;
 @property (nonatomic, strong) NSCache* cacheSmileysDefaults;
 @property (nonatomic, strong) NSCache* cacheSmileyRequests;
-@property BOOL bStopLoadingSmileysToCache;
+@property BOOL bStopLoadingSmileysSearchToCache;
+@property BOOL bStopLoadingSmileysCustomToCache;
 @property BOOL bSearchSmileysActivated;
 @property (nonatomic, strong) NSMutableArray *dicCommonSmileys;
 @property (nonatomic, strong) NSMutableArray *dicSearchSmileys;
 
 + (SmileyCache *) shared;
-- (void) handleSmileyArray:(NSMutableArray*)arrSmileys forCollection:(UICollectionView*)cv spinner:(UIActivityIndicatorView*)spinner;
+- (void) handleSearchSmileyArray:(NSMutableArray*)arrSmileys forCollection:(UICollectionView*)cv spinner:(UIActivityIndicatorView*)spinner;
+- (void) handleCustomSmileyArray:(NSMutableArray*)arrSmileys;
 - (UIImage*) getImageDefaultSmileyForIndex:(int)index;
-- (UIImage*) getImageForIndex:(int)index forCollection:(UICollectionView*)cv;
+- (UIImage*) getImageForIndex:(int)index forCollection:(UICollectionView*)cv andIndexPath:(NSIndexPath*)ip customSmiley:(BOOL)bCustomSmiley;
 - (NSMutableArray*) getSmileyListForText:(NSString*)sTextSmileys;
 - (NSString*) getSmileyCodeForIndex:(int)index;
+- (NSString*) getSmileyImgUrlForIndex:(int)index;
 
 @end
 

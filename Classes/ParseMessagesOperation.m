@@ -252,9 +252,10 @@
                 // Parse for video
                 NSArray *hrefNodeArray = [bodyNode findChildrenWithAttribute:@"class" matchingName:@"cLink" allowPartial:NO]; //Get links for cat
                 for (HTMLNode * hrefNode in hrefNodeArray) {
+                    HTMLNode * hrefNodeParent1 = [hrefNode parent];
                     HTMLNode * hrefNodeParent3 = [[[hrefNode parent] parent] parent];
                     NSString* sHref = [hrefNode getAttributeNamed:@"href"];
-                    if ([[hrefNodeParent3 getAttributeNamed:@"class"] isEqualToString:@"messCase2"]) {
+                    if ([[hrefNodeParent3 getAttributeNamed:@"class"] isEqualToString:@"messCase2"] && ![[hrefNodeParent1 getAttributeNamed:@"class"] isEqualToString:@"signature"] ) {
                         //NSLog(@"Checking URL :%@", sHref);
                         for (NSString* regexp in arr) {
                             NSArray  *capturesArray = [sHref arrayOfCaptureComponentsMatchedByRegex:regexp];
@@ -409,12 +410,25 @@
                                   r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9], r[10], r[11], r[12], r[13], r[14], r[15]];
             
             NSString *key = [diskCachePath stringByAppendingPathComponent:filename];
-            
+            BOOL bLoadAvatar = NO;
             if ([fileManager fileExistsAtPath:key]) // on check si on a deja l'avatar pour cette key
             {
                 linkItem.imageUI = key;
+                NSDictionary* attrs = [fileManager attributesOfItemAtPath:key error:nil];
+                if (attrs != nil) {
+                    NSDate *dCreation = (NSDate*)[attrs objectForKey: NSFileCreationDate];
+                    NSDate *dNow = [[NSDate alloc] init];
+                    if ([dNow timeIntervalSinceDate:dCreation] > 24*3600) { // au dela de 24h, on recharge l'avatar
+                        bLoadAvatar = YES;
+                    }
+                }
             }
-            else { 
+            else {
+                // Si pas trouvé dans le cache, on le charge
+                bLoadAvatar = YES;
+            }
+            
+            if (bLoadAvatar) {
                 NSString *tmpURL = [[avatarNode firstChild] getAttributeNamed:@"src"];
                 
                 if (tmpURL.length > 0) { // si on a pas, on check si on a une URL
