@@ -2197,9 +2197,10 @@
             NSLog(@"URL %@", [aRequest.URL absoluteString]);
             NSString *regularExpressionString = @"oijlkajsdoihjlkjasdosmiley://([^/]+)/(.*)";
             NSString* sSmileyCode = [[[aRequest.URL absoluteString] stringByMatching:regularExpressionString capture:1L] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
-            NSString* sSmileyImgUrl = [[[[aRequest.URL absoluteString] stringByMatching:regularExpressionString capture:2L] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+            //NSString* sSmileyImgUrl = [[[[aRequest.URL absoluteString] stringByMatching:regularExpressionString capture:2L] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+            NSString* sSmileyImgUrl = [[aRequest.URL absoluteString] stringByMatching:regularExpressionString capture:2L];
             NSLog(@"sSmileyImgUrl :%@",sSmileyImgUrl);
-            [[SmileyAlertView shared] displaySmileyAjouterCancel:sSmileyCode withUrl:sSmileyImgUrl showKeyworkds:YES baseController:self];
+            [[SmileyAlertView shared] displaySmileyAjouterCancel:sSmileyCode withUrl:sSmileyImgUrl handlerDone:^{} handlerFailed:^{} showKeyworkds:YES baseController:self];
             bAllow = NO;
         }
         else {

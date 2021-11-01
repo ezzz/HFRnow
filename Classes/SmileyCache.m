@@ -16,6 +16,7 @@
 
 #define IMAGE_CACHE_MAX_ELEMENTS 1000
 #define IMAGE_CACHE_SMILEYS_DEFAULTS_MAX_ELEMENTS 50
+#define SMILEY_CACHE_FAVORITES_DIC @"smiley_favorites_cache"
 
 @implementation SmileyRequest
 @end
@@ -79,6 +80,7 @@ static SmileyCache *_shared = nil;    // static instance variable
                 NSLog(@"index %ld not imported", (long)index);
             }
         }
+        [self loadDicFavorties];
     }
     return self;
 }
@@ -137,11 +139,18 @@ static SmileyCache *_shared = nil;    // static instance variable
     }
 }
 
-- (void)handleCustomSmileyArray:(NSMutableArray*)arrSmileys
+- (void)handleCustomSmileyArray:(NSMutableArray*)arrSmileys forCollection:(UICollectionView*)cv 
 {
     self.bStopLoadingSmileysCustomToCache = NO;
     self.arrCustomSmileys = [arrSmileys mutableCopy];
 
+    // Adding favorites smileys to custom smileys
+    [self.dicFavoritesSmileys enumerateKeysAndObjectsUsingBlock:^(id key, id value, BOOL* stop) {
+        NSLog(@"Adding dicFavoritesSmileys :  %@ => %@", key, value);
+        [self.arrCustomSmileys addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:value, key, nil] forKeys:[NSArray arrayWithObjects:@"source", @"code", nil]]];
+    }];
+
+    
     for (int i = 0; i < self.arrCustomSmileys.count; i++) {
         NSString *filename = [[[self.arrCustomSmileys objectAtIndex:i] objectForKey:@"source"] stringByReplacingOccurrencesOfString:@"http://forum-images.hardware.fr/" withString:@""];
         filename = [filename stringByReplacingOccurrencesOfString:@"https://forum-images.hardware.fr/" withString:@""];
@@ -153,7 +162,7 @@ static SmileyCache *_shared = nil;    // static instance variable
         if (imgData) {
             UIImage *image = [UIImage sd_animatedGIFWithData:imgData];
             if (image != nil) {
-                //NSLog(@"SmileyCache3 ADD: %@",filename);
+                NSLog(@"SmileyCache3 ADD: %@",filename);
                 ImageInCache* iic = [[ImageInCache alloc] init];
                 iic.image = image;
                 [self.cacheSmileys setObject:iic forKey:filename];
@@ -162,6 +171,14 @@ static SmileyCache *_shared = nil;    // static instance variable
         else {
             NSLog(@"Image ERROOOR loading (%d) : %@", i, filename);
         }
+        
+        // Says VC that cell can be reloaded
+        dispatch_async(dispatch_get_main_queue(), ^{
+            //[cv reloadData];
+            NSIndexPath* ip = [NSIndexPath indexPathForRow:i inSection:0];
+            NSArray *myArray = [[NSArray alloc] initWithObjects:ip, nil];
+            [cv reloadItemsAtIndexPaths:myArray];
+        });
 
         if (self.bStopLoadingSmileysCustomToCache) {
             NSLog(@"### STOPPED LOADING CUSTOM SMILEYS");
@@ -187,14 +204,6 @@ static SmileyCache *_shared = nil;    // static instance variable
     if (iic) {
         image = iic.image;
     }
-
-    /*
-    if (image == nil) {
-        NSLog(@"SmileyCache GET (empty): %@",filename);
-    }
-    else {
-        NSLog(@"SmileyCache GET (OK): %@",filename);
-    }*/
 
     if (image == nil && ((!bCustomSmiley && self.bStopLoadingSmileysSearchToCache) || (bCustomSmiley && self.bStopLoadingSmileysCustomToCache)))
     {
@@ -222,15 +231,16 @@ static SmileyCache *_shared = nil;    // static instance variable
                     iic.image = image;
                     //NSLog(@"SmileyCache1 ADD: %@",filename);
                     [self.cacheSmileys setObject:iic forKey:filename];
-                }
+                
 
-                // Says VC that cell can be reloaded
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    //[cv reloadData];
-                    NSArray *myArray = [[NSArray alloc] initWithObjects:ip, nil];
-                    //NSLog(@"SmileyCache1 RELOAD cell: %d", (int)ip.row);
-                    [cv reloadItemsAtIndexPaths:myArray];
-                });
+                    // Says VC that cell can be reloaded
+                    dispatch_async(dispatch_get_main_queue(), ^{
+                        //[cv reloadData];
+                        NSArray *myArray = [[NSArray alloc] initWithObjects:ip, nil];
+                        //NSLog(@"SmileyCache1 RELOAD cell: %d", (int)ip.row);
+                        [cv reloadItemsAtIndexPaths:myArray];
+                    });
+                }
             }
         });
     }
@@ -255,15 +265,23 @@ static SmileyCache *_shared = nil;    // static instance variable
     return image;
 }
 
-- (NSString*) getSmileyCodeForIndex:(int)index
+- (NSString*) getSmileyCodeForIndex:(int)index bCustom:(BOOL)bCustom
 {
-    NSString *code = [[self.arrCurrentSmileyArray objectAtIndex:index] objectForKey:@"code"];
-    return code;
+    if (bCustom) {
+        return [[self.arrCustomSmileys objectAtIndex:index] objectForKey:@"code"];
+    }
+    else {
+        return [[self.arrCurrentSmileyArray objectAtIndex:index] objectForKey:@"code"];
+    }
 }
-- (NSString*) getSmileyImgUrlForIndex:(int)index
+- (NSString*) getSmileyImgUrlForIndex:(int)index bCustom:(BOOL)bCustom
 {
-    NSString *imgUrl = [[self.arrCurrentSmileyArray objectAtIndex:index] objectForKey:@"source"];
-    return imgUrl;
+    if (bCustom) {
+        return [[self.arrCustomSmileys objectAtIndex:index] objectForKey:@"source"];
+    }
+    else {
+        return [[self.arrCurrentSmileyArray objectAtIndex:index] objectForKey:@"source"];
+    }
 }
 
 - (NSMutableArray*) getSmileyListForText:(NSString*)sTextSmileys
@@ -273,5 +291,64 @@ static SmileyCache *_shared = nil;    // static instance variable
     return arr;
 }
 
+
+- (void)loadDicFavorties {
+    // In worse case, take what is present in cache
+    NSFileManager *fileManager = [[NSFileManager alloc] init];
+    NSString *directory = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) lastObject];
+    NSString *filename = [[NSString alloc] initWithString:[directory stringByAppendingPathComponent:SMILEY_CACHE_FAVORITES_DIC]];
+
+    if ([fileManager fileExistsAtPath:filename]) {
+        NSData *data = [[NSData alloc] initWithContentsOfFile:filename];
+        NSKeyedUnarchiver *unarchiver = [[NSKeyedUnarchiver alloc] initForReadingWithData:data];// error:&error];
+        self.dicFavoritesSmileys = [unarchiver decodeObject];
+        [unarchiver finishDecoding];
+        [self.dicFavoritesSmileys enumerateKeysAndObjectsUsingBlock:^(id key, id value, BOOL* stop) {
+          NSLog(@"Loading dicFavoritesSmileys :  %@ => %@", key, value);
+        }];
+    }
+    else {
+        self.dicFavoritesSmileys = [[NSMutableDictionary alloc] init];
+    }
+}
+
+- (BOOL)AddAndSaveDicFavorites:(NSString*)sCode source:(NSString*)sSource addSmiley:(BOOL)bAdd {
+    NSString *directory = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) lastObject];
+    NSString *filename = [[NSString alloc] initWithString:[directory stringByAppendingPathComponent:SMILEY_CACHE_FAVORITES_DIC]];
+    
+    NSMutableData *data = [[NSMutableData alloc] init];
+    NSKeyedArchiver *archiver = [[NSKeyedArchiver alloc] initForWritingWithMutableData:data];// error:&error];
+    BOOL bShouldSaveToFile = YES;
+    if (bAdd) {
+        NSLog(@"Adding dicFavoritesSmileys :  %@ => %@", sCode, sSource);
+        [self.dicFavoritesSmileys setObject:sSource forKey:sCode];
+        [self.arrCustomSmileys addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:sSource, sCode, nil] forKeys:[NSArray arrayWithObjects:@"source", @"code", nil]]];
+    }
+    else {
+        [self.dicFavoritesSmileys removeObjectForKey:sCode];
+        int index = -1;
+        for (int i = 0; i < self.arrCustomSmileys.count; i++) {
+            if ([[[self.arrCustomSmileys objectAtIndex:i] objectForKey:@"code"] isEqualToString:sCode]) {
+                index = i;
+                break;
+            }
+        }
+        if (index >= 0) {
+            [self.arrCustomSmileys removeObjectAtIndex:index];
+        }
+        else {
+            bShouldSaveToFile = NO;
+        }
+    }
+    if (bShouldSaveToFile) {
+        [self.dicFavoritesSmileys enumerateKeysAndObjectsUsingBlock:^(id key, id value, BOOL* stop) {
+          NSLog(@"Saving dicFavoritesSmileys :  %@ => %@", key, value);
+        }];
+        [archiver encodeObject:self.dicFavoritesSmileys];
+        [archiver finishEncoding];
+        return [data writeToFile:filename atomically:YES];
+    }
+    return NO;
+}
 
 @end
