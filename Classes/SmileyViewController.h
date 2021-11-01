@@ -44,6 +44,9 @@ typedef enum {
 @property (strong, nonatomic) IBOutlet UIActivityIndicatorView *spinnerSmileySearch;
 @property (strong, nonatomic) IBOutlet UITableView *tableViewSearch;
 @property (strong, nonatomic) IBOutlet UILabel *labelNoResult;
+@property (weak, nonatomic) IBOutlet UIView *viewCancelActionSmiley;
+@property (weak, nonatomic) IBOutlet UILabel *labelCancelActionSmiley;
+@property (weak, nonatomic) IBOutlet UIButton *btnCancelActionSmiley;
 
 @property (strong, nonatomic) SmileyCache *smileyCache;
 @property (nonatomic, strong) NSMutableArray *arrSearch;
@@ -60,6 +63,10 @@ typedef enum {
 @property AddMessageViewController* addMessageVC;
 @property BOOL bModeFullScreen, bActivateSmileySearchTable;
 @property DisplayModeEnum displayMode;
+
+@property BOOL bCancelAddSmileyFavorite;
+@property NSString* sCancelSmileyFavoriteCode;
+
 
 - (void)changeDisplayMode:(DisplayModeEnum)newMode animate:(BOOL)bAnimate;
 - (void)updateExpandButton;

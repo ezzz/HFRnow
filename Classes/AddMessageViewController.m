@@ -141,10 +141,13 @@
     self.viewControllerSmileys.view.frame = self.viewSmileys.bounds;
     UICollectionViewFlowLayout *collectionViewFlowLayout1 = [[UICollectionViewFlowLayout alloc] init];
     UICollectionViewFlowLayout *collectionViewFlowLayout2 = [[UICollectionViewFlowLayout alloc] init];
+    UICollectionViewFlowLayout *collectionViewFlowLayout3 = [[UICollectionViewFlowLayout alloc] init];
     collectionViewFlowLayout1.scrollDirection = UICollectionViewScrollDirectionHorizontal;
     collectionViewFlowLayout2.scrollDirection = UICollectionViewScrollDirectionHorizontal;
+    collectionViewFlowLayout3.scrollDirection = UICollectionViewScrollDirectionHorizontal;
     self.viewControllerSmileys.collectionViewSmileysDefault.collectionViewLayout = collectionViewFlowLayout1;
     self.viewControllerSmileys.collectionViewSmileysSearch.collectionViewLayout = collectionViewFlowLayout2;
+    self.viewControllerSmileys.collectionViewSmileysFavorites.collectionViewLayout = collectionViewFlowLayout3;
     [self.viewSmileys addSubview:self.viewControllerSmileys.view];
     [self.viewSmileys setAlpha:0];
     [self addChildViewController:self.viewControllerSmileys];
@@ -152,9 +155,9 @@
     self.viewControllerRehostImage = [[RehostImageViewController alloc] initWithNibName:@"RehostImageViewController" bundle:nil];
     self.viewControllerRehostImage.addMessageVC = self;
     self.viewControllerRehostImage.view.frame = self.viewRehostImage.bounds;
-    UICollectionViewFlowLayout *collectionViewFlowLayout3 = [[UICollectionViewFlowLayout alloc] init];
-    collectionViewFlowLayout3.scrollDirection = UICollectionViewScrollDirectionHorizontal;
-    self.viewControllerRehostImage.collectionImages.collectionViewLayout = collectionViewFlowLayout3;
+    UICollectionViewFlowLayout *collectionViewFlowLayout4 = [[UICollectionViewFlowLayout alloc] init];
+    collectionViewFlowLayout4.scrollDirection = UICollectionViewScrollDirectionHorizontal;
+    self.viewControllerRehostImage.collectionImages.collectionViewLayout = collectionViewFlowLayout4;
     [self.viewRehostImage addSubview:self.viewControllerRehostImage.view];
     [self.viewRehostImage setAlpha:0];
     [self addChildViewController:self.viewControllerRehostImage];
@@ -444,7 +447,7 @@
         [self actionHideRehostImage];
     } else if (self.viewControllerSmileys.tableViewSearch.alpha == 1 && ![self.textView isFirstResponder]) {
         [self actionHideSmileys];
-    }  else if (![self.textView isFirstResponder] && self.viewControllerSmileys.bModeFullScreen && (self.viewControllerSmileys.collectionViewSmileysSearch.alpha == 1 || self.viewControllerSmileys.collectionViewSmileysDefault.alpha == 1)) {
+    }  else if (![self.textView isFirstResponder] && self.viewControllerSmileys.bModeFullScreen && (self.viewControllerSmileys.collectionViewSmileysSearch.alpha == 1 || self.viewControllerSmileys.collectionViewSmileysDefault.alpha == 1 || self.viewControllerSmileys.collectionViewSmileysFavorites.alpha == 1)) {
         [self actionHideSmileys];
     } else if ([self.textView text].length > 0 && !self.isDeleteMode) {
         NSString *alertTitle = @"Enregistrer le texte comme brouillons ?";
@@ -866,6 +869,7 @@
     NSLog(@"updateExpandCompressSmiley");
     UICollectionViewFlowLayout *layout = (UICollectionViewFlowLayout *)[self.viewControllerSmileys.collectionViewSmileysDefault collectionViewLayout];
     UICollectionViewFlowLayout *layout2 = (UICollectionViewFlowLayout *)[self.viewControllerSmileys.collectionViewSmileysSearch collectionViewLayout];
+    UICollectionViewFlowLayout *layout3 = (UICollectionViewFlowLayout *)[self.viewControllerSmileys.collectionViewSmileysFavorites collectionViewLayout];
     if (self.viewControllerSmileys.displayMode == DisplayModeEnumTableSearch) {
         CGRect rectS = self.viewSmileys.frame;
         CGFloat f = rectS.size.height + rectS.origin.y;
@@ -873,8 +877,6 @@
         [viewToolbar setHidden:NO];
         self.constraintToolbarHeight.constant = TOOLBAR_HEIGHT_SMILEY;
         NSLog(@"mode DisplayModeEnumTableSearch, constraintSmileyViewHeight.constant = %f", f);
-        //layout.scrollDirection = UICollectionViewScrollDirectionVertical;
-        //layout2.scrollDirection = UICollectionViewScrollDirectionVertical;
         [self.viewControllerSmileys.btnReduce setEnabled:NO];
     }
     else if (self.viewControllerSmileys.bModeFullScreen) {
@@ -889,6 +891,7 @@
 
         layout.scrollDirection = UICollectionViewScrollDirectionVertical;
         layout2.scrollDirection = UICollectionViewScrollDirectionVertical;
+        layout3.scrollDirection = UICollectionViewScrollDirectionVertical;
     }
     else {
         NSLog(@"mode viewControllerSmiley NOT bModeFullScreen");
@@ -901,6 +904,7 @@
         self.constraintSmileyViewHeight.constant = [self.viewControllerSmileys getDisplayHeight];
         layout.scrollDirection = UICollectionViewScrollDirectionHorizontal;
         layout2.scrollDirection = UICollectionViewScrollDirectionHorizontal;
+        layout3.scrollDirection = UICollectionViewScrollDirectionHorizontal;
     }
     [self.viewControllerSmileys updateExpandButton];
 }

@@ -49,7 +49,7 @@
 
 @implementation SmileyViewController
 
-@synthesize smileyCache, collectionViewSmileysDefault, collectionViewSmileysSearch, textFieldSmileys, btnSmileySearch, btnSmileyDefault, btnReduce, tableViewSearch;
+@synthesize smileyCache, collectionViewSmileysDefault, collectionViewSmileysSearch, collectionViewSmileysFavorites, textFieldSmileys, btnSmileySearch, btnSmileyDefault, btnReduce, tableViewSearch;
 @synthesize arrayTmpsmileySearch, arrSearch, arrTopSearchSorted, arrLastSearchSorted, arrTopSearchSortedFiltered, arrLastSearchSortedFiltered, request, requestSmile, bModeFullScreen, bActivateSmileySearchTable, labelNoResult;
 
 #pragma mark -
@@ -85,13 +85,20 @@
      [self.collectionViewSmileysDefault  setDataSource:self];
      [self.collectionViewSmileysDefault  setDelegate:self];
      
-     // Configure Collection Smileys search
-    [self.collectionViewSmileysSearch setHidden:NO];
-    [self.collectionViewSmileysSearch setAlpha:0];
-    [self.collectionViewSmileysSearch registerClass:[SmileyCollectionCell class] forCellWithReuseIdentifier:@"SmileyCollectionCellId"];
-    [self.collectionViewSmileysSearch  setDataSource:self];
-    [self.collectionViewSmileysSearch  setDelegate:self];
+    // Configure Collection Smileys search
+   [self.collectionViewSmileysSearch setHidden:NO];
+   [self.collectionViewSmileysSearch setAlpha:0];
+   [self.collectionViewSmileysSearch registerClass:[SmileyCollectionCell class] forCellWithReuseIdentifier:@"SmileyCollectionCellId"];
+   [self.collectionViewSmileysSearch  setDataSource:self];
+   [self.collectionViewSmileysSearch  setDelegate:self];
     
+    // Configure Collection Smileys favorite
+   [self.collectionViewSmileysFavorites setHidden:NO];
+   [self.collectionViewSmileysFavorites setAlpha:0];
+   [self.collectionViewSmileysFavorites registerClass:[SmileyCollectionCell class] forCellWithReuseIdentifier:@"SmileyCollectionCellId"];
+   [self.collectionViewSmileysFavorites  setDataSource:self];
+   [self.collectionViewSmileysFavorites  setDelegate:self];
+
     // Dic of search smileys
     NSFileManager *fileManager = [[NSFileManager alloc] init];
     NSString *directory = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) lastObject];
@@ -139,6 +146,37 @@
     lpgr2.delegate = self;
     lpgr2.delaysTouchesBegan = YES;
     [self.collectionViewSmileysSearch addGestureRecognizer:lpgr2];
+    
+    UILongPressGestureRecognizer *lpgr3 = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleLongPress:)];
+    lpgr3.delegate = self;
+    lpgr3.delaysTouchesBegan = YES;
+    [self.collectionViewSmileysFavorites addGestureRecognizer:lpgr3];
+    
+    /*self.viewCancelActionSmiley.layer.cornerRadius = 15;
+    self.viewCancelActionSmiley.layer.masksToBounds = true;*/
+    /*self.viewCancelActionSmiley.layer.shadowColor = [[UIColor blackColor] CGColor];
+    self.viewCancelActionSmiley.layer.shadowRadius = 15;
+    //self.viewCancelActionSmiley.layer.shadowOffset = 0;
+    self.viewCancelActionSmiley.layer.shadowRadius = 10;
+    self.viewCancelActionSmiley.layer.shadowOffset = CGSizeMake(0, 0);
+    self.viewCancelActionSmiley.layer.shadowOpacity = 0.2;
+    self.viewCancelActionSmiley.layer.shadowColor = [[UIColor blackColor] CGColor];
+    self.viewCancelActionSmiley.layer.shadowPath = [[UIBezierPath bezierPathWithRect:self.viewCancelActionSmiley.bounds] CGPath];*/
+    
+    CALayer *layer = self.viewCancelActionSmiley.layer;
+    layer.cornerRadius = self.viewCancelActionSmiley.frame.size.height/2;
+    layer.masksToBounds = NO;
+
+    layer.shadowOffset = CGSizeMake(20, 0);
+    layer.shadowColor = [[UIColor blackColor] CGColor];
+    layer.shadowRadius = 10.0f;
+    layer.shadowOpacity = 0.2f;
+    layer.shadowPath = [[UIBezierPath bezierPathWithRoundedRect:layer.bounds cornerRadius:layer.cornerRadius] CGPath];
+
+    CGColorRef bColor = self.viewCancelActionSmiley.backgroundColor.CGColor;
+    self.viewCancelActionSmiley.backgroundColor = nil;
+    layer.backgroundColor = bColor;
+    [self.viewCancelActionSmiley setHidden:YES];
 }
 
 - (void)modifyClearButtonWithImage:(UIImage *)image {
@@ -185,6 +223,9 @@
     if (self.smileyCache.arrCurrentSmileyArray.count == 0) {
         [self.btnSmileySearch setEnabled:NO];
     }
+    [self.btnSmileyFavorites addTarget:self action:@selector(actionSmileysFavorites:) forControlEvents:UIControlEventTouchUpInside];
+    [self.btnCancelActionSmiley addTarget:self action:@selector(actionCancelSmileysFavorites:) forControlEvents:UIControlEventTouchUpInside];
+
     [self.btnReduce addTarget:self action:@selector(actionReduce:) forControlEvents:UIControlEventTouchUpInside];
 
     [self.tableViewSearch reloadData];
@@ -204,14 +245,17 @@
 - (void)updateTheme
 {
     Theme theme = [[ThemeManager sharedManager] theme];
-    [self.btnSmileyDefault  setImage:[ThemeColors tintImage:[UIImage imageNamed:@"smiley"] withTheme:theme] forState:UIControlStateNormal];
+    [self.btnSmileyDefault setImage:[ThemeColors tintImage:[UIImage imageNamed:@"smiley"] withTheme:theme] forState:UIControlStateNormal];
     [self.btnSmileyDefault setImage:[ThemeColors tintImage:[UIImage imageNamed:@"smiley"] withTheme:theme] forState:UIControlStateHighlighted];
-    [self.btnSmileySearch  setImage:[ThemeColors tintImage:[UIImage imageNamed:@"redface"] withTheme:theme] forState:UIControlStateNormal];
+    [self.btnSmileySearch setImage:[ThemeColors tintImage:[UIImage imageNamed:@"redface"] withTheme:theme] forState:UIControlStateNormal];
     [self.btnSmileySearch setImage:[ThemeColors tintImage:[UIImage imageNamed:@"redface"] withTheme:theme] forState:UIControlStateHighlighted];
+    [self.btnSmileyFavorites setImage:[ThemeColors tintImage:[UIImage imageNamed:@"favorites"] withTheme:theme] forState:UIControlStateNormal];
+    [self.btnSmileyFavorites setImage:[ThemeColors tintImage:[UIImage imageNamed:@"favorites"] withTheme:theme] forState:UIControlStateHighlighted];
     [self.btnReduce setImage:[ThemeColors tintImage:[UIImage imageNamed:@"rectangle.expand"] withTheme:theme] forState:UIControlStateNormal];
     [self.btnReduce setImage:[ThemeColors tintImage:[UIImage imageNamed:@"rectangle.expand"] withTheme:theme] forState:UIControlStateHighlighted];
-    self.collectionViewSmileysSearch.backgroundColor = [ThemeColors addMessageBackgroundColor:[[ThemeManager sharedManager] theme]];
     self.collectionViewSmileysDefault.backgroundColor = [ThemeColors addMessageBackgroundColor:[[ThemeManager sharedManager] theme]];
+    self.collectionViewSmileysSearch.backgroundColor = [ThemeColors addMessageBackgroundColor:[[ThemeManager sharedManager] theme]];
+    self.collectionViewSmileysFavorites.backgroundColor = [ThemeColors addMessageBackgroundColor:[[ThemeManager sharedManager] theme]];
     self.tableViewSearch.backgroundColor = [ThemeColors addMessageBackgroundColor:[[ThemeManager sharedManager] theme]];
     [[ThemeManager sharedManager] applyThemeToTextField:self.textFieldSmileys];
     self.textFieldSmileys.keyboardAppearance = [ThemeColors keyboardAppearance:[[ThemeManager sharedManager] theme]];
@@ -219,6 +263,7 @@
     self.view.backgroundColor = [UIColor clearColor];
     [self.collectionViewSmileysDefault reloadData];
     [self.collectionViewSmileysSearch reloadData];
+    [self.collectionViewSmileysFavorites reloadData];
 }
 
 - (void) changeDisplayMode:(DisplayModeEnum)newMode animate:(BOOL)bAnimate
@@ -238,6 +283,7 @@
         case DisplayModeEnumSmileysDefault:
             [self.collectionViewSmileysDefault setAlpha:1];
             [self.collectionViewSmileysSearch setAlpha:0];
+            [self.collectionViewSmileysFavorites setAlpha:0];
             [self.tableViewSearch setAlpha:0];
             [self.textFieldSmileys resignFirstResponder];
             [self.collectionViewSmileysDefault reloadData];
@@ -245,6 +291,15 @@
         case DisplayModeEnumSmileysSearch:
             [self.collectionViewSmileysDefault setAlpha:0];
             [self.collectionViewSmileysSearch setAlpha:1];
+            [self.collectionViewSmileysFavorites setAlpha:0];
+            [self.tableViewSearch setAlpha:0];
+            [self.textFieldSmileys resignFirstResponder];
+            [self.collectionViewSmileysSearch reloadData];
+            break;
+        case DisplayModeEnumSmileysFavorites:
+            [self.collectionViewSmileysDefault setAlpha:0];
+            [self.collectionViewSmileysSearch setAlpha:0];
+            [self.collectionViewSmileysFavorites setAlpha:1];
             [self.tableViewSearch setAlpha:0];
             [self.textFieldSmileys resignFirstResponder];
             [self.collectionViewSmileysSearch reloadData];
@@ -253,6 +308,7 @@
             NSLog(@"SMILEY changeDisplayMode -> DisplayModeEnumTableSearch");
             [self.collectionViewSmileysDefault setAlpha:0];
             [self.collectionViewSmileysSearch setAlpha:0];
+            [self.collectionViewSmileysFavorites setAlpha:0];
             [self.tableViewSearch reloadData];
             [self.tableViewSearch setAlpha:1];
             break;
@@ -290,14 +346,11 @@ static CGFloat fCellImageSize = 1;
         SmileyCollectionCell* cell = [collectionView dequeueReusableCellWithReuseIdentifier:@"SmileyCollectionCellId" forIndexPath:indexPath];
         UIImage* image = nil;//[UIImage imageNamed:@"19-gear"];
         if (collectionView == self.collectionViewSmileysDefault) {
-            // Default smileys
-            if ((int)indexPath.row < self.smileyCache.dicCommonSmileys.count) {
-                image = [self.smileyCache getImageDefaultSmileyForIndex:(int)indexPath.row];
-            }
-            else {
-                image = [self.smileyCache getImageForIndex:(int)(indexPath.row - self.smileyCache.dicCommonSmileys.count)
-                                             forCollection:collectionView andIndexPath:indexPath customSmiley:YES];
-            }
+            image = [self.smileyCache getImageDefaultSmileyForIndex:(int)indexPath.row];
+        }
+        else if (collectionView == self.collectionViewSmileysFavorites) {
+            image = [self.smileyCache getImageForIndex:(int)indexPath.row
+                                         forCollection:collectionView andIndexPath:indexPath customSmiley:YES];
         }
         else {
             image = [self.smileyCache getImageForIndex:(int)indexPath.row
@@ -342,37 +395,35 @@ static CGFloat fCellImageSize = 1;
 {
     @try {
         if (collectionView == self.collectionViewSmileysDefault) {
-            // Default smileys
-            NSString* sCode = @"";
-            if ((int)indexPath.row < self.smileyCache.dicCommonSmileys.count) {
-                sCode = self.smileyCache.dicCommonSmileys[indexPath.row][@"code"];
-            }
-            else {
-                sCode = self.smileyCache.arrCustomSmileys[indexPath.row - self.smileyCache.dicCommonSmileys.count][@"code"];
-            }
-            if (sCode.length > 0) {
-                [self didSelectSmile:sCode];
-            }
+            NSString* sCode = self.smileyCache.dicCommonSmileys[indexPath.row][@"code"];
+            [self didSelectSmile:sCode];
         }
-        else {
-            NSString* sCode = [self.smileyCache getSmileyCodeForIndex:(int)indexPath.row];
+        else if (collectionView == self.collectionViewSmileysSearch) {
+            NSString* sCode = [self.smileyCache getSmileyCodeForIndex:(int)indexPath.row bCustom:NO];
+            [self didSelectSmile:sCode];
+        }
+        else if (collectionView == self.collectionViewSmileysFavorites) {
+            NSString* sCode = [self.smileyCache getSmileyCodeForIndex:(int)indexPath.row bCustom:YES];
             [self didSelectSmile:sCode];
         }
     } @catch (NSException *e) {
         NSLog(@"Error in smiley selection: %@", e);
     }
-    //[self.addMessageVC actionHideSmileys];
 }
 
 - (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section
 {
     if (collectionView == self.collectionViewSmileysDefault) {
-        NSLog(@"Count: %ld + %ld", self.smileyCache.dicCommonSmileys.count, self.smileyCache.arrCustomSmileys.count);
-        return self.smileyCache.dicCommonSmileys.count + self.smileyCache.arrCustomSmileys.count;
+        return self.smileyCache.dicCommonSmileys.count;
     }
-    else {
+    else if (collectionView == self.collectionViewSmileysSearch) {
         return self.smileyCache.arrCurrentSmileyArray.count;
     }
+    else if (collectionView == self.collectionViewSmileysFavorites) {
+        NSLog(@"numberOfItemsInSection FAVORITES %ld", self.smileyCache.arrCustomSmileys.count);
+        return self.smileyCache.arrCustomSmileys.count;
+    }
+    return 0;
 }
 
 - (NSInteger)numberOfSectionsInCollectionView: (UICollectionView *)collectionView
@@ -544,30 +595,32 @@ static CGFloat fCellImageSize = 1;
 {
 
     @try {
-        /* A activer pour la suppression (pb requete suppression pour le moment)
-        if (self.displayMode == DisplayModeEnumSmileysDefault) {
-            CGPoint p = [gestureRecognizer locationInView:self.collectionViewSmileysDefault];
-            NSIndexPath *indexPath = [self.collectionViewSmileysDefault indexPathForItemAtPoint:p];
-            // Default smileys
-            if ((int)indexPath.row >= self.smileyCache.dicCommonSmileys.count) {
-                NSString* sSmileyCode = self.smileyCache.arrCustomSmileys[indexPath.row - self.smileyCache.dicCommonSmileys.count][@"code"];
-                NSString* sSmileyImgUrl = self.smileyCache.arrCustomSmileys[indexPath.row - self.smileyCache.dicCommonSmileys.count][@"source"];
-                [[SmileyAlertView shared] displaySmileyRetirerCancel:sSmileyCode withUrl:sSmileyImgUrl showKeyworkds:NO baseController:self];
-            }
-        }
-        else
-        */
         // En mode toolbar (non fullscreen), l'alertview provoque des clignotements avec l'affichage/masquage du clavier
         if (self.bModeFullScreen && self.displayMode == DisplayModeEnumSmileysSearch) {
             CGPoint p = [gestureRecognizer locationInView:self.collectionViewSmileysSearch];
             NSIndexPath *indexPath = [self.collectionViewSmileysSearch indexPathForItemAtPoint:p];
-            NSString* sSmileyCode = [self.smileyCache getSmileyCodeForIndex:(int)indexPath.row];
-            NSString* sSmileyImgUrlRaw = [[self.smileyCache getSmileyImgUrlForIndex:(int)indexPath.row] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+            NSString* sSmileyCode = [self.smileyCache getSmileyCodeForIndex:(int)indexPath.row bCustom:NO];
+            NSString* sSmileyImgUrlRaw = [[self.smileyCache getSmileyImgUrlForIndex:(int)indexPath.row bCustom:NO] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
             NSString* sSmileyImgUrlOK = [sSmileyImgUrlRaw stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
             NSLog(@"sSmileyCode :%@", sSmileyCode);
             NSLog(@"sSmileyImgUrlRaw :%@", sSmileyImgUrlRaw);
             NSLog(@"sSmileyImgUrlOK :%@", sSmileyImgUrlOK);
-            [[SmileyAlertView shared] displaySmileyAjouterCancel:sSmileyCode withUrl:sSmileyImgUrlOK showKeyworkds:NO baseController:self];
+            self.bCancelAddSmileyFavorite = YES;
+            self.sCancelSmileyFavoriteCode = sSmileyCode;
+            [[SmileyAlertView shared] displaySmileyAjouterCancel:sSmileyCode withUrl:sSmileyImgUrlRaw handlerDone:^{[self AddFavoriteSmileyOK:YES];} handlerFailed:^{[self AddFavoriteSmileyFailed:NO];} showKeyworkds:NO baseController:self];
+        }
+        else if (self.bModeFullScreen && self.displayMode == DisplayModeEnumSmileysFavorites) {
+            CGPoint p = [gestureRecognizer locationInView:self.collectionViewSmileysFavorites];
+            NSIndexPath *indexPath = [self.collectionViewSmileysFavorites indexPathForItemAtPoint:p];
+            NSString* sSmileyCode = [self.smileyCache getSmileyCodeForIndex:(int)indexPath.row bCustom:YES];
+            NSString* sSmileyImgUrlRaw = [[self.smileyCache getSmileyImgUrlForIndex:(int)indexPath.row bCustom:YES] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+            NSString* sSmileyImgUrlOK = [sSmileyImgUrlRaw stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
+            NSLog(@"sSmileyCode :%@", sSmileyCode);
+            NSLog(@"sSmileyImgUrlRaw :%@", sSmileyImgUrlRaw);
+            NSLog(@"sSmileyImgUrlOK :%@", sSmileyImgUrlOK);
+            self.bCancelAddSmileyFavorite = NO;
+            self.sCancelSmileyFavoriteCode = sSmileyCode;
+            [[SmileyAlertView shared] displaySmileyRetirerCancel:sSmileyCode withUrl:sSmileyImgUrlRaw handlerDone:^{[self AddFavoriteSmileyOK:NO];} handlerFailed:^{[self AddFavoriteSmileyFailed:NO];} showKeyworkds:NO baseController:self];
         }
     } @catch (NSException *e) {
         NSLog(@"Error in smiley selection: %@", e);
@@ -577,6 +630,48 @@ static CGFloat fCellImageSize = 1;
 
 - (void)showSmileyDetails:(NSString*)sSmileyCode andUrl:(NSString*)sSmileyImgUrl
 {
+}
+
+- (void)AddFavoriteSmileyOK:(BOOL)bSmileyAdded
+{
+    if (bSmileyAdded) {
+        [self.labelCancelActionSmiley setText:@"Smiley ajouté"];
+    }
+    else {
+        [self.labelCancelActionSmiley setText:@"Smiley retiré"];
+    }
+    
+    [self.collectionViewSmileysFavorites reloadData];
+    [UIView transitionWithView:self.viewCancelActionSmiley duration:0.2 options:UIViewAnimationOptionTransitionCrossDissolve animations:^(void) {
+        [self.viewCancelActionSmiley setHidden:NO];
+    } completion:nil];
+    
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+        [UIView transitionWithView:self.viewCancelActionSmiley duration:0.2 options:UIViewAnimationOptionTransitionCrossDissolve animations:^(void) {
+            [self.viewCancelActionSmiley setHidden:YES];
+        } completion:nil];
+    });
+}
+
+- (void)AddFavoriteSmileyFailed:(BOOL)bSmileyAdded {
+    [self.labelCancelActionSmiley setText:@"Erreur"];
+    [self.collectionViewSmileysFavorites reloadData];
+    [UIView transitionWithView:self.viewCancelActionSmiley duration:0.2 options:UIViewAnimationOptionTransitionCrossDissolve animations:^(void) {
+        [self.viewCancelActionSmiley setHidden:NO];
+    } completion:nil];
+    
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+        [UIView transitionWithView:self.viewCancelActionSmiley duration:0.2 options:UIViewAnimationOptionTransitionCrossDissolve animations:^(void) {
+            [self.viewCancelActionSmiley setHidden:YES];
+        } completion:nil];
+    });
+}
+
+
+- (void)actionCancelSmileysFavorites:(id)sender
+{
+    //self.bCancelAddSmileyFavorite;
+    //self.sCancelSmileyFavoriteCode;
 }
 
 #pragma mark - Responding to keyboard events
@@ -779,6 +874,42 @@ static CGFloat fCellImageSize = 1;
 
     }
     else {
+        // Save search when smiley is selected (this confirms the search is OK)
+        if (self.textFieldSmileys.text.length >= 3) {
+            //NSLog(@"SS saving %@", self.textFieldSmileys.text);
+            NSArray *arrFound = [self.arrSearch filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(SmileySearch* s, NSDictionary *bindings) {
+                return [s.sSearchText isEqualToString:self.textFieldSmileys.text];  // Return YES for each object you want in filteredArray.
+            }]];
+            if (arrFound.count > 0) {
+
+                SmileySearch* ss = (SmileySearch*)arrFound[0];
+                ss.nSearchNumber = [NSNumber numberWithInt:[ss.nSearchNumber intValue] + 1];
+                ss.dLastSearch = [NSDate date];
+                //NSLog(@"SS %@ found, n:%d", self.textFieldSmileys.text, [ss.nSearchNumber intValue]);
+            }
+            else {
+                SmileySearch* ss = [[SmileySearch alloc] init];
+                ss.nSearchNumber = [NSNumber numberWithInt:[ss.nSearchNumber intValue] + 1];
+                ss.dLastSearch = [NSDate date];
+                ss.sSearchText = self.textFieldSmileys.text;
+                if (self.arrSearch == nil) {
+                    self.arrSearch = [[NSMutableArray alloc] init];
+                }
+                [self.arrSearch addObject:ss];
+                //NSLog(@"SS %@ is new, n:%d", self.textFieldSmileys.text, [ss.nSearchNumber intValue]);
+            }
+            
+            [self updateSearchArraySorted];
+            
+            NSString *directory = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) lastObject];
+            NSString *file = [[NSString alloc] initWithString:[directory stringByAppendingPathComponent:SEARCH_SMILEYS_FILE]];
+            NSMutableData *data = [[NSMutableData alloc] init];
+            NSKeyedArchiver *archiver = [[NSKeyedArchiver alloc] initForWritingWithMutableData:data];// error:&error];
+            [archiver encodeObject:self.arrSearch];
+            [archiver finishEncoding];
+            [data writeToFile:file atomically:YES];
+        }
+        
         [self performSelectorOnMainThread:@selector(displaySmileys) withObject:nil waitUntilDone:YES];
         [self performSelectorInBackground:@selector(loadSmileys) withObject:nil];
     }
@@ -830,48 +961,14 @@ static CGFloat fCellImageSize = 1;
     NSLog(@"didSelectSmile");
     [SmileyCache shared].bStopLoadingSmileysCustomToCache = YES;
 
-    // Save search when smiley is selected (this confirms the search is OK)
-    if (self.textFieldSmileys.text.length >= 3) {
-        //NSLog(@"SS saving %@", self.textFieldSmileys.text);
-        NSArray *arrFound = [self.arrSearch filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(SmileySearch* s, NSDictionary *bindings) {
-            return [s.sSearchText isEqualToString:self.textFieldSmileys.text];  // Return YES for each object you want in filteredArray.
-        }]];
-        if (arrFound.count > 0) {
-
-            SmileySearch* ss = (SmileySearch*)arrFound[0];
-            ss.nSearchNumber = [NSNumber numberWithInt:[ss.nSearchNumber intValue] + 1];
-            ss.dLastSearch = [NSDate date];
-            //NSLog(@"SS %@ found, n:%d", self.textFieldSmileys.text, [ss.nSearchNumber intValue]);
-        }
-        else {
-            SmileySearch* ss = [[SmileySearch alloc] init];
-            ss.nSearchNumber = [NSNumber numberWithInt:[ss.nSearchNumber intValue] + 1];
-            ss.dLastSearch = [NSDate date];
-            ss.sSearchText = self.textFieldSmileys.text;
-            if (self.arrSearch == nil) {
-                self.arrSearch = [[NSMutableArray alloc] init];
-            }
-            [self.arrSearch addObject:ss];
-            //NSLog(@"SS %@ is new, n:%d", self.textFieldSmileys.text, [ss.nSearchNumber intValue]);
-        }
-        
-        [self updateSearchArraySorted];
-        
-        NSString *directory = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) lastObject];
-        NSString *file = [[NSString alloc] initWithString:[directory stringByAppendingPathComponent:SEARCH_SMILEYS_FILE]];
-        NSMutableData *data = [[NSMutableData alloc] init];
-        NSKeyedArchiver *archiver = [[NSKeyedArchiver alloc] initForWritingWithMutableData:data];// error:&error];
-        [archiver encodeObject:self.arrSearch];
-        [archiver finishEncoding];
-        [data writeToFile:file atomically:YES];
-    }
-
-    
-    smile = [NSString stringWithFormat:@" %@ ", smile]; // ajout des espaces avant/aprés le smiley.
+    // ajout des espaces avant/aprés le smiley.
+    smile = [NSString stringWithFormat:@" %@ ", smile];
 
     // Update main textField
     [[NSNotificationCenter defaultCenter] postNotificationName:@"smileyReceived" object:smile];
 }
+
+
 
 - (void)actionReduce:(id)sender {
     [self.addMessageVC actionExpandCompressSmiley];
@@ -937,6 +1034,29 @@ static CGFloat fCellImageSize = 1;
             bSetFirstResponder = YES;
         }
         [self changeDisplayMode:DisplayModeEnumSmileysSearch animate:NO];
+        [self.addMessageVC updateExpandCompressSmiley];
+        if (bSetFirstResponder) {
+            [self.addMessageVC.textView becomeFirstResponder];
+        }
+    }
+}
+
+- (void)actionSmileysFavorites:(id)sender {
+    if (self.displayMode == DisplayModeEnumSmileysFavorites) {
+        return;
+    }
+    
+    if (self.bModeFullScreen) {
+        [self changeDisplayMode:DisplayModeEnumSmileysFavorites animate:NO];
+        //[self.addMessageVC updateExpandCompressSmiley];
+        [self resignFirstResponder];
+    }
+    else {
+        BOOL bSetFirstResponder = NO;
+        if (self.displayMode != DisplayModeEnumSmileysFavorites) {
+            bSetFirstResponder = YES;
+        }
+        [self changeDisplayMode:DisplayModeEnumSmileysFavorites animate:NO];
         [self.addMessageVC updateExpandCompressSmiley];
         if (bSetFirstResponder) {
             [self.addMessageVC.textView becomeFirstResponder];
