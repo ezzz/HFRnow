@@ -203,8 +203,8 @@
     //NSLog(@"smileyNode %@", rawContentsOfNode([smileyNode _node], [myParser _doc]));
     //NSLog(@"smileyCustom %@", self.smileyCustom);
 
-    [[SmileyCache shared] handleCustomSmileyArray:self.arrSmileyCustom];
-    [self.viewControllerSmileys.collectionViewSmileysDefault reloadData];
+    [[SmileyCache shared] handleCustomSmileyArray:self.arrSmileyCustom forCollection:self.viewControllerSmileys.collectionViewSmileysFavorites];
+    [self.viewControllerSmileys.collectionViewSmileysFavorites reloadData];
     // SMILEY PERSO
     
 	HTMLNode * fastAnswerNode = [bodyNode findChildWithAttribute:@"name" matchingName:@"hop" allowPartial:NO];
