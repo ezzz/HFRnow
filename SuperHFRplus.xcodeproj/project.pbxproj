@@ -1016,8 +1016,6 @@
 		15EBFD102206207B00A37CED /* AQCellView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AQCellView.m; sourceTree = "<group>"; };
 		15EBFD122206210000A37CED /* AQTableView.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = AQTableView.xib; sourceTree = "<group>"; };
 		15EBFD142206211500A37CED /* AQCellView.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = AQCellView.xib; sourceTree = "<group>"; };
-		15F16CF3271F3F3000668805 /* OnlineMode.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = OnlineMode.h; sourceTree = "<group>"; };
-		15F16CF4271F3F5600668805 /* OnlineMode.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = OnlineMode.m; sourceTree = "<group>"; };
 		15F3C5A5254AB19100F4B1FD /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		15F3C5A7254AB19100F4B1FD /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		15F3C5D0254C5A3E00F4B1FD /* giphy.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = giphy.png; sourceTree = "<group>"; };
@@ -2013,7 +2011,6 @@
 		080E96DDFE201D6D7F000001 /* Classes */ = {
 			isa = PBXGroup;
 			children = (
-				15F16CF2271F3F1500668805 /* Online */,
 				150A228924CB7CE20071F9DE /* API */,
 				152D2D38244C798A00D9D644 /* Bookmarks */,
 				15357D68234BA77F002D5C2E /* Offline */,
@@ -2115,15 +2112,6 @@
 				15EBFD142206211500A37CED /* AQCellView.xib */,
 			);
 			name = AlertesQualitay;
-			sourceTree = "<group>";
-		};
-		15F16CF2271F3F1500668805 /* Online */ = {
-			isa = PBXGroup;
-			children = (
-				15F16CF3271F3F3000668805 /* OnlineMode.h */,
-				15F16CF4271F3F5600668805 /* OnlineMode.m */,
-			);
-			name = Online;
 			sourceTree = "<group>";
 		};
 		19C28FACFE9D520D11CA2CBB /* Products */ = {
