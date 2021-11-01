@@ -4240,7 +4240,7 @@
 					"$(SRCROOT)/**",
 					"$(PROJECT_DIR)/**",
 				);
-				MARKETING_VERSION = 2.1.16;
+				MARKETING_VERSION = 2.1.17;
 				OTHER_LDFLAGS = (
 					"-licucore",
 					"-ObjC",
@@ -4293,7 +4293,7 @@
 					"$(SRCROOT)/**",
 					"$(PROJECT_DIR)/**",
 				);
-				MARKETING_VERSION = 2.1.16;
+				MARKETING_VERSION = 2.1.17;
 				OTHER_LDFLAGS = (
 					"-licucore",
 					"-ObjC",
