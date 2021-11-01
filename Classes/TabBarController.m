@@ -57,21 +57,7 @@
     
     if([((HFRNavigationController *)self.viewControllers[0]).topViewController isKindOfClass:[ForumsTableViewController class]]){
         ((ForumsTableViewController *)((HFRNavigationController *)self.viewControllers[0]).topViewController).reloadOnAppear = YES;
-    }
-}
-
--(UITraitCollection *)traitCollection
-{
-    //NSLog(@"traitCollection");
-    UITraitCollection
-    *realTraits = [super traitCollection],
-    *lieTrait = [UITraitCollection traitCollectionWithHorizontalSizeClass:UIUserInterfaceSizeClassCompact];
-
-    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
-        return [UITraitCollection traitCollectionWithTraitsFromCollections:@[realTraits, lieTrait]];
-    } else {
-        return [UITraitCollection traitCollectionWithTraitsFromCollections:@[realTraits]];
-    }
+    }    
 }
 
 -(void)setThemeFromNotification:(NSNotification *)notification{
@@ -168,6 +154,10 @@
                                              selector:@selector(setThemeFromNotification:)
                                             name:kThemeChangedNotification
                                                object:nil];
+}
+
+- (void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
+    [super viewWillTransitionToSize:size withTransitionCoordinator:coordinator];
 }
 
 - (void)viewDidLayoutSubviews{

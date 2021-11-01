@@ -16,6 +16,7 @@
 #import "HFRAlertView.h"
 #import "SimpleCellView.h"
 #import "UILabel+Boldify.h"
+#import "SmileyAlertView.h"
 
 #if !defined(MIN)
     #define MIN(A,B)    ((A) < (B) ? (A) : (B))
@@ -119,11 +120,25 @@
     v.backgroundColor = [ThemeColors addMessageBackgroundColor:[[ThemeManager sharedManager] theme]];
     [self.tableViewSearch setTableFooterView:v];
     [self.tableViewSearch registerNib:[UINib nibWithNibName:@"SimpleCellView" bundle:nil] forCellReuseIdentifier:@"SimpleCellId"];
+    if (@available(iOS 15.0, *)) {
+        self.tableViewSearch.sectionHeaderTopPadding = 0;
+    }
 
     // Observe keyboard hide and show notifications to resize the text view appropriately.
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardWillShowNotification object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardDidShowNotification object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
+    
+    // attach long press gesture to collectionView
+    UILongPressGestureRecognizer *lpgr = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleLongPress:)];
+    lpgr.delegate = self;
+    lpgr.delaysTouchesBegan = YES;
+    [self.collectionViewSmileysDefault addGestureRecognizer:lpgr];
+    
+    UILongPressGestureRecognizer *lpgr2 = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleLongPress:)];
+    lpgr2.delegate = self;
+    lpgr2.delaysTouchesBegan = YES;
+    [self.collectionViewSmileysSearch addGestureRecognizer:lpgr2];
 }
 
 - (void)modifyClearButtonWithImage:(UIImage *)image {
@@ -138,8 +153,8 @@
     self.textFieldSmileys.rightViewMode = UITextFieldViewModeWhileEditing;
 }
 
--(IBAction)clear:(id)sender{
-    [[SmileyCache shared] setBStopLoadingSmileysToCache:YES];
+- (IBAction)clear:(id)sender {
+    [SmileyCache shared].bStopLoadingSmileysSearchToCache = YES;
     self.textFieldSmileys.text = @"";
     [self updateTableViewSearchFilters:@""];
 }
@@ -162,8 +177,8 @@
 
     self.view.backgroundColor = [UIColor clearColor];
 
-    [self.btnSmileyDefault setImageEdgeInsets:UIEdgeInsetsMake(11, 16, 11, 16)];
-    [self.btnSmileySearch setImageEdgeInsets:UIEdgeInsetsMake(11, 16, 11, 16)];
+    //[self.btnSmileyDefault setImageEdgeInsets:UIEdgeInsetsMake(11, 16, 11, 16)];
+    //[self.btnSmileySearch setImageEdgeInsets:UIEdgeInsetsMake(11, 16, 11, 16)];
 
     [self.btnSmileyDefault addTarget:self action:@selector(actionSmileysDefaults:) forControlEvents:UIControlEventTouchUpInside];
     [self.btnSmileySearch addTarget:self action:@selector(actionSmileysSearch:) forControlEvents:UIControlEventTouchUpInside];
@@ -269,15 +284,24 @@ static CGFloat fCellImageSize = 1;
 - (__kindof UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath
 {
     @try {
+        //NSLog(@"Loading cell %d",indexPath.row);
+        
         //CGRect f = self.collectionSmileys.frame;
         SmileyCollectionCell* cell = [collectionView dequeueReusableCellWithReuseIdentifier:@"SmileyCollectionCellId" forIndexPath:indexPath];
         UIImage* image = nil;//[UIImage imageNamed:@"19-gear"];
         if (collectionView == self.collectionViewSmileysDefault) {
             // Default smileys
-            image = [self.smileyCache getImageDefaultSmileyForIndex:(int)indexPath.row];
+            if ((int)indexPath.row < self.smileyCache.dicCommonSmileys.count) {
+                image = [self.smileyCache getImageDefaultSmileyForIndex:(int)indexPath.row];
+            }
+            else {
+                image = [self.smileyCache getImageForIndex:(int)(indexPath.row - self.smileyCache.dicCommonSmileys.count)
+                                             forCollection:collectionView andIndexPath:indexPath customSmiley:YES];
+            }
         }
         else {
-            image = [self.smileyCache getImageForIndex:(int)indexPath.row forCollection:collectionView];
+            image = [self.smileyCache getImageForIndex:(int)indexPath.row
+                                         forCollection:collectionView andIndexPath:indexPath customSmiley:NO];
         }
 
         CGFloat ch = cell.bounds.size.height;
@@ -316,14 +340,26 @@ static CGFloat fCellImageSize = 1;
 
 - (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath
 {
-    if (collectionView == self.collectionViewSmileysDefault) {
-        // Default smileys
-        NSString* sCode = self.smileyCache.dicCommonSmileys[indexPath.row][@"code"];
-        [self didSelectSmile:sCode];
-    }
-    else {
-        NSString* sCode = [self.smileyCache getSmileyCodeForIndex:(int)indexPath.row];
-        [self didSelectSmile:sCode];
+    @try {
+        if (collectionView == self.collectionViewSmileysDefault) {
+            // Default smileys
+            NSString* sCode = @"";
+            if ((int)indexPath.row < self.smileyCache.dicCommonSmileys.count) {
+                sCode = self.smileyCache.dicCommonSmileys[indexPath.row][@"code"];
+            }
+            else {
+                sCode = self.smileyCache.arrCustomSmileys[indexPath.row - self.smileyCache.dicCommonSmileys.count][@"code"];
+            }
+            if (sCode.length > 0) {
+                [self didSelectSmile:sCode];
+            }
+        }
+        else {
+            NSString* sCode = [self.smileyCache getSmileyCodeForIndex:(int)indexPath.row];
+            [self didSelectSmile:sCode];
+        }
+    } @catch (NSException *e) {
+        NSLog(@"Error in smiley selection: %@", e);
     }
     //[self.addMessageVC actionHideSmileys];
 }
@@ -331,7 +367,8 @@ static CGFloat fCellImageSize = 1;
 - (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section
 {
     if (collectionView == self.collectionViewSmileysDefault) {
-        return self.smileyCache.dicCommonSmileys.count;
+        NSLog(@"Count: %ld + %ld", self.smileyCache.dicCommonSmileys.count, self.smileyCache.arrCustomSmileys.count);
+        return self.smileyCache.dicCommonSmileys.count + self.smileyCache.arrCustomSmileys.count;
     }
     else {
         return self.smileyCache.arrCurrentSmileyArray.count;
@@ -435,6 +472,9 @@ static CGFloat fCellImageSize = 1;
                 if (indexPath.section == 1) {
                     [cell.labelText boldSubstring: self.textFieldSmileys.text];
                 }
+                else {
+                    [cell.labelText boldSubstring: @""];
+                }
                 iResults = [s.nSearchNumber intValue];
             }
             else {
@@ -499,6 +539,46 @@ static CGFloat fCellImageSize = 1;
     //TODO: implement search deletion
 }
 */
+
+-(void)handleLongPress:(UILongPressGestureRecognizer *)gestureRecognizer
+{
+
+    @try {
+        /* A activer pour la suppression (pb requete suppression pour le moment)
+        if (self.displayMode == DisplayModeEnumSmileysDefault) {
+            CGPoint p = [gestureRecognizer locationInView:self.collectionViewSmileysDefault];
+            NSIndexPath *indexPath = [self.collectionViewSmileysDefault indexPathForItemAtPoint:p];
+            // Default smileys
+            if ((int)indexPath.row >= self.smileyCache.dicCommonSmileys.count) {
+                NSString* sSmileyCode = self.smileyCache.arrCustomSmileys[indexPath.row - self.smileyCache.dicCommonSmileys.count][@"code"];
+                NSString* sSmileyImgUrl = self.smileyCache.arrCustomSmileys[indexPath.row - self.smileyCache.dicCommonSmileys.count][@"source"];
+                [[SmileyAlertView shared] displaySmileyRetirerCancel:sSmileyCode withUrl:sSmileyImgUrl showKeyworkds:NO baseController:self];
+            }
+        }
+        else
+        */
+        // En mode toolbar (non fullscreen), l'alertview provoque des clignotements avec l'affichage/masquage du clavier
+        if (self.bModeFullScreen && self.displayMode == DisplayModeEnumSmileysSearch) {
+            CGPoint p = [gestureRecognizer locationInView:self.collectionViewSmileysSearch];
+            NSIndexPath *indexPath = [self.collectionViewSmileysSearch indexPathForItemAtPoint:p];
+            NSString* sSmileyCode = [self.smileyCache getSmileyCodeForIndex:(int)indexPath.row];
+            NSString* sSmileyImgUrlRaw = [[self.smileyCache getSmileyImgUrlForIndex:(int)indexPath.row] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+            NSString* sSmileyImgUrlOK = [sSmileyImgUrlRaw stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
+            NSLog(@"sSmileyCode :%@", sSmileyCode);
+            NSLog(@"sSmileyImgUrlRaw :%@", sSmileyImgUrlRaw);
+            NSLog(@"sSmileyImgUrlOK :%@", sSmileyImgUrlOK);
+            [[SmileyAlertView shared] displaySmileyAjouterCancel:sSmileyCode withUrl:sSmileyImgUrlOK showKeyworkds:NO baseController:self];
+        }
+    } @catch (NSException *e) {
+        NSLog(@"Error in smiley selection: %@", e);
+    }
+
+}
+
+- (void)showSmileyDetails:(NSString*)sSmileyCode andUrl:(NSString*)sSmileyImgUrl
+{
+}
+
 #pragma mark - Responding to keyboard events
 
 - (void)keyboardWillShow:(NSNotification *)notification {
@@ -584,7 +664,7 @@ static CGFloat fCellImageSize = 1;
 
 -(IBAction)textFieldSmileChange:(id)sender
 {
-    [[SmileyCache shared] setBStopLoadingSmileysToCache:YES];
+    [SmileyCache shared].bStopLoadingSmileysSearchToCache = YES;
     [self updateTableViewSearchFilters:[(UITextField *)sender text]];
 
 }
@@ -623,7 +703,7 @@ static CGFloat fCellImageSize = 1;
 - (void)fetchSmileys
 {
     // Stop loading smileys of previous request
-    [[SmileyCache shared] setBStopLoadingSmileysToCache:YES];
+    [SmileyCache shared].bStopLoadingSmileysSearchToCache = YES;
 
     NSString *sTextSmileys = [NSString stringWithFormat:@"+%@", [[self.textFieldSmileys.text componentsSeparatedByCharactersInSet:[NSCharacterSet whitespaceCharacterSet]] componentsJoinedByString:@" +"]];
     NSMutableArray* smileyList = [[SmileyCache shared] getSmileyListForText:sTextSmileys];
@@ -727,7 +807,7 @@ static CGFloat fCellImageSize = 1;
     dispatch_async(dispatch_get_main_queue(), ^{
         [self.addMessageVC updateExpandCompressSmiley];
     });
-    [[SmileyCache shared] handleSmileyArray:self.arrayTmpsmileySearch forCollection:self.collectionViewSmileysSearch
+    [[SmileyCache shared] handleSearchSmileyArray:self.arrayTmpsmileySearch forCollection:self.collectionViewSmileysSearch
                                     spinner:self.spinnerSmileySearch];
 }
 
@@ -748,17 +828,20 @@ static CGFloat fCellImageSize = 1;
 - (void) didSelectSmile:(NSString *)smile
 {
     NSLog(@"didSelectSmile");
-    [SmileyCache shared].bStopLoadingSmileysToCache = YES;
+    [SmileyCache shared].bStopLoadingSmileysCustomToCache = YES;
 
     // Save search when smiley is selected (this confirms the search is OK)
     if (self.textFieldSmileys.text.length >= 3) {
+        //NSLog(@"SS saving %@", self.textFieldSmileys.text);
         NSArray *arrFound = [self.arrSearch filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(SmileySearch* s, NSDictionary *bindings) {
             return [s.sSearchText isEqualToString:self.textFieldSmileys.text];  // Return YES for each object you want in filteredArray.
         }]];
         if (arrFound.count > 0) {
+
             SmileySearch* ss = (SmileySearch*)arrFound[0];
             ss.nSearchNumber = [NSNumber numberWithInt:[ss.nSearchNumber intValue] + 1];
             ss.dLastSearch = [NSDate date];
+            //NSLog(@"SS %@ found, n:%d", self.textFieldSmileys.text, [ss.nSearchNumber intValue]);
         }
         else {
             SmileySearch* ss = [[SmileySearch alloc] init];
@@ -769,6 +852,7 @@ static CGFloat fCellImageSize = 1;
                 self.arrSearch = [[NSMutableArray alloc] init];
             }
             [self.arrSearch addObject:ss];
+            //NSLog(@"SS %@ is new, n:%d", self.textFieldSmileys.text, [ss.nSearchNumber intValue]);
         }
         
         [self updateSearchArraySorted];
@@ -863,14 +947,14 @@ static CGFloat fCellImageSize = 1;
 - (void)dismissViewControllerAnimated:(BOOL)flag completion:(void (^)(void))completion
 {
     // Stop loading smileys of previous request
-    [[SmileyCache shared] setBStopLoadingSmileysToCache:YES];
+    [SmileyCache shared].bStopLoadingSmileysCustomToCache = YES;
     NSLog(@"----------- STOP REQUIRED -----------");
 }
 
 - (void)viewWillDisappear:(BOOL)animated
 {
     // Stop loading smileys of previous request
-    [[SmileyCache shared] setBStopLoadingSmileysToCache:YES];
+    [SmileyCache shared].bStopLoadingSmileysCustomToCache = YES;
     NSLog(@"----------- STOP REQUIRED -----------");
 }
 @end

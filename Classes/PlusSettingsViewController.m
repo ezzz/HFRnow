@@ -349,8 +349,9 @@
 }
 
 #pragma mark -
-- (void)settingsViewController:(IASKAppSettingsViewController*)sender buttonTappedForKey:(NSString*)key {
-    if ([key isEqualToString:@"EmptyCacheButton"]) {
+//- (void)settingsViewController:(IASKAppSettingsViewController*)sender buttonTappedForKey:(NSString*)key {
+- (void)settingsViewController:(IASKAppSettingsViewController*)sender buttonTappedForSpecifier:(IASKSpecifier*)specifier {
+    if ([specifier.key isEqualToString:@"EmptyCacheButton"]) {
         [HFRAlertView DisplayOKCancelAlertViewWithTitle:@"Vider le cache ?"
                                              andMessage:@"Tous les onglets (Catégories, Favoris etc.) seront reinitialisés.\nAttention donc si vous êtes en train de lire un sujet intéressant :o"
                                               handlerOK:^(UIAlertAction * action) { [self emptyCache];}];

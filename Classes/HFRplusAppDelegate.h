@@ -51,6 +51,7 @@
 @property (nonatomic, strong) IBOutlet UINavigationController *forumsNavController;
 @property (nonatomic, strong) IBOutlet UINavigationController *favoritesNavController;
 @property (nonatomic, strong) IBOutlet UINavigationController *messagesNavController;
+@property (nonatomic, strong) IBOutlet UINavigationController *plusNavController;
 @property (nonatomic, strong) IBOutlet UINavigationController *searchNavController;
 
 @property BOOL isLoggedIn;

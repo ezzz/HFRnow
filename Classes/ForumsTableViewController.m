@@ -904,7 +904,9 @@
         [self_ fetchContent];
         //NSLog(@"=== END");
     }];
-    
+    if (@available(iOS 15.0, *)) {
+        self.forumsTableView.sectionHeaderTopPadding = 0;
+    }
     
     
     //HFR REHOST

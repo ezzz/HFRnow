@@ -1315,22 +1315,6 @@
     self.view.backgroundColor = self.webView.backgroundColor =  [ThemeColors greyBackgroundColor:theme];
 }
 
-- (void)viewDidUnload
-{
-    [super viewDidUnload];
-    // Release any retained subviews of the main view.
-	[self.webView stopLoading];
-    
-	self.webView.navigationDelegate = nil;
-	self.webView = nil;
-	[UIApplication sharedApplication].networkActivityIndicatorVisible = NO;
-}
-
-- (void)viewDidDisappear:(BOOL)animated {
-    [super viewDidDisappear:animated];
-	[self viewDidUnload];
-}
-
 @end
 
 @implementation ConfigurationViewController

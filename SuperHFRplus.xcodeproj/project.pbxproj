@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 46;
+	objectVersion = 52;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -13,8 +13,6 @@
 		1503755821FF794200A5F7E1 /* PlusCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1503755721FF794200A5F7E1 /* PlusCellView.m */; };
 		1512A7932232F6C9000C9B1D /* 08-chat-20.png in Resources */ = {isa = PBXBuildFile; fileRef = 1512A7922232F6C8000C9B1D /* 08-chat-20.png */; };
 		15167EB12330210600D64651 /* Heart-20@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15167EB02330210600D64651 /* Heart-20@2x.png */; };
-		151B6CA0251D1D66007C28C3 /* PINOperation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 151B6C9F251D1D66007C28C3 /* PINOperation.framework */; };
-		151B6CA1251D1D66007C28C3 /* PINOperation.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 151B6C9F251D1D66007C28C3 /* PINOperation.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		151DE8D523AAC73D003E6D1B /* OldFavoritesTableViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 151DE8D423AAC73D003E6D1B /* OldFavoritesTableViewController.xib */; };
 		151DE8D723AAC74D003E6D1B /* OldFavoritesTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 151DE8D623AAC74D003E6D1B /* OldFavoritesTableViewController.m */; };
 		152BBB13253375CA00D21435 /* clear.png in Resources */ = {isa = PBXBuildFile; fileRef = 152BBB12253375CA00D21435 /* clear.png */; };
@@ -35,12 +33,17 @@
 		15357D75234E437C002D5C2E /* OfflineStorage.m in Sources */ = {isa = PBXBuildFile; fileRef = 15357D74234E437C002D5C2E /* OfflineStorage.m */; };
 		15357D7D2350F216002D5C2E /* OfflineCellView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 15357D7C2350F216002D5C2E /* OfflineCellView.xib */; };
 		15357D802350F245002D5C2E /* OfflineCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = 15357D7F2350F245002D5C2E /* OfflineCellView.m */; };
+		1536E7D5257D26BE00B30209 /* SmileyCodeTableView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1536E7D4257D26BE00B30209 /* SmileyCodeTableView.xib */; };
+		1536E7D7257D26E600B30209 /* SmileyCodeTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1536E7D6257D26E600B30209 /* SmileyCodeTableViewController.m */; };
+		1536E7DA257D2A7800B30209 /* SmileyCodeCellView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1536E7D9257D2A7800B30209 /* SmileyCodeCellView.xib */; };
+		1536E7DD257D2BF100B30209 /* SmileyCodeCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1536E7DC257D2BF100B30209 /* SmileyCodeCellView.m */; };
 		153D295C23043CB200000505 /* style-liste-light.css in Resources */ = {isa = PBXBuildFile; fileRef = 153D295B23043CB200000505 /* style-liste-light.css */; };
 		1540899C2439E7C900509862 /* FilterPostsQuotes.m in Sources */ = {isa = PBXBuildFile; fileRef = 1540899B2439E7C900509862 /* FilterPostsQuotes.m */; };
 		1543743522EC672F00AF00A5 /* ColorPickerViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1543743422EC672F00AF00A5 /* ColorPickerViewController.xib */; };
 		1543743722ECAE3100AF00A5 /* ThemeColorCellView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1543743622ECAE3100AF00A5 /* ThemeColorCellView.xib */; };
 		1543743922ECB1C300AF00A5 /* ThemeColorCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1543743822ECB1C300AF00A5 /* ThemeColorCellView.m */; };
 		1543743D22EDDF7400AF00A5 /* ColorPickerViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1543743C22EDDF7400AF00A5 /* ColorPickerViewController.m */; };
+		154ACDFB26FA45EA00BAF716 /* SmileyAlertView.m in Sources */ = {isa = PBXBuildFile; fileRef = 154ACDFA26FA45EA00BAF716 /* SmileyAlertView.m */; };
 		154C0D03250FD66F00294ECC /* person.3.fill-2.png in Resources */ = {isa = PBXBuildFile; fileRef = 154C0D01250FD66E00294ECC /* person.3.fill-2.png */; };
 		154C0D04250FD66F00294ECC /* person.3.fill-2@2.png in Resources */ = {isa = PBXBuildFile; fileRef = 154C0D02250FD66E00294ECC /* person.3.fill-2@2.png */; };
 		154F823724C8893500BC46B2 /* RehostImageViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 154F823624C8893500BC46B2 /* RehostImageViewController.xib */; };
@@ -54,11 +57,6 @@
 		1553568C24A87EBC00917DE1 /* UILabel+Boldify.m in Sources */ = {isa = PBXBuildFile; fileRef = 1553568B24A87EBC00917DE1 /* UILabel+Boldify.m */; };
 		1553568F24A8CCDA00917DE1 /* revert@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 1553568D24A8CCD900917DE1 /* revert@2x.png */; };
 		1553569024A8CCDA00917DE1 /* revert.png in Resources */ = {isa = PBXBuildFile; fileRef = 1553568E24A8CCDA00917DE1 /* revert.png */; };
-		1553569524C3227700917DE1 /* PINCache.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1553569124C3227600917DE1 /* PINCache.framework */; };
-		1553569624C3227700917DE1 /* DeepDiff.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1553569224C3227700917DE1 /* DeepDiff.framework */; };
-		1553569724C3227700917DE1 /* GiphyCoreSDK.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1553569324C3227700917DE1 /* GiphyCoreSDK.framework */; };
-		1553569824C3227700917DE1 /* GiphyUISDK.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1553569424C3227700917DE1 /* GiphyUISDK.framework */; };
-		1553569A24C3228300917DE1 /* WebP.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1553569924C3228300917DE1 /* WebP.framework */; };
 		1556408E22D91E980018A619 /* ListTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1556408D22D91E980018A619 /* ListTableViewController.m */; };
 		1556409122D928D30018A619 /* WhiteListTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1556409022D928D30018A619 /* WhiteListTableViewController.m */; };
 		1556409322D9297C0018A619 /* WhiteListTableViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1556409222D9297C0018A619 /* WhiteListTableViewController.xib */; };
@@ -109,6 +107,13 @@
 		15AEFFED222AB07C003A2E5F /* bgbigipad3.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 15AEFFEC222AB07C003A2E5F /* bgbigipad3.jpg */; };
 		15B245AA22E6F9870091B513 /* ThemeSettingsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 15B245A922E6F9870091B513 /* ThemeSettingsViewController.m */; };
 		15B245AC22E6FD080091B513 /* ThemeSettingsViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 15B245AB22E6FD080091B513 /* ThemeSettingsViewController.xib */; };
+		15B5FC4B264FAB71006CBEF0 /* Cartfile in Resources */ = {isa = PBXBuildFile; fileRef = 15B5FC4A264FAB71006CBEF0 /* Cartfile */; };
+		15B5FC4D264FAE49006CBEF0 /* InAppSettingsKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 15B5FC4C264FAE48006CBEF0 /* InAppSettingsKit.xcframework */; };
+		15B5FC50264FAE4D006CBEF0 /* SimpleKeychain.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 15B5FC4F264FAE4D006CBEF0 /* SimpleKeychain.xcframework */; };
+		15B5FC51264FAE4D006CBEF0 /* SimpleKeychain.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 15B5FC4F264FAE4D006CBEF0 /* SimpleKeychain.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		15B5FC55264FD2B3006CBEF0 /* InAppSettingsKit.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 15B5FC4C264FAE48006CBEF0 /* InAppSettingsKit.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		15B5FC5726512005006CBEF0 /* GiphyUISDK.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 15B5FC5626512005006CBEF0 /* GiphyUISDK.xcframework */; };
+		15B5FC5826512005006CBEF0 /* GiphyUISDK.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 15B5FC5626512005006CBEF0 /* GiphyUISDK.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		15C673CC22552B6900B9E0BE /* FavoriteCellView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 15C673CB22552B6900B9E0BE /* FavoriteCellView.xib */; };
 		15C673D122567A7300B9E0BE /* FavoriteCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = 15C673D022567A7300B9E0BE /* FavoriteCellView.m */; };
 		15DE2D1B249F59DD00A80C7C /* fullscreen.png in Resources */ = {isa = PBXBuildFile; fileRef = 15DE2D18249F59DC00A80C7C /* fullscreen.png */; };
@@ -665,9 +670,6 @@
 		CA7C7128185EF50E00B348BA /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 01BF87EE121C45DE007624B6 /* SystemConfiguration.framework */; };
 		CA7C7129185EF50E00B348BA /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 013F0DB4121E0E8700BEBEB1 /* QuartzCore.framework */; };
 		CA7C712A185EF50E00B348BA /* AssetsLibrary.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CA18B160126245AB008B8466 /* AssetsLibrary.framework */; };
-		CA7C712C185EF50E00B348BA /* libxml2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = CA05A37615B48B750083EB64 /* libxml2.dylib */; };
-		CA7C712D185EF50E00B348BA /* libsqlite3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = CA37D50C15A1BD5F002C72C6 /* libsqlite3.dylib */; };
-		CA7C712E185EF50E00B348BA /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = CA4CE81415B185CA0039FC3B /* libz.dylib */; };
 		CAADF6C81929681300ECA4C1 /* ProfilViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = CAADF6C51929681300ECA4C1 /* ProfilViewController.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
 		CAADF6CA1929681300ECA4C1 /* ProfilViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = CAADF6C61929681300ECA4C1 /* ProfilViewController.xib */; };
 		CAC7FCD1190DBD450083BB4E /* PollResultTableViewCell.m in Sources */ = {isa = PBXBuildFile; fileRef = CAC7FCCE190DBD450083BB4E /* PollResultTableViewCell.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
@@ -709,12 +711,11 @@
 		D826905A1E58658D006971C3 /* avatar_male_gray_on_dark_32x32.png in Resources */ = {isa = PBXBuildFile; fileRef = D82690561E58658D006971C3 /* avatar_male_gray_on_dark_32x32.png */; };
 		D826905C1E58658D006971C3 /* avatar_male_gray_on_dark_48x48.png in Resources */ = {isa = PBXBuildFile; fileRef = D82690571E58658D006971C3 /* avatar_male_gray_on_dark_48x48.png */; };
 		D826905E1E58658D006971C3 /* avatar_male_gray_on_dark_48x48@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = D82690581E58658D006971C3 /* avatar_male_gray_on_dark_48x48@2x.png */; };
-		D8672D35203F0AD00045785C /* InAppSettingsKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D8672D34203F0AD00045785C /* InAppSettingsKit.framework */; };
 		D8685927214D5E200054617C /* style-liste-oled.css in Resources */ = {isa = PBXBuildFile; fileRef = D8685925214D5E200054617C /* style-liste-oled.css */; };
 		D8685928214D5E200054617C /* style-liste-retina-oled.css in Resources */ = {isa = PBXBuildFile; fileRef = D8685926214D5E200054617C /* style-liste-retina-oled.css */; };
 		D86ED58520445F5C00A2D541 /* UIImage+BezierPath.m in Sources */ = {isa = PBXBuildFile; fileRef = D86ED58420445F5C00A2D541 /* UIImage+BezierPath.m */; };
 		D86ED58820447D1200A2D541 /* LuminosityHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = D86ED58720447D1200A2D541 /* LuminosityHandler.m */; };
-		D87BB73C21624AEC0079690C /* SimpleKeychain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D87BB73A21624AEB0079690C /* SimpleKeychain.framework */; };
+		D873E007271DBC5B006262C8 /* HFRplusTabBar.m in Sources */ = {isa = PBXBuildFile; fileRef = D873E006271DBC5B006262C8 /* HFRplusTabBar.m */; };
 		D87BB73F216266BA0079690C /* CompteTableViewCell.xib in Resources */ = {isa = PBXBuildFile; fileRef = D87BB73E216266BA0079690C /* CompteTableViewCell.xib */; };
 		D87BB742216266F00079690C /* CompteTableViewCell.m in Sources */ = {isa = PBXBuildFile; fileRef = D87BB740216266F00079690C /* CompteTableViewCell.m */; };
 		D8835E841E5F13C70073398C /* MKAnnotationView+WebCache.m in Sources */ = {isa = PBXBuildFile; fileRef = D8835E631E5F13C70073398C /* MKAnnotationView+WebCache.m */; };
@@ -788,7 +789,9 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				151B6CA1251D1D66007C28C3 /* PINOperation.framework in Embed Frameworks */,
+				15B5FC55264FD2B3006CBEF0 /* InAppSettingsKit.xcframework in Embed Frameworks */,
+				15B5FC5826512005006CBEF0 /* GiphyUISDK.xcframework in Embed Frameworks */,
+				15B5FC51264FAE4D006CBEF0 /* SimpleKeychain.xcframework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -872,7 +875,6 @@
 		1512A7922232F6C8000C9B1D /* 08-chat-20.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "08-chat-20.png"; sourceTree = "<group>"; };
 		15141AA221E7ADE800811E5A /* link_url.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = link_url.png; path = ../../../../../Icones/link_url.png; sourceTree = "<group>"; };
 		15167EB02330210600D64651 /* Heart-20@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Heart-20@2x.png"; sourceTree = "<group>"; };
-		151B6C9F251D1D66007C28C3 /* PINOperation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = PINOperation.framework; path = Carthage/Build/iOS/PINOperation.framework; sourceTree = "<group>"; };
 		151DE8D423AAC73D003E6D1B /* OldFavoritesTableViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = OldFavoritesTableViewController.xib; sourceTree = "<group>"; };
 		151DE8D623AAC74D003E6D1B /* OldFavoritesTableViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = OldFavoritesTableViewController.m; sourceTree = "<group>"; };
 		151DE8D823AAC756003E6D1B /* OldFavoritesTableViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = OldFavoritesTableViewController.h; sourceTree = "<group>"; };
@@ -901,6 +903,12 @@
 		15357D7C2350F216002D5C2E /* OfflineCellView.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = OfflineCellView.xib; sourceTree = "<group>"; };
 		15357D7E2350F234002D5C2E /* OfflineCellView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = OfflineCellView.h; sourceTree = "<group>"; };
 		15357D7F2350F245002D5C2E /* OfflineCellView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = OfflineCellView.m; sourceTree = "<group>"; };
+		1536E7D4257D26BE00B30209 /* SmileyCodeTableView.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = SmileyCodeTableView.xib; sourceTree = "<group>"; };
+		1536E7D6257D26E600B30209 /* SmileyCodeTableViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SmileyCodeTableViewController.m; sourceTree = "<group>"; };
+		1536E7D8257D271900B30209 /* SmileyCodeTableViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SmileyCodeTableViewController.h; sourceTree = "<group>"; };
+		1536E7D9257D2A7800B30209 /* SmileyCodeCellView.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = SmileyCodeCellView.xib; sourceTree = "<group>"; };
+		1536E7DB257D2BD300B30209 /* SmileyCodeCellView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SmileyCodeCellView.h; sourceTree = "<group>"; };
+		1536E7DC257D2BF100B30209 /* SmileyCodeCellView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SmileyCodeCellView.m; sourceTree = "<group>"; };
 		153D295B23043CB200000505 /* style-liste-light.css */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.css; path = "style-liste-light.css"; sourceTree = "<group>"; };
 		1540899B2439E7C900509862 /* FilterPostsQuotes.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FilterPostsQuotes.m; sourceTree = "<group>"; };
 		1540899D2439E82800509862 /* FilterPostsQuotes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FilterPostsQuotes.h; sourceTree = "<group>"; };
@@ -910,6 +918,8 @@
 		1543743A22ECB1DD00AF00A5 /* ThemeColorCellView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ThemeColorCellView.h; sourceTree = "<group>"; };
 		1543743B22EDDF5E00AF00A5 /* ColorPickerViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ColorPickerViewController.h; sourceTree = "<group>"; };
 		1543743C22EDDF7400AF00A5 /* ColorPickerViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ColorPickerViewController.m; sourceTree = "<group>"; };
+		154ACDF926FA45EA00BAF716 /* SmileyAlertView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SmileyAlertView.h; sourceTree = "<group>"; };
+		154ACDFA26FA45EA00BAF716 /* SmileyAlertView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SmileyAlertView.m; sourceTree = "<group>"; };
 		154C0D01250FD66E00294ECC /* person.3.fill-2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "person.3.fill-2.png"; sourceTree = "<group>"; };
 		154C0D02250FD66E00294ECC /* person.3.fill-2@2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "person.3.fill-2@2.png"; sourceTree = "<group>"; };
 		154F823624C8893500BC46B2 /* RehostImageViewController.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = RehostImageViewController.xib; sourceTree = "<group>"; };
@@ -925,11 +935,6 @@
 		1553568B24A87EBC00917DE1 /* UILabel+Boldify.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "UILabel+Boldify.m"; sourceTree = "<group>"; };
 		1553568D24A8CCD900917DE1 /* revert@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "revert@2x.png"; sourceTree = "<group>"; };
 		1553568E24A8CCDA00917DE1 /* revert.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = revert.png; sourceTree = "<group>"; };
-		1553569124C3227600917DE1 /* PINCache.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = PINCache.framework; path = Carthage/Build/iOS/PINCache.framework; sourceTree = "<group>"; };
-		1553569224C3227700917DE1 /* DeepDiff.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DeepDiff.framework; path = Carthage/Build/iOS/DeepDiff.framework; sourceTree = "<group>"; };
-		1553569324C3227700917DE1 /* GiphyCoreSDK.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GiphyCoreSDK.framework; path = Carthage/Build/iOS/GiphyCoreSDK.framework; sourceTree = "<group>"; };
-		1553569424C3227700917DE1 /* GiphyUISDK.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GiphyUISDK.framework; path = Carthage/Build/iOS/GiphyUISDK.framework; sourceTree = "<group>"; };
-		1553569924C3228300917DE1 /* WebP.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebP.framework; path = Carthage/Build/iOS/WebP.framework; sourceTree = "<group>"; };
 		1556408C22D91E820018A619 /* ListTableViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ListTableViewController.h; sourceTree = "<group>"; };
 		1556408D22D91E980018A619 /* ListTableViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ListTableViewController.m; sourceTree = "<group>"; };
 		1556408F22D928AE0018A619 /* WhiteListTableViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WhiteListTableViewController.h; sourceTree = "<group>"; };
@@ -974,6 +979,7 @@
 		159CE14E24801DFA00BC17DA /* SmileyCache.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SmileyCache.h; sourceTree = "<group>"; };
 		159CE14F24801E1500BC17DA /* SmileyCache.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SmileyCache.m; sourceTree = "<group>"; };
 		15A1238C22D659CB00C3DFEC /* Heart-20.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Heart-20.png"; sourceTree = "<group>"; };
+		15A5F3B32708E55800DAE8FE /* Notes.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Notes.md; sourceTree = "<group>"; };
 		15ABB27B2488397100E30B48 /* gif.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = gif.png; sourceTree = "<group>"; };
 		15ABB27C2488397200E30B48 /* gif@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "gif@2x.png"; sourceTree = "<group>"; };
 		15AEF9FC223E9052005E6739 /* Icon-BLUE@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-BLUE@3x.png"; sourceTree = "<group>"; };
@@ -988,6 +994,11 @@
 		15B245A822E6F94C0091B513 /* ThemeSettingsViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ThemeSettingsViewController.h; sourceTree = "<group>"; };
 		15B245A922E6F9870091B513 /* ThemeSettingsViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ThemeSettingsViewController.m; sourceTree = "<group>"; };
 		15B245AB22E6FD080091B513 /* ThemeSettingsViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = ThemeSettingsViewController.xib; sourceTree = "<group>"; };
+		15B5FC4A264FAB71006CBEF0 /* Cartfile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Cartfile; sourceTree = "<group>"; };
+		15B5FC4C264FAE48006CBEF0 /* InAppSettingsKit.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = InAppSettingsKit.xcframework; path = Carthage/Build/InAppSettingsKit.xcframework; sourceTree = "<group>"; };
+		15B5FC4F264FAE4D006CBEF0 /* SimpleKeychain.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = SimpleKeychain.xcframework; path = Carthage/Build/SimpleKeychain.xcframework; sourceTree = "<group>"; };
+		15B5FC52264FCCF0006CBEF0 /* GiphyUISDK.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = GiphyUISDK.xcframework; path = "../giphy-ios-sdk/GiphyUISDK.xcframework"; sourceTree = "<group>"; };
+		15B5FC5626512005006CBEF0 /* GiphyUISDK.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = GiphyUISDK.xcframework; path = Frameworks/GiphyUISDK.xcframework; sourceTree = "<group>"; };
 		15C673CB22552B6900B9E0BE /* FavoriteCellView.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = FavoriteCellView.xib; sourceTree = "<group>"; };
 		15C673CF22567A3C00B9E0BE /* FavoriteCellView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FavoriteCellView.h; sourceTree = "<group>"; };
 		15C673D022567A7300B9E0BE /* FavoriteCellView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FavoriteCellView.m; sourceTree = "<group>"; };
@@ -1507,7 +1518,6 @@
 		CA00C6E817C310B50067B457 /* InAppSettings.bundle */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.plug-in"; path = InAppSettings.bundle; sourceTree = "<group>"; };
 		CA00C6EA17C310E90067B457 /* commonsmile.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = commonsmile.plist; sourceTree = "<group>"; };
 		CA019F1619CD77D500F67C47 /* jquery-2.1.1.min.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = "jquery-2.1.1.min.js"; sourceTree = "<group>"; };
-		CA05A37615B48B750083EB64 /* libxml2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libxml2.dylib; path = usr/lib/libxml2.dylib; sourceTree = SDKROOT; };
 		CA1070B315A4CEFD002E6C19 /* MessageUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MessageUI.framework; path = System/Library/Frameworks/MessageUI.framework; sourceTree = SDKROOT; };
 		CA1070C015A4DA1E002E6C19 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		CA1070C215A4DA2B002E6C19 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -1526,10 +1536,8 @@
 		CA34780812EB557500D1BA2A /* PayViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = PayViewController.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
 		CA34780912EB557500D1BA2A /* PayViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; lineEnding = 0; path = PayViewController.m; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objc; };
 		CA34780A12EB557500D1BA2A /* PayViewController.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = PayViewController.xib; sourceTree = "<group>"; };
-		CA37D50C15A1BD5F002C72C6 /* libsqlite3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libsqlite3.dylib; path = usr/lib/libsqlite3.dylib; sourceTree = SDKROOT; };
 		CA45B60815B89F4E00380CA0 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README.md; sourceTree = "<group>"; };
 		CA4AA6DC15B2553C00E53A1F /* CoreText.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreText.framework; path = System/Library/Frameworks/CoreText.framework; sourceTree = SDKROOT; };
-		CA4CE81415B185CA0039FC3B /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
 		CA4CE89115B1B30B0039FC3B /* ImageIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ImageIO.framework; path = System/Library/Frameworks/ImageIO.framework; sourceTree = SDKROOT; };
 		CA5E109218AC2A4F00C481A9 /* PollTableViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PollTableViewController.h; sourceTree = "<group>"; };
 		CA5E109318AC2A4F00C481A9 /* PollTableViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; lineEnding = 0; path = PollTableViewController.m; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objc; };
@@ -1667,15 +1675,14 @@
 		D82690561E58658D006971C3 /* avatar_male_gray_on_dark_32x32.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = avatar_male_gray_on_dark_32x32.png; sourceTree = "<group>"; };
 		D82690571E58658D006971C3 /* avatar_male_gray_on_dark_48x48.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = avatar_male_gray_on_dark_48x48.png; sourceTree = "<group>"; };
 		D82690581E58658D006971C3 /* avatar_male_gray_on_dark_48x48@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "avatar_male_gray_on_dark_48x48@2x.png"; sourceTree = "<group>"; };
-		D8672D34203F0AD00045785C /* InAppSettingsKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = InAppSettingsKit.framework; path = Carthage/Build/iOS/InAppSettingsKit.framework; sourceTree = "<group>"; };
 		D8685925214D5E200054617C /* style-liste-oled.css */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.css; path = "style-liste-oled.css"; sourceTree = "<group>"; };
 		D8685926214D5E200054617C /* style-liste-retina-oled.css */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.css; path = "style-liste-retina-oled.css"; sourceTree = "<group>"; };
 		D86ED58320445F5C00A2D541 /* UIImage+BezierPath.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "UIImage+BezierPath.h"; sourceTree = "<group>"; };
 		D86ED58420445F5C00A2D541 /* UIImage+BezierPath.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "UIImage+BezierPath.m"; sourceTree = "<group>"; };
 		D86ED58620447D1200A2D541 /* LuminosityHandler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LuminosityHandler.h; sourceTree = "<group>"; };
 		D86ED58720447D1200A2D541 /* LuminosityHandler.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LuminosityHandler.m; sourceTree = "<group>"; };
-		D87BB73A21624AEB0079690C /* SimpleKeychain.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SimpleKeychain.framework; path = Carthage/Build/iOS/SimpleKeychain.framework; sourceTree = "<group>"; };
-		D87BB73B21624AEC0079690C /* SimpleKeychain.framework.dSYM */ = {isa = PBXFileReference; lastKnownFileType = wrapper.dsym; name = SimpleKeychain.framework.dSYM; path = Carthage/Build/iOS/SimpleKeychain.framework.dSYM; sourceTree = "<group>"; };
+		D873E005271DBC05006262C8 /* HFRplusTabBar.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HFRplusTabBar.h; sourceTree = "<group>"; };
+		D873E006271DBC5B006262C8 /* HFRplusTabBar.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HFRplusTabBar.m; sourceTree = "<group>"; };
 		D87BB73E216266BA0079690C /* CompteTableViewCell.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = CompteTableViewCell.xib; sourceTree = "<group>"; };
 		D87BB740216266F00079690C /* CompteTableViewCell.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CompteTableViewCell.m; sourceTree = "<group>"; };
 		D87BB741216266F00079690C /* CompteTableViewCell.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CompteTableViewCell.h; sourceTree = "<group>"; };
@@ -1773,11 +1780,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				15B5FC5726512005006CBEF0 /* GiphyUISDK.xcframework in Frameworks */,
 				152D2D472455916000D9D644 /* libiconv.2.4.0.tbd in Frameworks */,
 				D8FEA7E7224542540096602D /* WebP.framework in Frameworks */,
 				4CD6B8811B977E0E007FC29E /* SafariServices.framework in Frameworks */,
-				D8672D35203F0AD00045785C /* InAppSettingsKit.framework in Frameworks */,
-				151B6CA0251D1D66007C28C3 /* PINOperation.framework in Frameworks */,
 				CA2E6DE619DB08D50089B5CF /* WebKit.framework in Frameworks */,
 				CA7C711E185EF50E00B348BA /* CoreData.framework in Frameworks */,
 				CA7C711F185EF50E00B348BA /* CoreText.framework in Frameworks */,
@@ -1785,21 +1791,14 @@
 				CA7C7121185EF50E00B348BA /* MessageUI.framework in Frameworks */,
 				CA7C7122185EF50E00B348BA /* Foundation.framework in Frameworks */,
 				CA7C7123185EF50E00B348BA /* UIKit.framework in Frameworks */,
-				1553569524C3227700917DE1 /* PINCache.framework in Frameworks */,
-				1553569A24C3228300917DE1 /* WebP.framework in Frameworks */,
 				CA7C7124185EF50E00B348BA /* CoreGraphics.framework in Frameworks */,
+				15B5FC50264FAE4D006CBEF0 /* SimpleKeychain.xcframework in Frameworks */,
 				CA7C7125185EF50E00B348BA /* CFNetwork.framework in Frameworks */,
 				CA7C7126185EF50E00B348BA /* MobileCoreServices.framework in Frameworks */,
 				CA7C7128185EF50E00B348BA /* SystemConfiguration.framework in Frameworks */,
 				CA7C7129185EF50E00B348BA /* QuartzCore.framework in Frameworks */,
 				CA7C712A185EF50E00B348BA /* AssetsLibrary.framework in Frameworks */,
-				CA7C712C185EF50E00B348BA /* libxml2.dylib in Frameworks */,
-				CA7C712D185EF50E00B348BA /* libsqlite3.dylib in Frameworks */,
-				CA7C712E185EF50E00B348BA /* libz.dylib in Frameworks */,
-				1553569624C3227700917DE1 /* DeepDiff.framework in Frameworks */,
-				1553569724C3227700917DE1 /* GiphyCoreSDK.framework in Frameworks */,
-				D87BB73C21624AEC0079690C /* SimpleKeychain.framework in Frameworks */,
-				1553569824C3227700917DE1 /* GiphyUISDK.framework in Frameworks */,
+				15B5FC4D264FAE49006CBEF0 /* InAppSettingsKit.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1826,6 +1825,12 @@
 				CA228CEF125CFD4500DDCD2E /* MessageDetailViewControllerv2.xib */,
 				1540899D2439E82800509862 /* FilterPostsQuotes.h */,
 				1540899B2439E7C900509862 /* FilterPostsQuotes.m */,
+				1536E7D8257D271900B30209 /* SmileyCodeTableViewController.h */,
+				1536E7D6257D26E600B30209 /* SmileyCodeTableViewController.m */,
+				1536E7D4257D26BE00B30209 /* SmileyCodeTableView.xib */,
+				1536E7DB257D2BD300B30209 /* SmileyCodeCellView.h */,
+				1536E7DC257D2BF100B30209 /* SmileyCodeCellView.m */,
+				1536E7D9257D2A7800B30209 /* SmileyCodeCellView.xib */,
 			);
 			name = Messages;
 			sourceTree = "<group>";
@@ -1925,6 +1930,8 @@
 		01BF8A0C121D7450007624B6 /* Common */ = {
 			isa = PBXGroup;
 			children = (
+				154ACDF926FA45EA00BAF716 /* SmileyAlertView.h */,
+				154ACDFA26FA45EA00BAF716 /* SmileyAlertView.m */,
 				1D3623240D0F684500981E51 /* HFRplusAppDelegate.h */,
 				1D3623250D0F684500981E51 /* HFRplusAppDelegate.m */,
 				01BF8C4A121DBB09007624B6 /* UIAlertViewURL.h */,
@@ -2118,6 +2125,8 @@
 		29B97314FDCFA39411CA2CEA /* CustomTemplate */ = {
 			isa = PBXGroup;
 			children = (
+				15A5F3B32708E55800DAE8FE /* Notes.md */,
+				15B5FC4A264FAB71006CBEF0 /* Cartfile */,
 				CA00C35417C2FC620067B457 /* SuperHFRplus */,
 				080E96DDFE201D6D7F000001 /* Classes */,
 				29B97317FDCFA39411CA2CEA /* Resources */,
@@ -2142,21 +2151,13 @@
 		29B97323FDCFA39411CA2CEA /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				151B6C9F251D1D66007C28C3 /* PINOperation.framework */,
-				1553569924C3228300917DE1 /* WebP.framework */,
-				1553569224C3227700917DE1 /* DeepDiff.framework */,
-				1553569324C3227700917DE1 /* GiphyCoreSDK.framework */,
-				1553569424C3227700917DE1 /* GiphyUISDK.framework */,
-				1553569124C3227600917DE1 /* PINCache.framework */,
+				15B5FC52264FCCF0006CBEF0 /* GiphyUISDK.xcframework */,
+				15B5FC5626512005006CBEF0 /* GiphyUISDK.xcframework */,
+				15B5FC4F264FAE4D006CBEF0 /* SimpleKeychain.xcframework */,
+				15B5FC4C264FAE48006CBEF0 /* InAppSettingsKit.xcframework */,
 				152D2D462455916000D9D644 /* libiconv.2.4.0.tbd */,
-				D87BB73A21624AEB0079690C /* SimpleKeychain.framework */,
-				D87BB73B21624AEC0079690C /* SimpleKeychain.framework.dSYM */,
-				D8672D34203F0AD00045785C /* InAppSettingsKit.framework */,
 				4CD6B87F1B977E06007FC29E /* SafariServices.framework */,
 				CA2E6DE419DB08CC0089B5CF /* WebKit.framework */,
-				CA05A37615B48B750083EB64 /* libxml2.dylib */,
-				CA4CE81415B185CA0039FC3B /* libz.dylib */,
-				CA37D50C15A1BD5F002C72C6 /* libsqlite3.dylib */,
 				CAF6C0111607B62300B4B70C /* CoreData.framework */,
 				CA4AA6DC15B2553C00E53A1F /* CoreText.framework */,
 				CA4CE89115B1B30B0039FC3B /* ImageIO.framework */,
@@ -2603,6 +2604,8 @@
 				152D2D492456E56500D9D644 /* ASIHTTPRequest+Tools.m */,
 				1553568A24A87EA200917DE1 /* UILabel+Boldify.h */,
 				1553568B24A87EBC00917DE1 /* UILabel+Boldify.m */,
+				D873E005271DBC05006262C8 /* HFRplusTabBar.h */,
+				D873E006271DBC5B006262C8 /* HFRplusTabBar.m */,
 			);
 			path = Helpers;
 			sourceTree = "<group>";
@@ -3263,7 +3266,6 @@
 				CA7C6FA4185EF50E00B348BA /* Resources */,
 				CA7C70B9185EF50E00B348BA /* Sources */,
 				CA7C711D185EF50E00B348BA /* Frameworks */,
-				4CFB848B1FB4BC6F0014BE6D /* ShellScript */,
 				151B6CA2251D1D66007C28C3 /* Embed Frameworks */,
 				15F3C5B8254AB19500F4B1FD /* Embed App Extensions */,
 			);
@@ -3286,9 +3288,7 @@
 				LastUpgradeCheck = 1020;
 				TargetAttributes = {
 					CA7C6FA3185EF50E00B348BA = {
-						DevelopmentTeam = NCJNK4ZZ54;
 						LastSwiftMigration = 0910;
-						ProvisioningStyle = Manual;
 						SystemCapabilities = {
 							com.apple.Keychain = {
 								enabled = 1;
@@ -3422,6 +3422,7 @@
 				4C0B8DAF1BA4522900D329BA /* VOIPGatewayFilled-40.png in Resources */,
 				4C21E9721BA5C70400691D65 /* SelectAllFilled-20.png in Resources */,
 				CA7C6FD8185EF50E00B348BA /* ToolBarPlay_on@2x.png in Resources */,
+				1536E7DA257D2A7800B30209 /* SmileyCodeCellView.xib in Resources */,
 				4CD6B8931B97996F007FC29E /* DeleteColumnFilled-20.png in Resources */,
 				CA7C6FD9185EF50E00B348BA /* buttonendoff.png in Resources */,
 				CA7C6FDA185EF50E00B348BA /* 121-landscapebig.png in Resources */,
@@ -3510,6 +3511,7 @@
 				CA7C7009185EF50E00B348BA /* downsmall7@2x.png in Resources */,
 				4CB132FF1B90B7060081B44D /* ThorHammer-20@2x.png in Resources */,
 				CAF5DB771933D422000B5215 /* ConfigurationViewController.xib in Resources */,
+				15B5FC4B264FAB71006CBEF0 /* Cartfile in Resources */,
 				4C9C2B911BAE801700511853 /* BugFilled-25.png in Resources */,
 				CA7C700A185EF50E00B348BA /* ToolBarFastRewind_on@2x.png in Resources */,
 				4C0B8D991BA4522900D329BA /* QuestionsFilled-40@2x.png in Resources */,
@@ -3829,6 +3831,7 @@
 				CA7C709C185EF50E00B348BA /* buttonbeginon.png in Resources */,
 				CA7C709D185EF50E00B348BA /* plus.png in Resources */,
 				CA7C709E185EF50E00B348BA /* downsmall.png in Resources */,
+				1536E7D5257D26BE00B30209 /* SmileyCodeTableView.xib in Resources */,
 				1591C0E3249418900025560A /* smiley.png in Resources */,
 				4CB132E21B909C820081B44D /* Quote-20@2x.png in Resources */,
 				CAF5DB651932BA58000B5215 /* error.png in Resources */,
@@ -3903,28 +3906,6 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
-/* Begin PBXShellScriptBuildPhase section */
-		4CFB848B1FB4BC6F0014BE6D /* ShellScript */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"$(SRCROOT)/Carthage/Build/iOS/InAppSettingsKit.framework",
-				"$(SRCROOT)/Carthage/Build/iOS/SimpleKeychain.framework",
-				"$(SRCROOT)/Carthage/Build/iOS/PINCache.framework",
-				"$(SRCROOT)/Carthage/Build/iOS/DeepDiff.framework",
-			);
-			outputPaths = (
-				"$(DERIVED_FILE_DIR)/PINCache.framework",
-				"$(DERIVED_FILE_DIR)/DeepDiff.framework",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "/usr/local/bin/carthage copy-frameworks\n";
-		};
-/* End PBXShellScriptBuildPhase section */
-
 /* Begin PBXSourcesBuildPhase section */
 		CA7C70B9185EF50E00B348BA /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -3984,6 +3965,7 @@
 				1591C0E02490170D0025560A /* SmileyViewController.m in Sources */,
 				4C0B8E051BA45B0100D329BA /* ForumCellView.m in Sources */,
 				CA7C70DF185EF50E00B348BA /* AddMessageViewController.m in Sources */,
+				154ACDFB26FA45EA00BAF716 /* SmileyAlertView.m in Sources */,
 				D80DBD6E1E55BE730051B751 /* ASIDataDecompressor.m in Sources */,
 				D86ED58820447D1200A2D541 /* LuminosityHandler.m in Sources */,
 				15F4F46522F1D32F00A7AC97 /* ThemeBrightnessCellView.m in Sources */,
@@ -4045,6 +4027,7 @@
 				4C39038B1BCAD0C700FD6F1F /* MWPhoto.m in Sources */,
 				CA7C70F9185EF50E00B348BA /* NSData+Base64.m in Sources */,
 				4C3903381BCACE4D00FD6F1F /* DACircularProgressView.m in Sources */,
+				1536E7D7257D26E600B30209 /* SmileyCodeTableViewController.m in Sources */,
 				4C3903931BCAD0C700FD6F1F /* MWTapDetectingView.m in Sources */,
 				D82690401E5856A5006971C3 /* HFRUIImagePickerController.m in Sources */,
 				CA7C70F4185EF50E00B348BA /* UITableViewController+Ext.m in Sources */,
@@ -4057,6 +4040,7 @@
 				CA7C710C185EF50E00B348BA /* ShakeView.m in Sources */,
 				15EBFD0822022A7500A37CED /* PlusSettingsViewController.m in Sources */,
 				CA7C70C8185EF50E00B348BA /* MBProgressHUD.m in Sources */,
+				1536E7DD257D2BF100B30209 /* SmileyCodeCellView.m in Sources */,
 				CA7C70CF185EF50E00B348BA /* HTMLNode.m in Sources */,
 				D80DBD6A1E55BE730051B751 /* ASIAuthenticationDialog.m in Sources */,
 				4CACF40D1FB3754E00A41CC6 /* MDNKit.swift in Sources */,
@@ -4077,6 +4061,7 @@
 				4C3903671BCACEC200FD6F1F /* PSTCollectionViewUpdateItem.m in Sources */,
 				1503755821FF794200A5F7E1 /* PlusCellView.m in Sources */,
 				151DE8D723AAC74D003E6D1B /* OldFavoritesTableViewController.m in Sources */,
+				D873E007271DBC5B006262C8 /* HFRplusTabBar.m in Sources */,
 				4C00313E1BD0404500F87F13 /* UIWebView+FLUIWebView.m in Sources */,
 				4C3903591BCACEC200FD6F1F /* PSTCollectionView.m in Sources */,
 				4C39036F1BCACEC200FD6F1F /* PSTGridLayoutSection.m in Sources */,
@@ -4218,17 +4203,16 @@
 		CA7C7130185EF50E00B348BA /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = "Classic-Red";
 				ASSETCATALOG_COMPILER_OPTIMIZATION = time;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 78;
-				DEVELOPMENT_TEAM = NCJNK4ZZ54;
+				CURRENT_PROJECT_VERSION = 90;
+				DEVELOPMENT_TEAM = QMG83DG7YP;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4247,20 +4231,23 @@
 				HEADER_SEARCH_PATHS = $SDKROOT/usr/include/libxml2;
 				INFOPLIST_FILE = "SuperHFRplus-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)/**",
 					"$(PROJECT_DIR)/**",
 				);
-				MARKETING_VERSION = 2.1.14;
+				MARKETING_VERSION = 2.1.17;
 				OTHER_LDFLAGS = (
 					"-licucore",
 					"-ObjC",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.test2;
+				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super90;
 				PRODUCT_NAME = SuperHFRplusSwift;
-				PROVISIONING_PROFILE_SPECIFIER = "Hfrplus for ezzz v2";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "SuperHFRplus/SuperHFRplus-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 4.0;
@@ -4271,17 +4258,16 @@
 		CA7C7131185EF50E00B348BA /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = "Classic-Red";
 				ASSETCATALOG_COMPILER_OPTIMIZATION = time;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = YES;
-				CURRENT_PROJECT_VERSION = 87;
-				DEVELOPMENT_TEAM = NCJNK4ZZ54;
+				CURRENT_PROJECT_VERSION = 90;
+				DEVELOPMENT_TEAM = QMG83DG7YP;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4298,20 +4284,23 @@
 				HEADER_SEARCH_PATHS = $SDKROOT/usr/include/libxml2;
 				INFOPLIST_FILE = "SuperHFRplus-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)/**",
 					"$(PROJECT_DIR)/**",
 				);
-				MARKETING_VERSION = 2.1.14;
+				MARKETING_VERSION = 2.1.17;
 				OTHER_LDFLAGS = (
 					"-licucore",
 					"-ObjC",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.test2;
+				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super90;
 				PRODUCT_NAME = SuperHFRplusSwift;
-				PROVISIONING_PROFILE_SPECIFIER = "Hfrplus for ezzz v2";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "SuperHFRplus/SuperHFRplus-Bridging-Header.h";
 				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
