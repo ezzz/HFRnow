@@ -93,6 +93,8 @@
 		1591C0F7249DF60D0025560A /* SimpleCellView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1591C0F6249DF60D0025560A /* SimpleCellView.xib */; };
 		15960FE522F6147B006BBD34 /* MPStorage.m in Sources */ = {isa = PBXBuildFile; fileRef = 15960FE422F6147B006BBD34 /* MPStorage.m */; };
 		159CE15024801E1500BC17DA /* SmileyCache.m in Sources */ = {isa = PBXBuildFile; fileRef = 159CE14F24801E1500BC17DA /* SmileyCache.m */; };
+		159D80B92737CF1000388363 /* PopupViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 159D80B82737CF1000388363 /* PopupViewController.xib */; };
+		159D80BC2738256600388363 /* PopupViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 159D80BB2738256600388363 /* PopupViewController.m */; };
 		15A1238D22D659CB00C3DFEC /* Heart-20.png in Resources */ = {isa = PBXBuildFile; fileRef = 15A1238C22D659CB00C3DFEC /* Heart-20.png */; };
 		15ABB27D2488397200E30B48 /* gif.png in Resources */ = {isa = PBXBuildFile; fileRef = 15ABB27B2488397100E30B48 /* gif.png */; };
 		15ABB27E2488397200E30B48 /* gif@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15ABB27C2488397200E30B48 /* gif@2x.png */; };
@@ -978,6 +980,9 @@
 		15960FE422F6147B006BBD34 /* MPStorage.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MPStorage.m; sourceTree = "<group>"; };
 		159CE14E24801DFA00BC17DA /* SmileyCache.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SmileyCache.h; sourceTree = "<group>"; };
 		159CE14F24801E1500BC17DA /* SmileyCache.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SmileyCache.m; sourceTree = "<group>"; };
+		159D80B82737CF1000388363 /* PopupViewController.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = PopupViewController.xib; sourceTree = "<group>"; };
+		159D80BA2738252600388363 /* PopupViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PopupViewController.h; sourceTree = "<group>"; };
+		159D80BB2738256600388363 /* PopupViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PopupViewController.m; sourceTree = "<group>"; };
 		15A1238C22D659CB00C3DFEC /* Heart-20.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Heart-20.png"; sourceTree = "<group>"; };
 		15A5F3B32708E55800DAE8FE /* Notes.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Notes.md; sourceTree = "<group>"; };
 		15ABB27B2488397100E30B48 /* gif.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = gif.png; sourceTree = "<group>"; };
@@ -1831,6 +1836,9 @@
 				1536E7DB257D2BD300B30209 /* SmileyCodeCellView.h */,
 				1536E7DC257D2BF100B30209 /* SmileyCodeCellView.m */,
 				1536E7D9257D2A7800B30209 /* SmileyCodeCellView.xib */,
+				159D80BA2738252600388363 /* PopupViewController.h */,
+				159D80BB2738256600388363 /* PopupViewController.m */,
+				159D80B82737CF1000388363 /* PopupViewController.xib */,
 			);
 			name = Messages;
 			sourceTree = "<group>";
@@ -3529,6 +3537,7 @@
 				CA7C700F185EF50E00B348BA /* loadinfo.gif in Resources */,
 				CA7C7010185EF50E00B348BA /* photoDefaultfailmini.png in Resources */,
 				15A1238D22D659CB00C3DFEC /* Heart-20.png in Resources */,
+				159D80B92737CF1000388363 /* PopupViewController.xib in Resources */,
 				4C0B8D9B1BA4522900D329BA /* Settings3Filled-40@2x.png in Resources */,
 				CA7C7011185EF50E00B348BA /* Default-568h@2x.png in Resources */,
 				1553568924A500D400917DE1 /* rectangle.compress@3x.png in Resources */,
@@ -3998,6 +4007,7 @@
 				D8835E9A1E5F13C70073398C /* UIImage+MultiFormat.m in Sources */,
 				CA7C7101185EF50E00B348BA /* SplitViewController.m in Sources */,
 				CA7C7102185EF50E00B348BA /* DetailNavigationViewController.m in Sources */,
+				159D80BC2738256600388363 /* PopupViewController.m in Sources */,
 				1543743D22EDDF7400AF00A5 /* ColorPickerViewController.m in Sources */,
 				D8835E981E5F13C70073398C /* UIImage+GIF.m in Sources */,
 				CAF5DB7C19340741000B5215 /* FeedbackTableViewCell.m in Sources */,

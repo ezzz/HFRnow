@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="19162" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+    <device id="retina3_5" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="19144"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="System colors in document resources" minToolsVersion="11.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="PopupViewController">
+            <connections>
+                <outlet property="btnAction" destination="EVL-S3-FYn" id="nHq-oM-rM7"/>
+                <outlet property="message" destination="U73-vf-0OJ" id="gJL-8h-Ju8"/>
+                <outlet property="view" destination="iN0-l3-epB" id="C8M-4A-K3x"/>
+            </connections>
+        </placeholder>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <view contentMode="scaleToFill" id="iN0-l3-epB">
+            <rect key="frame" x="0.0" y="0.0" width="200" height="40"/>
+            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+            <subviews>
+                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Texte de mon label" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="U73-vf-0OJ">
+                    <rect key="frame" x="0.0" y="0.0" width="200" height="40"/>
+                    <fontDescription key="fontDescription" type="system" pointSize="15"/>
+                    <nil key="textColor"/>
+                    <nil key="highlightedColor"/>
+                </label>
+                <button opaque="NO" contentMode="scaleToFill" enabled="NO" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="EVL-S3-FYn">
+                    <rect key="frame" x="0.0" y="0.0" width="200" height="40"/>
+                    <constraints>
+                        <constraint firstAttribute="height" constant="40" id="g74-AG-BAR"/>
+                    </constraints>
+                    <state key="normal" title="Button"/>
+                    <buttonConfiguration key="configuration" style="plain" title="Button"/>
+                </button>
+            </subviews>
+            <viewLayoutGuide key="safeArea" id="vUN-kp-3ea"/>
+            <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+            <constraints>
+                <constraint firstItem="U73-vf-0OJ" firstAttribute="leading" secondItem="vUN-kp-3ea" secondAttribute="leading" id="0Vh-k9-F5a"/>
+                <constraint firstItem="U73-vf-0OJ" firstAttribute="bottom" secondItem="vUN-kp-3ea" secondAttribute="bottom" id="3Ui-Bu-ZYn"/>
+                <constraint firstItem="EVL-S3-FYn" firstAttribute="bottom" secondItem="vUN-kp-3ea" secondAttribute="bottom" id="5OH-BT-p7B"/>
+                <constraint firstItem="EVL-S3-FYn" firstAttribute="leading" secondItem="vUN-kp-3ea" secondAttribute="leading" id="IpG-i0-ky3"/>
+                <constraint firstItem="vUN-kp-3ea" firstAttribute="trailing" secondItem="EVL-S3-FYn" secondAttribute="trailing" id="OdW-Cn-eM2"/>
+                <constraint firstItem="vUN-kp-3ea" firstAttribute="trailing" secondItem="U73-vf-0OJ" secondAttribute="trailing" id="uIx-89-nb7"/>
+                <constraint firstItem="U73-vf-0OJ" firstAttribute="top" secondItem="vUN-kp-3ea" secondAttribute="top" id="yLG-bq-gkP"/>
+            </constraints>
+            <freeformSimulatedSizeMetrics key="simulatedDestinationMetrics"/>
+            <point key="canvasLocation" x="54.375" y="50"/>
+        </view>
+    </objects>
+    <resources>
+        <systemColor name="systemBackgroundColor">
+            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+    </resources>
+</document>

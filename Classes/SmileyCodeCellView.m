@@ -29,7 +29,7 @@
     self.backgroundColor = [ThemeColors cellBackgroundColor:theme];
     self.contentView.superview.backgroundColor =[ThemeColors cellBackgroundColor:theme];
     [titleLabel setTextColor:[ThemeColors textColor:theme]];
-    self.selectionStyle = [ThemeColors cellSelectionStyle:theme];
+    //self.selectionStyle = [ThemeColors cellSelectionStyle:theme];
 }
 
 

@@ -163,6 +163,14 @@
     }
 }
 
++ (UIColor *)popupBackgroundColor {
+    switch ([ThemeManager currentTheme]) {
+        case ThemeLight: return [UIColor colorWithRed:1.0 green:1.0 blue:1.0 alpha:0.95];
+        case ThemeDark:  return [ThemeColors adjustDarkThemeBrightnessOfColor: [UIColor colorWithRed:23.0/255.0 green:24.0/255.0 blue:26.0/255.0 alpha:0.85]];
+        default:         return [UIColor colorWithRed:246.0/255.0 green:246.0/255.0 blue:246.0/255.0 alpha:1.0];
+    }
+}
+
 
 + (UIColor *)textFieldBackgroundColor:(Theme)theme {
     switch (theme) {

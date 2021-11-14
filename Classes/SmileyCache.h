@@ -29,12 +29,23 @@ typedef enum {
 @property (nonatomic, strong) UIImage* image;
 
 @end
+
+@interface SmileyFavorite : NSObject<NSCoding>
+{
+}
+
+@property (nonatomic, strong) NSString *sCode;
+@property (nonatomic, strong) NSString *sRawUrl;
+@property (nonatomic, strong) NSDate   *dateAdded;
+
+@end
+
 @interface SmileyCache : NSObject {
 }
 
 @property (nonatomic, strong) NSMutableArray* arrCurrentSmileyArray;
-@property (nonatomic, strong) NSMutableArray* arrCustomSmileys;
-@property (nonatomic, strong) NSMutableArray* arrFavoritesSmileys;
+@property (nonatomic, strong) NSMutableArray* arrFavoritesSmileysApp;
+@property (nonatomic, strong) NSMutableArray* arrFavoritesSmileysForum;
 @property (nonatomic, strong) NSCache* cacheSmileys;
 @property (nonatomic, strong) NSCache* cacheSmileysDefaults;
 @property (nonatomic, strong) NSCache* cacheSmileyRequests;
@@ -55,7 +66,9 @@ typedef enum {
 - (NSString*) getSmileyCodeForIndex:(int)index bCustom:(BOOL)bCustom;
 - (NSString*) getSmileyImgUrlForIndex:(int)index bCustom:(BOOL)bCustom;
 - (BOOL)AddAndSaveDicFavorites:(NSString*)sCode source:(NSString*)sSource addSmiley:(BOOL)bAdd;
-
+- (BOOL)isFavoriteSmileyFromApp:(NSString*)sCode;
+- (BOOL)isFavoriteSmileyFromForum:(NSString*)sCode
+;
 @end
 
 

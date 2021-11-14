@@ -9,19 +9,19 @@
 
 @class SmileyCodeTableViewController;
 
+typedef void (^nsstring_block_t)(NSString*);
+
 @interface SmileyAlertView : NSObject
 {
 }
 
 @property NSString* sSelectedSmileyCode;
 @property NSString* sSelectedSmileyImageURL;
+@property nsstring_block_t handlerSelectCode;
 @property UIAlertAction* actionSmileyCode;
 @property BOOL bAddSmiley;
-@property BOOL bShowKeywords;
 @property SmileyCodeTableViewController* smileyCodeTableViewController;
 + (SmileyAlertView *)shared;
 
-- (void) displaySmileyAjouterCancel:(NSString *)sSmileyCode withUrl:(NSString *)sSmileyImgUrl handlerDone:(dispatch_block_t)handlerDone handlerFailed:(dispatch_block_t)handlerDone showKeyworkds:(BOOL)bShowKeywords baseController:(UIViewController*)vc;
-- (void) displaySmileyRetirerCancel:(NSString *)sSmileyCode withUrl:(NSString *)sSmileyImgUrl handlerDone:(dispatch_block_t)handlerDone handlerFailed:(dispatch_block_t)handlerDone showKeyworkds:(BOOL)bShowKeywords baseController:(UIViewController*)vc;
-
+- (void) displaySmileyActionCancel:(NSString *)sSmileyCode withUrl:(NSString *)sSmileyImgUrl addSmiley:(BOOL)bAddSmiley showAction:(BOOL)bShowAction handlerDone:(dispatch_block_t)handlerDone handlerFailed:(dispatch_block_t)handlerFailed handlerSelectCode:(nsstring_block_t)handlerSelectCode baseController:(UIViewController*)vc;
 @end

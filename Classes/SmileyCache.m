@@ -16,9 +16,29 @@
 
 #define IMAGE_CACHE_MAX_ELEMENTS 1000
 #define IMAGE_CACHE_SMILEYS_DEFAULTS_MAX_ELEMENTS 50
-#define SMILEY_CACHE_FAVORITES_DIC @"smiley_favorites_cache"
+#define SMILEY_CACHE_FAVORITES_DIC @"smiley_favorites_cache2"
+#define NOT_FOUND -1
 
 @implementation SmileyRequest
+@end
+
+@implementation SmileyFavorite
+
+- (void)encodeWithCoder:(NSCoder *)encoder {
+    [encoder encodeObject:self.sCode forKey:@"sCode"];
+    [encoder encodeObject:self.sRawUrl forKey:@"sRawUrl"];
+    [encoder encodeObject:self.dateAdded forKey:@"dateAdded"];
+}
+
+- (id)initWithCoder:(NSCoder *)decoder {
+    self = [super init];
+    if (self) {
+        self.sCode = [decoder decodeObjectForKey:@"sCode"];
+        self.sRawUrl = [decoder decodeObjectForKey:@"sRawUrl"];
+        self.dateAdded = [decoder decodeObjectForKey:@"dateAdded"];
+    }
+    return self;
+}
 @end
 
 @implementation ImageInCache
@@ -44,7 +64,7 @@
 
 @implementation SmileyCache
 
-@synthesize arrCurrentSmileyArray, arrCustomSmileys, cacheSmileys, cacheSmileysDefaults, bStopLoadingSmileysSearchToCache, bStopLoadingSmileysCustomToCache, dicCommonSmileys, dicSearchSmileys, bSearchSmileysActivated;
+@synthesize arrCurrentSmileyArray, cacheSmileys, cacheSmileysDefaults, bStopLoadingSmileysSearchToCache, bStopLoadingSmileysCustomToCache, dicCommonSmileys, dicSearchSmileys, bSearchSmileysActivated;
 
 static SmileyCache *_shared = nil;    // static instance variable
 
@@ -59,7 +79,6 @@ static SmileyCache *_shared = nil;    // static instance variable
     if ( (self = [super init]) ) {
         // your custom initialization
         self.arrCurrentSmileyArray = nil;
-        self.arrCustomSmileys = nil;
         self.cacheSmileys = [[NSCache alloc] init];
         self.cacheSmileys.countLimit = IMAGE_CACHE_MAX_ELEMENTS;
         self.cacheSmileysDefaults = [[NSCache alloc] init];
@@ -142,22 +161,41 @@ static SmileyCache *_shared = nil;    // static instance variable
 - (void)handleCustomSmileyArray:(NSMutableArray*)arrSmileys forCollection:(UICollectionView*)cv 
 {
     self.bStopLoadingSmileysCustomToCache = NO;
-    self.arrCustomSmileys = [arrSmileys mutableCopy];
-
-    // Adding favorites smileys to custom smileys
-    [self.dicFavoritesSmileys enumerateKeysAndObjectsUsingBlock:^(id key, id value, BOOL* stop) {
-        NSLog(@"Adding dicFavoritesSmileys :  %@ => %@", key, value);
-        [self.arrCustomSmileys addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:value, key, nil] forKeys:[NSArray arrayWithObjects:@"source", @"code", nil]]];
-    }];
-
     
-    for (int i = 0; i < self.arrCustomSmileys.count; i++) {
-        NSString *filename = [[[self.arrCustomSmileys objectAtIndex:i] objectForKey:@"source"] stringByReplacingOccurrencesOfString:@"http://forum-images.hardware.fr/" withString:@""];
+    // For storage
+    self.arrCustomSmileysFromForum = [arrSmileys mutableCopy];
+    self.arrCustomSmileysFromApp = [[NSMutableArray alloc] init];
+    
+    // For display
+    self.arrFavoritesSmileys = [arrSmileys mutableCopy];
+
+    // Adding favorites smileys to favorites smileys
+    NSArray *myArray = [self.dicFavoritesSmileys keysSortedByValueUsingComparator: ^(SmileyFavorite* sf1, SmileyFavorite* sf2) {
+        if ([sf1.dateAdded timeIntervalSinceDate:sf2.dateAdded] > 0) {
+            return (NSComparisonResult)NSOrderedDescending;
+        }
+        else if ([sf1.dateAdded timeIntervalSinceDate:sf2.dateAdded] < 0) {
+            return (NSComparisonResult)NSOrderedAscending;
+        }
+        return (NSComparisonResult)NSOrderedSame;
+    }];
+    for (NSString *key in myArray) {
+        SmileyFavorite* sf = [self.dicFavoritesSmileys objectForKey:key];
+    /*}
+    [self.dicFavoritesSmileys enumerateKeysAndObjectsUsingBlock:^(id key, id value, BOOL* stop) {*/
+        NSLog(@"Adding dicFavoritesSmileys :  %@ => %@", sf.sCode, sf.sRawUrl);
+        [self.arrFavoritesSmileys addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:sf.sRawUrl, sf.sCode, nil] forKeys:[NSArray arrayWithObjects:@"source", @"code", nil]]];
+        [self.arrCustomSmileysFromApp addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:sf.sRawUrl, sf.sCode, nil] forKeys:[NSArray arrayWithObjects:@"source", @"code", nil]]];
+    }
+    //];
+    
+    for (int i = 0; i < self.arrFavoritesSmileys.count; i++) {
+        NSString *filename = [[[self.arrFavoritesSmileys objectAtIndex:i] objectForKey:@"source"] stringByReplacingOccurrencesOfString:@"http://forum-images.hardware.fr/" withString:@""];
         filename = [filename stringByReplacingOccurrencesOfString:@"https://forum-images.hardware.fr/" withString:@""];
 
         //NSLog(@"URL custom: %@ ", [NSString stringWithFormat:@"%@", [[self.arrCustomSmileys objectAtIndex:i] objectForKey:@"source"]]);
 
-        NSData* imgData = [NSData dataWithContentsOfURL:[NSURL URLWithString:[NSString stringWithFormat:@"%@", [[[self.arrCustomSmileys objectAtIndex:i] objectForKey:@"source"] stringByAddingPercentEscapesUsingEncoding:NSASCIIStringEncoding]]]];
+        NSData* imgData = [NSData dataWithContentsOfURL:[NSURL URLWithString:[NSString stringWithFormat:@"%@", [[[self.arrFavoritesSmileys objectAtIndex:i] objectForKey:@"source"] stringByAddingPercentEscapesUsingEncoding:NSASCIIStringEncoding]]]];
 
         if (imgData) {
             UIImage *image = [UIImage sd_animatedGIFWithData:imgData];
@@ -193,7 +231,7 @@ static SmileyCache *_shared = nil;    // static instance variable
 {
     NSString *filename = nil;
     if (bCustomSmiley) {
-        filename = [[[self.arrCustomSmileys objectAtIndex:index] objectForKey:@"source"] stringByReplacingOccurrencesOfString:@"http://forum-images.hardware.fr/" withString:@""];
+        filename = [[[self.arrFavoritesSmileys objectAtIndex:index] objectForKey:@"source"] stringByReplacingOccurrencesOfString:@"http://forum-images.hardware.fr/" withString:@""];
     }
     else {
         filename = [[[self.arrCurrentSmileyArray objectAtIndex:index] objectForKey:@"source"] stringByReplacingOccurrencesOfString:@"http://forum-images.hardware.fr/" withString:@""];
@@ -212,14 +250,14 @@ static SmileyCache *_shared = nil;    // static instance variable
             //NSLog(@"Reloading image at index (%d) : %@", index, filename);
             NSString* source = nil;
             if (bCustomSmiley) {
-                source  = [[self.arrCustomSmileys objectAtIndex:index] objectForKey:@"source"];
+                source  = [[self.arrFavoritesSmileys objectAtIndex:index] objectForKey:@"source"];
             }
             else {
                 if (index < self.arrCurrentSmileyArray.count) {
                     source  = [[self.arrCurrentSmileyArray objectAtIndex:index] objectForKey:@"source"];
                 }
                 else {
-                    NSLog(@"ERROR in index of arrCustomSmileys. index %ld / %ld", (long)index, (long)self.arrCustomSmileys.count);
+                    NSLog(@"ERROR in index of arrCustomSmileys. index %ld / %ld", (long)index, (long)self.arrFavoritesSmileys.count);
                 }
             }
             
@@ -268,7 +306,7 @@ static SmileyCache *_shared = nil;    // static instance variable
 - (NSString*) getSmileyCodeForIndex:(int)index bCustom:(BOOL)bCustom
 {
     if (bCustom) {
-        return [[self.arrCustomSmileys objectAtIndex:index] objectForKey:@"code"];
+        return [[self.arrFavoritesSmileys objectAtIndex:index] objectForKey:@"code"];
     }
     else {
         return [[self.arrCurrentSmileyArray objectAtIndex:index] objectForKey:@"code"];
@@ -277,10 +315,26 @@ static SmileyCache *_shared = nil;    // static instance variable
 - (NSString*) getSmileyImgUrlForIndex:(int)index bCustom:(BOOL)bCustom
 {
     if (bCustom) {
-        return [[self.arrCustomSmileys objectAtIndex:index] objectForKey:@"source"];
+        return [[self.arrFavoritesSmileys objectAtIndex:index] objectForKey:@"source"];
     }
     else {
         return [[self.arrCurrentSmileyArray objectAtIndex:index] objectForKey:@"source"];
+    }
+}
+
+- (NSDate*) getSmileyAddDateForIndex:(int)index bCustom:(BOOL)bCustom
+{
+    if (bCustom) {
+        NSDate* sDate = [[self.arrFavoritesSmileys objectAtIndex:index] objectForKey:@"date"];
+        if (sDate == nil) {
+            return [NSDate now];
+        }
+        else {
+            return sDate;
+        }
+    }
+    else {
+        return [NSDate now]; // shall not be used
     }
 }
 
@@ -304,7 +358,7 @@ static SmileyCache *_shared = nil;    // static instance variable
         self.dicFavoritesSmileys = [unarchiver decodeObject];
         [unarchiver finishDecoding];
         [self.dicFavoritesSmileys enumerateKeysAndObjectsUsingBlock:^(id key, id value, BOOL* stop) {
-          NSLog(@"Loading dicFavoritesSmileys :  %@ => %@", key, value);
+            NSLog(@"Full list dicFavoritesSmileys :  %@ => %@ / %@", key, ((SmileyFavorite*)value).sCode, ((SmileyFavorite*)value).dateAdded);
         }];
     }
     else {
@@ -312,7 +366,7 @@ static SmileyCache *_shared = nil;    // static instance variable
     }
 }
 
-- (BOOL)AddAndSaveDicFavorites:(NSString*)sCode source:(NSString*)sSource addSmiley:(BOOL)bAdd {
+- (BOOL)AddAndSaveDicFavorites:(NSString*)sCode source:(NSString*)sRawUrl addSmiley:(BOOL)bAdd {
     NSString *directory = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) lastObject];
     NSString *filename = [[NSString alloc] initWithString:[directory stringByAppendingPathComponent:SMILEY_CACHE_FAVORITES_DIC]];
     
@@ -320,33 +374,79 @@ static SmileyCache *_shared = nil;    // static instance variable
     NSKeyedArchiver *archiver = [[NSKeyedArchiver alloc] initForWritingWithMutableData:data];// error:&error];
     BOOL bShouldSaveToFile = YES;
     if (bAdd) {
-        NSLog(@"Adding dicFavoritesSmileys :  %@ => %@", sCode, sSource);
-        [self.dicFavoritesSmileys setObject:sSource forKey:sCode];
-        [self.arrCustomSmileys addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:sSource, sCode, nil] forKeys:[NSArray arrayWithObjects:@"source", @"code", nil]]];
+        NSLog(@"Adding dicFavoritesSmileys :  %@ => %@", sCode, sRawUrl);
+        //if ([self findCustomSmileyIndex:sCode] > NOT_FOUND) {
+        if ([self.dicFavoritesSmileys objectForKey:sCode]) {
+            return NO;
+        }
+        SmileyFavorite* sf = [[SmileyFavorite alloc] init];
+        sf.sCode = sCode;
+        sf.sRawUrl = sRawUrl;
+        sf.dateAdded = [NSDate now];
+        // dicFavoritesSmileys is used for persistency
+        [self.dicFavoritesSmileys setObject:sf forKey:sCode];
+        
+        // arrCustomSmileys is used for display and is merged with the personnal
+        [self.arrFavoritesSmileys addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:sRawUrl, sCode, nil] forKeys:[NSArray arrayWithObjects:@"source", @"code", nil]]];
+        [self.arrCustomSmileysFromApp addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:sRawUrl, sCode, nil] forKeys:[NSArray arrayWithObjects:@"source", @"code", nil]]];
     }
     else {
-        [self.dicFavoritesSmileys removeObjectForKey:sCode];
-        int index = -1;
-        for (int i = 0; i < self.arrCustomSmileys.count; i++) {
-            if ([[[self.arrCustomSmileys objectAtIndex:i] objectForKey:@"code"] isEqualToString:sCode]) {
-                index = i;
-                break;
+        NSLog(@"Removing dicFavoritesSmileys :  %@ => %@", sCode, sRawUrl);
+        if ([self.dicFavoritesSmileys objectForKey:sCode]) {
+            [self.dicFavoritesSmileys removeObjectForKey:sCode];
+            // Remove from arrFavoritesSmileys
+            int index = -1;
+            for (int i = 0; i < self.arrFavoritesSmileys.count; i++) {
+                if ([[[self.arrFavoritesSmileys objectAtIndex:i] objectForKey:@"code"] isEqualToString:sCode]) {
+                    index = i;
+                    break;
+                }
             }
-        }
-        if (index >= 0) {
-            [self.arrCustomSmileys removeObjectAtIndex:index];
+            if (index >= 0) {
+                [self.arrFavoritesSmileys removeObjectAtIndex:index];
+            }
+            // Remove from arrFavoritesSmileys
+            index = -1;
+            for (int i = 0; i < self.arrCustomSmileysFromApp.count; i++) {
+                if ([[[self.arrCustomSmileysFromApp objectAtIndex:i] objectForKey:@"code"] isEqualToString:sCode]) {
+                    index = i;
+                    break;
+                }
+            }
+            if (index >= 0) {
+                [self.arrCustomSmileysFromApp removeObjectAtIndex:index];
+            }
+            bShouldSaveToFile = YES;
         }
         else {
-            bShouldSaveToFile = NO;
+            return NO;
         }
     }
     if (bShouldSaveToFile) {
         [self.dicFavoritesSmileys enumerateKeysAndObjectsUsingBlock:^(id key, id value, BOOL* stop) {
-          NSLog(@"Saving dicFavoritesSmileys :  %@ => %@", key, value);
+          NSLog(@"Full list dicFavoritesSmileys :  %@ => %@ / %@", key, ((SmileyFavorite*)value).sCode, ((SmileyFavorite*)value).dateAdded);
         }];
         [archiver encodeObject:self.dicFavoritesSmileys];
         [archiver finishEncoding];
         return [data writeToFile:filename atomically:YES];
+    }
+    return NO;
+}
+
+- (BOOL)isFavoriteSmileyFromApp:(NSString*)sCode {
+    for (int i = 0; i < self.arrCustomSmileysFromApp.count; i++) {
+        if ([[[self.arrCustomSmileysFromApp objectAtIndex:i] objectForKey:@"code"] isEqualToString:sCode]) {
+            return YES;
+        }
+    }
+    return NO;
+}
+
+- (BOOL)isFavoriteSmileyFromForum:(NSString*)sCode {
+    for (int i = 0; i < self.arrCustomSmileysFromForum.count; i++) {
+        if ([[[self.arrCustomSmileysFromForum objectAtIndex:i] objectForKey:@"code"] isEqualToString:sCode]) {
+            return YES;
+        }
     }
     return NO;
 }
