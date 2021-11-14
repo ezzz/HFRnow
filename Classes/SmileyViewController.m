@@ -341,12 +341,17 @@ static CGFloat fCellImageSize = 1;
             image = [self.smileyCache getImageDefaultSmileyForIndex:(int)indexPath.row];
         }
         else if (collectionView == self.collectionViewSmileysFavorites) {
-            image = [self.smileyCache getImageForIndex:(int)indexPath.row
-                                         forCollection:collectionView andIndexPath:indexPath customSmiley:YES];
+            int index = (int)indexPath.row;
+            BOOL bFavoriteFromApp = NO;
+            if (index >= self.smileyCache.arrFavoritesSmileysForum.count) {
+                bFavoriteFromApp = YES;
+                index = index - (int)self.smileyCache.arrFavoritesSmileysForum.count;
+            }
+            
+            image = [self.smileyCache getImageForIndex:index forCollection:collectionView andIndexPath:indexPath favoriteSmiley:YES favoriteFromApp:bFavoriteFromApp];
         }
         else {
-            image = [self.smileyCache getImageForIndex:(int)indexPath.row
-                                         forCollection:collectionView andIndexPath:indexPath customSmiley:NO];
+            image = [self.smileyCache getImageForIndex:(int)indexPath.row forCollection:collectionView andIndexPath:indexPath favoriteSmiley:NO favoriteFromApp:NO];
         }
 
         CGFloat ch = cell.bounds.size.height;
@@ -391,11 +396,20 @@ static CGFloat fCellImageSize = 1;
             [self didSelectSmile:sCode];
         }
         else if (collectionView == self.collectionViewSmileysSearch) {
-            NSString* sCode = [self.smileyCache getSmileyCodeForIndex:(int)indexPath.row bCustom:NO];
+            NSString* sCode = [self.smileyCache getSmileyCodeForIndex:(int)indexPath.row favoriteSmiley:NO favoriteFromApp:NO];
             [self didSelectSmile:sCode];
         }
         else if (collectionView == self.collectionViewSmileysFavorites) {
-            NSString* sCode = [self.smileyCache getSmileyCodeForIndex:(int)indexPath.row bCustom:YES];
+            int index = 0;
+            BOOL bFavoriteSmileyFromApp = YES;
+            if (indexPath.row < self.smileyCache.arrFavoritesSmileysForum.count) {
+                index = (int)indexPath.row;
+                bFavoriteSmileyFromApp = NO;
+            }
+            else { // Favorite from app
+                index = (int)indexPath.row - (int)self.smileyCache.arrFavoritesSmileysForum.count;
+            }
+            NSString* sCode = [self.smileyCache getSmileyCodeForIndex:index favoriteSmiley:YES favoriteFromApp:bFavoriteSmileyFromApp];
             [self didSelectSmile:sCode];
         }
     } @catch (NSException *e) {
@@ -412,7 +426,7 @@ static CGFloat fCellImageSize = 1;
         return self.smileyCache.arrCurrentSmileyArray.count;
     }
     else if (collectionView == self.collectionViewSmileysFavorites) {
-        return self.smileyCache.arrFavoritesSmileys.count;
+        return (self.smileyCache.arrFavoritesSmileysForum.count + smileyCache.arrFavoritesSmileysApp.count);
     }
     return 0;
 }
@@ -592,30 +606,41 @@ static CGFloat fCellImageSize = 1;
                 NSIndexPath *indexPath = nil;
                 BOOL bAddSmiley = YES;
                 BOOL bShowAction = YES;
-                BOOL bCustomSmiley = NO;
+                BOOL bFavoriteSmiley = NO;
+                BOOL bFavoriteSmileyFromApp = YES;
+                NSString* sSmileyCode = nil;
+                int index = -1;
                 if (self.displayMode == DisplayModeEnumSmileysSearch) {
                     CGPoint p = [gestureRecognizer locationInView:self.collectionViewSmileysSearch];
                     indexPath = [self.collectionViewSmileysSearch indexPathForItemAtPoint:p];
-                    NSString* sSmileyCode = [self.smileyCache getSmileyCodeForIndex:(int)indexPath.row bCustom:NO];
+                    index = (int)indexPath.row;
+                    sSmileyCode = [self.smileyCache getSmileyCodeForIndex:index favoriteSmiley:NO favoriteFromApp:NO];
                     if ([self.smileyCache isFavoriteSmileyFromApp:sSmileyCode]) {
                         bAddSmiley = NO;
                     }
                 }
-                else {
-                    bCustomSmiley = YES;
+                else { // DisplayModeEnumSmileysFavorites
+                    bFavoriteSmiley = YES;
                     CGPoint p = [gestureRecognizer locationInView:self.collectionViewSmileysFavorites];
                     indexPath = [self.collectionViewSmileysFavorites indexPathForItemAtPoint:p];
                     
-                    if (indexPath.row < self.addMessageVC.arrSmileyCustom.count) {
+                    // Do not know show action add/remove on favorites from forum
+                    if (indexPath.row < self.smileyCache.arrFavoritesSmileysForum.count) {
+                        index = (int)indexPath.row;
+                        bFavoriteSmileyFromApp = NO;
                         bShowAction = NO;
                     }
+                    else { // Favorite from app
+                        index = (int)indexPath.row - (int)self.smileyCache.arrFavoritesSmileysForum.count;
+                    }
+                    sSmileyCode = [self.smileyCache getSmileyCodeForIndex:index favoriteSmiley:YES favoriteFromApp:bFavoriteSmileyFromApp];
                 }
-                NSString* sSmileyCode = [self.smileyCache getSmileyCodeForIndex:(int)indexPath.row bCustom:bCustomSmiley];
+
                 if ([self.smileyCache isFavoriteSmileyFromApp:sSmileyCode]) {
                     bAddSmiley = NO;
                 }
 
-                NSString* sSmileyImgUrlRaw = [[self.smileyCache getSmileyImgUrlForIndex:(int)indexPath.row bCustom:bCustomSmiley] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+                NSString* sSmileyImgUrlRaw = [[self.smileyCache getSmileyImgUrlForIndex:index favoriteSmiley:bFavoriteSmiley favoriteFromApp:bFavoriteSmileyFromApp] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
                 NSString* sSmileyImgUrlOK = [sSmileyImgUrlRaw stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
                 NSLog(@"sSmileyCode :%@", sSmileyCode);
                 NSLog(@"sSmileyImgUrlRaw :%@", sSmileyImgUrlRaw);

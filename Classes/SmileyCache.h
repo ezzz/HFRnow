@@ -57,15 +57,20 @@ typedef enum {
 @property (nonatomic, strong) NSMutableArray *dicSearchSmileys;
 @property (nonatomic, strong) NSMutableDictionary *dicFavoritesSmileys;
 @property int iNbFailuresLoadingSmileys;
+
 + (SmileyCache *) shared;
+
 - (void) handleSearchSmileyArray:(NSMutableArray*)arrSmileys forCollection:(UICollectionView*)cv spinner:(UIActivityIndicatorView*)spinner;
 - (void) handleCustomSmileyArray:(NSMutableArray*)arrSmileys forCollection:(UICollectionView*)cv;
 - (UIImage*) getImageDefaultSmileyForIndex:(int)index;
-- (UIImage*) getImageForIndex:(int)index forCollection:(UICollectionView*)cv andIndexPath:(NSIndexPath*)ip customSmiley:(SmileArrayEnum)eSmileyArrayType;
+- (UIImage*) getImageForIndex:(int)index forCollection:(UICollectionView*)cv andIndexPath:(NSIndexPath*)ip favoriteSmiley:(BOOL)bFavoriteSmiley favoriteFromApp:(BOOL)bFavoriteFromApp;
 - (NSMutableArray*) getSmileyListForText:(NSString*)sTextSmileys;
-- (NSString*) getSmileyCodeForIndex:(int)index bCustom:(BOOL)bCustom;
-- (NSString*) getSmileyImgUrlForIndex:(int)index bCustom:(BOOL)bCustom;
-- (BOOL)AddAndSaveDicFavorites:(NSString*)sCode source:(NSString*)sSource addSmiley:(BOOL)bAdd;
+
+- (NSString*) getSmileyCodeForIndex:(int)index favoriteSmiley:(BOOL)bFavoriteSmiley favoriteFromApp:(BOOL)bFavoriteFromApp;
+- (NSString*) getSmileyImgUrlForIndex:(int)index favoriteSmiley:(BOOL)bFavoriteSmiley favoriteFromApp:(BOOL)bFavoriteFromApp;
+- (NSDate*) getFavoriteSmileyDateForIndex:(int)index;
+
+- (BOOL)AddAndSaveDicFavoritesApp:(NSString*)sCode source:(NSString*)sRawUrl addSmiley:(BOOL)bAdd;
 - (BOOL)isFavoriteSmileyFromApp:(NSString*)sCode;
 - (BOOL)isFavoriteSmileyFromForum:(NSString*)sCode
 ;
