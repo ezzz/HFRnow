@@ -125,8 +125,8 @@ static SmileyAlertView *_shared = nil;    // static instance variable
 }
 
 - (void)addToFavoriteSmileys:(dispatch_block_t)handlerDone handlerFailed:(dispatch_block_t)handlerFailed
-{
-    if ([[SmileyCache shared] AddAndSaveDicFavorites:self.sSelectedSmileyCode source:self.sSelectedSmileyImageURL addSmiley:YES]) {
+{                               
+    if ([[SmileyCache shared] AddAndSaveDicFavoritesApp:self.sSelectedSmileyCode source:self.sSelectedSmileyImageURL addSmiley:YES]) {
         dispatch_async(dispatch_get_main_queue(), handlerDone);
     }
     else {
@@ -161,7 +161,7 @@ static SmileyAlertView *_shared = nil;    // static instance variable
 
 - (void)removeFromFavoriteSmileys:(dispatch_block_t)handlerDone handlerFailed:(dispatch_block_t)handlerFailed
 {
-    if ([[SmileyCache shared] AddAndSaveDicFavorites:self.sSelectedSmileyCode source:self.sSelectedSmileyImageURL addSmiley:NO]) {
+    if ([[SmileyCache shared] AddAndSaveDicFavoritesApp:self.sSelectedSmileyCode source:self.sSelectedSmileyImageURL addSmiley:NO]) {
         dispatch_async(dispatch_get_main_queue(), handlerDone);
     }
     else {
