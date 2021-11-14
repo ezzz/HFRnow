@@ -17,6 +17,7 @@
 #import "SimpleCellView.h"
 #import "UILabel+Boldify.h"
 #import "SmileyAlertView.h"
+#import "PopupViewController.h"
 
 #if !defined(MIN)
     #define MIN(A,B)    ((A) < (B) ? (A) : (B))
@@ -72,6 +73,8 @@
         self.arrLastSearchSortedFiltered = [[NSMutableArray alloc] init];
         
         self.arrayTmpsmileySearch = [[NSMutableArray alloc] init];
+        
+        self.bFirstLoad = YES;
     }
     return self;
 }
@@ -137,11 +140,12 @@
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
     
     // attach long press gesture to collectionView
+    /*
     UILongPressGestureRecognizer *lpgr = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleLongPress:)];
     lpgr.delegate = self;
     lpgr.delaysTouchesBegan = YES;
     [self.collectionViewSmileysDefault addGestureRecognizer:lpgr];
-    
+    */
     UILongPressGestureRecognizer *lpgr2 = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleLongPress:)];
     lpgr2.delegate = self;
     lpgr2.delaysTouchesBegan = YES;
@@ -162,21 +166,6 @@
     self.viewCancelActionSmiley.layer.shadowOpacity = 0.2;
     self.viewCancelActionSmiley.layer.shadowColor = [[UIColor blackColor] CGColor];
     self.viewCancelActionSmiley.layer.shadowPath = [[UIBezierPath bezierPathWithRect:self.viewCancelActionSmiley.bounds] CGPath];*/
-    
-    CALayer *layer = self.viewCancelActionSmiley.layer;
-    layer.cornerRadius = self.viewCancelActionSmiley.frame.size.height/2;
-    layer.masksToBounds = NO;
-
-    layer.shadowOffset = CGSizeMake(20, 0);
-    layer.shadowColor = [[UIColor blackColor] CGColor];
-    layer.shadowRadius = 10.0f;
-    layer.shadowOpacity = 0.2f;
-    layer.shadowPath = [[UIBezierPath bezierPathWithRoundedRect:layer.bounds cornerRadius:layer.cornerRadius] CGPath];
-
-    CGColorRef bColor = self.viewCancelActionSmiley.backgroundColor.CGColor;
-    self.viewCancelActionSmiley.backgroundColor = nil;
-    layer.backgroundColor = bColor;
-    [self.viewCancelActionSmiley setHidden:YES];
 }
 
 - (void)modifyClearButtonWithImage:(UIImage *)image {
@@ -237,7 +226,10 @@
     [self.spinnerSmileySearch setHidesWhenStopped:YES];
 
     // Default view displayed at startup
-    [self changeDisplayMode:DisplayModeEnumSmileysDefault animate:NO];
+    if (self.bFirstLoad) {
+        [self changeDisplayMode:DisplayModeEnumSmileysDefault animate:NO];
+        self.bFirstLoad = NO;
+    }
     
     [self updateTheme];
 }
@@ -420,8 +412,7 @@ static CGFloat fCellImageSize = 1;
         return self.smileyCache.arrCurrentSmileyArray.count;
     }
     else if (collectionView == self.collectionViewSmileysFavorites) {
-        NSLog(@"numberOfItemsInSection FAVORITES %ld", self.smileyCache.arrCustomSmileys.count);
-        return self.smileyCache.arrCustomSmileys.count;
+        return self.smileyCache.arrFavoritesSmileys.count;
     }
     return 0;
 }
@@ -593,64 +584,64 @@ static CGFloat fCellImageSize = 1;
 
 -(void)handleLongPress:(UILongPressGestureRecognizer *)gestureRecognizer
 {
+    if (gestureRecognizer.state == UIGestureRecognizerStateBegan) {
+        @try {
+            // En mode toolbar (non fullscreen), l'alertview provoque des clignotements avec l'affichage/masquage du clavier
+            if (self.bModeFullScreen)
+            {
+                NSIndexPath *indexPath = nil;
+                BOOL bAddSmiley = YES;
+                BOOL bShowAction = YES;
+                BOOL bCustomSmiley = NO;
+                if (self.displayMode == DisplayModeEnumSmileysSearch) {
+                    CGPoint p = [gestureRecognizer locationInView:self.collectionViewSmileysSearch];
+                    indexPath = [self.collectionViewSmileysSearch indexPathForItemAtPoint:p];
+                    NSString* sSmileyCode = [self.smileyCache getSmileyCodeForIndex:(int)indexPath.row bCustom:NO];
+                    if ([self.smileyCache isFavoriteSmileyFromApp:sSmileyCode]) {
+                        bAddSmiley = NO;
+                    }
+                }
+                else {
+                    bCustomSmiley = YES;
+                    CGPoint p = [gestureRecognizer locationInView:self.collectionViewSmileysFavorites];
+                    indexPath = [self.collectionViewSmileysFavorites indexPathForItemAtPoint:p];
+                    
+                    if (indexPath.row < self.addMessageVC.arrSmileyCustom.count) {
+                        bShowAction = NO;
+                    }
+                }
+                NSString* sSmileyCode = [self.smileyCache getSmileyCodeForIndex:(int)indexPath.row bCustom:bCustomSmiley];
+                if ([self.smileyCache isFavoriteSmileyFromApp:sSmileyCode]) {
+                    bAddSmiley = NO;
+                }
 
-    @try {
-        // En mode toolbar (non fullscreen), l'alertview provoque des clignotements avec l'affichage/masquage du clavier
-        if (self.bModeFullScreen && self.displayMode == DisplayModeEnumSmileysSearch) {
-            CGPoint p = [gestureRecognizer locationInView:self.collectionViewSmileysSearch];
-            NSIndexPath *indexPath = [self.collectionViewSmileysSearch indexPathForItemAtPoint:p];
-            NSString* sSmileyCode = [self.smileyCache getSmileyCodeForIndex:(int)indexPath.row bCustom:NO];
-            NSString* sSmileyImgUrlRaw = [[self.smileyCache getSmileyImgUrlForIndex:(int)indexPath.row bCustom:NO] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-            NSString* sSmileyImgUrlOK = [sSmileyImgUrlRaw stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
-            NSLog(@"sSmileyCode :%@", sSmileyCode);
-            NSLog(@"sSmileyImgUrlRaw :%@", sSmileyImgUrlRaw);
-            NSLog(@"sSmileyImgUrlOK :%@", sSmileyImgUrlOK);
-            self.bCancelAddSmileyFavorite = YES;
-            self.sCancelSmileyFavoriteCode = sSmileyCode;
-            [[SmileyAlertView shared] displaySmileyAjouterCancel:sSmileyCode withUrl:sSmileyImgUrlRaw handlerDone:^{[self AddFavoriteSmileyOK:YES];} handlerFailed:^{[self AddFavoriteSmileyFailed:NO];} showKeyworkds:NO baseController:self];
+                NSString* sSmileyImgUrlRaw = [[self.smileyCache getSmileyImgUrlForIndex:(int)indexPath.row bCustom:bCustomSmiley] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+                NSString* sSmileyImgUrlOK = [sSmileyImgUrlRaw stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
+                NSLog(@"sSmileyCode :%@", sSmileyCode);
+                NSLog(@"sSmileyImgUrlRaw :%@", sSmileyImgUrlRaw);
+                NSLog(@"sSmileyImgUrlOK :%@", sSmileyImgUrlOK);
+                self.sCancelSmileyFavoriteCode = sSmileyCode;
+                //self.sCancelSmileyFavoriteUrl = sSmileyImgUrlOK;
+                //elf.sCancelSmileyFavoriteUrl = sSmileyImgUrlOK;
+                
+                [[SmileyAlertView shared] displaySmileyActionCancel:sSmileyCode withUrl:sSmileyImgUrlRaw addSmiley:bAddSmiley showAction:bShowAction handlerDone:^{[self AddFavoriteSmileyOK:bAddSmiley];} handlerFailed:^{[self AddFavoriteSmileyFailed:NO];} handlerSelectCode:^(NSString* s){[self actionSelectCode:s];} baseController:self];
+
+            }
+        } @catch (NSException *e) {
+            NSLog(@"Error in smiley selection: %@", e);
         }
-        else if (self.bModeFullScreen && self.displayMode == DisplayModeEnumSmileysFavorites) {
-            CGPoint p = [gestureRecognizer locationInView:self.collectionViewSmileysFavorites];
-            NSIndexPath *indexPath = [self.collectionViewSmileysFavorites indexPathForItemAtPoint:p];
-            NSString* sSmileyCode = [self.smileyCache getSmileyCodeForIndex:(int)indexPath.row bCustom:YES];
-            NSString* sSmileyImgUrlRaw = [[self.smileyCache getSmileyImgUrlForIndex:(int)indexPath.row bCustom:YES] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-            NSString* sSmileyImgUrlOK = [sSmileyImgUrlRaw stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
-            NSLog(@"sSmileyCode :%@", sSmileyCode);
-            NSLog(@"sSmileyImgUrlRaw :%@", sSmileyImgUrlRaw);
-            NSLog(@"sSmileyImgUrlOK :%@", sSmileyImgUrlOK);
-            self.bCancelAddSmileyFavorite = NO;
-            self.sCancelSmileyFavoriteCode = sSmileyCode;
-            [[SmileyAlertView shared] displaySmileyRetirerCancel:sSmileyCode withUrl:sSmileyImgUrlRaw handlerDone:^{[self AddFavoriteSmileyOK:NO];} handlerFailed:^{[self AddFavoriteSmileyFailed:NO];} showKeyworkds:NO baseController:self];
-        }
-    } @catch (NSException *e) {
-        NSLog(@"Error in smiley selection: %@", e);
     }
-
-}
-
-- (void)showSmileyDetails:(NSString*)sSmileyCode andUrl:(NSString*)sSmileyImgUrl
-{
 }
 
 - (void)AddFavoriteSmileyOK:(BOOL)bSmileyAdded
 {
     if (bSmileyAdded) {
-        [self.labelCancelActionSmiley setText:@"Smiley ajouté"];
+        [self showPopupWithLabel:@"Smiley ajouté" buttonName:@"Annuler" action:^{[self AddFavoriteSmileyOK:bSmileyAdded];}];
+    } else {
+        [self showPopupWithLabel:@"Smiley retiré" buttonName:@"Annuler" action:^{[self AddFavoriteSmileyOK:bSmileyAdded];}];
     }
-    else {
-        [self.labelCancelActionSmiley setText:@"Smiley retiré"];
-    }
-    
     [self.collectionViewSmileysFavorites reloadData];
-    [UIView transitionWithView:self.viewCancelActionSmiley duration:0.2 options:UIViewAnimationOptionTransitionCrossDissolve animations:^(void) {
-        [self.viewCancelActionSmiley setHidden:NO];
-    } completion:nil];
-    
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-        [UIView transitionWithView:self.viewCancelActionSmiley duration:0.2 options:UIViewAnimationOptionTransitionCrossDissolve animations:^(void) {
-            [self.viewCancelActionSmiley setHidden:YES];
-        } completion:nil];
-    });
+
 }
 
 - (void)AddFavoriteSmileyFailed:(BOOL)bSmileyAdded {
@@ -660,7 +651,7 @@ static CGFloat fCellImageSize = 1;
         [self.viewCancelActionSmiley setHidden:NO];
     } completion:nil];
     
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
         [UIView transitionWithView:self.viewCancelActionSmiley duration:0.2 options:UIViewAnimationOptionTransitionCrossDissolve animations:^(void) {
             [self.viewCancelActionSmiley setHidden:YES];
         } completion:nil];
@@ -668,10 +659,49 @@ static CGFloat fCellImageSize = 1;
 }
 
 
-- (void)actionCancelSmileysFavorites:(id)sender
+- (void)showPopupWithLabel:(NSString*)sLabel buttonName:(NSString*)sButtonText action:(dispatch_block_t)blockHandlerAction
 {
-    //self.bCancelAddSmileyFavorite;
-    //self.sCancelSmileyFavoriteCode;
+    // Prepare next view
+    self.popup = [[PopupViewController alloc] init];
+    [self.popup.view setHidden:YES];
+    [self.view addSubview:self.popup.view];
+
+    // Resize popup
+    CGFloat w = self.view.bounds.size.width;
+    CGFloat h = self.view.bounds.size.height;
+    CGFloat fPopupHeight = 80/2;
+
+    self.popup.view.frame = CGRectMake((w - w*0.7)/2, h - fPopupHeight - 50, w*0.7, fPopupHeight); //XYwh
+    NSLog(@"POPUP: %@ / screen %@", NSStringFromCGRect(self.popup.view.frame), NSStringFromCGRect([UIScreen mainScreen].bounds));
+    CALayer *layer = self.popup.view.layer;
+    layer.cornerRadius = 15.0f;
+    layer.masksToBounds = NO;
+
+    layer.shadowOffset = CGSizeMake(0, 3);
+    layer.shadowColor = [[UIColor blackColor] CGColor];
+    layer.shadowRadius = 4.0f;
+    layer.shadowOpacity = 0.35f;
+    layer.shadowPath = [[UIBezierPath bezierPathWithRoundedRect:layer.bounds cornerRadius:layer.cornerRadius] CGPath];
+    
+    self.popup.view.backgroundColor = nil;
+    self.popup.view.layer.backgroundColor = [ThemeColors popupBackgroundColor].CGColor;
+    [self.popup configurePopupWithLabel:sLabel buttonName:sButtonText action:blockHandlerAction];
+    [UIView transitionWithView:self.popup.view duration:0.25 options:UIViewAnimationOptionTransitionCrossDissolve animations:^(void) {
+        [self.popup.view setHidden:NO];
+    } completion:nil];
+    
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+        [UIView transitionWithView:self.popup.view duration:0.2 options:UIViewAnimationOptionTransitionCrossDissolve animations:^(void) {
+            [self.popup.view setHidden:YES];
+        } completion:^(BOOL finished){self.popup.view.frame = CGRectNull;}];
+    });}
+
+
+- (void)actionSelectCode:(NSString*)sSelectedSmileyCode
+{
+    self.textFieldSmileys.text = sSelectedSmileyCode;
+    [self fetchSmileys];
+    [self changeDisplayMode:DisplayModeEnumTableSearch animate:NO];
 }
 
 #pragma mark - Responding to keyboard events

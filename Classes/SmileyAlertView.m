@@ -41,32 +41,18 @@ static SmileyAlertView *_shared = nil;    // static instance variable
 }
 
 #pragma mark - Smiley alertview methods
-- (void) displaySmileyAjouterCancel:(NSString *)sSmileyCode withUrl:(NSString *)sSmileyImgUrl handlerDone:(dispatch_block_t)handlerDone handlerFailed:(dispatch_block_t)handlerFailed showKeyworkds:(BOOL)bShowKeywords baseController:(UIViewController*)vc
+- (void) displaySmileyActionCancel:(NSString *)sSmileyCode withUrl:(NSString *)sSmileyImgUrl
+                         addSmiley:(BOOL)bAddSmiley
+                        showAction:(BOOL)bShowAction
+                       handlerDone:(dispatch_block_t)handlerDone
+                     handlerFailed:(dispatch_block_t)handlerFailed
+                 handlerSelectCode:(nsstring_block_t)handlerSelectCode
+                    baseController:(UIViewController*)vc
 {
-    self.bAddSmiley = YES;
-    self.bShowKeywords = bShowKeywords;
-    [self displaySmileyActionCancel:(NSString*)sSmileyCode withUrl:(NSString*)sSmileyImgUrl
-                        handlerDone:handlerDone
-                      handlerFailed:handlerFailed
-                     baseController:(UIViewController*)vc];
-}
-
-- (void) displaySmileyRetirerCancel:(NSString *)sSmileyCode withUrl:(NSString *)sSmileyImgUrl handlerDone:(dispatch_block_t)handlerDone handlerFailed:(dispatch_block_t)handlerFailed showKeyworkds:(BOOL)bShowKeywords baseController:(UIViewController*)vc
-{
-    self.bAddSmiley = NO;
-    self.bShowKeywords = bShowKeywords;
-    [self displaySmileyActionCancel:(NSString*)sSmileyCode withUrl:(NSString*)sSmileyImgUrl
-                        handlerDone:handlerDone
-                      handlerFailed:handlerFailed
-                     baseController:(UIViewController*)vc];
-}
-
-
-- (void) displaySmileyActionCancel:(NSString *)sSmileyCode withUrl:(NSString *)sSmileyImgUrl handlerDone:(dispatch_block_t)handlerDone handlerFailed:(dispatch_block_t)handlerFailed baseController:(UIViewController*)vc
-{
+    self.bAddSmiley = bAddSmiley;
     self.sSelectedSmileyCode = sSmileyCode;
     self.sSelectedSmileyImageURL = sSmileyImgUrl;
-    
+    self.handlerSelectCode = handlerSelectCode;
     NSLog(@"Selected smiley:%@ url:%@", sSmileyCode, sSmileyImgUrl);
     
     UIAlertController* alert = [UIAlertController alertControllerWithTitle:nil message:[NSString stringWithFormat:@"\n\n\n\n\n%@", sSmileyCode]
@@ -87,15 +73,14 @@ static SmileyAlertView *_shared = nil;    // static instance variable
     }
     UIAlertAction* actionDel = [UIAlertAction actionWithTitle:@"Annuler" style:UIAlertActionStyleCancel
                                                       handler:^(UIAlertAction * action) { }];
-    if (self.bShowKeywords) {
-        self.actionSmileyCode = [UIAlertAction actionWithTitle:@"Mot(s) clé(s)" style:UIAlertActionStyleDefault
-                                                   handler:^(UIAlertAction * action) { [self showSmileyKeywords:vc]; }];
-        [self.actionSmileyCode setEnabled:NO];
+    self.actionSmileyCode = [UIAlertAction actionWithTitle:@"Mots clés" style:UIAlertActionStyleDefault
+                                               handler:^(UIAlertAction * action) { [self showSmileyKeywords:vc]; }];
+    [self.actionSmileyCode setEnabled:NO];
+    
+    if (bShowAction) {
+        [alert addAction:actionYes];
     }
-    [alert addAction:actionYes];
-    if (self.bShowKeywords) {
-        [alert addAction:self.actionSmileyCode];
-    }
+    [alert addAction:self.actionSmileyCode];
     [alert addAction:actionDel];
     NSURL *url = [NSURL URLWithString:[sSmileyImgUrl stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]]];
     NSData *data = [NSData dataWithContentsOfURL:url];
@@ -133,9 +118,7 @@ static SmileyAlertView *_shared = nil;    // static instance variable
     //NSLog(@"W:%f X:%f (%@) w:%f h:%f", alert.view.frame.size.width, (alert.view.frame.size.width - 70)/2, NSStringFromCGRect(alert.view.frame), w, h);
     [imageView setImage:bkgImg];
     [alert.view addSubview:imageView];
-    if (self.bShowKeywords) {
-        [self requestSmileyCode];
-    }
+    [self requestSmileyCode];
     [vc presentViewController:alert animated:YES completion:nil];
     [[ThemeManager sharedManager] applyThemeToAlertController:alert];
     
@@ -221,13 +204,13 @@ static SmileyAlertView *_shared = nil;    // static instance variable
             // Remove double spaces
             NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"  +" options:NSRegularExpressionCaseInsensitive error:&error];
             NSString *trimmedString = [regex stringByReplacingMatchesInString:text options:0 range:NSMakeRange(0, text.length) withTemplate:@" "];
-
+            //Remove some specail characters
+            [trimmedString stringByReplacingOccurrencesOfString:@"," withString:@""];
             self.smileyCodeTableViewController.arrCodeList = [[trimmedString componentsSeparatedByString:@" "] copy];
             if (self.smileyCodeTableViewController.arrCodeList.count > 0) {
                 self.smileyCodeTableViewController.sSmileyName = self.sSelectedSmileyCode;
-                if (self.bShowKeywords) {
-                    [self.actionSmileyCode setEnabled:YES];
-                }
+                self.smileyCodeTableViewController.handlerSelectCode = self.handlerSelectCode;
+                [self.actionSmileyCode setEnabled:YES];
             }
         }
         @catch (NSException * e) {

@@ -11,7 +11,6 @@
     <objects>
         <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="SmileyViewController">
             <connections>
-                <outlet property="btnCancelActionSmiley" destination="hWl-xo-7YX" id="PQd-nk-29C"/>
                 <outlet property="btnReduce" destination="1SM-Z0-9dq" id="q2r-F6-QcS"/>
                 <outlet property="btnSmileyDefault" destination="9g5-07-MsI" id="07J-jU-ye4"/>
                 <outlet property="btnSmileyFavorites" destination="PT9-SC-Pau" id="6ny-ok-3Eb"/>
@@ -19,12 +18,10 @@
                 <outlet property="collectionViewSmileysDefault" destination="x84-dh-hwd" id="Pve-pI-UI7"/>
                 <outlet property="collectionViewSmileysFavorites" destination="rwM-KX-Doz" id="wfW-co-6wc"/>
                 <outlet property="collectionViewSmileysSearch" destination="3pM-oP-sQP" id="xD9-pH-VCO"/>
-                <outlet property="labelCancelActionSmiley" destination="V10-eS-j6Z" id="sZR-Pw-CgV"/>
                 <outlet property="labelNoResult" destination="lbF-Td-hxC" id="SuC-AT-kt3"/>
                 <outlet property="tableViewSearch" destination="NqH-TX-J1I" id="vqT-6I-qQG"/>
                 <outlet property="textFieldSmileys" destination="BgO-yT-g9F" id="y1U-UB-Uqc"/>
                 <outlet property="view" destination="iN0-l3-epB" id="ogh-EB-6RF"/>
-                <outlet property="viewCancelActionSmiley" destination="lKg-wq-J20" id="0jh-J1-1Rl"/>
             </connections>
         </placeholder>
         <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
@@ -60,9 +57,8 @@
                         <outlet property="delegate" destination="-1" id="Jep-6j-1nS"/>
                     </connections>
                 </collectionView>
-                <collectionView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" dataMode="none" id="rwM-KX-Doz" userLabel="Collection View Favorites">
-                    <rect key="frame" x="0.0" y="0.0" width="320" height="568"/>
-                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                <collectionView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" dataMode="none" translatesAutoresizingMaskIntoConstraints="NO" id="rwM-KX-Doz" userLabel="Collection View Favorites">
+                    <rect key="frame" x="0.0" y="0.0" width="320" height="535"/>
                     <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                     <collectionViewFlowLayout key="collectionViewLayout" minimumLineSpacing="5" minimumInteritemSpacing="5" id="YlL-iQ-tuk">
                         <size key="itemSize" width="128" height="128"/>
@@ -176,39 +172,6 @@
                         <constraint firstAttribute="height" constant="1" id="VaG-8P-RAZ"/>
                     </constraints>
                 </view>
-                <view contentMode="scaleToFill" id="lKg-wq-J20" userLabel="ConfirmSmiley">
-                    <rect key="frame" x="93" y="469" width="146" height="60"/>
-                    <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMinY="YES"/>
-                    <subviews>
-                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Smiley ajouté" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="V10-eS-j6Z">
-                            <rect key="frame" x="0.0" y="0.0" width="146" height="30"/>
-                            <constraints>
-                                <constraint firstAttribute="height" constant="30" id="G15-6c-9VT"/>
-                            </constraints>
-                            <fontDescription key="fontDescription" type="system" pointSize="14"/>
-                            <nil key="textColor"/>
-                            <nil key="highlightedColor"/>
-                        </label>
-                        <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="hWl-xo-7YX">
-                            <rect key="frame" x="0.0" y="29" width="146" height="31"/>
-                            <constraints>
-                                <constraint firstAttribute="height" constant="31" id="Zd9-Jx-lRk"/>
-                            </constraints>
-                            <state key="normal" title="Button"/>
-                            <buttonConfiguration key="configuration" style="plain" title="Annuler"/>
-                        </button>
-                    </subviews>
-                    <viewLayoutGuide key="safeArea" id="2an-HF-Gqj"/>
-                    <color key="backgroundColor" systemColor="systemBackgroundColor"/>
-                    <constraints>
-                        <constraint firstItem="V10-eS-j6Z" firstAttribute="top" secondItem="2an-HF-Gqj" secondAttribute="top" id="0ce-Ww-Mfq"/>
-                        <constraint firstItem="V10-eS-j6Z" firstAttribute="trailing" secondItem="2an-HF-Gqj" secondAttribute="trailing" id="75t-DD-fQ2"/>
-                        <constraint firstItem="hWl-xo-7YX" firstAttribute="bottom" secondItem="2an-HF-Gqj" secondAttribute="bottom" id="gMZ-HN-5Ea"/>
-                        <constraint firstItem="V10-eS-j6Z" firstAttribute="leading" secondItem="2an-HF-Gqj" secondAttribute="leading" id="hap-aM-Rpw"/>
-                        <constraint firstItem="hWl-xo-7YX" firstAttribute="trailing" secondItem="2an-HF-Gqj" secondAttribute="trailing" id="lQW-qo-tk0"/>
-                        <constraint firstItem="hWl-xo-7YX" firstAttribute="leading" secondItem="2an-HF-Gqj" secondAttribute="leading" id="opx-dN-saj"/>
-                    </constraints>
-                </view>
             </subviews>
             <viewLayoutGuide key="safeArea" id="vUN-kp-3ea"/>
             <color key="backgroundColor" systemColor="systemBackgroundColor"/>
@@ -216,15 +179,16 @@
                 <constraint firstAttribute="trailing" secondItem="xQF-IK-Thi" secondAttribute="trailing" id="0oX-n5-qCI"/>
                 <constraint firstItem="y66-zn-kNi" firstAttribute="trailing" secondItem="vUN-kp-3ea" secondAttribute="trailing" id="6Bq-rP-ura"/>
                 <constraint firstItem="x84-dh-hwd" firstAttribute="top" secondItem="vUN-kp-3ea" secondAttribute="top" id="7Dh-xQ-s2Z"/>
-                <constraint firstItem="xQF-IK-Thi" firstAttribute="top" secondItem="lKg-wq-J20" secondAttribute="bottom" constant="8" id="7yZ-Ht-h3U"/>
                 <constraint firstItem="NqH-TX-J1I" firstAttribute="trailing" secondItem="vUN-kp-3ea" secondAttribute="trailing" id="8eD-m2-V8Y"/>
                 <constraint firstItem="3pM-oP-sQP" firstAttribute="trailing" secondItem="vUN-kp-3ea" secondAttribute="trailing" id="92w-Of-UPD"/>
                 <constraint firstItem="x84-dh-hwd" firstAttribute="leading" secondItem="vUN-kp-3ea" secondAttribute="leading" id="ApQ-IZ-an5"/>
                 <constraint firstItem="3pM-oP-sQP" firstAttribute="top" secondItem="vUN-kp-3ea" secondAttribute="top" id="D1q-Dt-523"/>
                 <constraint firstItem="x84-dh-hwd" firstAttribute="trailing" secondItem="vUN-kp-3ea" secondAttribute="trailing" id="I4f-nH-b24"/>
+                <constraint firstItem="rwM-KX-Doz" firstAttribute="trailing" secondItem="vUN-kp-3ea" secondAttribute="trailing" id="Kyi-v6-uZ4"/>
                 <constraint firstItem="3pM-oP-sQP" firstAttribute="leading" secondItem="vUN-kp-3ea" secondAttribute="leading" id="M7d-ev-638"/>
                 <constraint firstItem="y66-zn-kNi" firstAttribute="leading" secondItem="vUN-kp-3ea" secondAttribute="leading" id="Rcp-ia-xrS"/>
                 <constraint firstItem="y66-zn-kNi" firstAttribute="top" secondItem="xQF-IK-Thi" secondAttribute="bottom" id="Rny-6i-xKz"/>
+                <constraint firstItem="y66-zn-kNi" firstAttribute="top" secondItem="rwM-KX-Doz" secondAttribute="bottom" constant="3" id="UOg-DY-0N8"/>
                 <constraint firstItem="NqH-TX-J1I" firstAttribute="leading" secondItem="vUN-kp-3ea" secondAttribute="leading" id="eHm-Sv-LuG"/>
                 <constraint firstItem="NqH-TX-J1I" firstAttribute="top" secondItem="vUN-kp-3ea" secondAttribute="top" id="fN5-QI-EiE"/>
                 <constraint firstItem="xQF-IK-Thi" firstAttribute="leading" secondItem="iN0-l3-epB" secondAttribute="leading" id="fqe-xL-y6R"/>
@@ -232,6 +196,8 @@
                 <constraint firstItem="y66-zn-kNi" firstAttribute="top" secondItem="x84-dh-hwd" secondAttribute="bottom" constant="3" id="mBv-Po-V6D"/>
                 <constraint firstItem="y66-zn-kNi" firstAttribute="top" secondItem="NqH-TX-J1I" secondAttribute="bottom" id="mfK-pp-Zdc"/>
                 <constraint firstItem="y66-zn-kNi" firstAttribute="top" secondItem="3pM-oP-sQP" secondAttribute="bottom" constant="3" id="oWM-k3-7hq"/>
+                <constraint firstItem="rwM-KX-Doz" firstAttribute="top" secondItem="vUN-kp-3ea" secondAttribute="top" id="pvP-1l-ZEK"/>
+                <constraint firstItem="rwM-KX-Doz" firstAttribute="leading" secondItem="vUN-kp-3ea" secondAttribute="leading" id="qyT-D5-cUv"/>
             </constraints>
             <nil key="simulatedTopBarMetrics"/>
             <point key="canvasLocation" x="136.875" y="136.26760563380282"/>

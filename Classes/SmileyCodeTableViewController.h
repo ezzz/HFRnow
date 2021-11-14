@@ -8,6 +8,8 @@
 #ifndef SmileyCodeTableViewController_h
 #define SmileyCodeTableViewController_h
 
+#import "SmileyAlertView.h"
+
 @interface SmileyCodeTableViewController : UIViewController <UITableViewDelegate, UITableViewDataSource> {
 }
 
@@ -16,6 +18,7 @@
 @property (strong, nonatomic) IBOutlet UIView *loadingView;
 
 @property (nonatomic, strong) NSString* sSmileyName;
+@property nsstring_block_t handlerSelectCode;
 
 @end
 

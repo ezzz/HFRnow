@@ -25,6 +25,7 @@
 + (UIColor *)tabBackgroundColor:(Theme)theme;
 + (UIColor *)navBackgroundColor;
 + (UIColor *)navBackgroundColor:(Theme)theme;
++ (UIColor *)popupBackgroundColor;
 + (UIColor *)greyBackgroundColor;
 + (UIColor *)greyBackgroundColor:(Theme)theme;
 + (UIColor *)greyBackgroundColorLighter;

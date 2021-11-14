@@ -40,6 +40,7 @@
 #import "FilterPostsQuotes.h"
 #import "Bookmark.h"
 #import "SmileyAlertView.h"
+#import "SmileyCache.h"
 
 @implementation MessagesTableViewController
 
@@ -2194,13 +2195,17 @@
         }
         else if ([[aRequest.URL scheme] isEqualToString:@"oijlkajsdoihjlkjasdosmiley"])
         {
-            NSLog(@"URL %@", [aRequest.URL absoluteString]);
             NSString *regularExpressionString = @"oijlkajsdoihjlkjasdosmiley://([^/]+)/(.*)";
             NSString* sSmileyCode = [[[aRequest.URL absoluteString] stringByMatching:regularExpressionString capture:1L] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
-            //NSString* sSmileyImgUrl = [[[[aRequest.URL absoluteString] stringByMatching:regularExpressionString capture:2L] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
-            NSString* sSmileyImgUrl = [[aRequest.URL absoluteString] stringByMatching:regularExpressionString capture:2L];
-            NSLog(@"sSmileyImgUrl :%@",sSmileyImgUrl);
-            [[SmileyAlertView shared] displaySmileyAjouterCancel:sSmileyCode withUrl:sSmileyImgUrl handlerDone:^{} handlerFailed:^{} showKeyworkds:YES baseController:self];
+            NSString* sSmileyImgUrl = [[[aRequest.URL absoluteString] stringByMatching:regularExpressionString capture:2L] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+            // stringByRemovingPercentEncoding should be done twice to replace %2520 characters. With a single call, they are only replaced by %20
+            NSString* sSmileyImgUrlRaw = [[sSmileyImgUrl stringByRemovingPercentEncoding] stringByRemovingPercentEncoding];
+            NSLog(@"Selected smiley url3  %@", sSmileyImgUrlRaw);
+            BOOL bAddSmiley = YES;
+            if ([[SmileyCache shared] isFavoriteSmileyFromApp:sSmileyCode]) {
+                bAddSmiley = NO;
+            }
+            [[SmileyAlertView shared] displaySmileyActionCancel:sSmileyCode withUrl:sSmileyImgUrlRaw addSmiley:bAddSmiley showAction:YES handlerDone:^{[self smileyAddedConfirmed:bAddSmiley];} handlerFailed:^{[self smileyAddFailed:bAddSmiley];} handlerSelectCode:nil baseController:self];
             bAllow = NO;
         }
         else {
@@ -2223,7 +2228,22 @@
         decisionHandler(WKNavigationActionPolicyCancel);
     }
 }
-    
+-(NSString*) smileyAddedConfirmed:(BOOL)bAdd
+{
+    if (bAdd) {
+        [HFRAlertView DisplayAlertViewWithTitle:@"Smiley ajouté aux favoris" andMessage:nil forDuration:1];
+    }
+    else {
+        [HFRAlertView DisplayAlertViewWithTitle:@"Smiley retiré aux favoris" andMessage:nil forDuration:1];
+    }
+}
+
+-(NSString*) smileyAddFailed:(BOOL)bAdd
+{
+    [HFRAlertView DisplayAlertViewWithTitle:@"Erreur :/" andMessage:nil forDuration:1];
+}
+
+
 -(NSString*) backBarButtonTitle {
     int iCount = 0;
     // Compte le nombre de controllers MessagesTableViewController en partant de la fin
