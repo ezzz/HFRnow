@@ -25,7 +25,7 @@
 #import "MWPhotoBrowser.h"
 
 @class HTMLNode, MessageDetailViewController, ASIHTTPRequest, FilterPostsQuotes;
-@class MessageDetailViewController, SmileyCodeTableViewController, SmileyAlertView;
+@class MessageDetailViewController, SmileyCodeTableViewController;
 @class ASIHTTPRequest;
 
 
@@ -197,7 +197,6 @@
 
 @property NSString* sSelectedSmileyCode;
 @property NSString* sSelectedSmileyImageURL;
-@property SmileyAlertView* smileyAlertView;
 @property dispatch_block_t smileyAlertViewAddOK;
 @property dispatch_block_t smileyAlertViewAddFailed;
 

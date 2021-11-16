@@ -428,14 +428,10 @@ static SmileyCache *_shared = nil;    // static instance variable
 
 - (BOOL)isFavoriteSmileyFromApp:(NSString*)sCode {
     for (int i = 0; i < self.arrFavoritesSmileysApp.count; i++) {
-        NSLog(@"arrFavoritesSmileysApp : %@ =? %@", [[self.arrFavoritesSmileysApp objectAtIndex:i] objectForKey:@"code"], sCode);
         if ([[[self.arrFavoritesSmileysApp objectAtIndex:i] objectForKey:@"code"] isEqualToString:sCode]) {
             return YES;
         }
     }
-
-    NSLog(@"arrFavoritesSmileysApp : NOT FOUND");
-
     return NO;
 }
 
