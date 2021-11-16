@@ -52,6 +52,8 @@ static SmileyAlertView *_shared = nil;    // static instance variable
     self.bAddSmiley = bAddSmiley;
     self.sSelectedSmileyCode = sSmileyCode;
     self.sSelectedSmileyImageURL = sSmileyImgUrl;
+    self.handlerDone = handlerDone;
+    self.handlerFailed = handlerFailed;
     self.handlerSelectCode = handlerSelectCode;
     NSLog(@"Selected smiley:%@ url:%@", sSmileyCode, sSmileyImgUrl);
     
@@ -65,11 +67,11 @@ static SmileyAlertView *_shared = nil;    // static instance variable
     UIAlertAction* actionYes = nil;
     if (self.bAddSmiley) {
         actionYes = [UIAlertAction actionWithTitle:sActionName style:UIAlertActionStyleDefault
-                                           handler:^(UIAlertAction * action) { [self addToFavoriteSmileys:handlerDone handlerFailed:handlerFailed]; }];
+                                           handler:^(UIAlertAction * action) { [self addToFavoriteSmileys]; }];
     }
     else {
         actionYes = [UIAlertAction actionWithTitle:sActionName style:UIAlertActionStyleDefault
-                                                          handler:^(UIAlertAction * action) { [self removeFromFavoriteSmileys:handlerDone handlerFailed:handlerFailed]; }];
+                                                          handler:^(UIAlertAction * action) { [self removeFromFavoriteSmileys]; }];
     }
     UIAlertAction* actionDel = [UIAlertAction actionWithTitle:@"Annuler" style:UIAlertActionStyleCancel
                                                       handler:^(UIAlertAction * action) { }];
@@ -124,13 +126,13 @@ static SmileyAlertView *_shared = nil;    // static instance variable
     
 }
 
-- (void)addToFavoriteSmileys:(dispatch_block_t)handlerDone handlerFailed:(dispatch_block_t)handlerFailed
+- (void)addToFavoriteSmileys
 {                               
     if ([[SmileyCache shared] AddAndSaveDicFavoritesApp:self.sSelectedSmileyCode source:self.sSelectedSmileyImageURL addSmiley:YES]) {
-        dispatch_async(dispatch_get_main_queue(), handlerDone);
+        dispatch_async(dispatch_get_main_queue(), self.handlerDone);
     }
     else {
-        dispatch_async(dispatch_get_main_queue(), handlerFailed);
+        dispatch_async(dispatch_get_main_queue(), self.handlerFailed);
     }
 
     /*
@@ -159,13 +161,13 @@ static SmileyAlertView *_shared = nil;    // static instance variable
     }*/
 }
 
-- (void)removeFromFavoriteSmileys:(dispatch_block_t)handlerDone handlerFailed:(dispatch_block_t)handlerFailed
+- (void)removeFromFavoriteSmileys
 {
     if ([[SmileyCache shared] AddAndSaveDicFavoritesApp:self.sSelectedSmileyCode source:self.sSelectedSmileyImageURL addSmiley:NO]) {
-        dispatch_async(dispatch_get_main_queue(), handlerDone);
+        dispatch_async(dispatch_get_main_queue(), self.handlerDone);
     }
     else {
-        dispatch_async(dispatch_get_main_queue(), handlerFailed);
+        dispatch_async(dispatch_get_main_queue(), self.handlerFailed);
     }
 }
 

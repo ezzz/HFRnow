@@ -18,6 +18,8 @@ typedef void (^nsstring_block_t)(NSString*);
 @property NSString* sSelectedSmileyCode;
 @property NSString* sSelectedSmileyImageURL;
 @property nsstring_block_t handlerSelectCode;
+@property dispatch_block_t handlerDone;
+@property dispatch_block_t handlerFailed;
 @property UIAlertAction* actionSmileyCode;
 @property BOOL bAddSmiley;
 @property SmileyCodeTableViewController* smileyCodeTableViewController;
