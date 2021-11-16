@@ -2205,7 +2205,19 @@
             if ([[SmileyCache shared] isFavoriteSmileyFromApp:sSmileyCode]) {
                 bAddSmiley = NO;
             }
-            [[SmileyAlertView shared] displaySmileyActionCancel:sSmileyCode withUrl:sSmileyImgUrlRaw addSmiley:bAddSmiley showAction:YES handlerDone:^{[self smileyAddedConfirmed:bAddSmiley];} handlerFailed:^{[self smileyAddFailed:bAddSmiley];} handlerSelectCode:nil baseController:self];
+
+            self.smileyAlertViewAddOK = ^{
+                if (bAddSmiley) {
+                    [HFRAlertView DisplayAlertViewWithTitle:@"Smiley ajouté aux favoris" andMessage:nil forDuration:1];
+                }
+                else {
+                    [HFRAlertView DisplayAlertViewWithTitle:@"Smiley retiré des favoris" andMessage:nil forDuration:1];
+                }
+            };
+            self.smileyAlertViewAddFailed = ^{
+                [HFRAlertView DisplayAlertViewWithTitle:@"Erreur :/" andMessage:nil forDuration:1];
+            };
+            [[SmileyAlertView shared] displaySmileyActionCancel:sSmileyCode withUrl:sSmileyImgUrlRaw addSmiley:bAddSmiley showAction:YES handlerDone:self.smileyAlertViewAddOK handlerFailed:self.smileyAlertViewAddFailed handlerSelectCode:nil baseController:self];
             bAllow = NO;
         }
         else {

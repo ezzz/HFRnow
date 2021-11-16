@@ -25,7 +25,7 @@
 #import "MWPhotoBrowser.h"
 
 @class HTMLNode, MessageDetailViewController, ASIHTTPRequest, FilterPostsQuotes;
-@class MessageDetailViewController, SmileyCodeTableViewController;
+@class MessageDetailViewController, SmileyCodeTableViewController, SmileyAlertView;
 @class ASIHTTPRequest;
 
 
@@ -197,6 +197,9 @@
 
 @property NSString* sSelectedSmileyCode;
 @property NSString* sSelectedSmileyImageURL;
+@property SmileyAlertView* smileyAlertView;
+@property dispatch_block_t smileyAlertViewAddOK;
+@property dispatch_block_t smileyAlertViewAddFailed;
 
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil andUrl:(NSString *)theTopicUrl;
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil andUrl:(NSString *)theTopicUrl displaySeparator:(BOOL)isSeparatorNewMessages;
