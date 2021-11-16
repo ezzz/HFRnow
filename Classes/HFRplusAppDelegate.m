@@ -24,6 +24,7 @@
 #import "MultisManager.h"
 #import "MPStorage.h"
 #import "BlackList.h"
+#import "SmileyCache.h"
 
 #import <SafariServices/SafariServices.h>
 #import <BackgroundTasks/BackgroundTasks.h>
@@ -162,6 +163,8 @@
     [self setTheme:[[ThemeManager sharedManager] theme]];
     [[ThemeManager sharedManager] refreshTheme];
 
+    // Init smiley cache for favorite smileys
+    [SmileyCache shared];
     
     // Register background fetch
 #ifdef NOTIFICATION_BACKGROUND_REFRESH

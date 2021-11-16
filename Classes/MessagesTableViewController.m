@@ -2234,7 +2234,7 @@
         [HFRAlertView DisplayAlertViewWithTitle:@"Smiley ajouté aux favoris" andMessage:nil forDuration:1];
     }
     else {
-        [HFRAlertView DisplayAlertViewWithTitle:@"Smiley retiré aux favoris" andMessage:nil forDuration:1];
+        [HFRAlertView DisplayAlertViewWithTitle:@"Smiley retiré des favoris" andMessage:nil forDuration:1];
     }
 }
 
