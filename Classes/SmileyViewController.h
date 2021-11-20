@@ -7,6 +7,7 @@
 
 #import <UIKit/UIKit.h>
 #import "SmileyCache.h"
+#import "PopupViewController.h"
 
 @class AddMessageViewController, PopupViewController, ASIHTTPRequest;
 

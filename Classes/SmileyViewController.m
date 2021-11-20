@@ -326,7 +326,7 @@ static CGFloat fCellImageSize = 1;
 
 - (float) getDisplayHeight {
     //return 150 * 0.85;
-    return fCellSizeSearch * 2 * 50 + 44;
+    return fCellSizeSearch * 2 * 50 + 35;
 }
 
 - (__kindof UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath
@@ -478,9 +478,9 @@ static CGFloat fCellImageSize = 1;
         return 1;
     }
     if (section == 0) {
-        return MIN(3, self.arrLastSearchSorted.count); // Maximum 3 Last search
+        return MIN(5, self.arrLastSearchSorted.count); // Maximum 3 Last search
     } else {
-        return MIN(10, self.arrTopSearchSortedFiltered.count);
+        return MIN(15, self.arrTopSearchSortedFiltered.count);
     }
 }
 
@@ -717,9 +717,18 @@ static CGFloat fCellImageSize = 1;
     
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
         [UIView transitionWithView:self.popup.view duration:0.2 options:UIViewAnimationOptionTransitionCrossDissolve animations:^(void) {
-            [self.popup.view setHidden:YES];
-        } completion:^(BOOL finished){self.popup.view.frame = CGRectNull;}];
-    });}
+            [self closePopup];
+        } completion:^(BOOL finished){}];
+    });
+}
+
+- (void)closePopup {
+    if (self.popup) {
+        [self.popup.view setHidden:YES];
+        [self.popup.view removeFromSuperview];
+        self.popup = nil;
+    }
+}
 
 
 - (void)actionSelectCode:(NSString*)sSelectedSmileyCode
@@ -1026,6 +1035,7 @@ static CGFloat fCellImageSize = 1;
 
 
 - (void)actionReduce:(id)sender {
+    [self closePopup];
     [self.addMessageVC actionExpandCompressSmiley];
 }
 
