@@ -11,7 +11,7 @@
 #import "AvatarTableViewCell.h"
 #import "PlusCellView.h"
 #import "SimpleCellView.h"
-
+#include <stdlib.h>
 
 @implementation ThemeManager
 
@@ -208,6 +208,41 @@ int nightDelay;
         NSAttributedString* attributedString2 = [[NSAttributedString alloc] initWithString:alert.message attributes:@{NSForegroundColorAttributeName: [ThemeColors textColor:theme], NSFontAttributeName: [UIFont systemFontOfSize:13.f weight:UIFontWeightRegular]}];
         [alert setValue:attributedString2 forKey:@"attributedMessage"];
     }
+
+    if (alert.preferredStyle != UIAlertControllerStyleActionSheet && alert.title) {
+        int iImageSize = 25;
+        [alert setTitle:[NSString stringWithFormat:@"\n%@",alert.title]];
+        NSString* is1 = [NSString stringWithFormat:@"noel%02d", (int)arc4random_uniform(23)];
+        if ([alert.title containsString:@"Oo"] || [alert.title containsString:@"Err"]) {
+            is1 = @"noel_dinde";
+            iImageSize = 30;
+        }
+        else if ([alert.title containsString:@"Noël"]) {
+            is1 = @"noel05"; // Image cadeau
+        }
+        UIImage *i1 = [UIImage imageNamed:is1];
+        UIImageView* iv1 = [[UIImageView alloc] initWithFrame:CGRectMake(10, 10, iImageSize, iImageSize)];
+        [iv1 setImage:i1];
+        [alert.view addSubview:iv1];
+
+        iv1.translatesAutoresizingMaskIntoConstraints = NO;
+        NSLayoutConstraint *centerHorizontal = [NSLayoutConstraint constraintWithItem:iv1 attribute:NSLayoutAttributeCenterX relatedBy:NSLayoutRelationEqual toItem:alert.view attribute:NSLayoutAttributeCenterX multiplier:1.0f constant:0.0f];
+        NSLayoutConstraint *top = [NSLayoutConstraint constraintWithItem:iv1 attribute:NSLayoutAttributeTop relatedBy:NSLayoutRelationEqual toItem:alert.view attribute:NSLayoutAttributeTop multiplier:1 constant:10];
+        NSLayoutConstraint *height = [NSLayoutConstraint constraintWithItem:iv1 attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeNotAnAttribute multiplier:1 constant:iImageSize];
+        NSLayoutConstraint *width = [NSLayoutConstraint constraintWithItem:iv1 attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeNotAnAttribute multiplier:1 constant:iImageSize];
+        [alert.view addConstraints:@[centerHorizontal, top, height, width]];
+    }
+    
+    UIImage* originalImage = [UIImage imageNamed:@"noel_neige_big"];
+    UIImage *scaledImage = [UIImage imageWithCGImage:[originalImage CGImage] scale:(originalImage.scale * 1.5) orientation:(originalImage.imageOrientation)];
+    UIImageView *snowBackground = [[UIImageView alloc] initWithImage:scaledImage];
+    snowBackground.frame = CGRectMake(0, 0, 200, 200);
+    snowBackground.contentMode = UIViewContentModeTopLeft;
+    [alert.view addSubview:snowBackground];
+    [alert.view sendSubviewToBack:snowBackground];
+    alert.view.clipsToBounds = YES;
+    alert.view.layer.cornerRadius = 20;
+    alert.view.layer.masksToBounds = YES;
 }
 
 - (void)changeAutoTheme:(BOOL)autoTheme{

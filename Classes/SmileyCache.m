@@ -214,7 +214,7 @@ static SmileyCache *_shared = nil;    // static instance variable
 {
     @try {
         NSString *filename = nil;
-        NSLog(@"Loading image index (%d) : fav=%d", index, bFavoriteSmiley);
+        //NSLog(@"Loading image index (%d) : fav=%d", index, bFavoriteSmiley);
 
         if (bFavoriteSmiley && bFavoriteFromApp) {
             filename = [[[self.arrFavoritesSmileysApp objectAtIndex:index] objectForKey:@"source"] stringByReplacingOccurrencesOfString:@"http://forum-images.hardware.fr/" withString:@""];
@@ -236,7 +236,7 @@ static SmileyCache *_shared = nil;    // static instance variable
         {
             dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
             
-                NSLog(@"Reloading image at index (%d) : %@", index, filename);
+                //NSLog(@"Reloading image at index (%d) : %@", index, filename);
                 NSString* source = nil;
                 if (bFavoriteSmiley && bFavoriteFromApp) {
                     int indexFavApp = (int)index - (int)self.arrFavoritesSmileysForum.count;
