@@ -138,7 +138,7 @@
     [self.segmentControlerPage setEnabled:NO forSegmentAtIndex:2];
     
     self.smileView.navigationDelegate = self;
-    //[self.viewSmileys setAlpha:0];
+    [self.viewSmileys setAlpha:0];
     
     self.viewControllerRehostImage = [[RehostImageViewController alloc] initWithNibName:@"RehostImageViewController" bundle:nil];
     self.viewControllerRehostImage.addMessageVC = self;
@@ -802,7 +802,7 @@
         self.viewControllerSmileys.collectionViewSmileysSearch.collectionViewLayout = collectionViewFlowLayout2;
         self.viewControllerSmileys.collectionViewSmileysFavorites.collectionViewLayout = collectionViewFlowLayout3;
         [self.viewSmileys addSubview:self.viewControllerSmileys.view];
-        //[self.viewSmileys setAlpha:0];
+        [self.viewSmileys setAlpha:0];
         [self addChildViewController:self.viewControllerSmileys];
     }
     
