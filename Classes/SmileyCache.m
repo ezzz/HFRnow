@@ -214,16 +214,18 @@ static SmileyCache *_shared = nil;    // static instance variable
 {
     @try {
         NSString *filename = nil;
-        //NSLog(@"Loading image index (%d) : fav=%d", index, bFavoriteSmiley);
 
         if (bFavoriteSmiley && bFavoriteFromApp) {
             filename = [[[self.arrFavoritesSmileysApp objectAtIndex:index] objectForKey:@"source"] stringByReplacingOccurrencesOfString:@"http://forum-images.hardware.fr/" withString:@""];
+            NSLog(@"Searching image App Favorite index (%d)", index);
         }
         else if (bFavoriteSmiley) {
             filename = [[[self.arrFavoritesSmileysForum objectAtIndex:index] objectForKey:@"source"] stringByReplacingOccurrencesOfString:@"http://forum-images.hardware.fr/" withString:@""];
+            NSLog(@"Searching image Forum Favorite index (%d)", index);
         }
         else {
             filename = [[[self.arrCurrentSmileyArray objectAtIndex:index] objectForKey:@"source"] stringByReplacingOccurrencesOfString:@"http://forum-images.hardware.fr/" withString:@""];
+            NSLog(@"Searching image Current index (%d)", index);
         }
         filename = [filename stringByReplacingOccurrencesOfString:@"https://forum-images.hardware.fr/" withString:@""];
         UIImage* image = nil;
@@ -231,23 +233,25 @@ static SmileyCache *_shared = nil;    // static instance variable
         if (iic) {
             image = iic.image;
         }
-
+        
         if (image == nil && ((!bFavoriteSmiley && self.bStopLoadingSmileysSearchToCache) || (bFavoriteSmiley && self.bStopLoadingSmileysCustomToCache)))
         {
             dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
             
-                //NSLog(@"Reloading image at index (%d) : %@", index, filename);
                 NSString* source = nil;
                 if (bFavoriteSmiley && bFavoriteFromApp) {
                     int indexFavApp = (int)index - (int)self.arrFavoritesSmileysForum.count;
                     source  = [[self.arrFavoritesSmileysApp objectAtIndex:indexFavApp] objectForKey:@"source"];
+                    NSLog(@"--> Loading image FavoriteApp at index (%d) : %@", index, filename);
                 }
                 else if (bFavoriteSmiley) {
                     source  = [[self.arrFavoritesSmileysForum objectAtIndex:index] objectForKey:@"source"];
+                    NSLog(@"--> Loading image FavoriteForum at index (%d) : %@", index, filename);
                 }
                 else {
                     if (index < self.arrCurrentSmileyArray.count) {
                         source  = [[self.arrCurrentSmileyArray objectAtIndex:index] objectForKey:@"source"];
+                        NSLog(@"--> Loading image Search at index (%d) : %@", index, filename);
                     }
                 }
                 
@@ -272,7 +276,9 @@ static SmileyCache *_shared = nil;    // static instance variable
                 }
             });
         }
-
+        else {
+            NSLog(@"--> Image in cache");
+        }
         return image;
     } @catch (NSException *e) {
         NSLog(@"Error in smiley selection: %@", e);

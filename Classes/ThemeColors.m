@@ -678,12 +678,24 @@
     switch (theme) {
         case ThemeLight:
             if ([[NSUserDefaults standardUserDefaults] boolForKey:@"theme_noel_disabled"]) {
-                a = 0.9;
+                a = 1;
             } else {
-                a = 0.5;
+                if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+                    a = 0.97;
+                }
+                else {
+                    a = 0.75;
+                }
             }
             return [UIColor colorWithRed:255.0/255.0 green:255.0/255.0 blue:255.0/255.0 alpha:a];
-        case ThemeDark:  return [UIColor colorWithRed:30.0/255.0 green:31.0/255.0 blue:33.0/255.0 alpha:0.7];
+        case ThemeDark:
+            if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+                a = 0.95;
+            }
+            else {
+                a = 0.7;
+            }
+            return [UIColor colorWithRed:30.0/255.0 green:31.0/255.0 blue:33.0/255.0 alpha:a];
         default:         return [UIColor colorWithRed:255.0/255.0 green:255.0/255.0 blue:255.0/255.0 alpha:0.9];
     }
 }

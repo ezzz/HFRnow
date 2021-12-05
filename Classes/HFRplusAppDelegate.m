@@ -697,22 +697,28 @@
 
 - (void)updateMPBadgeWithString:(NSString *)badgeValue;
 {
-    //NSLog(@"%@ - %d", badgeValue, [badgeValue intValue]);
     [[NSUserDefaults standardUserDefaults] setInteger:[badgeValue intValue] forKey:@"nb_mp"];
 
     dispatch_async(dispatch_get_main_queue(),
                    ^{
-        //[UIApplication sharedApplication].applicationIconBadgeNumber = [badgeValue intValue];
-        int shift = 0;
+        int iBadgeIndex = 2;
+        int iShift = 1;
         if ([[[[self rootController] tabBar] items] count] == 5) {
-            shift = 1;
+            iBadgeIndex = 3;
+            iShift = 0;
         }
+        UITabBarItem *tabBarItem = [[[[self rootController] tabBar] items] objectAtIndex:iBadgeIndex];
         if ([badgeValue intValue] > 0) {
-           [[[[[self rootController] tabBar] items] objectAtIndex:2 + shift] setBadgeValue:badgeValue];
-       }
-       else {
-           [[[[[self rootController] tabBar] items] objectAtIndex:2 + shift] setBadgeValue:nil];
-       }
+            [tabBarItem setBadgeValue:badgeValue];
+        }
+        else {
+            [tabBarItem setBadgeValue:nil];
+        }
+        /* Ajouté pour rendre l'icone des messages dynamique en fonction du nombre de MPs non lu mais non terminé
+        tabBarItem.selectedImage = [[UIImage imageNamed:[ThemeColors tabBarItemSelectedImageAtIndex:2 + iShift]]
+                                        imageWithRenderingMode:[ThemeColors tabBarItemSelectedImageRendering] ];
+        tabBarItem.image = [[UIImage imageNamed:[ThemeColors tabBarItemUnselectedImageAtIndex:2 + iShift]]
+                            imageWithRenderingMode:[ThemeColors tabBarItemUnselectedImageRendering]];*/
    });
 }
 
