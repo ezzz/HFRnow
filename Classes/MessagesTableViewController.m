@@ -1043,7 +1043,7 @@
     // cancelButtonStyle not needed on iPad
     if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
         // Can't use UIAlertActionStyleCancel in dark theme : https://stackoverflow.com/a/44606994/1853603
-        UIAlertActionStyle cancelButtonStyle = [[ThemeManager sharedManager] theme] == ThemeDark ? UIAlertActionStyleDefault : UIAlertActionStyleCancel;
+        UIAlertActionStyle cancelButtonStyle = [[ThemeManager sharedManager] cancelAlertStyle];
         [styleAlert addAction:[UIAlertAction actionWithTitle:@"Annuler" style:cancelButtonStyle handler:^(UIAlertAction *action) {
             [self dismissViewControllerAnimated:YES completion:nil];
         }]];
@@ -1602,8 +1602,13 @@
                                                                        message:controller.statusMessage
                                                                 preferredStyle:UIAlertControllerStyleAlert];
 
+        int duration = 1.5;
+        if (![[NSUserDefaults standardUserDefaults] boolForKey:@"theme_noel_disabled"]) {
+            duration = 1;
+        }
+        
         [self presentViewController:alert animated:YES completion:^{
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, duration * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
                 [alert dismissViewControllerAnimated:YES completion:nil];
             });
         }];

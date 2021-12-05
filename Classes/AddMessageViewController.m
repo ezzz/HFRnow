@@ -7,6 +7,7 @@
 
 #import "HFRplusAppDelegate.h"
 #import "AddMessageViewController.h"
+#import "DeleteMessageViewController.h"
 #import "SmileyViewController.h"
 #import "RehostImageViewController.h"
 #import "ASIFormDataRequest.h"
@@ -25,6 +26,7 @@
 #import "RehostCollectionCell.h"
 #import "SmileyCache.h"
 #import "api_keys.h"
+
 
 #define TOOLBAR_HEIGHT_SMILEY 44
 #define TOOLBAR_HEIGHT_IMAGES 50
@@ -69,6 +71,7 @@
         self.sBrouillonUtilise = NO;
         self.bFirstTimeDisplay = YES;
         self.title = @"Nouv. message";
+        self.viewControllerSmileys = nil;
     }
     return self;
 }
@@ -135,23 +138,8 @@
     [self.segmentControlerPage setEnabled:NO forSegmentAtIndex:2];
     
     self.smileView.navigationDelegate = self;
-
-    self.viewControllerSmileys = [[SmileyViewController alloc] initWithNibName:@"SmileyViewController" bundle:nil];
-    self.viewControllerSmileys.addMessageVC = self;
-    self.viewControllerSmileys.view.frame = self.viewSmileys.bounds;
-    UICollectionViewFlowLayout *collectionViewFlowLayout1 = [[UICollectionViewFlowLayout alloc] init];
-    UICollectionViewFlowLayout *collectionViewFlowLayout2 = [[UICollectionViewFlowLayout alloc] init];
-    UICollectionViewFlowLayout *collectionViewFlowLayout3 = [[UICollectionViewFlowLayout alloc] init];
-    collectionViewFlowLayout1.scrollDirection = UICollectionViewScrollDirectionHorizontal;
-    collectionViewFlowLayout2.scrollDirection = UICollectionViewScrollDirectionHorizontal;
-    collectionViewFlowLayout3.scrollDirection = UICollectionViewScrollDirectionHorizontal;
-    self.viewControllerSmileys.collectionViewSmileysDefault.collectionViewLayout = collectionViewFlowLayout1;
-    self.viewControllerSmileys.collectionViewSmileysSearch.collectionViewLayout = collectionViewFlowLayout2;
-    self.viewControllerSmileys.collectionViewSmileysFavorites.collectionViewLayout = collectionViewFlowLayout3;
-    [self.viewSmileys addSubview:self.viewControllerSmileys.view];
-    [self.viewSmileys setAlpha:0];
-    [self addChildViewController:self.viewControllerSmileys];
-
+    //[self.viewSmileys setAlpha:0];
+    
     self.viewControllerRehostImage = [[RehostImageViewController alloc] initWithNibName:@"RehostImageViewController" bundle:nil];
     self.viewControllerRehostImage.addMessageVC = self;
     self.viewControllerRehostImage.view.frame = self.viewRehostImage.bounds;
@@ -302,6 +290,7 @@
     
     self.sBrouillonUtilise = NO;
     // Popup brouillon (partout sauf en mode edition)
+    //    if (![self.class isSubclassOfClass:[DeleteMessageViewController class]]) {
     if (self.bFirstTimeDisplay && self.sBrouillon && self.sBrouillon.length > 0) {
         
         UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Utiliser le brouillon ?" message:[self getBrouillonExtract]
@@ -436,9 +425,9 @@
 }
 
 - (void)viewWillDisappear:(BOOL)animated{
-    //NSLog(@"viewWillDisappear");
+    /*//NSLog(@"viewWillDisappear");
     [super viewWillDisappear:animated];
-    [self.view endEditing:YES];
+    [self.view endEditing:YES];*/
 }
 
 
@@ -799,8 +788,28 @@
 - (void)actionSmiley:(id)sender
 {
     NSLog(@"actionSmiley");
+    if (self.viewControllerSmileys == nil) {
+        self.viewControllerSmileys = [[SmileyViewController alloc] initWithNibName:@"SmileyViewController" bundle:nil];
+        self.viewControllerSmileys.addMessageVC = self;
+        self.viewControllerSmileys.view.frame = self.viewSmileys.bounds;
+        UICollectionViewFlowLayout *collectionViewFlowLayout1 = [[UICollectionViewFlowLayout alloc] init];
+        UICollectionViewFlowLayout *collectionViewFlowLayout2 = [[UICollectionViewFlowLayout alloc] init];
+        UICollectionViewFlowLayout *collectionViewFlowLayout3 = [[UICollectionViewFlowLayout alloc] init];
+        collectionViewFlowLayout1.scrollDirection = UICollectionViewScrollDirectionHorizontal;
+        collectionViewFlowLayout2.scrollDirection = UICollectionViewScrollDirectionHorizontal;
+        collectionViewFlowLayout3.scrollDirection = UICollectionViewScrollDirectionHorizontal;
+        self.viewControllerSmileys.collectionViewSmileysDefault.collectionViewLayout = collectionViewFlowLayout1;
+        self.viewControllerSmileys.collectionViewSmileysSearch.collectionViewLayout = collectionViewFlowLayout2;
+        self.viewControllerSmileys.collectionViewSmileysFavorites.collectionViewLayout = collectionViewFlowLayout3;
+        [self.viewSmileys addSubview:self.viewControllerSmileys.view];
+        //[self.viewSmileys setAlpha:0];
+        [self addChildViewController:self.viewControllerSmileys];
+    }
+    
     [UIView beginAnimations:nil context:nil];
     [UIView setAnimationDuration:0.2];
+    
+    
     if (self.viewSmileys.alpha == 0) {
         if (self.viewRehostImage.alpha == 1) {
             [self actionHideRehostImage];

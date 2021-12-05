@@ -89,18 +89,18 @@
      [self.collectionViewSmileysDefault  setDelegate:self];
      
     // Configure Collection Smileys search
-   [self.collectionViewSmileysSearch setHidden:NO];
-   [self.collectionViewSmileysSearch setAlpha:0];
-   [self.collectionViewSmileysSearch registerClass:[SmileyCollectionCell class] forCellWithReuseIdentifier:@"SmileyCollectionCellId"];
-   [self.collectionViewSmileysSearch  setDataSource:self];
-   [self.collectionViewSmileysSearch  setDelegate:self];
-    
+    [self.collectionViewSmileysSearch setHidden:NO];
+    [self.collectionViewSmileysSearch setAlpha:0];
+    [self.collectionViewSmileysSearch registerClass:[SmileyCollectionCell class] forCellWithReuseIdentifier:@"SmileyCollectionCellId"];
+    [self.collectionViewSmileysSearch  setDataSource:self];
+    [self.collectionViewSmileysSearch  setDelegate:self];
+
     // Configure Collection Smileys favorite
-   [self.collectionViewSmileysFavorites setHidden:NO];
-   [self.collectionViewSmileysFavorites setAlpha:0];
-   [self.collectionViewSmileysFavorites registerClass:[SmileyCollectionCell class] forCellWithReuseIdentifier:@"SmileyCollectionCellId"];
-   [self.collectionViewSmileysFavorites  setDataSource:self];
-   [self.collectionViewSmileysFavorites  setDelegate:self];
+    [self.collectionViewSmileysFavorites setHidden:NO];
+    [self.collectionViewSmileysFavorites setAlpha:0];
+    [self.collectionViewSmileysFavorites registerClass:[SmileyCollectionCell class] forCellWithReuseIdentifier:@"SmileyCollectionCellId"];
+    [self.collectionViewSmileysFavorites  setDataSource:self];
+    [self.collectionViewSmileysFavorites  setDelegate:self];
 
     // Dic of search smileys
     NSFileManager *fileManager = [[NSFileManager alloc] init];
@@ -204,9 +204,6 @@
 
     self.view.backgroundColor = [UIColor clearColor];
 
-    //[self.btnSmileyDefault setImageEdgeInsets:UIEdgeInsetsMake(11, 16, 11, 16)];
-    //[self.btnSmileySearch setImageEdgeInsets:UIEdgeInsetsMake(11, 16, 11, 16)];
-
     [self.btnSmileyDefault addTarget:self action:@selector(actionSmileysDefaults:) forControlEvents:UIControlEventTouchUpInside];
     [self.btnSmileySearch addTarget:self action:@selector(actionSmileysSearch:) forControlEvents:UIControlEventTouchUpInside];
     if (self.smileyCache.arrCurrentSmileyArray.count == 0) {
@@ -297,12 +294,14 @@
             [self.collectionViewSmileysSearch reloadData];
             break;
         case DisplayModeEnumTableSearch:
-            NSLog(@"SMILEY changeDisplayMode -> DisplayModeEnumTableSearch");
             [self.collectionViewSmileysDefault setAlpha:0];
             [self.collectionViewSmileysSearch setAlpha:0];
             [self.collectionViewSmileysFavorites setAlpha:0];
             [self.tableViewSearch reloadData];
             [self.tableViewSearch setAlpha:1];
+            if (self.bModeFullScreen) {
+                [self.textFieldSmileys becomeFirstResponder];
+            }
             break;
 
         default:
@@ -313,7 +312,7 @@
         [UIView commitAnimations];
     }
     self.displayMode = newMode;
-    if (oldMode == DisplayModeEnumTableSearch && (newMode == DisplayModeEnumSmileysSearch || newMode == DisplayModeEnumSmileysDefault)) {
+    if (oldMode == DisplayModeEnumTableSearch && (newMode == DisplayModeEnumSmileysSearch || newMode == DisplayModeEnumSmileysDefault || newMode == DisplayModeEnumSmileysFavorites)) {
         [self.addMessageVC updateExpandCompressSmiley];
     }
 }
@@ -331,61 +330,58 @@ static CGFloat fCellImageSize = 1;
 
 - (__kindof UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath
 {
-    @try {
-        //NSLog(@"Loading cell %d",indexPath.row);
+    SmileyCollectionCell* cell = [collectionView dequeueReusableCellWithReuseIdentifier:@"SmileyCollectionCellId" forIndexPath:indexPath];
+    BOOL bPlaceholder = NO;
+    UIImage* image = nil;//[UIImage imageNamed:@"19-gear"];
+    if (collectionView == self.collectionViewSmileysDefault) {
+        image = [self.smileyCache getImageDefaultSmileyForIndex:(int)indexPath.row];
+    }
+    else {
         
-        //CGRect f = self.collectionSmileys.frame;
-        SmileyCollectionCell* cell = [collectionView dequeueReusableCellWithReuseIdentifier:@"SmileyCollectionCellId" forIndexPath:indexPath];
-        UIImage* image = nil;//[UIImage imageNamed:@"19-gear"];
-        if (collectionView == self.collectionViewSmileysDefault) {
-            image = [self.smileyCache getImageDefaultSmileyForIndex:(int)indexPath.row];
-        }
-        else if (collectionView == self.collectionViewSmileysFavorites) {
-            int index = (int)indexPath.row;
-            BOOL bFavoriteFromApp = NO;
+        BOOL bFavorite = NO;
+        BOOL bFavoriteFromApp = NO;
+
+        int index = (int)indexPath.row;
+        if (collectionView == self.collectionViewSmileysFavorites) {
+            NSLog(@"Loading favorite cell %d", (int)indexPath.row);
+            bFavorite = YES;
             if (index >= self.smileyCache.arrFavoritesSmileysForum.count) {
                 bFavoriteFromApp = YES;
                 index = index - (int)self.smileyCache.arrFavoritesSmileysForum.count;
             }
-            
-            image = [self.smileyCache getImageForIndex:index forCollection:collectionView andIndexPath:indexPath favoriteSmiley:YES favoriteFromApp:bFavoriteFromApp];
         }
-        else {
-            image = [self.smileyCache getImageForIndex:(int)indexPath.row forCollection:collectionView andIndexPath:indexPath favoriteSmiley:NO favoriteFromApp:NO];
-        }
-
-        CGFloat ch = cell.bounds.size.height;
-        CGFloat cw = cell.bounds.size.width;
-        CGFloat w = image.scale*image.size.width*fCellImageSize;
-        CGFloat h = image.scale*image.size.height*fCellImageSize;
         
-        if (cell.smileyImage == nil) {
-            cell.smileyImage = [[UIImageView alloc] initWithFrame:CGRectMake(cw/2-w/2, ch/2-h/2, w, h)];
-            [cell addSubview:cell.smileyImage];
-        }
-        else {
-            cell.smileyImage.frame = CGRectMake(cw/2-w/2, ch/2-h/2, w, h);
-        }
-
-        //NSLog(@"row %d - %@", (int)indexPath.row, NSStringFromCGRect(CGRectMake(cw/2-w/2, ch/2-h/2, w, h)));
-
-        [cell.smileyImage setImage:image];
-
-        cell.smileyImage.clipsToBounds = NO;
-        cell.smileyImage.layer.masksToBounds = true;
-        cell.layer.borderColor = [ThemeColors cellBorderColor].CGColor;
-        cell.layer.backgroundColor = [ThemeColors greyBackgroundColorLighter].CGColor;
-        cell.layer.borderWidth = 1.0f;
-        cell.layer.cornerRadius = 3;
-        cell.layer.masksToBounds = true;
-        
-        return cell;
-    }
-    @catch (NSException * e) {
-        NSLog(@"ERROR, empty cell for section %d / row %d", (int)indexPath.section, (int)indexPath.row);
+        image = [self.smileyCache getImageForIndex:index forCollection:collectionView andIndexPath:indexPath favoriteSmiley:bFavorite favoriteFromApp:bFavoriteFromApp];
     }
 
-    return nil;
+    CGFloat ch = cell.bounds.size.height;
+    CGFloat cw = cell.bounds.size.width;
+    CGFloat w = image.scale*image.size.width*fCellImageSize;
+    CGFloat h = image.scale*image.size.height*fCellImageSize;
+    if (bPlaceholder) {
+        w = h = 20;
+    }
+    if (cell.smileyImage == nil) {
+        cell.smileyImage = [[UIImageView alloc] initWithFrame:CGRectMake(cw/2-w/2, ch/2-h/2, w, h)];
+        [cell addSubview:cell.smileyImage];
+    }
+    else {
+        cell.smileyImage.frame = CGRectMake(cw/2-w/2, ch/2-h/2, w, h);
+    }
+
+    //NSLog(@"row %d - %@", (int)indexPath.row, NSStringFromCGRect(CGRectMake(cw/2-w/2, ch/2-h/2, w, h)));
+
+    [cell.smileyImage setImage:image];
+
+    cell.smileyImage.clipsToBounds = NO;
+    cell.smileyImage.layer.masksToBounds = true;
+    cell.layer.borderColor = [ThemeColors cellBorderColor].CGColor;
+    cell.layer.backgroundColor = [ThemeColors greyBackgroundColorLighter].CGColor;
+    cell.layer.borderWidth = 1.0f;
+    cell.layer.cornerRadius = 3;
+    cell.layer.masksToBounds = true;
+    
+    return cell;
 }
 
 - (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath
