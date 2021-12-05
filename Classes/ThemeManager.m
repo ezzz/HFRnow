@@ -210,7 +210,8 @@ int nightDelay;
     }
 
     if (![[NSUserDefaults standardUserDefaults] boolForKey:@"theme_noel_disabled"]) {
-        if (alert.preferredStyle != UIAlertControllerStyleActionSheet && alert.title && alert.actions.count == 0) {
+        if (alert.preferredStyle != UIAlertControllerStyleActionSheet && alert.title && (alert.actions.count == 0
+                                                                                         || [alert.title containsString:@"Err"] || [alert.title containsString:@"Oo"] )) {
             int iImageSize = 25;
             [alert setTitle:[NSString stringWithFormat:@"\n%@",alert.title]];
             NSString* is1 = [NSString stringWithFormat:@"noel%02d", (int)arc4random_uniform(23)];
