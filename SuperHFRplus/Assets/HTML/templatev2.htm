@@ -1,20 +1,17 @@
 <div class="message" id="%%ID%%">
 <a class="anchorlink" name="%%POSTID%%" id="%%POSTID%%"></a>
-<div class="header" onClick="var offset = $(this).offset(); event.stopPropagation(); window.location = 'oijlkajsdoihjlkjasdopopup://'+(offset.top-window.pageYOffset)+'/'+this.parentNode.id; return false;">
-	<div class="left2 %%no_avatar_class%%" style="%%AUTEUR_AVATAR_SRC%%"></div>
-	<div class="right"> + </div>
-	<div class="left">%%AUTEUR_PSEUDO%%</div>
-	<div class="leftdate">%%MESSAGE_DATE%%</div>
-	<div class="clear"></div>
-
+<div class="header">
+	<div class="left2 %%no_avatar_class%%" style="%%AUTEUR_AVATAR_SRC%%" onClick="touchHeaderMessage(this,'avatar')"></div>
+    <div class="left" onClick="touchHeaderMessage(this,'avatar')">%%AUTEUR_PSEUDO%%</div>
+    <div class="right" onClick="touchHeaderMessage(this,'message')"> + </div>
+    <div class="leftdate" onClick="touchHeaderMessage(this,'%%popup_action%%')">%%MESSAGE_DATE%%</div>
+	<div class="clear" onClick="touchHeaderMessage(this,'message')"></div>
 </div>
 <div class="content">
 	<div class="right">
 		%%MESSAGE_CONTENT%%
 	</div>
 	<div class="clear"></div>
-
 </div>
-
 <div class="clear"></div>
 </div>

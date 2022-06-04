@@ -56,7 +56,14 @@
 	tempHTML = [tempHTML stringByReplacingOccurrencesOfString:@"%%AUTEUR_PSEUDO%%" withString:[self name]];
     tempHTML = [tempHTML stringByReplacingOccurrencesOfString:@"%%POSTID%%" withString:[self postID]];
 	tempHTML = [tempHTML stringByReplacingOccurrencesOfString:@"%%MESSAGE_DATE%%" withString:[[self messageDate] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]]];
-
+    
+    if ([[NSUserDefaults standardUserDefaults] integerForKey:@"theme_style"] == 1) { // Modern style
+        tempHTML = [tempHTML stringByReplacingOccurrencesOfString:@"%%popup_action%%" withString:@"message"];
+    }
+    else {
+        tempHTML = [tempHTML stringByReplacingOccurrencesOfString:@"%%popup_action%%" withString:@"avatar"];
+    }
+    
 	if([self imageUI] != nil){
 		tempHTML = [tempHTML stringByReplacingOccurrencesOfString:@"%%AUTEUR_AVATAR_SRC%%" withString:@"background-image:url('%%AUTEUR_AVATAR_SRC%%');"];
 		tempHTML = [tempHTML stringByReplacingOccurrencesOfString:@"%%AUTEUR_AVATAR_SRC%%" withString:[self imageUI]]; //avatar_male_gray_on_light_48x48.png //imageUrl

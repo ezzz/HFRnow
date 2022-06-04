@@ -943,7 +943,7 @@
             case 1:return @"cadeau_on";
             case 2:return @"cadeau_on";
             case 3:return @"message_on";
-            case 4:return @"cane_on";
+            case 4:return @"paques_on";
         }
     }
     return @"";
@@ -966,7 +966,7 @@
             case 1:return @"cadeau_off";
             case 2:return @"cadeau_off";
             case 3:return @"message_off";
-            case 4:return @"cane_off";
+            case 4:return @"paques_off";
         }
     }
     return @"";
