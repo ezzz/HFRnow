@@ -1405,8 +1405,8 @@
         [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"la page numéro...", @"chooseTopicPage", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
         [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Copier le lien", @"copyLinkAction", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
 
-        /* Evol onglet sticky (gardée au cas où) */
-        [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Nouvel onglet", @"newTabBar", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
+        /* Evol onglet sticky (gardée au cas où)
+        [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Nouvel onglet", @"newTabBar", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]]; */
 
 
         topicActionAlert = [UIAlertController alertControllerWithTitle:nil message:nil preferredStyle:UIAlertControllerStyleActionSheet];
@@ -1744,7 +1744,7 @@
     }];
 }
 
-/* Evol onglet sticky */
+/* Evol onglet sticky (gardée au cas où)
 -(void)newTabBar {
     // First, create your view controller
     //ProfileVC *profile = loadViewController(TabbarSB, VC_Profile);
@@ -1766,7 +1766,7 @@
     
     // Switch to this new tab
     [self.tabBarController setSelectedIndex:2];
-}
+}*/
 
 -(void)goToPage:(int)number {
     Topic *aTopic = [self getTopicAtIndexPath:self.pressedIndexPath];

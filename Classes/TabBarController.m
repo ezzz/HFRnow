@@ -41,7 +41,7 @@
             case 1: tabBarItem.title = @"Favoris"; break;
             case 2: tabBarItem.title = @"Old Fav"; break;
             case 3: tabBarItem.title = @"Messages"; break;
-            case 4: tabBarItem.title = @""; break;
+            case 4: tabBarItem.title = @"Plus"; break;
         }
     }
     
@@ -142,7 +142,7 @@
             case 1: tabBarItem.title = @"Favoris"; break;
             case 2: tabBarItem.title = @"Old Fav"; break;
             case 3: tabBarItem.title = @"Messages"; break;
-            case 4: tabBarItem.title = @""; break;
+            case 4: tabBarItem.title = @"Plus"; break;
         }
     }
 }
