@@ -354,4 +354,23 @@ CGFloat RadiansToDegrees(CGFloat radians) {return radians * 180/M_PI;};
     return image;
 }
 
+// Does not work very well. It changes the image scale/size without knowing why...
+- (UIImage *)invertColor
+{
+    CIImage *coreImage = [CIImage imageWithCGImage:self.CGImage];
+    CGFloat fOriScale = self.scale;
+    CIFilter *filter = [CIFilter filterWithName:@"CIColorInvert"];
+    [filter setValue:coreImage forKey:kCIInputImageKey];
+    CIImage *result = [filter valueForKey:kCIOutputImageKey];
+
+    
+    CIFilter *filter2 = [CIFilter filterWithName:@"CILanczosScaleTransform"];
+        [filter2 setValue:result forKey:@"inputImage"];
+        [filter2 setValue:@0.5 forKey:@"inputScale"];
+        [filter2 setValue:@1.0 forKey:@"inputAspectRatio"];
+    CIImage* newImage = filter2.outputImage;
+
+    return [UIImage imageWithCIImage:newImage scale:fOriScale orientation:UIImageOrientationUp];
+}
+
 @end

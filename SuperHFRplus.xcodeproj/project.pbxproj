@@ -15,6 +15,41 @@
 		15167EB12330210600D64651 /* Heart-20@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15167EB02330210600D64651 /* Heart-20@2x.png */; };
 		151DE8D523AAC73D003E6D1B /* OldFavoritesTableViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 151DE8D423AAC73D003E6D1B /* OldFavoritesTableViewController.xib */; };
 		151DE8D723AAC74D003E6D1B /* OldFavoritesTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 151DE8D623AAC74D003E6D1B /* OldFavoritesTableViewController.m */; };
+		152395EC28DF015E00614F9D /* Quote-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395CF28DF015C00614F9D /* Quote-20-Inv@2x.png */; };
+		152395ED28DF015E00614F9D /* StarFilled-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395D028DF015C00614F9D /* StarFilled-20-Inv@2x.png */; };
+		152395EE28DF015E00614F9D /* ContactCardFilled-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395D128DF015C00614F9D /* ContactCardFilled-20-Inv@2x.png */; };
+		152395EF28DF015E00614F9D /* ReplyArrowFilled-20-Inv.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395D228DF015C00614F9D /* ReplyArrowFilled-20-Inv.png */; };
+		152395F028DF015E00614F9D /* MessageFilled-20-Inv.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395D328DF015D00614F9D /* MessageFilled-20-Inv.png */; };
+		152395F128DF015E00614F9D /* Heart-20-Inv.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395D428DF015D00614F9D /* Heart-20-Inv.png */; };
+		152395F228DF015E00614F9D /* QuoteFilled-20-Inv.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395D528DF015D00614F9D /* QuoteFilled-20-Inv.png */; };
+		152395F328DF015F00614F9D /* DeleteColumnFilled-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395D628DF015D00614F9D /* DeleteColumnFilled-20-Inv@2x.png */; };
+		152395F428DF015F00614F9D /* DeleteColumnFilled-20-Inv.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395D728DF015D00614F9D /* DeleteColumnFilled-20-Inv.png */; };
+		152395F528DF015F00614F9D /* RemoveUserFilled-20-Inv.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395D828DF015D00614F9D /* RemoveUserFilled-20-Inv.png */; };
+		152395F628DF015F00614F9D /* ReplyArrowFilled-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395D928DF015D00614F9D /* ReplyArrowFilled-20-Inv@2x.png */; };
+		152395F728DF015F00614F9D /* ReplyAllArrowFilled-20-Inv.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395DA28DF015D00614F9D /* ReplyAllArrowFilled-20-Inv.png */; };
+		152395F828DF015F00614F9D /* RemoveUserFilled-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395DB28DF015D00614F9D /* RemoveUserFilled-20-Inv@2x.png */; };
+		152395F928DF015F00614F9D /* StarFilled-20-Inv.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395DC28DF015D00614F9D /* StarFilled-20-Inv.png */; };
+		152395FA28DF015F00614F9D /* EditColumnFilled-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395DD28DF015D00614F9D /* EditColumnFilled-20-Inv@2x.png */; };
+		152395FB28DF015F00614F9D /* MessageFilled-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395DE28DF015D00614F9D /* MessageFilled-20-Inv@2x.png */; };
+		152395FC28DF015F00614F9D /* EditColumnFilled-20-Inv.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395DF28DF015D00614F9D /* EditColumnFilled-20-Inv.png */; };
+		152395FD28DF015F00614F9D /* HighPriorityFilled-20-Inv.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395E028DF015E00614F9D /* HighPriorityFilled-20-Inv.png */; };
+		152395FE28DF015F00614F9D /* ThorHammerFilled-20-Inv.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395E128DF015E00614F9D /* ThorHammerFilled-20-Inv.png */; };
+		152395FF28DF015F00614F9D /* ThorHammer-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395E228DF015E00614F9D /* ThorHammer-20-Inv@2x.png */; };
+		1523960028DF015F00614F9D /* Heart-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395E328DF015E00614F9D /* Heart-20-Inv@2x.png */; };
+		1523960128DF015F00614F9D /* ContactCardFilled-20-Inv.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395E428DF015E00614F9D /* ContactCardFilled-20-Inv.png */; };
+		1523960228DF015F00614F9D /* ReplyAllArrowFilled-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395E528DF015E00614F9D /* ReplyAllArrowFilled-20-Inv@2x.png */; };
+		1523960328DF015F00614F9D /* Quote-20-Inv.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395E628DF015E00614F9D /* Quote-20-Inv.png */; };
+		1523960428DF015F00614F9D /* ThorHammerFilled-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395E728DF015E00614F9D /* ThorHammerFilled-20-Inv@2x.png */; };
+		1523960528DF015F00614F9D /* ReplyAllArrow-20-Inv.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395E828DF015E00614F9D /* ReplyAllArrow-20-Inv.png */; };
+		1523960628DF015F00614F9D /* ThorHammer-20-Inv.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395E928DF015E00614F9D /* ThorHammer-20-Inv.png */; };
+		1523960728DF015F00614F9D /* 08-chat-20-Inv.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395EA28DF015E00614F9D /* 08-chat-20-Inv.png */; };
+		1523960828DF015F00614F9D /* QuoteFilled-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395EB28DF015E00614F9D /* QuoteFilled-20-Inv@2x.png */; };
+		1523960B28DF05E900614F9D /* LinkFilled-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 1523960928DF05E900614F9D /* LinkFilled-20-Inv@2x.png */; };
+		1523960C28DF05E900614F9D /* LinkFilled-20-Inv.png in Resources */ = {isa = PBXBuildFile; fileRef = 1523960A28DF05E900614F9D /* LinkFilled-20-Inv.png */; };
+		1523960E28DF069D00614F9D /* 08-pin-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 1523960D28DF069D00614F9D /* 08-pin-20-Inv@2x.png */; };
+		1523961228DF07E400614F9D /* ReplyAllArrow-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 1523960F28DF07E400614F9D /* ReplyAllArrow-20-Inv@2x.png */; };
+		1523961328DF07E400614F9D /* 08-chat-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 1523961028DF07E400614F9D /* 08-chat-20-Inv@2x.png */; };
+		1523961428DF07E400614F9D /* HighPriorityFilled-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 1523961128DF07E400614F9D /* HighPriorityFilled-20-Inv@2x.png */; };
 		152BBB13253375CA00D21435 /* clear.png in Resources */ = {isa = PBXBuildFile; fileRef = 152BBB12253375CA00D21435 /* clear.png */; };
 		152D2D3B244C79EB00D9D644 /* BookmarksTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 152D2D3A244C79EB00D9D644 /* BookmarksTableViewController.m */; };
 		152D2D3D244C7A0200D9D644 /* BookmarksTableView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 152D2D3C244C7A0200D9D644 /* BookmarksTableView.xib */; };
@@ -908,6 +943,41 @@
 		151DE8D423AAC73D003E6D1B /* OldFavoritesTableViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = OldFavoritesTableViewController.xib; sourceTree = "<group>"; };
 		151DE8D623AAC74D003E6D1B /* OldFavoritesTableViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = OldFavoritesTableViewController.m; sourceTree = "<group>"; };
 		151DE8D823AAC756003E6D1B /* OldFavoritesTableViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = OldFavoritesTableViewController.h; sourceTree = "<group>"; };
+		152395CF28DF015C00614F9D /* Quote-20-Inv@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Quote-20-Inv@2x.png"; sourceTree = "<group>"; };
+		152395D028DF015C00614F9D /* StarFilled-20-Inv@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "StarFilled-20-Inv@2x.png"; sourceTree = "<group>"; };
+		152395D128DF015C00614F9D /* ContactCardFilled-20-Inv@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ContactCardFilled-20-Inv@2x.png"; sourceTree = "<group>"; };
+		152395D228DF015C00614F9D /* ReplyArrowFilled-20-Inv.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ReplyArrowFilled-20-Inv.png"; sourceTree = "<group>"; };
+		152395D328DF015D00614F9D /* MessageFilled-20-Inv.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "MessageFilled-20-Inv.png"; sourceTree = "<group>"; };
+		152395D428DF015D00614F9D /* Heart-20-Inv.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Heart-20-Inv.png"; sourceTree = "<group>"; };
+		152395D528DF015D00614F9D /* QuoteFilled-20-Inv.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "QuoteFilled-20-Inv.png"; sourceTree = "<group>"; };
+		152395D628DF015D00614F9D /* DeleteColumnFilled-20-Inv@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "DeleteColumnFilled-20-Inv@2x.png"; sourceTree = "<group>"; };
+		152395D728DF015D00614F9D /* DeleteColumnFilled-20-Inv.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "DeleteColumnFilled-20-Inv.png"; sourceTree = "<group>"; };
+		152395D828DF015D00614F9D /* RemoveUserFilled-20-Inv.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "RemoveUserFilled-20-Inv.png"; sourceTree = "<group>"; };
+		152395D928DF015D00614F9D /* ReplyArrowFilled-20-Inv@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ReplyArrowFilled-20-Inv@2x.png"; sourceTree = "<group>"; };
+		152395DA28DF015D00614F9D /* ReplyAllArrowFilled-20-Inv.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ReplyAllArrowFilled-20-Inv.png"; sourceTree = "<group>"; };
+		152395DB28DF015D00614F9D /* RemoveUserFilled-20-Inv@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "RemoveUserFilled-20-Inv@2x.png"; sourceTree = "<group>"; };
+		152395DC28DF015D00614F9D /* StarFilled-20-Inv.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "StarFilled-20-Inv.png"; sourceTree = "<group>"; };
+		152395DD28DF015D00614F9D /* EditColumnFilled-20-Inv@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "EditColumnFilled-20-Inv@2x.png"; sourceTree = "<group>"; };
+		152395DE28DF015D00614F9D /* MessageFilled-20-Inv@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "MessageFilled-20-Inv@2x.png"; sourceTree = "<group>"; };
+		152395DF28DF015D00614F9D /* EditColumnFilled-20-Inv.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "EditColumnFilled-20-Inv.png"; sourceTree = "<group>"; };
+		152395E028DF015E00614F9D /* HighPriorityFilled-20-Inv.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "HighPriorityFilled-20-Inv.png"; sourceTree = "<group>"; };
+		152395E128DF015E00614F9D /* ThorHammerFilled-20-Inv.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ThorHammerFilled-20-Inv.png"; sourceTree = "<group>"; };
+		152395E228DF015E00614F9D /* ThorHammer-20-Inv@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ThorHammer-20-Inv@2x.png"; sourceTree = "<group>"; };
+		152395E328DF015E00614F9D /* Heart-20-Inv@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Heart-20-Inv@2x.png"; sourceTree = "<group>"; };
+		152395E428DF015E00614F9D /* ContactCardFilled-20-Inv.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ContactCardFilled-20-Inv.png"; sourceTree = "<group>"; };
+		152395E528DF015E00614F9D /* ReplyAllArrowFilled-20-Inv@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ReplyAllArrowFilled-20-Inv@2x.png"; sourceTree = "<group>"; };
+		152395E628DF015E00614F9D /* Quote-20-Inv.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Quote-20-Inv.png"; sourceTree = "<group>"; };
+		152395E728DF015E00614F9D /* ThorHammerFilled-20-Inv@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ThorHammerFilled-20-Inv@2x.png"; sourceTree = "<group>"; };
+		152395E828DF015E00614F9D /* ReplyAllArrow-20-Inv.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ReplyAllArrow-20-Inv.png"; sourceTree = "<group>"; };
+		152395E928DF015E00614F9D /* ThorHammer-20-Inv.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ThorHammer-20-Inv.png"; sourceTree = "<group>"; };
+		152395EA28DF015E00614F9D /* 08-chat-20-Inv.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "08-chat-20-Inv.png"; sourceTree = "<group>"; };
+		152395EB28DF015E00614F9D /* QuoteFilled-20-Inv@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "QuoteFilled-20-Inv@2x.png"; sourceTree = "<group>"; };
+		1523960928DF05E900614F9D /* LinkFilled-20-Inv@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "LinkFilled-20-Inv@2x.png"; sourceTree = "<group>"; };
+		1523960A28DF05E900614F9D /* LinkFilled-20-Inv.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "LinkFilled-20-Inv.png"; sourceTree = "<group>"; };
+		1523960D28DF069D00614F9D /* 08-pin-20-Inv@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "08-pin-20-Inv@2x.png"; sourceTree = "<group>"; };
+		1523960F28DF07E400614F9D /* ReplyAllArrow-20-Inv@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ReplyAllArrow-20-Inv@2x.png"; sourceTree = "<group>"; };
+		1523961028DF07E400614F9D /* 08-chat-20-Inv@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "08-chat-20-Inv@2x.png"; sourceTree = "<group>"; };
+		1523961128DF07E400614F9D /* HighPriorityFilled-20-Inv@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "HighPriorityFilled-20-Inv@2x.png"; sourceTree = "<group>"; };
 		152BBB12253375CA00D21435 /* clear.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = clear.png; sourceTree = "<group>"; };
 		152D2D39244C79D700D9D644 /* BookmarksTableViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BookmarksTableViewController.h; sourceTree = "<group>"; };
 		152D2D3A244C79EB00D9D644 /* BookmarksTableViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BookmarksTableViewController.m; sourceTree = "<group>"; };
@@ -2815,6 +2885,41 @@
 		CA00C5A217C30C370067B457 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				1523961028DF07E400614F9D /* 08-chat-20-Inv@2x.png */,
+				1523961128DF07E400614F9D /* HighPriorityFilled-20-Inv@2x.png */,
+				1523960F28DF07E400614F9D /* ReplyAllArrow-20-Inv@2x.png */,
+				1523960D28DF069D00614F9D /* 08-pin-20-Inv@2x.png */,
+				1523960A28DF05E900614F9D /* LinkFilled-20-Inv.png */,
+				1523960928DF05E900614F9D /* LinkFilled-20-Inv@2x.png */,
+				152395EA28DF015E00614F9D /* 08-chat-20-Inv.png */,
+				152395E428DF015E00614F9D /* ContactCardFilled-20-Inv.png */,
+				152395D128DF015C00614F9D /* ContactCardFilled-20-Inv@2x.png */,
+				152395D728DF015D00614F9D /* DeleteColumnFilled-20-Inv.png */,
+				152395D628DF015D00614F9D /* DeleteColumnFilled-20-Inv@2x.png */,
+				152395DF28DF015D00614F9D /* EditColumnFilled-20-Inv.png */,
+				152395DD28DF015D00614F9D /* EditColumnFilled-20-Inv@2x.png */,
+				152395D428DF015D00614F9D /* Heart-20-Inv.png */,
+				152395E328DF015E00614F9D /* Heart-20-Inv@2x.png */,
+				152395E028DF015E00614F9D /* HighPriorityFilled-20-Inv.png */,
+				152395D328DF015D00614F9D /* MessageFilled-20-Inv.png */,
+				152395DE28DF015D00614F9D /* MessageFilled-20-Inv@2x.png */,
+				152395E628DF015E00614F9D /* Quote-20-Inv.png */,
+				152395CF28DF015C00614F9D /* Quote-20-Inv@2x.png */,
+				152395D528DF015D00614F9D /* QuoteFilled-20-Inv.png */,
+				152395EB28DF015E00614F9D /* QuoteFilled-20-Inv@2x.png */,
+				152395D828DF015D00614F9D /* RemoveUserFilled-20-Inv.png */,
+				152395DB28DF015D00614F9D /* RemoveUserFilled-20-Inv@2x.png */,
+				152395E828DF015E00614F9D /* ReplyAllArrow-20-Inv.png */,
+				152395DA28DF015D00614F9D /* ReplyAllArrowFilled-20-Inv.png */,
+				152395E528DF015E00614F9D /* ReplyAllArrowFilled-20-Inv@2x.png */,
+				152395D228DF015C00614F9D /* ReplyArrowFilled-20-Inv.png */,
+				152395D928DF015D00614F9D /* ReplyArrowFilled-20-Inv@2x.png */,
+				152395DC28DF015D00614F9D /* StarFilled-20-Inv.png */,
+				152395D028DF015C00614F9D /* StarFilled-20-Inv@2x.png */,
+				152395E928DF015E00614F9D /* ThorHammer-20-Inv.png */,
+				152395E228DF015E00614F9D /* ThorHammer-20-Inv@2x.png */,
+				152395E128DF015E00614F9D /* ThorHammerFilled-20-Inv.png */,
+				152395E728DF015E00614F9D /* ThorHammerFilled-20-Inv@2x.png */,
 				1537755A275A7A3300790892 /* noel_neige_big_red.png */,
 				15377551274D6CF500790892 /* noel00.png */,
 				1537752E274D6CE500790892 /* noel01.png */,
@@ -3430,12 +3535,15 @@
 				4C052E171BA86C9400B61952 /* Flat-YellowFlag-25.png in Resources */,
 				D8DDF2B51E58810A002F1484 /* ToolBarPrevious_on_tinted.png in Resources */,
 				4C21E9581BA5C70400691D65 /* CursorFilled-20@2x.png in Resources */,
+				152395EF28DF015E00614F9D /* ReplyArrowFilled-20-Inv.png in Resources */,
+				152395F028DF015E00614F9D /* MessageFilled-20-Inv.png in Resources */,
 				D8B4EDEA21C184970042C392 /* snow16.png in Resources */,
 				4C0B8DE31BA4522900D329BA /* LaptopFilled-40.png in Resources */,
 				D826904A1E5864C9006971C3 /* plus-tinted.png in Resources */,
 				CA7C6FAC185EF50E00B348BA /* all_categories@2x.png in Resources */,
 				15377554275228E600790892 /* noel_dinde.png in Resources */,
 				CA7C6FAD185EF50E00B348BA /* buttonpreviouson@2x.png in Resources */,
+				152395FB28DF015F00614F9D /* MessageFilled-20-Inv@2x.png in Resources */,
 				4C1991991FA9EC8E00A07A8A /* Icon-CLASSIC-IPAD@1x.png in Resources */,
 				CA7C6FAE185EF50E00B348BA /* eek.gif in Resources */,
 				CA7C6FAF185EF50E00B348BA /* AideViewController.xib in Resources */,
@@ -3456,6 +3564,7 @@
 				4C0B8DB71BA4522900D329BA /* SourceCodeFilled-40.png in Resources */,
 				CA7C6FB9185EF50E00B348BA /* flagyellow.png in Resources */,
 				4CD6B8BA1B97AEF5007FC29E /* 6-Folder-32@2x.png in Resources */,
+				152395FC28DF015F00614F9D /* EditColumnFilled-20-Inv.png in Resources */,
 				4C19919D1FA9EC8E00A07A8A /* Icon-REDFACE-IPAD@1x.png in Resources */,
 				15377547274D6CE600790892 /* noel17.png in Resources */,
 				4CB132C11B9098520081B44D /* EditColumnFilled-20.png in Resources */,
@@ -3500,6 +3609,7 @@
 				CA7C6FC9185EF50E00B348BA /* 20-gear2.png in Resources */,
 				4CD6B8901B97996B007FC29E /* DeleteColumnFilled-20@2x.png in Resources */,
 				CA7C6FCA185EF50E00B348BA /* bar2.png in Resources */,
+				1523960828DF015F00614F9D /* QuoteFilled-20-Inv@2x.png in Resources */,
 				4CB133111B90B7990081B44D /* Thor Hammer Filled-23.png in Resources */,
 				CA7C6FCB185EF50E00B348BA /* avatar_male_gray_on_light_48x48@2x.png in Resources */,
 				CA7C6FCC185EF50E00B348BA /* pouah.gif in Resources */,
@@ -3518,6 +3628,7 @@
 				4C19919A1FA9EC8E00A07A8A /* Icon-BETA-IPAD@1x.png in Resources */,
 				CA7C6FD6185EF50E00B348BA /* link.png in Resources */,
 				CA7C6FD7185EF50E00B348BA /* ouimaitre.gif in Resources */,
+				1523960128DF015F00614F9D /* ContactCardFilled-20-Inv.png in Resources */,
 				4CB132EE1B909D710081B44D /* ReplyAllArrow-20@2x.png in Resources */,
 				4C0B8DAF1BA4522900D329BA /* VOIPGatewayFilled-40.png in Resources */,
 				4C21E9721BA5C70400691D65 /* SelectAllFilled-20.png in Resources */,
@@ -3529,6 +3640,7 @@
 				CA7C6FDB185EF50E00B348BA /* ohwell.gif in Resources */,
 				15B245AC22E6FD080091B513 /* ThemeSettingsViewController.xib in Resources */,
 				D8B4EDE921C184970042C392 /* snow17.png in Resources */,
+				1523960528DF015F00614F9D /* ReplyAllArrow-20-Inv.png in Resources */,
 				CA7C6FDC185EF50E00B348BA /* 119-piggy-bank@2x.png in Resources */,
 				D89AF55E1E55DE120096504F /* ThorHammerGrey-20.png in Resources */,
 				4CD6B8BC1B97AEF5007FC29E /* 6-Folder-32.png in Resources */,
@@ -3549,6 +3661,7 @@
 				CA7C6FE7185EF50E00B348BA /* buttonendon.png in Resources */,
 				4C9C2B871BAE801700511853 /* AboutFilled-25.png in Resources */,
 				4CB132DC1B909C730081B44D /* QuoteFilled-20.png in Resources */,
+				152395EC28DF015E00614F9D /* Quote-20-Inv@2x.png in Resources */,
 				4CD6B8AE1B97AC9D007FC29E /* Folder-32@2x.png in Resources */,
 				CA7C6FE8185EF50E00B348BA /* foudtag.gif in Resources */,
 				15DE2D1D249F59DD00A80C7C /* fullscreen@3x.png in Resources */,
@@ -3569,6 +3682,8 @@
 				15377544274D6CE600790892 /* noel13.png in Resources */,
 				155A992524771684002968CD /* photogallery2.png in Resources */,
 				CA7C6FF2185EF50E00B348BA /* nextIcon@2x.png in Resources */,
+				1523961428DF07E400614F9D /* HighPriorityFilled-20-Inv@2x.png in Resources */,
+				152395F228DF015E00614F9D /* QuoteFilled-20-Inv.png in Resources */,
 				4CB132D31B9099950081B44D /* MessageFilled-20@2x.png in Resources */,
 				D8B4EDF521C184970042C392 /* snow1.png in Resources */,
 				4CB132FC1B90B7010081B44D /* ThorHammer-20.png in Resources */,
@@ -3603,6 +3718,7 @@
 				CA7C7002185EF50E00B348BA /* 122-stats@2x.png in Resources */,
 				4C21E9641BA5C70400691D65 /* ItalicFilled-20@2x.png in Resources */,
 				4C21E9701BA5C70400691D65 /* QuoteEFilled-20@2x.png in Resources */,
+				1523960328DF015F00614F9D /* Quote-20-Inv.png in Resources */,
 				156246DD2182310000F5B8DC /* arrowend.svg in Resources */,
 				CA7C7003185EF50E00B348BA /* loadinfo.net.gif in Resources */,
 				CA7C7004185EF50E00B348BA /* ToolBarPlay_on.png in Resources */,
@@ -3658,6 +3774,7 @@
 				D8B4EDE521C184970042C392 /* snow11.png in Resources */,
 				CA7C701C185EF50E00B348BA /* arrowbegin.png in Resources */,
 				D8DDF2AF1E58810A002F1484 /* ToolBarFastRewind_on_tinted@2x.png in Resources */,
+				152395F328DF015F00614F9D /* DeleteColumnFilled-20-Inv@2x.png in Resources */,
 				D89FB5AF2332380800023213 /* HeartBlack-20@2x.png in Resources */,
 				D82690441E585CAC006971C3 /* style-liste-dark.css in Resources */,
 				155A99212476AC41002968CD /* undo.png in Resources */,
@@ -3688,6 +3805,7 @@
 				15AEF9FE223E9053005E6739 /* Icon-BLUE@3x.png in Resources */,
 				CA7C7024185EF50E00B348BA /* down.png in Resources */,
 				4C21E9621BA5C70400691D65 /* ItalicFilled-20.png in Resources */,
+				152395FD28DF015F00614F9D /* HighPriorityFilled-20-Inv.png in Resources */,
 				4C80A4FF1CF1B2610093CF9B /* CircuitFilled-40@2x.png in Resources */,
 				CA7C7025185EF50E00B348BA /* ToolBarPlay_off.png in Resources */,
 				CA7C7026185EF50E00B348BA /* evil.gif in Resources */,
@@ -3703,10 +3821,13 @@
 				4C0B8D8B1BA4522900D329BA /* MoneyBoxFilled-40@2x.png in Resources */,
 				CA7C702A185EF50E00B348BA /* 08-chat.png in Resources */,
 				CA7C702B185EF50E00B348BA /* ToolBarPlay_off@2x.png in Resources */,
+				152395F528DF015F00614F9D /* RemoveUserFilled-20-Inv.png in Resources */,
 				CA7C702D185EF50E00B348BA /* all_categories_land@2x.png in Resources */,
 				1553569024A8CCDA00917DE1 /* revert.png in Resources */,
 				CA7C702E185EF50E00B348BA /* beginhover.png in Resources */,
 				4C1991911FA9E91600A07A8A /* Icon-BETA@2x.png in Resources */,
+				1523960728DF015F00614F9D /* 08-chat-20-Inv.png in Resources */,
+				152395F928DF015F00614F9D /* StarFilled-20-Inv.png in Resources */,
 				15357D6D234BA82B002D5C2E /* OfflineTableView.xib in Resources */,
 				CA7C702F185EF50E00B348BA /* MessageDetailViewControllerv2.xib in Resources */,
 				CA7C7030185EF50E00B348BA /* fou.gif in Resources */,
@@ -3767,6 +3888,7 @@
 				4C0B8DB31BA4522900D329BA /* DesignFilled-40@2x.png in Resources */,
 				4C9C2B221BAE66EB00511853 /* ThorHammerBlack-20.png in Resources */,
 				D8CA2766246C535C008FC72C /* sign-25.png in Resources */,
+				1523961328DF07E400614F9D /* 08-chat-20-Inv@2x.png in Resources */,
 				CA7C7049185EF50E00B348BA /* 44-shoebox@2x.png in Resources */,
 				4C0B8D951BA4522900D329BA /* AboutFilled-40.png in Resources */,
 				CAC7FCD3190DBD450083BB4E /* PollResultTableViewCell.xib in Resources */,
@@ -3785,6 +3907,7 @@
 				CA7C7050185EF50E00B348BA /* gratgrat.gif in Resources */,
 				CA7C7051185EF50E00B348BA /* beginoff.png in Resources */,
 				CA7C7052185EF50E00B348BA /* HFRSearchViewController.xib in Resources */,
+				152395F128DF015E00614F9D /* Heart-20-Inv.png in Resources */,
 				D89AF5601E55DE120096504F /* ThorHammerGrey-20@2x.png in Resources */,
 				CA7C7053185EF50E00B348BA /* ouch.gif in Resources */,
 				D8B4EDEB21C184970042C392 /* snow14.png in Resources */,
@@ -3802,6 +3925,7 @@
 				CA7C7057185EF50E00B348BA /* Images.xcassets in Resources */,
 				D8DDF2A91E58810A002F1484 /* ToolBarFastForward_on_tinted.png in Resources */,
 				1572FC4B22F37F3100D40789 /* Brightness-white-512.png in Resources */,
+				1523961228DF07E400614F9D /* ReplyAllArrow-20-Inv@2x.png in Resources */,
 				4C0B8DD91BA4522900D329BA /* VideoCallFilled-40@2x.png in Resources */,
 				CAF5DB631932BA58000B5215 /* check@2x.png in Resources */,
 				CA7C7058185EF50E00B348BA /* fouyaya.gif in Resources */,
@@ -3813,6 +3937,7 @@
 				CA7C705D185EF50E00B348BA /* selectedrow.png in Resources */,
 				1537754A274D6CE600790892 /* noel03.png in Resources */,
 				CA7C705F185EF50E00B348BA /* 19-gear@2x.png in Resources */,
+				1523960028DF015F00614F9D /* Heart-20-Inv@2x.png in Resources */,
 				CA7C7060185EF50E00B348BA /* bginput@2x.png in Resources */,
 				4C80A4F91CF1B0E60093CF9B /* ResistorFilled-40@x2.png in Resources */,
 				4C0B8D8F1BA4522900D329BA /* ThorHammerFilled-40.png in Resources */,
@@ -3837,6 +3962,7 @@
 				CA7C706A185EF50E00B348BA /* smile.gif in Resources */,
 				4CB132D91B9099C20081B44D /* StarFilled-20.png in Resources */,
 				4CD6B88D1B97971E007FC29E /* ErrorFilled-20.png in Resources */,
+				1523960E28DF069D00614F9D /* 08-pin-20-Inv@2x.png in Resources */,
 				4CD6B8961B979A0D007FC29E /* HighPriorityFilled-20@2x.png in Resources */,
 				1572FC4A22F37F3100D40789 /* Brightness-black-512.png in Resources */,
 				4C0B8DB91BA4522900D329BA /* SourceCodeFilled-40@2x.png in Resources */,
@@ -3846,6 +3972,7 @@
 				CA7C706C185EF50E00B348BA /* gun.gif in Resources */,
 				CA7C706D185EF50E00B348BA /* sweat.gif in Resources */,
 				D8EFB18E1E59F23B000E45A2 /* loadinfo-white@2x.gif in Resources */,
+				152395FF28DF015F00614F9D /* ThorHammer-20-Inv@2x.png in Resources */,
 				D8685928214D5E200054617C /* style-liste-retina-oled.css in Resources */,
 				15AEFA0B223E9435005E6739 /* Icon-WHITE-IPAD@2x.png in Resources */,
 				4C21E95A1BA5C70400691D65 /* CutFilled-20.png in Resources */,
@@ -3885,6 +4012,7 @@
 				CA7C7080185EF50E00B348BA /* ToolBarFastForward_off.png in Resources */,
 				CA7C7081185EF50E00B348BA /* arrowend@2x.png in Resources */,
 				4CD6B8B11B97ACA2007FC29E /* Folder-32.png in Resources */,
+				152395ED28DF015E00614F9D /* StarFilled-20-Inv@2x.png in Resources */,
 				4CB1329E1B905BF80081B44D /* BlackListTableViewController.xib in Resources */,
 				CAF5DB881936CD7B000B5215 /* 09-arrows-out@2x.png in Resources */,
 				4C21E97E1BA5C70400691D65 /* XlargeIconsFilled-20.png in Resources */,
@@ -3896,6 +4024,7 @@
 				CA7C7085185EF50E00B348BA /* buttonnextoff@2x.png in Resources */,
 				CA7C7086185EF50E00B348BA /* 19-gear.png in Resources */,
 				CA7C7087185EF50E00B348BA /* buttonnexton@2x.png in Resources */,
+				152395F628DF015F00614F9D /* ReplyArrowFilled-20-Inv@2x.png in Resources */,
 				1537753C274D6CE600790892 /* noel15.png in Resources */,
 				CA7C7088185EF50E00B348BA /* fuck.gif in Resources */,
 				CA7C7089185EF50E00B348BA /* buttonbeginhover.png in Resources */,
@@ -3928,13 +4057,17 @@
 				154C0D04250FD66F00294ECC /* person.3.fill-2@2.png in Resources */,
 				4C21E9661BA5C70400691D65 /* LinkFilled-20.png in Resources */,
 				15AEFA08223E9435005E6739 /* Icon-WHITE-IPAD@1x.png in Resources */,
+				152395FA28DF015F00614F9D /* EditColumnFilled-20-Inv@2x.png in Resources */,
 				4CD6B8C01B97AEF5007FC29E /* 6-Camera-32.png in Resources */,
 				15357D65234BA620002D5C2E /* offline.png in Resources */,
+				1523960C28DF05E900614F9D /* LinkFilled-20-Inv.png in Resources */,
 				CA7C7096185EF50E00B348BA /* Localizable.strings in Resources */,
 				CA7C7097185EF50E00B348BA /* bounce.gif in Resources */,
 				CA7C7098185EF50E00B348BA /* multipleflag0.gif in Resources */,
 				CA7C7099185EF50E00B348BA /* RehostCell.xib in Resources */,
 				1556409322D9297C0018A619 /* WhiteListTableViewController.xib in Resources */,
+				152395EE28DF015E00614F9D /* ContactCardFilled-20-Inv@2x.png in Resources */,
+				152395F828DF015F00614F9D /* RemoveUserFilled-20-Inv@2x.png in Resources */,
 				4C1991981FA9EC8E00A07A8A /* Icon-REDFACE-IPAD@2x.png in Resources */,
 				4C0B8DA51BA4522900D329BA /* ShieldFilled-40.png in Resources */,
 				4CD6B8B41B97ACA8007FC29E /* Camera-32@2x.png in Resources */,
@@ -3961,6 +4094,7 @@
 				CA7C70A2185EF50E00B348BA /* style-smile.css in Resources */,
 				4C9C2B8D1BAE801700511853 /* QuestionsFilled-25@2x.png in Resources */,
 				CA7C70A3185EF50E00B348BA /* 24.gif in Resources */,
+				152395F428DF015F00614F9D /* DeleteColumnFilled-20-Inv.png in Resources */,
 				D8DDF2B71E58810A002F1484 /* ToolBarPrevious_on_tinted@2x.png in Resources */,
 				CA7C70A4185EF50E00B348BA /* arrowend.png in Resources */,
 				4C19919C1FA9EC8E00A07A8A /* Icon-BETA-IPAD@2x.png in Resources */,
@@ -3978,14 +4112,19 @@
 				4C59E0851FA9D56C00C902F8 /* Icon-REDFACE@3x.png in Resources */,
 				4C0B8D9F1BA4522900D329BA /* CircledUserMaleFilled-40.png in Resources */,
 				CA7C70A7185EF50E00B348BA /* arrowforward.png in Resources */,
+				152395FE28DF015F00614F9D /* ThorHammerFilled-20-Inv.png in Resources */,
 				CA7C70A8185EF50E00B348BA /* unselectedrow.png in Resources */,
+				1523960628DF015F00614F9D /* ThorHammer-20-Inv.png in Resources */,
+				152395F728DF015F00614F9D /* ReplyAllArrowFilled-20-Inv.png in Resources */,
 				D8B4EDE621C184970042C392 /* snow10.png in Resources */,
 				CA7C70A9185EF50E00B348BA /* all_categories.png in Resources */,
 				CA7C70AA185EF50E00B348BA /* endon.png in Resources */,
 				4C0B8D971BA4522900D329BA /* QuestionsFilled-40.png in Resources */,
 				4CB132B81B90970C0081B44D /* RemoveUserFilled-20@2x.png in Resources */,
 				15AEFA0A223E9435005E6739 /* Icon-BLUE-IPAD@2x.png in Resources */,
+				1523960428DF015F00614F9D /* ThorHammerFilled-20-Inv@2x.png in Resources */,
 				4C21E9801BA5C70400691D65 /* XlargeIconsFilled-20@2x.png in Resources */,
+				1523960B28DF05E900614F9D /* LinkFilled-20-Inv@2x.png in Resources */,
 				1537753D274D6CE600790892 /* noel21.png in Resources */,
 				4CB311F319FAFF2C0097D84D /* jquery.hammer.js in Resources */,
 				15F3C5D1254C5A3E00F4B1FD /* giphy.png in Resources */,
@@ -3995,6 +4134,7 @@
 				CA7C70AC185EF50E00B348BA /* smileybase.html in Resources */,
 				15ABB27D2488397200E30B48 /* gif.png in Resources */,
 				4C0B8DB11BA4522900D329BA /* VOIPGatewayFilled-40@2x.png in Resources */,
+				1523960228DF015F00614F9D /* ReplyAllArrowFilled-20-Inv@2x.png in Resources */,
 				CA7C70AD185EF50E00B348BA /* up@2x.png in Resources */,
 				CA7C70AE185EF50E00B348BA /* ToolBarFastForward_on.png in Resources */,
 				4CB1330B1B90B7590081B44D /* ThorHammerFilled-20.png in Resources */,
@@ -4331,12 +4471,14 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = "Classic-Red";
 				ASSETCATALOG_COMPILER_OPTIMIZATION = time;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Manual;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 90;
-				DEVELOPMENT_TEAM = NCJNK4ZZ54;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = NCJNK4ZZ54;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4371,7 +4513,8 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super;
 				PRODUCT_NAME = SuperHFRplusSwift;
-				PROVISIONING_PROFILE_SPECIFIER = "Hfrplus for ezzz v2";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Hfrplus for ezzz v2";
 				SWIFT_OBJC_BRIDGING_HEADER = "SuperHFRplus/SuperHFRplus-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 4.0;
@@ -4387,11 +4530,13 @@
 				ASSETCATALOG_COMPILER_OPTIMIZATION = time;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				CODE_SIGN_STYLE = Manual;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = YES;
 				CURRENT_PROJECT_VERSION = 90;
 				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = NCJNK4ZZ54;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4425,6 +4570,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super;
 				PRODUCT_NAME = SuperHFRplusSwift;
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Hfrplus for ezzz v2";
 				SWIFT_OBJC_BRIDGING_HEADER = "SuperHFRplus/SuperHFRplus-Bridging-Header.h";
 				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

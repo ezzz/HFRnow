@@ -98,15 +98,10 @@
     myRawContent = [myRawContent stringByReplacingOccurrencesOfRegex:@"<p class=\"pbl\" id=\"([0-9]+)\""
                                                            withString:[NSString stringWithFormat:@"%@<p class=\"pbl\"", sHideQuote]];
 
-
-    //Custom Internal Images
-    NSString *regEx2 = @"<img src=\"http://forum-images.hardware.fr/([^\"]+)\" alt=\"(\\[[^\"]+)\" title=\"[^\"]+\">";
+    // Smileys : specific action
+    NSString *regEx2 = @"<img src=\"https://forum-images.hardware.fr/images/perso/([^\"]+)\" alt=\"\\[:([^\"]+)\\]\" title=\"[^\"]+\">";
     myRawContent = [myRawContent stringByReplacingOccurrencesOfRegex:regEx2
-                                                        withString:@"<img class=\"smileycustom\" onClick=\"window.location = 'oijlkajsdoihjlkjasdosmiley://$2/'+encodeURIComponent(this.src); return false;\" src=\"https://forum-images.hardware.fr/$1\" />"]; //
-    //Custom Internal Images
-    NSString *regEx22 = @"<img src=\"https://forum-images.hardware.fr/([^\"]+)\" alt=\"(\\[[^\"]+)\" title=\"[^\"]+\">";
-    myRawContent = [myRawContent stringByReplacingOccurrencesOfRegex:regEx22
-                                                          withString:@"<img class=\"smileycustom\" onClick=\"window.location = 'oijlkajsdoihjlkjasdosmiley://$2/'+encodeURIComponent(this.src); return false;\" src=\"https://forum-images.hardware.fr/$1\" />"]; //
+                                                     withString:@"<img onClick=\"window.location = 'oijlkajsdoihjlkjasdosmiley://smileycode/$2/'+encodeURIComponent(this.src); return false;\" class=\"smileycustom\" src=\"https://forum-images.hardware.fr/images/perso/$1\">"]; //
 
 	//Native Internal Images
 	NSString *regEx0 = @"<img src=\"http://forum-images.hardware.fr/[^\"]+/([^/]+)\" alt=\"[^\"]+\" title=\"[^\"]+\">";			
