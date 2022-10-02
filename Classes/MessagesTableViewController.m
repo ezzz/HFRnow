@@ -56,7 +56,7 @@
 @synthesize request, arrayAction, curPostID;
 @synthesize firstDate;
 @synthesize actionCreateAQ, actionCreateBookmark, canSaveDrapalInMPStorage, topic, filterPostsQuotes, arrFilteredPosts, alertProgress, progressView;
-@synthesize sSelectedSmileyCode, sSelectedSmileyImageURL;
+@synthesize sSelectedSmileyCode, sSelectedSmileyImageURL, webviewInteraction;
 
 - (void)setTopicName:(NSString *)n {
     _topicName = [n filterTU];
@@ -868,6 +868,10 @@
     self.swipeLeftRecognizer = (UISwipeGestureRecognizer *)recognizer;
 	
     self.messagesWebView.scrollView.contentInset = UIEdgeInsetsMake(0, -0.5, 0, 0);
+    if (@available(iOS 16.0, *)) {
+        self.webviewInteraction = (NSObject*)[[UIEditMenuInteraction alloc] initWithDelegate:self];
+        [self.messagesWebView addInteraction:(UIEditMenuInteraction*)self.webviewInteraction];
+    }
     
     //Bouton Repondre message
     if (self.isSearchInstra) {
@@ -2021,7 +2025,8 @@
         [self.messagesWebView setHidden:NO];
         [self.messagesWebView becomeFirstResponder];
 
-        [self.messagesWebView evaluateJavaScript:@"$('.message').addSwipeEvents().bind('doubletap', function(evt, touch) { window.location = 'oijlkajsdoihjlkjasdodetails://'+this.id; });" completionHandler:nil];
+        /* Disable double tap access to messagedetail...
+        [self.messagesWebView evaluateJavaScript:@"$('.message').addSwipeEvents().bind('doubletap', function(evt, touch) { window.location = 'oijlkajsdoihjlkjasdodetails://'+this.id; });" completionHandler:nil];*/
     }
 }
 
@@ -2044,7 +2049,7 @@
 
 - (void)webView:(WKWebView *)webView decidePolicyForNavigationAction:(WKNavigationAction *)navigationAction decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler {
     NSURLRequest *aRequest = navigationAction.request;
-    NSLog(@"URL Scheme : < %@ >", [aRequest.URL scheme]);
+    NSLog(@"URL Scheme : < %@ : %@>", aRequest.URL.scheme, aRequest.URL.resourceSpecifier);
     if (navigationAction.navigationType == WKNavigationTypeLinkActivated) {
         NSLog(@"navigationType == WKNavigationTypeLinkActivated");
     } else if(navigationAction.navigationType == WKNavigationTypeFormSubmitted) {
@@ -2196,8 +2201,8 @@
         }
         else if ([[aRequest.URL scheme] isEqualToString:@"oijlkajsdoihjlkjasdosmiley"])
         {
-            NSString *regularExpressionString = @"oijlkajsdoihjlkjasdosmiley://([^/]+)/(.*)";
-            NSString* sSmileyCode = [[[aRequest.URL absoluteString] stringByMatching:regularExpressionString capture:1L] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+            NSString *regularExpressionString = @"oijlkajsdoihjlkjasdosmiley://smileycode/([^/]+)/(.*)";
+            NSString* sSmileyCode = [NSString stringWithFormat:@"[:%@]", [[[aRequest.URL absoluteString] stringByMatching:regularExpressionString capture:1L] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
             NSString* sSmileyImgUrl = [[[aRequest.URL absoluteString] stringByMatching:regularExpressionString capture:2L] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
             // stringByRemovingPercentEncoding should be done twice to replace %2520 characters. With a single call, they are only replaced by %20
             NSString* sSmileyImgUrlRaw = [[sSmileyImgUrl stringByRemovingPercentEncoding] stringByRemovingPercentEncoding];
@@ -2272,55 +2277,84 @@
     return [NSString stringWithFormat: @"%d", iCount];
 }
 
+- (UIMenu *)editMenuInteraction:(UIEditMenuInteraction *)interaction menuForConfiguration:(UIEditMenuConfiguration *)configuration suggestedActions:(NSArray<UIMenuElement *> *)suggestedActions
+{
+    NSMutableArray<UIAction *> *childrenList = [[NSMutableArray alloc] init];
+    /*
+    NSMutableArray *menuAction1 = [[NSMutableArray alloc] init];
+    UIAction *action1 = [UIAction actionWithTitle:@"AQ" image:[UIImage imageNamed:@"08-chat-20"] identifier:nil  handler:^(__kindof UIAction * _Nonnull action) {
+        // Nothing currently
+    }];
+    [children addObject:action1];
+    UIAction *action2 = [UIAction actionWithTitle:@"Favori" image:[UIImage imageNamed:@"StarFilled-20"] identifier:nil  handler:^(__kindof UIAction * _Nonnull action) {
+        // Nothing currently
+    }];
+    [children addObject:action2];
+    UIAction *action3 = [UIAction actionWithTitle:@"Action1" image:[UIImage imageNamed:@"08-chat-20"] identifier:nil  handler:^(__kindof UIAction * _Nonnull action) {
+        // Nothing currently
+    }];
+    [children addObject:action3];*/
+
+    for (id tmpAction in self.arrayAction) {
+        NSLog(@"%@", [tmpAction objectForKey:@"code"]);
+        
+        if ([tmpAction objectForKey:@"image"] != nil) {
+            UIImage* imgMenuItem = (UIImage*) [tmpAction valueForKey:@"image"];
+            UIAction *action = [UIAction actionWithTitle:@"" image:imgMenuItem identifier:nil  handler:^(__kindof UIAction * _Nonnull action) {
+                [self performSelectorOnMainThread:NSSelectorFromString([tmpAction objectForKey:@"code"]) withObject:nil waitUntilDone:NO];
+            }];
+            [childrenList addObject:action];
+        }
+    }
+    return [UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDestructive children:childrenList];
+}
+
+
 //-(void) showMenuCon:(NSNumber *)curMsgN andPos:(NSNumber *)posN {
 -(void) showMenuCon:(NSArray*) arguments {
     NSNumber* curMsgN = [arguments objectAtIndex:0];
     NSNumber* posN = [arguments objectAtIndex:1];
     BOOL bClickAvatar = [[arguments objectAtIndex:2] boolValue];
-	[self.arrayAction removeAllObjects];
-	
-	int curMsg = [curMsgN intValue];
-	int ypos = [posN intValue];
-	
-    
+    [self.arrayAction removeAllObjects];
+
+    int curMsg = [curMsgN intValue];
     NSString *answString = nil;
-    
-    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad)
-    {
+
+    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
         answString = @"Répondre";
     }
-    else
-    {
+    else {
         answString = @"Rép.";
     }
-    
-    UIImage *menuImgBan = [UIImage imageNamed:@"ThorHammer-20"];
-    if ([[BlackList shared] isBL:[[arrayData objectAtIndex:curMsg] name]]) {
-        menuImgBan = [UIImage imageNamed:@"ThorHammerFilled-20"];
+    NSString* sSuffix = @"";
+    if ([[ThemeManager sharedManager] theme] == ThemeLight) {
+        sSuffix = @"-Inv";
     }
-    UIImage *menuImgWL = [UIImage imageNamed:@"Heart-20"];
 
-    UIImage *menuImgEdit = [UIImage imageNamed:@"EditColumnFilled-20"];
-    UIImage *menuImgProfil = [UIImage imageNamed:@"ContactCardFilled-20"];
-    UIImage *menuImgQuote = [UIImage imageNamed:@"ReplyArrowFilled-20"];
-    UIImage *menuImgMP = [UIImage imageNamed:@"MessageFilled-20"];
-    UIImage *menuImgFav = [UIImage imageNamed:@"StarFilled-20"];
 
-    //UIImage *menuImgMultiQuoteChecked = [UIImage imageNamed:@"QuoteFilled-20"];
-    //UIImage *menuImgMultiQuoteUnchecked = [UIImage imageNamed:@"Quote-20"];
-
-    UIImage *menuImgMultiQuoteChecked = [UIImage imageNamed:@"ReplyAllArrowFilled-20"];
-    UIImage *menuImgMultiQuoteUnchecked = [UIImage imageNamed:@"ReplyAllArrow-20"];
-
-    UIImage *menuImgDelete = [UIImage imageNamed:@"DeleteColumnFilled-20"];
-    UIImage *menuImgAlerte = [UIImage imageNamed:@"HighPriorityFilled-20"];
-    UIImage *menuImgAQ = [UIImage imageNamed:@"08-chat-20"];
-    UIImage *menuImgBookmark = [UIImage imageNamed:@"08-pin-20"];
+    UIImage *menuImgBan = [UIImage imageNamed:[NSString stringWithFormat:@"ThorHammer-20%@", sSuffix]];
+    if ([[BlackList shared] isBL:[[arrayData objectAtIndex:curMsg] name]]) {
+        menuImgBan = [UIImage imageNamed:[NSString stringWithFormat:@"ThorHammerFilled-20%@", sSuffix]];
+    }
+    UIImage *menuImgFav = [UIImage imageNamed:[NSString stringWithFormat:@"StarFilled-20%@", sSuffix]];
+    UIImage *menuImgWL = [UIImage imageNamed:[NSString stringWithFormat:@"Heart-20%@", sSuffix]];
+    UIImage *menuImgEdit = [UIImage imageNamed:[NSString stringWithFormat:@"EditColumnFilled-20%@", sSuffix]];
+    UIImage *menuImgProfil = [UIImage imageNamed:[NSString stringWithFormat:@"ContactCardFilled-20%@", sSuffix]];
+    UIImage *menuImgQuote = [UIImage imageNamed:[NSString stringWithFormat:@"ReplyArrowFilled-20%@", sSuffix]];
+    UIImage *menuImgMP = [UIImage imageNamed:[NSString stringWithFormat:@"MessageFilled-20%@", sSuffix]];
+    UIImage *menuImgLink = [UIImage imageNamed:[NSString stringWithFormat:@"LinkFilled-20%@", sSuffix]];
+    UIImage *menuImgMultiQuoteChecked = [UIImage imageNamed:[NSString stringWithFormat:@"ReplyAllArrowFilled-20%@", sSuffix]];
+    UIImage *menuImgMultiQuoteUnchecked = [UIImage imageNamed:[NSString stringWithFormat:@"ReplyAllArrow-20%@", sSuffix]];
+    UIImage *menuImgDelete = [UIImage imageNamed:[NSString stringWithFormat:@"DeleteColumnFilled-20%@", sSuffix]];
+    UIImage *menuImgAlerte = [UIImage imageNamed:[NSString stringWithFormat:@"HighPriorityFilled-20%@", sSuffix]];
+    UIImage *menuImgAQ = [UIImage imageNamed:[NSString stringWithFormat:@"08-chat-20%@", sSuffix]];
+    UIImage *menuImgBookmark = [UIImage imageNamed:[NSString stringWithFormat:@"08-pin-20%@", sSuffix]];
+    
     if (!bClickAvatar) {
-        if([[arrayData objectAtIndex:curMsg] urlEdit]){
+        if([[arrayData objectAtIndex:curMsg] urlEdit]) {
             //NSLog(@"urlEdit");
             [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Editer", @"EditMessage", menuImgEdit, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
-            
+
             if (curMsg) { //Pas de suppression du premier message d'un topic (curMsg = 0);
                 [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Supprimer", @"actionSupprimer", menuImgDelete, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
             }
@@ -2335,36 +2369,36 @@
                 [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:answString, @"QuoteMessage", menuImgQuote, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
             }
         }
-
+     
         //"Citer ☑"@"Citer ☒"@"Citer ☐"
         if([[arrayData objectAtIndex:curMsg] quoteJS] && self.navigationItem.rightBarButtonItem.enabled) {
             NSString *components = [[[arrayData objectAtIndex:curMsg] quoteJS] substringFromIndex:7];
             components = [components stringByReplacingOccurrencesOfString:@"); return false;" withString:@""];
             components = [components stringByReplacingOccurrencesOfString:@"'" withString:@""];
-            
             NSArray *quoteComponents = [components componentsSeparatedByString:@","];
-            
+
             NSString *nameCookie = [NSString stringWithFormat:@"quotes%@-%@-%@", [quoteComponents objectAtIndex:0], [quoteComponents objectAtIndex:1], [quoteComponents objectAtIndex:2]];
             NSString *quotes = [self LireCookie:nameCookie];
-            
+
             if ([quotes rangeOfString:[NSString stringWithFormat:@"|%@", [quoteComponents objectAtIndex:3]]].location == NSNotFound) {
                 [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Citer ☐", @"actionCiter", menuImgMultiQuoteUnchecked, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
-                
             }
             else {
                 [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Citer ☑", @"actionCiter", menuImgMultiQuoteChecked, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
             }
         }
-
+     
         if ([self canBeFavorite]) {
             //NSLog(@"isRedFlagged ★");
             [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Favoris", @"actionFavoris", menuImgFav, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
         }
-        
+         
+        [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Favoris", @"actionLink", menuImgLink, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
+
         if(![[arrayData objectAtIndex:curMsg] urlEdit]){
             if([[arrayData objectAtIndex:curMsg] urlAlert]){
                 [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Alerter", @"actionAlerter", menuImgAlerte, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
-            }else{
+            } else {
                 [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Alerter", @"actionAlerterAnon", menuImgAlerte, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
             }
         }
@@ -2376,64 +2410,80 @@
             if([[arrayData objectAtIndex:curMsg] MPUrl]){
                 [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"MP", @"actionMessage", menuImgMP, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
             }
-            
             [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Blacklist", @"actionBL", menuImgBan, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
             [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Whitelist", @"actionWL", menuImgWL, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
         }
     }
-    
+     
     if (!bClickAvatar) {
         // AQ (sauf dans les MPs)
         if (![self.arrayInputData[@"cat"] isEqualToString: @"prive"]) {
             [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"AQ", @"actionAQ", menuImgAQ, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
         }
-        
+
         // Bookmark (sauf dans les MPs) et MPStorage doit être actif
         if ([[NSUserDefaults standardUserDefaults] boolForKey:@"mpstorage_active"] && ![self.arrayInputData[@"cat"] isEqualToString: @"prive"]) {
             [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Bookmark", @"actionBookmark", menuImgBookmark, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
         }
     }
+     
+    self.curPostID = curMsg;
     
-	self.curPostID = curMsg;
-	
-	UIMenuController *menuController = [UIMenuController sharedMenuController];
-	NSMutableArray *menuAction = [[NSMutableArray alloc] init];
-    
-	for (id tmpAction in self.arrayAction) {
-		NSLog(@"%@", [tmpAction objectForKey:@"code"]);
-		
-        if ([tmpAction objectForKey:@"image"] != nil) {
-            UIMenuItem *tmpMenuItem2 = [[UIMenuItem alloc] initWithTitle:[tmpAction valueForKey:@"title"] action:NSSelectorFromString([tmpAction objectForKey:@"code"]) image:(UIImage *)[tmpAction objectForKey:@"image"]];
-            //[tmpMenuItem2 setTitle:@"Rien du tout"];
-            [menuAction addObject:tmpMenuItem2];
-        }
-        else {
-            UIMenuItem *tmpMenuItem = [[UIMenuItem alloc] initWithTitle:[tmpAction valueForKey:@"title"] action:NSSelectorFromString([tmpAction objectForKey:@"code"])];
-            //[tmpMenuItem setTitle:@"Rien du tout2"];
-            [menuAction addObject:tmpMenuItem];
-        }
-
-	}	
-	[menuController setMenuItems:menuAction];
-
+    int ypos = [posN intValue];
     if (ypos < 40) {
-		ypos +=44;
-		[menuController setArrowDirection:UIMenuControllerArrowUp];
-	}
-	else {
-		[menuController setArrowDirection:UIMenuControllerArrowDown];
-	}
+        ypos +=44;
+    }
+
     int xpos = 38;
     if (!bClickAvatar) {
         CGRect screenRect = [[UIScreen mainScreen] bounds];
         CGFloat screenWidth = screenRect.size.width;
         xpos = screenWidth - 15;
     }
-	CGRect selectionRect = CGRectMake(xpos, ypos, 0, 0);
-	
-	[self.view setNeedsDisplayInRect:selectionRect];
-	[menuController setTargetRect:selectionRect inView:self.view];
-	[menuController setMenuVisible:YES animated:YES];
+    
+    if (@available(iOS 16.0, *)) {
+        UIEditMenuConfiguration* menuConfiguration = [UIEditMenuConfiguration configurationWithIdentifier:nil sourcePoint:CGPointMake(xpos, ypos)];
+        [((UIEditMenuInteraction*)webviewInteraction) presentEditMenuWithConfiguration:menuConfiguration];
+        if (ypos < 40) {
+            menuConfiguration.preferredArrowDirection = UIEditMenuArrowDirectionUp;
+        }
+        else {
+            menuConfiguration.preferredArrowDirection = UIEditMenuArrowDirectionDown;
+        }
+    }
+    else {
+        UIMenuController *menuController = [UIMenuController sharedMenuController];
+        NSMutableArray *menuAction = [[NSMutableArray alloc] init];
+        
+        for (id tmpAction in self.arrayAction) {
+            NSLog(@"%@", [tmpAction objectForKey:@"code"]);
+        
+            if ([tmpAction objectForKey:@"image"] != nil) {
+                UIImage* img = (UIImage *)[tmpAction objectForKey:@"image"];
+                UIMenuItem *tmpMenuItem2 = [[UIMenuItem alloc] initWithTitle:[tmpAction valueForKey:@"title"] action:NSSelectorFromString([tmpAction objectForKey:@"code"]) image:img];
+                //[tmpMenuItem2 setTitle:@"Rien du tout"];
+                [menuAction addObject:tmpMenuItem2];
+            }
+            else {
+                UIMenuItem *tmpMenuItem = [[UIMenuItem alloc] initWithTitle:[tmpAction valueForKey:@"title"] action:NSSelectorFromString([tmpAction objectForKey:@"code"])];
+                //[tmpMenuItem setTitle:@"Rien du tout2"];
+                [menuAction addObject:tmpMenuItem];
+            }
+        }
+        
+        if (ypos < 40) {
+            [menuController setArrowDirection:UIMenuControllerArrowUp];
+        }
+        else {
+            [menuController setArrowDirection:UIMenuControllerArrowDown];
+        }
+
+        [menuController setMenuItems:menuAction];
+        CGRect selectionRect = CGRectMake(xpos, ypos, 0, 0);
+        [self.view setNeedsDisplayInRect:selectionRect];
+        [menuController setTargetRect:selectionRect inView:self.view];
+        [menuController setMenuVisible:YES animated:YES];
+    }
 }
 
 #pragma mark -
@@ -2764,17 +2814,25 @@
 
 -(void)actionLink:(NSNumber *)curMsgN {
     int curMsg = [curMsgN intValue];
-    
-    //NSLog("actionLink ID = %@", [[arrayData objectAtIndex:curMsg] postID]);
     NSLog("actionLink URL = %@%@#%@", [k ForumURL], self.currentUrl, [(LinkItem*)[arrayData objectAtIndex:curMsg] postID]);
     
-    
-    //Topic *tmpTopic = [[[self.arrayData objectAtIndex:[indexPath section]] topics] objectAtIndex:[indexPath row]];
-    
+    // New way: present share sheet
+    NSArray* dataToShare = @[[NSString stringWithFormat:@"%@%@#%@", [k RealForumURL], self.currentUrl, [(LinkItem*)[arrayData objectAtIndex:curMsg] postID]]];
+    UIActivityViewController* activityViewController =[[UIActivityViewController alloc] initWithActivityItems:dataToShare applicationActivities:nil];
+    activityViewController.excludedActivityTypes = @[UIActivityTypeAirDrop];
+    if (activityViewController == nil){
+        return;
+    }
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self presentViewController:activityViewController animated:YES completion:^{}];
+    });
+     
+    /* Old way: copy only to clipboard */
+    /*
     UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
     pasteboard.string = [NSString stringWithFormat:@"%@%@#%@", [k RealForumURL], self.currentUrl, [(LinkItem*)[arrayData objectAtIndex:curMsg] postID]];
         
-    [HFRAlertView DisplayAlertViewWithTitle:@"Lien copié dans le presse-papiers" forDuration:(long)1];
+    [HFRAlertView DisplayAlertViewWithTitle:@"Lien copié dans le presse-papiers" forDuration:(long)1];*/
 }
 
 -(void) actionAlerter:(NSNumber *)curMsgN {
@@ -3182,31 +3240,10 @@
     // Relinquish ownership any cached data, images, etc that aren't in use.
 }
 
-- (void)viewDidUnload {
-	NSLog(@"viewDidUnload Messages Table View");
-	
-    // Relinquish ownership of anything that can be recreated in viewDidLoad or on demand.
-    // For example: self.myOutlet = nil;
-	
-	self.loadingView = nil;
-    self.errorLabelView = nil;
-    
-	[self.messagesWebView stopLoading];
-	self.messagesWebView = nil;
-	[UIApplication sharedApplication].networkActivityIndicatorVisible = NO;	
-
-    [self setSearchFromFP:nil];
-    [self setSearchFilter:nil];
-	[super viewDidUnload];
-	
-	
-}
 
 - (void)dealloc {
 	NSLog(@"dealloc Messages Table View");
-	
-	[self viewDidUnload];
-	
+		
 	[[NSNotificationCenter defaultCenter] removeObserver:self];
     [[NSNotificationCenter defaultCenter] removeObserver:self name:UIMenuControllerDidHideMenuNotification object:nil];
     [[NSNotificationCenter defaultCenter] removeObserver:self name:@"VisibilityChanged" object:nil];
