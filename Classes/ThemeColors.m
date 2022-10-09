@@ -378,6 +378,26 @@
     return [self loveColor:[ThemeManager currentTheme]];
 }
 
++ (UIColor *)loveLightColorNoAlpha {
+    CGFloat h, s, b, a;
+    UIColor *c;
+    switch ([ThemeManager currentTheme]) {
+        case ThemeLight:
+            c = [ThemeColors getUserColor:@"theme_day_color_love"];
+            [c getHue:&h saturation:&s brightness:&b alpha:&a];
+            c = [UIColor colorWithHue:h saturation:0.2 brightness:1.0 alpha:1.0];
+            break;
+
+        case ThemeDark:
+            c = [ThemeColors getUserColor:@"theme_night_color_love"];
+            [c getHue:&h saturation:&s brightness:&b alpha:&a];
+            c = [UIColor colorWithHue:h saturation:1.0 brightness:0.3 alpha:1.0];
+            break;
+
+    }
+    return c;
+}
+
 // Tint color avec transparence 0.07/1
 + (UIColor *)messageMeQuotedBackgroundColor:(Theme)theme{
     CGFloat r, g, b, alpha;
@@ -622,6 +642,26 @@
     }
     [c getHue:&h saturation:&s brightness:&b alpha:&a];
     return [UIColor colorWithHue:h saturation:0.1 brightness:1.0 alpha:1.0];;
+}
+
++ (UIColor *)tintLightColorNoAlpha {
+    CGFloat h, s, b, a;
+    UIColor *c;
+    switch ([ThemeManager currentTheme]) {
+        case ThemeLight:
+            c = [ThemeColors getUserColor:@"theme_day_color_action"];
+            [c getHue:&h saturation:&s brightness:&b alpha:&a];
+            c = [UIColor colorWithHue:h saturation:0.2 brightness:1.0 alpha:1.0];
+            break;
+
+        case ThemeDark:
+            c = [ThemeColors getUserColor:@"theme_night_color_action"];
+            [c getHue:&h saturation:&s brightness:&b alpha:&a];
+            c = [UIColor colorWithHue:h saturation:1.0 brightness:0.3 alpha:1.0];
+            break;
+
+    }
+    return c;
 }
 
 + (UIColor *)tintWhiteColor:(Theme)theme{
