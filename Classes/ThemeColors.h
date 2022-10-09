@@ -70,9 +70,11 @@
 + (UIColor *)tintColor;
 + (UIColor *)tintColorWithAlpha:(CGFloat)newAlpha;
 + (UIColor *)tintLightColor;
++ (UIColor *)tintLightColorNoAlpha;
 + (UIColor *)tintWhiteColor:(Theme)theme;
 + (UIColor *)tintColorDisabled:(Theme)theme;
 + (UIColor *)loveColor;
++ (UIColor *)loveLightColorNoAlpha;
 + (UIColor *)loveColor:(Theme)theme;
 + (UIColor *)overlayColor:(Theme)theme;
 + (UIColor *)toolbarColor:(Theme)theme;
