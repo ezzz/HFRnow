@@ -147,11 +147,12 @@
         NSString* sIcon = @"";
         if ([[(Topic *)[arrayData objectAtIndex:indexPath.row] aAuthorOrInter] containsString:@"multiples"]) {
             [cell.msgLabel setText:@""];
-            [cell.msgLabel setFont:[UIFont systemFontOfSize:11.0]];
+            [cell.msgLabel setFont:[UIFont systemFontOfSize:12.0]];
             [cell.imgGroup setHidden:NO];
         }
         else {
             [cell.msgLabel setText:[NSString stringWithFormat:@"@%@", [(Topic *)[arrayData objectAtIndex:indexPath.row] aAuthorOrInter]]];
+            [cell.msgLabel setFont:[UIFont systemFontOfSize:12.0]];
             [cell.imgGroup setHidden:YES];
         }
     }

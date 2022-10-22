@@ -10,4 +10,7 @@
 
 @interface HFRTextView : UITextView <UIAlertViewDelegate>
 
+- (UIMenu *)menuForHFRTextView:(UITextView *)textView editMenuForTextInRange:(NSRange)range suggestedActions:(NSArray<UIMenuElement *> *)suggestedActions;
+- (void)insertBBCode:(NSString *)code;
+
 @end

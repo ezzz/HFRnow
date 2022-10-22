@@ -503,14 +503,14 @@
 	}
 
 	headerView.frame = CGRectMake(headerView.frame.origin.x, originY * -1.0f, headerView.frame.size.width, originY);
-	[self.textView addSubview:headerView];
-    textView.tag = 3;        
+	[self.textViewPostContent addSubview:headerView];
+    self.textViewPostContent.tag = 3;
 
 	
 
 	self.offsetY = originY * -1.0f;
-	self.textView.contentInset = UIEdgeInsetsMake(originY, 0.0f, 0.0f, 0.0f);
-	self.textView.contentOffset = CGPointMake(0.0f, self.offsetY);
+	self.textViewPostContent.contentInset = UIEdgeInsetsMake(originY, 0.0f, 0.0f, 0.0f);
+	self.textViewPostContent.contentOffset = CGPointMake(0.0f, self.offsetY);
 	//--- EDITOR
 	
 	//-----
@@ -598,10 +598,10 @@
     }
     //NSLog(@"txtTWB %@", txtTW);
     
-	[self.textView setText:txtTW];
+	[self.textViewPostContent setText:txtTW];
 	//textView.contentOffset = CGPointMake(0, 0);
 
-	[self textViewDidChange:self.textView];
+	[self textViewDidChange:self.textViewPostContent];
 	
 	//NSLog(@"self.formSubmit %@", self.formSubmit);
 
@@ -707,8 +707,8 @@
 
 -(void)showPicker:(id)sender{
 	
-    [textFieldTitle resignFirstResponder];
-    [textView resignFirstResponder];
+    [self.textFieldTitle resignFirstResponder];
+    [self.textViewPostContent resignFirstResponder];
     [textFieldSmileys resignFirstResponder];
     
     //NSLog(@"TT %@", [[pickerViewArray objectAtIndex:[myPickerView selectedRowInComponent:0]] aTitle]);

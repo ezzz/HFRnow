@@ -20,7 +20,7 @@
     id <AddMessageViewControllerDelegate> __weak delegate;
     
     //bb
-    HFRTextView *textView;
+    HFRTextView *textViewPostContent;
     
     NSMutableDictionary *arrayInputData;
     NSString *formSubmit;
@@ -43,13 +43,7 @@
     NSMutableArray *usedSearchSortedArray;
     
     NSString *smileyCustom;
-    
-    //HFR REHOST
-
-// TODO: delete    UITableView *rehostTableView;
-// TODO: delete     NSMutableArray *rehostImagesArray;
-// TODO: delete     NSMutableArray* rehostImagesSortedArray;
-    
+        
     BOOL haveTitle;
     UITextField *textFieldTitle;
     
@@ -84,7 +78,7 @@
 @property (strong, nonatomic) ASIHTTPRequest *requestSmile;
 
 //bb
-@property (nonatomic, strong) IBOutlet UITextView *textView;
+@property (nonatomic, strong) IBOutlet UITextView *textViewPostContent;
 @property BOOL haveCategory;
 @property BOOL haveTitle;
 @property BOOL haveTo;
