@@ -990,7 +990,7 @@ static CGFloat fCellImageSize = 1;
     self.bActivateSmileySearchTable = NO;
     [self changeDisplayMode:DisplayModeEnumSmileysSearch animate:NO];
     if (self.bModeFullScreen == NO) {
-        [self.addMessageVC.textView becomeFirstResponder];
+        [self.addMessageVC.textViewPostContent becomeFirstResponder];
     }
 }
 
@@ -1073,7 +1073,7 @@ static CGFloat fCellImageSize = 1;
         [self changeDisplayMode:DisplayModeEnumSmileysDefault animate:NO];
         [self.addMessageVC updateExpandCompressSmiley];
         if (bSetFirstResponder) {
-            [self.addMessageVC.textView becomeFirstResponder];
+            [self.addMessageVC.textViewPostContent becomeFirstResponder];
         }
     }
 }
@@ -1097,7 +1097,7 @@ static CGFloat fCellImageSize = 1;
         [self changeDisplayMode:DisplayModeEnumSmileysSearch animate:NO];
         [self.addMessageVC updateExpandCompressSmiley];
         if (bSetFirstResponder) {
-            [self.addMessageVC.textView becomeFirstResponder];
+            [self.addMessageVC.textViewPostContent becomeFirstResponder];
         }
     }
 }
@@ -1120,7 +1120,7 @@ static CGFloat fCellImageSize = 1;
         [self changeDisplayMode:DisplayModeEnumSmileysFavorites animate:NO];
         [self.addMessageVC updateExpandCompressSmiley];
         if (bSetFirstResponder) {
-            [self.addMessageVC.textView becomeFirstResponder];
+            [self.addMessageVC.textViewPostContent becomeFirstResponder];
         }
     }
 }

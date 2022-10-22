@@ -404,36 +404,15 @@ NSString *const PLACEHOLDER = @"Attention : le message que vous écrivez ici ser
     // Dispose of any resources that can be recreated.
 }
 
-- (void)viewDidUnload {
-    self.loadingView = nil;
-    
-    self.textView.delegate = nil;
-    self.textView = nil;
-    
-    self.accessoryView = nil;
-    
-    [UIApplication sharedApplication].networkActivityIndicatorVisible = NO;
-    
-    [[NSNotificationCenter defaultCenter] removeObserver:self name:UIKeyboardWillShowNotification object:nil];
-    [[NSNotificationCenter defaultCenter] removeObserver:self name:UIKeyboardWillHideNotification object:nil];
-    
-    [super viewDidUnload];
-}
-
 - (void)dealloc {
     //NSLog(@"dealloc ADD");
     
     [self.textView resignFirstResponder];
-    [self viewDidUnload];
     
     [request setDelegate:nil];
     [request cancel];
     
     self.delegate = nil;
-    
-    
-    
-        
 }
 
 @end

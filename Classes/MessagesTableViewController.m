@@ -729,7 +729,8 @@
         }
     }];
 }
-            
+
+/*
 - (void)editMenuHidden:(id)sender {
     NSLog(@"editMenuHidden %@ NOMBRE %lu", sender, (long unsigned)[UIMenuController sharedMenuController].menuItems.count);
     [self.messagesWebView evaluateJavaScript:@"window.getSelection().toString();" completionHandler:^(id result, NSError*  error) {
@@ -750,6 +751,25 @@
             }
         }
     }];
+}*/
+
+- (void)editMenuHidden:(id)sender {
+    NSLog(@"editMenuHidden %@ NOMBRE %lu", sender, (long unsigned)[UIMenuController sharedMenuController].menuItems.count);
+    
+    NSString* sSuffix = @"";
+    if ([[ThemeManager sharedManager] theme] == ThemeLight) {
+        sSuffix = @"-Inv";
+    }
+    UIImage *menuImgQuote = [UIImage imageNamed:[NSString stringWithFormat:@"ReplyArrowFilled-20%@", sSuffix]];
+    UIImage *menuImgQuoteB = [UIImage imageNamed:[NSString stringWithFormat:@"BoldFilled-18%@", sSuffix]];
+    
+    UIMenuItem *textQuotinuum = [[UIMenuItem alloc] initWithTitle:@"Citerexclu" action:@selector(textQuote:) image:menuImgQuote];
+    UIMenuItem *textQuotinuumBis = [[UIMenuItem alloc] initWithTitle:@"Citergras" action:@selector(textQuoteBold:) image:menuImgQuoteB];
+
+    [self.arrayAction removeAllObjects];
+    
+    UIMenuController *menuController = [UIMenuController sharedMenuController];
+    [menuController setMenuItems:[NSArray arrayWithObjects:textQuotinuum, textQuotinuumBis, nil]];
 }
 
 -(void)forceButtonMenu {
@@ -2273,6 +2293,8 @@
     return [NSString stringWithFormat: @"%d", iCount];
 }
 
+
+
 - (UIMenu *)editMenuInteraction:(UIEditMenuInteraction *)interaction menuForConfiguration:(UIEditMenuConfiguration *)configuration suggestedActions:(NSArray<UIMenuElement *> *)suggestedActions
 {
     NSMutableArray<UIAction *> *childrenList = [[NSMutableArray alloc] init];
@@ -3196,7 +3218,7 @@
                         sBorderHeader];
 
     [self.messagesWebView evaluateJavaScript:script completionHandler:nil];
-    
+    [self editMenuHidden:nil];
     return @"";
 }
 

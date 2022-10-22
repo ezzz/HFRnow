@@ -29,13 +29,13 @@
     [self.segmentControler     setEnabled:NO];
     [self.segmentControlerPage setEnabled:NO];
     [self.segmentControlerPage setEnabled:NO];
-    [self.textView setEditable:NO];
-    [self.textView setAlpha:0.6];
-    if ([self.textView respondsToSelector:@selector(setSelectable:)]) {
-        [self.textView setSelectable:NO];
+    [self.textViewPostContent setEditable:NO];
+    [self.textViewPostContent setAlpha:0.6];
+    if ([self.textViewPostContent respondsToSelector:@selector(setSelectable:)]) {
+        [self.textViewPostContent setSelectable:NO];
     }
     else {
-        [self.textView setUserInteractionEnabled:NO];
+        [self.textViewPostContent setUserInteractionEnabled:NO];
     }
 
     
