@@ -403,7 +403,7 @@
             //AVATAR BY NAME v2
             
             //Key for pseudo
-            const char *str = [linkItem.name UTF8String];
+            const char *str = [[linkItem.name lowercaseString] UTF8String];
             unsigned char r[CC_MD5_DIGEST_LENGTH];
             CC_MD5(str, strlen(str), r);
             NSString *filename = [NSString stringWithFormat:@"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
@@ -413,6 +413,8 @@
             BOOL bLoadAvatar = NO;
             if ([fileManager fileExistsAtPath:key]) // on check si on a deja l'avatar pour cette key
             {
+                NSLog(@"PARSEOPE for %@/%s (%ld): keyPathOfImage:%@", linkItem.name, str, strlen(str), key);
+
                 linkItem.imageUI = key;
                 NSDictionary* attrs = [fileManager attributesOfItemAtPath:key error:nil];
                 if (attrs != nil) {

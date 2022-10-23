@@ -191,6 +191,11 @@
 		15AC35802903E2DA00CCD6FC /* CopyFilled-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15AC35662903E2DA00CCD6FC /* CopyFilled-20-Inv@2x.png */; };
 		15AC35812903E2DA00CCD6FC /* CutFilled-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15AC35672903E2DA00CCD6FC /* CutFilled-20-Inv@2x.png */; };
 		15AC35822903E2DA00CCD6FC /* QuoteEFilled-20-Inv.png in Resources */ = {isa = PBXBuildFile; fileRef = 15AC35682903E2DA00CCD6FC /* QuoteEFilled-20-Inv.png */; };
+		15AC3584290418DA00CCD6FC /* TopicMPCellView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 15AC3583290418DA00CCD6FC /* TopicMPCellView.xib */; };
+		15AC35872904332600CCD6FC /* TopicMPCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = 15AC35862904332600CCD6FC /* TopicMPCellView.m */; };
+		15AC35892904637400CCD6FC /* File in Resources */ = {isa = PBXBuildFile; fileRef = 15AC35882904637400CCD6FC /* File */; };
+		15AC358E2905261F00CCD6FC /* group_light.png in Resources */ = {isa = PBXBuildFile; fileRef = 15AC358C2905261F00CCD6FC /* group_light.png */; };
+		15AC358F2905261F00CCD6FC /* group_dark.png in Resources */ = {isa = PBXBuildFile; fileRef = 15AC358D2905261F00CCD6FC /* group_dark.png */; };
 		15AEF9FE223E9053005E6739 /* Icon-BLUE@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15AEF9FC223E9052005E6739 /* Icon-BLUE@3x.png */; };
 		15AEF9FF223E9053005E6739 /* Icon-BLUE@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15AEF9FD223E9053005E6739 /* Icon-BLUE@2x.png */; };
 		15AEFA02223E918F005E6739 /* Icon-WHITE@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15AEFA00223E918F005E6739 /* Icon-WHITE@3x.png */; };
@@ -1174,6 +1179,12 @@
 		15AC35662903E2DA00CCD6FC /* CopyFilled-20-Inv@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "CopyFilled-20-Inv@2x.png"; path = "SuperHFRplus/Assets/UI/Editor/CopyFilled-20-Inv@2x.png"; sourceTree = SOURCE_ROOT; };
 		15AC35672903E2DA00CCD6FC /* CutFilled-20-Inv@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "CutFilled-20-Inv@2x.png"; path = "SuperHFRplus/Assets/UI/Editor/CutFilled-20-Inv@2x.png"; sourceTree = SOURCE_ROOT; };
 		15AC35682903E2DA00CCD6FC /* QuoteEFilled-20-Inv.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "QuoteEFilled-20-Inv.png"; path = "SuperHFRplus/Assets/UI/Editor/QuoteEFilled-20-Inv.png"; sourceTree = SOURCE_ROOT; };
+		15AC3583290418DA00CCD6FC /* TopicMPCellView.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = TopicMPCellView.xib; sourceTree = "<group>"; };
+		15AC35852904330F00CCD6FC /* TopicMPCellView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TopicMPCellView.h; sourceTree = "<group>"; };
+		15AC35862904332600CCD6FC /* TopicMPCellView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TopicMPCellView.m; sourceTree = "<group>"; };
+		15AC35882904637400CCD6FC /* File */ = {isa = PBXFileReference; lastKnownFileType = text; path = File; sourceTree = "<group>"; };
+		15AC358C2905261F00CCD6FC /* group_light.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = group_light.png; sourceTree = "<group>"; };
+		15AC358D2905261F00CCD6FC /* group_dark.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = group_dark.png; sourceTree = "<group>"; };
 		15AEF9FC223E9052005E6739 /* Icon-BLUE@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-BLUE@3x.png"; sourceTree = "<group>"; };
 		15AEF9FD223E9053005E6739 /* Icon-BLUE@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-BLUE@2x.png"; sourceTree = "<group>"; };
 		15AEFA00223E918F005E6739 /* Icon-WHITE@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-WHITE@3x.png"; sourceTree = "<group>"; };
@@ -2199,6 +2210,9 @@
 				CA20FA3212F15CA700EC1771 /* TopicSearchCellView.h */,
 				CA20FA3312F15CA700EC1771 /* TopicSearchCellView.m */,
 				CA20FA3412F15CA700EC1771 /* TopicSearchCellView.xib */,
+				15AC3583290418DA00CCD6FC /* TopicMPCellView.xib */,
+				15AC35852904330F00CCD6FC /* TopicMPCellView.h */,
+				15AC35862904332600CCD6FC /* TopicMPCellView.m */,
 			);
 			name = TopicsCell;
 			sourceTree = "<group>";
@@ -2327,6 +2341,7 @@
 		29B97314FDCFA39411CA2CEA /* CustomTemplate */ = {
 			isa = PBXGroup;
 			children = (
+				15AC35882904637400CCD6FC /* File */,
 				15377559275A777F00790892 /* Empty.md */,
 				15A5F3B32708E55800DAE8FE /* Notes.md */,
 				15B5FC4A264FAB71006CBEF0 /* Cartfile */,
@@ -3018,6 +3033,8 @@
 		CA00C5A217C30C370067B457 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				15AC358D2905261F00CCD6FC /* group_dark.png */,
+				15AC358C2905261F00CCD6FC /* group_light.png */,
 				4CB132A91B9094BD0081B44D /* MenuItem */,
 				1537755A275A7A3300790892 /* noel_neige_big_red.png */,
 				15377551274D6CF500790892 /* noel00.png */,
@@ -3663,6 +3680,7 @@
 				4C0B8DB71BA4522900D329BA /* SourceCodeFilled-40.png in Resources */,
 				CA7C6FB9185EF50E00B348BA /* flagyellow.png in Resources */,
 				4CD6B8BA1B97AEF5007FC29E /* 6-Folder-32@2x.png in Resources */,
+				15AC35892904637400CCD6FC /* File in Resources */,
 				152395FC28DF015F00614F9D /* EditColumnFilled-20-Inv.png in Resources */,
 				4C19919D1FA9EC8E00A07A8A /* Icon-REDFACE-IPAD@1x.png in Resources */,
 				15377547274D6CE600790892 /* noel17.png in Resources */,
@@ -3679,6 +3697,7 @@
 				CAF5DB8E1936CD7B000B5215 /* 10-arrows-in.png in Resources */,
 				D8685927214D5E200054617C /* style-liste-oled.css in Resources */,
 				15AC35702903E2DA00CCD6FC /* StrikethroughFilled-20-Inv@2x.png in Resources */,
+				15AC358F2905261F00CCD6FC /* group_dark.png in Resources */,
 				CA7C6FBD185EF50E00B348BA /* tongue.gif in Resources */,
 				156246E02182310000F5B8DC /* arrowback.svg in Resources */,
 				4C0B8DAD1BA4522900D329BA /* Wi-FiLogoFilled-40.png in Resources */,
@@ -3875,6 +3894,7 @@
 				CA7C701A185EF50E00B348BA /* buttonnexthover.png in Resources */,
 				153D295C23043CB200000505 /* style-liste-light.css in Resources */,
 				CA7C701B185EF50E00B348BA /* 71-compass.png in Resources */,
+				15AC358E2905261F00CCD6FC /* group_light.png in Resources */,
 				D8DDF2AB1E58810A002F1484 /* ToolBarFastForward_on_tinted@2x.png in Resources */,
 				4C0B8D9D1BA4522900D329BA /* Settings3Filled-40.png in Resources */,
 				D8B4EDE521C184970042C392 /* snow11.png in Resources */,
@@ -4218,6 +4238,7 @@
 				4C9C2B8D1BAE801700511853 /* QuestionsFilled-25@2x.png in Resources */,
 				CA7C70A3185EF50E00B348BA /* 24.gif in Resources */,
 				156FBDE228F48F6A00CE345D /* BoldFilled-18-Inv.png in Resources */,
+				15AC3584290418DA00CCD6FC /* TopicMPCellView.xib in Resources */,
 				152395F428DF015F00614F9D /* DeleteColumnFilled-20-Inv.png in Resources */,
 				D8DDF2B71E58810A002F1484 /* ToolBarPrevious_on_tinted@2x.png in Resources */,
 				CA7C70A4185EF50E00B348BA /* arrowend.png in Resources */,
@@ -4311,6 +4332,7 @@
 				4C39036D1BCACEC200FD6F1F /* PSTGridLayoutRow.m in Sources */,
 				4C0B8DFD1BA455BF00D329BA /* InfoTableViewCell.m in Sources */,
 				CA7C70C1185EF50E00B348BA /* CreditsViewController.m in Sources */,
+				15AC35872904332600CCD6FC /* TopicMPCellView.m in Sources */,
 				D8835E8C1E5F13C70073398C /* SDWebImageDecoder.m in Sources */,
 				D8FEA7EB2245459C0096602D /* WEBPURLProtocol.m in Sources */,
 				D89AB2E11FB459F9007A4281 /* UIImpactFeedbackGenerator+UserDefaults.m in Sources */,

@@ -16,6 +16,10 @@
 #import "ThemeManager.h"
 #import "ThemeColors.h"
 #import "MPStorage.h"
+#import "TopicMPCellView.h"
+#import <CommonCrypto/CommonDigest.h>
+#import "UIImage+GIF.h"
+#import "BlackList.h"
 
 @implementation HFRMPViewController
 @synthesize reloadOnAppear, actionButton, reloadButton;
@@ -46,11 +50,16 @@
 // Implement viewDidLoad to do additional setup after loading the view, typically from a nib.
 - (void)viewDidLoad {
 	//NSLog(@"vdl MP");
-	
+
+    UINib *nibCellMP = [UINib nibWithNibName:@"TopicMPCellView" bundle:nil];
+    [self.topicsTableView registerNib:nibCellMP forCellReuseIdentifier:@"TopicMPCellID"];
+
+    
 	self.forumName = @"Messages";
 	self.forumBaseURL = @"/forum1.php?config=hfr.inc&cat=prive&page=1";
-		
+
     [super viewDidLoad];
+
 
     self.navigationItem.titleView = nil;
     //if([self isKindOfClass:[HFRMPViewController class]]) 
@@ -100,64 +109,93 @@
     [self showBarButton:kSync];
 }
 
-
-- (void)viewDidUnload {
-    [super viewDidUnload];
-    // Release any retained subviews of the main view.
-    // e.g. self.myOutlet = nil;
-}
-
-
-- (void)dealloc {
-    //NSLog(@"dealloc Forums Table View");
-    [self viewDidUnload];
-
-
-    [[NSNotificationCenter defaultCenter] removeObserver:self name:kLoginChangedNotification object:nil];
- 
-    
-}
-
-
-
-
 // Customize the appearance of table view cells.
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
-	TopicCellView *cell;
-	
-    if ((cell = (TopicCellView*)[super tableView:tableView cellForRowAtIndexPath:indexPath])) {
-		
-		if ([[(TopicCellView *)cell titleLabel] numberOfLines] > 0) {
-			[[(TopicCellView *)cell titleLabel] setNumberOfLines:0];
-			
-			CGRect frameTitle = [[(TopicCellView *)cell titleLabel] frame];
-			frameTitle.size.height -= 10; 
-			[[(TopicCellView *)cell titleLabel] setFrame:frameTitle];
-			
-			CGRect frameMsg = [[(TopicCellView *)cell msgLabel] frame];
-			frameMsg.origin.y -= 10; 
-			[[(TopicCellView *)cell msgLabel] setFrame:frameMsg];
-			
-			CGRect frameTime = [[(TopicCellView *)cell timeLabel] frame];
-			frameTime.origin.y -= 10;	
-			[[(TopicCellView *)cell timeLabel] setFrame:frameTime];
-		}
-		
-		//[[(TopicCellView *)cell titleLabel] ];
-        NSString* sIcon = @"";
-        if ([[(Topic *)[arrayData objectAtIndex:indexPath.row] aAuthorOrInter] containsString:@"multiples"]) {
-            [cell.msgLabel setText:@""];
-            [cell.msgLabel setFont:[UIFont systemFontOfSize:12.0]];
-            [cell.imgGroup setHidden:NO];
+	TopicMPCellView *cell = [tableView dequeueReusableCellWithIdentifier:@"TopicMPCellID"];
+    
+    // Content
+    TopicCellView *tmpCell = (TopicCellView*)[super tableView:tableView cellForRowAtIndexPath:indexPath];
+    cell.titleLabel.text = tmpCell.titleLabel.text;
+    cell.timeLabel.text = tmpCell.timeLabel.text;
+    
+    if ([[(Topic *)[arrayData objectAtIndex:indexPath.row] aAuthorOrInter] containsString:@"multiples"]) {
+        [cell.msgLabel setText:@"Interlocuteurs multiples"];
+        [cell.msgLabel setFont:[UIFont systemFontOfSize:12.0]];
+        cell.imgAvatar.image = [ThemeColors avatarGroup];
+    }
+    else {
+        NSString* sPseudo = [(Topic *)[arrayData objectAtIndex:indexPath.row] aAuthorOrInter];
+        [cell.msgLabel setText:[NSString stringWithFormat:@"%@", sPseudo]];
+        [cell.msgLabel setFont:[UIFont systemFontOfSize:12.0]];
+        UIImage* imgAvatarPseudo = [self getAvatarFromPseudo:sPseudo];
+        if (imgAvatarPseudo) {
+            cell.imgAvatar.image = imgAvatarPseudo;
+            cell.imgAvatar.contentMode = UIViewContentModeScaleAspectFill;
         }
-        else {
-            [cell.msgLabel setText:[NSString stringWithFormat:@"@%@", [(Topic *)[arrayData objectAtIndex:indexPath.row] aAuthorOrInter]]];
-            [cell.msgLabel setFont:[UIFont systemFontOfSize:12.0]];
-            [cell.imgGroup setHidden:YES];
+        else { // Default avatar
+            cell.imgAvatar.image = [ThemeColors avatar];
+        }
+        
+        cell.isPseudoInLoveList = NO;
+        if ([[BlackList shared] isWL:[sPseudo lowercaseString]]) {
+            cell.isPseudoInLoveList = YES;
         }
     }
-             
+    
+    Topic *aTopic = [arrayData objectAtIndex:indexPath.row];
+    cell.topicViewed = [aTopic isViewed];
+
+    // Style
+    UIFont *font1 = [UIFont boldSystemFontOfSize:13.0f];
+    if (cell.topicViewed) {
+        font1 = [UIFont systemFontOfSize:13.0f];
+    }
+    NSDictionary *arialDict = [NSDictionary dictionaryWithObject: font1 forKey:NSFontAttributeName];
+    NSMutableAttributedString *aAttrString1 = [[NSMutableAttributedString alloc] initWithString:[aTopic aTitle] attributes: arialDict];
+    UIFont *font2 = [UIFont fontWithName:@"fontello" size:15];
+    NSMutableAttributedString *finalString = [[NSMutableAttributedString alloc]initWithString:@""];
+    
+    if (aTopic.isClosed) {
+        UIColor *fontcC = [UIColor colorWithHex:@"#4A4A4A" alpha:1.0];
+        NSDictionary *arialDict2c = [NSDictionary dictionaryWithObjectsAndKeys:font2, NSFontAttributeName, fontcC, NSForegroundColorAttributeName, nil];
+        NSMutableAttributedString *aAttrString2C = [[NSMutableAttributedString alloc] initWithString:@" " attributes: arialDict2c];
+        [finalString appendAttributedString:aAttrString2C];
+    }
+    [finalString appendAttributedString:aAttrString1];
+    cell.titleLabel.attributedText = finalString;
+    
+    
+    
     return cell;
+}
+
+- (UIImage*)getAvatarFromPseudo:(NSString*)pseudo
+{
+    UIImage *image = nil;
+    
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
+    NSString *diskCachePath = [[[paths objectAtIndex:0] stringByAppendingPathComponent:@"cache"] stringByAppendingPathComponent:@"avatars"];
+
+    const char *str = [[pseudo lowercaseString] UTF8String];
+    if (str) {
+        unsigned char r[CC_MD5_DIGEST_LENGTH];
+        CC_MD5(str, strlen(str), r);
+        NSString *filename = [NSString stringWithFormat:@"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+                              r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9], r[10], r[11], r[12], r[13], r[14], r[15]];
+        
+        NSString *keyPathOfImage = [diskCachePath stringByAppendingPathComponent:filename];
+        NSLog(@"MP Avatar for (%@/%s) %ld : keyPathOfImage:%@", pseudo, str, strlen(str), keyPathOfImage);
+        BOOL bLoadAvatar = NO;
+        if ([fileManager fileExistsAtPath:keyPathOfImage]) // on check si on a deja l'avatar pour cette key
+        {
+            NSData *dataOfAvatar = [[NSData alloc] initWithContentsOfFile:keyPathOfImage];
+            if (dataOfAvatar) {
+                image = [UIImage sd_animatedGIFWithData:dataOfAvatar];
+            }
+        }
+    }
+    return image;
 }
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
@@ -358,7 +396,7 @@
 
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-	return 50;
+	return 65;
 }
 
 -(void)statusBarButton:(BARBTNTYPE)type enable:(bool)enable {

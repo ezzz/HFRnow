@@ -1531,83 +1531,41 @@
 	Topic *aTopic = [arrayData objectAtIndex:indexPath.row];
     cell.topicViewed = [aTopic isViewed];
 
-	/*
-	[(UILabel *)[cell.contentView viewWithTag:999] setText:[aTopic aTitle]];
-	
-	if (aTopic.aRepCount == 0) {
-		[(UILabel *)[cell.contentView viewWithTag:998] setText:[NSString stringWithFormat:@"%d message", (aTopic.aRepCount + 1)]];
-	}
-	else {
-		[(UILabel *)[cell.contentView viewWithTag:998] setText:[NSString stringWithFormat:@"%d messages", (aTopic.aRepCount + 1)]];
-	}
-	[(UILabel *)[cell.contentView viewWithTag:997] setText:[NSString stringWithFormat:@"%@ - %@", [aTopic aAuthorOfLastPost], [aTopic aDateOfLastPost]]];
-	*/
-	//NSLog(@"Cell Origin %f %f", cell.contentView.frame.origin.x, cell.contentView.frame.origin.y);
-	//NSLog(@"Cell Size %f %f", cell.contentView.frame.size.width, cell.contentView.frame.size.height);
-	
-
-    if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"7.0")) {
-        UIFont *font1 = [UIFont boldSystemFontOfSize:13.0f];
-        if ([aTopic isViewed]) {
-            font1 = [UIFont systemFontOfSize:13.0f];
-        }
-        NSDictionary *arialDict = [NSDictionary dictionaryWithObject: font1 forKey:NSFontAttributeName];
-        NSMutableAttributedString *aAttrString1 = [[NSMutableAttributedString alloc] initWithString:[aTopic aTitle] attributes: arialDict];
-        
-        UIFont *font2 = [UIFont fontWithName:@"fontello" size:15];
-
-        NSMutableAttributedString *finalString = [[NSMutableAttributedString alloc]initWithString:@""];
-        
-        if (aTopic.isSticky) {
-//            UIColor *fontsC = [UIColor colorWithRed:0.0 green:122.0/255.0 blue:1.0 alpha:1.0];
-            UIColor *fontsC = [UIColor colorWithHex:@"#e74c3c" alpha:1.0];
-            
-
-            NSDictionary *arialDict2S = [NSDictionary dictionaryWithObjectsAndKeys:font2, NSFontAttributeName, fontsC, NSForegroundColorAttributeName, nil];
-            NSMutableAttributedString *aAttrString2S = [[NSMutableAttributedString alloc] initWithString:@" " attributes: arialDict2S];
-            
-            [finalString appendAttributedString:aAttrString2S];
-            //NSLog(@"finalString2 %@", finalString);
-            
-        }
-        
-        if (aTopic.isClosed) {
-//            UIColor *fontcC = [UIColor orangeColor];
-            UIColor *fontcC = [UIColor colorWithHex:@"#4A4A4A" alpha:1.0];
-
-
-            NSDictionary *arialDict2c = [NSDictionary dictionaryWithObjectsAndKeys:font2, NSFontAttributeName, fontcC, NSForegroundColorAttributeName, nil];
-            NSMutableAttributedString *aAttrString2C = [[NSMutableAttributedString alloc] initWithString:@" " attributes: arialDict2c];
-            
-            [finalString appendAttributedString:aAttrString2C];
-            //NSLog(@"finalString1 %@", finalString);
-        }
-        
-        
-
-
-        
-        [finalString appendAttributedString:aAttrString1];
-        //NSLog(@"finalString3 %@", finalString);
-
-        
-        
-        cell.titleLabel.attributedText = finalString;
-        
-        
-//        [ setText:[aTopic aTitle]];
+    UIFont *font1 = [UIFont boldSystemFontOfSize:13.0f];
+    if ([aTopic isViewed]) {
+        font1 = [UIFont systemFontOfSize:13.0f];
     }
-    else {
-        [cell.titleLabel setText:[aTopic aTitle]];
+    NSDictionary *arialDict = [NSDictionary dictionaryWithObject: font1 forKey:NSFontAttributeName];
+    NSMutableAttributedString *aAttrString1 = [[NSMutableAttributedString alloc] initWithString:[aTopic aTitle] attributes: arialDict];
+    
+    UIFont *font2 = [UIFont fontWithName:@"fontello" size:15];
+
+    NSMutableAttributedString *finalString = [[NSMutableAttributedString alloc]initWithString:@""];
+    
+    if (aTopic.isSticky) {
+        UIColor *fontsC = [UIColor colorWithHex:@"#e74c3c" alpha:1.0];
+        NSDictionary *arialDict2S = [NSDictionary dictionaryWithObjectsAndKeys:font2, NSFontAttributeName, fontsC, NSForegroundColorAttributeName, nil];
+        NSMutableAttributedString *aAttrString2S = [[NSMutableAttributedString alloc] initWithString:@" " attributes: arialDict2S];
         
-        if ([aTopic isViewed]) {
-            [[cell titleLabel] setFont:[UIFont systemFontOfSize:13]];
-        }
-        else {
-            [[cell titleLabel] setFont:[UIFont boldSystemFontOfSize:13]];
-        }
+        [finalString appendAttributedString:aAttrString2S];
     }
     
+    if (aTopic.isClosed) {
+//            UIColor *fontcC = [UIColor orangeColor];
+        UIColor *fontcC = [UIColor colorWithHex:@"#4A4A4A" alpha:1.0];
+
+
+        NSDictionary *arialDict2c = [NSDictionary dictionaryWithObjectsAndKeys:font2, NSFontAttributeName, fontcC, NSForegroundColorAttributeName, nil];
+        NSMutableAttributedString *aAttrString2C = [[NSMutableAttributedString alloc] initWithString:@" " attributes: arialDict2c];
+        
+        [finalString appendAttributedString:aAttrString2C];
+        //NSLog(@"finalString1 %@", finalString);
+    }
+
+    [finalString appendAttributedString:aAttrString1];
+
+    cell.titleLabel.attributedText = finalString;
+
     NSString* sPoll = @"";
     if (aTopic.isPoll) {
         sPoll = @" \U00002263";
