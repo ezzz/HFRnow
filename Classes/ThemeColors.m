@@ -223,6 +223,16 @@
     }
 }
 
+// Theme clair: un peu plus clair que textColor
+// Thème sombre: un peu plus foncé que textColor
++ (UIColor *)textColor2 {
+    switch ([ThemeManager currentTheme]) {
+        case ThemeLight: return [UIColor colorWithRed:224/255.0 green:224/255.0 blue:224/255.0 alpha:1.0];
+        case ThemeDark:  return [UIColor colorWithRed:60.0/255.0 green:60.0/255.0 blue:60.0/255.0 alpha:1.0];
+        default:         return [UIColor colorWithRed:0 green:0 blue:0 alpha:1.0];
+    }
+}
+
 + (UIColor *)textColorPseudo:(Theme)theme{
     switch (theme) {
         case ThemeLight: return [UIColor colorWithRed:120/255.0 green:120/255.0 blue:120/255.0 alpha:1.0];
@@ -880,6 +890,28 @@
             return [UIImage imageNamed:@"avatar_male_gray_on_dark_48x48"];
         default:
             return [UIImage imageNamed:@"avatar_male_gray_on_dark_48x48"];
+    }
+}
+
++ (UIImage *)avatar {
+    switch ([ThemeManager currentTheme]) {
+        case ThemeLight:
+            return [UIImage imageNamed:@"avatar_male_gray_on_light_48x48"];
+        case ThemeDark:
+            return [UIImage imageNamed:@"avatar_male_gray_on_dark_48x48"];
+        default:
+            return [UIImage imageNamed:@"avatar_male_gray_on_dark_48x48"];
+    }
+}
+
++ (UIImage *)avatarGroup {
+    switch ([ThemeManager currentTheme]) {
+        case ThemeLight:
+            return [UIImage imageNamed:@"group_light"];
+        case ThemeDark:
+            return [UIImage imageNamed:@"group_dark"];
+        default:
+            return [UIImage imageNamed:@"group"];
     }
 }
 
