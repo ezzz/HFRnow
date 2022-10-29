@@ -2451,11 +2451,9 @@
         UIEditMenuConfiguration* menuConfiguration = [UIEditMenuConfiguration configurationWithIdentifier:nil sourcePoint:CGPointMake(xpos, ypos)];
         if (bMenuUp) {
             menuConfiguration.preferredArrowDirection = UIEditMenuArrowDirectionUp;
-            NSLog(@"Menu UPPPPP (%ld)", ypos);
         }
         else {
             menuConfiguration.preferredArrowDirection = UIEditMenuArrowDirectionDown;
-            NSLog(@"Menu down (%ld)", ypos);
         }
         [((UIEditMenuInteraction*)webviewInteraction) presentEditMenuWithConfiguration:menuConfiguration];
     }

@@ -167,7 +167,6 @@
 
     cell.isTopicViewedByReceiver = YES;
     if ([cell.titleLabel.text hasPrefix:@"[non lu]"]) {
-        NSLog(@"Title: %@ is NON LU", cell.titleLabel.text);
         cell.isTopicViewedByReceiver = NO;
     }
     
