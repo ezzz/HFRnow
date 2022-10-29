@@ -233,6 +233,7 @@
 
     // Correct security issue on href for quotations
     myRawContent = [myRawContent stringByReplacingOccurrencesOfString:@"href=\"/forum2.php?config=hfr.inc" withString:@"href=\"https://forum.hardware.fr/forum2.php?config=hfr.inc"];
+    myRawContent = [myRawContent stringByReplacingOccurrencesOfString:@"<a href=\"/hfr/" withString:@"<a href=\"https://forum.hardware.fr/hfr/"];
 
     tempHTML = [tempHTML stringByReplacingOccurrencesOfString:@"%%MESSAGE_CONTENT%%" withString:myRawContent];
 

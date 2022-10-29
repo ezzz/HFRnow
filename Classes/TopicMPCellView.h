@@ -23,6 +23,7 @@
 @property (nonatomic, strong) IBOutlet UILabel *timeLabel;
 @property (strong, nonatomic) IBOutlet UIImageView *imgAvatar;
 @property BOOL topicViewed;
+@property BOOL isTopicViewedByReceiver;
 @property BOOL isPseudoInLoveList;
 
 @end

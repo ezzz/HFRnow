@@ -20,6 +20,7 @@
 @property (strong, nonatomic) IBOutlet UILabel *labelBadge;
 @property BOOL isSuperFavorite;
 @property BOOL isFavoriteDisabled;
+@property BOOL isFavoriteViewed;
 
 @end
     

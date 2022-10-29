@@ -205,10 +205,11 @@ div.masque {
     color:white; /* Dark : rgba(206, 206, 206, 1); */
 	float:left;
 	font-weight:bolder;
-	width:49%;
-	text-shadow: #555 0px 1px 1px;	
+    display: flex;
+    white-space: nowrap;
+	text-shadow: #555 0px 1px 1px;
 	height:19px;
-    margin-top: 10px !important;
+    margin-top: 6px !important;
 }
 
 .message .header .leftdate {
@@ -218,8 +219,9 @@ div.masque {
 	color:white; /*Dark rgba(206, 206, 206, 1);*/
 	float:right;
 	font-weight:bold;
-	width:26%;
-	text-shadow: #555 0px 1px 1px;	
+    display: flex;
+    white-space: nowrap;
+	text-shadow: #555 0px 1px 1px;
 	height:14px;
     margin-top: 10px !important;
     text-align:right;

@@ -2434,7 +2434,9 @@
     self.curPostID = curMsg;
     
     int ypos = [posN intValue];
+    BOOL bMenuUp = NO;
     if (ypos < 40) {
+        bMenuUp = YES;
         ypos +=44;
     }
 
@@ -2447,13 +2449,15 @@
     
     if (@available(iOS 16.0, *)) {
         UIEditMenuConfiguration* menuConfiguration = [UIEditMenuConfiguration configurationWithIdentifier:nil sourcePoint:CGPointMake(xpos, ypos)];
-        [((UIEditMenuInteraction*)webviewInteraction) presentEditMenuWithConfiguration:menuConfiguration];
-        if (ypos < 40) {
+        if (bMenuUp) {
             menuConfiguration.preferredArrowDirection = UIEditMenuArrowDirectionUp;
+            NSLog(@"Menu UPPPPP (%ld)", ypos);
         }
         else {
             menuConfiguration.preferredArrowDirection = UIEditMenuArrowDirectionDown;
+            NSLog(@"Menu down (%ld)", ypos);
         }
+        [((UIEditMenuInteraction*)webviewInteraction) presentEditMenuWithConfiguration:menuConfiguration];
     }
     else {
         UIMenuController *menuController = [UIMenuController sharedMenuController];

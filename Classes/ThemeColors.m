@@ -388,6 +388,24 @@
     return [self loveColor:[ThemeManager currentTheme]];
 }
 
++ (UIColor *)loveColorBright {
+    CGFloat h, s, b, a;
+    UIColor* c = [ThemeColors loveColor];
+    [c getHue:&h saturation:&s brightness:&b alpha:&a];
+
+    switch ([ThemeManager currentTheme]) {
+        case ThemeLight:
+            c = [UIColor colorWithHue:h saturation:1.0 brightness:b alpha:1.0];
+            break;
+            
+        case ThemeDark:
+            c = [UIColor colorWithHue:h saturation:s brightness:1.0 alpha:1.0];
+            break;
+    }
+    
+    return c;
+}
+
 + (UIColor *)loveLightColorNoAlpha {
     CGFloat h, s, b, a;
     UIColor *c;

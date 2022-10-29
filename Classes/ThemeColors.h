@@ -75,6 +75,7 @@
 + (UIColor *)tintWhiteColor:(Theme)theme;
 + (UIColor *)tintColorDisabled:(Theme)theme;
 + (UIColor *)loveColor;
++ (UIColor *)loveColorBright;
 + (UIColor *)loveLightColorNoAlpha;
 + (UIColor *)loveColor:(Theme)theme;
 + (UIColor *)overlayColor:(Theme)theme;
