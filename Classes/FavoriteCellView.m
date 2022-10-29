@@ -43,6 +43,9 @@
         [self.labelDate setTextColor:[ThemeColors topicMsgTextColor:theme]];
         self.labelBadge.backgroundColor = [ThemeColors topicMsgTextColor:theme];
     }
+    if (self.isFavoriteViewed) {
+        [self.labelDate setTextColor:[ThemeColors topicMsgTextColor]];
+    }
 }
 
 

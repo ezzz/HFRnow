@@ -115,7 +115,6 @@
     
     // Content
     TopicCellView *tmpCell = (TopicCellView*)[super tableView:tableView cellForRowAtIndexPath:indexPath];
-    cell.titleLabel.text = tmpCell.titleLabel.text;
     cell.timeLabel.text = tmpCell.timeLabel.text;
     
     if ([[(Topic *)[arrayData objectAtIndex:indexPath.row] aAuthorOrInter] containsString:@"multiples"]) {
@@ -147,8 +146,10 @@
 
     // Style
     UIFont *font1 = [UIFont boldSystemFontOfSize:13.0f];
+    cell.timeLabel.textColor = [ThemeColors tintColor];
     if (cell.topicViewed) {
         font1 = [UIFont systemFontOfSize:13.0f];
+        cell.timeLabel.textColor = [ThemeColors textColor2];
     }
     NSDictionary *arialDict = [NSDictionary dictionaryWithObject: font1 forKey:NSFontAttributeName];
     NSMutableAttributedString *aAttrString1 = [[NSMutableAttributedString alloc] initWithString:[aTopic aTitle] attributes: arialDict];
@@ -163,7 +164,14 @@
     }
     [finalString appendAttributedString:aAttrString1];
     cell.titleLabel.attributedText = finalString;
+
+    cell.isTopicViewedByReceiver = YES;
+    if ([cell.titleLabel.text hasPrefix:@"[non lu]"]) {
+        NSLog(@"Title: %@ is NON LU", cell.titleLabel.text);
+        cell.isTopicViewedByReceiver = NO;
+    }
     
+    [finalString appendAttributedString:aAttrString1];
     
     
     return cell;
@@ -185,7 +193,7 @@
                               r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9], r[10], r[11], r[12], r[13], r[14], r[15]];
         
         NSString *keyPathOfImage = [diskCachePath stringByAppendingPathComponent:filename];
-        NSLog(@"MP Avatar for (%@/%s) %ld : keyPathOfImage:%@", pseudo, str, strlen(str), keyPathOfImage);
+        //NSLog(@"MP Avatar for (%@/%s) %ld : keyPathOfImage:%@", pseudo, str, strlen(str), keyPathOfImage);
         BOOL bLoadAvatar = NO;
         if ([fileManager fileExistsAtPath:keyPathOfImage]) // on check si on a deja l'avatar pour cette key
         {
@@ -396,7 +404,7 @@
 
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-	return 65;
+	return 55;
 }
 
 -(void)statusBarButton:(BARBTNTYPE)type enable:(bool)enable {

@@ -1128,8 +1128,10 @@
         }
 
         // Configure the cell...
+        cell.isFavoriteViewed = NO;
         UIFont *font1 = [UIFont boldSystemFontOfSize:13.0f];
         if ([tmpTopic isViewed]) {
+            cell.isFavoriteViewed = YES;
             font1 = [UIFont systemFontOfSize:13.0f];
         }
         NSDictionary *arialDict = [NSDictionary dictionaryWithObject: font1 forKey:NSFontAttributeName];
