@@ -841,30 +841,13 @@
     [label setTextAlignment:NSTextAlignmentCenter];
     [label setLineBreakMode:NSLineBreakByTruncatingMiddle];
     
-    if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"7.0")) {
-        [label setTextColor:[UIColor blackColor]];
-        
-        if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
-            [label setFont:[UIFont boldSystemFontOfSize:13.0]];
-        }
-        else {
-            [label setFont:[UIFont boldSystemFontOfSize:17.0]];
-        }
+    [label setTextColor:[UIColor blackColor]];
+    
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
+        [label setFont:[UIFont boldSystemFontOfSize:13.0]];
     }
-    else
-    {
-        if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
-            [label setTextColor:[UIColor whiteColor]];
-            label.shadowColor = [UIColor darkGrayColor];
-            [label setFont:[UIFont boldSystemFontOfSize:13.0]];
-            label.shadowOffset = CGSizeMake(0.0, -1.0);
-        }
-        else {
-            [label setTextColor:[UIColor colorWithRed:113/255.f green:120/255.f blue:128/255.f alpha:1.00]];
-            label.shadowColor = [UIColor whiteColor];
-            [label setFont:[UIFont boldSystemFontOfSize:19.0]];
-            label.shadowOffset = CGSizeMake(0.0, 0.5f);
-        }
+    else {
+        [label setFont:[UIFont boldSystemFontOfSize:17.0]];
     }
     
     [label setNumberOfLines:2];
@@ -888,10 +871,9 @@
     self.swipeLeftRecognizer = (UISwipeGestureRecognizer *)recognizer;
 	
     self.messagesWebView.scrollView.contentInset = UIEdgeInsetsMake(0, -0.5, 0, 0);
-    if (@available(iOS 16.0, *)) {
-        self.webviewInteraction = [[UIEditMenuInteraction alloc] initWithDelegate:self];
-        [self.messagesWebView addInteraction:(UIEditMenuInteraction*)self.webviewInteraction];
-    }
+    self.webviewInteraction = [[UIEditMenuInteraction alloc] initWithDelegate:self];
+    [self.messagesWebView addInteraction:(UIEditMenuInteraction*)self.webviewInteraction];
+    
     
     //Bouton Repondre message
     if (self.isSearchInstra) {
@@ -1952,9 +1934,6 @@
 	[self loadDataInTableView:myParser];
 }	
 
-// -------------------------------------------------------------------------------
-//	didFinishParsing:appList
-// -------------------------------------------------------------------------------
 - (void)didStartParsing:(HTMLParser *)myParser
 {
     [self performSelectorOnMainThread:@selector(handleLoadedParser:) withObject:myParser waitUntilDone:NO];
@@ -1966,9 +1945,8 @@
     self.queue = nil;
 }
 
-#pragma mark -
-#pragma mark WebView Delegate
-// was webViewDidStartLoad
+#pragma mark - WebView Delegate
+
 - (void)webView:(WKWebView *)webView didStartProvisionalNavigation:(WKNavigation *)navigation {
     NSLog(@"didStartProvisionalNavigation");
     [UIApplication sharedApplication].networkActivityIndicatorVisible = YES;
@@ -1998,8 +1976,6 @@
     }
 }
 
-// webViewDidFinishPreLoadDOM was empty method
-// was webViewDidFinishLoadDOM
 - (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation {
     NSLog(@"didFinishNavigation");
     [UIApplication sharedApplication].networkActivityIndicatorVisible = NO;
@@ -2262,7 +2238,8 @@
         decisionHandler(WKNavigationActionPolicyCancel);
     }
 }
--(NSString*) smileyAddedConfirmed:(BOOL)bAdd
+
+- (void) smileyAddedConfirmed:(BOOL)bAdd
 {
     if (bAdd) {
         [HFRAlertView DisplayAlertViewWithTitle:@"Smiley ajouté aux favoris" andMessage:nil forDuration:1];
@@ -2270,15 +2247,17 @@
     else {
         [HFRAlertView DisplayAlertViewWithTitle:@"Smiley retiré des favoris" andMessage:nil forDuration:1];
     }
+    
+    
 }
 
--(NSString*) smileyAddFailed:(BOOL)bAdd
+- (void) smileyAddFailed:(BOOL)bAdd
 {
     [HFRAlertView DisplayAlertViewWithTitle:@"Erreur :/" andMessage:nil forDuration:1];
 }
 
 
--(NSString*) backBarButtonTitle {
+- (NSString*) backBarButtonTitle {
     int iCount = 0;
     // Compte le nombre de controllers MessagesTableViewController en partant de la fin
     for (UIViewController* vc in [[self.navigationController viewControllers] reverseObjectEnumerator])
@@ -2447,49 +2426,14 @@
         xpos = screenWidth - 15;
     }
     
-    if (@available(iOS 16.0, *)) {
-        UIEditMenuConfiguration* menuConfiguration = [UIEditMenuConfiguration configurationWithIdentifier:nil sourcePoint:CGPointMake(xpos, ypos)];
-        if (bMenuUp) {
-            menuConfiguration.preferredArrowDirection = UIEditMenuArrowDirectionUp;
-        }
-        else {
-            menuConfiguration.preferredArrowDirection = UIEditMenuArrowDirectionDown;
-        }
-        [((UIEditMenuInteraction*)webviewInteraction) presentEditMenuWithConfiguration:menuConfiguration];
+    UIEditMenuConfiguration* menuConfiguration = [UIEditMenuConfiguration configurationWithIdentifier:nil sourcePoint:CGPointMake(xpos, ypos)];
+    if (bMenuUp) {
+        menuConfiguration.preferredArrowDirection = UIEditMenuArrowDirectionUp;
     }
     else {
-        UIMenuController *menuController = [UIMenuController sharedMenuController];
-        NSMutableArray *menuAction = [[NSMutableArray alloc] init];
-        
-        for (id tmpAction in self.arrayAction) {
-            NSLog(@"%@", [tmpAction objectForKey:@"code"]);
-        
-            if ([tmpAction objectForKey:@"image"] != nil) {
-                UIImage* img = (UIImage *)[tmpAction objectForKey:@"image"];
-                UIMenuItem *tmpMenuItem2 = [[UIMenuItem alloc] initWithTitle:[tmpAction valueForKey:@"title"] action:NSSelectorFromString([tmpAction objectForKey:@"code"]) image:img];
-                //[tmpMenuItem2 setTitle:@"Rien du tout"];
-                [menuAction addObject:tmpMenuItem2];
-            }
-            else {
-                UIMenuItem *tmpMenuItem = [[UIMenuItem alloc] initWithTitle:[tmpAction valueForKey:@"title"] action:NSSelectorFromString([tmpAction objectForKey:@"code"])];
-                //[tmpMenuItem setTitle:@"Rien du tout2"];
-                [menuAction addObject:tmpMenuItem];
-            }
-        }
-        
-        if (ypos < 40) {
-            [menuController setArrowDirection:UIMenuControllerArrowUp];
-        }
-        else {
-            [menuController setArrowDirection:UIMenuControllerArrowDown];
-        }
-
-        [menuController setMenuItems:menuAction];
-        CGRect selectionRect = CGRectMake(xpos, ypos, 0, 0);
-        [self.view setNeedsDisplayInRect:selectionRect];
-        [menuController setTargetRect:selectionRect inView:self.view];
-        [menuController setMenuVisible:YES animated:YES];
+        menuConfiguration.preferredArrowDirection = UIEditMenuArrowDirectionDown;
     }
+    [((UIEditMenuInteraction*)webviewInteraction) presentEditMenuWithConfiguration:menuConfiguration];
 }
 
 #pragma mark -

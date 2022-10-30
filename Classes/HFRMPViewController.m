@@ -117,6 +117,9 @@
     TopicCellView *tmpCell = (TopicCellView*)[super tableView:tableView cellForRowAtIndexPath:indexPath];
     cell.timeLabel.text = tmpCell.timeLabel.text;
     
+    cell.imgAvatar.layer.cornerRadius = cell.imgAvatar.frame.size.width / 2;
+    cell.imgAvatar.clipsToBounds = YES;
+    
     if ([[(Topic *)[arrayData objectAtIndex:indexPath.row] aAuthorOrInter] containsString:@"multiples"]) {
         [cell.msgLabel setText:@"Interlocuteurs multiples"];
         [cell.msgLabel setFont:[UIFont systemFontOfSize:12.0]];
@@ -146,17 +149,19 @@
 
     // Style
     UIFont *font1 = [UIFont boldSystemFontOfSize:13.0f];
-    cell.timeLabel.textColor = [ThemeColors tintColor];
+    //cell.timeLabel.textColor = [ThemeColors tintColor];
     if (cell.topicViewed) {
         font1 = [UIFont systemFontOfSize:13.0f];
-        cell.timeLabel.textColor = [ThemeColors textColor2];
+        //cell.timeLabel.textColor = [ThemeColors textColor2];
     }
     NSDictionary *arialDict = [NSDictionary dictionaryWithObject: font1 forKey:NSFontAttributeName];
     NSMutableAttributedString *aAttrString1 = [[NSMutableAttributedString alloc] initWithString:[aTopic aTitle] attributes: arialDict];
     UIFont *font2 = [UIFont fontWithName:@"fontello" size:15];
     NSMutableAttributedString *finalString = [[NSMutableAttributedString alloc]initWithString:@""];
     
+    cell.isTopicClosed = NO;
     if (aTopic.isClosed) {
+        cell.isTopicClosed = YES;
         UIColor *fontcC = [UIColor colorWithHex:@"#4A4A4A" alpha:1.0];
         NSDictionary *arialDict2c = [NSDictionary dictionaryWithObjectsAndKeys:font2, NSFontAttributeName, fontcC, NSForegroundColorAttributeName, nil];
         NSMutableAttributedString *aAttrString2C = [[NSMutableAttributedString alloc] initWithString:@" " attributes: arialDict2c];
@@ -169,9 +174,6 @@
     if ([cell.titleLabel.text hasPrefix:@"[non lu]"]) {
         cell.isTopicViewedByReceiver = NO;
     }
-    
-    [finalString appendAttributedString:aAttrString1];
-    
     
     return cell;
 }
