@@ -21,7 +21,6 @@
     
     // On rajoute les menus pour le style
     self.keyboardAppearance = [ThemeColors keyboardAppearance:[[ThemeManager sharedManager] theme]];
-    
 }
 
 - (UIMenu *)menuForHFRTextView:(UITextView *)textView editMenuForTextInRange:(NSRange)range suggestedActions:(NSArray<UIMenuElement *> *)suggestedActions
@@ -105,10 +104,8 @@
 }
 
 // Remove Search web from UIMenu (it does not work when trying to remove it from canPerformAction)
-- (void)buildMenuWithBuilder:(id<UIMenuBuilder>)builder API_AVAILABLE(ios(13.0))  {
-    if (@available(iOS 16.0, *)) {
-        [builder removeMenuForIdentifier:UIMenuLookup];
-    }
+- (void)buildMenuWithBuilder:(id<UIMenuBuilder>)builder  {
+    [builder removeMenuForIdentifier:UIMenuLookup];
     [super buildMenuWithBuilder:builder];
 }
 
