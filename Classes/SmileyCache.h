@@ -10,6 +10,12 @@
 
 #import <Foundation/Foundation.h>
 
+typedef enum {
+    ArraySmileysDefault           = 0,
+    ArraySmileysSearch            = 1,
+    ArraySmileysFavorites         = 2,
+} SmileArrayEnum;
+
 @interface SmileyRequest : NSObject {
 }
 
@@ -23,29 +29,51 @@
 @property (nonatomic, strong) UIImage* image;
 
 @end
+
+@interface SmileyFavorite : NSObject<NSCoding>
+{
+}
+
+@property (nonatomic, strong) NSString *sCode;
+@property (nonatomic, strong) NSString *sRawUrl;
+@property (nonatomic, strong) NSDate   *dateAdded;
+
+@end
+
 @interface SmileyCache : NSObject {
 }
 
 @property (nonatomic, strong) NSMutableArray* arrCurrentSmileyArray;
-@property (nonatomic, strong) NSMutableArray* arrCustomSmileys;
+@property (nonatomic, strong) NSMutableArray* arrFavoritesSmileysApp;
+@property (nonatomic, strong) NSMutableArray* arrFavoritesSmileysForum;
 @property (nonatomic, strong) NSCache* cacheSmileys;
 @property (nonatomic, strong) NSCache* cacheSmileysDefaults;
 @property (nonatomic, strong) NSCache* cacheSmileyRequests;
 @property BOOL bStopLoadingSmileysSearchToCache;
+@property BOOL bStopLoadingSmileysFavoritesToCache;
 @property BOOL bStopLoadingSmileysCustomToCache;
 @property BOOL bSearchSmileysActivated;
 @property (nonatomic, strong) NSMutableArray *dicCommonSmileys;
 @property (nonatomic, strong) NSMutableArray *dicSearchSmileys;
+@property (nonatomic, strong) NSMutableDictionary *dicFavoritesSmileys;
+@property int iNbFailuresLoadingSmileys;
 
 + (SmileyCache *) shared;
-- (void) handleSearchSmileyArray:(NSMutableArray*)arrSmileys forCollection:(UICollectionView*)cv spinner:(UIActivityIndicatorView*)spinner;
-- (void) handleCustomSmileyArray:(NSMutableArray*)arrSmileys;
-- (UIImage*) getImageDefaultSmileyForIndex:(int)index;
-- (UIImage*) getImageForIndex:(int)index forCollection:(UICollectionView*)cv andIndexPath:(NSIndexPath*)ip customSmiley:(BOOL)bCustomSmiley;
-- (NSMutableArray*) getSmileyListForText:(NSString*)sTextSmileys;
-- (NSString*) getSmileyCodeForIndex:(int)index;
-- (NSString*) getSmileyImgUrlForIndex:(int)index;
 
+- (void) handleSearchSmileyArray:(NSMutableArray*)arrSmileys forCollection:(UICollectionView*)cv spinner:(UIActivityIndicatorView*)spinner;
+- (void) handleCustomSmileyArray:(NSMutableArray*)arrSmileys forCollection:(UICollectionView*)cv;
+- (UIImage*) getImageDefaultSmileyForIndex:(int)index;
+- (UIImage*) getImageForIndex:(int)index forCollection:(UICollectionView*)cv andIndexPath:(NSIndexPath*)ip favoriteSmiley:(BOOL)bFavoriteSmiley favoriteFromApp:(BOOL)bFavoriteFromApp;
+- (NSMutableArray*) getSmileyListForText:(NSString*)sTextSmileys;
+
+- (NSString*) getSmileyCodeForIndex:(int)index favoriteSmiley:(BOOL)bFavoriteSmiley favoriteFromApp:(BOOL)bFavoriteFromApp;
+- (NSString*) getSmileyImgUrlForIndex:(int)index favoriteSmiley:(BOOL)bFavoriteSmiley favoriteFromApp:(BOOL)bFavoriteFromApp;
+- (NSDate*) getFavoriteSmileyDateForIndex:(int)index;
+
+- (BOOL)AddAndSaveDicFavoritesApp:(NSString*)sCode source:(NSString*)sRawUrl addSmiley:(BOOL)bAdd;
+- (BOOL)isFavoriteSmileyFromApp:(NSString*)sCode;
+- (BOOL)isFavoriteSmileyFromForum:(NSString*)sCode
+;
 @end
 
 

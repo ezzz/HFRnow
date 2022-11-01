@@ -163,6 +163,14 @@
     }
 }
 
++ (UIColor *)popupBackgroundColor {
+    switch ([ThemeManager currentTheme]) {
+        case ThemeLight: return [UIColor colorWithRed:1.0 green:1.0 blue:1.0 alpha:0.95];
+        case ThemeDark:  return [ThemeColors adjustDarkThemeBrightnessOfColor: [UIColor colorWithRed:23.0/255.0 green:24.0/255.0 blue:26.0/255.0 alpha:0.85]];
+        default:         return [UIColor colorWithRed:246.0/255.0 green:246.0/255.0 blue:246.0/255.0 alpha:1.0];
+    }
+}
+
 
 + (UIColor *)textFieldBackgroundColor:(Theme)theme {
     switch (theme) {
@@ -666,9 +674,28 @@
 }
 
 + (UIColor *)alertBackgroundColor:(Theme)theme{
+    CGFloat a = 0.9;
     switch (theme) {
-        case ThemeLight: return [UIColor colorWithRed:255.0/255.0 green:255.0/255.0 blue:255.0/255.0 alpha:0.9];
-        case ThemeDark:  return [UIColor colorWithRed:30.0/255.0 green:31.0/255.0 blue:33.0/255.0 alpha:0.7];
+        case ThemeLight:
+            if ([[NSUserDefaults standardUserDefaults] boolForKey:@"theme_noel_disabled"]) {
+                a = 1;
+            } else {
+                if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+                    a = 0.97;
+                }
+                else {
+                    a = 0.75;
+                }
+            }
+            return [UIColor colorWithRed:255.0/255.0 green:255.0/255.0 blue:255.0/255.0 alpha:a];
+        case ThemeDark:
+            if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+                a = 0.95;
+            }
+            else {
+                a = 0.7;
+            }
+            return [UIColor colorWithRed:30.0/255.0 green:31.0/255.0 blue:33.0/255.0 alpha:a];
         default:         return [UIColor colorWithRed:255.0/255.0 green:255.0/255.0 blue:255.0/255.0 alpha:0.9];
     }
 }

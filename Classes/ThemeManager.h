@@ -33,4 +33,5 @@
 - (void)checkTheme;
 - (void)setThemeManually:(Theme)newTheme;
 - (Theme)getThemeFromCurrentTime;
+- (UIAlertActionStyle)cancelAlertStyle;
 @end

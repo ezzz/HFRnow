@@ -120,7 +120,14 @@
 {
      if (@available(iOS 15.0, *)) {
          UINavigationBarAppearance *app = [UINavigationBarAppearance new];
-         [app configureWithOpaqueBackground];
+         if (![[NSUserDefaults standardUserDefaults] boolForKey:@"theme_noel_disabled"]) {
+             UIImage *navBG =[[UIImage animatedImageNamed:@"snow" duration:1.f]
+                          resizableImageWithCapInsets:UIEdgeInsetsMake(0, 0, 0, 0) resizingMode:UIImageResizingModeTile];
+             app.backgroundImage = navBG;
+         }
+         else {
+             [app configureWithOpaqueBackground];
+         }
          app.backgroundColor = [ThemeColors navBackgroundColor:[[ThemeManager sharedManager] theme]];
          self.navigationBar.scrollEdgeAppearance = self.navigationBar.standardAppearance = app;
      }

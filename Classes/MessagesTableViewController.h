@@ -197,6 +197,8 @@
 
 @property NSString* sSelectedSmileyCode;
 @property NSString* sSelectedSmileyImageURL;
+@property dispatch_block_t smileyAlertViewAddOK;
+@property dispatch_block_t smileyAlertViewAddFailed;
 
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil andUrl:(NSString *)theTopicUrl;
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil andUrl:(NSString *)theTopicUrl displaySeparator:(BOOL)isSeparatorNewMessages;

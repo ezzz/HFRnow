@@ -7,8 +7,9 @@
 
 #import <UIKit/UIKit.h>
 #import "SmileyCache.h"
+#import "PopupViewController.h"
 
-@class AddMessageViewController, ASIHTTPRequest;
+@class AddMessageViewController, PopupViewController, ASIHTTPRequest;
 
 typedef enum {
     DisplayModeEnumSmileysDefault           = 0,
@@ -44,6 +45,9 @@ typedef enum {
 @property (strong, nonatomic) IBOutlet UIActivityIndicatorView *spinnerSmileySearch;
 @property (strong, nonatomic) IBOutlet UITableView *tableViewSearch;
 @property (strong, nonatomic) IBOutlet UILabel *labelNoResult;
+@property (weak, nonatomic) IBOutlet UIView *viewCancelActionSmiley;
+@property (weak, nonatomic) IBOutlet UILabel *labelCancelActionSmiley;
+@property (weak, nonatomic) IBOutlet UIButton *btnCancelActionSmiley;
 
 @property (strong, nonatomic) SmileyCache *smileyCache;
 @property (nonatomic, strong) NSMutableArray *arrSearch;
@@ -60,6 +64,10 @@ typedef enum {
 @property AddMessageViewController* addMessageVC;
 @property BOOL bModeFullScreen, bActivateSmileySearchTable;
 @property DisplayModeEnum displayMode;
+
+@property NSString* sCancelSmileyFavoriteCode;
+@property BOOL bFirstLoad;
+@property PopupViewController* popup;
 
 - (void)changeDisplayMode:(DisplayModeEnum)newMode animate:(BOOL)bAnimate;
 - (void)updateExpandButton;

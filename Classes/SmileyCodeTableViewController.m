@@ -72,9 +72,13 @@
     cell.accessoryType = UITableViewCellAccessoryNone;
 
     [[ThemeManager sharedManager] applyThemeToCell:cell];
-
-    cell.selectionStyle = UITableViewCellSelectionStyleNone;
-
+    if (self.handlerSelectCode) {
+        cell.selectionStyle = [ThemeColors cellSelectionStyle:[ThemeManager currentTheme]];
+    }
+    else {
+        cell.selectionStyle = UITableViewCellSelectionStyleNone;
+    }
+    
     return cell;
 }
 
@@ -87,7 +91,16 @@
     return 45;
 }
 
-
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    if (self.handlerSelectCode) {
+        NSString* sSmileyKeyword = [self.arrCodeList objectAtIndex:indexPath.row];
+        if (sSmileyKeyword.length >=3 ) {
+            [self.navigationController popViewControllerAnimated:YES];
+            dispatch_async(dispatch_get_main_queue(), ^{self.handlerSelectCode(sSmileyKeyword);});
+        }
+    }
+}
 
 @end
 

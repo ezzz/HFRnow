@@ -7,6 +7,7 @@
 
 #import "HFRplusAppDelegate.h"
 #import "AddMessageViewController.h"
+#import "DeleteMessageViewController.h"
 #import "SmileyViewController.h"
 #import "RehostImageViewController.h"
 #import "ASIFormDataRequest.h"
@@ -25,6 +26,7 @@
 #import "RehostCollectionCell.h"
 #import "SmileyCache.h"
 #import "api_keys.h"
+
 
 #define TOOLBAR_HEIGHT_SMILEY 44
 #define TOOLBAR_HEIGHT_IMAGES 50
@@ -69,6 +71,7 @@
         self.sBrouillonUtilise = NO;
         self.bFirstTimeDisplay = YES;
         self.title = @"Nouv. message";
+        self.viewControllerSmileys = nil;
     }
     return self;
 }
@@ -135,26 +138,14 @@
     [self.segmentControlerPage setEnabled:NO forSegmentAtIndex:2];
     
     self.smileView.navigationDelegate = self;
-
-    self.viewControllerSmileys = [[SmileyViewController alloc] initWithNibName:@"SmileyViewController" bundle:nil];
-    self.viewControllerSmileys.addMessageVC = self;
-    self.viewControllerSmileys.view.frame = self.viewSmileys.bounds;
-    UICollectionViewFlowLayout *collectionViewFlowLayout1 = [[UICollectionViewFlowLayout alloc] init];
-    UICollectionViewFlowLayout *collectionViewFlowLayout2 = [[UICollectionViewFlowLayout alloc] init];
-    collectionViewFlowLayout1.scrollDirection = UICollectionViewScrollDirectionHorizontal;
-    collectionViewFlowLayout2.scrollDirection = UICollectionViewScrollDirectionHorizontal;
-    self.viewControllerSmileys.collectionViewSmileysDefault.collectionViewLayout = collectionViewFlowLayout1;
-    self.viewControllerSmileys.collectionViewSmileysSearch.collectionViewLayout = collectionViewFlowLayout2;
-    [self.viewSmileys addSubview:self.viewControllerSmileys.view];
     [self.viewSmileys setAlpha:0];
-    [self addChildViewController:self.viewControllerSmileys];
-
+    
     self.viewControllerRehostImage = [[RehostImageViewController alloc] initWithNibName:@"RehostImageViewController" bundle:nil];
     self.viewControllerRehostImage.addMessageVC = self;
     self.viewControllerRehostImage.view.frame = self.viewRehostImage.bounds;
-    UICollectionViewFlowLayout *collectionViewFlowLayout3 = [[UICollectionViewFlowLayout alloc] init];
-    collectionViewFlowLayout3.scrollDirection = UICollectionViewScrollDirectionHorizontal;
-    self.viewControllerRehostImage.collectionImages.collectionViewLayout = collectionViewFlowLayout3;
+    UICollectionViewFlowLayout *collectionViewFlowLayout4 = [[UICollectionViewFlowLayout alloc] init];
+    collectionViewFlowLayout4.scrollDirection = UICollectionViewScrollDirectionHorizontal;
+    self.viewControllerRehostImage.collectionImages.collectionViewLayout = collectionViewFlowLayout4;
     [self.viewRehostImage addSubview:self.viewControllerRehostImage.view];
     [self.viewRehostImage setAlpha:0];
     [self addChildViewController:self.viewControllerRehostImage];
@@ -299,6 +290,7 @@
     
     self.sBrouillonUtilise = NO;
     // Popup brouillon (partout sauf en mode edition)
+    //    if (![self.class isSubclassOfClass:[DeleteMessageViewController class]]) {
     if (self.bFirstTimeDisplay && self.sBrouillon && self.sBrouillon.length > 0) {
         
         UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Utiliser le brouillon ?" message:[self getBrouillonExtract]
@@ -433,9 +425,9 @@
 }
 
 - (void)viewWillDisappear:(BOOL)animated{
-    //NSLog(@"viewWillDisappear");
+    /*//NSLog(@"viewWillDisappear");
     [super viewWillDisappear:animated];
-    [self.view endEditing:YES];
+    [self.view endEditing:YES];*/
 }
 
 
@@ -444,7 +436,7 @@
         [self actionHideRehostImage];
     } else if (self.viewControllerSmileys.tableViewSearch.alpha == 1 && ![self.textView isFirstResponder]) {
         [self actionHideSmileys];
-    }  else if (![self.textView isFirstResponder] && self.viewControllerSmileys.bModeFullScreen && (self.viewControllerSmileys.collectionViewSmileysSearch.alpha == 1 || self.viewControllerSmileys.collectionViewSmileysDefault.alpha == 1)) {
+    }  else if (![self.textView isFirstResponder] && self.viewControllerSmileys.bModeFullScreen && (self.viewControllerSmileys.collectionViewSmileysSearch.alpha == 1 || self.viewControllerSmileys.collectionViewSmileysDefault.alpha == 1 || self.viewControllerSmileys.collectionViewSmileysFavorites.alpha == 1)) {
         [self actionHideSmileys];
     } else if ([self.textView text].length > 0 && !self.isDeleteMode) {
         NSString *alertTitle = @"Enregistrer le texte comme brouillons ?";
@@ -796,8 +788,28 @@
 - (void)actionSmiley:(id)sender
 {
     NSLog(@"actionSmiley");
+    if (self.viewControllerSmileys == nil) {
+        self.viewControllerSmileys = [[SmileyViewController alloc] initWithNibName:@"SmileyViewController" bundle:nil];
+        self.viewControllerSmileys.addMessageVC = self;
+        self.viewControllerSmileys.view.frame = self.viewSmileys.bounds;
+        UICollectionViewFlowLayout *collectionViewFlowLayout1 = [[UICollectionViewFlowLayout alloc] init];
+        UICollectionViewFlowLayout *collectionViewFlowLayout2 = [[UICollectionViewFlowLayout alloc] init];
+        UICollectionViewFlowLayout *collectionViewFlowLayout3 = [[UICollectionViewFlowLayout alloc] init];
+        collectionViewFlowLayout1.scrollDirection = UICollectionViewScrollDirectionHorizontal;
+        collectionViewFlowLayout2.scrollDirection = UICollectionViewScrollDirectionHorizontal;
+        collectionViewFlowLayout3.scrollDirection = UICollectionViewScrollDirectionHorizontal;
+        self.viewControllerSmileys.collectionViewSmileysDefault.collectionViewLayout = collectionViewFlowLayout1;
+        self.viewControllerSmileys.collectionViewSmileysSearch.collectionViewLayout = collectionViewFlowLayout2;
+        self.viewControllerSmileys.collectionViewSmileysFavorites.collectionViewLayout = collectionViewFlowLayout3;
+        [self.viewSmileys addSubview:self.viewControllerSmileys.view];
+        [self.viewSmileys setAlpha:0];
+        [self addChildViewController:self.viewControllerSmileys];
+    }
+    
     [UIView beginAnimations:nil context:nil];
     [UIView setAnimationDuration:0.2];
+    
+    
     if (self.viewSmileys.alpha == 0) {
         if (self.viewRehostImage.alpha == 1) {
             [self actionHideRehostImage];
@@ -866,6 +878,7 @@
     NSLog(@"updateExpandCompressSmiley");
     UICollectionViewFlowLayout *layout = (UICollectionViewFlowLayout *)[self.viewControllerSmileys.collectionViewSmileysDefault collectionViewLayout];
     UICollectionViewFlowLayout *layout2 = (UICollectionViewFlowLayout *)[self.viewControllerSmileys.collectionViewSmileysSearch collectionViewLayout];
+    UICollectionViewFlowLayout *layout3 = (UICollectionViewFlowLayout *)[self.viewControllerSmileys.collectionViewSmileysFavorites collectionViewLayout];
     if (self.viewControllerSmileys.displayMode == DisplayModeEnumTableSearch) {
         CGRect rectS = self.viewSmileys.frame;
         CGFloat f = rectS.size.height + rectS.origin.y;
@@ -873,8 +886,6 @@
         [viewToolbar setHidden:NO];
         self.constraintToolbarHeight.constant = TOOLBAR_HEIGHT_SMILEY;
         NSLog(@"mode DisplayModeEnumTableSearch, constraintSmileyViewHeight.constant = %f", f);
-        //layout.scrollDirection = UICollectionViewScrollDirectionVertical;
-        //layout2.scrollDirection = UICollectionViewScrollDirectionVertical;
         [self.viewControllerSmileys.btnReduce setEnabled:NO];
     }
     else if (self.viewControllerSmileys.bModeFullScreen) {
@@ -889,6 +900,7 @@
 
         layout.scrollDirection = UICollectionViewScrollDirectionVertical;
         layout2.scrollDirection = UICollectionViewScrollDirectionVertical;
+        layout3.scrollDirection = UICollectionViewScrollDirectionVertical;
     }
     else {
         NSLog(@"mode viewControllerSmiley NOT bModeFullScreen");
@@ -901,6 +913,7 @@
         self.constraintSmileyViewHeight.constant = [self.viewControllerSmileys getDisplayHeight];
         layout.scrollDirection = UICollectionViewScrollDirectionHorizontal;
         layout2.scrollDirection = UICollectionViewScrollDirectionHorizontal;
+        layout3.scrollDirection = UICollectionViewScrollDirectionHorizontal;
     }
     [self.viewControllerSmileys updateExpandButton];
 }

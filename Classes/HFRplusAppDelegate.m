@@ -24,6 +24,7 @@
 #import "MultisManager.h"
 #import "MPStorage.h"
 #import "BlackList.h"
+#import "SmileyCache.h"
 
 #import <SafariServices/SafariServices.h>
 #import <BackgroundTasks/BackgroundTasks.h>
@@ -162,6 +163,8 @@
     [self setTheme:[[ThemeManager sharedManager] theme]];
     [[ThemeManager sharedManager] refreshTheme];
 
+    // Init smiley cache for favorite smileys
+    [SmileyCache shared];
     
     // Register background fetch
 #ifdef NOTIFICATION_BACKGROUND_REFRESH
@@ -622,8 +625,8 @@
     [formatterLocal setDateFormat:@"dd MM yyyy - HH:mm"];
     [formatterLocal setTimeZone:[NSTimeZone localTimeZone]];
     
-    NSDate* startNoelDate = [formatterLocal dateFromString:@"01 12 2020 - 00:00"];
-    NSDate*   endNoelDate = [formatterLocal dateFromString:@"02 01 2021 - 00:00"];
+    NSDate* startNoelDate = [formatterLocal dateFromString:@"24 12 2021 - 00:00"];
+    NSDate*   endNoelDate = [formatterLocal dateFromString:@"03 01 2022 - 00:00"];
     
     
     NSComparisonResult result1 = [now compare:startNoelDate];
@@ -632,12 +635,12 @@
     if (result1 == NSOrderedDescending && result2 == NSOrderedAscending) {
         //C'est bientot Noel !!
         [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"theme_noel_period"];        
-        NSObject* obj = [[NSUserDefaults standardUserDefaults] objectForKey:@"noel_first_time"];
+        NSObject* obj = [[NSUserDefaults standardUserDefaults] objectForKey:@"noel_first_time_2021"];
         if (obj == nil) {
             // La première fois on force le thème de Noel
             [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"theme_noel_disabled"];
             // Mais plus les suivantes
-            [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"noel_first_time"];
+            [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"noel_first_time_2021"];
             cestNoel = YES;
         }
     } else {
@@ -694,22 +697,28 @@
 
 - (void)updateMPBadgeWithString:(NSString *)badgeValue;
 {
-    //NSLog(@"%@ - %d", badgeValue, [badgeValue intValue]);
     [[NSUserDefaults standardUserDefaults] setInteger:[badgeValue intValue] forKey:@"nb_mp"];
 
     dispatch_async(dispatch_get_main_queue(),
                    ^{
-        //[UIApplication sharedApplication].applicationIconBadgeNumber = [badgeValue intValue];
-        int shift = 0;
+        int iBadgeIndex = 2;
+        int iShift = 1;
         if ([[[[self rootController] tabBar] items] count] == 5) {
-            shift = 1;
+            iBadgeIndex = 3;
+            iShift = 0;
         }
+        UITabBarItem *tabBarItem = [[[[self rootController] tabBar] items] objectAtIndex:iBadgeIndex];
         if ([badgeValue intValue] > 0) {
-           [[[[[self rootController] tabBar] items] objectAtIndex:2 + shift] setBadgeValue:badgeValue];
-       }
-       else {
-           [[[[[self rootController] tabBar] items] objectAtIndex:2 + shift] setBadgeValue:nil];
-       }
+            [tabBarItem setBadgeValue:badgeValue];
+        }
+        else {
+            [tabBarItem setBadgeValue:nil];
+        }
+        /* Ajouté pour rendre l'icone des messages dynamique en fonction du nombre de MPs non lu mais non terminé
+        tabBarItem.selectedImage = [[UIImage imageNamed:[ThemeColors tabBarItemSelectedImageAtIndex:2 + iShift]]
+                                        imageWithRenderingMode:[ThemeColors tabBarItemSelectedImageRendering] ];
+        tabBarItem.image = [[UIImage imageNamed:[ThemeColors tabBarItemUnselectedImageAtIndex:2 + iShift]]
+                            imageWithRenderingMode:[ThemeColors tabBarItemUnselectedImageRendering]];*/
    });
 }
 

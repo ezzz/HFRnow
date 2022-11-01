@@ -11,7 +11,7 @@
 #import "AvatarTableViewCell.h"
 #import "PlusCellView.h"
 #import "SimpleCellView.h"
-
+#include <stdlib.h>
 
 @implementation ThemeManager
 
@@ -193,9 +193,9 @@ int nightDelay;
     }
     
     // If dark theme, hide white effect view
-    if(theme == ThemeDark){
-         [alertContentView.subviews objectAtIndex:1].alpha = 0.0f;
-    }
+    //if(theme == ThemeDark || ![[NSUserDefaults standardUserDefaults] boolForKey:@"theme_noel_disabled"]){
+    [alertContentView.subviews objectAtIndex:1].alpha = 0.0f;
+    //}
     
     // If present send title and text message color
     if (alert.title != nil)
@@ -207,6 +207,54 @@ int nightDelay;
     {
         NSAttributedString* attributedString2 = [[NSAttributedString alloc] initWithString:alert.message attributes:@{NSForegroundColorAttributeName: [ThemeColors textColor:theme], NSFontAttributeName: [UIFont systemFontOfSize:13.f weight:UIFontWeightRegular]}];
         [alert setValue:attributedString2 forKey:@"attributedMessage"];
+    }
+
+    if (![[NSUserDefaults standardUserDefaults] boolForKey:@"theme_noel_disabled"]) {
+        if (alert.preferredStyle != UIAlertControllerStyleActionSheet && alert.title && (alert.actions.count == 0
+                                                                                         || [alert.title containsString:@"Err"] || [alert.title containsString:@"Oo"] )) {
+            int iImageSize = 25;
+            [alert setTitle:[NSString stringWithFormat:@"\n%@",alert.title]];
+            NSString* is1 = [NSString stringWithFormat:@"noel%02d", (int)arc4random_uniform(23)];
+            if ([alert.title containsString:@"Oo"] || [alert.title containsString:@"Err"]) {
+                is1 = @"noel_dinde";
+                iImageSize = 30;
+            }
+            else if ([alert.title containsString:@"Noël"]) {
+                is1 = @"noel05"; // Image cadeau
+            }
+            UIImage *i1 = [UIImage imageNamed:is1];
+            UIImageView* iv1 = [[UIImageView alloc] initWithFrame:CGRectMake(10, 10, iImageSize, iImageSize)];
+            [iv1 setImage:i1];
+            [alert.view addSubview:iv1];
+
+            iv1.translatesAutoresizingMaskIntoConstraints = NO;
+            NSLayoutConstraint *centerHorizontal = [NSLayoutConstraint constraintWithItem:iv1 attribute:NSLayoutAttributeCenterX relatedBy:NSLayoutRelationEqual toItem:alert.view attribute:NSLayoutAttributeCenterX multiplier:1.0f constant:0.0f];
+            NSLayoutConstraint *top = [NSLayoutConstraint constraintWithItem:iv1 attribute:NSLayoutAttributeTop relatedBy:NSLayoutRelationEqual toItem:alert.view attribute:NSLayoutAttributeTop multiplier:1 constant:10];
+            NSLayoutConstraint *height = [NSLayoutConstraint constraintWithItem:iv1 attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeNotAnAttribute multiplier:1 constant:iImageSize];
+            NSLayoutConstraint *width = [NSLayoutConstraint constraintWithItem:iv1 attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeNotAnAttribute multiplier:1 constant:iImageSize];
+            [alert.view addConstraints:@[centerHorizontal, top, height, width]];
+        }
+    
+        UIImage* originalImage;
+        if (theme == ThemeLight) {
+            originalImage = [UIImage imageNamed:@"noel_neige_big_red"];
+        }
+        else {
+            originalImage = [UIImage imageNamed:@"noel_neige_big"];
+        }
+        CGFloat scale = 1.5; // iphone
+        if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+            scale = 2.0;
+        }
+        UIImage *scaledImage = [UIImage imageWithCGImage:[originalImage CGImage] scale:(originalImage.scale * scale) orientation:(originalImage.imageOrientation)];
+        UIImageView *snowBackground = [[UIImageView alloc] initWithImage:scaledImage];
+        snowBackground.frame = CGRectMake(0, 0, 200, 200);
+        snowBackground.contentMode = UIViewContentModeTopLeft;
+        [alert.view addSubview:snowBackground];
+        [alert.view sendSubviewToBack:snowBackground];
+        alert.view.clipsToBounds = YES;
+        alert.view.layer.cornerRadius = 20;
+        alert.view.layer.masksToBounds = YES;
     }
 }
 
@@ -296,4 +344,12 @@ int nightDelay;
     }
     return ThemeLight;
 }
+
+- (UIAlertActionStyle)cancelAlertStyle {
+    if (theme == ThemeDark || ![[NSUserDefaults standardUserDefaults] boolForKey:@"theme_noel_disabled"]) {
+        return UIAlertActionStyleDefault;
+    }
+    return UIAlertActionStyleDefault;
+}
+
 @end
