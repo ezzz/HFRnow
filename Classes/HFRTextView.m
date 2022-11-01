@@ -97,9 +97,16 @@
     if ([NSStringFromSelector(action) isEqualToString:@"replace:"]) bCanPerformAction = NO;
     if ([NSStringFromSelector(action) isEqualToString:@"_promptForReplace:"]) bCanPerformAction = NO;
     if ([NSStringFromSelector(action) isEqualToString:@"_findSelected:"]) bCanPerformAction = NO;
-
     NSLog(@"HFRTextView - CanPerformAction %@ > %s", NSStringFromSelector(action), bCanPerformAction ? "YES" : "NO");
-
+    if (action == @selector(textCut:)) return [super canPerformAction:@selector(cut:) withSender:sender];
+    if (action == @selector(textCopy:)) return [super canPerformAction:@selector(copy:) withSender:sender];
+    if (action == @selector(textPaste:)) return [super canPerformAction:@selector(paste:) withSender:sender];
+    
+    if (action == @selector(cut:)) return [sender isKindOfClass:[UIKeyCommand class]] && [super canPerformAction:@selector(cut:) withSender:sender];
+    if (action == @selector(copy:)) return [sender isKindOfClass:[UIKeyCommand class]] && [super canPerformAction:@selector(copy:) withSender:sender];
+    if (action == @selector(select:)) return  [super canPerformAction:@selector(select:) withSender:sender];
+    if (action == @selector(selectAll:)) return [super canPerformAction:@selector(selectAll:) withSender:sender];
+    if (action == @selector(paste:)) return [sender isKindOfClass:[UIKeyCommand class]] && [super canPerformAction:@selector(paste:) withSender:sender];
     return bCanPerformAction;
 }
 
