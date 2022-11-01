@@ -625,8 +625,8 @@
     [formatterLocal setDateFormat:@"dd MM yyyy - HH:mm"];
     [formatterLocal setTimeZone:[NSTimeZone localTimeZone]];
     
-    NSDate* startNoelDate = [formatterLocal dateFromString:@"01 11 2021 - 00:00"];
-    NSDate*   endNoelDate = [formatterLocal dateFromString:@"02 01 2022 - 00:00"];
+    NSDate* startNoelDate = [formatterLocal dateFromString:@"24 12 2021 - 00:00"];
+    NSDate*   endNoelDate = [formatterLocal dateFromString:@"03 01 2022 - 00:00"];
     
     
     NSComparisonResult result1 = [now compare:startNoelDate];
@@ -635,12 +635,12 @@
     if (result1 == NSOrderedDescending && result2 == NSOrderedAscending) {
         //C'est bientot Noel !!
         [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"theme_noel_period"];        
-        NSObject* obj = [[NSUserDefaults standardUserDefaults] objectForKey:@"noel_first_time"];
+        NSObject* obj = [[NSUserDefaults standardUserDefaults] objectForKey:@"noel_first_time_2021"];
         if (obj == nil) {
             // La première fois on force le thème de Noel
             [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"theme_noel_disabled"];
             // Mais plus les suivantes
-            [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"noel_first_time"];
+            [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"noel_first_time_2021"];
             cestNoel = YES;
         }
     } else {
