@@ -413,7 +413,7 @@
             BOOL bLoadAvatar = NO;
             if ([fileManager fileExistsAtPath:key]) // on check si on a deja l'avatar pour cette key
             {
-                NSLog(@"PARSEOPE for %@/%s (%ld): keyPathOfImage:%@", linkItem.name, str, strlen(str), key);
+                NSLog(@"Avatar exist in cache for %@/%s (%ld): keyPathOfImage:%@", linkItem.name, str, strlen(str), key);
 
                 linkItem.imageUI = key;
                 NSDictionary* attrs = [fileManager attributesOfItemAtPath:key error:nil];
@@ -426,22 +426,26 @@
                 }
             }
             else {
+                NSLog(@"Avatar NOT found in cache for %@/%s (%ld): keyPathOfImage:%@", linkItem.name, str, strlen(str), key);
+
                 // Si pas trouvé dans le cache, on le charge
                 bLoadAvatar = YES;
             }
             
             if (bLoadAvatar) {
                 NSString *tmpURL = [[avatarNode firstChild] getAttributeNamed:@"src"];
-                
+                NSLog(@"Loading avatar from %@", tmpURL);
+
                 if (tmpURL.length > 0) { // si on a pas, on check si on a une URL
                     ASIHTTPRequest *operation = [ASIHTTPRequest requestWithURL:[NSURL URLWithString:tmpURL]];
                     __weak ASIHTTPRequest *operation_ = operation;
                     [operation setCompletionBlock:^{
+                        NSLog(@"Avatar loaded in cache %@", key);
                         [fileManager createFileAtPath:key contents:[operation_ responseData] attributes:nil];
                         linkItem.imageUI = key;
                     }];
                     [operation setFailedBlock:^{
-                        NSLog(@"setFailedBlock");
+                        NSLog(@"Error loading avatar from %@", tmpURL);
                         linkItem.imageUI = nil;
                     }];
                                         

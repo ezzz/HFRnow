@@ -995,6 +995,7 @@
 * @return Return a UIMenu describing the desired menu hierarchy. Return @c nil to present the default system menu.
 */
 - (nullable UIMenu *)textView:(UITextView *)textView editMenuForTextInRange:(NSRange)range suggestedActions:(NSArray<UIMenuElement *> *)suggestedActions
+API_AVAILABLE(ios(16.0))
 {
     return [((HFRTextView*)self.textViewPostContent) menuForHFRTextView:textView editMenuForTextInRange:range suggestedActions:suggestedActions];
 }

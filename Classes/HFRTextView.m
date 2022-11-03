@@ -19,11 +19,59 @@
     NSLog(@"awakeFromNib");
     [super awakeFromNib]; // Don't forget to call super
     
-    // On rajoute les menus pour le style
+    //Do more intitialization here
+    
+    if (!@available(iOS 16.0, *)) {
+        UIImage *menuImgCopy = [UIImage imageNamed:@"CopyFilled-20"];
+        UIImage *menuImgCut = [UIImage imageNamed:@"CutFilled-20"];
+        UIImage *menuImgPaste = [UIImage imageNamed:@"PasteFilled-20"];
+        
+        UIImage *menuImgBold = [UIImage imageNamed:@"BoldEFilled-20"];
+        UIImage *menuImgItalic = [UIImage imageNamed:@"ItalicFilled-20"];
+        UIImage *menuImgUnderline = [UIImage imageNamed:@"UnderlineFilled-20"];
+        UIImage *menuImgStrike = [UIImage imageNamed:@"StrikethroughFilled-20"];
+        
+        UIImage *menuImgSpoiler = [UIImage imageNamed:@"InvisibleFilled-20"];
+        UIImage *menuImgQuote = [UIImage imageNamed:@"QuoteEFilled-20"];
+        UIImage *menuImgLink = [UIImage imageNamed:@"LinkFilled-20"];
+        UIImage *menuImgImage = [UIImage imageNamed:@"XlargeIconsFilled-20"];
+        
+        UIMenuItem *textCutItem = [[UIMenuItem alloc] initWithTitle:@"HFRCut" action:@selector(textCut:) image:menuImgCut];
+        UIMenuItem *textCopyItem = [[UIMenuItem alloc] initWithTitle:@"HFRCopy" action:@selector(textCopy:) image:menuImgCopy];
+        UIMenuItem *textPasteItem = [[UIMenuItem alloc] initWithTitle:@"HFRPaste" action:@selector(textPaste:) image:menuImgPaste];
+        
+        UIMenuItem *textBoldItem = [[UIMenuItem alloc] initWithTitle:@"B" action:@selector(textBold:) image:menuImgBold];
+        UIMenuItem *textItalicItem = [[UIMenuItem alloc] initWithTitle:@"I" action:@selector(textItalic:) image:menuImgItalic];
+        UIMenuItem *textUnderlineItem = [[UIMenuItem alloc] initWithTitle:@"U" action:@selector(textUnderline:) image:menuImgUnderline];
+        UIMenuItem *textStrikeItem = [[UIMenuItem alloc] initWithTitle:@"S" action:@selector(textStrike:) image:menuImgStrike];
+        
+        UIMenuItem *textSpoilerItem = [[UIMenuItem alloc] initWithTitle:@"SPOILER" action:@selector(textSpoiler:) image:menuImgSpoiler];
+        UIMenuItem *textQuoteItem = [[UIMenuItem alloc] initWithTitle:@"QUOTE" action:@selector(textQuote:) image:menuImgQuote];
+        UIMenuItem *textLinkItem = [[UIMenuItem alloc] initWithTitle:@"URL" action:@selector(textLink:) image:menuImgLink];
+        UIMenuItem *textImgItem = [[UIMenuItem alloc] initWithTitle:@"IMG" action:@selector(textImg:) image:menuImgImage];
+        
+        // On rajoute les menus pour le style
+        
+        /*
+         UIMenuItem *textBoldItem = [[[UIMenuItem alloc] initWithTitle:@"B" action:@selector(textBold:)] autorelease];
+         UIMenuItem *textItalicItem = [[[UIMenuItem alloc] initWithTitle:@"I" action:@selector(textItalic:)] autorelease];
+         UIMenuItem *textUnderlineItem = [[[UIMenuItem alloc] initWithTitle:@"U" action:@selector(textUnderline:)] autorelease];
+         UIMenuItem *textStrikeItem = [[[UIMenuItem alloc] initWithTitle:@"S" action:@selector(textStrike:)] autorelease];
+         
+         UIMenuItem *textSpoilerItem = [[[UIMenuItem alloc] initWithTitle:@"SPOILER" action:@selector(textSpoiler:)] autorelease];*/
+        UIMenuItem *textFixeItem = [[UIMenuItem alloc] initWithTitle:@"FIXED" action:@selector(textFixe:)];
+        //UIMenuItem *textCppItem = [[[UIMenuItem alloc] initWithTitle:@"CPP" action:@selector(textStrike:)] autorelease];
+        //UIMenuItem *textMailItem = [[[UIMenuItem alloc] initWithTitle:@"@" action:@selector(textStrike:)] autorelease];
+        
+        [[UIMenuController sharedMenuController] setMenuItems:[NSArray arrayWithObjects:textCutItem, textCopyItem, textPasteItem,
+                                                               textBoldItem, textItalicItem, textUnderlineItem, textStrikeItem,
+                                                               textSpoilerItem, textQuoteItem, textLinkItem, textImgItem, textFixeItem, nil]];
+    }
+    
     self.keyboardAppearance = [ThemeColors keyboardAppearance:[[ThemeManager sharedManager] theme]];
 }
-
 - (UIMenu *)menuForHFRTextView:(UITextView *)textView editMenuForTextInRange:(NSRange)range suggestedActions:(NSArray<UIMenuElement *> *)suggestedActions
+API_AVAILABLE(ios(16.0))
 {
     //Do more intitialization here
     NSString* sSuffix = @"";
@@ -217,6 +265,47 @@
             [self.delegate textViewDidChange:self];
         }
     }
+}
+
+// May be removed for iOS >= 16.0
+- (void)textCut:(id)sender {
+    [super cut:(id)sender];
+}
+- (void)textCopy:(id)sender {
+    [super copy:(id)sender];
+}
+- (void)textPaste:(id)sender {
+    [super paste:(id)sender];
+}
+
+
+
+- (void)textBold:(id)sender{
+    [self insertBBCode:@"b"];
+}
+- (void)textItalic:(id)sender{
+    [self insertBBCode:@"i"];
+}
+- (void)textUnderline:(id)sender{
+    [self insertBBCode:@"u"];
+}
+- (void)textStrike:(id)sender{
+    [self insertBBCode:@"strike"];
+}
+- (void)textSpoiler:(id)sender{
+    [self insertBBCode:@"spoiler"];
+}
+- (void)textFixe:(id)sender{
+    [self insertBBCode:@"fixed"];
+}
+- (void)textQuote:(id)sender{
+    [self insertBBCode:@"quote"];
+}
+- (void)textLink:(id)sender{
+    [self insertBBCode:@"url"];
+}
+- (void)textImg:(id)sender{
+    [self insertBBCode:@"img"];
 }
 
 @end

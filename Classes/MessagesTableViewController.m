@@ -757,8 +757,10 @@
     NSLog(@"editMenuHidden %@ NOMBRE %lu", sender, (long unsigned)[UIMenuController sharedMenuController].menuItems.count);
     
     NSString* sSuffix = @"";
-    if ([[ThemeManager sharedManager] theme] == ThemeLight) {
-        sSuffix = @"-Inv";
+    if (@available(iOS 16.0, *)) {
+        if ([[ThemeManager sharedManager] theme] == ThemeLight) {
+            sSuffix = @"-Inv";
+        }
     }
     UIImage *menuImgQuote = [UIImage imageNamed:[NSString stringWithFormat:@"ReplyArrowFilled-20%@", sSuffix]];
     UIImage *menuImgQuoteB = [UIImage imageNamed:[NSString stringWithFormat:@"BoldFilled-18%@", sSuffix]];
@@ -871,9 +873,10 @@
     self.swipeLeftRecognizer = (UISwipeGestureRecognizer *)recognizer;
 	
     self.messagesWebView.scrollView.contentInset = UIEdgeInsetsMake(0, -0.5, 0, 0);
-    self.webviewInteraction = [[UIEditMenuInteraction alloc] initWithDelegate:self];
-    [self.messagesWebView addInteraction:(UIEditMenuInteraction*)self.webviewInteraction];
-    
+    if (@available(iOS 16.0, *)) {
+        self.webviewInteraction = [[UIEditMenuInteraction alloc] initWithDelegate:self];
+        [self.messagesWebView addInteraction:(UIEditMenuInteraction*)self.webviewInteraction];
+    }
     
     //Bouton Repondre message
     if (self.isSearchInstra) {
@@ -1978,7 +1981,6 @@
 
 - (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation {
     NSLog(@"didFinishNavigation");
-    [UIApplication sharedApplication].networkActivityIndicatorVisible = NO;
     [self finishWebViewLoading];
 }
 
@@ -2275,7 +2277,7 @@
 
 
 - (UIMenu *)editMenuInteraction:(UIEditMenuInteraction *)interaction menuForConfiguration:(UIEditMenuConfiguration *)configuration suggestedActions:(NSArray<UIMenuElement *> *)suggestedActions
-{
+API_AVAILABLE(ios(16.0)) {
     NSMutableArray<UIAction *> *childrenList = [[NSMutableArray alloc] init];
 
     for (id tmpAction in self.arrayAction) {
@@ -2310,10 +2312,11 @@
         answString = @"Rép.";
     }
     NSString* sSuffix = @"";
-    if ([[ThemeManager sharedManager] theme] == ThemeLight) {
-        sSuffix = @"-Inv";
+    if (@available(iOS 16.0, *)) {
+        if ([[ThemeManager sharedManager] theme] == ThemeLight) {
+            sSuffix = @"-Inv";
+        }
     }
-
 
     UIImage *menuImgBan = [UIImage imageNamed:[NSString stringWithFormat:@"ThorHammer-20%@", sSuffix]];
     if ([[BlackList shared] isBL:[[arrayData objectAtIndex:curMsg] name]]) {
@@ -2426,14 +2429,49 @@
         xpos = screenWidth - 15;
     }
     
-    UIEditMenuConfiguration* menuConfiguration = [UIEditMenuConfiguration configurationWithIdentifier:nil sourcePoint:CGPointMake(xpos, ypos)];
-    if (bMenuUp) {
-        menuConfiguration.preferredArrowDirection = UIEditMenuArrowDirectionUp;
+    if (@available(iOS 16.0, *)) {
+        UIEditMenuConfiguration* menuConfiguration = [UIEditMenuConfiguration configurationWithIdentifier:nil sourcePoint:CGPointMake(xpos, ypos)];
+        if (bMenuUp) {
+            menuConfiguration.preferredArrowDirection = UIEditMenuArrowDirectionUp;
+        }
+        else {
+            menuConfiguration.preferredArrowDirection = UIEditMenuArrowDirectionDown;
+        }
+        [((UIEditMenuInteraction*)webviewInteraction) presentEditMenuWithConfiguration:menuConfiguration];
     }
     else {
-        menuConfiguration.preferredArrowDirection = UIEditMenuArrowDirectionDown;
+        UIMenuController *menuController = [UIMenuController sharedMenuController];
+        NSMutableArray *menuAction = [[NSMutableArray alloc] init];
+        
+        for (id tmpAction in self.arrayAction) {
+            NSLog(@"%@", [tmpAction objectForKey:@"code"]);
+            
+            if ([tmpAction objectForKey:@"image"] != nil) {
+                UIMenuItem *tmpMenuItem2 = [[UIMenuItem alloc] initWithTitle:[tmpAction valueForKey:@"title"] action:NSSelectorFromString([tmpAction objectForKey:@"code"]) image:(UIImage *)[tmpAction objectForKey:@"image"]];
+                //[tmpMenuItem2 setTitle:@"Rien du tout"];
+                [menuAction addObject:tmpMenuItem2];
+            }
+            else {
+                UIMenuItem *tmpMenuItem = [[UIMenuItem alloc] initWithTitle:[tmpAction valueForKey:@"title"] action:NSSelectorFromString([tmpAction objectForKey:@"code"])];
+                //[tmpMenuItem setTitle:@"Rien du tout2"];
+                [menuAction addObject:tmpMenuItem];
+            }
+
+        }
+        [menuController setMenuItems:menuAction];
+        
+        if (bMenuUp) {
+            [menuController setArrowDirection:UIMenuControllerArrowUp];
+        }
+        else {
+            [menuController setArrowDirection:UIMenuControllerArrowDown];
+        }
+        
+        CGRect selectionRect = CGRectMake(xpos, ypos, 0, 0);
+        [self.view setNeedsDisplayInRect:selectionRect];
+        [menuController setTargetRect:selectionRect inView:self.view];
+        [menuController setMenuVisible:YES animated:YES];
     }
-    [((UIEditMenuInteraction*)webviewInteraction) presentEditMenuWithConfiguration:menuConfiguration];
 }
 
 #pragma mark -

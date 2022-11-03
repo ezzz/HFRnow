@@ -47,7 +47,7 @@
         [timeLabel setTextColor:[ThemeColors cellTintColor:theme]];
     }
     
-    NSLog(@"Is %@ in love list %@", msgLabel.text, self.isPseudoInLoveList ? @"Yes" : @"No");
+    //NSLog(@"Is %@ in love list %@", msgLabel.text, self.isPseudoInLoveList ? @"Yes" : @"No");
     if (self.isPseudoInLoveList) {
         self.imgAvatar.layer.borderWidth = 2.0f;
         self.imgAvatar.layer.borderColor = [ThemeColors loveColorBright].CGColor;
