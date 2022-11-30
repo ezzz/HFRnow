@@ -2379,7 +2379,7 @@ API_AVAILABLE(ios(16.0)) {
             [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Favoris", @"actionFavoris", menuImgFav, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
         }
          
-        [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Favoris", @"actionLink", menuImgLink, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
+        [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Link", @"actionLink", menuImgLink, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
 
         if(![[arrayData objectAtIndex:curMsg] urlEdit]){
             if([[arrayData objectAtIndex:curMsg] urlAlert]){
@@ -2804,23 +2804,26 @@ API_AVAILABLE(ios(16.0)) {
     int curMsg = [curMsgN intValue];
     NSLog("actionLink URL = %@%@#%@", [k ForumURL], self.currentUrl, [(LinkItem*)[arrayData objectAtIndex:curMsg] postID]);
     
-    // New way: present share sheet
-    NSArray* dataToShare = @[[NSString stringWithFormat:@"%@%@#%@", [k RealForumURL], self.currentUrl, [(LinkItem*)[arrayData objectAtIndex:curMsg] postID]]];
-    UIActivityViewController* activityViewController =[[UIActivityViewController alloc] initWithActivityItems:dataToShare applicationActivities:nil];
-    activityViewController.excludedActivityTypes = @[UIActivityTypeAirDrop];
-    if (activityViewController == nil){
-        return;
+    if (@available(iOS 16.0, *)) {
+        // New way: present share sheet
+        NSArray* dataToShare = @[[NSString stringWithFormat:@"%@%@#%@", [k RealForumURL], self.currentUrl, [(LinkItem*)[arrayData objectAtIndex:curMsg] postID]]];
+        UIActivityViewController* activityViewController =[[UIActivityViewController alloc] initWithActivityItems:dataToShare applicationActivities:nil];
+        activityViewController.excludedActivityTypes = @[UIActivityTypeAirDrop];
+        if (activityViewController == nil){
+            return;
+        }
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self presentViewController:activityViewController animated:YES completion:^{}];
+        });
     }
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [self presentViewController:activityViewController animated:YES completion:^{}];
-    });
-     
-    /* Old way: copy only to clipboard */
-    /*
-    UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
-    pasteboard.string = [NSString stringWithFormat:@"%@%@#%@", [k RealForumURL], self.currentUrl, [(LinkItem*)[arrayData objectAtIndex:curMsg] postID]];
+    else {
+        // Old way: copy only to clipboard
         
-    [HFRAlertView DisplayAlertViewWithTitle:@"Lien copié dans le presse-papiers" forDuration:(long)1];*/
+        UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
+        pasteboard.string = [NSString stringWithFormat:@"%@%@#%@", [k RealForumURL], self.currentUrl, [(LinkItem*)[arrayData objectAtIndex:curMsg] postID]];
+            
+        [HFRAlertView DisplayAlertViewWithTitle:@"Lien copié dans le presse-papiers" forDuration:(long)1];
+    }
 }
 
 -(void) actionAlerter:(NSNumber *)curMsgN {
