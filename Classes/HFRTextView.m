@@ -21,7 +21,11 @@
     
     //Do more intitialization here
     
-    if (!@available(iOS 16.0, *)) {
+    if (@available(iOS 16.0, *)) {
+        // Do nothing...
+        // If !@availbale seems to be not working
+    }
+    else {
         UIImage *menuImgCopy = [UIImage imageNamed:@"CopyFilled-20"];
         UIImage *menuImgCut = [UIImage imageNamed:@"CutFilled-20"];
         UIImage *menuImgPaste = [UIImage imageNamed:@"PasteFilled-20"];
@@ -137,6 +141,22 @@ API_AVAILABLE(ios(16.0))
 // Enable to hide some menuitem for HFRTextView
 - (BOOL)canPerformAction: (SEL)action withSender: (id)sender {
     BOOL bCanPerformAction = NO;
+    
+    if (@available(iOS 16.0, *)) {
+        // Do nothing...
+        // If !@availbale seems to be not working
+    }
+    else {
+        if (action == @selector(textBold:)) return YES;
+        if (action == @selector(textItalic:)) return YES;
+        if (action == @selector(textUnderline:)) return YES;
+        if (action == @selector(textStrike:)) return YES;
+        if (action == @selector(textSpoiler:)) return YES;
+        if (action == @selector(textQuote:)) return YES;
+        if (action == @selector(textLink:)) return YES;
+        if (action == @selector(textImg:)) return YES;
+        if (action == @selector(textFixe:)) return YES;
+    }
     
     if (action == @selector(cut:)) bCanPerformAction = [super canPerformAction:@selector(cut:) withSender:sender];
     if (action == @selector(copy:)) bCanPerformAction = [super canPerformAction:@selector(copy:) withSender:sender];
