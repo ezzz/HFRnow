@@ -149,12 +149,12 @@
 	} else if ([display isEqualToString:@"yes"]) {
 		NSString *regEx3 = @"<a rel=\"nofollow\" href=\"([^\"]+)\" target=\"_blank\" class=\"cLink\"><img src=\"([^\"]+)\" alt=\"[^\"]+\" title=\"[^\"]+\" onload=\"[^\"]+\" style=\"[^\"]+\"></a>";			
 		myRawContent = [myRawContent stringByReplacingOccurrencesOfRegex:regEx3
-															  withString:@"<img onClick=\"window.location = 'oijlkajsdoihjlkjasdoimbrows://'+this.title+'/'+encodeURIComponent(this.alt); return false;\" class=\"hfrplusimg\" title=\"%%%%ID%%%%\" src=\"$2\" alt=\"$2\" longdesc=\"$1\">"];
+															  withString:@"<a rel=\"nofollow\" href=\"$1\" target=\"_blank\" class=\"cLink\"><img onClick=\"window.location = 'oijlkajsdoihjlkjasdoimbrows://'+this.title+'/'+encodeURIComponent(this.alt); return false;\" class=\"hfrplusimg\" title=\"%%%%ID%%%%\" src=\"$2\" alt=\"$2\" longdesc=\"$1\">"];
 		
 		//External Images			
 		NSString *regEx = @"<img src=\"([^\"]+)\" alt=\"[^\"]+\" title=\"[^\"]+\" onload=\"[^\"]+\" style=\"[^\"]+\">";			
 		myRawContent = [myRawContent stringByReplacingOccurrencesOfRegex:regEx
-															  withString:@"<img onClick=\"window.location = 'oijlkajsdoihjlkjasdoimbrows://'+this.title+'/'+encodeURIComponent(this.alt); return false;\" class=\"hfrplusimg\" title=\"%%%%ID%%%%\" src=\"$1\" alt=\"$1\" longdesc=\"\">"];
+															  withString:@"<a rel=\"nofollow\" href=\"$1\" target=\"_blank\" class=\"cLink\"><img onClick=\"window.location = 'oijlkajsdoihjlkjasdoimbrows://'+this.title+'/'+encodeURIComponent(this.alt); return false;\" class=\"hfrplusimg\" title=\"%%%%ID%%%%\" src=\"$1\" alt=\"$1\" longdesc=\"\">"];
 	} else if ([display isEqualToString:@"wifi"]) {
         
         NetworkStatus netStatus = [[[HFRplusAppDelegate sharedAppDelegate] internetReach] currentReachabilityStatus];
@@ -167,12 +167,12 @@
                 //Replacing Links with IMG with custom IMG
                 NSString *regEx3 = @"<a rel=\"nofollow\" href=\"([^\"]+)\" target=\"_blank\" class=\"cLink\"><img src=\"([^\"]+)\" alt=\"[^\"]+\" title=\"[^\"]+\" onload=\"[^\"]+\" style=\"[^\"]+\"></a>";			
                 myRawContent = [myRawContent stringByReplacingOccurrencesOfRegex:regEx3
-                                                                      withString:[NSString stringWithFormat:@"<img onClick=\"window.location = 'oijlkajsdoihjlkjasdoimbrows://'+this.title+'/'+encodeURIComponent(this.alt); return false;\" class=\"hfrplusimg\" title=\"%%%%ID%%%%\" src=\"%@\" alt=\"$2\" longdesc=\"$1\">",landscape]];
+                                                                      withString:[NSString stringWithFormat:@"<a rel=\"nofollow\" href=\"$1\" target=\"_blank\" class=\"cLink\"><img onClick=\"window.location = 'oijlkajsdoihjlkjasdoimbrows://'+this.title+'/'+encodeURIComponent(this.alt); return false;\" class=\"hfrplusimg\" title=\"%%%%ID%%%%\" src=\"%@\" alt=\"$2\" longdesc=\"$1\">",landscape]];
                 
                 //External Images			
                 NSString *regEx = @"<img src=\"([^\"]+)\" alt=\"[^\"]+\" title=\"[^\"]+\" onload=\"[^\"]+\" style=\"[^\"]+\">";			
                 myRawContent = [myRawContent stringByReplacingOccurrencesOfRegex:regEx
-                                                                      withString:[NSString stringWithFormat:@"<img onClick=\"window.location = 'oijlkajsdoihjlkjasdoimbrows://'+this.title+'/'+encodeURIComponent(this.alt); return false;\" class=\"hfrplusimg\" title=\"%%%%ID%%%%\" src=\"%@\" alt=\"$1\" longdesc=\"\">",landscape]];
+                                                                      withString:[NSString stringWithFormat:@"<a rel=\"nofollow\" href=\"$1\" target=\"_blank\" class=\"cLink\"><img onClick=\"window.location = 'oijlkajsdoihjlkjasdoimbrows://'+this.title+'/'+encodeURIComponent(this.alt); return false;\" class=\"hfrplusimg\" title=\"%%%%ID%%%%\" src=\"%@\" alt=\"$1\" longdesc=\"\">",landscape]];
                 break;
             }
             case ReachableViaWiFi:
@@ -180,18 +180,18 @@
                // NSLog( @"Reachable WiFi");
                 NSString *regEx3 = @"<a rel=\"nofollow\" href=\"([^\"]+)\" target=\"_blank\" class=\"cLink\"><img src=\"([^\"]+)\" alt=\"[^\"]+\" title=\"[^\"]+\" onload=\"[^\"]+\" style=\"[^\"]+\"></a>";			
                 myRawContent = [myRawContent stringByReplacingOccurrencesOfRegex:regEx3
-                                                                      withString:@"<img onClick=\"window.location = 'oijlkajsdoihjlkjasdoimbrows://'+this.title+'/'+encodeURIComponent(this.alt); return false;\" class=\"hfrplusimg\" title=\"%%%%ID%%%%\" src=\"$2\" alt=\"$2\" longdesc=\"$1\">"];
+                                                                      withString:@"<a rel=\"nofollow\" href=\"$1\" target=\"_blank\" class=\"cLink\"><img onClick=\"window.location = 'oijlkajsdoihjlkjasdoimbrows://'+this.title+'/'+encodeURIComponent(this.alt); return false;\" class=\"hfrplusimg\" title=\"%%%%ID%%%%\" src=\"$2\" alt=\"$2\" longdesc=\"$1\">"];
                 
                 //External Images			
                 NSString *regEx = @"<img src=\"([^\"]+)\" alt=\"[^\"]+\" title=\"[^\"]+\" onload=\"[^\"]+\" style=\"[^\"]+\">";			
                 myRawContent = [myRawContent stringByReplacingOccurrencesOfRegex:regEx
-                                                                      withString:@"<img onClick=\"window.location = 'oijlkajsdoihjlkjasdoimbrows://'+this.title+'/'+encodeURIComponent(this.alt); return false;\" class=\"hfrplusimg\" title=\"%%%%ID%%%%\" src=\"$1\" alt=\"$1\" longdesc=\"\">"];
+                                                                      withString:@"<a rel=\"nofollow\" href=\"$1\" target=\"_blank\" class=\"cLink\"><img onClick=\"window.location = 'oijlkajsdoihjlkjasdoimbrows://'+this.title+'/'+encodeURIComponent(this.alt); return false;\" class=\"hfrplusimg\" title=\"%%%%ID%%%%\" src=\"$1\" alt=\"$1\" longdesc=\"\">"];
                 
                 break;
             }
         }
     }
-	
+    
 	//Replace Internal Images with Bundle://
 	NSString *regEx4 = @"\\|NATIVE-([^-]+)-98787687687697\\|";			
 	myRawContent = [myRawContent stringByReplacingOccurrencesOfRegex:regEx4

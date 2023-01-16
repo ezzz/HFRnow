@@ -130,6 +130,7 @@ API_AVAILABLE(ios(16.0))
     action = [UIAction actionWithTitle:@"" image:menuImgImage identifier:nil  handler:^(__kindof UIAction * _Nonnull action) {
         [self insertBBCode:@"img"];
     }];
+    [childrenList addObject:action];
     action = [UIAction actionWithTitle:@"FIXED" image:nil identifier:nil  handler:^(__kindof UIAction * _Nonnull action) {
         [self insertBBCode:@"fixed"];
     }];
@@ -162,7 +163,7 @@ API_AVAILABLE(ios(16.0))
     if (action == @selector(copy:)) bCanPerformAction = [super canPerformAction:@selector(copy:) withSender:sender];
     if (action == @selector(paste:)) bCanPerformAction = [super canPerformAction:@selector(paste:) withSender:sender];
     
-    if ([NSStringFromSelector(action) isEqualToString:@"replace:"]) bCanPerformAction = NO;
+    if ([NSStringFromSelector(action) isEqualToString:@"replace:"]) bCanPerformAction = YES;
     if ([NSStringFromSelector(action) isEqualToString:@"_promptForReplace:"]) bCanPerformAction = NO;
     if ([NSStringFromSelector(action) isEqualToString:@"_findSelected:"]) bCanPerformAction = NO;
 
