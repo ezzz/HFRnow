@@ -454,20 +454,20 @@ table.code *, table.fixed * {
 	text-decoration:none;
 }
 /*38x31*/
-#toolbarpage .button {
+#toolbarpage .button1 {
 
 	position:absolute;
-	width:39px;
+	width:30px;
 	height:30px;
 	top:7px;
+    left:5px;
 }
 
-#toolbarpage .button a {
-	width:39px;
+#toolbarpage .button1 a {
+	width:30px;
 	height:30px;
 	display:block;
-	text-indent: -100px;
-	overflow: hidden;
+    padding: 10px !important;
 }
 
 #toolbarpage .button.begin {
@@ -487,17 +487,17 @@ table.code *, table.fixed * {
 
 #toolbarpage .button2 {
 	position:absolute;
-	width:32px;
+	width:30px;
 	height:30px;
 	top:7px;
+    left:80px;
 }
 
 #toolbarpage .button2 a {
-	width:32px;
+	width:30px;
 	height:30px;
 	display:block;
-	text-indent: -100px;
-	overflow: hidden;
+    padding: 10px !important;
 }
 
 #toolbarpage .button2.begin {
@@ -514,6 +514,39 @@ table.code *, table.fixed * {
 }
 #toolbarpage .button2.end.hover {
 }
+
+#toolbarpage .button3 {
+    position:absolute;
+    width:30px;
+    height:30px;
+    top:7px;
+    right:98px;
+}
+
+#toolbarpage .button3 a {
+    width:30px;
+    height:30px;
+    display:block;
+    padding: 10px !important;
+}
+
+#toolbarpage .button4 {
+    position:absolute;
+    width:30px;
+    height:30px;
+    top:7px;
+    right:33px;
+}
+
+#toolbarpage .button4 a {
+    width:30px;
+    height:30px;
+    display:block;
+    padding: 10px !important;
+}
+
+
+
 
 .u {
 	text-decoration:underline;
@@ -880,6 +913,21 @@ body.ios7 {
     display: none;
 }
 
+#toolbarpage .cls-1 {
+    fill: var(--color-action);
+    top: -10px
+}
+
+.cls-1 {
+    fill: var(--color-action);
+    top: -10px
+}
+
+.button_svg_disabled {
+    fill: var(--color-action-disabled);
+    top: -10px
+}
+
 .ios7 #toolbarpage {
     background:var(--color-background-bars); /* barre de navigation bas de page */
     border-top: 1px solid var(--color-text2); !important;
@@ -892,95 +940,26 @@ body.ios7 {
     color:var(--color-texte); /* Numero de page dans la barre de navigation bas de page */
 }
 
-.ios7 #toolbarpage .button {
-    width:21px;
-    height:15px;
-    top:18px;
-    background-size:100% 100%;
+.ios7 .buttonsvg {
+    fill: var(--color-action);
 }
 
-.ios7 #toolbarpage .button2 {
-    width:12px;
-    height:15px;
-    top:18px;
-    background-size:100% 100%;
+.button_svg_active {
+    fill: var(--color-action);
 }
 
-
-.ios7 #toolbarpage .button a {
-	width:17px;
-	height:15px;
-    display:block;
-	text-indent: -100px;
-	overflow: hidden;
+.button2_svg_active {
+    fill: var(--color-action);
 }
 
-.ios7 #toolbarpage .button2 a {
-	width:12px;
-	height:15px;
-	display:block;
-	text-indent: -100px;
-	overflow: hidden;
+.button3_svg_active {
+    fill: var(--color-action);
 }
 
-.ios7 #toolbarpage .button.begin {
-    left:16px;
-    -webkit-mask-box-image: url(arrowbegin.svg); /* no-repeat 100% 100%;*/
-    -webkit-mask-size: cover;
-    background-color:var(--color-action-disabled);
-}
-.ios7 #toolbarpage .button.begin.active {
-    left:16px;
-    -webkit-mask-box-image: url(arrowbegin.svg); /* no-repeat 100% 100%;*/
-    -webkit-mask-size: cover;
-    background-color:var(--color-action);
-}
-.ios7 #toolbarpage .button.begin.hover {
-    opacity:0.4;
-}
-.ios7 #toolbarpage .button.end {
-	right:16px;
-    -webkit-mask-box-image: url(arrowend.svg); /* no-repeat 100% 100%;*/
-    -webkit-mask-size: cover;
-    background-color:var(--color-action-disabled);
-}
-.ios7 #toolbarpage .button.end.active {
-    -webkit-mask-box-image: url(arrowend.svg); /* no-repeat 100% 100%;*/
-    -webkit-mask-size: cover;
-    background-color:var(--color-action);
-}
-.ios7 #toolbarpage .button.end.hover {
-    opacity:0.4;
+.button4_svg_active {
+    fill: var(--color-action);
 }
 
-.ios7 #toolbarpage .button2.begin {
-	left:65px;
-    -webkit-mask-box-image: url(arrowback.svg); /* no-repeat 100% 100%;*/
-    -webkit-mask-size: cover;
-    background-color:var(--color-action-disabled);
-}
-.ios7 #toolbarpage .button2.begin.active {
-    -webkit-mask-box-image: url(arrowback.svg); /* no-repeat 100% 100%;*/
-    -webkit-mask-size: cover;
-    background-color:var(--color-action);
-}
-.ios7 #toolbarpage .button2.begin.hover {
-    opacity:0.4;
-}
-.ios7 #toolbarpage .button2.end {
-	right:65px;
-    -webkit-mask-box-image: url(arrowforward.svg); /* no-repeat 100% 100%;*/
-    -webkit-mask-size: cover;
-    background-color:var(--color-action-disabled);
-}
-.ios7 #toolbarpage .button2.end.active {
-    -webkit-mask-box-image: url(arrowforward.svg); /* no-repeat 100% 100%;*/
-    -webkit-mask-size: cover;
-    background-color:var(--color-action);
-}
-.ios7 #toolbarpage .button2.end.hover {
-    opacity:0.4;
-}
 
 /* -- iOS7 */
 
