@@ -322,7 +322,29 @@
                     bFilterCurrentPost = NO;
                 }
             }
+            
+            //edit citation
+            HTMLNode * editedNode = [messageNode findChildWithAttribute:@"class" matchingName:@"edited" allowPartial:NO];
+            if ([editedNode allContents]) {
+                NSString *regularExpressionString = @".*Message cité ([^<]+) fois.*";
+                linkItem.quotedNB = [[[[editedNode allContents] stringByMatching:regularExpressionString capture:1L] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] stringByDecodingXMLEntities];
+                if (linkItem.quotedNB) {
+                    linkItem.quotedLINK = [[editedNode findChildTag:@"a"] getAttributeNamed:@"href"];
+                    
+                    // For the filtering feature, keep post quoted 3 times or more
+                    if (bFilterPostsQuotes && bFilterCurrentPost && [[linkItem.quotedNB lowercaseString] intValue] >= 3) {
+                        bFilterCurrentPost = NO;
+                    }
+                }
+                
+                NSString *regularExpressionString2 = @".*Message édité par ([^<]+).*";
+                linkItem.editedTime = [[[[editedNode allContents] stringByMatching:regularExpressionString2 capture:1L] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] stringByDecodingXMLEntities];
+                
+                //NSLog(@"editedTime = %@", linkItem.editedTime);
+                //NSLog(@"quotedLINK = %@", linkItem.quotedLINK);
+            }
 
+            
             // When activated, filter to remove posts from other people or where you are not quoted
             if (bFilterPostsQuotes && bFilterCurrentPost) {
                 continue;
@@ -372,21 +394,6 @@
 				linkItem.messageDate = @"";
 			}
 			
-            //edit citation
-			HTMLNode * editedNode = [messageNode findChildWithAttribute:@"class" matchingName:@"edited" allowPartial:NO];
-            if ([editedNode allContents]) {
-                NSString *regularExpressionString = @".*Message cité ([^<]+) fois.*";
-                linkItem.quotedNB = [[[[editedNode allContents] stringByMatching:regularExpressionString capture:1L] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] stringByDecodingXMLEntities];
-                if (linkItem.quotedNB) {
-                    linkItem.quotedLINK = [[editedNode findChildTag:@"a"] getAttributeNamed:@"href"];
-                }
-                
-                NSString *regularExpressionString2 = @".*Message édité par ([^<]+).*";
-                linkItem.editedTime = [[[[editedNode allContents] stringByMatching:regularExpressionString2 capture:1L] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] stringByDecodingXMLEntities];
-                
-                //NSLog(@"editedTime = %@", linkItem.editedTime);
-                //NSLog(@"quotedLINK = %@", linkItem.quotedLINK);
-            }
 
             
 			/*NSString *regularExpressionString = @"oijlkajsdoihjlkjasdoimbrows://[^/]+/(.*)";

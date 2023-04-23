@@ -422,132 +422,6 @@ table.code *, table.fixed * {
 	background-size: 15px;
 }
 
-#toolbarpage * {
-    -webkit-user-select: none;
-    -webkit-touch-callout:none;
-    -webkit-tap-highlight-color:rgba(0,0,0,0);
-}
-
-#toolbarpage {
-    -webkit-user-select: none;
-    -webkit-touch-callout:none;
-    -webkit-tap-highlight-color:rgba(0,0,0,0);
-    color:var(--color-text);
-	line-height:32px;
-	font-size:15px !important;
-	font-weight:bold;
-	border-top:1px solid #000;
-	text-align:center;
-	position:relative;
-	background-image: url(toolbar3.png);
-	height:43px;
-    width:100%;
-	text-shadow: rgba(0, 0, 0, 0.6) 0px -1px 1px;
-    
-}
-#toolbarpage a {
--webkit-user-select: none;
--webkit-touch-callout:none;
--webkit-tap-highlight-color:rgba(0,0,0,0);
-
-	color:#FFF;
-	text-decoration:none;
-}
-/*38x31*/
-#toolbarpage .button1 {
-
-	position:absolute;
-	width:30px;
-	height:30px;
-	top:7px;
-    left:5px;
-}
-
-#toolbarpage .button1 a {
-	width:30px;
-	height:30px;
-	display:block;
-    padding: 10px !important;
-}
-
-#toolbarpage .button.begin {
-	left:6px;
-}
-#toolbarpage .button.begin.active {
-}
-#toolbarpage .button.begin.hover {
-}
-#toolbarpage .button.end {
-	right:6px;
-}
-#toolbarpage .button.end.active {
-}
-#toolbarpage .button.end.hover {
-}
-
-#toolbarpage .button2 {
-	position:absolute;
-	width:30px;
-	height:30px;
-	top:7px;
-    left:80px;
-}
-
-#toolbarpage .button2 a {
-	width:30px;
-	height:30px;
-	display:block;
-    padding: 10px !important;
-}
-
-#toolbarpage .button2.begin {
-	left:55px;
-}
-#toolbarpage .button2.begin.active {
-}
-#toolbarpage .button2.begin.hover {
-}
-#toolbarpage .button2.end {
-	right:55px;
-}
-#toolbarpage .button2.end.active {
-}
-#toolbarpage .button2.end.hover {
-}
-
-#toolbarpage .button3 {
-    position:absolute;
-    width:30px;
-    height:30px;
-    top:7px;
-    right:98px;
-}
-
-#toolbarpage .button3 a {
-    width:30px;
-    height:30px;
-    display:block;
-    padding: 10px !important;
-}
-
-#toolbarpage .button4 {
-    position:absolute;
-    width:30px;
-    height:30px;
-    top:7px;
-    right:33px;
-}
-
-#toolbarpage .button4 a {
-    width:30px;
-    height:30px;
-    display:block;
-    padding: 10px !important;
-}
-
-
-
-
 .u {
 	text-decoration:underline;
 }
@@ -913,19 +787,37 @@ body.ios7 {
     display: none;
 }
 
-#toolbarpage .cls-1 {
-    fill: var(--color-action);
-    top: -10px
+#toolbarpage * {
+    -webkit-user-select: none;
+    -webkit-touch-callout:none;
+    -webkit-tap-highlight-color:rgba(0,0,0,0);
 }
 
-.cls-1 {
-    fill: var(--color-action);
-    top: -10px
+#toolbarpage {
+    -webkit-user-select: none;
+    -webkit-touch-callout:none;
+    -webkit-tap-highlight-color:rgba(0,0,0,0);
+    color:var(--color-text);
+    line-height:32px;
+    font-size:15px !important;
+    font-weight:bold;
+    border-top:1px solid #000;
+    text-align:center;
+    position:relative;
+    background-image: url(toolbar3.png);
+    height:43px;
+    width:100%;
+    text-shadow: rgba(0, 0, 0, 0.6) 0px -1px 1px;
+    
 }
 
-.button_svg_disabled {
-    fill: var(--color-action-disabled);
-    top: -10px
+#toolbarpage a {
+    -webkit-user-select: none;
+    -webkit-touch-callout:none;
+    -webkit-tap-highlight-color:rgba(0,0,0,0);
+
+    color:#FFF;
+    text-decoration:none;
 }
 
 .ios7 #toolbarpage {
@@ -940,24 +832,77 @@ body.ios7 {
     color:var(--color-texte); /* Numero de page dans la barre de navigation bas de page */
 }
 
-.ios7 .buttonsvg {
-    fill: var(--color-action);
+#toolbarpage .button1 {
+    position:absolute;
+    width:30px;
+    height:30px;
+    top:7px;
+    left:5px;
 }
+
+#toolbarpage .button1 a {
+    width:30px;
+    height:30px;
+    display:block;
+    padding-bottom: 5px !important;
+    padding-top: 11px !important;
+}
+
+#toolbarpage .button2 {
+    position:absolute;
+    width:30px;
+    height:30px;
+    top:7px;
+    left:60px;
+}
+
+#toolbarpage .button2 a {
+    width:30px;
+    height:30px;
+    display:block;
+    padding-bottom: 5px !important;
+    padding-top: 11px !important;
+}
+
+#toolbarpage .button3 {
+    position:absolute;
+    width:30px;
+    height:30px;
+    top:7px;
+    right:60px;
+}
+
+#toolbarpage .button3 a {
+    width:30px;
+    height:30px;
+    display:block;
+    padding-bottom: 5px !important;
+    padding-top: 11px !important;
+}
+
+#toolbarpage .button4 {
+    position:absolute;
+    width:30px;
+    height:30px;
+    top:7px;
+    right:13px;
+}
+
+#toolbarpage .button4 a {
+    width:30px;
+    height:30px;
+    display:block;
+    padding-bottom: 5px !important;
+    padding-top: 11px !important;
+}
+
 
 .button_svg_active {
     fill: var(--color-action);
 }
 
-.button2_svg_active {
-    fill: var(--color-action);
-}
-
-.button3_svg_active {
-    fill: var(--color-action);
-}
-
-.button4_svg_active {
-    fill: var(--color-action);
+.button_svg_disabled {
+    fill: var(--color-action-disabled);
 }
 
 
