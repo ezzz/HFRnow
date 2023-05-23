@@ -131,7 +131,6 @@
     self.navigationItem.rightBarButtonItem = sendBarItem;
     [self.navigationItem.rightBarButtonItem setEnabled:NO];
     
-    
     [self.segmentControlerPage setEnabled:NO forSegmentAtIndex:0];
     [self.segmentControlerPage setWidth:40.0 forSegmentAtIndex:0];
     [self.segmentControlerPage setWidth:40.0 forSegmentAtIndex:2];

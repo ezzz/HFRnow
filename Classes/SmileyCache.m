@@ -212,78 +212,76 @@ static SmileyCache *_shared = nil;    // static instance variable
 
 - (UIImage*) getImageForIndex:(int)index forCollection:(UICollectionView*)cv andIndexPath:(NSIndexPath*)ip favoriteSmiley:(BOOL)bFavoriteSmiley favoriteFromApp:(BOOL)bFavoriteFromApp
 {
-    @try {
-        NSString *filename = nil;
+    NSString *filename = nil;
 
-        if (bFavoriteSmiley && bFavoriteFromApp) {
-            filename = [[[self.arrFavoritesSmileysApp objectAtIndex:index] objectForKey:@"source"] stringByReplacingOccurrencesOfString:@"http://forum-images.hardware.fr/" withString:@""];
-            NSLog(@"Searching image App Favorite index (%d)", index);
-        }
-        else if (bFavoriteSmiley) {
-            filename = [[[self.arrFavoritesSmileysForum objectAtIndex:index] objectForKey:@"source"] stringByReplacingOccurrencesOfString:@"http://forum-images.hardware.fr/" withString:@""];
-            NSLog(@"Searching image Forum Favorite index (%d)", index);
-        }
-        else {
-            filename = [[[self.arrCurrentSmileyArray objectAtIndex:index] objectForKey:@"source"] stringByReplacingOccurrencesOfString:@"http://forum-images.hardware.fr/" withString:@""];
-            NSLog(@"Searching image Current index (%d)", index);
-        }
-        filename = [filename stringByReplacingOccurrencesOfString:@"https://forum-images.hardware.fr/" withString:@""];
-        UIImage* image = nil;
-        ImageInCache* iic = [self.cacheSmileys objectForKey:filename];
-        if (iic) {
-            image = iic.image;
-        }
-        
-        if (image == nil && ((!bFavoriteSmiley && self.bStopLoadingSmileysSearchToCache) || (bFavoriteSmiley && self.bStopLoadingSmileysCustomToCache)))
-        {
-            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-            
-                NSString* source = nil;
-                if (bFavoriteSmiley && bFavoriteFromApp) {
-                    int indexFavApp = (int)index - (int)self.arrFavoritesSmileysForum.count;
-                    source  = [[self.arrFavoritesSmileysApp objectAtIndex:indexFavApp] objectForKey:@"source"];
-                    NSLog(@"--> Loading image FavoriteApp at index (%d) : %@", index, filename);
-                }
-                else if (bFavoriteSmiley) {
-                    source  = [[self.arrFavoritesSmileysForum objectAtIndex:index] objectForKey:@"source"];
-                    NSLog(@"--> Loading image FavoriteForum at index (%d) : %@", index, filename);
-                }
-                else {
-                    if (index < self.arrCurrentSmileyArray.count) {
-                        source  = [[self.arrCurrentSmileyArray objectAtIndex:index] objectForKey:@"source"];
-                        NSLog(@"--> Loading image Search at index (%d) : %@", index, filename);
-                    }
-                }
-                
-                if (source) {
-                    NSData* imgData = [NSData dataWithContentsOfURL:[NSURL URLWithString:[NSString stringWithFormat:@"%@", [source stringByAddingPercentEscapesUsingEncoding:NSASCIIStringEncoding]]]];
-                    if (imgData) {
-                        UIImage* image = [UIImage sd_animatedGIFWithData:imgData];
-                        ImageInCache* iic = [[ImageInCache alloc] init];
-                        iic.image = image;
-                        //NSLog(@"SmileyCache1 ADD: %@",filename);
-                        [self.cacheSmileys setObject:iic forKey:filename];
-                    
-
-                        // Says VC that cell can be reloaded
-                        dispatch_async(dispatch_get_main_queue(), ^{
-                            //[cv reloadData];
-                            NSArray *myArray = [[NSArray alloc] initWithObjects:ip, nil];
-                            //NSLog(@"SmileyCache1 RELOAD cell: %d", (int)ip.row);
-                            [cv reloadItemsAtIndexPaths:myArray];
-                        });
-                    }
-                }
-            });
-        }
-        else {
-            NSLog(@"--> Image in cache");
-        }
-        return image;
-    } @catch (NSException *e) {
-        NSLog(@"Error in smiley selection: %@", e);
-        return [UIImage imageNamed:@"placeholder"];
+    if (bFavoriteSmiley && bFavoriteFromApp) {
+        filename = [[[self.arrFavoritesSmileysApp objectAtIndex:index] objectForKey:@"source"] stringByReplacingOccurrencesOfString:@"http://forum-images.hardware.fr/" withString:@""];
+        NSLog(@"Searching image App Favorite index (%d)", index);
     }
+    else if (bFavoriteSmiley) {
+        filename = [[[self.arrFavoritesSmileysForum objectAtIndex:index] objectForKey:@"source"] stringByReplacingOccurrencesOfString:@"http://forum-images.hardware.fr/" withString:@""];
+        NSLog(@"Searching image Forum Favorite index (%d)", index);
+    }
+    else {
+        filename = [[[self.arrCurrentSmileyArray objectAtIndex:index] objectForKey:@"source"] stringByReplacingOccurrencesOfString:@"http://forum-images.hardware.fr/" withString:@""];
+        NSLog(@"Searching image Current index (%d)", index);
+    }
+    filename = [filename stringByReplacingOccurrencesOfString:@"https://forum-images.hardware.fr/" withString:@""];
+    UIImage* image = nil;
+    ImageInCache* iic = [self.cacheSmileys objectForKey:filename];
+    if (iic) {
+        image = iic.image;
+    }
+    
+    if (image == nil && ((!bFavoriteSmiley && self.bStopLoadingSmileysSearchToCache) || (bFavoriteSmiley && self.bStopLoadingSmileysCustomToCache)))
+    {
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        
+            NSString* source = nil;
+            if (bFavoriteSmiley && bFavoriteFromApp) {
+                int indexFavApp = (int)index - (int)self.arrFavoritesSmileysForum.count;
+                source  = [[self.arrFavoritesSmileysApp objectAtIndex:indexFavApp] objectForKey:@"source"];
+                NSLog(@"--> Loading image FavoriteApp at index (%d) : %@", index, filename);
+            }
+            else if (bFavoriteSmiley) {
+                source  = [[self.arrFavoritesSmileysForum objectAtIndex:index] objectForKey:@"source"];
+                NSLog(@"--> Loading image FavoriteForum at index (%d) : %@", index, filename);
+            }
+            else {
+                if (index < self.arrCurrentSmileyArray.count) {
+                    source  = [[self.arrCurrentSmileyArray objectAtIndex:index] objectForKey:@"source"];
+                    NSLog(@"--> Loading image Search at index (%d) : %@", index, filename);
+                }
+            }
+            
+            if (source) {
+                NSString* sourceConv1 = [source stringByAddingPercentEscapesUsingEncoding:NSASCIIStringEncoding];
+                NSData* imgData = [NSData dataWithContentsOfURL:[NSURL URLWithString:[NSString stringWithFormat:@"%@", sourceConv1]]];
+                
+                
+                if (imgData) {
+                    UIImage* image = [UIImage sd_animatedGIFWithData:imgData];
+                    ImageInCache* iic = [[ImageInCache alloc] init];
+                    iic.image = image;
+                    //NSLog(@"SmileyCache1 ADD: %@",filename);
+                    [self.cacheSmileys setObject:iic forKey:filename];
+                
+
+                    // Says VC that cell can be reloaded
+                    dispatch_async(dispatch_get_main_queue(), ^{
+                        //[cv reloadData];
+                        NSArray *myArray = [[NSArray alloc] initWithObjects:ip, nil];
+                        //NSLog(@"SmileyCache1 RELOAD cell: %d", (int)ip.row);
+                        [cv reloadItemsAtIndexPaths:myArray];
+                    });
+                }
+            }
+        });
+    }
+    else {
+        NSLog(@"--> Image in cache");
+    }
+    return image;
 }
 
 

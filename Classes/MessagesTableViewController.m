@@ -861,7 +861,8 @@
     //[self.messagesWebView hideGradientBackground];
     self.messagesWebView.navigationDelegate = self;
     [self.messagesWebView setBackgroundColor:[UIColor colorWithRed:239/255.0f green:239/255.0f blue:244/255.0f alpha:1.0f]];
-    
+    if (@available(iOS 16.4, *)) { [self.messagesWebView setInspectable:true]; }
+
 	//Gesture de Gauche à droite
 	UIGestureRecognizer* recognizer = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(handleSwipeToRight:)];
 	self.swipeRightRecognizer = (UISwipeGestureRecognizer *)recognizer;
@@ -1737,25 +1738,29 @@
             NSString *buttonPrevious, *buttonNext;
             
             if ([(UIBarButtonItem *)[self.aToolbar.items objectAtIndex:0] isEnabled]) {
-                buttonBegin = @"<div class=\"button begin active\" ontouchstart=\"$(this).addClass(\\'hover\\')\" ontouchend=\"$(this).removeClass(\\'hover\\')\" ><a href=\"oijlkajsdoihjlkjasdoauto://begin\">begin</a></div>";
-                buttonPrevious = @"<div class=\"button2 begin active\" ontouchstart=\"$(this).addClass(\\'hover\\')\" ontouchend=\"$(this).removeClass(\\'hover\\')\" ><a href=\"oijlkajsdoihjlkjasdoauto://previous\">previous</a></div>";
+                
+                buttonBegin = @"<div class=\"button1\" ontouchstart=\"$(this).addClass(\\'hover\\')\" ontouchend=\"$(this).removeClass(\\'hover\\')\" ><a href=\"oijlkajsdoihjlkjasdoauto://begin\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"38\" height=\"15\" viewBox=\"0 0 38 28\"><defs><style>button_svg_active {fill: var(--color-action);fill-rule: evenodd;}</style></defs><path id=\"Shape1.svg\" class=\"button_svg_active\" d=\"M38,0L23,14,38,28V0ZM22,0L7,14,22,28V0ZM6,0V28H0V0H6Z\"/></svg></a></div>";
+                
+                buttonPrevious = @"<div class=\"button2\" ontouchstart=\"$(this).addClass(\\'hover\\')\" ontouchend=\"$(this).removeClass(\\'hover\\')\" ><a href=\"oijlkajsdoihjlkjasdoauto://previous\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"23\" height=\"15\" viewBox=\"0 0 23 28\"><defs><style>button_svg_active {    fill: var(--color-action);fill-rule: evenodd;}</style></defs><path id=\"Shape2.svg\" class=\"button_svg_active\" d=\"M23,0L0,14,23,28V0Z\"/></svg></a></div>";
             }
             else {
-                buttonBegin = @"<div class=\"button begin\"></div>";
-                buttonPrevious = @"<div class=\"button2 begin\"></div>";
+                buttonBegin = @"<div class=\"button1\"><a href=\"\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"38\" height=\"15\" viewBox=\"0 0 38 28\"><defs><style>button_svg_disabled {fill: var(--color-action-disabled);fill-rule: evenodd;}</style></defs><path id=\"Shape1.svg\" class=\"button_svg_disabled\" d=\"M38,0L23,14,38,28V0ZM22,0L7,14,22,28V0ZM6,0V28H0V0H6Z\"/></a></svg></div>";
+                
+                buttonPrevious = @"<div class=\"button2\"><a href=\"\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"23\" height=\"15\" viewBox=\"0 0 23 28\"><defs><style>button_svg_disabled {    fill: var(--color-action-disabled);fill-rule: evenodd;}</style></defs><path id=\"Shape2.svg\" class=\"button_svg_disabled\" d=\"M23,0L0,14,23,28V0Z\"/></svg></div>";
+
             }
             
             if ([(UIBarButtonItem *)[self.aToolbar.items objectAtIndex:4] isEnabled]) {
-                buttonEnd = @"<div class=\"button end active\" ontouchstart=\"$(this).addClass(\\'hover\\')\" ontouchend=\"$(this).removeClass(\\'hover\\')\" ><a href=\"oijlkajsdoihjlkjasdoauto://end\">end</a></div>";
-                buttonNext = @"<div class=\"button2 end active\" ontouchstart=\"$(this).addClass(\\'hover\\')\" ontouchend=\"$(this).removeClass(\\'hover\\')\" ><a href=\"oijlkajsdoihjlkjasdoauto://next\">next</a></div>";
+                
+                buttonNext = @"<div class=\"button3\" ontouchstart=\"$(this).addClass(\\'hover\\')\" ontouchend=\"$(this).removeClass(\\'hover\\')\" ><a href=\"oijlkajsdoihjlkjasdoauto://next\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"23\" height=\"15\" viewBox=\"0 0 23 28\"><defs><style>button_svg_active {    fill: var(--color-action);fill-rule: evenodd;}</style></defs><path id=\"Shape2.svg\" class=\"button_svg_active\" d=\"M23,0L0,14,23,28V0Z\" transform=\"scale(-1,1) translate(-23,0)\"/></svg></a></div>";
+                
+                buttonEnd = @"<div class=\"button4\" ontouchstart=\"$(this).addClass(\\'hover\\')\" ontouchend=\"$(this).removeClass(\\'hover\\')\" ><a href=\"oijlkajsdoihjlkjasdoauto://end\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"38\" height=\"15\" viewBox=\"0 0 38 28\"><defs><style>button_svg_active {    fill: var(--color-action);fill-rule: evenodd;}</style></defs><path id=\"Shape4.svg\" class=\"button_svg_active\" d=\"M38,0L23,14,38,28V0ZM22,0L7,14,22,28V0ZM6,0V28H0V0H6Z\" transform=\"scale(-1,1) translate(-38,0)\"/></svg></a></div>";
             }
             else {
-                buttonEnd = @"<div class=\"button end\"></div>";
-                buttonNext = @"<div class=\"button2 end\"></div>";
+                buttonNext = @"<div class=\"button3\"><a href=\"\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"23\" height=\"15\" viewBox=\"0 0 23 28\"><defs><style>button_svg_disabled {    fill: var(--color-action-disabled);fill-rule: evenodd;}</style></defs><path id=\"Shape2.svg\" class=\"button_svg_disabled\" d=\"M23,0L0,14,23,28V0Z\" transform=\"scale(-1,1) translate(-23,0)\"/></svg></a></div>";
+                
+                buttonEnd = @"<div class=\"button4\"><a href=\"\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"38\" height=\"15\" viewBox=\"0 0 38 28\"><defs><style>button_svg_disabled {    fill: var(--color-action-disabled);fill-rule: evenodd;}</style></defs><path id=\"Shape4.svg\" class=\"button_svg_disabled\" d=\"M38,0L23,14,38,28V0ZM22,0L7,14,22,28V0ZM6,0V28H0V0H6Z\" transform=\"scale(-1,1) translate(-38,0)\"/></svg></a></div>";
             }
-            
-            
-            //[NSString stringWithString:@"<div class=\"button end\" ontouchstart=\"$(this).addClass(\\'hover\\')\" ontouchend=\"$(this).removeClass(\\'hover\\')\" ><a href=\"oijlkajsdoihjlkjasdoauto://end\">end</a></div>"];
             
             tooBar =  [NSString stringWithFormat:@"<div id=\"toolbarpage\">\
                        %@\
@@ -2555,7 +2560,7 @@ API_AVAILABLE(ios(16.0)) {
     NSString* sTPostID = [(LinkItem*)[arrayData objectAtIndex:[curMsgN intValue]] postID];
     NSString *sPostId = [sTPostID substringWithRange:NSMakeRange(1, [sTPostID length]-1)];
     NSString* sTopicId = self.arrayInputData[@"post"];
-    NSString *sRequest = [NSString stringWithFormat:@"http://alerte-qualitay.toyonos.info/api/getAlertesByTopic.php5?topic_id=%@", sTopicId];
+    NSString *sRequest = [NSString stringWithFormat:@"https://aq.super-h.fr/api/getAlertesByTopic.php?topic_id=%@", sTopicId];
     NSMutableURLRequest *urlRequest = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:sRequest]
                                                            cachePolicy:NSURLRequestReloadIgnoringCacheData
                                                        timeoutInterval:2];
@@ -2691,7 +2696,7 @@ API_AVAILABLE(ios(16.0)) {
     
     NSData *postData = [sParametersCreateAQ dataUsingEncoding:NSASCIIStringEncoding allowLossyConversion:YES];
     NSString *postLength = [NSString stringWithFormat:@"%ld",[postData length]];
-    NSURL *url = [NSURL URLWithString:@"http://alerte-qualitay.toyonos.info/api/addAlerte.php5"];
+    NSURL *url = [NSURL URLWithString:@"https://aq.super-h.fr/api/addAlerte.php"];
     
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url
                                                               cachePolicy:NSURLRequestReloadIgnoringCacheData
