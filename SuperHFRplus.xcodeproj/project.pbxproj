@@ -873,6 +873,8 @@
 		D8DDF2B31E58810A002F1484 /* ToolBarPlay_on_tinted@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = D8DDF2A51E58810A002F1484 /* ToolBarPlay_on_tinted@2x.png */; };
 		D8DDF2B51E58810A002F1484 /* ToolBarPrevious_on_tinted.png in Resources */ = {isa = PBXBuildFile; fileRef = D8DDF2A61E58810A002F1484 /* ToolBarPrevious_on_tinted.png */; };
 		D8DDF2B71E58810A002F1484 /* ToolBarPrevious_on_tinted@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = D8DDF2A71E58810A002F1484 /* ToolBarPrevious_on_tinted@2x.png */; };
+		D8E8F14429811E50004FC782 /* delete-25.png in Resources */ = {isa = PBXBuildFile; fileRef = D8E8F14229811E50004FC782 /* delete-25.png */; };
+		D8E8F14529811E50004FC782 /* delete-25@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = D8E8F14329811E50004FC782 /* delete-25@2x.png */; };
 		D8EFB18E1E59F23B000E45A2 /* loadinfo-white@2x.gif in Resources */ = {isa = PBXBuildFile; fileRef = D8EFB18C1E59F23B000E45A2 /* loadinfo-white@2x.gif */; };
 		D8EFB1911E59FCA5000E45A2 /* 121-landscapebig-white.png in Resources */ = {isa = PBXBuildFile; fileRef = D8EFB18F1E59FCA5000E45A2 /* 121-landscapebig-white.png */; };
 		D8F5CBAE1DF45C1100B029FC /* Reachability.m in Sources */ = {isa = PBXBuildFile; fileRef = D8F5CBAC1DF45C1100B029FC /* Reachability.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
@@ -1965,6 +1967,8 @@
 		D8DDF2A51E58810A002F1484 /* ToolBarPlay_on_tinted@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ToolBarPlay_on_tinted@2x.png"; sourceTree = "<group>"; };
 		D8DDF2A61E58810A002F1484 /* ToolBarPrevious_on_tinted.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = ToolBarPrevious_on_tinted.png; sourceTree = "<group>"; };
 		D8DDF2A71E58810A002F1484 /* ToolBarPrevious_on_tinted@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ToolBarPrevious_on_tinted@2x.png"; sourceTree = "<group>"; };
+		D8E8F14229811E50004FC782 /* delete-25.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "delete-25.png"; sourceTree = "<group>"; };
+		D8E8F14329811E50004FC782 /* delete-25@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "delete-25@2x.png"; sourceTree = "<group>"; };
 		D8EFB18C1E59F23B000E45A2 /* loadinfo-white@2x.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = "loadinfo-white@2x.gif"; sourceTree = "<group>"; };
 		D8EFB18F1E59FCA5000E45A2 /* 121-landscapebig-white.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "121-landscapebig-white.png"; sourceTree = "<group>"; };
 		D8F5CBAB1DF45C1100B029FC /* Reachability.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Reachability.h; sourceTree = "<group>"; };
@@ -3209,6 +3213,8 @@
 				CABC727217E6077A003E722E /* downsmall7@2x.png */,
 				CABC727317E6077A003E722E /* upsmall7.png */,
 				CABC727417E6077A003E722E /* upsmall7@2x.png */,
+				D8E8F14229811E50004FC782 /* delete-25.png */,
+				D8E8F14329811E50004FC782 /* delete-25@2x.png */,
 				D8B4EDD021C184970042C392 /* snow */,
 			);
 			path = UI;
@@ -3697,6 +3703,7 @@
 				CAF5DB8E1936CD7B000B5215 /* 10-arrows-in.png in Resources */,
 				D8685927214D5E200054617C /* style-liste-oled.css in Resources */,
 				15AC35702903E2DA00CCD6FC /* StrikethroughFilled-20-Inv@2x.png in Resources */,
+				D8E8F14529811E50004FC782 /* delete-25@2x.png in Resources */,
 				15AC358F2905261F00CCD6FC /* group_dark.png in Resources */,
 				CA7C6FBD185EF50E00B348BA /* tongue.gif in Resources */,
 				156246E02182310000F5B8DC /* arrowback.svg in Resources */,
@@ -4159,6 +4166,7 @@
 				CA7C7084185EF50E00B348BA /* 113-navigation@2x.png in Resources */,
 				CAF5DB611932BA58000B5215 /* check.png in Resources */,
 				4C0B8DBF1BA4522900D329BA /* PriceTagUSDFilled-40.png in Resources */,
+				D8E8F14429811E50004FC782 /* delete-25.png in Resources */,
 				4C21E9501BA5C70400691D65 /* BoldEFilled-20@2x.png in Resources */,
 				CA7C7085185EF50E00B348BA /* buttonnextoff@2x.png in Resources */,
 				CA7C7086185EF50E00B348BA /* 19-gear.png in Resources */,
