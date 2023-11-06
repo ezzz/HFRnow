@@ -4634,7 +4634,7 @@
 				CODE_SIGN_STYLE = Manual;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 90;
+				CURRENT_PROJECT_VERSION = 107;
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = NCJNK4ZZ54;
 				ENABLE_BITCODE = NO;
@@ -4654,7 +4654,7 @@
 				);
 				HEADER_SEARCH_PATHS = $SDKROOT/usr/include/libxml2;
 				INFOPLIST_FILE = "SuperHFRplus-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -4664,7 +4664,7 @@
 					"$(SRCROOT)/**",
 					"$(PROJECT_DIR)/**",
 				);
-				MARKETING_VERSION = 2.1.17;
+				MARKETING_VERSION = 2.1.22;
 				OTHER_LDFLAGS = (
 					"-licucore",
 					"-ObjC",
@@ -4688,11 +4688,11 @@
 				ASSETCATALOG_COMPILER_OPTIMIZATION = time;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
 				CODE_SIGN_STYLE = Manual;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = YES;
-				CURRENT_PROJECT_VERSION = 90;
+				CURRENT_PROJECT_VERSION = 107;
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = NCJNK4ZZ54;
 				ENABLE_BITCODE = NO;
@@ -4710,7 +4710,7 @@
 				);
 				HEADER_SEARCH_PATHS = $SDKROOT/usr/include/libxml2;
 				INFOPLIST_FILE = "SuperHFRplus-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -4720,7 +4720,7 @@
 					"$(SRCROOT)/**",
 					"$(PROJECT_DIR)/**",
 				);
-				MARKETING_VERSION = 2.1.17;
+				MARKETING_VERSION = 2.1.22;
 				OTHER_LDFLAGS = (
 					"-licucore",
 					"-ObjC",

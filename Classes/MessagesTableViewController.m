@@ -2185,7 +2185,7 @@
             int ypos = [[[[aRequest.URL absoluteString] pathComponents] objectAtIndex:1] intValue];
             int curMsg = [[[[aRequest.URL absoluteString] pathComponents] objectAtIndex:2] intValue];
             NSLog(@"dopopup xpos %d ypos %d curMsg %d", xpos, ypos, curMsg);
-            NSArray* arguments = [NSArray arrayWithObjects:[NSNumber numberWithInt:curMsg], [NSNumber numberWithInt:ypos], [NSNumber numberWithBool:bAvatar]];
+            NSArray* arguments = [NSArray arrayWithObjects:[NSNumber numberWithInt:curMsg], [NSNumber numberWithInt:ypos], [NSNumber numberWithBool:bAvatar], nil];
             [self performSelector:@selector(showMenuCon:) withObject:arguments];
             bAllow = NO;
         }

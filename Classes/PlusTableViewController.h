@@ -16,7 +16,7 @@
 #import "OfflineTableViewController.h"
 #import "BookmarksTableViewController.h"
 
-@interface PlusTableViewController : UIViewController <UIActionSheetDelegate, UITableViewDelegate, UITableViewDataSource, UITextFieldDelegate, UIAlertViewDelegate> {
+@interface PlusTableViewController : UIViewController <UIActionSheetDelegate, UITableViewDelegate, UITableViewDataSource, UITextFieldDelegate, UIAlertViewDelegate, MFMailComposeViewControllerDelegate> {
     IBOutlet UITableView *plusTableView;
     int iAQBadgeNumer;
     PlusSettingsViewController *settingsViewController;
