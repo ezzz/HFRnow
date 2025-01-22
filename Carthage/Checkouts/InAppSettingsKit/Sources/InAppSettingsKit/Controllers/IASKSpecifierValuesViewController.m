@@ -41,6 +41,13 @@
 	return self;
 }
 
+- (id)initWithSpecifier:(IASKSpecifier*)specifier style:(UITableViewStyle)style {
+	if ((self = [super initWithStyle:style])) {
+		self.currentSpecifier = specifier;
+	};
+	return self;
+}
+
 - (void)setSettingsStore:(id <IASKSettingsStore>)settingsStore {
 	self.selection = [[IASKMultipleValueSelection alloc] initWithSettingsStore:settingsStore tableView:self.tableView specifier:self.currentSpecifier section:0];
 }
@@ -50,7 +57,13 @@
 	
     if (self.currentSpecifier) {
 		self.title = self.currentSpecifier.title;
-		IASK_IF_IOS11_OR_GREATER(self.navigationItem.largeTitleDisplayMode = self.title.length ? UINavigationItemLargeTitleDisplayModeAutomatic : UINavigationItemLargeTitleDisplayModeNever;);
+#if defined(TARGET_OS_VISION) && TARGET_OS_VISION
+		self.navigationItem.largeTitleDisplayMode = self.title.length ? UINavigationItemLargeTitleDisplayModeAutomatic : UINavigationItemLargeTitleDisplayModeNever;
+#else
+		if (@available(iOS 11.0, *)) {
+			self.navigationItem.largeTitleDisplayMode = self.title.length ? UINavigationItemLargeTitleDisplayModeAutomatic : UINavigationItemLargeTitleDisplayModeNever;
+		}
+#endif
     }
     
     if (self.tableView) {

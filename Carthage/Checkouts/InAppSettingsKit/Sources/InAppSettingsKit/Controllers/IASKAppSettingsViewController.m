@@ -70,7 +70,8 @@ CGRect IASKCGRectSwap(CGRect rect);
 #pragma mark accessors
 - (IASKSettingsReader*)settingsReader {
 	if (!_settingsReader) {
-		_settingsReader = [[IASKSettingsReader alloc] initWithFile:self.file];
+		NSBundle* bundle = _bundle == nil ? NSBundle.mainBundle : _bundle;
+		_settingsReader = [[IASKSettingsReader alloc] initWithFile:self.file bundle:bundle];
 		if (self.neverShowPrivacySettings) {
 			_settingsReader.showPrivacySettings = NO;
 		}
@@ -135,8 +136,8 @@ CGRect IASKCGRectSwap(CGRect rect);
 }
 
 - (id)initWithStyle:(UITableViewStyle)style {
-    if (style != UITableViewStyleGrouped) {
-        NSLog(@"WARNING: only UITableViewStyleGrouped style is supported by InAppSettingsKit.");
+    if (style == UITableViewStylePlain) {
+        NSLog(@"WARNING: only \"grouped\" table view styles are supported by InAppSettingsKit.");
     }
     if ((self = [super initWithStyle:style])) {
 		[self configure];
@@ -226,7 +227,7 @@ CGRect IASKCGRectSwap(CGRect rect);
 	}
 }
 
-- (void)viewDidAppear:(BOOL)animated {
+- (void)viewDidAppear:(BOOL)animated NS_EXTENSION_UNAVAILABLE("Uses APIs (i.e UIApplication.sharedApplication) not available for use in App Extensions.") {
 	[super viewDidAppear:animated];
 
 	NSNotificationCenter *dc = [NSNotificationCenter defaultCenter];
@@ -244,7 +245,7 @@ CGRect IASKCGRectSwap(CGRect rect);
 	[super viewWillDisappear:animated];
 }
 
-- (void)viewDidDisappear:(BOOL)animated {
+- (void)viewDidDisappear:(BOOL)animated NS_EXTENSION_UNAVAILABLE("Uses APIs (i.e UIApplication.sharedApplication) not available for use in App Extensions.") {
 	NSNotificationCenter *dc = [NSNotificationCenter defaultCenter];
 	if ([self.settingsStore isKindOfClass:[IASKSettingsStoreUserDefaults class]]) {
 		IASKSettingsStoreUserDefaults *udSettingsStore = (id)self.settingsStore;
@@ -607,6 +608,9 @@ CGRect IASKCGRectSwap(CGRect rect);
 	}
 	
 	UITableViewCell* cell = [self tableView:tableView newCellForSpecifier:specifier];
+	if (![specifier.type isEqualToString:kIASKPSSliderSpecifier]) {
+		cell.imageView.image = specifier.cellImage;
+	}
 	id currentValue = [self.settingsStore objectForSpecifier:specifier];
 	NSString *title = specifier.title;
 	
@@ -765,7 +769,7 @@ CGRect IASKCGRectSwap(CGRect rect);
 		cell.textLabel.text = ([currentValue isKindOfClass:NSString.class] && [self.settingsReader titleForId:currentValue].length) ? [self.settingsReader titleForId:currentValue] : title;
 		cell.detailTextLabel.text = [specifier subtitleForValue:currentValue];
 		cell.textLabel.textAlignment = specifier.textAlignment;
-		cell.accessoryType = (specifier.textAlignment == NSTextAlignmentLeft) ? UITableViewCellAccessoryDisclosureIndicator : UITableViewCellAccessoryNone;
+		cell.accessoryType = (specifier.textAlignment == NSTextAlignmentNatural || specifier.textAlignment == NSTextAlignmentLeft) ? UITableViewCellAccessoryDisclosureIndicator : UITableViewCellAccessoryNone;
 	} else if ([specifier.type isEqualToString:kIASKPSRadioGroupSpecifier]) {
 		NSInteger index = [specifier.multipleValues indexOfObject:(id)specifier.radioGroupValue];
 		cell.textLabel.text = [self.settingsReader titleForId:specifier.multipleTitles[index]];
@@ -809,7 +813,7 @@ CGRect IASKCGRectSwap(CGRect rect);
 	}
 }
 
-- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath NS_EXTENSION_UNAVAILABLE("Uses APIs (i.e UIApplication.sharedApplication) not available for use in App Extensions.") {
     IASKSpecifier *specifier  = [self.settingsReader specifierForIndexPath:indexPath];
     
     //switches and sliders can't be selected (should be captured by tableView:willSelectRowAtIndexPath: delegate method)
@@ -837,7 +841,7 @@ CGRect IASKCGRectSwap(CGRect rect);
     if ([specifier.type isEqualToString:kIASKPSMultiValueSpecifier]) {
 		IASKSpecifier *childSpecifier = [[IASKSpecifier alloc] initWithSpecifier:specifier.specifierDict];
 		childSpecifier.settingsReader = self.settingsReader;
-		IASKSpecifierValuesViewController *targetViewController = [[IASKSpecifierValuesViewController alloc] initWithSpecifier:childSpecifier];
+		IASKSpecifierValuesViewController *targetViewController = [[IASKSpecifierValuesViewController alloc] initWithSpecifier:childSpecifier style:self.tableView.style];
         targetViewController.view.backgroundColor = self.view.backgroundColor;
 		targetViewController.settingsReader = self.settingsReader;
 		[self setMultiValuesFromDelegateIfNeeded:childSpecifier];
@@ -913,10 +917,11 @@ CGRect IASKCGRectSwap(CGRect rect);
         }
         
         _reloadDisabled = YES; // Disable internal unnecessary reloads
-        
-        IASKAppSettingsViewController *targetViewController = [[[self class] alloc] init];
+        IASKAppSettingsViewController *targetViewController =
+            [((IASKAppSettingsViewController*)[[self class] alloc]) initWithStyle:self.tableView.style];
         targetViewController.showDoneButton = NO;
         targetViewController.showCreditsFooter = NO; // Does not reload the tableview (but next setters do it)
+        targetViewController.bundle = self.bundle;
         targetViewController.delegate = self.delegate;
         targetViewController.file = (id)specifier.file;
         targetViewController.hiddenKeys = self.hiddenKeys;
@@ -935,8 +940,7 @@ CGRect IASKCGRectSwap(CGRect rect);
 		NSString *urlString = [specifier localizedObjectForKey:kIASKFile];
 		NSURL *url = urlString ? [NSURL URLWithString:urlString] : nil;
 		if (url) {
-			IASK_IF_IOS11_OR_GREATER([UIApplication.sharedApplication openURL:url options:@{} completionHandler:nil];);
-			IASK_IF_PRE_IOS11([UIApplication.sharedApplication openURL:url];);
+			[UIApplication.sharedApplication openURL:url options:@{} completionHandler:nil];
 		}
 	} else if ([specifier.type isEqualToString:kIASKButtonSpecifier]) {
         if ([self.delegate respondsToSelector:@selector(settingsViewController:buttonTappedForSpecifier:)]) {
@@ -960,7 +964,8 @@ CGRect IASKCGRectSwap(CGRect rect);
 			BOOL isHTML = NO;
 			if ([specifier.specifierDict objectForKey:kIASKMailComposeBodyIsHTML]) {
 				isHTML = [[specifier.specifierDict objectForKey:kIASKMailComposeBodyIsHTML] boolValue];
-			} else if ([specifier localizedObjectForKey:kIASKMailComposeBody]) {
+			}
+			if ([specifier localizedObjectForKey:kIASKMailComposeBody]) {
 				[mailViewController setMessageBody:(id)[specifier localizedObjectForKey:kIASKMailComposeBody] isHTML:isHTML];
 			}
 		}
@@ -976,11 +981,11 @@ CGRect IASKCGRectSwap(CGRect rect);
 		if ([MFMailComposeViewController canSendMail]) {
 			mailViewController.mailComposeDelegate = self;
             _currentChildViewController = mailViewController;
-#if !TARGET_OS_MACCATALYST
+#if !TARGET_OS_MACCATALYST && (!defined(TARGET_OS_VISION) || !TARGET_OS_VISION)
             UIStatusBarStyle savedStatusBarStyle = [UIApplication sharedApplication].statusBarStyle;
 #endif
             [self presentViewController:mailViewController animated:YES completion:^{
-#if !TARGET_OS_MACCATALYST
+#if !TARGET_OS_MACCATALYST && (!defined(TARGET_OS_VISION) || !TARGET_OS_VISION)
 			    [UIApplication sharedApplication].statusBarStyle = savedStatusBarStyle;
 #endif
             }];
@@ -1290,7 +1295,6 @@ static NSMutableDictionary *oldUserDefaults = nil;
 
 - (void)setMultiValuesFromDelegateIfNeeded:(IASKSpecifier *)specifier {
 	if (specifier.multipleValues.count == 0) {
-		NSLog(@"need to init from delegate");
 		if ([self.delegate respondsToSelector:@selector(settingsViewController:valuesForSpecifier:)] &&
 			[self.delegate respondsToSelector:@selector(settingsViewController:titlesForSpecifier:)])
 		{

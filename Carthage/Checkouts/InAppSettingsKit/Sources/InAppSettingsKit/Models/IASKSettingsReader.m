@@ -111,7 +111,7 @@ NSString * const IASKSettingChangedNotification = @"IASKAppSettingChangedNotific
 	NSMutableDictionary *dict = [@{kIASKTitle: NSLocalizedStringFromTableInBundle(@"Privacy", @"IASKLocalizable", self.iaskBundle, @"Privacy cell: title"),
 								   kIASKKey: @"IASKPrivacySettingsCellKey",
 								   kIASKType: kIASKOpenURLSpecifier,
-								   kIASKFile: UIApplicationOpenSettingsURLString,
+								   kIASKFile: TARGET_OS_MACCATALYST ? @"x-apple.systempreferences:com.apple.preference.security?Privacy" : UIApplicationOpenSettingsURLString,
 								   } mutableCopy];
 	NSString *subtitle = NSLocalizedStringFromTableInBundle(@"Open in Settings app", @"IASKLocalizable", self.iaskBundle, @"Privacy cell: subtitle");
 	if (subtitle.length) {
@@ -332,7 +332,7 @@ NSString * const IASKSettingChangedNotification = @"IASKAppSettingChangedNotific
 				[dictionary setObject:(id)specifier.defaultValue forKey:(id)specifier.key];
 			}
 			if ([specifier.type isEqualToString:kIASKPSChildPaneSpecifier] && specifier.file) {
-				IASKSettingsReader *childReader = [[IASKSettingsReader alloc] initWithFile:(id)specifier.file];
+				IASKSettingsReader *childReader = [[IASKSettingsReader alloc] initWithFile:(id)specifier.file bundle:_applicationBundle];
 				childReader.settingsStore = self.settingsStore;
 				[childReader gatherDefaultsInDictionary:dictionary limitedToEditableFields:limitedToEditableFields apply:apply];
 			}
@@ -348,6 +348,9 @@ NSString * const IASKSettingChangedNotification = @"IASKAppSettingChangedNotific
     switch (interfaceIdiom) {
         case UIUserInterfaceIdiomPad: return @"~ipad";
         case UIUserInterfaceIdiomPhone: return @"~iphone";
+#if defined(TARGET_OS_VISION) && TARGET_OS_VISION
+		case UIUserInterfaceIdiomVision: return @"~vision";
+#endif
 		default: return @"~iphone";
     }
 }

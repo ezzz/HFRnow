@@ -1,0 +1,8 @@
+{
+    "files": {
+        "SimpleKeychain/Info.plist": [],
+        "SimpleKeychain.podspec": []
+    },
+    "postbump": "bundle update",
+    "prefixVersion": false
+}

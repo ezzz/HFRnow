@@ -54,7 +54,7 @@
 	[super viewWillAppear:animated];
 	
 	UIActivityIndicatorView *activityIndicatorView = [[UIActivityIndicatorView alloc] initWithFrame:CGRectMake(0, 0, 40, 20)];
-#if TARGET_OS_MACCATALYST
+#if TARGET_OS_MACCATALYST || (defined(TARGET_OS_VISION) && TARGET_OS_VISION)
 	activityIndicatorView.activityIndicatorViewStyle = UIActivityIndicatorViewStyleMedium;
 #else
 	activityIndicatorView.activityIndicatorViewStyle = UIActivityIndicatorViewStyleWhite;
@@ -72,7 +72,7 @@
 	}];
 }
 
-- (void)webView:(WKWebView *)webView decidePolicyForNavigationAction:(WKNavigationAction *)navigationAction decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler {
+- (void)webView:(WKWebView *)webView decidePolicyForNavigationAction:(WKNavigationAction *)navigationAction decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler NS_EXTENSION_UNAVAILABLE("Uses APIs (i.e UIApplication.sharedApplication) not available for use in App Extensions.") {
 	NSURL* newURL = navigationAction.request.URL;
 
 	// intercept mailto URL and send it to an in-app Mail compose view instead
@@ -88,12 +88,11 @@
 		return;
 	}
 
-	IASK_IF_IOS11_OR_GREATER([UIApplication.sharedApplication openURL:newURL options:@{} completionHandler:nil];);
-	IASK_IF_PRE_IOS11([UIApplication.sharedApplication openURL:newURL];);
+	[UIApplication.sharedApplication openURL:newURL options:@{} completionHandler:nil];
 	decisionHandler(WKNavigationActionPolicyCancel);
 }
 
-- (void)handleMailto:(NSURL*)mailToURL {
+- (void)handleMailto:(NSURL*)mailToURL NS_EXTENSION_UNAVAILABLE("Uses APIs (i.e UIApplication.sharedApplication) not available for use in App Extensions.") {
 	NSArray *rawURLparts = [[mailToURL resourceSpecifier] componentsSeparatedByString:@"?"];
 	if (rawURLparts.count > 2 || !MFMailComposeViewController.canSendMail) {
 		return; // invalid URL or can't send mail
@@ -153,11 +152,11 @@
 	mailViewController.navigationBar.barStyle = self.navigationController.navigationBar.barStyle;
 	mailViewController.navigationBar.tintColor = self.navigationController.navigationBar.tintColor;
 	mailViewController.navigationBar.titleTextAttributes =  self.navigationController.navigationBar.titleTextAttributes;
-#if !TARGET_OS_MACCATALYST
+#if !TARGET_OS_MACCATALYST && (!defined(TARGET_OS_VISION) || !TARGET_OS_VISION)
 	UIStatusBarStyle savedStatusBarStyle = [UIApplication sharedApplication].statusBarStyle;
 #endif
 	[self presentViewController:mailViewController animated:YES completion:^{
-#if !TARGET_OS_MACCATALYST
+#if !TARGET_OS_MACCATALYST && (!defined(TARGET_OS_VISION) || !TARGET_OS_VISION)
 		[UIApplication sharedApplication].statusBarStyle = savedStatusBarStyle;
 #endif
 	}];

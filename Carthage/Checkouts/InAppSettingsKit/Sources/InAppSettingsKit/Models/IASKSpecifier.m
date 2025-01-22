@@ -458,7 +458,11 @@
     if( imageName.length == 0 )
         return nil;
     
-    return [UIImage imageNamed:imageName];
+	if (@available(iOS 13.0, *)) {
+		return [UIImage imageNamed:imageName] ?: [UIImage systemImageNamed:imageName];
+	} else {
+		return [UIImage imageNamed:imageName];
+	}
 }
 
 - (UIImage *)highlightedCellImage {
@@ -474,13 +478,15 @@
 	return (boxedResult == nil) || [boxedResult boolValue];
 }
 
-- (NSTextAlignment)textAlignment
-{
-    if (self.hasSubtitle || [[_specifierDict objectForKey:kIASKTextLabelAlignment] isEqualToString:kIASKTextLabelAlignmentLeft]) {
-        return NSTextAlignmentLeft;
-    } else if ([[_specifierDict objectForKey:kIASKTextLabelAlignment] isEqualToString:kIASKTextLabelAlignmentCenter]) {
+- (NSTextAlignment)textAlignment {
+	NSString *alignmentString = [_specifierDict objectForKey:kIASKTextLabelAlignment];
+    if (self.hasSubtitle || [alignmentString isEqualToString:kIASKTextLabelAlignmentNatural]) {
+        return NSTextAlignmentNatural;
+	} else if ([alignmentString isEqualToString:kIASKTextLabelAlignmentLeft]) {
+		return NSTextAlignmentLeft;
+    } else if ([alignmentString isEqualToString:kIASKTextLabelAlignmentCenter]) {
         return NSTextAlignmentCenter;
-    } else if ([[_specifierDict objectForKey:kIASKTextLabelAlignment] isEqualToString:kIASKTextLabelAlignmentRight]) {
+    } else if ([alignmentString isEqualToString:kIASKTextLabelAlignmentRight]) {
         return NSTextAlignmentRight;
     }
     if ([self.type isEqualToString:kIASKButtonSpecifier] && !self.cellImage) {
@@ -488,15 +494,18 @@
 	} else if ([@[kIASKPSMultiValueSpecifier, kIASKPSTitleValueSpecifier, kIASKTextViewSpecifier, kIASKDatePickerSpecifier] containsObject:self.type]) {
 		return NSTextAlignmentRight;
 	}
-	return NSTextAlignmentLeft;
+	return NSTextAlignmentNatural;
 }
 
 - (NSArray *)userInterfaceIdioms {
     NSMutableDictionary *idiomMap = [NSMutableDictionary dictionaryWithDictionary:
                                      @{
                                          @"Phone": @(UIUserInterfaceIdiomPhone),
-                                         @"Pad": @(UIUserInterfaceIdiomPad),
-                                     }];
+										 @"Pad": @(UIUserInterfaceIdiomPad),
+#if defined(TARGET_OS_VISION) && TARGET_OS_VISION
+										 @"Reality": @(UIUserInterfaceIdiomVision),
+#endif
+	}];
     if (@available(iOS 14.0, *)) {
         idiomMap[@"Mac"] = @(UIUserInterfaceIdiomMac);
     }
@@ -582,11 +591,9 @@
 	NSDictionary *dict = @{kIASKDatePickerStyleCompact: @(UIDatePickerStyleCompact),
 						   kIASKDatePickerStyleWheels: @(UIDatePickerStyleWheels)};
 	if (@available(iOS 14.0, *)) {
-		IASK_IF_IOS14_OR_GREATER(
-		 dict = @{kIASKDatePickerStyleCompact: @(UIDatePickerStyleCompact),
-				  kIASKDatePickerStyleWheels: @(UIDatePickerStyleWheels),
-				  kIASKDatePickerStyleInline: @(UIDatePickerStyleInline)};
-		);
+		dict = @{kIASKDatePickerStyleCompact: @(UIDatePickerStyleCompact),
+				 kIASKDatePickerStyleWheels: @(UIDatePickerStyleWheels),
+				 kIASKDatePickerStyleInline: @(UIDatePickerStyleInline)};
 	}
 	NSString *string = [_specifierDict objectForKey:kIASKDatePickerStyle];
 	NSNumber *value = dict[string];
@@ -596,10 +603,8 @@
 - (BOOL)embeddedDatePicker {
 	BOOL embeddedDatePicker = NO;
 	if (@available(iOS 14.0, *)) {
-		IASK_IF_IOS14_OR_GREATER(
-		 embeddedDatePicker = [self.type isEqualToString:kIASKDatePickerSpecifier] &&
-		 (self.datePickerStyle == UIDatePickerStyleCompact || (self.datePickerStyle == UIDatePickerStyleInline && self.datePickerMode == UIDatePickerModeTime));
-        );
+		embeddedDatePicker = [self.type isEqualToString:kIASKDatePickerSpecifier] &&
+		(self.datePickerStyle == UIDatePickerStyleCompact || (self.datePickerStyle == UIDatePickerStyleInline && self.datePickerMode == UIDatePickerModeTime));
 	}
 	return embeddedDatePicker;
 }
