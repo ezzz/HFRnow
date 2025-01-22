@@ -81,13 +81,7 @@
     [self.spinner setHidden:NO];
     [self.spinner startAnimating];
     
-    NSString *url = self.rehostImage.nolink_preview;
-    if (url == nil) {
-        url = self.rehostImage.nolink_medium;
-    }
-    if (url == nil) {
-        url = self.rehostImage.nolink_full;
-    }
+    NSString *url = self.rehostImage.nolink_miniature;
     
     url = [url stringByReplacingOccurrencesOfString:@"[img]" withString:@""];
     url = [url stringByReplacingOccurrencesOfString:@"[/img]" withString:@""];

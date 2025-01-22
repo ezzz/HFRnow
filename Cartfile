@@ -1,3 +1,4 @@
-github "futuretap/InAppSettingsKit" "master"
-github "auth0/SimpleKeychain"
+github "futuretap/InAppSettingsKit" "3.6"
+#3.5 OK #3.8 NOK
+github "auth0/SimpleKeychain" "0.12.5"
 #binary "https://s3.amazonaws.com/sdk.mobile.giphy.com/SDK/GiphySDK.json"

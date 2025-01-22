@@ -174,7 +174,7 @@ static SmileyAlertView *_shared = nil;    // static instance variable
 - (void)requestSmileyCode
 {
     //Url wiki details : https://forum.hardware.fr/wikismilies.php?config=hfr.inc&detail=%5B%3Aezzz%5D
-    NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"https://forum.hardware.fr/wikismilies.php?config=hfr.inc&detail=%@", [self.sSelectedSmileyCode stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLHostAllowedCharacterSet]]]];
+    NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"https://forum.hardware.fr/wikismilies.php?config=hfr.inc&detail=%@", [self.sSelectedSmileyCode stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLPathAllowedCharacterSet]]]];
     ASIHTTPRequest* request = [ASIHTTPRequest requestWithURL:url];
     [request setShouldRedirect:NO];
     [request setDelegate:self];

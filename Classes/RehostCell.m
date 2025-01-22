@@ -94,7 +94,7 @@
         url = self.rehostImage.nolink_full;
     }
 
-    
+        
 	url = [url stringByReplacingOccurrencesOfString:@"[img]" withString:@""];
 	url = [url stringByReplacingOccurrencesOfString:@"[/img]" withString:@""];
 	url = [url stringByReplacingOccurrencesOfString:@"hfr-rehost.net" withString:@"reho.st"];
@@ -117,10 +117,10 @@
                 if (self_.rehostImage.full_width && [self_.rehostImage.full_width intValue] > 0 && self_.rehostImage.full_height && [self_.rehostImage.full_height intValue] > 0) {
                     // Only display maximum dimension
                     if ([self_.rehostImage.full_width intValue] > [self_.rehostImage.full_height intValue]) {
-                        [self_.fullBtn setTitle:[NSString stringWithFormat:@"Maxi\n%@ px", self_.rehostImage.full_width] forState: UIControlStateNormal];
+                        [self_.fullBtn setTitle:[NSString stringWithFormat:@"Maxi", self_.rehostImage.full_width] forState: UIControlStateNormal];
                     }
                     else {
-                        [self_.fullBtn setTitle:[NSString stringWithFormat:@"Maxi\n%@ px", self_.rehostImage.full_height] forState: UIControlStateNormal];
+                        [self_.fullBtn setTitle:[NSString stringWithFormat:@"Maxi", self_.rehostImage.full_height] forState: UIControlStateNormal];
                     }
                 }
                 else {
@@ -133,7 +133,7 @@
                 [self_.mediumBtn setHidden:NO];
                 self_.mediumBtn.titleLabel.lineBreakMode = NSLineBreakByWordWrapping;
                 self_.mediumBtn.titleLabel.textAlignment = NSTextAlignmentCenter;
-                [self_.mediumBtn setTitle:@"Medium\n800 px" forState: UIControlStateNormal];
+                [self_.mediumBtn setTitle:@"Medium" forState: UIControlStateNormal];
             } else {
                 [self_.mediumBtn setHidden:YES];
             }
@@ -146,7 +146,7 @@
                 [self_.miniBtn setHidden:NO];
                 self_.miniBtn.titleLabel.lineBreakMode = NSLineBreakByWordWrapping;
                 self_.miniBtn.titleLabel.textAlignment = NSTextAlignmentCenter;
-                [self_.miniBtn setTitle:@"Mini\n120 px" forState: UIControlStateNormal];
+                [self_.miniBtn setTitle:@"Mini" forState: UIControlStateNormal];
             } else {
                 [self_.miniBtn setHidden:YES];
             }

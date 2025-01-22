@@ -5,11 +5,11 @@
 [![Swift Package Manager compatible](https://img.shields.io/badge/SPM-compatible-brightgreen.svg)](https://swiftpackageindex.com/futuretap/InAppSettingsKit)
 [![Carthage compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](https://github.com/Carthage/Carthage)
 [![License](https://img.shields.io/cocoapods/l/InAppSettingsKit.svg?style=flat)](https://github.com/futuretap/InAppSettingsKit/blob/master/LICENSE)
-![Platform](https://img.shields.io/badge/Platforms-iOS%20|%20macOS%20Catalyst-lightgrey.svg)
+![Platform](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Ffuturetap%2FInAppSettingsKit%2Fbadge%3Ftype%3Dplatforms)
 [![Sponsor](https://img.shields.io/badge/Sponsor-ff40a0)](https://github.com/sponsors/futuretap)
-[![Twitter](https://img.shields.io/twitter/follow/ortwingentz.svg?style=social&label=Follow)](https://twitter.com/ortwingentz)
+[![Mastodon](https://img.shields.io/mastodon/follow/000010558?domain=https%3A%2F%2Fmastodon.cloud)](https://mastodon.cloud/@ortwingentz)
 
-InAppSettingsKit (IASK) is an open source framework to easily add in-app settings to your iOS or Catalyst apps. Normally iOS apps use the `Settings.bundle` resource to add app-specific settings in the Settings app. InAppSettingsKit takes advantage of the same bundle and allows you to present the same settings screen within your app. So the user has the choice where to change the settings.
+InAppSettingsKit (IASK) is an open source framework to easily add in-app settings to your iOS, Catalyst, or visionOS apps. Normally iOS apps use the `Settings.bundle` resource to add app-specific settings in the Settings app. InAppSettingsKit takes advantage of the same bundle and allows you to present the same settings screen within your app. So the user has the choice where to change the settings.
 
 IASK not only replicates the feature set of system settings but supports a large number of additional elements and configuration options.
 
@@ -55,11 +55,12 @@ To support traditional Settings.app panes, the app must include a `Settings.bund
 
 The source code is available on [github](http://github.com/futuretap/InAppSettingsKit). There are several ways of installing it:
 
-**Using Carthage**
+**Using SPM**
 
-Add to your `Cartfile`:
+To install InAppSettingsKit using [Swift Package Manager](https://github.com/apple/swift-package-manager) you can follow the [tutorial published by Apple](https://developer.apple.com/documentation/xcode/adding_package_dependencies_to_your_app) using the URL for the InAppSettingsKit repo with the current version:
 
-    github "futuretap/InAppSettingsKit" "master"
+1. In Xcode, select “File” → “Add Packages…”
+1. Enter `https://github.com/futuretap/InAppSettingsKit.git`
 
 
 **Using CocoaPods**
@@ -68,15 +69,13 @@ Add to your `Podfile`:
 
     pod 'InAppSettingsKit'
 
+Then run `pod install`.
 
-**Using SPM**
+**Using Carthage**
 
-Add to your Package.swift
+Add to your `Cartfile`:
 
-    .package(name: "InAppSettingsKit", url: "https://github.com/futuretap/InAppSettingsKit.git", .branch("master"))
-
-Alternatively go to Xcodes `File->Swift Packages->Add Package Dependency...` menu entry and add `https://github.com/futuretap/InAppSettingsKit.git`.
-
+    github "futuretap/InAppSettingsKit" "master"
 
 # App Integration
 
@@ -85,12 +84,54 @@ In order to start using IASK add `Settings.bundle` to your project (`File` -> `A
 To display InAppSettingsKit, instantiate `IASKAppSettingsViewController` and push it onto the navigation stack or embed it as the root view controller of a navigation controller.
 
 **In code, using Swift:**
+
 ```swift
 let appSettingsViewController = IASKAppSettingsViewController()
 navigationController.pushViewController(appSettingsViewController, animated: true)
 ```
 
+**In code, using Swift as part of a swift package:**
+
+In a modularized app, you might want to move all settings-related code into a separate package, and only reference the InAppSettingsKit dependency there. Your `Package.swift` would look like this:
+
+```swift
+let package = Package(
+    name: "SettingsPackage",
+    platforms: [.iOS(.v17)],
+    dependencies: [
+        .package(url: "https://github.com/futuretap/inappsettingskit", from: "3.4.0")
+    ],
+    .target(
+        name: "SettingsPackage",
+        dependencies: [
+            .product(name: "InAppSettingsKit", package: "inappsettingskit"),
+        ],
+        resources: [
+            .copy("InAppSettings.bundle")
+        ]
+    )
+)
+```
+
+(Note that the `InAppSettings.bundle` directory is also part of the package, and does not belong to the main app anymore.)
+
+Creating an `IASKAppSettingsViewController` now requires setting its `bundle` property to the package's bundle:
+
+```swift
+struct InAppSettingsView: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> some UIViewController {
+        let iask = IASKAppSettingsViewController(style: .insetGrouped)
+        iask.bundle = Bundle.module // IMPORTANT
+        return iask
+    }
+
+    func updateUIViewController(_ uiViewController: UIViewControllerType, context: Context) { }
+}
+
+```
+
 **In code, using Objective-C:**
+
 ```objc
 IASKAppSettingsViewController *appSettingsViewController = [[IASKAppSettingsViewController alloc] init];
 [self.navigationController pushViewController:appSettingsViewController animated:YES];
@@ -368,6 +409,7 @@ Please don't use Github issues for support requests, we'll close them. Instead, 
 We released the code under the liberal BSD license in order to make it possible to include it in every project, be it a free or paid app. The only thing we ask for is giving the original developers some credit. The easiest way to include credits is by leaving the "Powered by InAppSettingsKit" notice in the code. If you decide to remove this notice, a noticeable mention on the App Store description page or homepage is fine, too.
 
 # Author
-Originally developed by my friend Luc Vandal, I took over the development and continue to update the framework. If you would like to support my Open Source work, consider joining me as a [sponsor](https://github.com/sponsors/futuretap)! 💪️ Your sponsorship enables me to spend more time on InAppSettingsKit and other community projects. Thank you!
+Originally developed by Luc Vandal, [Ortwin Gentz](https://www.futuretap.com/about/ortwin-gentz) ([Mastodon](https://mastodon.cloud/@ortwingentz)) took over the development and continues to update the framework. InAppSettingsKit is used in [FutureTap](https://www.futuretap.com)’s [Where To?](https://wheretoapp.com) app, so we eat our own dog food!
 
-*Ortwin Gentz*
+# Sponsors wanted
+If you would like to support my Open Source work, consider joining me as a [sponsor](https://github.com/sponsors/futuretap)! 💪️ Your sponsorship enables me to spend more time on InAppSettingsKit and other community projects. Thank you!

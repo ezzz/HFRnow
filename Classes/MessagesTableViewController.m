@@ -862,6 +862,7 @@
     // fond blanc WebView
     //[self.messagesWebView hideGradientBackground];
     self.messagesWebView.navigationDelegate = self;
+    self.messagesWebView.inspectable = YES;
     [self.messagesWebView setBackgroundColor:[UIColor colorWithRed:239/255.0f green:239/255.0f blue:244/255.0f alpha:1.0f]];
     
 	//Gesture de Gauche à droite
@@ -2032,7 +2033,7 @@
 }
 
 - (BOOL)canPerformAction:(SEL)action withSender:(id)sender {
-    NSLog(@"MTV %@ nbS=%lu", NSStringFromSelector(action), [UIMenuController sharedMenuController].menuItems.count);
+    //NSLog(@"MTV %@ nbS=%lu", NSStringFromSelector(action), [UIMenuController sharedMenuController].menuItems.count);
     
     BOOL returnA;
     
@@ -2042,7 +2043,7 @@
         returnA = [super canPerformAction:action withSender:sender];
     }
 
-    NSLog(@"MTV returnA %d", returnA);
+    //NSLog(@"MTV returnA %d", returnA);
     return returnA;
 }
 
@@ -2053,7 +2054,7 @@
 
 - (void)webView:(WKWebView *)webView decidePolicyForNavigationAction:(WKNavigationAction *)navigationAction decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler {
     NSURLRequest *aRequest = navigationAction.request;
-    NSLog(@"URL Scheme : <<<<<<<<<<%@>>>>>>>>>>>", [aRequest.URL scheme]);
+    NSLog(@"URL scheme %@ path %@", [aRequest.URL scheme], [aRequest.URL absoluteString]);
     if (navigationAction.navigationType == WKNavigationTypeLinkActivated) {
         NSLog(@"navigationType == WKNavigationTypeLinkActivated");
     } else if(navigationAction.navigationType == WKNavigationTypeFormSubmitted) {
