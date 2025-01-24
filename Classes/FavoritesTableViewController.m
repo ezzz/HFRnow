@@ -41,7 +41,7 @@
 
 #define SECTION_CAT_VISIBLE 0
 #define SECTION_CAT_HIDDEN 1
-
+#define RATIO_CELL_SIZE 1.0
 
 @implementation FavoritesTableViewController
 @synthesize pressedIndexPath, favoritesTableView, loadingView, showAll;
@@ -860,10 +860,10 @@
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
 {
     if (self.showAll) {
-        return 44;
+        return 44*RATIO_CELL_SIZE;
     }
     else {
-        return 50;
+        return 50*RATIO_CELL_SIZE;
     }
 }
 
@@ -872,7 +872,7 @@
     // Hide sections for the list of categories
     if (self.showAll) {
         if (self.editCategoriesList) {
-            return HEIGHT_FOR_HEADER_IN_SECTION;
+            return HEIGHT_FOR_HEADER_IN_SECTION*RATIO_CELL_SIZE;
         } else {
             return 0;
         }
@@ -881,12 +881,12 @@
     else if ([[NSUserDefaults standardUserDefaults] boolForKey :@"sujets_avec_cat"])// for default favorite view
     {
         if ([[self.arrayData objectAtIndex:section] topics].count > 0) {
-            return HEIGHT_FOR_HEADER_IN_SECTION;
+            return HEIGHT_FOR_HEADER_IN_SECTION*RATIO_CELL_SIZE;
         }
     }
     else
     {
-        return HEIGHT_FOR_HEADER_IN_SECTION;
+        return HEIGHT_FOR_HEADER_IN_SECTION*RATIO_CELL_SIZE;
     }
     return 0;
 }
@@ -1129,15 +1129,15 @@
 
         // Configure the cell...
         cell.isFavoriteViewed = NO;
-        UIFont *font1 = [UIFont boldSystemFontOfSize:13.0f];
+        UIFont *font1 = [UIFont boldSystemFontOfSize:13.0f*RATIO_CELL_SIZE];
         if ([tmpTopic isViewed]) {
             cell.isFavoriteViewed = YES;
-            font1 = [UIFont systemFontOfSize:13.0f];
+            font1 = [UIFont systemFontOfSize:13.0f*RATIO_CELL_SIZE];
         }
         NSDictionary *arialDict = [NSDictionary dictionaryWithObject: font1 forKey:NSFontAttributeName];
         NSMutableAttributedString *aAttrString1 = [[NSMutableAttributedString alloc] initWithString:[tmpTopic aTitle] attributes: arialDict];
         
-        UIFont *font2 = [UIFont fontWithName:@"fontello" size:15];
+        UIFont *font2 = [UIFont fontWithName:@"fontello" size:15*RATIO_CELL_SIZE];
         
         NSMutableAttributedString *finalString = [[NSMutableAttributedString alloc]initWithString:@""];
         
@@ -1173,7 +1173,8 @@
                 [cell.labelMessageNumber setText:[NSString stringWithFormat:@"%@ ⚑%@ %d/%d", sOffline, sPoll, [tmpTopic curTopicPage], [tmpTopic maxTopicPage]]];
                 break;
         }
-        
+        [cell.labelMessageNumber setFont:[UIFont systemFontOfSize:13.0*RATIO_CELL_SIZE]];
+
         // Badge
         int iPageNumber = [tmpTopic maxTopicPage] - [tmpTopic curTopicPage];
         if (iPageNumber == 0) {
@@ -1197,16 +1198,19 @@
                 iWidth = 38;
             }
             cell.labelBadge.clipsToBounds = YES;
-            cell.labelBadge.layer.cornerRadius = 16 / 2;
+            cell.labelBadge.layer.cornerRadius = 16 * RATIO_CELL_SIZE / 2;
             [cell.labelBadge setText:[NSString stringWithFormat:@"%d", iPageNumber]];
             cell.labelBadgeWidth.constant = iWidth;
         }
-        
+        [cell.labelBadge setFont:[UIFont systemFontOfSize:11.0*RATIO_CELL_SIZE]];
+
         [cell setShowsReorderControl:NO];
         
         // Posteur + date
+        
         [cell.labelDate setText:[NSString stringWithFormat:@"%@ - %@", [tmpTopic aAuthorOfLastPost], [tmpTopic aDateOfLastPost]]];
-
+        [cell.labelDate setFont:[UIFont systemFontOfSize:11.0*RATIO_CELL_SIZE]];
+        
         [cell applyTheme];
         
         return cell;
