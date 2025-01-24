@@ -322,7 +322,29 @@
                     bFilterCurrentPost = NO;
                 }
             }
+            
+            //edit citation
+            HTMLNode * editedNode = [messageNode findChildWithAttribute:@"class" matchingName:@"edited" allowPartial:NO];
+            if ([editedNode allContents]) {
+                NSString *regularExpressionString = @".*Message cité ([^<]+) fois.*";
+                linkItem.quotedNB = [[[[editedNode allContents] stringByMatching:regularExpressionString capture:1L] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] stringByDecodingXMLEntities];
+                if (linkItem.quotedNB) {
+                    linkItem.quotedLINK = [[editedNode findChildTag:@"a"] getAttributeNamed:@"href"];
+                    
+                    // For the filtering feature, keep post quoted 3 times or more
+                    if (bFilterPostsQuotes && bFilterCurrentPost && [[linkItem.quotedNB lowercaseString] intValue] >= 3) {
+                        bFilterCurrentPost = NO;
+                    }
+                }
+                
+                NSString *regularExpressionString2 = @".*Message édité par ([^<]+).*";
+                linkItem.editedTime = [[[[editedNode allContents] stringByMatching:regularExpressionString2 capture:1L] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] stringByDecodingXMLEntities];
+                
+                //NSLog(@"editedTime = %@", linkItem.editedTime);
+                //NSLog(@"quotedLINK = %@", linkItem.quotedLINK);
+            }
 
+            
             // When activated, filter to remove posts from other people or where you are not quoted
             if (bFilterPostsQuotes && bFilterCurrentPost) {
                 continue;
@@ -372,21 +394,6 @@
 				linkItem.messageDate = @"";
 			}
 			
-            //edit citation
-			HTMLNode * editedNode = [messageNode findChildWithAttribute:@"class" matchingName:@"edited" allowPartial:NO];
-            if ([editedNode allContents]) {
-                NSString *regularExpressionString = @".*Message cité ([^<]+) fois.*";
-                linkItem.quotedNB = [[[[editedNode allContents] stringByMatching:regularExpressionString capture:1L] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] stringByDecodingXMLEntities];
-                if (linkItem.quotedNB) {
-                    linkItem.quotedLINK = [[editedNode findChildTag:@"a"] getAttributeNamed:@"href"];
-                }
-                
-                NSString *regularExpressionString2 = @".*Message édité par ([^<]+).*";
-                linkItem.editedTime = [[[[editedNode allContents] stringByMatching:regularExpressionString2 capture:1L] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] stringByDecodingXMLEntities];
-                
-                //NSLog(@"editedTime = %@", linkItem.editedTime);
-                //NSLog(@"quotedLINK = %@", linkItem.quotedLINK);
-            }
 
             
 			/*NSString *regularExpressionString = @"oijlkajsdoihjlkjasdoimbrows://[^/]+/(.*)";
@@ -403,7 +410,7 @@
             //AVATAR BY NAME v2
             
             //Key for pseudo
-            const char *str = [linkItem.name UTF8String];
+            const char *str = [[linkItem.name lowercaseString] UTF8String];
             unsigned char r[CC_MD5_DIGEST_LENGTH];
             CC_MD5(str, strlen(str), r);
             NSString *filename = [NSString stringWithFormat:@"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
@@ -413,6 +420,8 @@
             BOOL bLoadAvatar = NO;
             if ([fileManager fileExistsAtPath:key]) // on check si on a deja l'avatar pour cette key
             {
+                NSLog(@"Avatar exist in cache for %@/%s (%ld): keyPathOfImage:%@", linkItem.name, str, strlen(str), key);
+
                 linkItem.imageUI = key;
                 NSDictionary* attrs = [fileManager attributesOfItemAtPath:key error:nil];
                 if (attrs != nil) {
@@ -424,22 +433,26 @@
                 }
             }
             else {
+                NSLog(@"Avatar NOT found in cache for %@/%s (%ld): keyPathOfImage:%@", linkItem.name, str, strlen(str), key);
+
                 // Si pas trouvé dans le cache, on le charge
                 bLoadAvatar = YES;
             }
             
             if (bLoadAvatar) {
                 NSString *tmpURL = [[avatarNode firstChild] getAttributeNamed:@"src"];
-                
+                NSLog(@"Loading avatar from %@", tmpURL);
+
                 if (tmpURL.length > 0) { // si on a pas, on check si on a une URL
                     ASIHTTPRequest *operation = [ASIHTTPRequest requestWithURL:[NSURL URLWithString:tmpURL]];
                     __weak ASIHTTPRequest *operation_ = operation;
                     [operation setCompletionBlock:^{
+                        NSLog(@"Avatar loaded in cache %@", key);
                         [fileManager createFileAtPath:key contents:[operation_ responseData] attributes:nil];
                         linkItem.imageUI = key;
                     }];
                     [operation setFailedBlock:^{
-                        NSLog(@"setFailedBlock");
+                        NSLog(@"Error loading avatar from %@", tmpURL);
                         linkItem.imageUI = nil;
                     }];
                                         

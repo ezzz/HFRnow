@@ -305,10 +305,6 @@
     [self.delegate identificationViewControllerDidFinish:self];	
 }
 
-- (IBAction)goToCreate {
-    [[HFRplusAppDelegate sharedAppDelegate] openURL:@"https://forum.hardware.fr/inscription.php"];
-}
-
 
 #pragma mark hidePassword
 

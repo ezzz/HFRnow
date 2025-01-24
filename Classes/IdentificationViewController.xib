@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="14313.18" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useSafeAreas="YES" colorMatched="YES">
-    <device id="retina4_7" orientation="portrait">
-        <adaptation id="fullscreen"/>
-    </device>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="21701" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useSafeAreas="YES" colorMatched="YES">
+    <device id="retina4_7" orientation="portrait" appearance="light"/>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="14283.14"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21678"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
@@ -25,13 +23,13 @@
             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
             <subviews>
                 <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="Compte Hardware.fr" lineBreakMode="tailTruncation" minimumFontSize="10" translatesAutoresizingMaskIntoConstraints="NO" id="7">
-                    <rect key="frame" x="104" y="30" width="167.5" height="20"/>
+                    <rect key="frame" x="104.5" y="30" width="166.5" height="20"/>
                     <fontDescription key="fontDescription" type="boldSystem" pointSize="17"/>
-                    <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
+                    <color key="textColor" systemColor="darkTextColor"/>
                     <nil key="highlightedColor"/>
                 </label>
                 <textField opaque="NO" clipsSubviews="YES" tag="1" contentMode="scaleToFill" selected="YES" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="Pseudo" minimumFontSize="17" clearButtonMode="whileEditing" translatesAutoresizingMaskIntoConstraints="NO" id="8">
-                    <rect key="frame" x="62.5" y="60" width="250" height="30"/>
+                    <rect key="frame" x="62.5" y="60" width="250" height="34"/>
                     <constraints>
                         <constraint firstAttribute="width" constant="250" id="4E8-mN-wva"/>
                     </constraints>
@@ -43,15 +41,15 @@
                     </connections>
                 </textField>
                 <textField opaque="NO" clipsSubviews="YES" tag="2" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="Mot de passe" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="9">
-                    <rect key="frame" x="62.5" y="100" width="250" height="30"/>
+                    <rect key="frame" x="62.5" y="104" width="250" height="34"/>
                     <fontDescription key="fontDescription" type="system" pointSize="14"/>
                     <textInputTraits key="textInputTraits" autocorrectionType="no" spellCheckingType="no" returnKeyType="done" enablesReturnKeyAutomatically="YES" smartDashesType="no" smartInsertDeleteType="no" smartQuotesType="no" textContentType="username"/>
                     <connections>
                         <action selector="done:" destination="-1" eventType="editingDidEndOnExit" id="19"/>
                     </connections>
                 </textField>
-                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="11">
-                    <rect key="frame" x="62.5" y="140" width="250" height="30"/>
+                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="11">
+                    <rect key="frame" x="62.5" y="148" width="250" height="30"/>
                     <fontDescription key="fontDescription" type="system" weight="heavy" pointSize="15"/>
                     <state key="normal" title="Connexion">
                         <color key="titleShadowColor" red="0.5" green="0.5" blue="0.5" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
@@ -60,45 +58,36 @@
                         <action selector="connexion" destination="-1" eventType="touchUpInside" id="21"/>
                     </connections>
                 </button>
-                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="12">
-                    <rect key="frame" x="62.5" y="180" width="250" height="30"/>
-                    <fontDescription key="fontDescription" type="system" pointSize="15"/>
-                    <state key="normal" title="Créer un compte">
-                        <color key="titleShadowColor" red="0.5" green="0.5" blue="0.5" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                    </state>
-                    <connections>
-                        <action selector="goToCreate" destination="-1" eventType="touchUpInside" id="24"/>
-                    </connections>
-                </button>
-                <textView hidden="YES" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" editable="NO" translatesAutoresizingMaskIntoConstraints="NO" id="22">
-                    <rect key="frame" x="0.0" y="220" width="375" height="447"/>
+                <textView hidden="YES" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" ambiguous="YES" editable="NO" translatesAutoresizingMaskIntoConstraints="NO" id="22">
+                    <rect key="frame" x="0.0" y="228" width="375" height="439"/>
                     <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                     <fontDescription key="fontDescription" type="system" pointSize="10"/>
                     <textInputTraits key="textInputTraits" autocapitalizationType="sentences"/>
                 </textView>
             </subviews>
+            <viewLayoutGuide key="safeArea" id="BcU-7e-157"/>
             <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
             <constraints>
                 <constraint firstItem="11" firstAttribute="top" secondItem="9" secondAttribute="bottom" constant="10" id="1H4-Jm-Gx4"/>
                 <constraint firstItem="22" firstAttribute="leading" secondItem="BcU-7e-157" secondAttribute="leading" id="AcQ-cn-bXQ"/>
                 <constraint firstItem="BcU-7e-157" firstAttribute="top" secondItem="7" secondAttribute="top" constant="-10" id="Bt9-xJ-sCT"/>
                 <constraint firstItem="9" firstAttribute="top" secondItem="8" secondAttribute="bottom" constant="10" id="Hh2-Fl-KQU"/>
-                <constraint firstItem="12" firstAttribute="width" secondItem="8" secondAttribute="width" id="Ke5-Qc-Yaj"/>
                 <constraint firstItem="11" firstAttribute="width" secondItem="9" secondAttribute="width" id="ZMg-3P-ITe"/>
                 <constraint firstItem="11" firstAttribute="centerX" secondItem="BcU-7e-157" secondAttribute="centerX" id="Zpp-F2-jAc"/>
                 <constraint firstItem="9" firstAttribute="width" secondItem="8" secondAttribute="width" id="bBL-px-wQi"/>
-                <constraint firstItem="12" firstAttribute="centerX" secondItem="BcU-7e-157" secondAttribute="centerX" id="bU1-z7-9cx"/>
                 <constraint firstItem="9" firstAttribute="centerX" secondItem="BcU-7e-157" secondAttribute="centerX" id="d73-gW-LSY"/>
                 <constraint firstItem="8" firstAttribute="centerX" secondItem="BcU-7e-157" secondAttribute="centerX" id="gtu-p7-QOF"/>
                 <constraint firstItem="7" firstAttribute="centerX" secondItem="BcU-7e-157" secondAttribute="centerX" id="hhe-nD-oFX"/>
-                <constraint firstItem="22" firstAttribute="top" secondItem="12" secondAttribute="bottom" constant="10" id="pjY-QU-8gg"/>
                 <constraint firstItem="BcU-7e-157" firstAttribute="bottom" secondItem="22" secondAttribute="bottom" id="qYK-Io-npU"/>
                 <constraint firstItem="BcU-7e-157" firstAttribute="trailing" secondItem="22" secondAttribute="trailing" id="r9A-7N-o32"/>
                 <constraint firstItem="8" firstAttribute="top" secondItem="7" secondAttribute="bottom" constant="10" id="ykc-2i-EPV"/>
-                <constraint firstItem="12" firstAttribute="top" secondItem="11" secondAttribute="bottom" constant="10" id="zHx-yS-nA7"/>
             </constraints>
-            <viewLayoutGuide key="safeArea" id="BcU-7e-157"/>
             <point key="canvasLocation" x="-396" y="27.436281859070466"/>
         </view>
     </objects>
+    <resources>
+        <systemColor name="darkTextColor">
+            <color white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+    </resources>
 </document>

@@ -205,10 +205,11 @@ div.masque {
     color:white; /* Dark : rgba(206, 206, 206, 1); */
 	float:left;
 	font-weight:bolder;
-	width:49%;
-	text-shadow: #555 0px 1px 1px;	
+    display: flex;
+    white-space: nowrap;
+	text-shadow: #555 0px 1px 1px;
 	height:19px;
-    margin-top: 10px !important;
+    margin-top: 6px !important;
 }
 
 .message .header .leftdate {
@@ -218,8 +219,9 @@ div.masque {
 	color:white; /*Dark rgba(206, 206, 206, 1);*/
 	float:right;
 	font-weight:bold;
-	width:26%;
-	text-shadow: #555 0px 1px 1px;	
+    display: flex;
+    white-space: nowrap;
+	text-shadow: #555 0px 1px 1px;
 	height:14px;
     margin-top: 10px !important;
     text-align:right;
@@ -361,12 +363,11 @@ table.bl_quote_show {
 
 table.citation_me_quoted {
     table-layout:fixed;
-    border-left: 2px solid var(--color-action);
     background: var(--color-message-mequoted-background);
-    border-left: 2px solid var(--color-message-mequoted-borderleft);
     border-right: 1px solid var(--color-message-mequoted-borderother);
     border-bottom: 1px solid var(--color-message-mequoted-borderother);
     border-top: 1px solid var(--color-message-mequoted-borderother);
+    border-left: 2px solid var(--color-message-mequoted-borderleft);
 }
 
 table.citation_whitelist {
@@ -419,99 +420,6 @@ table.code *, table.fixed * {
 	background-repeat: no-repeat;
 	background-position: 99px 14px;
 	background-size: 15px;
-}
-
-#toolbarpage * {
-    -webkit-user-select: none;
-    -webkit-touch-callout:none;
-    -webkit-tap-highlight-color:rgba(0,0,0,0);
-}
-
-#toolbarpage {
-    -webkit-user-select: none;
-    -webkit-touch-callout:none;
-    -webkit-tap-highlight-color:rgba(0,0,0,0);
-    color:var(--color-text);
-	line-height:32px;
-	font-size:15px !important;
-	font-weight:bold;
-	border-top:1px solid #000;
-	text-align:center;
-	position:relative;
-	background-image: url(toolbar3.png);
-	height:43px;
-    width:100%;
-	text-shadow: rgba(0, 0, 0, 0.6) 0px -1px 1px;
-    
-}
-#toolbarpage a {
--webkit-user-select: none;
--webkit-touch-callout:none;
--webkit-tap-highlight-color:rgba(0,0,0,0);
-
-	color:#FFF;
-	text-decoration:none;
-}
-/*38x31*/
-#toolbarpage .button {
-
-	position:absolute;
-	width:39px;
-	height:30px;
-	top:7px;
-}
-
-#toolbarpage .button a {
-	width:39px;
-	height:30px;
-	display:block;
-	text-indent: -100px;
-	overflow: hidden;
-}
-
-#toolbarpage .button.begin {
-	left:6px;
-}
-#toolbarpage .button.begin.active {
-}
-#toolbarpage .button.begin.hover {
-}
-#toolbarpage .button.end {
-	right:6px;
-}
-#toolbarpage .button.end.active {
-}
-#toolbarpage .button.end.hover {
-}
-
-#toolbarpage .button2 {
-	position:absolute;
-	width:32px;
-	height:30px;
-	top:7px;
-}
-
-#toolbarpage .button2 a {
-	width:32px;
-	height:30px;
-	display:block;
-	text-indent: -100px;
-	overflow: hidden;
-}
-
-#toolbarpage .button2.begin {
-	left:55px;
-}
-#toolbarpage .button2.begin.active {
-}
-#toolbarpage .button2.begin.hover {
-}
-#toolbarpage .button2.end {
-	right:55px;
-}
-#toolbarpage .button2.end.active {
-}
-#toolbarpage .button2.end.hover {
 }
 
 .u {
@@ -879,6 +787,39 @@ body.ios7 {
     display: none;
 }
 
+#toolbarpage * {
+    -webkit-user-select: none;
+    -webkit-touch-callout:none;
+    -webkit-tap-highlight-color:rgba(0,0,0,0);
+}
+
+#toolbarpage {
+    -webkit-user-select: none;
+    -webkit-touch-callout:none;
+    -webkit-tap-highlight-color:rgba(0,0,0,0);
+    color:var(--color-text);
+    line-height:32px;
+    font-size:15px !important;
+    font-weight:bold;
+    border-top:1px solid #000;
+    text-align:center;
+    position:relative;
+    background-image: url(toolbar3.png);
+    height:43px;
+    width:100%;
+    text-shadow: rgba(0, 0, 0, 0.6) 0px -1px 1px;
+    
+}
+
+#toolbarpage a {
+    -webkit-user-select: none;
+    -webkit-touch-callout:none;
+    -webkit-tap-highlight-color:rgba(0,0,0,0);
+
+    color:#FFF;
+    text-decoration:none;
+}
+
 .ios7 #toolbarpage {
     background:var(--color-background-bars); /* barre de navigation bas de page */
     border-top: 1px solid var(--color-text2); !important;
@@ -891,95 +832,79 @@ body.ios7 {
     color:var(--color-texte); /* Numero de page dans la barre de navigation bas de page */
 }
 
-.ios7 #toolbarpage .button {
-    width:21px;
-    height:15px;
-    top:18px;
-    background-size:100% 100%;
+#toolbarpage .button1 {
+    position:absolute;
+    width:30px;
+    height:30px;
+    top:7px;
+    left:5px;
 }
 
-.ios7 #toolbarpage .button2 {
-    width:12px;
-    height:15px;
-    top:18px;
-    background-size:100% 100%;
-}
-
-
-.ios7 #toolbarpage .button a {
-	width:17px;
-	height:15px;
+#toolbarpage .button1 a {
+    width:30px;
+    height:30px;
     display:block;
-	text-indent: -100px;
-	overflow: hidden;
+    padding-bottom: 5px !important;
+    padding-top: 11px !important;
 }
 
-.ios7 #toolbarpage .button2 a {
-	width:12px;
-	height:15px;
-	display:block;
-	text-indent: -100px;
-	overflow: hidden;
+#toolbarpage .button2 {
+    position:absolute;
+    width:30px;
+    height:30px;
+    top:7px;
+    left:60px;
 }
 
-.ios7 #toolbarpage .button.begin {
-    left:16px;
-    -webkit-mask-box-image: url(arrowbegin.svg); /* no-repeat 100% 100%;*/
-    -webkit-mask-size: cover;
-    background-color:var(--color-action-disabled);
-}
-.ios7 #toolbarpage .button.begin.active {
-    left:16px;
-    -webkit-mask-box-image: url(arrowbegin.svg); /* no-repeat 100% 100%;*/
-    -webkit-mask-size: cover;
-    background-color:var(--color-action);
-}
-.ios7 #toolbarpage .button.begin.hover {
-    opacity:0.4;
-}
-.ios7 #toolbarpage .button.end {
-	right:16px;
-    -webkit-mask-box-image: url(arrowend.svg); /* no-repeat 100% 100%;*/
-    -webkit-mask-size: cover;
-    background-color:var(--color-action-disabled);
-}
-.ios7 #toolbarpage .button.end.active {
-    -webkit-mask-box-image: url(arrowend.svg); /* no-repeat 100% 100%;*/
-    -webkit-mask-size: cover;
-    background-color:var(--color-action);
-}
-.ios7 #toolbarpage .button.end.hover {
-    opacity:0.4;
+#toolbarpage .button2 a {
+    width:30px;
+    height:30px;
+    display:block;
+    padding-bottom: 5px !important;
+    padding-top: 11px !important;
 }
 
-.ios7 #toolbarpage .button2.begin {
-	left:65px;
-    -webkit-mask-box-image: url(arrowback.svg); /* no-repeat 100% 100%;*/
-    -webkit-mask-size: cover;
-    background-color:var(--color-action-disabled);
+#toolbarpage .button3 {
+    position:absolute;
+    width:30px;
+    height:30px;
+    top:7px;
+    right:60px;
 }
-.ios7 #toolbarpage .button2.begin.active {
-    -webkit-mask-box-image: url(arrowback.svg); /* no-repeat 100% 100%;*/
-    -webkit-mask-size: cover;
-    background-color:var(--color-action);
+
+#toolbarpage .button3 a {
+    width:30px;
+    height:30px;
+    display:block;
+    padding-bottom: 5px !important;
+    padding-top: 11px !important;
 }
-.ios7 #toolbarpage .button2.begin.hover {
-    opacity:0.4;
+
+#toolbarpage .button4 {
+    position:absolute;
+    width:30px;
+    height:30px;
+    top:7px;
+    right:13px;
 }
-.ios7 #toolbarpage .button2.end {
-	right:65px;
-    -webkit-mask-box-image: url(arrowforward.svg); /* no-repeat 100% 100%;*/
-    -webkit-mask-size: cover;
-    background-color:var(--color-action-disabled);
+
+#toolbarpage .button4 a {
+    width:30px;
+    height:30px;
+    display:block;
+    padding-bottom: 5px !important;
+    padding-top: 11px !important;
 }
-.ios7 #toolbarpage .button2.end.active {
-    -webkit-mask-box-image: url(arrowforward.svg); /* no-repeat 100% 100%;*/
-    -webkit-mask-size: cover;
-    background-color:var(--color-action);
+
+
+.button_svg_active {
+    fill: var(--color-action);
 }
-.ios7 #toolbarpage .button2.end.hover {
-    opacity:0.4;
+
+.button_svg_disabled {
+    fill: var(--color-action-disabled);
 }
+
 
 /* -- iOS7 */
 

@@ -223,6 +223,16 @@
     }
 }
 
+// Theme clair: un peu plus clair que textColor
+// Thème sombre: un peu plus foncé que textColor
++ (UIColor *)textColor2 {
+    switch ([ThemeManager currentTheme]) {
+        case ThemeLight: return [UIColor colorWithRed:224/255.0 green:224/255.0 blue:224/255.0 alpha:1.0];
+        case ThemeDark:  return [UIColor colorWithRed:60.0/255.0 green:60.0/255.0 blue:60.0/255.0 alpha:1.0];
+        default:         return [UIColor colorWithRed:0 green:0 blue:0 alpha:1.0];
+    }
+}
+
 + (UIColor *)textColorPseudo:(Theme)theme{
     switch (theme) {
         case ThemeLight: return [UIColor colorWithRed:120/255.0 green:120/255.0 blue:120/255.0 alpha:1.0];
@@ -376,6 +386,44 @@
 
 + (UIColor *)loveColor {
     return [self loveColor:[ThemeManager currentTheme]];
+}
+
++ (UIColor *)loveColorBright {
+    CGFloat h, s, b, a;
+    UIColor* c = [ThemeColors loveColor];
+    [c getHue:&h saturation:&s brightness:&b alpha:&a];
+
+    switch ([ThemeManager currentTheme]) {
+        case ThemeLight:
+            c = [UIColor colorWithHue:h saturation:1.0 brightness:b alpha:1.0];
+            break;
+            
+        case ThemeDark:
+            c = [UIColor colorWithHue:h saturation:s brightness:1.0 alpha:1.0];
+            break;
+    }
+    
+    return c;
+}
+
++ (UIColor *)loveLightColorNoAlpha {
+    CGFloat h, s, b, a;
+    UIColor *c;
+    switch ([ThemeManager currentTheme]) {
+        case ThemeLight:
+            c = [ThemeColors getUserColor:@"theme_day_color_love"];
+            [c getHue:&h saturation:&s brightness:&b alpha:&a];
+            c = [UIColor colorWithHue:h saturation:0.2 brightness:1.0 alpha:1.0];
+            break;
+
+        case ThemeDark:
+            c = [ThemeColors getUserColor:@"theme_night_color_love"];
+            [c getHue:&h saturation:&s brightness:&b alpha:&a];
+            c = [UIColor colorWithHue:h saturation:1.0 brightness:0.3 alpha:1.0];
+            break;
+
+    }
+    return c;
 }
 
 // Tint color avec transparence 0.07/1
@@ -624,6 +672,26 @@
     return [UIColor colorWithHue:h saturation:0.1 brightness:1.0 alpha:1.0];;
 }
 
++ (UIColor *)tintLightColorNoAlpha {
+    CGFloat h, s, b, a;
+    UIColor *c;
+    switch ([ThemeManager currentTheme]) {
+        case ThemeLight:
+            c = [ThemeColors getUserColor:@"theme_day_color_action"];
+            [c getHue:&h saturation:&s brightness:&b alpha:&a];
+            c = [UIColor colorWithHue:h saturation:0.2 brightness:1.0 alpha:1.0];
+            break;
+
+        case ThemeDark:
+            c = [ThemeColors getUserColor:@"theme_night_color_action"];
+            [c getHue:&h saturation:&s brightness:&b alpha:&a];
+            c = [UIColor colorWithHue:h saturation:1.0 brightness:0.3 alpha:1.0];
+            break;
+
+    }
+    return c;
+}
+
 + (UIColor *)tintWhiteColor:(Theme)theme{
     switch (theme) {
         case ThemeLight: return [UIColor whiteColor];
@@ -843,6 +911,28 @@
     }
 }
 
++ (UIImage *)avatar {
+    switch ([ThemeManager currentTheme]) {
+        case ThemeLight:
+            return [UIImage imageNamed:@"avatar_male_gray_on_light_48x48"];
+        case ThemeDark:
+            return [UIImage imageNamed:@"avatar_male_gray_on_dark_48x48"];
+        default:
+            return [UIImage imageNamed:@"avatar_male_gray_on_dark_48x48"];
+    }
+}
+
++ (UIImage *)avatarGroup {
+    switch ([ThemeManager currentTheme]) {
+        case ThemeLight:
+            return [UIImage imageNamed:@"group_light"];
+        case ThemeDark:
+            return [UIImage imageNamed:@"group_dark"];
+        default:
+            return [UIImage imageNamed:@"group"];
+    }
+}
+
 + (UIImage *)tintImage:(UIImage *)image withTheme:(Theme)theme{
     return [self tintImage:image withColor:[self tintColor:theme]];
 }
@@ -966,7 +1056,7 @@
             case 1:return @"cadeau_off";
             case 2:return @"cadeau_off";
             case 3:return @"message_off";
-            case 4:return @"cane_off";
+            case 4:return @"paques_off";
         }
     }
     return @"";

@@ -56,7 +56,14 @@
 	tempHTML = [tempHTML stringByReplacingOccurrencesOfString:@"%%AUTEUR_PSEUDO%%" withString:[self name]];
     tempHTML = [tempHTML stringByReplacingOccurrencesOfString:@"%%POSTID%%" withString:[self postID]];
 	tempHTML = [tempHTML stringByReplacingOccurrencesOfString:@"%%MESSAGE_DATE%%" withString:[[self messageDate] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]]];
-
+    
+    if ([[NSUserDefaults standardUserDefaults] integerForKey:@"theme_style"] == 1) { // Modern style
+        tempHTML = [tempHTML stringByReplacingOccurrencesOfString:@"%%popup_action%%" withString:@"message"];
+    }
+    else {
+        tempHTML = [tempHTML stringByReplacingOccurrencesOfString:@"%%popup_action%%" withString:@"avatar"];
+    }
+    
 	if([self imageUI] != nil){
 		tempHTML = [tempHTML stringByReplacingOccurrencesOfString:@"%%AUTEUR_AVATAR_SRC%%" withString:@"background-image:url('%%AUTEUR_AVATAR_SRC%%');"];
 		tempHTML = [tempHTML stringByReplacingOccurrencesOfString:@"%%AUTEUR_AVATAR_SRC%%" withString:[self imageUI]]; //avatar_male_gray_on_light_48x48.png //imageUrl
@@ -91,15 +98,10 @@
     myRawContent = [myRawContent stringByReplacingOccurrencesOfRegex:@"<p class=\"pbl\" id=\"([0-9]+)\""
                                                            withString:[NSString stringWithFormat:@"%@<p class=\"pbl\"", sHideQuote]];
 
-
-    //Custom Internal Images
-    NSString *regEx2 = @"<img src=\"http://forum-images.hardware.fr/([^\"]+)\" alt=\"(\\[[^\"]+)\" title=\"[^\"]+\">";
+    // Smileys : specific action
+    NSString *regEx2 = @"<img src=\"https://forum-images.hardware.fr/images/perso/([^\"]+)\" alt=\"\\[:([^\"]+)\\]\" title=\"[^\"]+\">";
     myRawContent = [myRawContent stringByReplacingOccurrencesOfRegex:regEx2
-                                                        withString:@"<img class=\"smileycustom\" onClick=\"window.location.href = 'oijlkajsdoihjlkjasdosmiley://$2/'+encodeURIComponent(this.src); return false;\" src=\"https://forum-images.hardware.fr/$1\" />"]; //
-    //Custom Internal Images
-    NSString *regEx22 = @"<img src=\"https://forum-images.hardware.fr/([^\"]+)\" alt=\"(\\[[^\"]+)\" title=\"[^\"]+\">";
-    myRawContent = [myRawContent stringByReplacingOccurrencesOfRegex:regEx22
-                                                          withString:@"<img class=\"smileycustom\" onClick=\"window.location.href = 'oijlkajsdoihjlkjasdosmiley://$2/'+encodeURIComponent(this.src); return false;\" src=\"https://forum-images.hardware.fr/$1\" />"]; //
+                                                     withString:@"<img onClick=\"window.location = 'oijlkajsdoihjlkjasdosmiley://smileycode/$2/'+encodeURIComponent(this.src); return false;\" class=\"smileycustom\" src=\"https://forum-images.hardware.fr/images/perso/$1\">"]; //
 
 	//Native Internal Images
 	NSString *regEx0 = @"<img src=\"http://forum-images.hardware.fr/[^\"]+/([^/]+)\" alt=\"[^\"]+\" title=\"[^\"]+\">";			
@@ -147,12 +149,12 @@
 	} else if ([display isEqualToString:@"yes"]) {
 		NSString *regEx3 = @"<a rel=\"nofollow\" href=\"([^\"]+)\" target=\"_blank\" class=\"cLink\"><img src=\"([^\"]+)\" alt=\"[^\"]+\" title=\"[^\"]+\" onload=\"[^\"]+\" style=\"[^\"]+\"></a>";			
 		myRawContent = [myRawContent stringByReplacingOccurrencesOfRegex:regEx3
-															  withString:@"<img onClick=\"window.location = 'oijlkajsdoihjlkjasdoimbrows://'+this.title+'/'+encodeURIComponent(this.alt); return false;\" class=\"hfrplusimg\" title=\"%%%%ID%%%%\" src=\"$2\" alt=\"$2\" longdesc=\"$1\">"];
+															  withString:@"<a rel=\"nofollow\" href=\"$1\" target=\"_blank\" class=\"cLink\"><img onClick=\"window.location = 'oijlkajsdoihjlkjasdoimbrows://'+this.title+'/'+encodeURIComponent(this.alt); return false;\" class=\"hfrplusimg\" title=\"%%%%ID%%%%\" src=\"$2\" alt=\"$2\" longdesc=\"$1\"></a>"];
 		
 		//External Images			
 		NSString *regEx = @"<img src=\"([^\"]+)\" alt=\"[^\"]+\" title=\"[^\"]+\" onload=\"[^\"]+\" style=\"[^\"]+\">";			
 		myRawContent = [myRawContent stringByReplacingOccurrencesOfRegex:regEx
-															  withString:@"<img onClick=\"window.location = 'oijlkajsdoihjlkjasdoimbrows://'+this.title+'/'+encodeURIComponent(this.alt); return false;\" class=\"hfrplusimg\" title=\"%%%%ID%%%%\" src=\"$1\" alt=\"$1\" longdesc=\"\">"];
+															  withString:@"<a rel=\"nofollow\" href=\"$1\" target=\"_blank\" class=\"cLink\"><img onClick=\"window.location = 'oijlkajsdoihjlkjasdoimbrows://'+this.title+'/'+encodeURIComponent(this.alt); return false;\" class=\"hfrplusimg\" title=\"%%%%ID%%%%\" src=\"$1\" alt=\"$1\" longdesc=\"\"></a>"];
 	} else if ([display isEqualToString:@"wifi"]) {
         
         NetworkStatus netStatus = [[[HFRplusAppDelegate sharedAppDelegate] internetReach] currentReachabilityStatus];
@@ -165,12 +167,12 @@
                 //Replacing Links with IMG with custom IMG
                 NSString *regEx3 = @"<a rel=\"nofollow\" href=\"([^\"]+)\" target=\"_blank\" class=\"cLink\"><img src=\"([^\"]+)\" alt=\"[^\"]+\" title=\"[^\"]+\" onload=\"[^\"]+\" style=\"[^\"]+\"></a>";			
                 myRawContent = [myRawContent stringByReplacingOccurrencesOfRegex:regEx3
-                                                                      withString:[NSString stringWithFormat:@"<img onClick=\"window.location = 'oijlkajsdoihjlkjasdoimbrows://'+this.title+'/'+encodeURIComponent(this.alt); return false;\" class=\"hfrplusimg\" title=\"%%%%ID%%%%\" src=\"%@\" alt=\"$2\" longdesc=\"$1\">",landscape]];
+                                                                      withString:[NSString stringWithFormat:@"<a rel=\"nofollow\" href=\"$1\" target=\"_blank\" class=\"cLink\"><img onClick=\"window.location = 'oijlkajsdoihjlkjasdoimbrows://'+this.title+'/'+encodeURIComponent(this.alt); return false;\" class=\"hfrplusimg\" title=\"%%%%ID%%%%\" src=\"%@\" alt=\"$2\" longdesc=\"$1\"></a>",landscape]];
                 
                 //External Images			
                 NSString *regEx = @"<img src=\"([^\"]+)\" alt=\"[^\"]+\" title=\"[^\"]+\" onload=\"[^\"]+\" style=\"[^\"]+\">";			
                 myRawContent = [myRawContent stringByReplacingOccurrencesOfRegex:regEx
-                                                                      withString:[NSString stringWithFormat:@"<img onClick=\"window.location = 'oijlkajsdoihjlkjasdoimbrows://'+this.title+'/'+encodeURIComponent(this.alt); return false;\" class=\"hfrplusimg\" title=\"%%%%ID%%%%\" src=\"%@\" alt=\"$1\" longdesc=\"\">",landscape]];
+                                                                      withString:[NSString stringWithFormat:@"<a rel=\"nofollow\" href=\"$1\" target=\"_blank\" class=\"cLink\"><img onClick=\"window.location = 'oijlkajsdoihjlkjasdoimbrows://'+this.title+'/'+encodeURIComponent(this.alt); return false;\" class=\"hfrplusimg\" title=\"%%%%ID%%%%\" src=\"%@\" alt=\"$1\" longdesc=\"\"></a>",landscape]];
                 break;
             }
             case ReachableViaWiFi:
@@ -178,18 +180,18 @@
                // NSLog( @"Reachable WiFi");
                 NSString *regEx3 = @"<a rel=\"nofollow\" href=\"([^\"]+)\" target=\"_blank\" class=\"cLink\"><img src=\"([^\"]+)\" alt=\"[^\"]+\" title=\"[^\"]+\" onload=\"[^\"]+\" style=\"[^\"]+\"></a>";			
                 myRawContent = [myRawContent stringByReplacingOccurrencesOfRegex:regEx3
-                                                                      withString:@"<img onClick=\"window.location = 'oijlkajsdoihjlkjasdoimbrows://'+this.title+'/'+encodeURIComponent(this.alt); return false;\" class=\"hfrplusimg\" title=\"%%%%ID%%%%\" src=\"$2\" alt=\"$2\" longdesc=\"$1\">"];
+                                                                      withString:@"<a rel=\"nofollow\" href=\"$1\" target=\"_blank\" class=\"cLink\"><img onClick=\"window.location = 'oijlkajsdoihjlkjasdoimbrows://'+this.title+'/'+encodeURIComponent(this.alt); return false;\" class=\"hfrplusimg\" title=\"%%%%ID%%%%\" src=\"$2\" alt=\"$2\" longdesc=\"$1\"></a>"];
                 
                 //External Images			
                 NSString *regEx = @"<img src=\"([^\"]+)\" alt=\"[^\"]+\" title=\"[^\"]+\" onload=\"[^\"]+\" style=\"[^\"]+\">";			
                 myRawContent = [myRawContent stringByReplacingOccurrencesOfRegex:regEx
-                                                                      withString:@"<img onClick=\"window.location = 'oijlkajsdoihjlkjasdoimbrows://'+this.title+'/'+encodeURIComponent(this.alt); return false;\" class=\"hfrplusimg\" title=\"%%%%ID%%%%\" src=\"$1\" alt=\"$1\" longdesc=\"\">"];
+                                                                      withString:@"<a rel=\"nofollow\" href=\"$1\" target=\"_blank\" class=\"cLink\"><img onClick=\"window.location = 'oijlkajsdoihjlkjasdoimbrows://'+this.title+'/'+encodeURIComponent(this.alt); return false;\" class=\"hfrplusimg\" title=\"%%%%ID%%%%\" src=\"$1\" alt=\"$1\" longdesc=\"\"></a>"];
                 
                 break;
             }
         }
     }
-	
+    
 	//Replace Internal Images with Bundle://
 	NSString *regEx4 = @"\\|NATIVE-([^-]+)-98787687687697\\|";			
 	myRawContent = [myRawContent stringByReplacingOccurrencesOfRegex:regEx4
@@ -231,6 +233,7 @@
 
     // Correct security issue on href for quotations
     myRawContent = [myRawContent stringByReplacingOccurrencesOfString:@"href=\"/forum2.php?config=hfr.inc" withString:@"href=\"https://forum.hardware.fr/forum2.php?config=hfr.inc"];
+    myRawContent = [myRawContent stringByReplacingOccurrencesOfString:@"<a href=\"/hfr/" withString:@"<a href=\"https://forum.hardware.fr/hfr/"];
 
     tempHTML = [tempHTML stringByReplacingOccurrencesOfString:@"%%MESSAGE_CONTENT%%" withString:myRawContent];
 

@@ -56,7 +56,7 @@
 @synthesize request, arrayAction, curPostID;
 @synthesize firstDate;
 @synthesize actionCreateAQ, actionCreateBookmark, canSaveDrapalInMPStorage, topic, filterPostsQuotes, arrFilteredPosts, alertProgress, progressView;
-@synthesize sSelectedSmileyCode, sSelectedSmileyImageURL;
+@synthesize sSelectedSmileyCode, sSelectedSmileyImageURL, webviewInteraction;
 
 - (void)setTopicName:(NSString *)n {
     _topicName = [n filterTU];
@@ -679,20 +679,7 @@
 
 - (void)VisibilityChanged:(NSNotification *)notification {
     NSLog(@"VisibilityChanged %@", notification);
-  /*  NSLog(@"TINT 1 %ld", (long)[[HFRplusAppDelegate sharedAppDelegate].window tintAdjustmentMode]);
 
-    [[HFRplusAppDelegate sharedAppDelegate].window setTintAdjustmentMode:UIViewTintAdjustmentModeNormal];
-    [[HFRplusAppDelegate sharedAppDelegate].window setTintColor:[UIColor greenColor]];
-    [[HFRplusAppDelegate sharedAppDelegate].window setTintAdjustmentMode:UIViewTintAdjustmentModeAutomatic];
-    
-    NSLog(@"TINT 2 %ld", (long)[[HFRplusAppDelegate sharedAppDelegate].window tintAdjustmentMode]);
-*/
-//
-
-
-//    NSLog(@"TINT 2 %@", [[HFRplusAppDelegate sharedAppDelegate].window tintColor]);
-
-    
     if ([[notification valueForKey:@"object"] isEqualToString:@"SHOW"]) {
         [[NSNotificationCenter defaultCenter] removeObserver:self name:UIMenuControllerDidHideMenuNotification object:nil];
     }
@@ -702,7 +689,6 @@
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(editMenuHidden:) name:UIMenuControllerDidHideMenuNotification object:nil];
         [self editMenuHidden:nil];
     }
-    //[self resignFirstResponder];
 }
 
 
@@ -743,12 +729,41 @@
         }
     }];
 }
-            
+
+/*
+- (void)editMenuHidden:(id)sender {
+    NSLog(@"editMenuHidden %@ NOMBRE %lu", sender, (long unsigned)[UIMenuController sharedMenuController].menuItems.count);
+    [self.messagesWebView evaluateJavaScript:@"window.getSelection().toString();" completionHandler:^(id result, NSError*  error) {
+        if (error == nil && result != nil) {
+            NSString* sSelectedText = [NSString stringWithFormat:@"%@", result];
+            NSLog(@"Selection length %ld", sSelectedText.length);
+            if (sSelectedText.length > 0) {
+                UIImage *menuImgQuote = [UIImage imageNamed:@"ReplyArrowFilled-20"];
+                UIImage *menuImgQuoteB = [UIImage imageNamed:@"BoldFilled-20"];
+                
+                UIMenuItem *textQuotinuum = [[UIMenuItem alloc] initWithTitle:@"Citerexclu" action:@selector(textQuote:) image:menuImgQuote];
+                UIMenuItem *textQuotinuumBis = [[UIMenuItem alloc] initWithTitle:@"Citergras" action:@selector(textQuoteBold:) image:menuImgQuoteB];
+
+                [self.arrayAction removeAllObjects];
+                
+                UIMenuController *menuController = [UIMenuController sharedMenuController];
+                [menuController setMenuItems:[NSArray arrayWithObjects:textQuotinuum, textQuotinuumBis, nil]];
+            }
+        }
+    }];
+}*/
+
 - (void)editMenuHidden:(id)sender {
     NSLog(@"editMenuHidden %@ NOMBRE %lu", sender, (long unsigned)[UIMenuController sharedMenuController].menuItems.count);
     
-    UIImage *menuImgQuote = [UIImage imageNamed:@"ReplyArrowFilled-20"];
-    UIImage *menuImgQuoteB = [UIImage imageNamed:@"BoldFilled-20"];
+    NSString* sSuffix = @"";
+    if (@available(iOS 16.0, *)) {
+        if ([[ThemeManager sharedManager] theme] == ThemeLight) {
+            sSuffix = @"-Inv";
+        }
+    }
+    UIImage *menuImgQuote = [UIImage imageNamed:[NSString stringWithFormat:@"ReplyArrowFilled-20%@", sSuffix]];
+    UIImage *menuImgQuoteB = [UIImage imageNamed:[NSString stringWithFormat:@"BoldFilled-18%@", sSuffix]];
     
     UIMenuItem *textQuotinuum = [[UIMenuItem alloc] initWithTitle:@"Citerexclu" action:@selector(textQuote:) image:menuImgQuote];
     UIMenuItem *textQuotinuumBis = [[UIMenuItem alloc] initWithTitle:@"Citergras" action:@selector(textQuoteBold:) image:menuImgQuoteB];
@@ -828,30 +843,13 @@
     [label setTextAlignment:NSTextAlignmentCenter];
     [label setLineBreakMode:NSLineBreakByTruncatingMiddle];
     
-    if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"7.0")) {
-        [label setTextColor:[UIColor blackColor]];
-        
-        if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
-            [label setFont:[UIFont boldSystemFontOfSize:13.0]];
-        }
-        else {
-            [label setFont:[UIFont boldSystemFontOfSize:17.0]];
-        }
+    [label setTextColor:[UIColor blackColor]];
+    
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
+        [label setFont:[UIFont boldSystemFontOfSize:13.0]];
     }
-    else
-    {
-        if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
-            [label setTextColor:[UIColor whiteColor]];
-            label.shadowColor = [UIColor darkGrayColor];
-            [label setFont:[UIFont boldSystemFontOfSize:13.0]];
-            label.shadowOffset = CGSizeMake(0.0, -1.0);
-        }
-        else {
-            [label setTextColor:[UIColor colorWithRed:113/255.f green:120/255.f blue:128/255.f alpha:1.00]];
-            label.shadowColor = [UIColor whiteColor];
-            [label setFont:[UIFont boldSystemFontOfSize:19.0]];
-            label.shadowOffset = CGSizeMake(0.0, 0.5f);
-        }
+    else {
+        [label setFont:[UIFont boldSystemFontOfSize:17.0]];
     }
     
     [label setNumberOfLines:2];
@@ -862,9 +860,9 @@
     // fond blanc WebView
     //[self.messagesWebView hideGradientBackground];
     self.messagesWebView.navigationDelegate = self;
-    self.messagesWebView.inspectable = YES;
     [self.messagesWebView setBackgroundColor:[UIColor colorWithRed:239/255.0f green:239/255.0f blue:244/255.0f alpha:1.0f]];
-    
+    if (@available(iOS 16.4, *)) { [self.messagesWebView setInspectable:true]; }
+
 	//Gesture de Gauche à droite
 	UIGestureRecognizer* recognizer = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(handleSwipeToRight:)];
 	self.swipeRightRecognizer = (UISwipeGestureRecognizer *)recognizer;
@@ -876,6 +874,10 @@
     self.swipeLeftRecognizer = (UISwipeGestureRecognizer *)recognizer;
 	
     self.messagesWebView.scrollView.contentInset = UIEdgeInsetsMake(0, -0.5, 0, 0);
+    if (@available(iOS 16.0, *)) {
+        self.webviewInteraction = [[UIEditMenuInteraction alloc] initWithDelegate:self];
+        [self.messagesWebView addInteraction:(UIEditMenuInteraction*)self.webviewInteraction];
+    }
     
     //Bouton Repondre message
     if (self.isSearchInstra) {
@@ -1736,25 +1738,29 @@
             NSString *buttonPrevious, *buttonNext;
             
             if ([(UIBarButtonItem *)[self.aToolbar.items objectAtIndex:0] isEnabled]) {
-                buttonBegin = @"<div class=\"button begin active\" ontouchstart=\"$(this).addClass(\\'hover\\')\" ontouchend=\"$(this).removeClass(\\'hover\\')\" ><a href=\"oijlkajsdoihjlkjasdoauto://begin\">begin</a></div>";
-                buttonPrevious = @"<div class=\"button2 begin active\" ontouchstart=\"$(this).addClass(\\'hover\\')\" ontouchend=\"$(this).removeClass(\\'hover\\')\" ><a href=\"oijlkajsdoihjlkjasdoauto://previous\">previous</a></div>";
+                
+                buttonBegin = @"<div class=\"button1\" ontouchstart=\"$(this).addClass(\\'hover\\')\" ontouchend=\"$(this).removeClass(\\'hover\\')\" ><a href=\"oijlkajsdoihjlkjasdoauto://begin\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"38\" height=\"15\" viewBox=\"0 0 38 28\"><defs><style>button_svg_active {fill: var(--color-action);fill-rule: evenodd;}</style></defs><path id=\"Shape1.svg\" class=\"button_svg_active\" d=\"M38,0L23,14,38,28V0ZM22,0L7,14,22,28V0ZM6,0V28H0V0H6Z\"/></svg></a></div>";
+                
+                buttonPrevious = @"<div class=\"button2\" ontouchstart=\"$(this).addClass(\\'hover\\')\" ontouchend=\"$(this).removeClass(\\'hover\\')\" ><a href=\"oijlkajsdoihjlkjasdoauto://previous\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"23\" height=\"15\" viewBox=\"0 0 23 28\"><defs><style>button_svg_active {    fill: var(--color-action);fill-rule: evenodd;}</style></defs><path id=\"Shape2.svg\" class=\"button_svg_active\" d=\"M23,0L0,14,23,28V0Z\"/></svg></a></div>";
             }
             else {
-                buttonBegin = @"<div class=\"button begin\"></div>";
-                buttonPrevious = @"<div class=\"button2 begin\"></div>";
+                buttonBegin = @"<div class=\"button1\"><a href=\"\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"38\" height=\"15\" viewBox=\"0 0 38 28\"><defs><style>button_svg_disabled {fill: var(--color-action-disabled);fill-rule: evenodd;}</style></defs><path id=\"Shape1.svg\" class=\"button_svg_disabled\" d=\"M38,0L23,14,38,28V0ZM22,0L7,14,22,28V0ZM6,0V28H0V0H6Z\"/></a></svg></div>";
+                
+                buttonPrevious = @"<div class=\"button2\"><a href=\"\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"23\" height=\"15\" viewBox=\"0 0 23 28\"><defs><style>button_svg_disabled {    fill: var(--color-action-disabled);fill-rule: evenodd;}</style></defs><path id=\"Shape2.svg\" class=\"button_svg_disabled\" d=\"M23,0L0,14,23,28V0Z\"/></svg></div>";
+
             }
             
             if ([(UIBarButtonItem *)[self.aToolbar.items objectAtIndex:4] isEnabled]) {
-                buttonEnd = @"<div class=\"button end active\" ontouchstart=\"$(this).addClass(\\'hover\\')\" ontouchend=\"$(this).removeClass(\\'hover\\')\" ><a href=\"oijlkajsdoihjlkjasdoauto://end\">end</a></div>";
-                buttonNext = @"<div class=\"button2 end active\" ontouchstart=\"$(this).addClass(\\'hover\\')\" ontouchend=\"$(this).removeClass(\\'hover\\')\" ><a href=\"oijlkajsdoihjlkjasdoauto://next\">next</a></div>";
+                
+                buttonNext = @"<div class=\"button3\" ontouchstart=\"$(this).addClass(\\'hover\\')\" ontouchend=\"$(this).removeClass(\\'hover\\')\" ><a href=\"oijlkajsdoihjlkjasdoauto://next\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"23\" height=\"15\" viewBox=\"0 0 23 28\"><defs><style>button_svg_active {    fill: var(--color-action);fill-rule: evenodd;}</style></defs><path id=\"Shape2.svg\" class=\"button_svg_active\" d=\"M23,0L0,14,23,28V0Z\" transform=\"scale(-1,1) translate(-23,0)\"/></svg></a></div>";
+                
+                buttonEnd = @"<div class=\"button4\" ontouchstart=\"$(this).addClass(\\'hover\\')\" ontouchend=\"$(this).removeClass(\\'hover\\')\" ><a href=\"oijlkajsdoihjlkjasdoauto://end\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"38\" height=\"15\" viewBox=\"0 0 38 28\"><defs><style>button_svg_active {    fill: var(--color-action);fill-rule: evenodd;}</style></defs><path id=\"Shape4.svg\" class=\"button_svg_active\" d=\"M38,0L23,14,38,28V0ZM22,0L7,14,22,28V0ZM6,0V28H0V0H6Z\" transform=\"scale(-1,1) translate(-38,0)\"/></svg></a></div>";
             }
             else {
-                buttonEnd = @"<div class=\"button end\"></div>";
-                buttonNext = @"<div class=\"button2 end\"></div>";
+                buttonNext = @"<div class=\"button3\"><a href=\"\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"23\" height=\"15\" viewBox=\"0 0 23 28\"><defs><style>button_svg_disabled {    fill: var(--color-action-disabled);fill-rule: evenodd;}</style></defs><path id=\"Shape2.svg\" class=\"button_svg_disabled\" d=\"M23,0L0,14,23,28V0Z\" transform=\"scale(-1,1) translate(-23,0)\"/></svg></a></div>";
+                
+                buttonEnd = @"<div class=\"button4\"><a href=\"\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"38\" height=\"15\" viewBox=\"0 0 38 28\"><defs><style>button_svg_disabled {    fill: var(--color-action-disabled);fill-rule: evenodd;}</style></defs><path id=\"Shape4.svg\" class=\"button_svg_disabled\" d=\"M38,0L23,14,38,28V0ZM22,0L7,14,22,28V0ZM6,0V28H0V0H6Z\" transform=\"scale(-1,1) translate(-38,0)\"/></svg></a></div>";
             }
-            
-            
-            //[NSString stringWithString:@"<div class=\"button end\" ontouchstart=\"$(this).addClass(\\'hover\\')\" ontouchend=\"$(this).removeClass(\\'hover\\')\" ><a href=\"oijlkajsdoihjlkjasdoauto://end\">end</a></div>"];
             
             tooBar =  [NSString stringWithFormat:@"<div id=\"toolbarpage\">\
                        %@\
@@ -1850,6 +1856,7 @@
                                 function swap_spoiler_states(obj){var div=obj.getElementsByTagName('div');if(div[0]){if(div[0].style.visibility==\"visible\"){div[0].style.visibility='hidden';}else if(div[0].style.visibility==\"hidden\"||!div[0].style.visibility){div[0].style.visibility='visible';}}}\
                                 $('img').error(function(){var failingSrc = $(this).attr('src');if(failingSrc.indexOf('https://reho.st')>-1){$(this).attr('src', 'photoDefaultClic.png')}else{$(this).attr('src', 'photoDefaultfailmini.png');}});\
                                 function touchstart() { document.location.href = 'oijlkajsdoihjlkjasdotouch://touchstart'};\
+                                function touchHeaderMessage(selectedNode, actionName) { event.stopPropagation(); window.location = 'oijlkajsdoihjlkjasdopopup'+actionName+'://'+($(selectedNode.parentNode).offset().top-window.pageYOffset)+'/' + selectedNode.parentNode.parentNode.id; return false; };\
                                 document.documentElement.style.setProperty('--color-action', '%@');\
                                 document.documentElement.style.setProperty('--color-action-disabled', '%@');\
                                 document.documentElement.style.setProperty('--color-message-background', '%@');\
@@ -1886,15 +1893,11 @@
                                 [ThemeColors rgbaFromUIColor:[ThemeColors tintColor:theme] withAlpha:0.1], // -color-message-header-me-background
                                 [ThemeColors rgbaFromUIColor:[ThemeColors tintColor:theme] withAlpha:0.03], // color-message-mequoted-background
                                 [ThemeColors rgbaFromUIColor:[ThemeColors tintColor:theme] withAlpha:1],  //--color-message-mequoted-borderleft
-                                [ThemeColors rgbaFromUIColor:[ThemeColors tintColor:theme] withAlpha:0.1],  //--color-message-mequoted-borderother
-                                /*[ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:0.7], //--color-message-background
-                                [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:0.8], // --color-message-header-me-background
-                                [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:1.0 addSaturation:0.6],  //--color-message-mequoted-borderleft
-                                [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:1.0],  //--color-message-mequoted-borderother*/
+                                [ThemeColors rgbaFromUIColor:[ThemeColors tintLightColorNoAlpha]],  //--color-message-mequoted-borderother
                                 [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:0.4], //--color-message-header-love-background
                                 [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:0.3], // --color-message-header-me-background
                                 [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:1.0 addSaturation:1 addBrightness:1],  //--color-message-mequoted-borderleft
-                                [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:0.1 addSaturation:1], //--color-message-mequoted-borderother
+                                [ThemeColors rgbaFromUIColor:[ThemeColors loveLightColorNoAlpha]], //--color-message-quoted-love-borderother
                                 [ThemeColors rgbaFromUIColor:[ThemeColors textColor:theme] withAlpha:0.05],  //--color-message-quoted-bl-background
                                 [ThemeColors rgbaFromUIColor:[ThemeColors textFieldBackgroundColor:theme] withAlpha:0.7],  //--color-message-header-bl-background
                                 [ThemeColors rgbaFromUIColor:[ThemeColors textColorPseudo:theme] withAlpha:0.5],  //--color-separator-new-message
@@ -1939,9 +1942,6 @@
 	[self loadDataInTableView:myParser];
 }	
 
-// -------------------------------------------------------------------------------
-//	didFinishParsing:appList
-// -------------------------------------------------------------------------------
 - (void)didStartParsing:(HTMLParser *)myParser
 {
     [self performSelectorOnMainThread:@selector(handleLoadedParser:) withObject:myParser waitUntilDone:NO];
@@ -1953,9 +1953,8 @@
     self.queue = nil;
 }
 
-#pragma mark -
-#pragma mark WebView Delegate
-// was webViewDidStartLoad
+#pragma mark - WebView Delegate
+
 - (void)webView:(WKWebView *)webView didStartProvisionalNavigation:(WKNavigation *)navigation {
     NSLog(@"didStartProvisionalNavigation");
     [UIApplication sharedApplication].networkActivityIndicatorVisible = YES;
@@ -1985,11 +1984,8 @@
     }
 }
 
-// webViewDidFinishPreLoadDOM was empty method
-// was webViewDidFinishLoadDOM
 - (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation {
     NSLog(@"didFinishNavigation");
-    [UIApplication sharedApplication].networkActivityIndicatorVisible = NO;
     [self finishWebViewLoading];
 }
 
@@ -2028,13 +2024,12 @@
         [self.messagesWebView setHidden:NO];
         [self.messagesWebView becomeFirstResponder];
 
-        [self.messagesWebView evaluateJavaScript:@"$('.message').addSwipeEvents().bind('doubletap', function(evt, touch) { window.location = 'oijlkajsdoihjlkjasdodetails://'+this.id; });" completionHandler:nil];
+        /* Disable double tap access to messagedetail...
+        [self.messagesWebView evaluateJavaScript:@"$('.message').addSwipeEvents().bind('doubletap', function(evt, touch) { window.location = 'oijlkajsdoihjlkjasdodetails://'+this.id; });" completionHandler:nil];*/
     }
 }
 
 - (BOOL)canPerformAction:(SEL)action withSender:(id)sender {
-    //NSLog(@"MTV %@ nbS=%lu", NSStringFromSelector(action), [UIMenuController sharedMenuController].menuItems.count);
-    
     BOOL returnA;
     
     if ((action == @selector(textQuote:) || action == @selector(textQuoteBold:)) && ([self.searchKeyword isFirstResponder] || [self.searchPseudo isFirstResponder]) ) {
@@ -2043,7 +2038,6 @@
         returnA = [super canPerformAction:action withSender:sender];
     }
 
-    //NSLog(@"MTV returnA %d", returnA);
     return returnA;
 }
 
@@ -2054,7 +2048,7 @@
 
 - (void)webView:(WKWebView *)webView decidePolicyForNavigationAction:(WKNavigationAction *)navigationAction decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler {
     NSURLRequest *aRequest = navigationAction.request;
-    NSLog(@"URL scheme %@ path %@", [aRequest.URL scheme], [aRequest.URL absoluteString]);
+    NSLog(@"URL Scheme : < %@ : %@>", aRequest.URL.scheme, aRequest.URL.resourceSpecifier);
     if (navigationAction.navigationType == WKNavigationTypeLinkActivated) {
         NSLog(@"navigationType == WKNavigationTypeLinkActivated");
     } else if(navigationAction.navigationType == WKNavigationTypeFormSubmitted) {
@@ -2161,8 +2155,10 @@
         }
         else if ([[aRequest.URL scheme] isEqualToString:@"oijlkajsdoihjlkjasdotouch"]) {
             // cache le menu controller dès que l'utilisateur touche la WebView
+            NSLog(@"dotouch");
             if ([[[aRequest.URL absoluteString] lastPathComponent] isEqualToString:@"touchstart"]) {
                 if ([UIMenuController sharedMenuController].isMenuVisible) {
+                    NSLog(@"dotouch setMenuVisible:NO");
                     [[UIMenuController sharedMenuController] setMenuVisible:NO animated:YES];
                 }
             }
@@ -2179,15 +2175,18 @@
             [self searchNewMessages:kNewMessageFromUpdate];
             bAllow = NO;
         }
-        else if ([[aRequest.URL scheme] isEqualToString:@"oijlkajsdoihjlkjasdopopup"]) {
-            //NSLog(@"oijlkajsdoihjlkjasdopopup");
+        else if ([[aRequest.URL scheme] isEqualToString:@"oijlkajsdoihjlkjasdopopupavatar"] || [[aRequest.URL scheme] isEqualToString:@"oijlkajsdoihjlkjasdopopupmessage"]) {
+            BOOL bAvatar = NO;
+            if ([[aRequest.URL scheme] isEqualToString:@"oijlkajsdoihjlkjasdopopupavatar"]) {
+                bAvatar = YES;
+            }
             NSArray<NSString *> *pathComponents = [[aRequest.URL absoluteString] pathComponents];
             int xpos = [[[[aRequest.URL absoluteString] pathComponents] objectAtIndex:0] intValue];
             int ypos = [[[[aRequest.URL absoluteString] pathComponents] objectAtIndex:1] intValue];
             int curMsg = [[[[aRequest.URL absoluteString] pathComponents] objectAtIndex:2] intValue];
-            NSLog(@"%d %d %d", xpos, ypos, curMsg);
-
-            [self performSelector:@selector(showMenuCon:andPos:) withObject:[NSNumber numberWithInt:curMsg]  withObject:[NSNumber numberWithInt:ypos]];
+            NSLog(@"dopopup xpos %d ypos %d curMsg %d", xpos, ypos, curMsg);
+            NSArray* arguments = [NSArray arrayWithObjects:[NSNumber numberWithInt:curMsg], [NSNumber numberWithInt:ypos], [NSNumber numberWithBool:bAvatar], nil];
+            [self performSelector:@selector(showMenuCon:) withObject:arguments];
             bAllow = NO;
         }
         else if ([[aRequest.URL scheme] isEqualToString:@"oijlkajsdoihjlkjasdoimbrows"]) {
@@ -2201,8 +2200,8 @@
         }
         else if ([[aRequest.URL scheme] isEqualToString:@"oijlkajsdoihjlkjasdosmiley"])
         {
-            NSString *regularExpressionString = @"oijlkajsdoihjlkjasdosmiley://([^/]+)/(.*)";
-            NSString* sSmileyCode = [[[aRequest.URL absoluteString] stringByMatching:regularExpressionString capture:1L] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+            NSString *regularExpressionString = @"oijlkajsdoihjlkjasdosmiley://smileycode/([^/]+)/(.*)";
+            NSString* sSmileyCode = [NSString stringWithFormat:@"[:%@]", [[[aRequest.URL absoluteString] stringByMatching:regularExpressionString capture:1L] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
             NSString* sSmileyImgUrl = [[[aRequest.URL absoluteString] stringByMatching:regularExpressionString capture:2L] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
             // stringByRemovingPercentEncoding should be done twice to replace %2520 characters. With a single call, they are only replaced by %20
             NSString* sSmileyImgUrlRaw = [[sSmileyImgUrl stringByRemovingPercentEncoding] stringByRemovingPercentEncoding];
@@ -2246,7 +2245,8 @@
         decisionHandler(WKNavigationActionPolicyCancel);
     }
 }
--(NSString*) smileyAddedConfirmed:(BOOL)bAdd
+
+- (void) smileyAddedConfirmed:(BOOL)bAdd
 {
     if (bAdd) {
         [HFRAlertView DisplayAlertViewWithTitle:@"Smiley ajouté aux favoris" andMessage:nil forDuration:1];
@@ -2254,15 +2254,17 @@
     else {
         [HFRAlertView DisplayAlertViewWithTitle:@"Smiley retiré des favoris" andMessage:nil forDuration:1];
     }
+    
+    
 }
 
--(NSString*) smileyAddFailed:(BOOL)bAdd
+- (void) smileyAddFailed:(BOOL)bAdd
 {
     [HFRAlertView DisplayAlertViewWithTitle:@"Erreur :/" andMessage:nil forDuration:1];
 }
 
 
--(NSString*) backBarButtonTitle {
+- (NSString*) backBarButtonTitle {
     int iCount = 0;
     // Compte le nombre de controllers MessagesTableViewController en partant de la fin
     for (UIViewController* vc in [[self.navigationController viewControllers] reverseObjectEnumerator])
@@ -2277,157 +2279,204 @@
     return [NSString stringWithFormat: @"%d", iCount];
 }
 
--(void) showMenuCon:(NSNumber *)curMsgN andPos:(NSNumber *)posN {
-	
-	[self.arrayAction removeAllObjects];
-	
-	int curMsg = [curMsgN intValue];
-	int ypos = [posN intValue];
-	
-    
+
+
+- (UIMenu *)editMenuInteraction:(UIEditMenuInteraction *)interaction menuForConfiguration:(UIEditMenuConfiguration *)configuration suggestedActions:(NSArray<UIMenuElement *> *)suggestedActions
+API_AVAILABLE(ios(16.0)) {
+    NSMutableArray<UIAction *> *childrenList = [[NSMutableArray alloc] init];
+
+    for (id tmpAction in self.arrayAction) {
+        NSLog(@"%@", [tmpAction objectForKey:@"code"]);
+        
+        if ([tmpAction objectForKey:@"image"] != nil) {
+            UIImage* imgMenuItem = (UIImage*) [tmpAction valueForKey:@"image"];
+            UIAction *action = [UIAction actionWithTitle:@"" image:imgMenuItem identifier:nil  handler:^(__kindof UIAction * _Nonnull action) {
+                [self performSelectorOnMainThread:NSSelectorFromString([tmpAction objectForKey:@"code"]) withObject:nil waitUntilDone:NO];
+            }];
+            [childrenList addObject:action];
+        }
+    }
+    return [UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDestructive children:childrenList];
+}
+
+
+//-(void) showMenuCon:(NSNumber *)curMsgN andPos:(NSNumber *)posN {
+-(void) showMenuCon:(NSArray*) arguments {
+    NSNumber* curMsgN = [arguments objectAtIndex:0];
+    NSNumber* posN = [arguments objectAtIndex:1];
+    BOOL bClickAvatar = [[arguments objectAtIndex:2] boolValue];
+    [self.arrayAction removeAllObjects];
+
+    int curMsg = [curMsgN intValue];
     NSString *answString = nil;
-    
-    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad)
-    {
+
+    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
         answString = @"Répondre";
     }
-    else
-    {
+    else {
         answString = @"Rép.";
     }
-    
-    UIImage *menuImgBan = [UIImage imageNamed:@"ThorHammer-20"];
+    NSString* sSuffix = @"";
+    if (@available(iOS 16.0, *)) {
+        if ([[ThemeManager sharedManager] theme] == ThemeLight) {
+            sSuffix = @"-Inv";
+        }
+    }
+
+    UIImage *menuImgBan = [UIImage imageNamed:[NSString stringWithFormat:@"ThorHammer-20%@", sSuffix]];
     if ([[BlackList shared] isBL:[[arrayData objectAtIndex:curMsg] name]]) {
-        menuImgBan = [UIImage imageNamed:@"ThorHammerFilled-20"];
+        menuImgBan = [UIImage imageNamed:[NSString stringWithFormat:@"ThorHammerFilled-20%@", sSuffix]];
     }
-    UIImage *menuImgWL = [UIImage imageNamed:@"Heart-20"];
-
-    UIImage *menuImgEdit = [UIImage imageNamed:@"EditColumnFilled-20"];
-    UIImage *menuImgProfil = [UIImage imageNamed:@"ContactCardFilled-20"];
-    UIImage *menuImgQuote = [UIImage imageNamed:@"ReplyArrowFilled-20"];
-    UIImage *menuImgMP = [UIImage imageNamed:@"MessageFilled-20"];
-    UIImage *menuImgFav = [UIImage imageNamed:@"StarFilled-20"];
-
-    //UIImage *menuImgMultiQuoteChecked = [UIImage imageNamed:@"QuoteFilled-20"];
-    //UIImage *menuImgMultiQuoteUnchecked = [UIImage imageNamed:@"Quote-20"];
-
-    UIImage *menuImgMultiQuoteChecked = [UIImage imageNamed:@"ReplyAllArrowFilled-20"];
-    UIImage *menuImgMultiQuoteUnchecked = [UIImage imageNamed:@"ReplyAllArrow-20"];
-
-    UIImage *menuImgDelete = [UIImage imageNamed:@"DeleteColumnFilled-20"];
-    UIImage *menuImgAlerte = [UIImage imageNamed:@"HighPriorityFilled-20"];
-    UIImage *menuImgAQ = [UIImage imageNamed:@"08-chat-20"];
-    UIImage *menuImgBookmark = [UIImage imageNamed:@"08-pin-20"];
-
-	if([[arrayData objectAtIndex:curMsg] urlEdit]){
-		//NSLog(@"urlEdit");
-		[self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Editer", @"EditMessage", menuImgEdit, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
-        
-        if (curMsg) { //Pas de suppression du premier message d'un topic (curMsg = 0);
-            [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Supprimer", @"actionSupprimer", menuImgDelete, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
-        }
-
-		if (self.navigationItem.rightBarButtonItem.enabled) {
-			[self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:answString, @"QuoteMessage", menuImgQuote, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
-		}
-	}
-	else {
-		//NSLog(@"profil");
-		if (self.navigationItem.rightBarButtonItem.enabled) {
-			[self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:answString, @"QuoteMessage", menuImgQuote, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
-		}
-	}
-
-	//"Citer ☑"@"Citer ☒"@"Citer ☐"
-	if([[arrayData objectAtIndex:curMsg] quoteJS] && self.navigationItem.rightBarButtonItem.enabled) {
-		NSString *components = [[[arrayData objectAtIndex:curMsg] quoteJS] substringFromIndex:7];
-		components = [components stringByReplacingOccurrencesOfString:@"); return false;" withString:@""];
-		components = [components stringByReplacingOccurrencesOfString:@"'" withString:@""];
-		
-		NSArray *quoteComponents = [components componentsSeparatedByString:@","];
-		
-		NSString *nameCookie = [NSString stringWithFormat:@"quotes%@-%@-%@", [quoteComponents objectAtIndex:0], [quoteComponents objectAtIndex:1], [quoteComponents objectAtIndex:2]];
-		NSString *quotes = [self LireCookie:nameCookie];
-		
-		if ([quotes rangeOfString:[NSString stringWithFormat:@"|%@", [quoteComponents objectAtIndex:3]]].location == NSNotFound) {
-			[self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Citer ☐", @"actionCiter", menuImgMultiQuoteUnchecked, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
-			
-		}
-		else {
-			[self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Citer ☑", @"actionCiter", menuImgMultiQuoteChecked, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
-		}
-	}
-
-    if ([self canBeFavorite]) {
-        //NSLog(@"isRedFlagged ★");
-        [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Favoris", @"actionFavoris", menuImgFav, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
-    }
+    UIImage *menuImgFav = [UIImage imageNamed:[NSString stringWithFormat:@"StarFilled-20%@", sSuffix]];
+    UIImage *menuImgWL = [UIImage imageNamed:[NSString stringWithFormat:@"Heart-20%@", sSuffix]];
+    UIImage *menuImgEdit = [UIImage imageNamed:[NSString stringWithFormat:@"EditColumnFilled-20%@", sSuffix]];
+    UIImage *menuImgProfil = [UIImage imageNamed:[NSString stringWithFormat:@"ContactCardFilled-20%@", sSuffix]];
+    UIImage *menuImgQuote = [UIImage imageNamed:[NSString stringWithFormat:@"ReplyArrowFilled-20%@", sSuffix]];
+    UIImage *menuImgMP = [UIImage imageNamed:[NSString stringWithFormat:@"MessageFilled-20%@", sSuffix]];
+    UIImage *menuImgLink = [UIImage imageNamed:[NSString stringWithFormat:@"LinkFilled-20%@", sSuffix]];
+    UIImage *menuImgMultiQuoteChecked = [UIImage imageNamed:[NSString stringWithFormat:@"ReplyAllArrowFilled-20%@", sSuffix]];
+    UIImage *menuImgMultiQuoteUnchecked = [UIImage imageNamed:[NSString stringWithFormat:@"ReplyAllArrow-20%@", sSuffix]];
+    UIImage *menuImgDelete = [UIImage imageNamed:[NSString stringWithFormat:@"DeleteColumnFilled-20%@", sSuffix]];
+    UIImage *menuImgAlerte = [UIImage imageNamed:[NSString stringWithFormat:@"HighPriorityFilled-20%@", sSuffix]];
+    UIImage *menuImgAQ = [UIImage imageNamed:[NSString stringWithFormat:@"08-chat-20%@", sSuffix]];
+    UIImage *menuImgBookmark = [UIImage imageNamed:[NSString stringWithFormat:@"08-pin-20%@", sSuffix]];
     
-    if(![[arrayData objectAtIndex:curMsg] urlEdit]){
-        if([[arrayData objectAtIndex:curMsg] urlAlert]){
-            [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Alerter", @"actionAlerter", menuImgAlerte, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
-        }else{
-            [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Alerter", @"actionAlerterAnon", menuImgAlerte, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
-        }
-    }
+    if (!bClickAvatar) {
+        if([[arrayData objectAtIndex:curMsg] urlEdit]) {
+            //NSLog(@"urlEdit");
+            [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Editer", @"EditMessage", menuImgEdit, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
 
-    [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Profil", @"actionProfil", menuImgProfil, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
+            if (curMsg) { //Pas de suppression du premier message d'un topic (curMsg = 0);
+                [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Supprimer", @"actionSupprimer", menuImgDelete, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
+            }
 
-    if(![[arrayData objectAtIndex:curMsg] urlEdit]){
-        if([[arrayData objectAtIndex:curMsg] MPUrl]){
-            [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"MP", @"actionMessage", menuImgMP, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
-        }
-        
-        [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Blacklist", @"actionBL", menuImgBan, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
-        [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Whitelist", @"actionWL", menuImgWL, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
-    }
-    
-    // AQ (sauf dans les MPs)
-    if (![self.arrayInputData[@"cat"] isEqualToString: @"prive"]) {
-        [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"AQ", @"actionAQ", menuImgAQ, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
-    }
-    
-    // Bookmark (sauf dans les MPs) et MPStorage doit être actif
-    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"mpstorage_active"] && ![self.arrayInputData[@"cat"] isEqualToString: @"prive"]) {
-        [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Bookmark", @"actionBookmark", menuImgBookmark, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
-    }
-    
-	self.curPostID = curMsg;
-	
-	UIMenuController *menuController = [UIMenuController sharedMenuController];
-	NSMutableArray *menuAction = [[NSMutableArray alloc] init];
-    
-	for (id tmpAction in self.arrayAction) {
-		NSLog(@"%@", [tmpAction objectForKey:@"code"]);
-		
-        if ([tmpAction objectForKey:@"image"] != nil) {
-            UIMenuItem *tmpMenuItem2 = [[UIMenuItem alloc] initWithTitle:[tmpAction valueForKey:@"title"] action:NSSelectorFromString([tmpAction objectForKey:@"code"]) image:(UIImage *)[tmpAction objectForKey:@"image"]];
-            [menuAction addObject:tmpMenuItem2];
+            if (self.navigationItem.rightBarButtonItem.enabled) {
+                [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:answString, @"QuoteMessage", menuImgQuote, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
+            }
         }
         else {
-            UIMenuItem *tmpMenuItem = [[UIMenuItem alloc] initWithTitle:[tmpAction valueForKey:@"title"] action:NSSelectorFromString([tmpAction objectForKey:@"code"])];
-            [menuAction addObject:tmpMenuItem];
+            //NSLog(@"profil");
+            if (self.navigationItem.rightBarButtonItem.enabled) {
+                [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:answString, @"QuoteMessage", menuImgQuote, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
+            }
         }
+     
+        //"Citer ☑"@"Citer ☒"@"Citer ☐"
+        if([[arrayData objectAtIndex:curMsg] quoteJS] && self.navigationItem.rightBarButtonItem.enabled) {
+            NSString *components = [[[arrayData objectAtIndex:curMsg] quoteJS] substringFromIndex:7];
+            components = [components stringByReplacingOccurrencesOfString:@"); return false;" withString:@""];
+            components = [components stringByReplacingOccurrencesOfString:@"'" withString:@""];
+            NSArray *quoteComponents = [components componentsSeparatedByString:@","];
 
-	}	
-	[menuController setMenuItems:menuAction];
+            NSString *nameCookie = [NSString stringWithFormat:@"quotes%@-%@-%@", [quoteComponents objectAtIndex:0], [quoteComponents objectAtIndex:1], [quoteComponents objectAtIndex:2]];
+            NSString *quotes = [self LireCookie:nameCookie];
 
-    if (ypos < 40) {
-		ypos +=34;
-        if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"7,0")) {
-            ypos +=10;
+            if ([quotes rangeOfString:[NSString stringWithFormat:@"|%@", [quoteComponents objectAtIndex:3]]].location == NSNotFound) {
+                [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Citer ☐", @"actionCiter", menuImgMultiQuoteUnchecked, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
+            }
+            else {
+                [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Citer ☑", @"actionCiter", menuImgMultiQuoteChecked, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
+            }
         }
-		[menuController setArrowDirection:UIMenuControllerArrowUp];
-	}
-	else {
-		[menuController setArrowDirection:UIMenuControllerArrowDown];
-	}
+     
+        if ([self canBeFavorite]) {
+            //NSLog(@"isRedFlagged ★");
+            [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Favoris", @"actionFavoris", menuImgFav, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
+        }
+         
+        [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Link", @"actionLink", menuImgLink, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
+
+        if(![[arrayData objectAtIndex:curMsg] urlEdit]){
+            if([[arrayData objectAtIndex:curMsg] urlAlert]){
+                [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Alerter", @"actionAlerter", menuImgAlerte, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
+            } else {
+                [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Alerter", @"actionAlerterAnon", menuImgAlerte, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
+            }
+        }
+    }
     
-	CGRect selectionRect = CGRectMake(38, ypos, 0, 0);
-	
-	[self.view setNeedsDisplayInRect:selectionRect];
-	[menuController setTargetRect:selectionRect inView:self.view];
-	[menuController setMenuVisible:YES animated:YES];
+    if (bClickAvatar) {
+        [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Profil", @"actionProfil", menuImgProfil, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
+        if(![[arrayData objectAtIndex:curMsg] urlEdit]){
+            if([[arrayData objectAtIndex:curMsg] MPUrl]){
+                [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"MP", @"actionMessage", menuImgMP, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
+            }
+            [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Blacklist", @"actionBL", menuImgBan, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
+            [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Whitelist", @"actionWL", menuImgWL, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
+        }
+    }
+     
+    if (!bClickAvatar) {
+        // AQ (sauf dans les MPs)
+        if (![self.arrayInputData[@"cat"] isEqualToString: @"prive"]) {
+            [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"AQ", @"actionAQ", menuImgAQ, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
+        }
+
+        // Bookmark (sauf dans les MPs) et MPStorage doit être actif
+        if ([[NSUserDefaults standardUserDefaults] boolForKey:@"mpstorage_active"] && ![self.arrayInputData[@"cat"] isEqualToString: @"prive"]) {
+            [self.arrayAction addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Bookmark", @"actionBookmark", menuImgBookmark, nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", @"image", nil]]];
+        }
+    }
+     
+    self.curPostID = curMsg;
+    
+    int ypos = [posN intValue];
+    BOOL bMenuUp = NO;
+    if (ypos < 40) {
+        bMenuUp = YES;
+        ypos +=44;
+    }
+
+    int xpos = 38;
+    if (!bClickAvatar) {
+        CGRect screenRect = [[UIScreen mainScreen] bounds];
+        CGFloat screenWidth = screenRect.size.width;
+        xpos = screenWidth - 15;
+    }
+    
+    if (@available(iOS 16.0, *)) {
+        UIEditMenuConfiguration* menuConfiguration = [UIEditMenuConfiguration configurationWithIdentifier:nil sourcePoint:CGPointMake(xpos, ypos)];
+        if (bMenuUp) {
+            menuConfiguration.preferredArrowDirection = UIEditMenuArrowDirectionUp;
+        }
+        else {
+            menuConfiguration.preferredArrowDirection = UIEditMenuArrowDirectionDown;
+        }
+        [((UIEditMenuInteraction*)webviewInteraction) presentEditMenuWithConfiguration:menuConfiguration];
+    }
+    else {
+        UIMenuController *menuController = [UIMenuController sharedMenuController];
+        NSMutableArray *menuAction = [[NSMutableArray alloc] init];
+        
+        for (id tmpAction in self.arrayAction) {
+            NSLog(@"%@", [tmpAction objectForKey:@"code"]);
+            
+            if ([tmpAction objectForKey:@"image"] != nil) {
+                UIMenuItem *tmpMenuItem2 = [[UIMenuItem alloc] initWithTitle:[tmpAction valueForKey:@"title"] action:NSSelectorFromString([tmpAction objectForKey:@"code"]) image:(UIImage *)[tmpAction objectForKey:@"image"]];
+                //[tmpMenuItem2 setTitle:@"Rien du tout"];
+                [menuAction addObject:tmpMenuItem2];
+            }
+            else {
+                UIMenuItem *tmpMenuItem = [[UIMenuItem alloc] initWithTitle:[tmpAction valueForKey:@"title"] action:NSSelectorFromString([tmpAction objectForKey:@"code"])];
+                //[tmpMenuItem setTitle:@"Rien du tout2"];
+                [menuAction addObject:tmpMenuItem];
+            }
+
+        }
+        [menuController setMenuItems:menuAction];
+        
+        if (bMenuUp) {
+            [menuController setArrowDirection:UIMenuControllerArrowUp];
+        }
+        else {
+            [menuController setArrowDirection:UIMenuControllerArrowDown];
+        }
+        
+        CGRect selectionRect = CGRectMake(xpos, ypos, 0, 0);
+        [self.view setNeedsDisplayInRect:selectionRect];
+        [menuController setTargetRect:selectionRect inView:self.view];
+        [menuController setMenuVisible:YES animated:YES];
+    }
 }
 
 #pragma mark -
@@ -2511,7 +2560,7 @@
     NSString* sTPostID = [(LinkItem*)[arrayData objectAtIndex:[curMsgN intValue]] postID];
     NSString *sPostId = [sTPostID substringWithRange:NSMakeRange(1, [sTPostID length]-1)];
     NSString* sTopicId = self.arrayInputData[@"post"];
-    NSString *sRequest = [NSString stringWithFormat:@"http://alerte-qualitay.toyonos.info/api/getAlertesByTopic.php5?topic_id=%@", sTopicId];
+    NSString *sRequest = [NSString stringWithFormat:@"https://aq.super-h.fr/api/getAlertesByTopic.php?topic_id=%@", sTopicId];
     NSMutableURLRequest *urlRequest = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:sRequest]
                                                            cachePolicy:NSURLRequestReloadIgnoringCacheData
                                                        timeoutInterval:2];
@@ -2647,7 +2696,7 @@
     
     NSData *postData = [sParametersCreateAQ dataUsingEncoding:NSASCIIStringEncoding allowLossyConversion:YES];
     NSString *postLength = [NSString stringWithFormat:@"%ld",[postData length]];
-    NSURL *url = [NSURL URLWithString:@"http://alerte-qualitay.toyonos.info/api/addAlerte.php5"];
+    NSURL *url = [NSURL URLWithString:@"https://aq.super-h.fr/api/addAlerte.php"];
     
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url
                                                               cachePolicy:NSURLRequestReloadIgnoringCacheData
@@ -2758,17 +2807,28 @@
 
 -(void)actionLink:(NSNumber *)curMsgN {
     int curMsg = [curMsgN intValue];
-    
-    //NSLog("actionLink ID = %@", [[arrayData objectAtIndex:curMsg] postID]);
     NSLog("actionLink URL = %@%@#%@", [k ForumURL], self.currentUrl, [(LinkItem*)[arrayData objectAtIndex:curMsg] postID]);
     
-    
-    //Topic *tmpTopic = [[[self.arrayData objectAtIndex:[indexPath section]] topics] objectAtIndex:[indexPath row]];
-    
-    UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
-    pasteboard.string = [NSString stringWithFormat:@"%@%@#%@", [k RealForumURL], self.currentUrl, [(LinkItem*)[arrayData objectAtIndex:curMsg] postID]];
+    if (@available(iOS 16.0, *)) {
+        // New way: present share sheet
+        NSArray* dataToShare = @[[NSString stringWithFormat:@"%@%@#%@", [k RealForumURL], self.currentUrl, [(LinkItem*)[arrayData objectAtIndex:curMsg] postID]]];
+        UIActivityViewController* activityViewController =[[UIActivityViewController alloc] initWithActivityItems:dataToShare applicationActivities:nil];
+        activityViewController.excludedActivityTypes = @[UIActivityTypeAirDrop];
+        if (activityViewController == nil){
+            return;
+        }
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self presentViewController:activityViewController animated:YES completion:^{}];
+        });
+    }
+    else {
+        // Old way: copy only to clipboard
         
-    [HFRAlertView DisplayAlertViewWithTitle:@"Lien copié dans le presse-papiers" forDuration:(long)1];
+        UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
+        pasteboard.string = [NSString stringWithFormat:@"%@%@#%@", [k RealForumURL], self.currentUrl, [(LinkItem*)[arrayData objectAtIndex:curMsg] postID]];
+            
+        [HFRAlertView DisplayAlertViewWithTitle:@"Lien copié dans le presse-papiers" forDuration:(long)1];
+    }
 }
 
 -(void) actionAlerter:(NSNumber *)curMsgN {
@@ -3129,15 +3189,11 @@
                         [ThemeColors rgbaFromUIColor:[ThemeColors tintColor:theme] withAlpha:0.1], //--color-message-header-me-background
                         [ThemeColors rgbaFromUIColor:[ThemeColors tintColor:theme] withAlpha:0.03], //--color-message-mequoted-background
                         [ThemeColors rgbaFromUIColor:[ThemeColors tintColor:theme] withAlpha:1],  //--color-message-mequoted-borderleft
-                        [ThemeColors rgbaFromUIColor:[ThemeColors tintColor:theme] withAlpha:0.1],  //--color-message-mequoted-borderother
-                        /*[ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:0.7], //--color-message-background
-                        [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:0.8], // --color-message-header-me-background
-                        [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:1.0 addSaturation:0.6],  //--color-message-mequoted-borderleft
-                        [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:1.0],  //--color-message-mequoted-borderother*/
+                        [ThemeColors rgbaFromUIColor:[ThemeColors tintLightColorNoAlpha]],  //--color-message-mequoted-borderother
                         [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:0.4], //--color-message-header-love-background
                         [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:0.3], // --color-message-header-me-background
                         [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:1.0 addSaturation:1 addBrightness:1],  //--color-message-lovecolor-borderleft
-                        [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:0.1 addSaturation:1], //--color-message-mequoted-borderother
+                        [ThemeColors rgbaFromUIColor:[ThemeColors loveLightColorNoAlpha]], //--color-message-quoted-love-borderother
                         [ThemeColors rgbaFromUIColor:[ThemeColors textColor:theme] withAlpha:0.05],  //--color-message-quoted-bl-background
                         [ThemeColors rgbaFromUIColor:[ThemeColors textFieldBackgroundColor:theme] withAlpha:0.7],  //--color-message-header-bl-background
                         [ThemeColors rgbaFromUIColor:[ThemeColors textColorPseudo:theme] withAlpha:0.5],  //--color-separator-new-message
@@ -3154,7 +3210,7 @@
                         sBorderHeader];
 
     [self.messagesWebView evaluateJavaScript:script completionHandler:nil];
-    
+    [self editMenuHidden:nil];
     return @"";
 }
 
@@ -3176,31 +3232,10 @@
     // Relinquish ownership any cached data, images, etc that aren't in use.
 }
 
-- (void)viewDidUnload {
-	NSLog(@"viewDidUnload Messages Table View");
-	
-    // Relinquish ownership of anything that can be recreated in viewDidLoad or on demand.
-    // For example: self.myOutlet = nil;
-	
-	self.loadingView = nil;
-    self.errorLabelView = nil;
-    
-	[self.messagesWebView stopLoading];
-	self.messagesWebView = nil;
-	[UIApplication sharedApplication].networkActivityIndicatorVisible = NO;	
-
-    [self setSearchFromFP:nil];
-    [self setSearchFilter:nil];
-	[super viewDidUnload];
-	
-	
-}
 
 - (void)dealloc {
 	NSLog(@"dealloc Messages Table View");
-	
-	[self viewDidUnload];
-	
+		
 	[[NSNotificationCenter defaultCenter] removeObserver:self];
     [[NSNotificationCenter defaultCenter] removeObserver:self name:UIMenuControllerDidHideMenuNotification object:nil];
     [[NSNotificationCenter defaultCenter] removeObserver:self name:@"VisibilityChanged" object:nil];

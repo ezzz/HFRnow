@@ -88,6 +88,16 @@
         case 6:
             [self.navigationController pushViewController:self.charteViewController animated:YES];
             break;
+        case 7:
+            if([MFMailComposeViewController canSendMail]) {
+                MFMailComposeViewController *mailCont = [[MFMailComposeViewController alloc] init];
+                mailCont.mailComposeDelegate = self;
+                [mailCont setSubject:@"Demande de suppression de compte"];
+                [mailCont setToRecipients:[NSArray arrayWithObject:@"marc@hardware.fr"]];
+                [mailCont setMessageBody:@"Monsieur/Madame,\n\nJe vous écris pour vous demander de supprimer mon compte sur votre forum Hardware.fr. Je ne l'utilise plus et je préfère ne plus être membre de ce forum.\n\nSi vous avez besoin de plus d'informations pour traiter ma demande, veuillez me contacter à l'adresse email associée à mon compte.\n\nMerci d'avance pour votre aide.\n\nCordialement" isHTML:NO];
+                [self presentViewController:mailCont animated:YES completion:nil];
+            }
+            break;
     }
 }
 
@@ -101,7 +111,7 @@
     return 1;
 }
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-    return 7;
+    return 8;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
@@ -158,6 +168,12 @@
             cell.badgeLabel.text = @"";
             cell.badgeLabel.backgroundColor = [UIColor clearColor];
             break;
+        case 7:
+            cell.titleLabel.text = @"Supprimer mon compte";
+            cell.titleImage.image = [UIImage imageNamed:@"delete-25"];
+            cell.badgeLabel.text = @"";
+            cell.badgeLabel.backgroundColor = [UIColor clearColor];
+            break;
     }
     
     cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
@@ -175,6 +191,10 @@
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
 {
     return 60;
+}
+
+- (void)mailComposeController:(MFMailComposeViewController*)controller didFinishWithResult:(MFMailComposeResult)result error:(NSError*)error {
+    [self dismissViewControllerAnimated:YES completion:nil];
 }
 
 @end

@@ -17,4 +17,5 @@
 - (UIImage *)imageRotatedByDegrees:(CGFloat)degrees;
 - (UIImage *)scaleAndRotateImage:(UIImage *)image withMaxResolution:(int)kMaxResolution;
 + (UIImage *)imageWithColor:(UIColor *)color andSize:(CGSize)size;
+- (UIImage *)invertColor;
 @end

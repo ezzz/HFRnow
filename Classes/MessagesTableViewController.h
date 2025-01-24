@@ -28,60 +28,59 @@
 @class MessageDetailViewController, SmileyCodeTableViewController;
 @class ASIHTTPRequest;
 
-
 @interface MessagesTableViewController : PageViewController <UIActionSheetDelegate, ParseMessagesOperationDelegate, AddMessageViewControllerDelegate, UIScrollViewDelegate, AlerteModoViewControllerDelegate, WKNavigationDelegate, WKUIDelegate> {
     
-	WKWebView *messagesWebView;
+    WKWebView *messagesWebView;
     UIView *loadingView;
     UILabel *loadingViewLabel;
     UIActivityIndicatorView *loadingViewIndicator;
     UILabel *errorLabelView;
-	UIView *overview;
-	
-
-	
-	NSString *topicAnswerUrl;
-	BOOL errorReported;
+    UIView *overview;
     
-	BOOL loaded; //to load data only once
-	BOOL isLoading; //to check is refresh ON
-	BOOL isRedFlagged; //to check is refresh ON
-	BOOL isUnreadable; //to check is refresh ON
-	NSString *isFavoritesOrRead; //to check is refresh ON
-
-	BOOL isViewed; //to check if isViewed (bold & +1)
-
-	
-	NSMutableArray *arrayData;
-	NSMutableArray *updatedArrayData;
-	
+    
+    
+    NSString *topicAnswerUrl;
+    BOOL errorReported;
+    
+    BOOL loaded; //to load data only once
+    BOOL isLoading; //to check is refresh ON
+    BOOL isRedFlagged; //to check is refresh ON
+    BOOL isUnreadable; //to check is refresh ON
+    NSString *isFavoritesOrRead; //to check is refresh ON
+    
+    BOOL isViewed; //to check if isViewed (bold & +1)
+    
+    
+    NSMutableArray *arrayData;
+    NSMutableArray *updatedArrayData;
+    
     MessagesTableViewController *messagesTableViewController;
-	MessageDetailViewController *detailViewController;
-	
-	//Gesture
-	UISwipeGestureRecognizer *swipeLeftRecognizer;
-	UISwipeGestureRecognizer *swipeRightRecognizer;
+    MessageDetailViewController *detailViewController;
     
-	//V3
-	// the queue to run our "ParseOperation"
+    //Gesture
+    UISwipeGestureRecognizer *swipeLeftRecognizer;
+    UISwipeGestureRecognizer *swipeRightRecognizer;
+    
+    //V3
+    // the queue to run our "ParseOperation"
     NSOperationQueue		*queue;
-	
-	NSString * lastStringFlagTopic;
-	NSString * stringFlagTopic;
-	NSString * editFlagTopic;
-	
-	//FormsVar
-	NSMutableDictionary *arrayInputData;
-	
-	UIToolbar *aToolbar;
-	NSMutableArray *arrayAction;
-	int curPostID;
-	
+    
+    NSString * lastStringFlagTopic;
+    NSString * stringFlagTopic;
+    NSString * editFlagTopic;
+    
+    //FormsVar
+    NSMutableDictionary *arrayInputData;
+    
+    UIToolbar *aToolbar;
+    NSMutableArray *arrayAction;
+    int curPostID;
+    
     NSMutableArray *arrayActionsMessages;
-
-	BOOL isAnimating; //to check is an animation is ON
-
-	NSDate *firstDate;
+    
+    BOOL isAnimating; //to check is an animation is ON
+    
+    NSDate *firstDate;
     
     UIAlertController *styleAlert;
     
@@ -199,6 +198,7 @@
 @property NSString* sSelectedSmileyImageURL;
 @property dispatch_block_t smileyAlertViewAddOK;
 @property dispatch_block_t smileyAlertViewAddFailed;
+@property UIEditMenuInteraction *webviewInteraction;
 
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil andUrl:(NSString *)theTopicUrl;
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil andUrl:(NSString *)theTopicUrl displaySeparator:(BOOL)isSeparatorNewMessages;

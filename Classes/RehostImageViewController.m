@@ -257,7 +257,7 @@
     
     if (self.bModeFullScreen == NO) {
         // Give back focus to textview
-        [self.addMessageVC.textView becomeFirstResponder];
+        [self.addMessageVC.textViewPostContent becomeFirstResponder];
     }
 }
 

@@ -32,8 +32,6 @@
 -(void)finish;
 -(void)finishOK;
 
-- (IBAction)goToCreate;
-
 @end
 
 

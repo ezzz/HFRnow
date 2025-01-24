@@ -55,6 +55,7 @@
 + (UIColor *)textColor:(Theme)theme;
 + (UIColor *)textColor;
 + (UIColor *)textColor2:(Theme)theme;
++ (UIColor *)textColor2;
 + (UIColor *)textColorPseudo:(Theme)theme;
 + (UIColor *)navItemTextColor:(Theme)theme;
 + (UIColor *)titleTextAttributesColor;
@@ -70,9 +71,12 @@
 + (UIColor *)tintColor;
 + (UIColor *)tintColorWithAlpha:(CGFloat)newAlpha;
 + (UIColor *)tintLightColor;
++ (UIColor *)tintLightColorNoAlpha;
 + (UIColor *)tintWhiteColor:(Theme)theme;
 + (UIColor *)tintColorDisabled:(Theme)theme;
 + (UIColor *)loveColor;
++ (UIColor *)loveColorBright;
++ (UIColor *)loveLightColorNoAlpha;
 + (UIColor *)loveColor:(Theme)theme;
 + (UIColor *)overlayColor:(Theme)theme;
 + (UIColor *)toolbarColor:(Theme)theme;
@@ -94,6 +98,8 @@
 + (UIImage *)thorHammer:(Theme)theme;
 + (UIImage *)heart:(Theme)theme;
 + (UIImage *)avatar:(Theme)theme;
++ (UIImage *)avatar;
++ (UIImage *)avatarGroup;
 + (UIImage *)tintImage:(UIImage *)image withTheme:(Theme)theme;
 + (UIImage *)tintImage:(UIImage *)image withColor:(UIColor *)color;
 + (UIActivityIndicatorViewStyle)activityIndicatorViewStyle;

@@ -35,7 +35,7 @@
 
 @implementation AddMessageViewController
 
-@synthesize delegate, textView, sBrouillon, arrayInputData, formSubmit, accessoryView, viewToolbar, smileView, viewControllerSmileys, constraintSmileyViewHeight, constraintToolbarHeight;
+@synthesize delegate, textViewPostContent, sBrouillon, arrayInputData, formSubmit, accessoryView, viewToolbar, smileView, viewControllerSmileys, constraintSmileyViewHeight, constraintToolbarHeight;
 @synthesize viewRehostImage, viewControllerRehostImage, constraintRehostImageViewHeight, request, loadingView, lastSelectedRange, loaded;
 @synthesize segmentControler, isDragging, segmentControlerPage;
 @synthesize btnToolbarImage, btnToolbarGIF, btnToolbarSmiley, btnToolbarUndo, btnToolbarRedo;
@@ -130,7 +130,6 @@
     UIBarButtonItem *sendBarItem = [[UIBarButtonItem alloc] initWithTitle:@"Envoyer" style:UIBarButtonItemStyleDone target:self action:@selector(done)];
     self.navigationItem.rightBarButtonItem = sendBarItem;
     [self.navigationItem.rightBarButtonItem setEnabled:NO];
-    
     
     [self.segmentControlerPage setEnabled:NO forSegmentAtIndex:0];
     [self.segmentControlerPage setWidth:40.0 forSegmentAtIndex:0];
@@ -232,15 +231,15 @@
     
     if(self.lastSelectedRange.location != NSNotFound)
     {
-        self.textView.selectedRange = lastSelectedRange;
+        self.textViewPostContent.selectedRange = lastSelectedRange;
     }
     
-    self.view.backgroundColor = self.loadingView.backgroundColor = self.accessoryView.backgroundColor = self.textView.backgroundColor = [ThemeColors addMessageBackgroundColor:[[ThemeManager sharedManager] theme]];
+    self.view.backgroundColor = self.loadingView.backgroundColor = self.accessoryView.backgroundColor = self.textViewPostContent.backgroundColor = [ThemeColors addMessageBackgroundColor:[[ThemeManager sharedManager] theme]];
     self.loadingViewLabel.textColor = [ThemeColors cellTextColor:[[ThemeManager sharedManager] theme]];
     self.loadingViewIndicator.activityIndicatorViewStyle = [ThemeColors activityIndicatorViewStyle];
-    self.textView.textColor = [ThemeColors textColor:[[ThemeManager sharedManager] theme]];
+    self.textViewPostContent.textColor = [ThemeColors textColor:[[ThemeManager sharedManager] theme]];
     NSInteger iSizeTextReply = [[NSUserDefaults standardUserDefaults] integerForKey:@"size_text_reply"];
-    [self.textView setFont:[UIFont systemFontOfSize:iSizeTextReply]];
+    [self.textViewPostContent setFont:[UIFont systemFontOfSize:iSizeTextReply]];
 
     if (self.segmentControler.tintColor == [UIColor whiteColor]) {
 
@@ -273,7 +272,7 @@
     [self.btnToolbarRedo addTarget:self action:@selector(actionRedo:) forControlEvents:UIControlEventTouchUpInside];
     [self enableDisableUndoButton];
 
-    self.textView.keyboardAppearance = [ThemeColors keyboardAppearance:[[ThemeManager sharedManager] theme]];
+    self.textViewPostContent.keyboardAppearance = [ThemeColors keyboardAppearance:[[ThemeManager sharedManager] theme]];
     self.textFieldTitle.keyboardAppearance = [ThemeColors keyboardAppearance:[[ThemeManager sharedManager] theme]];
     self.textFieldTo.keyboardAppearance = [ThemeColors keyboardAppearance:[[ThemeManager sharedManager] theme]];
     self.textFieldCat.keyboardAppearance = [ThemeColors keyboardAppearance:[[ThemeManager sharedManager] theme]];
@@ -297,7 +296,7 @@
                                                                 preferredStyle:UIAlertControllerStyleAlert];
         UIAlertAction* actionYes = [UIAlertAction actionWithTitle:@"Oui" style:UIAlertActionStyleDefault
                                                           handler:^(UIAlertAction * action) {
-                                                              [self.textView setText:self.sBrouillon];
+                                                              [self.textViewPostContent setText:self.sBrouillon];
                                                               self.sBrouillonUtilise = YES;
                                                               [self.navigationItem.rightBarButtonItem setEnabled:YES];
                                                           }];
@@ -337,9 +336,9 @@
 {
     //NSLog(@"scrollViewDidScroll");
     //self.scrollViewer.contentOffset = CGPointMake(self.scrollViewer.contentOffset.x, self.scrollViewer.contentOffset.y + 20);
-    if (![self.textView isFirstResponder] && !self.isDragging) {
+    if (![self.textViewPostContent isFirstResponder] && !self.isDragging) {
         //	//NSLog(@"contentOffset 1");
-        self.textView.contentOffset = CGPointMake(0, self.offsetY);
+        self.textViewPostContent.contentOffset = CGPointMake(0, self.offsetY);
     }
     
 }
@@ -359,11 +358,11 @@
 {
     //NSLog(@"scrollViewDidEndScrollingAnimation");
     
-    //[self.textView scrollRangeToVisible:self.textView.selectedRange];
-    if (![self.textView isFirstResponder] && !self.isDragging) {
+    //[self.textViewPostContent scrollRangeToVisible:self.textViewPostContent.selectedRange];
+    if (![self.textViewPostContent isFirstResponder] && !self.isDragging) {
         //NSLog(@"contentOffset 2");
         
-        self.textView.contentOffset = CGPointMake(0, self.offsetY);
+        self.textViewPostContent.contentOffset = CGPointMake(0, self.offsetY);
     }
     
     
@@ -418,8 +417,8 @@
         self.btnToolbarUndo.enabled = false;
     }
     else {
-        self.textView.keyboardAppearance = [ThemeColors keyboardAppearance:[[ThemeManager sharedManager] theme]];
-        [self.textView becomeFirstResponder];
+        self.textViewPostContent.keyboardAppearance = [ThemeColors keyboardAppearance:[[ThemeManager sharedManager] theme]];
+        [self.textViewPostContent becomeFirstResponder];
         [self enableDisableUndoButton];
     }
 }
@@ -432,13 +431,13 @@
 
 
 - (IBAction)cancel {
-    if (self.viewControllerRehostImage.bModeFullScreen && self.viewControllerRehostImage.tableViewImages.alpha == 1 && ![self.textView isFirstResponder]) {
+    if (self.viewControllerRehostImage.bModeFullScreen && self.viewControllerRehostImage.tableViewImages.alpha == 1 && ![self.textViewPostContent isFirstResponder]) {
         [self actionHideRehostImage];
-    } else if (self.viewControllerSmileys.tableViewSearch.alpha == 1 && ![self.textView isFirstResponder]) {
+    } else if (self.viewControllerSmileys.tableViewSearch.alpha == 1 && ![self.textViewPostContent isFirstResponder]) {
         [self actionHideSmileys];
-    }  else if (![self.textView isFirstResponder] && self.viewControllerSmileys.bModeFullScreen && (self.viewControllerSmileys.collectionViewSmileysSearch.alpha == 1 || self.viewControllerSmileys.collectionViewSmileysDefault.alpha == 1 || self.viewControllerSmileys.collectionViewSmileysFavorites.alpha == 1)) {
+    }  else if (![self.textViewPostContent isFirstResponder] && self.viewControllerSmileys.bModeFullScreen && (self.viewControllerSmileys.collectionViewSmileysSearch.alpha == 1 || self.viewControllerSmileys.collectionViewSmileysDefault.alpha == 1 || self.viewControllerSmileys.collectionViewSmileysFavorites.alpha == 1)) {
         [self actionHideSmileys];
-    } else if ([self.textView text].length > 0 && !self.isDeleteMode) {
+    } else if ([self.textViewPostContent text].length > 0 && !self.isDeleteMode) {
         NSString *alertTitle = @"Enregistrer le texte comme brouillons ?";
         NSString *messageBrouillon=nil;
         BOOL remplacerBrouillon = NO;
@@ -454,7 +453,7 @@
         
         UIAlertAction* yesAction = [UIAlertAction actionWithTitle:@"Oui" style:UIAlertActionStyleDefault
                                                               handler:^(UIAlertAction * action) {
-                                                                  [self modifyBrouillon:[self.textView text]];
+                                                                  [self modifyBrouillon:[self.textViewPostContent text]];
                                                                   [self finishMe];
                                                               }];
         UIAlertAction* noAction = [UIAlertAction actionWithTitle:@"Non" style:UIAlertActionStyleDefault
@@ -464,7 +463,7 @@
                                                               }];
         UIAlertAction* cancelAction = [UIAlertAction actionWithTitle:@"Annuler" style:UIAlertActionStyleCancel
                                                              handler:^(UIAlertAction * action) {
-                                                                 [self.textView becomeFirstResponder];
+                                                                 [self.textViewPostContent becomeFirstResponder];
                                                              }];
 
         [alert addAction:yesAction];
@@ -485,7 +484,7 @@
 }
 
 -(void)resignAll {
-    [self.textView endEditing:YES];
+    [self.textViewPostContent endEditing:YES];
     [self.textFieldTitle endEditing:YES];
     [self.textFieldTo endEditing:YES];
     [self.view endEditing:YES];
@@ -502,7 +501,7 @@
         [self finishMe];
     }
     else if (buttonIndex == 0 && alertView.tag == 666) {
-        [self.textView becomeFirstResponder];
+        [self.textViewPostContent becomeFirstResponder];
     }
 }
 
@@ -551,7 +550,7 @@
         }
     }
     
-    NSString* txtTW = [[textView text] removeEmoji];
+    NSString* txtTW = [[self.textViewPostContent text] removeEmoji];
     txtTW = [txtTW stringByReplacingOccurrencesOfString:@"\n" withString:@"\r\n"];
     
     [arequest setPostValue:txtTW forKey:@"content_form"];
@@ -684,7 +683,7 @@
     [self.viewRehostImage setAlpha:0];
     [self updateExpandCompressRehostImage];
     [UIView commitAnimations];
-    [self.textView becomeFirstResponder];
+    [self.textViewPostContent becomeFirstResponder];
 }
 
 - (void)actionExpandCompressRehostImage
@@ -706,7 +705,7 @@
         [self.viewControllerRehostImage.collectionImages setAlpha:1];
         [viewToolbar setHidden:NO];
         self.constraintToolbarHeight.constant = TOOLBAR_HEIGHT_IMAGES;
-        [self.textView becomeFirstResponder];
+        [self.textViewPostContent becomeFirstResponder];
     }
     [UIView commitAnimations];
 }
@@ -761,13 +760,13 @@
 {
     NSString* sTextToAdd = [NSString stringWithFormat:@"[img]%@[/img]\n", media.images.original.gifUrl];
     NSRange range = [self lastSelectedRange];
-    if ([self.textView isFirstResponder]) {
-        range = self.textView.selectedRange;
+    if ([self.textViewPostContent isFirstResponder]) {
+        range = self.textViewPostContent.selectedRange;
     }
     if (!range.location) {
         range = NSMakeRange(0, 0);
     }
-    NSMutableString *text = [self.textView.text mutableCopy];
+    NSMutableString *text = [self.textViewPostContent.text mutableCopy];
     if (text.length < range.location) {
         range.location = text.length;
     }
@@ -775,9 +774,9 @@
     range.location += [sTextToAdd length];
     range.length = 0;
     [self setLastSelectedRange:range];
-    self.textView.text = text;
-    self.textView.selectedRange = range;
-    [self textViewDidChange:self.textView];
+    self.textViewPostContent.text = text;
+    self.textViewPostContent.selectedRange = range;
+    [self textViewDidChange:self.textViewPostContent];
     [self dismissViewControllerAnimated:self.giphyViewController completion:nil];
 }
 
@@ -852,7 +851,7 @@
     self.viewControllerSmileys.bModeFullScreen = NO;
     [self.viewSmileys setAlpha:0];
     [self updateExpandCompressSmiley];
-    [self.textView becomeFirstResponder];
+    [self.textViewPostContent becomeFirstResponder];
     [UIView commitAnimations];
 }
 
@@ -868,7 +867,7 @@
         [self updateExpandCompressSmiley];
         [UIView commitAnimations];
         if (!self.viewControllerSmileys.bModeFullScreen) {
-            [self.textView becomeFirstResponder];
+            [self.textViewPostContent becomeFirstResponder];
         }
     }
 }
@@ -920,25 +919,25 @@
 
 - (IBAction)actionUndo:(id)sender
 {
-    [self.textView.undoManager undo];
+    [self.textViewPostContent.undoManager undo];
     [self enableDisableUndoButton];
 }
 
 - (IBAction)actionRedo:(id)sender
 {
-    [self.textView.undoManager redo];
+    [self.textViewPostContent.undoManager redo];
     [self enableDisableUndoButton];
 }
 
 // to disable or enable the button when needed
 - (void)enableDisableUndoButton
 {
-    if (self.textView.undoManager.canUndo) {
+    if (self.textViewPostContent.undoManager.canUndo) {
         self.btnToolbarUndo.enabled = true;
     } else {
         self.btnToolbarUndo.enabled = false;
     }
-    if (self.textView.undoManager.canRedo) {
+    if (self.textViewPostContent.undoManager.canRedo) {
         self.btnToolbarRedo.enabled = true;
     } else {
         self.btnToolbarRedo.enabled = false;
@@ -948,9 +947,9 @@
 #pragma mark - TextView Mod
 
 - (void) smileyReceived: (NSNotification *) notification {
-    [self.textView.undoManager registerUndoWithTarget:self
+    [self.textViewPostContent.undoManager registerUndoWithTarget:self
                                     selector:@selector(undoTextFieldEdit:)
-                                      object:self.textView.text];
+                                      object:self.textViewPostContent.text];
     [self enableDisableUndoButton];
     [self insertTextToTextView:[notification object]];
     [self actionHideSmileys];
@@ -958,9 +957,9 @@
 
 - (void) imageReceived: (NSNotification *) notification
 {
-    [self.textView.undoManager registerUndoWithTarget:self
+    [self.textViewPostContent.undoManager registerUndoWithTarget:self
                                     selector:@selector(undoTextFieldEdit:)
-                                      object:self.textView.text];
+                                      object:self.textViewPostContent.text];
     [self enableDisableUndoButton];
     [self insertTextToTextView:[notification object]];
     [self actionHideRehostImage];
@@ -968,28 +967,38 @@
 
 - (void)insertTextToTextView: (NSString*)textToInsert
 {
-    NSMutableString *text = [self.textView.text mutableCopy];
+    NSMutableString *text = [self.textViewPostContent.text mutableCopy];
     
-    NSRange selRange = self.textView.selectedRange;
+    NSRange selRange = self.textViewPostContent.selectedRange;
 
     [text insertString:textToInsert atIndex:selRange.location];
     selRange.location += textToInsert.length;
     selRange.length = 0;
 
-    textView.text = text;
-    textView.selectedRange = selRange;
+    self.textViewPostContent.text = text;
+    self.textViewPostContent.selectedRange = selRange;
 
-    [self textViewDidChange:self.textView];
+    [self textViewDidChange:self.textViewPostContent];
 }
 
 - (void)undoTextFieldEdit: (NSString*)string
 {
     NSLog(@"Undoing with %@", string);
-    [self.textView.undoManager registerUndoWithTarget:self
+    [self.textViewPostContent.undoManager registerUndoWithTarget:self
                                     selector:@selector(undoTextFieldEdit:)
-                                      object:self.textView.text];
-    self.textView.text = string;
+                                      object:self.textViewPostContent.text];
+    self.textViewPostContent.text = string;
 }
+
+/* Asks the delegate for the menu to be shown for the specified text range.
+* @return Return a UIMenu describing the desired menu hierarchy. Return @c nil to present the default system menu.
+*/
+- (nullable UIMenu *)textView:(UITextView *)textView editMenuForTextInRange:(NSRange)range suggestedActions:(NSArray<UIMenuElement *> *)suggestedActions
+API_AVAILABLE(ios(16.0))
+{
+    return [((HFRTextView*)self.textViewPostContent) menuForHFRTextView:textView editMenuForTextInRange:range suggestedActions:suggestedActions];
+}
+
 
 #pragma mark - Responding to keyboard events
 
@@ -1061,7 +1070,7 @@
     }
     else if (textField == self.textFieldTitle)
     {
-        [self.textView becomeFirstResponder];
+        [self.textViewPostContent becomeFirstResponder];
     }
 
     return NO;
