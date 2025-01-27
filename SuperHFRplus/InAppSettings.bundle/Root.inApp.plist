@@ -374,7 +374,37 @@
                 <string>nothing</string>
             </array>
         </dict>
-		<dict>
+        <dict>
+            <key>DefaultValue</key>
+            <integer>0</integer>
+            <key>Key</key>
+            <string>size_text_topics</string>
+            <key>Title</key>
+            <string>Taille du texte des topics</string>
+            <key>Titles</key>
+            <array>
+                <string>-10%</string>
+                <string>Defaut</string>
+                <string>+10%</string>
+                <string>+20%</string>
+                <string>+30%</string>
+                <string>+40%</string>
+                <string>+50%</string>
+            </array>
+            <key>Type</key>
+            <string>PSMultiValueSpecifier</string>
+            <key>Values</key>
+            <array>
+                <integer>90</integer>
+                <integer>100</integer>
+                <integer>110</integer>
+                <integer>120</integer>
+                <integer>130</integer>
+                <integer>140</integer>
+                <integer>150</integer>
+            </array>
+        </dict>
+        <dict>
 			<key>DefaultValue</key>
 			<string>default</string>
 			<key>FooterText</key>
@@ -382,7 +412,7 @@
 			<key>Key</key>
 			<string>size_text</string>
 			<key>Title</key>
-			<string>Taille du texte</string>
+			<string>Taille du texte des messages</string>
 			<key>Titles</key>
 			<array>
 				<string>Normale</string>

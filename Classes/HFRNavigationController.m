@@ -62,7 +62,7 @@
 }
 
 - (void)navigationController:(UINavigationController *)navigationController willShowViewController:(UIViewController *)viewController animated:(BOOL)animated {
-    NSLog(@"HFR Navigation Will show %@", viewController);
+    //NSLog(@"HFR Navigation Will show %@", viewController);
     if ([viewController isKindOfClass:[IASKSpecifierValuesViewController class]]) {
         Theme theme = [[ThemeManager sharedManager] theme];
 
