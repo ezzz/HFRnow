@@ -2294,13 +2294,6 @@
 			name = Offline;
 			sourceTree = "<group>";
 		};
-		156FBDE528F5F05900CE345D /* MenuItemImages */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = MenuItemImages;
-			sourceTree = "<group>";
-		};
 		15B245A722E6F9220091B513 /* ThemeSettings */ = {
 			isa = PBXGroup;
 			children = (
@@ -2898,7 +2891,6 @@
 		CA00C53C17C30C360067B457 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
-				156FBDE528F5F05900CE345D /* MenuItemImages */,
 				4C193E731FA8820200434A37 /* Icons.xcassets */,
 				CA2E4C0917E21EC700E95622 /* Images.xcassets */,
 				4C59E0811FA9D43F00C902F8 /* AlternativeIcons */,
@@ -4650,7 +4642,7 @@
 				);
 				HEADER_SEARCH_PATHS = $SDKROOT/usr/include/libxml2;
 				INFOPLIST_FILE = "SuperHFRplus-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -4704,7 +4696,7 @@
 				);
 				HEADER_SEARCH_PATHS = $SDKROOT/usr/include/libxml2;
 				INFOPLIST_FILE = "SuperHFRplus-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

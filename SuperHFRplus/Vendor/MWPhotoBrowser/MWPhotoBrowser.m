@@ -1272,38 +1272,30 @@
 
         } else {
             
-            // iOS < 7
-            // Status bar and nav bar positioning
-            BOOL fullScreen = YES;
-#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_7_0
-            if (SYSTEM_VERSION_LESS_THAN(@"7")) fullScreen = self.wantsFullScreenLayout;
-#endif
-            if (fullScreen) {
-                
-                // Need to get heights and set nav bar position to overcome display issues
-                
-                // Get status bar height if visible
-                CGFloat statusBarHeight = 0;
-                if (![UIApplication sharedApplication].statusBarHidden) {
-                    CGRect statusBarFrame = [[UIApplication sharedApplication] statusBarFrame];
-                    statusBarHeight = MIN(statusBarFrame.size.height, statusBarFrame.size.width);
-                }
-                
-                // Status Bar
-                [[UIApplication sharedApplication] setStatusBarHidden:hidden withAnimation:animated?UIStatusBarAnimationFade:UIStatusBarAnimationNone];
-                
-                // Get status bar height if visible
-                if (![UIApplication sharedApplication].statusBarHidden) {
-                    CGRect statusBarFrame = [[UIApplication sharedApplication] statusBarFrame];
-                    statusBarHeight = MIN(statusBarFrame.size.height, statusBarFrame.size.width);
-                }
-                
-                // Set navigation bar frame
-                CGRect navBarFrame = self.navigationController.navigationBar.frame;
-                navBarFrame.origin.y = statusBarHeight;
-                self.navigationController.navigationBar.frame = navBarFrame;
-                
+            // Need to get heights and set nav bar position to overcome display issues
+            
+            // Get status bar height if visible
+            CGFloat statusBarHeight = 0;
+            if (![UIApplication sharedApplication].statusBarHidden) {
+                CGRect statusBarFrame = [[UIApplication sharedApplication] statusBarFrame];
+                statusBarHeight = MIN(statusBarFrame.size.height, statusBarFrame.size.width);
             }
+            
+            // Status Bar
+            [[UIApplication sharedApplication] setStatusBarHidden:hidden withAnimation:animated?UIStatusBarAnimationFade:UIStatusBarAnimationNone];
+            
+            // Get status bar height if visible
+            if (![UIApplication sharedApplication].statusBarHidden) {
+                CGRect statusBarFrame = [[UIApplication sharedApplication] statusBarFrame];
+                statusBarHeight = MIN(statusBarFrame.size.height, statusBarFrame.size.width);
+            }
+            
+            // Set navigation bar frame
+            CGRect navBarFrame = self.navigationController.navigationBar.frame;
+            navBarFrame.origin.y = statusBarHeight;
+            self.navigationController.navigationBar.frame = navBarFrame;
+            
+        
             
         }
     }
@@ -1478,60 +1470,34 @@
                 
             } else {
                 
-                // Handle default actions
-                if (SYSTEM_VERSION_LESS_THAN(@"6")) {
-                    
-                    // Old handling of activities with action sheet
-                    if ([MFMailComposeViewController canSendMail]) {
-                        _actionsSheet = [[UIActionSheet alloc] initWithTitle:nil delegate:self
-                                                               cancelButtonTitle:NSLocalizedString(@"Cancel", nil) destructiveButtonTitle:nil
-                                                               otherButtonTitles:NSLocalizedString(@"Save", nil), NSLocalizedString(@"Copy", nil), NSLocalizedString(@"Email", nil), nil];
-                    } else {
-                        _actionsSheet = [[UIActionSheet alloc] initWithTitle:nil delegate:self
-                                                               cancelButtonTitle:NSLocalizedString(@"Cancel", nil) destructiveButtonTitle:nil
-                                                               otherButtonTitles:NSLocalizedString(@"Save", nil), NSLocalizedString(@"Copy", nil), nil];
-                    }
-                    _actionsSheet.tag = ACTION_SHEET_OLD_ACTIONS;
-                    _actionsSheet.actionSheetStyle = UIActionSheetStyleBlackTranslucent;
-                    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
-                        [_actionsSheet showFromBarButtonItem:sender animated:YES];
-                    } else {
-                        [_actionsSheet showInView:self.view];
-                    }
-                    
-                } else {
-                    
-                    // Show activity view controller
-                    NSMutableArray *items = [NSMutableArray arrayWithObject:[photo underlyingImage]];
-                    if (photo.caption) {
-                        [items addObject:photo.caption];
-                    }
-                    self.activityViewController = [[UIActivityViewController alloc] initWithActivityItems:items applicationActivities:nil];
-                    
-                    // Show loading spinner after a couple of seconds
-                    double delayInSeconds = 2.0;
-                    dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delayInSeconds * NSEC_PER_SEC));
-                    dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
-                        if (self.activityViewController) {
-                            [self showProgressHUDWithMessage:nil];
-                        }
-                    });
-
-                    // Show
-                    __typeof__(self) __weak weakSelf = self;
-                    [self.activityViewController setCompletionHandler:^(NSString *activityType, BOOL completed) {
-                        weakSelf.activityViewController = nil;
-                        [weakSelf hideControlsAfterDelay];
-                        [weakSelf hideProgressHUD:YES];
-                    }];
-                    // iOS 8 - Set the Anchor Point for the popover
-                    if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"8")) {
-                        self.activityViewController.popoverPresentationController.barButtonItem = _actionButton;
-                    }
-                    [self presentViewController:self.activityViewController animated:YES completion:nil];
-                    
+                // Show activity view controller
+                NSMutableArray *items = [NSMutableArray arrayWithObject:[photo underlyingImage]];
+                if (photo.caption) {
+                    [items addObject:photo.caption];
                 }
+                self.activityViewController = [[UIActivityViewController alloc] initWithActivityItems:items applicationActivities:nil];
                 
+                // Show loading spinner after a couple of seconds
+                double delayInSeconds = 2.0;
+                dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delayInSeconds * NSEC_PER_SEC));
+                dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
+                    if (self.activityViewController) {
+                        [self showProgressHUDWithMessage:nil];
+                    }
+                });
+
+                // Show
+                __typeof__(self) __weak weakSelf = self;
+                [self.activityViewController setCompletionHandler:^(NSString *activityType, BOOL completed) {
+                    weakSelf.activityViewController = nil;
+                    [weakSelf hideControlsAfterDelay];
+                    [weakSelf hideProgressHUD:YES];
+                }];
+                // iOS 8 - Set the Anchor Point for the popover
+                if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"8")) {
+                    self.activityViewController.popoverPresentationController.barButtonItem = _actionButton;
+                }
+                [self presentViewController:self.activityViewController animated:YES completion:nil];
             }
             
             // Keep controls hidden
