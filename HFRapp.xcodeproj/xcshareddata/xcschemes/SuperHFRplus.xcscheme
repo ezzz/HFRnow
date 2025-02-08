@@ -17,7 +17,7 @@
                BlueprintIdentifier = "CA7C6FA3185EF50E00B348BA"
                BuildableName = "SuperHFRplusSwift.app"
                BlueprintName = "SuperHFRplus"
-               ReferencedContainer = "container:SuperHFRplus.xcodeproj">
+               ReferencedContainer = "container:HFRapp.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -33,7 +33,7 @@
             BlueprintIdentifier = "CA7C6FA3185EF50E00B348BA"
             BuildableName = "SuperHFRplusSwift.app"
             BlueprintName = "SuperHFRplus"
-            ReferencedContainer = "container:SuperHFRplus.xcodeproj">
+            ReferencedContainer = "container:HFRapp.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -56,7 +56,7 @@
             BlueprintIdentifier = "CA7C6FA3185EF50E00B348BA"
             BuildableName = "SuperHFRplusSwift.app"
             BlueprintName = "SuperHFRplus"
-            ReferencedContainer = "container:SuperHFRplus.xcodeproj">
+            ReferencedContainer = "container:HFRapp.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -72,7 +72,7 @@
             BlueprintIdentifier = "CA7C6FA3185EF50E00B348BA"
             BuildableName = "SuperHFRplusSwift.app"
             BlueprintName = "SuperHFRplus"
-            ReferencedContainer = "container:SuperHFRplus.xcodeproj">
+            ReferencedContainer = "container:HFRapp.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
    </ProfileAction>

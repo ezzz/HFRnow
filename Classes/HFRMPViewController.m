@@ -109,9 +109,17 @@
     [self showBarButton:kSync];
 }
 
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    NSInteger iSizeTextTopics = [[NSUserDefaults standardUserDefaults] integerForKey:@"size_text_topics"];
+    return 55.0*iSizeTextTopics/100;
+}
+
 // Customize the appearance of table view cells.
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
-	TopicMPCellView *cell = [tableView dequeueReusableCellWithIdentifier:@"TopicMPCellID"];
+    NSInteger iSizeTextTopics = [[NSUserDefaults standardUserDefaults] integerForKey:@"size_text_topics"];
+
+    TopicMPCellView *cell = [tableView dequeueReusableCellWithIdentifier:@"TopicMPCellID"];
     
     // Content
     TopicCellView *tmpCell = (TopicCellView*)[super tableView:tableView cellForRowAtIndexPath:indexPath];
@@ -148,15 +156,17 @@
     cell.topicViewed = [aTopic isViewed];
 
     // Style
-    UIFont *font1 = [UIFont boldSystemFontOfSize:13.0f];
+    UIFont *font1 = [UIFont boldSystemFontOfSize:13.0f*iSizeTextTopics/100];
     //cell.timeLabel.textColor = [ThemeColors tintColor];
     if (cell.topicViewed) {
-        font1 = [UIFont systemFontOfSize:13.0f];
+        font1 = [UIFont systemFontOfSize:13.0f*iSizeTextTopics/100];
         //cell.timeLabel.textColor = [ThemeColors textColor2];
     }
+
+
     NSDictionary *arialDict = [NSDictionary dictionaryWithObject: font1 forKey:NSFontAttributeName];
     NSMutableAttributedString *aAttrString1 = [[NSMutableAttributedString alloc] initWithString:[aTopic aTitle] attributes: arialDict];
-    UIFont *font2 = [UIFont fontWithName:@"fontello" size:15];
+    UIFont *font2 = [UIFont fontWithName:@"fontello" size:15.0*iSizeTextTopics/100];
     NSMutableAttributedString *finalString = [[NSMutableAttributedString alloc]initWithString:@""];
     
     cell.isTopicClosed = NO;
@@ -174,6 +184,9 @@
     if ([cell.titleLabel.text hasPrefix:@"[non lu]"]) {
         cell.isTopicViewedByReceiver = NO;
     }
+    
+    [cell.msgLabel setFont:[UIFont systemFontOfSize:11.0f*iSizeTextTopics/100]];
+    [cell.timeLabel setFont:[UIFont systemFontOfSize:11.0f*iSizeTextTopics/100]];
     
     return cell;
 }
@@ -401,11 +414,6 @@
     [self showBarButton:kReload];
 	
 	[super fetchContentFailed:theRequest];
-}
-
-- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
-{
-	return 55;
 }
 
 -(void)statusBarButton:(BARBTNTYPE)type enable:(bool)enable {

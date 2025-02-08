@@ -18,7 +18,7 @@
                BlueprintIdentifier = "4CEDB6CC1FD7095D009C99FD"
                BuildableName = "Messages.appex"
                BlueprintName = "Messages"
-               ReferencedContainer = "container:SuperHFRplus.xcodeproj">
+               ReferencedContainer = "container:HFRapp.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -32,7 +32,7 @@
                BlueprintIdentifier = "CA7C6FA3185EF50E00B348BA"
                BuildableName = "SuperHFRplusSwift.app"
                BlueprintName = "SuperHFRplus"
-               ReferencedContainer = "container:SuperHFRplus.xcodeproj">
+               ReferencedContainer = "container:HFRapp.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -42,25 +42,24 @@
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
-      <Testables>
-      </Testables>
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "4CEDB6CC1FD7095D009C99FD"
             BuildableName = "Messages.appex"
             BlueprintName = "Messages"
-            ReferencedContainer = "container:SuperHFRplus.xcodeproj">
+            ReferencedContainer = "container:HFRapp.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
-      <AdditionalOptions>
-      </AdditionalOptions>
+      <Testables>
+      </Testables>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
       selectedDebuggerIdentifier = ""
       selectedLauncherIdentifier = "Xcode.IDEFoundation.Launcher.PosixSpawn"
       launchStyle = "0"
+      askForAppToLaunch = "Yes"
       useCustomWorkingDirectory = "NO"
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "YES"
@@ -75,20 +74,9 @@
             BlueprintIdentifier = "4CEDB6CC1FD7095D009C99FD"
             BuildableName = "Messages.appex"
             BlueprintName = "Messages"
-            ReferencedContainer = "container:SuperHFRplus.xcodeproj">
+            ReferencedContainer = "container:HFRapp.xcodeproj">
          </BuildableReference>
       </RemoteRunnable>
-      <MacroExpansion>
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "4CEDB6CC1FD7095D009C99FD"
-            BuildableName = "Messages.appex"
-            BlueprintName = "Messages"
-            ReferencedContainer = "container:SuperHFRplus.xcodeproj">
-         </BuildableReference>
-      </MacroExpansion>
-      <AdditionalOptions>
-      </AdditionalOptions>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
@@ -104,7 +92,7 @@
             BlueprintIdentifier = "CA7C6FA3185EF50E00B348BA"
             BuildableName = "SuperHFRplusSwift.app"
             BlueprintName = "SuperHFRplus"
-            ReferencedContainer = "container:SuperHFRplus.xcodeproj">
+            ReferencedContainer = "container:HFRapp.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

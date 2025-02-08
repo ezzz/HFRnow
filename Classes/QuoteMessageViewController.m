@@ -250,7 +250,6 @@
 					//NSLog(@"Sujet OK");
 					self.haveTitle = YES;
 				}
-				
 			}
 			
 			if ([[inputallNode getAttributeNamed:@"name"] isEqualToString:@"dest"]) {
@@ -271,53 +270,31 @@
 					//Title
 					NSString *aForumTitle = [[NSString alloc] initWithString:[[catNode allContents] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]]];
 					[aForum setATitle:aForumTitle];
-
 					//ID
 					NSString *aForumID = [[NSString alloc] initWithString:[[catNode getAttributeNamed:@"value"] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]]];
 					[aForum setAID:aForumID];
-					
+
+                    //NSLog(@"FORUM %@ - %@", aForumTitle, aForumID);
+
 					[pickerViewArray addObject:aForum];
-					
 				}
 			}
-			
-			
+                    
 			//NSLog(@"select");
 			HTMLNode *selectedNode = [inputallNode findChildWithAttribute:@"selected" matchingName:@"selected" allowPartial:NO];
 			if (selectedNode) {
 				//NSLog(@"selectedNode %@ %@", [selectedNode contents], [inputallNode getAttributeNamed:@"name"]);
-
 				[self.arrayInputData setObject:[selectedNode getAttributeNamed:@"value"] forKey:[inputallNode getAttributeNamed:@"name"]];
 			}
 			else {
 				//NSLog(@"pas selected %@ %@", [[inputallNode firstChild] contents], [inputallNode getAttributeNamed:@"name"]);
-
 				[self.arrayInputData setObject:[[inputallNode firstChild] getAttributeNamed:@"value"] forKey:[inputallNode getAttributeNamed:@"name"]];
 			}
-
 		}
-
-
-		
 	}
-
-	
-	//useless [self.arrayInputData setObject:[[fastAnswerNode findChildWithAttribute:@"name" matchingName:@"password" allowPartial:NO] getAttributeNamed:@"value"] forKey:@"password"];
-	//useless [self.arrayInputData setObject:[[fastAnswerNode findChildWithAttribute:@"name" matchingName:@"pseudo" allowPartial:NO] getAttributeNamed:@"value"] forKey:@"pseudo"];
-	//useless [self.arrayInputData setObject:@"1" forKey:@"MsgIcon"];
-	
-	
-
-
 	
 	[super initData];
 	
-	
-	//self.navigationItem.prompt = @"Répondre";
-
-	//[[self.navBar.items objectAtIndex:2] setTitle:self.title];
-	
-
 	//EDITOR
     float frameWidth = self.view.frame.size.width;
     
@@ -427,19 +404,26 @@
 		catButton.frame = CGRectMake(8 + titleLabel.frame.size.width + 5, originY + 5, frameWidth - 105, 33);
         
 		int row = 0;
-		for(Forum *aForum in pickerViewArray){
-			if ([[aForum aID] isEqualToString:[self.arrayInputData valueForKey:@"subcat"]]) {
-				[catButton setTitle:[aForum aTitle] forState:UIControlStateNormal];
-				break;
-			}
-			row++;
+        NSMutableArray* actionList = [[NSMutableArray alloc] init];
+		for (Forum *aForum in self.pickerViewArray) {
+            //NSLog(@"FORUM Subcat: %@ / %@", [aForum aID], [aForum aTitle]);
+            [actionList addObject:[UIAction actionWithTitle:[aForum aTitle] image:nil identifier:nil  handler:^(__kindof UIAction * _Nonnull action) {
+                [self->catButton setTitle:[aForum aTitle] forState:UIControlStateNormal];
+                [self->textFieldCat setText:[aForum aID]];
+                NSLog(@"FORUM selection %@", self->textFieldCat.text);
+                    }]];
 		}
-		[catButton setContentHorizontalAlignment:UIControlContentHorizontalAlignmentRight];
-		[catButton setContentEdgeInsets:UIEdgeInsetsMake(0, 0, 0, 15)];
-		[catButton addTarget:self action:@selector(showPicker:) forControlEvents:UIControlEventTouchUpInside];
+        catButton.menu = [UIMenu menuWithChildren:actionList];
+
+        [catButton setContentHorizontalAlignment:UIControlContentHorizontalAlignmentRight];
+        [catButton setContentEdgeInsets:UIEdgeInsetsMake(0, 0, 0, 15)];
 		catButton.autoresizingMask = UIViewAutoresizingFlexibleWidth;
         
-		
+        
+        [catButton setTitle:@"Aucune" forState:UIControlStateNormal];
+        catButton.showsMenuAsPrimaryAction = YES;
+        //catButton.backgroundColor = [UIColor redColor];
+        
 		textFieldCat = [[UITextField alloc] initWithFrame:CGRectMake(88, originY, 215, 43)];
 		textFieldCat.backgroundColor = [UIColor clearColor];
 		textFieldCat.font = [UIFont systemFontOfSize:15];
@@ -448,7 +432,7 @@
 		textFieldCat.keyboardAppearance = UIKeyboardAppearanceAlert;
 		textFieldCat.returnKeyType = UIReturnKeyNext;
         textFieldCat.userInteractionEnabled = NO;
-		//NSLog(@"CAT %@", [self.arrayInputData valueForKey:@"subcat"]);
+		NSLog(@"FORUM CAT %@", [self.arrayInputData valueForKey:@"subcat"]);
 		[textFieldCat setText:[self.arrayInputData valueForKey:@"subcat"]];
 		textFieldCat.userInteractionEnabled = NO;
 		textFieldCat.autoresizingMask = UIViewAutoresizingFlexibleWidth;
@@ -499,6 +483,8 @@
 		[confirmButton addTarget:self action:@selector(loadSubCat) forControlEvents:UIControlEventValueChanged];
 		[actionSheet addSubview:confirmButton];
 		//-- PICKER
+        
+        
 		
 	}
 
@@ -705,8 +691,9 @@
     return UIModalPresentationNone;
 }
 
--(void)showPicker:(id)sender{
-	
+-(void)showPicker:(id)sender
+{
+    /*
     [self.textFieldTitle resignFirstResponder];
     [self.textViewPostContent resignFirstResponder];
     [textFieldSmileys resignFirstResponder];
@@ -726,7 +713,7 @@
     pc.sourceView = (UIButton *)sender;
     pc.sourceRect = CGRectMake(0, 0, ((UIButton *)sender).frame.size.width, 35);
     
-    [self presentViewController:subCatTableViewController animated:YES completion:nil];
+    [self presentViewController:subCatTableViewController animated:YES completion:nil];*/
 }
 
 @end

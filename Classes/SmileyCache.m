@@ -96,7 +96,7 @@ static SmileyCache *_shared = nil;    // static instance variable
                 [self.dicCommonSmileys addObject:arr[index]];
             }
             else {
-                NSLog(@"index %ld not imported", (long)index);
+                //NSLog(@"index %ld not imported", (long)index);
             }
         }
         [self loadDicFavorties];

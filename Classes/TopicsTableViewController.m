@@ -155,30 +155,24 @@
 
 // The designated initializer.  Override if you create the controller programmatically and want to perform customization that is not appropriate for viewDidLoad.
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil {
-    if ((self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil])) {
-        // Custom initialization
-		NSLog(@"initWithNibName TTVC 0");
-		
+    if ((self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil]))
+    {
         self.selectedFlagIndex = 0;
-        
     }
     return self;
 }
 
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil flag:(int)flag {
-    if ((self = [self initWithNibName:nibNameOrNil bundle:nibBundleOrNil])) {
-        // Custom initialization
-		NSLog(@"initWithNibName TTVC %d", flag);
-		
+    if ((self = [self initWithNibName:nibNameOrNil bundle:nibBundleOrNil]))
+    {
         self.selectedFlagIndex = flag;
-        
     }
     return self;
 }
 
 -(void)loadDataInTableView:(NSData *)contentData
 {
-	
+    NSLog(@"TOPICS loadDataInTableView");
 	[self.view removeGestureRecognizer:swipeLeftRecognizer];
 	[self.view removeGestureRecognizer:swipeRightRecognizer];	
 	
@@ -1312,8 +1306,10 @@
 }
 
 - (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section {
+    NSInteger iSizeTextTopics = [[NSUserDefaults standardUserDefaults] integerForKey:@"size_text_topics"];
+    
     if (arrayData.count)
-        return HEIGHT_FOR_HEADER_IN_SECTION;
+        return HEIGHT_FOR_HEADER_IN_SECTION*iSizeTextTopics/100;
     else
         return 0;
 }
@@ -1323,46 +1319,28 @@
     
     //On récupère la section (forum)
     CGFloat curWidth = self.view.frame.size.width;
-    
+    NSInteger iSizeTextTopics = [[NSUserDefaults standardUserDefaults] integerForKey:@"size_text_topics"];
+
     //UIView globale
-	UIView* customView = [[UIView alloc] initWithFrame:CGRectMake(0,0,curWidth,HEIGHT_FOR_HEADER_IN_SECTION)];
+	UIView* customView = [[UIView alloc] initWithFrame:CGRectMake(0,0,curWidth,HEIGHT_FOR_HEADER_IN_SECTION*iSizeTextTopics/100)];
     customView.backgroundColor = [ThemeColors headSectionBackgroundColor];
     customView.autoresizingMask = UIViewAutoresizingFlexibleWidth;
     
-	//UIImageView de fond
-    if (!SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"7.0")) {
-        UIImage *myImage = [UIImage imageNamed:@"bar2.png"];
-        UIImageView *imageView = [[UIImageView alloc] initWithImage:myImage];
-        imageView.alpha = 0.9;
-        imageView.frame = CGRectMake(0,0,curWidth,HEIGHT_FOR_HEADER_IN_SECTION);
-        imageView.autoresizingMask = UIViewAutoresizingFlexibleWidth;
+    UIView* borderView = [[UIView alloc] initWithFrame:CGRectMake(0,0,curWidth,1/[[UIScreen mainScreen] scale])];
+    borderView.backgroundColor = [UIColor colorWithRed:158/255.0f green:158/255.0f blue:114/162.0f alpha:0.7];
         
-        [customView addSubview:imageView];
-    }
-    else {
-        //bordures/iOS7
-        UIView* borderView = [[UIView alloc] initWithFrame:CGRectMake(0,0,curWidth,1/[[UIScreen mainScreen] scale])];
-        borderView.backgroundColor = [UIColor colorWithRed:158/255.0f green:158/255.0f blue:114/162.0f alpha:0.7];
-        
-        //[customView addSubview:borderView];
-        
-        UIView* borderView2 = [[UIView alloc] initWithFrame:CGRectMake(0,HEIGHT_FOR_HEADER_IN_SECTION-1/[[UIScreen mainScreen] scale],curWidth,1/[[UIScreen mainScreen] scale])];
-        borderView2.backgroundColor = [UIColor colorWithRed:158/255.0f green:158/255.0f blue:114/162.0f alpha:0.7];
-        
-        //[customView addSubview:borderView2];
-        
-    }
-    
+    UIView* borderView2 = [[UIView alloc] initWithFrame:CGRectMake(0,HEIGHT_FOR_HEADER_IN_SECTION*iSizeTextTopics/100-1/[[UIScreen mainScreen] scale],curWidth,1/[[UIScreen mainScreen] scale])];
+    borderView2.backgroundColor = [UIColor colorWithRed:158/255.0f green:158/255.0f blue:114/162.0f alpha:0.7];
+
     //UIButton clickable pour accéder à la catégorie
-    UIButton *button = [[UIButton alloc] initWithFrame:CGRectMake(0, 0, curWidth, HEIGHT_FOR_HEADER_IN_SECTION)];
+    UIButton *button = [[UIButton alloc] initWithFrame:CGRectMake(0, 0, curWidth, HEIGHT_FOR_HEADER_IN_SECTION*iSizeTextTopics/100)];
     [button setContentHorizontalAlignment:UIControlContentHorizontalAlignmentLeft];
 
     NSString *title = [self tableView:tableView titleForHeaderInSection:section];
     
     [button setTitleColor:[ThemeColors headSectionTextColor] forState:UIControlStateNormal];
     [button setTitle:[title uppercaseString] forState:UIControlStateNormal];
-    [button.titleLabel setFont:[UIFont systemFontOfSize:14]];
-    [button.titleLabel setMinimumFontSize:10];
+    [button.titleLabel setFont:[UIFont systemFontOfSize:14.0*iSizeTextTopics/100]];
     button.titleLabel.adjustsFontSizeToFitWidth = YES;
     [button.titleLabel setNumberOfLines:1];
 
@@ -1421,60 +1399,6 @@
     [customView addConstraint:top];
 	
 	return customView;
-    
-    /*
-	UIView* customView = [[[UIView alloc] initWithFrame:CGRectMake(0,0,320,23)] autorelease];
-	customView.autoresizingMask = UIViewAutoresizingFlexibleWidth;
-
-    
-	// create the label objects
-	UILabel *headerLabel = [[[UILabel alloc] initWithFrame:CGRectZero] autorelease];
-	headerLabel.autoresizingMask = UIViewAutoresizingFlexibleWidth;
-	
-	headerLabel.font = [UIFont boldSystemFontOfSize:15]; //18
-	headerLabel.frame = CGRectMake(10,0,249,23);
-	headerLabel.textColor = [UIColor whiteColor];
-	headerLabel.backgroundColor = [UIColor clearColor];
-	headerLabel.shadowColor = [UIColor darkGrayColor];
-	headerLabel.shadowOffset = CGSizeMake(0.0, 1.0);
-	
-	headerLabel.text = [self forumName];
-	
-	UIButton *detailLabel = [UIButton buttonWithType:UIButtonTypeCustom];
-	detailLabel.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin;
-	detailLabel.contentHorizontalAlignment = UIControlContentHorizontalAlignmentRight;
-	detailLabel.frame = CGRectMake(260, 0, 50, 23);
-	[detailLabel addTarget:self action:@selector(choosePage) forControlEvents:UIControlEventTouchUpInside];
-	[detailLabel setTitle:[NSString stringWithFormat:@"page %d", self.pageNumber] forState:UIControlStateNormal];
-	[[detailLabel titleLabel] setFont:[UIFont boldSystemFontOfSize:10]];
-	[[detailLabel titleLabel] setTextColor:[UIColor whiteColor]];
-	[[detailLabel titleLabel] setTextAlignment:NSTextAlignmentRight];
-	[[detailLabel titleLabel] setBackgroundColor:[UIColor clearColor]];
-	[[detailLabel titleLabel] setShadowColor:[UIColor darkGrayColor]];
-	[[detailLabel titleLabel] setShadowOffset:CGSizeMake(0.0, 1.0)];
-	[[detailLabel titleLabel] setFrame:CGRectMake(260, 0, 50, 23)];
-
-	
-
-	
-	// create image object
-	UIImage *myImage = [UIImage imageNamed:@"bar2.png"];
-	// create the imageView with the image in it
-	UIImageView *imageView = [[[UIImageView alloc] initWithImage:myImage] autorelease];
-	imageView.alpha = 0.9;
-	imageView.frame = CGRectMake(0,0,320,23);
-	imageView.autoresizingMask = UIViewAutoresizingFlexibleWidth;
-
-	
-	[customView addSubview:imageView];
-	[customView addSubview:headerLabel];
-	
-	if ([(UISegmentedControl *)[self.navigationItem.titleView.subviews objectAtIndex:0] selectedSegmentIndex] == 0) {
-		[customView addSubview:detailLabel];
-	}
-	
-	return customView;
- */
  }
 
 
@@ -1488,25 +1412,15 @@
     return arrayData.count;
 }
 
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    NSInteger iSizeTextTopics = [[NSUserDefaults standardUserDefaults] integerForKey:@"size_text_topics"];
+    return 62.0*iSizeTextTopics/100;
+}
 
 // Customize the appearance of table view cells.
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
 
-/*
-	TopicsCell *cell = (TopicsCell *)[tableView dequeueReusableCellWithIdentifier:@"MyIdentifier"];
-	if (cell == nil) {
-		cell = [[[TopicsCell alloc] initWithStyle:UITableViewCellStyleSubtitle
-													 reuseIdentifier:@"MyIdentifier"] autorelease];
-		cell.accessoryType = UITableViewCellAccessoryDetailDisclosureButton;
-		cell.selectionStyle = UITableViewCellSelectionStyleBlue;	
-		
-		UILongPressGestureRecognizer *longPressRecognizer = [[UILongPressGestureRecognizer alloc] 
-															 initWithTarget:self action:@selector(handleLongPress:)];
-		[cell addGestureRecognizer:longPressRecognizer];
-		[longPressRecognizer release];		
-	}
-	*/
-		
 	static NSString *CellIdentifier = @"ApplicationCell";
     
     TopicCellView *cell = (TopicCellView *)[tableView dequeueReusableCellWithIdentifier:CellIdentifier];
@@ -1531,14 +1445,16 @@
 	Topic *aTopic = [arrayData objectAtIndex:indexPath.row];
     cell.topicViewed = [aTopic isViewed];
 
-    UIFont *font1 = [UIFont boldSystemFontOfSize:13.0f];
+    NSInteger iSizeTextTopics = [[NSUserDefaults standardUserDefaults] integerForKey:@"size_text_topics"];
+
+    UIFont *font1 = [UIFont boldSystemFontOfSize:13.0f*iSizeTextTopics/100];
     if ([aTopic isViewed]) {
-        font1 = [UIFont systemFontOfSize:13.0f];
+        font1 = [UIFont systemFontOfSize:13.0f*iSizeTextTopics/100];
     }
     NSDictionary *arialDict = [NSDictionary dictionaryWithObject: font1 forKey:NSFontAttributeName];
     NSMutableAttributedString *aAttrString1 = [[NSMutableAttributedString alloc] initWithString:[aTopic aTitle] attributes: arialDict];
     
-    UIFont *font2 = [UIFont fontWithName:@"fontello" size:15];
+    UIFont *font2 = [UIFont fontWithName:@"fontello" size:15.0f*iSizeTextTopics/100];
 
     NSMutableAttributedString *finalString = [[NSMutableAttributedString alloc]initWithString:@""];
     
@@ -1565,7 +1481,8 @@
     [finalString appendAttributedString:aAttrString1];
 
     cell.titleLabel.attributedText = finalString;
-
+    cell.titleLabel.numberOfLines = 2;
+    
     NSString* sPoll = @"";
     if (aTopic.isPoll) {
         sPoll = @" \U00002263";
@@ -1577,8 +1494,11 @@
 	else {
 	 [cell.msgLabel setText:[NSString stringWithFormat:@"↺%@ %d", sPoll, (aTopic.aRepCount + 1)]];
 	}
-	
+    [cell.msgLabel setFont:[UIFont systemFontOfSize:13.0*iSizeTextTopics/100]];
+
+    // Time label 
 	[cell.timeLabel setText:[NSString stringWithFormat:@"%@ - %@", [aTopic aAuthorOfLastPost], [aTopic aDateOfLastPost]]];
+    [cell.timeLabel setFont:[UIFont systemFontOfSize:11.0*iSizeTextTopics/100]];
 
 
 
@@ -1614,8 +1534,8 @@
 		
 		UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
 	
-		CGRect frame = CGRectMake(0.0, 0.0, imageForSelectedRow.size.width, imageForSelectedRow.size.height);
-		//CGRect frame = CGRectMake(0.0, 0.0, 45, 50);
+		//CGRect frame = CGRectMake(0.0, 0.0, imageForSelectedRow.size.width, imageForSelectedRow.size.height);
+		CGRect frame = CGRectMake(0.0, 0.0, 45, 50);
 		button.frame = frame;	// match the button's size with the image size
 		
 		[button setBackgroundImage:imageForSelectedRow forState:UIControlStateNormal];

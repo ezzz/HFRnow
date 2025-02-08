@@ -412,7 +412,7 @@
             //NSLog(@"ELSE");
         }
     }
-    NSLog(@"run2");
+    //NSLog(@"run2");
     if (!first)
     {
         if ([self.arrayCategoriesVisibleOrder containsObject:aFavorite.forum.aID])

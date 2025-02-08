@@ -33,7 +33,6 @@
     UINib *nib = [UINib nibWithNibName:@"SmileyCodeCellView" bundle:nil];
     [self.codeListTableView registerNib:nib forCellReuseIdentifier:@"SmileyCodeCellId"];
 
-    self.title = sSmileyName;
     self.navigationController.navigationBar.translucent = NO;
     //self.codeListTableView.tableFooterView = [[UIView alloc] initWithFrame:CGRectZero];
     self.codeListTableView.contentInset = UIEdgeInsetsMake(0, 0, 0, 0);
@@ -42,7 +41,9 @@
 - (void) viewWillAppear:(BOOL)animated
 {
     [super viewWillAppear:animated];
-    
+
+    self.title = sSmileyName;
+
     self.view.backgroundColor = self.codeListTableView.backgroundColor = [ThemeColors greyBackgroundColor];
     self.codeListTableView.separatorColor = [ThemeColors cellBorderColor];
     /*if (self.codeListTableView.indexPathForSelectedRow) {

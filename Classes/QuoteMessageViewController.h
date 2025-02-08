@@ -27,7 +27,7 @@
 @property (nonatomic, strong) NSMutableArray *pickerViewArray;
 @property (nonatomic, strong) UIActionSheet *actionSheet;
 @property (nonatomic, strong) UIButton *catButton;
-
+@property (nonatomic, strong) UIMenuController* menuController; 
 -(void)showPicker:(id)sender;
 - (CGRect)pickerFrameWithSize:(CGSize)size;
 -(void)dismissActionSheet;

@@ -35,50 +35,6 @@
 @synthesize tmpCell;
 
 #pragma mark -
-#pragma mark Test BTN
-
-- (void)testBtn {
-    /*
-     /hfr/profil-918540.htm //testreview
-     /hfr/profil-89386.htm //flk
-     
-    
-    ProfilViewController *profilVC = [[ProfilViewController alloc] initWithNibName:@"ProfilViewController" bundle:nil andUrl:@"/hfr/profil-89386.htm"];
-
-    
-    // Set options
-    profilVC.wantsFullScreenLayout = YES;
-    
-    HFRNavigationController *nc = [[HFRNavigationController alloc] initWithRootViewController:profilVC];
-    nc.modalPresentationStyle = UIModalPresentationFormSheet;
-    
-    [self presentModalViewController:nc animated:YES];
-    [nc release];
-    
-    
-    [profilVC release];
-    
-    QuoteMessageViewController *quoteMessageViewController = [[QuoteMessageViewController alloc]
-                                                              initWithNibName:@"AddMessageViewController" bundle:nil];
-
-    [quoteMessageViewController setUrlQuote:@"http://forum.hardware.fr/message.php?config=hfr.inc&cat=25&post=1711&numrep=537060&ref=0&page=308&p=1&subcat=0&sondage=0&owntopic=1&new=0#formulaire"];
-    
-    // Create the navigation controller and present it modally.
-    HFRNavigationController *navigationController = [[HFRNavigationController alloc]
-                                                     initWithRootViewController:quoteMessageViewController];
-    
-    navigationController.modalPresentationStyle = UIModalPresentationFormSheet;
-    [self presentModalViewController:navigationController animated:YES];
-    
-    // The navigation controller is now owned by the current view controller
-    // and the root view controller is owned by the navigation controller,
-    // so both objects should be released to prevent over-retention.
-    [navigationController release];
-    [quoteMessageViewController release];
-    */
-}
-
-#pragma mark -
 #pragma mark Data lifecycle
 
 - (void)cancelFetchContent
@@ -992,9 +948,14 @@
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
     // Return the number of rows in the section.
-	//NSLog(@"Count Forums Table View: %d", arrayData.count);
 	
     return arrayData.count;
+}
+
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    NSInteger iSizeTextTopics = [[NSUserDefaults standardUserDefaults] integerForKey:@"size_text_topics"];
+    return 40.0*iSizeTextTopics/100;
 }
 
 
@@ -1012,6 +973,9 @@
     }
 
     cell.titleLabel.text = [NSString stringWithFormat:@"%@", [[arrayData objectAtIndex:indexPath.row] aTitle]];
+    NSInteger iSizeTextTopics = [[NSUserDefaults standardUserDefaults] integerForKey:@"size_text_topics"];
+    [cell.titleLabel setFont:[UIFont systemFontOfSize:15.0*iSizeTextTopics/100]];
+
     [cell.catImage setImage:[UIImage imageNamed:[[arrayData objectAtIndex:indexPath.row] getImage]]];
     
     if ([self.metaDataList objectForKey:[[arrayData objectAtIndex:indexPath.row] aURL]]) {
