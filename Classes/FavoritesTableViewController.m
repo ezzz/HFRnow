@@ -939,7 +939,8 @@
 
     [button setTitleColor:[ThemeColors headSectionTextColor] forState:UIControlStateNormal];
     [button setTitle:titleSection forState:UIControlStateNormal];
-    [button.titleLabel setFont:[UIFont systemFontOfSize:14]];
+    NSInteger iSizeTextTopics = [[NSUserDefaults standardUserDefaults] integerForKey:@"size_text_topics"];
+    [button.titleLabel setFont:[UIFont systemFontOfSize:14.0*(iSizeTextTopics-(iSizeTextTopics-100)*0.2)/100]]; // Ratio 50%
     [button setTitleEdgeInsets:UIEdgeInsetsMake(2, 10, 0, 0)];
     button.translatesAutoresizingMaskIntoConstraints = NO;
     [customView addSubview:button];

@@ -21,7 +21,7 @@
 
 @implementation QuoteMessageViewController
 @synthesize urlQuote;
-@synthesize myPickerView, pickerViewArray, actionSheet, catButton, textQuote, boldQuote;
+@synthesize subcatArray, actionSheet, catButton, textQuote, boldQuote;
 - (void)cancelFetchContent
 {
 	[self.request cancel];
@@ -88,8 +88,7 @@
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil {    
     if ((self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil])) {
         // Custom initialization
-		self.pickerViewArray = [[NSMutableArray alloc] init];
-		
+		self.subcatArray = [[NSMutableArray alloc] init];
 		self.title = @"Répondre";
     }
     return self;
@@ -256,7 +255,6 @@
 				//NSLog(@"haveTohaveTohaveTohaveTohaveTo");
 				self.haveTo = YES;
 			}
-			
 		}		
 		else if ([[inputallNode tagName] isEqualToString:@"select"]) {
 			
@@ -274,9 +272,7 @@
 					NSString *aForumID = [[NSString alloc] initWithString:[[catNode getAttributeNamed:@"value"] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]]];
 					[aForum setAID:aForumID];
 
-                    //NSLog(@"FORUM %@ - %@", aForumTitle, aForumID);
-
-					[pickerViewArray addObject:aForum];
+					[self.subcatArray addObject:aForum];
 				}
 			}
                     
@@ -403,9 +399,8 @@
 		catButton = [UIButton buttonWithType:UIButtonTypeRoundedRect];
 		catButton.frame = CGRectMake(8 + titleLabel.frame.size.width + 5, originY + 5, frameWidth - 105, 33);
         
-		int row = 0;
         NSMutableArray* actionList = [[NSMutableArray alloc] init];
-		for (Forum *aForum in self.pickerViewArray) {
+		for (Forum *aForum in self.subcatArray) {
             //NSLog(@"FORUM Subcat: %@ / %@", [aForum aID], [aForum aTitle]);
             [actionList addObject:[UIAction actionWithTitle:[aForum aTitle] image:nil identifier:nil  handler:^(__kindof UIAction * _Nonnull action) {
                 [self->catButton setTitle:[aForum aTitle] forState:UIControlStateNormal];
@@ -451,61 +446,15 @@
 		[headerView addSubview:textFieldCat];
 		[headerView addSubview:catButton];
 		[headerView addSubview:separator];
-		
-
-		headerView.frame = CGRectMake(headerView.frame.origin.x, headerView.frame.origin.x, headerView.frame.size.width, originY);
-
-		actionSheet = [[UIActionSheet alloc] initWithTitle:nil delegate:nil cancelButtonTitle:nil destructiveButtonTitle:nil otherButtonTitles:nil];
-		[actionSheet setActionSheetStyle:UIActionSheetStyleBlackTranslucent];
-		
-		myPickerView = [[UIPickerView alloc] initWithFrame:CGRectZero];
-		
-		myPickerView.showsSelectionIndicator = YES;
-		myPickerView.dataSource = self;
-		myPickerView.delegate = self;
-		
-		[myPickerView selectRow:row inComponent:0 animated:NO];
-
-		[actionSheet addSubview:myPickerView];
-		
-		UISegmentedControl *closeButton = [[UISegmentedControl alloc] initWithItems:[NSArray arrayWithObject:@"Retour"]];
-		closeButton.momentary = YES; 
-		closeButton.frame = CGRectMake(10, 7.0f, 55.0f, 30.0f);
-		closeButton.tintColor = [UIColor blackColor];
-		[closeButton addTarget:self action:@selector(dismissActionSheet) forControlEvents:UIControlEventValueChanged];
-		[actionSheet addSubview:closeButton];
-		
-		UISegmentedControl *confirmButton = [[UISegmentedControl alloc] initWithItems:[NSArray arrayWithObject:@"Valider"]];
-		confirmButton.momentary = YES; 
-		confirmButton.tag = 546; 
-		confirmButton.frame = CGRectMake(255, 7.0f, 55.0f, 30.0f);
-		confirmButton.tintColor = [UIColor colorWithRed:60/255.f green:136/255.f blue:230/255.f alpha:1.00];
-		[confirmButton addTarget:self action:@selector(loadSubCat) forControlEvents:UIControlEventValueChanged];
-		[actionSheet addSubview:confirmButton];
-		//-- PICKER
-        
-        
-		
-	}
+    }
 
 	headerView.frame = CGRectMake(headerView.frame.origin.x, originY * -1.0f, headerView.frame.size.width, originY);
 	[self.textViewPostContent addSubview:headerView];
     self.textViewPostContent.tag = 3;
 
-	
-
 	self.offsetY = originY * -1.0f;
 	self.textViewPostContent.contentInset = UIEdgeInsetsMake(originY, 0.0f, 0.0f, 0.0f);
 	self.textViewPostContent.contentOffset = CGPointMake(0.0f, self.offsetY);
-	//--- EDITOR
-	
-	//-----
-	//NSString *key;
-	//for (key in self.arrayInputData) {
-	//	NSLog(@"POST: %@ : %@", key, [self.arrayInputData objectForKey:key]);
-	//}	
-	//-----
-
 
 	NSString* txtTW = [[fastAnswerNode findChildWithAttribute:@"id" matchingName:@"content_form" allowPartial:NO] contents];
     txtTW = [txtTW stringByReplacingOccurrencesOfString:@"\r\n" withString:@"\n"];
@@ -576,144 +525,12 @@
         else {
             NSLog(@"On touche RIEN MEC");
         }
-        
-        //NSLog(@"TXT AFTER=== %@", txtTW);
-        
-        //DEBUG
-        
     }
-    //NSLog(@"txtTWB %@", txtTW);
     
 	[self.textViewPostContent setText:txtTW];
-	//textView.contentOffset = CGPointMake(0, 0);
-
 	[self textViewDidChange:self.textViewPostContent];
-	
-	//NSLog(@"self.formSubmit %@", self.formSubmit);
-
 	NSString *newSubmitForm = [[NSString alloc] initWithFormat:@"%@%@", [k ForumURL], [fastAnswerNode getAttributeNamed:@"action"]];
 	[self setFormSubmit:newSubmitForm];	
-}
-
-
-
-#pragma mark - UIPickerViewDelegate
-
--(void)loadSubCat
-{
-    [self dismissViewControllerAnimated:YES completion:nil];
-	[catButton setTitle:[[pickerViewArray objectAtIndex:[myPickerView selectedRowInComponent:0]] aTitle] forState:UIControlStateNormal];
-	[textFieldCat setText:[[pickerViewArray objectAtIndex:[myPickerView selectedRowInComponent:0]] aID]];
-	
-	[self dismissActionSheet];
-}
-
-
-- (void)pickerView:(UIPickerView *)pickerView didSelectRow:(NSInteger)row inComponent:(NSInteger)component
-{
-	if (pickerView == myPickerView)	// don't show selection for the custom picker
-	{
-		// report the selection to the UI label
-		//label.text = [NSString stringWithFormat:@"%@ - %d",
-		//			  [pickerViewArray objectAtIndex:[pickerView selectedRowInComponent:0]],
-		//			  [pickerView selectedRowInComponent:1]];
-		
-		//NSLog(@"%@", [pickerViewArray objectAtIndex:[pickerView selectedRowInComponent:0]]);
-	}
-}
-
-- (NSString *)pickerView:(UIPickerView *)pickerView titleForRow:(NSInteger)row forComponent:(NSInteger)component
-{
-	NSString *returnStr = @"";
-	
-	if (row == 0) {
-		//NSString *returnStr = @"";
-		
-	}
-	else {
-		returnStr = @"- ";
-	}
-	
-	
-	// note: custom picker doesn't care about titles, it uses custom views
-	if (pickerView == myPickerView)
-	{
-		if (component == 0)
-		{
-			returnStr = [returnStr stringByAppendingString:[[pickerViewArray objectAtIndex:row] aTitle]];
-		}
-	}
-	
-	return returnStr;
-}
-
-- (CGFloat)pickerView:(UIPickerView *)pickerView rowHeightForComponent:(NSInteger)component
-{
-	return 40.0;
-}
-
-- (NSInteger)pickerView:(UIPickerView *)pickerView numberOfRowsInComponent:(NSInteger)component
-{
-	return [pickerViewArray count];
-}
-
-- (NSInteger)numberOfComponentsInPickerView:(UIPickerView *)pickerView
-{
-	return 1;
-}
-
-
-// return the picker frame based on its size, positioned at the bottom of the page
-- (CGRect)pickerFrameWithSize:(CGSize)size
-{
-	//CGRect screenRect = [[UIScreen mainScreen] applicationFrame];
-	CGRect pickerRect = CGRectMake(	0.0,
-								   40,
-								   self.view.frame.size.width,
-								   size.height);
-	
-	
-	return pickerRect;
-}
-
--(void)dismissActionSheet {
-	[actionSheet dismissWithClickedButtonIndex:0 animated:YES];
-}
-
--(UIViewController *)presentationController:(UIPresentationController *)controller viewControllerForAdaptivePresentationStyle:(UIModalPresentationStyle)style   {
-    
-    UINavigationController *uvc = [[UINavigationController alloc] initWithRootViewController:controller.presentedViewController];
-    return uvc;
-    
-}
-
-- (UIModalPresentationStyle)adaptivePresentationStyleForPresentationController:(UIPresentationController *)controller {
-    return UIModalPresentationNone;
-}
-
--(void)showPicker:(id)sender
-{
-    /*
-    [self.textFieldTitle resignFirstResponder];
-    [self.textViewPostContent resignFirstResponder];
-    [textFieldSmileys resignFirstResponder];
-    
-    //NSLog(@"TT %@", [[pickerViewArray objectAtIndex:[myPickerView selectedRowInComponent:0]] aTitle]);
-    
-    SubCatTableViewController *subCatTableViewController = [[SubCatTableViewController alloc] initWithStyle:UITableViewStylePlain];
-    subCatTableViewController.suPicker = myPickerView;
-    subCatTableViewController.arrayData = pickerViewArray;
-    subCatTableViewController.notification = @"CatSelected";
-    
-    subCatTableViewController.modalPresentationStyle = UIModalPresentationPopover;
-    UIPopoverPresentationController *pc = [subCatTableViewController popoverPresentationController];
-    //pc.backgroundColor = [ThemeColors greyBackgroundColor:[[ThemeManager sharedManager] theme]];
-    pc.permittedArrowDirections = UIPopoverArrowDirectionUp;
-    pc.delegate = self;
-    pc.sourceView = (UIButton *)sender;
-    pc.sourceRect = CGRectMake(0, 0, ((UIButton *)sender).frame.size.width, 35);
-    
-    [self presentViewController:subCatTableViewController animated:YES completion:nil];*/
 }
 
 @end

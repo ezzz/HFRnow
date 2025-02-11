@@ -23,8 +23,7 @@
 @property (nonatomic, strong) NSString *textQuote;
 @property BOOL boldQuote;
 
-@property (nonatomic, strong) UIPickerView *myPickerView;
-@property (nonatomic, strong) NSMutableArray *pickerViewArray;
+@property (nonatomic, strong) NSMutableArray *subcatArray;
 @property (nonatomic, strong) UIActionSheet *actionSheet;
 @property (nonatomic, strong) UIButton *catButton;
 @property (nonatomic, strong) UIMenuController* menuController; 

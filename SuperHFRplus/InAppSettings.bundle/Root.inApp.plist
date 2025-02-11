@@ -5,8 +5,6 @@
 	<key>PreferenceSpecifiers</key>
 	<array>
 		<dict>
-			<key>FooterText</key>
-			<string>Compatible à partir de l&apos;iPhone 6S</string>
 			<key>Title</key>
 			<string>Général</string>
 			<key>Type</key>
@@ -14,7 +12,7 @@
 		</dict>
 		<dict>
 			<key>DefaultValue</key>
-			<string>all</string>
+			<string>galerie_message</string>
 			<key>Key</key>
 			<string>landscape_mode</string>
 			<key>Title</key>
@@ -170,7 +168,7 @@
 		</dict>
 		<dict>
 			<key>DefaultValue</key>
-			<integer>0</integer>
+			<integer>1</integer>
 			<key>Key</key>
 			<string>theme_style</string>
 			<key>Title</key>
@@ -248,7 +246,7 @@
 		</dict>
 		<dict>
 			<key>DefaultValue</key>
-			<string>20:00</string>
+			<string>22:00</string>
 			<key>Key</key>
 			<string>auto_theme_night_time</string>
 			<key>Title</key>
@@ -376,15 +374,14 @@
         </dict>
         <dict>
             <key>DefaultValue</key>
-            <integer>0</integer>
+            <integer>100</integer>
             <key>Key</key>
             <string>size_text_topics</string>
             <key>Title</key>
             <string>Taille du texte des topics</string>
             <key>Titles</key>
             <array>
-                <string>-10%</string>
-                <string>Defaut</string>
+                <string>Défaut</string>
                 <string>+10%</string>
                 <string>+20%</string>
                 <string>+30%</string>
@@ -395,7 +392,6 @@
             <string>PSMultiValueSpecifier</string>
             <key>Values</key>
             <array>
-                <integer>90</integer>
                 <integer>100</integer>
                 <integer>110</integer>
                 <integer>120</integer>
@@ -408,7 +404,7 @@
 			<key>DefaultValue</key>
 			<string>default</string>
 			<key>FooterText</key>
-			<string>Le réglage &quot;Système&quot;, disponible depuis iOS7, se trouve dans les options d&apos;accessibilité dans les réglages d&apos;iOS.</string>
+			<string>Le réglage se trouve dans les options d&apos;accessibilité dans les réglages d&apos;iOS.</string>
 			<key>Key</key>
 			<string>size_text</string>
 			<key>Title</key>
