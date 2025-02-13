@@ -90,7 +90,7 @@
 		</dict>
 		<dict>
 			<key>DefaultValue</key>
-			<string>super</string>
+			<string>blue</string>
 			<key>Key</key>
 			<string>icon</string>
 			<key>Title</key>
@@ -392,12 +392,12 @@
             <string>PSMultiValueSpecifier</string>
             <key>Values</key>
             <array>
-                <integer>100</integer>
                 <integer>110</integer>
                 <integer>120</integer>
                 <integer>130</integer>
                 <integer>140</integer>
                 <integer>150</integer>
+                <integer>160</integer>
             </array>
         </dict>
         <dict>
@@ -424,7 +424,7 @@
 		</dict>
 		<dict>
 			<key>DefaultValue</key>
-			<integer>14</integer>
+			<integer>15</integer>
 			<key>Key</key>
 			<string>size_text_reply</string>
 			<key>Title</key>
@@ -454,7 +454,7 @@
 		</dict>
 		<dict>
 			<key>DefaultValue</key>
-			<string>default</string>
+			<string>double</string>
 			<key>Key</key>
 			<string>size_smileys</string>
 			<key>Title</key>
