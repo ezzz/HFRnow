@@ -4660,7 +4660,7 @@
 					"-licucore",
 					"-ObjC",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = hwfr.app;
+				PRODUCT_BUNDLE_IDENTIFIER = hwfr.app2;
 				PRODUCT_NAME = SuperHFRplusSwift;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "SuperHFRplus/SuperHFRplus-Bridging-Header.h";
@@ -4716,7 +4716,7 @@
 					"-licucore",
 					"-ObjC",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = hwfr.app;
+				PRODUCT_BUNDLE_IDENTIFIER = hwfr.app2;
 				PRODUCT_NAME = SuperHFRplusSwift;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "SuperHFRplus/SuperHFRplus-Bridging-Header.h";
