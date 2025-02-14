@@ -363,9 +363,28 @@
         cell.accessoryType = UITableViewCellAccessoryNone;
         cell.selectionStyle = UITableViewCellSelectionStyleNone;
     }
-    NSLog(@"Configure image %ld / %ld", (long)indexPath.row, (long)self.rehostImagesSortedArray.count);
+    NSLog(@"Configure image %ld / %ld", (long)indexPath.row + 1, (long)self.rehostImagesSortedArray.count);
     [cell configureWithRehostImage:[self.rehostImagesSortedArray objectAtIndex:indexPath.row]];
     [[ThemeManager sharedManager] applyThemeToCell:cell];
+    
+    // Updating button size and position
+    //NSLog(@"Calculating button position -------- w / w: %f, %f", cell.bounds.size.width, cell.frame.size.width);
+    float height = cell.bounds.size.height;
+    float width = cell.bounds.size.width;
+    float b = 20; // Border size of every button
+    float s = 50; // Shift to center a little more when there are only 2 buttons
+    if ([cell.rehostImage.link_medium isEqual: [NSNull null]]) {
+        cell.mediumBtn.hidden = YES;
+        cell.fullBtn.frame = CGRectMake(b + s, b, width/3 - b, height - 2*b);
+        cell.miniBtn.frame = CGRectMake(width*2/3 - s, b, width/3 - b, height - 2*b);
+
+    }
+    else {
+        cell.fullBtn.frame = CGRectMake  (b, b, width/3 - b, height - 2*b);
+        cell.mediumBtn.frame = CGRectMake(width/3 + b/2, b, width/3 - b, height - 2*b);
+        cell.miniBtn.frame = CGRectMake  (width*2/3, b, width/3 - b, height - 2*b);
+    }
+    
     return cell;
 }
 

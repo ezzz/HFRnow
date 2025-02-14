@@ -86,14 +86,7 @@
     [self.spinner setHidden:NO];
     [self.spinner startAnimating];
     
-    NSString *url = self.rehostImage.nolink_preview;
-    if (url == nil) {
-        url = self.rehostImage.nolink_medium;
-    }
-    if (url == nil) {
-        url = self.rehostImage.nolink_full;
-    }
-
+    NSString *url = self.rehostImage.nolink_full;
         
 	url = [url stringByReplacingOccurrencesOfString:@"[img]" withString:@""];
 	url = [url stringByReplacingOccurrencesOfString:@"[/img]" withString:@""];
@@ -151,28 +144,7 @@
                 [self_.miniBtn setHidden:YES];
             }
         }
-        
-        float height = self.bounds.size.height;
-        float width = self.bounds.size.width;
-        float b = 20; // Border size of every button
-        float s = 50; // Shift to center a little more when there are only 2 buttons
-        //NSLog(@"Calculating button position -------- w/h: %f, %f", width, height);
-        if ([self.mediumBtn isHidden]) {
-            self.fullBtn.frame = CGRectMake(b + s, b, width/3 - 2*b, height - 2*b);
-            self.miniBtn.frame = CGRectMake(width*2/3 + b - s, b, width/3 - 2*b, height - 2*b);
-            //NSLog(@"fullBtn %@", NSStringFromCGRect(self.fullBtn.frame));
-            //NSLog(@"mediumBtn isHidden");
-            //NSLog(@"miniBtn %@", NSStringFromCGRect(self.miniBtn.frame));
-        }
-        else {
-            self.fullBtn.frame = CGRectMake(b, b, width/3 - 2*b, height - 2*b);
-            self.mediumBtn.frame = CGRectMake(width/3 + b, b, width/3 - 2*b, height - 2*b);
-            self.miniBtn.frame = CGRectMake(width*2/3 + b, b, width/3 - 2*b, height - 2*b);
-            //NSLog(@"fullBtn %@", NSStringFromCGRect(self.fullBtn.frame));
-            //NSLog(@"mediumBtn %@", NSStringFromCGRect(self.mediumBtn.frame));
-            //NSLog(@"miniBtn %@", NSStringFromCGRect(self.miniBtn.frame));
 
-        }
         [self_.spinner stopAnimating];
     }];
     
