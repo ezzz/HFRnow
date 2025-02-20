@@ -448,8 +448,8 @@
     switch (theme) {
         case ThemeLight: // Light yellow
             return [UIColor colorWithHue:0.13 saturation:0.08 brightness:1.0 alpha:1.0];
-        case ThemeDark: // Dark blue
-            return [UIColor colorWithHue:0.55 saturation:1.0 brightness:0.2 alpha:1.0];
+        case ThemeDark: // Yellow
+            return [UIColor colorWithHue:0.15 saturation:1.0 brightness:0.25 alpha:1.0];
     }
 }
 
@@ -627,8 +627,8 @@
     switch (theme) {
         case ThemeLight: // Blue
             return [UIColor colorWithHue:211.0/360.0 saturation:0.9 brightness:0.95 alpha:1.0];
-        case ThemeDark: // Orange
-            return [UIColor colorWithHue:31.0/360.0 saturation:0.9 brightness:0.95 alpha:1.0];
+        case ThemeDark: //
+            return [UIColor colorWithHue:211.0/360.0 saturation:0.9 brightness:0.95 alpha:1.0];
     }
 }
 /*

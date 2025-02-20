@@ -1448,6 +1448,7 @@
         [topicActionAlert addAction:uiAction];
         
         // Offline favorites handling
+        /*
         UIAlertAction* uiActionOffline = [UIAlertAction actionWithTitle:@"Favori hors ligne" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
                 [self setTopicOfflineFavoriteWithIndex:self.pressedIndexPath];
         }];
@@ -1456,6 +1457,7 @@
             [uiActionOffline setValue:@true forKey:@"checked"];
         }
         [topicActionAlert addAction:uiActionOffline];
+        */
         
         // Check quotes
         UIAlertAction* uiActionCheckQuotes = [UIAlertAction actionWithTitle:@"Filtrer les posts" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {

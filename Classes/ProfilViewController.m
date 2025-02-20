@@ -13,10 +13,10 @@
 #import "RegexKitLite.h"
 #import "RangeOfCharacters.h"
 #import "FeedbackTableViewCell.h"
-#import "UIImageView+WebCache.h"
 #import "AvatarTableViewCell.h"
 #import "ThemeColors.h"
 #import "ThemeManager.h"
+#import <SDWebImage/SDWebImage.h>
 
 @interface ProfilViewController ()
 
@@ -528,7 +528,7 @@
         //NSLog(@"theRow %@", theRow);
 
         __weak AvatarTableViewCell *cell_ = cell;
-        
+
         [cell.imageView sd_setImageWithURL:[theRow objectForKey:@"url"] placeholderImage:[UIImage imageNamed:@"avatar_male_gray_on_light_48x48"] completed:^(UIImage *image, NSError *error, SDImageCacheType cacheType, NSURL *imageURL) {
             
             if (image) {

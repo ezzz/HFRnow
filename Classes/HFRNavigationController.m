@@ -10,7 +10,6 @@
 #import "ThemeColors.h"
 #import "ThemeManager.h"
 #import "UINavigationBar+Helper.h"
-#import "MWPhotoBrowser.h"
 #import "InAppSettingsKit+Theme.h"
 
 @interface HFRNavigationController ()
@@ -52,12 +51,6 @@
 
 -(void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
-    
-    if (!SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"7.0")) {
-        if (![self.topViewController isKindOfClass:[MWPhotoBrowser class]]) {
-            [self.navigationBar setBottomBorderColor:[UIColor colorWithRed:204.0/255.0 green:204.0/255.0 blue:204.0/255.0 alpha:1.0] height:1];
-        }
-    }
     [self refreshTheme];
 }
 

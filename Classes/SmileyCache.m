@@ -12,7 +12,7 @@
 #import "OfflineTableViewController.h"
 #import "HTMLparser.h"
 #import "Constants.h"
-#import "UIImage+GIF.h"
+#import <SDWebImage/SDWebImage.h>
 
 #define IMAGE_CACHE_MAX_ELEMENTS 1000
 #define IMAGE_CACHE_SMILEYS_DEFAULTS_MAX_ELEMENTS 50
@@ -123,7 +123,8 @@ static SmileyCache *_shared = nil;    // static instance variable
         NSData* imgData = [NSData dataWithContentsOfURL:[NSURL URLWithString:[NSString stringWithFormat:@"%@", [[[self.arrCurrentSmileyArray objectAtIndex:i] objectForKey:@"source"] stringByAddingPercentEscapesUsingEncoding:NSASCIIStringEncoding]]]];
         //UIImage *image = [UIImage imageWithData:imgData];sd_animatedGIFWithData
         if (imgData) {
-            UIImage *image = [UIImage sd_animatedGIFWithData:imgData];
+            UIImage *image = [UIImage sd_imageWithGIFData:imgData];
+            
             if (image != nil) {
                 //NSLog(@"SmileyCache2 ADD: %@",filename);
                 ImageInCache* iic = [[ImageInCache alloc] init];
@@ -183,7 +184,7 @@ static SmileyCache *_shared = nil;    // static instance variable
         NSData* imgData = [NSData dataWithContentsOfURL:[NSURL URLWithString:[NSString stringWithFormat:@"%@", [[[arrSmileyFavorite objectAtIndex:i] objectForKey:@"source"] stringByAddingPercentEscapesUsingEncoding:NSASCIIStringEncoding]]]];
 
         if (imgData) {
-            UIImage *image = [UIImage sd_animatedGIFWithData:imgData];
+            UIImage *image = [UIImage sd_imageWithGIFData:imgData];
             if (image != nil) {
                 NSLog(@"SmileyCache3 ADD: %@",filename);
                 ImageInCache* iic = [[ImageInCache alloc] init];
@@ -260,7 +261,7 @@ static SmileyCache *_shared = nil;    // static instance variable
                 
                 
                 if (imgData) {
-                    UIImage* image = [UIImage sd_animatedGIFWithData:imgData];
+                    UIImage* image = [UIImage sd_imageWithGIFData:imgData];
                     ImageInCache* iic = [[ImageInCache alloc] init];
                     iic.image = image;
                     //NSLog(@"SmileyCache1 ADD: %@",filename);
@@ -294,7 +295,7 @@ static SmileyCache *_shared = nil;    // static instance variable
         NSString *filenameShort = [filename stringByDeletingPathExtension];
         NSString* filepath = [[NSBundle mainBundle] pathForResource:filenameShort ofType:@"gif"];
         NSData* imgData = [NSData dataWithContentsOfFile:filepath];
-        image = [UIImage sd_animatedGIFWithData:imgData];
+        image = [UIImage sd_imageWithGIFData:imgData];
         //NSLog(@"%@ size : (%f) %f x %f", filename, image.scale, image.size.width, image.size.height);
         [self.cacheSmileysDefaults setObject:image forKey:filename];
     }

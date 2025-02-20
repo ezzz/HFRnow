@@ -8,11 +8,11 @@
 
 #import "RehostCollectionCell.h"
 #import "RehostImage.h"
-#import "UIImageView+WebCache.h"
 #import <QuartzCore/QuartzCore.h>
 #import "Constants.h"
 #import "ThemeManager.h"
 #import "ThemeColors.h"
+#import <SDWebImage/SDWebImage.h>
 
 @implementation RehostCollectionCell
 @synthesize previewImage, fullBtn, spinner, rehostImage;
@@ -107,7 +107,6 @@
 
         [self_.spinner stopAnimating];
     }];
-    
 }
 
 -(IBAction)copyFull {

@@ -6,9 +6,9 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <SDWebImage/SDWebImage.h>
 #import "SmileyAlertView.h"
 #import "ThemeManager.h"
-#import "UIImage+GIF.h"
 #import "SmileyCodeTableViewController.h"
 #import "HFRAlertView.h"
 #import "ASIHTTPRequest+Tools.h"
@@ -84,41 +84,16 @@ static SmileyAlertView *_shared = nil;    // static instance variable
     }
     [alert addAction:self.actionSmileyCode];
     [alert addAction:actionDel];
+    
     NSURL *url = [NSURL URLWithString:[sSmileyImgUrl stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]]];
-    NSData *data = [NSData dataWithContentsOfURL:url];
-    UIImage *bkgImg;
-
-    CGFloat f = 1.45;
+        
+    CGFloat f = 1.5;
     CGFloat w = f*70;
     CGFloat h = f*50;
-    UIImageView *imageView = nil;
 
-    if (data) {
-        bkgImg = [UIImage sd_animatedGIFWithData:data];
-        CGFloat w2 = bkgImg.size.width;
-        CGFloat h2 = bkgImg.size.height;
-        NSLog(@"Image w:%f h:%f", w2, h2);
-        if (f*bkgImg.size.height/bkgImg.size.width*70 <= 50) {
-            w = f*70;
-            h = f*bkgImg.size.height/bkgImg.size.width*70;
-            imageView = [[UIImageView alloc] initWithFrame:CGRectMake(85, 20+(f*50-h)/2, w, h)];
-        }
-        else {
-            w = f*bkgImg.size.width/bkgImg.size.height*50;
-            h = f*50;
-            imageView = [[UIImageView alloc] initWithFrame:CGRectMake(85+(f*70-w)/2, 20, w, h)];
-        }
-    }
-    else {
-        f = 0.5;
-        bkgImg = [UIImage imageNamed:@"clear"];
-        w = f*bkgImg.size.width/bkgImg.size.height*50;
-        h = f*50;
-        imageView = [[UIImageView alloc] initWithFrame:CGRectMake(85+(100-w)/2, 40, w, h)];
-    }
-        
-    //NSLog(@"W:%f X:%f (%@) w:%f h:%f", alert.view.frame.size.width, (alert.view.frame.size.width - 70)/2, NSStringFromCGRect(alert.view.frame), w, h);
-    [imageView setImage:bkgImg];
+    UIImageView *imageView = [[UIImageView alloc] initWithFrame:CGRectMake(85, 20+(f*70-w)/2, w, h)];;
+    [imageView sd_setImageWithURL:url placeholderImage:nil];
+    [imageView setContentMode:UIViewContentModeScaleAspectFit];
     [alert.view addSubview:imageView];
     [self requestSmileyCode];
     [vc presentViewController:alert animated:YES completion:nil];

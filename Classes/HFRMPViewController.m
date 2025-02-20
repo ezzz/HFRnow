@@ -18,8 +18,8 @@
 #import "MPStorage.h"
 #import "TopicMPCellView.h"
 #import <CommonCrypto/CommonDigest.h>
-#import "UIImage+GIF.h"
 #import "BlackList.h"
+#import <SDWebImage/SDWebImage.h>
 
 @implementation HFRMPViewController
 @synthesize reloadOnAppear, actionButton, reloadButton;
@@ -213,7 +213,7 @@
         {
             NSData *dataOfAvatar = [[NSData alloc] initWithContentsOfFile:keyPathOfImage];
             if (dataOfAvatar) {
-                image = [UIImage sd_animatedGIFWithData:dataOfAvatar];
+                image = [UIImage sd_imageWithGIFData:dataOfAvatar];
             }
         }
     }

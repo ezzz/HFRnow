@@ -374,11 +374,11 @@
         </dict>
         <dict>
             <key>DefaultValue</key>
-            <integer>100</integer>
+            <integer>110</integer>
             <key>Key</key>
             <string>size_text_topics</string>
             <key>Title</key>
-            <string>Taille du texte des topics</string>
+            <string>Taille du texte des listes de topics</string>
             <key>Titles</key>
             <array>
                 <string>Défaut</string>

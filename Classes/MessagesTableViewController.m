@@ -1335,6 +1335,7 @@
 
 - (void) didSelectImage:(int)index withUrl:(NSString *)selectedURL
 {
+    /*
 	if (self.isAnimating) {
 		return;
 	}
@@ -1385,14 +1386,6 @@
             selectedIndex = [imageArray count] - 1;
         }
         
-        /*
-        
-		[imageArray addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:[imgNode getAttributeNamed:@"alt"], [imgNode getAttributeNamed:@"longdesc"], nil]  forKeys:[NSArray arrayWithObjects:@"alt", @"longdesc", nil]]];
-        if ([selectedURL isEqualToString:[imgNode getAttributeNamed:@"alt"]]) {
-            selectedIndex = [imageArray count] - 1;
-        }
-         */
-        
 	}
 	
 	//NSLog(@"selectedIndex %d", selectedIndex);
@@ -1416,7 +1409,7 @@
     
     
     //[self.navigationController pushViewController:browser animated:YES];
-    
+    */
 }
 
 #pragma mark - searchNewMessages

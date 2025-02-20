@@ -22,8 +22,6 @@
 #import "DeleteMessageViewController.h"
 #import "AlerteModoViewController.h"
 
-#import "MWPhotoBrowser.h"
-
 @class HTMLNode, MessageDetailViewController, ASIHTTPRequest, FilterPostsQuotes;
 @class MessageDetailViewController, SmileyCodeTableViewController;
 @class ASIHTTPRequest;
