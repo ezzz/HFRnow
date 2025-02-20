@@ -449,7 +449,7 @@
         case ThemeLight: // Light yellow
             return [UIColor colorWithHue:0.13 saturation:0.08 brightness:1.0 alpha:1.0];
         case ThemeDark: // Yellow
-            return [UIColor colorWithHue:0.15 saturation:1.0 brightness:0.25 alpha:1.0];
+            return [UIColor colorWithHue:0.15 saturation:1.0 brightness:0.2 alpha:1.0];
     }
 }
 
