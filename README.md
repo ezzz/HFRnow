@@ -1,12 +1,12 @@
 <table>
 <tr>
-<td><img src="https://github.com/FLKone/SuperHFRplus/blob/master/SuperHFRplus/Assets/Icons.xcassets/Classic.appiconset/Icon-App-60x60%402x.png" alt="HFR+" title="HFR+" style="display:block; margin: 10px auto 30px auto;" class="center"></td>
-<td><img src="https://github.com/FLKone/SuperHFRplus/blob/master/SuperHFRplus/Assets/Icons.xcassets/Classic-Red.appiconset/Icon-App-60x60%402x.png" alt="Super HFR+" title="Super HFR+" style="display:block; margin: 10px auto 30px auto;" class="center"></td>
+<td><img src="https://github.com/FLKone/SuperHFRplus/blob/master/SuperHFRplus/Assets/Icons.xcassets/Classic.appiconset/Icon-App-60x60%402x.png" alt="HFR Now" title="HFR Now" style="display:block; margin: 10px auto 30px auto;" class="center"></td>
+<td><img src="https://github.com/FLKone/SuperHFRplus/blob/master/SuperHFRplus/Assets/Icons.xcassets/Classic-Red.appiconset/Icon-App-60x60%402x.png" alt="HFR Now" title="HFR Now" style="display:block; margin: 10px auto 30px auto;" class="center"></td>
 </tr>   
 
 <tr>   
-<td>HFR+</td>
-<td>Super HFR+</td>
+<td>HFR Now</td>
+<td>HFR Now</td>
 </tr>
 <tr>
 <td>v1</td>
@@ -19,7 +19,7 @@
 </table>
 
 
-Super HFR+ v2 - Compatible iOS 11+
+Super HFR Now - Compatible iOS 17+
 =========================
 Application iOS (iPhone, iPod Touch et iPad) pour le forum hardware.fr :o
 
@@ -39,13 +39,13 @@ Roadmap
 Crédits
 -------------------------
 
+* [Giphy](https://giphy.com)
+* [SDWebImage](https://github.com/SDWebImage)
 * [ASIHTTPRequest](https://github.com/pokeb/asi-http-request)
 * [Objective-C-HMTL-Parser](https://github.com/zootreeves/Objective-C-HMTL-Parser)
 * [InAppSettingKit](https://github.com/futuretap/InAppSettingsKit)
 * [MBProgressHUD](https://github.com/jdg/MBProgressHUD)
 * [MKStoreKit](https://github.com/MugunthKumar/MKStoreKit)
-* [MWPhotoBrowser](https://github.com/mwaterfall/MWPhotoBrowser)
-* [SDWebImage](https://github.com/rs/SDWebImage)
 * [RegexKitLite](http://regexkit.sourceforge.net/RegexKitLite/)
 * [UIMenuItem+CXAImageSupport](https://github.com/cxa/UIMenuItem-CXAImageSupport)
 * Icônes/Picto [icons8](https://icons8.com/)

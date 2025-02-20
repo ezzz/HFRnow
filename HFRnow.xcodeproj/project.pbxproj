@@ -2252,7 +2252,7 @@
 				15377559275A777F00790892 /* Empty.md */,
 				15A5F3B32708E55800DAE8FE /* Notes.md */,
 				15B5FC4A264FAB71006CBEF0 /* Cartfile */,
-				CA00C35417C2FC620067B457 /* SuperHFRplus */,
+				CA00C35417C2FC620067B457 /* Sources */,
 				080E96DDFE201D6D7F000001 /* Classes */,
 				29B97317FDCFA39411CA2CEA /* Resources */,
 				29B97323FDCFA39411CA2CEA /* Frameworks */,
@@ -2633,7 +2633,7 @@
 			path = iOS7;
 			sourceTree = "<group>";
 		};
-		CA00C35417C2FC620067B457 /* SuperHFRplus */ = {
+		CA00C35417C2FC620067B457 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
 				4CACF40A1FB3753000A41CC6 /* API */,
@@ -2646,7 +2646,7 @@
 				4CFC38531FB0E6720027A832 /* SuperHFRplus-Bridging-Header.h */,
 				4CFC38561FB0E6BE0027A832 /* AppDelegate.swift */,
 			);
-			path = SuperHFRplus;
+			path = Sources;
 			sourceTree = "<group>";
 		};
 		CA00C35717C2FC620067B457 /* Vendor */ = {

@@ -250,7 +250,7 @@ separateSecondaryViewControllerFromPrimaryViewController:(UIViewController *)pri
     
     [rightNavController setViewControllers:[NSArray array]];
     UIViewController * uivc = [[UIViewController alloc] init];
-    uivc.title = @"HFR+";
+    uivc.title = @"HFR Now";
     [rightNavController setViewControllers:[NSMutableArray arrayWithObjects:uivc, nil]];
 
     
