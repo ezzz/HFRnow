@@ -221,6 +221,15 @@
 		15DE2D1C249F59DD00A80C7C /* fullscreen@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15DE2D19249F59DD00A80C7C /* fullscreen@2x.png */; };
 		15DE2D1D249F59DD00A80C7C /* fullscreen@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15DE2D1A249F59DD00A80C7C /* fullscreen@3x.png */; };
 		15E209ED2D66770D004AF5E2 /* SDWebImage.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 154E91212D65208D00E883A4 /* SDWebImage.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		15E20A032D687699004AF5E2 /* MWTapDetectingImageView.m in Sources */ = {isa = PBXBuildFile; fileRef = 15E209FD2D687699004AF5E2 /* MWTapDetectingImageView.m */; };
+		15E20A042D687699004AF5E2 /* MWPhoto.m in Sources */ = {isa = PBXBuildFile; fileRef = 15E209F62D687699004AF5E2 /* MWPhoto.m */; };
+		15E20A052D687699004AF5E2 /* MWGridViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 15E209F42D687699004AF5E2 /* MWGridViewController.m */; };
+		15E20A062D687699004AF5E2 /* MWTapDetectingView.m in Sources */ = {isa = PBXBuildFile; fileRef = 15E209FF2D687699004AF5E2 /* MWTapDetectingView.m */; };
+		15E20A072D687699004AF5E2 /* MWCaptionView.m in Sources */ = {isa = PBXBuildFile; fileRef = 15E209EF2D687699004AF5E2 /* MWCaptionView.m */; };
+		15E20A082D687699004AF5E2 /* MWGridCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 15E209F22D687699004AF5E2 /* MWGridCell.m */; };
+		15E20A092D687699004AF5E2 /* MWPhotoBrowser.m in Sources */ = {isa = PBXBuildFile; fileRef = 15E209F92D687699004AF5E2 /* MWPhotoBrowser.m */; };
+		15E20A0A2D687699004AF5E2 /* MWZoomingScrollView.m in Sources */ = {isa = PBXBuildFile; fileRef = 15E20A012D687699004AF5E2 /* MWZoomingScrollView.m */; };
+		15E20A0B2D687699004AF5E2 /* MWPhotoBrowser.bundle in Resources */ = {isa = PBXBuildFile; fileRef = 15E209F82D687699004AF5E2 /* MWPhotoBrowser.bundle */; };
 		15E25D68223047EF00474562 /* HFRAlertView.m in Sources */ = {isa = PBXBuildFile; fileRef = 15E25D67223047EF00474562 /* HFRAlertView.m */; };
 		15EBFD0522021B8400A37CED /* SettingsView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 15EBFD0422021B8400A37CED /* SettingsView.xib */; };
 		15EBFD0822022A7500A37CED /* PlusSettingsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 15EBFD0722022A7500A37CED /* PlusSettingsViewController.m */; };
@@ -1183,6 +1192,26 @@
 		15DE2D18249F59DC00A80C7C /* fullscreen.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = fullscreen.png; sourceTree = "<group>"; };
 		15DE2D19249F59DD00A80C7C /* fullscreen@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "fullscreen@2x.png"; sourceTree = "<group>"; };
 		15DE2D1A249F59DD00A80C7C /* fullscreen@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "fullscreen@3x.png"; sourceTree = "<group>"; };
+		15E209EE2D687699004AF5E2 /* MWCaptionView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MWCaptionView.h; sourceTree = "<group>"; };
+		15E209EF2D687699004AF5E2 /* MWCaptionView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MWCaptionView.m; sourceTree = "<group>"; };
+		15E209F02D687699004AF5E2 /* MWCommon.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MWCommon.h; sourceTree = "<group>"; };
+		15E209F12D687699004AF5E2 /* MWGridCell.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MWGridCell.h; sourceTree = "<group>"; };
+		15E209F22D687699004AF5E2 /* MWGridCell.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MWGridCell.m; sourceTree = "<group>"; };
+		15E209F32D687699004AF5E2 /* MWGridViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MWGridViewController.h; sourceTree = "<group>"; };
+		15E209F42D687699004AF5E2 /* MWGridViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MWGridViewController.m; sourceTree = "<group>"; };
+		15E209F52D687699004AF5E2 /* MWPhoto.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MWPhoto.h; sourceTree = "<group>"; };
+		15E209F62D687699004AF5E2 /* MWPhoto.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MWPhoto.m; sourceTree = "<group>"; };
+		15E209F72D687699004AF5E2 /* MWPhotoBrowser.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MWPhotoBrowser.h; sourceTree = "<group>"; };
+		15E209F82D687699004AF5E2 /* MWPhotoBrowser.bundle */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.plug-in"; path = MWPhotoBrowser.bundle; sourceTree = "<group>"; };
+		15E209F92D687699004AF5E2 /* MWPhotoBrowser.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MWPhotoBrowser.m; sourceTree = "<group>"; };
+		15E209FA2D687699004AF5E2 /* MWPhotoBrowserPrivate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MWPhotoBrowserPrivate.h; sourceTree = "<group>"; };
+		15E209FB2D687699004AF5E2 /* MWPhotoProtocol.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MWPhotoProtocol.h; sourceTree = "<group>"; };
+		15E209FC2D687699004AF5E2 /* MWTapDetectingImageView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MWTapDetectingImageView.h; sourceTree = "<group>"; };
+		15E209FD2D687699004AF5E2 /* MWTapDetectingImageView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MWTapDetectingImageView.m; sourceTree = "<group>"; };
+		15E209FE2D687699004AF5E2 /* MWTapDetectingView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MWTapDetectingView.h; sourceTree = "<group>"; };
+		15E209FF2D687699004AF5E2 /* MWTapDetectingView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MWTapDetectingView.m; sourceTree = "<group>"; };
+		15E20A002D687699004AF5E2 /* MWZoomingScrollView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MWZoomingScrollView.h; sourceTree = "<group>"; };
+		15E20A012D687699004AF5E2 /* MWZoomingScrollView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MWZoomingScrollView.m; sourceTree = "<group>"; };
 		15E25D66223046BD00474562 /* HFRAlertView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HFRAlertView.h; sourceTree = "<group>"; };
 		15E25D67223047EF00474562 /* HFRAlertView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = HFRAlertView.m; sourceTree = "<group>"; };
 		15EBFD0422021B8400A37CED /* SettingsView.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = SettingsView.xib; sourceTree = "<group>"; };
@@ -2224,6 +2253,33 @@
 			name = ThemeSettings;
 			sourceTree = "<group>";
 		};
+		15E20A022D687699004AF5E2 /* MWPhotoBrowser */ = {
+			isa = PBXGroup;
+			children = (
+				15E209EE2D687699004AF5E2 /* MWCaptionView.h */,
+				15E209EF2D687699004AF5E2 /* MWCaptionView.m */,
+				15E209F02D687699004AF5E2 /* MWCommon.h */,
+				15E209F12D687699004AF5E2 /* MWGridCell.h */,
+				15E209F22D687699004AF5E2 /* MWGridCell.m */,
+				15E209F32D687699004AF5E2 /* MWGridViewController.h */,
+				15E209F42D687699004AF5E2 /* MWGridViewController.m */,
+				15E209F52D687699004AF5E2 /* MWPhoto.h */,
+				15E209F62D687699004AF5E2 /* MWPhoto.m */,
+				15E209F72D687699004AF5E2 /* MWPhotoBrowser.h */,
+				15E209F82D687699004AF5E2 /* MWPhotoBrowser.bundle */,
+				15E209F92D687699004AF5E2 /* MWPhotoBrowser.m */,
+				15E209FA2D687699004AF5E2 /* MWPhotoBrowserPrivate.h */,
+				15E209FB2D687699004AF5E2 /* MWPhotoProtocol.h */,
+				15E209FC2D687699004AF5E2 /* MWTapDetectingImageView.h */,
+				15E209FD2D687699004AF5E2 /* MWTapDetectingImageView.m */,
+				15E209FE2D687699004AF5E2 /* MWTapDetectingView.h */,
+				15E209FF2D687699004AF5E2 /* MWTapDetectingView.m */,
+				15E20A002D687699004AF5E2 /* MWZoomingScrollView.h */,
+				15E20A012D687699004AF5E2 /* MWZoomingScrollView.m */,
+			);
+			path = MWPhotoBrowser;
+			sourceTree = "<group>";
+		};
 		15EBFD0922061ECD00A37CED /* AlertesQualitay */ = {
 			isa = PBXGroup;
 			children = (
@@ -2652,6 +2708,7 @@
 		CA00C35717C2FC620067B457 /* Vendor */ = {
 			isa = PBXGroup;
 			children = (
+				15E20A022D687699004AF5E2 /* MWPhotoBrowser */,
 				D80DBD521E55BE730051B751 /* ASIHTTPRequest */,
 				D8F5CBAA1DF45C1100B029FC /* Reachability */,
 				4C3903341BCACE4D00FD6F1F /* DACircularProgress */,
@@ -3543,6 +3600,7 @@
 				CA7C6FC9185EF50E00B348BA /* 20-gear2.png in Resources */,
 				4CD6B8901B97996B007FC29E /* DeleteColumnFilled-20@2x.png in Resources */,
 				CA7C6FCA185EF50E00B348BA /* bar2.png in Resources */,
+				15E20A0B2D687699004AF5E2 /* MWPhotoBrowser.bundle in Resources */,
 				1523960828DF015F00614F9D /* QuoteFilled-20-Inv@2x.png in Resources */,
 				4CB133111B90B7990081B44D /* Thor Hammer Filled-23.png in Resources */,
 				15AC35792903E2DA00CCD6FC /* UnderlineFilled-20-Inv@2x.png in Resources */,
@@ -4229,6 +4287,14 @@
 				CAC7FCD1190DBD450083BB4E /* PollResultTableViewCell.m in Sources */,
 				D86ED58520445F5C00A2D541 /* UIImage+BezierPath.m in Sources */,
 				4CB132A81B908EC00081B44D /* UIMenuItem+CXAImageSupport.m in Sources */,
+				15E20A032D687699004AF5E2 /* MWTapDetectingImageView.m in Sources */,
+				15E20A042D687699004AF5E2 /* MWPhoto.m in Sources */,
+				15E20A052D687699004AF5E2 /* MWGridViewController.m in Sources */,
+				15E20A062D687699004AF5E2 /* MWTapDetectingView.m in Sources */,
+				15E20A072D687699004AF5E2 /* MWCaptionView.m in Sources */,
+				15E20A082D687699004AF5E2 /* MWGridCell.m in Sources */,
+				15E20A092D687699004AF5E2 /* MWPhotoBrowser.m in Sources */,
+				15E20A0A2D687699004AF5E2 /* MWZoomingScrollView.m in Sources */,
 				CA7C70D3185EF50E00B348BA /* UIImage+Resize.m in Sources */,
 				152D2D4A2456E56500D9D644 /* ASIHTTPRequest+Tools.m in Sources */,
 				CA7C70F2185EF50E00B348BA /* RangeOfCharacters.m in Sources */,
@@ -4408,13 +4474,11 @@
 				ASSETCATALOG_COMPILER_OPTIMIZATION = time;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = Automatic;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = QMG83DG7YP;
+				DEVELOPMENT_TEAM = QMG83DG7YP;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4454,7 +4518,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = hwfr.app;
 				PRODUCT_NAME = SuperHFRplusSwift;
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = ProfileDevelopmentiOS;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -4474,13 +4537,11 @@
 				ASSETCATALOG_COMPILER_OPTIMIZATION = time;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = Automatic;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = QMG83DG7YP;
+				DEVELOPMENT_TEAM = QMG83DG7YP;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4518,7 +4579,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = hwfr.app;
 				PRODUCT_NAME = SuperHFRplusSwift;
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = ProfileDevelopmentiOS;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;

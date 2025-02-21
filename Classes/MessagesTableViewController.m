@@ -1335,7 +1335,6 @@
 
 - (void) didSelectImage:(int)index withUrl:(NSString *)selectedURL
 {
-    /*
 	if (self.isAnimating) {
 		return;
 	}
@@ -1388,28 +1387,17 @@
         
 	}
 	
-	//NSLog(@"selectedIndex %d", selectedIndex);
-	// Create the root view controller for the navigation controller
-	// The new view controller configures a Cancel and Done button for the
-	// navigation bar.
-	
-    
     // Create & present browser
     MWPhotoBrowser *browser = [[MWPhotoBrowser alloc] initWithPhotos:imageArray];
     // Set options
     browser.wantsFullScreenLayout = YES; // Decide if you want the photo browser full screen, i.e. whether the status bar is affected (defaults to YES)
     browser.displayActionButton = YES; // Show action button to save, copy or email photos (defaults to NO)
-    [browser setInitialPageIndex:selectedIndex]; // Example: allows second image to be presented first
-    // Present
+    [browser setCurrentPhotoIndex:selectedIndex]; // Example: allows second image to be presented first
 
     
     HFRNavigationController *nc = [[HFRNavigationController alloc] initWithRootViewController:browser];
-    nc.modalTransitionStyle = UIModalTransitionStyleCrossDissolve;
-    [self presentModalViewController:nc animated:YES];
-    
-    
-    //[self.navigationController pushViewController:browser animated:YES];
-    */
+    //nc.modalTransitionStyle = UIModalTransitionStyleCrossDissolve;
+    [self presentViewController:nc animated:YES completion:nil];
 }
 
 #pragma mark - searchNewMessages
