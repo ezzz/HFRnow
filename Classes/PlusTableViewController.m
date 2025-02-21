@@ -145,30 +145,24 @@
             }
             break;
         case 3:
-            cell.titleLabel.text = @"Favoris hors ligne";
-            cell.titleImage.image = [UIImage imageNamed:@"offline"];
-            cell.badgeLabel.text = @"";
-            cell.badgeLabel.backgroundColor = [UIColor clearColor];
-            break;
-        case 4:
             cell.titleLabel.text = @"Réglages";
             cell.titleImage.image = [UIImage imageNamed:@"20-gear2"];
             cell.badgeLabel.text = @"";
             cell.badgeLabel.backgroundColor = [UIColor clearColor];
             break;
-        case 5:
+        case 4:
             cell.titleLabel.text = @"Crédits";
             cell.titleImage.image = [UIImage imageNamed:@"AboutFilled-25"];
             cell.badgeLabel.text = @"";
             cell.badgeLabel.backgroundColor = [UIColor clearColor];
             break;
-        case 6:
+        case 5:
             cell.titleLabel.text = @"Charte du forum";
             cell.titleImage.image = [UIImage imageNamed:@"sign-25"];
             cell.badgeLabel.text = @"";
             cell.badgeLabel.backgroundColor = [UIColor clearColor];
             break;
-        case 7:
+        case 6:
             cell.titleLabel.text = @"Supprimer mon compte";
             cell.titleImage.image = [UIImage imageNamed:@"delete-25"];
             cell.badgeLabel.text = @"";

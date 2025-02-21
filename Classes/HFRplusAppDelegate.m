@@ -97,7 +97,7 @@
     [self registerDefaultsFromSettingsBundle];
     [[OfflineStorage shared] copyAllRequiredResourcesFromBundleToCache];
     
-    NSString *version = [NSString stringWithFormat:@"HF Now %@ (%@)", [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"], [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"]];
+    NSString *version = [NSString stringWithFormat:@"HFR Now %@ (%@)", [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"], [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"]];
 
     NSDictionary *appDefaults =  [NSDictionary dictionaryWithObjectsAndKeys:
                                   version, @"version", nil];
