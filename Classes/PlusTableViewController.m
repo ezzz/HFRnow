@@ -77,18 +77,15 @@
             [self.navigationController pushViewController:self.aqTableViewController animated:YES];
             break;
         case 3:
-            [self.navigationController pushViewController:self.offlineTableViewController animated:YES];
-            break;
-        case 4:
             [self.navigationController pushViewController:self.settingsViewController animated:YES];
             break;
-        case 5:
+        case 4:
             [self.navigationController pushViewController:self.creditsViewController animated:YES];
             break;
-        case 6:
+        case 5:
             [self.navigationController pushViewController:self.charteViewController animated:YES];
             break;
-        case 7:
+        case 6:
             if([MFMailComposeViewController canSendMail]) {
                 MFMailComposeViewController *mailCont = [[MFMailComposeViewController alloc] init];
                 mailCont.mailComposeDelegate = self;
