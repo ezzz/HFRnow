@@ -1397,6 +1397,7 @@
     
     HFRNavigationController *nc = [[HFRNavigationController alloc] initWithRootViewController:browser];
     //nc.modalTransitionStyle = UIModalTransitionStyleCrossDissolve;
+    [nc setModalPresentationStyle: UIModalPresentationFullScreen];
     [self presentViewController:nc animated:YES completion:nil];
 }
 
