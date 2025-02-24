@@ -463,6 +463,8 @@
         [navBar setBackgroundImage:nil forBarMetrics:UIBarMetricsDefault];
         [navBar setBackgroundImage:nil forBarMetrics:UIBarMetricsLandscapePhone];
     }*/
+    
+    
 }
 
 - (void)storePreviousNavBarAppearance {
