@@ -123,10 +123,9 @@
     internetReach = [Reachability reachabilityForInternetConnection];
     [internetReach startNotifier];
     
-    rootController.customizableViewControllers = nil;
-
     // Start up window
-    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) { 
+    /*
+    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
         //[splitViewController view].backgroundColor = [UIColor colorWithPatternImage:[UIImage imageNamed:@"bgbigiPad"]];
 
         splitViewController.delegate = splitViewController;
@@ -135,7 +134,10 @@
     } else {
         [window setRootViewController:rootController];
     }
-        
+     */
+    
+    self.rootController = [[TabBarController alloc] init];
+    [window setRootViewController:rootController];
     [window makeKeyAndVisible];
 
     if (BACKGROUND_MAINTENANCE) {
@@ -695,8 +697,10 @@
     }
 }
 
+
 - (void)updateMPBadgeWithString:(NSString *)badgeValue;
 {
+    /* TBD
     [[NSUserDefaults standardUserDefaults] setInteger:[badgeValue intValue] forKey:@"nb_mp"];
 
     dispatch_async(dispatch_get_main_queue(),
@@ -714,16 +718,13 @@
         else {
             [tabBarItem setBadgeValue:nil];
         }
-        /* Ajouté pour rendre l'icone des messages dynamique en fonction du nombre de MPs non lu mais non terminé
-        tabBarItem.selectedImage = [[UIImage imageNamed:[ThemeColors tabBarItemSelectedImageAtIndex:2 + iShift]]
-                                        imageWithRenderingMode:[ThemeColors tabBarItemSelectedImageRendering] ];
-        tabBarItem.image = [[UIImage imageNamed:[ThemeColors tabBarItemUnselectedImageAtIndex:2 + iShift]]
-                            imageWithRenderingMode:[ThemeColors tabBarItemUnselectedImageRendering]];*/
-   });
+   });*/
 }
 
 - (void)updatePlusBadgeWithString:(NSString *)badgeValue;
 {
+    /* TBD
+
     dispatch_async(dispatch_get_main_queue(),
     ^{
         //[UIApplication sharedApplication].applicationIconBadgeNumber = [badgeValue intValue];
@@ -737,11 +738,13 @@
                        else {
             [[[[[self rootController] tabBar] items] objectAtIndex:2 + shift] setBadgeValue:nil];
                        }});
+     */
 }
 
 
 - (void)readMPBadge;
 {
+    /*
     //NSLog(@"%@ - %d", badgeValue, [badgeValue intValue]);
     dispatch_async(dispatch_get_main_queue(), 
     ^{
@@ -759,7 +762,7 @@
             //[UIApplication sharedApplication].applicationIconBadgeNumber = 0;
 
         }
-    });
+    });*/
 }
 
 

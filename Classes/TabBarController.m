@@ -15,19 +15,62 @@
 #import "ThemeColors.h"
 #import "ThemeManager.h"
 
+#import "CustomSplitViewController.h"
 
 
 @implementation TabBarController
 
--(void)viewDidLoad {
-	[super viewDidLoad];
-	
-	//NSLog(@"TBC viewDidLoad %@", self.tabBar);
-    self.title = @"Menu";
+@synthesize forumsTableViewController, favoritesTableViewController;
 
-    //NSLog(@"viewDidLoad> self.tabBar.items.count - %lu", self.tabBar.items.count);
+-(void)viewDidLoad {
+    NSLog(@"TabBarController is loading......");
+    [super viewDidLoad];
+	
+    CustomSplitViewController* splitVC0 = [[CustomSplitViewController alloc] init];
+    splitVC0.tabBarItem = [[UITabBarItem alloc] initWithTitle:@"Categories" image:[UIImage imageNamed:[ThemeColors tabBarItemUnselectedImageAtIndex:0]] selectedImage:[UIImage imageNamed:[ThemeColors tabBarItemSelectedImageAtIndex:0]]];
+    /*
+    SplitViewController* splitVC0 = [[SplitViewController alloc] initForIndex:0];
+    splitVC0.tabBarItem = [[UITabBarItem alloc] initWithTitle:@"CATTT" image:[UIImage imageNamed:[ThemeColors tabBarItemUnselectedImageAtIndex:0]] selectedImage:[UIImage imageNamed:[ThemeColors tabBarItemSelectedImageAtIndex:0]]];
+    splitVC0.preferredPrimaryColumnWidthFraction = 0.6;
+    [splitVC0 setPreferredDisplayMode:UISplitViewControllerDisplayModeOneOverSecondary];*/
+
+
+    SplitViewController* splitVC1 = [[SplitViewController alloc] initForIndex:1];
+    splitVC1.tabBarItem = [[UITabBarItem alloc] initWithTitle:@"Favoris" image:[UIImage imageNamed:[ThemeColors tabBarItemUnselectedImageAtIndex:1]] selectedImage:[UIImage imageNamed:[ThemeColors tabBarItemSelectedImageAtIndex:1]]];
+    
+    //splitVC1.preferredPrimaryColumnWidthFraction = 0.4;
+    //[splitVC1 setPreferredDisplayMode:UISplitViewControllerDisplayModeTwoDisplaceSecondary];
+    
+    //splitVC1.maximumPrimaryColumnWidth = 0.3 * UIScreen.main.bounds.size.width;
+
+    SplitViewController* splitVC2 = [[SplitViewController alloc] initForIndex:2];
+    splitVC2.tabBarItem = [[UITabBarItem alloc] initWithTitle:@"Messages" image:[UIImage imageNamed:[ThemeColors tabBarItemUnselectedImageAtIndex:3]] selectedImage:[UIImage imageNamed:[ThemeColors tabBarItemSelectedImageAtIndex:3]]];
+
+    SplitViewController* splitVC3 = [[SplitViewController alloc] initForIndex:3];
+    splitVC3.tabBarItem = [[UITabBarItem alloc] initWithTitle:@"Plus" image:[UIImage imageNamed:[ThemeColors tabBarItemUnselectedImageAtIndex:4]] selectedImage:[UIImage imageNamed:[ThemeColors tabBarItemSelectedImageAtIndex:4]]];
+    
+    /*
+    SplitViewController* splitVC4 = [[SplitViewController alloc] initForIndex:4];
+    splitVC3.tabBarItem = [[UITabBarItem alloc] initWithTitle:@"Comptes" image:[UIImage imageNamed:[ThemeColors tabBarItemUnselectedImageAtIndex:4]] selectedImage:[UIImage imageNamed:[ThemeColors tabBarItemSelectedImageAtIndex:4]]];*/
+    
+    self.viewControllers = @[splitVC0, splitVC1, splitVC2, splitVC3];
+    
+
+
+    //TBD IOS18
+    self.mode = UITabBarControllerModeAutomatic;
+    //self.tabBarHidden = YES;
+    self.sidebar.hidden = NO;
+    
+    NSLog(@"============ TABBAR ITEMMMMMMS !============");
     for (int i=0; i<self.tabBar.items.count; i++) {
         UITabBarItem *tabBarItem = [self.tabBar.items objectAtIndex:i];
+        NSLog(@"Item %d - %@", i, tabBarItem.title);
+    }
+    /*
+    for (int i=0; i<self.tabBar.items.count; i++) {
+        UITabBarItem *tabBarItem = [self.tabBar.items objectAtIndex:i];
+        NSLog(@"Item %d - %@", i, tabBarItem.title);
         int iShift = 0;
         if (self.tabBar.items.count == 5 && i >= 2) {
             iShift = 1;
@@ -44,7 +87,7 @@
             case 4: tabBarItem.title = @"Plus"; break;
         }
     }
-    
+    /*
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     NSString *tab = [defaults stringForKey:@"default_tab"];
     
@@ -53,11 +96,13 @@
     }
     
     self.tabBar.unselectedItemTintColor = [UIColor colorWithRed:143.0/255.0 green:143.0/255.0 blue:143.0/255.0 alpha:1.0];
-    [self.tabBar setBarStyle:UITabBarItemAppearanceStyleStacked];
-    
+    */
+    /*
     if([((HFRNavigationController *)self.viewControllers[0]).topViewController isKindOfClass:[ForumsTableViewController class]]){
         ((ForumsTableViewController *)((HFRNavigationController *)self.viewControllers[0]).topViewController).reloadOnAppear = YES;
-    }    
+    }*/
+    
+    //self.tabBarHidden = false;
 }
 
 -(void)setThemeFromNotification:(NSNotification *)notification{
@@ -65,12 +110,13 @@
 }
 
 -(void)setTheme:(Theme)theme{
-  [self.tabBar setTranslucent:NO];
+  //[self.tabBar setTranslucent:NO];
     //if ([[UITabBar appearance] respondsToSelector:@selector(setTranslucent:)]) {
       //  [[UITabBar appearance] setTranslucent:NO];
     //}
     //UIImage *tab_snow = [UIImage imageNamed:@"fond-degrade-bleu-fonce_1258-1348.jpg"];
-
+    
+    /*
     if(!self.bgView){
         self.bgView = [[UIImageView alloc] initWithImage:[ThemeColors imageFromColor:[UIColor clearColor]]];
         [self.tabBar addSubview:self.bgView];
@@ -144,9 +190,10 @@
             case 3: tabBarItem.title = @"Messages"; break;
             case 4: tabBarItem.title = @"Plus"; break;
         }
-    }
+    }*/
 }
 
+/*
 -(void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
     [[NSNotificationCenter defaultCenter] removeObserver:self name:kThemeChangedNotification object:nil];
@@ -167,6 +214,7 @@
 
 - (BOOL)tabBarController:(UITabBarController * _Nonnull)tabBarController shouldSelectViewController:(UIViewController * _Nonnull)viewController {
 
+    
     if ([viewController isKindOfClass:[UINavigationController class]]) {
         UINavigationController *nv = (UINavigationController *)viewController;
         
@@ -188,6 +236,7 @@
         }
 
     }
+    
     return YES;
 }
 
@@ -203,7 +252,7 @@
 }
 
 
-/*
+
 - (void)tabBarController:(UITabBarController *)tabBarController didSelectViewController:(UIViewController *)viewController
 {
 	NSLog(@"didSelectViewController %@", viewController);
@@ -216,7 +265,7 @@
     }
 
 }
-*/
+
 // Override to allow orientations other than the default portrait orientation.
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation {
 	
@@ -232,7 +281,7 @@
 	
 }
 
-/* for iOS6 support */
+// for iOS6 support
 - (UIInterfaceOrientationMask)supportedInterfaceOrientations
 {
     //NSLog(@"supportedInterfaceOrientations");
@@ -266,5 +315,5 @@
         }
     }
 }
-
+*/
 @end

@@ -16,6 +16,10 @@
 @property (nonatomic, strong) UIPopoverController *popOver;
 @property (nonatomic, strong) UIBarButtonItem *mybarButtonItem;
 
+@property NSInteger tabIndex;
+
+-(SplitViewController*)initForIndex:(NSInteger)index;
+
 -(void)MoveRightToLeft;
 -(void)MoveRightToLeft:(NSString *)url;
 -(void)NavPlus:(NSString *)url;

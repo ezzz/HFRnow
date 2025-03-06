@@ -44,11 +44,15 @@
 - (void)periodicMaintenance;
 
 @property (nonatomic, strong) IBOutlet UIWindow *window;
-@property (nonatomic, strong) IBOutlet TabBarController *rootController;
+//@property (nonatomic, strong) IBOutlet TabBarController *rootController;
+@property (strong, nonatomic) IBOutlet TabBarController *rootController;
+
 @property (nonatomic, strong) IBOutlet SplitViewController *splitViewController;
 @property (nonatomic, strong) IBOutlet DetailNavigationViewController *detailNavigationController;
 
-@property (nonatomic, strong) IBOutlet UINavigationController *forumsNavController;
+//@property (nonatomic, strong) IBOutlet UINavigationController *forumsNavController;
+@property (strong, nonatomic) IBOutlet UIViewController *forumsNavController;
+
 @property (nonatomic, strong) IBOutlet UINavigationController *favoritesNavController;
 @property (nonatomic, strong) IBOutlet UINavigationController *messagesNavController;
 @property (nonatomic, strong) IBOutlet UINavigationController *plusNavController;

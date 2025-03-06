@@ -32,7 +32,7 @@
 
 @implementation TopicsTableViewController
 @synthesize forumNewTopicUrl, forumName, loadingView, topicsTableView, arrayData, arrayNewData;
-@synthesize messagesTableViewController, errorVC;
+@synthesize messagesTableViewController, detailNavigationViewController, errorVC;
 
 @synthesize swipeLeftRecognizer, swipeRightRecognizer;
 
@@ -1703,7 +1703,12 @@
         
         [self.navigationController pushViewController:messagesTableViewController animated:YES];
     }
-    else {
+    else if (self.detailNavigationViewController) {
+        NSLog(@"Pushing messagesTableViewController");
+        [self.detailNavigationViewController pushViewController:messagesTableViewController animated:YES];
+        [self.detailNavigationViewController setViewControllers:[NSMutableArray arrayWithObjects:messagesTableViewController, nil] animated:YES];
+
+        /*
         [[[[[HFRplusAppDelegate sharedAppDelegate] splitViewController] viewControllers] objectAtIndex:1] popToRootViewControllerAnimated:NO];
 
         [[[HFRplusAppDelegate sharedAppDelegate] detailNavigationController] setViewControllers:[NSMutableArray arrayWithObjects:messagesTableViewController, nil] animated:YES];
@@ -1712,7 +1717,7 @@
             NSLog(@"PUSH ADD BTN");
             [[HFRplusAppDelegate sharedAppDelegate] detailNavigationController].viewControllers[0].navigationItem.leftBarButtonItem = messagesTableViewController.splitViewController.displayModeButtonItem;
             [[HFRplusAppDelegate sharedAppDelegate] detailNavigationController].viewControllers[0].navigationItem.leftItemsSupplementBackButton = YES;
-        }
+        }*/
     }
     
     [self setTopicViewed];

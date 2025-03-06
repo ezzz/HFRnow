@@ -9,11 +9,12 @@
 
 #import "FavoritesTableViewController.h"
 #import "MessagesTableViewController.h"
-
+#import "DetailNavigationViewController.h"
 #import "HTMLParser.h"
 #import	"RegexKitLite.h"
 #import "ASIHTTPRequest+Tools.h"
 #import "ASIFormDataRequest.h"
+
 
 #import "ShakeView.h"
 
@@ -43,9 +44,10 @@
 #define SECTION_CAT_HIDDEN 1
 
 @implementation FavoritesTableViewController
+
 @synthesize pressedIndexPath, favoritesTableView, loadingView, showAll;
 @synthesize arrayData, arrayNewData, arrayTopics, arrayCategories, arrayCategoriesHidden, arrayCategoriesVisibleOrder, arrayCategoriesHiddenOrder; //v2 remplace arrayData, arrayDataID, arrayDataID2, arraySection
-@synthesize messagesTableViewController, errorVC;
+@synthesize messagesTableViewController, detailNavigationVC, errorVC;
 @synthesize idPostSuperFavorites;
 @synthesize request;
 @synthesize reloadOnAppear, status, statusMessage, maintenanceView, topicActionAlert, filterPostsQuotes;
@@ -591,7 +593,7 @@
 }
 
 - (void)viewDidLoad {
-	//NSLog(@"viewDidLoad ftv");
+    NSLog(@"FavoritesTableViewController is loading....");
     [super viewDidLoad];
 
 	self.title = @"Favoris";
@@ -1552,7 +1554,11 @@
         
         [self.navigationController pushViewController:messagesTableViewController animated:YES];
     }
-    else {
+    else if (detailNavigationVC) {
+        NSLog(@"Pushing messagesTableViewController");
+        [self.detailNavigationVC pushViewController:messagesTableViewController animated:YES];
+        [self.detailNavigationVC setViewControllers:[NSMutableArray arrayWithObjects:messagesTableViewController, nil] animated:YES];
+        /*
         [[[[[HFRplusAppDelegate sharedAppDelegate] splitViewController] viewControllers] objectAtIndex:1] popToRootViewControllerAnimated:NO];
         
         [[[HFRplusAppDelegate sharedAppDelegate] detailNavigationController] setViewControllers:[NSMutableArray arrayWithObjects:messagesTableViewController, nil] animated:YES];
@@ -1561,7 +1567,7 @@
             NSLog(@"PUSH ADD BTN");
             [[HFRplusAppDelegate sharedAppDelegate] detailNavigationController].viewControllers[0].navigationItem.leftBarButtonItem = messagesTableViewController.splitViewController.displayModeButtonItem;
             [[HFRplusAppDelegate sharedAppDelegate] detailNavigationController].viewControllers[0].navigationItem.leftItemsSupplementBackButton = YES;
-        }
+        }*/
         
     }
     

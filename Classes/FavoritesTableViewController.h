@@ -6,8 +6,10 @@
 //
 
 #import <UIKit/UIKit.h>
+#import "Constants.h"
 
 @class MessagesTableViewController;
+@class DetailNavigationViewController;
 @class PullToRefreshErrorViewController;
 @class ASIHTTPRequest, FilterPostsQuotes;
 
@@ -33,7 +35,7 @@
 	ASIHTTPRequest *request;
 	
     bool reloadOnAppear;
-	STATUS status;
+	//STATUS status;
 	NSString *statusMessage;
 	IBOutlet UILabel *maintenanceView;	
     
@@ -75,6 +77,8 @@
 @property (nonatomic, strong) NSIndexPath *pressedIndexPath;
 
 @property (strong, nonatomic) ASIHTTPRequest *request;
+
+@property (nonatomic, strong) DetailNavigationViewController* detailNavigationVC;
 
 -(void)loadDataInTableView:(NSData*)contentData;
 -(void)reset;

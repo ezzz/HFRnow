@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.iPad.XIB" version="3.0" toolsVersion="19162" targetRuntime="iOS.CocoaTouch.iPad" propertyAccessControl="none" useAutolayout="YES" colorMatched="YES">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.iPad.XIB" version="3.0" toolsVersion="23504" targetRuntime="iOS.CocoaTouch.iPad" propertyAccessControl="none" useAutolayout="YES" colorMatched="YES">
     <device id="ipad9_7" orientation="portrait" layout="fullscreen" appearance="light"/>
     <dependencies>
-        <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="19144"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23506"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -15,17 +14,17 @@
         <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
         <customObject id="3" userLabel="HFRplus App Delegate" customClass="AppDelegate" customModule="SuperHFRplusSwift" customModuleProvider="target">
             <connections>
-                <outlet property="detailNavigationController" destination="248" id="312"/>
-                <outlet property="favoritesNavController" destination="267" id="331"/>
-                <outlet property="forumsNavController" destination="269" id="330"/>
-                <outlet property="messagesNavController" destination="268" id="332"/>
-                <outlet property="rootController" destination="261" id="329"/>
-                <outlet property="splitViewController" destination="194" id="201"/>
+                <outlet property="rootController" destination="sOp-tS-Zkp" id="DKR-uB-BEz"/>
                 <outlet property="window" destination="2" id="5"/>
             </connections>
         </customObject>
         <customObject id="252" customClass="SplitViewController"/>
-        <customObject id="260" customClass="TabBarController"/>
+        <customObject id="260" customClass="TabBarController">
+            <connections>
+                <outlet property="viewFavorites" destination="ho0-65-l8R" id="hMN-uW-XVS"/>
+                <outlet property="viewForums" destination="s9P-ml-eiT" id="7kN-Gz-xRF"/>
+            </connections>
+        </customObject>
         <customObject id="305" customClass="DetailNavigationViewController"/>
         <window opaque="NO" clearsContextBeforeDrawing="NO" contentMode="scaleToFill" id="2">
             <rect key="frame" x="0.0" y="0.0" width="768" height="1024"/>
@@ -34,103 +33,52 @@
             <simulatedStatusBarMetrics key="simulatedStatusBarMetrics" statusBarStyle="blackOpaque"/>
             <point key="canvasLocation" x="139" y="69"/>
         </window>
-        <splitViewController id="194" customClass="SplitViewController">
-            <extendedEdge key="edgesForExtendedLayout"/>
-            <toolbarItems/>
-            <simulatedStatusBarMetrics key="simulatedStatusBarMetrics" statusBarStyle="blackOpaque"/>
-            <tabBarController key="masterViewController" id="261" customClass="TabBarController">
-                <extendedEdge key="edgesForExtendedLayout"/>
-                <tabBar key="tabBar" contentMode="scaleToFill" id="270" customClass="HFRplusTabBar">
-                    <rect key="frame" x="0.0" y="975" width="768" height="49"/>
-                    <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMinY="YES"/>
-                    <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="0.0" colorSpace="custom" customColorSpace="sRGB"/>
-                </tabBar>
-                <viewControllers>
-                    <navigationController id="269" customClass="HFRNavigationController">
-                        <extendedEdge key="edgesForExtendedLayout"/>
-                        <tabBarItem key="tabBarItem" title="Catégories" image="44-shoebox.png" id="273"/>
-                        <toolbarItems/>
-                        <navigationBar key="navigationBar" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" id="271">
-                            <rect key="frame" x="0.0" y="0.0" width="320" height="44"/>
-                            <autoresizingMask key="autoresizingMask"/>
-                        </navigationBar>
-                        <viewControllers>
-                            <viewController id="272" customClass="ForumsTableViewController">
-                                <toolbarItems/>
-                                <navigationItem key="navigationItem" title="Item" id="274"/>
-                            </viewController>
-                        </viewControllers>
-                    </navigationController>
-                    <navigationController id="267" customClass="HFRNavigationController">
-                        <extendedEdge key="edgesForExtendedLayout"/>
-                        <tabBarItem key="tabBarItem" title="Vos Sujets" image="28-star.png" id="281"/>
-                        <toolbarItems/>
-                        <navigationBar key="navigationBar" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" id="279">
-                            <rect key="frame" x="0.0" y="0.0" width="320" height="44"/>
-                            <autoresizingMask key="autoresizingMask"/>
-                        </navigationBar>
-                        <viewControllers>
-                            <viewController id="280" customClass="FavoritesTableViewController">
-                                <toolbarItems/>
-                                <navigationItem key="navigationItem" title="Item" id="282"/>
-                            </viewController>
-                        </viewControllers>
-                    </navigationController>
-                    <navigationController id="268" customClass="HFRNavigationController">
-                        <extendedEdge key="edgesForExtendedLayout"/>
-                        <tabBarItem key="tabBarItem" title="Messages" image="18-envelope.png" id="277"/>
-                        <toolbarItems/>
-                        <navigationBar key="navigationBar" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" id="275">
-                            <rect key="frame" x="0.0" y="0.0" width="320" height="44"/>
-                            <autoresizingMask key="autoresizingMask"/>
-                        </navigationBar>
-                        <viewControllers>
-                            <viewController nibName="TopicsTableViewController" id="276" customClass="HFRMPViewController">
-                                <toolbarItems/>
-                                <navigationItem key="navigationItem" title="Item" id="278"/>
-                            </viewController>
-                        </viewControllers>
-                    </navigationController>
-                    <navigationController id="ppH-y9-zzy" userLabel="Plus Nav Controller" customClass="HFRNavigationController">
-                        <extendedEdge key="edgesForExtendedLayout"/>
-                        <tabBarItem key="tabBarItem" title="Réglages" image="20-gear2.png" id="gGL-gv-S8i"/>
-                        <navigationBar key="navigationBar" opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" translucent="NO" id="hwn-oH-YNC">
-                            <rect key="frame" x="0.0" y="0.0" width="320" height="44"/>
-                            <autoresizingMask key="autoresizingMask"/>
-                        </navigationBar>
-                        <viewControllers>
-                            <viewController id="NF7-ge-Dts" customClass="PlusTableViewController">
-                                <navigationItem key="navigationItem" title="Item" id="Juu-KN-Ks1"/>
-                            </viewController>
-                        </viewControllers>
-                    </navigationController>
-                </viewControllers>
-                <connections>
-                    <outlet property="delegate" destination="260" id="303"/>
-                </connections>
-            </tabBarController>
-            <navigationController key="detailViewController" id="248" customClass="DetailNavigationViewController">
-                <extendedEdge key="edgesForExtendedLayout"/>
-                <navigationBar key="navigationBar" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" id="249">
-                    <rect key="frame" x="0.0" y="0.0" width="1000" height="1000"/>
-                    <autoresizingMask key="autoresizingMask"/>
-                </navigationBar>
-                <viewControllers>
-                    <viewController id="317">
-                        <navigationItem key="navigationItem" title="Item" id="318"/>
-                    </viewController>
-                </viewControllers>
-                <connections>
-                    <outlet property="delegate" destination="305" id="307"/>
-                </connections>
-            </navigationController>
-            <point key="canvasLocation" x="652" y="69"/>
-        </splitViewController>
+        <tabBarController id="sOp-tS-Zkp">
+            <tabBar key="tabBar" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" id="70d-f9-Eqw">
+                <rect key="frame" x="0.0" y="0.0" width="820" height="49"/>
+                <autoresizingMask key="autoresizingMask"/>
+                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+            </tabBar>
+            <viewControllers>
+                <viewController title="Catégories" id="idG-Hk-x3E">
+                    <layoutGuides>
+                        <viewControllerLayoutGuide type="top" id="r4G-gw-rJF"/>
+                        <viewControllerLayoutGuide type="bottom" id="oX8-Cy-REh"/>
+                    </layoutGuides>
+                    <view key="view" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="s9P-ml-eiT">
+                        <rect key="frame" x="0.0" y="0.0" width="768" height="1024"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                        <color key="backgroundColor" systemColor="systemOrangeColor"/>
+                    </view>
+                    <tabBarItem key="tabBarItem" title="Catégories" image="44-shoebox.png" id="hZb-0K-mOp"/>
+                </viewController>
+                <viewController title="Favoris" id="9gG-Cu-d6x">
+                    <layoutGuides>
+                        <viewControllerLayoutGuide type="top" id="rVi-Pq-dAQ"/>
+                        <viewControllerLayoutGuide type="bottom" id="ro0-2v-RDv"/>
+                    </layoutGuides>
+                    <view key="view" contentMode="scaleToFill" id="ho0-65-l8R">
+                        <rect key="frame" x="0.0" y="0.0" width="768" height="1024"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <color key="backgroundColor" systemColor="systemYellowColor"/>
+                    </view>
+                    <tabBarItem key="tabBarItem" title="Favoris" image="star" catalog="system" id="I9V-vh-Lsp"/>
+                </viewController>
+            </viewControllers>
+            <connections>
+                <outlet property="delegate" destination="260" id="2b8-Mn-uix"/>
+            </connections>
+            <point key="canvasLocation" x="-1233" y="6"/>
+        </tabBarController>
     </objects>
     <resources>
-        <image name="18-envelope.png" width="24" height="16"/>
-        <image name="20-gear2.png" width="26" height="28"/>
-        <image name="28-star.png" width="26" height="26"/>
         <image name="44-shoebox.png" width="24" height="22"/>
+        <image name="star" catalog="system" width="128" height="116"/>
+        <systemColor name="systemOrangeColor">
+            <color red="1" green="0.58431372549019611" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </systemColor>
+        <systemColor name="systemYellowColor">
+            <color red="1" green="0.80000000000000004" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </systemColor>
     </resources>
 </document>

@@ -6,11 +6,14 @@
 //
 
 #import <UIKit/UIKit.h>
+#import "Constants.h"
 
 @class TopicsTableViewController;
 @class ASIHTTPRequest;
 @class ForumCellView;
 @class PullToRefreshErrorViewController;
+@class TabBarController;
+@class DetailNavigationViewController;
 
 @interface ForumsTableViewController : UIViewController <UITableViewDelegate, UITableViewDataSource, UIActionSheetDelegate> {
 	IBOutlet UITableView *forumsTableView;
@@ -56,6 +59,8 @@
 @property (nonatomic, strong) NSIndexPath *pressedIndexPath;
 @property (nonatomic, strong) UIAlertController *forumActionAlert;
 
+@property (nonatomic, strong) TabBarController *tabbarController;
+@property (nonatomic, strong) DetailNavigationViewController* detailNavigationVC;
 
 -(void)loadDataInTableView:(NSData *)contentData;
 -(void)reload:(BOOL)shake;

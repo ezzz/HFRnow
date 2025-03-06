@@ -15,6 +15,7 @@
 #import "AQTableViewController.h"
 #import "OfflineTableViewController.h"
 #import "BookmarksTableViewController.h"
+@class DetailNavigationViewController;
 
 @interface PlusTableViewController : UIViewController <UIActionSheetDelegate, UITableViewDelegate, UITableViewDataSource, UITextFieldDelegate, UIAlertViewDelegate, MFMailComposeViewControllerDelegate> {
     IBOutlet UITableView *plusTableView;
@@ -35,6 +36,8 @@
 @property (nonatomic, strong) BookmarksTableViewController *bookmarksTableViewController;
 @property (nonatomic, strong) CreditsViewController *creditsViewController;
 @property (nonatomic, strong) CreditsViewController *charteViewController;
+
+@property (nonatomic, strong) DetailNavigationViewController* detailNavigationViewController;
 
 @end
 

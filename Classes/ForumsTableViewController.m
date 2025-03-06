@@ -9,6 +9,7 @@
 
 #import "ForumsTableViewController.h"
 #import "TopicsTableViewController.h"
+#import "TabBarController.h"
 
 #import "HTMLParser.h"
 #import "RegexKitLite.h"
@@ -30,12 +31,21 @@
 
 @implementation ForumsTableViewController
 @synthesize request;
-@synthesize forumsTableView, loadingView, arrayData, arrayNewData, topicsTableViewController;
+@synthesize forumsTableView, loadingView, arrayData, arrayNewData, topicsTableViewController, detailNavigationVC;
 @synthesize reloadOnAppear, status, statusMessage, maintenanceView, metaDataList, pressedIndexPath, forumActionAlert;
 @synthesize tmpCell;
 
 #pragma mark -
 #pragma mark Data lifecycle
+
+- (ForumsTableViewController*)initWithRootViewController:(TabBarController*)tabBarController_ {
+    self = [super init];
+    if (self) {
+        self.tabbarController = tabBarController_;
+    }
+    
+    return self;
+}
 
 - (void)cancelFetchContent
 {    
@@ -798,6 +808,7 @@
 }
 
 - (void)viewDidLoad {
+    NSLog(@"ForumsTableViewController is loading....");
     [super viewDidLoad];
  
 	self.title = @"Catégories";
@@ -835,12 +846,15 @@
     [self showBarButton:kReload];
 
 
-    /*
+    
     // test BTN
-	UIBarButtonItem *segmentBarItem2 = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemTrash target:self action:@selector(testBtn)];
-	self.navigationItem.leftBarButtonItem = segmentBarItem2;
-    [segmentBarItem2 release];
-    */
+    UIBarButtonItem *segmentBarItem1 = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"sidebar.left"] style:UIBarButtonItemStylePlain target:self action:@selector(actionButtonSidebar)];
+    UIBarButtonItem *segmentBarItem2 = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"sidebar.left"] style:UIBarButtonItemStylePlain target:self action:@selector(actionButtonSidebar)];
+
+    //UIBarButtonItem *segmentBarItem2 = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemOrganize target:self action:@selector(actionButtonSidebar)];
+    self.navigationItem.backBarButtonItem = segmentBarItem1;
+    self.navigationItem.leftBarButtonItem = segmentBarItem2;
+    self.navigationItem.leftItemsSupplementBackButton = NO;
     
 	[(ShakeView*)self.view setShakeDelegate:self];
 
@@ -881,13 +895,16 @@
     else {
         [self.forumsTableView triggerPullToRefresh];
     }
-    
-    
-    
+}
 
-    
-    
-	//[self fetchContent];
+// Method executed when the button is tapped
+- (void)actionButtonSidebar {
+    NSLog(@"Action button sidebar tapped!");
+
+    if ([self.tabBarController isKindOfClass:[TabBarController class]]) {
+        self.tabBarController.sidebar.hidden = NO;
+        NSLog(@"Showing sidebar");
+    }
 }
 
 - (void)viewWillAppear:(BOOL)animated {
@@ -1042,6 +1059,7 @@
         }
         else {
             aView = [[TopicsTableViewController alloc] initWithNibName:@"TopicsTableViewController" bundle:nil];
+            ((TopicsTableViewController*)aView).detailNavigationViewController  = self.detailNavigationVC;
         }
         
         

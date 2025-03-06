@@ -18,7 +18,7 @@
 #import "ThemeManager.h"
 
 @implementation PlusTableViewController;
-@synthesize plusTableView, iAQBadgeNumer, settingsViewController, compteViewController, aqTableViewController, offlineTableViewController, bookmarksTableViewController,  creditsViewController;
+@synthesize plusTableView, iAQBadgeNumer, settingsViewController, compteViewController, aqTableViewController, offlineTableViewController, bookmarksTableViewController,  creditsViewController, detailNavigationViewController;
 ;
 
 
@@ -66,24 +66,27 @@
 }
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    
+    UIViewController* vc = nil;
+    
     switch (indexPath.row) {
         case 0:
-            [self.navigationController pushViewController:self.compteViewController animated:YES];
+            vc = self.compteViewController;
             break;
         case 1:
-            [self.navigationController pushViewController:self.bookmarksTableViewController animated:YES];
+            vc = self.bookmarksTableViewController;
             break;
         case 2:
-            [self.navigationController pushViewController:self.aqTableViewController animated:YES];
+            vc = self.aqTableViewController;
             break;
         case 3:
-            [self.navigationController pushViewController:self.settingsViewController animated:YES];
+            vc = self.settingsViewController;
             break;
         case 4:
-            [self.navigationController pushViewController:self.creditsViewController animated:YES];
+            vc = self.creditsViewController;
             break;
         case 5:
-            [self.navigationController pushViewController:self.charteViewController animated:YES];
+            vc = self.charteViewController;
             break;
         case 6:
             if([MFMailComposeViewController canSendMail]) {
@@ -95,6 +98,15 @@
                 [self presentViewController:mailCont animated:YES completion:nil];
             }
             break;
+            // TBD sur IOS:             [self.navigationController pushViewController: animated:YES];
+            
+            
+    }
+    
+    if (vc && self.detailNavigationViewController) {
+        NSLog(@"Pushing PlusTableViewController");
+        [self.detailNavigationViewController pushViewController:vc animated:YES];
+        [self.detailNavigationViewController setViewControllers:[NSMutableArray arrayWithObjects:vc, nil] animated:YES];
     }
 }
 
