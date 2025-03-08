@@ -14,7 +14,7 @@
 #import "TopicsTableViewController.h"
 #import "FavoritesTableViewController.h"
 #import "HFRMPViewController.h"
-#import "TabBarController.h"
+#import "CustomTabBarController.h"
 #import "ThemeManager.h"
 
 @interface SplitViewController ()
@@ -124,7 +124,7 @@
         
         for (UIViewController *vc in [(UINavigationController *)secondaryViewController viewControllers]) {
             //NSLog(@"vc");
-            [(UINavigationController *)[[HFRplusAppDelegate sharedAppDelegate].rootController selectedViewController] pushViewController:vc animated:NO];
+            //TODO [(UINavigationController *)[[HFRplusAppDelegate sharedAppDelegate].rootController selectedViewController] pushViewController:vc animated:NO];
 
         }
         DetailNavigationViewController *navigationController = [[DetailNavigationViewController alloc] initWithRootViewController:[[UIViewController alloc] init]];
@@ -241,9 +241,9 @@ separateSecondaryViewControllerFromPrimaryViewController:(UIViewController *)pri
 #pragma mark Nav+
 
 -(void)MoveLeftToRight {
-    
+/*
     //Les deux controllers
-    TabBarController *leftTabBarController = [self.viewControllers objectAtIndex:0];
+    CustomTabBarController *leftTabBarController = [self.viewControllers objectAtIndex:0];
     UINavigationController *rightNavController = [self.viewControllers objectAtIndex:1];
     
     [rightNavController popToRootViewControllerAnimated:YES];
@@ -257,7 +257,7 @@ separateSecondaryViewControllerFromPrimaryViewController:(UIViewController *)pri
     
     //Première tab > navController > msgController
     //leftTabBarController.selectedIndex = 0;
-    UINavigationController *leftNavController= (UINavigationController *)leftTabBarController.selectedViewController;
+    UINavigationController *leftNavController = (UINavigationController *)leftTabBarController.selectedViewController;
     
     while (![leftNavController.topViewController isMemberOfClass:[MessagesTableViewController class]] && leftNavController.viewControllers.count > 1) {
         
@@ -283,7 +283,7 @@ separateSecondaryViewControllerFromPrimaryViewController:(UIViewController *)pri
         [rightNavController setViewControllers:[NSMutableArray arrayWithObjects:aView, nil] animated:YES];
 
     }
-
+*/
     NSLog(@"END MoveLeftToRight");
 }
 
@@ -329,7 +329,7 @@ separateSecondaryViewControllerFromPrimaryViewController:(UIViewController *)pri
 
 -(void)MoveRightToLeft:(NSString *)url {
     NSLog(@"MoveRightToLeft");
-    
+    /* TODO
     //Les deux controllers
     TabBarController *leftTabBarController = [self.viewControllers objectAtIndex:0];
     UINavigationController *rightNavController = [self.viewControllers objectAtIndex:1];
@@ -377,6 +377,7 @@ separateSecondaryViewControllerFromPrimaryViewController:(UIViewController *)pri
     [rightNavController setViewControllers:[NSMutableArray arrayWithObjects:browserViewController, nil] animated:NO];
     
     NSLog(@"END MoveRightToLeft");
+     */
 }
 
 -(void)MoveRightToLeft {

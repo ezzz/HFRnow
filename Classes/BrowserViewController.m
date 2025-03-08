@@ -86,14 +86,15 @@
 
 - (void)cancel {
     [self viewDidUnload];
-    
+    // TODO TABBAR
+    /*
     if (self.fullBrowser && [(SplitViewController *)[HFRplusAppDelegate sharedAppDelegate].window.rootViewController respondsToSelector:@selector(MoveRightToLeft)]) {
-        [(SplitViewController *)[HFRplusAppDelegate sharedAppDelegate].window.rootViewController MoveLeftToRight];
+        // TODO TABBAR [(SplitViewController *)[HFRplusAppDelegate sharedAppDelegate].window.rootViewController MoveLeftToRight];
     }
     else {
         [self dismissModalViewControllerAnimated:YES];
         //[self.delegate browserViewControllerDidFinish:self];
-    }
+    }*/
 }
 
 - (void)navPlus {
@@ -103,7 +104,7 @@
             [((BrowserViewController *)[HFRplusAppDelegate sharedAppDelegate].detailNavigationController.topViewController).myModernWebView loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:self.myModernWebView.URL.absoluteString]]];
         }
         else {
-            [[HFRplusAppDelegate sharedAppDelegate].splitViewController MoveRightToLeft:self.myModernWebView.URL.absoluteString];
+            // TODO TABBAR  [[HFRplusAppDelegate sharedAppDelegate].splitViewController MoveRightToLeft:self.myModernWebView.URL.absoluteString];
         }
         [self cancel];
     }

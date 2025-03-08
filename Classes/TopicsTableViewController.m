@@ -1694,7 +1694,7 @@
 
 - (void)pushTopic {
 
-
+    /* TODO TABBAR *
     if (([self respondsToSelector:@selector(traitCollection)] && [HFRplusAppDelegate sharedAppDelegate].window.traitCollection.horizontalSizeClass == UIUserInterfaceSizeClassCompact) ||
         [[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone ||
         [[HFRplusAppDelegate sharedAppDelegate].detailNavigationController.topViewController isMemberOfClass:[BrowserViewController class]]) {
@@ -1719,6 +1719,7 @@
     
     // Close left panel on ipad in portrait mode
     [[HFRplusAppDelegate sharedAppDelegate] hidePrimaryPanelOnIpad];
+     */
 }
 
 -(void)setTopicViewed {
@@ -2037,8 +2038,10 @@
         }
         else
         {
+            /* TODO IPHONE ONLY
             [actionSheet setFrame:CGRectMake(0, [[[HFRplusAppDelegate sharedAppDelegate] rootController] tabBar].frame.size.height + self.view.frame.size.height + self.navigationController.navigationBar.frame.size.height + 20 - myPickerView.frame.size.height - 44,
                                              self.view.frame.size.width, myPickerView.frame.size.height + 44)];
+             */
         }
         
         [actionSheet setBounds:CGRectMake(0, 0,

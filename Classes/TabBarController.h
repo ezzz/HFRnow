@@ -8,7 +8,7 @@
 #import <UIKit/UIKit.h>
 #import "BrowserViewController.h"
 
-@interface TabBarController : UITabBarController <UITabBarControllerDelegate> {
+@interface TabBarController : UIViewController { //UITabBarController <UITabBarControllerDelegate> {
 
 }
 

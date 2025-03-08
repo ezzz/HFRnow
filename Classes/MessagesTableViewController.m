@@ -784,7 +784,7 @@
     else {
         UINavigationItem *navItem = [[[[[HFRplusAppDelegate sharedAppDelegate] detailNavigationController] viewControllers] objectAtIndex:0] navigationItem];
 
-        [navItem setLeftBarButtonItem:((SplitViewController *)self.splitViewController).mybarButtonItem animated:YES];
+        // TODO TABBAR [navItem setLeftBarButtonItem:((SplitViewController *)self.splitViewController).mybarButtonItem animated:YES];
         [navItem setLeftItemsSupplementBackButton:YES];
     }
     /* Evol onglet sticky (gardée au cas où)
@@ -958,10 +958,10 @@
 }
 
 -(void)fullScreen:(id)sender {
-    
+    /* TODO TABBAR
     if ([(SplitViewController *)[HFRplusAppDelegate sharedAppDelegate].window.rootViewController respondsToSelector:@selector(MoveRightToLeft)]) {
         [(SplitViewController *)[HFRplusAppDelegate sharedAppDelegate].window.rootViewController MoveRightToLeft];
-    }
+    }*/
     
 }
 -(void)optionsTopic:(id)sender

@@ -8,7 +8,7 @@
 #import <UIKit/UIKit.h>
 #import "Constants.h"
 #import "TabBarController.h"
-#import "SplitViewController.h"
+#import "IPadSplitViewController.h"
 #import "DetailNavigationViewController.h"
 #import <BackgroundTasks/BackgroundTasks.h>
 
@@ -19,8 +19,11 @@
 
 @interface HFRplusAppDelegate : NSObject<UNUserNotificationCenterDelegate> {
     UIWindow *window;
-    TabBarController *rootController;    
-    SplitViewController *splitViewController;
+    // Root controller for iphone
+    TabBarController *rootController;
+    
+    // Root controller for ipad
+    IPadSplitViewController *splitViewController;
     DetailNavigationViewController *detailNavigationController;
 
     UINavigationController *forumsNavController;
@@ -44,8 +47,9 @@
 - (void)periodicMaintenance;
 
 @property (nonatomic, strong) IBOutlet UIWindow *window;
+
 @property (nonatomic, strong) IBOutlet TabBarController *rootController;
-@property (nonatomic, strong) IBOutlet SplitViewController *splitViewController;
+@property (nonatomic, strong) IBOutlet IPadSplitViewController *splitViewController;
 @property (nonatomic, strong) IBOutlet DetailNavigationViewController *detailNavigationController;
 
 @property (nonatomic, strong) IBOutlet UINavigationController *forumsNavController;

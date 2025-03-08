@@ -105,7 +105,7 @@
     [[NSUserDefaults standardUserDefaults] registerDefaults:appDefaults];
     [[NSUserDefaults standardUserDefaults] synchronize];
     
-        
+
         
     //UserAgent
     /*
@@ -123,15 +123,16 @@
     internetReach = [Reachability reachabilityForInternetConnection];
     [internetReach startNotifier];
     
-    rootController.customizableViewControllers = nil;
+    //TODO rootController.customizableViewControllers = nil;
 
     // Start up window
-    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) { 
+    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
         //[splitViewController view].backgroundColor = [UIColor colorWithPatternImage:[UIImage imageNamed:@"bgbigiPad"]];
-
-        splitViewController.delegate = splitViewController;
-        [window setRootViewController:splitViewController];
-
+        self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
+        self.splitViewController = [[IPadSplitViewController alloc] init];
+        [self.window setRootViewController:self.splitViewController];
+        [self.window makeKeyAndVisible];
+        
     } else {
         [window setRootViewController:rootController];
     }
@@ -197,12 +198,12 @@
     NSLog(@"Notifcation tapped");
     
     // Display MP and refesh MP list
-    [self.rootController setSelectedIndex:2];
-    HFRNavigationController *nv = self.rootController.selectedViewController;
-    [nv popToRootViewControllerAnimated:NO];
-    if ([nv.topViewController isKindOfClass:[HFRMPViewController class]]) {
-        [(HFRMPViewController *)nv.topViewController fetchContent];
-    }
+    //TODO [self.rootController setSelectedIndex:2];
+    //TODO HFRNavigationController *nv = self.rootController.selectedViewController;
+    //TODO [nv popToRootViewControllerAnimated:NO];
+    //TODO if ([nv.topViewController isKindOfClass:[HFRMPViewController class]]) {
+    //TODO     [(HFRMPViewController *)nv.topViewController fetchContent];
+    //TODO }
 }
 
 
@@ -320,6 +321,8 @@
         [(HFRMPViewController *)nv.topViewController fetchContent];
     }
     */
+    //TODO
+    /*
     HFRNavigationController *nv = self.rootController.selectedViewController;
     if ([shortcutItem.type isEqual: @"hfrplus.red.super.openfavorites"]) {
         [self.rootController setSelectedIndex:1];
@@ -343,6 +346,7 @@
         handled = YES;
     }
     completionHandler(handled);
+     */
 }
 
 -(void)setThemeFromNotification:(NSNotification *)notification{
@@ -697,6 +701,8 @@
 
 - (void)updateMPBadgeWithString:(NSString *)badgeValue;
 {
+    // TODO
+    /*
     [[NSUserDefaults standardUserDefaults] setInteger:[badgeValue intValue] forKey:@"nb_mp"];
 
     dispatch_async(dispatch_get_main_queue(),
@@ -714,16 +720,13 @@
         else {
             [tabBarItem setBadgeValue:nil];
         }
-        /* Ajouté pour rendre l'icone des messages dynamique en fonction du nombre de MPs non lu mais non terminé
-        tabBarItem.selectedImage = [[UIImage imageNamed:[ThemeColors tabBarItemSelectedImageAtIndex:2 + iShift]]
-                                        imageWithRenderingMode:[ThemeColors tabBarItemSelectedImageRendering] ];
-        tabBarItem.image = [[UIImage imageNamed:[ThemeColors tabBarItemUnselectedImageAtIndex:2 + iShift]]
-                            imageWithRenderingMode:[ThemeColors tabBarItemUnselectedImageRendering]];*/
    });
+*/
 }
 
 - (void)updatePlusBadgeWithString:(NSString *)badgeValue;
 {
+    /*
     dispatch_async(dispatch_get_main_queue(),
     ^{
         //[UIApplication sharedApplication].applicationIconBadgeNumber = [badgeValue intValue];
@@ -759,7 +762,7 @@
             //[UIApplication sharedApplication].applicationIconBadgeNumber = 0;
 
         }
-    });
+    });*/
 }
 
 
@@ -941,7 +944,7 @@
         else {
             //on move/decale
             //[self cancel];
-            [[HFRplusAppDelegate sharedAppDelegate].splitViewController NavPlus:[alertView stringURL]];
+            //TODO [[HFRplusAppDelegate sharedAppDelegate].splitViewController NavPlus:[alertView stringURL]];
             
         }
     }

@@ -6,6 +6,7 @@
 //
 
 #import <UIKit/UIKit.h>
+#import "Constants.h"
 
 @class TopicsTableViewController;
 @class ASIHTTPRequest;

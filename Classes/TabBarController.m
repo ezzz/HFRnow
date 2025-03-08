@@ -15,13 +15,13 @@
 #import "ThemeColors.h"
 #import "ThemeManager.h"
 
-
+/*
 
 @implementation TabBarController
 
 -(void)viewDidLoad {
 	[super viewDidLoad];
-	
+
 	//NSLog(@"TBC viewDidLoad %@", self.tabBar);
     self.title = @"Menu";
 
@@ -47,19 +47,20 @@
     
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     NSString *tab = [defaults stringForKey:@"default_tab"];
-    
     if (tab) {
         [self setSelectedIndex:[tab intValue]];
     }
     
     self.tabBar.unselectedItemTintColor = [UIColor colorWithRed:143.0/255.0 green:143.0/255.0 blue:143.0/255.0 alpha:1.0];
-    [self.tabBar setBarStyle:UITabBarItemAppearanceStyleStacked];
+    //[self.tabBar setBarStyle:UITabBarItemAppearanceStyleStacked];
     
     if([((HFRNavigationController *)self.viewControllers[0]).topViewController isKindOfClass:[ForumsTableViewController class]]){
         ((ForumsTableViewController *)((HFRNavigationController *)self.viewControllers[0]).topViewController).reloadOnAppear = YES;
-    }    
+    }
+    //self.mode = UITabBarControllerModeTabSidebar;
+    //self.tabBarHidden = YES;
 }
-
+/*
 -(void)setThemeFromNotification:(NSNotification *)notification{
     [self setTheme:[[ThemeManager sharedManager] theme]];
 }
@@ -154,6 +155,7 @@
                                              selector:@selector(setThemeFromNotification:)
                                             name:kThemeChangedNotification
                                                object:nil];
+    
 }
 
 - (void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
@@ -216,7 +218,7 @@
     }
 
 }
-*/
+*
 // Override to allow orientations other than the default portrait orientation.
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation {
 	
@@ -232,39 +234,5 @@
 	
 }
 
-/* for iOS6 support */
-- (UIInterfaceOrientationMask)supportedInterfaceOrientations
-{
-    //NSLog(@"supportedInterfaceOrientations");
-    
-	if ([[[NSUserDefaults standardUserDefaults] stringForKey:@"landscape_mode"] isEqualToString:@"all"]) {
-        //NSLog(@"All");
-        
-		return UIInterfaceOrientationMaskAll;
-	} else {
-        //NSLog(@"Portrait");
-        
-		return UIInterfaceOrientationMaskPortrait;
-	}
-}
-
-
-- (BOOL)shouldAutorotate
-{
-    //NSLog(@"shouldAutorotate");
-
-    return YES;
-}
-
--(void)popAllToRoot:(BOOL)includingSelectedIndex {
-    //not selectedIndex
-    long nbTab = self.viewControllers.count;
-    
-    for (int i = 0; i < nbTab; i++) {
-        if (includingSelectedIndex || (!includingSelectedIndex && i != self.selectedIndex)) {
-            [(UINavigationController *)self.viewControllers[i] popToRootViewControllerAnimated:NO];
-        }
-    }
-}
-
 @end
+*/
