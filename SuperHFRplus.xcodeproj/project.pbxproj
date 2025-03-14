@@ -13,8 +13,6 @@
 		1503755821FF794200A5F7E1 /* PlusCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1503755721FF794200A5F7E1 /* PlusCellView.m */; };
 		1512A7932232F6C9000C9B1D /* 08-chat-20.png in Resources */ = {isa = PBXBuildFile; fileRef = 1512A7922232F6C8000C9B1D /* 08-chat-20.png */; };
 		15167EB12330210600D64651 /* Heart-20@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15167EB02330210600D64651 /* Heart-20@2x.png */; };
-		151DE8D523AAC73D003E6D1B /* OldFavoritesTableViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 151DE8D423AAC73D003E6D1B /* OldFavoritesTableViewController.xib */; };
-		151DE8D723AAC74D003E6D1B /* OldFavoritesTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 151DE8D623AAC74D003E6D1B /* OldFavoritesTableViewController.m */; };
 		152395EC28DF015E00614F9D /* Quote-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395CF28DF015C00614F9D /* Quote-20-Inv@2x.png */; };
 		152395ED28DF015E00614F9D /* StarFilled-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395D028DF015C00614F9D /* StarFilled-20-Inv@2x.png */; };
 		152395EE28DF015E00614F9D /* ContactCardFilled-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395D128DF015C00614F9D /* ContactCardFilled-20-Inv@2x.png */; };
@@ -960,9 +958,6 @@
 		1512A7922232F6C8000C9B1D /* 08-chat-20.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "08-chat-20.png"; sourceTree = "<group>"; };
 		15141AA221E7ADE800811E5A /* link_url.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = link_url.png; path = ../../../../../Icones/link_url.png; sourceTree = "<group>"; };
 		15167EB02330210600D64651 /* Heart-20@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Heart-20@2x.png"; sourceTree = "<group>"; };
-		151DE8D423AAC73D003E6D1B /* OldFavoritesTableViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = OldFavoritesTableViewController.xib; sourceTree = "<group>"; };
-		151DE8D623AAC74D003E6D1B /* OldFavoritesTableViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = OldFavoritesTableViewController.m; sourceTree = "<group>"; };
-		151DE8D823AAC756003E6D1B /* OldFavoritesTableViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = OldFavoritesTableViewController.h; sourceTree = "<group>"; };
 		152395CF28DF015C00614F9D /* Quote-20-Inv@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Quote-20-Inv@2x.png"; sourceTree = "<group>"; };
 		152395D028DF015C00614F9D /* StarFilled-20-Inv@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "StarFilled-20-Inv@2x.png"; sourceTree = "<group>"; };
 		152395D128DF015C00614F9D /* ContactCardFilled-20-Inv@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ContactCardFilled-20-Inv@2x.png"; sourceTree = "<group>"; };
@@ -2006,9 +2001,6 @@
 				0140ABAD121E011D001C35C4 /* FavoritesTableViewController.h */,
 				0140ABAE121E011D001C35C4 /* FavoritesTableViewController.m */,
 				0140ABD2121E034A001C35C4 /* FavoritesTableViewController.xib */,
-				151DE8D823AAC756003E6D1B /* OldFavoritesTableViewController.h */,
-				151DE8D623AAC74D003E6D1B /* OldFavoritesTableViewController.m */,
-				151DE8D423AAC73D003E6D1B /* OldFavoritesTableViewController.xib */,
 			);
 			name = Favorites;
 			sourceTree = "<group>";
@@ -3736,7 +3728,6 @@
 				156FBDE128F48F6A00CE345D /* BoldFilled-18.png in Resources */,
 				4C0B8D991BA4522900D329BA /* QuestionsFilled-40@2x.png in Resources */,
 				CA7C700B185EF50E00B348BA /* style-aide.css in Resources */,
-				151DE8D523AAC73D003E6D1B /* OldFavoritesTableViewController.xib in Resources */,
 				4C21E95E1BA5C70400691D65 /* InvisibleFilled-20.png in Resources */,
 				4C0B8DA31BA4522900D329BA /* ShieldFilled-40@2x.png in Resources */,
 				CA7C700C185EF50E00B348BA /* bginput.png in Resources */,
@@ -4339,7 +4330,6 @@
 				4CC814FE1BAC86ED00F8BB81 /* UIColor+Extension.m in Sources */,
 				4C3903671BCACEC200FD6F1F /* PSTCollectionViewUpdateItem.m in Sources */,
 				1503755821FF794200A5F7E1 /* PlusCellView.m in Sources */,
-				151DE8D723AAC74D003E6D1B /* OldFavoritesTableViewController.m in Sources */,
 				D873E007271DBC5B006262C8 /* HFRplusTabBar.m in Sources */,
 				4C3903591BCACEC200FD6F1F /* PSTCollectionView.m in Sources */,
 				4C39036F1BCACEC200FD6F1F /* PSTGridLayoutSection.m in Sources */,
@@ -4480,11 +4470,13 @@
 				ASSETCATALOG_COMPILER_OPTIMIZATION = time;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
+				CODE_SIGN_STYLE = Manual;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 8;
-				DEVELOPMENT_TEAM = QMG83DG7YP;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = QMG83DG7YP;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4521,9 +4513,10 @@
 					"-licucore",
 					"-ObjC",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = hwfr.app;
+				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super;
 				PRODUCT_NAME = SuperHFRplusSwift;
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = ProfileSuperHFRv1;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -4543,11 +4536,13 @@
 				ASSETCATALOG_COMPILER_OPTIMIZATION = time;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
+				CODE_SIGN_STYLE = Manual;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = YES;
 				CURRENT_PROJECT_VERSION = 8;
-				DEVELOPMENT_TEAM = QMG83DG7YP;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = QMG83DG7YP;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4582,9 +4577,10 @@
 					"-licucore",
 					"-ObjC",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = hwfr.app;
+				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super;
 				PRODUCT_NAME = SuperHFRplusSwift;
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = ProfileSuperHFRv1;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
