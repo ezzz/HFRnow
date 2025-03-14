@@ -665,8 +665,6 @@
 	
     [super viewWillDisappear:animated];
 	self.isAnimating = YES;
-    
-    
 }
 
 - (void)viewDidAppear:(BOOL)animated {
@@ -775,6 +773,8 @@
 }
 
 -(void)forceButtonMenu {
+    NSLog(@"*********** MENU 2");
+/*
     if ([self.splitViewController respondsToSelector:@selector(displayModeButtonItem)]) {
 
         [[HFRplusAppDelegate sharedAppDelegate] detailNavigationController].viewControllers[0].navigationItem.leftBarButtonItem = self.splitViewController.displayModeButtonItem;
@@ -786,9 +786,7 @@
 
         [navItem setLeftBarButtonItem:((SplitViewController *)self.splitViewController).mybarButtonItem animated:YES];
         [navItem setLeftItemsSupplementBackButton:YES];
-    }
-    /* Evol onglet sticky (gardée au cas où)
-    self.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemStop target:self action:@selector(removeTabBar)];*/
+    }*/
 }
 
 /* Evol onglet sticky (gardée au cas où)
@@ -1274,7 +1272,7 @@
 		 }
 		 
         // Pass the selected object to the new view controller.
-        self.navigationItem.backBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@" "
+        self.navigationItem.backBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"RET"
             style: UIBarButtonItemStylePlain
             target:nil
             action:nil];
@@ -1690,11 +1688,11 @@
         if (![self isModeOffline]) {
             // On ajoute le bouton de notif de sondage
             if ([[NSUserDefaults standardUserDefaults] boolForKey:@"notify_poll_not_answered"] && self.isNewPoll) {
-            UIBarButtonItem *optionsBarItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAction target:self action:@selector(optionsTopic:)];
+            UIBarButtonItem *optionsBarItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemTrash target:self action:@selector(optionsTopic:)];
                 UIBarButtonItem* pollBarItem = [[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"icone_sondage"] style:UIBarButtonItemStylePlain target:self action:@selector(showPoll:)];
                 self.navigationItem.rightBarButtonItems = [[NSMutableArray alloc] initWithObjects:optionsBarItem, pollBarItem, nil];
             } else {
-            UIBarButtonItem *optionsBarItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAction target:self action:@selector(optionsTopic:)];
+                UIBarButtonItem *optionsBarItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemTrash target:self action:@selector(optionsTopic:)];
                 self.navigationItem.rightBarButtonItems = [[NSMutableArray alloc] initWithObjects:optionsBarItem, nil];
             }
             

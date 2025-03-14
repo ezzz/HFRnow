@@ -27,9 +27,8 @@
     app.backgroundColor = [ThemeColors navBackgroundColor:[[ThemeManager sharedManager] theme]];
     self.leftVC.navigationBar.scrollEdgeAppearance = self.leftVC.navigationBar.standardAppearance = app;
 
-    
     self.rightVC = [[DetailNavigationViewController alloc] init];
-    forumVC.detailNavigationVC = (DetailNavigationViewController*)self.rightVC;
+    forumVC.detailNavigationViewController = (DetailNavigationViewController*)self.rightVC;
 
     // Add as child view controllers
     [self addChildViewController:self.leftVC];
@@ -52,7 +51,7 @@
         [self.leftVC.view.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
         [self.leftVC.view.topAnchor constraintEqualToAnchor:self.view.topAnchor],
         [self.leftVC.view.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor],
-        [self.leftVC.view.widthAnchor constraintEqualToAnchor:self.view.widthAnchor multiplier:0.5],
+        [self.leftVC.view.widthAnchor constraintEqualToAnchor:self.view.widthAnchor multiplier:0.3],
 
         // Right View
         [self.rightVC.view.leadingAnchor constraintEqualToAnchor:self.leftVC.view.trailingAnchor],

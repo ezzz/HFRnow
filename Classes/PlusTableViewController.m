@@ -104,6 +104,15 @@
     }
     
     if (vc && self.detailNavigationViewController) {
+        NSLog(@"Trying to pushing PlusTableViewController");
+
+        for (UIViewController *detailvc in self.detailNavigationViewController.viewControllers) {
+            NSLog(@"Comparing %@ with %@", [detailvc class], [vc class]);
+            if ([detailvc isKindOfClass:[vc class]]) {
+                return;
+            }
+        }
+        
         NSLog(@"Pushing PlusTableViewController");
         [self.detailNavigationViewController pushViewController:vc animated:YES];
         [self.detailNavigationViewController setViewControllers:[NSMutableArray arrayWithObjects:vc, nil] animated:YES];

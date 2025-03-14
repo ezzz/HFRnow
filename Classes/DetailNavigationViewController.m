@@ -30,20 +30,23 @@
 	// Do any additional setup after loading the view.
     
     self.navigationBar.translucent = NO;
-
     
     [[self topViewController] setTitle:@"HFR Now"];
-
+    [self setTitle:@"Foo"];
 }
 
-- (void)viewDidUnload
-{
-    [super viewDidUnload];
-    // Release any retained subviews of the main view.
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+
+    [[self navigationController] setTitle:[self title]];
 }
 
 - (void)navigationController:(UINavigationController *)navigationController willShowViewController:(UIViewController *)viewController animated:(BOOL)animated
 {
+    NSLog(@"*********** MENU 1");
+    self.navigationItem.leftBarButtonItem = self.splitViewController.displayModeButtonItem;
+    self.navigationItem.leftItemsSupplementBackButton = YES;
+    /*
     [[[[HFRplusAppDelegate sharedAppDelegate] splitViewController] popOver] dismissPopoverAnimated:YES];
     
     if ([[UIApplication sharedApplication] statusBarOrientation] == UIInterfaceOrientationPortrait || [[UIApplication sharedApplication] statusBarOrientation] == UIInterfaceOrientationPortraitUpsideDown) {
@@ -54,14 +57,15 @@
         if (![mySplit respondsToSelector:@selector(displayModeButtonItem)]) {
             NSLog(@"SHOW DETAIL ADD BUTN");
             [navItem setLeftBarButtonItem:[mySplit mybarButtonItem] animated:NO];
-        }else{
-                [[HFRplusAppDelegate sharedAppDelegate] detailNavigationController].viewControllers[0].navigationItem.leftBarButtonItem = mySplit.displayModeButtonItem;
+        }
+        else {
+            [[HFRplusAppDelegate sharedAppDelegate] detailNavigationController].viewControllers[0].navigationItem.leftBarButtonItem = mySplit.displayModeButtonItem;
         }
     }
 
     if ([viewController isKindOfClass:[MessagesTableViewController class]]) {
         [navigationController setNavigationBarHidden:NO animated:animated];
-    }
+    }*/
 }
 
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation

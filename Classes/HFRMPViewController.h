@@ -8,7 +8,6 @@
 #import <UIKit/UIKit.h>
 #import "TopicsTableViewController.h"
 
-
 @interface HFRMPViewController : TopicsTableViewController {
     bool reloadOnAppear;
     UIBarButtonItem *actionButton;

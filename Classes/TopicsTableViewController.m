@@ -1614,8 +1614,6 @@
             }]];
         }
 				
-        CGPoint longPressLocation2 = [longPressRecognizer locationInView:[[[HFRplusAppDelegate sharedAppDelegate] splitViewController] view]];
-        CGRect origFrame = CGRectMake( longPressLocation2.x, longPressLocation2.y, 1, 1);
 
         if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone)
         {
@@ -1627,7 +1625,9 @@
         }
         else   {
             // Required for UIUserInterfaceIdiomPad
-            topicActionAlert.popoverPresentationController.sourceView = [[[HFRplusAppDelegate sharedAppDelegate] splitViewController] view];
+            CGPoint pointLocation = [longPressRecognizer locationInView:self.view];
+            CGRect origFrame = CGRectMake( pointLocation.x, pointLocation.y, 1, 1);
+            topicActionAlert.popoverPresentationController.sourceView = self.view;
             topicActionAlert.popoverPresentationController.sourceRect = origFrame;
             topicActionAlert.popoverPresentationController.backgroundColor = [ThemeColors alertBackgroundColor:[[ThemeManager sharedManager] theme]];
         }
@@ -1703,7 +1703,7 @@
         
         [self.navigationController pushViewController:messagesTableViewController animated:YES];
     }
-    else if (self.detailNavigationViewController) {
+    else if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad && self.detailNavigationViewController) {
         NSLog(@"Pushing messagesTableViewController");
         [self.detailNavigationViewController pushViewController:messagesTableViewController animated:YES];
         [self.detailNavigationViewController setViewControllers:[NSMutableArray arrayWithObjects:messagesTableViewController, nil] animated:YES];

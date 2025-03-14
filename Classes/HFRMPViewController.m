@@ -9,6 +9,7 @@
 
 #import "HFRMPViewController.h"
 #import "MessagesTableViewController.h"
+#import "DetailNavigationViewController.h"
 
 #import "Topic.h"
 #import "TopicCellView.h"
@@ -22,7 +23,7 @@
 #import <SDWebImage/SDWebImage.h>
 
 @implementation HFRMPViewController
-@synthesize reloadOnAppear, actionButton, reloadButton;
+@synthesize reloadOnAppear, actionButton, reloadButton, detailNavigationViewController;
 
  // The designated initializer.  Override if you create the controller programmatically and want to perform customization that is not appropriate for viewDidLoad.
 /*
@@ -302,14 +303,7 @@
                 }
             }]];
         }
-        
-        
-        
-        
-        CGPoint longPressLocation2 = [longPressRecognizer locationInView:[[[HFRplusAppDelegate sharedAppDelegate] splitViewController] view]];
-        CGRect origFrame = CGRectMake( longPressLocation2.x, longPressLocation2.y, 1, 1);
-        
-        
+                
         if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
             // Can't use UIAlertActionStyleCancel in dark theme : https://stackoverflow.com/a/44606994/1853603
             UIAlertActionStyle cancelButtonStyle = [[ThemeManager sharedManager] cancelAlertStyle];
@@ -317,8 +311,9 @@
                 [self dismissViewControllerAnimated:YES completion:nil];
             }]];
         } else {
-            // Required for UIUserInterfaceIdiomPad
-            topicActionAlert.popoverPresentationController.sourceView = [[[HFRplusAppDelegate sharedAppDelegate] splitViewController] view];
+            CGPoint pointLocation = [longPressRecognizer locationInView:self.view];
+            CGRect origFrame = CGRectMake( pointLocation.x, pointLocation.y, 1, 1);
+            topicActionAlert.popoverPresentationController.sourceView = self.view;
             topicActionAlert.popoverPresentationController.sourceRect = origFrame;
             topicActionAlert.popoverPresentationController.backgroundColor = [ThemeColors alertBackgroundColor:[[ThemeManager sharedManager] theme]];
         }

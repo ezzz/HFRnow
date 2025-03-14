@@ -60,7 +60,7 @@
 @property (nonatomic, strong) UIAlertController *forumActionAlert;
 
 @property (nonatomic, strong) TabBarController *tabbarController;
-@property (nonatomic, strong) DetailNavigationViewController* detailNavigationVC;
+@property (nonatomic, strong) DetailNavigationViewController* detailNavigationViewController;
 
 -(void)loadDataInTableView:(NSData *)contentData;
 -(void)reload:(BOOL)shake;

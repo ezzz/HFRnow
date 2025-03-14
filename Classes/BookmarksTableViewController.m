@@ -245,6 +245,7 @@
 
     // Open topic
     // Sur iPhone
+    /*
     if (([self respondsToSelector:@selector(traitCollection)] && [HFRplusAppDelegate sharedAppDelegate].window.traitCollection.horizontalSizeClass == UIUserInterfaceSizeClassCompact) ||
         [[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone ||
         [[HFRplusAppDelegate sharedAppDelegate].detailNavigationController.topViewController isMemberOfClass:[BrowserViewController class]]) {
@@ -265,7 +266,9 @@
         // Close left panel on ipad in portrait mode
         [[HFRplusAppDelegate sharedAppDelegate] hidePrimaryPanelOnIpad];
     }
+    */
     
+    self.navigationItem.backButtonDisplayMode = UINavigationItemBackButtonDisplayModeMinimal;
 }
 
 

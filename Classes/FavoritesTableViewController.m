@@ -1467,11 +1467,6 @@
         }];
         [topicActionAlert addAction:uiActionCheckQuotes];
         
-
-        CGPoint longPressLocation2 = [longPressRecognizer locationInView:[[[HFRplusAppDelegate sharedAppDelegate] splitViewController] view]];
-        CGRect origFrame = CGRectMake( longPressLocation2.x, longPressLocation2.y, 1, 1);
-        
-        
         if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
             // Can't use UIAlertActionStyleCancel in dark theme : https://stackoverflow.com/a/44606994/1853603
             UIAlertActionStyle cancelButtonStyle = [[ThemeManager sharedManager] cancelAlertStyle];
@@ -1479,8 +1474,9 @@
                 [self dismissViewControllerAnimated:YES completion:nil];
             }]];
         } else {
-            // Required for UIUserInterfaceIdiomPad
-            topicActionAlert.popoverPresentationController.sourceView = [[[HFRplusAppDelegate sharedAppDelegate] splitViewController] view];
+            CGPoint pointLocation = [longPressRecognizer locationInView:self.view];
+            CGRect origFrame = CGRectMake( pointLocation.x, pointLocation.y, 1, 1);
+            topicActionAlert.popoverPresentationController.sourceView = self.view;
             topicActionAlert.popoverPresentationController.sourceRect = origFrame;
             topicActionAlert.popoverPresentationController.backgroundColor = [ThemeColors alertBackgroundColor:[[ThemeManager sharedManager] theme]];
         }
@@ -1555,20 +1551,8 @@
         [self.navigationController pushViewController:messagesTableViewController animated:YES];
     }
     else if (detailNavigationVC) {
-        NSLog(@"Pushing messagesTableViewController");
         [self.detailNavigationVC pushViewController:messagesTableViewController animated:YES];
         [self.detailNavigationVC setViewControllers:[NSMutableArray arrayWithObjects:messagesTableViewController, nil] animated:YES];
-        /*
-        [[[[[HFRplusAppDelegate sharedAppDelegate] splitViewController] viewControllers] objectAtIndex:1] popToRootViewControllerAnimated:NO];
-        
-        [[[HFRplusAppDelegate sharedAppDelegate] detailNavigationController] setViewControllers:[NSMutableArray arrayWithObjects:messagesTableViewController, nil] animated:YES];
-        
-        if ([messagesTableViewController.splitViewController respondsToSelector:@selector(displayModeButtonItem)]) {
-            NSLog(@"PUSH ADD BTN");
-            [[HFRplusAppDelegate sharedAppDelegate] detailNavigationController].viewControllers[0].navigationItem.leftBarButtonItem = messagesTableViewController.splitViewController.displayModeButtonItem;
-            [[HFRplusAppDelegate sharedAppDelegate] detailNavigationController].viewControllers[0].navigationItem.leftItemsSupplementBackButton = YES;
-        }*/
-        
     }
     
     [self setTopicViewed];

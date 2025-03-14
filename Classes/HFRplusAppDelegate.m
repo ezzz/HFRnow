@@ -11,7 +11,6 @@
 
 #import "HFRMPViewController.h"
 #import "FavoritesTableViewController.h"
-#import "OldFavoritesTableViewController.h"
 #import "ForumsTableViewController.h"
 
 #import "MKStoreManager.h"
@@ -685,7 +684,8 @@
 }
 
 - (void)hidePrimaryPanelOnIpad {
-    if ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPad /*&& [[UIApplication sharedApplication] statusBarOrientation] == UIInterfaceOrientationPortrait*/) {
+    /* TODO TABBAR
+    if ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPad ) {
         UISplitViewController* splitViewController = [[HFRplusAppDelegate sharedAppDelegate] splitViewController];
         if (self.splitViewController.displayMode == UISplitViewControllerDisplayModePrimaryOverlay) {
             [UIView animateWithDuration:0.3 animations:^{
@@ -694,7 +694,7 @@
                 splitViewController.preferredDisplayMode = UISplitViewControllerDisplayModeAutomatic;
             }];
         }
-    }
+    }*/
 }
 
 

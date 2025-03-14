@@ -9,6 +9,8 @@
 
 #import "ForumsTableViewController.h"
 #import "TopicsTableViewController.h"
+#import "DetailNavigationViewController.h"
+
 #import "TabBarController.h"
 
 #import "HTMLParser.h"
@@ -31,7 +33,7 @@
 
 @implementation ForumsTableViewController
 @synthesize request;
-@synthesize forumsTableView, loadingView, arrayData, arrayNewData, topicsTableViewController, detailNavigationVC;
+@synthesize forumsTableView, loadingView, arrayData, arrayNewData, topicsTableViewController, detailNavigationViewController;
 @synthesize reloadOnAppear, status, statusMessage, maintenanceView, metaDataList, pressedIndexPath, forumActionAlert;
 @synthesize tmpCell;
 
@@ -845,17 +847,6 @@
 	//Bouton Reload
     [self showBarButton:kReload];
 
-
-    
-    // test BTN
-    UIBarButtonItem *segmentBarItem1 = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"sidebar.left"] style:UIBarButtonItemStylePlain target:self action:@selector(actionButtonSidebar)];
-    UIBarButtonItem *segmentBarItem2 = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"sidebar.left"] style:UIBarButtonItemStylePlain target:self action:@selector(actionButtonSidebar)];
-
-    //UIBarButtonItem *segmentBarItem2 = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemOrganize target:self action:@selector(actionButtonSidebar)];
-    self.navigationItem.backBarButtonItem = segmentBarItem1;
-    self.navigationItem.leftBarButtonItem = segmentBarItem2;
-    self.navigationItem.leftItemsSupplementBackButton = NO;
-    
 	[(ShakeView*)self.view setShakeDelegate:self];
 
 	self.arrayData = [[NSMutableArray alloc] init];
@@ -1059,7 +1050,7 @@
         }
         else {
             aView = [[TopicsTableViewController alloc] initWithNibName:@"TopicsTableViewController" bundle:nil];
-            ((TopicsTableViewController*)aView).detailNavigationViewController  = self.detailNavigationVC;
+            ((TopicsTableViewController*)aView).detailNavigationViewController  = self.detailNavigationViewController;
         }
         
         
@@ -1150,10 +1141,6 @@
         }
 
         
-        CGPoint longPressLocation2 = [longPressRecognizer locationInView:[[[HFRplusAppDelegate sharedAppDelegate] splitViewController] view]];
-        CGRect origFrame = CGRectMake( longPressLocation2.x, longPressLocation2.y, 1, 1);
-        
-        
         if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
             // Can't use UIAlertActionStyleCancel in dark theme : https://stackoverflow.com/a/44606994/1853603
             UIAlertActionStyle cancelButtonStyle = [[ThemeManager sharedManager] cancelAlertStyle];
@@ -1162,7 +1149,9 @@
             }]];
         } else {
             // Required for UIUserInterfaceIdiomPad
-            forumActionAlert.popoverPresentationController.sourceView = [[[HFRplusAppDelegate sharedAppDelegate] splitViewController] view];
+            CGPoint pointLocation = [longPressRecognizer locationInView:self.view];
+            CGRect origFrame = CGRectMake( pointLocation.x, pointLocation.y, 1, 1);
+            forumActionAlert.popoverPresentationController.sourceView = self.view;
             forumActionAlert.popoverPresentationController.sourceRect = origFrame;
             forumActionAlert.popoverPresentationController.backgroundColor = [ThemeColors alertBackgroundColor:[[ThemeManager sharedManager] theme]];
         }

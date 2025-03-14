@@ -63,102 +63,49 @@
     if ([self respondsToSelector:@selector(setPresentsWithGesture:)]) {
         //[self setPresentsWithGesture:NO];
     }
+    
+    DetailNavigationViewController *detailNavigationController = [[DetailNavigationViewController alloc] initWithRootViewController:[[UIViewController alloc] init]];
+    detailNavigationController.delegate = detailNavigationController;
+    
+    UINavigationController *masterViewController = nil;
+    
     if (self.tabIndex == 0)
     {
-        ForumsTableViewController* favoritesVC = [[ForumsTableViewController alloc] initWithNibName:@"ForumsTableViewController" bundle:nil];
-        UINavigationController *favNavC = [[UINavigationController alloc] initWithRootViewController:favoritesVC];
-        DetailNavigationViewController *navigationController = [[DetailNavigationViewController alloc] initWithRootViewController:[[UIViewController alloc] init]];
-        navigationController.delegate = navigationController;
-        
-        self.viewControllers = @[favNavC, navigationController];
+        ForumsTableViewController* vc = [[ForumsTableViewController alloc] initWithNibName:@"ForumsTableViewController" bundle:nil];
+        masterViewController = [[UINavigationController alloc] initWithRootViewController:vc];
+        vc.detailNavigationViewController = detailNavigationController;
     }
     else if (self.tabIndex == 1)
     {
-        FavoritesTableViewController* favoritesVC = [[FavoritesTableViewController alloc] initWithNibName:@"FavoritesTableViewController" bundle:nil];
-        UINavigationController *favNavC = [[UINavigationController alloc] initWithRootViewController:favoritesVC];
-        UINavigationBarAppearance *app = [UINavigationBarAppearance new];
-        app.backgroundColor = [ThemeColors navBackgroundColor:[[ThemeManager sharedManager] theme]];
-        favNavC.navigationBar.scrollEdgeAppearance = favNavC.navigationBar.standardAppearance = app;
-
-        DetailNavigationViewController *navigationController = [[DetailNavigationViewController alloc] initWithRootViewController:[[UIViewController alloc] init]];
-        navigationController.delegate = navigationController;
-        favoritesVC.detailNavigationVC = navigationController;
-
-        
-        self.viewControllers = @[favNavC, navigationController];
+        FavoritesTableViewController* vc = [[FavoritesTableViewController alloc] initWithNibName:@"FavoritesTableViewController" bundle:nil];
+        masterViewController = [[UINavigationController alloc] initWithRootViewController:vc];
+        vc.detailNavigationVC = detailNavigationController;
     }
     else if (self.tabIndex == 2) {
-        HFRMPViewController* favoritesVC = [[HFRMPViewController alloc] init];
-        UINavigationController *favNavC = [[UINavigationController alloc] initWithRootViewController:favoritesVC];
-        DetailNavigationViewController *navigationController = [[DetailNavigationViewController alloc] initWithRootViewController:[[UIViewController alloc] init]];
-        navigationController.delegate = navigationController;
-        //favoritesVC.detailNavigationVC = navigationController;
-
-        self.viewControllers = @[favNavC, navigationController];
+        HFRMPViewController* vc = [[HFRMPViewController alloc] init];
+        masterViewController = [[UINavigationController alloc] initWithRootViewController:vc];
+        vc.detailNavigationViewController = detailNavigationController;
     }
     else if (self.tabIndex == 3) {
-        PlusTableViewController* favoritesVC = [[PlusTableViewController alloc] initWithNibName:@"PlusTableView" bundle:nil];
-       UINavigationController *favNavC = [[UINavigationController alloc] initWithRootViewController:favoritesVC];
-       DetailNavigationViewController *navigationController = [[DetailNavigationViewController alloc] initWithRootViewController:[[UIViewController alloc] init]];
-       navigationController.delegate = navigationController;
-       //favoritesVC.detailNavigationVC = navigationController;
-
-       self.viewControllers = @[favNavC, navigationController];
-   }
-    /*
-     else if (self.tabIndex == 3) {
-        PlusSettingsViewController* favoritesVC = [[PlusSettingsViewController alloc] initWithNibName:@"SettingsView" bundle:nil];
-        UINavigationController *favNavC = [[UINavigationController alloc] initWithRootViewController:favoritesVC];
-        DetailNavigationViewController *navigationController = [[DetailNavigationViewController alloc] initWithRootViewController:[[UIViewController alloc] init]];
-        navigationController.delegate = navigationController;
-        //favoritesVC.detailNavigationVC = navigationController;
-
-        self.viewControllers = @[favNavC, navigationController];
-    }
-    else if (self.tabIndex == 4) {
-        CompteViewController* favoritesVC = [[CompteViewController alloc] initWithNibName:@"CompteViewController" bundle:nil];
-        UINavigationController *favNavC = [[UINavigationController alloc] initWithRootViewController:favoritesVC];
-        DetailNavigationViewController *navigationController = [[DetailNavigationViewController alloc] initWithRootViewController:[[UIViewController alloc] init]];
-        navigationController.delegate = navigationController;
-        //favoritesVC.detailNavigationVC = navigationController;
-
-        self.viewControllers = @[favNavC, navigationController];
-    }*/
-
-    self.view.backgroundColor = [UIColor whiteColor];
-}
-
-
-- (void)viewDidLayoutSubviews
-{
-    /*
-    CGFloat kMasterViewWidth = [UIScreen mainScreen].bounds.size.width * 1/4;
-    if ((UIInterfaceOrientationIsPortrait(self.interfaceOrientation))) {
-        kMasterViewWidth = [UIScreen mainScreen].bounds.size.width * 2/5;
+        PlusTableViewController* vc = [[PlusTableViewController alloc] initWithNibName:@"PlusTableView" bundle:nil];
+        masterViewController = [[UINavigationController alloc] initWithRootViewController:vc];
+        vc.detailNavigationViewController = detailNavigationController;
     }
     
-    UIViewController *masterViewController = [self.viewControllers objectAtIndex:0];
-    UIViewController *detailViewController = [self.viewControllers objectAtIndex:1];
-    
-    if (detailViewController.view.frame.origin.x > 0.0) {
-        // Adjust the width of the master view
-        CGRect masterViewFrame = masterViewController.view.frame;
-        CGFloat deltaX = masterViewFrame.size.width - kMasterViewWidth;
-        masterViewFrame.size.width -= deltaX;
-        masterViewController.view.frame = masterViewFrame;
+    // Set theme
+    UINavigationBarAppearance *app = [UINavigationBarAppearance new];
+    app.backgroundColor = [ThemeColors navBackgroundColor:[[ThemeManager sharedManager] theme]];
+    masterViewController.navigationBar.scrollEdgeAppearance = masterViewController.navigationBar.standardAppearance = app;
+    // Hide central line
+    self.view.backgroundColor = [ThemeColors navBackgroundColor:[[ThemeManager sharedManager] theme]];
 
-        // Adjust the width of the detail view
-        CGRect detailViewFrame = detailViewController.view.frame;
-        detailViewFrame.origin.x -= deltaX;
-        detailViewFrame.size.width += deltaX;
-        detailViewController.view.frame = detailViewFrame;
+    self.viewControllers = @[masterViewController, detailNavigationController];
+    
+    //detailNavigationController.navigationItem.leftBarButtonItem = self.splitViewController.displayModeButtonItem;
 
-        [masterViewController.view setNeedsLayout];
-        [detailViewController.view setNeedsLayout];
-    }
-    
-    [super viewWillLayoutSubviews];
-    
+    self.preferredDisplayMode = UISplitViewControllerDisplayModeAutomatic;
+    self.preferredPrimaryColumnWidthFraction = 0.5;
+    // Not working self.maximumPrimaryColumnWidth = [UIScreen mainScreen].bounds.size.width * 2/5;
 }
 
 - (UIStatusBarStyle)preferredStatusBarStyle {
@@ -175,17 +122,18 @@
 
 - (void)splitViewController:(UISplitViewController *)svc
     willChangeToDisplayMode:(UISplitViewControllerDisplayMode)displayMode {
-    /*
-    //NSLog(@"displayMode %ld", (long)displayMode);
+    
+    NSLog(@"New Display mode %ld", (long)displayMode);
     //return;
-    if (displayMode == UISplitViewControllerDisplayModePrimaryHidden || displayMode == UISplitViewControllerDisplayModePrimaryOverlay) {
-        //NSLog(@"IN");
-        UINavigationItem *navItem = [[[[[HFRplusAppDelegate sharedAppDelegate] detailNavigationController] viewControllers] objectAtIndex:0] navigationItem];
+    if (displayMode == UISplitViewControllerDisplayModeSecondaryOnly || displayMode == UISplitViewControllerDisplayModeOneOverSecondary) {
+        NSLog(@"IN");
+        UINavigationItem *navItem = [self.viewControllers[1] navigationItem];
 
         navItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Menu" style:UIBarButtonItemStylePlain target:self.displayModeButtonItem.target action:self.displayModeButtonItem.action];
     } else {
+        NSLog(@"OUT");
         self.navigationItem.leftBarButtonItem = nil;
-    }*/
+    }
 }
 
 /*
@@ -321,7 +269,7 @@ separateSecondaryViewControllerFromPrimaryViewController:(UIViewController *)pri
 */
 
 #pragma mark Nav+
-
+/*
 -(void)MoveLeftToRight {
     
     //Les deux controllers
@@ -464,43 +412,10 @@ separateSecondaryViewControllerFromPrimaryViewController:(UIViewController *)pri
 -(void)MoveRightToLeft {
     [self MoveRightToLeft:@"http://www.google.com"];
 }
-
-/* for iOS6 support */
-- (UIInterfaceOrientationMask)supportedInterfaceOrientations
-{
-	if ([[[NSUserDefaults standardUserDefaults] stringForKey:@"landscape_mode"] isEqualToString:@"all"]) {
-        //NSLog(@"All");
-        
-		return UIInterfaceOrientationMaskAll;
-	} else {
-        //NSLog(@"Portrait");
-        
-		return UIInterfaceOrientationMaskPortrait;
-	}
-}
-
- 
-- (BOOL)shouldAutorotate
-{
-    return YES;
-}
-
-
-- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
-{
-	// Get user preference
-	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-	NSString *enabled = [defaults stringForKey:@"landscape_mode"];
-    
-	if ([enabled isEqualToString:@"all"]) {
-		return YES;
-	} else {
-		return (interfaceOrientation == UIInterfaceOrientationPortrait);
-	}
-}
-
+*/
 #pragma mark Split View Delegate
 
+/*
 -(void)splitViewController:(UISplitViewController *)svc popoverController:(UIPopoverController *)pc willPresentViewController:(UITabBarController *)aViewController
 {
     NSLog(@"willPresentViewController");
@@ -517,7 +432,8 @@ separateSecondaryViewControllerFromPrimaryViewController:(UIViewController *)pri
     }
 
 }
-
+*/
+/*
 - (void)splitViewController: (SplitViewController *)svc willHideViewController:(UIViewController *)aViewController withBarButtonItem:(UIBarButtonItem*)barButtonItem forPopoverController: (UIPopoverController*)pc {
     
     NSLog(@"willHideViewController");
@@ -542,15 +458,13 @@ separateSecondaryViewControllerFromPrimaryViewController:(UIViewController *)pri
         
         svc.popOver = pc;
 
-        [[HFRplusAppDelegate sharedAppDelegate] detailNavigationController].viewControllers[0].navigationItem.leftBarButtonItem = self.displayModeButtonItem;
+        self.showsSecondaryOnlyButton.navigationItem.leftBarButtonItem = self.displayModeButtonItem;
         [[HFRplusAppDelegate sharedAppDelegate] detailNavigationController].viewControllers[0].navigationItem.leftItemsSupplementBackButton = YES;
 
     }
-    
-    
-
 }
 
+/*
 - (void)splitViewController: (SplitViewController *)svc willShowViewController:(UIViewController *)aViewController invalidatingBarButtonItem:(UIBarButtonItem *)barButtonItem {
    
     NSLog(@"willShowViewController");
@@ -565,5 +479,5 @@ separateSecondaryViewControllerFromPrimaryViewController:(UIViewController *)pri
         svc.popOver = nil;
     }
 }
-
+*/
 @end

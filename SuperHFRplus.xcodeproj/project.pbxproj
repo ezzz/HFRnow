@@ -3440,9 +3440,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		CA7C6FA3185EF50E00B348BA /* HFRnow */ = {
+		CA7C6FA3185EF50E00B348BA /* SuperHFRplus */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = CA7C712F185EF50E00B348BA /* Build configuration list for PBXNativeTarget "HFRnow" */;
+			buildConfigurationList = CA7C712F185EF50E00B348BA /* Build configuration list for PBXNativeTarget "SuperHFRplus" */;
 			buildPhases = (
 				CA7C6FA4185EF50E00B348BA /* Resources */,
 				CA7C70B9185EF50E00B348BA /* Sources */,
@@ -3454,7 +3454,7 @@
 			);
 			dependencies = (
 			);
-			name = HFRnow;
+			name = SuperHFRplus;
 			productName = HFRplus;
 			productReference = CA7C7132185EF50E00B348BA /* SuperHFRplusSwift.app */;
 			productType = "com.apple.product-type.application";
@@ -3478,7 +3478,7 @@
 					};
 				};
 			};
-			buildConfigurationList = C01FCF4E08A954540054247B /* Build configuration list for PBXProject "HFRnow" */;
+			buildConfigurationList = C01FCF4E08A954540054247B /* Build configuration list for PBXProject "SuperHFRplus" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = en;
 			hasScannedForEncodings = 1;
@@ -3493,7 +3493,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				CA7C6FA3185EF50E00B348BA /* HFRnow */,
+				CA7C6FA3185EF50E00B348BA /* SuperHFRplus */,
 			);
 		};
 /* End PBXProject section */
@@ -4474,7 +4474,7 @@
 				CODE_SIGN_STYLE = Manual;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = QMG83DG7YP;
 				ENABLE_BITCODE = NO;
@@ -4540,7 +4540,7 @@
 				CODE_SIGN_STYLE = Manual;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = YES;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = QMG83DG7YP;
 				ENABLE_BITCODE = NO;
@@ -4594,7 +4594,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		C01FCF4E08A954540054247B /* Build configuration list for PBXProject "HFRnow" */ = {
+		C01FCF4E08A954540054247B /* Build configuration list for PBXProject "SuperHFRplus" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				C01FCF4F08A954540054247B /* Debug */,
@@ -4603,7 +4603,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		CA7C712F185EF50E00B348BA /* Build configuration list for PBXNativeTarget "HFRnow" */ = {
+		CA7C712F185EF50E00B348BA /* Build configuration list for PBXNativeTarget "SuperHFRplus" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				CA7C7130185EF50E00B348BA /* Debug */,

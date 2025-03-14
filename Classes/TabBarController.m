@@ -8,7 +8,6 @@
 #import "TabBarController.h"
 #import "HFRplusAppDelegate.h"
 #import "FavoritesTableViewController.h"
-#import "OldFavoritesTableViewController.h"
 #import "HFRMPViewController.h"
 #import "ForumsTableViewController.h"
 #import "HFRTabBar.h"
@@ -26,33 +25,18 @@
     NSLog(@"TabBarController is loading......");
     [super viewDidLoad];
 	
-    CustomSplitViewController* splitVC0 = [[CustomSplitViewController alloc] init];
-    splitVC0.tabBarItem = [[UITabBarItem alloc] initWithTitle:@"Categories" image:[UIImage imageNamed:[ThemeColors tabBarItemUnselectedImageAtIndex:0]] selectedImage:[UIImage imageNamed:[ThemeColors tabBarItemSelectedImageAtIndex:0]]];
-    /*
     SplitViewController* splitVC0 = [[SplitViewController alloc] initForIndex:0];
-    splitVC0.tabBarItem = [[UITabBarItem alloc] initWithTitle:@"CATTT" image:[UIImage imageNamed:[ThemeColors tabBarItemUnselectedImageAtIndex:0]] selectedImage:[UIImage imageNamed:[ThemeColors tabBarItemSelectedImageAtIndex:0]]];
-    splitVC0.preferredPrimaryColumnWidthFraction = 0.6;
-    [splitVC0 setPreferredDisplayMode:UISplitViewControllerDisplayModeOneOverSecondary];*/
-
+    splitVC0.tabBarItem = [[UITabBarItem alloc] initWithTitle:@"Categories" image:[UIImage imageNamed:[ThemeColors tabBarItemUnselectedImageAtIndex:0]] selectedImage:[UIImage imageNamed:[ThemeColors tabBarItemSelectedImageAtIndex:0]]];
 
     SplitViewController* splitVC1 = [[SplitViewController alloc] initForIndex:1];
     splitVC1.tabBarItem = [[UITabBarItem alloc] initWithTitle:@"Favoris" image:[UIImage imageNamed:[ThemeColors tabBarItemUnselectedImageAtIndex:1]] selectedImage:[UIImage imageNamed:[ThemeColors tabBarItemSelectedImageAtIndex:1]]];
-    
-    //splitVC1.preferredPrimaryColumnWidthFraction = 0.4;
-    //[splitVC1 setPreferredDisplayMode:UISplitViewControllerDisplayModeTwoDisplaceSecondary];
-    
-    //splitVC1.maximumPrimaryColumnWidth = 0.3 * UIScreen.main.bounds.size.width;
 
     SplitViewController* splitVC2 = [[SplitViewController alloc] initForIndex:2];
     splitVC2.tabBarItem = [[UITabBarItem alloc] initWithTitle:@"Messages" image:[UIImage imageNamed:[ThemeColors tabBarItemUnselectedImageAtIndex:3]] selectedImage:[UIImage imageNamed:[ThemeColors tabBarItemSelectedImageAtIndex:3]]];
 
     SplitViewController* splitVC3 = [[SplitViewController alloc] initForIndex:3];
     splitVC3.tabBarItem = [[UITabBarItem alloc] initWithTitle:@"Plus" image:[UIImage imageNamed:[ThemeColors tabBarItemUnselectedImageAtIndex:4]] selectedImage:[UIImage imageNamed:[ThemeColors tabBarItemSelectedImageAtIndex:4]]];
-    
-    /*
-    SplitViewController* splitVC4 = [[SplitViewController alloc] initForIndex:4];
-    splitVC3.tabBarItem = [[UITabBarItem alloc] initWithTitle:@"Comptes" image:[UIImage imageNamed:[ThemeColors tabBarItemUnselectedImageAtIndex:4]] selectedImage:[UIImage imageNamed:[ThemeColors tabBarItemSelectedImageAtIndex:4]]];*/
-    
+        
     self.viewControllers = @[splitVC0, splitVC1, splitVC2, splitVC3];
     
 

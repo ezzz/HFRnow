@@ -18,7 +18,7 @@
                BlueprintIdentifier = "4C007B401FD70B74003F6DF9"
                BuildableName = "Favorites.appex"
                BlueprintName = "Favorites"
-               ReferencedContainer = "container:HFRnow.xcodeproj">
+               ReferencedContainer = "container:SuperHFRplus.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -31,8 +31,8 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "CA7C6FA3185EF50E00B348BA"
                BuildableName = "SuperHFRplusSwift.app"
-               BlueprintName = "HFRnow"
-               ReferencedContainer = "container:HFRnow.xcodeproj">
+               BlueprintName = "SuperHFRplus"
+               ReferencedContainer = "container:SuperHFRplus.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -48,7 +48,7 @@
             BlueprintIdentifier = "4C007B401FD70B74003F6DF9"
             BuildableName = "Favorites.appex"
             BlueprintName = "Favorites"
-            ReferencedContainer = "container:HFRnow.xcodeproj">
+            ReferencedContainer = "container:SuperHFRplus.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -74,7 +74,7 @@
             BlueprintIdentifier = "4C007B401FD70B74003F6DF9"
             BuildableName = "Favorites.appex"
             BlueprintName = "Favorites"
-            ReferencedContainer = "container:HFRnow.xcodeproj">
+            ReferencedContainer = "container:SuperHFRplus.xcodeproj">
          </BuildableReference>
       </RemoteRunnable>
    </LaunchAction>
@@ -91,8 +91,8 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "CA7C6FA3185EF50E00B348BA"
             BuildableName = "SuperHFRplusSwift.app"
-            BlueprintName = "HFRnow"
-            ReferencedContainer = "container:HFRnow.xcodeproj">
+            BlueprintName = "SuperHFRplus"
+            ReferencedContainer = "container:SuperHFRplus.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
