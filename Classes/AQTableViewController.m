@@ -128,53 +128,9 @@
 
     self.messagesTableViewController = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:sFormattedUrl displaySeparator:YES];;
 
-    // Open topic
-    // Sur iPhone
-    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone)
-    {
-        self.navigationItem.backBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"AQ" style: UIBarButtonItemStylePlain target:nil action:nil];
-        [self.navigationController pushViewController:self.messagesTableViewController animated:YES];
-    } else
-    { //iPad
-        self.navigationItem.backBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"AQ" style: UIBarButtonItemStylePlain target:nil action:nil];
-        [self.navigationController pushViewController:self.messagesTableViewController animated:YES];
-        [self.navigationController setViewControllers:[NSMutableArray arrayWithObjects:messagesTableViewController, nil] animated:YES];
-    }
-    
-    // Close left panel on ipad in portrait mode
-    //[[HFRplusAppDelegate sharedAppDelegate] hidePrimaryPanelOnIpad];
-
+    self.navigationItem.backBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"AQ" style: UIBarButtonItemStylePlain target:nil action:nil];
+    [self.navigationController pushViewController:self.messagesTableViewController animated:YES];
 }
-
-/* UNUsED ?
-- (void)pushTopic {
-    
-    if (([self respondsToSelector:@selector(traitCollection)] && [HFRplusAppDelegate sharedAppDelegate].window.traitCollection.horizontalSizeClass == UIUserInterfaceSizeClassCompact) ||
-        [[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone ||
-        [[HFRplusAppDelegate sharedAppDelegate].detailNavigationController.topViewController isMemberOfClass:[BrowserViewController class]]) {
-        
-        self.navigationItem.backBarButtonItem =
-        [[UIBarButtonItem alloc] initWithTitle:@" "
-                                         style: UIBarButtonItemStylePlain
-                                        target:nil
-                                        action:nil];
-        
-        [self.navigationController pushViewController:messagesTableViewController animated:YES];
-    }
-    else {
-        [[[[[HFRplusAppDelegate sharedAppDelegate] splitViewController] viewControllers] objectAtIndex:1] popToRootViewControllerAnimated:NO];
-        
-        [[[HFRplusAppDelegate sharedAppDelegate] detailNavigationController] setViewControllers:[NSMutableArray arrayWithObjects:messagesTableViewController, nil] animated:YES];
-        
-        if ([messagesTableViewController.splitViewController respondsToSelector:@selector(displayModeButtonItem)]) {
-            NSLog(@"PUSH ADD BTN");
-            [[HFRplusAppDelegate sharedAppDelegate] detailNavigationController].viewControllers[0].navigationItem.leftBarButtonItem = messagesTableViewController.splitViewController.displayModeButtonItem;
-            [[HFRplusAppDelegate sharedAppDelegate] detailNavigationController].viewControllers[0].navigationItem.leftItemsSupplementBackButton = YES;
-        }
-        
-    }
-}
-*/
 
 - (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section {
     return 0;

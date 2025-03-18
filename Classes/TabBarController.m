@@ -14,19 +14,14 @@
 #import "ThemeColors.h"
 #import "ThemeManager.h"
 
-#import "CustomSplitViewController.h"
-
-
 @implementation TabBarController
 
-@synthesize forumsTableViewController, favoritesTableViewController;
 
 -(void)viewDidLoad {
-    NSLog(@"TabBarController is loading......");
     [super viewDidLoad];
 	
     SplitViewController* splitVC0 = [[SplitViewController alloc] initForIndex:0];
-    splitVC0.tabBarItem = [[UITabBarItem alloc] initWithTitle:@"Categories" image:[UIImage imageNamed:[ThemeColors tabBarItemUnselectedImageAtIndex:0]] selectedImage:[UIImage imageNamed:[ThemeColors tabBarItemSelectedImageAtIndex:0]]];
+    splitVC0.tabBarItem = [[UITabBarItem alloc] initWithTitle:@"Catégories" image:[UIImage imageNamed:[ThemeColors tabBarItemUnselectedImageAtIndex:0]] selectedImage:[UIImage imageNamed:[ThemeColors tabBarItemSelectedImageAtIndex:0]]];
 
     SplitViewController* splitVC1 = [[SplitViewController alloc] initForIndex:1];
     splitVC1.tabBarItem = [[UITabBarItem alloc] initWithTitle:@"Favoris" image:[UIImage imageNamed:[ThemeColors tabBarItemUnselectedImageAtIndex:1]] selectedImage:[UIImage imageNamed:[ThemeColors tabBarItemSelectedImageAtIndex:1]]];
@@ -38,10 +33,8 @@
     splitVC3.tabBarItem = [[UITabBarItem alloc] initWithTitle:@"Plus" image:[UIImage imageNamed:[ThemeColors tabBarItemUnselectedImageAtIndex:4]] selectedImage:[UIImage imageNamed:[ThemeColors tabBarItemSelectedImageAtIndex:4]]];
         
     self.viewControllers = @[splitVC0, splitVC1, splitVC2, splitVC3];
-    
 
-
-    //TBD IOS18
+    // TODO TABBAR IOS18 only
     self.mode = UITabBarControllerModeAutomatic;
     //self.tabBarHidden = YES;
     self.sidebar.hidden = NO;
@@ -94,12 +87,12 @@
 }
 
 -(void)setTheme:(Theme)theme{
-  //[self.tabBar setTranslucent:NO];
+  [self.tabBar setTranslucent:NO];
     //if ([[UITabBar appearance] respondsToSelector:@selector(setTranslucent:)]) {
       //  [[UITabBar appearance] setTranslucent:NO];
     //}
     //UIImage *tab_snow = [UIImage imageNamed:@"fond-degrade-bleu-fonce_1258-1348.jpg"];
-    
+    NSLog(@"Set logs");
     /*
     if(!self.bgView){
         self.bgView = [[UIImageView alloc] initWithImage:[ThemeColors imageFromColor:[UIColor clearColor]]];
@@ -149,14 +142,15 @@
     
     self.bgView.image =[ThemeColors imageFromColor:[ThemeColors tabBackgroundColor:theme]];
     self.tabBar.tintColor = [ThemeColors tintColor:theme];
-    
+    */
     if([self.childViewControllers count] > 0){
         for (int i=0; i<[self.childViewControllers count]; i++) {
-            UINavigationController *nvc = (UINavigationController *)[self.childViewControllers objectAtIndex:i];
+            SplitViewController *splitviewcontroller = (SplitViewController *)[self.viewControllers objectAtIndex:i];
+            UINavigationController* nvc = (UINavigationController*)splitviewcontroller.viewControllers.firstObject;
             nvc.navigationBar.barStyle = [ThemeColors barStyle:theme];
         }
     }
-
+/*
     for (int i=0; i<self.tabBar.items.count; i++) {
         UITabBarItem *tabBarItem = [self.tabBar.items objectAtIndex:i];
         int iShift = 0;
@@ -177,7 +171,7 @@
     }*/
 }
 
-/*
+
 -(void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
     [[NSNotificationCenter defaultCenter] removeObserver:self name:kThemeChangedNotification object:nil];
@@ -187,6 +181,7 @@
                                                object:nil];
 }
 
+/*
 - (void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
     [super viewWillTransitionToSize:size withTransitionCoordinator:coordinator];
 }

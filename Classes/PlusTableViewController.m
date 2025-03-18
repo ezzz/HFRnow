@@ -98,24 +98,26 @@
                 [self presentViewController:mailCont animated:YES completion:nil];
             }
             break;
-            // TBD sur IOS:             [self.navigationController pushViewController: animated:YES];
-            
             
     }
     
-    if (vc && self.detailNavigationViewController) {
-        NSLog(@"Trying to pushing PlusTableViewController");
-
-        for (UIViewController *detailvc in self.detailNavigationViewController.viewControllers) {
-            NSLog(@"Comparing %@ with %@", [detailvc class], [vc class]);
-            if ([detailvc isKindOfClass:[vc class]]) {
-                return;
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad)
+    { // iPad
+        if (vc && self.detailNavigationViewController)
+        {
+            
+            for (UIViewController *detailvc in self.detailNavigationViewController.viewControllers) {
+                if ([detailvc isKindOfClass:[vc class]]) {
+                    return;
+                }
             }
+            
+            [self.detailNavigationViewController pushViewController:vc animated:YES];
+            [self.detailNavigationViewController setViewControllers:[NSMutableArray arrayWithObjects:vc, nil] animated:YES];
         }
-        
-        NSLog(@"Pushing PlusTableViewController");
-        [self.detailNavigationViewController pushViewController:vc animated:YES];
-        [self.detailNavigationViewController setViewControllers:[NSMutableArray arrayWithObjects:vc, nil] animated:YES];
+    }
+    else { //iPhone
+        [self.navigationController pushViewController:self.charteViewController animated:YES];
     }
 }
 

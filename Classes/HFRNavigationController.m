@@ -50,12 +50,13 @@
 }
 
 -(void)viewWillAppear:(BOOL)animated {
+    NSLog(@"HFR Navigation controller will appear");
     [super viewWillAppear:animated];
     [self refreshTheme];
 }
 
 - (void)navigationController:(UINavigationController *)navigationController willShowViewController:(UIViewController *)viewController animated:(BOOL)animated {
-    //NSLog(@"HFR Navigation Will show %@", viewController);
+    NSLog(@"HFR Navigation Will show %@", viewController);
     if ([viewController isKindOfClass:[IASKSpecifierValuesViewController class]]) {
         Theme theme = [[ThemeManager sharedManager] theme];
 
@@ -64,7 +65,7 @@
 }
 - (NSString *) userThemeDidChange {
     
-    //NSLog(@"HFR userThemeDidChange");
+    NSLog(@"HFR userThemeDidChange");
     
     Theme theme = [[ThemeManager sharedManager] theme];
 
@@ -98,7 +99,7 @@
     
     [self.navigationBar setNeedsDisplay];
     
-    [self.topViewController viewWillAppear:NO];
+    //[self.topViewController viewWillAppear:NO];
 
     if ([self.topViewController isKindOfClass:[IASKSpecifierValuesViewController class]]) {
         [(IASKSpecifierValuesViewController *)self.topViewController setThemeColors:theme];
@@ -111,19 +112,19 @@
 
 - (void)refreshTheme
 {
-     if (@available(iOS 15.0, *)) {
-         UINavigationBarAppearance *app = [UINavigationBarAppearance new];
-         if (![[NSUserDefaults standardUserDefaults] boolForKey:@"theme_noel_disabled"]) {
-             UIImage *navBG =[[UIImage animatedImageNamed:@"snow" duration:1.f]
-                          resizableImageWithCapInsets:UIEdgeInsetsMake(0, 0, 0, 0) resizingMode:UIImageResizingModeTile];
-             app.backgroundImage = navBG;
-         }
-         else {
-             [app configureWithOpaqueBackground];
-         }
-         app.backgroundColor = [ThemeColors navBackgroundColor:[[ThemeManager sharedManager] theme]];
-         self.navigationBar.scrollEdgeAppearance = self.navigationBar.standardAppearance = app;
+    NSLog(@"refreshTheme");
+
+     UINavigationBarAppearance *app = [UINavigationBarAppearance new];
+     if (![[NSUserDefaults standardUserDefaults] boolForKey:@"theme_noel_disabled"]) {
+         UIImage *navBG =[[UIImage animatedImageNamed:@"snow" duration:1.f]
+                      resizableImageWithCapInsets:UIEdgeInsetsMake(0, 0, 0, 0) resizingMode:UIImageResizingModeTile];
+         app.backgroundImage = navBG;
      }
+     else {
+         [app configureWithOpaqueBackground];
+     }
+     app.backgroundColor = [ThemeColors navBackgroundColor:[[ThemeManager sharedManager] theme]];
+     self.navigationBar.scrollEdgeAppearance = self.navigationBar.standardAppearance = app;
 }
 
 -(void)dealloc {
@@ -136,14 +137,10 @@
 }
 
 - (UIStatusBarStyle)preferredStatusBarStyle{
+    NSLog(@"preferredStatusBarStyle");
     return [ThemeColors statusBarStyle:[[ThemeManager sharedManager] theme]];
 }
 
-- (void)didReceiveMemoryWarning
-{
-    [super didReceiveMemoryWarning];
-    // Dispose of any resources that can be recreated.
-}
 
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation {
     // Return YES for supported orientations
@@ -172,19 +169,17 @@
 
 - (BOOL)shouldAutorotate
 {
-   // NSLog(@"shouldAutorotate %@", [[NSUserDefaults standardUserDefaults] stringForKey:@"landscape_mode"]);
-
     return YES;
 }
 
 - (void)traitCollectionDidChange:(UITraitCollection *)previousTraitCollection {
-    //NSLog(@"=============== HFRNavigation traitCollectionDidChange 1 ===============");
+    NSLog(@"=============== HFRNavigation traitCollectionDidChange 1 ===============");
     [super traitCollectionDidChange:previousTraitCollection];
     if (@available(iOS 13.0, *)) {
         if ([previousTraitCollection hasDifferentColorAppearanceComparedToTraitCollection:self.traitCollection] == false) {
             return;
         }
-        //NSLog(@"=============== HFRNavigation traitCollectionDidChange 2 ===============");
+        NSLog(@"=============== HFRNavigation traitCollectionDidChange 2 ===============");
         [[ThemeManager sharedManager] checkTheme];
     }
 }

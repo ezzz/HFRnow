@@ -23,25 +23,10 @@
 #import "ThemeColors.h"
 
 @interface SplitViewController ()
-
 @end
 
 @implementation SplitViewController
 @synthesize popOver, mybarButtonItem, tabIndex;
-
-/*
-- (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
-{
-    self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
-    if (self) {
-        // Custom initialization
-        //NSLog(@"initWithNibNameinitWithNibNameinitWithNibNameinitWithNibName");
-        self.mybarButtonItem = [[UIBarButtonItem alloc] init];
-        self.delegate = self;
-    }
-    return self;
-}
-*/
 
 - (SplitViewController*)initForIndex:(NSInteger)index
 {
@@ -57,13 +42,7 @@
 {
     NSLog(@"SplitViewController is loading.... for index..... %d", (int)self.tabIndex);
     [super viewDidLoad];
-	// Do any additional setup after loading the view.
-    
-    
-    if ([self respondsToSelector:@selector(setPresentsWithGesture:)]) {
-        //[self setPresentsWithGesture:NO];
-    }
-    
+
     DetailNavigationViewController *detailNavigationController = [[DetailNavigationViewController alloc] initWithRootViewController:[[UIViewController alloc] init]];
     detailNavigationController.delegate = detailNavigationController;
     
@@ -71,42 +50,72 @@
     
     if (self.tabIndex == 0)
     {
+        //BlueViewController *blueVC = [[BlueViewController alloc] init];
+        //masterViewController = [[UINavigationController alloc] initWithRootViewController:blueVC];
         ForumsTableViewController* vc = [[ForumsTableViewController alloc] initWithNibName:@"ForumsTableViewController" bundle:nil];
-        masterViewController = [[UINavigationController alloc] initWithRootViewController:vc];
+        masterViewController = [[HFRNavigationController alloc] initWithRootViewController:vc];
         vc.detailNavigationViewController = detailNavigationController;
     }
     else if (self.tabIndex == 1)
     {
         FavoritesTableViewController* vc = [[FavoritesTableViewController alloc] initWithNibName:@"FavoritesTableViewController" bundle:nil];
-        masterViewController = [[UINavigationController alloc] initWithRootViewController:vc];
+        masterViewController = [[HFRNavigationController alloc] initWithRootViewController:vc];
         vc.detailNavigationVC = detailNavigationController;
     }
     else if (self.tabIndex == 2) {
         HFRMPViewController* vc = [[HFRMPViewController alloc] init];
-        masterViewController = [[UINavigationController alloc] initWithRootViewController:vc];
+        masterViewController = [[HFRNavigationController alloc] initWithRootViewController:vc];
         vc.detailNavigationViewController = detailNavigationController;
     }
     else if (self.tabIndex == 3) {
         PlusTableViewController* vc = [[PlusTableViewController alloc] initWithNibName:@"PlusTableView" bundle:nil];
-        masterViewController = [[UINavigationController alloc] initWithRootViewController:vc];
+        masterViewController = [[HFRNavigationController alloc] initWithRootViewController:vc];
         vc.detailNavigationViewController = detailNavigationController;
     }
     
     // Set theme
+    /*
     UINavigationBarAppearance *app = [UINavigationBarAppearance new];
     app.backgroundColor = [ThemeColors navBackgroundColor:[[ThemeManager sharedManager] theme]];
-    masterViewController.navigationBar.scrollEdgeAppearance = masterViewController.navigationBar.standardAppearance = app;
+    masterViewController.navigationBar.scrollEdgeAppearance = masterViewController.navigationBar.standardAppearance = app;*/
     // Hide central line
     self.view.backgroundColor = [ThemeColors navBackgroundColor:[[ThemeManager sharedManager] theme]];
 
     self.viewControllers = @[masterViewController, detailNavigationController];
     
-    //detailNavigationController.navigationItem.leftBarButtonItem = self.splitViewController.displayModeButtonItem;
-
     self.preferredDisplayMode = UISplitViewControllerDisplayModeAutomatic;
     self.preferredPrimaryColumnWidthFraction = 0.5;
     // Not working self.maximumPrimaryColumnWidth = [UIScreen mainScreen].bounds.size.width * 2/5;
 }
+
+- (void) viewWillAppear:(BOOL)animated
+{
+    [super viewWillAppear:animated];
+    [self setThemeColors:[[ThemeManager sharedManager] theme]];
+}
+
+-(void)setThemeColors:(Theme)theme {
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"theme_noel_disabled"]) {
+        [self.navigationController.navigationBar setBackgroundImage:[ThemeColors imageFromColor:[UIColor clearColor]] forBarMetrics:UIBarMetricsDefault];
+    } else {
+        UIImage *navBG =[[UIImage animatedImageNamed:@"snow" duration:1.f]
+                         resizableImageWithCapInsets:UIEdgeInsetsMake(0, 0, 0, 0) resizingMode:UIImageResizingModeTile];
+        
+        [self.navigationController.navigationBar setBackgroundImage:navBG forBarMetrics:UIBarMetricsDefault];
+    }
+    
+     [self.navigationController.navigationBar setBarTintColor:[ThemeColors navBackgroundColor:theme]];
+    
+    if ([self.navigationController.navigationBar respondsToSelector:@selector(setTintColor:)]) {
+        [self.navigationController.navigationBar setTintColor:[ThemeColors tintColor:theme]];
+    }
+    
+    [self.navigationController.navigationBar setTitleTextAttributes:@{NSForegroundColorAttributeName : [ThemeColors titleTextAttributesColor:theme]}];
+    [self.navigationController.navigationBar setNeedsDisplay];
+    
+    self.view.backgroundColor = [ThemeColors greyBackgroundColor:theme];
+}
+
 
 - (UIStatusBarStyle)preferredStatusBarStyle {
     if ([[ThemeManager sharedManager] theme] == ThemeLight) {
@@ -123,6 +132,7 @@
 - (void)splitViewController:(UISplitViewController *)svc
     willChangeToDisplayMode:(UISplitViewControllerDisplayMode)displayMode {
     
+    /* It was already commented in 2024 *
     NSLog(@"New Display mode %ld", (long)displayMode);
     //return;
     if (displayMode == UISplitViewControllerDisplayModeSecondaryOnly || displayMode == UISplitViewControllerDisplayModeOneOverSecondary) {
@@ -133,10 +143,10 @@
     } else {
         NSLog(@"OUT");
         self.navigationItem.leftBarButtonItem = nil;
-    }
+    }*/
 }
 
-/*
+/* TODO TABBAR
 - (BOOL)splitViewController:(UISplitViewController *)splitViewController collapseSecondaryViewController:(UIViewController *)secondaryViewController ontoPrimaryViewController:(UIViewController *)primaryViewController {
     //NSLog(@"collapseSecondaryViewController");
 
@@ -268,151 +278,6 @@ separateSecondaryViewControllerFromPrimaryViewController:(UIViewController *)pri
 }
 */
 
-#pragma mark Nav+
-/*
--(void)MoveLeftToRight {
-    
-    //Les deux controllers
-    TabBarController *leftTabBarController = [self.viewControllers objectAtIndex:0];
-    UINavigationController *rightNavController = [self.viewControllers objectAtIndex:1];
-    
-    [rightNavController popToRootViewControllerAnimated:YES];
-    
-    [rightNavController setViewControllers:[NSArray array]];
-    UIViewController * uivc = [[UIViewController alloc] init];
-    uivc.title = @"HFR Now";
-    [rightNavController setViewControllers:[NSMutableArray arrayWithObjects:uivc, nil]];
-
-    
-    
-    //Première tab > navController > msgController
-    //leftTabBarController.selectedIndex = 0;
-    UINavigationController *leftNavController= (UINavigationController *)leftTabBarController.selectedViewController;
-    
-    while (![leftNavController.topViewController isMemberOfClass:[MessagesTableViewController class]] && leftNavController.viewControllers.count > 1) {
-        
-        [leftNavController popViewControllerAnimated:NO];
-    }
-    
-    
-    if ([leftNavController.topViewController isMemberOfClass:[MessagesTableViewController class]]) {
-        MessagesTableViewController *leftMessageController = (MessagesTableViewController *)leftNavController.topViewController;
-        
-        NSLog(@"old url  %@", leftMessageController.currentUrl);
-        NSLog(@"old lastStringFlagTopic %@", leftMessageController.lastStringFlagTopic);
-        
-        NSString *theUrl = leftMessageController.currentUrl;
-        if (leftMessageController.lastStringFlagTopic) {
-            theUrl = [theUrl stringByAppendingString:leftMessageController.lastStringFlagTopic];
-
-        }
-        
-        [leftNavController popViewControllerAnimated:YES];
-        
-        MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:theUrl];
-        [rightNavController setViewControllers:[NSMutableArray arrayWithObjects:aView, nil] animated:YES];
-
-    }
-
-    NSLog(@"END MoveLeftToRight");
-}
-
--(void)NavPlus:(NSString *)url {
-    //Les deux controllers
-    //TabBarController *leftTabBarController = [self.viewControllers objectAtIndex:0];
-    if (self.viewControllers.count < 2) {
-        return;
-    }
-    
-    UINavigationController *rightNavController = [self.viewControllers objectAtIndex:1];
-    
-    //Première tab > navController
-    //leftTabBarController.selectedIndex = 0;
-
-    //on check à droite s'il y a un MessageTVC
-    while (![rightNavController.topViewController isMemberOfClass:[MessagesTableViewController class]]) {
-        
-        [rightNavController popViewControllerAnimated:NO];
-        
-        if (rightNavController.viewControllers.count == 1) {
-            break;
-        }
-    }
-    
-    //on a un MessageTVC à droite
-    if ([rightNavController.topViewController isMemberOfClass:[MessagesTableViewController class]]) {
-        [self MoveRightToLeft:url];
-    }
-    else
-    {
-        BrowserViewController *browserViewController = [[BrowserViewController alloc] initWithURL:url];
-        [browserViewController setFullBrowser:YES];
-        
-        [rightNavController popToRootViewControllerAnimated:NO];
-        [rightNavController setViewControllers:[NSArray array] animated:NO];
-        [rightNavController setViewControllers:[NSMutableArray arrayWithObjects:browserViewController, nil] animated:NO];
-        
-    }
-    
-}
-
-
--(void)MoveRightToLeft:(NSString *)url {
-    NSLog(@"MoveRightToLeft");
-    
-    //Les deux controllers
-    TabBarController *leftTabBarController = [self.viewControllers objectAtIndex:0];
-    UINavigationController *rightNavController = [self.viewControllers objectAtIndex:1];
-    
-    //Première tab > navController
-    //leftTabBarController.selectedIndex = 0;
-    UINavigationController *leftNavController= (UINavigationController *)leftTabBarController.selectedViewController;
-    
-    //deuxième tab > msgController
-    while (![rightNavController.topViewController isMemberOfClass:[MessagesTableViewController class]]) {
-        
-        [rightNavController popViewControllerAnimated:NO];
-    }
-    
-    MessagesTableViewController *rightMessageController = (MessagesTableViewController *)rightNavController.topViewController;
-    
-    [rightMessageController.navigationItem setLeftBarButtonItem:nil animated:NO];
-    
-    rightMessageController.navigationItem.backBarButtonItem =
-    [[UIBarButtonItem alloc] initWithTitle:@"Retour"
-                                     style: UIBarButtonItemStyleBordered
-                                    target:nil
-                                    action:nil];
-    
-    if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"7")) {
-        rightMessageController.navigationItem.backBarButtonItem.title = @" ";
-    }
-    
-    NSLog(@"old url  %@", rightMessageController.currentUrl);
-    NSLog(@"old lastStringFlagTopic %@", rightMessageController.lastStringFlagTopic);
-    
-    NSString *theUrl = rightMessageController.currentUrl;
-    if (rightMessageController.lastStringFlagTopic) {
-        theUrl = [theUrl stringByAppendingString:rightMessageController.lastStringFlagTopic];
-    }
-    
-    MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:theUrl];
-    [leftNavController pushViewController:aView animated:YES];
-    
-    BrowserViewController *browserViewController = [[BrowserViewController alloc] initWithURL:url];
-    [browserViewController setFullBrowser:YES];
-    
-    [rightNavController popToRootViewControllerAnimated:NO];
-    [rightNavController setViewControllers:[NSArray array] animated:NO];
-    [rightNavController setViewControllers:[NSMutableArray arrayWithObjects:browserViewController, nil] animated:NO];
-    
-    NSLog(@"END MoveRightToLeft");
-}
-
--(void)MoveRightToLeft {
-    [self MoveRightToLeft:@"http://www.google.com"];
-}
-*/
 #pragma mark Split View Delegate
 
 /*

@@ -810,7 +810,6 @@
 }
 
 - (void)viewDidLoad {
-    NSLog(@"ForumsTableViewController is loading....");
     [super viewDidLoad];
  
 	self.title = @"Catégories";
@@ -888,21 +887,10 @@
     }
 }
 
-// Method executed when the button is tapped
-- (void)actionButtonSidebar {
-    NSLog(@"Action button sidebar tapped!");
-
-    if ([self.tabBarController isKindOfClass:[TabBarController class]]) {
-        self.tabBarController.sidebar.hidden = NO;
-        NSLog(@"Showing sidebar");
-    }
-}
 
 - (void)viewWillAppear:(BOOL)animated {
-	//NSLog(@"viewWillAppear Forums Table View");
-
-	
     [super viewWillAppear:animated];
+
 	[self.view becomeFirstResponder];
 
 	if (self.topicsTableViewController) {
@@ -1050,16 +1038,16 @@
         }
         else {
             aView = [[TopicsTableViewController alloc] initWithNibName:@"TopicsTableViewController" bundle:nil];
-            ((TopicsTableViewController*)aView).detailNavigationViewController  = self.detailNavigationViewController;
         }
         
         
 		self.topicsTableViewController = aView;
 	}
-    
-	//setup the URL
-	
 
+    
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
+        self.topicsTableViewController.detailNavigationViewController  = self.detailNavigationViewController;
+    }
     
 	self.navigationItem.backBarButtonItem =
 	[[UIBarButtonItem alloc] initWithTitle:@"Retour"

@@ -773,8 +773,7 @@
 }
 
 -(void)forceButtonMenu {
-    NSLog(@"*********** MENU 2");
-/*
+/* TODO TABBAR backbutton ?
     if ([self.splitViewController respondsToSelector:@selector(displayModeButtonItem)]) {
 
         [[HFRplusAppDelegate sharedAppDelegate] detailNavigationController].viewControllers[0].navigationItem.leftBarButtonItem = self.splitViewController.displayModeButtonItem;
@@ -956,7 +955,8 @@
 }
 
 -(void)fullScreen:(id)sender {
-    
+    // TODO TABBAR
+
     if ([(SplitViewController *)[HFRplusAppDelegate sharedAppDelegate].window.rootViewController respondsToSelector:@selector(MoveRightToLeft)]) {
         [(SplitViewController *)[HFRplusAppDelegate sharedAppDelegate].window.rootViewController MoveRightToLeft];
     }
@@ -2789,26 +2789,16 @@ API_AVAILABLE(ios(16.0)) {
     int curMsg = [curMsgN intValue];
     NSLog("actionLink URL = %@%@#%@", [k ForumURL], self.currentUrl, [(LinkItem*)[arrayData objectAtIndex:curMsg] postID]);
     
-    if (@available(iOS 16.0, *)) {
-        // New way: present share sheet
-        NSArray* dataToShare = @[[NSString stringWithFormat:@"%@%@#%@", [k RealForumURL], self.currentUrl, [(LinkItem*)[arrayData objectAtIndex:curMsg] postID]]];
-        UIActivityViewController* activityViewController =[[UIActivityViewController alloc] initWithActivityItems:dataToShare applicationActivities:nil];
-        activityViewController.excludedActivityTypes = @[UIActivityTypeAirDrop];
-        if (activityViewController == nil){
-            return;
-        }
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self presentViewController:activityViewController animated:YES completion:^{}];
-        });
+    // New way: present share sheet
+    NSArray* dataToShare = @[[NSString stringWithFormat:@"%@%@#%@", [k RealForumURL], self.currentUrl, [(LinkItem*)[arrayData objectAtIndex:curMsg] postID]]];
+    UIActivityViewController* activityViewController =[[UIActivityViewController alloc] initWithActivityItems:dataToShare applicationActivities:nil];
+    activityViewController.excludedActivityTypes = @[UIActivityTypeAirDrop];
+    if (activityViewController == nil){
+        return;
     }
-    else {
-        // Old way: copy only to clipboard
-        
-        UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
-        pasteboard.string = [NSString stringWithFormat:@"%@%@#%@", [k RealForumURL], self.currentUrl, [(LinkItem*)[arrayData objectAtIndex:curMsg] postID]];
-            
-        [HFRAlertView DisplayAlertViewWithTitle:@"Lien copié dans le presse-papiers" forDuration:(long)1];
-    }
+    
+    self.navigationItem.backBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Retour" style: UIBarButtonItemStylePlain target:nil action:nil];
+    [self presentViewController:activityViewController animated:YES completion:^{}];
 }
 
 -(void) actionAlerter:(NSNumber *)curMsgN {

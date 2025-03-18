@@ -58,7 +58,7 @@
         }
     }
     self.image = [[UIImageView alloc] initWithImage:[UIImage imageNamed:imageNamed]];
-    //self.image.backgroundColor = [UIColor redColor];
+    self.image.backgroundColor = [UIColor redColor];
     
     self.label = [[UILabel alloc] initWithFrame:CGRectZero];
     [self.label setText:[dico valueForKey:@"message"]];
@@ -93,6 +93,8 @@
     CGRect adjustedFrame = CGRectZero;
     
     if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+        // TODO TABBAR : place holder quand pas de message lu ou favoris
+        
         UITabBarController *tabBar = [[[[HFRplusAppDelegate sharedAppDelegate] splitViewController] viewControllers] objectAtIndex:0];
         originalFrame = [tabBar.view bounds];
         

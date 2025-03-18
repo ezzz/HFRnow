@@ -15,7 +15,6 @@
 #import "ASIHTTPRequest+Tools.h"
 #import "ASIFormDataRequest.h"
 
-
 #import "ShakeView.h"
 
 #import "Topic.h"
@@ -593,7 +592,7 @@
 }
 
 - (void)viewDidLoad {
-    NSLog(@"FavoritesTableViewController is loading....");
+    //NSLog(@"FavoritesTableViewController is loading....");
     [super viewDidLoad];
 
 	self.title = @"Favoris";
@@ -1553,6 +1552,11 @@
     else if (detailNavigationVC) {
         [self.detailNavigationVC pushViewController:messagesTableViewController animated:YES];
         [self.detailNavigationVC setViewControllers:[NSMutableArray arrayWithObjects:messagesTableViewController, nil] animated:YES];
+        
+        /* TODO TABBAR backbutton
+         [[HFRplusAppDelegate sharedAppDelegate] detailNavigationController].viewControllers[0].navigationItem.leftBarButtonItem = messagesTableViewController.splitViewController.displayModeButtonItem;
+        [[HFRplusAppDelegate sharedAppDelegate] detailNavigationController].viewControllers[0].navigationItem.leftItemsSupplementBackButton = YES;
+*/
     }
     
     [self setTopicViewed];

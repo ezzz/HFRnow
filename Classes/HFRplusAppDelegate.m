@@ -123,19 +123,13 @@
     [internetReach startNotifier];
     
     // Start up window
-    /*
+    
     if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
         //[splitViewController view].backgroundColor = [UIColor colorWithPatternImage:[UIImage imageNamed:@"bgbigiPad"]];
+        //self.rootController = [[TabBarController alloc] init];
 
-        splitViewController.delegate = splitViewController;
-        [window setRootViewController:splitViewController];
-
-    } else {
-        [window setRootViewController:rootController];
     }
-     */
     
-    self.rootController = [[TabBarController alloc] init];
     [window setRootViewController:rootController];
     [window makeKeyAndVisible];
 
@@ -700,7 +694,7 @@
 
 - (void)updateMPBadgeWithString:(NSString *)badgeValue;
 {
-    /* TBD
+    /* TODO TABBAR Bade MP
     [[NSUserDefaults standardUserDefaults] setInteger:[badgeValue intValue] forKey:@"nb_mp"];
 
     dispatch_async(dispatch_get_main_queue(),
@@ -723,7 +717,7 @@
 
 - (void)updatePlusBadgeWithString:(NSString *)badgeValue;
 {
-    /* TBD
+    /* TODO TABBAR Bade MP
 
     dispatch_async(dispatch_get_main_queue(),
     ^{
@@ -744,9 +738,10 @@
 
 - (void)readMPBadge;
 {
-    /*
-    //NSLog(@"%@ - %d", badgeValue, [badgeValue intValue]);
-    dispatch_async(dispatch_get_main_queue(), 
+    /* TODO TABBAR Bade MP
+
+     //NSLog(@"%@ - %d", badgeValue, [badgeValue intValue]);
+    dispatch_async(dispatch_get_main_queue(),
     ^{
     NSString *badgeValue = [[[[[self rootController] tabBar] items] objectAtIndex:2] badgeValue];
     
@@ -764,7 +759,6 @@
         }
     });*/
 }
-
 
 - (void)openURL:(NSString *)stringUrl
 {

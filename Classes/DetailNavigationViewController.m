@@ -32,7 +32,6 @@
     self.navigationBar.translucent = NO;
     
     [[self topViewController] setTitle:@"HFR Now"];
-    [self setTitle:@"Foo"];
 }
 
 - (void)viewWillAppear:(BOOL)animated {
@@ -43,7 +42,7 @@
 
 - (void)navigationController:(UINavigationController *)navigationController willShowViewController:(UIViewController *)viewController animated:(BOOL)animated
 {
-    NSLog(@"*********** MENU 1");
+    // TODO TABBAR
     self.navigationItem.leftBarButtonItem = self.splitViewController.displayModeButtonItem;
     self.navigationItem.leftItemsSupplementBackButton = YES;
     /*

@@ -172,7 +172,7 @@
 
 -(void)loadDataInTableView:(NSData *)contentData
 {
-    NSLog(@"TOPICS loadDataInTableView");
+	
 	[self.view removeGestureRecognizer:swipeLeftRecognizer];
 	[self.view removeGestureRecognizer:swipeRightRecognizer];	
 	
@@ -1708,6 +1708,7 @@
         [self.detailNavigationViewController pushViewController:messagesTableViewController animated:YES];
         [self.detailNavigationViewController setViewControllers:[NSMutableArray arrayWithObjects:messagesTableViewController, nil] animated:YES];
 
+        // TODO TABBAR barmenuitem
         /*
         [[[[[HFRplusAppDelegate sharedAppDelegate] splitViewController] viewControllers] objectAtIndex:1] popToRootViewControllerAnimated:NO];
 

@@ -509,13 +509,12 @@
         [self.navigationController pushViewController:messagesTableViewController animated:YES];
     }
     else {
+        // TODO TABBAR
+        
         [[[[[HFRplusAppDelegate sharedAppDelegate] splitViewController] viewControllers] objectAtIndex:1] popToRootViewControllerAnimated:NO];
         
         [[[HFRplusAppDelegate sharedAppDelegate] detailNavigationController] setViewControllers:[NSMutableArray arrayWithObjects:messagesTableViewController, nil] animated:YES];
-        
-        //        [[HFRplusAppDelegate sharedAppDelegate] setDetailNavigationController:messagesTableViewController];
-        
-    } 
+    }
     
 }
 
@@ -546,6 +545,8 @@
         
         if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad)
         {
+            // TODO TABBAR
+
             [self.topicActionSheet showFromRect:origFrame inView:[[[HFRplusAppDelegate sharedAppDelegate] splitViewController] view] animated:YES];
         }
         else
