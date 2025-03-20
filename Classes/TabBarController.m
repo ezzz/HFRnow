@@ -82,10 +82,10 @@
 }
 
 -(void)setTheme:(Theme)theme{
-  [self.tabBar setTranslucent:NO];
     if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone)
     {
-        
+        [self.tabBar setTranslucent:NO];
+
         if(!self.bgView){
             self.bgView = [[UIImageView alloc] initWithImage:[ThemeColors imageFromColor:[UIColor clearColor]]];
             [self.tabBar addSubview:self.bgView];
