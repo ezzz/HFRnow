@@ -884,7 +884,7 @@
         self.navigationItem.rightBarButtonItems = myButtonArray;
     }
     else {
-        UIBarButtonItem *optionsBarItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAction target:self action:@selector(optionsTopic:)];
+        UIBarButtonItem *optionsBarItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"ellipsis.circle"] style:UIBarButtonItemStyleBordered target:self action:@selector(optionsTopic:)];
         optionsBarItem.enabled = NO;
         NSMutableArray *myButtonArray = [[NSMutableArray alloc] initWithObjects:optionsBarItem, nil];
         self.navigationItem.rightBarButtonItems = myButtonArray;
@@ -1272,7 +1272,7 @@
 		 }
 		 
         // Pass the selected object to the new view controller.
-        self.navigationItem.backBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"RET"
+        self.navigationItem.backBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@" "
             style: UIBarButtonItemStylePlain
             target:nil
             action:nil];
@@ -1688,13 +1688,15 @@
         if (![self isModeOffline]) {
             // On ajoute le bouton de notif de sondage
             if ([[NSUserDefaults standardUserDefaults] boolForKey:@"notify_poll_not_answered"] && self.isNewPoll) {
-            UIBarButtonItem *optionsBarItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemTrash target:self action:@selector(optionsTopic:)];
+                UIBarButtonItem *optionsBarItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"ellipsis.circle"] style:UIBarButtonItemStyleBordered target:self action:@selector(optionsTopic:)];
                 UIBarButtonItem* pollBarItem = [[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"icone_sondage"] style:UIBarButtonItemStylePlain target:self action:@selector(showPoll:)];
                 self.navigationItem.rightBarButtonItems = [[NSMutableArray alloc] initWithObjects:optionsBarItem, pollBarItem, nil];
             } else {
-                UIBarButtonItem *optionsBarItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemTrash target:self action:@selector(optionsTopic:)];
+                UIBarButtonItem *optionsBarItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"ellipsis.circle"] style:UIBarButtonItemStyleBordered target:self action:@selector(optionsTopic:)];
                 self.navigationItem.rightBarButtonItems = [[NSMutableArray alloc] initWithObjects:optionsBarItem, nil];
             }
+            
+            
             
             //on ajoute le bouton actualiser si besoin
             if (([self pageNumber] == [self lastPageNumber]) || ([self lastPageNumber] == 0)) {

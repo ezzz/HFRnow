@@ -99,7 +99,7 @@
     
     [self.navigationBar setNeedsDisplay];
     
-    //[self.topViewController viewWillAppear:NO];
+    [self.topViewController viewWillAppear:NO];
 
     if ([self.topViewController isKindOfClass:[IASKSpecifierValuesViewController class]]) {
         [(IASKSpecifierValuesViewController *)self.topViewController setThemeColors:theme];

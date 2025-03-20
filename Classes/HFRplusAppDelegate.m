@@ -124,13 +124,11 @@
     
     // Start up window
     
-    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
-        //[splitViewController view].backgroundColor = [UIColor colorWithPatternImage:[UIImage imageNamed:@"bgbigiPad"]];
-        //self.rootController = [[TabBarController alloc] init];
-
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
+        self.rootController = [[TabBarController alloc] init];
     }
-    
     [window setRootViewController:rootController];
+
     [window makeKeyAndVisible];
 
     if (BACKGROUND_MAINTENANCE) {

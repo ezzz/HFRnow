@@ -116,8 +116,8 @@
             [self.detailNavigationViewController setViewControllers:[NSMutableArray arrayWithObjects:vc, nil] animated:YES];
         }
     }
-    else { //iPhone
-        [self.navigationController pushViewController:self.charteViewController animated:YES];
+    else if (vc) { //iPhone
+        [self.navigationController pushViewController:vc animated:YES];
     }
 }
 

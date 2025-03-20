@@ -1022,18 +1022,16 @@
         switch (index) {
             case 0:return @"categories_on";
             case 1:return @"favorites_on";
-            case 2:return @"favorites_on";
-            case 3:return @"mp_on";
-            case 4:return @"dots_on";
+            case 2:return @"mp_on";
+            case 3:return @"dots_on";
         }
     }
     else {
         switch (index) {
             case 0:return @"cadeaux_on";
             case 1:return @"cadeau_on";
-            case 2:return @"cadeau_on";
-            case 3:return @"message_on";
-            case 4:return @"cane_on";
+            case 2:return @"message_on";
+            case 3:return @"cane_on";
         }
     }
     return @"";
@@ -1045,18 +1043,16 @@
         switch (index) {
             case 0:return @"categories";
             case 1:return @"favorites";
-            case 2:return @"favorites";
-            case 3:return @"mp";
-            case 4:return @"dots";
+            case 2:return @"mp";
+            case 3:return @"dots";
         }
     }
     else {
         switch (index) {
             case 0:return @"cadeaux_off";
             case 1:return @"cadeau_off";
-            case 2:return @"cadeau_off";
-            case 3:return @"message_off";
-            case 4:return @"paques_off";
+            case 2:return @"message_off";
+            case 3:return @"paques_off";
         }
     }
     return @"";

@@ -74,10 +74,10 @@
     }
     
     // Set theme
-    /*
+    
     UINavigationBarAppearance *app = [UINavigationBarAppearance new];
     app.backgroundColor = [ThemeColors navBackgroundColor:[[ThemeManager sharedManager] theme]];
-    masterViewController.navigationBar.scrollEdgeAppearance = masterViewController.navigationBar.standardAppearance = app;*/
+    masterViewController.navigationBar.scrollEdgeAppearance = masterViewController.navigationBar.standardAppearance = app;
     // Hide central line
     self.view.backgroundColor = [ThemeColors navBackgroundColor:[[ThemeManager sharedManager] theme]];
 
