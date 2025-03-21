@@ -1,12 +1,12 @@
 <table>
 <tr>
-<td><img src="https://github.com/FLKone/SuperHFRplus/blob/master/SuperHFRplus/Assets/Icons.xcassets/Classic.appiconset/Icon-App-60x60%402x.png" alt="HFR Now" title="HFR Now" style="display:block; margin: 10px auto 30px auto;" class="center"></td>
-<td><img src="https://github.com/FLKone/SuperHFRplus/blob/master/SuperHFRplus/Assets/Icons.xcassets/Classic-Red.appiconset/Icon-App-60x60%402x.png" alt="HFR Now" title="HFR Now" style="display:block; margin: 10px auto 30px auto;" class="center"></td>
+<td><img src="https://github.com/FLKone/SuperHFRplus/blob/master/SuperHFRplus/Assets/Icons.xcassets/Classic.appiconset/Icon-App-60x60%402x.png" alt="HFR+" title="HFR+" style="display:block; margin: 10px auto 30px auto;" class="center"></td>
+<td><img src="https://github.com/FLKone/SuperHFRplus/blob/master/SuperHFRplus/Assets/Icons.xcassets/Classic-Red.appiconset/Icon-App-60x60%402x.png" alt="HFR+" title="HFR+" style="display:block; margin: 10px auto 30px auto;" class="center"></td>
 </tr>   
 
 <tr>   
-<td>HFR Now</td>
-<td>HFR Now</td>
+<td>HFR+</td>
+<td>HFR+</td>
 </tr>
 <tr>
 <td>v1</td>
@@ -19,7 +19,7 @@
 </table>
 
 
-Super HFR Now - Compatible iOS 17+
+SuperHFR+ - Compatible iOS 17+
 =========================
 Application iOS (iPhone, iPod Touch et iPad) pour le forum hardware.fr :o
 

@@ -50,8 +50,6 @@
     
     if (self.tabIndex == 0)
     {
-        //BlueViewController *blueVC = [[BlueViewController alloc] init];
-        //masterViewController = [[UINavigationController alloc] initWithRootViewController:blueVC];
         ForumsTableViewController* vc = [[ForumsTableViewController alloc] initWithNibName:@"ForumsTableViewController" bundle:nil];
         masterViewController = [[HFRNavigationController alloc] initWithRootViewController:vc];
         vc.detailNavigationViewController = detailNavigationController;

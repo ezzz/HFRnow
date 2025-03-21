@@ -24,7 +24,7 @@
 {
     [super viewDidLoad];
     
-	self.title = [NSString stringWithFormat:@"HFR Now %@ (%@)", [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"], [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"]];
+	self.title = [NSString stringWithFormat:@"HFR+ %@ (%@)", [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"], [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"]];
     self.navigationController.navigationBar.translucent = NO;
 
     /*
@@ -34,7 +34,7 @@
     [label setFont:[UIFont boldSystemFontOfSize:17.0]];
 	label.textAlignment = NSTextAlignmentCenter;
 	
-	label.text= [NSString stringWithFormat:@"HFR Now %@ (%@)", [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"], [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"]];
+	label.text= [NSString stringWithFormat:@"HFR+ %@ (%@)", [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"], [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"]];
     
     if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
         //[label setTextColor:[UIColor whiteColor]];

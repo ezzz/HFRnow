@@ -96,7 +96,7 @@
     [self registerDefaultsFromSettingsBundle];
     [[OfflineStorage shared] copyAllRequiredResourcesFromBundleToCache];
     
-    NSString *version = [NSString stringWithFormat:@"HFR Now %@ (%@)", [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"], [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"]];
+    NSString *version = [NSString stringWithFormat:@"HFR+ %@ (%@)", [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"], [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"]];
 
     NSDictionary *appDefaults =  [NSDictionary dictionaryWithObjectsAndKeys:
                                   version, @"version", nil];
@@ -651,7 +651,7 @@
          if (cestNoel) {
              // Popup retry
              UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"C'est bientôt Noël !"
-                                                                            message:@"Toute l'équipe de HFR Now vous souhaite de très bonnes fêtes de fin d'année !"
+                                                                            message:@"Toute l'équipe de HFR+ vous souhaite de très bonnes fêtes de fin d'année !"
                                                                      preferredStyle:UIAlertControllerStyleAlert];
              UIAlertAction* actionOK = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleCancel
                                                               handler:^(UIAlertAction * action) { }];
@@ -877,7 +877,7 @@
         //iOS9 + Pad + FullScreen = confirme (Nav+)
 
         if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
-            NSString *msg = [NSString stringWithFormat:@"Vous allez quitter HFR Now et être redirigé vers :\n %@\n", stringUrl];
+            NSString *msg = [NSString stringWithFormat:@"Vous allez quitter HFR+ et être redirigé vers :\n %@\n", stringUrl];
             
             UIAlertViewURL *alert = [[UIAlertViewURL alloc] initWithTitle:@"Attention !" message:msg
                                                                  delegate:self cancelButtonTitle:@"Annuler" otherButtonTitles:@"Confirmer", @"Navigateur✚",  nil];
@@ -887,7 +887,7 @@
         }
         else
         {
-            NSString *msg = [NSString stringWithFormat:@"Vous allez quitter HFR Now et être redirigé vers :\n %@\n", stringUrl];
+            NSString *msg = [NSString stringWithFormat:@"Vous allez quitter HFR+ et être redirigé vers :\n %@\n", stringUrl];
             
             UIAlertViewURL *alert = [[UIAlertViewURL alloc] initWithTitle:@"Attention !" message:msg
                                                                  delegate:self cancelButtonTitle:@"Annuler" otherButtonTitles:@"Confirmer", nil];
@@ -992,7 +992,7 @@
     
     
     UIViewController * uivc = [[UIViewController alloc] init];
-    uivc.title = @"HFR Now";
+    uivc.title = @"HFR+";
     
     [[[HFRplusAppDelegate sharedAppDelegate] detailNavigationController] setViewControllers:[NSMutableArray arrayWithObjects: uivc, nil] animated:NO];
 

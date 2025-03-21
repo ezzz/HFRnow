@@ -31,7 +31,7 @@
     
     self.navigationBar.translucent = NO;
     
-    [[self topViewController] setTitle:@"HFR Now"];
+    [[self topViewController] setTitle:@"HFR+"];
 }
 
 - (void)viewWillAppear:(BOOL)animated {
