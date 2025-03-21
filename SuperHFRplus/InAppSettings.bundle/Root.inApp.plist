@@ -96,20 +96,30 @@
 			<key>Title</key>
 			<string>Icône</string>
 			<key>Titles</key>
-			<array>
-                <string>Classique blue</string>
-                <string>Classique red</string>
-				<string>Classique</string>
-			</array>
-			<key>Type</key>
-			<string>PSMultiValueSpecifier</string>
-			<key>Values</key>
-			<array>
-                <string>Classic-Blue</string>
+            <array>
+                <string>Classique</string>
+                <string>Classique Blue</string>
+                <string>Super</string>
+                <string>REDFACE</string>
+                <string>Beta</string>
+                <string>Blue</string>
+                <string>White</string>
+            </array>
+            <key>Type</key>
+            <string>PSMultiValueSpecifier</string>
+            <key>Values</key>
+            <array>
+                <string>classic</string>
                 <string>super</string>
-                <string>Icon-CLASSIC</string>
-			</array>
+                <string>redface</string>
+                <string>beta</string>
+                <string>blue</string>
+                <string>white</string>
+            </array>
 		</dict>
+        
+        
+
 		<dict>
 			<key>DefaultValue</key>
 			<true/>

@@ -40,7 +40,7 @@
 
 - (void)viewDidLoad
 {
-    NSLog(@"SplitViewController is loading.... for index..... %d", (int)self.tabIndex);
+    //NSLog(@"SplitViewController is loading.... for index..... %d", (int)self.tabIndex);
     [super viewDidLoad];
 
     DetailNavigationViewController *detailNavigationController = [[DetailNavigationViewController alloc] initWithRootViewController:[[UIViewController alloc] init]];

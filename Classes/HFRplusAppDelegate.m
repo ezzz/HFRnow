@@ -692,17 +692,11 @@
 
 - (void)updateMPBadgeWithString:(NSString *)badgeValue;
 {
-    /* TODO TABBAR Bade MP
     [[NSUserDefaults standardUserDefaults] setInteger:[badgeValue intValue] forKey:@"nb_mp"];
 
     dispatch_async(dispatch_get_main_queue(),
                    ^{
-        int iBadgeIndex = 2;
-        int iShift = 1;
-        if ([[[[self rootController] tabBar] items] count] == 5) {
-            iBadgeIndex = 3;
-            iShift = 0;
-        }
+        int iBadgeIndex = 2; // Messages MP
         UITabBarItem *tabBarItem = [[[[self rootController] tabBar] items] objectAtIndex:iBadgeIndex];
         if ([badgeValue intValue] > 0) {
             [tabBarItem setBadgeValue:badgeValue];
@@ -710,15 +704,13 @@
         else {
             [tabBarItem setBadgeValue:nil];
         }
-   });*/
+   });
 }
 
 - (void)updatePlusBadgeWithString:(NSString *)badgeValue;
 {
-    /* TODO TABBAR Bade MP
-
     dispatch_async(dispatch_get_main_queue(),
-    ^{
+                   ^{
         //[UIApplication sharedApplication].applicationIconBadgeNumber = [badgeValue intValue];
         int shift = 0;
         if ([[[[self rootController] tabBar] items] count] == 5) {
@@ -726,18 +718,18 @@
         }
         if ([badgeValue intValue] > 0) {
             [[[[[self rootController] tabBar] items] objectAtIndex:2 + shift] setBadgeValue:badgeValue];
-                       }
-                       else {
+        }
+        else {
             [[[[[self rootController] tabBar] items] objectAtIndex:2 + shift] setBadgeValue:nil];
-                       }});
-     */
+        }
+    }
+    );
 }
 
 
 - (void)readMPBadge;
 {
-    /* TODO TABBAR Bade MP
-
+    [self updateMPBadgeWithString:[NSString stringWithFormat:@"1"]];
      //NSLog(@"%@ - %d", badgeValue, [badgeValue intValue]);
     dispatch_async(dispatch_get_main_queue(),
     ^{
@@ -755,7 +747,7 @@
             //[UIApplication sharedApplication].applicationIconBadgeNumber = 0;
 
         }
-    });*/
+    });
 }
 
 - (void)openURL:(NSString *)stringUrl

@@ -137,7 +137,6 @@
 }
 
 - (UIStatusBarStyle)preferredStatusBarStyle{
-    NSLog(@"preferredStatusBarStyle");
     return [ThemeColors statusBarStyle:[[ThemeManager sharedManager] theme]];
 }
 

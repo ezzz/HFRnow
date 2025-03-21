@@ -420,7 +420,7 @@
             BOOL bLoadAvatar = NO;
             if ([fileManager fileExistsAtPath:key]) // on check si on a deja l'avatar pour cette key
             {
-                NSLog(@"Avatar exist in cache for %@/%s (%ld): keyPathOfImage:%@", linkItem.name, str, strlen(str), key);
+                //NSLog(@"Avatar exist in cache for %@/%s (%ld): keyPathOfImage:%@", linkItem.name, str, strlen(str), key);
 
                 linkItem.imageUI = key;
                 NSDictionary* attrs = [fileManager attributesOfItemAtPath:key error:nil];
@@ -433,7 +433,7 @@
                 }
             }
             else {
-                NSLog(@"Avatar NOT found in cache for %@/%s (%ld): keyPathOfImage:%@", linkItem.name, str, strlen(str), key);
+                //NSLog(@"Avatar NOT found in cache for %@/%s (%ld): keyPathOfImage:%@", linkItem.name, str, strlen(str), key);
 
                 // Si pas trouvé dans le cache, on le charge
                 bLoadAvatar = YES;

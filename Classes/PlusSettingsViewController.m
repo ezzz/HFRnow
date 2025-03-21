@@ -194,12 +194,35 @@
         if ([[UIApplication sharedApplication] supportsAlternateIcons] == NO)
             return;
 
-        NSLog(@"New icon is '%@'", newIcon);
-        [[UIApplication sharedApplication] setAlternateIconName:newIcon
-                                              completionHandler:^(NSError * _Nullable error) {
-                                                  NSLog(@"%@", [error description]);
-                                              }];
-        
+        NSLog(@"icon %@", newIcon);
+        if ([newIcon isEqualToString:@"super"]) {
+            [[UIApplication sharedApplication] setAlternateIconName:nil completionHandler:nil];
+        } else if ([newIcon isEqualToString:@"classic"]) {
+            [[UIApplication sharedApplication] setAlternateIconName:@"Icon-CLASSIC"
+                                                  completionHandler:^(NSError * _Nullable error) {
+                                                      NSLog(@"%@", [error description]);
+                                                  }];
+        } else if ([newIcon isEqualToString:@"beta"]) {
+            [[UIApplication sharedApplication] setAlternateIconName:@"Icon-BETA"
+                                                  completionHandler:^(NSError * _Nullable error) {
+                                                      NSLog(@"%@", [error description]);
+                                                  }];
+        } else if ([newIcon isEqualToString:@"redface"]) {
+            [[UIApplication sharedApplication] setAlternateIconName:@"Icon-REDFACE"
+                                                  completionHandler:^(NSError * _Nullable error) {
+                                                      NSLog(@"%@", [error description]);
+                                                  }];
+        } else if ([newIcon isEqualToString:@"blue"]) {
+            [[UIApplication sharedApplication] setAlternateIconName:@"Icon-BLUE"
+                                                  completionHandler:^(NSError * _Nullable error) {
+                                                      NSLog(@"%@", [error description]);
+                                                  }];
+        } else if ([newIcon isEqualToString:@"white"]) {
+            [[UIApplication sharedApplication] setAlternateIconName:@"Icon-WHITE"
+                                                  completionHandler:^(NSError * _Nullable error) {
+                                                      NSLog(@"%@", [error description]);
+                                                  }];
+        }
     }  else if([notification.userInfo objectForKey:@"size_smileys"]) {
         NSNotification *myNotification = [NSNotification notificationWithName:kSmileysSizeChangedNotification
                                                                        object:self  //object is usually the object posting the notification
