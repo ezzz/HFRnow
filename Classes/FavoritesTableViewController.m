@@ -831,6 +831,7 @@
             break;
     }
     
+    aView.detailNavigationViewController = self.detailNavigationVC;
 	aView.forumName = [[[arrayCategories objectAtIndex:section] forum] aTitle];
     
     self.navigationItem.backBarButtonItem =

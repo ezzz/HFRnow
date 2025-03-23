@@ -343,7 +343,8 @@
 }
 
 -(void)setTheme:(Theme)theme{
-    //[[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"theme_noel_disabled"];
+    // Just to be sure
+    [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"theme_noel_disabled"];
 
     if ([self.window respondsToSelector:@selector(setTintColor:)]) {
         self.window.tintColor = [ThemeColors tintColor:theme];
