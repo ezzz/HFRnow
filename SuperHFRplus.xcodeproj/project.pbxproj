@@ -11,6 +11,8 @@
 		1503755321FDF8D700A5F7E1 /* PlusTableView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1503755221FDF8D700A5F7E1 /* PlusTableView.xib */; };
 		1503755521FE249300A5F7E1 /* PlusCellView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1503755421FE249300A5F7E1 /* PlusCellView.xib */; };
 		1503755821FF794200A5F7E1 /* PlusCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1503755721FF794200A5F7E1 /* PlusCellView.m */; };
+		150C9FE92D8E04750023C430 /* Icon-CLASSIC-BLUE@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 150C9FE82D8E04740023C430 /* Icon-CLASSIC-BLUE@3x.png */; };
+		150C9FEA2D8E04750023C430 /* Icon-CLASSIC-BLUE@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 150C9FE72D8E04740023C430 /* Icon-CLASSIC-BLUE@2x.png */; };
 		1512A7932232F6C9000C9B1D /* 08-chat-20.png in Resources */ = {isa = PBXBuildFile; fileRef = 1512A7922232F6C8000C9B1D /* 08-chat-20.png */; };
 		15167EB12330210600D64651 /* Heart-20@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15167EB02330210600D64651 /* Heart-20@2x.png */; };
 		152395EC28DF015E00614F9D /* Quote-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395CF28DF015C00614F9D /* Quote-20-Inv@2x.png */; };
@@ -954,6 +956,8 @@
 		1503755621FE26C900A5F7E1 /* PlusCellView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PlusCellView.h; sourceTree = "<group>"; };
 		1503755721FF794200A5F7E1 /* PlusCellView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PlusCellView.m; sourceTree = "<group>"; };
 		150A228A24CB7D140071F9DE /* api_keys.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = api_keys.h; sourceTree = "<group>"; };
+		150C9FE72D8E04740023C430 /* Icon-CLASSIC-BLUE@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-CLASSIC-BLUE@2x.png"; sourceTree = "<group>"; };
+		150C9FE82D8E04740023C430 /* Icon-CLASSIC-BLUE@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-CLASSIC-BLUE@3x.png"; sourceTree = "<group>"; };
 		1512A7922232F6C8000C9B1D /* 08-chat-20.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "08-chat-20.png"; sourceTree = "<group>"; };
 		15141AA221E7ADE800811E5A /* link_url.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = link_url.png; path = ../../../../../Icones/link_url.png; sourceTree = "<group>"; };
 		15167EB02330210600D64651 /* Heart-20@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Heart-20@2x.png"; sourceTree = "<group>"; };
@@ -2527,6 +2531,8 @@
 		4C59E0811FA9D43F00C902F8 /* AlternativeIcons */ = {
 			isa = PBXGroup;
 			children = (
+				150C9FE72D8E04740023C430 /* Icon-CLASSIC-BLUE@2x.png */,
+				150C9FE82D8E04740023C430 /* Icon-CLASSIC-BLUE@3x.png */,
 				15AEFA05223E9434005E6739 /* Icon-BLUE-IPAD@1x.png */,
 				15AEFA06223E9435005E6739 /* Icon-BLUE-IPAD@2x.png */,
 				15AEFA04223E9434005E6739 /* Icon-WHITE-IPAD@1x.png */,
@@ -4135,6 +4141,8 @@
 				1523960428DF015F00614F9D /* ThorHammerFilled-20-Inv@2x.png in Resources */,
 				4C21E9801BA5C70400691D65 /* XlargeIconsFilled-20@2x.png in Resources */,
 				1523960B28DF05E900614F9D /* LinkFilled-20-Inv@2x.png in Resources */,
+				150C9FE92D8E04750023C430 /* Icon-CLASSIC-BLUE@3x.png in Resources */,
+				150C9FEA2D8E04750023C430 /* Icon-CLASSIC-BLUE@2x.png in Resources */,
 				1537753D274D6CE600790892 /* noel21.png in Resources */,
 				4CB311F319FAFF2C0097D84D /* jquery.hammer.js in Resources */,
 				15F3C5D1254C5A3E00F4B1FD /* giphy.png in Resources */,
@@ -4468,7 +4476,7 @@
 				CODE_SIGN_STYLE = Manual;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = QMG83DG7YP;
 				ENABLE_BITCODE = NO;
@@ -4534,7 +4542,7 @@
 				CODE_SIGN_STYLE = Manual;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = YES;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = QMG83DG7YP;
 				ENABLE_BITCODE = NO;

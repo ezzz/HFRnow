@@ -195,7 +195,7 @@
             return;
 
         NSLog(@"icon %@", newIcon);
-        if ([newIcon isEqualToString:@"super"]) {
+        if ([newIcon isEqualToString:@"superblue"]) {
             [[UIApplication sharedApplication] setAlternateIconName:nil completionHandler:nil];
         } else if ([newIcon isEqualToString:@"classic"]) {
             [[UIApplication sharedApplication] setAlternateIconName:@"Icon-CLASSIC"

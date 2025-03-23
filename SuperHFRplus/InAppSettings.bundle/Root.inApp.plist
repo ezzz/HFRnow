@@ -90,7 +90,7 @@
 		</dict>
 		<dict>
 			<key>DefaultValue</key>
-			<string>Classic-Blue</string>
+			<string>superblue</string>
 			<key>Key</key>
 			<string>icon</string>
 			<key>Title</key>
@@ -98,7 +98,6 @@
 			<key>Titles</key>
             <array>
                 <string>Classique</string>
-                <string>Classique Blue</string>
                 <string>Super</string>
                 <string>REDFACE</string>
                 <string>Beta</string>
@@ -110,7 +109,7 @@
             <key>Values</key>
             <array>
                 <string>classic</string>
-                <string>super</string>
+                <string>superblue</string>
                 <string>redface</string>
                 <string>beta</string>
                 <string>blue</string>
