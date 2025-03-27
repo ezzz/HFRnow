@@ -37,10 +37,11 @@
         
         self.viewControllers = @[splitVC0, splitVC1, splitVC2, splitVC3];
         
-        // TODO TABBAR IOS18 only
-        self.mode = UITabBarControllerModeAutomatic;
-        //self.tabBarHidden = YES;
-        self.sidebar.hidden = NO;
+        // IOS18 only
+        if (@available(iOS 18.0, *)) {
+            self.sidebar.hidden = NO;
+            self.mode = UITabBarControllerModeAutomatic;
+        }
     }
     
     self.title = @"Menu";

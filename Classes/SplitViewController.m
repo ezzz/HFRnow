@@ -25,8 +25,85 @@
 @interface SplitViewController ()
 @end
 
+
+@interface BlueViewController : UIViewController
+@end
+
+@implementation BlueViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    self.view.backgroundColor = [UIColor blueColor]; // Set background color to blue
+    self.title = @"Blue Screen"; // Set a title for the navigation bar
+}
+
+@end
+
+@interface OrangeViewController : UIViewController
+@end
+
+@implementation OrangeViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    self.view.backgroundColor = [UIColor orangeColor]; // Set background color to blue
+    self.title = @"Orange Screen"; // Set a title for the navigation bar
+    
+    self.navigationItem.leftBarButtonItem = self.splitViewController.displayModeButtonItem;
+    self.navigationItem.leftItemsSupplementBackButton = YES; // Keeps back button if using navigation
+}
+
+@end
+
+@interface HFRNavigationController2 : UIViewController //UINavigationController <UINavigationControllerDelegate>
+@end
+
+@implementation HFRNavigationController2
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    
+    self.view.backgroundColor = [UIColor systemPinkColor]; // Set background color to blue
+    self.title = @"Blue Screen"; // Set a title for the navigation bar
+    
+    self.navigationItem.leftBarButtonItem = self.splitViewController.displayModeButtonItem;
+    self.navigationItem.leftItemsSupplementBackButton = YES; // Keeps back button if using navigation
+}
+@end
+
+// Custom Navigation Controller for Detail View
+@interface HFRNavigationController3 : UINavigationController
+@end
+
+@implementation HFRNavigationController3
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+
+    // Customize the navigation bar color (e.g., Red)
+    self.navigationBar.barTintColor = [UIColor redColor];
+    self.navigationBar.translucent = NO;
+    self.navigationBar.titleTextAttributes = @{NSForegroundColorAttributeName : [UIColor whiteColor]};
+
+    // Set the root view controller inside this navigation controller
+    UIViewController *detailVC = [[UIViewController alloc] init];
+    detailVC.view.backgroundColor = [UIColor orangeColor]; // Detail View (Orange)
+    detailVC.title = @"Detail";
+
+    // Add button to show master in portrait mode
+    detailVC.navigationItem.leftBarButtonItem = self.splitViewController.displayModeButtonItem;
+    detailVC.navigationItem.leftItemsSupplementBackButton = YES;
+
+    // Push detail view into this navigation controller
+    [self setViewControllers:@[detailVC] animated:NO];
+}
+@end
+
 @implementation SplitViewController
 @synthesize popOver, mybarButtonItem, tabIndex;
+
 
 - (SplitViewController*)initForIndex:(NSInteger)index
 {
@@ -43,32 +120,54 @@
     //NSLog(@"SplitViewController is loading.... for index..... %d", (int)self.tabIndex);
     [super viewDidLoad];
 
-    DetailNavigationViewController *detailNavigationController = [[DetailNavigationViewController alloc] initWithRootViewController:[[UIViewController alloc] init]];
-    detailNavigationController.delegate = detailNavigationController;
     
     UINavigationController *masterViewController = nil;
     
     if (self.tabIndex == 0)
     {
+        //BlueViewController* masterVC = [[BlueViewController alloc] init];
         ForumsTableViewController* vc = [[ForumsTableViewController alloc] initWithNibName:@"ForumsTableViewController" bundle:nil];
         masterViewController = [[HFRNavigationController alloc] initWithRootViewController:vc];
-        vc.detailNavigationViewController = detailNavigationController;
+
+        OrangeViewController* detailVC = [[OrangeViewController alloc] init];
+        
+        //UINavigationController *masterNav = [[UINavigationController alloc] initWithRootViewController:masterVC];
+        UINavigationController *detailNav = [[UINavigationController alloc] initWithRootViewController:detailVC];
+        self.viewControllers = @[masterViewController, detailNav];
+
+        /*
+        ForumsTableViewController* vc = [[ForumsTableViewController alloc] initWithNibName:@"ForumsTableViewController" bundle:nil];
+        masterViewController = [[HFRNavigationController alloc] initWithRootViewController:vc];
+        vc.detailNavigationViewController = detailNavigationController;*/
     }
     else if (self.tabIndex == 1)
     {
         FavoritesTableViewController* vc = [[FavoritesTableViewController alloc] initWithNibName:@"FavoritesTableViewController" bundle:nil];
         masterViewController = [[HFRNavigationController alloc] initWithRootViewController:vc];
+
+        HFRNavigationController3 *detailNavigationController = [[HFRNavigationController3 alloc] init];
         vc.detailNavigationVC = detailNavigationController;
+
+        self.viewControllers = @[masterViewController, detailNavigationController];
+
     }
     else if (self.tabIndex == 2) {
         HFRMPViewController* vc = [[HFRMPViewController alloc] init];
         masterViewController = [[HFRNavigationController alloc] initWithRootViewController:vc];
+        
+        HFRNavigationController *detailNavigationController = [[HFRNavigationController alloc] init];
         vc.detailNavigationViewController = detailNavigationController;
+;
+        self.viewControllers = @[masterViewController, detailNavigationController];
+
     }
     else if (self.tabIndex == 3) {
         PlusTableViewController* vc = [[PlusTableViewController alloc] initWithNibName:@"PlusTableView" bundle:nil];
         masterViewController = [[HFRNavigationController alloc] initWithRootViewController:vc];
+        DetailNavigationViewController *detailNavigationController = [[DetailNavigationViewController alloc] init];
         vc.detailNavigationViewController = detailNavigationController;
+        self.viewControllers = @[masterViewController, detailNavigationController];
+
     }
     
     // Set theme
@@ -79,7 +178,6 @@
     // Hide central line
     self.view.backgroundColor = [ThemeColors navBackgroundColor:[[ThemeManager sharedManager] theme]];
 
-    self.viewControllers = @[masterViewController, detailNavigationController];
     
     self.preferredDisplayMode = UISplitViewControllerDisplayModeAutomatic;
     self.preferredPrimaryColumnWidthFraction = 0.5;
@@ -296,51 +394,28 @@ separateSecondaryViewControllerFromPrimaryViewController:(UIViewController *)pri
 
 }
 */
-/*
+
 - (void)splitViewController: (SplitViewController *)svc willHideViewController:(UIViewController *)aViewController withBarButtonItem:(UIBarButtonItem*)barButtonItem forPopoverController: (UIPopoverController*)pc {
     
     NSLog(@"willHideViewController");
 
     barButtonItem.title = @"Menu";
     
-    //NSLog(@"%@", [[[HFRplusAppDelegate sharedAppDelegate] detailNavigationController] viewControllers]);
-
-    if (![self respondsToSelector:@selector(displayModeButtonItem)]) {
-        NSLog(@"iOS6 iOS6 iOS6 ");
-
-        UINavigationItem *navItem = [[[[[HFRplusAppDelegate sharedAppDelegate] detailNavigationController] viewControllers] objectAtIndex:0] navigationItem];
-        
-        [navItem setLeftBarButtonItem:barButtonItem animated:YES];
-        [navItem setLeftItemsSupplementBackButton:YES];
-        
-        svc.popOver = pc;
-        [svc setMybarButtonItem:barButtonItem];
-
-    }
-    else {
-        
-        svc.popOver = pc;
-
-        self.showsSecondaryOnlyButton.navigationItem.leftBarButtonItem = self.displayModeButtonItem;
-        [[HFRplusAppDelegate sharedAppDelegate] detailNavigationController].viewControllers[0].navigationItem.leftItemsSupplementBackButton = YES;
-
-    }
+    svc.popOver = pc;
+    self.viewControllers.lastObject.navigationItem.leftBarButtonItem = self.displayModeButtonItem;
+    self.viewControllers.lastObject.navigationItem.leftItemsSupplementBackButton = YES;
+    
 }
 
-/*
+
 - (void)splitViewController: (SplitViewController *)svc willShowViewController:(UIViewController *)aViewController invalidatingBarButtonItem:(UIBarButtonItem *)barButtonItem {
    
     NSLog(@"willShowViewController");
 
-    //NSLog(@"%@", [[[HFRplusAppDelegate sharedAppDelegate] detailNavigationController] viewControllers]);
+    barButtonItem.title = @"Menu";
     
-    if (![self respondsToSelector:@selector(displayModeButtonItem)]) {
-        NSLog(@"iOS6 iOS6 iOS6 ");
-        UINavigationItem *navItem = [[[[[HFRplusAppDelegate sharedAppDelegate] detailNavigationController] viewControllers] objectAtIndex:0] navigationItem];
-        [navItem setLeftBarButtonItem:nil animated:YES];
-        
-        svc.popOver = nil;
-    }
+    self.viewControllers.lastObject.navigationItem.leftBarButtonItem = self.displayModeButtonItem;
+    self.viewControllers.lastObject.navigationItem.leftItemsSupplementBackButton = YES;
 }
-*/
+
 @end

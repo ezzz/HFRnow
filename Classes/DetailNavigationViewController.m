@@ -67,6 +67,7 @@
     }*/
 }
 
+/* DEPRECATATED
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
 {
 	// Get user preference
@@ -78,6 +79,6 @@
 	} else {
 		return (interfaceOrientation == UIInterfaceOrientationPortrait);
 	}
-}
+}*/
 
 @end

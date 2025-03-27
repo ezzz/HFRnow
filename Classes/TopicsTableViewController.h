@@ -95,7 +95,7 @@
 @property (nonatomic, strong) NSMutableArray *arrayData;
 @property (nonatomic, strong) NSMutableArray *arrayNewData;
 @property (nonatomic, strong) MessagesTableViewController *messagesTableViewController;
-@property (nonatomic, strong) DetailNavigationViewController *detailNavigationViewController;
+@property (nonatomic, strong) HFRNavigationController *detailNavigationViewController;
 @property (nonatomic, strong) PullToRefreshErrorViewController *errorVC;
 
 @property (nonatomic, strong) NSIndexPath *pressedIndexPath;

@@ -1551,8 +1551,12 @@
         [self.navigationController pushViewController:messagesTableViewController animated:YES];
     }
     else if (detailNavigationVC) {
+        [self.detailNavigationVC popToRootViewControllerAnimated:NO];
+
         [self.detailNavigationVC pushViewController:messagesTableViewController animated:YES];
         [self.detailNavigationVC setViewControllers:[NSMutableArray arrayWithObjects:messagesTableViewController, nil] animated:YES];
+        self.detailNavigationVC.navigationItem.leftBarButtonItem = messagesTableViewController.splitViewController.displayModeButtonItem;
+        self.detailNavigationVC.navigationItem.leftItemsSupplementBackButton = YES;
         
         /* TODO TABBAR backbutton
          [[HFRplusAppDelegate sharedAppDelegate] detailNavigationController].viewControllers[0].navigationItem.leftBarButtonItem = messagesTableViewController.splitViewController.displayModeButtonItem;

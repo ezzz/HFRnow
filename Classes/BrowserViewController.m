@@ -96,31 +96,6 @@
     }
 }
 
-- (void)navPlus {
-    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad && [[HFRplusAppDelegate sharedAppDelegate].splitViewController respondsToSelector:@selector(MoveRightToLeft:)])
-    {
-        if ([[HFRplusAppDelegate sharedAppDelegate].detailNavigationController.topViewController isMemberOfClass:[BrowserViewController class]]) {
-            [((BrowserViewController *)[HFRplusAppDelegate sharedAppDelegate].detailNavigationController.topViewController).myModernWebView loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:self.myModernWebView.URL.absoluteString]]];
-        }
-        else {
-            [[HFRplusAppDelegate sharedAppDelegate].splitViewController MoveRightToLeft:self.myModernWebView.URL.absoluteString];
-        }
-        [self cancel];
-    }
-}
-
-- (void)reload {
-    [self.myModernWebView reload];
-}
-
-- (void)goBack {
-    [self.myModernWebView goBack];
-}
-
-- (void)goForward {
-    [self.myModernWebView goForward];
-}
-
 #pragma mark - View lifecycle
 - (BOOL)prefersStatusBarHidden {
     return NO;

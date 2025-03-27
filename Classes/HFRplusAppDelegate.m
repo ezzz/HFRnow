@@ -38,7 +38,6 @@
 @synthesize window;
 @synthesize rootController;
 @synthesize splitViewController;
-@synthesize detailNavigationController;
 
 @synthesize forumsNavController;
 @synthesize favoritesNavController;
