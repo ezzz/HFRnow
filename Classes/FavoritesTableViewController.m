@@ -1538,7 +1538,7 @@
 
 
 - (void)pushTopic {
-    if (([self respondsToSelector:@selector(traitCollection)] && [HFRplusAppDelegate sharedAppDelegate].window.traitCollection.horizontalSizeClass == UIUserInterfaceSizeClassCompact) ||
+    /*if (([self respondsToSelector:@selector(traitCollection)] && [HFRplusAppDelegate sharedAppDelegate].window.traitCollection.horizontalSizeClass == UIUserInterfaceSizeClassCompact) ||
         [[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone ||
         [[HFRplusAppDelegate sharedAppDelegate].detailNavigationController.topViewController isMemberOfClass:[BrowserViewController class]]) {
         
@@ -1550,19 +1550,15 @@
         
         [self.navigationController pushViewController:messagesTableViewController animated:YES];
     }
-    else if (detailNavigationVC) {
-        [self.detailNavigationVC popToRootViewControllerAnimated:NO];
-
-        [self.detailNavigationVC pushViewController:messagesTableViewController animated:YES];
+    else if (detailNavigationVC) {*/
+    
+        //[self.detailNavigationVC popToRootViewControllerAnimated:NO];
+        //[self.detailNavigationVC pushViewController:messagesTableViewController animated:YES];
+    messagesTableViewController.navigationItem.leftBarButtonItem = self.detailNavigationVC.splitViewController.displayModeButtonItem;
+    messagesTableViewController.navigationItem.leftItemsSupplementBackButton = YES;
         [self.detailNavigationVC setViewControllers:[NSMutableArray arrayWithObjects:messagesTableViewController, nil] animated:YES];
-        self.detailNavigationVC.navigationItem.leftBarButtonItem = messagesTableViewController.splitViewController.displayModeButtonItem;
-        self.detailNavigationVC.navigationItem.leftItemsSupplementBackButton = YES;
-        
-        /* TODO TABBAR backbutton
-         [[HFRplusAppDelegate sharedAppDelegate] detailNavigationController].viewControllers[0].navigationItem.leftBarButtonItem = messagesTableViewController.splitViewController.displayModeButtonItem;
-        [[HFRplusAppDelegate sharedAppDelegate] detailNavigationController].viewControllers[0].navigationItem.leftItemsSupplementBackButton = YES;
-*/
-    }
+
+    //}
     
     [self setTopicViewed];
     
