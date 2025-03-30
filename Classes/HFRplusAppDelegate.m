@@ -675,18 +675,17 @@
     
 }
 
-- (void)hidePrimaryPanelOnIpad {
-    /* TODO TABBAR
+- (void)hidePrimaryPanelOnIpadForSplitViewController:(UISplitViewController*) splitViewController
+{
     if ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPad ) {
-        UISplitViewController* splitViewController = [[HFRplusAppDelegate sharedAppDelegate] splitViewController];
-        if (self.splitViewController.displayMode == UISplitViewControllerDisplayModePrimaryOverlay) {
+        if (splitViewController.displayMode == UISplitViewControllerDisplayModeOneOverSecondary) {
             [UIView animateWithDuration:0.3 animations:^{
-                splitViewController.preferredDisplayMode = UISplitViewControllerDisplayModePrimaryHidden;
+                splitViewController.preferredDisplayMode = UISplitViewControllerDisplayModeSecondaryOnly;
             } completion:^(BOOL finished){
                 splitViewController.preferredDisplayMode = UISplitViewControllerDisplayModeAutomatic;
             }];
         }
-    }*/
+    }
 }
 
 
@@ -752,186 +751,8 @@
 
 - (void)openURL:(NSString *)stringUrl
 {
-    //NSLog(@"stringUrl %@", stringUrl);
-    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    NSString *web = [defaults stringForKey:@"default_web"];
-    
-    //NSLog(@"display %@", display);
-    
-    
-    //Check Youtube/AppStore.
-    //- http://itunes.apple.com/fr/app/idXXXXXXXX
-    //- http://appstore.com/apple/keynote
-
-    
-    if ([web isEqualToString:@"internal"]) {
-        if ([self.detailNavigationController.topViewController isMemberOfClass:[BrowserViewController class]]) {
-            //on load
-            [((BrowserViewController *)self.detailNavigationController.topViewController).myModernWebView loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:stringUrl]]];
-        }
-        else
-        {
-            if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"9.0")) {
-                
-
-                 NSURL *tmpURL = [NSURL URLWithString:stringUrl];
-                 NSArray *imtsHost = [NSArray arrayWithObjects: @"itunes.apple.com", nil];
-                 NSArray *youtubeHost = [NSArray arrayWithObjects:@"youtu.be", @"www.youtube.com", @"m.youtube.com", nil];
-                 
-                 if ([imtsHost indexOfObject:tmpURL.host] != NSNotFound) {
-                     NSRange rangeOfScheme = [[tmpURL absoluteString] rangeOfString:[tmpURL scheme]];
-                     tmpURL = [NSURL URLWithString:[[tmpURL absoluteString] stringByReplacingCharactersInRange:rangeOfScheme withString:@"itms-apps"]];
-                     
-                     
-                     if ([[UIApplication sharedApplication] canOpenURL:tmpURL]) {
-                        [[UIApplication sharedApplication] openURL:tmpURL];
-                         return;
-                     }
-                     
-                }
-                else if ([youtubeHost indexOfObject:tmpURL.host] != NSNotFound) {
-                    NSRange rangeOfScheme = [[tmpURL absoluteString] rangeOfString:[tmpURL scheme]];
-                    tmpURL = [NSURL URLWithString:[[tmpURL absoluteString] stringByReplacingCharactersInRange:rangeOfScheme withString:@"youtube"]];
-
-
-                    if ([[UIApplication sharedApplication] canOpenURL:tmpURL]) {
-                        [[UIApplication sharedApplication] openURL:tmpURL];
-                        return;
-                    }
-                 
-                 }
-
-
-                
-                SFSafariViewController *svc = [[SFSafariViewController alloc] initWithURL:[NSURL URLWithString:stringUrl]];
-                
-                [self.rootController presentModalViewController:svc animated:YES];
-            }
-            else {
-                BrowserViewController *browserViewController = [[BrowserViewController alloc] initWithURL:stringUrl];
-                
-                HFRNavigationController *nc = [[HFRNavigationController alloc] initWithRootViewController:browserViewController];
-                
-                
-                nc.modalPresentationStyle = UIModalPresentationFullScreen;
-                
-                [self.rootController presentModalViewController:nc animated:YES];
-            }
-        }
-    }
-    else {
-        //iOS9 + Phone || Pad+Compact = pas de confirm
-        NSLog(@"alerte");
-        
-        if ((UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone && SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"9.0")) ||
-            (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad   && SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"9.0") &&
-             [[HFRplusAppDelegate sharedAppDelegate].window respondsToSelector:@selector(traitCollection)] && [HFRplusAppDelegate sharedAppDelegate].window.traitCollection.horizontalSizeClass == UIUserInterfaceSizeClassCompact))
-        {
-            
-            NSLog(@"compact ios 9");
-
-            NSURL *tmpURL2 = [NSURL URLWithString:stringUrl];
-            NSURL *tURL = [NSURL URLWithString:stringUrl];
-
-            NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-            NSString *web = [defaults stringForKey:@"default_web"];
-            
-            if ([web isEqualToString:@"googlechrome"]) {
-                NSRange rangeOfScheme = [[tmpURL2 absoluteString] rangeOfString:[tmpURL2 scheme]];
-                tURL = [NSURL URLWithString:[[tmpURL2 absoluteString] stringByReplacingCharactersInRange:rangeOfScheme withString:web]];
-                NSLog(@"new url for GChrome URL %@", tURL);
-            }
-            
-            if ([[UIApplication sharedApplication] canOpenURL:tURL]) {
-                NSLog(@"YES YOU CAN GChrome%@", tURL);
-                [[UIApplication sharedApplication] openURL:tURL];
-                return;
-
-            }
-            else {
-                NSLog(@"NO YOU CANT GChrome %@", tURL);
-                
-                if ([[UIApplication sharedApplication] canOpenURL:tmpURL2]) {
-                    NSLog(@"YES YOU CAN %@", tmpURL2);
-                    [[UIApplication sharedApplication] openURL:tmpURL2];
-                    return;
-                }
-                else {
-                    NSLog(@"NO YOU CANT %@", tmpURL2);
-                }
-            }
-            
-            
-                
-
-        }
-        
-        //iOS9 + Pad + FullScreen = confirme (Nav+)
-
-        if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
-            NSString *msg = [NSString stringWithFormat:@"Vous allez quitter HFR+ et être redirigé vers :\n %@\n", stringUrl];
-            
-            UIAlertViewURL *alert = [[UIAlertViewURL alloc] initWithTitle:@"Attention !" message:msg
-                                                                 delegate:self cancelButtonTitle:@"Annuler" otherButtonTitles:@"Confirmer", @"Navigateur✚",  nil];
-            [alert setStringURL:stringUrl];
-            
-            [alert show];
-        }
-        else
-        {
-            NSString *msg = [NSString stringWithFormat:@"Vous allez quitter HFR+ et être redirigé vers :\n %@\n", stringUrl];
-            
-            UIAlertViewURL *alert = [[UIAlertViewURL alloc] initWithTitle:@"Attention !" message:msg
-                                                                 delegate:self cancelButtonTitle:@"Annuler" otherButtonTitles:@"Confirmer", nil];
-            [alert setStringURL:stringUrl];
-            
-            [alert show];
-        }
-
-    }
-    
-
-}
-
-- (void)alertView:(UIAlertViewURL *)alertView didDismissWithButtonIndex:(NSInteger)buttonIndex
-{
-    if (buttonIndex == 1) {
-        
-        NSURL *tURLbase = [NSURL URLWithString:[alertView stringURL]];
-        NSURL *tURL = [NSURL URLWithString:[alertView stringURL]];
-
-        NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-        NSString *web = [defaults stringForKey:@"default_web"];
-        
-        if ([web isEqualToString:@"googlechrome"]) {
-            NSRange rangeOfScheme = [[tURLbase absoluteString] rangeOfString:[tURLbase scheme]];
-            tURL = [NSURL URLWithString:[[tURLbase absoluteString] stringByReplacingCharactersInRange:rangeOfScheme withString:web]];
-            NSLog(@"tURL %@", tURL);
-        }
-        
-        if ([[UIApplication sharedApplication] canOpenURL:tURL]) {
-            NSLog(@"YES YOU CAN %@", tURL);
-            [[UIApplication sharedApplication] openURL:tURL];
-        }
-        else {
-            NSLog(@"NO YOU CANT %@", tURL);
-
-            [[UIApplication sharedApplication] openURL:tURLbase];
-        }
-        
-    }
-    else if (buttonIndex == 2) {
-        if ([[HFRplusAppDelegate sharedAppDelegate].detailNavigationController.topViewController isMemberOfClass:[BrowserViewController class]]) {
-            //on load
-            [((BrowserViewController *)[HFRplusAppDelegate sharedAppDelegate].detailNavigationController.topViewController).myModernWebView loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:[alertView stringURL]]]];
-        }
-        else {
-            //on move/decale
-            //[self cancel];
-            [[HFRplusAppDelegate sharedAppDelegate].splitViewController NavPlus:[alertView stringURL]];
-            
-        }
-    }
+    SFSafariViewController *svc = [[SFSafariViewController alloc] initWithURL:[NSURL URLWithString:stringUrl]];
+    [self.rootController presentViewController:svc animated:YES completion:nil];
 }
 
 - (void)login
@@ -985,9 +806,6 @@
     
     UIViewController * uivc = [[UIViewController alloc] init];
     uivc.title = @"HFR+";
-    
-    [[[HFRplusAppDelegate sharedAppDelegate] detailNavigationController] setViewControllers:[NSMutableArray arrayWithObjects: uivc, nil] animated:NO];
-
 }
 
 #pragma mark - login management

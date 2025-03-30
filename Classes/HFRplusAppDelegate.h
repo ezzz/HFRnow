@@ -9,7 +9,6 @@
 #import "Constants.h"
 #import "TabBarController.h"
 #import "SplitViewController.h"
-#import "DetailNavigationViewController.h"
 #import <BackgroundTasks/BackgroundTasks.h>
 
 @import InAppSettingsKit;
@@ -21,7 +20,6 @@
     UIWindow *window;
     TabBarController *rootController;    
     SplitViewController *splitViewController;
-    DetailNavigationViewController *detailNavigationController;
 
     UINavigationController *forumsNavController;
     UINavigationController *favoritesNavController;
@@ -48,7 +46,6 @@
 @property (strong, nonatomic) IBOutlet TabBarController *rootController;
 
 @property (nonatomic, strong) IBOutlet SplitViewController *splitViewController;
-@property (nonatomic, strong) IBOutlet DetailNavigationViewController *detailNavigationController;
 
 //@property (nonatomic, strong) IBOutlet UINavigationController *forumsNavController;
 @property (strong, nonatomic) IBOutlet UIViewController *forumsNavController;
@@ -67,7 +64,7 @@
 
 + (HFRplusAppDelegate *)sharedAppDelegate;
 - (BOOL)legacy_application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions;
-- (void)hidePrimaryPanelOnIpad;
+- (void)hidePrimaryPanelOnIpadForSplitViewController:(UISplitViewController*) splitViewController;
 - (void)updateMPBadgeWithString:(NSString *)badgeValue;
 - (void)updatePlusBadgeWithString:(NSString *)badgeValue;
 - (void)readMPBadge;

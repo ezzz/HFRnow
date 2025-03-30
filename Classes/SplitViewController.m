@@ -25,82 +25,6 @@
 @interface SplitViewController ()
 @end
 
-
-@interface BlueViewController : UIViewController
-@end
-
-@implementation BlueViewController
-
-- (void)viewDidLoad {
-    [super viewDidLoad];
-    
-    self.view.backgroundColor = [UIColor blueColor]; // Set background color to blue
-    self.title = @"Blue Screen"; // Set a title for the navigation bar
-}
-
-@end
-
-@interface OrangeViewController : UIViewController
-@end
-
-@implementation OrangeViewController
-
-- (void)viewDidLoad {
-    [super viewDidLoad];
-    
-    self.view.backgroundColor = [UIColor orangeColor]; // Set background color to blue
-    self.title = @"Orange Screen"; // Set a title for the navigation bar
-    
-    self.navigationItem.leftBarButtonItem = self.splitViewController.displayModeButtonItem;
-    self.navigationItem.leftItemsSupplementBackButton = YES; // Keeps back button if using navigation
-}
-
-@end
-
-@interface HFRNavigationController2 : UIViewController //UINavigationController <UINavigationControllerDelegate>
-@end
-
-@implementation HFRNavigationController2
-- (void)viewDidLoad
-{
-    [super viewDidLoad];
-    
-    self.view.backgroundColor = [UIColor systemPinkColor]; // Set background color to blue
-    self.title = @"Blue Screen"; // Set a title for the navigation bar
-    
-    self.navigationItem.leftBarButtonItem = self.splitViewController.displayModeButtonItem;
-    self.navigationItem.leftItemsSupplementBackButton = YES; // Keeps back button if using navigation
-}
-@end
-
-// Custom Navigation Controller for Detail View
-@interface HFRNavigationController3 : UINavigationController
-@end
-
-@implementation HFRNavigationController3
-
-- (void)viewDidLoad {
-    [super viewDidLoad];
-
-    // Customize the navigation bar color (e.g., Red)
-    self.navigationBar.barTintColor = [UIColor redColor];
-    self.navigationBar.translucent = NO;
-    self.navigationBar.titleTextAttributes = @{NSForegroundColorAttributeName : [UIColor whiteColor]};
-
-    // Set the root view controller inside this navigation controller
-    UIViewController *detailVC = [[UIViewController alloc] init];
-    detailVC.view.backgroundColor = [UIColor orangeColor]; // Detail View (Orange)
-    detailVC.title = @"Detail";
-
-    // Add button to show master in portrait mode
-    detailVC.navigationItem.leftBarButtonItem = self.splitViewController.displayModeButtonItem;
-    detailVC.navigationItem.leftItemsSupplementBackButton = YES;
-
-    // Push detail view into this navigation controller
-    [self setViewControllers:@[detailVC] animated:NO];
-}
-@end
-
 @implementation SplitViewController
 @synthesize popOver, mybarButtonItem, tabIndex;
 
@@ -122,54 +46,37 @@
 
     
     UINavigationController *masterViewController = nil;
+    HFRNavigationController *detailNavigationController = [[HFRNavigationController alloc] initAsDetailView];
     
     if (self.tabIndex == 0)
     {
-        //BlueViewController* masterVC = [[BlueViewController alloc] init];
         ForumsTableViewController* vc = [[ForumsTableViewController alloc] initWithNibName:@"ForumsTableViewController" bundle:nil];
         masterViewController = [[HFRNavigationController alloc] initWithRootViewController:vc];
-
-        OrangeViewController* detailVC = [[OrangeViewController alloc] init];
-        
-        //UINavigationController *masterNav = [[UINavigationController alloc] initWithRootViewController:masterVC];
-        UINavigationController *detailNav = [[UINavigationController alloc] initWithRootViewController:detailVC];
-        self.viewControllers = @[masterViewController, detailNav];
-
-        /*
-        ForumsTableViewController* vc = [[ForumsTableViewController alloc] initWithNibName:@"ForumsTableViewController" bundle:nil];
-        masterViewController = [[HFRNavigationController alloc] initWithRootViewController:vc];
-        vc.detailNavigationViewController = detailNavigationController;*/
+        vc.detailNavigationViewController = detailNavigationController;
+        self.preferredDisplayMode = UISplitViewControllerDisplayModeAutomatic;
     }
     else if (self.tabIndex == 1)
     {
         FavoritesTableViewController* vc = [[FavoritesTableViewController alloc] initWithNibName:@"FavoritesTableViewController" bundle:nil];
         masterViewController = [[HFRNavigationController alloc] initWithRootViewController:vc];
-
-        HFRNavigationController3 *detailNavigationController = [[HFRNavigationController3 alloc] init];
-        vc.detailNavigationVC = detailNavigationController;
-
-        self.viewControllers = @[masterViewController, detailNavigationController];
-
+        vc.detailNavigationViewController = detailNavigationController;
+        self.preferredDisplayMode = UISplitViewControllerDisplayModeAutomatic;
     }
     else if (self.tabIndex == 2) {
         HFRMPViewController* vc = [[HFRMPViewController alloc] init];
         masterViewController = [[HFRNavigationController alloc] initWithRootViewController:vc];
-        
-        HFRNavigationController *detailNavigationController = [[HFRNavigationController alloc] init];
         vc.detailNavigationViewController = detailNavigationController;
-;
-        self.viewControllers = @[masterViewController, detailNavigationController];
-
+        self.preferredDisplayMode = UISplitViewControllerDisplayModeAutomatic;
     }
     else if (self.tabIndex == 3) {
         PlusTableViewController* vc = [[PlusTableViewController alloc] initWithNibName:@"PlusTableView" bundle:nil];
         masterViewController = [[HFRNavigationController alloc] initWithRootViewController:vc];
-        DetailNavigationViewController *detailNavigationController = [[DetailNavigationViewController alloc] init];
         vc.detailNavigationViewController = detailNavigationController;
-        self.viewControllers = @[masterViewController, detailNavigationController];
-
+        self.preferredDisplayMode = UISplitViewControllerDisplayModeAllVisible;
     }
     
+    self.viewControllers = @[masterViewController, detailNavigationController];
+
     // Set theme
     
     UINavigationBarAppearance *app = [UINavigationBarAppearance new];
@@ -179,8 +86,7 @@
     self.view.backgroundColor = [ThemeColors navBackgroundColor:[[ThemeManager sharedManager] theme]];
 
     
-    self.preferredDisplayMode = UISplitViewControllerDisplayModeAutomatic;
-    self.preferredPrimaryColumnWidthFraction = 0.5;
+    //self.preferredPrimaryColumnWidthFraction = 0.5;
     // Not working self.maximumPrimaryColumnWidth = [UIScreen mainScreen].bounds.size.width * 2/5;
 }
 

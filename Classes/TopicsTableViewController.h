@@ -10,7 +10,7 @@
 
 @class MessagesTableViewController;
 @class PullToRefreshErrorViewController;
-@class DetailNavigationViewController;
+@class HFRNavigationController;
 @class ASIHTTPRequest;
 @class ShakeView;
 @class TopicCellView;

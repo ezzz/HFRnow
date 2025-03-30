@@ -13,6 +13,7 @@
 		1503755821FF794200A5F7E1 /* PlusCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1503755721FF794200A5F7E1 /* PlusCellView.m */; };
 		150C9FE92D8E04750023C430 /* Icon-CLASSIC-BLUE@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 150C9FE82D8E04740023C430 /* Icon-CLASSIC-BLUE@3x.png */; };
 		150C9FEA2D8E04750023C430 /* Icon-CLASSIC-BLUE@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 150C9FE72D8E04740023C430 /* Icon-CLASSIC-BLUE@2x.png */; };
+		150C9FEF2D9801DC0023C430 /* OfflineStorage.m in Sources */ = {isa = PBXBuildFile; fileRef = 150C9FEE2D9801DC0023C430 /* OfflineStorage.m */; };
 		1512A7932232F6C9000C9B1D /* 08-chat-20.png in Resources */ = {isa = PBXBuildFile; fileRef = 1512A7922232F6C8000C9B1D /* 08-chat-20.png */; };
 		15167EB12330210600D64651 /* Heart-20@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15167EB02330210600D64651 /* Heart-20@2x.png */; };
 		152395EC28DF015E00614F9D /* Quote-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395CF28DF015C00614F9D /* Quote-20-Inv@2x.png */; };
@@ -62,11 +63,6 @@
 		15357D64234BA620002D5C2E /* offline@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15357D62234BA61F002D5C2E /* offline@2x.png */; };
 		15357D65234BA620002D5C2E /* offline.png in Resources */ = {isa = PBXBuildFile; fileRef = 15357D63234BA620002D5C2E /* offline.png */; };
 		15357D67234BA712002D5C2E /* offline2@2.png in Resources */ = {isa = PBXBuildFile; fileRef = 15357D66234BA712002D5C2E /* offline2@2.png */; };
-		15357D6B234BA7F7002D5C2E /* OfflineTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 15357D6A234BA7F7002D5C2E /* OfflineTableViewController.m */; };
-		15357D6D234BA82B002D5C2E /* OfflineTableView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 15357D6C234BA82B002D5C2E /* OfflineTableView.xib */; };
-		15357D75234E437C002D5C2E /* OfflineStorage.m in Sources */ = {isa = PBXBuildFile; fileRef = 15357D74234E437C002D5C2E /* OfflineStorage.m */; };
-		15357D7D2350F216002D5C2E /* OfflineCellView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 15357D7C2350F216002D5C2E /* OfflineCellView.xib */; };
-		15357D802350F245002D5C2E /* OfflineCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = 15357D7F2350F245002D5C2E /* OfflineCellView.m */; };
 		1536E7D5257D26BE00B30209 /* SmileyCodeTableView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1536E7D4257D26BE00B30209 /* SmileyCodeTableView.xib */; };
 		1536E7D7257D26E600B30209 /* SmileyCodeTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1536E7D6257D26E600B30209 /* SmileyCodeTableViewController.m */; };
 		1536E7DA257D2A7800B30209 /* SmileyCodeCellView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1536E7D9257D2A7800B30209 /* SmileyCodeCellView.xib */; };
@@ -958,6 +954,8 @@
 		150A228A24CB7D140071F9DE /* api_keys.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = api_keys.h; sourceTree = "<group>"; };
 		150C9FE72D8E04740023C430 /* Icon-CLASSIC-BLUE@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-CLASSIC-BLUE@2x.png"; sourceTree = "<group>"; };
 		150C9FE82D8E04740023C430 /* Icon-CLASSIC-BLUE@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-CLASSIC-BLUE@3x.png"; sourceTree = "<group>"; };
+		150C9FED2D9801DC0023C430 /* OfflineStorage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OfflineStorage.h; path = Classes/OfflineStorage.h; sourceTree = SOURCE_ROOT; };
+		150C9FEE2D9801DC0023C430 /* OfflineStorage.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = OfflineStorage.m; path = Classes/OfflineStorage.m; sourceTree = SOURCE_ROOT; };
 		1512A7922232F6C8000C9B1D /* 08-chat-20.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "08-chat-20.png"; sourceTree = "<group>"; };
 		15141AA221E7ADE800811E5A /* link_url.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = link_url.png; path = ../../../../../Icones/link_url.png; sourceTree = "<group>"; };
 		15167EB02330210600D64651 /* Heart-20@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Heart-20@2x.png"; sourceTree = "<group>"; };
@@ -1012,14 +1010,6 @@
 		15357D62234BA61F002D5C2E /* offline@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "offline@2x.png"; sourceTree = "<group>"; };
 		15357D63234BA620002D5C2E /* offline.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = offline.png; sourceTree = "<group>"; };
 		15357D66234BA712002D5C2E /* offline2@2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "offline2@2.png"; sourceTree = "<group>"; };
-		15357D69234BA7DC002D5C2E /* OfflineTableViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = OfflineTableViewController.h; sourceTree = "<group>"; };
-		15357D6A234BA7F7002D5C2E /* OfflineTableViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = OfflineTableViewController.m; sourceTree = "<group>"; };
-		15357D6C234BA82B002D5C2E /* OfflineTableView.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = OfflineTableView.xib; sourceTree = "<group>"; };
-		15357D73234E42EC002D5C2E /* OfflineStorage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = OfflineStorage.h; sourceTree = "<group>"; };
-		15357D74234E437C002D5C2E /* OfflineStorage.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = OfflineStorage.m; sourceTree = "<group>"; };
-		15357D7C2350F216002D5C2E /* OfflineCellView.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = OfflineCellView.xib; sourceTree = "<group>"; };
-		15357D7E2350F234002D5C2E /* OfflineCellView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = OfflineCellView.h; sourceTree = "<group>"; };
-		15357D7F2350F245002D5C2E /* OfflineCellView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = OfflineCellView.m; sourceTree = "<group>"; };
 		1536E7D4257D26BE00B30209 /* SmileyCodeTableView.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = SmileyCodeTableView.xib; sourceTree = "<group>"; };
 		1536E7D6257D26E600B30209 /* SmileyCodeTableViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SmileyCodeTableViewController.m; sourceTree = "<group>"; };
 		1536E7D8257D271900B30209 /* SmileyCodeTableViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SmileyCodeTableViewController.h; sourceTree = "<group>"; };
@@ -2159,9 +2149,9 @@
 		080E96DDFE201D6D7F000001 /* Classes */ = {
 			isa = PBXGroup;
 			children = (
+				150C9FEC2D9801B50023C430 /* OfflineStorage */,
 				150A228924CB7CE20071F9DE /* API */,
 				152D2D38244C798A00D9D644 /* Bookmarks */,
-				15357D68234BA77F002D5C2E /* Offline */,
 				15EBFD0922061ECD00A37CED /* AlertesQualitay */,
 				1503755121FDF89F00A5F7E1 /* Plus */,
 				CA26861C13ADD94100AC5511 /* webBrowser */,
@@ -2200,6 +2190,15 @@
 			name = API;
 			sourceTree = "<group>";
 		};
+		150C9FEC2D9801B50023C430 /* OfflineStorage */ = {
+			isa = PBXGroup;
+			children = (
+				150C9FED2D9801DC0023C430 /* OfflineStorage.h */,
+				150C9FEE2D9801DC0023C430 /* OfflineStorage.m */,
+			);
+			path = OfflineStorage;
+			sourceTree = "<group>";
+		};
 		152D2D38244C798A00D9D644 /* Bookmarks */ = {
 			isa = PBXGroup;
 			children = (
@@ -2213,21 +2212,6 @@
 				152D2D44244CBA1100D9D644 /* Bookmark.m */,
 			);
 			name = Bookmarks;
-			sourceTree = "<group>";
-		};
-		15357D68234BA77F002D5C2E /* Offline */ = {
-			isa = PBXGroup;
-			children = (
-				15357D69234BA7DC002D5C2E /* OfflineTableViewController.h */,
-				15357D6A234BA7F7002D5C2E /* OfflineTableViewController.m */,
-				15357D6C234BA82B002D5C2E /* OfflineTableView.xib */,
-				15357D73234E42EC002D5C2E /* OfflineStorage.h */,
-				15357D74234E437C002D5C2E /* OfflineStorage.m */,
-				15357D7C2350F216002D5C2E /* OfflineCellView.xib */,
-				15357D7E2350F234002D5C2E /* OfflineCellView.h */,
-				15357D7F2350F245002D5C2E /* OfflineCellView.m */,
-			);
-			name = Offline;
 			sourceTree = "<group>";
 		};
 		15B245A722E6F9220091B513 /* ThemeSettings */ = {
@@ -3573,7 +3557,6 @@
 				CA7C6FBE185EF50E00B348BA /* flagyellowcopie@2x.png in Resources */,
 				CA7C6FBF185EF50E00B348BA /* buttonendhover.png in Resources */,
 				CA7C6FC0185EF50E00B348BA /* toolbar2.png in Resources */,
-				15357D7D2350F216002D5C2E /* OfflineCellView.xib in Resources */,
 				1537753A274D6CE600790892 /* noel14.png in Resources */,
 				CA7C6FC1185EF50E00B348BA /* 122-stats.png in Resources */,
 				CA7C6FC2185EF50E00B348BA /* CompteViewController.xib in Resources */,
@@ -3824,7 +3807,6 @@
 				4C1991911FA9E91600A07A8A /* Icon-BETA@2x.png in Resources */,
 				1523960728DF015F00614F9D /* 08-chat-20-Inv.png in Resources */,
 				152395F928DF015F00614F9D /* StarFilled-20-Inv.png in Resources */,
-				15357D6D234BA82B002D5C2E /* OfflineTableView.xib in Resources */,
 				CA7C702F185EF50E00B348BA /* MessageDetailViewControllerv2.xib in Resources */,
 				CA7C7030185EF50E00B348BA /* fou.gif in Resources */,
 				1591C0F2249690BF0025560A /* fond-degrade-bleu-fonce_1258-1348.jpg in Resources */,
@@ -4225,6 +4207,7 @@
 				1556409122D928D30018A619 /* WhiteListTableViewController.m in Sources */,
 				CA7C70D5185EF50E00B348BA /* LinkItem.m in Sources */,
 				CA7C70DB185EF50E00B348BA /* ParseMessagesOperation.m in Sources */,
+				150C9FEF2D9801DC0023C430 /* OfflineStorage.m in Sources */,
 				4CB132F91B90A1930081B44D /* BlackList.m in Sources */,
 				CA7C7112185EF50E00B348BA /* Favorite.m in Sources */,
 				CA7C70DC185EF50E00B348BA /* RehostImage.m in Sources */,
@@ -4267,7 +4250,6 @@
 				CA7C70FB185EF50E00B348BA /* PayViewController.m in Sources */,
 				CA7C70FD185EF50E00B348BA /* TopicSearchCellView.m in Sources */,
 				CA7C7100185EF50E00B348BA /* BrowserViewController.m in Sources */,
-				15357D802350F245002D5C2E /* OfflineCellView.m in Sources */,
 				CA7C7101185EF50E00B348BA /* SplitViewController.m in Sources */,
 				CA7C7102185EF50E00B348BA /* DetailNavigationViewController.m in Sources */,
 				159D80BC2738256600388363 /* PopupViewController.m in Sources */,
@@ -4340,12 +4322,10 @@
 				15B245AA22E6F9870091B513 /* ThemeSettingsViewController.m in Sources */,
 				152D2D40244C7A2700D9D644 /* BookmarksCellView.m in Sources */,
 				4C3903631BCACEC200FD6F1F /* PSTCollectionViewItemKey.m in Sources */,
-				15357D75234E437C002D5C2E /* OfflineStorage.m in Sources */,
 				4C3903611BCACEC200FD6F1F /* PSTCollectionViewFlowLayout.m in Sources */,
 				D80DBD781E55BE730051B751 /* ASINetworkQueue.m in Sources */,
 				1503755021FCFF6800A5F7E1 /* PlusTableViewController.m in Sources */,
 				D8F5CBAE1DF45C1100B029FC /* Reachability.m in Sources */,
-				15357D6B234BA7F7002D5C2E /* OfflineTableViewController.m in Sources */,
 				D87BB742216266F00079690C /* CompteTableViewCell.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

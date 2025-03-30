@@ -9,7 +9,7 @@
 
 #import "FavoritesTableViewController.h"
 #import "MessagesTableViewController.h"
-#import "DetailNavigationViewController.h"
+#import "HFRNavigationController.h"
 #import "HTMLParser.h"
 #import	"RegexKitLite.h"
 #import "ASIHTTPRequest+Tools.h"
@@ -35,7 +35,6 @@
 #import "PullToRefreshErrorViewController.h"
 #import "ThemeManager.h"
 #import "ThemeColors.h"
-#import "OfflineStorage.h"
 #import "MultisManager.h"
 #import "FilterPostsQuotes.h"
 
@@ -46,7 +45,7 @@
 
 @synthesize pressedIndexPath, favoritesTableView, loadingView, showAll;
 @synthesize arrayData, arrayNewData, arrayTopics, arrayCategories, arrayCategoriesHidden, arrayCategoriesVisibleOrder, arrayCategoriesHiddenOrder; //v2 remplace arrayData, arrayDataID, arrayDataID2, arraySection
-@synthesize messagesTableViewController, detailNavigationVC, errorVC;
+@synthesize messagesTableViewController, detailNavigationViewController, errorVC;
 @synthesize idPostSuperFavorites;
 @synthesize request;
 @synthesize reloadOnAppear, status, statusMessage, maintenanceView, topicActionAlert, filterPostsQuotes;
@@ -831,7 +830,7 @@
             break;
     }
     
-    aView.detailNavigationViewController = self.detailNavigationVC;
+    aView.detailNavigationViewController = self.detailNavigationViewController;
 	aView.forumName = [[[arrayCategories objectAtIndex:section] forum] aTitle];
     
     self.navigationItem.backBarButtonItem =
@@ -1163,20 +1162,16 @@
         if (tmpTopic.isPoll) {
             sPoll = @" \U00002263";
         }
-        NSString* sOffline = @"";
-        if ([[OfflineStorage shared] isOfflineTopic:tmpTopic]) {
-            sOffline = @" \U000025CF";
-        }
 
         switch (vos_sujets) {
             case 0:
-                [cell.labelMessageNumber setText:[NSString stringWithFormat:@"%@ ⚑%@ %d/%d", sOffline, sPoll, [tmpTopic curTopicPage], [tmpTopic maxTopicPage]]];
+                [cell.labelMessageNumber setText:[NSString stringWithFormat:@"⚑%@ %d/%d", sPoll, [tmpTopic curTopicPage], [tmpTopic maxTopicPage]]];
                 break;
             case 1:
-                [cell.labelMessageNumber setText:[NSString stringWithFormat:@"%@ ★%@ %d/%d", sOffline, sPoll, [tmpTopic curTopicPage], [tmpTopic maxTopicPage]]];
+                [cell.labelMessageNumber setText:[NSString stringWithFormat:@"★%@ %d/%d", sPoll, [tmpTopic curTopicPage], [tmpTopic maxTopicPage]]];
                 break;
             default:
-                [cell.labelMessageNumber setText:[NSString stringWithFormat:@"%@ ⚑%@ %d/%d", sOffline, sPoll, [tmpTopic curTopicPage], [tmpTopic maxTopicPage]]];
+                [cell.labelMessageNumber setText:[NSString stringWithFormat:@"⚑%@ %d/%d", sPoll, [tmpTopic curTopicPage], [tmpTopic maxTopicPage]]];
                 break;
         }
         [cell.labelMessageNumber setFont:[UIFont systemFontOfSize:13.0*iSizeTextTopics/100]];
@@ -1448,19 +1443,7 @@
             [uiAction setValue:@true forKey:@"checked"];
         }
         [topicActionAlert addAction:uiAction];
-        
-        // Offline favorites handling
-        /*
-        UIAlertAction* uiActionOffline = [UIAlertAction actionWithTitle:@"Favori hors ligne" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-                [self setTopicOfflineFavoriteWithIndex:self.pressedIndexPath];
-        }];
-        if ([[OfflineStorage shared] isOfflineTopic:tmpTopic])
-        {
-            [uiActionOffline setValue:@true forKey:@"checked"];
-        }
-        [topicActionAlert addAction:uiActionOffline];
-        */
-        
+                
         // Check quotes
         UIAlertAction* uiActionCheckQuotes = [UIAlertAction actionWithTitle:@"Filtrer les posts" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
                 [self checkPostsAndQuotesForTopicIndex:self.pressedIndexPath];
@@ -1537,11 +1520,10 @@
 }
 
 
-- (void)pushTopic {
-    /*if (([self respondsToSelector:@selector(traitCollection)] && [HFRplusAppDelegate sharedAppDelegate].window.traitCollection.horizontalSizeClass == UIUserInterfaceSizeClassCompact) ||
-        [[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone ||
-        [[HFRplusAppDelegate sharedAppDelegate].detailNavigationController.topViewController isMemberOfClass:[BrowserViewController class]]) {
-        
+- (void)pushTopic
+{
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone)
+    {
         self.navigationItem.backBarButtonItem =
         [[UIBarButtonItem alloc] initWithTitle:@" "
                                          style: UIBarButtonItemStylePlain
@@ -1550,20 +1532,17 @@
         
         [self.navigationController pushViewController:messagesTableViewController animated:YES];
     }
-    else if (detailNavigationVC) {*/
-    
-        //[self.detailNavigationVC popToRootViewControllerAnimated:NO];
-        //[self.detailNavigationVC pushViewController:messagesTableViewController animated:YES];
-    messagesTableViewController.navigationItem.leftBarButtonItem = self.detailNavigationVC.splitViewController.displayModeButtonItem;
-    messagesTableViewController.navigationItem.leftItemsSupplementBackButton = YES;
-        [self.detailNavigationVC setViewControllers:[NSMutableArray arrayWithObjects:messagesTableViewController, nil] animated:YES];
+    else if (self.detailNavigationViewController)
+    {
+        messagesTableViewController.navigationItem.leftBarButtonItem = self.detailNavigationViewController.splitViewController.displayModeButtonItem;
+        messagesTableViewController.navigationItem.leftItemsSupplementBackButton = YES;
+        [self.detailNavigationViewController setViewControllers:[NSMutableArray arrayWithObjects:messagesTableViewController, nil] animated:YES];
 
-    //}
+        // Close left panel on ipad in portrait mode
+        [[HFRplusAppDelegate sharedAppDelegate] hidePrimaryPanelOnIpadForSplitViewController:self.detailNavigationViewController.splitViewController];
+    }
     
     [self setTopicViewed];
-    
-    // Close left panel on ipad in portrait mode
-    [[HFRplusAppDelegate sharedAppDelegate] hidePrimaryPanelOnIpad];
 
 }
 
@@ -1652,18 +1631,6 @@
         [self.favoritesTableView reloadData];
     });
 }
-
--(void)setTopicOfflineFavoriteWithIndex:(NSIndexPath *)indexPath {
-    Topic *tmpTopic = [self getTopicAtIndexPath:indexPath];
-    [self.favoritesTableView setEditing:NO animated:NO];
-    dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.3 * NSEC_PER_SEC));
-    dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
-        // Go to URL in BG
-        [[OfflineStorage shared] toggleOfflineTopics:tmpTopic];
-        [self.favoritesTableView reloadData];
-    });
-}
-
 
 -(void)checkPostsAndQuotesForTopicIndex:(NSIndexPath *)indexPath {
     Topic *topic = [self getTopicAtIndexPath:indexPath];

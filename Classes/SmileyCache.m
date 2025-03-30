@@ -9,7 +9,6 @@
 #import <Foundation/Foundation.h>
 #import "ASIHTTPRequest+Tools.h"
 #import "SmileyCache.h"
-#import "OfflineTableViewController.h"
 #import "HTMLparser.h"
 #import "Constants.h"
 #import <SDWebImage/SDWebImage.h>

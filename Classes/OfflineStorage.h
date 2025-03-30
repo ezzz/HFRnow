@@ -7,7 +7,6 @@
 
 #import <Foundation/Foundation.h>
 #import "Topic.h"
-#import "OfflineTableViewController.h"
 
 @interface OfflineStorage : NSObject
 {
@@ -25,7 +24,7 @@
 - (void)updateOfflineTopic:(Topic*)newTopic;
 //- (void)addTopicToOfflineTopics:(Topic*)topic withPage:(Topic*)page;
 - (void)removeTopicFromOfflineTopics:(Topic*)topic;
-- (BOOL)loadTopicToCache:(Topic*)topic fromInstance:(OfflineTableViewController*)vc totalPages:(int)t;
+//- (BOOL)loadTopicToCache:(Topic*)topic fromInstance:(OfflineTableViewController*)vc totalPages:(int)t;
 - (void)eraseAllTopicsInCache;
 - (void)eraseAllTopics;
 - (void)verifyCacheIntegrity;

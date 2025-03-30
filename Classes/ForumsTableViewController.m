@@ -9,7 +9,7 @@
 
 #import "ForumsTableViewController.h"
 #import "TopicsTableViewController.h"
-#import "DetailNavigationViewController.h"
+#import "HFRNavigationController.h"
 
 #import "TabBarController.h"
 

@@ -8,7 +8,6 @@
 #import <Foundation/Foundation.h>
 #import "PlusTableViewController.h"
 #import "PlusSettingsViewController.h"
-#import "OfflineTableViewController.h"
 #import "CompteViewController.h"
 #import "CreditsViewController.h"
 #import "BookmarksTableViewController.h"
@@ -18,7 +17,7 @@
 #import "ThemeManager.h"
 
 @implementation PlusTableViewController;
-@synthesize plusTableView, iAQBadgeNumer, settingsViewController, compteViewController, aqTableViewController, offlineTableViewController, bookmarksTableViewController,  creditsViewController, detailNavigationViewController;
+@synthesize plusTableView, iAQBadgeNumer, settingsViewController, compteViewController, aqTableViewController, bookmarksTableViewController,  creditsViewController, detailNavigationViewController;
 ;
 
 
@@ -46,9 +45,16 @@
     self.creditsViewController = [[CreditsViewController alloc] initWithNibName:@"CreditsViewController" bundle:nil filename:@"credits"];
     self.charteViewController = [[CreditsViewController alloc] initWithNibName:@"CreditsViewController" bundle:nil filename:@"charte"];
     self.bookmarksTableViewController = [[BookmarksTableViewController alloc] initWithNibName:@"BookmarksTableView" bundle:nil];
-    self.offlineTableViewController = [[OfflineTableViewController alloc] initWithNibName:@"OfflineTableView" bundle:nil];
 
     iAQBadgeNumer = 0;
+    
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad)
+    { // iPad
+        
+        [self.detailNavigationViewController setViewControllers:[NSMutableArray arrayWithObjects:self.compteViewController, nil] animated:YES];
+        NSIndexPath *indexPath = [NSIndexPath indexPathForRow:0 inSection:0];
+        [self.plusTableView selectRowAtIndexPath:indexPath animated:YES scrollPosition:UITableViewScrollPositionNone];
+    }
 }
 
 - (void) viewWillAppear:(BOOL)animated
@@ -105,14 +111,6 @@
     { // iPad
         if (vc && self.detailNavigationViewController)
         {
-            
-            for (UIViewController *detailvc in self.detailNavigationViewController.viewControllers) {
-                if ([detailvc isKindOfClass:[vc class]]) {
-                    return;
-                }
-            }
-            
-            [self.detailNavigationViewController pushViewController:vc animated:YES];
             [self.detailNavigationViewController setViewControllers:[NSMutableArray arrayWithObjects:vc, nil] animated:YES];
         }
     }

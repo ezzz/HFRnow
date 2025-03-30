@@ -9,7 +9,7 @@
 #import "Constants.h"
 
 @class MessagesTableViewController;
-@class DetailNavigationViewController;
+@class HFRNavigationController;
 @class PullToRefreshErrorViewController;
 @class ASIHTTPRequest, FilterPostsQuotes;
 
@@ -78,7 +78,7 @@
 
 @property (strong, nonatomic) ASIHTTPRequest *request;
 
-@property (nonatomic, strong) DetailNavigationViewController* detailNavigationVC;
+@property (nonatomic, strong) HFRNavigationController* detailNavigationViewController;
 
 -(void)loadDataInTableView:(NSData*)contentData;
 -(void)reset;

@@ -505,17 +505,22 @@
 	self.messagesTableViewController.topicName = [[stories objectAtIndex: storyIndex] objectForKey: @"title"];	
 	self.messagesTableViewController.isViewed = NO;	
 	
-    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone || [[HFRplusAppDelegate sharedAppDelegate].detailNavigationController.topViewController isMemberOfClass:[BrowserViewController class]]) {
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone)
+    {
+        self.navigationItem.backBarButtonItem =
+        [[UIBarButtonItem alloc] initWithTitle:@" "
+                                         style: UIBarButtonItemStylePlain
+                                        target:nil
+                                        action:nil];
+        
         [self.navigationController pushViewController:messagesTableViewController animated:YES];
     }
-    else {
-        // TODO TABBAR
-        
-        [[[[[HFRplusAppDelegate sharedAppDelegate] splitViewController] viewControllers] objectAtIndex:1] popToRootViewControllerAnimated:NO];
-        
-        [[[HFRplusAppDelegate sharedAppDelegate] detailNavigationController] setViewControllers:[NSMutableArray arrayWithObjects:messagesTableViewController, nil] animated:YES];
+    //TODO version ipad
+    else
+    {
+        [self.navigationController pushViewController:messagesTableViewController animated:YES];
     }
-    
+
 }
 
 #pragma mark -

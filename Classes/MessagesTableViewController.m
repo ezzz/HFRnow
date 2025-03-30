@@ -138,14 +138,7 @@
 
 - (void)fetchContent
 {
-    if ([self isModeOffline]) {
-        NSData* data = [[OfflineStorage shared] getDataFromTopicOffline:self.currentOfflineTopic page:self.currentOfflineTopic.curTopicPage];
-        self.pageNumber = self.currentOfflineTopic.curTopicPage;
-        [self startParseDataHtml:data];
-    }
-    else {
-        [self fetchContent:kNewMessageFromUnkwn];
-    }
+    [self fetchContent:kNewMessageFromUnkwn];
 }
 
 - (void)fetchContentStarted:(ASIHTTPRequest *)theRequest
@@ -2180,7 +2173,7 @@
             NSString* sSmileyImgUrl = [[[aRequest.URL absoluteString] stringByMatching:regularExpressionString capture:2L] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
             // stringByRemovingPercentEncoding should be done twice to replace %2520 characters. With a single call, they are only replaced by %20
             NSString* sSmileyImgUrlRaw = [[sSmileyImgUrl stringByRemovingPercentEncoding] stringByRemovingPercentEncoding];
-            NSLog(@"Selected smiley url3  %@", sSmileyImgUrlRaw);
+            NSLog(@"Selected smiley CODE %@ URL %@ RAW %@", sSmileyCode, sSmileyImgUrl, sSmileyImgUrlRaw);
             BOOL bAddSmiley = YES;
             if ([[SmileyCache shared] isFavoriteSmileyFromApp:sSmileyCode]) {
                 bAddSmiley = NO;

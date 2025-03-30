@@ -1692,39 +1692,27 @@
     [self.navigationController pushViewController:avc animated:YES];
 }
 
-- (void)pushTopic {
-
-
-    if (([self respondsToSelector:@selector(traitCollection)] && [HFRplusAppDelegate sharedAppDelegate].window.traitCollection.horizontalSizeClass == UIUserInterfaceSizeClassCompact) ||
-        [[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone ||
-        [[HFRplusAppDelegate sharedAppDelegate].detailNavigationController.topViewController isMemberOfClass:[BrowserViewController class]]) {
-        
-        
+- (void)pushTopic
+{
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone)
+    {
+        self.navigationItem.backBarButtonItem =
+        [[UIBarButtonItem alloc] initWithTitle:@" "
+                                         style: UIBarButtonItemStylePlain
+                                        target:nil
+                                        action:nil];
         
         [self.navigationController pushViewController:messagesTableViewController animated:YES];
     }
-    else if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad && self.detailNavigationViewController) {
-        NSLog(@"Pushing messagesTableViewController");
-        [self.detailNavigationViewController pushViewController:messagesTableViewController animated:YES];
+    else if (self.detailNavigationViewController)
+    {
+        messagesTableViewController.navigationItem.leftBarButtonItem = self.detailNavigationViewController.splitViewController.displayModeButtonItem;
+        messagesTableViewController.navigationItem.leftItemsSupplementBackButton = YES;
         [self.detailNavigationViewController setViewControllers:[NSMutableArray arrayWithObjects:messagesTableViewController, nil] animated:YES];
 
-        // TODO TABBAR barmenuitem
-        /*
-        [[[[[HFRplusAppDelegate sharedAppDelegate] splitViewController] viewControllers] objectAtIndex:1] popToRootViewControllerAnimated:NO];
-
-        [[[HFRplusAppDelegate sharedAppDelegate] detailNavigationController] setViewControllers:[NSMutableArray arrayWithObjects:messagesTableViewController, nil] animated:YES];
-        
-        if ([messagesTableViewController.splitViewController respondsToSelector:@selector(displayModeButtonItem)]) {
-            NSLog(@"PUSH ADD BTN");
-            [[HFRplusAppDelegate sharedAppDelegate] detailNavigationController].viewControllers[0].navigationItem.leftBarButtonItem = messagesTableViewController.splitViewController.displayModeButtonItem;
-            [[HFRplusAppDelegate sharedAppDelegate] detailNavigationController].viewControllers[0].navigationItem.leftItemsSupplementBackButton = YES;
-        }*/
+        // Close left panel on ipad in portrait mode
+        [[HFRplusAppDelegate sharedAppDelegate] hidePrimaryPanelOnIpadForSplitViewController:self.detailNavigationViewController.splitViewController];
     }
-    
-    [self setTopicViewed];
-    
-    // Close left panel on ipad in portrait mode
-    [[HFRplusAppDelegate sharedAppDelegate] hidePrimaryPanelOnIpad];
 }
 
 -(void)setTopicViewed {

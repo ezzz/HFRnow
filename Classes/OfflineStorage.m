@@ -8,7 +8,6 @@
 #import <Foundation/Foundation.h>
 #import "ASIHTTPRequest+Tools.h"
 #import "OfflineStorage.h"
-#import "OfflineTableViewController.h"
 #import "HTMLparser.h"
 #import "Constants.h"
 #define IMAGE_CACHE_DIRECTORY @"image_cache"
@@ -143,7 +142,7 @@ static OfflineStorage *_shared = nil;    // static instance variable
     [data writeToFile:filename atomically:YES];
 }
 
-
+/*
 - (BOOL)loadTopicToCache:(Topic*)topic fromInstance:(OfflineTableViewController*)vc totalPages:(int)t {
     NSFileManager *fileManager = [[NSFileManager alloc] init];
     NSString *directory = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) lastObject];
@@ -257,7 +256,7 @@ static OfflineStorage *_shared = nil;    // static instance variable
                     NSLog(@"Output %@", output);
                     NSLog(@"------------------------------------------------------");
                     NSLog(@"Writing file  %@", filename);
-                     */
+                     *
                     NSData* data = [output dataUsingEncoding:NSUTF8StringEncoding];
                     [data writeToFile:filename atomically:YES];// error:&errorWrite];
                     
@@ -292,7 +291,7 @@ static OfflineStorage *_shared = nil;    // static instance variable
     }
     
     return YES;
-}
+}*/
 
 - (NSString*)loadImageWithName:(NSString*)sURL {
     @try {

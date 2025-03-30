@@ -92,11 +92,8 @@
     CGRect originalFrame = CGRectZero;
     CGRect adjustedFrame = CGRectZero;
     
-    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
-        // TODO TABBAR : place holder quand pas de message lu ou favoris
-        
-        UITabBarController *tabBar = [[[[HFRplusAppDelegate sharedAppDelegate] splitViewController] viewControllers] objectAtIndex:0];
-        originalFrame = [tabBar.view bounds];
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
+        originalFrame = [self.splitViewController.viewControllers.firstObject.view bounds];
         
         adjustedFrame.size.height = originalFrame.size.height;
         adjustedFrame.size.width = originalFrame.size.width;

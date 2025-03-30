@@ -9,4 +9,9 @@
 
 @interface HFRNavigationController : UINavigationController //<UINavigationControllerDelegate>
 
+- (HFRNavigationController*)initAsDetailView;
+
+@property BOOL isDetailView;
+
+
 @end

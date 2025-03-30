@@ -13,7 +13,7 @@
 @class ForumCellView;
 @class PullToRefreshErrorViewController;
 @class TabBarController;
-@class DetailNavigationViewController;
+@class HFRNavigationController;
 
 @interface ForumsTableViewController : UIViewController <UITableViewDelegate, UITableViewDataSource, UIActionSheetDelegate> {
 	IBOutlet UITableView *forumsTableView;
@@ -60,7 +60,7 @@
 @property (nonatomic, strong) UIAlertController *forumActionAlert;
 
 @property (nonatomic, strong) TabBarController *tabbarController;
-@property (nonatomic, strong) DetailNavigationViewController* detailNavigationViewController;
+@property (nonatomic, strong) HFRNavigationController* detailNavigationViewController;
 
 -(void)loadDataInTableView:(NSData *)contentData;
 -(void)reload:(BOOL)shake;
