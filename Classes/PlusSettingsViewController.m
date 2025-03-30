@@ -76,7 +76,7 @@
         [self showCell:@"auto_theme_day_time"];
         [self showCell:@"auto_theme_night_time"];
     } else if (autoThemeEnabled == AUTO_THEME_AUTO_IOS) {
-        [self showCell:@"theme"];
+        [self hideCell:@"theme"];
         [self hideCell:@"auto_theme_day_time"];
         [self hideCell:@"auto_theme_night_time"];
     } else {
@@ -163,7 +163,7 @@
             [[ThemeManager sharedManager] setTheme:[[ThemeManager  sharedManager] getThemeFromCurrentTime]];
         } else if (iAutoTheme == AUTO_THEME_AUTO_IOS) {
             if (@available(iOS 13.0, *)) {
-                [self showCell:@"theme"];
+                [self hideCell:@"theme"];
                 [self hideCell:@"auto_theme_day_time"];
                 [self hideCell:@"auto_theme_night_time"];
                 [[ThemeManager sharedManager] changeAutoTheme:NO];

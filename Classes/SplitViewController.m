@@ -13,7 +13,6 @@
 
 #import "TopicsTableViewController.h"
 #import "FavoritesTableViewController.h"
-#import "DetailNavigationViewController.h"
 #import "PlusSettingsViewController.h"
 #import "PlusTableViewController.h"
 #import "CompteViewController.h"

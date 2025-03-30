@@ -965,37 +965,27 @@
     if(self.topicAnswerUrl.length > 0)
         [self.arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Répondre", @"answerTopic", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
     
-    BOOL actionsmesages_firstpage   = [defaults boolForKey:@"actionsmesages_firstpage"];
-    if(actionsmesages_firstpage) 
-        [self.arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Première page", @"firstPage", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
+    [self.arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Première page", @"firstPage", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
+
+    [self.arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Dernière page", @"lastPage", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
+
+    [self.arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Dernière réponse", @"lastAnswer", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
     
-    BOOL actionsmesages_lastpage    = [defaults boolForKey:@"actionsmesages_lastpage"];
-    if(actionsmesages_lastpage) 
-        [self.arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Dernière page", @"lastPage", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
-    
-    BOOL actionsmesages_lastanswer  = [defaults boolForKey:@"actionsmesages_lastanswer"];
-    if(actionsmesages_lastanswer) 
-        [self.arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Dernière réponse", @"lastAnswer", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
-    
-    BOOL actionsmesages_pagenumber  = [defaults boolForKey:@"actionsmesages_pagenumber"];
-    if(actionsmesages_pagenumber && ([self lastPageNumber] > [self firstPageNumber])) 
+    if([self lastPageNumber] > [self firstPageNumber]) {
         [self.arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Page numéro...", @"choosePage", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
+    }
     
-    BOOL actionsmesages_toppage     = [defaults boolForKey:@"actionsmesages_toppage"];
-    if(actionsmesages_toppage) 
-        [self.arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Haut de la page", @"goToPagePositionTop", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
+    [self.arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Haut de la page", @"goToPagePositionTop", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
     
-    BOOL actionsmesages_bottompage  = [defaults boolForKey:@"actionsmesages_bottompage"];
-    if(actionsmesages_bottompage) 
-        [self.arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Bas de la page", @"goToPagePositionBottom", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
+    [self.arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Bas de la page", @"goToPagePositionBottom", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
     
-    BOOL actionsmesages_poll  = [defaults boolForKey:@"actionsmesages_poll"];
-    if(actionsmesages_poll && self.pollNode)
+    if(self.pollNode) {
         [self.arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Sondage", @"showPoll", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
+    }
     
-    BOOL actionsmesages_unread      = [defaults boolForKey:@"actionsmesages_unread"];
-    if(actionsmesages_unread && self.isUnreadable) 
+    if (self.isUnreadable)  {
         [self.arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Marquer comme non lu", @"markUnread", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
+    }
     
     if (self.arrayActionsMessages.count == 0) {
         return;
@@ -1005,7 +995,6 @@
     
     styleAlert = [UIAlertController alertControllerWithTitle:nil message:nil preferredStyle:UIAlertControllerStyleActionSheet];
 
-    
     for( NSDictionary *dico in arrayActionsMessages) {
         NSString* sActionTitle = [dico valueForKey:@"title"];
         UIAlertActionStyle styleAction = UIAlertActionStyleDefault;
@@ -1673,7 +1662,7 @@
         
         if (![self isModeOffline]) {
             // On ajoute le bouton de notif de sondage
-            if ([[NSUserDefaults standardUserDefaults] boolForKey:@"notify_poll_not_answered"] && self.isNewPoll) {
+            if (self.isNewPoll) {
                 UIBarButtonItem *optionsBarItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAction target:self action:@selector(optionsTopic:)];
                 UIBarButtonItem* pollBarItem = [[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"icone_sondage"] style:UIBarButtonItemStylePlain target:self action:@selector(showPoll:)];
                 self.navigationItem.rightBarButtonItems = [[NSMutableArray alloc] initWithObjects:optionsBarItem, pollBarItem, nil];

@@ -746,7 +746,6 @@
 		CA7C70FD185EF50E00B348BA /* TopicSearchCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = CA20FA3312F15CA700EC1771 /* TopicSearchCellView.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
 		CA7C7100185EF50E00B348BA /* BrowserViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = CA26862313ADE01100AC5511 /* BrowserViewController.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
 		CA7C7101185EF50E00B348BA /* SplitViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = CA7E25E215A1D17500721F6D /* SplitViewController.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
-		CA7C7102185EF50E00B348BA /* DetailNavigationViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = CA7E25F015A1F4AA00721F6D /* DetailNavigationViewController.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
 		CA7C7104185EF50E00B348BA /* SubCatTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = CA7E260115A24A9A00721F6D /* SubCatTableViewController.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
 		CA7C710C185EF50E00B348BA /* ShakeView.m in Sources */ = {isa = PBXBuildFile; fileRef = CA00C45317C3000B0067B457 /* ShakeView.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		CA7C7110185EF50E00B348BA /* HFRNavigationController.m in Sources */ = {isa = PBXBuildFile; fileRef = CAC4966815B77357009128BC /* HFRNavigationController.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
@@ -1743,8 +1742,6 @@
 		CA7C7132185EF50E00B348BA /* SuperHFRplusSwift.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SuperHFRplusSwift.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA7E25E115A1D17500721F6D /* SplitViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SplitViewController.h; sourceTree = "<group>"; };
 		CA7E25E215A1D17500721F6D /* SplitViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SplitViewController.m; sourceTree = "<group>"; };
-		CA7E25EF15A1F4AA00721F6D /* DetailNavigationViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DetailNavigationViewController.h; sourceTree = "<group>"; };
-		CA7E25F015A1F4AA00721F6D /* DetailNavigationViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DetailNavigationViewController.m; sourceTree = "<group>"; };
 		CA7E260015A24A9A00721F6D /* SubCatTableViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SubCatTableViewController.h; sourceTree = "<group>"; };
 		CA7E260115A24A9A00721F6D /* SubCatTableViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SubCatTableViewController.m; sourceTree = "<group>"; };
 		CA81D28B12281D5800AC6ADA /* EditMessageViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EditMessageViewController.h; sourceTree = "<group>"; };
@@ -2074,8 +2071,6 @@
 				01BF8A3A121D7785007624B6 /* Constants.h */,
 				4C25E3D41D82CECD0031A2F2 /* k.h */,
 				4C25E3D51D82CECD0031A2F2 /* k.m */,
-				CA7E25EF15A1F4AA00721F6D /* DetailNavigationViewController.h */,
-				CA7E25F015A1F4AA00721F6D /* DetailNavigationViewController.m */,
 				CA7E25E115A1D17500721F6D /* SplitViewController.h */,
 				CA7E25E215A1D17500721F6D /* SplitViewController.m */,
 				CA9E86871243C11A000EE882 /* TabBarController.h */,
@@ -4251,7 +4246,6 @@
 				CA7C70FD185EF50E00B348BA /* TopicSearchCellView.m in Sources */,
 				CA7C7100185EF50E00B348BA /* BrowserViewController.m in Sources */,
 				CA7C7101185EF50E00B348BA /* SplitViewController.m in Sources */,
-				CA7C7102185EF50E00B348BA /* DetailNavigationViewController.m in Sources */,
 				159D80BC2738256600388363 /* PopupViewController.m in Sources */,
 				1543743D22EDDF7400AF00A5 /* ColorPickerViewController.m in Sources */,
 				CAF5DB7C19340741000B5215 /* FeedbackTableViewCell.m in Sources */,
@@ -4452,11 +4446,13 @@
 				ASSETCATALOG_COMPILER_OPTIMIZATION = time;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
+				CODE_SIGN_STYLE = Manual;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 6;
-				DEVELOPMENT_TEAM = QMG83DG7YP;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = QMG83DG7YP;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4493,9 +4489,10 @@
 					"-licucore",
 					"-ObjC",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super.local;
+				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super;
 				PRODUCT_NAME = SuperHFRplusSwift;
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = ProfileSuperHFRv1;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -4515,11 +4512,13 @@
 				ASSETCATALOG_COMPILER_OPTIMIZATION = time;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
+				CODE_SIGN_STYLE = Manual;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = YES;
 				CURRENT_PROJECT_VERSION = 6;
-				DEVELOPMENT_TEAM = QMG83DG7YP;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = QMG83DG7YP;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4554,9 +4553,10 @@
 					"-licucore",
 					"-ObjC",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super.local;
+				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super;
 				PRODUCT_NAME = SuperHFRplusSwift;
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = ProfileSuperHFRv1;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;

@@ -103,8 +103,20 @@
     [[NSUserDefaults standardUserDefaults] registerDefaults:appDefaults];
     [[NSUserDefaults standardUserDefaults] synchronize];
     
-        
-        
+    
+     // Force default settings for compatibiity with older settings
+    // Disable shake to refresh
+    NSString* sLandscapeMode = @"galerie_message";
+    [[NSUserDefaults standardUserDefaults] setObject:sLandscapeMode forKey:@"landscape_mode"];
+    [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"shake_to_refresh"];
+    [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"theme_noel_disabled"];
+    // Apparence iOS as default theme setting
+    [[NSUserDefaults standardUserDefaults] setInteger:AUTO_THEME_AUTO_IOS forKey:@"auto_theme"];
+    NSString* sFilterOn = @"wl_pseudo";
+    [[NSUserDefaults standardUserDefaults] setObject:sFilterOn forKey:@"filter_posts_quotes"];
+    NSString* sDisplayImages = @"yes";
+    [[NSUserDefaults standardUserDefaults] setObject:sDisplayImages forKey:@"display_images"];
+
     //UserAgent
     /*
     NSDictionary *dictionary = [[NSDictionary alloc] initWithObjectsAndKeys:

@@ -9,7 +9,6 @@
 
 #import "HFRMPViewController.h"
 #import "MessagesTableViewController.h"
-#import "DetailNavigationViewController.h"
 
 #import "Topic.h"
 #import "TopicCellView.h"

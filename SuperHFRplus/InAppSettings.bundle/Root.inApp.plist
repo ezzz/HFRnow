@@ -12,28 +12,6 @@
 		</dict>
 		<dict>
 			<key>DefaultValue</key>
-			<string>galerie_message</string>
-			<key>Key</key>
-			<string>landscape_mode</string>
-			<key>Title</key>
-			<string>Mode Paysage</string>
-			<key>Titles</key>
-			<array>
-				<string>Désactivé</string>
-				<string>Editeur et Photos</string>
-				<string>Activé</string>
-			</array>
-			<key>Type</key>
-			<string>PSMultiValueSpecifier</string>
-			<key>Values</key>
-			<array>
-				<string>none</string>
-				<string>galerie_message</string>
-				<string>all</string>
-			</array>
-		</dict>
-		<dict>
-			<key>DefaultValue</key>
 			<string>0</string>
 			<key>Key</key>
 			<string>default_tab</string>
@@ -88,6 +66,16 @@
 			<key>Type</key>
 			<string>PSToggleSwitchSpecifier</string>
 		</dict>
+        <dict>
+            <key>DefaultValue</key>
+            <true/>
+            <key>Key</key>
+            <string>haptics</string>
+            <key>Title</key>
+            <string>Retours haptiques</string>
+            <key>Type</key>
+            <string>PSToggleSwitchSpecifier</string>
+        </dict>
 		<dict>
 			<key>DefaultValue</key>
 			<string>superblue</string>
@@ -116,29 +104,6 @@
                 <string>white</string>
             </array>
 		</dict>
-        
-        
-
-		<dict>
-			<key>DefaultValue</key>
-			<true/>
-			<key>Key</key>
-			<string>shake_to_refresh</string>
-			<key>Title</key>
-			<string>Shake to refresh</string>
-			<key>Type</key>
-			<string>PSToggleSwitchSpecifier</string>
-		</dict>
-		<dict>
-			<key>DefaultValue</key>
-			<true/>
-			<key>Key</key>
-			<string>haptics</string>
-			<key>Title</key>
-			<string>Retours haptiques</string>
-			<key>Type</key>
-			<string>PSToggleSwitchSpecifier</string>
-		</dict>
 		<dict>
 			<key>Title</key>
 			<string>Thèmes</string>
@@ -154,10 +119,8 @@
 			<string>Changement de thème</string>
 			<key>Titles</key>
 			<array>
-				<string>Apparence iOS</string>
-				<string>Manuel</string>
 				<string>Automatique</string>
-				<string>Heure fixe</string>
+				<string>Manuel</string>
 			</array>
 			<key>Type</key>
 			<string>PSMultiValueSpecifier</string>
@@ -165,8 +128,6 @@
 			<array>
 				<integer>3</integer>
 				<integer>0</integer>
-				<integer>1</integer>
-				<integer>2</integer>
 			</array>
 		</dict>
 		<dict>
@@ -175,7 +136,7 @@
 			<key>Key</key>
 			<string>theme_style</string>
 			<key>Title</key>
-			<string>Style du thème</string>
+			<string>Affichage des messages</string>
 			<key>Titles</key>
 			<array>
 				<string>Classique</string>
@@ -210,88 +171,8 @@
 			</array>
 		</dict>
 		<dict>
-			<key>DefaultValue</key>
-			<string>07:00</string>
-			<key>Key</key>
-			<string>auto_theme_day_time</string>
 			<key>Title</key>
-			<string>Heure du thème jour</string>
-			<key>Titles</key>
-			<array>
-				<string>5h</string>
-				<string>5h30</string>
-				<string>6h</string>
-				<string>6h30</string>
-				<string>7h</string>
-				<string>7h30</string>
-				<string>8h</string>
-				<string>8h30</string>
-				<string>9h</string>
-				<string>9h30</string>
-				<string>10h</string>
-			</array>
-			<key>Type</key>
-			<string>PSMultiValueSpecifier</string>
-			<key>Values</key>
-			<array>
-				<string>05:00</string>
-				<string>05:30</string>
-				<string>06:00</string>
-				<string>06:30</string>
-				<string>07:00</string>
-				<string>07:30</string>
-				<string>08:00</string>
-				<string>08:30</string>
-				<string>09:00</string>
-				<string>09:30</string>
-				<string>10:00</string>
-			</array>
-		</dict>
-		<dict>
-			<key>DefaultValue</key>
-			<string>22:00</string>
-			<key>Key</key>
-			<string>auto_theme_night_time</string>
-			<key>Title</key>
-			<string>Heure du thème nuit</string>
-			<key>Titles</key>
-			<array>
-				<string>17h</string>
-				<string>17h30</string>
-				<string>18h</string>
-				<string>18h30</string>
-				<string>19h</string>
-				<string>19h30</string>
-				<string>20h</string>
-				<string>20h30</string>
-				<string>21h</string>
-				<string>21h30</string>
-				<string>22h</string>
-				<string>22h30</string>
-				<string>23h</string>
-			</array>
-			<key>Type</key>
-			<string>PSMultiValueSpecifier</string>
-			<key>Values</key>
-			<array>
-				<string>17:00</string>
-				<string>17:30</string>
-				<string>18:00</string>
-				<string>18:30</string>
-				<string>19:00</string>
-				<string>19:30</string>
-				<string>20:00</string>
-				<string>20:30</string>
-				<string>21:00</string>
-				<string>21:30</string>
-				<string>22:00</string>
-				<string>22:30</string>
-				<string>23:00</string>
-			</array>
-		</dict>
-		<dict>
-			<key>Title</key>
-			<string>Ajustement de thème</string>
+			<string>Couleurs des thèmes</string>
 			<key>Type</key>
 			<string>PSChildPaneSpecifier</string>
 			<key>IASKViewControllerClass</key>
@@ -343,38 +224,6 @@
 			<key>Type</key>
 			<string>PSChildPaneSpecifier</string>
 		</dict>
-		<dict>
-			<key>File</key>
-			<string>ActionsMessages</string>
-			<key>Title</key>
-			<string>Actions</string>
-			<key>Type</key>
-			<string>PSChildPaneSpecifier</string>
-		</dict>
-        <dict>
-            <key>DefaultValue</key>
-            <string>wl_pseudo</string>
-            <key>Key</key>
-            <string>filter_posts_quotes</string>
-            <key>Title</key>
-            <string>Filtrer les posts</string>
-            <key>Titles</key>
-            <array>
-                <string>Love list et texte du pseudo</string>
-                <string>Love list uniquement</string>
-                <string>Texte du pseudo uniquement</string>
-                <string>Aucun</string>
-            </array>
-            <key>Type</key>
-            <string>PSMultiValueSpecifier</string>
-            <key>Values</key>
-            <array>
-                <string>wl_pseudo</string>
-                <string>wl</string>
-                <string>pseudo</string>
-                <string>nothing</string>
-            </array>
-        </dict>
         <dict>
             <key>DefaultValue</key>
             <integer>110</integer>
@@ -384,6 +233,7 @@
             <string>Taille du texte des listes de topics</string>
             <key>Titles</key>
             <array>
+                <string>-10%</string>
                 <string>Défaut</string>
                 <string>+10%</string>
                 <string>+20%</string>
@@ -395,6 +245,7 @@
             <string>PSMultiValueSpecifier</string>
             <key>Values</key>
             <array>
+                <integer>100</integer>
                 <integer>110</integer>
                 <integer>120</integer>
                 <integer>130</integer>
@@ -475,28 +326,6 @@
 				<string>double</string>
 			</array>
 		</dict>
-		<dict>
-			<key>DefaultValue</key>
-			<string>yes</string>
-			<key>Key</key>
-			<string>display_images</string>
-			<key>Title</key>
-			<string>Afficher les images</string>
-			<key>Titles</key>
-			<array>
-				<string>Jamais</string>
-				<string>Wifi</string>
-				<string>Toujours</string>
-			</array>
-			<key>Type</key>
-			<string>PSMultiValueSpecifier</string>
-			<key>Values</key>
-			<array>
-				<string>no</string>
-				<string>wifi</string>
-				<string>yes</string>
-			</array>
-		</dict>
         <dict>
             <key>DefaultValue</key>
             <string>yes</string>
@@ -538,38 +367,6 @@
 				<string>yes</string>
 				<string>no</string>
 			</array>
-		</dict>
-		<dict>
-			<key>DefaultValue</key>
-			<string>internal</string>
-			<key>Key</key>
-			<string>default_web</string>
-			<key>Title</key>
-			<string>Ouvrir les liens</string>
-			<key>Titles</key>
-			<array>
-				<string>Safari</string>
-				<string>Google Chrome</string>
-				<string>Navigateur interne</string>
-			</array>
-			<key>Type</key>
-			<string>PSMultiValueSpecifier</string>
-			<key>Values</key>
-			<array>
-				<string>http</string>
-				<string>googlechrome</string>
-				<string>internal</string>
-			</array>
-		</dict>
-		<dict>
-			<key>DefaultValue</key>
-			<true/>
-			<key>Key</key>
-			<string>notify_poll_not_answered</string>
-			<key>Title</key>
-			<string>Notifier un sondage non répondu</string>
-			<key>Type</key>
-			<string>PSToggleSwitchSpecifier</string>
 		</dict>
 		<dict>
 			<key>FooterText</key>
@@ -622,38 +419,6 @@
 			<string>EmptyCacheButton</string>
 		</dict>
 		<dict>
-			<key>Type</key>
-			<string>PSToggleSwitchSpecifier</string>
-			<key>Title</key>
-			<string>Menu debug</string>
-			<key>Key</key>
-			<string>menu_debug</string>
-			<key>DefaultValue</key>
-			<false/>
-		</dict>
-		<dict>
-            <key>Type</key>
-            <string>PSToggleSwitchSpecifier</string>
-            <key>Title</key>
-            <string>Favoris ancienne version</string>
-            <key>Key</key>
-            <string>old_favorites</string>
-            <key>DefaultValue</key>
-            <false/>
-        </dict>
-		<dict>
-			<key>IASKCellImage</key>
-			<string>BugFilled-25</string>
-			<key>IASKViewControllerClass</key>
-			<string>HFRDebugViewController</string>
-			<key>Title</key>
-			<string>Debug</string>
-			<key>Type</key>
-			<string>PSChildPaneSpecifier</string>
-			<key>Key</key>
-			<string>menu_debug_entry</string>
-		</dict>
-		<dict>
 			<key>Title</key>
 			<string></string>
 			<key>Type</key>
@@ -668,20 +433,6 @@
 			<string>Version</string>
 			<key>Type</key>
 			<string>PSTitleValueSpecifier</string>
-		</dict>
-		<dict>
-			<key>Title</key>
-			<string></string>
-			<key>Type</key>
-			<string>PSGroupSpecifier</string>
-		</dict>
-		<dict>
-			<key>File</key>
-			<string>Advanced</string>
-			<key>Title</key>
-			<string>Avancés</string>
-			<key>Type</key>
-			<string>PSChildPaneSpecifier</string>
 		</dict>
 	</array>
 </dict>
