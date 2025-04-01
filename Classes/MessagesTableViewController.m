@@ -398,6 +398,35 @@
 	//--Pages
 }
 
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldReceiveTouch:(UITouch *)touch {
+    if ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPad &&
+        self.splitViewController.displayMode == UISplitViewControllerDisplayModeSecondaryOnly &&
+        gestureRecognizer == self.swipeRightRecognizer) {
+        
+        CGPoint touchPoint = [touch locationInView:self.view];
+        
+        // Get the full screen width and height
+        CGFloat screenWidth = self.view.bounds.size.width;
+        CGFloat screenHeight = self.view.bounds.size.height;
+        
+        // Define the right 2/3 of the screen as active area
+        CGRect activeArea = CGRectMake(screenWidth * (1.0 / 3.0), 0, screenWidth * (2.0 / 3.0), screenHeight);
+        
+        BOOL bRet = CGRectContainsPoint(activeArea, touchPoint);
+        
+        /*
+        if (bRet) {
+            NSLog(@"Swipe RIGHT limited for pages");
+        }
+        else {
+            NSLog(@"Swipe RIGHT for menu !");
+        }*/
+        return bRet;
+    }
+
+    return YES;
+}
+
 - (void)addPageFooter {
     //TableFooter
     UIToolbar *tmptoolbar = [[UIToolbar alloc] initWithFrame:CGRectMake(0, 0, 320, 44)];
@@ -856,13 +885,14 @@
 	//Gesture de Gauche à droite
 	UIGestureRecognizer* recognizer = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(handleSwipeToRight:)];
 	self.swipeRightRecognizer = (UISwipeGestureRecognizer *)recognizer;
-	
+    self.swipeRightRecognizer.delegate = self;
+
 	//De Droite à gauche
 	recognizer = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(handleSwipeToLeft:)];
-	self.swipeLeftRecognizer = (UISwipeGestureRecognizer *)recognizer;
-    swipeLeftRecognizer.direction = UISwipeGestureRecognizerDirectionLeft;
     self.swipeLeftRecognizer = (UISwipeGestureRecognizer *)recognizer;
-	
+    self.swipeLeftRecognizer.direction = UISwipeGestureRecognizerDirectionLeft;
+    self.swipeLeftRecognizer.delegate = self;
+    
     self.messagesWebView.scrollView.contentInset = UIEdgeInsetsMake(0, -0.5, 0, 0);
     if (@available(iOS 16.0, *)) {
         self.webviewInteraction = [[UIEditMenuInteraction alloc] initWithDelegate:self];
@@ -1444,6 +1474,7 @@
     }
 }
 - (void)handleSwipeToRight:(UISwipeGestureRecognizer *)recognizer {
+    NSLog(@"handleSwipeToRight");
     if (!self.isSearchInstra && (self.searchBg.alpha == 0.0 || self.searchBg.hidden == YES)) {
         [self previousPage:recognizer];
     }

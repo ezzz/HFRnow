@@ -28,7 +28,7 @@
 @class MessageDetailViewController, SmileyCodeTableViewController;
 @class ASIHTTPRequest;
 
-@interface MessagesTableViewController : PageViewController <UIActionSheetDelegate, ParseMessagesOperationDelegate, AddMessageViewControllerDelegate, UIScrollViewDelegate, AlerteModoViewControllerDelegate, WKNavigationDelegate, WKUIDelegate> {
+@interface MessagesTableViewController : PageViewController <UIActionSheetDelegate, ParseMessagesOperationDelegate, AddMessageViewControllerDelegate, UIScrollViewDelegate, AlerteModoViewControllerDelegate, WKNavigationDelegate, WKUIDelegate, UIGestureRecognizerDelegate> {
     
     WKWebView *messagesWebView;
     UIView *loadingView;
