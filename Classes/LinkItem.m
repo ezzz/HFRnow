@@ -99,10 +99,47 @@
                                                            withString:[NSString stringWithFormat:@"%@<p class=\"pbl\"", sHideQuote]];
 
     // Smileys : specific action
-    NSString *regEx2 = @"<img src=\"https://forum-images.hardware.fr/images/perso/([^\"]+)\" alt=\"\\[:([^\"]+)\\]\" title=\"[^\"]+\">";
+    /*
+     NSString *regEx2 = @"<img src=\"https://forum-images.hardware.fr/images/perso/([^\"]+)\" alt=\"\\[:([^\"]+)\\]\" title=\"[^\"]+\">";
     myRawContent = [myRawContent stringByReplacingOccurrencesOfRegex:regEx2
                                                      withString:@"<img onClick=\"window.location = 'oijlkajsdoihjlkjasdosmiley://smileycode/$2/'+encodeURIComponent(this.src); return false;\" class=\"smileycustom\" src=\"https://forum-images.hardware.fr/images/perso/$1\">"]; //
+     */
+    NSString *html = myRawContent; // your original HTML input
+    NSError *error = nil;
 
+    NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"<img src=\"https://forum-images\\.hardware\\.fr/images/perso/([^\"]+)\" alt=\"\\[:([^\"]+)\\]\" title=\"[^\"]+\">" options:0 error:&error];
+
+    NSMutableString *mutableHTML = [html mutableCopy];
+
+    __block NSInteger offset = 0;
+
+    [regex enumerateMatchesInString:html options:0 range:NSMakeRange(0, html.length) usingBlock:^(NSTextCheckingResult * _Nullable match, NSMatchingFlags flags, BOOL * _Nonnull stop) {
+        if (match.numberOfRanges == 3) {
+            NSRange fullRange = [match rangeAtIndex:0];
+            NSRange range1 = [match rangeAtIndex:1]; // $1: image file
+            NSRange range2 = [match rangeAtIndex:2]; // $2: smiley code
+            
+            NSString *group1 = [html substringWithRange:range1];
+            NSString *group2 = [html substringWithRange:range2];
+            
+            // Escape single quotes in group2
+            NSString *escapedGroup2 = [group2 stringByReplacingOccurrencesOfString:@"'" withString:@"\\'"];
+            
+            // Construct replacement string
+            NSString *replacement = [NSString stringWithFormat:@"<img onClick=\"window.location = 'oijlkajsdoihjlkjasdosmiley://smileycode/%@/'+encodeURIComponent(this.src); return false;\" class=\"smileycustom\" src=\"https://forum-images.hardware.fr/images/perso/%@\">", escapedGroup2, group1];
+            
+            // Adjust range to account for prior replacements
+            NSRange adjustedRange = NSMakeRange(fullRange.location + offset, fullRange.length);
+            [mutableHTML replaceCharactersInRange:adjustedRange withString:replacement];
+            
+            offset += replacement.length - fullRange.length;
+        }
+    }];
+
+    myRawContent = mutableHTML;
+
+    
+    
 	//Native Internal Images
 	NSString *regEx0 = @"<img src=\"http://forum-images.hardware.fr/[^\"]+/([^/]+)\" alt=\"[^\"]+\" title=\"[^\"]+\">";			
 	myRawContent = [myRawContent stringByReplacingOccurrencesOfRegex:regEx0
