@@ -133,9 +133,10 @@
 - (void)splitViewController:(UISplitViewController *)svc
     willChangeToDisplayMode:(UISplitViewControllerDisplayMode)displayMode {
     
-    /* It was already commented in 2024 *
-    NSLog(@"New Display mode %ld", (long)displayMode);
+    /* It was already commented in 2024 */
+    //NSLog(@"New Display mode %ld", (long)displayMode);
     //return;
+    /*
     if (displayMode == UISplitViewControllerDisplayModeSecondaryOnly || displayMode == UISplitViewControllerDisplayModeOneOverSecondary) {
         NSLog(@"IN");
         UINavigationItem *navItem = [self.viewControllers[1] navigationItem];
@@ -178,9 +179,8 @@
     }
     
     return NO;
-    
 }
-
+ 
 - (UIViewController*)splitViewController:(UISplitViewController *)splitViewController separateSecondaryViewControllerFromPrimaryViewController:(UIViewController *)primaryViewController
 {
     //NSLog(@"separateSecondaryViewControllerFromPrimaryViewController");
@@ -245,15 +245,14 @@
     }
 }
 
-/*
 - (UIViewController *)splitViewController:(UISplitViewController *)splitViewController
 separateSecondaryViewControllerFromPrimaryViewController:(UIViewController *)primaryViewController{
     
     NSLog(@"separateSecondaryViewControllerFromPrimaryViewController primaryViewController %@", primaryViewController);
     return nil;
 }
- */
- /*
+
+
 - (UIViewController *)splitViewController:(UISplitViewController *)splitViewController
 separateSecondaryViewControllerFromPrimaryViewController:(UIViewController *)primaryViewController{
    
@@ -304,8 +303,6 @@ separateSecondaryViewControllerFromPrimaryViewController:(UIViewController *)pri
     
     NSLog(@"willHideViewController");
 
-    barButtonItem.title = @"Menu";
-    
     svc.popOver = pc;
     self.viewControllers.lastObject.navigationItem.leftBarButtonItem = self.displayModeButtonItem;
     self.viewControllers.lastObject.navigationItem.leftItemsSupplementBackButton = YES;
@@ -317,8 +314,6 @@ separateSecondaryViewControllerFromPrimaryViewController:(UIViewController *)pri
    
     NSLog(@"willShowViewController");
 
-    barButtonItem.title = @"Menu";
-    
     self.viewControllers.lastObject.navigationItem.leftBarButtonItem = self.displayModeButtonItem;
     self.viewControllers.lastObject.navigationItem.leftItemsSupplementBackButton = YES;
 }

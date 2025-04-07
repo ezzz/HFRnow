@@ -195,6 +195,20 @@
 
 #pragma mark -
 #pragma mark View lifecycle
+-(void)setNavigationTitle:(NSString*)sTitle
+{
+    NSLog(@"Setting TITLENAME:%@", sTitle);
+
+    if ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPad)
+    {
+        self.title = sTitle;
+        self.navigationItem.title = sTitle;
+    }
+    else {
+        [(UILabel *)[self navigationItem].titleView setText:sTitle];
+        [(UILabel *)[self navigationItem].titleView adjustFontSizeToFit];
+    }
+}
 
 
 -(void)setupScrollAndPage
@@ -210,8 +224,8 @@
         }
     }
     
-	if (!(rangeFlagPage.location == NSNotFound)) {
-		self.currentUrl = [self.currentUrl substringToIndex:rangeFlagPage.location];
+    if (!(rangeFlagPage.location == NSNotFound)) {
+        self.currentUrl = [self.currentUrl substringToIndex:rangeFlagPage.location];
     }
     
     // Looking for stringFlagTopic in original URL
@@ -249,21 +263,21 @@
     
     if (self.filterPostsQuotes) {
         if (self.pageNumberFilterStart == self.pageNumberFilterEnd) {
-            [(UILabel *)[self navigationItem].titleView setText:[NSString stringWithFormat:@"Filtré | %@ — %ld", self.topicName, (unsigned long)self.pageNumberFilterStart]];
+            [self setNavigationTitle: [NSString stringWithFormat:@"Filtré | %@ — %ld", self.topicName, (unsigned long)self.pageNumberFilterStart]];
         }
         else {
-            [(UILabel *)[self navigationItem].titleView setText:[NSString stringWithFormat:@"Filtré | %@ — %ld à %ld", self.topicName, (unsigned long)self.pageNumberFilterStart, (unsigned long)self.pageNumberFilterEnd]];
+            [self setNavigationTitle: [NSString stringWithFormat:@"Filtré | %@ — %ld à %ld", self.topicName, (unsigned long)self.pageNumberFilterStart, (unsigned long)self.pageNumberFilterEnd]];
         }
     }
     else {
-        [(UILabel *)[self navigationItem].titleView setText:[NSString stringWithFormat:@"%@ — %d", self.topicName, self.pageNumber]];
+        [self setNavigationTitle: [NSString stringWithFormat:@"%@ — %d", self.topicName, self.pageNumber]];
     }
-    [(UILabel *)[self navigationItem].titleView adjustFontSizeToFit];
+    
     
     if (self.isSearchInstra) {
-        [(UILabel *)[self navigationItem].titleView setText:[NSString stringWithFormat:@"Recherche | %@", self.topicName]];
-        [(UILabel *)[self navigationItem].titleView adjustFontSizeToFit];
+        [self setNavigationTitle: [NSString stringWithFormat:@"Recherche | %@", self.topicName]];
     }
+    
 }
 
 -(void)setupPageToolbar:(HTMLNode *)bodyNode andP:(HTMLParser *)myParser;
@@ -288,8 +302,7 @@
 		//NSLog(@"setupPageToolbar titleNode %@", [titleNode allContents]);
 		self.topicName = [titleNode allContents];
         
-        [(UILabel *)[self navigationItem].titleView setText:[NSString stringWithFormat:@"%@ — %d", self.topicName, self.pageNumber]];
-        [(UILabel *)[self navigationItem].titleView adjustFontSizeToFit];
+        [self setNavigationTitle: [NSString stringWithFormat:@"%@ — %d", self.topicName, self.pageNumber]];
 	}
     
     // Boutons bas de page
@@ -850,31 +863,33 @@
     UITapGestureRecognizer *tapRecognizer = [[UITapGestureRecognizer alloc]
                                              initWithTarget:self action:@selector(handleTap:)];
     [self.searchBg addGestureRecognizer:tapRecognizer];
-    
-    UILabel *label = [[UILabel alloc] initWithFrame:CGRectZero];
-    
-    label.frame = CGRectMake(0, 0, self.navigationController.navigationBar.frame.size.width, self.navigationController.navigationBar.frame.size.height - 4);
-    
-    label.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight; // 
-    
-    [label setAdjustsFontSizeToFitWidth:YES];
-    [label setBackgroundColor:[UIColor clearColor]];
-    [label setTextAlignment:NSTextAlignmentCenter];
-    [label setLineBreakMode:NSLineBreakByTruncatingMiddle];
-    
-    [label setTextColor:[UIColor blackColor]];
-    
-    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
-        [label setFont:[UIFont boldSystemFontOfSize:13.0]];
+
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone)
+    { // iPhone only
+        self.labelHeaderView = [[UILabel alloc] initWithFrame:CGRectZero];
+        self.labelHeaderView.frame = CGRectMake(0, 0, self.navigationController.navigationBar.frame.size.width, self.navigationController.navigationBar.frame.size.height - 4);
+        
+        self.labelHeaderView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight; //
+        [self.labelHeaderView setAdjustsFontSizeToFitWidth:YES];
+        [self.labelHeaderView setBackgroundColor:[UIColor clearColor]];
+        [self.labelHeaderView setTextAlignment:NSTextAlignmentCenter];
+        [self.labelHeaderView setLineBreakMode:NSLineBreakByTruncatingMiddle];
+        [self.labelHeaderView setTextColor:[UIColor blackColor]];
+        
+        if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
+            [self.labelHeaderView setFont:[UIFont boldSystemFontOfSize:13.0]];
+        }
+        else {
+            [self.labelHeaderView setFont:[UIFont boldSystemFontOfSize:17.0]];
+        }
+        [self.labelHeaderView setNumberOfLines:2];
+        [self.labelHeaderView adjustFontSizeToFit];
+        self.labelHeaderView.backgroundColor = [UIColor redColor];
+        [self.navigationItem setTitleView:self.labelHeaderView];
     }
-    else {
-        [label setFont:[UIFont boldSystemFontOfSize:17.0]];
-    }
     
-    [label setNumberOfLines:2];
-    [label setText:self.topicName];
-    [label adjustFontSizeToFit];
-    [self.navigationItem setTitleView:label];
+    // For iPad & iPhone
+    [self setNavigationTitle:self.topicName];
 
     // fond blanc WebView
     //[self.messagesWebView hideGradientBackground];
@@ -980,9 +995,10 @@
 -(void)fullScreen:(id)sender {
     // TODO TABBAR
 
-    if ([(SplitViewController *)[HFRplusAppDelegate sharedAppDelegate].window.rootViewController respondsToSelector:@selector(MoveRightToLeft)]) {
+    /* Test to remove
+     if ([(SplitViewController *)[HFRplusAppDelegate sharedAppDelegate].window.rootViewController respondsToSelector:@selector(MoveRightToLeft)]) {
         [(SplitViewController *)[HFRplusAppDelegate sharedAppDelegate].window.rootViewController MoveRightToLeft];
-    }
+    }*/
     
 }
 -(void)optionsTopic:(id)sender
@@ -1322,7 +1338,7 @@
         }
         
         [label setNumberOfLines:0];
-		[label setText:[NSString stringWithFormat:@"Page: %d — %d/%d", self.pageNumber, index + 1, arrayData.count]];
+        [label setText:[NSString stringWithFormat:@"Page: %d — %d/%lu", self.pageNumber, index + 1, (unsigned long)arrayData.count]];
         
 		[self.detailViewController.navigationItem setTitleView:label];
 		 self.detailViewController.arrayData = arrayData;

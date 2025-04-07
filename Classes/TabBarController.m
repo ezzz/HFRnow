@@ -67,8 +67,7 @@
         [self setSelectedIndex:[tab intValue]];
     }
     
-    // iPhone
-    //TODO TABBAR : to check
+    // iPhone only
     if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone)
     {
         self.tabBar.unselectedItemTintColor = [UIColor colorWithRed:143.0/255.0 green:143.0/255.0 blue:143.0/255.0 alpha:1.0];
@@ -178,13 +177,14 @@
 
 - (BOOL)tabBarController:(UITabBarController * _Nonnull)tabBarController shouldSelectViewController:(UIViewController * _Nonnull)viewController {
 
+    // iPhone only: actualisation si tap sur l'onglet
+    // Sur iPad cela à moins d'intéret car la liste a rafracihir n'est pas directement sous l'onglet mais uniquement sur la vue gauche
+
     if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone)
     {
-        
         if ([viewController isKindOfClass:[UINavigationController class]]) {
             UINavigationController *nv = (UINavigationController *)viewController;
             
-            //actualisation si tap sur l'onglet
             if ([nv.topViewController isKindOfClass:[ForumsTableViewController class]]) {
                 [(ForumsTableViewController *)nv.topViewController reload];
             }
@@ -267,17 +267,6 @@
     //NSLog(@"shouldAutorotate");
 
     return YES;
-}
-
--(void)popAllToRoot:(BOOL)includingSelectedIndex {
-    //not selectedIndex
-    long nbTab = self.viewControllers.count;
-    
-    for (int i = 0; i < nbTab; i++) {
-        if (includingSelectedIndex || (!includingSelectedIndex && i != self.selectedIndex)) {
-            [(UINavigationController *)self.viewControllers[i] popToRootViewControllerAnimated:NO];
-        }
-    }
 }
     
 @end

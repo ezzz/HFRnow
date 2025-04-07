@@ -239,11 +239,7 @@
 		self.pageNumber = [[self.currentUrl substringWithRange:matchedRange] intValue];
 		
 	}
-	
-	//[(UILabel *)[self navigationItem].titleView setText:[NSString stringWithFormat:@"%@ — %d", self.forumName, numPage]];
-	//NSLog(@"forumUrl %@ — %d", [self forumName], numPage); 
-	
-	
+    
 	//New Topic URL
 	HTMLNode * forumNewTopicNode = [bodyNode findChildWithAttribute:@"id" matchingName:@"md_btn_new_topic" allowPartial:NO];
 	forumNewTopicUrl = [forumNewTopicNode getAttributeNamed:@"href"];

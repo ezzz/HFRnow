@@ -38,16 +38,11 @@
 	// Do any additional setup after loading the view.
     NSLog(@"viewDidLoad HFR HFR NavControll.");
     
-
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(userThemeDidChange)
                                                  name:kThemeChangedNotification
                                                object:nil];
-    UITapGestureRecognizer* tapRecon = [[UITapGestureRecognizer alloc]
-                                        initWithTarget:self action:@selector(navigationBarDoubleTap:)];
-    tapRecon.numberOfTapsRequired = 1;
-    tapRecon.numberOfTouchesRequired = 2;
-    [self.navigationBar addGestureRecognizer:tapRecon];
+    
     self.navigationBar.barStyle = [ThemeColors barStyle:[[ThemeManager sharedManager] theme]];
     
     if (self.isDetailView) {
@@ -63,7 +58,6 @@
     }
 }
 
-
 -(void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
     //self.topViewController.title = @"HFR+";
@@ -77,9 +71,9 @@
         [(IASKSpecifierValuesViewController *)viewController setThemeColors:theme];
     }
 }
+
 - (NSString *) userThemeDidChange {
-    
-    NSLog(@"HFR userThemeDidChange");
+    //NSLog(@"HFR userThemeDidChange");
     
     Theme theme = [[ThemeManager sharedManager] theme];
 
@@ -113,7 +107,7 @@
     
     [self.navigationBar setNeedsDisplay];
     
-    [self.topViewController viewWillAppear:NO];
+    //[self.topViewController viewWillAppear:NO];
 
     if ([self.topViewController isKindOfClass:[IASKSpecifierValuesViewController class]]) {
         [(IASKSpecifierValuesViewController *)self.topViewController setThemeColors:theme];

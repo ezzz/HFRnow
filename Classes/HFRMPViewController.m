@@ -49,21 +49,21 @@
 
 // Implement viewDidLoad to do additional setup after loading the view, typically from a nib.
 - (void)viewDidLoad {
-	//NSLog(@"vdl MP");
 
+    //NSLog(@"vdl MP");
+    
     UINib *nibCellMP = [UINib nibWithNibName:@"TopicMPCellView" bundle:nil];
     [self.topicsTableView registerNib:nibCellMP forCellReuseIdentifier:@"TopicMPCellID"];
-
     
 	self.forumName = @"Messages";
 	self.forumBaseURL = @"/forum1.php?config=hfr.inc&cat=prive&page=1";
 
+    //TODO : doit être placé après les lignes du dessus. Pas très propre
+    // Et possiblement à l'origine du bug sur les ongletc Categories et Messages qui se mélangent...
     [super viewDidLoad];
 
-
     self.navigationItem.titleView = nil;
-    //if([self isKindOfClass:[HFRMPViewController class]]) 
-    
+
     [self showBarButton:kNewTopic];
     [self showBarButton:kReload];
     

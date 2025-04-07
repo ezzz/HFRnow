@@ -324,6 +324,8 @@
         [(HFRMPViewController *)nv.topViewController fetchContent];
     }
     */
+    
+    /*
     HFRNavigationController *nv = self.rootController.selectedViewController;
     if ([shortcutItem.type isEqual: @"hfrplus.red.super.openfavorites"]) {
         [self.rootController setSelectedIndex:1];
@@ -347,6 +349,7 @@
         handled = YES;
     }
     completionHandler(handled);
+     */
 }
 
 -(void)setThemeFromNotification:(NSNotification *)notification{
@@ -808,16 +811,10 @@
 }
 
 - (void)resetApp {
-    //NSLog(@"resetApp");
-    
     [forumsNavController popToRootViewControllerAnimated:NO];
     [favoritesNavController popToRootViewControllerAnimated:NO];
     [messagesNavController popToRootViewControllerAnimated:NO];
     [searchNavController popToRootViewControllerAnimated:NO];
-    
-    
-    UIViewController * uivc = [[UIViewController alloc] init];
-    uivc.title = @"HFR+";
 }
 
 #pragma mark - login management

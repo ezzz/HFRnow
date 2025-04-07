@@ -199,6 +199,7 @@
 @property dispatch_block_t smileyAlertViewAddOK;
 @property dispatch_block_t smileyAlertViewAddFailed;
 @property UIEditMenuInteraction *webviewInteraction;
+@property (nonatomic, strong) UILabel* labelHeaderView;
 
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil andUrl:(NSString *)theTopicUrl;
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil andUrl:(NSString *)theTopicUrl displaySeparator:(BOOL)isSeparatorNewMessages;
