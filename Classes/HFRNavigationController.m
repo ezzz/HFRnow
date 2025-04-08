@@ -107,7 +107,9 @@
     
     [self.navigationBar setNeedsDisplay];
     
-    //[self.topViewController viewWillAppear:NO];
+    // TODO: dette technique: sert à rafraichir toute la UI en cas de changement de thème Dark/light
+    // Implémenter plutot des couleurs dynamiques
+    [self.topViewController viewWillAppear:NO];
 
     if ([self.topViewController isKindOfClass:[IASKSpecifierValuesViewController class]]) {
         [(IASKSpecifierValuesViewController *)self.topViewController setThemeColors:theme];

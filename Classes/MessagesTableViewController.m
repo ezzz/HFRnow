@@ -872,19 +872,12 @@
         self.labelHeaderView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight; //
         [self.labelHeaderView setAdjustsFontSizeToFitWidth:YES];
         [self.labelHeaderView setBackgroundColor:[UIColor clearColor]];
+        [self.labelHeaderView setTextColor:[UIColor blackColor]];
         [self.labelHeaderView setTextAlignment:NSTextAlignmentCenter];
         [self.labelHeaderView setLineBreakMode:NSLineBreakByTruncatingMiddle];
-        [self.labelHeaderView setTextColor:[UIColor blackColor]];
-        
-        if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
-            [self.labelHeaderView setFont:[UIFont boldSystemFontOfSize:13.0]];
-        }
-        else {
-            [self.labelHeaderView setFont:[UIFont boldSystemFontOfSize:17.0]];
-        }
+        [self.labelHeaderView setFont:[UIFont boldSystemFontOfSize:13.0]];
         [self.labelHeaderView setNumberOfLines:2];
         [self.labelHeaderView adjustFontSizeToFit];
-        self.labelHeaderView.backgroundColor = [UIColor redColor];
         [self.navigationItem setTitleView:self.labelHeaderView];
     }
     
@@ -1255,6 +1248,8 @@
     self.searchBg.backgroundColor = [ThemeColors overlayColor:theme];
     self.searchLabel.textColor = [ThemeColors textColor:theme];
     
+    [self.labelHeaderView setTextColor:[ThemeColors navItemTextColor:theme]];
+    
     self.messagesWebView.allowsLinkPreview = YES;
     /* not working self.messagesWebView.scrollView.alwaysBounceVertical = YES;
     self.messagesWebView.scrollView.alwaysBounceHorizontal = NO;*/
@@ -1490,7 +1485,6 @@
     }
 }
 - (void)handleSwipeToRight:(UISwipeGestureRecognizer *)recognizer {
-    NSLog(@"handleSwipeToRight");
     if (!self.isSearchInstra && (self.searchBg.alpha == 0.0 || self.searchBg.hidden == YES)) {
         [self previousPage:recognizer];
     }
