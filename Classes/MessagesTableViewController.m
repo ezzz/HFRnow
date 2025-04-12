@@ -41,6 +41,52 @@
 #import "Bookmark.h"
 #import "SmileyAlertView.h"
 #import "SmileyCache.h"
+#import "SimplePhotoViewController.h"
+
+@interface PhotoViewController : UIViewController
+@property (nonatomic, strong) NSURL *imageURL;
+@end
+@interface PhotoViewController ()
+@property (nonatomic, strong) UIImageView *imageView;
+@end
+
+@implementation PhotoViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+
+    self.view.backgroundColor = [UIColor whiteColor];
+
+    self.imageView = [[UIImageView alloc] initWithFrame:self.view.bounds];
+    self.imageView.contentMode = UIViewContentModeScaleAspectFit;
+    self.imageView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+
+    [self.view addSubview:self.imageView];
+
+    [self loadImageFromURL:self.imageURL];
+}
+
+- (void)loadImageFromURL:(NSURL *)url {
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
+    [request setValue:@"https://forum.hardware.fr" forHTTPHeaderField:@"Referer"];
+
+    NSURLSessionDataTask *task = [[NSURLSession sharedSession]
+        dataTaskWithRequest:request
+          completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+              if (data && !error) {
+                  UIImage *image = [UIImage imageWithData:data];
+                  dispatch_async(dispatch_get_main_queue(), ^{
+                      self.imageView.image = image;
+                  });
+              } else {
+                  NSLog(@"Erreur de chargement d'image : %@", error);
+              }
+          }];
+    [task resume];
+}
+
+@end
+
 
 @implementation MessagesTableViewController
 
@@ -1353,66 +1399,95 @@
 		return;
 	}
 	
-	//On récupe les images du message:
-	//NSLog(@"%@", [[arrayData objectAtIndex:index] toHTML:index]);
-	//NSLog(@"selectedURL %@", selectedURL);
-    // Ego quote not applyed on MP
-    BOOL bIsMP = YES;
-    if ([self.arrayInputData[@"cat"] isEqualToString: @"prive"]) {
-        bIsMP = NO;
+	NSLog(@"selectedURL %@", selectedURL);
+    if ([selectedURL hasPrefix:@"https://reho.st/"]) {
+        if ([selectedURL hasPrefix:@"https://reho.st/thumb/"]) {
+            selectedURL = [selectedURL stringByReplacingOccurrencesOfString:@"reho.st/thumb/" withString:@"reho.st/"];
+        }
+        
+        SimplePhotoViewController *vc = [[SimplePhotoViewController alloc] init];
+        vc.imageURL = [NSURL URLWithString:selectedURL];
+        
+        if ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPad) {
+            vc.modalInPresentation = NO;
+            [vc setModalPresentationStyle: UIModalPresentationFullScreen];
+            [self presentModalViewController:vc animated:YES];
+        }
+        else {
+            vc.modalInPresentation = NO;
+            vc.modalPresentationStyle = UIModalPresentationPageSheet;
+            [self presentViewController:vc animated:YES completion:nil];
+        }
     }
-
-	HTMLParser * myParser = [[HTMLParser alloc] initWithString:[[arrayData objectAtIndex:index] toHTML:index isMP:bIsMP] error:NULL];
-	HTMLNode * msgNode = [myParser doc]; //Find the body tag
-
-	NSArray * tmpImageArray =  [msgNode findChildrenWithAttribute:@"class" matchingName:@"hfrplusimg" allowPartial:NO];
-	//NSLog(@"%d", [tmpImageArray count]);
-	
-	NSMutableArray * imageArray = [[NSMutableArray alloc] init];
-	int selectedIndex = 0;
-    
-	for (HTMLNode * imgNode in tmpImageArray) { //Loop through all the tags
-		NSLog(@"======\nalt %@", [imgNode getAttributeNamed:@"alt"]);
-        //NSLog(@"longdesc %@", [imgNode getAttributeNamed:@"longdesc"]);
-        NSString* sImgUrl = [imgNode getAttributeNamed:@"alt"];
-        if ([sImgUrl containsString:@"https://img3.super-h.fr/images/"]) { // cheveretp
-            sImgUrl = [sImgUrl stringByReplacingOccurrencesOfString:@".th." withString:@"."];
-        }
-        else if ([[imgNode getAttributeNamed:@"alt"] containsString:@"reho.st/"]) { // Rehost
-            if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
-                sImgUrl = [sImgUrl stringByReplacingOccurrencesOfString:@"reho.st/thumb/" withString:@"reho.st/"];
-            }
-            else {
-                sImgUrl = [sImgUrl stringByReplacingOccurrencesOfString:@"reho.st/thumb/" withString:@"reho.st/preview/"];
-            }
-        }
-        else if ([[imgNode getAttributeNamed:@"alt"] containsString:@"imgur.com/"]) { // imgur
-            NSString* sLongdesc = [imgNode getAttributeNamed:@"longdesc"];
-            if (sLongdesc.length > 0) {
-                sImgUrl = sLongdesc;
-            }
+    else {
+        // Ego quote not applyed on MP
+        BOOL bIsMP = YES;
+        if ([self.arrayInputData[@"cat"] isEqualToString: @"prive"]) {
+            bIsMP = NO;
         }
         
-        [imageArray addObject:[MWPhoto photoWithURL:[NSURL URLWithString:sImgUrl]]];
-                                                     
-        if ([selectedURL isEqualToString:[imgNode getAttributeNamed:@"alt"]]) {
-            selectedIndex = [imageArray count] - 1;
+        HTMLParser * myParser = [[HTMLParser alloc] initWithString:[[arrayData objectAtIndex:index] toHTML:index isMP:bIsMP] error:NULL];
+        HTMLNode * msgNode = [myParser doc]; //Find the body tag
+        
+        NSArray * tmpImageArray =  [msgNode findChildrenWithAttribute:@"class" matchingName:@"hfrplusimg" allowPartial:NO];
+        //NSLog(@"%d", [tmpImageArray count]);
+        
+        NSMutableArray * imageArray = [[NSMutableArray alloc] init];
+        int selectedIndex = 0;
+        
+        for (HTMLNode * imgNode in tmpImageArray) { //Loop through all the tags
+            NSLog(@"======\nalt %@", [imgNode getAttributeNamed:@"alt"]);
+            //NSLog(@"longdesc %@", [imgNode getAttributeNamed:@"longdesc"]);
+            NSString* sImgUrl = [imgNode getAttributeNamed:@"alt"];
+            if ([sImgUrl containsString:@"https://img3.super-h.fr/images/"]) { // cheveretp
+                sImgUrl = [sImgUrl stringByReplacingOccurrencesOfString:@".th." withString:@"."];
+            }
+            else if ([[imgNode getAttributeNamed:@"alt"] containsString:@"reho.st/"]) { // Rehost
+                if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+                    sImgUrl = [sImgUrl stringByReplacingOccurrencesOfString:@"reho.st/thumb/" withString:@"reho.st/"];
+                }
+                else {
+                    sImgUrl = [sImgUrl stringByReplacingOccurrencesOfString:@"reho.st/thumb/" withString:@"reho.st/preview/"];
+                }
+            }
+            else if ([[imgNode getAttributeNamed:@"alt"] containsString:@"imgur.com/"]) { // imgur
+                NSString* sLongdesc = [imgNode getAttributeNamed:@"longdesc"];
+                if (sLongdesc.length > 0) {
+                    sImgUrl = sLongdesc;
+                }
+            }
+            
+            [imageArray addObject:[MWPhoto photoWithURL:[NSURL URLWithString:sImgUrl]]];
+            
+            if ([selectedURL isEqualToString:[imgNode getAttributeNamed:@"alt"]]) {
+                selectedIndex = [imageArray count] - 1;
+            }
+            
         }
         
-	}
-	
-    // Create & present browser
-    MWPhotoBrowser *browser = [[MWPhotoBrowser alloc] initWithPhotos:imageArray];
-    // Set options
-    browser.wantsFullScreenLayout = YES; // Decide if you want the photo browser full screen, i.e. whether the status bar is affected (defaults to YES)
-    browser.displayActionButton = YES; // Show action button to save, copy or email photos (defaults to NO)
-    [browser setCurrentPhotoIndex:selectedIndex]; // Example: allows second image to be presented first
+        // Create & present browser
+        MWPhotoBrowser *browser = [[MWPhotoBrowser alloc] initWithPhotos:imageArray];
+        // Set options
+        browser.wantsFullScreenLayout = YES; // Decide if you want the photo browser full screen, i.e. whether the status bar is affected (defaults to YES)
+        browser.displayActionButton = YES; // Show action button to save, copy or email photos (defaults to NO)
+        [browser setCurrentPhotoIndex:selectedIndex]; // Example: allows second image to be presented first
+        
+        
+        HFRNavigationController *nc = [[HFRNavigationController alloc] initWithRootViewController:browser];
+        nc.modalTransitionStyle = UIModalTransitionStyleCoverVertical;
+        if ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPad) {
+            [nc setModalPresentationStyle: UIModalPresentationFullScreen];
+            [self presentModalViewController:nc animated:YES];
+        }
+        else {
+            //[nc setModalPresentationStyle: UIModalPresentationFullScreen];
+            [self presentModalViewController:nc animated:YES];
+        }
+    }
+}
 
-    
-    HFRNavigationController *nc = [[HFRNavigationController alloc] initWithRootViewController:browser];
-    //nc.modalTransitionStyle = UIModalTransitionStyleCrossDissolve;
-    [nc setModalPresentationStyle: UIModalPresentationFullScreen];
-    [self presentViewController:nc animated:YES completion:nil];
+- (void)closeModal {
+    [self dismissViewControllerAnimated:YES completion:nil];
 }
 
 #pragma mark - searchNewMessages

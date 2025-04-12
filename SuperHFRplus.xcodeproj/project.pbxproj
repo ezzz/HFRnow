@@ -16,6 +16,7 @@
 		150C9FEF2D9801DC0023C430 /* OfflineStorage.m in Sources */ = {isa = PBXBuildFile; fileRef = 150C9FEE2D9801DC0023C430 /* OfflineStorage.m */; };
 		1512A7932232F6C9000C9B1D /* 08-chat-20.png in Resources */ = {isa = PBXBuildFile; fileRef = 1512A7922232F6C8000C9B1D /* 08-chat-20.png */; };
 		15167EB12330210600D64651 /* Heart-20@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15167EB02330210600D64651 /* Heart-20@2x.png */; };
+		151737FB2DA5B3AF005DDA75 /* SimplePhotoViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 151737FA2DA5B3AF005DDA75 /* SimplePhotoViewController.m */; };
 		152395EC28DF015E00614F9D /* Quote-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395CF28DF015C00614F9D /* Quote-20-Inv@2x.png */; };
 		152395ED28DF015E00614F9D /* StarFilled-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395D028DF015C00614F9D /* StarFilled-20-Inv@2x.png */; };
 		152395EE28DF015E00614F9D /* ContactCardFilled-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 152395D128DF015C00614F9D /* ContactCardFilled-20-Inv@2x.png */; };
@@ -958,6 +959,8 @@
 		1512A7922232F6C8000C9B1D /* 08-chat-20.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "08-chat-20.png"; sourceTree = "<group>"; };
 		15141AA221E7ADE800811E5A /* link_url.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = link_url.png; path = ../../../../../Icones/link_url.png; sourceTree = "<group>"; };
 		15167EB02330210600D64651 /* Heart-20@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Heart-20@2x.png"; sourceTree = "<group>"; };
+		151737F82DA5B359005DDA75 /* SimplePhotoViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SimplePhotoViewController.h; sourceTree = "<group>"; };
+		151737FA2DA5B3AF005DDA75 /* SimplePhotoViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SimplePhotoViewController.m; sourceTree = "<group>"; };
 		152395CF28DF015C00614F9D /* Quote-20-Inv@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Quote-20-Inv@2x.png"; sourceTree = "<group>"; };
 		152395D028DF015C00614F9D /* StarFilled-20-Inv@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "StarFilled-20-Inv@2x.png"; sourceTree = "<group>"; };
 		152395D128DF015C00614F9D /* ContactCardFilled-20-Inv@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ContactCardFilled-20-Inv@2x.png"; sourceTree = "<group>"; };
@@ -1940,6 +1943,8 @@
 		013F0E94121E117800BEBEB1 /* Messages */ = {
 			isa = PBXGroup;
 			children = (
+				151737FA2DA5B3AF005DDA75 /* SimplePhotoViewController.m */,
+				151737F82DA5B359005DDA75 /* SimplePhotoViewController.h */,
 				CABB3127121EF3B0009CE100 /* Forms */,
 				CA5E109118AC290C00C481A9 /* Poll */,
 				013F0E95121E117800BEBEB1 /* LinkItem.h */,
@@ -4321,6 +4326,7 @@
 				1503755021FCFF6800A5F7E1 /* PlusTableViewController.m in Sources */,
 				D8F5CBAE1DF45C1100B029FC /* Reachability.m in Sources */,
 				D87BB742216266F00079690C /* CompteTableViewCell.m in Sources */,
+				151737FB2DA5B3AF005DDA75 /* SimplePhotoViewController.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -4446,11 +4452,13 @@
 				ASSETCATALOG_COMPILER_OPTIMIZATION = time;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
+				CODE_SIGN_STYLE = Manual;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 10;
-				DEVELOPMENT_TEAM = QMG83DG7YP;
+				CURRENT_PROJECT_VERSION = 11;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = QMG83DG7YP;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4487,9 +4495,10 @@
 					"-licucore",
 					"-ObjC",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super.local;
+				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super;
 				PRODUCT_NAME = SuperHFRplusSwift;
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = ProfileSuperHFRv1;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -4509,11 +4518,13 @@
 				ASSETCATALOG_COMPILER_OPTIMIZATION = time;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
+				CODE_SIGN_STYLE = Manual;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = YES;
-				CURRENT_PROJECT_VERSION = 10;
-				DEVELOPMENT_TEAM = QMG83DG7YP;
+				CURRENT_PROJECT_VERSION = 11;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = QMG83DG7YP;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4548,9 +4559,10 @@
 					"-licucore",
 					"-ObjC",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super.local;
+				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super;
 				PRODUCT_NAME = SuperHFRplusSwift;
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = ProfileSuperHFRv1;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
