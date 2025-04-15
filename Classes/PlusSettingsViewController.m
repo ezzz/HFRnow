@@ -143,44 +143,36 @@
            [self showCell:@"menu_debug_entry"];
         }
     } else if([notification.userInfo objectForKey:@"theme"]) {
-        Theme theme = (Theme)[[notification.userInfo objectForKey:@"theme"] intValue];
-        [[ThemeManager sharedManager] setThemeManually:theme];
-        [self setThemeColors:theme];
-
+        [[ThemeManager sharedManager] setTheme:(Theme)[[notification.userInfo objectForKey:@"theme"] intValue]];
+        [[ThemeManager sharedManager] refreshTheme];
     } else if([notification.userInfo objectForKey:@"auto_theme"]) {        
         NSInteger iAutoTheme = [[NSUserDefaults standardUserDefaults] integerForKey:@"auto_theme"];
         // 0 = Manuel, 1 = Automatique, 2 = Heure fixe
-        if (iAutoTheme == AUTO_THEME_AUTO_CAMERA) {
-            [self hideCell:@"theme"];
+        if (iAutoTheme == AUTO_THEME_AUTO_IOS) {
+            [self hideCell:@"theme_manual"];
             [self hideCell:@"auto_theme_day_time"];
             [self hideCell:@"auto_theme_night_time"];
-            [[ThemeManager sharedManager] changeAutoTheme:YES];
-        } else if (iAutoTheme == AUTO_THEME_AUTO_TIME) {
-            [self showCell:@"theme"];
-            [self showCell:@"auto_theme_day_time"];
-            [self showCell:@"auto_theme_night_time"];
             [[ThemeManager sharedManager] changeAutoTheme:NO];
-            [[ThemeManager sharedManager] setTheme:[[ThemeManager  sharedManager] getThemeFromCurrentTime]];
-        } else if (iAutoTheme == AUTO_THEME_AUTO_IOS) {
-            if (@available(iOS 13.0, *)) {
-                [self hideCell:@"theme"];
-                [self hideCell:@"auto_theme_day_time"];
-                [self hideCell:@"auto_theme_night_time"];
-                [[ThemeManager sharedManager] changeAutoTheme:NO];
-                if (UITraitCollection.currentTraitCollection.userInterfaceStyle == UIUserInterfaceStyleDark) {
-                    [[ThemeManager sharedManager] setTheme:ThemeDark];
-                } else {
-                    [[ThemeManager sharedManager] setTheme:ThemeLight];
-                }
+            if (UITraitCollection.currentTraitCollection.userInterfaceStyle == UIUserInterfaceStyleDark) {
+                [[ThemeManager sharedManager] setTheme:ThemeDark];
             } else {
-                [HFRAlertView DisplayAlertViewWithTitle:@"Theme iOS" andMessage:@"Vous devez être sur iOS 13 et suppérieur pour activer la fonctionnalité." forDuration:(long)2];
+                [[ThemeManager sharedManager] setTheme:ThemeLight];
             }
-        } else {
-            [self showCell:@"theme"];
+        } else if (iAutoTheme == AUTO_THEME_MANUAL) {
+            [self showCell:@"theme_manual"];
             [self hideCell:@"auto_theme_day_time"];
             [self hideCell:@"auto_theme_night_time"];
             [[ThemeManager sharedManager] changeAutoTheme:NO];
+            
+            NSInteger iManualTheme = (Theme)[[notification.userInfo objectForKey:@"theme"] intValue];
+            if (iManualTheme == MANUAL_THEME_LIGHT) {
+                [[ThemeManager sharedManager] setTheme:ThemeLight];
+            }
+            else {
+                [[ThemeManager sharedManager] setTheme:ThemeDark];
+            }
         }
+        [[ThemeManager sharedManager] refreshTheme];
     } else if([notification.userInfo objectForKey:@"auto_theme_day_time"] || [notification.userInfo objectForKey:@"auto_theme_night_time"] ) {
         [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"force_manual_theme"];
         [[ThemeManager sharedManager] checkTheme];

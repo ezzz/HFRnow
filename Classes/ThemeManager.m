@@ -41,18 +41,8 @@ int nightDelay;
     if (self = [super init]) {
         NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
         NSInteger iSettingsTheme = [defaults integerForKey:@"theme"];
-        if (iSettingsTheme == 2) {
-            theme = ThemeDark;
-            [ThemeColors updateUserBrightness:@"theme_night_brightness" withBrightness:0.0];
-        }
-        else if (iSettingsTheme == 0 || iSettingsTheme == 1) {
-            theme = (Theme)iSettingsTheme;
-        }
-        else {
-            theme = ThemeLight;
-        }
+        theme = (Theme)iSettingsTheme;
         [self applyAppearance];
-        [self changeAutoTheme:([defaults integerForKey:@"auto_theme"] == AUTO_THEME_AUTO_CAMERA)];
     }
     return self;
 }

@@ -130,6 +130,26 @@
 				<integer>0</integer>
 			</array>
 		</dict>
+        <dict>
+            <key>DefaultValue</key>
+            <integer>0</integer>
+            <key>Key</key>
+            <string>theme</string>
+            <key>Title</key>
+            <string>Luminosité du thème</string>
+            <key>Titles</key>
+            <array>
+                <string>Clair</string>
+                <string>Sombre</string>
+            </array>
+            <key>Type</key>
+            <string>PSMultiValueSpecifier</string>
+            <key>Values</key>
+            <array>
+                <integer>0</integer>
+                <integer>1</integer>
+            </array>
+        </dict>
 		<dict>
 			<key>DefaultValue</key>
 			<integer>1</integer>
@@ -141,26 +161,6 @@
 			<array>
 				<string>Classique</string>
 				<string>Moderne</string>
-			</array>
-			<key>Type</key>
-			<string>PSMultiValueSpecifier</string>
-			<key>Values</key>
-			<array>
-				<integer>0</integer>
-				<integer>1</integer>
-			</array>
-		</dict>
-		<dict>
-			<key>DefaultValue</key>
-			<integer>0</integer>
-			<key>Key</key>
-			<string>theme</string>
-			<key>Title</key>
-			<string>Luminosité du thème</string>
-			<key>Titles</key>
-			<array>
-				<string>Clair</string>
-				<string>Sombre</string>
 			</array>
 			<key>Type</key>
 			<string>PSMultiValueSpecifier</string>
