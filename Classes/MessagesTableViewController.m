@@ -1277,10 +1277,10 @@
     
     Theme theme = [[ThemeManager sharedManager] theme];
     self.view.backgroundColor = self.messagesTableViewController.view.backgroundColor = self.messagesWebView.backgroundColor = self.loadingViewLabel.backgroundColor = self.loadingViewIndicator.backgroundColor = self.searchBox.backgroundColor = [ThemeColors greyBackgroundColor:theme];
-    self.loadingView.backgroundColor = [[ThemeColors greyBackgroundColor:theme] colorWithAlphaComponent:0.8];
-    self.loadingViewIndicator.activityIndicatorViewStyle = [ThemeColors activityIndicatorViewStyle];
-    self.loadingViewLabel.textColor = [ThemeColors cellTextColor:theme];
+    self.loadingView.backgroundColor = self.errorLabelView.backgroundColor = [[ThemeColors greyBackgroundColor:theme] colorWithAlphaComponent:0.8];
+    self.loadingViewLabel.textColor = self.errorLabelView.textColor = [ThemeColors cellTextColor:theme];
     self.loadingViewLabel.shadowColor = nil;
+    self.loadingViewIndicator.activityIndicatorViewStyle = [ThemeColors activityIndicatorViewStyle];
     [[ThemeManager sharedManager] applyThemeToTextField:self.searchPseudo];
     [[ThemeManager sharedManager] applyThemeToTextField:self.searchKeyword];
     self.searchPseudo.textColor = self.searchKeyword.textColor = [ThemeColors textColor:theme];
@@ -3368,6 +3368,8 @@ API_AVAILABLE(ios(16.0)) {
         [UIView beginAnimations:@"FadeOut" context:nil];
         [UIView setAnimationDuration:0.2];
         [self.searchBg setAlpha:0];
+        [self.searchBox setHidden:YES];
+
         self.searchBox.frame = newframe;
         
         [UIView commitAnimations];
