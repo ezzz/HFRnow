@@ -80,7 +80,7 @@
 	[ASIHTTPRequest setDefaultTimeOutSeconds:kTimeoutMini];
 
 	[self setRequest:[ASIHTTPRequest requestWithURL:[NSURL URLWithString:[NSString stringWithFormat:@"%@%@", [k ForumURL], [self currentUrl]]]]];
-	[request setShouldRedirect:NO];
+	//[request setShouldRedirect:NO];
 
 	[request setDelegate:self];
 	

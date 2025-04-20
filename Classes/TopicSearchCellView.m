@@ -32,14 +32,9 @@
 - (void)awakeFromNib {
     
     [super awakeFromNib];
-    
-    
-    if (!SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"7.0")) {
-        [titleLabel setHighlightedTextColor:[UIColor whiteColor]];
-        [msgLabel setHighlightedTextColor:[UIColor whiteColor]];
-        [timeLabel setHighlightedTextColor:[UIColor whiteColor]];
-        
-    }
+    [titleLabel setHighlightedTextColor:[UIColor whiteColor]];
+    [msgLabel setHighlightedTextColor:[UIColor whiteColor]];
+    [timeLabel setHighlightedTextColor:[UIColor whiteColor]];
 }
 
 

@@ -41,13 +41,13 @@
 	// we collect and cache each sub-element value, and then save each item to our array.
 	// we use these to track each current item, until it's ready to be added to the "stories" array
 	NSString * currentElement;
-	NSMutableString * currentTitle, * currentDate, * currentSummary, * currentLink;	
+	NSMutableString * currentTitle, * currentDate, * currentSummary, * currentLink;
 }
 
 @property(strong) NSMutableArray *stories;
 @property(strong) UIView *disableViewOverlay;
 
-@property (nonatomic, strong) IBOutlet UITableView *theTableView;
+@property (nonatomic, strong) IBOutlet UITableView *topicsTableView;
 @property (nonatomic, strong) IBOutlet UISearchBar *theSearchBar;
 
 @property (nonatomic, strong) IBOutlet UIView *loadingView;
@@ -62,6 +62,10 @@
 
 @property (nonatomic, strong) MessagesTableViewController *messagesTableViewController;
 @property (nonatomic, weak) IBOutlet TopicSearchCellView *tmpCell;
+
+@property (nonatomic, strong) NSData *dInputPostData;
+@property (nonatomic, strong) NSMutableArray *arrayData;
+@property (nonatomic, strong) NSMutableArray *arrayNewData;
 
 - (void)searchBar:(UISearchBar *)searchBar activate:(BOOL) active;
 
