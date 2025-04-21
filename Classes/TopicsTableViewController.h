@@ -48,7 +48,8 @@
 	UIImage *imageForSelectedRow;
 	UIImage *imageForRedFlag;
 	UIImage *imageForYellowFlag;
-	UIImage *imageForBlueFlag;
+    UIImage *imageForBlueFlag;
+    UIImage *imageForGrayFlag;
 
 	ASIHTTPRequest *request;
 	
@@ -110,6 +111,7 @@
 @property (nonatomic, strong) UIImage *imageForRedFlag;
 @property (nonatomic, strong) UIImage *imageForYellowFlag;
 @property (nonatomic, strong) UIImage *imageForBlueFlag;
+@property (nonatomic, strong) UIImage *imageForGreyFlag;
 
 @property STATUS status;
 @property int selectedFlagIndex;

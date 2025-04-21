@@ -162,6 +162,8 @@
 		159D80B92737CF1000388363 /* PopupViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 159D80B82737CF1000388363 /* PopupViewController.xib */; };
 		159D80BC2738256600388363 /* PopupViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 159D80BB2738256600388363 /* PopupViewController.m */; };
 		15A1238D22D659CB00C3DFEC /* Heart-20.png in Resources */ = {isa = PBXBuildFile; fileRef = 15A1238C22D659CB00C3DFEC /* Heart-20.png */; };
+		15A2FEEB2DB58D850045E679 /* Flat-GrayFlag-25.png in Resources */ = {isa = PBXBuildFile; fileRef = 15A2FEE92DB58D850045E679 /* Flat-GrayFlag-25.png */; };
+		15A2FEEC2DB58D850045E679 /* Flat-GrayFlag-25@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15A2FEEA2DB58D850045E679 /* Flat-GrayFlag-25@2x.png */; };
 		15ABB27D2488397200E30B48 /* gif.png in Resources */ = {isa = PBXBuildFile; fileRef = 15ABB27B2488397100E30B48 /* gif.png */; };
 		15ABB27E2488397200E30B48 /* gif@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15ABB27C2488397200E30B48 /* gif@2x.png */; };
 		15AC35692903E2DA00CCD6FC /* XlargeIconsFilled-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15AC354F2903E2D700CCD6FC /* XlargeIconsFilled-20-Inv@2x.png */; };
@@ -1127,6 +1129,8 @@
 		159D80BA2738252600388363 /* PopupViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PopupViewController.h; sourceTree = "<group>"; };
 		159D80BB2738256600388363 /* PopupViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PopupViewController.m; sourceTree = "<group>"; };
 		15A1238C22D659CB00C3DFEC /* Heart-20.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Heart-20.png"; sourceTree = "<group>"; };
+		15A2FEE92DB58D850045E679 /* Flat-GrayFlag-25.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Flat-GrayFlag-25.png"; sourceTree = "<group>"; };
+		15A2FEEA2DB58D850045E679 /* Flat-GrayFlag-25@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Flat-GrayFlag-25@2x.png"; sourceTree = "<group>"; };
 		15A5F3B32708E55800DAE8FE /* Notes.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Notes.md; sourceTree = "<group>"; };
 		15ABB27B2488397100E30B48 /* gif.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = gif.png; sourceTree = "<group>"; };
 		15ABB27C2488397200E30B48 /* gif@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "gif@2x.png"; sourceTree = "<group>"; };
@@ -3121,6 +3125,8 @@
 		CA00C5D117C30C370067B457 /* flags */ = {
 			isa = PBXGroup;
 			children = (
+				15A2FEE92DB58D850045E679 /* Flat-GrayFlag-25.png */,
+				15A2FEEA2DB58D850045E679 /* Flat-GrayFlag-25@2x.png */,
 				4C052E0E1BA86C9400B61952 /* Flat-YellowFlag-25@2x.png */,
 				4C052E0F1BA86C9400B61952 /* Flat-YellowFlag-25.png */,
 				4C052E101BA86C9400B61952 /* Flat-RedFlag-25@2x.png */,
@@ -3497,6 +3503,8 @@
 				4C061D731BD275410034CD0A /* smileyloading.html in Resources */,
 				CA7C6FA9185EF50E00B348BA /* global.gif in Resources */,
 				CA7C6FAA185EF50E00B348BA /* Default@2x.png in Resources */,
+				15A2FEEB2DB58D850045E679 /* Flat-GrayFlag-25.png in Resources */,
+				15A2FEEC2DB58D850045E679 /* Flat-GrayFlag-25@2x.png in Resources */,
 				1537755B275A7A3300790892 /* noel_neige_big_red.png in Resources */,
 				15AC35692903E2DA00CCD6FC /* XlargeIconsFilled-20-Inv@2x.png in Resources */,
 				1553568424A500D400917DE1 /* rectangle.compress@2x.png in Resources */,

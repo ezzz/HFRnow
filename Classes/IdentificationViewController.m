@@ -235,7 +235,13 @@
 
 
 - (void)checkLogin {
-    //NSLog(@"checkLogin");
+    /*NSLog(@"Checking cookies");
+    NSHTTPCookieStorage *cookShared = [NSHTTPCookieStorage sharedHTTPCookieStorage];
+    NSArray *cookies = [cookShared cookies];
+
+    for (NSHTTPCookie *cookie in cookies) {
+        NSLog(@"Cookie: %@ = %@ (domain=%@, expires=%@)", cookie.name, cookie.value, cookie.domain, cookie.expiresDate);
+    }*/
     NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"%@/user/editprofil.php?config=hfr.inc&page=5", [k ForumURL]]];
     ASIHTTPRequest *request = [ASIHTTPRequest requestWithURL:url];
     [request setDelegate:self];
