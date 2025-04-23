@@ -556,7 +556,7 @@
 		@autoreleasepool {
 
 			Topic *aTopic = [[Topic alloc] init];
-			
+            
 			//Title & URL
 			HTMLNode * topicTitleNode = [topicNode findChildWithAttribute:@"class" matchingName:@"sujetCase3" allowPartial:NO];
 
@@ -621,7 +621,7 @@
                 //https://forum.hardware.fr/hfr/Discussions/Viepratique/questions-avffuo-sujet_55667_14466.htm#t72765761
                 //https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&subcat=432&post=55667&page=14466&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#t72765761
                 NSString *regexString  = @".*_(\\d+)\\.htm.*";
-                if ([aTopic.aURLOfFlag hasPrefix:@"https://forum.hardware.fr/forum2.php"]) {
+                if ([aTopic.aURLOfFlag hasPrefix:@"/forum2.php"]) {
                     regexString  = @".*page=([^&]+).*";
                 }
                 NSRange   matchedRange;// = NSMakeRange(NSNotFound, 0UL);
@@ -649,19 +649,19 @@
 			}
 
 			//Viewed?
-			[aTopic setIsViewed:YES];
+            aTopic.hasNewMessageInTopic = YES;
+            aTopic.isViewed = YES;
 			HTMLNode * viewedNode = [topicNode findChildWithAttribute:@"class" matchingName:@"sujetCase1" allowPartial:YES];
 			HTMLNode * viewedFlagNode = [viewedNode findChildTag:@"img"];
 			if (viewedFlagNode) {
 				NSString *viewedFlagAlt = [viewedFlagNode getAttributeNamed:@"alt"];
 			
 				if ([viewedFlagAlt isEqualToString:@"On"]) {
-					[aTopic setIsViewed:NO];
+                    aTopic.hasNewMessageInTopic = NO;
+                    aTopic.isViewed = NO;
 					countViewed++;
 				}
-
 			}
-
 
 			//aAuthorOrInter
 			HTMLNode * interNode = [topicNode findChildWithAttribute:@"class" matchingName:@"sujetCase6" allowPartial:YES];	
@@ -1625,9 +1625,10 @@
         }
         
         NSMutableArray *arrayActionsMessages = [NSMutableArray array];
-        [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"la dernière page", @"lastPageAction", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
-        [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"la dernière réponse", @"lastPostAction", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
-        [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"la page numéro...", @"chooseTopicPage", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
+        [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Première page", @"firstPageAction", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
+        [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Dernière page", @"lastPageAction", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
+        [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Dernière réponse", @"lastPostAction", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
+        [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Page numéro...", @"chooseTopicPage", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
         [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Copier le lien", @"copyLinkAction", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
         
         topicActionAlert = [UIAlertController alertControllerWithTitle:nil message:nil preferredStyle:UIAlertControllerStyleActionSheet];
@@ -1668,6 +1669,18 @@
         [[ThemeManager sharedManager] applyThemeToAlertController:topicActionAlert];
     }
 
+}
+
+-(void)firstPageAction {
+    MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:[[arrayData objectAtIndex:pressedIndexPath.row] aURL]];
+    self.messagesTableViewController = aView;
+    
+    self.messagesTableViewController.topicName = [[arrayData objectAtIndex:pressedIndexPath.row] aTitle];
+    self.messagesTableViewController.isViewed = [[arrayData objectAtIndex:pressedIndexPath.row] isViewed];
+    
+    [self pushTopic];
+    //[self.navigationController pushViewController:messagesTableViewController animated:YES];
+    //NSLog(@"url pressed last page: %@", [[arrayData objectAtIndex:pressedIndexPath.row] aURLOfLastPage]);
 }
 
 -(void)lastPageAction{
@@ -1900,11 +1913,13 @@
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     // Navigation logic may go here. Create and push another view controller.
     Topic* selectedTopic = [arrayData objectAtIndex:indexPath.row];
-    NSString *sURL = selectedTopic.aURL; // Default URL
+    NSString *sURL = selectedTopic.aURL; // Default URL = first post of first page
     if (selectedTopic.aTypeOfFlag.length > 0) {
         sURL = selectedTopic.aURLOfFlag;
     }
-    
+    else if (selectedTopic.hasNewMessageInTopic && selectedTopic.isViewed) { // On va a la fin que si on a déjà lu le topic (il avait de nouveau messages au chargement)
+        sURL = selectedTopic.aURLOfLastPost;
+    }
     MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:sURL];
 		self.messagesTableViewController = aView;
 	
