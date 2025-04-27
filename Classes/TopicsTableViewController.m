@@ -29,6 +29,7 @@
 
 #import "ThemeColors.h"
 #import "ThemeManager.h"
+#import "SmileyAlertView.h"
 
 @implementation TopicsTableViewController
 @synthesize forumNewTopicUrl, forumName, loadingView, topicsTableView, arrayData, arrayNewData;
@@ -785,6 +786,12 @@
 	return @"Nouv. Sujet";	
 }
 
+-(void)searchForum
+{
+    //Selected smiley CODE [:legrillepain:3] URL https%3A%2F%2Fforum-images.hardware.fr%2Fimages%2Fperso%2F3%2Flegrillepain.gif RAW https://forum-images.hardware.fr/images/perso/3/legrillepain.gif
+    [[SmileyAlertView shared] displaySmileyActionCancel:@"SOON :o" withUrl:@"https://forum-images.hardware.fr/images/perso/3/legrillepain.gif" addSmiley:NO showAction:NO handlerDone:nil handlerFailed:nil handlerSelectCode:nil baseController:self];
+}
+
 -(void)newTopic
 {
 	//[[HFRplusAppDelegate sharedAppDelegate] openURL:[NSString stringWithFormat:@"http://forum.hardware.fr%@", forumNewTopicUrl]];
@@ -1052,14 +1059,20 @@
 
     }
 
-	
-
-	
-	UIBarButtonItem *segmentBarItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemCompose target:self action:@selector(newTopic)];
-    segmentBarItem.enabled = NO;
-	
-	self.navigationItem.rightBarButtonItem = segmentBarItem;
-
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
+        UIBarButtonItem *buttontBarItemRight = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemCompose target:self action:@selector(newTopic)];
+        buttontBarItemRight.enabled = NO;
+        
+        self.navigationItem.rightBarButtonItems = [[NSMutableArray alloc] initWithObjects:buttontBarItemRight, nil];
+    }
+    else {
+        UIBarButtonItem *buttontBarItemLeft = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"magnifyingglass"] style:UIBarButtonItemStylePlain target:self action:@selector(searchForum)];
+        UIBarButtonItem *buttontBarItemRight = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemCompose target:self action:@selector(newTopic)];
+        buttontBarItemRight.enabled = NO;
+        
+        self.navigationItem.rightBarButtonItems = [[NSMutableArray alloc] initWithObjects:buttontBarItemRight, buttontBarItemLeft, nil];
+    }
+    
 	[(ShakeView*)self.view setShakeDelegate:self];
 
 	self.arrayData = [[NSMutableArray alloc] init];
@@ -1586,7 +1599,6 @@
 
 - (void) accessoryButtonTapped: (UIControl *) button withEvent: (UIEvent *) event
 {
-	
     NSIndexPath * indexPath = [self.topicsTableView indexPathForRowAtPoint: [[[event touchesForView: button] anyObject] locationInView: self.topicsTableView]];
     if ( indexPath == nil )
         return;
@@ -1595,24 +1607,12 @@
 		//self.pressedIndexPath = [indexPath autorelease];
 	}
 
-	
-	
-	//NSLog(@"url %@", [[arrayData objectAtIndex:self.pressedIndexPath.row] aURLOfFlag]);
-
-	//if (self.messagesTableViewController == nil) {
-	MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:[[arrayData objectAtIndex:indexPath.row]  aURLOfFlag] displaySeparator:YES];
-	self.messagesTableViewController = aView;
-	//}
-	
-	//setup the URL
-
-	self.messagesTableViewController.topicName = [[arrayData objectAtIndex:indexPath.row] aTitle];	
-	self.messagesTableViewController.isViewed = [[arrayData objectAtIndex:pressedIndexPath.row] isViewed];	
+    Topic* topic = [arrayData objectAtIndex:indexPath.row];
+    self.messagesTableViewController = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:topic.aURLOfFlag displaySeparator:YES];
+	self.messagesTableViewController.topicName = topic.aTitle;
+	self.messagesTableViewController.isViewed = topic.isViewed;
 
 	[self pushTopic];
-    //[self.navigationController pushViewController:messagesTableViewController animated:YES];
-
-
 }
 
 -(void)handleLongPress:(UILongPressGestureRecognizer*)longPressRecognizer {
@@ -1679,8 +1679,6 @@
     self.messagesTableViewController.isViewed = [[arrayData objectAtIndex:pressedIndexPath.row] isViewed];
     
     [self pushTopic];
-    //[self.navigationController pushViewController:messagesTableViewController animated:YES];
-    //NSLog(@"url pressed last page: %@", [[arrayData objectAtIndex:pressedIndexPath.row] aURLOfLastPage]);
 }
 
 -(void)lastPageAction{
@@ -1876,35 +1874,17 @@
 -(void)gotoPageNumber:(int)number{
         //NSLog(@"goto topic page %d", [[pageNumberField text] intValue]);
         NSString * newUrl = [[NSString alloc] initWithString:[[arrayData objectAtIndex:pressedIndexPath.row] aURL]];
-       
-        //NSLog(@"newUrl %@", newUrl);
-
         newUrl = [newUrl stringByReplacingOccurrencesOfString:@"_1.htm" withString:[NSString stringWithFormat:@"_%d.htm", number]];
         newUrl = [newUrl stringByReplacingOccurrencesOfString:@"page=1&" withString:[NSString stringWithFormat:@"page=%d&",number]];
-        
-        //NSLog(@"newUrl %@", newUrl);
-
         newUrl = [newUrl stringByRemovingAnchor];
         
-        //if (self.messagesTableViewController == nil) {
 		MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:newUrl];
 		self.messagesTableViewController = aView;
-        //}
-        
-        
-        
-        //NSLog(@"%@", self.navigationController.navigationBar);
-        
-
-        //setup the URL
-        self.messagesTableViewController.topicName = [[arrayData objectAtIndex:pressedIndexPath.row] aTitle];	
+        self.messagesTableViewController.topicName = [[arrayData objectAtIndex:pressedIndexPath.row] aTitle];
         self.messagesTableViewController.isViewed = [[arrayData objectAtIndex:pressedIndexPath.row] isViewed];	
         
         [self pushTopic];
-        //[self.navigationController pushViewController:messagesTableViewController animated:YES];
-    
 }
-
 
 
 #pragma mark -
@@ -1921,8 +1901,7 @@
         sURL = selectedTopic.aURLOfLastPost;
     }
     MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:sURL];
-		self.messagesTableViewController = aView;
-	
+    self.messagesTableViewController = aView;
     [self.messagesTableViewController setTopicName:[[arrayData objectAtIndex:indexPath.row] aTitle]];
 	self.messagesTableViewController.isViewed = [[arrayData objectAtIndex:indexPath.row] isViewed];	
     

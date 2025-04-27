@@ -119,6 +119,10 @@
 @property (nonatomic, strong) IBOutlet UILabel *errorLabelView;
 @property (nonatomic, strong) IBOutlet UIView *overview;
 
+@property (nonatomic, strong) UILabel* labelHeaderView;
+@property (nonatomic, strong) NSString* sNavigationViewTitle;
+@property (nonatomic, strong) NSString* sNavigationViewSubTitle;
+
 @property (nonatomic, strong) NSString *topicAnswerUrl;
 @property (nonatomic, strong, setter=setTopicName:) NSString *_topicName;
 
@@ -137,7 +141,6 @@
 @property (nonatomic, strong) NSMutableArray *arrayData;
 @property (nonatomic, strong) NSMutableArray *updatedArrayData;
 
-@property (nonatomic, strong) MessageDetailViewController *detailViewController;
 @property (nonatomic, strong) MessagesTableViewController *messagesTableViewController;
 @property (nonatomic, strong) SmileyCodeTableViewController *smileyCodeTableViewController;
 
@@ -199,7 +202,6 @@
 @property dispatch_block_t smileyAlertViewAddOK;
 @property dispatch_block_t smileyAlertViewAddFailed;
 @property UIEditMenuInteraction *webviewInteraction;
-@property (nonatomic, strong) UILabel* labelHeaderView;
 
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil andUrl:(NSString *)theTopicUrl;
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil andUrl:(NSString *)theTopicUrl displaySeparator:(BOOL)isSeparatorNewMessages;
