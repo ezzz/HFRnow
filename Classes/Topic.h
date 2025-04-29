@@ -79,6 +79,7 @@
 @property bool isSticky;
 @property bool isSuperFavorite;
 @property bool isClosed;
+@property bool hasNewMessageInTopic;
 
 - (NSString*) aTitle;
 - (void)setATitle:(NSString *)n;

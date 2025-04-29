@@ -214,18 +214,22 @@ static SmileyCache *_shared = nil;    // static instance variable
 {
     NSString *filename = nil;
 
-    if (bFavoriteSmiley && bFavoriteFromApp) {
+    if (bFavoriteSmiley && bFavoriteFromApp && index < self.arrFavoritesSmileysApp.count) {
         filename = [[[self.arrFavoritesSmileysApp objectAtIndex:index] objectForKey:@"source"] stringByReplacingOccurrencesOfString:@"http://forum-images.hardware.fr/" withString:@""];
         NSLog(@"Searching image App Favorite index (%d)", index);
     }
-    else if (bFavoriteSmiley) {
+    else if (bFavoriteSmiley && index < self.arrFavoritesSmileysForum.count) {
         filename = [[[self.arrFavoritesSmileysForum objectAtIndex:index] objectForKey:@"source"] stringByReplacingOccurrencesOfString:@"http://forum-images.hardware.fr/" withString:@""];
         NSLog(@"Searching image Forum Favorite index (%d)", index);
     }
-    else {
+    else if (index < self.arrCurrentSmileyArray.count) {
         filename = [[[self.arrCurrentSmileyArray objectAtIndex:index] objectForKey:@"source"] stringByReplacingOccurrencesOfString:@"http://forum-images.hardware.fr/" withString:@""];
         NSLog(@"Searching image Current index (%d)", index);
     }
+    else { // Error case -> placeholder
+        filename = @""; // TODO select placeholder
+    }
+
     filename = [filename stringByReplacingOccurrencesOfString:@"https://forum-images.hardware.fr/" withString:@""];
     UIImage* image = nil;
     ImageInCache* iic = [self.cacheSmileys objectForKey:filename];

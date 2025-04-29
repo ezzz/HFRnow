@@ -51,13 +51,14 @@
     self.imgGroup.tintColor = [ThemeColors topicMsgTextColor:theme];
 
     self.selectionStyle = [ThemeColors cellSelectionStyle:theme];
-    if(topicViewed){
+    if (self.topicViewed) {
         Theme theme = [[ThemeManager sharedManager] theme];
         [titleLabel setTextColor:[ThemeColors lightTextColor:theme]];
+        [timeLabel setTextColor:[ThemeColors lightTextColor:theme]];
     }
 }
 
--(BOOL)topicViewed{
+-(BOOL)topicViewed {
     return topicViewed;
 }
 

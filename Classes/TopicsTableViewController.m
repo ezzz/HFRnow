@@ -29,6 +29,7 @@
 
 #import "ThemeColors.h"
 #import "ThemeManager.h"
+#import "SmileyAlertView.h"
 
 @implementation TopicsTableViewController
 @synthesize forumNewTopicUrl, forumName, loadingView, topicsTableView, arrayData, arrayNewData;
@@ -39,7 +40,7 @@
 @synthesize pressedIndexPath;
 @synthesize imageForSelectedRow, imageForUnselectedRow;
 
-@synthesize imageForRedFlag, imageForYellowFlag, imageForBlueFlag;
+@synthesize imageForRedFlag, imageForYellowFlag, imageForBlueFlag, imageForGreyFlag;
 
 @synthesize forumBaseURL, forumFavorisURL, forumFlag1URL, forumFlag0URL;
 
@@ -556,7 +557,7 @@
 		@autoreleasepool {
 
 			Topic *aTopic = [[Topic alloc] init];
-			
+            
 			//Title & URL
 			HTMLNode * topicTitleNode = [topicNode findChildWithAttribute:@"class" matchingName:@"sujetCase3" allowPartial:NO];
 
@@ -615,6 +616,33 @@
 					[aTopic setATypeOfFlag:@"yellow"];
 				}
 			
+                // Read page of flag
+                int pageNumber = 0;
+                //Deux types d'URL:
+                //https://forum.hardware.fr/hfr/Discussions/Viepratique/questions-avffuo-sujet_55667_14466.htm#t72765761
+                //https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&subcat=432&post=55667&page=14466&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#t72765761
+                NSString *regexString  = @".*_(\\d+)\\.htm.*";
+                if ([aTopic.aURLOfFlag hasPrefix:@"/forum2.php"]) {
+                    regexString  = @".*page=([^&]+).*";
+                }
+                NSRange   matchedRange;// = NSMakeRange(NSNotFound, 0UL);
+                NSRange   searchRange = NSMakeRange(0, aTopic.aURLOfFlag.length);
+                NSError  *error2        = NULL;
+                
+                matchedRange = [aTopic.aURLOfFlag rangeOfRegex:regexString options:RKLNoOptions inRange:searchRange capture:1L error:&error2];
+                
+                if (matchedRange.location == NSNotFound) {
+                    NSRange rangeNumPage =  [aTopic.aURLOfFlag rangeOfCharactersFromSet:[NSCharacterSet decimalDigitCharacterSet] options:NSBackwardsSearch];
+                    pageNumber = [[aTopic.aURLOfFlag substringWithRange:rangeNumPage] intValue];
+                }
+                else {
+                    pageNumber = [[aTopic.aURLOfFlag substringWithRange:matchedRange] intValue];
+                    
+                }
+                //NSLog(@"Read page of flag %@", aTopic.aURLOfFlag);
+                //NSLog(@"Current page of flag %ld", pageNumber);
+
+                [aTopic setCurTopicPage:pageNumber];
 			}
 			else {
 				[aTopic setAURLOfFlag:@""];
@@ -622,19 +650,19 @@
 			}
 
 			//Viewed?
-			[aTopic setIsViewed:YES];
+            aTopic.hasNewMessageInTopic = YES;
+            aTopic.isViewed = YES;
 			HTMLNode * viewedNode = [topicNode findChildWithAttribute:@"class" matchingName:@"sujetCase1" allowPartial:YES];
 			HTMLNode * viewedFlagNode = [viewedNode findChildTag:@"img"];
 			if (viewedFlagNode) {
 				NSString *viewedFlagAlt = [viewedFlagNode getAttributeNamed:@"alt"];
 			
 				if ([viewedFlagAlt isEqualToString:@"On"]) {
-					[aTopic setIsViewed:NO];
+                    aTopic.hasNewMessageInTopic = NO;
+                    aTopic.isViewed = NO;
 					countViewed++;
 				}
-
 			}
-
 
 			//aAuthorOrInter
 			HTMLNode * interNode = [topicNode findChildWithAttribute:@"class" matchingName:@"sujetCase6" allowPartial:YES];	
@@ -756,6 +784,12 @@
 -(NSString *)newTopicTitle
 {
 	return @"Nouv. Sujet";	
+}
+
+-(void)searchForum
+{
+    //Selected smiley CODE [:legrillepain:3] URL https%3A%2F%2Fforum-images.hardware.fr%2Fimages%2Fperso%2F3%2Flegrillepain.gif RAW https://forum-images.hardware.fr/images/perso/3/legrillepain.gif
+    [[SmileyAlertView shared] displaySmileyActionCancel:@"SOON :o" withUrl:@"https://forum-images.hardware.fr/images/perso/3/legrillepain.gif" addSmiley:NO showAction:NO handlerDone:nil handlerFailed:nil handlerSelectCode:nil baseController:self];
 }
 
 -(void)newTopic
@@ -1025,14 +1059,20 @@
 
     }
 
-	
-
-	
-	UIBarButtonItem *segmentBarItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemCompose target:self action:@selector(newTopic)];
-    segmentBarItem.enabled = NO;
-	
-	self.navigationItem.rightBarButtonItem = segmentBarItem;
-
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
+        UIBarButtonItem *buttontBarItemRight = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemCompose target:self action:@selector(newTopic)];
+        buttontBarItemRight.enabled = NO;
+        
+        self.navigationItem.rightBarButtonItems = [[NSMutableArray alloc] initWithObjects:buttontBarItemRight, nil];
+    }
+    else {
+        UIBarButtonItem *buttontBarItemLeft = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"magnifyingglass"] style:UIBarButtonItemStylePlain target:self action:@selector(searchForum)];
+        UIBarButtonItem *buttontBarItemRight = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemCompose target:self action:@selector(newTopic)];
+        buttontBarItemRight.enabled = NO;
+        
+        self.navigationItem.rightBarButtonItems = [[NSMutableArray alloc] initWithObjects:buttontBarItemRight, buttontBarItemLeft, nil];
+    }
+    
 	[(ShakeView*)self.view setShakeDelegate:self];
 
 	self.arrayData = [[NSMutableArray alloc] init];
@@ -1045,20 +1085,11 @@
 	self.imageForSelectedRow = [UIImage imageNamed:@"unselectedrow"];
 	
     
-    if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"7.0")) {
-        self.imageForRedFlag = [UIImage imageNamed:@"Flat-RedFlag-25"];
-        self.imageForYellowFlag = [UIImage imageNamed:@"Flat-YellowFlag-25"];
-        self.imageForBlueFlag = [UIImage imageNamed:@"Flat-CyanFlag-25"];
-    }
-    else
-    {
-        self.imageForRedFlag = [UIImage imageNamed:@"flagred"];
-        self.imageForYellowFlag = [UIImage imageNamed:@"flagyellow"];
-        self.imageForBlueFlag = [UIImage imageNamed:@"flagblue2"];
-    }
+    self.imageForRedFlag = [UIImage imageNamed:@"Flat-RedFlag-25"];
+    self.imageForYellowFlag = [UIImage imageNamed:@"Flat-YellowFlag-25"];
+    self.imageForBlueFlag = [UIImage imageNamed:@"Flat-CyanFlag-25"];
+    self.imageForGreyFlag = [self imageWithAlpha:[UIImage imageNamed:@"Flat-GrayFlag-25"] alpha:0.2];
 
-	
-	
 	//self.forumBaseURL = self.currentUrl;
     UIView *v = [[UIView alloc] initWithFrame:CGRectZero];
     v.backgroundColor = [UIColor clearColor];
@@ -1484,11 +1515,11 @@
         sPoll = @" \U00002263";
     }
     
-	if (aTopic.aRepCount == 0) {
-	 [cell.msgLabel setText:[NSString stringWithFormat:@"↺%@ %d", sPoll, (aTopic.aRepCount + 1)]];
+    if (aTopic.curTopicPage > 0 && aTopic.curTopicPage <= aTopic.maxTopicPage) {
+        [cell.msgLabel setText:[NSString stringWithFormat:@"⚑%@ %d/%d", sPoll, aTopic.curTopicPage, aTopic.maxTopicPage]];
 	}
 	else {
-	 [cell.msgLabel setText:[NSString stringWithFormat:@"↺%@ %d", sPoll, (aTopic.aRepCount + 1)]];
+        [cell.msgLabel setText:[NSString stringWithFormat:@"⚑%@ %d", sPoll, aTopic.maxTopicPage]];
 	}
     [cell.msgLabel setFont:[UIFont systemFontOfSize:13.0*iSizeTextTopics/100]];
 
@@ -1499,25 +1530,31 @@
 
 
 	//Flag
-	if ([aTopic aTypeOfFlag].length > 0) {
+    if (aTopic.aTypeOfFlag.length > 0) {
 		
 		UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
 		
 		CGRect frame = CGRectMake(0.0, 0.0, 45, 50);
 		button.frame = frame;	// match the button's size with the image size
 
-		if([[aTopic aTypeOfFlag] isEqualToString:@"red"]) {
-			[button setBackgroundImage:imageForRedFlag forState:UIControlStateNormal];
-			[button setBackgroundImage:imageForRedFlag forState:UIControlStateHighlighted];
-		}
-		else if ([[aTopic aTypeOfFlag] isEqualToString:@"blue"]) {
-			[button setBackgroundImage:imageForBlueFlag forState:UIControlStateNormal];
-			[button setBackgroundImage:imageForBlueFlag forState:UIControlStateHighlighted];
-		}
-		else if ([[aTopic aTypeOfFlag] isEqualToString:@"yellow"]) {
-			[button setBackgroundImage:imageForYellowFlag forState:UIControlStateNormal];
-			[button setBackgroundImage:imageForYellowFlag forState:UIControlStateHighlighted];
-		}
+        if (aTopic.isViewed) {
+            [button setBackgroundImage:self.imageForGreyFlag forState:UIControlStateNormal];
+            [button setBackgroundImage:self.imageForGreyFlag forState:UIControlStateHighlighted];
+        }
+        else {
+            if([[aTopic aTypeOfFlag] isEqualToString:@"red"]) {
+                [button setBackgroundImage:imageForRedFlag forState:UIControlStateNormal];
+                [button setBackgroundImage:imageForRedFlag forState:UIControlStateHighlighted];
+            }
+            else if ([[aTopic aTypeOfFlag] isEqualToString:@"blue"]) {
+                [button setBackgroundImage:imageForBlueFlag forState:UIControlStateNormal];
+                [button setBackgroundImage:imageForBlueFlag forState:UIControlStateHighlighted];
+            }
+            else if ([[aTopic aTypeOfFlag] isEqualToString:@"yellow"]) {
+                [button setBackgroundImage:imageForYellowFlag forState:UIControlStateNormal];
+                [button setBackgroundImage:imageForYellowFlag forState:UIControlStateHighlighted];
+            }
+        }
         
 		// set the button's target to this table view controller so we can interpret touch events and map that to a NSIndexSet
 		[button addTarget:self action:@selector(accessoryButtonTapped:withEvent:) forControlEvents:UIControlEventTouchUpInside];
@@ -1547,9 +1584,21 @@
 	
 }
 
+- (UIImage *)imageWithAlpha:(UIImage *)image alpha:(CGFloat)alpha {
+    UIGraphicsBeginImageContextWithOptions(image.size, NO, 0.0);
+    CGRect area = CGRectMake(0, 0, image.size.width, image.size.height);
+    
+    [image drawInRect:area blendMode:kCGBlendModeNormal alpha:alpha];
+    
+    UIImage *newImage = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    
+    return newImage;
+}
+
+
 - (void) accessoryButtonTapped: (UIControl *) button withEvent: (UIEvent *) event
 {
-	
     NSIndexPath * indexPath = [self.topicsTableView indexPathForRowAtPoint: [[[event touchesForView: button] anyObject] locationInView: self.topicsTableView]];
     if ( indexPath == nil )
         return;
@@ -1558,24 +1607,12 @@
 		//self.pressedIndexPath = [indexPath autorelease];
 	}
 
-	
-	
-	//NSLog(@"url %@", [[arrayData objectAtIndex:self.pressedIndexPath.row] aURLOfFlag]);
-
-	//if (self.messagesTableViewController == nil) {
-	MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:[[arrayData objectAtIndex:indexPath.row]  aURLOfFlag] displaySeparator:YES];
-	self.messagesTableViewController = aView;
-	//}
-	
-	//setup the URL
-
-	self.messagesTableViewController.topicName = [[arrayData objectAtIndex:indexPath.row] aTitle];	
-	self.messagesTableViewController.isViewed = [[arrayData objectAtIndex:pressedIndexPath.row] isViewed];	
+    Topic* topic = [arrayData objectAtIndex:indexPath.row];
+    self.messagesTableViewController = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:topic.aURLOfFlag displaySeparator:YES];
+	self.messagesTableViewController.topicName = topic.aTitle;
+	self.messagesTableViewController.isViewed = topic.isViewed;
 
 	[self pushTopic];
-    //[self.navigationController pushViewController:messagesTableViewController animated:YES];
-
-
 }
 
 -(void)handleLongPress:(UILongPressGestureRecognizer*)longPressRecognizer {
@@ -1588,9 +1625,10 @@
         }
         
         NSMutableArray *arrayActionsMessages = [NSMutableArray array];
-        [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"la dernière page", @"lastPageAction", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
-        [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"la dernière réponse", @"lastPostAction", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
-        [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"la page numéro...", @"chooseTopicPage", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
+        [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Première page", @"firstPageAction", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
+        [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Dernière page", @"lastPageAction", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
+        [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Dernière réponse", @"lastPostAction", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
+        [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Page numéro...", @"chooseTopicPage", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
         [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Copier le lien", @"copyLinkAction", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
         
         topicActionAlert = [UIAlertController alertControllerWithTitle:nil message:nil preferredStyle:UIAlertControllerStyleActionSheet];
@@ -1631,6 +1669,16 @@
         [[ThemeManager sharedManager] applyThemeToAlertController:topicActionAlert];
     }
 
+}
+
+-(void)firstPageAction {
+    MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:[[arrayData objectAtIndex:pressedIndexPath.row] aURL]];
+    self.messagesTableViewController = aView;
+    
+    self.messagesTableViewController.topicName = [[arrayData objectAtIndex:pressedIndexPath.row] aTitle];
+    self.messagesTableViewController.isViewed = [[arrayData objectAtIndex:pressedIndexPath.row] isViewed];
+    
+    [self pushTopic];
 }
 
 -(void)lastPageAction{
@@ -1709,6 +1757,8 @@
         // Close left panel on ipad in portrait mode
         [[HFRplusAppDelegate sharedAppDelegate] hidePrimaryPanelOnIpadForSplitViewController:self.detailNavigationViewController.splitViewController];
     }
+    
+    [self setTopicViewed];
 }
 
 -(void)setTopicViewed {
@@ -1824,35 +1874,17 @@
 -(void)gotoPageNumber:(int)number{
         //NSLog(@"goto topic page %d", [[pageNumberField text] intValue]);
         NSString * newUrl = [[NSString alloc] initWithString:[[arrayData objectAtIndex:pressedIndexPath.row] aURL]];
-       
-        //NSLog(@"newUrl %@", newUrl);
-
         newUrl = [newUrl stringByReplacingOccurrencesOfString:@"_1.htm" withString:[NSString stringWithFormat:@"_%d.htm", number]];
         newUrl = [newUrl stringByReplacingOccurrencesOfString:@"page=1&" withString:[NSString stringWithFormat:@"page=%d&",number]];
-        
-        //NSLog(@"newUrl %@", newUrl);
-
         newUrl = [newUrl stringByRemovingAnchor];
         
-        //if (self.messagesTableViewController == nil) {
 		MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:newUrl];
 		self.messagesTableViewController = aView;
-        //}
-        
-        
-        
-        //NSLog(@"%@", self.navigationController.navigationBar);
-        
-
-        //setup the URL
-        self.messagesTableViewController.topicName = [[arrayData objectAtIndex:pressedIndexPath.row] aTitle];	
+        self.messagesTableViewController.topicName = [[arrayData objectAtIndex:pressedIndexPath.row] aTitle];
         self.messagesTableViewController.isViewed = [[arrayData objectAtIndex:pressedIndexPath.row] isViewed];	
         
         [self pushTopic];
-        //[self.navigationController pushViewController:messagesTableViewController animated:YES];
-    
 }
-
 
 
 #pragma mark -
@@ -1860,26 +1892,20 @@
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     // Navigation logic may go here. Create and push another view controller.
-
-    //NSLog(@"did Select row Topics table views: %d", indexPath.row);
-
-	//if (self.messagesTableViewController == nil) {
-		MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:[[arrayData objectAtIndex:indexPath.row] aURL]];
-		self.messagesTableViewController = aView;
-	//}
-	
-	//NSLog(@"%@", self.navigationController.navigationBar);
-    //NSLog(@"b4 %@", self.navigationController);
-
-	//setup the URL
-    
-    
+    Topic* selectedTopic = [arrayData objectAtIndex:indexPath.row];
+    NSString *sURL = selectedTopic.aURL; // Default URL = first post of first page
+    if (selectedTopic.aTypeOfFlag.length > 0) {
+        sURL = selectedTopic.aURLOfFlag;
+    }
+    else if (selectedTopic.hasNewMessageInTopic && selectedTopic.isViewed) { // On va a la fin que si on a déjà lu le topic (il avait de nouveau messages au chargement)
+        sURL = selectedTopic.aURLOfLastPost;
+    }
+    MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:sURL];
+    self.messagesTableViewController = aView;
     [self.messagesTableViewController setTopicName:[[arrayData objectAtIndex:indexPath.row] aTitle]];
 	self.messagesTableViewController.isViewed = [[arrayData objectAtIndex:indexPath.row] isViewed];	
     
-    //NSLog(@"pushTopic");
     [self pushTopic];
-	//[self.navigationController pushViewController:messagesTableViewController animated:YES];
 }
 
 #pragma mark -

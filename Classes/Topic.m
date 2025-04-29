@@ -60,6 +60,7 @@
         self.isSticky = NO;
         self.isSuperFavorite = NO;
         self.isClosed = NO;
+        self.hasNewMessageInTopic = NO;
 	}
 	return self;
 }

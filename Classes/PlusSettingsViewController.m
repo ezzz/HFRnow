@@ -163,14 +163,7 @@
             [self hideCell:@"auto_theme_day_time"];
             [self hideCell:@"auto_theme_night_time"];
             [[ThemeManager sharedManager] changeAutoTheme:NO];
-            
-            NSInteger iManualTheme = (Theme)[[notification.userInfo objectForKey:@"theme"] intValue];
-            if (iManualTheme == MANUAL_THEME_LIGHT) {
-                [[ThemeManager sharedManager] setTheme:ThemeLight];
-            }
-            else {
-                [[ThemeManager sharedManager] setTheme:ThemeDark];
-            }
+            [[ThemeManager sharedManager] setTheme:(Theme)[[[NSUserDefaults standardUserDefaults] objectForKey:@"theme"] intValue]];
         }
         [[ThemeManager sharedManager] refreshTheme];
     } else if([notification.userInfo objectForKey:@"auto_theme_day_time"] || [notification.userInfo objectForKey:@"auto_theme_night_time"] ) {

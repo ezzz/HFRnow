@@ -9,7 +9,6 @@
 
 #import "MessagesTableViewController.h"
 #import "MessagesSearchTableViewController.h"
-#import "MessageDetailViewController.h"
 #import "SmileyCodeTableViewController.h"
 #import "TopicsTableViewController.h"
 #import "PollTableViewController.h"
@@ -43,54 +42,10 @@
 #import "SmileyCache.h"
 #import "SimplePhotoViewController.h"
 
-@interface PhotoViewController : UIViewController
-@property (nonatomic, strong) NSURL *imageURL;
-@end
-@interface PhotoViewController ()
-@property (nonatomic, strong) UIImageView *imageView;
-@end
-
-@implementation PhotoViewController
-
-- (void)viewDidLoad {
-    [super viewDidLoad];
-
-    self.view.backgroundColor = [UIColor whiteColor];
-
-    self.imageView = [[UIImageView alloc] initWithFrame:self.view.bounds];
-    self.imageView.contentMode = UIViewContentModeScaleAspectFit;
-    self.imageView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-
-    [self.view addSubview:self.imageView];
-
-    [self loadImageFromURL:self.imageURL];
-}
-
-- (void)loadImageFromURL:(NSURL *)url {
-    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
-    [request setValue:@"https://forum.hardware.fr" forHTTPHeaderField:@"Referer"];
-
-    NSURLSessionDataTask *task = [[NSURLSession sharedSession]
-        dataTaskWithRequest:request
-          completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
-              if (data && !error) {
-                  UIImage *image = [UIImage imageWithData:data];
-                  dispatch_async(dispatch_get_main_queue(), ^{
-                      self.imageView.image = image;
-                  });
-              } else {
-                  NSLog(@"Erreur de chargement d'image : %@", error);
-              }
-          }];
-    [task resume];
-}
-
-@end
-
 
 @implementation MessagesTableViewController
 
-@synthesize loaded, isLoading, _topicName, topicAnswerUrl, loadingView, errorLabelView, messagesWebView, arrayData, updatedArrayData, detailViewController, messagesTableViewController, smileyCodeTableViewController, pollNode, pollParser, isNewPoll;
+@synthesize loaded, isLoading, _topicName, topicAnswerUrl, loadingView, errorLabelView, messagesWebView, arrayData, updatedArrayData, messagesTableViewController, smileyCodeTableViewController, pollNode, pollParser, isNewPoll;
 @synthesize swipeLeftRecognizer, swipeRightRecognizer, overview, arrayActionsMessages, lastStringFlagTopic;
 @synthesize searchBg, searchBox, searchKeyword, searchPseudo, searchFilter, searchFromFP, searchInputData, isSearchInstra, errorReported, isSeparatorNewMessages;
 @synthesize queue;
@@ -106,12 +61,10 @@
 
 - (void)setTopicName:(NSString *)n {
     _topicName = [n filterTU];
-    
-    
 }
 //Getter method
 - (NSString*) topicName {
-    //NSLog(@"Returning name: %@", _aTitle);
+    //NSLog(@"GET TOPIC NAME %@", _topicName);
     return _topicName;
 }
 
@@ -241,19 +194,145 @@
 
 #pragma mark -
 #pragma mark View lifecycle
--(void)setNavigationTitle:(NSString*)sTitle
+-(void)refreshNavigationTitle
 {
-    NSLog(@"Setting TITLENAME:%@", sTitle);
-
+    NSString *title = self._topicName;
+    NSString *subtitle = [NSString stringWithFormat:@""];
+    if (self.isSearchInstra) {
+        subtitle = [NSString stringWithFormat:@"Recherche"];
+    }
+    else if (self.filterPostsQuotes) {
+        if (self.pageNumberFilterStart == self.pageNumberFilterEnd) {
+            subtitle = [NSString stringWithFormat:@"Filtré | %d", self.pageNumberFilterStart];
+        }
+        else {
+            subtitle = [NSString stringWithFormat:@"Filtré | %d à %d", self.pageNumberFilterStart, self.pageNumberFilterEnd];
+        }
+    }
+    else if (self.lastPageNumber > 0){
+        subtitle = [NSString stringWithFormat:@"%d / %d", self.pageNumber, self.lastPageNumber];
+    }
+    
     if ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPad)
     {
-        self.title = sTitle;
-        self.navigationItem.title = sTitle;
+        if ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPad)
+        {
+            NSUInteger maxLength = 55 - subtitle.length;
+            
+            if (title.length > maxLength) {
+                title = [title substringToIndex:maxLength];
+                title = [title stringByAppendingString:@"..."];
+            }
+        }
+        
+        if (subtitle.length == 0) {
+            self.navigationItem.title = title;
+        }
+        else {
+            self.navigationItem.title = [NSString stringWithFormat:@"%@ - %@", title, subtitle];
+        }
     }
     else {
-        [(UILabel *)[self navigationItem].titleView setText:sTitle];
-        [(UILabel *)[self navigationItem].titleView adjustFontSizeToFit];
+        UILabel * label = (UILabel *)self.navigationItem.titleView;
+
+        // Police de départ pour le titre
+        CGFloat titleFontSize = 15.0;
+        CGFloat minFontSize = 12.0;
+        UIFont *subtitleFont = [UIFont systemFontOfSize:12];
+        
+        // Largeur max autorisée
+        CGFloat maxWidth = [self availableTitleWidth];
+        
+        // Police à utiliser (sera réduite si besoin)
+        UIFont *fittingFont = [self fontToFitText:title initialSize:titleFontSize minSize:minFontSize maxWidth:maxWidth];
+
+        // Troncature manuelle après réduction de taille
+        NSString *fittingTitle = [self truncatedText:title withFont:fittingFont maxWidth:maxWidth];
+
+        // Mise en forme
+        NSMutableParagraphStyle *paragraph = [[NSMutableParagraphStyle alloc] init];
+        paragraph.alignment = NSTextAlignmentCenter;
+        paragraph.lineSpacing = 2;
+        
+        NSString *fullText = [NSString stringWithFormat:@"%@\n%@", fittingTitle, subtitle];
+        NSMutableAttributedString *attrText = [[NSMutableAttributedString alloc] initWithString:fullText];
+
+        [attrText addAttribute:NSFontAttributeName value:fittingFont range:NSMakeRange(0, fittingTitle.length)];
+        [attrText addAttribute:NSFontAttributeName value:subtitleFont range:NSMakeRange(fittingTitle.length + 1, subtitle.length)];
+        [attrText addAttribute:NSParagraphStyleAttributeName value:paragraph range:NSMakeRange(0, fullText.length)];
+        
+        label.attributedText = attrText;
+        [label sizeToFit];
+        
+        self.navigationItem.titleView = label;
     }
+}
+
+- (UIFont *)fontToFitText:(NSString *)text initialSize:(CGFloat)initialSize minSize:(CGFloat)minSize maxWidth:(CGFloat)maxWidth {
+    CGFloat fontSize = initialSize;
+    
+    while (fontSize >= minSize) {
+        UIFont *font = [UIFont boldSystemFontOfSize:fontSize];
+        CGSize size = [text sizeWithAttributes:@{NSFontAttributeName: font}];
+        
+        
+        if (size.width <= maxWidth) {
+            return font;
+        }
+        fontSize -= 0.5;
+    }
+    
+    return [UIFont boldSystemFontOfSize:minSize];
+}
+
+- (NSString *)truncatedText:(NSString *)text withFont:(UIFont *)font maxWidth:(CGFloat)maxWidth {
+    NSString *truncated = text;
+    CGSize size = [text sizeWithAttributes:@{NSFontAttributeName: font}];
+    
+    if (size.width <= maxWidth) {
+        return text;
+    }
+    
+    NSMutableString *mutable = [text mutableCopy];
+    while (mutable.length > 0) {
+        [mutable deleteCharactersInRange:NSMakeRange(mutable.length - 1, 1)];
+        NSString *attempt = [mutable stringByAppendingString:@"…"];
+        CGSize newSize = [attempt sizeWithAttributes:@{NSFontAttributeName: font}];
+                
+        if (newSize.width <= maxWidth) {
+            return attempt;
+        }
+    }
+    
+    return @"…"; // Au cas extrême
+}
+
+- (CGFloat)availableTitleWidth {
+    UINavigationBar *navBar = self.navigationController.navigationBar;
+    CGFloat fullWidth = navBar.frame.size.width;
+    
+    // Taille approximative d’un bouton de navigation (peut être affiné)
+    CGFloat barButtonWidth = 44.0;
+    NSInteger buttonCount = 2; // gauche et droite minimum
+    CGFloat barButtonTitleWidth = 0.0;
+
+    if (self.navigationItem.leftBarButtonItems.count > 0) {
+        buttonCount += (self.navigationItem.leftBarButtonItems.count - 1);
+    }
+    if (self.navigationItem.rightBarButtonItems.count > 0) {
+        buttonCount += (self.navigationItem.rightBarButtonItems.count - 1);
+    }
+    // padding à ajouter pour le numéro dans le titre du bouton retour en cas d'empilement des NavViewcontroller
+    if (self.navigationController.viewControllers.count > 1) {
+        barButtonTitleWidth = 30;
+    }
+          
+    CGFloat totalButtonsWidth = buttonCount * barButtonWidth + 16 + barButtonTitleWidth; // padding supplémentaire
+    CGFloat availableWidth = fullWidth - totalButtonsWidth;
+
+    //NSLog(@"[SET] Navigation bar width: %.2f, available title width: %.2f countVC %d", fullWidth, availableWidth, self.navigationController.viewControllers.count);
+
+    return availableWidth;
 }
 
 
@@ -306,24 +385,6 @@
             
         }
     }
-    
-    if (self.filterPostsQuotes) {
-        if (self.pageNumberFilterStart == self.pageNumberFilterEnd) {
-            [self setNavigationTitle: [NSString stringWithFormat:@"Filtré | %@ — %ld", self.topicName, (unsigned long)self.pageNumberFilterStart]];
-        }
-        else {
-            [self setNavigationTitle: [NSString stringWithFormat:@"Filtré | %@ — %ld à %ld", self.topicName, (unsigned long)self.pageNumberFilterStart, (unsigned long)self.pageNumberFilterEnd]];
-        }
-    }
-    else {
-        [self setNavigationTitle: [NSString stringWithFormat:@"%@ — %d", self.topicName, self.pageNumber]];
-    }
-    
-    
-    if (self.isSearchInstra) {
-        [self setNavigationTitle: [NSString stringWithFormat:@"Recherche | %@", self.topicName]];
-    }
-    
 }
 
 -(void)setupPageToolbar:(HTMLNode *)bodyNode andP:(HTMLParser *)myParser;
@@ -347,114 +408,101 @@
 	if ([titleNode allContents] && self.topicName.length == 0) {
 		//NSLog(@"setupPageToolbar titleNode %@", [titleNode allContents]);
 		self.topicName = [titleNode allContents];
-        
-        [self setNavigationTitle: [NSString stringWithFormat:@"%@ — %d", self.topicName, self.pageNumber]];
 	}
     
     // Boutons bas de page
-    if ([self isModeOffline]) {
-        if (self.currentOfflineTopic.minTopicPageLoaded < self.currentOfflineTopic.maxTopicPageLoaded) {
-            [self setFirstPageNumber:self.currentOfflineTopic.minTopicPageLoaded];
-            [self setLastPageNumber:self.currentOfflineTopic.maxTopicPageLoaded];
-            [self addPageFooter];
-        }
-    }
-    else {
-        HTMLNode * pagesTrNode = [bodyNode findChildWithAttribute:@"class" matchingName:@"fondForum2PagesHaut" allowPartial:YES];
-        if(pagesTrNode)
-        {
-            HTMLNode * pagesLinkNode = [pagesTrNode findChildWithAttribute:@"class" matchingName:@"left" allowPartial:NO];
+    HTMLNode * pagesTrNode = [bodyNode findChildWithAttribute:@"class" matchingName:@"fondForum2PagesHaut" allowPartial:YES];
+    if(pagesTrNode)
+    {
+        HTMLNode * pagesLinkNode = [pagesTrNode findChildWithAttribute:@"class" matchingName:@"left" allowPartial:NO];
+        
+        if (![self isModeOffline] && pagesLinkNode) {
+            NSArray *temporaryNumPagesArray = [pagesLinkNode children];
+            [self setFirstPageNumber:[[[temporaryNumPagesArray objectAtIndex:2] contents] intValue]];
             
-            if (![self isModeOffline] && pagesLinkNode) {
-                NSArray *temporaryNumPagesArray = [pagesLinkNode children];
-                [self setFirstPageNumber:[[[temporaryNumPagesArray objectAtIndex:2] contents] intValue]];
-                
-                if ([self pageNumber] == [self firstPageNumber]) {
-                    NSString *newFirstPageUrl = [[NSString alloc] initWithString:[self currentUrl]];
-                    [self setFirstPageUrl:newFirstPageUrl];
-                }
-                else {
-                    NSLog(@"[temporaryNumPagesArray objectAtIndex:2] %@", [temporaryNumPagesArray objectAtIndex:2]);
-                    NSString *newFirstPageUrl = [[NSString alloc] initWithString:[[temporaryNumPagesArray objectAtIndex:2] getAttributeNamed:@"href"]];
-                    [self setFirstPageUrl:newFirstPageUrl];
-                }
+            if ([self pageNumber] == [self firstPageNumber]) {
+                NSString *newFirstPageUrl = [[NSString alloc] initWithString:[self currentUrl]];
+                [self setFirstPageUrl:newFirstPageUrl];
+            }
+            else {
+                NSLog(@"[temporaryNumPagesArray objectAtIndex:2] %@", [temporaryNumPagesArray objectAtIndex:2]);
+                NSString *newFirstPageUrl = [[NSString alloc] initWithString:[[temporaryNumPagesArray objectAtIndex:2] getAttributeNamed:@"href"]];
+                [self setFirstPageUrl:newFirstPageUrl];
+            }
 
-                [self setLastPageNumber:[[[temporaryNumPagesArray lastObject] contents] intValue]];
-                
-                if ([self pageNumber] == [self lastPageNumber]) {
-                    NSString *newLastPageUrl = [[NSString alloc] initWithString:[self currentUrl]];
-                    [self setLastPageUrl:newLastPageUrl];
-                }
-                else {
-                    NSString *newLastPageUrl = [[NSString alloc] initWithString:[[temporaryNumPagesArray lastObject] getAttributeNamed:@"href"]];
-                    [self setLastPageUrl:newLastPageUrl];
-                }
-                
-                [self addPageFooter];
+            int iLastPageNumber = [[[temporaryNumPagesArray lastObject] contents] intValue];
+            [self setLastPageNumber:iLastPageNumber];
+            
+            if ([self pageNumber] == [self lastPageNumber]) {
+                NSString *newLastPageUrl = [[NSString alloc] initWithString:[self currentUrl]];
+                [self setLastPageUrl:newLastPageUrl];
             }
             else {
-                self.aToolbar = nil;
-                //NSLog(@"pas de pages");
-                [self setFirstPageNumber:1];
-                [self setLastPageNumber:1];
+                NSString *newLastPageUrl = [[NSString alloc] initWithString:[[temporaryNumPagesArray lastObject] getAttributeNamed:@"href"]];
+                [self setLastPageUrl:newLastPageUrl];
             }
             
-            //--
-            
-            
-            //NSArray *temporaryPagesArray = [[NSArray alloc] init];
-            
-            NSArray *temporaryPagesArray = [pagesTrNode findChildrenWithAttribute:@"class" matchingName:@"pagepresuiv" allowPartial:YES];
-            
-            if (self.isSearchInstra) {
-                [self.view addGestureRecognizer:swipeLeftRecognizer];
-            }
-            else if(temporaryPagesArray.count != 3)
-            {
-                //NSLog(@"pas 3");
-                //[self.view removeGestureRecognizer:swipeLeftRecognizer];
-                //[self.view removeGestureRecognizer:swipeRightRecognizer];
-            }
-            else {
-                HTMLNode *nextUrlNode = [[temporaryPagesArray objectAtIndex:0] findChildWithAttribute:@"class" matchingName:@"cHeader" allowPartial:NO];
-                
-                if (nextUrlNode) {
-                    //nextPageUrl = [[NSString stringWithFormat:@"%@", [topicUrl stringByReplacingCharactersInRange:rangeNumPage withString:[NSString stringWithFormat:@"%d", (pageNumber + 1)]]] retain];
-                    //nextPageUrl = [[NSString stringWithFormat:@"%@", [topicUrl stringByReplacingCharactersInRange:rangeNumPage withString:[NSString stringWithFormat:@"%d", (pageNumber + 1)]]] retain];
-                    [self.view addGestureRecognizer:swipeLeftRecognizer];
-                    self.nextPageUrl = [[nextUrlNode getAttributeNamed:@"href"] copy];
-                    //NSLog(@"nextPageUrl = %@", nextPageUrl);
-                    
-                }
-                else {
-                    self.nextPageUrl = @"";
-                    //[self.view removeGestureRecognizer:swipeLeftRecognizer];
-                }
-                
-                HTMLNode *previousUrlNode = [[temporaryPagesArray objectAtIndex:1] findChildWithAttribute:@"class" matchingName:@"cHeader" allowPartial:NO];
-                
-                if (previousUrlNode) {
-                    //previousPageUrl = [[topicUrl stringByReplacingCharactersInRange:rangeNumPage withString:[NSString stringWithFormat:@"%d", (pageNumber - 1)]] retain];
-                    [self.view addGestureRecognizer:swipeRightRecognizer];
-                    self.previousPageUrl = [[previousUrlNode getAttributeNamed:@"href"] copy];
-                    //NSLog(@"previousPageUrl = %@", previousPageUrl);
-                    
-                }
-                else {
-                    self.previousPageUrl = @"";
-                    //[self.view removeGestureRecognizer:swipeRightRecognizer];
-                    
-                    
-                }
-            }
+            [self addPageFooter];
         }
         else {
             self.aToolbar = nil;
+            //NSLog(@"pas de pages");
+            [self setFirstPageNumber:1];
+            [self setLastPageNumber:1];
+        }
+        
+        //--
+        
+        
+        //NSArray *temporaryPagesArray = [[NSArray alloc] init];
+        
+        NSArray *temporaryPagesArray = [pagesTrNode findChildrenWithAttribute:@"class" matchingName:@"pagepresuiv" allowPartial:YES];
+        
+        if (self.isSearchInstra) {
+            [self.view addGestureRecognizer:swipeLeftRecognizer];
+        }
+        else if(temporaryPagesArray.count != 3)
+        {
+            //NSLog(@"pas 3");
+            //[self.view removeGestureRecognizer:swipeLeftRecognizer];
+            //[self.view removeGestureRecognizer:swipeRightRecognizer];
+        }
+        else {
+            HTMLNode *nextUrlNode = [[temporaryPagesArray objectAtIndex:0] findChildWithAttribute:@"class" matchingName:@"cHeader" allowPartial:NO];
+            
+            if (nextUrlNode) {
+                //nextPageUrl = [[NSString stringWithFormat:@"%@", [topicUrl stringByReplacingCharactersInRange:rangeNumPage withString:[NSString stringWithFormat:@"%d", (pageNumber + 1)]]] retain];
+                //nextPageUrl = [[NSString stringWithFormat:@"%@", [topicUrl stringByReplacingCharactersInRange:rangeNumPage withString:[NSString stringWithFormat:@"%d", (pageNumber + 1)]]] retain];
+                [self.view addGestureRecognizer:swipeLeftRecognizer];
+                self.nextPageUrl = [[nextUrlNode getAttributeNamed:@"href"] copy];
+                //NSLog(@"nextPageUrl = %@", nextPageUrl);
+                
+            }
+            else {
+                self.nextPageUrl = @"";
+                //[self.view removeGestureRecognizer:swipeLeftRecognizer];
+            }
+            
+            HTMLNode *previousUrlNode = [[temporaryPagesArray objectAtIndex:1] findChildWithAttribute:@"class" matchingName:@"cHeader" allowPartial:NO];
+            
+            if (previousUrlNode) {
+                //previousPageUrl = [[topicUrl stringByReplacingCharactersInRange:rangeNumPage withString:[NSString stringWithFormat:@"%d", (pageNumber - 1)]] retain];
+                [self.view addGestureRecognizer:swipeRightRecognizer];
+                self.previousPageUrl = [[previousUrlNode getAttributeNamed:@"href"] copy];
+                //NSLog(@"previousPageUrl = %@", previousPageUrl);
+                
+            }
+            else {
+                self.previousPageUrl = @"";
+                //[self.view removeGestureRecognizer:swipeRightRecognizer];
+                
+                
+            }
         }
     }
-	//NSLog(@"Fin setupPageToolbar");
-
-	//--Pages
+    else {
+        self.aToolbar = nil;
+    }
 }
 
 - (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldReceiveTouch:(UITouch *)touch {
@@ -853,43 +901,9 @@
     [menuController setMenuItems:[NSArray arrayWithObjects:textQuotinuum, textQuotinuumBis, nil]];
 }
 
--(void)forceButtonMenu {
-/* TODO TABBAR backbutton ?
-    if ([self.splitViewController respondsToSelector:@selector(displayModeButtonItem)]) {
-
-        [[HFRplusAppDelegate sharedAppDelegate] detailNavigationController].viewControllers[0].navigationItem.leftBarButtonItem = self.splitViewController.displayModeButtonItem;
-        [[HFRplusAppDelegate sharedAppDelegate] detailNavigationController].viewControllers[0].navigationItem.leftItemsSupplementBackButton = YES;
- 
-    }
-    else {
-        UINavigationItem *navItem = [[[[[HFRplusAppDelegate sharedAppDelegate] detailNavigationController] viewControllers] objectAtIndex:0] navigationItem];
-
-        [navItem setLeftBarButtonItem:((SplitViewController *)self.splitViewController).mybarButtonItem animated:YES];
-        [navItem setLeftItemsSupplementBackButton:YES];
-    }*/
-}
-
-/* Evol onglet sticky (gardée au cas où)
--(void)removeTabBar {
-    [HFRAlertView DisplayOKCancelAlertViewWithTitle:@"Onglet additionnel"
-                                          andMessage:@"Fermer l'onglet ?"
-                                          handlerOK:^(UIAlertAction * action) { [self removeTabBarConfirmed];}];
-}
-
-- (void)removeTabBarConfirmed {
-    // Get viewControllers array and remove MessagesTable controller at index 2
-    NSMutableArray *viewControllers = [NSMutableArray arrayWithArray:self.tabBarController.viewControllers];
-    [viewControllers removeObjectAtIndex:2];
-    [self.tabBarController setViewControllers:viewControllers animated:YES];
-    [self.tabBarController setSelectedIndex:0];
-*/
-
 - (void)viewDidLoad {
-	//NSLog(@"viewDidLoad %@", self.topicName);
     [super viewDidLoad];
 	self.isAnimating = NO;
-
-	self.title = self.topicName;  
 
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(VisibilityChanged:) name:@"VisibilityChanged" object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(editMenuHidden:) name:UIMenuControllerDidHideMenuNotification object:nil];
@@ -913,29 +927,27 @@
     if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone)
     { // iPhone only
         self.labelHeaderView = [[UILabel alloc] initWithFrame:CGRectZero];
-        self.labelHeaderView.frame = CGRectMake(0, 0, self.navigationController.navigationBar.frame.size.width, self.navigationController.navigationBar.frame.size.height - 4);
         
-        self.labelHeaderView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight; //
-        [self.labelHeaderView setAdjustsFontSizeToFitWidth:YES];
-        [self.labelHeaderView setBackgroundColor:[UIColor clearColor]];
-        [self.labelHeaderView setTextColor:[UIColor blackColor]];
-        [self.labelHeaderView setTextAlignment:NSTextAlignmentCenter];
-        [self.labelHeaderView setLineBreakMode:NSLineBreakByTruncatingMiddle];
-        [self.labelHeaderView setFont:[UIFont boldSystemFontOfSize:13.0]];
-        [self.labelHeaderView setNumberOfLines:2];
-        [self.labelHeaderView adjustFontSizeToFit];
-        [self.navigationItem setTitleView:self.labelHeaderView];
+        self.labelHeaderView.numberOfLines = 2;
+        self.labelHeaderView.textAlignment = NSTextAlignmentCenter;
+        self.labelHeaderView.backgroundColor = [UIColor clearColor];
+        self.labelHeaderView.lineBreakMode = NSLineBreakByTruncatingTail; // Troncature seulement sur la 1ère ligne
+        self.labelHeaderView.adjustsFontSizeToFitWidth = NO; // Important pour éviter le shrink global
+        self.labelHeaderView.textColor = [UIColor blackColor];
+        self.labelHeaderView.userInteractionEnabled = YES;
+
+        self.navigationItem.titleView = self.labelHeaderView;
     }
     
     // For iPad & iPhone
-    [self setNavigationTitle:self.topicName];
-
+    [self refreshNavigationTitle];
+    
     // fond blanc WebView
     //[self.messagesWebView hideGradientBackground];
     self.messagesWebView.navigationDelegate = self;
     [self.messagesWebView setBackgroundColor:[UIColor colorWithRed:239/255.0f green:239/255.0f blue:244/255.0f alpha:1.0f]];
     if (@available(iOS 16.4, *)) { [self.messagesWebView setInspectable:true]; }
-
+    
 	//Gesture de Gauche à droite
 	UIGestureRecognizer* recognizer = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(handleSwipeToRight:)];
 	self.swipeRightRecognizer = (UISwipeGestureRecognizer *)recognizer;
@@ -1000,7 +1012,6 @@
         [self fetchContent];
     }
     [self editMenuHidden:nil];
-    [self forceButtonMenu];
 }
 
 -(void) addProgressBar {
@@ -1040,6 +1051,7 @@
     }*/
     
 }
+
 -(void)optionsTopic:(id)sender
 {
     
@@ -1272,15 +1284,14 @@
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
 	
-	if(self.detailViewController) self.detailViewController = nil;
 	if(self.messagesTableViewController) self.messagesTableViewController = nil;
     
     Theme theme = [[ThemeManager sharedManager] theme];
     self.view.backgroundColor = self.messagesTableViewController.view.backgroundColor = self.messagesWebView.backgroundColor = self.loadingViewLabel.backgroundColor = self.loadingViewIndicator.backgroundColor = self.searchBox.backgroundColor = [ThemeColors greyBackgroundColor:theme];
-    self.loadingView.backgroundColor = [[ThemeColors greyBackgroundColor:theme] colorWithAlphaComponent:0.8];
-    self.loadingViewIndicator.activityIndicatorViewStyle = [ThemeColors activityIndicatorViewStyle];
-    self.loadingViewLabel.textColor = [ThemeColors cellTextColor:theme];
+    self.loadingView.backgroundColor = self.errorLabelView.backgroundColor = [[ThemeColors greyBackgroundColor:theme] colorWithAlphaComponent:0.8];
+    self.loadingViewLabel.textColor = self.errorLabelView.textColor = [ThemeColors cellTextColor:theme];
     self.loadingViewLabel.shadowColor = nil;
+    self.loadingViewIndicator.activityIndicatorViewStyle = [ThemeColors activityIndicatorViewStyle];
     [[ThemeManager sharedManager] applyThemeToTextField:self.searchPseudo];
     [[ThemeManager sharedManager] applyThemeToTextField:self.searchKeyword];
     self.searchPseudo.textColor = self.searchKeyword.textColor = [ThemeColors textColor:theme];
@@ -1321,76 +1332,6 @@
 		return (interfaceOrientation == UIInterfaceOrientationPortrait);
 	}
 
-}
-
-- (void)didSelectMessage:(int)index
-{
-	{
-		// Navigation logic may go here. Create and push another view controller.
-
-		 if (self.detailViewController == nil) {
-			 MessageDetailViewController *aView = [[MessageDetailViewController alloc] initWithNibName:@"MessageDetailViewControllerv2" bundle:nil];
-			 self.detailViewController = aView;
-		 }
-		 
-        // Pass the selected object to the new view controller.
-        self.navigationItem.backBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@" "
-            style: UIBarButtonItemStylePlain
-            target:nil
-            action:nil];
-
-        UILabel *label = [[UILabel alloc] initWithFrame:CGRectZero];
-        
-        label.frame = CGRectMake(0, 0, self.navigationController.navigationBar.frame.size.width, self.navigationController.navigationBar.frame.size.height - 4);
-        
-        label.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight; // 
-        
-        [label setAdjustsFontSizeToFitWidth:YES];
-        [label setBackgroundColor:[UIColor clearColor]];
-        [label setTextAlignment:NSTextAlignmentCenter];
-        [label setLineBreakMode:NSLineBreakByTruncatingMiddle];
-        
-        if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"7.0")) {
-            if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
-                [label setFont:[UIFont boldSystemFontOfSize:13.0]];
-            }
-            else {
-                [label setFont:[UIFont boldSystemFontOfSize:17.0]];
-            }
-            [label setTextColor:[ThemeColors textColor:[[ThemeManager sharedManager] theme]]];
-        }
-        else
-        {
-            if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
-                [label setTextColor:[UIColor whiteColor]];
-                label.shadowColor = [UIColor darkGrayColor];
-                [label setFont:[UIFont boldSystemFontOfSize:13.0]];
-                label.shadowOffset = CGSizeMake(0.0, -1.0);
-                
-                
-            }
-            else {
-                [label setTextColor:[UIColor colorWithRed:113/255.f green:120/255.f blue:128/255.f alpha:1.00]];
-                label.shadowColor = [UIColor whiteColor];
-                [label setFont:[UIFont boldSystemFontOfSize:19.0]];
-                label.shadowOffset = CGSizeMake(0.0, 0.5f);
-                
-            }
-        }
-        
-        [label setNumberOfLines:0];
-        [label setText:[NSString stringWithFormat:@"Page: %d — %d/%lu", self.pageNumber, index + 1, (unsigned long)arrayData.count]];
-        
-		[self.detailViewController.navigationItem setTitleView:label];
-		 self.detailViewController.arrayData = arrayData;
-		 self.detailViewController.curMsg = index;	
-		 self.detailViewController.pageNumber = self.pageNumber;	
-		 self.detailViewController.parent = self;	
-		 self.detailViewController.messageTitleString = self.topicName;	
-		 
-		 [self.navigationController pushViewController:detailViewController animated:YES];
-
-	}
 }
 
 - (void) didSelectImage:(int)index withUrl:(NSString *)selectedURL
@@ -1456,7 +1397,9 @@
                     sImgUrl = sLongdesc;
                 }
             }
-            
+            else if ([[imgNode getAttributeNamed:@"alt"] containsString:@"rehost.diberie.com/Picture/Get/t/"]) {  // Diberie rehost.diberie.com/Picture/Get/t/ -> rehost.diberie.com/Picture/Get/f/
+                sImgUrl = [sImgUrl stringByReplacingOccurrencesOfString:@"rehost.diberie.com/Picture/Get/t/" withString:@"rehost.diberie.com/Picture/Get/f/"];
+            }
             [imageArray addObject:[MWPhoto photoWithURL:[NSURL URLWithString:sImgUrl]]];
             
             if ([selectedURL isEqualToString:[imgNode getAttributeNamed:@"alt"]]) {
@@ -1776,33 +1719,29 @@
             self.stringFlagTopic = [NSString stringWithFormat:@"#t%d", closePostID];
         }
         
-        if (![self isModeOffline]) {
-            // On ajoute le bouton de notif de sondage
-            if (self.isNewPoll) {
-                UIBarButtonItem *optionsBarItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAction target:self action:@selector(optionsTopic:)];
-                UIBarButtonItem* pollBarItem = [[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"icone_sondage"] style:UIBarButtonItemStylePlain target:self action:@selector(showPoll:)];
-                self.navigationItem.rightBarButtonItems = [[NSMutableArray alloc] initWithObjects:optionsBarItem, pollBarItem, nil];
-            } else {
-                UIBarButtonItem *optionsBarItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAction target:self action:@selector(optionsTopic:)];
-                self.navigationItem.rightBarButtonItems = [[NSMutableArray alloc] initWithObjects:optionsBarItem, nil];
-            }
-            
-            
-            
-            //on ajoute le bouton actualiser si besoin
-            if (([self pageNumber] == [self lastPageNumber]) || ([self lastPageNumber] == 0)) {
-                if (self.filterPostsQuotes) {
-                    if (!self.filterPostsQuotes.bIsFinished) {
-                        refreshBtn = @"<div id=\"actualiserbtn\">&nbsp;</div>"; // just to add some space
-                    }
-                } else {
-                    refreshBtn = @"<div id=\"actualiserbtn\" onClick=\"window.location = 'oijlkajsdoihjlkjasdorefresh://data'; return false;\">Actualiser</div>";
+        // On ajoute le bouton de notif de sondage
+        if (self.isNewPoll) {
+            UIBarButtonItem *optionsBarItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAction target:self action:@selector(optionsTopic:)];
+            UIBarButtonItem* pollBarItem = [[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"icone_sondage"] style:UIBarButtonItemStylePlain target:self action:@selector(showPoll:)];
+            self.navigationItem.rightBarButtonItems = [[NSMutableArray alloc] initWithObjects:optionsBarItem, pollBarItem, nil];
+        } else {
+            UIBarButtonItem *optionsBarItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAction target:self action:@selector(optionsTopic:)];
+            self.navigationItem.rightBarButtonItems = [[NSMutableArray alloc] initWithObjects:optionsBarItem, nil];
+        }
+
+        
+        
+        //on ajoute le bouton actualiser si besoin
+        if (([self pageNumber] == [self lastPageNumber]) || ([self lastPageNumber] == 0)) {
+            if (self.filterPostsQuotes) {
+                if (!self.filterPostsQuotes.bIsFinished) {
+                    refreshBtn = @"<div id=\"actualiserbtn\">&nbsp;</div>"; // just to add some space
                 }
+            } else {
+                refreshBtn = @"<div id=\"actualiserbtn\" onClick=\"window.location = 'oijlkajsdoihjlkjasdorefresh://data'; return false;\">Actualiser</div>";
             }
         }
-        else { // Offline
-            refreshBtn = @"";
-        }
+
             
         //Toolbar;
         NSString *tooBar = @"";
@@ -1838,7 +1777,7 @@
             tooBar =  [NSString stringWithFormat:@"<div id=\"toolbarpage\">\
                        %@\
                        %@\
-                       <a href=\"oijlkajsdoihjlkjasdoauto://choose\">%d/%d</a>\
+                       <a href=\"oijlkajsdoihjlkjasdoauto://choose\">%d / %d</a>\
                        %@\
                        %@\
                        </div>", buttonBegin, buttonPrevious, [self pageNumber], [self lastPageNumber], buttonNext, buttonEnd];
@@ -2008,12 +1947,14 @@
         [self.messagesWebView loadFileURL:fileURL allowingReadAccessToURL:cacheURL];
         [self.messagesWebView setUserInteractionEnabled:YES];
     }
+    
+    [self refreshNavigationTitle];
 }
 
 - (void)handleLoadedParser:(HTMLParser *)myParser
 {
 	[self loadDataInTableView:myParser];
-}	
+}
 
 - (void)didStartParsing:(HTMLParser *)myParser
 {
@@ -2097,8 +2038,6 @@
         [self.messagesWebView setHidden:NO];
         [self.messagesWebView becomeFirstResponder];
 
-        /* Disable double tap access to messagedetail...
-        [self.messagesWebView evaluateJavaScript:@"$('.message').addSwipeEvents().bind('doubletap', function(evt, touch) { window.location = 'oijlkajsdoihjlkjasdodetails://'+this.id; });" completionHandler:nil];*/
     }
 }
 
@@ -2219,14 +2158,7 @@
 
     }
     else if (navigationAction.navigationType == WKNavigationTypeOther) {
-        if ([[aRequest.URL scheme] isEqualToString:@"oijlkajsdoihjlkjasdodetails"]) {
-            int iPostId = [[[aRequest.URL absoluteString] lastPathComponent] intValue];
-            if (iPostId < 100) {
-                [self didSelectMessage:iPostId];
-            }
-            bAllow = NO;
-        }
-        else if ([[aRequest.URL scheme] isEqualToString:@"oijlkajsdoihjlkjasdotouch"]) {
+        if ([[aRequest.URL scheme] isEqualToString:@"oijlkajsdoihjlkjasdotouch"]) {
             // cache le menu controller dès que l'utilisateur touche la WebView
             NSLog(@"dotouch");
             if ([[[aRequest.URL absoluteString] lastPathComponent] isEqualToString:@"touchstart"]) {
@@ -3324,16 +3256,6 @@ API_AVAILABLE(ios(16.0)) {
 	//[self.arrayData removeAllObjects];
 	self.arrayData = nil;
 	self.updatedArrayData = nil;
-
-	
-	
-    
-    
-		
-	
-    
-    
-	
 }
 
 #pragma mark -
@@ -3368,6 +3290,8 @@ API_AVAILABLE(ios(16.0)) {
         [UIView beginAnimations:@"FadeOut" context:nil];
         [UIView setAnimationDuration:0.2];
         [self.searchBg setAlpha:0];
+        [self.searchBox setHidden:YES];
+
         self.searchBox.frame = newframe;
         
         [UIView commitAnimations];
@@ -3503,11 +3427,8 @@ API_AVAILABLE(ios(16.0)) {
         [self fetchContent:kNewMessageFromUnkwn];
     }
     else {
-        MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:baseURL];
-        self.messagesTableViewController = aView;
-        
-        //setup the URL
-        [self.messagesTableViewController setTopicName:[NSString stringWithString:self.topicName]];
+        self.messagesTableViewController = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:baseURL];;
+        self.messagesTableViewController.topicName = self.topicName;
         self.messagesTableViewController.isViewed = YES;
         self.messagesTableViewController.isSearchInstra = YES;
         [self.messagesTableViewController setSearchInputData:[NSMutableDictionary dictionaryWithDictionary:self.searchInputData]];
