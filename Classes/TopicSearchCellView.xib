@@ -1,58 +1,80 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="16097" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" colorMatched="YES">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="23504" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" colorMatched="YES">
     <device id="retina6_1" orientation="portrait" appearance="light"/>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="16087"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23506"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
-        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="HFRSearchViewController">
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="TopicSearchViewController">
             <connections>
                 <outlet property="tmpCell" destination="3" id="4"/>
             </connections>
         </placeholder>
         <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
-        <tableViewCell clearsContextBeforeDrawing="NO" contentMode="scaleToFill" selectionStyle="blue" indentationWidth="10" reuseIdentifier="TopicSearchCellView" id="3" customClass="TopicSearchCellView">
-            <rect key="frame" x="0.0" y="0.0" width="320" height="80"/>
+        <tableViewCell clearsContextBeforeDrawing="NO" contentMode="scaleToFill" selectionStyle="blue" indentationWidth="10" reuseIdentifier="TopicSearchCellView" rowHeight="117" id="3" customClass="TopicSearchCellView">
+            <rect key="frame" x="0.0" y="0.0" width="320" height="117"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
             <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" tableViewCell="3" id="GIz-Sf-h9n">
-                <rect key="frame" x="0.0" y="0.0" width="320" height="80"/>
+                <rect key="frame" x="0.0" y="0.0" width="320" height="117"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
-                    <label clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" fixedFrame="YES" text="Label" lineBreakMode="middleTruncation" numberOfLines="2" baselineAdjustment="none" minimumFontSize="10" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="5">
-                        <rect key="frame" x="10" y="5" width="300" height="30"/>
-                        <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMaxY="YES"/>
+                    <label clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="[TU ] Long label is long and very long Long label is long Long label is long Long label is long" lineBreakMode="middleTruncation" numberOfLines="2" baselineAdjustment="none" minimumFontSize="10" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="5">
+                        <rect key="frame" x="10" y="7" width="310" height="30"/>
                         <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <fontDescription key="fontDescription" name="Helvetica-Bold" family="Helvetica" pointSize="13"/>
-                        <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
+                        <color key="textColor" systemColor="darkTextColor"/>
                         <nil key="highlightedColor"/>
                     </label>
-                    <label clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleToFill" fixedFrame="YES" text="Label" textAlignment="right" lineBreakMode="middleTruncation" numberOfLines="0" minimumFontSize="4" translatesAutoresizingMaskIntoConstraints="NO" id="7">
-                        <rect key="frame" x="265" y="57" width="45" height="18"/>
-                        <autoresizingMask key="autoresizingMask" flexibleMinX="YES" widthSizable="YES" flexibleMaxY="YES"/>
+                    <label clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleToFill" text="Label" textAlignment="right" lineBreakMode="middleTruncation" numberOfLines="0" minimumFontSize="4" translatesAutoresizingMaskIntoConstraints="NO" id="7">
+                        <rect key="frame" x="293" y="99" width="27" height="13"/>
                         <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <fontDescription key="fontDescription" name="Helvetica" family="Helvetica" pointSize="11"/>
                         <color key="textColor" red="0.11425716429948807" green="0.34460890293121338" blue="0.81025570631027222" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <nil key="highlightedColor"/>
                     </label>
-                    <label clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleToFill" fixedFrame="YES" text="Label" lineBreakMode="tailTruncation" numberOfLines="2" minimumFontSize="10" translatesAutoresizingMaskIntoConstraints="NO" id="6">
-                        <rect key="frame" x="10" y="37" width="247" height="38"/>
-                        <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                    <label clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleToFill" text="Label" lineBreakMode="tailTruncation" numberOfLines="2" minimumFontSize="10" translatesAutoresizingMaskIntoConstraints="NO" id="6">
+                        <rect key="frame" x="10" y="97" width="32" height="15"/>
                         <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <fontDescription key="fontDescription" name="Helvetica" family="Helvetica" pointSize="13"/>
                         <color key="textColor" red="0.33333333333333331" green="0.33333333333333331" blue="0.33333333333333331" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <nil key="highlightedColor"/>
                     </label>
+                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" textAlignment="natural" lineBreakMode="tailTruncation" numberOfLines="3" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="pr4-5r-jjA" userLabel="Content Label">
+                        <rect key="frame" x="10" y="44" width="310" height="43"/>
+                        <string key="text">Tarte aux fraises achetée le samedi matin en boulangerie sur commande. Apportée au repas du samedi midi et oubliée dans le garage. Mise au r [...] </string>
+                        <fontDescription key="fontDescription" type="system" pointSize="12"/>
+                        <nil key="textColor"/>
+                        <nil key="highlightedColor"/>
+                    </label>
                 </subviews>
+                <constraints>
+                    <constraint firstItem="pr4-5r-jjA" firstAttribute="leading" secondItem="GIz-Sf-h9n" secondAttribute="leading" constant="10" id="9TQ-W1-rH8"/>
+                    <constraint firstAttribute="trailing" secondItem="pr4-5r-jjA" secondAttribute="trailing" id="Ly4-3n-ISP"/>
+                    <constraint firstItem="5" firstAttribute="top" secondItem="GIz-Sf-h9n" secondAttribute="top" constant="7" id="Oy6-lk-b7Y"/>
+                    <constraint firstAttribute="bottom" secondItem="6" secondAttribute="bottom" constant="5" id="RvY-C2-iHU"/>
+                    <constraint firstItem="5" firstAttribute="leading" secondItem="GIz-Sf-h9n" secondAttribute="leading" constant="10" id="Vqn-M4-r2J"/>
+                    <constraint firstAttribute="bottom" secondItem="7" secondAttribute="bottom" constant="5" id="Wlu-pe-ou4"/>
+                    <constraint firstAttribute="trailing" secondItem="5" secondAttribute="trailing" id="Y3T-z6-srn"/>
+                    <constraint firstItem="pr4-5r-jjA" firstAttribute="top" secondItem="5" secondAttribute="bottom" constant="7" id="fGR-Zr-fOW"/>
+                    <constraint firstAttribute="trailing" secondItem="7" secondAttribute="trailing" id="hIx-03-GTI"/>
+                    <constraint firstItem="6" firstAttribute="leading" secondItem="GIz-Sf-h9n" secondAttribute="leading" constant="10" id="sgp-Oi-sIQ"/>
+                </constraints>
             </tableViewCellContentView>
             <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
             <connections>
+                <outlet property="contentLabel" destination="pr4-5r-jjA" id="uYA-wy-RNg"/>
                 <outlet property="msgLabel" destination="6" id="10"/>
                 <outlet property="timeLabel" destination="7" id="9"/>
                 <outlet property="titleLabel" destination="5" id="8"/>
             </connections>
-            <point key="canvasLocation" x="34" y="54"/>
+            <point key="canvasLocation" x="33.333333333333336" y="65.290178571428569"/>
         </tableViewCell>
     </objects>
+    <resources>
+        <systemColor name="darkTextColor">
+            <color white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+    </resources>
 </document>

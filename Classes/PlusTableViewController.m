@@ -43,7 +43,7 @@
     self.settingsViewController = [[PlusSettingsViewController alloc] initWithNibName:@"SettingsView" bundle:nil];
     self.aqTableViewController = [[AQTableViewController alloc] initWithNibName:@"AQTableView" bundle:nil];
     self.creditsViewController = [[CreditsViewController alloc] initWithNibName:@"CreditsViewController" bundle:nil filename:@"credits"];
-    self.charteViewController = [[HFRSearchViewController alloc] initWithNibName:@"HFRSearchViewController" bundle:nil];
+    self.charteViewController = [[TopicSearchViewController alloc] initWithNibName:@"TopicSearchViewController" bundle:nil];
     self.bookmarksTableViewController = [[BookmarksTableViewController alloc] initWithNibName:@"BookmarksTableView" bundle:nil];
 
     iAQBadgeNumer = 0;

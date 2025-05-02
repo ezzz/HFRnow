@@ -10,6 +10,7 @@
 
 @class MessagesTableViewController;
 @class PullToRefreshErrorViewController;
+@class TopicSearchViewController;
 @class HFRNavigationController;
 @class ASIHTTPRequest;
 @class ShakeView;
@@ -97,6 +98,7 @@
 @property (nonatomic, strong) NSMutableArray *arrayNewData;
 @property (nonatomic, strong) MessagesTableViewController *messagesTableViewController;
 @property (nonatomic, strong) HFRNavigationController *detailNavigationViewController;
+@property (nonatomic, strong) TopicSearchViewController *topicSearchViewController;
 @property (nonatomic, strong) PullToRefreshErrorViewController *errorVC;
 
 @property (nonatomic, strong) NSIndexPath *pressedIndexPath;

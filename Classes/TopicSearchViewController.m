@@ -7,7 +7,7 @@
 
 #import "HFRplusAppDelegate.h"
 
-#import "HFRSearchViewController.h"
+#import "TopicSearchViewController.h"
 #import "ASIFormDataRequest.h"
 #import "HTMLParser.h"
 #import "RegexKitLite.h"
@@ -19,7 +19,7 @@
 
 #define TIME_OUT_INTERVAL_SEARCH 15
 
-@implementation HFRSearchViewController
+@implementation TopicSearchViewController
 @synthesize stories;
 @synthesize request;
 
@@ -48,17 +48,16 @@
     
     // Paramètres encodés façon x-www-form-urlencoded
     NSString *postString = [NSString stringWithFormat:
+                            //@"hash_check=%@&cat=%@&search=%@&resSearch=%@&orderSearch=%@&titre=%@&searchtype=%@&pseud=%@",
                             @"hash_check=%@&cat=%@&search=%@&resSearch=%@&orderSearch=%@&titre=%@&searchtype=%@&pseud=%@",
-                            //@"hash_check=%@&cat=%@&resSearch=%@&orderSearch=%@&titre=%@&searchtype=@%&pseud=%@&rechercherdans=%@",
                             [[HFRplusAppDelegate sharedAppDelegate] hash_check],
                             @"13", // (cat) 13= Discussions
                             [searchInput stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]],
                             @"20", //(resSearch)
-                            @"0",//@(sortBy) //0-selon la date des messages trouvés</option>
+                            @"0",//@(orderSearch) //0-selon la date des messages trouvés</option>
+                            @"3", // 0 Messages, 1 Titre, 3-les titres de sujets et le contenu des messages
                             @"1",
-                            @"1",
-                            @""//,
-                            //@"3" // 3-les titres de sujets et le contenu des messages
+                            @""
                         ];
 
     NSLog(@"POST postString: %@", postString);
@@ -636,6 +635,16 @@
             NSString *aTopicURL = [[NSString alloc] initWithString:[[topicTitleNode findChildTag:@"a"] getAttributeNamed:@"href"]];
             [aTopic setAURL:aTopicURL];
 
+            // Dernier Message correspondant
+            HTMLNode * searchContentNode = [topicTitleNode findChildWithAttribute:@"class" matchingName:@"s1" allowPartial:NO];
+            if (searchContentNode) {
+                aTopic.sLastSearchPostContent = [searchContentNode allContents];
+                NSLog(@"SEARCH FOUND     > %@, %@",  aTopicTitle, aTopic.sLastSearchPostContent);
+            }
+            else {
+                NSLog(@"SEARCH NOT found > %@, %@",  aTopicTitle, aTopic.sLastSearchPostContent);
+            }
+            
             //Answer Count
             HTMLNode * numRepNode = [topicNode findChildWithAttribute:@"class" matchingName:@"sujetCase7" allowPartial:NO];
             [aTopic setARepCount:[[numRepNode contents] intValue]];
@@ -972,20 +981,14 @@
 
 		currentTitle = (NSMutableString *)[currentTitle stringByDecodingXMLEntities];
 		[item setObject:[[currentTitle stringByReplacingOccurrencesOfString:@"amp;" withString:@""] stringByReplacingOccurrencesOfRegex:pattern withString:@""] forKey:@"title"];
-		//[item setObject:currentTitle forKey:@"title"];
-		
 		[item setObject:[currentLink stringByReplacingOccurrencesOfString:[k RealForumURL] withString:@""] forKey:@"link"];
 
 		currentSummary = (NSMutableString *)[currentSummary stringByDecodingXMLEntities];
 		[item setObject:[[currentSummary stringByReplacingOccurrencesOfString:@"amp;" withString:@""] stringByReplacingOccurrencesOfRegex:pattern withString:@""] forKey:@"summary"];
-		//[item setObject:currentSummary forKey:@"summary"];
-		
 		[item setObject:currentDate forKey:@"date"];
 		
 
-		
-		//On check si y'a page=2323
-		NSString *currentUrl = [[item valueForKey:@"link"] copy];
+        NSString *currentUrl = [[item valueForKey:@"link"] copy];
 		int pageNumber;
 		
         //NSLog(@"currentUrl %@", currentUrl);
@@ -1010,11 +1013,8 @@
 			pageNumber = [[currentUrl substringWithRange:matchedRange] intValue];
 			
 		}
-		//On check si y'a page=2323
-		
 		
 		[item setObject:[NSString stringWithFormat:@"p. %d", pageNumber] forKey:@"page"];
-		/**/
 		[stories addObject:[item copy]];
 	}
 	
@@ -1082,6 +1082,12 @@
 	return 1;
 }
 
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    NSInteger iSizeTextTopics = [[NSUserDefaults standardUserDefaults] integerForKey:@"size_text_topics"];
+    return 112*iSizeTextTopics/100;
+}
+
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
     // Return the number of rows in the section.
@@ -1090,6 +1096,8 @@
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
 
+    NSLog(@"cellForRowAtIndexPath for cell %ld", (long)indexPath.row);
+    
 	static NSString *CellIdentifier = @"TopicSearchCellView";
     TopicSearchCellView *cell = (TopicSearchCellView *)[tableView dequeueReusableCellWithIdentifier:CellIdentifier];
 	
@@ -1160,6 +1168,10 @@
     cell.titleLabel.attributedText = finalString;
     cell.titleLabel.numberOfLines = 2;
 
+    cell.contentLabel.text = aTopic.sLastSearchPostContent;
+    cell.contentLabel.numberOfLines = 3;
+
+    
     NSString* sPoll = @"";
     if (aTopic.isPoll) {
         sPoll = @" \U00002263";

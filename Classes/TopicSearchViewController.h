@@ -10,7 +10,7 @@
 @class MessagesTableViewController;
 @class TopicSearchCellView;
 
-@interface HFRSearchViewController : UIViewController <UISearchBarDelegate, UITableViewDataSource, NSXMLParserDelegate, UIActionSheetDelegate> {
+@interface TopicSearchViewController : UIViewController <UISearchBarDelegate, UITableViewDataSource, NSXMLParserDelegate, UIActionSheetDelegate> {
 	UIView *disableViewOverlay;
 
     UITableView *theTableView;

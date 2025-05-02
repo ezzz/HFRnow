@@ -16,6 +16,7 @@
 #import "TopicsTableViewController.h"
 #import "MessagesTableViewController.h"
 #import "HFRMPViewController.h"
+#import "TopicSearchViewController.h"
 
 #import "TopicCellView.h"
 #import "Topic.h"
@@ -33,7 +34,7 @@
 
 @implementation TopicsTableViewController
 @synthesize forumNewTopicUrl, forumName, loadingView, topicsTableView, arrayData, arrayNewData;
-@synthesize messagesTableViewController, detailNavigationViewController, errorVC;
+@synthesize messagesTableViewController, detailNavigationViewController, topicSearchViewController, errorVC;
 
 @synthesize swipeLeftRecognizer, swipeRightRecognizer;
 
@@ -788,8 +789,17 @@
 
 -(void)searchForum
 {
-    //Selected smiley CODE [:legrillepain:3] URL https%3A%2F%2Fforum-images.hardware.fr%2Fimages%2Fperso%2F3%2Flegrillepain.gif RAW https://forum-images.hardware.fr/images/perso/3/legrillepain.gif
-    [[SmileyAlertView shared] displaySmileyActionCancel:@"SOON :o" withUrl:@"https://forum-images.hardware.fr/images/perso/3/legrillepain.gif" addSmiley:NO showAction:NO handlerDone:nil handlerFailed:nil handlerSelectCode:nil baseController:self];
+    self.topicSearchViewController = [[TopicSearchViewController alloc] initWithNibName:@"TopicSearchViewController" bundle:nil];
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad)
+    { // iPad
+        if (self.detailNavigationViewController)
+        {
+            [self.detailNavigationViewController setViewControllers:[NSMutableArray arrayWithObjects:self.topicSearchViewController, nil] animated:YES];
+        }
+    }
+    else { // iPhone
+        [self.navigationController pushViewController:self.topicSearchViewController animated:YES];
+    }
 }
 
 -(void)newTopic
@@ -1256,13 +1266,15 @@
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(loadSubCat) name:@"SubCatSelected" object:nil];
     
-	if (self.messagesTableViewController) {
-		//NSLog(@"viewWillAppear Topics Table View Dealloc MTV");
-
-		self.messagesTableViewController = nil;
-	}
+    if (self.messagesTableViewController) {
+        self.messagesTableViewController = nil;
+    }
     
-    if (self.pressedIndexPath) 
+    if (self.topicSearchViewController) {
+        self.topicSearchViewController = nil;
+    }
+    
+    if (self.pressedIndexPath)
     {
 		self.pressedIndexPath = nil;
     }

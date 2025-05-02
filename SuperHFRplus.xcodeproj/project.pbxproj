@@ -610,7 +610,7 @@
 		CA7C704F185EF50E00B348BA /* icon_smile_face.png in Resources */ = {isa = PBXBuildFile; fileRef = CA00C60817C30C370067B457 /* icon_smile_face.png */; };
 		CA7C7050185EF50E00B348BA /* gratgrat.gif in Resources */ = {isa = PBXBuildFile; fileRef = CA00C55817C30C370067B457 /* gratgrat.gif */; };
 		CA7C7051185EF50E00B348BA /* beginoff.png in Resources */ = {isa = PBXBuildFile; fileRef = CA00C5E117C30C370067B457 /* beginoff.png */; };
-		CA7C7052185EF50E00B348BA /* HFRSearchViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = CA79581A12836B24007C4E02 /* HFRSearchViewController.xib */; };
+		CA7C7052185EF50E00B348BA /* TopicSearchViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = CA79581A12836B24007C4E02 /* TopicSearchViewController.xib */; };
 		CA7C7053185EF50E00B348BA /* ouch.gif in Resources */ = {isa = PBXBuildFile; fileRef = CA00C56C17C30C370067B457 /* ouch.gif */; };
 		CA7C7054185EF50E00B348BA /* toolbar3@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = CA00C60617C30C370067B457 /* toolbar3@2x.png */; };
 		CA7C7055185EF50E00B348BA /* bgiPad.png in Resources */ = {isa = PBXBuildFile; fileRef = CA00C5CD17C30C370067B457 /* bgiPad.png */; };
@@ -743,7 +743,7 @@
 		CA7C70F2185EF50E00B348BA /* RangeOfCharacters.m in Sources */ = {isa = PBXBuildFile; fileRef = CA00C46517C302610067B457 /* RangeOfCharacters.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		CA7C70F3185EF50E00B348BA /* PageViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = CA77D0F41261424D00271D62 /* PageViewController.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
 		CA7C70F4185EF50E00B348BA /* UITableViewController+Ext.m in Sources */ = {isa = PBXBuildFile; fileRef = CA00C46917C302610067B457 /* UITableViewController+Ext.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
-		CA7C70F7185EF50E00B348BA /* HFRSearchViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = CA79581912836B24007C4E02 /* HFRSearchViewController.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
+		CA7C70F7185EF50E00B348BA /* TopicSearchViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = CA79581912836B24007C4E02 /* TopicSearchViewController.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
 		CA7C70F9185EF50E00B348BA /* NSData+Base64.m in Sources */ = {isa = PBXBuildFile; fileRef = CA00C45117C3000B0067B457 /* NSData+Base64.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		CA7C70FB185EF50E00B348BA /* PayViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = CA34780912EB557500D1BA2A /* PayViewController.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
 		CA7C70FD185EF50E00B348BA /* TopicSearchCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = CA20FA3312F15CA700EC1771 /* TopicSearchCellView.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
@@ -1743,9 +1743,9 @@
 		CA7472E717E15FE300B45E15 /* ToolBarPrevious_on@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ToolBarPrevious_on@2x.png"; sourceTree = "<group>"; };
 		CA77D0F31261424D00271D62 /* PageViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PageViewController.h; sourceTree = "<group>"; };
 		CA77D0F41261424D00271D62 /* PageViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; lineEnding = 0; path = PageViewController.m; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objc; };
-		CA79581812836B24007C4E02 /* HFRSearchViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = HFRSearchViewController.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
-		CA79581912836B24007C4E02 /* HFRSearchViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; lineEnding = 0; path = HFRSearchViewController.m; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objc; };
-		CA79581A12836B24007C4E02 /* HFRSearchViewController.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = HFRSearchViewController.xib; sourceTree = "<group>"; };
+		CA79581812836B24007C4E02 /* TopicSearchViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = TopicSearchViewController.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
+		CA79581912836B24007C4E02 /* TopicSearchViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; lineEnding = 0; path = TopicSearchViewController.m; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objc; };
+		CA79581A12836B24007C4E02 /* TopicSearchViewController.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = TopicSearchViewController.xib; sourceTree = "<group>"; };
 		CA7C7132185EF50E00B348BA /* SuperHFRplusSwift.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SuperHFRplusSwift.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA7E25E115A1D17500721F6D /* SplitViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SplitViewController.h; sourceTree = "<group>"; };
 		CA7E25E215A1D17500721F6D /* SplitViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SplitViewController.m; sourceTree = "<group>"; };
@@ -2125,9 +2125,9 @@
 				CA00C53217C3082F0067B457 /* TopicsTableViewController.xib */,
 				CA7E260015A24A9A00721F6D /* SubCatTableViewController.h */,
 				CA7E260115A24A9A00721F6D /* SubCatTableViewController.m */,
-				CA79581812836B24007C4E02 /* HFRSearchViewController.h */,
-				CA79581912836B24007C4E02 /* HFRSearchViewController.m */,
-				CA79581A12836B24007C4E02 /* HFRSearchViewController.xib */,
+				CA79581812836B24007C4E02 /* TopicSearchViewController.h */,
+				CA79581912836B24007C4E02 /* TopicSearchViewController.m */,
+				CA79581A12836B24007C4E02 /* TopicSearchViewController.xib */,
 			);
 			name = Forums;
 			sourceTree = "<group>";
@@ -3900,7 +3900,7 @@
 				15AC35732903E2DA00CCD6FC /* PasteFilled-20-Inv@2x.png in Resources */,
 				CA7C7050185EF50E00B348BA /* gratgrat.gif in Resources */,
 				CA7C7051185EF50E00B348BA /* beginoff.png in Resources */,
-				CA7C7052185EF50E00B348BA /* HFRSearchViewController.xib in Resources */,
+				CA7C7052185EF50E00B348BA /* TopicSearchViewController.xib in Resources */,
 				152395F128DF015E00614F9D /* Heart-20-Inv.png in Resources */,
 				D89AF5601E55DE120096504F /* ThorHammerGrey-20@2x.png in Resources */,
 				CA7C7053185EF50E00B348BA /* ouch.gif in Resources */,
@@ -4252,7 +4252,7 @@
 				CA7C70F0185EF50E00B348BA /* NewMessageViewController.m in Sources */,
 				4CC3C7511B99BB6F001B8632 /* DeleteMessageViewController.m in Sources */,
 				CA7C70F3185EF50E00B348BA /* PageViewController.m in Sources */,
-				CA7C70F7185EF50E00B348BA /* HFRSearchViewController.m in Sources */,
+				CA7C70F7185EF50E00B348BA /* TopicSearchViewController.m in Sources */,
 				4C39035F1BCACEC200FD6F1F /* PSTCollectionViewData.m in Sources */,
 				155A992A2479A5A3002968CD /* RehostCollectionCell.m in Sources */,
 				CA7C70FB185EF50E00B348BA /* PayViewController.m in Sources */,
@@ -4460,13 +4460,11 @@
 				ASSETCATALOG_COMPILER_OPTIMIZATION = time;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = Automatic;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 19;
-				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = QMG83DG7YP;
+				CURRENT_PROJECT_VERSION = 20;
+				DEVELOPMENT_TEAM = QMG83DG7YP;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4506,7 +4504,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super;
 				PRODUCT_NAME = SuperHFRplusSwift;
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = ProfileSuperHFRv1;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -4526,13 +4523,11 @@
 				ASSETCATALOG_COMPILER_OPTIMIZATION = time;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = Automatic;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = YES;
-				CURRENT_PROJECT_VERSION = 19;
-				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = QMG83DG7YP;
+				CURRENT_PROJECT_VERSION = 20;
+				DEVELOPMENT_TEAM = QMG83DG7YP;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4570,7 +4565,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super;
 				PRODUCT_NAME = SuperHFRplusSwift;
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = ProfileSuperHFRv1;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;

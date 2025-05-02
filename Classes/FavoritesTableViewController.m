@@ -37,7 +37,7 @@
 #import "ThemeColors.h"
 #import "MultisManager.h"
 #import "FilterPostsQuotes.h"
-#import "HFRSearchViewController.h"
+#import "TopicSearchViewController.h"
 
 #define SECTION_CAT_VISIBLE 0
 #define SECTION_CAT_HIDDEN 1
@@ -1634,7 +1634,7 @@
 }
 
 -(void)checkPostsAndQuotesForTopicIndex:(NSIndexPath *)indexPath {
-    HFRSearchViewController* vc = [[HFRSearchViewController alloc] initWithNibName:@"HFRSearchViewController" bundle:nil];
+    TopicSearchViewController* vc = [[TopicSearchViewController alloc] initWithNibName:@"HFRSearchViewController" bundle:nil];
     [self.navigationController pushViewController:vc animated:YES];
 
     /*
