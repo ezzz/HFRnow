@@ -66,16 +66,16 @@
 			<key>Type</key>
 			<string>PSToggleSwitchSpecifier</string>
 		</dict>
-        <dict>
-            <key>DefaultValue</key>
-            <true/>
-            <key>Key</key>
-            <string>haptics</string>
-            <key>Title</key>
-            <string>Retours haptiques</string>
-            <key>Type</key>
-            <string>PSToggleSwitchSpecifier</string>
-        </dict>
+		<dict>
+			<key>DefaultValue</key>
+			<true/>
+			<key>Key</key>
+			<string>haptics</string>
+			<key>Title</key>
+			<string>Retours haptiques</string>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+		</dict>
 		<dict>
 			<key>DefaultValue</key>
 			<string>superblue</string>
@@ -84,25 +84,29 @@
 			<key>Title</key>
 			<string>Icône</string>
 			<key>Titles</key>
-            <array>
-                <string>Classique</string>
-                <string>Super</string>
-                <string>REDFACE</string>
-                <string>Beta</string>
-                <string>Blue</string>
-                <string>White</string>
-            </array>
-            <key>Type</key>
-            <string>PSMultiValueSpecifier</string>
-            <key>Values</key>
-            <array>
-                <string>classic</string>
-                <string>superblue</string>
-                <string>redface</string>
-                <string>beta</string>
-                <string>blue</string>
-                <string>white</string>
-            </array>
+			<array>
+				<string>Classique Yellow</string>
+				<string>Classique Red</string>
+				<string>Classique Blue</string>
+				<string>REDFACE</string>
+				<string>REDFACE Blue</string>
+				<string>Beta</string>
+				<string>Blue</string>
+				<string>White</string>
+			</array>
+			<key>Type</key>
+			<string>PSMultiValueSpecifier</string>
+			<key>Values</key>
+			<array>
+				<string>classic</string>
+				<string>classic-red</string>
+				<string>superblue</string>
+				<string>redface</string>
+				<string>redface-blue</string>
+				<string>beta</string>
+				<string>blue</string>
+				<string>white</string>
+			</array>
 		</dict>
 		<dict>
 			<key>Title</key>
@@ -130,26 +134,26 @@
 				<integer>0</integer>
 			</array>
 		</dict>
-        <dict>
-            <key>DefaultValue</key>
-            <integer>0</integer>
-            <key>Key</key>
-            <string>theme</string>
-            <key>Title</key>
-            <string>Luminosité du thème</string>
-            <key>Titles</key>
-            <array>
-                <string>Clair</string>
-                <string>Sombre</string>
-            </array>
-            <key>Type</key>
-            <string>PSMultiValueSpecifier</string>
-            <key>Values</key>
-            <array>
-                <integer>0</integer>
-                <integer>1</integer>
-            </array>
-        </dict>
+		<dict>
+			<key>DefaultValue</key>
+			<integer>0</integer>
+			<key>Key</key>
+			<string>theme</string>
+			<key>Title</key>
+			<string>Luminosité du thème</string>
+			<key>Titles</key>
+			<array>
+				<string>Clair</string>
+				<string>Sombre</string>
+			</array>
+			<key>Type</key>
+			<string>PSMultiValueSpecifier</string>
+			<key>Values</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+			</array>
+		</dict>
 		<dict>
 			<key>DefaultValue</key>
 			<integer>1</integer>
@@ -179,15 +183,15 @@
 			<string>ThemeSettingsViewController</string>
 		</dict>
 		<dict>
-            <key>DefaultValue</key>
-            <false/>
-            <key>Key</key>
-            <string>theme_noel_disabled</string>
-            <key>Title</key>
-            <string>Arrêter la magie de noël</string>
-            <key>Type</key>
-            <string>PSToggleSwitchSpecifier</string>
-        </dict>
+			<key>DefaultValue</key>
+			<false/>
+			<key>Key</key>
+			<string>theme_noel_disabled</string>
+			<key>Title</key>
+			<string>Arrêter la magie de noël</string>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+		</dict>
 		<dict>
 			<key>Title</key>
 			<string>Sujets</string>
@@ -204,16 +208,16 @@
 			<key>Type</key>
 			<string>PSChildPaneSpecifier</string>
 		</dict>
-        <dict>
-            <key>Type</key>
-            <string>PSToggleSwitchSpecifier</string>
-            <key>Title</key>
-            <string>Masquer les pseudos</string>
-            <key>Key</key>
-            <string>blacklist_hide_pseudo</string>
-            <key>DefaultValue</key>
-            <false/>
-        </dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Masquer les pseudos</string>
+			<key>Key</key>
+			<string>blacklist_hide_pseudo</string>
+			<key>DefaultValue</key>
+			<false/>
+		</dict>
 		<dict>
 			<key>IASKCellImage</key>
 			<string>HeartBlack-20</string>
@@ -224,37 +228,37 @@
 			<key>Type</key>
 			<string>PSChildPaneSpecifier</string>
 		</dict>
-        <dict>
-            <key>DefaultValue</key>
-            <integer>110</integer>
-            <key>Key</key>
-            <string>size_text_topics</string>
-            <key>Title</key>
-            <string>Taille du texte des listes de topics</string>
-            <key>Titles</key>
-            <array>
-                <string>-10%</string>
-                <string>Défaut</string>
-                <string>+10%</string>
-                <string>+20%</string>
-                <string>+30%</string>
-                <string>+40%</string>
-                <string>+50%</string>
-            </array>
-            <key>Type</key>
-            <string>PSMultiValueSpecifier</string>
-            <key>Values</key>
-            <array>
-                <integer>100</integer>
-                <integer>110</integer>
-                <integer>120</integer>
-                <integer>130</integer>
-                <integer>140</integer>
-                <integer>150</integer>
-                <integer>160</integer>
-            </array>
-        </dict>
-        <dict>
+		<dict>
+			<key>DefaultValue</key>
+			<integer>110</integer>
+			<key>Key</key>
+			<string>size_text_topics</string>
+			<key>Title</key>
+			<string>Taille du texte des listes de topics</string>
+			<key>Titles</key>
+			<array>
+				<string>-10%</string>
+				<string>Défaut</string>
+				<string>+10%</string>
+				<string>+20%</string>
+				<string>+30%</string>
+				<string>+40%</string>
+				<string>+50%</string>
+			</array>
+			<key>Type</key>
+			<string>PSMultiValueSpecifier</string>
+			<key>Values</key>
+			<array>
+				<integer>100</integer>
+				<integer>110</integer>
+				<integer>120</integer>
+				<integer>130</integer>
+				<integer>140</integer>
+				<integer>150</integer>
+				<integer>160</integer>
+			</array>
+		</dict>
+		<dict>
 			<key>DefaultValue</key>
 			<string>default</string>
 			<key>FooterText</key>
@@ -326,28 +330,28 @@
 				<string>double</string>
 			</array>
 		</dict>
-        <dict>
-            <key>DefaultValue</key>
-            <string>yes</string>
-            <key>Key</key>
-            <string>embedded_videos</string>
-            <key>Title</key>
-            <string>Afficher les vidéos</string>
-            <key>Titles</key>
-            <array>
-                <string>Lien</string>
-                <string>Intégré</string>
-                <string>Intégré et lien</string>
-            </array>
-            <key>Type</key>
-            <string>PSMultiValueSpecifier</string>
-            <key>Values</key>
-            <array>
-                <string>no</string>
-                <string>yes</string>
-                <string>both</string>
-            </array>
-        </dict>
+		<dict>
+			<key>DefaultValue</key>
+			<string>yes</string>
+			<key>Key</key>
+			<string>embedded_videos</string>
+			<key>Title</key>
+			<string>Afficher les vidéos</string>
+			<key>Titles</key>
+			<array>
+				<string>Lien</string>
+				<string>Intégré</string>
+				<string>Intégré et lien</string>
+			</array>
+			<key>Type</key>
+			<string>PSMultiValueSpecifier</string>
+			<key>Values</key>
+			<array>
+				<string>no</string>
+				<string>yes</string>
+				<string>both</string>
+			</array>
+		</dict>
 		<dict>
 			<key>DefaultValue</key>
 			<string>no</string>

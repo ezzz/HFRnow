@@ -187,15 +187,26 @@
                                                   completionHandler:^(NSError * _Nullable error) {
                                                       NSLog(@"%@", [error description]);
                                                   }];
+        } else if ([newIcon isEqualToString:@"classic-red"]) {
+            [[UIApplication sharedApplication] setAlternateIconName:@"Icon-CLASSIC-RED"
+                                                  completionHandler:^(NSError * _Nullable error) {
+                                                      NSLog(@"%@", [error description]);
+                                                  }];
         } else if ([newIcon isEqualToString:@"beta"]) {
             [[UIApplication sharedApplication] setAlternateIconName:@"Icon-BETA"
                                                   completionHandler:^(NSError * _Nullable error) {
                                                       NSLog(@"%@", [error description]);
                                                   }];
         } else if ([newIcon isEqualToString:@"redface"]) {
+            NSLog(@"Here for redface");
             [[UIApplication sharedApplication] setAlternateIconName:@"Icon-REDFACE"
                                                   completionHandler:^(NSError * _Nullable error) {
                                                       NSLog(@"%@", [error description]);
+                                                  }];
+        } else if ([newIcon isEqualToString:@"redface-blue"]) {
+            [[UIApplication sharedApplication] setAlternateIconName:@"Icon-REDFACEBLUE"
+                                                  completionHandler:^(NSError * _Nullable error) {
+                                                      NSLog(@"Icon-REDFACEBLUE issue: %@", [error description]);
                                                   }];
         } else if ([newIcon isEqualToString:@"blue"]) {
             [[UIApplication sharedApplication] setAlternateIconName:@"Icon-BLUE"
