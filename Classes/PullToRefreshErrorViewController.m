@@ -129,17 +129,8 @@
     //NSLog(@"naviga %f", self.navigationController.navigationBar.frame.size.height);
     //NSLog(@"tabbar %f", self.tabBarController.tabBar.frame.size.height);
     
-    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
-
-        if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"7")) {
-
-            adjustedFrame.size.height -= (20+44+56);
-        }
-        else {
-            adjustedFrame.size.height -= (44+49);
-
-        }
-
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
+        adjustedFrame.size.height -= (20+44+56);
     }
     else
     {

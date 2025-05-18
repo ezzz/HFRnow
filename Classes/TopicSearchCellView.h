@@ -19,5 +19,6 @@
 @property (nonatomic, strong) IBOutlet UILabel *timeLabel;
 @property (weak, nonatomic) IBOutlet UILabel *contentLabel;
 
+@property BOOL topicViewed;
 
 @end

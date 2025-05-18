@@ -5,6 +5,7 @@
 	<key>com.apple.developer.associated-domains</key>
 	<array>
 		<string>webcredentials:forum.hardware.fr</string>
+		<string>applinks:forum.hardware.fr</string>
 	</array>
 	<key>keychain-access-groups</key>
 	<array/>

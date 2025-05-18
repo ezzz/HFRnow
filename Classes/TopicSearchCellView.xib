@@ -22,21 +22,21 @@
                 <subviews>
                     <label clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="[TU ] Long label is long and very long Long label is long Long label is long Long label is long" lineBreakMode="middleTruncation" numberOfLines="2" baselineAdjustment="none" minimumFontSize="10" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="5">
                         <rect key="frame" x="10" y="7" width="310" height="30"/>
-                        <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                         <fontDescription key="fontDescription" name="Helvetica-Bold" family="Helvetica" pointSize="13"/>
                         <color key="textColor" systemColor="darkTextColor"/>
                         <nil key="highlightedColor"/>
                     </label>
                     <label clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleToFill" text="Label" textAlignment="right" lineBreakMode="middleTruncation" numberOfLines="0" minimumFontSize="4" translatesAutoresizingMaskIntoConstraints="NO" id="7">
                         <rect key="frame" x="293" y="99" width="27" height="13"/>
-                        <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                         <fontDescription key="fontDescription" name="Helvetica" family="Helvetica" pointSize="11"/>
                         <color key="textColor" red="0.11425716429948807" green="0.34460890293121338" blue="0.81025570631027222" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <nil key="highlightedColor"/>
                     </label>
                     <label clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleToFill" text="Label" lineBreakMode="tailTruncation" numberOfLines="2" minimumFontSize="10" translatesAutoresizingMaskIntoConstraints="NO" id="6">
                         <rect key="frame" x="10" y="97" width="32" height="15"/>
-                        <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                         <fontDescription key="fontDescription" name="Helvetica" family="Helvetica" pointSize="13"/>
                         <color key="textColor" red="0.33333333333333331" green="0.33333333333333331" blue="0.33333333333333331" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <nil key="highlightedColor"/>

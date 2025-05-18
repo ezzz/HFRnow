@@ -844,5 +844,18 @@
     periodicMaintenanceTimer = nil;
 }
 
+#pragma mark - Universal Link Management
+
+- (BOOL)application:(UIApplication *)application
+continueUserActivity:(NSUserActivity *)userActivity
+ restorationHandler:(void (^)(NSArray *restorableObjects))restorationHandler {
+    if ([userActivity.activityType isEqualToString:NSUserActivityTypeBrowsingWeb]) {
+        NSURL *url = userActivity.webpageURL;
+        // Traite le lien ici
+        return YES;
+    }
+    return NO;
+}
+
 
 @end

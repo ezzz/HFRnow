@@ -105,6 +105,10 @@
 }
 
 - (void)parseData:(HTMLParser *)myParser filterPostsQuotes:(BOOL)bFilterPostsQuotes startAfterThisPostId:(NSString*)sStartAfterPostId topicUrl:(NSString*)sTopicUrl topicPage:(int)iPage{
+    
+    
+    NSLog(@"SEARCH RUL1 %@", sTopicUrl);
+    
     self.workingArray = [NSMutableArray array];
     if ([self isCancelled]) {
 		return;

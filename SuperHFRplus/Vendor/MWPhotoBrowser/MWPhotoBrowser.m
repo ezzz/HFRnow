@@ -360,23 +360,6 @@
     }
     BOOL fullScreen = YES;
     
-    /*
-#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_7_0
-    if (SYSTEM_VERSION_LESS_THAN(@"7")) fullScreen = self.wantsFullScreenLayout;
-#endif
-    if (!_leaveStatusBarAlone && fullScreen && UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
-        _previousStatusBarStyle = [[UIApplication sharedApplication] statusBarStyle];
-        if (SYSTEM_VERSION_LESS_THAN(@"7")) {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-            [[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleBlackTranslucent animated:animated];
-#pragma clang diagnostic push
-        } else {
-            [[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleDefault animated:animated];
-        }
-    }
-*/
-    
     [[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleDefault animated:animated];
 
     // Navigation bar appearance
@@ -422,7 +405,7 @@
 #if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_7_0
     if (SYSTEM_VERSION_LESS_THAN(@"7")) fullScreen = self.wantsFullScreenLayout;
 #endif
-    if (!_leaveStatusBarAlone && fullScreen && UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
+    if (!_leaveStatusBarAlone && fullScreen && [[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
         [[UIApplication sharedApplication] setStatusBarStyle:_previousStatusBarStyle animated:animated];
     }
     
@@ -1005,7 +988,7 @@
 
 - (CGRect)frameForToolbarAtOrientation:(UIInterfaceOrientation)orientation {
     CGFloat height = 44;
-    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone &&
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone &&
         UIInterfaceOrientationIsLandscape(orientation)) height = 32;
 	return CGRectIntegral(CGRectMake(0, self.view.bounds.size.height - height, self.view.bounds.size.width, height));
 }
@@ -1501,7 +1484,7 @@
                     }
                     _actionsSheet.tag = ACTION_SHEET_OLD_ACTIONS;
                     _actionsSheet.actionSheetStyle = UIActionSheetStyleBlackTranslucent;
-                    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+                    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
                         [_actionsSheet showFromBarButtonItem:sender animated:YES];
                     } else {
                         [_actionsSheet showInView:self.view];
@@ -1661,7 +1644,7 @@
         emailer.mailComposeDelegate = self;
         [emailer setSubject:NSLocalizedString(@"Photo", nil)];
         [emailer addAttachmentData:UIImagePNGRepresentation([photo underlyingImage]) mimeType:@"png" fileName:@"Photo.png"];
-        if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+        if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
             emailer.modalPresentationStyle = UIModalPresentationPageSheet;
         }
         [self presentViewController:emailer animated:YES completion:nil];

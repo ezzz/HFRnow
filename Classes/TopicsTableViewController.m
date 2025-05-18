@@ -109,7 +109,8 @@
 - (void)fetchContentComplete:(ASIHTTPRequest *)theRequest
 {
     [self loadDataInTableView:[theRequest responseData]];
-	
+    NSLog(@"NEW URL %@", theRequest.url);
+    
     [self.arrayData removeAllObjects];
     
     self.arrayData = [NSMutableArray arrayWithArray:self.arrayNewData];
@@ -187,19 +188,15 @@
         NSDictionary *notif;
         
 		if ([[[bodyNode firstChild] tagName] isEqualToString:@"p"]) {
-            
             notif = [NSDictionary dictionaryWithObjectsAndKeys:   [NSNumber numberWithInt:kMaintenance], @"status",
                      [[[bodyNode firstChild] contents] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]], @"message", nil];
-            
 		}
         else {
             notif = [NSDictionary dictionaryWithObjectsAndKeys:   [NSNumber numberWithInt:kNoAuth], @"status",
                      [[[bodyNode findChildWithAttribute:@"class" matchingName:@"hop" allowPartial:NO] contents] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]], @"message", nil];
-            
         }
         
         [[NSNotificationCenter defaultCenter] postNotificationName:kStatusChangedNotification object:self userInfo:notif];
-        
 		return;
 	}
 
@@ -229,10 +226,8 @@
     NSRange   matchedRange;// = NSMakeRange(NSNotFound, 0UL);
 	NSRange   searchRange = NSMakeRange(0, self.currentUrl.length);
 	NSError  *error2        = NULL;
-	//int numPage;
 	
 	matchedRange = [self.currentUrl rangeOfRegex:regexString options:RKLNoOptions inRange:searchRange capture:1L error:&error2];
-	
 	if (matchedRange.location == NSNotFound) {
 		NSRange rangeNumPage =  [[self currentUrl] rangeOfCharactersFromSet:[NSCharacterSet decimalDigitCharacterSet] options:NSBackwardsSearch];
 		self.pageNumber = [[self.currentUrl substringWithRange:rangeNumPage] intValue];
@@ -241,6 +236,24 @@
 		self.pageNumber = [[self.currentUrl substringWithRange:matchedRange] intValue];
 		
 	}
+    
+    // Search catégorie
+    self.currentCat = @"";
+    HTMLNode *headerSearchNode = [bodyNode findChildWithAttribute:@"class" matchingName:@"cadreonglet" allowPartial:NO];
+    if (headerSearchNode) {
+        HTMLNode *searchButtonNode = [headerSearchNode findChildWithAttribute:@"id" matchingName:@"onglet9" allowPartial:NO];
+        if (searchButtonNode) {
+            NSString* urlForCat = [searchButtonNode getAttributeNamed:@"href"];
+            
+            NSString* regexString  = @".*&cat=([^&]+).*";
+            NSRange searchRange = NSMakeRange(0, urlForCat.length);
+            NSRange matchedRange = [urlForCat rangeOfRegex:regexString options:RKLNoOptions inRange:searchRange capture:1L error:&error2];
+            if (matchedRange.location != NSNotFound) {
+                self.currentCat = [urlForCat substringWithRange:matchedRange];
+            }
+
+        }
+    }
     
 	//New Topic URL
 	HTMLNode * forumNewTopicNode = [bodyNode findChildWithAttribute:@"id" matchingName:@"md_btn_new_topic" allowPartial:NO];
@@ -790,6 +803,7 @@
 -(void)searchForum
 {
     self.topicSearchViewController = [[TopicSearchViewController alloc] initWithNibName:@"TopicSearchViewController" bundle:nil];
+    self.topicSearchViewController.currentCat = self.currentCat;
     if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad)
     { // iPad
         if (self.detailNavigationViewController)
@@ -1528,7 +1542,7 @@
     }
     
     if (aTopic.curTopicPage > 0 && aTopic.curTopicPage <= aTopic.maxTopicPage) {
-        [cell.msgLabel setText:[NSString stringWithFormat:@"⚑%@ %d/%d", sPoll, aTopic.curTopicPage, aTopic.maxTopicPage]];
+        [cell.msgLabel setText:[NSString stringWithFormat:@"⚑%@ %d / %d", sPoll, aTopic.curTopicPage, aTopic.maxTopicPage]];
 	}
 	else {
         [cell.msgLabel setText:[NSString stringWithFormat:@"⚑%@ %d", sPoll, aTopic.maxTopicPage]];
@@ -1661,11 +1675,8 @@
         }
 				
 
-        if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone)
-        {
-            // Can't use UIAlertActionStyleCancel in dark theme : https://stackoverflow.com/a/44606994/1853603
-            UIAlertActionStyle cancelButtonStyle = [[ThemeManager sharedManager] cancelAlertStyle];
-            [topicActionAlert addAction:[UIAlertAction actionWithTitle:@"Annuler" style:cancelButtonStyle handler:^(UIAlertAction *action) {
+        if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
+            [topicActionAlert addAction:[UIAlertAction actionWithTitle:@"Annuler" style:UIAlertActionStyleCancel handler:^(UIAlertAction *action) {
                 [self dismissViewControllerAnimated:YES completion:nil];
             }]];
         }
@@ -2020,63 +2031,27 @@
 
 -(void)showPicker:(id)sender {
 
-    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad || SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"8")) {
-        //NSLog(@"TT %@", [[pickerViewArray objectAtIndex:[myPickerView selectedRowInComponent:0]] aTitle]);
-        
-        SubCatTableViewController *subCatTableViewController = [[SubCatTableViewController alloc] initWithStyle:UITableViewStylePlain];
-        subCatTableViewController.suPicker = myPickerView;
-        subCatTableViewController.arrayData = pickerViewArray;
-        subCatTableViewController.notification = @"SubCatSelected";
-        
-        if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"8")) {
-            subCatTableViewController.modalPresentationStyle = UIModalPresentationPopover;
-            UIPopoverPresentationController *pc = [subCatTableViewController popoverPresentationController];
-            pc.permittedArrowDirections = UIPopoverArrowDirectionAny;
-            pc.delegate = self;
-            pc.sourceView = self.subCatSegmentedControl;
-            pc.sourceRect = CGRectMake(0, 0, 45, 35);
+    SubCatTableViewController *subCatTableViewController = [[SubCatTableViewController alloc] initWithStyle:UITableViewStylePlain];
+    subCatTableViewController.suPicker = myPickerView;
+    subCatTableViewController.arrayData = pickerViewArray;
+    subCatTableViewController.notification = @"SubCatSelected";
+    
+    if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"8")) {
+        subCatTableViewController.modalPresentationStyle = UIModalPresentationPopover;
+        UIPopoverPresentationController *pc = [subCatTableViewController popoverPresentationController];
+        pc.permittedArrowDirections = UIPopoverArrowDirectionAny;
+        pc.delegate = self;
+        pc.sourceView = self.subCatSegmentedControl;
+        pc.sourceRect = CGRectMake(0, 0, 45, 35);
 
-            [self presentViewController:subCatTableViewController animated:YES completion:nil];
-        }
-        else {
-            self.popover = nil;
-            self.popover = [[UIPopoverController alloc] initWithContentViewController:subCatTableViewController];
-            CGRect origFrame = [(UISegmentedControl *)sender frame];
-            [_popover presentPopoverFromRect:origFrame inView:self.navigationItem.titleView permittedArrowDirections:UIPopoverArrowDirectionAny animated:YES];
-        }
-
+        [self presentViewController:subCatTableViewController animated:YES completion:nil];
     }
     else {
-        CGSize pickerSize = [myPickerView sizeThatFits:CGSizeZero];
-        myPickerView.frame = [self pickerFrameWithSize:pickerSize];
-        
-        [actionSheet showInView:[[[HFRplusAppDelegate sharedAppDelegate] rootController] view]];
-        
-        CGRect curFrame = [[actionSheet viewWithTag:546] frame];
-        curFrame.origin.x =  self.view.frame.size.width - curFrame.size.width - 10;
-        [[actionSheet viewWithTag:546] setFrame:curFrame];
-        
-        
-        [UIView beginAnimations:nil context:nil];
-        
-        if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"7")) {
-            [actionSheet setFrame:CGRectMake(0, self.view.frame.size.height - myPickerView.frame.size.height + 34,
-                                             self.view.frame.size.width, myPickerView.frame.size.height + 34)];
-        }
-        else
-        {
-            [actionSheet setFrame:CGRectMake(0, [[[HFRplusAppDelegate sharedAppDelegate] rootController] tabBar].frame.size.height + self.view.frame.size.height + self.navigationController.navigationBar.frame.size.height + 20 - myPickerView.frame.size.height - 44,
-                                             self.view.frame.size.width, myPickerView.frame.size.height + 44)];
-        }
-        
-        [actionSheet setBounds:CGRectMake(0, 0,
-                                          self.view.frame.size.width, myPickerView.frame.size.height + 44)];
-        
-        [UIView commitAnimations];
-        
+        self.popover = nil;
+        self.popover = [[UIPopoverController alloc] initWithContentViewController:subCatTableViewController];
+        CGRect origFrame = [(UISegmentedControl *)sender frame];
+        [_popover presentPopoverFromRect:origFrame inView:self.navigationItem.titleView permittedArrowDirections:UIPopoverArrowDirectionAny animated:YES];
     }
-
-
 }
 
 #pragma mark -

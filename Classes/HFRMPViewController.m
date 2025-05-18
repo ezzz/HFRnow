@@ -303,10 +303,8 @@
             }]];
         }
                 
-        if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
-            // Can't use UIAlertActionStyleCancel in dark theme : https://stackoverflow.com/a/44606994/1853603
-            UIAlertActionStyle cancelButtonStyle = [[ThemeManager sharedManager] cancelAlertStyle];
-            [topicActionAlert addAction:[UIAlertAction actionWithTitle:@"Annuler" style:cancelButtonStyle handler:^(UIAlertAction *action) {
+        if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
+            [topicActionAlert addAction:[UIAlertAction actionWithTitle:@"Annuler" style:UIAlertActionStyleCancel handler:^(UIAlertAction *action) {
                 [self dismissViewControllerAnimated:YES completion:nil];
             }]];
         } else {
@@ -414,9 +412,7 @@
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     NSInteger vos_sujets = [defaults integerForKey:@"main_gaucheWIP"];
 
-    
-    
-    if ((UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad && [self respondsToSelector:@selector(traitCollection)] && [HFRplusAppDelegate sharedAppDelegate].window.traitCollection.horizontalSizeClass == UIUserInterfaceSizeClassCompact) ||
+    if (([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad && [self respondsToSelector:@selector(traitCollection)] && [HFRplusAppDelegate sharedAppDelegate].window.traitCollection.horizontalSizeClass == UIUserInterfaceSizeClassCompact) ||
         vos_sujets == 0) {
         
         switch (type) {
@@ -428,7 +424,6 @@
                 [self.actionButton setEnabled:enable];
             }
                 break;
-
         }
     }
     else {
@@ -445,10 +440,7 @@
 
             }
                 break;
-
         }
-        
-        
     }
 }
 
@@ -461,7 +453,7 @@
     
     if (type == kSync) {
         //On inverse les boutons
-        if ((UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad && [self respondsToSelector:@selector(traitCollection)] && [HFRplusAppDelegate sharedAppDelegate].window.traitCollection.horizontalSizeClass == UIUserInterfaceSizeClassCompact) ||
+        if (([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad && [self respondsToSelector:@selector(traitCollection)] && [HFRplusAppDelegate sharedAppDelegate].window.traitCollection.horizontalSizeClass == UIUserInterfaceSizeClassCompact) ||
             vos_sujets == 0) {
             //NSLog(@"DROITE ");
             if (!(self.navigationItem.leftBarButtonItem.action == @selector(newTopic))) {
@@ -490,7 +482,7 @@
     
     
     
-    if ((UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad && [self respondsToSelector:@selector(traitCollection)] && [HFRplusAppDelegate sharedAppDelegate].window.traitCollection.horizontalSizeClass == UIUserInterfaceSizeClassCompact) ||
+    if (([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad && [self respondsToSelector:@selector(traitCollection)] && [HFRplusAppDelegate sharedAppDelegate].window.traitCollection.horizontalSizeClass == UIUserInterfaceSizeClassCompact) ||
         vos_sujets == 0) {
         //NSLog(@"à droite");
         

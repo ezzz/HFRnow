@@ -30,7 +30,9 @@
 }
 
 @property (nonatomic, strong) NSString *currentUrl;
+@property (nonatomic, strong) NSString *currentCat;
 @property (nonatomic, strong) NSString *originalUrl;
+@property (nonatomic, strong) NSString *originalFragment;
 @property (nonatomic, strong) Topic *currentOfflineTopic;
 @property int pageNumber;
 @property int pageNumberFilterStart, pageNumberFilterEnd;

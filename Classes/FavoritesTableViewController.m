@@ -516,7 +516,7 @@
     }
     
     if (self.navigationController.visibleViewController == self) {
-        if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
+        if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
             UIView *btn;
             UIView *btn2;
             
@@ -757,8 +757,8 @@
         [favoritesTableView deselectRowAtIndexPath:favoritesTableView.indexPathForSelectedRow animated:NO];
     }
 
-    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
-    
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
+
         UIInterfaceOrientation o = [[UIApplication sharedApplication] statusBarOrientation];
         if (UIDeviceOrientationIsLandscape(o)) {
             [[self.navigationController.navigationBar viewWithTag:237] setHidden:YES];
@@ -1452,9 +1452,7 @@
         [topicActionAlert addAction:uiActionCheckQuotes];
         
         if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
-            // Can't use UIAlertActionStyleCancel in dark theme : https://stackoverflow.com/a/44606994/1853603
-            UIAlertActionStyle cancelButtonStyle = [[ThemeManager sharedManager] cancelAlertStyle];
-            [topicActionAlert addAction:[UIAlertAction actionWithTitle:@"Annuler" style:cancelButtonStyle handler:^(UIAlertAction *action) {
+            [topicActionAlert addAction:[UIAlertAction actionWithTitle:@"Annuler" style:UIAlertActionStyleCancel handler:^(UIAlertAction *action) {
                 [self dismissViewControllerAnimated:YES completion:nil];
             }]];
         } else {

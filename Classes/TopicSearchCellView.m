@@ -30,11 +30,7 @@
 }
 
 - (void)awakeFromNib {
-    
     [super awakeFromNib];
-    [titleLabel setHighlightedTextColor:[UIColor whiteColor]];
-    [msgLabel setHighlightedTextColor:[UIColor whiteColor]];
-    [timeLabel setHighlightedTextColor:[UIColor whiteColor]];
 }
 
 
@@ -59,11 +55,13 @@
     //self.imgGroup.tintColor = [ThemeColors topicMsgTextColor:theme];
 
     self.selectionStyle = [ThemeColors cellSelectionStyle:theme];
-    /*if (self.topicViewed) {
+    if (self.topicViewed) {
         Theme theme = [[ThemeManager sharedManager] theme];
         [titleLabel setTextColor:[ThemeColors lightTextColor:theme]];
         [timeLabel setTextColor:[ThemeColors lightTextColor:theme]];
-    }*/
+    }
+    
+    //self.selectedBackgroundView.backgroundColor = [UIColor redColor];
 }
 
 @end

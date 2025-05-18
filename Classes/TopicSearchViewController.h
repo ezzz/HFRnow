@@ -6,15 +6,14 @@
 //
 
 #import <UIKit/UIKit.h>
+
+#import "PageViewController.h"
+
 @class ASIFormDataRequest;
 @class MessagesTableViewController;
 @class TopicSearchCellView;
 
-@interface TopicSearchViewController : UIViewController <UISearchBarDelegate, UITableViewDataSource, NSXMLParserDelegate, UIActionSheetDelegate> {
-	UIView *disableViewOverlay;
-
-    UITableView *theTableView;
-    UISearchBar *theSearchBar;
+@interface TopicSearchViewController : PageViewController <UISearchBarDelegate, UITableViewDataSource, UITableViewDelegate, UIActionSheetDelegate> {
 	
 	IBOutlet UIView *loadingView;
 	IBOutlet UILabel *maintenanceView;
@@ -47,11 +46,18 @@
 @property(strong) NSMutableArray *stories;
 @property(strong) UIView *disableViewOverlay;
 
+@property (nonatomic, assign) BOOL searchVisible;
+
 @property (nonatomic, strong) IBOutlet UITableView *topicsTableView;
-@property (nonatomic, strong) IBOutlet UISearchBar *theSearchBar;
+@property (nonatomic, strong) IBOutlet UISearchBar *textSearchBar;
+@property (nonatomic, strong) UISegmentedControl *optionSearchTypeSegmentedControl;
+@property (nonatomic, strong) UISegmentedControl *optionSearchInSegmentedControl;
+@property (nonatomic, strong) UISegmentedControl *optionSearchFromSegmentedControl;
+@property (nonatomic, strong) UITableView *historicTableView;
 
 @property (nonatomic, strong) IBOutlet UIView *loadingView;
 @property (nonatomic, strong) IBOutlet UILabel *maintenanceView;
+@property (nonatomic, strong) UIAlertController *topicActionAlert;
 
 @property (strong, nonatomic) ASIFormDataRequest *request;
 @property STATUS status;
@@ -61,11 +67,19 @@
 @property (nonatomic, strong) UIActionSheet *topicActionSheet;
 
 @property (nonatomic, strong) MessagesTableViewController *messagesTableViewController;
+@property (nonatomic, strong) HFRNavigationController *detailNavigationViewController;
 @property (nonatomic, weak) IBOutlet TopicSearchCellView *tmpCell;
 
 @property (nonatomic, strong) NSData *dInputPostData;
 @property (nonatomic, strong) NSMutableArray *arrayData;
 @property (nonatomic, strong) NSMutableArray *arrayNewData;
+
+@property (nonatomic, strong) UIImage *imageForUnselectedRow;
+@property (nonatomic, strong) UIImage *imageForSelectedRow;
+@property (nonatomic, strong) UIImage *imageForRedFlag;
+@property (nonatomic, strong) UIImage *imageForYellowFlag;
+@property (nonatomic, strong) UIImage *imageForBlueFlag;
+@property (nonatomic, strong) UIImage *imageForGreyFlag;
 
 - (void)searchBar:(UISearchBar *)searchBar activate:(BOOL) active;
 

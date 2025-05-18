@@ -233,7 +233,7 @@ int nightDelay;
             originalImage = [UIImage imageNamed:@"noel_neige_big"];
         }
         CGFloat scale = 1.5; // iphone
-        if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+        if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
             scale = 2.0;
         }
         UIImage *scaledImage = [UIImage imageWithCGImage:[originalImage CGImage] scale:(originalImage.scale * scale) orientation:(originalImage.imageOrientation)];
@@ -333,13 +333,6 @@ int nightDelay;
         return ThemeDark;
     }
     return ThemeLight;
-}
-
-- (UIAlertActionStyle)cancelAlertStyle {
-    if (theme == ThemeDark || ![[NSUserDefaults standardUserDefaults] boolForKey:@"theme_noel_disabled"]) {
-        return UIAlertActionStyleDefault;
-    }
-    return UIAlertActionStyleDefault;
 }
 
 @end

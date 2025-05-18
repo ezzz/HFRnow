@@ -47,6 +47,7 @@
 
 @property (nonatomic, strong) NSString *_aTitle;
 @property (nonatomic, strong) NSString *sLastSearchPostContent;
+@property (nonatomic, strong) NSString *sLastSearchPostURL;
 @property (nonatomic, strong) NSString *aURL;
 
 @property int aRepCount;

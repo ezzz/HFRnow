@@ -90,7 +90,9 @@
 	[ASIHTTPRequest setDefaultTimeOutSeconds:kTimeoutMaxi];
     self.currentUrl = [self.currentUrl stringByReplacingOccurrencesOfString:@"http://forum.hardware.fr" withString:@""];
     NSLog(@"URL:%@", [NSString stringWithFormat:@"%@%@", [k ForumURL], [self currentUrl]]);
-	[self setRequest:[ASIHTTPRequest requestWithURL:[NSURL URLWithString:[NSString stringWithFormat:@"%@%@", [k ForumURL], [self currentUrl]]]]];
+    NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"%@%@", [k ForumURL], [self currentUrl]]];
+    self.originalFragment = url.fragment;
+	[self setRequest:[ASIHTTPRequest requestWithURL:url]];
     
     [request setResponseEncoding:NSUTF8StringEncoding];
 	[request setDelegate:self];
@@ -140,20 +142,71 @@
     [self fetchContent:kNewMessageFromUnkwn];
 }
 
+/* TO DELETE ?
 - (void)fetchContentStarted:(ASIHTTPRequest *)theRequest
 {
-	//--
-	//NSLog(@"fetchContentStarted");
-    
     if (![self.currentUrl isEqualToString:[theRequest.url.absoluteString stringByReplacingOccurrencesOfString:[k ForumURL] withString:@""]]) {
-        //NSLog(@"not equal ==");
+        NSLog(@"SEARCH fetchContentStarted 1 %@", self.currentUrl);
         self.currentUrl = [theRequest.url.absoluteString stringByReplacingOccurrencesOfString:[k ForumURL] withString:@""];
+        NSLog(@"SEARCH fetchContentStarted 2 %@", self.currentUrl);
+        NSLog(@"SEARCH fetchContentStarted 3 fragment %@", theRequest.url.fragment);
+    }
+}*/
+
+- (void)fetchContentStarted:(ASIHTTPRequest *)theRequest
+{
+    NSString *forumBaseUrl = [k ForumURL];
+    NSString *fullUrl = theRequest.url.absoluteString;
+
+    if (![fullUrl hasPrefix:forumBaseUrl]) {
+        NSLog(@"URL doesn't match forum base: %@", fullUrl);
+        return;
     }
 
+    
+    NSLog(@"SEARCH fetchContentStarted 0 of %@", self.originalFragment);
+    
+    // Extraire URI après base
+    NSString *uriWithPossibleFragment = [fullUrl substringFromIndex:forumBaseUrl.length];
+
+    // Nettoyer tout fragment présent dans cette sous-chaîne
+    NSString *uriWithoutFragment;
+    NSRange fragmentRange = [uriWithPossibleFragment rangeOfString:@"#"];
+    if (fragmentRange.location != NSNotFound) {
+        uriWithoutFragment = [uriWithPossibleFragment substringToIndex:fragmentRange.location];
+    } else {
+        uriWithoutFragment = uriWithPossibleFragment;
+    }
+
+    // Essayer d'extraire un fragment éventuel de la redirection
+    NSString *redirectFragment = theRequest.url.fragment;
+
+    // Déterminer quel fragment utiliser
+    NSString *finalFragment = redirectFragment ?: self.originalFragment;
+    
+    NSLog(@"SEARCH fetchContentStarted 0.1 rf %@ ff %@", redirectFragment, finalFragment);
+
+    // Reconstruire l'URI complète avec le fragment s'il existe
+    NSString *uriWithFragment = finalFragment.length > 0
+        ? [NSString stringWithFormat:@"%@#%@", uriWithoutFragment, finalFragment]
+        : uriWithoutFragment;
+
+    NSLog(@"SEARCH fetchContentStarted 0.2 cu %@ urif %@", self.currentUrl, uriWithFragment);
+
+    
+    if (![self.currentUrl isEqualToString:uriWithFragment]) {
+        NSLog(@"SEARCH fetchContentStarted 1 %@", self.currentUrl);
+        self.currentUrl = uriWithFragment;
+        NSLog(@"SEARCH fetchContentStarted 2 %@", self.currentUrl);
+        NSLog(@"SEARCH fetchContentStarted 3 fragment %@", finalFragment);
+        self.originalFragment = finalFragment;
+    }
 }
 
 - (void)fetchContentComplete:(ASIHTTPRequest *)theRequest
 {
+    NSLog(@"SEARCH fetchContentComplete 1 %@", self.currentUrl);
+
     //MaJ de la puce MP
 	if (!self.isViewed) {
 		//NSLog(@"pas lu");
@@ -162,9 +215,12 @@
 	
     [self startParseDataHtml:[request safeResponseData]];
     
+    NSLog(@"SEARCH fetchContentComplete 2 current %@ original %@", self.currentUrl, self.originalUrl);
+
     self.originalUrl = theRequest.originalURL.absoluteString;
-    
     [self cancelFetchContent];
+
+    NSLog(@"SEARCH fetchContentComplete 3 current %@ original %@", self.currentUrl, self.originalUrl);
 }
 
 - (void)startParseDataHtml:(NSData*)data {
@@ -338,6 +394,7 @@
 
 -(void)setupScrollAndPage
 {
+    NSLog(@"SEARCH setupScrollAndPage %@", self.currentUrl);
     NSRange rangeFlagPage =  [self.currentUrl rangeOfString:@"#" options:NSBackwardsSearch];
     
     if (self.stringFlagTopic.length == 0) {
@@ -1114,10 +1171,8 @@
     }
 
     // cancelButtonStyle not needed on iPad
-    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
-        // Can't use UIAlertActionStyleCancel in dark theme : https://stackoverflow.com/a/44606994/1853603
-        UIAlertActionStyle cancelButtonStyle = [[ThemeManager sharedManager] cancelAlertStyle];
-        [styleAlert addAction:[UIAlertAction actionWithTitle:@"Annuler" style:cancelButtonStyle handler:^(UIAlertAction *action) {
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
+        [styleAlert addAction:[UIAlertAction actionWithTitle:@"Annuler" style:UIAlertActionStyleCancel handler:^(UIAlertAction *action) {
             [self dismissViewControllerAnimated:YES completion:nil];
         }]];
     } else {
@@ -1384,7 +1439,7 @@
                 sImgUrl = [sImgUrl stringByReplacingOccurrencesOfString:@".th." withString:@"."];
             }
             else if ([[imgNode getAttributeNamed:@"alt"] containsString:@"reho.st/"]) { // Rehost
-                if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+                if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
                     sImgUrl = [sImgUrl stringByReplacingOccurrencesOfString:@"reho.st/thumb/" withString:@"reho.st/"];
                 }
                 else {
@@ -2315,7 +2370,7 @@ API_AVAILABLE(ios(16.0)) {
     int curMsg = [curMsgN intValue];
     NSString *answString = nil;
 
-    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
         answString = @"Répondre";
     }
     else {

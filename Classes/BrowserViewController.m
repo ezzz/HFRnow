@@ -169,7 +169,7 @@
         UIBarButtonItem *doneButton = [[UIBarButtonItem alloc] initWithTitle:NSLocalizedString(@"Close", nil) style:UIBarButtonItemStylePlain target:self action:@selector(cancel)];
         [myButtonArray addObject:doneButton];
     }
-    else if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad ) {
+    else if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad ) {
         UIBarButtonItem *navPButton = [[UIBarButtonItem alloc] initWithTitle:NSLocalizedString(@"Navigateur✚", nil) style:UIBarButtonItemStylePlain target:self action:@selector(navPlus)];
         [myButtonArray addObject:navPButton];
     }
