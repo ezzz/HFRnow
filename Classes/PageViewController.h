@@ -29,6 +29,8 @@
 	NSString *previousPageUrl;
 }
 
+
+
 @property (nonatomic, strong) NSString *currentUrl;
 @property (nonatomic, strong) NSString *currentCat;
 @property (nonatomic, strong) NSString *originalUrl;

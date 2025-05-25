@@ -37,7 +37,7 @@
 #import "ThemeColors.h"
 #import "MultisManager.h"
 #import "FilterPostsQuotes.h"
-#import "TopicSearchViewController.h"
+#import "TopicsSearchViewController.h"
 
 #define SECTION_CAT_VISIBLE 0
 #define SECTION_CAT_HIDDEN 1
@@ -818,15 +818,15 @@
     
     switch (vos_sujets) {
         case 0:
-            aView = [[TopicsTableViewController alloc] initWithNibName:@"TopicsTableViewController" bundle:nil flag:2];
+            aView = [[TopicsTableViewController alloc] initWithFlag:2];
             aView.forumFlag1URL = [[[arrayCategories objectAtIndex:section] forum] aURL];
             break;
         case 1:
-            aView = [[TopicsTableViewController alloc] initWithNibName:@"TopicsTableViewController" bundle:nil flag:1];
+            aView = [[TopicsTableViewController alloc] initWithFlag:1];
             aView.forumFavorisURL = [[[arrayCategories objectAtIndex:section] forum] aURL];
             break;
         default:
-            aView = [[TopicsTableViewController alloc] initWithNibName:@"TopicsTableViewController" bundle:nil flag:2];
+            aView = [[TopicsTableViewController alloc] initWithFlag:2];
             aView.forumFlag1URL = [[[arrayCategories objectAtIndex:section] forum] aURL];
             break;
     }
@@ -1632,15 +1632,11 @@
 }
 
 -(void)checkPostsAndQuotesForTopicIndex:(NSIndexPath *)indexPath {
-    TopicSearchViewController* vc = [[TopicSearchViewController alloc] initWithNibName:@"HFRSearchViewController" bundle:nil];
-    [self.navigationController pushViewController:vc animated:YES];
-
-    /*
-     Topic *topic = [self getTopicAtIndexPath:indexPath];
+    Topic *topic = [self getTopicAtIndexPath:indexPath];
     if (!self.filterPostsQuotes) {
         self.filterPostsQuotes = [[FilterPostsQuotes alloc] init];
     }
-    [self.filterPostsQuotes checkPostsAndQuotesForTopic:topic andVC:self];*/
+    [self.filterPostsQuotes checkPostsAndQuotesForTopic:topic andVC:self];
 }
 
 -(void) addProgressBar {

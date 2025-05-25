@@ -1022,24 +1022,23 @@
             
             switch ([[tmpDic objectForKey:@"flag"] intValue]) {
                 case kFav:
-                    aView = [[TopicsTableViewController alloc] initWithNibName:@"TopicsTableViewController" bundle:nil flag:1];
+                    aView = [[TopicsTableViewController alloc] initWithFlag:1];
                     break;
                 case kFlag:
-                    aView = [[TopicsTableViewController alloc] initWithNibName:@"TopicsTableViewController" bundle:nil flag:2];
+                    aView = [[TopicsTableViewController alloc] initWithFlag:2];
                     break;
                 case kRed:
-                    aView = [[TopicsTableViewController alloc] initWithNibName:@"TopicsTableViewController" bundle:nil flag:3];
+                    aView = [[TopicsTableViewController alloc] initWithFlag:3];
                     break;
                 case kALL:
                 default:
-                    aView = [[TopicsTableViewController alloc] initWithNibName:@"TopicsTableViewController" bundle:nil];
+                    aView = [[TopicsTableViewController alloc] init];
                     break;
             }
         }
         else {
-            aView = [[TopicsTableViewController alloc] initWithNibName:@"TopicsTableViewController" bundle:nil];
+            aView = [[TopicsTableViewController alloc] init];
         }
-        
         
 		self.topicsTableViewController = aView;
 	}

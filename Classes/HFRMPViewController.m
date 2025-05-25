@@ -22,7 +22,7 @@
 #import <SDWebImage/SDWebImage.h>
 
 @implementation HFRMPViewController
-@synthesize reloadOnAppear, actionButton, reloadButton, detailNavigationViewController;
+@synthesize reloadOnAppear, actionButton, reloadButton, detailNavigationViewController, arrayData, topicActionAlert, pressedIndexPath;
 
  // The designated initializer.  Override if you create the controller programmatically and want to perform customization that is not appropriate for viewDidLoad.
 /*

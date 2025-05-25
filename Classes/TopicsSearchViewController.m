@@ -6,8 +6,7 @@
 //
 
 #import "HFRplusAppDelegate.h"
-
-#import "TopicSearchViewController.h"
+#import "TopicsSearchViewController.h"
 #import "ASIFormDataRequest.h"
 #import "HTMLParser.h"
 #import "RegexKitLite.h"
@@ -21,18 +20,257 @@
 
 #define TIME_OUT_INTERVAL_SEARCH 15
 
-@implementation TopicSearchViewController
+@implementation TopicsSearchViewController
 
 @synthesize stories;
 @synthesize request;
-@synthesize disableViewOverlay, loadingView;
-@synthesize status, statusMessage, maintenanceView, messagesTableViewController, detailNavigationViewController, tmpCell, pressedIndexPath, topicActionSheet, topicActionAlert;
+@synthesize disableViewOverlay;
+@synthesize status, statusMessage, messagesTableViewController, detailNavigationViewController, tmpCell, pressedIndexPath, topicActionSheet, topicActionAlert;
 @synthesize imageForRedFlag, imageForYellowFlag, imageForBlueFlag, imageForGreyFlag;
-@synthesize textSearchBar, optionSearchTypeSegmentedControl, optionSearchInSegmentedControl, optionSearchFromSegmentedControl;
+@synthesize textSearchBar, optionSearchTypeSegmentedControl, optionSearchInSegmentedControl, optionSearchFromSegmentedControl, item;// currentElement, currentSummary, currentUrl, currentTitle, currentDate, currentSummary, currentLink, item;
+
+#pragma mark - ViewController Methods
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    self.title = @"Recherche";
+    self.searchVisible = YES; // Visible par défaut
+
+    // Mettre à jour l'icône du bouton
+    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc]
+        initWithImage:[UIImage systemImageNamed:@"magnifyingglass"]
+        style:UIBarButtonItemStylePlain
+        target:self
+        action:@selector(toggleSearchFields)];
+
+    // 1. Ajouter la SearchBar
+    self.textSearchBar = [[UISearchBar alloc] init]; //initWithFrame:CGRectMake(0, 0, self.view.frame.size.width, 44)];
+    self.textSearchBar.placeholder = @"Recherche";
+    self.textSearchBar.delegate = self;
+    self.textSearchBar.autocapitalizationType = UITextAutocapitalizationTypeNone;
+    if ([self.textSearchBar respondsToSelector:@selector(setSearchBarStyle:)]) {
+        self.textSearchBar.searchBarStyle = UISearchBarStyleMinimal;
+    }
+    
+    self.textSearchBar.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.view addSubview:self.textSearchBar];
+
+    // Contraintes Auto Layout
+    [NSLayoutConstraint activateConstraints:@[
+        [self.textSearchBar.topAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.topAnchor constant:6],
+        [self.textSearchBar.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [self.textSearchBar.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
+        [self.textSearchBar.heightAnchor constraintEqualToConstant:44]
+    ]];
+    
+    [self.textSearchBar becomeFirstResponder];
+
+    // 2. Ajouter le SegmentedControl juste en dessous
+    optionSearchTypeSegmentedControl, optionSearchInSegmentedControl, optionSearchFromSegmentedControl;
+    
+    NSArray *items1 = @[@"Tous les mots", @"Au moins un mot", @"Avancé"];
+    self.optionSearchTypeSegmentedControl = [[UISegmentedControl alloc] initWithItems:items1];
+    self.optionSearchTypeSegmentedControl.selectedSegmentIndex = 0;
+    [self.optionSearchTypeSegmentedControl addTarget:self action:@selector(segmentedControlChanged:) forControlEvents:UIControlEventValueChanged];
+    self.optionSearchTypeSegmentedControl.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.view addSubview:self.optionSearchTypeSegmentedControl];
+    
+    [NSLayoutConstraint activateConstraints:@[
+        [self.optionSearchTypeSegmentedControl.topAnchor constraintEqualToAnchor:self.textSearchBar.bottomAnchor constant:12],
+        [self.optionSearchTypeSegmentedControl.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:16],
+        [self.optionSearchTypeSegmentedControl.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-16],
+        [self.optionSearchTypeSegmentedControl.heightAnchor constraintEqualToConstant:30]
+    ]];
+
+    NSArray *items2 = @[@"Titre et contenu", @"Titre", @"Contenu"];
+    self.optionSearchInSegmentedControl = [[UISegmentedControl alloc] initWithItems:items2];
+    self.optionSearchInSegmentedControl.selectedSegmentIndex = 0;
+    [self.optionSearchInSegmentedControl addTarget:self action:@selector(segmentedControlChanged:) forControlEvents:UIControlEventValueChanged];
+    self.optionSearchInSegmentedControl.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.view addSubview:self.optionSearchInSegmentedControl];
+    
+    [NSLayoutConstraint activateConstraints:@[
+        [self.optionSearchInSegmentedControl.topAnchor constraintEqualToAnchor:self.optionSearchTypeSegmentedControl.bottomAnchor constant:16],
+        [self.optionSearchInSegmentedControl.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:16],
+        [self.optionSearchInSegmentedControl.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-16],
+        [self.optionSearchInSegmentedControl.heightAnchor constraintEqualToConstant:30]
+    ]];
+
+    NSArray *items3 = @[@"Début", @"5 ans", @"1 an"];
+    self.optionSearchFromSegmentedControl = [[UISegmentedControl alloc] initWithItems:items3];
+    self.optionSearchFromSegmentedControl.selectedSegmentIndex = 0;
+    [self.optionSearchFromSegmentedControl addTarget:self action:@selector(segmentedControlChanged:) forControlEvents:UIControlEventValueChanged];
+    self.optionSearchFromSegmentedControl.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.view addSubview:self.optionSearchFromSegmentedControl];
+    
+    [NSLayoutConstraint activateConstraints:@[
+        [self.optionSearchFromSegmentedControl.topAnchor constraintEqualToAnchor:self.optionSearchInSegmentedControl.bottomAnchor constant:16],
+        [self.optionSearchFromSegmentedControl.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:16],
+        [self.optionSearchFromSegmentedControl.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-16],
+        [self.optionSearchFromSegmentedControl.heightAnchor constraintEqualToConstant:30]
+    ]];
 
 
-#pragma mark -
-#pragma mark Data lifecycle
+    // 3. TableView – pour historique
+    self.historicTableView = [[UITableView alloc] init];
+    self.historicTableView.dataSource = self;
+    self.historicTableView.delegate = self;
+    
+    self.historicTableView.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.view addSubview:self.historicTableView];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [self.historicTableView.topAnchor constraintEqualToAnchor:self.optionSearchFromSegmentedControl.bottomAnchor constant:8],
+        [self.historicTableView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [self.historicTableView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
+        [self.historicTableView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor]
+    ]];
+    self.stories =[[NSMutableArray alloc]init];
+    self.disableViewOverlay = [[UIView alloc]
+                               initWithFrame:CGRectMake(0.0f,0.0f,1000.0f,1000.0f)];
+    self.disableViewOverlay.backgroundColor=[UIColor blackColor];
+    self.disableViewOverlay.alpha = 0;
+    
+    self.disableViewOverlay.autoresizingMask = (UIViewAutoresizingFlexibleWidth);
+    
+    UITapGestureRecognizer *tapRecognizer = [[UITapGestureRecognizer alloc]
+                                                         initWithTarget:self action:@selector(handleTap:)];
+    [self.disableViewOverlay addGestureRecognizer:tapRecognizer];
+    
+    [self.maintenanceView setText:@"Aucun résultat"];
+    
+    self.arrayData = [[NSMutableArray alloc] init];
+    self.arrayNewData = [[NSMutableArray alloc] init];
+    
+    self.imageForUnselectedRow = [UIImage imageNamed:@"selectedrow"];
+    self.imageForSelectedRow = [UIImage imageNamed:@"unselectedrow"];
+    
+    self.imageForRedFlag = [UIImage imageNamed:@"Flat-RedFlag-25"];
+    self.imageForYellowFlag = [UIImage imageNamed:@"Flat-YellowFlag-25"];
+    self.imageForBlueFlag = [UIImage imageNamed:@"Flat-CyanFlag-25"];
+}
+
+
+- (void) viewWillAppear:(BOOL)animated
+{
+    //[self.navigationController setNavigationBarHidden:YES animated:animated];
+    [super viewWillAppear:animated];
+    Theme theme = [[ThemeManager sharedManager] theme];
+    self.view.backgroundColor = self.maintenanceView.backgroundColor = self.loadingView.backgroundColor = self.topicsTableView.backgroundColor = [ThemeColors greyBackgroundColor:theme];
+    self.optionSearchInSegmentedControl.backgroundColor = self.optionSearchFromSegmentedControl.backgroundColor = self.optionSearchTypeSegmentedControl.backgroundColor = self.textSearchBar.backgroundColor = [ThemeColors greyBackgroundColor:theme];
+    
+
+    self.topicsTableView.separatorColor = [ThemeColors cellBorderColor:theme];
+
+    if (self.messagesTableViewController) {
+        
+        self.messagesTableViewController = nil;
+    }
+}
+
+- (void)toggleSearchFields {
+    self.searchVisible = !self.searchVisible;
+    self.textSearchBar.hidden = !self.searchVisible;
+    self.optionSearchTypeSegmentedControl.hidden = !self.searchVisible;
+    self.optionSearchInSegmentedControl.hidden = !self.searchVisible;
+    self.optionSearchFromSegmentedControl.hidden = !self.searchVisible;
+    self.historicTableView.hidden = !self.searchVisible;
+    
+    if (self.searchVisible) {
+        [self cancelFetchContent];
+        [self.textSearchBar becomeFirstResponder];
+    }
+    
+    // Si tu utilises Auto Layout :
+    [self.view setNeedsLayout];
+    [self.view layoutIfNeeded];
+}
+
+- (void)searchBar:(UISearchBar *)searchBar textDidChange:(NSString *)searchText {
+    // We don't want to do anything until the user clicks
+    // the 'Search' button.
+    // If you wanted to display results as the user types
+    // you would do that here.
+}
+
+- (void)searchBarTextDidBeginEditing:(UISearchBar *)searchBar {
+    // searchBarTextDidBeginEditing is called whenever
+    // focus is given to the UISearchBar
+    // call our activate method so that we can do some
+    // additional things when the UISearchBar shows.
+    [self searchBar:searchBar activate:YES];
+    [searchBar setShowsCancelButton:NO animated:NO];
+}
+
+- (void)searchBarTextDidEndEditing:(UISearchBar *)searchBar {
+    // searchBarTextDidEndEditing is fired whenever the
+    // UISearchBar loses focus
+    // We don't need to do anything here.
+    [searchBar setShowsCancelButton:NO animated:NO];
+}
+
+-(void)handleTap:(id)sender{
+    [self searchBar:self.textSearchBar activate:NO];
+}
+
+- (void)searchBarCancelButtonClicked:(UISearchBar *)searchBar {
+    // Clear the search text
+    // Deactivate the UISearchBar
+    searchBar.text=@"";
+    [self searchBar:searchBar activate:NO];
+}
+
+- (void)searchBarSearchButtonClicked:(UISearchBar *)searchBar {
+    // Do the search and show the results in tableview
+    // Deactivate the UISearchBar
+    
+    // You'll probably want to do this on another thread
+    // SomeService is just a dummy class representing some
+    // api that you are using to do the search
+
+
+    [self searchBar:searchBar activate:NO];
+    
+    [self fetchContent];
+}
+
+// We call this when we want to activate/deactivate the UISearchBar
+// Depending on active (YES/NO) we disable/enable selection and
+// scrolling on the UITableView
+// Show/Hide the UISearchBar Cancel button
+// Fade the screen In/Out with the disableViewOverlay and
+// simple Animations
+- (void)searchBar:(UISearchBar *)searchBar activate:(BOOL) active{
+    
+    self.topicsTableView.allowsSelection = !active;
+    self.topicsTableView.scrollEnabled = !active;
+    if (!active) {
+        [disableViewOverlay removeFromSuperview];
+        [searchBar resignFirstResponder];
+    } else {
+
+        self.disableViewOverlay.alpha = 0;
+        [self.view addSubview:self.disableViewOverlay];
+        
+        [UIView beginAnimations:@"FadeIn" context:nil];
+        [UIView setAnimationDuration:0.5];
+        //self.disableViewOverlay.alpha = 0.6;
+        [UIView commitAnimations];
+        
+        // probably not needed if you have a details view since you
+        // will go there on selection
+        NSIndexPath *selected = [self.topicsTableView
+                                 indexPathForSelectedRow];
+        if (selected) {
+            [self.topicsTableView deselectRowAtIndexPath:selected
+                                             animated:NO];
+        }
+    }
+    [searchBar setShowsCancelButton:active animated:YES];
+}
+
+#pragma mark - Data lifecycle
 
 - (void)createPostString
 {
@@ -877,277 +1115,8 @@
         action:@selector(toggleSearchFields)];
 }
 
-#pragma mark -
-#pragma mark ViewController Methods
 
-- (void)viewDidLoad {
-    [super viewDidLoad];
-    
-    self.title = @"Recherche";
-    self.searchVisible = YES; // Visible par défaut
-
-    // Mettre à jour l'icône du bouton
-    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc]
-        initWithImage:[UIImage systemImageNamed:@"magnifyingglass"]
-        style:UIBarButtonItemStylePlain
-        target:self
-        action:@selector(toggleSearchFields)];
-
-    // 1. Ajouter la SearchBar
-    self.textSearchBar = [[UISearchBar alloc] init]; //initWithFrame:CGRectMake(0, 0, self.view.frame.size.width, 44)];
-    self.textSearchBar.placeholder = @"Recherche";
-    self.textSearchBar.delegate = self;
-    self.textSearchBar.autocapitalizationType = UITextAutocapitalizationTypeNone;
-    if ([self.textSearchBar respondsToSelector:@selector(setSearchBarStyle:)]) {
-        self.textSearchBar.searchBarStyle = UISearchBarStyleMinimal;
-    }
-    
-    self.textSearchBar.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.view addSubview:self.textSearchBar];
-
-    // Contraintes Auto Layout
-    [NSLayoutConstraint activateConstraints:@[
-        [self.textSearchBar.topAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.topAnchor constant:6],
-        [self.textSearchBar.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
-        [self.textSearchBar.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
-        [self.textSearchBar.heightAnchor constraintEqualToConstant:44]
-    ]];
-    
-    [self.textSearchBar becomeFirstResponder];
-
-    // 2. Ajouter le SegmentedControl juste en dessous
-    optionSearchTypeSegmentedControl, optionSearchInSegmentedControl, optionSearchFromSegmentedControl;
-    
-    NSArray *items1 = @[@"Tous les mots", @"Au moins un mot", @"Avancé"];
-    self.optionSearchTypeSegmentedControl = [[UISegmentedControl alloc] initWithItems:items1];
-    self.optionSearchTypeSegmentedControl.selectedSegmentIndex = 0;
-    [self.optionSearchTypeSegmentedControl addTarget:self action:@selector(segmentedControlChanged:) forControlEvents:UIControlEventValueChanged];
-    self.optionSearchTypeSegmentedControl.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.view addSubview:self.optionSearchTypeSegmentedControl];
-    
-    [NSLayoutConstraint activateConstraints:@[
-        [self.optionSearchTypeSegmentedControl.topAnchor constraintEqualToAnchor:self.textSearchBar.bottomAnchor constant:12],
-        [self.optionSearchTypeSegmentedControl.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:16],
-        [self.optionSearchTypeSegmentedControl.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-16],
-        [self.optionSearchTypeSegmentedControl.heightAnchor constraintEqualToConstant:30]
-    ]];
-
-    NSArray *items2 = @[@"Titre et contenu", @"Titre", @"Contenu"];
-    self.optionSearchInSegmentedControl = [[UISegmentedControl alloc] initWithItems:items2];
-    self.optionSearchInSegmentedControl.selectedSegmentIndex = 0;
-    [self.optionSearchInSegmentedControl addTarget:self action:@selector(segmentedControlChanged:) forControlEvents:UIControlEventValueChanged];
-    self.optionSearchInSegmentedControl.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.view addSubview:self.optionSearchInSegmentedControl];
-    
-    [NSLayoutConstraint activateConstraints:@[
-        [self.optionSearchInSegmentedControl.topAnchor constraintEqualToAnchor:self.optionSearchTypeSegmentedControl.bottomAnchor constant:16],
-        [self.optionSearchInSegmentedControl.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:16],
-        [self.optionSearchInSegmentedControl.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-16],
-        [self.optionSearchInSegmentedControl.heightAnchor constraintEqualToConstant:30]
-    ]];
-
-    NSArray *items3 = @[@"Début", @"5 ans", @"1 an"];
-    self.optionSearchFromSegmentedControl = [[UISegmentedControl alloc] initWithItems:items3];
-    self.optionSearchFromSegmentedControl.selectedSegmentIndex = 0;
-    [self.optionSearchFromSegmentedControl addTarget:self action:@selector(segmentedControlChanged:) forControlEvents:UIControlEventValueChanged];
-    self.optionSearchFromSegmentedControl.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.view addSubview:self.optionSearchFromSegmentedControl];
-    
-    [NSLayoutConstraint activateConstraints:@[
-        [self.optionSearchFromSegmentedControl.topAnchor constraintEqualToAnchor:self.optionSearchInSegmentedControl.bottomAnchor constant:16],
-        [self.optionSearchFromSegmentedControl.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:16],
-        [self.optionSearchFromSegmentedControl.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-16],
-        [self.optionSearchFromSegmentedControl.heightAnchor constraintEqualToConstant:30]
-    ]];
-
-
-    // 3. TableView – pour historique
-    self.historicTableView = [[UITableView alloc] init];
-    self.historicTableView.dataSource = self;
-    self.historicTableView.delegate = self;
-    
-    self.historicTableView.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.view addSubview:self.historicTableView];
-
-    [NSLayoutConstraint activateConstraints:@[
-        [self.historicTableView.topAnchor constraintEqualToAnchor:self.optionSearchFromSegmentedControl.bottomAnchor constant:8],
-        [self.historicTableView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
-        [self.historicTableView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
-        [self.historicTableView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor]
-    ]];
-    self.stories =[[NSMutableArray alloc]init];
-    self.disableViewOverlay = [[UIView alloc]
-							   initWithFrame:CGRectMake(0.0f,0.0f,1000.0f,1000.0f)];
-    self.disableViewOverlay.backgroundColor=[UIColor blackColor];
-    self.disableViewOverlay.alpha = 0;
-	
-    self.disableViewOverlay.autoresizingMask = (UIViewAutoresizingFlexibleWidth);
-    
-	UITapGestureRecognizer *tapRecognizer = [[UITapGestureRecognizer alloc] 
-														 initWithTarget:self action:@selector(handleTap:)];
-	[self.disableViewOverlay addGestureRecognizer:tapRecognizer];
-	
-	[self.maintenanceView setText:@"Aucun résultat"];
-    
-    self.arrayData = [[NSMutableArray alloc] init];
-    self.arrayNewData = [[NSMutableArray alloc] init];
-    
-    self.imageForUnselectedRow = [UIImage imageNamed:@"selectedrow"];
-    self.imageForSelectedRow = [UIImage imageNamed:@"unselectedrow"];
-    
-    self.imageForRedFlag = [UIImage imageNamed:@"Flat-RedFlag-25"];
-    self.imageForYellowFlag = [UIImage imageNamed:@"Flat-YellowFlag-25"];
-    self.imageForBlueFlag = [UIImage imageNamed:@"Flat-CyanFlag-25"];
-}
-
-
-- (void) viewWillAppear:(BOOL)animated
-{
-	//[self.navigationController setNavigationBarHidden:YES animated:animated];
-    [super viewWillAppear:animated];
-    Theme theme = [[ThemeManager sharedManager] theme];
-    self.view.backgroundColor = self.maintenanceView.backgroundColor = self.loadingView.backgroundColor = self.topicsTableView.backgroundColor = [ThemeColors greyBackgroundColor:theme];
-    self.optionSearchInSegmentedControl.backgroundColor = self.optionSearchFromSegmentedControl.backgroundColor = self.optionSearchTypeSegmentedControl.backgroundColor = self.textSearchBar.backgroundColor = [ThemeColors greyBackgroundColor:theme];
-    
-
-    self.topicsTableView.separatorColor = [ThemeColors cellBorderColor:theme];
-
-	if (self.messagesTableViewController) {
-		
-		self.messagesTableViewController = nil;
-	}
-}
-
-- (void)toggleSearchFields {
-    self.searchVisible = !self.searchVisible;
-    self.textSearchBar.hidden = !self.searchVisible;
-    self.optionSearchTypeSegmentedControl.hidden = !self.searchVisible;
-    self.optionSearchInSegmentedControl.hidden = !self.searchVisible;
-    self.optionSearchFromSegmentedControl.hidden = !self.searchVisible;
-    self.historicTableView.hidden = !self.searchVisible;
-    
-    if (self.searchVisible) {
-        [self cancelFetchContent];
-        [self.textSearchBar becomeFirstResponder];
-    }
-    
-    // Si tu utilises Auto Layout :
-    [self.view setNeedsLayout];
-    [self.view layoutIfNeeded];
-}
-
-
-
-- (void) viewWillDisappear:(BOOL)animated
-{
-    //[self.navigationController setNavigationBarHidden:NO animated:animated];
-    [super viewWillDisappear:animated];
-}
-
-- (void)viewDidAppear:(BOOL)animated {
-    [super viewDidAppear:animated];
-	
-	//[self.theSearchBar becomeFirstResponder];
-}
-
-- (void)viewDidDisappear:(BOOL)animated
-{
-    [super viewDidDisappear:animated];
-	
-	if (self.topicsTableView.indexPathForSelectedRow) {
-		NSLog(@"SEARCH indexPathForSelectedRow");
-		//[[self.arrayData objectAtIndex:[self.topicsTableView.indexPathForSelectedRow row]] setIsViewed:YES];
-		[self.topicsTableView reloadData];
-	}
-	
-	/*[[(TopicCellView *)[topicsTableView cellForRowAtIndexPath:topicsTableView.indexPathForSelectedRow] titleLabel]setFont:[UIFont systemFontOfSize:13]];
-	 [topicsTableView deselectRowAtIndexPath:topicsTableView.indexPathForSelectedRow animated:NO];*/
-	
-}
-
-- (void)searchBar:(UISearchBar *)searchBar textDidChange:(NSString *)searchText {
-	// We don't want to do anything until the user clicks 
-	// the 'Search' button.
-	// If you wanted to display results as the user types 
-	// you would do that here.
-}
-
-- (void)searchBarTextDidBeginEditing:(UISearchBar *)searchBar {
-    // searchBarTextDidBeginEditing is called whenever 
-    // focus is given to the UISearchBar
-    // call our activate method so that we can do some 
-    // additional things when the UISearchBar shows.
-    [self searchBar:searchBar activate:YES];
-    [searchBar setShowsCancelButton:NO animated:NO];
-}
-
-- (void)searchBarTextDidEndEditing:(UISearchBar *)searchBar {
-    // searchBarTextDidEndEditing is fired whenever the 
-    // UISearchBar loses focus
-    // We don't need to do anything here.
-    [searchBar setShowsCancelButton:NO animated:NO];
-}
-
--(void)handleTap:(id)sender{
-    [self searchBar:self.textSearchBar activate:NO];
-}
-
-- (void)searchBarCancelButtonClicked:(UISearchBar *)searchBar {
-    // Clear the search text
-    // Deactivate the UISearchBar
-    searchBar.text=@"";
-    [self searchBar:searchBar activate:NO];
-}
-
-- (void)searchBarSearchButtonClicked:(UISearchBar *)searchBar {
-    // Do the search and show the results in tableview
-    // Deactivate the UISearchBar
-	
-    // You'll probably want to do this on another thread
-    // SomeService is just a dummy class representing some 
-    // api that you are using to do the search
-
-
-    [self searchBar:searchBar activate:NO];
-	
-	[self fetchContent];
-}
-
-// We call this when we want to activate/deactivate the UISearchBar
-// Depending on active (YES/NO) we disable/enable selection and 
-// scrolling on the UITableView
-// Show/Hide the UISearchBar Cancel button
-// Fade the screen In/Out with the disableViewOverlay and 
-// simple Animations
-- (void)searchBar:(UISearchBar *)searchBar activate:(BOOL) active{	
-	
-    self.topicsTableView.allowsSelection = !active;
-    self.topicsTableView.scrollEnabled = !active;
-    if (!active) {
-        [disableViewOverlay removeFromSuperview];
-        [searchBar resignFirstResponder];
-    } else {
-
-        self.disableViewOverlay.alpha = 0;
-        [self.view addSubview:self.disableViewOverlay];
-		
-        [UIView beginAnimations:@"FadeIn" context:nil];
-        [UIView setAnimationDuration:0.5];
-        //self.disableViewOverlay.alpha = 0.6;
-        [UIView commitAnimations];
-        
-        // probably not needed if you have a details view since you 
-        // will go there on selection
-        NSIndexPath *selected = [self.topicsTableView 
-								 indexPathForSelectedRow];
-        if (selected) {
-            [self.topicsTableView deselectRowAtIndexPath:selected 
-											 animated:NO];
-        }
-    }
-    [searchBar setShowsCancelButton:active animated:YES];
-}
-
+/*
 - (void)parser:(NSXMLParser *)parser parseErrorOccurred:(NSError *)parseError {
 	NSString * errorString = [NSString stringWithFormat:@"Unable to download story feed from web site (Error code %i )", [parseError code]];
 	NSLog(@"error parsing XML: %@", errorString);
@@ -1272,7 +1241,7 @@
 	
 	[self.topicsTableView reloadData];
 }
-
+*/
 // 3. Action lors du changement de sélection
 - (void)segmentedControlChanged:(UISegmentedControl *)sender {
     NSInteger selectedIndex = sender.selectedSegmentIndex;
