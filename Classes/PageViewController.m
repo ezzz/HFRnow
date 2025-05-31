@@ -111,11 +111,9 @@
 
 
 
-- (void)goToPage:(NSString *)pageType;
-{
-	//NSLog(@"gotoPageNumber %@", pageType);
+- (void)goToPage:(NSString *)pageType {
+	NSLog(@"gotoPage pageType %@", pageType);
 
-	
 	if ([pageType isEqualToString:@"begin"]) {
 		[self firstPage:nil];
 	}
@@ -225,6 +223,7 @@
 
 -(void)nextPage:(id)sender {
     self.currentUrl = self.nextPageUrl;
+    NSLog(@"nextPage nextPageUrl %@", self.nextPageUrl);
     [self fetchContent];
 }
 

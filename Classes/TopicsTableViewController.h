@@ -27,22 +27,13 @@
 @property (nonatomic, strong) NSArray *pickerViewArray;
 @property (nonatomic, strong) UIActionSheet *actionSheet;
 @property (nonatomic, strong) UISegmentedControl  *subCatSegmentedControl;
-@property (nonatomic, strong) NSString *forumName;
-@property (nonatomic, strong) NSString *forumNewTopicUrl;
-@property (nonatomic, strong) NSString *forumBaseURL;
-@property (nonatomic, strong) NSString *forumFavorisURL;
-@property (nonatomic, strong) NSString *forumFlag1URL;
-@property (nonatomic, strong) NSString *forumFlag0URL;
 
 @property (nonatomic, strong) TopicsSearchViewController *topicSearchViewController;
 @property (nonatomic, strong) PullToRefreshErrorViewController *errorVC;
 
 @property (nonatomic, weak) IBOutlet TopicCellView *tmpCell;
 
-@property (nonatomic, strong) UISwipeGestureRecognizer *swipeLeftRecognizer;
-@property (nonatomic, strong) UISwipeGestureRecognizer *swipeRightRecognizer;
-
-@property (strong, nonatomic) ASIHTTPRequest *request;
+//@property (strong, nonatomic) ASIHTTPRequest *request;
 
 @property int selectedFlagIndex;
 
@@ -50,12 +41,11 @@
 
 - (instancetype)init;
 - (instancetype)initWithFlag:(int)flag;
-
-
-- (void)loadDataInTableView:(NSData *)contentData;
 - (void)reset;
-- (void)shakeHappened:(ShakeView*)view;
+- (void)pushTopic;
 
+ /*
+- (void)shakeHappened:(ShakeView*)view;
 - (void)showPicker:(id)sender;
 - (CGRect)pickerFrameWithSize:(CGSize)size;
 - (void)dismissActionSheet;
@@ -70,8 +60,7 @@
 - (void)newTopic;
 
 - (void)setTopicViewed;
-- (void)pushTopic;
 
-- (void)test;
+- (void)test;*/
 
 @end

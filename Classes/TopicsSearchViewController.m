@@ -22,20 +22,12 @@
 
 @implementation TopicsSearchViewController
 
-@synthesize stories;
-@synthesize request;
-@synthesize disableViewOverlay;
-@synthesize status, statusMessage, messagesTableViewController, detailNavigationViewController, tmpCell, pressedIndexPath, topicActionSheet, topicActionAlert;
-@synthesize imageForRedFlag, imageForYellowFlag, imageForBlueFlag, imageForGreyFlag;
-@synthesize textSearchBar, optionSearchTypeSegmentedControl, optionSearchInSegmentedControl, optionSearchFromSegmentedControl, item;// currentElement, currentSummary, currentUrl, currentTitle, currentDate, currentSummary, currentLink, item;
-
 #pragma mark - ViewController Methods
 
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    self.title = @"Recherche";
-    self.searchVisible = YES; // Visible par défaut
+    self.title = [NSString stringWithFormat:@"Recherche"]; //, self.forumName];
 
     // Mettre à jour l'icône du bouton
     self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc]
@@ -44,6 +36,11 @@
         target:self
         action:@selector(toggleSearchFields)];
 
+    // 0. Container de l'en-tête -----
+    self.searchHeaderView = [[UIView alloc] init];
+    self.searchHeaderView.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.view addSubview:self.searchHeaderView];
+    
     // 1. Ajouter la SearchBar
     self.textSearchBar = [[UISearchBar alloc] init]; //initWithFrame:CGRectMake(0, 0, self.view.frame.size.width, 44)];
     self.textSearchBar.placeholder = @"Recherche";
@@ -54,65 +51,91 @@
     }
     
     self.textSearchBar.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.view addSubview:self.textSearchBar];
-
-    // Contraintes Auto Layout
-    [NSLayoutConstraint activateConstraints:@[
-        [self.textSearchBar.topAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.topAnchor constant:6],
-        [self.textSearchBar.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
-        [self.textSearchBar.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
-        [self.textSearchBar.heightAnchor constraintEqualToConstant:44]
-    ]];
+    [self.searchHeaderView addSubview:self.textSearchBar];
     
     [self.textSearchBar becomeFirstResponder];
 
     // 2. Ajouter le SegmentedControl juste en dessous
-    optionSearchTypeSegmentedControl, optionSearchInSegmentedControl, optionSearchFromSegmentedControl;
+    //optionSearchTypeSegmentedControl, optionSearchInSegmentedControl, optionSearchFromSegmentedControl;
     
     NSArray *items1 = @[@"Tous les mots", @"Au moins un mot", @"Avancé"];
     self.optionSearchTypeSegmentedControl = [[UISegmentedControl alloc] initWithItems:items1];
     self.optionSearchTypeSegmentedControl.selectedSegmentIndex = 0;
     [self.optionSearchTypeSegmentedControl addTarget:self action:@selector(segmentedControlChanged:) forControlEvents:UIControlEventValueChanged];
     self.optionSearchTypeSegmentedControl.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.view addSubview:self.optionSearchTypeSegmentedControl];
-    
-    [NSLayoutConstraint activateConstraints:@[
-        [self.optionSearchTypeSegmentedControl.topAnchor constraintEqualToAnchor:self.textSearchBar.bottomAnchor constant:12],
-        [self.optionSearchTypeSegmentedControl.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:16],
-        [self.optionSearchTypeSegmentedControl.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-16],
-        [self.optionSearchTypeSegmentedControl.heightAnchor constraintEqualToConstant:30]
-    ]];
+    [self.searchHeaderView addSubview:self.optionSearchTypeSegmentedControl];
 
     NSArray *items2 = @[@"Titre et contenu", @"Titre", @"Contenu"];
     self.optionSearchInSegmentedControl = [[UISegmentedControl alloc] initWithItems:items2];
     self.optionSearchInSegmentedControl.selectedSegmentIndex = 0;
     [self.optionSearchInSegmentedControl addTarget:self action:@selector(segmentedControlChanged:) forControlEvents:UIControlEventValueChanged];
     self.optionSearchInSegmentedControl.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.view addSubview:self.optionSearchInSegmentedControl];
-    
-    [NSLayoutConstraint activateConstraints:@[
-        [self.optionSearchInSegmentedControl.topAnchor constraintEqualToAnchor:self.optionSearchTypeSegmentedControl.bottomAnchor constant:16],
-        [self.optionSearchInSegmentedControl.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:16],
-        [self.optionSearchInSegmentedControl.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-16],
-        [self.optionSearchInSegmentedControl.heightAnchor constraintEqualToConstant:30]
-    ]];
+    [self.searchHeaderView addSubview:self.optionSearchInSegmentedControl];
 
     NSArray *items3 = @[@"Début", @"5 ans", @"1 an"];
     self.optionSearchFromSegmentedControl = [[UISegmentedControl alloc] initWithItems:items3];
     self.optionSearchFromSegmentedControl.selectedSegmentIndex = 0;
     [self.optionSearchFromSegmentedControl addTarget:self action:@selector(segmentedControlChanged:) forControlEvents:UIControlEventValueChanged];
     self.optionSearchFromSegmentedControl.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.view addSubview:self.optionSearchFromSegmentedControl];
+    [self.searchHeaderView addSubview:self.optionSearchFromSegmentedControl];
+    
+    // Créer la vue d’assombrissement
+    self.backgroundDimView = [[UIView alloc] init];
+    self.backgroundDimView.translatesAutoresizingMaskIntoConstraints = NO;
+    self.backgroundDimView.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.4]; // ou 0.6, selon l’effet désiré
+    self.backgroundDimView.hidden = YES; // masquée par défaut
+    UITapGestureRecognizer *tapRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(toggleSearchFields)];
+    [self.backgroundDimView addGestureRecognizer:tapRecognizer];
+    [self.view addSubview:self.backgroundDimView];
+    [self.view bringSubviewToFront:self.searchHeaderView]; // searchHeaderView au-dessus du fond
+
+    // Contraintes plein écran
+    [NSLayoutConstraint activateConstraints:@[
+        [self.backgroundDimView.topAnchor constraintEqualToAnchor:self.view.topAnchor],
+        [self.backgroundDimView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor],
+        [self.backgroundDimView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [self.backgroundDimView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor]
+    ]];
+    
+    // Contraintes du container (en haut de l'écran)
+    [NSLayoutConstraint activateConstraints:@[
+        [self.searchHeaderView.topAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.topAnchor],
+        [self.searchHeaderView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [self.searchHeaderView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
+        [self.searchHeaderView.bottomAnchor constraintEqualToAnchor:self.optionSearchFromSegmentedControl.bottomAnchor constant:20]
+    ]];
+    
+    // Contraintes Auto Layout
+    [NSLayoutConstraint activateConstraints:@[
+        [self.textSearchBar.topAnchor constraintEqualToAnchor:self.searchHeaderView.topAnchor constant:6],
+        [self.textSearchBar.leadingAnchor constraintEqualToAnchor:self.searchHeaderView.leadingAnchor],
+        [self.textSearchBar.trailingAnchor constraintEqualToAnchor:self.searchHeaderView.trailingAnchor],
+        [self.textSearchBar.heightAnchor constraintEqualToConstant:44]
+    ]];
+    
+    [NSLayoutConstraint activateConstraints:@[
+        [self.optionSearchTypeSegmentedControl.topAnchor constraintEqualToAnchor:self.textSearchBar.bottomAnchor constant:16],
+        [self.optionSearchTypeSegmentedControl.leadingAnchor constraintEqualToAnchor:self.searchHeaderView.leadingAnchor constant:16],
+        [self.optionSearchTypeSegmentedControl.trailingAnchor constraintEqualToAnchor:self.searchHeaderView.trailingAnchor constant:-16],
+        [self.optionSearchTypeSegmentedControl.heightAnchor constraintEqualToConstant:30]
+    ]];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [self.optionSearchInSegmentedControl.topAnchor constraintEqualToAnchor:self.optionSearchTypeSegmentedControl.bottomAnchor constant:16],
+        [self.optionSearchInSegmentedControl.leadingAnchor constraintEqualToAnchor:self.searchHeaderView.leadingAnchor constant:16],
+        [self.optionSearchInSegmentedControl.trailingAnchor constraintEqualToAnchor:self.searchHeaderView.trailingAnchor constant:-16],
+        [self.optionSearchInSegmentedControl.heightAnchor constraintEqualToConstant:30]
+    ]];
     
     [NSLayoutConstraint activateConstraints:@[
         [self.optionSearchFromSegmentedControl.topAnchor constraintEqualToAnchor:self.optionSearchInSegmentedControl.bottomAnchor constant:16],
-        [self.optionSearchFromSegmentedControl.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:16],
-        [self.optionSearchFromSegmentedControl.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-16],
+        [self.optionSearchFromSegmentedControl.leadingAnchor constraintEqualToAnchor:self.searchHeaderView.leadingAnchor constant:16],
+        [self.optionSearchFromSegmentedControl.trailingAnchor constraintEqualToAnchor:self.searchHeaderView.trailingAnchor constant:-16],
         [self.optionSearchFromSegmentedControl.heightAnchor constraintEqualToConstant:30]
     ]];
 
-
     // 3. TableView – pour historique
+    /*
     self.historicTableView = [[UITableView alloc] init];
     self.historicTableView.dataSource = self;
     self.historicTableView.delegate = self;
@@ -125,17 +148,62 @@
         [self.historicTableView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
         [self.historicTableView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
         [self.historicTableView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor]
+    ]];*/
+
+    // Loading view
+    // ----- Vue de chargement -----
+    self.loadingView = [[UIView alloc] init];
+    self.loadingView.translatesAutoresizingMaskIntoConstraints = NO;
+    self.loadingView.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.5];
+
+    [self.view addSubview:self.loadingView];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [self.loadingView.topAnchor constraintEqualToAnchor:self.view.topAnchor],
+        [self.loadingView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor],
+        [self.loadingView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [self.loadingView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor]
     ]];
-    self.stories =[[NSMutableArray alloc]init];
-    self.disableViewOverlay = [[UIView alloc]
-                               initWithFrame:CGRectMake(0.0f,0.0f,1000.0f,1000.0f)];
-    self.disableViewOverlay.backgroundColor=[UIColor blackColor];
+    
+    self.activityIndicator = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleLarge];
+    self.activityIndicator.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.loadingView addSubview:self.activityIndicator];
+
+    self.loadingLabel = [[UILabel alloc] init];
+    self.loadingLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    self.loadingLabel.text = @"Chargement...";
+    self.loadingLabel.textColor = [UIColor whiteColor];
+    self.loadingLabel.font = [UIFont fontWithName:@"Helvetica-Bold" size:12];
+    [self.loadingView addSubview:self.loadingLabel];
+    
+    [NSLayoutConstraint activateConstraints:@[
+        // Centrer le groupe horizontalement et verticalement
+        [self.activityIndicator.centerYAnchor constraintEqualToAnchor:self.loadingView.centerYAnchor],
+        [self.loadingLabel.centerYAnchor constraintEqualToAnchor:self.activityIndicator.centerYAnchor],
+
+        // Spinner à gauche
+        [self.activityIndicator.centerXAnchor constraintEqualToAnchor:self.loadingView.centerXAnchor constant:-40],
+
+        // Label à droite du spinner
+        [self.loadingLabel.leadingAnchor constraintEqualToAnchor:self.activityIndicator.trailingAnchor constant:12],
+        
+        // Taille
+        [self.activityIndicator.heightAnchor constraintEqualToConstant:12],
+        [self.activityIndicator.widthAnchor constraintEqualToConstant:12]
+    ]];
+    
+    // Autres paramètres
+    self.maintenanceView.hidden = YES; // cachée par défaut
+    self.topicsTableView.hidden = YES; // cachée par défaut
+    self.loadingView.hidden = YES; // cachée par défaut
+
+    self.disableViewOverlay = [[UIView alloc] initWithFrame:CGRectMake(0.0f, 0.0f, 1000.0f, 1000.0f)];
+    self.disableViewOverlay.backgroundColor = [UIColor blackColor];
     self.disableViewOverlay.alpha = 0;
     
     self.disableViewOverlay.autoresizingMask = (UIViewAutoresizingFlexibleWidth);
     
-    UITapGestureRecognizer *tapRecognizer = [[UITapGestureRecognizer alloc]
-                                                         initWithTarget:self action:@selector(handleTap:)];
+    tapRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTap:)];
     [self.disableViewOverlay addGestureRecognizer:tapRecognizer];
     
     [self.maintenanceView setText:@"Aucun résultat"];
@@ -145,12 +213,12 @@
     
     self.imageForUnselectedRow = [UIImage imageNamed:@"selectedrow"];
     self.imageForSelectedRow = [UIImage imageNamed:@"unselectedrow"];
-    
     self.imageForRedFlag = [UIImage imageNamed:@"Flat-RedFlag-25"];
     self.imageForYellowFlag = [UIImage imageNamed:@"Flat-YellowFlag-25"];
     self.imageForBlueFlag = [UIImage imageNamed:@"Flat-CyanFlag-25"];
+    
+    [self setSearchFieldsHidden:NO];
 }
-
 
 - (void) viewWillAppear:(BOOL)animated
 {
@@ -158,33 +226,61 @@
     [super viewWillAppear:animated];
     Theme theme = [[ThemeManager sharedManager] theme];
     self.view.backgroundColor = self.maintenanceView.backgroundColor = self.loadingView.backgroundColor = self.topicsTableView.backgroundColor = [ThemeColors greyBackgroundColor:theme];
+    self.searchHeaderView.backgroundColor = [ThemeColors navBackgroundColor];
     self.optionSearchInSegmentedControl.backgroundColor = self.optionSearchFromSegmentedControl.backgroundColor = self.optionSearchTypeSegmentedControl.backgroundColor = self.textSearchBar.backgroundColor = [ThemeColors greyBackgroundColor:theme];
-    
 
     self.topicsTableView.separatorColor = [ThemeColors cellBorderColor:theme];
-
+    self.loadingLabel.textColor = [ThemeColors textColor];
     if (self.messagesTableViewController) {
-        
         self.messagesTableViewController = nil;
     }
+    
+    self.topicsTableView.backgroundColor = [UIColor cyanColor];
 }
 
 - (void)toggleSearchFields {
+    if (self.maintenanceView.hidden &&
+        self.topicsTableView.hidden &&
+        self.loadingView.hidden) {
+        return; // Do nothing when everything else is hidden
+    }
     self.searchVisible = !self.searchVisible;
-    self.textSearchBar.hidden = !self.searchVisible;
-    self.optionSearchTypeSegmentedControl.hidden = !self.searchVisible;
-    self.optionSearchInSegmentedControl.hidden = !self.searchVisible;
-    self.optionSearchFromSegmentedControl.hidden = !self.searchVisible;
-    self.historicTableView.hidden = !self.searchVisible;
+    [self setSearchFieldsHidden:self.searchVisible];
+}
+
+- (void)setSearchFieldsHidden:(BOOL)bHidden {
+    self.searchVisible = bHidden;
     
-    if (self.searchVisible) {
-        [self cancelFetchContent];
+    self.searchHeaderView.hidden = self.searchVisible;
+    
+    if (bHidden) {
+        //[self.textSearchBar resignFirstResponder];
+    }
+    else {
         [self.textSearchBar becomeFirstResponder];
     }
     
-    // Si tu utilises Auto Layout :
+    // Fond associé au champs de recherche
+    if (bHidden) {
+        // Afficher avec animation
+        self.backgroundDimView.alpha = 1;
+        self.backgroundDimView.hidden = YES;
+        [UIView animateWithDuration:0.25 animations:^{
+            self.backgroundDimView.alpha = 0;
+        }];
+    }
+    else {
+        // Afficher avec animation
+        self.backgroundDimView.alpha = 0;
+        self.backgroundDimView.hidden = NO;
+        [UIView animateWithDuration:0.25 animations:^{
+            self.backgroundDimView.alpha = 1;
+        }];
+    }
+    
+    /*// Si tu utilises Auto Layout :
     [self.view setNeedsLayout];
-    [self.view layoutIfNeeded];
+    [self.view layoutIfNeeded];*/
 }
 
 - (void)searchBar:(UISearchBar *)searchBar textDidChange:(NSString *)searchText {
@@ -217,22 +313,30 @@
 - (void)searchBarCancelButtonClicked:(UISearchBar *)searchBar {
     // Clear the search text
     // Deactivate the UISearchBar
-    searchBar.text=@"";
+    searchBar.text = @"";
     [self searchBar:searchBar activate:NO];
 }
 
+// Do the search and show the results in tableview & deactivate the UISearchBar
 - (void)searchBarSearchButtonClicked:(UISearchBar *)searchBar {
-    // Do the search and show the results in tableview
-    // Deactivate the UISearchBar
-    
-    // You'll probably want to do this on another thread
-    // SomeService is just a dummy class representing some
-    // api that you are using to do the search
-
-
+    NSLog(@"SEARCH START !!");
     [self searchBar:searchBar activate:NO];
+
+    self.loadingView.hidden = NO;
+    [self.activityIndicator startAnimating];
     
-    [self fetchContent];
+    [self setSearchFieldsHidden:YES];
+    self.maintenanceView.hidden = YES;
+    self.topicsTableView.hidden = YES;
+    
+    // Mettre à jour l'icône du bouton
+    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc]
+        initWithImage:[UIImage systemImageNamed:@"xmark"]
+        style:UIBarButtonItemStylePlain
+        target:self
+        action:@selector(cancelFetchContent)];
+
+    [self fetchContentForSearch];
 }
 
 // We call this when we want to activate/deactivate the UISearchBar
@@ -246,7 +350,7 @@
     self.topicsTableView.allowsSelection = !active;
     self.topicsTableView.scrollEnabled = !active;
     if (!active) {
-        [disableViewOverlay removeFromSuperview];
+        //[disableViewOverlay removeFromSuperview];
         [searchBar resignFirstResponder];
     } else {
 
@@ -270,7 +374,7 @@
     [searchBar setShowsCancelButton:active animated:YES];
 }
 
-#pragma mark - Data lifecycle
+#pragma mark - Data lifecycle - Search request
 
 - (void)createPostString
 {
@@ -381,24 +485,9 @@
     self.dInputPostData = [postString dataUsingEncoding:NSUTF8StringEncoding];
 }
 
-- (void)fetchContent {
+- (void)fetchContentForSearch {
     NSLog(@"SEARCH fetchContent");
-
-	[self.stories removeAllObjects];
 	
-    self.searchVisible = YES;
-    [self toggleSearchFields];
-    self.maintenanceView.hidden = YES;
-    self.topicsTableView.hidden = YES;
-    self.loadingView.hidden = NO;
-    
-    // Mettre à jour l'icône du bouton
-    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc]
-        initWithImage:[UIImage systemImageNamed:@"xmark"]
-        style:UIBarButtonItemStylePlain
-        target:self
-        action:@selector(cancelFetchContent)];
-
     [self createPostString];
     
     // 1. URL cible
@@ -413,7 +502,7 @@
     //NSString *postLength = [NSString stringWithFormat:@"%ld",[postData length]];
     //[request setValue:postLength forHTTPHeaderField:@"Content-Length"];
     [request setTimeoutInterval:TIME_OUT_INTERVAL_SEARCH];
-    
+        
     // 4. Config de session (inclut gestion SSL si nécessaire)
     // Session & tâche
     NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
@@ -494,8 +583,11 @@
                 NSLog(@"🧩 Bloc %lu : %@", (unsigned long)(i / blockSize + 1), block);
             }
             */
+            
+            NSLog(@"SEARCH DATA !!");
+            
             // Parse result
-            [self parseSearchResult:data];
+            [self parseTopicsListResult:data];
             
             [self.arrayData removeAllObjects];
             self.arrayData = [NSMutableArray arrayWithArray:self.arrayNewData];
@@ -510,12 +602,14 @@
                     [self.maintenanceView setHidden:NO];
                     [self.topicsTableView setHidden:YES];
                     [self.loadingView setHidden:YES];
+                    [self.activityIndicator stopAnimating];
                 }
                 else {
                     NSLog(@"Show results");
                     [self.maintenanceView setHidden:YES];
                     [self.topicsTableView setHidden:NO];
                     [self.loadingView setHidden:YES];
+                    [self.activityIndicator stopAnimating];
                 }
                 
                 // Mettre à jour l'icône du bouton
@@ -530,6 +624,7 @@
                             
                 [(UISegmentedControl *)[self.navigationItem.titleView.subviews objectAtIndex:0] setUserInteractionEnabled:YES];
                 [self cancelFetchContent];
+                NSLog(@"SEARCH DONE !!");
             });
         }
     }];
@@ -566,544 +661,11 @@
     return nil;
 }
 
--(void)parseSearchResult:(NSData *)contentData
+
+
+- (void)cancelFetchContentSearch
 {
-    HTMLParser * myParser = [[HTMLParser alloc] initWithData:contentData error:NULL];
-    HTMLNode * bodyNode = [myParser body];
-
-    //NSLog(@"RawContentsOfNode %@", rawContentsOfNode([bodyNode _node], [myParser _doc]));
-    
-    /*
-    if (![bodyNode getAttributeNamed:@"id"]) {
-        NSDictionary *notif;
-        
-        if ([[[bodyNode firstChild] tagName] isEqualToString:@"p"]) {
-            
-            notif = [NSDictionary dictionaryWithObjectsAndKeys:   [NSNumber numberWithInt:kMaintenance], @"status",
-                     [[[bodyNode firstChild] contents] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]], @"message", nil];
-            
-        }
-        else {
-            notif = [NSDictionary dictionaryWithObjectsAndKeys:   [NSNumber numberWithInt:kNoAuth], @"status",
-                     [[[bodyNode findChildWithAttribute:@"class" matchingName:@"hop" allowPartial:NO] contents] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]], @"message", nil];
-            
-        }
-        
-        [[NSNotificationCenter defaultCenter] postNotificationName:kStatusChangedNotification object:self userInfo:notif];
-        
-        return;
-    }
-
-    
-    //MP
-    BOOL needToUpdateMP = NO;
-    HTMLNode *MPNode = [bodyNode findChildOfClass:@"none"]; //Get links for cat
-    NSArray *temporaryMPArray = [MPNode findChildTags:@"td"];
-    
-    if (temporaryMPArray.count == 3) {
-        
-        NSString *regExMP = @"[^.0-9]+([0-9]{1,})[^.0-9]+";
-        NSString *myMPNumber = [[[temporaryMPArray objectAtIndex:1] allContents] stringByReplacingOccurrencesOfRegex:regExMP
-                                                                                                          withString:@"$1"];
-        
-        [[HFRplusAppDelegate sharedAppDelegate] updateMPBadgeWithString:myMPNumber];
-    }
-    else {
-        if ([self isKindOfClass:[HFRMPViewController class]]) {
-            needToUpdateMP = YES;
-        }
-    }
-    //MP
-     */
-
-    
-    //On remplace le numéro de page dans le titre
-    NSString *regexString  = @".*page=([^&]+).*";
-    NSRange   matchedRange;// = NSMakeRange(NSNotFound, 0UL);
-    NSRange   searchRange = NSMakeRange(0, self.currentUrl.length);
-    NSError  *error2        = NULL;
-    //int numPage;
-    
-    matchedRange = [self.currentUrl rangeOfRegex:regexString options:RKLNoOptions inRange:searchRange capture:1L error:&error2];
-    
-    if (matchedRange.location == NSNotFound) {
-        NSRange rangeNumPage =  [[self currentUrl] rangeOfCharactersFromSet:[NSCharacterSet decimalDigitCharacterSet] options:NSBackwardsSearch];
-        self.pageNumber = [[self.currentUrl substringWithRange:rangeNumPage] intValue];
-    }
-    else {
-        self.pageNumber = [[self.currentUrl substringWithRange:matchedRange] intValue];
-        
-    }
-    
-    if (self.pageNumber == 0) {
-        self.pageNumber = 1;
-    }
-    
-    /*
-    //New Topic URL
-    HTMLNode * forumNewTopicNode = [bodyNode findChildWithAttribute:@"id" matchingName:@"md_btn_new_topic" allowPartial:NO];
-    forumNewTopicUrl = [forumNewTopicNode getAttributeNamed:@"href"];
-
-    if(forumNewTopicUrl.length > 0) self.navigationItem.rightBarButtonItem.enabled = YES;
-    //-
-
-    //Filtres
-    HTMLNode *FiltresNode =        [bodyNode findChildWithAttribute:@"class" matchingName:@"cadreonglet" allowPartial:NO];
-    
-    if([FiltresNode findChildWithAttribute:@"id" matchingName:@"onglet1" allowPartial:NO]) self.forumBaseURL = [[FiltresNode findChildWithAttribute:@"id" matchingName:@"onglet1" allowPartial:NO] getAttributeNamed:@"href"];
-    
-    if ([[FiltresNode findChildWithAttribute:@"id" matchingName:@"onglet2" allowPartial:NO] getAttributeNamed:@"href"]) {
-        if(!self.forumFavorisURL)    self.forumFavorisURL = [[FiltresNode findChildWithAttribute:@"id" matchingName:@"onglet2" allowPartial:NO] getAttributeNamed:@"href"];
-        [(UISegmentedControl *)[self.navigationItem.titleView.subviews objectAtIndex:0] setEnabled:YES forSegmentAtIndex:1];
-    }
-    else {
-        [(UISegmentedControl *)[self.navigationItem.titleView.subviews objectAtIndex:0] setEnabled:NO forSegmentAtIndex:1];
-    }
-
-    if ([[FiltresNode findChildWithAttribute:@"id" matchingName:@"onglet3" allowPartial:NO] getAttributeNamed:@"href"]) {
-        if(!self.forumFlag1URL)        self.forumFlag1URL = [[FiltresNode findChildWithAttribute:@"id" matchingName:@"onglet3" allowPartial:NO] getAttributeNamed:@"href"];
-        [(UISegmentedControl *)[self.navigationItem.titleView.subviews objectAtIndex:0] setEnabled:YES forSegmentAtIndex:2];
-    }
-    else {
-        [(UISegmentedControl *)[self.navigationItem.titleView.subviews objectAtIndex:0] setEnabled:NO forSegmentAtIndex:2];
-    }
-
-    if ([[FiltresNode findChildWithAttribute:@"id" matchingName:@"onglet4" allowPartial:NO] getAttributeNamed:@"href"]) {
-        if(!self.forumFlag0URL)        self.forumFlag0URL = [[FiltresNode findChildWithAttribute:@"id" matchingName:@"onglet4" allowPartial:NO] getAttributeNamed:@"href"];
-        [(UISegmentedControl *)[self.navigationItem.titleView.subviews objectAtIndex:0] setEnabled:YES forSegmentAtIndex:3];
-    }
-    else {
-        [(UISegmentedControl *)[self.navigationItem.titleView.subviews objectAtIndex:0] setEnabled:NO forSegmentAtIndex:3];
-    }
-    //NSLog(@"Filtres1Node %@", rawContentsOfNode([Filtres1Node _node], [myParser _doc]));
-    //-- FIN Filtre
-*/
-    
-    HTMLNode * pagesTrNode = [bodyNode findChildWithAttribute:@"class" matchingName:@"fondForum1PagesHaut" allowPartial:YES];
-
-    if(pagesTrNode)
-    {
-        HTMLNode * pagesLinkNode = [pagesTrNode findChildWithAttribute:@"class" matchingName:@"left" allowPartial:NO];
-        
-        //NSLog(@"pagesLinkNode %@", rawContentsOfNode([pagesLinkNode _node], [myParser _doc]));
-
-        if (pagesLinkNode) {
-            NSLog(@"pagesLinkNode %@", rawContentsOfNode([pagesLinkNode _node], [myParser _doc]));
-            
-            //NSArray *temporaryNumPagesArray = [[NSArray alloc] init];
-            NSArray *temporaryNumPagesArray = [pagesLinkNode children];
-            
-            [self setFirstPageNumber:[[[temporaryNumPagesArray objectAtIndex:2] contents] intValue]];
-            
-            NSLog(@"pageNumber %d firstpage %d", self.pageNumber, [[[temporaryNumPagesArray objectAtIndex:2] contents] intValue]);
-            NSLog(@"currentUrl %@", self.currentUrl);
-            if ([self pageNumber] == [self firstPageNumber]) {
-                [self setFirstPageUrl:self.currentUrl];
-            }
-            else {
-                NSString *newFirstPageUrl;
-                NSLog(@"tagname %@", [[temporaryNumPagesArray objectAtIndex:2] tagName]);
-
-                if ([[[temporaryNumPagesArray objectAtIndex:2] tagName] isEqualToString:@"span"]) {
-                    newFirstPageUrl = [[NSString alloc] initWithString:[[[temporaryNumPagesArray objectAtIndex:2] className] decodeSpanUrlFromString2]];
-                }
-                else {
-                    newFirstPageUrl = [[NSString alloc] initWithString:[[temporaryNumPagesArray objectAtIndex:2] getAttributeNamed:@"href"]];
-                }
-                
-                [self setFirstPageUrl:newFirstPageUrl];
-            }
-            
-            [self setLastPageNumber:[[[temporaryNumPagesArray lastObject] contents] intValue]];
-            
-            if ([self pageNumber] == [self lastPageNumber]) {
-                NSString *newLastPageUrl = [[NSString alloc] initWithString:[self currentUrl]];
-                [self setLastPageUrl:newLastPageUrl];
-            }
-            else {
-                NSString *newLastPageUrl;
-                
-                if ([[[temporaryNumPagesArray lastObject] tagName] isEqualToString:@"span"]) {
-                    newLastPageUrl = [[NSString alloc] initWithString:[[[temporaryNumPagesArray lastObject] className] decodeSpanUrlFromString2]];
-                }
-                else {
-                    newLastPageUrl = [[NSString alloc] initWithString:[[temporaryNumPagesArray lastObject] getAttributeNamed:@"href"]];
-                }
-                
-                [self setLastPageUrl:newLastPageUrl];
-            }
-            
-            
-            //TableFooter
-            dispatch_async(dispatch_get_main_queue(), ^{
-
-                UIToolbar *tmptoolbar = [[UIToolbar alloc] initWithFrame:CGRectMake(0, 0, 320, 44)];
-                tmptoolbar.barStyle = -1;
-                tmptoolbar.opaque = NO;
-                tmptoolbar.translucent = YES;
-
-                if (tmptoolbar.subviews.count > 1) {
-                    [[tmptoolbar.subviews objectAtIndex:1] setHidden:YES];
-                }
-
-                [tmptoolbar setBackgroundImage:[ThemeColors imageFromColor:[ThemeColors toolbarPageBackgroundColor:[[ThemeManager sharedManager] theme]]] forToolbarPosition:UIBarPositionAny barMetrics:UIBarMetricsDefault];
-                [tmptoolbar setShadowImage:[UIImage new] forToolbarPosition:UIBarPositionAny];
-                [tmptoolbar sizeToFit];
-
-                UIBarButtonItem *systemItemNext = [[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"arrowforward"]
-                                                                                   style:UIBarButtonItemStyleBordered
-                                                                                  target:self
-                                                                                  action:@selector(nextPage:)];
-                
-                UIBarButtonItem *systemItemPrevious = [[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"arrowback"]
-                                                                                   style:UIBarButtonItemStyleBordered
-                                                                                  target:self
-                                                                                  action:@selector(previousPage:)];
-
-                
-                UIBarButtonItem *systemItem1 = [[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"arrowbegin"]
-                                                                                       style:UIBarButtonItemStyleBordered
-                                                                                      target:self
-                                                                                      action:@selector(firstPage:)];
-                
-                if ([self pageNumber] == [self firstPageNumber]) {
-                    [systemItem1 setEnabled:NO];
-                    [systemItemPrevious setEnabled:NO];
-                }
-                
-                UIBarButtonItem *systemItem2 = [[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"arrowend"]
-                                                                                style:UIBarButtonItemStyleBordered
-                                                                               target:self
-                                                                               action:@selector(lastPage:)];
-                
-                //systemItem2.imageInsets = UIEdgeInsetsMake(2.0, 0, -2.0, 0);
-
-                if ([self pageNumber] == [self lastPageNumber]) {
-                    [systemItem2 setEnabled:NO];
-                    [systemItemNext setEnabled:NO];
-                }
-
-                UIButton *labelBtn = [UIButton buttonWithType:UIButtonTypeCustom];
-                labelBtn.frame = CGRectMake(0, 0, 130, 44);
-                [labelBtn addTarget:self action:@selector(choosePage) forControlEvents:UIControlEventTouchUpInside];
-                [labelBtn setTitle:[NSString stringWithFormat:@"%d/%d", [self pageNumber], [self lastPageNumber]] forState:UIControlStateNormal];
-                
-                [[labelBtn titleLabel] setFont:[UIFont boldSystemFontOfSize:16.0]];
-                [labelBtn setTitleColor:[ThemeColors cellIconColor:[[ThemeManager sharedManager] theme]] forState:UIControlStateNormal];
-                UIBarButtonItem *systemItem3 = [[UIBarButtonItem alloc] initWithCustomView:labelBtn];
-                
-                //Use this to put space in between your toolbox buttons
-                UIBarButtonItem *flexItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace
-                                                                                          target:nil
-                                                                                          action:nil];
-                UIBarButtonItem *fixItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFixedSpace
-                                                                                          target:nil
-                                                                                          action:nil];
-                fixItem.width = SPACE_FOR_BARBUTTON;
-                
-                //Add buttons to the array
-                NSArray *items = [NSArray arrayWithObjects: systemItem1, fixItem, systemItemPrevious, flexItem, systemItem3, flexItem, systemItemNext, fixItem, systemItem2, nil];
-                [tmptoolbar setItems:items animated:NO];
-                if ([self firstPageNumber] != [self lastPageNumber]) {
-                    if (![self.topicsTableView viewWithTag:666777]) {
-                        CGRect frame = self.topicsTableView.bounds;
-                        frame.origin.y = -frame.size.height;
-                        UIView* grayView = [[UIView alloc] initWithFrame:frame];
-                        grayView.tag = 666777;
-                        grayView.backgroundColor = [ThemeColors addMessageBackgroundColor:[[ThemeManager sharedManager] theme]];
-                        [self.topicsTableView insertSubview:grayView atIndex:0];
-                    }
-
-                    [self.topicsTableView setBackgroundColor:[ThemeColors addMessageBackgroundColor:[[ThemeManager sharedManager] theme]]];
-                    self.topicsTableView.tableFooterView = tmptoolbar;
-                }
-                else {
-                    self.topicsTableView.tableFooterView = [[UIView alloc] initWithFrame:CGRectZero];
-                }
-            });
-
-        }
-        
-        //Gestion des pages
-        NSArray *temporaryPagesArray = [pagesTrNode findChildrenWithAttribute:@"class" matchingName:@"pagepresuiv" allowPartial:YES];
-        if(temporaryPagesArray.count != 2)
-        {
-            NSLog(@"SEARCH Next page PAS 2", self.nextPageUrl);
-        }
-        else {
-            HTMLNode *nextUrlNode = [[temporaryPagesArray objectAtIndex:0] findChildWithAttribute:@"class" matchingName:@"md_cryptlink" allowPartial:YES];
-
-            if (nextUrlNode) {
-                self.nextPageUrl = [[nextUrlNode className] decodeSpanUrlFromString2];
-                NSLog(@"SEARCH Next page URL %@", self.nextPageUrl);
-            }
-            else {
-                self.nextPageUrl = @"";
-                NSLog(@"SEARCH Next page is null", self.nextPageUrl);
-            }
-            
-            HTMLNode *previousUrlNode = [[temporaryPagesArray objectAtIndex:1] findChildWithAttribute:@"class" matchingName:@"md_cryptlink" allowPartial:YES];
-            
-            if (previousUrlNode) {
-                
-                self.previousPageUrl = [[previousUrlNode className] decodeSpanUrlFromString2];
-                //TODO SEARCH add swipeLeftRecognizer [self.view addGestureRecognizer:swipeRightRecognizer];
-                //NSLog(@"previousPageUrl = %@", self.previousPageUrl);
-
-            }
-            else {
-                self.previousPageUrl = @"";
-            }
-
-        }
-    }
-    
-    NSArray *temporaryTopicsArray = [bodyNode findChildrenWithAttribute:@"class" matchingName:@"sujet ligne_booleen" allowPartial:YES]; //Get links for cat
-    if (temporaryTopicsArray.count == 0) {
-        //NSLog(@"Aucun nouveau message %d", self.arrayDataID.count);
-        NSLog(@"kNoResults");
-        
-        NSDictionary *notif = [NSDictionary dictionaryWithObjectsAndKeys:   [NSNumber numberWithInt:kNoResults], @"status",
-                               @"Aucun message", @"message", nil];
-        
-        [[NSNotificationCenter defaultCenter] postNotificationName:kStatusChangedNotification object:self userInfo:notif];
-        return;
-    }
-    else {
-        //NSLog(@"PARSING Found %ld results", temporaryTopicsArray.count);
-
-    }
-    
-    //Date du jour
-    NSDate *nowTopic = [[NSDate alloc] init];
-    NSDateFormatter *dateFormat = [[NSDateFormatter alloc] init];
-    [dateFormat setDateFormat:@"dd-MM-yyyy"];
-    int countViewed = 0;
-    
-
-    for (HTMLNode * topicNode in temporaryTopicsArray) { //Loop through all the tags
-        
-        @autoreleasepool {
-
-            Topic *aTopic = [[Topic alloc] init];
-            
-            //Title & URL
-            HTMLNode * topicTitleNode = [topicNode findChildWithAttribute:@"class" matchingName:@"sujetCase3" allowPartial:NO];
-
-            NSString *aTopicAffix = [NSString string];
-            NSString *aTopicSuffix = [NSString string];
-
-            
-            if ([[topicNode className] rangeOfString:@"ligne_sticky"].location != NSNotFound) {
-                aTopicAffix = [aTopicAffix stringByAppendingString:@""];//➫ ➥▶✚
-                aTopic.isSticky = YES;
-            }
-            if ([topicTitleNode findChildWithAttribute:@"alt" matchingName:@"closed" allowPartial:NO]) {
-                aTopicAffix = [aTopicAffix stringByAppendingString:@""];
-                aTopic.isClosed = YES;
-            }
-            
-            if (aTopicAffix.length > 0) {
-                aTopicAffix = [aTopicAffix stringByAppendingString:@" "];
-            }
-
-            aTopicAffix = @"";
-
-            // Title & Dernier Message correspondant
-            NSArray *temporaryNumPagesArray = [topicNode findChildTags:@"a"];
-            if (temporaryNumPagesArray.count > 1) {
-                HTMLNode* NodetemporaryNumPagesArray[1];
-            }
-            
-            NSArray *temporaryTopicLinksArray = [topicTitleNode findChildTags:@"a"];
-            if (temporaryTopicLinksArray.count > 1) {
-                HTMLNode* sSearchURL = (HTMLNode*)temporaryTopicLinksArray[1];
-                NSLog(@"SEARCH sLastSearchPostURL href > %@", [sSearchURL getAttributeNamed:@"href"]);
-                aTopic.sLastSearchPostURL = [sSearchURL getAttributeNamed:@"href"];
-            }
-            
-            HTMLNode * topicExactTitleNode = [topicTitleNode findChildWithAttribute:@"class" matchingName:@"cCatTopic" allowPartial:NO];
-            NSString *sExactTopicTitle = [topicExactTitleNode allContents];
-            
-            HTMLNode * searchContentNode = [topicTitleNode findChildWithAttribute:@"class" matchingName:@"s1" allowPartial:NO];
-            if (searchContentNode) {
-                aTopic.sLastSearchPostContent = [searchContentNode allContents];
-                //NSLog(@"SEARCH FOUND     > %@, %@", sExactTopicTitle, aTopic.sLastSearchPostContent);
-            }
-            else {
-                //NSLog(@"SEARCH NOT found > %@, %@", sExactTopicTitle, aTopic.sLastSearchPostContent);
-            }
-            [aTopic setATitle: [[NSString alloc] initWithFormat:@"%@%@%@", aTopicAffix, [sExactTopicTitle stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]], aTopicSuffix]];
-
-            NSString *aTopicURL = [[NSString alloc] initWithString:[[topicTitleNode findChildTag:@"a"] getAttributeNamed:@"href"]];
-            [aTopic setAURL:aTopicURL];
-
-            
-            //Answer Count
-            HTMLNode * numRepNode = [topicNode findChildWithAttribute:@"class" matchingName:@"sujetCase7" allowPartial:NO];
-            [aTopic setARepCount:[[numRepNode contents] intValue]];
-
-            HTMLNode * pollImage = [topicNode findChildWithAttribute:@"src" matchingName:@"https://forum-images.hardware.fr/themes_static/images/defaut/sondage.gif" allowPartial:NO];
-            if (pollImage != nil) {
-                aTopic.isPoll = YES;
-            }
-
-            //Setup of Flag
-            HTMLNode * topicFlagNode = [topicNode findChildWithAttribute:@"class" matchingName:@"sujetCase5" allowPartial:NO];
-            HTMLNode * topicFlagLinkNode = [topicFlagNode findChildTag:@"a"];
-            if (topicFlagLinkNode) {
-                HTMLNode * topicFlagImgNode = [topicFlagLinkNode firstChild];
-
-                NSString *aURLOfFlag = [[NSString alloc] initWithString:[topicFlagLinkNode getAttributeNamed:@"href"]];
-                [aTopic setAURLOfFlag:aURLOfFlag];
-                
-                NSString *imgFlagSrc = [[NSString alloc] initWithString:[topicFlagImgNode getAttributeNamed:@"src"]];
-                
-                if (!([imgFlagSrc rangeOfString:@"flag0.gif"].location == NSNotFound)) {
-                    [aTopic setATypeOfFlag:@"red"];
-                }
-                else if (!([imgFlagSrc rangeOfString:@"flag1.gif"].location == NSNotFound)) {
-                    [aTopic setATypeOfFlag:@"blue"];
-                }
-                else if (!([imgFlagSrc rangeOfString:@"favoris.gif"].location == NSNotFound)) {
-                    [aTopic setATypeOfFlag:@"yellow"];
-                }
-            
-                // Read page of flag
-                int pageNumber = 0;
-                //Deux types d'URL:
-                //https://forum.hardware.fr/hfr/Discussions/Viepratique/questions-avffuo-sujet_55667_14466.htm#t72765761
-                //https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&subcat=432&post=55667&page=14466&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#t72765761
-                NSString *regexString  = @".*_(\\d+)\\.htm.*";
-                if ([aTopic.aURLOfFlag hasPrefix:@"/forum2.php"]) {
-                    regexString  = @".*page=([^&]+).*";
-                }
-                NSRange   matchedRange;// = NSMakeRange(NSNotFound, 0UL);
-                NSRange   searchRange = NSMakeRange(0, aTopic.aURLOfFlag.length);
-                NSError  *error2        = NULL;
-                
-                matchedRange = [aTopic.aURLOfFlag rangeOfRegex:regexString options:RKLNoOptions inRange:searchRange capture:1L error:&error2];
-                
-                if (matchedRange.location == NSNotFound) {
-                    NSRange rangeNumPage =  [aTopic.aURLOfFlag rangeOfCharactersFromSet:[NSCharacterSet decimalDigitCharacterSet] options:NSBackwardsSearch];
-                    pageNumber = [[aTopic.aURLOfFlag substringWithRange:rangeNumPage] intValue];
-                }
-                else {
-                    pageNumber = [[aTopic.aURLOfFlag substringWithRange:matchedRange] intValue];
-                    
-                }
-                //NSLog(@"Read page of flag %@", aTopic.aURLOfFlag);
-                //NSLog(@"Current page of flag %ld", pageNumber);
-
-                [aTopic setCurTopicPage:pageNumber];
-            }
-            else {
-                [aTopic setAURLOfFlag:@""];
-                [aTopic setATypeOfFlag:@""];
-            }
-
-            //Viewed?
-            [aTopic setIsViewed:YES];
-            HTMLNode * viewedNode = [topicNode findChildWithAttribute:@"class" matchingName:@"sujetCase1" allowPartial:YES];
-            HTMLNode * viewedFlagNode = [viewedNode findChildTag:@"img"];
-            if (viewedFlagNode) {
-                NSString *viewedFlagAlt = [viewedFlagNode getAttributeNamed:@"alt"];
-            
-                if ([viewedFlagAlt isEqualToString:@"On"]) {
-                    [aTopic setIsViewed:NO];
-                    countViewed++;
-                }
-            }
-
-            //aAuthorOrInter
-            HTMLNode * interNode = [topicNode findChildWithAttribute:@"class" matchingName:@"sujetCase6" allowPartial:YES];
-                
-            if ([[interNode findChildTag:@"a"] contents]) {
-                NSString *aAuthorOrInter = [[NSString alloc] initWithFormat:@"%@", [[interNode findChildTag:@"a"] contents]];
-            [aTopic setAAuthorOrInter:aAuthorOrInter];
-            }
-            else if ([[interNode findChildTag:@"span"] contents]) {
-                NSString *aAuthorOrInter = [[NSString alloc] initWithFormat:@"%@", [[interNode findChildTag:@"span"] contents]];
-                [aTopic setAAuthorOrInter:aAuthorOrInter];
-            }
-            else {
-                [aTopic setAAuthorOrInter:@""];
-            }
-
-            //Author & Url of Last Post & Date
-            HTMLNode * lastRepNode = [topicNode findChildWithAttribute:@"class" matchingName:@"sujetCase9" allowPartial:YES];
-            HTMLNode * linkLastRepNode = [lastRepNode firstChild];
-        
-            if ([[linkLastRepNode findChildTag:@"b"] contents]) {
-                NSString *aAuthorOfLastPost = [[NSString alloc] initWithFormat:@"%@", [[linkLastRepNode findChildTag:@"b"] contents]];
-                [aTopic setAAuthorOfLastPost:aAuthorOfLastPost];
-            }
-            else {
-                [aTopic setAAuthorOfLastPost:@""];
-            }
-            
-            NSString *aURLOfLastPost = [[NSString alloc] initWithString:[linkLastRepNode getAttributeNamed:@"href"]];
-            [aTopic setAURLOfLastPost:aURLOfLastPost];
-            
-
-            NSString *maDate = [linkLastRepNode contents];
-            NSDateFormatter * df = [[NSDateFormatter alloc] init];
-            [df setTimeZone:[NSTimeZone timeZoneWithName:@"Europe/Paris"]];
-            [df setDateFormat:@"dd-MM-yyyy à HH:mm"];
-            aTopic.dDateOfLastPost = [df dateFromString:maDate];
-            NSTimeInterval secondsBetween = [nowTopic timeIntervalSinceDate:aTopic.dDateOfLastPost];
-            int numberMinutes = secondsBetween / 60;
-            int numberHours = secondsBetween / 3600;
-            if (secondsBetween < 0)
-            {
-                [aTopic setADateOfLastPost:[maDate substringFromIndex:13]];
-            }
-            else if (numberMinutes == 0)
-            {
-                [aTopic setADateOfLastPost:@"il y a 1 min"];
-            }
-            else if (numberMinutes >= 1 && numberMinutes < 60)
-            {
-                [aTopic setADateOfLastPost:[NSString stringWithFormat:@"il y a %d min",numberMinutes]];
-            }
-            else if (secondsBetween >= 3600 && secondsBetween < 24*3600)
-            {
-                [aTopic setADateOfLastPost:[NSString stringWithFormat:@"il y a %d h",numberHours]];
-            }
-            else
-            {
-            [aTopic setADateOfLastPost:[NSString stringWithFormat:@"%@/%@/%@", [maDate substringWithRange:NSMakeRange(0, 2)]
-                                  , [maDate substringWithRange:NSMakeRange(3, 2)]
-                                  , [maDate substringWithRange:NSMakeRange(8, 2)]]];
-            }
-
-            //URL of Last Page & maxPage
-            HTMLNode * topicLastPageNode = [[topicNode findChildWithAttribute:@"class" matchingName:@"sujetCase4" allowPartial:NO] findChildTag:@"a"];
-            if (topicLastPageNode) {
-                NSString *aURLOfLastPage = [[NSString alloc] initWithString:[topicLastPageNode getAttributeNamed:@"href"]];
-                [aTopic setAURLOfLastPage:aURLOfLastPage];
-            [aTopic setMaxTopicPage:[[topicLastPageNode contents] intValue]];
-
-            }
-            else {
-                [aTopic setAURLOfLastPage:[aTopic aURL]];
-                [aTopic setMaxTopicPage:1];
-
-            }
-            
-            [self.arrayNewData addObject:aTopic];
-        }
-    }
-    
-    if (self.status != kNoResults) {
-        NSDictionary *notif = [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithInt:kComplete], @"status", nil];
-        [[NSNotificationCenter defaultCenter] postNotificationName:kStatusChangedNotification object:self userInfo:notif];
-    }
-}
-
-- (void)cancelFetchContent
-{
-    [request cancel];
+    [self.request cancel];
     self.searchVisible = NO;
     NSLog(@"BUTTON magnifyingglass");
     
@@ -1113,135 +675,12 @@
         style:UIBarButtonItemStylePlain
         target:self
         action:@selector(toggleSearchFields)];
+    
+    [self setSearchFieldsHidden:NO];
+    self.loadingView.hidden = YES;
+    [self.activityIndicator stopAnimating];
 }
 
-
-/*
-- (void)parser:(NSXMLParser *)parser parseErrorOccurred:(NSError *)parseError {
-	NSString * errorString = [NSString stringWithFormat:@"Unable to download story feed from web site (Error code %i )", [parseError code]];
-	NSLog(@"error parsing XML: %@", errorString);
-	NSLog(@"ERROR XML: %@", parseError);
-	
-	UIAlertView * errorAlert = [[UIAlertView alloc] initWithTitle:@"Error loading content" message:errorString delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil];
-	[errorAlert show];
-}
-
-- (void)parser:(NSXMLParser *)parser didStartElement:(NSString *)elementName namespaceURI:(NSString *)namespaceURI qualifiedName:(NSString *)qName attributes:(NSDictionary *)attributeDict{			
-    //NSLog(@"found this element: %@", elementName);
-	currentElement = [elementName copy];
-	if ([elementName isEqualToString:@"R"]) {
-		// clear out our story item caches...
-		item = [[NSMutableDictionary alloc] init];
-		currentTitle = [[NSMutableString alloc] init];
-		currentDate = [[NSMutableString alloc] init];
-		currentSummary = [[NSMutableString alloc] init];
-		currentLink = [[NSMutableString alloc] init];
-	}
-	
-}
-
-- (void)parser:(NSXMLParser *)parser didEndElement:(NSString *)elementName namespaceURI:(NSString *)namespaceURI qualifiedName:(NSString *)qName{     
-	//NSLog(@"ended element: %@", elementName);
-	if ([elementName isEqualToString:@"R"]) {
-		// save values to an item, then store that item into the array...
-		
-		NSString *pattern = @"<(.|\n)*?>";
-
-		currentTitle = (NSMutableString *)[currentTitle stringByDecodingXMLEntities];
-		[item setObject:[[currentTitle stringByReplacingOccurrencesOfString:@"amp;" withString:@""] stringByReplacingOccurrencesOfRegex:pattern withString:@""] forKey:@"title"];
-		[item setObject:[currentLink stringByReplacingOccurrencesOfString:[k RealForumURL] withString:@""] forKey:@"link"];
-
-		currentSummary = (NSMutableString *)[currentSummary stringByDecodingXMLEntities];
-		[item setObject:[[currentSummary stringByReplacingOccurrencesOfString:@"amp;" withString:@""] stringByReplacingOccurrencesOfRegex:pattern withString:@""] forKey:@"summary"];
-		[item setObject:currentDate forKey:@"date"];
-		
-
-        NSString *currentUrl = [[item valueForKey:@"link"] copy];
-		int pageNumber;
-		
-        //NSLog(@"currentUrl %@", currentUrl);
-        
-		NSString *regexString  = @".*page=([^&]+).*";
-		NSRange   matchedRange;// = NSMakeRange(NSNotFound, 0UL);
-		NSRange   searchRange = NSMakeRange(0, currentUrl.length);
-		NSError  *error2        = NULL;
-		
-		matchedRange = [currentUrl rangeOfRegex:regexString options:RKLNoOptions inRange:searchRange capture:1L error:&error2];
-		
-		if (matchedRange.location == NSNotFound) {
-			NSRange rangeNumPage =  [currentUrl rangeOfCharactersFromSet:[NSCharacterSet decimalDigitCharacterSet] options:NSBackwardsSearch];
-            
-            if (rangeNumPage.location == NSNotFound) {
-                return;
-            }
-            
-			pageNumber = [[currentUrl substringWithRange:rangeNumPage] intValue];
-		}
-		else {
-			pageNumber = [[currentUrl substringWithRange:matchedRange] intValue];
-			
-		}
-		
-		[item setObject:[NSString stringWithFormat:@"p. %d", pageNumber] forKey:@"page"];
-		[stories addObject:[item copy]];
-	}
-	
-}
-
-- (void)parser:(NSXMLParser *)parser foundCharacters:(NSString *)string{
-	//NSLog(@"found characters: %@", string);
-	// save the characters for the current item...
-	if ([currentElement isEqualToString:@"T"]) {
-		[currentTitle appendString:string];
-	} else if ([currentElement isEqualToString:@"UE"]) {
-		[currentLink appendString:string];
-	} else if ([currentElement isEqualToString:@"S"]) {
-		[currentSummary appendString:string];
-	} else if ([currentElement isEqualToString:@"pubDate"]) {
-		[currentDate appendString:string];
-	}
-	
-}
-
-- (void)parserDidEndDocument:(NSXMLParser *)parser {
-	
-	NSLog(@"all done!");
-	//NSLog(@"stories array has %d items", [stories count]);
-	
-	//NSLog(@"stories %@", stories);
-	NSMutableArray *tmArr = [[NSMutableArray alloc] init];
-	
-	for (NSDictionary *story in stories) {
-		if ([[story valueForKey:@"link"] rangeOfString:@"/liste_sujet"].location != NSNotFound) {
-			[tmArr addObject:story];
-			
-		}
-	}
-	
-	for (NSDictionary *story in tmArr) {
-	
-		[stories removeObject:story];
-	}
-	
-	//NSLog(@"stories array has %d items", [stories count]);
-
-	if ([stories count] == 0) {
-		[self.maintenanceView setText:@"Aucun résultat"];
-		[self.maintenanceView setHidden:NO];
-		[self.topicsTableView setHidden:YES];
-		[self.loadingView setHidden:YES];
-	}
-	else {
-		[self.maintenanceView setHidden:YES];
-		[self.topicsTableView setHidden:NO];
-		[self.loadingView setHidden:YES];
-	}
-
-	
-	
-	[self.topicsTableView reloadData];
-}
-*/
 // 3. Action lors du changement de sélection
 - (void)segmentedControlChanged:(UISegmentedControl *)sender {
     NSInteger selectedIndex = sender.selectedSegmentIndex;
@@ -1249,33 +688,40 @@
     // Filtrage, changement de catégorie, etc.
 }
 
-#pragma mark -
-#pragma mark Table view data source
+- (void)fetchContent
+{
+    [super fetchContent];
+    [self fetchContentTrigger];
+}
+
+#pragma mark - Table view data source
+
+- (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section {
+    return 0.01;
+    /*
+    
+    NSInteger iSizeTextTopics = [[NSUserDefaults standardUserDefaults] integerForKey:@"size_texct_topics"];
+    if (tableView == self.topicsTableView) {
+        return [super tableView:tableView heightForHeaderInSection:section];
+    }
+    
+    return HEIGHT_FOR_HEADER_IN_SECTION*iSizeTextTopics/100;*/
+}
+
+- (UIView *)tableView:(UITableView *)tableView viewForHeaderInSection:(NSInteger)section {
+    return [UIView new];
+    NSLog(@"SEARCH TABLE %@", self.topicsTableView.frame);
+}
 
 - (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section
 {
+    return @"";
+    /*
     if (tableView == self.topicsTableView) {
-        return [NSString stringWithFormat:@" p.%d", [self pageNumber]];
+        return [NSString stringWithFormat:@"Résultats p.%d", [self pageNumber]]; // [self forumName] is null, dommage...
     }
     
-    return @"Recherches précédentes";
-}
-
-- (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section {
-    NSInteger iSizeTextTopics = [[NSUserDefaults standardUserDefaults] integerForKey:@"size_texct_topics"];
-    if (tableView == self.topicsTableView) {
-        
-        if (self.arrayData.count)
-            return HEIGHT_FOR_HEADER_IN_SECTION*iSizeTextTopics/100;
-        else
-            return 0;
-    }
-    
-    return HEIGHT_FOR_HEADER_IN_SECTION*iSizeTextTopics/100;
-}
-
-- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
-	return 1;
+    return @"Recherches précédentes";*/
 }
 
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
@@ -1317,7 +763,7 @@
         
         if (cell == nil) {
             [[NSBundle mainBundle] loadNibNamed:@"TopicSearchCellView" owner:self options:nil];
-            cell = tmpCell;
+            cell = self.tmpCell;
             cell.accessoryType = UITableViewCellAccessoryNone;
             cell.selectionStyle = UITableViewCellSelectionStyleBlue;
             self.tmpCell = nil;
@@ -1396,16 +842,16 @@
             }
             else {
                 if([[aTopic aTypeOfFlag] isEqualToString:@"red"]) {
-                    [button setBackgroundImage:imageForRedFlag forState:UIControlStateNormal];
-                    [button setBackgroundImage:imageForRedFlag forState:UIControlStateHighlighted];
+                    [button setBackgroundImage:self.imageForRedFlag forState:UIControlStateNormal];
+                    [button setBackgroundImage:self.imageForRedFlag forState:UIControlStateHighlighted];
                 }
                 else if ([[aTopic aTypeOfFlag] isEqualToString:@"blue"]) {
-                    [button setBackgroundImage:imageForBlueFlag forState:UIControlStateNormal];
-                    [button setBackgroundImage:imageForBlueFlag forState:UIControlStateHighlighted];
+                    [button setBackgroundImage:self.imageForBlueFlag forState:UIControlStateNormal];
+                    [button setBackgroundImage:self.imageForBlueFlag forState:UIControlStateHighlighted];
                 }
                 else if ([[aTopic aTypeOfFlag] isEqualToString:@"yellow"]) {
-                    [button setBackgroundImage:imageForYellowFlag forState:UIControlStateNormal];
-                    [button setBackgroundImage:imageForYellowFlag forState:UIControlStateHighlighted];
+                    [button setBackgroundImage:self.imageForYellowFlag forState:UIControlStateNormal];
+                    [button setBackgroundImage:self.imageForYellowFlag forState:UIControlStateHighlighted];
                 }
             }
             
@@ -1449,8 +895,7 @@
 	return nil;
 }
 
-#pragma mark -
-#pragma mark Table view delegate
+#pragma mark - Table view delegate
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     self.pressedIndexPath = indexPath;
@@ -1491,7 +936,7 @@
             
 
     if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
-        [topicActionAlert addAction:[UIAlertAction actionWithTitle:@"Annuler" style:UIAlertActionStyleCancel handler:^(UIAlertAction *action) {
+        [self.topicActionAlert addAction:[UIAlertAction actionWithTitle:@"Annuler" style:UIAlertActionStyleCancel handler:^(UIAlertAction *action) {
             [self dismissViewControllerAnimated:YES completion:nil];
         }]];
     }
@@ -1508,8 +953,8 @@
         topicActionAlert.popoverPresentationController.sourceRect = origFrame;
         topicActionAlert.popoverPresentationController.backgroundColor = [ThemeColors alertBackgroundColor:[[ThemeManager sharedManager] theme]];*/
     }
-    [self presentViewController:topicActionAlert animated:YES completion:nil];
-    [[ThemeManager sharedManager] applyThemeToAlertController:topicActionAlert];
+    [self presentViewController:self.topicActionAlert animated:YES completion:nil];
+    [[ThemeManager sharedManager] applyThemeToAlertController:self.topicActionAlert];
 }
 
 - (void)pushTopic
@@ -1522,13 +967,13 @@
                                         target:nil
                                         action:nil];
         
-        [self.navigationController pushViewController:messagesTableViewController animated:YES];
+        [self.navigationController pushViewController:self.messagesTableViewController animated:YES];
     }
     else if (self.detailNavigationViewController)
     {
-        messagesTableViewController.navigationItem.leftBarButtonItem = self.detailNavigationViewController.splitViewController.displayModeButtonItem;
-        messagesTableViewController.navigationItem.leftItemsSupplementBackButton = YES;
-        [self.detailNavigationViewController setViewControllers:[NSMutableArray arrayWithObjects:messagesTableViewController, nil] animated:YES];
+        self.messagesTableViewController.navigationItem.leftBarButtonItem = self.detailNavigationViewController.splitViewController.displayModeButtonItem;
+        self.messagesTableViewController.navigationItem.leftItemsSupplementBackButton = YES;
+        [self.detailNavigationViewController setViewControllers:[NSMutableArray arrayWithObjects:self.messagesTableViewController, nil] animated:YES];
 
         // Close left panel on ipad in portrait mode
         [[HFRplusAppDelegate sharedAppDelegate] hidePrimaryPanelOnIpadForSplitViewController:self.detailNavigationViewController.splitViewController];
@@ -1539,19 +984,19 @@
 #pragma mark Action delegate
 
 -(void)lastSearchPostAction {
-    [self openTopicWithURL:[[self.arrayData objectAtIndex:pressedIndexPath.row] sLastSearchPostURL]];
+    [self openTopicWithURL:[[self.arrayData objectAtIndex:self.pressedIndexPath.row] sLastSearchPostURL]];
 }
 
 -(void)firstPageAction {
-    [self openTopicWithURL:[[self.arrayData objectAtIndex:pressedIndexPath.row] aURL]];
+    [self openTopicWithURL:[[self.arrayData objectAtIndex:self.pressedIndexPath.row] aURL]];
 }
 
 -(void)lastPageAction {
-    [self openTopicWithURL:[[self.arrayData objectAtIndex:pressedIndexPath.row] aURLOfLastPage]];
+    [self openTopicWithURL:[[self.arrayData objectAtIndex:self.pressedIndexPath.row] aURLOfLastPage]];
 }
 
 -(void)lastPostAction {
-    [self openTopicWithURL:[[self.arrayData objectAtIndex:pressedIndexPath.row] aURLOfLastPost]];
+    [self openTopicWithURL:[[self.arrayData objectAtIndex:self.pressedIndexPath.row] aURLOfLastPost]];
 }
 
 -(void)openTopicWithURL:(NSString*)sURL {
@@ -1559,8 +1004,8 @@
     MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:sURL];
     self.messagesTableViewController = aView;
     
-    self.messagesTableViewController.topicName = [[self.arrayData objectAtIndex:pressedIndexPath.row] aTitle];
-    self.messagesTableViewController.isViewed = [[self.arrayData objectAtIndex:pressedIndexPath.row] isViewed];
+    self.messagesTableViewController.topicName = [[self.arrayData objectAtIndex:self.pressedIndexPath.row] aTitle];
+    self.messagesTableViewController.isViewed = [[self.arrayData objectAtIndex:self.pressedIndexPath.row] isViewed];
     
     [self pushTopic];
     [self setTopicViewed];
@@ -1570,7 +1015,7 @@
     NSLog(@"copier lien page 1");
     
     UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
-    pasteboard.string = [NSString stringWithFormat:@"%@%@", [k RealForumURL], [[self.arrayData objectAtIndex:pressedIndexPath.row] aURL]];
+    pasteboard.string = [NSString stringWithFormat:@"%@%@", [k RealForumURL], [[self.arrayData objectAtIndex:self.pressedIndexPath.row] aURL]];
     
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:nil message:nil preferredStyle:UIAlertControllerStyleAlert];
     NSMutableAttributedString * message = [[NSMutableAttributedString alloc] initWithString:@"Lien copié dans le presse-papiers"];
@@ -1615,7 +1060,7 @@
     [message addAttribute:NSForegroundColorAttributeName value:[ThemeColors textColor:[[ThemeManager sharedManager] theme]] range:(NSRange){0, [message.string length]}];
     [alertController setValue:message forKey:@"attributedTitle"];
     [alertController addTextFieldWithConfigurationHandler:^(UITextField *textField) {
-        textField.placeholder = [NSString stringWithFormat:@"(numéro entre 1 et %d)", [[self.arrayData objectAtIndex:pressedIndexPath.row] maxTopicPage]];
+        textField.placeholder = [NSString stringWithFormat:@"(numéro entre 1 et %d)", [[self.arrayData objectAtIndex:self.pressedIndexPath.row] maxTopicPage]];
         [[ThemeManager sharedManager] applyThemeToTextField:textField];
         textField.textAlignment = NSTextAlignmentCenter;
         textField.delegate = self;
@@ -1677,9 +1122,9 @@
                 //NSLog(@"ERROR NOW %d", [[(UITextField *)sender text] intValue]);
                 
             }
-            else if ([[(UITextField *)sender text] intValue] > [[self.arrayData objectAtIndex:pressedIndexPath.row] maxTopicPage]) {
+            else if ([[(UITextField *)sender text] intValue] > [[self.arrayData objectAtIndex:self.pressedIndexPath.row] maxTopicPage]) {
                 //NSLog(@"ERROR WAS %d", [[(UITextField *)sender text] intValue]);
-                [sender setText:[NSString stringWithFormat:@"%d", [[self.arrayData objectAtIndex:pressedIndexPath.row] maxTopicPage]]];
+                [sender setText:[NSString stringWithFormat:@"%d", [[self.arrayData objectAtIndex:self.pressedIndexPath.row] maxTopicPage]]];
                 //NSLog(@"ERROR NOW %d", [[(UITextField *)sender text] intValue]);
                 
             }
@@ -1694,12 +1139,12 @@
 }
 
 -(void)gotoPageNumber:(int)number{
-    NSString * newUrl = [[NSString alloc] initWithString:[[self.arrayData objectAtIndex:pressedIndexPath.row] aURL]];
+    NSString * newUrl = [[NSString alloc] initWithString:[[self.arrayData objectAtIndex:self.pressedIndexPath.row] aURL]];
     newUrl = [newUrl stringByReplacingOccurrencesOfString:@"_1.htm" withString:[NSString stringWithFormat:@"_%d.htm", number]];
     newUrl = [newUrl stringByReplacingOccurrencesOfString:@"page=1&" withString:[NSString stringWithFormat:@"page=%d&",number]];
     newUrl = [newUrl stringByRemovingAnchor];
     
-    [self openTopicWithURL:[[self.arrayData objectAtIndex:pressedIndexPath.row] aURL]];
+    [self openTopicWithURL:[[self.arrayData objectAtIndex:self.pressedIndexPath.row] aURL]];
 }
 
 @end

@@ -15,10 +15,15 @@
 @interface TopicsSearchViewController : BaseTopicsViewController {
 }
 
-@property(strong) NSMutableArray *stories;
 @property(strong) UIView *disableViewOverlay;
 
 @property (nonatomic, assign) BOOL searchVisible;
+@property (nonatomic, strong) UIView *searchHeaderView;
+@property (nonatomic, strong) UIView *backgroundDimView;
+
+@property (nonatomic, strong) UIActivityIndicatorView *activityIndicator;
+@property (nonatomic, strong) UILabel *loadingLabel;
+@property (nonatomic, strong) UIView *loadingView;
 
 @property (nonatomic, strong) IBOutlet UISearchBar *textSearchBar;
 @property (nonatomic, strong) UISegmentedControl *optionSearchTypeSegmentedControl;

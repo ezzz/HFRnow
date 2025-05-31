@@ -13,16 +13,14 @@
 
 @class MessagesTableViewController;
 @class ASIFormDataRequest;
+@class ASIHTTPRequest;
 
 @interface BaseTopicsViewController : PageViewController <UITableViewDelegate, UITableViewDataSource, UIActionSheetDelegate>
 
 // Views
 @property (nonatomic, strong) UITableView *topicsTableView;
-@property (nonatomic, strong) UIView *loadingView;
 @property (nonatomic, strong) UILabel *maintenanceView;
-
 @property (nonatomic, strong) UIAlertController *topicActionAlert;
-
 
 @property (nonatomic, strong) NSMutableArray *arrayData;
 @property (nonatomic, strong) NSMutableArray *arrayNewData;
@@ -30,8 +28,14 @@
 @property (nonatomic, strong) MessagesTableViewController *messagesTableViewController;
 @property (nonatomic, strong) HFRNavigationController *detailNavigationViewController;
 
-@property (nonatomic, strong) NSIndexPath *pressedIndexPath;
+@property (nonatomic, strong) UISwipeGestureRecognizer *swipeLeftRecognizer;
+@property (nonatomic, strong) UISwipeGestureRecognizer *swipeRightRecognizer;
+
+// Data Attributes
 @property STATUS status;
+@property BOOL needToUpdateMP;
+@property NSString* sNewMPNumber;
+@property (nonatomic, strong) NSIndexPath *pressedIndexPath;
 @property (nonatomic, strong) NSString *statusMessage;
 @property (strong, nonatomic) ASIFormDataRequest *request;
 
@@ -41,6 +45,22 @@
 @property (nonatomic, strong) UIImage *imageForYellowFlag;
 @property (nonatomic, strong) UIImage *imageForBlueFlag;
 @property (nonatomic, strong) UIImage *imageForGreyFlag;
+
+@property (nonatomic, strong) NSString *forumName;
+@property (nonatomic, strong) NSString *forumNewTopicUrl;
+@property (nonatomic, strong) NSString *forumBaseURL;
+@property (nonatomic, strong) NSString *forumFavorisURL;
+@property (nonatomic, strong) NSString *forumFlag1URL;
+@property (nonatomic, strong) NSString *forumFlag0URL;
+
+// Methods
+- (void)cancelFetchContent;
+- (void)fetchContentTrigger;
+- (void)fetchContentStarted:(ASIHTTPRequest *)theRequest;
+- (void)fetchContentComplete:(ASIHTTPRequest *)theRequest;
+- (void)fetchContentFailed:(ASIHTTPRequest *)theRequest;
+- (void)parseTopicsListResult:(NSData *)contentData;
+
 
 
 @end
