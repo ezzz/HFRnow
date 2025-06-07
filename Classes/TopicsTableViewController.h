@@ -6,131 +6,49 @@
 //
 
 #import <UIKit/UIKit.h>
-#import "PageViewController.h"
+#import "BaseTopicsViewController.h"
 
 @class MessagesTableViewController;
 @class PullToRefreshErrorViewController;
+@class TopicsSearchViewController;
 @class HFRNavigationController;
-@class ASIHTTPRequest;
 @class ShakeView;
 @class TopicCellView;
 
 #import "AddMessageViewController.h"
 #import "NewMessageViewController.h"
 
-@interface TopicsTableViewController : PageViewController <AddMessageViewControllerDelegate, UIPickerViewDelegate, UIPickerViewDataSource, UIActionSheetDelegate, UIGestureRecognizerDelegate, UITableViewDelegate, UITableViewDataSource, UIPopoverPresentationControllerDelegate, UIAdaptivePresentationControllerDelegate> {
-	IBOutlet UITableView *topicsTableView;
-	IBOutlet UIView *loadingView;
-
-	NSString *forumName;
-
-	NSString *forumBaseURL;
-	NSString *forumFavorisURL;
-	NSString *forumFlag1URL;
-	NSString *forumFlag0URL;
-
-	NSString *forumNewTopicUrl;
-
-	NSMutableArray *arrayData;
-    NSMutableArray *arrayNewData;
-
-
-	MessagesTableViewController *messagesTableViewController;
-    PullToRefreshErrorViewController *errorVC;
-    
-	//Gesture
-	UISwipeGestureRecognizer *swipeLeftRecognizer;
-	UISwipeGestureRecognizer *swipeRightRecognizer;
-	
-	NSIndexPath *pressedIndexPath;
-	
-	UIImage *imageForUnselectedRow;
-	UIImage *imageForSelectedRow;
-	UIImage *imageForRedFlag;
-	UIImage *imageForYellowFlag;
-    UIImage *imageForBlueFlag;
-    UIImage *imageForGrayFlag;
-
-	ASIHTTPRequest *request;
-	
-	UIPickerView		*myPickerView;
-	NSArray				*pickerViewArray;
-	UIActionSheet		*actionSheet;
-	
-    UIAlertController		*topicActionAlert;
-    
-    UISegmentedControl  *subCatSegmentedControl;
-	TopicCellView *__weak tmpCell;
-	
-	STATUS status;
-	NSString *statusMessage;
-	IBOutlet UILabel *maintenanceView;
-    
-    id _popover;
-    
-    int selectedFlagIndex;
+@interface TopicsTableViewController : BaseTopicsViewController <AddMessageViewControllerDelegate, UIPickerViewDelegate, UIPickerViewDataSource, UIActionSheetDelegate, UIGestureRecognizerDelegate, UITableViewDelegate, UITableViewDataSource, UIPopoverPresentationControllerDelegate, UIAdaptivePresentationControllerDelegate> {
 	
 }
 
-@property (nonatomic, weak) IBOutlet TopicCellView *tmpCell;
 
 @property (nonatomic, strong) UIPickerView *myPickerView;
 @property (nonatomic, strong) NSArray *pickerViewArray;
 @property (nonatomic, strong) UIActionSheet *actionSheet;
-@property (nonatomic, strong) UIAlertController *topicActionAlert;
-
 @property (nonatomic, strong) UISegmentedControl  *subCatSegmentedControl;
-@property (nonatomic, strong) IBOutlet UITableView *topicsTableView;
-@property (nonatomic, strong) IBOutlet UIView *loadingView;
 
-@property (nonatomic, strong) NSString *forumName;
-
-@property (nonatomic, strong) NSString *forumNewTopicUrl;
-
-
-@property (nonatomic, strong) NSString *forumBaseURL;
-@property (nonatomic, strong) NSString *forumFavorisURL;
-@property (nonatomic, strong) NSString *forumFlag1URL;
-@property (nonatomic, strong) NSString *forumFlag0URL;
-
-@property (nonatomic, strong) NSMutableArray *arrayData;
-@property (nonatomic, strong) NSMutableArray *arrayNewData;
-@property (nonatomic, strong) MessagesTableViewController *messagesTableViewController;
-@property (nonatomic, strong) HFRNavigationController *detailNavigationViewController;
+@property (nonatomic, strong) TopicsSearchViewController *topicSearchViewController;
 @property (nonatomic, strong) PullToRefreshErrorViewController *errorVC;
 
-@property (nonatomic, strong) NSIndexPath *pressedIndexPath;
+@property (nonatomic, weak) IBOutlet TopicCellView *tmpCell;
 
-@property (nonatomic, strong) UISwipeGestureRecognizer *swipeLeftRecognizer;
-@property (nonatomic, strong) UISwipeGestureRecognizer *swipeRightRecognizer;
+//@property (strong, nonatomic) ASIHTTPRequest *request;
 
-@property (strong, nonatomic) ASIHTTPRequest *request;
-
-@property (nonatomic, strong) UIImage *imageForUnselectedRow;
-@property (nonatomic, strong) UIImage *imageForSelectedRow;
-@property (nonatomic, strong) UIImage *imageForRedFlag;
-@property (nonatomic, strong) UIImage *imageForYellowFlag;
-@property (nonatomic, strong) UIImage *imageForBlueFlag;
-@property (nonatomic, strong) UIImage *imageForGreyFlag;
-
-@property STATUS status;
 @property int selectedFlagIndex;
-
-@property (nonatomic, strong) NSString *statusMessage;
-@property (nonatomic, strong) IBOutlet UILabel *maintenanceView;
 
 @property (nonatomic, strong) id popover;
 
-- (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil flag:(int)flag;
+- (instancetype)init;
+- (instancetype)initWithFlag:(int)flag;
+- (void)reset;
 
--(void)loadDataInTableView:(NSData *)contentData;
--(void)reset;
--(void)shakeHappened:(ShakeView*)view;
-
--(void)showPicker:(id)sender;
+ /*
+- (void)shakeHappened:(ShakeView*)view;
+- (void)showPicker:(id)sender;
 - (CGRect)pickerFrameWithSize:(CGSize)size;
--(void)dismissActionSheet;
--(void)segmentFilterAction;
+- (void)dismissActionSheet;
+- (void)segmentFilterAction;
 
 - (void)cancelFetchContent;
 - (void)fetchContentStarted:(ASIHTTPRequest *)theRequest;
@@ -141,8 +59,7 @@
 - (void)newTopic;
 
 - (void)setTopicViewed;
-- (void)pushTopic;
 
--(void)test;
+- (void)test;*/
 
 @end

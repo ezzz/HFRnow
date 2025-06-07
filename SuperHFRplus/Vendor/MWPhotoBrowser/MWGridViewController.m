@@ -31,7 +31,7 @@
         _marginL = 0, _gutterL = 1;
         
         // For pixel perfection...
-        if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+        if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
             // iPad
             _columns = 6, _columnsL = 8;
             _margin = 1, _gutter = 2;

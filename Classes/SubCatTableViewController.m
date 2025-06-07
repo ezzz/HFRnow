@@ -31,15 +31,12 @@
 - (void)viewDidLoad
 {
     [super viewDidLoad];
-
-    //if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
-        [self setContentSizeForViewInPopover:CGSizeMake(250.0, 35*(MIN(10, arrayData.count)))];
-        
-        if ([self respondsToSelector:@selector(setPreferredContentSize:)]) { //iOS7+
-            [self setPreferredContentSize:CGSizeMake(250.0, 35*(MIN(10, arrayData.count)))];
-        }
-    //}
+    [self setContentSizeForViewInPopover:CGSizeMake(250.0, 35*(MIN(10, arrayData.count)))];
     
+    if ([self respondsToSelector:@selector(setPreferredContentSize:)]) { //iOS7+
+        [self setPreferredContentSize:CGSizeMake(250.0, 35*(MIN(10, arrayData.count)))];
+    }
+
     [self hideEmptySeparators];
     
     /*

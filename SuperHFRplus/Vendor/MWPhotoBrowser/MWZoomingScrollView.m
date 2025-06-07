@@ -250,7 +250,7 @@
 
     // Calculate Max
 	CGFloat maxScale = 3;
-    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
         // Let them go a bit bigger on a bigger screen!
         maxScale = 4;
     }

@@ -37,6 +37,7 @@
 #import "ThemeColors.h"
 #import "MultisManager.h"
 #import "FilterPostsQuotes.h"
+#import "TopicsSearchViewController.h"
 
 #define SECTION_CAT_VISIBLE 0
 #define SECTION_CAT_HIDDEN 1
@@ -515,7 +516,7 @@
     }
     
     if (self.navigationController.visibleViewController == self) {
-        if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
+        if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
             UIView *btn;
             UIView *btn2;
             
@@ -756,8 +757,8 @@
         [favoritesTableView deselectRowAtIndexPath:favoritesTableView.indexPathForSelectedRow animated:NO];
     }
 
-    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
-    
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
+
         UIInterfaceOrientation o = [[UIApplication sharedApplication] statusBarOrientation];
         if (UIDeviceOrientationIsLandscape(o)) {
             [[self.navigationController.navigationBar viewWithTag:237] setHidden:YES];
@@ -817,15 +818,15 @@
     
     switch (vos_sujets) {
         case 0:
-            aView = [[TopicsTableViewController alloc] initWithNibName:@"TopicsTableViewController" bundle:nil flag:2];
+            aView = [[TopicsTableViewController alloc] initWithFlag:2];
             aView.forumFlag1URL = [[[arrayCategories objectAtIndex:section] forum] aURL];
             break;
         case 1:
-            aView = [[TopicsTableViewController alloc] initWithNibName:@"TopicsTableViewController" bundle:nil flag:1];
+            aView = [[TopicsTableViewController alloc] initWithFlag:1];
             aView.forumFavorisURL = [[[arrayCategories objectAtIndex:section] forum] aURL];
             break;
         default:
-            aView = [[TopicsTableViewController alloc] initWithNibName:@"TopicsTableViewController" bundle:nil flag:2];
+            aView = [[TopicsTableViewController alloc] initWithFlag:2];
             aView.forumFlag1URL = [[[arrayCategories objectAtIndex:section] forum] aURL];
             break;
     }
@@ -1451,9 +1452,7 @@
         [topicActionAlert addAction:uiActionCheckQuotes];
         
         if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
-            // Can't use UIAlertActionStyleCancel in dark theme : https://stackoverflow.com/a/44606994/1853603
-            UIAlertActionStyle cancelButtonStyle = [[ThemeManager sharedManager] cancelAlertStyle];
-            [topicActionAlert addAction:[UIAlertAction actionWithTitle:@"Annuler" style:cancelButtonStyle handler:^(UIAlertAction *action) {
+            [topicActionAlert addAction:[UIAlertAction actionWithTitle:@"Annuler" style:UIAlertActionStyleCancel handler:^(UIAlertAction *action) {
                 [self dismissViewControllerAnimated:YES completion:nil];
             }]];
         } else {

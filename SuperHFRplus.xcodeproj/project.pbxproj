@@ -503,7 +503,6 @@
 		CA7C6FCE185EF50E00B348BA /* upsmall7@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = CABC727417E6077A003E722E /* upsmall7@2x.png */; };
 		CA7C6FCF185EF50E00B348BA /* templatev2.htm in Resources */ = {isa = PBXBuildFile; fileRef = CA00C59217C30C370067B457 /* templatev2.htm */; };
 		CA7C6FD0185EF50E00B348BA /* ddr555.gif in Resources */ = {isa = PBXBuildFile; fileRef = CA00C54E17C30C370067B457 /* ddr555.gif */; };
-		CA7C6FD1185EF50E00B348BA /* HFRMPViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 0140AAAA121DF603001C35C4 /* HFRMPViewController.xib */; };
 		CA7C6FD2185EF50E00B348BA /* sol.gif in Resources */ = {isa = PBXBuildFile; fileRef = CA00C57517C30C370067B457 /* sol.gif */; };
 		CA7C6FD3185EF50E00B348BA /* arrowR@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = CA00C5C717C30C370067B457 /* arrowR@2x.png */; };
 		CA7C6FD5185EF50E00B348BA /* ToolBarPrevious_on@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = CA7472E717E15FE300B45E15 /* ToolBarPrevious_on@2x.png */; };
@@ -604,7 +603,6 @@
 		CA7C7041185EF50E00B348BA /* avatar_male_gray_on_light_48x48.png in Resources */ = {isa = PBXBuildFile; fileRef = CA00C5C917C30C370067B457 /* avatar_male_gray_on_light_48x48.png */; };
 		CA7C7042185EF50E00B348BA /* sleep.gif in Resources */ = {isa = PBXBuildFile; fileRef = CA00C57317C30C370067B457 /* sleep.gif */; };
 		CA7C7043185EF50E00B348BA /* img.png in Resources */ = {isa = PBXBuildFile; fileRef = CA00C60B17C30C370067B457 /* img.png */; };
-		CA7C7044185EF50E00B348BA /* TopicsTableViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = CA00C53217C3082F0067B457 /* TopicsTableViewController.xib */; };
 		CA7C7045185EF50E00B348BA /* na.gif in Resources */ = {isa = PBXBuildFile; fileRef = CA00C56817C30C370067B457 /* na.gif */; };
 		CA7C7046185EF50E00B348BA /* endhover.png in Resources */ = {isa = PBXBuildFile; fileRef = CA00C5FC17C30C370067B457 /* endhover.png */; };
 		CA7C7047185EF50E00B348BA /* upsmall@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = CABC726C17E605E5003E722E /* upsmall@2x.png */; };
@@ -618,7 +616,6 @@
 		CA7C704F185EF50E00B348BA /* icon_smile_face.png in Resources */ = {isa = PBXBuildFile; fileRef = CA00C60817C30C370067B457 /* icon_smile_face.png */; };
 		CA7C7050185EF50E00B348BA /* gratgrat.gif in Resources */ = {isa = PBXBuildFile; fileRef = CA00C55817C30C370067B457 /* gratgrat.gif */; };
 		CA7C7051185EF50E00B348BA /* beginoff.png in Resources */ = {isa = PBXBuildFile; fileRef = CA00C5E117C30C370067B457 /* beginoff.png */; };
-		CA7C7052185EF50E00B348BA /* HFRSearchViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = CA79581A12836B24007C4E02 /* HFRSearchViewController.xib */; };
 		CA7C7053185EF50E00B348BA /* ouch.gif in Resources */ = {isa = PBXBuildFile; fileRef = CA00C56C17C30C370067B457 /* ouch.gif */; };
 		CA7C7054185EF50E00B348BA /* toolbar3@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = CA00C60617C30C370067B457 /* toolbar3@2x.png */; };
 		CA7C7055185EF50E00B348BA /* bgiPad.png in Resources */ = {isa = PBXBuildFile; fileRef = CA00C5CD17C30C370067B457 /* bgiPad.png */; };
@@ -751,7 +748,7 @@
 		CA7C70F2185EF50E00B348BA /* RangeOfCharacters.m in Sources */ = {isa = PBXBuildFile; fileRef = CA00C46517C302610067B457 /* RangeOfCharacters.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		CA7C70F3185EF50E00B348BA /* PageViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = CA77D0F41261424D00271D62 /* PageViewController.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
 		CA7C70F4185EF50E00B348BA /* UITableViewController+Ext.m in Sources */ = {isa = PBXBuildFile; fileRef = CA00C46917C302610067B457 /* UITableViewController+Ext.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
-		CA7C70F7185EF50E00B348BA /* HFRSearchViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = CA79581912836B24007C4E02 /* HFRSearchViewController.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
+		CA7C70F7185EF50E00B348BA /* TopicsSearchViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = CA79581912836B24007C4E02 /* TopicsSearchViewController.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
 		CA7C70F9185EF50E00B348BA /* NSData+Base64.m in Sources */ = {isa = PBXBuildFile; fileRef = CA00C45117C3000B0067B457 /* NSData+Base64.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		CA7C70FB185EF50E00B348BA /* PayViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = CA34780912EB557500D1BA2A /* PayViewController.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
 		CA7C70FD185EF50E00B348BA /* TopicSearchCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = CA20FA3312F15CA700EC1771 /* TopicSearchCellView.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
@@ -917,7 +914,6 @@
 		013F0EA3121E117900BEBEB1 /* AddMessageViewController.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = AddMessageViewController.xib; sourceTree = "<group>"; };
 		0140AA84121DF25F001C35C4 /* HFRMPViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = HFRMPViewController.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
 		0140AA85121DF25F001C35C4 /* HFRMPViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; lineEnding = 0; path = HFRMPViewController.m; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objc; };
-		0140AAAA121DF603001C35C4 /* HFRMPViewController.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = HFRMPViewController.xib; sourceTree = "<group>"; };
 		0140ABA8121E011D001C35C4 /* FavoriteCell.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = FavoriteCell.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
 		0140ABA9121E011D001C35C4 /* FavoriteCell.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; lineEnding = 0; path = FavoriteCell.m; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objc; };
 		0140ABAB121E011D001C35C4 /* Catcounter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = Catcounter.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
@@ -1515,7 +1511,6 @@
 		CA00C46717C302610067B457 /* UIImage+Resize.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "UIImage+Resize.m"; sourceTree = "<group>"; };
 		CA00C46817C302610067B457 /* UITableViewController+Ext.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "UITableViewController+Ext.h"; sourceTree = "<group>"; };
 		CA00C46917C302610067B457 /* UITableViewController+Ext.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "UITableViewController+Ext.m"; sourceTree = "<group>"; };
-		CA00C53217C3082F0067B457 /* TopicsTableViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = TopicsTableViewController.xib; sourceTree = "<group>"; };
 		CA00C53417C308360067B457 /* ForumsTableViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = ForumsTableViewController.xib; sourceTree = "<group>"; };
 		CA00C53E17C30C360067B457 /* global.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = global.gif; sourceTree = "<group>"; };
 		CA00C53F17C30C360067B457 /* multiplefavoris.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = multiplefavoris.gif; sourceTree = "<group>"; };
@@ -1759,9 +1754,8 @@
 		CA7472E717E15FE300B45E15 /* ToolBarPrevious_on@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ToolBarPrevious_on@2x.png"; sourceTree = "<group>"; };
 		CA77D0F31261424D00271D62 /* PageViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PageViewController.h; sourceTree = "<group>"; };
 		CA77D0F41261424D00271D62 /* PageViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; lineEnding = 0; path = PageViewController.m; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objc; };
-		CA79581812836B24007C4E02 /* HFRSearchViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = HFRSearchViewController.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
-		CA79581912836B24007C4E02 /* HFRSearchViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; lineEnding = 0; path = HFRSearchViewController.m; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objc; };
-		CA79581A12836B24007C4E02 /* HFRSearchViewController.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = HFRSearchViewController.xib; sourceTree = "<group>"; };
+		CA79581812836B24007C4E02 /* TopicsSearchViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = TopicsSearchViewController.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
+		CA79581912836B24007C4E02 /* TopicsSearchViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; lineEnding = 0; path = TopicsSearchViewController.m; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objc; };
 		CA7C7132185EF50E00B348BA /* SuperHFRplusSwift.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SuperHFRplusSwift.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA7E25E115A1D17500721F6D /* SplitViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SplitViewController.h; sourceTree = "<group>"; };
 		CA7E25E215A1D17500721F6D /* SplitViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SplitViewController.m; sourceTree = "<group>"; };
@@ -1963,8 +1957,6 @@
 		013F0E94121E117800BEBEB1 /* Messages */ = {
 			isa = PBXGroup;
 			children = (
-				151737FA2DA5B3AF005DDA75 /* SimplePhotoViewController.m */,
-				151737F82DA5B359005DDA75 /* SimplePhotoViewController.h */,
 				CABB3127121EF3B0009CE100 /* Forms */,
 				CA5E109118AC290C00C481A9 /* Poll */,
 				013F0E95121E117800BEBEB1 /* LinkItem.h */,
@@ -1991,34 +1983,22 @@
 				159D80BA2738252600388363 /* PopupViewController.h */,
 				159D80BB2738256600388363 /* PopupViewController.m */,
 				159D80B82737CF1000388363 /* PopupViewController.xib */,
+				151737FA2DA5B3AF005DDA75 /* SimplePhotoViewController.m */,
+				151737F82DA5B359005DDA75 /* SimplePhotoViewController.h */,
 			);
 			name = Messages;
 			sourceTree = "<group>";
 		};
-		0140AA83121DF25F001C35C4 /* MP */ = {
+		0140AA83121DF25F001C35C4 /* MPStorage */ = {
 			isa = PBXGroup;
 			children = (
-				0140AA84121DF25F001C35C4 /* HFRMPViewController.h */,
-				0140AA85121DF25F001C35C4 /* HFRMPViewController.m */,
-				0140AAAA121DF603001C35C4 /* HFRMPViewController.xib */,
 				15960FE322F6146B006BBD34 /* MPStorage.h */,
 				15960FE422F6147B006BBD34 /* MPStorage.m */,
 			);
-			name = MP;
+			name = MPStorage;
 			sourceTree = "<group>";
 		};
 		0140ABA6121E011D001C35C4 /* Favorites */ = {
-			isa = PBXGroup;
-			children = (
-				0140ABA7121E011D001C35C4 /* FavoriteCell */,
-				0140ABAD121E011D001C35C4 /* FavoritesTableViewController.h */,
-				0140ABAE121E011D001C35C4 /* FavoritesTableViewController.m */,
-				0140ABD2121E034A001C35C4 /* FavoritesTableViewController.xib */,
-			);
-			name = Favorites;
-			sourceTree = "<group>";
-		};
-		0140ABA7121E011D001C35C4 /* FavoriteCell */ = {
 			isa = PBXGroup;
 			children = (
 				CA8A79B015BB404700D8E9E7 /* Favorite.h */,
@@ -2030,8 +2010,11 @@
 				15C673CB22552B6900B9E0BE /* FavoriteCellView.xib */,
 				15C673CF22567A3C00B9E0BE /* FavoriteCellView.h */,
 				15C673D022567A7300B9E0BE /* FavoriteCellView.m */,
+				0140ABAD121E011D001C35C4 /* FavoritesTableViewController.h */,
+				0140ABAE121E011D001C35C4 /* FavoritesTableViewController.m */,
+				0140ABD2121E034A001C35C4 /* FavoritesTableViewController.xib */,
 			);
-			name = FavoriteCell;
+			name = Favorites;
 			sourceTree = "<group>";
 		};
 		01BF8775121C4407007624B6 /* Infos */ = {
@@ -2106,8 +2089,6 @@
 				D8C8F1541E56ECA000B1381E /* ThemeManager.m */,
 				4C0031211BD01CE700F87F13 /* HFRTabBar.h */,
 				4C0031221BD01CE700F87F13 /* HFRTabBar.m */,
-				CA77D0F31261424D00271D62 /* PageViewController.h */,
-				CA77D0F41261424D00271D62 /* PageViewController.m */,
 				CAC4966715B77357009128BC /* HFRNavigationController.h */,
 				CAC4966815B77357009128BC /* HFRNavigationController.m */,
 				CAF5DB5619328EB4000B5215 /* PullToRefreshErrorViewController.h */,
@@ -2136,14 +2117,18 @@
 				CA00C53417C308360067B457 /* ForumsTableViewController.xib */,
 				01BF8B6E121DAEF3007624B6 /* Topic.h */,
 				01BF8B6F121DAEF3007624B6 /* Topic.m */,
+				CA77D0F31261424D00271D62 /* PageViewController.h */,
+				CA77D0F41261424D00271D62 /* PageViewController.m */,
+				15C6456A2DDA493A0033B935 /* BaseTopicsViewController.h */,
+				15C6456B2DDA49630033B935 /* BaseTopicsViewController.m */,
 				01BF8B43121DAD33007624B6 /* TopicsTableViewController.h */,
 				01BF8B44121DAD33007624B6 /* TopicsTableViewController.m */,
-				CA00C53217C3082F0067B457 /* TopicsTableViewController.xib */,
+				0140AA84121DF25F001C35C4 /* HFRMPViewController.h */,
+				0140AA85121DF25F001C35C4 /* HFRMPViewController.m */,
+				CA79581812836B24007C4E02 /* TopicsSearchViewController.h */,
+				CA79581912836B24007C4E02 /* TopicsSearchViewController.m */,
 				CA7E260015A24A9A00721F6D /* SubCatTableViewController.h */,
 				CA7E260115A24A9A00721F6D /* SubCatTableViewController.m */,
-				CA79581812836B24007C4E02 /* HFRSearchViewController.h */,
-				CA79581912836B24007C4E02 /* HFRSearchViewController.m */,
-				CA79581A12836B24007C4E02 /* HFRSearchViewController.xib */,
 			);
 			name = Forums;
 			sourceTree = "<group>";
@@ -2178,7 +2163,7 @@
 				01BF8A0C121D7450007624B6 /* Common */,
 				01BF8A0F121D7469007624B6 /* Forums */,
 				0140ABA6121E011D001C35C4 /* Favorites */,
-				0140AA83121DF25F001C35C4 /* MP */,
+				0140AA83121DF25F001C35C4 /* MPStorage */,
 				013F0E94121E117800BEBEB1 /* Messages */,
 				CAADF6C3192967CC00ECA4C1 /* Profil */,
 				01BF8775121C4407007624B6 /* Infos */,
@@ -3630,7 +3615,6 @@
 				D8B4EDED21C184970042C392 /* snow8.png in Resources */,
 				4C0B2DA61B9F2DF40026A582 /* Launch Screen.storyboard in Resources */,
 				CA7C6FD0185EF50E00B348BA /* ddr555.gif in Resources */,
-				CA7C6FD1185EF50E00B348BA /* HFRMPViewController.xib in Resources */,
 				CA7C6FD2185EF50E00B348BA /* sol.gif in Resources */,
 				CA7C6FD3185EF50E00B348BA /* arrowR@2x.png in Resources */,
 				CA7C6FD5185EF50E00B348BA /* ToolBarPrevious_on@2x.png in Resources */,
@@ -3890,7 +3874,6 @@
 				4C0B8DE91BA4522900D329BA /* KeyboardFilled-40.png in Resources */,
 				4C21E9781BA5C70400691D65 /* StrikethroughFilled-20@2x.png in Resources */,
 				1591C0E92496473E0025560A /* redfaceBorder.png in Resources */,
-				CA7C7044185EF50E00B348BA /* TopicsTableViewController.xib in Resources */,
 				D8CA2765246C535C008FC72C /* sign-25@2x.png in Resources */,
 				CA7C7045185EF50E00B348BA /* na.gif in Resources */,
 				156246DE2182310000F5B8DC /* arrowforward.svg in Resources */,
@@ -3932,7 +3915,6 @@
 				15AC35732903E2DA00CCD6FC /* PasteFilled-20-Inv@2x.png in Resources */,
 				CA7C7050185EF50E00B348BA /* gratgrat.gif in Resources */,
 				CA7C7051185EF50E00B348BA /* beginoff.png in Resources */,
-				CA7C7052185EF50E00B348BA /* HFRSearchViewController.xib in Resources */,
 				152395F128DF015E00614F9D /* Heart-20-Inv.png in Resources */,
 				D89AF5601E55DE120096504F /* ThorHammerGrey-20@2x.png in Resources */,
 				CA7C7053185EF50E00B348BA /* ouch.gif in Resources */,
@@ -4246,6 +4228,7 @@
 				CA7C70CB185EF50E00B348BA /* Topic.m in Sources */,
 				1556409122D928D30018A619 /* WhiteListTableViewController.m in Sources */,
 				CA7C70D5185EF50E00B348BA /* LinkItem.m in Sources */,
+				15C6456C2DDA49650033B935 /* BaseTopicsViewController.m in Sources */,
 				CA7C70DB185EF50E00B348BA /* ParseMessagesOperation.m in Sources */,
 				150C9FEF2D9801DC0023C430 /* OfflineStorage.m in Sources */,
 				4CB132F91B90A1930081B44D /* BlackList.m in Sources */,
@@ -4284,7 +4267,7 @@
 				CA7C70F0185EF50E00B348BA /* NewMessageViewController.m in Sources */,
 				4CC3C7511B99BB6F001B8632 /* DeleteMessageViewController.m in Sources */,
 				CA7C70F3185EF50E00B348BA /* PageViewController.m in Sources */,
-				CA7C70F7185EF50E00B348BA /* HFRSearchViewController.m in Sources */,
+				CA7C70F7185EF50E00B348BA /* TopicsSearchViewController.m in Sources */,
 				4C39035F1BCACEC200FD6F1F /* PSTCollectionViewData.m in Sources */,
 				155A992A2479A5A3002968CD /* RehostCollectionCell.m in Sources */,
 				CA7C70FB185EF50E00B348BA /* PayViewController.m in Sources */,
@@ -4530,7 +4513,7 @@
 					"$(PROJECT_DIR)/**",
 					"$(PROJECT_DIR)",
 				);
-				MARKETING_VERSION = 3.0.2;
+				MARKETING_VERSION = 3.1;
 				OTHER_LDFLAGS = (
 					"-licucore",
 					"-ObjC",
@@ -4538,7 +4521,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super;
 				PRODUCT_NAME = SuperHFRplusSwift;
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = ProfileSuperHFRv1;
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = DistributeIOS;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -4594,7 +4577,7 @@
 					"$(PROJECT_DIR)/**",
 					"$(PROJECT_DIR)",
 				);
-				MARKETING_VERSION = 3.0.2;
+				MARKETING_VERSION = 3.1;
 				OTHER_LDFLAGS = (
 					"-licucore",
 					"-ObjC",
@@ -4602,7 +4585,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super;
 				PRODUCT_NAME = SuperHFRplusSwift;
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = ProfileSuperHFRv1;
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = DistributeIOS;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;

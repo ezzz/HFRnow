@@ -14,6 +14,7 @@
 #import "CreditsViewController.h"
 #import "AQTableViewController.h"
 #import "BookmarksTableViewController.h"
+#import "TopicsSearchViewController.h"
 
 @class HFRNavigationController;
 
@@ -24,7 +25,7 @@
     CompteViewController *compteViewController;
     AQTableViewController *aqTableViewController;
     CreditsViewController *creditsViewController;
-    CreditsViewController *charteViewController;
+    TopicsSearchViewController *charteViewController;
 }
 
 @property (nonatomic, strong) IBOutlet UITableView *plusTableView;

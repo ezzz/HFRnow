@@ -740,7 +740,7 @@
     
     if (type == kSync) {
         //On inverse les boutons
-        if ((UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad && [self respondsToSelector:@selector(traitCollection)] && [HFRplusAppDelegate sharedAppDelegate].window.traitCollection.horizontalSizeClass == UIUserInterfaceSizeClassCompact) ||
+        if (([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad && [self respondsToSelector:@selector(traitCollection)] && [HFRplusAppDelegate sharedAppDelegate].window.traitCollection.horizontalSizeClass == UIUserInterfaceSizeClassCompact) ||
             vos_sujets == 0) {
             //NSLog(@"DROITE ");
             if (self.navigationItem.leftBarButtonItem) {
@@ -762,7 +762,7 @@
     }
     
     
-    if ((UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad && [self respondsToSelector:@selector(traitCollection)] && [HFRplusAppDelegate sharedAppDelegate].window.traitCollection.horizontalSizeClass == UIUserInterfaceSizeClassCompact) ||
+    if (([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad && [self respondsToSelector:@selector(traitCollection)] && [HFRplusAppDelegate sharedAppDelegate].window.traitCollection.horizontalSizeClass == UIUserInterfaceSizeClassCompact) ||
         vos_sujets == 0) {
         //NSLog(@"à droite");
         self.navigationItem.leftBarButtonItem = nil;
@@ -1022,24 +1022,23 @@
             
             switch ([[tmpDic objectForKey:@"flag"] intValue]) {
                 case kFav:
-                    aView = [[TopicsTableViewController alloc] initWithNibName:@"TopicsTableViewController" bundle:nil flag:1];
+                    aView = [[TopicsTableViewController alloc] initWithFlag:1];
                     break;
                 case kFlag:
-                    aView = [[TopicsTableViewController alloc] initWithNibName:@"TopicsTableViewController" bundle:nil flag:2];
+                    aView = [[TopicsTableViewController alloc] initWithFlag:2];
                     break;
                 case kRed:
-                    aView = [[TopicsTableViewController alloc] initWithNibName:@"TopicsTableViewController" bundle:nil flag:3];
+                    aView = [[TopicsTableViewController alloc] initWithFlag:3];
                     break;
                 case kALL:
                 default:
-                    aView = [[TopicsTableViewController alloc] initWithNibName:@"TopicsTableViewController" bundle:nil];
+                    aView = [[TopicsTableViewController alloc] init];
                     break;
             }
         }
         else {
-            aView = [[TopicsTableViewController alloc] initWithNibName:@"TopicsTableViewController" bundle:nil];
+            aView = [[TopicsTableViewController alloc] init];
         }
-        
         
 		self.topicsTableViewController = aView;
 	}
@@ -1129,10 +1128,8 @@
         }
 
         
-        if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
-            // Can't use UIAlertActionStyleCancel in dark theme : https://stackoverflow.com/a/44606994/1853603
-            UIAlertActionStyle cancelButtonStyle = [[ThemeManager sharedManager] cancelAlertStyle];
-            [forumActionAlert addAction:[UIAlertAction actionWithTitle:@"Annuler" style:cancelButtonStyle handler:^(UIAlertAction *action) {
+        if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
+            [forumActionAlert addAction:[UIAlertAction actionWithTitle:@"Annuler" style:UIAlertActionStyleCancel handler:^(UIAlertAction *action) {
                 [self dismissViewControllerAnimated:YES completion:nil];
             }]];
         } else {

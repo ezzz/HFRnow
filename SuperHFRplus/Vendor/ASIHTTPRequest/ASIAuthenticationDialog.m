@@ -78,7 +78,7 @@ static const NSUInteger kDomainSection = 1;
 		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardWillShowNotification object:nil];
 
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_3_2
-		if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
+		if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
 #endif
 			if (![UIDevice currentDevice].generatesDeviceOrientationNotifications) {
 				[[UIDevice currentDevice] beginGeneratingDeviceOrientationNotifications];
@@ -111,7 +111,7 @@ static const NSUInteger kDomainSection = 1;
 - (void)keyboardWillShow:(NSNotification *)notification
 {
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_3_2
-	if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
+	if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
 #endif
 #if __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_3_2
 		NSValue *keyboardBoundsValue = [[notification userInfo] objectForKey:UIKeyboardFrameEndUserInfoKey];
@@ -304,7 +304,7 @@ static const NSUInteger kDomainSection = 1;
 	[[[[[self tableView] cellForRowAtIndexPath:[NSIndexPath indexPathForRow:0 inSection:0]].contentView subviews] objectAtIndex:0] becomeFirstResponder];
 
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_3_2
-	if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+	if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
 		[self setModalPresentationStyle:UIModalPresentationFormSheet];
 	}
 #endif
@@ -405,7 +405,7 @@ static const NSUInteger kDomainSection = 1;
 {
 	if (section == 0) {
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_3_2
-		if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+		if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
 			return 54;
 		}
 #endif

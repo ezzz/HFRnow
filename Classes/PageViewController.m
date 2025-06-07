@@ -14,7 +14,7 @@
 
 @implementation PageViewController
 @synthesize previousPageUrl, nextPageUrl;
-@synthesize currentUrl, originalUrl, currentOfflineTopic, pageNumber;
+@synthesize currentUrl, currentCat, originalUrl, currentOfflineTopic, pageNumber;
 @synthesize firstPageNumber, lastPageNumber;
 @synthesize firstPageUrl, lastPageUrl;
 @synthesize filterPostsQuotes;
@@ -111,11 +111,9 @@
 
 
 
-- (void)goToPage:(NSString *)pageType;
-{
-	//NSLog(@"gotoPageNumber %@", pageType);
+- (void)goToPage:(NSString *)pageType {
+	NSLog(@"gotoPage pageType %@", pageType);
 
-	
 	if ([pageType isEqualToString:@"begin"]) {
 		[self firstPage:nil];
 	}
@@ -220,45 +218,25 @@
 		else {
 			[sender setText:@""];
 		}
-		
-		
 	}
 }
 
 -(void)nextPage:(id)sender {
-    if ([self isModeOffline]) {
-        if (self.currentOfflineTopic.curTopicPage < self.currentOfflineTopic.maxTopicPageLoaded) {
-            self.currentOfflineTopic.curTopicPage++;
-            // Update offline flag
-            if (self.currentOfflineTopic.curTopicPageLoaded < self.currentOfflineTopic.curTopicPage) {
-                self.currentOfflineTopic.curTopicPageLoaded = self.currentOfflineTopic.curTopicPage;
-                [[OfflineStorage shared] updateOfflineTopic:self.currentOfflineTopic];
-            }
-            [self fetchContent];
-        }
-    } else {
-        self.currentUrl = self.nextPageUrl;
+    self.currentUrl = self.nextPageUrl;
+    NSLog(@"nextPage nextPageUrl %@", self.nextPageUrl);
+    [self fetchContent];
+}
+
+-(void)previousPage:(id)sender {
+    self.currentUrl = self.previousPageUrl;
+    if ([[self class] isSubclassOfClass:[MessagesTableViewController class]]) {
+        [self fetchContent:kNewMessageFromNext];
+    }
+    else {
         [self fetchContent];
     }
 }
--(void)previousPage:(id)sender {
-    if ([self isModeOffline]) {
-        if (self.currentOfflineTopic.curTopicPage > self.currentOfflineTopic.minTopicPageLoaded) {
-            self.currentOfflineTopic.curTopicPage--;
-            [self fetchContent];
-        }
-    } else {
-        self.currentUrl = self.previousPageUrl;
-        
-        if ([[self class] isSubclassOfClass:[MessagesTableViewController class]]) {
-            [self fetchContent:kNewMessageFromNext];
 
-        }
-        else {
-            [self fetchContent];
-        }
-    }
-}
 - (IBAction)searchSubmit:(UIBarButtonItem *)sender {
     
 }
@@ -273,31 +251,25 @@
 -(void)firstPage {
     [self firstPage:nil];
 }
+
 -(void)lastPage {
     [self lastPage:nil];
 }
+
 -(void)firstPage:(id)sender {
-    if ([self isModeOffline]) {
-        self.currentOfflineTopic.curTopicPage = self.currentOfflineTopic.minTopicPageLoaded;
-        [self fetchContent];
-    } else {
-        if(self.firstPageUrl.length > 0) self.currentUrl = self.firstPageUrl;
-        [self fetchContent];
+    if(self.firstPageUrl.length > 0) {
+        self.currentUrl = self.firstPageUrl;
     }
+    [self fetchContent];
 }
+
 -(void)lastPage:(id)sender {
-    if ([self isModeOffline]) {
-        self.currentOfflineTopic.curTopicPage = self.currentOfflineTopic.maxTopicPageLoaded;
-        // Update offline flag
-        if (self.currentOfflineTopic.curTopicPageLoaded < self.currentOfflineTopic.curTopicPage) {
-            self.currentOfflineTopic.curTopicPageLoaded = self.currentOfflineTopic.curTopicPage;
-            [[OfflineStorage shared] updateOfflineTopic:self.currentOfflineTopic];
-        }
-        [self fetchContent];
-    } else {
-        if(self.lastPageUrl.length > 0) self.currentUrl = self.lastPageUrl;
-        [self fetchContent];
+
+    if(self.lastPageUrl.length > 0) {
+        self.currentUrl = self.lastPageUrl;
     }
+    
+    [self fetchContent];
 }
 
 -(void)lastAnswer {

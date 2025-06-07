@@ -23,7 +23,7 @@
 
 @property Theme theme;
 @property LuminosityHandler *luminosityHandler;
-    
+
 + (ThemeManager*)sharedManager;
 + (Theme)currentTheme;
 - (void)applyThemeToCell:(UITableViewCell *)cell;
@@ -35,5 +35,5 @@
 - (void)checkTheme;
 - (void)setThemeManually:(Theme)newTheme;
 - (Theme)getThemeFromCurrentTime;
-- (UIAlertActionStyle)cancelAlertStyle;
+
 @end

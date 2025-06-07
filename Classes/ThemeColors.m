@@ -748,7 +748,7 @@
             if ([[NSUserDefaults standardUserDefaults] boolForKey:@"theme_noel_disabled"]) {
                 a = 1;
             } else {
-                if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+                if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
                     a = 0.97;
                 }
                 else {
@@ -757,7 +757,7 @@
             }
             return [UIColor colorWithRed:255.0/255.0 green:255.0/255.0 blue:255.0/255.0 alpha:a];
         case ThemeDark:
-            if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+            if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
                 a = 0.95;
             }
             else {

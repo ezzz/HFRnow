@@ -90,7 +90,9 @@
 	[ASIHTTPRequest setDefaultTimeOutSeconds:kTimeoutMaxi];
     self.currentUrl = [self.currentUrl stringByReplacingOccurrencesOfString:@"http://forum.hardware.fr" withString:@""];
     NSLog(@"URL:%@", [NSString stringWithFormat:@"%@%@", [k ForumURL], [self currentUrl]]);
-	[self setRequest:[ASIHTTPRequest requestWithURL:[NSURL URLWithString:[NSString stringWithFormat:@"%@%@", [k ForumURL], [self currentUrl]]]]];
+    NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"%@%@", [k ForumURL], [self currentUrl]]];
+    self.originalFragment = url.fragment;
+	[self setRequest:[ASIHTTPRequest requestWithURL:url]];
     
     [request setResponseEncoding:NSUTF8StringEncoding];
 	[request setDelegate:self];
@@ -140,16 +142,54 @@
     [self fetchContent:kNewMessageFromUnkwn];
 }
 
+/* TO DELETE ?
 - (void)fetchContentStarted:(ASIHTTPRequest *)theRequest
 {
-	//--
-	//NSLog(@"fetchContentStarted");
-    
     if (![self.currentUrl isEqualToString:[theRequest.url.absoluteString stringByReplacingOccurrencesOfString:[k ForumURL] withString:@""]]) {
-        //NSLog(@"not equal ==");
+        NSLog(@"SEARCH fetchContentStarted 1 %@", self.currentUrl);
         self.currentUrl = [theRequest.url.absoluteString stringByReplacingOccurrencesOfString:[k ForumURL] withString:@""];
+        NSLog(@"SEARCH fetchContentStarted 2 %@", self.currentUrl);
+        NSLog(@"SEARCH fetchContentStarted 3 fragment %@", theRequest.url.fragment);
+    }
+}*/
+
+- (void)fetchContentStarted:(ASIHTTPRequest *)theRequest
+{
+    NSString *forumBaseUrl = [k ForumURL];
+    NSString *fullUrl = theRequest.url.absoluteString;
+
+    if (![fullUrl hasPrefix:forumBaseUrl]) {
+        NSLog(@"URL doesn't match forum base: %@", fullUrl);
+        return;
+    }
+    
+    // Extraire URI après base
+    NSString *uriWithPossibleFragment = [fullUrl substringFromIndex:forumBaseUrl.length];
+
+    // Nettoyer tout fragment présent dans cette sous-chaîne
+    NSString *uriWithoutFragment;
+    NSRange fragmentRange = [uriWithPossibleFragment rangeOfString:@"#"];
+    if (fragmentRange.location != NSNotFound) {
+        uriWithoutFragment = [uriWithPossibleFragment substringToIndex:fragmentRange.location];
+    } else {
+        uriWithoutFragment = uriWithPossibleFragment;
     }
 
+    // Essayer d'extraire un fragment éventuel de la redirection
+    NSString *redirectFragment = theRequest.url.fragment;
+
+    // Déterminer quel fragment utiliser
+    NSString *finalFragment = redirectFragment ?: self.originalFragment;
+
+    // Reconstruire l'URI complète avec le fragment s'il existe
+    NSString *uriWithFragment = finalFragment.length > 0
+        ? [NSString stringWithFormat:@"%@#%@", uriWithoutFragment, finalFragment]
+        : uriWithoutFragment;
+
+    if (![self.currentUrl isEqualToString:uriWithFragment]) {
+        self.currentUrl = uriWithFragment;
+        self.originalFragment = finalFragment;
+    }
 }
 
 - (void)fetchContentComplete:(ASIHTTPRequest *)theRequest
@@ -161,9 +201,8 @@
 	}
 	
     [self startParseDataHtml:[request safeResponseData]];
-    
+
     self.originalUrl = theRequest.originalURL.absoluteString;
-    
     [self cancelFetchContent];
 }
 
@@ -473,7 +512,7 @@
             if (nextUrlNode) {
                 //nextPageUrl = [[NSString stringWithFormat:@"%@", [topicUrl stringByReplacingCharactersInRange:rangeNumPage withString:[NSString stringWithFormat:@"%d", (pageNumber + 1)]]] retain];
                 //nextPageUrl = [[NSString stringWithFormat:@"%@", [topicUrl stringByReplacingCharactersInRange:rangeNumPage withString:[NSString stringWithFormat:@"%d", (pageNumber + 1)]]] retain];
-                [self.view addGestureRecognizer:swipeLeftRecognizer];
+                [self.view addGestureRecognizer:swipeRightRecognizer];
                 self.nextPageUrl = [[nextUrlNode getAttributeNamed:@"href"] copy];
                 //NSLog(@"nextPageUrl = %@", nextPageUrl);
                 
@@ -487,7 +526,7 @@
             
             if (previousUrlNode) {
                 //previousPageUrl = [[topicUrl stringByReplacingCharactersInRange:rangeNumPage withString:[NSString stringWithFormat:@"%d", (pageNumber - 1)]] retain];
-                [self.view addGestureRecognizer:swipeRightRecognizer];
+                [self.view addGestureRecognizer:swipeLeftRecognizer];
                 self.previousPageUrl = [[previousUrlNode getAttributeNamed:@"href"] copy];
                 //NSLog(@"previousPageUrl = %@", previousPageUrl);
                 
@@ -1114,10 +1153,8 @@
     }
 
     // cancelButtonStyle not needed on iPad
-    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
-        // Can't use UIAlertActionStyleCancel in dark theme : https://stackoverflow.com/a/44606994/1853603
-        UIAlertActionStyle cancelButtonStyle = [[ThemeManager sharedManager] cancelAlertStyle];
-        [styleAlert addAction:[UIAlertAction actionWithTitle:@"Annuler" style:cancelButtonStyle handler:^(UIAlertAction *action) {
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
+        [styleAlert addAction:[UIAlertAction actionWithTitle:@"Annuler" style:UIAlertActionStyleCancel handler:^(UIAlertAction *action) {
             [self dismissViewControllerAnimated:YES completion:nil];
         }]];
     } else {
@@ -1384,7 +1421,7 @@
                 sImgUrl = [sImgUrl stringByReplacingOccurrencesOfString:@".th." withString:@"."];
             }
             else if ([[imgNode getAttributeNamed:@"alt"] containsString:@"reho.st/"]) { // Rehost
-                if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+                if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
                     sImgUrl = [sImgUrl stringByReplacingOccurrencesOfString:@"reho.st/thumb/" withString:@"reho.st/"];
                 }
                 else {
@@ -2315,7 +2352,7 @@ API_AVAILABLE(ios(16.0)) {
     int curMsg = [curMsgN intValue];
     NSString *answString = nil;
 
-    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
         answString = @"Répondre";
     }
     else {
