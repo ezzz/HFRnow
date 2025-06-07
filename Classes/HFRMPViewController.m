@@ -8,6 +8,7 @@
 #import "HFRplusAppDelegate.h"
 
 #import "HFRMPViewController.h"
+#import "TopicsTableViewController.h"
 #import "MessagesTableViewController.h"
 
 #import "Topic.h"
@@ -22,7 +23,8 @@
 #import <SDWebImage/SDWebImage.h>
 
 @implementation HFRMPViewController
-@synthesize reloadOnAppear, actionButton, reloadButton, detailNavigationViewController, arrayData, topicActionAlert, pressedIndexPath;
+
+//@synthesize reloadOnAppear, actionButton, reloadButton, detailNavigationViewController, arrayData, topicActionAlert, pressedIndexPath;
 
  // The designated initializer.  Override if you create the controller programmatically and want to perform customization that is not appropriate for viewDidLoad.
 
@@ -38,8 +40,8 @@
 
     //NSLog(@"vdl MP");
     
-    UINib *nibCellMP = [UINib nibWithNibName:@"TopicMPCellView" bundle:nil];
-    [self.topicsTableView registerNib:nibCellMP forCellReuseIdentifier:@"TopicMPCellID"];
+    //UINib *nibCellMP = [UINib nibWithNibName:@"TopicMPCellView" bundle:nil];
+    //[self.topicsTableView registerNib:nibCellMP forCellReuseIdentifier:@"TopicMPCellID"];
     
 	self.forumName = @"Messages";
 	self.forumBaseURL = @"/forum1.php?config=hfr.inc&cat=prive&page=1";
@@ -47,6 +49,10 @@
     //TODO : doit être placé après les lignes du dessus. Pas très propre
     // Et possiblement à l'origine du bug sur les ongletc Categories et Messages qui se mélangent...
     [super viewDidLoad];
+
+    NSLog(@"SEARCH MP Registering nib for tableView: %@", self.topicsTableView);
+    UINib *nib = [UINib nibWithNibName:@"TopicMPCellView" bundle:nil];
+    [self.topicsTableView registerNib:nib forCellReuseIdentifier:@"TopicMPCellID"];
 
     self.navigationItem.titleView = nil;
 
@@ -105,22 +111,32 @@
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     NSInteger iSizeTextTopics = [[NSUserDefaults standardUserDefaults] integerForKey:@"size_text_topics"];
 
-    TopicMPCellView *cell = [tableView dequeueReusableCellWithIdentifier:@"TopicMPCellID"];
+    //TopicMPCellView *cell = [tableView dequeueReusableCellWithIdentifier:@"TopicMPCellID"];
+    //TopicMPCellView *cell = (TopicMPCellView *)[tableView dequeueReusableCellWithIdentifier:@"TopicMPCellID"];
+    static NSString *CellIdentifier = @"TopicMPCellID";
     
+    NSLog(@"Dequeue from tableView: %@", tableView);
+    
+    //TopicMPCellView *cell = (TopicMPCellView *)[tableView dequeueReusableCellWithIdentifier:CellIdentifier];
+    TopicMPCellView *cell = [tableView dequeueReusableCellWithIdentifier:@"TopicMPCellID" forIndexPath:indexPath];
+
     // Content
-    TopicCellView *tmpCell = (TopicCellView*)[super tableView:tableView cellForRowAtIndexPath:indexPath];
-    cell.timeLabel.text = tmpCell.timeLabel.text;
+    Topic *aTopic = [self.arrayData objectAtIndex:indexPath.row];
     
+    // Time label
+    [cell.timeLabel setText:[NSString stringWithFormat:@"%@ - %@", [aTopic aAuthorOfLastPost], [aTopic aDateOfLastPost]]];
+    [cell.timeLabel setFont:[UIFont systemFontOfSize:11.0*iSizeTextTopics/100]];
+
     cell.imgAvatar.layer.cornerRadius = cell.imgAvatar.frame.size.width / 2;
     cell.imgAvatar.clipsToBounds = YES;
     
-    if ([[(Topic *)[arrayData objectAtIndex:indexPath.row] aAuthorOrInter] containsString:@"multiples"]) {
+    if ([[(Topic *)[self.arrayData objectAtIndex:indexPath.row] aAuthorOrInter] containsString:@"multiples"]) {
         [cell.msgLabel setText:@"Interlocuteurs multiples"];
         [cell.msgLabel setFont:[UIFont systemFontOfSize:12.0]];
         cell.imgAvatar.image = [ThemeColors avatarGroup];
     }
     else {
-        NSString* sPseudo = [(Topic *)[arrayData objectAtIndex:indexPath.row] aAuthorOrInter];
+        NSString* sPseudo = [(Topic *)[self.arrayData objectAtIndex:indexPath.row] aAuthorOrInter];
         [cell.msgLabel setText:[NSString stringWithFormat:@"%@", sPseudo]];
         [cell.msgLabel setFont:[UIFont systemFontOfSize:12.0]];
         UIImage* imgAvatarPseudo = [self getAvatarFromPseudo:sPseudo];
@@ -138,7 +154,6 @@
         }
     }
     
-    Topic *aTopic = [arrayData objectAtIndex:indexPath.row];
     cell.topicViewed = [aTopic isViewed];
 
     // Style
@@ -214,7 +229,7 @@
     NSString *sPost = nil;
     if ([[NSUserDefaults standardUserDefaults] boolForKey:@"mpstorage_active"]) {
         // Get post id from URL
-        Topic *t = [arrayData objectAtIndex:indexPath.row];
+        Topic *t = [self.arrayData objectAtIndex:indexPath.row];
         if ([t.aAuthorOrInter isEqualToString:@"Interlocuteurs multiples"]) {
             bCanSaveDrapalInMPStorage = YES;
             for (NSString *qs in [t.aURL componentsSeparatedByString:@"&"]) {
@@ -236,15 +251,15 @@
     }
     // If nothing, only get URL of last page
     if (sOpennedUrl == nil) {
-        sOpennedUrl = [[arrayData objectAtIndex:indexPath.row] aURLOfLastPost];
+        sOpennedUrl = [[self.arrayData objectAtIndex:indexPath.row] aURLOfLastPost];
     }
     
 	MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:sOpennedUrl displaySeparator:YES];
 	self.messagesTableViewController = aView;
 	
 	//setup the URL
-	self.messagesTableViewController.topicName = [[arrayData objectAtIndex:indexPath.row] aTitle];	
-	self.messagesTableViewController.isViewed = [[arrayData objectAtIndex:indexPath.row] isViewed];	
+	self.messagesTableViewController.topicName = [[self.arrayData objectAtIndex:indexPath.row] aTitle];
+	self.messagesTableViewController.isViewed = [[self.arrayData objectAtIndex:indexPath.row] isViewed];
     self.messagesTableViewController.canSaveDrapalInMPStorage = bCanSaveDrapalInMPStorage;
     
     [self pushTopic];
@@ -262,8 +277,8 @@
 		CGPoint longPressLocation = [longPressRecognizer locationInView:self.topicsTableView];
 		self.pressedIndexPath = [[self.topicsTableView indexPathForRowAtPoint:longPressLocation] copy];
 		
-        if (topicActionAlert != nil) {
-            topicActionAlert = nil;
+        if (self.topicActionAlert != nil) {
+            self.topicActionAlert = nil;
         }
         
         NSMutableArray *arrayActionsMessages = [NSMutableArray array];
@@ -272,10 +287,10 @@
         [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Page numéro...", @"chooseTopicPage", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
         [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Copier le lien", @"copyLinkAction", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
         
-        topicActionAlert = [UIAlertController alertControllerWithTitle:nil message:nil preferredStyle:UIAlertControllerStyleActionSheet];
+        self.topicActionAlert = [UIAlertController alertControllerWithTitle:nil message:nil preferredStyle:UIAlertControllerStyleActionSheet];
         
         for( NSDictionary *dico in arrayActionsMessages) {
-            [topicActionAlert addAction:[UIAlertAction actionWithTitle:[dico valueForKey:@"title"] style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+            [self.topicActionAlert addAction:[UIAlertAction actionWithTitle:[dico valueForKey:@"title"] style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
                 if ([self respondsToSelector:NSSelectorFromString([dico valueForKey:@"code"])])
                 {
                     //[self performSelector:];
@@ -290,29 +305,29 @@
         }
                 
         if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
-            [topicActionAlert addAction:[UIAlertAction actionWithTitle:@"Annuler" style:UIAlertActionStyleCancel handler:^(UIAlertAction *action) {
+            [self.topicActionAlert addAction:[UIAlertAction actionWithTitle:@"Annuler" style:UIAlertActionStyleCancel handler:^(UIAlertAction *action) {
                 [self dismissViewControllerAnimated:YES completion:nil];
             }]];
         } else {
             CGPoint pointLocation = [longPressRecognizer locationInView:self.view];
             CGRect origFrame = CGRectMake( pointLocation.x, pointLocation.y, 1, 1);
-            topicActionAlert.popoverPresentationController.sourceView = self.view;
-            topicActionAlert.popoverPresentationController.sourceRect = origFrame;
-            topicActionAlert.popoverPresentationController.backgroundColor = [ThemeColors alertBackgroundColor:[[ThemeManager sharedManager] theme]];
+            self.topicActionAlert.popoverPresentationController.sourceView = self.view;
+            self.topicActionAlert.popoverPresentationController.sourceRect = origFrame;
+            self.topicActionAlert.popoverPresentationController.backgroundColor = [ThemeColors alertBackgroundColor:[[ThemeManager sharedManager] theme]];
         }
         
-        [self presentViewController:topicActionAlert animated:YES completion:nil];
-        [[ThemeManager sharedManager] applyThemeToAlertController:topicActionAlert];
+        [self presentViewController:self.topicActionAlert animated:YES completion:nil];
+        [[ThemeManager sharedManager] applyThemeToAlertController:self.topicActionAlert];
         
     }
 }
 
 -(void)lastPageAction{
-    MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:[[arrayData objectAtIndex:pressedIndexPath.row] aURLOfLastPage]];
+    MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:[[self.arrayData objectAtIndex:self.pressedIndexPath.row] aURLOfLastPage]];
     self.messagesTableViewController = aView;
     
-    self.messagesTableViewController.topicName = [[arrayData objectAtIndex:pressedIndexPath.row] aTitle];
-    self.messagesTableViewController.isViewed = [[arrayData objectAtIndex:pressedIndexPath.row] isViewed];
+    self.messagesTableViewController.topicName = [[self.arrayData objectAtIndex:self.pressedIndexPath.row] aTitle];
+    self.messagesTableViewController.isViewed = [[self.arrayData objectAtIndex:self.pressedIndexPath.row] isViewed];
     
     [self pushTopic];
     
@@ -320,11 +335,11 @@
 }
 
 -(void)firstPageAction{
-    MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:[[arrayData objectAtIndex:pressedIndexPath.row] aURL]];
+    MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:[[self.arrayData objectAtIndex:self.pressedIndexPath.row] aURL]];
     self.messagesTableViewController = aView;
     
-    self.messagesTableViewController.topicName = [[arrayData objectAtIndex:pressedIndexPath.row] aTitle];
-    self.messagesTableViewController.isViewed = [[arrayData objectAtIndex:pressedIndexPath.row] isViewed];
+    self.messagesTableViewController.topicName = [[self.arrayData objectAtIndex:self.pressedIndexPath.row] aTitle];
+    self.messagesTableViewController.isViewed = [[self.arrayData objectAtIndex:self.pressedIndexPath.row] isViewed];
     
     [self pushTopic];
     

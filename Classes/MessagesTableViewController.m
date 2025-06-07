@@ -162,9 +162,6 @@
         NSLog(@"URL doesn't match forum base: %@", fullUrl);
         return;
     }
-
-    
-    NSLog(@"SEARCH fetchContentStarted 0 of %@", self.originalFragment);
     
     // Extraire URI après base
     NSString *uriWithPossibleFragment = [fullUrl substringFromIndex:forumBaseUrl.length];
@@ -183,30 +180,20 @@
 
     // Déterminer quel fragment utiliser
     NSString *finalFragment = redirectFragment ?: self.originalFragment;
-    
-    NSLog(@"SEARCH fetchContentStarted 0.1 rf %@ ff %@", redirectFragment, finalFragment);
 
     // Reconstruire l'URI complète avec le fragment s'il existe
     NSString *uriWithFragment = finalFragment.length > 0
         ? [NSString stringWithFormat:@"%@#%@", uriWithoutFragment, finalFragment]
         : uriWithoutFragment;
 
-    NSLog(@"SEARCH fetchContentStarted 0.2 cu %@ urif %@", self.currentUrl, uriWithFragment);
-
-    
     if (![self.currentUrl isEqualToString:uriWithFragment]) {
-        NSLog(@"SEARCH fetchContentStarted 1 %@", self.currentUrl);
         self.currentUrl = uriWithFragment;
-        NSLog(@"SEARCH fetchContentStarted 2 %@", self.currentUrl);
-        NSLog(@"SEARCH fetchContentStarted 3 fragment %@", finalFragment);
         self.originalFragment = finalFragment;
     }
 }
 
 - (void)fetchContentComplete:(ASIHTTPRequest *)theRequest
 {
-    NSLog(@"SEARCH fetchContentComplete 1 %@", self.currentUrl);
-
     //MaJ de la puce MP
 	if (!self.isViewed) {
 		//NSLog(@"pas lu");
@@ -214,13 +201,9 @@
 	}
 	
     [self startParseDataHtml:[request safeResponseData]];
-    
-    NSLog(@"SEARCH fetchContentComplete 2 current %@ original %@", self.currentUrl, self.originalUrl);
 
     self.originalUrl = theRequest.originalURL.absoluteString;
     [self cancelFetchContent];
-
-    NSLog(@"SEARCH fetchContentComplete 3 current %@ original %@", self.currentUrl, self.originalUrl);
 }
 
 - (void)startParseDataHtml:(NSData*)data {
@@ -394,7 +377,6 @@
 
 -(void)setupScrollAndPage
 {
-    NSLog(@"SEARCH setupScrollAndPage %@", self.currentUrl);
     NSRange rangeFlagPage =  [self.currentUrl rangeOfString:@"#" options:NSBackwardsSearch];
     
     if (self.stringFlagTopic.length == 0) {
@@ -530,7 +512,7 @@
             if (nextUrlNode) {
                 //nextPageUrl = [[NSString stringWithFormat:@"%@", [topicUrl stringByReplacingCharactersInRange:rangeNumPage withString:[NSString stringWithFormat:@"%d", (pageNumber + 1)]]] retain];
                 //nextPageUrl = [[NSString stringWithFormat:@"%@", [topicUrl stringByReplacingCharactersInRange:rangeNumPage withString:[NSString stringWithFormat:@"%d", (pageNumber + 1)]]] retain];
-                [self.view addGestureRecognizer:swipeLeftRecognizer];
+                [self.view addGestureRecognizer:swipeRightRecognizer];
                 self.nextPageUrl = [[nextUrlNode getAttributeNamed:@"href"] copy];
                 //NSLog(@"nextPageUrl = %@", nextPageUrl);
                 
@@ -544,7 +526,7 @@
             
             if (previousUrlNode) {
                 //previousPageUrl = [[topicUrl stringByReplacingCharactersInRange:rangeNumPage withString:[NSString stringWithFormat:@"%d", (pageNumber - 1)]] retain];
-                [self.view addGestureRecognizer:swipeRightRecognizer];
+                [self.view addGestureRecognizer:swipeLeftRecognizer];
                 self.previousPageUrl = [[previousUrlNode getAttributeNamed:@"href"] copy];
                 //NSLog(@"previousPageUrl = %@", previousPageUrl);
                 

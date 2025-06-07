@@ -60,7 +60,10 @@
 - (void)fetchContentComplete:(ASIHTTPRequest *)theRequest;
 - (void)fetchContentFailed:(ASIHTTPRequest *)theRequest;
 - (void)parseTopicsListResult:(NSData *)contentData;
-
+- (void)reset;
+- (NSString *)newTopicTitle;
+- (void)setTopicViewed;
+- (void)pushTopic;
 
 
 @end

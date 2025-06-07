@@ -15,6 +15,7 @@
 #import "ASIFormDataRequest.h"
 #import "HFRplusAppDelegate.h"
 #import "HFRMPViewController.h"
+#import "MessagesTableViewController.h"
 
 @implementation BaseTopicsViewController
 
@@ -56,14 +57,17 @@
     //self.topicsTableView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     [self.view addSubview:self.topicsTableView];
     
+    UIView *v = [[UIView alloc] initWithFrame:CGRectZero];
+    v.backgroundColor = [UIColor clearColor];
+    [self.topicsTableView setTableFooterView:v];
+    self.topicsTableView.sectionHeaderTopPadding = 0;
+
     // Maintenance label
     self.maintenanceView = [[UILabel alloc] initWithFrame:CGRectZero];
     self.maintenanceView.textAlignment = NSTextAlignmentCenter;
     self.maintenanceView.numberOfLines = 0;
     [self.view addSubview:self.maintenanceView];
-    
-    self.topicsTableView.backgroundColor = [UIColor cyanColor];
-    
+        
     self.maintenanceView.backgroundColor = [UIColor yellowColor];
     self.maintenanceView.hidden = YES; // masquée par défaut
     
@@ -115,7 +119,7 @@
 #pragma mark - UITableViewDataSource
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
     // Return the number of rows in the section.
-    //NSLog(@"SEARCH numberOfRowsInSection %ld maintenanceViewHidden %d YES %d", arrayData.count, self.maintenanceView.hidden, YES);
+    //NSLog(@"SEARCH numberOfRowsInSection %ld", self.arrayData.count);
     
     return self.arrayData.count;
 }
@@ -235,11 +239,17 @@
     return 1;
 }
 
+- (void)setSegmentEnabled:(BOOL)bEnabled forSegmentAtIndex:(NSInteger)index{
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [(UISegmentedControl *)[self.navigationItem.titleView.subviews objectAtIndex:0] setEnabled:bEnabled forSegmentAtIndex:index];
+    });
+}
+
 #pragma mark - Data lifecycle
 
 - (void)fetchContent
 {
-    //SPACE [self.topicsTableView setContentOffset:CGPointZero animated:YES];
+    [self.topicsTableView setContentOffset:CGPointZero animated:YES];
 }
 
 - (void)cancelFetchContent
@@ -284,19 +294,19 @@
 
 - (void)fetchContentComplete:(ASIHTTPRequest *)theRequest
 {
+    
     [self parseTopicsListResult:[theRequest responseData]];
     
     [self.arrayData removeAllObjects];
     self.arrayData = [NSMutableArray arrayWithArray:self.arrayNewData];
     
     [self.arrayNewData removeAllObjects];
-    
     [self.topicsTableView reloadData];
-        
-    if (self.previousPageUrl.length > 0) {
+    
+    if (self.nextPageUrl.length > 0) {
         [self.view addGestureRecognizer:self.swipeLeftRecognizer];
     }
-    if (self.nextPageUrl.length > 0) {
+    if (self.previousPageUrl.length > 0) {
         [self.view addGestureRecognizer:self.swipeRightRecognizer];
     }
     
@@ -412,37 +422,35 @@
         self.forumBaseURL = [[FiltresNode findChildWithAttribute:@"id" matchingName:@"onglet1" allowPartial:NO] getAttributeNamed:@"href"];
     }
     
-    dispatch_async(dispatch_get_main_queue(), ^{
-        if ([[FiltresNode findChildWithAttribute:@"id" matchingName:@"onglet2" allowPartial:NO] getAttributeNamed:@"href"]) {
-            if (!self.forumFavorisURL) {
-                self.forumFavorisURL = [[FiltresNode findChildWithAttribute:@"id" matchingName:@"onglet2" allowPartial:NO] getAttributeNamed:@"href"];
-            }
-            [(UISegmentedControl *)[self.navigationItem.titleView.subviews objectAtIndex:0] setEnabled:YES forSegmentAtIndex:1];
+    if ([[FiltresNode findChildWithAttribute:@"id" matchingName:@"onglet2" allowPartial:NO] getAttributeNamed:@"href"]) {
+        if (!self.forumFavorisURL) {
+            self.forumFavorisURL = [[FiltresNode findChildWithAttribute:@"id" matchingName:@"onglet2" allowPartial:NO] getAttributeNamed:@"href"];
         }
-        else {
-            [(UISegmentedControl *)[self.navigationItem.titleView.subviews objectAtIndex:0] setEnabled:NO forSegmentAtIndex:1];
-        }
+        [self setSegmentEnabled:YES forSegmentAtIndex:1];
+    }
+    else {
+        [self setSegmentEnabled:NO forSegmentAtIndex:1];
+    }
 
-        if ([[FiltresNode findChildWithAttribute:@"id" matchingName:@"onglet3" allowPartial:NO] getAttributeNamed:@"href"]) {
-            if (!self.forumFlag1URL) {
-                self.forumFlag1URL = [[FiltresNode findChildWithAttribute:@"id" matchingName:@"onglet3" allowPartial:NO] getAttributeNamed:@"href"];
-            }
-            [(UISegmentedControl *)[self.navigationItem.titleView.subviews objectAtIndex:0] setEnabled:YES forSegmentAtIndex:2];
+    if ([[FiltresNode findChildWithAttribute:@"id" matchingName:@"onglet3" allowPartial:NO] getAttributeNamed:@"href"]) {
+        if (!self.forumFlag1URL) {
+            self.forumFlag1URL = [[FiltresNode findChildWithAttribute:@"id" matchingName:@"onglet3" allowPartial:NO] getAttributeNamed:@"href"];
         }
-        else {
-            [(UISegmentedControl *)[self.navigationItem.titleView.subviews objectAtIndex:0] setEnabled:NO forSegmentAtIndex:2];
-        }
+        [self setSegmentEnabled:YES forSegmentAtIndex:2];
+    }
+    else {
+        [self setSegmentEnabled:NO forSegmentAtIndex:2];
+    }
 
-        if ([[FiltresNode findChildWithAttribute:@"id" matchingName:@"onglet4" allowPartial:NO] getAttributeNamed:@"href"]) {
-            if (!self.forumFlag0URL) {
-                self.forumFlag0URL = [[FiltresNode findChildWithAttribute:@"id" matchingName:@"onglet4" allowPartial:NO] getAttributeNamed:@"href"];
-            }
-            [(UISegmentedControl *)[self.navigationItem.titleView.subviews objectAtIndex:0] setEnabled:YES forSegmentAtIndex:3];
+    if ([[FiltresNode findChildWithAttribute:@"id" matchingName:@"onglet4" allowPartial:NO] getAttributeNamed:@"href"]) {
+        if (!self.forumFlag0URL) {
+            self.forumFlag0URL = [[FiltresNode findChildWithAttribute:@"id" matchingName:@"onglet4" allowPartial:NO] getAttributeNamed:@"href"];
         }
-        else {
-            [(UISegmentedControl *)[self.navigationItem.titleView.subviews objectAtIndex:0] setEnabled:NO forSegmentAtIndex:3];
-        }
-    });
+        [self setSegmentEnabled:YES forSegmentAtIndex:3];
+    }
+    else {
+        [self setSegmentEnabled:NO forSegmentAtIndex:3];
+    }
     //NSLog(@"Filtres1Node %@", rawContentsOfNode([Filtres1Node _node], [myParser _doc]));
     //-- FIN Filtre
     
@@ -560,7 +568,7 @@
                                                                                           target:nil
                                                                                           action:nil];
                 fixItem.width = SPACE_FOR_BARBUTTON;
-                /*
+                
                 //Add buttons to the array
                 NSArray *items = [NSArray arrayWithObjects: systemItem1, fixItem, systemItemPrevious, flexItem, systemItem3, flexItem, systemItemNext, fixItem, systemItem2, nil];
                 [tmptoolbar setItems:items animated:NO];
@@ -579,7 +587,7 @@
                 }
                 else {
                     self.topicsTableView.tableFooterView = [[UIView alloc] initWithFrame:CGRectZero];
-                }*/
+                }
             });
 
         }
@@ -680,7 +688,7 @@
                 //NSLog(@"SEARCH NOT found > %@, %@", sExactTopicTitle, aTopic.sLastSearchPostContent);
             }
             [aTopic setATitle: [[NSString alloc] initWithFormat:@"%@%@%@", aTopicAffix, [sExactTopicTitle stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]], aTopicSuffix]];
-
+            //NSLog(@"MP Topic %@", [aTopic aTitle]);
             NSString *aTopicURL = [[NSString alloc] initWithString:[[topicTitleNode findChildTag:@"a"] getAttributeNamed:@"href"]];
             [aTopic setAURL:aTopicURL];
 
@@ -856,5 +864,57 @@
     return newImage;
 }
  
+- (void)pushTopic
+{
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone)
+    {
+        self.navigationItem.backBarButtonItem =
+        [[UIBarButtonItem alloc] initWithTitle:@" "
+                                         style: UIBarButtonItemStylePlain
+                                        target:nil
+                                        action:nil];
+        
+        [self.navigationController pushViewController:self.messagesTableViewController animated:YES];
+    }
+    else if (self.detailNavigationViewController)
+    {
+        self.messagesTableViewController.navigationItem.leftBarButtonItem = self.detailNavigationViewController.splitViewController.displayModeButtonItem;
+        self.messagesTableViewController.navigationItem.leftItemsSupplementBackButton = YES;
+        [self.detailNavigationViewController setViewControllers:[NSMutableArray arrayWithObjects:self.messagesTableViewController, nil] animated:YES];
+
+        // Close left panel on ipad in portrait mode
+        [[HFRplusAppDelegate sharedAppDelegate] hidePrimaryPanelOnIpadForSplitViewController:self.detailNavigationViewController.splitViewController];
+    }
+    
+    [self setTopicViewed];
+}
+
+
+-(void)setTopicViewed {
+
+    if (self.pressedIndexPath && self.arrayData.count > 0 && [self.pressedIndexPath row] <= self.arrayData.count) {
+        [[self.arrayData objectAtIndex:[self.pressedIndexPath row]] setIsViewed:YES];
+        
+        NSArray* rowsToReload = [NSArray arrayWithObjects:self.pressedIndexPath, nil];
+        [self.topicsTableView reloadRowsAtIndexPaths:rowsToReload withRowAnimation:UITableViewRowAnimationNone];
+    }
+    else if (self.topicsTableView.indexPathForSelectedRow && self.arrayData.count > 0 && [self.topicsTableView.indexPathForSelectedRow row] <= self.arrayData.count) {
+        [[self.arrayData objectAtIndex:[self.topicsTableView.indexPathForSelectedRow row]] setIsViewed:YES];
+        
+        NSArray* rowsToReload = [NSArray arrayWithObjects:self.topicsTableView.indexPathForSelectedRow, nil];
+        [self.topicsTableView reloadRowsAtIndexPaths:rowsToReload withRowAnimation:UITableViewRowAnimationNone];
+    }
+}
+
+- (void)reset
+{
+    [self.arrayData removeAllObjects];
+    [self.topicsTableView reloadData];
+}
+
+- (NSString *)newTopicTitle
+{
+    return @"Nouv. Sujet";
+}
 
 @end

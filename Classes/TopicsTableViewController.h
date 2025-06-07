@@ -42,7 +42,6 @@
 - (instancetype)init;
 - (instancetype)initWithFlag:(int)flag;
 - (void)reset;
-- (void)pushTopic;
 
  /*
 - (void)shakeHappened:(ShakeView*)view;

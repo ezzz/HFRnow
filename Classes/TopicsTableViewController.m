@@ -13,7 +13,7 @@
 #import "TopicsTableViewController.h"
 #import "MessagesTableViewController.h"
 #import "HFRMPViewController.h"
-#import "TopicsSearchViewController.h"
+#import "BaseTopicsViewController.h"
 #import "TopicCellView.h"
 #import "Topic.h"
 #import "SubCatTableViewController.h"
@@ -23,6 +23,7 @@
 #import "ThemeManager.h"
 #import "SmileyAlertView.h"
 #import "PullToRefreshErrorViewController.h"
+#import "TopicsSearchViewController.h"
 
 @implementation TopicsTableViewController
 @synthesize arrayData, arrayNewData;
@@ -91,14 +92,14 @@
     [segmentedControl setTitleTextAttributes:attributes forState:UIControlStateNormal];
     [segmentedControl setUserInteractionEnabled:NO];
     [segmentedControl addTarget:self action:@selector(segmentFilterAction) forControlEvents:UIControlEventValueChanged];
-    segmentedControl.segmentedControlStyle = UISegmentedControlStyleBar;
     [self.navigationItem.titleView insertSubview:segmentedControl atIndex:1];
 
+    
     
     //SubCats Control
     if (self.pickerViewArray.count) {
         UISegmentedControl *segmentedControl2 = [[UISegmentedControl alloc] initWithItems: [NSArray arrayWithObjects: [UIImage imageNamed:@"all_categories"], nil]];
-        [segmentedControl2 addTarget:self action:@selector(segmentCatAction:) forControlEvents:UIControlEventValueChanged];
+        [segmentedControl2 addTarget:self action:@selector(showPicker:) forControlEvents:UIControlEventValueChanged];
         segmentedControl2.segmentedControlStyle = UISegmentedControlStyleBar;
         segmentedControl2.momentary = YES;
         segmentedControl2.frame = CGRectMake(segmentedControl.frame.size.width + 15, 0, segmentedControl2.frame.size.width, segmentedControl2.frame.size.height);
@@ -133,14 +134,6 @@
         
         self.navigationItem.rightBarButtonItems = [[NSMutableArray alloc] initWithObjects:buttontBarItemRight, buttontBarItemLeft, nil];
     }
-    
-
-
-    //self.forumBaseURL = self.currentUrl;
-    UIView *v = [[UIView alloc] initWithFrame:CGRectZero];
-    v.backgroundColor = [UIColor clearColor];
-    [self.topicsTableView setTableFooterView:v];
-    self.topicsTableView.sectionHeaderTopPadding = 0;
     
     if (self.pickerViewArray.count) {
         actionSheet = [[UIActionSheet alloc] initWithTitle:nil delegate:nil cancelButtonTitle:nil destructiveButtonTitle:nil otherButtonTitles:nil];
@@ -194,16 +187,6 @@
     [self.topicsTableView reloadData];
 }
 
-- (void)reset
-{
-	[self.arrayData removeAllObjects];
-	[self.topicsTableView reloadData];
-}
-
-- (NSString *)newTopicTitle
-{
-	return @"Nouv. Sujet";	
-}
 
 -(void)searchForum
 {
@@ -350,8 +333,6 @@
     [self fetchContent];
     //});
     //[self fetchContent];
-
-
 }
 
 - (void)segmentFilterAction
@@ -463,6 +444,8 @@
 // Customize the appearance of table view cells.
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
 
+    //NSLog(@"SEARCH cellForRowAtIndexPath %ld", indexPath.row);
+    
 	static NSString *CellIdentifier = @"ApplicationCell";
     
     TopicCellView *cell = (TopicCellView *)[tableView dequeueReusableCellWithIdentifier:CellIdentifier];
@@ -735,46 +718,7 @@
     [self.navigationController pushViewController:avc animated:YES];
 }
 
-- (void)pushTopic
-{
-    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone)
-    {
-        self.navigationItem.backBarButtonItem =
-        [[UIBarButtonItem alloc] initWithTitle:@" "
-                                         style: UIBarButtonItemStylePlain
-                                        target:nil
-                                        action:nil];
-        
-        [self.navigationController pushViewController:messagesTableViewController animated:YES];
-    }
-    else if (self.detailNavigationViewController)
-    {
-        messagesTableViewController.navigationItem.leftBarButtonItem = self.detailNavigationViewController.splitViewController.displayModeButtonItem;
-        messagesTableViewController.navigationItem.leftItemsSupplementBackButton = YES;
-        [self.detailNavigationViewController setViewControllers:[NSMutableArray arrayWithObjects:messagesTableViewController, nil] animated:YES];
 
-        // Close left panel on ipad in portrait mode
-        [[HFRplusAppDelegate sharedAppDelegate] hidePrimaryPanelOnIpadForSplitViewController:self.detailNavigationViewController.splitViewController];
-    }
-    
-    [self setTopicViewed];
-}
-
--(void)setTopicViewed {
-
-	if (self.pressedIndexPath && self.arrayData.count > 0 && [self.pressedIndexPath row] <= self.arrayData.count) {
-		[[self.arrayData objectAtIndex:[self.pressedIndexPath row]] setIsViewed:YES];
-        
-        NSArray* rowsToReload = [NSArray arrayWithObjects:self.pressedIndexPath, nil];
-        [self.topicsTableView reloadRowsAtIndexPaths:rowsToReload withRowAnimation:UITableViewRowAnimationNone];
-	}
-	else if (self.topicsTableView.indexPathForSelectedRow && self.arrayData.count > 0 && [self.topicsTableView.indexPathForSelectedRow row] <= self.arrayData.count) {
-		[[self.arrayData objectAtIndex:[self.topicsTableView.indexPathForSelectedRow row]] setIsViewed:YES];
-        
-        NSArray* rowsToReload = [NSArray arrayWithObjects:self.topicsTableView.indexPathForSelectedRow, nil];
-        [self.topicsTableView reloadRowsAtIndexPaths:rowsToReload withRowAnimation:UITableViewRowAnimationNone];
-	}
-}
 
 #pragma mark -
 #pragma mark chooseTopicPage
@@ -891,14 +835,20 @@
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     // Navigation logic may go here. Create and push another view controller.
     Topic* selectedTopic = [arrayData objectAtIndex:indexPath.row];
-    NSString *sURL = selectedTopic.aURL; // Default URL = first post of first page
+    NSString *sURL = selectedTopic.aURL; // URL par défaut sur onglet TOUS = first post of first page
+    BOOL bDisplaySeparator = NO;
     if (selectedTopic.aTypeOfFlag.length > 0) {
-        sURL = selectedTopic.aURLOfFlag;
+        sURL = selectedTopic.aURLOfFlag;  // URL par défaut sur les autres onglet
+        bDisplaySeparator = YES;
     }
+    else if (self.selectedFlagIndex > 0) {
+        sURL = selectedTopic.aURLOfLastPost; // Pour les favoris et drapeaux
+    }
+    /* Ne fonctionne pas si on a un drapeau N page avant la fin qu'on ne lit pas les N. Il ne faut pas aller à la fin du topic.
     else if (selectedTopic.hasNewMessageInTopic && selectedTopic.isViewed) { // On va a la fin que si on a déjà lu le topic (il avait de nouveau messages au chargement)
         sURL = selectedTopic.aURLOfLastPost;
-    }
-    MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:sURL];
+    }*/
+    MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:sURL displaySeparator:bDisplaySeparator];
     self.messagesTableViewController = aView;
     [self.messagesTableViewController setTopicName:[[arrayData objectAtIndex:indexPath.row] aTitle]];
 	self.messagesTableViewController.isViewed = [[arrayData objectAtIndex:indexPath.row] isViewed];	

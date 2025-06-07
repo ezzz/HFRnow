@@ -84,6 +84,7 @@
     self.backgroundDimView.translatesAutoresizingMaskIntoConstraints = NO;
     self.backgroundDimView.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.4]; // ou 0.6, selon l’effet désiré
     self.backgroundDimView.hidden = YES; // masquée par défaut
+    self.backgroundDimView.alpha = 0.0;
     UITapGestureRecognizer *tapRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(toggleSearchFields)];
     [self.backgroundDimView addGestureRecognizer:tapRecognizer];
     [self.view addSubview:self.backgroundDimView];
@@ -196,7 +197,7 @@
     self.maintenanceView.hidden = YES; // cachée par défaut
     self.topicsTableView.hidden = YES; // cachée par défaut
     self.loadingView.hidden = YES; // cachée par défaut
-
+    
     self.disableViewOverlay = [[UIView alloc] initWithFrame:CGRectMake(0.0f, 0.0f, 1000.0f, 1000.0f)];
     self.disableViewOverlay.backgroundColor = [UIColor blackColor];
     self.disableViewOverlay.alpha = 0;
@@ -217,6 +218,8 @@
     self.imageForYellowFlag = [UIImage imageNamed:@"Flat-YellowFlag-25"];
     self.imageForBlueFlag = [UIImage imageNamed:@"Flat-CyanFlag-25"];
     
+    [self.textSearchBar becomeFirstResponder];
+    
     [self setSearchFieldsHidden:NO];
 }
 
@@ -234,8 +237,6 @@
     if (self.messagesTableViewController) {
         self.messagesTableViewController = nil;
     }
-    
-    self.topicsTableView.backgroundColor = [UIColor cyanColor];
 }
 
 - (void)toggleSearchFields {
@@ -250,18 +251,11 @@
 
 - (void)setSearchFieldsHidden:(BOOL)bHidden {
     self.searchVisible = bHidden;
-    
     self.searchHeaderView.hidden = self.searchVisible;
     
     if (bHidden) {
-        //[self.textSearchBar resignFirstResponder];
-    }
-    else {
-        [self.textSearchBar becomeFirstResponder];
-    }
+        [self.searchHeaderView endEditing:YES];
     
-    // Fond associé au champs de recherche
-    if (bHidden) {
         // Afficher avec animation
         self.backgroundDimView.alpha = 1;
         self.backgroundDimView.hidden = YES;
@@ -276,6 +270,14 @@
         [UIView animateWithDuration:0.25 animations:^{
             self.backgroundDimView.alpha = 1;
         }];
+   
+        // Forcer layout pour que le champ texte soit bien en place
+        [self.searchHeaderView layoutIfNeeded];
+
+        // Appel différé du focus après que la vue soit dans la hiérarchie
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.25 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            //[self.textSearchBar becomeFirstResponder];
+        });
     }
     
     /*// Si tu utilises Auto Layout :
@@ -556,8 +558,6 @@
     if ([urlString hasPrefix:@"/"]) {
         urlString = [@"https://forum.hardware.fr" stringByAppendingString:urlString];
     }
-    NSLog(@"SEARCH followRedirectToURL 1 %@ <- %@", self.currentUrl, urlString);
-
     self.currentUrl = urlString;
     
     NSURL *url = [NSURL URLWithString:urlString];
@@ -572,19 +572,7 @@
         if (error) {
             NSLog(@"❌ Erreur lors de la redirection : %@", error);
         } else {
-            NSLog(@"✅ Statut HTTP redirection : %ld", (long)[(NSHTTPURLResponse *)response statusCode]);
-            /*
-            NSString *html = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-            NSUInteger length = html.length;
-            NSUInteger blockSize = 1000;
-            for (NSUInteger i = 0; i < length; i += blockSize) {
-                NSUInteger thisBlockSize = MIN(blockSize, length - i);
-                NSString *block = [html substringWithRange:NSMakeRange(i, thisBlockSize)];
-                NSLog(@"🧩 Bloc %lu : %@", (unsigned long)(i / blockSize + 1), block);
-            }
-            */
-            
-            NSLog(@"SEARCH DATA !!");
+            NSLog(@"Statut HTTP redirection : %ld", (long)[(NSHTTPURLResponse *)response statusCode]);
             
             // Parse result
             [self parseTopicsListResult:data];
@@ -593,7 +581,7 @@
             self.arrayData = [NSMutableArray arrayWithArray:self.arrayNewData];
             [self.arrayNewData removeAllObjects];
             
-            // 🧠 Appel de la méthode UI sur le thread principal
+            // Appel de la méthode UI sur le thread principal
             dispatch_async(dispatch_get_main_queue(), ^{
                 NSLog(@"How many results:%ld", [self.arrayData count]);
 
@@ -605,7 +593,7 @@
                     [self.activityIndicator stopAnimating];
                 }
                 else {
-                    NSLog(@"Show results");
+                    //NSLog(@"Show results");
                     [self.maintenanceView setHidden:YES];
                     [self.topicsTableView setHidden:NO];
                     [self.loadingView setHidden:YES];
@@ -620,6 +608,7 @@
                     target:self
                     action:@selector(toggleSearchFields)];
                 
+                [self.topicsTableView setContentOffset:CGPointZero animated:YES];
                 [self.topicsTableView reloadData];
                             
                 [(UISegmentedControl *)[self.navigationItem.titleView.subviews objectAtIndex:0] setUserInteractionEnabled:YES];
@@ -690,39 +679,43 @@
 
 - (void)fetchContent
 {
+    [self setSearchFieldsHidden:YES];
+    self.maintenanceView.hidden = YES;
+    self.loadingView.hidden = NO;
+    self.topicsTableView.hidden = YES;
+    [self.activityIndicator startAnimating];
+
     [super fetchContent];
     [self fetchContentTrigger];
+}
+
+- (void)fetchContentComplete:(ASIHTTPRequest *)theRequest
+{
+    [super fetchContentComplete:theRequest];
+    
+    [self setSearchFieldsHidden:YES];
+    self.maintenanceView.hidden = YES;
+    self.topicsTableView.hidden = NO;
+    [self.activityIndicator stopAnimating];
+    self.loadingView.hidden = YES;
 }
 
 #pragma mark - Table view data source
 
 - (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section {
-    return 0.01;
-    /*
-    
-    NSInteger iSizeTextTopics = [[NSUserDefaults standardUserDefaults] integerForKey:@"size_texct_topics"];
-    if (tableView == self.topicsTableView) {
-        return [super tableView:tableView heightForHeaderInSection:section];
-    }
-    
-    return HEIGHT_FOR_HEADER_IN_SECTION*iSizeTextTopics/100;*/
+    NSInteger iSizeTextTopics = [[NSUserDefaults standardUserDefaults] integerForKey:@"size_text_topics"];
+    return 36.0f*iSizeTextTopics/100;
 }
 
-- (UIView *)tableView:(UITableView *)tableView viewForHeaderInSection:(NSInteger)section {
-    return [UIView new];
-    NSLog(@"SEARCH TABLE %@", self.topicsTableView.frame);
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
+    return 1;
 }
 
 - (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section
 {
-    return @"";
-    /*
-    if (tableView == self.topicsTableView) {
-        return [NSString stringWithFormat:@"Résultats p.%d", [self pageNumber]]; // [self forumName] is null, dommage...
-    }
-    
-    return @"Recherches précédentes";*/
+    return [NSString stringWithFormat:@"Résultats p.%d", [self pageNumber]]; // [self forumName] is null, dommage...
 }
+
 
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
 {
@@ -980,8 +973,7 @@
     }
 }
 
-#pragma mark -
-#pragma mark Action delegate
+#pragma mark - Action delegate
 
 -(void)lastSearchPostAction {
     [self openTopicWithURL:[[self.arrayData objectAtIndex:self.pressedIndexPath.row] sLastSearchPostURL]];
