@@ -57,10 +57,6 @@
     MessagesTableViewController *messagesTableViewController;
     MessageDetailViewController *detailViewController;
     
-    //Gesture
-    UISwipeGestureRecognizer *swipeLeftRecognizer;
-    UISwipeGestureRecognizer *swipeRightRecognizer;
-    
     //V3
     // the queue to run our "ParseOperation"
     NSOperationQueue		*queue;

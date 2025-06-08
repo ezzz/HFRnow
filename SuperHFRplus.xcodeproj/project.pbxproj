@@ -61,6 +61,7 @@
 		152D2D4A2456E56500D9D644 /* ASIHTTPRequest+Tools.m in Sources */ = {isa = PBXBuildFile; fileRef = 152D2D492456E56500D9D644 /* ASIHTTPRequest+Tools.m */; };
 		152D2D4C24619CC500D9D644 /* 08-pin-20@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 152D2D4B24619CC400D9D644 /* 08-pin-20@2x.png */; };
 		152D2D4E2461AE1900D9D644 /* 08-pin@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 152D2D4D2461AE1900D9D644 /* 08-pin@2x.png */; };
+		152FD2F62DF55D31007268D3 /* BaseTopicsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 152FD2F52DF55D31007268D3 /* BaseTopicsViewController.m */; };
 		15357D64234BA620002D5C2E /* offline@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15357D62234BA61F002D5C2E /* offline@2x.png */; };
 		15357D65234BA620002D5C2E /* offline.png in Resources */ = {isa = PBXBuildFile; fileRef = 15357D63234BA620002D5C2E /* offline.png */; };
 		15357D67234BA712002D5C2E /* offline2@2.png in Resources */ = {isa = PBXBuildFile; fileRef = 15357D66234BA712002D5C2E /* offline2@2.png */; };
@@ -1015,6 +1016,8 @@
 		152D2D492456E56500D9D644 /* ASIHTTPRequest+Tools.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "ASIHTTPRequest+Tools.m"; sourceTree = "<group>"; };
 		152D2D4B24619CC400D9D644 /* 08-pin-20@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "08-pin-20@2x.png"; path = "SuperHFRplus/Assets/UI/08-pin-20@2x.png"; sourceTree = SOURCE_ROOT; };
 		152D2D4D2461AE1900D9D644 /* 08-pin@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "08-pin@2x.png"; sourceTree = "<group>"; };
+		152FD2F42DF55D31007268D3 /* BaseTopicsViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BaseTopicsViewController.h; sourceTree = "<group>"; };
+		152FD2F52DF55D31007268D3 /* BaseTopicsViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BaseTopicsViewController.m; sourceTree = "<group>"; };
 		15357D62234BA61F002D5C2E /* offline@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "offline@2x.png"; sourceTree = "<group>"; };
 		15357D63234BA620002D5C2E /* offline.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = offline.png; sourceTree = "<group>"; };
 		15357D66234BA712002D5C2E /* offline2@2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "offline2@2.png"; sourceTree = "<group>"; };
@@ -2119,8 +2122,8 @@
 				01BF8B6F121DAEF3007624B6 /* Topic.m */,
 				CA77D0F31261424D00271D62 /* PageViewController.h */,
 				CA77D0F41261424D00271D62 /* PageViewController.m */,
-				15C6456A2DDA493A0033B935 /* BaseTopicsViewController.h */,
-				15C6456B2DDA49630033B935 /* BaseTopicsViewController.m */,
+				152FD2F42DF55D31007268D3 /* BaseTopicsViewController.h */,
+				152FD2F52DF55D31007268D3 /* BaseTopicsViewController.m */,
 				01BF8B43121DAD33007624B6 /* TopicsTableViewController.h */,
 				01BF8B44121DAD33007624B6 /* TopicsTableViewController.m */,
 				0140AA84121DF25F001C35C4 /* HFRMPViewController.h */,
@@ -4228,7 +4231,6 @@
 				CA7C70CB185EF50E00B348BA /* Topic.m in Sources */,
 				1556409122D928D30018A619 /* WhiteListTableViewController.m in Sources */,
 				CA7C70D5185EF50E00B348BA /* LinkItem.m in Sources */,
-				15C6456C2DDA49650033B935 /* BaseTopicsViewController.m in Sources */,
 				CA7C70DB185EF50E00B348BA /* ParseMessagesOperation.m in Sources */,
 				150C9FEF2D9801DC0023C430 /* OfflineStorage.m in Sources */,
 				4CB132F91B90A1930081B44D /* BlackList.m in Sources */,
@@ -4272,6 +4274,7 @@
 				155A992A2479A5A3002968CD /* RehostCollectionCell.m in Sources */,
 				CA7C70FB185EF50E00B348BA /* PayViewController.m in Sources */,
 				CA7C70FD185EF50E00B348BA /* TopicSearchCellView.m in Sources */,
+				152FD2F62DF55D31007268D3 /* BaseTopicsViewController.m in Sources */,
 				CA7C7100185EF50E00B348BA /* BrowserViewController.m in Sources */,
 				CA7C7101185EF50E00B348BA /* SplitViewController.m in Sources */,
 				159D80BC2738256600388363 /* PopupViewController.m in Sources */,
@@ -4521,7 +4524,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super;
 				PRODUCT_NAME = SuperHFRplusSwift;
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = DistributeIOS;
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = ProfileSuperHFRv1;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -4585,7 +4588,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super;
 				PRODUCT_NAME = SuperHFRplusSwift;
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = DistributeIOS;
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = ProfileSuperHFRv1;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;

@@ -512,7 +512,7 @@
             if (nextUrlNode) {
                 //nextPageUrl = [[NSString stringWithFormat:@"%@", [topicUrl stringByReplacingCharactersInRange:rangeNumPage withString:[NSString stringWithFormat:@"%d", (pageNumber + 1)]]] retain];
                 //nextPageUrl = [[NSString stringWithFormat:@"%@", [topicUrl stringByReplacingCharactersInRange:rangeNumPage withString:[NSString stringWithFormat:@"%d", (pageNumber + 1)]]] retain];
-                [self.view addGestureRecognizer:swipeRightRecognizer];
+                [self.view addGestureRecognizer:swipeLeftRecognizer];
                 self.nextPageUrl = [[nextUrlNode getAttributeNamed:@"href"] copy];
                 //NSLog(@"nextPageUrl = %@", nextPageUrl);
                 
@@ -526,7 +526,7 @@
             
             if (previousUrlNode) {
                 //previousPageUrl = [[topicUrl stringByReplacingCharactersInRange:rangeNumPage withString:[NSString stringWithFormat:@"%d", (pageNumber - 1)]] retain];
-                [self.view addGestureRecognizer:swipeLeftRecognizer];
+                [self.view addGestureRecognizer:swipeRightRecognizer];
                 self.previousPageUrl = [[previousUrlNode getAttributeNamed:@"href"] copy];
                 //NSLog(@"previousPageUrl = %@", previousPageUrl);
                 
@@ -1527,19 +1527,19 @@
 }
 
 - (void)handleSwipeToLeft:(UISwipeGestureRecognizer *)recognizer {
-    
+    NSLog(@"handleSwipeToLeft nextPage");
     if (self.isSearchInstra) {
         NSLog(@"isSearchInstra");
 
         [self searchSubmit:nil];
     }
     else {
-        NSLog(@"NEXT");
 
         [self nextPage:recognizer];
     }
 }
 - (void)handleSwipeToRight:(UISwipeGestureRecognizer *)recognizer {
+    NSLog(@"handleSwipeToRight previousPage");
     if (!self.isSearchInstra && (self.searchBg.alpha == 0.0 || self.searchBg.hidden == YES)) {
         [self previousPage:recognizer];
     }
