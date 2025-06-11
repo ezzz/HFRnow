@@ -901,7 +901,7 @@
         [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Dernière correspondance", @"lastSearchPostAction", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
     }
     if (aTopic.aURLOfFlag.length > 0) {
-        [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Drapeau", @"lastSearchPostAction", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
+        [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Drapeau", @"flagAction", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
     }
     
     [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Première page", @"firstPageAction", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
@@ -977,6 +977,10 @@
 
 -(void)lastSearchPostAction {
     [self openTopicWithURL:[[self.arrayData objectAtIndex:self.pressedIndexPath.row] sLastSearchPostURL]];
+}
+
+-(void)flagAction {
+    [self openTopicWithURL:[[self.arrayData objectAtIndex:self.pressedIndexPath.row] aURLOfFlag]];
 }
 
 -(void)firstPageAction {
