@@ -9,7 +9,7 @@
 #import <UIKit/UIKit.h>
 #import "ListTableViewController.h"
 
-@interface BlackListTableViewController : ListTableViewController {
+@interface BlackListTableViewController : ListTableViewController<UIAlertViewDelegate> {
 }
 
 @end

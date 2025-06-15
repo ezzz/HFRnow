@@ -13,6 +13,7 @@
 #import "ThemeColors.h"
 #import "ThemeManager.h"
 #import "Constants.h"
+#import "HFRAlertView.h"
 
 @interface WhiteListTableViewController ()
 
@@ -38,9 +39,18 @@ NSInteger Sort_WL_Comparer(id id1, id id2, void *context)
 }
 
 - (void)viewDidLoad {
+    [super viewDidLoad];
     self.title = @"Love list";
 }
 
+- (void)addPseudoToList:(NSString*)sPseudo {
+    [[BlackList shared] addToWhiteList:sPseudo];
+
+    NSString* promptMsg = [NSString stringWithFormat:@"BIM! %@ ajouté à la liste", sPseudo];
+    [HFRAlertView DisplayAlertViewWithTitle:promptMsg forDuration:(long)1];
+    
+    [self reloadData];
+}
 #pragma mark - Table view data source
 - (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath
 {

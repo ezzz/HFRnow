@@ -46,16 +46,71 @@
     // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
     //self.navigationItem.rightBarButtonItem = self.editButtonItem;
     
-    if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"7")) {
-        self.edgesForExtendedLayout = UIRectEdgeNone;
-    }
+    self.edgesForExtendedLayout = UIRectEdgeNone;
     [self hideEmptySeparators];
-    self.title = @"Liste noire";
+    
+    // Mettre à jour l'icône du bouton
+    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc]
+        initWithTitle:@"Ajouter"
+        style:UIBarButtonItemStylePlain
+        target:self
+        action:@selector(addToList)];
 }
 
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
+}
+
+- (void)addToList {
+    UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Ajouter à la liste"
+                                                                   message:nil
+                                                            preferredStyle:UIAlertControllerStyleAlert];
+    
+    
+    [alert addTextFieldWithConfigurationHandler:^(UITextField * _Nonnull textField) {
+        textField.placeholder = [NSString stringWithFormat:@"pseudo"];
+        textField.textAlignment = NSTextAlignmentCenter;
+        [textField addTarget:self action:@selector(textFieldDidChange:) forControlEvents:UIControlEventEditingChanged];
+        textField.keyboardAppearance = UIKeyboardAppearanceDefault;
+        //textField.keyboardType = UIKey;
+        textField.delegate = self;
+        [[ThemeManager sharedManager] applyThemeToTextField:textField];
+        textField.keyboardAppearance = [ThemeColors keyboardAppearance:[[ThemeManager sharedManager] theme]];
+    }];
+    
+    UIAlertAction* cancelAction = [UIAlertAction actionWithTitle:@"Annuler" style:UIAlertActionStyleCancel
+                                                         handler:^(UIAlertAction * action) {
+                                                         }];
+    [alert addAction:cancelAction];
+    
+    
+    UIAlertAction* defaultAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault
+                                                          handler:^(UIAlertAction * action) {
+                                                                [self addPseudoToList: [alert.textFields[0] text]];
+                                                          }];
+    
+    [alert addAction:defaultAction];
+    [self presentViewController:alert animated:YES completion:nil];
+    for (UIView* textfield in alert.textFields) {
+        UIView *container = textfield.superview;
+        UIView *effectView = container.superview.subviews[0];
+        
+        if (effectView && [effectView class] == [UIVisualEffectView class]){
+            container.backgroundColor = [UIColor clearColor];
+            [effectView removeFromSuperview];
+        }
+    }
+
+    [[ThemeManager sharedManager] applyThemeToAlertController:alert];
+}
+
+- (void)textFieldDidChange:(id)sender {
+    //NSLog(@"textFieldDidChange %d %@", [[(UITextField *)sender text] intValue], sender);
+    // Rien pour le moment
+}
+
+- (void)addPseudoToList:(NSString*)sPseudo {
 }
 
 #pragma mark - Table view data source

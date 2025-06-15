@@ -152,10 +152,9 @@
     ]];*/
 
     // Loading view
-    // ----- Vue de chargement -----
     self.loadingView = [[UIView alloc] init];
     self.loadingView.translatesAutoresizingMaskIntoConstraints = NO;
-    self.loadingView.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.5];
+    self.loadingView.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.5]; // fond assombri
 
     [self.view addSubview:self.loadingView];
 
@@ -165,32 +164,44 @@
         [self.loadingView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
         [self.loadingView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor]
     ]];
-    
-    self.activityIndicator = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleLarge];
-    self.activityIndicator.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.loadingView addSubview:self.activityIndicator];
 
+    // ----- Boîte centrée -----
+    UIView *containerView = [[UIView alloc] init];
+    containerView.translatesAutoresizingMaskIntoConstraints = NO;
+    containerView.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.8];
+    containerView.layer.cornerRadius = 12;
+    containerView.clipsToBounds = YES;
+    [self.loadingView addSubview:containerView];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [containerView.centerXAnchor constraintEqualToAnchor:self.loadingView.centerXAnchor],
+        [containerView.centerYAnchor constraintEqualToAnchor:self.loadingView.centerYAnchor],
+        [containerView.widthAnchor constraintEqualToConstant:200],
+        [containerView.heightAnchor constraintEqualToConstant:60]
+    ]];
+
+    // ----- Spinner -----
+    self.activityIndicator = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
+    self.activityIndicator.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.activityIndicator startAnimating];
+    [containerView addSubview:self.activityIndicator];
+
+    // ----- Label -----
     self.loadingLabel = [[UILabel alloc] init];
     self.loadingLabel.translatesAutoresizingMaskIntoConstraints = NO;
     self.loadingLabel.text = @"Chargement...";
     self.loadingLabel.textColor = [UIColor whiteColor];
-    self.loadingLabel.font = [UIFont fontWithName:@"Helvetica-Bold" size:12];
-    [self.loadingView addSubview:self.loadingLabel];
-    
+    self.loadingLabel.font = [UIFont fontWithName:@"Helvetica-Bold" size:14];
+    [containerView addSubview:self.loadingLabel];
+
+    // ----- Contraintes internes du containerView -----
     [NSLayoutConstraint activateConstraints:@[
-        // Centrer le groupe horizontalement et verticalement
-        [self.activityIndicator.centerYAnchor constraintEqualToAnchor:self.loadingView.centerYAnchor],
-        [self.loadingLabel.centerYAnchor constraintEqualToAnchor:self.activityIndicator.centerYAnchor],
+        [self.activityIndicator.centerYAnchor constraintEqualToAnchor:containerView.centerYAnchor],
+        [self.activityIndicator.leadingAnchor constraintEqualToAnchor:containerView.leadingAnchor constant:20],
 
-        // Spinner à gauche
-        [self.activityIndicator.centerXAnchor constraintEqualToAnchor:self.loadingView.centerXAnchor constant:-40],
-
-        // Label à droite du spinner
+        [self.loadingLabel.centerYAnchor constraintEqualToAnchor:containerView.centerYAnchor],
         [self.loadingLabel.leadingAnchor constraintEqualToAnchor:self.activityIndicator.trailingAnchor constant:12],
-        
-        // Taille
-        [self.activityIndicator.heightAnchor constraintEqualToConstant:12],
-        [self.activityIndicator.widthAnchor constraintEqualToConstant:12]
+        [self.loadingLabel.trailingAnchor constraintEqualToAnchor:containerView.trailingAnchor constant:-20]
     ]];
     
     // Autres paramètres

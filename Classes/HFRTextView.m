@@ -98,11 +98,20 @@ API_AVAILABLE(ios(16.0))
         [childrenList addObject:el];
     }
     
-    UIAction *action = [UIAction actionWithTitle:@"" image:menuImgBold identifier:nil  handler:^(__kindof UIAction * _Nonnull action) {
+    UIAction *action = nil;
+    
+    if (self.selectedRange.length == 0) { // Uniquement si sélection simple
+        action = [UIAction actionWithTitle:@"Fractionner la citation" image:nil identifier:nil  handler:^(__kindof UIAction * _Nonnull action) {
+            [self splitQuote];
+        }];
+        [childrenList addObject:action];
+    }
+    
+    action = [UIAction actionWithTitle:@"" image:menuImgBold identifier:nil  handler:^(__kindof UIAction * _Nonnull action) {
         [self insertBBCode:@"b"];
     }];
     [childrenList addObject:action];
-    
+
     action = [UIAction actionWithTitle:@"" image:menuImgItalic identifier:nil  handler:^(__kindof UIAction * _Nonnull action) {
         [self insertBBCode:@"i"];
     }];
@@ -240,6 +249,61 @@ API_AVAILABLE(ios(16.0))
     }
     
 }
+
+- (void)splitQuote {
+    NSMutableString *localtext = [self.text mutableCopy];
+    NSRange initialSelectedRange = self.selectedRange;
+    
+    if (self.selectedRange.length > 0) {
+        return;
+    }
+
+    NSError *error = nil;
+    
+    // Regex pour capturer les balises [quotemsg=...]
+    NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"\\[quotemsg=([^\\]]+)\\](.*?)\\[/quotemsg\\]" options:NSRegularExpressionDotMatchesLineSeparators error:&error];
+    
+    if (error) {
+        NSLog(@"Erreur regex : %@", error);
+        return;
+    }
+    
+    NSArray<NSTextCheckingResult *> *matches = [regex matchesInString:localtext options:0 range:NSMakeRange(0, localtext.length)];
+    
+    for (NSTextCheckingResult *match in matches) {
+        if (match.numberOfRanges != 3) continue;
+        
+        NSRange fullRange = [match rangeAtIndex:0];             // [quotemsg=...]...[/quotemsg]
+        NSRange paramsRange = [match rangeAtIndex:1];           // 875593,99,11948
+        NSRange contentRange = [match rangeAtIndex:2];          // contenu
+
+        // Vérifie si l’index est à l’intérieur du contenu de cette citation
+        if (self.selectedRange.location > contentRange.location && self.selectedRange.location < NSMaxRange(contentRange)) {
+            NSString *params = [localtext substringWithRange:paramsRange];
+            NSString *content = [localtext substringWithRange:contentRange];
+
+            NSUInteger localIndex = self.selectedRange.location - contentRange.location;
+            NSString *firstPart = [content substringToIndex:localIndex];
+            NSString *secondPart = [content substringFromIndex:localIndex];
+
+            NSString *newQuote = [NSString stringWithFormat:@"[quotemsg=%@]%@[/quotemsg]\n\n\n[quotemsg=%@]%@[/quotemsg]", params, firstPart, params, secondPart];
+            
+
+            // Remplace l’ancien bloc par les deux nouveaux
+            NSMutableString *newText = [localtext mutableCopy];
+            [newText replaceCharactersInRange:fullRange withString:newQuote];
+            self.text = newText;
+            
+            // Calculer le nouvel index du curseur : position de remplacement + longueur de firstPart + balise ouvrante + 1 espace
+            NSString *closing = @"[/quotemsg]";
+            NSUInteger cursorIndex = initialSelectedRange.location + closing.length + 1; // +1 pour le retour a la ligne
+            NSLog(@"Cursor index before %lu new %lu local %lu text.length %lu", self.selectedRange.location, cursorIndex, initialSelectedRange.location, self.text.length);
+            self.selectedRange = NSMakeRange(cursorIndex, 0); // Positionne le curseur
+            break;
+        }
+    }
+}
+
 
 - (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex
 {

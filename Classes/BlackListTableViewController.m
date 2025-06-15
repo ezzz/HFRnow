@@ -13,6 +13,7 @@
 #import "ThemeColors.h"
 #import "ThemeManager.h"
 #import "Constants.h"
+#import "HFRAlertView.h"
 
 @interface BlackListTableViewController ()
 
@@ -38,7 +39,24 @@ NSInteger Sort_BL_Comparer(id id1, id id2, void *context)
 }
 
 - (void)viewDidLoad {
+    [super viewDidLoad];
     self.title = @"Liste noire";
+}
+
+- (void)addPseudoToList:(NSString*)sPseudo {
+    BOOL ret = [[BlackList shared] addToBlackList:sPseudo andSave:YES];
+
+    NSString* promptMsg = @"";
+    if (ret > 0) {
+        promptMsg = [NSString stringWithFormat:@"BIM! %@ ajouté à la liste", sPseudo];
+    }
+    else {
+        promptMsg = [NSString stringWithFormat:@"Erreur! %@ n'a pas pu être ajouté à la liste", sPseudo];
+    }
+    
+    [HFRAlertView DisplayAlertViewWithTitle:promptMsg forDuration:(long)1];
+    
+    [self reloadData];
 }
 
 #pragma mark - Table view data source

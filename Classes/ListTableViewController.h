@@ -10,7 +10,7 @@
 
 #import <UIKit/UIKit.h>
 
-@interface ListTableViewController : UITableViewController <UIAlertViewDelegate> {
+@interface ListTableViewController : UITableViewController <UIAlertViewDelegate, UITextFieldDelegate> {
     NSMutableArray *blackListDict;
 }
 
