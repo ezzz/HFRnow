@@ -23,6 +23,7 @@
 
 @property (nonatomic, strong) UIActivityIndicatorView *activityIndicator;
 @property (nonatomic, strong) UILabel *loadingLabel;
+@property (nonatomic, strong) UIView *locadingContainerView;
 @property (nonatomic, strong) UIView *loadingView;
 
 @property (nonatomic, strong) IBOutlet UISearchBar *textSearchBar;

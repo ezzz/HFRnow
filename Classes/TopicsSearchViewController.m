@@ -154,7 +154,7 @@
     // Loading view
     self.loadingView = [[UIView alloc] init];
     self.loadingView.translatesAutoresizingMaskIntoConstraints = NO;
-    self.loadingView.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.5]; // fond assombri
+    self.loadingView.backgroundColor = [UIColor clearColor];// colorWithAlphaComponent:0.1]; // fond assombri
 
     [self.view addSubview:self.loadingView];
 
@@ -164,49 +164,55 @@
         [self.loadingView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
         [self.loadingView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor]
     ]];
+    
+    [NSLayoutConstraint activateConstraints:@[
+        [self.loadingView.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor],
+        [self.loadingView.centerYAnchor constraintEqualToAnchor:self.view.centerYAnchor],
+        [self.loadingView.widthAnchor constraintEqualToConstant:200],
+        [self.loadingView.heightAnchor constraintEqualToConstant:60]
+    ]];
+
 
     // ----- Boîte centrée -----
-    UIView *containerView = [[UIView alloc] init];
-    containerView.translatesAutoresizingMaskIntoConstraints = NO;
-    containerView.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.8];
-    containerView.layer.cornerRadius = 12;
-    containerView.clipsToBounds = YES;
-    [self.loadingView addSubview:containerView];
+    self.locadingContainerView = [[UIView alloc] init];
+    self.locadingContainerView.translatesAutoresizingMaskIntoConstraints = NO;
+    self.locadingContainerView.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.8];
+    self.locadingContainerView.layer.cornerRadius = 10;
+    self.locadingContainerView.clipsToBounds = YES;
+    [self.loadingView addSubview:self.locadingContainerView];
 
     [NSLayoutConstraint activateConstraints:@[
-        [containerView.centerXAnchor constraintEqualToAnchor:self.loadingView.centerXAnchor],
-        [containerView.centerYAnchor constraintEqualToAnchor:self.loadingView.centerYAnchor],
-        [containerView.widthAnchor constraintEqualToConstant:200],
-        [containerView.heightAnchor constraintEqualToConstant:60]
+        [self.locadingContainerView.centerXAnchor constraintEqualToAnchor:self.loadingView.centerXAnchor],
+        [self.locadingContainerView.centerYAnchor constraintEqualToAnchor:self.loadingView.centerYAnchor],
+        [self.locadingContainerView.widthAnchor constraintEqualToConstant:200],
+        [self.locadingContainerView.heightAnchor constraintEqualToConstant:60]
     ]];
 
     // ----- Spinner -----
     self.activityIndicator = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
     self.activityIndicator.translatesAutoresizingMaskIntoConstraints = NO;
     [self.activityIndicator startAnimating];
-    [containerView addSubview:self.activityIndicator];
+    [self.locadingContainerView addSubview:self.activityIndicator];
 
     // ----- Label -----
     self.loadingLabel = [[UILabel alloc] init];
     self.loadingLabel.translatesAutoresizingMaskIntoConstraints = NO;
     self.loadingLabel.text = @"Chargement...";
-    self.loadingLabel.textColor = [UIColor whiteColor];
     self.loadingLabel.font = [UIFont fontWithName:@"Helvetica-Bold" size:14];
-    [containerView addSubview:self.loadingLabel];
+    [self.locadingContainerView addSubview:self.loadingLabel];
 
-    // ----- Contraintes internes du containerView -----
     [NSLayoutConstraint activateConstraints:@[
-        [self.activityIndicator.centerYAnchor constraintEqualToAnchor:containerView.centerYAnchor],
-        [self.activityIndicator.leadingAnchor constraintEqualToAnchor:containerView.leadingAnchor constant:20],
+        [self.activityIndicator.centerYAnchor constraintEqualToAnchor:self.locadingContainerView.centerYAnchor],
+        [self.activityIndicator.leadingAnchor constraintEqualToAnchor:self.locadingContainerView.leadingAnchor constant:20],
 
-        [self.loadingLabel.centerYAnchor constraintEqualToAnchor:containerView.centerYAnchor],
+        [self.loadingLabel.centerYAnchor constraintEqualToAnchor:self.locadingContainerView.centerYAnchor],
         [self.loadingLabel.leadingAnchor constraintEqualToAnchor:self.activityIndicator.trailingAnchor constant:12],
-        [self.loadingLabel.trailingAnchor constraintEqualToAnchor:containerView.trailingAnchor constant:-20]
+        [self.loadingLabel.trailingAnchor constraintEqualToAnchor:self.locadingContainerView.trailingAnchor constant:-20]
     ]];
     
     // Autres paramètres
     self.maintenanceView.hidden = YES; // cachée par défaut
-    self.topicsTableView.hidden = YES; // cachée par défaut
+    self.topicsTableView.hidden = NO; // Non cachée par défaut (toujours en arrière plan)
     self.loadingView.hidden = YES; // cachée par défaut
     
     self.disableViewOverlay = [[UIView alloc] initWithFrame:CGRectMake(0.0f, 0.0f, 1000.0f, 1000.0f)];
@@ -239,12 +245,18 @@
     //[self.navigationController setNavigationBarHidden:YES animated:animated];
     [super viewWillAppear:animated];
     Theme theme = [[ThemeManager sharedManager] theme];
-    self.view.backgroundColor = self.maintenanceView.backgroundColor = self.loadingView.backgroundColor = self.topicsTableView.backgroundColor = [ThemeColors greyBackgroundColor:theme];
+    self.view.backgroundColor = self.maintenanceView.backgroundColor = self.topicsTableView.backgroundColor = [ThemeColors greyBackgroundColor:theme];
     self.searchHeaderView.backgroundColor = [ThemeColors navBackgroundColor];
     self.optionSearchInSegmentedControl.backgroundColor = self.optionSearchFromSegmentedControl.backgroundColor = self.optionSearchTypeSegmentedControl.backgroundColor = self.textSearchBar.backgroundColor = [ThemeColors greyBackgroundColor:theme];
 
     self.topicsTableView.separatorColor = [ThemeColors cellBorderColor:theme];
-    self.loadingLabel.textColor = [ThemeColors textColor];
+
+    self.loadingView.backgroundColor = [[ThemeColors greyBackgroundColor:theme] colorWithAlphaComponent:0.0];
+    self.locadingContainerView.backgroundColor = [[ThemeColors greyBackgroundColor:theme] colorWithAlphaComponent:0.6];
+    self.loadingLabel.textColor = [ThemeColors cellTextColor:theme];
+    self.loadingLabel.shadowColor = nil;
+    self.activityIndicator.activityIndicatorViewStyle = [ThemeColors activityIndicatorViewStyle];
+
     if (self.messagesTableViewController) {
         self.messagesTableViewController = nil;
     }
@@ -340,7 +352,7 @@
     
     [self setSearchFieldsHidden:YES];
     self.maintenanceView.hidden = YES;
-    self.topicsTableView.hidden = YES;
+    self.topicsTableView.hidden = NO;
     
     // Mettre à jour l'icône du bouton
     self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc]
@@ -693,7 +705,7 @@
     [self setSearchFieldsHidden:YES];
     self.maintenanceView.hidden = YES;
     self.loadingView.hidden = NO;
-    self.topicsTableView.hidden = YES;
+    self.topicsTableView.hidden = NO;
     [self.activityIndicator startAnimating];
 
     [super fetchContent];
@@ -719,6 +731,9 @@
 }
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
+    if ([self pageNumber] == 0 || self.arrayData.count == 0) {
+        return 0;
+    }
     return 1;
 }
 
