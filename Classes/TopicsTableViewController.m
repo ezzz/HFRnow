@@ -67,11 +67,6 @@
     NSLog(@"self nav %@", self.navigationController);
 
     [[NSNotificationCenter defaultCenter] addObserver:self
-                                             selector:@selector(OrientationChanged)
-                                                 name:UIApplicationDidChangeStatusBarOrientationNotification
-                                               object:nil];
-
-    [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(StatusChanged:)
                                                  name:kStatusChangedNotification
                                                object:nil];

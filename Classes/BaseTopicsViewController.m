@@ -82,6 +82,11 @@
     self.swipeLeftRecognizer = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(handleSwipeToLeft:)];
     self.swipeLeftRecognizer.direction = UISwipeGestureRecognizerDirectionLeft;
     [self.view addGestureRecognizer:self.swipeLeftRecognizer];
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(OrientationChanged)
+                                                 name:UIApplicationDidChangeStatusBarOrientationNotification
+                                               object:nil];
 }
 
 - (void) viewWillAppear:(BOOL)animated
@@ -114,6 +119,13 @@
 
 - (void)handleSwipeToRight:(UISwipeGestureRecognizer *)recognizer {
     [self previousPage:recognizer];
+}
+
+- (void)OrientationChanged
+{
+    if (self.topicActionAlert) {
+        [self.topicActionAlert dismissViewControllerAnimated:YES completion:nil];
+    }
 }
 
 #pragma mark - UITableViewDataSource
