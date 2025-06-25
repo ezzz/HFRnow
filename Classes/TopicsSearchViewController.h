@@ -30,6 +30,8 @@
 @property (nonatomic, strong) UISegmentedControl *optionSearchTypeSegmentedControl;
 @property (nonatomic, strong) UISegmentedControl *optionSearchInSegmentedControl;
 @property (nonatomic, strong) UISegmentedControl *optionSearchFromSegmentedControl;
+@property (nonatomic, strong) UILabel *optionSearchCategoryLabel;
+@property (nonatomic, strong) UIButton *optionSearchCategoryButton;
 @property (nonatomic, strong) UITableView *historicTableView;
 
 @property (nonatomic, strong) UIActionSheet *topicActionSheet;

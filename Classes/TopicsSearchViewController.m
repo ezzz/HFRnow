@@ -17,6 +17,7 @@
 #import "ASIHTTPRequest+Tools.h"
 #import "ThemeManager.h"
 #import "ThemeColors.h"
+#import "Forum.h"
 
 #define TIME_OUT_INTERVAL_SEARCH 15
 
@@ -43,7 +44,7 @@
     
     // 1. Ajouter la SearchBar
     self.textSearchBar = [[UISearchBar alloc] init]; //initWithFrame:CGRectMake(0, 0, self.view.frame.size.width, 44)];
-    self.textSearchBar.placeholder = @"Recherche";
+    self.textSearchBar.placeholder = @"Rechercher";
     self.textSearchBar.delegate = self;
     self.textSearchBar.autocapitalizationType = UITextAutocapitalizationTypeNone;
     if ([self.textSearchBar respondsToSelector:@selector(setSearchBarStyle:)]) {
@@ -78,6 +79,49 @@
     [self.optionSearchFromSegmentedControl addTarget:self action:@selector(segmentedControlChanged:) forControlEvents:UIControlEventValueChanged];
     self.optionSearchFromSegmentedControl.translatesAutoresizingMaskIntoConstraints = NO;
     [self.searchHeaderView addSubview:self.optionSearchFromSegmentedControl];
+    
+    NSString *directory = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) lastObject];
+    NSString *forumsCache = [[NSString alloc] initWithString:[directory stringByAppendingPathComponent:FORUMS_CACHE_FILE]];
+    NSFileManager *fileManager = [[NSFileManager alloc] init];
+    NSMutableArray* arrayListCategories = [[NSMutableArray alloc] init];
+    if ([fileManager fileExistsAtPath:forumsCache]) {
+        NSData *savedData = [NSData dataWithContentsOfFile:forumsCache];
+        arrayListCategories = [NSKeyedUnarchiver unarchiveObjectWithData:savedData];
+    }
+
+    NSMutableArray<UIAction *> *childrenList = [[NSMutableArray alloc] init];
+    NSString* sCurrentCat = @"";
+    for (Forum *aForum in arrayListCategories) {
+        NSString *stringValue = [@([aForum getHFRID]) stringValue];
+        NSLog(@"SEARCH comparing cat %@ to %@ ID %@", self.currentCat, aForum.aURL, stringValue);
+        if ([self.currentCat isEqualToString:[@([aForum getHFRID]) stringValue]]) {
+            sCurrentCat = aForum.aTitle;
+            NSLog(@"SEARCH FOUND when comparing cat %@ to %@", self.currentCat, aForum.aID);
+        }
+        UIAction *option = [UIAction actionWithTitle:aForum.aTitle image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            NSLog(@"%@ sélectionnée ID %@", aForum.aTitle, [@([aForum getHFRID]) stringValue]);
+            self.currentCat = [@([aForum getHFRID]) stringValue];
+            [self.optionSearchCategoryButton setTitle:aForum.aTitle forState:UIControlStateNormal];
+        }];
+        [childrenList addObject:option];
+    }
+    /*
+    NSMutableArray* actionList = [[NSMutableArray alloc] init];
+    for (Forum *aForum in self.) {
+        //NSLog(@"FORUM Subcat: %@ / %@", [aForum aID], [aForum aTitle]);
+        [actionList addObject:[UIAction actionWithTitle:[aForum aTitle] image:nil identifier:nil  handler:^(__kindof UIAction * _Nonnull action) {
+            [self->catButton setTitle:[aForum aTitle] forState:UIControlStateNormal];
+            [self->textFieldCat setText:[aForum aID]];
+            NSLog(@"FORUM selection %@", self->textFieldCat.text);
+                }]];
+    }*/
+
+    self.optionSearchCategoryButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    [self.optionSearchCategoryButton setTitle:sCurrentCat forState:UIControlStateNormal];
+    self.optionSearchCategoryButton.showsMenuAsPrimaryAction = YES; // Affiche le menu au clic
+    self.optionSearchCategoryButton.menu = [UIMenu menuWithTitle:@"Catégorie" children:childrenList];
+    self.optionSearchCategoryButton.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.searchHeaderView addSubview:self.optionSearchCategoryButton];
     
     // Créer la vue d’assombrissement
     self.backgroundDimView = [[UIView alloc] init];
@@ -114,8 +158,31 @@
         [self.textSearchBar.heightAnchor constraintEqualToConstant:44]
     ]];
     
+    // Contraintes Auto Layout
+    /*
     [NSLayoutConstraint activateConstraints:@[
-        [self.optionSearchTypeSegmentedControl.topAnchor constraintEqualToAnchor:self.textSearchBar.bottomAnchor constant:16],
+        [self.optionSearchCategoryLabel.topAnchor constraintEqualToAnchor:self.textSearchBar.bottomAnchor constant:16],
+        [self.optionSearchCategoryLabel.leadingAnchor constraintEqualToAnchor:self.searchHeaderView.leadingAnchor constant:24],
+        [self.optionSearchCategoryLabel.widthAnchor constraintEqualToAnchor:self.searchHeaderView.widthAnchor multiplier:0.35 constant:-24], // moitié moins les marges
+        [self.optionSearchCategoryLabel.heightAnchor constraintEqualToConstant:30],
+
+        [self.optionSearchCategoryButton.centerYAnchor constraintEqualToAnchor:self.optionSearchCategoryLabel.centerYAnchor],
+        [self.optionSearchCategoryButton.leadingAnchor constraintEqualToAnchor:self.optionSearchCategoryLabel.trailingAnchor constant:8],
+        [self.optionSearchCategoryButton.trailingAnchor constraintEqualToAnchor:self.searchHeaderView.trailingAnchor constant:-16],
+        [self.optionSearchCategoryButton.heightAnchor constraintEqualToConstant:30]
+    ]];
+
+    */
+    [NSLayoutConstraint activateConstraints:@[
+        [self.optionSearchCategoryButton.topAnchor constraintEqualToAnchor:self.textSearchBar.bottomAnchor constant:16],
+        [self.optionSearchCategoryButton.leadingAnchor constraintEqualToAnchor:self.searchHeaderView.leadingAnchor constant:16],
+        [self.optionSearchCategoryButton.trailingAnchor constraintEqualToAnchor:self.searchHeaderView.trailingAnchor constant:-16],
+        [self.optionSearchCategoryButton.heightAnchor constraintEqualToConstant:30]
+    ]];
+
+    
+    [NSLayoutConstraint activateConstraints:@[
+        [self.optionSearchTypeSegmentedControl.topAnchor constraintEqualToAnchor:self.optionSearchCategoryButton.bottomAnchor constant:16],
         [self.optionSearchTypeSegmentedControl.leadingAnchor constraintEqualToAnchor:self.searchHeaderView.leadingAnchor constant:16],
         [self.optionSearchTypeSegmentedControl.trailingAnchor constraintEqualToAnchor:self.searchHeaderView.trailingAnchor constant:-16],
         [self.optionSearchTypeSegmentedControl.heightAnchor constraintEqualToConstant:30]
@@ -134,6 +201,7 @@
         [self.optionSearchFromSegmentedControl.trailingAnchor constraintEqualToAnchor:self.searchHeaderView.trailingAnchor constant:-16],
         [self.optionSearchFromSegmentedControl.heightAnchor constraintEqualToConstant:30]
     ]];
+    
 
     // 3. TableView – pour historique
     /*
@@ -244,12 +312,25 @@
 {
     //[self.navigationController setNavigationBarHidden:YES animated:animated];
     [super viewWillAppear:animated];
+    
     Theme theme = [[ThemeManager sharedManager] theme];
     self.view.backgroundColor = self.maintenanceView.backgroundColor = self.topicsTableView.backgroundColor = [ThemeColors greyBackgroundColor:theme];
-    self.searchHeaderView.backgroundColor = [ThemeColors navBackgroundColor];
-    self.optionSearchInSegmentedControl.backgroundColor = self.optionSearchFromSegmentedControl.backgroundColor = self.optionSearchTypeSegmentedControl.backgroundColor = self.textSearchBar.backgroundColor = [ThemeColors greyBackgroundColor:theme];
-
+    self.searchHeaderView.backgroundColor = [ThemeColors toolbarPageBackgroundColor:theme];
+    self.optionSearchInSegmentedControl.backgroundColor = self.optionSearchFromSegmentedControl.backgroundColor = self.optionSearchTypeSegmentedControl.backgroundColor = [UIColor systemGray5Color];
+    self.textSearchBar.backgroundColor = [ThemeColors toolbarPageBackgroundColor:theme];
+    self.optionSearchInSegmentedControl.backgroundColor = [UIColor systemGray5Color];
+    self.optionSearchCategoryButton.backgroundColor = [UIColor systemGray5Color];
+    [self.optionSearchCategoryButton setTitleColor:[UIColor labelColor] forState:UIControlStateNormal];
+    self.optionSearchCategoryButton.layer.cornerRadius = 6.0;
+    
     self.topicsTableView.separatorColor = [ThemeColors cellBorderColor:theme];
+
+    // New
+    NSDictionary *selectedAttributes = @{NSForegroundColorAttributeName: [UIColor systemBackgroundColor]};
+    [self.optionSearchFromSegmentedControl setTitleTextAttributes:selectedAttributes forState:UIControlStateSelected];
+    [self.optionSearchInSegmentedControl setTitleTextAttributes:selectedAttributes forState:UIControlStateSelected];
+    [self.optionSearchTypeSegmentedControl setTitleTextAttributes:selectedAttributes forState:UIControlStateSelected];
+
 
     self.loadingView.backgroundColor = [[ThemeColors greyBackgroundColor:theme] colorWithAlphaComponent:0.0];
     self.locadingContainerView.backgroundColor = [[ThemeColors greyBackgroundColor:theme] colorWithAlphaComponent:0.6];

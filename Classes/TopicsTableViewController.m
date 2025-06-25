@@ -87,6 +87,8 @@
     [segmentedControl setTitleTextAttributes:attributes forState:UIControlStateNormal];
     [segmentedControl setUserInteractionEnabled:NO];
     [segmentedControl addTarget:self action:@selector(segmentFilterAction) forControlEvents:UIControlEventValueChanged];
+    NSDictionary *selectedAttributes = @{NSForegroundColorAttributeName: [UIColor systemBackgroundColor]};
+    [segmentedControl setTitleTextAttributes:selectedAttributes forState:UIControlStateSelected];
     [self.navigationItem.titleView insertSubview:segmentedControl atIndex:1];
 
     
@@ -167,6 +169,7 @@
     [super viewWillAppear:animated];
     
     Theme theme = [[ThemeManager sharedManager] theme];
+    self.topicsTableView.pullToRefreshView.backgroundColor = [ThemeColors greyBackgroundColor:theme];
     self.topicsTableView.pullToRefreshView.arrowColor = [ThemeColors cellTextColor:theme];
     self.topicsTableView.pullToRefreshView.textColor = [ThemeColors cellTextColor:theme];
     self.topicsTableView.pullToRefreshView.activityIndicatorViewStyle = [ThemeColors activityIndicatorViewStyle];
@@ -196,6 +199,7 @@
     }
     else { // iPhone
         [self.navigationController pushViewController:self.topicSearchViewController animated:YES];
+        self.navigationItem.backBarButtonItem.title = @"Topics";
     }
 }
 

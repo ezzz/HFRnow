@@ -359,6 +359,7 @@
 
 -(void)setThemeFromNotification:(NSNotification *)notification{
     [self setTheme:[[ThemeManager sharedManager] theme]];
+    UISegmentedControl.appearance.selectedSegmentTintColor = [ThemeColors tintColor];
 }
 
 -(void)setTheme:(Theme)theme{
