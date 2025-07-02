@@ -167,8 +167,7 @@
 	}
 }
 */
-#pragma mark -
-#pragma mark View lifecycle
+#pragma mark - View lifecycle
 
 -(void)loadDataInTableView:(NSData *)contentData
 {    
@@ -198,13 +197,14 @@
     HTMLNode * hashCheckNode = [bodyNode findChildWithAttribute:@"name" matchingName:@"hash_check" allowPartial:NO];
     if (hashCheckNode && ![[hashCheckNode getAttributeNamed:@"value"] isEqualToString:@""]) {
         //hash = logginé :o
+        NSLog(@"login = %d", isLogged);
         isLogged = true;
         HTMLNode *hash_check = [bodyNode findChildWithAttribute:@"name" matchingName:@"hash_check" allowPartial:NO];
         [[HFRplusAppDelegate sharedAppDelegate] setHash_check:[hash_check getAttributeNamed:@"value"]];
     }
     //-- check if user is logged in
     
-    //NSLog(@"login = %d", isLogged);
+    NSLog(@"login = %d", isLogged);
     
 	for (HTMLNode * forumNode in temporaryForumsArray) {
 
@@ -868,23 +868,7 @@
         self.forumsTableView.sectionHeaderTopPadding = 0;
     }
     
-    
-    //HFR REHOST
-    NSString *forumsCache = [[NSString alloc] initWithString:[directory stringByAppendingPathComponent:FORUMS_CACHE_FILE]];
-    
-    if ([fileManager fileExistsAtPath:forumsCache]) {
-        
-        NSData *savedData = [NSData dataWithContentsOfFile:forumsCache];
-        
-        [self.arrayData removeAllObjects];
-        [self.arrayNewData removeAllObjects];
-        
-        self.arrayData = [NSKeyedUnarchiver unarchiveObjectWithData:savedData];
-        [self.forumsTableView reloadData];
-    }
-    else {
-        [self.forumsTableView triggerPullToRefresh];
-    }
+    [self.forumsTableView triggerPullToRefresh];
 }
 
 

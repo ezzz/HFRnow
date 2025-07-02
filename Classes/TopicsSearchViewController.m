@@ -30,13 +30,15 @@
     
     self.title = [NSString stringWithFormat:@"Recherche"]; //, self.forumName];
 
-    // Mettre à jour l'icône du bouton
-    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc]
-        initWithImage:[UIImage systemImageNamed:@"magnifyingglass"]
-        style:UIBarButtonItemStylePlain
-        target:self
-        action:@selector(toggleSearchFields)];
-
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
+        // Mettre à jour l'icône du bouton
+        self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc]
+                                                  initWithImage:[UIImage systemImageNamed:@"magnifyingglass"]
+                                                  style:UIBarButtonItemStylePlain
+                                                  target:self
+                                                  action:@selector(toggleSearchFields)];
+    }
+    
     // 0. Container de l'en-tête -----
     self.searchHeaderView = [[UIView alloc] init];
     self.searchHeaderView.translatesAutoresizingMaskIntoConstraints = NO;
@@ -58,7 +60,11 @@
 
     // 2. Ajouter le SegmentedControl juste en dessous
     //optionSearchTypeSegmentedControl, optionSearchInSegmentedControl, optionSearchFromSegmentedControl;
-    
+    // Cat Discussions par defaut
+    if ([[NSUserDefaults standardUserDefaults] objectForKey:@"recherche_categorie"] == nil) {
+        [[NSUserDefaults standardUserDefaults] setObject:@"13" forKey:@"recherche_categorie"];
+    }
+
     NSArray *items1 = @[@"Tous les mots", @"Au moins un mot", @"Avancé"];
     self.optionSearchTypeSegmentedControl = [[UISegmentedControl alloc] initWithItems:items1];
     self.optionSearchTypeSegmentedControl.selectedSegmentIndex = 0;
@@ -91,6 +97,7 @@
 
     NSMutableArray<UIAction *> *childrenList = [[NSMutableArray alloc] init];
     NSString* sCurrentCat = @"";
+    self.currentCat = [[NSUserDefaults standardUserDefaults] stringForKey:@"recherche_categorie"];
     for (Forum *aForum in arrayListCategories) {
         NSString *stringValue = [@([aForum getHFRID]) stringValue];
         NSLog(@"SEARCH comparing cat %@ to %@ ID %@", self.currentCat, aForum.aURL, stringValue);
@@ -101,20 +108,11 @@
         UIAction *option = [UIAction actionWithTitle:aForum.aTitle image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             NSLog(@"%@ sélectionnée ID %@", aForum.aTitle, [@([aForum getHFRID]) stringValue]);
             self.currentCat = [@([aForum getHFRID]) stringValue];
+            [[NSUserDefaults standardUserDefaults] setObject:self.currentCat forKey:@"recherche_categorie"];
             [self.optionSearchCategoryButton setTitle:aForum.aTitle forState:UIControlStateNormal];
         }];
         [childrenList addObject:option];
     }
-    /*
-    NSMutableArray* actionList = [[NSMutableArray alloc] init];
-    for (Forum *aForum in self.) {
-        //NSLog(@"FORUM Subcat: %@ / %@", [aForum aID], [aForum aTitle]);
-        [actionList addObject:[UIAction actionWithTitle:[aForum aTitle] image:nil identifier:nil  handler:^(__kindof UIAction * _Nonnull action) {
-            [self->catButton setTitle:[aForum aTitle] forState:UIControlStateNormal];
-            [self->textFieldCat setText:[aForum aID]];
-            NSLog(@"FORUM selection %@", self->textFieldCat.text);
-                }]];
-    }*/
 
     self.optionSearchCategoryButton = [UIButton buttonWithType:UIButtonTypeSystem];
     [self.optionSearchCategoryButton setTitle:sCurrentCat forState:UIControlStateNormal];
@@ -126,11 +124,11 @@
     // Créer la vue d’assombrissement
     self.backgroundDimView = [[UIView alloc] init];
     self.backgroundDimView.translatesAutoresizingMaskIntoConstraints = NO;
-    self.backgroundDimView.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.4]; // ou 0.6, selon l’effet désiré
+    self.backgroundDimView.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.3]; // ou 0.6, selon l’effet désiré
     self.backgroundDimView.hidden = YES; // masquée par défaut
     self.backgroundDimView.alpha = 0.0;
     UITapGestureRecognizer *tapRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(toggleSearchFields)];
-    [self.backgroundDimView addGestureRecognizer:tapRecognizer];
+    //[self.backgroundDimView addGestureRecognizer:tapRecognizer];
     [self.view addSubview:self.backgroundDimView];
     [self.view bringSubviewToFront:self.searchHeaderView]; // searchHeaderView au-dessus du fond
 
@@ -227,13 +225,6 @@
     [self.view addSubview:self.loadingView];
 
     [NSLayoutConstraint activateConstraints:@[
-        [self.loadingView.topAnchor constraintEqualToAnchor:self.view.topAnchor],
-        [self.loadingView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor],
-        [self.loadingView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
-        [self.loadingView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor]
-    ]];
-    
-    [NSLayoutConstraint activateConstraints:@[
         [self.loadingView.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor],
         [self.loadingView.centerYAnchor constraintEqualToAnchor:self.view.centerYAnchor],
         [self.loadingView.widthAnchor constraintEqualToConstant:200],
@@ -320,7 +311,8 @@
     self.textSearchBar.backgroundColor = [ThemeColors toolbarPageBackgroundColor:theme];
     self.optionSearchInSegmentedControl.backgroundColor = [UIColor systemGray5Color];
     self.optionSearchCategoryButton.backgroundColor = [UIColor systemGray5Color];
-    [self.optionSearchCategoryButton setTitleColor:[UIColor labelColor] forState:UIControlStateNormal];
+    [self.optionSearchCategoryButton setTitleColor:[ThemeColors tintColor] forState:UIControlStateNormal];
+    
     self.optionSearchCategoryButton.layer.cornerRadius = 6.0;
     
     self.topicsTableView.separatorColor = [ThemeColors cellBorderColor:theme];
@@ -332,7 +324,7 @@
     [self.optionSearchTypeSegmentedControl setTitleTextAttributes:selectedAttributes forState:UIControlStateSelected];
 
 
-    self.loadingView.backgroundColor = [[ThemeColors greyBackgroundColor:theme] colorWithAlphaComponent:0.0];
+    self.loadingView.backgroundColor = [[ThemeColors greyBackgroundColor:theme] colorWithAlphaComponent:0.3];
     self.locadingContainerView.backgroundColor = [[ThemeColors greyBackgroundColor:theme] colorWithAlphaComponent:0.6];
     self.loadingLabel.textColor = [ThemeColors cellTextColor:theme];
     self.loadingLabel.shadowColor = nil;
@@ -366,6 +358,7 @@
         [UIView animateWithDuration:0.25 animations:^{
             self.backgroundDimView.alpha = 0;
         }];
+        NSLog(@"tableView interaction: %d", self.topicsTableView.userInteractionEnabled);
     }
     else {
         // Afficher avec animation
@@ -380,7 +373,7 @@
 
         // Appel différé du focus après que la vue soit dans la hiérarchie
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.25 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            //[self.textSearchBar becomeFirstResponder];
+            [self.textSearchBar becomeFirstResponder];
         });
     }
     
@@ -647,6 +640,7 @@
                 });
             } else {
                 NSLog(@"📄 Pas de redirection détectée.");
+                [self setMaintenanceView:@"Pas de redirection"];
             }
         }
         /*HTMLParser * myParser = [[HTMLParser alloc] initWithData:data error:NULL];
@@ -675,6 +669,7 @@
                                                     completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
         if (error) {
             NSLog(@"❌ Erreur lors de la redirection : %@", error);
+            [self setMaintenanceViewWithText:@"Pas de redirection"];
         } else {
             NSLog(@"Statut HTTP redirection : %ld", (long)[(NSHTTPURLResponse *)response statusCode]);
             
@@ -690,11 +685,7 @@
                 NSLog(@"How many results:%ld", [self.arrayData count]);
 
                 if ([self.arrayData count] == 0) {
-                    [self.maintenanceView setText:@"Aucun résultat"];
-                    [self.maintenanceView setHidden:NO];
-                    [self.topicsTableView setHidden:YES];
-                    [self.loadingView setHidden:YES];
-                    [self.activityIndicator stopAnimating];
+                    [self setMaintenanceViewWithText:@"Aucun résultat"];
                 }
                 else {
                     //NSLog(@"Show results");
@@ -736,6 +727,7 @@
     
     if (error) {
         NSLog(@"❌ Erreur regex : %@", error.localizedDescription);
+        [self setMaintenanceViewWithText:@"Erreur regex"];
         return nil;
     }
     
@@ -751,10 +743,10 @@
     }
     
     NSLog(@"⚠️ Aucune balise <meta refresh> détectée dans le HTML.");
+    NSLog(@"html %@", html);
+    [self setMaintenanceViewWithText:@"Aucune balise"];
     return nil;
 }
-
-
 
 - (void)cancelFetchContentSearch
 {
@@ -802,6 +794,14 @@
     self.topicsTableView.hidden = NO;
     [self.activityIndicator stopAnimating];
     self.loadingView.hidden = YES;
+}
+
+- (void)setMaintenanceViewWithText:(NSString*)sMaintenanceText {
+    [self.maintenanceView setText:sMaintenanceText];
+    [self.maintenanceView setHidden:NO];
+    [self.topicsTableView setHidden:YES];
+    [self.loadingView setHidden:YES];
+    [self.activityIndicator stopAnimating];
 }
 
 #pragma mark - Table view data source
@@ -1033,26 +1033,23 @@
             }
         }]];
     }
-            
-
+    
     if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
         [self.topicActionAlert addAction:[UIAlertAction actionWithTitle:@"Annuler" style:UIAlertActionStyleCancel handler:^(UIAlertAction *action) {
             [self dismissViewControllerAnimated:YES completion:nil];
         }]];
     }
-    else   {
-        /*
-        // Required for UIUserInterfaceIdiomPad
-        //TODO ipad: self.topicsTableView rectForRowAtIndexPath:indexPath
-        // CGPoint longPressLocation = [longPressRecognizer locationInView:self.topicsTableView];
-        // self.pressedIndexPath = [[:longPressLocation] copy];
-
-        CGPoint pointLocation = [longPressRecognizer locationInView:self.view];
+    else {
+        UITableViewCell *cell = [tableView cellForRowAtIndexPath:indexPath];
+        CGRect cellRectInTableView = [tableView rectForRowAtIndexPath:indexPath];
+        CGPoint centerInTableView = cell.center;
+        CGPoint pointLocation = [tableView convertPoint:centerInTableView toView:tableView.superview];
         CGRect origFrame = CGRectMake( pointLocation.x, pointLocation.y, 1, 1);
-        topicActionAlert.popoverPresentationController.sourceView = self.view;
-        topicActionAlert.popoverPresentationController.sourceRect = origFrame;
-        topicActionAlert.popoverPresentationController.backgroundColor = [ThemeColors alertBackgroundColor:[[ThemeManager sharedManager] theme]];*/
+        self.topicActionAlert.popoverPresentationController.sourceView = self.view;
+        self.topicActionAlert.popoverPresentationController.sourceRect = origFrame;
+        self.topicActionAlert.popoverPresentationController.backgroundColor = [ThemeColors alertBackgroundColor:[[ThemeManager sharedManager] theme]];
     }
+
     [self presentViewController:self.topicActionAlert animated:YES completion:nil];
     [[ThemeManager sharedManager] applyThemeToAlertController:self.topicActionAlert];
 }

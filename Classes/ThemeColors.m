@@ -1023,7 +1023,8 @@
             case 0:return @"categories_on";
             case 1:return @"favorites_on";
             case 2:return @"mp_on";
-            case 3:return @"dots_on";
+            case 3:return @"06-magnify";
+            case 4:return @"dots_on";
         }
     }
     else {
@@ -1031,7 +1032,8 @@
             case 0:return @"cadeaux_on";
             case 1:return @"cadeau_on";
             case 2:return @"message_on";
-            case 3:return @"cane_on";
+            case 3:return @"06-magnify";
+            case 4:return @"cane_on";
         }
     }
     return @"";
@@ -1044,7 +1046,8 @@
             case 0:return @"categories";
             case 1:return @"favorites";
             case 2:return @"mp";
-            case 3:return @"dots";
+            case 3:return @"06-magnify";
+            case 4:return @"dots";
         }
     }
     else {
@@ -1052,7 +1055,8 @@
             case 0:return @"cadeaux_off";
             case 1:return @"cadeau_off";
             case 2:return @"message_off";
-            case 3:return @"paques_off";
+            case 3:return @"magnify";
+            case 4:return @"paques_off";
         }
     }
     return @"";

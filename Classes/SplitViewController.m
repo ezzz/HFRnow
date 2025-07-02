@@ -68,12 +68,19 @@
         self.preferredDisplayMode = UISplitViewControllerDisplayModeAutomatic;
     }
     else if (self.tabIndex == 3) {
+        TopicsSearchViewController* vc = [[TopicsSearchViewController alloc] init];
+        vc.currentCat = @"13"; // Discussions
+        masterViewController = [[HFRNavigationController alloc] initWithRootViewController:vc];
+        vc.detailNavigationViewController = detailNavigationController;
+        self.preferredDisplayMode = UISplitViewControllerDisplayModeAutomatic;
+    }
+    else if (self.tabIndex == 4) {
         PlusTableViewController* vc = [[PlusTableViewController alloc] initWithNibName:@"PlusTableView" bundle:nil];
         masterViewController = [[HFRNavigationController alloc] initWithRootViewController:vc];
         vc.detailNavigationViewController = detailNavigationController;
         self.preferredDisplayMode = UISplitViewControllerDisplayModeAllVisible;
     }
-    
+
     self.viewControllers = @[masterViewController, detailNavigationController];
 
     // Set theme

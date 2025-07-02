@@ -318,7 +318,7 @@
 	//hash_check
 	HTMLNode *hash_check = [bodyNode findChildWithAttribute:@"name" matchingName:@"hash_check" allowPartial:NO];
 	[[HFRplusAppDelegate sharedAppDelegate] setHash_check:[hash_check getAttributeNamed:@"value"]];
-	//NSLog(@"hash_check %@", [hash_check getAttributeNamed:@"value"]);
+	NSLog(@"hash_check %@", [hash_check getAttributeNamed:@"value"]);
 	
     //v2
 	HTMLNode *tableNode = [bodyNode findChildWithAttribute:@"class" matchingName:@"main" allowPartial:NO]; //Get favs for cat
