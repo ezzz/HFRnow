@@ -40,6 +40,8 @@
     self.plusTableView.tableFooterView = [[UIView alloc] initWithFrame:CGRectZero];
     
     self.compteViewController = [[CompteViewController alloc] initWithNibName:@"CompteViewController" bundle:nil];
+    self.searchViewController = [[TopicsSearchViewController alloc] init];
+    self.searchViewController.currentCat = @"13"; // Discussions
     self.settingsViewController = [[PlusSettingsViewController alloc] initWithNibName:@"SettingsView" bundle:nil];
     self.aqTableViewController = [[AQTableViewController alloc] initWithNibName:@"AQTableView" bundle:nil];
     self.creditsViewController = [[CreditsViewController alloc] initWithNibName:@"CreditsViewController" bundle:nil filename:@"credits"];
@@ -80,21 +82,24 @@
             vc = self.compteViewController;
             break;
         case 1:
-            vc = self.bookmarksTableViewController;
+            vc = self.searchViewController;
             break;
         case 2:
-            vc = self.aqTableViewController;
+            vc = self.bookmarksTableViewController;
             break;
         case 3:
-            vc = self.settingsViewController;
+            vc = self.aqTableViewController;
             break;
         case 4:
-            vc = self.creditsViewController;
+            vc = self.settingsViewController;
             break;
         case 5:
-            vc = self.charteViewController;
+            vc = self.creditsViewController;
             break;
         case 6:
+            vc = self.charteViewController;
+            break;
+        case 7:
             if([MFMailComposeViewController canSendMail]) {
                 MFMailComposeViewController *mailCont = [[MFMailComposeViewController alloc] init];
                 mailCont.mailComposeDelegate = self;
@@ -142,12 +147,18 @@
             cell.badgeLabel.backgroundColor = [UIColor clearColor];
             break;
         case 1:
+            cell.titleLabel.text = @"Rechercher sur le forum";
+            cell.titleImage.image = [UIImage imageNamed:@"06-magnify"];
+            cell.badgeLabel.text = @"";
+            cell.badgeLabel.backgroundColor = [UIColor clearColor];
+            break;
+        case 2:
             cell.titleLabel.text = @"Bookmarks";
             cell.titleImage.image = [UIImage imageNamed:@"08-pin"];
             cell.badgeLabel.text = @"";
             cell.badgeLabel.backgroundColor = [UIColor clearColor];
             break;
-        case 2:
+        case 3:
             cell.titleLabel.text = @"Alertes Qualitay";
             cell.titleImage.image = [UIImage imageNamed:@"08-chat"];
             cell.badgeLabel.clipsToBounds = YES;
@@ -162,25 +173,25 @@
                 cell.badgeLabel.text = @"";
             }
             break;
-        case 3:
+        case 4:
             cell.titleLabel.text = @"Réglages";
             cell.titleImage.image = [UIImage imageNamed:@"20-gear2"];
             cell.badgeLabel.text = @"";
             cell.badgeLabel.backgroundColor = [UIColor clearColor];
             break;
-        case 4:
+        case 5:
             cell.titleLabel.text = @"Crédits";
             cell.titleImage.image = [UIImage imageNamed:@"AboutFilled-25"];
             cell.badgeLabel.text = @"";
             cell.badgeLabel.backgroundColor = [UIColor clearColor];
             break;
-        case 5:
+        case 6:
             cell.titleLabel.text = @"Charte du forum";
             cell.titleImage.image = [UIImage imageNamed:@"sign-25"];
             cell.badgeLabel.text = @"";
             cell.badgeLabel.backgroundColor = [UIColor clearColor];
             break;
-        case 6:
+        case 7:
             cell.titleLabel.text = @"Supprimer mon compte";
             cell.titleImage.image = [UIImage imageNamed:@"delete-25"];
             cell.badgeLabel.text = @"";

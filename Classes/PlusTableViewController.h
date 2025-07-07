@@ -31,6 +31,7 @@
 @property (nonatomic, strong) IBOutlet UITableView *plusTableView;
 @property int iAQBadgeNumer;
 @property (nonatomic, strong) PlusSettingsViewController *settingsViewController;
+@property (nonatomic, strong) TopicsSearchViewController *searchViewController;
 @property (nonatomic, strong) CompteViewController *compteViewController;
 @property (nonatomic, strong) AQTableViewController *aqTableViewController;
 @property (nonatomic, strong) BookmarksTableViewController *bookmarksTableViewController;

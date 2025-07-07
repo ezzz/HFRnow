@@ -118,19 +118,10 @@
         self.navigationItem.titleView.autoresizingMask = (UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin);
     }
 
-    //if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
-        UIBarButtonItem *buttontBarItemRight = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemCompose target:self action:@selector(newTopic)];
-        buttontBarItemRight.enabled = NO;
-        
-        self.navigationItem.rightBarButtonItems = [[NSMutableArray alloc] initWithObjects:buttontBarItemRight, nil];
-    /*}
-    else {
-        UIBarButtonItem *buttontBarItemLeft = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"magnifyingglass"] style:UIBarButtonItemStylePlain target:self action:@selector(searchForum)];
-        UIBarButtonItem *buttontBarItemRight = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemCompose target:self action:@selector(newTopic)];
-        buttontBarItemRight.enabled = NO;
-        
-        self.navigationItem.rightBarButtonItems = [[NSMutableArray alloc] initWithObjects:buttontBarItemRight, buttontBarItemLeft, nil];
-    }*/
+    UIBarButtonItem *buttontBarItemRight = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemCompose target:self action:@selector(newTopic)];
+    buttontBarItemRight.enabled = NO;
+    
+    self.navigationItem.rightBarButtonItems = [[NSMutableArray alloc] initWithObjects:buttontBarItemRight, nil];
     
     if (self.pickerViewArray.count) {
         actionSheet = [[UIActionSheet alloc] initWithTitle:nil delegate:nil cancelButtonTitle:nil destructiveButtonTitle:nil otherButtonTitles:nil];

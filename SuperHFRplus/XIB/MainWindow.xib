@@ -85,18 +85,6 @@
                         </viewController>
                     </viewControllers>
                 </navigationController>
-                <navigationController id="hFc-QV-Ddb" userLabel="Recherche" customClass="HFRNavigationController">
-                    <tabBarItem key="tabBarItem" title="Item" id="jSa-vX-u6h" userLabel="Plus"/>
-                    <navigationBar key="navigationBar" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" id="i6R-rw-BMT">
-                        <rect key="frame" x="0.0" y="20" width="414" height="44"/>
-                        <autoresizingMask key="autoresizingMask"/>
-                    </navigationBar>
-                    <viewControllers>
-                        <viewController id="aUZ-jT-FHC" customClass="TopicsSearchViewController">
-                            <navigationItem key="navigationItem" title="Item" id="z8V-m4-pis"/>
-                        </viewController>
-                    </viewControllers>
-                </navigationController>
                 <navigationController id="TdA-PO-9Hb" userLabel="Plus Nav Controller" customClass="HFRNavigationController">
                     <tabBarItem key="tabBarItem" title="Item" id="xTA-t9-eIS" userLabel="Plus"/>
                     <navigationBar key="navigationBar" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" id="oYT-9w-Hqa">

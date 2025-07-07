@@ -33,12 +33,9 @@
         splitVC2.tabBarItem = [[UITabBarItem alloc] initWithTitle:@"Messages" image:[UIImage imageNamed:[ThemeColors tabBarItemUnselectedImageAtIndex:2]] selectedImage:[UIImage imageNamed:[ThemeColors tabBarItemSelectedImageAtIndex:2]]];
         
         SplitViewController* splitVC3 = [[SplitViewController alloc] initForIndex:3];
-        splitVC3.tabBarItem = [[UITabBarItem alloc] initWithTitle:@"Recherche" image:[UIImage imageNamed:[ThemeColors tabBarItemUnselectedImageAtIndex:3]] selectedImage:[UIImage imageNamed:[ThemeColors tabBarItemSelectedImageAtIndex:3]]];
+        splitVC3.tabBarItem = [[UITabBarItem alloc] initWithTitle:@"Plus" image:[UIImage imageNamed:[ThemeColors tabBarItemUnselectedImageAtIndex:3]] selectedImage:[UIImage imageNamed:[ThemeColors tabBarItemSelectedImageAtIndex:3]]];
         
-        SplitViewController* splitVC4 = [[SplitViewController alloc] initForIndex:4];
-        splitVC4.tabBarItem = [[UITabBarItem alloc] initWithTitle:@"Plus" image:[UIImage imageNamed:[ThemeColors tabBarItemUnselectedImageAtIndex:4]] selectedImage:[UIImage imageNamed:[ThemeColors tabBarItemSelectedImageAtIndex:4]]];
-        
-        self.viewControllers = @[splitVC0, splitVC1, splitVC2, splitVC3, splitVC4];
+        self.viewControllers = @[splitVC0, splitVC1, splitVC2, splitVC3];
         
         // IOS18 only
         if (@available(iOS 18.0, *)) {
@@ -51,22 +48,16 @@
     
     for (int i=0; i<self.tabBar.items.count; i++) {
         UITabBarItem *tabBarItem = [self.tabBar.items objectAtIndex:i];
-        if (i == 3) {
-            tabBarItem.selectedImage = [[UIImage systemImageNamed:@"magnifyingglass"] imageWithRenderingMode:[ThemeColors tabBarItemSelectedImageRendering] ];
-            tabBarItem.image = [[UIImage systemImageNamed:@"magnifyingglass"] imageWithRenderingMode:[ThemeColors tabBarItemUnselectedImageRendering]];
-        }
-        else {
-            tabBarItem.selectedImage = [[UIImage imageNamed:[ThemeColors tabBarItemSelectedImageAtIndex:i]]
-                                        imageWithRenderingMode:[ThemeColors tabBarItemSelectedImageRendering] ];
-            tabBarItem.image = [[UIImage imageNamed:[ThemeColors tabBarItemUnselectedImageAtIndex:i]]
-                                imageWithRenderingMode:[ThemeColors tabBarItemUnselectedImageRendering]];
-        }
+        tabBarItem.selectedImage = [[UIImage imageNamed:[ThemeColors tabBarItemSelectedImageAtIndex:i]]
+                                    imageWithRenderingMode:[ThemeColors tabBarItemSelectedImageRendering] ];
+        tabBarItem.image = [[UIImage imageNamed:[ThemeColors tabBarItemUnselectedImageAtIndex:i]]
+                            imageWithRenderingMode:[ThemeColors tabBarItemUnselectedImageRendering]];
+        
         switch (i) {
             case 0: tabBarItem.title = @"Catégories"; break;
             case 1: tabBarItem.title = @"Favoris"; break;
             case 2: tabBarItem.title = @"Messages"; break;
-            case 3: tabBarItem.title = @"Recherche"; break;
-            case 4: tabBarItem.title = @"Plus"; break;
+            case 3: tabBarItem.title = @"Plus"; break;
         }
     }
     

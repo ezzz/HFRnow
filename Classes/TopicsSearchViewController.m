@@ -29,15 +29,6 @@
     [super viewDidLoad];
     
     self.title = [NSString stringWithFormat:@"Recherche"]; //, self.forumName];
-
-    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
-        // Mettre à jour l'icône du bouton
-        self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc]
-                                                  initWithImage:[UIImage systemImageNamed:@"magnifyingglass"]
-                                                  style:UIBarButtonItemStylePlain
-                                                  target:self
-                                                  action:@selector(toggleSearchFields)];
-    }
     
     // 0. Container de l'en-tête -----
     self.searchHeaderView = [[UIView alloc] init];
@@ -55,8 +46,6 @@
     
     self.textSearchBar.translatesAutoresizingMaskIntoConstraints = NO;
     [self.searchHeaderView addSubview:self.textSearchBar];
-    
-    [self.textSearchBar becomeFirstResponder];
 
     // 2. Ajouter le SegmentedControl juste en dessous
     //optionSearchTypeSegmentedControl, optionSearchInSegmentedControl, optionSearchFromSegmentedControl;
@@ -113,7 +102,7 @@
         }];
         [childrenList addObject:option];
     }
-
+    
     self.optionSearchCategoryButton = [UIButton buttonWithType:UIButtonTypeSystem];
     [self.optionSearchCategoryButton setTitle:sCurrentCat forState:UIControlStateNormal];
     self.optionSearchCategoryButton.showsMenuAsPrimaryAction = YES; // Affiche le menu au clic
@@ -128,10 +117,11 @@
     self.backgroundDimView.hidden = YES; // masquée par défaut
     self.backgroundDimView.alpha = 0.0;
     UITapGestureRecognizer *tapRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(toggleSearchFields)];
-    //[self.backgroundDimView addGestureRecognizer:tapRecognizer];
+    [self.backgroundDimView addGestureRecognizer:tapRecognizer];
     [self.view addSubview:self.backgroundDimView];
     [self.view bringSubviewToFront:self.searchHeaderView]; // searchHeaderView au-dessus du fond
 
+    
     // Contraintes plein écran
     [NSLayoutConstraint activateConstraints:@[
         [self.backgroundDimView.topAnchor constraintEqualToAnchor:self.view.topAnchor],
@@ -230,6 +220,7 @@
         [self.loadingView.widthAnchor constraintEqualToConstant:200],
         [self.loadingView.heightAnchor constraintEqualToConstant:60]
     ]];
+    
 
 
     // ----- Boîte centrée -----
@@ -246,7 +237,7 @@
         [self.locadingContainerView.widthAnchor constraintEqualToConstant:200],
         [self.locadingContainerView.heightAnchor constraintEqualToConstant:60]
     ]];
-
+    
     // ----- Spinner -----
     self.activityIndicator = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
     self.activityIndicator.translatesAutoresizingMaskIntoConstraints = NO;
@@ -259,7 +250,7 @@
     self.loadingLabel.text = @"Chargement...";
     self.loadingLabel.font = [UIFont fontWithName:@"Helvetica-Bold" size:14];
     [self.locadingContainerView addSubview:self.loadingLabel];
-
+    
     [NSLayoutConstraint activateConstraints:@[
         [self.activityIndicator.centerYAnchor constraintEqualToAnchor:self.locadingContainerView.centerYAnchor],
         [self.activityIndicator.leadingAnchor constraintEqualToAnchor:self.locadingContainerView.leadingAnchor constant:20],
@@ -274,16 +265,21 @@
     self.topicsTableView.hidden = NO; // Non cachée par défaut (toujours en arrière plan)
     self.loadingView.hidden = YES; // cachée par défaut
     
-    self.disableViewOverlay = [[UIView alloc] initWithFrame:CGRectMake(0.0f, 0.0f, 1000.0f, 1000.0f)];
+    /*self.disableViewOverlay = [[UIView alloc] initWithFrame:CGRectMake(0.0f, 0.0f, 1000.0f, 1000.0f)];
     self.disableViewOverlay.backgroundColor = [UIColor blackColor];
     self.disableViewOverlay.alpha = 0;
-    
     self.disableViewOverlay.autoresizingMask = (UIViewAutoresizingFlexibleWidth);
-    
     tapRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTap:)];
-    [self.disableViewOverlay addGestureRecognizer:tapRecognizer];
+    [self.disableViewOverlay addGestureRecognizer:tapRecognizer];*/
     
     [self.maintenanceView setText:@"Aucun résultat"];
+    
+    NSLog(@"backgroundDimView %@", self.backgroundDimView);
+    NSLog(@"loadingView %@", self.loadingView);
+    NSLog(@"locadingContainerView %@", self.locadingContainerView);
+    NSLog(@"disableViewOverlay %@", self.disableViewOverlay);
+    NSLog(@"maintenanceView %@", self.maintenanceView);
+
     
     self.arrayData = [[NSMutableArray alloc] init];
     self.arrayNewData = [[NSMutableArray alloc] init];
@@ -293,9 +289,7 @@
     self.imageForRedFlag = [UIImage imageNamed:@"Flat-RedFlag-25"];
     self.imageForYellowFlag = [UIImage imageNamed:@"Flat-YellowFlag-25"];
     self.imageForBlueFlag = [UIImage imageNamed:@"Flat-CyanFlag-25"];
-    
-    [self.textSearchBar becomeFirstResponder];
-    
+        
     [self setSearchFieldsHidden:NO];
 }
 
@@ -336,9 +330,12 @@
 }
 
 - (void)toggleSearchFields {
+    NSLog(@"SEARCH toggle %d %d %d", self.maintenanceView.hidden, self.topicsTableView.hidden, self.loadingView.hidden);
     if (self.maintenanceView.hidden &&
-        self.topicsTableView.hidden &&
+        (self.topicsTableView.hidden || self.arrayData.count == 0) &&
         self.loadingView.hidden) {
+        
+        [self.textSearchBar endEditing:YES];
         return; // Do nothing when everything else is hidden
     }
     self.searchVisible = !self.searchVisible;
@@ -369,12 +366,7 @@
         }];
    
         // Forcer layout pour que le champ texte soit bien en place
-        [self.searchHeaderView layoutIfNeeded];
-
-        // Appel différé du focus après que la vue soit dans la hiérarchie
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.25 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            [self.textSearchBar becomeFirstResponder];
-        });
+        //[self.searchHeaderView layoutIfNeeded];
     }
     
     /*// Si tu utilises Auto Layout :
@@ -382,6 +374,7 @@
     [self.view layoutIfNeeded];*/
 }
 
+/*
 - (void)searchBar:(UISearchBar *)searchBar textDidChange:(NSString *)searchText {
     // We don't want to do anything until the user clicks
     // the 'Search' button.
@@ -414,7 +407,7 @@
     // Deactivate the UISearchBar
     searchBar.text = @"";
     [self searchBar:searchBar activate:NO];
-}
+}*/
 
 // Do the search and show the results in tableview & deactivate the UISearchBar
 - (void)searchBarSearchButtonClicked:(UISearchBar *)searchBar {
@@ -453,8 +446,9 @@
         [searchBar resignFirstResponder];
     } else {
 
+        /*
         self.disableViewOverlay.alpha = 0;
-        [self.view addSubview:self.disableViewOverlay];
+        [self.view addSubview:self.disableViewOverlay];*/
         
         [UIView beginAnimations:@"FadeIn" context:nil];
         [UIView setAnimationDuration:0.5];
@@ -1056,6 +1050,14 @@
 
 - (void)pushTopic
 {
+    self.navigationItem.backBarButtonItem =
+    [[UIBarButtonItem alloc] initWithTitle:@" "
+                                     style: UIBarButtonItemStylePlain
+                                    target:nil
+                                    action:nil];
+    
+    [self.navigationController pushViewController:self.messagesTableViewController animated:YES];
+    /*
     if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone)
     {
         self.navigationItem.backBarButtonItem =
@@ -1074,7 +1076,7 @@
 
         // Close left panel on ipad in portrait mode
         [[HFRplusAppDelegate sharedAppDelegate] hidePrimaryPanelOnIpadForSplitViewController:self.detailNavigationViewController.splitViewController];
-    }
+    }*/
 }
 
 #pragma mark - Action delegate
