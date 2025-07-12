@@ -25,24 +25,6 @@
 				<key>UIPrerenderedIcon</key>
 				<true/>
 			</dict>
-			<key>Icon-REDFACEBLUE</key>
-			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>Icon-REDFACE-BLUE</string>
-				</array>
-				<key>UIPrerenderedIcon</key>
-				<true/>
-			</dict>
-			<key>Icon-CLASSIC-RED</key>
-			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>Icon-CLASSIC-RED</string>
-				</array>
-				<key>UIPrerenderedIcon</key>
-				<true/>
-			</dict>
 			<key>Icon-BLUE</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
@@ -61,11 +43,29 @@
 				<key>UIPrerenderedIcon</key>
 				<true/>
 			</dict>
+			<key>Icon-CLASSIC-RED</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>Icon-CLASSIC-RED</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<true/>
+			</dict>
 			<key>Icon-REDFACE</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
 					<string>Icon-REDFACE</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<true/>
+			</dict>
+			<key>Icon-REDFACEBLUE</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>Icon-REDFACE-BLUE</string>
 				</array>
 				<key>UIPrerenderedIcon</key>
 				<true/>
@@ -94,24 +94,6 @@
 	<dict>
 		<key>CFBundleAlternateIcons</key>
 		<dict>
-			<key>Icon-REDFACEBLUE</key>
-			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>Icon-REDFACE-BLUE-IPAD</string>
-				</array>
-				<key>UIPrerenderedIcon</key>
-				<true/>
-			</dict>
-			<key>Icon-CLASSIC-RED</key>
-			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>Icon-CLASSIC-RED-IPAD</string>
-				</array>
-				<key>UIPrerenderedIcon</key>
-				<true/>
-			</dict>
 			<key>Icon-BETA</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
@@ -148,11 +130,29 @@
 				<key>UIPrerenderedIcon</key>
 				<true/>
 			</dict>
+			<key>Icon-CLASSIC-RED</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>Icon-CLASSIC-RED-IPAD</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<true/>
+			</dict>
 			<key>Icon-REDFACE</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
 					<string>Icon-REDFACE-IPAD</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<true/>
+			</dict>
+			<key>Icon-REDFACEBLUE</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>Icon-REDFACE-BLUE-IPAD</string>
 				</array>
 				<key>UIPrerenderedIcon</key>
 				<true/>
@@ -289,6 +289,8 @@
 	<true/>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
