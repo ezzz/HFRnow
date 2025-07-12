@@ -60,7 +60,7 @@ NSArray* comptes;
 
 -(void)setThemeColors:(Theme)theme{
     if ([self.view respondsToSelector:@selector(setTintColor:)]) {
-        self.view.tintColor = [ThemeColors tintColor:theme];
+        self.view.tintColor = [ThemeColors tintColor];
     }
 
     self.view.backgroundColor = [ThemeColors greyBackgroundColor:theme];

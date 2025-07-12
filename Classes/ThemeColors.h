@@ -69,6 +69,7 @@
 + (UIColor *)tintColor:(Theme)theme;
 + (UIColor *)defaultTintColor:(Theme)theme;
 + (UIColor *)tintColor;
++ (UIColor *)tintColorDynamic;
 + (UIColor *)tintColorWithAlpha:(CGFloat)newAlpha;
 + (UIColor *)tintLightColor;
 + (UIColor *)tintLightColorNoAlpha;

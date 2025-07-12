@@ -26,11 +26,12 @@
 
 + (ThemeManager*)sharedManager;
 + (Theme)currentTheme;
+
+- (BOOL)isLightForTraitCollection:(UITraitCollection *)traitCollection;
 - (void)applyThemeToCell:(UITableViewCell *)cell;
 - (void)applyThemeToTextField:(UITextField *)textfield;
 - (void)applyThemeToAlertController:(UIAlertController *)alert;
 - (void)switchTheme;
-- (void)changeAutoTheme:(BOOL)autoTheme;
 - (void)refreshTheme;
 - (void)checkTheme;
 - (void)setThemeManually:(Theme)newTheme;

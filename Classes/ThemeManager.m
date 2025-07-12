@@ -47,9 +47,20 @@ int nightDelay;
     return self;
 }
 
-
+- (BOOL)isLightForTraitCollection:(UITraitCollection *)traitCollection {
+    if ([[NSUserDefaults standardUserDefaults] integerForKey:@"auto_theme"] == AUTO_THEME_AUTO_IOS) {
+        return traitCollection.userInterfaceStyle == UIUserInterfaceStyleLight;
+    }
+    else if (self.theme == ThemeLight) { // Theme Manuel Light
+        return YES;
+    }
+    
+    return NO; // Theme Manuel Dark
+}
 
 - (void)changeTheme:(Theme)newTheme {
+    NSLog(@"DYNAMIC");
+
     self.theme = newTheme;
     [[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithInteger:self.theme] forKey:@"theme"];
     [[NSUserDefaults standardUserDefaults] synchronize];
@@ -111,7 +122,7 @@ int nightDelay;
     cell.backgroundColor = [ThemeColors cellBackgroundColor:theme];
     cell.textLabel.textColor = [ThemeColors cellTextColor:theme];
     if ([cell respondsToSelector:@selector(setTintColor:)]) {
-        cell.tintColor = [ThemeColors tintColor:theme];
+        cell.tintColor = [ThemeColors tintColor];
     }
 
     if(![cell isKindOfClass:[AvatarTableViewCell class]]){
@@ -248,40 +259,6 @@ int nightDelay;
     }
 }
 
-- (void)changeAutoTheme:(BOOL)autoTheme{
-    if(autoTheme){
-        if(!self.luminosityHandler){
-            self.luminosityHandler = [[LuminosityHandler alloc] init];
-            self.luminosityHandler.delegate = self;
-        }
-        [self.luminosityHandler capture];
-    }else{
-        [self.luminosityHandler stop];
-    }
-}
-    
-- (void)didUpdateLuminosity:(float)luminosity {
-    if(dayDelay == 0 || nightDelay == 0) {
-        dayDelay = dayDelayMin;
-        nightDelay = nightDelayMin;
-    }
-    
-    if(luminosity < 0 && self.theme != ThemeDark) {
-        nightDelay--;
-    } else if(luminosity >= 0 && self.theme != ThemeLight) {
-        dayDelay--;
-    }
-    
-    if(nightDelay == 0) {
-       dispatch_async(dispatch_get_main_queue(), ^{ [self setTheme:ThemeDark]; });
-    }
-    
-    if(dayDelay == 0) {
-        dispatch_async(dispatch_get_main_queue(), ^{ [self setTheme:ThemeLight]; });
-    }
-
-}
-
 - (void)setThemeManually:(Theme)newTheme {
     if ([[NSUserDefaults standardUserDefaults] integerForKey:@"auto_theme"] == AUTO_THEME_AUTO_TIME) {
         Theme calculatedTheme = (Theme)[self getThemeFromCurrentTime];
@@ -308,8 +285,10 @@ int nightDelay;
     } else if ([[NSUserDefaults standardUserDefaults] integerForKey:@"auto_theme"] == AUTO_THEME_AUTO_IOS) {
         if (@available(iOS 13.0, *)) {
             if (UITraitCollection.currentTraitCollection.userInterfaceStyle == UIUserInterfaceStyleDark) {
+                NSLog(@"DYNAMIC -> Dark");
                 [self setTheme:ThemeDark];
             } else {
+                NSLog(@"DYNAMIC -> Light");
                 [self setTheme:ThemeLight];
             }
         }

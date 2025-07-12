@@ -152,7 +152,6 @@
             [self hideCell:@"theme_manual"];
             [self hideCell:@"auto_theme_day_time"];
             [self hideCell:@"auto_theme_night_time"];
-            [[ThemeManager sharedManager] changeAutoTheme:NO];
             if (UITraitCollection.currentTraitCollection.userInterfaceStyle == UIUserInterfaceStyleDark) {
                 [[ThemeManager sharedManager] setTheme:ThemeDark];
             } else {
@@ -162,7 +161,6 @@
             [self showCell:@"theme_manual"];
             [self hideCell:@"auto_theme_day_time"];
             [self hideCell:@"auto_theme_night_time"];
-            [[ThemeManager sharedManager] changeAutoTheme:NO];
             [[ThemeManager sharedManager] setTheme:(Theme)[[[NSUserDefaults standardUserDefaults] objectForKey:@"theme"] intValue]];
         }
         [[ThemeManager sharedManager] refreshTheme];
@@ -286,7 +284,7 @@
      [self.navigationController.navigationBar setBarTintColor:[ThemeColors navBackgroundColor:theme]];
     
     if ([self.navigationController.navigationBar respondsToSelector:@selector(setTintColor:)]) {
-        [self.navigationController.navigationBar setTintColor:[ThemeColors tintColor:theme]];
+        [self.navigationController.navigationBar setTintColor:[ThemeColors tintColor]];
     }
     
     [self.navigationController.navigationBar setTitleTextAttributes:@{NSForegroundColorAttributeName : [ThemeColors titleTextAttributesColor:theme]}];

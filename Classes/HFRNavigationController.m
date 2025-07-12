@@ -91,7 +91,7 @@
     [self.navigationBar setBarTintColor:[ThemeColors navBackgroundColor:theme]];
     
     if ([self.navigationBar respondsToSelector:@selector(setTintColor:)]) {
-        [self.navigationBar setTintColor:[ThemeColors tintColor:theme]];
+        [self.navigationBar setTintColor:[ThemeColors tintColor]];
     }
     
     [self.navigationBar setTitleTextAttributes:@{NSForegroundColorAttributeName : [ThemeColors titleTextAttributesColor:theme]}];

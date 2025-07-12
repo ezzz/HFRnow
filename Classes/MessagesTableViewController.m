@@ -1338,7 +1338,7 @@
         self.searchToolbar.barTintColor = [ThemeColors toolbarColor:theme];
     }
     
-    self.searchBtnItem.tintColor = self.searchFilterBtnItem.tintColor = [ThemeColors tintColor:theme];
+    self.searchBtnItem.tintColor = self.searchFilterBtnItem.tintColor = [ThemeColors tintColor];
     self.searchBg.backgroundColor = [ThemeColors overlayColor:theme];
     self.searchLabel.textColor = [ThemeColors textColor:theme];
     
@@ -1935,13 +1935,13 @@
                                 </script>\
                                 </body></html>",
                                 sCssStyle, customFontSize,doubleSmileysCSS, display_sig_css, tmpHTML, refreshBtn, tooBar,
-                                [ThemeColors hexFromUIColor:[ThemeColors tintColor:theme]], //--color-action
+                                [ThemeColors hexFromUIColor:[ThemeColors tintColor]], //--color-action
                                 [ThemeColors hexFromUIColor:[ThemeColors tintColorDisabled:theme]], //--color-action-disabled
                                 [ThemeColors hexFromUIColor:[ThemeColors messageBackgroundColor:theme]], //--color-message-background
                                 [ThemeColors hexFromUIColor:[ThemeColors messageModoBackgroundColor:theme]], //--color-message-background
-                                [ThemeColors rgbaFromUIColor:[ThemeColors tintColor:theme] withAlpha:0.1], // -color-message-header-me-background
-                                [ThemeColors rgbaFromUIColor:[ThemeColors tintColor:theme] withAlpha:0.03], // color-message-mequoted-background
-                                [ThemeColors rgbaFromUIColor:[ThemeColors tintColor:theme] withAlpha:1],  //--color-message-mequoted-borderleft
+                                [ThemeColors rgbaFromUIColor:[ThemeColors tintColor] withAlpha:0.1], // -color-message-header-me-background
+                                [ThemeColors rgbaFromUIColor:[ThemeColors tintColor] withAlpha:0.03], // color-message-mequoted-background
+                                [ThemeColors rgbaFromUIColor:[ThemeColors tintColor] withAlpha:1],  //--color-message-mequoted-borderleft
                                 [ThemeColors rgbaFromUIColor:[ThemeColors tintLightColorNoAlpha]],  //--color-message-mequoted-borderother
                                 [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:0.4], //--color-message-header-love-background
                                 [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:0.3], // --color-message-header-me-background
@@ -3216,13 +3216,13 @@ API_AVAILABLE(ios(16.0)) {
                         document.documentElement.style.setProperty('--color-text-pseudo', '%@');\
                         document.documentElement.style.setProperty('--color-text-pseudo-bl', '%@');\
                         document.documentElement.style.setProperty('--border-header', '%@');",
-                        [ThemeColors hexFromUIColor:[ThemeColors tintColor:theme]], //--color-action
+                        [ThemeColors hexFromUIColor:[ThemeColors tintColor]], //--color-action
                         [ThemeColors hexFromUIColor:[ThemeColors tintColorDisabled:theme]], //--color-action-disabled
                         [ThemeColors hexFromUIColor:[ThemeColors messageBackgroundColor:theme]], //--color-message-background
                         [ThemeColors hexFromUIColor:[ThemeColors messageModoBackgroundColor:theme]], //--color-message-modo-background
-                        [ThemeColors rgbaFromUIColor:[ThemeColors tintColor:theme] withAlpha:0.1], //--color-message-header-me-background
-                        [ThemeColors rgbaFromUIColor:[ThemeColors tintColor:theme] withAlpha:0.03], //--color-message-mequoted-background
-                        [ThemeColors rgbaFromUIColor:[ThemeColors tintColor:theme] withAlpha:1],  //--color-message-mequoted-borderleft
+                        [ThemeColors rgbaFromUIColor:[ThemeColors tintColor] withAlpha:0.1], //--color-message-header-me-background
+                        [ThemeColors rgbaFromUIColor:[ThemeColors tintColor] withAlpha:0.03], //--color-message-mequoted-background
+                        [ThemeColors rgbaFromUIColor:[ThemeColors tintColor] withAlpha:1],  //--color-message-mequoted-borderleft
                         [ThemeColors rgbaFromUIColor:[ThemeColors tintLightColorNoAlpha]],  //--color-message-mequoted-borderother
                         [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:0.4], //--color-message-header-love-background
                         [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:0.3], // --color-message-header-me-background

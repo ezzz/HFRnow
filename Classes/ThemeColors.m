@@ -429,7 +429,7 @@
 // Tint color avec transparence 0.07/1
 + (UIColor *)messageMeQuotedBackgroundColor:(Theme)theme{
     CGFloat r, g, b, alpha;
-    UIColor* cTintColor = [self tintColor:theme];
+    UIColor* cTintColor = [self tintColor];
     [cTintColor getRed:&r green:&g blue:&b alpha:&alpha];
     return [UIColor colorWithRed:r green:g blue:b alpha:0.07];
 }
@@ -543,7 +543,7 @@
 
 
 + (UIColor *)cellTintColor:(Theme)theme{
-    return [self tintColor:theme];
+    return [self tintColor];
 }
 
 + (UIColor *)placeholderColor:(Theme)theme{
@@ -555,49 +555,55 @@
     }
 }
 
-+ (UIColor *)headSectionBackgroundColor{
-    switch ([ThemeManager currentTheme]) {
-        case ThemeLight: return [UIColor colorWithRed: 230/255.0f green:230/255.0f blue:230/255.0f alpha:1.0];
-        case ThemeDark:  return [ThemeColors adjustDarkThemeBrightnessOfColor: [UIColor colorWithRed:19.0/255.0 green:19.0/255.0 blue:20.0/255.0 alpha:1.0]];
-        default:         return [UIColor colorWithRed:239/255.0f green:239/255.0f blue:244/255.0f alpha:0.7];
-    }
++ (UIColor *)headSectionBackgroundColor {
+    UIColor *dynamicColor = [UIColor colorWithDynamicProvider:^UIColor * _Nonnull(UITraitCollection * _Nonnull traitCollection) {
+        if ([[ThemeManager sharedManager] isLightForTraitCollection:traitCollection]) {
+            return [UIColor colorWithRed: 230/255.0f green:230/255.0f blue:230/255.0f alpha:1.0];
+        } else {
+            return [ThemeColors adjustDarkThemeBrightnessOfColor: [UIColor colorWithRed:19.0/255.0 green:19.0/255.0 blue:20.0/255.0 alpha:1.0]];
+        }
+    }];
+    return dynamicColor;
 }
 
 // Texte du titres de section (Categories ou titre dans les settings)
 + (UIColor *)headSectionTextColor {
-    switch ([ThemeManager currentTheme]) {
-        case ThemeLight: return [UIColor colorWithRed:100/255.0f green:100/255.0f blue:100/255.0f alpha:1];
-        case ThemeDark:  return [UIColor colorWithRed:146.0/255.0 green:147.0/255.0 blue:151.0/255.0 alpha:1.0];
-        default: return [UIColor colorWithRed:109/255.0f green:109/255.0f blue:114/255.0f alpha:1];
-    }
+    UIColor *dynamicColor = [UIColor colorWithDynamicProvider:^UIColor * _Nonnull(UITraitCollection * _Nonnull traitCollection) {
+        if ([[ThemeManager sharedManager] isLightForTraitCollection:traitCollection]) {
+            return [UIColor colorWithRed:100/255.0f green:100/255.0f blue:100/255.0f alpha:1];
+        } else {
+            return [UIColor colorWithRed:146.0/255.0 green:147.0/255.0 blue:151.0/255.0 alpha:1.0];
+        }
+    }];
+    return dynamicColor;
 }
 
 + (UITableViewCellSelectionStyle)cellSelectionStyle:(Theme)theme{
-    if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"7.0")) {
-    
-        switch (theme) {
-            case ThemeLight:
-                return UITableViewCellSelectionStyleDefault;
-            case ThemeDark:
-                return UITableViewCellSelectionStyleNone;
-            default:
-                return UITableViewCellSelectionStyleDefault;
-                
-        }
-    }
-    else {
-        return UITableViewCellSelectionStyleBlue;
+    switch (theme) {
+        case ThemeLight:
+            return UITableViewCellSelectionStyleDefault;
+        case ThemeDark:
+            return UITableViewCellSelectionStyleNone;
+        default:
+            return UITableViewCellSelectionStyleDefault;
+            
     }
 };
 
 + (UIColor *)tintColor:(Theme)theme{
-    
     if ([[NSUserDefaults standardUserDefaults] boolForKey:@"theme_noel_disabled"] == NO) {
         return [UIColor colorWithRed:1.0 green:0.0 blue:0.0 alpha:1.0];
     }
     
-    //UIColor* c;
-    //CGFloat h, s, b, a;
+    /* Dynamic color for tint color not working
+    UIColor *dynamicColor = [UIColor colorWithDynamicProvider:^UIColor * _Nonnull(UITraitCollection * _Nonnull traitCollection) {
+        if ([[ThemeManager sharedManager] isLightForTraitCollection:traitCollection]) {
+            return [ThemeColors getUserColor:@"theme_day_color_action"];
+        } else {
+            return [ThemeColors getUserColor:@"theme_night_color_action"];
+        }
+    }];
+    return dynamicColor;*/
     
     switch (theme) {
         case ThemeLight:
@@ -605,18 +611,30 @@
         case ThemeDark: // Orange
             return [ThemeColors getUserColor:@"theme_night_color_action"]; break;
     }
-    /*
-    [c getHue:&h saturation:&s brightness:&b alpha:&a];
-    NSLog(@"Hue : %f", h);
-    return [UIColor colorWithHue:h saturation:0.1 brightness:0.9 alpha:1.0];;*/
 }
+
++ (UIColor *)tintColorDynamic {
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"theme_noel_disabled"] == NO) {
+        return [UIColor colorWithRed:1.0 green:0.0 blue:0.0 alpha:1.0];
+    }
+    
+    UIColor *dynamicColor = [UIColor colorWithDynamicProvider:^UIColor * _Nonnull(UITraitCollection * _Nonnull traitCollection) {
+        if ([[ThemeManager sharedManager] isLightForTraitCollection:traitCollection]) {
+            return [ThemeColors getUserColor:@"theme_day_color_action"];
+        } else {
+            return [ThemeColors getUserColor:@"theme_night_color_action"];
+        }
+    }];
+    return dynamicColor;
+}
+
 
 + (UIColor *)tintColor {
     return [self tintColor:[ThemeManager currentTheme]];
 }
 
 + (UIColor *)tintColorWithAlpha:(CGFloat)newAlpha {
-    UIColor* c = [self tintColor:[ThemeManager currentTheme]];
+    UIColor* c = [self tintColor];
     CGFloat r, g, b, alpha;
     [c getRed:&r green:&g blue:&b alpha:&alpha];
     return [UIColor colorWithRed:r green:g blue:b alpha:newAlpha];
@@ -934,7 +952,7 @@
 }
 
 + (UIImage *)tintImage:(UIImage *)image withTheme:(Theme)theme{
-    return [self tintImage:image withColor:[self tintColor:theme]];
+    return [self tintImage:image withColor:[self tintColor]];
 }
 
 

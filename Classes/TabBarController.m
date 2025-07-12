@@ -135,7 +135,7 @@
         }
         
         self.bgView.image =[ThemeColors imageFromColor:[ThemeColors tabBackgroundColor:theme]];
-        self.tabBar.tintColor = [ThemeColors tintColor:theme];
+        self.tabBar.tintColor = [ThemeColors tintColor];
         
         if ([self.childViewControllers count] > 0) {
             for (int i=0; i<[self.childViewControllers count]; i++) {

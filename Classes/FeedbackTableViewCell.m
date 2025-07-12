@@ -29,7 +29,7 @@
     self.backgroundColor = [ThemeColors cellBackgroundColor:theme];
     self.contentView.superview.backgroundColor =[ThemeColors cellBackgroundColor:theme];
     [pseudoLabel setTextColor:[ThemeColors cellIconColor:theme]];
-    [dateLabel setTextColor:[ThemeColors tintColor:theme]];
+    [dateLabel setTextColor:[ThemeColors tintColor]];
     [commLabel setTextColor:[ThemeColors cellTextColor:theme]];
     self.selectionStyle = [ThemeColors cellSelectionStyle:theme];
     

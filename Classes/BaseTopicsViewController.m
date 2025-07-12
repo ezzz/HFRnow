@@ -68,7 +68,7 @@
     self.maintenanceView.numberOfLines = 0;
     [self.view addSubview:self.maintenanceView];
         
-    self.maintenanceView.backgroundColor = [UIColor yellowColor];
+    self.maintenanceView.backgroundColor = [UIColor clearColor];
     self.maintenanceView.hidden = YES; // masquée par défaut
     
     // Data containers
@@ -160,7 +160,6 @@
 
 - (UIView *)tableView:(UITableView *)tableView viewForHeaderInSection:(NSInteger)section {
     
-    
     //On récupère la section (forum)
     CGFloat curWidth = self.view.frame.size.width;
     NSInteger iSizeTextTopics = [[NSUserDefaults standardUserDefaults] integerForKey:@"size_text_topics"];
@@ -244,7 +243,6 @@
     
     return customView;
  }
-
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
     // Return the number of sections.
@@ -527,7 +525,7 @@
                     [[tmptoolbar.subviews objectAtIndex:1] setHidden:YES];
                 }
 
-                [tmptoolbar setBackgroundImage:[ThemeColors imageFromColor:[ThemeColors toolbarPageBackgroundColor:[[ThemeManager sharedManager] theme]]] forToolbarPosition:UIBarPositionAny barMetrics:UIBarMetricsDefault];
+                [tmptoolbar setBackgroundImage:[ThemeColors imageFromColor:[ThemeColors headSectionBackgroundColor]] forToolbarPosition:UIBarPositionAny barMetrics:UIBarMetricsDefault];
                 [tmptoolbar setShadowImage:[UIImage new] forToolbarPosition:UIBarPositionAny];
                 [tmptoolbar sizeToFit];
 
@@ -590,11 +588,11 @@
                         frame.origin.y = -frame.size.height;
                         UIView* grayView = [[UIView alloc] initWithFrame:frame];
                         grayView.tag = 666777;
-                        grayView.backgroundColor = [ThemeColors addMessageBackgroundColor:[[ThemeManager sharedManager] theme]];
+                        //NOT USED ? grayView.backgroundColor = [UIColor yellowColor];// [ThemeColors headSectionBackgroundColor];//:[[ThemeManager sharedManager] theme]];
                         [self.topicsTableView insertSubview:grayView atIndex:0];
                     }
 
-                    [self.topicsTableView setBackgroundColor:[ThemeColors addMessageBackgroundColor:[[ThemeManager sharedManager] theme]]];
+                    //NOT USED ? [self.topicsTableView setBackgroundColor:[UIColor redColor]]; //[ThemeColors headSectionBackgroundColor]];
                     self.topicsTableView.tableFooterView = tmptoolbar;
                 }
                 else {

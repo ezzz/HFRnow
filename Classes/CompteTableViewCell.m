@@ -42,8 +42,8 @@
     Theme theme = [[ThemeManager sharedManager] theme];
     if(main){
         [pseudoLabel setFont:[UIFont boldSystemFontOfSize:16.]];
-        [pseudoLabel setTextColor:[ThemeColors tintColor:theme]];
-        avatarImageView.layer.borderColor = [ThemeColors tintColor:theme].CGColor;
+        [pseudoLabel setTextColor:[ThemeColors tintColor]];
+        avatarImageView.layer.borderColor = [ThemeColors tintColor].CGColor;
     }else{
         [pseudoLabel setFont:[UIFont systemFontOfSize:16.]];
          [pseudoLabel setTextColor:[ThemeColors cellIconColor:theme]];

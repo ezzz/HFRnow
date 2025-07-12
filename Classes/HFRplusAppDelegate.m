@@ -359,7 +359,7 @@
 
 -(void)setThemeFromNotification:(NSNotification *)notification{
     [self setTheme:[[ThemeManager sharedManager] theme]];
-    UISegmentedControl.appearance.selectedSegmentTintColor = [ThemeColors tintColor];
+    UISegmentedControl.appearance.selectedSegmentTintColor = [ThemeColors tintColorDynamic];
 }
 
 -(void)setTheme:(Theme)theme{
@@ -367,7 +367,7 @@
     [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"theme_noel_disabled"];
 
     if ([self.window respondsToSelector:@selector(setTintColor:)]) {
-        self.window.tintColor = [ThemeColors tintColor:theme];
+        self.window.tintColor = [ThemeColors tintColor];
     }
     
     if ([self.window respondsToSelector:@selector(setBackgroundColor:)]) {

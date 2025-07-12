@@ -278,7 +278,7 @@
     self.textFieldCat.keyboardAppearance = [ThemeColors keyboardAppearance:[[ThemeManager sharedManager] theme]];
     [self.navigationController.navigationBar setTranslucent:NO];
 
-    self.selectCompte.layer.borderColor = [ThemeColors tintColor:theme].CGColor;
+    self.selectCompte.layer.borderColor = [ThemeColors tintColor].CGColor;
 
     [self.viewControllerSmileys updateTheme];
     [self.viewControllerRehostImage updateTheme];
@@ -635,16 +635,12 @@
 }
 
 -(void)segmentToBlue {
-    if (@available(iOS 13.0, *)) {
-        [self.segmentControler setTitleTextAttributes:@{NSForegroundColorAttributeName: [ThemeColors tintColor:[[ThemeManager sharedManager] theme]], NSFontAttributeName: [UIFont systemFontOfSize:13]} forState:UIControlStateNormal];
-        [self.segmentControler setTitleTextAttributes:@{NSForegroundColorAttributeName: [ThemeColors cellBorderColor:[[ThemeManager sharedManager] theme]], NSFontAttributeName: [UIFont systemFontOfSize:13]} forState:UIControlStateDisabled];
-        [self.segmentControlerPage setTitleTextAttributes:@{NSForegroundColorAttributeName: [ThemeColors tintColor:[[ThemeManager sharedManager] theme]], NSFontAttributeName: [UIFont systemFontOfSize:13]} forState:UIControlStateNormal];
-        [self.segmentControlerPage setTitleTextAttributes:@{NSForegroundColorAttributeName: [ThemeColors cellBorderColor:[[ThemeManager sharedManager] theme]], NSFontAttributeName: [UIFont systemFontOfSize:13]} forState:UIControlStateDisabled];
-        [self.segmentControler setSelectedSegmentTintColor:[ThemeColors tintColor:[[ThemeManager sharedManager] theme]]];
-        [self.segmentControlerPage setSelectedSegmentTintColor:[ThemeColors tintColor:[[ThemeManager sharedManager] theme]]];
-    } else {
-        self.segmentControler.tintColor = self.segmentControlerPage.tintColor = [ThemeColors tintColor:[[ThemeManager sharedManager] theme]];
-    }
+    [self.segmentControler setTitleTextAttributes:@{NSForegroundColorAttributeName: [ThemeColors tintColor], NSFontAttributeName: [UIFont systemFontOfSize:13]} forState:UIControlStateNormal];
+    [self.segmentControler setTitleTextAttributes:@{NSForegroundColorAttributeName: [ThemeColors cellBorderColor:[[ThemeManager sharedManager] theme]], NSFontAttributeName: [UIFont systemFontOfSize:13]} forState:UIControlStateDisabled];
+    [self.segmentControlerPage setTitleTextAttributes:@{NSForegroundColorAttributeName: [ThemeColors tintColor], NSFontAttributeName: [UIFont systemFontOfSize:13]} forState:UIControlStateNormal];
+    [self.segmentControlerPage setTitleTextAttributes:@{NSForegroundColorAttributeName: [ThemeColors cellBorderColor:[[ThemeManager sharedManager] theme]], NSFontAttributeName: [UIFont systemFontOfSize:13]} forState:UIControlStateDisabled];
+    [self.segmentControler setSelectedSegmentTintColor:[ThemeColors tintColor]];
+    [self.segmentControlerPage setSelectedSegmentTintColor:[ThemeColors tintColor]];
 }
 
 - (void)actionImage:(id)sender

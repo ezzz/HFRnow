@@ -1885,7 +1885,7 @@
     }];
 
     markReadAction.image = [UIImage checkmarkImage];
-    markReadAction.backgroundColor = [ThemeColors tintColor:[[ThemeManager sharedManager] theme]];
+    markReadAction.backgroundColor = [ThemeColors tintColor];
     /*
     UIContextualAction *markSuperFavorite = [UIContextualAction contextualActionWithStyle:UIContextualActionStyleNormal title:@"Super Fav" handler:^(UIContextualAction * _Nonnull action, __kindof UIView * _Nonnull sourceView, void (^ _Nonnull completionHandler)(BOOL)) {
         [self setTopicSuperFavoriteWithIndex:indexPath];

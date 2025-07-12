@@ -235,7 +235,7 @@
         [self.locadingContainerView.centerXAnchor constraintEqualToAnchor:self.loadingView.centerXAnchor],
         [self.locadingContainerView.centerYAnchor constraintEqualToAnchor:self.loadingView.centerYAnchor],
         [self.locadingContainerView.widthAnchor constraintEqualToConstant:200],
-        [self.locadingContainerView.heightAnchor constraintEqualToConstant:60]
+        [self.locadingContainerView.heightAnchor constraintEqualToConstant:40]
     ]];
     
     // ----- Spinner -----
@@ -299,9 +299,13 @@
     [super viewWillAppear:animated];
     
     Theme theme = [[ThemeManager sharedManager] theme];
-    self.view.backgroundColor = self.maintenanceView.backgroundColor = self.topicsTableView.backgroundColor = [ThemeColors greyBackgroundColor:theme];
+    self.view.backgroundColor = self.maintenanceView.backgroundColor = [ThemeColors greyBackgroundColor:theme];
+    
+    
+    
     self.searchHeaderView.backgroundColor = [ThemeColors toolbarPageBackgroundColor:theme];
     self.optionSearchInSegmentedControl.backgroundColor = self.optionSearchFromSegmentedControl.backgroundColor = self.optionSearchTypeSegmentedControl.backgroundColor = [UIColor systemGray5Color];
+    self.topicsTableView.backgroundColor = [UIColor clearColor];
     self.textSearchBar.backgroundColor = [ThemeColors toolbarPageBackgroundColor:theme];
     self.optionSearchInSegmentedControl.backgroundColor = [UIColor systemGray5Color];
     self.optionSearchCategoryButton.backgroundColor = [UIColor systemGray5Color];
@@ -816,7 +820,15 @@
 {
     return [NSString stringWithFormat:@"Résultats p.%d", [self pageNumber]]; // [self forumName] is null, dommage...
 }
-
+/*
+- (void)tableView:(UITableView *)tableView willDisplayHeaderView:(UIView *)view forSection:(NSInteger)section {
+    view.backgroundColor = [ThemeColors headerBLBackgroundColor];
+    
+    if ([view isKindOfClass:[UITableViewHeaderFooterView class]]) {
+        UITableViewHeaderFooterView *header = (UITableViewHeaderFooterView *)view;
+        header.textLabel.textColor = [ThemeColors headSectionTextColor]; // couleur dynamique adaptée au thème
+    }
+}*/
 
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
 {

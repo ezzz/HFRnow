@@ -543,7 +543,6 @@
 		CA7C6FFE185EF50E00B348BA /* 20-gear2@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = CA00C5B717C30C370067B457 /* 20-gear2@2x.png */; };
 		CA7C6FFF185EF50E00B348BA /* MessagesTableViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 013F0E99121E117800BEBEB1 /* MessagesTableViewController.xib */; };
 		CA7C7000185EF50E00B348BA /* love.gif in Resources */ = {isa = PBXBuildFile; fileRef = CA00C56317C30C370067B457 /* love.gif */; };
-		CA7C7001185EF50E00B348BA /* MessageDetailViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 013F0E9C121E117900BEBEB1 /* MessageDetailViewController.xib */; };
 		CA7C7002185EF50E00B348BA /* 122-stats@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = CA00C5B117C30C370067B457 /* 122-stats@2x.png */; };
 		CA7C7003185EF50E00B348BA /* loadinfo.net.gif in Resources */ = {isa = PBXBuildFile; fileRef = CA00C60117C30C370067B457 /* loadinfo.net.gif */; };
 		CA7C7004185EF50E00B348BA /* ToolBarPlay_on.png in Resources */ = {isa = PBXBuildFile; fileRef = CA7472D617E14D4500B45E15 /* ToolBarPlay_on.png */; };
@@ -586,7 +585,6 @@
 		CA7C702B185EF50E00B348BA /* ToolBarPlay_off@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = CA7472D517E14D4500B45E15 /* ToolBarPlay_off@2x.png */; };
 		CA7C702D185EF50E00B348BA /* all_categories_land@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = CA2E4C0B17E5095000E95622 /* all_categories_land@2x.png */; };
 		CA7C702E185EF50E00B348BA /* beginhover.png in Resources */ = {isa = PBXBuildFile; fileRef = CA00C5E017C30C370067B457 /* beginhover.png */; };
-		CA7C702F185EF50E00B348BA /* MessageDetailViewControllerv2.xib in Resources */ = {isa = PBXBuildFile; fileRef = CA228CEF125CFD4500DDCD2E /* MessageDetailViewControllerv2.xib */; };
 		CA7C7030185EF50E00B348BA /* fou.gif in Resources */ = {isa = PBXBuildFile; fileRef = CA00C55317C30C370067B457 /* fou.gif */; };
 		CA7C7031185EF50E00B348BA /* pt1cable.gif in Resources */ = {isa = PBXBuildFile; fileRef = CA00C57017C30C370067B457 /* pt1cable.gif */; };
 		CA7C7032185EF50E00B348BA /* 111-user@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = CA00C5A917C30C370067B457 /* 111-user@2x.png */; };
@@ -732,7 +730,6 @@
 		CA7C70D4185EF50E00B348BA /* RegexKitLite.m in Sources */ = {isa = PBXBuildFile; fileRef = CA00C45817C300140067B457 /* RegexKitLite.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		CA7C70D5185EF50E00B348BA /* LinkItem.m in Sources */ = {isa = PBXBuildFile; fileRef = 013F0E96121E117800BEBEB1 /* LinkItem.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
 		CA7C70D8185EF50E00B348BA /* MessagesTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 013F0E98121E117800BEBEB1 /* MessagesTableViewController.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
-		CA7C70DA185EF50E00B348BA /* MessageDetailViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 013F0E9B121E117800BEBEB1 /* MessageDetailViewController.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
 		CA7C70DB185EF50E00B348BA /* ParseMessagesOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 013F0E9E121E117900BEBEB1 /* ParseMessagesOperation.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
 		CA7C70DC185EF50E00B348BA /* RehostImage.m in Sources */ = {isa = PBXBuildFile; fileRef = CA63F388185E09B20092E9F9 /* RehostImage.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
 		CA7C70DE185EF50E00B348BA /* MKStoreObserver.m in Sources */ = {isa = PBXBuildFile; fileRef = CA00C44D17C2FF4E0067B457 /* MKStoreObserver.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
@@ -903,9 +900,6 @@
 		013F0E97121E117800BEBEB1 /* MessagesTableViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = MessagesTableViewController.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
 		013F0E98121E117800BEBEB1 /* MessagesTableViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; lineEnding = 0; path = MessagesTableViewController.m; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objc; };
 		013F0E99121E117800BEBEB1 /* MessagesTableViewController.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = MessagesTableViewController.xib; sourceTree = "<group>"; };
-		013F0E9A121E117800BEBEB1 /* MessageDetailViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = MessageDetailViewController.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
-		013F0E9B121E117800BEBEB1 /* MessageDetailViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; lineEnding = 0; path = MessageDetailViewController.m; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objc; };
-		013F0E9C121E117900BEBEB1 /* MessageDetailViewController.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = MessageDetailViewController.xib; sourceTree = "<group>"; };
 		013F0E9D121E117900BEBEB1 /* ParseMessagesOperation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = ParseMessagesOperation.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
 		013F0E9E121E117900BEBEB1 /* ParseMessagesOperation.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; lineEnding = 0; path = ParseMessagesOperation.m; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objc; };
 		013F0E9F121E117900BEBEB1 /* AddMessageViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = AddMessageViewController.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
@@ -1716,7 +1710,6 @@
 		CA20FA3212F15CA700EC1771 /* TopicSearchCellView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TopicSearchCellView.h; sourceTree = "<group>"; };
 		CA20FA3312F15CA700EC1771 /* TopicSearchCellView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; lineEnding = 0; path = TopicSearchCellView.m; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objc; };
 		CA20FA3412F15CA700EC1771 /* TopicSearchCellView.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = TopicSearchCellView.xib; sourceTree = "<group>"; };
-		CA228CEF125CFD4500DDCD2E /* MessageDetailViewControllerv2.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = MessageDetailViewControllerv2.xib; sourceTree = "<group>"; };
 		CA24233D17C3C898002888D3 /* jquery-2.0.3.min.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = "jquery-2.0.3.min.js"; sourceTree = "<group>"; };
 		CA26862213ADE01100AC5511 /* BrowserViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = BrowserViewController.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
 		CA26862313ADE01100AC5511 /* BrowserViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; lineEnding = 0; path = BrowserViewController.m; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objc; };
@@ -1971,10 +1964,6 @@
 				4CB133131B90E9530081B44D /* MessagesSearchTableViewController.m */,
 				013F0E9D121E117900BEBEB1 /* ParseMessagesOperation.h */,
 				013F0E9E121E117900BEBEB1 /* ParseMessagesOperation.m */,
-				013F0E9A121E117800BEBEB1 /* MessageDetailViewController.h */,
-				013F0E9B121E117800BEBEB1 /* MessageDetailViewController.m */,
-				013F0E9C121E117900BEBEB1 /* MessageDetailViewController.xib */,
-				CA228CEF125CFD4500DDCD2E /* MessageDetailViewControllerv2.xib */,
 				1540899D2439E82800509862 /* FilterPostsQuotes.h */,
 				1540899B2439E7C900509862 /* FilterPostsQuotes.m */,
 				1536E7D8257D271900B30209 /* SmileyCodeTableViewController.h */,
@@ -3706,7 +3695,6 @@
 				CA7C6FFF185EF50E00B348BA /* MessagesTableViewController.xib in Resources */,
 				CA7C7000185EF50E00B348BA /* love.gif in Resources */,
 				4C9C2B8B1BAE801700511853 /* ThorHammerFilled-25.png in Resources */,
-				CA7C7001185EF50E00B348BA /* MessageDetailViewController.xib in Resources */,
 				4C0B8DED1BA4522900D329BA /* ProcessorFilled-40.png in Resources */,
 				D8B4EDEF21C184970042C392 /* snow4.png in Resources */,
 				4C9C2B201BAE66EB00511853 /* ThorHammerBlack-20@2x.png in Resources */,
@@ -3830,7 +3818,6 @@
 				4C1991911FA9E91600A07A8A /* Icon-BETA@2x.png in Resources */,
 				1523960728DF015F00614F9D /* 08-chat-20-Inv.png in Resources */,
 				152395F928DF015F00614F9D /* StarFilled-20-Inv.png in Resources */,
-				CA7C702F185EF50E00B348BA /* MessageDetailViewControllerv2.xib in Resources */,
 				CA7C7030185EF50E00B348BA /* fou.gif in Resources */,
 				1591C0F2249690BF0025560A /* fond-degrade-bleu-fonce_1258-1348.jpg in Resources */,
 				CA7C7031185EF50E00B348BA /* pt1cable.gif in Resources */,
@@ -4246,7 +4233,6 @@
 				D80DBD761E55BE730051B751 /* ASIInputStream.m in Sources */,
 				4CC3C75A1B99BC18001B8632 /* AlerteModoViewController.m in Sources */,
 				CA7C70D8185EF50E00B348BA /* MessagesTableViewController.m in Sources */,
-				CA7C70DA185EF50E00B348BA /* MessageDetailViewController.m in Sources */,
 				1591C0E02490170D0025560A /* SmileyViewController.m in Sources */,
 				4C0B8E051BA45B0100D329BA /* ForumCellView.m in Sources */,
 				CA7C70DF185EF50E00B348BA /* AddMessageViewController.m in Sources */,
@@ -4478,13 +4464,11 @@
 				ASSETCATALOG_COMPILER_OPTIMIZATION = time;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = Automatic;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 28;
-				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = QMG83DG7YP;
+				CURRENT_PROJECT_VERSION = 29;
+				DEVELOPMENT_TEAM = QMG83DG7YP;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4524,7 +4508,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super;
 				PRODUCT_NAME = SuperHFRplusSwift;
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = ProfileSuperHFRv1;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -4544,13 +4527,11 @@
 				ASSETCATALOG_COMPILER_OPTIMIZATION = time;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = Automatic;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = YES;
-				CURRENT_PROJECT_VERSION = 28;
-				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = QMG83DG7YP;
+				CURRENT_PROJECT_VERSION = 29;
+				DEVELOPMENT_TEAM = QMG83DG7YP;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4588,7 +4569,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super;
 				PRODUCT_NAME = SuperHFRplusSwift;
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = ProfileSuperHFRv1;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
