@@ -1385,17 +1385,10 @@
         
         SimplePhotoViewController *vc = [[SimplePhotoViewController alloc] init];
         vc.imageURL = [NSURL URLWithString:selectedURL];
-        
-        if ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPad) {
-            vc.modalInPresentation = NO;
-            [vc setModalPresentationStyle: UIModalPresentationFullScreen];
-            [self presentModalViewController:vc animated:YES];
-        }
-        else {
-            vc.modalInPresentation = NO;
-            vc.modalPresentationStyle = UIModalPresentationPageSheet;
-            [self presentViewController:vc animated:YES completion:nil];
-        }
+        UINavigationController *nav = [[UINavigationController alloc] initWithRootViewController:vc];
+        nav.modalInPresentation = NO;
+        nav.modalPresentationStyle = UIModalPresentationFullScreen;
+        [self presentViewController:nav animated:YES completion:nil];
     }
     else {
         // Ego quote not applyed on MP

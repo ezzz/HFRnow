@@ -65,6 +65,7 @@
 
     [self.activityIndicator startAnimating];
 
+    /*
     UINavigationBar *navBar = [[UINavigationBar alloc] initWithFrame:CGRectMake(0, 0, self.view.frame.size.width, [UIApplication sharedApplication].statusBarFrame.size.height)];
 
     // Créer un item avec bouton "Fermer"
@@ -75,11 +76,22 @@
                                     target:self
                                     action:@selector(closeModal)];
     navItem.leftBarButtonItem = closeButton;
+     [navBar setItems:@[navItem]];
+     navBar.backgroundColor = [ThemeColors navBackgroundColor];
+     [self.view addSubview:navBar];
 
-    [navBar setItems:@[navItem]];
-    navBar.backgroundColor = [ThemeColors navBackgroundColor];
-    [self.view addSubview:navBar];
+     */
 
+    self.view.backgroundColor = [UIColor blackColor];
+
+    // Bouton de fermeture
+    UIBarButtonItem *closeButton = [[UIBarButtonItem alloc]
+                                    initWithTitle:@"Retour"
+                                    style:UIBarButtonItemStylePlain
+                                    target:self
+                                    action:@selector(closeModal)];
+    self.navigationItem.leftBarButtonItem = closeButton;
+    
     [self loadImageFromURL:self.imageURL];
 }
 
