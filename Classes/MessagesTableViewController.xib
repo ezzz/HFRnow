@@ -161,14 +161,14 @@
             <viewLayoutGuide key="safeArea" id="VAc-gQ-SII"/>
             <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
             <constraints>
-                <constraint firstItem="MsJ-S0-jPQ" firstAttribute="top" secondItem="VAc-gQ-SII" secondAttribute="top" id="3ht-eG-FAr"/>
                 <constraint firstItem="MsJ-S0-jPQ" firstAttribute="leading" secondItem="VAc-gQ-SII" secondAttribute="leading" id="4C2-f3-c6g"/>
                 <constraint firstItem="aIX-Ky-oja" firstAttribute="top" secondItem="VAc-gQ-SII" secondAttribute="top" id="7yH-fQ-TK2"/>
                 <constraint firstItem="aIX-Ky-oja" firstAttribute="top" secondItem="VAc-gQ-SII" secondAttribute="top" id="Cfi-1r-NcZ"/>
                 <constraint firstItem="MsJ-S0-jPQ" firstAttribute="trailing" secondItem="VAc-gQ-SII" secondAttribute="trailing" id="GXg-IO-URl"/>
+                <constraint firstItem="MsJ-S0-jPQ" firstAttribute="top" secondItem="8" secondAttribute="top" id="HKY-zl-GiP"/>
                 <constraint firstItem="aIX-Ky-oja" firstAttribute="trailing" secondItem="VAc-gQ-SII" secondAttribute="trailing" id="MfF-Gn-BtB"/>
                 <constraint firstItem="aIX-Ky-oja" firstAttribute="leading" secondItem="VAc-gQ-SII" secondAttribute="leading" id="Nik-jP-QBk"/>
-                <constraint firstItem="MsJ-S0-jPQ" firstAttribute="bottom" secondItem="VAc-gQ-SII" secondAttribute="bottom" id="Ui3-wa-mjn"/>
+                <constraint firstAttribute="bottom" secondItem="MsJ-S0-jPQ" secondAttribute="bottom" id="WBs-Vh-pbR"/>
                 <constraint firstItem="aIX-Ky-oja" firstAttribute="top" secondItem="VAc-gQ-SII" secondAttribute="top" id="bQl-Cn-xL0"/>
             </constraints>
             <nil key="simulatedStatusBarMetrics"/>

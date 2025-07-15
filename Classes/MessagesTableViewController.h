@@ -198,7 +198,7 @@
 @property dispatch_block_t smileyAlertViewAddOK;
 @property dispatch_block_t smileyAlertViewAddFailed;
 @property UIEditMenuInteraction *webviewInteraction;
-
+@property NSInteger lastContentOffsetY;
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil andUrl:(NSString *)theTopicUrl;
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil andUrl:(NSString *)theTopicUrl displaySeparator:(BOOL)isSeparatorNewMessages;
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil andOfflineTopic:(Topic *)thetopic;

@@ -833,14 +833,15 @@
 	
     [super viewWillDisappear:animated];
 	self.isAnimating = YES;
+    
+    // Scroll vers le haut → restaurer l’opacité
+    [self setBarsAlpha:1.0 animated:NO];
 }
 
 - (void)viewDidAppear:(BOOL)animated {
-    //NSLog(@"viewDidAppear");
-    
 	[super viewDidAppear:animated];
 	self.isAnimating = NO;
-    
+    //[self removeNavBarBackgroundView];
 }
 
 - (void)VisibilityChanged:(NSNotification *)notification {
@@ -1003,7 +1004,33 @@
         self.webviewInteraction = [[UIEditMenuInteraction alloc] initWithDelegate:self];
         [self.messagesWebView addInteraction:(UIEditMenuInteraction*)self.webviewInteraction];
     }
+    self.messagesWebView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+
+    // Scroll bas qui ajoute la transparence
+    self.messagesWebView.scrollView.delegate = self;
+    /*
+    self.messagesWebView.opaque = NO;
+    self.messagesWebView.backgroundColor = UIColor.clearColor;
+    self.messagesWebView.scrollView.backgroundColor = UIColor.clearColor;
+    self.messagesWebView.frame = self.view.bounds;*/
     
+    /*
+    CGFloat tabBarHeight = self.tabBarController.tabBar.frame.size.height;
+    CGFloat safeBottomInset = self.view.safeAreaInsets.bottom;
+
+    CGFloat totalBottomInset = tabBarHeight + safeBottomInset;
+    NSLog(@"BOTTOM %f %f ", tabBarHeight, safeBottomInset);
+    self.messagesWebView.scrollView.contentInset = UIEdgeInsetsMake(0, 0, totalBottomInset, 0);
+    self.messagesWebView.scrollView.scrollIndicatorInsets = UIEdgeInsetsMake(0, 0, totalBottomInset, 0);
+
+    */
+    self.lastContentOffsetY = 0;
+    [self configureTransparentNavigationBar];
+    [self configureTransparentTabBar];
+    
+    self.edgesForExtendedLayout = UIRectEdgeAll;
+    self.extendedLayoutIncludesOpaqueBars = YES;
+
     //Bouton Repondre message
     if (self.isSearchInstra) {
         UIBarButtonItem *optionsBarItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemSearch target:self action:@selector(searchTopic)];
@@ -1347,13 +1374,28 @@
     self.messagesWebView.allowsLinkPreview = YES;
     /* not working self.messagesWebView.scrollView.alwaysBounceVertical = YES;
     self.messagesWebView.scrollView.alwaysBounceHorizontal = NO;*/
-    self.messagesWebView.scrollView.delegate = self;
+}
+
+- (void)viewDidLayoutSubviews {
+    [super viewDidLayoutSubviews];
+
+    CGFloat tabBarFullHeight = self.tabBarController.tabBar.frame.size.height;
+    CGFloat safeBottomInset = self.view.safeAreaInsets.bottom;
+
+    CGFloat visibleTabBarHeight = tabBarFullHeight - safeBottomInset;
+    CGFloat totalInset = visibleTabBarHeight + safeBottomInset;
+
+    self.messagesWebView.scrollView.contentInset = UIEdgeInsetsMake(0, 0, visibleTabBarHeight, 0);
+    self.messagesWebView.scrollView.scrollIndicatorInsets = UIEdgeInsetsMake(0, 0, visibleTabBarHeight, 0);
+
+    NSLog(@"TabBar visible: %.0f, safeInset: %.0f, totalInset: %.0f", visibleTabBarHeight, safeBottomInset, totalInset);
 }
 
 - (void)viewDidDisappear:(BOOL)animated {
 	//NSLog(@"viewDidDisappear");
-
     [super viewDidDisappear:animated];
+    
+    
 }
 
 // Override to allow orientations other than the default portrait orientation.
@@ -1461,6 +1503,84 @@
 
 - (void)closeModal {
     [self dismissViewControllerAnimated:YES completion:nil];
+}
+
+/*- (void)configureTransparentNavigationBar {
+    UINavigationBar *navBar = self.navigationController.navigationBar;
+
+    // Rendre la navigation bar translucide
+    navBar.translucent = YES;
+
+    // Supprimer l'image de fond et la ligne de séparation
+    [navBar setBackgroundImage:[UIImage new] forBarMetrics:UIBarMetricsDefault];
+    navBar.shadowImage = [UIImage new];
+
+    // Important : Supprimer la couleur de fond (barTintColor)
+    navBar.barTintColor = [UIColor clearColor];
+
+    // Et aussi la backgroundColor au cas où elle aurait été définie
+    navBar.backgroundColor = [UIColor clearColor];
+
+    // Pour éviter un fond de type "blur" résiduel (iOS 15+)
+    if (@available(iOS 15.0, *)) {
+        UINavigationBarAppearance *appearance = [[UINavigationBarAppearance alloc] init];
+        [appearance configureWithTransparentBackground];
+        appearance.backgroundColor = [UIColor clearColor];
+
+        navBar.standardAppearance = appearance;
+        navBar.scrollEdgeAppearance = appearance;
+    }
+}*/
+- (void)configureTransparentNavigationBar {
+    UINavigationBar *navBar = self.navigationController.navigationBar;
+
+    navBar.translucent = YES;
+    [navBar setBackgroundImage:[UIImage new] forBarMetrics:UIBarMetricsDefault];
+    navBar.shadowImage = [UIImage new];
+}
+- (void)removeNavBarBackgroundView {
+    UINavigationBar *navBar = self.navigationController.navigationBar;
+
+    // Itère sur les sous-vues pour repérer et masquer la vue de fond (souvent UIVisualEffectView)
+    for (UIView *view in navBar.subviews) {
+        if ([view isKindOfClass:NSClassFromString(@"_UIBarBackground")] ||
+            [view isKindOfClass:[UIVisualEffectView class]]) {
+            view.hidden = YES; // OU view.alpha = 0;
+        }
+    }
+}
+
+- (void)configureTransparentTabBar {
+    UITabBar *tabBar = self.tabBarController.tabBar;
+
+    tabBar.translucent = YES;
+    tabBar.backgroundImage = [UIImage new];
+    tabBar.shadowImage = [UIImage new];
+    tabBar.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.8]; // optionnel
+}
+
+- (void)scrollViewDidScroll:(UIScrollView *)scrollView {
+    CGFloat currentOffsetY = scrollView.contentOffset.y;
+    CGFloat sensitivity = 3.0;
+    
+    if (currentOffsetY > self.lastContentOffsetY + sensitivity) {
+        // Scroll vers le bas → rendre les barres presque transparentes
+        [self setBarsAlpha:0.3 animated:YES];
+    } else if (currentOffsetY < self.lastContentOffsetY - sensitivity) {
+        // Scroll vers le haut → restaurer l’opacité
+        [self setBarsAlpha:1.0 animated:YES];
+    }
+
+    self.lastContentOffsetY = currentOffsetY;
+}
+
+- (void)setBarsAlpha:(CGFloat)alpha animated:(BOOL)animated {
+    NSTimeInterval duration = animated ? 0.1 : 0.0;
+
+    [UIView animateWithDuration:duration animations:^{
+        self.navigationController.navigationBar.alpha = alpha;
+        self.tabBarController.tabBar.alpha = alpha;
+    }];
 }
 
 #pragma mark - searchNewMessages
