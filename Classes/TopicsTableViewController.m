@@ -9,7 +9,6 @@
 #import "ASIHTTPRequest+Tools.h"
 #import "Constants.h"
 #import "HTMLParser.h"
-#import "ShakeView.h"
 #import "TopicsTableViewController.h"
 #import "MessagesTableViewController.h"
 #import "HFRMPViewController.h"
@@ -24,6 +23,7 @@
 #import "SmileyAlertView.h"
 #import "PullToRefreshErrorViewController.h"
 #import "TopicsSearchViewController.h"
+#import "k.h"
 
 @implementation TopicsTableViewController
 @synthesize arrayData, arrayNewData;
@@ -415,7 +415,6 @@
 	//NSLog(@"addMessageViewControllerDidFinishOK");
 	
 	[self dismissModalViewControllerAnimated:YES];
-	[self shakeHappened:nil];
 	[self.navigationController popToViewController:self animated:NO];
 }
 

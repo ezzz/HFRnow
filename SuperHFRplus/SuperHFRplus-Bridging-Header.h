@@ -5,8 +5,8 @@
 #ifndef Bridging_Header_h
 #define Bridging_Header_h
 
-#import "HFRplusAppDelegate.h"
-#import "IdentificationViewController.h"
+#import "PlusTableViewController.h"
+#import "ForumsTableViewController.h"
 
 #endif /* Bridging_Header_h */
 

@@ -16,6 +16,7 @@
 #import "ThemeManager.h"
 #import "ThemeColors.h"
 #import "UIScrollView+SVPullToRefresh.h"
+#import "k.h"
 
 @implementation AQTableViewController;
 @synthesize aqTableView;
@@ -126,8 +127,8 @@
     // set AQ as no more new
     [[marrXMLData objectAtIndex:indexPath.row] setObject:[NSNumber numberWithBool:NO] forKey:@"is_new"];
 
-    self.messagesTableViewController = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:sFormattedUrl displaySeparator:YES];;
-
+    self.messagesTableViewController = [[MessagesTableViewController alloc] init];//WithNibName:@"MessagesTableViewController" bundle:nil andUrl:sFormattedUrl displaySeparator:YES];;
+    self.messagesTableViewController.currentUrl = sFormattedUrl;
     self.navigationItem.backBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"AQ" style: UIBarButtonItemStylePlain target:nil action:nil];
     [self.navigationController pushViewController:self.messagesTableViewController animated:YES];
 }
@@ -189,9 +190,10 @@
 }
 
 - (void) setBadgePlusTableView {
+    /* TODO IOS 26 Badge AQ
     // Set new AQ number into Plus tab
     NSMutableArray *viewControllers = [NSMutableArray arrayWithArray:[[HFRplusAppDelegate sharedAppDelegate] rootController].viewControllers];
-    PlusTableViewController* plusVC = ((PlusTableViewController *)((UINavigationController *)viewControllers[viewControllers.count - 1]).viewControllers[0]);
+    PlusTableViewController* plusVC = ((PlusTableViewController *)((UINavigationController *)viewControllers[viewControllers.count - 1]).viewControllers[0]);*/
     /*TODO BAR
      if (plusVC) {
         plusVC.iAQBadgeNumer = (int)iNumberNewAQ;

@@ -4,7 +4,7 @@
 //
 //  Created by Bruno ARENE on 04/04/2019.
 //
-
+#import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 #import "FavoriteCellView.h"
 #import "ThemeManager.h"

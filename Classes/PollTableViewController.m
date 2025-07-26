@@ -19,6 +19,7 @@
 #import "ThemeManager.h"
 #import "ThemeColors.h"
 #import "HFRAlertView.h"
+#import "k.h"
 
 @interface PollTableViewController ()
 

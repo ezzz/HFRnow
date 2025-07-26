@@ -7,7 +7,6 @@
 //
 
 #import "HFRplusAppDelegate.h"
-#import "UIAlertViewURL.h"
 
 #import "HFRMPViewController.h"
 #import "FavoritesTableViewController.h"

@@ -16,6 +16,7 @@
 #import "HFRplusAppDelegate.h"
 #import "HFRMPViewController.h"
 #import "MessagesTableViewController.h"
+#import "k.h"
 
 @implementation BaseTopicsViewController
 
@@ -39,7 +40,8 @@
         self.imageForRedFlag = [UIImage imageNamed:@"Flat-RedFlag-25"];
         self.imageForYellowFlag = [UIImage imageNamed:@"Flat-YellowFlag-25"];
         self.imageForBlueFlag = [UIImage imageNamed:@"Flat-CyanFlag-25"];
-        self.imageForGreyFlag = [self imageWithAlpha:[UIImage imageNamed:@"Flat-GrayFlag-25"] alpha:0.2];
+        self.imageForGreyFlag = [UIImage imageNamed:@"Flat-GrayFlag-25"];
+        // TODO IOS26: CRASH self.imageForGreyFlag = [self imageWithAlpha:[UIImage imageNamed:@"Flat-GrayFlag-25"] alpha:0.2];
     }
     return self;
 }

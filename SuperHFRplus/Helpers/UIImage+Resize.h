@@ -5,7 +5,7 @@
 //  Created by FLK on 22/07/12.
 //
 
-
+#import <UIKit/UIKit.h>
 
 @interface UIImage (Resize)
 - (UIImage*)scaleToSize:(CGSize)size;

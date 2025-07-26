@@ -12,7 +12,6 @@
 @class PullToRefreshErrorViewController;
 @class TopicsSearchViewController;
 @class HFRNavigationController;
-@class ShakeView;
 @class TopicCellView;
 
 #import "AddMessageViewController.h"
@@ -42,24 +41,5 @@
 - (instancetype)init;
 - (instancetype)initWithFlag:(int)flag;
 - (void)reset;
-
- /*
-- (void)shakeHappened:(ShakeView*)view;
-- (void)showPicker:(id)sender;
-- (CGRect)pickerFrameWithSize:(CGSize)size;
-- (void)dismissActionSheet;
-- (void)segmentFilterAction;
-
-- (void)cancelFetchContent;
-- (void)fetchContentStarted:(ASIHTTPRequest *)theRequest;
-- (void)fetchContentComplete:(ASIHTTPRequest *)theRequest;
-- (void)fetchContentFailed:(ASIHTTPRequest *)theRequest;
-
-- (void)chooseTopicPage;
-- (void)newTopic;
-
-- (void)setTopicViewed;
-
-- (void)test;*/
 
 @end

@@ -5,6 +5,8 @@
 //  Created by ezzz on 06/12/2020.
 //
 
+#import <UIKit/UIKit.h>
+
 #ifndef SmileyCodeCellView_h
 #define SmileyCodeCellView_h
 

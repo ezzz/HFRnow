@@ -15,8 +15,6 @@
 #import "ASIHTTPRequest+Tools.h"
 #import "ASIFormDataRequest.h"
 
-#import "ShakeView.h"
-
 #import "Topic.h"
 #import "Forum.h"
 #import "Catcounter.h"
@@ -38,6 +36,7 @@
 #import "MultisManager.h"
 #import "FilterPostsQuotes.h"
 #import "TopicsSearchViewController.h"
+#import "k.h"
 
 #define SECTION_CAT_VISIBLE 0
 #define SECTION_CAT_HIDDEN 1
@@ -643,8 +642,6 @@
         self.favoritesTableView.sectionHeaderTopPadding = 0;
     }
     
-	[(ShakeView*)self.view setShakeDelegate:self];
-	
     self.arrayData = [[NSMutableArray alloc] init];
     self.arrayTopics = [[NSMutableArray alloc] init];
     self.arrayNewData = [[NSMutableArray alloc] init];
@@ -1076,6 +1073,8 @@
     {
         return self.arrayTopics.count;
     }
+    
+    return 0;
 }
 
 
@@ -1916,15 +1915,6 @@
     [self.favoritesTableView triggerPullToRefresh];
 
 //	[self fetchContent];
-}
-
-
--(void) shakeHappened:(ShakeView*)view
-{
-	if (![request inProgress]) {
-		
-		[self reload:YES];		
-	}
 }
 
 

@@ -26,7 +26,7 @@
 #import "RehostCollectionCell.h"
 #import "SmileyCache.h"
 #import "api_keys.h"
-
+#import "k.h"
 
 #define TOOLBAR_HEIGHT_SMILEY 44
 #define TOOLBAR_HEIGHT_IMAGES 50

@@ -4,6 +4,7 @@
 //
 //  Created by ezzz on 04/04/2019.
 //
+#import <UIKit/UIKit.h>
 
 #ifndef ThemeBrightnessCellView_h
 #define ThemeBrightnessCellView_h

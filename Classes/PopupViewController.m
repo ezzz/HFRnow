@@ -6,6 +6,7 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
 #import "PopupViewController.h"
 #import "ThemeColors.h"
 #import "ThemeManager.h"

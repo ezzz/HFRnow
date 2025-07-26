@@ -4,6 +4,7 @@
 //
 //  Created by ezzz on 27/01/2019.
 //
+#import <UIKit/UIKit.h>
 
 #ifndef SimpleCellView_h
 #define SimpleCellView_h

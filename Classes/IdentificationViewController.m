@@ -15,6 +15,7 @@
 #import "ThemeManager.h"
 #import "MultisManager.h"
 #import "ASIHTTPRequest+Tools.h"
+#import "k.h"
 
 @implementation IdentificationViewController
 @synthesize delegate;

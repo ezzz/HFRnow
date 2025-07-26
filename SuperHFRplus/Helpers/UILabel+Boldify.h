@@ -4,6 +4,7 @@
 //
 //  Created by Bruno ARENE on 28/06/2020.
 //
+#import <UIKit/UIKit.h>
 
 @interface UILabel(Boldify);
 

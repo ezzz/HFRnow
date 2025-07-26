@@ -10,7 +10,7 @@
 #import "ASIHTTPRequest.h"
 #import "RegexKitLite.h"
 #import "IdentificationViewController.h"
-#import "SuperHFRplusSwift-Swift.h"
+//#import "SuperHFRplusSwift-Swift.h"
 #import "HFRplusAppDelegate.h"
 #import "RangeOfCharacters.h"
 #import "ThemeColors.h"

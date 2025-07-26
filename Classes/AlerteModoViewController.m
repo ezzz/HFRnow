@@ -15,6 +15,7 @@
 #import "ThemeColors.h"
 #import "HFRAlertView.h"
 #import "ASIHTTPRequest+Tools.h"
+#import "k.h"
 
 @implementation AlerteModoViewController
 @synthesize textView, delegate, url;

@@ -4,6 +4,7 @@
 //
 //  Created by FLK on 20/07/12.
 //
+#import "k.h"
 
 #import "HFRDebugViewController.h"
 #import "HFRplusAppDelegate.h"

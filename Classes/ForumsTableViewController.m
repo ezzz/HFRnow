@@ -15,8 +15,6 @@
 
 #import "HTMLParser.h"
 #import "RegexKitLite.h"
-#import "ShakeView.h"
-
 #import "Forum.h"
 
 #import "ASIHTTPRequest+Tools.h"
@@ -30,6 +28,7 @@
 
 #import "ThemeColors.h"
 #import "ThemeManager.h"
+#import "k.h"
 
 @implementation ForumsTableViewController
 @synthesize request;
@@ -812,6 +811,14 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
  
+    self.forumsTableView = [[UITableView alloc] initWithFrame:self.view.bounds style:UITableViewStyleGrouped];
+    self.forumsTableView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    self.forumsTableView.delegate = self;
+    self.forumsTableView.dataSource = self;
+    [self.view addSubview:self.forumsTableView];
+    
+    [[NSUserDefaults standardUserDefaults] setInteger:100 forKey:@"size_text_topics"];
+    
 	self.title = @"Catégories";
     self.navigationController.navigationBar.translucent = NO;
 
@@ -845,8 +852,6 @@
 
 	//Bouton Reload
     [self showBarButton:kReload];
-
-	[(ShakeView*)self.view setShakeDelegate:self];
 
 	self.arrayData = [[NSMutableArray alloc] init];
 	self.arrayNewData = [[NSMutableArray alloc] init];
@@ -1258,15 +1263,6 @@
     [self.forumsTableView triggerPullToRefresh];
     
 	//[self fetchContent];
-}
-
-
--(void) shakeHappened:(ShakeView*)view
-{
-	if (![request isExecuting]) {
-
-		[self reload:YES];		
-	}
 }
 
 #pragma mark -

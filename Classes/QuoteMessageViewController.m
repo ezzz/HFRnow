@@ -17,7 +17,7 @@
 #import "ASIHTTPRequest+Tools.h"
 #import "SmileyCache.h"
 #import "SmileyViewController.h"
-
+#import "k.h"
 
 @implementation QuoteMessageViewController
 @synthesize urlQuote;

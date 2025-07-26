@@ -6,7 +6,7 @@
 //
 
 #import <Foundation/Foundation.h>
-
+#import <UIKit/UIKit.h>
 
 @interface NSString (RangeOfCharacters)
 /* note "Characters" is plural in the methods. It has poor readability, hard to 

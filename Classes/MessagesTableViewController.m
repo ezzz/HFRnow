@@ -18,8 +18,6 @@
 #import "ASIHTTPRequest+Tools.h"
 #import "ASIFormDataRequest.h"
 #import "ASIDownloadCache.h"
-
-#import "ShakeView.h"
 #import "RangeOfCharacters.h"
 #import "NSData+Base64.h"
 
@@ -41,7 +39,7 @@
 #import "SmileyAlertView.h"
 #import "SmileyCache.h"
 #import "SimplePhotoViewController.h"
-
+#import "k.h"
 
 @implementation MessagesTableViewController
 
@@ -68,10 +66,144 @@
     return _topicName;
 }
 
+- (void)loadView {
+    // Création de la WebView
+    self.messagesWebView = [[WKWebView alloc] initWithFrame:CGRectZero];
+    self.messagesWebView.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.view addSubview:self.messagesWebView];
+
+    // Contraintes pour remplir toute la vue
+    [NSLayoutConstraint activateConstraints:@[
+        [self.messagesWebView.topAnchor constraintEqualToAnchor:self.view.topAnchor],
+        [self.messagesWebView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor],
+        [self.messagesWebView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [self.messagesWebView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
+    ]];
+}
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    self.currentOfflineTopic = nil;
+    self.loaded = NO;
+    self.isViewed = YES;
+    [self setIsSearchInstra:NO];
+    self.errorReported = NO;
+    self.canSaveDrapalInMPStorage = NO;
+    self.filterPostsQuotes = nil;
+    self.arrFilteredPosts = nil;
+    self.isSeparatorNewMessages = YES;
+    
+    self.isAnimating = NO;
+
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(VisibilityChanged:) name:@"VisibilityChanged" object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(editMenuHidden:) name:UIMenuControllerDidHideMenuNotification object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(userThemeDidChange)
+                                                 name:kThemeChangedNotification
+                                               object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(smileysSizeDidChange)
+                                                 name:kSmileysSizeChangedNotification
+                                               object:nil];
+    
+    if ([UIFontDescriptor respondsToSelector:@selector(preferredFontDescriptorWithTextStyle:)]) {
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(userTextSizeDidChange) name:UIContentSizeCategoryDidChangeNotification object:nil];
+    }
+    
+    UITapGestureRecognizer *tapRecognizer = [[UITapGestureRecognizer alloc]
+                                             initWithTarget:self action:@selector(handleTap:)];
+    [self.searchBg addGestureRecognizer:tapRecognizer];
+
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone)
+    { // iPhone only
+        self.labelHeaderView = [[UILabel alloc] initWithFrame:CGRectZero];
+        
+        self.labelHeaderView.numberOfLines = 2;
+        self.labelHeaderView.textAlignment = NSTextAlignmentCenter;
+        self.labelHeaderView.backgroundColor = [UIColor clearColor];
+        self.labelHeaderView.lineBreakMode = NSLineBreakByTruncatingTail; // Troncature seulement sur la 1ère ligne
+        self.labelHeaderView.adjustsFontSizeToFitWidth = NO; // Important pour éviter le shrink global
+        self.labelHeaderView.textColor = [UIColor blackColor];
+        self.labelHeaderView.userInteractionEnabled = YES;
+
+        self.navigationItem.titleView = self.labelHeaderView;
+    }
+    
+    // For iPad & iPhone
+    [self refreshNavigationTitle];
+    
+    // fond blanc WebView
+    //[self.messagesWebView hideGradientBackground];
+    self.messagesWebView.navigationDelegate = self;
+    [self.messagesWebView setBackgroundColor:[UIColor colorWithRed:239/255.0f green:239/255.0f blue:244/255.0f alpha:1.0f]];
+    if (@available(iOS 16.4, *)) { [self.messagesWebView setInspectable:true]; }
+    
+    //Gesture de Gauche à droite
+    UIGestureRecognizer* recognizer = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(handleSwipeToRight:)];
+    self.swipeRightRecognizer = (UISwipeGestureRecognizer *)recognizer;
+    self.swipeRightRecognizer.delegate = self;
+
+    //De Droite à gauche
+    recognizer = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(handleSwipeToLeft:)];
+    self.swipeLeftRecognizer = (UISwipeGestureRecognizer *)recognizer;
+    self.swipeLeftRecognizer.direction = UISwipeGestureRecognizerDirectionLeft;
+    self.swipeLeftRecognizer.delegate = self;
+    
+    self.messagesWebView.scrollView.contentInset = UIEdgeInsetsMake(0, -0.5, 0, 0);
+    if (@available(iOS 16.0, *)) {
+        self.webviewInteraction = [[UIEditMenuInteraction alloc] initWithDelegate:self];
+        [self.messagesWebView addInteraction:(UIEditMenuInteraction*)self.webviewInteraction];
+    }
+    
+    //Bouton Repondre message
+    if (self.isSearchInstra) {
+        UIBarButtonItem *optionsBarItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemSearch target:self action:@selector(searchTopic)];
+        optionsBarItem.enabled = NO;
+        NSMutableArray *myButtonArray = [[NSMutableArray alloc] initWithObjects:optionsBarItem, nil];
+        self.navigationItem.rightBarButtonItems = myButtonArray;
+    }
+    else {
+        UIBarButtonItem *optionsBarItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAction target:self action:@selector(optionsTopic:)];
+        optionsBarItem.enabled = NO;
+        NSMutableArray *myButtonArray = [[NSMutableArray alloc] initWithObjects:optionsBarItem, nil];
+        self.navigationItem.rightBarButtonItems = myButtonArray;
+    }
+        
+    self.arrayAction = [[NSMutableArray alloc] init];
+    self.arrayActionsMessages = [[NSMutableArray alloc] init];
+    
+    self.arrayData = [[NSMutableArray alloc] init];
+    self.updatedArrayData = [[NSMutableArray alloc] init];
+    self.arrayInputData = [[NSMutableDictionary alloc] init];
+    self.editFlagTopic = [[NSString    alloc] init];
+    self.stringFlagTopic = [[NSString    alloc] init];
+    self.lastStringFlagTopic = [[NSString    alloc] init];
+
+    self.isFavoritesOrRead = [[NSString    alloc] init];
+    self.isUnreadable = NO;
+    self.curPostID = -1;
+    
+    if (!self.searchInputData) {
+        NSLog(@"NO searchInputData");
+        self.searchInputData = [[NSMutableDictionary alloc] init];
+    }
+
+    [self setEditFlagTopic:nil];
+    [self setStringFlagTopic:@""];
+    
+    if (self.filterPostsQuotes) {
+        [self manageLoadedItems:self.filterPostsQuotes.arrData];
+        self.pageNumberFilterStart = self.filterPostsQuotes.iStartPage;
+        self.pageNumberFilterEnd = self.filterPostsQuotes.iLastPageLoaded;
+        [self setupScrollAndPage];
+    } else {
+        [self fetchContent];
+    }
+    [self editMenuHidden:nil];
+}
 
 
-#pragma mark -
-#pragma mark Data lifecycle
+#pragma mark - Data lifecycle
 
 - (void)setProgress:(float)newProgress{
 	//NSLog(@"Progress %f%", newProgress*100);
@@ -120,7 +252,6 @@
     if(from == kNewMessageFromNext) self.stringFlagTopic = @"#bas";
     
     switch (from) {
-        case kNewMessageFromShake:
         case kNewMessageFromUpdate:
         case kNewMessageFromEditor:
             //NSLog(@"hidden");
@@ -940,119 +1071,6 @@
     [menuController setMenuItems:[NSArray arrayWithObjects:textQuotinuum, textQuotinuumBis, nil]];
 }
 
-- (void)viewDidLoad {
-    [super viewDidLoad];
-	self.isAnimating = NO;
-
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(VisibilityChanged:) name:@"VisibilityChanged" object:nil];
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(editMenuHidden:) name:UIMenuControllerDidHideMenuNotification object:nil];
-    [[NSNotificationCenter defaultCenter] addObserver:self
-                                             selector:@selector(userThemeDidChange)
-                                                 name:kThemeChangedNotification
-                                               object:nil];
-    [[NSNotificationCenter defaultCenter] addObserver:self
-                                             selector:@selector(smileysSizeDidChange)
-                                                 name:kSmileysSizeChangedNotification
-                                               object:nil];
-    
-    if ([UIFontDescriptor respondsToSelector:@selector(preferredFontDescriptorWithTextStyle:)]) {
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(userTextSizeDidChange) name:UIContentSizeCategoryDidChangeNotification object:nil];
-    }
-    
-    UITapGestureRecognizer *tapRecognizer = [[UITapGestureRecognizer alloc]
-                                             initWithTarget:self action:@selector(handleTap:)];
-    [self.searchBg addGestureRecognizer:tapRecognizer];
-
-    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone)
-    { // iPhone only
-        self.labelHeaderView = [[UILabel alloc] initWithFrame:CGRectZero];
-        
-        self.labelHeaderView.numberOfLines = 2;
-        self.labelHeaderView.textAlignment = NSTextAlignmentCenter;
-        self.labelHeaderView.backgroundColor = [UIColor clearColor];
-        self.labelHeaderView.lineBreakMode = NSLineBreakByTruncatingTail; // Troncature seulement sur la 1ère ligne
-        self.labelHeaderView.adjustsFontSizeToFitWidth = NO; // Important pour éviter le shrink global
-        self.labelHeaderView.textColor = [UIColor blackColor];
-        self.labelHeaderView.userInteractionEnabled = YES;
-
-        self.navigationItem.titleView = self.labelHeaderView;
-    }
-    
-    // For iPad & iPhone
-    [self refreshNavigationTitle];
-    
-    // fond blanc WebView
-    //[self.messagesWebView hideGradientBackground];
-    self.messagesWebView.navigationDelegate = self;
-    [self.messagesWebView setBackgroundColor:[UIColor colorWithRed:239/255.0f green:239/255.0f blue:244/255.0f alpha:1.0f]];
-    if (@available(iOS 16.4, *)) { [self.messagesWebView setInspectable:true]; }
-    
-	//Gesture de Gauche à droite
-	UIGestureRecognizer* recognizer = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(handleSwipeToRight:)];
-	self.swipeRightRecognizer = (UISwipeGestureRecognizer *)recognizer;
-    self.swipeRightRecognizer.delegate = self;
-
-	//De Droite à gauche
-	recognizer = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(handleSwipeToLeft:)];
-    self.swipeLeftRecognizer = (UISwipeGestureRecognizer *)recognizer;
-    self.swipeLeftRecognizer.direction = UISwipeGestureRecognizerDirectionLeft;
-    self.swipeLeftRecognizer.delegate = self;
-    
-    self.messagesWebView.scrollView.contentInset = UIEdgeInsetsMake(0, -0.5, 0, 0);
-    if (@available(iOS 16.0, *)) {
-        self.webviewInteraction = [[UIEditMenuInteraction alloc] initWithDelegate:self];
-        [self.messagesWebView addInteraction:(UIEditMenuInteraction*)self.webviewInteraction];
-    }
-    
-    //Bouton Repondre message
-    if (self.isSearchInstra) {
-        UIBarButtonItem *optionsBarItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemSearch target:self action:@selector(searchTopic)];
-        optionsBarItem.enabled = NO;
-        NSMutableArray *myButtonArray = [[NSMutableArray alloc] initWithObjects:optionsBarItem, nil];
-        self.navigationItem.rightBarButtonItems = myButtonArray;
-    }
-    else {
-        UIBarButtonItem *optionsBarItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAction target:self action:@selector(optionsTopic:)];
-        optionsBarItem.enabled = NO;
-        NSMutableArray *myButtonArray = [[NSMutableArray alloc] initWithObjects:optionsBarItem, nil];
-        self.navigationItem.rightBarButtonItems = myButtonArray;
-    }
-        
-	[(ShakeView*)self.view setShakeDelegate:self];
-	
-	self.arrayAction = [[NSMutableArray alloc] init];
-	self.arrayActionsMessages = [[NSMutableArray alloc] init];
-    
-	self.arrayData = [[NSMutableArray alloc] init];
-	self.updatedArrayData = [[NSMutableArray alloc] init];
-	self.arrayInputData = [[NSMutableDictionary alloc] init];
-	self.editFlagTopic = [[NSString	alloc] init];
-	self.stringFlagTopic = [[NSString	alloc] init];
-	self.lastStringFlagTopic = [[NSString	alloc] init];
-
-	self.isFavoritesOrRead = [[NSString	alloc] init];
-	self.isUnreadable = NO;
-	self.curPostID = -1;
-    
-    if (!self.searchInputData) {
-        NSLog(@"NO searchInputData");
-        self.searchInputData = [[NSMutableDictionary alloc] init];
-    }
-
-	[self setEditFlagTopic:nil];
-	[self setStringFlagTopic:@""];
-    
-    if (self.filterPostsQuotes) {
-        [self manageLoadedItems:self.filterPostsQuotes.arrData];
-        self.pageNumberFilterStart = self.filterPostsQuotes.iStartPage;
-        self.pageNumberFilterEnd = self.filterPostsQuotes.iLastPageLoaded;
-        [self setupScrollAndPage];
-    } else {
-        [self fetchContent];
-    }
-    [self editMenuHidden:nil];
-}
-
 -(void) addProgressBar {
     self.alertProgress = [UIAlertController alertControllerWithTitle:@"Téléchargement des topics" message:@"0%" preferredStyle:UIAlertControllerStyleAlert];
     [self.alertProgress addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
@@ -1487,9 +1505,6 @@
         int intfrom = [from intValue];
         
         switch (intfrom) {
-            case kNewMessageFromShake:
-                [self setStringFlagTopic:[(LinkItem*)[self.arrayData lastObject] postID]]; // on flag sur le dernier message pour bien positionner après le rechargement.
-                break;
             case kNewMessageFromUpdate:
                 [self setStringFlagTopic:[(LinkItem*)[self.arrayData lastObject] postID]]; // on flag sur le dernier message pour bien positionner après le rechargement.
                 break;
@@ -1506,18 +1521,6 @@
 
 #pragma mark -
 #pragma mark Gestures
-
--(void) shakeHappened:(ShakeView*)view
-{
-    //NSLog(@"shake");
-	if (![request inProgress] && !self.isLoading) {
-        //NSLog(@"shake OK");
-		[self searchNewMessages:kNewMessageFromShake];
-	}
-    else {
-        //NSLog(@"shake KO");
-    }
-}
 
 - (void)handleSwipeToLeft:(UISwipeGestureRecognizer *)recognizer {
     NSLog(@"handleSwipeToLeft nextPage");

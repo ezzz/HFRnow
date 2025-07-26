@@ -32,6 +32,12 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
 
+    self.plusTableView = [[UITableView alloc] initWithFrame:self.view.bounds style:UITableViewStyleGrouped];
+    self.plusTableView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    self.plusTableView.delegate = self;
+    self.plusTableView.dataSource = self;
+    [self.view addSubview:self.plusTableView];
+    
     UINib *nib = [UINib nibWithNibName:@"PlusCellView" bundle:nil];
     [self.plusTableView registerNib:nib forCellReuseIdentifier:@"PlusCellId"];
 

@@ -14,6 +14,7 @@
 #import <SimpleKeychain/SimpleKeychain.h>
 #import "ASIFormDataRequest.h"
 #include "MPStorage.h"
+#import "k.h"
 
 @implementation MultisManager
 

@@ -110,6 +110,7 @@
             dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
                 @autoreleasepool {
                     @try {
+                        /* TODO SWIFT
                         ALAssetsLibrary *assetslibrary = [[ALAssetsLibrary alloc] init];
                         [assetslibrary assetForURL:_photoURL
                                        resultBlock:^(ALAsset *asset){
@@ -125,6 +126,14 @@
                                           MWLog(@"Photo from asset library error: %@",error);
                                           [self performSelectorOnMainThread:@selector(imageLoadingComplete) withObject:nil waitUntilDone:NO];
                                       }];
+                        
+                        ->
+                        
+                        PHFetchResult *allPhotos = [PHAsset fetchAssetsWithMediaType:PHAssetMediaTypeImage options:nil];
+                        [allPhotos enumerateObjectsUsingBlock:^(PHAsset *asset, NSUInteger idx, BOOL *stop) {
+                            // Accès à l’image ici
+                        }];
+                        */
                     } @catch (NSException *e) {
                         MWLog(@"Photo from asset library error: %@", e);
                         [self performSelectorOnMainThread:@selector(imageLoadingComplete) withObject:nil waitUntilDone:NO];

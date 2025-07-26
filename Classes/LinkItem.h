@@ -7,7 +7,7 @@
 
 #import <Foundation/Foundation.h>
 #import "HTMLParser.h"
-
+#import <UIKit/UIKit.h>
 
 @interface LinkItem : NSObject {
 	NSString *name;

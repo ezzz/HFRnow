@@ -5,6 +5,8 @@
 //  Created by Bruno ARENE on 02/02/2019.
 //
 
+#import <UIKit/UIKit.h>
+
 #ifndef AQCellCView_h
 #define AQCellCView_h
 

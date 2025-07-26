@@ -4,6 +4,7 @@
 //
 //  Created by Bruno ARENE on 27/01/2019.
 //
+#import <UIKit/UIKit.h>
 
 #ifndef PlusCellView_h
 #define PlusCellView_h

@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="24093.9" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useSafeAreas="YES" colorMatched="YES">
+    <device id="retina4_7" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24057"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="MessagesTableViewController">
+            <connections>
+                <outlet property="errorLabelView" destination="gbT-rB-Ucv" id="DRg-MN-nhT"/>
+                <outlet property="loadingView" destination="13" id="16"/>
+                <outlet property="loadingViewIndicator" destination="15" id="V8g-tU-K8Z"/>
+                <outlet property="loadingViewLabel" destination="14" id="D9R-kJ-140"/>
+                <outlet property="messagesWebView" destination="MsJ-S0-jPQ" id="xCu-0o-74T"/>
+                <outlet property="searchBg" destination="sPu-av-2DW" id="D84-nS-0TV"/>
+                <outlet property="searchBox" destination="aIX-Ky-oja" id="oBR-YV-TOO"/>
+                <outlet property="searchBtnItem" destination="jRF-LW-e0L" id="Eil-lb-Amb"/>
+                <outlet property="searchFilter" destination="ZQc-t8-rah" id="nqQ-GU-MwK"/>
+                <outlet property="searchFilterBtnItem" destination="WA1-sx-fqp" id="3p5-SB-Kq2"/>
+                <outlet property="searchFromFP" destination="qSQ-j6-qK6" id="2MF-Zh-qq1"/>
+                <outlet property="searchKeyword" destination="l6t-e9-NT4" id="eeb-nC-fyg"/>
+                <outlet property="searchLabel" destination="zPj-gh-RsO" id="DGL-3T-NTb"/>
+                <outlet property="searchPseudo" destination="1EF-Sd-UCj" id="jlY-3e-A6u"/>
+                <outlet property="searchToolbar" destination="EId-Gd-9mM" id="vJs-tk-AkC"/>
+                <outlet property="view" destination="8" id="10"/>
+            </connections>
+        </placeholder>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <view contentMode="scaleToFill" id="8" customClass="ShakeView">
+            <rect key="frame" x="0.0" y="0.0" width="375" height="510"/>
+            <autoresizingMask key="autoresizingMask"/>
+            <subviews>
+                <wkWebView hidden="YES" opaque="NO" multipleTouchEnabled="YES" contentMode="scaleToFill" ambiguous="YES" preservesSuperviewLayoutMargins="YES" translatesAutoresizingMaskIntoConstraints="NO" id="MsJ-S0-jPQ">
+                    <rect key="frame" x="0.0" y="0.0" width="375" height="510"/>
+                    <color key="backgroundColor" red="0.36078431370000003" green="0.38823529410000002" blue="0.4039215686" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                    <wkWebViewConfiguration key="configuration" allowsInlineMediaPlayback="YES">
+                        <dataDetectorTypes key="dataDetectorTypes" none="YES"/>
+                        <audiovisualMediaTypes key="mediaTypesRequiringUserActionForPlayback" none="YES"/>
+                        <wkPreferences key="preferences"/>
+                    </wkWebViewConfiguration>
+                </wkWebView>
+                <label hidden="YES" opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="Label" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="gbT-rB-Ucv">
+                    <rect key="frame" x="0.0" y="245" width="375" height="21"/>
+                    <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMinY="YES" flexibleMaxY="YES"/>
+                    <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                    <color key="textColor" systemColor="darkTextColor"/>
+                    <nil key="highlightedColor"/>
+                </label>
+                <view autoresizesSubviews="NO" clearsContextBeforeDrawing="NO" userInteractionEnabled="NO" contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="13">
+                    <rect key="frame" x="108" y="240" width="160" height="30"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMaxX="YES" flexibleMinY="YES" flexibleMaxY="YES"/>
+                    <subviews>
+                        <activityIndicatorView opaque="NO" userInteractionEnabled="NO" contentMode="scaleToFill" fixedFrame="YES" animating="YES" style="gray" translatesAutoresizingMaskIntoConstraints="NO" id="15">
+                            <rect key="frame" x="20" y="5" width="20" height="20"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMaxX="YES" flexibleMinY="YES" flexibleMaxY="YES"/>
+                        </activityIndicatorView>
+                        <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" fixedFrame="YES" text="Chargement..." lineBreakMode="clip" minimumFontSize="10" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="14">
+                            <rect key="frame" x="50" y="6" width="95" height="20"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMaxX="YES" flexibleMinY="YES" flexibleMaxY="YES"/>
+                            <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="0.0" colorSpace="custom" customColorSpace="sRGB"/>
+                            <fontDescription key="fontDescription" name="Helvetica-Bold" family="Helvetica" pointSize="12"/>
+                            <color key="textColor" red="0.2704081633" green="0.2704081633" blue="0.2704081633" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                            <nil key="highlightedColor"/>
+                            <color key="shadowColor" red="0.96428571429999999" green="0.96428571429999999" blue="0.96428571429999999" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                            <size key="shadowOffset" width="0.0" height="1"/>
+                        </label>
+                    </subviews>
+                    <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="0.0" colorSpace="custom" customColorSpace="sRGB"/>
+                </view>
+                <view hidden="YES" alpha="0.90000000000000002" contentMode="scaleToFill" ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="sPu-av-2DW">
+                    <rect key="frame" x="0.0" y="0.0" width="375" height="510"/>
+                    <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="0.5982934397163121" colorSpace="custom" customColorSpace="sRGB"/>
+                </view>
+                <view hidden="YES" contentMode="scaleToFill" ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="aIX-Ky-oja">
+                    <rect key="frame" x="0.0" y="0.0" width="375" height="184"/>
+                    <subviews>
+                        <textField opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="Mot" minimumFontSize="17" clearButtonMode="always" translatesAutoresizingMaskIntoConstraints="NO" id="l6t-e9-NT4">
+                            <rect key="frame" x="10" y="10" width="355" height="34"/>
+                            <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                            <textInputTraits key="textInputTraits" autocorrectionType="no" spellCheckingType="no" returnKeyType="next"/>
+                            <connections>
+                                <action selector="searchKeywordChanged:" destination="-1" eventType="editingChanged" id="BqM-bT-iZu"/>
+                                <action selector="searchNext:" destination="-1" eventType="editingDidEndOnExit" id="qfL-rG-cje"/>
+                            </connections>
+                        </textField>
+                        <toolbar opaque="NO" clearsContextBeforeDrawing="NO" contentMode="scaleToFill" ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="EId-Gd-9mM">
+                            <rect key="frame" x="0.0" y="140" width="375" height="44"/>
+                            <items>
+                                <barButtonItem title="Filtrer" style="plain" id="WA1-sx-fqp"/>
+                                <barButtonItem style="plain" id="7Kt-Mf-2mZ">
+                                    <switch key="customView" opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" contentHorizontalAlignment="center" contentVerticalAlignment="center" id="ZQc-t8-rah">
+                                        <rect key="frame" x="95" y="8" width="63" height="28"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                        <connections>
+                                            <action selector="searchFilterChanged:" destination="-1" eventType="valueChanged" id="oT8-dX-Sxh"/>
+                                        </connections>
+                                    </switch>
+                                </barButtonItem>
+                                <barButtonItem style="plain" systemItem="flexibleSpace" id="EVD-IW-MtK"/>
+                                <barButtonItem title="Rechercher" style="done" id="jRF-LW-e0L">
+                                    <connections>
+                                        <action selector="searchSubmit:" destination="-1" id="GGK-DR-bNx"/>
+                                    </connections>
+                                </barButtonItem>
+                            </items>
+                        </toolbar>
+                        <switch opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" ambiguous="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" translatesAutoresizingMaskIntoConstraints="NO" id="qSQ-j6-qK6">
+                            <rect key="frame" x="304" y="99" width="63" height="28"/>
+                            <inset key="insetFor6xAndEarlier" minX="7" minY="0.0" maxX="-7" maxY="0.0"/>
+                            <connections>
+                                <action selector="searchFromFPChanged:" destination="-1" eventType="valueChanged" id="zWy-55-fOs"/>
+                            </connections>
+                        </switch>
+                        <textField opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="Pseudo" minimumFontSize="17" clearButtonMode="always" translatesAutoresizingMaskIntoConstraints="NO" id="1EF-Sd-UCj">
+                            <rect key="frame" x="10" y="60" width="355" height="34"/>
+                            <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                            <textInputTraits key="textInputTraits" autocorrectionType="no" spellCheckingType="no" returnKeyType="search"/>
+                            <connections>
+                                <action selector="searchNext:" destination="-1" eventType="editingDidEndOnExit" id="e62-lk-wOv"/>
+                                <action selector="searchPseudoChanged:" destination="-1" eventType="editingChanged" id="zcJ-zv-bVg"/>
+                            </connections>
+                        </textField>
+                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" lineBreakMode="tailTruncation" numberOfLines="2" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="zPj-gh-RsO">
+                            <rect key="frame" x="11" y="98" width="256" height="31.5"/>
+                            <string key="text">Depuis la première page
+(à partir de la page actuelle sinon)</string>
+                            <fontDescription key="fontDescription" type="system" pointSize="13"/>
+                            <color key="textColor" red="0.33333333333333331" green="0.33333333333333331" blue="0.33333333333333331" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                            <nil key="highlightedColor"/>
+                        </label>
+                    </subviews>
+                    <viewLayoutGuide key="safeArea" id="jqb-xN-cff"/>
+                    <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                    <constraints>
+                        <constraint firstItem="jqb-xN-cff" firstAttribute="trailing" secondItem="l6t-e9-NT4" secondAttribute="trailing" constant="10" id="4QN-fM-GNP"/>
+                        <constraint firstAttribute="trailing" secondItem="1EF-Sd-UCj" secondAttribute="trailing" constant="10" id="D1z-ol-L3Z"/>
+                        <constraint firstItem="zPj-gh-RsO" firstAttribute="leading" secondItem="aIX-Ky-oja" secondAttribute="leading" constant="11" id="EXi-rU-9Ip"/>
+                        <constraint firstItem="EId-Gd-9mM" firstAttribute="top" secondItem="qSQ-j6-qK6" secondAttribute="bottom" constant="10" id="Ii3-Jt-PPf"/>
+                        <constraint firstItem="l6t-e9-NT4" firstAttribute="leading" secondItem="jqb-xN-cff" secondAttribute="leading" constant="10" id="KFb-at-xdm"/>
+                        <constraint firstItem="EId-Gd-9mM" firstAttribute="leading" secondItem="aIX-Ky-oja" secondAttribute="leading" id="KW4-N3-N1T"/>
+                        <constraint firstAttribute="bottom" secondItem="EId-Gd-9mM" secondAttribute="bottom" id="LjL-On-PvI"/>
+                        <constraint firstItem="zPj-gh-RsO" firstAttribute="top" secondItem="1EF-Sd-UCj" secondAttribute="bottom" constant="4" id="NHH-7S-4Iy"/>
+                        <constraint firstItem="qSQ-j6-qK6" firstAttribute="leading" secondItem="zPj-gh-RsO" secondAttribute="trailing" constant="37" id="T0Y-Xz-5w2"/>
+                        <constraint firstAttribute="trailing" secondItem="qSQ-j6-qK6" secondAttribute="trailing" constant="10" id="TJu-pB-Ex5"/>
+                        <constraint firstItem="l6t-e9-NT4" firstAttribute="top" secondItem="jqb-xN-cff" secondAttribute="top" constant="10" id="X7l-38-pKj"/>
+                        <constraint firstItem="1EF-Sd-UCj" firstAttribute="leading" secondItem="aIX-Ky-oja" secondAttribute="leading" constant="10" id="aua-LO-yMU"/>
+                        <constraint firstItem="EId-Gd-9mM" firstAttribute="top" secondItem="qSQ-j6-qK6" secondAttribute="bottom" constant="10" id="bTH-D9-vKc"/>
+                        <constraint firstItem="1EF-Sd-UCj" firstAttribute="top" secondItem="l6t-e9-NT4" secondAttribute="bottom" constant="16" id="cUD-L7-l9d"/>
+                        <constraint firstAttribute="trailing" secondItem="EId-Gd-9mM" secondAttribute="trailing" id="k4h-ER-lVH"/>
+                        <constraint firstItem="zPj-gh-RsO" firstAttribute="top" secondItem="1EF-Sd-UCj" secondAttribute="bottom" constant="4" id="q6S-bu-1ie"/>
+                        <constraint firstItem="EId-Gd-9mM" firstAttribute="top" secondItem="zPj-gh-RsO" secondAttribute="bottom" constant="10.5" id="t02-nk-TP2"/>
+                        <constraint firstItem="qSQ-j6-qK6" firstAttribute="top" secondItem="1EF-Sd-UCj" secondAttribute="bottom" constant="5" id="xrT-6M-ULH"/>
+                    </constraints>
+                    <inset key="insetFor6xAndEarlier" minX="0.0" minY="0.0" maxX="0.0" maxY="-5"/>
+                </view>
+            </subviews>
+            <viewLayoutGuide key="safeArea" id="VAc-gQ-SII"/>
+            <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <constraints>
+                <constraint firstItem="MsJ-S0-jPQ" firstAttribute="top" secondItem="VAc-gQ-SII" secondAttribute="top" id="3ht-eG-FAr"/>
+                <constraint firstItem="MsJ-S0-jPQ" firstAttribute="leading" secondItem="VAc-gQ-SII" secondAttribute="leading" id="4C2-f3-c6g"/>
+                <constraint firstItem="aIX-Ky-oja" firstAttribute="top" secondItem="VAc-gQ-SII" secondAttribute="top" id="7yH-fQ-TK2"/>
+                <constraint firstItem="aIX-Ky-oja" firstAttribute="top" secondItem="VAc-gQ-SII" secondAttribute="top" id="Cfi-1r-NcZ"/>
+                <constraint firstItem="MsJ-S0-jPQ" firstAttribute="trailing" secondItem="VAc-gQ-SII" secondAttribute="trailing" id="GXg-IO-URl"/>
+                <constraint firstItem="aIX-Ky-oja" firstAttribute="trailing" secondItem="VAc-gQ-SII" secondAttribute="trailing" id="MfF-Gn-BtB"/>
+                <constraint firstItem="aIX-Ky-oja" firstAttribute="leading" secondItem="VAc-gQ-SII" secondAttribute="leading" id="Nik-jP-QBk"/>
+                <constraint firstItem="MsJ-S0-jPQ" firstAttribute="bottom" secondItem="sPu-av-2DW" secondAttribute="bottom" id="Ui3-wa-mjn"/>
+                <constraint firstItem="aIX-Ky-oja" firstAttribute="top" secondItem="VAc-gQ-SII" secondAttribute="top" id="bQl-Cn-xL0"/>
+            </constraints>
+            <nil key="simulatedStatusBarMetrics"/>
+            <simulatedNavigationBarMetrics key="simulatedTopBarMetrics" translucent="NO" prompted="NO"/>
+            <simulatedTabBarMetrics key="simulatedBottomBarMetrics" translucent="NO"/>
+            <point key="canvasLocation" x="690.39999999999998" y="436.73163418290858"/>
+        </view>
+    </objects>
+    <resources>
+        <systemColor name="darkTextColor">
+            <color white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+    </resources>
+</document>

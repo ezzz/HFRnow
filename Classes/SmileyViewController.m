@@ -18,6 +18,7 @@
 #import "UILabel+Boldify.h"
 #import "SmileyAlertView.h"
 #import "PopupViewController.h"
+#import "k.h"
 
 #if !defined(MIN)
     #define MIN(A,B)    ((A) < (B) ? (A) : (B))

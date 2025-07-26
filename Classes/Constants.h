@@ -100,7 +100,7 @@ typedef enum Theme : int {
 #define SYSTEM_VERSION_LESS_THAN_OR_EQUAL_TO(v)     ([[[UIDevice currentDevice] systemVersion] compare:v options:NSNumericSearch] != NSOrderedDescending)
 
 #define kNewMessageFromUpdate   1
-#define kNewMessageFromShake    2
+//#define kNewMessageFromShake    2
 #define kNewMessageFromEditor   3
 #define kNewMessageFromUnkwn    4
 #define kNewMessageFromNext     5
