@@ -127,8 +127,9 @@
     // set AQ as no more new
     [[marrXMLData objectAtIndex:indexPath.row] setObject:[NSNumber numberWithBool:NO] forKey:@"is_new"];
 
-    self.messagesTableViewController = [[MessagesTableViewController alloc] init];//WithNibName:@"MessagesTableViewController" bundle:nil andUrl:sFormattedUrl displaySeparator:YES];;
+    self.messagesTableViewController = [[MessagesTableViewController alloc] init];
     self.messagesTableViewController.currentUrl = sFormattedUrl;
+    self.messagesTableViewController.isSeparatorNewMessages = YES;
     self.navigationItem.backBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"AQ" style: UIBarButtonItemStylePlain target:nil action:nil];
     [self.navigationController pushViewController:self.messagesTableViewController animated:YES];
 }

@@ -1387,13 +1387,10 @@
     else {
         Topic *aTopic = [self getTopicAtIndexPath:indexPath];
             
-        MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:[aTopic aURL] displaySeparator:YES];
-        self.messagesTableViewController = aView;
-        
-        //setup the URL
-        self.messagesTableViewController.topicName = [aTopic aTitle];
-        
-        //NSLog(@"push message liste");
+        self.messagesTableViewController = [[MessagesTableViewController alloc] init];
+        self.messagesTableViewController.currentUrl = [aTopic aURL];
+        self.messagesTableViewController.isSeparatorNewMessages = YES;
+        [self.messagesTableViewController setTopicName:[aTopic aTitle]];
         [self pushTopic];
     }
 }
@@ -1468,32 +1465,26 @@
 	}
 }
 
--(void)lastPageAction{
-    NSIndexPath *indexPath = pressedIndexPath;
-    Topic *tmpTopic = [self getTopicAtIndexPath:indexPath];
+-(void)lastPageAction {
+    Topic *tmpTopic = [self getTopicAtIndexPath:self.pressedIndexPath];
     
-    MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:[tmpTopic aURLOfLastPage]];
-    self.messagesTableViewController = aView;
-    
-    self.messagesTableViewController.topicName = [tmpTopic aTitle];
+    self.messagesTableViewController = [[MessagesTableViewController alloc] init];
+    self.messagesTableViewController.currentUrl = [tmpTopic aURL];
+    self.messagesTableViewController.isSeparatorNewMessages = NO;
+    [self.messagesTableViewController setTopicName:[tmpTopic aTitle]];
     
     [self pushTopic];
-    
-    //NSLog(@"url pressed last page: %@", [[arrayData objectAtIndex:theRow] lastPageUrl]);
 }
 
 -(void)lastPostAction{
-    NSIndexPath *indexPath = pressedIndexPath;
-    Topic *tmpTopic = [self getTopicAtIndexPath:indexPath];
+    Topic *tmpTopic = [self getTopicAtIndexPath:self.pressedIndexPath];
     
-    MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:[tmpTopic aURLOfLastPost]];
-    self.messagesTableViewController = aView;
-    
-    self.messagesTableViewController.topicName = [tmpTopic aTitle];
+    self.messagesTableViewController = [[MessagesTableViewController alloc] init];
+    self.messagesTableViewController.currentUrl = [tmpTopic aURL];
+    self.messagesTableViewController.isSeparatorNewMessages = NO;
+    [self.messagesTableViewController setTopicName:[tmpTopic aTitle]];
     
     [self pushTopic];
-    
-    //NSLog(@"url pressed last post: %@", [[arrayData objectAtIndex:pressedIndexPath.row] lastPostUrl]);
 }
 
 -(void)copyLinkAction {
@@ -1522,12 +1513,13 @@
 {
     if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone)
     {
+        /*
         self.navigationItem.backBarButtonItem =
-        [[UIBarButtonItem alloc] initWithTitle:@" "
+        [[UIBarButtonItem alloc] initWithTitle:@""
                                          style: UIBarButtonItemStylePlain
                                         target:nil
                                         action:nil];
-        
+        */
         [self.navigationController pushViewController:messagesTableViewController animated:YES];
     }
     else if (self.detailNavigationViewController)
@@ -1716,30 +1708,6 @@
     }];
 }
 
-/* Evol onglet sticky (gardée au cas où)
--(void)newTabBar {
-    // First, create your view controller
-    //ProfileVC *profile = loadViewController(TabbarSB, VC_Profile);
-    Topic *aTopic = [self getTopicAtIndexPath:self.pressedIndexPath];
-    NSString * newUrl = [[aTopic aURL] stringByRemovingAnchor];
-    MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:newUrl];
-
-    // then embed it to a navigation controller
-    // this is not required, only if you need it
-    UINavigationController *nav = [[UINavigationController alloc] initWithRootViewController:aView];
-    nav.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemStop target:self action:@selector(cancelFetchContent)];
-     
-    // Get viewControllers array and add navigation controller
-    NSMutableArray *viewControllers = [NSMutableArray arrayWithArray:self.tabBarController.viewControllers];
-    [viewControllers insertObject:nav atIndex:2];
-    
-    // Set back the array
-    [self.tabBarController setViewControllers:viewControllers animated:YES];
-    
-    // Switch to this new tab
-    [self.tabBarController setSelectedIndex:2];
-}*/
-
 -(void)goToPage:(int)number {
     Topic *aTopic = [self getTopicAtIndexPath:self.pressedIndexPath];
     
@@ -1771,13 +1739,10 @@
     
     newUrl = [newUrl stringByRemovingAnchor];
     
-    MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:newUrl];
-    self.messagesTableViewController = aView;
-    
-    //setup the URL
-    self.messagesTableViewController.topicName = [aTopic aTitle];
-    
-    //NSLog(@"push message liste");
+    self.messagesTableViewController = [[MessagesTableViewController alloc] init];
+    self.messagesTableViewController.currentUrl = newUrl;
+    self.messagesTableViewController.isSeparatorNewMessages = NO;
+    [self.messagesTableViewController setTopicName:[aTopic aTitle]];
     [self pushTopic];
 }
 

@@ -880,12 +880,6 @@
 {
     if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone)
     {
-        self.navigationItem.backBarButtonItem =
-        [[UIBarButtonItem alloc] initWithTitle:@" "
-                                         style: UIBarButtonItemStylePlain
-                                        target:nil
-                                        action:nil];
-        
         [self.navigationController pushViewController:self.messagesTableViewController animated:YES];
     }
     else if (self.detailNavigationViewController)

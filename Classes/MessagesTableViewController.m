@@ -66,21 +66,6 @@
     return _topicName;
 }
 
-- (void)loadView {
-    // Création de la WebView
-    self.messagesWebView = [[WKWebView alloc] initWithFrame:CGRectZero];
-    self.messagesWebView.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.view addSubview:self.messagesWebView];
-
-    // Contraintes pour remplir toute la vue
-    [NSLayoutConstraint activateConstraints:@[
-        [self.messagesWebView.topAnchor constraintEqualToAnchor:self.view.topAnchor],
-        [self.messagesWebView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor],
-        [self.messagesWebView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
-        [self.messagesWebView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
-    ]];
-}
-
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.currentOfflineTopic = nil;
@@ -95,6 +80,19 @@
     
     self.isAnimating = NO;
 
+    // Création de la WebView
+    self.messagesWebView = [[WKWebView alloc] initWithFrame:CGRectZero];
+    self.messagesWebView.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.view addSubview:self.messagesWebView];
+
+    // Contraintes pour remplir toute la vue
+    [NSLayoutConstraint activateConstraints:@[
+        [self.messagesWebView.topAnchor constraintEqualToAnchor:self.view.topAnchor],
+        [self.messagesWebView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor],
+        [self.messagesWebView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [self.messagesWebView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
+    ]];
+    
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(VisibilityChanged:) name:@"VisibilityChanged" object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(editMenuHidden:) name:UIMenuControllerDidHideMenuNotification object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self
@@ -482,7 +480,7 @@
     CGFloat fullWidth = navBar.frame.size.width;
     
     // Taille approximative d’un bouton de navigation (peut être affiné)
-    CGFloat barButtonWidth = 44.0;
+    CGFloat barButtonWidth = 60.0;
     NSInteger buttonCount = 2; // gauche et droite minimum
     CGFloat barButtonTitleWidth = 0.0;
 
@@ -1145,7 +1143,7 @@
         return;
     }
     
-    [self.arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Rechercher", @"searchTopic", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
+    // TODO IOS26 Remettre la recehrche intra topic [self.arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Rechercher", @"searchTopic", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
     
     styleAlert = [UIAlertController alertControllerWithTitle:nil message:nil preferredStyle:UIAlertControllerStyleActionSheet];
 
@@ -1347,6 +1345,7 @@
     self.loadingViewLabel.textColor = self.errorLabelView.textColor = [ThemeColors cellTextColor:theme];
     self.loadingViewLabel.shadowColor = nil;
     self.loadingViewIndicator.activityIndicatorViewStyle = [ThemeColors activityIndicatorViewStyle];
+    /* TODO SEARCH INTRA
     [[ThemeManager sharedManager] applyThemeToTextField:self.searchPseudo];
     [[ThemeManager sharedManager] applyThemeToTextField:self.searchKeyword];
     self.searchPseudo.textColor = self.searchKeyword.textColor = [ThemeColors textColor:theme];
@@ -1359,7 +1358,7 @@
     self.searchBtnItem.tintColor = self.searchFilterBtnItem.tintColor = [ThemeColors tintColor];
     self.searchBg.backgroundColor = [ThemeColors overlayColor:theme];
     self.searchLabel.textColor = [ThemeColors textColor:theme];
-    
+    */
     [self.labelHeaderView setTextColor:[ThemeColors navItemTextColor:theme]];
     
     self.messagesWebView.allowsLinkPreview = YES;
@@ -2120,28 +2119,13 @@
             
             if ([[[aRequest.URL pathComponents] objectAtIndex:0] isEqualToString:@"/"] && ([[[aRequest.URL pathComponents] objectAtIndex:1] isEqualToString:@"forum2.php"] || [[[aRequest.URL pathComponents] objectAtIndex:1] isEqualToString:@"hfr"])) {
 
-                MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:[[aRequest.URL absoluteString] stringByReplacingOccurrencesOfString:@"file://" withString:@""]];
-                self.messagesTableViewController = aView;
-                
-                //setup the URL
-                self.messagesTableViewController.topicName = @"";
-                self.messagesTableViewController.isViewed = YES;
-
-                self.navigationItem.backBarButtonItem =
-                [[UIBarButtonItem alloc] initWithTitle:[self backBarButtonTitle]
-                                                 style: UIBarButtonItemStylePlain
-                                                target:nil
-                                                action:nil];
-                
+                self.messagesTableViewController = [[MessagesTableViewController alloc] init];
+                self.messagesTableViewController.currentUrl = [[aRequest.URL absoluteString] stringByReplacingOccurrencesOfString:@"file://" withString:@""];
+                self.messagesTableViewController.isSeparatorNewMessages = NO;
+                [self.messagesTableViewController setTopicName:@""];
+                self.navigationItem.backBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:[self backBarButtonTitle] style: UIBarButtonItemStylePlain target:nil action:nil];
                 [self.navigationController pushViewController:messagesTableViewController animated:YES];
             }
-            
-
-            
-           // NSLog(@"clicked [[aRequest.URL absoluteString] %@", [aRequest.URL absoluteString]);
-          //  NSLog(@"clicked [[aRequest.URL pathComponents] %@", [aRequest.URL pathComponents]);
-          //  NSLog(@"clicked [[aRequest.URL path] %@", [aRequest.URL path]);
-          //  NSLog(@"clicked [[aRequest.URL lastPathComponent] %@", [aRequest.URL lastPathComponent]);
             
             bAllow = NO;
         }
@@ -2162,22 +2146,13 @@
             NSLog(@"%@", aRequest.URL);
             NSString *sUrl = [[[aRequest.URL absoluteString] stringByReplacingOccurrencesOfString:[NSString stringWithFormat:@"%@", [k ForumURL]] withString:@""] stringByReplacingOccurrencesOfString:@"http://forum.hardware.fr" withString:@""];
             NSLog(@"%@", sUrl);
-
             
-            MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:[[[aRequest.URL absoluteString] stringByReplacingOccurrencesOfString:[NSString stringWithFormat:@"%@", [k ForumURL]] withString:@""] stringByReplacingOccurrencesOfString:@"http://forum.hardware.fr" withString:@""]];
-            self.messagesTableViewController = aView;
-            
-            //setup the URL
+            self.messagesTableViewController = [[MessagesTableViewController alloc] init];
             self.messagesTableViewController.topicName = @"";
-            self.messagesTableViewController.isViewed = YES;
-
-            self.navigationItem.backBarButtonItem =
-            [[UIBarButtonItem alloc] initWithTitle:[self backBarButtonTitle]
-                                             style: UIBarButtonItemStylePlain
-                                            target:nil
-                                            action:nil];
-            
+            self.messagesTableViewController.currentUrl = [[[aRequest.URL absoluteString] stringByReplacingOccurrencesOfString:[NSString stringWithFormat:@"%@", [k ForumURL]] withString:@""] stringByReplacingOccurrencesOfString:@"http://forum.hardware.fr" withString:@""];
+            self.navigationItem.backBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:[self backBarButtonTitle] style: UIBarButtonItemStylePlain target:nil  action:nil];
             [self.navigationController pushViewController:messagesTableViewController animated:YES];
+
 
             bAllow = NO;
         }
@@ -2314,6 +2289,7 @@
             break;
         }
     }
+    NSLog(@"backBarButtonTitle %d", iCount);
     return [NSString stringWithFormat: @"%d", iCount];
 }
 
@@ -3460,18 +3436,13 @@ API_AVAILABLE(ios(16.0)) {
         [self fetchContent:kNewMessageFromUnkwn];
     }
     else {
-        self.messagesTableViewController = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:baseURL];;
+        self.messagesTableViewController = [[MessagesTableViewController alloc] init];
         self.messagesTableViewController.topicName = self.topicName;
+        self.messagesTableViewController.currentUrl = baseURL;
         self.messagesTableViewController.isViewed = YES;
         self.messagesTableViewController.isSearchInstra = YES;
         [self.messagesTableViewController setSearchInputData:[NSMutableDictionary dictionaryWithDictionary:self.searchInputData]];
-        
-        self.navigationItem.backBarButtonItem =
-        [[UIBarButtonItem alloc] initWithTitle:[self backBarButtonTitle]
-                                         style: UIBarButtonItemStylePlain
-                                        target:nil
-                                        action:nil];
-        
+        self.navigationItem.backBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:[self backBarButtonTitle] style: UIBarButtonItemStylePlain target:nil  action:nil];
         [self.navigationController pushViewController:messagesTableViewController animated:YES];
     }
 

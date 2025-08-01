@@ -186,11 +186,11 @@
     int statusCode = [request responseStatusCode];
     NSString *statusMessage = [request responseStatusMessage];
     NSLog(@"Code:%d, Status:%@", statusCode, statusMessage);
-    //
-    self.messagesTableViewController = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:sURL];
 
-    self.navigationItem.backBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Bookmarks" style: UIBarButtonItemStylePlain target:nil action:nil];
-    [self.navigationController pushViewController:self.messagesTableViewController animated:YES];
+    self.messagesTableViewController = [[MessagesTableViewController alloc] init];
+    self.messagesTableViewController.currentUrl = sURL;
+    self.messagesTableViewController.isSeparatorNewMessages = YES;
+    [self.navigationController pushViewController:messagesTableViewController animated:YES];
     
     self.navigationItem.backButtonDisplayMode = UINavigationItemBackButtonDisplayModeMinimal;
 }

@@ -254,17 +254,14 @@
         sOpennedUrl = [[self.arrayData objectAtIndex:indexPath.row] aURLOfLastPost];
     }
     
-	MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:sOpennedUrl displaySeparator:YES];
-	self.messagesTableViewController = aView;
-	
-	//setup the URL
-	self.messagesTableViewController.topicName = [[self.arrayData objectAtIndex:indexPath.row] aTitle];
-	self.messagesTableViewController.isViewed = [[self.arrayData objectAtIndex:indexPath.row] isViewed];
+    Topic* topic = [self.arrayData objectAtIndex:indexPath.row];
+    self.messagesTableViewController = [[MessagesTableViewController alloc] init];
+    self.messagesTableViewController.currentUrl = sOpennedUrl;
     self.messagesTableViewController.canSaveDrapalInMPStorage = bCanSaveDrapalInMPStorage;
+    self.messagesTableViewController.topicName = topic.aTitle;
+    self.messagesTableViewController.isViewed = topic.isViewed;
     
     [self pushTopic];
-	//NSLog(@"push message liste");
-
 }
 
 - (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section
@@ -322,28 +319,24 @@
     }
 }
 
--(void)lastPageAction{
-    MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:[[self.arrayData objectAtIndex:self.pressedIndexPath.row] aURLOfLastPage]];
-    self.messagesTableViewController = aView;
-    
-    self.messagesTableViewController.topicName = [[self.arrayData objectAtIndex:self.pressedIndexPath.row] aTitle];
-    self.messagesTableViewController.isViewed = [[self.arrayData objectAtIndex:self.pressedIndexPath.row] isViewed];
+-(void)lastPageAction {
+    Topic* topic = [self.arrayData objectAtIndex:self.pressedIndexPath.row];
+    self.messagesTableViewController = [[MessagesTableViewController alloc] init];
+    self.messagesTableViewController.currentUrl = topic.aURLOfLastPage;
+    self.messagesTableViewController.topicName = topic.aTitle;
+    self.messagesTableViewController.isViewed = topic.isViewed;
     
     [self pushTopic];
-    
-    //NSLog(@"url pressed last page: %@", [[arrayData objectAtIndex:pressedIndexPath.row] aURLOfLastPage]);
 }
 
--(void)firstPageAction{
-    MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:[[self.arrayData objectAtIndex:self.pressedIndexPath.row] aURL]];
-    self.messagesTableViewController = aView;
-    
-    self.messagesTableViewController.topicName = [[self.arrayData objectAtIndex:self.pressedIndexPath.row] aTitle];
-    self.messagesTableViewController.isViewed = [[self.arrayData objectAtIndex:self.pressedIndexPath.row] isViewed];
+-(void)firstPageAction {
+    Topic* topic = [self.arrayData objectAtIndex:self.pressedIndexPath.row];
+    self.messagesTableViewController = [[MessagesTableViewController alloc] init];
+    self.messagesTableViewController.currentUrl = topic.aURL;
+    self.messagesTableViewController.topicName = topic.aTitle;
+    self.messagesTableViewController.isViewed = topic.isViewed;
     
     [self pushTopic];
-    
-    //NSLog(@"url pressed last post: %@", [[arrayData objectAtIndex:pressedIndexPath.row] aURL]);
 }
 
 

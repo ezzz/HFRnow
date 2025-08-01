@@ -1116,9 +1116,10 @@
 
 -(void)openTopicWithURL:(NSString*)sURL {
     NSLog(@"Push topic with URL %@", sURL);
-    MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:sURL];
-    self.messagesTableViewController = aView;
-    
+    Topic* topic = [self.arrayData objectAtIndex:self.pressedIndexPath.row];
+    self.messagesTableViewController = [[MessagesTableViewController alloc] init];
+    self.messagesTableViewController.currentUrl = sURL;
+
     self.messagesTableViewController.topicName = [[self.arrayData objectAtIndex:self.pressedIndexPath.row] aTitle];
     self.messagesTableViewController.isViewed = [[self.arrayData objectAtIndex:self.pressedIndexPath.row] isViewed];
     

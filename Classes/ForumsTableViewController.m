@@ -39,6 +39,7 @@
 #pragma mark -
 #pragma mark Data lifecycle
 
+/*
 - (ForumsTableViewController*)initWithRootViewController:(TabBarController*)tabBarController_ {
     self = [super init];
     if (self) {
@@ -46,7 +47,7 @@
     }
     
     return self;
-}
+}*/
 
 - (void)cancelFetchContent
 {    
@@ -710,11 +711,12 @@
     //NSLog(@"StatusChanged %d = %u", self.childViewControllers.count, self.status);
     
     //on vire l'eventuel header actuel
+    /*
     if (self.childViewControllers.count > 0) {
         [[self.childViewControllers objectAtIndex:0] removeFromParentViewController];
         self.forumsTableView.tableHeaderView = nil;
     }
-    
+    */
     if (self.status == kComplete || self.status == kIdle) {
         //NSLog(@"COMPLETE %d", self.childViewControllers.count);
         
@@ -811,12 +813,37 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
  
+    /*
     self.forumsTableView = [[UITableView alloc] initWithFrame:self.view.bounds style:UITableViewStyleGrouped];
     self.forumsTableView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     self.forumsTableView.delegate = self;
     self.forumsTableView.dataSource = self;
     [self.view addSubview:self.forumsTableView];
     
+    // Contraintes pour remplir toute la vue
+    [NSLayoutConstraint activateConstraints:@[
+        [self.forumsTableView.topAnchor constraintEqualToAnchor:self.view.topAnchor],
+        [self.forumsTableView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor],
+        [self.forumsTableView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [self.forumsTableView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
+    ]];
+    */
+    
+    self.forumsTableView = [[UITableView alloc] initWithFrame:CGRectZero style:UITableViewStylePlain];
+    self.forumsTableView.translatesAutoresizingMaskIntoConstraints = NO;
+    self.forumsTableView.delegate = self;
+    self.forumsTableView.dataSource = self;
+    [self.view addSubview:self.forumsTableView];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [self.forumsTableView.topAnchor constraintEqualToAnchor:self.view.topAnchor],
+        [self.forumsTableView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor],
+        [self.forumsTableView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [self.forumsTableView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
+    ]];
+
+    self.forumsTableView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
+
     [[NSUserDefaults standardUserDefaults] setInteger:100 forKey:@"size_text_topics"];
     
 	self.title = @"Catégories";
@@ -856,8 +883,6 @@
 	self.arrayData = [[NSMutableArray alloc] init];
 	self.arrayNewData = [[NSMutableArray alloc] init];
 	self.statusMessage = [[NSString alloc] init];
-
-
     
     UIView *v = [[UIView alloc] initWithFrame:CGRectZero];
     v.backgroundColor = [UIColor clearColor];
@@ -869,9 +894,6 @@
         [self_ fetchContent];
         //NSLog(@"=== END");
     }];
-    if (@available(iOS 15.0, *)) {
-        self.forumsTableView.sectionHeaderTopPadding = 0;
-    }
     
     [self.forumsTableView triggerPullToRefresh];
 }
@@ -908,13 +930,6 @@
     [self.forumsTableView reloadData];
 }
 
-- (void)viewDidDisappear:(BOOL)animated {
-    [super viewDidDisappear:animated];
-	[self.view resignFirstResponder];
-
-	[forumsTableView deselectRowAtIndexPath:forumsTableView.indexPathForSelectedRow animated:NO];
-}
-
 
 // Override to allow orientations other than the default portrait orientation.
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation {
@@ -942,7 +957,6 @@
     NSInteger iSizeTextTopics = [[NSUserDefaults standardUserDefaults] integerForKey:@"size_text_topics"];
     return 40.0*iSizeTextTopics/100;
 }
-
 
 // Customize the appearance of table view cells.
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
@@ -1035,16 +1049,6 @@
     
     if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
         self.topicsTableViewController.detailNavigationViewController  = self.detailNavigationViewController;
-    }
-    
-	self.navigationItem.backBarButtonItem =
-	[[UIBarButtonItem alloc] initWithTitle:@"Retour"
-									 style: UIBarButtonItemStyleBordered
-									target:nil
-									action:nil];
-	
-    if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"7")) {
-        self.navigationItem.backBarButtonItem.title = @" ";
     }
     
     if ([self.metaDataList objectForKey:[[arrayData objectAtIndex:indexPath.row] aURL]]) {

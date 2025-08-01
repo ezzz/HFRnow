@@ -624,59 +624,19 @@
     NSString *type = [theRow objectForKey:@"type"];
     
     if ([type isEqualToString:@"perso"]) {
-        
-        self.navigationItem.backBarButtonItem =
-        [[UIBarButtonItem alloc] initWithTitle:@"Retour"
-                                         style: UIBarButtonItemStyleBordered
-                                        target:nil
-                                        action:nil];
-        
-        if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"7")) {
-            self.navigationItem.backBarButtonItem.title = @" ";
-        }
-        
         PersonnalLinkViewController *cVC = [[PersonnalLinkViewController alloc]
                                                         initWithNibName:@"PersonnalLinkViewController" bundle:nil andUrl:[theRow objectForKey:@"url"]];
-        
-        
         [self.navigationController pushViewController:cVC animated:YES];
-        
     }
     else if ([type isEqualToString:@"config"]) {
-        self.navigationItem.backBarButtonItem =
-        [[UIBarButtonItem alloc] initWithTitle:@"Retour"
-                                         style: UIBarButtonItemStyleBordered
-                                        target:nil
-                                        action:nil];
-        
-        if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"7")) {
-            self.navigationItem.backBarButtonItem.title = @" ";
-        }
-        
         ConfigurationViewController *cVC = [[ConfigurationViewController alloc]
                                             initWithNibName:@"ConfigurationViewController" bundle:nil andUrl:[theRow objectForKey:@"url"]];
-        
-        
         [self.navigationController pushViewController:cVC animated:YES];
-        
     }
     else if ([type isEqualToString:@"feedback"]) {
-        self.navigationItem.backBarButtonItem =
-        [[UIBarButtonItem alloc] initWithTitle:@"Retour"
-                                         style: UIBarButtonItemStyleBordered
-                                        target:nil
-                                        action:nil];
-        
-        if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"7")) {
-            self.navigationItem.backBarButtonItem.title = @" ";
-        }
-        
         FeedbackViewController *cVC = [[FeedbackViewController alloc]
                                             initWithNibName:@"FeedbackViewController" bundle:nil andUrl:[[theRow objectForKey:@"url"] stringByAppendingString:@"&page=1"]];
-        
-        
         [self.navigationController pushViewController:cVC animated:YES];
-        
     }
 
 }

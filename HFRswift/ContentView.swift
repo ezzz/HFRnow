@@ -80,10 +80,9 @@ struct RootTabView: View {
             NavigationView {
                 CategoriesTableViewWrapper() // Ton controller Objective-C dans SwiftUI
                     .navigationTitle("Catégories")
-                    .navigationBarTitleDisplayMode(.inline)
             }
             .tabItem {
-                Label("Catégories", systemImage: "envelope")
+                Label("Catégories", systemImage: "folder.fill")
             }
 
             NavigationView {

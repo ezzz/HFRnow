@@ -49,7 +49,7 @@
     
     if (self.tabIndex == 0)
     {
-        ForumsTableViewController* vc = [[ForumsTableViewController alloc] initWithNibName:@"ForumsTableViewController" bundle:nil];
+        ForumsTableViewController* vc = [[ForumsTableViewController alloc] init];
         masterViewController = [[HFRNavigationController alloc] initWithRootViewController:vc];
         vc.detailNavigationViewController = detailNavigationController;
         self.preferredDisplayMode = UISplitViewControllerDisplayModeAutomatic;
@@ -68,7 +68,7 @@
         self.preferredDisplayMode = UISplitViewControllerDisplayModeAutomatic;
     }
     else if (self.tabIndex == 3) {
-        PlusTableViewController* vc = [[PlusTableViewController alloc] initWithNibName:@"PlusTableView" bundle:nil];
+        PlusTableViewController* vc = [[PlusTableViewController alloc] init];
         masterViewController = [[HFRNavigationController alloc] initWithRootViewController:vc];
         vc.detailNavigationViewController = detailNavigationController;
         self.preferredDisplayMode = UISplitViewControllerDisplayModeAllVisible;

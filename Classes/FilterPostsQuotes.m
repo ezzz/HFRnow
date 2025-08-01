@@ -223,20 +223,19 @@
     dispatch_async(dispatch_get_main_queue(), ^{
     });
 }
--(void) displayPosts:(Topic*)topic {
-    MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:topic.aURL displaySeparator:YES];
-    self.favoriteVC.messagesTableViewController = aView;
 
-    //setup the URL
+- (void) displayPosts:(Topic*)topic {
+    self.favoriteVC.messagesTableViewController = [[MessagesTableViewController alloc] init];
+    self.favoriteVC.messagesTableViewController.currentUrl = topic.aURL;
     self.favoriteVC.messagesTableViewController.filterPostsQuotes = self;
     self.favoriteVC.messagesTableViewController.topic = topic;
     self.favoriteVC.messagesTableViewController.topicName = topic.aTitle;
-
-    //NSLog(@"push message liste");
+    self.favoriteVC.messagesTableViewController.isViewed = topic.isViewed;
+    
     [self.favoriteVC pushTopic];
 }
 
--(void) displayNextPosts {
+- (void) displayNextPosts {
     self.messagesTableVC.pageNumberFilterStart = self.iStartPage;
     self.messagesTableVC.pageNumberFilterEnd = self.iLastPageLoaded;
     [self.messagesTableVC manageLoadedItems:self.arrData];
