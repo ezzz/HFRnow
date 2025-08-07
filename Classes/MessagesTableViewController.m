@@ -2247,6 +2247,9 @@
             }
 
             self.smileyAlertViewAddOK = ^{
+                UINotificationFeedbackGenerator *generator = [[UINotificationFeedbackGenerator alloc] init];
+                [generator prepare];
+                [generator notificationOccurred:UINotificationFeedbackTypeSuccess];
                 if (bAddSmiley) {
                     [HFRAlertView DisplayAlertViewWithTitle:@"Smiley ajouté aux favoris" andMessage:nil forDuration:1];
                 }
@@ -2255,8 +2258,12 @@
                 }
             };
             self.smileyAlertViewAddFailed = ^{
+                UINotificationFeedbackGenerator *generator = [[UINotificationFeedbackGenerator alloc] init];
+                [generator prepare];
+                [generator notificationOccurred:UINotificationFeedbackTypeError];
                 [HFRAlertView DisplayAlertViewWithTitle:@"Erreur :/" andMessage:nil forDuration:1];
             };
+            
             [[SmileyAlertView shared] displaySmileyActionCancel:sSmileyCode withUrl:sSmileyImgUrlRaw addSmiley:bAddSmiley showAction:YES handlerDone:self.smileyAlertViewAddOK handlerFailed:self.smileyAlertViewAddFailed handlerSelectCode:nil baseController:self];
             bAllow = NO;
         }

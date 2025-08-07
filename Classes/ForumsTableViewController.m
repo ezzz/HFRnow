@@ -1125,9 +1125,12 @@
             forumActionAlert.popoverPresentationController.backgroundColor = [ThemeColors alertBackgroundColor:[[ThemeManager sharedManager] theme]];
         }
         
+
+        UIImpactFeedbackGenerator *generator = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleLight];
+        [generator prepare];
         [self presentViewController:forumActionAlert animated:YES completion:nil];
         [[ThemeManager sharedManager] applyThemeToAlertController:forumActionAlert];
-        
+        [generator impactOccurred];
     }
 }
 

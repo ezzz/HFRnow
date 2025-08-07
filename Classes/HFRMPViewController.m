@@ -316,8 +316,12 @@
             self.topicActionAlert.popoverPresentationController.backgroundColor = [ThemeColors alertBackgroundColor:[[ThemeManager sharedManager] theme]];
         }
         
+        UIImpactFeedbackGenerator *generator = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleLight];
+        [generator prepare];
         [self presentViewController:self.topicActionAlert animated:YES completion:nil];
         [[ThemeManager sharedManager] applyThemeToAlertController:self.topicActionAlert];
+        [generator impactOccurred];
+
         
     }
 }

@@ -330,6 +330,28 @@
 				<string>double</string>
 			</array>
 		</dict>
+        <dict>
+            <key>DefaultValue</key>
+            <string>yes</string>
+            <key>Key</key>
+            <string>display_images</string>
+            <key>Title</key>
+            <string>Afficher les images</string>
+            <key>Titles</key>
+            <array>
+                <string>Jamais</string>
+                <string>Wifi</string>
+                <string>Toujours</string>
+            </array>
+            <key>Type</key>
+            <string>PSMultiValueSpecifier</string>
+            <key>Values</key>
+            <array>
+                <string>no</string>
+                <string>wifi</string>
+                <string>yes</string>
+            </array>
+        </dict>
 		<dict>
 			<key>DefaultValue</key>
 			<string>yes</string>

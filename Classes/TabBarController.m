@@ -69,13 +69,16 @@
     }
     
     // iPhone only
+    // Supprimé pour test:
+    // Il y a un triggerpulltorefresh dans ForumsTableViewC. en doublon au démarrage, ce qui génère le popup "Erreur de connection" à chaque démarrage de l'app, car la deuxième requete doit annuler la précédente
+    /*
     if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone)
     {
         self.tabBar.unselectedItemTintColor = [UIColor colorWithRed:143.0/255.0 green:143.0/255.0 blue:143.0/255.0 alpha:1.0];
         if([((HFRNavigationController *)self.viewControllers[0]).topViewController isKindOfClass:[ForumsTableViewController class]]) {
-            ((ForumsTableViewController *)((HFRNavigationController *)self.viewControllers[0]).topViewController).reloadOnAppear = YES;
+            //((ForumsTableViewController *)((HFRNavigationController *)self.viewControllers[0]).topViewController).reloadOnAppear = YES;
         }
-    }
+    }*/
 }
 
 -(void)setThemeFromNotification:(NSNotification *)notification{

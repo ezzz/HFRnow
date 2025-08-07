@@ -645,7 +645,10 @@ static CGFloat fCellImageSize = 1;
                 //self.sCancelSmileyFavoriteUrl = sSmileyImgUrlOK;
                 //elf.sCancelSmileyFavoriteUrl = sSmileyImgUrlOK;
                 
+                UIImpactFeedbackGenerator *generator = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleLight];
+                [generator prepare];
                 [[SmileyAlertView shared] displaySmileyActionCancel:sSmileyCode withUrl:sSmileyImgUrlRaw addSmiley:bAddSmiley showAction:bShowAction handlerDone:^{[self AddFavoriteSmileyOK:bAddSmiley];} handlerFailed:^{[self AddFavoriteSmileyFailed:NO];} handlerSelectCode:^(NSString* s){[self actionSelectCode:s];} baseController:self];
+                [generator impactOccurred];
 
             }
         } @catch (NSException *e) {
