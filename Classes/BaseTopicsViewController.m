@@ -252,9 +252,11 @@
 }
 
 - (void)setSegmentEnabled:(BOOL)bEnabled forSegmentAtIndex:(NSInteger)index{
+#if APP_OBJC
     dispatch_async(dispatch_get_main_queue(), ^{
         [(UISegmentedControl *)[self.navigationItem.titleView.subviews objectAtIndex:0] setEnabled:bEnabled forSegmentAtIndex:index];
     });
+#endif
 }
 
 #pragma mark - Data lifecycle
@@ -321,8 +323,10 @@
     if (self.previousPageUrl.length > 0) {
         [self.view addGestureRecognizer:self.swipeRightRecognizer];
     }
-    
+
+#if APP_OBJC
     [(UISegmentedControl *)[self.navigationItem.titleView.subviews objectAtIndex:0] setUserInteractionEnabled:YES];
+#endif
     [self cancelFetchContent];
 }
 
@@ -335,8 +339,9 @@
     //[self.maintenanceView setHidden:NO];
     //[self.topicsTableView setHidden:YES];
     
-    
+#if APP_OBJC
     [(UISegmentedControl *)[self.navigationItem.titleView.subviews objectAtIndex:0] setUserInteractionEnabled:YES];
+#endif
     
     // Popup retry
     UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Ooops !" message:[theRequest.error localizedDescription]  preferredStyle:UIAlertControllerStyleAlert];

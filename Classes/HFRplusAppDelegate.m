@@ -62,46 +62,21 @@
     NSParameterAssert([curReach isKindOfClass: [Reachability class]]);
 }
 
-- (BOOL)legacy_application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {    
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {    
 
-    NSLog(@"didFinishLaunchingWithOptions");
-
-    //self.hash_check = [[NSString alloc] init];
+    NSLog(@"[AppInit] didFinishLaunchingWithOptions");
     
     [[UIApplication sharedApplication] setStatusBarHidden:NO withAnimation:YES];
 
-/*
-#ifdef CONFIGURATION_Release
-    NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
-    
-    if ([bundleIdentifier isEqualToString:@"hfrplus.red"]) {
-        [Crittercism enableWithAppID:kTestFlightAPIRE];
-        
-        //[TestFlight takeOff:kTestFlightAPIRE];
-    }
-    else
-    {
-        [Crittercism enableWithAppID:kTestFlightAPI];
-
-        //[TestFlight takeOff:kTestFlightAPI];
-        //[MKStoreManager sharedManager];
-
-    }
-#else
-    //NSLog(@"DEBUUUUUGGGGG");
-#endif
-    */
     [self registerDefaultsFromSettingsBundle];
     [[OfflineStorage shared] copyAllRequiredResourcesFromBundleToCache];
     
     NSString *version = [NSString stringWithFormat:@"HFR+ %@ (%@)", [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"], [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"]];
 
-    NSDictionary *appDefaults =  [NSDictionary dictionaryWithObjectsAndKeys:
-                                  version, @"version", nil];
+    NSDictionary *appDefaults =  [NSDictionary dictionaryWithObjectsAndKeys:version, @"version", nil];
     
     [[NSUserDefaults standardUserDefaults] registerDefaults:appDefaults];
     [[NSUserDefaults standardUserDefaults] synchronize];
-    
     
      // Force default settings for compatibiity with older settings
     // Disable shake to refresh
@@ -121,29 +96,17 @@
     NSString* sDisplayImages = @"yes";
     [[NSUserDefaults standardUserDefaults] setObject:sDisplayImages forKey:@"display_images"];
 
-    //UserAgent
-    /*
-    NSDictionary *dictionary = [[NSDictionary alloc] initWithObjectsAndKeys:
-                                @"Mozilla/5.0 (HFRplus) AppleWebKit (KHTML, like Gecko)",
-                                @"UserAgent", nil];
-    
-    [[NSUserDefaults standardUserDefaults] registerDefaults:dictionary];
-    */
-    
     // Override point for customization after application launch.
         
     [[NSNotificationCenter defaultCenter] addObserver: self selector: @selector(reachabilityChanged:) name: kReachabilityChangedNotification object: nil];
-
     internetReach = [Reachability reachabilityForInternetConnection];
     [internetReach startNotifier];
     
     // Start up window
-    
     if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
         self.rootController = [[TabBarController alloc] init];
     }
     [window setRootViewController:rootController];
-
     [window makeKeyAndVisible];
 
     if (BACKGROUND_MAINTENANCE) {
@@ -175,25 +138,20 @@
     [SmileyCache shared];
     
     // Register background fetch
-#ifdef NOTIFICATION_BACKGROUND_REFRESH
-    if (@available(iOS 13, *))
-    {
-        UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
-        center.delegate = self;
-        
-        [[BGTaskScheduler sharedScheduler] registerForTaskWithIdentifier:@"com.hfrplus.refresh_mp" usingQueue:nil
-                                         launchHandler:^(__kindof BGTask * _Nonnull task) {
-            //[task setTaskCompletedWithSuccess:YES];
-            [self checkForNewMP:(BGAppRefreshTask *)task];
-        }];
-        [application setMinimumBackgroundFetchInterval:60];
-        [center requestAuthorizationWithOptions: (UNAuthorizationOptionAlert + UNAuthorizationOptionSound)
-           completionHandler:^(BOOL granted, NSError * _Nullable error) {
-            NSLog(@"UNUserNotificationCenter authorization granted=%@, error=%@", @(granted), error);
-        }];
-    }
-#endif
-
+    UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+    center.delegate = self;
+    
+    [[BGTaskScheduler sharedScheduler] registerForTaskWithIdentifier:@"com.hfrplus.refresh_mp" usingQueue:nil
+                                     launchHandler:^(__kindof BGTask * _Nonnull task) {
+        //[task setTaskCompletedWithSuccess:YES];
+        [self checkForNewMP:(BGAppRefreshTask *)task];
+    }];
+    [application setMinimumBackgroundFetchInterval:60];
+    [center requestAuthorizationWithOptions: (UNAuthorizationOptionAlert + UNAuthorizationOptionSound)
+       completionHandler:^(BOOL granted, NSError * _Nullable error) {
+        NSLog(@"UNUserNotificationCenter authorization granted=%@, error=%@", @(granted), error);
+    }];
+    
     return YES;
 }
 
@@ -212,7 +170,6 @@
         [(HFRMPViewController *)nv.topViewController fetchContent];
     }
 }
-
 
 
 - (void)checkForNewMP:(BGAppRefreshTask *)task
@@ -406,6 +363,8 @@
 
 
 - (void)registerDefaultsFromSettingsBundle {
+    
+    NSLog(@"[AppInit] registerDefaultsFromSettingsBundle");
     
     NSString *settingsBundle = [[NSBundle mainBundle] pathForResource:@"InAppSettings" ofType:@"bundle"];
         

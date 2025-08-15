@@ -317,8 +317,9 @@
 			break;
 	}
     
-	
+#if APP_OBJC
 	[(UISegmentedControl *)[self.navigationItem.titleView.subviews objectAtIndex:0] setUserInteractionEnabled:YES];
+#endif
 }
 
 - (void)fetchContentFailed:(ASIHTTPRequest *)theRequest
@@ -329,9 +330,11 @@
     [self.loadingView setHidden:YES];
     [self.maintenanceView setHidden:NO];
     [self.tableViewPoll setHidden:YES];
-	
+
+#if APP_OBJC
 	[(UISegmentedControl *)[self.navigationItem.titleView.subviews objectAtIndex:0] setUserInteractionEnabled:YES];
-	
+#endif
+    
     // Popup retry
     UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Ooops !" message:[theRequest.error localizedDescription]
                                                             preferredStyle:UIAlertControllerStyleAlert];

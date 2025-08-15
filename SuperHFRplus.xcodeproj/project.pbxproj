@@ -12,7 +12,6 @@
 		1503755821FF794200A5F7E1 /* PlusCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1503755721FF794200A5F7E1 /* PlusCellView.m */; };
 		150C9FE92D8E04750023C430 /* Icon-CLASSIC-BLUE@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 150C9FE82D8E04740023C430 /* Icon-CLASSIC-BLUE@3x.png */; };
 		150C9FEA2D8E04750023C430 /* Icon-CLASSIC-BLUE@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 150C9FE72D8E04740023C430 /* Icon-CLASSIC-BLUE@2x.png */; };
-		150C9FEF2D9801DC0023C430 /* OfflineStorage.m in Sources */ = {isa = PBXBuildFile; fileRef = 150C9FEE2D9801DC0023C430 /* OfflineStorage.m */; };
 		1512A7932232F6C9000C9B1D /* 08-chat-20.png in Resources */ = {isa = PBXBuildFile; fileRef = 1512A7922232F6C8000C9B1D /* 08-chat-20.png */; };
 		15167EB12330210600D64651 /* Heart-20@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15167EB02330210600D64651 /* Heart-20@2x.png */; };
 		151737FB2DA5B3AF005DDA75 /* SimplePhotoViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 151737FA2DA5B3AF005DDA75 /* SimplePhotoViewController.m */; };
@@ -768,7 +767,6 @@
 		158CF9DA2E3005BA000594F1 /* BookmarksTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 152D2D3A244C79EB00D9D644 /* BookmarksTableViewController.m */; };
 		158CF9DB2E3005BA000594F1 /* PlusSettingsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 15EBFD0722022A7500A37CED /* PlusSettingsViewController.m */; };
 		158CF9DC2E3005BA000594F1 /* AQCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = 15EBFD102206207B00A37CED /* AQCellView.m */; };
-		158CF9DD2E3005BA000594F1 /* OfflineStorage.m in Sources */ = {isa = PBXBuildFile; fileRef = 150C9FEE2D9801DC0023C430 /* OfflineStorage.m */; };
 		158CF9DE2E3005BA000594F1 /* PlusCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1503755721FF794200A5F7E1 /* PlusCellView.m */; };
 		158CF9DF2E3005BA000594F1 /* BookmarksCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = 152D2D3F244C7A2700D9D644 /* BookmarksCellView.m */; };
 		158CF9E02E3005BA000594F1 /* AQTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 15EBFD0D22061F7300A37CED /* AQTableViewController.m */; };
@@ -1293,7 +1291,6 @@
 		4CD6B8BC1B97AEF5007FC29E /* 6-Folder-32.png in Resources */ = {isa = PBXBuildFile; fileRef = 4CD6B8B61B97AEF5007FC29E /* 6-Folder-32.png */; };
 		4CD6B8BE1B97AEF5007FC29E /* 6-Camera-32@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 4CD6B8B71B97AEF5007FC29E /* 6-Camera-32@2x.png */; };
 		4CD6B8C01B97AEF5007FC29E /* 6-Camera-32.png in Resources */ = {isa = PBXBuildFile; fileRef = 4CD6B8B81B97AEF5007FC29E /* 6-Camera-32.png */; };
-		4CFC38571FB0E6BE0027A832 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CFC38561FB0E6BE0027A832 /* AppDelegate.swift */; };
 		CA019F1819CD77D500F67C47 /* jquery-2.1.1.min.js in Resources */ = {isa = PBXBuildFile; fileRef = CA019F1619CD77D500F67C47 /* jquery-2.1.1.min.js */; };
 		CA2E6DE619DB08D50089B5CF /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CA2E6DE419DB08CC0089B5CF /* WebKit.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 		CA5E109618AC2A4F00C481A9 /* PollTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = CA5E109318AC2A4F00C481A9 /* PollTableViewController.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
@@ -1696,6 +1693,9 @@
 		D8EFB1911E59FCA5000E45A2 /* 121-landscapebig-white.png in Resources */ = {isa = PBXBuildFile; fileRef = D8EFB18F1E59FCA5000E45A2 /* 121-landscapebig-white.png */; };
 		D8F5CBAE1DF45C1100B029FC /* Reachability.m in Sources */ = {isa = PBXBuildFile; fileRef = D8F5CBAC1DF45C1100B029FC /* Reachability.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		D8F5CBB21DF462F100B029FC /* ThemeColors.m in Sources */ = {isa = PBXBuildFile; fileRef = D8F5CBB01DF462F100B029FC /* ThemeColors.m */; };
+		D9C70B8A2E40C54B00FE42CE /* OfflineStorage.m in Sources */ = {isa = PBXBuildFile; fileRef = D9C70B892E40C54B00FE42CE /* OfflineStorage.m */; };
+		D9C70B8B2E40C54B00FE42CE /* OfflineStorage.m in Sources */ = {isa = PBXBuildFile; fileRef = D9C70B892E40C54B00FE42CE /* OfflineStorage.m */; };
+		D9FEEAC22E4F455300FBBE89 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CFC38561FB0E6BE0027A832 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -1797,8 +1797,6 @@
 		150A228A24CB7D140071F9DE /* api_keys.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = api_keys.h; sourceTree = "<group>"; };
 		150C9FE72D8E04740023C430 /* Icon-CLASSIC-BLUE@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-CLASSIC-BLUE@2x.png"; sourceTree = "<group>"; };
 		150C9FE82D8E04740023C430 /* Icon-CLASSIC-BLUE@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-CLASSIC-BLUE@3x.png"; sourceTree = "<group>"; };
-		150C9FED2D9801DC0023C430 /* OfflineStorage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OfflineStorage.h; path = Classes/OfflineStorage/OfflineStorage.h; sourceTree = SOURCE_ROOT; };
-		150C9FEE2D9801DC0023C430 /* OfflineStorage.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = OfflineStorage.m; path = Classes/OfflineStorage/OfflineStorage.m; sourceTree = SOURCE_ROOT; };
 		1512A7922232F6C8000C9B1D /* 08-chat-20.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "08-chat-20.png"; sourceTree = "<group>"; };
 		15141AA221E7ADE800811E5A /* link_url.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = link_url.png; path = ../../../../../Icones/link_url.png; sourceTree = "<group>"; };
 		15167EB02330210600D64651 /* Heart-20@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Heart-20@2x.png"; sourceTree = "<group>"; };
@@ -2759,6 +2757,8 @@
 		D8F5CBAC1DF45C1100B029FC /* Reachability.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Reachability.m; sourceTree = "<group>"; };
 		D8F5CBAF1DF462F100B029FC /* ThemeColors.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ThemeColors.h; sourceTree = "<group>"; };
 		D8F5CBB01DF462F100B029FC /* ThemeColors.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ThemeColors.m; sourceTree = "<group>"; };
+		D9C70B882E40C54B00FE42CE /* OfflineStorage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = OfflineStorage.h; sourceTree = "<group>"; };
+		D9C70B892E40C54B00FE42CE /* OfflineStorage.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = OfflineStorage.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -2935,6 +2935,8 @@
 		01BF8A0C121D7450007624B6 /* Common */ = {
 			isa = PBXGroup;
 			children = (
+				D9C70B882E40C54B00FE42CE /* OfflineStorage.h */,
+				D9C70B892E40C54B00FE42CE /* OfflineStorage.m */,
 				154ACDF926FA45EA00BAF716 /* SmileyAlertView.h */,
 				154ACDFA26FA45EA00BAF716 /* SmileyAlertView.m */,
 				1D3623240D0F684500981E51 /* HFRplusAppDelegate.h */,
@@ -3017,7 +3019,6 @@
 			isa = PBXGroup;
 			children = (
 				150A228924CB7CE20071F9DE /* API */,
-				D9C68B082E3EA5C90014147E /* OfflineStorage */,
 				152D2D38244C798A00D9D644 /* Bookmarks */,
 				15EBFD0922061ECD00A37CED /* AlertesQualitay */,
 				1503755121FDF89F00A5F7E1 /* Plus */,
@@ -4279,15 +4280,6 @@
 				D8F5CBAC1DF45C1100B029FC /* Reachability.m */,
 			);
 			path = Reachability;
-			sourceTree = "<group>";
-		};
-		D9C68B082E3EA5C90014147E /* OfflineStorage */ = {
-			isa = PBXGroup;
-			children = (
-				150C9FED2D9801DC0023C430 /* OfflineStorage.h */,
-				150C9FEE2D9801DC0023C430 /* OfflineStorage.m */,
-			);
-			path = OfflineStorage;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -5804,6 +5796,7 @@
 				158CFA652E3012D1000594F1 /* UIScrollView+Theme.m in Sources */,
 				158CFA662E3012D1000594F1 /* UITableViewController+Ext.m in Sources */,
 				158CFA672E3012D1000594F1 /* UIColor+Extension.m in Sources */,
+				D9C70B8A2E40C54B00FE42CE /* OfflineStorage.m in Sources */,
 				158CFA682E3012D1000594F1 /* AKSingleSegmentedControl.m in Sources */,
 				158CFA692E3012D1000594F1 /* InAppSettingsKit+Theme.m in Sources */,
 				158CFA6A2E3012D1000594F1 /* NSDictionary+Merging.m in Sources */,
@@ -5886,7 +5879,6 @@
 				158CF9DA2E3005BA000594F1 /* BookmarksTableViewController.m in Sources */,
 				158CF9DB2E3005BA000594F1 /* PlusSettingsViewController.m in Sources */,
 				158CF9DC2E3005BA000594F1 /* AQCellView.m in Sources */,
-				158CF9DD2E3005BA000594F1 /* OfflineStorage.m in Sources */,
 				158CF9DE2E3005BA000594F1 /* PlusCellView.m in Sources */,
 				158CFA982E301E99000594F1 /* MKStoreManager.m in Sources */,
 				158CF9DF2E3005BA000594F1 /* BookmarksCellView.m in Sources */,
@@ -5931,7 +5923,6 @@
 				1556409122D928D30018A619 /* WhiteListTableViewController.m in Sources */,
 				CA7C70D5185EF50E00B348BA /* LinkItem.m in Sources */,
 				CA7C70DB185EF50E00B348BA /* ParseMessagesOperation.m in Sources */,
-				150C9FEF2D9801DC0023C430 /* OfflineStorage.m in Sources */,
 				4CB132F91B90A1930081B44D /* BlackList.m in Sources */,
 				CA7C7112185EF50E00B348BA /* Favorite.m in Sources */,
 				CA7C70DC185EF50E00B348BA /* RehostImage.m in Sources */,
@@ -5960,6 +5951,7 @@
 				CA7C70EC185EF50E00B348BA /* TabBarController.m in Sources */,
 				4C3903651BCACEC200FD6F1F /* PSTCollectionViewLayout.m in Sources */,
 				1556408E22D91E980018A619 /* ListTableViewController.m in Sources */,
+				D9C70B8B2E40C54B00FE42CE /* OfflineStorage.m in Sources */,
 				CA7C70ED185EF50E00B348BA /* TopicCellView.m in Sources */,
 				CA7C70EE185EF50E00B348BA /* AKSegmentedControl.m in Sources */,
 				159CE15024801E1500BC17DA /* SmileyCache.m in Sources */,
@@ -6024,6 +6016,7 @@
 				4C3903571BCACEC200FD6F1F /* NSIndexPath+PSTCollectionViewAdditions.m in Sources */,
 				D8C6A6E4216224F1003C6D59 /* MultisManager.m in Sources */,
 				CA7C70E7185EF50E00B348BA /* MKStoreManager.m in Sources */,
+				D9FEEAC22E4F455300FBBE89 /* AppDelegate.swift in Sources */,
 				D80DBD741E55BE730051B751 /* ASIHTTPRequest.m in Sources */,
 				15E25D68223047EF00474562 /* HFRAlertView.m in Sources */,
 				D8F5CBB21DF462F100B029FC /* ThemeColors.m in Sources */,
@@ -6038,7 +6031,6 @@
 				4C3903591BCACEC200FD6F1F /* PSTCollectionView.m in Sources */,
 				4C39036F1BCACEC200FD6F1F /* PSTGridLayoutSection.m in Sources */,
 				1540899C2439E7C900509862 /* FilterPostsQuotes.m in Sources */,
-				4CFC38571FB0E6BE0027A832 /* AppDelegate.swift in Sources */,
 				15B245AA22E6F9870091B513 /* ThemeSettingsViewController.m in Sources */,
 				152D2D40244C7A2700D9D644 /* BookmarksCellView.m in Sources */,
 				4C3903631BCACEC200FD6F1F /* PSTCollectionViewItemKey.m in Sources */,
@@ -6098,6 +6090,7 @@
 					"DEBUG=1",
 					"$(inherited)",
 				);
+				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = "APP_SWIFT=1";
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -6162,6 +6155,7 @@
 					"$(PROJECT_DIR)/Frameworks",
 				);
 				GCC_C_LANGUAGE_STANDARD = gnu17;
+				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = "APP_SWIFT=1";
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -6324,6 +6318,7 @@
 					"CONFIGURATION_$(CONFIGURATION)",
 					"SD_WEBP=1",
 				);
+				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = "APP_OBJC=1";
 				HEADER_SEARCH_PATHS = $SDKROOT/usr/include/libxml2;
 				INFOPLIST_FILE = "SuperHFRplus-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "HFR+";
@@ -6385,6 +6380,7 @@
 					"CONFIGURATION_$(CONFIGURATION)",
 					"SD_WEBP=1",
 				);
+				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = "APP_OBJC=1";
 				HEADER_SEARCH_PATHS = $SDKROOT/usr/include/libxml2;
 				INFOPLIST_FILE = "SuperHFRplus-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "HFR+";

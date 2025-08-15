@@ -76,7 +76,11 @@
     self.navigationItem.titleView = [[UIView alloc] init];//WithFrame:CGRectMake(0, 0, 120, self.navigationController.navigationBar.frame.size.height - 14)];
     self.navigationItem.backBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Retour" style:UIBarButtonItemStyleBordered target:nil action:nil];
     self.navigationItem.backBarButtonItem.title = @"";
+
     
+#if APP_SWIFT
+    // Nothing yet
+#else
     //Filter Control
     UISegmentedControl* segmentedControl = [[UISegmentedControl alloc] initWithItems: [NSArray arrayWithObjects: @"Tous", @"Favoris", @"Suivis", @"Lus", nil]];
     [segmentedControl setWidth:38.0f forSegmentAtIndex:0];
@@ -118,7 +122,7 @@
         segmentedControl.autoresizingMask = (UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin);
         self.navigationItem.titleView.autoresizingMask = (UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin);
     }
-
+    
     UIBarButtonItem *buttontBarItemRight = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemCompose target:self action:@selector(newTopic)];
     buttontBarItemRight.enabled = NO;
     
@@ -153,6 +157,9 @@
     }
     
     [(UISegmentedControl *)[self.navigationItem.titleView.subviews objectAtIndex:0] setSelectedSegmentIndex:self.selectedFlagIndex];
+    
+#endif
+
     [self goFlag];
 }
 
@@ -290,8 +297,9 @@
 }
 
 - (void)goFlag {
+#ifdef APP_OBJC
     [(UISegmentedControl *)[self.navigationItem.titleView.subviews objectAtIndex:0] setUserInteractionEnabled:NO];
-
+    
 	switch (self.selectedFlagIndex) {
 		case 0:
 			self.currentUrl = self.forumBaseURL;
@@ -310,7 +318,10 @@
 			break;
 	}
     
-    
+#else
+    // TODO IOS26
+    self.currentUrl = self.forumBaseURL;
+#endif
     // setup pull-to-refresh
     //dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
 

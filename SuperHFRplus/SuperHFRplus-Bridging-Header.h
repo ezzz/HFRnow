@@ -7,6 +7,7 @@
 
 #import "PlusTableViewController.h"
 #import "ForumsTableViewController.h"
+#import "HFRplusAppDelegate.h"
 
 #endif /* Bridging_Header_h */
 

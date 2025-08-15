@@ -704,8 +704,9 @@
                 
                 [self.topicsTableView setContentOffset:CGPointZero animated:YES];
                 [self.topicsTableView reloadData];
-                            
+#if APP_OBJC
                 [(UISegmentedControl *)[self.navigationItem.titleView.subviews objectAtIndex:0] setUserInteractionEnabled:YES];
+#endif
                 [self cancelFetchContent];
                 NSLog(@"SEARCH DONE !!");
             });

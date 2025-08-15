@@ -9,6 +9,9 @@ import SwiftUI
 
 @main
 struct HFRswiftApp: App {
+    
+    @UIApplicationDelegateAdaptor(HFRplusAppDelegate.self) var appDelegate
+    
     var body: some Scene {
         WindowGroup {
             RootTabView()

@@ -1012,7 +1012,7 @@
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
 	
-	//NSLog(@"did Select row forum table views");
+    NSLog(@"did Select row forum table views");
     
     self.topicsTableViewController = nil;
     
@@ -1078,7 +1078,7 @@
     self.topicsTableViewController.forumName = [[arrayData objectAtIndex:indexPath.row] aTitle];
 	self.topicsTableViewController.pickerViewArray = [[arrayData objectAtIndex:indexPath.row] subCats];
 
-	[self.navigationController pushViewController:topicsTableViewController animated:YES];
+	[self.navigationController pushViewController:self.topicsTableViewController animated:YES];
 
 }
 
