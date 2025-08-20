@@ -2093,6 +2093,8 @@
 				D86ED58720447D1200A2D541 /* LuminosityHandler.m */,
 				15E25D66223046BD00474562 /* HFRAlertView.h */,
 				15E25D67223047EF00474562 /* HFRAlertView.m */,
+				150C9FED2D9801DC0023C430 /* OfflineStorage.h */,
+				150C9FEE2D9801DC0023C430 /* OfflineStorage.m */,
 			);
 			name = Common;
 			sourceTree = "<group>";
@@ -2146,7 +2148,6 @@
 		080E96DDFE201D6D7F000001 /* Classes */ = {
 			isa = PBXGroup;
 			children = (
-				150C9FEC2D9801B50023C430 /* OfflineStorage */,
 				150A228924CB7CE20071F9DE /* API */,
 				152D2D38244C798A00D9D644 /* Bookmarks */,
 				15EBFD0922061ECD00A37CED /* AlertesQualitay */,
@@ -2185,15 +2186,6 @@
 				150A228A24CB7D140071F9DE /* api_keys.h */,
 			);
 			name = API;
-			sourceTree = "<group>";
-		};
-		150C9FEC2D9801B50023C430 /* OfflineStorage */ = {
-			isa = PBXGroup;
-			children = (
-				150C9FED2D9801DC0023C430 /* OfflineStorage.h */,
-				150C9FEE2D9801DC0023C430 /* OfflineStorage.m */,
-			);
-			path = OfflineStorage;
 			sourceTree = "<group>";
 		};
 		152D2D38244C798A00D9D644 /* Bookmarks */ = {
@@ -4464,13 +4456,11 @@
 				ASSETCATALOG_COMPILER_OPTIMIZATION = time;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = Automatic;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 31;
-				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = QMG83DG7YP;
+				DEVELOPMENT_TEAM = QMG83DG7YP;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4491,7 +4481,7 @@
 				INFOPLIST_FILE = "SuperHFRplus-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "HFR+";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -4510,7 +4500,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super;
 				PRODUCT_NAME = SuperHFRplusSwift;
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = ProfileSuperHFRv1;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -4530,13 +4519,11 @@
 				ASSETCATALOG_COMPILER_OPTIMIZATION = time;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = Automatic;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = YES;
 				CURRENT_PROJECT_VERSION = 31;
-				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = QMG83DG7YP;
+				DEVELOPMENT_TEAM = QMG83DG7YP;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4555,7 +4542,7 @@
 				INFOPLIST_FILE = "SuperHFRplus-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "HFR+";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -4574,7 +4561,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super;
 				PRODUCT_NAME = SuperHFRplusSwift;
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = ProfileSuperHFRv1;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;

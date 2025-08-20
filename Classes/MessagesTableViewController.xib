@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="23504" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useSafeAreas="YES" colorMatched="YES">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="24123.1" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useSafeAreas="YES" colorMatched="YES">
     <device id="retina4_7" orientation="portrait" appearance="light"/>
     <dependencies>
-        <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23506"/>
+        <deployment version="5632" identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24062"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
@@ -30,11 +30,11 @@
         </placeholder>
         <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
         <view contentMode="scaleToFill" id="8" customClass="ShakeView">
-            <rect key="frame" x="0.0" y="0.0" width="375" height="554"/>
+            <rect key="frame" x="0.0" y="0.0" width="375" height="510"/>
             <autoresizingMask key="autoresizingMask"/>
             <subviews>
                 <wkWebView hidden="YES" opaque="NO" multipleTouchEnabled="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" translatesAutoresizingMaskIntoConstraints="NO" id="MsJ-S0-jPQ">
-                    <rect key="frame" x="0.0" y="0.0" width="375" height="554"/>
+                    <rect key="frame" x="0.0" y="0.0" width="375" height="510"/>
                     <color key="backgroundColor" red="0.36078431370000003" green="0.38823529410000002" blue="0.4039215686" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                     <wkWebViewConfiguration key="configuration" allowsInlineMediaPlayback="YES">
                         <dataDetectorTypes key="dataDetectorTypes" none="YES"/>
@@ -43,14 +43,14 @@
                     </wkWebViewConfiguration>
                 </wkWebView>
                 <label hidden="YES" opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="Label" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="gbT-rB-Ucv">
-                    <rect key="frame" x="0.0" y="267" width="375" height="21"/>
+                    <rect key="frame" x="0.0" y="245" width="375" height="21"/>
                     <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMinY="YES" flexibleMaxY="YES"/>
                     <fontDescription key="fontDescription" type="system" pointSize="17"/>
                     <color key="textColor" systemColor="darkTextColor"/>
                     <nil key="highlightedColor"/>
                 </label>
                 <view autoresizesSubviews="NO" clearsContextBeforeDrawing="NO" userInteractionEnabled="NO" contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="13">
-                    <rect key="frame" x="108" y="262" width="160" height="30"/>
+                    <rect key="frame" x="108" y="240" width="160" height="30"/>
                     <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMaxX="YES" flexibleMinY="YES" flexibleMaxY="YES"/>
                     <subviews>
                         <activityIndicatorView opaque="NO" userInteractionEnabled="NO" contentMode="scaleToFill" fixedFrame="YES" animating="YES" style="gray" translatesAutoresizingMaskIntoConstraints="NO" id="15">
@@ -71,11 +71,11 @@
                     <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="0.0" colorSpace="custom" customColorSpace="sRGB"/>
                 </view>
                 <view hidden="YES" alpha="0.90000000000000002" contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="sPu-av-2DW">
-                    <rect key="frame" x="0.0" y="0.0" width="375" height="554"/>
+                    <rect key="frame" x="0.0" y="0.0" width="375" height="510"/>
                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                     <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="0.5982934397163121" colorSpace="custom" customColorSpace="sRGB"/>
                 </view>
-                <view hidden="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="aIX-Ky-oja">
+                <view hidden="YES" contentMode="scaleToFill" ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="aIX-Ky-oja">
                     <rect key="frame" x="0.0" y="0.0" width="375" height="184"/>
                     <subviews>
                         <textField opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="Mot" minimumFontSize="17" clearButtonMode="always" translatesAutoresizingMaskIntoConstraints="NO" id="l6t-e9-NT4">
@@ -87,13 +87,13 @@
                                 <action selector="searchNext:" destination="-1" eventType="editingDidEndOnExit" id="qfL-rG-cje"/>
                             </connections>
                         </textField>
-                        <toolbar opaque="NO" clearsContextBeforeDrawing="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="EId-Gd-9mM">
+                        <toolbar opaque="NO" clearsContextBeforeDrawing="NO" contentMode="scaleToFill" ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="EId-Gd-9mM">
                             <rect key="frame" x="0.0" y="140" width="375" height="44"/>
                             <items>
                                 <barButtonItem title="Filtrer" style="plain" id="WA1-sx-fqp"/>
                                 <barButtonItem style="plain" id="7Kt-Mf-2mZ">
                                     <switch key="customView" opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" contentHorizontalAlignment="center" contentVerticalAlignment="center" id="ZQc-t8-rah">
-                                        <rect key="frame" x="71" y="6.5" width="51" height="31"/>
+                                        <rect key="frame" x="95" y="8.0000000000000036" width="63" height="27.999999999999996"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                         <connections>
                                             <action selector="searchFilterChanged:" destination="-1" eventType="valueChanged" id="oT8-dX-Sxh"/>
@@ -108,8 +108,8 @@
                                 </barButtonItem>
                             </items>
                         </toolbar>
-                        <switch opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" contentHorizontalAlignment="center" contentVerticalAlignment="center" translatesAutoresizingMaskIntoConstraints="NO" id="qSQ-j6-qK6">
-                            <rect key="frame" x="316" y="99" width="51" height="31"/>
+                        <switch opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" ambiguous="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" translatesAutoresizingMaskIntoConstraints="NO" id="qSQ-j6-qK6">
+                            <rect key="frame" x="304" y="99" width="63" height="28"/>
                             <inset key="insetFor6xAndEarlier" minX="7" minY="0.0" maxX="-7" maxY="0.0"/>
                             <connections>
                                 <action selector="searchFromFPChanged:" destination="-1" eventType="valueChanged" id="zWy-55-fOs"/>
@@ -124,8 +124,8 @@
                                 <action selector="searchPseudoChanged:" destination="-1" eventType="editingChanged" id="zcJ-zv-bVg"/>
                             </connections>
                         </textField>
-                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" lineBreakMode="tailTruncation" numberOfLines="2" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="zPj-gh-RsO">
-                            <rect key="frame" x="11" y="98" width="268" height="31.5"/>
+                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" lineBreakMode="tailTruncation" numberOfLines="2" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="zPj-gh-RsO">
+                            <rect key="frame" x="11" y="98" width="256" height="31.5"/>
                             <string key="text">Depuis la première page
 (à partir de la page actuelle sinon)</string>
                             <fontDescription key="fontDescription" type="system" pointSize="13"/>

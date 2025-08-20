@@ -1032,14 +1032,14 @@
         self.topicsTableViewController.detailNavigationViewController  = self.detailNavigationViewController;
     }
     
-	self.navigationItem.backBarButtonItem =
+	/*self.navigationItem.backBarButtonItem =
 	[[UIBarButtonItem alloc] initWithTitle:@"Retour"
 									 style: UIBarButtonItemStyleBordered
 									target:nil
-									action:nil];
+									action:nil];*/
 	
     if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"7")) {
-        self.navigationItem.backBarButtonItem.title = @" ";
+        //self.navigationItem.backBarButtonItem.title = @" ";
     }
     
     if ([self.metaDataList objectForKey:[[arrayData objectAtIndex:indexPath.row] aURL]]) {

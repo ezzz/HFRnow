@@ -834,13 +834,6 @@
     aView.detailNavigationViewController = self.detailNavigationViewController;
 	aView.forumName = [[[arrayCategories objectAtIndex:section] forum] aTitle];
     
-    self.navigationItem.backBarButtonItem =
-    [[UIBarButtonItem alloc] initWithTitle:@"Retour"
-                                     style: UIBarButtonItemStyleBordered
-                                    target:nil
-                                    action:nil];
-    
-    self.navigationItem.backBarButtonItem.title = @" ";
     [self.navigationController pushViewController:aView animated:YES];
 }
 
@@ -1525,12 +1518,6 @@
 {
     if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone)
     {
-        self.navigationItem.backBarButtonItem =
-        [[UIBarButtonItem alloc] initWithTitle:@" "
-                                         style: UIBarButtonItemStylePlain
-                                        target:nil
-                                        action:nil];
-        
         [self.navigationController pushViewController:messagesTableViewController animated:YES];
     }
     else if (self.detailNavigationViewController)

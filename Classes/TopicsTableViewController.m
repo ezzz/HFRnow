@@ -74,7 +74,7 @@
     //Title View
     self.navigationItem.titleView = [[UIView alloc] init];//WithFrame:CGRectMake(0, 0, 120, self.navigationController.navigationBar.frame.size.height - 14)];
     self.navigationItem.backBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Retour" style:UIBarButtonItemStyleBordered target:nil action:nil];
-    self.navigationItem.backBarButtonItem.title = @" ";
+    //self.navigationItem.backBarButtonItem.title = @" ";
     
     //Filter Control
     UISegmentedControl* segmentedControl = [[UISegmentedControl alloc] initWithItems: [NSArray arrayWithObjects: @"Tous", @"Favoris", @"Suivis", @"Lus", nil]];

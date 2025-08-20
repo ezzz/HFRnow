@@ -351,7 +351,7 @@
     CGFloat fullWidth = navBar.frame.size.width;
     
     // Taille approximative d’un bouton de navigation (peut être affiné)
-    CGFloat barButtonWidth = 44.0;
+    CGFloat barButtonWidth = 70.0;
     NSInteger buttonCount = 2; // gauche et droite minimum
     CGFloat barButtonTitleWidth = 0.0;
 
@@ -362,14 +362,14 @@
         buttonCount += (self.navigationItem.rightBarButtonItems.count - 1);
     }
     // padding à ajouter pour le numéro dans le titre du bouton retour en cas d'empilement des NavViewcontroller
-    if (self.navigationController.viewControllers.count > 1) {
+    if (self.navigationController.viewControllers.count > 2) {
         barButtonTitleWidth = 30;
     }
           
     CGFloat totalButtonsWidth = buttonCount * barButtonWidth + 16 + barButtonTitleWidth; // padding supplémentaire
     CGFloat availableWidth = fullWidth - totalButtonsWidth;
 
-    //NSLog(@"[SET] Navigation bar width: %.2f, available title width: %.2f countVC %d", fullWidth, availableWidth, self.navigationController.viewControllers.count);
+    NSLog(@"[SET] Navigation bar width: %.2f, available title width: %.2f countVC %d", fullWidth, availableWidth, self.navigationController.viewControllers.count);
 
     return availableWidth;
 }
@@ -1694,7 +1694,7 @@
         NSString *refreshBtn = @"";
 
         int i;
-        NSLog(@"OLD %@", self.stringFlagTopic);
+        //NSLog(@"OLD %@", self.stringFlagTopic);
 
         NSCharacterSet* nonDigits = [[NSCharacterSet decimalDigitCharacterSet] invertedSet];
         int currentFlagValue = [[self.stringFlagTopic stringByTrimmingCharactersInSet:nonDigits] intValue];
@@ -2029,7 +2029,7 @@
 }
 
 - (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation {
-    NSLog(@"didFinishNavigation");
+    //NSLog(@"didFinishNavigation");
     [self finishWebViewLoading];
 }
 
@@ -2040,7 +2040,7 @@
     }
         
     if (!self.loaded) {
-        NSLog(@"Scroll to flag");
+        //NSLog(@"Scroll to flag");
         self.loaded = YES;
         
         NSString* jsString2 = @"window.scrollTo(0,document.getElementById('endofpagetoolbar').offsetTop);";
@@ -2056,8 +2056,8 @@
         //Position du Flag
         [self.messagesWebView evaluateJavaScript:[jsString2 stringByAppendingString:jsString3] completionHandler:nil];
 
-        NSLog(@"jsString2 %@", jsString2);
-        NSLog(@"jsString3 %@", jsString3);
+        //NSLog(@"jsString2 %@", jsString2);
+        //NSLog(@"jsString3 %@", jsString3);
         
         self.lastStringFlagTopic = self.stringFlagTopic;
         self.stringFlagTopic = @"";
@@ -2129,7 +2129,6 @@
                                                  style: UIBarButtonItemStylePlain
                                                 target:nil
                                                 action:nil];
-                
                 [self.navigationController pushViewController:messagesTableViewController animated:YES];
             }
             
@@ -2268,8 +2267,7 @@
             bAllow = NO;
         }
         else {
-            
-            NSLog(@"OTHHHHERRRREEE %@ %@", [aRequest.URL scheme], [aRequest.URL fragment]);
+            //NSLog(@"OTHHHHERRRREEE %@ %@", [aRequest.URL scheme], [aRequest.URL fragment]);
             if ([[aRequest.URL fragment] isEqualToString:@"bas"]) {
                 bAllow = NO;
             }
@@ -2277,9 +2275,9 @@
         }
     }
     else {
-        NSLog(@"VRAIMENT OTHHHHERRRREEE %@ %@", [aRequest.URL scheme], [aRequest.URL fragment]);
+        //NSLog(@"VRAIMENT OTHHHHERRRREEE %@ %@", [aRequest.URL scheme], [aRequest.URL fragment]);
     }
-    
+        
     if (bAllow) {
         decisionHandler(WKNavigationActionPolicyAllow);
     }
@@ -2859,7 +2857,6 @@ API_AVAILABLE(ios(16.0)) {
         return;
     }
     
-    self.navigationItem.backBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Retour" style: UIBarButtonItemStylePlain target:nil action:nil];
     [self presentViewController:activityViewController animated:YES completion:^{}];
 }
 
@@ -3475,7 +3472,7 @@ API_AVAILABLE(ios(16.0)) {
                                          style: UIBarButtonItemStylePlain
                                         target:nil
                                         action:nil];
-        
+
         [self.navigationController pushViewController:messagesTableViewController animated:YES];
     }
 
