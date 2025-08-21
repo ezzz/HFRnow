@@ -13,6 +13,7 @@
 #import "HFRTabBar.h"
 #import "ThemeColors.h"
 #import "ThemeManager.h"
+#import "AnalyticsManager.h"
 
 @implementation TabBarController
 
@@ -232,6 +233,28 @@
             }
         }
     }
+    
+    // Identifier l'onglet sélectionné
+    NSString *tabName = @"unknown";
+    switch (tabBarController.selectedIndex) {
+        case 0:
+            tabName = @"categories";
+            break;
+        case 1:
+            tabName = @"favoris";
+            break;
+        case 2:
+            tabName = @"mp";
+            break;
+        case 3:
+            tabName = @"plus";
+            break;
+        default:
+            break;
+    }
+    
+    // Log Firebase
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"select_tab" : tabName}];
 }
 
 // Override to allow orientations other than the default portrait orientation.

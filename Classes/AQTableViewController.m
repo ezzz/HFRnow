@@ -16,6 +16,7 @@
 #import "ThemeManager.h"
 #import "ThemeColors.h"
 #import "UIScrollView+SVPullToRefresh.h"
+#import "AnalyticsManager.h"
 
 @implementation AQTableViewController;
 @synthesize aqTableView;

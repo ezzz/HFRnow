@@ -22,6 +22,8 @@
 #import "BlackList.h"
 #import <SDWebImage/SDWebImage.h>
 
+#import "AnalyticsManager.h"
+
 @implementation HFRMPViewController
 
 //@synthesize reloadOnAppear, actionButton, reloadButton, detailNavigationViewController, arrayData, topicActionAlert, pressedIndexPath;
@@ -120,6 +122,11 @@
     //TopicMPCellView *cell = (TopicMPCellView *)[tableView dequeueReusableCellWithIdentifier:CellIdentifier];
     TopicMPCellView *cell = [tableView dequeueReusableCellWithIdentifier:@"TopicMPCellID" forIndexPath:indexPath];
 
+    UILongPressGestureRecognizer *longPressRecognizer = [[UILongPressGestureRecognizer alloc]
+                                                         initWithTarget:self action:@selector(handleLongPress:)];
+    [cell addGestureRecognizer:longPressRecognizer];
+
+    
     // Content
     Topic *aTopic = [self.arrayData objectAtIndex:indexPath.row];
     
@@ -263,8 +270,8 @@
     self.messagesTableViewController.canSaveDrapalInMPStorage = bCanSaveDrapalInMPStorage;
     
     [self pushTopic];
-	//NSLog(@"push message liste");
-
+    
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"mp_opentopic_didselect"}];
 }
 
 - (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section
@@ -282,8 +289,8 @@
         }
         
         NSMutableArray *arrayActionsMessages = [NSMutableArray array];
-        [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Dernière page", @"lastPageAction", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
         [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Première page", @"firstPageAction", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
+        [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Dernière page", @"lastPageAction", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
         [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Page numéro...", @"chooseTopicPage", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
         [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Copier le lien", @"copyLinkAction", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
         
@@ -321,8 +328,6 @@
         [self presentViewController:self.topicActionAlert animated:YES completion:nil];
         [[ThemeManager sharedManager] applyThemeToAlertController:self.topicActionAlert];
         [generator impactOccurred];
-
-        
     }
 }
 
@@ -335,7 +340,7 @@
     
     [self pushTopic];
     
-    //NSLog(@"url pressed last page: %@", [[arrayData objectAtIndex:pressedIndexPath.row] aURLOfLastPage]);
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"mp_opentopic_lastpage"}];
 }
 
 -(void)firstPageAction{
@@ -347,7 +352,7 @@
     
     [self pushTopic];
     
-    //NSLog(@"url pressed last post: %@", [[arrayData objectAtIndex:pressedIndexPath.row] aURL]);
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"mp_opentopic_firstpage"}];
 }
 
 

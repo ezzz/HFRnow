@@ -30,6 +30,8 @@
 
 #import "ThemeColors.h"
 #import "ThemeManager.h"
+#import "AnalyticsManager.h"
+
 
 @implementation ForumsTableViewController
 @synthesize request;

@@ -24,6 +24,7 @@
 #import "Forum.h"
 #import "Constants.h"
 #import "Bookmark.h"
+#import "AnalyticsManager.h"
 
 @implementation BookmarksTableViewController;
 @synthesize bookmarksTableView, maintenanceView, messagesTableViewController, pressedIndexPath;

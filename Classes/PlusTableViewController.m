@@ -15,6 +15,7 @@
 #import "PlusCellView.h"
 #import "ThemeColors.h"
 #import "ThemeManager.h"
+#import "AnalyticsManager.h"
 
 @implementation PlusTableViewController;
 @synthesize plusTableView, iAQBadgeNumer, settingsViewController, compteViewController, aqTableViewController, bookmarksTableViewController,  creditsViewController, detailNavigationViewController;
@@ -76,28 +77,35 @@
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     
     UIViewController* vc = nil;
-    
+    NSString* sActionName = @"";
     switch (indexPath.row) {
         case 0:
             vc = self.compteViewController;
+            sActionName = @"plus_open_comptes";
             break;
         case 1:
             vc = self.searchViewController;
+            sActionName = @"plus_open_recherche";
             break;
         case 2:
             vc = self.bookmarksTableViewController;
+            sActionName = @"plus_open_bookmarks";
             break;
         case 3:
             vc = self.aqTableViewController;
+            sActionName = @"plus_open_aq";
             break;
         case 4:
             vc = self.settingsViewController;
+            sActionName = @"plus_open_settings";
             break;
         case 5:
             vc = self.creditsViewController;
+            sActionName = @"plus_open_credits";
             break;
         case 6:
             vc = self.charteViewController;
+            sActionName = @"plus_open_charte";
             break;
         case 7:
             if([MFMailComposeViewController canSendMail]) {
@@ -108,6 +116,7 @@
                 [mailCont setMessageBody:@"Monsieur/Madame,\n\nJe vous écris pour vous demander de supprimer mon compte sur votre forum Hardware.fr. Je ne l'utilise plus et je préfère ne plus être membre de ce forum.\n\nSi vous avez besoin de plus d'informations pour traiter ma demande, veuillez me contacter à l'adresse email associée à mon compte.\n\nMerci d'avance pour votre aide.\n\nCordialement" isHTML:NO];
                 [self presentViewController:mailCont animated:YES completion:nil];
             }
+            sActionName = @"plus_open_deleteaccount";
             break;
             
     }
@@ -122,6 +131,8 @@
     else if (vc) { //iPhone
         [self.navigationController pushViewController:vc animated:YES];
     }
+    
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : sActionName}];
 }
 
 

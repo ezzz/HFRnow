@@ -13,6 +13,7 @@
 #import "ASIHTTPRequest.h"
 #import "HTMLParser.h"
 #import "HTMLNode.h"
+#import "AnalyticsManager.h"
 
 @implementation SmileyCodeTableViewController;
 @synthesize codeListTableView, arrCodeList, sSmileyName, loadingView;

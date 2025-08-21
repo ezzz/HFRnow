@@ -17,8 +17,7 @@
 #import "ThemeManager.h"
 #import "MultisManager.h"
 #import "Constants.h"
-
-
+#import "AnalyticsManager.h"
 
 @implementation CompteViewController
 @synthesize comptesTableView;

@@ -41,6 +41,7 @@
 #import "SmileyAlertView.h"
 #import "SmileyCache.h"
 #import "SimplePhotoViewController.h"
+#import "AnalyticsManager.h"
 
 
 @implementation MessagesTableViewController
