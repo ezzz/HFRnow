@@ -18,6 +18,8 @@
 #import "RehostCell.h"
 #import "RehostCollectionCell.h"
 #import "AddMessageViewController.h"
+#import "AnalyticsManager.h"
+
 
 @implementation RehostImageViewController
 

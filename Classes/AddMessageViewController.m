@@ -26,6 +26,7 @@
 #import "RehostCollectionCell.h"
 #import "SmileyCache.h"
 #import "api_keys.h"
+#import "AnalyticsManager.h"
 
 
 #define TOOLBAR_HEIGHT_SMILEY 44
@@ -476,6 +477,8 @@
         [[NSNotificationCenter defaultCenter] postNotificationName:@"VisibilityChanged" object:nil];
         [self.delegate addMessageViewControllerDidFinish:self];
     }
+    
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"addmess_cancel"}];
 }
 
 - (void)modifyBrouillon:(NSString*) sNewText {
@@ -627,6 +630,7 @@
         @finally {}
     }
     
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"addmess_envoyer"}];
 }
 
 -(void)segmentToWhite {
@@ -666,6 +670,8 @@
     else {
         [self actionHideRehostImage];
     }
+    
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"addmess_image"}];
 }
 
 - (void)actionHideRehostImage
@@ -680,6 +686,8 @@
     [self updateExpandCompressRehostImage];
     [UIView commitAnimations];
     [self.textViewPostContent becomeFirstResponder];
+    
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"addmess_rehostimage"}];
 }
 
 - (void)actionExpandCompressRehostImage
@@ -750,6 +758,8 @@
     if (self.viewRehostImage.alpha == 1) {
         [self actionHideRehostImage];
     }
+    
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"addmess_gif"}];
 }
 
 - (void) didSelectMediaWithGiphyViewController:(GiphyViewController *)giphyViewController media:(GPHMedia *)media
@@ -837,6 +847,8 @@
     else {
         [self actionHideSmileys];
     }
+    
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"addmess_smiley"}];
 }
 
 - (void)actionHideSmileys
@@ -917,12 +929,16 @@
 {
     [self.textViewPostContent.undoManager undo];
     [self enableDisableUndoButton];
+    
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"addmess_undo"}];
 }
 
 - (IBAction)actionRedo:(id)sender
 {
     [self.textViewPostContent.undoManager redo];
     [self enableDisableUndoButton];
+    
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"addmess_redo"}];
 }
 
 // to disable or enable the button when needed
@@ -1100,6 +1116,8 @@ API_AVAILABLE(ios(16.0))
 
     [self presentViewController:alert animated:YES completion:nil];
     [[ThemeManager sharedManager] applyThemeToAlertController:alert];
+    
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"addmess_selectmulti"}];
 }
 
 - (void)onSelectCompte:(int)index{

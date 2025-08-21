@@ -10,6 +10,7 @@
 #import "ThemeColors.h"
 #import "ThemeManager.h"
 #import "HFRAlertView.h"
+#import "AnalyticsManager.h"
 
 @implementation ColorPickerViewController
 

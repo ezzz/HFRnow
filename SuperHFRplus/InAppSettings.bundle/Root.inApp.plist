@@ -108,6 +108,16 @@
 				<string>white</string>
 			</array>
 		</dict>
+        <dict>
+            <key>DefaultValue</key>
+            <true/>
+            <key>Key</key>
+            <string>UserGaveAnalyticsConsent</string>
+            <key>Title</key>
+            <string>Statistiques anonymes</string>
+            <key>Type</key>
+            <string>PSToggleSwitchSpecifier</string>
+        </dict>
 		<dict>
 			<key>Title</key>
 			<string>Thèmes</string>

@@ -30,8 +30,11 @@
 #import <UserNotifications/UserNotifications.h>
 #import "HTMLParser.h"
 
-#define NOTIFICATION_BACKGROUND_REFRESH YES
-#define BACKGROUND_MAINTENANCE          YES
+@import FirebaseCore;
+@import FirebaseFirestore;
+@import FirebaseAuth;
+#import <Firebase.h>
+#import "AnalyticsManager.h"
 
 @implementation HFRplusAppDelegate
 
@@ -147,13 +150,12 @@
 
     [window makeKeyAndVisible];
 
-    if (BACKGROUND_MAINTENANCE) {
-        periodicMaintenanceTimer = [NSTimer scheduledTimerWithTimeInterval:60*10
-                                                                    target:self
-                                                                  selector:@selector(periodicMaintenance)
-                                                                  userInfo:nil
-                                                                   repeats:YES];
-    }
+    periodicMaintenanceTimer = [NSTimer scheduledTimerWithTimeInterval:60*10
+                                                                target:self
+                                                              selector:@selector(periodicMaintenance)
+                                                              userInfo:nil
+                                                               repeats:YES];
+    
     
     [[NSNotificationCenter defaultCenter] removeObserver:self name:kThemeChangedNotification object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self
@@ -176,29 +178,25 @@
     [SmileyCache shared];
     
     // Register background fetch
-#ifdef NOTIFICATION_BACKGROUND_REFRESH
-    if (@available(iOS 13, *))
-    {
-        UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
-        center.delegate = self;
-        
-        [[BGTaskScheduler sharedScheduler] registerForTaskWithIdentifier:@"com.hfrplus.refresh_mp" usingQueue:nil
-                                         launchHandler:^(__kindof BGTask * _Nonnull task) {
-            //[task setTaskCompletedWithSuccess:YES];
-            [self checkForNewMP:(BGAppRefreshTask *)task];
-        }];
-        [application setMinimumBackgroundFetchInterval:60];
-        [center requestAuthorizationWithOptions: (UNAuthorizationOptionAlert + UNAuthorizationOptionSound)
-           completionHandler:^(BOOL granted, NSError * _Nullable error) {
-            NSLog(@"UNUserNotificationCenter authorization granted=%@, error=%@", @(granted), error);
-        }];
-    }
-#endif
+    UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+    center.delegate = self;
+    
+    [[BGTaskScheduler sharedScheduler] registerForTaskWithIdentifier:@"com.hfrplus.refresh_mp" usingQueue:nil
+                                     launchHandler:^(__kindof BGTask * _Nonnull task) {
+        //[task setTaskCompletedWithSuccess:YES];
+        [self checkForNewMP:(BGAppRefreshTask *)task];
+    }];
+    [application setMinimumBackgroundFetchInterval:60];
+    [center requestAuthorizationWithOptions: (UNAuthorizationOptionAlert + UNAuthorizationOptionSound)
+       completionHandler:^(BOOL granted, NSError * _Nullable error) {
+        NSLog(@"UNUserNotificationCenter authorization granted=%@, error=%@", @(granted), error);
+    }];
+    
+    
+    [self setupupAnalytics];
 
     return YES;
 }
-
-#ifdef NOTIFICATION_BACKGROUND_REFRESH
 
 // Called when tap on notification
 - (void)userNotificationCenter:(UNUserNotificationCenter *)center didReceiveNotificationResponse:(UNNotificationResponse *)response withCompletionHandler:(void(^)(void))completionHandler{
@@ -310,8 +308,6 @@
         NSLog(@"Notification request error: %@", error);
     }];
 }
-
-#endif // NOTIF
 
 -(void)application:(UIApplication *)application performActionForShortcutItem:(UIApplicationShortcutItem *)shortcutItem completionHandler:(void (^)(BOOL))completionHandler {
     NSLog(@"shortcutItem %@", shortcutItem);
@@ -454,177 +450,158 @@
 
 
 - (void)applicationDidEnterBackground:(UIApplication *)application {
-    /*
-     Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later. 
-     If your application supports background execution, called instead of applicationWillTerminate: when the user quits.
-     */
+
     NSLog(@"applicationDidEnterBackground");
-    if (@available(iOS 13, *))
-    {
-        [self scheduleAppRefresh];
-    }
-    if (BACKGROUND_MAINTENANCE) {
-        [periodicMaintenanceTimer invalidate];
-    }
-    
+    [self scheduleAppRefresh];
+    [periodicMaintenanceTimer invalidate];
     periodicMaintenanceTimer = nil;
 }
 
 - (void) scheduleAppRefresh {
-    if (@available(iOS 13, *))
-    {
-        NSLog(@"Scheduling the app background refresh");
-        
-        BGAppRefreshTaskRequest *request = [[BGAppRefreshTaskRequest alloc] initWithIdentifier:@"com.hfrplus.refresh_mp"];
-        [request setEarliestBeginDate:[[NSDate date] dateByAddingTimeInterval:60]];
-        //request.requiresNetworkConnectivity = YES;
-        
-        __autoreleasing NSError *error;
-        @try {
-            //NSLog(@"\n\nSubmitting task request: %@", request.description);
-            [[BGTaskScheduler sharedScheduler] submitTaskRequest:request error:&error];
-        } @catch (NSException *exception) {
-            NSLog(@"\n\nCannot submit task request: %@", exception.description);
-        } @finally {
-            if (error)
-            {
-                NSLog(@"\n\nFailed to submit task request:\n%@ (%ld)", request.description, error.code);
-            } else {
-                [[NSUserDefaults standardUserDefaults] setInteger:0 forKey:@"nb_mp_failure"];
-                NSLog(@"Submitted task request %@", request.description);
-                // 1) Pause here
-                // 2) In output, type: To debug : e -l objc -- (void)[[BGTaskScheduler sharedScheduler] _simulateLaunchForTaskWithIdentifier:@"com.hfrplus.refresh_mp"]
-                // 3) Unpause
-            }
+    NSLog(@"Scheduling the app background refresh");
+    
+    BGAppRefreshTaskRequest *request = [[BGAppRefreshTaskRequest alloc] initWithIdentifier:@"com.hfrplus.refresh_mp"];
+    [request setEarliestBeginDate:[[NSDate date] dateByAddingTimeInterval:60]];
+    //request.requiresNetworkConnectivity = YES;
+    
+    __autoreleasing NSError *error;
+    @try {
+        //NSLog(@"\n\nSubmitting task request: %@", request.description);
+        [[BGTaskScheduler sharedScheduler] submitTaskRequest:request error:&error];
+    } @catch (NSException *exception) {
+        NSLog(@"\n\nCannot submit task request: %@", exception.description);
+    } @finally {
+        if (error)
+        {
+            NSLog(@"\n\nFailed to submit task request:\n%@ (%ld)", request.description, error.code);
+        } else {
+            [[NSUserDefaults standardUserDefaults] setInteger:0 forKey:@"nb_mp_failure"];
+            NSLog(@"Submitted task request %@", request.description);
+            // 1) Pause here
+            // 2) In output, type: To debug : e -l objc -- (void)[[BGTaskScheduler sharedScheduler] _simulateLaunchForTaskWithIdentifier:@"com.hfrplus.refresh_mp"]
+            // 3) Unpause
         }
     }
 }
 
 - (void)applicationWillEnterForeground:(UIApplication *)application {
-    /*
-     Called as part of  transition from the background to the inactive state: here you can undo many of the changes made on entering the background.
-     */
     NSLog(@"applicationWillEnterForeground");
     
-    if (BACKGROUND_MAINTENANCE) {
-        periodicMaintenanceTimer = [NSTimer scheduledTimerWithTimeInterval:60*10
-                                                                    target:self
-                                                                  selector:@selector(periodicMaintenance)
-                                                                  userInfo:nil
-                                                                   repeats:YES];
-    }
+    periodicMaintenanceTimer = [NSTimer scheduledTimerWithTimeInterval:60*10
+                                                                target:self
+                                                              selector:@selector(periodicMaintenance)
+                                                              userInfo:nil
+                                                               repeats:YES];
+    
     // MPStorage : Update Blacklist from MPStorage
     [[MPStorage shared] initOrResetMP:[[MultisManager sharedManager] getCurrentPseudo]];
 }
 
 - (void)periodicMaintenance
 {
-    if (BACKGROUND_MAINTENANCE) {
-        [self performSelectorInBackground:@selector(periodicMaintenanceBack) withObject:nil];
-    }
+    [self performSelectorInBackground:@selector(periodicMaintenanceBack) withObject:nil];
 }
 
 - (void)periodicMaintenanceBack
 {
-    if (BACKGROUND_MAINTENANCE) {
-        @autoreleasepool {
+    @autoreleasepool {
+    
+    //NSLog(@"periodicMaintenanceBack");
+
+    // If another same maintenance operation is already sceduled, cancel it so this new operation will be executed after other
+    // operations of the queue, so we can group more work together
+    //[periodicMaintenanceOperation cancel];
+    //self.periodicMaintenanceOperation = nil;
+
+        /*NSError *error = nil;
+        NSFileManager *fileManager = [NSFileManager defaultManager];
+        NSArray *URLResources = [NSArray arrayWithObject:@"NSURLCreationDateKey"];
         
-        //NSLog(@"periodicMaintenanceBack");
+        
+        
+        //NSArray *crashReportFiles = [[NSFileManager defaultManager] contentsOfDirectoryAtURL:[[[NSFileManager defaultManager] userLibraryURL] URLByAppendingPathComponent:@"ImageCache"] includingPropertiesForKeys:URLResources options:(NSDirectoryEnumerationSkipsHiddenFiles | NSDirectoryEnumerationSkipsPackageDescendants | NSDirectoryEnumerationSkipsSubdirectoryDescendants) error:&error];
 
-        // If another same maintenance operation is already sceduled, cancel it so this new operation will be executed after other
-        // operations of the queue, so we can group more work together
-        //[periodicMaintenanceOperation cancel];
-        //self.periodicMaintenanceOperation = nil;
+        
+        */
+        NSFileManager *fileManager = [NSFileManager defaultManager];
+        NSArray* paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
+        NSString *diskCachePath = [[[paths objectAtIndex:0] stringByAppendingPathComponent:@"cache"] stringByAppendingPathComponent:@"avatars"];
 
-            /*NSError *error = nil;
-            NSFileManager *fileManager = [NSFileManager defaultManager];
-            NSArray *URLResources = [NSArray arrayWithObject:@"NSURLCreationDateKey"];
+        if (![fileManager fileExistsAtPath:diskCachePath])
+        {
+            //NSLog(@"createDirectoryAtPath");
+            [fileManager createDirectoryAtPath:diskCachePath
+                                      withIntermediateDirectories:YES
+                                                       attributes:nil
+                                                            error:NULL];
+        }
+        else {
+            //NSLog(@"pas createDirectoryAtPath");
             
             
+            NSString *directoryPath = diskCachePath;
+            NSDirectoryEnumerator *directoryEnumerator = [fileManager enumeratorAtPath:directoryPath];
             
-            //NSArray *crashReportFiles = [[NSFileManager defaultManager] contentsOfDirectoryAtURL:[[[NSFileManager defaultManager] userLibraryURL] URLByAppendingPathComponent:@"ImageCache"] includingPropertiesForKeys:URLResources options:(NSDirectoryEnumerationSkipsHiddenFiles | NSDirectoryEnumerationSkipsPackageDescendants | NSDirectoryEnumerationSkipsSubdirectoryDescendants) error:&error];
-
+            NSDate *yesterday = [NSDate dateWithTimeIntervalSinceNow:(-60*60*24*25)];
+            //NSLog(@"yesterday %@", yesterday);
             
-            */
-            NSFileManager *fileManager = [NSFileManager defaultManager];
-            NSArray* paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
-            NSString *diskCachePath = [[[paths objectAtIndex:0] stringByAppendingPathComponent:@"cache"] stringByAppendingPathComponent:@"avatars"];
+            for (NSString *path in directoryEnumerator) {
 
-            if (![fileManager fileExistsAtPath:diskCachePath])
-            {
-                //NSLog(@"createDirectoryAtPath");
-                [fileManager createDirectoryAtPath:diskCachePath
-                                          withIntermediateDirectories:YES
-                                                           attributes:nil
-                                                                error:NULL];
-            }
-            else {
-                //NSLog(@"pas createDirectoryAtPath");
-                
-                
-                NSString *directoryPath = diskCachePath;
-                NSDirectoryEnumerator *directoryEnumerator = [fileManager enumeratorAtPath:directoryPath];
-                
-                NSDate *yesterday = [NSDate dateWithTimeIntervalSinceNow:(-60*60*24*25)];
-                //NSLog(@"yesterday %@", yesterday);
-                
-                for (NSString *path in directoryEnumerator) {
+                if ([[path pathExtension] isEqualToString:@"rtfd"]) {
+                    // Don't enumerate this directory.
+                    [directoryEnumerator skipDescendents];
+                }
+                else {
+                    
+                    NSDictionary *attributes = [directoryEnumerator fileAttributes];
+                    NSDate *CreatedDate = [attributes objectForKey:NSFileCreationDate];
 
-                    if ([[path pathExtension] isEqualToString:@"rtfd"]) {
-                        // Don't enumerate this directory.
-                        [directoryEnumerator skipDescendents];
+                    if ([yesterday earlierDate:CreatedDate] == CreatedDate) {
+                        //NSLog(@"%@ was created %@", path, CreatedDate);
+                        
+                        NSError *error = nil;
+                        if (![fileManager removeItemAtURL:[NSURL fileURLWithPath:[diskCachePath stringByAppendingPathComponent:path]] error:&error]) {
+                            // Handle the error.
+                            //NSLog(@"error %@ %@", path, error);
+                        }
+                        
                     }
                     else {
-                        
-                        NSDictionary *attributes = [directoryEnumerator fileAttributes];
-                        NSDate *CreatedDate = [attributes objectForKey:NSFileCreationDate];
+                        //NSLog(@"%@ was created == %@", path, CreatedDate);
 
-                        if ([yesterday earlierDate:CreatedDate] == CreatedDate) {
-                            //NSLog(@"%@ was created %@", path, CreatedDate);
-                            
-                            NSError *error = nil;
-                            if (![fileManager removeItemAtURL:[NSURL fileURLWithPath:[diskCachePath stringByAppendingPathComponent:path]] error:&error]) {
-                                // Handle the error.
-                                //NSLog(@"error %@ %@", path, error);
-                            }
-                            
-                        }
-                        else {
-                            //NSLog(@"%@ was created == %@", path, CreatedDate);
-
-                        }
                     }
-                    
                 }
                 
-                /*
-                NSDirectoryEnumerator *enumerator = [[NSFileManager defaultManager]
-                                                     enumeratorAtURL:directoryURL
-                                                     includingPropertiesForKeys:keys
-                                                     options:(NSDirectoryEnumerationSkipsPackageDescendants |
-                                                              NSDirectoryEnumerationSkipsHiddenFiles)
-                                                     errorHandler:^(NSURL *url, NSError *error) {
-                                                         // Handle the error.
-                                                         // Return YES if the enumeration should continue after the error.
-                                                         return YES;
-                                                     }];
-                
-                for (NSURL *url in enumerator) {
-                }
-                 */
             }
             
-
+            /*
+            NSDirectoryEnumerator *enumerator = [[NSFileManager defaultManager]
+                                                 enumeratorAtURL:directoryURL
+                                                 includingPropertiesForKeys:keys
+                                                 options:(NSDirectoryEnumerationSkipsPackageDescendants |
+                                                          NSDirectoryEnumerationSkipsHiddenFiles)
+                                                 errorHandler:^(NSURL *url, NSError *error) {
+                                                     // Handle the error.
+                                                     // Return YES if the enumeration should continue after the error.
+                                                     return YES;
+                                                 }];
             
-        // If disk usage outrich capacity, run the cache eviction operation and if cacheInfo dictionnary is dirty, save it in an operation
-            /* if (diskCacheUsage > self.diskCapacity)
-        {
-            self.periodicMaintenanceOperation = [[[NSInvocationOperation alloc] initWithTarget:self selector:@selector(balanceDiskUsage) object:nil] autorelease];
-            [ioQueue addOperation:periodicMaintenanceOperation];
-        }*/
-            //NSLog(@"end");
+            for (NSURL *url in enumerator) {
+            }
+             */
         }
+        
+
+        
+    // If disk usage outrich capacity, run the cache eviction operation and if cacheInfo dictionnary is dirty, save it in an operation
+        /* if (diskCacheUsage > self.diskCapacity)
+    {
+        self.periodicMaintenanceOperation = [[[NSInvocationOperation alloc] initWithTarget:self selector:@selector(balanceDiskUsage) object:nil] autorelease];
+        [ioQueue addOperation:periodicMaintenanceOperation];
+    }*/
+        //NSLog(@"end");
     }
+
 }
 
 - (void)applicationDidBecomeActive:(UIApplication *)application {
@@ -685,6 +662,7 @@
          }
     });
     
+    [self sendSettingsOncePerDay];
 }
 
 - (void)applicationWillTerminate:(UIApplication *)application {
@@ -839,9 +817,7 @@
 }
 
 - (void)dealloc {
-    if (BACKGROUND_MAINTENANCE) {
-        [periodicMaintenanceTimer invalidate];
-    }
+    [periodicMaintenanceTimer invalidate];
     periodicMaintenanceTimer = nil;
 }
 
@@ -856,6 +832,102 @@ continueUserActivity:(NSUserActivity *)userActivity
         return YES;
     }
     return NO;
+}
+
+#pragma mark - Analytics
+
+- (void)setupupAnalytics {
+    
+    // Use Firebase library to configure APIs
+    [FIRApp configure];
+    [FIRAnalytics setUserID:nil]; // ne jamais définir d’ID utilisateur si tu veux rester anonyme
+    //Désactive la collecte (jusqu’à ce que l’utilisateur donne son consentement) :
+    //[FIRAnalytics setAnalyticsCollectionEnabled:NO];
+    
+    if ([[NSUserDefaults standardUserDefaults]  boolForKey:@"HasAskedAnalyticsConsent_t1"]) {
+        // L'utilisateur a déjà répondu : activer ou non Firebase Analytics
+        BOOL consentGiven = [[NSUserDefaults standardUserDefaults]  boolForKey:@"UserGaveAnalyticsConsent"];
+        [FIRAnalytics setAnalyticsCollectionEnabled:consentGiven];
+    } else {
+        // Lancer la demande de consentement au premier lancement
+        dispatch_async(dispatch_get_main_queue(), ^{
+            UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Statistiques anonymes"
+                                                                           message:@"Nous utilisons des statistiques anonymes pour améliorer l'app. Acceptez-vous ?"
+                                                                    preferredStyle:UIAlertControllerStyleAlert];
+            
+            UIAlertAction *yesAction = [UIAlertAction actionWithTitle:@"Accepter"
+                                                                style:UIAlertActionStyleDefault
+                                                              handler:^(UIAlertAction * action) {
+                [[NSUserDefaults standardUserDefaults]  setBool:YES forKey:@"UserGaveAnalyticsConsent"];
+                [[NSUserDefaults standardUserDefaults]  setBool:YES forKey:@"HasAskedAnalyticsConsent_t1"];
+                [[NSUserDefaults standardUserDefaults]  synchronize];
+                [FIRAnalytics setAnalyticsCollectionEnabled:YES];
+            }];
+            
+            UIAlertAction *noAction = [UIAlertAction actionWithTitle:@"Refuser"
+                                                               style:UIAlertActionStyleCancel
+                                                             handler:^(UIAlertAction * action) {
+                [[NSUserDefaults standardUserDefaults]  setBool:NO forKey:@"UserGaveAnalyticsConsent"];
+                [[NSUserDefaults standardUserDefaults]  setBool:YES forKey:@"HasAskedAnalyticsConsent_t1"];
+                [[NSUserDefaults standardUserDefaults]  synchronize];
+                [FIRAnalytics setAnalyticsCollectionEnabled:NO];
+            }];
+            
+            [alert addAction:yesAction];
+            [alert addAction:noAction];
+            
+            [self.window.rootViewController presentViewController:alert animated:YES completion:nil];
+        });
+    }
+}
+
+- (void)sendSettingsOncePerDay {
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+
+    // Récupérer la dernière date d'envoi
+    NSDate *lastSentDate = [defaults objectForKey:@"settingsLastSentDate"];
+
+    BOOL shouldSend = NO;
+    if (!lastSentDate) {
+        shouldSend = YES; // Jamais envoyé
+    } else {
+        // Comparer avec la date d'aujourd'hui
+        NSCalendar *calendar = [NSCalendar currentCalendar];
+        NSDateComponents *lastComponents = [calendar components:NSCalendarUnitYear|NSCalendarUnitMonth|NSCalendarUnitDay
+                                                        fromDate:lastSentDate];
+        NSDateComponents *todayComponents = [calendar components:NSCalendarUnitYear|NSCalendarUnitMonth|NSCalendarUnitDay
+                                                        fromDate:[NSDate date]];
+
+        if (lastComponents.year != todayComponents.year ||
+            lastComponents.month != todayComponents.month ||
+            lastComponents.day != todayComponents.day) {
+            shouldSend = YES;
+        }
+    }
+
+    if (shouldSend) {
+        // Exemple de récupération de réglages
+        [FIRAnalytics logEventWithName:@"daily_settings"
+                            parameters:@{
+                                @"default_tab": [defaults objectForKey:@"default_tab"],
+                                @"sujets_avec_cat": [defaults objectForKey:@"sujets_avec_cat"],
+                                @"haptics": [defaults objectForKey:@"haptics"],
+                                @"auto_theme": [defaults objectForKey:@"auto_theme"],
+                                @"theme_style": [defaults objectForKey:@"theme_style"],
+                                @"size_text_topics": [defaults objectForKey:@"size_text_topics"],
+                                @"size_text": [defaults objectForKey:@"size_text"],
+                                @"size_text_reply": [defaults objectForKey:@"size_text_reply"],
+                                @"size_smileys": [defaults objectForKey:@"size_smileys"],
+                                @"display_images": [defaults objectForKey:@"display_images"],
+                                @"embedded_videos": [defaults objectForKey:@"embedded_videos"],
+                                @"display_sig": [defaults objectForKey:@"display_sig"],
+                                @"mpstorage_active": [defaults objectForKey:@"mpstorage_active"]
+                            }];
+
+        // Sauvegarder la date d'envoi
+        [defaults setObject:[NSDate date] forKey:@"settingsLastSentDate"];
+        [defaults synchronize];
+    }
 }
 
 

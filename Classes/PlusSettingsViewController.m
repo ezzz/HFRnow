@@ -12,6 +12,8 @@
 #import "HFRAlertView.h"
 #import "MPStorage.h"
 #import "MultisManager.h"
+#import "AnalyticsManager.h"
+#import <Firebase.h>
 
 @import InAppSettingsKit;
 
@@ -247,7 +249,16 @@
             [self hideCell:@"mpstorage_last_rw"];
             [self hideCell:@"mpstorage_reset"];
         }
+    } else if([notification.userInfo objectForKey:@"UserGaveAnalyticsConsent"]) {
+        if ([[NSUserDefaults standardUserDefaults] boolForKey:@"UserGaveAnalyticsConsent"]) {
+            [FIRAnalytics setAnalyticsCollectionEnabled:YES];
+        }
+        else {
+            [FIRAnalytics setAnalyticsCollectionEnabled:NO];
+        }
     }
+
+    [AnalyticsManager logFirstSettingFromDictionary:notification.userInfo];
 
     [self.tableView reloadData];
 }

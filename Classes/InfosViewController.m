@@ -14,6 +14,7 @@
 #import "HFRDebugViewController.h"
 #import "AlerteModoViewController.h"
 #import "InfoTableViewCell.h"
+#import "AnalyticsManager.h"
 
 @implementation InfosViewController
 

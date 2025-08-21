@@ -24,6 +24,7 @@
 #import "SmileyAlertView.h"
 #import "PullToRefreshErrorViewController.h"
 #import "TopicsSearchViewController.h"
+#import "AnalyticsManager.h"
 
 @implementation TopicsTableViewController
 @synthesize arrayData, arrayNewData;
@@ -213,7 +214,8 @@
 	// The navigation controller is now owned by the current view controller
 	// and the root view controller is owned by the navigation controller,
 	// so both objects should be released to prevent over-retention.
-
+    
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"topics_new_topic"}];
 }
 
 - (void)loadSubCat
@@ -346,6 +348,8 @@
 	}
     
 	[self goFlag];
+    
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"topics_select_filter"}];
 }
 
 
@@ -588,6 +592,8 @@
 	self.messagesTableViewController.isViewed = topic.isViewed;
 
 	[self pushTopic];
+    
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"topics_opentopic_accessory"}];
 }
 
 -(void)handleLongPress:(UILongPressGestureRecognizer*)longPressRecognizer {
@@ -654,6 +660,8 @@
     self.messagesTableViewController.isViewed = [[arrayData objectAtIndex:pressedIndexPath.row] isViewed];
     
     [self pushTopic];
+    
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"topics_opentopic_firstpage"}];
 }
 
 -(void)lastPageAction{
@@ -666,6 +674,8 @@
     [self pushTopic];
     //[self.navigationController pushViewController:messagesTableViewController animated:YES];
     //NSLog(@"url pressed last page: %@", [[arrayData objectAtIndex:pressedIndexPath.row] aURLOfLastPage]);
+    
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"topics_opentopic_lastpage"}];
 }
 
 -(void)lastPostAction{
@@ -678,6 +688,8 @@
     
     [self pushTopic];
     //NSLog(@"url pressed last post: %@", [[arrayData objectAtIndex:pressedIndexPath.row] aURLOfLastPost]);
+    
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"topics_opentopic_lastpost"}];
 }
 
 -(void)copyLinkAction {
@@ -697,6 +709,7 @@
     }];
     [[ThemeManager sharedManager] applyThemeToAlertController:alert];
     
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"topics_copylink"}];
 }
 
 
@@ -764,9 +777,6 @@
         }
     }];
     
-    
-    
-    
 }
 
 -(void)textFieldTopicDidChange:(id)sender {
@@ -807,19 +817,21 @@
 }
 
 
--(void)gotoPageNumber:(int)number{
-        //NSLog(@"goto topic page %d", [[pageNumberField text] intValue]);
-        NSString * newUrl = [[NSString alloc] initWithString:[[arrayData objectAtIndex:pressedIndexPath.row] aURL]];
-        newUrl = [newUrl stringByReplacingOccurrencesOfString:@"_1.htm" withString:[NSString stringWithFormat:@"_%d.htm", number]];
-        newUrl = [newUrl stringByReplacingOccurrencesOfString:@"page=1&" withString:[NSString stringWithFormat:@"page=%d&",number]];
-        newUrl = [newUrl stringByRemovingAnchor];
-        
-		MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:newUrl];
-		self.messagesTableViewController = aView;
-        self.messagesTableViewController.topicName = [[arrayData objectAtIndex:pressedIndexPath.row] aTitle];
-        self.messagesTableViewController.isViewed = [[arrayData objectAtIndex:pressedIndexPath.row] isViewed];	
-        
-        [self pushTopic];
+-(void)gotoPageNumber:(int)number {
+    //NSLog(@"goto topic page %d", [[pageNumberField text] intValue]);
+    NSString * newUrl = [[NSString alloc] initWithString:[[arrayData objectAtIndex:pressedIndexPath.row] aURL]];
+    newUrl = [newUrl stringByReplacingOccurrencesOfString:@"_1.htm" withString:[NSString stringWithFormat:@"_%d.htm", number]];
+    newUrl = [newUrl stringByReplacingOccurrencesOfString:@"page=1&" withString:[NSString stringWithFormat:@"page=%d&",number]];
+    newUrl = [newUrl stringByRemovingAnchor];
+    
+    MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:newUrl];
+    self.messagesTableViewController = aView;
+    self.messagesTableViewController.topicName = [[arrayData objectAtIndex:pressedIndexPath.row] aTitle];
+    self.messagesTableViewController.isViewed = [[arrayData objectAtIndex:pressedIndexPath.row] isViewed];
+    
+    [self pushTopic];
+    
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"topics_opentopic_gotopage"}];
 }
 
 
@@ -847,6 +859,8 @@
 	self.messagesTableViewController.isViewed = [[arrayData objectAtIndex:indexPath.row] isViewed];	
     
     [self pushTopic];
+    
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"topics_opentopic_didselect"}];
 }
 
 #pragma mark -
@@ -970,6 +984,8 @@
         CGRect origFrame = [(UISegmentedControl *)sender frame];
         [_popover presentPopoverFromRect:origFrame inView:self.navigationItem.titleView permittedArrowDirections:UIPopoverArrowDirectionAny animated:YES];
     }
+    
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"topics_select_subcat"}];
 }
 
 @end

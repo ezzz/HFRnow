@@ -9,7 +9,7 @@
 #import "HFRplusAppDelegate.h"
 #import "ThemeColors.h"
 #import "ThemeManager.h"
-
+#import "AnalyticsManager.h"
 
 @interface CreditsViewController ()
 @property (nonatomic, strong) NSString *filename;

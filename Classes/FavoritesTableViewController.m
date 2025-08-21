@@ -39,6 +39,8 @@
 #import "FilterPostsQuotes.h"
 #import "TopicsSearchViewController.h"
 
+#import "AnalyticsManager.h"
+
 #define SECTION_CAT_VISIBLE 0
 #define SECTION_CAT_HIDDEN 1
 
@@ -117,7 +119,10 @@
     }
     [self.favoritesTableView setEditing:self.editCategoriesList animated:YES];
     [self.favoritesTableView reloadData];
+    
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"favori_editcatlist"}];
 }
+
 - (void)cancelFetchContent
 {
     //[self.favoritesTableView.pullToRefreshView stopAnimating];
@@ -835,6 +840,8 @@
 	aView.forumName = [[[arrayCategories objectAtIndex:section] forum] aTitle];
     
     [self.navigationController pushViewController:aView animated:YES];
+    
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"favori_loadcat"}];
 }
 
 - (void)loadCatForType:(id)sender {
@@ -1389,6 +1396,8 @@
         
         //NSLog(@"push message liste");
         [self pushTopic];
+        
+        [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"favori_opentopic_didselect"}];
     }
 }
 
@@ -1401,6 +1410,7 @@
             topicActionAlert = nil;
         }
         NSMutableArray *arrayActionsMessages = [NSMutableArray array];
+        //[arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Première page", @"firstPageAction", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
         [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Dernière page", @"lastPageAction", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
         [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Dernière réponse", @"lastPostAction", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
         [arrayActionsMessages addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:@"Page numéro...", @"chooseTopicPage", nil] forKeys:[NSArray arrayWithObjects:@"title", @"code", nil]]];
@@ -1464,6 +1474,20 @@
 	}
 }
 
+-(void)firstPageAction{
+    NSIndexPath *indexPath = pressedIndexPath;
+    Topic *tmpTopic = [self getTopicAtIndexPath:indexPath];
+    
+    MessagesTableViewController *aView = [[MessagesTableViewController alloc] initWithNibName:@"MessagesTableViewController" bundle:nil andUrl:[tmpTopic aURL]];
+    self.messagesTableViewController = aView;
+    
+    self.messagesTableViewController.topicName = [tmpTopic aTitle];
+    
+    [self pushTopic];
+    
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"favori_opentopic_firstpage"}];
+}
+
 -(void)lastPageAction{
     NSIndexPath *indexPath = pressedIndexPath;
     Topic *tmpTopic = [self getTopicAtIndexPath:indexPath];
@@ -1475,7 +1499,7 @@
     
     [self pushTopic];
     
-    //NSLog(@"url pressed last page: %@", [[arrayData objectAtIndex:theRow] lastPageUrl]);
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"favori_opentopic_lastpage"}];
 }
 
 -(void)lastPostAction{
@@ -1489,7 +1513,7 @@
     
     [self pushTopic];
     
-    //NSLog(@"url pressed last post: %@", [[arrayData objectAtIndex:pressedIndexPath.row] lastPostUrl]);
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"favori_opentopic_lastpost"}];
 }
 
 -(void)copyLinkAction {
@@ -1511,6 +1535,8 @@
         });
     }];
     [[ThemeManager sharedManager] applyThemeToAlertController:alert];
+    
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"favori_copylink"}];
 }
 
 
@@ -1618,6 +1644,8 @@
         [[NSUserDefaults standardUserDefaults] setObject:self.idPostSuperFavorites forKey:@"SuperFavoritesIds"];
         [self.favoritesTableView reloadData];
     });
+    
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"favori_superfavori"}];
 }
 
 -(void)checkPostsAndQuotesForTopicIndex:(NSIndexPath *)indexPath {
@@ -1626,6 +1654,8 @@
         self.filterPostsQuotes = [[FilterPostsQuotes alloc] init];
     }
     [self.filterPostsQuotes checkPostsAndQuotesForTopic:topic andVC:self];
+    
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"favori_filterpost"}];
 }
 
 -(void) addProgressBar {
@@ -1769,6 +1799,8 @@
     
     //NSLog(@"push message liste");
     [self pushTopic];
+    
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"favori_opentopic_gotopage"}];
 }
 
 -(void)textFieldTopicDidChange:(id)sender {
