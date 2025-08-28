@@ -6,7 +6,7 @@
 //
 
 import UIKit
-
+/*
 @UIApplicationMain
 
 class AppDelegate: HFRplusAppDelegate {
@@ -19,3 +19,4 @@ class AppDelegate: HFRplusAppDelegate {
     }
 }
 
+*/

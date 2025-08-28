@@ -45,7 +45,7 @@
     self.navigationController.navigationBar.translucent = NO;
     self.plusTableView.tableFooterView = [[UIView alloc] initWithFrame:CGRectZero];
     
-    self.compteViewController = [[CompteViewController alloc] initWithNibName:@"CompteViewController" bundle:nil];
+    self.compteViewController = [[CompteViewController alloc] init]; //WithNibName:@"CompteViewController" bundle:nil];
     self.searchViewController = [[TopicsSearchViewController alloc] init];
     self.searchViewController.currentCat = @"13"; // Discussions
     self.settingsViewController = [[PlusSettingsViewController alloc] initWithNibName:@"SettingsView" bundle:nil];

@@ -12,7 +12,7 @@
 @class HFRNavigationController;
 @class PullToRefreshErrorViewController;
 @class ASIHTTPRequest, FilterPostsQuotes;
-
+@class Topic;
 
 @interface FavoritesTableViewController : UIViewController <UIActionSheetDelegate, UITableViewDelegate, UITableViewDataSource, UITextFieldDelegate, UIAlertViewDelegate> {
 	IBOutlet UITableView *favoritesTableView;
@@ -90,5 +90,12 @@
 
 - (void)chooseTopicPage;
 -(void) updateProgressBarWithPercent:(float)fPercent andMessage:(NSString*)sMessage;
+
+// SWIFT
+
+@property (nonatomic, copy) void (^completion)(NSArray<Topic *> *topics, NSError *error);
+
+- (void)fetchContentWithCompletion:(void (^)(NSArray<Topic *> *topics, NSError *error))completion;
+
 
 @end

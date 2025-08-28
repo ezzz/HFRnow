@@ -50,8 +50,48 @@
 @synthesize request;
 @synthesize reloadOnAppear, status, statusMessage, maintenanceView, topicActionAlert, filterPostsQuotes;
 
-#pragma mark -
-#pragma mark Data lifecycle
+#pragma mark - Init
+
+- (id)init {
+    self = [super init];
+    if (self) {
+        self.arrayData = [[NSMutableArray alloc] init];
+        self.arrayTopics = [[NSMutableArray alloc] init];
+        self.arrayNewData = [[NSMutableArray alloc] init];
+        self.arrayCategories = [[NSMutableArray alloc] init];
+        
+        // Get cat order from user default if present
+        NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+        if([[[defaults dictionaryRepresentation] allKeys] containsObject:@"arrayCategoriesVisibleOrder"]) {
+            self.arrayCategoriesVisibleOrder = [[defaults arrayForKey:@"arrayCategoriesVisibleOrder"] mutableCopy];
+        } else {
+            // If not, create en empty array
+            self.arrayCategoriesVisibleOrder = [[NSMutableArray alloc] init];
+        }
+        
+        // Get cat hidden list from user default if present
+        if ([[[defaults dictionaryRepresentation] allKeys] containsObject:@"arrayCategoriesHiddenOrder"]) {
+            self.arrayCategoriesHiddenOrder = [[defaults arrayForKey:@"arrayCategoriesHiddenOrder"] mutableCopy];
+        } else {
+            // If not, create en empty array
+            self.arrayCategoriesHiddenOrder = [[NSMutableArray alloc] init];
+        }
+        
+        // Get Ids super favorites if presents
+        if ([[[defaults dictionaryRepresentation] allKeys] containsObject:@"SuperFavoritesIds"]) {
+            self.idPostSuperFavorites = [[defaults arrayForKey:@"SuperFavoritesIds"] mutableCopy];
+        } else {
+            // If not, create en empty array
+            self.idPostSuperFavorites = [[NSMutableArray alloc] init];
+        }
+        
+        self.statusMessage = [[NSString alloc] init];
+    }
+
+    return self;
+}
+
+#pragma mark - Data lifecycle
 
 -(void) showAll:(id)sender {
     if (self.showAll) {
@@ -122,6 +162,8 @@
     //[self.favoritesTableView.pullToRefreshView stopAnimating];
     [request cancel];
 }
+
+
 
 - (void)fetchContent
 {
@@ -257,10 +299,13 @@
 -(void)loadDataInTableView:(NSData *)contentData
 {
     NSLog(@"loadDataInTableView");
-    
-    [self.arrayCategories removeAllObjects];
-    [self.arrayCategoriesHidden removeAllObjects];
-    
+
+    self.arrayData = [[NSMutableArray alloc] init];
+    self.arrayTopics = [[NSMutableArray alloc] init];
+    self.arrayNewData = [[NSMutableArray alloc] init];
+    self.arrayCategories = [[NSMutableArray alloc] init];
+    self.arrayCategoriesHidden = [[NSMutableArray alloc] init];
+
 	HTMLParser * myParser = [[HTMLParser alloc] initWithData:contentData error:NULL];
 	HTMLNode * bodyNode = [myParser body];
 
@@ -280,10 +325,9 @@
         }
         
         [[NSNotificationCenter defaultCenter] postNotificationName:kStatusChangedNotification object:self userInfo:notif];
-
-		return;		
+		return;
 	}
-		
+        
 	//MP
 	BOOL needToUpdateMP = NO;
 	HTMLNode *MPNode = [bodyNode findChildOfClass:@"none"]; //Get links for cat	
@@ -339,6 +383,9 @@
     //Loop through all the tags
     for (HTMLNode * trNode in temporaryFavoriteArray)
     {
+        
+        NSLog(@"node %@", [trNode allContents]);
+        
         if ([[trNode className] rangeOfString:@"fondForum1fCat"].location != NSNotFound)
         {
             if (!first) {
@@ -439,6 +486,8 @@
     [[NSUserDefaults standardUserDefaults] setObject:self.arrayCategoriesHiddenOrder forKey:@"arrayCategoriesHiddenOrder"];
     [[NSUserDefaults standardUserDefaults] synchronize];
     
+    NSLog(@"Size matters %ld %ld", tmpArrayCategories.count, self.arrayNewData.count);
+    
     // Reorder favorites
     NSSortDescriptor *sortDescriptor = [[NSSortDescriptor alloc] initWithKey: @"order" ascending:YES selector:@selector(compare:)];
     tmpArrayCategories = (NSMutableArray *)[tmpArrayCategories sortedArrayUsingDescriptors: [NSArray arrayWithObject:sortDescriptor]];
@@ -450,6 +499,8 @@
     tmpArrayNewData = (NSMutableArray *)[tmpArrayNewData sortedArrayUsingDescriptors: [NSArray arrayWithObject:sortDescriptor]];
     self.arrayNewData = [NSMutableArray arrayWithArray:tmpArrayNewData];
 
+    
+    
     NSSortDescriptor *sortDescriptorDate = [[NSSortDescriptor alloc] initWithKey: @"dDateOfLastPost" ascending:NO selector:@selector(compare:)];
     self.arrayTopics = (NSMutableArray *)[tmpTopics sortedArrayUsingDescriptors: [NSMutableArray arrayWithObject:sortDescriptorDate]];
     
@@ -467,6 +518,30 @@
         NSDictionary *notif = [NSDictionary dictionaryWithObjectsAndKeys:   [NSNumber numberWithInt:kComplete], @"status", nil];
         [[NSNotificationCenter defaultCenter] postNotificationName:kStatusChangedNotification object:self userInfo:notif];
     }
+    
+    // Send result to SWIFT
+    NSLog(@"Favori send result to SWIFT");
+    if (self.completion) {
+        NSArray<Topic *> *immutableTopics = [self.arrayNewData copy];
+        NSLog(@"Favori topics loaded %ld -> %ld", self.arrayNewData.count, immutableTopics.count);
+        self.completion(immutableTopics, nil);
+    }
+    
+    /*
+    Topic *topic1 = [[Topic alloc] init];
+    topic1._aTitle = @"Premier sujet";
+
+    Topic *topic2 = [[Topic alloc] init];
+    topic2._aTitle = @"Deuxième sujet";
+
+    // Création d’un NSArray avec les deux objets
+    NSArray<Topic *> *topicsArray = @[ topic1, topic2 ];
+    
+    // Send result to SWIFT
+    if (self.completion) {
+        NSLog(@"Favori send result to SWIFT");
+        self.completion(topicsArray, nil);
+    }*/
 }
 
 - (void)addFavorite:(Favorite*)fav into:(NSMutableArray*)arrayDataLocal andTopicsInto:(NSMutableArray*)arrayTopicsLocal
@@ -641,38 +716,6 @@
     if (@available(iOS 15.0, *)) {
         self.favoritesTableView.sectionHeaderTopPadding = 0;
     }
-    
-    self.arrayData = [[NSMutableArray alloc] init];
-    self.arrayTopics = [[NSMutableArray alloc] init];
-    self.arrayNewData = [[NSMutableArray alloc] init];
-    self.arrayCategories = [[NSMutableArray alloc] init];
-
-    // Get cat order from user default if present
-    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    if([[[defaults dictionaryRepresentation] allKeys] containsObject:@"arrayCategoriesVisibleOrder"]) {
-        self.arrayCategoriesVisibleOrder = [[defaults arrayForKey:@"arrayCategoriesVisibleOrder"] mutableCopy];
-    } else {
-        // If not, create en empty array
-        self.arrayCategoriesVisibleOrder = [[NSMutableArray alloc] init];
-    }
-    
-    // Get cat hidden list from user default if present
-    if ([[[defaults dictionaryRepresentation] allKeys] containsObject:@"arrayCategoriesHiddenOrder"]) {
-        self.arrayCategoriesHiddenOrder = [[defaults arrayForKey:@"arrayCategoriesHiddenOrder"] mutableCopy];
-    } else {
-        // If not, create en empty array
-        self.arrayCategoriesHiddenOrder = [[NSMutableArray alloc] init];
-    }
-    
-    // Get Ids super favorites if presents
-    if ([[[defaults dictionaryRepresentation] allKeys] containsObject:@"SuperFavoritesIds"]) {
-        self.idPostSuperFavorites = [[defaults arrayForKey:@"SuperFavoritesIds"] mutableCopy];
-    } else {
-        // If not, create en empty array
-        self.idPostSuperFavorites = [[NSMutableArray alloc] init];
-    }
-    
-	self.statusMessage = [[NSString alloc] init];
 	
 	//NSLog(@"viewDidLoad %d", self.arrayDataID.count);
 
@@ -1919,6 +1962,11 @@
 
 }
 
+#pragma mark - SWIFT
+- (void)fetchContentWithCompletion:(void (^)(NSArray<Topic *> *, NSError *))completion {
+    self.completion = completion;
+    [self fetchContent]; // lance la chaîne classique
+}
 
 @end
 

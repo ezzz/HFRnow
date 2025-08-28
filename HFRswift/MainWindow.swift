@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 
 enum Tabs: Int {
     case add = 0
@@ -78,6 +79,69 @@ struct CategoriesTableViewWrapper: UIViewControllerRepresentable {
 
     func updateUIViewController(_ uiViewController: UINavigationController, context: Context) {
         // Rien à faire ici dans ton cas
+    }
+}
+
+struct TopicModel: Identifiable {
+    let id = UUID()
+    let title: String
+
+    init(from topic: Topic) {
+        self.title = topic._aTitle ?? ""
+        //self.content = message.content ?? ""
+    }
+}
+
+final class TopicListViewModel: ObservableObject {
+    @Published var topics: [TopicModel] = []
+
+    // Crée une instance pour appeler la méthode d’instance
+    private let favorites = FavoritesTableViewController()
+
+    func loadTopics() {
+        favorites.fetchContent { [weak self] objcTopics, error in
+            guard let self = self else { return }
+            if let error = error {
+                print("Erreur fetch:", error)
+                return
+            }
+            let swiftTopics = (objcTopics ?? []).map { TopicModel(from: $0) }
+            DispatchQueue.main.async {
+                self.topics = swiftTopics
+            }
+        }
+    }
+}
+
+
+struct TopicRowView: View {
+    let topic: TopicModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(topic.title)
+                .font(.headline)
+            Text(topic.title)
+                .font(.subheadline)
+                .foregroundColor(.gray)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+struct TopicListView: View {
+    @StateObject private var viewModel = TopicListViewModel()
+
+    var body: some View {
+        NavigationView {
+            List(viewModel.topics) { topic in
+                TopicRowView(topic: topic)
+            }
+            .navigationTitle("Favoris")
+            .onAppear {
+                viewModel.loadTopics()
+            }
+        }
     }
 }
 
@@ -182,7 +246,8 @@ struct RootTabView: View {
                     }
             }
             Tab("Favoris", systemImage: "star.fill") {
-                FeedView()
+                //FeedView()
+                TopicListView()
             }
             Tab("Messages", systemImage: "envelope") {
                 NavigationView {
@@ -191,8 +256,10 @@ struct RootTabView: View {
                 }
             }
             Tab("Messages", systemImage: "envelope") {
-                PlusTableViewWrapper()
-                    .navigationTitle("Plus")
+                NavigationView {
+                    PlusTableViewWrapper()
+                        .navigationTitle("Plus")
+                }
             }
         }
     }

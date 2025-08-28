@@ -8,6 +8,8 @@
 #import "PlusTableViewController.h"
 #import "ForumsTableViewController.h"
 #import "HFRplusAppDelegate.h"
+#import "FavoritesTableViewController.h"
+#import "Topic.h"
 
 #endif /* Bridging_Header_h */
 
