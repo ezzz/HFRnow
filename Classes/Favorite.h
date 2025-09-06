@@ -8,19 +8,19 @@
 #import <Foundation/Foundation.h>
 @class Forum;
 @class HTMLNode;
+@class Topic;
+
+NS_ASSUME_NONNULL_BEGIN
 
 @interface Favorite : NSObject
-{
-    Forum *forum;
-    NSMutableArray *topics;
-    NSNumber *order;
-}
 
-@property (nonatomic, strong) Forum *forum;
-@property (nonatomic, strong) NSMutableArray *topics;
-@property (nonatomic) NSNumber *order;
+@property (nonatomic, strong, nullable) Forum *forum;
+@property (nonatomic, strong) NSMutableArray<Topic *> *topics;
+@property (nonatomic, strong, nullable) NSNumber *order;
 
--(void)parseNode:(HTMLNode *)node;
--(id)addTopicWithNode:(HTMLNode *)node;
+- (void)parseNode:(HTMLNode *)node;
+- (nullable id)addTopicWithNode:(HTMLNode *)node;
 
 @end
+
+NS_ASSUME_NONNULL_END

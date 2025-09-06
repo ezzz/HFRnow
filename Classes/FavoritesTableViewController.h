@@ -12,7 +12,7 @@
 @class HFRNavigationController;
 @class PullToRefreshErrorViewController;
 @class ASIHTTPRequest, FilterPostsQuotes;
-@class Topic;
+@class Favorite;
 
 @interface FavoritesTableViewController : UIViewController <UIActionSheetDelegate, UITableViewDelegate, UITableViewDataSource, UITextFieldDelegate, UIAlertViewDelegate> {
 	IBOutlet UITableView *favoritesTableView;
@@ -93,9 +93,9 @@
 
 // SWIFT
 
-@property (nonatomic, copy) void (^completion)(NSArray<Topic *> *topics, NSError *error);
+@property (nonatomic, copy) void (^completion)(NSArray<Favorite *> *favorites, NSError *error);
 
-- (void)fetchContentWithCompletion:(void (^)(NSArray<Topic *> *topics, NSError *error))completion;
+- (void)fetchContentWithCompletion:(void (^)(NSArray<Favorite *> *favorites, NSError *error))completion;
 
 
 @end

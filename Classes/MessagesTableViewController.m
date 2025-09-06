@@ -57,6 +57,55 @@
 @synthesize actionCreateAQ, actionCreateBookmark, canSaveDrapalInMPStorage, topic, filterPostsQuotes, arrFilteredPosts, alertProgress, progressView;
 @synthesize sSelectedSmileyCode, sSelectedSmileyImageURL, webviewInteraction;
 
+
+- (id)init {
+    self = [super init];
+    if (self) {
+        self.currentOfflineTopic = nil;
+        self.loaded = NO;
+        self.isViewed = YES;
+        [self setIsSearchInstra:NO];
+        self.errorReported = NO;
+        self.canSaveDrapalInMPStorage = NO;
+        self.filterPostsQuotes = nil;
+        self.arrFilteredPosts = nil;
+        self.isSeparatorNewMessages = YES;
+        
+        self.isAnimating = NO;
+
+        self.arrayAction = [[NSMutableArray alloc] init];
+        self.arrayActionsMessages = [[NSMutableArray alloc] init];
+        
+        self.arrayData = [[NSMutableArray alloc] init];
+        self.updatedArrayData = [[NSMutableArray alloc] init];
+        self.arrayInputData = [[NSMutableDictionary alloc] init];
+        self.editFlagTopic = [[NSString    alloc] init];
+        self.stringFlagTopic = [[NSString    alloc] init];
+        self.lastStringFlagTopic = [[NSString    alloc] init];
+
+        self.isFavoritesOrRead = [[NSString    alloc] init];
+        self.isUnreadable = NO;
+        self.curPostID = -1;
+        
+        if (!self.searchInputData) {
+            NSLog(@"NO searchInputData");
+            self.searchInputData = [[NSMutableDictionary alloc] init];
+        }
+
+        [self setEditFlagTopic:nil];
+        [self setStringFlagTopic:@""];
+        
+        if (self.filterPostsQuotes) {
+            [self manageLoadedItems:self.filterPostsQuotes.arrData];
+            self.pageNumberFilterStart = self.filterPostsQuotes.iStartPage;
+            self.pageNumberFilterEnd = self.filterPostsQuotes.iLastPageLoaded;
+            [self setupScrollAndPage];
+        }
+    }
+    
+    return self;
+}
+
 - (void)setTopicName:(NSString *)n {
     _topicName = [n filterTU];
 }
@@ -68,18 +117,7 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.currentOfflineTopic = nil;
-    self.loaded = NO;
-    self.isViewed = YES;
-    [self setIsSearchInstra:NO];
-    self.errorReported = NO;
-    self.canSaveDrapalInMPStorage = NO;
-    self.filterPostsQuotes = nil;
-    self.arrFilteredPosts = nil;
-    self.isSeparatorNewMessages = YES;
     
-    self.isAnimating = NO;
-
     // Création de la WebView
     self.messagesWebView = [[WKWebView alloc] initWithFrame:CGRectZero];
     self.messagesWebView.translatesAutoresizingMaskIntoConstraints = NO;
@@ -167,33 +205,9 @@
         self.navigationItem.rightBarButtonItems = myButtonArray;
     }
         
-    self.arrayAction = [[NSMutableArray alloc] init];
-    self.arrayActionsMessages = [[NSMutableArray alloc] init];
-    
-    self.arrayData = [[NSMutableArray alloc] init];
-    self.updatedArrayData = [[NSMutableArray alloc] init];
-    self.arrayInputData = [[NSMutableDictionary alloc] init];
-    self.editFlagTopic = [[NSString    alloc] init];
-    self.stringFlagTopic = [[NSString    alloc] init];
-    self.lastStringFlagTopic = [[NSString    alloc] init];
 
-    self.isFavoritesOrRead = [[NSString    alloc] init];
-    self.isUnreadable = NO;
-    self.curPostID = -1;
-    
-    if (!self.searchInputData) {
-        NSLog(@"NO searchInputData");
-        self.searchInputData = [[NSMutableDictionary alloc] init];
-    }
-
-    [self setEditFlagTopic:nil];
-    [self setStringFlagTopic:@""];
     
     if (self.filterPostsQuotes) {
-        [self manageLoadedItems:self.filterPostsQuotes.arrData];
-        self.pageNumberFilterStart = self.filterPostsQuotes.iStartPage;
-        self.pageNumberFilterEnd = self.filterPostsQuotes.iLastPageLoaded;
-        [self setupScrollAndPage];
     } else {
         [self fetchContent];
     }
@@ -236,8 +250,8 @@
 	[request setDidFinishSelector:@selector(fetchContentComplete:)];
 	[request setDidFailSelector:@selector(fetchContentFailed:)];
     
-	[self.view removeGestureRecognizer:swipeLeftRecognizer];
-	[self.view removeGestureRecognizer:swipeRightRecognizer];
+	//[self.view removeGestureRecognizer:swipeLeftRecognizer];
+	//[self.view removeGestureRecognizer:swipeRightRecognizer];
 	
 	if ([NSThread isMainThread]) {
         //[self.messagesWebView setHidden:YES];
@@ -245,10 +259,10 @@
 
     //NSLog(@"from %d", from);
     
-    [self.errorLabelView setHidden:YES];
+    //[self.errorLabelView setHidden:YES];
 
     if(from == kNewMessageFromNext) self.stringFlagTopic = @"#bas";
-    
+    /*
     switch (from) {
         case kNewMessageFromUpdate:
         case kNewMessageFromEditor:
@@ -261,7 +275,7 @@
             [self.messagesWebView evaluateJavaScript:@"document.body.innerHTML = \"\";" completionHandler:nil];
             break;
     }
-    
+    */
 	[request startAsynchronous];
 }
 
@@ -323,6 +337,7 @@
 
 - (void)fetchContentComplete:(ASIHTTPRequest *)theRequest
 {
+    NSLog(@"fetchContentComplete");
     //MaJ de la puce MP
 	if (!self.isViewed) {
 		//NSLog(@"pas lu");
@@ -337,9 +352,16 @@
 
 - (void)startParseDataHtml:(NSData*)data {
     // create the queue to run our ParseOperation
+    /*
     self.queue = [[NSOperationQueue alloc] init];
     ParseMessagesOperation *parser = [[ParseMessagesOperation alloc] initWithData:data index:0 reverse:NO delegate:self];
-    [queue addOperation:parser]; // this will start the "ParseOperation"
+    [queue addOperation:parser]; // this will start the "ParseOperation"*/
+    
+    ParseMessagesOperation *parser = [[ParseMessagesOperation alloc] initWithData:data index:0 reverse:NO delegate:self];
+    NSError * error = nil;
+    HTMLParser *myParser = [[HTMLParser alloc] initWithData:data error:&error];
+    [parser parseData:myParser];
+    [self manageLoadedItems:parser.workingArray];
 }
 
 - (void)fetchContentFailed:(ASIHTTPRequest *)theRequest
@@ -1674,6 +1696,9 @@
 
 - (void)manageLoadedItems:(NSArray *)loadedItems
 {
+    
+    NSLog(@"manageLoadedItems");
+
     [self.arrayData removeAllObjects];
 	[self.arrayData addObjectsFromArray:loadedItems];
 
@@ -1965,7 +1990,16 @@
         else {
             HTMLString = [HTMLString stringByReplacingOccurrencesOfString:@"iosversion" withString:@"ios7"];
         }
-            
+        
+
+        // Callback to SWIFT Quand c’est prêt → on appelle la completion
+        NSError *error = nil; // ou une vraie erreur si besoin
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (self.completionHandler) {
+                self.completionHandler(HTMLString, error);
+            }
+        });
+        
         /*NSLog(@"======================================================================================================");
         NSLog(@"HTMLString %@", HTMLString);
         NSLog(@"======================================================================================================");
@@ -1995,6 +2029,7 @@
 
 - (void)didFinishParsing:(NSArray *)appList
 {
+    NSLog(@"didFinishParsing");
     [self performSelectorOnMainThread:@selector(manageLoadedItems:) withObject:appList waitUntilDone:NO];
     self.queue = nil;
 }
@@ -3491,4 +3526,15 @@ API_AVAILABLE(ios(16.0)) {
     }
     return [pairs componentsJoinedByString:@"&"];
 }
+
+#pragma - SWIFT
+
+- (void)fetchContentForTopicURL:(NSString *)topicURL completion:(void (^)(NSString *html, NSError *error))completion {
+    // On stocke la completion en property pour pouvoir la rappeler plus tard
+    self.completionHandler = completion;
+    self.currentUrl = topicURL;
+    
+    [self fetchContent];
+}
+
 @end

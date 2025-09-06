@@ -520,28 +520,10 @@
     }
     
     // Send result to SWIFT
-    NSLog(@"Favori send result to SWIFT");
     if (self.completion) {
-        NSArray<Topic *> *immutableTopics = [self.arrayNewData copy];
-        NSLog(@"Favori topics loaded %ld -> %ld", self.arrayNewData.count, immutableTopics.count);
-        self.completion(immutableTopics, nil);
-    }
-    
-    /*
-    Topic *topic1 = [[Topic alloc] init];
-    topic1._aTitle = @"Premier sujet";
-
-    Topic *topic2 = [[Topic alloc] init];
-    topic2._aTitle = @"Deuxième sujet";
-
-    // Création d’un NSArray avec les deux objets
-    NSArray<Topic *> *topicsArray = @[ topic1, topic2 ];
-    
-    // Send result to SWIFT
-    if (self.completion) {
-        NSLog(@"Favori send result to SWIFT");
-        self.completion(topicsArray, nil);
-    }*/
+        NSLog(@"Favori send result to SWIFT : %ld", self.arrayNewData.count);
+        self.completion([self.arrayNewData copy], nil);
+    }    
 }
 
 - (void)addFavorite:(Favorite*)fav into:(NSMutableArray*)arrayDataLocal andTopicsInto:(NSMutableArray*)arrayTopicsLocal
@@ -1512,7 +1494,7 @@
     Topic *tmpTopic = [self getTopicAtIndexPath:self.pressedIndexPath];
     
     self.messagesTableViewController = [[MessagesTableViewController alloc] init];
-    self.messagesTableViewController.currentUrl = [tmpTopic aURL];
+    self.messagesTableViewController.currentUrl = [tmpTopic aURLOfLastPage];
     self.messagesTableViewController.isSeparatorNewMessages = NO;
     [self.messagesTableViewController setTopicName:[tmpTopic aTitle]];
     
@@ -1963,7 +1945,7 @@
 }
 
 #pragma mark - SWIFT
-- (void)fetchContentWithCompletion:(void (^)(NSArray<Topic *> *, NSError *))completion {
+- (void)fetchContentWithCompletion:(void (^)(NSArray<Favorite *> *, NSError *))completion {
     self.completion = completion;
     [self fetchContent]; // lance la chaîne classique
 }

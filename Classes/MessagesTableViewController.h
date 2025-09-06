@@ -242,4 +242,12 @@
 - (void)manageLoadedItems:(NSArray *)loadedItems;
 - (void)setupScrollAndPage;
 
+// SWIFT
+
+@property (nonatomic, copy) void (^completionHandler)(NSString *html, NSError *error);
+
+- (void)fetchContentForTopicURL:(NSString *)topicURL
+                     completion:(void (^_Nonnull)(NSString * _Nullable html, NSError * _Nullable error))completion;
+
+
 @end
