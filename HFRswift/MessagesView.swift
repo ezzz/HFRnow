@@ -7,14 +7,6 @@
 
 import SwiftUI
 
-/*struct WebView: UIViewRepresentable {
-    let html: String
-    func makeUIView(context: Context) -> WKWebView { WKWebView() }
-    func updateUIView(_ webView: WKWebView, context: Context) {
-        webView.loadHTMLString(html, baseURL: nil)
-    }
-}*/
-
 struct WebView: UIViewRepresentable {
     let html: String?
     let fileURL: URL?
@@ -39,6 +31,7 @@ struct WebView: UIViewRepresentable {
     }
     
     func updateUIView(_ webView: WKWebView, context: Context) {
+        print("updateUIView called with fileURL:", fileURL?.absoluteString ?? "nil")
         if let fileURL = fileURL, let readAccessURL = readAccessURL {
             // Charger depuis un fichier local
             webView.loadFileURL(fileURL, allowingReadAccessTo: readAccessURL)
@@ -48,158 +41,94 @@ struct WebView: UIViewRepresentable {
         }
     }
 }
-/*
+
 struct MessagesView: View {
     let topic: Topic
     let currentUrl: String
-
-    @State private var htmlContent = "<html><body>Chargement…</body></html>"
+    let curPage: Int
+    let maxPage: Int
+    
+    @State private var page: Int
+    @State private var fileURL: URL?
+    @State private var cacheURL: URL?
     @State private var errorMessage: String?
-
-    var body: some View {
-        Group {
-            if let errorMessage { Text("Erreur : \(errorMessage)").foregroundColor(.red) }
-            else { WebView(html: htmlContent).ignoresSafeArea() }
+    
+    init(topic: Topic, currentUrl: String, curPage: Int, maxPage: Int) {
+        self.topic = topic
+        self.currentUrl = currentUrl
+        self.curPage = curPage
+        self.maxPage = maxPage
+        self._page = State(initialValue: curPage)
+    }
+    
+    private func urlForPage(_ page: Int) -> String {
+        guard var comps = URLComponents(string: currentUrl) else { return currentUrl }
+        var queryItems = comps.queryItems ?? []
+        if let index = queryItems.firstIndex(where: { $0.name == "page" }) {
+            queryItems[index].value = "\(page)"
+        } else {
+            queryItems.append(URLQueryItem(name: "page", value: "\(page)"))
         }
-        .navigationTitle(topic._aTitle ?? "Messages")
-        .onAppear {
-            let controller = MessagesTableViewController()
-            // ✅ Appel correct avec la completion
-            controller.fetchContent(forTopicURL: currentUrl) { html, error in
-                DispatchQueue.main.async {
-                    if let error {
-                        self.errorMessage = error.localizedDescription
-                    } else if let html {
-                        self.htmlContent = html
-                    }
+        comps.queryItems = queryItems
+        return comps.string ?? currentUrl
+    }
+        
+    private func loadPage(_ page: Int) {
+        let url = urlForPage(page)
+        let controller = MessagesTableViewController()
+        controller.fetchContent(forTopicURL: url) { html, error in
+            DispatchQueue.main.async {
+                if let error {
+                    self.errorMessage = error.localizedDescription
+                } else if let html {
+                    let offlineStorage = OfflineStorage.shared()
+                    let createdFileURL = offlineStorage!.createHtmlFileInCache(for: nil, withContent: html)
+                    let cacheDirectoryURL = offlineStorage!.cacheURL()
+                    
+                    self.fileURL = createdFileURL
+                    self.cacheURL = cacheDirectoryURL
+                    self.page = page
                 }
             }
         }
     }
-}*/
-
-struct MessagesView: View {
-    let topic: Topic
-    let currentUrl: String
-    
-    @State private var fileURL: URL?
-    @State private var cacheURL: URL?
-    @State private var errorMessage: String?
     
     var body: some View {
         Group {
             if let errorMessage {
                 Text("Erreur : \(errorMessage)").foregroundColor(.red)
             } else if let fileURL = fileURL, let cacheURL = cacheURL {
-                WebView(fileURL: fileURL, readAccessURL: cacheURL).ignoresSafeArea()
+                WebView(fileURL: fileURL, readAccessURL: cacheURL)
+                    .id(page) // 🔑 force la recréation quand l’URL change
+                    .ignoresSafeArea()
+                    .simultaneousGesture(
+                        DragGesture().onEnded { value in
+                                let horizontal = value.translation.width
+                                let vertical = value.translation.height
+                                
+                                // seuils
+                                let minDistance: CGFloat = 120
+                                let maxVerticalRatio: CGFloat = 0.5 // tolérance verticale (50%)
+                                
+                                if abs(horizontal) > minDistance && abs(vertical) < abs(horizontal) * maxVerticalRatio {
+                                    if horizontal < 0, page < maxPage {
+                                        // Swipe gauche → page suivante
+                                        loadPage(page + 1)
+                                    } else if horizontal > 0, page > 1 {
+                                        // Swipe droite → page précédente
+                                        loadPage(page - 1)
+                                    }
+                                }
+                            }
+                    )
             } else {
                 Text("Chargement…")
             }
         }
-        .navigationTitle(topic._aTitle ?? "Messages")
+        .navigationTitle("\(page)/\(maxPage)")
+        .font(.caption2)//\(topic._aTitle ?? "Messages") []")
         .onAppear {
-            let controller = MessagesTableViewController()
-            controller.fetchContent(forTopicURL: currentUrl) { html, error in
-                DispatchQueue.main.async {
-                    if let error {
-                        self.errorMessage = error.localizedDescription
-                    } else if let html {
-                        // Créer le fichier HTML dans le cache
-                        let offlineStorage = OfflineStorage.shared()
-                        let createdFileURL = offlineStorage!.createHtmlFileInCache(for: nil, withContent: html)
-                        let cacheDirectoryURL = offlineStorage!.cacheURL()
-                        
-                        self.fileURL = createdFileURL
-                        self.cacheURL = cacheDirectoryURL
-                        
-                        print("fileURL: \(String(describing: createdFileURL))")
-                        print("cacheURL: \(String(describing: cacheDirectoryURL))")
-                    }
-                }
-            }
+            loadPage(page)
         }
     }
 }
-
-
-
-/*
-
-
-struct MessagesView: UIViewControllerRepresentable {
-    let topic: Topic
-    let currentUrl: String
-
-    func makeUIViewController(context: Context) -> MessagesTableViewController {
-        let controller = MessagesTableViewController()
-
-        controller.fetchContentForTopicURL(currentUrl) { html, error in
-            if let error = error {
-                print("Erreur fetchContent: \(error)")
-            } else {
-                print("HTML reçu: \(html ?? "")")
-            }
-        }
-
-        return controller
-    }
-
-    func updateUIViewController(_ uiViewController: MessagesTableViewController, context: Context) {
-        // mise à jour si besoin
-    }
-}
-
-struct WebContentView: UIViewRepresentable {
-    let html: String
-
-    func makeUIView(context: Context) -> WKWebView {
-        return WKWebView()
-    }
-
-    func updateUIView(_ uiView: WKWebView, context: Context) {
-        uiView.loadHTMLString(html, baseURL: nil)
-    }
-}
-
-struct MessagesFullScreenView: View {
-    let topic: Topic
-    @Environment(\.dismiss) var dismiss
-
-    @State private var htmlContent: String?
-    @State private var errorMessage: String?
-
-    var body: some View {
-        Group {
-            if let html = htmlContent {
-                WebContentView(html: html)
-                    .ignoresSafeArea()
-            } else if let error = errorMessage {
-                VStack {
-                    Text("Erreur")
-                        .font(.title)
-                        .padding()
-                    Text(error)
-                        .foregroundColor(.red)
-                    Button("Fermer") { dismiss() }
-                        .padding()
-                }
-            } else {
-                ProgressView("Chargement...")
-            }
-        }
-        .onAppear {
-            loadContent()
-        }
-    }
-
-    private func loadContent() {
-        MessagesTableViewController.fetchContentForTopicURL(topic.aURL) { html, error in
-            if let error = error {
-                errorMessage = error.localizedDescription
-            } else {
-                htmlContent = html
-            }
-        }
-    }
-}
-*/

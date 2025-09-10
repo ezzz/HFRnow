@@ -88,7 +88,6 @@
         self.curPostID = -1;
         
         if (!self.searchInputData) {
-            NSLog(@"NO searchInputData");
             self.searchInputData = [[NSMutableDictionary alloc] init];
         }
 
@@ -1696,14 +1695,10 @@
 
 - (void)manageLoadedItems:(NSArray *)loadedItems
 {
-    
-    NSLog(@"manageLoadedItems");
-
     [self.arrayData removeAllObjects];
 	[self.arrayData addObjectsFromArray:loadedItems];
 
 	NSString *tmpHTML = @"";
-    NSLog(@"COUNT = %lu", (unsigned long)[self.arrayData count]);
     
     if (!self.isSearchInstra && self.arrayData.count == 0 && !self.errorReported) {
         self.errorReported = YES;
@@ -1721,7 +1716,6 @@
         NSString *refreshBtn = @"";
 
         int i;
-        NSLog(@"OLD %@", self.stringFlagTopic);
 
         NSCharacterSet* nonDigits = [[NSCharacterSet decimalDigitCharacterSet] invertedSet];
         int currentFlagValue = [[self.stringFlagTopic stringByTrimmingCharactersInSet:nonDigits] intValue];
@@ -1733,8 +1727,6 @@
             
             ifCurrentFlag = YES;
         }
-
-        NSLog(@"Looking for %d", currentFlagValue);
         
         // Ego quote not applyed on MP
         BOOL bIsMP = YES;
@@ -1996,6 +1988,7 @@
         NSError *error = nil; // ou une vraie erreur si besoin
         dispatch_async(dispatch_get_main_queue(), ^{
             if (self.completionHandler) {
+                NSLog(@"SWIFT sending back topics: %lu --------------->", (unsigned long)[self.arrayData count]);
                 self.completionHandler(HTMLString, error);
             }
         });

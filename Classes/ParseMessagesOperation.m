@@ -133,9 +133,7 @@
 	NSArray * messagesNodes = [bodyNode findChildrenWithAttribute:@"class" matchingName:@"messagetable" allowPartial:NO]; //Get all the <img alt="" />
     
     int indexNode = 0;
-    for (HTMLNode * messageNodeParent in messagesNodes) { //Loop through all the tags
-        NSLog(@"parseData node");
-        
+    for (HTMLNode * messageNodeParent in messagesNodes) { //Loop through all the tags        
         if (bFilterPostsQuotes && indexNode == 0) { // Filter 1st post of the page: "Reprise de la page précédente"
             indexNode++;
             continue;
@@ -446,18 +444,18 @@
         
         if (bLoadAvatar) {
             NSString *tmpURL = [[avatarNode firstChild] getAttributeNamed:@"src"];
-            NSLog(@"Loading avatar from %@", tmpURL);
+            //NSLog(@"Loading avatar from %@", tmpURL);
             
             if (tmpURL.length > 0) { // si on a pas, on check si on a une URL
                 ASIHTTPRequest *operation = [ASIHTTPRequest requestWithURL:[NSURL URLWithString:tmpURL]];
                 __weak ASIHTTPRequest *operation_ = operation;
                 [operation setCompletionBlock:^{
-                    NSLog(@"Avatar loaded in cache %@", key);
+                    //NSLog(@"Avatar loaded in cache %@", key);
                     [fileManager createFileAtPath:key contents:[operation_ responseData] attributes:nil];
                     linkItem.imageUI = key;
                 }];
                 [operation setFailedBlock:^{
-                    NSLog(@"Error loading avatar from %@", tmpURL);
+                    //NSLog(@"Error loading avatar from %@", tmpURL);
                     linkItem.imageUI = nil;
                 }];
                 

@@ -97,7 +97,7 @@ struct FavoriteSectionView: View {
             isActive: $isActive,
             destination: {
                 if let topic = selectedTopic, let url = currentUrl {
-                    MessagesView(topic: topic, currentUrl: url)
+                    MessagesView(topic: topic, currentUrl: url, curPage: Int(topic.curTopicPage), maxPage: Int(topic.maxTopicPage))
                 } else {
                     // Fallback nécessaire pour typer le builder
                     EmptyView()
