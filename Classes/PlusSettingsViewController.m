@@ -13,7 +13,6 @@
 #import "MPStorage.h"
 #import "MultisManager.h"
 #import "AnalyticsManager.h"
-#import <Firebase.h>
 
 @import InAppSettingsKit;
 
@@ -251,10 +250,10 @@
         }
     } else if([notification.userInfo objectForKey:@"UserGaveAnalyticsConsent"]) {
         if ([[NSUserDefaults standardUserDefaults] boolForKey:@"UserGaveAnalyticsConsent"]) {
-            [FIRAnalytics setAnalyticsCollectionEnabled:YES];
+            //[FIRAnalytics setAnalyticsCollectionEnabled:YES];
         }
         else {
-            [FIRAnalytics setAnalyticsCollectionEnabled:NO];
+            //[FIRAnalytics setAnalyticsCollectionEnabled:NO];
         }
     }
 

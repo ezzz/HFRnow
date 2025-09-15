@@ -6,18 +6,18 @@
 //
 
 #import "AnalyticsManager.h"
-#import <FirebaseAnalytics/FirebaseAnalytics.h>
+//#import <FirebaseAnalytics/FirebaseAnalytics.h>
 
 @implementation AnalyticsManager
 
 + (void)logSettingChangeWithName:(NSString *)settingName value:(NSString *)settingValue {
     if (!settingName || !settingValue) return;
-
+/*
     [FIRAnalytics logEventWithName:@"setting_change"
                         parameters:@{
                             @"setting_name": settingName,
                             @"setting_value": settingValue
-                        }];
+                        }];*/
 }
 
 + (void)logCurrentSettings:(NSDictionary<NSString *, NSString *> *)settings {
@@ -50,9 +50,9 @@
     if (!eventName || [eventName length] == 0) return;
 
     if (parameters) {
-        [FIRAnalytics logEventWithName:eventName parameters:parameters];
+        //[FIRAnalytics logEventWithName:eventName parameters:parameters];
     } else {
-        [FIRAnalytics logEventWithName:eventName parameters:nil];
+        //[FIRAnalytics logEventWithName:eventName parameters:nil];
     }
 }
 

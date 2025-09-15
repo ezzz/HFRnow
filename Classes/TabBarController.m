@@ -253,7 +253,7 @@
             break;
     }
     
-    // Log Firebase
+    // Log 
     [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"select_tab" : tabName}];
 }
 

@@ -30,10 +30,11 @@
 #import <UserNotifications/UserNotifications.h>
 #import "HTMLParser.h"
 
+/*
 @import FirebaseCore;
 @import FirebaseFirestore;
 @import FirebaseAuth;
-#import <Firebase.h>
+#import <Firebase.h>*/
 #import "AnalyticsManager.h"
 
 @implementation HFRplusAppDelegate
@@ -837,7 +838,7 @@ continueUserActivity:(NSUserActivity *)userActivity
 #pragma mark - Analytics
 
 - (void)setupupAnalytics {
-    
+    /*
     // Use Firebase library to configure APIs
     [FIRApp configure];
     [FIRAnalytics setUserID:nil]; // ne jamais définir d’ID utilisateur si tu veux rester anonyme
@@ -878,10 +879,11 @@ continueUserActivity:(NSUserActivity *)userActivity
             
             [self.window.rootViewController presentViewController:alert animated:YES completion:nil];
         });
-    }
+    }*/
 }
 
 - (void)sendSettingsOncePerDay {
+    /*
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
 
     // Récupérer la dernière date d'envoi
@@ -927,7 +929,7 @@ continueUserActivity:(NSUserActivity *)userActivity
         // Sauvegarder la date d'envoi
         [defaults setObject:[NSDate date] forKey:@"settingsLastSentDate"];
         [defaults synchronize];
-    }
+    }*/
 }
 
 
