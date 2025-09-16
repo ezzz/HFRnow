@@ -2848,17 +2848,39 @@ API_AVAILABLE(ios(16.0)) {
 
 -(void)actionLink:(NSNumber *)curMsgN {
     int curMsg = [curMsgN intValue];
-    NSLog("actionLink URL = %@%@#%@", [k ForumURL], self.currentUrl, [(LinkItem*)[arrayData objectAtIndex:curMsg] postID]);
-    
-    // New way: present share sheet
-    NSArray* dataToShare = @[[NSString stringWithFormat:@"%@%@#%@", [k RealForumURL], self.currentUrl, [(LinkItem*)[arrayData objectAtIndex:curMsg] postID]]];
-    UIActivityViewController* activityViewController =[[UIActivityViewController alloc] initWithActivityItems:dataToShare applicationActivities:nil];
-    activityViewController.excludedActivityTypes = @[UIActivityTypeAirDrop];
-    if (activityViewController == nil){
-        return;
+    NSString* sLink = [NSString stringWithFormat:@"%@%@#%@", [k RealForumURL], self.currentUrl, [(LinkItem*)[arrayData objectAtIndex:curMsg] postID]];
+
+    NSLog("ActionLink URL = %@", sLink);
+
+    // ✅ iPad: TODO configurer le popover si on veut la fenêtre complète de partage
+    // Pb : il faut ajouter la position dans la webview via JS et c'est complexe...
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
+        UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
+        pasteboard.string = sLink;
+            
+        UIAlertController *alert = [UIAlertController alertControllerWithTitle:nil message:nil preferredStyle:UIAlertControllerStyleAlert];
+        NSMutableAttributedString * message = [[NSMutableAttributedString alloc] initWithString:@"Lien copié dans le presse-papiers"];
+        [message addAttribute:NSForegroundColorAttributeName value:[ThemeColors textColor:[[ThemeManager sharedManager] theme]] range:(NSRange){0, [message.string length]}];
+        [alert setValue:message forKey:@"attributedMessage"];
+        [self presentViewController:alert animated:YES completion:^{
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.3 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                [alert dismissViewControllerAnimated:YES completion:nil];
+            });
+        }];
+        [[ThemeManager sharedManager] applyThemeToAlertController:alert];
     }
-    
-    [self presentViewController:activityViewController animated:YES completion:^{}];
+    else { // iPhone
+        NSArray* dataToShare = @[sLink];
+
+        // New way: present share sheet
+        UIActivityViewController* activityViewController =[[UIActivityViewController alloc] initWithActivityItems:dataToShare applicationActivities:nil];
+        activityViewController.excludedActivityTypes = @[UIActivityTypeAirDrop];
+        if (activityViewController == nil){
+            return;
+        }
+
+        [self presentViewController:activityViewController animated:YES completion:^{}];
+    }
 }
 
 -(void) actionAlerter:(NSNumber *)curMsgN {
