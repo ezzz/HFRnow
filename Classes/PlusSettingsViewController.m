@@ -191,6 +191,11 @@
                                                   completionHandler:^(NSError * _Nullable error) {
                                                       NSLog(@"%@", [error description]);
                                                   }];
+        } else if ([newIcon isEqualToString:@"classic-red-dark"]) {
+            [[UIApplication sharedApplication] setAlternateIconName:@"Icon-CLASSIC-RED-DARK"
+                                                  completionHandler:^(NSError * _Nullable error) {
+                                                      NSLog(@"%@", [error description]);
+                                                  }];
         } else if ([newIcon isEqualToString:@"beta"]) {
             [[UIApplication sharedApplication] setAlternateIconName:@"Icon-BETA"
                                                   completionHandler:^(NSError * _Nullable error) {

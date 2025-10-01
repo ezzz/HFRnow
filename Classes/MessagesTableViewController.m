@@ -242,6 +242,7 @@
         subtitle = [NSString stringWithFormat:@"Recherche"];
     }
     else if (self.filterPostsQuotes) {
+        NSLog(@"filterPostsQuotes pageNumberFilterStart %d pageNumberFilterEnd %d", self.pageNumberFilterStart, self.pageNumberFilterEnd);
         if (self.pageNumberFilterStart == self.pageNumberFilterEnd) {
             subtitle = [NSString stringWithFormat:@"Filtré | %d", self.pageNumberFilterStart];
         }
@@ -2526,10 +2527,9 @@ API_AVAILABLE(ios(16.0)) {
 
 -(void)actionFavoris:(NSNumber *)curMsgN {
 	int curMsg = [curMsgN intValue];
-    
-	ASIHTTPRequest  *aRequest =  
-	[[ASIHTTPRequest  alloc]  initWithURL:[NSURL URLWithString:[NSString stringWithFormat:@"%@%@", [k ForumURL], [[arrayData objectAtIndex:curMsg] addFlagUrl]]]];
-    
+    NSString* sURL = [NSString stringWithFormat:@"%@%@", [k ForumURL], [[arrayData objectAtIndex:curMsg] addFlagUrl]];
+	ASIHTTPRequest *aRequest = [[ASIHTTPRequest  alloc]  initWithURL:[NSURL URLWithString:sURL]];
+    NSLog(@"Action favori %@", sURL);
     
     [aRequest setStartedBlock:^{
         // Ajout d'un favori en cours

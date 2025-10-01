@@ -24,6 +24,9 @@
     [self.labelTitle setTextColor:[ThemeColors textColor:theme]];
     [self.labelMessageNumber setTextColor:[ThemeColors topicMsgTextColor:theme]];
     self.selectionStyle = [ThemeColors cellSelectionStyle:theme];
+    if (self.isFavoriteQuoted) {
+        [self.labelMessageNumber setTextColor:[UIColor redColor]];
+    }
     if (self.isSuperFavorite) {
         self.backgroundColor = [ThemeColors cellBackgroundColorSuperFavorite];
         self.contentView.superview.backgroundColor = [ThemeColors cellBackgroundColorSuperFavorite];

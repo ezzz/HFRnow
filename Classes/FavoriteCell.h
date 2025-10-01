@@ -16,5 +16,6 @@
 @property (nonatomic, strong) UILabel *labelMsg;
 @property (nonatomic, strong) UILabel *labelDate;
 @property (nonatomic) bool isSuperFavorite;
+@property (nonatomic) bool isFavoriteQuoted;
 
 @end

@@ -87,6 +87,7 @@
 			<array>
 				<string>Classique Yellow</string>
 				<string>Classique Red</string>
+				<string>Classique Red (Dark)</string>
 				<string>Classique Blue</string>
 				<string>REDFACE</string>
 				<string>REDFACE Blue</string>
@@ -100,6 +101,7 @@
 			<array>
 				<string>classic</string>
 				<string>classic-red</string>
+				<string>classic-red-dark</string>
 				<string>superblue</string>
 				<string>redface</string>
 				<string>redface-blue</string>
@@ -108,16 +110,16 @@
 				<string>white</string>
 			</array>
 		</dict>
-        <dict>
-            <key>DefaultValue</key>
-            <true/>
-            <key>Key</key>
-            <string>UserGaveAnalyticsConsent</string>
-            <key>Title</key>
-            <string>Statistiques anonymes</string>
-            <key>Type</key>
-            <string>PSToggleSwitchSpecifier</string>
-        </dict>
+		<dict>
+			<key>DefaultValue</key>
+			<true/>
+			<key>Key</key>
+			<string>UserGaveAnalyticsConsent</string>
+			<key>Title</key>
+			<string>Statistiques anonymes</string>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+		</dict>
 		<dict>
 			<key>Title</key>
 			<string>Thèmes</string>
@@ -340,28 +342,28 @@
 				<string>double</string>
 			</array>
 		</dict>
-        <dict>
-            <key>DefaultValue</key>
-            <string>yes</string>
-            <key>Key</key>
-            <string>display_images</string>
-            <key>Title</key>
-            <string>Afficher les images</string>
-            <key>Titles</key>
-            <array>
-                <string>Jamais</string>
-                <string>Wifi</string>
-                <string>Toujours</string>
-            </array>
-            <key>Type</key>
-            <string>PSMultiValueSpecifier</string>
-            <key>Values</key>
-            <array>
-                <string>no</string>
-                <string>wifi</string>
-                <string>yes</string>
-            </array>
-        </dict>
+		<dict>
+			<key>DefaultValue</key>
+			<string>yes</string>
+			<key>Key</key>
+			<string>display_images</string>
+			<key>Title</key>
+			<string>Afficher les images</string>
+			<key>Titles</key>
+			<array>
+				<string>Jamais</string>
+				<string>Wifi</string>
+				<string>Toujours</string>
+			</array>
+			<key>Type</key>
+			<string>PSMultiValueSpecifier</string>
+			<key>Values</key>
+			<array>
+				<string>no</string>
+				<string>wifi</string>
+				<string>yes</string>
+			</array>
+		</dict>
 		<dict>
 			<key>DefaultValue</key>
 			<string>yes</string>

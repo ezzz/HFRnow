@@ -52,6 +52,15 @@
 				<key>UIPrerenderedIcon</key>
 				<true/>
 			</dict>
+			<key>Icon-CLASSIC-RED-DARK</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>Icon-CLASSIC-RED-DARK</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<true/>
+			</dict>
 			<key>Icon-REDFACE</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
@@ -135,6 +144,15 @@
 				<key>CFBundleIconFiles</key>
 				<array>
 					<string>Icon-CLASSIC-RED-IPAD</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<true/>
+			</dict>
+			<key>Icon-CLASSIC-RED-DARK</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>Icon-CLASSIC-RED-DARK-IPAD</string>
 				</array>
 				<key>UIPrerenderedIcon</key>
 				<true/>

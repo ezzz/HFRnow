@@ -82,7 +82,11 @@
     Theme theme = [[ThemeManager sharedManager] theme];
     
     // Background color of topic cells in favorite list
-    if (self.isSuperFavorite)
+    if (self.isFavoriteQuoted)
+    {
+        self.contentView.superview.backgroundColor = [UIColor cyanColor];
+    }
+    else if (self.isSuperFavorite)
     {
         self.contentView.superview.backgroundColor = [ThemeColors cellBackgroundColorSuperFavorite];
     }

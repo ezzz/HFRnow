@@ -103,6 +103,10 @@
 		1543743722ECAE3100AF00A5 /* ThemeColorCellView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1543743622ECAE3100AF00A5 /* ThemeColorCellView.xib */; };
 		1543743922ECB1C300AF00A5 /* ThemeColorCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1543743822ECB1C300AF00A5 /* ThemeColorCellView.m */; };
 		1543743D22EDDF7400AF00A5 /* ColorPickerViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1543743C22EDDF7400AF00A5 /* ColorPickerViewController.m */; };
+		154457362E8AF7C500900FB8 /* Icon-CLASSIC-RED-DARK-IPAD@1x.png in Resources */ = {isa = PBXBuildFile; fileRef = 154457322E8AF7C500900FB8 /* Icon-CLASSIC-RED-DARK-IPAD@1x.png */; };
+		154457372E8AF7C500900FB8 /* Icon-CLASSIC-RED-DARK@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 154457352E8AF7C500900FB8 /* Icon-CLASSIC-RED-DARK@3x.png */; };
+		154457382E8AF7C500900FB8 /* Icon-CLASSIC-RED-DARK@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 154457342E8AF7C500900FB8 /* Icon-CLASSIC-RED-DARK@2x.png */; };
+		154457392E8AF7C500900FB8 /* Icon-CLASSIC-RED-DARK-IPAD@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 154457332E8AF7C500900FB8 /* Icon-CLASSIC-RED-DARK-IPAD@2x.png */; };
 		154ACDFB26FA45EA00BAF716 /* SmileyAlertView.m in Sources */ = {isa = PBXBuildFile; fileRef = 154ACDFA26FA45EA00BAF716 /* SmileyAlertView.m */; };
 		154C0D03250FD66F00294ECC /* person.3.fill-2.png in Resources */ = {isa = PBXBuildFile; fileRef = 154C0D01250FD66E00294ECC /* person.3.fill-2.png */; };
 		154C0D04250FD66F00294ECC /* person.3.fill-2@2.png in Resources */ = {isa = PBXBuildFile; fileRef = 154C0D02250FD66E00294ECC /* person.3.fill-2@2.png */; };
@@ -1063,6 +1067,10 @@
 		1543743A22ECB1DD00AF00A5 /* ThemeColorCellView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ThemeColorCellView.h; sourceTree = "<group>"; };
 		1543743B22EDDF5E00AF00A5 /* ColorPickerViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ColorPickerViewController.h; sourceTree = "<group>"; };
 		1543743C22EDDF7400AF00A5 /* ColorPickerViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ColorPickerViewController.m; sourceTree = "<group>"; };
+		154457322E8AF7C500900FB8 /* Icon-CLASSIC-RED-DARK-IPAD@1x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-CLASSIC-RED-DARK-IPAD@1x.png"; sourceTree = "<group>"; };
+		154457332E8AF7C500900FB8 /* Icon-CLASSIC-RED-DARK-IPAD@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-CLASSIC-RED-DARK-IPAD@2x.png"; sourceTree = "<group>"; };
+		154457342E8AF7C500900FB8 /* Icon-CLASSIC-RED-DARK@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-CLASSIC-RED-DARK@2x.png"; sourceTree = "<group>"; };
+		154457352E8AF7C500900FB8 /* Icon-CLASSIC-RED-DARK@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-CLASSIC-RED-DARK@3x.png"; sourceTree = "<group>"; };
 		154ACDF926FA45EA00BAF716 /* SmileyAlertView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SmileyAlertView.h; sourceTree = "<group>"; };
 		154ACDFA26FA45EA00BAF716 /* SmileyAlertView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SmileyAlertView.m; sourceTree = "<group>"; };
 		154C0D01250FD66E00294ECC /* person.3.fill-2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "person.3.fill-2.png"; sourceTree = "<group>"; };
@@ -2514,6 +2522,10 @@
 		4C59E0811FA9D43F00C902F8 /* AlternativeIcons */ = {
 			isa = PBXGroup;
 			children = (
+				154457322E8AF7C500900FB8 /* Icon-CLASSIC-RED-DARK-IPAD@1x.png */,
+				154457332E8AF7C500900FB8 /* Icon-CLASSIC-RED-DARK-IPAD@2x.png */,
+				154457342E8AF7C500900FB8 /* Icon-CLASSIC-RED-DARK@2x.png */,
+				154457352E8AF7C500900FB8 /* Icon-CLASSIC-RED-DARK@3x.png */,
 				4C59E08E1FA9D9F300C902F8 /* Icon-CLASSIC@2x.png */,
 				4C59E08F1FA9D9F300C902F8 /* Icon-CLASSIC@3x.png */,
 				4C1991931FA9EC8E00A07A8A /* Icon-CLASSIC-IPAD@1x.png */,
@@ -3702,6 +3714,10 @@
 				4C9C2B8B1BAE801700511853 /* ThorHammerFilled-25.png in Resources */,
 				4C0B8DED1BA4522900D329BA /* ProcessorFilled-40.png in Resources */,
 				D8B4EDEF21C184970042C392 /* snow4.png in Resources */,
+				154457362E8AF7C500900FB8 /* Icon-CLASSIC-RED-DARK-IPAD@1x.png in Resources */,
+				154457372E8AF7C500900FB8 /* Icon-CLASSIC-RED-DARK@3x.png in Resources */,
+				154457382E8AF7C500900FB8 /* Icon-CLASSIC-RED-DARK@2x.png in Resources */,
+				154457392E8AF7C500900FB8 /* Icon-CLASSIC-RED-DARK-IPAD@2x.png in Resources */,
 				4C9C2B201BAE66EB00511853 /* ThorHammerBlack-20@2x.png in Resources */,
 				4CB132D01B9099900081B44D /* MessageFilled-20.png in Resources */,
 				15AC357E2903E2DA00CCD6FC /* StrikethroughFilled-20-Inv.png in Resources */,
@@ -4472,11 +4488,13 @@
 				ASSETCATALOG_COMPILER_OPTIMIZATION = time;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
+				CODE_SIGN_STYLE = Manual;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 34;
-				DEVELOPMENT_TEAM = QMG83DG7YP;
+				CURRENT_PROJECT_VERSION = 36;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = QMG83DG7YP;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4516,6 +4534,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super;
 				PRODUCT_NAME = SuperHFRplusSwift;
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = ProfileSuperHFRv1;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -4535,11 +4554,13 @@
 				ASSETCATALOG_COMPILER_OPTIMIZATION = time;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
+				CODE_SIGN_STYLE = Manual;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = YES;
-				CURRENT_PROJECT_VERSION = 34;
-				DEVELOPMENT_TEAM = QMG83DG7YP;
+				CURRENT_PROJECT_VERSION = 36;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = QMG83DG7YP;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4577,6 +4598,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super;
 				PRODUCT_NAME = SuperHFRplusSwift;
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = ProfileSuperHFRv1;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;

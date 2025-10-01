@@ -19,7 +19,9 @@
 @property Topic* topic;
 @property int iStartPage, iLastPageLoaded;
 @property BOOL bIsFinished;
+@property BOOL bOnlyQuotes;
 @property BOOL bShowPostsRequired, stopRequired;
+@property BOOL bProcessingOnlyQuotes;
 
 @property (nonatomic, strong) UIAlertController *alertProgress;
 @property (nonatomic, strong) UIProgressView *progressView;
@@ -29,7 +31,7 @@
 //+ (FilterPostsQuotes *)shared;
 
 - (void)checkPostsAndQuotesForTopic:(Topic *)topic andVC:(FavoritesTableViewController*)vc;
-- (void)checkPostsAndQuotesForAllTopics:(NSArray *)arrTopics andVC:(FavoritesTableViewController*)vc;
+- (void)checkQuotesForAllTopics:(NSArray *)arrTopics andVC:(FavoritesTableViewController*)vc;
 
 - (void)checkNextPostsAndQuotesWithVC:(MessagesTableViewController*) vc;
 

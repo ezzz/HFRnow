@@ -46,7 +46,9 @@
         self.delegate = theDelegate;
 		self.index = theIndex;
 		self.reverse = isReverse;
-
+        self.bOnlyQuotes = NO;
+        self.bFoundQuote = NO;
+        
         self.queue = [[NSOperationQueue alloc] init];
 
     }
@@ -104,11 +106,12 @@
     [self parseData:myParser filterPostsQuotes:NO startAfterThisPostId:nil topicUrl:nil topicPage:0];
 }
 
-- (void)parseData:(HTMLParser *)myParser filterPostsQuotes:(BOOL)bFilterPostsQuotes startAfterThisPostId:(NSString*)sStartAfterPostId topicUrl:(NSString*)sTopicUrl topicPage:(int)iPage{
+- (void)parseData:(HTMLParser *)myParser filterPostsQuotes:(BOOL)bFilterPostsQuotes startAfterThisPostId:(NSString*)sStartAfterPostId topicUrl:(NSString*)sTopicUrl topicPage:(int)iPage {
     
     
-    NSLog(@"SEARCH RUL1 %@", sTopicUrl);
-    
+    NSLog(@"--------- ParseData of page %d", iPage);
+    self.bFoundQuote = NO;
+
     self.workingArray = [NSMutableArray array];
     if ([self isCancelled]) {
 		return;
@@ -203,23 +206,30 @@
                     if ([[sQuoteAuthor lowercaseString] isEqualToString:currentPseudoLowercase]) {
                         [quoteNode setAttributeNamed:@"class" withValue:@"citation_me_quoted"];
                         bFilterCurrentPost = NO;
+                        self.bFoundQuote = YES;
+                        break;
+
+                        NSLog(@"FOUND ME QUOTED !!!!!!");
                     } else if ([[BlackList shared] isWL:[sQuoteAuthor lowercaseString]]) {
                         [quoteNode setAttributeNamed:@"class" withValue:@"citation_whitelist"];
                     } else if ([[BlackList shared] isBL:[sQuoteAuthor lowercaseString]]) {
                         [quoteNode setAttributeNamed:@"class" withValue:@"citation_blacklist"];
+                        
                         NSString* sPostId = [linkItem.postID substringFromIndex:1];
                         [quoteNode addAttributeNamed:@"id" withValue:[NSString stringWithFormat: @"2%02d%@", quoteIndex, sPostId]];
                         [quoteNode addAttributeNamed:@"auteur" withValue:sQuoteAuthor];
                         [quoteNode addAttributeNamed:@"style" withValue:@"display:none;"];
                         
-                        NSString *hrefNode = [quoteNode getAttributeNamed:@"href"];
-
                         HTMLNode *pNode = [quoteNode findChildTag:@"p"];
                         [pNode addAttributeNamed:@"class" withValue:@"pbl"];
                         [pNode addAttributeNamed:@"id" withValue:[NSString stringWithFormat: @"2%02d%@", quoteIndex, sPostId]];
                     }
                     quoteIndex++;
                 } 
+            }
+            
+            if (self.bOnlyQuotes) { // Quand on cherche si on est quoté, pas besoin de chercher plus loing
+                continue;
             }
             
             if (bFilterPostsQuotes) {
@@ -326,7 +336,7 @@
                     bFilterCurrentPost = NO;
                 }
             }
-            
+                    
             //edit citation
             HTMLNode * editedNode = [messageNode findChildWithAttribute:@"class" matchingName:@"edited" allowPartial:NO];
             if ([editedNode allContents]) {
@@ -343,22 +353,6 @@
                 
                 NSString *regularExpressionString2 = @".*Message édité par ([^<]+).*";
                 linkItem.editedTime = [[[[editedNode allContents] stringByMatching:regularExpressionString2 capture:1L] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] stringByDecodingXMLEntities];
-                
-                //NSLog(@"editedTime = %@", linkItem.editedTime);
-                //NSLog(@"quotedLINK = %@", linkItem.quotedLINK);
-            }
-
-            
-            // When activated, filter to remove posts from other people or where you are not quoted
-            if (bFilterPostsQuotes && bFilterCurrentPost) {
-                continue;
-            }
-
-
-            //recherche
-            NSArray * nodesInMsg = [[messageNode findChildOfClass:@"messCase2"] children];
-            if (nodesInMsg.count >= 2 && [[[nodesInMsg objectAtIndex:1] tagName] isEqualToString:@"a"]) {
-                linkItem.dicoHTML = [rawContentsOfNode([[nodesInMsg objectAtIndex:1] _node], [myParser _doc]) stringByAppendingString:linkItem.dicoHTML];
             }
             
 			// NEW FAST
@@ -414,55 +408,57 @@
             //AVATAR BY NAME v2
             
             //Key for pseudo
-            const char *str = [[linkItem.name lowercaseString] UTF8String];
-            unsigned char r[CC_MD5_DIGEST_LENGTH];
-            CC_MD5(str, strlen(str), r);
-            NSString *filename = [NSString stringWithFormat:@"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
-                                  r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9], r[10], r[11], r[12], r[13], r[14], r[15]];
-            
-            NSString *key = [diskCachePath stringByAppendingPathComponent:filename];
-            BOOL bLoadAvatar = NO;
-            if ([fileManager fileExistsAtPath:key]) // on check si on a deja l'avatar pour cette key
-            {
-                //NSLog(@"Avatar exist in cache for %@/%s (%ld): keyPathOfImage:%@", linkItem.name, str, strlen(str), key);
-
-                linkItem.imageUI = key;
-                NSDictionary* attrs = [fileManager attributesOfItemAtPath:key error:nil];
-                if (attrs != nil) {
-                    NSDate *dCreation = (NSDate*)[attrs objectForKey: NSFileCreationDate];
-                    NSDate *dNow = [[NSDate alloc] init];
-                    if ([dNow timeIntervalSinceDate:dCreation] > 24*3600) { // au dela de 24h, on recharge l'avatar
-                        bLoadAvatar = YES;
+            if (!self.bOnlyQuotes) {
+                const char *str = [[linkItem.name lowercaseString] UTF8String];
+                unsigned char r[CC_MD5_DIGEST_LENGTH];
+                CC_MD5(str, strlen(str), r);
+                NSString *filename = [NSString stringWithFormat:@"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+                                      r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9], r[10], r[11], r[12], r[13], r[14], r[15]];
+                
+                NSString *key = [diskCachePath stringByAppendingPathComponent:filename];
+                BOOL bLoadAvatar = NO;
+                if ([fileManager fileExistsAtPath:key]) // on check si on a deja l'avatar pour cette key
+                {
+                    //NSLog(@"Avatar exist in cache for %@/%s (%ld): keyPathOfImage:%@", linkItem.name, str, strlen(str), key);
+                    
+                    linkItem.imageUI = key;
+                    NSDictionary* attrs = [fileManager attributesOfItemAtPath:key error:nil];
+                    if (attrs != nil) {
+                        NSDate *dCreation = (NSDate*)[attrs objectForKey: NSFileCreationDate];
+                        NSDate *dNow = [[NSDate alloc] init];
+                        if ([dNow timeIntervalSinceDate:dCreation] > 24*3600) { // au dela de 24h, on recharge l'avatar
+                            bLoadAvatar = YES;
+                        }
                     }
                 }
-            }
-            else {
-                //NSLog(@"Avatar NOT found in cache for %@/%s (%ld): keyPathOfImage:%@", linkItem.name, str, strlen(str), key);
-
-                // Si pas trouvé dans le cache, on le charge
-                bLoadAvatar = YES;
-            }
-            
-            if (bLoadAvatar) {
-                NSString *tmpURL = [[avatarNode firstChild] getAttributeNamed:@"src"];
-                NSLog(@"Loading avatar from %@", tmpURL);
-
-                if (tmpURL.length > 0) { // si on a pas, on check si on a une URL
-                    ASIHTTPRequest *operation = [ASIHTTPRequest requestWithURL:[NSURL URLWithString:tmpURL]];
-                    __weak ASIHTTPRequest *operation_ = operation;
-                    [operation setCompletionBlock:^{
-                        NSLog(@"Avatar loaded in cache %@", key);
-                        [fileManager createFileAtPath:key contents:[operation_ responseData] attributes:nil];
-                        linkItem.imageUI = key;
-                    }];
-                    [operation setFailedBlock:^{
-                        NSLog(@"Error loading avatar from %@", tmpURL);
-                        linkItem.imageUI = nil;
-                    }];
-                                        
-                    [self.queue addOperation:operation];
-                    //async dl                    
+                else {
+                    //NSLog(@"Avatar NOT found in cache for %@/%s (%ld): keyPathOfImage:%@", linkItem.name, str, strlen(str), key);
                     
+                    // Si pas trouvé dans le cache, on le charge
+                    bLoadAvatar = YES;
+                }
+                
+                if (bLoadAvatar) {
+                    NSString *tmpURL = [[avatarNode firstChild] getAttributeNamed:@"src"];
+                    NSLog(@"Loading avatar from %@", tmpURL);
+                    
+                    if (tmpURL.length > 0) { // si on a pas, on check si on a une URL
+                        ASIHTTPRequest *operation = [ASIHTTPRequest requestWithURL:[NSURL URLWithString:tmpURL]];
+                        __weak ASIHTTPRequest *operation_ = operation;
+                        [operation setCompletionBlock:^{
+                            NSLog(@"Avatar loaded in cache %@", key);
+                            [fileManager createFileAtPath:key contents:[operation_ responseData] attributes:nil];
+                            linkItem.imageUI = key;
+                        }];
+                        [operation setFailedBlock:^{
+                            NSLog(@"Error loading avatar from %@", tmpURL);
+                            linkItem.imageUI = nil;
+                        }];
+                        
+                        [self.queue addOperation:operation];
+                        //async dl
+                        
+                    }
                 }
             }
             

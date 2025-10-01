@@ -22,6 +22,8 @@
     NSOperationQueue		*queue;
 }
 @property     NSMutableArray        *workingArray;
+@property     BOOL bOnlyQuotes;
+@property     BOOL bFoundQuote;
 
 - (id)initWithData:(NSData *)data index:(int)theIndex reverse:(BOOL)isReverse delegate:(id <ParseMessagesOperationDelegate>)theDelegate;
 - (void)parseData:(HTMLParser*)myParser;

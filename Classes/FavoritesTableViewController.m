@@ -56,72 +56,6 @@
 #pragma mark -
 #pragma mark Data lifecycle
 
--(void) showAll:(id)sender {
-    if (self.showAll) {
-        self.showAll = NO;
-        self.editCategoriesList = NO;
-        [self.favoritesTableView setEditing:NO animated:YES];
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self.navigationItem.leftBarButtonItem setBackgroundImage:[ThemeColors imageFromColor:[UIColor clearColor]] forState:UIControlStateNormal barMetrics:UIBarMetricsDefault];
-            /*[self.navigationItem.leftBarButtonItem setBackgroundImage:[ThemeColors imageFromColor:[UIColor clearColor]] forState:UIControlStateNormal barMetrics:UIBarMetricsCompact];
-            */
-
-            //On réaffiche le header
-            if (self.childViewControllers.count > 0) {
-                [self.favoritesTableView setTableHeaderView:((PullToRefreshErrorViewController *)[self.childViewControllers objectAtIndex:0]).view];
-            }
-        });
-        [self.navigationItem.rightBarButtonItem setBackgroundImage:[ThemeColors imageFromColor:[UIColor clearColor]] forState:UIControlStateNormal barMetrics:UIBarMetricsDefault];
-        self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemRefresh target:self action:@selector(reload)];
-        
-        // Right button: Edit cat -> refresh
-        self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemRefresh target:self action:@selector(reload)];
-    }
-    else {
-        self.showAll = YES;
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self.navigationItem.leftBarButtonItem setBackgroundImage:[ThemeColors imageFromColor:[ThemeColors tintLightColor]] forState:UIControlStateNormal barMetrics:UIBarMetricsDefault];
-            [self.navigationItem.rightBarButtonItem setBackgroundImage:[ThemeColors imageFromColor:[ThemeColors tintLightColor]] forState:UIControlStateNormal barMetrics:UIBarMetricsDefault];
-            // Right button: Refresh -> Edit categories
-
-            UIImage *buttonImage = [UIImage imageNamed:@"icon_list_bullets"];
-            UIImage *buttonImageLandscape = [UIImage imageNamed:@"icon_list_bullets"];
-            UIBarButtonItem *editCatBtn = [[UIBarButtonItem alloc] initWithImage:buttonImage
-                                                             landscapeImagePhone:buttonImageLandscape
-                                                                           style:UIBarButtonItemStylePlain
-                                                                          target:self
-                                                                          action:@selector(editCategoriesList:)];
-            self.navigationItem.rightBarButtonItem = editCatBtn;
-            [self.favoritesTableView setTableHeaderView:nil];
-        });
-    }
-
-    if (![self.favoritesTableView isHidden]) {
-        [self.favoritesTableView reloadData];
-    }
-    
-}
-
-
--(void) editCategoriesList:(id)sender
-{
-    if (self.editCategoriesList)
-    {
-        self.editCategoriesList = NO;
-    }
-    else  // Activable que si au moins 1 catégories
-    {
-        //if (self.arrayCategories.count >= 1)
-        //{
-            self.editCategoriesList = YES;
-        //}
-        // Sinon on reste non éditable
-    }
-    [self.favoritesTableView setEditing:self.editCategoriesList animated:YES];
-    [self.favoritesTableView reloadData];
-    
-    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"favori_editcatlist"}];
-}
 
 - (void)cancelFetchContent
 {
@@ -168,10 +102,8 @@
 {
     NSLog(@"fetchContentStarted");
 	//Bouton Stop
-
-	self.navigationItem.rightBarButtonItem = nil;	
-	UIBarButtonItem *segmentBarItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemStop target:self action:@selector(cancelFetchContent)];
-	self.navigationItem.rightBarButtonItem = segmentBarItem;
+    self.navigationItem.rightBarButtonItems[0].image = [UIImage systemImageNamed:@"xmark"]; // icône style "cancel"
+    self.navigationItem.rightBarButtonItems[0].action = @selector(cancelFetchContent); // change aussi l’action si besoin
 
     //[self.favoritesTableView.pullToRefreshView stopAnimating];
 
@@ -187,9 +119,10 @@
     NSLog(@"fetchContentComplete");
 
     //Bouton Reload
-    self.navigationItem.rightBarButtonItem = nil;
-    UIBarButtonItem *segmentBarItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemRefresh target:self action:@selector(reload)];
-    self.navigationItem.rightBarButtonItem = segmentBarItem;
+    self.navigationItem.rightBarButtonItems[0].image = [UIImage systemImageNamed:@"arrow.clockwise"]; // icône style "cancel";
+    self.navigationItem.rightBarButtonItems[0].action = @selector(reload); // change aussi l’action si besoin
+
+    
     @try {
         [self loadDataInTableView:[theRequest responseData]];
         
@@ -226,10 +159,9 @@
     NSLog(@"fetchContentFailed");
 
 	//Bouton Reload
-	self.navigationItem.rightBarButtonItem = nil;
-	UIBarButtonItem *segmentBarItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemRefresh target:self action:@selector(reload)];
-	self.navigationItem.rightBarButtonItem = segmentBarItem;
-	
+    self.navigationItem.rightBarButtonItems[0].image = [UIImage systemImageNamed:@"arrow.clockwise"]; // icône style "cancel";
+    self.navigationItem.rightBarButtonItems[0].action = @selector(reload); // change aussi l’action si besoin
+
     [self.maintenanceView setText:@"oops :o"];
     
     [self.favoritesTableView.pullToRefreshView stopAnimating];
@@ -627,9 +559,26 @@
     
     
 	// reload
-    UIBarButtonItem *segmentBarItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemRefresh target:self action:@selector(reload)];
-    //UIBarButtonItem *segmentBarItem = [[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"categories"] style:UIBarButtonItemStyleBordered target:self action:@selector(reload)];
-	self.navigationItem.rightBarButtonItem = segmentBarItem;
+    // --- Initialisation des boutons ---
+
+    // Bouton Refresh (image "arrow.clockwise" SF Symbol)
+    UIImage *refreshImage = [UIImage systemImageNamed:@"arrow.clockwise"];
+    UIBarButtonItem *refreshBarItem = [[UIBarButtonItem alloc] initWithImage:refreshImage
+                                                                       style:UIBarButtonItemStylePlain
+                                                                      target:self
+                                                                      action:@selector(reload)];
+
+    // Bouton Quotes
+    UIImage *quoteImage = [UIImage systemImageNamed:@"text.bubble"];
+    UIBarButtonItem *quoteBarItem = [[UIBarButtonItem alloc] initWithImage:quoteImage
+                                                                     style:UIBarButtonItemStylePlain
+                                                                    target:self
+                                                                    action:@selector(checkAllQuotes)];
+
+    // On met les deux boutons à droite
+    self.navigationItem.rightBarButtonItems = @[refreshBarItem, quoteBarItem];
+
+
     
     // showAll
     UIImage *buttonImage = [UIImage imageNamed:@"all_categories"];
@@ -804,7 +753,7 @@
     if (!self.filterPostsQuotes) {
         self.filterPostsQuotes = [[FilterPostsQuotes alloc] init];
     }
-    [self.filterPostsQuotes checkPostsAndQuotesForAllTopics:self.arrayData andVC:self];
+    //[self.filterPostsQuotes checkPostsAndQuotesForAllTopics:self.arrayData andVC:self];
     //Mode sans cat : [self.filterPostsQuotes checkPostsAndQuotesForTopics:self.arrayTopics andVC:self];
 }
 
@@ -1126,10 +1075,18 @@
             NSLog(@"Topic sans cat, row=%ld",indexPath.row);
         }
 
+        NSLog(@"Load cell %@ isQuoted %d", tmpTopic._aTitle, tmpTopic.isFavoriteQuoted);
+
         if ([self.idPostSuperFavorites containsObject:[NSNumber numberWithInt:tmpTopic.postID]]) {
             cell.isSuperFavorite = YES;
         } else {
             cell.isSuperFavorite = NO;
+        }
+        
+        if (tmpTopic.isFavoriteQuoted) {
+            cell.isFavoriteQuoted = YES;
+        } else {
+            cell.isFavoriteQuoted = NO;
         }
 
         // Configure the cell...
@@ -1159,23 +1116,40 @@
 
         NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
         NSInteger vos_sujets = [defaults integerForKey:@"vos_sujets"];
+        
         NSString* sPoll = @"";
         if (tmpTopic.isPoll) {
             sPoll = @" \U00002263";
         }
+        
 
+        // Dernier caractère
+        NSString* textMessageNumber = @"";
         switch (vos_sujets) {
             case 0:
-                [cell.labelMessageNumber setText:[NSString stringWithFormat:@"⚑%@ %d/%d", sPoll, [tmpTopic curTopicPage], [tmpTopic maxTopicPage]]];
+                textMessageNumber = [NSString stringWithFormat:@"⚑%@ %d/%d", sPoll, [tmpTopic curTopicPage], [tmpTopic maxTopicPage]];
                 break;
             case 1:
-                [cell.labelMessageNumber setText:[NSString stringWithFormat:@"★%@ %d/%d", sPoll, [tmpTopic curTopicPage], [tmpTopic maxTopicPage]]];
+                textMessageNumber = [NSString stringWithFormat:@"★%@ %d/%d", sPoll, [tmpTopic curTopicPage], [tmpTopic maxTopicPage]];
                 break;
             default:
-                [cell.labelMessageNumber setText:[NSString stringWithFormat:@"⚑%@ %d/%d", sPoll, [tmpTopic curTopicPage], [tmpTopic maxTopicPage]]];
+                textMessageNumber = [NSString stringWithFormat:@"⚑%@ %d/%d", sPoll, [tmpTopic curTopicPage], [tmpTopic maxTopicPage]];
                 break;
         }
+
         [cell.labelMessageNumber setFont:[UIFont systemFontOfSize:13.0*iSizeTextTopics/100]];
+
+        if (tmpTopic.isFavoriteQuoted) {
+            NSMutableAttributedString *attrText = [[NSMutableAttributedString alloc] initWithString:[@"\U000027F3 " stringByAppendingString:textMessageNumber]];
+            [attrText addAttribute:NSForegroundColorAttributeName
+                             value:[UIColor redColor]
+                             range:NSMakeRange(0, 1)];
+            cell.labelMessageNumber.attributedText = attrText;
+        }
+        else {
+            [cell.labelMessageNumber setText:textMessageNumber];
+        }
+
 
         // Badge
         int iPageNumber = [tmpTopic maxTopicPage] - [tmpTopic curTopicPage];
@@ -1219,6 +1193,7 @@
     }
 }
 
+/*
 - (void)checkPostsAndQuotesForAllTopics {
     NSMutableArray *cells = [[NSMutableArray alloc] init];
     for (NSInteger j = 0; j < [self.favoritesTableView numberOfSections]; ++j)
@@ -1236,7 +1211,7 @@
     }
     [self.filterPostsQuotes checkPostsAndQuotesForAllTopics:self.arrayData andVC:self];
 
-}
+}*/
 
 
 
@@ -1673,7 +1648,7 @@
 
     NSLayoutConstraint *bottomConstraint = [self.progressView.bottomAnchor constraintEqualToAnchor:alertView.bottomAnchor];
     [bottomConstraint setActive:YES];
-    bottomConstraint.constant = -45; // How to constraint to Cancel button?
+    bottomConstraint.constant = 0; // How to constraint to Cancel button?
 
     [[self.progressView.leftAnchor constraintEqualToAnchor:alertView.leftAnchor] setActive:YES];
     [[self.progressView.rightAnchor constraintEqualToAnchor:alertView.rightAnchor] setActive:YES];
@@ -1681,8 +1656,87 @@
     [self presentViewController:self.alertProgress animated:true completion:nil];
 }
 
-#pragma mark -
-#pragma mark chooseTopicPage
+-(void) showAll:(id)sender {
+    if (self.showAll) {
+        self.showAll = NO;
+        self.editCategoriesList = NO;
+        [self.favoritesTableView setEditing:NO animated:YES];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self.navigationItem.leftBarButtonItem setBackgroundImage:[ThemeColors imageFromColor:[UIColor clearColor]] forState:UIControlStateNormal barMetrics:UIBarMetricsDefault];
+            /*[self.navigationItem.leftBarButtonItem setBackgroundImage:[ThemeColors imageFromColor:[UIColor clearColor]] forState:UIControlStateNormal barMetrics:UIBarMetricsCompact];
+            */
+
+            //On réaffiche le header
+            if (self.childViewControllers.count > 0) {
+                [self.favoritesTableView setTableHeaderView:((PullToRefreshErrorViewController *)[self.childViewControllers objectAtIndex:0]).view];
+            }
+        });
+        [self.navigationItem.rightBarButtonItem setBackgroundImage:[ThemeColors imageFromColor:[UIColor clearColor]] forState:UIControlStateNormal barMetrics:UIBarMetricsDefault];
+        self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemRefresh target:self action:@selector(reload)];
+        
+        // Right button: Edit cat -> refresh
+        self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemRefresh target:self action:@selector(reload)];
+    }
+    else {
+        self.showAll = YES;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self.navigationItem.leftBarButtonItem setBackgroundImage:[ThemeColors imageFromColor:[ThemeColors tintLightColor]] forState:UIControlStateNormal barMetrics:UIBarMetricsDefault];
+            [self.navigationItem.rightBarButtonItem setBackgroundImage:[ThemeColors imageFromColor:[ThemeColors tintLightColor]] forState:UIControlStateNormal barMetrics:UIBarMetricsDefault];
+            // Right button: Refresh -> Edit categories
+
+            UIImage *buttonImage = [UIImage imageNamed:@"icon_list_bullets"];
+            UIImage *buttonImageLandscape = [UIImage imageNamed:@"icon_list_bullets"];
+            UIBarButtonItem *editCatBtn = [[UIBarButtonItem alloc] initWithImage:buttonImage
+                                                             landscapeImagePhone:buttonImageLandscape
+                                                                           style:UIBarButtonItemStylePlain
+                                                                          target:self
+                                                                          action:@selector(editCategoriesList:)];
+            self.navigationItem.rightBarButtonItem = editCatBtn;
+            [self.favoritesTableView setTableHeaderView:nil];
+        });
+    }
+
+    if (![self.favoritesTableView isHidden]) {
+        [self.favoritesTableView reloadData];
+    }
+    
+}
+
+
+
+-(void) editCategoriesList:(id)sender
+{
+    if (self.editCategoriesList)
+    {
+        self.editCategoriesList = NO;
+    }
+    else  // Activable que si au moins 1 catégories
+    {
+        //if (self.arrayCategories.count >= 1)
+        //{
+            self.editCategoriesList = YES;
+        //}
+        // Sinon on reste non éditable
+    }
+    [self.favoritesTableView setEditing:self.editCategoriesList animated:YES];
+    [self.favoritesTableView reloadData];
+    
+    [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"favori_editcatlist"}];
+}
+
+-(void) checkAllQuotes {
+    if (!self.filterPostsQuotes) {
+        self.filterPostsQuotes = [[FilterPostsQuotes alloc] init];
+    }
+
+    
+    self.navigationItem.rightBarButtonItems[1].image = [UIImage systemImageNamed:@"text.bubble.badge.clock"]; // icône style "cancel";
+    //self.navigationItem.rightBarButtonItems[1].action = @selector(cancelCheckAllQuotes); // change aussi l’action si besoin
+
+    [self.filterPostsQuotes checkQuotesForAllTopics:self.arrayData andVC:self];
+}
+
+#pragma mark - chooseTopicPage
 
 -(void)chooseTopicPage {
     //NSLog(@"chooseTopicPage Favs");

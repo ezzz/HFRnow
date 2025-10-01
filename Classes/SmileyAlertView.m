@@ -41,6 +41,7 @@ static SmileyAlertView *_shared = nil;    // static instance variable
 }
 
 #pragma mark - Smiley alertview methods
+/*
 - (void) displaySmileyActionCancel:(NSString *)sSmileyCode withUrl:(NSString *)sSmileyImgUrl
                          addSmiley:(BOOL)bAddSmiley
                         showAction:(BOOL)bShowAction
@@ -57,26 +58,25 @@ static SmileyAlertView *_shared = nil;    // static instance variable
     self.handlerSelectCode = handlerSelectCode;
     NSLog(@"Selected smiley:%@ url:%@", sSmileyCode, sSmileyImgUrl);
     
-    UIAlertController* alert = [UIAlertController alertControllerWithTitle:nil message:[NSString stringWithFormat:@"\n\n\n\n\n%@", sSmileyCode]
+    UIAlertController* alert = [UIAlertController alertControllerWithTitle:nil
+                                                                   message:nil
                                                             preferredStyle:UIAlertControllerStyleAlert];
-    NSString* sActionName = @"Ajouter aux favoris";
-    if (!self.bAddSmiley) {
-        sActionName = @"Retirer des favoris";
-    }
-
+    NSString* sActionName = self.bAddSmiley ? @"Ajouter aux favoris" : @"Retirer des favoris";
+    
     UIAlertAction* actionYes = nil;
     if (self.bAddSmiley) {
         actionYes = [UIAlertAction actionWithTitle:sActionName style:UIAlertActionStyleDefault
                                            handler:^(UIAlertAction * action) { [self addToFavoriteSmileys]; }];
-    }
-    else {
+    } else {
         actionYes = [UIAlertAction actionWithTitle:sActionName style:UIAlertActionStyleDefault
-                                                          handler:^(UIAlertAction * action) { [self removeFromFavoriteSmileys]; }];
+                                           handler:^(UIAlertAction * action) { [self removeFromFavoriteSmileys]; }];
     }
-    UIAlertAction* actionDel = [UIAlertAction actionWithTitle:@"Annuler" style:UIAlertActionStyleCancel
+    UIAlertAction* actionDel = [UIAlertAction actionWithTitle:@"Annuler"
+                                                        style:UIAlertActionStyleCancel
                                                       handler:^(UIAlertAction * action) { }];
-    self.actionSmileyCode = [UIAlertAction actionWithTitle:@"Mots clés" style:UIAlertActionStyleDefault
-                                               handler:^(UIAlertAction * action) { [self showSmileyKeywords:vc]; }];
+    self.actionSmileyCode = [UIAlertAction actionWithTitle:@"Mots clés"
+                                                     style:UIAlertActionStyleDefault
+                                                   handler:^(UIAlertAction * action) { [self showSmileyKeywords:vc]; }];
     [self.actionSmileyCode setEnabled:NO];
     
     if (bShowAction) {
@@ -85,20 +85,124 @@ static SmileyAlertView *_shared = nil;    // static instance variable
     [alert addAction:self.actionSmileyCode];
     [alert addAction:actionDel];
     
+    // Image du smiley
     NSURL *url = [NSURL URLWithString:[sSmileyImgUrl stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]]];
-        
     CGFloat f = 1.5;
     CGFloat w = f*70;
     CGFloat h = f*50;
 
-    UIImageView *imageView = [[UIImageView alloc] initWithFrame:CGRectMake(85, 20+(f*70-w)/2, w, h)];;
+    UIImageView *imageView = [[UIImageView alloc] initWithFrame:CGRectMake(105, 20+(f*70-w)/2, w, h)];
     [imageView sd_setImageWithURL:url placeholderImage:nil];
     [imageView setContentMode:UIViewContentModeScaleAspectFit];
     [alert.view addSubview:imageView];
+    
+    NSMutableParagraphStyle *style = [[NSMutableParagraphStyle alloc] init];
+    style.alignment = NSTextAlignmentCenter; // ou Left/Right
+    NSAttributedString *attrMsg = [[NSAttributedString alloc] initWithString:[NSString stringWithFormat:@"%@", sSmileyCode]
+                                                                  attributes:@{NSParagraphStyleAttributeName: style}];
+
+    [alert setValue:attrMsg forKey:@"attributedMessage"];
+
     [self requestSmileyCode];
     [vc presentViewController:alert animated:YES completion:nil];
     [[ThemeManager sharedManager] applyThemeToAlertController:alert];
+}
+*/
+
+- (void) displaySmileyActionCancel:(NSString *)sSmileyCode
+                           withUrl:(NSString *)sSmileyImgUrl
+                         addSmiley:(BOOL)bAddSmiley
+                        showAction:(BOOL)bShowAction
+                       handlerDone:(dispatch_block_t)handlerDone
+                     handlerFailed:(dispatch_block_t)handlerFailed
+                 handlerSelectCode:(nsstring_block_t)handlerSelectCode
+                    baseController:(UIViewController*)vc
+{
+    self.bAddSmiley = bAddSmiley;
+    self.sSelectedSmileyCode = sSmileyCode;
+    self.sSelectedSmileyImageURL = sSmileyImgUrl;
+    self.handlerDone = handlerDone;
+    self.handlerFailed = handlerFailed;
+    self.handlerSelectCode = handlerSelectCode;
+    NSLog(@"Selected smiley:%@ url:%@", sSmileyCode, sSmileyImgUrl);
     
+    // ==== Alert de base ====
+    UIAlertController* alert = [UIAlertController alertControllerWithTitle:nil
+                                                                   message:nil
+                                                            preferredStyle:UIAlertControllerStyleAlert];
+    NSString* sActionName = self.bAddSmiley ? @"Ajouter aux favoris" : @"Retirer des favoris";
+    
+    UIAlertAction* actionYes = nil;
+    if (self.bAddSmiley) {
+        actionYes = [UIAlertAction actionWithTitle:sActionName style:UIAlertActionStyleDefault
+                                           handler:^(UIAlertAction * action) { [self addToFavoriteSmileys]; }];
+    } else {
+        actionYes = [UIAlertAction actionWithTitle:sActionName style:UIAlertActionStyleDefault
+                                           handler:^(UIAlertAction * action) { [self removeFromFavoriteSmileys]; }];
+    }
+    
+    UIAlertAction* actionDel = [UIAlertAction actionWithTitle:@"Annuler"
+                                                        style:UIAlertActionStyleCancel
+                                                      handler:^(UIAlertAction * action) { }];
+    
+    self.actionSmileyCode = [UIAlertAction actionWithTitle:@"Mots clés"
+                                                     style:UIAlertActionStyleDefault
+                                                   handler:^(UIAlertAction * action) { [self showSmileyKeywords:vc]; }];
+    [self.actionSmileyCode setEnabled:NO];
+    
+    if (bShowAction) {
+        [alert addAction:actionYes];
+    }
+    [alert addAction:self.actionSmileyCode];
+    [alert addAction:actionDel];
+    
+    // ==== Création du contentViewController custom ====
+    UIViewController *contentVC = [[UIViewController alloc] init];
+    
+    // Stack vertical pour image + label
+    UIStackView *stack = [[UIStackView alloc] init];
+    stack.axis = UILayoutConstraintAxisVertical;
+    stack.alignment = UIStackViewAlignmentCenter;
+    stack.spacing = 8;
+    stack.translatesAutoresizingMaskIntoConstraints = NO;
+    
+    // Image
+    NSURL *url = [NSURL URLWithString:[sSmileyImgUrl stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]]];
+    UIImageView *imageView = [[UIImageView alloc] init];
+    [imageView sd_setImageWithURL:url placeholderImage:nil];
+    imageView.contentMode = UIViewContentModeScaleAspectFit;
+    imageView.translatesAutoresizingMaskIntoConstraints = NO;
+    [NSLayoutConstraint activateConstraints:@[
+        [imageView.widthAnchor constraintEqualToConstant:105],
+        [imageView.heightAnchor constraintEqualToConstant:70]
+    ]];
+    
+    // Label
+    UILabel *label = [[UILabel alloc] init];
+    label.text = sSmileyCode;
+    label.textAlignment = NSTextAlignmentCenter;
+    label.numberOfLines = 0;
+    
+    // Ajout dans la stack
+    [stack addArrangedSubview:imageView];
+    [stack addArrangedSubview:label];
+    
+    // Ajout stack -> contentVC
+    [contentVC.view addSubview:stack];
+    [NSLayoutConstraint activateConstraints:@[
+        [stack.leadingAnchor constraintEqualToAnchor:contentVC.view.leadingAnchor constant:8],
+        [stack.trailingAnchor constraintEqualToAnchor:contentVC.view.trailingAnchor constant:-8],
+        [stack.topAnchor constraintEqualToAnchor:contentVC.view.topAnchor constant:20],
+        [stack.bottomAnchor constraintEqualToAnchor:contentVC.view.bottomAnchor constant:0]
+    ]];
+    
+    // Injection du VC custom dans l’alerte
+    [alert setValue:contentVC forKey:@"contentViewController"];
+    
+    // ==== Présentation ====
+    [self requestSmileyCode];
+    [vc presentViewController:alert animated:YES completion:nil];
+    [[ThemeManager sharedManager] applyThemeToAlertController:alert];
 }
 
 - (void)addToFavoriteSmileys

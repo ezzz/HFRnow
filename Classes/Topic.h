@@ -80,6 +80,7 @@
 @property bool isPoll;
 @property bool isSticky;
 @property bool isSuperFavorite;
+@property bool isFavoriteQuoted;
 @property bool isClosed;
 @property bool hasNewMessageInTopic;
 
