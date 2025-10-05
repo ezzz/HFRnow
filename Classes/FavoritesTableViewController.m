@@ -136,6 +136,11 @@
         
         [self.favoritesTableView.pullToRefreshView stopAnimating];
         [self.favoritesTableView.pullToRefreshView setLastUpdatedDate:[NSDate date]];
+        
+        if([[NSUserDefaults standardUserDefaults] boolForKey:@"checkquote_auto"]){
+            //self.navigationItem.rightBarButtonItems[1].image = [UIImage systemImageNamed:@"text.bubble.badge.clock"]; // icône style "cancel";
+            [self.filterPostsQuotes checkQuotesForAllTopics:self.arrayData andVC:self autoCheck:YES];
+        }
     }
     @catch(NSException* e) {
         UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Ooops !" message:[NSString stringWithFormat:@"Erreur : %@", e] preferredStyle:UIAlertControllerStyleAlert];
@@ -350,6 +355,9 @@
             //NSLog(@"ELSE");
         }
     }
+    
+
+    
     //NSLog(@"run2");
     if (!first)
     {
@@ -569,6 +577,7 @@
                                                                       action:@selector(reload)];
 
     // Bouton Quotes
+    /*
     UIImage *quoteImage = [UIImage systemImageNamed:@"text.bubble"];
     UIBarButtonItem *quoteBarItem = [[UIBarButtonItem alloc] initWithImage:quoteImage
                                                                      style:UIBarButtonItemStylePlain
@@ -576,8 +585,8 @@
                                                                     action:@selector(checkAllQuotes)];
 
     // On met les deux boutons à droite
-    self.navigationItem.rightBarButtonItems = @[refreshBarItem, quoteBarItem];
-
+    self.navigationItem.rightBarButtonItems = @[refreshBarItem, quoteBarItem];*/
+    self.navigationItem.rightBarButtonItems = @[refreshBarItem];
 
     
     // showAll
@@ -1730,10 +1739,10 @@
     }
 
     
-    self.navigationItem.rightBarButtonItems[1].image = [UIImage systemImageNamed:@"text.bubble.badge.clock"]; // icône style "cancel";
+    //self.navigationItem.rightBarButtonItems[1].image = [UIImage systemImageNamed:@"text.bubble.badge.clock"]; // icône style "cancel";
     //self.navigationItem.rightBarButtonItems[1].action = @selector(cancelCheckAllQuotes); // change aussi l’action si besoin
 
-    [self.filterPostsQuotes checkQuotesForAllTopics:self.arrayData andVC:self];
+    [self.filterPostsQuotes checkQuotesForAllTopics:self.arrayData andVC:self autoCheck:NO];
 }
 
 #pragma mark - chooseTopicPage

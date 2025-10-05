@@ -22,6 +22,8 @@
 @property BOOL bOnlyQuotes;
 @property BOOL bShowPostsRequired, stopRequired;
 @property BOOL bProcessingOnlyQuotes;
+@property (nonatomic, strong) NSCache<NSNumber *, NSMutableDictionary<NSNumber *, NSDictionary *> *> *pageCache;
+@property (nonatomic, strong) NSDate *dDateOfLastFetchContent;
 
 @property (nonatomic, strong) UIAlertController *alertProgress;
 @property (nonatomic, strong) UIProgressView *progressView;
@@ -31,7 +33,7 @@
 //+ (FilterPostsQuotes *)shared;
 
 - (void)checkPostsAndQuotesForTopic:(Topic *)topic andVC:(FavoritesTableViewController*)vc;
-- (void)checkQuotesForAllTopics:(NSArray *)arrTopics andVC:(FavoritesTableViewController*)vc;
+- (void)checkQuotesForAllTopics:(NSArray *)arrTopics andVC:(FavoritesTableViewController*)vc autoCheck:(BOOL)bQuickCheckOnly;
 
 - (void)checkNextPostsAndQuotesWithVC:(MessagesTableViewController*) vc;
 

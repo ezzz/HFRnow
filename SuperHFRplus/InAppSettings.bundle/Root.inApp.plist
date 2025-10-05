@@ -406,6 +406,24 @@
 				<string>no</string>
 			</array>
 		</dict>
+        <dict>
+            <key>FooterText</key>
+            <string>Vérifie la présence de messages où est quotés dans les deux pages qui suivent notre drapeau favori.</string>
+            <key>Title</key>
+            <string>Check quotes</string>
+            <key>Type</key>
+            <string>PSGroupSpecifier</string>
+        </dict>
+        <dict>
+            <key>Type</key>
+            <string>PSToggleSwitchSpecifier</string>
+            <key>Title</key>
+            <string>Vérification automatique</string>
+            <key>Key</key>
+            <string>checkquote_auto</string>
+            <key>DefaultValue</key>
+            <false/>
+        </dict>
 		<dict>
 			<key>FooterText</key>
 			<string>Permet de synchroniser certaines données (Drapeaux MP, Blacklist) avec le script équivalent GreaseMonkey.</string>
