@@ -25,7 +25,10 @@
     [self.labelMessageNumber setTextColor:[ThemeColors topicMsgTextColor:theme]];
     self.selectionStyle = [ThemeColors cellSelectionStyle:theme];
     if (self.isFavoriteQuoted) {
-        [self.labelMessageNumber setTextColor:[UIColor redColor]];
+        [self.imageIsQuoted setHidden:NO];
+    }
+    else {
+        [self.imageIsQuoted setHidden:YES];
     }
     if (self.isSuperFavorite) {
         self.backgroundColor = [ThemeColors cellBackgroundColorSuperFavorite];
@@ -33,12 +36,14 @@
         [self.labelDate setTextColor:[ThemeColors tintColorSuperFavorite]];
         [self.labelBadge setTextColor:[ThemeColors cellBackgroundColorSuperFavorite]];
         self.labelBadge.backgroundColor = [ThemeColors tintColorSuperFavorite];
+        self.imageIsQuoted.tintColor = [ThemeColors tintColorSuperFavorite];
     } else {
         self.backgroundColor = [ThemeColors cellBackgroundColor:theme];
         self.contentView.superview.backgroundColor = [ThemeColors cellBackgroundColor:theme];
         [self.labelDate setTextColor:[ThemeColors cellTintColor:theme]];
         [self.labelBadge setTextColor:[ThemeColors cellBackgroundColor:theme]];
         self.labelBadge.backgroundColor = [ThemeColors tintColor];
+        self.imageIsQuoted.tintColor = [ThemeColors tintColor];
     }
     if (self.isFavoriteDisabled) {
         [self.labelTitle setTextColor:[ThemeColors topicMsgTextColor:theme]];

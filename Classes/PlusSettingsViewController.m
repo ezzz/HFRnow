@@ -127,6 +127,12 @@
         [self hideCell:@"mpstorage_reset"];
     }
 
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"checkquote_auto"]) {
+        [self showCell:@"checkquote_superfavorionly"];
+    }
+    else {
+        [self hideCell:@"checkquote_superfavorionly"];
+    }
     
     self.navigationItem.rightBarButtonItem = nil;
 }
@@ -134,19 +140,19 @@
 #pragma mark kIASKAppSettingChanged notification
 - (void)settingDidChange:(NSNotification*)notification {
     NSLog(@"settingDidChange %@", notification);
-
+    
     if ([notification.userInfo objectForKey:@"menu_debug"]) {
         BOOL enabled = [[NSUserDefaults standardUserDefaults] boolForKey:@"menu_debug"];
         
         if (!enabled) {
             [self hideCell:@"menu_debug_entry"];
         }else{
-           [self showCell:@"menu_debug_entry"];
+            [self showCell:@"menu_debug_entry"];
         }
     } else if([notification.userInfo objectForKey:@"theme"]) {
         [[ThemeManager sharedManager] setTheme:(Theme)[[notification.userInfo objectForKey:@"theme"] intValue]];
         [[ThemeManager sharedManager] refreshTheme];
-    } else if([notification.userInfo objectForKey:@"auto_theme"]) {        
+    } else if([notification.userInfo objectForKey:@"auto_theme"]) {
         NSInteger iAutoTheme = [[NSUserDefaults standardUserDefaults] integerForKey:@"auto_theme"];
         // 0 = Manuel, 1 = Automatique, 2 = Heure fixe
         if (iAutoTheme == AUTO_THEME_AUTO_IOS) {
@@ -174,54 +180,54 @@
     }
     else if([notification.userInfo objectForKey:@"icon"]) {
         NSString *newIcon = [notification.userInfo objectForKey:@"icon"];
-
+        
         if ([[UIApplication sharedApplication] supportsAlternateIcons] == NO)
             return;
-
+        
         NSLog(@"icon %@", newIcon);
         if ([newIcon isEqualToString:@"superblue"]) {
             [[UIApplication sharedApplication] setAlternateIconName:nil completionHandler:nil];
         } else if ([newIcon isEqualToString:@"classic"]) {
             [[UIApplication sharedApplication] setAlternateIconName:@"Icon-CLASSIC"
                                                   completionHandler:^(NSError * _Nullable error) {
-                                                      NSLog(@"%@", [error description]);
-                                                  }];
+                NSLog(@"%@", [error description]);
+            }];
         } else if ([newIcon isEqualToString:@"classic-red"]) {
             [[UIApplication sharedApplication] setAlternateIconName:@"Icon-CLASSIC-RED"
                                                   completionHandler:^(NSError * _Nullable error) {
-                                                      NSLog(@"%@", [error description]);
-                                                  }];
+                NSLog(@"%@", [error description]);
+            }];
         } else if ([newIcon isEqualToString:@"classic-red-dark"]) {
             [[UIApplication sharedApplication] setAlternateIconName:@"Icon-CLASSIC-RED-DARK"
                                                   completionHandler:^(NSError * _Nullable error) {
-                                                      NSLog(@"%@", [error description]);
-                                                  }];
+                NSLog(@"%@", [error description]);
+            }];
         } else if ([newIcon isEqualToString:@"beta"]) {
             [[UIApplication sharedApplication] setAlternateIconName:@"Icon-BETA"
                                                   completionHandler:^(NSError * _Nullable error) {
-                                                      NSLog(@"%@", [error description]);
-                                                  }];
+                NSLog(@"%@", [error description]);
+            }];
         } else if ([newIcon isEqualToString:@"redface"]) {
             NSLog(@"Here for redface");
             [[UIApplication sharedApplication] setAlternateIconName:@"Icon-REDFACE"
                                                   completionHandler:^(NSError * _Nullable error) {
-                                                      NSLog(@"%@", [error description]);
-                                                  }];
+                NSLog(@"%@", [error description]);
+            }];
         } else if ([newIcon isEqualToString:@"redface-blue"]) {
             [[UIApplication sharedApplication] setAlternateIconName:@"Icon-REDFACEBLUE"
                                                   completionHandler:^(NSError * _Nullable error) {
-                                                      NSLog(@"Icon-REDFACEBLUE issue: %@", [error description]);
-                                                  }];
+                NSLog(@"Icon-REDFACEBLUE issue: %@", [error description]);
+            }];
         } else if ([newIcon isEqualToString:@"blue"]) {
             [[UIApplication sharedApplication] setAlternateIconName:@"Icon-BLUE"
                                                   completionHandler:^(NSError * _Nullable error) {
-                                                      NSLog(@"%@", [error description]);
-                                                  }];
+                NSLog(@"%@", [error description]);
+            }];
         } else if ([newIcon isEqualToString:@"white"]) {
             [[UIApplication sharedApplication] setAlternateIconName:@"Icon-WHITE"
                                                   completionHandler:^(NSError * _Nullable error) {
-                                                      NSLog(@"%@", [error description]);
-                                                  }];
+                NSLog(@"%@", [error description]);
+            }];
         }
     }  else if([notification.userInfo objectForKey:@"size_smileys"]) {
         NSNotification *myNotification = [NSNotification notificationWithName:kSmileysSizeChangedNotification
@@ -240,7 +246,7 @@
             [self hideCell:@"mpstorage_reset"];
             return;
         }
-
+        
         if ([[NSUserDefaults standardUserDefaults] boolForKey:@"mpstorage_active"]) {
             // MPStorage : Init (find topic Id at first startup), then do nothing
             
@@ -260,6 +266,13 @@
         else {
             //[FIRAnalytics setAnalyticsCollectionEnabled:NO];
         }
+    } else if([notification.userInfo objectForKey:@"checkquote_auto"]) {
+         if ([[NSUserDefaults standardUserDefaults] boolForKey:@"checkquote_auto"]) {
+             [self showCell:@"checkquote_superfavorionly"];
+         }
+         else {
+             [self hideCell:@"checkquote_superfavorionly"];
+         }
     }
 
     [AnalyticsManager logFirstSettingFromDictionary:notification.userInfo];

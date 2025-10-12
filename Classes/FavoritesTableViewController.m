@@ -137,9 +137,14 @@
         [self.favoritesTableView.pullToRefreshView stopAnimating];
         [self.favoritesTableView.pullToRefreshView setLastUpdatedDate:[NSDate date]];
         
-        if([[NSUserDefaults standardUserDefaults] boolForKey:@"checkquote_auto"]){
-            //self.navigationItem.rightBarButtonItems[1].image = [UIImage systemImageNamed:@"text.bubble.badge.clock"]; // icône style "cancel";
-            [self.filterPostsQuotes checkQuotesForAllTopics:self.arrayData andVC:self autoCheck:YES];
+        if ([[NSUserDefaults standardUserDefaults] boolForKey:@"checkquote_auto"]) {
+            NSLog(@"CHECK filterPostsQuotes starting");
+            if (!self.filterPostsQuotes) {
+                self.filterPostsQuotes = [[FilterPostsQuotes alloc] init];
+            }
+            [self.filterPostsQuotes checkQuotesForAllTopics:self.arrayData andVC:self];
+        } else {
+            NSLog(@"CHECK NO filterPostsQuotes (not activated)");
         }
     }
     @catch(NSException* e) {
@@ -1097,6 +1102,8 @@
         } else {
             cell.isFavoriteQuoted = NO;
         }
+        cell.imageIsQuoted.image = [[UIImage imageNamed:@"AboutFilled-40"] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+        cell.imageIsQuoted.tintColor = [UIColor systemRedColor];
 
         // Configure the cell...
         cell.isFavoriteViewed = NO;
@@ -1147,18 +1154,6 @@
         }
 
         [cell.labelMessageNumber setFont:[UIFont systemFontOfSize:13.0*iSizeTextTopics/100]];
-
-        if (tmpTopic.isFavoriteQuoted) {
-            NSMutableAttributedString *attrText = [[NSMutableAttributedString alloc] initWithString:[@"\U000027F3 " stringByAppendingString:textMessageNumber]];
-            [attrText addAttribute:NSForegroundColorAttributeName
-                             value:[UIColor redColor]
-                             range:NSMakeRange(0, 1)];
-            cell.labelMessageNumber.attributedText = attrText;
-        }
-        else {
-            [cell.labelMessageNumber setText:textMessageNumber];
-        }
-
 
         // Badge
         int iPageNumber = [tmpTopic maxTopicPage] - [tmpTopic curTopicPage];
@@ -1733,6 +1728,7 @@
     [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"favori_editcatlist"}];
 }
 
+/* No more manual action
 -(void) checkAllQuotes {
     if (!self.filterPostsQuotes) {
         self.filterPostsQuotes = [[FilterPostsQuotes alloc] init];
@@ -1743,7 +1739,7 @@
     //self.navigationItem.rightBarButtonItems[1].action = @selector(cancelCheckAllQuotes); // change aussi l’action si besoin
 
     [self.filterPostsQuotes checkQuotesForAllTopics:self.arrayData andVC:self autoCheck:NO];
-}
+}*/
 
 #pragma mark - chooseTopicPage
 

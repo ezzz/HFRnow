@@ -71,8 +71,10 @@
 }
 
 - (void)checkQuotesForAllTopics:(NSMutableArray*)arrFavoris
-                          andVC:(FavoritesTableViewController*) vc
-                     autoCheck:(BOOL)bAutoCheck {
+                          andVC:(FavoritesTableViewController*) vc {
+    
+    NSLog(@"checkQuotesForAllTopics nb cat %ld", (long)arrFavoris.count);
+    
     self.bOnlyQuotes = YES;
     self.favoriteVC = vc;
     self.messagesTableVC = nil;
@@ -89,9 +91,8 @@
     NSTimeInterval globalTimeout = 20.0;
     NSDate *startTime = [NSDate date];
     
-    NSLog(@"checkQuotesForAllTopics nb cat %ld", (long)arrFavoris.count);
 
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
         
         // --- PRIORISATION ---
         // On prépare deux listes pour conserver l'ordre d'origine dans chaque groupe
@@ -115,17 +116,17 @@
                     }
                     else {
                         NSTimeInterval elapsed = [[NSDate date] timeIntervalSinceDate:self.dDateOfLastFetchContent];
-                        if (elapsed >= 120.0) { // On ne check pas les super favoris plus souvent que 120s
+                        if (elapsed >= 60.0) { // On ne check pas les super favoris plus souvent que 120s
                             [flatListSuper addObject:entry];
                         }
                     }
-                } else { // Si NON super favori
+                } else if ( [[NSUserDefaults standardUserDefaults] boolForKey:@"checkquote_superfavorionly"] == NO){ // Si on ne check pas seulement les superfavori
                     if (self.dDateOfLastFetchContent == nil) { // Si last check jamais fait
                         [flatListRegular addObject:entry];
                     }
                     else {  // On ne check pas les NON super favoris plus souvent que 10mi
                         NSTimeInterval elapsed = [[NSDate date] timeIntervalSinceDate:self.dDateOfLastFetchContent];
-                        if (elapsed >= 3600.0) {
+                        if (elapsed >= 600.0) {
                             [flatListRegular addObject:entry];
                         }
                     }

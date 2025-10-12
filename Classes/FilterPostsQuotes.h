@@ -33,7 +33,7 @@
 //+ (FilterPostsQuotes *)shared;
 
 - (void)checkPostsAndQuotesForTopic:(Topic *)topic andVC:(FavoritesTableViewController*)vc;
-- (void)checkQuotesForAllTopics:(NSArray *)arrTopics andVC:(FavoritesTableViewController*)vc autoCheck:(BOOL)bQuickCheckOnly;
+- (void)checkQuotesForAllTopics:(NSArray *)arrTopics andVC:(FavoritesTableViewController*)vc;
 
 - (void)checkNextPostsAndQuotesWithVC:(MessagesTableViewController*) vc;
 

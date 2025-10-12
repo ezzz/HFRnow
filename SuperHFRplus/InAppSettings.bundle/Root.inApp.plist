@@ -408,7 +408,7 @@
 		</dict>
         <dict>
             <key>FooterText</key>
-            <string>Vérifie la présence de messages où est quotés dans les deux pages qui suivent notre drapeau favori.</string>
+            <string>Vérifie la présence de messages où on est quotés dans les deux pages qui suivent notre drapeau favori.</string>
             <key>Title</key>
             <string>Check quotes</string>
             <key>Type</key>
@@ -418,9 +418,19 @@
             <key>Type</key>
             <string>PSToggleSwitchSpecifier</string>
             <key>Title</key>
-            <string>Vérification automatique</string>
+            <string>Vérification automatique des quotes</string>
             <key>Key</key>
             <string>checkquote_auto</string>
+            <key>DefaultValue</key>
+            <false/>
+        </dict>
+        <dict>
+            <key>Type</key>
+            <string>PSToggleSwitchSpecifier</string>
+            <key>Title</key>
+            <string>Uniquement les super favoris</string>
+            <key>Key</key>
+            <string>checkquote_superfavorionly</string>
             <key>DefaultValue</key>
             <false/>
         </dict>

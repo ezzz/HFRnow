@@ -39,26 +39,36 @@
                         <nil key="highlightedColor"/>
                     </label>
                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" horizontalCompressionResistancePriority="748" text="Irmada - il y a 3 min" textAlignment="right" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="n7y-Ez-75M">
-                        <rect key="frame" x="92" y="29" width="288" height="14"/>
+                        <rect key="frame" x="92" y="30" width="288" height="14"/>
                         <fontDescription key="fontDescription" type="system" pointSize="11"/>
                         <color key="textColor" red="0.0" green="0.60881678139999995" blue="1" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                         <nil key="highlightedColor"/>
                     </label>
+                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" horizontalCompressionResistancePriority="800" image="AboutFilled-40.png" translatesAutoresizingMaskIntoConstraints="NO" id="6FV-39-jSu">
+                        <rect key="frame" x="92" y="31" width="12" height="12"/>
+                        <constraints>
+                            <constraint firstAttribute="width" constant="12" id="D1E-gE-oGR"/>
+                            <constraint firstAttribute="height" constant="12" id="vZK-gv-8wk"/>
+                        </constraints>
+                    </imageView>
                 </subviews>
                 <constraints>
                     <constraint firstItem="xon-TW-tys" firstAttribute="leading" secondItem="cOe-Y8-VQd" secondAttribute="trailing" constant="8" id="1TF-V0-ziF"/>
                     <constraint firstItem="cOe-Y8-VQd" firstAttribute="top" secondItem="VPc-4c-Iov" secondAttribute="top" constant="8" id="E1a-lK-9k7"/>
                     <constraint firstItem="2gK-LE-xSK" firstAttribute="leading" secondItem="VPc-4c-Iov" secondAttribute="leading" constant="8" id="Exa-Pq-gpZ"/>
+                    <constraint firstItem="6FV-39-jSu" firstAttribute="leading" secondItem="2gK-LE-xSK" secondAttribute="trailing" constant="8" id="HVv-ct-HqF"/>
                     <constraint firstAttribute="trailing" secondItem="xon-TW-tys" secondAttribute="trailing" constant="11" id="Lkk-Dr-bbc"/>
                     <constraint firstItem="cOe-Y8-VQd" firstAttribute="leading" secondItem="VPc-4c-Iov" secondAttribute="leading" constant="8" id="Mvi-B0-U1Y"/>
                     <constraint firstItem="xon-TW-tys" firstAttribute="top" secondItem="VPc-4c-Iov" secondAttribute="top" constant="9" id="Prs-Iw-STu"/>
                     <constraint firstAttribute="trailing" secondItem="n7y-Ez-75M" secondAttribute="trailing" constant="11" id="YaY-by-jnA"/>
                     <constraint firstItem="n7y-Ez-75M" firstAttribute="leading" secondItem="2gK-LE-xSK" secondAttribute="trailing" constant="8" id="kSm-c3-puK"/>
-                    <constraint firstAttribute="bottom" secondItem="n7y-Ez-75M" secondAttribute="bottom" constant="7" id="s5N-GR-t1g"/>
+                    <constraint firstAttribute="bottom" secondItem="6FV-39-jSu" secondAttribute="bottom" constant="7" id="rwu-zE-kC7"/>
+                    <constraint firstAttribute="bottom" secondItem="n7y-Ez-75M" secondAttribute="bottom" constant="6" id="s5N-GR-t1g"/>
                     <constraint firstAttribute="bottom" secondItem="2gK-LE-xSK" secondAttribute="bottom" constant="5" id="udx-zx-jcQ"/>
                 </constraints>
             </tableViewCellContentView>
             <connections>
+                <outlet property="imageIsQuoted" destination="6FV-39-jSu" id="mfJ-XU-xMn"/>
                 <outlet property="labelBadge" destination="xon-TW-tys" id="GaU-k3-NEv"/>
                 <outlet property="labelBadgeWidth" destination="2Cf-aY-b1I" id="JCi-5U-g7m"/>
                 <outlet property="labelDate" destination="n7y-Ez-75M" id="45B-l2-UM9"/>
@@ -68,4 +78,7 @@
             <point key="canvasLocation" x="125.59999999999999" y="155.62218890554723"/>
         </tableViewCell>
     </objects>
+    <resources>
+        <image name="AboutFilled-40.png" width="40" height="40"/>
+    </resources>
 </document>
