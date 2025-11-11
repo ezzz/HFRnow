@@ -18,6 +18,8 @@
 #import "HFRAlertView.h"
 #import "Favorite.h"
 
+#define FILTER_QUOTE_MAX_PAGES 2
+
 @implementation FilterPostsQuotes
 
 @synthesize topic, request, arrData, iLastPageLoaded, bIsFinished, progressView, alertProgress, favoriteVC, messagesTableVC, bShowPostsRequired, stopRequired;
@@ -72,29 +74,48 @@
 
 - (void)checkQuotesForAllTopics:(NSMutableArray*)arrFavoris
                           andVC:(FavoritesTableViewController*) vc {
-    
+        
     NSLog(@"checkQuotesForAllTopics nb cat %ld", (long)arrFavoris.count);
-    
+
     self.bOnlyQuotes = YES;
     self.favoriteVC = vc;
     self.messagesTableVC = nil;
     
-    // If already processing, stop
-    BOOL bAskToStop = NO;
-    if (self.bProcessingOnlyQuotes) {
-        bAskToStop = YES;
-    } else {
-        self.bProcessingOnlyQuotes = YES;
-    }
     
     // Timeout global
-    NSTimeInterval globalTimeout = 20.0;
-    NSDate *startTime = [NSDate date];
-    
 
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
         
-        // --- PRIORISATION ---
+        // En cas de processing en cours, on temporise pour attendre que le précédent traitement se termine
+        if (self.bProcessingOnlyQuotes) {
+            self.stopRequired = YES;
+            
+            NSLog(@"⏳ Attente de la fin du processing précédent...");
+            
+            // ⏱ Délai maximum de 2 secondes
+            NSTimeInterval timeout = 2.0;
+            NSTimeInterval startTime = [NSDate timeIntervalSinceReferenceDate];
+            
+            // Attente active : on dort par petits pas (100 ms)
+            while (self.bProcessingOnlyQuotes &&
+                   ([NSDate timeIntervalSinceReferenceDate] - startTime) < timeout) {
+                [NSThread sleepForTimeInterval:0.1];
+            }
+            
+            if (self.bProcessingOnlyQuotes) {
+                NSLog(@"⚠️ Timeout atteint, le process précédent ne s'est pas arrêté à temps");
+            } else {
+                NSLog(@"✅ Process précédent arrêté proprement");
+            }
+        }
+        
+        self.stopRequired = NO;
+        self.bProcessingOnlyQuotes = YES;
+        
+        NSTimeInterval globalTimeout = 20.0;
+        NSDate *startTime = [NSDate date];
+        
+        // --- Demarrage du traitement ---
         // On prépare deux listes pour conserver l'ordre d'origine dans chaque groupe
         NSMutableArray<NSDictionary *> *flatListSuper = [NSMutableArray array];
         NSMutableArray<NSDictionary *> *flatListRegular = [NSMutableArray array];
@@ -111,25 +132,9 @@
                 
                 // Test si superFavori
                 if ([self.favoriteVC.idPostSuperFavorites containsObject:[NSNumber numberWithInt:topic.postID]] ) {
-                    if (self.dDateOfLastFetchContent == nil) { // Si last check jamais fait
-                        [flatListSuper addObject:entry];
-                    }
-                    else {
-                        NSTimeInterval elapsed = [[NSDate date] timeIntervalSinceDate:self.dDateOfLastFetchContent];
-                        if (elapsed >= 60.0) { // On ne check pas les super favoris plus souvent que 120s
-                            [flatListSuper addObject:entry];
-                        }
-                    }
+                    [flatListSuper addObject:entry];
                 } else if ( [[NSUserDefaults standardUserDefaults] boolForKey:@"checkquote_superfavorionly"] == NO){ // Si on ne check pas seulement les superfavori
-                    if (self.dDateOfLastFetchContent == nil) { // Si last check jamais fait
-                        [flatListRegular addObject:entry];
-                    }
-                    else {  // On ne check pas les NON super favoris plus souvent que 10mi
-                        NSTimeInterval elapsed = [[NSDate date] timeIntervalSinceDate:self.dDateOfLastFetchContent];
-                        if (elapsed >= 600.0) {
-                            [flatListRegular addObject:entry];
-                        }
-                    }
+                    [flatListRegular addObject:entry];
                 }
             }
         }
@@ -137,29 +142,73 @@
         // Concaténation : les super favoris en premier
         NSMutableArray<NSDictionary *> *flatList = [NSMutableArray arrayWithArray:flatListSuper];
         [flatList addObjectsFromArray:flatListRegular];
+        
+        // Prioriser les topics déjà en cache
+        NSMutableArray *cachedQuotedTopics = [NSMutableArray array];
+        NSMutableArray *cachedNotQuotedTopics = [NSMutableArray array];
+        NSMutableArray *uncachedTopics = [NSMutableArray array];
+        
+        for (NSDictionary *item in flatList) {
+            Topic *topic = item[@"topic"];
+            NSMutableDictionary *topicCache = [self cacheForTopic:topic];
+            NSMutableDictionary<NSNumber *, NSDictionary *> *pagesCache = topicCache[@"pages"];
+            
+            BOOL hasAllNeededPages = YES;
+            BOOL isQuotedTopic = NO;
+            int flagPage = topic.curTopicPage;
+            for (int p = flagPage; p <= MIN(flagPage + 2, topic.maxTopicPage); p++) {
+                if (!pagesCache[@(p)]) { // Page not in cache
+                    hasAllNeededPages = NO;
+                }
+                else { // Page in cache -> checking if quoted
+                    NSDictionary *cachedResult = pagesCache[@(p)];
+                    if ([cachedResult[@"isQuoted"] boolValue]) {
+                        isQuotedTopic = YES;
+                    }
+                }
+            }
+            
+            
+            NSLog(@"Topic en cache ? %@ hasAllNeededPages %d isQuoted %d", topic._aTitle, hasAllNeededPages, isQuotedTopic);
+            if (hasAllNeededPages) {
+                if (isQuotedTopic) {
+                    [cachedQuotedTopics addObject:item];
+                }
+                else {
+                    [cachedNotQuotedTopics addObject:item];
+                }
+            } else {
+                [uncachedTopics addObject:item];
+            }
+        }
+        
+        NSMutableArray *orderedTopics = [NSMutableArray arrayWithArray:cachedQuotedTopics];
+        [orderedTopics addObjectsFromArray:cachedNotQuotedTopics];
+        [orderedTopics addObjectsFromArray:uncachedTopics];
+        
         // --- FIN PRIORISATION ---
         
-        NSLog(@"flatList nb topics %ld (super:%ld / regular:%ld)",
-              (long)flatList.count, (long)flatListSuper.count, (long)flatListRegular.count);
-
         NSInteger batchSize = 1;
-        NSInteger count = flatList.count;
+        NSInteger count = orderedTopics.count;
+        
         
         for (NSInteger i = 0; i < count; i += batchSize) {
             // Timeout global
-            if ([[NSDate date] timeIntervalSinceDate:startTime] > globalTimeout || bAskToStop) {
-                NSLog(@"⏱ Timeout global atteint ou demande d'arret, on arrête");
+            if ([[NSDate date] timeIntervalSinceDate:startTime] > globalTimeout || self.stopRequired) {
+                NSLog(@"⏱ Timeout global atteint ou demande d'arret (%d), on arrête", self.stopRequired);
                 break;
             }
             
             dispatch_group_t group = dispatch_group_create();
             NSRange range = NSMakeRange(i, MIN(batchSize, count - i));
-            NSArray *batch = [flatList subarrayWithRange:range];
+            NSArray *batch = [orderedTopics subarrayWithRange:range];
             
             for (NSDictionary *item in batch) {
                 Topic *topic = item[@"topic"];
                 NSNumber *sectionNum = item[@"section"];
                 NSNumber *rowNum = item[@"row"];
+                
+                NSLog(@"Checking %@", topic._aTitle);
                 
                 NSIndexPath *indexPath = [NSIndexPath indexPathForRow:rowNum.integerValue
                                                             inSection:sectionNum.integerValue];
@@ -168,13 +217,13 @@
                 dispatch_group_enter(group);
                 [self fetchContentForTopic:topic completion:^(Topic *finishedTopic) {
                     // Le topic a mis à jour finishedTopic.hasBeenQuoted
-
+                    
                     NSTimeInterval timeFetch = [[NSDate date] timeIntervalSinceDate:startFetch];
-                    NSLog(@"Durée fetch total %.1f pour %@", timeFetch, topic._aTitle);
+                    //NSLog(@"Durée fetch total %.1f pour %@", timeFetch, topic._aTitle);
                     dispatch_async(dispatch_get_main_queue(), ^{
-                        NSLog(@"Reload cell for topic %@ section %@ row %@", topic._aTitle, sectionNum, rowNum);
+                        //NSLog(@"Reload cell for topic %@ section %@ row %@", topic._aTitle, sectionNum, rowNum);
                         [self.favoriteVC.favoritesTableView reloadRowsAtIndexPaths:@[indexPath]
-                                                         withRowAnimation:UITableViewRowAnimationNone];
+                                                                  withRowAnimation:UITableViewRowAnimationNone];
                     });
                     dispatch_group_leave(group);
                 }];
@@ -184,7 +233,7 @@
             NSTimeInterval elapsed = [[NSDate date] timeIntervalSinceDate:startTime];
             NSTimeInterval remaining = MAX(0, globalTimeout - elapsed);
             long result = dispatch_group_wait(group,
-                         dispatch_time(DISPATCH_TIME_NOW, (int64_t)(remaining * NSEC_PER_SEC)));
+                                              dispatch_time(DISPATCH_TIME_NOW, (int64_t)(remaining * NSEC_PER_SEC)));
             
             if (result != 0) {
                 NSLog(@"⚠️ Timeout pendant un batch, arrêt");
@@ -194,12 +243,8 @@
         self.dDateOfLastFetchContent = [NSDate date];
         NSLog(@"✅ Tous les topics traités (ou interrompus)");
         self.bProcessingOnlyQuotes = NO;
-        /*dispatch_async(dispatch_get_main_queue(), ^{
-            self.favoriteVC.navigationItem.rightBarButtonItems[1].image = [UIImage systemImageNamed:@"text.bubble"];
-        });`*/
     });
 }
-
 
 #pragma mark - Work methods
 
@@ -214,7 +259,7 @@
     NSDate* startFetch = [NSDate date];
     [self fetchContentForTopic:topic startPage:0];
     NSTimeInterval timeFetch = [[NSDate date] timeIntervalSinceDate:startFetch];
-    NSLog(@"Durée fetch2 %.1f pour %@", timeFetch, topic._aTitle);
+    //NSLog(@"Durée fetch2 %.1f pour %@", timeFetch, topic._aTitle);
 
     if (completion) {
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -223,29 +268,7 @@
     }
 }
 
-- (NSMutableDictionary *)cacheForTopic:(Topic *)topic {
-    NSNumber *cacheKey = @(topic.postID);
-    NSMutableDictionary *topicCache = [self.pageCache objectForKey:cacheKey];
-    if (!topicCache) {
-        topicCache = [NSMutableDictionary dictionary];
-        topicCache[@"pages"] = [NSMutableDictionary dictionary];
-        [self.pageCache setObject:topicCache forKey:cacheKey];
-    }
-    return topicCache;
-}
 
-- (void)invalidateCacheForTopic:(Topic *)topic {
-    NSMutableDictionary *topicCache = [self cacheForTopic:topic];
-    NSMutableDictionary *pages = topicCache[@"pages"];
-    NSArray<NSNumber *> *keys = [pages allKeys];
-
-    for (NSNumber *pageNum in keys) {
-        if (pageNum.intValue < topic.curTopicPage) {
-            [pages removeObjectForKey:pageNum];
-            NSLog(@"[CACHE] Invalidation page %@ pour topic %d", pageNum, topic.postID);
-        }
-    }
-}
 
 - (void)fetchContentForTopic:(Topic*)topic startPage:(int)iStartPage {
     self.topic = topic;
@@ -285,6 +308,15 @@
 
         NSDictionary *cachedResult = pagesCache[pageNum];
         
+        /*
+        // ⚡ Optimisation : si le flag n’a pas bougé et le topic est déjà marqué comme cité
+        if (topic.isFavoriteQuoted && topic.lastKnownFlagPostID == topic.aURLOfFlag) {
+            NSLog(@"[FASTPATH] Topic %@ déjà cité et flag inchangé, on skip le chargement", topic._aTitle);
+            self.bIsFinished = YES;
+            return;
+        }*/
+
+        
         // --- Vérification cache pour pages intermédiaires ---
         if (!isLastPage && cachedResult) {
             NSLog(@"[CACHE] Using cached page %d for topic %d", iPageToLoad, topic.postID);
@@ -294,6 +326,14 @@
                 break;
             }
             iPageToLoad++;
+            iNbPagesLoaded++;
+            
+            // Si on a traité les 2 pages -> on arrete
+            if (self.bOnlyQuotes && iNbPagesLoaded >= FILTER_QUOTE_MAX_PAGES) {
+                break;
+            }
+            
+            // Dans les autres cas, on passe à la page suivante
             continue;
         }
         
@@ -307,14 +347,9 @@
             break;
         }
         
-        NSLog(@"Loading Topic page %d - %@", iPageToLoad, topic._aTitle);
+        //NSLog(@"Loading Topic page %d - %@", iPageToLoad, topic._aTitle);
         NSDate* start2 = [NSDate date];
         NSDate* startFetch = [NSDate date];
-
-        if (self.bOnlyQuotes && !self.bProcessingOnlyQuotes) {
-            NSLog(@"Stop processing !");
-            return;
-        }
         NSString* sURL = [NSString stringWithFormat:@"https://forum.hardware.fr%@", [topic getURLforPage:iPageToLoad]];
         ASIHTTPRequest *request = [ASIHTTPRequest requestWithURL:[NSURL URLWithString:sURL]];
         [request setShouldRedirect:YES];
@@ -330,7 +365,7 @@
             NSData* data = [request safeResponseData];
             
             NSTimeInterval timeFetch = [[NSDate date] timeIntervalSinceDate:startFetch];
-            NSLog(@"Durée request %.1f pour %@", timeFetch, topic._aTitle);
+            //NSLog(@"Durée request %.1f pour %@", timeFetch, topic._aTitle);
             
             NSDate* startParse = [NSDate date];
 
@@ -344,21 +379,24 @@
                 self.arrData = [self.arrData arrayByAddingObjectsFromArray:parser.workingArray];
                 
                 NSTimeInterval timeParse = [[NSDate date] timeIntervalSinceDate:startParse];
-                NSLog(@"Durée parse %.1f pour %@", timeParse, topic._aTitle);
+                //NSLog(@"Durée parse %.1f pour %@", timeParse, topic._aTitle);
 
                 BOOL pageHasQuote = NO;
                 if (self.bOnlyQuotes && parser.bFoundQuote) {
                     pageHasQuote = YES;
                     NSLog(@"FOUND !!!");
                     self.topic.isFavoriteQuoted = YES;
-                    NSLog(@"Load cell %@ isQuoted %d", self.topic._aTitle, self.topic.isFavoriteQuoted);
+                    //NSLog(@"Load cell %@ isQuoted %d", self.topic._aTitle, self.topic.isFavoriteQuoted);
                     self.bIsFinished = YES;
-                    break;
                 }
                 
                 // 📝 Mise à jour cache
                 pagesCache[pageNum] = @{ @"isQuoted": @(pageHasQuote) };
                 topicCache[@"lastFetchDate"] = [NSDate date];
+                
+                if (self.bOnlyQuotes && parser.bFoundQuote) {
+                    break;
+                }
             }
         }
         if (self.arrData.count > 0) {
@@ -394,7 +432,7 @@
             iNbPagesLoaded++;
         }
         NSTimeInterval time2 = [[NSDate date] timeIntervalSinceDate:start2];
-        NSLog(@"Durée parse %.1f pour %@", time2, topic._aTitle);
+        //NSLog(@"Durée parse %.1f pour %@", time2, topic._aTitle);
     }
     self.iLastPageLoaded = iPageToLoad;
     if (!self.bOnlyQuotes && !self.stopRequired && (self.arrData.count >= 40 || self.bShowPostsRequired || (self.arrData.count >= 1 && bIsFinished))) {
@@ -423,6 +461,30 @@
         dispatch_async(dispatch_get_main_queue(), ^{
             [self.alertProgress dismissViewControllerAnimated:YES completion:nil];
         });
+    }
+}
+
+- (NSMutableDictionary *)cacheForTopic:(Topic *)topic {
+    NSNumber *cacheKey = @(topic.postID);
+    NSMutableDictionary *topicCache = [self.pageCache objectForKey:cacheKey];
+    if (!topicCache) {
+        topicCache = [NSMutableDictionary dictionary];
+        topicCache[@"pages"] = [NSMutableDictionary dictionary];
+        [self.pageCache setObject:topicCache forKey:cacheKey];
+    }
+    return topicCache;
+}
+
+- (void)invalidateCacheForTopic:(Topic *)topic {
+    NSMutableDictionary *topicCache = [self cacheForTopic:topic];
+    NSMutableDictionary *pages = topicCache[@"pages"];
+    NSArray<NSNumber *> *keys = [pages allKeys];
+
+    for (NSNumber *pageNum in keys) {
+        if (pageNum.intValue < topic.curTopicPage) {
+            [pages removeObjectForKey:pageNum];
+            NSLog(@"[CACHE] Invalidation page %@ pour topic %d", pageNum, topic.postID);
+        }
     }
 }
 

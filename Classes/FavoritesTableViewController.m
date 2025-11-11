@@ -38,7 +38,7 @@
 #import "MultisManager.h"
 #import "FilterPostsQuotes.h"
 #import "TopicsSearchViewController.h"
-
+#import "UIImpactFeedbackGenerator+UserDefaults.h"
 #import "AnalyticsManager.h"
 
 #define SECTION_CAT_VISIBLE 0
@@ -1089,7 +1089,7 @@
             NSLog(@"Topic sans cat, row=%ld",indexPath.row);
         }
 
-        NSLog(@"Load cell %@ isQuoted %d", tmpTopic._aTitle, tmpTopic.isFavoriteQuoted);
+        //NSLog(@"Load cell %@ isQuoted %d", tmpTopic._aTitle, tmpTopic.isFavoriteQuoted);
 
         if ([self.idPostSuperFavorites containsObject:[NSNumber numberWithInt:tmpTopic.postID]]) {
             cell.isSuperFavorite = YES;
@@ -1143,17 +1143,19 @@
         NSString* textMessageNumber = @"";
         switch (vos_sujets) {
             case 0:
-                textMessageNumber = [NSString stringWithFormat:@"⚑%@ %d/%d", sPoll, [tmpTopic curTopicPage], [tmpTopic maxTopicPage]];
+                textMessageNumber = [NSString stringWithFormat:@"⚑%@ %d / %d", sPoll, [tmpTopic curTopicPage], [tmpTopic maxTopicPage]];
                 break;
             case 1:
-                textMessageNumber = [NSString stringWithFormat:@"★%@ %d/%d", sPoll, [tmpTopic curTopicPage], [tmpTopic maxTopicPage]];
+                textMessageNumber = [NSString stringWithFormat:@"★%@ %d / %d", sPoll, [tmpTopic curTopicPage], [tmpTopic maxTopicPage]];
                 break;
             default:
-                textMessageNumber = [NSString stringWithFormat:@"⚑%@ %d/%d", sPoll, [tmpTopic curTopicPage], [tmpTopic maxTopicPage]];
+                textMessageNumber = [NSString stringWithFormat:@"⚑%@ %d / %d", sPoll, [tmpTopic curTopicPage], [tmpTopic maxTopicPage]];
                 break;
         }
 
         [cell.labelMessageNumber setFont:[UIFont systemFontOfSize:13.0*iSizeTextTopics/100]];
+
+        [cell.labelMessageNumber setText:textMessageNumber];
 
         // Badge
         int iPageNumber = [tmpTopic maxTopicPage] - [tmpTopic curTopicPage];
@@ -1728,19 +1730,6 @@
     [AnalyticsManager logEventWithName:@"user_action" parameters:@{@"action" : @"favori_editcatlist"}];
 }
 
-/* No more manual action
--(void) checkAllQuotes {
-    if (!self.filterPostsQuotes) {
-        self.filterPostsQuotes = [[FilterPostsQuotes alloc] init];
-    }
-
-    
-    //self.navigationItem.rightBarButtonItems[1].image = [UIImage systemImageNamed:@"text.bubble.badge.clock"]; // icône style "cancel";
-    //self.navigationItem.rightBarButtonItems[1].action = @selector(cancelCheckAllQuotes); // change aussi l’action si besoin
-
-    [self.filterPostsQuotes checkQuotesForAllTopics:self.arrayData andVC:self autoCheck:NO];
-}*/
-
 #pragma mark - chooseTopicPage
 
 -(void)chooseTopicPage {
@@ -1992,6 +1981,17 @@
 	if (!shake) {
 
 	}
+    NSTimeInterval now = [NSDate timeIntervalSinceReferenceDate];
+    if (now - self.lastRefreshTime < 1.0) {
+        NSLog(@"⏱ Refresh ignoré (debounce)");
+        
+        UIImpactFeedbackGenerator *myGen = [[UIImpactFeedbackGenerator alloc] initWithStyle:(UIImpactFeedbackStyleLight)];
+        [myGen impactOccurredWithDefaults];
+        myGen = NULL;
+
+        return;
+    }
+    self.lastRefreshTime = now;
 
     [self.favoritesTableView triggerPullToRefresh];
 

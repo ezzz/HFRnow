@@ -36,23 +36,25 @@
         [self.labelDate setTextColor:[ThemeColors tintColorSuperFavorite]];
         [self.labelBadge setTextColor:[ThemeColors cellBackgroundColorSuperFavorite]];
         self.labelBadge.backgroundColor = [ThemeColors tintColorSuperFavorite];
-        self.imageIsQuoted.tintColor = [ThemeColors tintColorSuperFavorite];
+        self.imageIsQuoted.tintColor = [UIColor redColor];//[ThemeColors tintColorSuperFavorite];
     } else {
         self.backgroundColor = [ThemeColors cellBackgroundColor:theme];
         self.contentView.superview.backgroundColor = [ThemeColors cellBackgroundColor:theme];
         [self.labelDate setTextColor:[ThemeColors cellTintColor:theme]];
         [self.labelBadge setTextColor:[ThemeColors cellBackgroundColor:theme]];
         self.labelBadge.backgroundColor = [ThemeColors tintColor];
-        self.imageIsQuoted.tintColor = [ThemeColors tintColor];
+        self.imageIsQuoted.tintColor = [UIColor redColor];//[ThemeColors tintColor];
     }
     if (self.isFavoriteDisabled) {
         [self.labelTitle setTextColor:[ThemeColors topicMsgTextColor:theme]];
         [self.labelDate setTextColor:[ThemeColors topicMsgTextColor:theme]];
         [self.labelDate setTextColor:[ThemeColors topicMsgTextColor:theme]];
         self.labelBadge.backgroundColor = [ThemeColors topicMsgTextColor:theme];
+        [self.imageIsQuoted setHidden:YES];
     }
     if (self.isFavoriteViewed) {
         [self.labelDate setTextColor:[ThemeColors topicMsgTextColor]];
+        [self.imageIsQuoted setHidden:YES];
     }
 }
 

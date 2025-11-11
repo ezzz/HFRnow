@@ -107,9 +107,7 @@
 }
 
 - (void)parseData:(HTMLParser *)myParser filterPostsQuotes:(BOOL)bFilterPostsQuotes startAfterThisPostId:(NSString*)sStartAfterPostId topicUrl:(NSString*)sTopicUrl topicPage:(int)iPage {
-    
-    
-    NSLog(@"--------- ParseData of page %d", iPage);
+    //NSLog(@"--------- ParseData of page %d", iPage);
     self.bFoundQuote = NO;
 
     self.workingArray = [NSMutableArray array];
@@ -137,10 +135,6 @@
     
     int indexNode = 0;
 	for (HTMLNode * messageNodeParent in messagesNodes) { //Loop through all the tags
-        if (bFilterPostsQuotes && indexNode == 0) { // Filter 1st post of the page: "Reprise de la page précédente"
-            indexNode++;
-            continue;
-        }
         HTMLNode * messageNode = [messageNodeParent firstChild];
 		
 		if (![self isCancelled]) {
@@ -158,17 +152,23 @@
 			}
 			
             linkItem.postID = [[[messageNode firstChild] firstChild] getAttributeNamed:@"name"];
+            //NSLog(@"Parsing postID %@ startFater %@", linkItem.postID, sStartAfterPostId);
             if (sStartAfterPostId && !bPostIdSeen) {
                 if ([linkItem.postID isEqualToString:sStartAfterPostId]) {
                     bPostIdSeen = YES;
                 }
                 continue;
             }
+            
+            if (bFilterPostsQuotes && indexNode == 0) { // Filter 1st post of the page: "Reprise de la page précédente"
+                indexNode++;
+                continue;
+            }
 
             linkItem.name = [authorNode allContents];
 			linkItem.name = [linkItem.name stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
 
-            
+            //NSLog(@"Message de %@", linkItem.name);
             if ([linkItem.name isEqualToString:@"Publicité"]) {
 				continue;
 			}
@@ -203,13 +203,19 @@
                     NSString* sQuoteAuthor = [sFullTextAuthor substringToIndex:[sFullTextAuthor length]-10];
                     
                     // Check for own post
+                    //NSLog(@"Checking quote author who is %@ compared to user %@", sQuoteAuthor, currentPseudoLowercase);
                     if ([[sQuoteAuthor lowercaseString] isEqualToString:currentPseudoLowercase]) {
                         [quoteNode setAttributeNamed:@"class" withValue:@"citation_me_quoted"];
                         bFilterCurrentPost = NO;
                         self.bFoundQuote = YES;
-                        break;
+                        //NSLog(@"FOUND ME QUOTED !!!!!!");
+                        if (bFilterPostsQuotes && self.bOnlyQuotes) {
+                            return;
+                        }
+                        else if (bFilterPostsQuotes) {
+                            continue;
+                        }
 
-                        NSLog(@"FOUND ME QUOTED !!!!!!");
                     } else if ([[BlackList shared] isWL:[sQuoteAuthor lowercaseString]]) {
                         [quoteNode setAttributeNamed:@"class" withValue:@"citation_whitelist"];
                     } else if ([[BlackList shared] isBL:[sQuoteAuthor lowercaseString]]) {

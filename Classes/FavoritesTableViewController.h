@@ -79,6 +79,7 @@
 @property (strong, nonatomic) ASIHTTPRequest *request;
 
 @property (nonatomic, strong) HFRNavigationController* detailNavigationViewController;
+@property (nonatomic, assign) NSTimeInterval lastRefreshTime;
 
 -(void)loadDataInTableView:(NSData*)contentData;
 -(void)reset;

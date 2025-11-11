@@ -107,8 +107,6 @@
 		154457372E8AF7C500900FB8 /* Icon-CLASSIC-RED-DARK@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 154457352E8AF7C500900FB8 /* Icon-CLASSIC-RED-DARK@3x.png */; };
 		154457382E8AF7C500900FB8 /* Icon-CLASSIC-RED-DARK@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 154457342E8AF7C500900FB8 /* Icon-CLASSIC-RED-DARK@2x.png */; };
 		154457392E8AF7C500900FB8 /* Icon-CLASSIC-RED-DARK-IPAD@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 154457332E8AF7C500900FB8 /* Icon-CLASSIC-RED-DARK-IPAD@2x.png */; };
-		1544573C2E9AEB6900900FB8 /* ChatFilledRed-40.png in Resources */ = {isa = PBXBuildFile; fileRef = 1544573A2E9AEB6900900FB8 /* ChatFilledRed-40.png */; };
-		1544573D2E9AEB6900900FB8 /* ChatFilledRed-40@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 1544573B2E9AEB6900900FB8 /* ChatFilledRed-40@2x.png */; };
 		154ACDFB26FA45EA00BAF716 /* SmileyAlertView.m in Sources */ = {isa = PBXBuildFile; fileRef = 154ACDFA26FA45EA00BAF716 /* SmileyAlertView.m */; };
 		154C0D03250FD66F00294ECC /* person.3.fill-2.png in Resources */ = {isa = PBXBuildFile; fileRef = 154C0D01250FD66E00294ECC /* person.3.fill-2.png */; };
 		154C0D04250FD66F00294ECC /* person.3.fill-2@2.png in Resources */ = {isa = PBXBuildFile; fileRef = 154C0D02250FD66E00294ECC /* person.3.fill-2@2.png */; };
@@ -201,7 +199,6 @@
 		15AC35822903E2DA00CCD6FC /* QuoteEFilled-20-Inv.png in Resources */ = {isa = PBXBuildFile; fileRef = 15AC35682903E2DA00CCD6FC /* QuoteEFilled-20-Inv.png */; };
 		15AC3584290418DA00CCD6FC /* TopicMPCellView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 15AC3583290418DA00CCD6FC /* TopicMPCellView.xib */; };
 		15AC35872904332600CCD6FC /* TopicMPCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = 15AC35862904332600CCD6FC /* TopicMPCellView.m */; };
-		15AC35892904637400CCD6FC /* File in Resources */ = {isa = PBXBuildFile; fileRef = 15AC35882904637400CCD6FC /* File */; };
 		15AC358E2905261F00CCD6FC /* group_light.png in Resources */ = {isa = PBXBuildFile; fileRef = 15AC358C2905261F00CCD6FC /* group_light.png */; };
 		15AC358F2905261F00CCD6FC /* group_dark.png in Resources */ = {isa = PBXBuildFile; fileRef = 15AC358D2905261F00CCD6FC /* group_dark.png */; };
 		15AEF9FE223E9053005E6739 /* Icon-BLUE@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15AEF9FC223E9052005E6739 /* Icon-BLUE@3x.png */; };
@@ -1058,7 +1055,6 @@
 		15377553275228E600790892 /* noel_dinde.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = noel_dinde.png; sourceTree = "<group>"; };
 		15377555275231F500790892 /* noel22.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = noel22.png; sourceTree = "<group>"; };
 		15377556275231F500790892 /* noel23.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = noel23.png; sourceTree = "<group>"; };
-		15377559275A777F00790892 /* Empty.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Empty.md; sourceTree = "<group>"; };
 		1537755A275A7A3300790892 /* noel_neige_big_red.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = noel_neige_big_red.png; sourceTree = "<group>"; };
 		153D295B23043CB200000505 /* style-liste-light.css */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.css; path = "style-liste-light.css"; sourceTree = "<group>"; };
 		1540899B2439E7C900509862 /* FilterPostsQuotes.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FilterPostsQuotes.m; sourceTree = "<group>"; };
@@ -1073,8 +1069,6 @@
 		154457332E8AF7C500900FB8 /* Icon-CLASSIC-RED-DARK-IPAD@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-CLASSIC-RED-DARK-IPAD@2x.png"; sourceTree = "<group>"; };
 		154457342E8AF7C500900FB8 /* Icon-CLASSIC-RED-DARK@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-CLASSIC-RED-DARK@2x.png"; sourceTree = "<group>"; };
 		154457352E8AF7C500900FB8 /* Icon-CLASSIC-RED-DARK@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-CLASSIC-RED-DARK@3x.png"; sourceTree = "<group>"; };
-		1544573A2E9AEB6900900FB8 /* ChatFilledRed-40.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ChatFilledRed-40.png"; sourceTree = "<group>"; };
-		1544573B2E9AEB6900900FB8 /* ChatFilledRed-40@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ChatFilledRed-40@2x.png"; sourceTree = "<group>"; };
 		154ACDF926FA45EA00BAF716 /* SmileyAlertView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SmileyAlertView.h; sourceTree = "<group>"; };
 		154ACDFA26FA45EA00BAF716 /* SmileyAlertView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SmileyAlertView.m; sourceTree = "<group>"; };
 		154C0D01250FD66E00294ECC /* person.3.fill-2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "person.3.fill-2.png"; sourceTree = "<group>"; };
@@ -1150,7 +1144,6 @@
 		15A1238C22D659CB00C3DFEC /* Heart-20.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Heart-20.png"; sourceTree = "<group>"; };
 		15A2FEE92DB58D850045E679 /* Flat-GrayFlag-25.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Flat-GrayFlag-25.png"; sourceTree = "<group>"; };
 		15A2FEEA2DB58D850045E679 /* Flat-GrayFlag-25@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Flat-GrayFlag-25@2x.png"; sourceTree = "<group>"; };
-		15A5F3B32708E55800DAE8FE /* Notes.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Notes.md; sourceTree = "<group>"; };
 		15ABB27B2488397100E30B48 /* gif.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = gif.png; sourceTree = "<group>"; };
 		15ABB27C2488397200E30B48 /* gif@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "gif@2x.png"; sourceTree = "<group>"; };
 		15AC354F2903E2D700CCD6FC /* XlargeIconsFilled-20-Inv@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "XlargeIconsFilled-20-Inv@2x.png"; path = "SuperHFRplus/Assets/UI/Editor/XlargeIconsFilled-20-Inv@2x.png"; sourceTree = SOURCE_ROOT; };
@@ -1180,7 +1173,6 @@
 		15AC3583290418DA00CCD6FC /* TopicMPCellView.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = TopicMPCellView.xib; sourceTree = "<group>"; };
 		15AC35852904330F00CCD6FC /* TopicMPCellView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TopicMPCellView.h; sourceTree = "<group>"; };
 		15AC35862904332600CCD6FC /* TopicMPCellView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TopicMPCellView.m; sourceTree = "<group>"; };
-		15AC35882904637400CCD6FC /* File */ = {isa = PBXFileReference; lastKnownFileType = text; path = File; sourceTree = "<group>"; };
 		15AC358C2905261F00CCD6FC /* group_light.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = group_light.png; sourceTree = "<group>"; };
 		15AC358D2905261F00CCD6FC /* group_dark.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = group_dark.png; sourceTree = "<group>"; };
 		15AEF9FC223E9052005E6739 /* Icon-BLUE@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-BLUE@3x.png"; sourceTree = "<group>"; };
@@ -2294,9 +2286,6 @@
 		29B97314FDCFA39411CA2CEA /* CustomTemplate */ = {
 			isa = PBXGroup;
 			children = (
-				15AC35882904637400CCD6FC /* File */,
-				15377559275A777F00790892 /* Empty.md */,
-				15A5F3B32708E55800DAE8FE /* Notes.md */,
 				15B5FC4A264FAB71006CBEF0 /* Cartfile */,
 				CA00C35417C2FC620067B457 /* SuperHFRplus */,
 				080E96DDFE201D6D7F000001 /* Classes */,
@@ -2959,8 +2948,6 @@
 		CA00C5A217C30C370067B457 /* UI */ = {
 			isa = PBXGroup;
 			children = (
-				1544573A2E9AEB6900900FB8 /* ChatFilledRed-40.png */,
-				1544573B2E9AEB6900900FB8 /* ChatFilledRed-40@2x.png */,
 				15AC358D2905261F00CCD6FC /* group_dark.png */,
 				15AC358C2905261F00CCD6FC /* group_light.png */,
 				4CB132A91B9094BD0081B44D /* MenuItem */,
@@ -3566,7 +3553,6 @@
 				4C0B8DB71BA4522900D329BA /* SourceCodeFilled-40.png in Resources */,
 				CA7C6FB9185EF50E00B348BA /* flagyellow.png in Resources */,
 				4CD6B8BA1B97AEF5007FC29E /* 6-Folder-32@2x.png in Resources */,
-				15AC35892904637400CCD6FC /* File in Resources */,
 				152395FC28DF015F00614F9D /* EditColumnFilled-20-Inv.png in Resources */,
 				4C19919D1FA9EC8E00A07A8A /* Icon-REDFACE-IPAD@1x.png in Resources */,
 				15377547274D6CE600790892 /* noel17.png in Resources */,
@@ -4105,8 +4091,6 @@
 				4C1991981FA9EC8E00A07A8A /* Icon-REDFACE-IPAD@2x.png in Resources */,
 				4C0B8DA51BA4522900D329BA /* ShieldFilled-40.png in Resources */,
 				4CD6B8B41B97ACA8007FC29E /* Camera-32@2x.png in Resources */,
-				1544573C2E9AEB6900900FB8 /* ChatFilledRed-40.png in Resources */,
-				1544573D2E9AEB6900900FB8 /* ChatFilledRed-40@2x.png in Resources */,
 				15EBFD0522021B8400A37CED /* SettingsView.xib in Resources */,
 				CA7C709A185EF50E00B348BA /* README.md in Resources */,
 				4C0B8DF11BA4522900D329BA /* cat-apple.png in Resources */,
@@ -4496,11 +4480,13 @@
 				ASSETCATALOG_COMPILER_OPTIMIZATION = time;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
+				CODE_SIGN_STYLE = Manual;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 37;
-				DEVELOPMENT_TEAM = QMG83DG7YP;
+				CURRENT_PROJECT_VERSION = 42;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = QMG83DG7YP;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4540,6 +4526,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super;
 				PRODUCT_NAME = SuperHFRplusSwift;
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = ProfileSuperHFRv1;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -4559,11 +4546,13 @@
 				ASSETCATALOG_COMPILER_OPTIMIZATION = time;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
+				CODE_SIGN_STYLE = Manual;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = YES;
-				CURRENT_PROJECT_VERSION = 37;
-				DEVELOPMENT_TEAM = QMG83DG7YP;
+				CURRENT_PROJECT_VERSION = 42;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = QMG83DG7YP;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -4601,6 +4590,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super;
 				PRODUCT_NAME = SuperHFRplusSwift;
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = ProfileSuperHFRv1;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
