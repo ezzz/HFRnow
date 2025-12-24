@@ -1070,7 +1070,7 @@
             case 0:return @"cadeaux_off";
             case 1:return @"cadeau_off";
             case 2:return @"message_off";
-            case 3:return @"paques_off";
+            case 3:return @"cane_off";
         }
     }
     return @"";

@@ -170,9 +170,10 @@
 @property (nonatomic, strong) IBOutlet UIView *searchBox;
 
 @property (nonatomic, strong) IBOutlet UIToolbar *searchToolbar;
-@property (nonatomic, strong) IBOutlet UIBarButtonItem *searchBtnItem;
+@property (strong, nonatomic) IBOutlet UIButton *searchBtnItem;
 @property (nonatomic, strong) IBOutlet UIBarButtonItem *searchFilterBtnItem;
 @property (nonatomic, strong) IBOutlet UILabel *searchLabel;
+@property (strong, nonatomic) IBOutlet UILabel *searchFilterLabel;
 
 @property (nonatomic, strong) IBOutlet UITextField *searchKeyword;
 @property (nonatomic, strong) IBOutlet UITextField *searchPseudo;

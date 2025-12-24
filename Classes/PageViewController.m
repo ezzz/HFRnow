@@ -237,8 +237,7 @@
     }
 }
 
-- (IBAction)searchSubmit:(UIBarButtonItem *)sender {
-    
+- (IBAction)searchSubmit:(id)sender {
 }
 
 - (IBAction)filterPostsQuotesNext:(UIBarButtonItem *)sender {

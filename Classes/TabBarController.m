@@ -157,7 +157,22 @@
             }
         }
     }
-    
+ 
+    if([self.childViewControllers count] > 0){
+        for (int i=0; i<[self.childViewControllers count]; i++) {
+            UINavigationController *nvc = (UINavigationController *)[self.childViewControllers objectAtIndex:i];
+            nvc.navigationBar.barStyle = [ThemeColors barStyle:theme];
+        }
+    }
+
+    for (int i=0; i<self.tabBar.items.count; i++) {
+        UITabBarItem *tabBarItem = [self.tabBar.items objectAtIndex:i];
+
+        tabBarItem.selectedImage = [[UIImage imageNamed:[ThemeColors tabBarItemSelectedImageAtIndex:i]]
+                                    imageWithRenderingMode:[ThemeColors tabBarItemSelectedImageRendering] ];
+        tabBarItem.image = [[UIImage imageNamed:[ThemeColors tabBarItemUnselectedImageAtIndex:i]]
+                            imageWithRenderingMode:[ThemeColors tabBarItemUnselectedImageRendering]];
+    }
 }
 
 

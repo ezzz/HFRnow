@@ -53,7 +53,7 @@
 -(void)goToPage:(NSString *)pageType;
 -(void)gotoPageNumber:(int)number;
 - (void)fetchContent;
--(IBAction)searchSubmit:(UIBarButtonItem *)sender;
+-(IBAction)searchSubmit:(id)sender;
 -(IBAction)filterPostsQuotesNext:(UIBarButtonItem *)sender;
 -(void)fetchContent:(int)from;
 

@@ -113,7 +113,7 @@
     NSString* sLandscapeMode = @"galerie_message";
     [[NSUserDefaults standardUserDefaults] setObject:sLandscapeMode forKey:@"landscape_mode"];
     [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"shake_to_refresh"];
-    [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"theme_noel_disabled"];
+    //[[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"theme_noel_disabled"];
     
     // Remove theme settings for camera & time
     NSInteger iAutoTheme = [[NSUserDefaults standardUserDefaults] integerForKey:@"auto_theme"];
@@ -361,7 +361,7 @@
 
 -(void)setTheme:(Theme)theme{
     // Just to be sure
-    [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"theme_noel_disabled"];
+    //[[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"theme_noel_disabled"];
 
     if ([self.window respondsToSelector:@selector(setTintColor:)]) {
         self.window.tintColor = [ThemeColors tintColor];
@@ -609,39 +609,43 @@
     /*
      Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
      */
-    //[[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"theme_noel_disabled"];
 
-    // Noel
-    NSDate * now = [NSDate date];
-    NSDateFormatter* formatterLocal = [[NSDateFormatter alloc] init];
-    [formatterLocal setDateFormat:@"dd MM yyyy - HH:mm"];
-    [formatterLocal setTimeZone:[NSTimeZone localTimeZone]];
-    
-    NSDate* startNoelDate = [formatterLocal dateFromString:@"24 12 2022 - 00:00"];
-    NSDate*   endNoelDate = [formatterLocal dateFromString:@"09 01 2023 - 00:00"];
-    
-    
-    NSComparisonResult result1 = [now compare:startNoelDate];
-    NSComparisonResult result2 = [now compare:endNoelDate];
     BOOL cestNoel = NO;
-    if (result1 == NSOrderedDescending && result2 == NSOrderedAscending) {
-        //C'est bientot Noel !!
-        [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"theme_noel_period"];        
-        NSObject* obj = [[NSUserDefaults standardUserDefaults] objectForKey:@"noel_first_time_2022"];
-        if (obj == nil) {
-            // La première fois on force le thème de Noel
-            [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"theme_noel_disabled"];
-            // Mais plus les suivantes
-            [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"noel_first_time_2022"];
-            cestNoel = YES;
-        }
-    } else {
+    if ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPhone) {
+        // Noel
+        NSDate * now = [NSDate date];
+        NSDateFormatter* formatterLocal = [[NSDateFormatter alloc] init];
+        [formatterLocal setDateFormat:@"dd MM yyyy - HH:mm"];
+        [formatterLocal setTimeZone:[NSTimeZone localTimeZone]];
         
+        NSDate* startNoelDate = [formatterLocal dateFromString:@"21 12 2025 - 00:00"];
+        NSDate*   endNoelDate = [formatterLocal dateFromString:@"05 01 2026 - 00:00"];
+        
+        
+        NSComparisonResult result1 = [now compare:startNoelDate];
+        NSComparisonResult result2 = [now compare:endNoelDate];
+        if (result1 == NSOrderedDescending && result2 == NSOrderedAscending) {
+            //C'est bientot Noel !!
+            [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"theme_noel_period"];
+            NSObject* obj = [[NSUserDefaults standardUserDefaults] objectForKey:@"noel_first_time_2025"];
+            if (obj == nil) {
+                // La première fois on force le thème de Noel
+                [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"theme_noel_disabled"];
+                // Mais plus les suivantes
+                [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"noel_first_time_2025"];
+                cestNoel = YES;
+            }
+        }
+        else {
+            [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"theme_noel_disabled"];
+            [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"theme_noel_period"];
+        }
+    }
+    else {
         [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"theme_noel_disabled"];
         [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"theme_noel_period"];
     }
-    
-    
+
     NSLog(@"applicationDidBecomeActive");
     dispatch_after(0, dispatch_get_main_queue(), ^(void){
         [self setTheme:[[ThemeManager sharedManager] theme]];

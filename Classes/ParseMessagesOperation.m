@@ -361,6 +361,12 @@
                 linkItem.editedTime = [[[[editedNode allContents] stringByMatching:regularExpressionString2 capture:1L] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] stringByDecodingXMLEntities];
             }
             
+            //recherche
+            NSArray * nodesInMsg = [[messageNode findChildOfClass:@"messCase2"] children];
+            if (nodesInMsg.count >= 2 && [[[nodesInMsg objectAtIndex:1] tagName] isEqualToString:@"a"]) {
+                linkItem.dicoHTML = [rawContentsOfNode([[nodesInMsg objectAtIndex:1] _node], [myParser _doc]) stringByAppendingString:linkItem.dicoHTML];
+            }
+            
 			// NEW FAST
 			HTMLNode * quoteNode = [[messageNode findChildWithAttribute:@"alt" matchingName:@"answer" allowPartial:NO] parent];
 			linkItem.urlQuote = [quoteNode className];

@@ -1343,7 +1343,8 @@
     self.searchBtnItem.tintColor = self.searchFilterBtnItem.tintColor = [ThemeColors tintColor];
     self.searchBg.backgroundColor = [ThemeColors overlayColor:theme];
     self.searchLabel.textColor = [ThemeColors textColor:theme];
-    
+    self.searchFilterLabel.textColor = [ThemeColors textColor:theme];
+
     [self.labelHeaderView setTextColor:[ThemeColors navItemTextColor:theme]];
     
     self.messagesWebView.allowsLinkPreview = YES;
@@ -3440,7 +3441,7 @@ API_AVAILABLE(ios(16.0)) {
 
 }
 
-- (IBAction)searchSubmit:(UIBarButtonItem *)sender {
+- (IBAction)searchSubmit:(id)sender {
     NSLog(@"searchSubmit");
     
     //NSString *baseURL = [NSString stringWithFormat:@"/forum2.php?%@", [self serializeParams:self.searchInputData]];
