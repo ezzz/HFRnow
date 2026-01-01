@@ -14,6 +14,13 @@ struct WebView: UIViewRepresentable {
     let readAccessURL: URL?
     var anchor: String?
 
+    init(html: String? = nil, fileURL: URL? = nil, readAccessURL: URL? = nil, anchor: String? = nil) {
+        self.html = html
+        self.fileURL = fileURL
+        self.readAccessURL = readAccessURL
+        self.anchor = anchor
+    }
+
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
     }
@@ -21,11 +28,15 @@ struct WebView: UIViewRepresentable {
     func makeUIView(context: Context) -> WKWebView {
         let webView = WKWebView()
         webView.navigationDelegate = context.coordinator
+        if #available(iOS 16.4, *) {
+            webView.isInspectable = true
+        }
         return webView
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
         context.coordinator.anchor = anchor
+        print("WebView.updateUIView anchor:", anchor as Any, "fileURL:", fileURL as Any, "baseURL:", readAccessURL as Any)
 
         if let fileURL = fileURL, let readAccessURL = readAccessURL {
             webView.loadFileURL(fileURL, allowingReadAccessTo: readAccessURL)
@@ -45,23 +56,41 @@ struct WebView: UIViewRepresentable {
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             guard let anchor = anchor else { return }
 
-            // Essayons d'abord par id, sinon par name
+            print("WKWebView didFinish. anchor =", anchor as Any, "url:", webView.url?.absoluteString ?? "nil")
+
+            // Probe: check if element exists by id or name
+            let probe = """
+            (function(a){
+              var byId = document.getElementById(a);
+              var byName = document.getElementsByName(a)[0];
+              return 'probe byId='+(!!byId)+' byName='+(!!byName)+' a='+a;
+            })('\(anchor)')
+            """
+            webView.evaluateJavaScript(probe) { result, error in
+                print("Anchor probe:", result ?? "nil", "error:", error?.localizedDescription ?? "none")
+            }
+
+            // Timed scroll with fallback to location.hash
             let js = """
-            (function() {
-                var el = document.getElementById('\(anchor)');
-                if (!el) {
-                    var els = document.getElementsByName('\(anchor)');
-                    if (els.length > 0) el = els[0];
-                }
-                if (el) { el.scrollIntoView({behavior: 'smooth'}); }
-            })();
+            setTimeout(function(){
+              var a = '\(anchor)';
+              var el = document.getElementById(a) || document.getElementsByName(a)[0];
+              if (el) {
+                try { el.scrollIntoView({behavior:'auto', block:'start', inline:'nearest'}); }
+                catch(e) { el.scrollIntoView(true); }
+              } else {
+                try { location.hash = '#' + a; } catch(e) {}
+              }
+            }, 50);
             """
 
-            webView.evaluateJavaScript(js, completionHandler: { result, error in
+            webView.evaluateJavaScript(js) { _, error in
                 if let error = error {
                     print("Anchor scroll JS error:", error.localizedDescription)
+                } else {
+                    print("Anchor scroll JS executed")
                 }
-            })
+            }
         }
     }
 }
@@ -88,6 +117,7 @@ struct MessagesView: View {
         // extraire l’ancre (#xxxx) si présente
         if let url = URL(string: currentUrl), let fragment = url.fragment {
             self._anchor = State(initialValue: fragment)
+            print("INIT extracted anchor:", fragment)
         }
     }
 
@@ -107,6 +137,7 @@ struct MessagesView: View {
 
     private func loadPage(_ page: Int) {
         let url = urlForPage(page)
+        print("loadPage(\(page)) url:", url, "current anchor:", self.anchor as Any)
         let controller = MessagesTableViewController()
         controller.fetchContent(forTopicURL: url) { html, error in
             DispatchQueue.main.async {
@@ -121,53 +152,71 @@ struct MessagesView: View {
                     self.cacheURL = cacheDirectoryURL
                     self.page = page
 
-                    // après le premier chargement on ignore l’ancre
-                    self.anchor = nil
+                    // Ne pas annuler l’ancre ici pour permettre le scroll après chargement
+                    // self.anchor = nil
                 }
             }
         }
     }
 
     var body: some View {
-        Group {
-            if let errorMessage {
-                Text("Erreur : \(errorMessage)").foregroundColor(.red)
-            } else if let fileURL = fileURL, let cacheURL = cacheURL {
-                WebView(fileURL: fileURL, readAccessURL: cacheURL, anchor: anchor)
-                    .id(page) // 🔑 force un nouveau WKWebView par page
-                    .ignoresSafeArea()
-                    .simultaneousGesture(
-                        DragGesture().onEnded { value in
-                            let horizontal = value.translation.width
-                            let vertical = value.translation.height
-
-                            // seuils pour éviter les faux positifs
-                            let minDistance: CGFloat = 120
-                            let maxVerticalRatio: CGFloat = 0.5
-
-                            if abs(horizontal) > minDistance && abs(vertical) < abs(horizontal) * maxVerticalRatio {
-                                if horizontal < 0, page < maxPage {
-                                    loadPage(page + 1)
-                                } else if horizontal > 0, page > 1 {
-                                    loadPage(page - 1)
-                                }
+        // Use ViewBuilder implicit grouping to avoid generic inference issues with Group
+        if let errorMessage {
+            Text("Erreur : \(errorMessage)").foregroundColor(.red)
+                .toolbar {
+                    ToolbarItem(placement: .principal) {
+                        Text("\(topic._aTitle ?? "Messages") [\(page)/\(maxPage)]")
+                            .font(.caption2)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    }
+                }
+                .onAppear {
+                    loadPage(page)
+                }
+        } else if let fileURL = fileURL, let cacheURL = cacheURL {
+            WebView(fileURL: fileURL, readAccessURL: cacheURL, anchor: anchor)
+                .id(page) // force a new WKWebView per page
+                .ignoresSafeArea()
+                .simultaneousGesture(
+                    DragGesture().onEnded { value in
+                        let horizontal = value.translation.width
+                        let vertical = value.translation.height
+                        let minDistance: CGFloat = 120
+                        let maxVerticalRatio: CGFloat = 0.5
+                        if abs(horizontal) > minDistance && abs(vertical) < abs(horizontal) * maxVerticalRatio {
+                            if horizontal < 0, page < maxPage {
+                                loadPage(page + 1)
+                            } else if horizontal > 0, page > 1 {
+                                loadPage(page - 1)
                             }
                         }
-                    )
-            } else {
-                Text("Chargement…")
-            }
-        }
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                Text("\(topic._aTitle ?? "Messages") [\(page)/\(maxPage)]")
-                    .font(.caption2) // texte réduit au minimum
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-            }
-        }
-        .onAppear {
-            loadPage(page)
+                    }
+                )
+                .toolbar {
+                    ToolbarItem(placement: .principal) {
+                        Text("\(topic._aTitle ?? "Messages") [\(page)/\(maxPage)]")
+                            .font(.caption2)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    }
+                }
+                .onAppear {
+                    loadPage(page)
+                }
+        } else {
+            Text("Chargement…")
+                .toolbar {
+                    ToolbarItem(placement: .principal) {
+                        Text("\(topic._aTitle ?? "Messages") [\(page)/\(maxPage)]")
+                            .font(.caption2)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    }
+                }
+                .onAppear {
+                    loadPage(page)
+                }
         }
     }
 }
