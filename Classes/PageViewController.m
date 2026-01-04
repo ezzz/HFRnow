@@ -255,6 +255,14 @@
     [self lastPage:nil];
 }
 
+-(void)previousPage {
+    [self previousPage:nil];
+}
+
+-(void)nextPage {
+    [self nextPage:nil];
+}
+
 -(void)firstPage:(id)sender {
     if(self.firstPageUrl.length > 0) {
         self.currentUrl = self.firstPageUrl;

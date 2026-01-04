@@ -1529,8 +1529,8 @@
     }
     else if (self.detailNavigationViewController)
     {
-        messagesTableViewController.navigationItem.leftBarButtonItem = self.detailNavigationViewController.splitViewController.displayModeButtonItem;
-        messagesTableViewController.navigationItem.leftItemsSupplementBackButton = YES;
+        //no need ipados 26 messagesTableViewController.navigationItem.leftBarButtonItem = self.detailNavigationViewController.splitViewController.displayModeButtonItem;
+        //no need ipados 26 messagesTableViewController.navigationItem.leftItemsSupplementBackButton = YES;
         [self.detailNavigationViewController setViewControllers:[NSMutableArray arrayWithObjects:messagesTableViewController, nil] animated:YES];
 
         // Close left panel on ipad in portrait mode

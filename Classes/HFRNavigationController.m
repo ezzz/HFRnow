@@ -50,8 +50,8 @@
         UIViewController *detailVC = [[UIViewController alloc] init];
         
         // Add button to show master in portrait mode
-        detailVC.navigationItem.leftBarButtonItem = self.splitViewController.displayModeButtonItem;
-        detailVC.navigationItem.leftItemsSupplementBackButton = YES;
+        //detailVC.navigationItem.leftBarButtonItem = self.splitViewController.displayModeButtonItem;
+        //detailVC.navigationItem.leftItemsSupplementBackButton = YES;
         
         // Set the root view controller of this navigation controller
         [self setViewControllers:@[detailVC] animated:NO];

@@ -315,7 +315,7 @@ separateSecondaryViewControllerFromPrimaryViewController:(UIViewController *)pri
     NSLog(@"willShowViewController");
 
     self.viewControllers.lastObject.navigationItem.leftBarButtonItem = self.displayModeButtonItem;
-    self.viewControllers.lastObject.navigationItem.leftItemsSupplementBackButton = YES;
+    //self.viewControllers.lastObject.navigationItem.leftItemsSupplementBackButton = YES;
 }
 
 @end

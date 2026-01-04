@@ -888,8 +888,8 @@
     }
     else if (self.detailNavigationViewController)
     {
-        self.messagesTableViewController.navigationItem.leftBarButtonItem = self.detailNavigationViewController.splitViewController.displayModeButtonItem;
-        self.messagesTableViewController.navigationItem.leftItemsSupplementBackButton = YES;
+        //self.messagesTableViewController.navigationItem.leftBarButtonItem = self.detailNavigationViewController.splitViewController.displayModeButtonItem;
+        //self.messagesTableViewController.navigationItem.leftItemsSupplementBackButton = YES;
         [self.detailNavigationViewController setViewControllers:[NSMutableArray arrayWithObjects:self.messagesTableViewController, nil] animated:YES];
 
         // Close left panel on ipad in portrait mode

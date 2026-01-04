@@ -92,10 +92,8 @@
     [segmentedControl setTitleTextAttributes:selectedAttributes forState:UIControlStateSelected];
     [self.navigationItem.titleView insertSubview:segmentedControl atIndex:1];
 
-    
-    
-    //SubCats Control
-    if (self.pickerViewArray.count) {
+    // Dropdown sous categories
+    if (self.pickerViewArray.count && [[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
         UISegmentedControl *segmentedControl2 = [[UISegmentedControl alloc] initWithItems: [NSArray arrayWithObjects: [UIImage imageNamed:@"all_categories"], nil]];
         [segmentedControl2 addTarget:self action:@selector(showPicker:) forControlEvents:UIControlEventValueChanged];
         segmentedControl2.segmentedControlStyle = UISegmentedControlStyleBar;
@@ -118,9 +116,10 @@
         segmentedControl.autoresizingMask = (UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin);
         self.navigationItem.titleView.autoresizingMask = (UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin);
     }
-
+    
     // On enlève le bouton sur ipad car pb de place avec le splitviewcontroller sous ios 26
     if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
+        // Bouton new topic
         UIBarButtonItem *buttontBarItemRight = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemCompose target:self action:@selector(newTopic)];
         buttontBarItemRight.enabled = NO;
         self.navigationItem.rightBarButtonItems = [[NSMutableArray alloc] initWithObjects:buttontBarItemRight, nil];
