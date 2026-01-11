@@ -2762,7 +2762,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		15B0AA862E2C27DD0092C0FD /* HFRswift */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = HFRswift; sourceTree = "<group>"; };
+		15B0AA862E2C27DD0092C0FD /* Swift */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Swift; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2826,17 +2826,10 @@
 		013F0E94121E117800BEBEB1 /* Messages */ = {
 			isa = PBXGroup;
 			children = (
-				15B0AA802E2BC9E90092C0FD /* TopicViewWrapper.swift */,
 				CABB3127121EF3B0009CE100 /* Forms */,
 				CA5E109118AC290C00C481A9 /* Poll */,
-				013F0E95121E117800BEBEB1 /* LinkItem.h */,
-				013F0E96121E117800BEBEB1 /* LinkItem.m */,
-				013F0E97121E117800BEBEB1 /* MessagesTableViewController.h */,
-				013F0E98121E117800BEBEB1 /* MessagesTableViewController.m */,
 				4CB133121B90E9530081B44D /* MessagesSearchTableViewController.h */,
 				4CB133131B90E9530081B44D /* MessagesSearchTableViewController.m */,
-				013F0E9D121E117900BEBEB1 /* ParseMessagesOperation.h */,
-				013F0E9E121E117900BEBEB1 /* ParseMessagesOperation.m */,
 				1540899D2439E82800509862 /* FilterPostsQuotes.h */,
 				1540899B2439E7C900509862 /* FilterPostsQuotes.m */,
 				1536E7D8257D271900B30209 /* SmileyCodeTableViewController.h */,
@@ -3072,6 +3065,29 @@
 			name = Bookmarks;
 			sourceTree = "<group>";
 		};
+		152E907B2F1236EA00CED459 /* HFRswift */ = {
+			isa = PBXGroup;
+			children = (
+				152E907C2F1238D700CED459 /* Wrapped */,
+				15B0AA862E2C27DD0092C0FD /* Swift */,
+			);
+			path = HFRswift;
+			sourceTree = "<group>";
+		};
+		152E907C2F1238D700CED459 /* Wrapped */ = {
+			isa = PBXGroup;
+			children = (
+				15B0AA802E2BC9E90092C0FD /* TopicViewWrapper.swift */,
+				013F0E95121E117800BEBEB1 /* LinkItem.h */,
+				013F0E96121E117800BEBEB1 /* LinkItem.m */,
+				013F0E97121E117800BEBEB1 /* MessagesTableViewController.h */,
+				013F0E98121E117800BEBEB1 /* MessagesTableViewController.m */,
+				013F0E9D121E117900BEBEB1 /* ParseMessagesOperation.h */,
+				013F0E9E121E117900BEBEB1 /* ParseMessagesOperation.m */,
+			);
+			path = Wrapped;
+			sourceTree = "<group>";
+		};
 		15B245A722E6F9220091B513 /* ThemeSettings */ = {
 			isa = PBXGroup;
 			children = (
@@ -3148,7 +3164,7 @@
 				15A5F3B32708E55800DAE8FE /* Notes.md */,
 				15B5FC4A264FAB71006CBEF0 /* Cartfile */,
 				080E96DDFE201D6D7F000001 /* Classes */,
-				15B0AA862E2C27DD0092C0FD /* HFRswift */,
+				152E907B2F1236EA00CED459 /* HFRswift */,
 				CA00C35417C2FC620067B457 /* SuperHFRplus */,
 				29B97317FDCFA39411CA2CEA /* Resources */,
 				29B97323FDCFA39411CA2CEA /* Frameworks */,
@@ -4299,7 +4315,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				15B0AA862E2C27DD0092C0FD /* HFRswift */,
+				15B0AA862E2C27DD0092C0FD /* Swift */,
 			);
 			name = HFRswift;
 			packageProductDependencies = (

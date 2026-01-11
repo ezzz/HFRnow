@@ -643,10 +643,10 @@
 
 + (UIColor *)defaultTintColor:(Theme)theme {
     switch (theme) {
-        case ThemeLight: // Blue
-            return [UIColor colorWithHue:211.0/360.0 saturation:0.9 brightness:0.95 alpha:1.0];
-        case ThemeDark: //
-            return [UIColor colorWithHue:211.0/360.0 saturation:0.9 brightness:0.95 alpha:1.0];
+        case ThemeLight: // Turquoise / Sky Blue
+            return [UIColor colorWithHue:190.0/360.0 saturation:0.65 brightness:1.0 alpha:1.0];
+        case ThemeDark:  // Turquoise adjusted for dark theme
+            return [UIColor colorWithHue:190.0/360.0 saturation:0.70 brightness:0.95 alpha:1.0];
     }
 }
 /*
@@ -1187,3 +1187,4 @@
 
 
 @end
+

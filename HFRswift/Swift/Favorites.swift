@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Combine
+import UIKit
 
 struct TopicModel: Identifiable {
     let id = UUID()
@@ -35,6 +36,7 @@ class FavoritesViewModel: ObservableObject {
 
 struct FavoriteSectionView: View {
     let favorite: Favorite
+    @Binding var visitedURLs: Set<String>
 
     // Cast centralisé
     private var topics: [Topic] { (favorite.topics as? [Topic]) ?? [] }
@@ -56,14 +58,20 @@ struct FavoriteSectionView: View {
                 Button {
                     selectedTopic = topic
                     currentUrl = topic.aURL ?? ""
+                    if let url = topic.aURL ?? topic.aURLOfLastPage {
+                        visitedURLs.insert(url)
+                    }
                     isActive = true
                 } label: {
-                    TopicRowView(topic: topic)
+                    TopicRowView(topic: topic, isVisited: visitedURLs.contains(topic.aURL ?? topic.aURLOfLastPage ?? ""))
                 }
                 .contextMenu {
                     Button {
                         selectedTopic = topic
                         currentUrl = topic.aURL ?? ""
+                        if let url = topic.aURL ?? topic.aURLOfLastPage {
+                            visitedURLs.insert(url)
+                        }
                         isActive = true
                     } label: {
                         Label("Ouvrir", systemImage: "arrow.right.circle")
@@ -72,6 +80,9 @@ struct FavoriteSectionView: View {
                     Button {
                         selectedTopic = topic
                         currentUrl = topic.aURLOfLastPage ?? ""
+                        if let url = topic.aURLOfLastPage ?? topic.aURL {
+                            visitedURLs.insert(url)
+                        }
                         isActive = true
                     } label: {
                         Label("Dernière page", systemImage: "arrow.uturn.right.circle")
@@ -112,16 +123,23 @@ struct FavoriteSectionView: View {
 
 struct FavoritesListView: View {
     @StateObject private var viewModel = FavoritesViewModel()
+    @State private var visitedURLs: Set<String> = []
+    @State private var hasLoaded = false
 
     var body: some View {
         NavigationView {
             List {
                 ForEach(viewModel.favorites) { favorite in
-                    FavoriteSectionView(favorite: favorite)
+                    FavoriteSectionView(favorite: favorite, visitedURLs: $visitedURLs)
                 }
             }
             .navigationTitle("Favoris")
-            .onAppear { viewModel.loadFavorites() }
+            .onAppear {
+                if !hasLoaded {
+                    viewModel.loadFavorites()
+                    hasLoaded = true
+                }
+            }
             .toolbar {
                 ToolbarItemGroup(placement: .navigationBarTrailing) {
                     // Bouton Refresh
@@ -130,7 +148,7 @@ struct FavoritesListView: View {
                     } label: {
                         Image(systemName: "arrow.clockwise")
                     }
-                    
+                    /*
                     // Menu avec options
                     Menu {
                         Button("Option 1") {
@@ -145,6 +163,7 @@ struct FavoritesListView: View {
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
+                     */
                 }
             }
         }
@@ -153,6 +172,7 @@ struct FavoritesListView: View {
 
 struct TopicRowView: View {
     var topic: Topic
+    var isVisited: Bool = false
     
     var unreadCount: Int {
         let current = topic.curTopicPage
@@ -166,7 +186,7 @@ struct TopicRowView: View {
                 HStack {
                     Text(topic._aTitle ?? "Sans titre")
                         .font(.headline)
-                        .foregroundColor(.primary)
+                        .foregroundColor(isVisited ? .secondary : .primary)
                     Spacer()
                     if unreadCount > 0 {
                         Text("\(unreadCount)")
@@ -218,3 +238,4 @@ struct TopicOptions: View {
         }
     }
 }
+

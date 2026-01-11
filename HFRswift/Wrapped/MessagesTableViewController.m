@@ -337,6 +337,7 @@
 - (void)fetchContentComplete:(ASIHTTPRequest *)theRequest
 {
     NSLog(@"fetchContentComplete");
+    
     //MaJ de la puce MP
 	if (!self.isViewed) {
 		//NSLog(@"pas lu");
@@ -361,6 +362,7 @@
     HTMLParser *myParser = [[HTMLParser alloc] initWithData:data error:&error];
     [parser parseData:myParser];
     [self manageLoadedItems:parser.workingArray];
+    [self loadDataInTableView:myParser];
 }
 
 - (void)fetchContentFailed:(ASIHTTPRequest *)theRequest
@@ -1787,10 +1789,10 @@
                     refreshBtn = @"<div id=\"actualiserbtn\">&nbsp;</div>"; // just to add some space
                 }
             } else {
-                refreshBtn = @"<div id=\"actualiserbtn\" onClick=\"window.location = 'oijlkajsdoihjlkjasdorefresh://data'; return false;\">Actualiser</div>";
+                //refreshBtn = @"<div id=\"actualiserbtn\" onClick=\"window.location = 'oijlkajsdoihjlkjasdorefresh://data'; return false;\">Actualiser</div>";
+                refreshBtn = [NSString stringWithFormat:@"<div id=\"actualiserbtn\" onClick=\"window.location = 'oijlkajsdoihjlkjasdorefresh://data'; return false;\">Actualiser (%d/%d)</div>", [self pageNumber], [self lastPageNumber]];
             }
         }
-
             
         //Toolbar;
         NSString *tooBar = @"";
@@ -1865,10 +1867,12 @@
         <link type='text/css' rel='stylesheet %@' href='style-liste-retina-oled.css' id='oled-styles-retina' media='all and (-webkit-min-device-pixel-ratio: 2)'/>\ */
 
         
-        NSString* sCssStyle = @"style-liste.css";
-        if ([[NSUserDefaults standardUserDefaults] integerForKey:@"theme_style"] == 1) {
-            sCssStyle = @"style-liste-light.css";
-        }
+
+        NSString* sCssStyle = @"style-liste-light.css";
+        /*
+        if ([[NSUserDefaults standardUserDefaults] integerForKey:@"theme_style"] == 0) {
+            sCssStyle = @"style-liste.css";
+        }*/
 
         // Default value for light theme
         NSString *sAvatarImageFile = @"url(avatar_male_gray_on_light_48x48.png)";
@@ -1993,10 +1997,11 @@
             }
         });
         
+        
         /*NSLog(@"======================================================================================================");
         NSLog(@"HTMLString %@", HTMLString);
         NSLog(@"======================================================================================================");
-         */
+        
         self.loaded = NO;
         
         NSURL* fileURL = [[OfflineStorage shared] createHtmlFileInCacheForTopic:nil withContent:HTMLString];
@@ -2004,10 +2009,10 @@
         NSLog(@"fileURL %@", fileURL);
         NSLog(@"cacheURL %@", cacheURL);
         [self.messagesWebView loadFileURL:fileURL allowingReadAccessToURL:cacheURL];
-        [self.messagesWebView setUserInteractionEnabled:YES];
+        [self.messagesWebView setUserInteractionEnabled:YES];*/
     }
     
-    [self refreshNavigationTitle];
+    //[self refreshNavigationTitle];
 }
 
 - (void)handleLoadedParser:(HTMLParser *)myParser

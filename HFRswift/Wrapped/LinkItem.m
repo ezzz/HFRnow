@@ -145,10 +145,11 @@
 	myRawContent = [myRawContent stringByReplacingOccurrencesOfRegex:regEx0
 														  withString:@"|NATIVE-$1-98787687687697|"];
 
+    /*
     NSString *regEx02 = @"<img src=\"https://forum-images.hardware.fr/[^\"]+/([^/]+)\" alt=\"[^\"]+\" title=\"[^\"]+\">";
     myRawContent = [myRawContent stringByReplacingOccurrencesOfRegex:regEx02
                                                           withString:@"|NATIVE-$1-98787687687697|"];
-    
+    */
     // Embedded video
     NSString *regExYT = @"<a rel=\"nofollow\" href=\"([^\"]+)\" target=\"_blank\" class=\"embedvideo\" hrefemb=\"([^\"]+)\" hreftxt=\"([^\"]+)\">([^<]+)</a>";
     //Example: <iframe width="560" height="315" src="https://www.youtube.com/embed/FMbSgh1hb6k?&autoplay=1"frameborder="0"></iframe>

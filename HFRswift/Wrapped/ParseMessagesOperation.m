@@ -478,6 +478,73 @@
         indexNode++;
 	}
 
+    // Parsing page numbers and pages url
+    // -----------------------------------
+    
+    HTMLNode *titleNode = [[bodyNode findChildWithAttribute:@"class" matchingName:@"fondForum2Title" allowPartial:YES] findChildTag:@"h3"]; //Get all the <img alt="" />
+    if ([titleNode allContents] && self.topicName.length == 0) {
+        //NSLog(@"setupPageToolbar titleNode %@", [titleNode allContents]);
+        self.topicName = [titleNode allContents];
+    }
+    
+    // Boutons bas de page
+    HTMLNode * pagesTrNode = [bodyNode findChildWithAttribute:@"class" matchingName:@"fondForum2PagesHaut" allowPartial:YES];
+    if(pagesTrNode)
+    {
+        HTMLNode * pagesLinkNode = [pagesTrNode findChildWithAttribute:@"class" matchingName:@"left" allowPartial:NO];
+        
+        if (pagesLinkNode) {
+            NSArray *temporaryNumPagesArray = [pagesLinkNode children];
+            //self.iFirstPageNumber = [[[temporaryNumPagesArray objectAtIndex:2] contents] intValue];
+            self.iLastPageNumber = [[[temporaryNumPagesArray lastObject] contents] intValue];
+        }
+        
+        // TBD search intra topic
+        /*
+        NSArray *temporaryPagesArray = [pagesTrNode findChildrenWithAttribute:@"class" matchingName:@"pagepresuiv" allowPartial:YES];
+        if (self.isSearchInstra) {
+            [self.view addGestureRecognizer:swipeLeftRecognizer];
+        }
+        else if(temporaryPagesArray.count != 3)
+        {
+            //NSLog(@"pas 3");
+            //[self.view removeGestureRecognizer:swipeLeftRecognizer];
+            //[self.view removeGestureRecognizer:swipeRightRecognizer];
+        }
+        else {
+            HTMLNode *nextUrlNode = [[temporaryPagesArray objectAtIndex:0] findChildWithAttribute:@"class" matchingName:@"cHeader" allowPartial:NO];
+            
+            if (nextUrlNode) {
+                //nextPageUrl = [[NSString stringWithFormat:@"%@", [topicUrl stringByReplacingCharactersInRange:rangeNumPage withString:[NSString stringWithFormat:@"%d", (pageNumber + 1)]]] retain];
+                //nextPageUrl = [[NSString stringWithFormat:@"%@", [topicUrl stringByReplacingCharactersInRange:rangeNumPage withString:[NSString stringWithFormat:@"%d", (pageNumber + 1)]]] retain];
+                [self.view addGestureRecognizer:swipeLeftRecognizer];
+                self.nextPageUrl = [[nextUrlNode getAttributeNamed:@"href"] copy];
+                //NSLog(@"nextPageUrl = %@", nextPageUrl);
+                
+            }
+            else {
+                self.nextPageUrl = @"";
+                //[self.view removeGestureRecognizer:swipeLeftRecognizer];
+            }
+            
+            HTMLNode *previousUrlNode = [[temporaryPagesArray objectAtIndex:1] findChildWithAttribute:@"class" matchingName:@"cHeader" allowPartial:NO];
+            
+            if (previousUrlNode) {
+                //previousPageUrl = [[topicUrl stringByReplacingCharactersInRange:rangeNumPage withString:[NSString stringWithFormat:@"%d", (pageNumber - 1)]] retain];
+                [self.view addGestureRecognizer:swipeRightRecognizer];
+                self.previousPageUrl = [[previousUrlNode getAttributeNamed:@"href"] copy];
+                //NSLog(@"previousPageUrl = %@", previousPageUrl);
+                
+            }
+            else {
+                self.previousPageUrl = @"";
+                //[self.view removeGestureRecognizer:swipeRightRecognizer];
+                
+                
+            }
+        }*/
+    }
+    
 	//NSDate *nowT = [NSDate date]; // Create a current date
 	//NSLog(@"TOPICS Parse Time elapsed Total		: %f", [nowT timeIntervalSinceDate:thenT]);
 }

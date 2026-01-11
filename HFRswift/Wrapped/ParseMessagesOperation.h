@@ -21,7 +21,13 @@
 
     NSOperationQueue		*queue;
 }
-@property     NSMutableArray        *workingArray;
+@property (nonatomic, strong) NSMutableArray *workingArray;
+@property (nonatomic, strong) NSString *topicName;
+@property int iFirstPageNumber;
+@property int iLastPageNumber;
+@property (nonatomic, strong) NSString *sFirstPageURL;
+@property (nonatomic, strong) NSString *sLastPageURL;
+;
 
 - (id)initWithData:(NSData *)data index:(int)theIndex reverse:(BOOL)isReverse delegate:(id <ParseMessagesOperationDelegate>)theDelegate;
 - (void)parseData:(HTMLParser*)myParser;
