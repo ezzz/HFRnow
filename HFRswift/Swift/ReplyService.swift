@@ -13,7 +13,7 @@ struct ReplyService {
     ///   - topic: The Topic context (used to include identifiers if needed).
     ///   - currentUrl: The current forum URL string (may be useful to extract ids).
     ///   - completion: Called on a background thread with success/failure.
-    func sendReply(text: String, topic: Topic, currentUrl: String, completion: @escaping (Bool) -> Void) {
+    func sendReply(text: String, topic: Topic, completion: @escaping (Bool) -> Void) {
         var request = URLRequest(url: endpointURL)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -21,7 +21,7 @@ struct ReplyService {
         // Prepare payload. Adjust keys to match your backend contract.
         let payload: [String: Any] = [
             "topicTitle": topic._aTitle ?? "",
-            "currentUrl": currentUrl,
+            //"currentUrl": currentUrl,
             "message": text
         ]
 

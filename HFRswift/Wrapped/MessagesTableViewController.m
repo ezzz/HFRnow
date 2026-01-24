@@ -1783,6 +1783,7 @@
         
         
         //on ajoute le bouton actualiser si besoin
+        /*
         if (([self pageNumber] == [self lastPageNumber]) || ([self lastPageNumber] == 0)) {
             if (self.filterPostsQuotes) {
                 if (!self.filterPostsQuotes.bIsFinished) {
@@ -1792,7 +1793,7 @@
                 //refreshBtn = @"<div id=\"actualiserbtn\" onClick=\"window.location = 'oijlkajsdoihjlkjasdorefresh://data'; return false;\">Actualiser</div>";
                 refreshBtn = [NSString stringWithFormat:@"<div id=\"actualiserbtn\" onClick=\"window.location = 'oijlkajsdoihjlkjasdorefresh://data'; return false;\">Actualiser (%d/%d)</div>", [self pageNumber], [self lastPageNumber]];
             }
-        }
+        }*/
             
         //Toolbar;
         NSString *tooBar = @"";

@@ -29,8 +29,22 @@ class FavoritesViewModel: ObservableObject {
             guard let self = self, let objcFavorites = objcFavorites else { return }
             DispatchQueue.main.async {
                 self.favorites = objcFavorites
+                // Light haptic feedback when favorites have loaded
+                #if canImport(UIKit)
+                let generator = UIImpactFeedbackGenerator(style: .light)
+                generator.prepare()
+                generator.impactOccurred()
+                #endif
             }
         }
+    }
+}
+
+struct CategoryView: View {
+    var body: some View {
+        Text("Category View")
+            .navigationTitle("Apple")
+            .navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -52,9 +66,17 @@ struct FavoriteSectionView: View {
     }
 
     var body: some View {
-        Section(header: Text(headerTitle)) {
+        Section(header: NavigationLink(headerTitle) {
+            CategoryView()
+        }) {
             ForEach(topics) { topic in
-                // Tap normal = ouvrir première page
+                VStack(alignment: .leading, spacing: 8) {
+                    TopicRowView(topic: topic)
+                }
+                .contentShape(Rectangle())
+            }
+            .contextMenu {
+                /* TBD
                 Button {
                     selectedTopic = topic
                     currentUrl = topic.aURL ?? ""
@@ -63,45 +85,35 @@ struct FavoriteSectionView: View {
                     }
                     isActive = true
                 } label: {
-                    TopicRowView(topic: topic, isVisited: visitedURLs.contains(topic.aURL ?? topic.aURLOfLastPage ?? ""))
+                    Label("Ouvrir", systemImage: "arrow.right.circle")
                 }
-                .contextMenu {
-                    Button {
-                        selectedTopic = topic
-                        currentUrl = topic.aURL ?? ""
-                        if let url = topic.aURL ?? topic.aURLOfLastPage {
-                            visitedURLs.insert(url)
-                        }
-                        isActive = true
-                    } label: {
-                        Label("Ouvrir", systemImage: "arrow.right.circle")
-                    }
 
-                    Button {
-                        selectedTopic = topic
-                        currentUrl = topic.aURLOfLastPage ?? ""
-                        if let url = topic.aURLOfLastPage ?? topic.aURL {
-                            visitedURLs.insert(url)
-                        }
-                        isActive = true
-                    } label: {
-                        Label("Dernière page", systemImage: "arrow.uturn.right.circle")
+                Button {
+                    selectedTopic = topic
+                    currentUrl = topic.aURLOfLastPage ?? ""
+                    if let url = topic.aURLOfLastPage ?? topic.aURL {
+                        visitedURLs.insert(url)
                     }
-
-                    Button {
-                        if let url = topic.aURL {
-                            UIPasteboard.general.string = url
-                        }
-                    } label: {
-                        Label("Copier l’URL", systemImage: "doc.on.doc")
-                    }
+                    isActive = true
+                } label: {
+                    Label("Dernière page", systemImage: "arrow.uturn.right.circle")
                 }
+
+                Button {
+                    if let url = topic.aURL {
+                        UIPasteboard.general.string = url
+                    }
+                } label: {
+                    Label("Copier l’URL", systemImage: "doc.on.doc")
+                }*/
+                
             }
         }
         // 🔑 Navigation centralisée : destination toujours un View
-        .background(navLinkHidden)
+        //.background(navLinkHidden)
     }
 
+    /*
     @ViewBuilder
     private var navLinkHidden: some View {
         NavigationLink(
@@ -109,6 +121,7 @@ struct FavoriteSectionView: View {
             destination: {
                 if let topic = selectedTopic, let url = currentUrl {
                     MessagesView(topic: topic, currentUrl: url, curPage: Int(topic.curTopicPage), maxPage: Int(topic.maxTopicPage))
+                        .toolbar(.hidden, for: .tabBar)
                 } else {
                     // Fallback nécessaire pour typer le builder
                     EmptyView()
@@ -117,7 +130,7 @@ struct FavoriteSectionView: View {
             label: { EmptyView() }
         )
         .hidden()
-    }
+    }*/
 }
 
 
@@ -127,7 +140,30 @@ struct FavoritesListView: View {
     @State private var hasLoaded = false
 
     var body: some View {
-        NavigationView {
+        /*NavigationStack {
+            List {
+                Section(header: NavigationLink("Apple") {
+                    CategoryView()
+                }) {
+                    ZStack(alignment: .leading) {
+                        // Invisible NavigationLink to keep row tappable without chevron
+                        NavigationLink("") {
+                            FakeContentView()
+                                .toolbar(.hidden, for: .tabBar)
+                        }
+                        .opacity(0)
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            FakeTopicRowView()
+                        }
+                        .contentShape(Rectangle())
+                    }
+                }
+            }
+            .listStyle(.sidebar)
+            .navigationTitle("Favoris")
+        }*/
+        NavigationStack {
             List {
                 ForEach(viewModel.favorites) { favorite in
                     FavoriteSectionView(favorite: favorite, visitedURLs: $visitedURLs)
@@ -144,31 +180,58 @@ struct FavoritesListView: View {
                 ToolbarItemGroup(placement: .navigationBarTrailing) {
                     // Bouton Refresh
                     Button {
-                        viewModel.loadFavorites()
                     } label: {
                         Image(systemName: "arrow.clockwise")
                     }
-                    /*
-                    // Menu avec options
+                    Button {
+                    } label: {
+                        Image(systemName: "ellipsis")
+                    }
+                }
+                ToolbarItemGroup(placement: .navigationBarLeading) {
+                    // Menu Profil
                     Menu {
-                        Button("Option 1") {
-                            print("Option 1 choisie")
+                        Button("ezzz") {
+                            // action ezzz
                         }
-                        Button("Option 2") {
-                            print("Option 2 choisie")
+                        Button("multi") {
+                            // action multipseudo
                         }
-                        Button("Option 3") {
-                            print("Option 3 choisie")
+                        Button("multi2") {
+                            // action multipseudo
+                        }
+                        Divider()
+                        Button("Déconnexion", role: .destructive) {
+                            // action deconnexion
                         }
                     } label: {
-                        Image(systemName: "ellipsis.circle")
+                        AsyncImage(url: URL(string: "https://forum-images.hardware.fr/images/mesdiscussions-15867.png")) { phase in
+                            switch phase {
+                            case .empty:
+                                ProgressView()
+                                    .frame(width: 28, height: 28)
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 32, height: 32)
+                                    .clipShape(Circle())
+                            case .failure:
+                                Image(systemName: "person.crop.circle")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 28, height: 28)
+                            @unknown default:
+                                EmptyView()
+                            }
+                        }
                     }
-                     */
                 }
             }
         }
     }
 }
+
 
 struct TopicRowView: View {
     var topic: Topic
@@ -181,43 +244,51 @@ struct TopicRowView: View {
     }
     
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(topic._aTitle ?? "Sans titre")
-                        .font(.headline)
-                        .foregroundColor(isVisited ? .secondary : .primary)
-                    Spacer()
-                    if unreadCount > 0 {
-                        Text("\(unreadCount)")
-                            .font(.caption)
-                            .bold()
-                            .padding(.horizontal, 4)
-                            .padding(.vertical, 2)
-                            .frame(minWidth: 24)
-                            .background(Capsule().fill(Color.secondary))
-                            .foregroundColor(.white)
+        ZStack(alignment: .leading) {
+            // Invisible NavigationLink to keep row tappable without chevron
+            NavigationLink("") {
+                MessagesView(topic: topic, separatorNewMessages: true, curPage: Int(topic.curTopicPage), maxPage: Int(topic.maxTopicPage))
+                    .toolbar(.hidden, for: .tabBar)
+            }
+            .opacity(0)
+            
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(topic._aTitle ?? "Sans titre")
+                            .font(.headline)
+                            .foregroundColor(isVisited ? .secondary : .primary)
+                        Spacer()
+                        if unreadCount > 0 {
+                            Text("\(unreadCount)")
+                                .font(.caption)
+                                .bold()
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 2)
+                                .frame(minWidth: 24)
+                                .background(Capsule().fill(Color.secondary))
+                                .foregroundColor(.white)
+                        }
                     }
-                }
-                HStack {
-                    Text("⚑ \(topic.curTopicPage) / \(topic.maxTopicPage)")
-                        .font(.footnote)
-                        .foregroundColor(.gray)
-                    Spacer()
-                    if let author = topic.aAuthorOfLastPost,
-                       let when = topic.aDateOfLastPost {
-                        Text("\(author) - \(when)")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                    HStack {
+                        Text("⚑ \(topic.curTopicPage) / \(topic.maxTopicPage)")
+                            .font(.footnote)
+                            .foregroundColor(.gray)
+                        Spacer()
+                        if let author = topic.aAuthorOfLastPost,
+                           let when = topic.aDateOfLastPost {
+                            Text("\(author) - \(when)")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
                     }
                 }
             }
+            .padding(.vertical, 0)
+            .contentShape(Rectangle())
         }
-        .padding(.vertical, 0)
     }
 }
-
-
 
 struct TopicOptions: View {
     @Environment(\.tabViewBottomAccessoryPlacement)

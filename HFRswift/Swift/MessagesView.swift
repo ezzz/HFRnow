@@ -124,9 +124,9 @@ struct WebView: UIViewRepresentable {
 
 struct MessagesView: View {
     let topic: Topic
-    let currentUrl: String
-    let curPage: Int
+    let curPage: Int // Stored again as it can be updated when reloading the topic
     let maxPage: Int
+    let separatorNewMessages: Bool
 
     @State private var page: Int
     @State private var fileURL: URL?
@@ -141,22 +141,23 @@ struct MessagesView: View {
     @State private var isComposerMinimized = false
     @State private var animateLoadingSpinner = false
 
-    init(topic: Topic, currentUrl: String, curPage: Int, maxPage: Int) {
+    init(topic: Topic, curPage: Int, maxPage: Int, separatorNewMessages: Bool) {
         self.topic = topic
-        self.currentUrl = currentUrl
         self.curPage = curPage
         self.maxPage = maxPage
+        self.separatorNewMessages = separatorNewMessages
         self._page = State(initialValue: curPage)
 
         // extraire l’ancre (#xxxx) si présente
-        if let url = URL(string: currentUrl), let fragment = url.fragment {
+        if let url = URL(string: topic.aURL), let fragment = url.fragment {
             self._anchor = State(initialValue: fragment)
             print("INIT extracted anchor:", fragment)
         }
     }
 
     private func urlForPage(_ page: Int) -> String {
-        guard var comps = URLComponents(string: currentUrl) else { return currentUrl }
+        print("Current url: \(self.topic.aURL ?? "empty")")
+        guard var comps = URLComponents(string: self.topic.aURL) else { return "" }
         var queryItems = comps.queryItems ?? []
         if let index = queryItems.firstIndex(where: { $0.name == "page" }) {
             queryItems[index].value = "\(page)"
@@ -166,7 +167,7 @@ struct MessagesView: View {
         comps.queryItems = queryItems
         // ⚠️ On ne garde pas le fragment quand on change de page
         comps.fragment = nil
-        return comps.string ?? currentUrl
+        return comps.string ?? ""
     }
 
     private func loadPage(_ page: Int) {
@@ -334,134 +335,110 @@ struct MessagesView: View {
                             Image(systemName: "ellipsis")
                         }
                     }
-                }
-                .sheet(isPresented: $isPresentingComposer) {
-                    NavigationStack {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Répondre à \(topic._aTitle ?? "ce sujet")")
-                                .font(.headline)
-
-                            ZStack(alignment: .topLeading) {
-                                TextEditor(text: $replyText)
-                                    .textInputAutocapitalization(.sentences)
-                                    .autocorrectionDisabled(false)
-                                    .frame(minHeight: 180)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke(Color.secondary.opacity(0.3))
-                                    )
-
-                                if replyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                    Text("Saisissez votre réponse…")
-                                        .foregroundStyle(.secondary)
-                                        .padding(.top, 8)
-                                        .padding(.leading, 5)
-                                }
-                            }
-
-                            Spacer(minLength: 0)
-                        }
-                        .padding()
-                        .navigationTitle("Nouvelle réponse")
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbar {
-                            ToolbarItem(placement: .cancellationAction) {
-                                Button("Annuler") {
-                                    isPresentingComposer = false
-                                }
-                            }
-                            ToolbarItem(placement: .confirmationAction) {
-                                Button {
-                                    isSendingReply = true
-                                    ReplyService.shared.sendReply(text: replyText, topic: topic, currentUrl: currentUrl) { success in
-                                        DispatchQueue.main.async {
-                                            isSendingReply = false
-                                            if success {
-                                                isPresentingComposer = false
-                                                // Refresh current page after sending
-                                                loadPage(page)
-                                            }
-                                        }
-                                    }
-                                } label: {
-                                    if isSendingReply {
-                                        ProgressView()
-                                    } else {
-                                        Text("Envoyer")
-                                    }
-                                }
-                                .disabled(replyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSendingReply)
-                            }
-                            ToolbarItem(placement: .bottomBar) {
-                                Button {
-                                    // Minimize: keep text, close sheet, show floating resume button
-                                    isComposerMinimized = true
-                                    isPresentingComposer = false
-                                } label: {
-                                    Label("Mettre de côté", systemImage: "arrow.down.right.and.arrow.up.left")
-                                }
-                            }
-                        }
-                    }
-                    .presentationDetents([.medium, .large])
-                    .presentationDragIndicator(.visible)
-                    .interactiveDismissDisabled(false)
-                    .onDisappear {
-                        // If the sheet was dismissed by swipe down (not by Cancel/Send),
-                        // and we still have content or were composing, treat it as "Mettre de côté".
-                        if !isPresentingComposer && !isComposerMinimized && !replyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                            isComposerMinimized = true
-                        }
-                    }
-                }
-                .overlay(alignment: .bottomTrailing) {
-                    if isComposerMinimized {
+                    ToolbarItemGroup(placement: .bottomBar) {
+                        // Bouton Refresh
                         Button {
-                            isPresentingComposer = true
-                            isComposerMinimized = false
                         } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: "square.and.pencil")
-                                Text("Reprendre")
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
-                            .background(.ultraThinMaterial, in: Capsule())
-                            .shadow(radius: 3)
+                            Image(systemName: "chevron.backward")
                         }
-                        .padding(.trailing, 16)
-                        .padding(.bottom, 24)
+                        .disabled(page <= 1)
+                        
+                        Button {
+                        } label: {
+                            Image(systemName: "chevron.forward")
+                        }
+                        .disabled(page >= maxPage)
+
+                        Spacer()
+                        Button(action: {}) {
+                            Label("New", systemImage: "plus")
+                        }
+                        .buttonStyle(.glassProminent)
                     }
                 }
+
+
                 .onAppear {
-                    loadPage(page)
+                    //loadPage(page)
                 }
         } else {
-            VStack(spacing:20) {
-                //ProgressView()
-                SpinnerLoading().fixedSize()
-                Text("Chargement…")
-                    .font(.title2)
-                    .toolbar {
-                        ToolbarItem(placement: .principal) {
-                            VStack(spacing: 2) {
-                                Text(topic._aTitle ?? "Messages")
-                                    .font(.caption2)
-                                    .fontWeight(.bold)
-                                    .lineLimit(1)
-                                    .truncationMode(.tail)
-                                Text("\(page)/\(maxPage)")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                            }
-                            .multilineTextAlignment(.center)
+            ZStack {
+                //HatchedBackground()
+                //    .ignoresSafeArea()
+                VStack(spacing: 8) {
+                    SpinnerLoading()
+                    Text("Chargement...")
+                }
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Color.black.opacity(0.1))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Color.black.opacity(0.08), lineWidth: 0.5)
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                .contentShape(Rectangle())
+                .navigationTitle("My title")
+                .navigationBarTitleDisplayMode(.inline)
+                //.padding()
+            }
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    VStack(spacing: 2) {
+                        Text(topic._aTitle ?? "Messages")
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        Text("\(page)/\(maxPage)")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                    .multilineTextAlignment(.center)
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    // Menu avec options
+                    Menu {
+                        Button {
+                            isPresentingComposer = true
+                        } label: {
+                            Label("Répondre", systemImage: "pencil")
                         }
+                        Button {
+                            print("log")
+                        } label: {
+                            Label("Rechercher", systemImage: "magnifyingglass")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
                     }
-                    .onAppear {
-                        loadPage(page)
+                }
+                ToolbarItemGroup(placement: .bottomBar) {
+                    // Bouton Refresh
+                    Button {
+                    } label: {
+                        Image(systemName: "chevron.backward")
                     }
-                
+                    .disabled(true)
+                    
+                    Button {
+                    } label: {
+                        Image(systemName: "chevron.forward")
+                    }
+                    .disabled(true)
+
+                    Spacer()
+                    Button(action: {}) {
+                        Label("New", systemImage: "plus")
+                    }
+                    .buttonStyle(.glassProminent)
+                }
+            }
+            .onAppear {
+                loadPage(page)
             }
         }
     }
@@ -471,39 +448,39 @@ struct SpinnerLoading: View {
 
     var outerColor = Color.gray
     var innerColor = Color.cyan
-    
-    @State private var isAnimating = false
+
+    @State private var outerAngle: Angle = .degrees(0)
+    @State private var innerAngle: Angle = .degrees(0)
 
     var body: some View {
-
-        GeometryReader { proxy in
-            ZStack {
-                self.trimmedCircle(color: self.outerColor, clockwise: true, scale: 1.0, proxy: proxy)
-                self.trimmedCircle(color: self.innerColor, clockwise: false, scale: 0.75, proxy: proxy)
+        ZStack {
+            trimmedCircle(color: outerColor, clockwise: true, scale: 1.0)
+                .rotationEffect(outerAngle)
+            trimmedCircle(color: innerColor, clockwise: false, scale: 0.75)
+                .rotationEffect(innerAngle)
+        }
+        .frame(width: 30, height: 30)
+        .onAppear {
+            // Animate continuous rotation in place
+            withAnimation(.linear(duration: 1.0).repeatForever(autoreverses: false)) {
+                outerAngle = .degrees(360)
+            }
+            withAnimation(.linear(duration: 1.0).repeatForever(autoreverses: false)) {
+                innerAngle = .degrees(-360)
             }
         }
-        .frame(idealWidth: 30, idealHeight: 30)
-        .onAppear { self.isAnimating = true }
-
     }
 
-    private func trimmedCircle(color: Color, clockwise: Bool, scale: CGFloat, proxy: GeometryProxy) -> some View {
-
-        let start: Double = clockwise ? 360 : 0
-        let end: Double = clockwise ? 0 : 360
-        let borderWidth = min(proxy.size.width, proxy.size.height) / 14
-
-        return Circle()
-            .inset(by: borderWidth / 2)
-            .scale(scale)
-            .trim(from: 0.1, to: 0.9)
-            .stroke(color, lineWidth: borderWidth)
-            .rotationEffect(.degrees(isAnimating ? start : end))
-            .animation(repeatingAnimation)
-
+    private func trimmedCircle(color: Color, clockwise: Bool, scale: CGFloat) -> some View {
+        GeometryReader { proxy in
+            let borderWidth = min(proxy.size.width, proxy.size.height) / 14
+            Circle()
+                .trim(from: 0.1, to: 0.9)
+                //.inset(by: borderWidth / 2)
+                .stroke(color, style: StrokeStyle(lineWidth: borderWidth, lineCap: .round))
+                .scaleEffect(scale)
+                .frame(width: proxy.size.width, height: proxy.size.height)
+                .contentShape(Rectangle())
+        }
     }
-
-    private let repeatingAnimation = Animation
-        .linear(duration: 1.0)
-        .repeatForever(autoreverses: false)
 }
