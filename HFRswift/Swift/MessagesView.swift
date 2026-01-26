@@ -134,12 +134,17 @@ struct MessagesView: View {
     @State private var errorMessage: String?
     @State private var anchor: String?
     @State private var initialScroll: WebView.InitialScroll?
-    @State private var isPresentingAddMessage = false
-    @State private var isPresentingComposer = false
+    @AppStorage("composerDraftText") private var composerDraftText: String = ""
+    @State private var isComposerPresented = false
+    @State private var isPresentingComposer = false  // This will be removed now
     @State private var replyText: String = ""
     @State private var isSendingReply = false
     @State private var isComposerMinimized = false
     @State private var animateLoadingSpinner = false
+    @FocusState private var isComposerFocused: Bool
+
+    // Remove the unused
+    // @State private var isPresentingAddMessage = false
 
     init(topic: Topic, curPage: Int, maxPage: Int, separatorNewMessages: Bool) {
         self.topic = topic
@@ -242,6 +247,120 @@ struct MessagesView: View {
                         }
                     }
                 )
+                .sheet(isPresented: $isComposerPresented) {
+                    // Bottom-aligned, intrinsic-height composer that doesn't block background interactions outside its bounds
+                    VStack(spacing: 0) {
+                        // Composer header
+                        HStack {
+                            Button {
+                                // action deconnexion
+                            } label: {
+                                AsyncImage(url: URL(string: "https://forum-images.hardware.fr/images/mesdiscussions-15867.png")) { phase in
+                                    switch phase {
+                                    case .empty:
+                                        ProgressView()
+                                            .frame(width: 28, height: 28)
+                                    case .success(let image):
+                                        image
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 32, height: 32)
+                                            .clipShape(Circle())
+                                    case .failure:
+                                        Image(systemName: "person.crop.circle")
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 28, height: 28)
+                                    @unknown default:
+                                        EmptyView()
+                                    }
+                                }
+                            }
+                            .buttonStyle(.glass)
+                            
+                            Spacer()
+                            
+                            Text("Nouvelle Réponse")
+                                .font(.title3.bold())
+                            
+                            Spacer()
+                            
+                            Button {
+                                isComposerFocused = false
+                                isComposerPresented = false
+                            } label: {
+                                Image(systemName: "arrow.up")
+                            }
+                            .buttonStyle(.glassProminent)
+                        }
+                        .padding()
+                        
+                        // Composer text editor
+                        ZStack(alignment: .topLeading) {
+                            let oneLine = UIFont.preferredFont(forTextStyle: .body).lineHeight
+                            TextEditor(text: $composerDraftText)
+                                .font(.body)
+                                .focused($isComposerFocused)
+                                .padding(12)
+                                .padding(.horizontal)
+                                .background(.gray.opacity(0.1))
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                        }
+                        .frame(maxHeight: .infinity)
+                        
+                        // Composer toolbar
+                        HStack {
+                            Button {
+                                // undo
+                            } label: {
+                                Image(systemName: "arrow.uturn.backward")
+                            }
+                            .buttonStyle(.glass)
+                            
+                            Button {
+                                // redo
+                            } label: {
+                                Image(systemName: "arrow.uturn.forward")
+                            }
+                            .buttonStyle(.glass)
+                            
+                            Spacer()
+                            
+                            Button {
+                                // emoji
+                            } label: {
+                                Image(systemName: "face.smiling")
+                            }
+                            .buttonStyle(.glass)
+                            
+                            Button {
+                                // media
+                            } label: {
+                                Image(systemName: "play.rectangle")
+                            }
+                            .buttonStyle(.glass)
+                            
+                            Button {
+                                // photo
+                            } label: {
+                                Image(systemName: "photo")
+                            }
+                            .buttonStyle(.glass)
+                        }
+                        .padding()
+                    }
+                    .background(.white.opacity(1))
+                    .cornerRadius(10)
+                    // Size to content and stick to bottom
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                    // Make only this composer receive taps within its bounds; background remains interactive elsewhere
+                    .contentShape(Rectangle())
+                    .onAppear {
+                        isComposerFocused = true
+                    }
+                    .presentationDetents([.large])
+                    
+                }
                 .toolbar {
                     ToolbarItem(placement: .principal) {
                         VStack(spacing: 2) {
@@ -261,7 +380,7 @@ struct MessagesView: View {
                         // Menu avec options
                         Menu {
                             Button {
-                                isPresentingComposer = true
+                                isComposerPresented = true
                             } label: {
                                 Label("Répondre", systemImage: "pencil")
                             }
@@ -335,31 +454,30 @@ struct MessagesView: View {
                             Image(systemName: "ellipsis")
                         }
                     }
-                    ToolbarItemGroup(placement: .bottomBar) {
-                        // Bouton Refresh
-                        Button {
-                        } label: {
-                            Image(systemName: "chevron.backward")
+                    if !isComposerPresented {
+                        ToolbarItemGroup(placement: .bottomBar) {
+                            // Bouton Refresh
+                            Button {
+                            } label: {
+                                Image(systemName: "chevron.backward")
+                            }
+                            .disabled(page <= 1)
+                            
+                            Button {
+                            } label: {
+                                Image(systemName: "chevron.forward")
+                            }
+                            .disabled(page >= maxPage)
+                            
+                            Spacer()
+                            Button {
+                                isComposerPresented = true
+                            } label: {
+                                Label("New", systemImage: "plus")
+                            }
+                            .buttonStyle(.glassProminent)
                         }
-                        .disabled(page <= 1)
-                        
-                        Button {
-                        } label: {
-                            Image(systemName: "chevron.forward")
-                        }
-                        .disabled(page >= maxPage)
-
-                        Spacer()
-                        Button(action: {}) {
-                            Label("New", systemImage: "plus")
-                        }
-                        .buttonStyle(.glassProminent)
                     }
-                }
-
-
-                .onAppear {
-                    //loadPage(page)
                 }
         } else {
             ZStack {
@@ -384,6 +502,7 @@ struct MessagesView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 //.padding()
             }
+        
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     VStack(spacing: 2) {
@@ -403,7 +522,7 @@ struct MessagesView: View {
                     // Menu avec options
                     Menu {
                         Button {
-                            isPresentingComposer = true
+                            isComposerPresented = true
                         } label: {
                             Label("Répondre", systemImage: "pencil")
                         }
@@ -431,7 +550,9 @@ struct MessagesView: View {
                     .disabled(true)
 
                     Spacer()
-                    Button(action: {}) {
+                    Button {
+                        isComposerPresented = true
+                    } label: {
                         Label("New", systemImage: "plus")
                     }
                     .buttonStyle(.glassProminent)
@@ -484,3 +605,4 @@ struct SpinnerLoading: View {
         }
     }
 }
+

@@ -140,29 +140,6 @@ struct FavoritesListView: View {
     @State private var hasLoaded = false
 
     var body: some View {
-        /*NavigationStack {
-            List {
-                Section(header: NavigationLink("Apple") {
-                    CategoryView()
-                }) {
-                    ZStack(alignment: .leading) {
-                        // Invisible NavigationLink to keep row tappable without chevron
-                        NavigationLink("") {
-                            FakeContentView()
-                                .toolbar(.hidden, for: .tabBar)
-                        }
-                        .opacity(0)
-                        
-                        VStack(alignment: .leading, spacing: 8) {
-                            FakeTopicRowView()
-                        }
-                        .contentShape(Rectangle())
-                    }
-                }
-            }
-            .listStyle(.sidebar)
-            .navigationTitle("Favoris")
-        }*/
         NavigationStack {
             List {
                 ForEach(viewModel.favorites) { favorite in
@@ -247,7 +224,7 @@ struct TopicRowView: View {
         ZStack(alignment: .leading) {
             // Invisible NavigationLink to keep row tappable without chevron
             NavigationLink("") {
-                MessagesView(topic: topic, separatorNewMessages: true, curPage: Int(topic.curTopicPage), maxPage: Int(topic.maxTopicPage))
+                MessagesView(topic: topic, curPage: Int(topic.curTopicPage), maxPage: Int(topic.maxTopicPage), separatorNewMessages: true)
                     .toolbar(.hidden, for: .tabBar)
             }
             .opacity(0)
