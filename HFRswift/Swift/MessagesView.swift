@@ -248,118 +248,12 @@ struct MessagesView: View {
                     }
                 )
                 .sheet(isPresented: $isComposerPresented) {
-                    // Bottom-aligned, intrinsic-height composer that doesn't block background interactions outside its bounds
-                    VStack(spacing: 0) {
-                        // Composer header
-                        HStack {
-                            Button {
-                                // action deconnexion
-                            } label: {
-                                AsyncImage(url: URL(string: "https://forum-images.hardware.fr/images/mesdiscussions-15867.png")) { phase in
-                                    switch phase {
-                                    case .empty:
-                                        ProgressView()
-                                            .frame(width: 28, height: 28)
-                                    case .success(let image):
-                                        image
-                                            .resizable()
-                                            .scaledToFill()
-                                            .frame(width: 32, height: 32)
-                                            .clipShape(Circle())
-                                    case .failure:
-                                        Image(systemName: "person.crop.circle")
-                                            .resizable()
-                                            .scaledToFit()
-                                            .frame(width: 28, height: 28)
-                                    @unknown default:
-                                        EmptyView()
-                                    }
-                                }
-                            }
-                            .buttonStyle(.glass)
-                            
-                            Spacer()
-                            
-                            Text("Nouvelle Réponse")
-                                .font(.title3.bold())
-                            
-                            Spacer()
-                            
-                            Button {
-                                isComposerFocused = false
-                                isComposerPresented = false
-                            } label: {
-                                Image(systemName: "arrow.up")
-                            }
-                            .buttonStyle(.glassProminent)
-                        }
-                        .padding()
-                        
-                        // Composer text editor
-                        ZStack(alignment: .topLeading) {
-                            let oneLine = UIFont.preferredFont(forTextStyle: .body).lineHeight
-                            TextEditor(text: $composerDraftText)
-                                .font(.body)
-                                .focused($isComposerFocused)
-                                .padding(12)
-                                .padding(.horizontal)
-                                .background(.gray.opacity(0.1))
-                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                        }
-                        .frame(maxHeight: .infinity)
-                        
-                        // Composer toolbar
-                        HStack {
-                            Button {
-                                // undo
-                            } label: {
-                                Image(systemName: "arrow.uturn.backward")
-                            }
-                            .buttonStyle(.glass)
-                            
-                            Button {
-                                // redo
-                            } label: {
-                                Image(systemName: "arrow.uturn.forward")
-                            }
-                            .buttonStyle(.glass)
-                            
-                            Spacer()
-                            
-                            Button {
-                                // emoji
-                            } label: {
-                                Image(systemName: "face.smiling")
-                            }
-                            .buttonStyle(.glass)
-                            
-                            Button {
-                                // media
-                            } label: {
-                                Image(systemName: "play.rectangle")
-                            }
-                            .buttonStyle(.glass)
-                            
-                            Button {
-                                // photo
-                            } label: {
-                                Image(systemName: "photo")
-                            }
-                            .buttonStyle(.glass)
-                        }
-                        .padding()
-                    }
-                    .background(.white.opacity(1))
-                    .cornerRadius(10)
-                    // Size to content and stick to bottom
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                    // Make only this composer receive taps within its bounds; background remains interactive elsewhere
-                    .contentShape(Rectangle())
-                    .onAppear {
-                        isComposerFocused = true
-                    }
-                    .presentationDetents([.large])
-                    
+                    // TODO
+                    // Passer le topic en parametre et ajouter answerTopicURL en parametre
+                    // Wrapper answerTopicURL pour le récupérer dans Topic
+                    // Gérer le POST + Hooray / Erreur
+                    AnswerView(composerDraftText: $composerDraftText, isComposerPresented: $isComposerPresented, isComposerFocused: $isComposerFocused)
+                        .presentationDetents([.large])
                 }
                 .toolbar {
                     ToolbarItem(placement: .principal) {
