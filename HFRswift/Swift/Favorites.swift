@@ -112,25 +112,6 @@ struct FavoriteSectionView: View {
         // 🔑 Navigation centralisée : destination toujours un View
         //.background(navLinkHidden)
     }
-
-    /*
-    @ViewBuilder
-    private var navLinkHidden: some View {
-        NavigationLink(
-            isActive: $isActive,
-            destination: {
-                if let topic = selectedTopic, let url = currentUrl {
-                    MessagesView(topic: topic, currentUrl: url, curPage: Int(topic.curTopicPage), maxPage: Int(topic.maxTopicPage))
-                        .toolbar(.hidden, for: .tabBar)
-                } else {
-                    // Fallback nécessaire pour typer le builder
-                    EmptyView()
-                }
-            },
-            label: { EmptyView() }
-        )
-        .hidden()
-    }*/
 }
 
 

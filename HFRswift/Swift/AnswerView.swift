@@ -6,10 +6,14 @@ import SwiftUI
 
 struct AnswerView: View {
     // Pass the full answer endpoint URL from MessagesView
-    let topicURL: URL
+    let topicURL: URL?
+
+    @Binding var composerDraftText: String
+    @Binding var isComposerPresented: Bool
+    @FocusState.Binding var isComposerFocused: Bool
 
     // Message content typed by the user
-    @State private var message: String = ""
+    @State private var message: String
 
     // Posting state
     @State private var isPosting: Bool = false
@@ -18,6 +22,14 @@ struct AnswerView: View {
     @State private var showToast: Bool = false
     @State private var toastText: String = ""
     @State private var toastIsSuccess: Bool = true
+
+    init(topicURL: URL?, composerDraftText: Binding<String>, isComposerPresented: Binding<Bool>, isComposerFocused: FocusState<Bool>.Binding) {
+        self.topicURL = topicURL
+        self._composerDraftText = composerDraftText
+        self._isComposerPresented = isComposerPresented
+        self._isComposerFocused = isComposerFocused
+        self._message = State(initialValue: composerDraftText.wrappedValue)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -58,6 +70,9 @@ struct AnswerView: View {
             }
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.9), value: showToast)
+        .onChange(of: message) { newValue in
+            composerDraftText = newValue
+        }
     }
 
     // MARK: - Networking
@@ -65,6 +80,11 @@ struct AnswerView: View {
         guard !isPosting else { return }
         isPosting = true
         defer { isPosting = false }
+
+        guard let topicURL = topicURL else {
+            await presentToast(success: false, text: "URL manquante")
+            return
+        }
 
         // Prepare body similar to Objective-C version: key `content_form` with CRLFs
         var bodyString = message
@@ -88,6 +108,7 @@ struct AnswerView: View {
                 await presentToast(success: true, text: "Hooray")
                 // Optionally clear message on success
                 message = ""
+                composerDraftText = ""
             } else {
                 // Try to extract server message for debugging
                 let serverText = String(data: data, encoding: .utf8) ?? ""
@@ -144,8 +165,21 @@ private struct ToastBanner: View {
 }
 
 // MARK: - Preview
-#Preview {
-    NavigationStack {
-        AnswerView(topicURL: URL(string: "https://example.com/post")!)
+private struct AnswerViewPreviewWrapper: View {
+    @State private var draft: String = ""
+    @State private var presented: Bool = false
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        NavigationStack {
+            AnswerView(topicURL: URL(string: "https://example.com/post")!,
+                       composerDraftText: $draft,
+                       isComposerPresented: $presented,
+                       isComposerFocused: $focused)
+        }
     }
+}
+
+#Preview {
+    AnswerViewPreviewWrapper()
 }

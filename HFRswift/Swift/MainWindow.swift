@@ -46,10 +46,7 @@ struct RootTabView: View {
                 FavoritesListView()
             }
             Tab("Messages", systemImage: "envelope") {
-                NavigationView {
-                    CategoriesTableViewWrapper() // Ton controller Objective-C dans SwiftUI
-                        .navigationTitle("Catégories")
-                }
+                MPListView()
             }
             Tab("Plus", systemImage: "ellipsis") {
                 NavigationView {
@@ -66,4 +63,3 @@ struct RootTabView: View {
 #Preview {
     
 }
-

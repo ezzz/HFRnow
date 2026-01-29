@@ -1994,7 +1994,15 @@
         dispatch_async(dispatch_get_main_queue(), ^{
             if (self.completionHandler) {
                 NSLog(@"SWIFT sending back topics: %lu --------------->", (unsigned long)[self.arrayData count]);
-                self.completionHandler(HTMLString, error);
+                NSString *fullAnswerUrl = nil;
+                if (self.topicAnswerUrl.length > 0) {
+                    if ([self.topicAnswerUrl hasPrefix:@"http"]) {
+                        fullAnswerUrl = self.topicAnswerUrl;
+                    } else {
+                        fullAnswerUrl = [NSString stringWithFormat:@"%@%@", [k ForumURL], self.topicAnswerUrl];
+                    }
+                }
+                self.completionHandler(HTMLString, fullAnswerUrl, error);
             }
         });
         
@@ -3528,7 +3536,7 @@ API_AVAILABLE(ios(16.0)) {
 
 #pragma - SWIFT
 
-- (void)fetchContentForTopicURL:(NSString *)topicURL completion:(void (^)(NSString *html, NSError *error))completion {
+- (void)fetchContentForTopicURL:(NSString *)topicURL completion:(void (^)(NSString *html, NSString *topicAnswerUrl, NSError *error))completion {
     // On stocke la completion en property pour pouvoir la rappeler plus tard
     self.completionHandler = completion;
     self.currentUrl = topicURL;

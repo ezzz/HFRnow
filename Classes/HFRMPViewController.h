@@ -8,6 +8,8 @@
 #import <UIKit/UIKit.h>
 #import "TopicsTableViewController.h"
 
+@class Topic;
+
 @interface HFRMPViewController : TopicsTableViewController {
     bool reloadOnAppear;
     UIBarButtonItem *actionButton;
@@ -18,6 +20,10 @@
 @property (nonatomic, strong) UIBarButtonItem *actionButton;
 @property (nonatomic, strong) UIBarButtonItem *reloadButton;
 
+// SWIFT
+@property (nonatomic, copy) void (^completion)(NSArray<Topic *> *topics, NSError *error);
+
+- (void)fetchContentWithCompletion:(void (^)(NSArray<Topic *> *topics, NSError *error))completion;
 
 - (void)fetchContentStarted:(ASIHTTPRequest *)theRequest;
 - (void)fetchContentComplete:(ASIHTTPRequest *)theRequest;

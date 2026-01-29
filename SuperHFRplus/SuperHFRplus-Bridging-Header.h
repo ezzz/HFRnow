@@ -9,6 +9,7 @@
 #import "ForumsTableViewController.h"
 #import "HFRplusAppDelegate.h"
 #import "FavoritesTableViewController.h"
+#import "HFRMPViewController.h"
 #import "MessagesTableViewController.h"
 #import "Favorite.h"
 #import "Forum.h"
@@ -16,4 +17,3 @@
 #import "OfflineStorage.h"
 
 #endif /* Bridging_Header_h */
-

@@ -390,6 +390,15 @@
     
     // TODOMP
     // Start asynchronous request for MP drapals
+
+    if (self.completion) {
+        NSArray<Topic *> *topics = [self.arrayData copy];
+        void (^completion)(NSArray<Topic *> *, NSError *) = self.completion;
+        self.completion = nil;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            completion(topics, nil);
+        });
+    }
 }
 
 - (void)fetchContentFailed:(ASIHTTPRequest *)theRequest
@@ -399,6 +408,21 @@
     [self showBarButton:kReload];
 	
 	[super fetchContentFailed:theRequest];
+
+    if (self.completion) {
+        NSError *error = theRequest.error ?: [NSError errorWithDomain:@"HFRMPViewController" code:-1 userInfo:nil];
+        void (^completion)(NSArray<Topic *> *, NSError *) = self.completion;
+        self.completion = nil;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            completion(@[], error);
+        });
+    }
+}
+
+#pragma mark - SWIFT
+- (void)fetchContentWithCompletion:(void (^)(NSArray<Topic *> *topics, NSError *error))completion {
+    self.completion = completion;
+    [self fetchContent];
 }
 
 -(void)statusBarButton:(BARBTNTYPE)type enable:(bool)enable {

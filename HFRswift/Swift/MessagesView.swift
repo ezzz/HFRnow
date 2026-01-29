@@ -134,6 +134,7 @@ struct MessagesView: View {
     @State private var errorMessage: String?
     @State private var anchor: String?
     @State private var initialScroll: WebView.InitialScroll?
+    @State private var topicAnswerURL: URL?
     @AppStorage("composerDraftText") private var composerDraftText: String = ""
     @State private var isComposerPresented = false
     @State private var isPresentingComposer = false  // This will be removed now
@@ -179,7 +180,7 @@ struct MessagesView: View {
         let url = urlForPage(page)
         print("loadPage(\(page)) url:", url, "current anchor:", self.anchor as Any)
         let controller = MessagesTableViewController()
-        controller.fetchContent(forTopicURL: url) { html, error in
+        controller.fetchContent(forTopicURL: url) { html, topicAnswerUrl, error in
             DispatchQueue.main.async {
                 if let error {
                     self.errorMessage = error.localizedDescription
@@ -191,6 +192,11 @@ struct MessagesView: View {
                     self.fileURL = createdFileURL
                     self.cacheURL = cacheDirectoryURL
                     self.page = page
+                    if let topicAnswerUrl = topicAnswerUrl, let parsedURL = URL(string: topicAnswerUrl) {
+                        self.topicAnswerURL = parsedURL
+                    } else {
+                        self.topicAnswerURL = nil
+                    }
 
                     // Ne pas annuler l’ancre ici pour permettre le scroll après chargement
                     // self.anchor = nil
@@ -252,7 +258,7 @@ struct MessagesView: View {
                     // Passer le topic en parametre et ajouter answerTopicURL en parametre
                     // Wrapper answerTopicURL pour le récupérer dans Topic
                     // Gérer le POST + Hooray / Erreur
-                    AnswerView(composerDraftText: $composerDraftText, isComposerPresented: $isComposerPresented, isComposerFocused: $isComposerFocused)
+                    AnswerView(topicURL: topicAnswerURL, composerDraftText: $composerDraftText, isComposerPresented: $isComposerPresented, isComposerFocused: $isComposerFocused)
                         .presentationDetents([.large])
                 }
                 .toolbar {
@@ -499,4 +505,3 @@ struct SpinnerLoading: View {
         }
     }
 }
-

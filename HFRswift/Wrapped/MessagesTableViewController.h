@@ -244,10 +244,10 @@
 
 // SWIFT
 
-@property (nonatomic, copy) void (^completionHandler)(NSString *html, NSError *error);
+@property (nonatomic, copy) void (^completionHandler)(NSString *html, NSString *topicAnswerUrl, NSError *error);
 
 - (void)fetchContentForTopicURL:(NSString *)topicURL
-                     completion:(void (^_Nonnull)(NSString * _Nullable html, NSError * _Nullable error))completion;
+                     completion:(void (^_Nonnull)(NSString * _Nullable html, NSString * _Nullable topicAnswerUrl, NSError * _Nullable error))completion;
 
 
 @end
