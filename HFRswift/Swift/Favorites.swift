@@ -135,54 +135,23 @@ struct FavoritesListView: View {
                 }
             }
             .toolbar {
-                ToolbarItemGroup(placement: .navigationBarTrailing) {
-                    // Bouton Refresh
-                    Button {
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
+                MainToolbarContent(
+                    onRefresh: {
+                        viewModel.loadFavorites()
+                    },
+                    onMore: {},
+                    profileImageURL: URL(string: "https://forum-images.hardware.fr/images/mesdiscussions-15867.png")
+                ) {
+                    Button("ezzz") {
+                        // action ezzz
                     }
-                    Button {
-                    } label: {
-                        Image(systemName: "ellipsis")
+                    Divider()
+                    Button("Ajouter un pseudo") {
+                        // action ezzz
                     }
-                }
-                ToolbarItemGroup(placement: .navigationBarLeading) {
-                    // Menu Profil
-                    Menu {
-                        Button("ezzz") {
-                            // action ezzz
-                        }
-                        Button("multi") {
-                            // action multipseudo
-                        }
-                        Button("multi2") {
-                            // action multipseudo
-                        }
-                        Divider()
-                        Button("Déconnexion", role: .destructive) {
-                            // action deconnexion
-                        }
-                    } label: {
-                        AsyncImage(url: URL(string: "https://forum-images.hardware.fr/images/mesdiscussions-15867.png")) { phase in
-                            switch phase {
-                            case .empty:
-                                ProgressView()
-                                    .frame(width: 28, height: 28)
-                            case .success(let image):
-                                image
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 32, height: 32)
-                                    .clipShape(Circle())
-                            case .failure:
-                                Image(systemName: "person.crop.circle")
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: 28, height: 28)
-                            @unknown default:
-                                EmptyView()
-                            }
-                        }
+                    Divider()
+                    Button("Déconnexion", role: .destructive) {
+                        // action deconnexion
                     }
                 }
             }
@@ -267,4 +236,3 @@ struct TopicOptions: View {
         }
     }
 }
-

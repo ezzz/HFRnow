@@ -57,11 +57,25 @@ struct MPListView: View {
                 }
             }
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
+                MainToolbarContent(
+                    onRefresh: {
                         viewModel.load()
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
+                    },
+                    onMore: {},
+                    profileImageURL: URL(string: "https://forum-images.hardware.fr/images/mesdiscussions-15867.png")
+                ) {
+                    Button("ezzz") {
+                        // action ezzz
+                    }
+                    Button("multi") {
+                        // action multipseudo
+                    }
+                    Button("multi2") {
+                        // action multipseudo
+                    }
+                    Divider()
+                    Button("Déconnexion", role: .destructive) {
+                        // action deconnexion
                     }
                 }
             }
