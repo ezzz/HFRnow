@@ -117,8 +117,11 @@ struct FavoriteSectionView: View {
 
 struct FavoritesListView: View {
     @StateObject private var viewModel = FavoritesViewModel()
+    @StateObject private var accountsStore = AccountsStore()
     @State private var visitedURLs: Set<String> = []
     @State private var hasLoaded = false
+    @State private var showAddAccountSheet = false
+    @State private var showLogoutConfirm = false
 
     var body: some View {
         NavigationStack {
@@ -134,30 +137,53 @@ struct FavoritesListView: View {
                     hasLoaded = true
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: Notification.Name("kLoginChangedNotification"))) { _ in
+                viewModel.loadFavorites()
+            }
             .toolbar {
                 MainToolbarContent(
                     onRefresh: {
                         viewModel.loadFavorites()
                     },
                     onMore: {},
-                    profileImageURL: URL(string: "https://forum-images.hardware.fr/images/mesdiscussions-15867.png")
+                    profileImage: accountsStore.currentAvatarImage,
+                    profileImageURL: nil
                 ) {
-                    Button("ezzz") {
-                        // action ezzz
+                    if !accountsStore.accounts.isEmpty {
+                        ForEach(accountsStore.accounts) { account in
+                            Button {
+                                accountsStore.setMain(account)
+                            } label: {
+                                AccountMenuRow(account: account)
+                            }
+                        }
+                        Divider()
                     }
-                    Divider()
                     Button("Ajouter un pseudo") {
-                        // action ezzz
+                        showAddAccountSheet = true
                     }
                     Divider()
                     Button("Déconnexion", role: .destructive) {
-                        // action deconnexion
+                        showLogoutConfirm = true
                     }
+                    .disabled(accountsStore.currentAccount == nil)
                 }
+            }
+            .sheet(isPresented: $showAddAccountSheet) {
+                AddAccountView(accountsStore: accountsStore)
+            }
+            .alert("Déconnexion", isPresented: $showLogoutConfirm) {
+                Button("Annuler", role: .cancel) {}
+                Button("Déconnecter", role: .destructive) {
+                    accountsStore.deleteCurrent()
+                }
+            } message: {
+                Text("Supprimer le compte courant ?")
             }
         }
     }
 }
+
 
 
 struct TopicRowView: View {

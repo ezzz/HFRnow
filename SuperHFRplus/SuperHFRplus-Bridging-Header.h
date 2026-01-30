@@ -15,5 +15,7 @@
 #import "Forum.h"
 #import "Topic.h"
 #import "OfflineStorage.h"
+#import "MultisManager.h"
+#import "k.h"
 
 #endif /* Bridging_Header_h */

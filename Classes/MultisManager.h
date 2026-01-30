@@ -15,11 +15,11 @@
 
 + (id)sharedManager;
 - (NSArray *)getComtpes;
-- (void)addCompteWithPseudo:(NSString *)pseudo andCookies:(NSArray *)cookies andAvatar:(nullable NSString *)avatar andHash:(NSString *)hash;
-- (void)setPseudoAsMain:(NSString *)pseudo;
+- (void)addCompteWithPseudo:(NSString *)pseudo andCookies:(NSArray *)cookies andAvatar:(nullable NSData *)avatar andHash:(nullable NSString *)hash NS_SWIFT_NAME(addCompte(pseudo:cookies:avatar:hash:));
+- (void)setPseudoAsMain:(NSString *)pseudo NS_SWIFT_NAME(setPseudo(asMain:));
 - (NSDictionary *)getMainCompte;
 - (NSString *)getCurrentPseudo;
-- (void)deletePseudoAtIndex:(NSInteger *)index;
+- (void)deletePseudoAtIndex:(NSInteger)index NS_SWIFT_NAME(deletePseudo(at:));
 - (UIImage *)getAvatarForCompte:(NSDictionary *)compte;
 - (void)forceCookiesForCompte:(NSDictionary *)compte;
 - (void)setHashForCompte:(NSDictionary *)compteToUpdate andHash:(NSString *)hash;

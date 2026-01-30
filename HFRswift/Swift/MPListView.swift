@@ -36,7 +36,10 @@ final class MPListViewModel: ObservableObject {
 
 struct MPListView: View {
     @StateObject private var viewModel = MPListViewModel()
+    @StateObject private var accountsStore = AccountsStore()
     @State private var hasLoaded = false
+    @State private var showAddAccountSheet = false
+    @State private var showLogoutConfirm = false
 
     var body: some View {
         NavigationStack {
@@ -56,28 +59,48 @@ struct MPListView: View {
                     hasLoaded = true
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: Notification.Name("kLoginChangedNotification"))) { _ in
+                viewModel.load()
+            }
             .toolbar {
                 MainToolbarContent(
                     onRefresh: {
                         viewModel.load()
                     },
                     onMore: {},
-                    profileImageURL: URL(string: "https://forum-images.hardware.fr/images/mesdiscussions-15867.png")
+                    profileImage: accountsStore.currentAvatarImage,
+                    profileImageURL: nil
                 ) {
-                    Button("ezzz") {
-                        // action ezzz
+                    if !accountsStore.accounts.isEmpty {
+                        ForEach(accountsStore.accounts) { account in
+                            Button {
+                                accountsStore.setMain(account)
+                            } label: {
+                                AccountMenuRow(account: account)
+                            }
+                        }
+                        Divider()
                     }
-                    Button("multi") {
-                        // action multipseudo
-                    }
-                    Button("multi2") {
-                        // action multipseudo
+                    Button("Ajouter un pseudo") {
+                        showAddAccountSheet = true
                     }
                     Divider()
                     Button("Déconnexion", role: .destructive) {
-                        // action deconnexion
+                        showLogoutConfirm = true
                     }
+                    .disabled(accountsStore.currentAccount == nil)
                 }
+            }
+            .sheet(isPresented: $showAddAccountSheet) {
+                AddAccountView(accountsStore: accountsStore)
+            }
+            .alert("Déconnexion", isPresented: $showLogoutConfirm) {
+                Button("Annuler", role: .cancel) {}
+                Button("Déconnecter", role: .destructive) {
+                    accountsStore.deleteCurrent()
+                }
+            } message: {
+                Text("Supprimer le compte courant ?")
             }
         }
     }

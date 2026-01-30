@@ -46,7 +46,7 @@
     return comptesArray ? comptesArray : [NSArray array];
 }
 
-- (void)addCompteWithPseudo:(NSString *)pseudo andCookies:(NSArray *)cookies andAvatar:(nullable NSString *)avatar andHash:(nullable NSString *)hash{
+- (void)addCompteWithPseudo:(NSString *)pseudo andCookies:(NSArray *)cookies andAvatar:(nullable NSData *)avatar andHash:(nullable NSString *)hash{
     NSData *comptesData = [[A0SimpleKeychain keychain] dataForKey:HFR_COMPTES_KEY];
     NSMutableArray *comptesArray = comptesData ? [(NSArray*) [NSKeyedUnarchiver unarchiveObjectWithData:comptesData] mutableCopy] : [NSMutableArray array];
     NSMutableDictionary *newCompte = [NSMutableDictionary dictionary];
@@ -122,7 +122,7 @@
     [[NSNotificationCenter defaultCenter] postNotificationName:kLoginChangedNotification object:nil];
 }
 
-- (void)deletePseudoAtIndex:(NSInteger *)index{
+- (void)deletePseudoAtIndex:(NSInteger)index{
     NSMutableArray *comptesArray = [NSMutableArray arrayWithArray:[self getComtpes]];
     [comptesArray removeObjectAtIndex:index];
     [[A0SimpleKeychain keychain] setData:[NSKeyedArchiver archivedDataWithRootObject:comptesArray] forKey:HFR_COMPTES_KEY];

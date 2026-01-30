@@ -6,21 +6,25 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct MainToolbarContent<MenuItems: View>: ToolbarContent {
     let onRefresh: () -> Void
     let onMore: () -> Void
+    let profileImage: UIImage?
     let profileImageURL: URL?
     let menuItems: () -> MenuItems
 
     init(
         onRefresh: @escaping () -> Void,
         onMore: @escaping () -> Void,
-        profileImageURL: URL?,
+        profileImage: UIImage? = nil,
+        profileImageURL: URL? = nil,
         @ViewBuilder menuItems: @escaping () -> MenuItems
     ) {
         self.onRefresh = onRefresh
         self.onMore = onMore
+        self.profileImage = profileImage
         self.profileImageURL = profileImageURL
         self.menuItems = menuItems
     }
@@ -42,35 +46,52 @@ struct MainToolbarContent<MenuItems: View>: ToolbarContent {
             Menu {
                 menuItems()
             } label: {
-                ToolbarProfileImage(url: profileImageURL)
+                ToolbarProfileImage(image: profileImage, url: profileImageURL)
             }
         }
     }
 }
 
 struct ToolbarProfileImage: View {
+    let image: UIImage?
     let url: URL?
 
     var body: some View {
-        AsyncImage(url: url) { phase in
-            switch phase {
-            case .empty:
-                ProgressView()
-                    .frame(width: 28, height: 28)
-            case .success(let image):
-                image
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 32, height: 32)
-                    .clipShape(Circle())
-            case .failure:
-                Image(systemName: "person.crop.circle")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 28, height: 28)
-            @unknown default:
-                EmptyView()
+        avatarContent
+            .frame(width: 32, height: 32)
+            .clipShape(Circle())
+            .liquidGlassIfAvailable(in: Circle())
+    }
+
+    @ViewBuilder
+    private var avatarContent: some View {
+        if let image {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+        } else if let url {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .empty:
+                    ProgressView()
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                case .failure:
+                    Image(systemName: "person.crop.circle")
+                        .resizable()
+                        .scaledToFit()
+                        .padding(4)
+                @unknown default:
+                    EmptyView()
+                }
             }
+        } else {
+            Image(systemName: "person.crop.circle")
+                .resizable()
+                .scaledToFit()
+                .padding(4)
         }
     }
 }
