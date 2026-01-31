@@ -29,8 +29,7 @@ struct CategoriesTableViewWrapper: UIViewControllerRepresentable {
 struct RootTabView: View {
     var body: some View {
         TabView {
-            /*
-            Tab("Catégories", systemImage: "folder.fill") {
+            /*Tab("Catégories", systemImage: "folder.fill") {
                 CategoriesTableViewWrapper()
                     .navigationTitle("Catégories")
                     .toolbar {
@@ -40,11 +39,11 @@ struct RootTabView: View {
                             }
                         }
                     }
-            }*/
+            }
             Tab("Favoris", systemImage: "star.fill") {
                 //FeedView()
                 FavoritesListView()
-            }
+            }*/
             Tab("Messages", systemImage: "envelope") {
                 MPListView()
             }

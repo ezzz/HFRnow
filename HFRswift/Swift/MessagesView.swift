@@ -254,10 +254,6 @@ struct MessagesView: View {
                     }
                 )
                 .sheet(isPresented: $isComposerPresented) {
-                    // TODO
-                    // Passer le topic en parametre et ajouter answerTopicURL en parametre
-                    // Wrapper answerTopicURL pour le récupérer dans Topic
-                    // Gérer le POST + Hooray / Erreur
                     AnswerView(topicURL: topicAnswerURL, composerDraftText: $composerDraftText, isComposerPresented: $isComposerPresented, isComposerFocused: $isComposerFocused)
                         .presentationDetents([.large])
                 }

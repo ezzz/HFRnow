@@ -571,6 +571,12 @@
     // Set selected compte cookies
     [arequest setUseCookiePersistence:NO];
     [arequest setRequestCookies:[selectedCompte objectForKey:COOKIES_KEY]];
+    NSArray *debugCookies = [selectedCompte objectForKey:COOKIES_KEY];
+    NSLog(@"POST debug (ObjC): cookies=%lu", (unsigned long)[debugCookies count]);
+    for (NSHTTPCookie *cookie in debugCookies) {
+        NSLog(@"POST debug (ObjC): cookie %@ domain=%@ path=%@ valueLen=%lu", cookie.name, cookie.domain, cookie.path, (unsigned long)cookie.value.length);
+    }
+    NSLog(@"POST debug (ObjC): headers=%@", [arequest requestHeaders]);
     [arequest startSynchronous];
     
         if ([arequest error]) {

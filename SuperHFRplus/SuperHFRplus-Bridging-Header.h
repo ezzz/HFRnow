@@ -17,5 +17,6 @@
 #import "OfflineStorage.h"
 #import "MultisManager.h"
 #import "k.h"
+#import "NewMessageViewController.h"
 
 #endif /* Bridging_Header_h */
