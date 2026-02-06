@@ -7,6 +7,7 @@
 
 import SwiftUI
 import WebKit
+import UIKit
 
 struct WebView: UIViewRepresentable {
     enum InitialScroll {
@@ -34,6 +35,9 @@ struct WebView: UIViewRepresentable {
 
     func makeUIView(context: Context) -> WKWebView {
         let webView = WKWebView()
+        webView.isOpaque = false
+        webView.backgroundColor = .systemGray6
+        webView.scrollView.backgroundColor = .systemGray6
         webView.navigationDelegate = context.coordinator
         if #available(iOS 16.4, *) {
             webView.isInspectable = true
@@ -229,9 +233,14 @@ struct MessagesView: View {
                     loadPage(page)
                 }
         } else if let fileURL = fileURL, let cacheURL = cacheURL {
-            WebView(fileURL: fileURL, readAccessURL: cacheURL, anchor: anchor, initialScroll: initialScroll)
-                .id(page) // force a new WKWebView per page
-                .ignoresSafeArea()
+            ZStack {
+                Color(.systemGray6)
+
+                WebView(fileURL: fileURL, readAccessURL: cacheURL, anchor: anchor, initialScroll: initialScroll)
+                    .id(page) // force a new WKWebView per page
+            }
+            .ignoresSafeArea()
+
                 .simultaneousGesture(
                     DragGesture().onEnded { value in
                         let horizontal = value.translation.width
