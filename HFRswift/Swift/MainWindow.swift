@@ -39,11 +39,11 @@ struct RootTabView: View {
                             }
                         }
                     }
-            }
+            }*/
             Tab("Favoris", systemImage: "star.fill") {
                 //FeedView()
                 FavoritesListView()
-            }*/
+            }
             Tab("Messages", systemImage: "envelope") {
                 MPListView()
             }

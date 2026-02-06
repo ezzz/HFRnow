@@ -180,7 +180,7 @@ struct MessagesView: View {
         let url = urlForPage(page)
         print("loadPage(\(page)) url:", url, "current anchor:", self.anchor as Any)
         let controller = MessagesTableViewController()
-        controller.fetchContent(forTopicURL: url) { html, topicAnswerUrl, error in
+        controller.fetchContent(forTopicURL: url, anchor: self.anchor) { html, topicAnswerUrl, error in
             DispatchQueue.main.async {
                 if let error {
                     self.errorMessage = error.localizedDescription
@@ -371,7 +371,7 @@ struct MessagesView: View {
                             } label: {
                                 Label("New", systemImage: "plus")
                             }
-                            .buttonStyle(.glassProminent)
+                            //.buttonStyle(.glassProminent)
                         }
                     }
                 }
@@ -501,3 +501,4 @@ struct SpinnerLoading: View {
         }
     }
 }
+

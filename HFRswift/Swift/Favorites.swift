@@ -71,9 +71,10 @@ struct FavoriteSectionView: View {
         }) {
             ForEach(topics) { topic in
                 VStack(alignment: .leading, spacing: 8) {
-                    TopicRowView(topic: topic)
+                    TopicRowView(topic: topic, visitedURLs: $visitedURLs)
                 }
                 .contentShape(Rectangle())
+                .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
             }
             .contextMenu {
                 /* TBD
@@ -188,7 +189,12 @@ struct FavoritesListView: View {
 
 struct TopicRowView: View {
     var topic: Topic
-    var isVisited: Bool = false
+    @Binding var visitedURLs: Set<String>
+    
+    private var isVisited: Bool {
+        let url = topic.aURL ?? topic.aURLOfLastPage ?? ""
+        return visitedURLs.contains(url)
+    }
     
     var unreadCount: Int {
         let current = topic.curTopicPage
@@ -201,6 +207,12 @@ struct TopicRowView: View {
             // Invisible NavigationLink to keep row tappable without chevron
             NavigationLink("") {
                 MessagesView(topic: topic, curPage: Int(topic.curTopicPage), maxPage: Int(topic.maxTopicPage), separatorNewMessages: true)
+                    .onAppear {
+                        let url = topic.aURL ?? topic.aURLOfLastPage ?? ""
+                        if !url.isEmpty {
+                            visitedURLs.insert(url)
+                        }
+                    }
                     .toolbar(.hidden, for: .tabBar)
             }
             .opacity(0)
@@ -209,17 +221,17 @@ struct TopicRowView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Text(topic._aTitle ?? "Sans titre")
-                            .font(.headline)
-                            .foregroundColor(isVisited ? .secondary : .primary)
+                            .font(.system(size: 13, weight: isVisited ? .regular : .semibold))
+                            .foregroundColor(isVisited ? .gray : .primary)
                         Spacer()
                         if unreadCount > 0 {
                             Text("\(unreadCount)")
-                                .font(.caption)
+                                .font(.caption2)
                                 .bold()
                                 .padding(.horizontal, 4)
                                 .padding(.vertical, 2)
-                                .frame(minWidth: 24)
-                                .background(Capsule().fill(Color.secondary))
+                                .frame(minWidth: 20)
+                                .background(Capsule().fill(Color.secondary).opacity(isVisited ? 0.5 : 1.0))
                                 .foregroundColor(.white)
                         }
                     }
@@ -231,15 +243,22 @@ struct TopicRowView: View {
                         if let author = topic.aAuthorOfLastPost,
                            let when = topic.aDateOfLastPost {
                             Text("\(author) - \(when)")
-                                .font(.subheadline)
+                                .font(.footnote)
                                 .foregroundColor(.secondary)
                         }
                     }
                 }
+                
+                
+                
+                .font(.caption)
+
+                
             }
             .padding(.vertical, 0)
             .contentShape(Rectangle())
         }
+        
     }
 }
 
@@ -262,3 +281,4 @@ struct TopicOptions: View {
         }
     }
 }
+

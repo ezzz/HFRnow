@@ -1855,6 +1855,8 @@
         if ([[[NSUserDefaults standardUserDefaults] stringForKey:@"size_smileys"] isEqualToString:@"double"]) {
             doubleSmileysCSS = @".smileycustom {max-height:45px;}";
         }
+        // Forcé a double
+        doubleSmileysCSS = @".smileycustom {max-height:45px;}";
 
         
         
@@ -3536,10 +3538,16 @@ API_AVAILABLE(ios(16.0)) {
 
 #pragma - SWIFT
 
-- (void)fetchContentForTopicURL:(NSString *)topicURL completion:(void (^)(NSString *html, NSString *topicAnswerUrl, NSError *error))completion {
+- (void)fetchContentForTopicURL:(NSString *)topicURL
+                         anchor:(NSString * _Nullable)anchor
+                     completion:(void (^)(NSString *html, NSString *topicAnswerUrl, NSError *error))completion {
     // On stocke la completion en property pour pouvoir la rappeler plus tard
     self.completionHandler = completion;
     self.currentUrl = topicURL;
+    // If an anchor is present, do not show the separator; otherwise, show it
+    BOOL hasAnchor = (anchor != nil) && (anchor.length > 0);
+    self.isSeparatorNewMessages = hasAnchor;
+    self.stringFlagTopic = anchor;
     
     [self fetchContent];
 }

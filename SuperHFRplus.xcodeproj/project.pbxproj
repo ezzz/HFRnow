@@ -753,6 +753,7 @@
 		156246DE2182310000F5B8DC /* arrowforward.svg in Resources */ = {isa = PBXBuildFile; fileRef = 156246DA2182310000F5B8DC /* arrowforward.svg */; };
 		156246DF2182310000F5B8DC /* arrowbegin.svg in Resources */ = {isa = PBXBuildFile; fileRef = 156246DB2182310000F5B8DC /* arrowbegin.svg */; };
 		156246E02182310000F5B8DC /* arrowback.svg in Resources */ = {isa = PBXBuildFile; fileRef = 156246DC2182310000F5B8DC /* arrowback.svg */; };
+		1564762D2F328A8F00C33A72 /* Icon-RedFace3D.icon in Resources */ = {isa = PBXBuildFile; fileRef = 1564762C2F328A8F00C33A72 /* Icon-RedFace3D.icon */; };
 		156FBDDA28F48B9300CE345D /* BoldFilled-20-Inv.png in Resources */ = {isa = PBXBuildFile; fileRef = 156FBDD828F48B9300CE345D /* BoldFilled-20-Inv.png */; };
 		156FBDDB28F48B9300CE345D /* BoldFilled-20-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 156FBDD928F48B9300CE345D /* BoldFilled-20-Inv@2x.png */; };
 		156FBDDD28F48E6300CE345D /* BoldFilled-18-Inv@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 156FBDDC28F48E6300CE345D /* BoldFilled-18-Inv@2x.png */; };
@@ -1935,6 +1936,7 @@
 		156246DA2182310000F5B8DC /* arrowforward.svg */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = arrowforward.svg; sourceTree = "<group>"; };
 		156246DB2182310000F5B8DC /* arrowbegin.svg */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = arrowbegin.svg; sourceTree = "<group>"; };
 		156246DC2182310000F5B8DC /* arrowback.svg */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = arrowback.svg; sourceTree = "<group>"; };
+		1564762C2F328A8F00C33A72 /* Icon-RedFace3D.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = "Icon-RedFace3D.icon"; sourceTree = "<group>"; };
 		156FBDD828F48B9300CE345D /* BoldFilled-20-Inv.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "BoldFilled-20-Inv.png"; sourceTree = "<group>"; };
 		156FBDD928F48B9300CE345D /* BoldFilled-20-Inv@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "BoldFilled-20-Inv@2x.png"; sourceTree = "<group>"; };
 		156FBDDC28F48E6300CE345D /* BoldFilled-18-Inv@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "BoldFilled-18-Inv@2x.png"; sourceTree = "<group>"; };
@@ -3673,6 +3675,7 @@
 		CA00C53C17C30C360067B457 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				1564762C2F328A8F00C33A72 /* Icon-RedFace3D.icon */,
 				4C193E731FA8820200434A37 /* Icons.xcassets */,
 				CA2E4C0917E21EC700E95622 /* Images.xcassets */,
 				4C59E0811FA9D43F00C902F8 /* AlternativeIcons */,
@@ -4849,6 +4852,7 @@
 				15316BFE2E32A1D400E2B7CD /* crazy.gif in Resources */,
 				15316BFF2E32A1D400E2B7CD /* evil.gif in Resources */,
 				15316C002E32A1D400E2B7CD /* pfff.gif in Resources */,
+				1564762D2F328A8F00C33A72 /* Icon-RedFace3D.icon in Resources */,
 				15316C012E32A1D400E2B7CD /* miam.gif in Resources */,
 				15316C022E32A1D400E2B7CD /* wink.gif in Resources */,
 				158CFA322E300643000594F1 /* ProfilViewController.xib in Resources */,
@@ -6078,7 +6082,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_APPICON_NAME = "Classic-Blue";
+				ASSETCATALOG_COMPILER_APPICON_NAME = "Icon-RedFace3D";
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -6151,7 +6155,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_APPICON_NAME = "Classic-Blue";
+				ASSETCATALOG_COMPILER_APPICON_NAME = "Icon-RedFace3D";
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ANALYZER_NONNULL = YES;

@@ -131,6 +131,7 @@ struct MPRowView: View {
                             .font(.headline)
                             .foregroundColor(isVisited ? .secondary : .primary)
                         Spacer()
+                        /*
                         if unreadCount > 0 {
                             Text("\(unreadCount)")
                                 .font(.caption)
@@ -140,16 +141,28 @@ struct MPRowView: View {
                                 .frame(minWidth: 24)
                                 .background(Capsule().fill(Color.secondary))
                                 .foregroundColor(.white)
-                        }
+                        }*/
                     }
                     HStack {
-                        Text("p \(topic.curTopicPage) / \(topic.maxTopicPage)")
-                            .font(.footnote)
-                            .foregroundColor(.gray)
+                        if let interlocuteur = topic.aAuthorOrInter {
+                            if interlocuteur.contains("multiples") {
+                                Text("Interlocuteurs multiples")
+                                    .font(.footnote)
+                                    .foregroundColor(.gray)
+                            }
+                            else {
+                                Text(interlocuteur)
+                                    .font(.footnote)
+                                    .foregroundColor(.gray)
+                            }
+                        }
+
                         Spacer()
-                        if let author = topic.aAuthorOfLastPost,
+
+
+                        if let authorLastPost = topic.aAuthorOfLastPost,
                            let when = topic.aDateOfLastPost {
-                            Text("\(author) - \(when)")
+                            Text("\(authorLastPost) - \(when)")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
