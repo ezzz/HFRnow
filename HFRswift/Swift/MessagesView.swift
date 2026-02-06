@@ -240,6 +240,7 @@ struct MessagesView: View {
                     .id(page) // force a new WKWebView per page
             }
             .ignoresSafeArea()
+            .navigationBarTitleDisplayMode(.inline)
 
                 .simultaneousGesture(
                     DragGesture().onEnded { value in
@@ -510,4 +511,3 @@ struct SpinnerLoading: View {
         }
     }
 }
-
