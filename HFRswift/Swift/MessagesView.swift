@@ -15,14 +15,12 @@ struct WebView: UIViewRepresentable {
         case bottom
     }
 
-    let html: String?
     let fileURL: URL?
     let readAccessURL: URL?
     var anchor: String?
     var initialScroll: InitialScroll?
 
-    init(html: String? = nil, fileURL: URL? = nil, readAccessURL: URL? = nil, anchor: String? = nil, initialScroll: InitialScroll? = nil) {
-        self.html = html
+    init(fileURL: URL? = nil, readAccessURL: URL? = nil, anchor: String? = nil, initialScroll: InitialScroll? = nil) {
         self.fileURL = fileURL
         self.readAccessURL = readAccessURL
         self.anchor = anchor
@@ -52,8 +50,6 @@ struct WebView: UIViewRepresentable {
 
         if let fileURL = fileURL, let readAccessURL = readAccessURL {
             webView.loadFileURL(fileURL, allowingReadAccessTo: readAccessURL)
-        } else if let html = html {
-            webView.loadHTMLString(html, baseURL: readAccessURL)
         }
     }
 
@@ -131,6 +127,8 @@ struct MessagesView: View {
     let curPage: Int // Stored again as it can be updated when reloading the topic
     let maxPage: Int
     let separatorNewMessages: Bool
+    let topicPageLoader: TopicPageLoading
+    let topicPageRenderer: TopicPageRendering
 
     @State private var page: Int
     @State private var fileURL: URL?
@@ -147,15 +145,25 @@ struct MessagesView: View {
     @State private var isComposerMinimized = false
     @State private var animateLoadingSpinner = false
     @FocusState private var isComposerFocused: Bool
-
+    @State private var isPagePickerPresented = false
+    @State private var pagePickerInput: String = ""
     // Remove the unused
     // @State private var isPresentingAddMessage = false
 
-    init(topic: Topic, curPage: Int, maxPage: Int, separatorNewMessages: Bool) {
+    init(
+        topic: Topic,
+        curPage: Int,
+        maxPage: Int,
+        separatorNewMessages: Bool,
+        topicPageLoader: TopicPageLoading = ObjCTopicPageLoader(),
+        topicPageRenderer: TopicPageRendering = OfflineStorageTopicPageRenderer()
+    ) {
         self.topic = topic
         self.curPage = curPage
         self.maxPage = maxPage
         self.separatorNewMessages = separatorNewMessages
+        self.topicPageLoader = topicPageLoader
+        self.topicPageRenderer = topicPageRenderer
         self._page = State(initialValue: curPage)
 
         // extraire l’ancre (#xxxx) si présente
@@ -183,28 +191,169 @@ struct MessagesView: View {
     private func loadPage(_ page: Int) {
         let url = urlForPage(page)
         print("loadPage(\(page)) url:", url, "current anchor:", self.anchor as Any)
-        let controller = MessagesTableViewController()
-        controller.fetchContent(forTopicURL: url, anchor: self.anchor) { html, topicAnswerUrl, error in
+        errorMessage = nil
+        topicPageLoader.fetchTopicPage(url: url, anchor: self.anchor) { result in
             DispatchQueue.main.async {
-                if let error {
+                switch result {
+                case .failure(let error):
                     self.errorMessage = error.localizedDescription
-                } else if let html {
-                    let offlineStorage = OfflineStorage.shared()
-                    let createdFileURL = offlineStorage!.createHtmlFileInCache(for: nil, withContent: html)
-                    let cacheDirectoryURL = offlineStorage!.cacheURL()
-
-                    self.fileURL = createdFileURL
-                    self.cacheURL = cacheDirectoryURL
-                    self.page = page
-                    if let topicAnswerUrl = topicAnswerUrl, let parsedURL = URL(string: topicAnswerUrl) {
-                        self.topicAnswerURL = parsedURL
-                    } else {
-                        self.topicAnswerURL = nil
+                case .success(let content):
+                    do {
+                        let rendered = try topicPageRenderer.render(html: content.html)
+                        self.fileURL = rendered.fileURL
+                        self.cacheURL = rendered.readAccessURL
+                        if self.fileURL == nil || self.cacheURL == nil {
+                            self.errorMessage = "Failed to render topic page to local file."
+                        }
+                    } catch {
+                        self.fileURL = nil
+                        self.cacheURL = nil
+                        self.errorMessage = error.localizedDescription
                     }
-
-                    // Ne pas annuler l’ancre ici pour permettre le scroll après chargement
-                    // self.anchor = nil
+                    self.page = page
+                    self.topicAnswerURL = content.topicAnswerURL
                 }
+            }
+        }
+    }
+
+    private func uniqueValidPages(_ candidates: [Int], excluding excludedTargets: Set<Int> = []) -> [Int] {
+        var seen = excludedTargets
+        return candidates.compactMap { target in
+            guard (1...maxPage).contains(target), target != page else { return nil }
+            guard seen.insert(target).inserted else { return nil }
+            return target
+        }
+    }
+
+    private var backwardFirstPages: [Int] {
+        uniqueValidPages([1, 2, 3])
+    }
+
+    private var backwardLastPages: [Int] {
+        uniqueValidPages([page - 3, page - 2, page - 1], excluding: Set(backwardFirstPages))
+    }
+
+    private var forwardFirstPages: [Int] {
+        uniqueValidPages([page + 1, page + 2, page + 3])
+    }
+
+    private var forwardLastPages: [Int] {
+        uniqueValidPages([maxPage - 2, maxPage - 1, maxPage], excluding: Set(forwardFirstPages))
+    }
+
+    private func pageMenuLabel(_ target: Int) -> String {
+        "Page \(target)"
+    }
+
+    private func openPagePicker() {
+        pagePickerInput = "\(page)"
+        isPagePickerPresented = true
+    }
+
+    private func navigateToPage(_ target: Int, initialScroll: WebView.InitialScroll) {
+        guard (1...maxPage).contains(target), target != page else { return }
+        anchor = nil
+        self.initialScroll = initialScroll
+        loadPage(target)
+    }
+
+    private func submitPagePicker() {
+        let trimmed = pagePickerInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let target = Int(trimmed), (1...maxPage).contains(target) else { return }
+        navigateToPage(target, initialScroll: .top)
+    }
+
+    @ViewBuilder
+    private func backwardContextMenuItems() -> some View {
+        ForEach(backwardFirstPages, id: \.self) { target in
+            Button(pageMenuLabel(target)) {
+                navigateToPage(target, initialScroll: .top)
+            }
+        }
+        if maxPage > 1 {
+            if !backwardFirstPages.isEmpty || !backwardLastPages.isEmpty {
+                Divider()
+            }
+            Button("Page numéro...") {
+                openPagePicker()
+            }
+        }
+        if !backwardLastPages.isEmpty {
+            Divider()
+        }
+        ForEach(backwardLastPages, id: \.self) { target in
+            Button(pageMenuLabel(target)) {
+                navigateToPage(target, initialScroll: .bottom)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func forwardContextMenuItems() -> some View {
+        /*ForEach(forwardFirstPages, id: \.self) { target in
+            Button(pageMenuLabel(target)) {
+                navigateToPage(target, initialScroll: .top)
+            }
+        }
+        if maxPage > 1 {
+            if !forwardFirstPages.isEmpty || !forwardLastPages.isEmpty {
+                Divider()
+            }
+            Button("Page numéro...") {
+                openPagePicker()
+            }
+        }
+        if !forwardLastPages.isEmpty {
+            Divider()
+        }
+        ForEach(forwardLastPages, id: \.self) { target in
+            Button(pageMenuLabel(target)) {
+                navigateToPage(target, initialScroll: .bottom)
+            }
+        }*/
+        if page > 1 {
+            Button {
+                // Go to first page: start at top
+                self.anchor = nil
+                self.initialScroll = .top
+                loadPage(1)
+            } label: {
+                Label("Première page", systemImage: "backward.end.alt")
+            }
+            Button {
+                // Previous page: start at bottom
+                self.anchor = nil
+                self.initialScroll = .bottom
+                loadPage(page - 1)
+            } label: {
+                Label("Page précédente", systemImage: "backward.end")
+            }
+        }
+        if page < maxPage {
+            Button {
+                // Next page: start at top
+                self.anchor = nil
+                self.initialScroll = .top
+                loadPage(page + 1)
+            } label: {
+                Label("Page suivante", systemImage: "forward.end")
+            }
+            Button {
+                // Dernière réponse: start at top
+                self.anchor = nil
+                self.initialScroll = .bottom
+                loadPage(maxPage)
+            } label: {
+                Label("Dernière réponse", systemImage: "forward.end.alt")
+            }
+        }
+        Divider()
+        if maxPage > 1 {
+            Button {
+                openPagePicker()
+            } label: {
+                Text("Page numéro...")
             }
         }
     }
@@ -232,7 +381,7 @@ struct MessagesView: View {
                 .onAppear {
                     loadPage(page)
                 }
-        } else if let fileURL = fileURL, let cacheURL = cacheURL {
+        } else if fileURL != nil && cacheURL != nil {
             ZStack {
                 Color(.systemGray6)
 
@@ -290,50 +439,7 @@ struct MessagesView: View {
                             } label: {
                                 Label("Répondre", systemImage: "pencil")
                             }
-                            if page > 1 {
-                                Button {
-                                    // Go to first page: start at top
-                                    self.anchor = nil
-                                    self.initialScroll = .top
-                                    loadPage(1)
-                                } label: {
-                                    Label("Première page", systemImage: "backward.end.alt")
-                                }
-                                Button {
-                                    // Previous page: start at bottom
-                                    self.anchor = nil
-                                    self.initialScroll = .bottom
-                                    loadPage(page - 1)
-                                } label: {
-                                    Label("Page précédente", systemImage: "backward.end")
-                                }
-                            }
-                            if maxPage > 1 {
-                                Button {
-                                    print("log")
-                                } label: {
-                                    Label("Page numéro...", systemImage: "ellipsis.circle")
-                                }
-                            }
-                            if page < maxPage {
-                                Button {
-                                    // Next page: start at top
-                                    self.anchor = nil
-                                    self.initialScroll = .top
-                                    loadPage(page + 1)
-                                } label: {
-                                    Label("Page suivante", systemImage: "forward.end")
-                                }
-                                Button {
-                                    // Dernière réponse: start at top
-                                    self.anchor = nil
-                                    self.initialScroll = .bottom
-                                    loadPage(maxPage)
-                                } label: {
-                                    Label("Dernière réponse", systemImage: "forward.end.alt")
-                                }
-                            }
-                            Divider()
+                            /*
                             Button {
                                 print("log")
                             } label: {
@@ -344,7 +450,7 @@ struct MessagesView: View {
                             } label: {
                                 Label("Bas de la page", systemImage: "arrowshape.down")
                             }
-                            Divider()
+                            Divider()*/
                             Button {
                                 print("log")
                             } label: {
@@ -364,16 +470,24 @@ struct MessagesView: View {
                         ToolbarItemGroup(placement: .bottomBar) {
                             // Bouton Refresh
                             Button {
+                                navigateToPage(page - 1, initialScroll: .bottom)
                             } label: {
                                 Image(systemName: "chevron.backward")
                             }
-                            .disabled(page <= 1)
+                            .contextMenu {
+                                forwardContextMenuItems()
+                            }
                             
                             Button {
+                                navigateToPage(page + 1, initialScroll: .top)
                             } label: {
                                 Image(systemName: "chevron.forward")
                             }
-                            .disabled(page >= maxPage)
+                            .contextMenu {
+                                forwardContextMenuItems()
+                            } /*preview: {
+                                EmptyView()
+                            }*/
                             
                             Spacer()
                             Button {
@@ -384,6 +498,16 @@ struct MessagesView: View {
                             //.buttonStyle(.glassProminent)
                         }
                     }
+                }
+                .alert("Page numéro...", isPresented: $isPagePickerPresented) {
+                    TextField("1...\(maxPage)", text: $pagePickerInput)
+                        .keyboardType(.numberPad)
+                    Button("Annuler", role: .cancel) {}
+                    Button("Aller") {
+                        submitPagePicker()
+                    }
+                } message: {
+                    Text("Choisir une page entre 1 et \(maxPage)")
                 }
         } else {
             ZStack {
@@ -444,16 +568,26 @@ struct MessagesView: View {
                 ToolbarItemGroup(placement: .bottomBar) {
                     // Bouton Refresh
                     Button {
+                        navigateToPage(page - 1, initialScroll: .bottom)
                     } label: {
                         Image(systemName: "chevron.backward")
                     }
-                    .disabled(true)
+                    .contextMenu {
+                        backwardContextMenuItems()
+                    } preview: {
+                        EmptyView()
+                    }
                     
                     Button {
+                        navigateToPage(page + 1, initialScroll: .top)
                     } label: {
                         Image(systemName: "chevron.forward")
                     }
-                    .disabled(true)
+                    .contextMenu {
+                        forwardContextMenuItems()
+                    } preview: {
+                        EmptyView()
+                    }
 
                     Spacer()
                     Button {
@@ -463,6 +597,16 @@ struct MessagesView: View {
                     }
                     .buttonStyle(.glassProminent)
                 }
+            }
+            .alert("Page numéro...", isPresented: $isPagePickerPresented) {
+                TextField("1...\(maxPage)", text: $pagePickerInput)
+                    .keyboardType(.numberPad)
+                Button("Annuler", role: .cancel) {}
+                Button("Aller") {
+                    submitPagePicker()
+                }
+            } message: {
+                Text("Choisir une page entre 1 et \(maxPage)")
             }
             .onAppear {
                 loadPage(page)
