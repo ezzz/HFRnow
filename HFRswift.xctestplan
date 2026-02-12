@@ -1,0 +1,30 @@
+{
+  "configurations" : [
+    {
+      "id" : "18BD13D3-5BEA-4344-891F-7174F8958958",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "performanceAntipatternCheckerEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:SuperHFRplus.xcodeproj",
+      "identifier" : "15B0AA842E2C27DD0092C0FD",
+      "name" : "HFRswift"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:SuperHFRplus.xcodeproj",
+        "identifier" : "15AF31872F3BCB05006738A7",
+        "name" : "HFRswiftTests"
+      }
+    }
+  ],
+  "version" : 1
+}

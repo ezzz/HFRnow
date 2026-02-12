@@ -11,6 +11,7 @@
 @class TopicsTableViewController;
 @class ASIHTTPRequest;
 @class ForumCellView;
+@class Forum;
 @class PullToRefreshErrorViewController;
 @class TabBarController;
 @class HFRNavigationController;
@@ -65,4 +66,8 @@
 -(void)loadDataInTableView:(NSData *)contentData;
 -(void)reload:(BOOL)shake;
 -(void)reload;
+
+// SWIFT
+@property (nonatomic, copy) void (^completion)(NSArray<Forum *> *forums, NSError *error);
+- (void)fetchContentWithCompletion:(void (^)(NSArray<Forum *> *forums, NSError *error))completion;
 @end

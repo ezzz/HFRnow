@@ -175,6 +175,13 @@ struct MessagesView: View {
 
     private func urlForPage(_ page: Int) -> String {
         print("Current url: \(self.topic.aURL ?? "empty")")
+        if let currentURL = topic.aURL, currentURL.contains("page=") {
+            let legacyURL = topic.getURLforPage(Int32(page))
+            if let legacyURL, !legacyURL.isEmpty {
+                return legacyURL
+            }
+        }
+
         guard var comps = URLComponents(string: self.topic.aURL) else { return "" }
         var queryItems = comps.queryItems ?? []
         if let index = queryItems.firstIndex(where: { $0.name == "page" }) {

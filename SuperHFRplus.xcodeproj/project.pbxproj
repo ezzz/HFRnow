@@ -955,7 +955,7 @@
 		158CFA9B2E301EB9000594F1 /* NSData+Base64.m in Sources */ = {isa = PBXBuildFile; fileRef = CA00C45117C3000B0067B457 /* NSData+Base64.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		158CFA9D2E301F03000594F1 /* TabBarController.m in Sources */ = {isa = PBXBuildFile; fileRef = CA9E86881243C11A000EE882 /* TabBarController.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
 		158CFA9F2E30ED33000594F1 /* libicucore.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 158CFA9E2E30ED33000594F1 /* libicucore.tbd */; };
-		158CFAA12E30ED5B000594F1 /* libiconv.2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 158CFAA02E30ED5B000594F1 /* libiconv.2.tbd */; };
+		158CFAA12E30ED5B000594F1 /* libiconv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 158CFAA02E30ED5B000594F1 /* libiconv.tbd */; };
 		158CFAA22E316306000594F1 /* InAppSettingsKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 15B5FC4C264FAE48006CBEF0 /* InAppSettingsKit.xcframework */; };
 		158CFAA32E316306000594F1 /* InAppSettingsKit.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 15B5FC4C264FAE48006CBEF0 /* InAppSettingsKit.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		158CFAA52E316314000594F1 /* GiphyUISDK.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 15B5FC5626512005006CBEF0 /* GiphyUISDK.xcframework */; };
@@ -1035,7 +1035,7 @@
 		15B5FC55264FD2B3006CBEF0 /* InAppSettingsKit.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 15B5FC4C264FAE48006CBEF0 /* InAppSettingsKit.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		15B5FC5726512005006CBEF0 /* GiphyUISDK.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 15B5FC5626512005006CBEF0 /* GiphyUISDK.xcframework */; };
 		15B5FC5826512005006CBEF0 /* GiphyUISDK.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 15B5FC5626512005006CBEF0 /* GiphyUISDK.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		15BDF02B2D418F8C00533CB9 /* libiconv.2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 15BDF02A2D418F8C00533CB9 /* libiconv.2.tbd */; };
+		15BDF02B2D418F8C00533CB9 /* libiconv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 15BDF02A2D418F8C00533CB9 /* libiconv.tbd */; };
 		15C645622DC773450033B935 /* Icon-REDFACE-BLUE@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15C645602DC773450033B935 /* Icon-REDFACE-BLUE@2x.png */; };
 		15C645632DC773450033B935 /* Icon-REDFACE-BLUE@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15C645612DC773450033B935 /* Icon-REDFACE-BLUE@3x.png */; };
 		15C645642DC773450033B935 /* Icon-REDFACE-BLUE-IPAD@1x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15C6455E2DC773450033B935 /* Icon-REDFACE-BLUE-IPAD@1x.png */; };
@@ -1699,6 +1699,16 @@
 		D9FEEAC22E4F455300FBBE89 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CFC38561FB0E6BE0027A832 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		15AF318C2F3BCB05006738A7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 29B97313FDCFA39411CA2CEA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 15B0AA842E2C27DD0092C0FD;
+			remoteInfo = HFRswift;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXCopyFilesBuildPhase section */
 		151B6CA2251D1D66007C28C3 /* Embed Frameworks */ = {
 			isa = PBXCopyFilesBuildPhase;
@@ -1948,7 +1958,7 @@
 		1572FC4C22F3826100D40789 /* icons8-reset-50.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "icons8-reset-50.png"; sourceTree = "<group>"; };
 		1572FC4E22F384AA00D40789 /* reset-512.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "reset-512.png"; sourceTree = "<group>"; };
 		158CFA9E2E30ED33000594F1 /* libicucore.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libicucore.tbd; path = usr/lib/libicucore.tbd; sourceTree = SDKROOT; };
-		158CFAA02E30ED5B000594F1 /* libiconv.2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libiconv.2.tbd; path = usr/lib/libiconv.2.tbd; sourceTree = SDKROOT; };
+		158CFAA02E30ED5B000594F1 /* libiconv.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libiconv.tbd; path = usr/lib/libiconv.tbd; sourceTree = SDKROOT; };
 		158D498A2240618C00AFDBDE /* 08-chat-20@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "08-chat-20@2x.png"; path = "SuperHFRplus/Assets/UI/08-chat-20@2x.png"; sourceTree = SOURCE_ROOT; };
 		1591C0DE2490165B0025560A /* SmileyViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SmileyViewController.h; sourceTree = "<group>"; };
 		1591C0DF2490170D0025560A /* SmileyViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SmileyViewController.m; sourceTree = "<group>"; };
@@ -2018,6 +2028,8 @@
 		15AEFA06223E9435005E6739 /* Icon-BLUE-IPAD@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-BLUE-IPAD@2x.png"; sourceTree = "<group>"; };
 		15AEFA07223E9435005E6739 /* Icon-WHITE-IPAD@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-WHITE-IPAD@2x.png"; sourceTree = "<group>"; };
 		15AEFFEC222AB07C003A2E5F /* bgbigipad3.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = bgbigipad3.jpg; sourceTree = "<group>"; };
+		15AF31882F3BCB05006738A7 /* HFRswiftTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HFRswiftTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		15AF31972F3BCC26006738A7 /* HFRswift.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = HFRswift.xctestplan; sourceTree = "<group>"; };
 		15B0AA802E2BC9E90092C0FD /* TopicViewWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopicViewWrapper.swift; sourceTree = "<group>"; };
 		15B0AA852E2C27DD0092C0FD /* HFRswift.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HFRswift.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		15B245A822E6F94C0091B513 /* ThemeSettingsViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ThemeSettingsViewController.h; sourceTree = "<group>"; };
@@ -2027,7 +2039,7 @@
 		15B5FC4C264FAE48006CBEF0 /* InAppSettingsKit.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = InAppSettingsKit.xcframework; path = Carthage/Build/InAppSettingsKit.xcframework; sourceTree = "<group>"; };
 		15B5FC4F264FAE4D006CBEF0 /* SimpleKeychain.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = SimpleKeychain.xcframework; path = Carthage/Build/SimpleKeychain.xcframework; sourceTree = "<group>"; };
 		15B5FC5626512005006CBEF0 /* GiphyUISDK.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = GiphyUISDK.xcframework; path = Frameworks/GiphyUISDK.xcframework; sourceTree = "<group>"; };
-		15BDF02A2D418F8C00533CB9 /* libiconv.2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; path = libiconv.2.tbd; sourceTree = "<group>"; };
+		15BDF02A2D418F8C00533CB9 /* libiconv.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libiconv.tbd; path = usr/lib/libiconv.tbd; sourceTree = SDKROOT; };
 		15C6455E2DC773450033B935 /* Icon-REDFACE-BLUE-IPAD@1x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-REDFACE-BLUE-IPAD@1x.png"; sourceTree = "<group>"; };
 		15C6455F2DC773450033B935 /* Icon-REDFACE-BLUE-IPAD@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-REDFACE-BLUE-IPAD@2x.png"; sourceTree = "<group>"; };
 		15C645602DC773450033B935 /* Icon-REDFACE-BLUE@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-REDFACE-BLUE@2x.png"; sourceTree = "<group>"; };
@@ -2764,15 +2776,23 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		15AF31892F3BCB05006738A7 /* HFRswiftTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = HFRswiftTests; sourceTree = "<group>"; };
 		15B0AA862E2C27DD0092C0FD /* Swift */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Swift; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		15AF31852F3BCB05006738A7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		15B0AA822E2C27DD0092C0FD /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				158CFAA12E30ED5B000594F1 /* libiconv.2.tbd in Frameworks */,
+				158CFAA12E30ED5B000594F1 /* libiconv.tbd in Frameworks */,
 				158CFA9F2E30ED33000594F1 /* libicucore.tbd in Frameworks */,
 				158CFAA52E316314000594F1 /* GiphyUISDK.xcframework in Frameworks */,
 				158CFAA72E31631E000594F1 /* SDWebImage.framework in Frameworks */,
@@ -2802,7 +2822,7 @@
 			files = (
 				15B5FC5726512005006CBEF0 /* GiphyUISDK.xcframework in Frameworks */,
 				4CD6B8811B977E0E007FC29E /* SafariServices.framework in Frameworks */,
-				15BDF02B2D418F8C00533CB9 /* libiconv.2.tbd in Frameworks */,
+				15BDF02B2D418F8C00533CB9 /* libiconv.tbd in Frameworks */,
 				CA2E6DE619DB08D50089B5CF /* WebKit.framework in Frameworks */,
 				CA7C711E185EF50E00B348BA /* CoreData.framework in Frameworks */,
 				CA7C711F185EF50E00B348BA /* CoreText.framework in Frameworks */,
@@ -3154,6 +3174,7 @@
 			children = (
 				CA7C7132185EF50E00B348BA /* SuperHFRplusSwift.app */,
 				15B0AA852E2C27DD0092C0FD /* HFRswift.app */,
+				15AF31882F3BCB05006738A7 /* HFRswiftTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -3161,6 +3182,7 @@
 		29B97314FDCFA39411CA2CEA /* CustomTemplate */ = {
 			isa = PBXGroup;
 			children = (
+				15AF31972F3BCC26006738A7 /* HFRswift.xctestplan */,
 				15AC35882904637400CCD6FC /* File */,
 				15377559275A777F00790892 /* Empty.md */,
 				15A5F3B32708E55800DAE8FE /* Notes.md */,
@@ -3169,6 +3191,7 @@
 				152E907B2F1236EA00CED459 /* HFRswift */,
 				CA00C35417C2FC620067B457 /* SuperHFRplus */,
 				29B97317FDCFA39411CA2CEA /* Resources */,
+				15AF31892F3BCB05006738A7 /* HFRswiftTests */,
 				29B97323FDCFA39411CA2CEA /* Frameworks */,
 				19C28FACFE9D520D11CA2CBB /* Products */,
 			);
@@ -3190,9 +3213,9 @@
 		29B97323FDCFA39411CA2CEA /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				158CFAA02E30ED5B000594F1 /* libiconv.2.tbd */,
+				158CFAA02E30ED5B000594F1 /* libiconv.tbd */,
 				158CFA9E2E30ED33000594F1 /* libicucore.tbd */,
-				15BDF02A2D418F8C00533CB9 /* libiconv.2.tbd */,
+				15BDF02A2D418F8C00533CB9 /* libiconv.tbd */,
 				15B5FC5626512005006CBEF0 /* GiphyUISDK.xcframework */,
 				15B5FC4F264FAE4D006CBEF0 /* SimpleKeychain.xcframework */,
 				15B5FC4C264FAE48006CBEF0 /* InAppSettingsKit.xcframework */,
@@ -4304,6 +4327,29 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		15AF31872F3BCB05006738A7 /* HFRswiftTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 15AF318E2F3BCB05006738A7 /* Build configuration list for PBXNativeTarget "HFRswiftTests" */;
+			buildPhases = (
+				15AF31842F3BCB05006738A7 /* Sources */,
+				15AF31852F3BCB05006738A7 /* Frameworks */,
+				15AF31862F3BCB05006738A7 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				15AF318D2F3BCB05006738A7 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				15AF31892F3BCB05006738A7 /* HFRswiftTests */,
+			);
+			name = HFRswiftTests;
+			packageProductDependencies = (
+			);
+			productName = HFRswiftTests;
+			productReference = 15AF31882F3BCB05006738A7 /* HFRswiftTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		15B0AA842E2C27DD0092C0FD /* HFRswift */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 15B0AA8D2E2C27E40092C0FD /* Build configuration list for PBXNativeTarget "HFRswift" */;
@@ -4352,9 +4398,13 @@
 		29B97313FDCFA39411CA2CEA /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastSwiftUpdateCheck = 2600;
+				LastSwiftUpdateCheck = 2630;
 				LastUpgradeCheck = 1020;
 				TargetAttributes = {
+					15AF31872F3BCB05006738A7 = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = 15B0AA842E2C27DD0092C0FD;
+					};
 					15B0AA842E2C27DD0092C0FD = {
 						CreatedOnToolsVersion = 26.0;
 					};
@@ -4385,11 +4435,19 @@
 			targets = (
 				CA7C6FA3185EF50E00B348BA /* SuperHFRplus */,
 				15B0AA842E2C27DD0092C0FD /* HFRswift */,
+				15AF31872F3BCB05006738A7 /* HFRswiftTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		15AF31862F3BCB05006738A7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		15B0AA832E2C27DD0092C0FD /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -5755,6 +5813,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		15AF31842F3BCB05006738A7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		15B0AA812E2C27DD0092C0FD /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -6065,6 +6130,14 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		15AF318D2F3BCB05006738A7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 15B0AA842E2C27DD0092C0FD /* HFRswift */;
+			targetProxy = 15AF318C2F3BCB05006738A7 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin PBXVariantGroup section */
 		CA1070C115A4DA1E002E6C19 /* Localizable.strings */ = {
 			isa = PBXVariantGroup;
@@ -6078,6 +6151,100 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		15AF318F2F3BCB05006738A7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_ENTITLEMENTS = "";
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = QMG83DG7YP;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACH_O_TYPE = mh_bundle;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ezzz.HFRswiftTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/HFRswift.app/HFRswift";
+			};
+			name = Debug;
+		};
+		15AF31902F3BCB05006738A7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_ENTITLEMENTS = "";
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = QMG83DG7YP;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACH_O_TYPE = mh_bundle;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ezzz.HFRswiftTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/HFRswift.app/HFRswift";
+			};
+			name = Release;
+		};
 		15B0AA8E2E2C27E40092C0FD /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -6445,6 +6612,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		15AF318E2F3BCB05006738A7 /* Build configuration list for PBXNativeTarget "HFRswiftTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				15AF318F2F3BCB05006738A7 /* Debug */,
+				15AF31902F3BCB05006738A7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		15B0AA8D2E2C27E40092C0FD /* Build configuration list for PBXNativeTarget "HFRswift" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

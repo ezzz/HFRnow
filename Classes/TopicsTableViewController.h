@@ -13,6 +13,8 @@
 @class TopicsSearchViewController;
 @class HFRNavigationController;
 @class TopicCellView;
+@class Topic;
+@class Forum;
 
 #import "AddMessageViewController.h"
 #import "NewMessageViewController.h"
@@ -41,5 +43,11 @@
 - (instancetype)init;
 - (instancetype)initWithFlag:(int)flag;
 - (void)reset;
+
+// SWIFT
+@property (nonatomic, copy) void (^completion)(NSArray<Topic *> *topics, NSError *error);
+- (void)fetchContentForForum:(Forum *)forum
+                   flagIndex:(NSInteger)flagIndex
+                  completion:(void (^)(NSArray<Topic *> *topics, NSError *error))completion;
 
 @end

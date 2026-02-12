@@ -4,6 +4,7 @@
 1. Lock migration guardrails before feature expansion.
 2. Introduce wrapper-friendly service seams in SwiftUI layer.
 3. Prepare test and preview conventions for the migration.
+4. Establish reusable SwiftUI UI primitives for list-based migrated flows.
 
 ## Guardrails (Locked)
 - Do not port `OfflineMessagesTableViewController`.
@@ -13,6 +14,8 @@
 - Add SwiftUI previews with mock data whenever feasible.
 - Remove settings dependency to legacy COTS (`InAppSettingsKit`) in upcoming phases.
 - Keep iPad as lower priority, with decision gate first.
+- End-state target: full SwiftUI UI; ObjC kept only for non-UI processing when necessary.
+- For migrated `HFRswift` flows, avoid new XIB/NIB-based UI.
 
 ## Delivered in this S0 start
 - [x] Added adapter/service seams in `HFRswift/Swift/Common.swift`:
@@ -28,6 +31,9 @@
 - [x] Added list-level preview variants (happy/loading/empty/error):
   - `FavoritesListView` previews in `HFRswift/Swift/Favorites.swift`
   - `MPListView` previews in `HFRswift/Swift/MPListView.swift`
+- [x] Mutualized Topic list-row base view used by Favorites and MP:
+  - `TopicListRowView` in `HFRswift/Swift/Common.swift`
+  - consumed by `TopicRowView` and `MPRowView`
 - [x] Switched message rendering to file-based loading only (`loadFileURL` path).
 - [x] Removed inline HTML fallback path from `MessagesView` to preserve local CSS/resource loading.
 - [x] Added native SwiftUI settings scaffold:
@@ -36,12 +42,15 @@
 - [x] Added initial wrapper-test scaffolding files:
   - `HFRswiftTests/TopicPageRenderingTests.swift`
   - `HFRswiftTests/ObjCWrappedClassesSmokeTests.swift`
+- [x] Added first wrapped ObjC behavior test batch:
+  - `HFRswiftTests/ObjCWrapperLoaderBehaviorTests.swift`
+  - covers `ObjCFavoritesLoader`, `ObjCMPTopicsLoader`, `ObjCTopicPageLoader` success/failure/mapping behavior
 
 ## Remaining S0 tasks
 - [x] Add an XCTest target for wrapper tests in Xcode project.
 - [x] Keep test scaffolding on XCTest only (removed default Swift Testing placeholder file).
 - [ ] Execute wrapper-focused tests in CI once test target is created.
-- [ ] Expand wrapped ObjC behavior tests (beyond smoke and adapter scaffolding).
+- [ ] Expand wrapped ObjC behavior tests further (web action routing, reply/session side effects, plus-path wrappers).
 
 ## Acceptance for S0 completion
 1. Wrapper-focused tests run in CI.

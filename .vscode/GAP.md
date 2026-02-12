@@ -8,6 +8,8 @@
 5. When possible, each SwiftUI screen should have `#Preview` with mock data (normal, loading, empty, error states).
 6. Settings must remove dependency to legacy COTS (`InAppSettingsKit`) and move to modern native SwiftUI APIs.
 7. iPad parity is lower priority for now; first step is necessity/impact study.
+8. End-state target: all UI is SwiftUI; Objective-C is retained only for non-UI processing layers when needed for safety.
+9. XIB/NIB usage must be removed from migrated `HFRswift` flows; no new XIB/NIB-based UI should be introduced.
 
 ## Scope and method
 This GAP is based on concrete code signals:
@@ -30,7 +32,7 @@ This GAP is based on concrete code signals:
 | Area | Finding | Evidence |
 |---|---|---|
 | Legacy tabs | Catégories/Favoris/Messages/Plus in ObjC tab bar. | `Classes/TabBarController.m:57`, `Classes/TabBarController.m:60` |
-| SwiftUI tabs | Catégories tab is commented; only Favoris/Messages/Plus active. | `HFRswift/Swift/MainWindow.swift:32`, `HFRswift/Swift/MainWindow.swift:43`, `HFRswift/Swift/MainWindow.swift:50` |
+| SwiftUI tabs | Catégories/Favoris/Messages/Plus are active; Catégories is currently via wrapper. | `HFRswift/Swift/MainWindow.swift:16`, `HFRswift/Swift/MainWindow.swift:32`, `HFRswift/Swift/MainWindow.swift:42` |
 | Plus still wrapped | SwiftUI uses `PlusTableViewWrapper`. | `HFRswift/Swift/PlusTab.swift:10` |
 
 ### Real Swift -> ObjC usage
@@ -63,7 +65,7 @@ Required fields per feature:
 
 | ID | (1) User description | (2) ObjC implementation | (3) SwiftUI status | (4) ObjC non-UI dependencies | (5) Risks | (6) Effort | (7) Priority | Concrete references |
 |---|---|---|---|---|---|---|---|---|
-| G01 | Browse categories/forums from main tab. | `TabBarController`, `ForumsTableViewController`, XIB wiring. | Absent (tab disabled). | `Forum`, `k`. | Primary navigation regression. | M | P0 | `Classes/TabBarController.m:57`, `HFRswift/Swift/MainWindow.swift:32` |
+| G01 | Browse categories/forums from main tab. | `TabBarController`, `ForumsTableViewController`, XIB wiring. | Partial (tab active via UIKit wrapper; native SwiftUI categories not yet done). | `Forum`, `k`. | Wrapper-only parity can hide UI drift and slows full SwiftUI migration. | M | P0 | `Classes/TabBarController.m:57`, `HFRswift/Swift/MainWindow.swift:16`, `HFRswift/Swift/MainWindow.swift:32` |
 | G02 | Forum quick filters Favoris/Suivis/Lus/Tous. | Long-press actions in `ForumsTableViewController`. | Missing in active SwiftUI flow. | `k` forum URL logic. | Missing power-user behavior. | M | P1 | `Classes/ForumsTableViewController.m:1090`, `Classes/ForumsTableViewController.m:1100` |
 | G03 | Topic quick actions (first/last/page/copy link). | `TopicsTableViewController` actions. | Not fully available end-to-end. | Topic URL pagination model. | Loss of critical navigation actions. | M | P0 | `Classes/TopicsTableViewController.m:614`, `Classes/TopicsTableViewController.m:618` |
 | G04 | Favorites advanced features (edit/reorder/filter/super favorite/swipe). | `FavoritesTableViewController`. | Partial; advanced menu still TODO/commented. | `FilterPostsQuotes` and favorites data. | High regression for heavy users. | L | P0 | `Classes/FavoritesTableViewController.m:143`, `Classes/FavoritesTableViewController.m:821`, `HFRswift/Swift/Favorites.swift:79` |
@@ -79,11 +81,12 @@ Required fields per feature:
 | G14 | Settings migration: remove legacy COTS and use modern native SwiftUI settings. | `PlusSettingsViewController` uses `InAppSettingsKit`. | Not migrated in SwiftUI. | Preference storage and theme/account services. | COTS lock-in and modernization blocker. | M | P1 | `Classes/PlusSettingsViewController.h:9`, `Classes/PlusSettingsViewController.m:16`, `Classes/PlusSettingsViewController.m:39` |
 | G15 | SwiftUI previews with mock data for migrated screens. | N/A legacy concern. | Partial/inconsistent. | Mock services and fixtures. | Slower UI iteration and less design/test safety. | S | P1 | `HFRswift/Swift/HFRswiftApp.swift:10`, `HFRswift/Swift/MessagesView.swift:129` |
 | G16 | Deprecated offline topic cache navigation must not be ported. | `OfflineMessagesTableViewController`. | Explicitly out of scope for migration. | None (de-scope item). | Wasted effort and added complexity if reintroduced. | S | P0 | `Classes/OfflineMessagesTableViewController.m:38`, `Classes/OfflineMessagesTableViewController.m:1785` |
+| G17 | Remove XIB/NIB-backed UI from migrated flows and avoid new NIB UI. | Legacy UIKit controllers and XIB files across app shell and flows. | Structural gap; wrappers still depend on legacy UIKit/XIB paths. | N/A (UI concern; keep ObjC for processing only). | Maintenance cost and UI divergence from SwiftUI target. | L | P1 | `SuperHFRplus/XIB/MainWindow.xib:1`, `SuperHFRplus/XIB/MainWindow-iPad.xib:1`, `Classes/TabBarController.m:57` |
 
 ## Progress tracker
 | ID | Status | Exit criteria | Target phase |
 |---|---|---|---|
-| G01 | NotStarted | Categories flow active and stable. | S1 |
+| G01 | InProgress | Categories flow active and stable, with native SwiftUI follow-up scoped. | S1 |
 | G02 | NotStarted | Forum filter actions available in SwiftUI flow. | S1 |
 | G03 | NotStarted | Topic quick actions parity validated. | S1 |
 | G04 | NotStarted | Favorites advanced parity checklist passes. | S2 |
@@ -99,6 +102,7 @@ Required fields per feature:
 | G14 | NotStarted | Settings no longer depends on InAppSettingsKit. | S2-S3 |
 | G15 | NotStarted | Previews with mock data added for migrated SwiftUI screens. | Continuous |
 | G16 | LockedOut | OfflineMessages flow marked non-portable and blocked in plan. | S0 |
+| G17 | NotStarted | No XIB/NIB execution path remains for migrated `HFRswift` flows. | S2-S4 |
 
 ## Top 10 gaps to close
 1. G06 - Topic WebView action routing parity.
@@ -110,7 +114,7 @@ Required fields per feature:
 7. G04 - Favorites advanced parity.
 8. G12 - Bridging boundary cleanup.
 9. G14 - Settings COTS removal to native SwiftUI.
-10. G05 - MP advanced parity.
+10. G17 - XIB/NIB removal in migrated flows.
 
 ## Technical prerequisites
 1. Add guardrail: do not port `OfflineMessagesTableViewController`.
@@ -123,3 +127,4 @@ Required fields per feature:
 8. Maintain CI matrix for `HFRswift` on iPhone first; extend to iPad only if study confirms scope.
 9. Keep `SuperHFRplus` behavior as oracle for parity decisions.
 10. Track temporary workaround debt in docs and remove after stabilization.
+11. Define and enforce a reusable SwiftUI Topic list-row pattern (as in Favorites/MP) to avoid per-screen UI drift.

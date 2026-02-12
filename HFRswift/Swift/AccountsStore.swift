@@ -36,10 +36,10 @@ final class AccountsStore: ObservableObject {
 
     init(
         multisManager: MultisManager = MultisManager.sharedManager() as! MultisManager,
-        loginService: LoginService = LoginService()
+        loginService: LoginService? = nil
     ) {
         self.multisManager = multisManager
-        self.loginService = loginService
+        self.loginService = loginService ?? LoginService()
         refresh()
 
         notificationCancellable = NotificationCenter.default

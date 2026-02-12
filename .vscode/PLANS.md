@@ -3,6 +3,7 @@
 ## Summary
 Target outcome:
 - Migrate UI to modern SwiftUI while keeping ObjC non-UI treatment logic during phase 1.
+- End state: all app UI is SwiftUI; Objective-C remains only for non-UI processing where migration risk is high.
 
 New mandatory constraints:
 1. Do not port `OfflineMessagesTableViewController` or offline topic-page storage flow.
@@ -12,12 +13,15 @@ New mandatory constraints:
 5. Add SwiftUI previews with mock data whenever possible.
 6. Remove settings dependency on legacy COTS (`InAppSettingsKit`) and migrate to native modern SwiftUI capabilities.
 7. iPad is lower priority; do necessity study first.
+8. Remove XIB/NIB usage from migrated `HFRswift` user flows and do not add new XIB/NIB-based UI in the migration path.
+9. Use `Favorites.swift` migration style as baseline (SwiftUI screen + ObjC processing adapter), and mutualize topic-list row rendering across screens.
 
 ## Scope
 In scope:
 - SwiftUI feature migration for active user flows.
 - ObjC wrapper stabilization and test coverage.
 - Settings modernization away from legacy COTS.
+- Progressive removal of XIB/NIB-backed UI dependencies from migrated flows.
 
 Out of scope (phase 1):
 - Porting offline topic-page storage UI/flow (`OfflineMessagesTableViewController`).
@@ -43,6 +47,8 @@ Out of scope (phase 1):
 4. SwiftUI screens should depend on service interfaces, not directly on ObjC controllers.
 5. Keep wrapped ObjC classes thinly adapted and testable.
 6. New settings screens must be native SwiftUI and modern APIs only.
+7. In `HFRswift`, do not introduce new XIB/NIB or storyboard-based UI.
+8. For migrated topic lists, use shared SwiftUI row primitives to avoid duplicated behavior/UI drift.
 
 ## Roadmap
 
@@ -72,6 +78,7 @@ Work:
 3. Stabilize reply posting with session-safe behavior.
 4. Move account/session flows behind `AccountSessionService`.
 5. Add mock previews for newly migrated SwiftUI screens.
+6. Introduce shared Topic list/row building blocks and apply to active SwiftUI lists.
 
 Exit criteria:
 - P0 reading/reply/session paths pass parity tests.
@@ -86,6 +93,7 @@ Work:
 2. Complete MP advanced behavior parity.
 3. Replace `InAppSettingsKit` based settings with native SwiftUI settings stack.
 4. Add tests for wrapper-backed settings dependencies and migration safety.
+5. Migrate remaining Favorites/MP list UI details away from legacy UIKit/XIB dependencies.
 
 Exit criteria:
 - Favorites and MP parity validated.
@@ -159,9 +167,11 @@ Use deterministic mock fixtures and avoid runtime network in previews.
 4. New SwiftUI screens include mock previews when feasible.
 5. Settings COTS dependency removed.
 6. iPad has documented decision before engineering work starts.
+7. For migrated `HFRswift` flows, no XIB/NIB-backed UI remains in the execution path.
 
 ## Assumptions and defaults
 1. `SuperHFRplus` remains behavior oracle for parity.
 2. Phone flows are prioritized over iPad.
 3. Migration is incremental with wrappers removed only after parity pass.
 4. Temporary workaround debt must be tracked and retired.
+5. `Favorites.swift` pattern is the reference migration template for list-based screens.

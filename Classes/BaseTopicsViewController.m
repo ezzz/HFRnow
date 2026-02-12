@@ -278,23 +278,31 @@
         [self cancelFetchContent];
         return;
     }
+
+    // Guard against re-enqueuing a request operation that is still running.
+    if (self.request && ([self.request isExecuting] || ![self.request isFinished])) {
+        [self.request cancel];
+        [self setRequest:nil];
+    }
+
     NSLog(@"fetchContent %@", [NSString stringWithFormat:@"%@%@", [k ForumURL], [self currentUrl]]);
     self.status = kIdle;
     [ASIHTTPRequest setDefaultTimeOutSeconds:kTimeoutMini];
 
-    [self setRequest:[ASIHTTPRequest requestWithURL:[NSURL URLWithString:[NSString stringWithFormat:@"%@%@", [k ForumURL], [self currentUrl]]]]];
+    ASIFormDataRequest *newRequest = [ASIHTTPRequest requestWithURL:[NSURL URLWithString:[NSString stringWithFormat:@"%@%@", [k ForumURL], [self currentUrl]]]];
+    [self setRequest:newRequest];
     //[request setShouldRedirect:NO];
 
-    [self.request setDelegate:self];
+    [newRequest setDelegate:self];
     
-    [self.request setDidStartSelector:@selector(fetchContentStarted:)];
-    [self.request setDidFinishSelector:@selector(fetchContentComplete:)];
-    [self.request setDidFailSelector:@selector(fetchContentFailed:)];
+    [newRequest setDidStartSelector:@selector(fetchContentStarted:)];
+    [newRequest setDidFinishSelector:@selector(fetchContentComplete:)];
+    [newRequest setDidFailSelector:@selector(fetchContentFailed:)];
 
     [self.view removeGestureRecognizer:self.swipeLeftRecognizer];
     [self.view removeGestureRecognizer:self.swipeRightRecognizer];
 
-    [self.request startAsynchronous];
+    [newRequest startAsynchronous];
 }
 
 - (void)fetchContentStarted:(ASIHTTPRequest *)theRequest

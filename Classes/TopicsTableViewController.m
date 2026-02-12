@@ -15,6 +15,7 @@
 #import "BaseTopicsViewController.h"
 #import "TopicCellView.h"
 #import "Topic.h"
+#import "Forum.h"
 #import "SubCatTableViewController.h"
 #import "UIScrollView+SVPullToRefresh.h"
 #import "AideViewController.h"
@@ -36,6 +37,7 @@
 @synthesize tmpCell;
 @synthesize status, statusMessage, maintenanceView, selectedFlagIndex;
 @synthesize popover = _popover;
+@synthesize completion;
 
 
 
@@ -389,6 +391,11 @@
 }
 
 - (void)fetchContentComplete:(ASIHTTPRequest *)theRequest {
+    // Ignore stale callbacks from a previous request that was superseded.
+    if (theRequest != self.request) {
+        return;
+    }
+
     [super fetchContentComplete:theRequest];
     
     // UI update
@@ -407,11 +414,34 @@
 
     [self.topicsTableView.pullToRefreshView stopAnimating];
     [self.topicsTableView.pullToRefreshView setLastUpdatedDate:[NSDate date]];
+
+    if (self.completion) {
+        NSArray<Topic *> *topics = [self.arrayData copy];
+        void (^completionBlock)(NSArray<Topic *> *, NSError *) = self.completion;
+        self.completion = nil;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            completionBlock(topics, nil);
+        });
+    }
 }
 
 - (void)fetchContentFailed:(ASIHTTPRequest *)theRequest {
+    // Ignore stale callbacks from a previous request that was superseded.
+    if (theRequest != self.request) {
+        return;
+    }
+
     [super fetchContentFailed:theRequest];
     [self.topicsTableView.pullToRefreshView stopAnimating];
+
+    if (self.completion) {
+        NSError *error = theRequest.error ?: [NSError errorWithDomain:@"TopicsTableViewController" code:-1 userInfo:nil];
+        void (^completionBlock)(NSArray<Topic *> *, NSError *) = self.completion;
+        self.completion = nil;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            completionBlock(@[], error);
+        });
+    }
 }
 
 #pragma mark - AddMessage Delegate
@@ -978,5 +1008,35 @@
     }
 }
 
-@end
+#pragma mark - SWIFT
+- (void)fetchContentForForum:(Forum *)forum
+                   flagIndex:(NSInteger)flagIndex
+                  completion:(void (^)(NSArray<Topic *> *topics, NSError *error))completion {
+    self.forumName = forum.aTitle;
+    self.forumBaseURL = forum.aURL;
+    self.forumFavorisURL = [forum URLforType:kFav];
+    self.forumFlag1URL = [forum URLforType:kFlag];
+    self.forumFlag0URL = [forum URLforType:kRed];
 
+    switch (flagIndex) {
+        case 1:
+            self.currentUrl = self.forumFavorisURL ?: self.forumBaseURL;
+            break;
+        case 2:
+            self.currentUrl = self.forumFlag1URL ?: self.forumBaseURL;
+            break;
+        case 3:
+            self.currentUrl = self.forumFlag0URL ?: self.forumBaseURL;
+            break;
+        case 0:
+        default:
+            self.currentUrl = self.forumBaseURL;
+            break;
+    }
+
+    self.selectedFlagIndex = (int)flagIndex;
+    self.completion = completion;
+    [self fetchContentTrigger];
+}
+
+@end

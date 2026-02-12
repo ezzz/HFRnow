@@ -4,50 +4,6 @@
   },
   "groups" : [
     {
-      "layers" : [
-        {
-          "blend-mode" : "normal",
-          "fill" : "automatic",
-          "glass" : true,
-          "hidden" : true,
-          "image-name" : "large.1151059919-redface.png.e64a0d2182bc19780dd9bf01d1908258.png",
-          "name" : "large.1151059919-redface.png.e64a0d2182bc19780dd9bf01d1908258",
-          "opacity" : 1,
-          "position" : {
-            "scale" : 2,
-            "translation-in-points" : [
-              0,
-              0
-            ]
-          }
-        },
-        {
-          "blend-mode" : "overlay",
-          "fill" : "automatic",
-          "glass" : true,
-          "hidden" : true,
-          "image-name" : "large.1151059919-redface.png.e64a0d2182bc19780dd9bf01d1908258.png",
-          "name" : "large.1151059919-redface.png.e64a0d2182bc19780dd9bf01d1908258",
-          "opacity" : 1,
-          "position" : {
-            "scale" : 2,
-            "translation-in-points" : [
-              0,
-              0
-            ]
-          }
-        }
-      ],
-      "shadow" : {
-        "kind" : "neutral",
-        "opacity" : 0.5
-      },
-      "translucency" : {
-        "enabled" : true,
-        "value" : 0.5
-      }
-    },
-    {
       "hidden" : false,
       "layers" : [
         {
@@ -58,7 +14,7 @@
           "name" : "redface-eyel",
           "opacity-specializations" : [
             {
-              "value" : 0.7
+              "value" : 1
             },
             {
               "appearance" : "dark",
@@ -79,7 +35,15 @@
           "hidden" : false,
           "image-name" : "redface-eyer.png",
           "name" : "redface-eyer",
-          "opacity" : 0.7,
+          "opacity-specializations" : [
+            {
+              "value" : 1
+            },
+            {
+              "appearance" : "dark",
+              "value" : 1
+            }
+          ],
           "position" : {
             "scale" : 1.5,
             "translation-in-points" : [
@@ -92,7 +56,15 @@
           "hidden" : false,
           "image-name" : "redface-mouth.png",
           "name" : "redface-mouth",
-          "opacity" : 0.7,
+          "opacity-specializations" : [
+            {
+              "value" : 1
+            },
+            {
+              "appearance" : "dark",
+              "value" : 1
+            }
+          ],
           "position" : {
             "scale" : 1.5,
             "translation-in-points" : [
@@ -106,7 +78,15 @@
           "hidden" : false,
           "image-name" : "redface-round.png",
           "name" : "redface-round",
-          "opacity" : 0.7,
+          "opacity-specializations" : [
+            {
+              "value" : 1
+            },
+            {
+              "appearance" : "dark",
+              "value" : 1
+            }
+          ],
           "position" : {
             "scale" : 1.5,
             "translation-in-points" : [
@@ -143,6 +123,19 @@
           "image-name" : "redface-inside 2.png",
           "name" : "redface-inside 2",
           "opacity" : 1,
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              0,
+              0
+            ]
+          }
+        },
+        {
+          "glass" : true,
+          "hidden" : false,
+          "image-name" : "redface-background.png",
+          "name" : "redface-background",
           "position" : {
             "scale" : 1,
             "translation-in-points" : [

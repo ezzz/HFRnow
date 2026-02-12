@@ -35,6 +35,7 @@
 @synthesize forumsTableView, loadingView, arrayData, arrayNewData, topicsTableViewController, detailNavigationViewController;
 @synthesize reloadOnAppear, status, statusMessage, maintenanceView, metaDataList, pressedIndexPath, forumActionAlert;
 @synthesize tmpCell;
+@synthesize completion;
 
 #pragma mark -
 #pragma mark Data lifecycle
@@ -124,6 +125,15 @@
     [self.forumsTableView.pullToRefreshView stopAnimating];
     [self.forumsTableView.pullToRefreshView setLastUpdatedDate:[NSDate date]];
 
+    if (self.completion) {
+        NSArray<Forum *> *forums = [self.arrayData copy];
+        void (^completionBlock)(NSArray<Forum *> *, NSError *) = self.completion;
+        self.completion = nil;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            completionBlock(forums, nil);
+        });
+    }
+
     [self cancelFetchContent];
 
 }
@@ -157,6 +167,27 @@
     
     [self presentViewController:alert animated:YES completion:nil];
     [[ThemeManager sharedManager] applyThemeToAlertController:alert];
+
+    if (self.completion) {
+        NSError *error = theRequest.error ?: [NSError errorWithDomain:@"ForumsTableViewController" code:-1 userInfo:nil];
+        void (^completionBlock)(NSArray<Forum *> *, NSError *) = self.completion;
+        self.completion = nil;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            completionBlock(@[], error);
+        });
+    }
+}
+
+#pragma mark - SWIFT
+- (void)fetchContentWithCompletion:(void (^)(NSArray<Forum *> *forums, NSError *error))completion {
+    if (!self.arrayData) {
+        self.arrayData = [[NSMutableArray alloc] init];
+    }
+    if (!self.arrayNewData) {
+        self.arrayNewData = [[NSMutableArray alloc] init];
+    }
+    self.completion = completion;
+    [self fetchContent];
 }
 
 /* TODO : delete
