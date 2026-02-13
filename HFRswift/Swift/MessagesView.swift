@@ -8,6 +8,7 @@
 import SwiftUI
 import WebKit
 import UIKit
+import SafariServices
 
 struct WebView: UIViewRepresentable {
     enum InitialScroll {
@@ -19,12 +20,29 @@ struct WebView: UIViewRepresentable {
     let readAccessURL: URL?
     var anchor: String?
     var initialScroll: InitialScroll?
+    var currentPage: Int
+    var maxPage: Int
+    var actionHandler: any MessageWebActionHandling
+    var onWebAction: ((MessageWebAction) -> Void)?
 
-    init(fileURL: URL? = nil, readAccessURL: URL? = nil, anchor: String? = nil, initialScroll: InitialScroll? = nil) {
+    init(
+        fileURL: URL? = nil,
+        readAccessURL: URL? = nil,
+        anchor: String? = nil,
+        initialScroll: InitialScroll? = nil,
+        currentPage: Int = 1,
+        maxPage: Int = 1,
+        actionHandler: any MessageWebActionHandling = MessageWebActionHandler(),
+        onWebAction: ((MessageWebAction) -> Void)? = nil
+    ) {
         self.fileURL = fileURL
         self.readAccessURL = readAccessURL
         self.anchor = anchor
         self.initialScroll = initialScroll
+        self.currentPage = currentPage
+        self.maxPage = maxPage
+        self.actionHandler = actionHandler
+        self.onWebAction = onWebAction
     }
 
     func makeCoordinator() -> Coordinator {
@@ -44,6 +62,7 @@ struct WebView: UIViewRepresentable {
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
+        context.coordinator.parent = self
         context.coordinator.anchor = anchor
         context.coordinator.initialScroll = initialScroll
         print("WebView.updateUIView anchor:", anchor as Any, "fileURL:", fileURL as Any, "baseURL:", readAccessURL as Any)
@@ -119,10 +138,78 @@ struct WebView: UIViewRepresentable {
                 }
             }
         }
+
+        func webView(
+            _ webView: WKWebView,
+            decidePolicyFor navigationAction: WKNavigationAction,
+            decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+        ) {
+            guard let url = navigationAction.request.url else {
+                decisionHandler(.allow)
+                return
+            }
+
+            let navigationType = MessageWebNavigationType(navigationAction.navigationType)
+            let action = parent.actionHandler.action(
+                for: url,
+                navigationType: navigationType,
+                currentPage: parent.currentPage,
+                maxPage: parent.maxPage
+            )
+
+            switch action {
+            case .allowNavigation:
+                decisionHandler(.allow)
+            case .ignore:
+                decisionHandler(.cancel)
+            case .loadPage, .refreshCurrentPage, .openInternalTopic, .openExternalURL:
+                parent.onWebAction?(action)
+                decisionHandler(.cancel)
+            }
+        }
+    }
+}
+
+private struct SafariInAppView: UIViewControllerRepresentable {
+    let url: URL
+
+    func makeUIViewController(context: Context) -> SFSafariViewController {
+        let configuration = SFSafariViewController.Configuration()
+        let controller = SFSafariViewController(url: url, configuration: configuration)
+        controller.dismissButtonStyle = .close
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {}
+}
+
+private extension MessageWebNavigationType {
+    init(_ navigationType: WKNavigationType) {
+        switch navigationType {
+        case .linkActivated:
+            self = .linkActivated
+        case .formSubmitted:
+            self = .formSubmitted
+        case .backForward:
+            self = .backForward
+        case .reload:
+            self = .reload
+        case .formResubmitted:
+            self = .formResubmitted
+        case .other:
+            self = .other
+        @unknown default:
+            self = .unknown
+        }
     }
 }
 
 struct MessagesView: View {
+    private struct SafariDestination: Identifiable {
+        let id = UUID()
+        let url: URL
+    }
+
     let topic: Topic
     let curPage: Int // Stored again as it can be updated when reloading the topic
     let maxPage: Int
@@ -147,6 +234,9 @@ struct MessagesView: View {
     @FocusState private var isComposerFocused: Bool
     @State private var isPagePickerPresented = false
     @State private var pagePickerInput: String = ""
+    @State private var linkedTopic: Topic?
+    @State private var navigateToLinkedTopic = false
+    @State private var safariDestination: SafariDestination?
     // Remove the unused
     // @State private var isPresentingAddMessage = false
 
@@ -224,6 +314,128 @@ struct MessagesView: View {
         }
     }
 
+    private func loadDirectURL(_ topicURL: String, initialScroll: WebView.InitialScroll? = nil) {
+        guard !topicURL.isEmpty else { return }
+        self.anchor = URL(string: topicURL)?.fragment
+        self.initialScroll = initialScroll
+        self.errorMessage = nil
+
+        topicPageLoader.fetchTopicPage(url: topicURL, anchor: self.anchor) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .failure(let error):
+                    self.errorMessage = error.localizedDescription
+                case .success(let content):
+                    do {
+                        let rendered = try topicPageRenderer.render(html: content.html)
+                        self.fileURL = rendered.fileURL
+                        self.cacheURL = rendered.readAccessURL
+                    } catch {
+                        self.fileURL = nil
+                        self.cacheURL = nil
+                        self.errorMessage = error.localizedDescription
+                    }
+                    self.topicAnswerURL = content.topicAnswerURL
+                }
+            }
+        }
+    }
+
+    private func normalizedForumTopicURLString(from url: URL) -> String {
+        let scheme = (url.scheme ?? "").lowercased()
+        let host = (url.host ?? "").lowercased()
+
+        guard (scheme == "http" || scheme == "https"), host == "forum.hardware.fr" else {
+            return url.absoluteString
+        }
+
+        let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        var relativeURL = url.path
+        if let query = components?.percentEncodedQuery, !query.isEmpty {
+            relativeURL += "?\(query)"
+        }
+        if let fragment = components?.percentEncodedFragment, !fragment.isEmpty {
+            relativeURL += "#\(fragment)"
+        }
+
+        return relativeURL.isEmpty ? "/" : relativeURL
+    }
+
+    private func openInternalTopic(_ url: URL) {
+        let topicURLString = normalizedForumTopicURLString(from: url)
+        guard !topicURLString.isEmpty else { return }
+
+        let pageFromURL = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+            .queryItems?
+            .first(where: { $0.name == "page" })?
+            .value
+            .flatMap(Int.init) ?? 1
+        let boundedPage = max(pageFromURL, 1)
+        let derivedMaxPage = max(maxPage, boundedPage)
+
+        let topicForNavigation = Topic()
+        topicForNavigation._aTitle = topic._aTitle
+        topicForNavigation.aURL = topicURLString
+        topicForNavigation.aURLOfLastPage = topicURLString
+        topicForNavigation.curTopicPage = Int32(boundedPage)
+        topicForNavigation.maxTopicPage = Int32(derivedMaxPage)
+
+        linkedTopic = topicForNavigation
+        navigateToLinkedTopic = true
+    }
+
+    private func webViewInitialScroll(_ value: MessageWebInitialScroll) -> WebView.InitialScroll {
+        switch value {
+        case .top:
+            return .top
+        case .bottom:
+            return .bottom
+        }
+    }
+
+    private func handleWebAction(_ action: MessageWebAction) {
+        switch action {
+        case .allowNavigation:
+            break
+        case .ignore:
+            break
+        case .loadPage(let targetPage, let initialScroll):
+            navigateToPage(targetPage, initialScroll: webViewInitialScroll(initialScroll))
+        case .refreshCurrentPage:
+            loadPage(page)
+        case .openInternalTopic(let url):
+            if url.scheme?.lowercased() == "file" {
+                loadDirectURL(url.absoluteString)
+            } else {
+                openInternalTopic(url)
+            }
+        case .openExternalURL(let url):
+            safariDestination = SafariDestination(url: url)
+        }
+    }
+
+    @ViewBuilder
+    private var linkedTopicNavigationLink: some View {
+        NavigationLink(
+            "",
+            isActive: $navigateToLinkedTopic
+        ) {
+            if let linkedTopic {
+                MessagesView(
+                    topic: linkedTopic,
+                    curPage: Int(linkedTopic.curTopicPage),
+                    maxPage: max(Int(linkedTopic.maxTopicPage), 1),
+                    separatorNewMessages: true
+                )
+                .toolbar(.hidden, for: .tabBar)
+            } else {
+                EmptyView()
+            }
+        }
+        .hidden()
+        .allowsHitTesting(false)
+    }
+
     private func uniqueValidPages(_ candidates: [Int], excluding excludedTargets: Set<Int> = []) -> [Int] {
         var seen = excludedTargets
         return candidates.compactMap { target in
@@ -273,60 +485,16 @@ struct MessagesView: View {
 
     @ViewBuilder
     private func backwardContextMenuItems() -> some View {
-        ForEach(backwardFirstPages, id: \.self) { target in
-            Button(pageMenuLabel(target)) {
-                navigateToPage(target, initialScroll: .top)
-            }
-        }
-        if maxPage > 1 {
-            if !backwardFirstPages.isEmpty || !backwardLastPages.isEmpty {
-                Divider()
-            }
-            Button("Page numéro...") {
-                openPagePicker()
-            }
-        }
-        if !backwardLastPages.isEmpty {
-            Divider()
-        }
-        ForEach(backwardLastPages, id: \.self) { target in
-            Button(pageMenuLabel(target)) {
-                navigateToPage(target, initialScroll: .bottom)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func forwardContextMenuItems() -> some View {
-        /*ForEach(forwardFirstPages, id: \.self) { target in
-            Button(pageMenuLabel(target)) {
-                navigateToPage(target, initialScroll: .top)
-            }
-        }
-        if maxPage > 1 {
-            if !forwardFirstPages.isEmpty || !forwardLastPages.isEmpty {
-                Divider()
-            }
-            Button("Page numéro...") {
-                openPagePicker()
-            }
-        }
-        if !forwardLastPages.isEmpty {
-            Divider()
-        }
-        ForEach(forwardLastPages, id: \.self) { target in
-            Button(pageMenuLabel(target)) {
-                navigateToPage(target, initialScroll: .bottom)
-            }
-        }*/
         if page > 1 {
-            Button {
-                // Go to first page: start at top
-                self.anchor = nil
-                self.initialScroll = .top
-                loadPage(1)
-            } label: {
-                Label("Première page", systemImage: "backward.end.alt")
+            if page > 2 {
+                Button {
+                    // Go to first page: start at top
+                    self.anchor = nil
+                    self.initialScroll = .top
+                    loadPage(1)
+                } label: {
+                    Label("Première page", systemImage: "backward.end.alt")
+                }
             }
             Button {
                 // Previous page: start at bottom
@@ -335,8 +503,20 @@ struct MessagesView: View {
                 loadPage(page - 1)
             } label: {
                 Label("Page précédente", systemImage: "backward.end")
+            }  
+        }
+        Divider()
+        if maxPage > 1 {
+            Button {
+                openPagePicker()
+            } label: {
+                Text("Page numéro...")
             }
         }
+    }
+
+    @ViewBuilder
+    private func forwardContextMenuItems() -> some View {
         if page < maxPage {
             Button {
                 // Next page: start at top
@@ -388,11 +568,24 @@ struct MessagesView: View {
                 .onAppear {
                     loadPage(page)
                 }
+                .background(linkedTopicNavigationLink)
+                .sheet(item: $safariDestination) { destination in
+                    SafariInAppView(url: destination.url)
+                        .ignoresSafeArea()
+                }
         } else if fileURL != nil && cacheURL != nil {
             ZStack {
                 Color(.systemGray6)
 
-                WebView(fileURL: fileURL, readAccessURL: cacheURL, anchor: anchor, initialScroll: initialScroll)
+                WebView(
+                    fileURL: fileURL,
+                    readAccessURL: cacheURL,
+                    anchor: anchor,
+                    initialScroll: initialScroll,
+                    currentPage: page,
+                    maxPage: maxPage,
+                    onWebAction: handleWebAction
+                )
                     .id(page) // force a new WKWebView per page
             }
             .ignoresSafeArea()
@@ -475,16 +668,16 @@ struct MessagesView: View {
                     }
                     if !isComposerPresented {
                         ToolbarItemGroup(placement: .bottomBar) {
-                            // Bouton Refresh
                             Button {
                                 navigateToPage(page - 1, initialScroll: .bottom)
                             } label: {
                                 Image(systemName: "chevron.backward")
                             }
                             .contextMenu {
-                                forwardContextMenuItems()
+                                backwardContextMenuItems()
                             }
-                            
+                            .disabled(page <= 1)
+
                             Button {
                                 navigateToPage(page + 1, initialScroll: .top)
                             } label: {
@@ -492,10 +685,9 @@ struct MessagesView: View {
                             }
                             .contextMenu {
                                 forwardContextMenuItems()
-                            } /*preview: {
-                                EmptyView()
-                            }*/
-                            
+                            }
+                            .disabled(page >= maxPage)
+
                             Spacer()
                             Button {
                                 isComposerPresented = true
@@ -515,6 +707,11 @@ struct MessagesView: View {
                     }
                 } message: {
                     Text("Choisir une page entre 1 et \(maxPage)")
+                }
+                .background(linkedTopicNavigationLink)
+                .sheet(item: $safariDestination) { destination in
+                    SafariInAppView(url: destination.url)
+                        .ignoresSafeArea()
                 }
         } else {
             ZStack {
@@ -573,7 +770,6 @@ struct MessagesView: View {
                     }
                 }
                 ToolbarItemGroup(placement: .bottomBar) {
-                    // Bouton Refresh
                     Button {
                         navigateToPage(page - 1, initialScroll: .bottom)
                     } label: {
@@ -584,7 +780,8 @@ struct MessagesView: View {
                     } preview: {
                         EmptyView()
                     }
-                    
+                    .disabled(page <= 1)
+
                     Button {
                         navigateToPage(page + 1, initialScroll: .top)
                     } label: {
@@ -595,6 +792,7 @@ struct MessagesView: View {
                     } preview: {
                         EmptyView()
                     }
+                    .disabled(page >= maxPage)
 
                     Spacer()
                     Button {
@@ -617,6 +815,11 @@ struct MessagesView: View {
             }
             .onAppear {
                 loadPage(page)
+            }
+            .background(linkedTopicNavigationLink)
+            .sheet(item: $safariDestination) { destination in
+                SafariInAppView(url: destination.url)
+                    .ignoresSafeArea()
             }
         }
     }
@@ -660,5 +863,158 @@ struct SpinnerLoading: View {
                 .frame(width: proxy.size.width, height: proxy.size.height)
                 .contentShape(Rectangle())
         }
+    }
+}
+
+private enum MessagesPreviewFactory {
+    final class PreviewTopicPageLoader: TopicPageLoading {
+        enum Result {
+            case success(TopicPageContent)
+            case failure(Error)
+        }
+
+        private let result: Result
+        private let delay: TimeInterval
+
+        init(result: Result, delay: TimeInterval = 0) {
+            self.result = result
+            self.delay = delay
+        }
+
+        func fetchTopicPage(url: String, anchor: String?, completion: @escaping (Swift.Result<TopicPageContent, Error>) -> Void) {
+            let work = {
+                switch self.result {
+                case .success(let content):
+                    completion(.success(content))
+                case .failure(let error):
+                    completion(.failure(error))
+                }
+            }
+
+            if delay > 0 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+            } else {
+                work()
+            }
+        }
+    }
+
+    struct PreviewTopicPageRenderer: TopicPageRendering {
+        func render(html: String) throws -> TopicPageRenderOutput {
+            let baseURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("hfrswift-preview", isDirectory: true)
+            try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true)
+
+            let fileURL = baseURL
+                .appendingPathComponent("topic-\(UUID().uuidString)")
+                .appendingPathExtension("htm")
+            try html.write(to: fileURL, atomically: false, encoding: .utf8)
+            return TopicPageRenderOutput(fileURL: fileURL, readAccessURL: baseURL)
+        }
+    }
+
+    enum PreviewError: Error, LocalizedError {
+        case network
+
+        var errorDescription: String? {
+            switch self {
+            case .network:
+                return "Connexion indisponible"
+            }
+        }
+    }
+
+    static var sampleHTML: String {
+        """
+        <!doctype html>
+        <html>
+          <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>Topic preview</title>
+            <style>
+              body { font-family: -apple-system; margin: 16px; background: #f7f7f7; color: #111; }
+              .post { background: white; border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+              .meta { font-size: 12px; color: #6b7280; margin-bottom: 4px; }
+            </style>
+          </head>
+          <body>
+            <article class="post">
+              <div class="meta">alice - il y a 2 min</div>
+              <p>Premiere reponse de preview.</p>
+            </article>
+            <article class="post">
+              <div class="meta">bob - il y a 1 min</div>
+              <p>Deuxieme reponse de preview.</p>
+            </article>
+          </body>
+        </html>
+        """
+    }
+
+    static func sampleTopic(page: Int = 55, maxPage: Int = 120) -> Topic {
+        let topic = Topic()
+        topic._aTitle = "Topic SwiftUI preview"
+        topic.curTopicPage = Int32(page)
+        topic.maxTopicPage = Int32(maxPage)
+        topic.aURL = "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=42&page=\(page)"
+        topic.aURLOfLastPage = "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=42&page=\(maxPage)"
+        return topic
+    }
+}
+
+#Preview("Messages - happy path") {
+    NavigationStack {
+        MessagesView(
+            topic: MessagesPreviewFactory.sampleTopic(),
+            curPage: 55,
+            maxPage: 120,
+            separatorNewMessages: true,
+            topicPageLoader: MessagesPreviewFactory.PreviewTopicPageLoader(
+                result: .success(
+                    TopicPageContent(
+                        html: MessagesPreviewFactory.sampleHTML,
+                        topicAnswerURL: URL(string: "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=42")
+                    )
+                )
+            ),
+            topicPageRenderer: MessagesPreviewFactory.PreviewTopicPageRenderer()
+        )
+    }
+}
+
+#Preview("Messages - loading") {
+    NavigationStack {
+        MessagesView(
+            topic: MessagesPreviewFactory.sampleTopic(page: 12, maxPage: 48),
+            curPage: 12,
+            maxPage: 48,
+            separatorNewMessages: true,
+            topicPageLoader: MessagesPreviewFactory.PreviewTopicPageLoader(
+                result: .success(
+                    TopicPageContent(
+                        html: MessagesPreviewFactory.sampleHTML,
+                        topicAnswerURL: nil
+                    )
+                ),
+                delay: 3
+            ),
+            topicPageRenderer: MessagesPreviewFactory.PreviewTopicPageRenderer()
+        )
+    }
+}
+
+#Preview("Messages - error") {
+    NavigationStack {
+        MessagesView(
+            topic: MessagesPreviewFactory.sampleTopic(page: 1, maxPage: 5),
+            curPage: 1,
+            maxPage: 5,
+            separatorNewMessages: true,
+            topicPageLoader: MessagesPreviewFactory.PreviewTopicPageLoader(
+                result: .failure(MessagesPreviewFactory.PreviewError.network)
+            ),
+            topicPageRenderer: MessagesPreviewFactory.PreviewTopicPageRenderer()
+        )
     }
 }

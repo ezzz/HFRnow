@@ -270,7 +270,8 @@ struct TopicRowView: View {
             topic: topic,
             isVisited: isVisited,
             titleFont: .system(size: 13, weight: isVisited ? .regular : .semibold),
-            showUnreadBadge: unreadCount > 0,
+            showUnreadBadge: true,
+            showUnreadBadgeWhenZero: true,
             leadingBottomText: pageLabel,
             trailingBottomText: trailingLabel
         ) { openedURL in

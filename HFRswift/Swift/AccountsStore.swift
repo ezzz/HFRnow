@@ -30,16 +30,13 @@ final class AccountsStore: ObservableObject {
     @Published private(set) var accounts: [Account] = []
     @Published private(set) var currentAccount: Account?
 
-    private let multisManager: MultisManager
-    private let loginService: LoginService
+    private let accountSessionService: AccountSessionService
     private var notificationCancellable: AnyCancellable?
 
     init(
-        multisManager: MultisManager = MultisManager.sharedManager() as! MultisManager,
-        loginService: LoginService? = nil
+        accountSessionService: AccountSessionService? = nil
     ) {
-        self.multisManager = multisManager
-        self.loginService = loginService ?? LoginService()
+        self.accountSessionService = accountSessionService ?? ObjCAccountSessionService()
         refresh()
 
         notificationCancellable = NotificationCenter.default
@@ -51,28 +48,18 @@ final class AccountsStore: ObservableObject {
     }
 
     func refresh() {
-        let rawAccounts = multisManager.getComtpes() as? [[String: Any]] ?? []
-        let mapped = rawAccounts.compactMap { dict -> Account? in
-            let pseudoKey = dict[AccountKeys.pseudo] as? String
-            let id = pseudoKey ?? dict[AccountKeys.pseudoDisplay] as? String
-            guard let id else { return nil }
-            let displayName = dict[AccountKeys.pseudoDisplay] as? String ?? id
-            let isMain = (dict[AccountKeys.main] as? NSNumber)?.boolValue ?? false
-            let avatarData = dict[AccountKeys.avatar] as? Data
-            return Account(id: id, displayName: displayName, isMain: isMain, avatarData: avatarData)
-        }
-        accounts = mapped
-        currentAccount = mapped.first(where: { $0.isMain }) ?? mapped.first
+        let fetchedAccounts = accountSessionService.fetchAccounts()
+        accounts = fetchedAccounts
+        currentAccount = fetchedAccounts.first(where: { $0.isMain }) ?? fetchedAccounts.first
     }
 
     func setMain(_ account: Account) {
-        multisManager.setPseudo(asMain: account.id)
+        accountSessionService.setMainAccount(id: account.id)
         refresh()
     }
 
     func delete(_ account: Account) {
-        guard let index = accounts.firstIndex(of: account) else { return }
-        multisManager.deletePseudo(at: index)
+        accountSessionService.deleteAccount(id: account.id)
         refresh()
     }
 
@@ -82,25 +69,11 @@ final class AccountsStore: ObservableObject {
     }
 
     func addAccount(pseudo: String, password: String) async throws {
-        let result = try await loginService.login(pseudo: pseudo, password: password)
-        multisManager.addCompte(
-            pseudo: result.displayPseudo,
-            cookies: result.cookies,
-            avatar: result.avatarData,
-            hash: result.hash
-        )
-        multisManager.setPseudo(asMain: result.pseudoKey)
+        try await accountSessionService.addAccount(pseudo: pseudo, password: password)
         refresh()
     }
 
     var currentAvatarImage: UIImage? {
         currentAccount?.avatarImage
     }
-}
-
-private enum AccountKeys {
-    static let pseudo = "PSEUDO"
-    static let pseudoDisplay = "PSEUDO_DISPLAY"
-    static let avatar = "AVATAR"
-    static let main = "MAIN"
 }

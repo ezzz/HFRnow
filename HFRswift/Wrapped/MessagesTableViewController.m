@@ -368,6 +368,16 @@
 - (void)fetchContentFailed:(ASIHTTPRequest *)theRequest
 {
 	[self.loadingView setHidden:YES];
+
+    if (self.completionHandler) {
+        void (^completion)(NSString *html, NSString *topicAnswerUrl, NSError *error) = self.completionHandler;
+        self.completionHandler = nil;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            completion(nil, nil, theRequest.error);
+        });
+        [self cancelFetchContent];
+        return;
+    }
 	
     // Popup retry
     UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Ooops !"  message:[theRequest.error localizedDescription]
@@ -602,6 +612,7 @@
 	}
     
     // Boutons bas de page
+    /*
     HTMLNode * pagesTrNode = [bodyNode findChildWithAttribute:@"class" matchingName:@"fondForum2PagesHaut" allowPartial:YES];
     if(pagesTrNode)
     {
@@ -693,7 +704,9 @@
     }
     else {
         self.aToolbar = nil;
-    }
+    }*/
+    
+    self.aToolbar = nil;
 }
 
 - (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldReceiveTouch:(UITouch *)touch {
@@ -1995,6 +2008,8 @@
         NSError *error = nil; // ou une vraie erreur si besoin
         dispatch_async(dispatch_get_main_queue(), ^{
             if (self.completionHandler) {
+                void (^completion)(NSString *html, NSString *topicAnswerUrl, NSError *error) = self.completionHandler;
+                self.completionHandler = nil;
                 NSLog(@"SWIFT sending back topics: %lu --------------->", (unsigned long)[self.arrayData count]);
                 NSString *fullAnswerUrl = nil;
                 if (self.topicAnswerUrl.length > 0) {
@@ -2004,7 +2019,7 @@
                         fullAnswerUrl = [NSString stringWithFormat:@"%@%@", [k ForumURL], self.topicAnswerUrl];
                     }
                 }
-                self.completionHandler(HTMLString, fullAnswerUrl, error);
+                completion(HTMLString, fullAnswerUrl, error);
             }
         });
         

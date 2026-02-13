@@ -184,6 +184,133 @@ struct OfflineStorageTopicPageRenderer: TopicPageRendering {
     }
 }
 
+enum MessageWebNavigationType {
+    case linkActivated
+    case formSubmitted
+    case backForward
+    case reload
+    case formResubmitted
+    case other
+    case unknown
+}
+
+enum MessageWebInitialScroll: Equatable {
+    case top
+    case bottom
+}
+
+enum MessageWebAction: Equatable {
+    case allowNavigation
+    case ignore
+    case loadPage(Int, MessageWebInitialScroll)
+    case refreshCurrentPage
+    case openInternalTopic(URL)
+    case openExternalURL(URL)
+}
+
+protocol MessageWebActionHandling {
+    func action(
+        for url: URL,
+        navigationType: MessageWebNavigationType,
+        currentPage: Int,
+        maxPage: Int
+    ) -> MessageWebAction
+}
+
+struct MessageWebActionHandler: MessageWebActionHandling {
+    private enum Constants {
+        static let autoScheme = "oijlkajsdoihjlkjasdoauto"
+        static let touchScheme = "oijlkajsdoihjlkjasdotouch"
+        static let preloadedScheme = "oijlkajsdoihjlkjasdopreloaded"
+        static let loadedScheme = "oijlkajsdoihjlkjasdoloaded"
+        static let refreshScheme = "oijlkajsdoihjlkjasdorefresh"
+        static let popupAvatarScheme = "oijlkajsdoihjlkjasdopopupavatar"
+        static let popupMessageScheme = "oijlkajsdoihjlkjasdopopupmessage"
+        static let imageBrowserScheme = "oijlkajsdoihjlkjasdoimbrows"
+        static let smileyScheme = "oijlkajsdoihjlkjasdosmiley"
+    }
+
+    func action(
+        for url: URL,
+        navigationType: MessageWebNavigationType,
+        currentPage: Int,
+        maxPage: Int
+    ) -> MessageWebAction {
+        let scheme = (url.scheme ?? "").lowercased()
+
+        if navigationType == .other, url.fragment == "bas" {
+            return .ignore
+        }
+
+        if scheme == Constants.autoScheme {
+            guard let pageAction = autoPagingAction(for: url, currentPage: currentPage, maxPage: maxPage) else {
+                return .ignore
+            }
+            return pageAction
+        }
+
+        if scheme == Constants.refreshScheme {
+            return .refreshCurrentPage
+        }
+
+        if isIgnoredCustomScheme(scheme) {
+            return .ignore
+        }
+
+        if navigationType == .linkActivated {
+            if isForumTopicURL(url) || scheme == "file" {
+                return .openInternalTopic(url)
+            }
+            if scheme == "http" || scheme == "https" {
+                return .openExternalURL(url)
+            }
+        }
+
+        return .allowNavigation
+    }
+
+    private func autoPagingAction(for url: URL, currentPage: Int, maxPage: Int) -> MessageWebAction? {
+        let boundedMaxPage = max(maxPage, 1)
+        let boundedCurrentPage = min(max(currentPage, 1), boundedMaxPage)
+        let command = (url.host ?? url.lastPathComponent).lowercased()
+
+        switch command {
+        case "begin":
+            guard boundedCurrentPage != 1 else { return nil }
+            return .loadPage(1, .top)
+        case "previous":
+            guard boundedCurrentPage > 1 else { return nil }
+            return .loadPage(boundedCurrentPage - 1, .bottom)
+        case "next":
+            guard boundedCurrentPage < boundedMaxPage else { return nil }
+            return .loadPage(boundedCurrentPage + 1, .top)
+        case "end":
+            guard boundedCurrentPage != boundedMaxPage else { return nil }
+            return .loadPage(boundedMaxPage, .bottom)
+        default:
+            return nil
+        }
+    }
+
+    private func isIgnoredCustomScheme(_ scheme: String) -> Bool {
+        scheme == Constants.touchScheme ||
+            scheme == Constants.preloadedScheme ||
+            scheme == Constants.loadedScheme ||
+            scheme == Constants.popupAvatarScheme ||
+            scheme == Constants.popupMessageScheme ||
+            scheme == Constants.imageBrowserScheme ||
+            scheme == Constants.smileyScheme
+    }
+
+    private func isForumTopicURL(_ url: URL) -> Bool {
+        guard (url.host ?? "").lowercased() == "forum.hardware.fr" else {
+            return false
+        }
+        let firstPathComponent = url.pathComponents.dropFirst().first?.lowercased() ?? ""
+        return firstPathComponent == "forum2.php" || firstPathComponent == "hfr"
+    }
+}
+
 struct TopicQuickActionsConfiguration {
     var showOpenFirstPage = true
     var showOpenLastPage = true
@@ -220,11 +347,13 @@ struct TopicListRowView: View {
     let isVisited: Bool
     var titleFont: Font = .headline
     var showUnreadBadge = false
+    var showUnreadBadgeWhenZero = false
     var leadingBottomText: String?
     var trailingBottomText: String?
     var quickActions = TopicQuickActionsConfiguration()
     var onOpen: ((String?) -> Void)?
 
+    @State private var navigateToCurrentPage = false
     @State private var navigateToFirstPage = false
     @State private var navigateToLastPage = false
 
@@ -252,18 +381,23 @@ struct TopicListRowView: View {
         topic.aURL ?? topic.aURLOfLastPage ?? topic.aURLOfLastPost
     }
 
+    @ViewBuilder
+    private var currentPageDestination: some View {
+        MessagesView(
+            topic: topic,
+            curPage: Int(topic.curTopicPage),
+            maxPage: Int(topic.maxTopicPage),
+            separatorNewMessages: true
+        )
+        .onAppear {
+            onOpen?(currentURL)
+        }
+        .toolbar(.hidden, for: .tabBar)
+    }
+
     var body: some View {
-        NavigationLink {
-            MessagesView(
-                topic: topic,
-                curPage: Int(topic.curTopicPage),
-                maxPage: Int(topic.maxTopicPage),
-                separatorNewMessages: true
-            )
-            .onAppear {
-                onOpen?(currentURL)
-            }
-            .toolbar(.hidden, for: .tabBar)
+        Button {
+            navigateToCurrentPage = true
         } label: {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
@@ -272,7 +406,7 @@ struct TopicListRowView: View {
                             .font(titleFont)
                             .foregroundStyle(isVisited ? .secondary : .primary)
                         Spacer()
-                        if showUnreadBadge && unreadCount > 0 {
+                        if showUnreadBadge && (showUnreadBadgeWhenZero || unreadCount > 0) {
                             Text("\(unreadCount)")
                                 .font(.caption2)
                                 .bold()
@@ -304,6 +438,7 @@ struct TopicListRowView: View {
             .padding(.vertical, 0)
             .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
         .contextMenu {
             TopicQuickActionsMenu(
                 configuration: quickActions,
@@ -322,6 +457,15 @@ struct TopicListRowView: View {
         }
         .background {
             ZStack {
+                NavigationLink(
+                    "",
+                    isActive: $navigateToCurrentPage
+                ) {
+                    currentPageDestination
+                }
+                .hidden()
+                .allowsHitTesting(false)
+
                 NavigationLink(
                     "",
                     isActive: $navigateToFirstPage
