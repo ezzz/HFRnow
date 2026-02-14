@@ -45,12 +45,29 @@
 - [x] Added first wrapped ObjC behavior test batch:
   - `HFRswiftTests/ObjCWrapperLoaderBehaviorTests.swift`
   - covers `ObjCFavoritesLoader`, `ObjCMPTopicsLoader`, `ObjCTopicPageLoader` success/failure/mapping behavior
+- [x] Expanded wrapper/service behavior tests:
+  - `HFRswiftTests/ObjCWrapperLoaderBehaviorTests.swift` now also covers `ObjCForumsLoader` and `ObjCForumTopicsLoader` forwarding/mapping
+  - `HFRswiftTests/MessageWebActionHandlerTests.swift` extended for paging edges (`begin`/`end`), `file://` internal routing, and navigation-type gating
+  - `HFRswiftTests/ObjCAccountSessionServiceTests.swift` added for `ObjCAccountSessionService` mapping and side effects (main account, delete index, cookies/hash context, add-account flow)
+- [x] Local test-build validation completed for wrappers/services:
+  - `xcodebuild ... build-for-testing` on `generic/platform=iOS` succeeded with `HFRswiftTests` included
+- [x] CI wrapper gate added:
+  - `.github/workflows/wrapper-tests.yml`
+  - runs `xcodebuild ... build-for-testing` for `HFRswift`/`HFRswiftTests` on PR/push
 
 ## Remaining S0 tasks
 - [x] Add an XCTest target for wrapper tests in Xcode project.
 - [x] Keep test scaffolding on XCTest only (removed default Swift Testing placeholder file).
-- [ ] Execute wrapper-focused tests in CI once test target is created.
-- [ ] Expand wrapped ObjC behavior tests further (web action routing, reply/session side effects, plus-path wrappers).
+- [x] Execute wrapper-focused tests in CI once test target is created.
+- [x] Expand wrapped ObjC behavior tests further (web action routing, reply/session side effects, plus-path wrappers).
+
+## Deferred (tracked, non-blocking S0)
+- [ ] `SDWebImage` removal/replacement plan:
+  - Keep current ObjC/UIKit usage for now.
+  - Prefer native SwiftUI image loading (`AsyncImage`/equivalent) for new SwiftUI views.
+  - Remove `SDWebImage` only after remaining ObjC call sites are migrated.
+  - Target phase for active cleanup: S2+ (not blocking S0 completion).
+- [ ] Re-enable full simulator `xcodebuild test` execution in CI after `SDWebImage` simulator compatibility is restored.
 
 ## Acceptance for S0 completion
 1. Wrapper-focused tests run in CI.

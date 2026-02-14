@@ -15,6 +15,28 @@ final class MessageWebActionHandlerTests: XCTestCase {
         XCTAssertEqual(action, .loadPage(6, .top))
     }
 
+    func testAutoBeginLoadsFirstPageWithTopScroll() {
+        let action = handler.action(
+            for: URL(string: "oijlkajsdoihjlkjasdoauto://begin")!,
+            navigationType: .linkActivated,
+            currentPage: 6,
+            maxPage: 10
+        )
+
+        XCTAssertEqual(action, .loadPage(1, .top))
+    }
+
+    func testAutoEndLoadsLastPageWithBottomScroll() {
+        let action = handler.action(
+            for: URL(string: "oijlkajsdoihjlkjasdoauto://end")!,
+            navigationType: .linkActivated,
+            currentPage: 6,
+            maxPage: 10
+        )
+
+        XCTAssertEqual(action, .loadPage(10, .bottom))
+    }
+
     func testAutoPreviousAtFirstPageIsIgnored() {
         let action = handler.action(
             for: URL(string: "oijlkajsdoihjlkjasdoauto://previous")!,
@@ -70,6 +92,30 @@ final class MessageWebActionHandlerTests: XCTestCase {
         )
 
         XCTAssertEqual(action, .openExternalURL(url))
+    }
+
+    func testFileURLIsRoutedAsInternalTopic() {
+        let url = URL(string: "file:///tmp/hfr/topic-1.htm")!
+        let action = handler.action(
+            for: url,
+            navigationType: .linkActivated,
+            currentPage: 1,
+            maxPage: 5
+        )
+
+        XCTAssertEqual(action, .openInternalTopic(url))
+    }
+
+    func testExternalURLWithOtherNavigationTypeStaysAllowed() {
+        let url = URL(string: "https://example.com/path")!
+        let action = handler.action(
+            for: url,
+            navigationType: .other,
+            currentPage: 2,
+            maxPage: 10
+        )
+
+        XCTAssertEqual(action, .allowNavigation)
     }
 
     func testFragmentBasInOtherNavigationIsIgnored() {

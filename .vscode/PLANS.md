@@ -49,6 +49,7 @@ Out of scope (phase 1):
 6. New settings screens must be native SwiftUI and modern APIs only.
 7. In `HFRswift`, do not introduce new XIB/NIB or storyboard-based UI.
 8. For migrated topic lists, use shared SwiftUI row primitives to avoid duplicated behavior/UI drift.
+9. `SDWebImage` is legacy/transition dependency: keep it only for remaining ObjC/UIKit screens; for new SwiftUI screens prefer native image loading (`AsyncImage` or equivalent), and remove `SDWebImage` once ObjC call sites are migrated.
 
 ## Roadmap
 
@@ -94,6 +95,7 @@ Work:
 3. Replace `InAppSettingsKit` based settings with native SwiftUI settings stack.
 4. Add tests for wrapper-backed settings dependencies and migration safety.
 5. Migrate remaining Favorites/MP list UI details away from legacy UIKit/XIB dependencies.
+6. Start `SDWebImage` reduction by removing usage from migrated SwiftUI flows and documenting remaining ObjC call sites.
 
 Exit criteria:
 - Favorites and MP parity validated.
@@ -159,6 +161,7 @@ Use deterministic mock fixtures and avoid runtime network in previews.
 | Wrapper regressions | Wrapper-focused tests as top priority. |
 | Settings migration regressions | Parallel native SwiftUI settings implementation with parity checks. |
 | Scope creep from iPad | Separate decision gate before implementation. |
+| Delayed `SDWebImage` removal | Track as explicit deferred backlog item and remove only when ObjC image-loading call sites are migrated/replaced. |
 
 ## Acceptance criteria
 1. No implementation task targets `OfflineMessagesTableViewController`.

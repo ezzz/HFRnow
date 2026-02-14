@@ -108,6 +108,41 @@ final class ReplyPostingServiceTests: XCTestCase {
         }
     }
 
+    func testPostReplyWhenSessionContextFailsDoesNotSendNetworkRequest() async {
+        let session = makeSession()
+
+        URLProtocolMock.requestHandler = { _ in
+            XCTFail("No network request should be sent when session context fails early")
+            throw URLError(.badServerResponse)
+        }
+
+        let service = ForumReplyPostingService(
+            session: session,
+            sessionContextProvider: { _ in
+                throw ReplyPostingError.noActiveAccount
+            }
+        )
+
+        do {
+            _ = try await service.postReply(
+                message: "Bonjour",
+                topicURL: URL(string: "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=42&page=12&p=1")!
+            )
+            XCTFail("Expected noActiveAccount error")
+        } catch let error as ReplyPostingError {
+            switch error {
+            case .noActiveAccount:
+                break
+            default:
+                XCTFail("Unexpected error: \(error)")
+            }
+        } catch {
+            XCTFail("Unexpected error type: \(error)")
+        }
+
+        XCTAssertTrue(URLProtocolMock.handledRequests.isEmpty)
+    }
+
     private func makeSession() -> URLSession {
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [URLProtocolMock.self]
