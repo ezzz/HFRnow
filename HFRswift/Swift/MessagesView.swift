@@ -22,8 +22,10 @@ struct WebView: UIViewRepresentable {
     var initialScroll: InitialScroll?
     var currentPage: Int
     var maxPage: Int
+    var colorScheme: ColorScheme
     var actionHandler: any MessageWebActionHandling
     var onWebAction: ((MessageWebAction) -> Void)?
+    var onContentReady: (() -> Void)?
 
     init(
         fileURL: URL? = nil,
@@ -32,8 +34,10 @@ struct WebView: UIViewRepresentable {
         initialScroll: InitialScroll? = nil,
         currentPage: Int = 1,
         maxPage: Int = 1,
+        colorScheme: ColorScheme = .light,
         actionHandler: any MessageWebActionHandling = MessageWebActionHandler(),
-        onWebAction: ((MessageWebAction) -> Void)? = nil
+        onWebAction: ((MessageWebAction) -> Void)? = nil,
+        onContentReady: (() -> Void)? = nil
     ) {
         self.fileURL = fileURL
         self.readAccessURL = readAccessURL
@@ -41,8 +45,10 @@ struct WebView: UIViewRepresentable {
         self.initialScroll = initialScroll
         self.currentPage = currentPage
         self.maxPage = maxPage
+        self.colorScheme = colorScheme
         self.actionHandler = actionHandler
         self.onWebAction = onWebAction
+        self.onContentReady = onContentReady
     }
 
     func makeCoordinator() -> Coordinator {
@@ -50,10 +56,57 @@ struct WebView: UIViewRepresentable {
     }
 
     func makeUIView(context: Context) -> WKWebView {
-        let webView = WKWebView()
+        let bootstrapThemeScriptSource: String
+        if colorScheme == .dark {
+            bootstrapThemeScriptSource = """
+            (function() {
+              var root = document.documentElement;
+              if (!root) { return; }
+              root.setAttribute('data-theme', 'dark');
+              root.style.setProperty('--color-message-background', '#242529');
+              root.style.setProperty('--color-message-modo-background', '#4A2E3C');
+              root.style.setProperty('--color-separator-new-message', 'rgba(206, 206, 206, 0.30)');
+              root.style.setProperty('--color-text', '#CECECE');
+              root.style.setProperty('--color-text2', '#3C3C3C');
+              root.style.setProperty('--color-background-bars', 'rgba(46, 47, 51, 0.70)');
+              root.style.setProperty('--color-searchintra-nextresults', 'rgba(46, 47, 51, 0.90)');
+              root.style.setProperty('--color-border-quotation', 'rgba(255, 255, 255, 0.20)');
+              root.style.setProperty('--color-border-avatar', '#222222');
+              root.style.setProperty('--color-text-pseudo', '#CECECE');
+              root.style.setProperty('--color-text-pseudo-bl', 'rgba(206, 206, 206, 0.50)');
+              root.style.setProperty('--imagefile-avatar', 'url(avatar_male_gray_on_dark_48x48.png)');
+              root.style.setProperty('--imagefile-loadinfo', 'url(loadinfo.net.gif)');
+            })();
+            """
+        } else {
+            bootstrapThemeScriptSource = """
+            (function() {
+              var root = document.documentElement;
+              if (!root) { return; }
+              root.setAttribute('data-theme', 'light');
+            })();
+            """
+        }
+
+        let contentController = WKUserContentController()
+        let bootstrapThemeScript = WKUserScript(
+            source: bootstrapThemeScriptSource,
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: true
+        )
+        contentController.addUserScript(bootstrapThemeScript)
+
+        let configuration = WKWebViewConfiguration()
+        configuration.userContentController = contentController
+
+        let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.isOpaque = false
-        webView.backgroundColor = .systemGray6
-        webView.scrollView.backgroundColor = .systemGray6
+        let baseBackgroundColor: UIColor = colorScheme == .dark ? .black : .systemGray6
+        webView.backgroundColor = baseBackgroundColor
+        webView.scrollView.backgroundColor = baseBackgroundColor
+        if #available(iOS 15.0, *) {
+            webView.underPageBackgroundColor = baseBackgroundColor
+        }
         webView.navigationDelegate = context.coordinator
         if #available(iOS 16.4, *) {
             webView.isInspectable = true
@@ -65,10 +118,34 @@ struct WebView: UIViewRepresentable {
         context.coordinator.parent = self
         context.coordinator.anchor = anchor
         context.coordinator.initialScroll = initialScroll
+        context.coordinator.colorScheme = colorScheme
+        let baseBackgroundColor: UIColor = colorScheme == .dark ? .black : .systemGray6
+        webView.backgroundColor = baseBackgroundColor
+        webView.scrollView.backgroundColor = baseBackgroundColor
+        if #available(iOS 15.0, *) {
+            webView.underPageBackgroundColor = baseBackgroundColor
+        }
         print("WebView.updateUIView anchor:", anchor as Any, "fileURL:", fileURL as Any, "baseURL:", readAccessURL as Any)
 
         if let fileURL = fileURL, let readAccessURL = readAccessURL {
-            webView.loadFileURL(fileURL, allowingReadAccessTo: readAccessURL)
+            let shouldReload =
+                context.coordinator.loadedFileURL != fileURL ||
+                context.coordinator.loadedReadAccessURL != readAccessURL
+
+            if shouldReload {
+                context.coordinator.loadedFileURL = fileURL
+                context.coordinator.loadedReadAccessURL = readAccessURL
+                context.coordinator.lastAppliedTheme = nil
+                context.coordinator.isWaitingForThemeApplication = true
+                context.coordinator.didNotifyContentReadyForCurrentLoad = false
+                webView.isHidden = true
+                webView.loadFileURL(fileURL, allowingReadAccessTo: readAccessURL)
+            } else {
+                context.coordinator.applyThemeIfNeeded(in: webView)
+                if !context.coordinator.isWaitingForThemeApplication {
+                    webView.isHidden = false
+                }
+            }
         }
     }
 
@@ -76,13 +153,25 @@ struct WebView: UIViewRepresentable {
         var parent: WebView
         var anchor: String?
         var initialScroll: WebView.InitialScroll?
+        var colorScheme: ColorScheme
+        var loadedFileURL: URL?
+        var loadedReadAccessURL: URL?
+        var lastAppliedTheme: String?
+        var isWaitingForThemeApplication = false
+        var didNotifyContentReadyForCurrentLoad = false
 
         init(_ parent: WebView) {
             self.parent = parent
+            self.colorScheme = parent.colorScheme
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             print("WKWebView didFinish. anchor =", anchor as Any, "initialScroll =", String(describing: initialScroll), "url:", webView.url?.absoluteString ?? "nil")
+            applyThemeIfNeeded(in: webView, force: true) {
+                self.isWaitingForThemeApplication = false
+                webView.isHidden = false
+                self.notifyContentReadyIfNeeded()
+            }
 
             if let a = anchor, !a.isEmpty {
                 // Probe: check if element exists by id or name
@@ -136,6 +225,100 @@ struct WebView: UIViewRepresentable {
                 } else {
                     print("Initial scroll JS executed (\(initial))")
                 }
+            }
+        }
+
+        private func notifyContentReadyIfNeeded() {
+            guard !didNotifyContentReadyForCurrentLoad else { return }
+            didNotifyContentReadyForCurrentLoad = true
+            parent.onContentReady?()
+        }
+
+        func applyThemeIfNeeded(
+            in webView: WKWebView,
+            force: Bool = false,
+            completion: (() -> Void)? = nil
+        ) {
+            let targetTheme = colorScheme == .dark ? "dark" : "light"
+            guard force || lastAppliedTheme != targetTheme else {
+                completion?()
+                return
+            }
+
+            let script = """
+            (function() {
+              var theme = '\(targetTheme)';
+              var root = document.documentElement;
+              if (!root) { return; }
+              root.setAttribute('data-theme', theme);
+
+              var meta = document.querySelector("meta[name='color-scheme']");
+              if (!meta && document.head) {
+                meta = document.createElement('meta');
+                meta.setAttribute('name', 'color-scheme');
+                document.head.appendChild(meta);
+              }
+              if (meta) {
+                meta.setAttribute('content', 'light dark');
+              }
+
+              var cssLink = document.getElementById('light-styles');
+              if (cssLink) {
+                cssLink.setAttribute('href', 'style-liste-light.css');
+              }
+
+              var darkOverrides = {
+                '--color-message-background': '#242529',
+                '--color-message-modo-background': '#4A2E3C',
+                '--color-separator-new-message': 'rgba(206, 206, 206, 0.30)',
+                '--color-text': '#CECECE',
+                '--color-text2': '#3C3C3C',
+                '--color-background-bars': 'rgba(46, 47, 51, 0.70)',
+                '--color-searchintra-nextresults': 'rgba(46, 47, 51, 0.90)',
+                '--color-border-quotation': 'rgba(255, 255, 255, 0.20)',
+                '--color-border-avatar': '#222222',
+                '--color-text-pseudo': '#CECECE',
+                '--color-text-pseudo-bl': 'rgba(206, 206, 206, 0.50)',
+                '--imagefile-avatar': 'url(avatar_male_gray_on_dark_48x48.png)',
+                '--imagefile-loadinfo': 'url(loadinfo.net.gif)'
+              };
+
+              var overrideKeys = Object.keys(darkOverrides);
+              var storageKey = '__hfrswiftThemeBaseVars';
+              var baseVars = window[storageKey];
+              if (!baseVars) {
+                baseVars = {};
+                overrideKeys.forEach(function(key) {
+                  baseVars[key] = root.style.getPropertyValue(key);
+                });
+                window[storageKey] = baseVars;
+              }
+
+              if (theme === 'dark') {
+                overrideKeys.forEach(function(key) {
+                  root.style.setProperty(key, darkOverrides[key]);
+                });
+              } else {
+                overrideKeys.forEach(function(key) {
+                  var baseValue = baseVars[key];
+                  if (baseValue && baseValue.trim().length > 0) {
+                    root.style.setProperty(key, baseValue);
+                  } else {
+                    root.style.removeProperty(key);
+                  }
+                });
+              }
+            })();
+            """
+
+            webView.evaluateJavaScript(script) { [weak self] _, error in
+                if let error = error {
+                    print("Theme JS error:", error.localizedDescription)
+                } else {
+                    self?.lastAppliedTheme = targetTheme
+                    print("Theme JS applied:", targetTheme)
+                }
+                completion?()
             }
         }
 
@@ -216,6 +399,7 @@ struct MessagesView: View {
     let separatorNewMessages: Bool
     let topicPageLoader: TopicPageLoading
     let topicPageRenderer: TopicPageRendering
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var page: Int
     @State private var fileURL: URL?
@@ -237,6 +421,7 @@ struct MessagesView: View {
     @State private var linkedTopic: Topic?
     @State private var navigateToLinkedTopic = false
     @State private var safariDestination: SafariDestination?
+    @State private var showWebViewLoadCover = true
     // Remove the unused
     // @State private var isPresentingAddMessage = false
 
@@ -288,6 +473,7 @@ struct MessagesView: View {
     private func loadPage(_ page: Int) {
         let url = urlForPage(page)
         print("loadPage(\(page)) url:", url, "current anchor:", self.anchor as Any)
+        showWebViewLoadCover = true
         errorMessage = nil
         topicPageLoader.fetchTopicPage(url: url, anchor: self.anchor) { result in
             DispatchQueue.main.async {
@@ -318,6 +504,7 @@ struct MessagesView: View {
         guard !topicURL.isEmpty else { return }
         self.anchor = URL(string: topicURL)?.fragment
         self.initialScroll = initialScroll
+        showWebViewLoadCover = true
         self.errorMessage = nil
 
         topicPageLoader.fetchTopicPage(url: topicURL, anchor: self.anchor) { result in
@@ -575,7 +762,7 @@ struct MessagesView: View {
                 }
         } else if fileURL != nil && cacheURL != nil {
             ZStack {
-                Color(.systemGray6)
+                Color(colorScheme == .dark ? .black : .systemGray6)
 
                 WebView(
                     fileURL: fileURL,
@@ -584,9 +771,22 @@ struct MessagesView: View {
                     initialScroll: initialScroll,
                     currentPage: page,
                     maxPage: maxPage,
-                    onWebAction: handleWebAction
+                    colorScheme: colorScheme,
+                    onWebAction: handleWebAction,
+                    onContentReady: {
+                        withAnimation(.easeOut(duration: 0.14)) {
+                            showWebViewLoadCover = false
+                        }
+                    }
                 )
                     .id(page) // force a new WKWebView per page
+
+                if showWebViewLoadCover {
+                    Color(colorScheme == .dark ? .black : .systemGray6)
+                        .ignoresSafeArea()
+                        .allowsHitTesting(false)
+                        .transition(.opacity)
+                }
             }
             .ignoresSafeArea()
             .navigationBarTitleDisplayMode(.inline)
