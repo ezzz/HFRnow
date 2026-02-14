@@ -7,11 +7,7 @@
 
 import SwiftUI
 import Combine
-
-
-enum Tabs: Int {
-    case add = 0
-}
+import UIKit
 
 @MainActor
 final class CategoriesListViewModel: ObservableObject {
@@ -177,6 +173,15 @@ struct CategoriesListView: View {
             .onReceive(NotificationCenter.default.publisher(for: Notification.Name("kLoginChangedNotification"))) { _ in
                 viewModel.load()
             }
+            .onReceive(NotificationCenter.default.publisher(for: .rootTabReselected)) { notification in
+                guard
+                    let rawTab = notification.userInfo?["tab"] as? Int,
+                    rawTab == RootTabIdentifier.categories.rawValue
+                else {
+                    return
+                }
+                viewModel.load()
+            }
             .sheet(isPresented: $showAddAccountSheet) {
                 AddAccountView(accountsStore: accountsStore)
             }
@@ -314,6 +319,15 @@ struct ForumTopicsListView: View {
             }
         }
         .onChange(of: viewModel.selectedFlag) { _, _ in
+            viewModel.load()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .rootTabReselected)) { notification in
+            guard
+                let rawTab = notification.userInfo?["tab"] as? Int,
+                rawTab == RootTabIdentifier.categories.rawValue
+            else {
+                return
+            }
             viewModel.load()
         }
         .sheet(isPresented: $showAddAccountSheet) {
@@ -459,19 +473,21 @@ private enum CategoriesPreviewFactory {
 }
 
 struct RootTabView: View {
+    @State private var selectedTab: RootTabIdentifier = .categories
+
     var body: some View {
-        TabView {
-            Tab("Catégories", systemImage: "folder.fill") {
+        TabView(selection: $selectedTab) {
+            Tab("Catégories", systemImage: "folder.fill", value: .categories) {
                 CategoriesListView()
             }
-            Tab("Favoris", systemImage: "star.fill") {
+            Tab("Favoris", systemImage: "star.fill", value: .favorites) {
                 //FeedView()
                 FavoritesListView()
             }
-            Tab("Messages", systemImage: "envelope") {
+            Tab("Messages", systemImage: "envelope", value: .messages) {
                 MPListView()
             }
-            Tab("Plus", systemImage: "ellipsis") {
+            Tab("Plus", systemImage: "ellipsis", value: .more) {
                 NavigationStack {
                     PlusTableViewWrapper()
                         .navigationTitle("Plus")
@@ -483,11 +499,124 @@ struct RootTabView: View {
                                     Image(systemName: "gearshape")
                                 }
                             }
-                        }
+                    }
                 }
             }
         }
         .tabBarMinimizeBehavior(.onScrollDown)
+        .background(
+            TabBarReselectionObserver { selectedIndex in
+                guard
+                    let tab = RootTabIdentifier(rawValue: selectedIndex),
+                    tab != .more
+                else {
+                    return
+                }
+                NotificationCenter.default.post(
+                    name: .rootTabReselected,
+                    object: nil,
+                    userInfo: ["tab": tab.rawValue]
+                )
+            }
+            .frame(width: 0, height: 0)
+        )
+    }
+}
+
+private struct TabBarReselectionObserver: UIViewControllerRepresentable {
+    let onReselect: (Int) -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onReselect: onReselect)
+    }
+
+    func makeUIViewController(context: Context) -> ObserverViewController {
+        let observer = ObserverViewController()
+        observer.onHierarchyUpdate = { host in
+            context.coordinator.attach(from: host)
+        }
+        return observer
+    }
+
+    func updateUIViewController(_ uiViewController: ObserverViewController, context: Context) {
+        uiViewController.onHierarchyUpdate = { host in
+            context.coordinator.attach(from: host)
+        }
+        context.coordinator.attach(from: uiViewController)
+    }
+
+    final class Coordinator: NSObject, UITabBarControllerDelegate {
+        private let onReselect: (Int) -> Void
+        private weak var tabBarController: UITabBarController?
+
+        init(onReselect: @escaping (Int) -> Void) {
+            self.onReselect = onReselect
+        }
+
+        func attach(from host: UIViewController?) {
+            if let tabBarController = host?.tabBarController ?? findTabBarController(in: host) {
+                bind(to: tabBarController)
+                return
+            }
+            if
+                let root = host?.view.window?.rootViewController ?? Self.keyWindowRootViewController(),
+                let tabBarController = findTabBarController(in: root)
+            {
+                bind(to: tabBarController)
+            }
+        }
+
+        private func bind(to tabBarController: UITabBarController) {
+            guard self.tabBarController !== tabBarController else { return }
+            self.tabBarController = tabBarController
+            tabBarController.delegate = self
+        }
+
+        func tabBarController(_ tabBarController: UITabBarController, shouldSelect viewController: UIViewController) -> Bool {
+            if
+                let viewControllers = tabBarController.viewControllers,
+                let tappedIndex = viewControllers.firstIndex(where: { $0 === viewController }),
+                tappedIndex == tabBarController.selectedIndex
+            {
+                onReselect(tappedIndex)
+            }
+            return true
+        }
+
+        private func findTabBarController(in root: UIViewController?) -> UITabBarController? {
+            guard let root else { return nil }
+            if let tabBarController = root as? UITabBarController {
+                return tabBarController
+            }
+            for child in root.children {
+                if let tabBarController = findTabBarController(in: child) {
+                    return tabBarController
+                }
+            }
+            return root.presentedViewController.flatMap { findTabBarController(in: $0) }
+        }
+
+        private static func keyWindowRootViewController() -> UIViewController? {
+            UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .flatMap(\.windows)
+                .first(where: { $0.isKeyWindow })?
+                .rootViewController
+        }
+    }
+}
+
+private final class ObserverViewController: UIViewController {
+    var onHierarchyUpdate: ((UIViewController) -> Void)?
+
+    override func didMove(toParent parent: UIViewController?) {
+        super.didMove(toParent: parent)
+        onHierarchyUpdate?(self)
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        onHierarchyUpdate?(self)
     }
 }
 

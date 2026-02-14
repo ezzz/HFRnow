@@ -97,6 +97,15 @@ struct MPListView: View {
             .onReceive(NotificationCenter.default.publisher(for: Notification.Name("kLoginChangedNotification"))) { _ in
                 viewModel.load()
             }
+            .onReceive(NotificationCenter.default.publisher(for: .rootTabReselected)) { notification in
+                guard
+                    let rawTab = notification.userInfo?["tab"] as? Int,
+                    rawTab == RootTabIdentifier.messages.rawValue
+                else {
+                    return
+                }
+                viewModel.load()
+            }
             .toolbar {
                 MainToolbarContent(
                     onRefresh: {

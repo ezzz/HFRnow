@@ -21,6 +21,17 @@ extension Forum: Identifiable {
     public var id: ObjectIdentifier { ObjectIdentifier(self) }
 }
 
+enum RootTabIdentifier: Int {
+    case categories = 0
+    case favorites = 1
+    case messages = 2
+    case more = 3
+}
+
+extension Notification.Name {
+    static let rootTabReselected = Notification.Name("HFRswiftRootTabReselectedNotification")
+}
+
 typealias FavoritesLoadCompletion = ([Favorite]?, Error?) -> Void
 typealias TopicsLoadCompletion = ([Topic]?, Error?) -> Void
 typealias ForumsLoadCompletion = ([Forum]?, Error?) -> Void
@@ -352,6 +363,7 @@ struct TopicListRowView: View {
     var trailingBottomText: String?
     var quickActions = TopicQuickActionsConfiguration()
     var onOpen: ((String?) -> Void)?
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var navigateToCurrentPage = false
     @State private var navigateToFirstPage = false
@@ -379,6 +391,17 @@ struct TopicListRowView: View {
 
     private var copyURL: String? {
         topic.aURL ?? topic.aURLOfLastPage ?? topic.aURLOfLastPost
+    }
+
+    private var unreadBadgeTextColor: Color {
+        colorScheme == .dark ? .black : .white
+    }
+
+    private var unreadBadgeBackgroundColor: Color {
+        if colorScheme == .dark {
+            return isVisited ? .white.opacity(0.55) : .white.opacity(0.78)
+        }
+        return isVisited ? .secondary.opacity(0.5) : .secondary
     }
 
     @ViewBuilder
@@ -413,8 +436,8 @@ struct TopicListRowView: View {
                                 .padding(.horizontal, 4)
                                 .padding(.vertical, 2)
                                 .frame(minWidth: 20)
-                                .background(Capsule().fill(.secondary).opacity(isVisited ? 0.5 : 1.0))
-                                .foregroundStyle(.white)
+                                .background(Capsule().fill(unreadBadgeBackgroundColor))
+                                .foregroundStyle(unreadBadgeTextColor)
                         }
                     }
 

@@ -190,6 +190,15 @@ struct FavoritesListView: View {
             .onReceive(NotificationCenter.default.publisher(for: Notification.Name("kLoginChangedNotification"))) { _ in
                 viewModel.loadFavorites()
             }
+            .onReceive(NotificationCenter.default.publisher(for: .rootTabReselected)) { notification in
+                guard
+                    let rawTab = notification.userInfo?["tab"] as? Int,
+                    rawTab == RootTabIdentifier.favorites.rawValue
+                else {
+                    return
+                }
+                viewModel.loadFavorites()
+            }
             .toolbar {
                 MainToolbarContent(
                     onRefresh: {
@@ -271,7 +280,7 @@ struct TopicRowView: View {
             isVisited: isVisited,
             titleFont: .system(size: 13, weight: isVisited ? .regular : .semibold),
             showUnreadBadge: true,
-            showUnreadBadgeWhenZero: true,
+            showUnreadBadgeWhenZero: false,
             leadingBottomText: pageLabel,
             trailingBottomText: trailingLabel
         ) { openedURL in

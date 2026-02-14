@@ -26,6 +26,7 @@ struct WebView: UIViewRepresentable {
     var actionHandler: any MessageWebActionHandling
     var onWebAction: ((MessageWebAction) -> Void)?
     var onContentReady: (() -> Void)?
+    var onScrollPositionChange: ((Bool) -> Void)?
 
     init(
         fileURL: URL? = nil,
@@ -37,7 +38,8 @@ struct WebView: UIViewRepresentable {
         colorScheme: ColorScheme = .light,
         actionHandler: any MessageWebActionHandling = MessageWebActionHandler(),
         onWebAction: ((MessageWebAction) -> Void)? = nil,
-        onContentReady: (() -> Void)? = nil
+        onContentReady: (() -> Void)? = nil,
+        onScrollPositionChange: ((Bool) -> Void)? = nil
     ) {
         self.fileURL = fileURL
         self.readAccessURL = readAccessURL
@@ -49,6 +51,7 @@ struct WebView: UIViewRepresentable {
         self.actionHandler = actionHandler
         self.onWebAction = onWebAction
         self.onContentReady = onContentReady
+        self.onScrollPositionChange = onScrollPositionChange
     }
 
     func makeCoordinator() -> Coordinator {
@@ -95,6 +98,40 @@ struct WebView: UIViewRepresentable {
             forMainFrameOnly: true
         )
         contentController.addUserScript(bootstrapThemeScript)
+        contentController.add(context.coordinator, name: "scrollState")
+
+        let scrollTrackingScript = WKUserScript(
+            source: """
+            (function() {
+              function notifyScrollState() {
+                var root = document.documentElement || {};
+                var body = document.body || {};
+                var viewport = window.innerHeight || root.clientHeight || 0;
+                var scrollY = window.scrollY || window.pageYOffset || root.scrollTop || body.scrollTop || 0;
+                var contentHeight = Math.max(
+                  body.scrollHeight || 0,
+                  root.scrollHeight || 0,
+                  body.offsetHeight || 0,
+                  root.offsetHeight || 0
+                );
+                var distanceToBottom = contentHeight - (scrollY + viewport);
+                var atBottom = distanceToBottom <= 2;
+                try { window.webkit.messageHandlers.scrollState.postMessage(atBottom); } catch (e) {}
+              }
+
+              window.addEventListener('scroll', notifyScrollState, { passive: true });
+              window.addEventListener('resize', notifyScrollState, { passive: true });
+              window.addEventListener('load', function() {
+                setTimeout(notifyScrollState, 0);
+                setTimeout(notifyScrollState, 120);
+              });
+              setTimeout(notifyScrollState, 0);
+            })();
+            """,
+            injectionTime: .atDocumentEnd,
+            forMainFrameOnly: true
+        )
+        contentController.addUserScript(scrollTrackingScript)
 
         let configuration = WKWebViewConfiguration()
         configuration.userContentController = contentController
@@ -149,7 +186,7 @@ struct WebView: UIViewRepresentable {
         }
     }
 
-    class Coordinator: NSObject, WKNavigationDelegate {
+    class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
         var parent: WebView
         var anchor: String?
         var initialScroll: WebView.InitialScroll?
@@ -225,6 +262,23 @@ struct WebView: UIViewRepresentable {
                 } else {
                     print("Initial scroll JS executed (\(initial))")
                 }
+            }
+        }
+
+        func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+            guard message.name == "scrollState" else { return }
+
+            let isAtBottom: Bool
+            if let boolValue = message.body as? Bool {
+                isAtBottom = boolValue
+            } else if let numberValue = message.body as? NSNumber {
+                isAtBottom = numberValue.boolValue
+            } else {
+                return
+            }
+
+            DispatchQueue.main.async {
+                self.parent.onScrollPositionChange?(isAtBottom)
             }
         }
 
@@ -422,6 +476,10 @@ struct MessagesView: View {
     @State private var navigateToLinkedTopic = false
     @State private var safariDestination: SafariDestination?
     @State private var showWebViewLoadCover = true
+    @State private var isWebContentAtBottom = false
+    @State private var pendingPostedReply: ReplyPostingResult?
+    @State private var showPostSuccessToast = false
+    @State private var postSuccessToastText = "Hooray"
     // Remove the unused
     // @State private var isPresentingAddMessage = false
 
@@ -474,6 +532,7 @@ struct MessagesView: View {
         let url = urlForPage(page)
         print("loadPage(\(page)) url:", url, "current anchor:", self.anchor as Any)
         showWebViewLoadCover = true
+        isWebContentAtBottom = false
         errorMessage = nil
         topicPageLoader.fetchTopicPage(url: url, anchor: self.anchor) { result in
             DispatchQueue.main.async {
@@ -505,6 +564,7 @@ struct MessagesView: View {
         self.anchor = URL(string: topicURL)?.fragment
         self.initialScroll = initialScroll
         showWebViewLoadCover = true
+        isWebContentAtBottom = false
         self.errorMessage = nil
 
         topicPageLoader.fetchTopicPage(url: topicURL, anchor: self.anchor) { result in
@@ -670,6 +730,42 @@ struct MessagesView: View {
         navigateToPage(target, initialScroll: .top)
     }
 
+    private var shouldShowBottomRefreshButton: Bool {
+        page >= maxPage && isWebContentAtBottom
+    }
+
+    private func refreshCurrentPageAtBottom() {
+        anchor = nil
+        initialScroll = .bottom
+        loadPage(page)
+    }
+
+    private func handleReplySuccess(_ result: ReplyPostingResult) {
+        pendingPostedReply = result
+    }
+
+    private func handleComposerDismissalIfNeeded() {
+        guard pendingPostedReply != nil else { return }
+        pendingPostedReply = nil
+
+        postSuccessToastText = "Hooray"
+        withAnimation {
+            showPostSuccessToast = true
+        }
+
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_600_000_000)
+            withAnimation {
+                showPostSuccessToast = false
+            }
+        }
+
+        guard page >= maxPage else { return }
+        anchor = nil
+        initialScroll = .bottom
+        loadPage(maxPage)
+    }
+
     @ViewBuilder
     private func backwardContextMenuItems() -> some View {
         if page > 1 {
@@ -777,6 +873,11 @@ struct MessagesView: View {
                         withAnimation(.easeOut(duration: 0.14)) {
                             showWebViewLoadCover = false
                         }
+                    },
+                    onScrollPositionChange: { isAtBottom in
+                        if isWebContentAtBottom != isAtBottom {
+                            isWebContentAtBottom = isAtBottom
+                        }
                     }
                 )
                     .id(page) // force a new WKWebView per page
@@ -813,8 +914,19 @@ struct MessagesView: View {
                     }
                 )
                 .sheet(isPresented: $isComposerPresented) {
-                    AnswerView(topicURL: topicAnswerURL, composerDraftText: $composerDraftText, isComposerPresented: $isComposerPresented, isComposerFocused: $isComposerFocused)
+                    AnswerView(
+                        topicURL: topicAnswerURL,
+                        onPostSuccess: handleReplySuccess,
+                        composerDraftText: $composerDraftText,
+                        isComposerPresented: $isComposerPresented,
+                        isComposerFocused: $isComposerFocused
+                    )
                         .presentationDetents([.large])
+                }
+                .onChange(of: isComposerPresented) { _, isPresented in
+                    if !isPresented {
+                        handleComposerDismissalIfNeeded()
+                    }
                 }
                 .toolbar {
                     ToolbarItem(placement: .principal) {
@@ -887,15 +999,31 @@ struct MessagesView: View {
                                 forwardContextMenuItems()
                             }
                             .disabled(page >= maxPage)
+                        }
 
-                            Spacer()
+                        ToolbarSpacer(.flexible, placement: .bottomBar)
+
+                        if shouldShowBottomRefreshButton {
+                            ToolbarItem(placement: .bottomBar) {
+                                Button {
+                                    refreshCurrentPageAtBottom()
+                                } label: {
+                                    Text("Rafraichir")
+                                }
+                                .buttonStyle(.glassProminent)
+                                .transition(.opacity.combined(with: .scale))
+                            }
+                            ToolbarSpacer(.fixed, placement: .bottomBar)
+                        }
+
+                        ToolbarItem(placement: .bottomBar) {
                             Button {
                                 isComposerPresented = true
                             } label: {
                                 Label("New", systemImage: "plus")
                             }
-                            //.buttonStyle(.glassProminent)
                         }
+                        //.buttonStyle(.glassProminent)
                     }
                 }
                 .alert("Page numéro...", isPresented: $isPagePickerPresented) {
@@ -913,6 +1041,14 @@ struct MessagesView: View {
                     SafariInAppView(url: destination.url)
                         .ignoresSafeArea()
                 }
+                .overlay(alignment: .top) {
+                    if showPostSuccessToast {
+                        PostSuccessToastBanner(text: postSuccessToastText)
+                            .padding(.top, 8)
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                    }
+                }
+                .animation(.easeOut(duration: 0.22), value: shouldShowBottomRefreshButton)
         } else {
             ZStack {
                 //HatchedBackground()
@@ -1063,6 +1199,25 @@ struct SpinnerLoading: View {
                 .frame(width: proxy.size.width, height: proxy.size.height)
                 .contentShape(Rectangle())
         }
+    }
+}
+
+private struct PostSuccessToastBanner: View {
+    let text: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "checkmark.seal.fill")
+                .foregroundStyle(.green)
+            Text(text)
+                .font(.headline)
+                .foregroundStyle(.primary)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(.ultraThinMaterial)
+        .clipShape(Capsule())
+        .shadow(radius: 6, y: 3)
     }
 }
 

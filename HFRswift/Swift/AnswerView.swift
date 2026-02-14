@@ -3,6 +3,7 @@ import SwiftUI
 struct AnswerView: View {
     let topicURL: URL?
     private let replyPostingService: any ReplyPostingService
+    private let onPostSuccess: ((ReplyPostingResult) -> Void)?
 
     @Binding var composerDraftText: String
     @Binding var isComposerPresented: Bool
@@ -18,12 +19,14 @@ struct AnswerView: View {
     init(
         topicURL: URL?,
         replyPostingService: any ReplyPostingService = ForumReplyPostingService(),
+        onPostSuccess: ((ReplyPostingResult) -> Void)? = nil,
         composerDraftText: Binding<String>,
         isComposerPresented: Binding<Bool>,
         isComposerFocused: FocusState<Bool>.Binding
     ) {
         self.topicURL = topicURL
         self.replyPostingService = replyPostingService
+        self.onPostSuccess = onPostSuccess
         self._composerDraftText = composerDraftText
         self._isComposerPresented = isComposerPresented
         self._isComposerFocused = isComposerFocused
@@ -91,7 +94,10 @@ struct AnswerView: View {
         }
 
         do {
-            _ = try await replyPostingService.postReply(message: message, topicURL: topicURL)
+            let result = try await replyPostingService.postReply(message: message, topicURL: topicURL)
+            await MainActor.run {
+                onPostSuccess?(result)
+            }
             await presentToast(success: true, text: "Hooray")
             try? await Task.sleep(nanoseconds: 800_000_000)
             await MainActor.run {
