@@ -6,13 +6,137 @@
 //
 
 import SwiftUI
+import MessageUI
+
+struct PlusHomeView: View {
+    @State private var showDeleteAccountComposer = false
+    @State private var showMailUnavailableAlert = false
+
+    var body: some View {
+        List {
+            Section {
+                NavigationLink {
+                    ObjCViewControllerHost {
+                        let controller = TopicsSearchViewController()
+                        controller.currentCat = "13"
+                        return controller
+                    }
+                } label: {
+                    PlusRow(title: "Rechercher sur le forum", systemImage: "magnifyingglass")
+                }
+
+                NavigationLink {
+                    BookmarksPlusView()
+                } label: {
+                    PlusRow(title: "Bookmarks", systemImage: "pin")
+                }
+
+                NavigationLink {
+                    AQPlusView()
+                } label: {
+                    PlusRow(title: "Alertes Qualitay", systemImage: "bell")
+                }
+
+                NavigationLink {
+                    StaticInfoPageView(kind: .credits)
+                } label: {
+                    PlusRow(title: "Crédits", systemImage: "info.circle")
+                }
+
+                NavigationLink {
+                    StaticInfoPageView(kind: .charter)
+                } label: {
+                    PlusRow(title: "Charte du forum", systemImage: "doc.text")
+                }
+
+                Button(role: .destructive) {
+                    if MFMailComposeViewController.canSendMail() {
+                        showDeleteAccountComposer = true
+                    } else {
+                        showMailUnavailableAlert = true
+                    }
+                } label: {
+                    PlusRow(title: "Supprimer mon compte", systemImage: "trash")
+                }
+            }
+        }
+        .navigationTitle("Plus")
+        .sheet(isPresented: $showDeleteAccountComposer) {
+            DeleteAccountMailComposeView()
+        }
+        .alert("Mail indisponible", isPresented: $showMailUnavailableAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Aucun compte mail n'est configuré sur cet iPhone.")
+        }
+    }
+}
+
+private struct PlusRow: View {
+    let title: String
+    let systemImage: String
+
+    var body: some View {
+        Label(title, systemImage: systemImage)
+    }
+}
+
+private struct ObjCViewControllerHost: UIViewControllerRepresentable {
+    let makeController: () -> UIViewController
+
+    func makeUIViewController(context: Context) -> UIViewController {
+        makeController()
+    }
+
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
+        // No-op: wrapped controllers own their lifecycle.
+    }
+}
+
+private struct DeleteAccountMailComposeView: UIViewControllerRepresentable {
+    @Environment(\.dismiss) private var dismiss
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onDismiss: { dismiss() })
+    }
+
+    func makeUIViewController(context: Context) -> MFMailComposeViewController {
+        let composer = MFMailComposeViewController()
+        composer.mailComposeDelegate = context.coordinator
+        composer.setSubject("Demande de suppression de compte")
+        composer.setToRecipients(["marc@hardware.fr"])
+        composer.setMessageBody(
+            "Monsieur/Madame,\n\nJe vous écris pour vous demander de supprimer mon compte sur votre forum Hardware.fr. Je ne l'utilise plus et je préfère ne plus être membre de ce forum.\n\nSi vous avez besoin de plus d'informations pour traiter ma demande, veuillez me contacter à l'adresse email associée à mon compte.\n\nMerci d'avance pour votre aide.\n\nCordialement",
+            isHTML: false
+        )
+        return composer
+    }
+
+    func updateUIViewController(_ uiViewController: MFMailComposeViewController, context: Context) {}
+
+    final class Coordinator: NSObject, MFMailComposeViewControllerDelegate {
+        private let onDismiss: () -> Void
+
+        init(onDismiss: @escaping () -> Void) {
+            self.onDismiss = onDismiss
+        }
+
+        func mailComposeController(
+            _ controller: MFMailComposeViewController,
+            didFinishWith result: MFMailComposeResult,
+            error: Error?
+        ) {
+            onDismiss()
+        }
+    }
+}
 
 struct PlusTableViewWrapper: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> PlusTableViewController {
-        return PlusTableViewController()
+        PlusTableViewController()
     }
 
     func updateUIViewController(_ uiViewController: PlusTableViewController, context: Context) {
-        // Pas besoin de mise à jour pour une vue statique
+        // Kept only for fallback/debug while Plus root is now native SwiftUI.
     }
 }

@@ -8,6 +8,7 @@
 #import <objc/runtime.h>
 #import "InAppSettingsKit+Theme.h"
 
+#if !APP_SWIFT
 @implementation IASKSpecifierValuesViewController (Theme)
 
 
@@ -51,4 +52,4 @@
 }
 
 @end
-
+#endif

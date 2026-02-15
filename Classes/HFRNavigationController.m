@@ -10,7 +10,9 @@
 #import "ThemeColors.h"
 #import "ThemeManager.h"
 #import "UINavigationBar+Helper.h"
+#if !APP_SWIFT
 #import "InAppSettingsKit+Theme.h"
+#endif
 
 @implementation HFRNavigationController
 
@@ -65,11 +67,13 @@
 }
 
 - (void)navigationController:(UINavigationController *)navigationController willShowViewController:(UIViewController *)viewController animated:(BOOL)animated {
+#if !APP_SWIFT
     if ([viewController isKindOfClass:[IASKSpecifierValuesViewController class]]) {
         Theme theme = [[ThemeManager sharedManager] theme];
 
         [(IASKSpecifierValuesViewController *)viewController setThemeColors:theme];
     }
+#endif
 }
 
 - (NSString *) userThemeDidChange {
@@ -111,9 +115,11 @@
     // Implémenter plutot des couleurs dynamiques
     [self.topViewController viewWillAppear:NO];
 
+#if !APP_SWIFT
     if ([self.topViewController isKindOfClass:[IASKSpecifierValuesViewController class]]) {
         [(IASKSpecifierValuesViewController *)self.topViewController setThemeColors:theme];
     }
+#endif
     
     [self refreshTheme];
     

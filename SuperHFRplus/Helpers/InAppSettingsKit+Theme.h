@@ -9,10 +9,11 @@
 #import "ThemeManager.h"
 #import "ThemeColors.h"
 
+#if !APP_SWIFT
 @import InAppSettingsKit;
 
 @interface IASKSpecifierValuesViewController (Theme)
 -(void)setThemeColors:(Theme)theme;
 
 @end
-
+#endif

@@ -543,13 +543,10 @@ struct RootTabView: View {
     }
 
     private func syncAppColorScheme() {
-        let style =
-            UIApplication.shared.connectedScenes
-                .compactMap { $0 as? UIWindowScene }
-                .flatMap(\.windows)
-                .first(where: { $0.isKeyWindow })?
-                .traitCollection.userInterfaceStyle ?? .unspecified
-        appColorScheme = style == .dark ? .dark : .light
+        let resolved = AppThemeResolver.currentColorScheme()
+        if appColorScheme != resolved {
+            appColorScheme = resolved
+        }
     }
 
     var body: some View {
@@ -564,19 +561,14 @@ struct RootTabView: View {
             Tab("Messages", systemImage: "envelope", value: .messages) {
                 MPListView()
             }
+            Tab("Réglages", systemImage: "gearshape.fill", value: .settings) {
+                NavigationStack {
+                    AppSettingsView()
+                }
+            }
             Tab("Plus", systemImage: "ellipsis", value: .more) {
                 NavigationStack {
-                    PlusTableViewWrapper()
-                        .navigationTitle("Plus")
-                        .toolbar {
-                            ToolbarItem(placement: .topBarTrailing) {
-                                NavigationLink {
-                                    AppSettingsView()
-                                } label: {
-                                    Image(systemName: "gearshape")
-                                }
-                            }
-                    }
+                    PlusHomeView()
                 }
             }
         }
@@ -601,7 +593,7 @@ struct RootTabView: View {
             TabBarReselectionObserver { selectedIndex in
                 guard
                     let tab = RootTabIdentifier(rawValue: selectedIndex),
-                    tab != .more
+                    tab == .categories || tab == .favorites || tab == .messages
                 else {
                     return
                 }

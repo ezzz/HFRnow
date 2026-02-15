@@ -10,7 +10,7 @@
 - Do not port `OfflineMessagesTableViewController`.
 - `OfflineStorage` must not be used for deprecated offline-topic flows.
 - For `MessagesView` WebView rendering, local file loading is the default/required path (no inline HTML mode).
-- Prioritize tests around wrapped ObjC classes.
+- Keep a minimal test baseline around wrapped ObjC classes and critical policy/lifecycle regressions.
 - Add SwiftUI previews with mock data whenever feasible.
 - Remove settings dependency to legacy COTS (`InAppSettingsKit`) in upcoming phases.
 - Keep iPad as lower priority, with decision gate first.
@@ -70,7 +70,7 @@
 - [ ] Re-enable full simulator `xcodebuild test` execution in CI after `SDWebImage` simulator compatibility is restored.
 
 ## Acceptance for S0 completion
-1. Wrapper-focused tests run in CI.
+1. Minimal wrapper/policy tests run before push (CI wrapper gate remains optional/bonus).
 2. No new direct SwiftUI instantiation of wrapped ObjC controllers.
 3. Offline legacy flow remains de-scoped.
 4. Preview policy adopted in migrated SwiftUI screens.

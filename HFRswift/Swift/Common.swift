@@ -25,11 +25,42 @@ enum RootTabIdentifier: Int {
     case categories = 0
     case favorites = 1
     case messages = 2
-    case more = 3
+    case settings = 3
+    case more = 4
 }
 
 extension Notification.Name {
     static let rootTabReselected = Notification.Name("HFRswiftRootTabReselectedNotification")
+}
+
+enum AppThemeResolver {
+    private static let autoThemeKey = "auto_theme"
+    private static let manualThemeKey = "theme"
+    private static let autoThemeIOSValue = 3
+    private static let darkThemeValue = 1
+
+    static func currentColorScheme() -> ColorScheme {
+        let defaults = UserDefaults.standard
+        let autoTheme = defaults.integer(forKey: autoThemeKey)
+
+        if autoTheme == autoThemeIOSValue {
+            return currentSystemColorScheme()
+        }
+
+        let manualTheme = defaults.integer(forKey: manualThemeKey)
+        return manualTheme == darkThemeValue ? .dark : .light
+    }
+
+    private static func currentSystemColorScheme() -> ColorScheme {
+        let style =
+            UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .flatMap(\.windows)
+                .first(where: { $0.isKeyWindow })?
+                .traitCollection.userInterfaceStyle
+            ?? UIScreen.main.traitCollection.userInterfaceStyle
+        return style == .dark ? .dark : .light
+    }
 }
 
 typealias FavoritesLoadCompletion = ([Favorite]?, Error?) -> Void

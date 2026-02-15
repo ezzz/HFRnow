@@ -11,7 +11,9 @@
 #import "SplitViewController.h"
 #import <BackgroundTasks/BackgroundTasks.h>
 
+#if !APP_SWIFT
 @import InAppSettingsKit;
+#endif
 
 #import "Reachability.h"
 #import <UserNotifications/UserNotifications.h>
@@ -78,4 +80,3 @@
 - (void)checkForNewMP:(BGAppRefreshTask *)task;
 - (void)registerDefaultsFromSettingsBundle;
 @end
-

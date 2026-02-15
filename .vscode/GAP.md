@@ -4,7 +4,7 @@
 1. `OfflineMessagesTableViewController` is deprecated and must not be ported to SwiftUI.
 2. `MessagesView` must use file-based WebView rendering (no inline HTML mode) to preserve local CSS/resource loading.
 3. `OfflineStorage` must not be used for deprecated offline-topic flows; outside message rendering it remains opt-in and temporary.
-4. Testing priority is coverage of ObjC classes wrapped by Swift/SwiftUI.
+4. Testing priority is a minimal safety baseline on ObjC wrappers and critical opening/navigation policies (feature-first).
 5. When possible, each SwiftUI screen should have `#Preview` with mock data (normal, loading, empty, error states).
 6. Settings must remove dependency to legacy COTS (`InAppSettingsKit`) and move to modern native SwiftUI APIs.
 7. iPad parity is lower priority for now; first step is necessity/impact study.
@@ -77,7 +77,7 @@ Required fields per feature:
 | G10 | Lifecycle parity for startup/background tasks. | `HFRplusAppDelegate didFinishLaunchingWithOptions`. | Partial/non-validated. | `MultisManager`, `MPStorage`, `BlackList`, `SmileyCache` (avoid new `OfflineStorage` usage unless mandatory). | Startup/background side effects can diverge. | M | P1 | `Classes/HFRplusAppDelegate.m:65`, `Classes/HFRplusAppDelegate.m:126`, `Classes/HFRplusAppDelegate.m:132`, `Classes/HFRplusAppDelegate.m:144` |
 | G11 | iPad split/master-detail parity. | `MainWindow-iPad.xib`, iPad branch in app delegate. | Not implemented in SwiftUI target. | N/A | Potential iPad UX gap. Lower current priority. | M | P2 | `SuperHFRplus/XIB/MainWindow-iPad.xib:22`, `Classes/HFRplusAppDelegate.m:106` |
 | G12 | Interop boundary hardening (expose only ObjC non-UI pieces needed). | Shared broad bridging header. | Structural gap present. | `MultisManager`, `MPStorage`, `k`; keep `OfflineStorage` opt-in only. | Build fragility and migration slowdown. | M | P0 | `SuperHFRplus/SuperHFRplus-Bridging-Header.h:8`, `SuperHFRplus/SuperHFRplus-Bridging-Header.h:17` |
-| G13 | Test strategy focused on wrapped ObjC classes. | Wrapped classes in `HFRswift/Wrapped` + ObjC controllers called by Swift. | Missing dedicated test coverage currently. | Wrapped service/controller dependencies. | Regressions hidden behind wrappers. | M | P0 | `HFRswift/Wrapped/MessagesTableViewController.h:31`, `HFRswift/Wrapped/ParseMessagesOperation.h:13`, `HFRswift/Swift/Favorites.swift:25`, `HFRswift/Swift/MPListView.swift:15` |
+| G13 | Minimal high-value test baseline on wrappers/policies. | Wrapped classes in `HFRswift/Wrapped` + ObjC controllers called by Swift. | Partial; broader coverage intentionally deferred. | Wrapped service/controller dependencies. | Regressions hidden behind wrappers if baseline is missing. | S | P0 | `HFRswift/Wrapped/MessagesTableViewController.h:31`, `HFRswift/Wrapped/ParseMessagesOperation.h:13`, `HFRswift/Swift/Favorites.swift:25`, `HFRswift/Swift/MPListView.swift:15` |
 | G14 | Settings migration: remove legacy COTS and use modern native SwiftUI settings. | `PlusSettingsViewController` uses `InAppSettingsKit`. | Not migrated in SwiftUI. | Preference storage and theme/account services. | COTS lock-in and modernization blocker. | M | P1 | `Classes/PlusSettingsViewController.h:9`, `Classes/PlusSettingsViewController.m:16`, `Classes/PlusSettingsViewController.m:39` |
 | G15 | SwiftUI previews with mock data for migrated screens. | N/A legacy concern. | Partial/inconsistent. | Mock services and fixtures. | Slower UI iteration and less design/test safety. | S | P1 | `HFRswift/Swift/HFRswiftApp.swift:10`, `HFRswift/Swift/MessagesView.swift:129` |
 | G16 | Deprecated offline topic cache navigation must not be ported. | `OfflineMessagesTableViewController`. | Explicitly out of scope for migration. | None (de-scope item). | Wasted effort and added complexity if reintroduced. | S | P0 | `Classes/OfflineMessagesTableViewController.m:38`, `Classes/OfflineMessagesTableViewController.m:1785` |
@@ -98,7 +98,7 @@ Required fields per feature:
 | G10 | NotStarted | Startup/background behavior parity validated. | S3 |
 | G11 | NotStarted | iPad necessity study completed; implementation only if justified. | S4 |
 | G12 | NotStarted | Bridging boundary reduced and documented. | S0-S1 |
-| G13 | NotStarted | Wrapped ObjC class tests in CI. | S0-S2 |
+| G13 | InProgress | Minimal wrapper/policy regression tests in place and run before push. | S0-S2 |
 | G14 | NotStarted | Settings no longer depends on InAppSettingsKit. | S2-S3 |
 | G15 | NotStarted | Previews with mock data added for migrated SwiftUI screens. | Continuous |
 | G16 | LockedOut | OfflineMessages flow marked non-portable and blocked in plan. | S0 |
@@ -110,7 +110,7 @@ Required fields per feature:
 3. G01 - Categories flow reactivation.
 4. G03 - Topic quick actions parity.
 5. G09 - Account/session adapter hardening.
-6. G13 - Wrapped ObjC test coverage.
+6. G13 - Minimal wrapper/policy regression baseline.
 7. G04 - Favorites advanced parity.
 8. G12 - Bridging boundary cleanup.
 9. G14 - Settings COTS removal to native SwiftUI.
@@ -120,7 +120,7 @@ Required fields per feature:
 1. Add guardrail: do not port `OfflineMessagesTableViewController`.
 2. Add guardrail: no new `OfflineStorage` usage unless mandatory and explicitly documented.
 3. Define Swift adapters around wrapped ObjC classes and non-UI services.
-4. Build tests first for wrapped ObjC classes (`MessagesTableViewController`, `ParseMessagesOperation`, and ObjC controllers currently called from Swift wrappers).
+4. Build a minimal test floor first: wrapper smoke tests + `TopicOpenPolicy` + known lifecycle regressions.
 5. Add preview policy: each migrated SwiftUI screen gets mock-data previews when possible.
 6. Replace settings COTS (`InAppSettingsKit`) with native SwiftUI settings stack (`Form`, `AppStorage`, modern APIs).
 7. Keep iPad work behind a dedicated necessity study and lower priority.

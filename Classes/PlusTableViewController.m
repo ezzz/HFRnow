@@ -20,6 +20,29 @@
 @synthesize plusTableView, iAQBadgeNumer, settingsViewController, compteViewController, aqTableViewController, bookmarksTableViewController,  creditsViewController, detailNavigationViewController;
 ;
 
+static BOOL HFRUsesNativeSwiftSettings(void) {
+#if APP_SWIFT
+    return YES;
+#else
+    return NO;
+#endif
+}
+
+- (NSInteger)legacyRowForDisplayedRow:(NSInteger)displayedRow {
+    if (!HFRUsesNativeSwiftSettings()) {
+        return displayedRow;
+    }
+    // In Swift build, row 4 ("Réglages") is removed from Plus and handled by native SwiftUI Settings tab.
+    if (displayedRow >= 4) {
+        return displayedRow + 1;
+    }
+    return displayedRow;
+}
+
+- (BOOL)shouldShowLegacySettingsEntry {
+    return !HFRUsesNativeSwiftSettings();
+}
+
 
 - (id)init {
     self = [super init];
@@ -48,7 +71,9 @@
     self.compteViewController = [[CompteViewController alloc] init]; //WithNibName:@"CompteViewController" bundle:nil];
     self.searchViewController = [[TopicsSearchViewController alloc] init];
     self.searchViewController.currentCat = @"13"; // Discussions
-    self.settingsViewController = [[PlusSettingsViewController alloc] initWithNibName:@"SettingsView" bundle:nil];
+    if ([self shouldShowLegacySettingsEntry]) {
+        self.settingsViewController = [[PlusSettingsViewController alloc] initWithNibName:@"SettingsView" bundle:nil];
+    }
     self.aqTableViewController = [[AQTableViewController alloc] initWithNibName:@"AQTableView" bundle:nil];
     self.creditsViewController = [[CreditsViewController alloc] initWithNibName:@"CreditsViewController" bundle:nil filename:@"credits"];
     self.charteViewController = [[CreditsViewController alloc] initWithNibName:@"CreditsViewController" bundle:nil filename:@"charte"];
@@ -82,8 +107,9 @@
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     
     UIViewController* vc = nil;
+    NSInteger legacyRow = [self legacyRowForDisplayedRow:indexPath.row];
     
-    switch (indexPath.row) {
+    switch (legacyRow) {
         case 0:
             vc = self.compteViewController;
             break;
@@ -97,7 +123,9 @@
             vc = self.aqTableViewController;
             break;
         case 4:
-            vc = self.settingsViewController;
+            if ([self shouldShowLegacySettingsEntry]) {
+                vc = self.settingsViewController;
+            }
             break;
         case 5:
             vc = self.creditsViewController;
@@ -140,12 +168,13 @@
     return 1;
 }
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-    return 8;
+    return [self shouldShowLegacySettingsEntry] ? 8 : 7;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     PlusCellView *cell = [tableView dequeueReusableCellWithIdentifier:@"PlusCellId"];
-    switch (indexPath.row) {
+    NSInteger legacyRow = [self legacyRowForDisplayedRow:indexPath.row];
+    switch (legacyRow) {
         case 0:
             cell.titleLabel.text = @"Compte(s)";
             cell.titleImage.image = [UIImage imageNamed:@"CircledUserMaleFilled-40"];
@@ -227,5 +256,4 @@
 }
 
 @end
-
 

@@ -10,7 +10,6 @@
 
 
 #import <UIKit/UIKit.h>
-#import "PlusSettingsViewController.h"
 #import "CompteViewController.h"
 #import "MessagesTableViewController.h"
 

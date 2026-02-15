@@ -9,7 +9,7 @@ New mandatory constraints:
 1. Do not port `OfflineMessagesTableViewController` or offline topic-page storage flow.
 2. For `MessagesView`, keep file-based WebView rendering (local file + read access URL) and do not reintroduce inline HTML loading.
 3. Avoid `OfflineStorage` outside the mandatory message-rendering file path and deprecated-flow cleanup.
-4. Prioritize automated tests on wrapped ObjC classes.
+4. Keep a minimal automated test floor on wrapped ObjC classes and critical navigation/opening policies (feature-first mode).
 5. Add SwiftUI previews with mock data whenever possible.
 6. Remove settings dependency on legacy COTS (`InAppSettingsKit`) and migrate to native modern SwiftUI capabilities.
 7. iPad is lower priority; do necessity study first.
@@ -19,7 +19,7 @@ New mandatory constraints:
 ## Scope
 In scope:
 - SwiftUI feature migration for active user flows.
-- ObjC wrapper stabilization and test coverage.
+- ObjC wrapper stabilization with lean, high-value test coverage only.
 - Settings modernization away from legacy COTS.
 - Progressive removal of XIB/NIB-backed UI dependencies from migrated flows.
 
@@ -51,6 +51,15 @@ Out of scope (phase 1):
 8. For migrated topic lists, use shared SwiftUI row primitives to avoid duplicated behavior/UI drift.
 9. `SDWebImage` is legacy/transition dependency: keep it only for remaining ObjC/UIKit screens; for new SwiftUI screens prefer native image loading (`AsyncImage` or equivalent), and remove `SDWebImage` once ObjC call sites are migrated.
 
+## Delivery mode: feature-first with safety net
+1. Prioritize user-visible feature parity and bug fixes before broad test expansion.
+2. Keep mandatory tests only on high-regression-risk seams:
+   - wrapped ObjC adapters called by SwiftUI
+   - topic opening policy (`TopicOpenPolicy`)
+   - known lifecycle regressions already fixed (MP initial load and tab restore behavior)
+3. Defer non-critical UI/integration test expansion until S2+.
+4. Keep manual validation checklists short and focused per delivered feature.
+
 ## Roadmap
 
 ### Phase S0 - Foundation and constraints lock
@@ -60,14 +69,14 @@ Objectives:
 Work:
 1. Finalize GAP list and constraint decisions (including offline de-scope).
 2. Add adapter interfaces for wrapped ObjC classes.
-3. Define test harness focused on wrapped ObjC classes.
+3. Define lean test harness focused on wrapped ObjC classes and policy logic only.
 4. Document `OfflineStorage` temporary-use policy.
 5. Create preview policy and mock fixture conventions for SwiftUI.
 
 Exit criteria:
 - Constraints are explicit and enforced in docs/checklists.
 - Adapter layer baseline exists.
-- Initial wrapper-focused tests run in CI.
+- Minimal wrapper/policy test floor runs locally and is easy to run before push.
 
 ### Phase S1 - Core P0 parity
 Objectives:
@@ -82,7 +91,7 @@ Work:
 6. Introduce shared Topic list/row building blocks and apply to active SwiftUI lists.
 
 Exit criteria:
-- P0 reading/reply/session paths pass parity tests.
+- P0 reading/reply/session paths validated via targeted tests + manual smoke checks.
 - New SwiftUI screens include preview coverage where feasible.
 
 ### Phase S2 - Favorites/MP and settings modernization
@@ -93,7 +102,7 @@ Work:
 1. Complete favorites advanced behavior parity.
 2. Complete MP advanced behavior parity.
 3. Replace `InAppSettingsKit` based settings with native SwiftUI settings stack.
-4. Add tests for wrapper-backed settings dependencies and migration safety.
+4. Add only critical regression tests for wrapper-backed settings dependencies and migration safety.
 5. Migrate remaining Favorites/MP list UI details away from legacy UIKit/XIB dependencies.
 6. Start `SDWebImage` reduction by removing usage from migrated SwiftUI flows and documenting remaining ObjC call sites.
 
@@ -109,6 +118,7 @@ Work:
 1. Complete remaining Plus routes in SwiftUI.
 2. Validate startup/background behavior parity.
 3. Remove obsolete wrappers that are fully replaced.
+4. Keep `Recherche forum` explicitly deferred to a later step (post-S3), after core Plus parity and stability are complete.
 
 Exit criteria:
 - No open P0/P1 gaps in core phone flows.
@@ -127,22 +137,21 @@ Exit criteria:
 - Decision documented.
 - Implementation done only when justified.
 
-## Test strategy (updated priority)
+## Test strategy (minimal baseline for speed)
 
-### Priority 1: wrapped ObjC class coverage
-Target test coverage around wrapped classes and direct Swift callers:
-1. `HFRswift/Wrapped/MessagesTableViewController`
-2. `HFRswift/Wrapped/ParseMessagesOperation`
-3. `Classes/FavoritesTableViewController` (as wrapped from Swift)
-4. `Classes/HFRMPViewController` (as wrapped from Swift)
-5. `Classes/PlusTableViewController` until replaced
+### Mandatory now (keep)
+1. `TopicOpenPolicy` decisions for `.forum(.all/.favorites/.tracked/.read)`, `.favorites`, `.messages`.
+2. Wrapper adapter smoke tests for:
+   - favorites loading bridge
+   - MP loading bridge
+   - topic page loading bridge
+3. Regression test for MP initial cancellation handling fallback.
+4. Regression test for selected tab restore in same process lifecycle.
 
-### Priority 2: end-to-end smoke scenarios
-1. Categories -> forum -> topic navigation.
-2. Topic quick actions and custom WebView interactions.
-3. Reply success/failure and session recovery.
-4. Favorites and MP advanced actions.
-5. Settings behavior after COTS removal.
+### Deferred (later phases)
+1. Broad end-to-end UI tests.
+2. Exhaustive Plus/settings integration matrix.
+3. Non-critical wrapper permutations.
 
 ### Preview requirements
 For each migrated SwiftUI screen, add previews when feasible:
@@ -158,7 +167,7 @@ Use deterministic mock fixtures and avoid runtime network in previews.
 |---|---|
 | Offline legacy feature accidentally reintroduced | Explicit do-not-port guardrail and checklist gate. |
 | Overuse of OfflineStorage workaround | Mandatory justification + follow-up removal task. |
-| Wrapper regressions | Wrapper-focused tests as top priority. |
+| Wrapper regressions | Minimal mandatory wrapper/policy tests on each high-risk change. |
 | Settings migration regressions | Parallel native SwiftUI settings implementation with parity checks. |
 | Scope creep from iPad | Separate decision gate before implementation. |
 | Delayed `SDWebImage` removal | Track as explicit deferred backlog item and remove only when ObjC image-loading call sites are migrated/replaced. |
@@ -166,7 +175,7 @@ Use deterministic mock fixtures and avoid runtime network in previews.
 ## Acceptance criteria
 1. No implementation task targets `OfflineMessagesTableViewController`.
 2. No new `OfflineStorage` usage without explicit mandatory note.
-3. Wrapped ObjC tests are present and running in CI.
+3. Minimal mandatory tests (wrapper/policy/lifecycle regressions) are present and run before push.
 4. New SwiftUI screens include mock previews when feasible.
 5. Settings COTS dependency removed.
 6. iPad has documented decision before engineering work starts.
@@ -178,3 +187,4 @@ Use deterministic mock fixtures and avoid runtime network in previews.
 3. Migration is incremental with wrappers removed only after parity pass.
 4. Temporary workaround debt must be tracked and retired.
 5. `Favorites.swift` pattern is the reference migration template for list-based screens.
+6. Test effort stays intentionally minimal until core S1/S2 feature parity is complete.

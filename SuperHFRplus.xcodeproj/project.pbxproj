@@ -956,8 +956,6 @@
 		158CFA9D2E301F03000594F1 /* TabBarController.m in Sources */ = {isa = PBXBuildFile; fileRef = CA9E86881243C11A000EE882 /* TabBarController.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
 		158CFA9F2E30ED33000594F1 /* libicucore.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 158CFA9E2E30ED33000594F1 /* libicucore.tbd */; };
 		158CFAA12E30ED5B000594F1 /* libiconv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 158CFAA02E30ED5B000594F1 /* libiconv.tbd */; };
-		158CFAA22E316306000594F1 /* InAppSettingsKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 15B5FC4C264FAE48006CBEF0 /* InAppSettingsKit.xcframework */; };
-		158CFAA32E316306000594F1 /* InAppSettingsKit.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 15B5FC4C264FAE48006CBEF0 /* InAppSettingsKit.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		158CFAA52E316314000594F1 /* GiphyUISDK.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 15B5FC5626512005006CBEF0 /* GiphyUISDK.xcframework */; };
 		158CFAA62E316314000594F1 /* GiphyUISDK.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 15B5FC5626512005006CBEF0 /* GiphyUISDK.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		158CFAA72E31631E000594F1 /* SDWebImage.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 154E91212D65208D00E883A4 /* SDWebImage.framework */; };
@@ -1732,7 +1730,6 @@
 			files = (
 				158CFAA62E316314000594F1 /* GiphyUISDK.xcframework in Embed Frameworks */,
 				158CFAA82E31631E000594F1 /* SDWebImage.framework in Embed Frameworks */,
-				158CFAA32E316306000594F1 /* InAppSettingsKit.xcframework in Embed Frameworks */,
 				158CFAAA2E316320000594F1 /* SimpleKeychain.xcframework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
@@ -2808,7 +2805,6 @@
 				15EC3F5F2E2EC128002CF922 /* UIKit.framework in Frameworks */,
 				158CFAA92E316320000594F1 /* SimpleKeychain.xcframework in Frameworks */,
 				15EC3F602E2EC128002CF922 /* Foundation.framework in Frameworks */,
-				158CFAA22E316306000594F1 /* InAppSettingsKit.xcframework in Frameworks */,
 				15EC3F612E2EC128002CF922 /* CoreGraphics.framework in Frameworks */,
 				15EC3F622E2EC128002CF922 /* QuartzCore.framework in Frameworks */,
 				15EC3F632E2EC128002CF922 /* AssetsLibrary.framework in Frameworks */,

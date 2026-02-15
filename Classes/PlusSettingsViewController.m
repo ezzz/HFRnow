@@ -6,6 +6,15 @@
 //
 
 #import "PlusSettingsViewController.h"
+
+#if APP_SWIFT
+
+@implementation PlusSettingsViewController
+@synthesize spinner;
+@end
+
+#else
+
 #import "HFRplusAppDelegate.h"
 #import "ThemeColors.h"
 #import "ThemeManager.h"
@@ -354,4 +363,5 @@
 
 @end
 
+#endif
 

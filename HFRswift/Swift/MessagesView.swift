@@ -534,13 +534,7 @@ struct MessagesView: View {
     }
 
     private static func currentAppColorScheme() -> ColorScheme {
-        let style =
-            UIApplication.shared.connectedScenes
-                .compactMap { $0 as? UIWindowScene }
-                .flatMap(\.windows)
-                .first(where: { $0.isKeyWindow })?
-                .traitCollection.userInterfaceStyle ?? .unspecified
-        return style == .dark ? .dark : .light
+        AppThemeResolver.currentColorScheme()
     }
 
     private func syncAppColorScheme() {
