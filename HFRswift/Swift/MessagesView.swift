@@ -451,6 +451,7 @@ struct MessagesView: View {
     let curPage: Int // Stored again as it can be updated when reloading the topic
     let maxPage: Int
     let separatorNewMessages: Bool
+    let initialLoadScroll: WebView.InitialScroll?
     let topicPageLoader: TopicPageLoading
     let topicPageRenderer: TopicPageRendering
     @Environment(\.colorScheme) private var colorScheme
@@ -488,6 +489,7 @@ struct MessagesView: View {
         curPage: Int,
         maxPage: Int,
         separatorNewMessages: Bool,
+        initialLoadScroll: WebView.InitialScroll? = nil,
         topicPageLoader: TopicPageLoading = ObjCTopicPageLoader(),
         topicPageRenderer: TopicPageRendering = OfflineStorageTopicPageRenderer()
     ) {
@@ -495,9 +497,11 @@ struct MessagesView: View {
         self.curPage = curPage
         self.maxPage = maxPage
         self.separatorNewMessages = separatorNewMessages
+        self.initialLoadScroll = initialLoadScroll
         self.topicPageLoader = topicPageLoader
         self.topicPageRenderer = topicPageRenderer
         self._page = State(initialValue: curPage)
+        self._initialScroll = State(initialValue: initialLoadScroll)
 
         // extraire l’ancre (#xxxx) si présente
         if let url = URL(string: topic.aURL), let fragment = url.fragment {

@@ -62,26 +62,23 @@ class FavoritesViewModel: ObservableObject {
             }
         }
     }
-}
 
-struct CategoryView: View {
-    var body: some View {
-        Text("Category View")
-            .navigationTitle("Apple")
-            .navigationBarTitleDisplayMode(.inline)
+    func clearForLoggedOut() {
+        DispatchQueue.main.async {
+            self.isLoading = false
+            self.errorMessage = nil
+            self.favorites = []
+        }
     }
 }
 
 struct FavoriteSectionView: View {
     let favorite: Favorite
     @Binding var visitedURLs: Set<String>
+    @ObservedObject var accountsStore: AccountsStore
 
     // Cast centralisé
     private var topics: [Topic] { (favorite.topics as? [Topic]) ?? [] }
-
-    @State private var isActive = false
-    @State private var currentUrl: String?
-    @State private var selectedTopic: Topic?
 
     private var headerTitle: String {
         if let name = favorite.forum?.aTitle { return name }
@@ -89,10 +86,23 @@ struct FavoriteSectionView: View {
         return "Favori"
     }
 
+    @ViewBuilder
+    private var sectionHeader: some View {
+        if let forum = favorite.forum {
+            NavigationLink(headerTitle) {
+                ForumTopicsListView(
+                    forum: forum,
+                    initialFlagOverride: .favorites,
+                    accountsStore: accountsStore
+                )
+            }
+        } else {
+            Text(headerTitle)
+        }
+    }
+
     var body: some View {
-        Section(header: NavigationLink(headerTitle) {
-            CategoryView()
-        }) {
+        Section(header: sectionHeader) {
             ForEach(topics) { topic in
                 VStack(alignment: .leading, spacing: 8) {
                     TopicRowView(topic: topic, visitedURLs: $visitedURLs)
@@ -100,42 +110,7 @@ struct FavoriteSectionView: View {
                 .contentShape(Rectangle())
                 .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
             }
-            .contextMenu {
-                /* TBD
-                Button {
-                    selectedTopic = topic
-                    currentUrl = topic.aURL ?? ""
-                    if let url = topic.aURL ?? topic.aURLOfLastPage {
-                        visitedURLs.insert(url)
-                    }
-                    isActive = true
-                } label: {
-                    Label("Ouvrir", systemImage: "arrow.right.circle")
-                }
-
-                Button {
-                    selectedTopic = topic
-                    currentUrl = topic.aURLOfLastPage ?? ""
-                    if let url = topic.aURLOfLastPage ?? topic.aURL {
-                        visitedURLs.insert(url)
-                    }
-                    isActive = true
-                } label: {
-                    Label("Dernière page", systemImage: "arrow.uturn.right.circle")
-                }
-
-                Button {
-                    if let url = topic.aURL {
-                        UIPasteboard.general.string = url
-                    }
-                } label: {
-                    Label("Copier l’URL", systemImage: "doc.on.doc")
-                }*/
-                
-            }
         }
-        // 🔑 Navigation centralisée : destination toujours un View
-        //.background(navLinkHidden)
     }
 }
 
@@ -149,6 +124,18 @@ struct FavoritesListView: View {
     @State private var showAddAccountSheet = false
     @State private var showLogoutConfirm = false
 
+    private var isLoggedIn: Bool {
+        accountsStore.currentAccount != nil
+    }
+
+    private func refreshContentForSessionState() {
+        if isLoggedIn {
+            viewModel.loadFavorites()
+        } else {
+            viewModel.clearForLoggedOut()
+        }
+    }
+
     @MainActor
     init(
         viewModel: FavoritesViewModel? = nil,
@@ -161,34 +148,53 @@ struct FavoritesListView: View {
     var body: some View {
         NavigationStack {
             List {
-                if viewModel.isLoading {
-                    HStack {
-                        Spacer()
-                        ProgressView("Chargement...")
-                        Spacer()
+                if !isLoggedIn {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Label("Connectez-vous pour accéder aux favoris", systemImage: "star.slash")
+                            .font(.headline)
+                        Text("Ajoutez un pseudo pour charger vos favoris et vos drapeaux.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Button("Ajouter un pseudo") {
+                            showAddAccountSheet = true
+                        }
+                        .buttonStyle(.borderedProminent)
                     }
-                }
-                if let errorMessage = viewModel.errorMessage {
-                    Text("Erreur : \(errorMessage)")
-                        .foregroundStyle(.red)
-                }
-                if !viewModel.isLoading && viewModel.favorites.isEmpty && viewModel.errorMessage == nil {
-                    Text("Aucun favori")
-                        .foregroundStyle(.secondary)
-                }
-                ForEach(viewModel.favorites) { favorite in
-                    FavoriteSectionView(favorite: favorite, visitedURLs: $visitedURLs)
+                    .padding(.vertical, 8)
+                } else {
+                    if viewModel.isLoading {
+                        HStack {
+                            Spacer()
+                            ProgressView("Chargement...")
+                            Spacer()
+                        }
+                    }
+                    if let errorMessage = viewModel.errorMessage {
+                        Text("Erreur : \(errorMessage)")
+                            .foregroundStyle(.red)
+                    }
+                    if !viewModel.isLoading && viewModel.favorites.isEmpty && viewModel.errorMessage == nil {
+                        Text("Aucun favori")
+                            .foregroundStyle(.secondary)
+                    }
+                    ForEach(viewModel.favorites) { favorite in
+                        FavoriteSectionView(
+                            favorite: favorite,
+                            visitedURLs: $visitedURLs,
+                            accountsStore: accountsStore
+                        )
+                    }
                 }
             }
             .navigationTitle("Favoris")
             .onAppear {
                 if !hasLoaded {
-                    viewModel.loadFavorites()
+                    refreshContentForSessionState()
                     hasLoaded = true
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: Notification.Name("kLoginChangedNotification"))) { _ in
-                viewModel.loadFavorites()
+                refreshContentForSessionState()
             }
             .onReceive(NotificationCenter.default.publisher(for: .rootTabReselected)) { notification in
                 guard
@@ -197,7 +203,7 @@ struct FavoritesListView: View {
                 else {
                     return
                 }
-                viewModel.loadFavorites()
+                refreshContentForSessionState()
             }
             .toolbar {
                 MainToolbarContent(
@@ -282,7 +288,8 @@ struct TopicRowView: View {
             showUnreadBadge: true,
             showUnreadBadgeWhenZero: false,
             leadingBottomText: pageLabel,
-            trailingBottomText: trailingLabel
+            trailingBottomText: trailingLabel,
+            openContext: .favorites
         ) { openedURL in
             let url = openedURL ?? topic.aURL ?? topic.aURLOfLastPage ?? ""
             if !url.isEmpty {

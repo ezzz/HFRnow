@@ -1014,9 +1014,16 @@
                   completion:(void (^)(NSArray<Topic *> *topics, NSError *error))completion {
     self.forumName = forum.aTitle;
     self.forumBaseURL = forum.aURL;
-    self.forumFavorisURL = [forum URLforType:kFav];
-    self.forumFlag1URL = [forum URLforType:kFlag];
-    self.forumFlag0URL = [forum URLforType:kRed];
+    if (forum && [forum getHFRID] > 0) {
+        self.forumFavorisURL = [forum URLforType:kFav];
+        self.forumFlag1URL = [forum URLforType:kFlag];
+        self.forumFlag0URL = [forum URLforType:kRed];
+    } else {
+        // Favorites categories can come with direct list URLs instead of canonical /hfr paths.
+        self.forumFavorisURL = self.forumBaseURL;
+        self.forumFlag1URL = self.forumBaseURL;
+        self.forumFlag0URL = self.forumBaseURL;
+    }
 
     switch (flagIndex) {
         case 1:

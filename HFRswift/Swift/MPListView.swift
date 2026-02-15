@@ -46,6 +46,14 @@ final class MPListViewModel: ObservableObject {
             }
         }
     }
+
+    func clearForLoggedOut() {
+        DispatchQueue.main.async {
+            self.isLoading = false
+            self.errorMessage = nil
+            self.topics = []
+        }
+    }
 }
 
 @MainActor
@@ -55,6 +63,18 @@ struct MPListView: View {
     @State private var hasLoaded = false
     @State private var showAddAccountSheet = false
     @State private var showLogoutConfirm = false
+
+    private var isLoggedIn: Bool {
+        accountsStore.currentAccount != nil
+    }
+
+    private func refreshContentForSessionState() {
+        if isLoggedIn {
+            viewModel.load()
+        } else {
+            viewModel.clearForLoggedOut()
+        }
+    }
 
     @MainActor
     init(
@@ -68,34 +88,49 @@ struct MPListView: View {
     var body: some View {
         NavigationStack {
             List {
-                if viewModel.isLoading {
-                    HStack {
-                        Spacer()
-                        ProgressView("Chargement...")
-                        Spacer()
+                if !isLoggedIn {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Label("Connectez-vous pour accéder aux MP", systemImage: "envelope.badge")
+                            .font(.headline)
+                        Text("Ajoutez un pseudo pour charger vos messages privés.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Button("Ajouter un pseudo") {
+                            showAddAccountSheet = true
+                        }
+                        .buttonStyle(.borderedProminent)
                     }
-                }
-                if let errorMessage = viewModel.errorMessage {
-                    Text("Erreur : \(errorMessage)")
-                        .foregroundColor(.red)
-                }
-                if !viewModel.isLoading && viewModel.topics.isEmpty && viewModel.errorMessage == nil {
-                    Text("Aucun message")
-                        .foregroundStyle(.secondary)
-                }
-                ForEach(viewModel.topics) { topic in
-                    MPRowView(topic: topic)
+                    .padding(.vertical, 8)
+                } else {
+                    if viewModel.isLoading {
+                        HStack {
+                            Spacer()
+                            ProgressView("Chargement...")
+                            Spacer()
+                        }
+                    }
+                    if let errorMessage = viewModel.errorMessage {
+                        Text("Erreur : \(errorMessage)")
+                            .foregroundColor(.red)
+                    }
+                    if !viewModel.isLoading && viewModel.topics.isEmpty && viewModel.errorMessage == nil {
+                        Text("Aucun message")
+                            .foregroundStyle(.secondary)
+                    }
+                    ForEach(viewModel.topics) { topic in
+                        MPRowView(topic: topic)
+                    }
                 }
             }
             .navigationTitle("Messages")
             .onAppear {
                 if !hasLoaded {
-                    viewModel.load()
+                    refreshContentForSessionState()
                     hasLoaded = true
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: Notification.Name("kLoginChangedNotification"))) { _ in
-                viewModel.load()
+                refreshContentForSessionState()
             }
             .onReceive(NotificationCenter.default.publisher(for: .rootTabReselected)) { notification in
                 guard
@@ -104,7 +139,7 @@ struct MPListView: View {
                 else {
                     return
                 }
-                viewModel.load()
+                refreshContentForSessionState()
             }
             .toolbar {
                 MainToolbarContent(
@@ -182,6 +217,7 @@ struct MPRowView: View {
             showUnreadBadge: false,
             leadingBottomText: interlocutorLabel,
             trailingBottomText: trailingLabel,
+            openContext: .messages,
             quickActions: TopicQuickActionsConfiguration(
                 showOpenFirstPage: true,
                 showOpenLastPage: true,

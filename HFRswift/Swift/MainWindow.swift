@@ -222,8 +222,10 @@ struct CategoriesListView: View {
 @MainActor
 struct ForumTopicsListView: View {
     let forum: Forum
+    let initialFlagOverride: TopicListFlag?
     @StateObject private var viewModel: ForumTopicsListViewModel
     @ObservedObject private var accountsStore: AccountsStore
+    @AppStorage("HFRswiftGlobalTopicListFlag") private var globalTopicListFlagRawValue = TopicListFlag.all.rawValue
     @State private var hasLoaded = false
     @State private var visitedURLs: Set<String> = []
     @State private var showAddAccountSheet = false
@@ -232,12 +234,30 @@ struct ForumTopicsListView: View {
     @MainActor
     init(
         forum: Forum,
+        initialFlagOverride: TopicListFlag? = nil,
         viewModel: ForumTopicsListViewModel? = nil,
         accountsStore: AccountsStore? = nil
     ) {
         self.forum = forum
+        self.initialFlagOverride = initialFlagOverride
         _viewModel = StateObject(wrappedValue: viewModel ?? ForumTopicsListViewModel(forum: forum))
         self._accountsStore = ObservedObject(wrappedValue: accountsStore ?? AccountsStore())
+    }
+
+    private var persistedGlobalFlag: TopicListFlag {
+        TopicListFlag(rawValue: globalTopicListFlagRawValue) ?? .all
+    }
+
+    private var initialFlagForCurrentPresentation: TopicListFlag {
+        let preferredFlag = initialFlagOverride ?? persistedGlobalFlag
+        if !isLoggedIn && preferredFlag != .all {
+            return .all
+        }
+        return preferredFlag
+    }
+
+    private var isLoggedIn: Bool {
+        accountsStore.currentAccount != nil
     }
 
     private func footerLeft(for topic: Topic) -> String {
@@ -258,12 +278,29 @@ struct ForumTopicsListView: View {
         List {
             Picker("Filtre", selection: $viewModel.selectedFlag) {
                 Text("Tous").tag(TopicListFlag.all)
-                Text("Favoris").tag(TopicListFlag.favorites)
-                Text("Suivis").tag(TopicListFlag.tracked)
-                Text("Lus").tag(TopicListFlag.read)
+                Text("Favoris")
+                    .tag(TopicListFlag.favorites)
+                    .disabled(!isLoggedIn)
+                Text("Suivis")
+                    .tag(TopicListFlag.tracked)
+                    .disabled(!isLoggedIn)
+                Text("Lus")
+                    .tag(TopicListFlag.read)
+                    .disabled(!isLoggedIn)
             }
             .pickerStyle(.segmented)
             .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+
+            if !isLoggedIn {
+                VStack(alignment: .leading, spacing: 6) {
+                    Label("Connexion requise pour Favoris, Suivis et Lus", systemImage: "person.crop.circle.badge.exclamationmark")
+                        .font(.footnote.weight(.semibold))
+                    Text("Vous pouvez consulter \"Tous\" sans compte.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+            }
 
             if viewModel.isLoading {
                 HStack {
@@ -288,7 +325,8 @@ struct ForumTopicsListView: View {
                     titleFont: .headline,
                     showUnreadBadge: true,
                     leadingBottomText: footerLeft(for: topic),
-                    trailingBottomText: footerRight(for: topic)
+                    trailingBottomText: footerRight(for: topic),
+                    openContext: .forum(selectedFlag: viewModel.selectedFlag)
                 ) { openedURL in
                     if let openedURL, !openedURL.isEmpty {
                         visitedURLs.insert(openedURL)
@@ -314,11 +352,31 @@ struct ForumTopicsListView: View {
         }
         .onAppear {
             if !hasLoaded {
+                let initialFlag = initialFlagForCurrentPresentation
+                if viewModel.selectedFlag != initialFlag {
+                    viewModel.selectedFlag = initialFlag
+                }
                 viewModel.load()
                 hasLoaded = true
             }
         }
-        .onChange(of: viewModel.selectedFlag) { _, _ in
+        .onChange(of: viewModel.selectedFlag) { _, newValue in
+            if !isLoggedIn && newValue != .all {
+                viewModel.selectedFlag = .all
+                return
+            }
+            if globalTopicListFlagRawValue != newValue.rawValue {
+                globalTopicListFlagRawValue = newValue.rawValue
+            }
+            guard hasLoaded else { return }
+            viewModel.load()
+        }
+        .onChange(of: accountsStore.currentAccount?.id) { _, _ in
+            if !isLoggedIn && viewModel.selectedFlag != .all {
+                viewModel.selectedFlag = .all
+                return
+            }
+            guard hasLoaded else { return }
             viewModel.load()
         }
         .onReceive(NotificationCenter.default.publisher(for: .rootTabReselected)) { notification in
@@ -473,7 +531,7 @@ private enum CategoriesPreviewFactory {
 }
 
 struct RootTabView: View {
-    @State private var selectedTab: RootTabIdentifier = .categories
+    @State private var selectedTab: RootTabIdentifier = .favorites
 
     var body: some View {
         TabView(selection: $selectedTab) {
