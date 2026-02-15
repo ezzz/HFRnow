@@ -284,7 +284,32 @@ int nightDelay;
         [self setTheme:calculatedTheme];
     } else if ([[NSUserDefaults standardUserDefaults] integerForKey:@"auto_theme"] == AUTO_THEME_AUTO_IOS) {
         if (@available(iOS 13.0, *)) {
-            if (UITraitCollection.currentTraitCollection.userInterfaceStyle == UIUserInterfaceStyleDark) {
+            UITraitCollection *traitCollection = nil;
+
+            if (@available(iOS 13.0, *)) {
+                NSSet<UIScene *> *scenes = [UIApplication sharedApplication].connectedScenes;
+                for (UIScene *scene in scenes) {
+                    if (![scene isKindOfClass:[UIWindowScene class]]) {
+                        continue;
+                    }
+                    UIWindowScene *windowScene = (UIWindowScene *)scene;
+                    for (UIWindow *window in windowScene.windows) {
+                        if (window.isKeyWindow) {
+                            traitCollection = window.traitCollection;
+                            break;
+                        }
+                    }
+                    if (traitCollection != nil) {
+                        break;
+                    }
+                }
+            }
+
+            if (traitCollection == nil) {
+                traitCollection = [UIScreen mainScreen].traitCollection;
+            }
+
+            if (traitCollection.userInterfaceStyle == UIUserInterfaceStyleDark) {
                 NSLog(@"DYNAMIC -> Dark");
                 [self setTheme:ThemeDark];
             } else {

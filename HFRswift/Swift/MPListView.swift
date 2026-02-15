@@ -14,6 +14,7 @@ final class MPListViewModel: ObservableObject {
     @Published var isLoading = false
 
     private let topicsLoader: MPTopicsLoading
+    private var loadRequestID = 0
 
     init(
         topicsLoader: MPTopicsLoading = ObjCMPTopicsLoader(),
@@ -27,7 +28,9 @@ final class MPListViewModel: ObservableObject {
         self.isLoading = initialIsLoading
     }
 
-    func load() {
+    func load(retryOnCancellation: Bool = true) {
+        loadRequestID += 1
+        let requestID = loadRequestID
         DispatchQueue.main.async {
             self.isLoading = true
             self.errorMessage = nil
@@ -35,14 +38,23 @@ final class MPListViewModel: ObservableObject {
         topicsLoader.fetchTopics { [weak self] topics, error in
             guard let self else { return }
             DispatchQueue.main.async {
+                guard requestID == self.loadRequestID else { return }
                 self.isLoading = false
-            }
-            if let error {
-                self.errorMessage = error.localizedDescription
-                self.topics = []
-            } else {
-                self.errorMessage = nil
-                self.topics = topics ?? []
+                if let error, Self.isCancellationError(error) {
+                    if retryOnCancellation {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+                            self?.load(retryOnCancellation: false)
+                        }
+                    }
+                    return
+                }
+                if let error {
+                    self.errorMessage = error.localizedDescription
+                    self.topics = []
+                } else {
+                    self.errorMessage = nil
+                    self.topics = topics ?? []
+                }
             }
         }
     }
@@ -53,6 +65,18 @@ final class MPListViewModel: ObservableObject {
             self.errorMessage = nil
             self.topics = []
         }
+    }
+
+    private static func isCancellationError(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
+            return true
+        }
+        if nsError.domain == "ASIHTTPRequestErrorDomain" && nsError.code == 4 {
+            return true
+        }
+        let message = nsError.localizedDescription.lowercased()
+        return message.contains("cancel") || message.contains("annul")
     }
 }
 
@@ -131,6 +155,15 @@ struct MPListView: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: Notification.Name("kLoginChangedNotification"))) { _ in
                 refreshContentForSessionState()
+            }
+            .onChange(of: accountsStore.currentAccount?.id) { _, newAccountID in
+                if newAccountID != nil {
+                    if viewModel.topics.isEmpty && !viewModel.isLoading {
+                        viewModel.load()
+                    }
+                } else {
+                    viewModel.clearForLoggedOut()
+                }
             }
             .onReceive(NotificationCenter.default.publisher(for: .rootTabReselected)) { notification in
                 guard

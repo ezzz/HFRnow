@@ -641,12 +641,12 @@ struct TopicListRowView: View {
     @ViewBuilder
     private var quickActionsMenuContent: some View {
         if quickActions.showOpenFirstPage, firstPageURL != nil {
-            Button("Premiere page", systemImage: "arrow.up.to.line") {
+            Button("Premiere page", systemImage: "backward.end") {
                 openFirstPageAction()
             }
         }
         if quickActions.showOpenLastPage, lastPageURL != nil {
-            Button("Derniere page", systemImage: "arrow.down.to.line") {
+            Button("Derniere page", systemImage: "forward.end") {
                 openLastPageAction()
             }
         }

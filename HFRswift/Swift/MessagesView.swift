@@ -454,7 +454,6 @@ struct MessagesView: View {
     let initialLoadScroll: WebView.InitialScroll?
     let topicPageLoader: TopicPageLoading
     let topicPageRenderer: TopicPageRendering
-    @Environment(\.colorScheme) private var colorScheme
 
     @State private var page: Int
     @State private var fileURL: URL?
@@ -481,6 +480,7 @@ struct MessagesView: View {
     @State private var pendingPostedReply: ReplyPostingResult?
     @State private var showPostSuccessToast = false
     @State private var postSuccessToastText = "Hooray"
+    @State private var appColorScheme: ColorScheme = .light
     // Remove the unused
     // @State private var isPresentingAddMessage = false
 
@@ -502,6 +502,7 @@ struct MessagesView: View {
         self.topicPageRenderer = topicPageRenderer
         self._page = State(initialValue: curPage)
         self._initialScroll = State(initialValue: initialLoadScroll)
+        self._appColorScheme = State(initialValue: Self.currentAppColorScheme())
 
         // extraire l’ancre (#xxxx) si présente
         if let url = URL(string: topic.aURL), let fragment = url.fragment {
@@ -530,6 +531,23 @@ struct MessagesView: View {
         // ⚠️ On ne garde pas le fragment quand on change de page
         comps.fragment = nil
         return comps.string ?? ""
+    }
+
+    private static func currentAppColorScheme() -> ColorScheme {
+        let style =
+            UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .flatMap(\.windows)
+                .first(where: { $0.isKeyWindow })?
+                .traitCollection.userInterfaceStyle ?? .unspecified
+        return style == .dark ? .dark : .light
+    }
+
+    private func syncAppColorScheme() {
+        let resolved = Self.currentAppColorScheme()
+        if appColorScheme != resolved {
+            appColorScheme = resolved
+        }
     }
 
     private func loadPage(_ page: Int) {
@@ -780,7 +798,7 @@ struct MessagesView: View {
                     self.initialScroll = .top
                     loadPage(1)
                 } label: {
-                    Label("Première page", systemImage: "backward.end.alt")
+                    Label("Première page", systemImage: "backward.end")
                 }
             }
             Button {
@@ -789,7 +807,7 @@ struct MessagesView: View {
                 self.initialScroll = .bottom
                 loadPage(page - 1)
             } label: {
-                Label("Page précédente", systemImage: "backward.end")
+                Label("Page précédente", systemImage: "chevron.backward")
             }  
         }
         Divider()
@@ -811,7 +829,17 @@ struct MessagesView: View {
                 self.initialScroll = .top
                 loadPage(page + 1)
             } label: {
-                Label("Page suivante", systemImage: "forward.end")
+                Label("Page suivante", systemImage: "chevron.forward")
+            }
+            if page + 1 < maxPage {
+                Button {
+                    // Last page: start at top
+                    self.anchor = nil
+                    self.initialScroll = .top
+                    loadPage(maxPage)
+                } label: {
+                    Label("Dernière page", systemImage: "forward.end")
+                }
             }
             Button {
                 // Dernière réponse: start at top
@@ -819,7 +847,7 @@ struct MessagesView: View {
                 self.initialScroll = .bottom
                 loadPage(maxPage)
             } label: {
-                Label("Dernière réponse", systemImage: "forward.end.alt")
+                Label("Dernière réponse", systemImage: "text.append")
             }
         }
         Divider()
@@ -853,7 +881,14 @@ struct MessagesView: View {
                     }
                 }
                 .onAppear {
+                    syncAppColorScheme()
                     loadPage(page)
+                }
+                .onReceive(NotificationCenter.default.publisher(for: Notification.Name("kThemeChangedNotification"))) { _ in
+                    syncAppColorScheme()
+                }
+                .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+                    syncAppColorScheme()
                 }
                 .background(linkedTopicNavigationLink)
                 .sheet(item: $safariDestination) { destination in
@@ -862,7 +897,7 @@ struct MessagesView: View {
                 }
         } else if fileURL != nil && cacheURL != nil {
             ZStack {
-                Color(colorScheme == .dark ? .black : .systemGray6)
+                Color(appColorScheme == .dark ? .black : .systemGray6)
 
                 WebView(
                     fileURL: fileURL,
@@ -871,7 +906,7 @@ struct MessagesView: View {
                     initialScroll: initialScroll,
                     currentPage: page,
                     maxPage: maxPage,
-                    colorScheme: colorScheme,
+                    colorScheme: appColorScheme,
                     onWebAction: handleWebAction,
                     onContentReady: {
                         withAnimation(.easeOut(duration: 0.14)) {
@@ -887,7 +922,7 @@ struct MessagesView: View {
                     .id(page) // force a new WKWebView per page
 
                 if showWebViewLoadCover {
-                    Color(colorScheme == .dark ? .black : .systemGray6)
+                    Color(appColorScheme == .dark ? .black : .systemGray6)
                         .ignoresSafeArea()
                         .allowsHitTesting(false)
                         .transition(.opacity)
@@ -895,6 +930,15 @@ struct MessagesView: View {
             }
             .ignoresSafeArea()
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                syncAppColorScheme()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: Notification.Name("kThemeChangedNotification"))) { _ in
+                syncAppColorScheme()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+                syncAppColorScheme()
+            }
 
                 .simultaneousGesture(
                     DragGesture().onEnded { value in
@@ -1012,7 +1056,7 @@ struct MessagesView: View {
                                 Button {
                                     refreshCurrentPageAtBottom()
                                 } label: {
-                                    Text("Rafraichir")
+                                    Text("Actualiser")
                                 }
                                 .buttonStyle(.glassProminent)
                                 .transition(.opacity.combined(with: .scale))
@@ -1055,26 +1099,15 @@ struct MessagesView: View {
                 .animation(.easeOut(duration: 0.22), value: shouldShowBottomRefreshButton)
         } else {
             ZStack {
-                //HatchedBackground()
-                //    .ignoresSafeArea()
                 VStack(spacing: 8) {
-                    SpinnerLoading()
+                    ProgressView()
                     Text("Chargement...")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
-                .padding(16)
-                .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(Color.black.opacity(0.1))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Color.black.opacity(0.08), lineWidth: 0.5)
-                )
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                .contentShape(Rectangle())
                 .navigationTitle("My title")
                 .navigationBarTitleDisplayMode(.inline)
-                //.padding()
             }
         
             .toolbar {
@@ -1154,54 +1187,20 @@ struct MessagesView: View {
                 Text("Choisir une page entre 1 et \(maxPage)")
             }
             .onAppear {
+                syncAppColorScheme()
                 loadPage(page)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: Notification.Name("kThemeChangedNotification"))) { _ in
+                syncAppColorScheme()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+                syncAppColorScheme()
             }
             .background(linkedTopicNavigationLink)
             .sheet(item: $safariDestination) { destination in
                 SafariInAppView(url: destination.url)
                     .ignoresSafeArea()
             }
-        }
-    }
-}
-
-struct SpinnerLoading: View {
-
-    var outerColor = Color.gray
-    var innerColor = Color.cyan
-
-    @State private var outerAngle: Angle = .degrees(0)
-    @State private var innerAngle: Angle = .degrees(0)
-
-    var body: some View {
-        ZStack {
-            trimmedCircle(color: outerColor, clockwise: true, scale: 1.0)
-                .rotationEffect(outerAngle)
-            trimmedCircle(color: innerColor, clockwise: false, scale: 0.75)
-                .rotationEffect(innerAngle)
-        }
-        .frame(width: 30, height: 30)
-        .onAppear {
-            // Animate continuous rotation in place
-            withAnimation(.linear(duration: 1.0).repeatForever(autoreverses: false)) {
-                outerAngle = .degrees(360)
-            }
-            withAnimation(.linear(duration: 1.0).repeatForever(autoreverses: false)) {
-                innerAngle = .degrees(-360)
-            }
-        }
-    }
-
-    private func trimmedCircle(color: Color, clockwise: Bool, scale: CGFloat) -> some View {
-        GeometryReader { proxy in
-            let borderWidth = min(proxy.size.width, proxy.size.height) / 14
-            Circle()
-                .trim(from: 0.1, to: 0.9)
-                //.inset(by: borderWidth / 2)
-                .stroke(color, style: StrokeStyle(lineWidth: borderWidth, lineCap: .round))
-                .scaleEffect(scale)
-                .frame(width: proxy.size.width, height: proxy.size.height)
-                .contentShape(Rectangle())
         }
     }
 }

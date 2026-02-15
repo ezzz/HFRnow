@@ -531,7 +531,26 @@ private enum CategoriesPreviewFactory {
 }
 
 struct RootTabView: View {
-    @State private var selectedTab: RootTabIdentifier = .favorites
+    private enum RuntimeState {
+        static var selectedTab: RootTabIdentifier = .favorites
+    }
+
+    @State private var selectedTab: RootTabIdentifier
+    @State private var appColorScheme: ColorScheme = .light
+
+    init() {
+        _selectedTab = State(initialValue: RuntimeState.selectedTab)
+    }
+
+    private func syncAppColorScheme() {
+        let style =
+            UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .flatMap(\.windows)
+                .first(where: { $0.isKeyWindow })?
+                .traitCollection.userInterfaceStyle ?? .unspecified
+        appColorScheme = style == .dark ? .dark : .light
+    }
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -562,6 +581,22 @@ struct RootTabView: View {
             }
         }
         .tabBarMinimizeBehavior(.onScrollDown)
+        .preferredColorScheme(appColorScheme)
+        .onAppear {
+            syncAppColorScheme()
+            if selectedTab != RuntimeState.selectedTab {
+                selectedTab = RuntimeState.selectedTab
+            }
+        }
+        .onChange(of: selectedTab) { _, newValue in
+            RuntimeState.selectedTab = newValue
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("kThemeChangedNotification"))) { _ in
+            syncAppColorScheme()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            syncAppColorScheme()
+        }
         .background(
             TabBarReselectionObserver { selectedIndex in
                 guard
