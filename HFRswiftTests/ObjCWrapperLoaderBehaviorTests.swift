@@ -193,6 +193,94 @@ final class ObjCWrapperLoaderBehaviorTests: XCTestCase {
     }
 }
 
+final class TopicOpenPolicyTests: XCTestCase {
+    func testForumAllUsesTopicBaseURL() {
+        let topic = makeTopic(
+            url: "https://forum.hardware.fr/hfr/test/liste_sujet-1.htm",
+            currentPage: 1,
+            maxPage: 24
+        )
+
+        let decision = TopicOpenPolicy.defaultDecision(for: topic, context: .forum(selectedFlag: .all))
+
+        XCTAssertEqual(decision.preferredURL, topic.aURL)
+        XCTAssertEqual(decision.fallbackPage, 1)
+    }
+
+    func testForumFilteredUsesFlagURLWhenPresent() {
+        let topic = makeTopic(
+            url: "https://forum.hardware.fr/hfr/test/liste_sujet-1.htm",
+            flagURL: "https://forum.hardware.fr/hfr/test/liste_sujet-18.htm",
+            lastPostURL: "https://forum.hardware.fr/hfr/test/liste_sujet-24.htm",
+            currentPage: 18,
+            maxPage: 24
+        )
+
+        let decision = TopicOpenPolicy.defaultDecision(for: topic, context: .forum(selectedFlag: .tracked))
+
+        XCTAssertEqual(decision.preferredURL, topic.aURLOfFlag)
+        XCTAssertEqual(decision.fallbackPage, 18)
+    }
+
+    func testForumFilteredFallsBackToLastPostWhenNoFlagURL() {
+        let topic = makeTopic(
+            url: "https://forum.hardware.fr/hfr/test/liste_sujet-1.htm",
+            lastPostURL: "https://forum.hardware.fr/hfr/test/liste_sujet-33.htm",
+            currentPage: 3,
+            maxPage: 33
+        )
+
+        let decision = TopicOpenPolicy.defaultDecision(for: topic, context: .forum(selectedFlag: .favorites))
+
+        XCTAssertEqual(decision.preferredURL, topic.aURLOfLastPost)
+        XCTAssertEqual(decision.fallbackPage, 33)
+    }
+
+    func testFavoritesUsesFlagURLWhenPresent() {
+        let topic = makeTopic(
+            url: "https://forum.hardware.fr/hfr/test/liste_sujet-1.htm",
+            flagURL: "https://forum.hardware.fr/hfr/test/liste_sujet-7.htm",
+            currentPage: 7,
+            maxPage: 10
+        )
+
+        let decision = TopicOpenPolicy.defaultDecision(for: topic, context: .favorites)
+
+        XCTAssertEqual(decision.preferredURL, topic.aURLOfFlag)
+        XCTAssertEqual(decision.fallbackPage, 7)
+    }
+
+    func testMessagesUsesLastPostURLAndMaxPageFallback() {
+        let topic = makeTopic(
+            url: "https://forum.hardware.fr/hfr/test/liste_sujet-1.htm",
+            lastPostURL: "https://forum.hardware.fr/hfr/test/liste_sujet-55.htm",
+            currentPage: 8,
+            maxPage: 55
+        )
+
+        let decision = TopicOpenPolicy.defaultDecision(for: topic, context: .messages)
+
+        XCTAssertEqual(decision.preferredURL, topic.aURLOfLastPost)
+        XCTAssertEqual(decision.fallbackPage, 55)
+    }
+
+    private func makeTopic(
+        url: String,
+        flagURL: String? = nil,
+        lastPostURL: String? = nil,
+        currentPage: Int,
+        maxPage: Int
+    ) -> Topic {
+        let topic = Topic()
+        topic.aURL = url
+        topic.aURLOfFlag = flagURL
+        topic.aURLOfLastPost = lastPostURL
+        topic.curTopicPage = Int32(currentPage)
+        topic.maxTopicPage = Int32(maxPage)
+        return topic
+    }
+}
+
 private final class FavoritesControllerStub: FavoritesTableViewController {
     enum Result {
         case success([Favorite])

@@ -337,6 +337,60 @@ enum TopicOpenContext: Equatable {
     case messages
 }
 
+struct TopicOpenPolicy {
+    struct Decision {
+        let preferredURL: String?
+        let fallbackPage: Int
+    }
+
+    static func defaultDecision(for topic: Topic, context: TopicOpenContext) -> Decision {
+        let currentPage = max(Int(topic.curTopicPage), 1)
+        let maxPage = max(Int(topic.maxTopicPage), 1)
+
+        switch context {
+        case .forum(let selectedFlag):
+            if let flaggedURL = nonEmptyString(topic.aURLOfFlag) {
+                return Decision(preferredURL: flaggedURL, fallbackPage: currentPage)
+            }
+            if selectedFlag != .all {
+                return Decision(
+                    preferredURL: nonEmptyString(topic.aURLOfLastPost) ?? nonEmptyString(topic.aURL),
+                    fallbackPage: maxPage
+                )
+            }
+            return Decision(
+                preferredURL: nonEmptyString(topic.aURL),
+                fallbackPage: currentPage
+            )
+        case .favorites:
+            if let flaggedURL = nonEmptyString(topic.aURLOfFlag) {
+                return Decision(preferredURL: flaggedURL, fallbackPage: currentPage)
+            }
+            return Decision(
+                preferredURL: nonEmptyString(topic.aURL),
+                fallbackPage: currentPage
+            )
+        case .messages:
+            return Decision(
+                preferredURL: nonEmptyString(topic.aURLOfLastPost) ?? nonEmptyString(topic.aURL),
+                fallbackPage: maxPage
+            )
+        case .generic:
+            return Decision(
+                preferredURL: nonEmptyString(topic.aURL) ?? nonEmptyString(topic.aURLOfLastPost) ?? nonEmptyString(topic.aURLOfLastPage),
+                fallbackPage: currentPage
+            )
+        }
+    }
+
+    private static func nonEmptyString(_ value: String?) -> String? {
+        guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
+            return nil
+        }
+        return trimmed
+    }
+}
+
 private struct TopicNavigationTarget {
     let topic: Topic
     let page: Int
@@ -511,46 +565,11 @@ struct TopicListRowView: View {
     }
 
     private func defaultOpenTarget() -> TopicNavigationTarget? {
-        switch openContext {
-        case .forum(let selectedFlag):
-            if let flaggedURL = nonEmptyString(topic.aURLOfFlag) {
-                return makeNavigationTarget(
-                    preferredURL: flaggedURL,
-                    fallbackPage: currentPageValue
-                )
-            }
-            if selectedFlag != .all {
-                return makeNavigationTarget(
-                    preferredURL: nonEmptyString(topic.aURLOfLastPost) ?? nonEmptyString(topic.aURL),
-                    fallbackPage: maxTopicPageValue
-                )
-            }
-            return makeNavigationTarget(
-                preferredURL: nonEmptyString(topic.aURL),
-                fallbackPage: currentPageValue
-            )
-        case .favorites:
-            if let flaggedURL = nonEmptyString(topic.aURLOfFlag) {
-                return makeNavigationTarget(
-                    preferredURL: flaggedURL,
-                    fallbackPage: currentPageValue
-                )
-            }
-            return makeNavigationTarget(
-                preferredURL: nonEmptyString(topic.aURL),
-                fallbackPage: currentPageValue
-            )
-        case .messages:
-            return makeNavigationTarget(
-                preferredURL: nonEmptyString(topic.aURLOfLastPost) ?? nonEmptyString(topic.aURL),
-                fallbackPage: maxTopicPageValue
-            )
-        case .generic:
-            return makeNavigationTarget(
-                preferredURL: defaultURL,
-                fallbackPage: currentPageValue
-            )
-        }
+        let decision = TopicOpenPolicy.defaultDecision(for: topic, context: openContext)
+        return makeNavigationTarget(
+            preferredURL: decision.preferredURL ?? defaultURL,
+            fallbackPage: decision.fallbackPage
+        )
     }
 
     private func openNavigationTarget(_ target: TopicNavigationTarget?) {
