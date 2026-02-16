@@ -455,6 +455,7 @@ struct MessagesView: View {
     let topicPageLoader: TopicPageLoading
     let topicPageRenderer: TopicPageRendering
 
+    @Environment(\.colorScheme) private var systemColorScheme
     @State private var page: Int
     @State private var fileURL: URL?
     @State private var cacheURL: URL?
@@ -533,12 +534,16 @@ struct MessagesView: View {
         return comps.string ?? ""
     }
 
-    private static func currentAppColorScheme() -> ColorScheme {
-        AppThemeResolver.currentColorScheme()
+    private static func currentAppColorScheme(systemColorScheme: ColorScheme? = nil) -> ColorScheme {
+        AppThemeResolver.resolvedColorScheme(systemColorScheme: systemColorScheme)
     }
 
     private func syncAppColorScheme() {
-        let resolved = Self.currentAppColorScheme()
+        syncAppColorScheme(using: systemColorScheme)
+    }
+
+    private func syncAppColorScheme(using systemColorScheme: ColorScheme) {
+        let resolved = Self.currentAppColorScheme(systemColorScheme: systemColorScheme)
         if appColorScheme != resolved {
             appColorScheme = resolved
         }
@@ -884,6 +889,9 @@ struct MessagesView: View {
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
                     syncAppColorScheme()
                 }
+                .onChange(of: systemColorScheme) { _, newValue in
+                    syncAppColorScheme(using: newValue)
+                }
                 .background(linkedTopicNavigationLink)
                 .sheet(item: $safariDestination) { destination in
                     SafariInAppView(url: destination.url)
@@ -932,6 +940,9 @@ struct MessagesView: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
                 syncAppColorScheme()
+            }
+            .onChange(of: systemColorScheme) { _, newValue in
+                syncAppColorScheme(using: newValue)
             }
 
                 .simultaneousGesture(
@@ -1189,6 +1200,9 @@ struct MessagesView: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
                 syncAppColorScheme()
+            }
+            .onChange(of: systemColorScheme) { _, newValue in
+                syncAppColorScheme(using: newValue)
             }
             .background(linkedTopicNavigationLink)
             .sheet(item: $safariDestination) { destination in

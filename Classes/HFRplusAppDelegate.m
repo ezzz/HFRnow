@@ -131,6 +131,7 @@
     // MPStorage : Update Blacklist from MPStorage
     [[MPStorage shared] initOrResetMP:[[MultisManager sharedManager] getCurrentPseudo]];
 
+    [[ThemeManager sharedManager] checkTheme];
     [self setTheme:[[ThemeManager sharedManager] theme]];
     [[ThemeManager sharedManager] refreshTheme];
 
@@ -346,19 +347,24 @@
     }
     [[UINavigationBar appearance] setBarTintColor:[ThemeColors navBackgroundColor:theme]];
     
-     if (@available(iOS 13.0, *)) {
-         switch ([ThemeManager currentTheme]) {
-             case ThemeLight:
-                 self.window.overrideUserInterfaceStyle = UIUserInterfaceStyleLight;
-                 break;
-             case ThemeDark:
-                 self.window.overrideUserInterfaceStyle = UIUserInterfaceStyleDark;
-                 break;
-             default:
-                self.window.overrideUserInterfaceStyle = UIUserInterfaceStyleUnspecified;
-                 break;
-         }
-     }
+    if (@available(iOS 13.0, *)) {
+        NSInteger autoTheme = [[NSUserDefaults standardUserDefaults] integerForKey:@"auto_theme"];
+        if (autoTheme == AUTO_THEME_AUTO_IOS) {
+            self.window.overrideUserInterfaceStyle = UIUserInterfaceStyleUnspecified;
+        } else {
+            switch ([ThemeManager currentTheme]) {
+                case ThemeLight:
+                    self.window.overrideUserInterfaceStyle = UIUserInterfaceStyleLight;
+                    break;
+                case ThemeDark:
+                    self.window.overrideUserInterfaceStyle = UIUserInterfaceStyleDark;
+                    break;
+                default:
+                    self.window.overrideUserInterfaceStyle = UIUserInterfaceStyleUnspecified;
+                    break;
+            }
+        }
+    }
 }
 
 
@@ -624,9 +630,9 @@
     
     NSLog(@"applicationDidBecomeActive");
     dispatch_after(0, dispatch_get_main_queue(), ^(void){
+        [[ThemeManager sharedManager] checkTheme];
         [self setTheme:[[ThemeManager sharedManager] theme]];
-         [[ThemeManager sharedManager] checkTheme];
-         [[ThemeManager sharedManager] refreshTheme];
+        [[ThemeManager sharedManager] refreshTheme];
          if (cestNoel) {
              // Popup retry
              UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"C'est bientôt Noël !"

@@ -25,8 +25,7 @@ enum RootTabIdentifier: Int {
     case categories = 0
     case favorites = 1
     case messages = 2
-    case settings = 3
-    case more = 4
+    case more = 3
 }
 
 extension Notification.Name {
@@ -39,16 +38,25 @@ enum AppThemeResolver {
     private static let autoThemeIOSValue = 3
     private static let darkThemeValue = 1
 
-    static func currentColorScheme() -> ColorScheme {
-        let defaults = UserDefaults.standard
-        let autoTheme = defaults.integer(forKey: autoThemeKey)
+    static var usesSystemColorScheme: Bool {
+        UserDefaults.standard.integer(forKey: autoThemeKey) == autoThemeIOSValue
+    }
 
-        if autoTheme == autoThemeIOSValue {
-            return currentSystemColorScheme()
-        }
-
-        let manualTheme = defaults.integer(forKey: manualThemeKey)
+    static func preferredColorScheme() -> ColorScheme? {
+        guard !usesSystemColorScheme else { return nil }
+        let manualTheme = UserDefaults.standard.integer(forKey: manualThemeKey)
         return manualTheme == darkThemeValue ? .dark : .light
+    }
+
+    static func currentColorScheme() -> ColorScheme {
+        resolvedColorScheme()
+    }
+
+    static func resolvedColorScheme(systemColorScheme: ColorScheme? = nil) -> ColorScheme {
+        if usesSystemColorScheme {
+            return systemColorScheme ?? currentSystemColorScheme()
+        }
+        return preferredColorScheme() ?? .light
     }
 
     private static func currentSystemColorScheme() -> ColorScheme {

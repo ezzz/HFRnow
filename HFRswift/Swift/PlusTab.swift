@@ -16,6 +16,12 @@ struct PlusHomeView: View {
         List {
             Section {
                 NavigationLink {
+                    AppSettingsView()
+                } label: {
+                    PlusRow(title: "Réglages", systemImage: "gearshape")
+                }
+
+                NavigationLink {
                     ObjCViewControllerHost {
                         let controller = TopicsSearchViewController()
                         controller.currentCat = "13"

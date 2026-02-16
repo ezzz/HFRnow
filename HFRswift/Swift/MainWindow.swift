@@ -535,17 +535,33 @@ struct RootTabView: View {
         static var selectedTab: RootTabIdentifier = .favorites
     }
 
+    @Environment(\.colorScheme) private var systemColorScheme
     @State private var selectedTab: RootTabIdentifier
-    @State private var appColorScheme: ColorScheme = .light
+    @State private var preferredColorScheme: ColorScheme?
 
     init() {
         _selectedTab = State(initialValue: RuntimeState.selectedTab)
+        _preferredColorScheme = State(initialValue: AppThemeResolver.preferredColorScheme())
     }
 
-    private func syncAppColorScheme() {
-        let resolved = AppThemeResolver.currentColorScheme()
-        if appColorScheme != resolved {
-            appColorScheme = resolved
+    private func syncRuntimeSelectedTab(_ tab: RootTabIdentifier) {
+        if RuntimeState.selectedTab != tab {
+            RuntimeState.selectedTab = tab
+        }
+    }
+
+    private func handleUIKitTabSelection(_ selectedIndex: Int) {
+        guard let tab = RootTabIdentifier(rawValue: selectedIndex) else { return }
+        if selectedTab != tab {
+            selectedTab = tab
+        }
+        syncRuntimeSelectedTab(tab)
+    }
+
+    private func syncPreferredColorScheme() {
+        let resolved = AppThemeResolver.preferredColorScheme()
+        if preferredColorScheme != resolved {
+            preferredColorScheme = resolved
         }
     }
 
@@ -561,11 +577,6 @@ struct RootTabView: View {
             Tab("Messages", systemImage: "envelope", value: .messages) {
                 MPListView()
             }
-            Tab("Réglages", systemImage: "gearshape.fill", value: .settings) {
-                NavigationStack {
-                    AppSettingsView()
-                }
-            }
             Tab("Plus", systemImage: "ellipsis", value: .more) {
                 NavigationStack {
                     PlusHomeView()
@@ -573,24 +584,30 @@ struct RootTabView: View {
             }
         }
         .tabBarMinimizeBehavior(.onScrollDown)
-        .preferredColorScheme(appColorScheme)
+        .preferredColorScheme(preferredColorScheme)
         .onAppear {
-            syncAppColorScheme()
-            if selectedTab != RuntimeState.selectedTab {
-                selectedTab = RuntimeState.selectedTab
-            }
+            syncPreferredColorScheme()
+            syncRuntimeSelectedTab(selectedTab)
         }
         .onChange(of: selectedTab) { _, newValue in
-            RuntimeState.selectedTab = newValue
+            syncRuntimeSelectedTab(newValue)
+        }
+        .onChange(of: systemColorScheme) { _, _ in
+            guard AppThemeResolver.usesSystemColorScheme else { return }
+            if preferredColorScheme != nil {
+                preferredColorScheme = nil
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("kThemeChangedNotification"))) { _ in
-            syncAppColorScheme()
+            syncPreferredColorScheme()
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-            syncAppColorScheme()
+            syncPreferredColorScheme()
         }
         .background(
-            TabBarReselectionObserver { selectedIndex in
+            TabBarReselectionObserver(
+                onSelect: handleUIKitTabSelection
+            ) { selectedIndex in
                 guard
                     let tab = RootTabIdentifier(rawValue: selectedIndex),
                     tab == .categories || tab == .favorites || tab == .messages
@@ -609,10 +626,11 @@ struct RootTabView: View {
 }
 
 private struct TabBarReselectionObserver: UIViewControllerRepresentable {
+    let onSelect: (Int) -> Void
     let onReselect: (Int) -> Void
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onReselect: onReselect)
+        Coordinator(onSelect: onSelect, onReselect: onReselect)
     }
 
     func makeUIViewController(context: Context) -> ObserverViewController {
@@ -631,10 +649,12 @@ private struct TabBarReselectionObserver: UIViewControllerRepresentable {
     }
 
     final class Coordinator: NSObject, UITabBarControllerDelegate {
+        private let onSelect: (Int) -> Void
         private let onReselect: (Int) -> Void
         private weak var tabBarController: UITabBarController?
 
-        init(onReselect: @escaping (Int) -> Void) {
+        init(onSelect: @escaping (Int) -> Void, onReselect: @escaping (Int) -> Void) {
+            self.onSelect = onSelect
             self.onReselect = onReselect
         }
 
@@ -655,6 +675,17 @@ private struct TabBarReselectionObserver: UIViewControllerRepresentable {
             guard self.tabBarController !== tabBarController else { return }
             self.tabBarController = tabBarController
             tabBarController.delegate = self
+            onSelect(tabBarController.selectedIndex)
+        }
+
+        func tabBarController(_ tabBarController: UITabBarController, didSelect viewController: UIViewController) {
+            guard
+                let viewControllers = tabBarController.viewControllers,
+                let selectedIndex = viewControllers.firstIndex(where: { $0 === viewController })
+            else {
+                return
+            }
+            onSelect(selectedIndex)
         }
 
         func tabBarController(_ tabBarController: UITabBarController, shouldSelect viewController: UIViewController) -> Bool {
