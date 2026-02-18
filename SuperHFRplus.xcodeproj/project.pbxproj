@@ -407,6 +407,7 @@
 		15316CFD2E32A22400E2B7CD /* ItalicFilled-20@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 4C21E93E1BA5C70400691D65 /* ItalicFilled-20@2x.png */; };
 		15316CFE2E32A22400E2B7CD /* LinkFilled-20@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 4C21E9401BA5C70400691D65 /* LinkFilled-20@2x.png */; };
 		15316CFF2E32A22400E2B7CD /* PasteFilled-20@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 4C21E9421BA5C70400691D65 /* PasteFilled-20@2x.png */; };
+		153170002E33A00100E2B7CD /* commonsmile.plist in Resources */ = {isa = PBXBuildFile; fileRef = CA00C6EA17C310E90067B457 /* commonsmile.plist */; };
 		15316D002E32A22400E2B7CD /* plus-tinted.png in Resources */ = {isa = PBXBuildFile; fileRef = D82690471E5864C9006971C3 /* plus-tinted.png */; };
 		15316D012E32A22400E2B7CD /* XlargeIconsFilled-20@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 4C21E94C1BA5C70400691D65 /* XlargeIconsFilled-20@2x.png */; };
 		15316D022E32A22400E2B7CD /* UnderlineFilled-20@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 4C21E94A1BA5C70400691D65 /* UnderlineFilled-20@2x.png */; };
@@ -4909,6 +4910,7 @@
 				1564762D2F328A8F00C33A72 /* Icon-RedFace3D.icon in Resources */,
 				15316C012E32A1D400E2B7CD /* miam.gif in Resources */,
 				15316C022E32A1D400E2B7CD /* wink.gif in Resources */,
+				153170002E33A00100E2B7CD /* commonsmile.plist in Resources */,
 				158CFA322E300643000594F1 /* ProfilViewController.xib in Resources */,
 				158CFA332E300643000594F1 /* PopupViewController.xib in Resources */,
 				158CFA342E300643000594F1 /* SmileyCodeTableView.xib in Resources */,
