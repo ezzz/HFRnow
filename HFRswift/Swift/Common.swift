@@ -338,6 +338,7 @@ struct MessageWebPopupPayload: Equatable {
     let source: MessageWebPopupSource
     let messageIndex: Int
     let yOffset: Int
+    let xOffset: Int?
 }
 
 enum MessageWebAction: Equatable {
@@ -456,20 +457,23 @@ struct MessageWebActionHandler: MessageWebActionHandling {
     }
 
     private func popupPayload(for url: URL, source: MessageWebPopupSource) -> MessageWebPopupPayload? {
-        let rawComponents: [String?] =
-            [url.host] +
-            url.pathComponents.map { Optional($0) } +
-            (url.absoluteString as NSString).pathComponents.map { Optional($0) }
-        let values = rawComponents.compactMap { component -> Int? in
-            guard let component else { return nil }
-            return Int(component)
+        var values: [Int] = []
+        if let host = url.host, let hostValue = Int(host) {
+            values.append(hostValue)
         }
+        values.append(contentsOf: url.pathComponents.compactMap(Int.init))
 
         guard let messageIndex = values.last else {
             return nil
         }
         let yOffset = values.dropLast().last ?? 0
-        return MessageWebPopupPayload(source: source, messageIndex: messageIndex, yOffset: yOffset)
+        let xOffset = values.count >= 3 ? values.dropLast(2).last : nil
+        return MessageWebPopupPayload(
+            source: source,
+            messageIndex: messageIndex,
+            yOffset: yOffset,
+            xOffset: xOffset
+        )
     }
 
     private func isIgnoredCustomScheme(_ scheme: String) -> Bool {

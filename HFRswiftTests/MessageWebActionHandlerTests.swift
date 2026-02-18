@@ -84,7 +84,8 @@ final class MessageWebActionHandlerTests: XCTestCase {
                 MessageWebPopupPayload(
                     source: .avatar,
                     messageIndex: 27,
-                    yOffset: 152
+                    yOffset: 152,
+                    xOffset: nil
                 )
             )
         )
@@ -104,7 +105,29 @@ final class MessageWebActionHandlerTests: XCTestCase {
                 MessageWebPopupPayload(
                     source: .message,
                     messageIndex: 4,
-                    yOffset: 88
+                    yOffset: 88,
+                    xOffset: nil
+                )
+            )
+        )
+    }
+
+    func testPopupMessageSchemeWithXAndYProducesPopupMenuAction() {
+        let action = handler.action(
+            for: URL(string: "oijlkajsdoihjlkjasdopopupmessage://231/88/4")!,
+            navigationType: .other,
+            currentPage: 3,
+            maxPage: 10
+        )
+
+        XCTAssertEqual(
+            action,
+            .showPopupMenu(
+                MessageWebPopupPayload(
+                    source: .message,
+                    messageIndex: 4,
+                    yOffset: 88,
+                    xOffset: 231
                 )
             )
         )

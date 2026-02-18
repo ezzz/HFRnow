@@ -440,21 +440,25 @@ struct WebView: UIViewRepresentable {
                 }
                 pendingPopupActions = actions
 
-                // `yOffset` comes from JS viewport coordinates; re-apply scroll/safe-area inset
-                // so UIKit menu anchoring matches the actual on-screen location.
+                // Popup offsets come from JS viewport coordinates. Re-apply content/safe-area
+                // insets so UIKit menu anchoring matches the tapped point on screen.
+                let leftInset = max(webView.safeAreaInsets.left, webView.scrollView.adjustedContentInset.left)
                 let topInset = max(webView.safeAreaInsets.top, webView.scrollView.adjustedContentInset.top)
+
+                let fallbackX: CGFloat = payload.source == .avatar ? 38 : max(webView.bounds.width - 15, 0)
+                let resolvedX = payload.xOffset.map { CGFloat($0) + leftInset } ?? fallbackX
                 var y = CGFloat(payload.yOffset) + topInset
                 if y < topInset + 40 {
                     y += 44
                 }
-                let x: CGFloat = payload.source == .avatar ? 38 : max(webView.bounds.width - 15, 0)
+
                 let sourcePoint = CGPoint(
-                    x: x,
+                    x: min(max(resolvedX, 0), max(webView.bounds.width - 1, 0)),
                     y: min(max(y, 0), max(webView.bounds.height - 1, 0))
                 )
 
                 let configuration = UIEditMenuConfiguration(identifier: nil, sourcePoint: sourcePoint)
-                configuration.preferredArrowDirection = payload.yOffset < 40 ? .up : .down
+                configuration.preferredArrowDirection = sourcePoint.y <= (topInset + 40) ? .up : .down
                 editMenuInteraction.presentEditMenu(with: configuration)
                 return true
             }

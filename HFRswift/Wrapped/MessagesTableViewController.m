@@ -1937,7 +1937,7 @@
                                 function swap_spoiler_states(obj){var div=obj.getElementsByTagName('div');if(div[0]){if(div[0].style.visibility==\"visible\"){div[0].style.visibility='hidden';}else if(div[0].style.visibility==\"hidden\"||!div[0].style.visibility){div[0].style.visibility='visible';}}}\
                                 $('img').error(function(){var failingSrc = $(this).attr('src');if(failingSrc.indexOf('https://reho.st')>-1){$(this).attr('src', 'photoDefaultClic.png')}else{$(this).attr('src', 'photoDefaultfailmini.png');}});\
                                 function touchstart() { document.location.href = 'oijlkajsdoihjlkjasdotouch://touchstart'};\
-                                function touchHeaderMessage(selectedNode, actionName) { event.stopPropagation(); window.location = 'oijlkajsdoihjlkjasdopopup'+actionName+'://'+($(selectedNode.parentNode).offset().top-window.pageYOffset)+'/' + selectedNode.parentNode.parentNode.id; return false; };\
+                                function touchHeaderMessage(selectedNode, actionName) { event.stopPropagation(); var rect = selectedNode.getBoundingClientRect(); var parentRect = selectedNode.parentNode.getBoundingClientRect(); var x = Math.round(rect.left + (rect.width / 2)); var y = Math.round(parentRect.top); window.location = 'oijlkajsdoihjlkjasdopopup'+actionName+'://'+x+'/'+y+'/' + selectedNode.parentNode.parentNode.id; return false; };\
                                 document.documentElement.style.setProperty('--color-action', '%@');\
                                 document.documentElement.style.setProperty('--color-action-disabled', '%@');\
                                 document.documentElement.style.setProperty('--color-message-background', '%@');\
