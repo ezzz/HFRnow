@@ -23,8 +23,11 @@ struct WebView: UIViewRepresentable {
     var currentPage: Int
     var maxPage: Int
     var colorScheme: ColorScheme
+    var messageActionsByIndex: [Int: TopicPageMessageActions]
     var actionHandler: any MessageWebActionHandling
     var onWebAction: ((MessageWebAction) -> Void)?
+    var onPopupQuoteRequest: ((URL) -> Void)?
+    var onPopupProfileRequest: ((URL) -> Void)?
     var onContentReady: (() -> Void)?
     var onScrollPositionChange: ((Bool) -> Void)?
 
@@ -36,8 +39,11 @@ struct WebView: UIViewRepresentable {
         currentPage: Int = 1,
         maxPage: Int = 1,
         colorScheme: ColorScheme = .light,
+        messageActionsByIndex: [Int: TopicPageMessageActions] = [:],
         actionHandler: any MessageWebActionHandling = MessageWebActionHandler(),
         onWebAction: ((MessageWebAction) -> Void)? = nil,
+        onPopupQuoteRequest: ((URL) -> Void)? = nil,
+        onPopupProfileRequest: ((URL) -> Void)? = nil,
         onContentReady: (() -> Void)? = nil,
         onScrollPositionChange: ((Bool) -> Void)? = nil
     ) {
@@ -48,8 +54,11 @@ struct WebView: UIViewRepresentable {
         self.currentPage = currentPage
         self.maxPage = maxPage
         self.colorScheme = colorScheme
+        self.messageActionsByIndex = messageActionsByIndex
         self.actionHandler = actionHandler
         self.onWebAction = onWebAction
+        self.onPopupQuoteRequest = onPopupQuoteRequest
+        self.onPopupProfileRequest = onPopupProfileRequest
         self.onContentReady = onContentReady
         self.onScrollPositionChange = onScrollPositionChange
     }
@@ -145,6 +154,11 @@ struct WebView: UIViewRepresentable {
             webView.underPageBackgroundColor = baseBackgroundColor
         }
         webView.navigationDelegate = context.coordinator
+        if #available(iOS 16.0, *) {
+            let editMenuInteraction = UIEditMenuInteraction(delegate: context.coordinator)
+            webView.addInteraction(editMenuInteraction)
+            context.coordinator.editMenuInteraction = editMenuInteraction
+        }
         if #available(iOS 16.4, *) {
             webView.isInspectable = true
         }
@@ -186,7 +200,7 @@ struct WebView: UIViewRepresentable {
         }
     }
 
-    class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
+    class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler, UIEditMenuInteractionDelegate {
         var parent: WebView
         var anchor: String?
         var initialScroll: WebView.InitialScroll?
@@ -196,6 +210,9 @@ struct WebView: UIViewRepresentable {
         var lastAppliedTheme: String?
         var isWaitingForThemeApplication = false
         var didNotifyContentReadyForCurrentLoad = false
+        @available(iOS 16.0, *)
+        weak var editMenuInteraction: UIEditMenuInteraction?
+        private var pendingPopupActions: TopicPageMessageActions?
 
         init(_ parent: WebView) {
             self.parent = parent
@@ -399,10 +416,89 @@ struct WebView: UIViewRepresentable {
                 decisionHandler(.allow)
             case .ignore:
                 decisionHandler(.cancel)
+            case .showPopupMenu(let payload):
+                if !presentPopupMenu(for: payload, in: webView) {
+                    parent.onWebAction?(action)
+                }
+                decisionHandler(.cancel)
             case .loadPage, .refreshCurrentPage, .openInternalTopic, .openExternalURL:
                 parent.onWebAction?(action)
                 decisionHandler(.cancel)
             }
+        }
+
+        private func presentPopupMenu(for payload: MessageWebPopupPayload, in webView: WKWebView) -> Bool {
+            guard let actions = parent.messageActionsByIndex[payload.messageIndex] else {
+                return false
+            }
+            guard actions.quoteURL != nil || actions.profileURL != nil else {
+                return false
+            }
+            if #available(iOS 16.0, *) {
+                guard let editMenuInteraction else {
+                    return false
+                }
+                pendingPopupActions = actions
+
+                // `yOffset` comes from JS viewport coordinates; re-apply scroll/safe-area inset
+                // so UIKit menu anchoring matches the actual on-screen location.
+                let topInset = max(webView.safeAreaInsets.top, webView.scrollView.adjustedContentInset.top)
+                var y = CGFloat(payload.yOffset) + topInset
+                if y < topInset + 40 {
+                    y += 44
+                }
+                let x: CGFloat = payload.source == .avatar ? 38 : max(webView.bounds.width - 15, 0)
+                let sourcePoint = CGPoint(
+                    x: x,
+                    y: min(max(y, 0), max(webView.bounds.height - 1, 0))
+                )
+
+                let configuration = UIEditMenuConfiguration(identifier: nil, sourcePoint: sourcePoint)
+                configuration.preferredArrowDirection = payload.yOffset < 40 ? .up : .down
+                editMenuInteraction.presentEditMenu(with: configuration)
+                return true
+            }
+            return false
+        }
+
+        @available(iOS 16.0, *)
+        func editMenuInteraction(
+            _ interaction: UIEditMenuInteraction,
+            menuFor configuration: UIEditMenuConfiguration,
+            suggestedActions: [UIMenuElement]
+        ) -> UIMenu? {
+            guard let actions = pendingPopupActions else {
+                return nil
+            }
+
+            var children: [UIMenuElement] = []
+
+            if let quoteURL = actions.quoteURL {
+                children.append(
+                    UIAction(title: "Citer", image: UIImage(systemName: "quote.bubble")) { [weak self] _ in
+                        DispatchQueue.main.async {
+                            self?.parent.onPopupQuoteRequest?(quoteURL)
+                        }
+                    }
+                )
+            }
+
+            if let profileURL = actions.profileURL {
+                children.append(
+                    UIAction(title: "Profil", image: UIImage(systemName: "person.crop.circle")) { [weak self] _ in
+                        DispatchQueue.main.async {
+                            self?.parent.onPopupProfileRequest?(profileURL)
+                        }
+                    }
+                )
+            }
+
+            if children.isEmpty {
+                return nil
+            }
+
+            let menuTitle = actions.postID.map { "Post \($0)" } ?? ""
+            return UIMenu(title: menuTitle, children: children)
         }
     }
 }
@@ -454,6 +550,7 @@ struct MessagesView: View {
     let initialLoadScroll: WebView.InitialScroll?
     let topicPageLoader: TopicPageLoading
     let topicPageRenderer: TopicPageRendering
+    let replyQuoteTemplateLoader: ReplyQuoteTemplateLoading
 
     @Environment(\.colorScheme) private var systemColorScheme
     @State private var page: Int
@@ -463,6 +560,7 @@ struct MessagesView: View {
     @State private var anchor: String?
     @State private var initialScroll: WebView.InitialScroll?
     @State private var topicAnswerURL: URL?
+    @State private var messageActionsByIndex: [Int: TopicPageMessageActions] = [:]
     @AppStorage("composerDraftText") private var composerDraftText: String = ""
     @State private var isComposerPresented = false
     @State private var isPresentingComposer = false  // This will be removed now
@@ -476,6 +574,8 @@ struct MessagesView: View {
     @State private var linkedTopic: Topic?
     @State private var navigateToLinkedTopic = false
     @State private var safariDestination: SafariDestination?
+    @State private var isLoadingQuoteTemplate = false
+    @State private var quoteTemplateErrorMessage: String?
     @State private var showWebViewLoadCover = true
     @State private var isWebContentAtBottom = false
     @State private var pendingPostedReply: ReplyPostingResult?
@@ -492,7 +592,8 @@ struct MessagesView: View {
         separatorNewMessages: Bool,
         initialLoadScroll: WebView.InitialScroll? = nil,
         topicPageLoader: TopicPageLoading = ObjCTopicPageLoader(),
-        topicPageRenderer: TopicPageRendering = OfflineStorageTopicPageRenderer()
+        topicPageRenderer: TopicPageRendering = OfflineStorageTopicPageRenderer(),
+        replyQuoteTemplateLoader: ReplyQuoteTemplateLoading = ForumReplyQuoteTemplateService()
     ) {
         self.topic = topic
         self.curPage = curPage
@@ -501,6 +602,7 @@ struct MessagesView: View {
         self.initialLoadScroll = initialLoadScroll
         self.topicPageLoader = topicPageLoader
         self.topicPageRenderer = topicPageRenderer
+        self.replyQuoteTemplateLoader = replyQuoteTemplateLoader
         self._page = State(initialValue: curPage)
         self._initialScroll = State(initialValue: initialLoadScroll)
         self._appColorScheme = State(initialValue: Self.currentAppColorScheme())
@@ -555,6 +657,7 @@ struct MessagesView: View {
         showWebViewLoadCover = true
         isWebContentAtBottom = false
         errorMessage = nil
+        messageActionsByIndex = [:]
         topicPageLoader.fetchTopicPage(url: url, anchor: self.anchor) { result in
             DispatchQueue.main.async {
                 switch result {
@@ -575,6 +678,7 @@ struct MessagesView: View {
                     }
                     self.page = page
                     self.topicAnswerURL = content.topicAnswerURL
+                    self.messageActionsByIndex = content.messageActionsByIndex
                 }
             }
         }
@@ -587,6 +691,7 @@ struct MessagesView: View {
         showWebViewLoadCover = true
         isWebContentAtBottom = false
         self.errorMessage = nil
+        messageActionsByIndex = [:]
 
         topicPageLoader.fetchTopicPage(url: topicURL, anchor: self.anchor) { result in
             DispatchQueue.main.async {
@@ -604,6 +709,7 @@ struct MessagesView: View {
                         self.errorMessage = error.localizedDescription
                     }
                     self.topicAnswerURL = content.topicAnswerURL
+                    self.messageActionsByIndex = content.messageActionsByIndex
                 }
             }
         }
@@ -671,6 +777,8 @@ struct MessagesView: View {
             navigateToPage(targetPage, initialScroll: webViewInitialScroll(initialScroll))
         case .refreshCurrentPage:
             loadPage(page)
+        case .showPopupMenu:
+            break
         case .openInternalTopic(let url):
             if url.scheme?.lowercased() == "file" {
                 loadDirectURL(url.absoluteString)
@@ -680,6 +788,38 @@ struct MessagesView: View {
         case .openExternalURL(let url):
             safariDestination = SafariDestination(url: url)
         }
+    }
+
+    private var isQuoteTemplateAlertPresented: Binding<Bool> {
+        Binding(
+            get: { quoteTemplateErrorMessage != nil },
+            set: { isPresented in
+                if !isPresented {
+                    quoteTemplateErrorMessage = nil
+                }
+            }
+        )
+    }
+
+    private func openQuoteComposer(with url: URL) {
+        guard !isLoadingQuoteTemplate else { return }
+
+        Task { @MainActor in
+            isLoadingQuoteTemplate = true
+            defer { isLoadingQuoteTemplate = false }
+
+            do {
+                let quoteTemplate = try await replyQuoteTemplateLoader.fetchQuoteTemplate(from: url)
+                composerDraftText = quoteTemplate
+                isComposerPresented = true
+            } catch {
+                quoteTemplateErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            }
+        }
+    }
+
+    private func openProfile(for url: URL) {
+        safariDestination = SafariDestination(url: url)
     }
 
     @ViewBuilder
@@ -909,7 +1049,14 @@ struct MessagesView: View {
                     currentPage: page,
                     maxPage: maxPage,
                     colorScheme: appColorScheme,
+                    messageActionsByIndex: messageActionsByIndex,
                     onWebAction: handleWebAction,
+                    onPopupQuoteRequest: { quoteURL in
+                        openQuoteComposer(with: quoteURL)
+                    },
+                    onPopupProfileRequest: { profileURL in
+                        openProfile(for: profileURL)
+                    },
                     onContentReady: {
                         withAnimation(.easeOut(duration: 0.14)) {
                             showWebViewLoadCover = false
@@ -928,6 +1075,15 @@ struct MessagesView: View {
                         .ignoresSafeArea()
                         .allowsHitTesting(false)
                         .transition(.opacity)
+                }
+
+                if isLoadingQuoteTemplate {
+                    Color.black.opacity(0.18)
+                        .ignoresSafeArea()
+                    ProgressView("Chargement de la citation...")
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 12)
+                        .background(.ultraThinMaterial, in: .rect(cornerRadius: 12))
                 }
             }
             .ignoresSafeArea()
@@ -980,6 +1136,11 @@ struct MessagesView: View {
                     if !isPresented {
                         handleComposerDismissalIfNeeded()
                     }
+                }
+                .alert("Citation impossible", isPresented: isQuoteTemplateAlertPresented) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(quoteTemplateErrorMessage ?? "Erreur inconnue.")
                 }
                 .toolbar {
                     ToolbarItem(placement: .principal) {

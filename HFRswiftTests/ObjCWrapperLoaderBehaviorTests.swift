@@ -115,7 +115,17 @@ final class ObjCWrapperLoaderBehaviorTests: XCTestCase {
     }
 
     func testObjCTopicPageLoaderMapsSuccessAndPassesURLAndAnchor() {
-        let controller = MessagesControllerStub(result: .success(html: "<html>ok</html>", topicAnswerURL: "https://forum.hardware.fr/reply"))
+        let controller = MessagesControllerStub(
+            result: .success(html: "<html>ok</html>", topicAnswerURL: "https://forum.hardware.fr/reply"),
+            messageActionsByIndex: [
+                2: [
+                    "quoteURL": "https://forum.hardware.fr/message.php?post=42",
+                    "profileURL": "https://forum.hardware.fr/profil/test",
+                    "privateMessageURL": "https://forum.hardware.fr/message.php?cat=prive",
+                    "postID": "t123"
+                ]
+            ]
+        )
         let loader = ObjCTopicPageLoader(controller: controller)
 
         let expectation = expectation(description: "topic page success")
@@ -135,6 +145,10 @@ final class ObjCWrapperLoaderBehaviorTests: XCTestCase {
         case .success(let content):
             XCTAssertEqual(content.html, "<html>ok</html>")
             XCTAssertEqual(content.topicAnswerURL?.absoluteString, "https://forum.hardware.fr/reply")
+            XCTAssertEqual(content.messageActionsByIndex[2]?.quoteURL?.absoluteString, "https://forum.hardware.fr/message.php?post=42")
+            XCTAssertEqual(content.messageActionsByIndex[2]?.profileURL?.absoluteString, "https://forum.hardware.fr/profil/test")
+            XCTAssertEqual(content.messageActionsByIndex[2]?.privateMessageURL?.absoluteString, "https://forum.hardware.fr/message.php?cat=prive")
+            XCTAssertEqual(content.messageActionsByIndex[2]?.postID, "t123")
         case .failure(let error):
             XCTFail("Expected success, got error: \(error)")
         case .none:
@@ -422,11 +436,13 @@ private final class MessagesControllerStub: MessagesTableViewController {
     }
 
     let result: Result
+    let messageActionsByIndex: [NSNumber: [String: String]]
     private(set) var receivedTopicURL: String?
     private(set) var receivedAnchor: String?
 
-    init(result: Result) {
+    init(result: Result, messageActionsByIndex: [NSNumber: [String: String]] = [:]) {
         self.result = result
+        self.messageActionsByIndex = messageActionsByIndex
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -444,5 +460,9 @@ private final class MessagesControllerStub: MessagesTableViewController {
         case .failure(let error):
             completion(nil, nil, error)
         }
+    }
+
+    override func swiftMessageActionsByIndex() -> [NSNumber : [String : String]]! {
+        messageActionsByIndex
     }
 }

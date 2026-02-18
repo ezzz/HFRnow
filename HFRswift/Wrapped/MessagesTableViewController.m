@@ -3553,6 +3553,91 @@ API_AVAILABLE(ios(16.0)) {
 
 #pragma - SWIFT
 
+- (NSDictionary<NSNumber *, NSDictionary<NSString *, NSString *> *> *)swiftMessageActionsByIndex {
+    NSMutableDictionary<NSNumber *, NSDictionary<NSString *, NSString *> *> *actionsByIndex = [NSMutableDictionary dictionary];
+    NSString *forumBaseURL = [k ForumURL];
+    if (forumBaseURL.length == 0) {
+        forumBaseURL = @"https://forum.hardware.fr";
+    }
+
+    for (NSUInteger index = 0; index < self.arrayData.count; index++) {
+        id candidate = [self.arrayData objectAtIndex:index];
+        if (![candidate isKindOfClass:[LinkItem class]]) {
+            continue;
+        }
+
+        LinkItem *item = (LinkItem *)candidate;
+        NSMutableDictionary<NSString *, NSString *> *entry = [NSMutableDictionary dictionary];
+
+        NSString *quoteURL = [self swiftAbsoluteQuoteURLForLinkItem:item forumBaseURL:forumBaseURL];
+        if (quoteURL.length > 0) {
+            [entry setObject:quoteURL forKey:@"quoteURL"];
+        }
+
+        NSString *profileURL = [self swiftAbsoluteForumURLFromRawURL:item.urlProfil forumBaseURL:forumBaseURL];
+        if (profileURL.length > 0) {
+            [entry setObject:profileURL forKey:@"profileURL"];
+        }
+
+        NSString *privateMessageURL = [self swiftAbsoluteForumURLFromRawURL:item.MPUrl forumBaseURL:forumBaseURL];
+        if (privateMessageURL.length > 0) {
+            [entry setObject:privateMessageURL forKey:@"privateMessageURL"];
+        }
+
+        if (item.postID.length > 0) {
+            [entry setObject:item.postID forKey:@"postID"];
+        }
+
+        if (entry.count > 0) {
+            [actionsByIndex setObject:[entry copy] forKey:@((NSInteger)index)];
+        }
+    }
+
+    return [actionsByIndex copy];
+}
+
+- (NSString *)swiftAbsoluteQuoteURLForLinkItem:(LinkItem *)item forumBaseURL:(NSString *)forumBaseURL {
+    NSString *rawQuote = [item.urlQuote stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    if (rawQuote.length == 0) {
+        return nil;
+    }
+
+    NSString *decodedQuote = rawQuote;
+    BOOL shouldDecodeQuote = rawQuote.length > 20
+        && [rawQuote rangeOfString:@"/"].location == NSNotFound
+        && [rawQuote rangeOfString:@"http"].location == NSNotFound;
+
+    if (shouldDecodeQuote) {
+        @try {
+            decodedQuote = [rawQuote decodeSpanUrlFromString];
+        } @catch (NSException *exception) {
+            decodedQuote = rawQuote;
+        }
+    }
+
+    return [self swiftAbsoluteForumURLFromRawURL:decodedQuote forumBaseURL:forumBaseURL];
+}
+
+- (NSString *)swiftAbsoluteForumURLFromRawURL:(NSString *)rawURL forumBaseURL:(NSString *)forumBaseURL {
+    NSString *trimmed = [rawURL stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    if (trimmed.length == 0) {
+        return nil;
+    }
+
+    trimmed = [trimmed stringByReplacingOccurrencesOfString:@"&amp;" withString:@"&"];
+
+    if ([trimmed hasPrefix:@"http://"] || [trimmed hasPrefix:@"https://"]) {
+        return trimmed;
+    }
+    if ([trimmed hasPrefix:@"//"]) {
+        return [NSString stringWithFormat:@"https:%@", trimmed];
+    }
+    if ([trimmed hasPrefix:@"/"]) {
+        return [NSString stringWithFormat:@"%@%@", forumBaseURL, trimmed];
+    }
+    return [NSString stringWithFormat:@"%@/%@", forumBaseURL, trimmed];
+}
+
 - (void)fetchContentForTopicURL:(NSString *)topicURL
                          anchor:(NSString * _Nullable)anchor
                      completion:(void (^)(NSString *html, NSString *topicAnswerUrl, NSError *error))completion {

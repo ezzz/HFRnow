@@ -44,6 +44,10 @@ protocol ReplyPostingService {
     func postReply(message: String, topicURL: URL) async throws -> ReplyPostingResult
 }
 
+protocol ReplyQuoteTemplateLoading {
+    func fetchQuoteTemplate(from quoteURL: URL) async throws -> String
+}
+
 struct ReplySessionContext {
     let pseudoDisplay: String?
     let hashCheck: String?
@@ -430,6 +434,156 @@ final class ForumReplyPostingService: ReplyPostingService {
         allowed.remove(charactersIn: "&+=?")
         let encoded = string.addingPercentEncoding(withAllowedCharacters: allowed) ?? string
         return encoded.replacingOccurrences(of: "%20", with: "+")
+    }
+
+    private static func defaultSessionContextProvider(cookieStorage: HTTPCookieStorage) throws -> ReplySessionContext {
+        try ObjCAccountSessionService().makeReplySessionContext(cookieStorage: cookieStorage)
+    }
+}
+
+final class ForumReplyQuoteTemplateService: ReplyQuoteTemplateLoading {
+    typealias SessionContextProvider = (HTTPCookieStorage) throws -> ReplySessionContext
+
+    private let session: URLSession
+    private let cookieStorage: HTTPCookieStorage
+    private let sessionContextProvider: SessionContextProvider
+
+    init(
+        session: URLSession? = nil,
+        cookieStorage: HTTPCookieStorage = .shared,
+        sessionContextProvider: SessionContextProvider? = nil
+    ) {
+        self.cookieStorage = cookieStorage
+        self.sessionContextProvider = sessionContextProvider ?? Self.defaultSessionContextProvider
+
+        if let session {
+            self.session = session
+        } else {
+            let config = URLSessionConfiguration.default
+            config.httpCookieStorage = cookieStorage
+            config.httpCookieAcceptPolicy = .always
+            config.httpShouldSetCookies = true
+            self.session = URLSession(configuration: config)
+        }
+    }
+
+    func fetchQuoteTemplate(from quoteURL: URL) async throws -> String {
+        _ = try sessionContextProvider(cookieStorage)
+
+        var request = URLRequest(url: quoteURL)
+        request.httpMethod = "GET"
+        request.httpShouldHandleCookies = true
+
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw ReplyPostingError.invalidResponse
+        }
+
+        let html = decodeHTML(data)
+
+        if !(200...299).contains(http.statusCode) {
+            throw ReplyPostingError.serverError(statusCode: http.statusCode, message: parseHopMessage(from: html))
+        }
+
+        if isLoggedOutForm(html) {
+            throw ReplyPostingError.authenticationRequired
+        }
+
+        guard let formHTML = extractHopFormHTML(from: html),
+              let rawContent = extractContentForm(from: formHTML) else {
+            throw ReplyPostingError.replyFormUnavailable
+        }
+
+        let decoded = decodeHTMLEntities(in: rawContent)
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+
+        return decoded
+    }
+
+    private func decodeHTML(_ data: Data) -> String {
+        if let decoded = String(data: data, encoding: .utf8) {
+            return decoded
+        }
+        return String(data: data, encoding: .isoLatin1) ?? ""
+    }
+
+    private func extractHopFormHTML(from html: String) -> String? {
+        let pattern = "<form[^>]*name\\s*=\\s*(\"hop\"|'hop'|hop)[^>]*>[\\s\\S]*?</form>"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
+            return nil
+        }
+
+        let range = NSRange(html.startIndex..<html.endIndex, in: html)
+        guard let match = regex.firstMatch(in: html, options: [], range: range),
+              let formRange = Range(match.range, in: html) else {
+            return nil
+        }
+
+        return String(html[formRange])
+    }
+
+    private func extractContentForm(from formHTML: String) -> String? {
+        let textareaPattern = "<textarea[^>]*(?:id|name)\\s*=\\s*(?:\"content_form\"|'content_form'|content_form)[^>]*>([\\s\\S]*?)</textarea>"
+        guard let regex = try? NSRegularExpression(pattern: textareaPattern, options: [.caseInsensitive]) else {
+            return nil
+        }
+
+        let range = NSRange(formHTML.startIndex..<formHTML.endIndex, in: formHTML)
+        guard let match = regex.firstMatch(in: formHTML, options: [], range: range) else {
+            return nil
+        }
+
+        let contentRange = match.range(at: 1)
+        guard contentRange.location != NSNotFound,
+              let swiftRange = Range(contentRange, in: formHTML) else {
+            return nil
+        }
+
+        return String(formHTML[swiftRange])
+    }
+
+    private func parseHopMessage(from html: String) -> String? {
+        guard let regex = try? NSRegularExpression(pattern: "<[^>]+>", options: [.caseInsensitive]) else {
+            return nil
+        }
+
+        guard let hopRange = html.range(of: "class=\"hop\"", options: [.caseInsensitive]) else {
+            return nil
+        }
+
+        let rawSnippet = String(html[hopRange.lowerBound...].prefix(2500))
+        let nsRange = NSRange(rawSnippet.startIndex..<rawSnippet.endIndex, in: rawSnippet)
+        let stripped = regex.stringByReplacingMatches(in: rawSnippet, options: [], range: nsRange, withTemplate: " ")
+        let cleaned = stripped
+            .replacingOccurrences(of: "&nbsp;", with: " ")
+            .replacingOccurrences(of: "\n", with: " ")
+            .replacingOccurrences(of: "\r", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return cleaned.isEmpty ? nil : cleaned
+    }
+
+    private func isLoggedOutForm(_ html: String) -> Bool {
+        let lowercased = html.lowercased()
+        if lowercased.contains("identification.php") || lowercased.contains("name=\"login\"") {
+            return true
+        }
+        if lowercased.contains("mot de passe") && lowercased.contains("pseudo") && !lowercased.contains("name=\"hop\"") {
+            return true
+        }
+        return false
+    }
+
+    private func decodeHTMLEntities(in string: String) -> String {
+        string
+            .replacingOccurrences(of: "&quot;", with: "\"")
+            .replacingOccurrences(of: "&#039;", with: "'")
+            .replacingOccurrences(of: "&#39;", with: "'")
+            .replacingOccurrences(of: "&lt;", with: "<")
+            .replacingOccurrences(of: "&gt;", with: ">")
+            .replacingOccurrences(of: "&nbsp;", with: " ")
+            .replacingOccurrences(of: "&amp;", with: "&")
     }
 
     private static func defaultSessionContextProvider(cookieStorage: HTTPCookieStorage) throws -> ReplySessionContext {

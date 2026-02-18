@@ -70,6 +70,57 @@ final class MessageWebActionHandlerTests: XCTestCase {
         XCTAssertEqual(action, .ignore)
     }
 
+    func testPopupAvatarSchemeProducesPopupMenuAction() {
+        let action = handler.action(
+            for: URL(string: "oijlkajsdoihjlkjasdopopupavatar://152/27")!,
+            navigationType: .other,
+            currentPage: 3,
+            maxPage: 10
+        )
+
+        XCTAssertEqual(
+            action,
+            .showPopupMenu(
+                MessageWebPopupPayload(
+                    source: .avatar,
+                    messageIndex: 27,
+                    yOffset: 152
+                )
+            )
+        )
+    }
+
+    func testPopupMessageSchemeProducesPopupMenuAction() {
+        let action = handler.action(
+            for: URL(string: "oijlkajsdoihjlkjasdopopupmessage://88/4")!,
+            navigationType: .other,
+            currentPage: 3,
+            maxPage: 10
+        )
+
+        XCTAssertEqual(
+            action,
+            .showPopupMenu(
+                MessageWebPopupPayload(
+                    source: .message,
+                    messageIndex: 4,
+                    yOffset: 88
+                )
+            )
+        )
+    }
+
+    func testPopupSchemeWithoutMessageIndexIsIgnored() {
+        let action = handler.action(
+            for: URL(string: "oijlkajsdoihjlkjasdopopupmessage://invalid")!,
+            navigationType: .other,
+            currentPage: 3,
+            maxPage: 10
+        )
+
+        XCTAssertEqual(action, .ignore)
+    }
+
     func testForumTopicURLIsRoutedAsInternalTopic() {
         let url = URL(string: "https://forum.hardware.fr/forum2.php?cat=1&page=55")!
         let action = handler.action(

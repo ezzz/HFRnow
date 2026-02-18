@@ -74,6 +74,7 @@ struct AnswerView: View {
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.9), value: showToast)
         .onAppear {
+            message = composerDraftText
             DispatchQueue.main.async {
                 isComposerFocused = true
             }

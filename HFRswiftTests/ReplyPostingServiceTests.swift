@@ -143,6 +143,72 @@ final class ReplyPostingServiceTests: XCTestCase {
         XCTAssertTrue(URLProtocolMock.handledRequests.isEmpty)
     }
 
+    func testFetchQuoteTemplateReturnsPrefilledContentForm() async throws {
+        let session = makeSession()
+
+        URLProtocolMock.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "GET")
+            let html = """
+            <html><body>
+            <form name=\"hop\" action=\"/bddpost.php\">
+              <textarea id=\"content_form\">[quotemsg=1,2,3]Salut &amp; merci[/quotemsg]\r\n</textarea>
+            </form>
+            </body></html>
+            """
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                Data(html.utf8)
+            )
+        }
+
+        let service = ForumReplyQuoteTemplateService(
+            session: session,
+            sessionContextProvider: { _ in
+                ReplySessionContext(pseudoDisplay: "testeur", hashCheck: "hash123")
+            }
+        )
+
+        let template = try await service.fetchQuoteTemplate(
+            from: URL(string: "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=42&page=1&p=1")!
+        )
+
+        XCTAssertEqual(template, "[quotemsg=1,2,3]Salut & merci[/quotemsg]\n")
+    }
+
+    func testFetchQuoteTemplateWhenSessionContextFailsDoesNotSendNetworkRequest() async {
+        let session = makeSession()
+
+        URLProtocolMock.requestHandler = { _ in
+            XCTFail("No network request should be sent when session context fails early")
+            throw URLError(.badServerResponse)
+        }
+
+        let service = ForumReplyQuoteTemplateService(
+            session: session,
+            sessionContextProvider: { _ in
+                throw ReplyPostingError.noActiveAccount
+            }
+        )
+
+        do {
+            _ = try await service.fetchQuoteTemplate(
+                from: URL(string: "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=42&page=1&p=1")!
+            )
+            XCTFail("Expected noActiveAccount error")
+        } catch let error as ReplyPostingError {
+            switch error {
+            case .noActiveAccount:
+                break
+            default:
+                XCTFail("Unexpected error: \(error)")
+            }
+        } catch {
+            XCTFail("Unexpected error type: \(error)")
+        }
+
+        XCTAssertTrue(URLProtocolMock.handledRequests.isEmpty)
+    }
+
     private func makeSession() -> URLSession {
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [URLProtocolMock.self]

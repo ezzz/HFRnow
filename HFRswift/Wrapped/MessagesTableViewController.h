@@ -246,6 +246,8 @@
 
 @property (nonatomic, copy) void (^completionHandler)(NSString *html, NSString *topicAnswerUrl, NSError *error);
 
+- (NSDictionary<NSNumber *, NSDictionary<NSString *, NSString *> *> *)swiftMessageActionsByIndex;
+
 - (void)fetchContentForTopicURL:(NSString *)topicURL
                          anchor:(NSString * _Nullable)anchor
                      completion:(void (^_Nonnull)(NSString * _Nullable html, NSString * _Nullable topicAnswerUrl, NSError * _Nullable error))completion;

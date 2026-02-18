@@ -155,9 +155,27 @@ final class ObjCForumTopicsLoader: ForumTopicsLoading {
     }
 }
 
+struct TopicPageMessageActions: Equatable {
+    let quoteURL: URL?
+    let profileURL: URL?
+    let privateMessageURL: URL?
+    let postID: String?
+}
+
 struct TopicPageContent {
     let html: String
     let topicAnswerURL: URL?
+    let messageActionsByIndex: [Int: TopicPageMessageActions]
+
+    init(
+        html: String,
+        topicAnswerURL: URL?,
+        messageActionsByIndex: [Int: TopicPageMessageActions] = [:]
+    ) {
+        self.html = html
+        self.topicAnswerURL = topicAnswerURL
+        self.messageActionsByIndex = messageActionsByIndex
+    }
 }
 
 enum TopicPageLoadingError: LocalizedError {
@@ -176,6 +194,13 @@ protocol TopicPageLoading {
 }
 
 final class ObjCTopicPageLoader: TopicPageLoading {
+    private enum MessageActionKey {
+        static let quoteURL = "quoteURL"
+        static let profileURL = "profileURL"
+        static let privateMessageURL = "privateMessageURL"
+        static let postID = "postID"
+    }
+
     private let controller: MessagesTableViewController
 
     init(controller: MessagesTableViewController = MessagesTableViewController()) {
@@ -193,8 +218,63 @@ final class ObjCTopicPageLoader: TopicPageLoading {
                 return
             }
             let answerURL = topicAnswerURL.flatMap(URL.init(string:))
-            completion(.success(TopicPageContent(html: html, topicAnswerURL: answerURL)))
+            let messageActionsByIndex = self.extractMessageActionsByIndex()
+            completion(.success(TopicPageContent(
+                html: html,
+                topicAnswerURL: answerURL,
+                messageActionsByIndex: messageActionsByIndex
+            )))
         }
+    }
+
+    private func extractMessageActionsByIndex() -> [Int: TopicPageMessageActions] {
+        guard let rawEntries = controller.swiftMessageActionsByIndex() as? [AnyHashable: Any] else {
+            return [:]
+        }
+
+        var result: [Int: TopicPageMessageActions] = [:]
+        for (rawKey, rawValue) in rawEntries {
+            let index: Int
+            if let number = rawKey as? NSNumber {
+                index = number.intValue
+            } else if let string = rawKey as? String, let parsed = Int(string) {
+                index = parsed
+            } else {
+                continue
+            }
+
+            guard let entry = rawValue as? [AnyHashable: Any] else {
+                continue
+            }
+
+            let actions = TopicPageMessageActions(
+                quoteURL: urlValue(in: entry, key: MessageActionKey.quoteURL),
+                profileURL: urlValue(in: entry, key: MessageActionKey.profileURL),
+                privateMessageURL: urlValue(in: entry, key: MessageActionKey.privateMessageURL),
+                postID: stringValue(in: entry, key: MessageActionKey.postID)
+            )
+
+            if actions.quoteURL != nil || actions.profileURL != nil || actions.privateMessageURL != nil || actions.postID != nil {
+                result[index] = actions
+            }
+        }
+
+        return result
+    }
+
+    private func urlValue(in dictionary: [AnyHashable: Any], key: String) -> URL? {
+        guard let rawValue = stringValue(in: dictionary, key: key) else {
+            return nil
+        }
+        return URL(string: rawValue)
+    }
+
+    private func stringValue(in dictionary: [AnyHashable: Any], key: String) -> String? {
+        guard let rawValue = dictionary[key] as? String else {
+            return nil
+        }
+        let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }
 
@@ -249,11 +329,23 @@ enum MessageWebInitialScroll: Equatable {
     case bottom
 }
 
+enum MessageWebPopupSource: Equatable {
+    case avatar
+    case message
+}
+
+struct MessageWebPopupPayload: Equatable {
+    let source: MessageWebPopupSource
+    let messageIndex: Int
+    let yOffset: Int
+}
+
 enum MessageWebAction: Equatable {
     case allowNavigation
     case ignore
     case loadPage(Int, MessageWebInitialScroll)
     case refreshCurrentPage
+    case showPopupMenu(MessageWebPopupPayload)
     case openInternalTopic(URL)
     case openExternalURL(URL)
 }
@@ -303,6 +395,10 @@ struct MessageWebActionHandler: MessageWebActionHandling {
             return .refreshCurrentPage
         }
 
+        if let popupAction = popupAction(for: url, scheme: scheme) {
+            return popupAction
+        }
+
         if isIgnoredCustomScheme(scheme) {
             return .ignore
         }
@@ -342,12 +438,44 @@ struct MessageWebActionHandler: MessageWebActionHandling {
         }
     }
 
+    private func popupAction(for url: URL, scheme: String) -> MessageWebAction? {
+        switch scheme {
+        case Constants.popupAvatarScheme:
+            guard let payload = popupPayload(for: url, source: .avatar) else {
+                return .ignore
+            }
+            return .showPopupMenu(payload)
+        case Constants.popupMessageScheme:
+            guard let payload = popupPayload(for: url, source: .message) else {
+                return .ignore
+            }
+            return .showPopupMenu(payload)
+        default:
+            return nil
+        }
+    }
+
+    private func popupPayload(for url: URL, source: MessageWebPopupSource) -> MessageWebPopupPayload? {
+        let rawComponents: [String?] =
+            [url.host] +
+            url.pathComponents.map { Optional($0) } +
+            (url.absoluteString as NSString).pathComponents.map { Optional($0) }
+        let values = rawComponents.compactMap { component -> Int? in
+            guard let component else { return nil }
+            return Int(component)
+        }
+
+        guard let messageIndex = values.last else {
+            return nil
+        }
+        let yOffset = values.dropLast().last ?? 0
+        return MessageWebPopupPayload(source: source, messageIndex: messageIndex, yOffset: yOffset)
+    }
+
     private func isIgnoredCustomScheme(_ scheme: String) -> Bool {
         scheme == Constants.touchScheme ||
             scheme == Constants.preloadedScheme ||
             scheme == Constants.loadedScheme ||
-            scheme == Constants.popupAvatarScheme ||
-            scheme == Constants.popupMessageScheme ||
             scheme == Constants.imageBrowserScheme ||
             scheme == Constants.smileyScheme
     }
