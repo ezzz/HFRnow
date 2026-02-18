@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 struct ReplyPostingResult {
     let refreshAnchor: String?
@@ -588,5 +589,403 @@ final class ForumReplyQuoteTemplateService: ReplyQuoteTemplateLoading {
 
     private static func defaultSessionContextProvider(cookieStorage: HTTPCookieStorage) throws -> ReplySessionContext {
         try ObjCAccountSessionService().makeReplySessionContext(cookieStorage: cookieStorage)
+    }
+}
+
+enum RehostBBCodeMode: Int, CaseIterable, Identifiable, Codable {
+    case imageWithLink = 0
+    case imageNoLink = 1
+    case linkOnly = 2
+
+    var id: Int { rawValue }
+
+    var title: String {
+        switch self {
+        case .imageWithLink:
+            return "Image et lien"
+        case .imageNoLink:
+            return "Image sans lien"
+        case .linkOnly:
+            return "Lien seul"
+        }
+    }
+}
+
+enum RehostUploadMaxDimension: Int, CaseIterable, Identifiable, Codable {
+    case px1200 = 1200
+    case px1000 = 1000
+    case px800 = 800
+    case px600 = 600
+
+    var id: Int { rawValue }
+
+    var title: String {
+        "\(rawValue) px"
+    }
+}
+
+enum RehostImageSizeVariant: String, CaseIterable, Identifiable, Codable {
+    case full
+    case medium
+    case preview
+    case mini
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .full:
+            return "Maxi"
+        case .medium:
+            return "Medium"
+        case .preview:
+            return "Preview"
+        case .mini:
+            return "Mini"
+        }
+    }
+}
+
+struct RehostPreferences: Equatable, Codable {
+    var bbCodeMode: RehostBBCodeMode
+    var maxDimension: RehostUploadMaxDimension
+}
+
+enum RehostPreferencesStore {
+    private static let bbCodeKey = "rehost_use_link"
+    private static let maxDimensionKey = "rehost_resize_before_upload"
+
+    static func load(defaults: UserDefaults = .standard) -> RehostPreferences {
+        let bbCodeMode = RehostBBCodeMode(rawValue: defaults.integer(forKey: bbCodeKey)) ?? .imageWithLink
+        let storedMax = defaults.integer(forKey: maxDimensionKey)
+        let maxDimension = RehostUploadMaxDimension(rawValue: storedMax) ?? .px1200
+        return RehostPreferences(bbCodeMode: bbCodeMode, maxDimension: maxDimension)
+    }
+
+    static func save(_ preferences: RehostPreferences, defaults: UserDefaults = .standard) {
+        defaults.set(preferences.bbCodeMode.rawValue, forKey: bbCodeKey)
+        defaults.set(preferences.maxDimension.rawValue, forKey: maxDimensionKey)
+    }
+}
+
+struct RehostUploadedImage: Identifiable, Equatable, Codable {
+    let fullWidth: Int?
+    let fullHeight: Int?
+    let fullURL: String
+    let mediumURL: String?
+    let previewURL: String?
+    let miniURL: String?
+    let timeStamp: Date
+
+    init(
+        fullWidth: Int?,
+        fullHeight: Int?,
+        fullURL: String,
+        mediumURL: String?,
+        previewURL: String?,
+        miniURL: String?,
+        timeStamp: Date = Date()
+    ) {
+        self.fullWidth = fullWidth
+        self.fullHeight = fullHeight
+        self.fullURL = fullURL
+        self.mediumURL = mediumURL
+        self.previewURL = previewURL
+        self.miniURL = miniURL
+        self.timeStamp = timeStamp
+    }
+
+    var id: String {
+        "\(fullURL)|\(timeStamp.timeIntervalSince1970)"
+    }
+
+    var availableVariants: [RehostImageSizeVariant] {
+        var variants: [RehostImageSizeVariant] = [.full]
+        if mediumURL?.isEmpty == false {
+            variants.append(.medium)
+        }
+        if previewURL?.isEmpty == false {
+            variants.append(.preview)
+        }
+        if miniURL?.isEmpty == false {
+            variants.append(.mini)
+        }
+        return variants
+    }
+
+    var thumbnailURL: String {
+        miniURL ?? mediumURL ?? fullURL
+    }
+
+    var maxDimensionText: String? {
+        guard let fullWidth, let fullHeight else { return nil }
+        return "\(max(fullWidth, fullHeight)) px"
+    }
+
+    func formattedSnippet(for variant: RehostImageSizeVariant, mode: RehostBBCodeMode) -> String? {
+        guard let variantURL = resolvedURL(for: variant) else {
+            return nil
+        }
+
+        switch mode {
+        case .linkOnly:
+            return variantURL
+        case .imageNoLink:
+            return "[img]\(variantURL)[/img]\n"
+        case .imageWithLink:
+            return "[url=\(fullURL)][img]\(variantURL)[/img][/url]\n"
+        }
+    }
+
+    private func resolvedURL(for variant: RehostImageSizeVariant) -> String? {
+        switch variant {
+        case .full:
+            return fullURL
+        case .medium:
+            return mediumURL ?? fullURL
+        case .preview:
+            return previewURL ?? mediumURL ?? miniURL ?? fullURL
+        case .mini:
+            return miniURL ?? mediumURL ?? fullURL
+        }
+    }
+}
+
+enum RehostUploadHistoryStore {
+    private static let fileName = "rehostImagesSwiftUI.json"
+
+    static func load(fileManager: FileManager = .default) -> [RehostUploadedImage] {
+        guard let fileURL = historyFileURL(fileManager: fileManager),
+              let data = try? Data(contentsOf: fileURL) else {
+            return []
+        }
+        return (try? JSONDecoder().decode([RehostUploadedImage].self, from: data)) ?? []
+    }
+
+    static func save(_ images: [RehostUploadedImage], fileManager: FileManager = .default) {
+        guard let fileURL = historyFileURL(fileManager: fileManager),
+              let data = try? JSONEncoder().encode(images) else {
+            return
+        }
+        try? data.write(to: fileURL, options: .atomic)
+    }
+
+    private static func historyFileURL(fileManager: FileManager) -> URL? {
+        guard let directory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).last else {
+            return nil
+        }
+        return directory.appendingPathComponent(fileName)
+    }
+}
+
+protocol ReplyImageUploadService {
+    func uploadImage(_ image: UIImage, maxDimension: RehostUploadMaxDimension) async throws -> RehostUploadedImage
+}
+
+enum ReplyImageUploadError: LocalizedError, Equatable {
+    case invalidUploadURL
+    case encodingFailed
+    case invalidResponse
+    case httpError(statusCode: Int, message: String?)
+    case serverError(statusCode: Int, message: String)
+    case missingImageURL
+    case cancelled
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidUploadURL:
+            return "URL d'upload invalide."
+        case .encodingFailed:
+            return "Impossible d'encoder l'image."
+        case .invalidResponse:
+            return "Réponse serveur invalide."
+        case .httpError(let statusCode, let message):
+            if let message, !message.isEmpty {
+                return "Erreur serveur (\(statusCode)) : \(message)"
+            }
+            return "Erreur serveur (\(statusCode))."
+        case .serverError(let statusCode, let message):
+            return "\(statusCode) - \(message)"
+        case .missingImageURL:
+            return "Le serveur n'a pas renvoyé d'URL d'image."
+        case .cancelled:
+            return "Upload annulé."
+        }
+    }
+}
+
+final class Img3ReplyImageUploadService: ReplyImageUploadService {
+    private let session: URLSession
+    private let uploadURL: URL
+
+    // Keep in sync with legacy API_KEY_CHEVERETO_IMG3.
+    private static let defaultAPIKey = "hawyikcxboxfkcp1aiqcrhhm8r9xua1c"
+
+    init(
+        session: URLSession? = nil,
+        uploadURL: URL? = nil,
+        apiKey: String = defaultAPIKey
+    ) {
+        self.uploadURL = uploadURL ?? URL(string: "https://img3.super-h.fr/api/1/upload/?key=\(apiKey)")!
+
+        if let session {
+            self.session = session
+        } else {
+            let config = URLSessionConfiguration.default
+            config.httpCookieAcceptPolicy = .never
+            config.httpShouldSetCookies = false
+            self.session = URLSession(configuration: config)
+        }
+    }
+
+    func uploadImage(_ image: UIImage, maxDimension: RehostUploadMaxDimension) async throws -> RehostUploadedImage {
+        let preparedImage = image.rehostPreparedForUpload(maxResolution: maxDimension.rawValue)
+        guard let jpegData = preparedImage.jpegData(compressionQuality: 1.0) else {
+            throw ReplyImageUploadError.encodingFailed
+        }
+
+        var request = URLRequest(url: uploadURL)
+        request.httpMethod = "POST"
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        request.httpShouldHandleCookies = false
+        request.timeoutInterval = 60
+
+        let boundary = "Boundary-\(UUID().uuidString)"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+        let body = makeMultipartBody(jpegData: jpegData, boundary: boundary, filename: "snapshot_\(Int.random(in: 1...Int.max)).jpg")
+        request.httpBody = body
+        request.setValue(String(body.count), forHTTPHeaderField: "Content-Length")
+
+        do {
+            let (data, response) = try await session.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw ReplyImageUploadError.invalidResponse
+            }
+
+            let payload = try parseJSONPayload(data)
+            let payloadStatus = intValue(payload["status_code"]) ?? httpResponse.statusCode
+            let payloadMessage = parsePayloadMessage(payload)
+
+            guard (200...299).contains(httpResponse.statusCode) else {
+                throw ReplyImageUploadError.httpError(statusCode: httpResponse.statusCode, message: payloadMessage)
+            }
+
+            guard payloadStatus == 200 else {
+                throw ReplyImageUploadError.serverError(statusCode: payloadStatus, message: payloadMessage ?? "Erreur inconnue")
+            }
+
+            guard let imagePayload = payload["image"] as? [String: Any],
+                  let fullURL = imagePayload["url"] as? String,
+                  !fullURL.isEmpty else {
+                throw ReplyImageUploadError.missingImageURL
+            }
+
+            let mediumURL = (imagePayload["medium"] as? [String: Any])?["url"] as? String
+            let miniURL = (imagePayload["thumb"] as? [String: Any])?["url"] as? String
+
+            return RehostUploadedImage(
+                fullWidth: intValue(imagePayload["width"]),
+                fullHeight: intValue(imagePayload["height"]),
+                fullURL: fullURL,
+                mediumURL: mediumURL,
+                previewURL: nil,
+                miniURL: miniURL
+            )
+        } catch let error as ReplyImageUploadError {
+            throw error
+        } catch let error as URLError where error.code == .cancelled {
+            throw ReplyImageUploadError.cancelled
+        } catch {
+            throw ReplyImageUploadError.invalidResponse
+        }
+    }
+
+    private func makeMultipartBody(jpegData: Data, boundary: String, filename: String) -> Data {
+        var body = Data()
+
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"imageCaption\"\r\n\r\n".data(using: .utf8)!)
+        body.append("Some Caption\r\n".data(using: .utf8)!)
+
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"source\"; filename=\"\(filename)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
+        body.append(jpegData)
+        body.append("\r\n".data(using: .utf8)!)
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+
+        return body
+    }
+
+    private func parseJSONPayload(_ data: Data) throws -> [String: Any] {
+        guard let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw ReplyImageUploadError.invalidResponse
+        }
+        return payload
+    }
+
+    private func parsePayloadMessage(_ payload: [String: Any]) -> String? {
+        if let errorPayload = payload["error"] as? [String: Any],
+           let message = errorPayload["message"] as? String,
+           !message.isEmpty {
+            return message
+        }
+
+        if let successPayload = payload["success"] as? [String: Any],
+           let message = successPayload["message"] as? String,
+           !message.isEmpty {
+            return message
+        }
+
+        return nil
+    }
+
+    private func intValue(_ value: Any?) -> Int? {
+        if let number = value as? NSNumber {
+            return number.intValue
+        }
+        if let string = value as? String {
+            return Int(string)
+        }
+        return nil
+    }
+}
+
+private extension UIImage {
+    func rehostPreparedForUpload(maxResolution: Int) -> UIImage {
+        let normalized = rehostNormalizedOrientation()
+        let resolution = max(maxResolution, 1)
+        let pixelWidth = CGFloat(normalized.cgImage?.width ?? Int(normalized.size.width * normalized.scale))
+        let pixelHeight = CGFloat(normalized.cgImage?.height ?? Int(normalized.size.height * normalized.scale))
+        let currentMax = max(pixelWidth, pixelHeight)
+
+        guard currentMax > CGFloat(resolution) else {
+            return normalized
+        }
+
+        let ratio = CGFloat(resolution) / currentMax
+        let targetSize = CGSize(
+            width: max(floor(pixelWidth * ratio), 1),
+            height: max(floor(pixelHeight * ratio), 1)
+        )
+
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        let renderer = UIGraphicsImageRenderer(size: targetSize, format: format)
+        return renderer.image { _ in
+            normalized.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+    }
+
+    func rehostNormalizedOrientation() -> UIImage {
+        guard imageOrientation != .up else { return self }
+
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = scale
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
+        return renderer.image { _ in
+            draw(in: CGRect(origin: .zero, size: size))
+        }
     }
 }

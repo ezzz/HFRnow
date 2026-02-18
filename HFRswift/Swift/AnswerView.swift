@@ -5,6 +5,7 @@ struct AnswerView: View {
     let topicURL: URL?
     private let replyPostingService: any ReplyPostingService
     private let smileyCatalogLoader: ReplySmileyCatalogLoading
+    private let imageUploadService: any ReplyImageUploadService
     private let onPostSuccess: ((ReplyPostingResult) -> Void)?
 
     @Binding var composerDraftText: String
@@ -14,6 +15,8 @@ struct AnswerView: View {
     @State private var composerState: ReplyComposerState
     @State private var defaultSmileys: [ReplySmiley] = []
     @State private var favoriteSmileys: [ReplySmiley] = []
+    @State private var imageUploadPreferences: RehostPreferences
+    @State private var uploadedImages: [RehostUploadedImage]
     @State private var selectedRangeUTF16: NSRange = NSRange(location: 0, length: 0)
 
     @State private var showToast: Bool = false
@@ -24,6 +27,7 @@ struct AnswerView: View {
         topicURL: URL?,
         replyPostingService: any ReplyPostingService = ForumReplyPostingService(),
         smileyCatalogLoader: ReplySmileyCatalogLoading = BundleReplySmileyCatalogLoader(),
+        imageUploadService: any ReplyImageUploadService = Img3ReplyImageUploadService(),
         onPostSuccess: ((ReplyPostingResult) -> Void)? = nil,
         composerDraftText: Binding<String>,
         isComposerPresented: Binding<Bool>,
@@ -32,11 +36,14 @@ struct AnswerView: View {
         self.topicURL = topicURL
         self.replyPostingService = replyPostingService
         self.smileyCatalogLoader = smileyCatalogLoader
+        self.imageUploadService = imageUploadService
         self.onPostSuccess = onPostSuccess
         self._composerDraftText = composerDraftText
         self._isComposerPresented = isComposerPresented
         self._isComposerFocused = isComposerFocused
         self._composerState = State(initialValue: ReplyComposerState(initialMessage: composerDraftText.wrappedValue))
+        self._imageUploadPreferences = State(initialValue: RehostPreferencesStore.load())
+        self._uploadedImages = State(initialValue: RehostUploadHistoryStore.load())
     }
 
     private var isDefaultSmileyPickerPresented: Binding<Bool> {
@@ -160,11 +167,15 @@ struct AnswerView: View {
             .presentationDetents([.medium, .large])
         }
         .sheet(isPresented: isImageInsertionPresented) {
-            ReplyImageInsertionView { imageURL in
-                insertImageMarkup(imageURL)
+            ReplyImageInsertionView(
+                uploadService: imageUploadService,
+                preferences: $imageUploadPreferences,
+                uploadedImages: $uploadedImages
+            ) { snippet in
+                insertSnippet(snippet)
                 composerState.activePanel = .none
             }
-            .presentationDetents([.medium])
+            .presentationDetents([.large])
         }
         .overlay(alignment: .top) {
             if showToast {
@@ -188,6 +199,12 @@ struct AnswerView: View {
         .onChange(of: composerState.message) { _, newValue in
             composerDraftText = newValue
         }
+        .onChange(of: imageUploadPreferences) { _, newPreferences in
+            RehostPreferencesStore.save(newPreferences)
+        }
+        .onChange(of: uploadedImages) { _, newHistory in
+            RehostUploadHistoryStore.save(newHistory)
+        }
     }
 
     private func presentDefaultSmileys() {
@@ -209,20 +226,11 @@ struct AnswerView: View {
     private func insertSmileyCode(_ smileyCode: String) {
         // Legacy composer inserts spaces around smiley codes.
         let snippet = " \(smileyCode) "
-        let insertion = ReplyTextInsertionEngine.insert(
-            snippet,
-            into: composerState.message,
-            selectedUTF16Range: selectedRangeUTF16
-        )
-        composerState.message = insertion.text
-        selectedRangeUTF16 = NSRange(location: insertion.cursorLocationUTF16, length: 0)
-        isComposerFocused = true
+        insertSnippet(snippet)
     }
 
-    private func insertImageMarkup(_ imageURL: String) {
-        let trimmed = imageURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        let snippet = "[img]\(trimmed)[/img]"
+    private func insertSnippet(_ snippet: String) {
+        guard !snippet.isEmpty else { return }
         let insertion = ReplyTextInsertionEngine.insert(
             snippet,
             into: composerState.message,
@@ -458,16 +466,29 @@ private struct SmileyThumbnailView: UIViewRepresentable {
 }
 
 private struct ReplyImageInsertionView: View {
-    let onInsert: (String) -> Void
+    let uploadService: any ReplyImageUploadService
+    @Binding var preferences: RehostPreferences
+    @Binding var uploadedImages: [RehostUploadedImage]
+    let onInsertSnippet: (String) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var imageURL = ""
 
-    private var canInsert: Bool {
-        let trimmed = imageURL.trimmingCharacters(in: .whitespacesAndNewlines)
+    @State private var manualURL = ""
+    @State private var pickerSourceType: UIImagePickerController.SourceType = .photoLibrary
+    @State private var isShowingImagePicker = false
+    @State private var isUploading = false
+    @State private var uploadError: String?
+    @State private var uploadTask: Task<Void, Never>?
+
+    private var canUseCamera: Bool {
+        UIImagePickerController.isSourceTypeAvailable(.camera)
+    }
+
+    private var canInsertManualURL: Bool {
+        let trimmed = manualURL.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let url = URL(string: trimmed),
               let scheme = url.scheme?.lowercased(),
-              (scheme == "http" || scheme == "https") else {
+              scheme == "http" || scheme == "https" else {
             return false
         }
         return true
@@ -475,29 +496,278 @@ private struct ReplyImageInsertionView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("URL image") {
-                    TextField("https://...", text: $imageURL)
+            List {
+                Section("Upload") {
+                    HStack(spacing: 12) {
+                        Button {
+                            presentImagePicker(sourceType: .photoLibrary)
+                        } label: {
+                            Label("Photos", systemImage: "photo.on.rectangle")
+                        }
+
+                        Button {
+                            presentImagePicker(sourceType: .camera)
+                        } label: {
+                            Label("Caméra", systemImage: "camera")
+                        }
+                        .disabled(!canUseCamera)
+                    }
+
+                    if isUploading {
+                        ProgressView("Upload en cours...")
+                    }
+
+                    if let uploadError, !uploadError.isEmpty {
+                        Text(uploadError)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                    }
+                }
+
+                Section("Options") {
+                    Picker("Type de bbcode", selection: $preferences.bbCodeMode) {
+                        ForEach(RehostBBCodeMode.allCases) { mode in
+                            Text(mode.title).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    Picker("Dimension maximale", selection: $preferences.maxDimension) {
+                        ForEach(RehostUploadMaxDimension.allCases) { size in
+                            Text(size.title).tag(size)
+                        }
+                    }
+                }
+
+                Section("Images uploadées") {
+                    if uploadedImages.isEmpty {
+                        Text("Aucune image uploadée.")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(uploadedImages) { uploadedImage in
+                            ReplyUploadedImageRow(
+                                image: uploadedImage,
+                                mode: preferences.bbCodeMode
+                            ) { selectedVariant in
+                                insertUploadedImage(uploadedImage, variant: selectedVariant)
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    removeUploadedImage(uploadedImage)
+                                } label: {
+                                    Label("Supprimer", systemImage: "trash")
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Section("URL manuelle") {
+                    TextField("https://...", text: $manualURL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .keyboardType(.URL)
+
+                    Button("Insérer") {
+                        insertManualURL()
+                    }
+                    .disabled(!canInsertManualURL)
                 }
             }
             .navigationTitle("Insérer image")
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Annuler") {
-                        dismiss()
-                    }
-                }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Insérer") {
-                        onInsert(imageURL)
+                    Button("Fermer") {
                         dismiss()
                     }
-                    .disabled(!canInsert)
                 }
             }
+        }
+        .sheet(isPresented: $isShowingImagePicker) {
+            ReplyUIKitImagePicker(
+                sourceType: pickerSourceType,
+                onCancel: {
+                    isShowingImagePicker = false
+                },
+                onPick: { selectedImage in
+                    isShowingImagePicker = false
+                    startUpload(with: selectedImage)
+                }
+            )
+            .ignoresSafeArea()
+        }
+        .onDisappear {
+            uploadTask?.cancel()
+        }
+    }
+
+    private func presentImagePicker(sourceType: UIImagePickerController.SourceType) {
+        if sourceType == .camera && !canUseCamera {
+            uploadError = "Caméra indisponible sur cet appareil."
+            return
+        }
+        pickerSourceType = sourceType
+        isShowingImagePicker = true
+    }
+
+    private func startUpload(with image: UIImage) {
+        uploadTask?.cancel()
+        isUploading = true
+        uploadError = nil
+
+        let maxDimension = preferences.maxDimension
+        uploadTask = Task {
+            do {
+                let uploadedImage = try await uploadService.uploadImage(image, maxDimension: maxDimension)
+                await MainActor.run {
+                    uploadedImages.insert(uploadedImage, at: 0)
+                    isUploading = false
+                }
+            } catch let error as ReplyImageUploadError {
+                await MainActor.run {
+                    isUploading = false
+                    uploadError = error.localizedDescription
+                }
+            } catch {
+                await MainActor.run {
+                    isUploading = false
+                    uploadError = "Erreur d'upload."
+                }
+            }
+        }
+    }
+
+    private func insertUploadedImage(_ image: RehostUploadedImage, variant: RehostImageSizeVariant) {
+        guard let snippet = image.formattedSnippet(for: variant, mode: preferences.bbCodeMode) else {
+            return
+        }
+        onInsertSnippet(snippet)
+        dismiss()
+    }
+
+    private func removeUploadedImage(_ image: RehostUploadedImage) {
+        uploadedImages.removeAll { $0.id == image.id }
+    }
+
+    private func insertManualURL() {
+        let trimmed = manualURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        let manualImage = RehostUploadedImage(
+            fullWidth: nil,
+            fullHeight: nil,
+            fullURL: trimmed,
+            mediumURL: nil,
+            previewURL: nil,
+            miniURL: nil
+        )
+        guard let snippet = manualImage.formattedSnippet(for: .full, mode: preferences.bbCodeMode) else {
+            return
+        }
+        onInsertSnippet(snippet)
+        dismiss()
+    }
+}
+
+private struct ReplyUploadedImageRow: View {
+    let image: RehostUploadedImage
+    let mode: RehostBBCodeMode
+    let onInsertVariant: (RehostImageSizeVariant) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                AsyncImage(url: URL(string: image.thumbnailURL)) { phase in
+                    switch phase {
+                    case .success(let preview):
+                        preview
+                            .resizable()
+                            .scaledToFill()
+                    default:
+                        Color(.tertiarySystemFill)
+                    }
+                }
+                .frame(width: 56, height: 56)
+                .clipShape(.rect(cornerRadius: 8))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(mode.title)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(image.maxDimensionText ?? "Image")
+                        .font(.footnote)
+                        .foregroundStyle(.primary)
+                    Text(image.fullURL)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+
+            ScrollView(.horizontal) {
+                HStack(spacing: 8) {
+                    ForEach(image.availableVariants) { variant in
+                        Button(variant.title) {
+                            onInsertVariant(variant)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+            .scrollIndicators(.hidden)
+        }
+    }
+}
+
+private struct ReplyUIKitImagePicker: UIViewControllerRepresentable {
+    let sourceType: UIImagePickerController.SourceType
+    let onCancel: () -> Void
+    let onPick: (UIImage) -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onCancel: onCancel, onPick: onPick)
+    }
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.delegate = context.coordinator
+        picker.allowsEditing = false
+        picker.sourceType = sourceType
+        picker.modalPresentationStyle = .fullScreen
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {
+        if uiViewController.sourceType != sourceType,
+           UIImagePickerController.isSourceTypeAvailable(sourceType) {
+            uiViewController.sourceType = sourceType
+        }
+    }
+
+    final class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
+        private let onCancel: () -> Void
+        private let onPick: (UIImage) -> Void
+
+        init(onCancel: @escaping () -> Void, onPick: @escaping (UIImage) -> Void) {
+            self.onCancel = onCancel
+            self.onPick = onPick
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            onCancel()
+        }
+
+        func imagePickerController(
+            _ picker: UIImagePickerController,
+            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
+        ) {
+            guard let image = info[.originalImage] as? UIImage else {
+                onCancel()
+                return
+            }
+            onPick(image)
         }
     }
 }

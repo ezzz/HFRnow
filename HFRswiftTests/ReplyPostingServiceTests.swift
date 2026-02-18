@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 @testable import HFRswift
 
 final class ReplyPostingServiceTests: XCTestCase {
@@ -209,10 +210,123 @@ final class ReplyPostingServiceTests: XCTestCase {
         XCTAssertTrue(URLProtocolMock.handledRequests.isEmpty)
     }
 
+    func testImg3UploadParsesSuccessfulPayload() async throws {
+        let session = makeSession()
+
+        URLProtocolMock.requestHandler = { request in
+            XCTAssertEqual(request.url?.absoluteString, "https://example.com/upload")
+            XCTAssertEqual(request.httpMethod, "POST")
+            XCTAssertTrue(request.value(forHTTPHeaderField: "Content-Type")?.contains("multipart/form-data") == true)
+
+            let bodyString = String(data: request.httpBody ?? Data(), encoding: .utf8) ?? ""
+            XCTAssertTrue(bodyString.contains("name=\"source\""))
+
+            let json = """
+            {
+              "status_code": 200,
+              "image": {
+                "width": 1151,
+                "height": 898,
+                "url": "https://img3.super-h.fr/images/full.jpg",
+                "medium": { "url": "https://img3.super-h.fr/images/medium.jpg" },
+                "thumb": { "url": "https://img3.super-h.fr/images/thumb.jpg" }
+              }
+            }
+            """
+
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                Data(json.utf8)
+            )
+        }
+
+        let service = Img3ReplyImageUploadService(
+            session: session,
+            uploadURL: URL(string: "https://example.com/upload")!
+        )
+        let uploadedImage = try await service.uploadImage(makeTestImage(), maxDimension: .px1200)
+
+        XCTAssertEqual(uploadedImage.fullURL, "https://img3.super-h.fr/images/full.jpg")
+        XCTAssertEqual(uploadedImage.mediumURL, "https://img3.super-h.fr/images/medium.jpg")
+        XCTAssertEqual(uploadedImage.miniURL, "https://img3.super-h.fr/images/thumb.jpg")
+        XCTAssertEqual(uploadedImage.fullWidth, 1151)
+        XCTAssertEqual(uploadedImage.fullHeight, 898)
+    }
+
+    func testImg3UploadReturnsPayloadErrorWhenStatusCodeIsNotSuccess() async {
+        let session = makeSession()
+
+        URLProtocolMock.requestHandler = { request in
+            let json = """
+            {
+              "status_code": 400,
+              "error": { "message": "File too big - max 500 KB" }
+            }
+            """
+
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                Data(json.utf8)
+            )
+        }
+
+        let service = Img3ReplyImageUploadService(
+            session: session,
+            uploadURL: URL(string: "https://example.com/upload")!
+        )
+
+        do {
+            _ = try await service.uploadImage(makeTestImage(), maxDimension: .px1200)
+            XCTFail("Expected serverError")
+        } catch let error as ReplyImageUploadError {
+            switch error {
+            case .serverError(let statusCode, let message):
+                XCTAssertEqual(statusCode, 400)
+                XCTAssertEqual(message, "File too big - max 500 KB")
+            default:
+                XCTFail("Unexpected error: \(error)")
+            }
+        } catch {
+            XCTFail("Unexpected error type: \(error)")
+        }
+    }
+
+    func testRehostUploadedImageFormatsBBCodeByModeAndVariant() {
+        let uploadedImage = RehostUploadedImage(
+            fullWidth: 1200,
+            fullHeight: 900,
+            fullURL: "https://img3.super-h.fr/images/full.jpg",
+            mediumURL: "https://img3.super-h.fr/images/medium.jpg",
+            previewURL: nil,
+            miniURL: "https://img3.super-h.fr/images/thumb.jpg"
+        )
+
+        XCTAssertEqual(
+            uploadedImage.formattedSnippet(for: .full, mode: .imageNoLink),
+            "[img]https://img3.super-h.fr/images/full.jpg[/img]\n"
+        )
+        XCTAssertEqual(
+            uploadedImage.formattedSnippet(for: .medium, mode: .imageWithLink),
+            "[url=https://img3.super-h.fr/images/full.jpg][img]https://img3.super-h.fr/images/medium.jpg[/img][/url]\n"
+        )
+        XCTAssertEqual(
+            uploadedImage.formattedSnippet(for: .mini, mode: .linkOnly),
+            "https://img3.super-h.fr/images/thumb.jpg"
+        )
+    }
+
     private func makeSession() -> URLSession {
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [URLProtocolMock.self]
         return URLSession(configuration: config)
+    }
+
+    private func makeTestImage() -> UIImage {
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 16, height: 16))
+        return renderer.image { context in
+            UIColor.systemRed.setFill()
+            context.cgContext.fill(CGRect(x: 0, y: 0, width: 16, height: 16))
+        }
     }
 }
 
