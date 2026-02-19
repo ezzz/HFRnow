@@ -10,7 +10,6 @@ struct AnswerView: View {
 
     @Binding var composerDraftText: String
     @Binding var isComposerPresented: Bool
-    @FocusState.Binding var isComposerFocused: Bool
 
     @State private var composerState: ReplyComposerState
     @State private var defaultSmileys: [ReplySmiley] = []
@@ -18,6 +17,7 @@ struct AnswerView: View {
     @State private var imageUploadPreferences: RehostPreferences
     @State private var uploadedImages: [RehostUploadedImage]
     @State private var selectedRangeUTF16: NSRange = NSRange(location: 0, length: 0)
+    @State private var isComposerFocused = false
 
     @State private var showToast: Bool = false
     @State private var toastText: String = ""
@@ -30,8 +30,7 @@ struct AnswerView: View {
         imageUploadService: any ReplyImageUploadService = Img3ReplyImageUploadService(),
         onPostSuccess: ((ReplyPostingResult) -> Void)? = nil,
         composerDraftText: Binding<String>,
-        isComposerPresented: Binding<Bool>,
-        isComposerFocused: FocusState<Bool>.Binding
+        isComposerPresented: Binding<Bool>
     ) {
         self.topicURL = topicURL
         self.replyPostingService = replyPostingService
@@ -40,7 +39,6 @@ struct AnswerView: View {
         self.onPostSuccess = onPostSuccess
         self._composerDraftText = composerDraftText
         self._isComposerPresented = isComposerPresented
-        self._isComposerFocused = isComposerFocused
         self._composerState = State(initialValue: ReplyComposerState(initialMessage: composerDraftText.wrappedValue))
         self._imageUploadPreferences = State(initialValue: RehostPreferencesStore.load())
         self._uploadedImages = State(initialValue: RehostUploadHistoryStore.load())
@@ -133,6 +131,20 @@ struct AnswerView: View {
                         .accessibilityLabel("Insérer image")
                 }
 
+                Button {
+                    clearComposer()
+                } label: {
+                    Image(systemName: "xmark.circle")
+                        .font(.system(size: 17, weight: .regular))
+                        .padding(.vertical, 10)
+                        .padding(.horizontal, 12)
+                        .background(Color(.tertiarySystemFill))
+                        .foregroundStyle(.primary)
+                        .clipShape(Capsule())
+                        .accessibilityLabel("Vider le texte")
+                }
+                .disabled(composerState.message.isEmpty || composerState.isPosting)
+
                 Spacer()
                 Button {
                     Task { await postMessage() }
@@ -157,14 +169,14 @@ struct AnswerView: View {
                 insertSmileyCode(selectedSmiley.code)
                 composerState.activePanel = .none
             }
-            .presentationDetents([.medium, .large])
+            .presentationDetents([.large])
         }
         .sheet(isPresented: isFavoriteSmileyPickerPresented) {
             SmileyPickerView(title: "Smileys favoris", smileys: favoriteSmileys) { selectedSmiley in
                 insertSmileyCode(selectedSmiley.code)
                 composerState.activePanel = .none
             }
-            .presentationDetents([.medium, .large])
+            .presentationDetents([.large])
         }
         .sheet(isPresented: isImageInsertionPresented) {
             ReplyImageInsertionView(
@@ -196,8 +208,8 @@ struct AnswerView: View {
                 isComposerFocused = true
             }
         }
-        .onChange(of: composerState.message) { _, newValue in
-            composerDraftText = newValue
+        .onDisappear {
+            composerDraftText = composerState.message
         }
         .onChange(of: imageUploadPreferences) { _, newPreferences in
             RehostPreferencesStore.save(newPreferences)
@@ -238,6 +250,12 @@ struct AnswerView: View {
         )
         composerState.message = insertion.text
         selectedRangeUTF16 = NSRange(location: insertion.cursorLocationUTF16, length: 0)
+        isComposerFocused = true
+    }
+
+    private func clearComposer() {
+        composerState.message = ""
+        selectedRangeUTF16 = NSRange(location: 0, length: 0)
         isComposerFocused = true
     }
 
@@ -479,6 +497,7 @@ private struct ReplyImageInsertionView: View {
     @State private var isUploading = false
     @State private var uploadError: String?
     @State private var uploadTask: Task<Void, Never>?
+    @FocusState private var isManualURLFocused: Bool
 
     private var canUseCamera: Bool {
         UIImagePickerController.isSourceTypeAvailable(.camera)
@@ -567,6 +586,7 @@ private struct ReplyImageInsertionView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .keyboardType(.URL)
+                        .focused($isManualURLFocused)
 
                     Button("Insérer") {
                         insertManualURL()
@@ -775,7 +795,7 @@ private struct ReplyUIKitImagePicker: UIViewControllerRepresentable {
 private struct ReplyTextEditor: UIViewRepresentable {
     @Binding var text: String
     @Binding var selectedRange: NSRange
-    var isFocused: FocusState<Bool>.Binding
+    @Binding var isFocused: Bool
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -790,11 +810,13 @@ private struct ReplyTextEditor: UIViewRepresentable {
         textView.textContainer.lineFragmentPadding = 0
         textView.autocapitalizationType = .sentences
         textView.autocorrectionType = .yes
-        textView.keyboardDismissMode = .interactive
+        textView.keyboardDismissMode = .none
         return textView
     }
 
     func updateUIView(_ uiView: UITextView, context: Context) {
+        context.coordinator.parent = self
+
         if uiView.text != text {
             uiView.text = text
         }
@@ -804,12 +826,10 @@ private struct ReplyTextEditor: UIViewRepresentable {
             uiView.selectedRange = boundedSelection
         }
 
-        if isFocused.wrappedValue {
+        if isFocused {
             if !uiView.isFirstResponder {
                 uiView.becomeFirstResponder()
             }
-        } else if uiView.isFirstResponder {
-            uiView.resignFirstResponder()
         }
     }
 
@@ -827,15 +847,13 @@ private struct ReplyTextEditor: UIViewRepresentable {
         }
 
         func textViewDidBeginEditing(_ textView: UITextView) {
-            if !parent.isFocused.wrappedValue {
-                parent.isFocused.wrappedValue = true
+            if !parent.isFocused {
+                parent.isFocused = true
             }
         }
 
         func textViewDidEndEditing(_ textView: UITextView) {
-            if parent.isFocused.wrappedValue {
-                parent.isFocused.wrappedValue = false
-            }
+            // Keep focus state stable; explicit blur is driven by view actions (send/dismiss).
         }
 
         func textViewDidChange(_ textView: UITextView) {
@@ -875,15 +893,13 @@ private struct ToastBanner: View {
 private struct AnswerViewPreviewWrapper: View {
     @State private var draft: String = ""
     @State private var presented: Bool = false
-    @FocusState private var focused: Bool
 
     var body: some View {
         NavigationStack {
             AnswerView(
                 topicURL: URL(string: "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=42&page=1&p=1#t100")!,
                 composerDraftText: $draft,
-                isComposerPresented: $presented,
-                isComposerFocused: $focused
+                isComposerPresented: $presented
             )
         }
     }

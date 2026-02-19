@@ -3,6 +3,7 @@ import UIKit
 
 struct ReplyPostingResult {
     let refreshAnchor: String?
+    let refreshURL: URL?
     let statusMessage: String?
 }
 
@@ -146,6 +147,7 @@ final class ForumReplyPostingService: ReplyPostingService {
 
         return ReplyPostingResult(
             refreshAnchor: parseRefreshAnchor(from: html),
+            refreshURL: parseRefreshURL(from: html, baseURL: topicURL),
             statusMessage: parseHopMessage(from: html)
         )
     }
@@ -384,6 +386,30 @@ final class ForumReplyPostingService: ReplyPostingService {
         }
 
         return String(html[valueRange])
+    }
+
+    private func parseRefreshURL(from html: String, baseURL: URL) -> URL? {
+        guard let regex = try? NSRegularExpression(pattern: "<meta\\s+http-equiv=\"refresh\"\\s+content=\"[^\"]*url=([^\"]+)\"", options: [.caseInsensitive]) else {
+            return nil
+        }
+
+        let range = NSRange(html.startIndex..<html.endIndex, in: html)
+        guard let match = regex.firstMatch(in: html, options: [], range: range) else {
+            return nil
+        }
+
+        let urlRange = match.range(at: 1)
+        guard urlRange.location != NSNotFound,
+              let valueRange = Range(urlRange, in: html) else {
+            return nil
+        }
+
+        let rawURL = String(html[valueRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !rawURL.isEmpty else {
+            return nil
+        }
+
+        return URL(string: rawURL, relativeTo: baseURL)?.absoluteURL
     }
 
     private func isLoggedOutForm(_ html: String) -> Bool {

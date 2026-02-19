@@ -572,7 +572,6 @@ struct MessagesView: View {
     @State private var isSendingReply = false
     @State private var isComposerMinimized = false
     @State private var animateLoadingSpinner = false
-    @FocusState private var isComposerFocused: Bool
     @State private var isPagePickerPresented = false
     @State private var pagePickerInput: String = ""
     @State private var linkedTopic: Topic?
@@ -910,7 +909,7 @@ struct MessagesView: View {
     }
 
     private func handleComposerDismissalIfNeeded() {
-        guard pendingPostedReply != nil else { return }
+        guard let postedReply = pendingPostedReply else { return }
         pendingPostedReply = nil
 
         postSuccessToastText = "Hooray"
@@ -926,7 +925,13 @@ struct MessagesView: View {
         }
 
         guard page >= maxPage else { return }
-        anchor = nil
+
+        if let refreshURL = postedReply.refreshURL {
+            loadDirectURL(refreshURL.absoluteString, initialScroll: .bottom)
+            return
+        }
+
+        anchor = postedReply.refreshAnchor
         initialScroll = .bottom
         loadPage(maxPage)
     }
@@ -1131,8 +1136,7 @@ struct MessagesView: View {
                         topicURL: topicAnswerURL,
                         onPostSuccess: handleReplySuccess,
                         composerDraftText: $composerDraftText,
-                        isComposerPresented: $isComposerPresented,
-                        isComposerFocused: $isComposerFocused
+                        isComposerPresented: $isComposerPresented
                     )
                         .presentationDetents([.large])
                 }
