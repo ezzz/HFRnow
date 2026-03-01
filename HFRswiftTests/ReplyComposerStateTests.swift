@@ -1,6 +1,7 @@
 import XCTest
 @testable import HFRswift
 
+@MainActor
 final class ReplyComposerStateTests: XCTestCase {
     func testComposerStateCanSendDependsOnPostingAndTrimmedMessage() {
         var state = ReplyComposerState(initialMessage: "   ")

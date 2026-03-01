@@ -1,6 +1,7 @@
 import XCTest
 @testable import HFRswift
 
+@MainActor
 final class MessageWebActionHandlerTests: XCTestCase {
     private let handler = MessageWebActionHandler()
 
