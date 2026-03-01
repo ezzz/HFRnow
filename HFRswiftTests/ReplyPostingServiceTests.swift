@@ -145,6 +145,104 @@ final class ReplyPostingServiceTests: XCTestCase {
         XCTAssertTrue(URLProtocolMock.handledRequests.isEmpty)
     }
 
+    func testPostReplyWhenMessageIsBlankFailsEarlyWithoutNetworkRequest() async {
+        let session = makeSession()
+
+        URLProtocolMock.requestHandler = { _ in
+            XCTFail("No network request should be sent when message is blank")
+            throw URLError(.badServerResponse)
+        }
+
+        let service = ForumReplyPostingService(
+            session: session,
+            sessionContextProvider: { _ in
+                ReplySessionContext(pseudoDisplay: "testeur", hashCheck: "hash123")
+            }
+        )
+
+        do {
+            _ = try await service.postReply(
+                message: " \n\t ",
+                topicURL: URL(string: "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=42&page=1&p=1")!
+            )
+            XCTFail("Expected emptyMessage")
+        } catch let error as ReplyPostingError {
+            switch error {
+            case .emptyMessage:
+                break
+            default:
+                XCTFail("Unexpected error: \(error)")
+            }
+        } catch {
+            XCTFail("Unexpected error type: \(error)")
+        }
+
+        XCTAssertTrue(URLProtocolMock.handledRequests.isEmpty)
+    }
+
+    func testPostReplySubmissionRejectedParsesHopMessage() async {
+        let session = makeSession()
+        var step = 0
+
+        URLProtocolMock.requestHandler = { request in
+            step += 1
+            switch step {
+            case 1:
+                let html = """
+                <html><body>
+                <form name=\"hop\" action=\"/bddpost.php\">
+                  <input type=\"hidden\" name=\"cat\" value=\"13\" />
+                  <input type=\"hidden\" name=\"post\" value=\"42\" />
+                  <input type=\"hidden\" name=\"p\" value=\"1\" />
+                </form>
+                </body></html>
+                """
+                return (
+                    HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                    Data(html.utf8)
+                )
+            case 2:
+                let html = """
+                <html><body>
+                <div class=\"hop\">Afin de prévenir le flood, veuillez patienter.<a href=\"/faq.php\">Aide</a></div>
+                </body></html>
+                """
+                return (
+                    HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                    Data(html.utf8)
+                )
+            default:
+                XCTFail("Unexpected extra request")
+                throw URLError(.badServerResponse)
+            }
+        }
+
+        let service = ForumReplyPostingService(
+            session: session,
+            sessionContextProvider: { _ in
+                ReplySessionContext(pseudoDisplay: "testeur", hashCheck: "hash123")
+            }
+        )
+
+        do {
+            _ = try await service.postReply(
+                message: "Bonjour",
+                topicURL: URL(string: "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=42&page=1&p=1")!
+            )
+            XCTFail("Expected submissionRejected")
+        } catch let error as ReplyPostingError {
+            switch error {
+            case .submissionRejected(let message):
+                XCTAssertEqual(message, "Afin de prévenir le flood, veuillez patienter. Aide")
+                XCTAssertFalse(message?.contains("class=\"hop\"") ?? false)
+            default:
+                XCTFail("Unexpected error: \(error)")
+            }
+        } catch {
+            XCTFail("Unexpected error type: \(error)")
+        }
+    }
+
     func testFetchQuoteTemplateReturnsPrefilledContentForm() async throws {
         let session = makeSession()
 
@@ -175,6 +273,46 @@ final class ReplyPostingServiceTests: XCTestCase {
         )
 
         XCTAssertEqual(template, "[quotemsg=1,2,3]Salut & merci[/quotemsg]\n")
+    }
+
+    func testFetchQuoteTemplateWhenHopFormIsMissingReturnsReplyFormUnavailable() async {
+        let session = makeSession()
+
+        URLProtocolMock.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "GET")
+            let html = """
+            <html><body>
+            <div>Pas de formulaire hop ici</div>
+            </body></html>
+            """
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                Data(html.utf8)
+            )
+        }
+
+        let service = ForumReplyQuoteTemplateService(
+            session: session,
+            sessionContextProvider: { _ in
+                ReplySessionContext(pseudoDisplay: "testeur", hashCheck: "hash123")
+            }
+        )
+
+        do {
+            _ = try await service.fetchQuoteTemplate(
+                from: URL(string: "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=42&page=1&p=1")!
+            )
+            XCTFail("Expected replyFormUnavailable")
+        } catch let error as ReplyPostingError {
+            switch error {
+            case .replyFormUnavailable:
+                break
+            default:
+                XCTFail("Unexpected error: \(error)")
+            }
+        } catch {
+            XCTFail("Unexpected error type: \(error)")
+        }
     }
 
     func testPostReplyServerErrorParsesHopMessageWithoutClassPrefix() async {
