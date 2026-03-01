@@ -177,6 +177,111 @@ final class ReplyPostingServiceTests: XCTestCase {
         XCTAssertEqual(template, "[quotemsg=1,2,3]Salut & merci[/quotemsg]\n")
     }
 
+    func testPostReplyServerErrorParsesHopMessageWithoutClassPrefix() async {
+        let session = makeSession()
+        var step = 0
+
+        URLProtocolMock.requestHandler = { request in
+            step += 1
+            switch step {
+            case 1:
+                let html = """
+                <html><body>
+                <form name=\"hop\" action=\"/bddpost.php\">
+                  <input type=\"hidden\" name=\"cat\" value=\"13\" />
+                  <input type=\"hidden\" name=\"post\" value=\"42\" />
+                </form>
+                </body></html>
+                """
+                return (
+                    HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                    Data(html.utf8)
+                )
+            case 2:
+                let html = """
+                <html><body>
+                <div class=\"hop\">Afin de prévenir le flood, veuillez patienter.</div>
+                </body></html>
+                """
+                return (
+                    HTTPURLResponse(url: request.url!, statusCode: 400, httpVersion: nil, headerFields: nil)!,
+                    Data(html.utf8)
+                )
+            default:
+                XCTFail("Unexpected extra request")
+                throw URLError(.badServerResponse)
+            }
+        }
+
+        let service = ForumReplyPostingService(
+            session: session,
+            sessionContextProvider: { _ in
+                ReplySessionContext(pseudoDisplay: "testeur", hashCheck: "hash123")
+            }
+        )
+
+        do {
+            _ = try await service.postReply(
+                message: "Bonjour",
+                topicURL: URL(string: "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=42&page=1&p=1")!
+            )
+            XCTFail("Expected serverError")
+        } catch let error as ReplyPostingError {
+            switch error {
+            case .serverError(let statusCode, let message):
+                XCTAssertEqual(statusCode, 400)
+                XCTAssertEqual(message, "Afin de prévenir le flood, veuillez patienter.")
+                XCTAssertFalse(message?.contains("class=\"hop\"") ?? false)
+            default:
+                XCTFail("Unexpected error: \(error)")
+            }
+        } catch {
+            XCTFail("Unexpected error type: \(error)")
+        }
+    }
+
+    func testFetchQuoteTemplateServerErrorParsesHopMessageWithoutClassPrefix() async {
+        let session = makeSession()
+
+        URLProtocolMock.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "GET")
+            let html = """
+            <html><body>
+            <p class=\"hop\">Afin de prévenir le flood, veuillez patienter.</p>
+            </body></html>
+            """
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 500, httpVersion: nil, headerFields: nil)!,
+                Data(html.utf8)
+            )
+        }
+
+        let service = ForumReplyQuoteTemplateService(
+            session: session,
+            sessionContextProvider: { _ in
+                ReplySessionContext(pseudoDisplay: "testeur", hashCheck: "hash123")
+            }
+        )
+
+        do {
+            _ = try await service.fetchQuoteTemplate(
+                from: URL(string: "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=42&page=1&p=1")!
+            )
+            XCTFail("Expected serverError")
+        } catch let error as ReplyPostingError {
+            switch error {
+            case .serverError(let statusCode, let message):
+                XCTAssertEqual(statusCode, 500)
+                XCTAssertEqual(message, "Afin de prévenir le flood, veuillez patienter.")
+                XCTAssertFalse(message?.contains("class=\"hop\"") ?? false)
+            default:
+                XCTFail("Unexpected error: \(error)")
+            }
+        } catch {
+            XCTFail("Unexpected error type: \(error)")
+        }
+    }
+
     func testFetchQuoteTemplateWhenSessionContextFailsDoesNotSendNetworkRequest() async {
         let session = makeSession()
 

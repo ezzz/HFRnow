@@ -415,21 +415,48 @@ final class ForumReplyPostingService: ReplyPostingService, ReplyComposerContextP
     }
 
     private func parseHopMessage(from html: String) -> String? {
-        guard let regex = try? NSRegularExpression(pattern: "<[^>]+>", options: [.caseInsensitive]) else {
+        let hopContainerPattern = "<[^>]*class\\s*=\\s*(\"[^\"]*\\bhop\\b[^\"]*\"|'[^']*\\bhop\\b[^']*'|hop)[^>]*>([\\s\\S]*?)</[^>]+>"
+        var rawHopContent: String?
+
+        if let hopContainerRegex = try? NSRegularExpression(pattern: hopContainerPattern, options: [.caseInsensitive]) {
+            let range = NSRange(html.startIndex..<html.endIndex, in: html)
+            if let match = hopContainerRegex.firstMatch(in: html, options: [], range: range) {
+                let contentRange = match.range(at: 2)
+                if contentRange.location != NSNotFound,
+                   let swiftRange = Range(contentRange, in: html) {
+                    rawHopContent = String(html[swiftRange])
+                }
+            }
+        }
+
+        if rawHopContent == nil,
+           let hopRange = html.range(of: "class=\"hop\"", options: [.caseInsensitive]) {
+            let fallbackSnippet = String(html[hopRange.lowerBound...].prefix(2500))
+            if let startContentIndex = fallbackSnippet.firstIndex(of: ">") {
+                rawHopContent = String(fallbackSnippet[fallbackSnippet.index(after: startContentIndex)...])
+            } else {
+                rawHopContent = fallbackSnippet
+            }
+        }
+
+        guard var rawSnippet = rawHopContent else {
             return nil
         }
 
-        guard let hopRange = html.range(of: "class=\"hop\"", options: [.caseInsensitive]) else {
+        if let endTagRange = rawSnippet.range(of: "</", options: [.caseInsensitive]) {
+            rawSnippet = String(rawSnippet[..<endTagRange.lowerBound])
+        }
+
+        guard let tagRegex = try? NSRegularExpression(pattern: "<[^>]+>", options: [.caseInsensitive]) else {
             return nil
         }
 
-        let rawSnippet = String(html[hopRange.lowerBound...].prefix(2500))
         let nsRange = NSRange(rawSnippet.startIndex..<rawSnippet.endIndex, in: rawSnippet)
-        let stripped = regex.stringByReplacingMatches(in: rawSnippet, options: [], range: nsRange, withTemplate: " ")
-        let cleaned = stripped
-            .replacingOccurrences(of: "&nbsp;", with: " ")
+        let stripped = tagRegex.stringByReplacingMatches(in: rawSnippet, options: [], range: nsRange, withTemplate: " ")
+        let cleaned = decodeHTMLEntities(in: stripped)
             .replacingOccurrences(of: "\n", with: " ")
             .replacingOccurrences(of: "\r", with: " ")
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
         return cleaned.isEmpty ? nil : cleaned
@@ -648,21 +675,48 @@ final class ForumReplyQuoteTemplateService: ReplyQuoteTemplateLoading {
     }
 
     private func parseHopMessage(from html: String) -> String? {
-        guard let regex = try? NSRegularExpression(pattern: "<[^>]+>", options: [.caseInsensitive]) else {
+        let hopContainerPattern = "<[^>]*class\\s*=\\s*(\"[^\"]*\\bhop\\b[^\"]*\"|'[^']*\\bhop\\b[^']*'|hop)[^>]*>([\\s\\S]*?)</[^>]+>"
+        var rawHopContent: String?
+
+        if let hopContainerRegex = try? NSRegularExpression(pattern: hopContainerPattern, options: [.caseInsensitive]) {
+            let range = NSRange(html.startIndex..<html.endIndex, in: html)
+            if let match = hopContainerRegex.firstMatch(in: html, options: [], range: range) {
+                let contentRange = match.range(at: 2)
+                if contentRange.location != NSNotFound,
+                   let swiftRange = Range(contentRange, in: html) {
+                    rawHopContent = String(html[swiftRange])
+                }
+            }
+        }
+
+        if rawHopContent == nil,
+           let hopRange = html.range(of: "class=\"hop\"", options: [.caseInsensitive]) {
+            let fallbackSnippet = String(html[hopRange.lowerBound...].prefix(2500))
+            if let startContentIndex = fallbackSnippet.firstIndex(of: ">") {
+                rawHopContent = String(fallbackSnippet[fallbackSnippet.index(after: startContentIndex)...])
+            } else {
+                rawHopContent = fallbackSnippet
+            }
+        }
+
+        guard var rawSnippet = rawHopContent else {
             return nil
         }
 
-        guard let hopRange = html.range(of: "class=\"hop\"", options: [.caseInsensitive]) else {
+        if let endTagRange = rawSnippet.range(of: "</", options: [.caseInsensitive]) {
+            rawSnippet = String(rawSnippet[..<endTagRange.lowerBound])
+        }
+
+        guard let tagRegex = try? NSRegularExpression(pattern: "<[^>]+>", options: [.caseInsensitive]) else {
             return nil
         }
 
-        let rawSnippet = String(html[hopRange.lowerBound...].prefix(2500))
         let nsRange = NSRange(rawSnippet.startIndex..<rawSnippet.endIndex, in: rawSnippet)
-        let stripped = regex.stringByReplacingMatches(in: rawSnippet, options: [], range: nsRange, withTemplate: " ")
-        let cleaned = stripped
-            .replacingOccurrences(of: "&nbsp;", with: " ")
+        let stripped = tagRegex.stringByReplacingMatches(in: rawSnippet, options: [], range: nsRange, withTemplate: " ")
+        let cleaned = decodeHTMLEntities(in: stripped)
             .replacingOccurrences(of: "\n", with: " ")
             .replacingOccurrences(of: "\r", with: " ")
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
         return cleaned.isEmpty ? nil : cleaned

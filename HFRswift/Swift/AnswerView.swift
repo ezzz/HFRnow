@@ -21,7 +21,7 @@ struct AnswerView: View {
     @State private var isComposerFocused = false
     @State private var undoHistory: [String] = []
     @State private var redoHistory: [String] = []
-    @State private var isApplyingHistoryMutation = false
+    @State private var pendingHistoryMutationsToSkip = 0
 
     @State private var showToast: Bool = false
     @State private var toastText: String = ""
@@ -233,6 +233,7 @@ struct AnswerView: View {
             composerState.message = composerDraftText
             undoHistory.removeAll()
             redoHistory.removeAll()
+            pendingHistoryMutationsToSkip = 0
             if defaultSmileys.isEmpty {
                 defaultSmileys = smileyCatalogLoader.loadDefaultSmileys()
             }
@@ -256,7 +257,10 @@ struct AnswerView: View {
         }
         .onChange(of: composerState.message) { oldValue, newValue in
             guard oldValue != newValue else { return }
-            guard !isApplyingHistoryMutation else { return }
+            if pendingHistoryMutationsToSkip > 0 {
+                pendingHistoryMutationsToSkip -= 1
+                return
+            }
             undoHistory.append(oldValue)
             if undoHistory.count > 200 {
                 undoHistory.removeFirst(undoHistory.count - 200)
@@ -319,11 +323,10 @@ struct AnswerView: View {
         guard !undoHistory.isEmpty else { return }
         let currentValue = composerState.message
         let previousValue = undoHistory.removeLast()
-        isApplyingHistoryMutation = true
+        pendingHistoryMutationsToSkip += 1
         redoHistory.append(currentValue)
         composerState.message = previousValue
         selectedRangeUTF16 = NSRange(location: previousValue.utf16.count, length: 0)
-        isApplyingHistoryMutation = false
         isComposerFocused = true
     }
 
@@ -331,11 +334,10 @@ struct AnswerView: View {
         guard !redoHistory.isEmpty else { return }
         let currentValue = composerState.message
         let nextValue = redoHistory.removeLast()
-        isApplyingHistoryMutation = true
+        pendingHistoryMutationsToSkip += 1
         undoHistory.append(currentValue)
         composerState.message = nextValue
         selectedRangeUTF16 = NSRange(location: nextValue.utf16.count, length: 0)
-        isApplyingHistoryMutation = false
         isComposerFocused = true
     }
 
@@ -365,6 +367,7 @@ struct AnswerView: View {
                 composerState.resetAfterSuccessfulPost()
                 undoHistory.removeAll()
                 redoHistory.removeAll()
+                pendingHistoryMutationsToSkip = 0
                 composerDraftText = ""
                 isComposerPresented = false
                 isComposerFocused = false
@@ -384,12 +387,41 @@ struct AnswerView: View {
     }
 
     @MainActor private func triggerPostHaptic(success: Bool) {
-        guard hapticsEnabled else { return }
+        guard resolvedHapticsEnabled() else { return }
         #if canImport(UIKit)
-        let generator = UINotificationFeedbackGenerator()
-        generator.prepare()
-        generator.notificationOccurred(success ? .success : .error)
+        let notificationGenerator = UINotificationFeedbackGenerator()
+        notificationGenerator.prepare()
+        notificationGenerator.notificationOccurred(success ? .success : .error)
+
+        let impactStyle: UIImpactFeedbackGenerator.FeedbackStyle = success ? .light : .rigid
+        let impactGenerator = UIImpactFeedbackGenerator(style: impactStyle)
+        impactGenerator.prepare()
+        impactGenerator.impactOccurred()
         #endif
+    }
+
+    private func resolvedHapticsEnabled() -> Bool {
+        let defaults = UserDefaults.standard
+        guard let rawValue = defaults.object(forKey: "haptics") else {
+            return hapticsEnabled
+        }
+        if let boolValue = rawValue as? Bool {
+            return boolValue
+        }
+        if let numberValue = rawValue as? NSNumber {
+            return numberValue.boolValue
+        }
+        if let stringValue = rawValue as? String {
+            switch stringValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+            case "1", "true", "yes", "on":
+                return true
+            case "0", "false", "no", "off":
+                return false
+            default:
+                break
+            }
+        }
+        return hapticsEnabled
     }
 
     @MainActor private func presentToast(success: Bool, text: String) {
