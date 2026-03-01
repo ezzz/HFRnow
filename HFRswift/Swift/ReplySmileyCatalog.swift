@@ -31,6 +31,48 @@ protocol ReplySmileyCatalogLoading {
     func loadFavoriteSmileys() -> [ReplySmiley]
 }
 
+enum ReplySmileyCacheBridge {
+    static func favoriteSmileyEntries() -> [[String: Any]] {
+        guard let sharedCache = sharedCacheObject else {
+            return []
+        }
+
+        let forumFavorites = sharedCache.value(forKey: "arrFavoritesSmileysForum") as? [[String: Any]] ?? []
+        let appFavorites = sharedCache.value(forKey: "arrFavoritesSmileysApp") as? [[String: Any]] ?? []
+        return forumFavorites + appFavorites
+    }
+
+    static func updateForumFavorites(_ entries: [[String: String]]) {
+        guard let sharedCache = sharedCacheObject else {
+            return
+        }
+
+        let normalizedEntries = entries.compactMap { entry -> [String: String]? in
+            guard let source = entry["source"]?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  let code = entry["code"]?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !source.isEmpty,
+                  !code.isEmpty else {
+                return nil
+            }
+            return ["source": source, "code": code]
+        }
+
+        sharedCache.setValue(NSMutableArray(array: normalizedEntries), forKey: "arrFavoritesSmileysForum")
+    }
+
+    private static var sharedCacheObject: AnyObject? {
+        guard let cacheClass = NSClassFromString("SmileyCache") as? NSObject.Type else {
+            return nil
+        }
+        let sharedSelector = NSSelectorFromString("shared")
+        guard cacheClass.responds(to: sharedSelector),
+              let unmanaged = cacheClass.perform(sharedSelector) else {
+            return nil
+        }
+        return unmanaged.takeUnretainedValue() as AnyObject
+    }
+}
+
 final class BundleReplySmileyCatalogLoader: ReplySmileyCatalogLoading {
     private let bundle: Bundle
 
@@ -63,21 +105,7 @@ final class BundleReplySmileyCatalogLoader: ReplySmileyCatalogLoading {
     }
 
     func loadFavoriteSmileys() -> [ReplySmiley] {
-        guard let cacheClass = NSClassFromString("SmileyCache") as? NSObject.Type else {
-            return []
-        }
-        let sharedSelector = NSSelectorFromString("shared")
-        guard cacheClass.responds(to: sharedSelector),
-              let unmanaged = cacheClass.perform(sharedSelector) else {
-            return []
-        }
-
-        let sharedCache = unmanaged.takeUnretainedValue() as AnyObject
-        let forumFavorites = sharedCache.value(forKey: "arrFavoritesSmileysForum") as? [[String: Any]] ?? []
-        let appFavorites = sharedCache.value(forKey: "arrFavoritesSmileysApp") as? [[String: Any]] ?? []
-        let rawFavorites = forumFavorites + appFavorites
-
-        return rawFavorites.compactMap { entry in
+        ReplySmileyCacheBridge.favoriteSmileyEntries().compactMap { entry in
             guard let code = entry["code"] as? String else { return nil }
             let sourceString = entry["source"] as? String
             let sourceURL = sourceString.flatMap(URL.init(string:))

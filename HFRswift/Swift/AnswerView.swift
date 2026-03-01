@@ -11,6 +11,7 @@ struct AnswerView: View {
     @Binding var composerDraftText: String
     @Binding var isComposerPresented: Bool
 
+    @AppStorage("haptics") private var hapticsEnabled = true
     @State private var composerState: ReplyComposerState
     @State private var defaultSmileys: [ReplySmiley] = []
     @State private var favoriteSmileys: [ReplySmiley] = []
@@ -18,6 +19,9 @@ struct AnswerView: View {
     @State private var uploadedImages: [RehostUploadedImage]
     @State private var selectedRangeUTF16: NSRange = NSRange(location: 0, length: 0)
     @State private var isComposerFocused = false
+    @State private var undoHistory: [String] = []
+    @State private var redoHistory: [String] = []
+    @State private var isApplyingHistoryMutation = false
 
     @State private var showToast: Bool = false
     @State private var toastText: String = ""
@@ -145,6 +149,34 @@ struct AnswerView: View {
                 }
                 .disabled(composerState.message.isEmpty || composerState.isPosting)
 
+                Button {
+                    performUndo()
+                } label: {
+                    Image(systemName: "arrow.uturn.backward")
+                        .font(.system(size: 17, weight: .regular))
+                        .padding(.vertical, 10)
+                        .padding(.horizontal, 12)
+                        .background(Color(.tertiarySystemFill))
+                        .foregroundStyle(.primary)
+                        .clipShape(Capsule())
+                        .accessibilityLabel("Undo")
+                }
+                .disabled(undoHistory.isEmpty || composerState.isPosting)
+
+                Button {
+                    performRedo()
+                } label: {
+                    Image(systemName: "arrow.uturn.forward")
+                        .font(.system(size: 17, weight: .regular))
+                        .padding(.vertical, 10)
+                        .padding(.horizontal, 12)
+                        .background(Color(.tertiarySystemFill))
+                        .foregroundStyle(.primary)
+                        .clipShape(Capsule())
+                        .accessibilityLabel("Redo")
+                }
+                .disabled(redoHistory.isEmpty || composerState.isPosting)
+
                 Spacer()
                 Button {
                     Task { await postMessage() }
@@ -199,6 +231,8 @@ struct AnswerView: View {
         .animation(.spring(response: 0.35, dampingFraction: 0.9), value: showToast)
         .onAppear {
             composerState.message = composerDraftText
+            undoHistory.removeAll()
+            redoHistory.removeAll()
             if defaultSmileys.isEmpty {
                 defaultSmileys = smileyCatalogLoader.loadDefaultSmileys()
             }
@@ -208,6 +242,9 @@ struct AnswerView: View {
                 isComposerFocused = true
             }
         }
+        .task(id: topicURL?.absoluteString) {
+            await preloadReplyContextForSmileys()
+        }
         .onDisappear {
             composerDraftText = composerState.message
         }
@@ -216,6 +253,15 @@ struct AnswerView: View {
         }
         .onChange(of: uploadedImages) { _, newHistory in
             RehostUploadHistoryStore.save(newHistory)
+        }
+        .onChange(of: composerState.message) { oldValue, newValue in
+            guard oldValue != newValue else { return }
+            guard !isApplyingHistoryMutation else { return }
+            undoHistory.append(oldValue)
+            if undoHistory.count > 200 {
+                undoHistory.removeFirst(undoHistory.count - 200)
+            }
+            redoHistory.removeAll()
         }
     }
 
@@ -229,6 +275,16 @@ struct AnswerView: View {
     private func presentFavoriteSmileys() {
         favoriteSmileys = smileyCatalogLoader.loadFavoriteSmileys()
         composerState.activePanel = .favoriteSmileys
+    }
+
+    private func preloadReplyContextForSmileys() async {
+        guard let topicURL else { return }
+        if let preloader = replyPostingService as? any ReplyComposerContextPreloading {
+            await preloader.preloadReplyContext(topicURL: topicURL)
+        }
+        await MainActor.run {
+            favoriteSmileys = smileyCatalogLoader.loadFavoriteSmileys()
+        }
     }
 
     private func presentImageInsertion() {
@@ -259,11 +315,38 @@ struct AnswerView: View {
         isComposerFocused = true
     }
 
+    private func performUndo() {
+        guard !undoHistory.isEmpty else { return }
+        let currentValue = composerState.message
+        let previousValue = undoHistory.removeLast()
+        isApplyingHistoryMutation = true
+        redoHistory.append(currentValue)
+        composerState.message = previousValue
+        selectedRangeUTF16 = NSRange(location: previousValue.utf16.count, length: 0)
+        isApplyingHistoryMutation = false
+        isComposerFocused = true
+    }
+
+    private func performRedo() {
+        guard !redoHistory.isEmpty else { return }
+        let currentValue = composerState.message
+        let nextValue = redoHistory.removeLast()
+        isApplyingHistoryMutation = true
+        undoHistory.append(currentValue)
+        composerState.message = nextValue
+        selectedRangeUTF16 = NSRange(location: nextValue.utf16.count, length: 0)
+        isApplyingHistoryMutation = false
+        isComposerFocused = true
+    }
+
     private func postMessage() async {
         guard composerState.beginPosting() else { return }
         defer { composerState.endPosting() }
 
         guard let topicURL else {
+            await MainActor.run {
+                triggerPostHaptic(success: false)
+            }
             await presentToast(success: false, text: "URL manquante")
             return
         }
@@ -273,20 +356,40 @@ struct AnswerView: View {
             await MainActor.run {
                 onPostSuccess?(result)
             }
+            await MainActor.run {
+                triggerPostHaptic(success: true)
+            }
             await presentToast(success: true, text: "Hooray")
             try? await Task.sleep(nanoseconds: 800_000_000)
             await MainActor.run {
                 composerState.resetAfterSuccessfulPost()
+                undoHistory.removeAll()
+                redoHistory.removeAll()
                 composerDraftText = ""
                 isComposerPresented = false
                 isComposerFocused = false
             }
         } catch let error as ReplyPostingError {
+            await MainActor.run {
+                triggerPostHaptic(success: false)
+            }
             await presentToast(success: false, text: error.localizedDescription)
         } catch {
+            await MainActor.run {
+                triggerPostHaptic(success: false)
+            }
             await presentToast(success: false, text: "Ooops")
             print("POST error: \(error)")
         }
+    }
+
+    @MainActor private func triggerPostHaptic(success: Bool) {
+        guard hapticsEnabled else { return }
+        #if canImport(UIKit)
+        let generator = UINotificationFeedbackGenerator()
+        generator.prepare()
+        generator.notificationOccurred(success ? .success : .error)
+        #endif
     }
 
     @MainActor private func presentToast(success: Bool, text: String) {
@@ -308,12 +411,12 @@ private struct SmileyPickerView: View {
     let onSelect: (ReplySmiley) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    private let columns = [GridItem(.adaptive(minimum: 88, maximum: 120), spacing: 6)]
+    private let columns = [GridItem(.adaptive(minimum: 52, maximum: 62), spacing: 1)]
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                LazyVGrid(columns: columns, spacing: 6) {
+                LazyVGrid(columns: columns, spacing: 1) {
                     ForEach(smileys) { smiley in
                         Button {
                             onSelect(smiley)
@@ -322,9 +425,10 @@ private struct SmileyPickerView: View {
                             SmileyGridCell(smiley: smiley)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel(smiley.code)
                     }
                 }
-                .padding(8)
+                .padding(4)
             }
             .navigationTitle(title)
             .toolbar {
@@ -342,22 +446,16 @@ private struct SmileyGridCell: View {
     let smiley: ReplySmiley
 
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 0) {
             SmileyThumbnailView(smiley: smiley)
-                .frame(width: 56, height: 34, alignment: .center)
+                .frame(width: 44, height: 28, alignment: .center)
                 .background(Color(.secondarySystemBackground))
-                .clipShape(.rect(cornerRadius: 6))
-
-            Text(smiley.code)
-                .font(.caption.monospaced())
-                .foregroundStyle(.primary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
+                .clipShape(.rect(cornerRadius: 4))
         }
-        .frame(maxWidth: .infinity, minHeight: 70)
-        .padding(.vertical, 4)
+        .frame(maxWidth: .infinity, minHeight: 32)
+        .padding(.vertical, 1)
         .background(Color(.tertiarySystemBackground))
-        .clipShape(.rect(cornerRadius: 8))
+        .clipShape(.rect(cornerRadius: 5))
         .contentShape(Rectangle())
     }
 }

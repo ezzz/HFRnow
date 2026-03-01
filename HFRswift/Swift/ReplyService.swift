@@ -46,6 +46,10 @@ protocol ReplyPostingService {
     func postReply(message: String, topicURL: URL) async throws -> ReplyPostingResult
 }
 
+protocol ReplyComposerContextPreloading {
+    func preloadReplyContext(topicURL: URL) async
+}
+
 protocol ReplyQuoteTemplateLoading {
     func fetchQuoteTemplate(from quoteURL: URL) async throws -> String
 }
@@ -55,7 +59,7 @@ struct ReplySessionContext {
     let hashCheck: String?
 }
 
-final class ForumReplyPostingService: ReplyPostingService {
+final class ForumReplyPostingService: ReplyPostingService, ReplyComposerContextPreloading {
     typealias SessionContextProvider = (HTTPCookieStorage) throws -> ReplySessionContext
 
     private struct FormPayload {
@@ -152,6 +156,10 @@ final class ForumReplyPostingService: ReplyPostingService {
         )
     }
 
+    func preloadReplyContext(topicURL: URL) async {
+        _ = try? await fetchReplyFormPayload(from: topicURL)
+    }
+
     private func fetchReplyFormPayload(from url: URL) async throws -> FormPayload {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
@@ -170,6 +178,11 @@ final class ForumReplyPostingService: ReplyPostingService {
 
         if isLoggedOutForm(html) {
             throw ReplyPostingError.authenticationRequired
+        }
+
+        let dynamicSmileys = extractDynamicSmileyEntries(from: html)
+        await MainActor.run {
+            ReplySmileyCacheBridge.updateForumFavorites(dynamicSmileys)
         }
 
         guard let formHTML = extractHopFormHTML(from: html) else {
@@ -326,6 +339,59 @@ final class ForumReplyPostingService: ReplyPostingService {
         return String(html[formRange])
     }
 
+    private func extractDynamicSmileyEntries(from html: String) -> [[String: String]] {
+        guard let containerHTML = extractDynamicSmileyContainerHTML(from: html),
+              let imgTagRegex = try? NSRegularExpression(pattern: "<img[^>]*>", options: [.caseInsensitive]) else {
+            return []
+        }
+
+        let range = NSRange(containerHTML.startIndex..<containerHTML.endIndex, in: containerHTML)
+        var seenEntries = Set<String>()
+        var entries: [[String: String]] = []
+
+        for match in imgTagRegex.matches(in: containerHTML, options: [], range: range) {
+            guard let tagRange = Range(match.range, in: containerHTML) else { continue }
+            let imgTag = String(containerHTML[tagRange])
+            guard let source = attributeValue(in: imgTag, attribute: "src")?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  let code = attributeValue(in: imgTag, attribute: "alt")?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !source.isEmpty,
+                  !code.isEmpty else {
+                continue
+            }
+
+            let decodedSource = decodeHTMLEntities(in: source)
+            let decodedCode = decodeHTMLEntities(in: code)
+            let dedupeKey = "\(decodedSource)|\(decodedCode)"
+            guard seenEntries.insert(dedupeKey).inserted else { continue }
+            entries.append([
+                "source": decodedSource,
+                "code": decodedCode
+            ])
+        }
+
+        return entries
+    }
+
+    private func extractDynamicSmileyContainerHTML(from html: String) -> String? {
+        let pattern = "<div[^>]*id\\s*=\\s*(\"dynamic_smilies\"|'dynamic_smilies')[^>]*>([\\s\\S]*?)</div>"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
+            return nil
+        }
+
+        let range = NSRange(html.startIndex..<html.endIndex, in: html)
+        guard let match = regex.firstMatch(in: html, options: [], range: range) else {
+            return nil
+        }
+
+        let contentRange = match.range(at: 2)
+        guard contentRange.location != NSNotFound,
+              let swiftRange = Range(contentRange, in: html) else {
+            return nil
+        }
+
+        return String(html[swiftRange])
+    }
+
     private func attributeValue(in tag: String, attribute: String) -> String? {
         let pattern = "\(attribute)\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))"
         guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
@@ -461,6 +527,17 @@ final class ForumReplyPostingService: ReplyPostingService {
         allowed.remove(charactersIn: "&+=?")
         let encoded = string.addingPercentEncoding(withAllowedCharacters: allowed) ?? string
         return encoded.replacingOccurrences(of: "%20", with: "+")
+    }
+
+    private func decodeHTMLEntities(in string: String) -> String {
+        string
+            .replacingOccurrences(of: "&quot;", with: "\"")
+            .replacingOccurrences(of: "&#039;", with: "'")
+            .replacingOccurrences(of: "&#39;", with: "'")
+            .replacingOccurrences(of: "&lt;", with: "<")
+            .replacingOccurrences(of: "&gt;", with: ">")
+            .replacingOccurrences(of: "&nbsp;", with: " ")
+            .replacingOccurrences(of: "&amp;", with: "&")
     }
 
     private static func defaultSessionContextProvider(cookieStorage: HTTPCookieStorage) throws -> ReplySessionContext {
@@ -642,6 +719,7 @@ enum RehostUploadMaxDimension: Int, CaseIterable, Identifiable, Codable {
     case px1000 = 1000
     case px800 = 800
     case px600 = 600
+    case px400 = 400
 
     var id: Int { rawValue }
 

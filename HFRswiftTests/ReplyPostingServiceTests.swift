@@ -7,6 +7,7 @@ final class ReplyPostingServiceTests: XCTestCase {
         super.tearDown()
         URLProtocolMock.requestHandler = nil
         URLProtocolMock.handledRequests = []
+        ReplySmileyCacheBridge.updateForumFavorites([])
     }
 
     func testPostReplySuccessUsesReplyFormThenPostsBody() async throws {
@@ -208,6 +209,53 @@ final class ReplyPostingServiceTests: XCTestCase {
         }
 
         XCTAssertTrue(URLProtocolMock.handledRequests.isEmpty)
+    }
+
+    func testPreloadReplyContextLoadsForumFavoriteSmileysFromDynamicSmileys() async {
+        ReplySmileyCacheBridge.updateForumFavorites([])
+        let session = makeSession()
+
+        URLProtocolMock.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "GET")
+            let html = """
+            <html><body>
+            <div id=\"dynamic_smilies\">
+              <img src=\"https://forum-images.hardware.fr/icones/foo.gif\" alt=\":foo:\" />
+              <img src=\"https://forum-images.hardware.fr/icones/bar.gif\" alt=\":bar:\" />
+            </div>
+            <form name=\"hop\" action=\"/bddpost.php\">
+              <input type=\"hidden\" name=\"cat\" value=\"13\" />
+            </form>
+            </body></html>
+            """
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                Data(html.utf8)
+            )
+        }
+
+        let service = ForumReplyPostingService(
+            session: session,
+            sessionContextProvider: { _ in
+                ReplySessionContext(pseudoDisplay: "testeur", hashCheck: "hash123")
+            }
+        )
+
+        await service.preloadReplyContext(
+            topicURL: URL(string: "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=42&page=1&p=1")!
+        )
+
+        let favorites = BundleReplySmileyCatalogLoader().loadFavoriteSmileys()
+        let favoriteByCode = Dictionary(uniqueKeysWithValues: favorites.map { ($0.code, $0) })
+
+        XCTAssertNotNil(favoriteByCode[":foo:"])
+        XCTAssertNotNil(favoriteByCode[":bar:"])
+
+        if case .remote(let fooURL) = favoriteByCode[":foo:"]?.imageSource {
+            XCTAssertEqual(fooURL.absoluteString, "https://forum-images.hardware.fr/icones/foo.gif")
+        } else {
+            XCTFail("Expected :foo: to be loaded as remote favorite")
+        }
     }
 
     func testImg3UploadParsesSuccessfulPayload() async throws {
