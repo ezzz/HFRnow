@@ -109,7 +109,7 @@ Required fields per feature:
 | G04 | NotStarted | Favorites advanced parity checklist passes. | S2 |
 | G05 | NotStarted | MP advanced parity checklist passes. | S2 |
 | G06 | NotStarted | Web action routing parity validated. | S1-S2 |
-| G07 | InProgress | Reply reliability tests pass. | S1-S2 |
+| G07 | Done | Reply reliability tests pass. | S1-S2 |
 | G08 | NotStarted | Plus migrated without route regressions. | S3 |
 | G09 | NotStarted | Session/account service stable with tests. | S1 |
 | G10 | NotStarted | Startup/background behavior parity validated. | S3 |
@@ -124,16 +124,16 @@ Required fields per feature:
 | G19 | Done | Current-scope contextual popup actions (quote/profile + fallback) validated; optional contextual actions remain deferred by scope. | S1-R |
 
 ## Top 10 gaps to close
-1. G07 - Reply reliability and session correctness.
-2. G06 - Topic WebView action routing parity.
-3. G01 - Categories flow reactivation.
-4. G03 - Topic quick actions parity.
-5. G09 - Account/session adapter hardening.
-6. G13 - Minimal wrapper/policy regression baseline.
-7. G04 - Favorites advanced parity.
-8. G12 - Bridging boundary cleanup.
-9. G02 - Forum quick filter actions parity.
-10. G08 - Plus routes native SwiftUI migration.
+1. G06 - Topic WebView action routing parity.
+2. G01 - Categories flow reactivation.
+3. G03 - Topic quick actions parity.
+4. G09 - Account/session adapter hardening.
+5. G13 - Minimal wrapper/policy regression baseline.
+6. G04 - Favorites advanced parity.
+7. G12 - Bridging boundary cleanup.
+8. G02 - Forum quick filter actions parity.
+9. G08 - Plus routes native SwiftUI migration.
+10. G14 - Settings migration away from legacy COTS.
 
 ## Technical prerequisites
 1. Add guardrail: do not port `OfflineMessagesTableViewController`.

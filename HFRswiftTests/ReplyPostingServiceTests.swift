@@ -34,10 +34,10 @@ final class ReplyPostingServiceTests: XCTestCase {
                 )
             case 2:
                 XCTAssertEqual(request.httpMethod, "POST")
-                let body = String(data: request.httpBody ?? Data(), encoding: .utf8) ?? ""
-                XCTAssertTrue(body.contains("content_form=Bonjour%0D%0AMonde"))
-                XCTAssertTrue(body.contains("pseudo=testeur"))
-                XCTAssertTrue(body.contains("hash_check=hash123"))
+                let params = Self.formEncodedBodyParameters(from: Self.requestBodyData(from: request))
+                XCTAssertEqual(params["content_form"], "Bonjour\r\nMonde")
+                XCTAssertEqual(params["pseudo"], "testeur")
+                XCTAssertEqual(params["hash_check"], "hash123")
                 let html = """
                 <html><head>
                 <meta http-equiv=\"Refresh\" content=\"0;url=/forum2.php?page=12#t789\" />
@@ -509,7 +509,7 @@ final class ReplyPostingServiceTests: XCTestCase {
             XCTAssertEqual(request.httpMethod, "POST")
             XCTAssertTrue(request.value(forHTTPHeaderField: "Content-Type")?.contains("multipart/form-data") == true)
 
-            let bodyString = String(data: request.httpBody ?? Data(), encoding: .utf8) ?? ""
+            let bodyString = String(data: Self.requestBodyData(from: request), encoding: .isoLatin1) ?? ""
             XCTAssertTrue(bodyString.contains("name=\"source\""))
 
             let json = """
@@ -655,6 +655,56 @@ final class ReplyPostingServiceTests: XCTestCase {
             UIColor.systemRed.setFill()
             context.cgContext.fill(CGRect(x: 0, y: 0, width: 16, height: 16))
         }
+    }
+
+    private static func requestBodyData(from request: URLRequest) -> Data {
+        if let body = request.httpBody {
+            return body
+        }
+
+        guard let stream = request.httpBodyStream else {
+            return Data()
+        }
+
+        stream.open()
+        defer { stream.close() }
+
+        var data = Data()
+        let bufferSize = 4096
+        let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
+        defer { buffer.deallocate() }
+
+        while stream.hasBytesAvailable {
+            let read = stream.read(buffer, maxLength: bufferSize)
+            if read > 0 {
+                data.append(buffer, count: read)
+            } else {
+                break
+            }
+        }
+
+        return data
+    }
+
+    private static func formEncodedBodyParameters(from data: Data) -> [String: String] {
+        guard let body = String(data: data, encoding: .utf8), !body.isEmpty else {
+            return [:]
+        }
+
+        var result: [String: String] = [:]
+        for pair in body.split(separator: "&", omittingEmptySubsequences: true) {
+            let parts = pair.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+            guard let keyPart = parts.first else { continue }
+            let key = Self.decodeFormComponent(String(keyPart))
+            let value = parts.count > 1 ? Self.decodeFormComponent(String(parts[1])) : ""
+            result[key] = value
+        }
+        return result
+    }
+
+    private static func decodeFormComponent(_ value: String) -> String {
+        let plusDecoded = value.replacingOccurrences(of: "+", with: " ")
+        return plusDecoded.removingPercentEncoding ?? plusDecoded
     }
 }
 
