@@ -454,35 +454,114 @@ struct WebView: UIViewRepresentable {
             guard actions.quoteURL != nil || actions.profileURL != nil else {
                 return false
             }
+            let anchor = popupAnchor(for: payload, in: webView)
             if #available(iOS 16.0, *) {
                 guard let editMenuInteraction else {
-                    return false
+                    return presentLegacyPopupMenu(for: actions, anchor: anchor, in: webView)
                 }
                 pendingPopupActions = actions
-
-                // Popup offsets come from JS viewport coordinates. Re-apply content/safe-area
-                // insets so UIKit menu anchoring matches the tapped point on screen.
-                let leftInset = max(webView.safeAreaInsets.left, webView.scrollView.adjustedContentInset.left)
-                let topInset = max(webView.safeAreaInsets.top, webView.scrollView.adjustedContentInset.top)
-
-                let fallbackX: CGFloat = payload.source == .avatar ? 38 : max(webView.bounds.width - 15, 0)
-                let resolvedX = payload.xOffset.map { CGFloat($0) + leftInset } ?? fallbackX
-                var y = CGFloat(payload.yOffset) + topInset
-                if y < topInset + 40 {
-                    y += 44
-                }
-
-                let sourcePoint = CGPoint(
-                    x: min(max(resolvedX, 0), max(webView.bounds.width - 1, 0)),
-                    y: min(max(y, 0), max(webView.bounds.height - 1, 0))
-                )
-
-                let configuration = UIEditMenuConfiguration(identifier: nil, sourcePoint: sourcePoint)
-                configuration.preferredArrowDirection = sourcePoint.y <= (topInset + 40) ? .up : .down
+                let configuration = UIEditMenuConfiguration(identifier: nil, sourcePoint: anchor.sourcePoint)
+                configuration.preferredArrowDirection = anchor.sourcePoint.y <= (anchor.topInset + 40) ? .up : .down
                 editMenuInteraction.presentEditMenu(with: configuration)
                 return true
             }
-            return false
+            return presentLegacyPopupMenu(for: actions, anchor: anchor, in: webView)
+        }
+
+        private struct PopupAnchor {
+            let sourcePoint: CGPoint
+            let topInset: CGFloat
+        }
+
+        private func popupAnchor(for payload: MessageWebPopupPayload, in webView: WKWebView) -> PopupAnchor {
+            // Popup offsets come from JS viewport coordinates. Re-apply content/safe-area
+            // insets so UIKit menu anchoring matches the tapped point on screen.
+            let leftInset = max(webView.safeAreaInsets.left, webView.scrollView.adjustedContentInset.left)
+            let topInset = max(webView.safeAreaInsets.top, webView.scrollView.adjustedContentInset.top)
+
+            let fallbackX: CGFloat = payload.source == .avatar ? 38 : max(webView.bounds.width - 15, 0)
+            let resolvedX = payload.xOffset.map { CGFloat($0) + leftInset } ?? fallbackX
+            var y = CGFloat(payload.yOffset) + topInset
+            if y < topInset + 40 {
+                y += 44
+            }
+
+            let sourcePoint = CGPoint(
+                x: min(max(resolvedX, 0), max(webView.bounds.width - 1, 0)),
+                y: min(max(y, 0), max(webView.bounds.height - 1, 0))
+            )
+            return PopupAnchor(sourcePoint: sourcePoint, topInset: topInset)
+        }
+
+        private func presentLegacyPopupMenu(
+            for actions: TopicPageMessageActions,
+            anchor: PopupAnchor,
+            in webView: WKWebView
+        ) -> Bool {
+            guard let ownerController = closestViewController(from: webView),
+                  ownerController.presentedViewController == nil else {
+                return false
+            }
+
+            let alert = UIAlertController(
+                title: actions.postID.map { "Post \($0)" },
+                message: nil,
+                preferredStyle: .actionSheet
+            )
+
+            var hasItems = false
+            if let quoteURL = actions.quoteURL {
+                hasItems = true
+                alert.addAction(
+                    UIAlertAction(title: "Citer", style: .default) { [weak self] _ in
+                        DispatchQueue.main.async {
+                            self?.parent.onPopupQuoteRequest?(quoteURL)
+                        }
+                    }
+                )
+            }
+
+            if let profileURL = actions.profileURL {
+                hasItems = true
+                alert.addAction(
+                    UIAlertAction(title: "Profil", style: .default) { [weak self] _ in
+                        DispatchQueue.main.async {
+                            self?.parent.onPopupProfileRequest?(profileURL)
+                        }
+                    }
+                )
+            }
+
+            guard hasItems else {
+                return false
+            }
+
+            alert.addAction(UIAlertAction(title: "Annuler", style: .cancel))
+
+            if let popover = alert.popoverPresentationController {
+                popover.sourceView = webView
+                popover.sourceRect = CGRect(
+                    x: anchor.sourcePoint.x,
+                    y: anchor.sourcePoint.y,
+                    width: 1,
+                    height: 1
+                )
+                popover.permittedArrowDirections = anchor.sourcePoint.y <= (anchor.topInset + 40) ? .up : .down
+            }
+
+            ownerController.present(alert, animated: true)
+            return true
+        }
+
+        private func closestViewController(from view: UIView) -> UIViewController? {
+            var responder: UIResponder? = view
+            while let current = responder {
+                if let controller = current as? UIViewController {
+                    return controller
+                }
+                responder = current.next
+            }
+            return nil
         }
 
         private func scrollToBottom(in webView: WKWebView) {

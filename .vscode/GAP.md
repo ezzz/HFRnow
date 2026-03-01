@@ -12,6 +12,7 @@
 9. XIB/NIB usage must be removed from migrated `HFRswift` flows; no new XIB/NIB-based UI should be introduced.
 10. Current implementation focus is shifted to `Répondre` parity and message-level contextual actions; settings modernization is deferred in priority (not removed).
 11. Current contextual-action sprint scope is limited to quote/profile and related hardening; other per-post actions are explicitly deferred.
+12. G19 now includes a UIKit fallback path for contextual actions when `UIEditMenuInteraction` is unavailable; remaining closure criterion is real-post validation.
 
 ## Scope and method
 This GAP is based on concrete code signals:

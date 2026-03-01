@@ -112,6 +112,27 @@ final class MessageWebActionHandlerTests: XCTestCase {
         )
     }
 
+    func testPopupAvatarSchemeWithXAndYProducesPopupMenuAction() {
+        let action = handler.action(
+            for: URL(string: "oijlkajsdoihjlkjasdopopupavatar://231/88/27")!,
+            navigationType: .other,
+            currentPage: 3,
+            maxPage: 10
+        )
+
+        XCTAssertEqual(
+            action,
+            .showPopupMenu(
+                MessageWebPopupPayload(
+                    source: .avatar,
+                    messageIndex: 27,
+                    yOffset: 88,
+                    xOffset: 231
+                )
+            )
+        )
+    }
+
     func testPopupMessageSchemeWithXAndYProducesPopupMenuAction() {
         let action = handler.action(
             for: URL(string: "oijlkajsdoihjlkjasdopopupmessage://231/88/4")!,
@@ -144,8 +165,73 @@ final class MessageWebActionHandlerTests: XCTestCase {
         XCTAssertEqual(action, .ignore)
     }
 
+    func testPopupMessageWithNonNumericHostKeepsYOffsetAndMessageIndex() {
+        let action = handler.action(
+            for: URL(string: "oijlkajsdoihjlkjasdopopupmessage://x/88/4")!,
+            navigationType: .other,
+            currentPage: 3,
+            maxPage: 10
+        )
+
+        XCTAssertEqual(
+            action,
+            .showPopupMenu(
+                MessageWebPopupPayload(
+                    source: .message,
+                    messageIndex: 4,
+                    yOffset: 88,
+                    xOffset: nil
+                )
+            )
+        )
+    }
+
+    func testPopupMessageWithOnlyMessageIndexDefaultsYOffsetToZero() {
+        let action = handler.action(
+            for: URL(string: "oijlkajsdoihjlkjasdopopupmessage://4")!,
+            navigationType: .other,
+            currentPage: 3,
+            maxPage: 10
+        )
+
+        XCTAssertEqual(
+            action,
+            .showPopupMenu(
+                MessageWebPopupPayload(
+                    source: .message,
+                    messageIndex: 4,
+                    yOffset: 0,
+                    xOffset: nil
+                )
+            )
+        )
+    }
+
+    func testPopupAvatarSchemeWithNoNumericValuesIsIgnored() {
+        let action = handler.action(
+            for: URL(string: "oijlkajsdoihjlkjasdopopupavatar://x/y/z")!,
+            navigationType: .other,
+            currentPage: 3,
+            maxPage: 10
+        )
+
+        XCTAssertEqual(action, .ignore)
+    }
+
     func testForumTopicURLIsRoutedAsInternalTopic() {
         let url = URL(string: "https://forum.hardware.fr/forum2.php?cat=1&page=55")!
+        let action = handler.action(
+            for: url,
+            navigationType: .linkActivated,
+            currentPage: 3,
+            maxPage: 10
+        )
+
+        XCTAssertEqual(action, .openInternalTopic(url))
+    }
+
+    func testForumTopicURLWithBasFragmentAndLinkActivatedIsInternalTopic() {
+        let url = URL(string: "https://forum.hardware.fr/forum2.php?cat=1&page=55#bas")!
         let action = handler.action(
             for: url,
             navigationType: .linkActivated,
