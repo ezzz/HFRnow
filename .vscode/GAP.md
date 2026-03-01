@@ -97,7 +97,7 @@ Required fields per feature:
 | G15 | SwiftUI previews with mock data for migrated screens. | N/A legacy concern. | Partial/inconsistent. | Mock services and fixtures. | Slower UI iteration and less design/test safety. | S | P1 | `HFRswift/Swift/HFRswiftApp.swift:10`, `HFRswift/Swift/MessagesView.swift:129` |
 | G16 | Deprecated offline topic cache navigation must not be ported. | `OfflineMessagesTableViewController`. | Explicitly out of scope for migration. | None (de-scope item). | Wasted effort and added complexity if reintroduced. | S | P0 | `Classes/OfflineMessagesTableViewController.m:38`, `Classes/OfflineMessagesTableViewController.m:1785` |
 | G17 | Remove XIB/NIB-backed UI from migrated flows and avoid new NIB UI. | Legacy UIKit controllers and XIB files across app shell and flows. | Structural gap; wrappers still depend on legacy UIKit/XIB paths. | N/A (UI concern; keep ObjC for processing only). | Maintenance cost and UI divergence from SwiftUI target. | L | P1 | `SuperHFRplus/XIB/MainWindow.xib:1`, `SuperHFRplus/XIB/MainWindow-iPad.xib:1`, `Classes/TabBarController.m:57` |
-| G18 | Reply composer parity in SwiftUI (default smileys, favorite smileys, image insertion, quote-prefill behavior). | `AddMessageViewController`, `SmileyViewController`, `RehostImageViewController`, `QuoteMessageViewController`. | In progress: SwiftUI composer has smileys common/favoris (incl. dynamic forum favorites), image insertion/rehost (incl. 400px size), GIF rendering, undo/redo editing history, and quote-template merge/retry hardening from message contextual actions. Remaining parity item is end-to-end workflow validation on device. | `ReplyService`, `AccountSessionService`, `SmileyCache`, `RehostImage`. | Residual risk on behavioral parity under mixed flows (quote + uploads + retries) and session safety on full rollout. | L | P0 | `HFRswift/Swift/AnswerView.swift:1`, `HFRswift/Swift/ReplyComposer.swift:1`, `HFRswift/Swift/ReplySmileyCatalog.swift:1`, `HFRswift/Swift/ReplyService.swift:1`, `HFRswift/Swift/MessagesView.swift:1`, `Classes/AddMessageViewController.m:789`, `Classes/SmileyViewController.m:1020`, `Classes/RehostImageViewController.m:264` |
+| G18 | Reply composer parity in SwiftUI (default smileys, favorite smileys, image insertion, quote-prefill behavior). | `AddMessageViewController`, `SmileyViewController`, `RehostImageViewController`, `QuoteMessageViewController`. | Completed for current scope: SwiftUI composer covers smileys common/favoris (incl. dynamic forum favorites), image insertion/rehost (incl. 400px), GIF rendering, quote template loading/merge/retry, undo/redo, haptic post feedback, and cleaned server error messages. | `ReplyService`, `AccountSessionService`, `SmileyCache`, `RehostImage`. | Residual risk moved to ongoing reply reliability automation (G07). | L | P0 | `HFRswift/Swift/AnswerView.swift:1`, `HFRswift/Swift/ReplyComposer.swift:1`, `HFRswift/Swift/ReplySmileyCatalog.swift:1`, `HFRswift/Swift/ReplyService.swift:1`, `HFRswift/Swift/MessagesView.swift:1`, `HFRswiftTests/ReplyPostingServiceTests.swift:1`, `Classes/AddMessageViewController.m:789`, `Classes/SmileyViewController.m:1020`, `Classes/RehostImageViewController.m:264` |
 | G19 | Message-level contextual actions in `MessagesView` (quote a specific post, open profile from post header/avatar menu). | Popup schemes + `showMenuCon` in `MessagesTableViewController`. | Completed for current scope: popup schemes are handled in Swift, quote/profile contextual menu is wired, and a UIKit fallback path is in place when `UIEditMenuInteraction` is unavailable. Optional actions remain deferred by decision. | Parsed message model fields (`urlQuote`, `urlProfil`, `MPUrl`) exposed by wrapped ObjC controller internals. | Residual risk limited to deferred optional actions outside current scope. | M | P0 | `HFRswift/Swift/Common.swift:398`, `HFRswift/Swift/MessagesView.swift:419`, `HFRswift/Wrapped/MessagesTableViewController.m:3556` |
 
 ## Progress tracker
@@ -109,7 +109,7 @@ Required fields per feature:
 | G04 | NotStarted | Favorites advanced parity checklist passes. | S2 |
 | G05 | NotStarted | MP advanced parity checklist passes. | S2 |
 | G06 | NotStarted | Web action routing parity validated. | S1-S2 |
-| G07 | NotStarted | Reply reliability tests pass. | S1-S2 |
+| G07 | InProgress | Reply reliability tests pass. | S1-S2 |
 | G08 | NotStarted | Plus migrated without route regressions. | S3 |
 | G09 | NotStarted | Session/account service stable with tests. | S1 |
 | G10 | NotStarted | Startup/background behavior parity validated. | S3 |
@@ -120,20 +120,20 @@ Required fields per feature:
 | G15 | NotStarted | Previews with mock data added for migrated SwiftUI screens. | Continuous |
 | G16 | LockedOut | OfflineMessages flow marked non-portable and blocked in plan. | S0 |
 | G17 | NotStarted | No XIB/NIB execution path remains for migrated `HFRswift` flows. | S2-S4 |
-| G18 | InProgress | `AnswerView` reaches P0 parity: smileys default/favorites (incl. GIF display) + image insertion + stable posting path. | S1-R |
+| G18 | Done | Répondre parity validated on device for current scope (quote/smileys/images/undo-redo/haptics/errors). | S1-R |
 | G19 | Done | Current-scope contextual popup actions (quote/profile + fallback) validated; optional contextual actions remain deferred by scope. | S1-R |
 
 ## Top 10 gaps to close
-1. G18 - Reply composer parity (smileys + images).
+1. G07 - Reply reliability and session correctness.
 2. G06 - Topic WebView action routing parity.
-3. G07 - Reply reliability and session correctness.
-4. G01 - Categories flow reactivation.
-5. G03 - Topic quick actions parity.
-6. G09 - Account/session adapter hardening.
-7. G13 - Minimal wrapper/policy regression baseline.
-8. G04 - Favorites advanced parity.
-9. G12 - Bridging boundary cleanup.
-10. G02 - Forum quick filter actions parity.
+3. G01 - Categories flow reactivation.
+4. G03 - Topic quick actions parity.
+5. G09 - Account/session adapter hardening.
+6. G13 - Minimal wrapper/policy regression baseline.
+7. G04 - Favorites advanced parity.
+8. G12 - Bridging boundary cleanup.
+9. G02 - Forum quick filter actions parity.
+10. G08 - Plus routes native SwiftUI migration.
 
 ## Technical prerequisites
 1. Add guardrail: do not port `OfflineMessagesTableViewController`.
