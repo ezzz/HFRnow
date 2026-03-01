@@ -462,6 +462,11 @@ struct WebView: UIViewRepresentable {
                     parent.onWebAction?(action)
                 }
                 decisionHandler(.cancel)
+            case .manageSmileyFavorite(let payload):
+                if !presentSmileyFavoriteMenu(for: payload, in: webView) {
+                    parent.onWebAction?(action)
+                }
+                decisionHandler(.cancel)
             case .loadPage, .refreshCurrentPage, .openInternalTopic, .openExternalURL:
                 parent.onWebAction?(action)
                 decisionHandler(.cancel)
@@ -572,6 +577,94 @@ struct WebView: UIViewRepresentable {
 
             ownerController.present(alert, animated: true)
             return true
+        }
+
+        private func presentSmileyFavoriteMenu(
+            for payload: MessageWebSmileyPayload,
+            in webView: WKWebView
+        ) -> Bool {
+            guard let ownerController = closestViewController(from: webView),
+                  ownerController.presentedViewController == nil else {
+                return false
+            }
+
+            let isFavorite = MessageSmileyFavoritesBridge.isFavoriteFromApp(code: payload.code)
+            let actionTitle = isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"
+
+            let alert = UIAlertController(
+                title: payload.code,
+                message: nil,
+                preferredStyle: .actionSheet
+            )
+
+            alert.addAction(
+                UIAlertAction(title: actionTitle, style: .default) { _ in
+                    _ = MessageSmileyFavoritesBridge.updateFavorite(
+                        code: payload.code,
+                        imageURL: payload.imageURL,
+                        add: !isFavorite
+                    )
+                }
+            )
+            alert.addAction(UIAlertAction(title: "Annuler", style: .cancel))
+
+            if let popover = alert.popoverPresentationController {
+                popover.sourceView = webView
+                popover.sourceRect = CGRect(
+                    x: webView.bounds.midX,
+                    y: webView.bounds.midY,
+                    width: 1,
+                    height: 1
+                )
+                popover.permittedArrowDirections = []
+            }
+
+            ownerController.present(alert, animated: true)
+            return true
+        }
+
+        private enum MessageSmileyFavoritesBridge {
+            static func isFavoriteFromApp(code: String) -> Bool {
+                guard let cache = sharedCacheObject() else {
+                    return false
+                }
+                let selector = NSSelectorFromString("isFavoriteSmileyFromApp:")
+                guard cache.responds(to: selector) else {
+                    return false
+                }
+
+                typealias Function = @convention(c) (AnyObject, Selector, NSString) -> Bool
+                let implementation = cache.method(for: selector)
+                let function = unsafeBitCast(implementation, to: Function.self)
+                return function(cache, selector, code as NSString)
+            }
+
+            static func updateFavorite(code: String, imageURL: String, add: Bool) -> Bool {
+                guard let cache = sharedCacheObject() else {
+                    return false
+                }
+                let selector = NSSelectorFromString("AddAndSaveDicFavoritesApp:source:addSmiley:")
+                guard cache.responds(to: selector) else {
+                    return false
+                }
+
+                typealias Function = @convention(c) (AnyObject, Selector, NSString, NSString, Bool) -> Bool
+                let implementation = cache.method(for: selector)
+                let function = unsafeBitCast(implementation, to: Function.self)
+                return function(cache, selector, code as NSString, imageURL as NSString, add)
+            }
+
+            private static func sharedCacheObject() -> NSObject? {
+                guard let cacheClass = NSClassFromString("SmileyCache") as? NSObject.Type else {
+                    return nil
+                }
+                let sharedSelector = NSSelectorFromString("shared")
+                guard cacheClass.responds(to: sharedSelector),
+                      let unmanaged = cacheClass.perform(sharedSelector) else {
+                    return nil
+                }
+                return unmanaged.takeUnretainedValue() as? NSObject
+            }
         }
 
         private func closestViewController(from view: UIView) -> UIViewController? {
@@ -976,6 +1069,8 @@ struct MessagesView: View {
         case .refreshCurrentPage:
             loadPage(page)
         case .showPopupMenu:
+            break
+        case .manageSmileyFavorite:
             break
         case .openInternalTopic(let url):
             if url.scheme?.lowercased() == "file" {

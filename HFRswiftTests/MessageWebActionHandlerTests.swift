@@ -219,6 +219,52 @@ final class MessageWebActionHandlerTests: XCTestCase {
         XCTAssertEqual(action, .ignore)
     }
 
+    func testImageBrowserSchemeRoutesToExternalURL() {
+        let imageURL = "https%3A%2F%2Fimg3.super-h.fr%2Fimages%2Ffull.jpg"
+        let action = handler.action(
+            for: URL(string: "oijlkajsdoihjlkjasdoimbrows://12/\(imageURL)")!,
+            navigationType: .other,
+            currentPage: 3,
+            maxPage: 10
+        )
+
+        XCTAssertEqual(
+            action,
+            .openExternalURL(URL(string: "https://img3.super-h.fr/images/full.jpg")!)
+        )
+    }
+
+    func testImageBrowserSchemeWithInvalidURLIsIgnored() {
+        let action = handler.action(
+            for: URL(string: "oijlkajsdoihjlkjasdoimbrows://12/not_a_url")!,
+            navigationType: .other,
+            currentPage: 3,
+            maxPage: 10
+        )
+
+        XCTAssertEqual(action, .ignore)
+    }
+
+    func testSmileySchemeRoutesToManageFavoriteAction() {
+        let imageURL = "https%253A%252F%252Fforum-images.hardware.fr%252Ficones%252Fsmiley.gif"
+        let action = handler.action(
+            for: URL(string: "oijlkajsdoihjlkjasdosmiley://smileycode/ezzz/\(imageURL)")!,
+            navigationType: .other,
+            currentPage: 3,
+            maxPage: 10
+        )
+
+        XCTAssertEqual(
+            action,
+            .manageSmileyFavorite(
+                MessageWebSmileyPayload(
+                    code: "[:ezzz]",
+                    imageURL: "https://forum-images.hardware.fr/icones/smiley.gif"
+                )
+            )
+        )
+    }
+
     func testForumTopicURLIsRoutedAsInternalTopic() {
         let url = URL(string: "https://forum.hardware.fr/forum2.php?cat=1&page=55")!
         let action = handler.action(

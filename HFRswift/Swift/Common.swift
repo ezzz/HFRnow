@@ -341,12 +341,18 @@ struct MessageWebPopupPayload: Equatable {
     let xOffset: Int?
 }
 
+struct MessageWebSmileyPayload: Equatable {
+    let code: String
+    let imageURL: String
+}
+
 enum MessageWebAction: Equatable {
     case allowNavigation
     case ignore
     case loadPage(Int, MessageWebInitialScroll)
     case refreshCurrentPage
     case showPopupMenu(MessageWebPopupPayload)
+    case manageSmileyFavorite(MessageWebSmileyPayload)
     case openInternalTopic(URL)
     case openExternalURL(URL)
 }
@@ -398,6 +404,14 @@ struct MessageWebActionHandler: MessageWebActionHandling {
 
         if let popupAction = popupAction(for: url, scheme: scheme) {
             return popupAction
+        }
+
+        if let imageBrowserAction = imageBrowserAction(for: url, scheme: scheme) {
+            return imageBrowserAction
+        }
+
+        if let smileyAction = smileyAction(for: url, scheme: scheme) {
+            return smileyAction
         }
 
         if isIgnoredCustomScheme(scheme) {
@@ -479,9 +493,98 @@ struct MessageWebActionHandler: MessageWebActionHandling {
     private func isIgnoredCustomScheme(_ scheme: String) -> Bool {
         scheme == Constants.touchScheme ||
             scheme == Constants.preloadedScheme ||
-            scheme == Constants.loadedScheme ||
-            scheme == Constants.imageBrowserScheme ||
-            scheme == Constants.smileyScheme
+            scheme == Constants.loadedScheme
+    }
+
+    private func imageBrowserAction(for url: URL, scheme: String) -> MessageWebAction? {
+        guard scheme == Constants.imageBrowserScheme else {
+            return nil
+        }
+
+        guard let imageURL = decodeEmbeddedURL(from: url, expectedScheme: Constants.imageBrowserScheme) else {
+            return .ignore
+        }
+
+        return .openExternalURL(imageURL)
+    }
+
+    private func smileyAction(for url: URL, scheme: String) -> MessageWebAction? {
+        guard scheme == Constants.smileyScheme else {
+            return nil
+        }
+
+        let prefix = "\(Constants.smileyScheme)://smileycode/"
+        let absolute = url.absoluteString
+        guard absolute.lowercased().hasPrefix(prefix) else {
+            return .ignore
+        }
+
+        let remainder = String(absolute.dropFirst(prefix.count))
+        guard let separatorIndex = remainder.firstIndex(of: "/") else {
+            return .ignore
+        }
+
+        let encodedCode = String(remainder[..<separatorIndex])
+        let encodedURL = String(remainder[remainder.index(after: separatorIndex)...])
+
+        let decodedCode = (encodedCode.removingPercentEncoding ?? encodedCode)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !decodedCode.isEmpty else {
+            return .ignore
+        }
+
+        let normalizedCode = decodedCode.hasPrefix("[:") ? decodedCode : "[:\(decodedCode)]"
+
+        guard let smileyURL = decodeEmbeddedURL(encodedURL) else {
+            return .ignore
+        }
+
+        return .manageSmileyFavorite(
+            MessageWebSmileyPayload(
+                code: normalizedCode,
+                imageURL: smileyURL.absoluteString
+            )
+        )
+    }
+
+    private func decodeEmbeddedURL(from url: URL, expectedScheme: String) -> URL? {
+        let prefix = "\(expectedScheme)://"
+        let absolute = url.absoluteString
+        guard absolute.lowercased().hasPrefix(prefix) else {
+            return nil
+        }
+
+        let remainder = String(absolute.dropFirst(prefix.count))
+        guard let separatorIndex = remainder.firstIndex(of: "/") else {
+            return nil
+        }
+
+        let encodedURL = String(remainder[remainder.index(after: separatorIndex)...])
+        return decodeEmbeddedURL(encodedURL)
+    }
+
+    private func decodeEmbeddedURL(_ encodedURL: String) -> URL? {
+        var decoded = encodedURL
+        for _ in 0..<2 {
+            if let nextDecoded = decoded.removingPercentEncoding, nextDecoded != decoded {
+                decoded = nextDecoded
+            } else {
+                break
+            }
+        }
+        let trimmed = decoded.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return nil
+        }
+        guard
+            let url = URL(string: trimmed),
+            let scheme = url.scheme?.lowercased(),
+            (scheme == "http" || scheme == "https"),
+            url.host != nil
+        else {
+            return nil
+        }
+        return url
     }
 
     private func isForumTopicURL(_ url: URL) -> Bool {

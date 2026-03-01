@@ -85,7 +85,7 @@ Required fields per feature:
 | G03 | Topic quick actions (first/last/page/copy link). | `TopicsTableViewController` actions. | Not fully available end-to-end. | Topic URL pagination model. | Loss of critical navigation actions. | M | P0 | `Classes/TopicsTableViewController.m:614`, `Classes/TopicsTableViewController.m:618` |
 | G04 | Favorites advanced features (edit/reorder/filter/super favorite/swipe). | `FavoritesTableViewController`. | Partial; advanced menu still TODO/commented. | `FilterPostsQuotes` and favorites data. | High regression for heavy users. | L | P0 | `Classes/FavoritesTableViewController.m:143`, `Classes/FavoritesTableViewController.m:821`, `HFRswift/Swift/Favorites.swift:79` |
 | G05 | MP advanced actions (first/last/page/copy link). | `HFRMPViewController` action menu. | Partial; list works but advanced actions not exposed. | `MPStorage`. | MP navigation regression. | M | P0 | `Classes/HFRMPViewController.m:282`, `Classes/HFRMPViewController.m:285`, `HFRswift/Swift/MPListView.swift:24` |
-| G06 | Topic web interaction parity (custom schemes/popup/internal links). | `MessagesTableViewController` `WKNavigationDelegate`. | Critical partial in Swift side. | `ParseMessagesOperation`, `BlackList`, `SmileyCache`; avoid `OfflineStorage` unless mandatory temporary workaround. | Major behavior mismatch risk. | L | P0 | `HFRswift/Wrapped/MessagesTableViewController.m:2137`, `HFRswift/Wrapped/MessagesTableViewController.m:2235`, `HFRswift/Swift/MessagesView.swift:60` |
+| G06 | Topic web interaction parity (custom schemes/popup/internal links). | `MessagesTableViewController` `WKNavigationDelegate`. | Completed for current scope: Swift routing now covers popup actions, internal topic links, auto page navigation actions, image-browser custom scheme, and smiley favorite custom scheme. | `ParseMessagesOperation`, `BlackList`, `SmileyCache`; avoid `OfflineStorage` unless mandatory temporary workaround. | Residual risk limited to out-of-scope optional menu actions deferred by product choice. | L | P0 | `HFRswift/Wrapped/MessagesTableViewController.m:2137`, `HFRswift/Wrapped/MessagesTableViewController.m:2235`, `HFRswift/Swift/Common.swift:398`, `HFRswift/Swift/MessagesView.swift:432`, `HFRswiftTests/MessageWebActionHandlerTests.swift:220` |
 | G07 | Reliable reply flow (auth/hash/cookies/form post/errors). | Legacy composer + posting flow. | Partial (`AnswerView` custom; ObjC composer wrapper commented). | `MultisManager`, `HFRplusAppDelegate.hash_check`. | Posting/session regressions. | L | P0 | `HFRswift/Swift/AnswerView.swift:105`, `HFRswift/Swift/AnswerView.swift:114`, `HFRswift/Swift/ObjCMessageComposerView.swift:7` |
 | G08 | Plus routes parity (account/search/bookmarks/AQ/settings/credits/charter/delete). | `PlusTableViewController` routing. | Present via UIKit wrapper; not native SwiftUI yet. | Account/session + AQ backing services. | Route loss if wrapper removed too early. | M | P1 | `Classes/PlusTableViewController.m:82`, `Classes/PlusTableViewController.m:150`, `HFRswift/Swift/PlusTab.swift:10` |
 | G09 | Stable multi-account session switching. | `MultisManager` methods for account/cookies/main pseudo. | Partial and tightly coupled from Swift. | `MultisManager`. | Session state drift and threading issues. | M | P0 | `Classes/MultisManager.h:18`, `Classes/MultisManager.h:26`, `HFRswift/Swift/AccountsStore.swift:69` |
@@ -108,7 +108,7 @@ Required fields per feature:
 | G03 | NotStarted | Topic quick actions parity validated. | S1 |
 | G04 | NotStarted | Favorites advanced parity checklist passes. | S2 |
 | G05 | NotStarted | MP advanced parity checklist passes. | S2 |
-| G06 | NotStarted | Web action routing parity validated. | S1-S2 |
+| G06 | Done | Web action routing parity validated for current scope (popup/internal links/custom schemes image+smiley). | S1-S2 |
 | G07 | Done | Reply reliability tests pass. | S1-S2 |
 | G08 | NotStarted | Plus migrated without route regressions. | S3 |
 | G09 | NotStarted | Session/account service stable with tests. | S1 |
@@ -124,16 +124,16 @@ Required fields per feature:
 | G19 | Done | Current-scope contextual popup actions (quote/profile + fallback) validated; optional contextual actions remain deferred by scope. | S1-R |
 
 ## Top 10 gaps to close
-1. G06 - Topic WebView action routing parity.
-2. G01 - Categories flow reactivation.
-3. G03 - Topic quick actions parity.
-4. G09 - Account/session adapter hardening.
-5. G13 - Minimal wrapper/policy regression baseline.
-6. G04 - Favorites advanced parity.
-7. G12 - Bridging boundary cleanup.
-8. G02 - Forum quick filter actions parity.
-9. G08 - Plus routes native SwiftUI migration.
-10. G14 - Settings migration away from legacy COTS.
+1. G01 - Categories flow reactivation.
+2. G03 - Topic quick actions parity.
+3. G09 - Account/session adapter hardening.
+4. G13 - Minimal wrapper/policy regression baseline.
+5. G04 - Favorites advanced parity.
+6. G12 - Bridging boundary cleanup.
+7. G02 - Forum quick filter actions parity.
+8. G08 - Plus routes native SwiftUI migration.
+9. G14 - Settings migration away from legacy COTS.
+10. G10 - Startup/background parity validation.
 
 ## Technical prerequisites
 1. Add guardrail: do not port `OfflineMessagesTableViewController`.
