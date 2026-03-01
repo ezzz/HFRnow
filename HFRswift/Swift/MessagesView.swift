@@ -198,6 +198,7 @@ struct WebView: UIViewRepresentable {
                 }
             }
         }
+
     }
 
     class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler, UIEditMenuInteractionDelegate {
@@ -261,24 +262,43 @@ struct WebView: UIViewRepresentable {
                         print("Anchor scroll JS executed")
                     }
                 }
+                // Anchor URLs (for example "last post" links) can land exactly at the
+                // browser's natural bottom. When a transparent bottom toolbar overlays
+                // content, this hides a small portion of the page. If we detect this
+                // state, re-align using the legacy end-of-page marker logic.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.14) {
+                    self.adjustBottomAfterAnchorIfNeeded(in: webView)
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.30) {
+                    self.adjustBottomAfterAnchorIfNeeded(in: webView)
+                }
                 return
             }
 
             // No anchor: apply initial scroll if requested
             guard let initial = initialScroll else { return }
-            let js: String
             switch initial {
             case .top:
-                js = "setTimeout(function(){ try { window.scrollTo(0, 0); } catch(e) {} }, 50);"
-            case .bottom:
-                js = "setTimeout(function(){ try { window.scrollTo(0, Math.max(document.body.scrollHeight, document.documentElement.scrollHeight)); } catch(e) {} }, 50);"
-            }
-            webView.evaluateJavaScript(js) { _, error in
-                if let error = error {
-                    print("Initial scroll JS error:", error.localizedDescription)
-                } else {
-                    print("Initial scroll JS executed (\(initial))")
+                let js = "setTimeout(function(){ try { window.scrollTo(0, 0); } catch(e) {} }, 50);"
+                webView.evaluateJavaScript(js) { _, error in
+                    if let error = error {
+                        print("Initial scroll JS error:", error.localizedDescription)
+                    } else {
+                        print("Initial scroll JS executed (\(initial))")
+                    }
                 }
+            case .bottom:
+                // Mirror legacy behavior: scroll to the in-page bottom anchor.
+                // This avoids persistent UIScrollView insets that create a visible gap
+                // when the native bottom toolbar is transparent.
+                scrollToBottom(in: webView)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    self.scrollToBottom(in: webView)
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                    self.scrollToBottom(in: webView)
+                }
+                print("Initial bottom scroll executed (native)")
             }
         }
 
@@ -463,6 +483,80 @@ struct WebView: UIViewRepresentable {
                 return true
             }
             return false
+        }
+
+        private func scrollToBottom(in webView: WKWebView) {
+            let script = """
+            (function() {
+              var marker = document.getElementById('endofpagetoolbar')
+                || document.getElementById('endofpage')
+                || document.getElementById('bas');
+
+              if (marker && typeof marker.offsetTop === 'number') {
+                window.scrollTo(0, marker.offsetTop);
+                return true;
+              }
+
+              var root = document.documentElement || {};
+              var body = document.body || {};
+              var y = Math.max(
+                body.scrollHeight || 0,
+                root.scrollHeight || 0,
+                body.offsetHeight || 0,
+                root.offsetHeight || 0
+              );
+              window.scrollTo(0, y);
+              return true;
+            })();
+            """
+
+            webView.evaluateJavaScript(script) { _, error in
+                if error != nil {
+                    let scrollView = webView.scrollView
+                    let minOffsetY = -scrollView.adjustedContentInset.top
+                    let maxOffsetY = max(
+                        minOffsetY,
+                        scrollView.contentSize.height - scrollView.bounds.height + scrollView.adjustedContentInset.bottom
+                    )
+                    let targetOffset = CGPoint(x: -scrollView.adjustedContentInset.left, y: maxOffsetY)
+                    scrollView.setContentOffset(targetOffset, animated: false)
+                }
+            }
+        }
+
+        private func adjustBottomAfterAnchorIfNeeded(in webView: WKWebView) {
+            let script = """
+            (function() {
+              var root = document.documentElement || {};
+              var body = document.body || {};
+              var viewport = window.innerHeight || root.clientHeight || 0;
+              var scrollY = window.scrollY || window.pageYOffset || root.scrollTop || body.scrollTop || 0;
+              var contentHeight = Math.max(
+                body.scrollHeight || 0,
+                root.scrollHeight || 0,
+                body.offsetHeight || 0,
+                root.offsetHeight || 0
+              );
+              var distanceToBottom = contentHeight - (scrollY + viewport);
+              return distanceToBottom <= 2;
+            })();
+            """
+
+            webView.evaluateJavaScript(script) { result, error in
+                guard error == nil else { return }
+
+                let isAtNaturalBottom: Bool
+                if let boolValue = result as? Bool {
+                    isAtNaturalBottom = boolValue
+                } else if let numberValue = result as? NSNumber {
+                    isAtNaturalBottom = numberValue.boolValue
+                } else {
+                    isAtNaturalBottom = false
+                }
+
+                guard isAtNaturalBottom else { return }
+                self.scrollToBottom(in: webView)
+            }
         }
 
         @available(iOS 16.0, *)
