@@ -363,6 +363,43 @@ final class ReplyPostingServiceTests: XCTestCase {
         )
     }
 
+    func testReplyQuoteDraftMergerReturnsQuoteWhenDraftIsEmpty() {
+        let merged = ReplyQuoteDraftMerger.merge(
+            quoteTemplate: "[quotemsg=1,2,3]Salut[/quotemsg]\n",
+            into: ""
+        )
+
+        XCTAssertEqual(merged, "[quotemsg=1,2,3]Salut[/quotemsg]\n")
+    }
+
+    func testReplyQuoteDraftMergerAppendsQuoteWhenDraftAlreadyHasText() {
+        let merged = ReplyQuoteDraftMerger.merge(
+            quoteTemplate: "[quotemsg=1,2,3]Salut[/quotemsg]\n",
+            into: "Mon brouillon"
+        )
+
+        XCTAssertEqual(merged, "Mon brouillon\n\n[quotemsg=1,2,3]Salut[/quotemsg]\n")
+    }
+
+    func testReplyQuoteDraftMergerDoesNotDuplicateExistingQuote() {
+        let existing = "Mon brouillon\n\n[quotemsg=1,2,3]Salut[/quotemsg]\n"
+        let merged = ReplyQuoteDraftMerger.merge(
+            quoteTemplate: "[quotemsg=1,2,3]Salut[/quotemsg]\n",
+            into: existing
+        )
+
+        XCTAssertEqual(merged, existing)
+    }
+
+    func testReplyQuoteDraftMergerIgnoresEmptyQuoteTemplate() {
+        let merged = ReplyQuoteDraftMerger.merge(
+            quoteTemplate: " \n\t ",
+            into: "Mon brouillon"
+        )
+
+        XCTAssertEqual(merged, "Mon brouillon")
+    }
+
     private func makeSession() -> URLSession {
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [URLProtocolMock.self]

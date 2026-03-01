@@ -10,6 +10,27 @@ import WebKit
 import UIKit
 import SafariServices
 
+enum ReplyQuoteDraftMerger {
+    static func merge(quoteTemplate: String, into draft: String) -> String {
+        let trimmedQuote = quoteTemplate.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedQuote.isEmpty else {
+            return draft
+        }
+
+        let trimmedDraft = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedDraft.isEmpty else {
+            return quoteTemplate
+        }
+
+        if draft.localizedStandardContains(trimmedQuote) {
+            return draft
+        }
+
+        let separator = draft.hasSuffix("\n") ? "\n" : "\n\n"
+        return draft + separator + quoteTemplate
+    }
+}
+
 struct WebView: UIViewRepresentable {
     enum InitialScroll {
         case top
@@ -752,6 +773,7 @@ struct MessagesView: View {
     @State private var safariDestination: SafariDestination?
     @State private var isLoadingQuoteTemplate = false
     @State private var quoteTemplateErrorMessage: String?
+    @State private var lastFailedQuoteTemplateURL: URL?
     @State private var showWebViewLoadCover = true
     @State private var isWebContentAtBottom = false
     @State private var pendingPostedReply: ReplyPostingResult?
@@ -986,9 +1008,11 @@ struct MessagesView: View {
 
             do {
                 let quoteTemplate = try await replyQuoteTemplateLoader.fetchQuoteTemplate(from: url)
-                composerDraftText = quoteTemplate
+                composerDraftText = ReplyQuoteDraftMerger.merge(quoteTemplate: quoteTemplate, into: composerDraftText)
+                lastFailedQuoteTemplateURL = nil
                 isComposerPresented = true
             } catch {
+                lastFailedQuoteTemplateURL = url
                 quoteTemplateErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             }
         }
@@ -1319,6 +1343,11 @@ struct MessagesView: View {
                     }
                 }
                 .alert("Citation impossible", isPresented: isQuoteTemplateAlertPresented) {
+                    if let retryURL = lastFailedQuoteTemplateURL {
+                        Button("Réessayer") {
+                            openQuoteComposer(with: retryURL)
+                        }
+                    }
                     Button("OK", role: .cancel) {}
                 } message: {
                     Text(quoteTemplateErrorMessage ?? "Erreur inconnue.")
