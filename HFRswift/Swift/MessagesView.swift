@@ -48,6 +48,10 @@ struct WebView: UIViewRepresentable {
     var actionHandler: any MessageWebActionHandling
     var onWebAction: ((MessageWebAction) -> Void)?
     var onPopupQuoteRequest: ((URL) -> Void)?
+    var onPopupEditRequest: ((URL) -> Void)?
+    var onPopupDeleteRequest: ((URL) -> Void)?
+    var onPopupAlertRequest: ((URL) -> Void)?
+    var onPopupAlertMailRequest: ((URL) -> Void)?
     var onPopupProfileRequest: ((URL) -> Void)?
     var onContentReady: (() -> Void)?
     var onScrollPositionChange: ((Bool) -> Void)?
@@ -64,6 +68,10 @@ struct WebView: UIViewRepresentable {
         actionHandler: any MessageWebActionHandling = MessageWebActionHandler(),
         onWebAction: ((MessageWebAction) -> Void)? = nil,
         onPopupQuoteRequest: ((URL) -> Void)? = nil,
+        onPopupEditRequest: ((URL) -> Void)? = nil,
+        onPopupDeleteRequest: ((URL) -> Void)? = nil,
+        onPopupAlertRequest: ((URL) -> Void)? = nil,
+        onPopupAlertMailRequest: ((URL) -> Void)? = nil,
         onPopupProfileRequest: ((URL) -> Void)? = nil,
         onContentReady: (() -> Void)? = nil,
         onScrollPositionChange: ((Bool) -> Void)? = nil
@@ -79,6 +87,10 @@ struct WebView: UIViewRepresentable {
         self.actionHandler = actionHandler
         self.onWebAction = onWebAction
         self.onPopupQuoteRequest = onPopupQuoteRequest
+        self.onPopupEditRequest = onPopupEditRequest
+        self.onPopupDeleteRequest = onPopupDeleteRequest
+        self.onPopupAlertRequest = onPopupAlertRequest
+        self.onPopupAlertMailRequest = onPopupAlertMailRequest
         self.onPopupProfileRequest = onPopupProfileRequest
         self.onContentReady = onContentReady
         self.onScrollPositionChange = onScrollPositionChange
@@ -234,7 +246,20 @@ struct WebView: UIViewRepresentable {
         var didNotifyContentReadyForCurrentLoad = false
         @available(iOS 16.0, *)
         weak var editMenuInteraction: UIEditMenuInteraction?
-        private var pendingPopupActions: TopicPageMessageActions?
+        private var pendingPopupContext: PendingPopupContext?
+        private weak var popupWebView: WKWebView?
+
+        private struct PendingPopupContext {
+            let payload: MessageWebPopupPayload
+            let actions: TopicPageMessageActions
+        }
+
+        private struct PopupMenuEntry {
+            let title: String
+            let systemImageName: String?
+            let isDestructive: Bool
+            let handler: () -> Void
+        }
 
         init(_ parent: WebView) {
             self.parent = parent
@@ -451,6 +476,7 @@ struct WebView: UIViewRepresentable {
                 currentPage: parent.currentPage,
                 maxPage: parent.maxPage
             )
+            popupWebView = webView
 
             switch action {
             case .allowNavigation:
@@ -477,21 +503,33 @@ struct WebView: UIViewRepresentable {
             guard let actions = parent.messageActionsByIndex[payload.messageIndex] else {
                 return false
             }
-            guard actions.quoteURL != nil || actions.profileURL != nil else {
+            let entries = popupMenuEntries(for: actions, payload: payload, in: webView)
+            guard !entries.isEmpty else {
                 return false
             }
             let anchor = popupAnchor(for: payload, in: webView)
+            let title = popupMenuTitle(for: actions)
             if #available(iOS 16.0, *) {
                 guard let editMenuInteraction else {
-                    return presentLegacyPopupMenu(for: actions, anchor: anchor, in: webView)
+                    return presentLegacyPopupMenu(
+                        entries: entries,
+                        title: title,
+                        anchor: anchor,
+                        in: webView
+                    )
                 }
-                pendingPopupActions = actions
+                pendingPopupContext = PendingPopupContext(payload: payload, actions: actions)
                 let configuration = UIEditMenuConfiguration(identifier: nil, sourcePoint: anchor.sourcePoint)
                 configuration.preferredArrowDirection = anchor.sourcePoint.y <= (anchor.topInset + 40) ? .up : .down
                 editMenuInteraction.presentEditMenu(with: configuration)
                 return true
             }
-            return presentLegacyPopupMenu(for: actions, anchor: anchor, in: webView)
+            return presentLegacyPopupMenu(
+                entries: entries,
+                title: title,
+                anchor: anchor,
+                in: webView
+            )
         }
 
         private struct PopupAnchor {
@@ -519,8 +557,276 @@ struct WebView: UIViewRepresentable {
             return PopupAnchor(sourcePoint: sourcePoint, topInset: topInset)
         }
 
-        private func presentLegacyPopupMenu(
+        private func popupMenuTitle(for actions: TopicPageMessageActions) -> String? {
+            if let rawAuthor = actions.authorName {
+                let author = rawAuthor.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !author.isEmpty {
+                    return "Post de \(author)"
+                }
+            }
+            if let rawPostID = actions.postID {
+                let postID = rawPostID.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !postID.isEmpty {
+                    return "Post \(postID)"
+                }
+            }
+            return nil
+        }
+
+        private func popupMenuEntries(
             for actions: TopicPageMessageActions,
+            payload: MessageWebPopupPayload,
+            in webView: WKWebView
+        ) -> [PopupMenuEntry] {
+            var entries: [PopupMenuEntry] = []
+
+            if payload.source == .avatar {
+                if let quoteURL = actions.quoteURL {
+                    entries.append(
+                        PopupMenuEntry(
+                            title: "Citer",
+                            systemImageName: "quote.bubble",
+                            isDestructive: false,
+                            handler: { [weak self] in
+                                self?.parent.onPopupQuoteRequest?(quoteURL)
+                            }
+                        )
+                    )
+                }
+
+                if let profileURL = actions.profileURL {
+                    entries.append(
+                        PopupMenuEntry(
+                            title: "Profil",
+                            systemImageName: "person.crop.circle",
+                            isDestructive: false,
+                            handler: { [weak self] in
+                                self?.parent.onPopupProfileRequest?(profileURL)
+                            }
+                        )
+                    )
+                }
+
+                if !actions.isOwnMessage, let privateMessageURL = actions.privateMessageURL {
+                    entries.append(
+                        PopupMenuEntry(
+                            title: "MP",
+                            systemImageName: "message",
+                            isDestructive: false,
+                            handler: { [weak self] in
+                                self?.parent.onWebAction?(.openExternalURL(privateMessageURL))
+                            }
+                        )
+                    )
+                }
+
+                if !actions.isOwnMessage, let authorName = actions.authorName, !authorName.isEmpty {
+                    entries.append(
+                        PopupMenuEntry(
+                            title: "Blacklist",
+                            systemImageName: "hand.raised",
+                            isDestructive: false,
+                            handler: { [weak self] in
+                                guard let self else { return }
+                                let message = MessageBlackWhiteListBridge.toggleBlacklist(pseudo: authorName)
+                                if let message {
+                                    MessageLegacyAlertBridge.showToast(message)
+                                }
+                                self.parent.onWebAction?(.refreshCurrentPage)
+                            }
+                        )
+                    )
+
+                    entries.append(
+                        PopupMenuEntry(
+                            title: "Whitelist",
+                            systemImageName: "heart",
+                            isDestructive: false,
+                            handler: { [weak self] in
+                                guard let self else { return }
+                                let message = MessageBlackWhiteListBridge.toggleWhitelist(pseudo: authorName)
+                                if let message {
+                                    MessageLegacyAlertBridge.showToast(message)
+                                }
+                                self.parent.onWebAction?(.refreshCurrentPage)
+                            }
+                        )
+                    )
+                }
+
+            }
+
+            if let quoteURL = actions.quoteURL,
+               !entries.contains(where: { $0.title == "Citer" }) {
+                entries.append(
+                    PopupMenuEntry(
+                        title: "Citer",
+                        systemImageName: "quote.bubble",
+                        isDestructive: false,
+                        handler: { [weak self] in
+                            self?.parent.onPopupQuoteRequest?(quoteURL)
+                        }
+                    )
+                )
+            }
+
+            if let quoteJS = actions.quoteJS {
+                let isSelected = Self.isQuoteSelectionEnabled(from: quoteJS)
+                entries.append(
+                    PopupMenuEntry(
+                        title: isSelected ? "Citer ☑" : "Citer ☐",
+                        systemImageName: "text.quote",
+                        isDestructive: false,
+                        handler: {
+                            _ = Self.toggleQuoteSelection(from: quoteJS)
+                        }
+                    )
+                )
+            }
+
+            if actions.canBeFavorite, let favoriteURL = actions.favoriteURL {
+                entries.append(
+                    PopupMenuEntry(
+                        title: "Favoris",
+                        systemImageName: "star",
+                        isDestructive: false,
+                        handler: {
+                            Self.performFavoriteAction(favoriteURL)
+                        }
+                    )
+                )
+            }
+
+            if let permalinkURL = actions.permalinkURL {
+                entries.append(
+                    PopupMenuEntry(
+                        title: "Link",
+                        systemImageName: "link",
+                        isDestructive: false,
+                        handler: { [weak self] in
+                            self?.presentShareSheet(for: permalinkURL, in: webView)
+                        }
+                    )
+                )
+            }
+
+            if !actions.isOwnMessage {
+                if let alertURL = actions.alertURL {
+                    entries.append(
+                        PopupMenuEntry(
+                            title: "Alerter",
+                            systemImageName: "exclamationmark.bubble",
+                            isDestructive: false,
+                            handler: { [weak self] in
+                                self?.parent.onPopupAlertRequest?(alertURL)
+                            }
+                        )
+                    )
+                } else if let permalinkURL = actions.permalinkURL {
+                    entries.append(
+                        PopupMenuEntry(
+                            title: "Alerter (mail)",
+                            systemImageName: "envelope",
+                            isDestructive: false,
+                            handler: { [weak self] in
+                                self?.parent.onPopupAlertMailRequest?(permalinkURL)
+                            }
+                        )
+                    )
+                }
+            }
+
+            if actions.canAQ {
+                entries.append(
+                    PopupMenuEntry(
+                        title: "AQ",
+                        systemImageName: "bubble.left.and.exclamationmark.bubble.right",
+                        isDestructive: false,
+                        handler: { [weak self] in
+                            self?.presentAQPrompt(for: actions, in: webView)
+                        }
+                    )
+                )
+            }
+
+            if actions.canBookmark {
+                entries.append(
+                    PopupMenuEntry(
+                        title: "Bookmark",
+                        systemImageName: "bookmark",
+                        isDestructive: false,
+                        handler: { [weak self] in
+                            self?.presentBookmarkPrompt(for: actions, in: webView)
+                        }
+                    )
+                )
+            }
+
+            if let editURL = actions.editURL {
+                entries.append(
+                    PopupMenuEntry(
+                        title: "Editer",
+                        systemImageName: "square.and.pencil",
+                        isDestructive: false,
+                        handler: { [weak self] in
+                            self?.parent.onPopupEditRequest?(editURL)
+                        }
+                    )
+                )
+            }
+
+            if actions.canDelete, let editURL = actions.editURL {
+                entries.append(
+                    PopupMenuEntry(
+                        title: "Supprimer",
+                        systemImageName: "trash",
+                        isDestructive: true,
+                        handler: { [weak self] in
+                            self?.parent.onPopupDeleteRequest?(editURL)
+                        }
+                    )
+                )
+            }
+
+            return orderedPopupEntries(entries)
+        }
+
+        private func orderedPopupEntries(_ entries: [PopupMenuEntry]) -> [PopupMenuEntry] {
+            // Keep menu ordering deterministic across menu backends and payload types.
+            // Requirement: both quote actions are always shown first.
+            let order: [String: Int] = [
+                "Citer": 0,
+                "Citer ☐": 1,
+                "Citer ☑": 1,
+                "Editer": 2,
+                "Profil": 3,
+                "MP": 4,
+                "Blacklist": 5,
+                "Whitelist": 6,
+                "Favoris": 7,
+                "Link": 8,
+                "Alerter": 9,
+                "Alerter (mail)": 10,
+                "AQ": 11,
+                "Bookmark": 12,
+                "Supprimer": 13
+            ]
+
+            return entries.enumerated()
+                .sorted { lhs, rhs in
+                    let lhsPriority = order[lhs.element.title] ?? Int.max
+                    let rhsPriority = order[rhs.element.title] ?? Int.max
+                    if lhsPriority != rhsPriority {
+                        return lhsPriority < rhsPriority
+                    }
+                    return lhs.offset < rhs.offset
+                }
+                .map(\.element)
+        }
+
+        private func presentLegacyPopupMenu(
+            entries: [PopupMenuEntry],
+            title: String?,
             anchor: PopupAnchor,
             in webView: WKWebView
         ) -> Bool {
@@ -530,38 +836,23 @@ struct WebView: UIViewRepresentable {
             }
 
             let alert = UIAlertController(
-                title: actions.postID.map { "Post \($0)" },
+                title: title,
                 message: nil,
                 preferredStyle: .actionSheet
             )
 
-            var hasItems = false
-            if let quoteURL = actions.quoteURL {
-                hasItems = true
-                alert.addAction(
-                    UIAlertAction(title: "Citer", style: .default) { [weak self] _ in
-                        DispatchQueue.main.async {
-                            self?.parent.onPopupQuoteRequest?(quoteURL)
-                        }
-                    }
-                )
-            }
-
-            if let profileURL = actions.profileURL {
-                hasItems = true
-                alert.addAction(
-                    UIAlertAction(title: "Profil", style: .default) { [weak self] _ in
-                        DispatchQueue.main.async {
-                            self?.parent.onPopupProfileRequest?(profileURL)
-                        }
-                    }
-                )
-            }
-
-            guard hasItems else {
+            guard !entries.isEmpty else {
                 return false
             }
 
+            for entry in entries {
+                let style: UIAlertAction.Style = entry.isDestructive ? .destructive : .default
+                alert.addAction(
+                    UIAlertAction(title: entry.title, style: style) { _ in
+                        entry.handler()
+                    }
+                )
+            }
             alert.addAction(UIAlertAction(title: "Annuler", style: .cancel))
 
             if let popover = alert.popoverPresentationController {
@@ -577,6 +868,373 @@ struct WebView: UIViewRepresentable {
 
             ownerController.present(alert, animated: true)
             return true
+        }
+
+        private static func quoteComponents(from quoteJS: String) -> (cookieName: String, quoteID: String)? {
+            guard
+                let openingParenthesis = quoteJS.firstIndex(of: "("),
+                let closingParenthesis = quoteJS[openingParenthesis...].firstIndex(of: ")")
+            else {
+                return nil
+            }
+
+            let argumentRange = quoteJS.index(after: openingParenthesis)..<closingParenthesis
+            let rawArguments = quoteJS[argumentRange]
+            let values = rawArguments
+                .split(separator: ",", omittingEmptySubsequences: false)
+                .map {
+                    $0
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                        .replacingOccurrences(of: "'", with: "")
+                        .replacingOccurrences(of: "\"", with: "")
+                }
+                .filter { !$0.isEmpty }
+
+            guard values.count >= 4 else {
+                return nil
+            }
+
+            let cookieName = "quotes\(values[0])-\(values[1])-\(values[2])"
+            return (cookieName, values[3])
+        }
+
+        private static func readCookieValue(named name: String) -> String {
+            let storage = HTTPCookieStorage.shared
+            guard let cookies = storage.cookies else {
+                return ""
+            }
+            let now = Date()
+            for cookie in cookies where cookie.name == name {
+                if let expires = cookie.expiresDate, expires <= now {
+                    continue
+                }
+                return cookie.value
+            }
+            return ""
+        }
+
+        private static func writeCookie(name: String, value: String) {
+            guard
+                let cookie = HTTPCookie(properties: [
+                    .name: name,
+                    .value: value,
+                    .domain: ".hardware.fr",
+                    .path: "/",
+                    .expires: Date().addingTimeInterval(60 * 60)
+                ])
+            else {
+                return
+            }
+            HTTPCookieStorage.shared.setCookie(cookie)
+        }
+
+        private static func deleteCookie(named name: String) {
+            let storage = HTTPCookieStorage.shared
+            storage.cookies?.filter { $0.name == name }.forEach { storage.deleteCookie($0) }
+        }
+
+        private static func isQuoteSelectionEnabled(from quoteJS: String) -> Bool {
+            guard let components = quoteComponents(from: quoteJS) else {
+                return false
+            }
+            let current = readCookieValue(named: components.cookieName)
+            return current.contains("|\(components.quoteID)")
+        }
+
+        @discardableResult
+        private static func toggleQuoteSelection(from quoteJS: String) -> Bool? {
+            guard let components = quoteComponents(from: quoteJS) else {
+                return nil
+            }
+
+            let marker = "|\(components.quoteID)"
+            var quotes = readCookieValue(named: components.cookieName)
+            let isSelected = quotes.contains(marker)
+
+            if isSelected {
+                quotes = quotes.replacingOccurrences(of: marker, with: "")
+            } else {
+                quotes += marker
+            }
+
+            if quotes.isEmpty {
+                deleteCookie(named: components.cookieName)
+            } else {
+                writeCookie(name: components.cookieName, value: quotes)
+            }
+            return !isSelected
+        }
+
+        private static func performFavoriteAction(_ url: URL) {
+            let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 10)
+            URLSession.shared.dataTask(with: request) { data, _, error in
+                if error != nil {
+                    DispatchQueue.main.async {
+                        MessageLegacyAlertBridge.showToast("Erreur réseau")
+                    }
+                    return
+                }
+
+                let response = data.flatMap { String(data: $0, encoding: .utf8) } ?? ""
+                let message = favoriteResponseMessage(from: response) ?? "Favori mis à jour"
+                DispatchQueue.main.async {
+                    MessageLegacyAlertBridge.showToast(message)
+                }
+            }.resume()
+        }
+
+        private static func favoriteResponseMessage(from html: String) -> String? {
+            guard let regex = try? NSRegularExpression(pattern: #"<div class="hop">([^<]+)</div>"#) else {
+                return nil
+            }
+            let nsRange = NSRange(location: 0, length: (html as NSString).length)
+            guard let match = regex.firstMatch(in: html, options: [], range: nsRange),
+                  match.numberOfRanges >= 2,
+                  let captureRange = Range(match.range(at: 1), in: html)
+            else {
+                return nil
+            }
+            let message = String(html[captureRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+            return message.isEmpty ? nil : message
+        }
+
+        private func presentShareSheet(for permalinkURL: URL, in webView: WKWebView) {
+            guard let ownerController = closestViewController(from: webView) else {
+                return
+            }
+
+            let activityController = UIActivityViewController(
+                activityItems: [permalinkURL.absoluteString],
+                applicationActivities: nil
+            )
+            activityController.excludedActivityTypes = [.airDrop]
+            if let popover = activityController.popoverPresentationController {
+                popover.sourceView = webView
+                popover.sourceRect = CGRect(
+                    x: webView.bounds.midX,
+                    y: webView.bounds.midY,
+                    width: 1,
+                    height: 1
+                )
+            }
+            ownerController.present(activityController, animated: true)
+        }
+
+        private func presentAQPrompt(for actions: TopicPageMessageActions, in webView: WKWebView) {
+            guard
+                let ownerController = closestViewController(from: webView),
+                ownerController.presentedViewController == nil,
+                let topicID = actions.topicID,
+                let topicTitle = actions.topicTitle,
+                let postID = Self.numericPostID(from: actions.postID),
+                let permalinkURL = actions.permalinkURL
+            else {
+                MessageLegacyAlertBridge.showToast("Données AQ incomplètes")
+                return
+            }
+
+            Task { @MainActor in
+                let alreadySignaled = await Self.isAQAlreadySignaled(topicID: topicID, postID: postID)
+                if alreadySignaled == true {
+                    MessageLegacyAlertBridge.showToast("Post déjà signalé")
+                    return
+                }
+                if alreadySignaled == nil {
+                    MessageLegacyAlertBridge.showTitleAndMessage(
+                        title: "Erreur réseau",
+                        message: "Création d'AQ impossible"
+                    )
+                    return
+                }
+
+                let author = actions.authorName ?? ""
+                let message = "Créer une Alerte Qualitay sur le post de \(author)"
+                let alert = UIAlertController(
+                    title: "Alerte Qualitay ?",
+                    message: message,
+                    preferredStyle: .alert
+                )
+                alert.addTextField { textField in
+                    textField.placeholder = "Ajoutez un titre"
+                    textField.clearButtonMode = .whileEditing
+                }
+                alert.addAction(UIAlertAction(title: "Annuler", style: .cancel))
+                alert.addAction(
+                    UIAlertAction(title: "Créer", style: .default) { _ in
+                        let title = alert.textFields?.first?.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                        guard !title.isEmpty else { return }
+                        let authorName = actions.authorName ?? ""
+                        Task { @MainActor in
+                            let result = await Self.createAQ(
+                                title: title,
+                                topicID: topicID,
+                                topicTitle: topicTitle,
+                                postID: postID,
+                                postURL: permalinkURL.absoluteString,
+                                author: authorName
+                            )
+                            switch result {
+                            case .success:
+                                MessageLegacyAlertBridge.showTitleAndMessage(
+                                    title: "Hooray !",
+                                    message: "Alerte Qualitay créée."
+                                )
+                            case .failure(let code):
+                                MessageLegacyAlertBridge.showTitleAndMessage(
+                                    title: "Oups !",
+                                    message: "Code erreur \(code)"
+                                )
+                            case .networkError:
+                                MessageLegacyAlertBridge.showTitleAndMessage(
+                                    title: "Erreur réseau",
+                                    message: "Création d'AQ impossible"
+                                )
+                            }
+                        }
+                    }
+                )
+
+                ownerController.present(alert, animated: true)
+            }
+        }
+
+        private func presentBookmarkPrompt(for actions: TopicPageMessageActions, in webView: WKWebView) {
+            guard
+                let ownerController = closestViewController(from: webView),
+                ownerController.presentedViewController == nil,
+                let topicID = actions.topicID,
+                let topicCategory = actions.topicCategory,
+                let postID = Self.numericPostID(from: actions.postID)
+            else {
+                MessageLegacyAlertBridge.showToast("Données bookmark incomplètes")
+                return
+            }
+
+            if MessageBookmarkBridge.hasBookmark(topicID: topicID, postID: postID) {
+                MessageLegacyAlertBridge.showToast("Post déjà dans les bookmarks")
+                return
+            }
+
+            let author = actions.authorName ?? ""
+            let alert = UIAlertController(
+                title: "Bookmark",
+                message: "Créer un bookmark sur le post de \(author) ?",
+                preferredStyle: .alert
+            )
+            alert.addTextField { textField in
+                textField.placeholder = "Ajoutez un titre"
+                textField.clearButtonMode = .whileEditing
+            }
+            alert.addAction(UIAlertAction(title: "Annuler", style: .cancel))
+            alert.addAction(
+                UIAlertAction(title: "Créer", style: .default) { _ in
+                    let title = alert.textFields?.first?.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                    guard !title.isEmpty else { return }
+                    let created = MessageBookmarkBridge.createBookmark(
+                        topicID: topicID,
+                        topicCategory: topicCategory,
+                        postID: postID,
+                        title: title,
+                        author: author
+                    )
+                    if created {
+                        MessageLegacyAlertBridge.showTitleAndMessage(title: "Hooray !", message: "Bookmark créé")
+                    } else {
+                        MessageLegacyAlertBridge.showTitleAndMessage(
+                            title: "Oups !",
+                            message: "Erreur à la création du bookmark"
+                        )
+                    }
+                }
+            )
+
+            ownerController.present(alert, animated: true)
+        }
+
+        private static func numericPostID(from rawPostID: String?) -> String? {
+            guard let rawPostID else {
+                return nil
+            }
+            let digits = rawPostID.unicodeScalars.filter(CharacterSet.decimalDigits.contains)
+            let numeric = String(String.UnicodeScalarView(digits))
+            return numeric.isEmpty ? nil : numeric
+        }
+
+        private enum AQCreateResult {
+            case success
+            case failure(String)
+            case networkError
+        }
+
+        private static func isAQAlreadySignaled(topicID: String, postID: String) async -> Bool? {
+            let encodedTopic = topicID.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? topicID
+            guard let url = URL(string: "https://aq.super-h.fr/api/getAlertesByTopic.php?topic_id=\(encodedTopic)") else {
+                return nil
+            }
+
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                let content = String(data: data, encoding: .utf8) ?? ""
+                return content.contains(postID)
+            } catch {
+                return nil
+            }
+        }
+
+        private static func createAQ(
+            title: String,
+            topicID: String,
+            topicTitle: String,
+            postID: String,
+            postURL: String,
+            author: String
+        ) async -> AQCreateResult {
+            guard let url = URL(string: "https://aq.super-h.fr/api/addAlerte.php") else {
+                return .networkError
+            }
+
+            let pseudo = currentPseudoLowercased()
+            let comment = "post de \(author)"
+
+            let bodyString = [
+                "alerte_qualitay_id=-1",
+                "nom=\(legacyPercentEncode(title))",
+                "topic_id=\(legacyPercentEncode(topicID))",
+                "topic_titre=\(legacyPercentEncode(topicTitle))",
+                "pseudo=\(legacyPercentEncode(pseudo))",
+                "post_id=\(legacyPercentEncode(postID))",
+                "post_url=\(legacyPercentEncode(postURL))",
+                "commentaire=\(legacyPercentEncode(comment))"
+            ].joined(separator: "&")
+
+            var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 5)
+            request.httpMethod = "POST"
+            request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+            request.httpBody = bodyString.data(using: .ascii, allowLossyConversion: true)
+
+            do {
+                let (data, _) = try await URLSession.shared.data(for: request)
+                let response = String(data: data, encoding: .ascii)?
+                    .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                return response == "1" ? .success : .failure(response.isEmpty ? "?" : response)
+            } catch {
+                return .networkError
+            }
+        }
+
+        private static func legacyPercentEncode(_ value: String) -> String {
+            let allowed = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-")
+            return value.addingPercentEncoding(withAllowedCharacters: allowed) ?? value
+        }
+
+        private static func currentPseudoLowercased() -> String {
+            guard
+                let manager = MultisManager.sharedManager() as? MultisManager,
+                let mainCompte = manager.getMainCompte() as? [AnyHashable: Any]
+            else {
+                return ""
+            }
+            return (mainCompte["PSEUDO_DISPLAY"] as? String)?.lowercased() ?? ""
         }
 
         private func presentSmileyFavoriteMenu(
@@ -621,6 +1279,189 @@ struct WebView: UIViewRepresentable {
 
             ownerController.present(alert, animated: true)
             return true
+        }
+
+        private enum MessageLegacyAlertBridge {
+            static func showToast(_ title: String) {
+                guard let alertClass = NSClassFromString("HFRAlertView") as? NSObject.Type else {
+                    return
+                }
+                let selector = NSSelectorFromString("DisplayAlertViewWithTitle:forDuration:")
+                guard alertClass.responds(to: selector) else {
+                    return
+                }
+
+                typealias Function = @convention(c) (AnyObject, Selector, NSString, Int) -> Void
+                let implementation = alertClass.method(for: selector)
+                let function = unsafeBitCast(implementation, to: Function.self)
+                function(alertClass, selector, title as NSString, 1)
+            }
+
+            static func showTitleAndMessage(title: String, message: String) {
+                guard let alertClass = NSClassFromString("HFRAlertView") as? NSObject.Type else {
+                    return
+                }
+                let selector = NSSelectorFromString("DisplayAlertViewWithTitle:andMessage:forDuration:")
+                guard alertClass.responds(to: selector) else {
+                    return
+                }
+
+                typealias Function = @convention(c) (AnyObject, Selector, NSString, NSString, Int) -> Void
+                let implementation = alertClass.method(for: selector)
+                let function = unsafeBitCast(implementation, to: Function.self)
+                function(alertClass, selector, title as NSString, message as NSString, 1)
+            }
+        }
+
+        private enum MessageBlackWhiteListBridge {
+            static func toggleBlacklist(pseudo: String) -> String? {
+                guard let object = sharedObject() else {
+                    return nil
+                }
+
+                let isBLSelector = NSSelectorFromString("isBL:")
+                guard object.responds(to: isBLSelector) else {
+                    return nil
+                }
+                typealias IsBLFunction = @convention(c) (AnyObject, Selector, NSString) -> Bool
+                let isBLImplementation = object.method(for: isBLSelector)
+                let isBLFunction = unsafeBitCast(isBLImplementation, to: IsBLFunction.self)
+                let isBL = isBLFunction(object, isBLSelector, pseudo as NSString)
+
+                if isBL {
+                    let selector = NSSelectorFromString("removeFromBlackList:andSave:")
+                    guard object.responds(to: selector) else {
+                        return nil
+                    }
+                    typealias Function = @convention(c) (AnyObject, Selector, NSString, Bool) -> Bool
+                    let implementation = object.method(for: selector)
+                    let function = unsafeBitCast(implementation, to: Function.self)
+                    let result = function(object, selector, pseudo as NSString, true)
+                    return result
+                        ? "\(pseudo) a été supprimé de la liste noire"
+                        : "Erreur! \(pseudo) n'a pas pu être supprimé de la liste noire"
+                }
+
+                let selector = NSSelectorFromString("addToBlackList:andSave:")
+                guard object.responds(to: selector) else {
+                    return nil
+                }
+                typealias Function = @convention(c) (AnyObject, Selector, NSString, Bool) -> Bool
+                let implementation = object.method(for: selector)
+                let function = unsafeBitCast(implementation, to: Function.self)
+                let result = function(object, selector, pseudo as NSString, true)
+                return result
+                    ? "BIM! \(pseudo) ajouté à la liste noire"
+                    : "Erreur! \(pseudo) n'a pas pu être ajouté à la liste noire"
+            }
+
+            static func toggleWhitelist(pseudo: String) -> String? {
+                guard let object = sharedObject() else {
+                    return nil
+                }
+                let isWLSelector = NSSelectorFromString("isWL:")
+                guard object.responds(to: isWLSelector) else {
+                    return nil
+                }
+                typealias IsWLFunction = @convention(c) (AnyObject, Selector, NSString) -> Bool
+                let isWLImplementation = object.method(for: isWLSelector)
+                let isWLFunction = unsafeBitCast(isWLImplementation, to: IsWLFunction.self)
+                let isWL = isWLFunction(object, isWLSelector, pseudo as NSString)
+
+                if isWL {
+                    let selector = NSSelectorFromString("removeFromWhiteList:")
+                    guard object.responds(to: selector) else {
+                        return nil
+                    }
+                    typealias Function = @convention(c) (AnyObject, Selector, NSString) -> Bool
+                    let implementation = object.method(for: selector)
+                    let function = unsafeBitCast(implementation, to: Function.self)
+                    _ = function(object, selector, pseudo as NSString)
+                    return "OH NOES ! \(pseudo) a été supprimé de la love list"
+                }
+
+                let selector = NSSelectorFromString("addToWhiteList:")
+                guard object.responds(to: selector) else {
+                    return nil
+                }
+                typealias Function = @convention(c) (AnyObject, Selector, NSString) -> Void
+                let implementation = object.method(for: selector)
+                let function = unsafeBitCast(implementation, to: Function.self)
+                function(object, selector, pseudo as NSString)
+                return "BOUM BOUM ! \(pseudo) ajouté à la love list ♥"
+            }
+
+            private static func sharedObject() -> NSObject? {
+                guard let klass = NSClassFromString("BlackList") as? NSObject.Type else {
+                    return nil
+                }
+                let selector = NSSelectorFromString("shared")
+                guard klass.responds(to: selector),
+                      let unmanaged = klass.perform(selector) else {
+                    return nil
+                }
+                return unmanaged.takeUnretainedValue() as? NSObject
+            }
+        }
+
+        private enum MessageBookmarkBridge {
+            static func hasBookmark(topicID: String, postID: String) -> Bool {
+                guard let storage = sharedStorageObject() else {
+                    return false
+                }
+                let selector = NSSelectorFromString("getBookmarkForPost:numreponse:")
+                guard storage.responds(to: selector) else {
+                    return false
+                }
+
+                typealias Function = @convention(c) (AnyObject, Selector, NSString, NSString) -> AnyObject?
+                let implementation = storage.method(for: selector)
+                let function = unsafeBitCast(implementation, to: Function.self)
+                return function(storage, selector, topicID as NSString, postID as NSString) != nil
+            }
+
+            static func createBookmark(
+                topicID: String,
+                topicCategory: String,
+                postID: String,
+                title: String,
+                author: String
+            ) -> Bool {
+                guard let storage = sharedStorageObject(),
+                      let bookmarkClass = NSClassFromString("Bookmark") as? NSObject.Type else {
+                    return false
+                }
+
+                let bookmark = bookmarkClass.init()
+                bookmark.setValue(topicID, forKey: "sPost")
+                bookmark.setValue(topicCategory, forKey: "sCat")
+                bookmark.setValue(postID, forKey: "sNumResponse")
+                bookmark.setValue(title, forKey: "sLabel")
+                bookmark.setValue(author, forKey: "sAuthorPost")
+                bookmark.setValue(Date(), forKey: "dateBookmarkCreation")
+
+                let selector = NSSelectorFromString("addBookmarkSynchronous:")
+                guard storage.responds(to: selector) else {
+                    return false
+                }
+
+                typealias Function = @convention(c) (AnyObject, Selector, AnyObject) -> Bool
+                let implementation = storage.method(for: selector)
+                let function = unsafeBitCast(implementation, to: Function.self)
+                return function(storage, selector, bookmark)
+            }
+
+            private static func sharedStorageObject() -> NSObject? {
+                guard let klass = NSClassFromString("MPStorage") as? NSObject.Type else {
+                    return nil
+                }
+                let selector = NSSelectorFromString("shared")
+                guard klass.responds(to: selector),
+                      let unmanaged = klass.perform(selector) else {
+                    return nil
+                }
+                return unmanaged.takeUnretainedValue() as? NSObject
+            }
         }
 
         private enum MessageSmileyFavoritesBridge {
@@ -758,37 +1599,27 @@ struct WebView: UIViewRepresentable {
             menuFor configuration: UIEditMenuConfiguration,
             suggestedActions: [UIMenuElement]
         ) -> UIMenu? {
-            guard let actions = pendingPopupActions else {
+            guard let context = pendingPopupContext, let webView = popupWebView else {
                 return nil
             }
 
-            var children: [UIMenuElement] = []
-
-            if let quoteURL = actions.quoteURL {
-                children.append(
-                    UIAction(title: "Citer", image: UIImage(systemName: "quote.bubble")) { [weak self] _ in
-                        DispatchQueue.main.async {
-                            self?.parent.onPopupQuoteRequest?(quoteURL)
-                        }
-                    }
-                )
+            let entries = popupMenuEntries(for: context.actions, payload: context.payload, in: webView)
+            let children: [UIMenuElement] = entries.map { entry in
+                let attributes: UIMenuElement.Attributes = entry.isDestructive ? .destructive : []
+                return UIAction(
+                    title: entry.title,
+                    image: entry.systemImageName.flatMap { UIImage(systemName: $0) },
+                    identifier: nil,
+                    attributes: attributes
+                ) { _ in
+                    entry.handler()
+                }
             }
-
-            if let profileURL = actions.profileURL {
-                children.append(
-                    UIAction(title: "Profil", image: UIImage(systemName: "person.crop.circle")) { [weak self] _ in
-                        DispatchQueue.main.async {
-                            self?.parent.onPopupProfileRequest?(profileURL)
-                        }
-                    }
-                )
-            }
-
             if children.isEmpty {
                 return nil
             }
 
-            let menuTitle = actions.postID.map { "Post \($0)" } ?? ""
+            let menuTitle = popupMenuTitle(for: context.actions) ?? ""
             return UIMenu(title: menuTitle, children: children)
         }
     }
@@ -829,9 +1660,37 @@ private extension MessageWebNavigationType {
 }
 
 struct MessagesView: View {
+    private enum ComposerPrefillMode {
+        case quote
+        case edit
+
+        var loadingLabel: String {
+            switch self {
+            case .quote:
+                return "Chargement de la citation..."
+            case .edit:
+                return "Chargement de l'edition..."
+            }
+        }
+
+        var alertTitle: String {
+            switch self {
+            case .quote:
+                return "Citation impossible"
+            case .edit:
+                return "Edition impossible"
+            }
+        }
+    }
+
     private struct SafariDestination: Identifiable {
         let id = UUID()
         let url: URL
+    }
+
+    private struct ModerationAlertDestination: Identifiable {
+        let id = UUID()
+        let preparedForm: ModerationAlertPreparedForm
     }
 
     let topic: Topic
@@ -842,6 +1701,8 @@ struct MessagesView: View {
     let topicPageLoader: TopicPageLoading
     let topicPageRenderer: TopicPageRendering
     let replyQuoteTemplateLoader: ReplyQuoteTemplateLoading
+    let messageDeletionService: any MessageDeletionService
+    let moderationAlertService: any ModerationAlertService
 
     @Environment(\.colorScheme) private var systemColorScheme
     @State private var page: Int
@@ -851,6 +1712,7 @@ struct MessagesView: View {
     @State private var anchor: String?
     @State private var initialScroll: WebView.InitialScroll?
     @State private var topicAnswerURL: URL?
+    @State private var composerSubmitURL: URL?
     @State private var messageActionsByIndex: [Int: TopicPageMessageActions] = [:]
     @AppStorage("composerDraftText") private var composerDraftText: String = ""
     @State private var isComposerPresented = false
@@ -865,8 +1727,17 @@ struct MessagesView: View {
     @State private var navigateToLinkedTopic = false
     @State private var safariDestination: SafariDestination?
     @State private var isLoadingQuoteTemplate = false
+    @State private var activeComposerPrefillMode: ComposerPrefillMode = .quote
     @State private var quoteTemplateErrorMessage: String?
     @State private var lastFailedQuoteTemplateURL: URL?
+    @State private var lastFailedComposerPrefillMode: ComposerPrefillMode = .quote
+    @State private var moderationAlertDestination: ModerationAlertDestination?
+    @State private var isPreparingModerationAlert = false
+    @State private var moderationAlertErrorMessage: String?
+    @State private var pendingAlertMailURL: URL?
+    @State private var pendingDeleteEditURL: URL?
+    @State private var deleteErrorMessage: String?
+    @State private var isDeletingMessage = false
     @State private var showWebViewLoadCover = true
     @State private var isWebContentAtBottom = false
     @State private var pendingPostedReply: ReplyPostingResult?
@@ -884,7 +1755,9 @@ struct MessagesView: View {
         initialLoadScroll: WebView.InitialScroll? = nil,
         topicPageLoader: TopicPageLoading = ObjCTopicPageLoader(),
         topicPageRenderer: TopicPageRendering = OfflineStorageTopicPageRenderer(),
-        replyQuoteTemplateLoader: ReplyQuoteTemplateLoading = ForumReplyQuoteTemplateService()
+        replyQuoteTemplateLoader: ReplyQuoteTemplateLoading = ForumReplyQuoteTemplateService(),
+        messageDeletionService: any MessageDeletionService = ForumMessageDeletionService(),
+        moderationAlertService: any ModerationAlertService = ForumModerationAlertService()
     ) {
         self.topic = topic
         self.curPage = curPage
@@ -894,6 +1767,8 @@ struct MessagesView: View {
         self.topicPageLoader = topicPageLoader
         self.topicPageRenderer = topicPageRenderer
         self.replyQuoteTemplateLoader = replyQuoteTemplateLoader
+        self.messageDeletionService = messageDeletionService
+        self.moderationAlertService = moderationAlertService
         self._page = State(initialValue: curPage)
         self._initialScroll = State(initialValue: initialLoadScroll)
         self._appColorScheme = State(initialValue: Self.currentAppColorScheme())
@@ -1094,20 +1969,85 @@ struct MessagesView: View {
         )
     }
 
+    private var isDeleteConfirmationPresented: Binding<Bool> {
+        Binding(
+            get: { pendingDeleteEditURL != nil },
+            set: { isPresented in
+                if !isPresented {
+                    pendingDeleteEditURL = nil
+                }
+            }
+        )
+    }
+
+    private var isDeleteErrorAlertPresented: Binding<Bool> {
+        Binding(
+            get: { deleteErrorMessage != nil },
+            set: { isPresented in
+                if !isPresented {
+                    deleteErrorMessage = nil
+                }
+            }
+        )
+    }
+
+    private var isModerationAlertErrorPresented: Binding<Bool> {
+        Binding(
+            get: { moderationAlertErrorMessage != nil },
+            set: { isPresented in
+                if !isPresented {
+                    moderationAlertErrorMessage = nil
+                }
+            }
+        )
+    }
+
+    private var isAlertMailConfirmationPresented: Binding<Bool> {
+        Binding(
+            get: { pendingAlertMailURL != nil },
+            set: { isPresented in
+                if !isPresented {
+                    pendingAlertMailURL = nil
+                }
+            }
+        )
+    }
+
     private func openQuoteComposer(with url: URL) {
+        prefillComposer(with: url, mode: .quote)
+    }
+
+    private func openEditComposer(with url: URL) {
+        prefillComposer(with: url, mode: .edit)
+    }
+
+    private func prefillComposer(with url: URL, mode: ComposerPrefillMode) {
         guard !isLoadingQuoteTemplate else { return }
 
         Task { @MainActor in
             isLoadingQuoteTemplate = true
+            activeComposerPrefillMode = mode
             defer { isLoadingQuoteTemplate = false }
 
             do {
-                let quoteTemplate = try await replyQuoteTemplateLoader.fetchQuoteTemplate(from: url)
-                composerDraftText = ReplyQuoteDraftMerger.merge(quoteTemplate: quoteTemplate, into: composerDraftText)
+                let template = try await replyQuoteTemplateLoader.fetchQuoteTemplate(from: url)
+                switch mode {
+                case .quote:
+                    composerDraftText = ReplyQuoteDraftMerger.merge(
+                        quoteTemplate: template,
+                        into: composerDraftText
+                    )
+                    composerSubmitURL = topicAnswerURL ?? url
+                case .edit:
+                    composerDraftText = template
+                    composerSubmitURL = url
+                }
                 lastFailedQuoteTemplateURL = nil
+                quoteTemplateErrorMessage = nil
                 isComposerPresented = true
             } catch {
                 lastFailedQuoteTemplateURL = url
+                lastFailedComposerPrefillMode = mode
                 quoteTemplateErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             }
         }
@@ -1115,6 +2055,89 @@ struct MessagesView: View {
 
     private func openProfile(for url: URL) {
         safariDestination = SafariDestination(url: url)
+    }
+
+    private func askAlertMailConfirmation(with permalinkURL: URL) {
+        pendingAlertMailURL = permalinkURL
+    }
+
+    private func confirmAlertMailSending() {
+        guard let permalinkURL = pendingAlertMailURL else { return }
+        pendingAlertMailURL = nil
+
+        let subject = "[HardWare.fr] Signalement d'un contenu illicite"
+        let body = "Message : \(permalinkURL.absoluteString)"
+        let encodedSubject = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let encodedBody = body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        guard let mailtoURL = URL(string: "mailto:marc@hardware.fr?subject=\(encodedSubject)&body=\(encodedBody)") else {
+            return
+        }
+
+        UIApplication.shared.open(mailtoURL, options: [:], completionHandler: nil)
+    }
+
+    private func openModerationAlertComposer(with alertURL: URL) {
+        guard !isPreparingModerationAlert else { return }
+
+        Task { @MainActor in
+            isPreparingModerationAlert = true
+            defer { isPreparingModerationAlert = false }
+
+            do {
+                let preparation = try await moderationAlertService.prepareAlert(from: alertURL)
+                switch preparation {
+                case .alreadyAlerted(let message):
+                    let statusMessage = message.trimmingCharacters(in: .whitespacesAndNewlines)
+                    showSuccessToast(statusMessage.isEmpty ? "Alerte déjà envoyée." : statusMessage)
+                case .ready(let preparedForm):
+                    moderationAlertDestination = ModerationAlertDestination(preparedForm: preparedForm)
+                }
+            } catch let error as ReplyPostingError {
+                moderationAlertErrorMessage = error.localizedDescription
+            } catch {
+                moderationAlertErrorMessage = (error as? LocalizedError)?.errorDescription ?? "Alerte impossible."
+            }
+        }
+    }
+
+    private func askDeleteMessageConfirmation(with editURL: URL) {
+        guard !isDeletingMessage else { return }
+        pendingDeleteEditURL = editURL
+    }
+
+    private func confirmDeleteMessage() {
+        guard let editURL = pendingDeleteEditURL, !isDeletingMessage else { return }
+        pendingDeleteEditURL = nil
+
+        Task { @MainActor in
+            isDeletingMessage = true
+            defer { isDeletingMessage = false }
+
+            do {
+                let result = try await messageDeletionService.deleteMessage(editURL: editURL)
+                let statusMessage = result.statusMessage?.trimmingCharacters(in: .whitespacesAndNewlines)
+                let toastMessage = (statusMessage?.isEmpty == false) ? (statusMessage ?? "") : "Message supprimé"
+                showSuccessToast(toastMessage)
+
+                if let refreshURL = result.refreshURL {
+                    loadDirectURL(refreshURL.absoluteString)
+                    return
+                }
+
+                anchor = result.refreshAnchor
+                initialScroll = .top
+                loadPage(page)
+            } catch let error as ReplyPostingError {
+                deleteErrorMessage = error.localizedDescription
+            } catch {
+                deleteErrorMessage = (error as? LocalizedError)?.errorDescription ?? "Suppression impossible."
+            }
+        }
+    }
+
+    private func openReplyComposer() {
+        composerSubmitURL = topicAnswerURL
+        isComposerPresented = true
     }
 
     @ViewBuilder
@@ -1200,11 +2223,8 @@ struct MessagesView: View {
         pendingPostedReply = result
     }
 
-    private func handleComposerDismissalIfNeeded() {
-        guard let postedReply = pendingPostedReply else { return }
-        pendingPostedReply = nil
-
-        postSuccessToastText = "Hooray"
+    private func showSuccessToast(_ text: String) {
+        postSuccessToastText = text
         withAnimation {
             showPostSuccessToast = true
         }
@@ -1215,6 +2235,13 @@ struct MessagesView: View {
                 showPostSuccessToast = false
             }
         }
+    }
+
+    private func handleComposerDismissalIfNeeded() {
+        guard let postedReply = pendingPostedReply else { return }
+        pendingPostedReply = nil
+
+        showSuccessToast("Hooray")
 
         guard page >= maxPage else { return }
 
@@ -1355,6 +2382,18 @@ struct MessagesView: View {
                     onPopupQuoteRequest: { quoteURL in
                         openQuoteComposer(with: quoteURL)
                     },
+                    onPopupEditRequest: { editURL in
+                        openEditComposer(with: editURL)
+                    },
+                    onPopupDeleteRequest: { editURL in
+                        askDeleteMessageConfirmation(with: editURL)
+                    },
+                    onPopupAlertRequest: { alertURL in
+                        openModerationAlertComposer(with: alertURL)
+                    },
+                    onPopupAlertMailRequest: { permalinkURL in
+                        askAlertMailConfirmation(with: permalinkURL)
+                    },
                     onPopupProfileRequest: { profileURL in
                         openProfile(for: profileURL)
                     },
@@ -1381,7 +2420,25 @@ struct MessagesView: View {
                 if isLoadingQuoteTemplate {
                     Color.black.opacity(0.18)
                         .ignoresSafeArea()
-                    ProgressView("Chargement de la citation...")
+                    ProgressView(activeComposerPrefillMode.loadingLabel)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 12)
+                        .background(.ultraThinMaterial, in: .rect(cornerRadius: 12))
+                }
+
+                if isPreparingModerationAlert {
+                    Color.black.opacity(0.18)
+                        .ignoresSafeArea()
+                    ProgressView("Chargement de l'alerte...")
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 12)
+                        .background(.ultraThinMaterial, in: .rect(cornerRadius: 12))
+                }
+
+                if isDeletingMessage {
+                    Color.black.opacity(0.18)
+                        .ignoresSafeArea()
+                    ProgressView("Suppression...")
                         .padding(.horizontal, 18)
                         .padding(.vertical, 12)
                         .background(.ultraThinMaterial, in: .rect(cornerRadius: 12))
@@ -1425,27 +2482,62 @@ struct MessagesView: View {
                 )
                 .sheet(isPresented: $isComposerPresented) {
                     AnswerView(
-                        topicURL: topicAnswerURL,
+                        topicURL: composerSubmitURL ?? topicAnswerURL,
                         onPostSuccess: handleReplySuccess,
                         composerDraftText: $composerDraftText,
                         isComposerPresented: $isComposerPresented
                     )
                         .presentationDetents([.large])
                 }
+                .sheet(item: $moderationAlertDestination) { destination in
+                    ModerationAlertComposerView(
+                        preparedForm: destination.preparedForm,
+                        moderationAlertService: moderationAlertService
+                    ) { statusMessage in
+                        showSuccessToast(statusMessage)
+                    }
+                    .presentationDetents([.large])
+                }
                 .onChange(of: isComposerPresented) { _, isPresented in
                     if !isPresented {
                         handleComposerDismissalIfNeeded()
                     }
                 }
-                .alert("Citation impossible", isPresented: isQuoteTemplateAlertPresented) {
+                .alert(lastFailedComposerPrefillMode.alertTitle, isPresented: isQuoteTemplateAlertPresented) {
                     if let retryURL = lastFailedQuoteTemplateURL {
                         Button("Réessayer") {
-                            openQuoteComposer(with: retryURL)
+                            prefillComposer(with: retryURL, mode: lastFailedComposerPrefillMode)
                         }
                     }
                     Button("OK", role: .cancel) {}
                 } message: {
                     Text(quoteTemplateErrorMessage ?? "Erreur inconnue.")
+                }
+                .alert("Supprimer ce message ?", isPresented: isDeleteConfirmationPresented) {
+                    Button("Non", role: .cancel) {}
+                    Button("Oui", role: .destructive) {
+                        confirmDeleteMessage()
+                    }
+                } message: {
+                    Text("Cette action est définitive.")
+                }
+                .alert("Suppression impossible", isPresented: isDeleteErrorAlertPresented) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(deleteErrorMessage ?? "Erreur inconnue.")
+                }
+                .alert("Alerter les modérateurs par email ?", isPresented: isAlertMailConfirmationPresented) {
+                    Button("Non", role: .cancel) {}
+                    Button("Oui") {
+                        confirmAlertMailSending()
+                    }
+                } message: {
+                    Text("Un email sera préparé dans votre application Mail.")
+                }
+                .alert("Alerte impossible", isPresented: isModerationAlertErrorPresented) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(moderationAlertErrorMessage ?? "Erreur inconnue.")
                 }
                 .toolbar {
                     ToolbarItem(placement: .principal) {
@@ -1466,7 +2558,7 @@ struct MessagesView: View {
                         // Menu avec options
                         Menu {
                             Button {
-                                isComposerPresented = true
+                                openReplyComposer()
                             } label: {
                                 Label("Répondre", systemImage: "pencil")
                             }
@@ -1537,7 +2629,7 @@ struct MessagesView: View {
 
                         ToolbarItem(placement: .bottomBar) {
                             Button {
-                                isComposerPresented = true
+                                openReplyComposer()
                             } label: {
                                 Label("New", systemImage: "plus")
                             }
@@ -1600,7 +2692,7 @@ struct MessagesView: View {
                     // Menu avec options
                     Menu {
                         Button {
-                            isComposerPresented = true
+                            openReplyComposer()
                         } label: {
                             Label("Répondre", systemImage: "pencil")
                         }
@@ -1640,7 +2732,7 @@ struct MessagesView: View {
 
                     Spacer()
                     Button {
-                        isComposerPresented = true
+                        openReplyComposer()
                     } label: {
                         Label("New", systemImage: "plus")
                     }
@@ -1674,6 +2766,114 @@ struct MessagesView: View {
             .sheet(item: $safariDestination) { destination in
                 SafariInAppView(url: destination.url)
                     .ignoresSafeArea()
+            }
+        }
+    }
+}
+
+private struct ModerationAlertComposerView: View {
+    let preparedForm: ModerationAlertPreparedForm
+    let moderationAlertService: any ModerationAlertService
+    let onSubmitSuccess: (String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var reasonText = ""
+    @State private var isSending = false
+    @State private var errorMessage: String?
+
+    private static let warningText =
+        "Attention : le message que vous écrivez ici sera envoyé directement aux modérateurs via message privé ou e-mail."
+
+    private var canSend: Bool {
+        !reasonText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isSending
+    }
+
+    private var isErrorPresented: Binding<Bool> {
+        Binding(
+            get: { errorMessage != nil },
+            set: { isPresented in
+                if !isPresented {
+                    errorMessage = nil
+                }
+            }
+        )
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(Self.warningText)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                ZStack(alignment: .topLeading) {
+                    TextEditor(text: $reasonText)
+                        .scrollContentBackground(.hidden)
+                        .padding(6)
+                        .background(Color(.secondarySystemBackground))
+                        .clipShape(.rect(cornerRadius: 10))
+
+                    if reasonText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Text("Décrivez le problème...")
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 14)
+                            .allowsHitTesting(false)
+                    }
+                }
+
+                if isSending {
+                    ProgressView("Envoi de l'alerte...")
+                        .font(.footnote)
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding()
+            .navigationTitle("Alerte Modération")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Annuler") {
+                        dismiss()
+                    }
+                    .disabled(isSending)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Envoyer") {
+                        submitAlert()
+                    }
+                    .disabled(!canSend)
+                }
+            }
+        }
+        .alert("Alerte impossible", isPresented: isErrorPresented) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(errorMessage ?? "Erreur inconnue.")
+        }
+    }
+
+    private func submitAlert() {
+        guard canSend else { return }
+
+        Task { @MainActor in
+            isSending = true
+            defer { isSending = false }
+
+            do {
+                let statusMessage = try await moderationAlertService.submitAlert(
+                    reason: reasonText,
+                    with: preparedForm
+                )
+                let trimmedStatus = statusMessage.trimmingCharacters(in: .whitespacesAndNewlines)
+                onSubmitSuccess(trimmedStatus.isEmpty ? "Alerte envoyée." : trimmedStatus)
+                dismiss()
+            } catch let error as ReplyPostingError {
+                errorMessage = error.localizedDescription
+            } catch {
+                errorMessage = (error as? LocalizedError)?.errorDescription ?? "Alerte impossible."
             }
         }
     }
