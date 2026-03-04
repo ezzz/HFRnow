@@ -114,6 +114,49 @@ final class ObjCWrapperLoaderBehaviorTests: XCTestCase {
         XCTAssertNil(receivedError)
     }
 
+    func testTopicsControllerDerivesFilterURLsFromForum1URL() {
+        let forum = Forum()
+        forum.aTitle = "Discussions"
+        forum.aURL = "/forum1.php?config=hfr.inc&cat=13&page=4&subcat=42&owntopic=3"
+        forum.aID = "13"
+
+        let controller = ForumTopicsURLCaptureController()
+        controller.fetchContent(for: forum, flagIndex: TopicListFlag.all.rawValue) { _, _ in }
+
+        XCTAssertEqual(queryValue("cat", in: controller.forumBaseURL), "13")
+        XCTAssertEqual(queryValue("subcat", in: controller.forumBaseURL), "42")
+        XCTAssertEqual(queryValue("page", in: controller.forumBaseURL), "1")
+        XCTAssertEqual(queryValue("owntopic", in: controller.forumBaseURL), "0")
+        XCTAssertEqual(queryValue("owntopic", in: controller.forumFavorisURL), "3")
+        XCTAssertEqual(queryValue("owntopic", in: controller.forumFlag1URL), "1")
+        XCTAssertEqual(queryValue("owntopic", in: controller.forumFlag0URL), "2")
+        XCTAssertEqual(queryValue("owntopic", in: controller.currentUrl), "0")
+        XCTAssertEqual(controller.fetchContentTriggerCallCount, 1)
+    }
+
+    func testTopicsControllerSelectsTrackedURLForTrackedFlagIndex() {
+        let forum = Forum()
+        forum.aTitle = "Discussions"
+        forum.aURL = "/forum1.php?config=hfr.inc&cat=13&page=1&subcat=42&owntopic=3"
+        forum.aID = "13"
+
+        let controller = ForumTopicsURLCaptureController()
+        controller.fetchContent(for: forum, flagIndex: TopicListFlag.tracked.rawValue) { _, _ in }
+
+        XCTAssertEqual(queryValue("owntopic", in: controller.currentUrl), "1")
+        XCTAssertEqual(controller.selectedFlagIndex, Int32(TopicListFlag.tracked.rawValue))
+    }
+
+    private func queryValue(_ name: String, in url: String?) -> String? {
+        guard
+            let url,
+            let components = URLComponents(string: url)
+        else {
+            return nil
+        }
+        return components.queryItems?.first(where: { $0.name == name })?.value
+    }
+
     func testObjCTopicPageLoaderMapsSuccessAndPassesURLAndAnchor() {
         let controller = MessagesControllerStub(
             result: .success(html: "<html>ok</html>", topicAnswerURL: "https://forum.hardware.fr/reply"),
@@ -122,7 +165,22 @@ final class ObjCWrapperLoaderBehaviorTests: XCTestCase {
                     "quoteURL": "https://forum.hardware.fr/message.php?post=42",
                     "profileURL": "https://forum.hardware.fr/profil/test",
                     "privateMessageURL": "https://forum.hardware.fr/message.php?cat=prive",
-                    "postID": "t123"
+                    "postID": "t123",
+                    "editURL": "https://forum.hardware.fr/edit.php?post=42",
+                    "favoriteURL": "https://forum.hardware.fr/fav.php?post=42",
+                    "alertURL": "https://forum.hardware.fr/alerte.php?post=42",
+                    "permalinkURL": "https://forum.hardware.fr/forum2.php?post=42#t42",
+                    "authorName": "Pseudo",
+                    "quoteJS": "javascript:qreply(13,432,61999,55767559); return false;",
+                    "isOwnMessage": "1",
+                    "canBeFavorite": "1",
+                    "isPrivateCategory": "0",
+                    "canAQ": "1",
+                    "canBookmark": "1",
+                    "canDelete": "1",
+                    "topicID": "61999",
+                    "topicCategory": "13",
+                    "topicTitle": "BashHFr"
                 ]
             ]
         )
@@ -149,6 +207,21 @@ final class ObjCWrapperLoaderBehaviorTests: XCTestCase {
             XCTAssertEqual(content.messageActionsByIndex[2]?.profileURL?.absoluteString, "https://forum.hardware.fr/profil/test")
             XCTAssertEqual(content.messageActionsByIndex[2]?.privateMessageURL?.absoluteString, "https://forum.hardware.fr/message.php?cat=prive")
             XCTAssertEqual(content.messageActionsByIndex[2]?.postID, "t123")
+            XCTAssertEqual(content.messageActionsByIndex[2]?.editURL?.absoluteString, "https://forum.hardware.fr/edit.php?post=42")
+            XCTAssertEqual(content.messageActionsByIndex[2]?.favoriteURL?.absoluteString, "https://forum.hardware.fr/fav.php?post=42")
+            XCTAssertEqual(content.messageActionsByIndex[2]?.alertURL?.absoluteString, "https://forum.hardware.fr/alerte.php?post=42")
+            XCTAssertEqual(content.messageActionsByIndex[2]?.permalinkURL?.absoluteString, "https://forum.hardware.fr/forum2.php?post=42#t42")
+            XCTAssertEqual(content.messageActionsByIndex[2]?.authorName, "Pseudo")
+            XCTAssertEqual(content.messageActionsByIndex[2]?.quoteJS, "javascript:qreply(13,432,61999,55767559); return false;")
+            XCTAssertEqual(content.messageActionsByIndex[2]?.isOwnMessage, true)
+            XCTAssertEqual(content.messageActionsByIndex[2]?.canBeFavorite, true)
+            XCTAssertEqual(content.messageActionsByIndex[2]?.isPrivateCategory, false)
+            XCTAssertEqual(content.messageActionsByIndex[2]?.canAQ, true)
+            XCTAssertEqual(content.messageActionsByIndex[2]?.canBookmark, true)
+            XCTAssertEqual(content.messageActionsByIndex[2]?.canDelete, true)
+            XCTAssertEqual(content.messageActionsByIndex[2]?.topicID, "61999")
+            XCTAssertEqual(content.messageActionsByIndex[2]?.topicCategory, "13")
+            XCTAssertEqual(content.messageActionsByIndex[2]?.topicTitle, "BashHFr")
         case .failure(let error):
             XCTFail("Expected success, got error: \(error)")
         case .none:
@@ -201,6 +274,51 @@ final class ObjCWrapperLoaderBehaviorTests: XCTestCase {
             XCTAssertEqual((error as NSError).code, expectedError.code)
         case .success:
             XCTFail("Expected error")
+        case .none:
+            XCTFail("Expected a result")
+        }
+    }
+
+    func testObjCTopicPageLoaderKeepsBooleanOnlyMessageActionsEntries() {
+        let controller = MessagesControllerStub(
+            result: .success(html: "<html>ok</html>", topicAnswerURL: nil),
+            messageActionsByIndex: [
+                7: [
+                    "isOwnMessage": "0",
+                    "canBeFavorite": "0",
+                    "isPrivateCategory": "0",
+                    "canAQ": "1",
+                    "canBookmark": "1",
+                    "canDelete": "0",
+                    "topicID": "61999",
+                    "topicCategory": "13",
+                    "topicTitle": "BashHFr"
+                ]
+            ]
+        )
+        let loader = ObjCTopicPageLoader(controller: controller)
+
+        let expectation = expectation(description: "topic page boolean-only message actions")
+        var receivedResult: Result<TopicPageContent, Error>?
+
+        loader.fetchTopicPage(url: "https://forum.hardware.fr/topic", anchor: nil) { result in
+            receivedResult = result
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 1)
+
+        switch receivedResult {
+        case .success(let content):
+            let actions = content.messageActionsByIndex[7]
+            XCTAssertNotNil(actions)
+            XCTAssertEqual(actions?.canAQ, true)
+            XCTAssertEqual(actions?.canBookmark, true)
+            XCTAssertEqual(actions?.topicID, "61999")
+            XCTAssertEqual(actions?.topicCategory, "13")
+            XCTAssertEqual(actions?.topicTitle, "BashHFr")
+        case .failure(let error):
+            XCTFail("Expected success, got error: \(error)")
         case .none:
             XCTFail("Expected a result")
         }
@@ -276,6 +394,103 @@ final class TopicOpenPolicyTests: XCTestCase {
 
         XCTAssertEqual(decision.preferredURL, topic.aURLOfLastPost)
         XCTAssertEqual(decision.fallbackPage, 55)
+    }
+
+    func testQuickActionsDefaultsForFavoritesHideFirstPage() {
+        let config = TopicQuickActionPolicy.defaults(for: .favorites)
+
+        XCTAssertFalse(config.showOpenFirstPage)
+        XCTAssertTrue(config.showOpenLastPage)
+        XCTAssertTrue(config.showOpenLastReply)
+        XCTAssertTrue(config.showOpenPagePicker)
+        XCTAssertTrue(config.showCopyLink)
+    }
+
+    func testQuickActionsDefaultsForMessagesHideLastReply() {
+        let config = TopicQuickActionPolicy.defaults(for: .messages)
+
+        XCTAssertTrue(config.showOpenFirstPage)
+        XCTAssertTrue(config.showOpenLastPage)
+        XCTAssertFalse(config.showOpenLastReply)
+        XCTAssertTrue(config.showOpenPagePicker)
+        XCTAssertTrue(config.showCopyLink)
+    }
+
+    func testQuickActionsDefaultsForForumKeepAllPrimaryActions() {
+        let config = TopicQuickActionPolicy.defaults(for: .forum(selectedFlag: .all))
+
+        XCTAssertTrue(config.showOpenFirstPage)
+        XCTAssertTrue(config.showOpenLastPage)
+        XCTAssertTrue(config.showOpenLastReply)
+        XCTAssertTrue(config.showOpenPagePicker)
+        XCTAssertTrue(config.showCopyLink)
+    }
+
+    func testLastReplyURLForForumPrefersLastPostURL() {
+        let topic = makeTopic(
+            url: "https://forum.hardware.fr/hfr/test/liste_sujet-1.htm",
+            lastPostURL: "https://forum.hardware.fr/hfr/test/liste_sujet-23.htm#t42",
+            currentPage: 4,
+            maxPage: 23
+        )
+        topic.aURLOfLastPage = "https://forum.hardware.fr/hfr/test/liste_sujet-23.htm"
+
+        let url = TopicQuickActionPolicy.lastReplyURL(for: topic, context: .forum(selectedFlag: .all))
+
+        XCTAssertEqual(url, topic.aURLOfLastPost)
+    }
+
+    func testLastReplyURLForFavoritesPrefersTopicURL() {
+        let topic = makeTopic(
+            url: "https://forum.hardware.fr/hfr/test/liste_sujet-7.htm",
+            lastPostURL: "https://forum.hardware.fr/hfr/test/liste_sujet-31.htm#t99",
+            currentPage: 7,
+            maxPage: 31
+        )
+
+        let url = TopicQuickActionPolicy.lastReplyURL(for: topic, context: .favorites)
+
+        XCTAssertEqual(url, topic.aURL)
+    }
+
+    func testLastReplyURLForMessagesPrefersLastPostURL() {
+        let topic = makeTopic(
+            url: "https://forum.hardware.fr/hfr/test/liste_sujet-2.htm",
+            lastPostURL: "https://forum.hardware.fr/hfr/test/liste_sujet-18.htm#t88",
+            currentPage: 2,
+            maxPage: 18
+        )
+        topic.aURLOfLastPage = "https://forum.hardware.fr/hfr/test/liste_sujet-18.htm"
+
+        let url = TopicQuickActionPolicy.lastReplyURL(for: topic, context: .messages)
+
+        XCTAssertEqual(url, topic.aURLOfLastPost)
+    }
+
+    func testCopyLinkNormalizesRelativeURLToAbsoluteForumURL() {
+        let topic = makeTopic(
+            url: "/hfr/test/liste_sujet-1.htm",
+            currentPage: 1,
+            maxPage: 3
+        )
+        topic.aURLOfFirstPage = "/hfr/test/liste_sujet-1.htm"
+
+        let copied = TopicQuickActionPolicy.copyLink(for: topic)
+
+        XCTAssertEqual(copied, "https://forum.hardware.fr/hfr/test/liste_sujet-1.htm")
+    }
+
+    func testCopyLinkKeepsAbsoluteURLUntouched() {
+        let topic = makeTopic(
+            url: "https://forum.hardware.fr/hfr/test/liste_sujet-1.htm",
+            currentPage: 1,
+            maxPage: 3
+        )
+        topic.aURLOfFirstPage = "https://forum.hardware.fr/hfr/test/liste_sujet-1.htm"
+
+        let copied = TopicQuickActionPolicy.copyLink(for: topic)
+
+        XCTAssertEqual(copied, topic.aURLOfFirstPage)
     }
 
     private func makeTopic(
@@ -403,12 +618,12 @@ private final class ForumTopicsControllerStub: TopicsTableViewController {
 
     override init() {
         self.result = .success([])
-        super.init()
+        super.init(nibName: nil, bundle: nil)
     }
 
     init(result: Result) {
         self.result = result
-        super.init()
+        super.init(nibName: nil, bundle: nil)
     }
 
     required init?(coder: NSCoder) {
@@ -426,6 +641,22 @@ private final class ForumTopicsControllerStub: TopicsTableViewController {
         case .failure(let error):
             completion(nil, error)
         }
+    }
+}
+
+private final class ForumTopicsURLCaptureController: TopicsTableViewController {
+    private(set) var fetchContentTriggerCallCount = 0
+
+    override init() {
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func fetchContentTrigger() {
+        fetchContentTriggerCallCount += 1
     }
 }
 

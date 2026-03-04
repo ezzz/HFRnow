@@ -160,6 +160,21 @@ struct TopicPageMessageActions: Equatable {
     let profileURL: URL?
     let privateMessageURL: URL?
     let postID: String?
+    let editURL: URL?
+    let favoriteURL: URL?
+    let alertURL: URL?
+    let permalinkURL: URL?
+    let authorName: String?
+    let quoteJS: String?
+    let isOwnMessage: Bool
+    let canBeFavorite: Bool
+    let isPrivateCategory: Bool
+    let canAQ: Bool
+    let canBookmark: Bool
+    let canDelete: Bool
+    let topicID: String?
+    let topicCategory: String?
+    let topicTitle: String?
 }
 
 struct TopicPageContent {
@@ -199,6 +214,21 @@ final class ObjCTopicPageLoader: TopicPageLoading {
         static let profileURL = "profileURL"
         static let privateMessageURL = "privateMessageURL"
         static let postID = "postID"
+        static let editURL = "editURL"
+        static let favoriteURL = "favoriteURL"
+        static let alertURL = "alertURL"
+        static let permalinkURL = "permalinkURL"
+        static let authorName = "authorName"
+        static let quoteJS = "quoteJS"
+        static let isOwnMessage = "isOwnMessage"
+        static let canBeFavorite = "canBeFavorite"
+        static let isPrivateCategory = "isPrivateCategory"
+        static let canAQ = "canAQ"
+        static let canBookmark = "canBookmark"
+        static let canDelete = "canDelete"
+        static let topicID = "topicID"
+        static let topicCategory = "topicCategory"
+        static let topicTitle = "topicTitle"
     }
 
     private let controller: MessagesTableViewController
@@ -251,10 +281,43 @@ final class ObjCTopicPageLoader: TopicPageLoading {
                 quoteURL: urlValue(in: entry, key: MessageActionKey.quoteURL),
                 profileURL: urlValue(in: entry, key: MessageActionKey.profileURL),
                 privateMessageURL: urlValue(in: entry, key: MessageActionKey.privateMessageURL),
-                postID: stringValue(in: entry, key: MessageActionKey.postID)
+                postID: stringValue(in: entry, key: MessageActionKey.postID),
+                editURL: urlValue(in: entry, key: MessageActionKey.editURL),
+                favoriteURL: urlValue(in: entry, key: MessageActionKey.favoriteURL),
+                alertURL: urlValue(in: entry, key: MessageActionKey.alertURL),
+                permalinkURL: urlValue(in: entry, key: MessageActionKey.permalinkURL),
+                authorName: stringValue(in: entry, key: MessageActionKey.authorName),
+                quoteJS: stringValue(in: entry, key: MessageActionKey.quoteJS),
+                isOwnMessage: boolValue(in: entry, key: MessageActionKey.isOwnMessage),
+                canBeFavorite: boolValue(in: entry, key: MessageActionKey.canBeFavorite),
+                isPrivateCategory: boolValue(in: entry, key: MessageActionKey.isPrivateCategory),
+                canAQ: boolValue(in: entry, key: MessageActionKey.canAQ),
+                canBookmark: boolValue(in: entry, key: MessageActionKey.canBookmark),
+                canDelete: boolValue(in: entry, key: MessageActionKey.canDelete),
+                topicID: stringValue(in: entry, key: MessageActionKey.topicID),
+                topicCategory: stringValue(in: entry, key: MessageActionKey.topicCategory),
+                topicTitle: stringValue(in: entry, key: MessageActionKey.topicTitle)
             )
 
-            if actions.quoteURL != nil || actions.profileURL != nil || actions.privateMessageURL != nil || actions.postID != nil {
+            if actions.quoteURL != nil ||
+                actions.profileURL != nil ||
+                actions.privateMessageURL != nil ||
+                actions.postID != nil ||
+                actions.editURL != nil ||
+                actions.favoriteURL != nil ||
+                actions.alertURL != nil ||
+                actions.permalinkURL != nil ||
+                actions.authorName != nil ||
+                actions.quoteJS != nil ||
+                actions.isOwnMessage ||
+                actions.canBeFavorite ||
+                actions.isPrivateCategory ||
+                actions.canAQ ||
+                actions.canBookmark ||
+                actions.canDelete ||
+                actions.topicID != nil ||
+                actions.topicCategory != nil ||
+                actions.topicTitle != nil {
                 result[index] = actions
             }
         }
@@ -275,6 +338,16 @@ final class ObjCTopicPageLoader: TopicPageLoading {
         }
         let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func boolValue(in dictionary: [AnyHashable: Any], key: String) -> Bool {
+        if let number = dictionary[key] as? NSNumber {
+            return number.boolValue
+        }
+        guard let string = stringValue(in: dictionary, key: key)?.lowercased() else {
+            return false
+        }
+        return string == "1" || string == "true" || string == "yes"
     }
 }
 
@@ -611,6 +684,77 @@ enum TopicOpenContext: Equatable {
     case messages
 }
 
+enum TopicQuickActionPolicy {
+    static func defaults(for context: TopicOpenContext) -> TopicQuickActionsConfiguration {
+        switch context {
+        case .forum:
+            return TopicQuickActionsConfiguration(
+                showOpenFirstPage: true,
+                showOpenLastPage: true,
+                showOpenLastReply: true,
+                showOpenPagePicker: true,
+                showCopyLink: true
+            )
+        case .favorites:
+            return TopicQuickActionsConfiguration(
+                showOpenFirstPage: false,
+                showOpenLastPage: true,
+                showOpenLastReply: true,
+                showOpenPagePicker: true,
+                showCopyLink: true
+            )
+        case .messages:
+            return TopicQuickActionsConfiguration(
+                showOpenFirstPage: true,
+                showOpenLastPage: true,
+                showOpenLastReply: false,
+                showOpenPagePicker: true,
+                showCopyLink: true
+            )
+        case .generic:
+            return TopicQuickActionsConfiguration(
+                showOpenFirstPage: true,
+                showOpenLastPage: true,
+                showOpenLastReply: true,
+                showOpenPagePicker: true,
+                showCopyLink: true
+            )
+        }
+    }
+
+    static func lastReplyURL(for topic: Topic, context: TopicOpenContext) -> String? {
+        switch context {
+        case .favorites:
+            return nonEmptyString(topic.aURL) ?? nonEmptyString(topic.aURLOfLastPost) ?? nonEmptyString(topic.aURLOfLastPage)
+        case .forum, .messages, .generic:
+            return nonEmptyString(topic.aURLOfLastPost) ?? nonEmptyString(topic.aURLOfLastPage) ?? nonEmptyString(topic.aURL)
+        }
+    }
+
+    static func copyLink(for topic: Topic) -> String? {
+        let rawURL = nonEmptyString(topic.aURLOfFirstPage) ?? nonEmptyString(topic.aURL) ?? nonEmptyString(topic.aURLOfLastPage) ?? nonEmptyString(topic.aURLOfLastPost)
+        guard let rawURL else { return nil }
+        return absoluteForumURLString(from: rawURL)
+    }
+
+    private static func absoluteForumURLString(from rawURL: String) -> String {
+        guard URL(string: rawURL)?.scheme == nil else { return rawURL }
+
+        let forumBaseURL = URL(string: k.forumURL()) ?? URL(string: "https://forum.hardware.fr")!
+        if let resolvedURL = URL(string: rawURL, relativeTo: forumBaseURL)?.absoluteURL {
+            return resolvedURL.absoluteString
+        }
+        return rawURL
+    }
+
+    private static func nonEmptyString(_ value: String?) -> String? {
+        guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
+            return nil
+        }
+        return trimmed
+    }
+}
+
 struct TopicOpenPolicy {
     struct Decision {
         let preferredURL: String?
@@ -681,8 +825,10 @@ struct TopicListRowView: View {
     var showUnreadBadgeWhenZero = false
     var leadingBottomText: String?
     var trailingBottomText: String?
+    var rowBackgroundTint: Color?
+    var contentPadding: EdgeInsets = EdgeInsets(top: 6, leading: 8, bottom: 6, trailing: 8)
     var openContext: TopicOpenContext = .generic
-    var quickActions = TopicQuickActionsConfiguration()
+    var quickActions: TopicQuickActionsConfiguration?
     var onOpen: ((String?) -> Void)?
     @Environment(\.colorScheme) private var colorScheme
 
@@ -719,8 +865,12 @@ struct TopicListRowView: View {
         nonEmptyString(topic.aURLOfLastPage) ?? nonEmptyString(topic.aURL)
     }
 
+    private var resolvedQuickActions: TopicQuickActionsConfiguration {
+        quickActions ?? TopicQuickActionPolicy.defaults(for: openContext)
+    }
+
     private var copyURL: String? {
-        nonEmptyString(topic.aURLOfFirstPage) ?? nonEmptyString(topic.aURL) ?? nonEmptyString(topic.aURLOfLastPage) ?? nonEmptyString(topic.aURLOfLastPost)
+        TopicQuickActionPolicy.copyLink(for: topic)
     }
 
     private var unreadBadgeTextColor: Color {
@@ -732,6 +882,10 @@ struct TopicListRowView: View {
             return isVisited ? .white.opacity(0.55) : .white.opacity(0.78)
         }
         return isVisited ? .secondary.opacity(0.5) : .secondary
+    }
+
+    private var stickySymbolColor: Color {
+        Color(red: 0.91, green: 0.30, blue: 0.24)
     }
 
     private func nonEmptyString(_ value: String?) -> String? {
@@ -877,7 +1031,7 @@ struct TopicListRowView: View {
     }
 
     private func openLastReplyAction() {
-        let lastReplyURL = nonEmptyString(topic.aURLOfLastPage) ?? nonEmptyString(topic.aURLOfLastPost) ?? nonEmptyString(topic.aURL)
+        let lastReplyURL = TopicQuickActionPolicy.lastReplyURL(for: topic, context: openContext)
         openNavigationTarget(
             makeNavigationTarget(
                 preferredURL: lastReplyURL,
@@ -914,28 +1068,28 @@ struct TopicListRowView: View {
 
     @ViewBuilder
     private var quickActionsMenuContent: some View {
-        if quickActions.showOpenFirstPage, firstPageURL != nil {
-            Button("Premiere page", systemImage: "backward.end") {
+        if resolvedQuickActions.showOpenFirstPage, firstPageURL != nil {
+            Button("Première page", systemImage: "backward.end") {
                 openFirstPageAction()
             }
         }
-        if quickActions.showOpenLastPage, lastPageURL != nil {
-            Button("Derniere page", systemImage: "forward.end") {
+        if resolvedQuickActions.showOpenLastPage, lastPageURL != nil {
+            Button("Dernière page", systemImage: "forward.end") {
                 openLastPageAction()
             }
         }
-        if quickActions.showOpenLastReply {
-            Button("Derniere reponse", systemImage: "text.append") {
+        if resolvedQuickActions.showOpenLastReply {
+            Button("Dernière réponse", systemImage: "text.append") {
                 openLastReplyAction()
             }
         }
-        if quickActions.showOpenPagePicker {
-            Button("Page numero...", systemImage: "number") {
+        if resolvedQuickActions.showOpenPagePicker {
+            Button("Page numéro...", systemImage: "number") {
                 openPagePickerAction()
             }
         }
-        if quickActions.showCopyLink, let copyURL {
-            Button("Copier l'URL", systemImage: "doc.on.doc") {
+        if resolvedQuickActions.showCopyLink, let copyURL {
+            Button("Copier le lien", systemImage: "doc.on.doc") {
                 UIPasteboard.general.string = copyURL
             }
         }
@@ -947,7 +1101,17 @@ struct TopicListRowView: View {
         } label: {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    HStack {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        if topic.isSticky {
+                            Image(systemName: "pin.fill")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(stickySymbolColor)
+                        }
+                        if topic.isClosed {
+                            Image(systemName: "lock.fill")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                        }
                         Text(titleText)
                             .font(titleFont)
                             .foregroundStyle(isVisited ? .secondary : .primary)
@@ -981,7 +1145,13 @@ struct TopicListRowView: View {
                     }
                 }
             }
-            .padding(.vertical, 0)
+            .padding(contentPadding)
+            .background {
+                if let rowBackgroundTint {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(rowBackgroundTint)
+                }
+            }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

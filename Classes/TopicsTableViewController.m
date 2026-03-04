@@ -1009,17 +1009,132 @@
 }
 
 #pragma mark - SWIFT
+- (NSString *)normalizedRelativeForumURLString:(NSString *)urlString {
+    if (urlString.length == 0) {
+        return nil;
+    }
+
+    NSString *trimmed = [urlString stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    if (trimmed.length == 0) {
+        return nil;
+    }
+
+    NSURLComponents *components = [NSURLComponents componentsWithString:trimmed];
+    if (!components) {
+        if ([trimmed hasPrefix:@"/"]) {
+            return trimmed;
+        }
+        return [@"/" stringByAppendingString:trimmed];
+    }
+
+    if (components.host.length == 0 && [trimmed hasPrefix:@"/"]) {
+        return trimmed;
+    }
+
+    NSString *path = components.percentEncodedPath.length > 0 ? components.percentEncodedPath : @"/";
+    NSString *relative = path;
+    if (components.percentEncodedQuery.length > 0) {
+        relative = [NSString stringWithFormat:@"%@?%@", path, components.percentEncodedQuery];
+    }
+
+    if (![relative hasPrefix:@"/"]) {
+        relative = [@"/" stringByAppendingString:relative];
+    }
+    return relative;
+}
+
+- (NSString *)forumURLBySettingOwnTopic:(NSInteger)ownTopic fromURLString:(NSString *)urlString {
+    NSString *normalizedURL = [self normalizedRelativeForumURLString:urlString];
+    if (normalizedURL.length == 0 || [normalizedURL rangeOfString:@"forum1.php"].location == NSNotFound) {
+        return nil;
+    }
+
+    NSURLComponents *components = [NSURLComponents componentsWithString:normalizedURL];
+    if (!components) {
+        return nil;
+    }
+
+    NSMutableArray<NSURLQueryItem *> *updatedQueryItems = [NSMutableArray array];
+    BOOL hasOwnTopic = NO;
+    BOOL hasPage = NO;
+    BOOL hasCat = NO;
+
+    for (NSURLQueryItem *item in components.queryItems ?: @[]) {
+        if ([item.name isEqualToString:@"owntopic"]) {
+            [updatedQueryItems addObject:[NSURLQueryItem queryItemWithName:@"owntopic" value:[NSString stringWithFormat:@"%ld", (long)ownTopic]]];
+            hasOwnTopic = YES;
+            continue;
+        }
+        if ([item.name isEqualToString:@"page"]) {
+            [updatedQueryItems addObject:[NSURLQueryItem queryItemWithName:@"page" value:@"1"]];
+            hasPage = YES;
+            continue;
+        }
+        if ([item.name isEqualToString:@"cat"] && item.value.length > 0) {
+            hasCat = YES;
+        }
+        [updatedQueryItems addObject:item];
+    }
+
+    if (!hasCat) {
+        return nil;
+    }
+    if (!hasPage) {
+        [updatedQueryItems addObject:[NSURLQueryItem queryItemWithName:@"page" value:@"1"]];
+    }
+    if (!hasOwnTopic) {
+        [updatedQueryItems addObject:[NSURLQueryItem queryItemWithName:@"owntopic" value:[NSString stringWithFormat:@"%ld", (long)ownTopic]]];
+    }
+
+    components.queryItems = updatedQueryItems;
+    NSString *resolvedURL = components.string ?: normalizedURL;
+    if (![resolvedURL hasPrefix:@"/"]) {
+        resolvedURL = [@"/" stringByAppendingString:resolvedURL];
+    }
+    return resolvedURL;
+}
+
+- (NSString *)forumURLWithCatID:(NSInteger)catID ownTopic:(NSInteger)ownTopic {
+    if (catID <= 0) {
+        return nil;
+    }
+    return [NSString stringWithFormat:@"/forum1.php?config=hfr.inc&cat=%ld&page=1&subcat=&owntopic=%ld", (long)catID, (long)ownTopic];
+}
+
 - (void)fetchContentForForum:(Forum *)forum
                    flagIndex:(NSInteger)flagIndex
                   completion:(void (^)(NSArray<Topic *> *topics, NSError *error))completion {
     self.forumName = forum.aTitle;
-    self.forumBaseURL = forum.aURL;
-    if (forum && [forum getHFRID] > 0) {
-        self.forumFavorisURL = [forum URLforType:kFav];
-        self.forumFlag1URL = [forum URLforType:kFlag];
-        self.forumFlag0URL = [forum URLforType:kRed];
+
+    NSString *normalizedForumURL = [self normalizedRelativeForumURLString:forum.aURL];
+    NSString *derivedAllURL = [self forumURLBySettingOwnTopic:0 fromURLString:normalizedForumURL];
+    NSString *derivedFavoritesURL = [self forumURLBySettingOwnTopic:3 fromURLString:normalizedForumURL];
+    NSString *derivedTrackedURL = [self forumURLBySettingOwnTopic:1 fromURLString:normalizedForumURL];
+    NSString *derivedReadURL = [self forumURLBySettingOwnTopic:2 fromURLString:normalizedForumURL];
+
+    NSInteger forumID = forum ? [forum getHFRID] : 0;
+    if (forumID <= 0 && forum.aID.length > 0) {
+        NSInteger parsedID = 0;
+        NSScanner *scanner = [NSScanner scannerWithString:forum.aID];
+        [scanner scanInteger:&parsedID];
+        if (parsedID > 0) {
+            forumID = parsedID;
+        }
+    }
+
+    if (derivedAllURL.length > 0) {
+        self.forumBaseURL = derivedAllURL;
+        self.forumFavorisURL = derivedFavoritesURL ?: derivedAllURL;
+        self.forumFlag1URL = derivedTrackedURL ?: derivedAllURL;
+        self.forumFlag0URL = derivedReadURL ?: derivedAllURL;
+    } else if (forumID > 0) {
+        self.forumBaseURL = [self forumURLWithCatID:forumID ownTopic:0];
+        self.forumFavorisURL = [self forumURLWithCatID:forumID ownTopic:3];
+        self.forumFlag1URL = [self forumURLWithCatID:forumID ownTopic:1];
+        self.forumFlag0URL = [self forumURLWithCatID:forumID ownTopic:2];
     } else {
-        // Favorites categories can come with direct list URLs instead of canonical /hfr paths.
+        self.forumBaseURL = normalizedForumURL;
+        // Fallback for unknown forum URLs: all filters resolve to the same endpoint.
         self.forumFavorisURL = self.forumBaseURL;
         self.forumFlag1URL = self.forumBaseURL;
         self.forumFlag0URL = self.forumBaseURL;

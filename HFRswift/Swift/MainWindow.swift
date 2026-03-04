@@ -261,7 +261,34 @@ struct ForumTopicsListView: View {
     }
 
     private func footerLeft(for topic: Topic) -> String {
-        "⚑ \(topic.curTopicPage) / \(topic.maxTopicPage)"
+        let currentPage = Int(topic.curTopicPage)
+        let maxPage = max(Int(topic.maxTopicPage), 1)
+        let pollSuffix = topic.isPoll ? " \u{2263}" : ""
+
+        if currentPage > 0 && currentPage <= maxPage {
+            return "⚑\(pollSuffix) \(currentPage) / \(maxPage)"
+        }
+        return "\(maxPage)\(pollSuffix)"
+    }
+
+    private func rowBackgroundTint(for topic: Topic) -> Color? {
+        guard
+            let flagType = topic.aTypeOfFlag?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+            !flagType.isEmpty
+        else {
+            return nil
+        }
+
+        switch flagType {
+        case "yellow":
+            return Color.yellow.opacity(0.14)
+        case "blue":
+            return Color.blue.opacity(0.12)
+        case "red":
+            return Color.red.opacity(0.12)
+        default:
+            return nil
+        }
     }
 
     private func footerRight(for topic: Topic) -> String? {
@@ -326,6 +353,7 @@ struct ForumTopicsListView: View {
                     showUnreadBadge: true,
                     leadingBottomText: footerLeft(for: topic),
                     trailingBottomText: footerRight(for: topic),
+                    rowBackgroundTint: rowBackgroundTint(for: topic),
                     openContext: .forum(selectedFlag: viewModel.selectedFlag)
                 ) { openedURL in
                     if let openedURL, !openedURL.isEmpty {

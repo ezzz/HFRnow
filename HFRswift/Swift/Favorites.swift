@@ -104,11 +104,9 @@ struct FavoriteSectionView: View {
     var body: some View {
         Section(header: sectionHeader) {
             ForEach(topics) { topic in
-                VStack(alignment: .leading, spacing: 8) {
-                    TopicRowView(topic: topic, visitedURLs: $visitedURLs)
-                }
+                TopicRowView(topic: topic, visitedURLs: $visitedURLs)
                 .contentShape(Rectangle())
-                .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
             }
         }
     }
@@ -267,7 +265,14 @@ struct TopicRowView: View {
     }
 
     private var pageLabel: String {
-        "⚑ \(topic.curTopicPage) / \(topic.maxTopicPage)"
+        let currentPage = Int(topic.curTopicPage)
+        let maxPage = max(Int(topic.maxTopicPage), 1)
+        let pollSuffix = topic.isPoll ? " \u{2263}" : ""
+
+        if currentPage > 0 && currentPage <= maxPage {
+            return "⚑\(pollSuffix) \(currentPage) / \(maxPage)"
+        }
+        return "\(maxPage)\(pollSuffix)"
     }
 
     private var trailingLabel: String? {
@@ -289,6 +294,7 @@ struct TopicRowView: View {
             showUnreadBadgeWhenZero: false,
             leadingBottomText: pageLabel,
             trailingBottomText: trailingLabel,
+            contentPadding: EdgeInsets(top: 2, leading: 0, bottom: 2, trailing: 0),
             openContext: .favorites
         ) { openedURL in
             let url = openedURL ?? topic.aURL ?? topic.aURLOfLastPage ?? ""
