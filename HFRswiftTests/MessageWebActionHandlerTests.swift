@@ -219,7 +219,7 @@ final class MessageWebActionHandlerTests: XCTestCase {
         XCTAssertEqual(action, .ignore)
     }
 
-    func testImageBrowserSchemeRoutesToExternalURL() {
+    func testImageBrowserSchemeRoutesToImageViewer() {
         let imageURL = "https%3A%2F%2Fimg3.super-h.fr%2Fimages%2Ffull.jpg"
         let action = handler.action(
             for: URL(string: "oijlkajsdoihjlkjasdoimbrows://12/\(imageURL)")!,
@@ -230,7 +230,7 @@ final class MessageWebActionHandlerTests: XCTestCase {
 
         XCTAssertEqual(
             action,
-            .openExternalURL(URL(string: "https://img3.super-h.fr/images/full.jpg")!)
+            .presentImageViewer(URL(string: "https://img3.super-h.fr/images/full.jpg")!)
         )
     }
 

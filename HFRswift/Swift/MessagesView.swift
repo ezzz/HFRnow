@@ -31,6 +31,208 @@ enum ReplyQuoteDraftMerger {
     }
 }
 
+enum MessagePopupMenuActionKind: Equatable {
+    case quote
+    case quoteSelection(isSelected: Bool)
+    case edit
+    case profile
+    case privateMessage
+    case blacklist
+    case whitelist
+    case favorite
+    case link
+    case alert
+    case aq
+    case bookmark
+    case delete
+
+    var title: String {
+        switch self {
+        case .quote:
+            return "Citer"
+        case .quoteSelection(let isSelected):
+            return isSelected ? "Citer ☑" : "Citer ☐"
+        case .edit:
+            return "Editer"
+        case .profile:
+            return "Profil"
+        case .privateMessage:
+            return "MP"
+        case .blacklist:
+            return "Blacklist"
+        case .whitelist:
+            return "Whitelist"
+        case .favorite:
+            return "Favoris"
+        case .link:
+            return "Link"
+        case .alert:
+            return "Alerter"
+        case .aq:
+            return "AQ"
+        case .bookmark:
+            return "Bookmark"
+        case .delete:
+            return "Supprimer"
+        }
+    }
+
+    var systemImageName: String {
+        switch self {
+        case .quote:
+            return "quote.bubble"
+        case .quoteSelection:
+            return "text.quote"
+        case .edit:
+            return "square.and.pencil"
+        case .profile:
+            return "person.crop.circle"
+        case .privateMessage:
+            return "message"
+        case .blacklist:
+            return "hand.raised"
+        case .whitelist:
+            return "heart"
+        case .favorite:
+            return "star"
+        case .link:
+            return "link"
+        case .alert:
+            return "exclamationmark.bubble"
+        case .aq:
+            return "bubble.left.and.exclamationmark.bubble.right"
+        case .bookmark:
+            return "bookmark"
+        case .delete:
+            return "trash"
+        }
+    }
+
+    var isDestructive: Bool {
+        if case .delete = self {
+            return true
+        }
+        return false
+    }
+}
+
+enum MessagePopupMenuPolicy {
+    static func orderedActionKinds(
+        for actions: TopicPageMessageActions,
+        source: MessageWebPopupSource,
+        isQuoteSelectionEnabled: Bool,
+        messageIndex: Int? = nil
+    ) -> [MessagePopupMenuActionKind] {
+        var actionKinds: [MessagePopupMenuActionKind] = []
+
+        if source == .avatar {
+            if actions.quoteURL != nil {
+                actionKinds.append(.quote)
+            }
+
+            if actions.profileURL != nil {
+                actionKinds.append(.profile)
+            }
+
+            if !actions.isOwnMessage, actions.privateMessageURL != nil {
+                actionKinds.append(.privateMessage)
+            }
+
+            if !actions.isOwnMessage, hasAuthorName(actions.authorName) {
+                actionKinds.append(.blacklist)
+                actionKinds.append(.whitelist)
+            }
+        } else {
+            if actions.quoteURL != nil {
+                actionKinds.append(.quote)
+            }
+
+            if actions.quoteJS != nil {
+                actionKinds.append(.quoteSelection(isSelected: isQuoteSelectionEnabled))
+            }
+
+            if actions.canBeFavorite, actions.favoriteURL != nil {
+                actionKinds.append(.favorite)
+            }
+
+            if actions.permalinkURL != nil {
+                actionKinds.append(.link)
+            }
+
+            if !actions.isOwnMessage {
+                if actions.alertURL != nil {
+                    actionKinds.append(.alert)
+                } else if actions.permalinkURL != nil {
+                    actionKinds.append(.alert)
+                }
+            }
+
+            if actions.canAQ {
+                actionKinds.append(.aq)
+            }
+
+            if actions.canBookmark {
+                actionKinds.append(.bookmark)
+            }
+
+            if actions.editURL != nil {
+                actionKinds.append(.edit)
+            }
+
+            if actions.canDelete, actions.editURL != nil, messageIndex != 0 {
+                actionKinds.append(.delete)
+            }
+        }
+
+        return actionKinds.enumerated()
+            .sorted { lhs, rhs in
+                let lhsPriority = priority(for: lhs.element)
+                let rhsPriority = priority(for: rhs.element)
+                if lhsPriority != rhsPriority {
+                    return lhsPriority < rhsPriority
+                }
+                return lhs.offset < rhs.offset
+            }
+            .map(\.element)
+    }
+
+    private static func hasAuthorName(_ authorName: String?) -> Bool {
+        guard let authorName else { return false }
+        return !authorName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private static func priority(for actionKind: MessagePopupMenuActionKind) -> Int {
+        switch actionKind {
+        case .quote:
+            return 0
+        case .quoteSelection:
+            return 1
+        case .edit:
+            return 2
+        case .profile:
+            return 3
+        case .privateMessage:
+            return 4
+        case .blacklist:
+            return 5
+        case .whitelist:
+            return 6
+        case .favorite:
+            return 7
+        case .link:
+            return 8
+        case .alert:
+            return 9
+        case .aq:
+            return 10
+        case .bookmark:
+            return 11
+        case .delete:
+            return 12
+        }
+    }
+}
+
 struct WebView: UIViewRepresentable {
     enum InitialScroll {
         case top
@@ -489,11 +691,9 @@ struct WebView: UIViewRepresentable {
                 }
                 decisionHandler(.cancel)
             case .manageSmileyFavorite(let payload):
-                if !presentSmileyFavoriteMenu(for: payload, in: webView) {
-                    parent.onWebAction?(action)
-                }
+                parent.onWebAction?(action)
                 decisionHandler(.cancel)
-            case .loadPage, .refreshCurrentPage, .openInternalTopic, .openExternalURL:
+            case .loadPage, .refreshCurrentPage, .presentImageViewer, .openInternalTopic, .openExternalURL:
                 parent.onWebAction?(action)
                 decisionHandler(.cancel)
             }
@@ -579,53 +779,83 @@ struct WebView: UIViewRepresentable {
             in webView: WKWebView
         ) -> [PopupMenuEntry] {
             var entries: [PopupMenuEntry] = []
+            let isQuoteSelectionEnabled = actions.quoteJS.map { Self.isQuoteSelectionEnabled(from: $0) } ?? false
+            let actionKinds = MessagePopupMenuPolicy.orderedActionKinds(
+                for: actions,
+                source: payload.source,
+                isQuoteSelectionEnabled: isQuoteSelectionEnabled,
+                messageIndex: payload.messageIndex
+            )
 
-            if payload.source == .avatar {
-                if let quoteURL = actions.quoteURL {
+            for actionKind in actionKinds {
+                switch actionKind {
+                case .quote:
+                    guard let quoteURL = actions.quoteURL else { continue }
                     entries.append(
                         PopupMenuEntry(
-                            title: "Citer",
-                            systemImageName: "quote.bubble",
-                            isDestructive: false,
+                            title: actionKind.title,
+                            systemImageName: actionKind.systemImageName,
+                            isDestructive: actionKind.isDestructive,
                             handler: { [weak self] in
                                 self?.parent.onPopupQuoteRequest?(quoteURL)
                             }
                         )
                     )
-                }
-
-                if let profileURL = actions.profileURL {
+                case .quoteSelection:
+                    guard let quoteJS = actions.quoteJS else { continue }
                     entries.append(
                         PopupMenuEntry(
-                            title: "Profil",
-                            systemImageName: "person.crop.circle",
-                            isDestructive: false,
+                            title: actionKind.title,
+                            systemImageName: actionKind.systemImageName,
+                            isDestructive: actionKind.isDestructive,
+                            handler: {
+                                _ = Self.toggleQuoteSelection(from: quoteJS)
+                            }
+                        )
+                    )
+                case .edit:
+                    guard let editURL = actions.editURL else { continue }
+                    entries.append(
+                        PopupMenuEntry(
+                            title: actionKind.title,
+                            systemImageName: actionKind.systemImageName,
+                            isDestructive: actionKind.isDestructive,
+                            handler: { [weak self] in
+                                self?.parent.onPopupEditRequest?(editURL)
+                            }
+                        )
+                    )
+                case .profile:
+                    guard let profileURL = actions.profileURL else { continue }
+                    entries.append(
+                        PopupMenuEntry(
+                            title: actionKind.title,
+                            systemImageName: actionKind.systemImageName,
+                            isDestructive: actionKind.isDestructive,
                             handler: { [weak self] in
                                 self?.parent.onPopupProfileRequest?(profileURL)
                             }
                         )
                     )
-                }
-
-                if !actions.isOwnMessage, let privateMessageURL = actions.privateMessageURL {
+                case .privateMessage:
+                    guard let privateMessageURL = actions.privateMessageURL else { continue }
                     entries.append(
                         PopupMenuEntry(
-                            title: "MP",
-                            systemImageName: "message",
-                            isDestructive: false,
+                            title: actionKind.title,
+                            systemImageName: actionKind.systemImageName,
+                            isDestructive: actionKind.isDestructive,
                             handler: { [weak self] in
                                 self?.parent.onWebAction?(.openExternalURL(privateMessageURL))
                             }
                         )
                     )
-                }
-
-                if !actions.isOwnMessage, let authorName = actions.authorName, !authorName.isEmpty {
+                case .blacklist:
+                    guard let authorName = actions.authorName else { continue }
                     entries.append(
                         PopupMenuEntry(
-                            title: "Blacklist",
-                            systemImageName: "hand.raised",
-                            isDestructive: false,
+                            title: actionKind.title,
+                            systemImageName: actionKind.systemImageName,
+                            isDestructive: actionKind.isDestructive,
                             handler: { [weak self] in
                                 guard let self else { return }
                                 let message = MessageBlackWhiteListBridge.toggleBlacklist(pseudo: authorName)
@@ -636,12 +866,13 @@ struct WebView: UIViewRepresentable {
                             }
                         )
                     )
-
+                case .whitelist:
+                    guard let authorName = actions.authorName else { continue }
                     entries.append(
                         PopupMenuEntry(
-                            title: "Whitelist",
-                            systemImageName: "heart",
-                            isDestructive: false,
+                            title: actionKind.title,
+                            systemImageName: actionKind.systemImageName,
+                            isDestructive: actionKind.isDestructive,
                             handler: { [weak self] in
                                 guard let self else { return }
                                 let message = MessageBlackWhiteListBridge.toggleWhitelist(pseudo: authorName)
@@ -652,176 +883,92 @@ struct WebView: UIViewRepresentable {
                             }
                         )
                     )
-                }
-
-            }
-
-            if let quoteURL = actions.quoteURL,
-               !entries.contains(where: { $0.title == "Citer" }) {
-                entries.append(
-                    PopupMenuEntry(
-                        title: "Citer",
-                        systemImageName: "quote.bubble",
-                        isDestructive: false,
-                        handler: { [weak self] in
-                            self?.parent.onPopupQuoteRequest?(quoteURL)
-                        }
-                    )
-                )
-            }
-
-            if let quoteJS = actions.quoteJS {
-                let isSelected = Self.isQuoteSelectionEnabled(from: quoteJS)
-                entries.append(
-                    PopupMenuEntry(
-                        title: isSelected ? "Citer ☑" : "Citer ☐",
-                        systemImageName: "text.quote",
-                        isDestructive: false,
-                        handler: {
-                            _ = Self.toggleQuoteSelection(from: quoteJS)
-                        }
-                    )
-                )
-            }
-
-            if actions.canBeFavorite, let favoriteURL = actions.favoriteURL {
-                entries.append(
-                    PopupMenuEntry(
-                        title: "Favoris",
-                        systemImageName: "star",
-                        isDestructive: false,
-                        handler: {
-                            Self.performFavoriteAction(favoriteURL)
-                        }
-                    )
-                )
-            }
-
-            if let permalinkURL = actions.permalinkURL {
-                entries.append(
-                    PopupMenuEntry(
-                        title: "Link",
-                        systemImageName: "link",
-                        isDestructive: false,
-                        handler: { [weak self] in
-                            self?.presentShareSheet(for: permalinkURL, in: webView)
-                        }
-                    )
-                )
-            }
-
-            if !actions.isOwnMessage {
-                if let alertURL = actions.alertURL {
+                case .favorite:
+                    guard let favoriteURL = actions.favoriteURL else { continue }
                     entries.append(
                         PopupMenuEntry(
-                            title: "Alerter",
-                            systemImageName: "exclamationmark.bubble",
-                            isDestructive: false,
-                            handler: { [weak self] in
-                                self?.parent.onPopupAlertRequest?(alertURL)
+                            title: actionKind.title,
+                            systemImageName: actionKind.systemImageName,
+                            isDestructive: actionKind.isDestructive,
+                            handler: {
+                                Self.performFavoriteAction(favoriteURL)
                             }
                         )
                     )
-                } else if let permalinkURL = actions.permalinkURL {
+                case .link:
+                    guard let permalinkURL = actions.permalinkURL else { continue }
                     entries.append(
                         PopupMenuEntry(
-                            title: "Alerter (mail)",
-                            systemImageName: "envelope",
-                            isDestructive: false,
+                            title: actionKind.title,
+                            systemImageName: actionKind.systemImageName,
+                            isDestructive: actionKind.isDestructive,
                             handler: { [weak self] in
-                                self?.parent.onPopupAlertMailRequest?(permalinkURL)
+                                self?.presentShareSheet(for: permalinkURL, in: webView)
                             }
                         )
                     )
-                }
-            }
-
-            if actions.canAQ {
-                entries.append(
-                    PopupMenuEntry(
-                        title: "AQ",
-                        systemImageName: "bubble.left.and.exclamationmark.bubble.right",
-                        isDestructive: false,
-                        handler: { [weak self] in
-                            self?.presentAQPrompt(for: actions, in: webView)
-                        }
-                    )
-                )
-            }
-
-            if actions.canBookmark {
-                entries.append(
-                    PopupMenuEntry(
-                        title: "Bookmark",
-                        systemImageName: "bookmark",
-                        isDestructive: false,
-                        handler: { [weak self] in
-                            self?.presentBookmarkPrompt(for: actions, in: webView)
-                        }
-                    )
-                )
-            }
-
-            if let editURL = actions.editURL {
-                entries.append(
-                    PopupMenuEntry(
-                        title: "Editer",
-                        systemImageName: "square.and.pencil",
-                        isDestructive: false,
-                        handler: { [weak self] in
-                            self?.parent.onPopupEditRequest?(editURL)
-                        }
-                    )
-                )
-            }
-
-            if actions.canDelete, let editURL = actions.editURL {
-                entries.append(
-                    PopupMenuEntry(
-                        title: "Supprimer",
-                        systemImageName: "trash",
-                        isDestructive: true,
-                        handler: { [weak self] in
-                            self?.parent.onPopupDeleteRequest?(editURL)
-                        }
-                    )
-                )
-            }
-
-            return orderedPopupEntries(entries)
-        }
-
-        private func orderedPopupEntries(_ entries: [PopupMenuEntry]) -> [PopupMenuEntry] {
-            // Keep menu ordering deterministic across menu backends and payload types.
-            // Requirement: both quote actions are always shown first.
-            let order: [String: Int] = [
-                "Citer": 0,
-                "Citer ☐": 1,
-                "Citer ☑": 1,
-                "Editer": 2,
-                "Profil": 3,
-                "MP": 4,
-                "Blacklist": 5,
-                "Whitelist": 6,
-                "Favoris": 7,
-                "Link": 8,
-                "Alerter": 9,
-                "Alerter (mail)": 10,
-                "AQ": 11,
-                "Bookmark": 12,
-                "Supprimer": 13
-            ]
-
-            return entries.enumerated()
-                .sorted { lhs, rhs in
-                    let lhsPriority = order[lhs.element.title] ?? Int.max
-                    let rhsPriority = order[rhs.element.title] ?? Int.max
-                    if lhsPriority != rhsPriority {
-                        return lhsPriority < rhsPriority
+                case .alert:
+                    if let alertURL = actions.alertURL {
+                        entries.append(
+                            PopupMenuEntry(
+                                title: actionKind.title,
+                                systemImageName: actionKind.systemImageName,
+                                isDestructive: actionKind.isDestructive,
+                                handler: { [weak self] in
+                                    self?.parent.onPopupAlertRequest?(alertURL)
+                                }
+                            )
+                        )
+                    } else if let permalinkURL = actions.permalinkURL {
+                        entries.append(
+                            PopupMenuEntry(
+                                title: actionKind.title,
+                                systemImageName: actionKind.systemImageName,
+                                isDestructive: actionKind.isDestructive,
+                                handler: { [weak self] in
+                                    self?.parent.onPopupAlertMailRequest?(permalinkURL)
+                                }
+                            )
+                        )
                     }
-                    return lhs.offset < rhs.offset
+                case .aq:
+                    entries.append(
+                        PopupMenuEntry(
+                            title: actionKind.title,
+                            systemImageName: actionKind.systemImageName,
+                            isDestructive: actionKind.isDestructive,
+                            handler: { [weak self] in
+                                self?.presentAQPrompt(for: actions, in: webView)
+                            }
+                        )
+                    )
+                case .bookmark:
+                    entries.append(
+                        PopupMenuEntry(
+                            title: actionKind.title,
+                            systemImageName: actionKind.systemImageName,
+                            isDestructive: actionKind.isDestructive,
+                            handler: { [weak self] in
+                                self?.presentBookmarkPrompt(for: actions, in: webView)
+                            }
+                        )
+                    )
+                case .delete:
+                    guard payload.messageIndex > 0, let editURL = actions.editURL else { continue }
+                    entries.append(
+                        PopupMenuEntry(
+                            title: actionKind.title,
+                            systemImageName: actionKind.systemImageName,
+                            isDestructive: actionKind.isDestructive,
+                            handler: { [weak self] in
+                                self?.parent.onPopupDeleteRequest?(editURL)
+                            }
+                        )
+                    )
                 }
-                .map(\.element)
+            }
+
+            return entries
         }
 
         private func presentLegacyPopupMenu(
@@ -1688,6 +1835,17 @@ struct MessagesView: View {
         let url: URL
     }
 
+    private struct SmileySheetState: Identifiable {
+        let id = UUID()
+        let payload: MessageWebSmileyPayload
+        let isFavorite: Bool
+    }
+
+    private struct PhotoViewerDestination: Identifiable {
+        let id = UUID()
+        let url: URL
+    }
+
     private struct ModerationAlertDestination: Identifiable {
         let id = UUID()
         let preparedForm: ModerationAlertPreparedForm
@@ -1726,6 +1884,8 @@ struct MessagesView: View {
     @State private var linkedTopic: Topic?
     @State private var navigateToLinkedTopic = false
     @State private var safariDestination: SafariDestination?
+    @State private var smileySheetState: SmileySheetState?
+    @State private var photoViewerDestination: PhotoViewerDestination?
     @State private var isLoadingQuoteTemplate = false
     @State private var activeComposerPrefillMode: ComposerPrefillMode = .quote
     @State private var quoteTemplateErrorMessage: String?
@@ -1945,8 +2105,11 @@ struct MessagesView: View {
             loadPage(page)
         case .showPopupMenu:
             break
-        case .manageSmileyFavorite:
-            break
+        case .manageSmileyFavorite(let payload):
+            let isFavorite = SmileyFavoritesBridge.isFavoriteFromApp(code: payload.code)
+            smileySheetState = SmileySheetState(payload: payload, isFavorite: isFavorite)
+        case .presentImageViewer(let url):
+            photoViewerDestination = PhotoViewerDestination(url: normalizeImageViewerURL(url))
         case .openInternalTopic(let url):
             if url.scheme?.lowercased() == "file" {
                 loadDirectURL(url.absoluteString)
@@ -1955,6 +2118,149 @@ struct MessagesView: View {
             }
         case .openExternalURL(let url):
             safariDestination = SafariDestination(url: url)
+        }
+    }
+
+    private func normalizeImageViewerURL(_ url: URL) -> URL {
+        let raw = url.absoluteString
+        let normalized: String
+        if raw.contains("https://img3.super-h.fr/images/") {
+            normalized = raw.replacingOccurrences(of: ".th.", with: ".")
+        } else if raw.contains("reho.st/thumb/") {
+            normalized = raw.replacingOccurrences(of: "reho.st/thumb/", with: "reho.st/")
+        } else if raw.contains("rehost.diberie.com/Picture/Get/t/") {
+            normalized = raw.replacingOccurrences(of: "rehost.diberie.com/Picture/Get/t/", with: "rehost.diberie.com/Picture/Get/f/")
+        } else {
+            normalized = raw
+        }
+        return URL(string: normalized) ?? url
+    }
+
+    private func updateSmileyFavorite(code: String, imageURL: String, add: Bool) -> Bool {
+        SmileyFavoritesBridge.updateFavorite(code: code, imageURL: imageURL, add: add)
+    }
+
+    private func fetchSmileyKeywords(code: String) async -> Result<[String], Error> {
+        let encodedCode = code.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? code
+        guard let url = URL(string: "https://forum.hardware.fr/wikismilies.php?config=hfr.inc&detail=\(encodedCode)") else {
+            return .failure(
+                NSError(
+                    domain: "MessagesView",
+                    code: 1,
+                    userInfo: [NSLocalizedDescriptionKey: "URL invalide."]
+                )
+            )
+        }
+
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+            guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
+                return .failure(
+                    NSError(
+                        domain: "MessagesView",
+                        code: 2,
+                        userInfo: [NSLocalizedDescriptionKey: "Réponse serveur invalide."]
+                    )
+                )
+            }
+
+            guard let html = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1) else {
+                return .failure(
+                    NSError(
+                        domain: "MessagesView",
+                        code: 3,
+                        userInfo: [NSLocalizedDescriptionKey: "Réponse illisible."]
+                    )
+                )
+            }
+
+            let pattern = #"name\s*=\s*"keywords0"[^>]*value\s*=\s*"([^"]*)""#
+            guard
+                let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]),
+                let match = regex.firstMatch(in: html, options: [], range: NSRange(html.startIndex..<html.endIndex, in: html)),
+                match.numberOfRanges > 1,
+                let valueRange = Range(match.range(at: 1), in: html)
+            else {
+                return .failure(
+                    NSError(
+                        domain: "MessagesView",
+                        code: 4,
+                        userInfo: [NSLocalizedDescriptionKey: "Aucun mot clé trouvé."]
+                    )
+                )
+            }
+
+            let rawValue = String(html[valueRange])
+            let decodedEntities = rawValue
+                .replacingOccurrences(of: "&amp;", with: "&")
+                .replacingOccurrences(of: "&quot;", with: "\"")
+                .replacingOccurrences(of: "&apos;", with: "'")
+                .replacingOccurrences(of: "&#39;", with: "'")
+                .replacingOccurrences(of: "&#x2F;", with: "/")
+                .replacingOccurrences(of: "&#47;", with: "/")
+
+            let keywords = decodedEntities
+                .replacingOccurrences(of: ",", with: " ")
+                .split(whereSeparator: { $0.isWhitespace })
+                .map(String.init)
+                .filter { !$0.isEmpty }
+
+            if keywords.isEmpty {
+                return .failure(
+                    NSError(
+                        domain: "MessagesView",
+                        code: 5,
+                        userInfo: [NSLocalizedDescriptionKey: "Aucun mot clé trouvé."]
+                    )
+                )
+            }
+            return .success(keywords)
+        } catch {
+            return .failure(error)
+        }
+    }
+
+    private enum SmileyFavoritesBridge {
+        static func isFavoriteFromApp(code: String) -> Bool {
+            guard let cache = sharedCacheObject() else {
+                return false
+            }
+            let selector = NSSelectorFromString("isFavoriteSmileyFromApp:")
+            guard cache.responds(to: selector) else {
+                return false
+            }
+
+            typealias Function = @convention(c) (AnyObject, Selector, NSString) -> Bool
+            let implementation = cache.method(for: selector)
+            let function = unsafeBitCast(implementation, to: Function.self)
+            return function(cache, selector, code as NSString)
+        }
+
+        static func updateFavorite(code: String, imageURL: String, add: Bool) -> Bool {
+            guard let cache = sharedCacheObject() else {
+                return false
+            }
+            let selector = NSSelectorFromString("AddAndSaveDicFavoritesApp:source:addSmiley:")
+            guard cache.responds(to: selector) else {
+                return false
+            }
+
+            typealias Function = @convention(c) (AnyObject, Selector, NSString, NSString, Bool) -> Bool
+            let implementation = cache.method(for: selector)
+            let function = unsafeBitCast(implementation, to: Function.self)
+            return function(cache, selector, code as NSString, imageURL as NSString, add)
+        }
+
+        private static func sharedCacheObject() -> NSObject? {
+            guard let cacheClass = NSClassFromString("SmileyCache") as? NSObject.Type else {
+                return nil
+            }
+            let sharedSelector = NSSelectorFromString("shared")
+            guard cacheClass.responds(to: sharedSelector),
+                  let unmanaged = cacheClass.perform(sharedSelector) else {
+                return nil
+            }
+            return unmanaged.takeUnretainedValue() as? NSObject
         }
     }
 
@@ -2213,6 +2519,10 @@ struct MessagesView: View {
         page >= maxPage && isWebContentAtBottom
     }
 
+    private var shouldHighlightNextPageButton: Bool {
+        page < maxPage && isWebContentAtBottom
+    }
+
     private func refreshCurrentPageAtBottom() {
         anchor = nil
         initialScroll = .bottom
@@ -2364,6 +2674,26 @@ struct MessagesView: View {
                 .sheet(item: $safariDestination) { destination in
                     SafariInAppView(url: destination.url)
                         .ignoresSafeArea()
+                }
+                .sheet(item: $smileySheetState) { state in
+                    MessageSmileySheetView(
+                        code: state.payload.code,
+                        imageURL: state.payload.imageURL,
+                        initiallyFavorite: state.isFavorite,
+                        onToggleFavorite: { add in
+                            updateSmileyFavorite(code: state.payload.code, imageURL: state.payload.imageURL, add: add)
+                        },
+                        onFetchKeywords: {
+                            await fetchSmileyKeywords(code: state.payload.code)
+                        },
+                        onShowToast: { message in
+                            showSuccessToast(message)
+                        }
+                    )
+                    .presentationDetents([.medium, .large])
+                }
+                .fullScreenCover(item: $photoViewerDestination) { destination in
+                    FullScreenPhotoViewer(url: destination.url)
                 }
         } else if fileURL != nil && cacheURL != nil {
             ZStack {
@@ -2601,15 +2931,28 @@ struct MessagesView: View {
                             }
                             .disabled(page <= 1)
 
-                            Button {
-                                navigateToPage(page + 1, initialScroll: .top)
-                            } label: {
-                                Image(systemName: "chevron.forward")
+                            if shouldHighlightNextPageButton {
+                                Button {
+                                    navigateToPage(page + 1, initialScroll: .top)
+                                } label: {
+                                    Image(systemName: "chevron.forward")
+                                }
+                                .contextMenu {
+                                    forwardContextMenuItems()
+                                }
+                                .buttonStyle(.glassProminent)
+                                .disabled(page >= maxPage)
+                            } else {
+                                Button {
+                                    navigateToPage(page + 1, initialScroll: .top)
+                                } label: {
+                                    Image(systemName: "chevron.forward")
+                                }
+                                .contextMenu {
+                                    forwardContextMenuItems()
+                                }
+                                .disabled(page >= maxPage)
                             }
-                            .contextMenu {
-                                forwardContextMenuItems()
-                            }
-                            .disabled(page >= maxPage)
                         }
 
                         ToolbarSpacer(.flexible, placement: .bottomBar)
@@ -2651,6 +2994,26 @@ struct MessagesView: View {
                 .sheet(item: $safariDestination) { destination in
                     SafariInAppView(url: destination.url)
                         .ignoresSafeArea()
+                }
+                .sheet(item: $smileySheetState) { state in
+                    MessageSmileySheetView(
+                        code: state.payload.code,
+                        imageURL: state.payload.imageURL,
+                        initiallyFavorite: state.isFavorite,
+                        onToggleFavorite: { add in
+                            updateSmileyFavorite(code: state.payload.code, imageURL: state.payload.imageURL, add: add)
+                        },
+                        onFetchKeywords: {
+                            await fetchSmileyKeywords(code: state.payload.code)
+                        },
+                        onShowToast: { message in
+                            showSuccessToast(message)
+                        }
+                    )
+                    .presentationDetents([.medium, .large])
+                }
+                .fullScreenCover(item: $photoViewerDestination) { destination in
+                    FullScreenPhotoViewer(url: destination.url)
                 }
                 .overlay(alignment: .top) {
                     if showPostSuccessToast {
@@ -2718,17 +3081,32 @@ struct MessagesView: View {
                     }
                     .disabled(page <= 1)
 
-                    Button {
-                        navigateToPage(page + 1, initialScroll: .top)
-                    } label: {
-                        Image(systemName: "chevron.forward")
+                    if shouldHighlightNextPageButton {
+                        Button {
+                            navigateToPage(page + 1, initialScroll: .top)
+                        } label: {
+                            Image(systemName: "chevron.forward")
+                        }
+                        .contextMenu {
+                            forwardContextMenuItems()
+                        } preview: {
+                            EmptyView()
+                        }
+                        .buttonStyle(.glassProminent)
+                        .disabled(page >= maxPage)
+                    } else {
+                        Button {
+                            navigateToPage(page + 1, initialScroll: .top)
+                        } label: {
+                            Image(systemName: "chevron.forward")
+                        }
+                        .contextMenu {
+                            forwardContextMenuItems()
+                        } preview: {
+                            EmptyView()
+                        }
+                        .disabled(page >= maxPage)
                     }
-                    .contextMenu {
-                        forwardContextMenuItems()
-                    } preview: {
-                        EmptyView()
-                    }
-                    .disabled(page >= maxPage)
 
                     Spacer()
                     Button {
@@ -2767,7 +3145,272 @@ struct MessagesView: View {
                 SafariInAppView(url: destination.url)
                     .ignoresSafeArea()
             }
+            .sheet(item: $smileySheetState) { state in
+                MessageSmileySheetView(
+                    code: state.payload.code,
+                    imageURL: state.payload.imageURL,
+                    initiallyFavorite: state.isFavorite,
+                    onToggleFavorite: { add in
+                        updateSmileyFavorite(code: state.payload.code, imageURL: state.payload.imageURL, add: add)
+                    },
+                    onFetchKeywords: {
+                        await fetchSmileyKeywords(code: state.payload.code)
+                    },
+                    onShowToast: { message in
+                        showSuccessToast(message)
+                    }
+                )
+                .presentationDetents([.medium, .large])
+            }
+            .fullScreenCover(item: $photoViewerDestination) { destination in
+                FullScreenPhotoViewer(url: destination.url)
+            }
         }
+    }
+}
+
+private struct MessageSmileySheetView: View {
+    let code: String
+    let imageURL: String
+    let initiallyFavorite: Bool
+    let onToggleFavorite: (Bool) -> Bool
+    let onFetchKeywords: () async -> Result<[String], Error>
+    let onShowToast: (String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var isFavorite: Bool
+    @State private var keywords: [String] = []
+    @State private var isLoadingKeywords = false
+    @State private var keywordsErrorMessage: String?
+
+    init(
+        code: String,
+        imageURL: String,
+        initiallyFavorite: Bool,
+        onToggleFavorite: @escaping (Bool) -> Bool,
+        onFetchKeywords: @escaping () async -> Result<[String], Error>,
+        onShowToast: @escaping (String) -> Void
+    ) {
+        self.code = code
+        self.imageURL = imageURL
+        self.initiallyFavorite = initiallyFavorite
+        self.onToggleFavorite = onToggleFavorite
+        self.onFetchKeywords = onFetchKeywords
+        self.onShowToast = onShowToast
+        _isFavorite = State(initialValue: initiallyFavorite)
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 16) {
+                AsyncImage(url: URL(string: imageURL)) { phase in
+                    switch phase {
+                    case .empty:
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(Color.secondary.opacity(0.12))
+                            ProgressView()
+                        }
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFit()
+                            .padding(8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .fill(Color.secondary.opacity(0.10))
+                            )
+                    case .failure:
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(Color.secondary.opacity(0.12))
+                            VStack(spacing: 6) {
+                                Image(systemName: "photo")
+                                Text("Image indisponible")
+                                    .font(.footnote)
+                            }
+                            .foregroundStyle(.secondary)
+                        }
+                    @unknown default:
+                        EmptyView()
+                    }
+                }
+                .frame(maxWidth: .infinity, minHeight: 140, maxHeight: 190)
+
+                Text(code)
+                    .font(.title3.monospaced())
+                    .textSelection(.enabled)
+
+                Button {
+                    let add = !isFavorite
+                    if onToggleFavorite(add) {
+                        isFavorite.toggle()
+                        onShowToast(add ? "Smiley ajouté aux favoris" : "Smiley retiré des favoris")
+                    } else {
+                        onShowToast("Erreur :/")
+                    }
+                } label: {
+                    Label(
+                        isFavorite ? "Retirer des favoris" : "Ajouter aux favoris",
+                        systemImage: isFavorite ? "star.slash" : "star"
+                    )
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button {
+                    Task {
+                        isLoadingKeywords = true
+                        keywordsErrorMessage = nil
+                        switch await onFetchKeywords() {
+                        case .success(let fetchedKeywords):
+                            keywords = fetchedKeywords
+                        case .failure(let error):
+                            keywords = []
+                            keywordsErrorMessage = error.localizedDescription
+                        }
+                        isLoadingKeywords = false
+                    }
+                } label: {
+                    Label("Mots clés", systemImage: "text.magnifyingglass")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .disabled(isLoadingKeywords)
+
+                if isLoadingKeywords {
+                    ProgressView("Chargement des mots clés...")
+                        .font(.footnote)
+                } else if let keywordsErrorMessage {
+                    Text(keywordsErrorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                } else if !keywords.isEmpty {
+                    ScrollView {
+                        Text(keywords.joined(separator: "  "))
+                            .font(.footnote.monospaced())
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .textSelection(.enabled)
+                    }
+                    .frame(maxHeight: 120)
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(16)
+            .navigationTitle("Smiley")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Fermer") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct FullScreenPhotoViewer: View {
+    let url: URL
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var scale: CGFloat = 1
+    @State private var baseScale: CGFloat = 1
+    @State private var offset: CGSize = .zero
+    @State private var baseOffset: CGSize = .zero
+
+    private func clampedScale(_ value: CGFloat) -> CGFloat {
+        min(max(value, 1), 5)
+    }
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            Color.black
+                .ignoresSafeArea()
+
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .empty:
+                    ProgressView()
+                        .tint(.white)
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFit()
+                        .scaleEffect(scale)
+                        .offset(offset)
+                        .gesture(
+                            DragGesture()
+                                .onChanged { value in
+                                    guard scale > 1 else { return }
+                                    offset = CGSize(
+                                        width: baseOffset.width + value.translation.width,
+                                        height: baseOffset.height + value.translation.height
+                                    )
+                                }
+                                .onEnded { _ in
+                                    guard scale > 1 else {
+                                        baseOffset = .zero
+                                        offset = .zero
+                                        return
+                                    }
+                                    baseOffset = offset
+                                }
+                        )
+                        .simultaneousGesture(
+                            MagnifyGesture()
+                                .onChanged { value in
+                                    scale = clampedScale(baseScale * value.magnification)
+                                }
+                                .onEnded { _ in
+                                    scale = clampedScale(scale)
+                                    baseScale = scale
+                                    if scale <= 1 {
+                                        baseOffset = .zero
+                                        offset = .zero
+                                    }
+                                }
+                        )
+                        .onTapGesture(count: 2) {
+                            withAnimation(.easeInOut(duration: 0.18)) {
+                                if scale > 1 {
+                                    scale = 1
+                                    baseScale = 1
+                                    offset = .zero
+                                    baseOffset = .zero
+                                } else {
+                                    scale = 2
+                                    baseScale = 2
+                                }
+                            }
+                        }
+                case .failure:
+                    VStack(spacing: 10) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.title2)
+                        Text("Impossible de charger la photo")
+                            .font(.footnote)
+                    }
+                    .foregroundStyle(.white)
+                @unknown default:
+                    EmptyView()
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 26)
+
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 28))
+                    .foregroundStyle(.white.opacity(0.95))
+            }
+            .padding(.top, 14)
+            .padding(.trailing, 14)
+        }
+        .statusBarHidden()
     }
 }
 

@@ -426,6 +426,7 @@ enum MessageWebAction: Equatable {
     case refreshCurrentPage
     case showPopupMenu(MessageWebPopupPayload)
     case manageSmileyFavorite(MessageWebSmileyPayload)
+    case presentImageViewer(URL)
     case openInternalTopic(URL)
     case openExternalURL(URL)
 }
@@ -578,7 +579,7 @@ struct MessageWebActionHandler: MessageWebActionHandling {
             return .ignore
         }
 
-        return .openExternalURL(imageURL)
+        return .presentImageViewer(imageURL)
     }
 
     private func smileyAction(for url: URL, scheme: String) -> MessageWebAction? {
@@ -829,6 +830,7 @@ struct TopicListRowView: View {
     var contentPadding: EdgeInsets = EdgeInsets(top: 6, leading: 8, bottom: 6, trailing: 8)
     var openContext: TopicOpenContext = .generic
     var quickActions: TopicQuickActionsConfiguration?
+    var extraContextMenu: (() -> AnyView)?
     var onOpen: ((String?) -> Void)?
     @Environment(\.colorScheme) private var colorScheme
 
@@ -1157,6 +1159,10 @@ struct TopicListRowView: View {
         .buttonStyle(.plain)
         .contextMenu {
             quickActionsMenuContent
+            if let extraContextMenu {
+                Divider()
+                extraContextMenu()
+            }
         }
         .background {
             NavigationLink(

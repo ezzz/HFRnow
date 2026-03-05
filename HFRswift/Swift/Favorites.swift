@@ -9,6 +9,151 @@ import SwiftUI
 import Combine
 import UIKit
 
+enum FavoritesTopicActionError: LocalizedError {
+    case invalidTopicIdentifier
+    case missingHash
+    case invalidRequest
+    case serverError(Int)
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidTopicIdentifier:
+            return "Topic invalide."
+        case .missingHash:
+            return "Session invalide: hash manquant."
+        case .invalidRequest:
+            return "Requête invalide."
+        case .serverError(let statusCode):
+            return "Erreur serveur (\(statusCode))."
+        }
+    }
+}
+
+protocol FavoritesTopicActionServicing {
+    func removeFavoriteFlag(postID: Int, categoryID: Int) async throws
+}
+
+final class ForumFavoritesTopicActionService: FavoritesTopicActionServicing {
+    private let session: URLSession
+
+    init(session: URLSession = .shared) {
+        self.session = session
+    }
+
+    func removeFavoriteFlag(postID: Int, categoryID: Int) async throws {
+        guard postID > 0, categoryID > 0 else {
+            throw FavoritesTopicActionError.invalidTopicIdentifier
+        }
+
+        guard
+            let hash = (HFRplusAppDelegate.shared() as? HFRplusAppDelegate)?
+                .hash_check?
+                .trimmingCharacters(in: .whitespacesAndNewlines),
+            !hash.isEmpty
+        else {
+            throw FavoritesTopicActionError.missingHash
+        }
+
+        let baseURL = URL(string: k.forumURL()) ?? URL(string: "https://forum.hardware.fr")!
+        var components = URLComponents(
+            url: baseURL.appendingPathComponent("modo/manageaction.php"),
+            resolvingAgainstBaseURL: false
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "config", value: "hfr.inc"),
+            URLQueryItem(name: "cat", value: "0"),
+            URLQueryItem(name: "type_page", value: "forum1f"),
+            URLQueryItem(name: "moderation", value: "0")
+        ]
+        guard let requestURL = components?.url else {
+            throw FavoritesTopicActionError.invalidRequest
+        }
+
+        var request = URLRequest(url: requestURL)
+        request.httpMethod = "POST"
+        request.setValue("application/x-www-form-urlencoded; charset=utf-8", forHTTPHeaderField: "Content-Type")
+        request.httpBody = formURLEncoded([
+            "hash_check": hash,
+            "topic1": "-1",
+            "topic_statusno1": "-1",
+            "action_reaction": "message_forum_delflags",
+            "type_page": "forum1f",
+            "topic0": "\(postID)",
+            "valuecat0": "\(categoryID)",
+            "valueforum0": "hardwarefr"
+        ])
+        .data(using: .utf8)
+
+        let (_, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw FavoritesTopicActionError.invalidRequest
+        }
+        guard (200...299).contains(httpResponse.statusCode) else {
+            throw FavoritesTopicActionError.serverError(httpResponse.statusCode)
+        }
+    }
+
+    private func formURLEncoded(_ parameters: [String: String]) -> String {
+        parameters
+            .map { key, value in
+                "\(escapeForm(key))=\(escapeForm(value))"
+            }
+            .joined(separator: "&")
+    }
+
+    private func escapeForm(_ string: String) -> String {
+        var allowed = CharacterSet.urlQueryAllowed
+        allowed.remove(charactersIn: "&+=?")
+        let encoded = string.addingPercentEncoding(withAllowedCharacters: allowed) ?? string
+        return encoded.replacingOccurrences(of: "%20", with: "+")
+    }
+}
+
+enum FavoritesSuperFavoriteStore {
+    static let key = "SuperFavoritesIds"
+
+    static func load() -> Set<Int> {
+        let defaults = UserDefaults.standard
+        let rawValues = defaults.array(forKey: key) ?? []
+        let ids = rawValues.compactMap { rawValue -> Int? in
+            if let number = rawValue as? NSNumber {
+                return number.intValue
+            }
+            if let value = rawValue as? Int {
+                return value
+            }
+            if let string = rawValue as? String {
+                return Int(string)
+            }
+            return nil
+        }
+        return Set(ids.filter { $0 > 0 })
+    }
+
+    static func save(_ ids: Set<Int>) {
+        let sortedIDs = ids.sorted()
+        UserDefaults.standard.set(sortedIDs, forKey: key)
+    }
+}
+
+enum FavoritesCollapsedSectionsStore {
+    static let key = "CollapsedFavoriteSectionIDs"
+
+    static func load() -> Set<String> {
+        let defaults = UserDefaults.standard
+        let rawValues = defaults.array(forKey: key) as? [String] ?? []
+        return Set(
+            rawValues
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+        )
+    }
+
+    static func save(_ ids: Set<String>) {
+        UserDefaults.standard.set(ids.sorted(), forKey: key)
+    }
+}
+
 struct TopicModel: Identifiable {
     let id = UUID()
     let title: String
@@ -70,12 +215,33 @@ class FavoritesViewModel: ObservableObject {
             self.favorites = []
         }
     }
+
+    func removeTopic(withPostID postID: Int) {
+        guard postID > 0 else { return }
+
+        let updatedFavorites: [Favorite] = favorites.compactMap { favorite in
+            let topics = ((favorite.topics as? [Topic]) ?? []).filter { $0.postID != postID }
+            guard !topics.isEmpty else { return nil }
+            favorite.topics = NSMutableArray(array: topics)
+            return favorite
+        }
+
+        favorites = updatedFavorites
+    }
 }
 
 struct FavoriteSectionView: View {
     let favorite: Favorite
+    let sectionID: String
+    let isCollapsed: Bool
     @Binding var visitedURLs: Set<String>
+    @Binding var superFavoriteIDs: Set<Int>
+    let removingTopicIDs: Set<Int>
     @ObservedObject var accountsStore: AccountsStore
+    let onToggleCollapse: () -> Void
+    let onMarkRead: (Topic) -> Void
+    let onToggleSuperFavorite: (Topic) -> Void
+    let onRemoveFavorite: (Topic) -> Void
 
     // Cast centralisé
     private var topics: [Topic] { (favorite.topics as? [Topic]) ?? [] }
@@ -87,26 +253,66 @@ struct FavoriteSectionView: View {
     }
 
     @ViewBuilder
-    private var sectionHeader: some View {
+    private var headerTitleView: some View {
         if let forum = favorite.forum {
-            NavigationLink(headerTitle) {
+            NavigationLink {
                 ForumTopicsListView(
                     forum: forum,
                     initialFlagOverride: .favorites,
                     accountsStore: accountsStore
                 )
+            } label: {
+                Text(headerTitle)
+                    .foregroundStyle(.primary)
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Ouvrir le forum")
         } else {
             Text(headerTitle)
+                .foregroundStyle(.primary)
+        }
+    }
+
+    @ViewBuilder
+    private var sectionHeader: some View {
+        HStack(spacing: 10) {
+            headerTitleView
+            Spacer(minLength: 8)
+            Text("\(topics.count)")
+                .font(.footnote.monospacedDigit())
+                .foregroundStyle(.secondary)
+            Button {
+                withAnimation(.easeInOut(duration: 0.16)) {
+                    onToggleCollapse()
+                }
+            } label: {
+                Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("favorite-section-toggle-\(sectionID)")
+            .accessibilityLabel(isCollapsed ? "Déplier \(headerTitle)" : "Plier \(headerTitle)")
         }
     }
 
     var body: some View {
         Section(header: sectionHeader) {
-            ForEach(topics) { topic in
-                TopicRowView(topic: topic, visitedURLs: $visitedURLs)
-                .contentShape(Rectangle())
-                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+            if !isCollapsed {
+                ForEach(topics) { topic in
+                    let postID = Int(topic.postID)
+                    TopicRowView(
+                        topic: topic,
+                        visitedURLs: $visitedURLs,
+                        isSuperFavorite: superFavoriteIDs.contains(postID),
+                        isRemovingFavorite: removingTopicIDs.contains(postID),
+                        onMarkRead: { onMarkRead(topic) },
+                        onToggleSuperFavorite: { onToggleSuperFavorite(topic) },
+                        onRemoveFavorite: { onRemoveFavorite(topic) }
+                    )
+                    .contentShape(Rectangle())
+                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                }
             }
         }
     }
@@ -121,6 +327,13 @@ struct FavoritesListView: View {
     @State private var hasLoaded = false
     @State private var showAddAccountSheet = false
     @State private var showLogoutConfirm = false
+    @State private var showSectionActions = false
+    @State private var superFavoriteIDs: Set<Int>
+    @State private var collapsedSectionIDs: Set<String>
+    @State private var removingTopicIDs: Set<Int> = []
+    @State private var topicActionErrorMessage: String?
+
+    private let topicActionService: FavoritesTopicActionServicing
 
     private var isLoggedIn: Bool {
         accountsStore.currentAccount != nil
@@ -137,10 +350,69 @@ struct FavoritesListView: View {
     @MainActor
     init(
         viewModel: FavoritesViewModel? = nil,
-        accountsStore: AccountsStore? = nil
+        accountsStore: AccountsStore? = nil,
+        topicActionService: FavoritesTopicActionServicing = ForumFavoritesTopicActionService()
     ) {
         _viewModel = StateObject(wrappedValue: viewModel ?? FavoritesViewModel())
         _accountsStore = StateObject(wrappedValue: accountsStore ?? AccountsStore())
+        _superFavoriteIDs = State(initialValue: FavoritesSuperFavoriteStore.load())
+        _collapsedSectionIDs = State(initialValue: FavoritesCollapsedSectionsStore.load())
+        self.topicActionService = topicActionService
+    }
+
+    private func normalizedNonEmpty(_ value: String?) -> String? {
+        guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
+            return nil
+        }
+        return trimmed
+    }
+
+    private func sectionIdentifier(for favorite: Favorite) -> String {
+        if let forumID = normalizedNonEmpty(favorite.forum?.aID) {
+            return "forum-id:\(forumID)"
+        }
+        if let forumURL = normalizedNonEmpty(favorite.forum?.aURL) {
+            return "forum-url:\(forumURL)"
+        }
+        if let forumTitle = normalizedNonEmpty(favorite.forum?.aTitle) {
+            return "forum-title:\(forumTitle.lowercased())"
+        }
+        if let order = favorite.order?.intValue {
+            return "favorite-order:\(order)"
+        }
+        if let firstPostID = ((favorite.topics as? [Topic])?.first.map({ Int($0.postID) })), firstPostID > 0 {
+            return "favorite-first-post:\(firstPostID)"
+        }
+        return "favorite-unknown"
+    }
+
+    private func toggleSectionCollapse(sectionID: String) {
+        if collapsedSectionIDs.contains(sectionID) {
+            collapsedSectionIDs.remove(sectionID)
+        } else {
+            collapsedSectionIDs.insert(sectionID)
+        }
+        FavoritesCollapsedSectionsStore.save(collapsedSectionIDs)
+    }
+
+    private func pruneCollapsedSections() {
+        let validIDs = Set(viewModel.favorites.map(sectionIdentifier(for:)))
+        let filtered = collapsedSectionIDs.intersection(validIDs)
+        if filtered != collapsedSectionIDs {
+            collapsedSectionIDs = filtered
+            FavoritesCollapsedSectionsStore.save(filtered)
+        }
+    }
+
+    private func collapseAllSections() {
+        let allSectionIDs = Set(viewModel.favorites.map(sectionIdentifier(for:)))
+        collapsedSectionIDs = allSectionIDs
+        FavoritesCollapsedSectionsStore.save(allSectionIDs)
+    }
+
+    private func expandAllSections() {
+        collapsedSectionIDs = []
+        FavoritesCollapsedSectionsStore.save(Set<String>())
     }
 
     var body: some View {
@@ -176,23 +448,40 @@ struct FavoritesListView: View {
                             .foregroundStyle(.secondary)
                     }
                     ForEach(viewModel.favorites) { favorite in
+                        let sectionID = sectionIdentifier(for: favorite)
                         FavoriteSectionView(
                             favorite: favorite,
+                            sectionID: sectionID,
+                            isCollapsed: collapsedSectionIDs.contains(sectionID),
                             visitedURLs: $visitedURLs,
-                            accountsStore: accountsStore
+                            superFavoriteIDs: $superFavoriteIDs,
+                            removingTopicIDs: removingTopicIDs,
+                            accountsStore: accountsStore,
+                            onToggleCollapse: {
+                                toggleSectionCollapse(sectionID: sectionID)
+                            },
+                            onMarkRead: markTopicAsRead(_:),
+                            onToggleSuperFavorite: toggleSuperFavorite(_:),
+                            onRemoveFavorite: removeFavoriteFlag(_:)
                         )
                     }
                 }
             }
             .navigationTitle("Favoris")
             .onAppear {
+                superFavoriteIDs = FavoritesSuperFavoriteStore.load()
+                collapsedSectionIDs = FavoritesCollapsedSectionsStore.load()
                 if !hasLoaded {
                     refreshContentForSessionState()
                     hasLoaded = true
                 }
+                pruneCollapsedSections()
             }
             .onReceive(NotificationCenter.default.publisher(for: Notification.Name("kLoginChangedNotification"))) { _ in
                 refreshContentForSessionState()
+            }
+            .onReceive(viewModel.$favorites) { _ in
+                pruneCollapsedSections()
             }
             .onReceive(NotificationCenter.default.publisher(for: .rootTabReselected)) { notification in
                 guard
@@ -208,7 +497,9 @@ struct FavoritesListView: View {
                     onRefresh: {
                         viewModel.loadFavorites()
                     },
-                    onMore: {},
+                    onMore: {
+                        showSectionActions = true
+                    },
                     profileImage: accountsStore.currentAvatarImage,
                     profileImageURL: nil
                 ) {
@@ -232,6 +523,23 @@ struct FavoritesListView: View {
                     .disabled(accountsStore.currentAccount == nil)
                 }
             }
+            .confirmationDialog(
+                "Sections Favoris",
+                isPresented: $showSectionActions,
+                titleVisibility: .visible
+            ) {
+                Button("Tout plier") {
+                    collapseAllSections()
+                }
+                .disabled(viewModel.favorites.isEmpty || collapsedSectionIDs.count == viewModel.favorites.count)
+
+                Button("Tout déplier") {
+                    expandAllSections()
+                }
+                .disabled(viewModel.favorites.isEmpty || collapsedSectionIDs.isEmpty)
+
+                Button("Annuler", role: .cancel) {}
+            }
             .sheet(isPresented: $showAddAccountSheet) {
                 AddAccountView(accountsStore: accountsStore)
             }
@@ -243,6 +551,66 @@ struct FavoritesListView: View {
             } message: {
                 Text("Supprimer le compte courant ?")
             }
+            .alert(
+                "Action impossible",
+                isPresented: Binding(
+                    get: { topicActionErrorMessage != nil },
+                    set: { isPresented in
+                        if !isPresented {
+                            topicActionErrorMessage = nil
+                        }
+                    }
+                )
+            ) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(topicActionErrorMessage ?? "Erreur inconnue.")
+            }
+        }
+    }
+
+    private func markTopicAsRead(_ topic: Topic) {
+        let url = topic.aURL ?? topic.aURLOfLastPage ?? ""
+        if !url.isEmpty {
+            visitedURLs.insert(url)
+        }
+        topic.isViewed = true
+    }
+
+    private func toggleSuperFavorite(_ topic: Topic) {
+        let postID = Int(topic.postID)
+        guard postID > 0 else { return }
+
+        if superFavoriteIDs.contains(postID) {
+            superFavoriteIDs.remove(postID)
+            topic.isSuperFavorite = false
+        } else {
+            superFavoriteIDs.insert(postID)
+            topic.isSuperFavorite = true
+        }
+        FavoritesSuperFavoriteStore.save(superFavoriteIDs)
+    }
+
+    private func removeFavoriteFlag(_ topic: Topic) {
+        let postID = Int(topic.postID)
+        let categoryID = Int(topic.catID)
+        guard postID > 0, categoryID > 0 else {
+            topicActionErrorMessage = FavoritesTopicActionError.invalidTopicIdentifier.localizedDescription
+            return
+        }
+        guard !removingTopicIDs.contains(postID) else { return }
+
+        removingTopicIDs.insert(postID)
+        Task {
+            do {
+                try await topicActionService.removeFavoriteFlag(postID: postID, categoryID: categoryID)
+                withAnimation(.easeOut(duration: 0.18)) {
+                    viewModel.removeTopic(withPostID: postID)
+                }
+            } catch {
+                topicActionErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            }
+            removingTopicIDs.remove(postID)
         }
     }
 }
@@ -252,6 +620,11 @@ struct FavoritesListView: View {
 struct TopicRowView: View {
     var topic: Topic
     @Binding var visitedURLs: Set<String>
+    var isSuperFavorite = false
+    var isRemovingFavorite = false
+    var onMarkRead: (() -> Void)?
+    var onToggleSuperFavorite: (() -> Void)?
+    var onRemoveFavorite: (() -> Void)?
     
     private var isVisited: Bool {
         let url = topic.aURL ?? topic.aURLOfLastPage ?? ""
@@ -294,12 +667,62 @@ struct TopicRowView: View {
             showUnreadBadgeWhenZero: false,
             leadingBottomText: pageLabel,
             trailingBottomText: trailingLabel,
+            rowBackgroundTint: isSuperFavorite ? Color.yellow.opacity(0.14) : nil,
             contentPadding: EdgeInsets(top: 2, leading: 0, bottom: 2, trailing: 0),
-            openContext: .favorites
+            openContext: .favorites,
+            extraContextMenu: {
+                AnyView(
+                    Group {
+                        if let onMarkRead {
+                            Button("Lu", systemImage: "checkmark") {
+                                onMarkRead()
+                            }
+                        }
+                        if let onToggleSuperFavorite {
+                            Button(
+                                isSuperFavorite ? "Retirer super favori" : "Super favori",
+                                systemImage: isSuperFavorite ? "star.slash" : "star"
+                            ) {
+                                onToggleSuperFavorite()
+                            }
+                        }
+                        if let onRemoveFavorite {
+                            Button("Supprimer", systemImage: "trash", role: .destructive) {
+                                onRemoveFavorite()
+                            }
+                            .disabled(isRemovingFavorite)
+                        }
+                    }
+                )
+            }
         ) { openedURL in
             let url = openedURL ?? topic.aURL ?? topic.aURLOfLastPage ?? ""
             if !url.isEmpty {
                 visitedURLs.insert(url)
+            }
+        }
+        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+            if let onMarkRead {
+                Button {
+                    onMarkRead()
+                } label: {
+                    Label("Lu", systemImage: "checkmark")
+                }
+                .tint(.accentColor)
+            }
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            if let onRemoveFavorite {
+                Button(role: .destructive) {
+                    onRemoveFavorite()
+                } label: {
+                    if isRemovingFavorite {
+                        Label("Suppression...", systemImage: "hourglass")
+                    } else {
+                        Label("Supprimer", systemImage: "trash")
+                    }
+                }
+                .disabled(isRemovingFavorite)
             }
         }
     }
