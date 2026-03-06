@@ -22,5 +22,6 @@
 #import "ThemeColors.h"
 #import "k.h"
 #import "NewMessageViewController.h"
+#import "AlerteModoViewController.h"
 
 #endif /* Bridging_Header_h */

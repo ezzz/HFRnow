@@ -20,7 +20,7 @@
 #import "TopicMPCellView.h"
 #import <CommonCrypto/CommonDigest.h>
 #import "BlackList.h"
-#import <SDWebImage/SDWebImage.h>
+#import "SDWebImage.h"
 
 @implementation HFRMPViewController
 

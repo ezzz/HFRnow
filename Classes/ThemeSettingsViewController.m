@@ -12,6 +12,7 @@
 #import "ThemeColors.h"
 #import "ThemeManager.h"
 #import "HFRAlertView.h"
+#import "HFRswift-Swift.h"
 
 @implementation ThemeSettingsViewController
 
@@ -96,7 +97,9 @@ int const NIGHT_SETTINGS = 3;
         cell.labelColorName.textColor = [ThemeColors cellTextColor];
         cell.labelColorBadge.clipsToBounds = YES;
         cell.labelColorBadge.layer.cornerRadius = 10 * 1.2 / 2;
-        cell.labelColorBadge.backgroundColor = [ThemeColors getUserColor:DAY_COLOR_SETTINGS[indexPath.row]];
+            cell.labelColorBadge.backgroundColor =
+                [ThemeUserColorStore storedColorForKey:DAY_COLOR_SETTINGS[indexPath.row]]
+                ?: [ThemeUserColorStore defaultColorForKey:DAY_COLOR_SETTINGS[indexPath.row]];
         cell.labelColorName.textColor = [ThemeColors cellTextColor];
         cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
         [[ThemeManager sharedManager] applyThemeToCell:cell];
@@ -109,7 +112,7 @@ int const NIGHT_SETTINGS = 3;
             cell.brightnessSettingsName = @"theme_night_brightness";
             cell.sliderBrightness.minimumValue = 0.0;
             cell.sliderBrightness.maximumValue = 1.5;
-            cell.sliderBrightness.value = [ThemeColors getUserBrightness:@"theme_night_brightness"];
+            cell.sliderBrightness.value = [ThemeUserColorStore storedBrightnessForKey:@"theme_night_brightness"];
             if ([[ThemeManager sharedManager] theme] == ThemeLight) {
                 cell.imageSlider.image = [UIImage imageNamed:@"Brightness-black-512"];
             }
@@ -131,7 +134,9 @@ int const NIGHT_SETTINGS = 3;
             cell.labelColorName.textColor = [ThemeColors cellTextColor];
             cell.labelColorBadge.clipsToBounds = YES;
             cell.labelColorBadge.layer.cornerRadius = 10 * 1.2 / 2;
-            cell.labelColorBadge.backgroundColor = [ThemeColors getUserColor:NIGHT_COLOR_SETTINGS[indexPath.row]];
+            cell.labelColorBadge.backgroundColor =
+                [ThemeUserColorStore storedColorForKey:NIGHT_COLOR_SETTINGS[indexPath.row]]
+                ?: [ThemeUserColorStore defaultColorForKey:NIGHT_COLOR_SETTINGS[indexPath.row]];
             cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
             [[ThemeManager sharedManager] applyThemeToCell:cell];
             return cell;
@@ -190,16 +195,15 @@ int const NIGHT_SETTINGS = 3;
 
 - (void)resetAllThemes
 {
-    [ThemeColors resetUserColor:DAY_COLOR_SETTINGS[0]];
-    [ThemeColors resetUserColor:DAY_COLOR_SETTINGS[1]];
-    [ThemeColors resetUserColor:DAY_COLOR_SETTINGS[2]];
-    [ThemeColors resetUserColor:NIGHT_COLOR_SETTINGS[0]];
-    [ThemeColors resetUserColor:NIGHT_COLOR_SETTINGS[1]];
-    [ThemeColors resetUserColor:NIGHT_COLOR_SETTINGS[2]];
-    [ThemeColors resetUserBrightness:@"theme_night_brightness"];
+    [ThemeUserColorStore resetColorForKey:DAY_COLOR_SETTINGS[0]];
+    [ThemeUserColorStore resetColorForKey:DAY_COLOR_SETTINGS[1]];
+    [ThemeUserColorStore resetColorForKey:DAY_COLOR_SETTINGS[2]];
+    [ThemeUserColorStore resetColorForKey:NIGHT_COLOR_SETTINGS[0]];
+    [ThemeUserColorStore resetColorForKey:NIGHT_COLOR_SETTINGS[1]];
+    [ThemeUserColorStore resetColorForKey:NIGHT_COLOR_SETTINGS[2]];
+    [ThemeUserColorStore resetBrightnessForKey:@"theme_night_brightness"];
     [self.tableThemeSettings reloadData];
     [[ThemeManager sharedManager] refreshTheme];
 }
 
 @end
-

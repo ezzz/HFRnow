@@ -11,7 +11,7 @@
 #import "SmileyCache.h"
 #import "HTMLparser.h"
 #import "Constants.h"
-#import <SDWebImage/SDWebImage.h>
+#import "SDWebImage.h"
 
 #define IMAGE_CACHE_MAX_ELEMENTS 1000
 #define IMAGE_CACHE_SMILEYS_DEFAULTS_MAX_ELEMENTS 50

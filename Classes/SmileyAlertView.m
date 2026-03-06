@@ -6,7 +6,7 @@
 //
 
 #import <Foundation/Foundation.h>
-#import <SDWebImage/SDWebImage.h>
+#import "SDWebImage.h"
 #import "SmileyAlertView.h"
 #import "ThemeManager.h"
 #import "SmileyCodeTableViewController.h"

@@ -94,6 +94,17 @@ final class ForumTopicsListViewModel: ObservableObject {
         }
         return nsError.localizedDescription.lowercased().contains("cancel")
     }
+
+    func removeTopic(_ topic: Topic) {
+        topics.removeAll { $0 === topic }
+    }
+
+    func clearFlagMetadata(for topic: Topic) {
+        topic.aTypeOfFlag = ""
+        topic.aURLOfFlag = ""
+        topic.curTopicPage = 0
+        topics = topics
+    }
 }
 
 @MainActor
@@ -225,23 +236,30 @@ struct ForumTopicsListView: View {
     let initialFlagOverride: TopicListFlag?
     @StateObject private var viewModel: ForumTopicsListViewModel
     @ObservedObject private var accountsStore: AccountsStore
+    @Environment(\.appThemePalette) private var themePalette
     @AppStorage("HFRswiftGlobalTopicListFlag") private var globalTopicListFlagRawValue = TopicListFlag.all.rawValue
     @State private var hasLoaded = false
     @State private var visitedURLs: Set<String> = []
     @State private var showAddAccountSheet = false
     @State private var showLogoutConfirm = false
+    @State private var removingTopicIDs: Set<ObjectIdentifier> = []
+    @State private var topicActionErrorMessage: String?
+
+    private let topicActionService: FavoritesTopicActionServicing
 
     @MainActor
     init(
         forum: Forum,
         initialFlagOverride: TopicListFlag? = nil,
         viewModel: ForumTopicsListViewModel? = nil,
-        accountsStore: AccountsStore? = nil
+        accountsStore: AccountsStore? = nil,
+        topicActionService: FavoritesTopicActionServicing = ForumFavoritesTopicActionService()
     ) {
         self.forum = forum
         self.initialFlagOverride = initialFlagOverride
         _viewModel = StateObject(wrappedValue: viewModel ?? ForumTopicsListViewModel(forum: forum))
         self._accountsStore = ObservedObject(wrappedValue: accountsStore ?? AccountsStore())
+        self.topicActionService = topicActionService
     }
 
     private var persistedGlobalFlag: TopicListFlag {
@@ -272,6 +290,9 @@ struct ForumTopicsListView: View {
     }
 
     private func rowBackgroundTint(for topic: Topic) -> Color? {
+        if !topicHasFlag(topic) {
+            return nil
+        }
         guard
             let flagType = topic.aTypeOfFlag?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
             !flagType.isEmpty
@@ -280,12 +301,8 @@ struct ForumTopicsListView: View {
         }
 
         switch flagType {
-        case "yellow":
-            return Color.yellow.opacity(0.14)
-        case "blue":
-            return Color.blue.opacity(0.12)
-        case "red":
-            return Color.red.opacity(0.12)
+        case "yellow", "blue", "red":
+            return themePalette.topicFlagBackgroundColor(flagType: flagType)
         default:
             return nil
         }
@@ -299,6 +316,131 @@ struct ForumTopicsListView: View {
             return nil
         }
         return "\(author) - \(when)"
+    }
+
+    private func normalizedNonEmpty(_ value: String?) -> String? {
+        guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
+            return nil
+        }
+        return trimmed
+    }
+
+    private func topicHasFlag(_ topic: Topic) -> Bool {
+        if viewModel.selectedFlag != .all {
+            return true
+        }
+        return normalizedNonEmpty(topic.aTypeOfFlag) != nil || normalizedNonEmpty(topic.aURLOfFlag) != nil
+    }
+
+    private func topicIdentifiers(for topic: Topic) -> (postID: Int, categoryID: Int)? {
+        let explicitPostID = Int(topic.postID)
+        let explicitCategoryID = Int(topic.catID)
+        if explicitPostID > 0, explicitCategoryID > 0 {
+            return (explicitPostID, explicitCategoryID)
+        }
+
+        let urlCandidates = [
+            topic.aURLOfFlag,
+            topic.aURL,
+            topic.aURLOfLastPost,
+            topic.aURLOfLastPage,
+            topic.aURLOfFirstPage
+        ]
+
+        var parsedPostID: Int?
+        var parsedCategoryID: Int?
+        for rawURL in urlCandidates {
+            guard let rawURL = normalizedNonEmpty(rawURL) else { continue }
+            if parsedPostID == nil {
+                parsedPostID = extractQueryItemInt(named: "post", from: rawURL) ?? extractPostIDFromPath(rawURL)
+            }
+            if parsedCategoryID == nil {
+                parsedCategoryID = extractQueryItemInt(named: "cat", from: rawURL)
+            }
+            if parsedPostID != nil, parsedCategoryID != nil {
+                break
+            }
+        }
+
+        let fallbackCategoryID = Int(forum.getHFRID())
+        let resolvedPostID = parsedPostID ?? explicitPostID
+        let resolvedCategoryID: Int
+        if let parsedCategoryID, parsedCategoryID > 0 {
+            resolvedCategoryID = parsedCategoryID
+        } else if explicitCategoryID > 0 {
+            resolvedCategoryID = explicitCategoryID
+        } else {
+            resolvedCategoryID = fallbackCategoryID
+        }
+        guard resolvedPostID > 0, resolvedCategoryID > 0 else {
+            return nil
+        }
+        return (resolvedPostID, resolvedCategoryID)
+    }
+
+    private func extractQueryItemInt(named name: String, from rawURL: String) -> Int? {
+        guard
+            let components = URLComponents(string: rawURL),
+            let value = components.queryItems?.first(where: { $0.name == name })?.value,
+            let intValue = Int(value),
+            intValue > 0
+        else {
+            return nil
+        }
+        return intValue
+    }
+
+    private func extractPostIDFromPath(_ rawURL: String) -> Int? {
+        let pattern = "sujet_(\\d+)_"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
+            return nil
+        }
+        let range = NSRange(rawURL.startIndex..<rawURL.endIndex, in: rawURL)
+        guard
+            let match = regex.firstMatch(in: rawURL, options: [], range: range),
+            match.numberOfRanges > 1,
+            let captureRange = Range(match.range(at: 1), in: rawURL),
+            let value = Int(rawURL[captureRange]),
+            value > 0
+        else {
+            return nil
+        }
+        return value
+    }
+
+    private func markTopicAsRead(_ topic: Topic) {
+        let openedURL = normalizedNonEmpty(topic.aURL) ?? normalizedNonEmpty(topic.aURLOfLastPage) ?? normalizedNonEmpty(topic.aURLOfFlag)
+        if let openedURL {
+            visitedURLs.insert(openedURL)
+        }
+        topic.isViewed = true
+    }
+
+    private func removeFlag(_ topic: Topic) {
+        guard let identifiers = topicIdentifiers(for: topic) else {
+            topicActionErrorMessage = FavoritesTopicActionError.invalidTopicIdentifier.localizedDescription
+            return
+        }
+
+        let topicID = ObjectIdentifier(topic)
+        guard !removingTopicIDs.contains(topicID) else { return }
+
+        removingTopicIDs.insert(topicID)
+        Task {
+            do {
+                try await topicActionService.removeFavoriteFlag(postID: identifiers.postID, categoryID: identifiers.categoryID)
+                withAnimation(.easeOut(duration: 0.18)) {
+                    if viewModel.selectedFlag == .all {
+                        viewModel.clearFlagMetadata(for: topic)
+                    } else {
+                        viewModel.removeTopic(topic)
+                    }
+                }
+            } catch {
+                topicActionErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            }
+            removingTopicIDs.remove(topicID)
+        }
     }
 
     var body: some View {
@@ -346,6 +488,9 @@ struct ForumTopicsListView: View {
             }
 
             ForEach(viewModel.topics) { topic in
+                let hasFlag = topicHasFlag(topic)
+                let topicID = ObjectIdentifier(topic)
+                let isRemoving = removingTopicIDs.contains(topicID)
                 TopicListRowView(
                     topic: topic,
                     isVisited: visitedURLs.contains(topic.aURL ?? topic.aURLOfLastPage ?? ""),
@@ -354,10 +499,42 @@ struct ForumTopicsListView: View {
                     leadingBottomText: footerLeft(for: topic),
                     trailingBottomText: footerRight(for: topic),
                     rowBackgroundTint: rowBackgroundTint(for: topic),
-                    openContext: .forum(selectedFlag: viewModel.selectedFlag)
+                    openContext: .forum(selectedFlag: viewModel.selectedFlag),
+                    extraContextMenu: hasFlag ? {
+                        AnyView(
+                            Group {
+                                Button("Lu", systemImage: "checkmark") {
+                                    markTopicAsRead(topic)
+                                }
+                                Button("Supprimer", systemImage: "trash", role: .destructive) {
+                                    removeFlag(topic)
+                                }
+                                .disabled(isRemoving)
+                            }
+                        )
+                    } : nil
                 ) { openedURL in
                     if let openedURL, !openedURL.isEmpty {
                         visitedURLs.insert(openedURL)
+                    }
+                }
+                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                    if hasFlag {
+                        Button {
+                            markTopicAsRead(topic)
+                        } label: {
+                            Label("Lu", systemImage: "checkmark")
+                        }
+                    }
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    if hasFlag {
+                        Button(role: .destructive) {
+                            removeFlag(topic)
+                        } label: {
+                            Label(isRemoving ? "Suppression..." : "Supprimer", systemImage: isRemoving ? "hourglass" : "trash")
+                        }
+                        .disabled(isRemoving)
                     }
                 }
                 .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
@@ -426,6 +603,21 @@ struct ForumTopicsListView: View {
             }
         } message: {
             Text("Supprimer le compte courant ?")
+        }
+        .alert(
+            "Action impossible",
+            isPresented: Binding(
+                get: { topicActionErrorMessage != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        topicActionErrorMessage = nil
+                    }
+                }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(topicActionErrorMessage ?? "Erreur inconnue.")
         }
     }
 
@@ -563,13 +755,13 @@ struct RootTabView: View {
         static var selectedTab: RootTabIdentifier = .favorites
     }
 
+    @StateObject private var appTheme = AppThemeStore.shared
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) private var systemColorScheme
     @State private var selectedTab: RootTabIdentifier
-    @State private var preferredColorScheme: ColorScheme?
 
     init() {
         _selectedTab = State(initialValue: RuntimeState.selectedTab)
-        _preferredColorScheme = State(initialValue: AppThemeResolver.preferredColorScheme())
     }
 
     private func syncRuntimeSelectedTab(_ tab: RootTabIdentifier) {
@@ -584,13 +776,6 @@ struct RootTabView: View {
             selectedTab = tab
         }
         syncRuntimeSelectedTab(tab)
-    }
-
-    private func syncPreferredColorScheme() {
-        let resolved = AppThemeResolver.preferredColorScheme()
-        if preferredColorScheme != resolved {
-            preferredColorScheme = resolved
-        }
     }
 
     var body: some View {
@@ -612,25 +797,22 @@ struct RootTabView: View {
             }
         }
         .tabBarMinimizeBehavior(.onScrollDown)
-        .preferredColorScheme(preferredColorScheme)
+        .preferredColorScheme(appTheme.preferredColorScheme)
+        .tint(appTheme.actionTintColor)
+        .environment(\.appThemePalette, appTheme.palette)
         .onAppear {
-            syncPreferredColorScheme()
+            appTheme.refresh(systemColorScheme: systemColorScheme, forceThemeRevision: true)
             syncRuntimeSelectedTab(selectedTab)
         }
         .onChange(of: selectedTab) { _, newValue in
             syncRuntimeSelectedTab(newValue)
         }
-        .onChange(of: systemColorScheme) { _, _ in
-            guard AppThemeResolver.usesSystemColorScheme else { return }
-            if preferredColorScheme != nil {
-                preferredColorScheme = nil
-            }
+        .onChange(of: systemColorScheme) { _, newValue in
+            appTheme.refresh(systemColorScheme: newValue)
         }
-        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("kThemeChangedNotification"))) { _ in
-            syncPreferredColorScheme()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-            syncPreferredColorScheme()
+        .onChange(of: scenePhase) { _, newValue in
+            guard newValue == .active else { return }
+            appTheme.refresh(systemColorScheme: systemColorScheme, forceThemeRevision: true)
         }
         .background(
             TabBarReselectionObserver(

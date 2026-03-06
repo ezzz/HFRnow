@@ -251,11 +251,7 @@ struct MPRowView: View {
             leadingBottomText: interlocutorLabel,
             trailingBottomText: trailingLabel,
             openContext: .messages,
-            quickActions: TopicQuickActionsConfiguration(
-                showOpenFirstPage: true,
-                showOpenLastPage: true,
-                showCopyLink: true
-            )
+            quickActions: TopicQuickActionPolicy.defaults(for: .messages)
         )
     }
 }

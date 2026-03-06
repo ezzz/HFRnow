@@ -1515,10 +1515,27 @@ final class ForumModerationAlertService: ModerationAlertService {
 
     private func isLoggedOutForm(_ html: String) -> Bool {
         let lowercased = html.lowercased()
-        if lowercased.contains("identification.php") || lowercased.contains("name=\"login\"") {
+        if lowercased.contains("identification.php")
+            || lowercased.contains("name=\"login\"")
+            || lowercased.contains("name='login'") {
             return true
         }
-        if lowercased.contains("mot de passe") && lowercased.contains("pseudo") {
+
+        let hasPseudoField =
+            lowercased.contains("name=\"pseudo\"")
+            || lowercased.contains("name='pseudo'")
+            || lowercased.contains("id=\"pseudo\"")
+            || lowercased.contains("id='pseudo'")
+        let hasPasswordField =
+            lowercased.contains("type=\"password\"")
+            || lowercased.contains("type='password'")
+            || lowercased.contains("name=\"password\"")
+            || lowercased.contains("name='password'")
+            || lowercased.contains("name=\"pass\"")
+            || lowercased.contains("name='pass'")
+        let hasHopForm = lowercased.contains("name=\"hop\"") || lowercased.contains("name='hop'")
+
+        if hasPseudoField && hasPasswordField && !hasHopForm {
             return true
         }
         return false

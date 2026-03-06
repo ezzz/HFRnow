@@ -9,6 +9,7 @@
 #import "ThemeBrightnessCellView.h"
 #import "ThemeManager.h"
 #import "ThemeColors.h"
+#import "HFRswift-Swift.h"
 
 
 @implementation ThemeBrightnessCellView
@@ -33,11 +34,11 @@
 
 
 - (IBAction)changeBrightness:(UISlider *)sender {
-    [ThemeColors updateUserBrightness:brightnessSettingsName withBrightness:sender.value];
+    [ThemeUserColorStore storeBrightness:sender.value forKey:brightnessSettingsName];
     [[ThemeManager sharedManager] refreshTheme];
 }
 - (IBAction)resetBrightness:(id)sender {
-    [ThemeColors resetUserBrightness:brightnessSettingsName];
+    [ThemeUserColorStore resetBrightnessForKey:brightnessSettingsName];
     [[ThemeManager sharedManager] refreshTheme];
 }
 @end

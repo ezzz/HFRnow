@@ -247,6 +247,8 @@ struct WebView: UIViewRepresentable {
     var currentPage: Int
     var maxPage: Int
     var colorScheme: ColorScheme
+    var baseBackgroundColor: UIColor
+    var themeRevision: Int
     var messageActionsByIndex: [Int: TopicPageMessageActions]
     var actionHandler: any MessageWebActionHandling
     var onWebAction: ((MessageWebAction) -> Void)?
@@ -267,6 +269,8 @@ struct WebView: UIViewRepresentable {
         currentPage: Int = 1,
         maxPage: Int = 1,
         colorScheme: ColorScheme = .light,
+        baseBackgroundColor: UIColor = .systemGray6,
+        themeRevision: Int = 0,
         messageActionsByIndex: [Int: TopicPageMessageActions] = [:],
         actionHandler: any MessageWebActionHandling = MessageWebActionHandler(),
         onWebAction: ((MessageWebAction) -> Void)? = nil,
@@ -286,6 +290,8 @@ struct WebView: UIViewRepresentable {
         self.currentPage = currentPage
         self.maxPage = maxPage
         self.colorScheme = colorScheme
+        self.baseBackgroundColor = baseBackgroundColor
+        self.themeRevision = themeRevision
         self.messageActionsByIndex = messageActionsByIndex
         self.actionHandler = actionHandler
         self.onWebAction = onWebAction
@@ -383,7 +389,6 @@ struct WebView: UIViewRepresentable {
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.isOpaque = false
-        let baseBackgroundColor: UIColor = colorScheme == .dark ? .black : .systemGray6
         webView.backgroundColor = baseBackgroundColor
         webView.scrollView.backgroundColor = baseBackgroundColor
         if #available(iOS 15.0, *) {
@@ -406,7 +411,7 @@ struct WebView: UIViewRepresentable {
         context.coordinator.anchor = anchor
         context.coordinator.initialScroll = initialScroll
         context.coordinator.colorScheme = colorScheme
-        let baseBackgroundColor: UIColor = colorScheme == .dark ? .black : .systemGray6
+        context.coordinator.themeRevision = themeRevision
         webView.backgroundColor = baseBackgroundColor
         webView.scrollView.backgroundColor = baseBackgroundColor
         if #available(iOS 15.0, *) {
@@ -418,17 +423,19 @@ struct WebView: UIViewRepresentable {
             let shouldReload =
                 context.coordinator.loadedFileURL != fileURL ||
                 context.coordinator.loadedReadAccessURL != readAccessURL
+            let shouldForceThemeApplication = context.coordinator.lastAppliedThemeRevision != themeRevision
 
             if shouldReload {
                 context.coordinator.loadedFileURL = fileURL
                 context.coordinator.loadedReadAccessURL = readAccessURL
                 context.coordinator.lastAppliedTheme = nil
+                context.coordinator.lastAppliedThemeRevision = -1
                 context.coordinator.isWaitingForThemeApplication = true
                 context.coordinator.didNotifyContentReadyForCurrentLoad = false
                 webView.isHidden = true
                 webView.loadFileURL(fileURL, allowingReadAccessTo: readAccessURL)
             } else {
-                context.coordinator.applyThemeIfNeeded(in: webView)
+                context.coordinator.applyThemeIfNeeded(in: webView, force: shouldForceThemeApplication)
                 if !context.coordinator.isWaitingForThemeApplication {
                     webView.isHidden = false
                 }
@@ -442,9 +449,11 @@ struct WebView: UIViewRepresentable {
         var anchor: String?
         var initialScroll: WebView.InitialScroll?
         var colorScheme: ColorScheme
+        var themeRevision: Int
         var loadedFileURL: URL?
         var loadedReadAccessURL: URL?
         var lastAppliedTheme: String?
+        var lastAppliedThemeRevision: Int = -1
         var isWaitingForThemeApplication = false
         var didNotifyContentReadyForCurrentLoad = false
         @available(iOS 16.0, *)
@@ -467,6 +476,7 @@ struct WebView: UIViewRepresentable {
         init(_ parent: WebView) {
             self.parent = parent
             self.colorScheme = parent.colorScheme
+            self.themeRevision = parent.themeRevision
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
@@ -656,6 +666,7 @@ struct WebView: UIViewRepresentable {
                     print("Theme JS error:", error.localizedDescription)
                 } else {
                     self?.lastAppliedTheme = targetTheme
+                    self?.lastAppliedThemeRevision = self?.themeRevision ?? -1
                     print("Theme JS applied:", targetTheme)
                 }
                 completion?()
@@ -1863,7 +1874,7 @@ struct MessagesView: View {
     let messageDeletionService: any MessageDeletionService
     let moderationAlertService: any ModerationAlertService
 
-    @Environment(\.colorScheme) private var systemColorScheme
+    @ObservedObject private var appTheme = AppThemeStore.shared
     @State private var page: Int
     @State private var fileURL: URL?
     @State private var cacheURL: URL?
@@ -1904,9 +1915,12 @@ struct MessagesView: View {
     @State private var pendingPostedReply: ReplyPostingResult?
     @State private var showPostSuccessToast = false
     @State private var postSuccessToastText = "Hooray"
-    @State private var appColorScheme: ColorScheme = .light
     // Remove the unused
     // @State private var isPresentingAddMessage = false
+
+    private var themePalette: AppThemePalette {
+        appTheme.palette
+    }
 
     init(
         topic: Topic,
@@ -1932,7 +1946,6 @@ struct MessagesView: View {
         self.moderationAlertService = moderationAlertService
         self._page = State(initialValue: curPage)
         self._initialScroll = State(initialValue: initialLoadScroll)
-        self._appColorScheme = State(initialValue: Self.currentAppColorScheme())
 
         // extraire l’ancre (#xxxx) si présente
         if let url = URL(string: topic.aURL), let fragment = url.fragment {
@@ -1961,21 +1974,6 @@ struct MessagesView: View {
         // ⚠️ On ne garde pas le fragment quand on change de page
         comps.fragment = nil
         return comps.string ?? ""
-    }
-
-    private static func currentAppColorScheme(systemColorScheme: ColorScheme? = nil) -> ColorScheme {
-        AppThemeResolver.resolvedColorScheme(systemColorScheme: systemColorScheme)
-    }
-
-    private func syncAppColorScheme() {
-        syncAppColorScheme(using: systemColorScheme)
-    }
-
-    private func syncAppColorScheme(using systemColorScheme: ColorScheme) {
-        let resolved = Self.currentAppColorScheme(systemColorScheme: systemColorScheme)
-        if appColorScheme != resolved {
-            appColorScheme = resolved
-        }
     }
 
     private func loadPage(_ page: Int) {
@@ -2659,17 +2657,7 @@ struct MessagesView: View {
                     }
                 }
                 .onAppear {
-                    syncAppColorScheme()
                     loadPage(page)
-                }
-                .onReceive(NotificationCenter.default.publisher(for: Notification.Name("kThemeChangedNotification"))) { _ in
-                    syncAppColorScheme()
-                }
-                .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-                    syncAppColorScheme()
-                }
-                .onChange(of: systemColorScheme) { _, newValue in
-                    syncAppColorScheme(using: newValue)
                 }
                 .background(linkedTopicNavigationLink)
                 .sheet(item: $safariDestination) { destination in
@@ -2698,7 +2686,7 @@ struct MessagesView: View {
                 }
         } else if fileURL != nil && cacheURL != nil {
             ZStack {
-                Color(appColorScheme == .dark ? .black : .systemGray6)
+                themePalette.webViewBackdropColor
 
                 WebView(
                     fileURL: fileURL,
@@ -2707,7 +2695,9 @@ struct MessagesView: View {
                     initialScroll: initialScroll,
                     currentPage: page,
                     maxPage: maxPage,
-                    colorScheme: appColorScheme,
+                    colorScheme: appTheme.effectiveColorScheme,
+                    baseBackgroundColor: themePalette.webViewBackdropUIColor,
+                    themeRevision: appTheme.themeRevision,
                     messageActionsByIndex: messageActionsByIndex,
                     onWebAction: handleWebAction,
                     onPopupQuoteRequest: { quoteURL in
@@ -2742,7 +2732,7 @@ struct MessagesView: View {
                     .id(page) // force a new WKWebView per page
 
                 if showWebViewLoadCover {
-                    Color(appColorScheme == .dark ? .black : .systemGray6)
+                    themePalette.webViewBackdropColor
                         .ignoresSafeArea()
                         .allowsHitTesting(false)
                         .transition(.opacity)
@@ -2777,18 +2767,6 @@ struct MessagesView: View {
             }
             .ignoresSafeArea()
             .navigationBarTitleDisplayMode(.inline)
-            .onAppear {
-                syncAppColorScheme()
-            }
-            .onReceive(NotificationCenter.default.publisher(for: Notification.Name("kThemeChangedNotification"))) { _ in
-                syncAppColorScheme()
-            }
-            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-                syncAppColorScheme()
-            }
-            .onChange(of: systemColorScheme) { _, newValue in
-                syncAppColorScheme(using: newValue)
-            }
 
                 .simultaneousGesture(
                     DragGesture().onEnded { value in
@@ -3129,17 +3107,7 @@ struct MessagesView: View {
                 Text("Choisir une page entre 1 et \(maxPage)")
             }
             .onAppear {
-                syncAppColorScheme()
                 loadPage(page)
-            }
-            .onReceive(NotificationCenter.default.publisher(for: Notification.Name("kThemeChangedNotification"))) { _ in
-                syncAppColorScheme()
-            }
-            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-                syncAppColorScheme()
-            }
-            .onChange(of: systemColorScheme) { _, newValue in
-                syncAppColorScheme(using: newValue)
             }
             .background(linkedTopicNavigationLink)
             .sheet(item: $safariDestination) { destination in
@@ -3645,6 +3613,7 @@ private struct ModerationAlertComposerView: View {
     let onSubmitSuccess: (String) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.appThemePalette) private var themePalette
 
     @State private var reasonText = ""
     @State private var isSending = false
@@ -3679,7 +3648,7 @@ private struct ModerationAlertComposerView: View {
                     TextEditor(text: $reasonText)
                         .scrollContentBackground(.hidden)
                         .padding(6)
-                        .background(Color(.secondarySystemBackground))
+                        .background(themePalette.editorBackgroundColor)
                         .clipShape(.rect(cornerRadius: 10))
 
                     if reasonText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {

@@ -7,6 +7,8 @@ struct AnswerView: View {
     private let smileyCatalogLoader: ReplySmileyCatalogLoading
     private let imageUploadService: any ReplyImageUploadService
     private let onPostSuccess: ((ReplyPostingResult) -> Void)?
+    @ObservedObject private var appTheme = AppThemeStore.shared
+    @Environment(\.appThemePalette) private var themePalette
 
     @Binding var composerDraftText: String
     @Binding var isComposerPresented: Bool
@@ -89,7 +91,7 @@ struct AnswerView: View {
                 isFocused: $isComposerFocused
             )
                 .padding(8)
-                .background(Color(.secondarySystemBackground))
+                .background(themePalette.editorBackgroundColor)
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .padding()
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -102,7 +104,7 @@ struct AnswerView: View {
                         .font(.system(size: 17, weight: .regular))
                         .padding(.vertical, 10)
                         .padding(.horizontal, 12)
-                        .background(Color(.tertiarySystemFill))
+                        .background(themePalette.controlBackgroundColor)
                         .foregroundStyle(.primary)
                         .clipShape(Capsule())
                         .accessibilityLabel("Smileys")
@@ -115,7 +117,7 @@ struct AnswerView: View {
                         .font(.system(size: 17, weight: .regular))
                         .padding(.vertical, 10)
                         .padding(.horizontal, 12)
-                        .background(Color(.tertiarySystemFill))
+                        .background(themePalette.controlBackgroundColor)
                         .foregroundStyle(.primary)
                         .clipShape(Capsule())
                         .accessibilityLabel("Smileys favoris")
@@ -129,7 +131,7 @@ struct AnswerView: View {
                         .font(.system(size: 17, weight: .regular))
                         .padding(.vertical, 10)
                         .padding(.horizontal, 12)
-                        .background(Color(.tertiarySystemFill))
+                        .background(themePalette.controlBackgroundColor)
                         .foregroundStyle(.primary)
                         .clipShape(Capsule())
                         .accessibilityLabel("Insérer image")
@@ -142,7 +144,7 @@ struct AnswerView: View {
                         .font(.system(size: 17, weight: .regular))
                         .padding(.vertical, 10)
                         .padding(.horizontal, 12)
-                        .background(Color(.tertiarySystemFill))
+                        .background(themePalette.controlBackgroundColor)
                         .foregroundStyle(.primary)
                         .clipShape(Capsule())
                         .accessibilityLabel("Vider le texte")
@@ -156,7 +158,7 @@ struct AnswerView: View {
                         .font(.system(size: 17, weight: .regular))
                         .padding(.vertical, 10)
                         .padding(.horizontal, 12)
-                        .background(Color(.tertiarySystemFill))
+                        .background(themePalette.controlBackgroundColor)
                         .foregroundStyle(.primary)
                         .clipShape(Capsule())
                         .accessibilityLabel("Undo")
@@ -170,7 +172,7 @@ struct AnswerView: View {
                         .font(.system(size: 17, weight: .regular))
                         .padding(.vertical, 10)
                         .padding(.horizontal, 12)
-                        .background(Color(.tertiarySystemFill))
+                        .background(themePalette.controlBackgroundColor)
                         .foregroundStyle(.primary)
                         .clipShape(Capsule())
                         .accessibilityLabel("Redo")
@@ -185,7 +187,7 @@ struct AnswerView: View {
                         .font(.system(size: 17, weight: .semibold))
                         .padding(.vertical, 10)
                         .padding(.horizontal, 14)
-                        .background(composerState.canSend ? Color.accentColor : Color.gray.opacity(0.2))
+                        .background(composerState.canSend ? appTheme.actionTintColor : Color.gray.opacity(0.2))
                         .foregroundColor(composerState.canSend ? .white : .secondary)
                         .clipShape(Capsule())
                         .accessibilityLabel("Send")
@@ -476,17 +478,18 @@ private struct SmileyPickerView: View {
 
 private struct SmileyGridCell: View {
     let smiley: ReplySmiley
+    @Environment(\.appThemePalette) private var themePalette
 
     var body: some View {
         VStack(spacing: 0) {
             SmileyThumbnailView(smiley: smiley)
                 .frame(width: 44, height: 28, alignment: .center)
-                .background(Color(.secondarySystemBackground))
+                .background(themePalette.editorBackgroundColor)
                 .clipShape(.rect(cornerRadius: 4))
         }
         .frame(maxWidth: .infinity, minHeight: 32)
         .padding(.vertical, 1)
-        .background(Color(.tertiarySystemBackground))
+        .background(themePalette.tertiaryBackgroundColor)
         .clipShape(.rect(cornerRadius: 5))
         .contentShape(Rectangle())
     }
@@ -823,6 +826,7 @@ private struct ReplyUploadedImageRow: View {
     let image: RehostUploadedImage
     let mode: RehostBBCodeMode
     let onInsertVariant: (RehostImageSizeVariant) -> Void
+    @Environment(\.appThemePalette) private var themePalette
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -834,7 +838,7 @@ private struct ReplyUploadedImageRow: View {
                             .resizable()
                             .scaledToFill()
                     default:
-                        Color(.tertiarySystemFill)
+                        themePalette.controlBackgroundColor
                     }
                 }
                 .frame(width: 56, height: 56)

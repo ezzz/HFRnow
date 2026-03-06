@@ -10,6 +10,7 @@
 #import "ThemeColors.h"
 #import "ThemeManager.h"
 #import "HFRAlertView.h"
+#import "HFRswift-Swift.h"
 
 @implementation ColorPickerViewController
 
@@ -29,7 +30,10 @@
     
     self.title = sColorSettingTitle;
     
-    UIColor* c = [ThemeColors getUserColor:sColorSettingName];
+    UIColor* c = [ThemeUserColorStore storedColorForKey:sColorSettingName];
+    if (c == nil) {
+        c = [ThemeUserColorStore resetColorForKey:sColorSettingName];
+    }
     CGFloat h, s, b, a;
     [c getHue:&h saturation:&s brightness:&b alpha:&a];
     
@@ -74,7 +78,7 @@
 - (void)updateColor {
     UIColor* newColor = [UIColor colorWithHue:sliderHue.value saturation:sliderSaturation.value brightness:sliderBrightness.value alpha:1.0];
     labelColorDisplay.backgroundColor = newColor;
-    [ThemeColors updateUserColor:sColorSettingName withColor:newColor];
+    [ThemeUserColorStore storeColor:newColor forKey:sColorSettingName];
     [[ThemeManager sharedManager] refreshTheme];
     
     NSLog(@"Update user color: %f, %f, %f,",sliderHue.value, sliderSaturation.value, sliderBrightness.value);
@@ -83,10 +87,9 @@
 - (void)resetColor
 {
     [HFRAlertView  DisplayOKCancelAlertViewWithTitle:@"Revenir aux valeurs par défaut ?" andMessage:nil handlerOK:^(UIAlertAction * action) {
-        [ThemeColors resetUserColor:sColorSettingName];
+        [ThemeUserColorStore resetColorForKey:sColorSettingName];
         [[ThemeManager sharedManager] refreshTheme];
     }];
 }
 
 @end
-

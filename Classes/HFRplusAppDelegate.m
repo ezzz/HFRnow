@@ -17,6 +17,7 @@
 
 #import "ThemeColors.h"
 #import "ThemeManager.h"
+#import "HFRswift-Swift.h"
 #import "OfflineStorage.h"
 
 #import "MultisManager.h"
@@ -85,10 +86,13 @@
     [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"shake_to_refresh"];
     [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"theme_noel_disabled"];
     
-    // Remove theme settings for camera & time
+    // Normalize deprecated automatic theme values.
     NSInteger iAutoTheme = [[NSUserDefaults standardUserDefaults] integerForKey:@"auto_theme"];
-    if (iAutoTheme == AUTO_THEME_AUTO_TIME || iAutoTheme == AUTO_THEME_AUTO_CAMERA) {
+    if (iAutoTheme != AUTO_THEME_MANUAL && iAutoTheme != AUTO_THEME_AUTO_IOS) {
         [[NSUserDefaults standardUserDefaults] setInteger:AUTO_THEME_AUTO_IOS forKey:@"auto_theme"];
+        [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"force_manual_theme"];
+        [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"auto_theme_day_time"];
+        [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"auto_theme_night_time"];
     }
     
     NSString* sFilterOn = @"wl_pseudo";
@@ -131,8 +135,6 @@
     // MPStorage : Update Blacklist from MPStorage
     [[MPStorage shared] initOrResetMP:[[MultisManager sharedManager] getCurrentPseudo]];
 
-    [[ThemeManager sharedManager] checkTheme];
-    [self setTheme:[[ThemeManager sharedManager] theme]];
     [[ThemeManager sharedManager] refreshTheme];
 
     // Init smiley cache for favorite smileys
@@ -316,7 +318,7 @@
 
 -(void)setThemeFromNotification:(NSNotification *)notification{
     [self setTheme:[[ThemeManager sharedManager] theme]];
-    UISegmentedControl.appearance.selectedSegmentTintColor = [ThemeColors tintColorDynamic];
+    UISegmentedControl.appearance.selectedSegmentTintColor = [ThemeUserColorStore dynamicActionTintColor];
 }
 
 -(void)setTheme:(Theme)theme{
@@ -324,7 +326,7 @@
     [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"theme_noel_disabled"];
 
     if ([self.window respondsToSelector:@selector(setTintColor:)]) {
-        self.window.tintColor = [ThemeColors tintColor];
+        self.window.tintColor = [ThemeUserColorStore actionTintColorForLegacyThemeValue:theme];
     }
     
     if ([self.window respondsToSelector:@selector(setBackgroundColor:)]) {
@@ -630,8 +632,6 @@
     
     NSLog(@"applicationDidBecomeActive");
     dispatch_after(0, dispatch_get_main_queue(), ^(void){
-        [[ThemeManager sharedManager] checkTheme];
-        [self setTheme:[[ThemeManager sharedManager] theme]];
         [[ThemeManager sharedManager] refreshTheme];
          if (cestNoel) {
              // Popup retry

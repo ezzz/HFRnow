@@ -15,6 +15,14 @@ struct AddAccountView: View {
     @State private var password = ""
     @State private var isSubmitting = false
     @State private var errorMessage: String?
+    
+    private var trimmedPseudo: String {
+        pseudo.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
+    private var canSubmit: Bool {
+        !isSubmitting && !trimmedPseudo.isEmpty && !password.isEmpty
+    }
 
     var body: some View {
         NavigationStack {
@@ -55,7 +63,7 @@ struct AddAccountView: View {
                             .frame(maxWidth: .infinity)
                     }
                 }
-                .disabled(isSubmitting || pseudo.isEmpty || password.isEmpty)
+                .disabled(!canSubmit)
                 .buttonStyle(.borderedProminent)
                 .liquidGlassIfAvailable(in: RoundedRectangle(cornerRadius: 12))
             }
@@ -78,13 +86,13 @@ struct AddAccountView: View {
     }
 
     private func submit() {
-        guard !pseudo.isEmpty, !password.isEmpty else { return }
+        guard canSubmit else { return }
         isSubmitting = true
         errorMessage = nil
 
         Task {
             do {
-                try await accountsStore.addAccount(pseudo: pseudo, password: password)
+                try await accountsStore.addAccount(pseudo: trimmedPseudo, password: password)
                 dismiss()
             } catch {
                 errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription

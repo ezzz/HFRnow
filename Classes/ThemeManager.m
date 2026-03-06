@@ -8,19 +8,28 @@
 
 #import "ThemeManager.h"
 #import "ThemeColors.h"
+#import "HFRswift-Swift.h"
 #import "AvatarTableViewCell.h"
 #import "PlusCellView.h"
 #import "SimpleCellView.h"
 #include <stdlib.h>
 
+static NSString * const HFRAutoThemeKey = @"auto_theme";
+static NSString * const HFRManualThemeKey = @"theme";
+
+@interface ThemeManager ()
+- (Theme)boundedTheme:(Theme)candidate;
+- (UITraitCollection *)currentTraitCollection;
+- (Theme)resolvedThemeForTraitCollection:(UITraitCollection *)traitCollection;
+- (void)synchronizeResolvedTheme;
+- (void)postThemeChangedNotification;
+- (BOOL)normalizeAutoThemeSettingIfNeeded;
+- (BOOL)removeDeprecatedThemeKeysIfNeeded;
+@end
+
 @implementation ThemeManager
 
-@synthesize theme;
-
-int dayDelayMin = 40;
-int nightDelayMin = 10;
-int dayDelay;
-int nightDelay;
+@synthesize theme = _theme;
 
 #pragma mark Singleton Methods
 
@@ -39,174 +48,164 @@ int nightDelay;
 
 - (id)init {
     if (self = [super init]) {
-        NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-        NSInteger iSettingsTheme = [defaults integerForKey:@"theme"];
-        theme = (Theme)iSettingsTheme;
+        BOOL didNormalize = [self normalizeAutoThemeSettingIfNeeded];
+        BOOL didCleanup = [self removeDeprecatedThemeKeysIfNeeded];
+        [self synchronizeResolvedTheme];
+        if (didNormalize || didCleanup) {
+            [[NSUserDefaults standardUserDefaults] synchronize];
+        }
         [self applyAppearance];
     }
     return self;
 }
 
-- (BOOL)isLightForTraitCollection:(UITraitCollection *)traitCollection {
-    if ([[NSUserDefaults standardUserDefaults] integerForKey:@"auto_theme"] == AUTO_THEME_AUTO_IOS) {
-        return traitCollection.userInterfaceStyle == UIUserInterfaceStyleLight;
-    }
-    else if (self.theme == ThemeLight) { // Theme Manuel Light
-        return YES;
-    }
-    
-    return NO; // Theme Manuel Dark
+- (Theme)theme {
+    [self synchronizeResolvedTheme];
+    return _theme;
 }
 
-- (void)changeTheme:(Theme)newTheme {
-    NSLog(@"DYNAMIC");
+- (void)setTheme:(Theme)newTheme {
+    _theme = [self boundedTheme:newTheme];
+}
 
-    self.theme = newTheme;
-    [[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithInteger:self.theme] forKey:@"theme"];
-    [[NSUserDefaults standardUserDefaults] synchronize];
-    NSNotification *myNotification = [NSNotification notificationWithName:kThemeChangedNotification
-                                                                   object:self  //object is usually the object posting the notification
-                                                                 userInfo:nil]; //userInfo is an optional dictionary
-    
-    //Post it to the default notification center
-    [[NSNotificationCenter defaultCenter] postNotification:myNotification];
-    
-    /*
-    if (newTheme == ThemeLight) {
-        [[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleDefault];
+- (BOOL)isLightForTraitCollection:(UITraitCollection *)traitCollection {
+    if ([[NSUserDefaults standardUserDefaults] integerForKey:HFRAutoThemeKey] == AUTO_THEME_AUTO_IOS) {
+        return [self resolvedThemeForTraitCollection:traitCollection] == ThemeLight;
     }
-    else {
-        [[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleLightContent];
-    }
-    */
-    
-    [self applyAppearance];
+    return self.theme == ThemeLight;
+}
+
+- (void)switchTheme {
+    Theme currentTheme = self.theme;
+    [self setThemeManually:(currentTheme == ThemeLight) ? ThemeDark : ThemeLight];
 }
 
 - (void)refreshTheme {
-    //Post it to the default notification center
-    [[NSUserDefaults standardUserDefaults] synchronize];
-    NSNotification *myNotification = [NSNotification notificationWithName:kThemeChangedNotification
-                                                                   object:self  //object is usually the object posting the notification
-                                                                 userInfo:nil]; //userInfo is an optional dictionary
-    [[NSNotificationCenter defaultCenter] postNotification:myNotification];
-    
+    BOOL didNormalize = [self normalizeAutoThemeSettingIfNeeded];
+    BOOL didCleanup = [self removeDeprecatedThemeKeysIfNeeded];
+    [self synchronizeResolvedTheme];
+    if (didNormalize || didCleanup) {
+        [[NSUserDefaults standardUserDefaults] synchronize];
+    }
+    [self postThemeChangedNotification];
     [self applyAppearance];
 }
 
-/*
-- (Theme)theme{
-    //NSLog(@"%lu",(unsigned long)theme);
-    return theme;
-}*/
+- (void)checkTheme {
+    BOOL didNormalize = [self normalizeAutoThemeSettingIfNeeded];
+    BOOL didCleanup = [self removeDeprecatedThemeKeysIfNeeded];
+    Theme previousTheme = _theme;
+    Theme resolvedTheme = [self resolvedThemeForTraitCollection:nil];
 
-- (void)switchTheme {
-    if (self.theme == ThemeLight) {
-        [self setThemeManually:ThemeDark];
-    } else {
-        [self setThemeManually:ThemeLight];
+    if (!didNormalize && !didCleanup && previousTheme == resolvedTheme) {
+        return;
     }
+
+    _theme = resolvedTheme;
+    if (didNormalize || didCleanup) {
+        [[NSUserDefaults standardUserDefaults] synchronize];
+    }
+    [self postThemeChangedNotification];
+    [self applyAppearance];
 }
 
 -(void)applyAppearance {
-    // Apply theme to keyboard
+    Theme resolvedTheme = self.theme;
+
     if ([[UITextField appearance] respondsToSelector:@selector(setKeyboardAppearance:)]) {
-        [UITextField appearance].keyboardAppearance = [ThemeColors keyboardAppearance:theme];
+        [UITextField appearance].keyboardAppearance = [ThemeColors keyboardAppearance:resolvedTheme];
     }
-    
+
     [[UIView appearanceWhenContainedInInstancesOfClasses:@[[UIAlertController class]]]
-     setTintColor:[ThemeColors tintColor:theme]];
+     setTintColor:[ThemeUserColorStore actionTintColorForLegacyThemeValue:resolvedTheme]];
 }
 
 - (void)applyThemeToCell:(UITableViewCell *)cell{
-    cell.backgroundColor = [ThemeColors cellBackgroundColor:theme];
-    cell.textLabel.textColor = [ThemeColors cellTextColor:theme];
+    Theme resolvedTheme = self.theme;
+
+    cell.backgroundColor = [ThemeColors cellBackgroundColor:resolvedTheme];
+    cell.textLabel.textColor = [ThemeColors cellTextColor:resolvedTheme];
     if ([cell respondsToSelector:@selector(setTintColor:)]) {
-        cell.tintColor = [ThemeColors tintColor];
+        cell.tintColor = [ThemeUserColorStore actionTintColorForLegacyThemeValue:resolvedTheme];
     }
 
     if(![cell isKindOfClass:[AvatarTableViewCell class]]){
         if ([cell.imageView respondsToSelector:@selector(setTintColor:)]) {
             UIImage *img =[cell.imageView.image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
             cell.imageView.image = img;
-            cell.imageView.tintColor = [ThemeColors cellIconColor:theme];
+            cell.imageView.tintColor = [ThemeColors cellIconColor:resolvedTheme];
         }
     }
-    
+
     if([cell isKindOfClass:[PlusCellView class]]){
         PlusCellView* plusCellView = (PlusCellView*)cell;
         UIImage *img =[plusCellView.titleImage.image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
         plusCellView.titleImage.image = img;
-        plusCellView.titleImage.tintColor = [ThemeColors cellIconColor:theme];
+        plusCellView.titleImage.tintColor = [ThemeColors cellIconColor:resolvedTheme];
     }
-    
+
     if([cell isKindOfClass:[SimpleCellView class]]){
         SimpleCellView* simpleCellView = (SimpleCellView*)cell;
         UIImage *img = [simpleCellView.imageIcon.image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
         simpleCellView.imageIcon.image = img;
-        simpleCellView.imageIcon.tintColor = [ThemeColors cellIconColor:theme];
+        simpleCellView.imageIcon.tintColor = [ThemeColors cellIconColor:resolvedTheme];
     }
-    
-    cell.selectionStyle = [ThemeColors cellSelectionStyle:theme];
+
+    cell.selectionStyle = [ThemeColors cellSelectionStyle:resolvedTheme];
 }
 
 - (void)applyThemeToTextField:(UITextField *)textfield{
-    //if(theme == ThemeDark){
-        
-        textfield.backgroundColor = [ThemeColors textFieldBackgroundColor:[[ThemeManager sharedManager] theme]];
-        textfield.textColor = [ThemeColors cellTextColor:[[ThemeManager sharedManager] theme]];
-        if ([textfield respondsToSelector:@selector(setTintColor:)]) {
-            textfield.tintColor = [ThemeColors cellTextColor:[[ThemeManager sharedManager] theme]];
+    Theme resolvedTheme = self.theme;
+
+    textfield.backgroundColor = [ThemeColors textFieldBackgroundColor:resolvedTheme];
+    textfield.textColor = [ThemeColors cellTextColor:resolvedTheme];
+    if ([textfield respondsToSelector:@selector(setTintColor:)]) {
+        textfield.tintColor = [ThemeColors cellTextColor:resolvedTheme];
+    }
+
+    UIButton *btnClear = [textfield valueForKey:@"_clearButton"];
+    UIImage *imageNormal = [btnClear imageForState:UIControlStateNormal];
+    UIGraphicsBeginImageContextWithOptions(imageNormal.size, NO, 0.0);
+    CGContextRef context = UIGraphicsGetCurrentContext();
+
+    CGRect rect = (CGRect){ CGPointZero, imageNormal.size };
+    CGContextSetBlendMode(context, kCGBlendModeNormal);
+    [imageNormal drawInRect:rect];
+
+    CGContextSetBlendMode(context, kCGBlendModeSourceIn);
+    [[UIColor whiteColor] setFill];
+    CGContextFillRect(context, rect);
+
+    UIImage *imageTinted  = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    [btnClear setImage:imageTinted forState:UIControlStateNormal];
+
+    textfield.attributedPlaceholder = [[NSAttributedString alloc] initWithString:textfield.attributedPlaceholder.string
+        attributes:@{
+            NSForegroundColorAttributeName: [ThemeColors placeholderColor:resolvedTheme]
         }
-        
-        UIButton *btnClear = [textfield valueForKey:@"_clearButton"];
-        UIImage *imageNormal = [btnClear imageForState:UIControlStateNormal];
-        UIGraphicsBeginImageContextWithOptions(imageNormal.size, NO, 0.0);
-        CGContextRef context = UIGraphicsGetCurrentContext();
-        
-        CGRect rect = (CGRect){ CGPointZero, imageNormal.size };
-        CGContextSetBlendMode(context, kCGBlendModeNormal);
-        [imageNormal drawInRect:rect];
-        
-        CGContextSetBlendMode(context, kCGBlendModeSourceIn);
-        [[UIColor whiteColor] setFill];
-        CGContextFillRect(context, rect);
-        
-        UIImage *imageTinted  = UIGraphicsGetImageFromCurrentImageContext();
-        UIGraphicsEndImageContext();
-        [btnClear setImage:imageTinted forState:UIControlStateNormal];
-        
-        textfield.attributedPlaceholder = [[NSAttributedString alloc] initWithString:textfield.attributedPlaceholder.string
-                                        attributes:@{
-                                                     NSForegroundColorAttributeName: [ThemeColors placeholderColor:theme]
-                                                     }
-         ];
-        
-    //}
+    ];
 }
 
 - (void)applyThemeToAlertController:(UIAlertController *)alert{
-    // Vieww hierarchy : https://stackoverflow.com/a/44606994/1853603
+    Theme resolvedTheme = self.theme;
+
     UIView *firstSubview = alert.view.subviews.firstObject;
     UIView *alertContentView = firstSubview.subviews.firstObject;
     for (UIView *subSubView in alertContentView.subviews) {
-        subSubView.backgroundColor = [ThemeColors alertBackgroundColor:theme];
+        subSubView.backgroundColor = [ThemeColors alertBackgroundColor:resolvedTheme];
     }
-    
-    // If dark theme, hide white effect view
-    //if(theme == ThemeDark || ![[NSUserDefaults standardUserDefaults] boolForKey:@"theme_noel_disabled"]){
+
     [alertContentView.subviews objectAtIndex:1].alpha = 0.0f;
-    //}
-    
-    // If present send title and text message color
+
     if (alert.title != nil)
     {
-        NSAttributedString* attributedString = [[NSAttributedString alloc] initWithString:alert.title attributes:@{NSForegroundColorAttributeName: [ThemeColors textColor:theme], NSFontAttributeName: [UIFont systemFontOfSize:17.f weight:UIFontWeightSemibold]}];
+        NSAttributedString* attributedString = [[NSAttributedString alloc] initWithString:alert.title attributes:@{NSForegroundColorAttributeName: [ThemeColors textColor:resolvedTheme], NSFontAttributeName: [UIFont systemFontOfSize:17.f weight:UIFontWeightSemibold]}];
         [alert setValue:attributedString forKey:@"attributedTitle"];
     }
     if (alert.message != nil)
     {
-        NSAttributedString* attributedString2 = [[NSAttributedString alloc] initWithString:alert.message attributes:@{NSForegroundColorAttributeName: [ThemeColors textColor:theme], NSFontAttributeName: [UIFont systemFontOfSize:13.f weight:UIFontWeightRegular]}];
+        NSAttributedString* attributedString2 = [[NSAttributedString alloc] initWithString:alert.message attributes:@{NSForegroundColorAttributeName: [ThemeColors textColor:resolvedTheme], NSFontAttributeName: [UIFont systemFontOfSize:13.f weight:UIFontWeightRegular]}];
         [alert setValue:attributedString2 forKey:@"attributedMessage"];
     }
 
@@ -221,7 +220,7 @@ int nightDelay;
                 iImageSize = 30;
             }
             else if ([alert.title containsString:@"Noël"]) {
-                is1 = @"noel05"; // Image cadeau
+                is1 = @"noel05";
             }
             UIImage *i1 = [UIImage imageNamed:is1];
             UIImageView* iv1 = [[UIImageView alloc] initWithFrame:CGRectMake(10, 10, iImageSize, iImageSize)];
@@ -235,15 +234,15 @@ int nightDelay;
             NSLayoutConstraint *width = [NSLayoutConstraint constraintWithItem:iv1 attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeNotAnAttribute multiplier:1 constant:iImageSize];
             [alert.view addConstraints:@[centerHorizontal, top, height, width]];
         }
-    
+
         UIImage* originalImage;
-        if (theme == ThemeLight) {
+        if (resolvedTheme == ThemeLight) {
             originalImage = [UIImage imageNamed:@"noel_neige_big_red"];
         }
         else {
             originalImage = [UIImage imageNamed:@"noel_neige_big"];
         }
-        CGFloat scale = 1.5; // iphone
+        CGFloat scale = 1.5;
         if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
             scale = 2.0;
         }
@@ -260,83 +259,80 @@ int nightDelay;
 }
 
 - (void)setThemeManually:(Theme)newTheme {
-    if ([[NSUserDefaults standardUserDefaults] integerForKey:@"auto_theme"] == AUTO_THEME_AUTO_TIME) {
-        Theme calculatedTheme = (Theme)[self getThemeFromCurrentTime];
-        //NSLog(@"AUTO_THEME_AUTO_TIME > MANUAL current theme %d / calculated %d",self.theme, calculatedTheme);
-        if ([[NSUserDefaults standardUserDefaults]  objectForKey:@"force_manual_theme"] == nil) {
-            if (newTheme != calculatedTheme) {
-                //NSLog(@"AUTO_THEME_AUTO_TIME > manual force theme");
-                [[NSUserDefaults standardUserDefaults] setInteger:newTheme forKey:@"force_manual_theme"];
-            } else {
-                //NSLog(@"AUTO_THEME_AUTO_TIME > REMOVE manual force theme");
-                [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"force_manual_theme"];
-            }
-        }
-    }
-    
-    [self changeTheme:newTheme];
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    [defaults setInteger:AUTO_THEME_MANUAL forKey:HFRAutoThemeKey];
+    [defaults setInteger:[self boundedTheme:newTheme] forKey:HFRManualThemeKey];
+    [defaults removeObjectForKey:@"force_manual_theme"];
+    [self refreshTheme];
 }
 
-- (void) checkTheme {
-    if ([[NSUserDefaults standardUserDefaults] integerForKey:@"auto_theme"] == AUTO_THEME_AUTO_TIME) {
-        // Check if theme has been changed manually last time
-        Theme calculatedTheme = (Theme)[self getThemeFromCurrentTime];
-        [self setTheme:calculatedTheme];
-    } else if ([[NSUserDefaults standardUserDefaults] integerForKey:@"auto_theme"] == AUTO_THEME_AUTO_IOS) {
-        if (@available(iOS 13.0, *)) {
-            UITraitCollection *traitCollection = nil;
+- (Theme)boundedTheme:(Theme)candidate {
+    return candidate == ThemeDark ? ThemeDark : ThemeLight;
+}
 
-            if (@available(iOS 13.0, *)) {
-                NSSet<UIScene *> *scenes = [UIApplication sharedApplication].connectedScenes;
-                for (UIScene *scene in scenes) {
-                    if (![scene isKindOfClass:[UIWindowScene class]]) {
-                        continue;
-                    }
-                    UIWindowScene *windowScene = (UIWindowScene *)scene;
-                    for (UIWindow *window in windowScene.windows) {
-                        if (window.isKeyWindow) {
-                            traitCollection = window.traitCollection;
-                            break;
-                        }
-                    }
-                    if (traitCollection != nil) {
-                        break;
-                    }
+- (UITraitCollection *)currentTraitCollection {
+    if (@available(iOS 13.0, *)) {
+        NSSet<UIScene *> *scenes = [UIApplication sharedApplication].connectedScenes;
+        for (UIScene *scene in scenes) {
+            if (![scene isKindOfClass:[UIWindowScene class]]) {
+                continue;
+            }
+            UIWindowScene *windowScene = (UIWindowScene *)scene;
+            for (UIWindow *window in windowScene.windows) {
+                if (window.isKeyWindow) {
+                    return window.traitCollection;
                 }
             }
-
-            if (traitCollection == nil) {
-                traitCollection = [UIScreen mainScreen].traitCollection;
-            }
-
-            if (traitCollection.userInterfaceStyle == UIUserInterfaceStyleDark) {
-                NSLog(@"DYNAMIC -> Dark");
-                [self setTheme:ThemeDark];
-            } else {
-                NSLog(@"DYNAMIC -> Light");
-                [self setTheme:ThemeLight];
-            }
         }
     }
+    return [UIScreen mainScreen].traitCollection;
 }
 
-- (Theme) getThemeFromCurrentTime {
-    NSDate *now = [NSDate date];
-    
-    NSDateFormatter * df = [[NSDateFormatter alloc] init];
-    NSDateFormatter * df2 = [[NSDateFormatter alloc] init];
-    NSString *sTimeDay = [[NSUserDefaults standardUserDefaults] stringForKey:@"auto_theme_day_time"];
-    NSString *sTimeNight = [[NSUserDefaults standardUserDefaults] stringForKey:@"auto_theme_night_time"];
-    [df setDateFormat:@"YY-MM-dd HH:mm"];
-    [df2 setDateFormat:@"YY-MM-dd"];
-    NSString *today = [df2 stringFromDate:now];
-    NSDate *dTimeDay = [df dateFromString:[NSString stringWithFormat:@"%@ %@", today,  sTimeDay]];
-    NSDate *dTimeNight = [df dateFromString:[NSString stringWithFormat:@"%@ %@", today,  sTimeNight]];
-    
-    if ([dTimeDay earlierDate:now] == now || [dTimeNight laterDate:now] == now) {
-        return ThemeDark;
+- (Theme)resolvedThemeForTraitCollection:(UITraitCollection *)traitCollection {
+    NSInteger autoTheme = [[NSUserDefaults standardUserDefaults] integerForKey:HFRAutoThemeKey];
+    if (autoTheme == AUTO_THEME_AUTO_IOS) {
+        UITraitCollection *resolvedTraitCollection = traitCollection ?: [self currentTraitCollection];
+        return resolvedTraitCollection.userInterfaceStyle == UIUserInterfaceStyleDark ? ThemeDark : ThemeLight;
     }
-    return ThemeLight;
+    NSInteger manualTheme = [[NSUserDefaults standardUserDefaults] integerForKey:HFRManualThemeKey];
+    return [self boundedTheme:(Theme)manualTheme];
+}
+
+- (void)synchronizeResolvedTheme {
+    _theme = [self resolvedThemeForTraitCollection:nil];
+}
+
+- (void)postThemeChangedNotification {
+    NSNotification *myNotification = [NSNotification notificationWithName:kThemeChangedNotification
+                                                                  object:self
+                                                                userInfo:nil];
+    [[NSNotificationCenter defaultCenter] postNotification:myNotification];
+}
+
+- (BOOL)normalizeAutoThemeSettingIfNeeded {
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    NSInteger autoTheme = [defaults integerForKey:HFRAutoThemeKey];
+    if (autoTheme == AUTO_THEME_MANUAL || autoTheme == AUTO_THEME_AUTO_IOS) {
+        return NO;
+    }
+    [defaults setInteger:AUTO_THEME_AUTO_IOS forKey:HFRAutoThemeKey];
+    return YES;
+}
+
+- (BOOL)removeDeprecatedThemeKeysIfNeeded {
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    NSArray<NSString *> *deprecatedKeys = @[@"force_manual_theme", @"auto_theme_day_time", @"auto_theme_night_time"];
+    BOOL didRemoveKey = NO;
+
+    for (NSString *key in deprecatedKeys) {
+        if ([defaults objectForKey:key] == nil) {
+            continue;
+        }
+        [defaults removeObjectForKey:key];
+        didRemoveKey = YES;
+    }
+
+    return didRemoveKey;
 }
 
 @end

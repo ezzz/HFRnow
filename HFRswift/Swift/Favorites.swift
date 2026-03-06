@@ -281,6 +281,9 @@ struct FavoriteSectionView: View {
             Text("\(topics.count)")
                 .font(.footnote.monospacedDigit())
                 .foregroundStyle(.secondary)
+        }
+        .padding(.trailing, 34)
+        .overlay(alignment: .trailing) {
             Button {
                 withAnimation(.easeInOut(duration: 0.16)) {
                     onToggleCollapse()
@@ -289,6 +292,9 @@ struct FavoriteSectionView: View {
                 Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
+                    .frame(width: 18, height: 18)
+                    .frame(width: 38, height: 28, alignment: .center)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("favorite-section-toggle-\(sectionID)")
@@ -625,6 +631,7 @@ struct TopicRowView: View {
     var onMarkRead: (() -> Void)?
     var onToggleSuperFavorite: (() -> Void)?
     var onRemoveFavorite: (() -> Void)?
+    @Environment(\.appThemePalette) private var themePalette
     
     private var isVisited: Bool {
         let url = topic.aURL ?? topic.aURLOfLastPage ?? ""
@@ -667,8 +674,11 @@ struct TopicRowView: View {
             showUnreadBadgeWhenZero: false,
             leadingBottomText: pageLabel,
             trailingBottomText: trailingLabel,
-            rowBackgroundTint: isSuperFavorite ? Color.yellow.opacity(0.14) : nil,
+            rowBackgroundTint: isSuperFavorite ? themePalette.superFavoriteBackgroundColor : nil,
             contentPadding: EdgeInsets(top: 2, leading: 0, bottom: 2, trailing: 0),
+            rowBackgroundOverflow: isSuperFavorite
+                ? EdgeInsets(top: 4, leading: 6, bottom: 4, trailing: 6)
+                : EdgeInsets(),
             openContext: .favorites,
             extraContextMenu: {
                 AnyView(
@@ -708,7 +718,6 @@ struct TopicRowView: View {
                 } label: {
                     Label("Lu", systemImage: "checkmark")
                 }
-                .tint(.accentColor)
             }
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {

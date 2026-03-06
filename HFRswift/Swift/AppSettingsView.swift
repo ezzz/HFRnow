@@ -198,7 +198,6 @@ struct AppSettingsView: View {
 
         if autoTheme == Constants.autoThemeIOS {
             defaults.set(Constants.autoThemeIOS, forKey: "auto_theme")
-            themeManager?.checkTheme()
             themeManager?.refreshTheme()
             return
         }
@@ -209,7 +208,6 @@ struct AppSettingsView: View {
         }
         defaults.set(Constants.autoThemeManual, forKey: "auto_theme")
         defaults.set(boundedTheme, forKey: "theme")
-        themeManager?.setValue(boundedTheme, forKey: "theme")
         themeManager?.refreshTheme()
     }
 
@@ -294,9 +292,9 @@ struct AppSettingsView: View {
     }
 
     private func resolvedTintHue() -> Double {
-        guard let currentTintColor = ThemeColors.getUserColor("theme_day_color_action") else {
-            return Constants.defaultTintHue
-        }
+        let currentTintColor =
+            ThemeUserColorStore.storedColor(forKey: "theme_day_color_action")
+            ?? ThemeUserColorStore.defaultTintColor(forLegacyThemeValue: 0)
 
         var hue: CGFloat = 0
         var saturation: CGFloat = 0
@@ -314,8 +312,8 @@ struct AppSettingsView: View {
         let dayTint = UIColor(hue: boundedHue, saturation: 0.65, brightness: 1.0, alpha: 1.0)
         let nightTint = UIColor(hue: boundedHue, saturation: 0.70, brightness: 0.95, alpha: 1.0)
 
-        ThemeColors.updateUserColor("theme_day_color_action", with: dayTint)
-        ThemeColors.updateUserColor("theme_night_color_action", with: nightTint)
+        ThemeUserColorStore.storeColor(dayTint, forKey: "theme_day_color_action")
+        ThemeUserColorStore.storeColor(nightTint, forKey: "theme_night_color_action")
         ThemeManager.shared()?.refreshTheme()
     }
 

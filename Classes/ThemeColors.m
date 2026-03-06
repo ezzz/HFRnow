@@ -10,6 +10,7 @@
 #import "Constants.h"
 #import "ThemeManager.h"
 #import "TabBarController.h"
+#import "HFRswift-Swift.h"
 
 #define DEFAULT_VOID_COLOR [UIColor redColor]
 
@@ -17,8 +18,29 @@
 
 #pragma mark User defaults
 
++ (BOOL)isManagedUserColorSetting:(NSString *)sSetting {
+    return [sSetting isEqualToString:@"theme_day_color_action"]
+        || [sSetting isEqualToString:@"theme_night_color_action"]
+        || [sSetting isEqualToString:@"theme_day_color_love"]
+        || [sSetting isEqualToString:@"theme_night_color_love"]
+        || [sSetting isEqualToString:@"theme_day_color_superfavori"]
+        || [sSetting isEqualToString:@"theme_night_color_superfavori"];
+}
+
++ (BOOL)isManagedBrightnessSetting:(NSString *)sSetting {
+    return [sSetting isEqualToString:@"theme_night_brightness"];
+}
+
 // User colors
 + (UIColor*)getUserColor:(NSString*)sSetting {
+    if ([self isManagedUserColorSetting:sSetting]) {
+        UIColor *storedColor = [ThemeUserColorStore storedColorForKey:sSetting];
+        if (storedColor != nil) {
+            return storedColor;
+        }
+        return [self resetUserColor:sSetting];
+    }
+
     // Read a color from settings
     NSString *theColorStr = [[NSUserDefaults standardUserDefaults] objectForKey:sSetting];
     if ([theColorStr length] > 0) {
@@ -30,41 +52,45 @@
 }
 
 + (UIColor*)resetUserColor:(NSString*)sSetting {
-    UIColor* c = [self getDefaultUserColor:sSetting];
-    [self updateUserColor:sSetting withColor:c];
+    UIColor* c = [ThemeUserColorStore resetColorForKey:sSetting];
+    if (c == nil) {
+        c = [self getDefaultUserColor:sSetting];
+    }
+    if (c != nil) {
+        [self updateUserColor:sSetting withColor:c];
+    }
     return c;
 }
 
 + (void)updateUserColor:(NSString*)sSetting withColor:(UIColor*)c{
+    if (c == nil) {
+        return;
+    }
+    if ([self isManagedUserColorSetting:sSetting]) {
+        [ThemeUserColorStore storeColor:c forKey:sSetting];
+        return;
+    }
+
     // Save a color
     NSString *theColorStr = [self stringFromColor:c];
     [[NSUserDefaults standardUserDefaults] setObject:theColorStr forKey:sSetting];
 }
 
 + (UIColor*)getDefaultUserColor:(NSString*)sSetting {
-    UIColor* c;
-    if  ([sSetting isEqualToString:@"theme_day_color_action"]) {
-        c = [ThemeColors defaultTintColor:ThemeLight];
+    UIColor* c = [ThemeUserColorStore defaultColorForKey:sSetting];
+    if (c != nil) {
+        return c;
     }
-    else if ([sSetting isEqualToString:@"theme_night_color_action"]) {
-        c = [ThemeColors defaultTintColor:ThemeDark];
-    }
-    else if ([sSetting isEqualToString:@"theme_day_color_love"]) {
-        c = [ThemeColors defaultLoveColor:ThemeLight];
-    }
-    else if ([sSetting isEqualToString:@"theme_night_color_love"]) {
-        c = [ThemeColors defaultLoveColor:ThemeDark];
-    }
-    else if ([sSetting isEqualToString:@"theme_day_color_superfavori"]) {
-        c = [ThemeColors defaultSuperFavorite:ThemeLight];
-    }
-    else if ([sSetting isEqualToString:@"theme_night_color_superfavori"]) {
-        c = [ThemeColors defaultSuperFavorite:ThemeDark];
-    }
+
+    c = nil;
     return c;
 }
 
 + (CGFloat)getUserBrightness:(NSString*)sSetting {
+    if ([self isManagedBrightnessSetting:sSetting]) {
+        return [ThemeUserColorStore storedBrightnessForKey:sSetting];
+    }
+
     // Read a color from settings
     if ([[NSUserDefaults standardUserDefaults] objectForKey:sSetting]) {
         return [[NSUserDefaults standardUserDefaults] floatForKey:sSetting];
@@ -75,10 +101,18 @@
 }
 
 + (void)updateUserBrightness:(NSString*)sSetting withBrightness:(CGFloat)b {
+    if ([self isManagedBrightnessSetting:sSetting]) {
+        [ThemeUserColorStore storeBrightness:b forKey:sSetting];
+        return;
+    }
     [[NSUserDefaults standardUserDefaults] setFloat:b forKey:sSetting];
 }
 
 + (CGFloat)resetUserBrightness:(NSString*)sSetting {
+    if ([self isManagedBrightnessSetting:sSetting]) {
+        return [ThemeUserColorStore resetBrightnessForKey:sSetting];
+    }
+
     CGFloat b = 0;
     if ([sSetting isEqualToString:@"theme_night_brightness"]) {
         b = 1.0;
@@ -367,12 +401,8 @@
 }
 
 + (UIColor *)defaultLoveColor:(Theme)theme{
-    switch (theme) {
-        case ThemeLight: // Rose
-            return [UIColor colorWithHue:0.9 saturation:0.1 brightness:1.0 alpha:1.0];
-        case ThemeDark: // Rose
-            return [UIColor colorWithHue:0.9 saturation:0.9 brightness:0.3 alpha:1.0];
-    }
+    NSString *key = theme == ThemeDark ? @"theme_night_color_love" : @"theme_day_color_love";
+    return [ThemeUserColorStore defaultColorForKey:key];
 }
 
 + (UIColor *)loveColor:(Theme)theme {
@@ -445,12 +475,8 @@
 }
 
 + (UIColor *)defaultSuperFavorite:(Theme)theme {
-    switch (theme) {
-        case ThemeLight: // Light yellow
-            return [UIColor colorWithHue:0.13 saturation:0.08 brightness:1.0 alpha:1.0];
-        case ThemeDark: // Yellow
-            return [UIColor colorWithHue:0.15 saturation:1.0 brightness:0.2 alpha:1.0];
-    }
+    NSString *key = theme == ThemeDark ? @"theme_night_color_superfavori" : @"theme_day_color_superfavori";
+    return [ThemeUserColorStore defaultColorForKey:key];
 }
 
 
@@ -591,41 +617,11 @@
 };
 
 + (UIColor *)tintColor:(Theme)theme{
-    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"theme_noel_disabled"] == NO) {
-        return [UIColor colorWithRed:1.0 green:0.0 blue:0.0 alpha:1.0];
-    }
-    
-    /* Dynamic color for tint color not working
-    UIColor *dynamicColor = [UIColor colorWithDynamicProvider:^UIColor * _Nonnull(UITraitCollection * _Nonnull traitCollection) {
-        if ([[ThemeManager sharedManager] isLightForTraitCollection:traitCollection]) {
-            return [ThemeColors getUserColor:@"theme_day_color_action"];
-        } else {
-            return [ThemeColors getUserColor:@"theme_night_color_action"];
-        }
-    }];
-    return dynamicColor;*/
-    
-    switch (theme) {
-        case ThemeLight:
-            return [ThemeColors getUserColor:@"theme_day_color_action"]; break;
-        case ThemeDark: // Orange
-            return [ThemeColors getUserColor:@"theme_night_color_action"]; break;
-    }
+    return [ThemeUserColorStore actionTintColorForLegacyThemeValue:theme];
 }
 
 + (UIColor *)tintColorDynamic {
-    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"theme_noel_disabled"] == NO) {
-        return [UIColor colorWithRed:1.0 green:0.0 blue:0.0 alpha:1.0];
-    }
-    
-    UIColor *dynamicColor = [UIColor colorWithDynamicProvider:^UIColor * _Nonnull(UITraitCollection * _Nonnull traitCollection) {
-        if ([[ThemeManager sharedManager] isLightForTraitCollection:traitCollection]) {
-            return [ThemeColors getUserColor:@"theme_day_color_action"];
-        } else {
-            return [ThemeColors getUserColor:@"theme_night_color_action"];
-        }
-    }];
-    return dynamicColor;
+    return [ThemeUserColorStore dynamicActionTintColor];
 }
 
 
@@ -642,12 +638,7 @@
 
 
 + (UIColor *)defaultTintColor:(Theme)theme {
-    switch (theme) {
-        case ThemeLight: // Turquoise / Sky Blue
-            return [UIColor colorWithHue:190.0/360.0 saturation:0.65 brightness:1.0 alpha:1.0];
-        case ThemeDark:  // Turquoise adjusted for dark theme
-            return [UIColor colorWithHue:190.0/360.0 saturation:0.70 brightness:0.95 alpha:1.0];
-    }
+    return [ThemeUserColorStore defaultTintColorForLegacyThemeValue:theme];
 }
 /*
 + (UIColor *)tintColor {
@@ -835,25 +826,11 @@
 
 
 + (NSString *)creditsCss:(Theme)theme{
-    switch (theme) {
-        case ThemeLight:
-            return @"body{background:#efeff4;}.ios7 h1 {background:#efeff4;color: rgba(109, 109, 114, 1);}.ios7 ul {background:#fff;}.ios7 ul, .ios7 p {background:#fff;}";
-        case ThemeDark:
-            return @"body{background:rgba(30, 31, 33, 1);color: rgba(146, 147, 151, 1);} a{color: rgba(42, 153, 250, 1);} .ios7 h1 {background:rgba(36, 37, 41, 1);color: rgba(109, 109, 114, 1);}.ios7 ul, .ios7 p {background:rgba(30, 31, 33, 1);}";
-        default:
-            return @"body{background:#efeff4;}.ios7 h1 {background:#efeff4;color: rgba(109, 109, 114, 1);}.ios7 ul {background:#fff;}.ios7 ul, .ios7 p {background:#fff;}";
-    }
+    return [ThemeUserColorStore creditsCSSForLegacyThemeValue:theme];
 }
 
 + (NSString *)smileysCss:(Theme)theme{
-    switch (theme) {
-        case ThemeLight:
-            return @"body.ios7 {background:#bbc2c9;} body.ios7 .button { background-image : none !important; background-color : rgba(255,255,255,1); border-bottom:1px solid rgb(136,138,142); } body.ios7 #container_ajax img.smile, body.ios7 #smileperso img.smile { background-image : none !important; background-color: rgba(255,255,255,1); border-bottom:1px solid rgb(136,138,142); } body.ios7 .button.selected, body.ios7 #container_ajax img.smile.selected, body.ios7 #smileperso img.smile.selected { background-image : none !important; background-color:rgba(136,138,142,1); }";
-        case ThemeDark:
-            return @"body.ios7 {background:rgba(30, 31, 33, 1);} body.ios7 .button { background-image : none !important; background-color : rgba(255, 255, 255,0.2); border-bottom:1px solid rgb(68,70,77); } body.ios7 #container_ajax img.smile, body.ios7 #smileperso img.smile { background-image : none !important; background-color: rgba(255, 255, 255, 0.2); border-bottom:1px solid rgb(68,70,77); } body.ios7 .button.selected, body.ios7 #container_ajax img.smile.selected, body.ios7 #smileperso img.smile.selected { background-image : none !important; background-color:rgba(255,255,255,0.1); }";
-        default:
-            return @"body.ios7 {background:#bbc2c9;} body.ios7 .button { background-image : none !important; background-color : rgba(255,255,255,1); border-bottom:1px solid rgb(136,138,142); } body.ios7 #container_ajax img.smile, body.ios7 #smileperso img.smile { background-image : none !important; background-color: rgba(255,255,255,1); border-bottom:1px solid rgb(136,138,142); } body.ios7 .button.selected, body.ios7 #container_ajax img.smile.selected, body.ios7 #smileperso img.smile.selected { background-image : none !important; background-color:rgba(136,138,142,1); }";
-    }
+    return [ThemeUserColorStore smileysCSSForLegacyThemeValue:theme];
 }
 
 + (NSString *)isLightThemeAlternate:(Theme)theme{
@@ -1187,4 +1164,3 @@
 
 
 @end
-

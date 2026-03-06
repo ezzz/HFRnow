@@ -3559,6 +3559,17 @@ API_AVAILABLE(ios(16.0)) {
     if (forumBaseURL.length == 0) {
         forumBaseURL = @"https://forum.hardware.fr";
     }
+    NSString *realForumBaseURL = [k RealForumURL];
+    if (realForumBaseURL.length == 0) {
+        realForumBaseURL = forumBaseURL;
+    }
+    BOOL canBeFavorite = [self canBeFavorite];
+    BOOL isPrivateCategory = [self.arrayInputData[@"cat"] isEqualToString:@"prive"];
+    BOOL canBookmark = [[NSUserDefaults standardUserDefaults] boolForKey:@"mpstorage_active"] && !isPrivateCategory;
+    BOOL canAQ = !isPrivateCategory;
+    NSString *topicID = [self.arrayInputData[@"post"] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    NSString *topicCategory = [self.arrayInputData[@"cat"] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    NSString *topicTitle = [self.topicName stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
 
     for (NSUInteger index = 0; index < self.arrayData.count; index++) {
         id candidate = [self.arrayData objectAtIndex:index];
@@ -3584,8 +3595,56 @@ API_AVAILABLE(ios(16.0)) {
             [entry setObject:privateMessageURL forKey:@"privateMessageURL"];
         }
 
+        NSString *favoriteURL = [self swiftAbsoluteForumURLFromRawURL:item.addFlagUrl forumBaseURL:forumBaseURL];
+        if (favoriteURL.length > 0) {
+            [entry setObject:favoriteURL forKey:@"favoriteURL"];
+        }
+
+        NSString *alertURL = [self swiftAbsoluteForumURLFromRawURL:item.urlAlert forumBaseURL:forumBaseURL];
+        if (alertURL.length > 0) {
+            [entry setObject:alertURL forKey:@"alertURL"];
+        }
+
+        NSString *editURL = [self swiftAbsoluteDecodedForumURLFromRawURL:item.urlEdit forumBaseURL:forumBaseURL];
+        BOOL canDelete = NO;
+        if (editURL.length > 0) {
+            [entry setObject:@"1" forKey:@"isOwnMessage"];
+            [entry setObject:editURL forKey:@"editURL"];
+            canDelete = (index > 0);
+        } else {
+            [entry setObject:@"0" forKey:@"isOwnMessage"];
+        }
+
+        if (item.quoteJS.length > 0) {
+            [entry setObject:item.quoteJS forKey:@"quoteJS"];
+        }
+        if (item.name.length > 0) {
+            [entry setObject:item.name forKey:@"authorName"];
+        }
+
         if (item.postID.length > 0) {
             [entry setObject:item.postID forKey:@"postID"];
+
+            NSString *permalinkURL = [self swiftPermalinkURLForPostID:item.postID
+                                                             baseForum:realForumBaseURL];
+            if (permalinkURL.length > 0) {
+                [entry setObject:permalinkURL forKey:@"permalinkURL"];
+            }
+        }
+
+        [entry setObject:(canBeFavorite ? @"1" : @"0") forKey:@"canBeFavorite"];
+        [entry setObject:(isPrivateCategory ? @"1" : @"0") forKey:@"isPrivateCategory"];
+        [entry setObject:(canAQ ? @"1" : @"0") forKey:@"canAQ"];
+        [entry setObject:(canBookmark ? @"1" : @"0") forKey:@"canBookmark"];
+        [entry setObject:(canDelete ? @"1" : @"0") forKey:@"canDelete"];
+        if (topicID.length > 0) {
+            [entry setObject:topicID forKey:@"topicID"];
+        }
+        if (topicCategory.length > 0) {
+            [entry setObject:topicCategory forKey:@"topicCategory"];
+        }
+        if (topicTitle.length > 0) {
+            [entry setObject:topicTitle forKey:@"topicTitle"];
         }
 
         if (entry.count > 0) {
@@ -3636,6 +3695,45 @@ API_AVAILABLE(ios(16.0)) {
         return [NSString stringWithFormat:@"%@%@", forumBaseURL, trimmed];
     }
     return [NSString stringWithFormat:@"%@/%@", forumBaseURL, trimmed];
+}
+
+- (NSString *)swiftAbsoluteDecodedForumURLFromRawURL:(NSString *)rawURL forumBaseURL:(NSString *)forumBaseURL {
+    NSString *trimmed = [rawURL stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    if (trimmed.length == 0) {
+        return nil;
+    }
+
+    NSString *decoded = trimmed;
+    BOOL shouldDecode = trimmed.length > 20
+        && [trimmed rangeOfString:@"/"].location == NSNotFound
+        && [trimmed rangeOfString:@"http"].location == NSNotFound;
+    if (shouldDecode) {
+        @try {
+            decoded = [trimmed decodeSpanUrlFromString];
+        } @catch (NSException *exception) {
+            decoded = trimmed;
+        }
+    }
+
+    return [self swiftAbsoluteForumURLFromRawURL:decoded forumBaseURL:forumBaseURL];
+}
+
+- (NSString *)swiftPermalinkURLForPostID:(NSString *)postID baseForum:(NSString *)baseForum {
+    NSString *trimmedPostID = [postID stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    if (trimmedPostID.length == 0) {
+        return nil;
+    }
+    NSString *trimmedCurrentURL = [self.currentUrl stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    if (trimmedCurrentURL.length == 0) {
+        return nil;
+    }
+
+    NSString *absoluteCurrentURL = [self swiftAbsoluteForumURLFromRawURL:trimmedCurrentURL forumBaseURL:baseForum];
+    if (absoluteCurrentURL.length == 0) {
+        return nil;
+    }
+
+    return [NSString stringWithFormat:@"%@#%@", absoluteCurrentURL, trimmedPostID];
 }
 
 - (void)fetchContentForTopicURL:(NSString *)topicURL

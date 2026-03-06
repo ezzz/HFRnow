@@ -10,7 +10,7 @@
 #import "MWCommon.h"
 #import "MWPhotoBrowser.h"
 #import "MWPhotoBrowserPrivate.h"
-#import <SDWebImage/SDWebImage.h>
+#import "SDWebImage.h"
 
 #define PADDING                  10
 #define ACTION_SHEET_OLD_ACTIONS 2000

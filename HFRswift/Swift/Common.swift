@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 import SwiftUI
 import UIKit
 
@@ -66,8 +67,373 @@ enum AppThemeResolver {
                 .flatMap(\.windows)
                 .first(where: { $0.isKeyWindow })?
                 .traitCollection.userInterfaceStyle
-            ?? UIScreen.main.traitCollection.userInterfaceStyle
+            ?? UITraitCollection.current.userInterfaceStyle
         return style == .dark ? .dark : .light
+    }
+}
+
+@objc(ThemeUserColorStore)
+final class ThemeUserColorStore: NSObject {
+    private static let autoThemeKey = "auto_theme"
+    private static let manualThemeKey = "theme"
+    private static let noelDisabledKey = "theme_noel_disabled"
+    private static let dayActionColorKey = "theme_day_color_action"
+    private static let nightActionColorKey = "theme_night_color_action"
+    private static let dayLoveColorKey = "theme_day_color_love"
+    private static let nightLoveColorKey = "theme_night_color_love"
+    private static let daySuperFavoriteColorKey = "theme_day_color_superfavori"
+    private static let nightSuperFavoriteColorKey = "theme_night_color_superfavori"
+    private static let nightBrightnessKey = "theme_night_brightness"
+
+    @objc(storedColorForKey:)
+    class func storedColor(forKey key: String) -> UIColor? {
+        guard let serializedColor = UserDefaults.standard.string(forKey: key), !serializedColor.isEmpty else {
+            return nil
+        }
+        return color(from: serializedColor)
+    }
+
+    @objc(storeColor:forKey:)
+    class func storeColor(_ color: UIColor, forKey key: String) {
+        UserDefaults.standard.set(serializedColor(from: color), forKey: key)
+    }
+
+    @objc(defaultColorForKey:)
+    class func defaultColor(forKey key: String) -> UIColor? {
+        switch key {
+        case dayActionColorKey:
+            return defaultTintColor(forLegacyThemeValue: 0)
+        case nightActionColorKey:
+            return defaultTintColor(forLegacyThemeValue: 1)
+        case dayLoveColorKey:
+            return UIColor(hue: 0.9, saturation: 0.1, brightness: 1.0, alpha: 1.0)
+        case nightLoveColorKey:
+            return UIColor(hue: 0.9, saturation: 0.9, brightness: 0.3, alpha: 1.0)
+        case daySuperFavoriteColorKey:
+            return UIColor(hue: 0.13, saturation: 0.08, brightness: 1.0, alpha: 1.0)
+        case nightSuperFavoriteColorKey:
+            return UIColor(hue: 0.15, saturation: 1.0, brightness: 0.2, alpha: 1.0)
+        default:
+            return nil
+        }
+    }
+
+    @objc(resetColorForKey:)
+    class func resetColor(forKey key: String) -> UIColor? {
+        guard let defaultColor = defaultColor(forKey: key) else {
+            return nil
+        }
+        storeColor(defaultColor, forKey: key)
+        return defaultColor
+    }
+
+    @objc(defaultTintColorForLegacyThemeValue:)
+    class func defaultTintColor(forLegacyThemeValue themeValue: Int) -> UIColor {
+        if themeValue == 1 {
+            return UIColor(hue: 190.0 / 360.0, saturation: 0.70, brightness: 0.95, alpha: 1.0)
+        }
+        return UIColor(hue: 190.0 / 360.0, saturation: 0.65, brightness: 1.0, alpha: 1.0)
+    }
+
+    @objc(actionTintColorForLegacyThemeValue:)
+    class func actionTintColor(forLegacyThemeValue themeValue: Int) -> UIColor {
+        guard UserDefaults.standard.bool(forKey: noelDisabledKey) else {
+            return .red
+        }
+
+        let key = themeValue == 1 ? nightActionColorKey : dayActionColorKey
+        return storedColor(forKey: key) ?? defaultTintColor(forLegacyThemeValue: themeValue)
+    }
+
+    @objc(dynamicActionTintColor)
+    class func dynamicActionTintColor() -> UIColor {
+        guard UserDefaults.standard.bool(forKey: noelDisabledKey) else {
+            return .red
+        }
+
+        return UIColor { traitCollection in
+            let themeValue = resolvedLegacyThemeValue(for: traitCollection)
+            return actionTintColor(forLegacyThemeValue: themeValue)
+        }
+    }
+
+    @objc(creditsCSSForLegacyThemeValue:)
+    class func creditsCSS(forLegacyThemeValue themeValue: Int) -> String {
+        if themeValue == 1 {
+            return "body{background:rgba(30, 31, 33, 1);color: rgba(146, 147, 151, 1);} a{color: rgba(42, 153, 250, 1);} .ios7 h1 {background:rgba(36, 37, 41, 1);color: rgba(109, 109, 114, 1);}.ios7 ul, .ios7 p {background:rgba(30, 31, 33, 1);}"
+        }
+        return "body{background:#efeff4;}.ios7 h1 {background:#efeff4;color: rgba(109, 109, 114, 1);}.ios7 ul {background:#fff;}.ios7 ul, .ios7 p {background:#fff;}"
+    }
+
+    @objc(smileysCSSForLegacyThemeValue:)
+    class func smileysCSS(forLegacyThemeValue themeValue: Int) -> String {
+        if themeValue == 1 {
+            return "body.ios7 {background:rgba(30, 31, 33, 1);} body.ios7 .button { background-image : none !important; background-color : rgba(255, 255, 255,0.2); border-bottom:1px solid rgb(68,70,77); } body.ios7 #container_ajax img.smile, body.ios7 #smileperso img.smile { background-image : none !important; background-color: rgba(255, 255, 255, 0.2); border-bottom:1px solid rgb(68,70,77); } body.ios7 .button.selected, body.ios7 #container_ajax img.smile.selected, body.ios7 #smileperso img.smile.selected { background-image : none !important; background-color:rgba(255,255,255,0.1); }"
+        }
+        return "body.ios7 {background:#bbc2c9;} body.ios7 .button { background-image : none !important; background-color : rgba(255,255,255,1); border-bottom:1px solid rgb(136,138,142); } body.ios7 #container_ajax img.smile, body.ios7 #smileperso img.smile { background-image : none !important; background-color: rgba(255,255,255,1); border-bottom:1px solid rgb(136,138,142); } body.ios7 .button.selected, body.ios7 #container_ajax img.smile.selected, body.ios7 #smileperso img.smile.selected { background-image : none !important; background-color:rgba(136,138,142,1); }"
+    }
+
+    @objc(defaultBrightnessForKey:)
+    class func defaultBrightness(forKey key: String) -> CGFloat {
+        switch key {
+        case nightBrightnessKey:
+            return 1.0
+        default:
+            return 0.0
+        }
+    }
+
+    @objc(storedBrightnessForKey:)
+    class func storedBrightness(forKey key: String) -> CGFloat {
+        guard UserDefaults.standard.object(forKey: key) != nil else {
+            return resetBrightness(forKey: key)
+        }
+        return CGFloat(UserDefaults.standard.double(forKey: key))
+    }
+
+    @objc(storeBrightness:forKey:)
+    class func storeBrightness(_ brightness: CGFloat, forKey key: String) {
+        UserDefaults.standard.set(Double(brightness), forKey: key)
+    }
+
+    @objc(resetBrightnessForKey:)
+    class func resetBrightness(forKey key: String) -> CGFloat {
+        let brightness = defaultBrightness(forKey: key)
+        storeBrightness(brightness, forKey: key)
+        return brightness
+    }
+
+    private class func resolvedLegacyThemeValue(for traitCollection: UITraitCollection?) -> Int {
+        let autoTheme = UserDefaults.standard.integer(forKey: autoThemeKey)
+        guard autoTheme == 3 else {
+            return UserDefaults.standard.integer(forKey: manualThemeKey) == 1 ? 1 : 0
+        }
+        let interfaceStyle = traitCollection?.userInterfaceStyle ?? AppThemeResolver.currentColorScheme().uiUserInterfaceStyle
+        return interfaceStyle == .dark ? 1 : 0
+    }
+
+    private class func serializedColor(from color: UIColor) -> String {
+        let resolvedColor = color.resolvedColor(with: UITraitCollection.current)
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+
+        if !resolvedColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha) {
+            var white: CGFloat = 0
+            if resolvedColor.getWhite(&white, alpha: &alpha) {
+                red = white
+                green = white
+                blue = white
+            }
+        }
+
+        return String(format: "{%.3f, %.3f, %.3f, %.3f}", red, green, blue, alpha)
+    }
+
+    private class func color(from serializedColor: String) -> UIColor? {
+        let trimmed = serializedColor.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.hasPrefix("{"), trimmed.hasSuffix("}") else {
+            return nil
+        }
+
+        let payload = trimmed.dropFirst().dropLast()
+        let components = payload.components(separatedBy: ", ")
+        guard components.count == 4 else {
+            return nil
+        }
+
+        let values = components.compactMap { Double($0) }
+        guard values.count == 4 else {
+            return nil
+        }
+
+        return UIColor(
+            red: values[0],
+            green: values[1],
+            blue: values[2],
+            alpha: values[3]
+        )
+    }
+}
+
+private extension ColorScheme {
+    var uiUserInterfaceStyle: UIUserInterfaceStyle {
+        self == .dark ? .dark : .light
+    }
+}
+
+struct AppThemePalette {
+    let colorScheme: ColorScheme
+    let actionTintUIColor: UIColor
+
+    var actionTintColor: Color {
+        Color(uiColor: actionTintUIColor)
+    }
+
+    var editorBackgroundColor: Color {
+        Color(uiColor: .secondarySystemBackground)
+    }
+
+    var controlBackgroundColor: Color {
+        Color(uiColor: .tertiarySystemFill)
+    }
+
+    var tertiaryBackgroundColor: Color {
+        Color(uiColor: .tertiarySystemBackground)
+    }
+
+    var webViewBackdropUIColor: UIColor {
+        colorScheme == .dark ? .black : .systemGray6
+    }
+
+    var webViewBackdropColor: Color {
+        Color(uiColor: webViewBackdropUIColor)
+    }
+
+    var staticPageBackgroundUIColor: UIColor {
+        if colorScheme == .dark {
+            return UIColor(red: 30.0 / 255.0, green: 31.0 / 255.0, blue: 33.0 / 255.0, alpha: 1.0)
+        }
+        return .systemGroupedBackground
+    }
+
+    var stickyAccentColor: Color {
+        if colorScheme == .dark {
+            return Color(red: 0.95, green: 0.49, blue: 0.25)
+        }
+        return Color(red: 0.91, green: 0.30, blue: 0.24)
+    }
+
+    var superFavoriteBackgroundColor: Color {
+        Color(red: 0.98, green: 0.74, blue: 0.45)
+            .opacity(colorScheme == .dark ? 0.28 : 0.18)
+    }
+
+    func unreadBadgeTextColor(isVisited: Bool) -> Color {
+        colorScheme == .dark ? .black : .white
+    }
+
+    func unreadBadgeBackgroundColor(isVisited: Bool) -> Color {
+        if colorScheme == .dark {
+            return isVisited ? .white.opacity(0.55) : .white.opacity(0.78)
+        }
+        return isVisited ? .secondary.opacity(0.5) : .secondary
+    }
+
+    func topicFlagBackgroundColor(flagType: String?) -> Color? {
+        guard
+            let flagType = flagType?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+            !flagType.isEmpty
+        else {
+            return nil
+        }
+
+        let opacity = colorScheme == .dark ? 0.18 : 0.12
+        switch flagType {
+        case "yellow":
+            return Color.yellow.opacity(opacity + 0.02)
+        case "blue":
+            return Color.blue.opacity(opacity)
+        case "red":
+            return Color.red.opacity(opacity)
+        default:
+            return nil
+        }
+    }
+}
+
+private struct AppThemePaletteKey: EnvironmentKey {
+    static let defaultValue = AppThemePalette(colorScheme: .light, actionTintUIColor: .systemBlue)
+}
+
+extension EnvironmentValues {
+    var appThemePalette: AppThemePalette {
+        get { self[AppThemePaletteKey.self] }
+        set { self[AppThemePaletteKey.self] = newValue }
+    }
+}
+
+@MainActor
+final class AppThemeStore: ObservableObject {
+    static let shared = AppThemeStore()
+
+    @Published private(set) var preferredColorScheme: ColorScheme?
+    @Published private(set) var effectiveColorScheme: ColorScheme
+    @Published private(set) var actionTintUIColor: UIColor
+    @Published private(set) var themeRevision: Int
+
+    var actionTintColor: Color {
+        Color(uiColor: actionTintUIColor)
+    }
+
+    var palette: AppThemePalette {
+        AppThemePalette(colorScheme: effectiveColorScheme, actionTintUIColor: actionTintUIColor)
+    }
+
+    var resolvedLegacyTheme: Theme {
+        effectiveColorScheme == .dark ? ThemeDark : ThemeLight
+    }
+
+    private var lastKnownSystemColorScheme: ColorScheme?
+    private var themeChangeObserver: NSObjectProtocol?
+
+    private init() {
+        let initialColorScheme = AppThemeResolver.currentColorScheme()
+        self.preferredColorScheme = AppThemeResolver.preferredColorScheme()
+        self.effectiveColorScheme = initialColorScheme
+        self.actionTintUIColor = Self.resolvedActionTintUIColor(for: initialColorScheme)
+        self.themeRevision = 0
+
+        themeChangeObserver = NotificationCenter.default.addObserver(
+            forName: Notification.Name("kThemeChangedNotification"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.refresh(forceThemeRevision: true)
+            }
+        }
+    }
+
+    func refresh(systemColorScheme: ColorScheme? = nil, forceThemeRevision: Bool = false) {
+        if let systemColorScheme {
+            lastKnownSystemColorScheme = systemColorScheme
+        } else if AppThemeResolver.usesSystemColorScheme {
+            lastKnownSystemColorScheme = AppThemeResolver.currentColorScheme()
+        }
+
+        let resolvedPreferredColorScheme = AppThemeResolver.preferredColorScheme()
+        let resolvedEffectiveColorScheme = AppThemeResolver.resolvedColorScheme(
+            systemColorScheme: lastKnownSystemColorScheme
+        )
+        let resolvedActionTintUIColor = Self.resolvedActionTintUIColor(for: resolvedEffectiveColorScheme)
+
+        var didChange = false
+
+        if preferredColorScheme != resolvedPreferredColorScheme {
+            preferredColorScheme = resolvedPreferredColorScheme
+            didChange = true
+        }
+
+        if effectiveColorScheme != resolvedEffectiveColorScheme {
+            effectiveColorScheme = resolvedEffectiveColorScheme
+            didChange = true
+        }
+
+        if !actionTintUIColor.isEqual(resolvedActionTintUIColor) {
+            actionTintUIColor = resolvedActionTintUIColor
+            didChange = true
+        }
+
+        if didChange || forceThemeRevision {
+            themeRevision += 1
+        }
+    }
+
+    private static func resolvedActionTintUIColor(for colorScheme: ColorScheme) -> UIColor {
+        let legacyThemeValue = colorScheme == .dark ? 1 : 0
+        return ThemeUserColorStore.actionTintColor(forLegacyThemeValue: legacyThemeValue)
     }
 }
 
@@ -828,11 +1194,12 @@ struct TopicListRowView: View {
     var trailingBottomText: String?
     var rowBackgroundTint: Color?
     var contentPadding: EdgeInsets = EdgeInsets(top: 6, leading: 8, bottom: 6, trailing: 8)
+    var rowBackgroundOverflow: EdgeInsets = EdgeInsets()
     var openContext: TopicOpenContext = .generic
     var quickActions: TopicQuickActionsConfiguration?
     var extraContextMenu: (() -> AnyView)?
     var onOpen: ((String?) -> Void)?
-    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.appThemePalette) private var themePalette
 
     @State private var navigateToTarget = false
     @State private var navigationTarget: TopicNavigationTarget?
@@ -876,18 +1243,15 @@ struct TopicListRowView: View {
     }
 
     private var unreadBadgeTextColor: Color {
-        colorScheme == .dark ? .black : .white
+        themePalette.unreadBadgeTextColor(isVisited: isVisited)
     }
 
     private var unreadBadgeBackgroundColor: Color {
-        if colorScheme == .dark {
-            return isVisited ? .white.opacity(0.55) : .white.opacity(0.78)
-        }
-        return isVisited ? .secondary.opacity(0.5) : .secondary
+        themePalette.unreadBadgeBackgroundColor(isVisited: isVisited)
     }
 
     private var stickySymbolColor: Color {
-        Color(red: 0.91, green: 0.30, blue: 0.24)
+        themePalette.stickyAccentColor
     }
 
     private func nonEmptyString(_ value: String?) -> String? {
@@ -1152,6 +1516,10 @@ struct TopicListRowView: View {
                 if let rowBackgroundTint {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .fill(rowBackgroundTint)
+                        .padding(.top, -rowBackgroundOverflow.top)
+                        .padding(.leading, -rowBackgroundOverflow.leading)
+                        .padding(.bottom, -rowBackgroundOverflow.bottom)
+                        .padding(.trailing, -rowBackgroundOverflow.trailing)
                 }
             }
             .contentShape(Rectangle())

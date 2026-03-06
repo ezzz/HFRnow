@@ -12,7 +12,7 @@
 #import "Constants.h"
 #import "ThemeManager.h"
 #import "ThemeColors.h"
-#import <SDWebImage/SDWebImage.h>
+#import "SDWebImage.h"
 
 @implementation RehostCollectionCell
 @synthesize previewImage, fullBtn, spinner, rehostImage;

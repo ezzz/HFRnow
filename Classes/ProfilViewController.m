@@ -16,7 +16,7 @@
 #import "AvatarTableViewCell.h"
 #import "ThemeColors.h"
 #import "ThemeManager.h"
-#import <SDWebImage/SDWebImage.h>
+#import "SDWebImage.h"
 #import "k.h"
 
 @interface ProfilViewController ()

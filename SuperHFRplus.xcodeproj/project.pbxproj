@@ -407,7 +407,6 @@
 		15316CFD2E32A22400E2B7CD /* ItalicFilled-20@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 4C21E93E1BA5C70400691D65 /* ItalicFilled-20@2x.png */; };
 		15316CFE2E32A22400E2B7CD /* LinkFilled-20@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 4C21E9401BA5C70400691D65 /* LinkFilled-20@2x.png */; };
 		15316CFF2E32A22400E2B7CD /* PasteFilled-20@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 4C21E9421BA5C70400691D65 /* PasteFilled-20@2x.png */; };
-		153170002E33A00100E2B7CD /* commonsmile.plist in Resources */ = {isa = PBXBuildFile; fileRef = CA00C6EA17C310E90067B457 /* commonsmile.plist */; };
 		15316D002E32A22400E2B7CD /* plus-tinted.png in Resources */ = {isa = PBXBuildFile; fileRef = D82690471E5864C9006971C3 /* plus-tinted.png */; };
 		15316D012E32A22400E2B7CD /* XlargeIconsFilled-20@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 4C21E94C1BA5C70400691D65 /* XlargeIconsFilled-20@2x.png */; };
 		15316D022E32A22400E2B7CD /* UnderlineFilled-20@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 4C21E94A1BA5C70400691D65 /* UnderlineFilled-20@2x.png */; };
@@ -683,6 +682,7 @@
 		15316E102E32A25500E2B7CD /* snow5.png in Resources */ = {isa = PBXBuildFile; fileRef = D8B4EDDC21C184970042C392 /* snow5.png */; };
 		15316E112E32A25500E2B7CD /* snow18.png in Resources */ = {isa = PBXBuildFile; fileRef = D8B4EDE321C184970042C392 /* snow18.png */; };
 		15316E122E32A25500E2B7CD /* snow3.png in Resources */ = {isa = PBXBuildFile; fileRef = D8B4EDE021C184970042C392 /* snow3.png */; };
+		153170002E33A00100E2B7CD /* commonsmile.plist in Resources */ = {isa = PBXBuildFile; fileRef = CA00C6EA17C310E90067B457 /* commonsmile.plist */; };
 		15357D64234BA620002D5C2E /* offline@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15357D62234BA61F002D5C2E /* offline@2x.png */; };
 		15357D65234BA620002D5C2E /* offline.png in Resources */ = {isa = PBXBuildFile; fileRef = 15357D63234BA620002D5C2E /* offline.png */; };
 		15357D67234BA712002D5C2E /* offline2@2.png in Resources */ = {isa = PBXBuildFile; fileRef = 15357D66234BA712002D5C2E /* offline2@2.png */; };
@@ -959,8 +959,6 @@
 		158CFAA12E30ED5B000594F1 /* libiconv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 158CFAA02E30ED5B000594F1 /* libiconv.tbd */; };
 		158CFAA52E316314000594F1 /* GiphyUISDK.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 15B5FC5626512005006CBEF0 /* GiphyUISDK.xcframework */; };
 		158CFAA62E316314000594F1 /* GiphyUISDK.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 15B5FC5626512005006CBEF0 /* GiphyUISDK.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		158CFAA72E31631E000594F1 /* SDWebImage.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 154E91212D65208D00E883A4 /* SDWebImage.framework */; };
-		158CFAA82E31631E000594F1 /* SDWebImage.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 154E91212D65208D00E883A4 /* SDWebImage.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		158CFAA92E316320000594F1 /* SimpleKeychain.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 15B5FC4F264FAE4D006CBEF0 /* SimpleKeychain.xcframework */; };
 		158CFAAA2E316320000594F1 /* SimpleKeychain.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 15B5FC4F264FAE4D006CBEF0 /* SimpleKeychain.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		158D498B2240618C00AFDBDE /* 08-chat-20@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 158D498A2240618C00AFDBDE /* 08-chat-20@2x.png */; };
@@ -1730,7 +1728,6 @@
 			dstSubfolderSpec = 10;
 			files = (
 				158CFAA62E316314000594F1 /* GiphyUISDK.xcframework in Embed Frameworks */,
-				158CFAA82E31631E000594F1 /* SDWebImage.framework in Embed Frameworks */,
 				158CFAAA2E316320000594F1 /* SimpleKeychain.xcframework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
@@ -2793,7 +2790,6 @@
 				158CFAA12E30ED5B000594F1 /* libiconv.tbd in Frameworks */,
 				158CFA9F2E30ED33000594F1 /* libicucore.tbd in Frameworks */,
 				158CFAA52E316314000594F1 /* GiphyUISDK.xcframework in Frameworks */,
-				158CFAA72E31631E000594F1 /* SDWebImage.framework in Frameworks */,
 				15EC3F552E2EC0E0002CF922 /* SafariServices.framework in Frameworks */,
 				15EC3F572E2EC128002CF922 /* WebKit.framework in Frameworks */,
 				15EC3F582E2EC128002CF922 /* CoreData.framework in Frameworks */,
@@ -6280,15 +6276,15 @@
 				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = "APP_SWIFT=1";
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-					GENERATE_INFOPLIST_FILE = YES;
-					INFOPLIST_KEY_NSCameraUsageDescription = "Utilisé pour ajouter des photos aux messages.";
-					INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Utilisé pour sauvegarder des photos/images.";
-					INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Utilisé pour ajouter des photos aux messages.";
-					INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-					INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-					INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-					INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-					INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Utilisé pour ajouter des photos aux messages.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Utilisé pour sauvegarder des photos/images.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Utilisé pour ajouter des photos aux messages.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -6352,15 +6348,15 @@
 				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = "APP_SWIFT=1";
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-					GENERATE_INFOPLIST_FILE = YES;
-					INFOPLIST_KEY_NSCameraUsageDescription = "Utilisé pour ajouter des photos aux messages.";
-					INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Utilisé pour sauvegarder des photos/images.";
-					INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Utilisé pour ajouter des photos aux messages.";
-					INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-					INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-					INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-					INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-					INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Utilisé pour ajouter des photos aux messages.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Utilisé pour sauvegarder des photos/images.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Utilisé pour ajouter des photos aux messages.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

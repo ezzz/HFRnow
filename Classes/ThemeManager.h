@@ -11,9 +11,7 @@
 #import "LuminosityHandler.h"
 
 #define AUTO_THEME_MANUAL 0
-#define AUTO_THEME_AUTO_CAMERA 1
-#define AUTO_THEME_AUTO_TIME 2 // No more used but kept for compatibility
-#define AUTO_THEME_AUTO_IOS 3 // No more used but kept for compatibility
+#define AUTO_THEME_AUTO_IOS 3
 
 #define MANUAL_THEME_LIGHT 0
 #define MANUAL_THEME_DARK 1
@@ -35,6 +33,5 @@
 - (void)refreshTheme;
 - (void)checkTheme;
 - (void)setThemeManually:(Theme)newTheme;
-- (Theme)getThemeFromCurrentTime;
 
 @end

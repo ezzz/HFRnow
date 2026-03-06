@@ -501,6 +501,267 @@ final class ReplyPostingServiceTests: XCTestCase {
         }
     }
 
+    func testDeleteMessageSuccessPostsDeleteFormAndReturnsRefreshInfo() async throws {
+        let session = makeSession()
+        var step = 0
+
+        URLProtocolMock.requestHandler = { request in
+            step += 1
+            switch step {
+            case 1:
+                XCTAssertEqual(request.httpMethod, "GET")
+                let html = """
+                <html><body>
+                <form name=\"hop\" action=\"/bddpost.php\">
+                  <input type=\"hidden\" name=\"cat\" value=\"13\" />
+                  <input type=\"hidden\" name=\"post\" value=\"42\" />
+                  <input type=\"hidden\" name=\"p\" value=\"1\" />
+                  <textarea id=\"content_form\">Message &amp; initial\nligne 2</textarea>
+                </form>
+                </body></html>
+                """
+                return (
+                    HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                    Data(html.utf8)
+                )
+            case 2:
+                XCTAssertEqual(request.httpMethod, "POST")
+                XCTAssertEqual(request.url?.absoluteString, "https://forum.hardware.fr/bddpost.php")
+
+                let params = Self.formEncodedBodyParameters(from: Self.requestBodyData(from: request))
+                XCTAssertEqual(params["delete"], "1")
+                XCTAssertEqual(params["content_form"], "Message & initial\r\nligne 2")
+                XCTAssertEqual(params["pseudo"], "testeur")
+                XCTAssertEqual(params["hash_check"], "hash123")
+                XCTAssertEqual(params["numreponse"], "55767559")
+
+                let html = """
+                <html><head>
+                <meta http-equiv=\"Refresh\" content=\"0;url=/forum2.php?config=hfr.inc&cat=13&post=42&page=2&p=1#t55767559\" />
+                </head><body><div class=\"hop\">Message supprimé</div></body></html>
+                """
+                return (
+                    HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                    Data(html.utf8)
+                )
+            default:
+                XCTFail("Unexpected extra request")
+                throw URLError(.badServerResponse)
+            }
+        }
+
+        let service = ForumMessageDeletionService(
+            session: session,
+            sessionContextProvider: { _ in
+                ReplySessionContext(pseudoDisplay: "testeur", hashCheck: "hash123")
+            }
+        )
+
+        let result = try await service.deleteMessage(
+            editURL: URL(string: "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=42&page=2&p=1&numreponse=55767559")!
+        )
+
+        XCTAssertEqual(step, 2)
+        XCTAssertEqual(result.refreshAnchor, "55767559")
+        XCTAssertEqual(result.refreshURL?.absoluteString, "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=42&page=2&p=1#t55767559")
+        XCTAssertEqual(result.statusMessage, "Message supprimé")
+    }
+
+    func testModerationPrepareAlertReturnsAlreadyAlertedWhenHopContainsLink() async throws {
+        let session = makeSession()
+
+        URLProtocolMock.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "GET")
+            let html = """
+            <html><body>
+            <div class=\"hop\">Alerte déjà envoyée. <a href=\"/forum2.php\">Retour</a></div>
+            </body></html>
+            """
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                Data(html.utf8)
+            )
+        }
+
+        let service = ForumModerationAlertService(
+            session: session,
+            sessionContextProvider: { _ in
+                ReplySessionContext(pseudoDisplay: "testeur", hashCheck: "hash123")
+            }
+        )
+
+        let preparation = try await service.prepareAlert(
+            from: URL(string: "https://forum.hardware.fr/modo.php?config=hfr.inc&cat=13&post=42")!
+        )
+
+        switch preparation {
+        case .alreadyAlerted(let message):
+            XCTAssertEqual(message, "Alerte déjà envoyée. Retour")
+        case .ready:
+            XCTFail("Expected alreadyAlerted state")
+        }
+    }
+
+    func testModerationPrepareAlertDoesNotMisdetectLoginFromGenericPseudoPasswordText() async throws {
+        let session = makeSession()
+
+        URLProtocolMock.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "GET")
+            let html = """
+            <html><body>
+            <p>Pour modifier votre mot de passe, renseignez votre pseudo dans votre profil.</p>
+            <form action=\"/user/modo.php\" method=\"post\">
+              <input type=\"hidden\" name=\"cat\" value=\"13\" />
+              <input type=\"hidden\" name=\"post\" value=\"42\" />
+              <textarea name=\"raison\"></textarea>
+            </form>
+            </body></html>
+            """
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                Data(html.utf8)
+            )
+        }
+
+        let service = ForumModerationAlertService(
+            session: session,
+            sessionContextProvider: { _ in
+                ReplySessionContext(pseudoDisplay: "testeur", hashCheck: "hash123")
+            }
+        )
+
+        let preparation = try await service.prepareAlert(
+            from: URL(string: "https://forum.hardware.fr/user/modo.php?config=hfr.inc&cat=13&post=42")!
+        )
+
+        switch preparation {
+        case .ready(let prepared):
+            XCTAssertEqual(prepared.submitURL.absoluteString, "https://forum.hardware.fr/user/modo.php")
+            XCTAssertEqual(prepared.params["cat"], "13")
+            XCTAssertEqual(prepared.params["post"], "42")
+        case .alreadyAlerted:
+            XCTFail("Expected ready moderation form")
+        }
+    }
+
+    func testModerationPrepareAlertReturnsAuthenticationRequiredWhenLoginFormIsPresent() async {
+        let session = makeSession()
+
+        URLProtocolMock.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "GET")
+            let html = """
+            <html><body>
+            <form action=\"/identification.php\" method=\"post\">
+              <input type=\"text\" name=\"pseudo\" />
+              <input type=\"password\" name=\"password\" />
+              <input type=\"submit\" name=\"login\" value=\"Connexion\" />
+            </form>
+            </body></html>
+            """
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                Data(html.utf8)
+            )
+        }
+
+        let service = ForumModerationAlertService(
+            session: session,
+            sessionContextProvider: { _ in
+                ReplySessionContext(pseudoDisplay: "testeur", hashCheck: "hash123")
+            }
+        )
+
+        do {
+            _ = try await service.prepareAlert(
+                from: URL(string: "https://forum.hardware.fr/user/modo.php?config=hfr.inc&cat=13&post=42")!
+            )
+            XCTFail("Expected authenticationRequired")
+        } catch let error as ReplyPostingError {
+            switch error {
+            case .authenticationRequired:
+                break
+            default:
+                XCTFail("Unexpected error: \(error)")
+            }
+        } catch {
+            XCTFail("Unexpected error type: \(error)")
+        }
+    }
+
+    func testModerationSubmitAlertPostsReasonAndReturnsHopMessage() async throws {
+        let session = makeSession()
+
+        URLProtocolMock.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "POST")
+            XCTAssertEqual(request.url?.absoluteString, "https://forum.hardware.fr/modo.php")
+            let params = Self.formEncodedBodyParameters(from: Self.requestBodyData(from: request))
+            XCTAssertEqual(params["cat"], "13")
+            XCTAssertEqual(params["post"], "42")
+            XCTAssertEqual(params["raison"], "Ligne 1\r\nLigne 2")
+
+            let html = """
+            <html><body><div class=\"hop\">Alerte envoyée.</div></body></html>
+            """
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                Data(html.utf8)
+            )
+        }
+
+        let service = ForumModerationAlertService(
+            session: session,
+            sessionContextProvider: { _ in
+                ReplySessionContext(pseudoDisplay: "testeur", hashCheck: "hash123")
+            }
+        )
+        let prepared = ModerationAlertPreparedForm(
+            submitURL: URL(string: "https://forum.hardware.fr/modo.php")!,
+            params: [
+                "cat": "13",
+                "post": "42"
+            ]
+        )
+
+        let status = try await service.submitAlert(reason: "Ligne 1\nLigne 2", with: prepared)
+        XCTAssertEqual(status, "Alerte envoyée.")
+    }
+
+    func testModerationSubmitAlertWithBlankReasonFailsWithoutNetworkRequest() async {
+        let session = makeSession()
+
+        URLProtocolMock.requestHandler = { _ in
+            XCTFail("No network request should be sent when moderation reason is blank")
+            throw URLError(.badServerResponse)
+        }
+
+        let service = ForumModerationAlertService(
+            session: session,
+            sessionContextProvider: { _ in
+                ReplySessionContext(pseudoDisplay: "testeur", hashCheck: "hash123")
+            }
+        )
+        let prepared = ModerationAlertPreparedForm(
+            submitURL: URL(string: "https://forum.hardware.fr/modo.php")!,
+            params: [:]
+        )
+
+        do {
+            _ = try await service.submitAlert(reason: " \n\t ", with: prepared)
+            XCTFail("Expected emptyMessage")
+        } catch let error as ReplyPostingError {
+            switch error {
+            case .emptyMessage:
+                break
+            default:
+                XCTFail("Unexpected error: \(error)")
+            }
+        } catch {
+            XCTFail("Unexpected error type: \(error)")
+        }
+
+        XCTAssertTrue(URLProtocolMock.handledRequests.isEmpty)
+    }
+
     func testImg3UploadParsesSuccessfulPayload() async throws {
         let session = makeSession()
 

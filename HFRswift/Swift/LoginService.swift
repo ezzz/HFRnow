@@ -67,10 +67,21 @@ final class LoginService {
         ])
         .data(using: .utf8)
 
-        let (loginData, _) = try await session.data(for: request)
+        let (loginData, loginResponse) = try await session.data(for: request)
         let loginHTML = decodeHTML(loginData)
         guard loginHTML.contains("login_redirection.php") else {
             throw LoginError.invalidCredentials
+        }
+
+        if let httpResponse = loginResponse as? HTTPURLResponse {
+            let headerFields = httpResponse.allHeaderFields.reduce(into: [String: String]()) { partialResult, entry in
+                guard let key = entry.key as? String, let value = entry.value as? String else { return }
+                partialResult[key] = value
+            }
+            let responseCookies = HTTPCookie.cookies(withResponseHeaderFields: headerFields, for: requestURL)
+            for cookie in responseCookies {
+                HTTPCookieStorage.shared.setCookie(cookie)
+            }
         }
 
         let profileURL = baseURL.appendingPathComponent("user/editprofil.php")

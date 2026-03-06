@@ -1,6 +1,17 @@
 import Foundation
 import UIKit
 
+enum AccountSessionError: LocalizedError {
+    case invalidPseudo
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidPseudo:
+            return "Pseudo invalide."
+        }
+    }
+}
+
 protocol AccountSessionService {
     func fetchAccounts() -> [Account]
     func setMainAccount(id: String)
@@ -10,6 +21,8 @@ protocol AccountSessionService {
 }
 
 final class ObjCAccountSessionService: AccountSessionService {
+    private typealias RawCompte = [AnyHashable: Any]
+
     private let multisManager: MultisManager
     private let loginService: LoginService
 
@@ -22,32 +35,38 @@ final class ObjCAccountSessionService: AccountSessionService {
     }
 
     func fetchAccounts() -> [Account] {
-        let rawAccounts = multisManager.getComtpes() as? [[String: Any]] ?? []
-        return rawAccounts.compactMap { dict in
-            let pseudoKey = dict[AccountKeys.pseudo] as? String
-            let id = pseudoKey ?? dict[AccountKeys.pseudoDisplay] as? String
-            guard let id else { return nil }
-            let displayName = dict[AccountKeys.pseudoDisplay] as? String ?? id
-            let isMain = (dict[AccountKeys.main] as? NSNumber)?.boolValue ?? false
-            let avatarData = dict[AccountKeys.avatar] as? Data
+        rawComptes().compactMap { compte in
+            let pseudoKey = pseudoKey(from: compte)
+            let displayName = displayName(from: compte, fallbackPseudo: pseudoKey)
+            let id = pseudoKey ?? displayName
+            guard !id.isEmpty else { return nil }
+            let isMain = (compte[AccountKeys.main] as? NSNumber)?.boolValue ?? false
+            let avatarData = compte[AccountKeys.avatar] as? Data
             return Account(id: id, displayName: displayName, isMain: isMain, avatarData: avatarData)
         }
     }
 
     func setMainAccount(id: String) {
-        multisManager.setPseudo(asMain: id)
+        guard let accountIndex = resolveCompteIndex(forIdentifier: id) else { return }
+        let compte = rawComptes()[accountIndex]
+        guard let pseudoKey = pseudoKey(from: compte) else { return }
+        multisManager.setPseudo(asMain: pseudoKey)
     }
 
     func deleteAccount(id: String) {
-        let accounts = fetchAccounts()
-        guard let index = accounts.firstIndex(where: { $0.id == id }) else { return }
-        multisManager.deletePseudo(at: index)
+        guard let accountIndex = resolveCompteIndex(forIdentifier: id) else { return }
+        multisManager.deletePseudo(at: accountIndex)
     }
 
     func addAccount(pseudo: String, password: String) async throws {
-        let result = try await loginService.login(pseudo: pseudo, password: password)
+        let trimmedPseudo = pseudo.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedPseudo.isEmpty else {
+            throw AccountSessionError.invalidPseudo
+        }
+
+        let result = try await loginService.login(pseudo: trimmedPseudo, password: password)
         multisManager.addCompte(
-            pseudo: result.displayPseudo,
+            pseudo: trimmedPseudo,
             cookies: result.cookies,
             avatar: result.avatarData,
             hash: result.hash
@@ -56,7 +75,7 @@ final class ObjCAccountSessionService: AccountSessionService {
     }
 
     func makeReplySessionContext(cookieStorage: HTTPCookieStorage) throws -> ReplySessionContext {
-        guard let mainCompte = multisManager.getMainCompte() as? [AnyHashable: Any] else {
+        guard let mainCompte = resolveMainCompte() else {
             throw ReplyPostingError.noActiveAccount
         }
 
@@ -68,12 +87,12 @@ final class ObjCAccountSessionService: AccountSessionService {
             }
         }
 
-        let pseudoDisplay = (mainCompte[AccountKeys.pseudoDisplay] as? String) ?? (mainCompte[AccountKeys.pseudo] as? String)
-        var hashCheck = mainCompte[AccountKeys.hash] as? String
+        let pseudoDisplay = nonEmptyString(mainCompte[AccountKeys.pseudoDisplay]) ?? nonEmptyString(mainCompte[AccountKeys.pseudo])
+        var hashCheck = nonEmptyString(mainCompte[AccountKeys.hash])
 
         if hashCheck == nil,
            let appDelegate = HFRplusAppDelegate.shared() as? HFRplusAppDelegate {
-            hashCheck = appDelegate.hash_check
+            hashCheck = nonEmptyString(appDelegate.hash_check)
         }
 
         if let hashCheck {
@@ -81,6 +100,70 @@ final class ObjCAccountSessionService: AccountSessionService {
         }
 
         return ReplySessionContext(pseudoDisplay: pseudoDisplay, hashCheck: hashCheck)
+    }
+
+    private func rawComptes() -> [RawCompte] {
+        multisManager.getComtpes() as? [RawCompte] ?? []
+    }
+
+    private func pseudoKey(from compte: RawCompte) -> String? {
+        if let pseudo = nonEmptyString(compte[AccountKeys.pseudo]) {
+            return pseudo
+        }
+
+        guard let cookies = compte[AccountKeys.cookies] as? [HTTPCookie] else {
+            return nil
+        }
+
+        return cookies.first(where: { $0.name == "md_user" && $0.value != "deleted" })?.value
+    }
+
+    private func displayName(from compte: RawCompte, fallbackPseudo: String?) -> String {
+        nonEmptyString(compte[AccountKeys.pseudoDisplay]) ?? fallbackPseudo ?? ""
+    }
+
+    private func nonEmptyString(_ value: Any?) -> String? {
+        guard let string = value as? String else { return nil }
+        let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func normalizedIdentifier(_ value: String?) -> String? {
+        guard let nonEmpty = nonEmptyString(value) else { return nil }
+        return nonEmpty.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+    }
+
+    private func resolveCompteIndex(forIdentifier id: String) -> Int? {
+        let comptes = rawComptes()
+        guard let normalizedID = normalizedIdentifier(id) else { return nil }
+
+        if let pseudoIndex = comptes.firstIndex(where: { normalizedIdentifier(nonEmptyString($0[AccountKeys.pseudo])) == normalizedID }) {
+            return pseudoIndex
+        }
+
+        if let displayIndex = comptes.firstIndex(where: { normalizedIdentifier(nonEmptyString($0[AccountKeys.pseudoDisplay])) == normalizedID }) {
+            return displayIndex
+        }
+
+        return comptes.firstIndex { compte in
+            normalizedIdentifier(pseudoKey(from: compte)) == normalizedID
+        }
+    }
+
+    private func resolveMainCompte() -> RawCompte? {
+        if let mainCompte = multisManager.getMainCompte() as? RawCompte {
+            return mainCompte
+        }
+
+        guard let fallbackCompte = rawComptes().first else {
+            return nil
+        }
+
+        if let fallbackPseudo = pseudoKey(from: fallbackCompte) {
+            multisManager.setPseudo(asMain: fallbackPseudo)
+        }
+
+        return fallbackCompte
     }
 }
 

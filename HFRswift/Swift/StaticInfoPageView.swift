@@ -33,21 +33,25 @@ enum StaticInfoPageKind {
 
 struct StaticInfoPageView: View {
     let kind: StaticInfoPageKind
-    @State private var reloadToken = 0
+    @ObservedObject private var appTheme = AppThemeStore.shared
 
     var body: some View {
-        StaticHTMLWebView(filename: kind.filename, reloadToken: reloadToken)
+        StaticHTMLWebView(
+            filename: kind.filename,
+            theme: appTheme.resolvedLegacyTheme,
+            backgroundColor: appTheme.palette.staticPageBackgroundUIColor,
+            themeRevision: appTheme.themeRevision
+        )
             .navigationTitle(kind.title)
             .navigationBarTitleDisplayMode(.inline)
-            .onReceive(NotificationCenter.default.publisher(for: Notification.Name("kThemeChangedNotification"))) { _ in
-                reloadToken += 1
-            }
     }
 }
 
 private struct StaticHTMLWebView: UIViewRepresentable {
     let filename: String
-    let reloadToken: Int
+    let theme: Theme
+    let backgroundColor: UIColor
+    let themeRevision: Int
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -57,28 +61,41 @@ private struct StaticHTMLWebView: UIViewRepresentable {
         let webView = WKWebView(frame: .zero)
         webView.navigationDelegate = context.coordinator
         webView.isOpaque = false
-        let bgColor = ThemeColors.greyBackgroundColor()
-        webView.backgroundColor = bgColor
-        webView.scrollView.backgroundColor = bgColor
-        context.coordinator.lastToken = reloadToken
-        context.coordinator.loadHTML(filename: filename, into: webView)
+        webView.backgroundColor = backgroundColor
+        webView.scrollView.backgroundColor = backgroundColor
+        context.coordinator.lastFilename = filename
+        context.coordinator.lastThemeRevision = themeRevision
+        context.coordinator.currentTheme = theme
+        context.coordinator.loadHTML(filename: filename, theme: theme, into: webView)
         return webView
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
-        let bgColor = ThemeColors.greyBackgroundColor()
-        webView.backgroundColor = bgColor
-        webView.scrollView.backgroundColor = bgColor
+        webView.backgroundColor = backgroundColor
+        webView.scrollView.backgroundColor = backgroundColor
 
-        guard context.coordinator.lastToken != reloadToken else { return }
-        context.coordinator.lastToken = reloadToken
-        context.coordinator.loadHTML(filename: filename, into: webView)
+        let coordinator = context.coordinator
+        let didChangeFile = coordinator.lastFilename != filename
+        let didChangeTheme = coordinator.currentTheme != theme
+        let didChangeRevision = coordinator.lastThemeRevision != themeRevision
+
+        coordinator.lastFilename = filename
+        coordinator.lastThemeRevision = themeRevision
+        coordinator.currentTheme = theme
+
+        if didChangeFile {
+            coordinator.loadHTML(filename: filename, theme: theme, into: webView)
+        } else if didChangeTheme || didChangeRevision {
+            coordinator.applyTheme(theme: theme, to: webView)
+        }
     }
 
     final class Coordinator: NSObject, WKNavigationDelegate {
-        var lastToken: Int = -1
+        var lastFilename: String?
+        var lastThemeRevision: Int = -1
+        var currentTheme: Theme = ThemeLight
 
-        func loadHTML(filename: String, into webView: WKWebView) {
+        func loadHTML(filename: String, theme: Theme, into webView: WKWebView) {
             guard let htmlPath = Bundle.main.path(forResource: filename, ofType: "html") else {
                 webView.loadHTMLString("<html><body><p>Fichier introuvable</p></body></html>", baseURL: nil)
                 return
@@ -92,19 +109,17 @@ private struct StaticHTMLWebView: UIViewRepresentable {
             htmlString = htmlString.replacingOccurrences(of: "%%iosversion%%", with: "ios7")
             htmlString = htmlString.replacingOccurrences(of: "%%iosversion%%", with: "")
 
-            let cssString = currentCreditsCSS()
-            htmlString = htmlString.replacingOccurrences(of: "</head>", with: "<style>\(cssString)</style></head>")
+            let cssString = currentCreditsCSS(theme: theme)
+            htmlString = htmlString.replacingOccurrences(
+                of: "</head>",
+                with: "<style id='hfr-static-theme-style'>\(cssString)</style></head>"
+            )
             let headerString = "<header><meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no'></header>"
             webView.loadHTMLString(headerString + htmlString, baseURL: baseURL)
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            let cssString = currentCreditsCSS()
-            let escaped = cssString.replacingOccurrences(of: "\\", with: "\\\\")
-                .replacingOccurrences(of: "'", with: "\\'")
-                .replacingOccurrences(of: "\n", with: " ")
-            let javascript = "var style = document.createElement('style'); style.innerHTML = '\(escaped)'; document.head.appendChild(style);"
-            webView.evaluateJavaScript(javascript, completionHandler: nil)
+            applyTheme(theme: currentTheme, to: webView)
         }
 
         func webView(
@@ -122,11 +137,27 @@ private struct StaticHTMLWebView: UIViewRepresentable {
             decisionHandler(.allow)
         }
 
-        private func currentCreditsCSS() -> String {
-            guard let themeManager = ThemeManager.shared() else {
-                return ""
-            }
-            return ThemeColors.creditsCss(themeManager.theme)
+        func applyTheme(theme: Theme, to webView: WKWebView) {
+            let cssString = currentCreditsCSS(theme: theme)
+            let escaped = cssString.replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "'", with: "\\'")
+                .replacingOccurrences(of: "\n", with: " ")
+            let javascript = """
+            (function() {
+                var style = document.getElementById('hfr-static-theme-style');
+                if (!style) {
+                    style = document.createElement('style');
+                    style.id = 'hfr-static-theme-style';
+                    document.head.appendChild(style);
+                }
+                style.innerHTML = '\(escaped)';
+            })();
+            """
+            webView.evaluateJavaScript(javascript, completionHandler: nil)
+        }
+
+        private func currentCreditsCSS(theme: Theme) -> String {
+            ThemeUserColorStore.creditsCSS(forLegacyThemeValue: theme == ThemeDark ? 1 : 0)
         }
     }
 }
@@ -136,4 +167,3 @@ private struct StaticHTMLWebView: UIViewRepresentable {
         StaticInfoPageView(kind: .credits)
     }
 }
-

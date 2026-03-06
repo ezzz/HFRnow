@@ -323,6 +323,84 @@ final class ObjCWrapperLoaderBehaviorTests: XCTestCase {
             XCTFail("Expected a result")
         }
     }
+
+    func testObjCTopicPageLoaderParsesTrueAndYesBooleanFlags() {
+        let controller = MessagesControllerStub(
+            result: .success(html: "<html>ok</html>", topicAnswerURL: nil),
+            messageActionsByIndex: [
+                11: [
+                    "canAQ": "yes",
+                    "canBookmark": "true",
+                    "canDelete": "false"
+                ]
+            ]
+        )
+        let loader = ObjCTopicPageLoader(controller: controller)
+
+        let expectation = expectation(description: "topic page yes/true flags")
+        var receivedResult: Result<TopicPageContent, Error>?
+
+        loader.fetchTopicPage(url: "https://forum.hardware.fr/topic", anchor: nil) { result in
+            receivedResult = result
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 1)
+
+        switch receivedResult {
+        case .success(let content):
+            let actions = content.messageActionsByIndex[11]
+            XCTAssertNotNil(actions)
+            XCTAssertTrue(actions?.canAQ == true)
+            XCTAssertTrue(actions?.canBookmark == true)
+            XCTAssertFalse(actions?.canDelete == true)
+        case .failure(let error):
+            XCTFail("Expected success, got error: \(error)")
+        case .none:
+            XCTFail("Expected a result")
+        }
+    }
+
+    func testObjCTopicPageLoaderDropsEmptyMessageActionsEntries() {
+        let controller = MessagesControllerStub(
+            result: .success(html: "<html>ok</html>", topicAnswerURL: nil),
+            messageActionsByIndex: [
+                3: [
+                    "quoteURL": " ",
+                    "profileURL": " ",
+                    "authorName": " ",
+                    "isOwnMessage": "0",
+                    "canBeFavorite": "0",
+                    "isPrivateCategory": "0",
+                    "canAQ": "0",
+                    "canBookmark": "0",
+                    "canDelete": "0",
+                    "topicID": " "
+                ]
+            ]
+        )
+        let loader = ObjCTopicPageLoader(controller: controller)
+
+        let expectation = expectation(description: "topic page drops empty entry")
+        var receivedResult: Result<TopicPageContent, Error>?
+
+        loader.fetchTopicPage(url: "https://forum.hardware.fr/topic", anchor: nil) { result in
+            receivedResult = result
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 1)
+
+        switch receivedResult {
+        case .success(let content):
+            XCTAssertNil(content.messageActionsByIndex[3])
+            XCTAssertTrue(content.messageActionsByIndex.isEmpty)
+        case .failure(let error):
+            XCTFail("Expected success, got error: \(error)")
+        case .none:
+            XCTFail("Expected a result")
+        }
+    }
 }
 
 final class TopicOpenPolicyTests: XCTestCase {

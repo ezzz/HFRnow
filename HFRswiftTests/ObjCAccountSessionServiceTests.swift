@@ -37,11 +37,29 @@ final class ObjCAccountSessionServiceTests: XCTestCase {
 
     func testSetMainAccountDelegatesToMultisManager() {
         let manager = MultisManagerStub()
+        manager.comptesPayload = [
+            ["PSEUDO": "main-pseudo", "PSEUDO_DISPLAY": "Main Pseudo"]
+        ]
         let service = ObjCAccountSessionService(multisManager: manager, loginService: LoginService())
 
         service.setMainAccount(id: "main-pseudo")
 
         XCTAssertEqual(manager.setMainPseudoCalls, ["main-pseudo"])
+    }
+
+    func testSetMainAccountResolvesPseudoFromCookiesWhenPseudoMissing() throws {
+        let manager = MultisManagerStub()
+        manager.comptesPayload = [
+            [
+                "PSEUDO_DISPLAY": "Display Name",
+                "COOKIES": [try makeCookie(name: "md_user", value: "cookie-pseudo")]
+            ]
+        ]
+        let service = ObjCAccountSessionService(multisManager: manager, loginService: LoginService())
+
+        service.setMainAccount(id: "Display Name")
+
+        XCTAssertEqual(manager.setMainPseudoCalls, ["cookie-pseudo"])
     }
 
     func testDeleteAccountDelegatesUsingMatchingIndex() {
@@ -53,6 +71,31 @@ final class ObjCAccountSessionServiceTests: XCTestCase {
         let service = ObjCAccountSessionService(multisManager: manager, loginService: LoginService())
 
         service.deleteAccount(id: "second")
+
+        XCTAssertEqual(manager.deletedIndices, [1])
+    }
+    
+    func testSetMainAccountMatchesTrimmedAndCaseInsensitiveIdentifier() {
+        let manager = MultisManagerStub()
+        manager.comptesPayload = [
+            ["PSEUDO": "CasePseudo", "PSEUDO_DISPLAY": "Display Name"]
+        ]
+        let service = ObjCAccountSessionService(multisManager: manager, loginService: LoginService())
+
+        service.setMainAccount(id: "  casepseudo  ")
+
+        XCTAssertEqual(manager.setMainPseudoCalls, ["CasePseudo"])
+    }
+
+    func testDeleteAccountMatchesDisplayNameCaseInsensitive() {
+        let manager = MultisManagerStub()
+        manager.comptesPayload = [
+            ["PSEUDO": "alpha", "PSEUDO_DISPLAY": "Alpha Display"],
+            ["PSEUDO": "beta", "PSEUDO_DISPLAY": "Beta Display"]
+        ]
+        let service = ObjCAccountSessionService(multisManager: manager, loginService: LoginService())
+
+        service.deleteAccount(id: "  beta display ")
 
         XCTAssertEqual(manager.deletedIndices, [1])
     }
@@ -107,6 +150,29 @@ final class ObjCAccountSessionServiceTests: XCTestCase {
         }
     }
 
+    func testMakeReplySessionContextFallsBackToFirstCompteWhenNoMainExists() throws {
+        let manager = MultisManagerStub()
+        manager.mainComptePayload = nil
+        manager.comptesPayload = [
+            [
+                "PSEUDO_DISPLAY": "Fallback Display",
+                "PSEUDO": "fallback-pseudo",
+                "HASH": "fallback-hash",
+                "COOKIES": [try makeCookie(name: "sessionid", value: "cookie-value")]
+            ]
+        ]
+        let service = ObjCAccountSessionService(multisManager: manager, loginService: LoginService())
+        let storage = makeIsolatedCookieStorage()
+
+        let context = try service.makeReplySessionContext(cookieStorage: storage)
+
+        XCTAssertEqual(context.pseudoDisplay, "Fallback Display")
+        XCTAssertEqual(context.hashCheck, "fallback-hash")
+        XCTAssertEqual(manager.setMainPseudoCalls, ["fallback-pseudo"])
+        XCTAssertEqual(manager.forceCookiesForCompteCalls.count, 1)
+        XCTAssertTrue(storage.cookies?.contains(where: { $0.name == "sessionid" }) == true)
+    }
+
     func testAddAccountUsesLoginServiceAndUpdatesMultisManager() async throws {
         clearHardwareCookiesFromSharedStorage()
 
@@ -154,7 +220,7 @@ final class ObjCAccountSessionServiceTests: XCTestCase {
         let loginService = LoginService(session: URLSession(configuration: config))
         let service = ObjCAccountSessionService(multisManager: manager, loginService: loginService)
 
-        try await service.addAccount(pseudo: "Tester", password: "Secret")
+        try await service.addAccount(pseudo: "  Tester  ", password: "Secret")
 
         XCTAssertEqual(manager.addCompteCalls.count, 1)
         XCTAssertEqual(manager.addCompteCalls.first?.pseudo, "Tester")
@@ -162,10 +228,39 @@ final class ObjCAccountSessionServiceTests: XCTestCase {
         XCTAssertEqual(manager.setMainPseudoCalls, ["PseudoKey42"])
         XCTAssertTrue(manager.addCompteCalls.first?.cookies.contains(where: { $0.name == "md_user" && $0.value == "PseudoKey42" }) == true)
     }
+    
+    func testAddAccountRejectsBlankPseudoBeforeNetwork() async {
+        let manager = MultisManagerStub()
+        let service = ObjCAccountSessionService(multisManager: manager, loginService: LoginService())
+
+        do {
+            try await service.addAccount(pseudo: "   ", password: "Secret")
+            XCTFail("Expected invalidPseudo error")
+        } catch let error as AccountSessionError {
+            switch error {
+            case .invalidPseudo:
+                break
+            }
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
 
     private func makeIsolatedCookieStorage() -> HTTPCookieStorage {
         let config = URLSessionConfiguration.ephemeral
         return config.httpCookieStorage ?? .shared
+    }
+
+    private func makeCookie(name: String, value: String) throws -> HTTPCookie {
+        try XCTUnwrap(
+            HTTPCookie(properties: [
+                .domain: "forum.hardware.fr",
+                .path: "/",
+                .name: name,
+                .value: value,
+                .expires: Date(timeIntervalSinceNow: 3600)
+            ])
+        )
     }
 
     private func clearHardwareCookiesFromSharedStorage() {

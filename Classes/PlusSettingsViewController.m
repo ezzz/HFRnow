@@ -75,24 +75,14 @@
     }
     
     NSInteger autoThemeEnabled = [[NSUserDefaults standardUserDefaults] integerForKey:@"auto_theme"];
-    
-    if (autoThemeEnabled == AUTO_THEME_AUTO_CAMERA) {
-        [self hideCell:@"theme"];
-        [self hideCell:@"auto_theme_day_time"];
-        [self hideCell:@"auto_theme_night_time"];
-    } else if (autoThemeEnabled == AUTO_THEME_AUTO_TIME) {
+
+    if (autoThemeEnabled == AUTO_THEME_MANUAL) {
         [self showCell:@"theme"];
-        [self showCell:@"auto_theme_day_time"];
-        [self showCell:@"auto_theme_night_time"];
-    } else if (autoThemeEnabled == AUTO_THEME_AUTO_IOS) {
-        [self hideCell:@"theme"];
-        [self hideCell:@"auto_theme_day_time"];
-        [self hideCell:@"auto_theme_night_time"];
     } else {
-        [self showCell:@"theme"];
-        [self hideCell:@"auto_theme_day_time"];
-        [self hideCell:@"auto_theme_night_time"];
+        [self hideCell:@"theme"];
     }
+    [self hideCell:@"auto_theme_day_time"];
+    [self hideCell:@"auto_theme_night_time"];
     
     // Startup status got from User defaults
     if ([[NSUserDefaults standardUserDefaults] boolForKey:@"theme_day_adjust"]) {
@@ -152,30 +142,18 @@
            [self showCell:@"menu_debug_entry"];
         }
     } else if([notification.userInfo objectForKey:@"theme"]) {
-        [[ThemeManager sharedManager] setTheme:(Theme)[[notification.userInfo objectForKey:@"theme"] intValue]];
         [[ThemeManager sharedManager] refreshTheme];
-    } else if([notification.userInfo objectForKey:@"auto_theme"]) {        
+    } else if([notification.userInfo objectForKey:@"auto_theme"]) {
         NSInteger iAutoTheme = [[NSUserDefaults standardUserDefaults] integerForKey:@"auto_theme"];
-        // 0 = Manuel, 1 = Automatique, 2 = Heure fixe
-        if (iAutoTheme == AUTO_THEME_AUTO_IOS) {
-            [self hideCell:@"theme_manual"];
-            [self hideCell:@"auto_theme_day_time"];
-            [self hideCell:@"auto_theme_night_time"];
-            if (UITraitCollection.currentTraitCollection.userInterfaceStyle == UIUserInterfaceStyleDark) {
-                [[ThemeManager sharedManager] setTheme:ThemeDark];
-            } else {
-                [[ThemeManager sharedManager] setTheme:ThemeLight];
-            }
-        } else if (iAutoTheme == AUTO_THEME_MANUAL) {
-            [self showCell:@"theme_manual"];
-            [self hideCell:@"auto_theme_day_time"];
-            [self hideCell:@"auto_theme_night_time"];
-            [[ThemeManager sharedManager] setTheme:(Theme)[[[NSUserDefaults standardUserDefaults] objectForKey:@"theme"] intValue]];
+        if (iAutoTheme == AUTO_THEME_MANUAL) {
+            [self showCell:@"theme"];
+        } else {
+            [[NSUserDefaults standardUserDefaults] setInteger:AUTO_THEME_AUTO_IOS forKey:@"auto_theme"];
+            [self hideCell:@"theme"];
         }
+        [self hideCell:@"auto_theme_day_time"];
+        [self hideCell:@"auto_theme_night_time"];
         [[ThemeManager sharedManager] refreshTheme];
-    } else if([notification.userInfo objectForKey:@"auto_theme_day_time"] || [notification.userInfo objectForKey:@"auto_theme_night_time"] ) {
-        [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"force_manual_theme"];
-        [[ThemeManager sharedManager] checkTheme];
     }
     else if([notification.userInfo objectForKey:@"theme_noel_disabled"]) {
         [[ThemeManager sharedManager] refreshTheme];
@@ -364,4 +342,3 @@
 @end
 
 #endif
-
