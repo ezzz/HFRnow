@@ -57,12 +57,7 @@
     tempHTML = [tempHTML stringByReplacingOccurrencesOfString:@"%%POSTID%%" withString:[self postID]];
 	tempHTML = [tempHTML stringByReplacingOccurrencesOfString:@"%%MESSAGE_DATE%%" withString:[[self messageDate] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]]];
     
-    if ([[NSUserDefaults standardUserDefaults] integerForKey:@"theme_style"] == 1) { // Modern style
-        tempHTML = [tempHTML stringByReplacingOccurrencesOfString:@"%%popup_action%%" withString:@"message"];
-    }
-    else {
-        tempHTML = [tempHTML stringByReplacingOccurrencesOfString:@"%%popup_action%%" withString:@"avatar"];
-    }
+    tempHTML = [tempHTML stringByReplacingOccurrencesOfString:@"%%popup_action%%" withString:@"message"];
     
 	if([self imageUI] != nil){
 		tempHTML = [tempHTML stringByReplacingOccurrencesOfString:@"%%AUTEUR_AVATAR_SRC%%" withString:@"background-image:url('%%AUTEUR_AVATAR_SRC%%');"];

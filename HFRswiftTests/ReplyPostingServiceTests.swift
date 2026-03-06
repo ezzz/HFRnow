@@ -69,6 +69,64 @@ final class ReplyPostingServiceTests: XCTestCase {
         XCTAssertEqual(result.refreshAnchor, "t789")
     }
 
+    func testPostReplyAppliesSubjectAndRecipientOverrides() async throws {
+        let session = makeSession()
+        var step = 0
+
+        URLProtocolMock.requestHandler = { request in
+            step += 1
+            switch step {
+            case 1:
+                let html = """
+                <html><body>
+                <form name=\"hop\" action=\"/bddpost.php\">
+                  <input type=\"hidden\" name=\"cat\" value=\"prive\" />
+                  <input type=\"text\" name=\"sujet\" value=\"Sujet initial\" />
+                  <input type=\"text\" name=\"dest\" value=\"PseudoSource\" />
+                </form>
+                </body></html>
+                """
+                return (
+                    HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                    Data(html.utf8)
+                )
+            case 2:
+                let params = Self.formEncodedBodyParameters(from: Self.requestBodyData(from: request))
+                XCTAssertEqual(params["content_form"], "Bonjour")
+                XCTAssertEqual(params["sujet"], "Sujet final")
+                XCTAssertEqual(params["dest"], "PseudoCible")
+                let html = """
+                <html><body><div class=\"hop\">Message envoyé</div></body></html>
+                """
+                return (
+                    HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                    Data(html.utf8)
+                )
+            default:
+                XCTFail("Unexpected extra request")
+                throw URLError(.badServerResponse)
+            }
+        }
+
+        let service = ForumReplyPostingService(
+            session: session,
+            sessionContextProvider: { _ in
+                ReplySessionContext(pseudoDisplay: "testeur", hashCheck: "hash123")
+            }
+        )
+
+        _ = try await service.postReply(
+            message: "Bonjour",
+            topicURL: URL(string: "https://forum.hardware.fr/message.php?cat=prive")!,
+            formOverrides: [
+                "sujet": "Sujet final",
+                "dest": "PseudoCible"
+            ]
+        )
+
+        XCTAssertEqual(step, 2)
+    }
+
     func testPostReplyFailsWhenAuthIsRequired() async {
         let session = makeSession()
 
@@ -499,6 +557,41 @@ final class ReplyPostingServiceTests: XCTestCase {
         } else {
             XCTFail("Expected :foo: to be loaded as remote favorite")
         }
+    }
+
+    func testFetchComposerContextReturnsPrivateMessageSubjectAndRecipient() async throws {
+        let session = makeSession()
+
+        URLProtocolMock.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "GET")
+            let html = """
+            <html><body>
+            <form name=\"hop\" action=\"/bddpost.php\">
+              <input type=\"text\" name=\"sujet\" value=\"Mon sujet MP\" />
+              <input type=\"text\" name=\"dest\" value=\"Pseudo MP\" />
+              <textarea id=\"content_form\"></textarea>
+            </form>
+            </body></html>
+            """
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                Data(html.utf8)
+            )
+        }
+
+        let service = ForumReplyPostingService(
+            session: session,
+            sessionContextProvider: { _ in
+                ReplySessionContext(pseudoDisplay: "testeur", hashCheck: "hash123")
+            }
+        )
+
+        let context = try await service.fetchComposerContext(
+            topicURL: URL(string: "https://forum.hardware.fr/message.php?cat=prive")!
+        )
+
+        XCTAssertEqual(context.subject, "Mon sujet MP")
+        XCTAssertEqual(context.recipient, "Pseudo MP")
     }
 
     func testDeleteMessageSuccessPostsDeleteFormAndReturnsRefreshInfo() async throws {

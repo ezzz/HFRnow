@@ -43,11 +43,21 @@ enum ReplyPostingError: LocalizedError {
 }
 
 protocol ReplyPostingService {
-    func postReply(message: String, topicURL: URL) async throws -> ReplyPostingResult
+    func postReply(message: String, topicURL: URL, formOverrides: [String: String]) async throws -> ReplyPostingResult
+}
+
+extension ReplyPostingService {
+    func postReply(message: String, topicURL: URL) async throws -> ReplyPostingResult {
+        try await postReply(message: message, topicURL: topicURL, formOverrides: [:])
+    }
 }
 
 protocol ReplyComposerContextPreloading {
     func preloadReplyContext(topicURL: URL) async
+}
+
+protocol ReplyComposerContextLoading {
+    func fetchComposerContext(topicURL: URL) async throws -> ReplyComposerContext
 }
 
 protocol ReplyQuoteTemplateLoading {
@@ -78,7 +88,12 @@ struct ReplySessionContext {
     let hashCheck: String?
 }
 
-final class ForumReplyPostingService: ReplyPostingService, ReplyComposerContextPreloading {
+struct ReplyComposerContext: Equatable {
+    let subject: String?
+    let recipient: String?
+}
+
+final class ForumReplyPostingService: ReplyPostingService, ReplyComposerContextPreloading, ReplyComposerContextLoading {
     typealias SessionContextProvider = (HTTPCookieStorage) throws -> ReplySessionContext
 
     private struct FormPayload {
@@ -109,7 +124,7 @@ final class ForumReplyPostingService: ReplyPostingService, ReplyComposerContextP
         }
     }
 
-    func postReply(message: String, topicURL: URL) async throws -> ReplyPostingResult {
+    func postReply(message: String, topicURL: URL, formOverrides: [String: String] = [:]) async throws -> ReplyPostingResult {
         let trimmedMessage = message.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedMessage.isEmpty else {
             throw ReplyPostingError.emptyMessage
@@ -138,6 +153,9 @@ final class ForumReplyPostingService: ReplyPostingService, ReplyComposerContextP
         }
         if payload.params["config"] == nil {
             payload.params["config"] = "hfr.inc"
+        }
+        for (key, value) in formOverrides {
+            payload.params[key] = value
         }
 
         let submitURL = payload.actionURL ?? defaultSubmitURL()
@@ -175,8 +193,20 @@ final class ForumReplyPostingService: ReplyPostingService, ReplyComposerContextP
         )
     }
 
+    func postReply(message: String, topicURL: URL) async throws -> ReplyPostingResult {
+        try await postReply(message: message, topicURL: topicURL, formOverrides: [:])
+    }
+
     func preloadReplyContext(topicURL: URL) async {
         _ = try? await fetchReplyFormPayload(from: topicURL)
+    }
+
+    func fetchComposerContext(topicURL: URL) async throws -> ReplyComposerContext {
+        let payload = try await fetchReplyFormPayload(from: topicURL)
+        return ReplyComposerContext(
+            subject: normalizedOptionalValue(payload.params["sujet"]),
+            recipient: normalizedOptionalValue(payload.params["dest"])
+        )
     }
 
     private func fetchReplyFormPayload(from url: URL) async throws -> FormPayload {
@@ -230,6 +260,12 @@ final class ForumReplyPostingService: ReplyPostingService, ReplyComposerContextP
         }
 
         return params
+    }
+
+    private func normalizedOptionalValue(_ rawValue: String?) -> String? {
+        guard let rawValue else { return nil }
+        let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 
     private func decodeHTML(_ data: Data) -> String {

@@ -127,10 +127,6 @@ enum MessagePopupMenuPolicy {
         var actionKinds: [MessagePopupMenuActionKind] = []
 
         if source == .avatar {
-            if actions.quoteURL != nil {
-                actionKinds.append(.quote)
-            }
-
             if actions.profileURL != nil {
                 actionKinds.append(.profile)
             }
@@ -234,6 +230,264 @@ enum MessagePopupMenuPolicy {
     }
 }
 
+private enum MessagePopupActionSupport {
+    enum AQCreateResult {
+        case success
+        case failure(String)
+        case networkError
+    }
+
+    static func numericPostID(from rawPostID: String?) -> String? {
+        guard let rawPostID else {
+            return nil
+        }
+        let digits = rawPostID.unicodeScalars.filter(CharacterSet.decimalDigits.contains)
+        let numeric = String(String.UnicodeScalarView(digits))
+        return numeric.isEmpty ? nil : numeric
+    }
+
+    static func isAQAlreadySignaled(topicID: String, postID: String) async -> Bool? {
+        let encodedTopic = topicID.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? topicID
+        guard let url = URL(string: "https://aq.super-h.fr/api/getAlertesByTopic.php?topic_id=\(encodedTopic)") else {
+            return nil
+        }
+
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            let content = String(data: data, encoding: .utf8) ?? ""
+            return content.contains(postID)
+        } catch {
+            return nil
+        }
+    }
+
+    static func createAQ(
+        title: String,
+        topicID: String,
+        topicTitle: String,
+        postID: String,
+        postURL: String,
+        author: String
+    ) async -> AQCreateResult {
+        guard let url = URL(string: "https://aq.super-h.fr/api/addAlerte.php") else {
+            return .networkError
+        }
+
+        let pseudo = currentPseudoLowercased()
+        let comment = "post de \(author)"
+
+        let bodyString = [
+            "alerte_qualitay_id=-1",
+            "nom=\(legacyPercentEncode(title))",
+            "topic_id=\(legacyPercentEncode(topicID))",
+            "topic_titre=\(legacyPercentEncode(topicTitle))",
+            "pseudo=\(legacyPercentEncode(pseudo))",
+            "post_id=\(legacyPercentEncode(postID))",
+            "post_url=\(legacyPercentEncode(postURL))",
+            "commentaire=\(legacyPercentEncode(comment))"
+        ].joined(separator: "&")
+
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 5)
+        request.httpMethod = "POST"
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        request.httpBody = bodyString.data(using: .ascii, allowLossyConversion: true)
+
+        do {
+            let (data, _) = try await URLSession.shared.data(for: request)
+            let response = String(data: data, encoding: .ascii)?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return response == "1" ? .success : .failure(response.isEmpty ? "?" : response)
+        } catch {
+            return .networkError
+        }
+    }
+
+    static func hasBookmark(topicID: String, postID: String) -> Bool {
+        guard let storage = sharedMPStorageObject() else {
+            return false
+        }
+        let selector = NSSelectorFromString("getBookmarkForPost:numreponse:")
+        guard storage.responds(to: selector) else {
+            return false
+        }
+
+        typealias Function = @convention(c) (AnyObject, Selector, NSString, NSString) -> AnyObject?
+        let implementation = storage.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        return function(storage, selector, topicID as NSString, postID as NSString) != nil
+    }
+
+    static func createBookmark(
+        topicID: String,
+        topicCategory: String,
+        postID: String,
+        title: String,
+        author: String
+    ) -> Bool {
+        guard let storage = sharedMPStorageObject(),
+              let bookmarkClass = NSClassFromString("Bookmark") as? NSObject.Type else {
+            return false
+        }
+
+        let bookmark = bookmarkClass.init()
+        bookmark.setValue(topicID, forKey: "sPost")
+        bookmark.setValue(topicCategory, forKey: "sCat")
+        bookmark.setValue(postID, forKey: "sNumResponse")
+        bookmark.setValue(title, forKey: "sLabel")
+        bookmark.setValue(author, forKey: "sAuthorPost")
+        bookmark.setValue(Date(), forKey: "dateBookmarkCreation")
+
+        let selector = NSSelectorFromString("addBookmarkSynchronous:")
+        guard storage.responds(to: selector) else {
+            return false
+        }
+
+        typealias Function = @convention(c) (AnyObject, Selector, AnyObject) -> Bool
+        let implementation = storage.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        return function(storage, selector, bookmark)
+    }
+
+    static func favoriteResponseMessage(from html: String) -> String? {
+        guard let regex = try? NSRegularExpression(pattern: #"<div class="hop">([^<]+)</div>"#) else {
+            return nil
+        }
+        let nsRange = NSRange(location: 0, length: (html as NSString).length)
+        guard let match = regex.firstMatch(in: html, options: [], range: nsRange),
+              match.numberOfRanges >= 2,
+              let captureRange = Range(match.range(at: 1), in: html) else {
+            return nil
+        }
+        let message = String(html[captureRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+        return message.isEmpty ? nil : message
+    }
+
+    private static func legacyPercentEncode(_ value: String) -> String {
+        let allowed = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-")
+        return value.addingPercentEncoding(withAllowedCharacters: allowed) ?? value
+    }
+
+    private static func currentPseudoLowercased() -> String {
+        guard
+            let manager = MultisManager.sharedManager() as? MultisManager,
+            let mainCompte = manager.getMainCompte() as? [AnyHashable: Any]
+        else {
+            return ""
+        }
+        return (mainCompte["PSEUDO_DISPLAY"] as? String)?.lowercased() ?? ""
+    }
+
+    private static func sharedMPStorageObject() -> NSObject? {
+        guard let klass = NSClassFromString("MPStorage") as? NSObject.Type else {
+            return nil
+        }
+        let selector = NSSelectorFromString("shared")
+        guard klass.responds(to: selector),
+              let unmanaged = klass.perform(selector) else {
+            return nil
+        }
+        return unmanaged.takeUnretainedValue() as? NSObject
+    }
+}
+
+private struct MessagePopupSheetSubmissionError: LocalizedError {
+    let message: String
+
+    var errorDescription: String? { message }
+}
+
+private struct MessagePopupPromptSheet: View {
+    let title: String
+    let message: String
+    let placeholder: String
+    let actionTitle: String
+    let onSubmit: (String) async throws -> String
+    let onSuccess: (String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @FocusState private var isTextFieldFocused: Bool
+    @State private var value = ""
+    @State private var isSubmitting = false
+    @State private var errorMessage: String?
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text(message)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                    TextField(placeholder, text: $value)
+                        .textInputAutocapitalization(.sentences)
+                        .focused($isTextFieldFocused)
+                }
+            }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Annuler") {
+                        dismiss()
+                    }
+                    .disabled(isSubmitting)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(actionTitle) {
+                        submit()
+                    }
+                    .disabled(value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSubmitting)
+                }
+            }
+            .overlay {
+                if isSubmitting {
+                    ZStack {
+                        Color.black.opacity(0.12).ignoresSafeArea()
+                        ProgressView()
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 12)
+                            .background(.ultraThinMaterial, in: .rect(cornerRadius: 12))
+                    }
+                }
+            }
+            .task {
+                await MainActor.run {
+                    isTextFieldFocused = true
+                }
+            }
+            .alert("Action impossible", isPresented: Binding(
+                get: { errorMessage != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        errorMessage = nil
+                    }
+                }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(errorMessage ?? "Erreur inconnue.")
+            }
+        }
+    }
+
+    private func submit() {
+        let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedValue.isEmpty, !isSubmitting else { return }
+
+        Task { @MainActor in
+            isSubmitting = true
+            defer { isSubmitting = false }
+
+            do {
+                let successMessage = try await onSubmit(trimmedValue)
+                dismiss()
+                onSuccess(successMessage)
+            } catch {
+                errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            }
+        }
+    }
+}
+
 struct WebView: UIViewRepresentable {
     enum InitialScroll {
         case top
@@ -254,10 +508,13 @@ struct WebView: UIViewRepresentable {
     var onWebAction: ((MessageWebAction) -> Void)?
     var onPopupQuoteRequest: ((URL) -> Void)?
     var onPopupEditRequest: ((URL) -> Void)?
+    var onPopupPrivateMessageRequest: ((URL, TopicPageMessageActions) -> Void)?
     var onPopupDeleteRequest: ((URL) -> Void)?
     var onPopupAlertRequest: ((URL) -> Void)?
     var onPopupAlertMailRequest: ((URL) -> Void)?
     var onPopupProfileRequest: ((URL) -> Void)?
+    var onPopupAQRequest: ((TopicPageMessageActions) -> Void)?
+    var onPopupBookmarkRequest: ((TopicPageMessageActions) -> Void)?
     var onContentReady: (() -> Void)?
     var onScrollPositionChange: ((Bool) -> Void)?
 
@@ -276,10 +533,13 @@ struct WebView: UIViewRepresentable {
         onWebAction: ((MessageWebAction) -> Void)? = nil,
         onPopupQuoteRequest: ((URL) -> Void)? = nil,
         onPopupEditRequest: ((URL) -> Void)? = nil,
+        onPopupPrivateMessageRequest: ((URL, TopicPageMessageActions) -> Void)? = nil,
         onPopupDeleteRequest: ((URL) -> Void)? = nil,
         onPopupAlertRequest: ((URL) -> Void)? = nil,
         onPopupAlertMailRequest: ((URL) -> Void)? = nil,
         onPopupProfileRequest: ((URL) -> Void)? = nil,
+        onPopupAQRequest: ((TopicPageMessageActions) -> Void)? = nil,
+        onPopupBookmarkRequest: ((TopicPageMessageActions) -> Void)? = nil,
         onContentReady: (() -> Void)? = nil,
         onScrollPositionChange: ((Bool) -> Void)? = nil
     ) {
@@ -297,10 +557,13 @@ struct WebView: UIViewRepresentable {
         self.onWebAction = onWebAction
         self.onPopupQuoteRequest = onPopupQuoteRequest
         self.onPopupEditRequest = onPopupEditRequest
+        self.onPopupPrivateMessageRequest = onPopupPrivateMessageRequest
         self.onPopupDeleteRequest = onPopupDeleteRequest
         self.onPopupAlertRequest = onPopupAlertRequest
         self.onPopupAlertMailRequest = onPopupAlertMailRequest
         self.onPopupProfileRequest = onPopupProfileRequest
+        self.onPopupAQRequest = onPopupAQRequest
+        self.onPopupBookmarkRequest = onPopupBookmarkRequest
         self.onContentReady = onContentReady
         self.onScrollPositionChange = onScrollPositionChange
     }
@@ -857,7 +1120,7 @@ struct WebView: UIViewRepresentable {
                             systemImageName: actionKind.systemImageName,
                             isDestructive: actionKind.isDestructive,
                             handler: { [weak self] in
-                                self?.parent.onWebAction?(.openExternalURL(privateMessageURL))
+                                self?.parent.onPopupPrivateMessageRequest?(privateMessageURL, actions)
                             }
                         )
                     )
@@ -950,7 +1213,7 @@ struct WebView: UIViewRepresentable {
                             systemImageName: actionKind.systemImageName,
                             isDestructive: actionKind.isDestructive,
                             handler: { [weak self] in
-                                self?.presentAQPrompt(for: actions, in: webView)
+                                self?.parent.onPopupAQRequest?(actions)
                             }
                         )
                     )
@@ -961,7 +1224,7 @@ struct WebView: UIViewRepresentable {
                             systemImageName: actionKind.systemImageName,
                             isDestructive: actionKind.isDestructive,
                             handler: { [weak self] in
-                                self?.presentBookmarkPrompt(for: actions, in: webView)
+                                self?.parent.onPopupBookmarkRequest?(actions)
                             }
                         )
                     )
@@ -1863,6 +2126,58 @@ struct MessagesView: View {
         let preparedForm: ModerationAlertPreparedForm
     }
 
+    private enum ComposerPresentationKind {
+        case reply
+        case edit
+        case privateMessage
+
+        var title: String {
+            switch self {
+            case .reply:
+                return "Reply"
+            case .edit:
+                return "Edition"
+            case .privateMessage:
+                return "Nouv. Message"
+            }
+        }
+
+        var shouldRefreshTopicOnSuccess: Bool {
+            switch self {
+            case .privateMessage:
+                return false
+            case .reply, .edit:
+                return true
+            }
+        }
+
+        var successToastText: String {
+            switch self {
+            case .privateMessage:
+                return "Message privé envoyé"
+            case .reply, .edit:
+                return "Hooray"
+            }
+        }
+    }
+
+    private struct AQPromptState: Identifiable {
+        let id = UUID()
+        let topicID: String
+        let topicTitle: String
+        let postID: String
+        let postURL: URL
+        let authorName: String
+    }
+
+    private struct BookmarkPromptState: Identifiable {
+        let id = UUID()
+        let topicID: String
+        let topicCategory: String
+        let postID: String
+        let authorName: String
+    }
+
     let topic: Topic
     let curPage: Int // Stored again as it can be updated when reloading the topic
     let maxPage: Int
@@ -1900,6 +2215,10 @@ struct MessagesView: View {
     @State private var photoViewerDestination: PhotoViewerDestination?
     @State private var isLoadingQuoteTemplate = false
     @State private var activeComposerPrefillMode: ComposerPrefillMode = .quote
+    @State private var activeComposerPresentationKind: ComposerPresentationKind = .reply
+    @State private var composerNavigationTitle: String = ComposerPresentationKind.reply.title
+    @State private var composerRequiresSubject = false
+    @State private var composerRecipientName: String?
     @State private var quoteTemplateErrorMessage: String?
     @State private var lastFailedQuoteTemplateURL: URL?
     @State private var lastFailedComposerPrefillMode: ComposerPrefillMode = .quote
@@ -1910,6 +2229,10 @@ struct MessagesView: View {
     @State private var pendingDeleteEditURL: URL?
     @State private var deleteErrorMessage: String?
     @State private var isDeletingMessage = false
+    @State private var aqPromptState: AQPromptState?
+    @State private var bookmarkPromptState: BookmarkPromptState?
+    @State private var popupActionErrorMessage: String?
+    @State private var isPreparingAQPrompt = false
     @State private var showWebViewLoadCover = true
     @State private var isWebContentAtBottom = false
     @State private var pendingPostedReply: ReplyPostingResult?
@@ -2318,12 +2641,45 @@ struct MessagesView: View {
         )
     }
 
+    private var isPopupActionErrorPresented: Binding<Bool> {
+        Binding(
+            get: { popupActionErrorMessage != nil },
+            set: { isPresented in
+                if !isPresented {
+                    popupActionErrorMessage = nil
+                }
+            }
+        )
+    }
+
     private func openQuoteComposer(with url: URL) {
+        activeComposerPresentationKind = .reply
+        composerNavigationTitle = ComposerPresentationKind.reply.title
+        composerRequiresSubject = false
+        composerRecipientName = nil
         prefillComposer(with: url, mode: .quote)
     }
 
     private func openEditComposer(with url: URL) {
+        activeComposerPresentationKind = .edit
+        composerNavigationTitle = ComposerPresentationKind.edit.title
+        composerRequiresSubject = false
+        composerRecipientName = nil
         prefillComposer(with: url, mode: .edit)
+    }
+
+    private func openPrivateMessageComposer(with url: URL, actions: TopicPageMessageActions) {
+        guard !isLoadingQuoteTemplate else { return }
+        activeComposerPresentationKind = .privateMessage
+        composerRequiresSubject = true
+        composerRecipientName = actions.authorName?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let composerRecipientName, !composerRecipientName.isEmpty {
+            composerNavigationTitle = "MP à \(composerRecipientName)"
+        } else {
+            composerNavigationTitle = "Nouv. MP"
+        }
+        composerSubmitURL = url
+        isComposerPresented = true
     }
 
     private func prefillComposer(with url: URL, mode: ComposerPrefillMode) {
@@ -2360,6 +2716,68 @@ struct MessagesView: View {
 
     private func openProfile(for url: URL) {
         safariDestination = SafariDestination(url: url)
+    }
+
+    private func askAQPrompt(with actions: TopicPageMessageActions) {
+        guard !isPreparingAQPrompt else { return }
+        guard
+            let topicID = actions.topicID,
+            let topicTitle = actions.topicTitle,
+            let postID = MessagePopupActionSupport.numericPostID(from: actions.postID),
+            let postURL = actions.permalinkURL
+        else {
+            showSuccessToast("Données AQ incomplètes")
+            return
+        }
+
+        Task { @MainActor in
+            isPreparingAQPrompt = true
+            defer { isPreparingAQPrompt = false }
+
+            let alreadySignaled = await MessagePopupActionSupport.isAQAlreadySignaled(
+                topicID: topicID,
+                postID: postID
+            )
+            if alreadySignaled == true {
+                showSuccessToast("Post déjà signalé")
+                return
+            }
+            if alreadySignaled == nil {
+                popupActionErrorMessage = "Création d'AQ impossible"
+                return
+            }
+
+            aqPromptState = AQPromptState(
+                topicID: topicID,
+                topicTitle: topicTitle,
+                postID: postID,
+                postURL: postURL,
+                authorName: actions.authorName ?? ""
+            )
+        }
+    }
+
+    private func askBookmarkPrompt(with actions: TopicPageMessageActions) {
+        guard
+            let topicID = actions.topicID,
+            let topicCategory = actions.topicCategory,
+            let postID = MessagePopupActionSupport.numericPostID(from: actions.postID)
+        else {
+            showSuccessToast("Données bookmark incomplètes")
+            return
+        }
+
+        if MessagePopupActionSupport.hasBookmark(topicID: topicID, postID: postID) {
+            showSuccessToast("Post déjà dans les bookmarks")
+            return
+        }
+
+        bookmarkPromptState = BookmarkPromptState(
+            topicID: topicID,
+            topicCategory: topicCategory,
+            postID: postID,
+            authorName: actions.authorName ?? ""
+        )
     }
 
     private func askAlertMailConfirmation(with permalinkURL: URL) {
@@ -2441,6 +2859,10 @@ struct MessagesView: View {
     }
 
     private func openReplyComposer() {
+        activeComposerPresentationKind = .reply
+        composerNavigationTitle = ComposerPresentationKind.reply.title
+        composerRequiresSubject = false
+        composerRecipientName = nil
         composerSubmitURL = topicAnswerURL
         isComposerPresented = true
     }
@@ -2550,8 +2972,10 @@ struct MessagesView: View {
         guard let postedReply = pendingPostedReply else { return }
         pendingPostedReply = nil
 
-        showSuccessToast("Hooray")
+        let presentationKind = activeComposerPresentationKind
+        showSuccessToast(presentationKind.successToastText)
 
+        guard presentationKind.shouldRefreshTopicOnSuccess else { return }
         guard page >= maxPage else { return }
 
         if let refreshURL = postedReply.refreshURL {
@@ -2706,6 +3130,9 @@ struct MessagesView: View {
                     onPopupEditRequest: { editURL in
                         openEditComposer(with: editURL)
                     },
+                    onPopupPrivateMessageRequest: { privateMessageURL, actions in
+                        openPrivateMessageComposer(with: privateMessageURL, actions: actions)
+                    },
                     onPopupDeleteRequest: { editURL in
                         askDeleteMessageConfirmation(with: editURL)
                     },
@@ -2717,6 +3144,12 @@ struct MessagesView: View {
                     },
                     onPopupProfileRequest: { profileURL in
                         openProfile(for: profileURL)
+                    },
+                    onPopupAQRequest: { actions in
+                        askAQPrompt(with: actions)
+                    },
+                    onPopupBookmarkRequest: { actions in
+                        askBookmarkPrompt(with: actions)
                     },
                     onContentReady: {
                         withAnimation(.easeOut(duration: 0.14)) {
@@ -2764,6 +3197,15 @@ struct MessagesView: View {
                         .padding(.vertical, 12)
                         .background(.ultraThinMaterial, in: .rect(cornerRadius: 12))
                 }
+
+                if isPreparingAQPrompt {
+                    Color.black.opacity(0.18)
+                        .ignoresSafeArea()
+                    ProgressView("Chargement de l'AQ...")
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 12)
+                        .background(.ultraThinMaterial, in: .rect(cornerRadius: 12))
+                }
             }
             .ignoresSafeArea()
             .navigationBarTitleDisplayMode(.inline)
@@ -2792,11 +3234,65 @@ struct MessagesView: View {
                 .sheet(isPresented: $isComposerPresented) {
                     AnswerView(
                         topicURL: composerSubmitURL ?? topicAnswerURL,
+                        title: composerNavigationTitle,
+                        requiresSubject: composerRequiresSubject,
+                        initialRecipient: composerRecipientName,
                         onPostSuccess: handleReplySuccess,
                         composerDraftText: $composerDraftText,
                         isComposerPresented: $isComposerPresented
                     )
                         .presentationDetents([.large])
+                }
+                .sheet(item: $aqPromptState) { state in
+                    MessagePopupPromptSheet(
+                        title: "Alerte Qualitay",
+                        message: "Créer une Alerte Qualitay sur le post de \(state.authorName)",
+                        placeholder: "Ajoutez un titre",
+                        actionTitle: "Créer"
+                    ) { draftTitle in
+                        let result = await MessagePopupActionSupport.createAQ(
+                            title: draftTitle,
+                            topicID: state.topicID,
+                            topicTitle: state.topicTitle,
+                            postID: state.postID,
+                            postURL: state.postURL.absoluteString,
+                            author: state.authorName
+                        )
+                        switch result {
+                        case .success:
+                            return "Alerte Qualitay créée."
+                        case .failure(let code):
+                            throw MessagePopupSheetSubmissionError(message: "Code erreur \(code)")
+                        case .networkError:
+                            throw MessagePopupSheetSubmissionError(message: "Création d'AQ impossible")
+                        }
+                    } onSuccess: { message in
+                        showSuccessToast(message)
+                    }
+                    .presentationDetents([.medium])
+                }
+                .sheet(item: $bookmarkPromptState) { state in
+                    MessagePopupPromptSheet(
+                        title: "Bookmark",
+                        message: "Créer un bookmark sur le post de \(state.authorName) ?",
+                        placeholder: "Ajoutez un titre",
+                        actionTitle: "Créer"
+                    ) { draftTitle in
+                        let created = MessagePopupActionSupport.createBookmark(
+                            topicID: state.topicID,
+                            topicCategory: state.topicCategory,
+                            postID: state.postID,
+                            title: draftTitle,
+                            author: state.authorName
+                        )
+                        if created {
+                            return "Bookmark créé"
+                        }
+                        throw MessagePopupSheetSubmissionError(message: "Erreur à la création du bookmark")
+                    } onSuccess: { message in
+                        showSuccessToast(message)
+                    }
+                    .presentationDetents([.medium])
                 }
                 .sheet(item: $moderationAlertDestination) { destination in
                     ModerationAlertComposerView(
@@ -2847,6 +3343,11 @@ struct MessagesView: View {
                     Button("OK", role: .cancel) {}
                 } message: {
                     Text(moderationAlertErrorMessage ?? "Erreur inconnue.")
+                }
+                .alert("Action impossible", isPresented: isPopupActionErrorPresented) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(popupActionErrorMessage ?? "Erreur inconnue.")
                 }
                 .toolbar {
                     ToolbarItem(placement: .principal) {

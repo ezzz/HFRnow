@@ -26,6 +26,28 @@ final class MessagePopupMenuPolicyTests: XCTestCase {
         XCTAssertTrue(titles.contains("Supprimer"))
     }
 
+    func testMessageSourceForOtherUserMatchesLegacyActionOrder() {
+        let actions = makeActions(
+            quoteURL: url("https://forum.hardware.fr/message.php?post=42"),
+            favoriteURL: url("https://forum.hardware.fr/favorite.php?post=42"),
+            alertURL: url("https://forum.hardware.fr/alerte.php?post=42"),
+            permalinkURL: url("https://forum.hardware.fr/forum2.php?post=42#t42"),
+            quoteJS: "javascript:qreply(13,432,61999,55767559); return false;",
+            isOwnMessage: false,
+            canBeFavorite: true,
+            canAQ: true,
+            canBookmark: true
+        )
+
+        let titles = MessagePopupMenuPolicy.orderedActionKinds(
+            for: actions,
+            source: .message,
+            isQuoteSelectionEnabled: false
+        ).map(\.title)
+
+        XCTAssertEqual(titles, ["Citer", "Citer ☐", "Favoris", "Link", "Alerter", "AQ", "Bookmark"])
+    }
+
     func testAvatarSourceIncludesProfileAndModerationActionsForOtherUser() {
         let actions = makeActions(
             quoteURL: url("https://forum.hardware.fr/message.php?post=42"),
@@ -47,7 +69,7 @@ final class MessagePopupMenuPolicyTests: XCTestCase {
             isQuoteSelectionEnabled: false
         ).map(\.title)
 
-        XCTAssertEqual(titles, ["Citer", "Profil", "MP", "Blacklist", "Whitelist"])
+        XCTAssertEqual(titles, ["Profil", "MP", "Blacklist", "Whitelist"])
     }
 
     func testOwnMessageHidesMpBlacklistWhitelistAndAlert() {
@@ -87,6 +109,48 @@ final class MessagePopupMenuPolicyTests: XCTestCase {
         ).map(\.title)
 
         XCTAssertEqual(titles.filter { $0 == "Alerter" }.count, 1)
+    }
+
+    func testAlertURLTakesPrecedenceWithoutDuplicatingFallbackAlert() {
+        let actions = makeActions(
+            alertURL: url("https://forum.hardware.fr/alerte.php?post=42"),
+            permalinkURL: url("https://forum.hardware.fr/forum2.php?post=42#t42"),
+            isOwnMessage: false
+        )
+
+        let titles = MessagePopupMenuPolicy.orderedActionKinds(
+            for: actions,
+            source: .message,
+            isQuoteSelectionEnabled: false
+        ).map(\.title)
+
+        XCTAssertEqual(titles.filter { $0 == "Alerter" }.count, 1)
+        XCTAssertEqual(titles, ["Link", "Alerter"])
+    }
+
+    func testFavoriteRequiresCapabilityAndFavoriteURL() {
+        let missingCapability = makeActions(
+            favoriteURL: url("https://forum.hardware.fr/favorite.php?post=42"),
+            canBeFavorite: false
+        )
+        let missingURL = makeActions(
+            canBeFavorite: true
+        )
+
+        let titlesWithoutCapability = MessagePopupMenuPolicy.orderedActionKinds(
+            for: missingCapability,
+            source: .message,
+            isQuoteSelectionEnabled: false
+        ).map(\.title)
+
+        let titlesWithoutURL = MessagePopupMenuPolicy.orderedActionKinds(
+            for: missingURL,
+            source: .message,
+            isQuoteSelectionEnabled: false
+        ).map(\.title)
+
+        XCTAssertFalse(titlesWithoutCapability.contains("Favoris"))
+        XCTAssertFalse(titlesWithoutURL.contains("Favoris"))
     }
 
     func testDeleteRequiresEditURLEvenWhenCanDeleteFlagIsTrue() {

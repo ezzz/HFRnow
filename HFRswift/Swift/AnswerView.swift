@@ -3,6 +3,9 @@ import UIKit
 
 struct AnswerView: View {
     let topicURL: URL?
+    let title: String
+    let requiresSubject: Bool
+    let initialRecipient: String?
     private let replyPostingService: any ReplyPostingService
     private let smileyCatalogLoader: ReplySmileyCatalogLoading
     private let imageUploadService: any ReplyImageUploadService
@@ -15,6 +18,8 @@ struct AnswerView: View {
 
     @AppStorage("haptics") private var hapticsEnabled = true
     @State private var composerState: ReplyComposerState
+    @State private var composerSubject: String
+    @State private var composerRecipient: String?
     @State private var defaultSmileys: [ReplySmiley] = []
     @State private var favoriteSmileys: [ReplySmiley] = []
     @State private var imageUploadPreferences: RehostPreferences
@@ -31,6 +36,9 @@ struct AnswerView: View {
 
     init(
         topicURL: URL?,
+        title: String = "Reply",
+        requiresSubject: Bool = false,
+        initialRecipient: String? = nil,
         replyPostingService: any ReplyPostingService = ForumReplyPostingService(),
         smileyCatalogLoader: ReplySmileyCatalogLoading = BundleReplySmileyCatalogLoader(),
         imageUploadService: any ReplyImageUploadService = Img3ReplyImageUploadService(),
@@ -39,6 +47,9 @@ struct AnswerView: View {
         isComposerPresented: Binding<Bool>
     ) {
         self.topicURL = topicURL
+        self.title = title
+        self.requiresSubject = requiresSubject
+        self.initialRecipient = initialRecipient
         self.replyPostingService = replyPostingService
         self.smileyCatalogLoader = smileyCatalogLoader
         self.imageUploadService = imageUploadService
@@ -46,6 +57,8 @@ struct AnswerView: View {
         self._composerDraftText = composerDraftText
         self._isComposerPresented = isComposerPresented
         self._composerState = State(initialValue: ReplyComposerState(initialMessage: composerDraftText.wrappedValue))
+        self._composerSubject = State(initialValue: "")
+        self._composerRecipient = State(initialValue: initialRecipient)
         self._imageUploadPreferences = State(initialValue: RehostPreferencesStore.load())
         self._uploadedImages = State(initialValue: RehostUploadHistoryStore.load())
     }
@@ -85,6 +98,12 @@ struct AnswerView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            if showsComposerMetadata {
+                composerMetadataSection
+                    .padding(.horizontal)
+                    .padding(.top)
+            }
+
             ReplyTextEditor(
                 text: $composerState.message,
                 selectedRange: $selectedRangeUTF16,
@@ -187,16 +206,16 @@ struct AnswerView: View {
                         .font(.system(size: 17, weight: .semibold))
                         .padding(.vertical, 10)
                         .padding(.horizontal, 14)
-                        .background(composerState.canSend ? appTheme.actionTintColor : Color.gray.opacity(0.2))
-                        .foregroundColor(composerState.canSend ? .white : .secondary)
+                        .background(canSend ? appTheme.actionTintColor : Color.gray.opacity(0.2))
+                        .foregroundColor(canSend ? .white : .secondary)
                         .clipShape(Capsule())
                         .accessibilityLabel("Send")
                 }
-                .disabled(!composerState.canSend)
+                .disabled(!canSend)
                 .padding()
             }
         }
-        .navigationTitle("Reply")
+        .navigationTitle(title)
         .toolbarTitleDisplayMode(.inline)
         .sheet(isPresented: isDefaultSmileyPickerPresented) {
             SmileyPickerView(title: "Smileys", smileys: defaultSmileys) { selectedSmiley in
@@ -246,7 +265,7 @@ struct AnswerView: View {
             }
         }
         .task(id: topicURL?.absoluteString) {
-            await preloadReplyContextForSmileys()
+            await loadComposerContext()
         }
         .onDisappear {
             composerDraftText = composerState.message
@@ -283,9 +302,63 @@ struct AnswerView: View {
         composerState.activePanel = .favoriteSmileys
     }
 
-    private func preloadReplyContextForSmileys() async {
+    private var showsComposerMetadata: Bool {
+        requiresSubject || composerRecipient != nil
+    }
+
+    private var canSend: Bool {
+        guard composerState.canSend else { return false }
+        if requiresSubject {
+            return !composerSubject.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+        return true
+    }
+
+    @ViewBuilder
+    private var composerMetadataSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if let composerRecipient {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Destinataire")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(composerRecipient)
+                        .font(.body)
+                        .foregroundStyle(.primary)
+                }
+            }
+
+            if requiresSubject {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Sujet")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    TextField("Sujet du MP", text: $composerSubject)
+                        .textInputAutocapitalization(.sentences)
+                        .autocorrectionDisabled()
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(themePalette.editorBackgroundColor)
+                        .clipShape(.rect(cornerRadius: 10))
+                }
+            }
+        }
+    }
+
+    private func loadComposerContext() async {
         guard let topicURL else { return }
-        if let preloader = replyPostingService as? any ReplyComposerContextPreloading {
+        if let contextLoader = replyPostingService as? any ReplyComposerContextLoading,
+           let context = try? await contextLoader.fetchComposerContext(topicURL: topicURL) {
+            await MainActor.run {
+                if composerSubject.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                   let subject = context.subject {
+                    composerSubject = subject
+                }
+                if composerRecipient == nil, let recipient = context.recipient {
+                    composerRecipient = recipient
+                }
+            }
+        } else if let preloader = replyPostingService as? any ReplyComposerContextPreloading {
             await preloader.preloadReplyContext(topicURL: topicURL)
         }
         await MainActor.run {
@@ -356,7 +429,18 @@ struct AnswerView: View {
         }
 
         do {
-            let result = try await replyPostingService.postReply(message: composerState.message, topicURL: topicURL)
+            var formOverrides: [String: String] = [:]
+            if requiresSubject {
+                formOverrides["sujet"] = composerSubject.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            if let composerRecipient {
+                formOverrides["dest"] = composerRecipient
+            }
+            let result = try await replyPostingService.postReply(
+                message: composerState.message,
+                topicURL: topicURL,
+                formOverrides: formOverrides
+            )
             await MainActor.run {
                 onPostSuccess?(result)
             }
@@ -371,6 +455,7 @@ struct AnswerView: View {
                 redoHistory.removeAll()
                 pendingHistoryMutationsToSkip = 0
                 composerDraftText = ""
+                composerSubject = ""
                 isComposerPresented = false
                 isComposerFocused = false
             }
