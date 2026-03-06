@@ -9,6 +9,7 @@ import SwiftUI
 import WebKit
 import UIKit
 import SafariServices
+import ImageIO
 
 enum ReplyQuoteDraftMerger {
     static func merge(quoteTemplate: String, into draft: String) -> String {
@@ -3178,7 +3179,9 @@ private struct MessageSmileySheetView: View {
     let onShowToast: (String) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("MessageSmileySheetCompactImage") private var isSmileyCompactImage = false
     @State private var isFavorite: Bool
+    @State private var imageLoadState: MessageAnimatedImageLoadState = .idle
     @State private var keywords: [String] = []
     @State private var isLoadingKeywords = false
     @State private var keywordsErrorMessage: String?
@@ -3200,30 +3203,34 @@ private struct MessageSmileySheetView: View {
         _isFavorite = State(initialValue: initiallyFavorite)
     }
 
+    private var smileyScale: CGFloat {
+        isSmileyCompactImage ? 0.35 : 0.7
+    }
+
+    private var smileyDisplayHeight: CGFloat {
+        let screenHeight = UIScreen.main.bounds.height
+        return min(max(screenHeight * 0.24, 150), 230)
+    }
+
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 16) {
-                AsyncImage(url: URL(string: imageURL)) { phase in
-                    switch phase {
-                    case .empty:
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(Color.secondary.opacity(0.12))
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Color.secondary.opacity(0.12))
+
+                        MessageAnimatedGIFImageView(
+                            url: URL(string: imageURL),
+                            loadState: $imageLoadState
+                        )
+                        .padding(8)
+                        .scaleEffect(smileyScale)
+                        .animation(.easeInOut(duration: 0.16), value: smileyScale)
+
+                        if imageLoadState == .idle || imageLoadState == .loading {
                             ProgressView()
-                        }
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFit()
-                            .padding(8)
-                            .background(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .fill(Color.secondary.opacity(0.10))
-                            )
-                    case .failure:
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(Color.secondary.opacity(0.12))
+                        } else if imageLoadState == .failure {
                             VStack(spacing: 6) {
                                 Image(systemName: "photo")
                                 Text("Image indisponible")
@@ -3231,82 +3238,242 @@ private struct MessageSmileySheetView: View {
                             }
                             .foregroundStyle(.secondary)
                         }
-                    @unknown default:
-                        EmptyView()
                     }
-                }
-                .frame(maxWidth: .infinity, minHeight: 140, maxHeight: 190)
+                    .frame(maxWidth: .infinity, minHeight: smileyDisplayHeight, maxHeight: smileyDisplayHeight)
 
-                Text(code)
-                    .font(.title3.monospaced())
-                    .textSelection(.enabled)
+                    Text(code)
+                        .font(.title3.monospaced())
+                        .textSelection(.enabled)
 
-                Button {
-                    let add = !isFavorite
-                    if onToggleFavorite(add) {
-                        isFavorite.toggle()
-                        onShowToast(add ? "Smiley ajouté aux favoris" : "Smiley retiré des favoris")
-                    } else {
-                        onShowToast("Erreur :/")
-                    }
-                } label: {
-                    Label(
-                        isFavorite ? "Retirer des favoris" : "Ajouter aux favoris",
-                        systemImage: isFavorite ? "star.slash" : "star"
-                    )
-                    .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-
-                Button {
-                    Task {
-                        isLoadingKeywords = true
-                        keywordsErrorMessage = nil
-                        switch await onFetchKeywords() {
-                        case .success(let fetchedKeywords):
-                            keywords = fetchedKeywords
-                        case .failure(let error):
-                            keywords = []
-                            keywordsErrorMessage = error.localizedDescription
+                    Button {
+                        let add = !isFavorite
+                        if onToggleFavorite(add) {
+                            isFavorite.toggle()
+                            onShowToast(add ? "Smiley ajouté aux favoris" : "Smiley retiré des favoris")
+                        } else {
+                            onShowToast("Erreur :/")
                         }
-                        isLoadingKeywords = false
-                    }
-                } label: {
-                    Label("Mots clés", systemImage: "text.magnifyingglass")
+                    } label: {
+                        Label(
+                            isFavorite ? "Retirer des favoris" : "Ajouter aux favoris",
+                            systemImage: isFavorite ? "star.slash" : "star"
+                        )
                         .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .disabled(isLoadingKeywords)
-
-                if isLoadingKeywords {
-                    ProgressView("Chargement des mots clés...")
-                        .font(.footnote)
-                } else if let keywordsErrorMessage {
-                    Text(keywordsErrorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                } else if !keywords.isEmpty {
-                    ScrollView {
-                        Text(keywords.joined(separator: "  "))
-                            .font(.footnote.monospaced())
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .textSelection(.enabled)
                     }
-                    .frame(maxHeight: 120)
-                }
+                    .buttonStyle(.borderedProminent)
 
-                Spacer(minLength: 0)
+                    Button {
+                        Task {
+                            isLoadingKeywords = true
+                            keywordsErrorMessage = nil
+                            switch await onFetchKeywords() {
+                            case .success(let fetchedKeywords):
+                                keywords = fetchedKeywords
+                            case .failure(let error):
+                                keywords = []
+                                keywordsErrorMessage = error.localizedDescription
+                            }
+                            isLoadingKeywords = false
+                        }
+                    } label: {
+                        Label("Mots clés", systemImage: "text.magnifyingglass")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(isLoadingKeywords)
+
+                    if isLoadingKeywords {
+                        ProgressView("Chargement des mots clés...")
+                            .font(.footnote)
+                    } else if let keywordsErrorMessage {
+                        Text(keywordsErrorMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                    } else if !keywords.isEmpty {
+                        ScrollView {
+                            Text(keywords.joined(separator: "  "))
+                                .font(.footnote.monospaced())
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .textSelection(.enabled)
+                        }
+                        .frame(maxHeight: 120)
+                    }
+
+                }
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(16)
+            .scrollBounceBehavior(.basedOnSize)
             .navigationTitle("Smiley")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        isSmileyCompactImage.toggle()
+                    } label: {
+                        Label(
+                            isSmileyCompactImage ? "Grand" : "Petit",
+                            systemImage: isSmileyCompactImage ? "plus.magnifyingglass" : "minus.magnifyingglass"
+                        )
+                    }
+                }
+
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Fermer") {
                         dismiss()
                     }
                 }
             }
+        }
+    }
+}
+
+private enum MessageAnimatedImageLoadState: Equatable {
+    case idle
+    case loading
+    case success
+    case failure
+}
+
+private struct MessageAnimatedGIFImageView: UIViewRepresentable {
+    let url: URL?
+    @Binding var loadState: MessageAnimatedImageLoadState
+
+    func makeUIView(context: Context) -> UIImageView {
+        let imageView = UIImageView()
+        imageView.contentMode = .scaleAspectFit
+        imageView.clipsToBounds = true
+        return imageView
+    }
+
+    func updateUIView(_ uiView: UIImageView, context: Context) {
+        context.coordinator.update(uiView, with: url, loadState: $loadState)
+    }
+
+    static func dismantleUIView(_ uiView: UIImageView, coordinator: Coordinator) {
+        coordinator.cancelPendingWork()
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    final class Coordinator {
+        private static let imageCache = NSCache<NSString, UIImage>()
+        private var currentURL: URL?
+        private var loadTask: URLSessionDataTask?
+
+        func update(
+            _ imageView: UIImageView,
+            with url: URL?,
+            loadState: Binding<MessageAnimatedImageLoadState>
+        ) {
+            guard currentURL != url else { return }
+
+            currentURL = url
+            loadTask?.cancel()
+            loadTask = nil
+            imageView.image = nil
+
+            guard let url else {
+                loadState.wrappedValue = .failure
+                return
+            }
+
+            let cacheKey = url.absoluteString as NSString
+            if let cachedImage = Self.imageCache.object(forKey: cacheKey) {
+                imageView.image = cachedImage
+                loadState.wrappedValue = .success
+                return
+            }
+
+            loadState.wrappedValue = .loading
+
+            let task = URLSession.shared.dataTask(with: url) { [weak self, weak imageView] data, response, _ in
+                guard let self else { return }
+
+                let isValidResponse = (response as? HTTPURLResponse).map { (200..<300).contains($0.statusCode) } ?? false
+                guard
+                    let data,
+                    isValidResponse,
+                    let decodedImage = Self.decodeAnimatedImage(from: data)
+                else {
+                    DispatchQueue.main.async {
+                        guard self.currentURL == url else { return }
+                        loadState.wrappedValue = .failure
+                    }
+                    return
+                }
+
+                Self.imageCache.setObject(decodedImage, forKey: cacheKey)
+                DispatchQueue.main.async {
+                    guard self.currentURL == url else { return }
+                    imageView?.image = decodedImage
+                    loadState.wrappedValue = .success
+                }
+            }
+
+            loadTask = task
+            task.resume()
+        }
+
+        func cancelPendingWork() {
+            loadTask?.cancel()
+            loadTask = nil
+        }
+
+        private static func decodeAnimatedImage(from data: Data) -> UIImage? {
+            let animatedGIFSelector = NSSelectorFromString("sd_animatedGIFWithData:")
+            let imageClass: AnyObject = UIImage.self
+            if imageClass.responds(to: animatedGIFSelector),
+               let unmanaged = imageClass.perform(animatedGIFSelector, with: data),
+               let image = unmanaged.takeUnretainedValue() as? UIImage {
+                return image
+            }
+
+            guard let source = CGImageSourceCreateWithData(data as CFData, nil) else {
+                return UIImage(data: data)
+            }
+
+            let frameCount = CGImageSourceGetCount(source)
+            guard frameCount > 1 else {
+                return UIImage(data: data)
+            }
+
+            var frames: [UIImage] = []
+            var totalDuration: Double = 0
+            let scale = UIScreen.main.scale
+
+            for index in 0..<frameCount {
+                guard let cgImage = CGImageSourceCreateImageAtIndex(source, index, nil) else {
+                    continue
+                }
+                totalDuration += frameDuration(at: index, in: source)
+                frames.append(UIImage(cgImage: cgImage, scale: scale, orientation: .up))
+            }
+
+            guard !frames.isEmpty else {
+                return UIImage(data: data)
+            }
+
+            if totalDuration <= 0 {
+                totalDuration = Double(frames.count) * 0.1
+            }
+            return UIImage.animatedImage(with: frames, duration: totalDuration)
+        }
+
+        private static func frameDuration(at index: Int, in source: CGImageSource) -> Double {
+            guard
+                let frameProperties = CGImageSourceCopyPropertiesAtIndex(source, index, nil) as? [CFString: Any],
+                let gifProperties = frameProperties[kCGImagePropertyGIFDictionary] as? [CFString: Any]
+            else {
+                return 0.1
+            }
+
+            let unclampedDelay = gifProperties[kCGImagePropertyGIFUnclampedDelayTime] as? Double
+            let delay = gifProperties[kCGImagePropertyGIFDelayTime] as? Double
+            let duration = unclampedDelay ?? delay ?? 0.1
+            return duration < 0.011 ? 0.1 : duration
         }
     }
 }
@@ -3319,15 +3486,45 @@ private struct FullScreenPhotoViewer: View {
     @State private var baseScale: CGFloat = 1
     @State private var offset: CGSize = .zero
     @State private var baseOffset: CGSize = .zero
+    @State private var dismissDragOffset: CGFloat = 0
+    @State private var showsCloseButton = false
 
     private func clampedScale(_ value: CGFloat) -> CGFloat {
         min(max(value, 1), 5)
     }
 
+    private var dismissBackgroundOpacity: Double {
+        let progress = min(max(dismissDragOffset / 260, 0), 1)
+        return max(0.65, 1 - (progress * 0.35))
+    }
+
     var body: some View {
         ZStack(alignment: .topTrailing) {
             Color.black
+                .opacity(dismissBackgroundOpacity)
                 .ignoresSafeArea()
+                .gesture(
+                    DragGesture()
+                        .onChanged { value in
+                            guard scale <= 1 else { return }
+                            dismissDragOffset = max(0, value.translation.height)
+                        }
+                        .onEnded { value in
+                            guard scale <= 1 else { return }
+                            if value.translation.height > 140 {
+                                dismiss()
+                            } else {
+                                withAnimation(.spring(response: 0.24, dampingFraction: 0.86)) {
+                                    dismissDragOffset = 0
+                                }
+                            }
+                        }
+                )
+                .onTapGesture {
+                    withAnimation(.easeInOut(duration: 0.18)) {
+                        showsCloseButton.toggle()
+                    }
+                }
 
             AsyncImage(url: url) { phase in
                 switch phase {
@@ -3339,20 +3536,30 @@ private struct FullScreenPhotoViewer: View {
                         .resizable()
                         .scaledToFit()
                         .scaleEffect(scale)
-                        .offset(offset)
+                        .offset(x: offset.width, y: offset.height + dismissDragOffset)
                         .gesture(
                             DragGesture()
                                 .onChanged { value in
-                                    guard scale > 1 else { return }
+                                    guard scale > 1 else {
+                                        dismissDragOffset = max(0, value.translation.height)
+                                        return
+                                    }
                                     offset = CGSize(
                                         width: baseOffset.width + value.translation.width,
                                         height: baseOffset.height + value.translation.height
                                     )
                                 }
-                                .onEnded { _ in
+                                .onEnded { value in
                                     guard scale > 1 else {
                                         baseOffset = .zero
                                         offset = .zero
+                                        if value.translation.height > 140 {
+                                            dismiss()
+                                        } else {
+                                            withAnimation(.spring(response: 0.24, dampingFraction: 0.86)) {
+                                                dismissDragOffset = 0
+                                            }
+                                        }
                                         return
                                     }
                                     baseOffset = offset
@@ -3385,6 +3592,11 @@ private struct FullScreenPhotoViewer: View {
                                 }
                             }
                         }
+                        .onTapGesture {
+                            withAnimation(.easeInOut(duration: 0.18)) {
+                                showsCloseButton.toggle()
+                            }
+                        }
                 case .failure:
                     VStack(spacing: 10) {
                         Image(systemName: "exclamationmark.triangle")
@@ -3400,17 +3612,30 @@ private struct FullScreenPhotoViewer: View {
             .padding(.horizontal, 8)
             .padding(.vertical, 26)
 
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 28))
-                    .foregroundStyle(.white.opacity(0.95))
+            if showsCloseButton {
+                Button("Fermer") {
+                    dismiss()
+                }
+                .ifAvailableiOS26GlassProminent()
+                .padding(.top, 14)
+                .padding(.trailing, 14)
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
-            .padding(.top, 14)
-            .padding(.trailing, 14)
         }
         .statusBarHidden()
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func ifAvailableiOS26GlassProminent() -> some View {
+        if #available(iOS 26.0, *) {
+            self.buttonStyle(.glassProminent)
+        } else {
+            self
+                .buttonStyle(.borderedProminent)
+                .tint(.black.opacity(0.55))
+        }
     }
 }
 
