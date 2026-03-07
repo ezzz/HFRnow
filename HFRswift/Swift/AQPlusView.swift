@@ -263,8 +263,7 @@ final class AQPlusViewModel: ObservableObject {
     }
 
     private func shouldFilterCategory25() -> Bool {
-        let manager = MultisManager.sharedManager() as? MultisManager
-        guard let pseudo = manager?.getCurrentPseudo()?.lowercased(), !pseudo.isEmpty else {
+        guard let pseudo = ObjCLegacyAccountsManager.shared.currentPseudo()?.lowercased(), !pseudo.isEmpty else {
             return true
         }
         return pseudo == "applereview"

@@ -33,6 +33,21 @@ final class AccountsStoreTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(mockService.fetchAccountsCallCount, 2)
     }
 
+    func testSetMainDoesNothingWhenAccountIsAlreadyMain() {
+        let mockService = MockAccountSessionService()
+        mockService.accounts = [
+            Account(id: "alpha", displayName: "Alpha", isMain: true, avatarData: nil)
+        ]
+
+        let store = AccountsStore(accountSessionService: mockService)
+        let alpha = mockService.accounts[0]
+
+        store.setMain(alpha)
+
+        XCTAssertTrue(mockService.setMainAccountCalls.isEmpty)
+        XCTAssertEqual(mockService.fetchAccountsCallCount, 1)
+    }
+
     func testDeleteCurrentDelegatesToService() {
         let mockService = MockAccountSessionService()
         mockService.accounts = [
@@ -58,6 +73,26 @@ final class AccountsStoreTests: XCTestCase {
         XCTAssertEqual(mockService.addAccountCalls.first?.pseudo, "newbie")
         XCTAssertEqual(mockService.addAccountCalls.first?.password, "secret")
         XCTAssertGreaterThanOrEqual(mockService.fetchAccountsCallCount, 2)
+    }
+
+    func testRefreshKeepsPreviousCurrentAccountWhenNoMainAccountIsReturned() {
+        let mockService = MockAccountSessionService()
+        mockService.accounts = [
+            Account(id: "alpha", displayName: "Alpha", isMain: false, avatarData: nil),
+            Account(id: "beta", displayName: "Beta", isMain: true, avatarData: nil)
+        ]
+
+        let store = AccountsStore(accountSessionService: mockService)
+        XCTAssertEqual(store.currentAccount?.id, "beta")
+
+        mockService.accounts = [
+            Account(id: "alpha", displayName: "Alpha", isMain: false, avatarData: nil),
+            Account(id: "beta", displayName: "Beta", isMain: false, avatarData: nil)
+        ]
+
+        store.refresh()
+
+        XCTAssertEqual(store.currentAccount?.id, "beta")
     }
 }
 

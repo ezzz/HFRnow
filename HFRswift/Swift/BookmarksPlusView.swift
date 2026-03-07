@@ -14,10 +14,10 @@ final class BookmarksPlusViewModel: ObservableObject {
     @Published var isRefreshing = false
     @Published var errorMessage: String?
 
-    private let storage: MPStorage?
+    private let storage: LegacyMPStorageManaging
     private var refreshFallbackWorkItem: DispatchWorkItem?
 
-    init(storage: MPStorage? = MPStorage.shared()) {
+    init(storage: LegacyMPStorageManaging = ObjCMPStorageBridge.shared) {
         self.storage = storage
     }
 
@@ -30,20 +30,20 @@ final class BookmarksPlusViewModel: ObservableObject {
     }
 
     func loadBookmarks() {
-        guard let storage else {
+        guard storage.isAvailable else {
             bookmarks = []
             errorMessage = "MPStorage indisponible"
             return
         }
 
         storage.parseBookmarks()
-        let count = max(storage.getBookmarksNumber(), 0)
+        let count = max(storage.bookmarksCount(), 0)
         var loaded: [Bookmark] = []
-        loaded.reserveCapacity(Int(count))
+        loaded.reserveCapacity(count)
 
         if count > 0 {
             for index in 0..<count {
-                if let bookmark = storage.getBookmarkAt(Int32(index)) {
+                if let bookmark = storage.bookmark(at: index) {
                     loaded.append(bookmark)
                 }
             }
@@ -56,7 +56,7 @@ final class BookmarksPlusViewModel: ObservableObject {
     }
 
     func refreshRemoteBookmarks() {
-        guard let storage else { return }
+        guard storage.isAvailable else { return }
         guard isStorageEnabled else {
             errorMessage = "Activez le stockage MP dans Réglages pour synchroniser les bookmarks."
             return
@@ -64,7 +64,7 @@ final class BookmarksPlusViewModel: ObservableObject {
 
         errorMessage = nil
         isRefreshing = true
-        storage.reloadAsynchronous()
+        storage.reloadAsynchronously()
 
         refreshFallbackWorkItem?.cancel()
         let fallback = DispatchWorkItem { [weak self] in
@@ -84,12 +84,12 @@ final class BookmarksPlusViewModel: ObservableObject {
     }
 
     func delete(at offsets: IndexSet) {
-        guard let storage else { return }
+        guard storage.isAvailable else { return }
         let targets = offsets.compactMap { index in
             bookmarks.indices.contains(index) ? bookmarks[index] : nil
         }
         for bookmark in targets {
-            _ = storage.removeBookmarkSynchronous(bookmark)
+            _ = storage.removeBookmark(bookmark)
         }
         loadBookmarks()
     }

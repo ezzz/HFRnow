@@ -48,12 +48,19 @@ final class AccountsStore: ObservableObject {
     }
 
     func refresh() {
+        let previousCurrentAccountID = currentAccount?.id
         let fetchedAccounts = accountSessionService.fetchAccounts()
         accounts = fetchedAccounts
-        currentAccount = fetchedAccounts.first(where: { $0.isMain }) ?? fetchedAccounts.first
+        currentAccount =
+            fetchedAccounts.first(where: { $0.isMain }) ??
+            fetchedAccounts.first(where: { $0.id == previousCurrentAccountID }) ??
+            fetchedAccounts.first
     }
 
     func setMain(_ account: Account) {
+        if currentAccount?.id == account.id, currentAccount?.isMain == true {
+            return
+        }
         accountSessionService.setMainAccount(id: account.id)
         refresh()
     }

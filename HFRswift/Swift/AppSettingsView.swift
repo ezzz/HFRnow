@@ -187,8 +187,7 @@ struct AppSettingsView: View {
     }
 
     private var isLoggedIn: Bool {
-        let manager = MultisManager.sharedManager() as? MultisManager
-        let pseudo = manager?.getCurrentPseudo()
+        let pseudo = ObjCLegacyAccountsManager.shared.currentPseudo()
         return !(pseudo?.isEmpty ?? true)
     }
 
@@ -233,15 +232,14 @@ struct AppSettingsView: View {
             return
         }
 
-        let manager = MultisManager.sharedManager() as? MultisManager
-        guard let pseudo = manager?.getCurrentPseudo(), !pseudo.isEmpty else {
+        guard let pseudo = ObjCLegacyAccountsManager.shared.currentPseudo(), !pseudo.isEmpty else {
             mpStorageActive = false
             errorMessage = "Impossible de récupérer le pseudo actif."
             showErrorAlert = true
             return
         }
 
-        let success = MPStorage.shared()?.initOrResetMP(pseudo) ?? false
+        let success = ObjCMPStorageBridge.shared.initializeOrResetMP(pseudo: pseudo)
         if !success {
             mpStorageActive = false
             errorMessage = "Échec de l'initialisation du MP storage."
@@ -255,13 +253,12 @@ struct AppSettingsView: View {
             showErrorAlert = true
             return
         }
-        let manager = MultisManager.sharedManager() as? MultisManager
-        guard let pseudo = manager?.getCurrentPseudo(), !pseudo.isEmpty else {
+        guard let pseudo = ObjCLegacyAccountsManager.shared.currentPseudo(), !pseudo.isEmpty else {
             errorMessage = "Impossible de récupérer le pseudo actif."
             showErrorAlert = true
             return
         }
-        _ = MPStorage.shared()?.initOrResetMP(pseudo)
+        _ = ObjCMPStorageBridge.shared.initializeOrResetMP(pseudo: pseudo)
     }
 
     private func clearCaches() {

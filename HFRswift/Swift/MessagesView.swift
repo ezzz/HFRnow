@@ -230,7 +230,7 @@ enum MessagePopupMenuPolicy {
     }
 }
 
-private enum MessagePopupActionSupport {
+enum MessagePopupActionSupport {
     enum AQCreateResult {
         case success
         case failure(String)
@@ -274,18 +274,15 @@ private enum MessagePopupActionSupport {
         }
 
         let pseudo = currentPseudoLowercased()
-        let comment = "post de \(author)"
-
-        let bodyString = [
-            "alerte_qualitay_id=-1",
-            "nom=\(legacyPercentEncode(title))",
-            "topic_id=\(legacyPercentEncode(topicID))",
-            "topic_titre=\(legacyPercentEncode(topicTitle))",
-            "pseudo=\(legacyPercentEncode(pseudo))",
-            "post_id=\(legacyPercentEncode(postID))",
-            "post_url=\(legacyPercentEncode(postURL))",
-            "commentaire=\(legacyPercentEncode(comment))"
-        ].joined(separator: "&")
+        let bodyString = aqRequestBody(
+            title: title,
+            topicID: topicID,
+            topicTitle: topicTitle,
+            pseudo: pseudo,
+            postID: postID,
+            postURL: postURL,
+            author: author
+        )
 
         var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 5)
         request.httpMethod = "POST"
@@ -300,6 +297,28 @@ private enum MessagePopupActionSupport {
         } catch {
             return .networkError
         }
+    }
+
+    static func aqRequestBody(
+        title: String,
+        topicID: String,
+        topicTitle: String,
+        pseudo: String,
+        postID: String,
+        postURL: String,
+        author: String
+    ) -> String {
+        let comment = "post de \(author)"
+        return [
+            "alerte_qualitay_id=-1",
+            "nom=\(legacyPercentEncode(title))",
+            "topic_id=\(legacyPercentEncode(topicID))",
+            "topic_titre=\(legacyPercentEncode(topicTitle))",
+            "pseudo=\(legacyPercentEncode(pseudo))",
+            "post_id=\(legacyPercentEncode(postID))",
+            "post_url=\(legacyPercentEncode(postURL))",
+            "commentaire=\(legacyPercentEncode(comment))"
+        ].joined(separator: "&")
     }
 
     static func hasBookmark(topicID: String, postID: String) -> Bool {
@@ -368,13 +387,11 @@ private enum MessagePopupActionSupport {
     }
 
     private static func currentPseudoLowercased() -> String {
-        guard
-            let manager = MultisManager.sharedManager() as? MultisManager,
-            let mainCompte = manager.getMainCompte() as? [AnyHashable: Any]
-        else {
-            return ""
+        if let mainCompte = ObjCLegacyAccountsManager.shared.mainCompte(),
+           let pseudo = mainCompte["PSEUDO_DISPLAY"] as? String {
+            return pseudo.lowercased()
         }
-        return (mainCompte["PSEUDO_DISPLAY"] as? String)?.lowercased() ?? ""
+        return ""
     }
 
     private static func sharedMPStorageObject() -> NSObject? {
@@ -1398,26 +1415,11 @@ struct WebView: UIViewRepresentable {
                 }
 
                 let response = data.flatMap { String(data: $0, encoding: .utf8) } ?? ""
-                let message = favoriteResponseMessage(from: response) ?? "Favori mis à jour"
+                let message = MessagePopupActionSupport.favoriteResponseMessage(from: response) ?? "Favori mis à jour"
                 DispatchQueue.main.async {
                     MessageLegacyAlertBridge.showToast(message)
                 }
             }.resume()
-        }
-
-        private static func favoriteResponseMessage(from html: String) -> String? {
-            guard let regex = try? NSRegularExpression(pattern: #"<div class="hop">([^<]+)</div>"#) else {
-                return nil
-            }
-            let nsRange = NSRange(location: 0, length: (html as NSString).length)
-            guard let match = regex.firstMatch(in: html, options: [], range: nsRange),
-                  match.numberOfRanges >= 2,
-                  let captureRange = Range(match.range(at: 1), in: html)
-            else {
-                return nil
-            }
-            let message = String(html[captureRange]).trimmingCharacters(in: .whitespacesAndNewlines)
-            return message.isEmpty ? nil : message
         }
 
         private func presentShareSheet(for permalinkURL: URL, in webView: WKWebView) {
@@ -1448,7 +1450,7 @@ struct WebView: UIViewRepresentable {
                 ownerController.presentedViewController == nil,
                 let topicID = actions.topicID,
                 let topicTitle = actions.topicTitle,
-                let postID = Self.numericPostID(from: actions.postID),
+                let postID = MessagePopupActionSupport.numericPostID(from: actions.postID),
                 let permalinkURL = actions.permalinkURL
             else {
                 MessageLegacyAlertBridge.showToast("Données AQ incomplètes")
@@ -1456,7 +1458,7 @@ struct WebView: UIViewRepresentable {
             }
 
             Task { @MainActor in
-                let alreadySignaled = await Self.isAQAlreadySignaled(topicID: topicID, postID: postID)
+                let alreadySignaled = await MessagePopupActionSupport.isAQAlreadySignaled(topicID: topicID, postID: postID)
                 if alreadySignaled == true {
                     MessageLegacyAlertBridge.showToast("Post déjà signalé")
                     return
@@ -1487,7 +1489,7 @@ struct WebView: UIViewRepresentable {
                         guard !title.isEmpty else { return }
                         let authorName = actions.authorName ?? ""
                         Task { @MainActor in
-                            let result = await Self.createAQ(
+                            let result = await MessagePopupActionSupport.createAQ(
                                 title: title,
                                 topicID: topicID,
                                 topicTitle: topicTitle,
@@ -1526,13 +1528,13 @@ struct WebView: UIViewRepresentable {
                 ownerController.presentedViewController == nil,
                 let topicID = actions.topicID,
                 let topicCategory = actions.topicCategory,
-                let postID = Self.numericPostID(from: actions.postID)
+                let postID = MessagePopupActionSupport.numericPostID(from: actions.postID)
             else {
                 MessageLegacyAlertBridge.showToast("Données bookmark incomplètes")
                 return
             }
 
-            if MessageBookmarkBridge.hasBookmark(topicID: topicID, postID: postID) {
+            if MessagePopupActionSupport.hasBookmark(topicID: topicID, postID: postID) {
                 MessageLegacyAlertBridge.showToast("Post déjà dans les bookmarks")
                 return
             }
@@ -1552,7 +1554,7 @@ struct WebView: UIViewRepresentable {
                 UIAlertAction(title: "Créer", style: .default) { _ in
                     let title = alert.textFields?.first?.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                     guard !title.isEmpty else { return }
-                    let created = MessageBookmarkBridge.createBookmark(
+                    let created = MessagePopupActionSupport.createBookmark(
                         topicID: topicID,
                         topicCategory: topicCategory,
                         postID: postID,
@@ -1571,92 +1573,6 @@ struct WebView: UIViewRepresentable {
             )
 
             ownerController.present(alert, animated: true)
-        }
-
-        private static func numericPostID(from rawPostID: String?) -> String? {
-            guard let rawPostID else {
-                return nil
-            }
-            let digits = rawPostID.unicodeScalars.filter(CharacterSet.decimalDigits.contains)
-            let numeric = String(String.UnicodeScalarView(digits))
-            return numeric.isEmpty ? nil : numeric
-        }
-
-        private enum AQCreateResult {
-            case success
-            case failure(String)
-            case networkError
-        }
-
-        private static func isAQAlreadySignaled(topicID: String, postID: String) async -> Bool? {
-            let encodedTopic = topicID.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? topicID
-            guard let url = URL(string: "https://aq.super-h.fr/api/getAlertesByTopic.php?topic_id=\(encodedTopic)") else {
-                return nil
-            }
-
-            do {
-                let (data, _) = try await URLSession.shared.data(from: url)
-                let content = String(data: data, encoding: .utf8) ?? ""
-                return content.contains(postID)
-            } catch {
-                return nil
-            }
-        }
-
-        private static func createAQ(
-            title: String,
-            topicID: String,
-            topicTitle: String,
-            postID: String,
-            postURL: String,
-            author: String
-        ) async -> AQCreateResult {
-            guard let url = URL(string: "https://aq.super-h.fr/api/addAlerte.php") else {
-                return .networkError
-            }
-
-            let pseudo = currentPseudoLowercased()
-            let comment = "post de \(author)"
-
-            let bodyString = [
-                "alerte_qualitay_id=-1",
-                "nom=\(legacyPercentEncode(title))",
-                "topic_id=\(legacyPercentEncode(topicID))",
-                "topic_titre=\(legacyPercentEncode(topicTitle))",
-                "pseudo=\(legacyPercentEncode(pseudo))",
-                "post_id=\(legacyPercentEncode(postID))",
-                "post_url=\(legacyPercentEncode(postURL))",
-                "commentaire=\(legacyPercentEncode(comment))"
-            ].joined(separator: "&")
-
-            var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 5)
-            request.httpMethod = "POST"
-            request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-            request.httpBody = bodyString.data(using: .ascii, allowLossyConversion: true)
-
-            do {
-                let (data, _) = try await URLSession.shared.data(for: request)
-                let response = String(data: data, encoding: .ascii)?
-                    .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                return response == "1" ? .success : .failure(response.isEmpty ? "?" : response)
-            } catch {
-                return .networkError
-            }
-        }
-
-        private static func legacyPercentEncode(_ value: String) -> String {
-            let allowed = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-")
-            return value.addingPercentEncoding(withAllowedCharacters: allowed) ?? value
-        }
-
-        private static func currentPseudoLowercased() -> String {
-            guard
-                let manager = MultisManager.sharedManager() as? MultisManager,
-                let mainCompte = manager.getMainCompte() as? [AnyHashable: Any]
-            else {
-                return ""
-            }
-            return (mainCompte["PSEUDO_DISPLAY"] as? String)?.lowercased() ?? ""
         }
 
         private func presentSmileyFavoriteMenu(
@@ -1815,66 +1731,6 @@ struct WebView: UIViewRepresentable {
 
             private static func sharedObject() -> NSObject? {
                 guard let klass = NSClassFromString("BlackList") as? NSObject.Type else {
-                    return nil
-                }
-                let selector = NSSelectorFromString("shared")
-                guard klass.responds(to: selector),
-                      let unmanaged = klass.perform(selector) else {
-                    return nil
-                }
-                return unmanaged.takeUnretainedValue() as? NSObject
-            }
-        }
-
-        private enum MessageBookmarkBridge {
-            static func hasBookmark(topicID: String, postID: String) -> Bool {
-                guard let storage = sharedStorageObject() else {
-                    return false
-                }
-                let selector = NSSelectorFromString("getBookmarkForPost:numreponse:")
-                guard storage.responds(to: selector) else {
-                    return false
-                }
-
-                typealias Function = @convention(c) (AnyObject, Selector, NSString, NSString) -> AnyObject?
-                let implementation = storage.method(for: selector)
-                let function = unsafeBitCast(implementation, to: Function.self)
-                return function(storage, selector, topicID as NSString, postID as NSString) != nil
-            }
-
-            static func createBookmark(
-                topicID: String,
-                topicCategory: String,
-                postID: String,
-                title: String,
-                author: String
-            ) -> Bool {
-                guard let storage = sharedStorageObject(),
-                      let bookmarkClass = NSClassFromString("Bookmark") as? NSObject.Type else {
-                    return false
-                }
-
-                let bookmark = bookmarkClass.init()
-                bookmark.setValue(topicID, forKey: "sPost")
-                bookmark.setValue(topicCategory, forKey: "sCat")
-                bookmark.setValue(postID, forKey: "sNumResponse")
-                bookmark.setValue(title, forKey: "sLabel")
-                bookmark.setValue(author, forKey: "sAuthorPost")
-                bookmark.setValue(Date(), forKey: "dateBookmarkCreation")
-
-                let selector = NSSelectorFromString("addBookmarkSynchronous:")
-                guard storage.responds(to: selector) else {
-                    return false
-                }
-
-                typealias Function = @convention(c) (AnyObject, Selector, AnyObject) -> Bool
-                let implementation = storage.method(for: selector)
-                let function = unsafeBitCast(implementation, to: Function.self)
-                return function(storage, selector, bookmark)
-            }
-
-            private static func sharedStorageObject() -> NSObject? {
-                guard let klass = NSClassFromString("MPStorage") as? NSObject.Type else {
                     return nil
                 }
                 let selector = NSSelectorFromString("shared")

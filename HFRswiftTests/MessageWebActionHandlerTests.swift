@@ -348,3 +348,51 @@ final class MessageWebActionHandlerTests: XCTestCase {
         XCTAssertEqual(action, .allowNavigation)
     }
 }
+
+final class MessagePopupActionSupportTests: XCTestCase {
+    func testNumericPostIDExtractsDigitsFromLegacyToken() {
+        XCTAssertEqual(MessagePopupActionSupport.numericPostID(from: "t55767559"), "55767559")
+        XCTAssertEqual(MessagePopupActionSupport.numericPostID(from: "post_42"), "42")
+    }
+
+    func testNumericPostIDReturnsNilWhenNoDigitsExist() {
+        XCTAssertNil(MessagePopupActionSupport.numericPostID(from: nil))
+        XCTAssertNil(MessagePopupActionSupport.numericPostID(from: "post"))
+    }
+
+    func testFavoriteResponseMessageExtractsHopMessageAndTrimsWhitespace() {
+        let html = """
+        <html>
+          <body>
+            <div class="hop">
+              Favori ajoute
+            </div>
+          </body>
+        </html>
+        """
+
+        XCTAssertEqual(MessagePopupActionSupport.favoriteResponseMessage(from: html), "Favori ajoute")
+    }
+
+    func testFavoriteResponseMessageReturnsNilForMissingOrEmptyHop() {
+        XCTAssertNil(MessagePopupActionSupport.favoriteResponseMessage(from: "<html></html>"))
+        XCTAssertNil(MessagePopupActionSupport.favoriteResponseMessage(from: #"<div class="hop">   </div>"#))
+    }
+
+    func testAQRequestBodyUsesLegacyPercentEncodingAndStableFieldOrder() {
+        let body = MessagePopupActionSupport.aqRequestBody(
+            title: "Titre test",
+            topicID: "123",
+            topicTitle: "Sujet test",
+            pseudo: "Foo Bar",
+            postID: "42",
+            postURL: "https://forum.hardware.fr/forum2.php?post=42#t42",
+            author: "Jean Luc"
+        )
+
+        XCTAssertEqual(
+            body,
+            "alerte_qualitay_id=-1&nom=Titre%20test&topic_id=123&topic_titre=Sujet%20test&pseudo=Foo%20Bar&post_id=42&post_url=https%3A%2F%2Fforum.hardware.fr%2Fforum2.php%3Fpost%3D42%23t42&commentaire=post%20de%20Jean%20Luc"
+        )
+    }
+}

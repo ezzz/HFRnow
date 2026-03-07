@@ -441,21 +441,270 @@ typealias FavoritesLoadCompletion = ([Favorite]?, Error?) -> Void
 typealias TopicsLoadCompletion = ([Topic]?, Error?) -> Void
 typealias ForumsLoadCompletion = ([Forum]?, Error?) -> Void
 
+enum LegacyLoaderBridgeError: LocalizedError {
+    case unavailable(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .unavailable(let name):
+            return "\(name) is unavailable"
+        }
+    }
+}
+
+private enum LegacyLoaderRuntime {
+    static func instantiateController(named className: String) -> NSObject? {
+        guard let controllerClass = NSClassFromString(className) as? NSObject.Type else {
+            return nil
+        }
+        return controllerClass.init()
+    }
+
+    static func sharedObject(named className: String, selector selectorName: String = "shared") -> NSObject? {
+        guard let objectClass = NSClassFromString(className) as? NSObject.Type else {
+            return nil
+        }
+        let selector = NSSelectorFromString(selectorName)
+        guard objectClass.responds(to: selector),
+              let unmanaged = objectClass.perform(selector) else {
+            return nil
+        }
+        return unmanaged.takeUnretainedValue() as? NSObject
+    }
+}
+
+typealias LegacyRawCompte = [AnyHashable: Any]
+
+protocol LegacyAccountsManaging {
+    func comptes() -> [LegacyRawCompte]
+    func mainCompte() -> LegacyRawCompte?
+    func currentPseudo() -> String?
+    func setMainPseudo(_ pseudo: String)
+    func deletePseudo(at index: Int)
+    func addCompte(pseudo: String, cookies: [HTTPCookie], avatar: Data?, hash: String?)
+    func forceCookies(for compte: LegacyRawCompte)
+    func setHash(_ hash: String, for compte: LegacyRawCompte)
+}
+
+final class ObjCLegacyAccountsManager: LegacyAccountsManaging {
+    static let shared = ObjCLegacyAccountsManager()
+
+    private let manager: NSObject?
+
+    init(manager: NSObject? = LegacyLoaderRuntime.sharedObject(named: "MultisManager", selector: "sharedManager")) {
+        self.manager = manager
+    }
+
+    func comptes() -> [LegacyRawCompte] {
+        guard let manager else { return [] }
+        let selector = NSSelectorFromString("getComtpes")
+        guard manager.responds(to: selector) else { return [] }
+
+        typealias Function = @convention(c) (AnyObject, Selector) -> NSArray?
+        let implementation = manager.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        return function(manager, selector) as? [LegacyRawCompte] ?? []
+    }
+
+    func mainCompte() -> LegacyRawCompte? {
+        guard let manager else { return nil }
+        let selector = NSSelectorFromString("getMainCompte")
+        guard manager.responds(to: selector) else { return nil }
+
+        typealias Function = @convention(c) (AnyObject, Selector) -> NSDictionary?
+        let implementation = manager.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        return function(manager, selector) as? LegacyRawCompte
+    }
+
+    func currentPseudo() -> String? {
+        guard let manager else { return nil }
+        let selector = NSSelectorFromString("getCurrentPseudo")
+        guard manager.responds(to: selector) else { return nil }
+
+        typealias Function = @convention(c) (AnyObject, Selector) -> NSString?
+        let implementation = manager.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        return function(manager, selector) as String?
+    }
+
+    func setMainPseudo(_ pseudo: String) {
+        guard let manager else { return }
+        let selector = NSSelectorFromString("setPseudoAsMain:")
+        guard manager.responds(to: selector) else { return }
+
+        typealias Function = @convention(c) (AnyObject, Selector, NSString) -> Void
+        let implementation = manager.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        function(manager, selector, pseudo as NSString)
+    }
+
+    func deletePseudo(at index: Int) {
+        guard let manager else { return }
+        let selector = NSSelectorFromString("deletePseudoAtIndex:")
+        guard manager.responds(to: selector) else { return }
+
+        typealias Function = @convention(c) (AnyObject, Selector, NSInteger) -> Void
+        let implementation = manager.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        function(manager, selector, index)
+    }
+
+    func addCompte(pseudo: String, cookies: [HTTPCookie], avatar: Data?, hash: String?) {
+        guard let manager else { return }
+        let selector = NSSelectorFromString("addCompteWithPseudo:andCookies:andAvatar:andHash:")
+        guard manager.responds(to: selector) else { return }
+
+        typealias Function = @convention(c) (AnyObject, Selector, NSString, NSArray, NSData?, NSString?) -> Void
+        let implementation = manager.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        function(manager, selector, pseudo as NSString, cookies as NSArray, avatar as NSData?, hash as NSString?)
+    }
+
+    func forceCookies(for compte: LegacyRawCompte) {
+        guard let manager else { return }
+        let selector = NSSelectorFromString("forceCookiesForCompte:")
+        guard manager.responds(to: selector) else { return }
+
+        typealias Function = @convention(c) (AnyObject, Selector, NSDictionary) -> Void
+        let implementation = manager.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        function(manager, selector, compte as NSDictionary)
+    }
+
+    func setHash(_ hash: String, for compte: LegacyRawCompte) {
+        guard let manager else { return }
+        let selector = NSSelectorFromString("setHashForCompte:andHash:")
+        guard manager.responds(to: selector) else { return }
+
+        typealias Function = @convention(c) (AnyObject, Selector, NSDictionary, NSString) -> Void
+        let implementation = manager.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        function(manager, selector, compte as NSDictionary, hash as NSString)
+    }
+}
+
+protocol LegacyMPStorageManaging {
+    var isAvailable: Bool { get }
+    func initializeOrResetMP(pseudo: String) -> Bool
+    func parseBookmarks()
+    func bookmarksCount() -> Int
+    func bookmark(at index: Int) -> Bookmark?
+    func removeBookmark(_ bookmark: Bookmark) -> Bool
+    func reloadAsynchronously()
+}
+
+final class ObjCMPStorageBridge: LegacyMPStorageManaging {
+    static let shared = ObjCMPStorageBridge()
+
+    private let storage: NSObject?
+
+    init(storage: NSObject? = LegacyLoaderRuntime.sharedObject(named: "MPStorage")) {
+        self.storage = storage
+    }
+
+    var isAvailable: Bool {
+        storage != nil
+    }
+
+    func initializeOrResetMP(pseudo: String) -> Bool {
+        guard let storage else { return false }
+        let selector = NSSelectorFromString("initOrResetMP:")
+        guard storage.responds(to: selector) else { return false }
+
+        typealias Function = @convention(c) (AnyObject, Selector, NSString) -> Bool
+        let implementation = storage.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        return function(storage, selector, pseudo as NSString)
+    }
+
+    func parseBookmarks() {
+        guard let storage else { return }
+        let selector = NSSelectorFromString("parseBookmarks")
+        guard storage.responds(to: selector) else { return }
+
+        typealias Function = @convention(c) (AnyObject, Selector) -> Void
+        let implementation = storage.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        function(storage, selector)
+    }
+
+    func bookmarksCount() -> Int {
+        guard let storage else { return 0 }
+        let selector = NSSelectorFromString("getBookmarksNumber")
+        guard storage.responds(to: selector) else { return 0 }
+
+        typealias Function = @convention(c) (AnyObject, Selector) -> Int32
+        let implementation = storage.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        return Int(function(storage, selector))
+    }
+
+    func bookmark(at index: Int) -> Bookmark? {
+        guard let storage else { return nil }
+        let selector = NSSelectorFromString("getBookmarkAtIndex:")
+        guard storage.responds(to: selector) else { return nil }
+
+        typealias Function = @convention(c) (AnyObject, Selector, Int32) -> AnyObject?
+        let implementation = storage.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        return function(storage, selector, Int32(index)) as? Bookmark
+    }
+
+    func removeBookmark(_ bookmark: Bookmark) -> Bool {
+        guard let storage else { return false }
+        let selector = NSSelectorFromString("removeBookmarkSynchronous:")
+        guard storage.responds(to: selector) else { return false }
+
+        typealias Function = @convention(c) (AnyObject, Selector, AnyObject) -> Bool
+        let implementation = storage.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        return function(storage, selector, bookmark)
+    }
+
+    func reloadAsynchronously() {
+        guard let storage else { return }
+        let selector = NSSelectorFromString("reloadMPStorageAsynchronous")
+        guard storage.responds(to: selector) else { return }
+
+        typealias Function = @convention(c) (AnyObject, Selector) -> Void
+        let implementation = storage.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        function(storage, selector)
+    }
+}
+
 protocol FavoritesLoading {
     func fetchFavorites(completion: @escaping FavoritesLoadCompletion)
 }
 
 final class ObjCFavoritesLoader: FavoritesLoading {
-    private let controller: FavoritesTableViewController
+    private let controller: NSObject?
 
-    init(controller: FavoritesTableViewController = FavoritesTableViewController()) {
+    init(controller: NSObject? = LegacyLoaderRuntime.instantiateController(named: "FavoritesTableViewController")) {
         self.controller = controller
     }
 
     func fetchFavorites(completion: @escaping FavoritesLoadCompletion) {
-        controller.fetchContent { favorites, error in
-            completion(favorites, error)
+        guard let controller else {
+            completion(nil, LegacyLoaderBridgeError.unavailable("FavoritesTableViewController"))
+            return
         }
+
+        let selector = NSSelectorFromString("fetchContentWithCompletion:")
+        guard controller.responds(to: selector) else {
+            completion(nil, LegacyLoaderBridgeError.unavailable("FavoritesTableViewController.fetchContentWithCompletion"))
+            return
+        }
+
+        typealias CompletionBlock = @convention(block) (NSArray?, NSError?) -> Void
+        typealias Function = @convention(c) (AnyObject, Selector, CompletionBlock) -> Void
+        let implementation = controller.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        let block: CompletionBlock = { favorites, error in
+            completion(favorites as? [Favorite], error)
+        }
+        function(controller, selector, block)
     }
 }
 
@@ -464,17 +713,34 @@ protocol MPTopicsLoading {
 }
 
 final class ObjCMPTopicsLoader: MPTopicsLoading {
-    private let controller: HFRMPViewController
+    private let controller: NSObject?
 
-    init(controller: HFRMPViewController = HFRMPViewController()) {
+    init(controller: NSObject? = LegacyLoaderRuntime.instantiateController(named: "HFRMPViewController")) {
         self.controller = controller
     }
 
     func fetchTopics(completion: @escaping TopicsLoadCompletion) {
-        controller.loadViewIfNeeded()
-        controller.fetchContent { topics, error in
-            completion(topics, error)
+        guard let controller else {
+            completion(nil, LegacyLoaderBridgeError.unavailable("HFRMPViewController"))
+            return
         }
+
+        (controller as? UIViewController)?.loadViewIfNeeded()
+
+        let selector = NSSelectorFromString("fetchContentWithCompletion:")
+        guard controller.responds(to: selector) else {
+            completion(nil, LegacyLoaderBridgeError.unavailable("HFRMPViewController.fetchContentWithCompletion"))
+            return
+        }
+
+        typealias CompletionBlock = @convention(block) (NSArray?, NSError?) -> Void
+        typealias Function = @convention(c) (AnyObject, Selector, CompletionBlock) -> Void
+        let implementation = controller.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        let block: CompletionBlock = { topics, error in
+            completion(topics as? [Topic], error)
+        }
+        function(controller, selector, block)
     }
 }
 
@@ -483,16 +749,32 @@ protocol ForumsLoading {
 }
 
 final class ObjCForumsLoader: ForumsLoading {
-    private let controller: ForumsTableViewController
+    private let controller: NSObject?
 
-    init(controller: ForumsTableViewController = ForumsTableViewController()) {
+    init(controller: NSObject? = LegacyLoaderRuntime.instantiateController(named: "ForumsTableViewController")) {
         self.controller = controller
     }
 
     func fetchForums(completion: @escaping ForumsLoadCompletion) {
-        controller.fetchContent { forums, error in
-            completion(forums, error)
+        guard let controller else {
+            completion(nil, LegacyLoaderBridgeError.unavailable("ForumsTableViewController"))
+            return
         }
+
+        let selector = NSSelectorFromString("fetchContentWithCompletion:")
+        guard controller.responds(to: selector) else {
+            completion(nil, LegacyLoaderBridgeError.unavailable("ForumsTableViewController.fetchContentWithCompletion"))
+            return
+        }
+
+        typealias CompletionBlock = @convention(block) (NSArray?, NSError?) -> Void
+        typealias Function = @convention(c) (AnyObject, Selector, CompletionBlock) -> Void
+        let implementation = controller.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        let block: CompletionBlock = { forums, error in
+            completion(forums as? [Forum], error)
+        }
+        function(controller, selector, block)
     }
 }
 
@@ -508,16 +790,32 @@ protocol ForumTopicsLoading {
 }
 
 final class ObjCForumTopicsLoader: ForumTopicsLoading {
-    private let controller: TopicsTableViewController
+    private let controller: NSObject?
 
-    init(controller: TopicsTableViewController = TopicsTableViewController()) {
+    init(controller: NSObject? = LegacyLoaderRuntime.instantiateController(named: "TopicsTableViewController")) {
         self.controller = controller
     }
 
     func fetchTopics(for forum: Forum, flag: TopicListFlag, completion: @escaping TopicsLoadCompletion) {
-        controller.fetchContent(for: forum, flagIndex: flag.rawValue) { topics, error in
-            completion(topics, error)
+        guard let controller else {
+            completion(nil, LegacyLoaderBridgeError.unavailable("TopicsTableViewController"))
+            return
         }
+
+        let selector = NSSelectorFromString("fetchContentForForum:flagIndex:completion:")
+        guard controller.responds(to: selector) else {
+            completion(nil, LegacyLoaderBridgeError.unavailable("TopicsTableViewController.fetchContentForForum"))
+            return
+        }
+
+        typealias CompletionBlock = @convention(block) (NSArray?, NSError?) -> Void
+        typealias Function = @convention(c) (AnyObject, Selector, Forum, NSInteger, CompletionBlock) -> Void
+        let implementation = controller.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        let block: CompletionBlock = { topics, error in
+            completion(topics as? [Topic], error)
+        }
+        function(controller, selector, forum, flag.rawValue, block)
     }
 }
 
@@ -597,34 +895,58 @@ final class ObjCTopicPageLoader: TopicPageLoading {
         static let topicTitle = "topicTitle"
     }
 
-    private let controller: MessagesTableViewController
+    private let controller: NSObject?
 
-    init(controller: MessagesTableViewController = MessagesTableViewController()) {
+    init(controller: NSObject? = LegacyLoaderRuntime.instantiateController(named: "MessagesTableViewController")) {
         self.controller = controller
     }
 
     func fetchTopicPage(url: String, anchor: String?, completion: @escaping (Result<TopicPageContent, Error>) -> Void) {
-        controller.fetchContent(forTopicURL: url, anchor: anchor) { html, topicAnswerURL, error in
+        guard let controller else {
+            completion(.failure(LegacyLoaderBridgeError.unavailable("MessagesTableViewController")))
+            return
+        }
+
+        let selector = NSSelectorFromString("fetchContentForTopicURL:anchor:completion:")
+        guard controller.responds(to: selector) else {
+            completion(.failure(LegacyLoaderBridgeError.unavailable("MessagesTableViewController.fetchContentForTopicURL")))
+            return
+        }
+
+        typealias CompletionBlock = @convention(block) (NSString?, NSString?, NSError?) -> Void
+        typealias Function = @convention(c) (AnyObject, Selector, NSString, NSString?, CompletionBlock) -> Void
+        let implementation = controller.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        let block: CompletionBlock = { html, topicAnswerURL, error in
             if let error {
                 completion(.failure(error))
                 return
             }
-            guard let html else {
+            guard let html = html as String? else {
                 completion(.failure(TopicPageLoadingError.missingHTML))
                 return
             }
-            let answerURL = topicAnswerURL.flatMap(URL.init(string:))
-            let messageActionsByIndex = self.extractMessageActionsByIndex()
+            let answerURL = (topicAnswerURL as String?).flatMap(URL.init(string:))
+            let messageActionsByIndex = self.extractMessageActionsByIndex(from: controller)
             completion(.success(TopicPageContent(
                 html: html,
                 topicAnswerURL: answerURL,
                 messageActionsByIndex: messageActionsByIndex
             )))
         }
+        function(controller, selector, url as NSString, anchor as NSString?, block)
     }
 
-    private func extractMessageActionsByIndex() -> [Int: TopicPageMessageActions] {
-        guard let rawEntries = controller.swiftMessageActionsByIndex() as? [AnyHashable: Any] else {
+    private func extractMessageActionsByIndex(from controller: NSObject) -> [Int: TopicPageMessageActions] {
+        let selector = NSSelectorFromString("swiftMessageActionsByIndex")
+        guard controller.responds(to: selector) else {
+            return [:]
+        }
+
+        typealias Function = @convention(c) (AnyObject, Selector) -> NSDictionary?
+        let implementation = controller.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        guard let rawEntries = function(controller, selector) as? [AnyHashable: Any] else {
             return [:]
         }
 

@@ -173,6 +173,55 @@ final class ObjCAccountSessionServiceTests: XCTestCase {
         XCTAssertTrue(storage.cookies?.contains(where: { $0.name == "sessionid" }) == true)
     }
 
+    func testMakeReplySessionContextIgnoresUnusableMainPayloadAndFallsBackToUsableCompte() throws {
+        let manager = MultisManagerStub()
+        manager.mainComptePayload = [:]
+        manager.comptesPayload = [
+            [
+                "PSEUDO_DISPLAY": "Fallback Display",
+                "PSEUDO": "fallback-pseudo",
+                "HASH": "fallback-hash",
+                "COOKIES": [try makeCookie(name: "sessionid", value: "cookie-value")]
+            ]
+        ]
+        let service = ObjCAccountSessionService(multisManager: manager, loginService: LoginService())
+        let storage = makeIsolatedCookieStorage()
+
+        let context = try service.makeReplySessionContext(cookieStorage: storage)
+
+        XCTAssertEqual(context.pseudoDisplay, "Fallback Display")
+        XCTAssertEqual(context.hashCheck, "fallback-hash")
+        XCTAssertEqual(manager.setMainPseudoCalls, ["fallback-pseudo"])
+        XCTAssertEqual(manager.forceCookiesForCompteCalls.count, 1)
+    }
+
+    func testMakeReplySessionContextPrefersCompteMarkedMainWhenManagerMainPayloadIsMissing() throws {
+        let manager = MultisManagerStub()
+        manager.mainComptePayload = nil
+        manager.comptesPayload = [
+            [
+                "PSEUDO_DISPLAY": "Alpha",
+                "PSEUDO": "alpha",
+                "MAIN": NSNumber(value: false),
+                "COOKIES": [try makeCookie(name: "sessionid", value: "alpha-cookie")]
+            ],
+            [
+                "PSEUDO_DISPLAY": "Beta",
+                "PSEUDO": "beta",
+                "MAIN": NSNumber(value: true),
+                "HASH": "beta-hash",
+                "COOKIES": [try makeCookie(name: "sessionid", value: "beta-cookie")]
+            ]
+        ]
+        let service = ObjCAccountSessionService(multisManager: manager, loginService: LoginService())
+
+        let context = try service.makeReplySessionContext(cookieStorage: makeIsolatedCookieStorage())
+
+        XCTAssertEqual(context.pseudoDisplay, "Beta")
+        XCTAssertEqual(context.hashCheck, "beta-hash")
+        XCTAssertEqual(manager.setMainPseudoCalls, ["beta"])
+    }
+
     func testAddAccountUsesLoginServiceAndUpdatesMultisManager() async throws {
         clearHardwareCookiesFromSharedStorage()
 
@@ -272,7 +321,7 @@ final class ObjCAccountSessionServiceTests: XCTestCase {
     }
 }
 
-private final class MultisManagerStub: MultisManager {
+private final class MultisManagerStub: LegacyAccountsManaging {
     var comptesPayload: [[String: Any]] = []
     var mainComptePayload: [AnyHashable: Any]?
     var setMainPseudoCalls: [String] = []
@@ -281,33 +330,36 @@ private final class MultisManagerStub: MultisManager {
     var forceCookiesForCompteCalls: [[AnyHashable: Any]] = []
     var setHashForCompteCalls: [(compte: [AnyHashable: Any], hash: String)] = []
 
-    override func getComtpes() -> [Any]! {
+    func comptes() -> [LegacyRawCompte] {
         comptesPayload
     }
 
-    override func setPseudo(asMain pseudo: String!) {
-        setMainPseudoCalls.append(pseudo)
-    }
-
-    override func deletePseudo(at index: Int) {
-        deletedIndices.append(index)
-    }
-
-    override func addCompte(pseudo: String!, cookies: [Any]!, avatar: Data!, hash: String!) {
-        let typedCookies = (cookies as? [HTTPCookie]) ?? []
-        addCompteCalls.append((pseudo: pseudo, cookies: typedCookies, avatar: avatar, hash: hash))
-    }
-
-    override func getMainCompte() -> [AnyHashable : Any]! {
+    func mainCompte() -> LegacyRawCompte? {
         mainComptePayload
     }
 
-    override func forceCookies(forCompte compte: [AnyHashable : Any]!) {
+    func currentPseudo() -> String? {
+        (mainComptePayload?["PSEUDO_DISPLAY"] as? String) ?? (mainComptePayload?["PSEUDO"] as? String)
+    }
+
+    func setMainPseudo(_ pseudo: String) {
+        setMainPseudoCalls.append(pseudo)
+    }
+
+    func deletePseudo(at index: Int) {
+        deletedIndices.append(index)
+    }
+
+    func addCompte(pseudo: String, cookies: [HTTPCookie], avatar: Data?, hash: String?) {
+        addCompteCalls.append((pseudo: pseudo, cookies: cookies, avatar: avatar, hash: hash))
+    }
+
+    func forceCookies(for compte: LegacyRawCompte) {
         forceCookiesForCompteCalls.append(compte)
     }
 
-    override func setHashForCompte(_ compteToUpdate: [AnyHashable : Any]!, andHash hash: String!) {
-        setHashForCompteCalls.append((compte: compteToUpdate, hash: hash))
+    func setHash(_ hash: String, for compte: LegacyRawCompte) {
+        setHashForCompteCalls.append((compte: compte, hash: hash))
     }
 }
 

@@ -124,12 +124,31 @@
 
 - (void)deletePseudoAtIndex:(NSInteger)index{
     NSMutableArray *comptesArray = [NSMutableArray arrayWithArray:[self getComtpes]];
+    if(index < 0 || index >= [comptesArray count]){
+        return;
+    }
+    NSDictionary *deletedCompte = [comptesArray objectAtIndex:index];
+    BOOL deletedWasMain = [[deletedCompte objectForKey:MAIN_KEY] boolValue];
     [comptesArray removeObjectAtIndex:index];
     [[A0SimpleKeychain keychain] setData:[NSKeyedArchiver archivedDataWithRootObject:comptesArray] forKey:HFR_COMPTES_KEY];
+
+    if([comptesArray count] == 0){
+        [self lougout];
+        return;
+    }
+
+    BOOL hasMain = NO;
+    for (NSMutableDictionary* compte in comptesArray) {
+        if([[compte objectForKey:MAIN_KEY] boolValue]){
+            hasMain = YES;
+            break;
+        }
+    }
+
     if([comptesArray count] == 1){
         [self setPseudoAsMain:[[comptesArray objectAtIndex:0] objectForKey:PSEUDO_KEY]];
-    }else if([comptesArray count] == 0){
-        [self lougout];
+    }else if(deletedWasMain || !hasMain){
+        [self setPseudoAsMain:[[comptesArray objectAtIndex:0] objectForKey:PSEUDO_KEY]];
     }
 }
 
@@ -194,10 +213,15 @@
 
 - (void)setHashForCompte:(NSDictionary *)compteToUpdate andHash:(NSString *)hash {
     NSArray *comptesArray = [self getComtpes];
+    BOOL updated = NO;
     for (NSMutableDictionary* compte in comptesArray) {
         if([[compte objectForKey:PSEUDO_KEY] isEqualToString:[compteToUpdate objectForKey:PSEUDO_KEY]]){
             [compte setValue:hash forKey:HASH_KEY];
+            updated = YES;
         }
+    }
+    if(updated){
+        [[A0SimpleKeychain keychain] setData:[NSKeyedArchiver archivedDataWithRootObject:comptesArray] forKey:HFR_COMPTES_KEY];
     }
 }
 

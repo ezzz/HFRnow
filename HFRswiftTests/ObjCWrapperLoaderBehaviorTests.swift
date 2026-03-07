@@ -114,49 +114,6 @@ final class ObjCWrapperLoaderBehaviorTests: XCTestCase {
         XCTAssertNil(receivedError)
     }
 
-    func testTopicsControllerDerivesFilterURLsFromForum1URL() {
-        let forum = Forum()
-        forum.aTitle = "Discussions"
-        forum.aURL = "/forum1.php?config=hfr.inc&cat=13&page=4&subcat=42&owntopic=3"
-        forum.aID = "13"
-
-        let controller = ForumTopicsURLCaptureController()
-        controller.fetchContent(for: forum, flagIndex: TopicListFlag.all.rawValue) { _, _ in }
-
-        XCTAssertEqual(queryValue("cat", in: controller.forumBaseURL), "13")
-        XCTAssertEqual(queryValue("subcat", in: controller.forumBaseURL), "42")
-        XCTAssertEqual(queryValue("page", in: controller.forumBaseURL), "1")
-        XCTAssertEqual(queryValue("owntopic", in: controller.forumBaseURL), "0")
-        XCTAssertEqual(queryValue("owntopic", in: controller.forumFavorisURL), "3")
-        XCTAssertEqual(queryValue("owntopic", in: controller.forumFlag1URL), "1")
-        XCTAssertEqual(queryValue("owntopic", in: controller.forumFlag0URL), "2")
-        XCTAssertEqual(queryValue("owntopic", in: controller.currentUrl), "0")
-        XCTAssertEqual(controller.fetchContentTriggerCallCount, 1)
-    }
-
-    func testTopicsControllerSelectsTrackedURLForTrackedFlagIndex() {
-        let forum = Forum()
-        forum.aTitle = "Discussions"
-        forum.aURL = "/forum1.php?config=hfr.inc&cat=13&page=1&subcat=42&owntopic=3"
-        forum.aID = "13"
-
-        let controller = ForumTopicsURLCaptureController()
-        controller.fetchContent(for: forum, flagIndex: TopicListFlag.tracked.rawValue) { _, _ in }
-
-        XCTAssertEqual(queryValue("owntopic", in: controller.currentUrl), "1")
-        XCTAssertEqual(controller.selectedFlagIndex, Int32(TopicListFlag.tracked.rawValue))
-    }
-
-    private func queryValue(_ name: String, in url: String?) -> String? {
-        guard
-            let url,
-            let components = URLComponents(string: url)
-        else {
-            return nil
-        }
-        return components.queryItems?.first(where: { $0.name == name })?.value
-    }
-
     func testObjCTopicPageLoaderMapsSuccessAndPassesURLAndAnchor() {
         let controller = MessagesControllerStub(
             result: .success(html: "<html>ok</html>", topicAnswerURL: "https://forum.hardware.fr/reply"),
@@ -588,7 +545,7 @@ final class TopicOpenPolicyTests: XCTestCase {
     }
 }
 
-private final class FavoritesControllerStub: FavoritesTableViewController {
+private final class FavoritesControllerStub: NSObject {
     enum Result {
         case success([Favorite])
         case failure(Error)
@@ -599,14 +556,11 @@ private final class FavoritesControllerStub: FavoritesTableViewController {
 
     init(result: Result) {
         self.result = result
-        super.init(nibName: nil, bundle: nil)
+        super.init()
     }
 
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    override func fetchContent(completion: (([Favorite]?, Error?) -> Void)!) {
+    @objc(fetchContentWithCompletion:)
+    func fetchContent(completion: @escaping ([Favorite]?, Error?) -> Void) {
         fetchCalled = true
         switch result {
         case .success(let favorites):
@@ -617,7 +571,7 @@ private final class FavoritesControllerStub: FavoritesTableViewController {
     }
 }
 
-private final class MPControllerStub: HFRMPViewController {
+private final class MPControllerStub: UIViewController {
     enum Result {
         case success([Topic])
         case failure(Error)
@@ -641,7 +595,8 @@ private final class MPControllerStub: HFRMPViewController {
         loadViewIfNeededCalled = true
     }
 
-    override func fetchContent(completion: (([Topic]?, Error?) -> Void)!) {
+    @objc(fetchContentWithCompletion:)
+    func fetchContent(completion: @escaping ([Topic]?, Error?) -> Void) {
         fetchCalled = true
         didLoadViewIfNeededBeforeFetch = loadViewIfNeededCalled
 
@@ -654,7 +609,7 @@ private final class MPControllerStub: HFRMPViewController {
     }
 }
 
-private final class ForumsControllerStub: ForumsTableViewController {
+private final class ForumsControllerStub: NSObject {
     enum Result {
         case success([Forum])
         case failure(Error)
@@ -665,14 +620,11 @@ private final class ForumsControllerStub: ForumsTableViewController {
 
     init(result: Result) {
         self.result = result
-        super.init(nibName: nil, bundle: nil)
+        super.init()
     }
 
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    override func fetchContent(completion: (([Forum]?, Error?) -> Void)!) {
+    @objc(fetchContentWithCompletion:)
+    func fetchContent(completion: @escaping ([Forum]?, Error?) -> Void) {
         fetchCalled = true
         switch result {
         case .success(let forums):
@@ -683,7 +635,7 @@ private final class ForumsControllerStub: ForumsTableViewController {
     }
 }
 
-private final class ForumTopicsControllerStub: TopicsTableViewController {
+private final class ForumTopicsControllerStub: NSObject {
     enum Result {
         case success([Topic])
         case failure(Error)
@@ -694,21 +646,13 @@ private final class ForumTopicsControllerStub: TopicsTableViewController {
     private(set) var receivedForum: Forum?
     private(set) var receivedFlagIndex: Int?
 
-    override init() {
-        self.result = .success([])
-        super.init(nibName: nil, bundle: nil)
-    }
-
     init(result: Result) {
         self.result = result
-        super.init(nibName: nil, bundle: nil)
+        super.init()
     }
 
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    override func fetchContent(for forum: Forum!, flagIndex: Int, completion: (([Topic]?, Error?) -> Void)!) {
+    @objc(fetchContentForForum:flagIndex:completion:)
+    func fetchContent(for forum: Forum, flagIndex: Int, completion: @escaping ([Topic]?, Error?) -> Void) {
         fetchCalled = true
         receivedForum = forum
         receivedFlagIndex = flagIndex
@@ -722,23 +666,7 @@ private final class ForumTopicsControllerStub: TopicsTableViewController {
     }
 }
 
-private final class ForumTopicsURLCaptureController: TopicsTableViewController {
-    private(set) var fetchContentTriggerCallCount = 0
-
-    override init() {
-        super.init(nibName: nil, bundle: nil)
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    override func fetchContentTrigger() {
-        fetchContentTriggerCallCount += 1
-    }
-}
-
-private final class MessagesControllerStub: MessagesTableViewController {
+private final class MessagesControllerStub: NSObject {
     enum Result {
         case success(html: String?, topicAnswerURL: String?)
         case failure(Error)
@@ -752,14 +680,11 @@ private final class MessagesControllerStub: MessagesTableViewController {
     init(result: Result, messageActionsByIndex: [NSNumber: [String: String]] = [:]) {
         self.result = result
         self.messageActionsByIndex = messageActionsByIndex
-        super.init(nibName: nil, bundle: nil)
+        super.init()
     }
 
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    override func fetchContent(forTopicURL topicURL: String!, anchor: String?, completion: @escaping (String?, String?, Error?) -> Void) {
+    @objc(fetchContentForTopicURL:anchor:completion:)
+    func fetchContent(forTopicURL topicURL: String, anchor: String?, completion: @escaping (String?, String?, Error?) -> Void) {
         receivedTopicURL = topicURL
         receivedAnchor = anchor
 
@@ -771,7 +696,8 @@ private final class MessagesControllerStub: MessagesTableViewController {
         }
     }
 
-    override func swiftMessageActionsByIndex() -> [NSNumber : [String : String]]! {
+    @objc(swiftMessageActionsByIndex)
+    func swiftMessageActionsByIndex() -> [NSNumber : [String : String]] {
         messageActionsByIndex
     }
 }

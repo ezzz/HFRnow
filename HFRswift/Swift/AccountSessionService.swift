@@ -21,13 +21,13 @@ protocol AccountSessionService {
 }
 
 final class ObjCAccountSessionService: AccountSessionService {
-    private typealias RawCompte = [AnyHashable: Any]
+    private typealias RawCompte = LegacyRawCompte
 
-    private let multisManager: MultisManager
+    private let multisManager: LegacyAccountsManaging
     private let loginService: LoginService
 
     init(
-        multisManager: MultisManager = MultisManager.sharedManager() as! MultisManager,
+        multisManager: LegacyAccountsManaging = ObjCLegacyAccountsManager.shared,
         loginService: LoginService = LoginService()
     ) {
         self.multisManager = multisManager
@@ -50,7 +50,7 @@ final class ObjCAccountSessionService: AccountSessionService {
         guard let accountIndex = resolveCompteIndex(forIdentifier: id) else { return }
         let compte = rawComptes()[accountIndex]
         guard let pseudoKey = pseudoKey(from: compte) else { return }
-        multisManager.setPseudo(asMain: pseudoKey)
+        multisManager.setMainPseudo(pseudoKey)
     }
 
     func deleteAccount(id: String) {
@@ -71,7 +71,7 @@ final class ObjCAccountSessionService: AccountSessionService {
             avatar: result.avatarData,
             hash: result.hash
         )
-        multisManager.setPseudo(asMain: result.pseudoKey)
+        multisManager.setMainPseudo(result.pseudoKey)
     }
 
     func makeReplySessionContext(cookieStorage: HTTPCookieStorage) throws -> ReplySessionContext {
@@ -79,7 +79,7 @@ final class ObjCAccountSessionService: AccountSessionService {
             throw ReplyPostingError.noActiveAccount
         }
 
-        multisManager.forceCookies(forCompte: mainCompte)
+        multisManager.forceCookies(for: mainCompte)
 
         if let cookies = mainCompte[AccountKeys.cookies] as? [HTTPCookie] {
             for cookie in cookies {
@@ -96,14 +96,14 @@ final class ObjCAccountSessionService: AccountSessionService {
         }
 
         if let hashCheck {
-            multisManager.setHashForCompte(mainCompte, andHash: hashCheck)
+            multisManager.setHash(hashCheck, for: mainCompte)
         }
 
         return ReplySessionContext(pseudoDisplay: pseudoDisplay, hashCheck: hashCheck)
     }
 
     private func rawComptes() -> [RawCompte] {
-        multisManager.getComtpes() as? [RawCompte] ?? []
+        multisManager.comptes()
     }
 
     private func pseudoKey(from compte: RawCompte) -> String? {
@@ -151,19 +151,29 @@ final class ObjCAccountSessionService: AccountSessionService {
     }
 
     private func resolveMainCompte() -> RawCompte? {
-        if let mainCompte = multisManager.getMainCompte() as? RawCompte {
+        if let mainCompte = multisManager.mainCompte(),
+           isUsableCompte(mainCompte) {
             return mainCompte
         }
 
-        guard let fallbackCompte = rawComptes().first else {
+        let comptes = rawComptes()
+        let fallbackCompte =
+            comptes.first(where: { (($0[AccountKeys.main] as? NSNumber)?.boolValue ?? false) && isUsableCompte($0) }) ??
+            comptes.first(where: isUsableCompte)
+
+        guard let fallbackCompte else {
             return nil
         }
 
         if let fallbackPseudo = pseudoKey(from: fallbackCompte) {
-            multisManager.setPseudo(asMain: fallbackPseudo)
+            multisManager.setMainPseudo(fallbackPseudo)
         }
 
         return fallbackCompte
+    }
+
+    private func isUsableCompte(_ compte: RawCompte) -> Bool {
+        pseudoKey(from: compte) != nil || nonEmptyString(compte[AccountKeys.pseudoDisplay]) != nil
     }
 }
 

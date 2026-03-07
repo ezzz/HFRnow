@@ -2,10 +2,16 @@ import XCTest
 @testable import HFRswift
 
 final class ObjCWrappedClassesSmokeTests: XCTestCase {
-    func testWrappedObjCClassesCanBeInstantiated() {
-        XCTAssertNotNil(FavoritesTableViewController())
-        XCTAssertNotNil(HFRMPViewController())
-        XCTAssertNotNil(MessagesTableViewController())
+    func testWrappedObjCClassesRemainAvailableAtRuntime() {
+        for className in [
+            "FavoritesTableViewController",
+            "HFRMPViewController",
+            "MessagesTableViewController"
+        ] {
+            let objectClass = NSClassFromString(className) as? NSObject.Type
+            XCTAssertNotNil(objectClass, "Missing runtime class \(className)")
+            XCTAssertNotNil(objectClass?.init(), "Unable to instantiate \(className)")
+        }
     }
 
     func testObjCWrappedClassesCoverageIsTrackedInPlan() throws {
