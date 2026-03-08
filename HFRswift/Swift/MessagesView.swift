@@ -2854,7 +2854,7 @@ struct MessagesView: View {
                     self.initialScroll = .top
                     loadPage(1)
                 } label: {
-                    Label("Première page", systemImage: "backward.end")
+                    MenuActionLabel("Première page", systemImage: "backward.end")
                 }
             }
             Button {
@@ -2863,7 +2863,7 @@ struct MessagesView: View {
                 self.initialScroll = .bottom
                 loadPage(page - 1)
             } label: {
-                Label("Page précédente", systemImage: "chevron.backward")
+                MenuActionLabel("Page précédente", systemImage: "chevron.backward")
             }  
         }
         Divider()
@@ -2871,7 +2871,7 @@ struct MessagesView: View {
             Button {
                 openPagePicker()
             } label: {
-                Text("Page numéro...")
+                MenuActionLabel("Page numéro...", systemImage: "number")
             }
         }
     }
@@ -2885,7 +2885,7 @@ struct MessagesView: View {
                 self.initialScroll = .top
                 loadPage(page + 1)
             } label: {
-                Label("Page suivante", systemImage: "chevron.forward")
+                MenuActionLabel("Page suivante", systemImage: "chevron.forward")
             }
             if page + 1 < maxPage {
                 Button {
@@ -2894,7 +2894,7 @@ struct MessagesView: View {
                     self.initialScroll = .top
                     loadPage(maxPage)
                 } label: {
-                    Label("Dernière page", systemImage: "forward.end")
+                    MenuActionLabel("Dernière page", systemImage: "forward.end")
                 }
             }
             Button {
@@ -2903,7 +2903,7 @@ struct MessagesView: View {
                 self.initialScroll = .bottom
                 loadPage(maxPage)
             } label: {
-                Label("Dernière réponse", systemImage: "text.append")
+                MenuActionLabel("Dernière réponse", systemImage: "text.append")
             }
         }
         Divider()
@@ -2911,7 +2911,7 @@ struct MessagesView: View {
             Button {
                 openPagePicker()
             } label: {
-                Text("Page numéro...")
+                MenuActionLabel("Page numéro...", systemImage: "number")
             }
         }
     }
@@ -3226,30 +3226,7 @@ struct MessagesView: View {
                             Button {
                                 openReplyComposer()
                             } label: {
-                                Label("Répondre", systemImage: "pencil")
-                            }
-                            /*
-                            Button {
-                                print("log")
-                            } label: {
-                                Label("Haut de la page", systemImage: "arrowshape.up")
-                            }
-                            Button {
-                                print("log")
-                            } label: {
-                                Label("Bas de la page", systemImage: "arrowshape.down")
-                            }
-                            Divider()*/
-                            Button {
-                                print("log")
-                            } label: {
-                                Label("Sondage", image: "icone_sondage")
-                            }
-                            Divider()
-                            Button {
-                                print("log")
-                            } label: {
-                                Label("Rechercher", systemImage: "magnifyingglass")
+                                MenuActionLabel("Répondre", systemImage: "pencil")
                             }
                         } label: {
                             Image(systemName: "ellipsis")
@@ -3393,12 +3370,7 @@ struct MessagesView: View {
                         Button {
                             openReplyComposer()
                         } label: {
-                            Label("Répondre", systemImage: "pencil")
-                        }
-                        Button {
-                            print("log")
-                        } label: {
-                            Label("Rechercher", systemImage: "magnifyingglass")
+                            MenuActionLabel("Répondre", systemImage: "pencil")
                         }
                     } label: {
                         Image(systemName: "ellipsis")

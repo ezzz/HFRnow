@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Combine
+import CryptoKit
 
 final class MPListViewModel: ObservableObject {
     @Published var topics: [Topic] = []
@@ -179,7 +180,6 @@ struct MPListView: View {
                     onRefresh: {
                         viewModel.load()
                     },
-                    onMore: {},
                     profileImage: accountsStore.currentAvatarImage,
                     profileImageURL: nil
                 ) {
@@ -193,12 +193,16 @@ struct MPListView: View {
                         }
                         Divider()
                     }
-                    Button("Ajouter un pseudo") {
+                    Button {
                         showAddAccountSheet = true
+                    } label: {
+                        MenuActionLabel("Ajouter un pseudo", systemImage: "person.badge.plus")
                     }
                     Divider()
-                    Button("Déconnexion", role: .destructive) {
+                    Button(role: .destructive) {
                         showLogoutConfirm = true
+                    } label: {
+                        MenuActionLabel("Déconnexion", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive)
                     }
                     .disabled(accountsStore.currentAccount == nil)
                 }
@@ -242,17 +246,112 @@ struct MPRowView: View {
         return "\(author) - \(when)"
     }
 
+    private var avatarAccessory: AnyView {
+        AnyView(
+            MPAvatarView(interlocutor: topic.aAuthorOrInter)
+        )
+    }
+
     var body: some View {
         TopicListRowView(
             topic: topic,
             isVisited: isVisited,
-            titleFont: .headline,
+            titleFont: .system(size: 13, weight: isVisited ? .regular : .semibold),
             showUnreadBadge: false,
             leadingBottomText: interlocutorLabel,
             trailingBottomText: trailingLabel,
+            contentPadding: EdgeInsets(top: 2, leading: 0, bottom: 2, trailing: 0),
+            leadingAccessory: avatarAccessory,
             openContext: .messages,
             quickActions: TopicQuickActionPolicy.defaults(for: .messages)
         )
+        .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
+    }
+}
+
+private struct MPAvatarView: View {
+    let interlocutor: String?
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var resolvedImage: UIImage? {
+        MPAvatarImageStore.image(for: interlocutor, colorScheme: colorScheme)
+    }
+
+    var body: some View {
+        Group {
+            if let resolvedImage {
+                Image(uiImage: resolvedImage)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Circle()
+                    .fill(.quaternary)
+                    .overlay {
+                        Image(systemName: "person.crop.circle.fill")
+                            .resizable()
+                            .scaledToFit()
+                            .foregroundStyle(.secondary)
+                            .padding(5)
+                    }
+            }
+        }
+        .frame(width: 34, height: 34)
+        .clipShape(Circle())
+        .overlay {
+            Circle()
+                .stroke(.tertiary, lineWidth: 1)
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+private enum MPAvatarImageStore {
+    static func image(for interlocutor: String?, colorScheme: ColorScheme) -> UIImage? {
+        guard let normalized = normalizedInterlocutor(interlocutor) else {
+            return defaultAvatar(for: colorScheme)
+        }
+        if normalized.localizedCaseInsensitiveContains("multiples") {
+            return groupAvatar(for: colorScheme)
+        }
+        return cachedAvatar(for: normalized) ?? defaultAvatar(for: colorScheme)
+    }
+
+    private static func normalizedInterlocutor(_ interlocutor: String?) -> String? {
+        guard let trimmed = interlocutor?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
+            return nil
+        }
+        return trimmed
+    }
+
+    private static func cachedAvatar(for pseudo: String) -> UIImage? {
+        guard let cacheDirectory else { return nil }
+        let digest = Insecure.MD5.hash(data: Data(pseudo.lowercased().utf8))
+        let filename = digest.map { String(format: "%02x", $0) }.joined()
+        let fileURL = cacheDirectory.appendingPathComponent(filename, isDirectory: false)
+        guard
+            FileManager.default.fileExists(atPath: fileURL.path),
+            let data = try? Data(contentsOf: fileURL),
+            let image = UIImage(data: data)
+        else {
+            return nil
+        }
+        return image
+    }
+
+    private static var cacheDirectory: URL? {
+        FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first?
+            .appendingPathComponent("cache", isDirectory: true)
+            .appendingPathComponent("avatars", isDirectory: true)
+    }
+
+    private static func defaultAvatar(for colorScheme: ColorScheme) -> UIImage? {
+        let assetName = colorScheme == .dark ? "avatar_male_gray_on_dark_48x48" : "avatar_male_gray_on_light_48x48"
+        return UIImage(named: assetName)
+    }
+
+    private static func groupAvatar(for colorScheme: ColorScheme) -> UIImage? {
+        let assetName = colorScheme == .dark ? "group_dark" : "group_light"
+        return UIImage(named: assetName) ?? UIImage(named: "group")
     }
 }
 

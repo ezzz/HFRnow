@@ -47,7 +47,7 @@ final class ForumTopicsListViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var selectedFlag: TopicListFlag = .all
 
-    private let forum: Forum
+    private var forum: Forum
     private let topicsLoader: ForumTopicsLoading
     private var loadRequestID = 0
 
@@ -57,6 +57,10 @@ final class ForumTopicsListViewModel: ObservableObject {
     ) {
         self.forum = forum
         self.topicsLoader = topicsLoader ?? ObjCForumTopicsLoader()
+    }
+
+    func updateForum(_ forum: Forum) {
+        self.forum = forum
     }
 
     func load() {
@@ -149,12 +153,16 @@ struct CategoriesListView: View {
                             accountsStore: accountsStore
                         )
                     } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(forum.aTitle ?? "Forum")
-                            if let subForums = forum.subCats as? [Forum], !subForums.isEmpty {
-                                Text("\(subForums.count) sous-forums")
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
+                        HStack(spacing: 12) {
+                            ForumCategoryIconView(forum: forum)
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(forum.aTitle ?? "Forum")
+                                if let subForums = forum.subCats as? [Forum], !subForums.isEmpty {
+                                    Text("\(subForums.count) sous-forums")
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
                     }
@@ -219,12 +227,16 @@ struct CategoriesListView: View {
             }
             Divider()
         }
-        Button("Ajouter un pseudo") {
+        Button {
             showAddAccountSheet = true
+        } label: {
+            MenuActionLabel("Ajouter un pseudo", systemImage: "person.badge.plus")
         }
         Divider()
-        Button("Déconnexion", role: .destructive) {
+        Button(role: .destructive) {
             showLogoutConfirm = true
+        } label: {
+            MenuActionLabel("Déconnexion", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive)
         }
         .disabled(accountsStore.currentAccount == nil)
     }
@@ -244,6 +256,7 @@ struct ForumTopicsListView: View {
     @State private var showLogoutConfirm = false
     @State private var removingTopicIDs: Set<ObjectIdentifier> = []
     @State private var topicActionErrorMessage: String?
+    @State private var selectedForumIdentifier: String
 
     private let topicActionService: FavoritesTopicActionServicing
 
@@ -259,7 +272,32 @@ struct ForumTopicsListView: View {
         self.initialFlagOverride = initialFlagOverride
         _viewModel = StateObject(wrappedValue: viewModel ?? ForumTopicsListViewModel(forum: forum))
         self._accountsStore = ObservedObject(wrappedValue: accountsStore ?? AccountsStore())
+        _selectedForumIdentifier = State(initialValue: ForumTopicsListView.forumIdentifier(for: forum))
         self.topicActionService = topicActionService
+    }
+
+    private static func forumIdentifier(for forum: Forum) -> String {
+        let candidates = [
+            forum.aURL?.trimmingCharacters(in: .whitespacesAndNewlines),
+            forum.aID?.trimmingCharacters(in: .whitespacesAndNewlines),
+            forum.aTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
+        ]
+        if let resolved = candidates.first(where: { ($0 ?? "").isEmpty == false }) {
+            return resolved ?? "forum-root"
+        }
+        return "forum-root"
+    }
+
+    private var subForums: [Forum] {
+        (forum.subCats as? [Forum]) ?? []
+    }
+
+    private var availableForums: [Forum] {
+        [forum] + subForums
+    }
+
+    private var resolvedSelectedForum: Forum {
+        availableForums.first(where: { Self.forumIdentifier(for: $0) == selectedForumIdentifier }) ?? forum
     }
 
     private var persistedGlobalFlag: TopicListFlag {
@@ -282,11 +320,12 @@ struct ForumTopicsListView: View {
         let currentPage = Int(topic.curTopicPage)
         let maxPage = max(Int(topic.maxTopicPage), 1)
         let pollSuffix = topic.isPoll ? " \u{2263}" : ""
+        let pageLabel = maxPage > 1 ? "pages" : "page"
 
-        if currentPage > 0 && currentPage <= maxPage {
+        if topicHasFlag(topic), currentPage > 0 && currentPage <= maxPage {
             return "⚑\(pollSuffix) \(currentPage) / \(maxPage)"
         }
-        return "\(maxPage)\(pollSuffix)"
+        return "\(maxPage) \(pageLabel)\(pollSuffix)"
     }
 
     private func rowBackgroundTint(for topic: Topic) -> Color? {
@@ -445,6 +484,24 @@ struct ForumTopicsListView: View {
 
     var body: some View {
         List {
+            if !subForums.isEmpty {
+                LabeledContent("Sous-forum") {
+                    Picker("Sous-forum", selection: $selectedForumIdentifier) {
+                        Text("Tous les sous-forums")
+                            .tag(Self.forumIdentifier(for: forum))
+                        ForEach(subForums) { subForum in
+                            Text(subForum.aTitle ?? "Sous-forum")
+                                .tag(Self.forumIdentifier(for: subForum))
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                }
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+            }
+
             Picker("Filtre", selection: $viewModel.selectedFlag) {
                 Text("Tous").tag(TopicListFlag.all)
                 Text("Favoris")
@@ -491,23 +548,32 @@ struct ForumTopicsListView: View {
                 let hasFlag = topicHasFlag(topic)
                 let topicID = ObjectIdentifier(topic)
                 let isRemoving = removingTopicIDs.contains(topicID)
+                let isVisited = visitedURLs.contains(topic.aURL ?? topic.aURLOfLastPage ?? "")
                 TopicListRowView(
                     topic: topic,
-                    isVisited: visitedURLs.contains(topic.aURL ?? topic.aURLOfLastPage ?? ""),
-                    titleFont: .headline,
-                    showUnreadBadge: true,
+                    isVisited: isVisited,
+                    titleFont: .system(size: 13, weight: isVisited ? .regular : .semibold),
+                    showUnreadBadge: hasFlag,
                     leadingBottomText: footerLeft(for: topic),
                     trailingBottomText: footerRight(for: topic),
                     rowBackgroundTint: rowBackgroundTint(for: topic),
+                    contentPadding: EdgeInsets(top: 2, leading: 0, bottom: 2, trailing: 0),
+                    rowBackgroundOverflow: hasFlag
+                        ? EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8)
+                        : EdgeInsets(),
                     openContext: .forum(selectedFlag: viewModel.selectedFlag),
                     extraContextMenu: hasFlag ? {
                         AnyView(
                             Group {
-                                Button("Lu", systemImage: "checkmark") {
+                                Button {
                                     markTopicAsRead(topic)
+                                } label: {
+                                    MenuActionLabel("Lu", systemImage: "checkmark")
                                 }
-                                Button("Supprimer", systemImage: "trash", role: .destructive) {
+                                Button(role: .destructive) {
                                     removeFlag(topic)
+                                } label: {
+                                    MenuActionLabel("Supprimer", systemImage: "trash", role: .destructive)
                                 }
                                 .disabled(isRemoving)
                             }
@@ -537,7 +603,7 @@ struct ForumTopicsListView: View {
                         .disabled(isRemoving)
                     }
                 }
-                .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                .listRowInsets(EdgeInsets(top: 5, leading: 12, bottom: 5, trailing: 12))
             }
         }
         .navigationTitle(forum.aTitle ?? "Topics")
@@ -561,9 +627,15 @@ struct ForumTopicsListView: View {
                 if viewModel.selectedFlag != initialFlag {
                     viewModel.selectedFlag = initialFlag
                 }
+                viewModel.updateForum(resolvedSelectedForum)
                 viewModel.load()
                 hasLoaded = true
             }
+        }
+        .onChange(of: selectedForumIdentifier) { _, _ in
+            viewModel.updateForum(resolvedSelectedForum)
+            guard hasLoaded else { return }
+            viewModel.load()
         }
         .onChange(of: viewModel.selectedFlag) { _, newValue in
             if !isLoggedIn && newValue != .all {
@@ -633,14 +705,49 @@ struct ForumTopicsListView: View {
             }
             Divider()
         }
-        Button("Ajouter un pseudo") {
+        Button {
             showAddAccountSheet = true
+        } label: {
+            MenuActionLabel("Ajouter un pseudo", systemImage: "person.badge.plus")
         }
         Divider()
-        Button("Déconnexion", role: .destructive) {
+        Button(role: .destructive) {
             showLogoutConfirm = true
+        } label: {
+            MenuActionLabel("Déconnexion", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive)
         }
         .disabled(accountsStore.currentAccount == nil)
+    }
+}
+
+private struct ForumCategoryIconView: View {
+    let forum: Forum
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var resolvedImage: UIImage? {
+        let resolved = forum.getImage().trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !resolved.isEmpty else { return nil }
+        return UIImage(named: resolved)
+    }
+
+    var body: some View {
+        Group {
+            if let resolvedImage {
+                Image(uiImage: resolvedImage.withRenderingMode(.alwaysTemplate))
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(colorScheme == .dark ? .white : .black)
+            } else {
+                Image(systemName: "folder.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(.secondary)
+                    .padding(4)
+            }
+        }
+        .frame(width: 28, height: 28)
+        .clipShape(.rect(cornerRadius: 6))
+        .accessibilityHidden(true)
     }
 }
 

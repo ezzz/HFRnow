@@ -1506,6 +1506,46 @@ private struct TopicNavigationTarget {
     let initialScroll: WebView.InitialScroll?
 }
 
+struct MenuActionLabel: View {
+    let title: String
+    let systemImage: String?
+    let assetImage: String?
+    let role: ButtonRole?
+
+    init(
+        _ title: String,
+        systemImage: String? = nil,
+        assetImage: String? = nil,
+        role: ButtonRole? = nil
+    ) {
+        self.title = title
+        self.systemImage = systemImage
+        self.assetImage = assetImage
+        self.role = role
+    }
+
+    private var foregroundColor: Color {
+        role == .destructive ? .red : .primary
+    }
+
+    var body: some View {
+        Label {
+            Text(title)
+                .foregroundStyle(foregroundColor)
+        } icon: {
+            if let systemImage {
+                Image(systemName: systemImage)
+                    .symbolRenderingMode(.monochrome)
+                    .foregroundStyle(foregroundColor)
+            } else if let assetImage {
+                Image(assetImage)
+                    .renderingMode(.template)
+                    .foregroundStyle(foregroundColor)
+            }
+        }
+    }
+}
+
 struct TopicListRowView: View {
     let topic: Topic
     let isVisited: Bool
@@ -1517,6 +1557,7 @@ struct TopicListRowView: View {
     var rowBackgroundTint: Color?
     var contentPadding: EdgeInsets = EdgeInsets(top: 6, leading: 8, bottom: 6, trailing: 8)
     var rowBackgroundOverflow: EdgeInsets = EdgeInsets()
+    var leadingAccessory: AnyView?
     var openContext: TopicOpenContext = .generic
     var quickActions: TopicQuickActionsConfiguration?
     var extraContextMenu: (() -> AnyView)?
@@ -1757,28 +1798,38 @@ struct TopicListRowView: View {
     @ViewBuilder
     private var quickActionsMenuContent: some View {
         if resolvedQuickActions.showOpenFirstPage, firstPageURL != nil {
-            Button("Première page", systemImage: "backward.end") {
+            Button {
                 openFirstPageAction()
+            } label: {
+                MenuActionLabel("Première page", systemImage: "backward.end")
             }
         }
         if resolvedQuickActions.showOpenLastPage, lastPageURL != nil {
-            Button("Dernière page", systemImage: "forward.end") {
+            Button {
                 openLastPageAction()
+            } label: {
+                MenuActionLabel("Dernière page", systemImage: "forward.end")
             }
         }
         if resolvedQuickActions.showOpenLastReply {
-            Button("Dernière réponse", systemImage: "text.append") {
+            Button {
                 openLastReplyAction()
+            } label: {
+                MenuActionLabel("Dernière réponse", systemImage: "text.append")
             }
         }
         if resolvedQuickActions.showOpenPagePicker {
-            Button("Page numéro...", systemImage: "number") {
+            Button {
                 openPagePickerAction()
+            } label: {
+                MenuActionLabel("Page numéro...", systemImage: "number")
             }
         }
         if resolvedQuickActions.showCopyLink, let copyURL {
-            Button("Copier le lien", systemImage: "doc.on.doc") {
+            Button {
                 UIPasteboard.general.string = copyURL
+            } label: {
+                MenuActionLabel("Copier le lien", systemImage: "doc.on.doc")
             }
         }
     }
@@ -1787,7 +1838,10 @@ struct TopicListRowView: View {
         Button {
             openDefaultTopic()
         } label: {
-            HStack {
+            HStack(alignment: .top, spacing: 10) {
+                if let leadingAccessory {
+                    leadingAccessory
+                }
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         if topic.isSticky {
@@ -1847,6 +1901,7 @@ struct TopicListRowView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .tint(.primary)
         .contextMenu {
             quickActionsMenuContent
             if let extraContextMenu {

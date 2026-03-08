@@ -282,6 +282,7 @@ struct FavoriteSectionView: View {
                 .font(.footnote.monospacedDigit())
                 .foregroundStyle(.secondary)
         }
+        .padding(.vertical, isCollapsed ? -1 : 0)
         .padding(.trailing, 34)
         .overlay(alignment: .trailing) {
             Button {
@@ -317,7 +318,7 @@ struct FavoriteSectionView: View {
                         onRemoveFavorite: { onRemoveFavorite(topic) }
                     )
                     .contentShape(Rectangle())
-                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                    .listRowInsets(EdgeInsets(top: 5, leading: 12, bottom: 5, trailing: 12))
                 }
             }
         }
@@ -333,7 +334,6 @@ struct FavoritesListView: View {
     @State private var hasLoaded = false
     @State private var showAddAccountSheet = false
     @State private var showLogoutConfirm = false
-    @State private var showSectionActions = false
     @State private var superFavoriteIDs: Set<Int>
     @State private var collapsedSectionIDs: Set<String>
     @State private var removingTopicIDs: Set<Int> = []
@@ -402,6 +402,7 @@ struct FavoritesListView: View {
     }
 
     private func pruneCollapsedSections() {
+        guard !viewModel.favorites.isEmpty else { return }
         let validIDs = Set(viewModel.favorites.map(sectionIdentifier(for:)))
         let filtered = collapsedSectionIDs.intersection(validIDs)
         if filtered != collapsedSectionIDs {
@@ -503,9 +504,6 @@ struct FavoritesListView: View {
                     onRefresh: {
                         viewModel.loadFavorites()
                     },
-                    onMore: {
-                        showSectionActions = true
-                    },
                     profileImage: accountsStore.currentAvatarImage,
                     profileImageURL: nil
                 ) {
@@ -519,32 +517,34 @@ struct FavoritesListView: View {
                         }
                         Divider()
                     }
-                    Button("Ajouter un pseudo") {
+                    Button {
+                        collapseAllSections()
+                    } label: {
+                        MenuActionLabel("Tout plier", systemImage: "rectangle.compress.vertical")
+                    }
+                    .disabled(viewModel.favorites.isEmpty || collapsedSectionIDs.count == viewModel.favorites.count)
+
+                    Button {
+                        expandAllSections()
+                    } label: {
+                        MenuActionLabel("Tout déplier", systemImage: "rectangle.expand.vertical")
+                    }
+                    .disabled(viewModel.favorites.isEmpty || collapsedSectionIDs.isEmpty)
+
+                    Divider()
+                    Button {
                         showAddAccountSheet = true
+                    } label: {
+                        MenuActionLabel("Ajouter un pseudo", systemImage: "person.badge.plus")
                     }
                     Divider()
-                    Button("Déconnexion", role: .destructive) {
+                    Button(role: .destructive) {
                         showLogoutConfirm = true
+                    } label: {
+                        MenuActionLabel("Déconnexion", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive)
                     }
                     .disabled(accountsStore.currentAccount == nil)
                 }
-            }
-            .confirmationDialog(
-                "Sections Favoris",
-                isPresented: $showSectionActions,
-                titleVisibility: .visible
-            ) {
-                Button("Tout plier") {
-                    collapseAllSections()
-                }
-                .disabled(viewModel.favorites.isEmpty || collapsedSectionIDs.count == viewModel.favorites.count)
-
-                Button("Tout déplier") {
-                    expandAllSections()
-                }
-                .disabled(viewModel.favorites.isEmpty || collapsedSectionIDs.isEmpty)
-
-                Button("Annuler", role: .cancel) {}
             }
             .sheet(isPresented: $showAddAccountSheet) {
                 AddAccountView(accountsStore: accountsStore)
@@ -677,28 +677,34 @@ struct TopicRowView: View {
             rowBackgroundTint: isSuperFavorite ? themePalette.superFavoriteBackgroundColor : nil,
             contentPadding: EdgeInsets(top: 2, leading: 0, bottom: 2, trailing: 0),
             rowBackgroundOverflow: isSuperFavorite
-                ? EdgeInsets(top: 4, leading: 6, bottom: 4, trailing: 6)
+                ? EdgeInsets(top: 4, leading: 8, bottom: 2, trailing: 8)
                 : EdgeInsets(),
             openContext: .favorites,
             extraContextMenu: {
                 AnyView(
                     Group {
                         if let onMarkRead {
-                            Button("Lu", systemImage: "checkmark") {
+                            Button {
                                 onMarkRead()
+                            } label: {
+                                MenuActionLabel("Lu", systemImage: "checkmark")
                             }
                         }
                         if let onToggleSuperFavorite {
-                            Button(
-                                isSuperFavorite ? "Retirer super favori" : "Super favori",
-                                systemImage: isSuperFavorite ? "star.slash" : "star"
-                            ) {
+                            Button {
                                 onToggleSuperFavorite()
+                            } label: {
+                                MenuActionLabel(
+                                    isSuperFavorite ? "Retirer super favori" : "Super favori",
+                                    systemImage: isSuperFavorite ? "star.slash" : "star"
+                                )
                             }
                         }
                         if let onRemoveFavorite {
-                            Button("Supprimer", systemImage: "trash", role: .destructive) {
+                            Button(role: .destructive) {
                                 onRemoveFavorite()
+                            } label: {
+                                MenuActionLabel("Supprimer", systemImage: "trash", role: .destructive)
                             }
                             .disabled(isRemovingFavorite)
                         }

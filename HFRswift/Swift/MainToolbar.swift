@@ -10,20 +10,17 @@ import UIKit
 
 struct MainToolbarContent<MenuItems: View>: ToolbarContent {
     let onRefresh: () -> Void
-    let onMore: () -> Void
     let profileImage: UIImage?
     let profileImageURL: URL?
     let menuItems: () -> MenuItems
 
     init(
         onRefresh: @escaping () -> Void,
-        onMore: @escaping () -> Void,
         profileImage: UIImage? = nil,
         profileImageURL: URL? = nil,
         @ViewBuilder menuItems: @escaping () -> MenuItems
     ) {
         self.onRefresh = onRefresh
-        self.onMore = onMore
         self.profileImage = profileImage
         self.profileImageURL = profileImageURL
         self.menuItems = menuItems
@@ -35,11 +32,6 @@ struct MainToolbarContent<MenuItems: View>: ToolbarContent {
                 onRefresh()
             } label: {
                 Image(systemName: "arrow.clockwise")
-            }
-            Button {
-                onMore()
-            } label: {
-                Image(systemName: "ellipsis")
             }
         }
         ToolbarItemGroup(placement: .navigationBarLeading) {
