@@ -225,6 +225,7 @@ final class MessagePopupMenuPolicyTests: XCTestCase {
             quoteURL: quoteURL,
             profileURL: profileURL,
             privateMessageURL: privateMessageURL,
+            avatarImagePath: nil,
             postID: postID,
             editURL: editURL,
             favoriteURL: favoriteURL,

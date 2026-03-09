@@ -122,6 +122,7 @@ final class ObjCWrapperLoaderBehaviorTests: XCTestCase {
                     "quoteURL": "https://forum.hardware.fr/message.php?post=42",
                     "profileURL": "https://forum.hardware.fr/profil/test",
                     "privateMessageURL": "https://forum.hardware.fr/message.php?cat=prive",
+                    "avatarImagePath": "/tmp/avatar-pseudo",
                     "postID": "t123",
                     "editURL": "https://forum.hardware.fr/edit.php?post=42",
                     "favoriteURL": "https://forum.hardware.fr/fav.php?post=42",
@@ -163,6 +164,7 @@ final class ObjCWrapperLoaderBehaviorTests: XCTestCase {
             XCTAssertEqual(content.messageActionsByIndex[2]?.quoteURL?.absoluteString, "https://forum.hardware.fr/message.php?post=42")
             XCTAssertEqual(content.messageActionsByIndex[2]?.profileURL?.absoluteString, "https://forum.hardware.fr/profil/test")
             XCTAssertEqual(content.messageActionsByIndex[2]?.privateMessageURL?.absoluteString, "https://forum.hardware.fr/message.php?cat=prive")
+            XCTAssertEqual(content.messageActionsByIndex[2]?.avatarImagePath, "/tmp/avatar-pseudo")
             XCTAssertEqual(content.messageActionsByIndex[2]?.postID, "t123")
             XCTAssertEqual(content.messageActionsByIndex[2]?.editURL?.absoluteString, "https://forum.hardware.fr/edit.php?post=42")
             XCTAssertEqual(content.messageActionsByIndex[2]?.favoriteURL?.absoluteString, "https://forum.hardware.fr/fav.php?post=42")

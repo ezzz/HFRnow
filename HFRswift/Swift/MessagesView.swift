@@ -505,6 +505,97 @@ private struct MessagePopupPromptSheet: View {
     }
 }
 
+private enum MessageBlackWhiteListActionBridge {
+    static func toggleBlacklist(pseudo: String) -> String? {
+        guard let object = sharedObject() else {
+            return nil
+        }
+
+        let isBLSelector = NSSelectorFromString("isBL:")
+        guard object.responds(to: isBLSelector) else {
+            return nil
+        }
+        typealias IsBLFunction = @convention(c) (AnyObject, Selector, NSString) -> Bool
+        let isBLImplementation = object.method(for: isBLSelector)
+        let isBLFunction = unsafeBitCast(isBLImplementation, to: IsBLFunction.self)
+        let isBL = isBLFunction(object, isBLSelector, pseudo as NSString)
+
+        if isBL {
+            let selector = NSSelectorFromString("removeFromBlackList:andSave:")
+            guard object.responds(to: selector) else {
+                return nil
+            }
+            typealias Function = @convention(c) (AnyObject, Selector, NSString, Bool) -> Bool
+            let implementation = object.method(for: selector)
+            let function = unsafeBitCast(implementation, to: Function.self)
+            let result = function(object, selector, pseudo as NSString, true)
+            return result
+                ? "\(pseudo) a été supprimé de la liste noire"
+                : "Erreur! \(pseudo) n'a pas pu être supprimé de la liste noire"
+        }
+
+        let selector = NSSelectorFromString("addToBlackList:andSave:")
+        guard object.responds(to: selector) else {
+            return nil
+        }
+        typealias Function = @convention(c) (AnyObject, Selector, NSString, Bool) -> Bool
+        let implementation = object.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        let result = function(object, selector, pseudo as NSString, true)
+        return result
+            ? "BIM! \(pseudo) ajouté à la liste noire"
+            : "Erreur! \(pseudo) n'a pas pu être ajouté à la liste noire"
+    }
+
+    static func toggleWhitelist(pseudo: String) -> String? {
+        guard let object = sharedObject() else {
+            return nil
+        }
+        let isWLSelector = NSSelectorFromString("isWL:")
+        guard object.responds(to: isWLSelector) else {
+            return nil
+        }
+        typealias IsWLFunction = @convention(c) (AnyObject, Selector, NSString) -> Bool
+        let isWLImplementation = object.method(for: isWLSelector)
+        let isWLFunction = unsafeBitCast(isWLImplementation, to: IsWLFunction.self)
+        let isWL = isWLFunction(object, isWLSelector, pseudo as NSString)
+
+        if isWL {
+            let selector = NSSelectorFromString("removeFromWhiteList:")
+            guard object.responds(to: selector) else {
+                return nil
+            }
+            typealias Function = @convention(c) (AnyObject, Selector, NSString) -> Bool
+            let implementation = object.method(for: selector)
+            let function = unsafeBitCast(implementation, to: Function.self)
+            _ = function(object, selector, pseudo as NSString)
+            return "OH NOES ! \(pseudo) a été supprimé de la love list"
+        }
+
+        let selector = NSSelectorFromString("addToWhiteList:")
+        guard object.responds(to: selector) else {
+            return nil
+        }
+        typealias Function = @convention(c) (AnyObject, Selector, NSString) -> Void
+        let implementation = object.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        function(object, selector, pseudo as NSString)
+        return "BOUM BOUM ! \(pseudo) ajouté à la love list ♥"
+    }
+
+    private static func sharedObject() -> NSObject? {
+        guard let klass = NSClassFromString("BlackList") as? NSObject.Type else {
+            return nil
+        }
+        let selector = NSSelectorFromString("shared")
+        guard klass.responds(to: selector),
+              let unmanaged = klass.perform(selector) else {
+            return nil
+        }
+        return unmanaged.takeUnretainedValue() as? NSObject
+    }
+}
+
 struct WebView: UIViewRepresentable {
     enum InitialScroll {
         case top
@@ -529,6 +620,7 @@ struct WebView: UIViewRepresentable {
     var onPopupDeleteRequest: ((URL) -> Void)?
     var onPopupAlertRequest: ((URL) -> Void)?
     var onPopupAlertMailRequest: ((URL) -> Void)?
+    var onPopupAvatarSheetRequest: ((TopicPageMessageActions) -> Void)?
     var onPopupProfileRequest: ((URL) -> Void)?
     var onPopupAQRequest: ((TopicPageMessageActions) -> Void)?
     var onPopupBookmarkRequest: ((TopicPageMessageActions) -> Void)?
@@ -554,6 +646,7 @@ struct WebView: UIViewRepresentable {
         onPopupDeleteRequest: ((URL) -> Void)? = nil,
         onPopupAlertRequest: ((URL) -> Void)? = nil,
         onPopupAlertMailRequest: ((URL) -> Void)? = nil,
+        onPopupAvatarSheetRequest: ((TopicPageMessageActions) -> Void)? = nil,
         onPopupProfileRequest: ((URL) -> Void)? = nil,
         onPopupAQRequest: ((TopicPageMessageActions) -> Void)? = nil,
         onPopupBookmarkRequest: ((TopicPageMessageActions) -> Void)? = nil,
@@ -578,6 +671,7 @@ struct WebView: UIViewRepresentable {
         self.onPopupDeleteRequest = onPopupDeleteRequest
         self.onPopupAlertRequest = onPopupAlertRequest
         self.onPopupAlertMailRequest = onPopupAlertMailRequest
+        self.onPopupAvatarSheetRequest = onPopupAvatarSheetRequest
         self.onPopupProfileRequest = onPopupProfileRequest
         self.onPopupAQRequest = onPopupAQRequest
         self.onPopupBookmarkRequest = onPopupBookmarkRequest
@@ -994,6 +1088,19 @@ struct WebView: UIViewRepresentable {
         private func presentPopupMenu(for payload: MessageWebPopupPayload, in webView: WKWebView) -> Bool {
             guard let actions = parent.messageActionsByIndex[payload.messageIndex] else {
                 return false
+            }
+            if payload.source == .avatar {
+                let actionKinds = MessagePopupMenuPolicy.orderedActionKinds(
+                    for: actions,
+                    source: .avatar,
+                    isQuoteSelectionEnabled: false,
+                    messageIndex: payload.messageIndex
+                )
+                guard !actionKinds.isEmpty else {
+                    return false
+                }
+                parent.onPopupAvatarSheetRequest?(actions)
+                return true
             }
             let entries = popupMenuEntries(for: actions, payload: payload, in: webView)
             guard !entries.isEmpty else {
@@ -1972,6 +2079,11 @@ struct MessagesView: View {
         let isFavorite: Bool
     }
 
+    private struct AvatarActionSheetState: Identifiable {
+        let id = UUID()
+        let actions: TopicPageMessageActions
+    }
+
     private struct PhotoViewerDestination: Identifiable {
         let id = UUID()
         let url: URL
@@ -2068,6 +2180,7 @@ struct MessagesView: View {
     @State private var navigateToLinkedTopic = false
     @State private var safariDestination: SafariDestination?
     @State private var smileySheetState: SmileySheetState?
+    @State private var avatarActionSheetState: AvatarActionSheetState?
     @State private var photoViewerDestination: PhotoViewerDestination?
     @State private var isLoadingQuoteTemplate = false
     @State private var activeComposerPrefillMode: ComposerPrefillMode = .quote
@@ -2574,6 +2687,54 @@ struct MessagesView: View {
         safariDestination = SafariDestination(url: url)
     }
 
+    private func presentAvatarActionSheet(with actions: TopicPageMessageActions) {
+        avatarActionSheetState = AvatarActionSheetState(actions: actions)
+    }
+
+    private func dismissAvatarActionSheet(then action: @escaping @MainActor () -> Void) {
+        avatarActionSheetState = nil
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 150_000_000)
+            action()
+        }
+    }
+
+    private func openAvatarProfile(_ url: URL) {
+        dismissAvatarActionSheet {
+            openProfile(for: url)
+        }
+    }
+
+    private func openAvatarPrivateMessage(_ url: URL, actions: TopicPageMessageActions) {
+        dismissAvatarActionSheet {
+            openPrivateMessageComposer(with: url, actions: actions)
+        }
+    }
+
+    private func toggleAvatarBlacklist(for pseudo: String) {
+        dismissAvatarActionSheet {
+            let message = MessageBlackWhiteListActionBridge.toggleBlacklist(pseudo: pseudo)
+            if let message {
+                showSuccessToast(message)
+            } else {
+                popupActionErrorMessage = "Blacklist impossible"
+            }
+            loadPage(page)
+        }
+    }
+
+    private func toggleAvatarWhitelist(for pseudo: String) {
+        dismissAvatarActionSheet {
+            let message = MessageBlackWhiteListActionBridge.toggleWhitelist(pseudo: pseudo)
+            if let message {
+                showSuccessToast(message)
+            } else {
+                popupActionErrorMessage = "Whitelist impossible"
+            }
+            loadPage(page)
+        }
+    }
+
     private func askAQPrompt(with actions: TopicPageMessageActions) {
         guard !isPreparingAQPrompt else { return }
         guard
@@ -2998,6 +3159,9 @@ struct MessagesView: View {
                     onPopupAlertMailRequest: { permalinkURL in
                         askAlertMailConfirmation(with: permalinkURL)
                     },
+                    onPopupAvatarSheetRequest: { actions in
+                        presentAvatarActionSheet(with: actions)
+                    },
                     onPopupProfileRequest: { profileURL in
                         openProfile(for: profileURL)
                     },
@@ -3325,6 +3489,25 @@ struct MessagesView: View {
                     )
                     .presentationDetents([.medium, .large])
                 }
+                .sheet(item: $avatarActionSheetState) { state in
+                    MessageAvatarActionSheetView(
+                        actions: state.actions,
+                        colorScheme: appTheme.effectiveColorScheme,
+                        onProfile: { profileURL in
+                            openAvatarProfile(profileURL)
+                        },
+                        onPrivateMessage: { privateMessageURL, actions in
+                            openAvatarPrivateMessage(privateMessageURL, actions: actions)
+                        },
+                        onBlacklist: { pseudo in
+                            toggleAvatarBlacklist(for: pseudo)
+                        },
+                        onWhitelist: { pseudo in
+                            toggleAvatarWhitelist(for: pseudo)
+                        }
+                    )
+                    .presentationDetents([.medium])
+                }
                 .fullScreenCover(item: $photoViewerDestination) { destination in
                     FullScreenPhotoViewer(url: destination.url)
                 }
@@ -3460,6 +3643,25 @@ struct MessagesView: View {
                 )
                 .presentationDetents([.medium, .large])
             }
+            .sheet(item: $avatarActionSheetState) { state in
+                MessageAvatarActionSheetView(
+                    actions: state.actions,
+                    colorScheme: appTheme.effectiveColorScheme,
+                    onProfile: { profileURL in
+                        openAvatarProfile(profileURL)
+                    },
+                    onPrivateMessage: { privateMessageURL, actions in
+                        openAvatarPrivateMessage(privateMessageURL, actions: actions)
+                    },
+                    onBlacklist: { pseudo in
+                        toggleAvatarBlacklist(for: pseudo)
+                    },
+                    onWhitelist: { pseudo in
+                        toggleAvatarWhitelist(for: pseudo)
+                    }
+                )
+                .presentationDetents([.medium])
+            }
             .fullScreenCover(item: $photoViewerDestination) { destination in
                 FullScreenPhotoViewer(url: destination.url)
             }
@@ -3501,13 +3703,14 @@ private struct MessageSmileySheetView: View {
     }
 
     private var smileyScale: CGFloat {
-        isSmileyCompactImage ? 0.35 : 0.7
+        isSmileyCompactImage ? 0.7 : 0.95
     }
 
     private var smileyDisplayHeight: CGFloat {
-        let screenHeight = UIScreen.main.bounds.height
-        return min(max(screenHeight * 0.24, 150), 230)
+        124
     }
+
+    private let previewHorizontalInset: CGFloat = 34
 
     var body: some View {
         NavigationStack {
@@ -3521,7 +3724,7 @@ private struct MessageSmileySheetView: View {
                             url: URL(string: imageURL),
                             loadState: $imageLoadState
                         )
-                        .padding(8)
+                        .padding(6)
                         .scaleEffect(smileyScale)
                         .animation(.easeInOut(duration: 0.16), value: smileyScale)
 
@@ -3536,6 +3739,7 @@ private struct MessageSmileySheetView: View {
                             .foregroundStyle(.secondary)
                         }
                     }
+                    .padding(.horizontal, previewHorizontalInset)
                     .frame(maxWidth: .infinity, minHeight: smileyDisplayHeight, maxHeight: smileyDisplayHeight)
 
                     Text(code)
@@ -3622,6 +3826,138 @@ private struct MessageSmileySheetView: View {
                 }
             }
         }
+    }
+}
+
+private struct MessageAvatarActionSheetView: View {
+    let actions: TopicPageMessageActions
+    let colorScheme: ColorScheme
+    let onProfile: (URL) -> Void
+    let onPrivateMessage: (URL, TopicPageMessageActions) -> Void
+    let onBlacklist: (String) -> Void
+    let onWhitelist: (String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    private var authorName: String {
+        let trimmed = actions.authorName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? "Auteur" : trimmed
+    }
+
+    private let previewHorizontalInset: CGFloat = 34
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Color.secondary.opacity(0.12))
+
+                        MessageAvatarPreviewView(
+                            avatarImagePath: actions.avatarImagePath,
+                            colorScheme: colorScheme
+                        )
+                    }
+                    .padding(.horizontal, previewHorizontalInset)
+                    .frame(maxWidth: .infinity, minHeight: 124, maxHeight: 124)
+
+                    Text(authorName)
+                        .font(.title3)
+                        .bold()
+                        .textSelection(.enabled)
+
+                    if let profileURL = actions.profileURL {
+                        Button {
+                            onProfile(profileURL)
+                        } label: {
+                            Label("Profil", systemImage: "person.crop.circle")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+
+                    if !actions.isOwnMessage, let privateMessageURL = actions.privateMessageURL {
+                        Button {
+                            onPrivateMessage(privateMessageURL, actions)
+                        } label: {
+                            Label("MP", systemImage: "message")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                    }
+
+                    if !actions.isOwnMessage, let authorName = actions.authorName?.trimmingCharacters(in: .whitespacesAndNewlines), !authorName.isEmpty {
+                        Button {
+                            onWhitelist(authorName)
+                        } label: {
+                            Label("Whitelist", systemImage: "heart")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+
+                        Button(role: .destructive) {
+                            onBlacklist(authorName)
+                        } label: {
+                            Label("Blacklist", systemImage: "hand.raised")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                }
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .navigationTitle(authorName)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Fermer") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct MessageAvatarPreviewView: View {
+    let avatarImagePath: String?
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        Group {
+            if let image = resolvedImage {
+                Image(uiImage: image)
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+            } else {
+                Image(systemName: "person.crop.circle.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: 96)
+    }
+
+    private var resolvedImage: UIImage? {
+        if let avatarImagePath {
+            let trimmed = avatarImagePath.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty {
+                if let localImage = UIImage(contentsOfFile: trimmed) {
+                    return localImage
+                }
+                if let url = URL(string: trimmed), url.isFileURL, let localImage = UIImage(contentsOfFile: url.path) {
+                    return localImage
+                }
+            }
+        }
+
+        let assetName = colorScheme == .dark ? "avatar_male_gray_on_dark_48x48" : "avatar_male_gray_on_light_48x48"
+        return UIImage(named: assetName)
     }
 }
 

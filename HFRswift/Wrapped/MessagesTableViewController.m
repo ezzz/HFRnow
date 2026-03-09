@@ -3595,6 +3595,11 @@ API_AVAILABLE(ios(16.0)) {
             [entry setObject:privateMessageURL forKey:@"privateMessageURL"];
         }
 
+        NSString *avatarImagePath = [item.imageUI stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+        if (avatarImagePath.length > 0) {
+            [entry setObject:avatarImagePath forKey:@"avatarImagePath"];
+        }
+
         NSString *favoriteURL = [self swiftAbsoluteForumURLFromRawURL:item.addFlagUrl forumBaseURL:forumBaseURL];
         if (favoriteURL.length > 0) {
             [entry setObject:favoriteURL forKey:@"favoriteURL"];

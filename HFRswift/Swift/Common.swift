@@ -823,6 +823,7 @@ struct TopicPageMessageActions: Equatable {
     let quoteURL: URL?
     let profileURL: URL?
     let privateMessageURL: URL?
+    let avatarImagePath: String?
     let postID: String?
     let editURL: URL?
     let favoriteURL: URL?
@@ -877,6 +878,7 @@ final class ObjCTopicPageLoader: TopicPageLoading {
         static let quoteURL = "quoteURL"
         static let profileURL = "profileURL"
         static let privateMessageURL = "privateMessageURL"
+        static let avatarImagePath = "avatarImagePath"
         static let postID = "postID"
         static let editURL = "editURL"
         static let favoriteURL = "favoriteURL"
@@ -969,6 +971,7 @@ final class ObjCTopicPageLoader: TopicPageLoading {
                 quoteURL: urlValue(in: entry, key: MessageActionKey.quoteURL),
                 profileURL: urlValue(in: entry, key: MessageActionKey.profileURL),
                 privateMessageURL: urlValue(in: entry, key: MessageActionKey.privateMessageURL),
+                avatarImagePath: stringValue(in: entry, key: MessageActionKey.avatarImagePath),
                 postID: stringValue(in: entry, key: MessageActionKey.postID),
                 editURL: urlValue(in: entry, key: MessageActionKey.editURL),
                 favoriteURL: urlValue(in: entry, key: MessageActionKey.favoriteURL),
@@ -990,6 +993,7 @@ final class ObjCTopicPageLoader: TopicPageLoading {
             if actions.quoteURL != nil ||
                 actions.profileURL != nil ||
                 actions.privateMessageURL != nil ||
+                actions.avatarImagePath != nil ||
                 actions.postID != nil ||
                 actions.editURL != nil ||
                 actions.favoriteURL != nil ||
