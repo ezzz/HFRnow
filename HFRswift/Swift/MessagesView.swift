@@ -2947,12 +2947,6 @@ struct MessagesView: View {
         loadPage(target)
     }
 
-    private func submitPagePicker() {
-        let trimmed = pagePickerInput.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let target = Int(trimmed), (1...maxPage).contains(target) else { return }
-        navigateToPage(target, initialScroll: .top)
-    }
-
     private var shouldShowBottomRefreshButton: Bool {
         page >= maxPage && isWebContentAtBottom
     }
@@ -3457,15 +3451,13 @@ struct MessagesView: View {
                         //.buttonStyle(.glassProminent)
                     }
                 }
-                .alert("Page numéro...", isPresented: $isPagePickerPresented) {
-                    TextField("1...\(maxPage)", text: $pagePickerInput)
-                        .keyboardType(.numberPad)
-                    Button("Annuler", role: .cancel) {}
-                    Button("Aller") {
-                        submitPagePicker()
+                .sheet(isPresented: $isPagePickerPresented) {
+                    TopicPagePickerSheet(
+                        maxPage: maxPage,
+                        pageInput: $pagePickerInput
+                    ) { selectedPage in
+                        navigateToPage(selectedPage, initialScroll: .top)
                     }
-                } message: {
-                    Text("Choisir une page entre 1 et \(maxPage)")
                 }
                 .background(linkedTopicNavigationLink)
                 .sheet(item: $safariDestination) { destination in
@@ -3608,15 +3600,13 @@ struct MessagesView: View {
                     .buttonStyle(.glassProminent)
                 }
             }
-            .alert("Page numéro...", isPresented: $isPagePickerPresented) {
-                TextField("1...\(maxPage)", text: $pagePickerInput)
-                    .keyboardType(.numberPad)
-                Button("Annuler", role: .cancel) {}
-                Button("Aller") {
-                    submitPagePicker()
+            .sheet(isPresented: $isPagePickerPresented) {
+                TopicPagePickerSheet(
+                    maxPage: maxPage,
+                    pageInput: $pagePickerInput
+                ) { selectedPage in
+                    navigateToPage(selectedPage, initialScroll: .top)
                 }
-            } message: {
-                Text("Choisir une page entre 1 et \(maxPage)")
             }
             .onAppear {
                 loadPage(page)

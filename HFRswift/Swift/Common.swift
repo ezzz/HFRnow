@@ -1516,6 +1516,161 @@ private struct TopicNavigationTarget {
     let initialScroll: WebView.InitialScroll?
 }
 
+private struct TopicPagePickerSheetToken: Identifiable {
+    let id = UUID()
+}
+
+private struct TopicPagePickerQuickButton: View {
+    let title: String?
+    let systemImage: String?
+    let accessibilityLabel: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Group {
+                if let title {
+                    Text(title)
+                        .font(.subheadline.weight(.semibold))
+                } else if let systemImage {
+                    Image(systemName: systemImage)
+                        .font(.headline)
+                }
+            }
+            .frame(maxWidth: .infinity, minHeight: 36)
+            .foregroundStyle(.primary)
+        }
+        .buttonStyle(.bordered)
+        .tint(Color(uiColor: .systemGray3))
+        .accessibilityLabel(accessibilityLabel)
+    }
+}
+
+struct TopicPagePickerSheet: View {
+    let maxPage: Int
+    @Binding var pageInput: String
+    let onSubmit: (Int) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    private var trimmedInput: String {
+        pageInput.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var resolvedPage: Int {
+        let fallback = min(max(1, Int(trimmedInput) ?? 1), maxPage)
+        return min(max(fallback, 1), maxPage)
+    }
+
+    private var isInputValid: Bool {
+        guard let page = Int(trimmedInput) else { return false }
+        return (1...maxPage).contains(page)
+    }
+
+    private func setPage(_ page: Int) {
+        let clampedPage = min(max(page, 1), maxPage)
+        pageInput = "\(clampedPage)"
+    }
+
+    private func offsetPage(by delta: Int) {
+        setPage(resolvedPage + delta)
+    }
+
+    private func submit() {
+        onSubmit(resolvedPage)
+        dismiss()
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Choisir une page entre 1 et \(maxPage)")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                HStack(spacing: 10) {
+                    TopicPagePickerQuickButton(
+                        title: nil,
+                        systemImage: "backward.end",
+                        accessibilityLabel: "Première page"
+                    ) {
+                        setPage(1)
+                    }
+
+                    TextField("1...\(maxPage)", text: $pageInput)
+                        .keyboardType(.numberPad)
+                        .font(.body.monospacedDigit())
+                        .textFieldStyle(.roundedBorder)
+                        .multilineTextAlignment(.center)
+
+                    TopicPagePickerQuickButton(
+                        title: nil,
+                        systemImage: "forward.end",
+                        accessibilityLabel: "Dernière page"
+                    ) {
+                        setPage(maxPage)
+                    }
+                }
+
+                HStack(spacing: 10) {
+                    TopicPagePickerQuickButton(
+                        title: "-10",
+                        systemImage: nil,
+                        accessibilityLabel: "Dix pages en moins"
+                    ) {
+                        offsetPage(by: -10)
+                    }
+                    TopicPagePickerQuickButton(
+                        title: "-1",
+                        systemImage: nil,
+                        accessibilityLabel: "Une page en moins"
+                    ) {
+                        offsetPage(by: -1)
+                    }
+                    TopicPagePickerQuickButton(
+                        title: "+1",
+                        systemImage: nil,
+                        accessibilityLabel: "Une page en plus"
+                    ) {
+                        offsetPage(by: 1)
+                    }
+                    TopicPagePickerQuickButton(
+                        title: "+10",
+                        systemImage: nil,
+                        accessibilityLabel: "Dix pages en plus"
+                    ) {
+                        offsetPage(by: 10)
+                    }
+                }
+            }
+            .padding(20)
+            .navigationTitle("Page numéro")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Fermer") {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Valider") {
+                        submit()
+                    }
+                    .disabled(!isInputValid)
+                }
+            }
+        }
+        .presentationDetents([.height(260)])
+        .presentationDragIndicator(.visible)
+        .onAppear {
+            if trimmedInput.isEmpty {
+                setPage(1)
+            }
+        }
+    }
+}
+
 struct MenuActionLabel: View {
     let title: String
     let systemImage: String?
@@ -1576,7 +1731,7 @@ struct TopicListRowView: View {
 
     @State private var navigateToTarget = false
     @State private var navigationTarget: TopicNavigationTarget?
-    @State private var isPagePickerPresented = false
+    @State private var pagePickerSheet: TopicPagePickerSheetToken?
     @State private var pagePickerInput = ""
 
     private var unreadCount: Int {
@@ -1784,11 +1939,11 @@ struct TopicListRowView: View {
 
     private func openPagePickerAction() {
         pagePickerInput = "\(currentPageValue)"
-        isPagePickerPresented = true
+        pagePickerSheet = TopicPagePickerSheetToken()
     }
 
-    private func submitPagePicker() {
-        let trimmed = pagePickerInput.trimmingCharacters(in: .whitespacesAndNewlines)
+    private func submitPagePicker(pageInput: String? = nil) {
+        let trimmed = (pageInput ?? pagePickerInput).trimmingCharacters(in: .whitespacesAndNewlines)
         guard
             let requestedPage = Int(trimmed),
             (1...maxTopicPageValue).contains(requestedPage)
@@ -1945,15 +2100,13 @@ struct TopicListRowView: View {
             .hidden()
             .allowsHitTesting(false)
         }
-        .alert("Page numéro...", isPresented: $isPagePickerPresented) {
-            TextField("1...\(maxTopicPageValue)", text: $pagePickerInput)
-                .keyboardType(.numberPad)
-            Button("Annuler", role: .cancel) {}
-            Button("Aller") {
-                submitPagePicker()
+        .sheet(item: $pagePickerSheet) { _ in
+            TopicPagePickerSheet(
+                maxPage: maxTopicPageValue,
+                pageInput: $pagePickerInput
+            ) { selectedPage in
+                submitPagePicker(pageInput: "\(selectedPage)")
             }
-        } message: {
-            Text("Choisir une page entre 1 et \(maxTopicPageValue)")
         }
     }
 }
