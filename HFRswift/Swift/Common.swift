@@ -1460,6 +1460,12 @@ struct TopicOpenPolicy {
 
         switch context {
         case .forum(let selectedFlag):
+            if topic.isViewedFromForumAtLoad {
+                return Decision(
+                    preferredURL: nonEmptyString(topic.aURLOfLastPost) ?? nonEmptyString(topic.aURLOfLastPage) ?? nonEmptyString(topic.aURL),
+                    fallbackPage: maxPage
+                )
+            }
             if let flaggedURL = nonEmptyString(topic.aURLOfFlag) {
                 return Decision(preferredURL: flaggedURL, fallbackPage: currentPage)
             }
@@ -1696,6 +1702,8 @@ struct TopicListRowView: View {
         destination.curTopicPage = Int32(page)
         destination.maxTopicPage = Int32(max(maxPage, page))
         destination.isViewed = topic.isViewed
+        destination.isViewedFromForumAtLoad = topic.isViewedFromForumAtLoad
+        destination.isLocallyViewedInApp = topic.isLocallyViewedInApp
         destination.isPoll = topic.isPoll
         destination.isClosed = topic.isClosed
         destination.isSticky = topic.isSticky

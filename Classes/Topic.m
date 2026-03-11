@@ -17,6 +17,8 @@
 
 @synthesize aRepCount;
 @synthesize isViewed;
+@synthesize isViewedFromForumAtLoad;
+@synthesize isLocallyViewedInApp;
 
 @synthesize aURLOfFlag;
 @synthesize aTypeOfFlag;
@@ -41,6 +43,9 @@
 	if (self) {
         _aTitle = [NSString stringWithFormat:@""];
         self.aURL = [NSString string];
+        self.isViewed = NO;
+        self.isViewedFromForumAtLoad = NO;
+        self.isLocallyViewedInApp = NO;
 
         self.aURLOfFirstPage = [NSString string];
         
@@ -125,6 +130,9 @@
         _aTitle = [decoder decodeObjectForKey:@"aTitle"];
         aURL = [decoder decodeObjectForKey:@"aURL"];
         aRepCount = [[decoder decodeObjectForKey:@"aRepCount"] intValue];
+        isViewed = NO;
+        isViewedFromForumAtLoad = NO;
+        isLocallyViewedInApp = NO;
         aURLOfFirstPage = [decoder decodeObjectForKey:@"aURLOfFirstPage"];
         aURLOfFlag = [decoder decodeObjectForKey:@"aURLOfFlag"];
         aTypeOfFlag = [decoder decodeObjectForKey:@"aTypeOfFlag"];
@@ -150,4 +158,3 @@
 
 
 @end
-

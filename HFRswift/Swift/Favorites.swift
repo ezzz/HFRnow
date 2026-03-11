@@ -580,6 +580,7 @@ struct FavoritesListView: View {
         if !url.isEmpty {
             visitedURLs.insert(url)
         }
+        topic.isLocallyViewedInApp = true
         topic.isViewed = true
     }
 
@@ -635,7 +636,7 @@ struct TopicRowView: View {
     
     private var isVisited: Bool {
         let url = topic.aURL ?? topic.aURLOfLastPage ?? ""
-        return visitedURLs.contains(url)
+        return topic.isLocallyViewedInApp || visitedURLs.contains(url)
     }
     
     var unreadCount: Int {
@@ -716,6 +717,8 @@ struct TopicRowView: View {
             if !url.isEmpty {
                 visitedURLs.insert(url)
             }
+            topic.isLocallyViewedInApp = true
+            topic.isViewed = true
         }
         .swipeActions(edge: .leading, allowsFullSwipe: true) {
             if let onMarkRead {

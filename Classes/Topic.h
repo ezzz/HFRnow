@@ -15,6 +15,8 @@
 	int aRepCount;
 	
 	BOOL isViewed;
+	BOOL isViewedFromForumAtLoad;
+	BOOL isLocallyViewedInApp;
 	
 	NSString *aURLOfFirstPage;
     
@@ -52,6 +54,8 @@
 
 @property int aRepCount;
 @property BOOL isViewed;
+@property BOOL isViewedFromForumAtLoad;
+@property BOOL isLocallyViewedInApp;
 
 @property (nonatomic, strong) NSString *aURLOfFirstPage;
 

@@ -1567,6 +1567,7 @@
 
         NSIndexPath *path = self.favoritesTableView.indexPathForSelectedRow;
         [[self getTopicAtIndexPath:path] setIsViewed:YES];
+        [[self getTopicAtIndexPath:path] setIsLocallyViewedInApp:YES];
 
         //NSArray* rowsToReload = [NSArray arrayWithObjects:self.favoritesTableView.indexPathForSelectedRow, nil];
         //[self.favoritesTableView reloadRowsAtIndexPaths:rowsToReload withRowAnimation:UITableViewRowAnimationNone];
@@ -1578,6 +1579,7 @@
     {
         NSIndexPath *path = self.pressedIndexPath;
         [[self getTopicAtIndexPath:path] setIsViewed:YES];
+        [[self getTopicAtIndexPath:path] setIsLocallyViewedInApp:YES];
 
         //NSArray* rowsToReload = [NSArray arrayWithObjects:self.pressedIndexPath, nil];
         //[self.favoritesTableView reloadRowsAtIndexPaths:rowsToReload withRowAnimation:UITableViewRowAnimationNone];
@@ -1951,4 +1953,3 @@
 }
 
 @end
-

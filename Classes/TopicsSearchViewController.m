@@ -1151,12 +1151,14 @@
 
     if (self.pressedIndexPath && self.arrayData.count > 0 && [self.pressedIndexPath row] <= self.arrayData.count) {
         [[self.arrayData objectAtIndex:[self.pressedIndexPath row]] setIsViewed:YES];
+        [[self.arrayData objectAtIndex:[self.pressedIndexPath row]] setIsLocallyViewedInApp:YES];
         
         NSArray* rowsToReload = [NSArray arrayWithObjects:self.pressedIndexPath, nil];
         [self.topicsTableView reloadRowsAtIndexPaths:rowsToReload withRowAnimation:UITableViewRowAnimationNone];
     }
     else if (self.topicsTableView.indexPathForSelectedRow && self.arrayData.count > 0 && [self.topicsTableView.indexPathForSelectedRow row] <= self.arrayData.count) {
         [[self.arrayData objectAtIndex:[self.topicsTableView.indexPathForSelectedRow row]] setIsViewed:YES];
+        [[self.arrayData objectAtIndex:[self.topicsTableView.indexPathForSelectedRow row]] setIsLocallyViewedInApp:YES];
         
         NSArray* rowsToReload = [NSArray arrayWithObjects:self.topicsTableView.indexPathForSelectedRow, nil];
         [self.topicsTableView reloadRowsAtIndexPaths:rowsToReload withRowAnimation:UITableViewRowAnimationNone];

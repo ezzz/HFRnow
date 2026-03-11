@@ -783,6 +783,8 @@
 
             //Viewed?
             [aTopic setIsViewed:YES];
+            [aTopic setIsViewedFromForumAtLoad:YES];
+            [aTopic setIsLocallyViewedInApp:NO];
             HTMLNode * viewedNode = [topicNode findChildWithAttribute:@"class" matchingName:@"sujetCase1" allowPartial:YES];
             HTMLNode * viewedFlagNode = [viewedNode findChildTag:@"img"];
             if (viewedFlagNode) {
@@ -790,6 +792,7 @@
             
                 if ([viewedFlagAlt isEqualToString:@"On"]) {
                     [aTopic setIsViewed:NO];
+                    [aTopic setIsViewedFromForumAtLoad:NO];
                     countViewed++;
                 }
             }
@@ -913,12 +916,14 @@
 
     if (self.pressedIndexPath && self.arrayData.count > 0 && [self.pressedIndexPath row] <= self.arrayData.count) {
         [[self.arrayData objectAtIndex:[self.pressedIndexPath row]] setIsViewed:YES];
+        [[self.arrayData objectAtIndex:[self.pressedIndexPath row]] setIsLocallyViewedInApp:YES];
         
         NSArray* rowsToReload = [NSArray arrayWithObjects:self.pressedIndexPath, nil];
         [self.topicsTableView reloadRowsAtIndexPaths:rowsToReload withRowAnimation:UITableViewRowAnimationNone];
     }
     else if (self.topicsTableView.indexPathForSelectedRow && self.arrayData.count > 0 && [self.topicsTableView.indexPathForSelectedRow row] <= self.arrayData.count) {
         [[self.arrayData objectAtIndex:[self.topicsTableView.indexPathForSelectedRow row]] setIsViewed:YES];
+        [[self.arrayData objectAtIndex:[self.topicsTableView.indexPathForSelectedRow row]] setIsLocallyViewedInApp:YES];
         
         NSArray* rowsToReload = [NSArray arrayWithObjects:self.topicsTableView.indexPathForSelectedRow, nil];
         [self.topicsTableView reloadRowsAtIndexPaths:rowsToReload withRowAnimation:UITableViewRowAnimationNone];

@@ -322,6 +322,9 @@ struct ForumTopicsListView: View {
         let pollSuffix = topic.isPoll ? " \u{2263}" : ""
         let pageLabel = maxPage > 1 ? "pages" : "page"
 
+        if topic.isViewedFromForumAtLoad {
+            return "⚑\(pollSuffix) \(maxPage) / \(maxPage)"
+        }
         if topicHasFlag(topic), currentPage > 0 && currentPage <= maxPage {
             return "⚑\(pollSuffix) \(currentPage) / \(maxPage)"
         }
@@ -369,6 +372,15 @@ struct ForumTopicsListView: View {
             return true
         }
         return normalizedNonEmpty(topic.aTypeOfFlag) != nil || normalizedNonEmpty(topic.aURLOfFlag) != nil
+    }
+
+    private func isLocallyViewed(_ topic: Topic) -> Bool {
+        let openedURL = topic.aURL ?? topic.aURLOfLastPage ?? ""
+        return topic.isLocallyViewedInApp || visitedURLs.contains(openedURL)
+    }
+
+    private func isDisplayedAsViewed(_ topic: Topic) -> Bool {
+        topic.isViewedFromForumAtLoad || isLocallyViewed(topic)
     }
 
     private func topicIdentifiers(for topic: Topic) -> (postID: Int, categoryID: Int)? {
@@ -452,6 +464,7 @@ struct ForumTopicsListView: View {
         if let openedURL {
             visitedURLs.insert(openedURL)
         }
+        topic.isLocallyViewedInApp = true
         topic.isViewed = true
     }
 
@@ -548,12 +561,12 @@ struct ForumTopicsListView: View {
                 let hasFlag = topicHasFlag(topic)
                 let topicID = ObjectIdentifier(topic)
                 let isRemoving = removingTopicIDs.contains(topicID)
-                let isVisited = visitedURLs.contains(topic.aURL ?? topic.aURLOfLastPage ?? "")
+                let isVisited = isDisplayedAsViewed(topic)
                 TopicListRowView(
                     topic: topic,
                     isVisited: isVisited,
                     titleFont: .system(size: 13, weight: isVisited ? .regular : .semibold),
-                    showUnreadBadge: hasFlag,
+                    showUnreadBadge: hasFlag && !topic.isViewedFromForumAtLoad,
                     leadingBottomText: footerLeft(for: topic),
                     trailingBottomText: footerRight(for: topic),
                     rowBackgroundTint: rowBackgroundTint(for: topic),
@@ -583,6 +596,8 @@ struct ForumTopicsListView: View {
                     if let openedURL, !openedURL.isEmpty {
                         visitedURLs.insert(openedURL)
                     }
+                    topic.isLocallyViewedInApp = true
+                    topic.isViewed = true
                 }
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
                     if hasFlag {
