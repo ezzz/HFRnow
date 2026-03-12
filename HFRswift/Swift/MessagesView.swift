@@ -3197,7 +3197,9 @@ struct MessagesView: View {
                     },
                     onScrollPositionChange: { isAtBottom in
                         if isWebContentAtBottom != isAtBottom {
-                            isWebContentAtBottom = isAtBottom
+                            withAnimation(.easeOut(duration: 0.18)) {
+                                isWebContentAtBottom = isAtBottom
+                            }
                         }
                     }
                 )
@@ -3427,28 +3429,16 @@ struct MessagesView: View {
                             }
                             .disabled(page <= 1)
 
-                            if shouldHighlightNextPageButton {
-                                Button {
-                                    navigateToPage(page + 1, initialScroll: .top)
-                                } label: {
-                                    Image(systemName: "chevron.forward")
-                                }
-                                .contextMenu {
-                                    forwardContextMenuItems()
-                                }
-                                .buttonStyle(.glassProminent)
-                                .disabled(page >= currentMaxPage)
-                            } else {
-                                Button {
-                                    navigateToPage(page + 1, initialScroll: .top)
-                                } label: {
-                                    Image(systemName: "chevron.forward")
-                                }
-                                .contextMenu {
-                                    forwardContextMenuItems()
-                                }
-                                .disabled(page >= currentMaxPage)
+                            Button {
+                                navigateToPage(page + 1, initialScroll: .top)
+                            } label: {
+                                Image(systemName: "chevron.forward")
                             }
+                            .contextMenu {
+                                forwardContextMenuItems()
+                            }
+                            .topicBottomBarButtonStyle(isProminent: shouldHighlightNextPageButton)
+                            .disabled(page >= currentMaxPage)
                         }
 
                         ToolbarSpacer(.flexible, placement: .bottomBar)
@@ -3458,9 +3448,11 @@ struct MessagesView: View {
                                 Button {
                                     refreshCurrentPageAtBottom()
                                 } label: {
-                                    Text("Actualiser")
+                                    Image(systemName: "arrow.clockwise")
+                                        .font(.system(size: 16, weight: .semibold))
                                 }
                                 .buttonStyle(.glassProminent)
+                                .accessibilityLabel("Actualiser")
                                 .transition(.opacity.combined(with: .scale))
                             }
                             ToolbarSpacer(.fixed, placement: .bottomBar)
@@ -3472,8 +3464,8 @@ struct MessagesView: View {
                             } label: {
                                 Label("New", systemImage: "plus")
                             }
+                            .topicBottomBarButtonStyle(isProminent: false)
                         }
-                        //.buttonStyle(.glassProminent)
                     }
                 }
                 .sheet(isPresented: $isPagePickerPresented) {
@@ -3536,6 +3528,7 @@ struct MessagesView: View {
                     }
                 }
                 .animation(.easeOut(duration: 0.22), value: shouldShowBottomRefreshButton)
+                .animation(.easeOut(duration: 0.18), value: shouldHighlightNextPageButton)
         } else {
             ZStack {
                 VStack(spacing: 8) {
@@ -3589,32 +3582,18 @@ struct MessagesView: View {
                     }
                     .disabled(page <= 1)
 
-                    if shouldHighlightNextPageButton {
-                        Button {
-                            navigateToPage(page + 1, initialScroll: .top)
-                        } label: {
-                            Image(systemName: "chevron.forward")
-                        }
-                        .contextMenu {
-                            forwardContextMenuItems()
-                        } preview: {
-                            EmptyView()
-                        }
-                        .buttonStyle(.glassProminent)
-                        .disabled(page >= currentMaxPage)
-                    } else {
-                        Button {
-                            navigateToPage(page + 1, initialScroll: .top)
-                        } label: {
-                            Image(systemName: "chevron.forward")
-                        }
-                        .contextMenu {
-                            forwardContextMenuItems()
-                        } preview: {
-                            EmptyView()
-                        }
-                        .disabled(page >= currentMaxPage)
+                    Button {
+                        navigateToPage(page + 1, initialScroll: .top)
+                    } label: {
+                        Image(systemName: "chevron.forward")
                     }
+                    .contextMenu {
+                        forwardContextMenuItems()
+                    } preview: {
+                        EmptyView()
+                    }
+                    .topicBottomBarButtonStyle(isProminent: shouldHighlightNextPageButton)
+                    .disabled(page >= currentMaxPage)
 
                     Spacer()
                     Button {
@@ -3622,7 +3601,7 @@ struct MessagesView: View {
                     } label: {
                         Label("New", systemImage: "plus")
                     }
-                    .buttonStyle(.glassProminent)
+                    .topicBottomBarButtonStyle(isProminent: false)
                 }
             }
             .sheet(isPresented: $isPagePickerPresented) {
@@ -4275,6 +4254,23 @@ private struct FullScreenPhotoViewer: View {
 }
 
 private extension View {
+    @ViewBuilder
+    func topicBottomBarButtonStyle(isProminent: Bool) -> some View {
+        if #available(iOS 26.0, *) {
+            if isProminent {
+                self.buttonStyle(.glassProminent)
+            } else {
+                self.buttonStyle(.automatic)
+            }
+        } else {
+            if isProminent {
+                self.buttonStyle(.borderedProminent)
+            } else {
+                self.buttonStyle(.automatic)
+            }
+        }
+    }
+
     @ViewBuilder
     func ifAvailableiOS26GlassProminent() -> some View {
         if #available(iOS 26.0, *) {
