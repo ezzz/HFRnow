@@ -2159,6 +2159,7 @@ struct MessagesView: View {
 
     @ObservedObject private var appTheme = AppThemeStore.shared
     @State private var page: Int
+    @State private var availableMaxPage: Int
     @State private var fileURL: URL?
     @State private var cacheURL: URL?
     @State private var errorMessage: String?
@@ -2237,6 +2238,7 @@ struct MessagesView: View {
         self.messageDeletionService = messageDeletionService
         self.moderationAlertService = moderationAlertService
         self._page = State(initialValue: curPage)
+        self._availableMaxPage = State(initialValue: max(max(maxPage, curPage), 1))
         self._initialScroll = State(initialValue: initialLoadScroll)
 
         // extraire l’ancre (#xxxx) si présente
@@ -2247,25 +2249,44 @@ struct MessagesView: View {
     }
 
     private func urlForPage(_ page: Int) -> String {
-        print("Current url: \(self.topic.aURL ?? "empty")")
-        if let currentURL = topic.aURL, currentURL.contains("page=") {
-            let legacyURL = topic.getURLforPage(Int32(page))
-            if let legacyURL, !legacyURL.isEmpty {
-                return legacyURL
-            }
-        }
+        let baseURL = topic.aURL ?? topic.aURLOfLastPage ?? topic.aURLOfFirstPage ?? ""
+        print("Current url: \(baseURL)")
+        return TopicPageURLRouting.replacingPage(in: baseURL, page: page)
+    }
 
-        guard var comps = URLComponents(string: self.topic.aURL) else { return "" }
-        var queryItems = comps.queryItems ?? []
-        if let index = queryItems.firstIndex(where: { $0.name == "page" }) {
-            queryItems[index].value = "\(page)"
-        } else {
-            queryItems.append(URLQueryItem(name: "page", value: "\(page)"))
+    private var currentMaxPage: Int {
+        max(max(availableMaxPage, page), 1)
+    }
+
+    private func synchronizeTopicPagination(currentPage resolvedPage: Int, maxPage resolvedMaxPage: Int) {
+        topic.curTopicPage = Int32(resolvedPage)
+        topic.maxTopicPage = Int32(resolvedMaxPage)
+
+        let baseURL = topic.aURL ?? topic.aURLOfLastPage ?? topic.aURLOfFirstPage ?? ""
+        guard !baseURL.isEmpty else { return }
+
+        let currentPageURL = TopicPageURLRouting.replacingPage(in: baseURL, page: resolvedPage)
+        let lastPageURL = TopicPageURLRouting.replacingPage(in: baseURL, page: resolvedMaxPage)
+
+        topic.aURL = currentPageURL
+        topic.aURLOfLastPage = lastPageURL
+        if topic.aURLOfFirstPage == nil || topic.aURLOfFirstPage.isEmpty {
+            topic.aURLOfFirstPage = TopicPageURLRouting.replacingPage(in: baseURL, page: 1)
         }
-        comps.queryItems = queryItems
-        // ⚠️ On ne garde pas le fragment quand on change de page
-        comps.fragment = nil
-        return comps.string ?? ""
+    }
+
+    private func applyLoadedPagination(from content: TopicPageContent, requestedPage: Int) {
+        let resolvedPage = max(content.currentPage ?? requestedPage, 1)
+        let parsedMaxPage = content.maxPage ?? currentMaxPage
+        let resolvedMaxPage = max(max(parsedMaxPage, resolvedPage), 1)
+
+        if page != resolvedPage {
+            page = resolvedPage
+        }
+        if availableMaxPage != resolvedMaxPage {
+            availableMaxPage = resolvedMaxPage
+        }
+        synchronizeTopicPagination(currentPage: resolvedPage, maxPage: resolvedMaxPage)
     }
 
     private func loadPage(_ page: Int) {
@@ -2293,7 +2314,7 @@ struct MessagesView: View {
                         self.cacheURL = nil
                         self.errorMessage = error.localizedDescription
                     }
-                    self.page = page
+                    applyLoadedPagination(from: content, requestedPage: page)
                     self.topicAnswerURL = content.topicAnswerURL
                     self.messageActionsByIndex = content.messageActionsByIndex
                 }
@@ -2325,6 +2346,10 @@ struct MessagesView: View {
                         self.cacheURL = nil
                         self.errorMessage = error.localizedDescription
                     }
+                    let requestedPage = content.currentPage
+                        ?? TopicPageURLRouting.pageNumber(from: topicURL)
+                        ?? self.page
+                    applyLoadedPagination(from: content, requestedPage: requestedPage)
                     self.topicAnswerURL = content.topicAnswerURL
                     self.messageActionsByIndex = content.messageActionsByIndex
                 }
@@ -2362,7 +2387,7 @@ struct MessagesView: View {
             .value
             .flatMap(Int.init) ?? 1
         let boundedPage = max(pageFromURL, 1)
-        let derivedMaxPage = max(maxPage, boundedPage)
+        let derivedMaxPage = max(currentMaxPage, boundedPage)
 
         let topicForNavigation = Topic()
         topicForNavigation._aTitle = topic._aTitle
@@ -2909,7 +2934,7 @@ struct MessagesView: View {
     private func uniqueValidPages(_ candidates: [Int], excluding excludedTargets: Set<Int> = []) -> [Int] {
         var seen = excludedTargets
         return candidates.compactMap { target in
-            guard (1...maxPage).contains(target), target != page else { return nil }
+            guard (1...currentMaxPage).contains(target), target != page else { return nil }
             guard seen.insert(target).inserted else { return nil }
             return target
         }
@@ -2928,7 +2953,7 @@ struct MessagesView: View {
     }
 
     private var forwardLastPages: [Int] {
-        uniqueValidPages([maxPage - 2, maxPage - 1, maxPage], excluding: Set(forwardFirstPages))
+        uniqueValidPages([currentMaxPage - 2, currentMaxPage - 1, currentMaxPage], excluding: Set(forwardFirstPages))
     }
 
     private func pageMenuLabel(_ target: Int) -> String {
@@ -2941,18 +2966,18 @@ struct MessagesView: View {
     }
 
     private func navigateToPage(_ target: Int, initialScroll: WebView.InitialScroll) {
-        guard (1...maxPage).contains(target), target != page else { return }
+        guard (1...currentMaxPage).contains(target), target != page else { return }
         anchor = nil
         self.initialScroll = initialScroll
         loadPage(target)
     }
 
     private var shouldShowBottomRefreshButton: Bool {
-        page >= maxPage && isWebContentAtBottom
+        page >= currentMaxPage && isWebContentAtBottom
     }
 
     private var shouldHighlightNextPageButton: Bool {
-        page < maxPage && isWebContentAtBottom
+        page < currentMaxPage && isWebContentAtBottom
     }
 
     private func refreshCurrentPageAtBottom() {
@@ -2987,7 +3012,7 @@ struct MessagesView: View {
         showSuccessToast(presentationKind.successToastText)
 
         guard presentationKind.shouldRefreshTopicOnSuccess else { return }
-        guard page >= maxPage else { return }
+        guard page >= currentMaxPage else { return }
 
         if let refreshURL = postedReply.refreshURL {
             loadDirectURL(refreshURL.absoluteString, initialScroll: .bottom)
@@ -2996,7 +3021,7 @@ struct MessagesView: View {
 
         anchor = postedReply.refreshAnchor
         initialScroll = .bottom
-        loadPage(maxPage)
+        loadPage(currentMaxPage)
     }
 
     @ViewBuilder
@@ -3022,7 +3047,7 @@ struct MessagesView: View {
             }  
         }
         Divider()
-        if maxPage > 1 {
+        if currentMaxPage > 1 {
             Button {
                 openPagePicker()
             } label: {
@@ -3033,7 +3058,7 @@ struct MessagesView: View {
 
     @ViewBuilder
     private func forwardContextMenuItems() -> some View {
-        if page < maxPage {
+        if page < currentMaxPage {
             Button {
                 // Next page: start at top
                 self.anchor = nil
@@ -3042,12 +3067,12 @@ struct MessagesView: View {
             } label: {
                 MenuActionLabel("Page suivante", systemImage: "chevron.forward")
             }
-            if page + 1 < maxPage {
+            if page + 1 < currentMaxPage {
                 Button {
                     // Last page: start at top
                     self.anchor = nil
                     self.initialScroll = .top
-                    loadPage(maxPage)
+                    loadPage(currentMaxPage)
                 } label: {
                     MenuActionLabel("Dernière page", systemImage: "forward.end")
                 }
@@ -3056,13 +3081,13 @@ struct MessagesView: View {
                 // Dernière réponse: start at top
                 self.anchor = nil
                 self.initialScroll = .bottom
-                loadPage(maxPage)
+                loadPage(currentMaxPage)
             } label: {
                 MenuActionLabel("Dernière réponse", systemImage: "text.append")
             }
         }
         Divider()
-        if maxPage > 1 {
+        if currentMaxPage > 1 {
             Button {
                 openPagePicker()
             } label: {
@@ -3083,7 +3108,7 @@ struct MessagesView: View {
                                 .fontWeight(.bold)
                                 .lineLimit(1)
                                 .truncationMode(.tail)
-                            Text("\(page)/\(maxPage)")
+                            Text("\(page)/\(currentMaxPage)")
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
@@ -3129,7 +3154,7 @@ struct MessagesView: View {
                     anchor: anchor,
                     initialScroll: initialScroll,
                     currentPage: page,
-                    maxPage: maxPage,
+                    maxPage: currentMaxPage,
                     colorScheme: appTheme.effectiveColorScheme,
                     baseBackgroundColor: themePalette.webViewBackdropUIColor,
                     themeRevision: appTheme.themeRevision,
@@ -3231,7 +3256,7 @@ struct MessagesView: View {
                         let minDistance: CGFloat = 120
                         let maxVerticalRatio: CGFloat = 0.5
                         if abs(horizontal) > minDistance && abs(vertical) < abs(horizontal) * maxVerticalRatio {
-                            if horizontal < 0, page < maxPage {
+                            if horizontal < 0, page < currentMaxPage {
                                 // Next page: start at top
                                 self.anchor = nil
                                 self.initialScroll = .top
@@ -3371,7 +3396,7 @@ struct MessagesView: View {
                                 .fontWeight(.bold)
                                 .lineLimit(1)
                                 .truncationMode(.tail)
-                            Text("\(page)/\(maxPage)")
+                            Text("\(page)/\(currentMaxPage)")
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
@@ -3412,7 +3437,7 @@ struct MessagesView: View {
                                     forwardContextMenuItems()
                                 }
                                 .buttonStyle(.glassProminent)
-                                .disabled(page >= maxPage)
+                                .disabled(page >= currentMaxPage)
                             } else {
                                 Button {
                                     navigateToPage(page + 1, initialScroll: .top)
@@ -3422,7 +3447,7 @@ struct MessagesView: View {
                                 .contextMenu {
                                     forwardContextMenuItems()
                                 }
-                                .disabled(page >= maxPage)
+                                .disabled(page >= currentMaxPage)
                             }
                         }
 
@@ -3453,7 +3478,7 @@ struct MessagesView: View {
                 }
                 .sheet(isPresented: $isPagePickerPresented) {
                     TopicPagePickerSheet(
-                        maxPage: maxPage,
+                        maxPage: currentMaxPage,
                         pageInput: $pagePickerInput
                     ) { selectedPage in
                         navigateToPage(selectedPage, initialScroll: .top)
@@ -3532,7 +3557,7 @@ struct MessagesView: View {
                             .fontWeight(.bold)
                             .lineLimit(1)
                             .truncationMode(.tail)
-                        Text("\(page)/\(maxPage)")
+                        Text("\(page)/\(currentMaxPage)")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
@@ -3576,7 +3601,7 @@ struct MessagesView: View {
                             EmptyView()
                         }
                         .buttonStyle(.glassProminent)
-                        .disabled(page >= maxPage)
+                        .disabled(page >= currentMaxPage)
                     } else {
                         Button {
                             navigateToPage(page + 1, initialScroll: .top)
@@ -3588,7 +3613,7 @@ struct MessagesView: View {
                         } preview: {
                             EmptyView()
                         }
-                        .disabled(page >= maxPage)
+                        .disabled(page >= currentMaxPage)
                     }
 
                     Spacer()
@@ -3602,7 +3627,7 @@ struct MessagesView: View {
             }
             .sheet(isPresented: $isPagePickerPresented) {
                 TopicPagePickerSheet(
-                    maxPage: maxPage,
+                    maxPage: currentMaxPage,
                     pageInput: $pagePickerInput
                 ) { selectedPage in
                     navigateToPage(selectedPage, initialScroll: .top)

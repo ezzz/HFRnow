@@ -845,15 +845,21 @@ struct TopicPageMessageActions: Equatable {
 struct TopicPageContent {
     let html: String
     let topicAnswerURL: URL?
+    let currentPage: Int?
+    let maxPage: Int?
     let messageActionsByIndex: [Int: TopicPageMessageActions]
 
     init(
         html: String,
         topicAnswerURL: URL?,
+        currentPage: Int? = nil,
+        maxPage: Int? = nil,
         messageActionsByIndex: [Int: TopicPageMessageActions] = [:]
     ) {
         self.html = html
         self.topicAnswerURL = topicAnswerURL
+        self.currentPage = currentPage
+        self.maxPage = maxPage
         self.messageActionsByIndex = messageActionsByIndex
     }
 }
@@ -915,11 +921,11 @@ final class ObjCTopicPageLoader: TopicPageLoading {
             return
         }
 
-        typealias CompletionBlock = @convention(block) (NSString?, NSString?, NSError?) -> Void
+        typealias CompletionBlock = @convention(block) (NSString?, NSString?, NSNumber?, NSNumber?, NSError?) -> Void
         typealias Function = @convention(c) (AnyObject, Selector, NSString, NSString?, CompletionBlock) -> Void
         let implementation = controller.method(for: selector)
         let function = unsafeBitCast(implementation, to: Function.self)
-        let block: CompletionBlock = { html, topicAnswerURL, error in
+        let block: CompletionBlock = { html, topicAnswerURL, currentPage, maxPage, error in
             if let error {
                 completion(.failure(error))
                 return
@@ -933,6 +939,8 @@ final class ObjCTopicPageLoader: TopicPageLoading {
             completion(.success(TopicPageContent(
                 html: html,
                 topicAnswerURL: answerURL,
+                currentPage: currentPage?.intValue,
+                maxPage: maxPage?.intValue,
                 messageActionsByIndex: messageActionsByIndex
             )))
         }
@@ -1508,6 +1516,84 @@ struct TopicOpenPolicy {
     }
 }
 
+enum TopicPageURLRouting {
+    static func pageNumber(from urlString: String?) -> Int? {
+        guard let urlString = nonEmptyString(urlString) else { return nil }
+
+        if
+            let components = URLComponents(string: urlString),
+            let pageValue = components.queryItems?.first(where: { $0.name == "page" })?.value,
+            let page = Int(pageValue),
+            page > 0
+        {
+            return page
+        }
+
+        let patterns = [
+            "page=(\\d+)",
+            "_(\\d+)\\.htm"
+        ]
+        for pattern in patterns {
+            guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
+                continue
+            }
+            let range = NSRange(urlString.startIndex..<urlString.endIndex, in: urlString)
+            guard
+                let match = regex.firstMatch(in: urlString, options: [], range: range),
+                match.numberOfRanges >= 2,
+                let captureRange = Range(match.range(at: 1), in: urlString),
+                let page = Int(urlString[captureRange]),
+                page > 0
+            else {
+                continue
+            }
+            return page
+        }
+
+        return nil
+    }
+
+    static func replacingPage(in urlString: String, page: Int) -> String {
+        guard let trimmedURL = nonEmptyString(urlString) else { return urlString }
+
+        let fragmentlessURL: String
+        if let fragmentIndex = trimmedURL.firstIndex(of: "#") {
+            fragmentlessURL = String(trimmedURL[..<fragmentIndex])
+        } else {
+            fragmentlessURL = trimmedURL
+        }
+
+        var updated = fragmentlessURL
+        if let range = updated.range(of: "page=\\d+", options: .regularExpression) {
+            updated.replaceSubrange(range, with: "page=\(page)")
+            return updated
+        }
+        if let range = updated.range(of: "_\\d+\\.htm", options: .regularExpression) {
+            updated.replaceSubrange(range, with: "_\(page).htm")
+            return updated
+        }
+        if var components = URLComponents(string: updated) {
+            var queryItems = components.queryItems ?? []
+            if let index = queryItems.firstIndex(where: { $0.name == "page" }) {
+                queryItems[index].value = "\(page)"
+            } else {
+                queryItems.append(URLQueryItem(name: "page", value: "\(page)"))
+            }
+            components.queryItems = queryItems
+            components.fragment = nil
+            return components.string ?? updated
+        }
+        return updated
+    }
+
+    private static func nonEmptyString(_ value: String?) -> String? {
+        guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
+            return nil
+        }
+        return trimmed
+    }
+}
+
 private struct TopicNavigationTarget {
     let topic: Topic
     let page: Int
@@ -1789,62 +1875,6 @@ struct TopicListRowView: View {
         return trimmed
     }
 
-    private func pageNumber(from urlString: String?) -> Int? {
-        guard let urlString = nonEmptyString(urlString) else { return nil }
-
-        if
-            let components = URLComponents(string: urlString),
-            let pageValue = components.queryItems?.first(where: { $0.name == "page" })?.value,
-            let page = Int(pageValue),
-            page > 0
-        {
-            return page
-        }
-
-        let patterns = [
-            "page=(\\d+)",
-            "_(\\d+)\\.htm"
-        ]
-        for pattern in patterns {
-            guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
-                continue
-            }
-            let range = NSRange(urlString.startIndex..<urlString.endIndex, in: urlString)
-            guard
-                let match = regex.firstMatch(in: urlString, options: [], range: range),
-                match.numberOfRanges >= 2,
-                let captureRange = Range(match.range(at: 1), in: urlString),
-                let page = Int(urlString[captureRange]),
-                page > 0
-            else {
-                continue
-            }
-            return page
-        }
-
-        return nil
-    }
-
-    private func replacingPage(in urlString: String, page: Int) -> String {
-        var updated = urlString
-        if let range = updated.range(of: "page=\\d+", options: .regularExpression) {
-            updated.replaceSubrange(range, with: "page=\(page)")
-            return updated
-        }
-        if let range = updated.range(of: "_\\d+\\.htm", options: .regularExpression) {
-            updated.replaceSubrange(range, with: "_\(page).htm")
-            return updated
-        }
-        if var components = URLComponents(string: updated) {
-            var queryItems = components.queryItems ?? []
-            queryItems.append(URLQueryItem(name: "page", value: "\(page)"))
-            components.queryItems = queryItems
-            components.fragment = nil
-            return components.string ?? updated
-        }
-        return updated
-    }
-
     private func navigationTopic(url: String, page: Int, maxPage: Int) -> Topic {
         let destination = Topic()
         destination._aTitle = topic._aTitle
@@ -1875,7 +1905,7 @@ struct TopicListRowView: View {
             return nil
         }
 
-        let resolvedPage = max(pageNumber(from: openedURL) ?? fallbackPage ?? currentPageValue, 1)
+        let resolvedPage = max(TopicPageURLRouting.pageNumber(from: openedURL) ?? fallbackPage ?? currentPageValue, 1)
         let resolvedMaxPage = max(maxTopicPageValue, resolvedPage)
         let destinationTopic = navigationTopic(url: openedURL, page: resolvedPage, maxPage: resolvedMaxPage)
 
@@ -1952,7 +1982,7 @@ struct TopicListRowView: View {
         }
 
         let baseURL = defaultURL
-        let pageURL = baseURL.map { replacingPage(in: $0, page: requestedPage) }
+        let pageURL = baseURL.map { TopicPageURLRouting.replacingPage(in: $0, page: requestedPage) }
         openNavigationTarget(
             makeNavigationTarget(
                 preferredURL: pageURL,

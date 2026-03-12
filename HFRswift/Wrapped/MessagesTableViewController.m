@@ -370,10 +370,10 @@
 	[self.loadingView setHidden:YES];
 
     if (self.completionHandler) {
-        void (^completion)(NSString *html, NSString *topicAnswerUrl, NSError *error) = self.completionHandler;
+        void (^completion)(NSString *html, NSString *topicAnswerUrl, NSNumber *currentPage, NSNumber *maxPage, NSError *error) = self.completionHandler;
         self.completionHandler = nil;
         dispatch_async(dispatch_get_main_queue(), ^{
-            completion(nil, nil, theRequest.error);
+            completion(nil, nil, nil, nil, theRequest.error);
         });
         [self cancelFetchContent];
         return;
@@ -2008,7 +2008,7 @@
         NSError *error = nil; // ou une vraie erreur si besoin
         dispatch_async(dispatch_get_main_queue(), ^{
             if (self.completionHandler) {
-                void (^completion)(NSString *html, NSString *topicAnswerUrl, NSError *error) = self.completionHandler;
+                void (^completion)(NSString *html, NSString *topicAnswerUrl, NSNumber *currentPage, NSNumber *maxPage, NSError *error) = self.completionHandler;
                 self.completionHandler = nil;
                 NSLog(@"SWIFT sending back topics: %lu --------------->", (unsigned long)[self.arrayData count]);
                 NSString *fullAnswerUrl = nil;
@@ -2019,7 +2019,9 @@
                         fullAnswerUrl = [NSString stringWithFormat:@"%@%@", [k ForumURL], self.topicAnswerUrl];
                     }
                 }
-                completion(HTMLString, fullAnswerUrl, error);
+                NSNumber *currentPage = self.pageNumber > 0 ? @(self.pageNumber) : nil;
+                NSNumber *maxPage = self.lastPageNumber > 0 ? @(self.lastPageNumber) : nil;
+                completion(HTMLString, fullAnswerUrl, currentPage, maxPage, error);
             }
         });
         
@@ -3743,7 +3745,7 @@ API_AVAILABLE(ios(16.0)) {
 
 - (void)fetchContentForTopicURL:(NSString *)topicURL
                          anchor:(NSString * _Nullable)anchor
-                     completion:(void (^)(NSString *html, NSString *topicAnswerUrl, NSError *error))completion {
+                     completion:(void (^)(NSString *html, NSString *topicAnswerUrl, NSNumber *currentPage, NSNumber *maxPage, NSError *error))completion {
     // On stocke la completion en property pour pouvoir la rappeler plus tard
     self.completionHandler = completion;
     self.currentUrl = topicURL;

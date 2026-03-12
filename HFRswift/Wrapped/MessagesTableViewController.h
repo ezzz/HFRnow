@@ -244,12 +244,12 @@
 
 // SWIFT
 
-@property (nonatomic, copy) void (^completionHandler)(NSString *html, NSString *topicAnswerUrl, NSError *error);
+@property (nonatomic, copy) void (^completionHandler)(NSString *html, NSString *topicAnswerUrl, NSNumber *currentPage, NSNumber *maxPage, NSError *error);
 
 - (NSDictionary<NSNumber *, NSDictionary<NSString *, NSString *> *> *)swiftMessageActionsByIndex;
 
 - (void)fetchContentForTopicURL:(NSString *)topicURL
                          anchor:(NSString * _Nullable)anchor
-                     completion:(void (^_Nonnull)(NSString * _Nullable html, NSString * _Nullable topicAnswerUrl, NSError * _Nullable error))completion;
+                     completion:(void (^_Nonnull)(NSString * _Nullable html, NSString * _Nullable topicAnswerUrl, NSNumber * _Nullable currentPage, NSNumber * _Nullable maxPage, NSError * _Nullable error))completion;
 
 @end

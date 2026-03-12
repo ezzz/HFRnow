@@ -116,7 +116,12 @@ final class ObjCWrapperLoaderBehaviorTests: XCTestCase {
 
     func testObjCTopicPageLoaderMapsSuccessAndPassesURLAndAnchor() {
         let controller = MessagesControllerStub(
-            result: .success(html: "<html>ok</html>", topicAnswerURL: "https://forum.hardware.fr/reply"),
+            result: .success(
+                html: "<html>ok</html>",
+                topicAnswerURL: "https://forum.hardware.fr/reply",
+                currentPage: 2,
+                maxPage: 345
+            ),
             messageActionsByIndex: [
                 2: [
                     "quoteURL": "https://forum.hardware.fr/message.php?post=42",
@@ -161,6 +166,8 @@ final class ObjCWrapperLoaderBehaviorTests: XCTestCase {
         case .success(let content):
             XCTAssertEqual(content.html, "<html>ok</html>")
             XCTAssertEqual(content.topicAnswerURL?.absoluteString, "https://forum.hardware.fr/reply")
+            XCTAssertEqual(content.currentPage, 2)
+            XCTAssertEqual(content.maxPage, 345)
             XCTAssertEqual(content.messageActionsByIndex[2]?.quoteURL?.absoluteString, "https://forum.hardware.fr/message.php?post=42")
             XCTAssertEqual(content.messageActionsByIndex[2]?.profileURL?.absoluteString, "https://forum.hardware.fr/profil/test")
             XCTAssertEqual(content.messageActionsByIndex[2]?.privateMessageURL?.absoluteString, "https://forum.hardware.fr/message.php?cat=prive")
@@ -189,7 +196,7 @@ final class ObjCWrapperLoaderBehaviorTests: XCTestCase {
     }
 
     func testObjCTopicPageLoaderReturnsMissingHTMLWhenObjCReturnsNilHTMLWithoutError() {
-        let controller = MessagesControllerStub(result: .success(html: nil, topicAnswerURL: nil))
+        let controller = MessagesControllerStub(result: .success(html: nil, topicAnswerURL: nil, currentPage: nil, maxPage: nil))
         let loader = ObjCTopicPageLoader(controller: controller)
 
         let expectation = expectation(description: "topic page missing html")
@@ -240,7 +247,7 @@ final class ObjCWrapperLoaderBehaviorTests: XCTestCase {
 
     func testObjCTopicPageLoaderKeepsBooleanOnlyMessageActionsEntries() {
         let controller = MessagesControllerStub(
-            result: .success(html: "<html>ok</html>", topicAnswerURL: nil),
+            result: .success(html: "<html>ok</html>", topicAnswerURL: nil, currentPage: nil, maxPage: nil),
             messageActionsByIndex: [
                 7: [
                     "isOwnMessage": "0",
@@ -285,7 +292,7 @@ final class ObjCWrapperLoaderBehaviorTests: XCTestCase {
 
     func testObjCTopicPageLoaderParsesTrueAndYesBooleanFlags() {
         let controller = MessagesControllerStub(
-            result: .success(html: "<html>ok</html>", topicAnswerURL: nil),
+            result: .success(html: "<html>ok</html>", topicAnswerURL: nil, currentPage: nil, maxPage: nil),
             messageActionsByIndex: [
                 11: [
                     "canAQ": "yes",
@@ -322,7 +329,7 @@ final class ObjCWrapperLoaderBehaviorTests: XCTestCase {
 
     func testObjCTopicPageLoaderDropsEmptyMessageActionsEntries() {
         let controller = MessagesControllerStub(
-            result: .success(html: "<html>ok</html>", topicAnswerURL: nil),
+            result: .success(html: "<html>ok</html>", topicAnswerURL: nil, currentPage: nil, maxPage: nil),
             messageActionsByIndex: [
                 3: [
                     "quoteURL": " ",
@@ -670,7 +677,7 @@ private final class ForumTopicsControllerStub: NSObject {
 
 private final class MessagesControllerStub: NSObject {
     enum Result {
-        case success(html: String?, topicAnswerURL: String?)
+        case success(html: String?, topicAnswerURL: String?, currentPage: Int?, maxPage: Int?)
         case failure(Error)
     }
 
@@ -686,15 +693,15 @@ private final class MessagesControllerStub: NSObject {
     }
 
     @objc(fetchContentForTopicURL:anchor:completion:)
-    func fetchContent(forTopicURL topicURL: String, anchor: String?, completion: @escaping (String?, String?, Error?) -> Void) {
+    func fetchContent(forTopicURL topicURL: String, anchor: String?, completion: @escaping (String?, String?, NSNumber?, NSNumber?, Error?) -> Void) {
         receivedTopicURL = topicURL
         receivedAnchor = anchor
 
         switch result {
-        case .success(let html, let topicAnswerURL):
-            completion(html, topicAnswerURL, nil)
+        case .success(let html, let topicAnswerURL, let currentPage, let maxPage):
+            completion(html, topicAnswerURL, currentPage.map(NSNumber.init(value:)), maxPage.map(NSNumber.init(value:)), nil)
         case .failure(let error):
-            completion(nil, nil, error)
+            completion(nil, nil, nil, nil, error)
         }
     }
 
