@@ -12,6 +12,7 @@ struct AnswerView: View {
     private let onPostSuccess: ((ReplyPostingResult) -> Void)?
     @ObservedObject private var appTheme = AppThemeStore.shared
     @Environment(\.appThemePalette) private var themePalette
+    @Environment(\.dismiss) private var dismiss
 
     @Binding var composerDraftText: String
     @Binding var isComposerPresented: Bool
@@ -97,126 +98,45 @@ struct AnswerView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            if showsComposerMetadata {
-                composerMetadataSection
-                    .padding(.horizontal)
-                    .padding(.top)
-            }
+        ZStack {
+            composerBackground
+                .ignoresSafeArea()
 
-            ReplyTextEditor(
-                text: $composerState.message,
-                selectedRange: $selectedRangeUTF16,
-                isFocused: $isComposerFocused
-            )
-                .padding(8)
-                .background(themePalette.editorBackgroundColor)
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .padding()
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-
-            HStack {
-                Button {
-                    presentDefaultSmileys()
-                } label: {
-                    Image(systemName: "face.smiling")
-                        .font(.system(size: 17, weight: .regular))
-                        .padding(.vertical, 10)
-                        .padding(.horizontal, 12)
-                        .background(themePalette.controlBackgroundColor)
-                        .foregroundStyle(.primary)
-                        .clipShape(Capsule())
-                        .accessibilityLabel("Smileys")
-                }
-
-                Button {
-                    presentFavoriteSmileys()
-                } label: {
-                    Image(systemName: "star")
-                        .font(.system(size: 17, weight: .regular))
-                        .padding(.vertical, 10)
-                        .padding(.horizontal, 12)
-                        .background(themePalette.controlBackgroundColor)
-                        .foregroundStyle(.primary)
-                        .clipShape(Capsule())
-                        .accessibilityLabel("Smileys favoris")
-                }
-                .disabled(favoriteSmileys.isEmpty)
-
-                Button {
-                    presentImageInsertion()
-                } label: {
-                    Image(systemName: "photo")
-                        .font(.system(size: 17, weight: .regular))
-                        .padding(.vertical, 10)
-                        .padding(.horizontal, 12)
-                        .background(themePalette.controlBackgroundColor)
-                        .foregroundStyle(.primary)
-                        .clipShape(Capsule())
-                        .accessibilityLabel("Insérer image")
-                }
-
-                Button {
-                    clearComposer()
-                } label: {
-                    Image(systemName: "xmark.circle")
-                        .font(.system(size: 17, weight: .regular))
-                        .padding(.vertical, 10)
-                        .padding(.horizontal, 12)
-                        .background(themePalette.controlBackgroundColor)
-                        .foregroundStyle(.primary)
-                        .clipShape(Capsule())
-                        .accessibilityLabel("Vider le texte")
-                }
-                .disabled(composerState.message.isEmpty || composerState.isPosting)
-
-                Button {
-                    performUndo()
-                } label: {
-                    Image(systemName: "arrow.uturn.backward")
-                        .font(.system(size: 17, weight: .regular))
-                        .padding(.vertical, 10)
-                        .padding(.horizontal, 12)
-                        .background(themePalette.controlBackgroundColor)
-                        .foregroundStyle(.primary)
-                        .clipShape(Capsule())
-                        .accessibilityLabel("Undo")
-                }
-                .disabled(undoHistory.isEmpty || composerState.isPosting)
-
-                Button {
-                    performRedo()
-                } label: {
-                    Image(systemName: "arrow.uturn.forward")
-                        .font(.system(size: 17, weight: .regular))
-                        .padding(.vertical, 10)
-                        .padding(.horizontal, 12)
-                        .background(themePalette.controlBackgroundColor)
-                        .foregroundStyle(.primary)
-                        .clipShape(Capsule())
-                        .accessibilityLabel("Redo")
-                }
-                .disabled(redoHistory.isEmpty || composerState.isPosting)
-
-                Spacer()
-                Button {
-                    Task { await postMessage() }
-                } label: {
-                    Image(systemName: "arrow.up")
-                        .font(.system(size: 17, weight: .semibold))
-                        .padding(.vertical, 10)
-                        .padding(.horizontal, 14)
-                        .background(canSend ? appTheme.actionTintColor : Color.gray.opacity(0.2))
-                        .foregroundColor(canSend ? .white : .secondary)
-                        .clipShape(Capsule())
-                        .accessibilityLabel("Send")
-                }
-                .disabled(!canSend)
-                .padding()
-            }
+            composerSurface
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 8)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .navigationTitle(title)
         .toolbarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("Fermer") {
+                    closeComposer()
+                }
+                .disabled(composerState.isPosting)
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await postMessage() }
+                } label: {
+                    if composerState.isPosting {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Text("Envoyer")
+                            .fontWeight(.semibold)
+                    }
+                }
+                .disabled(!canSend)
+            }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            composerBottomBar
+        }
+        .interactiveDismissDisabled(composerState.isPosting)
         .sheet(isPresented: isDefaultSmileyPickerPresented) {
             SmileyPickerView(title: "Smileys", smileys: defaultSmileys) { selectedSmiley in
                 insertSmileyCode(selectedSmiley.code)
@@ -290,6 +210,166 @@ struct AnswerView: View {
         }
     }
 
+    private var composerBackground: some View {
+        LinearGradient(
+            colors: [
+                themePalette.tertiaryBackgroundColor,
+                themePalette.editorBackgroundColor.opacity(appTheme.effectiveColorScheme == .dark ? 0.92 : 0.85)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+
+    private var composerSurface: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    Text(requiresSubject ? "Contenu du message" : "Votre réponse")
+                        .font(.headline)
+
+                    Spacer(minLength: 8)
+
+                    Text(characterCountLabel)
+                        .font(.caption)
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                }
+
+                if showsComposerMetadata {
+                    composerMetadataSection
+
+                    Rectangle()
+                        .fill(.separator.opacity(appTheme.effectiveColorScheme == .dark ? 0.45 : 0.28))
+                        .frame(height: 1)
+                }
+
+                ZStack(alignment: .topLeading) {
+                    if composerState.message.isEmpty {
+                        Text(messagePlaceholder)
+                            .foregroundStyle(.tertiary)
+                            .padding(.top, 2)
+                            .allowsHitTesting(false)
+                    }
+
+                    ReplyTextEditor(
+                        text: $composerState.message,
+                        selectedRange: $selectedRangeUTF16,
+                        isFocused: $isComposerFocused
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            }
+            .padding(18)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(
+                LinearGradient(
+                    colors: [
+                        themePalette.editorBackgroundColor,
+                        themePalette.tertiaryBackgroundColor.opacity(appTheme.effectiveColorScheme == .dark ? 0.95 : 0.72)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                in: .rect(cornerRadius: 24)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(.primary.opacity(appTheme.effectiveColorScheme == .dark ? 0.12 : 0.06), lineWidth: 1)
+            }
+            .shadow(color: .black.opacity(appTheme.effectiveColorScheme == .dark ? 0.18 : 0.06), radius: 18, y: 8)
+        }
+    }
+
+    private var composerBottomBar: some View {
+        Group {
+            if #available(iOS 26.0, *) {
+                GlassEffectContainer(spacing: 12) {
+                    composerBottomBarLayout
+                }
+            } else {
+                composerBottomBarLayout
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 10)
+        .background(.clear)
+    }
+
+    private var composerBottomBarLayout: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 12) {
+                composerInsertionActionGroup
+                Spacer(minLength: 0)
+                composerEditingActionGroup
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                composerInsertionActionGroup
+                composerEditingActionGroup
+            }
+        }
+    }
+
+    private var composerInsertionActionGroup: some View {
+        ComposerActionGroup {
+            ComposerActionButton(
+                title: "Smileys",
+                systemImage: "face.smiling",
+                isDisabled: composerState.isPosting
+            ) {
+                presentDefaultSmileys()
+            }
+
+            ComposerActionButton(
+                title: "Smileys favoris",
+                systemImage: "star",
+                isDisabled: favoriteSmileys.isEmpty || composerState.isPosting
+            ) {
+                presentFavoriteSmileys()
+            }
+
+            ComposerActionButton(
+                title: "Insérer image",
+                systemImage: "photo",
+                isDisabled: composerState.isPosting
+            ) {
+                presentImageInsertion()
+            }
+        }
+    }
+
+    private var composerEditingActionGroup: some View {
+        ComposerActionGroup {
+            ComposerActionButton(
+                title: "Vider le texte",
+                systemImage: "xmark.circle",
+                isDisabled: composerState.message.isEmpty || composerState.isPosting,
+                isDestructive: true
+            ) {
+                clearComposer()
+            }
+
+            ComposerActionButton(
+                title: "Annuler",
+                systemImage: "arrow.uturn.backward",
+                isDisabled: undoHistory.isEmpty || composerState.isPosting
+            ) {
+                performUndo()
+            }
+
+            ComposerActionButton(
+                title: "Rétablir",
+                systemImage: "arrow.uturn.forward",
+                isDisabled: redoHistory.isEmpty || composerState.isPosting
+            ) {
+                performRedo()
+            }
+        }
+    }
+
     private func presentDefaultSmileys() {
         if defaultSmileys.isEmpty {
             defaultSmileys = smileyCatalogLoader.loadDefaultSmileys()
@@ -314,18 +394,20 @@ struct AnswerView: View {
         return true
     }
 
+    private var characterCountLabel: String {
+        let count = composerState.message.count
+        return count == 1 ? "1 caractère" : "\(count) caractères"
+    }
+
+    private var messagePlaceholder: String {
+        requiresSubject ? "Rédigez votre message privé…" : "Écrivez votre réponse…"
+    }
+
     @ViewBuilder
     private var composerMetadataSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             if let composerRecipient {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Destinataire")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(composerRecipient)
-                        .font(.body)
-                        .foregroundStyle(.primary)
-                }
+                composerInfoRow(title: "Destinataire", value: composerRecipient)
             }
 
             if requiresSubject {
@@ -336,12 +418,29 @@ struct AnswerView: View {
                     TextField("Sujet du MP", text: $composerSubject)
                         .textInputAutocapitalization(.sentences)
                         .autocorrectionDisabled()
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
-                        .background(themePalette.editorBackgroundColor)
-                        .clipShape(.rect(cornerRadius: 10))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+                        .background(themePalette.controlBackgroundColor.opacity(appTheme.effectiveColorScheme == .dark ? 0.55 : 0.9))
+                        .clipShape(.rect(cornerRadius: 14))
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func composerInfoRow(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.body)
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .background(themePalette.controlBackgroundColor.opacity(appTheme.effectiveColorScheme == .dark ? 0.4 : 0.7))
+                .clipShape(.rect(cornerRadius: 14))
         }
     }
 
@@ -392,6 +491,16 @@ struct AnswerView: View {
         composerState.message = ""
         selectedRangeUTF16 = NSRange(location: 0, length: 0)
         isComposerFocused = true
+    }
+
+    private func closeComposer() {
+        isComposerFocused = false
+        composerState.activePanel = .none
+        if isComposerPresented {
+            isComposerPresented = false
+        } else {
+            dismiss()
+        }
     }
 
     private func performUndo() {
@@ -521,6 +630,72 @@ struct AnswerView: View {
             try? await Task.sleep(nanoseconds: 1_600_000_000)
             withAnimation { showToast = false }
         }
+    }
+}
+
+private struct ComposerActionGroup<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        let groupContent = HStack(spacing: 8) {
+            content
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 8)
+
+        if #available(iOS 26.0, *) {
+            groupContent
+                .glassEffect(.regular, in: .capsule)
+        } else {
+            groupContent
+                .background(.ultraThinMaterial, in: .capsule)
+        }
+    }
+}
+
+private struct ComposerActionButton: View {
+    let title: String
+    let systemImage: String
+    let isDisabled: Bool
+    let isDestructive: Bool
+    let action: () -> Void
+
+    @Environment(\.appThemePalette) private var themePalette
+
+    init(
+        title: String,
+        systemImage: String,
+        isDisabled: Bool = false,
+        isDestructive: Bool = false,
+        action: @escaping () -> Void
+    ) {
+        self.title = title
+        self.systemImage = systemImage
+        self.isDisabled = isDisabled
+        self.isDestructive = isDestructive
+        self.action = action
+    }
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 17, weight: .semibold))
+                .frame(width: 38, height: 38)
+                .foregroundStyle(isDestructive ? .red : .primary)
+                .background(buttonBackground, in: .rect(cornerRadius: 12))
+                .contentShape(.rect(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.45 : 1)
+        .accessibilityLabel(title)
+    }
+
+    private var buttonBackground: Color {
+        if isDestructive {
+            return .red.opacity(0.12)
+        }
+        return themePalette.controlBackgroundColor.opacity(0.75)
     }
 }
 
