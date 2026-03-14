@@ -37,7 +37,7 @@ struct AnswerView: View {
 
     init(
         topicURL: URL?,
-        title: String = "Reply",
+        title: String = "Répondre",
         requiresSubject: Bool = false,
         initialRecipient: String? = nil,
         replyPostingService: any ReplyPostingService = ForumReplyPostingService(),
@@ -98,45 +98,38 @@ struct AnswerView: View {
     }
 
     var body: some View {
-        ZStack {
-            composerBackground
-                .ignoresSafeArea()
-
-            composerSurface
+        VStack(spacing: 0) {
+            composerHeader
                 .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .padding(.bottom, 8)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        }
-        .navigationTitle(title)
-        .toolbarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button("Fermer") {
-                    closeComposer()
-                }
-                .disabled(composerState.isPosting)
+                .padding(.top, 14)
+                .padding(.bottom, 6)
+
+            if showsComposerMetadata {
+                composerMetadataSection
+                    .padding(.horizontal)
+                    .padding(.top, 8)
             }
 
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Task { await postMessage() }
-                } label: {
-                    if composerState.isPosting {
-                        ProgressView()
-                            .controlSize(.small)
-                    } else {
-                        Text("Envoyer")
-                            .fontWeight(.semibold)
-                    }
+            ReplyTextEditor(
+                text: $composerState.message,
+                selectedRange: $selectedRangeUTF16,
+                isFocused: $isComposerFocused
+            )
+                .padding(12)
+                .background(
+                    Color(uiColor: .secondarySystemBackground),
+                    in: .rect(cornerRadius: 18)
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Color(uiColor: .separator).opacity(0.7), lineWidth: 1)
                 }
-                .disabled(!canSend)
-            }
+                .padding(.horizontal, 16)
+                .padding(.top, 10)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+
+            composerToolbar
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            composerBottomBar
-        }
-        .interactiveDismissDisabled(composerState.isPosting)
         .sheet(isPresented: isDefaultSmileyPickerPresented) {
             SmileyPickerView(title: "Smileys", smileys: defaultSmileys) { selectedSmiley in
                 insertSmileyCode(selectedSmiley.code)
@@ -210,130 +203,111 @@ struct AnswerView: View {
         }
     }
 
-    private var composerBackground: some View {
-        LinearGradient(
-            colors: [
-                themePalette.tertiaryBackgroundColor,
-                themePalette.editorBackgroundColor.opacity(appTheme.effectiveColorScheme == .dark ? 0.92 : 0.85)
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-    }
+    private var composerHeader: some View {
+        ZStack {
+            Text(title)
+                .font(.headline)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .padding(.horizontal, 96)
 
-    private var composerSurface: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(alignment: .firstTextBaseline, spacing: 12) {
-                    Text(requiresSubject ? "Contenu du message" : "Votre réponse")
-                        .font(.headline)
-
-                    Spacer(minLength: 8)
-
-                    Text(characterCountLabel)
-                        .font(.caption)
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
+            HStack {
+                Button {
+                    dismissComposer()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .bold))
+                        .frame(width: 18, height: 18)
+                        .padding(8)
                 }
+                .disabled(composerState.isPosting)
+                .composerCloseButtonStyle()
 
-                if showsComposerMetadata {
-                    composerMetadataSection
+                Spacer()
 
-                    Rectangle()
-                        .fill(.separator.opacity(appTheme.effectiveColorScheme == .dark ? 0.45 : 0.28))
-                        .frame(height: 1)
-                }
-
-                ZStack(alignment: .topLeading) {
-                    if composerState.message.isEmpty {
-                        Text(messagePlaceholder)
-                            .foregroundStyle(.tertiary)
-                            .padding(.top, 2)
-                            .allowsHitTesting(false)
+                Button {
+                    Task { await postMessage() }
+                } label: {
+                    if composerState.isPosting {
+                        ProgressView()
+                            .controlSize(.small)
+                            .frame(width: 18, height: 18)
+                            .padding(8)
+                    } else {
+                        Image(systemName: "arrow.up")
+                            .font(.system(size: 16, weight: .bold))
+                            .frame(width: 18, height: 18)
+                            .padding(8)
                     }
-
-                    ReplyTextEditor(
-                        text: $composerState.message,
-                        selectedRange: $selectedRangeUTF16,
-                        isFocused: $isComposerFocused
-                    )
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            }
-            .padding(18)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .background(
-                LinearGradient(
-                    colors: [
-                        themePalette.editorBackgroundColor,
-                        themePalette.tertiaryBackgroundColor.opacity(appTheme.effectiveColorScheme == .dark ? 0.95 : 0.72)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ),
-                in: .rect(cornerRadius: 24)
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(.primary.opacity(appTheme.effectiveColorScheme == .dark ? 0.12 : 0.06), lineWidth: 1)
-            }
-            .shadow(color: .black.opacity(appTheme.effectiveColorScheme == .dark ? 0.18 : 0.06), radius: 18, y: 8)
-        }
-    }
-
-    private var composerBottomBar: some View {
-        Group {
-            if #available(iOS 26.0, *) {
-                GlassEffectContainer(spacing: 12) {
-                    composerBottomBarLayout
-                }
-            } else {
-                composerBottomBarLayout
+                .disabled(!canSend)
+                .composerSendButtonStyle(isEnabled: canSend)
+                .accessibilityLabel("Envoyer")
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 8)
-        .padding(.bottom, 10)
-        .background(.clear)
+        .frame(height: 44)
     }
 
-    private var composerBottomBarLayout: some View {
+    private var composerToolbar: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(spacing: 12) {
-                composerInsertionActionGroup
-                Spacer(minLength: 0)
-                composerEditingActionGroup
-            }
+            toolbarContent(spacing: 12)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
 
-            VStack(alignment: .leading, spacing: 10) {
-                composerInsertionActionGroup
-                composerEditingActionGroup
+            toolbarContent(spacing: 10, vertical: true)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+        }
+    }
+
+    @ViewBuilder
+    private func toolbarContent(spacing: CGFloat, vertical: Bool = false) -> some View {
+        if #available(iOS 26.0, *) {
+            GlassEffectContainer(spacing: spacing) {
+                toolbarStack(spacing: spacing, vertical: vertical)
+            }
+        } else {
+            toolbarStack(spacing: spacing, vertical: vertical)
+        }
+    }
+
+    @ViewBuilder
+    private func toolbarStack(spacing: CGFloat, vertical: Bool) -> some View {
+        if vertical {
+            VStack(alignment: .leading, spacing: spacing) {
+                composerEditionGroup
+                composerInsertionGroup
+            }
+        } else {
+            HStack(alignment: .center, spacing: spacing) {
+                composerEditionGroup
+                Spacer(minLength: 0)
+                composerInsertionGroup
             }
         }
     }
 
-    private var composerInsertionActionGroup: some View {
-        ComposerActionGroup {
-            ComposerActionButton(
-                title: "Smileys",
+    private var composerInsertionGroup: some View {
+        ComposerToolbarGroup {
+            ComposerToolbarButton(
                 systemImage: "face.smiling",
+                accessibilityLabel: "Smileys",
                 isDisabled: composerState.isPosting
             ) {
                 presentDefaultSmileys()
             }
 
-            ComposerActionButton(
-                title: "Smileys favoris",
+            ComposerToolbarButton(
                 systemImage: "star",
+                accessibilityLabel: "Smileys favoris",
                 isDisabled: favoriteSmileys.isEmpty || composerState.isPosting
             ) {
                 presentFavoriteSmileys()
             }
 
-            ComposerActionButton(
-                title: "Insérer image",
+            ComposerToolbarButton(
                 systemImage: "photo",
+                accessibilityLabel: "Insérer image",
                 isDisabled: composerState.isPosting
             ) {
                 presentImageInsertion()
@@ -341,28 +315,28 @@ struct AnswerView: View {
         }
     }
 
-    private var composerEditingActionGroup: some View {
-        ComposerActionGroup {
-            ComposerActionButton(
-                title: "Vider le texte",
+    private var composerEditionGroup: some View {
+        ComposerToolbarGroup {
+            ComposerToolbarButton(
                 systemImage: "xmark.circle",
+                accessibilityLabel: "Vider le texte",
                 isDisabled: composerState.message.isEmpty || composerState.isPosting,
                 isDestructive: true
             ) {
                 clearComposer()
             }
 
-            ComposerActionButton(
-                title: "Annuler",
+            ComposerToolbarButton(
                 systemImage: "arrow.uturn.backward",
+                accessibilityLabel: "Annuler",
                 isDisabled: undoHistory.isEmpty || composerState.isPosting
             ) {
                 performUndo()
             }
 
-            ComposerActionButton(
-                title: "Rétablir",
+            ComposerToolbarButton(
                 systemImage: "arrow.uturn.forward",
+                accessibilityLabel: "Rétablir",
                 isDisabled: redoHistory.isEmpty || composerState.isPosting
             ) {
                 performRedo()
@@ -394,20 +368,18 @@ struct AnswerView: View {
         return true
     }
 
-    private var characterCountLabel: String {
-        let count = composerState.message.count
-        return count == 1 ? "1 caractère" : "\(count) caractères"
-    }
-
-    private var messagePlaceholder: String {
-        requiresSubject ? "Rédigez votre message privé…" : "Écrivez votre réponse…"
-    }
-
     @ViewBuilder
     private var composerMetadataSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             if let composerRecipient {
-                composerInfoRow(title: "Destinataire", value: composerRecipient)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Destinataire")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(composerRecipient)
+                        .font(.body)
+                        .foregroundStyle(.primary)
+                }
             }
 
             if requiresSubject {
@@ -418,29 +390,12 @@ struct AnswerView: View {
                     TextField("Sujet du MP", text: $composerSubject)
                         .textInputAutocapitalization(.sentences)
                         .autocorrectionDisabled()
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 12)
-                        .background(themePalette.controlBackgroundColor.opacity(appTheme.effectiveColorScheme == .dark ? 0.55 : 0.9))
-                        .clipShape(.rect(cornerRadius: 14))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(themePalette.editorBackgroundColor)
+                        .clipShape(.rect(cornerRadius: 10))
                 }
             }
-        }
-    }
-
-    @ViewBuilder
-    private func composerInfoRow(title: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.body)
-                .foregroundStyle(.primary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
-                .background(themePalette.controlBackgroundColor.opacity(appTheme.effectiveColorScheme == .dark ? 0.4 : 0.7))
-                .clipShape(.rect(cornerRadius: 14))
         }
     }
 
@@ -493,14 +448,11 @@ struct AnswerView: View {
         isComposerFocused = true
     }
 
-    private func closeComposer() {
-        isComposerFocused = false
-        composerState.activePanel = .none
+    private func dismissComposer() {
         if isComposerPresented {
             isComposerPresented = false
-        } else {
-            dismiss()
         }
+        dismiss()
     }
 
     private func performUndo() {
@@ -565,8 +517,8 @@ struct AnswerView: View {
                 pendingHistoryMutationsToSkip = 0
                 composerDraftText = ""
                 composerSubject = ""
-                isComposerPresented = false
                 isComposerFocused = false
+                dismissComposer()
             }
         } catch let error as ReplyPostingError {
             await MainActor.run {
@@ -633,44 +585,51 @@ struct AnswerView: View {
     }
 }
 
-private struct ComposerActionGroup<Content: View>: View {
+private struct ComposerToolbarGroup<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
-        let groupContent = HStack(spacing: 8) {
-            content
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 8)
-
         if #available(iOS 26.0, *) {
-            groupContent
-                .glassEffect(.regular, in: .capsule)
+            HStack(spacing: 4) {
+                content
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 6)
+            .glassEffect(.regular, in: .capsule)
         } else {
-            groupContent
-                .background(.ultraThinMaterial, in: .capsule)
+            HStack(spacing: 6) {
+                content
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 8)
+            .background(
+                Color(uiColor: .tertiarySystemBackground),
+                in: .capsule
+            )
+            .overlay {
+                Capsule()
+                    .stroke(Color(uiColor: .separator).opacity(0.7), lineWidth: 1)
+            }
         }
     }
 }
 
-private struct ComposerActionButton: View {
-    let title: String
+private struct ComposerToolbarButton: View {
     let systemImage: String
+    let accessibilityLabel: String
     let isDisabled: Bool
     let isDestructive: Bool
     let action: () -> Void
 
-    @Environment(\.appThemePalette) private var themePalette
-
     init(
-        title: String,
         systemImage: String,
+        accessibilityLabel: String,
         isDisabled: Bool = false,
         isDestructive: Bool = false,
         action: @escaping () -> Void
     ) {
-        self.title = title
         self.systemImage = systemImage
+        self.accessibilityLabel = accessibilityLabel
         self.isDisabled = isDisabled
         self.isDestructive = isDestructive
         self.action = action
@@ -679,23 +638,60 @@ private struct ComposerActionButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: systemImage)
-                .font(.system(size: 17, weight: .semibold))
-                .frame(width: 38, height: 38)
+                .font(.system(size: 17, weight: .medium))
+                .frame(width: 18, height: 18)
+                .padding(8)
                 .foregroundStyle(isDestructive ? .red : .primary)
-                .background(buttonBackground, in: .rect(cornerRadius: 12))
-                .contentShape(.rect(cornerRadius: 12))
         }
-        .buttonStyle(.plain)
+        .composerToolbarButtonStyle(isDisabled: isDisabled)
         .disabled(isDisabled)
-        .opacity(isDisabled ? 0.45 : 1)
-        .accessibilityLabel(title)
+        .opacity(isDisabled ? 0.4 : 1)
+        .accessibilityLabel(accessibilityLabel)
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func composerCloseButtonStyle() -> some View {
+        if #available(iOS 26.0, *) {
+            self
+                .buttonBorderShape(.circle)
+                .buttonStyle(.glass)
+        } else {
+            self
+                .buttonStyle(.bordered)
+                .clipShape(.circle)
+        }
     }
 
-    private var buttonBackground: Color {
-        if isDestructive {
-            return .red.opacity(0.12)
+    @ViewBuilder
+    func composerSendButtonStyle(isEnabled: Bool) -> some View {
+        if #available(iOS 26.0, *) {
+            if isEnabled {
+                self
+                    .buttonBorderShape(.circle)
+                    .buttonStyle(.glassProminent)
+            } else {
+                self
+                    .buttonBorderShape(.circle)
+                    .buttonStyle(.glass)
+            }
+        } else {
+            if isEnabled {
+                self.buttonStyle(.borderedProminent)
+            } else {
+                self.buttonStyle(.bordered)
+            }
         }
-        return themePalette.controlBackgroundColor.opacity(0.75)
+    }
+
+    @ViewBuilder
+    func composerToolbarButtonStyle(isDisabled: Bool) -> some View {
+        if #available(iOS 26.0, *) {
+            self.buttonStyle(.plain)
+        } else {
+            self.buttonStyle(.plain)
+        }
     }
 }
 
