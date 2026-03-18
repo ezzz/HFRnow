@@ -3142,7 +3142,7 @@ struct MessagesView: View {
                     .presentationDetents([.medium, .large])
                 }
                 .fullScreenCover(item: $photoViewerDestination) { destination in
-                    FullScreenPhotoViewer(url: destination.url)
+                    FullScreenPhotoViewer(url: destination.url, presentationID: destination.id)
                 }
         } else if fileURL != nil && cacheURL != nil {
             ZStack {
@@ -3518,7 +3518,7 @@ struct MessagesView: View {
                     .presentationDetents([.medium])
                 }
                 .fullScreenCover(item: $photoViewerDestination) { destination in
-                    FullScreenPhotoViewer(url: destination.url)
+                    FullScreenPhotoViewer(url: destination.url, presentationID: destination.id)
                 }
                 .overlay(alignment: .top) {
                     if showPostSuccessToast {
@@ -3657,7 +3657,7 @@ struct MessagesView: View {
                 .presentationDetents([.medium])
             }
             .fullScreenCover(item: $photoViewerDestination) { destination in
-                FullScreenPhotoViewer(url: destination.url)
+                FullScreenPhotoViewer(url: destination.url, presentationID: destination.id)
             }
         }
     }
@@ -3965,24 +3965,51 @@ private enum MessageAnimatedImageLoadState: Equatable {
 private struct MessageAnimatedGIFImageView: UIViewRepresentable {
     let url: URL?
     @Binding var loadState: MessageAnimatedImageLoadState
+    var imageSize: Binding<CGSize?> = .constant(nil)
 
-    func makeUIView(context: Context) -> UIImageView {
-        let imageView = UIImageView()
-        imageView.contentMode = .scaleAspectFit
-        imageView.clipsToBounds = true
-        return imageView
+    func makeUIView(context: Context) -> ContainerView {
+        ContainerView()
     }
 
-    func updateUIView(_ uiView: UIImageView, context: Context) {
-        context.coordinator.update(uiView, with: url, loadState: $loadState)
+    func updateUIView(_ uiView: ContainerView, context: Context) {
+        context.coordinator.update(uiView.imageView, with: url, loadState: $loadState, imageSize: imageSize)
     }
 
-    static func dismantleUIView(_ uiView: UIImageView, coordinator: Coordinator) {
-        coordinator.cancelPendingWork()
+    static func dismantleUIView(_ uiView: ContainerView, coordinator: Coordinator) {
+        coordinator.reset()
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: ContainerView, context: Context) -> CGSize? {
+        guard let width = proposal.width, let height = proposal.height else { return nil }
+        return CGSize(width: width, height: height)
     }
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
+    }
+
+    final class ContainerView: UIView {
+        let imageView = UIImageView()
+
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+            backgroundColor = .clear
+            imageView.translatesAutoresizingMaskIntoConstraints = false
+            imageView.contentMode = .scaleAspectFit
+            imageView.clipsToBounds = true
+            addSubview(imageView)
+            NSLayoutConstraint.activate([
+                imageView.leadingAnchor.constraint(equalTo: leadingAnchor),
+                imageView.trailingAnchor.constraint(equalTo: trailingAnchor),
+                imageView.topAnchor.constraint(equalTo: topAnchor),
+                imageView.bottomAnchor.constraint(equalTo: bottomAnchor)
+            ])
+        }
+
+        @available(*, unavailable)
+        required init?(coder: NSCoder) {
+            fatalError("init(coder:) has not been implemented")
+        }
     }
 
     final class Coordinator {
@@ -3993,14 +4020,38 @@ private struct MessageAnimatedGIFImageView: UIViewRepresentable {
         func update(
             _ imageView: UIImageView,
             with url: URL?,
-            loadState: Binding<MessageAnimatedImageLoadState>
+            loadState: Binding<MessageAnimatedImageLoadState>,
+            imageSize: Binding<CGSize?>
         ) {
-            guard currentURL != url else { return }
+            if currentURL == url {
+                if let currentImage = imageView.image {
+                    imageSize.wrappedValue = currentImage.size
+                    loadState.wrappedValue = .success
+                    return
+                }
+
+                if let url {
+                    let cacheKey = url.absoluteString as NSString
+                    if let cachedImage = Self.imageCache.object(forKey: cacheKey) {
+                        imageView.image = cachedImage
+                        imageSize.wrappedValue = cachedImage.size
+                        loadState.wrappedValue = .success
+                        return
+                    }
+                }
+
+                // A load for the same URL is already in flight; don't cancel/restart it on every SwiftUI update.
+                if loadTask != nil {
+                    loadState.wrappedValue = .loading
+                    return
+                }
+            }
 
             currentURL = url
             loadTask?.cancel()
             loadTask = nil
             imageView.image = nil
+            imageSize.wrappedValue = nil
 
             guard let url else {
                 loadState.wrappedValue = .failure
@@ -4010,6 +4061,7 @@ private struct MessageAnimatedGIFImageView: UIViewRepresentable {
             let cacheKey = url.absoluteString as NSString
             if let cachedImage = Self.imageCache.object(forKey: cacheKey) {
                 imageView.image = cachedImage
+                imageSize.wrappedValue = cachedImage.size
                 loadState.wrappedValue = .success
                 return
             }
@@ -4027,6 +4079,7 @@ private struct MessageAnimatedGIFImageView: UIViewRepresentable {
                 else {
                     DispatchQueue.main.async {
                         guard self.currentURL == url else { return }
+                        imageSize.wrappedValue = nil
                         loadState.wrappedValue = .failure
                     }
                     return
@@ -4036,6 +4089,7 @@ private struct MessageAnimatedGIFImageView: UIViewRepresentable {
                 DispatchQueue.main.async {
                     guard self.currentURL == url else { return }
                     imageView?.image = decodedImage
+                    imageSize.wrappedValue = decodedImage.size
                     loadState.wrappedValue = .success
                 }
             }
@@ -4047,6 +4101,11 @@ private struct MessageAnimatedGIFImageView: UIViewRepresentable {
         func cancelPendingWork() {
             loadTask?.cancel()
             loadTask = nil
+        }
+
+        func reset() {
+            cancelPendingWork()
+            currentURL = nil
         }
 
         private static func decodeAnimatedImage(from data: Data) -> UIImage? {
@@ -4107,18 +4166,15 @@ private struct MessageAnimatedGIFImageView: UIViewRepresentable {
 
 private struct FullScreenPhotoViewer: View {
     let url: URL
+    let presentationID: UUID
+
+    private static let photoViewerSpring = Animation.spring(response: 0.26, dampingFraction: 0.84)
 
     @Environment(\.dismiss) private var dismiss
-    @State private var scale: CGFloat = 1
-    @State private var baseScale: CGFloat = 1
-    @State private var offset: CGSize = .zero
-    @State private var baseOffset: CGSize = .zero
     @State private var dismissDragOffset: CGFloat = 0
     @State private var showsCloseButton = false
-
-    private func clampedScale(_ value: CGFloat) -> CGFloat {
-        min(max(value, 1), 5)
-    }
+    @State private var imageLoadState: MessageAnimatedImageLoadState = .idle
+    @State private var hasVisibleImage = false
 
     private var dismissBackgroundOpacity: Double {
         let progress = min(max(dismissDragOffset / 260, 0), 1)
@@ -4133,15 +4189,13 @@ private struct FullScreenPhotoViewer: View {
                 .gesture(
                     DragGesture()
                         .onChanged { value in
-                            guard scale <= 1 else { return }
                             dismissDragOffset = max(0, value.translation.height)
                         }
                         .onEnded { value in
-                            guard scale <= 1 else { return }
                             if value.translation.height > 140 {
                                 dismiss()
                             } else {
-                                withAnimation(.spring(response: 0.24, dampingFraction: 0.86)) {
+                                withAnimation(Self.photoViewerSpring) {
                                     dismissDragOffset = 0
                                 }
                             }
@@ -4153,103 +4207,505 @@ private struct FullScreenPhotoViewer: View {
                     }
                 }
 
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .empty:
-                    ProgressView()
-                        .tint(.white)
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFit()
-                        .scaleEffect(scale)
-                        .offset(x: offset.width, y: offset.height + dismissDragOffset)
-                        .gesture(
-                            DragGesture()
-                                .onChanged { value in
-                                    guard scale > 1 else {
-                                        dismissDragOffset = max(0, value.translation.height)
-                                        return
-                                    }
-                                    offset = CGSize(
-                                        width: baseOffset.width + value.translation.width,
-                                        height: baseOffset.height + value.translation.height
-                                    )
-                                }
-                                .onEnded { value in
-                                    guard scale > 1 else {
-                                        baseOffset = .zero
-                                        offset = .zero
-                                        if value.translation.height > 140 {
-                                            dismiss()
-                                        } else {
-                                            withAnimation(.spring(response: 0.24, dampingFraction: 0.86)) {
-                                                dismissDragOffset = 0
-                                            }
-                                        }
-                                        return
-                                    }
-                                    baseOffset = offset
-                                }
-                        )
-                        .simultaneousGesture(
-                            MagnifyGesture()
-                                .onChanged { value in
-                                    scale = clampedScale(baseScale * value.magnification)
-                                }
-                                .onEnded { _ in
-                                    scale = clampedScale(scale)
-                                    baseScale = scale
-                                    if scale <= 1 {
-                                        baseOffset = .zero
-                                        offset = .zero
-                                    }
-                                }
-                        )
-                        .onTapGesture(count: 2) {
-                            withAnimation(.easeInOut(duration: 0.18)) {
-                                if scale > 1 {
-                                    scale = 1
-                                    baseScale = 1
-                                    offset = .zero
-                                    baseOffset = .zero
-                                } else {
-                                    scale = 2
-                                    baseScale = 2
-                                }
-                            }
-                        }
-                        .onTapGesture {
-                            withAnimation(.easeInOut(duration: 0.18)) {
-                                showsCloseButton.toggle()
-                            }
-                        }
-                case .failure:
-                    VStack(spacing: 10) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.title2)
-                        Text("Impossible de charger la photo")
-                            .font(.footnote)
+            ZoomableRemoteAnimatedImageView(
+                url: url,
+                presentationID: presentationID,
+                loadState: $imageLoadState,
+                hasVisibleImage: $hasVisibleImage,
+                onSingleTap: {
+                    withAnimation(.easeInOut(duration: 0.18)) {
+                        showsCloseButton.toggle()
                     }
-                    .foregroundStyle(.white)
-                @unknown default:
-                    EmptyView()
-                }
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 26)
-
-            if showsCloseButton {
-                Button("Fermer") {
+                },
+                onDismissProgress: { progress in
+                    if progress == 0 {
+                        withAnimation(Self.photoViewerSpring) {
+                            dismissDragOffset = 0
+                        }
+                    } else {
+                        dismissDragOffset = progress
+                    }
+                },
+                onDismissRequest: {
                     dismiss()
                 }
+            )
+            .offset(y: dismissDragOffset)
+            .ignoresSafeArea()
+
+            if (imageLoadState == .loading || imageLoadState == .idle) && !hasVisibleImage {
+                ProgressView()
+                    .tint(.white)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            }
+
+            if imageLoadState == .failure {
+                VStack(spacing: 10) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.title2)
+                    Text("Impossible de charger la photo")
+                        .font(.footnote)
+                }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            }
+
+            if showsCloseButton {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 15, weight: .semibold))
+                }
                 .ifAvailableiOS26GlassProminent()
+                .buttonBorderShape(.circle)
+                .accessibilityLabel("Fermer")
                 .padding(.top, 14)
                 .padding(.trailing, 14)
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
         .statusBarHidden()
+    }
+}
+
+private struct ZoomableRemoteAnimatedImageView: UIViewRepresentable {
+    let url: URL
+    let presentationID: UUID
+    @Binding var loadState: MessageAnimatedImageLoadState
+    @Binding var hasVisibleImage: Bool
+    let onSingleTap: () -> Void
+    let onDismissProgress: (CGFloat) -> Void
+    let onDismissRequest: () -> Void
+
+    func makeUIView(context: Context) -> ZoomingImageContainerView {
+        ZoomingImageContainerView()
+    }
+
+    func updateUIView(_ uiView: ZoomingImageContainerView, context: Context) {
+        context.coordinator.update(
+            uiView,
+            url: url,
+            presentationID: presentationID,
+            loadState: $loadState,
+            hasVisibleImage: $hasVisibleImage,
+            onSingleTap: onSingleTap,
+            onDismissProgress: onDismissProgress,
+            onDismissRequest: onDismissRequest
+        )
+    }
+
+    static func dismantleUIView(_ uiView: ZoomingImageContainerView, coordinator: Coordinator) {
+        coordinator.reset(uiView)
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    final class Coordinator: NSObject, UIScrollViewDelegate {
+        private static let imageCache = NSCache<NSString, UIImage>()
+        private var currentURL: URL?
+        private var currentPresentationID: UUID?
+        private var loadTask: URLSessionDataTask?
+        private var singleTapHandler: (() -> Void)?
+        private var dismissProgressHandler: ((CGFloat) -> Void)?
+        private var dismissRequestHandler: (() -> Void)?
+
+        func configure(_ view: ZoomingImageContainerView) {
+            view.scrollView.delegate = self
+            view.scrollView.singleTapHandler = { [weak self] in
+                self?.singleTapHandler?()
+            }
+            view.scrollView.dismissProgressHandler = { [weak self] progress in
+                self?.dismissProgressHandler?(progress)
+            }
+            view.scrollView.dismissHandler = { [weak self] in
+                self?.dismissRequestHandler?()
+            }
+        }
+
+        func update(
+            _ view: ZoomingImageContainerView,
+            url: URL,
+            presentationID: UUID,
+            loadState: Binding<MessageAnimatedImageLoadState>,
+            hasVisibleImage: Binding<Bool>,
+            onSingleTap: @escaping () -> Void,
+            onDismissProgress: @escaping (CGFloat) -> Void,
+            onDismissRequest: @escaping () -> Void
+        ) {
+            func scheduleState(_ state: MessageAnimatedImageLoadState, visible: Bool) {
+                DispatchQueue.main.async {
+                    hasVisibleImage.wrappedValue = visible
+                    loadState.wrappedValue = state
+                }
+            }
+
+            singleTapHandler = onSingleTap
+            dismissProgressHandler = onDismissProgress
+            dismissRequestHandler = onDismissRequest
+            configure(view)
+
+            if currentPresentationID == presentationID, currentURL == url {
+                if view.scrollView.imageView.image != nil {
+                    scheduleState(.success, visible: true)
+                    return
+                }
+                if loadTask != nil {
+                    scheduleState(.loading, visible: false)
+                    return
+                }
+            }
+
+            currentPresentationID = presentationID
+            currentURL = url
+            loadTask?.cancel()
+            loadTask = nil
+            view.reset(suppressCallbacks: true)
+
+            let cacheKey = url.absoluteString as NSString
+            if let cachedImage = Self.imageCache.object(forKey: cacheKey) {
+                view.display(image: cachedImage, maximumZoomScale: 7.5)
+                scheduleState(.success, visible: true)
+                return
+            }
+
+            scheduleState(.loading, visible: false)
+
+            let task = URLSession.shared.dataTask(with: url) { [weak self, weak view] data, response, _ in
+                guard let self else { return }
+
+                let isValidResponse = (response as? HTTPURLResponse).map { (200..<300).contains($0.statusCode) } ?? false
+                guard
+                    let data,
+                    isValidResponse,
+                    let image = Self.decodeAnimatedImage(from: data)
+                else {
+                    DispatchQueue.main.async {
+                        guard self.currentPresentationID == presentationID, self.currentURL == url else { return }
+                        self.loadTask = nil
+                        hasVisibleImage.wrappedValue = false
+                        loadState.wrappedValue = .failure
+                    }
+                    return
+                }
+
+                Self.imageCache.setObject(image, forKey: cacheKey)
+                DispatchQueue.main.async {
+                    guard self.currentPresentationID == presentationID, self.currentURL == url else { return }
+                    view?.display(image: image, maximumZoomScale: 7.5)
+                    hasVisibleImage.wrappedValue = true
+                    self.loadTask = nil
+                    loadState.wrappedValue = .success
+                }
+            }
+
+            loadTask = task
+            task.resume()
+        }
+
+        func reset(_ view: ZoomingImageContainerView) {
+            loadTask?.cancel()
+            loadTask = nil
+            currentURL = nil
+            currentPresentationID = nil
+            view.scrollView.singleTapHandler = nil
+            view.scrollView.dismissProgressHandler = nil
+            view.scrollView.dismissHandler = nil
+            view.reset(suppressCallbacks: true)
+        }
+
+        func viewForZooming(in scrollView: UIScrollView) -> UIView? {
+            (scrollView as? ZoomingImageScrollView)?.imageView
+        }
+
+        func scrollViewDidZoom(_ scrollView: UIScrollView) {
+            (scrollView as? ZoomingImageScrollView)?.centerImage()
+        }
+
+        private static func decodeAnimatedImage(from data: Data) -> UIImage? {
+            let animatedGIFSelector = NSSelectorFromString("sd_animatedGIFWithData:")
+            let imageClass: AnyObject = UIImage.self
+            if imageClass.responds(to: animatedGIFSelector),
+               let unmanaged = imageClass.perform(animatedGIFSelector, with: data),
+               let image = unmanaged.takeUnretainedValue() as? UIImage {
+                return image
+            }
+
+            guard let source = CGImageSourceCreateWithData(data as CFData, nil) else {
+                return UIImage(data: data)
+            }
+
+            let frameCount = CGImageSourceGetCount(source)
+            guard frameCount > 1 else {
+                return UIImage(data: data)
+            }
+
+            var frames: [UIImage] = []
+            var totalDuration: Double = 0
+            let scale = UIScreen.main.scale
+
+            for index in 0..<frameCount {
+                guard let cgImage = CGImageSourceCreateImageAtIndex(source, index, nil) else {
+                    continue
+                }
+                totalDuration += frameDuration(at: index, in: source)
+                frames.append(UIImage(cgImage: cgImage, scale: scale, orientation: .up))
+            }
+
+            guard !frames.isEmpty else {
+                return UIImage(data: data)
+            }
+
+            if totalDuration <= 0 {
+                totalDuration = Double(frames.count) * 0.1
+            }
+            return UIImage.animatedImage(with: frames, duration: totalDuration)
+        }
+
+        private static func frameDuration(at index: Int, in source: CGImageSource) -> Double {
+            guard
+                let frameProperties = CGImageSourceCopyPropertiesAtIndex(source, index, nil) as? [CFString: Any],
+                let gifProperties = frameProperties[kCGImagePropertyGIFDictionary] as? [CFString: Any]
+            else {
+                return 0.1
+            }
+
+            let unclampedDelay = gifProperties[kCGImagePropertyGIFUnclampedDelayTime] as? Double
+            let delay = gifProperties[kCGImagePropertyGIFDelayTime] as? Double
+            let duration = unclampedDelay ?? delay ?? 0.1
+            return duration < 0.011 ? 0.1 : duration
+        }
+    }
+}
+
+private final class ZoomingImageContainerView: UIView {
+    let scrollView = ZoomingImageScrollView()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        backgroundColor = .clear
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(scrollView)
+        NSLayoutConstraint.activate([
+            scrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            scrollView.topAnchor.constraint(equalTo: topAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func display(image: UIImage, maximumZoomScale: CGFloat) {
+        scrollView.display(image: image, maximumZoomScale: maximumZoomScale)
+    }
+
+    func reset(suppressCallbacks: Bool = false) {
+        scrollView.resetImage(suppressCallbacks: suppressCallbacks)
+    }
+}
+
+private final class ZoomingImageScrollView: UIScrollView, UIGestureRecognizerDelegate {
+    let imageView = UIImageView()
+
+    var singleTapHandler: (() -> Void)?
+    var dismissProgressHandler: ((CGFloat) -> Void)?
+    var dismissHandler: (() -> Void)?
+
+    private var imageSize: CGSize?
+    private var configuredMaximumZoomScale: CGFloat = 7.5
+    private var hasConfiguredImage = false
+    private var lastBoundsSize: CGSize = .zero
+    private lazy var dismissPanGesture: UIPanGestureRecognizer = {
+        let gesture = UIPanGestureRecognizer(target: self, action: #selector(handleDismissPan(_:)))
+        gesture.delegate = self
+        gesture.cancelsTouchesInView = false
+        return gesture
+    }()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        backgroundColor = .clear
+        delegate = nil
+        minimumZoomScale = 1
+        maximumZoomScale = configuredMaximumZoomScale
+        bouncesZoom = true
+        showsHorizontalScrollIndicator = false
+        showsVerticalScrollIndicator = false
+        delaysContentTouches = false
+        canCancelContentTouches = true
+        clipsToBounds = false
+
+        imageView.contentMode = .scaleAspectFit
+        imageView.clipsToBounds = true
+        addSubview(imageView)
+
+        let singleTap = UITapGestureRecognizer(target: self, action: #selector(handleSingleTap))
+        singleTap.numberOfTapsRequired = 1
+        addGestureRecognizer(singleTap)
+
+        let doubleTap = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTap(_:)))
+        doubleTap.numberOfTapsRequired = 2
+        addGestureRecognizer(doubleTap)
+        singleTap.require(toFail: doubleTap)
+
+        addGestureRecognizer(dismissPanGesture)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        guard hasConfiguredImage else { return }
+        if bounds.size != lastBoundsSize {
+            configureLayout(resetZoom: false)
+        } else {
+            centerImage()
+        }
+    }
+
+    func display(image: UIImage, maximumZoomScale: CGFloat) {
+        configuredMaximumZoomScale = maximumZoomScale
+        imageSize = image.size
+        hasConfiguredImage = true
+        imageView.image = image
+        if image.images != nil {
+            imageView.startAnimating()
+        } else {
+            imageView.stopAnimating()
+        }
+        configureLayout(resetZoom: true)
+    }
+
+    func resetImage(suppressCallbacks: Bool = false) {
+        setZoomScale(1, animated: false)
+        contentOffset = .zero
+        contentSize = .zero
+        imageView.stopAnimating()
+        imageView.image = nil
+        imageView.frame = .zero
+        imageSize = nil
+        hasConfiguredImage = false
+        lastBoundsSize = .zero
+        if !suppressCallbacks {
+            dismissProgressHandler?(0)
+        }
+    }
+
+    func centerImage() {
+        let boundsSize = bounds.size
+        var frameToCenter = imageView.frame
+
+        frameToCenter.origin.x = frameToCenter.width < boundsSize.width
+            ? (boundsSize.width - frameToCenter.width) / 2
+            : 0
+        frameToCenter.origin.y = frameToCenter.height < boundsSize.height
+            ? (boundsSize.height - frameToCenter.height) / 2
+            : 0
+
+        imageView.frame = frameToCenter
+    }
+
+    private func configureLayout(resetZoom: Bool) {
+        guard
+            hasConfiguredImage,
+            let imageSize,
+            imageSize.width > 0,
+            imageSize.height > 0,
+            bounds.width > 0,
+            bounds.height > 0
+        else {
+            return
+        }
+
+        lastBoundsSize = bounds.size
+        let fitScale = min(bounds.width / imageSize.width, bounds.height / imageSize.height)
+        let fittedSize = CGSize(width: imageSize.width * fitScale, height: imageSize.height * fitScale)
+
+        imageView.frame = CGRect(origin: .zero, size: fittedSize)
+        contentSize = fittedSize
+        minimumZoomScale = 1
+        maximumZoomScale = configuredMaximumZoomScale
+
+        if resetZoom || zoomScale < minimumZoomScale {
+            zoomScale = 1
+            contentOffset = .zero
+        }
+
+        centerImage()
+    }
+
+    @objc
+    private func handleSingleTap() {
+        singleTapHandler?()
+    }
+
+    @objc
+    private func handleDoubleTap(_ gesture: UITapGestureRecognizer) {
+        guard hasConfiguredImage else { return }
+
+        if zoomScale > minimumZoomScale + 0.01 {
+            setZoomScale(minimumZoomScale, animated: true)
+            return
+        }
+
+        let targetScale = min(maximumZoomScale, 2.5)
+        let tapPoint = gesture.location(in: imageView)
+        let zoomRect = zoomRect(for: targetScale, centeredAt: tapPoint)
+        zoom(to: zoomRect, animated: true)
+    }
+
+    @objc
+    private func handleDismissPan(_ gesture: UIPanGestureRecognizer) {
+        let translation = gesture.translation(in: self)
+        switch gesture.state {
+        case .changed:
+            dismissProgressHandler?(max(0, translation.y))
+        case .ended:
+            let verticalTravel = max(0, translation.y)
+            let velocity = gesture.velocity(in: self).y
+            if verticalTravel > 140 || velocity > 900 {
+                dismissHandler?()
+            } else {
+                dismissProgressHandler?(0)
+            }
+        case .cancelled, .failed:
+            dismissProgressHandler?(0)
+        default:
+            break
+        }
+    }
+
+    private func zoomRect(for scale: CGFloat, centeredAt point: CGPoint) -> CGRect {
+        let size = CGSize(
+            width: bounds.size.width / scale,
+            height: bounds.size.height / scale
+        )
+        let origin = CGPoint(
+            x: point.x - (size.width / 2),
+            y: point.y - (size.height / 2)
+        )
+        return CGRect(origin: origin, size: size)
+    }
+
+    override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        guard gestureRecognizer === dismissPanGesture else { return true }
+        guard zoomScale <= minimumZoomScale + 0.01 else { return false }
+        let velocity = dismissPanGesture.velocity(in: self)
+        return abs(velocity.y) > abs(velocity.x)
+    }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        (gestureRecognizer === dismissPanGesture && otherGestureRecognizer === panGestureRecognizer) ||
+        (gestureRecognizer === panGestureRecognizer && otherGestureRecognizer === dismissPanGesture)
     }
 }
 
