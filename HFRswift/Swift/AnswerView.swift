@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import PhotosUI
 
 struct AnswerView: View {
     let topicURL: URL?
@@ -10,7 +11,6 @@ struct AnswerView: View {
     private let smileyCatalogLoader: ReplySmileyCatalogLoading
     private let imageUploadService: any ReplyImageUploadService
     private let onPostSuccess: ((ReplyPostingResult) -> Void)?
-    @ObservedObject private var appTheme = AppThemeStore.shared
     @Environment(\.appThemePalette) private var themePalette
     @Environment(\.dismiss) private var dismiss
 
@@ -34,6 +34,9 @@ struct AnswerView: View {
     @State private var showToast: Bool = false
     @State private var toastText: String = ""
     @State private var toastIsSuccess: Bool = true
+    @State private var isImageUploading = false
+    @State private var imageUploadError: String?
+    @State private var imageUploadTask: Task<Void, Never>?
 
     init(
         topicURL: URL?,
@@ -64,35 +67,13 @@ struct AnswerView: View {
         self._uploadedImages = State(initialValue: RehostUploadHistoryStore.load())
     }
 
-    private var isDefaultSmileyPickerPresented: Binding<Bool> {
+    private var presentedComposerPanel: Binding<ReplyComposerPanel?> {
         Binding(
-            get: { composerState.activePanel == .defaultSmileys },
-            set: { isPresented in
-                if !isPresented && composerState.activePanel == .defaultSmileys {
-                    composerState.activePanel = .none
-                }
-            }
-        )
-    }
-
-    private var isFavoriteSmileyPickerPresented: Binding<Bool> {
-        Binding(
-            get: { composerState.activePanel == .favoriteSmileys },
-            set: { isPresented in
-                if !isPresented && composerState.activePanel == .favoriteSmileys {
-                    composerState.activePanel = .none
-                }
-            }
-        )
-    }
-
-    private var isImageInsertionPresented: Binding<Bool> {
-        Binding(
-            get: { composerState.activePanel == .imageInsertion },
-            set: { isPresented in
-                if !isPresented && composerState.activePanel == .imageInsertion {
-                    composerState.activePanel = .none
-                }
+            get: {
+                composerState.activePanel == .none ? nil : composerState.activePanel
+            },
+            set: { newValue in
+                composerState.activePanel = newValue ?? .none
             }
         )
     }
@@ -130,30 +111,35 @@ struct AnswerView: View {
 
             composerToolbar
         }
-        .sheet(isPresented: isDefaultSmileyPickerPresented) {
-            SmileyPickerView(title: "Smileys", smileys: defaultSmileys) { selectedSmiley in
-                insertSmileyCode(selectedSmiley.code)
-                composerState.activePanel = .none
+        .sheet(item: presentedComposerPanel) { panel in
+            switch panel {
+            case .defaultSmileys:
+                SmileyPickerView(title: "Smileys", smileys: defaultSmileys) { selectedSmiley in
+                    insertSmileyCode(selectedSmiley.code)
+                    composerState.activePanel = .none
+                }
+                .presentationDetents([.large])
+            case .favoriteSmileys:
+                SmileyPickerView(title: "Smileys favoris", smileys: favoriteSmileys) { selectedSmiley in
+                    insertSmileyCode(selectedSmiley.code)
+                    composerState.activePanel = .none
+                }
+                .presentationDetents([.large])
+            case .imageInsertion:
+                ReplyImageInsertionView(
+                    preferences: $imageUploadPreferences,
+                    uploadedImages: $uploadedImages,
+                    isUploading: $isImageUploading,
+                    uploadError: $imageUploadError,
+                    onPickImage: startImageUpload
+                ) { snippet in
+                    insertSnippet(snippet)
+                    composerState.activePanel = .none
+                }
+                .presentationDetents([.large])
+            case .none:
+                EmptyView()
             }
-            .presentationDetents([.large])
-        }
-        .sheet(isPresented: isFavoriteSmileyPickerPresented) {
-            SmileyPickerView(title: "Smileys favoris", smileys: favoriteSmileys) { selectedSmiley in
-                insertSmileyCode(selectedSmiley.code)
-                composerState.activePanel = .none
-            }
-            .presentationDetents([.large])
-        }
-        .sheet(isPresented: isImageInsertionPresented) {
-            ReplyImageInsertionView(
-                uploadService: imageUploadService,
-                preferences: $imageUploadPreferences,
-                uploadedImages: $uploadedImages
-            ) { snippet in
-                insertSnippet(snippet)
-                composerState.activePanel = .none
-            }
-            .presentationDetents([.large])
         }
         .overlay(alignment: .top) {
             if showToast {
@@ -181,6 +167,8 @@ struct AnswerView: View {
             await loadComposerContext()
         }
         .onDisappear {
+            imageUploadTask?.cancel()
+            imageUploadTask = nil
             composerDraftText = composerState.message
         }
         .onChange(of: imageUploadPreferences) { _, newPreferences in
@@ -422,6 +410,42 @@ struct AnswerView: View {
 
     private func presentImageInsertion() {
         composerState.activePanel = .imageInsertion
+    }
+
+    private func startImageUpload(with image: UIImage) {
+        imageUploadTask?.cancel()
+        isImageUploading = true
+        imageUploadError = nil
+
+        let maxDimension = imageUploadPreferences.maxDimension
+        imageUploadTask = Task {
+            do {
+                let uploadedImage = try await imageUploadService.uploadImage(image, maxDimension: maxDimension)
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    uploadedImages.insert(uploadedImage, at: 0)
+                    isImageUploading = false
+                    imageUploadTask = nil
+                }
+            } catch is CancellationError {
+                await MainActor.run {
+                    isImageUploading = false
+                    imageUploadTask = nil
+                }
+            } catch let error as ReplyImageUploadError {
+                await MainActor.run {
+                    isImageUploading = false
+                    imageUploadError = error.localizedDescription
+                    imageUploadTask = nil
+                }
+            } catch {
+                await MainActor.run {
+                    isImageUploading = false
+                    imageUploadError = "Erreur d'upload."
+                    imageUploadTask = nil
+                }
+            }
+        }
     }
 
     private func insertSmileyCode(_ smileyCode: String) {
@@ -873,19 +897,18 @@ private struct SmileyThumbnailView: UIViewRepresentable {
 }
 
 private struct ReplyImageInsertionView: View {
-    let uploadService: any ReplyImageUploadService
     @Binding var preferences: RehostPreferences
     @Binding var uploadedImages: [RehostUploadedImage]
+    @Binding var isUploading: Bool
+    @Binding var uploadError: String?
+    let onPickImage: (UIImage) -> Void
     let onInsertSnippet: (String) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.appThemePalette) private var themePalette
 
     @State private var manualURL = ""
-    @State private var pickerSourceType: UIImagePickerController.SourceType = .photoLibrary
-    @State private var isShowingImagePicker = false
-    @State private var isUploading = false
-    @State private var uploadError: String?
-    @State private var uploadTask: Task<Void, Never>?
+    @State private var presentedPicker: ReplyPresentedImagePicker?
     @FocusState private var isManualURLFocused: Bool
 
     private var canUseCamera: Bool {
@@ -902,23 +925,64 @@ private struct ReplyImageInsertionView: View {
         return true
     }
 
+    private var prefersProminentTintedButtons: Bool {
+        themePalette.colorScheme == .light
+    }
+
     var body: some View {
         NavigationStack {
             List {
                 Section("Upload") {
                     HStack(spacing: 12) {
                         Button {
-                            presentImagePicker(sourceType: .photoLibrary)
+                            isManualURLFocused = false
+                            uploadError = nil
+                            presentedPicker = .photoLibrary
                         } label: {
                             Label("Photos", systemImage: "photo.on.rectangle")
+                                .frame(maxWidth: .infinity)
+                                .foregroundStyle(prefersProminentTintedButtons ? .white : .primary)
                         }
+                        .controlSize(.large)
+                        .replyTintedActionButtonStyle(
+                            useProminent: prefersProminentTintedButtons,
+                            tint: themePalette.actionTintColor
+                        )
+                        .disabled(isUploading)
 
                         Button {
-                            presentImagePicker(sourceType: .camera)
+                            isManualURLFocused = false
+                            guard canUseCamera else {
+                                uploadError = "Caméra indisponible sur cet appareil."
+                                return
+                            }
+                            uploadError = nil
+                            presentedPicker = .camera
                         } label: {
                             Label("Caméra", systemImage: "camera")
+                                .frame(maxWidth: .infinity)
+                                .foregroundStyle(prefersProminentTintedButtons ? .white : .primary)
                         }
-                        .disabled(!canUseCamera)
+                        .controlSize(.large)
+                        .replyTintedActionButtonStyle(
+                            useProminent: prefersProminentTintedButtons,
+                            tint: themePalette.actionTintColor
+                        )
+                        .disabled(!canUseCamera || isUploading)
+                    }
+                    .buttonStyle(.borderless)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Dimension maximale")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        Picker("Dimension maximale", selection: $preferences.maxDimension) {
+                            ForEach(RehostUploadMaxDimension.allCases) { size in
+                                Text(size.title).tag(size)
+                            }
+                        }
+                        .pickerStyle(.segmented)
                     }
 
                     if isUploading {
@@ -932,7 +996,7 @@ private struct ReplyImageInsertionView: View {
                     }
                 }
 
-                Section("Options") {
+                Section("Images uploadées") {
                     Picker("Type de bbcode", selection: $preferences.bbCodeMode) {
                         ForEach(RehostBBCodeMode.allCases) { mode in
                             Text(mode.title).tag(mode)
@@ -940,14 +1004,6 @@ private struct ReplyImageInsertionView: View {
                     }
                     .pickerStyle(.segmented)
 
-                    Picker("Dimension maximale", selection: $preferences.maxDimension) {
-                        ForEach(RehostUploadMaxDimension.allCases) { size in
-                            Text(size.title).tag(size)
-                        }
-                    }
-                }
-
-                Section("Images uploadées") {
                     if uploadedImages.isEmpty {
                         Text("Aucune image uploadée.")
                             .foregroundStyle(.secondary)
@@ -980,6 +1036,11 @@ private struct ReplyImageInsertionView: View {
                     Button("Insérer") {
                         insertManualURL()
                     }
+                    .replyTintedActionButtonStyle(
+                        useProminent: prefersProminentTintedButtons,
+                        tint: themePalette.actionTintColor
+                    )
+                    .foregroundStyle(prefersProminentTintedButtons ? .white : .primary)
                     .disabled(!canInsertManualURL)
                 }
             }
@@ -992,56 +1053,31 @@ private struct ReplyImageInsertionView: View {
                 }
             }
         }
-        .sheet(isPresented: $isShowingImagePicker) {
-            ReplyUIKitImagePicker(
-                sourceType: pickerSourceType,
-                onCancel: {
-                    isShowingImagePicker = false
-                },
-                onPick: { selectedImage in
-                    isShowingImagePicker = false
-                    startUpload(with: selectedImage)
-                }
-            )
-            .ignoresSafeArea()
-        }
-        .onDisappear {
-            uploadTask?.cancel()
-        }
-    }
-
-    private func presentImagePicker(sourceType: UIImagePickerController.SourceType) {
-        if sourceType == .camera && !canUseCamera {
-            uploadError = "Caméra indisponible sur cet appareil."
-            return
-        }
-        pickerSourceType = sourceType
-        isShowingImagePicker = true
-    }
-
-    private func startUpload(with image: UIImage) {
-        uploadTask?.cancel()
-        isUploading = true
-        uploadError = nil
-
-        let maxDimension = preferences.maxDimension
-        uploadTask = Task {
-            do {
-                let uploadedImage = try await uploadService.uploadImage(image, maxDimension: maxDimension)
-                await MainActor.run {
-                    uploadedImages.insert(uploadedImage, at: 0)
-                    isUploading = false
-                }
-            } catch let error as ReplyImageUploadError {
-                await MainActor.run {
-                    isUploading = false
-                    uploadError = error.localizedDescription
-                }
-            } catch {
-                await MainActor.run {
-                    isUploading = false
-                    uploadError = "Erreur d'upload."
-                }
+        .fullScreenCover(item: $presentedPicker) { picker in
+            switch picker {
+            case .photoLibrary:
+                ReplyPhotoLibraryPicker(
+                    onCancel: {
+                        presentedPicker = nil
+                    },
+                    onPick: { selectedImage in
+                        presentedPicker = nil
+                        onPickImage(selectedImage)
+                    }
+                )
+                .ignoresSafeArea()
+            case .camera:
+                ReplyUIKitImagePicker(
+                    sourceType: .camera,
+                    onCancel: {
+                        presentedPicker = nil
+                    },
+                    onPick: { selectedImage in
+                        presentedPicker = nil
+                        onPickImage(selectedImage)
+                    }
+                )
+                .ignoresSafeArea()
             }
         }
     }
@@ -1078,11 +1114,22 @@ private struct ReplyImageInsertionView: View {
     }
 }
 
+private enum ReplyPresentedImagePicker: String, Identifiable {
+    case photoLibrary
+    case camera
+
+    var id: String { rawValue }
+}
+
 private struct ReplyUploadedImageRow: View {
     let image: RehostUploadedImage
     let mode: RehostBBCodeMode
     let onInsertVariant: (RehostImageSizeVariant) -> Void
     @Environment(\.appThemePalette) private var themePalette
+
+    private var prefersProminentTintedButtons: Bool {
+        themePalette.colorScheme == .light
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -1120,13 +1167,32 @@ private struct ReplyUploadedImageRow: View {
                         Button(variant.title) {
                             onInsertVariant(variant)
                         }
-                        .buttonStyle(.bordered)
                         .controlSize(.small)
+                        .replyTintedActionButtonStyle(
+                            useProminent: prefersProminentTintedButtons,
+                            tint: themePalette.actionTintColor
+                        )
+                        .foregroundStyle(prefersProminentTintedButtons ? .white : .primary)
                     }
                 }
                 .padding(.vertical, 2)
             }
             .scrollIndicators(.hidden)
+        }
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func replyTintedActionButtonStyle(useProminent: Bool, tint: Color) -> some View {
+        if useProminent {
+            self
+                .tint(tint)
+                .buttonStyle(.borderedProminent)
+        } else {
+            self
+                .tint(tint)
+                .buttonStyle(.bordered)
         }
     }
 }
@@ -1166,7 +1232,9 @@ private struct ReplyUIKitImagePicker: UIViewControllerRepresentable {
         }
 
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            onCancel()
+            picker.dismiss(animated: true) { [onCancel] in
+                onCancel()
+            }
         }
 
         func imagePickerController(
@@ -1174,10 +1242,77 @@ private struct ReplyUIKitImagePicker: UIViewControllerRepresentable {
             didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
         ) {
             guard let image = info[.originalImage] as? UIImage else {
-                onCancel()
+                picker.dismiss(animated: true) { [onCancel] in
+                    onCancel()
+                }
                 return
             }
-            onPick(image)
+            picker.dismiss(animated: true) { [onPick] in
+                onPick(image)
+            }
+        }
+    }
+}
+
+private struct ReplyPhotoLibraryPicker: UIViewControllerRepresentable {
+    let onCancel: () -> Void
+    let onPick: (UIImage) -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onCancel: onCancel, onPick: onPick)
+    }
+
+    func makeUIViewController(context: Context) -> PHPickerViewController {
+        var configuration = PHPickerConfiguration(photoLibrary: .shared())
+        configuration.filter = .images
+        configuration.selectionLimit = 1
+
+        let picker = PHPickerViewController(configuration: configuration)
+        picker.delegate = context.coordinator
+        picker.modalPresentationStyle = .fullScreen
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: PHPickerViewController, context: Context) {}
+
+    final class Coordinator: NSObject, PHPickerViewControllerDelegate {
+        private let onCancel: () -> Void
+        private let onPick: (UIImage) -> Void
+
+        init(onCancel: @escaping () -> Void, onPick: @escaping (UIImage) -> Void) {
+            self.onCancel = onCancel
+            self.onPick = onPick
+        }
+
+        func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+            guard let result = results.first else {
+                picker.dismiss(animated: true) { [onCancel] in
+                    onCancel()
+                }
+                return
+            }
+
+            let provider = result.itemProvider
+            guard provider.canLoadObject(ofClass: UIImage.self) else {
+                picker.dismiss(animated: true) { [onCancel] in
+                    onCancel()
+                }
+                return
+            }
+
+            provider.loadObject(ofClass: UIImage.self) { [onPick, onCancel] object, _ in
+                DispatchQueue.main.async {
+                    guard let image = object as? UIImage else {
+                        picker.dismiss(animated: true) {
+                            onCancel()
+                        }
+                        return
+                    }
+                    picker.dismiss(animated: true) {
+                        onPick(image)
+                    }
+                }
+            }
         }
     }
 }

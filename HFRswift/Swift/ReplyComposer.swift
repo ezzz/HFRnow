@@ -1,10 +1,12 @@
 import Foundation
 
-enum ReplyComposerPanel: Equatable {
+enum ReplyComposerPanel: String, Equatable, Identifiable {
     case none
     case defaultSmileys
     case favoriteSmileys
     case imageInsertion
+
+    var id: String { rawValue }
 }
 
 struct ReplyComposerState: Equatable {
