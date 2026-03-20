@@ -4164,7 +4164,7 @@ private struct MessageAnimatedGIFImageView: UIViewRepresentable {
     }
 }
 
-private struct FullScreenPhotoViewer: View {
+struct FullScreenPhotoViewer: View {
     let url: URL
     let presentationID: UUID
 

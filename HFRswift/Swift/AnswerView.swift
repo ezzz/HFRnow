@@ -909,6 +909,7 @@ private struct ReplyImageInsertionView: View {
 
     @State private var manualURL = ""
     @State private var presentedPicker: ReplyPresentedImagePicker?
+    @State private var photoViewerDestination: ReplyPhotoViewerDestination?
     @FocusState private var isManualURLFocused: Bool
 
     private var canUseCamera: Bool {
@@ -925,8 +926,14 @@ private struct ReplyImageInsertionView: View {
         return true
     }
 
-    private var prefersProminentTintedButtons: Bool {
+    private var prefersProminentPrimaryButtons: Bool {
         themePalette.colorScheme == .light
+    }
+
+    private var secondaryControlTintColor: Color {
+        themePalette.colorScheme == .light
+            ? Color(uiColor: .systemGray3)
+            : themePalette.actionTintColor
     }
 
     var body: some View {
@@ -941,11 +948,11 @@ private struct ReplyImageInsertionView: View {
                         } label: {
                             Label("Photos", systemImage: "photo.on.rectangle")
                                 .frame(maxWidth: .infinity)
-                                .foregroundStyle(prefersProminentTintedButtons ? .white : .primary)
+                                .foregroundStyle(prefersProminentPrimaryButtons ? .white : .primary)
                         }
                         .controlSize(.large)
                         .replyTintedActionButtonStyle(
-                            useProminent: prefersProminentTintedButtons,
+                            useProminent: prefersProminentPrimaryButtons,
                             tint: themePalette.actionTintColor
                         )
                         .disabled(isUploading)
@@ -961,11 +968,11 @@ private struct ReplyImageInsertionView: View {
                         } label: {
                             Label("Caméra", systemImage: "camera")
                                 .frame(maxWidth: .infinity)
-                                .foregroundStyle(prefersProminentTintedButtons ? .white : .primary)
+                                .foregroundStyle(prefersProminentPrimaryButtons ? .white : .primary)
                         }
                         .controlSize(.large)
                         .replyTintedActionButtonStyle(
-                            useProminent: prefersProminentTintedButtons,
+                            useProminent: prefersProminentPrimaryButtons,
                             tint: themePalette.actionTintColor
                         )
                         .disabled(!canUseCamera || isUploading)
@@ -983,6 +990,7 @@ private struct ReplyImageInsertionView: View {
                             }
                         }
                         .pickerStyle(.segmented)
+                        .tint(secondaryControlTintColor)
                     }
 
                     if isUploading {
@@ -1003,6 +1011,7 @@ private struct ReplyImageInsertionView: View {
                         }
                     }
                     .pickerStyle(.segmented)
+                    .tint(secondaryControlTintColor)
 
                     if uploadedImages.isEmpty {
                         Text("Aucune image uploadée.")
@@ -1011,7 +1020,8 @@ private struct ReplyImageInsertionView: View {
                         ForEach(uploadedImages) { uploadedImage in
                             ReplyUploadedImageRow(
                                 image: uploadedImage,
-                                mode: preferences.bbCodeMode
+                                mode: preferences.bbCodeMode,
+                                onPreviewImage: { previewImage(uploadedImage) }
                             ) { selectedVariant in
                                 insertUploadedImage(uploadedImage, variant: selectedVariant)
                             }
@@ -1037,10 +1047,10 @@ private struct ReplyImageInsertionView: View {
                         insertManualURL()
                     }
                     .replyTintedActionButtonStyle(
-                        useProminent: prefersProminentTintedButtons,
-                        tint: themePalette.actionTintColor
+                        useProminent: false,
+                        tint: secondaryControlTintColor
                     )
-                    .foregroundStyle(prefersProminentTintedButtons ? .white : .primary)
+                    .foregroundStyle(.primary)
                     .disabled(!canInsertManualURL)
                 }
             }
@@ -1080,6 +1090,9 @@ private struct ReplyImageInsertionView: View {
                 .ignoresSafeArea()
             }
         }
+        .fullScreenCover(item: $photoViewerDestination) { destination in
+            FullScreenPhotoViewer(url: destination.url, presentationID: destination.id)
+        }
     }
 
     private func insertUploadedImage(_ image: RehostUploadedImage, variant: RehostImageSizeVariant) {
@@ -1092,6 +1105,15 @@ private struct ReplyImageInsertionView: View {
 
     private func removeUploadedImage(_ image: RehostUploadedImage) {
         uploadedImages.removeAll { $0.id == image.id }
+    }
+
+    private func previewImage(_ image: RehostUploadedImage) {
+        let candidateURLs = [image.fullURL, image.mediumURL, image.previewURL, image.miniURL]
+        for candidate in candidateURLs {
+            guard let candidate, let url = URL(string: candidate) else { continue }
+            photoViewerDestination = ReplyPhotoViewerDestination(url: url)
+            return
+        }
     }
 
     private func insertManualURL() {
@@ -1121,31 +1143,43 @@ private enum ReplyPresentedImagePicker: String, Identifiable {
     var id: String { rawValue }
 }
 
+private struct ReplyPhotoViewerDestination: Identifiable {
+    let id = UUID()
+    let url: URL
+}
+
 private struct ReplyUploadedImageRow: View {
     let image: RehostUploadedImage
     let mode: RehostBBCodeMode
+    let onPreviewImage: () -> Void
     let onInsertVariant: (RehostImageSizeVariant) -> Void
     @Environment(\.appThemePalette) private var themePalette
 
-    private var prefersProminentTintedButtons: Bool {
+    private var secondaryControlTintColor: Color {
         themePalette.colorScheme == .light
+            ? Color(uiColor: .systemGray3)
+            : themePalette.actionTintColor
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
-                AsyncImage(url: URL(string: image.thumbnailURL)) { phase in
-                    switch phase {
-                    case .success(let preview):
-                        preview
-                            .resizable()
-                            .scaledToFill()
-                    default:
-                        themePalette.controlBackgroundColor
+                Button(action: onPreviewImage) {
+                    AsyncImage(url: URL(string: image.thumbnailURL)) { phase in
+                        switch phase {
+                        case .success(let preview):
+                            preview
+                                .resizable()
+                                .scaledToFill()
+                        default:
+                            themePalette.controlBackgroundColor
+                        }
                     }
+                    .frame(width: 56, height: 56)
+                    .clipShape(.rect(cornerRadius: 8))
                 }
-                .frame(width: 56, height: 56)
-                .clipShape(.rect(cornerRadius: 8))
+                .buttonStyle(.plain)
+                .accessibilityLabel("Afficher l'image")
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(mode.title)
@@ -1161,23 +1195,23 @@ private struct ReplyUploadedImageRow: View {
                 }
             }
 
-            ScrollView(.horizontal) {
-                HStack(spacing: 8) {
-                    ForEach(image.availableVariants) { variant in
-                        Button(variant.title) {
-                            onInsertVariant(variant)
-                        }
-                        .controlSize(.small)
-                        .replyTintedActionButtonStyle(
-                            useProminent: prefersProminentTintedButtons,
-                            tint: themePalette.actionTintColor
-                        )
-                        .foregroundStyle(prefersProminentTintedButtons ? .white : .primary)
+            HStack(spacing: 8) {
+                ForEach(image.availableVariants) { variant in
+                    Button {
+                        onInsertVariant(variant)
+                    } label: {
+                        Text(variant.title)
+                            .frame(maxWidth: .infinity)
                     }
+                    .controlSize(.small)
+                    .replyTintedActionButtonStyle(
+                        useProminent: false,
+                        tint: secondaryControlTintColor
+                    )
+                    .foregroundStyle(.primary)
                 }
-                .padding(.vertical, 2)
             }
-            .scrollIndicators(.hidden)
+            .padding(.vertical, 2)
         }
     }
 }
