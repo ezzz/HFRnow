@@ -97,14 +97,7 @@ struct AnswerView: View {
                 isFocused: $isComposerFocused
             )
                 .padding(12)
-                .background(
-                    Color(uiColor: .secondarySystemBackground),
-                    in: .rect(cornerRadius: 18)
-                )
-                .overlay {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(Color(uiColor: .separator).opacity(0.7), lineWidth: 1)
-                }
+                .composerEditorStyle()
                 .padding(.horizontal, 16)
                 .padding(.top, 10)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -375,13 +368,22 @@ struct AnswerView: View {
                     Text("Sujet")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    TextField("Sujet du MP", text: $composerSubject)
-                        .textInputAutocapitalization(.sentences)
-                        .autocorrectionDisabled()
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
-                        .background(themePalette.editorBackgroundColor)
-                        .clipShape(.rect(cornerRadius: 10))
+                    if #available(iOS 26.0, *) {
+                        TextField("Sujet du MP", text: $composerSubject)
+                            .textInputAutocapitalization(.sentences)
+                            .autocorrectionDisabled()
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .glassEffect(in: .rect(cornerRadius: 10))
+                    } else {
+                        TextField("Sujet du MP", text: $composerSubject)
+                            .textInputAutocapitalization(.sentences)
+                            .autocorrectionDisabled()
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .background(themePalette.editorBackgroundColor)
+                            .clipShape(.rect(cornerRadius: 10))
+                    }
                 }
             }
         }
@@ -614,17 +616,17 @@ private struct ComposerToolbarGroup<Content: View>: View {
 
     var body: some View {
         if #available(iOS 26.0, *) {
-            HStack(spacing: 4) {
+            HStack(spacing: 8) {
                 content
             }
-            .padding(.horizontal, 6)
+            .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .glassEffect(.regular, in: .capsule)
         } else {
-            HStack(spacing: 6) {
+            HStack(spacing: 10) {
                 content
             }
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 10)
             .padding(.vertical, 8)
             .background(
                 Color(uiColor: .tertiarySystemBackground),
@@ -711,11 +713,53 @@ private extension View {
 
     @ViewBuilder
     func composerToolbarButtonStyle(isDisabled: Bool) -> some View {
+        self.buttonStyle(.plain)
+    }
+
+    /// Fond du composeur : glassEffect sur iOS 26, secondarySystemBackground sinon.
+    @ViewBuilder
+    func composerEditorStyle() -> some View {
         if #available(iOS 26.0, *) {
-            self.buttonStyle(.plain)
+            self.glassEffect(in: .rect(cornerRadius: 18))
         } else {
-            self.buttonStyle(.plain)
+            self
+                .background(Color(uiColor: .secondarySystemBackground), in: .rect(cornerRadius: 18))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Color(uiColor: .separator).opacity(0.7), lineWidth: 1)
+                }
         }
+    }
+}
+
+private struct ComposerSheetCloseHeader: View {
+    let title: String
+    let onClose: () -> Void
+
+    var body: some View {
+        ZStack {
+            Text(title)
+                .font(.headline)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .padding(.horizontal, 96)
+
+            HStack {
+                Button(action: onClose) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .bold))
+                        .frame(width: 18, height: 18)
+                        .padding(8)
+                }
+                .composerCloseButtonStyle()
+                .accessibilityLabel("Fermer")
+
+                Spacer()
+            }
+        }
+        .frame(height: 44)
+        .padding(.horizontal, 16)
+        .padding(.top, 10)
     }
 }
 
@@ -725,12 +769,16 @@ private struct SmileyPickerView: View {
     let onSelect: (ReplySmiley) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    private let columns = [GridItem(.adaptive(minimum: 52, maximum: 62), spacing: 1)]
+    private let columns = [GridItem(.adaptive(minimum: 78, maximum: 90), spacing: 4)]
 
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            ComposerSheetCloseHeader(title: title) {
+                dismiss()
+            }
+
             ScrollView {
-                LazyVGrid(columns: columns, spacing: 1) {
+                LazyVGrid(columns: columns, spacing: 4) {
                     ForEach(smileys) { smiley in
                         Button {
                             onSelect(smiley)
@@ -742,17 +790,10 @@ private struct SmileyPickerView: View {
                         .accessibilityLabel(smiley.code)
                     }
                 }
-                .padding(4)
-            }
-            .navigationTitle(title)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Fermer") {
-                        dismiss()
-                    }
-                }
+                .padding(8)
             }
         }
+        .presentationGlassBackground()
     }
 }
 
@@ -761,17 +802,12 @@ private struct SmileyGridCell: View {
     @Environment(\.appThemePalette) private var themePalette
 
     var body: some View {
-        VStack(spacing: 0) {
-            SmileyThumbnailView(smiley: smiley)
-                .frame(width: 44, height: 28, alignment: .center)
-                .background(themePalette.editorBackgroundColor)
-                .clipShape(.rect(cornerRadius: 4))
-        }
-        .frame(maxWidth: .infinity, minHeight: 32)
-        .padding(.vertical, 1)
-        .background(themePalette.tertiaryBackgroundColor)
-        .clipShape(.rect(cornerRadius: 5))
-        .contentShape(Rectangle())
+        SmileyThumbnailView(smiley: smiley)
+            .frame(width: 70, height: 50)       // taille max des images smiley
+            .frame(maxWidth: .infinity, minHeight: 58) // la cell remplit la colonne et centre l'image
+            .background(themePalette.tertiaryBackgroundColor)
+            .clipShape(.rect(cornerRadius: 8))
+            .contentShape(Rectangle())
     }
 }
 
@@ -779,7 +815,14 @@ private struct SmileyThumbnailView: UIViewRepresentable {
     let smiley: ReplySmiley
 
     func makeUIView(context: Context) -> UIImageView {
-        let imageView = UIImageView()
+        // Utilise SDAnimatedImageView si disponible pour animer les GIFs correctement.
+        let imageView: UIImageView
+        if let animatedClass = NSClassFromString("SDAnimatedImageView") as? NSObject.Type,
+           let animatedView = animatedClass.init() as? UIImageView {
+            imageView = animatedView
+        } else {
+            imageView = UIImageView()
+        }
         imageView.contentMode = .center
         imageView.clipsToBounds = true
         return imageView
@@ -813,10 +856,12 @@ private struct SmileyThumbnailView: UIViewRepresentable {
             switch smiley.imageSource {
             case .bundledGIF(let filename):
                 imageView.image = loadBundledGIF(named: filename)
+                imageView.startAnimating()
             case .remote(let url):
                 let cacheKey = url.absoluteString as NSString
                 if let cached = Self.remoteImageCache.object(forKey: cacheKey) {
                     imageView.image = cached
+                    imageView.startAnimating()
                     return
                 }
 
@@ -827,6 +872,7 @@ private struct SmileyThumbnailView: UIViewRepresentable {
                     await MainActor.run {
                         guard self.currentSmileyID == smileyID else { return }
                         imageView?.image = image
+                        imageView?.startAnimating()
                     }
                 }
             case .none:
@@ -884,14 +930,44 @@ private struct SmileyThumbnailView: UIViewRepresentable {
         }
 
         private func decodeGIFImage(from data: Data) -> UIImage? {
-            let selector = NSSelectorFromString("sd_imageWithGIFData:")
+            // Aligne sur l'approche de MessagesView : sd_animatedGIFWithData: en priorité,
+            // puis fallback CGImageSource multi-frames.
+            let selector = NSSelectorFromString("sd_animatedGIFWithData:")
             let imageClass: AnyObject = UIImage.self
             if imageClass.responds(to: selector),
                let unmanaged = imageClass.perform(selector, with: data),
                let image = unmanaged.takeUnretainedValue() as? UIImage {
                 return image
             }
-            return UIImage(data: data)
+
+            guard let source = CGImageSourceCreateWithData(data as CFData, nil) else {
+                return UIImage(data: data)
+            }
+            let frameCount = CGImageSourceGetCount(source)
+            guard frameCount > 1 else { return UIImage(data: data) }
+
+            var frames: [UIImage] = []
+            var totalDuration: Double = 0
+            // Les smileys GIF sont des assets 1x — scale: 1.0 conserve leur taille naturelle.
+            for index in 0..<frameCount {
+                guard let cgImage = CGImageSourceCreateImageAtIndex(source, index, nil) else { continue }
+                totalDuration += Self.frameDuration(at: index, in: source)
+                frames.append(UIImage(cgImage: cgImage, scale: 1.0, orientation: .up))
+            }
+            guard !frames.isEmpty else { return UIImage(data: data) }
+            if totalDuration <= 0 { totalDuration = Double(frames.count) * 0.1 }
+            return UIImage.animatedImage(with: frames, duration: totalDuration)
+        }
+
+        private static func frameDuration(at index: Int, in source: CGImageSource) -> Double {
+            guard
+                let properties = CGImageSourceCopyPropertiesAtIndex(source, index, nil) as? [CFString: Any],
+                let gifProperties = properties[kCGImagePropertyGIFDictionary] as? [CFString: Any]
+            else { return 0.1 }
+            let unclampedDelay = gifProperties[kCGImagePropertyGIFUnclampedDelayTime] as? Double
+            let delay = gifProperties[kCGImagePropertyGIFDelayTime] as? Double
+            let duration = unclampedDelay ?? delay ?? 0.1
+            return duration < 0.011 ? 0.1 : duration
         }
     }
 }
@@ -937,7 +1013,11 @@ private struct ReplyImageInsertionView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            ComposerSheetCloseHeader(title: "Insérer image") {
+                dismiss()
+            }
+
             List {
                 Section("Upload") {
                     HStack(spacing: 12) {
@@ -1054,14 +1134,7 @@ private struct ReplyImageInsertionView: View {
                     .disabled(!canInsertManualURL)
                 }
             }
-            .navigationTitle("Insérer image")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Fermer") {
-                        dismiss()
-                    }
-                }
-            }
+            .padding(.top, 8)
         }
         .fullScreenCover(item: $presentedPicker) { picker in
             switch picker {
@@ -1093,6 +1166,7 @@ private struct ReplyImageInsertionView: View {
         .fullScreenCover(item: $photoViewerDestination) { destination in
             FullScreenPhotoViewer(url: destination.url, presentationID: destination.id)
         }
+        .presentationGlassBackground()
     }
 
     private func insertUploadedImage(_ image: RehostUploadedImage, variant: RehostImageSizeVariant) {
@@ -1219,14 +1293,22 @@ private struct ReplyUploadedImageRow: View {
 private extension View {
     @ViewBuilder
     func replyTintedActionButtonStyle(useProminent: Bool, tint: Color) -> some View {
-        if useProminent {
-            self
-                .tint(tint)
-                .buttonStyle(.borderedProminent)
+        if #available(iOS 26.0, *) {
+            if useProminent {
+                self.buttonStyle(.glassProminent)
+            } else {
+                self.buttonStyle(.glass)
+            }
         } else {
-            self
-                .tint(tint)
-                .buttonStyle(.bordered)
+            if useProminent {
+                self
+                    .tint(tint)
+                    .buttonStyle(.borderedProminent)
+            } else {
+                self
+                    .tint(tint)
+                    .buttonStyle(.bordered)
+            }
         }
     }
 }
