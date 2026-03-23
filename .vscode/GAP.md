@@ -13,6 +13,8 @@
 10. Current implementation focus is shifted to `Répondre` parity and message-level contextual actions; settings modernization is deferred in priority (not removed).
 11. Current contextual-action sprint scope is limited to quote/profile and related hardening; other per-post actions are explicitly deferred.
 12. G19 is closed: quote/profile contextual actions include a UIKit fallback path and are validated on real posts; optional per-post actions remain deferred by scope.
+13. For G04, category/topic reordering is explicitly de-scoped (cost > benefit) and replaced by section fold/unfold behavior in Favorites.
+14. G06 has moved from action-porting to hardening: the Swift popup menu now covers the full legacy action surface for most posts, including native PM compose and SwiftUI AQ/Bookmark prompts; remaining gaps are now edge-case behavior validation and bridge hardening.
 
 ## Scope and method
 This GAP is based on concrete code signals:
@@ -80,19 +82,19 @@ Required fields per feature:
 
 | ID | (1) User description | (2) ObjC implementation | (3) SwiftUI status | (4) ObjC non-UI dependencies | (5) Risks | (6) Effort | (7) Priority | Concrete references |
 |---|---|---|---|---|---|---|---|---|
-| G01 | Browse categories/forums from main tab. | `TabBarController`, `ForumsTableViewController`, XIB wiring. | Partial (tab active via UIKit wrapper; native SwiftUI categories not yet done). | `Forum`, `k`. | Wrapper-only parity can hide UI drift and slows full SwiftUI migration. | M | P0 | `Classes/TabBarController.m:57`, `HFRswift/Swift/MainWindow.swift:16`, `HFRswift/Swift/MainWindow.swift:32` |
+| G01 | Browse categories/forums from main tab. | `TabBarController`, `ForumsTableViewController`, XIB wiring. | Completed for current scope: Categories tab now uses native SwiftUI (`CategoriesListView` + `ForumTopicsListView`) with ObjC loaders kept as non-UI backends only. | `Forum`, `k`. | Residual risk reduced to backend parity/regression checks (covered by wrapper + view-model tests). | M | P0 | `HFRswift/Swift/MainWindow.swift:100`, `HFRswift/Swift/MainWindow.swift:223`, `HFRswift/Swift/MainWindow.swift:570`, `HFRswift/Swift/Common.swift:119`, `HFRswift/Swift/Common.swift:144` |
 | G02 | Forum quick filters Favoris/Suivis/Lus/Tous. | Long-press actions in `ForumsTableViewController`. | Missing in active SwiftUI flow. | `k` forum URL logic. | Missing power-user behavior. | M | P1 | `Classes/ForumsTableViewController.m:1090`, `Classes/ForumsTableViewController.m:1100` |
-| G03 | Topic quick actions (first/last/page/copy link). | `TopicsTableViewController` actions. | Not fully available end-to-end. | Topic URL pagination model. | Loss of critical navigation actions. | M | P0 | `Classes/TopicsTableViewController.m:614`, `Classes/TopicsTableViewController.m:618` |
-| G04 | Favorites advanced features (edit/reorder/filter/super favorite/swipe). | `FavoritesTableViewController`. | Partial; advanced menu still TODO/commented. | `FilterPostsQuotes` and favorites data. | High regression for heavy users. | L | P0 | `Classes/FavoritesTableViewController.m:143`, `Classes/FavoritesTableViewController.m:821`, `HFRswift/Swift/Favorites.swift:79` |
-| G05 | MP advanced actions (first/last/page/copy link). | `HFRMPViewController` action menu. | Partial; list works but advanced actions not exposed. | `MPStorage`. | MP navigation regression. | M | P0 | `Classes/HFRMPViewController.m:282`, `Classes/HFRMPViewController.m:285`, `HFRswift/Swift/MPListView.swift:24` |
-| G06 | Topic web interaction parity (custom schemes/popup/internal links). | `MessagesTableViewController` `WKNavigationDelegate`. | Completed for current scope: Swift routing now covers popup actions, internal topic links, auto page navigation actions, image-browser custom scheme, and smiley favorite custom scheme. | `ParseMessagesOperation`, `BlackList`, `SmileyCache`; avoid `OfflineStorage` unless mandatory temporary workaround. | Residual risk limited to out-of-scope optional menu actions deferred by product choice. | L | P0 | `HFRswift/Wrapped/MessagesTableViewController.m:2137`, `HFRswift/Wrapped/MessagesTableViewController.m:2235`, `HFRswift/Swift/Common.swift:398`, `HFRswift/Swift/MessagesView.swift:432`, `HFRswiftTests/MessageWebActionHandlerTests.swift:220` |
+| G03 | Topic quick actions (first/last/page/copy link). | `TopicsTableViewController` actions. | Completed for current scope: SwiftUI topic rows now match legacy context behavior (forum: first/last/last-reply/page/copy, favorites: last/last-reply/page/copy, MP: first/last/page/copy), with legacy last-reply URL priority and absolute copied links. | Topic URL pagination model. | Residual risk limited to live/on-device edge cases not reproducible in unit tests. | M | P0 | `Classes/TopicsTableViewController.m:614`, `Classes/HFRMPViewController.m:272`, `Classes/FavoritesTableViewController.m:1423`, `HFRswift/Swift/Common.swift:687`, `HFRswift/Swift/MPListView.swift:246`, `HFRswiftTests/ObjCWrapperLoaderBehaviorTests.swift:356` |
+| G04 | Favorites advanced features (filter/super favorite/swipe + section fold/unfold). | `FavoritesTableViewController`. | Partial but substantially advanced: super favorites, swipe actions, compact topic rows, colored states, and section fold/unfold are in SwiftUI; reordering stays explicitly de-scoped. | `FilterPostsQuotes` and favorites data. | Residual risk is now concentrated on heavy-user edge cases rather than missing primary features. | M | P0 | `Classes/FavoritesTableViewController.m:143`, `Classes/FavoritesTableViewController.m:821`, `HFRswift/Swift/Favorites.swift:79` |
+| G05 | MP advanced actions (first/last/page/copy link). | `HFRMPViewController` action menu. | Completed for current scope: SwiftUI MP rows expose first page, last page, page picker, and copy-link via the shared topic-row quick-action policy, aligned with legacy. | `MPStorage`. | Residual risk limited to on-device UX validation rather than missing functionality. | M | P0 | `Classes/HFRMPViewController.m:282`, `Classes/HFRMPViewController.m:285`, `HFRswift/Swift/MPListView.swift:246`, `HFRswift/Swift/Common.swift:1061`, `HFRswiftTests/ObjCWrapperLoaderBehaviorTests.swift:488` |
+| G06 | Topic web interaction parity (custom schemes/popup/internal links). | `MessagesTableViewController` `WKNavigationDelegate`. | In progress but now very close to parity: routing is covered, popup schemes are handled in Swift, and the popup menu exposes quote, multi-quote, edit, delete, profile, native PM compose, blacklist/whitelist, favorites, link share, alert, AQ, and bookmark, with SwiftUI-native prompts where relevant. Remaining deltas are behavioral edge cases and bridge hardening. | `ParseMessagesOperation`, `BlackList`, `SmileyCache`, `MPStorage`; avoid `OfflineStorage` unless mandatory temporary workaround. | Residual risk is now mainly parity drift in edge behaviors and regressions across mixed Swift/ObjC action bridges. | M | P0 | `HFRswift/Wrapped/MessagesTableViewController.m:2377`, `HFRswift/Wrapped/MessagesTableViewController.m:3005`, `HFRswift/Wrapped/MessagesTableViewController.m:3556`, `HFRswift/Swift/MessagesView.swift:120`, `HFRswift/Swift/MessagesView.swift:2671`, `HFRswiftTests/MessagePopupMenuPolicyTests.swift:1` |
 | G07 | Reliable reply flow (auth/hash/cookies/form post/errors). | Legacy composer + posting flow. | Partial (`AnswerView` custom; ObjC composer wrapper commented). | `MultisManager`, `HFRplusAppDelegate.hash_check`. | Posting/session regressions. | L | P0 | `HFRswift/Swift/AnswerView.swift:105`, `HFRswift/Swift/AnswerView.swift:114`, `HFRswift/Swift/ObjCMessageComposerView.swift:7` |
 | G08 | Plus routes parity (account/search/bookmarks/AQ/settings/credits/charter/delete). | `PlusTableViewController` routing. | Present via UIKit wrapper; not native SwiftUI yet. | Account/session + AQ backing services. | Route loss if wrapper removed too early. | M | P1 | `Classes/PlusTableViewController.m:82`, `Classes/PlusTableViewController.m:150`, `HFRswift/Swift/PlusTab.swift:10` |
 | G09 | Stable multi-account session switching. | `MultisManager` methods for account/cookies/main pseudo. | Partial and tightly coupled from Swift. | `MultisManager`. | Session state drift and threading issues. | M | P0 | `Classes/MultisManager.h:18`, `Classes/MultisManager.h:26`, `HFRswift/Swift/AccountsStore.swift:69` |
 | G10 | Lifecycle parity for startup/background tasks. | `HFRplusAppDelegate didFinishLaunchingWithOptions`. | Partial/non-validated. | `MultisManager`, `MPStorage`, `BlackList`, `SmileyCache` (avoid new `OfflineStorage` usage unless mandatory). | Startup/background side effects can diverge. | M | P1 | `Classes/HFRplusAppDelegate.m:65`, `Classes/HFRplusAppDelegate.m:126`, `Classes/HFRplusAppDelegate.m:132`, `Classes/HFRplusAppDelegate.m:144` |
 | G11 | iPad split/master-detail parity. | `MainWindow-iPad.xib`, iPad branch in app delegate. | Not implemented in SwiftUI target. | N/A | Potential iPad UX gap. Lower current priority. | M | P2 | `SuperHFRplus/XIB/MainWindow-iPad.xib:22`, `Classes/HFRplusAppDelegate.m:106` |
 | G12 | Interop boundary hardening (expose only ObjC non-UI pieces needed). | Shared broad bridging header. | Structural gap present. | `MultisManager`, `MPStorage`, `k`; keep `OfflineStorage` opt-in only. | Build fragility and migration slowdown. | M | P0 | `SuperHFRplus/SuperHFRplus-Bridging-Header.h:8`, `SuperHFRplus/SuperHFRplus-Bridging-Header.h:17` |
-| G13 | Minimal high-value test baseline on wrappers/policies. | Wrapped classes in `HFRswift/Wrapped` + ObjC controllers called by Swift. | Partial; broader coverage intentionally deferred. | Wrapped service/controller dependencies. | Regressions hidden behind wrappers if baseline is missing. | S | P0 | `HFRswift/Wrapped/MessagesTableViewController.h:31`, `HFRswift/Wrapped/ParseMessagesOperation.h:13`, `HFRswift/Swift/Favorites.swift:25`, `HFRswift/Swift/MPListView.swift:15` |
+| G13 | Minimal high-value test baseline on wrappers/policies. | Wrapped classes in `HFRswift/Wrapped` + ObjC controllers called by Swift. | In progress with a now-usable baseline: wrapper extraction tests and popup/action policy tests exist, but bridge-heavy action execution paths still need selective reinforcement. | Wrapped service/controller dependencies. | Regressions remain possible in action bridges (`AQ`, bookmark, favorite, BL/WL, PM routing) if coverage stops at policy-only checks. | S | P0 | `HFRswift/Wrapped/MessagesTableViewController.h:31`, `HFRswift/Wrapped/ParseMessagesOperation.h:13`, `HFRswiftTests/ObjCWrapperLoaderBehaviorTests.swift:167`, `HFRswiftTests/MessagePopupMenuPolicyTests.swift:1`, `HFRswiftTests/MessageWebActionHandlerTests.swift:1` |
 | G14 | Settings migration: remove legacy COTS and use modern native SwiftUI settings. | `PlusSettingsViewController` uses `InAppSettingsKit`. | Not migrated in SwiftUI. | Preference storage and theme/account services. | COTS lock-in and modernization blocker. | M | P1 | `Classes/PlusSettingsViewController.h:9`, `Classes/PlusSettingsViewController.m:16`, `Classes/PlusSettingsViewController.m:39` |
 | G15 | SwiftUI previews with mock data for migrated screens. | N/A legacy concern. | Partial/inconsistent. | Mock services and fixtures. | Slower UI iteration and less design/test safety. | S | P1 | `HFRswift/Swift/HFRswiftApp.swift:10`, `HFRswift/Swift/MessagesView.swift:129` |
 | G16 | Deprecated offline topic cache navigation must not be ported. | `OfflineMessagesTableViewController`. | Explicitly out of scope for migration. | None (de-scope item). | Wasted effort and added complexity if reintroduced. | S | P0 | `Classes/OfflineMessagesTableViewController.m:38`, `Classes/OfflineMessagesTableViewController.m:1785` |
@@ -103,19 +105,19 @@ Required fields per feature:
 ## Progress tracker
 | ID | Status | Exit criteria | Target phase |
 |---|---|---|---|
-| G01 | InProgress | Categories flow active and stable, with native SwiftUI follow-up scoped. | S1 |
+| G01 | Done | Categories/forums navigation is active in native SwiftUI and validated with baseline tests. | S1 |
 | G02 | NotStarted | Forum filter actions available in SwiftUI flow. | S1 |
-| G03 | NotStarted | Topic quick actions parity validated. | S1 |
-| G04 | NotStarted | Favorites advanced parity checklist passes. | S2 |
-| G05 | NotStarted | MP advanced parity checklist passes. | S2 |
-| G06 | Done | Web action routing parity validated for current scope (popup/internal links/custom schemes image+smiley). | S1-S2 |
+| G03 | Done | Topic quick actions parity validated for forum/favorites/MP contexts and covered by policy tests. | S1 |
+| G04 | InProgress | Favorites advanced parity checklist passes. | S2 |
+| G05 | Done | MP advanced parity checklist passes. | S2 |
+| G06 | InProgress | Full WebView contextual menu parity validated (routing + legacy per-message actions). | S1-S2 |
 | G07 | Done | Reply reliability tests pass. | S1-S2 |
 | G08 | NotStarted | Plus migrated without route regressions. | S3 |
 | G09 | NotStarted | Session/account service stable with tests. | S1 |
 | G10 | NotStarted | Startup/background behavior parity validated. | S3 |
 | G11 | NotStarted | iPad necessity study completed; implementation only if justified. | S4 |
 | G12 | NotStarted | Bridging boundary reduced and documented. | S0-S1 |
-| G13 | InProgress | Minimal wrapper/policy regression tests in place and run before push. | S0-S2 |
+| G13 | InProgress | Minimal wrapper/policy regression tests in place and run before push; bridge-heavy popup actions still need targeted coverage. | S0-S2 |
 | G14 | NotStarted | Settings no longer depends on InAppSettingsKit. | S2-S3 |
 | G15 | NotStarted | Previews with mock data added for migrated SwiftUI screens. | Continuous |
 | G16 | LockedOut | OfflineMessages flow marked non-portable and blocked in plan. | S0 |
@@ -124,16 +126,16 @@ Required fields per feature:
 | G19 | Done | Current-scope contextual popup actions (quote/profile + fallback) validated; optional contextual actions remain deferred by scope. | S1-R |
 
 ## Top 10 gaps to close
-1. G01 - Categories flow reactivation.
-2. G03 - Topic quick actions parity.
-3. G09 - Account/session adapter hardening.
-4. G13 - Minimal wrapper/policy regression baseline.
-5. G04 - Favorites advanced parity.
-6. G12 - Bridging boundary cleanup.
-7. G02 - Forum quick filter actions parity.
-8. G08 - Plus routes native SwiftUI migration.
-9. G14 - Settings migration away from legacy COTS.
-10. G10 - Startup/background parity validation.
+1. G09 - Account/session adapter hardening.
+2. G06 - Topic WebView edge-case validation and bridge hardening.
+3. G13 - Minimal wrapper/policy regression baseline.
+4. G04 - Favorites advanced parity edge-case validation.
+5. G12 - Bridging boundary cleanup.
+6. G02 - Forum quick filter actions parity.
+7. G08 - Plus routes native SwiftUI migration.
+8. G14 - Settings migration away from legacy COTS.
+9. G10 - Lifecycle parity for startup/background behavior.
+10. G15 - SwiftUI previews with mock data for migrated screens.
 
 ## Technical prerequisites
 1. Add guardrail: do not port `OfflineMessagesTableViewController`.

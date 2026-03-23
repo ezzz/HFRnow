@@ -6278,6 +6278,8 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = HFR;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Utilisé pour ajouter des photos aux messages.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Utilisé pour sauvegarder des photos/images.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Utilisé pour ajouter des photos aux messages.";
@@ -6296,10 +6298,10 @@
 					"$(PROJECT_DIR)",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 4.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = hfrswift.red.super;
+				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -6335,6 +6337,7 @@
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
@@ -6351,6 +6354,8 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = HFR;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Utilisé pour ajouter des photos aux messages.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Utilisé pour sauvegarder des photos/images.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Utilisé pour ajouter des photos aux messages.";
@@ -6369,11 +6374,12 @@
 					"$(PROJECT_DIR)",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 4.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = hfrswift.red.super;
+				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -6496,11 +6502,13 @@
 				ASSETCATALOG_COMPILER_OPTIMIZATION = time;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
+				CODE_SIGN_STYLE = Manual;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 30;
-				DEVELOPMENT_TEAM = QMG83DG7YP;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = QMG83DG7YP;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -6538,9 +6546,10 @@
 					"-licucore",
 					"-ObjC",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super;
+				PRODUCT_BUNDLE_IDENTIFIER = "hfrplus-legacy.red.super";
 				PRODUCT_NAME = SuperHFRplusSwift;
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "iOS-Distribution-Profile";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -6560,11 +6569,13 @@
 				ASSETCATALOG_COMPILER_OPTIMIZATION = time;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
+				CODE_SIGN_STYLE = Manual;
 				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = YES;
 				CURRENT_PROJECT_VERSION = 30;
-				DEVELOPMENT_TEAM = QMG83DG7YP;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = QMG83DG7YP;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -6600,9 +6611,10 @@
 					"-licucore",
 					"-ObjC",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super;
+				PRODUCT_BUNDLE_IDENTIFIER = "hfrplus-legacy.red.super";
 				PRODUCT_NAME = SuperHFRplusSwift;
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "iOS-Distribution-Profile";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;

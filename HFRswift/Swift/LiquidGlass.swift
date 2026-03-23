@@ -16,4 +16,15 @@ extension View {
             self
         }
     }
+
+    /// Applique un fond thinMaterial aux sheets enfants sur iOS 26,
+    /// pour rester cohérent avec l'esthétique Liquid Glass.
+    @ViewBuilder
+    func presentationGlassBackground() -> some View {
+        if #available(iOS 26.0, *) {
+            self.presentationBackground(.thinMaterial)
+        } else {
+            self
+        }
+    }
 }
