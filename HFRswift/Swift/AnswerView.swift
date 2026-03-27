@@ -70,15 +70,42 @@ struct AnswerView: View {
     private var presentedComposerPanel: Binding<ReplyComposerPanel?> {
         Binding(
             get: {
-                composerState.activePanel == .none ? nil : composerState.activePanel
+                // .favoriteSmileys est géré en overlay inline, pas via sheet
+                let panel = composerState.activePanel
+                guard panel != .none && panel != .favoriteSmileys else { return nil }
+                return panel
             },
-            set: { newValue in
-                composerState.activePanel = newValue ?? .none
-            }
+            set: { composerState.activePanel = $0 ?? .none }
         )
     }
 
     var body: some View {
+        composerContent
+            .overlay {
+                if composerState.activePanel == .favoriteSmileys {
+                    FavoriteSmileyPickerView(
+                        smileys: favoriteSmileys,
+                        onSelect: { selectedSmiley in
+                            insertSmileyCode(selectedSmiley.code)
+                            composerState.activePanel = .none
+                        },
+                        onClose: {
+                            composerState.activePanel = .none
+                        }
+                    )
+                }
+            }
+            .overlay(alignment: .top) {
+                if showToast {
+                    ToastBanner(text: toastText, isSuccess: toastIsSuccess)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .padding(.top, 8)
+                }
+            }
+            .animation(.spring(response: 0.35, dampingFraction: 0.9), value: showToast)
+    }
+
+    private var composerContent: some View {
         VStack(spacing: 0) {
             composerHeader
                 .padding(.horizontal, 16)
@@ -112,12 +139,6 @@ struct AnswerView: View {
                     composerState.activePanel = .none
                 }
                 .presentationDetents([.large])
-            case .favoriteSmileys:
-                SmileyPickerView(title: "Smileys favoris", smileys: favoriteSmileys) { selectedSmiley in
-                    insertSmileyCode(selectedSmiley.code)
-                    composerState.activePanel = .none
-                }
-                .presentationDetents([.large])
             case .imageInsertion:
                 ReplyImageInsertionView(
                     preferences: $imageUploadPreferences,
@@ -130,18 +151,10 @@ struct AnswerView: View {
                     composerState.activePanel = .none
                 }
                 .presentationDetents([.large])
-            case .none:
+            case .favoriteSmileys, .none:
                 EmptyView()
             }
         }
-        .overlay(alignment: .top) {
-            if showToast {
-                ToastBanner(text: toastText, isSuccess: toastIsSuccess)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                    .padding(.top, 8)
-            }
-        }
-        .animation(.spring(response: 0.35, dampingFraction: 0.9), value: showToast)
         .onAppear {
             composerState.message = composerDraftText
             undoHistory.removeAll()
@@ -794,6 +807,330 @@ private struct SmileyPickerView: View {
             }
         }
         .presentationGlassBackground()
+    }
+}
+
+// MARK: - Favorite Smiley Picker (avec recherche)
+
+/// Sheet smileys favoris enrichie d'une barre de recherche par mot-clé.
+/// - Affiche les favoris par défaut.
+/// - Un champ de saisie en bas lance la recherche HFR ; les résultats remplacent la grille.
+/// - Un bouton "← Favoris" permet de revenir à l'affichage initial.
+/// - L'historique des recherches réussies est proposé en complétion à la saisie suivante.
+private struct FavoriteSmileyPickerView: View {
+    let smileys: [ReplySmiley]
+    let onSelect: (ReplySmiley) -> Void
+    let onClose: () -> Void
+    private let columns = [GridItem(.adaptive(minimum: 78, maximum: 90), spacing: 4)]
+    private let searchService: any SmileySearching = HFRSmileySearchService()
+
+    enum DisplayMode: Equatable {
+        case favorites
+        case results([ReplySmiley])
+        case empty
+        static func == (lhs: DisplayMode, rhs: DisplayMode) -> Bool {
+            switch (lhs, rhs) {
+            case (.favorites, .favorites), (.empty, .empty): return true
+            case (.results(let a), .results(let b)): return a == b
+            default: return false
+            }
+        }
+    }
+
+    @State private var displayMode: DisplayMode = .favorites
+    @State private var searchText = ""
+    @State private var isSearching = false
+    @State private var recentSuggestions: [SmileySearchHistoryEntry] = []
+    @State private var topSuggestions: [SmileySearchHistoryEntry] = []
+    @State private var searchTask: Task<Void, Never>?
+    @FocusState private var isSearchFieldFocused: Bool
+
+    private var displayedSmileys: [ReplySmiley] {
+        if case .results(let r) = displayMode { return r }
+        return smileys
+    }
+    private var isShowingResults: Bool {
+        if case .favorites = displayMode { return false }
+        return true
+    }
+    private var hasSuggestions: Bool { !recentSuggestions.isEmpty || !topSuggestions.isEmpty }
+    private var canSearch: Bool { searchText.trimmingCharacters(in: .whitespacesAndNewlines).count >= 3 }
+    private var showSuggestions: Bool { hasSuggestions && displayMode == .favorites }
+
+    /// Chips à afficher : récents seulement si pas de texte, mélange récent+fréquent sinon.
+    private var suggestionChips: [SmileySearchHistoryEntry] {
+        if searchText.isEmpty {
+            return Array(recentSuggestions.prefix(4))
+        }
+        let recentTexts = Set(recentSuggestions.map { $0.text })
+        let uniqueTop = topSuggestions.filter { !recentTexts.contains($0.text) }
+        return Array((recentSuggestions + uniqueTop).prefix(5))
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ComposerSheetCloseHeader(title: "Smileys favoris") {
+                closePanel()
+            }
+
+            ScrollView {
+                if case .empty = displayMode {
+                    smileyEmptyState
+                } else {
+                    LazyVGrid(columns: columns, spacing: 4) {
+                        ForEach(displayedSmileys) { smiley in
+                            Button {
+                                selectSmiley(smiley)
+                            } label: {
+                                SmileyGridCell(smiley: smiley)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(smiley.code)
+                        }
+                    }
+                    .padding(8)
+                }
+            }
+
+            if showSuggestions && !suggestionChips.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(suggestionChips) { entry in
+                            Button {
+                                isSearchFieldFocused = false
+                                searchText = entry.text
+                                performSearch()
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: searchText.isEmpty ? "clock" : "magnifyingglass")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                    Text(entry.text)
+                                        .font(.subheadline)
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .smileyChipStyle()
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                }
+            }
+
+            Divider()
+
+            searchBarRow
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(.thinMaterial)
+        .onAppear {
+            isSearchFieldFocused = false
+            refreshSuggestions()
+        }
+        .onChange(of: searchText) { _, _ in refreshSuggestions() }
+        .onDisappear { searchTask?.cancel() }
+    }
+
+    // MARK: - Search bar row
+
+    private var searchBarRow: some View {
+        HStack(spacing: 8) {
+            // Bouton retour aux favoris (visible en mode résultats)
+            if isShowingResults {
+                Button(action: clearSearch) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 15, weight: .semibold))
+                        .padding(8)
+                }
+                .accessibilityLabel("Retour aux favoris")
+                .smileySearchButtonStyle()
+            }
+
+            // Champ de saisie
+            HStack {
+                TextField("Rechercher un smiley…", text: $searchText)
+                    .focused($isSearchFieldFocused)
+                    .submitLabel(.search)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                    .onSubmit { performSearch() }
+
+                if !searchText.isEmpty {
+                    Button {
+                        searchText = ""
+                        refreshSuggestions()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Effacer")
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 9)
+            .smileySearchFieldStyle()
+
+            // Bouton lancer la recherche ou spinner
+            if isSearching {
+                ProgressView()
+                    .controlSize(.small)
+                    .frame(width: 36, height: 36)
+            } else {
+                Button {
+                    performSearch()
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 15, weight: .semibold))
+                        .padding(8)
+                }
+                .disabled(!canSearch)
+                .opacity(canSearch ? 1 : 0.4)
+                .accessibilityLabel("Rechercher")
+                .smileySearchButtonStyle()
+            }
+        }
+    }
+
+    // MARK: - Empty state
+
+    private var smileyEmptyState: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "questionmark.bubble")
+                .font(.system(size: 44))
+                .foregroundStyle(.secondary)
+            Text("Aucun smiley trouvé")
+                .font(.headline)
+                .foregroundStyle(.secondary)
+            Text("Essayez avec un autre mot-clé.")
+                .font(.subheadline)
+                .foregroundStyle(.tertiary)
+            Button("Retour aux favoris", action: clearSearch)
+                .font(.subheadline)
+                .padding(.top, 4)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 80)
+        .padding(.bottom, 20)
+    }
+
+    // MARK: - Logic
+
+    private func refreshSuggestions() {
+        recentSuggestions = SmileySearchHistoryStore.recentSuggestions(matching: searchText)
+        topSuggestions = SmileySearchHistoryStore.topSuggestions(matching: searchText)
+    }
+
+    @MainActor
+    private func performAfterSearchFieldBlur(_ action: @escaping @MainActor () -> Void) {
+        let hadFocus = isSearchFieldFocused
+        isSearchFieldFocused = false
+        if hadFocus {
+            Task { @MainActor in
+                await Task.yield()
+                action()
+            }
+        } else {
+            action()
+        }
+    }
+
+    private func performSearch() {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard query.count >= 3 else { return }
+        isSearchFieldFocused = false
+        searchTask?.cancel()
+        isSearching = true
+        searchTask = Task {
+            do {
+                let results = try await searchService.search(query: query)
+                guard !Task.isCancelled else { return }
+                SmileySearchHistoryStore.record(query: query, resultCount: results.count)
+                await MainActor.run {
+                    isSearching = false
+                    displayMode = results.isEmpty ? .empty : .results(results)
+                }
+            } catch {
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    isSearching = false
+                    displayMode = .empty
+                }
+            }
+        }
+    }
+
+    private func clearSearch() {
+        isSearchFieldFocused = false
+        searchTask?.cancel()
+        isSearching = false
+        displayMode = .favorites
+    }
+
+    private func closePanel() {
+        Task { @MainActor in
+            performAfterSearchFieldBlur {
+                onClose()
+            }
+        }
+    }
+
+    private func selectSmiley(_ smiley: ReplySmiley) {
+        Task { @MainActor in
+            performAfterSearchFieldBlur {
+                onSelect(smiley)
+            }
+        }
+    }
+}
+
+// MARK: - View modifiers spécifiques à la recherche de smileys
+
+private extension View {
+    /// Fond du champ de texte de recherche.
+    @ViewBuilder
+    func smileySearchFieldStyle() -> some View {
+        if #available(iOS 26.0, *) {
+            self.glassEffect(in: .rect(cornerRadius: 10))
+        } else {
+            self
+                .background(Color(uiColor: .secondarySystemBackground), in: .rect(cornerRadius: 10))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(Color(uiColor: .separator).opacity(0.5), lineWidth: 0.5)
+                }
+        }
+    }
+
+    /// Style des boutons icône de la barre de recherche (retour, loupe).
+    @ViewBuilder
+    func smileySearchButtonStyle() -> some View {
+        if #available(iOS 26.0, *) {
+            self
+                .buttonBorderShape(.circle)
+                .buttonStyle(.glass)
+        } else {
+            self
+                .buttonStyle(.bordered)
+                .clipShape(.circle)
+        }
+    }
+
+    /// Style des chips de suggestions de recherche (capsule Liquid Glass).
+    @ViewBuilder
+    func smileyChipStyle() -> some View {
+        if #available(iOS 26.0, *) {
+            self.glassEffect(.regular.interactive(), in: .capsule)
+        } else {
+            self
+                .background(.thinMaterial, in: .capsule)
+                .overlay(Capsule().stroke(Color(uiColor: .separator).opacity(0.3), lineWidth: 0.5))
+        }
     }
 }
 
@@ -1471,6 +1808,8 @@ private struct ReplyTextEditor: UIViewRepresentable {
             if !uiView.isFirstResponder {
                 uiView.becomeFirstResponder()
             }
+        } else if uiView.isFirstResponder {
+            uiView.resignFirstResponder()
         }
     }
 
