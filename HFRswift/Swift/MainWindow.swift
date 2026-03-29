@@ -622,18 +622,20 @@ struct ForumTopicsListView: View {
             }
         }
         .refreshable {
-            await withCheckedContinuation { continuation in
-                viewModel.load()
-                // viewModel.load() fires a callback-based request; we observe isLoading
-                // to know when it completes. Poll on the main queue — load is fast.
-                func checkDone() {
-                    if !viewModel.isLoading {
-                        continuation.resume()
-                    } else {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { checkDone() }
+            // viewModel.load() is callback-based (ObjC). We poll isLoading on MainActor
+            // every 50ms to detect completion and release the pull-to-refresh spinner.
+            await MainActor.run { viewModel.load() }
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                @Sendable func checkDone() {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        if viewModel.isLoading {
+                            checkDone()
+                        } else {
+                            continuation.resume()
+                        }
                     }
                 }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { checkDone() }
+                checkDone()
             }
         }
         .navigationTitle(forum.aTitle ?? "Topics")
