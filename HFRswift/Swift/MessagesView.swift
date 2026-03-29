@@ -2931,35 +2931,6 @@ struct MessagesView: View {
         .allowsHitTesting(false)
     }
 
-    @ViewBuilder
-    private var composerNavigationLink: some View {
-        NavigationLink(
-            "",
-            isActive: $isComposerPresented
-        ) {
-            AnswerView(
-                topicURL: composerSubmitURL ?? topicAnswerURL,
-                title: composerNavigationTitle,
-                requiresSubject: composerRequiresSubject,
-                initialRecipient: composerRecipientName,
-                onPostSuccess: handleReplySuccess,
-                composerDraftText: $composerDraftText,
-                isComposerPresented: $isComposerPresented
-            )
-            .toolbar(.hidden, for: .navigationBar)
-            .toolbar(.hidden, for: .tabBar)
-        }
-        .hidden()
-        .allowsHitTesting(false)
-    }
-
-    @ViewBuilder
-    private var backgroundNavigationLinks: some View {
-        ZStack {
-            linkedTopicNavigationLink
-            composerNavigationLink
-        }
-    }
 
     private func uniqueValidPages(_ candidates: [Int], excluding excludedTargets: Set<Int> = []) -> [Int] {
         var seen = excludedTargets
@@ -3149,7 +3120,7 @@ struct MessagesView: View {
                 .onAppear {
                     loadPage(page)
                 }
-                .background(backgroundNavigationLinks)
+                .background(linkedTopicNavigationLink)
                 .sheet(item: $safariDestination) { destination in
                     SafariInAppView(url: destination.url)
                         .ignoresSafeArea()
@@ -3302,6 +3273,18 @@ struct MessagesView: View {
                         }
                     }
                 )
+                .sheet(isPresented: $isComposerPresented) {
+                    AnswerView(
+                        topicURL: composerSubmitURL ?? topicAnswerURL,
+                        title: composerNavigationTitle,
+                        requiresSubject: composerRequiresSubject,
+                        initialRecipient: composerRecipientName,
+                        onPostSuccess: handleReplySuccess,
+                        composerDraftText: $composerDraftText,
+                        isComposerPresented: $isComposerPresented
+                    )
+                    .presentationDetents([.large])
+                }
                 .sheet(item: $aqPromptState) { state in
                     MessagePopupPromptSheet(
                         title: "Alerte Qualitay",
@@ -3494,7 +3477,7 @@ struct MessagesView: View {
                         navigateToPage(selectedPage, initialScroll: .top)
                     }
                 }
-                .background(backgroundNavigationLinks)
+                .background(linkedTopicNavigationLink)
                 .sheet(item: $safariDestination) { destination in
                     SafariInAppView(url: destination.url)
                         .ignoresSafeArea()
@@ -3633,7 +3616,7 @@ struct MessagesView: View {
             .onAppear {
                 loadPage(page)
             }
-            .background(backgroundNavigationLinks)
+            .background(linkedTopicNavigationLink)
             .sheet(item: $safariDestination) { destination in
                 SafariInAppView(url: destination.url)
                     .ignoresSafeArea()
