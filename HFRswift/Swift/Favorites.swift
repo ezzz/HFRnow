@@ -474,6 +474,17 @@ struct FavoritesListView: View {
                     }
                 }
             }
+            .refreshable {
+                await MainActor.run { viewModel.loadFavorites() }
+                await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                    @Sendable func checkDone() {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                            if viewModel.isLoading { checkDone() } else { continuation.resume() }
+                        }
+                    }
+                    checkDone()
+                }
+            }
             .navigationTitle("Favoris")
             .onAppear {
                 superFavoriteIDs = FavoritesSuperFavoriteStore.load()
