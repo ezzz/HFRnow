@@ -88,6 +88,7 @@ struct MPListView: View {
     @State private var hasLoaded = false
     @State private var showAddAccountSheet = false
     @State private var showLogoutConfirm = false
+    @State private var isRefreshing = false
 
     private var isLoggedIn: Bool {
         accountsStore.currentAccount != nil
@@ -127,7 +128,7 @@ struct MPListView: View {
                     }
                     .padding(.vertical, 8)
                 } else {
-                    if viewModel.isLoading {
+                    if viewModel.isLoading && !isRefreshing {
                         HStack {
                             Spacer()
                             ProgressView("Chargement...")
@@ -148,6 +149,7 @@ struct MPListView: View {
                 }
             }
             .refreshable {
+                isRefreshing = true
                 await MainActor.run { viewModel.load() }
                 await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                     @Sendable func checkDone() {
@@ -157,6 +159,7 @@ struct MPListView: View {
                     }
                     checkDone()
                 }
+                isRefreshing = false
             }
             .navigationTitle("Messages")
             .onAppear {

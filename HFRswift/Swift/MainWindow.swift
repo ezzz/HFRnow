@@ -257,6 +257,7 @@ struct ForumTopicsListView: View {
     @State private var removingTopicIDs: Set<ObjectIdentifier> = []
     @State private var topicActionErrorMessage: String?
     @State private var selectedForumIdentifier: String
+    @State private var isRefreshing = false
 
     private let topicActionService: FavoritesTopicActionServicing
 
@@ -541,7 +542,7 @@ struct ForumTopicsListView: View {
                 .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
             }
 
-            if viewModel.isLoading {
+            if viewModel.isLoading && !isRefreshing {
                 HStack {
                     Spacer()
                     ProgressView("Chargement...")
@@ -622,8 +623,7 @@ struct ForumTopicsListView: View {
             }
         }
         .refreshable {
-            // viewModel.load() is callback-based (ObjC). We poll isLoading on MainActor
-            // every 50ms to detect completion and release the pull-to-refresh spinner.
+            isRefreshing = true
             await MainActor.run { viewModel.load() }
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                 @Sendable func checkDone() {
@@ -637,6 +637,7 @@ struct ForumTopicsListView: View {
                 }
                 checkDone()
             }
+            isRefreshing = false
         }
         .navigationTitle(forum.aTitle ?? "Topics")
         .toolbar {
