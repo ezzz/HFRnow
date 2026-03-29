@@ -621,6 +621,21 @@ struct ForumTopicsListView: View {
                 .listRowInsets(EdgeInsets(top: 5, leading: 12, bottom: 5, trailing: 12))
             }
         }
+        .refreshable {
+            await withCheckedContinuation { continuation in
+                viewModel.load()
+                // viewModel.load() fires a callback-based request; we observe isLoading
+                // to know when it completes. Poll on the main queue — load is fast.
+                func checkDone() {
+                    if !viewModel.isLoading {
+                        continuation.resume()
+                    } else {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { checkDone() }
+                    }
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { checkDone() }
+            }
+        }
         .navigationTitle(forum.aTitle ?? "Topics")
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {

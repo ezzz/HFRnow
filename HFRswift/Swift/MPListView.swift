@@ -224,39 +224,58 @@ struct MPListView: View {
 
 struct MPRowView: View {
     var topic: Topic
-    var isVisited: Bool = false
+
+    // "[non lu]" prefix detection — strips brackets, returns the keyword if present.
+    private static let nonLuPrefix = "[non lu]"
+
+    private var isViewed: Bool {
+        topic.isViewed
+    }
+
+    private var hasNonLuPrefix: Bool {
+        (topic._aTitle ?? "").lowercased().hasPrefix(Self.nonLuPrefix)
+    }
+
+    private var cleanedTitle: String? {
+        guard hasNonLuPrefix, let raw = topic._aTitle else { return nil }
+        return raw.dropFirst(Self.nonLuPrefix.count)
+            .trimmingCharacters(in: .whitespaces)
+    }
+
+    private var nonLuBadge: AnyView? {
+        guard hasNonLuPrefix else { return nil }
+        return AnyView(
+            Text("non lu")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(Color(uiColor: .systemGray).opacity(isViewed ? 0.5 : 1), in: Capsule())
+        )
+    }
 
     private var interlocutorLabel: String? {
-        guard let interlocutor = topic.aAuthorOrInter else {
-            return nil
-        }
-        if interlocutor.contains("multiples") {
-            return "Interlocuteurs multiples"
-        }
+        guard let interlocutor = topic.aAuthorOrInter else { return nil }
+        if interlocutor.contains("multiples") { return "Interlocuteurs multiples" }
         return interlocutor
     }
 
     private var trailingLabel: String? {
-        guard
-            let author = topic.aAuthorOfLastPost,
-            let when = topic.aDateOfLastPost
-        else {
-            return nil
-        }
+        guard let author = topic.aAuthorOfLastPost, let when = topic.aDateOfLastPost else { return nil }
         return "\(author) - \(when)"
     }
 
     private var avatarAccessory: AnyView {
-        AnyView(
-            MPAvatarView(interlocutor: topic.aAuthorOrInter)
-        )
+        AnyView(MPAvatarView(interlocutor: topic.aAuthorOrInter))
     }
 
     var body: some View {
         TopicListRowView(
             topic: topic,
-            isVisited: isVisited,
-            titleFont: .system(size: 13, weight: isVisited ? .regular : .semibold),
+            isVisited: isViewed,
+            titleFont: .system(size: 13, weight: isViewed ? .regular : .semibold),
+            titleOverride: cleanedTitle,
+            titleLeadingBadge: nonLuBadge,
             showUnreadBadge: false,
             leadingBottomText: interlocutorLabel,
             trailingBottomText: trailingLabel,

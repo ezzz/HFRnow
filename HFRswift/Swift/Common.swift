@@ -1801,6 +1801,8 @@ struct TopicListRowView: View {
     let topic: Topic
     let isVisited: Bool
     var titleFont: Font = .headline
+    var titleOverride: String? = nil
+    var titleLeadingBadge: AnyView? = nil
     var showUnreadBadge = false
     var showUnreadBadgeWhenZero = false
     var leadingBottomText: String?
@@ -1825,7 +1827,7 @@ struct TopicListRowView: View {
     }
 
     private var titleText: String {
-        topic._aTitle ?? "Sans titre"
+        titleOverride ?? topic._aTitle ?? "Sans titre"
     }
 
     private var maxTopicPageValue: Int {
@@ -2050,6 +2052,9 @@ struct TopicListRowView: View {
                             Image(systemName: "lock.fill")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(.secondary)
+                        }
+                        if let titleLeadingBadge {
+                            titleLeadingBadge
                         }
                         Text(titleText)
                             .font(titleFont)
