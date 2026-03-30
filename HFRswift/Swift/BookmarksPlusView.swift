@@ -190,6 +190,7 @@ struct BookmarksPlusView: View {
                     ProgressView()
                 } else {
                     Button("Actualiser", systemImage: "arrow.clockwise") {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         viewModel.refreshRemoteBookmarks()
                     }
                 }

@@ -637,6 +637,7 @@ struct ForumTopicsListView: View {
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     viewModel.load()
                 } label: {
                     if viewModel.isLoading {

@@ -366,6 +366,7 @@ struct AQPlusView: View {
                     ProgressView()
                 } else {
                     Button("Actualiser", systemImage: "arrow.clockwise") {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         viewModel.refresh()
                     }
                 }
