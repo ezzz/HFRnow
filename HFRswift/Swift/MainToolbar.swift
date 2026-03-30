@@ -10,17 +10,20 @@ import UIKit
 
 struct MainToolbarContent<MenuItems: View>: ToolbarContent {
     let onRefresh: () -> Void
+    let isLoading: Bool
     let profileImage: UIImage?
     let profileImageURL: URL?
     let menuItems: () -> MenuItems
 
     init(
         onRefresh: @escaping () -> Void,
+        isLoading: Bool = false,
         profileImage: UIImage? = nil,
         profileImageURL: URL? = nil,
         @ViewBuilder menuItems: @escaping () -> MenuItems
     ) {
         self.onRefresh = onRefresh
+        self.isLoading = isLoading
         self.profileImage = profileImage
         self.profileImageURL = profileImageURL
         self.menuItems = menuItems
@@ -31,8 +34,14 @@ struct MainToolbarContent<MenuItems: View>: ToolbarContent {
             Button {
                 onRefresh()
             } label: {
-                Image(systemName: "arrow.clockwise")
+                if isLoading {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Image(systemName: "arrow.clockwise")
+                }
             }
+            .disabled(isLoading)
         }
         ToolbarItemGroup(placement: .navigationBarLeading) {
             Menu {

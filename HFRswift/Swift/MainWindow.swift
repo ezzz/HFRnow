@@ -131,13 +131,6 @@ struct CategoriesListView: View {
     var body: some View {
         NavigationStack {
             List {
-                if viewModel.isLoading {
-                    HStack {
-                        Spacer()
-                        ProgressView("Chargement...")
-                        Spacer()
-                    }
-                }
                 if let errorMessage = viewModel.errorMessage {
                     Text("Erreur : \(errorMessage)")
                         .foregroundStyle(.red)
@@ -178,9 +171,16 @@ struct CategoriesListView: View {
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Actualiser", systemImage: "arrow.clockwise") {
+                    Button {
                         viewModel.load()
+                    } label: {
+                        if viewModel.isLoading {
+                            ProgressView().controlSize(.small)
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                        }
                     }
+                    .disabled(viewModel.isLoading)
                 }
             }
             .onAppear {
@@ -257,7 +257,6 @@ struct ForumTopicsListView: View {
     @State private var removingTopicIDs: Set<ObjectIdentifier> = []
     @State private var topicActionErrorMessage: String?
     @State private var selectedForumIdentifier: String
-    @State private var isRefreshing = false
 
     private let topicActionService: FavoritesTopicActionServicing
 
@@ -542,13 +541,6 @@ struct ForumTopicsListView: View {
                 .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
             }
 
-            if viewModel.isLoading && !isRefreshing {
-                HStack {
-                    Spacer()
-                    ProgressView("Chargement...")
-                    Spacer()
-                }
-            }
             if let errorMessage = viewModel.errorMessage {
                 Text("Erreur : \(errorMessage)")
                     .foregroundStyle(.red)
@@ -623,21 +615,15 @@ struct ForumTopicsListView: View {
             }
         }
         .refreshable {
-            isRefreshing = true
             await MainActor.run { viewModel.load() }
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                 @Sendable func checkDone() {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                        if viewModel.isLoading {
-                            checkDone()
-                        } else {
-                            continuation.resume()
-                        }
+                        if viewModel.isLoading { checkDone() } else { continuation.resume() }
                     }
                 }
                 checkDone()
             }
-            isRefreshing = false
         }
         .navigationTitle(forum.aTitle ?? "Topics")
         .toolbar {
@@ -649,9 +635,16 @@ struct ForumTopicsListView: View {
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Actualiser", systemImage: "arrow.clockwise") {
+                Button {
                     viewModel.load()
+                } label: {
+                    if viewModel.isLoading {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Image(systemName: "arrow.clockwise")
+                    }
                 }
+                .disabled(viewModel.isLoading)
             }
         }
         .onAppear {

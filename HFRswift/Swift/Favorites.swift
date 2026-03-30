@@ -338,7 +338,6 @@ struct FavoritesListView: View {
     @State private var collapsedSectionIDs: Set<String>
     @State private var removingTopicIDs: Set<Int> = []
     @State private var topicActionErrorMessage: String?
-    @State private var isRefreshing = false
 
     private let topicActionService: FavoritesTopicActionServicing
 
@@ -440,13 +439,6 @@ struct FavoritesListView: View {
                     }
                     .padding(.vertical, 8)
                 } else {
-                    if viewModel.isLoading && !isRefreshing {
-                        HStack {
-                            Spacer()
-                            ProgressView("Chargement...")
-                            Spacer()
-                        }
-                    }
                     if let errorMessage = viewModel.errorMessage {
                         Text("Erreur : \(errorMessage)")
                             .foregroundStyle(.red)
@@ -476,7 +468,6 @@ struct FavoritesListView: View {
                 }
             }
             .refreshable {
-                isRefreshing = true
                 await MainActor.run { viewModel.loadFavorites() }
                 await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                     @Sendable func checkDone() {
@@ -486,7 +477,6 @@ struct FavoritesListView: View {
                     }
                     checkDone()
                 }
-                isRefreshing = false
             }
             .navigationTitle("Favoris")
             .onAppear {
@@ -518,6 +508,7 @@ struct FavoritesListView: View {
                     onRefresh: {
                         viewModel.loadFavorites()
                     },
+                    isLoading: viewModel.isLoading,
                     profileImage: accountsStore.currentAvatarImage,
                     profileImageURL: nil
                 ) {
