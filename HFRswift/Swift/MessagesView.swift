@@ -2151,15 +2151,18 @@ struct MessagesView: View {
     let maxPage: Int
     let separatorNewMessages: Bool
     let initialLoadScroll: WebView.InitialScroll?
+    let navigationDepth: Int
     let topicPageLoader: TopicPageLoading
     let topicPageRenderer: TopicPageRendering
     let replyQuoteTemplateLoader: ReplyQuoteTemplateLoading
     let messageDeletionService: any MessageDeletionService
     let moderationAlertService: any ModerationAlertService
 
+    @Environment(\.dismiss) private var dismiss
     @ObservedObject private var appTheme = AppThemeStore.shared
     @State private var page: Int
     @State private var availableMaxPage: Int
+    @State private var topicDisplayTitle: String
     @State private var fileURL: URL?
     @State private var cacheURL: URL?
     @State private var errorMessage: String?
@@ -2221,6 +2224,7 @@ struct MessagesView: View {
         maxPage: Int,
         separatorNewMessages: Bool,
         initialLoadScroll: WebView.InitialScroll? = nil,
+        navigationDepth: Int = 0,
         topicPageLoader: TopicPageLoading = ObjCTopicPageLoader(),
         topicPageRenderer: TopicPageRendering = OfflineStorageTopicPageRenderer(),
         replyQuoteTemplateLoader: ReplyQuoteTemplateLoading = ForumReplyQuoteTemplateService(),
@@ -2232,6 +2236,7 @@ struct MessagesView: View {
         self.maxPage = maxPage
         self.separatorNewMessages = separatorNewMessages
         self.initialLoadScroll = initialLoadScroll
+        self.navigationDepth = navigationDepth
         self.topicPageLoader = topicPageLoader
         self.topicPageRenderer = topicPageRenderer
         self.replyQuoteTemplateLoader = replyQuoteTemplateLoader
@@ -2239,6 +2244,7 @@ struct MessagesView: View {
         self.moderationAlertService = moderationAlertService
         self._page = State(initialValue: curPage)
         self._availableMaxPage = State(initialValue: max(max(maxPage, curPage), 1))
+        self._topicDisplayTitle = State(initialValue: topic._aTitle ?? "")
         self._initialScroll = State(initialValue: initialLoadScroll)
 
         // extraire l’ancre (#xxxx) si présente
@@ -2317,6 +2323,9 @@ struct MessagesView: View {
                     applyLoadedPagination(from: content, requestedPage: page)
                     self.topicAnswerURL = content.topicAnswerURL
                     self.messageActionsByIndex = content.messageActionsByIndex
+                    if let newTitle = content.topicTitle, !newTitle.isEmpty {
+                        self.topicDisplayTitle = newTitle
+                    }
                 }
             }
         }
@@ -2352,6 +2361,9 @@ struct MessagesView: View {
                     applyLoadedPagination(from: content, requestedPage: requestedPage)
                     self.topicAnswerURL = content.topicAnswerURL
                     self.messageActionsByIndex = content.messageActionsByIndex
+                    if let newTitle = content.topicTitle, !newTitle.isEmpty {
+                        self.topicDisplayTitle = newTitle
+                    }
                 }
             }
         }
@@ -2920,7 +2932,8 @@ struct MessagesView: View {
                     topic: linkedTopic,
                     curPage: Int(linkedTopic.curTopicPage),
                     maxPage: max(Int(linkedTopic.maxTopicPage), 1),
-                    separatorNewMessages: true
+                    separatorNewMessages: true,
+                    navigationDepth: navigationDepth + 1
                 )
                 .toolbar(.hidden, for: .tabBar)
             } else {
@@ -2979,6 +2992,27 @@ struct MessagesView: View {
 
     private var shouldHighlightNextPageButton: Bool {
         page < currentMaxPage && isWebContentAtBottom
+    }
+
+    @ToolbarContentBuilder
+    private var navigationDepthBackButton: some ToolbarContent {
+        if navigationDepth > 0 {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    dismiss()
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "chevron.backward")
+                            .fontWeight(.semibold)
+                        Text("\(navigationDepth)")
+                            .font(.caption2.weight(.semibold))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(.tint.opacity(0.15), in: Capsule())
+                    }
+                }
+            }
+        }
     }
 
     private func refreshCurrentPageAtBottom() {
@@ -3101,10 +3135,12 @@ struct MessagesView: View {
         // Use ViewBuilder implicit grouping to avoid generic inference issues with Group
         if let errorMessage {
             Text("Erreur : \(errorMessage)").foregroundColor(.red)
+                .navigationBarBackButtonHidden(navigationDepth > 0)
                 .toolbar {
+                    navigationDepthBackButton
                     ToolbarItem(placement: .principal) {
                         VStack(spacing: 2) {
-                            Text(topic._aTitle ?? "Messages")
+                            Text(topicDisplayTitle.isEmpty ? (topic._aTitle ?? "Messages") : topicDisplayTitle)
                                 .font(.caption2)
                                 .fontWeight(.bold)
                                 .lineLimit(1)
@@ -3251,6 +3287,7 @@ struct MessagesView: View {
             }
             .ignoresSafeArea()
             .navigationBarTitleDisplayMode(.inline)
+            .navigationBarBackButtonHidden(navigationDepth > 0)
 
                 .simultaneousGesture(
                     DragGesture().onEnded { value in
@@ -3392,9 +3429,10 @@ struct MessagesView: View {
                     Text(popupActionErrorMessage ?? "Erreur inconnue.")
                 }
                 .toolbar {
+                    navigationDepthBackButton
                     ToolbarItem(placement: .principal) {
                         VStack(spacing: 2) {
-                            Text(topic._aTitle ?? "Messages")
+                            Text(topicDisplayTitle.isEmpty ? (topic._aTitle ?? "Messages") : topicDisplayTitle)
                                 .font(.caption2)
                                 .fontWeight(.bold)
                                 .lineLimit(1)
@@ -3427,6 +3465,8 @@ struct MessagesView: View {
                             }
                             .contextMenu {
                                 backwardContextMenuItems()
+                            } preview: {
+                                Color.clear.frame(width: 1, height: 1)
                             }
                             .disabled(page <= 1)
 
@@ -3437,6 +3477,8 @@ struct MessagesView: View {
                             }
                             .contextMenu {
                                 forwardContextMenuItems()
+                            } preview: {
+                                Color.clear.frame(width: 1, height: 1)
                             }
                             .topicBottomBarButtonStyle(isProminent: shouldHighlightNextPageButton)
                             .disabled(page >= currentMaxPage)
@@ -3542,11 +3584,12 @@ struct MessagesView: View {
                 .navigationTitle("My title")
                 .navigationBarTitleDisplayMode(.inline)
             }
-        
+            .navigationBarBackButtonHidden(navigationDepth > 0)
             .toolbar {
+                navigationDepthBackButton
                 ToolbarItem(placement: .principal) {
                     VStack(spacing: 2) {
-                        Text(topic._aTitle ?? "Messages")
+                        Text(topicDisplayTitle.isEmpty ? (topic._aTitle ?? "Messages") : topicDisplayTitle)
                             .font(.caption2)
                             .fontWeight(.bold)
                             .lineLimit(1)

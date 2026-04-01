@@ -848,19 +848,22 @@ struct TopicPageContent {
     let currentPage: Int?
     let maxPage: Int?
     let messageActionsByIndex: [Int: TopicPageMessageActions]
+    let topicTitle: String?
 
     init(
         html: String,
         topicAnswerURL: URL?,
         currentPage: Int? = nil,
         maxPage: Int? = nil,
-        messageActionsByIndex: [Int: TopicPageMessageActions] = [:]
+        messageActionsByIndex: [Int: TopicPageMessageActions] = [:],
+        topicTitle: String? = nil
     ) {
         self.html = html
         self.topicAnswerURL = topicAnswerURL
         self.currentPage = currentPage
         self.maxPage = maxPage
         self.messageActionsByIndex = messageActionsByIndex
+        self.topicTitle = topicTitle
     }
 }
 
@@ -936,12 +939,17 @@ final class ObjCTopicPageLoader: TopicPageLoading {
             }
             let answerURL = (topicAnswerURL as String?).flatMap(URL.init(string:))
             let messageActionsByIndex = self.extractMessageActionsByIndex(from: controller)
+            let topicTitle = (controller.value(forKey: "sNavigationViewTitle") as? String)
+                .flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                ?? (controller.value(forKey: "_topicName") as? String)
+                    .flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             completion(.success(TopicPageContent(
                 html: html,
                 topicAnswerURL: answerURL,
                 currentPage: currentPage?.intValue,
                 maxPage: maxPage?.intValue,
-                messageActionsByIndex: messageActionsByIndex
+                messageActionsByIndex: messageActionsByIndex,
+                topicTitle: topicTitle
             )))
         }
         function(controller, selector, url as NSString, anchor as NSString?, block)
