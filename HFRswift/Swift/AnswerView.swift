@@ -150,7 +150,9 @@ struct AnswerView: View {
                 text: $message,
                 selectedRange: $selectedRangeUTF16,
                 focusRequest: focusRequest,
-                focusTrigger: focusTrigger
+                focusTrigger: focusTrigger,
+                onBBCodeAction: performBBCode,
+                onSplitQuote: performSplitQuote
             )
             .padding(12)
             .composerEditorStyle()
@@ -424,6 +426,22 @@ struct AnswerView: View {
         message = result.text
         selectedRangeUTF16 = NSRange(location: result.cursorLocationUTF16, length: 0)
         // Focus is restored via the sheet's onDismiss — no action needed here.
+    }
+
+    private func performBBCode(_ tag: BBCodeTag, range: NSRange) {
+        let result = ReplyTextInsertionEngine.wrapWithBBCode(tag, in: message, selectedUTF16Range: range)
+        applyInsertionResult(result)
+    }
+
+    private func performSplitQuote(atUTF16Offset offset: Int) {
+        guard let result = ReplyTextInsertionEngine.splitQuote(in: message, atUTF16Offset: offset) else { return }
+        applyInsertionResult(result)
+    }
+
+    private func applyInsertionResult(_ result: ReplyTextInsertionResult) {
+        message = result.text
+        selectedRangeUTF16 = NSRange(location: result.cursorLocationUTF16, length: 0)
+        requestEditorFocus()
     }
 
     private func clearComposer() {
@@ -1533,6 +1551,8 @@ private struct ReplyTextEditor: UIViewRepresentable {
     @Binding var selectedRange: NSRange
     let focusRequest: TextEditorFocusRequest
     let focusTrigger: Int   // changing this forces updateUIView to be called
+    var onBBCodeAction: ((BBCodeTag, NSRange) -> Void)?
+    var onSplitQuote: ((Int) -> Void)?
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -1587,6 +1607,39 @@ private struct ReplyTextEditor: UIViewRepresentable {
             if parent.selectedRange != textView.selectedRange {
                 parent.selectedRange = textView.selectedRange
             }
+        }
+
+        @available(iOS 16.0, *)
+        func textView(
+            _ textView: UITextView,
+            editMenuForTextIn range: NSRange,
+            suggestedActions: [UIMenuElement]
+        ) -> UIMenu? {
+            var children = suggestedActions
+
+            // "Fractionner la citation" uniquement si pas de sélection
+            if range.length == 0 {
+                let cursorLocation = range.location
+                let splitAction = UIAction(
+                    title: "Fractionner la citation",
+                    image: UIImage(systemName: "scissors")
+                ) { [weak self] _ in
+                    self?.parent.onSplitQuote?(cursorLocation)
+                }
+                children.append(splitAction)
+            }
+
+            // Actions BBCode
+            for tag in BBCodeTag.allCases {
+                let capturedRange = range
+                let image = tag.systemImage.flatMap { UIImage(systemName: $0) }
+                let action = UIAction(title: tag.label, image: image) { [weak self] _ in
+                    self?.parent.onBBCodeAction?(tag, capturedRange)
+                }
+                children.append(action)
+            }
+
+            return UIMenu(title: "", options: .displayInline, children: children)
         }
     }
 }
