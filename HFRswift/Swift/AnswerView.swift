@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 import PhotosUI
+import GiphyUISDK
 
 // MARK: - Focus Request
 //
@@ -78,6 +79,7 @@ struct AnswerView: View {
 
     // MARK: Panel
     @State private var activePanel: ComposerPanel?
+    @State private var isGiphyPresented = false
 
     enum ComposerPanel: String, Identifiable {
         case defaultSmileys, favoriteSmileys, imageInsertion
@@ -167,6 +169,14 @@ struct AnswerView: View {
         // in the view hierarchy and can safely become first responder.
         .sheet(item: $activePanel, onDismiss: requestEditorFocus) { panel in
             panelView(for: panel)
+        }
+        .fullScreenCover(isPresented: $isGiphyPresented, onDismiss: requestEditorFocus) {
+            GiphyPanel {
+                insertSnippet($0)
+            } onDismiss: {
+                isGiphyPresented = false
+            }
+            .ignoresSafeArea()
         }
         .overlay(alignment: .top) {
             if showToast {
@@ -403,6 +413,13 @@ struct AnswerView: View {
             ) {
                 favoriteSmileys = smileyCatalogLoader.loadFavoriteSmileys()
                 activePanel = .favoriteSmileys
+            }
+            ComposerToolbarButton(
+                systemImage: "g.circle",
+                accessibilityLabel: "GIF Giphy",
+                isDisabled: isPosting
+            ) {
+                isGiphyPresented = true
             }
             ComposerToolbarButton(
                 systemImage: "photo",
@@ -1640,6 +1657,67 @@ private struct ReplyTextEditor: UIViewRepresentable {
             }
 
             return UIMenu(title: "", options: .displayInline, children: children)
+        }
+    }
+}
+
+// MARK: - Toast
+
+// MARK: - Giphy panel
+//
+// GiphyViewController manages its own card-style presentation internally.
+// We use a transparent container VC and let Giphy present itself on it,
+// exactly like the legacy ObjC code does with [self presentViewController:...].
+// This avoids the half-height layout issue caused by embedding Giphy inside a
+// SwiftUI fullScreenCover view hierarchy.
+
+private struct GiphyPanel: UIViewControllerRepresentable {
+    @Environment(\.colorScheme) private var colorScheme
+    let onSelect: (String) -> Void
+    let onDismiss: () -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(onSelect: onSelect, onDismiss: onDismiss) }
+
+    func makeUIViewController(context: Context) -> UIViewController {
+        let container = UIViewController()
+        container.view.backgroundColor = .clear
+
+        let giphy = GiphyViewController()
+        giphy.delegate = context.coordinator
+        giphy.theme = GPHTheme(type: colorScheme == .dark ? .darkBlur : .light)
+        giphy.rating = .ratedR
+        giphy.showConfirmationScreen = true
+        giphy.mediaTypeConfig = [.gifs, .recents]
+
+        context.coordinator.giphyViewController = giphy
+
+        // Present after the container is in the hierarchy
+        DispatchQueue.main.async {
+            container.present(giphy, animated: true)
+        }
+        return container
+    }
+
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
+
+    final class Coordinator: NSObject, GiphyDelegate {
+        let onSelect: (String) -> Void
+        let onDismiss: () -> Void
+        weak var giphyViewController: GiphyViewController?
+
+        init(onSelect: @escaping (String) -> Void, onDismiss: @escaping () -> Void) {
+            self.onSelect = onSelect
+            self.onDismiss = onDismiss
+        }
+
+        func didSelectMedia(giphyViewController: GiphyViewController, media: GPHMedia) {
+            guard let url = media.images?.original?.gifUrl else { return }
+            onSelect("[img]\(url)[/img]\n")
+            onDismiss()
+        }
+
+        func didDismiss(controller: GiphyViewController?) {
+            onDismiss()
         }
     }
 }
