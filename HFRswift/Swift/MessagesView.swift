@@ -2206,6 +2206,8 @@ struct MessagesView: View {
     @State private var bookmarkPromptState: BookmarkPromptState?
     @State private var popupActionErrorMessage: String?
     @State private var isPreparingAQPrompt = false
+    @State private var pollData: PollData?
+    @State private var isPollSheetPresented = false
     @State private var showWebViewLoadCover = true
     @State private var isWebContentAtBottom = false
     @State private var pendingPostedReply: ReplyPostingResult?
@@ -2323,6 +2325,7 @@ struct MessagesView: View {
                     applyLoadedPagination(from: content, requestedPage: page)
                     self.topicAnswerURL = content.topicAnswerURL
                     self.messageActionsByIndex = content.messageActionsByIndex
+                    self.pollData = content.pollData
                     if let newTitle = content.topicTitle, !newTitle.isEmpty {
                         self.topicDisplayTitle = newTitle
                     }
@@ -2361,6 +2364,7 @@ struct MessagesView: View {
                     applyLoadedPagination(from: content, requestedPage: requestedPage)
                     self.topicAnswerURL = content.topicAnswerURL
                     self.messageActionsByIndex = content.messageActionsByIndex
+                    self.pollData = content.pollData
                     if let newTitle = content.topicTitle, !newTitle.isEmpty {
                         self.topicDisplayTitle = newTitle
                     }
@@ -3601,6 +3605,13 @@ struct MessagesView: View {
                     }
                     .multilineTextAlignment(.center)
                 }
+                if let pollData {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        PollToolbarButton(isVotable: pollData.isVotable) {
+                            isPollSheetPresented = true
+                        }
+                    }
+                }
                 ToolbarItem(placement: .primaryAction) {
                     // Menu avec options
                     Menu {
@@ -3654,6 +3665,13 @@ struct MessagesView: View {
                     pageInput: $pagePickerInput
                 ) { selectedPage in
                     navigateToPage(selectedPage, initialScroll: .top)
+                }
+            }
+            .sheet(isPresented: $isPollSheetPresented) {
+                if let pollData {
+                    PollSheet(pollData: pollData, onVoteSucceeded: {
+                        loadPage(page)
+                    })
                 }
             }
             .onAppear {

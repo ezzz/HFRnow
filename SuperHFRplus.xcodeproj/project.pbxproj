@@ -2034,6 +2034,8 @@
 		15B5FC4C264FAE48006CBEF0 /* InAppSettingsKit.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = InAppSettingsKit.xcframework; path = Carthage/Build/InAppSettingsKit.xcframework; sourceTree = "<group>"; };
 		15B5FC4F264FAE4D006CBEF0 /* SimpleKeychain.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = SimpleKeychain.xcframework; path = Carthage/Build/SimpleKeychain.xcframework; sourceTree = "<group>"; };
 		15B5FC5626512005006CBEF0 /* GiphyUISDK.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = GiphyUISDK.xcframework; path = Frameworks/GiphyUISDK.xcframework; sourceTree = "<group>"; };
+		15BA0001AA112345678901AB /* HFRswift.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = HFRswift.entitlements; sourceTree = "<group>"; };
+		15BA0002AA112345678901AB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		15BDF02A2D418F8C00533CB9 /* libiconv.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libiconv.tbd; path = usr/lib/libiconv.tbd; sourceTree = SDKROOT; };
 		15C6455E2DC773450033B935 /* Icon-REDFACE-BLUE-IPAD@1x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-REDFACE-BLUE-IPAD@1x.png"; sourceTree = "<group>"; };
 		15C6455F2DC773450033B935 /* Icon-REDFACE-BLUE-IPAD@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-REDFACE-BLUE-IPAD@2x.png"; sourceTree = "<group>"; };
@@ -2768,8 +2770,6 @@
 		D8F5CBB01DF462F100B029FC /* ThemeColors.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ThemeColors.m; sourceTree = "<group>"; };
 		D9C70B882E40C54B00FE42CE /* OfflineStorage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = OfflineStorage.h; sourceTree = "<group>"; };
 		D9C70B892E40C54B00FE42CE /* OfflineStorage.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = OfflineStorage.m; sourceTree = "<group>"; };
-		15BA0001AA112345678901AB /* HFRswift.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = HFRswift.entitlements; sourceTree = "<group>"; };
-		15BA0002AA112345678901AB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */

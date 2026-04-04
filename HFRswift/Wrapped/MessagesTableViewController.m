@@ -805,6 +805,11 @@
     self.aToolbar = tmptoolbar;
 }
 
+- (NSString *)swiftPollHTML {
+    if (!self.pollNode || !self.pollParser) { return nil; }
+    return rawContentsOfNode([self.pollNode _node], [self.pollParser _doc]);
+}
+
 -(void)setupPoll:(HTMLNode *)bodyNode andP:(HTMLParser *)myParser {
     self.pollNode = nil;
     self.pollParser = nil;

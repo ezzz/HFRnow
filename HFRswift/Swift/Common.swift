@@ -849,6 +849,7 @@ struct TopicPageContent {
     let maxPage: Int?
     let messageActionsByIndex: [Int: TopicPageMessageActions]
     let topicTitle: String?
+    let pollData: PollData?
 
     init(
         html: String,
@@ -856,7 +857,8 @@ struct TopicPageContent {
         currentPage: Int? = nil,
         maxPage: Int? = nil,
         messageActionsByIndex: [Int: TopicPageMessageActions] = [:],
-        topicTitle: String? = nil
+        topicTitle: String? = nil,
+        pollData: PollData? = nil
     ) {
         self.html = html
         self.topicAnswerURL = topicAnswerURL
@@ -864,6 +866,7 @@ struct TopicPageContent {
         self.maxPage = maxPage
         self.messageActionsByIndex = messageActionsByIndex
         self.topicTitle = topicTitle
+        self.pollData = pollData
     }
 }
 
@@ -943,13 +946,16 @@ final class ObjCTopicPageLoader: TopicPageLoading {
                 .flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 ?? (controller.value(forKey: "_topicName") as? String)
                     .flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            let pollData = (controller.value(forKey: "swiftPollHTML") as? String)
+                .flatMap { PollHTMLParser.parse(from: $0) }
             completion(.success(TopicPageContent(
                 html: html,
                 topicAnswerURL: answerURL,
                 currentPage: currentPage?.intValue,
                 maxPage: maxPage?.intValue,
                 messageActionsByIndex: messageActionsByIndex,
-                topicTitle: topicTitle
+                topicTitle: topicTitle,
+                pollData: pollData
             )))
         }
         function(controller, selector, url as NSString, anchor as NSString?, block)
