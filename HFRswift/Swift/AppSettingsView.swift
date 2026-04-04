@@ -104,6 +104,7 @@ struct AppSettingsView: View {
 
     @AppStorage("mpstorage_active") private var mpStorageActive = false
     @AppStorage("mpstorage_last_rw") private var mpStorageLastAccess = "-"
+    @AppStorage("mp_badge_enabled") private var mpBadgeEnabled = true
 
     @State private var showErrorAlert = false
     @State private var errorMessage = ""
@@ -419,6 +420,13 @@ struct AppSettingsView: View {
     }
 
     @ViewBuilder
+    private var notificationsSection: some View {
+        Section("Notifications MP") {
+            Toggle("Badge messages non lus", isOn: $mpBadgeEnabled)
+        }
+    }
+
+    @ViewBuilder
     private var mpStorageSection: some View {
         Section("Stockage MP") {
             Toggle("Activer le stockage MP", isOn: $mpStorageActive)
@@ -458,6 +466,7 @@ struct AppSettingsView: View {
             generalSection
             themeSection
             topicsSection
+            notificationsSection
             mpStorageSection
             maintenanceSection
             aboutSection

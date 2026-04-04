@@ -144,6 +144,7 @@
     UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
     center.delegate = self;
     
+#ifndef APP_SWIFT
     [[BGTaskScheduler sharedScheduler] registerForTaskWithIdentifier:@"com.hfrplus.refresh_mp" usingQueue:nil
                                      launchHandler:^(__kindof BGTask * _Nonnull task) {
         //[task setTaskCompletedWithSuccess:YES];
@@ -154,6 +155,7 @@
        completionHandler:^(BOOL granted, NSError * _Nullable error) {
         NSLog(@"UNUserNotificationCenter authorization granted=%@, error=%@", @(granted), error);
     }];
+#endif // APP_SWIFT
     
     return YES;
 }
@@ -425,10 +427,12 @@
      If your application supports background execution, called instead of applicationWillTerminate: when the user quits.
      */
     NSLog(@"applicationDidEnterBackground");
+#ifndef APP_SWIFT
     if (@available(iOS 13, *))
     {
         [self scheduleAppRefresh];
     }
+#endif // APP_SWIFT
     if (BACKGROUND_MAINTENANCE) {
         [periodicMaintenanceTimer invalidate];
     }

@@ -2768,6 +2768,8 @@
 		D8F5CBB01DF462F100B029FC /* ThemeColors.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ThemeColors.m; sourceTree = "<group>"; };
 		D9C70B882E40C54B00FE42CE /* OfflineStorage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = OfflineStorage.h; sourceTree = "<group>"; };
 		D9C70B892E40C54B00FE42CE /* OfflineStorage.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = OfflineStorage.m; sourceTree = "<group>"; };
+		15BA0001AA112345678901AB /* HFRswift.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = HFRswift.entitlements; sourceTree = "<group>"; };
+		15BA0002AA112345678901AB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -3085,6 +3087,8 @@
 			children = (
 				152E907C2F1238D700CED459 /* Wrapped */,
 				15B0AA862E2C27DD0092C0FD /* Swift */,
+				15BA0001AA112345678901AB /* HFRswift.entitlements */,
+				15BA0002AA112345678901AB /* Info.plist */,
 			);
 			path = HFRswift;
 			sourceTree = "<group>";
@@ -6257,10 +6261,11 @@
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_ENTITLEMENTS = HFRswift/HFRswift.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = QMG83DG7YP;
 				ENABLE_PREVIEWS = YES;
@@ -6277,7 +6282,8 @@
 				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = "APP_SWIFT=1";
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = HFRswift/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = HFR;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Utilisé pour ajouter des photos aux messages.";
@@ -6337,10 +6343,11 @@
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_ENTITLEMENTS = HFRswift/HFRswift.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = QMG83DG7YP;
 				ENABLE_PREVIEWS = YES;
@@ -6353,7 +6360,8 @@
 				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = "APP_SWIFT=1";
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = HFRswift/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = HFR;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Utilisé pour ajouter des photos aux messages.";

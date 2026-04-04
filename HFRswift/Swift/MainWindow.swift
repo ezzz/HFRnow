@@ -894,6 +894,8 @@ struct RootTabView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) private var systemColorScheme
     @State private var selectedTab: RootTabIdentifier
+    @AppStorage("nb_mp") private var unreadMPCount = 0
+    @AppStorage("mp_badge_enabled") private var mpBadgeEnabled = true
 
     init() {
         _selectedTab = State(initialValue: RuntimeState.selectedTab)
@@ -903,6 +905,11 @@ struct RootTabView: View {
         if RuntimeState.selectedTab != tab {
             RuntimeState.selectedTab = tab
         }
+    }
+
+    private func syncAppIconBadge() async {
+        let count = (mpBadgeEnabled && unreadMPCount > 0) ? unreadMPCount : 0
+        await MPBackgroundService.shared.updateAppIconBadge(count: count)
     }
 
     private func handleUIKitTabSelection(_ selectedIndex: Int) {
@@ -925,6 +932,7 @@ struct RootTabView: View {
             Tab("Messages", systemImage: "envelope", value: .messages) {
                 MPListView()
             }
+            .badge(mpBadgeEnabled && unreadMPCount > 0 ? unreadMPCount : 0)
             Tab("Plus", systemImage: "ellipsis", value: .more) {
                 NavigationStack {
                     PlusHomeView()
@@ -948,6 +956,13 @@ struct RootTabView: View {
         .onChange(of: scenePhase) { _, newValue in
             guard newValue == .active else { return }
             appTheme.refresh(systemColorScheme: systemColorScheme, forceThemeRevision: true)
+            Task { await syncAppIconBadge() }
+        }
+        .onChange(of: unreadMPCount) { _, _ in
+            Task { await syncAppIconBadge() }
+        }
+        .onChange(of: mpBadgeEnabled) { _, _ in
+            Task { await syncAppIconBadge() }
         }
         .background(
             TabBarReselectionObserver(
