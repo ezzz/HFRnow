@@ -233,15 +233,15 @@ struct PollResultRow: View {
                             .fill(.tint.opacity(0.15))
                         Capsule()
                             .fill(.tint)
-                            .frame(width: max(geo.size.width * CGFloat(result.percentage) / 100.0, result.percentage > 0 ? 4 : 0))
+                            .frame(width: max(geo.size.width * result.percentage / 100.0, result.percentage > 0 ? 4 : 0))
                     }
                     .frame(height: 8)
                 }
                 .frame(height: 8)
 
-                Text("\(result.percentage)%")
+                Text("\(result.percentage.formatted(.number.precision(.fractionLength(1))))%")
                     .font(.caption.monospacedDigit())
-                    .frame(width: 38, alignment: .trailing)
+                    .frame(width: 42, alignment: .trailing)
 
                 Text(result.voteCount == 1 ? "1 vote" : "\(result.voteCount) votes")
                     .font(.caption)
@@ -292,9 +292,9 @@ struct PollResultRow: View {
         maxChoices: 1,
         options: [],
         results: [
-            PollResult(id: 1, label: "macOS", percentage: 45, voteCount: 190),
-            PollResult(id: 2, label: "Windows", percentage: 38, voteCount: 161),
-            PollResult(id: 3, label: "Linux", percentage: 17, voteCount: 72),
+            PollResult(id: 1, label: "macOS", percentage: 44.9, voteCount: 190),
+            PollResult(id: 2, label: "Windows", percentage: 38.1, voteCount: 161),
+            PollResult(id: 3, label: "Linux", percentage: 17.0, voteCount: 72),
         ],
         hiddenFields: [:]
     ))

@@ -18,7 +18,7 @@ struct PollOption: Identifiable {
 struct PollResult: Identifiable {
     let id: Int          // 1-based
     let label: String
-    let percentage: Int
+    let percentage: Double   // e.g. 16.7
     let voteCount: Int
 }
 
@@ -145,8 +145,9 @@ enum PollHTMLParser {
     // MARK: - Question
 
     private static func extractQuestion(from html: String) -> String {
+        // HFR uses <b class="s2"> for the question (not <div class="s2">).
         guard let regex = try? NSRegularExpression(
-            pattern: #"<div[^>]+class="s2"[^>]*>(.*?)</div>"#,
+            pattern: #"<(?:b|div)\b[^>]+class="s2"[^>]*>(.*?)(?:</b>|</div>)"#,
             options: .dotMatchesLineSeparators
         ),
         let match = regex.firstMatch(in: html, range: NSRange(html.startIndex..., in: html)),
@@ -154,7 +155,7 @@ enum PollHTMLParser {
         let range = Range(match.range(at: 1), in: html) else {
             return ""
         }
-        return String(html[range]).strippingPollHTMLTags()
+        return String(html[range]).cleanedPollText()
     }
 
     // MARK: - Footer
@@ -267,18 +268,22 @@ enum PollHTMLParser {
         }
     }
 
-    private static func extractSondageLeftPairs(from html: String) -> [(percentage: Int, voteCount: Int)] {
+    private static func extractSondageLeftPairs(from html: String) -> [(percentage: Double, voteCount: Int)] {
         guard let openingRegex = try? NSRegularExpression(
             pattern: #"<div\b[^>]+class="sondageLeft"[^>]*>"#,
+            options: .dotMatchesLineSeparators
+        ),
+        let topRegex = try? NSRegularExpression(
+            pattern: #"<div\b[^>]+class="sondageTop"[^>]*>(.*?)</div>"#,
             options: .dotMatchesLineSeparators
         ) else { return [] }
 
         let ns = html as NSString
         let len = ns.length
-        var pairs: [(Int, Int)] = []
+        var pairs: [(Double, Int)] = []
 
         for match in openingRegex.matches(in: html, range: NSRange(location: 0, length: len)) {
-            // Extract the full div by counting nesting depth.
+            // Extract the full sondageLeft div by counting nesting depth.
             var depth = 1
             var pos = NSMaxRange(match.range)
 
@@ -302,18 +307,36 @@ enum PollHTMLParser {
             let blockRange = NSRange(location: match.range.location, length: pos - match.range.location)
             let block = ns.substring(with: blockRange)
 
-            // Extract the two plain <div>N</div> elements (percentage, then vote count).
-            if let numRegex = try? NSRegularExpression(pattern: #"<div>\s*(\d+)\s*</div>"#),
-               case let nsBlock = block as NSString {
-                let numMatches = numRegex.matches(in: block, range: NSRange(location: 0, length: nsBlock.length))
-                if numMatches.count >= 2,
-                   let r1 = Range(numMatches[0].range(at: 1), in: block),
-                   let r2 = Range(numMatches[1].range(at: 1), in: block) {
-                    pairs.append((Int(block[r1]) ?? 0, Int(block[r2]) ?? 0))
-                }
-            }
+            // Each sondageLeft contains two sondageTop divs:
+            //   first:  "16.7&nbsp;%" → percentage
+            //   second: "&nbsp;5 votes" → vote count
+            let nsBlock = block as NSString
+            let topMatches = topRegex.matches(in: block, range: NSRange(location: 0, length: nsBlock.length))
+            guard topMatches.count >= 2,
+                  let r1 = Range(topMatches[0].range(at: 1), in: block),
+                  let r2 = Range(topMatches[1].range(at: 1), in: block) else { continue }
+
+            let pctText = String(block[r1])
+            let voteText = String(block[r2])
+            let pct = firstDouble(in: pctText) ?? 0.0
+            let votes = firstInt(in: voteText) ?? 0
+            pairs.append((pct, votes))
         }
         return pairs
+    }
+
+    private static func firstDouble(in text: String) -> Double? {
+        guard let regex = try? NSRegularExpression(pattern: #"(\d+(?:\.\d+)?)"#),
+              let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+              let range = Range(match.range(at: 1), in: text) else { return nil }
+        return Double(text[range])
+    }
+
+    private static func firstInt(in text: String) -> Int? {
+        guard let regex = try? NSRegularExpression(pattern: #"(\d+)"#),
+              let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+              let range = Range(match.range(at: 1), in: text) else { return nil }
+        return Int(text[range])
     }
 
     private static func extractSondageRightLabels(from html: String) -> [String] {
@@ -326,10 +349,7 @@ enum PollHTMLParser {
         return regex.matches(in: html, range: NSRange(location: 0, length: ns.length)).compactMap { match -> String? in
             guard match.numberOfRanges > 1,
                   let range = Range(match.range(at: 1), in: html) else { return nil }
-            return String(html[range])
-                .strippingPollHTMLTags()
-                .replacing("  ", with: " ")
-                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return String(html[range]).cleanedPollText()
         }
     }
 
@@ -349,15 +369,20 @@ enum PollHTMLParser {
 // MARK: - Private helpers
 
 private extension String {
-    func strippingPollHTMLTags() -> String {
+    /// Strips HTML tags, decodes &nbsp; and collapses whitespace.
+    func cleanedPollText() -> String {
         guard let regex = try? NSRegularExpression(pattern: "<[^>]+>") else { return self }
         return regex.stringByReplacingMatches(
             in: self,
             range: NSRange(startIndex..., in: self),
             withTemplate: ""
         )
+        .replacing("&nbsp;", with: " ")
+        .replacing("  ", with: " ")
         .trimmingCharacters(in: .whitespacesAndNewlines)
     }
+
+    func strippingPollHTMLTags() -> String { cleanedPollText() }
 
     var percentEncoded: String {
         addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? self
