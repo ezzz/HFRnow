@@ -1452,7 +1452,7 @@ enum TopicQuickActionPolicy {
     static func lastReplyURL(for topic: Topic, context: TopicOpenContext) -> String? {
         switch context {
         case .favorites:
-            return nonEmptyString(topic.aURL) ?? nonEmptyString(topic.aURLOfLastPost) ?? nonEmptyString(topic.aURLOfLastPage)
+            return nonEmptyString(topic.aURLOfLastPage) ?? nonEmptyString(topic.aURLOfLastPost) ?? nonEmptyString(topic.aURL)
         case .forum, .messages, .generic:
             return nonEmptyString(topic.aURLOfLastPost) ?? nonEmptyString(topic.aURLOfLastPage) ?? nonEmptyString(topic.aURL)
         }
