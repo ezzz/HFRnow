@@ -849,6 +849,8 @@ struct TopicPageContent {
     let maxPage: Int?
     let messageActionsByIndex: [Int: TopicPageMessageActions]
     let topicTitle: String?
+    let hasPoll: Bool
+    let pollIsNewVote: Bool
     let pollData: PollData?
 
     init(
@@ -858,6 +860,8 @@ struct TopicPageContent {
         maxPage: Int? = nil,
         messageActionsByIndex: [Int: TopicPageMessageActions] = [:],
         topicTitle: String? = nil,
+        hasPoll: Bool = false,
+        pollIsNewVote: Bool = false,
         pollData: PollData? = nil
     ) {
         self.html = html
@@ -866,6 +870,8 @@ struct TopicPageContent {
         self.maxPage = maxPage
         self.messageActionsByIndex = messageActionsByIndex
         self.topicTitle = topicTitle
+        self.hasPoll = hasPoll
+        self.pollIsNewVote = pollIsNewVote
         self.pollData = pollData
     }
 }
@@ -946,10 +952,12 @@ final class ObjCTopicPageLoader: TopicPageLoading {
                 .flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 ?? (controller.value(forKey: "_topicName") as? String)
                     .flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            let rawPollHTML = controller.value(forKey: "swiftPollHTML") as? String
-            print("[Poll] swiftPollHTML from Swift: \(rawPollHTML.map { "\($0.count) chars" } ?? "nil")")
-            let pollData = rawPollHTML.flatMap { PollHTMLParser.parse(from: $0) }
-            print("[Poll] parsed pollData: \(pollData.map { "isVotable=\($0.isVotable) options=\($0.options.count) results=\($0.results.count)" } ?? "nil")")
+            let hasPoll = (controller.value(forKey: "swiftHasPoll") as? Bool) ?? false
+            let pollIsNewVote = (controller.value(forKey: "swiftPollIsNewVote") as? Bool) ?? false
+            let pollData = hasPoll
+                ? (controller.value(forKey: "swiftPollHTML") as? String).flatMap { PollHTMLParser.parse(from: $0) }
+                : nil
+            print("[Poll] hasPoll=\(hasPoll) pollIsNewVote=\(pollIsNewVote) pollData=\(pollData != nil)")
             completion(.success(TopicPageContent(
                 html: html,
                 topicAnswerURL: answerURL,
@@ -957,6 +965,8 @@ final class ObjCTopicPageLoader: TopicPageLoading {
                 maxPage: maxPage?.intValue,
                 messageActionsByIndex: messageActionsByIndex,
                 topicTitle: topicTitle,
+                hasPoll: hasPoll,
+                pollIsNewVote: pollIsNewVote,
                 pollData: pollData
             )))
         }

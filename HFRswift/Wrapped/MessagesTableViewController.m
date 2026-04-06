@@ -807,12 +807,17 @@
     self.aToolbar = tmptoolbar;
 }
 
+- (BOOL)swiftHasPoll {
+    return self.pollNode != nil;
+}
+
+- (BOOL)swiftPollIsNewVote {
+    return self.isNewPoll;
+}
+
 - (NSString *)swiftPollHTML {
-    NSLog(@"[Poll] swiftPollHTML called, pollNode=%@, pollParser=%@", self.pollNode, self.pollParser);
     if (!self.pollNode || !self.pollParser) { return nil; }
-    NSString *html = rawContentsOfNode([self.pollNode _node], [self.pollParser _doc]);
-    NSLog(@"[Poll] swiftPollHTML returning %lu chars", (unsigned long)html.length);
-    return html;
+    return rawContentsOfNode([self.pollNode _node], [self.pollParser _doc]);
 }
 
 -(void)setupPoll:(HTMLNode *)bodyNode andP:(HTMLParser *)myParser {
@@ -821,10 +826,8 @@
     self.isNewPoll = NO;
 
 	HTMLNode * tmpPollNode = [bodyNode findChildWithAttribute:@"class" matchingName:@"sondage" allowPartial:NO];
-    NSLog(@"[Poll] setupPoll: tmpPollNode=%@", tmpPollNode);
 	if(tmpPollNode)
     {
-        NSLog(@"[Poll] Raw Poll: %@", rawContentsOfNode([tmpPollNode _node], [myParser _doc]));
         [self setPollNode:tmpPollNode];
         [self setPollParser:myParser];
         

@@ -256,4 +256,10 @@
 /// Returns nil if no poll is present.
 @property (nonatomic, readonly, nullable) NSString *swiftPollHTML;
 
+/// YES if the current topic has a poll (pollNode != nil).
+@property (nonatomic, readonly) BOOL swiftHasPoll;
+
+/// YES if the poll has not been voted yet (isNewPoll == YES).
+@property (nonatomic, readonly) BOOL swiftPollIsNewVote;
+
 @end

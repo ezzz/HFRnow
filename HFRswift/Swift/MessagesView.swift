@@ -2206,6 +2206,8 @@ struct MessagesView: View {
     @State private var bookmarkPromptState: BookmarkPromptState?
     @State private var popupActionErrorMessage: String?
     @State private var isPreparingAQPrompt = false
+    @State private var hasPoll = false
+    @State private var pollIsNewVote = false
     @State private var pollData: PollData?
     @State private var isPollSheetPresented = false
     @State private var showWebViewLoadCover = true
@@ -2325,6 +2327,8 @@ struct MessagesView: View {
                     applyLoadedPagination(from: content, requestedPage: page)
                     self.topicAnswerURL = content.topicAnswerURL
                     self.messageActionsByIndex = content.messageActionsByIndex
+                    self.hasPoll = content.hasPoll
+                    self.pollIsNewVote = content.pollIsNewVote
                     self.pollData = content.pollData
                     if let newTitle = content.topicTitle, !newTitle.isEmpty {
                         self.topicDisplayTitle = newTitle
@@ -2364,6 +2368,8 @@ struct MessagesView: View {
                     applyLoadedPagination(from: content, requestedPage: requestedPage)
                     self.topicAnswerURL = content.topicAnswerURL
                     self.messageActionsByIndex = content.messageActionsByIndex
+                    self.hasPoll = content.hasPoll
+                    self.pollIsNewVote = content.pollIsNewVote
                     self.pollData = content.pollData
                     if let newTitle = content.topicTitle, !newTitle.isEmpty {
                         self.topicDisplayTitle = newTitle
@@ -3605,9 +3611,9 @@ struct MessagesView: View {
                     }
                     .multilineTextAlignment(.center)
                 }
-                if let pollData {
+                if hasPoll {
                     ToolbarItem(placement: .topBarTrailing) {
-                        PollToolbarButton(isVotable: pollData.isVotable) {
+                        PollToolbarButton(isVotable: pollIsNewVote) {
                             isPollSheetPresented = true
                         }
                     }
