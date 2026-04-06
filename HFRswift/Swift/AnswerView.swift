@@ -27,12 +27,23 @@ private final class TextEditorFocusRequest {
 // MARK: - AnswerView
 
 struct AnswerView: View {
+    enum ComposerDraftPersistence {
+        static func draftAfterDismiss(currentMessage: String, existingDraft: String, persistsDraft: Bool) -> String {
+            persistsDraft ? currentMessage : existingDraft
+        }
+
+        static func draftAfterSuccessfulPost(existingDraft: String, persistsDraft: Bool) -> String {
+            persistsDraft ? "" : existingDraft
+        }
+    }
 
     // MARK: Public interface
     let topicURL: URL?
     let title: String
     let requiresSubject: Bool
     let initialRecipient: String?
+    let initialMessage: String
+    let persistsComposerDraft: Bool
     private let replyPostingService: any ReplyPostingService
     private let smileyCatalogLoader: ReplySmileyCatalogLoading
     private let imageUploadService: any ReplyImageUploadService
@@ -98,6 +109,8 @@ struct AnswerView: View {
         title: String = "Répondre",
         requiresSubject: Bool = false,
         initialRecipient: String? = nil,
+        initialMessage: String = "",
+        persistsComposerDraft: Bool = true,
         replyPostingService: any ReplyPostingService = ForumReplyPostingService(),
         smileyCatalogLoader: ReplySmileyCatalogLoading = BundleReplySmileyCatalogLoader(),
         imageUploadService: any ReplyImageUploadService = Img3ReplyImageUploadService(),
@@ -109,13 +122,15 @@ struct AnswerView: View {
         self.title = title
         self.requiresSubject = requiresSubject
         self.initialRecipient = initialRecipient
+        self.initialMessage = initialMessage
+        self.persistsComposerDraft = persistsComposerDraft
         self.replyPostingService = replyPostingService
         self.smileyCatalogLoader = smileyCatalogLoader
         self.imageUploadService = imageUploadService
         self.onPostSuccess = onPostSuccess
         self._composerDraftText = composerDraftText
         self._isComposerPresented = isComposerPresented
-        self._message = State(initialValue: composerDraftText.wrappedValue)
+        self._message = State(initialValue: initialMessage)
         self._composerRecipient = State(initialValue: initialRecipient)
         self._imageUploadPreferences = State(initialValue: RehostPreferencesStore.load())
         self._uploadedImages = State(initialValue: RehostUploadHistoryStore.load())
@@ -187,7 +202,7 @@ struct AnswerView: View {
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.9), value: showToast)
         .onAppear {
-            message = composerDraftText
+            message = initialMessage
             undoHistory.removeAll()
             redoHistory.removeAll()
             pendingHistoryMutationsToSkip = 0
@@ -202,7 +217,11 @@ struct AnswerView: View {
         .onDisappear {
             imageUploadTask?.cancel()
             imageUploadTask = nil
-            composerDraftText = message
+            composerDraftText = ComposerDraftPersistence.draftAfterDismiss(
+                currentMessage: message,
+                existingDraft: composerDraftText,
+                persistsDraft: persistsComposerDraft
+            )
         }
         .onChange(of: imageUploadPreferences) { _, new in RehostPreferencesStore.save(new) }
         .onChange(of: uploadedImages) { _, new in RehostUploadHistoryStore.save(new) }
@@ -577,7 +596,10 @@ struct AnswerView: View {
                 undoHistory.removeAll()
                 redoHistory.removeAll()
                 pendingHistoryMutationsToSkip = 0
-                composerDraftText = ""
+                composerDraftText = ComposerDraftPersistence.draftAfterSuccessfulPost(
+                    existingDraft: composerDraftText,
+                    persistsDraft: persistsComposerDraft
+                )
                 composerSubject = ""
                 dismissComposer()
             }
@@ -1752,6 +1774,7 @@ private struct AnswerViewPreviewWrapper: View {
         NavigationStack {
             AnswerView(
                 topicURL: URL(string: "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=42&page=1&p=1#t100")!,
+                initialMessage: draft,
                 composerDraftText: $draft,
                 isComposerPresented: $presented
             )

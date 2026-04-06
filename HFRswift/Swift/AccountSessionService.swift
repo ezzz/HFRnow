@@ -79,7 +79,9 @@ final class ObjCAccountSessionService: AccountSessionService {
             throw ReplyPostingError.noActiveAccount
         }
 
+        let preservedReplyCookies = preservedReplyCookies(in: cookieStorage)
         multisManager.forceCookies(for: mainCompte)
+        restorePreservedReplyCookies(preservedReplyCookies, into: cookieStorage)
 
         if let cookies = mainCompte[AccountKeys.cookies] as? [HTTPCookie] {
             for cookie in cookies {
@@ -100,6 +102,16 @@ final class ObjCAccountSessionService: AccountSessionService {
         }
 
         return ReplySessionContext(pseudoDisplay: pseudoDisplay, hashCheck: hashCheck)
+    }
+
+    private func preservedReplyCookies(in cookieStorage: HTTPCookieStorage) -> [HTTPCookie] {
+        (cookieStorage.cookies ?? []).filter { $0.name.hasPrefix("quotes") }
+    }
+
+    private func restorePreservedReplyCookies(_ cookies: [HTTPCookie], into cookieStorage: HTTPCookieStorage) {
+        for cookie in cookies {
+            cookieStorage.setCookie(cookie)
+        }
     }
 
     private func rawComptes() -> [RawCompte] {

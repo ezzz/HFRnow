@@ -2173,6 +2173,8 @@ struct MessagesView: View {
     @State private var messageActionsByIndex: [Int: TopicPageMessageActions] = [:]
     @AppStorage("composerDraftText") private var composerDraftText: String = ""
     @State private var isComposerPresented = false
+    @State private var composerInitialMessage = ""
+    @State private var composerPersistsDraft = false
     @State private var isPresentingComposer = false  // This will be removed now
     @State private var replyText: String = ""
     @State private var isSendingReply = false
@@ -2694,6 +2696,8 @@ struct MessagesView: View {
         } else {
             composerNavigationTitle = "Nouv. MP"
         }
+        composerInitialMessage = ""
+        composerPersistsDraft = false
         composerSubmitURL = url
         isComposerPresented = true
     }
@@ -2708,15 +2712,12 @@ struct MessagesView: View {
 
             do {
                 let template = try await replyQuoteTemplateLoader.fetchQuoteTemplate(from: url)
+                composerInitialMessage = template
+                composerPersistsDraft = false
                 switch mode {
                 case .quote:
-                    composerDraftText = ReplyQuoteDraftMerger.merge(
-                        quoteTemplate: template,
-                        into: composerDraftText
-                    )
                     composerSubmitURL = topicAnswerURL ?? url
                 case .edit:
-                    composerDraftText = template
                     composerSubmitURL = url
                 }
                 lastFailedQuoteTemplateURL = nil
@@ -2927,6 +2928,8 @@ struct MessagesView: View {
         composerNavigationTitle = ComposerPresentationKind.reply.title
         composerRequiresSubject = false
         composerRecipientName = nil
+        composerInitialMessage = composerDraftText
+        composerPersistsDraft = true
         composerSubmitURL = topicAnswerURL
         isComposerPresented = true
     }
@@ -3326,6 +3329,8 @@ struct MessagesView: View {
                         title: composerNavigationTitle,
                         requiresSubject: composerRequiresSubject,
                         initialRecipient: composerRecipientName,
+                        initialMessage: composerInitialMessage,
+                        persistsComposerDraft: composerPersistsDraft,
                         onPostSuccess: handleReplySuccess,
                         composerDraftText: $composerDraftText,
                         isComposerPresented: $isComposerPresented

@@ -130,6 +130,44 @@ final class ObjCAccountSessionServiceTests: XCTestCase {
         XCTAssertTrue(storage.cookies?.contains(where: { $0.name == "sessionid" }) == true)
     }
 
+    func testMakeReplySessionContextPreservesMultiQuoteCookiesWhenForceCookiesClearsStorage() throws {
+        clearHardwareCookiesFromSharedStorage()
+
+        let manager = MultisManagerStub()
+        let sessionCookie = try makeCookie(name: "sessionid", value: "cookie-value")
+        let quoteCookie = try XCTUnwrap(
+            HTTPCookie(properties: [
+                .domain: ".hardware.fr",
+                .path: "/",
+                .name: "quoteshardwarefr-prive-2763298",
+                .value: "|1980613576",
+                .expires: Date(timeIntervalSinceNow: 3600)
+            ])
+        )
+        HTTPCookieStorage.shared.setCookie(quoteCookie)
+
+        manager.mainComptePayload = [
+            "PSEUDO_DISPLAY": "Pseudo Display",
+            "PSEUDO": "pseudo-key",
+            "HASH": "hash-123",
+            "COOKIES": [sessionCookie]
+        ]
+        manager.forceCookiesHandler = {
+            let storage = HTTPCookieStorage.shared
+            for cookie in storage.cookies ?? [] {
+                storage.deleteCookie(cookie)
+            }
+        }
+
+        let service = ObjCAccountSessionService(multisManager: manager, loginService: LoginService())
+
+        _ = try service.makeReplySessionContext(cookieStorage: .shared)
+
+        let cookies = HTTPCookieStorage.shared.cookies ?? []
+        XCTAssertTrue(cookies.contains(where: { $0.name == "sessionid" && $0.value == "cookie-value" }))
+        XCTAssertTrue(cookies.contains(where: { $0.name == "quoteshardwarefr-prive-2763298" && $0.value == "|1980613576" }))
+    }
+
     func testMakeReplySessionContextWithoutMainAccountThrowsNoActiveAccount() {
         let manager = MultisManagerStub()
         manager.mainComptePayload = nil
@@ -328,6 +366,7 @@ private final class MultisManagerStub: LegacyAccountsManaging {
     var deletedIndices: [Int] = []
     var addCompteCalls: [(pseudo: String, cookies: [HTTPCookie], avatar: Data?, hash: String?)] = []
     var forceCookiesForCompteCalls: [[AnyHashable: Any]] = []
+    var forceCookiesHandler: (() -> Void)?
     var setHashForCompteCalls: [(compte: [AnyHashable: Any], hash: String)] = []
 
     func comptes() -> [LegacyRawCompte] {
@@ -356,6 +395,7 @@ private final class MultisManagerStub: LegacyAccountsManaging {
 
     func forceCookies(for compte: LegacyRawCompte) {
         forceCookiesForCompteCalls.append(compte)
+        forceCookiesHandler?()
     }
 
     func setHash(_ hash: String, for compte: LegacyRawCompte) {

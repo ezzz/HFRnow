@@ -997,6 +997,34 @@ final class ReplyPostingServiceTests: XCTestCase {
         XCTAssertEqual(merged, "Mon brouillon")
     }
 
+    func testComposerDraftPersistenceKeepsStoredDraftWhenEphemeralComposerCloses() {
+        let persistedDraft = AnswerView.ComposerDraftPersistence.draftAfterDismiss(
+            currentMessage: "[quotemsg=1,2,3]Citation[/quotemsg]\nRéponse en cours",
+            existingDraft: "Brouillon du bouton plus",
+            persistsDraft: false
+        )
+
+        XCTAssertEqual(persistedDraft, "Brouillon du bouton plus")
+    }
+
+    func testComposerDraftPersistenceClearsStoredDraftOnlyForPersistentComposerAfterPost() {
+        XCTAssertEqual(
+            AnswerView.ComposerDraftPersistence.draftAfterSuccessfulPost(
+                existingDraft: "Brouillon du bouton plus",
+                persistsDraft: true
+            ),
+            ""
+        )
+
+        XCTAssertEqual(
+            AnswerView.ComposerDraftPersistence.draftAfterSuccessfulPost(
+                existingDraft: "Brouillon du bouton plus",
+                persistsDraft: false
+            ),
+            "Brouillon du bouton plus"
+        )
+    }
+
     private func makeSession() -> URLSession {
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [URLProtocolMock.self]
