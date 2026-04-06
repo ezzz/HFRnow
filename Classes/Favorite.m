@@ -67,7 +67,7 @@
     
     // Poll
     //<img src="https://forum-images.hardware.fr/themes_static/images/defaut/sondage.gif" alt="">
-    HTMLNode * pollImage = [topicNode findChildWithAttribute:@"src" matchingName:@"https://forum-images.hardware.fr/themes_static/images/defaut/sondage.gif" allowPartial:NO];
+    HTMLNode * pollImage = [topicNode findChildWithAttribute:@"src" matchingName:@"https://forum-images.hardware.fr/themes_static/images_forum/1/sondage.gif" allowPartial:NO];
     if (pollImage != nil) {
         aTopic.isPoll = YES;
     }

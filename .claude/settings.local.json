@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n \"sheet\\(isPresented: $isComposerPresented\" HFRswift/Swift/MessagesView.swift)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(grep -r \"class Topic\\\\|struct Topic\" /Users/bruno/DocumentsLocal/Projects/HwFR/HFRnow/HFRswift/Swift/*.swift)",
+      "Bash(find /Users/bruno/DocumentsLocal/Projects/HwFR/HFRnow -name Topic.* -type f)",
+      "Bash(wc -l /Users/bruno/DocumentsLocal/Projects/HwFR/HFRnow/HFRswift/Swift/*.swift)",
+      "Bash(xcodebuild -list)",
+      "Bash(find /Users/bruno/DocumentsLocal/Projects/HwFR/HFRnow -type f \\\\\\(-name *TextEditor* -o -name *Reply* \\\\\\))",
+      "mcp__XcodeBuildMCP__session_show_defaults",
+      "mcp__XcodeBuildMCP__build_sim",
+      "Bash(xcrun simctl:*)",
+      "Read(//Users/bruno/DocumentsLocal/Projects/HwFR/HFRnow/**)",
+      "Bash(xcrun xcresulttool:*)",
+      "Bash(pkill -f xcodebuild)",
+      "Bash(tee /tmp/hfr_build.log)",
+      "Bash(tee /tmp/hfr_result.txt)",
+      "Bash(echo \"Exit: $?\")",
+      "Bash(awk 'NR>=1600 && NR<=1700 && /^- \\\\\\(/' /Users/bruno/DocumentsLocal/Projects/HwFR/HFRnow/HFRswift/Wrapped/MessagesTableViewController.m)",
+      "Bash(awk 'NR>=1700 && NR<=1730 && /^[-+] \\\\\\(/' /Users/bruno/DocumentsLocal/Projects/HwFR/HFRnow/HFRswift/Wrapped/MessagesTableViewController.m)",
+      "mcp__XcodeBuildMCP__session_set_defaults",
+      "mcp__XcodeBuildMCP__get_sim_app_path",
+      "Bash(python3 -c \":*)"
+    ]
+  }
+}
