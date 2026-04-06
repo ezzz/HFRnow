@@ -220,13 +220,17 @@ struct PollContentView: View {
 struct PollResultRow: View {
     let result: PollResult
 
+    private var displayLabel: String {
+        result.label.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("\(result.id). \(result.label)")
+        VStack(alignment: .leading, spacing: 2) {
+            Text(displayLabel)
                 .font(.body)
                 .fixedSize(horizontal: false, vertical: true)
 
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         Capsule()
@@ -248,7 +252,7 @@ struct PollResultRow: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 1)
     }
 }
 

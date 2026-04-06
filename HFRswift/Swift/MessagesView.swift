@@ -3544,6 +3544,11 @@ struct MessagesView: View {
                         navigateToPage(selectedPage, initialScroll: .top)
                     }
                 }
+                .sheet(item: $presentedPollData) { data in
+                    PollSheet(pollData: data, onVoteSucceeded: {
+                        loadPage(page)
+                    })
+                }
                 .background(linkedTopicNavigationLink)
                 .sheet(item: $safariDestination) { destination in
                     SafariInAppView(url: destination.url)
