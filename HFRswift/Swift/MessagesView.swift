@@ -3454,9 +3454,24 @@ struct MessagesView: View {
                         }
                         .multilineTextAlignment(.center)
                     }
+                    if hasPoll && pollIsNewVote {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            PollToolbarButton(isVotable: true) {
+                                isPollSheetPresented = true
+                            }
+                        }
+                    }
                     ToolbarItem(placement: .topBarTrailing) {
                         // Menu avec options
                         Menu {
+                            if hasPoll && pollData != nil {
+                                Button {
+                                    isPollSheetPresented = true
+                                } label: {
+                                    MenuActionLabel("Sondage", systemImage: "chart.bar.doc.horizontal")
+                                }
+                                Divider()
+                            }
                             Button {
                                 openReplyComposer()
                             } label: {
@@ -3611,9 +3626,9 @@ struct MessagesView: View {
                     }
                     .multilineTextAlignment(.center)
                 }
-                if hasPoll {
+                if hasPoll && pollIsNewVote {
                     ToolbarItem(placement: .topBarTrailing) {
-                        PollToolbarButton(isVotable: pollIsNewVote) {
+                        PollToolbarButton(isVotable: true) {
                             isPollSheetPresented = true
                         }
                     }
@@ -3621,6 +3636,14 @@ struct MessagesView: View {
                 ToolbarItem(placement: .primaryAction) {
                     // Menu avec options
                     Menu {
+                        if hasPoll && pollData != nil {
+                            Button {
+                                isPollSheetPresented = true
+                            } label: {
+                                MenuActionLabel("Sondage", systemImage: "chart.bar.doc.horizontal")
+                            }
+                            Divider()
+                        }
                         Button {
                             openReplyComposer()
                         } label: {
