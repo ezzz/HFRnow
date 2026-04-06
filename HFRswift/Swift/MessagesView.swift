@@ -3457,7 +3457,7 @@ struct MessagesView: View {
                     if hasPoll && pollIsNewVote {
                         ToolbarItem(placement: .topBarTrailing) {
                             PollToolbarButton(isVotable: true) {
-                                presentedPollData = pollData
+                                Task { @MainActor in presentedPollData = pollData }
                             }
                         }
                     }
@@ -3466,7 +3466,7 @@ struct MessagesView: View {
                         Menu {
                             if hasPoll && pollData != nil {
                                 Button {
-                                    presentedPollData = pollData
+                                    Task { @MainActor in presentedPollData = pollData }
                                 } label: {
                                     MenuActionLabel("Sondage", systemImage: "chart.bar.doc.horizontal")
                                 }
@@ -3629,7 +3629,7 @@ struct MessagesView: View {
                 if hasPoll && pollIsNewVote {
                     ToolbarItem(placement: .topBarTrailing) {
                         PollToolbarButton(isVotable: true) {
-                            presentedPollData = pollData
+                            Task { @MainActor in presentedPollData = pollData }
                         }
                     }
                 }
@@ -3638,7 +3638,7 @@ struct MessagesView: View {
                     Menu {
                         if hasPoll && pollData != nil {
                             Button {
-                                presentedPollData = pollData
+                                Task { @MainActor in presentedPollData = pollData }
                             } label: {
                                 MenuActionLabel("Sondage", systemImage: "chart.bar.doc.horizontal")
                             }
