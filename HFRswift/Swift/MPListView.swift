@@ -13,9 +13,11 @@ final class MPListViewModel: ObservableObject {
     @Published var topics: [Topic] = []
     @Published var errorMessage: String? = nil
     @Published var isLoading = false
+    @Published private(set) var hasLoadedOnce: Bool
 
     private let topicsLoader: MPTopicsLoading
     private var loadRequestID = 0
+    private var lastSuccessfulLoadDate: Date?
 
     init(
         topicsLoader: MPTopicsLoading = ObjCMPTopicsLoader(),
@@ -27,15 +29,15 @@ final class MPListViewModel: ObservableObject {
         self.topics = initialTopics
         self.errorMessage = initialErrorMessage
         self.isLoading = initialIsLoading
+        self.hasLoadedOnce = initialIsLoading || !initialTopics.isEmpty || initialErrorMessage != nil
     }
 
     func load(retryOnCancellation: Bool = true) {
+        guard !isLoading else { return }
         loadRequestID += 1
         let requestID = loadRequestID
-        DispatchQueue.main.async {
-            self.isLoading = true
-            self.errorMessage = nil
-        }
+        isLoading = true
+        errorMessage = nil
         topicsLoader.fetchTopics { [weak self] topics, error in
             guard let self else { return }
             DispatchQueue.main.async {
@@ -50,9 +52,12 @@ final class MPListViewModel: ObservableObject {
                     return
                 }
                 if let error {
+                    self.hasLoadedOnce = true
                     self.errorMessage = error.localizedDescription
                     self.topics = []
                 } else {
+                    self.hasLoadedOnce = true
+                    self.lastSuccessfulLoadDate = Date()
                     self.errorMessage = nil
                     self.topics = topics ?? []
                 }
@@ -60,12 +65,32 @@ final class MPListViewModel: ObservableObject {
         }
     }
 
-    func clearForLoggedOut() {
-        DispatchQueue.main.async {
-            self.isLoading = false
-            self.errorMessage = nil
-            self.topics = []
+    func ensureLoaded() {
+        guard !isLoading else { return }
+        guard !hasLoadedOnce || errorMessage != nil else { return }
+        load()
+    }
+
+    func loadIfStale(maxAge: TimeInterval = 30) {
+        guard !isLoading else { return }
+        guard hasLoadedOnce, errorMessage == nil else {
+            load()
+            return
         }
+        guard let lastSuccessfulLoadDate else {
+            load()
+            return
+        }
+        guard Date().timeIntervalSince(lastSuccessfulLoadDate) >= maxAge else { return }
+        load()
+    }
+
+    func clearForLoggedOut() {
+        isLoading = false
+        errorMessage = nil
+        topics = []
+        hasLoadedOnce = false
+        lastSuccessfulLoadDate = nil
     }
 
     private static func isCancellationError(_ error: Error) -> Bool {
@@ -85,29 +110,44 @@ final class MPListViewModel: ObservableObject {
 struct MPListView: View {
     @StateObject private var viewModel: MPListViewModel
     @StateObject private var accountsStore: AccountsStore
-    @State private var hasLoaded = false
     @State private var showAddAccountSheet = false
     @State private var showLogoutConfirm = false
+
+    private let isActive: Bool
 
     private var isLoggedIn: Bool {
         accountsStore.currentAccount != nil
     }
 
-    private func refreshContentForSessionState() {
+    private func refreshContentForSessionState(force: Bool = false) {
         if isLoggedIn {
-            viewModel.load()
+            if force {
+                viewModel.load()
+            } else {
+                viewModel.ensureLoaded()
+            }
         } else {
             viewModel.clearForLoggedOut()
         }
     }
 
+    private func refreshContentOnVisibility() {
+        guard isLoggedIn else {
+            viewModel.clearForLoggedOut()
+            return
+        }
+        viewModel.loadIfStale(maxAge: 30)
+    }
+
     @MainActor
     init(
         viewModel: MPListViewModel? = nil,
-        accountsStore: AccountsStore? = nil
+        accountsStore: AccountsStore? = nil,
+        isActive: Bool = true
     ) {
         _viewModel = StateObject(wrappedValue: viewModel ?? MPListViewModel())
         _accountsStore = StateObject(wrappedValue: accountsStore ?? AccountsStore())
+        self.isActive = isActive
     }
 
     var body: some View {
@@ -153,19 +193,20 @@ struct MPListView: View {
             }
             .navigationTitle("Messages")
             .onAppear {
-                if !hasLoaded {
-                    refreshContentForSessionState()
-                    hasLoaded = true
+                if isActive {
+                    refreshContentOnVisibility()
                 }
             }
+            .onChange(of: isActive) { _, newValue in
+                guard newValue else { return }
+                refreshContentOnVisibility()
+            }
             .onReceive(NotificationCenter.default.publisher(for: Notification.Name("kLoginChangedNotification"))) { _ in
-                refreshContentForSessionState()
+                refreshContentForSessionState(force: true)
             }
             .onChange(of: accountsStore.currentAccount?.id) { _, newAccountID in
                 if newAccountID != nil {
-                    if viewModel.topics.isEmpty && !viewModel.isLoading {
-                        viewModel.load()
-                    }
+                    refreshContentForSessionState(force: true)
                 } else {
                     viewModel.clearForLoggedOut()
                 }
@@ -177,7 +218,7 @@ struct MPListView: View {
                 else {
                     return
                 }
-                refreshContentForSessionState()
+                refreshContentForSessionState(force: true)
             }
             .toolbar {
                 MainToolbarContent(

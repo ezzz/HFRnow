@@ -168,6 +168,7 @@ class FavoritesViewModel: ObservableObject {
     @Published var favorites: [Favorite] = []
     @Published var errorMessage: String? = nil
     @Published var isLoading = false
+    @Published private(set) var hasLoadedOnce: Bool
 
     private let favoritesLoader: FavoritesLoading
 
@@ -181,17 +182,18 @@ class FavoritesViewModel: ObservableObject {
         self.favorites = initialFavorites
         self.errorMessage = initialErrorMessage
         self.isLoading = initialIsLoading
+        self.hasLoadedOnce = initialIsLoading || !initialFavorites.isEmpty || initialErrorMessage != nil
     }
 
     func loadFavorites() {
-        DispatchQueue.main.async {
-            self.isLoading = true
-            self.errorMessage = nil
-        }
+        guard !isLoading else { return }
+        isLoading = true
+        errorMessage = nil
         favoritesLoader.fetchFavorites { [weak self] objcFavorites, error in
             guard let self = self else { return }
             DispatchQueue.main.async {
                 self.isLoading = false
+                self.hasLoadedOnce = true
                 if let error {
                     self.errorMessage = error.localizedDescription
                     self.favorites = []
@@ -208,12 +210,17 @@ class FavoritesViewModel: ObservableObject {
         }
     }
 
+    func ensureLoaded() {
+        guard !isLoading else { return }
+        guard !hasLoadedOnce || errorMessage != nil else { return }
+        loadFavorites()
+    }
+
     func clearForLoggedOut() {
-        DispatchQueue.main.async {
-            self.isLoading = false
-            self.errorMessage = nil
-            self.favorites = []
-        }
+        isLoading = false
+        errorMessage = nil
+        favorites = []
+        hasLoadedOnce = false
     }
 
     func removeTopic(withPostID postID: Int) {
@@ -331,7 +338,6 @@ struct FavoritesListView: View {
     @StateObject private var viewModel: FavoritesViewModel
     @StateObject private var accountsStore: AccountsStore
     @State private var visitedURLs: Set<String> = []
-    @State private var hasLoaded = false
     @State private var showAddAccountSheet = false
     @State private var showLogoutConfirm = false
     @State private var superFavoriteIDs: Set<Int>
@@ -345,9 +351,13 @@ struct FavoritesListView: View {
         accountsStore.currentAccount != nil
     }
 
-    private func refreshContentForSessionState() {
+    private func refreshContentForSessionState(force: Bool = false) {
         if isLoggedIn {
-            viewModel.loadFavorites()
+            if force {
+                viewModel.loadFavorites()
+            } else {
+                viewModel.ensureLoaded()
+            }
         } else {
             viewModel.clearForLoggedOut()
         }
@@ -482,14 +492,11 @@ struct FavoritesListView: View {
             .onAppear {
                 superFavoriteIDs = FavoritesSuperFavoriteStore.load()
                 collapsedSectionIDs = FavoritesCollapsedSectionsStore.load()
-                if !hasLoaded {
-                    refreshContentForSessionState()
-                    hasLoaded = true
-                }
+                refreshContentForSessionState()
                 pruneCollapsedSections()
             }
             .onReceive(NotificationCenter.default.publisher(for: Notification.Name("kLoginChangedNotification"))) { _ in
-                refreshContentForSessionState()
+                refreshContentForSessionState(force: true)
             }
             .onReceive(viewModel.$favorites) { _ in
                 pruneCollapsedSections()
@@ -501,7 +508,7 @@ struct FavoritesListView: View {
                 else {
                     return
                 }
-                refreshContentForSessionState()
+                refreshContentForSessionState(force: true)
             }
             .toolbar {
                 MainToolbarContent(

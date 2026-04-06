@@ -891,9 +891,14 @@ struct RootTabView: View {
     }
 
     @StateObject private var appTheme = AppThemeStore.shared
+    @StateObject private var accountsStore = AccountsStore()
+    @StateObject private var favoritesViewModel = FavoritesViewModel()
+    @StateObject private var messagesViewModel = MPListViewModel()
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) private var systemColorScheme
     @State private var selectedTab: RootTabIdentifier
+    @State private var hasScheduledColdLaunchPrefetch = false
+    @State private var coldLaunchPrefetchTask: Task<Void, Never>?
     @AppStorage("nb_mp") private var unreadMPCount = 0
     @AppStorage("mp_badge_enabled") private var mpBadgeEnabled = true
 
@@ -912,6 +917,33 @@ struct RootTabView: View {
         await MPBackgroundService.shared.updateAppIconBadge(count: count)
     }
 
+    private func startColdLaunchPrefetchIfNeeded() {
+        guard !hasScheduledColdLaunchPrefetch else { return }
+        guard accountsStore.currentAccount != nil else { return }
+
+        hasScheduledColdLaunchPrefetch = true
+        favoritesViewModel.ensureLoaded()
+
+        coldLaunchPrefetchTask?.cancel()
+        coldLaunchPrefetchTask = Task { @MainActor in
+            while favoritesViewModel.isLoading {
+                do {
+                    try await Task.sleep(for: .milliseconds(100))
+                } catch {
+                    return
+                }
+            }
+
+            guard !Task.isCancelled, accountsStore.currentAccount != nil else { return }
+            messagesViewModel.ensureLoaded()
+        }
+    }
+
+    private func cancelColdLaunchPrefetch() {
+        coldLaunchPrefetchTask?.cancel()
+        coldLaunchPrefetchTask = nil
+    }
+
     private func handleUIKitTabSelection(_ selectedIndex: Int) {
         guard let tab = RootTabIdentifier(rawValue: selectedIndex) else { return }
         if selectedTab != tab {
@@ -927,10 +959,17 @@ struct RootTabView: View {
             }
             Tab("Favoris", systemImage: "star.fill", value: .favorites) {
                 //FeedView()
-                FavoritesListView()
+                FavoritesListView(
+                    viewModel: favoritesViewModel,
+                    accountsStore: accountsStore
+                )
             }
             Tab("Messages", systemImage: "envelope", value: .messages) {
-                MPListView()
+                MPListView(
+                    viewModel: messagesViewModel,
+                    accountsStore: accountsStore,
+                    isActive: selectedTab == .messages
+                )
             }
             .badge(mpBadgeEnabled && unreadMPCount > 0 ? unreadMPCount : 0)
             Tab("Plus", systemImage: "ellipsis", value: .more) {
@@ -946,9 +985,18 @@ struct RootTabView: View {
         .onAppear {
             appTheme.refresh(systemColorScheme: systemColorScheme, forceThemeRevision: true)
             syncRuntimeSelectedTab(selectedTab)
+            startColdLaunchPrefetchIfNeeded()
         }
         .onChange(of: selectedTab) { _, newValue in
             syncRuntimeSelectedTab(newValue)
+        }
+        .onChange(of: accountsStore.currentAccount?.id) { _, newValue in
+            if newValue == nil {
+                cancelColdLaunchPrefetch()
+                hasScheduledColdLaunchPrefetch = false
+            } else {
+                startColdLaunchPrefetchIfNeeded()
+            }
         }
         .onChange(of: systemColorScheme) { _, newValue in
             appTheme.refresh(systemColorScheme: newValue)
@@ -956,6 +1004,7 @@ struct RootTabView: View {
         .onChange(of: scenePhase) { _, newValue in
             guard newValue == .active else { return }
             appTheme.refresh(systemColorScheme: systemColorScheme, forceThemeRevision: true)
+            startColdLaunchPrefetchIfNeeded()
             Task { await syncAppIconBadge() }
         }
         .onChange(of: unreadMPCount) { _, _ in
