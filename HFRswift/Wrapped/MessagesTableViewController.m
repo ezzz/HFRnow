@@ -361,8 +361,10 @@
     NSError * error = nil;
     HTMLParser *myParser = [[HTMLParser alloc] initWithData:data error:&error];
     [parser parseData:myParser];
-    [self manageLoadedItems:parser.workingArray];
+    // loadDataInTableView must run BEFORE manageLoadedItems so that
+    // setupPoll sets self.pollNode before the Swift completion handler fires.
     [self loadDataInTableView:myParser];
+    [self manageLoadedItems:parser.workingArray];
 }
 
 - (void)fetchContentFailed:(ASIHTTPRequest *)theRequest
@@ -806,19 +808,23 @@
 }
 
 - (NSString *)swiftPollHTML {
+    NSLog(@"[Poll] swiftPollHTML called, pollNode=%@, pollParser=%@", self.pollNode, self.pollParser);
     if (!self.pollNode || !self.pollParser) { return nil; }
-    return rawContentsOfNode([self.pollNode _node], [self.pollParser _doc]);
+    NSString *html = rawContentsOfNode([self.pollNode _node], [self.pollParser _doc]);
+    NSLog(@"[Poll] swiftPollHTML returning %lu chars", (unsigned long)html.length);
+    return html;
 }
 
 -(void)setupPoll:(HTMLNode *)bodyNode andP:(HTMLParser *)myParser {
     self.pollNode = nil;
     self.pollParser = nil;
     self.isNewPoll = NO;
-    
+
 	HTMLNode * tmpPollNode = [bodyNode findChildWithAttribute:@"class" matchingName:@"sondage" allowPartial:NO];
+    NSLog(@"[Poll] setupPoll: tmpPollNode=%@", tmpPollNode);
 	if(tmpPollNode)
     {
-        //NSLog(@"Raw Poll %@", rawContentsOfNode([tmpPollNode _node], [myParser _doc]));
+        NSLog(@"[Poll] Raw Poll: %@", rawContentsOfNode([tmpPollNode _node], [myParser _doc]));
         [self setPollNode:tmpPollNode];
         [self setPollParser:myParser];
         

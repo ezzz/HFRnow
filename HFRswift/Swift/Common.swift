@@ -946,8 +946,10 @@ final class ObjCTopicPageLoader: TopicPageLoading {
                 .flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 ?? (controller.value(forKey: "_topicName") as? String)
                     .flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            let pollData = (controller.value(forKey: "swiftPollHTML") as? String)
-                .flatMap { PollHTMLParser.parse(from: $0) }
+            let rawPollHTML = controller.value(forKey: "swiftPollHTML") as? String
+            print("[Poll] swiftPollHTML from Swift: \(rawPollHTML.map { "\($0.count) chars" } ?? "nil")")
+            let pollData = rawPollHTML.flatMap { PollHTMLParser.parse(from: $0) }
+            print("[Poll] parsed pollData: \(pollData.map { "isVotable=\($0.isVotable) options=\($0.options.count) results=\($0.results.count)" } ?? "nil")")
             completion(.success(TopicPageContent(
                 html: html,
                 topicAnswerURL: answerURL,
