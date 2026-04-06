@@ -2209,7 +2209,7 @@ struct MessagesView: View {
     @State private var hasPoll = false
     @State private var pollIsNewVote = false
     @State private var pollData: PollData?
-    @State private var isPollSheetPresented = false
+    @State private var presentedPollData: PollData?
     @State private var showWebViewLoadCover = true
     @State private var isWebContentAtBottom = false
     @State private var pendingPostedReply: ReplyPostingResult?
@@ -3457,7 +3457,7 @@ struct MessagesView: View {
                     if hasPoll && pollIsNewVote {
                         ToolbarItem(placement: .topBarTrailing) {
                             PollToolbarButton(isVotable: true) {
-                                isPollSheetPresented = true
+                                presentedPollData = pollData
                             }
                         }
                     }
@@ -3466,7 +3466,7 @@ struct MessagesView: View {
                         Menu {
                             if hasPoll && pollData != nil {
                                 Button {
-                                    isPollSheetPresented = true
+                                    presentedPollData = pollData
                                 } label: {
                                     MenuActionLabel("Sondage", systemImage: "chart.bar.doc.horizontal")
                                 }
@@ -3629,7 +3629,7 @@ struct MessagesView: View {
                 if hasPoll && pollIsNewVote {
                     ToolbarItem(placement: .topBarTrailing) {
                         PollToolbarButton(isVotable: true) {
-                            isPollSheetPresented = true
+                            presentedPollData = pollData
                         }
                     }
                 }
@@ -3638,7 +3638,7 @@ struct MessagesView: View {
                     Menu {
                         if hasPoll && pollData != nil {
                             Button {
-                                isPollSheetPresented = true
+                                presentedPollData = pollData
                             } label: {
                                 MenuActionLabel("Sondage", systemImage: "chart.bar.doc.horizontal")
                             }
@@ -3696,12 +3696,10 @@ struct MessagesView: View {
                     navigateToPage(selectedPage, initialScroll: .top)
                 }
             }
-            .sheet(isPresented: $isPollSheetPresented) {
-                if let pollData {
-                    PollSheet(pollData: pollData, onVoteSucceeded: {
-                        loadPage(page)
-                    })
-                }
+            .sheet(item: $presentedPollData) { data in
+                PollSheet(pollData: data, onVoteSucceeded: {
+                    loadPage(page)
+                })
             }
             .onAppear {
                 loadPage(page)

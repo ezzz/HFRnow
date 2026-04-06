@@ -22,7 +22,8 @@ struct PollResult: Identifiable {
     let voteCount: Int
 }
 
-struct PollData {
+struct PollData: Identifiable {
+    var id: String { question }
     let question: String
     let footer: String
     let maxChoices: Int
