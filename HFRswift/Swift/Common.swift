@@ -29,6 +29,20 @@ enum RootTabIdentifier: Int {
     case more = 3
 }
 
+enum MessagesNotificationNavigation {
+    static let openMessagesNotification = Notification.Name("HFRswiftOpenMessagesFromNotification")
+    static let pendingOpenMessagesDefaultsKey = "HFRswiftOpenMessagesFromNotificationPending"
+    static let notificationDestinationKey = "destination"
+    static let messagesDestinationValue = "messages"
+
+    static func consumePendingOpenMessagesRequest(defaults: UserDefaults = .standard) -> Bool {
+        let hasPendingRequest = defaults.bool(forKey: pendingOpenMessagesDefaultsKey)
+        guard hasPendingRequest else { return false }
+        defaults.removeObject(forKey: pendingOpenMessagesDefaultsKey)
+        return true
+    }
+}
+
 extension Notification.Name {
     static let rootTabReselected = Notification.Name("HFRswiftRootTabReselectedNotification")
 }

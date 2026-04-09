@@ -33,6 +33,11 @@
 #define NOTIFICATION_BACKGROUND_REFRESH YES
 #define BACKGROUND_MAINTENANCE          YES
 
+static NSString * const HFRSwiftOpenMessagesFromNotificationName = @"HFRswiftOpenMessagesFromNotification";
+static NSString * const HFRSwiftOpenMessagesFromNotificationPendingKey = @"HFRswiftOpenMessagesFromNotificationPending";
+static NSString * const HFRSwiftNotificationDestinationKey = @"destination";
+static NSString * const HFRSwiftNotificationDestinationMessages = @"messages";
+
 @implementation HFRplusAppDelegate
 
 @synthesize window;
@@ -166,13 +171,30 @@
 - (void)userNotificationCenter:(UNUserNotificationCenter *)center didReceiveNotificationResponse:(UNNotificationResponse *)response withCompletionHandler:(void(^)(void))completionHandler{
 
     NSLog(@"Notifcation tapped");
-    
-    // Display MP and refesh MP list
-    [self.rootController setSelectedIndex:2];
-    HFRNavigationController *nv = self.rootController.selectedViewController;
-    [nv popToRootViewControllerAnimated:NO];
-    if ([nv.topViewController isKindOfClass:[HFRMPViewController class]]) {
-        [(HFRMPViewController *)nv.topViewController fetchContent];
+
+    NSDictionary *userInfo = response.notification.request.content.userInfo ?: @{};
+    NSString *destination = userInfo[HFRSwiftNotificationDestinationKey];
+    BOOL shouldOpenMessages = (destination == nil) || [destination isEqualToString:HFRSwiftNotificationDestinationMessages];
+
+    if (shouldOpenMessages) {
+        [[NSUserDefaults standardUserDefaults] setBool:YES forKey:HFRSwiftOpenMessagesFromNotificationPendingKey];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [[NSNotificationCenter defaultCenter] postNotificationName:HFRSwiftOpenMessagesFromNotificationName object:nil];
+        });
+
+#if !APP_SWIFT
+        // Legacy UIKit path: display MP and refresh MP list immediately.
+        [self.rootController setSelectedIndex:2];
+        HFRNavigationController *nv = self.rootController.selectedViewController;
+        [nv popToRootViewControllerAnimated:NO];
+        if ([nv.topViewController isKindOfClass:[HFRMPViewController class]]) {
+            [(HFRMPViewController *)nv.topViewController fetchContent];
+        }
+#endif
+    }
+
+    if (completionHandler) {
+        completionHandler();
     }
 }
 

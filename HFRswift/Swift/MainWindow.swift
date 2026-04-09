@@ -899,6 +899,7 @@ struct RootTabView: View {
     @State private var selectedTab: RootTabIdentifier
     @State private var hasScheduledColdLaunchPrefetch = false
     @State private var coldLaunchPrefetchTask: Task<Void, Never>?
+    @State private var messagesNavigationResetToken = UUID()
     @AppStorage("nb_mp") private var unreadMPCount = 0
     @AppStorage("mp_badge_enabled") private var mpBadgeEnabled = true
 
@@ -952,6 +953,26 @@ struct RootTabView: View {
         syncRuntimeSelectedTab(tab)
     }
 
+    private func showMessagesList(forceRefresh: Bool) {
+        messagesNavigationResetToken = UUID()
+        if selectedTab != .messages {
+            selectedTab = .messages
+        }
+        syncRuntimeSelectedTab(.messages)
+
+        guard accountsStore.currentAccount != nil else { return }
+        if forceRefresh {
+            messagesViewModel.load()
+        } else {
+            messagesViewModel.ensureLoaded()
+        }
+    }
+
+    private func handlePendingMessagesNotificationNavigationIfNeeded(forceRefresh: Bool = true) {
+        guard MessagesNotificationNavigation.consumePendingOpenMessagesRequest() else { return }
+        showMessagesList(forceRefresh: forceRefresh)
+    }
+
     var body: some View {
         TabView(selection: $selectedTab) {
             Tab("Catégories", systemImage: "folder.fill", value: .categories) {
@@ -968,7 +989,8 @@ struct RootTabView: View {
                 MPListView(
                     viewModel: messagesViewModel,
                     accountsStore: accountsStore,
-                    isActive: selectedTab == .messages
+                    isActive: selectedTab == .messages,
+                    navigationResetToken: messagesNavigationResetToken
                 )
             }
             .badge(mpBadgeEnabled && unreadMPCount > 0 ? unreadMPCount : 0)
@@ -986,6 +1008,7 @@ struct RootTabView: View {
             appTheme.refresh(systemColorScheme: systemColorScheme, forceThemeRevision: true)
             syncRuntimeSelectedTab(selectedTab)
             startColdLaunchPrefetchIfNeeded()
+            handlePendingMessagesNotificationNavigationIfNeeded()
         }
         .onChange(of: selectedTab) { _, newValue in
             syncRuntimeSelectedTab(newValue)
@@ -1005,6 +1028,7 @@ struct RootTabView: View {
             guard newValue == .active else { return }
             appTheme.refresh(systemColorScheme: systemColorScheme, forceThemeRevision: true)
             startColdLaunchPrefetchIfNeeded()
+            handlePendingMessagesNotificationNavigationIfNeeded()
             Task { await syncAppIconBadge() }
         }
         .onChange(of: unreadMPCount) { _, _ in
@@ -1031,6 +1055,9 @@ struct RootTabView: View {
             }
             .frame(width: 0, height: 0)
         )
+        .onReceive(NotificationCenter.default.publisher(for: MessagesNotificationNavigation.openMessagesNotification)) { _ in
+            handlePendingMessagesNotificationNavigationIfNeeded()
+        }
     }
 }
 

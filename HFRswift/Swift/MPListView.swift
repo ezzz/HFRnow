@@ -9,6 +9,35 @@ import SwiftUI
 import Combine
 import CryptoKit
 
+enum MPTopicReadState {
+    private static let unreadPrefix = "[non lu]"
+
+    static func hasUnreadPrefix(_ title: String?) -> Bool {
+        guard let title else { return false }
+        return title.lowercased().hasPrefix(unreadPrefix)
+    }
+
+    static func isUnread(_ topic: Topic) -> Bool {
+        hasUnreadPrefix(topic._aTitle) || !topic.isViewed
+    }
+
+    static func markTopicAsRead(_ topic: Topic) -> Bool {
+        let wasUnread = isUnread(topic)
+
+        if hasUnreadPrefix(topic._aTitle), let title = topic._aTitle {
+            topic._aTitle = String(title.dropFirst(unreadPrefix.count)).trimmingCharacters(in: .whitespaces)
+        }
+
+        topic.isLocallyViewedInApp = true
+        topic.isViewed = true
+        return wasUnread
+    }
+
+    static func decrementedUnreadCount(_ count: Int, afterMarkingUnreadTopic didMarkUnreadTopic: Bool) -> Int {
+        didMarkUnreadTopic ? max(count - 1, 0) : count
+    }
+}
+
 final class MPListViewModel: ObservableObject {
     @Published var topics: [Topic] = []
     @Published var errorMessage: String? = nil
@@ -93,6 +122,13 @@ final class MPListViewModel: ObservableObject {
         lastSuccessfulLoadDate = nil
     }
 
+    @discardableResult
+    func markTopicAsRead(_ topic: Topic) -> Bool {
+        let didMarkUnreadTopic = MPTopicReadState.markTopicAsRead(topic)
+        topics = topics
+        return didMarkUnreadTopic
+    }
+
     private static func isCancellationError(_ error: Error) -> Bool {
         let nsError = error as NSError
         if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
@@ -112,8 +148,10 @@ struct MPListView: View {
     @StateObject private var accountsStore: AccountsStore
     @State private var showAddAccountSheet = false
     @State private var showLogoutConfirm = false
+    @AppStorage("nb_mp") private var unreadMPCount = 0
 
     private let isActive: Bool
+    private let navigationResetToken: UUID
 
     private var isLoggedIn: Bool {
         accountsStore.currentAccount != nil
@@ -143,11 +181,21 @@ struct MPListView: View {
     init(
         viewModel: MPListViewModel? = nil,
         accountsStore: AccountsStore? = nil,
-        isActive: Bool = true
+        isActive: Bool = true,
+        navigationResetToken: UUID = UUID()
     ) {
         _viewModel = StateObject(wrappedValue: viewModel ?? MPListViewModel())
         _accountsStore = StateObject(wrappedValue: accountsStore ?? AccountsStore())
         self.isActive = isActive
+        self.navigationResetToken = navigationResetToken
+    }
+
+    private func markTopicAsRead(_ topic: Topic) {
+        let didMarkUnreadTopic = viewModel.markTopicAsRead(topic)
+        unreadMPCount = MPTopicReadState.decrementedUnreadCount(
+            unreadMPCount,
+            afterMarkingUnreadTopic: didMarkUnreadTopic
+        )
     }
 
     var body: some View {
@@ -176,7 +224,9 @@ struct MPListView: View {
                             .foregroundStyle(.secondary)
                     }
                     ForEach(viewModel.topics) { topic in
-                        MPRowView(topic: topic)
+                        MPRowView(topic: topic) {
+                            markTopicAsRead(topic)
+                        }
                     }
                 }
             }
@@ -265,11 +315,13 @@ struct MPListView: View {
                 Text("Supprimer le compte courant ?")
             }
         }
+        .id(navigationResetToken)
     }
 }
 
 struct MPRowView: View {
     var topic: Topic
+    var onOpen: (() -> Void)? = nil
 
     // "[non lu]" prefix detection — strips brackets, returns the keyword if present.
     private static let nonLuPrefix = "[non lu]"
@@ -328,7 +380,10 @@ struct MPRowView: View {
             contentPadding: EdgeInsets(top: 2, leading: 0, bottom: 2, trailing: 0),
             leadingAccessory: avatarAccessory,
             openContext: .messages,
-            quickActions: TopicQuickActionPolicy.defaults(for: .messages)
+            quickActions: TopicQuickActionPolicy.defaults(for: .messages),
+            onOpen: { _ in
+            onOpen?()
+            }
         )
         .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
     }

@@ -141,6 +141,9 @@ final class MPBackgroundService {
         let content = UNMutableNotificationContent()
         content.body = text
         content.sound = .default
+        content.userInfo = [
+            MessagesNotificationNavigation.notificationDestinationKey: MessagesNotificationNavigation.messagesDestinationValue
+        ]
 
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 3, repeats: false)
         let request = UNNotificationRequest(

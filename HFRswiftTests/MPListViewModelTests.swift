@@ -57,6 +57,46 @@ final class MPListViewModelTests: XCTestCase {
         XCTAssertEqual(loader.completions.count, 2)
     }
 
+    func testMarkTopicAsReadUpdatesTopicStateAndRemovesUnreadPrefix() {
+        let loader = MPTopicsLoaderSpy()
+        let topic = makeTopic(title: "[non lu] Premier MP")
+        topic.isViewed = false
+        let viewModel = MPListViewModel(topicsLoader: loader, initialTopics: [topic])
+
+        let didMarkUnreadTopic = viewModel.markTopicAsRead(topic)
+
+        XCTAssertTrue(didMarkUnreadTopic)
+        XCTAssertTrue(topic.isViewed)
+        XCTAssertTrue(topic.isLocallyViewedInApp)
+        XCTAssertEqual(topic._aTitle, "Premier MP")
+    }
+
+    func testDecrementedUnreadCountDoesNotGoNegative() {
+        XCTAssertEqual(
+            MPTopicReadState.decrementedUnreadCount(0, afterMarkingUnreadTopic: true),
+            0
+        )
+        XCTAssertEqual(
+            MPTopicReadState.decrementedUnreadCount(3, afterMarkingUnreadTopic: true),
+            2
+        )
+        XCTAssertEqual(
+            MPTopicReadState.decrementedUnreadCount(3, afterMarkingUnreadTopic: false),
+            3
+        )
+    }
+
+    func testConsumePendingMessagesNotificationNavigationClearsRequest() {
+        let suiteName = "MPListViewModelTests.consumePending.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.set(true, forKey: MessagesNotificationNavigation.pendingOpenMessagesDefaultsKey)
+
+        XCTAssertTrue(MessagesNotificationNavigation.consumePendingOpenMessagesRequest(defaults: defaults))
+        XCTAssertFalse(MessagesNotificationNavigation.consumePendingOpenMessagesRequest(defaults: defaults))
+
+        defaults.removePersistentDomain(forName: suiteName)
+    }
+
     private func flushMainQueue() {
         let expectation = expectation(description: "flushMainQueue")
         DispatchQueue.main.async {
