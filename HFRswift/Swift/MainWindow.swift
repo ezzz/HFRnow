@@ -559,7 +559,9 @@ struct ForumTopicsListView: View {
                 TopicListRowView(
                     topic: topic,
                     isVisited: isVisited,
-                    titleFont: .system(size: 13, weight: isVisited ? .regular : .semibold),
+                    titleFont: nil,
+                    titleBaseSize: 14.3,
+                    titleWeight: isVisited ? .regular : .semibold,
                     showUnreadBadge: hasFlag && !topic.isViewedFromForumAtLoad,
                     leadingBottomText: footerLeft(for: topic),
                     trailingBottomText: footerRight(for: topic),

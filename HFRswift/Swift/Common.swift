@@ -83,6 +83,65 @@ enum AppHaptics {
     }
 }
 
+enum AppLayoutCompactMode {
+    static let key = "compact_mode"
+}
+
+enum AppTextSizeScale: Int, CaseIterable, Identifiable {
+    static let key = "text_size_scale"
+
+    case standard = 100
+    case plus10 = 110
+    case plus20 = 120
+    case plus30 = 130
+
+    var id: Int { rawValue }
+
+    var title: String {
+        switch self {
+        case .standard:
+            return "Standard"
+        case .plus10:
+            return "+10%"
+        case .plus20:
+            return "+20%"
+        case .plus30:
+            return "+30%"
+        }
+    }
+
+    var factor: CGFloat {
+        CGFloat(rawValue) / 100
+    }
+
+    static func value(for rawValue: Int) -> AppTextSizeScale {
+        AppTextSizeScale(rawValue: rawValue) ?? .standard
+    }
+
+    static func scaledUIFont(
+        textStyle: UIFont.TextStyle,
+        basePointSize: CGFloat,
+        rawValue: Int,
+        weight: UIFont.Weight = .regular
+    ) -> UIFont {
+        let baseFont = UIFont.systemFont(ofSize: basePointSize * value(for: rawValue).factor, weight: weight)
+        return UIFontMetrics(forTextStyle: textStyle).scaledFont(for: baseFont)
+    }
+}
+
+extension View {
+    @ViewBuilder
+    func compactListSectionSpacing(_ isCompactModeEnabled: Bool, spacing compactSpacing: CGFloat, regularSpacing: CGFloat? = nil) -> some View {
+        if isCompactModeEnabled {
+            self.listSectionSpacing(.custom(compactSpacing))
+        } else if let regularSpacing {
+            self.listSectionSpacing(.custom(regularSpacing))
+        } else {
+            self
+        }
+    }
+}
+
 enum AppThemeResolver {
     private static let autoThemeKey = "auto_theme"
     private static let manualThemeKey = "theme"
@@ -1939,7 +1998,9 @@ struct MenuActionLabel: View {
 struct TopicListRowView: View {
     let topic: Topic
     let isVisited: Bool
-    var titleFont: Font = .headline
+    var titleFont: Font? = .headline
+    var titleBaseSize: CGFloat?
+    var titleWeight: Font.Weight = .regular
     var titleOverride: String? = nil
     var titleLeadingBadge: AnyView? = nil
     var showUnreadBadge = false
@@ -1955,6 +2016,9 @@ struct TopicListRowView: View {
     var extraContextMenu: (() -> AnyView)?
     var onOpen: ((String?) -> Void)?
     @Environment(\.appThemePalette) private var themePalette
+    @AppStorage(AppTextSizeScale.key) private var textSizeScaleRawValue = AppTextSizeScale.standard.rawValue
+    @ScaledMetric(relativeTo: .body) private var scaledTitleBaseSize: CGFloat = 13
+    @ScaledMetric(relativeTo: .footnote) private var scaledFooterBaseSize: CGFloat = 13
 
     @State private var navigateToTarget = false
     @State private var navigationTarget: TopicNavigationTarget?
@@ -1967,6 +2031,22 @@ struct TopicListRowView: View {
 
     private var titleText: String {
         titleOverride ?? topic._aTitle ?? "Sans titre"
+    }
+
+    private var appTextSizeFactor: CGFloat {
+        AppTextSizeScale.value(for: textSizeScaleRawValue).factor
+    }
+
+    private var resolvedTitleFont: Font {
+        if let titleBaseSize {
+            let normalizedBaseSize = scaledTitleBaseSize * (titleBaseSize / 13)
+            return .system(size: normalizedBaseSize * appTextSizeFactor, weight: titleWeight)
+        }
+        return titleFont ?? .headline
+    }
+
+    private var resolvedFooterFont: Font {
+        .system(size: scaledFooterBaseSize * appTextSizeFactor)
     }
 
     private var maxTopicPageValue: Int {
@@ -2196,7 +2276,7 @@ struct TopicListRowView: View {
                             titleLeadingBadge
                         }
                         Text(titleText)
-                            .font(titleFont)
+                            .font(resolvedTitleFont)
                             .foregroundStyle(isVisited ? .secondary : .primary)
                         Spacer()
                         if showUnreadBadge && (showUnreadBadgeWhenZero || unreadCount > 0) {
@@ -2215,13 +2295,13 @@ struct TopicListRowView: View {
                         HStack {
                             if let leadingBottomText {
                                 Text(leadingBottomText)
-                                    .font(.footnote)
+                                    .font(resolvedFooterFont)
                                     .foregroundStyle(.secondary)
                             }
                             Spacer()
                             if let trailingBottomText {
                                 Text(trailingBottomText)
-                                    .font(.footnote)
+                                    .font(resolvedFooterFont)
                                     .foregroundStyle(.secondary)
                             }
                         }

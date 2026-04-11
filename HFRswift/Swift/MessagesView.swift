@@ -611,6 +611,7 @@ struct WebView: UIViewRepresentable {
     var colorScheme: ColorScheme
     var baseBackgroundColor: UIColor
     var themeRevision: Int
+    var messageBodyFontSize: CGFloat
     var messageActionsByIndex: [Int: TopicPageMessageActions]
     var actionHandler: any MessageWebActionHandling
     var onWebAction: ((MessageWebAction) -> Void)?
@@ -637,6 +638,7 @@ struct WebView: UIViewRepresentable {
         colorScheme: ColorScheme = .light,
         baseBackgroundColor: UIColor = .systemGray6,
         themeRevision: Int = 0,
+        messageBodyFontSize: CGFloat = 15,
         messageActionsByIndex: [Int: TopicPageMessageActions] = [:],
         actionHandler: any MessageWebActionHandling = MessageWebActionHandler(),
         onWebAction: ((MessageWebAction) -> Void)? = nil,
@@ -662,6 +664,7 @@ struct WebView: UIViewRepresentable {
         self.colorScheme = colorScheme
         self.baseBackgroundColor = baseBackgroundColor
         self.themeRevision = themeRevision
+        self.messageBodyFontSize = messageBodyFontSize
         self.messageActionsByIndex = messageActionsByIndex
         self.actionHandler = actionHandler
         self.onWebAction = onWebAction
@@ -786,6 +789,7 @@ struct WebView: UIViewRepresentable {
         context.coordinator.initialScroll = initialScroll
         context.coordinator.colorScheme = colorScheme
         context.coordinator.themeRevision = themeRevision
+        context.coordinator.messageBodyFontSize = messageBodyFontSize
         webView.backgroundColor = baseBackgroundColor
         webView.scrollView.backgroundColor = baseBackgroundColor
         if #available(iOS 15.0, *) {
@@ -804,12 +808,14 @@ struct WebView: UIViewRepresentable {
                 context.coordinator.loadedReadAccessURL = readAccessURL
                 context.coordinator.lastAppliedTheme = nil
                 context.coordinator.lastAppliedThemeRevision = -1
+                context.coordinator.lastAppliedMessageBodyFontSize = nil
                 context.coordinator.isWaitingForThemeApplication = true
                 context.coordinator.didNotifyContentReadyForCurrentLoad = false
                 webView.isHidden = true
                 webView.loadFileURL(fileURL, allowingReadAccessTo: readAccessURL)
             } else {
                 context.coordinator.applyThemeIfNeeded(in: webView, force: shouldForceThemeApplication)
+                context.coordinator.applyTextSizeIfNeeded(in: webView)
                 if !context.coordinator.isWaitingForThemeApplication {
                     webView.isHidden = false
                 }
@@ -824,10 +830,12 @@ struct WebView: UIViewRepresentable {
         var initialScroll: WebView.InitialScroll?
         var colorScheme: ColorScheme
         var themeRevision: Int
+        var messageBodyFontSize: CGFloat
         var loadedFileURL: URL?
         var loadedReadAccessURL: URL?
         var lastAppliedTheme: String?
         var lastAppliedThemeRevision: Int = -1
+        var lastAppliedMessageBodyFontSize: CGFloat?
         var isWaitingForThemeApplication = false
         var didNotifyContentReadyForCurrentLoad = false
         @available(iOS 16.0, *)
@@ -851,14 +859,17 @@ struct WebView: UIViewRepresentable {
             self.parent = parent
             self.colorScheme = parent.colorScheme
             self.themeRevision = parent.themeRevision
+            self.messageBodyFontSize = parent.messageBodyFontSize
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             print("WKWebView didFinish. anchor =", anchor as Any, "initialScroll =", String(describing: initialScroll), "url:", webView.url?.absoluteString ?? "nil")
             applyThemeIfNeeded(in: webView, force: true) {
-                self.isWaitingForThemeApplication = false
-                webView.isHidden = false
-                self.notifyContentReadyIfNeeded()
+                self.applyTextSizeIfNeeded(in: webView, force: true) {
+                    self.isWaitingForThemeApplication = false
+                    webView.isHidden = false
+                    self.notifyContentReadyIfNeeded()
+                }
             }
 
             if let a = anchor, !a.isEmpty {
@@ -1042,6 +1053,42 @@ struct WebView: UIViewRepresentable {
                     self?.lastAppliedTheme = targetTheme
                     self?.lastAppliedThemeRevision = self?.themeRevision ?? -1
                     print("Theme JS applied:", targetTheme)
+                }
+                completion?()
+            }
+        }
+
+        func applyTextSizeIfNeeded(
+            in webView: WKWebView,
+            force: Bool = false,
+            completion: (() -> Void)? = nil
+        ) {
+            guard force || lastAppliedMessageBodyFontSize != messageBodyFontSize else {
+                completion?()
+                return
+            }
+
+            let fontSize = max(messageBodyFontSize, 1)
+            let script = """
+            (function() {
+              var css = ".message .content .right { font-size: \(fontSize)px !important; }";
+              var style = document.getElementById('hfrswift-text-size');
+              if (!style && document.head) {
+                style = document.createElement('style');
+                style.id = 'hfrswift-text-size';
+                document.head.appendChild(style);
+              }
+              if (style) {
+                style.textContent = css;
+              }
+            })();
+            """
+
+            webView.evaluateJavaScript(script) { [weak self] _, error in
+                if let error = error {
+                    print("Text size JS error:", error.localizedDescription)
+                } else {
+                    self?.lastAppliedMessageBodyFontSize = fontSize
                 }
                 completion?()
             }
@@ -2160,6 +2207,7 @@ struct MessagesView: View {
 
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var appTheme = AppThemeStore.shared
+    @AppStorage(AppTextSizeScale.key) private var textSizeScaleRawValue = AppTextSizeScale.standard.rawValue
     @State private var page: Int
     @State private var availableMaxPage: Int
     @State private var topicDisplayTitle: String
@@ -2224,6 +2272,14 @@ struct MessagesView: View {
 
     private var themePalette: AppThemePalette {
         appTheme.palette
+    }
+
+    private var messageBodyFontSize: CGFloat {
+        AppTextSizeScale.scaledUIFont(
+            textStyle: .body,
+            basePointSize: 15,
+            rawValue: textSizeScaleRawValue
+        ).pointSize
     }
 
     init(
@@ -3321,6 +3377,7 @@ struct MessagesView: View {
                     colorScheme: appTheme.effectiveColorScheme,
                     baseBackgroundColor: themePalette.webViewBackdropUIColor,
                     themeRevision: appTheme.themeRevision,
+                    messageBodyFontSize: messageBodyFontSize,
                     messageActionsByIndex: messageActionsByIndex,
                     onWebAction: handleWebAction,
                     onPopupQuoteRequest: { quoteURL in

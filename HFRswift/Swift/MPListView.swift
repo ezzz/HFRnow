@@ -371,7 +371,9 @@ struct MPRowView: View {
         TopicListRowView(
             topic: topic,
             isVisited: isViewed,
-            titleFont: .system(size: 13, weight: isViewed ? .regular : .semibold),
+            titleFont: nil,
+            titleBaseSize: 14.3,
+            titleWeight: isViewed ? .regular : .semibold,
             titleOverride: cleanedTitle,
             titleLeadingBadge: nonLuBadge,
             showUnreadBadge: false,

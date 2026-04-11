@@ -55,6 +55,7 @@ struct AnswerView: View {
     // MARK: Environment
     @Environment(\.appThemePalette) private var themePalette
     @Environment(\.dismiss) private var dismiss
+    @AppStorage(AppTextSizeScale.key) private var textSizeScaleRawValue = AppTextSizeScale.standard.rawValue
 
     // MARK: Composer state
     @State private var message: String
@@ -167,6 +168,7 @@ struct AnswerView: View {
                 selectedRange: $selectedRangeUTF16,
                 focusRequest: focusRequest,
                 focusTrigger: focusTrigger,
+                textSizeScaleRawValue: textSizeScaleRawValue,
                 onBBCodeAction: performBBCode,
                 onSplitQuote: performSplitQuote
             )
@@ -1572,15 +1574,25 @@ private struct ReplyTextEditor: UIViewRepresentable {
     @Binding var selectedRange: NSRange
     let focusRequest: TextEditorFocusRequest
     let focusTrigger: Int   // changing this forces updateUIView to be called
+    let textSizeScaleRawValue: Int
     var onBBCodeAction: ((BBCodeTag, NSRange) -> Void)?
     var onSplitQuote: ((Int) -> Void)?
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
+    private var editorFont: UIFont {
+        AppTextSizeScale.scaledUIFont(
+            textStyle: .body,
+            basePointSize: 17,
+            rawValue: textSizeScaleRawValue
+        )
+    }
+
     func makeUIView(context: Context) -> UITextView {
         let tv = UITextView()
         tv.delegate = context.coordinator
-        tv.font = UIFont.preferredFont(forTextStyle: .body)
+        tv.font = editorFont
+        tv.adjustsFontForContentSizeCategory = true
         tv.backgroundColor = .clear
         tv.textContainerInset = .zero
         tv.textContainer.lineFragmentPadding = 0
@@ -1592,6 +1604,7 @@ private struct ReplyTextEditor: UIViewRepresentable {
 
     func updateUIView(_ uiView: UITextView, context: Context) {
         context.coordinator.parent = self
+        uiView.font = editorFont
 
         if uiView.text != text {
             uiView.text = text

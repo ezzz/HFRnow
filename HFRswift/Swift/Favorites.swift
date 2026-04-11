@@ -165,6 +165,37 @@ enum FavoritesTopicListOrdering {
     }
 }
 
+struct FavoritesListDensity {
+    let sectionSpacing: CGFloat
+    let sectionHeaderTopPadding: CGFloat
+    let sectionHeaderBottomPadding: CGFloat
+    let collapsedHeaderTopPadding: CGFloat
+    let collapsedHeaderBottomPadding: CGFloat
+    let rowInsets: EdgeInsets
+
+    static func value(isCompactModeEnabled: Bool) -> FavoritesListDensity {
+        if isCompactModeEnabled {
+            return FavoritesListDensity(
+                sectionSpacing: 6,
+                sectionHeaderTopPadding: -4,
+                sectionHeaderBottomPadding: -5,
+                collapsedHeaderTopPadding: -5,
+                collapsedHeaderBottomPadding: -6,
+                rowInsets: EdgeInsets(top: 3, leading: 12, bottom: 3, trailing: 12)
+            )
+        }
+
+        return FavoritesListDensity(
+            sectionSpacing: 12,
+            sectionHeaderTopPadding: -2,
+            sectionHeaderBottomPadding: -2,
+            collapsedHeaderTopPadding: -3,
+            collapsedHeaderBottomPadding: -3,
+            rowInsets: EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12)
+        )
+    }
+}
+
 struct TopicModel: Identifiable {
     let id = UUID()
     let title: String
@@ -247,6 +278,7 @@ struct FavoriteSectionView: View {
     let favorite: Favorite
     let sectionID: String
     let isCollapsed: Bool
+    let density: FavoritesListDensity
     @Binding var visitedURLs: Set<String>
     @Binding var superFavoriteIDs: Set<Int>
     let removingTopicIDs: Set<Int>
@@ -296,7 +328,8 @@ struct FavoriteSectionView: View {
                 .font(.footnote.monospacedDigit())
                 .foregroundStyle(.secondary)
         }
-        .padding(.vertical, isCollapsed ? -1 : 0)
+        .padding(.top, isCollapsed ? density.collapsedHeaderTopPadding : density.sectionHeaderTopPadding)
+        .padding(.bottom, isCollapsed ? density.collapsedHeaderBottomPadding : density.sectionHeaderBottomPadding)
         .padding(.trailing, 34)
         .overlay(alignment: .trailing) {
             Button {
@@ -333,7 +366,7 @@ struct FavoriteSectionView: View {
                         openContext: openContextProvider(topic)
                     )
                     .contentShape(Rectangle())
-                    .listRowInsets(EdgeInsets(top: 5, leading: 12, bottom: 5, trailing: 12))
+                    .listRowInsets(density.rowInsets)
                 }
             }
         }
@@ -347,6 +380,7 @@ struct FavoritesListView: View {
     @StateObject private var accountsStore: AccountsStore
     @AppStorage("vos_sujets") private var favoritesTabBehavior = "0"
     @AppStorage("sujets_avec_cat") private var favoritesSortedByCategories = true
+    @AppStorage(AppLayoutCompactMode.key) private var compactModeEnabled = false
     @State private var visitedURLs: Set<String> = []
     @State private var showAddAccountSheet = false
     @State private var showLogoutConfirm = false
@@ -363,6 +397,10 @@ struct FavoritesListView: View {
 
     private var flattenedTopics: [Topic] {
         FavoritesTopicListOrdering.flattenedTopics(from: viewModel.favorites)
+    }
+
+    private var listDensity: FavoritesListDensity {
+        FavoritesListDensity.value(isCompactModeEnabled: compactModeEnabled)
     }
 
     private var usesCategorizedFavoritesList: Bool {
@@ -486,6 +524,7 @@ struct FavoritesListView: View {
                                 favorite: favorite,
                                 sectionID: sectionID,
                                 isCollapsed: collapsedSectionIDs.contains(sectionID),
+                                density: listDensity,
                                 visitedURLs: $visitedURLs,
                                 superFavoriteIDs: $superFavoriteIDs,
                                 removingTopicIDs: removingTopicIDs,
@@ -513,11 +552,12 @@ struct FavoritesListView: View {
                                 openContext: topicOpenContext(for: topic)
                             )
                             .contentShape(Rectangle())
-                            .listRowInsets(EdgeInsets(top: 5, leading: 12, bottom: 5, trailing: 12))
+                            .listRowInsets(listDensity.rowInsets)
                         }
                     }
                 }
             }
+            .compactListSectionSpacing(compactModeEnabled, spacing: listDensity.sectionSpacing, regularSpacing: listDensity.sectionSpacing)
             .refreshable {
                 await MainActor.run { viewModel.loadFavorites() }
                 await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
@@ -724,7 +764,9 @@ struct TopicRowView: View {
         TopicListRowView(
             topic: topic,
             isVisited: isVisited,
-            titleFont: .system(size: 13, weight: isVisited ? .regular : .semibold),
+            titleFont: nil,
+            titleBaseSize: 14.3,
+            titleWeight: isVisited ? .regular : .semibold,
             showUnreadBadge: true,
             showUnreadBadgeWhenZero: false,
             leadingBottomText: pageLabel,

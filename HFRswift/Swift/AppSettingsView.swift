@@ -85,6 +85,8 @@ struct AppSettingsView: View {
 
     @AppStorage("vos_sujets") private var favoritesTabBehavior = "0"
     @AppStorage("sujets_avec_cat") private var favoritesSortedByCategories = true
+    @AppStorage(AppLayoutCompactMode.key) private var compactModeEnabled = false
+    @AppStorage(AppTextSizeScale.key) private var textSizeScaleRawValue = AppTextSizeScale.standard.rawValue
     @AppStorage("haptics") private var hapticsEnabled = true
     @AppStorage("icon") private var iconValue = AppIconOption.superblue.rawValue
 
@@ -94,9 +96,6 @@ struct AppSettingsView: View {
     @AppStorage("theme_noel_disabled") private var disableNoelMagic = false
 
     @AppStorage("blacklist_hide_pseudo") private var hideBlacklistedPseudo = false
-    @AppStorage("size_text_topics") private var topicListTextSize = 110
-    @AppStorage("size_text") private var messageTextSize = "default"
-    @AppStorage("size_text_reply") private var replyTextSize = 15
     @AppStorage("size_smileys") private var smileySize = "double"
     @AppStorage("embedded_videos") private var embeddedVideos = "yes"
     @AppStorage("display_sig") private var displaySignatures = "no"
@@ -133,31 +132,6 @@ struct AppSettingsView: View {
     private let themeStyleOptions = [
         IntOption(value: 0, title: "Classique"),
         IntOption(value: 1, title: "Moderne")
-    ]
-
-    private let topicListTextOptions = [
-        IntOption(value: 100, title: "-10%"),
-        IntOption(value: 110, title: "Défaut"),
-        IntOption(value: 120, title: "+10%"),
-        IntOption(value: 130, title: "+20%"),
-        IntOption(value: 140, title: "+30%"),
-        IntOption(value: 150, title: "+40%"),
-        IntOption(value: 160, title: "+50%")
-    ]
-
-    private let messageTextOptions = [
-        StringOption(value: "default", title: "Normale"),
-        StringOption(value: "sys", title: "Système")
-    ]
-
-    private let replyTextOptions = [
-        IntOption(value: 12, title: "12 pt"),
-        IntOption(value: 13, title: "13 pt"),
-        IntOption(value: 14, title: "14 pt"),
-        IntOption(value: 15, title: "15 pt"),
-        IntOption(value: 16, title: "16 pt"),
-        IntOption(value: 18, title: "18 pt"),
-        IntOption(value: 20, title: "20 pt")
     ]
 
     private let smileySizeOptions = [
@@ -314,6 +288,26 @@ struct AppSettingsView: View {
         ThemeManager.shared()?.refreshTheme()
     }
 
+    private func syncLegacyTextSizeSettings() {
+        let scale = AppTextSizeScale.value(for: textSizeScaleRawValue)
+        let defaults = UserDefaults.standard
+        defaults.set(scale.rawValue, forKey: "size_text_topics")
+        defaults.set("sys", forKey: "size_text")
+        defaults.set(Int((15 * scale.factor).rounded()), forKey: "size_text_reply")
+    }
+
+    private func migrateLegacyTextSizeSettingsIfNeeded() {
+        let defaults = UserDefaults.standard
+        guard defaults.object(forKey: AppTextSizeScale.key) == nil else { return }
+
+        let legacyTopicSize = defaults.object(forKey: "size_text_topics") as? Int ?? AppTextSizeScale.standard.rawValue
+        let supportedValues = AppTextSizeScale.allCases.map(\.rawValue)
+        let closestValue = supportedValues.min { lhs, rhs in
+            abs(lhs - legacyTopicSize) < abs(rhs - legacyTopicSize)
+        } ?? AppTextSizeScale.standard.rawValue
+        textSizeScaleRawValue = closestValue
+    }
+
     @ViewBuilder
     private var generalSection: some View {
         Section("Général") {
@@ -324,6 +318,14 @@ struct AppSettingsView: View {
             }
 
             Toggle("Favoris triés par catégories", isOn: $favoritesSortedByCategories)
+            Toggle("Mode compact", isOn: $compactModeEnabled)
+
+            Picker("Taille du texte", selection: $textSizeScaleRawValue) {
+                ForEach(AppTextSizeScale.allCases) { option in
+                    Text(option.title).tag(option.rawValue)
+                }
+            }
+
             Toggle("Retours haptiques", isOn: $hapticsEnabled)
 
             Picker("Icône", selection: $iconValue) {
@@ -377,24 +379,6 @@ struct AppSettingsView: View {
     private var topicsSection: some View {
         Section("Sujets") {
             Toggle("Masquer les pseudos blacklistés", isOn: $hideBlacklistedPseudo)
-
-            Picker("Taille texte listes topics", selection: $topicListTextSize) {
-                ForEach(topicListTextOptions) { option in
-                    Text(option.title).tag(option.value)
-                }
-            }
-
-            Picker("Taille texte messages", selection: $messageTextSize) {
-                ForEach(messageTextOptions) { option in
-                    Text(option.title).tag(option.value)
-                }
-            }
-
-            Picker("Taille texte réponse", selection: $replyTextSize) {
-                ForEach(replyTextOptions) { option in
-                    Text(option.title).tag(option.value)
-                }
-            }
 
             Picker("Taille des smileys", selection: $smileySize) {
                 ForEach(smileySizeOptions) { option in
@@ -468,10 +452,13 @@ struct AppSettingsView: View {
             maintenanceSection
             aboutSection
         }
+        .compactListSectionSpacing(compactModeEnabled, spacing: 8, regularSpacing: 14)
         .navigationTitle("Réglages")
         .onAppear {
             loadTintHueIfNeeded()
             applyThemeConfiguration()
+            migrateLegacyTextSizeSettingsIfNeeded()
+            syncLegacyTextSizeSettings()
         }
         .onChange(of: autoTheme) { _, _ in
             applyThemeConfiguration()
@@ -489,6 +476,9 @@ struct AppSettingsView: View {
         }
         .onChange(of: iconValue) { _, _ in
             applyIconSelection()
+        }
+        .onChange(of: textSizeScaleRawValue) { _, _ in
+            syncLegacyTextSizeSettings()
         }
         .onChange(of: mpStorageActive) { _, newValue in
             handleMPStorageToggle(newValue)
