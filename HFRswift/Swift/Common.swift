@@ -47,6 +47,42 @@ extension Notification.Name {
     static let rootTabReselected = Notification.Name("HFRswiftRootTabReselectedNotification")
 }
 
+enum AppHaptics {
+    private static let enabledKey = "haptics"
+
+    static var isEnabled: Bool {
+        let defaults = UserDefaults.standard
+        guard let rawValue = defaults.object(forKey: enabledKey) else { return true }
+        if let boolValue = rawValue as? Bool { return boolValue }
+        if let numberValue = rawValue as? NSNumber { return numberValue.boolValue }
+        if let stringValue = rawValue as? String {
+            switch stringValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+            case "1", "true", "yes", "on":
+                return true
+            case "0", "false", "no", "off":
+                return false
+            default:
+                break
+            }
+        }
+        return true
+    }
+
+    static func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+        guard isEnabled else { return }
+        let generator = UIImpactFeedbackGenerator(style: style)
+        generator.prepare()
+        generator.impactOccurred()
+    }
+
+    static func notification(_ type: UINotificationFeedbackGenerator.FeedbackType) {
+        guard isEnabled else { return }
+        let generator = UINotificationFeedbackGenerator()
+        generator.prepare()
+        generator.notificationOccurred(type)
+    }
+}
+
 enum AppThemeResolver {
     private static let autoThemeKey = "auto_theme"
     private static let manualThemeKey = "theme"
@@ -903,6 +939,31 @@ enum TopicPageLoadingError: LocalizedError {
 
 protocol TopicPageLoading {
     func fetchTopicPage(url: String, anchor: String?, completion: @escaping (Result<TopicPageContent, Error>) -> Void)
+    func cancelTopicPageFetch()
+}
+
+extension TopicPageLoading {
+    func cancelTopicPageFetch() {}
+}
+
+struct TopicPageRefreshProbePolicy {
+    let previousPage: Int
+    let previousMaxPage: Int
+    let loadedPage: Int
+    let loadedMaxPage: Int
+    let initialScrollToBottom: Bool
+
+    var nextPageToProbe: Int? {
+        guard initialScrollToBottom else { return nil }
+        guard previousPage >= previousMaxPage else { return nil }
+        guard loadedPage >= previousMaxPage else { return nil }
+        guard loadedMaxPage <= previousMaxPage else { return nil }
+        return previousMaxPage + 1
+    }
+
+    static func mergedMaxPage(currentMaxPage: Int, probeCurrentPage: Int?, probeMaxPage: Int?) -> Int {
+        max(max(currentMaxPage, probeCurrentPage ?? 0), max(probeMaxPage ?? 0, 1))
+    }
 }
 
 final class ObjCTopicPageLoader: TopicPageLoading {
@@ -935,6 +996,18 @@ final class ObjCTopicPageLoader: TopicPageLoading {
         self.controller = controller
     }
 
+    func cancelTopicPageFetch() {
+        guard let controller else { return }
+
+        let selector = NSSelectorFromString("cancelFetchContent")
+        guard controller.responds(to: selector) else { return }
+
+        typealias Function = @convention(c) (AnyObject, Selector) -> Void
+        let implementation = controller.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        function(controller, selector)
+    }
+
     func fetchTopicPage(url: String, anchor: String?, completion: @escaping (Result<TopicPageContent, Error>) -> Void) {
         guard let controller else {
             completion(.failure(LegacyLoaderBridgeError.unavailable("MessagesTableViewController")))
@@ -946,6 +1019,9 @@ final class ObjCTopicPageLoader: TopicPageLoading {
             completion(.failure(LegacyLoaderBridgeError.unavailable("MessagesTableViewController.fetchContentForTopicURL")))
             return
         }
+
+        // Match the legacy controller behavior: cancel any in-flight request before starting a new one.
+        cancelTopicPageFetch()
 
         typealias CompletionBlock = @convention(block) (NSString?, NSString?, NSNumber?, NSNumber?, NSError?) -> Void
         typealias Function = @convention(c) (AnyObject, Selector, NSString, NSString?, CompletionBlock) -> Void
@@ -1422,6 +1498,7 @@ enum TopicOpenContext: Equatable {
     case generic
     case forum(selectedFlag: TopicListFlag)
     case favorites
+    case favoritesOnly
     case messages
 }
 
@@ -1439,6 +1516,14 @@ enum TopicQuickActionPolicy {
         case .favorites:
             return TopicQuickActionsConfiguration(
                 showOpenFirstPage: false,
+                showOpenLastPage: true,
+                showOpenLastReply: true,
+                showOpenPagePicker: true,
+                showCopyLink: true
+            )
+        case .favoritesOnly:
+            return TopicQuickActionsConfiguration(
+                showOpenFirstPage: true,
                 showOpenLastPage: true,
                 showOpenLastReply: true,
                 showOpenPagePicker: true,
@@ -1467,7 +1552,7 @@ enum TopicQuickActionPolicy {
         switch context {
         case .favorites:
             return nonEmptyString(topic.aURLOfLastPage) ?? nonEmptyString(topic.aURLOfLastPost) ?? nonEmptyString(topic.aURL)
-        case .forum, .messages, .generic:
+        case .favoritesOnly, .forum, .messages, .generic:
             return nonEmptyString(topic.aURLOfLastPost) ?? nonEmptyString(topic.aURLOfLastPage) ?? nonEmptyString(topic.aURL)
         }
     }
@@ -1528,6 +1613,20 @@ struct TopicOpenPolicy {
                 fallbackPage: currentPage
             )
         case .favorites:
+            if let flaggedURL = nonEmptyString(topic.aURLOfFlag) {
+                return Decision(preferredURL: flaggedURL, fallbackPage: currentPage)
+            }
+            return Decision(
+                preferredURL: nonEmptyString(topic.aURL),
+                fallbackPage: currentPage
+            )
+        case .favoritesOnly:
+            if topic.isViewed {
+                return Decision(
+                    preferredURL: nonEmptyString(topic.aURLOfLastPost) ?? nonEmptyString(topic.aURLOfLastPage) ?? nonEmptyString(topic.aURL),
+                    fallbackPage: maxPage
+                )
+            }
             if let flaggedURL = nonEmptyString(topic.aURLOfFlag) {
                 return Decision(preferredURL: flaggedURL, fallbackPage: currentPage)
             }

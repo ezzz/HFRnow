@@ -32,7 +32,7 @@ struct MainToolbarContent<MenuItems: View>: ToolbarContent {
     var body: some ToolbarContent {
         ToolbarItemGroup(placement: .navigationBarTrailing) {
             Button {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                AppHaptics.impact(.light)
                 onRefresh()
             } label: {
                 if isLoading {

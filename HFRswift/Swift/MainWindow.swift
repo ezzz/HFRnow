@@ -172,7 +172,7 @@ struct CategoriesListView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        AppHaptics.impact(.light)
                         viewModel.load()
                     } label: {
                         if viewModel.isLoading {
@@ -637,7 +637,7 @@ struct ForumTopicsListView: View {
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    AppHaptics.impact(.light)
                     viewModel.load()
                 } label: {
                     if viewModel.isLoading {

@@ -245,6 +245,20 @@ final class ObjCWrapperLoaderBehaviorTests: XCTestCase {
         }
     }
 
+    func testObjCTopicPageLoaderCancelsInFlightRequestBeforeStartingNewOne() {
+        let controller = MessagesControllerStub(result: .success(html: "<html>ok</html>", topicAnswerURL: nil, currentPage: 1, maxPage: 1))
+        let loader = ObjCTopicPageLoader(controller: controller)
+
+        let expectation = expectation(description: "topic page success")
+
+        loader.fetchTopicPage(url: "https://forum.hardware.fr/topic?page=1", anchor: nil) { _ in
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 1)
+        XCTAssertEqual(controller.cancelFetchContentCallCount, 1)
+    }
+
     func testObjCTopicPageLoaderKeepsBooleanOnlyMessageActionsEntries() {
         let controller = MessagesControllerStub(
             result: .success(html: "<html>ok</html>", topicAnswerURL: nil, currentPage: nil, maxPage: nil),
@@ -685,6 +699,12 @@ private final class MessagesControllerStub: NSObject {
     let messageActionsByIndex: [NSNumber: [String: String]]
     private(set) var receivedTopicURL: String?
     private(set) var receivedAnchor: String?
+    private(set) var cancelFetchContentCallCount = 0
+    @objc var sNavigationViewTitle: String?
+    @objc var _topicName: String?
+    @objc var swiftHasPoll = false
+    @objc var swiftPollIsNewVote = false
+    @objc var swiftPollHTML: String?
 
     init(result: Result, messageActionsByIndex: [NSNumber: [String: String]] = [:]) {
         self.result = result
@@ -708,5 +728,10 @@ private final class MessagesControllerStub: NSObject {
     @objc(swiftMessageActionsByIndex)
     func swiftMessageActionsByIndex() -> [NSNumber : [String : String]] {
         messageActionsByIndex
+    }
+
+    @objc(cancelFetchContent)
+    func cancelFetchContent() {
+        cancelFetchContentCallCount += 1
     }
 }

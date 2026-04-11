@@ -87,7 +87,6 @@ struct AppSettingsView: View {
     @AppStorage("sujets_avec_cat") private var favoritesSortedByCategories = true
     @AppStorage("haptics") private var hapticsEnabled = true
     @AppStorage("icon") private var iconValue = AppIconOption.superblue.rawValue
-    @AppStorage("adv_ssl") private var allowSelfSignedSSL = false
 
     @AppStorage("auto_theme") private var autoTheme = Constants.autoThemeIOS
     @AppStorage("theme") private var manualTheme = 0
@@ -333,8 +332,6 @@ struct AppSettingsView: View {
                 }
             }
             .disabled(!hasAlternateIconSupport)
-
-            Toggle("Certificats auto-signés", isOn: $allowSelfSignedSSL)
         }
     }
 

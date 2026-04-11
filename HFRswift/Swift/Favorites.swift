@@ -154,6 +154,17 @@ enum FavoritesCollapsedSectionsStore {
     }
 }
 
+enum FavoritesTopicListOrdering {
+    static func flattenedTopics(from favorites: [Favorite]) -> [Topic] {
+        let flattenedTopics = favorites.flatMap { favorite in
+            (favorite.topics as? [Topic]) ?? []
+        }
+        let sortDescriptor = NSSortDescriptor(key: "dDateOfLastPost", ascending: false)
+        let sortedTopics = (flattenedTopics as NSArray).sortedArray(using: [sortDescriptor])
+        return sortedTopics.compactMap { $0 as? Topic }
+    }
+}
+
 struct TopicModel: Identifiable {
     let id = UUID()
     let title: String
@@ -200,12 +211,7 @@ class FavoritesViewModel: ObservableObject {
                     return
                 }
                 self.favorites = objcFavorites ?? []
-                // Light haptic feedback when favorites have loaded
-                #if canImport(UIKit)
-                let generator = UIImpactFeedbackGenerator(style: .light)
-                generator.prepare()
-                generator.impactOccurred()
-                #endif
+                AppHaptics.impact(.light)
             }
         }
     }
@@ -249,6 +255,7 @@ struct FavoriteSectionView: View {
     let onMarkRead: (Topic) -> Void
     let onToggleSuperFavorite: (Topic) -> Void
     let onRemoveFavorite: (Topic) -> Void
+    let openContextProvider: (Topic) -> TopicOpenContext
 
     // Cast centralisé
     private var topics: [Topic] { (favorite.topics as? [Topic]) ?? [] }
@@ -322,7 +329,8 @@ struct FavoriteSectionView: View {
                         isRemovingFavorite: removingTopicIDs.contains(postID),
                         onMarkRead: { onMarkRead(topic) },
                         onToggleSuperFavorite: { onToggleSuperFavorite(topic) },
-                        onRemoveFavorite: { onRemoveFavorite(topic) }
+                        onRemoveFavorite: { onRemoveFavorite(topic) },
+                        openContext: openContextProvider(topic)
                     )
                     .contentShape(Rectangle())
                     .listRowInsets(EdgeInsets(top: 5, leading: 12, bottom: 5, trailing: 12))
@@ -337,6 +345,8 @@ struct FavoriteSectionView: View {
 struct FavoritesListView: View {
     @StateObject private var viewModel: FavoritesViewModel
     @StateObject private var accountsStore: AccountsStore
+    @AppStorage("vos_sujets") private var favoritesTabBehavior = "0"
+    @AppStorage("sujets_avec_cat") private var favoritesSortedByCategories = true
     @State private var visitedURLs: Set<String> = []
     @State private var showAddAccountSheet = false
     @State private var showLogoutConfirm = false
@@ -349,6 +359,18 @@ struct FavoritesListView: View {
 
     private var isLoggedIn: Bool {
         accountsStore.currentAccount != nil
+    }
+
+    private var flattenedTopics: [Topic] {
+        FavoritesTopicListOrdering.flattenedTopics(from: viewModel.favorites)
+    }
+
+    private var usesCategorizedFavoritesList: Bool {
+        favoritesSortedByCategories
+    }
+
+    private func topicOpenContext(for topic: Topic) -> TopicOpenContext {
+        favoritesTabBehavior == "1" ? .favoritesOnly : .favorites
     }
 
     private func refreshContentForSessionState(force: Bool = false) {
@@ -457,23 +479,42 @@ struct FavoritesListView: View {
                         Text("Aucun favori")
                             .foregroundStyle(.secondary)
                     }
-                    ForEach(viewModel.favorites) { favorite in
-                        let sectionID = sectionIdentifier(for: favorite)
-                        FavoriteSectionView(
-                            favorite: favorite,
-                            sectionID: sectionID,
-                            isCollapsed: collapsedSectionIDs.contains(sectionID),
-                            visitedURLs: $visitedURLs,
-                            superFavoriteIDs: $superFavoriteIDs,
-                            removingTopicIDs: removingTopicIDs,
-                            accountsStore: accountsStore,
-                            onToggleCollapse: {
-                                toggleSectionCollapse(sectionID: sectionID)
-                            },
-                            onMarkRead: markTopicAsRead(_:),
-                            onToggleSuperFavorite: toggleSuperFavorite(_:),
-                            onRemoveFavorite: removeFavoriteFlag(_:)
-                        )
+                    if usesCategorizedFavoritesList {
+                        ForEach(viewModel.favorites) { favorite in
+                            let sectionID = sectionIdentifier(for: favorite)
+                            FavoriteSectionView(
+                                favorite: favorite,
+                                sectionID: sectionID,
+                                isCollapsed: collapsedSectionIDs.contains(sectionID),
+                                visitedURLs: $visitedURLs,
+                                superFavoriteIDs: $superFavoriteIDs,
+                                removingTopicIDs: removingTopicIDs,
+                                accountsStore: accountsStore,
+                                onToggleCollapse: {
+                                    toggleSectionCollapse(sectionID: sectionID)
+                                },
+                                onMarkRead: markTopicAsRead(_:),
+                                onToggleSuperFavorite: toggleSuperFavorite(_:),
+                                onRemoveFavorite: removeFavoriteFlag(_:),
+                                openContextProvider: topicOpenContext(for:)
+                            )
+                        }
+                    } else {
+                        ForEach(flattenedTopics) { topic in
+                            let postID = Int(topic.postID)
+                            TopicRowView(
+                                topic: topic,
+                                visitedURLs: $visitedURLs,
+                                isSuperFavorite: superFavoriteIDs.contains(postID),
+                                isRemovingFavorite: removingTopicIDs.contains(postID),
+                                onMarkRead: { markTopicAsRead(topic) },
+                                onToggleSuperFavorite: { toggleSuperFavorite(topic) },
+                                onRemoveFavorite: { removeFavoriteFlag(topic) },
+                                openContext: topicOpenContext(for: topic)
+                            )
+                            .contentShape(Rectangle())
+                            .listRowInsets(EdgeInsets(top: 5, leading: 12, bottom: 5, trailing: 12))
+                        }
                     }
                 }
             }
@@ -534,14 +575,14 @@ struct FavoritesListView: View {
                     } label: {
                         MenuActionLabel("Tout plier", systemImage: "rectangle.compress.vertical")
                     }
-                    .disabled(viewModel.favorites.isEmpty || collapsedSectionIDs.count == viewModel.favorites.count)
+                    .disabled(!usesCategorizedFavoritesList || viewModel.favorites.isEmpty || collapsedSectionIDs.count == viewModel.favorites.count)
 
                     Button {
                         expandAllSections()
                     } label: {
                         MenuActionLabel("Tout déplier", systemImage: "rectangle.expand.vertical")
                     }
-                    .disabled(viewModel.favorites.isEmpty || collapsedSectionIDs.isEmpty)
+                    .disabled(!usesCategorizedFavoritesList || viewModel.favorites.isEmpty || collapsedSectionIDs.isEmpty)
 
                     Divider()
                     Button {
@@ -588,7 +629,7 @@ struct FavoritesListView: View {
     }
 
     private func markTopicAsRead(_ topic: Topic) {
-        let url = topic.aURL ?? topic.aURLOfLastPage ?? ""
+        let url = topic.aURL ?? topic.aURLOfLastPage ?? topic.aURLOfLastPost ?? ""
         if !url.isEmpty {
             visitedURLs.insert(url)
         }
@@ -644,11 +685,12 @@ struct TopicRowView: View {
     var onMarkRead: (() -> Void)?
     var onToggleSuperFavorite: (() -> Void)?
     var onRemoveFavorite: (() -> Void)?
+    var openContext: TopicOpenContext = .favorites
     @Environment(\.appThemePalette) private var themePalette
     
     private var isVisited: Bool {
-        let url = topic.aURL ?? topic.aURLOfLastPage ?? ""
-        return topic.isLocallyViewedInApp || visitedURLs.contains(url)
+        let url = topic.aURL ?? topic.aURLOfLastPage ?? topic.aURLOfLastPost ?? ""
+        return topic.isViewed || topic.isLocallyViewedInApp || visitedURLs.contains(url)
     }
     
     var unreadCount: Int {
@@ -692,7 +734,7 @@ struct TopicRowView: View {
             rowBackgroundOverflow: isSuperFavorite
                 ? EdgeInsets(top: 4, leading: 8, bottom: 2, trailing: 8)
                 : EdgeInsets(),
-            openContext: .favorites,
+            openContext: openContext,
             extraContextMenu: {
                 AnyView(
                     Group {
@@ -725,7 +767,7 @@ struct TopicRowView: View {
                 )
             }
         ) { openedURL in
-            let url = openedURL ?? topic.aURL ?? topic.aURLOfLastPage ?? ""
+            let url = openedURL ?? topic.aURL ?? topic.aURLOfLastPage ?? topic.aURLOfLastPost ?? ""
             if !url.isEmpty {
                 visitedURLs.insert(url)
             }
@@ -850,9 +892,26 @@ private enum FavoritesPreviewFactory {
 
     static let sampleFavorites: [Favorite] = [
         favorite(
+            title: "Jeux vidéo",
+            topics: [
+                topic(title: "Migration SwiftUI", author: "alice", date: "il y a 1h"),
+                topic(title: "ObjC wrappers", author: "bob", date: "il y a 3h", currentPage: 2, maxPage: 10),
+                topic(title: "ObjC wrappers", author: "bob", date: "il y a 3h", currentPage: 2, maxPage: 10)
+            ]
+        ),
+        favorite(
             title: "Programmation",
             topics: [
                 topic(title: "Migration SwiftUI", author: "alice", date: "il y a 1h"),
+                topic(title: "ObjC wrappers", author: "bob", date: "il y a 3h", currentPage: 2, maxPage: 10),
+                topic(title: "ObjC wrappers", author: "bob", date: "il y a 3h", currentPage: 2, maxPage: 10)
+            ]
+        ),
+        favorite(
+            title: "Discussion",
+            topics: [
+                topic(title: "Migration SwiftUI", author: "alice", date: "il y a 1h"),
+                topic(title: "ObjC wrappers", author: "bob", date: "il y a 3h", currentPage: 2, maxPage: 10),
                 topic(title: "ObjC wrappers", author: "bob", date: "il y a 3h", currentPage: 2, maxPage: 10)
             ]
         )

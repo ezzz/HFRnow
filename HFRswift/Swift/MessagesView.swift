@@ -2217,6 +2217,8 @@ struct MessagesView: View {
     @State private var pendingPostedReply: ReplyPostingResult?
     @State private var showPostSuccessToast = false
     @State private var postSuccessToastText = "Hooray"
+    @State private var activeTopicLoadToken: UUID?
+    @State private var topicLoadTimeoutWorkItem: DispatchWorkItem?
     // Remove the unused
     // @State private var isPresentingAddMessage = false
 
@@ -2301,30 +2303,122 @@ struct MessagesView: View {
         synchronizeTopicPagination(currentPage: resolvedPage, maxPage: resolvedMaxPage)
     }
 
-    private func loadPage(_ page: Int) {
-        let url = urlForPage(page)
-        print("loadPage(\(page)) url:", url, "current anchor:", self.anchor as Any)
+    private func beginTopicLoad(initialScroll overrideInitialScroll: WebView.InitialScroll? = nil) -> UUID {
+        let token = UUID()
+
+        topicLoadTimeoutWorkItem?.cancel()
+        activeTopicLoadToken = token
+        topicPageLoader.cancelTopicPageFetch()
+
+        if let overrideInitialScroll {
+            initialScroll = overrideInitialScroll
+        }
+
         showWebViewLoadCover = true
         isWebContentAtBottom = false
         errorMessage = nil
         messageActionsByIndex = [:]
+
+        let timeoutWorkItem = DispatchWorkItem {
+            guard self.completeTopicLoad(token) else { return }
+            self.topicPageLoader.cancelTopicPageFetch()
+            self.errorMessage = "Le chargement du topic a expiré. Réessaie."
+            self.showWebViewLoadCover = false
+        }
+        topicLoadTimeoutWorkItem = timeoutWorkItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 65, execute: timeoutWorkItem)
+
+        return token
+    }
+
+    private func completeTopicLoad(_ token: UUID) -> Bool {
+        guard activeTopicLoadToken == token else { return false }
+        activeTopicLoadToken = nil
+        topicLoadTimeoutWorkItem?.cancel()
+        topicLoadTimeoutWorkItem = nil
+        return true
+    }
+
+    private func isBottomInitialScroll(_ initialScroll: WebView.InitialScroll?) -> Bool {
+        if case .bottom? = initialScroll {
+            return true
+        }
+        return false
+    }
+
+    private func maybeProbeNextPageAfterRefresh(
+        previousPage: Int,
+        previousMaxPage: Int,
+        loadedPage: Int,
+        loadedMaxPage: Int,
+        initialScroll: WebView.InitialScroll?
+    ) {
+        let policy = TopicPageRefreshProbePolicy(
+            previousPage: previousPage,
+            previousMaxPage: previousMaxPage,
+            loadedPage: loadedPage,
+            loadedMaxPage: loadedMaxPage,
+            initialScrollToBottom: isBottomInitialScroll(initialScroll)
+        )
+        guard let probePage = policy.nextPageToProbe else { return }
+
+        let expectedDisplayedPage = page
+        let probeURL = urlForPage(probePage)
+        topicPageLoader.fetchTopicPage(url: probeURL, anchor: nil) { result in
+            DispatchQueue.main.async {
+                guard self.activeTopicLoadToken == nil else { return }
+                guard self.page == expectedDisplayedPage else { return }
+
+                switch result {
+                case .failure:
+                    break
+                case .success(let content):
+                    let mergedMaxPage = TopicPageRefreshProbePolicy.mergedMaxPage(
+                        currentMaxPage: self.currentMaxPage,
+                        probeCurrentPage: content.currentPage,
+                        probeMaxPage: content.maxPage
+                    )
+                    guard mergedMaxPage > self.currentMaxPage else { return }
+                    self.availableMaxPage = mergedMaxPage
+                    self.synchronizeTopicPagination(currentPage: self.page, maxPage: mergedMaxPage)
+                }
+            }
+        }
+    }
+
+    private func loadPage(_ page: Int) {
+        let url = urlForPage(page)
+        print("loadPage(\(page)) url:", url, "current anchor:", self.anchor as Any)
+        let previousPage = self.page
+        let previousMaxPage = currentMaxPage
+        let requestedInitialScroll = initialScroll
+        let loadToken = beginTopicLoad()
         topicPageLoader.fetchTopicPage(url: url, anchor: self.anchor) { result in
             DispatchQueue.main.async {
+                guard self.completeTopicLoad(loadToken) else { return }
+
                 switch result {
                 case .failure(let error):
                     self.errorMessage = error.localizedDescription
+                    self.showWebViewLoadCover = false
                 case .success(let content):
+                    let requestedPage = page
+                    let resolvedPage = max(content.currentPage ?? requestedPage, 1)
+                    let parsedMaxPage = content.maxPage ?? previousMaxPage
+                    let resolvedMaxPage = max(max(parsedMaxPage, resolvedPage), 1)
                     do {
                         let rendered = try topicPageRenderer.render(html: content.html)
                         self.fileURL = rendered.fileURL
                         self.cacheURL = rendered.readAccessURL
                         if self.fileURL == nil || self.cacheURL == nil {
                             self.errorMessage = "Failed to render topic page to local file."
+                            self.showWebViewLoadCover = false
                         }
                     } catch {
                         self.fileURL = nil
                         self.cacheURL = nil
                         self.errorMessage = error.localizedDescription
+                        self.showWebViewLoadCover = false
                     }
                     applyLoadedPagination(from: content, requestedPage: page)
                     self.topicAnswerURL = content.topicAnswerURL
@@ -2335,6 +2429,13 @@ struct MessagesView: View {
                     if let newTitle = content.topicTitle, !newTitle.isEmpty {
                         self.topicDisplayTitle = newTitle
                     }
+                    maybeProbeNextPageAfterRefresh(
+                        previousPage: previousPage,
+                        previousMaxPage: previousMaxPage,
+                        loadedPage: resolvedPage,
+                        loadedMaxPage: resolvedMaxPage,
+                        initialScroll: requestedInitialScroll
+                    )
                 }
             }
         }
@@ -2343,18 +2444,25 @@ struct MessagesView: View {
     private func loadDirectURL(_ topicURL: String, initialScroll: WebView.InitialScroll? = nil) {
         guard !topicURL.isEmpty else { return }
         self.anchor = URL(string: topicURL)?.fragment
-        self.initialScroll = initialScroll
-        showWebViewLoadCover = true
-        isWebContentAtBottom = false
-        self.errorMessage = nil
-        messageActionsByIndex = [:]
+        let previousPage = page
+        let previousMaxPage = currentMaxPage
+        let loadToken = beginTopicLoad(initialScroll: initialScroll)
 
         topicPageLoader.fetchTopicPage(url: topicURL, anchor: self.anchor) { result in
             DispatchQueue.main.async {
+                guard self.completeTopicLoad(loadToken) else { return }
+
                 switch result {
                 case .failure(let error):
                     self.errorMessage = error.localizedDescription
+                    self.showWebViewLoadCover = false
                 case .success(let content):
+                    let requestedPage = content.currentPage
+                        ?? TopicPageURLRouting.pageNumber(from: topicURL)
+                        ?? self.page
+                    let resolvedPage = max(content.currentPage ?? requestedPage, 1)
+                    let parsedMaxPage = content.maxPage ?? previousMaxPage
+                    let resolvedMaxPage = max(max(parsedMaxPage, resolvedPage), 1)
                     do {
                         let rendered = try topicPageRenderer.render(html: content.html)
                         self.fileURL = rendered.fileURL
@@ -2363,10 +2471,8 @@ struct MessagesView: View {
                         self.fileURL = nil
                         self.cacheURL = nil
                         self.errorMessage = error.localizedDescription
+                        self.showWebViewLoadCover = false
                     }
-                    let requestedPage = content.currentPage
-                        ?? TopicPageURLRouting.pageNumber(from: topicURL)
-                        ?? self.page
                     applyLoadedPagination(from: content, requestedPage: requestedPage)
                     self.topicAnswerURL = content.topicAnswerURL
                     self.messageActionsByIndex = content.messageActionsByIndex
@@ -2376,6 +2482,13 @@ struct MessagesView: View {
                     if let newTitle = content.topicTitle, !newTitle.isEmpty {
                         self.topicDisplayTitle = newTitle
                     }
+                    maybeProbeNextPageAfterRefresh(
+                        previousPage: previousPage,
+                        previousMaxPage: previousMaxPage,
+                        loadedPage: resolvedPage,
+                        loadedMaxPage: resolvedMaxPage,
+                        initialScroll: initialScroll
+                    )
                 }
             }
         }

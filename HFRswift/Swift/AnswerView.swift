@@ -55,7 +55,6 @@ struct AnswerView: View {
     // MARK: Environment
     @Environment(\.appThemePalette) private var themePalette
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("haptics") private var hapticsEnabled = true
 
     // MARK: Composer state
     @State private var message: String
@@ -616,26 +615,9 @@ struct AnswerView: View {
     // MARK: Haptics
 
     private func triggerPostHaptic(success: Bool) {
-        guard resolvedHapticsEnabled() else { return }
-        let n = UINotificationFeedbackGenerator(); n.prepare()
-        n.notificationOccurred(success ? .success : .error)
-        let i = UIImpactFeedbackGenerator(style: success ? .light : .rigid); i.prepare()
-        i.impactOccurred()
-    }
-
-    private func resolvedHapticsEnabled() -> Bool {
-        let defaults = UserDefaults.standard
-        guard let raw = defaults.object(forKey: "haptics") else { return hapticsEnabled }
-        if let b = raw as? Bool { return b }
-        if let n = raw as? NSNumber { return n.boolValue }
-        if let s = raw as? String {
-            switch s.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
-            case "1", "true", "yes", "on": return true
-            case "0", "false", "no", "off": return false
-            default: break
-            }
-        }
-        return hapticsEnabled
+        guard AppHaptics.isEnabled else { return }
+        AppHaptics.notification(success ? .success : .error)
+        AppHaptics.impact(success ? .light : .rigid)
     }
 
     // MARK: Toast
