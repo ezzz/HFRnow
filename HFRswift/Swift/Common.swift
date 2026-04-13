@@ -254,6 +254,11 @@ final class ThemeUserColorStore: NSObject {
         return storedColor(forKey: key) ?? defaultTintColor(forLegacyThemeValue: themeValue)
     }
 
+    class func loveColor(forLegacyThemeValue themeValue: Int) -> UIColor {
+        let key = themeValue == 1 ? nightLoveColorKey : dayLoveColorKey
+        return storedColor(forKey: key) ?? defaultColor(forKey: key) ?? UIColor(hue: 0.9, saturation: 0.1, brightness: 1.0, alpha: 1.0)
+    }
+
     @objc(dynamicActionTintColor)
     class func dynamicActionTintColor() -> UIColor {
         guard UserDefaults.standard.bool(forKey: noelDisabledKey) else {
@@ -372,6 +377,28 @@ private extension ColorScheme {
     }
 }
 
+private extension UIColor {
+    func cssRGBA(alpha requestedAlpha: CGFloat) -> String {
+        let resolvedColor = resolvedColor(with: UITraitCollection(userInterfaceStyle: .unspecified))
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+
+        if !resolvedColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha) {
+            var white: CGFloat = 0
+            if resolvedColor.getWhite(&white, alpha: &alpha) {
+                red = white
+                green = white
+                blue = white
+            }
+        }
+
+        let alphaValue = Double((requestedAlpha * 100).rounded() / 100)
+        return "rgba(\(Int((red * 255).rounded())), \(Int((green * 255).rounded())), \(Int((blue * 255).rounded())), \(alphaValue))"
+    }
+}
+
 struct AppThemePalette {
     let colorScheme: ColorScheme
     let actionTintUIColor: UIColor
@@ -405,6 +432,28 @@ struct AppThemePalette {
             return UIColor(red: 30.0 / 255.0, green: 31.0 / 255.0, blue: 33.0 / 255.0, alpha: 1.0)
         }
         return .systemGroupedBackground
+    }
+
+    var messageLoveUIColor: UIColor {
+        ThemeUserColorStore.loveColor(forLegacyThemeValue: colorScheme == .dark ? 1 : 0)
+    }
+
+    func messageActionTintCSS(alpha: CGFloat) -> String {
+        actionTintUIColor.cssRGBA(alpha: alpha)
+    }
+
+    func messageLoveCSS(alpha: CGFloat) -> String {
+        messageLoveUIColor.cssRGBA(alpha: alpha)
+    }
+
+    var messageClassicHeaderBackgroundCSS: String {
+        let color: UIColor
+        if colorScheme == .dark {
+            color = UIColor(red: 30.0 / 255.0, green: 31.0 / 255.0, blue: 34.0 / 255.0, alpha: 1.0)
+        } else {
+            color = UIColor(red: 244.0 / 255.0, green: 244.0 / 255.0, blue: 244.0 / 255.0, alpha: 1.0)
+        }
+        return color.cssRGBA(alpha: 1.0)
     }
 
     var stickyAccentColor: Color {

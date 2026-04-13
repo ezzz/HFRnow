@@ -9,11 +9,14 @@ style='margin:0;padding:0;font-size:12;font-family:Helvetica;'
     --color-url: #2470d8; /* Couleur des url dans les messages ET ?? */
     --color-message-background:white; /* Fond des messages */
     --color-message-modo-background:#FEE; /* Fond des messages de modération */
-    --color-message-header-me-background:#EEE; /* Fond du header de mes messages*/
+    --color-message-header-me-background-base: var(--color-action); /* Fond du header de mes messages*/
+    --color-message-header-me-background: var(--color-message-mequoted-background);
     --color-message-mequoted-background:#EEE; /* Fond des messages dans lesquels je suis quoted */
     --color-message-mequoted-borderleft:#EEE;
     --color-message-mequoted-borderother:#EEE;
-    --color-message-header-love-background:#EEE;
+    --color-message-header-love-background-base:#EEE;
+    --color-message-header-love-background: var(--color-message-header-love-background-base);
+    --color-message-whitelist-content-background: var(--color-message-header-love-background);
     --color-message-quoted-love-background:#EEE;
     --color-message-quoted-love-borderleft:#EEE;
     --color-message-quoted-love-borderother::#EEE;
@@ -33,6 +36,12 @@ style='margin:0;padding:0;font-size:12;font-family:Helvetica;'
     --color-border-quotation:silver;
     --color-border-avatar:#717d85;
     --color-action-disabled:#202020;
+    --color-message-header-background: var(--color-message-background);
+    --color-message-style-header-text: rgb(109, 109, 114);
+    --message-content-padding-top: 0px;
+    --message-content-right-width: calc(100% - 40px);
+    --message-header-left-margin-top: 6px;
+    --message-header-leftdate-margin-top: 10px;
     --border-header:none;
 }
 
@@ -155,9 +164,9 @@ div.masque {
 .message .header .left2 {
 	text-align:left;
 	float:left;
-	width:35px; /* Largeur et hauteur d'avatar */
-	height:35px;
-	margin-top:1px !important;
+	width:30px; /* Largeur et hauteur d'avatar */
+	height:30px;
+/*	margin-top:1px !important;*/
     border:1px solid var(--color-text2); /* Bordure d'avatar */ 
 	background-size: cover;
 	background-repeat: no-repeat;
@@ -168,9 +177,9 @@ div.masque {
 .message.me .header .left2 {
     text-align:left;
     float:left;
-    width:35px; /* Largeur et hauteur d'avatar */
-    height:35px;
-    margin-top:1px !important;
+    width:30px; /* Largeur et hauteur d'avatar */
+    height:30px;
+/*	margin-top:1px !important;*/
     border:2px solid var(--color-action); /* Bordure d'avatar */
     background-size: cover;
     background-repeat: no-repeat;
@@ -181,9 +190,9 @@ div.masque {
 .message.whitelist .header .left2 {
     text-align:left;
     float:left;
-    width:35px; /* Largeur et hauteur d'avatar */
-    height:35px;
-    margin-top:1px !important;
+    width:30px; /* Largeur et hauteur d'avatar */
+    height:30px;
+/*	margin-top:1px !important;*/
     border:2px solid var(--color-message-quoted-love-borderleft); /* Bordure d'avatar */
     background-size: cover;
     background-repeat: no-repeat;
@@ -209,7 +218,7 @@ div.masque {
     white-space: nowrap;
 	text-shadow: #555 0px 1px 1px;
 	height:19px;
-    margin-top: 6px !important;
+    margin-top: var(--message-header-left-margin-top) !important;
 }
 
 .message .header .leftdate {
@@ -223,7 +232,7 @@ div.masque {
     white-space: nowrap;
 	text-shadow: #555 0px 1px 1px;
 	height:14px;
-    margin-top: 10px !important;
+    margin-top: var(--message-header-leftdate-margin-top) !important;
     text-align:right;
 }
 
@@ -298,27 +307,28 @@ div.masque {
 
 .message .content {
     padding:0 !important;
+    padding-top: var(--message-content-padding-top) !important;
     background:var(--color-message-background);
 }
 
 .message.me .content {
     padding:0 !important;
+    padding-top: var(--message-content-padding-top) !important;
     background:var(--color-message-mequoted-background);
     border-left: 2px solid var(--color-action);
 }
 
 .message.whitelist .content {
     padding:0 !important;
-    background: var(--color-message-header-love-background);
+    padding-top: var(--message-content-padding-top) !important;
+    background: var(--color-message-whitelist-content-background);
     border-left: 2px solid var(--color-message-quoted-love-borderleft);
 }
-
-
 
 .message .content .right {
     text-align:left;
     float:right;
-    width: calc(100% - 57px) !important;/*86%;*/
+    width: var(--message-content-right-width) !important;/*86%;*/
 	overflow:hidden;
     font-size:13px !important;
 }
@@ -568,8 +578,8 @@ body.ios7 {
     margin-top:0 !important;
     padding-top: 5px !important;
     padding-bottom: 0px !important;
-    background: var(--color-message-background);
-    color: rgba(109, 109, 114, 1);/* ?? */
+    background: var(--color-message-header-background);
+    color: var(--color-message-style-header-text);/* ?? */
     /*border:none;
     border-top: var(--border-header);
     border-bottom: var(--border-header);*/
@@ -593,11 +603,11 @@ body.ios7 {
     background: var(--color-message-modo-background);
 }
 
-.ios7 .message.me .header {var(--color-message-modo-background)
+.ios7 .message.me .header {
     margin-top:0 !important;
     padding-top: 5px !important;
     padding-bottom: 0px !important;
-    background: var(--color-message-mequoted-background);
+    background: var(--color-message-header-me-background);
     border-left: 2px solid var(--color-action);
 }
 
@@ -643,8 +653,8 @@ body.ios7 {
     text-align:left;
     
     float:left;
-    width:35px;
-    height:35px;
+    width:30px;
+    height:30px;
     margin-top:1px !important;
     
     border:1px solid var(--color-text2);

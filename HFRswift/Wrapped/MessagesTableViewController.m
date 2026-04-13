@@ -1985,11 +1985,15 @@
                                 [ThemeColors hexFromUIColor:[ThemeColors tintColorDisabled:theme]], //--color-action-disabled
                                 [ThemeColors hexFromUIColor:[ThemeColors messageBackgroundColor:theme]], //--color-message-background
                                 [ThemeColors hexFromUIColor:[ThemeColors messageModoBackgroundColor:theme]], //--color-message-background
-                                [ThemeColors rgbaFromUIColor:[ThemeColors tintColor] withAlpha:0.1], // -color-message-header-me-background
+                                [[NSUserDefaults standardUserDefaults] integerForKey:@"theme_style"] == 1
+                                    ? [ThemeColors rgbaFromUIColor:[ThemeColors tintColor] withAlpha:0.03]
+                                    : [ThemeColors rgbaFromUIColor:[ThemeColors tintColor] withAlpha:0.15], // -color-message-header-me-background
                                 [ThemeColors rgbaFromUIColor:[ThemeColors tintColor] withAlpha:0.03], // color-message-mequoted-background
                                 [ThemeColors rgbaFromUIColor:[ThemeColors tintColor] withAlpha:1],  //--color-message-mequoted-borderleft
                                 [ThemeColors rgbaFromUIColor:[ThemeColors tintLightColorNoAlpha]],  //--color-message-mequoted-borderother
-                                [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:0.4], //--color-message-header-love-background
+                                [[NSUserDefaults standardUserDefaults] integerForKey:@"theme_style"] == 1
+                                    ? [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:0.4]
+                                    : [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:1.0], //--color-message-header-love-background
                                 [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:0.3], // --color-message-header-me-background
                                 [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:1.0 addSaturation:1 addBrightness:1],  //--color-message-mequoted-borderleft
                                 [ThemeColors rgbaFromUIColor:[ThemeColors loveLightColorNoAlpha]], //--color-message-quoted-love-borderother
@@ -3267,11 +3271,15 @@ API_AVAILABLE(ios(16.0)) {
                         [ThemeColors hexFromUIColor:[ThemeColors tintColorDisabled:theme]], //--color-action-disabled
                         [ThemeColors hexFromUIColor:[ThemeColors messageBackgroundColor:theme]], //--color-message-background
                         [ThemeColors hexFromUIColor:[ThemeColors messageModoBackgroundColor:theme]], //--color-message-modo-background
-                        [ThemeColors rgbaFromUIColor:[ThemeColors tintColor] withAlpha:0.1], //--color-message-header-me-background
+                        [[NSUserDefaults standardUserDefaults] integerForKey:@"theme_style"] == 1
+                            ? [ThemeColors rgbaFromUIColor:[ThemeColors tintColor] withAlpha:0.03]
+                            : [ThemeColors rgbaFromUIColor:[ThemeColors tintColor] withAlpha:0.15], //--color-message-header-me-background
                         [ThemeColors rgbaFromUIColor:[ThemeColors tintColor] withAlpha:0.03], //--color-message-mequoted-background
                         [ThemeColors rgbaFromUIColor:[ThemeColors tintColor] withAlpha:1],  //--color-message-mequoted-borderleft
                         [ThemeColors rgbaFromUIColor:[ThemeColors tintLightColorNoAlpha]],  //--color-message-mequoted-borderother
-                        [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:0.4], //--color-message-header-love-background
+                        [[NSUserDefaults standardUserDefaults] integerForKey:@"theme_style"] == 1
+                            ? [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:0.4]
+                            : [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:1.0], //--color-message-header-love-background
                         [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:0.3], // --color-message-header-me-background
                         [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:1.0 addSaturation:1 addBrightness:1],  //--color-message-lovecolor-borderleft
                         [ThemeColors rgbaFromUIColor:[ThemeColors loveLightColorNoAlpha]], //--color-message-quoted-love-borderother

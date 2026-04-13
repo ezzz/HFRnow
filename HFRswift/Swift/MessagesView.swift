@@ -612,6 +612,14 @@ struct WebView: UIViewRepresentable {
     var baseBackgroundColor: UIColor
     var themeRevision: Int
     var messageBodyFontSize: CGFloat
+    var messageDisplayStyleRawValue: Int
+    var messageMeBaseBackgroundColor: String
+    var messageMeContentBackgroundColor: String
+    var messageMeClassicHeaderBackgroundColor: String
+    var messageLoveBaseBackgroundColor: String
+    var messageLoveContentBackgroundColor: String
+    var messageLoveModernHeaderBackgroundColor: String
+    var messageClassicHeaderBackgroundColor: String
     var messageActionsByIndex: [Int: TopicPageMessageActions]
     var actionHandler: any MessageWebActionHandling
     var onWebAction: ((MessageWebAction) -> Void)?
@@ -639,6 +647,14 @@ struct WebView: UIViewRepresentable {
         baseBackgroundColor: UIColor = .systemGray6,
         themeRevision: Int = 0,
         messageBodyFontSize: CGFloat = 15,
+        messageDisplayStyleRawValue: Int,
+        messageMeBaseBackgroundColor: String,
+        messageMeContentBackgroundColor: String,
+        messageMeClassicHeaderBackgroundColor: String,
+        messageLoveBaseBackgroundColor: String,
+        messageLoveContentBackgroundColor: String,
+        messageLoveModernHeaderBackgroundColor: String,
+        messageClassicHeaderBackgroundColor: String,
         messageActionsByIndex: [Int: TopicPageMessageActions] = [:],
         actionHandler: any MessageWebActionHandling = MessageWebActionHandler(),
         onWebAction: ((MessageWebAction) -> Void)? = nil,
@@ -665,6 +681,14 @@ struct WebView: UIViewRepresentable {
         self.baseBackgroundColor = baseBackgroundColor
         self.themeRevision = themeRevision
         self.messageBodyFontSize = messageBodyFontSize
+        self.messageDisplayStyleRawValue = messageDisplayStyleRawValue
+        self.messageMeBaseBackgroundColor = messageMeBaseBackgroundColor
+        self.messageMeContentBackgroundColor = messageMeContentBackgroundColor
+        self.messageMeClassicHeaderBackgroundColor = messageMeClassicHeaderBackgroundColor
+        self.messageLoveBaseBackgroundColor = messageLoveBaseBackgroundColor
+        self.messageLoveContentBackgroundColor = messageLoveContentBackgroundColor
+        self.messageLoveModernHeaderBackgroundColor = messageLoveModernHeaderBackgroundColor
+        self.messageClassicHeaderBackgroundColor = messageClassicHeaderBackgroundColor
         self.messageActionsByIndex = messageActionsByIndex
         self.actionHandler = actionHandler
         self.onWebAction = onWebAction
@@ -790,6 +814,14 @@ struct WebView: UIViewRepresentable {
         context.coordinator.colorScheme = colorScheme
         context.coordinator.themeRevision = themeRevision
         context.coordinator.messageBodyFontSize = messageBodyFontSize
+        context.coordinator.messageDisplayStyleRawValue = messageDisplayStyleRawValue
+        context.coordinator.messageMeBaseBackgroundColor = messageMeBaseBackgroundColor
+        context.coordinator.messageMeContentBackgroundColor = messageMeContentBackgroundColor
+        context.coordinator.messageMeClassicHeaderBackgroundColor = messageMeClassicHeaderBackgroundColor
+        context.coordinator.messageLoveBaseBackgroundColor = messageLoveBaseBackgroundColor
+        context.coordinator.messageLoveContentBackgroundColor = messageLoveContentBackgroundColor
+        context.coordinator.messageLoveModernHeaderBackgroundColor = messageLoveModernHeaderBackgroundColor
+        context.coordinator.messageClassicHeaderBackgroundColor = messageClassicHeaderBackgroundColor
         webView.backgroundColor = baseBackgroundColor
         webView.scrollView.backgroundColor = baseBackgroundColor
         if #available(iOS 15.0, *) {
@@ -809,15 +841,20 @@ struct WebView: UIViewRepresentable {
                 context.coordinator.lastAppliedTheme = nil
                 context.coordinator.lastAppliedThemeRevision = -1
                 context.coordinator.lastAppliedMessageBodyFontSize = nil
+                context.coordinator.lastAppliedMessageStyleSignature = nil
                 context.coordinator.isWaitingForThemeApplication = true
                 context.coordinator.didNotifyContentReadyForCurrentLoad = false
                 webView.isHidden = true
                 webView.loadFileURL(fileURL, allowingReadAccessTo: readAccessURL)
             } else {
-                context.coordinator.applyThemeIfNeeded(in: webView, force: shouldForceThemeApplication)
-                context.coordinator.applyTextSizeIfNeeded(in: webView)
-                if !context.coordinator.isWaitingForThemeApplication {
-                    webView.isHidden = false
+                context.coordinator.applyThemeIfNeeded(in: webView, force: shouldForceThemeApplication) {
+                    context.coordinator.applyMessageStyleIfNeeded(in: webView, force: shouldForceThemeApplication) {
+                        context.coordinator.applyTextSizeIfNeeded(in: webView) {
+                            if !context.coordinator.isWaitingForThemeApplication {
+                                webView.isHidden = false
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -831,11 +868,20 @@ struct WebView: UIViewRepresentable {
         var colorScheme: ColorScheme
         var themeRevision: Int
         var messageBodyFontSize: CGFloat
+        var messageDisplayStyleRawValue: Int
+        var messageMeBaseBackgroundColor: String
+        var messageMeContentBackgroundColor: String
+        var messageMeClassicHeaderBackgroundColor: String
+        var messageLoveBaseBackgroundColor: String
+        var messageLoveContentBackgroundColor: String
+        var messageLoveModernHeaderBackgroundColor: String
+        var messageClassicHeaderBackgroundColor: String
         var loadedFileURL: URL?
         var loadedReadAccessURL: URL?
         var lastAppliedTheme: String?
         var lastAppliedThemeRevision: Int = -1
         var lastAppliedMessageBodyFontSize: CGFloat?
+        var lastAppliedMessageStyleSignature: String?
         var isWaitingForThemeApplication = false
         var didNotifyContentReadyForCurrentLoad = false
         @available(iOS 16.0, *)
@@ -860,15 +906,25 @@ struct WebView: UIViewRepresentable {
             self.colorScheme = parent.colorScheme
             self.themeRevision = parent.themeRevision
             self.messageBodyFontSize = parent.messageBodyFontSize
+            self.messageDisplayStyleRawValue = parent.messageDisplayStyleRawValue
+            self.messageMeBaseBackgroundColor = parent.messageMeBaseBackgroundColor
+            self.messageMeContentBackgroundColor = parent.messageMeContentBackgroundColor
+            self.messageMeClassicHeaderBackgroundColor = parent.messageMeClassicHeaderBackgroundColor
+            self.messageLoveBaseBackgroundColor = parent.messageLoveBaseBackgroundColor
+            self.messageLoveContentBackgroundColor = parent.messageLoveContentBackgroundColor
+            self.messageLoveModernHeaderBackgroundColor = parent.messageLoveModernHeaderBackgroundColor
+            self.messageClassicHeaderBackgroundColor = parent.messageClassicHeaderBackgroundColor
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             print("WKWebView didFinish. anchor =", anchor as Any, "initialScroll =", String(describing: initialScroll), "url:", webView.url?.absoluteString ?? "nil")
             applyThemeIfNeeded(in: webView, force: true) {
-                self.applyTextSizeIfNeeded(in: webView, force: true) {
-                    self.isWaitingForThemeApplication = false
-                    webView.isHidden = false
-                    self.notifyContentReadyIfNeeded()
+                self.applyMessageStyleIfNeeded(in: webView, force: true) {
+                    self.applyTextSizeIfNeeded(in: webView, force: true) {
+                        self.isWaitingForThemeApplication = false
+                        webView.isHidden = false
+                        self.notifyContentReadyIfNeeded()
+                    }
                 }
             }
 
@@ -997,11 +1053,6 @@ struct WebView: UIViewRepresentable {
                 meta.setAttribute('content', 'light dark');
               }
 
-              var cssLink = document.getElementById('light-styles');
-              if (cssLink) {
-                cssLink.setAttribute('href', 'style-liste-light.css');
-              }
-
               var darkOverrides = {
                 '--color-message-background': '#242529',
                 '--color-message-modo-background': '#4A2E3C',
@@ -1014,6 +1065,8 @@ struct WebView: UIViewRepresentable {
                 '--color-border-avatar': '#222222',
                 '--color-text-pseudo': '#CECECE',
                 '--color-text-pseudo-bl': 'rgba(206, 206, 206, 0.50)',
+                '--color-message-header-background': '#242529',
+                '--color-message-style-header-text': '#CECECE',
                 '--imagefile-avatar': 'url(avatar_male_gray_on_dark_48x48.png)',
                 '--imagefile-loadinfo': 'url(loadinfo.net.gif)'
               };
@@ -1053,6 +1106,118 @@ struct WebView: UIViewRepresentable {
                     self?.lastAppliedTheme = targetTheme
                     self?.lastAppliedThemeRevision = self?.themeRevision ?? -1
                     print("Theme JS applied:", targetTheme)
+                }
+                completion?()
+            }
+        }
+
+        func applyMessageStyleIfNeeded(
+            in webView: WKWebView,
+            force: Bool = false,
+            completion: (() -> Void)? = nil
+        ) {
+            let styleSignature = [
+                String(messageDisplayStyleRawValue),
+                String(describing: colorScheme),
+                messageMeBaseBackgroundColor,
+                messageMeContentBackgroundColor,
+                messageMeClassicHeaderBackgroundColor,
+                messageLoveBaseBackgroundColor,
+                messageLoveContentBackgroundColor,
+                messageLoveModernHeaderBackgroundColor,
+                messageClassicHeaderBackgroundColor
+            ].joined(separator: "|")
+
+            guard force || lastAppliedMessageStyleSignature != styleSignature else {
+                completion?()
+                return
+            }
+
+            let isModernStyle = messageDisplayStyleRawValue == 1
+            let messageHeaderBackground = isModernStyle ? "var(--color-message-background)" : messageClassicHeaderBackgroundColor
+            let messageHeaderMeBackground = isModernStyle ? "var(--color-message-mequoted-background)" : messageMeClassicHeaderBackgroundColor
+            let messageHeaderLoveBackground = isModernStyle ? messageLoveModernHeaderBackgroundColor : messageLoveBaseBackgroundColor
+            let messageContentPaddingTop = isModernStyle ? "0px" : "8px"
+            let messageContentRightWidth = isModernStyle ? "calc(100% - 52px)" : "calc(100% - 10px)"
+            let messageHeaderLeftMarginTop = isModernStyle ? "6px" : "8px"
+            let variables: [(String, String)] = [
+                ("--color-message-header-me-background-base", messageMeBaseBackgroundColor),
+                ("--color-message-mequoted-background", messageMeContentBackgroundColor),
+                ("--color-message-header-love-background-base", messageLoveBaseBackgroundColor),
+                ("--color-message-whitelist-content-background", messageLoveContentBackgroundColor),
+                ("--message-content-padding-top", messageContentPaddingTop),
+                ("--message-content-right-width", messageContentRightWidth),
+                ("--message-header-left-margin-top", messageHeaderLeftMarginTop),
+                ("--color-message-header-background", messageHeaderBackground),
+                ("--color-message-header-me-background", messageHeaderMeBackground),
+                ("--color-message-header-love-background", messageHeaderLoveBackground)
+            ]
+            let variableAssignments = variables
+                .map { "root.style.setProperty(\($0.0.debugDescription), \($0.1.debugDescription));" }
+                .joined(separator: "\n              ")
+            let css: String
+            if isModernStyle {
+                css = """
+                :root {
+                  --color-message-header-me-background-base: \(messageMeBaseBackgroundColor);
+                  --color-message-mequoted-background: \(messageMeContentBackgroundColor);
+                  --color-message-header-love-background-base: \(messageLoveBaseBackgroundColor);
+                  --color-message-whitelist-content-background: \(messageLoveContentBackgroundColor);
+                  --message-content-padding-top: \(messageContentPaddingTop);
+                  --message-content-right-width: \(messageContentRightWidth);
+                  --message-header-left-margin-top: \(messageHeaderLeftMarginTop);
+                  --color-message-header-background: \(messageHeaderBackground);
+                  --color-message-header-me-background: \(messageHeaderMeBackground);
+                  --color-message-header-love-background: \(messageHeaderLoveBackground);
+                }
+                """
+            } else {
+                css = """
+                :root {
+                  --color-message-header-me-background-base: \(messageMeBaseBackgroundColor);
+                  --color-message-mequoted-background: \(messageMeContentBackgroundColor);
+                  --color-message-header-love-background-base: \(messageLoveBaseBackgroundColor);
+                  --color-message-whitelist-content-background: \(messageLoveContentBackgroundColor);
+                  --message-content-padding-top: \(messageContentPaddingTop);
+                  --message-content-right-width: \(messageContentRightWidth);
+                  --message-header-left-margin-top: \(messageHeaderLeftMarginTop);
+                  --color-message-header-background: \(messageHeaderBackground);
+                  --color-message-header-me-background: \(messageHeaderMeBackground);
+                  --color-message-header-love-background: \(messageHeaderLoveBackground);
+                }
+                """
+            }
+
+            let encodedCSS = css.debugDescription
+            let script = """
+            (function() {
+              var root = document.documentElement;
+              if (!root) { return; }
+
+              var cssLink = document.getElementById('light-styles');
+              if (cssLink) {
+                cssLink.setAttribute('href', 'style-liste-light.css');
+              }
+
+              \(variableAssignments)
+
+              var style = document.getElementById('hfrswift-message-style');
+              if (!style && document.head) {
+                style = document.createElement('style');
+                style.id = 'hfrswift-message-style';
+                document.head.appendChild(style);
+              }
+              if (style) {
+                style.textContent = \(encodedCSS);
+              }
+            })();
+            """
+
+            webView.evaluateJavaScript(script) { [weak self] _, error in
+                if let error = error {
+                    print("Message style JS error:", error.localizedDescription)
+                } else {
+                    self?.lastAppliedMessageStyleSignature = styleSignature
                 }
                 completion?()
             }
@@ -2208,6 +2373,7 @@ struct MessagesView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var appTheme = AppThemeStore.shared
     @AppStorage(AppTextSizeScale.key) private var textSizeScaleRawValue = AppTextSizeScale.standard.rawValue
+    @AppStorage("theme_style") private var messageDisplayStyleRawValue = 1
     @State private var page: Int
     @State private var availableMaxPage: Int
     @State private var topicDisplayTitle: String
@@ -3378,6 +3544,14 @@ struct MessagesView: View {
                     baseBackgroundColor: themePalette.webViewBackdropUIColor,
                     themeRevision: appTheme.themeRevision,
                     messageBodyFontSize: messageBodyFontSize,
+                    messageDisplayStyleRawValue: messageDisplayStyleRawValue,
+                    messageMeBaseBackgroundColor: themePalette.messageActionTintCSS(alpha: 1.0),
+                    messageMeContentBackgroundColor: themePalette.messageActionTintCSS(alpha: 0.03),
+                    messageMeClassicHeaderBackgroundColor: themePalette.messageActionTintCSS(alpha: 0.15),
+                    messageLoveBaseBackgroundColor: themePalette.messageLoveCSS(alpha: 1.0),
+                    messageLoveContentBackgroundColor: themePalette.messageLoveCSS(alpha: 0.4),
+                    messageLoveModernHeaderBackgroundColor: themePalette.messageLoveCSS(alpha: 0.4),
+                    messageClassicHeaderBackgroundColor: themePalette.messageClassicHeaderBackgroundCSS,
                     messageActionsByIndex: messageActionsByIndex,
                     onWebAction: handleWebAction,
                     onPopupQuoteRequest: { quoteURL in

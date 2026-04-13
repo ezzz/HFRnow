@@ -365,12 +365,6 @@ struct AppSettingsView: View {
                     .tint(Color(hue: tintHue, saturation: 0.65, brightness: 1.0))
             }
 
-            Picker("Affichage des messages", selection: $themeStyle) {
-                ForEach(themeStyleOptions) { option in
-                    Text(option.title).tag(option.value)
-                }
-            }
-
             Toggle("Arrêter la magie de noël", isOn: $disableNoelMagic)
         }
     }
@@ -378,6 +372,12 @@ struct AppSettingsView: View {
     @ViewBuilder
     private var topicsSection: some View {
         Section("Sujets") {
+            Picker("Style des messages", selection: $themeStyle) {
+                ForEach(themeStyleOptions) { option in
+                    Text(option.title).tag(option.value)
+                }
+            }
+
             Toggle("Masquer les pseudos blacklistés", isOn: $hideBlacklistedPseudo)
 
             Picker("Taille des smileys", selection: $smileySize) {
