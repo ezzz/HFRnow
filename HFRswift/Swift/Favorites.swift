@@ -492,6 +492,41 @@ struct FavoritesListView: View {
         Set(viewModel.favorites.filter { !topics(in: $0).isEmpty }.map(sectionIdentifier(for:)))
     }
 
+    private var shouldShowAllSectionsCollapsedState: Bool {
+        usesCategorizedFavoritesList
+        && !showCollapsedSections
+        && !viewModel.isLoading
+        && viewModel.errorMessage == nil
+        && !collapsibleSectionIDs.isEmpty
+        && displayedCategorizedFavorites.isEmpty
+    }
+
+    private var shouldShowNoFavoritesState: Bool {
+        !viewModel.isLoading
+        && viewModel.errorMessage == nil
+        && !shouldShowAllSectionsCollapsedState
+        && displayedCategorizedFavorites.isEmpty
+        && flattenedTopics.isEmpty
+    }
+
+    private var allSectionsCollapsedState: some View {
+        ContentUnavailableView {
+            Label("Toutes les sections sont repliées", systemImage: "list.bullet.circle")
+        } description: {
+            Text("La vue filtrée masque les sections repliées.")
+        } actions: {
+            Button("Afficher les sections repliées") {
+                AppHaptics.impact(.light)
+                showCollapsedSections = true
+            }
+            Button("Tout déplier") {
+                AppHaptics.impact(.light)
+                expandAllSections()
+            }
+        }
+        .listRowSeparator(.hidden)
+    }
+
     private func toggleSectionCollapse(sectionID: String) {
         if collapsedSectionIDs.contains(sectionID) {
             collapsedSectionIDs.remove(sectionID)
@@ -542,7 +577,10 @@ struct FavoritesListView: View {
                         Text("Erreur : \(errorMessage)")
                             .foregroundStyle(.red)
                     }
-                    if !viewModel.isLoading && displayedCategorizedFavorites.isEmpty && flattenedTopics.isEmpty && viewModel.errorMessage == nil {
+                    if shouldShowAllSectionsCollapsedState {
+                        allSectionsCollapsedState
+                    }
+                    if shouldShowNoFavoritesState {
                         Text("Aucun favori")
                             .foregroundStyle(.secondary)
                     }
