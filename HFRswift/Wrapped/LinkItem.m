@@ -82,7 +82,7 @@
         sTextePseudo = @"Citation masquée";
         sRegExpQuoteBL = @"<table class=\"citation_blacklist\" id=\"([0-9]+)\" auteur=\"[^\"]+\"";
     }
-    NSString *sShowQuote = [NSString stringWithFormat:@"<table class=\"bl_quote_show\" id=\"1$1\"><tr class=\"none\"><td><b class=\"s1\"><div class=\"bl_quote_left\" style=\"float: left;\"><b>%@</b></div></td><td><div class=\"bl_quote_right\" style=\"float: right;\"><a class=\"buttonshow\" target=\"_blank\" onclick=\"%@\">&#9660;</a></div></div></td></tr></table>", sTextePseudo, sShowQuoteJS];
+    NSString *sShowQuote = [NSString stringWithFormat:@"<table class=\"bl_quote_show\" id=\"1$1\"><tr class=\"none\"><td><div class=\"s1\"><div class=\"bl_quote_left\" style=\"float: left;\">%@</div></div></td><td><div class=\"bl_quote_right\" style=\"float: right;\"><a class=\"buttonshow\" target=\"_blank\" onclick=\"%@\">&#9660;</a></div></div></td></tr></table>", sTextePseudo, sShowQuoteJS];
     myRawContent = [myRawContent stringByReplacingOccurrencesOfRegex:sRegExpQuoteBL
                                                           withString:[NSString stringWithFormat:@"%@<table class=\"citation_blacklist\" id=\"$1\"", sShowQuote]];
 

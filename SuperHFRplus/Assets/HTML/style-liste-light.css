@@ -681,7 +681,6 @@ body.ios7 {
     float: right;
     padding:7px !important;
     margin-right : 15px !important;
-    margin-top:8px !important;
     font-size: 15px;
 }
 
@@ -710,7 +709,7 @@ body.ios7 {
 }
 
 .message.separator {
-    height: 10px !important;
+    height: 4px !important;
     background:var(--color-message-background);
 }
 
