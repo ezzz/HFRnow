@@ -614,6 +614,10 @@ final class ForumReplyPostingService: ReplyPostingService, ReplyComposerContextP
     private func decodeHTMLEntities(in string: String) -> String {
         string
             .replacingOccurrences(of: "&quot;", with: "\"")
+            .replacingOccurrences(of: "&#034;", with: "\"")
+            .replacingOccurrences(of: "&#34;", with: "\"")
+            .replacingOccurrences(of: "&#x22;", with: "\"")
+            .replacingOccurrences(of: "&#X22;", with: "\"")
             .replacingOccurrences(of: "&#039;", with: "'")
             .replacingOccurrences(of: "&#39;", with: "'")
             .replacingOccurrences(of: "&lt;", with: "<")
@@ -791,6 +795,10 @@ final class ForumReplyQuoteTemplateService: ReplyQuoteTemplateLoading {
     private func decodeHTMLEntities(in string: String) -> String {
         string
             .replacingOccurrences(of: "&quot;", with: "\"")
+            .replacingOccurrences(of: "&#034;", with: "\"")
+            .replacingOccurrences(of: "&#34;", with: "\"")
+            .replacingOccurrences(of: "&#x22;", with: "\"")
+            .replacingOccurrences(of: "&#X22;", with: "\"")
             .replacingOccurrences(of: "&#039;", with: "'")
             .replacingOccurrences(of: "&#39;", with: "'")
             .replacingOccurrences(of: "&lt;", with: "<")

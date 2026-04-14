@@ -2740,20 +2740,19 @@ struct MessagesView: View {
         let topicURLString = normalizedForumTopicURLString(from: url)
         guard !topicURLString.isEmpty else { return }
 
-        let pageFromURL = URLComponents(url: url, resolvingAgainstBaseURL: false)?
-            .queryItems?
-            .first(where: { $0.name == "page" })?
-            .value
-            .flatMap(Int.init) ?? 1
+        let pageFromURL =
+            TopicPageURLRouting.pageNumber(from: topicURLString)
+            ?? TopicPageURLRouting.pageNumber(from: url.absoluteString)
+            ?? 1
         let boundedPage = max(pageFromURL, 1)
-        let derivedMaxPage = max(currentMaxPage, boundedPage)
+        let provisionalMaxPage = boundedPage
 
         let topicForNavigation = Topic()
         topicForNavigation._aTitle = topic._aTitle
         topicForNavigation.aURL = topicURLString
         topicForNavigation.aURLOfLastPage = topicURLString
         topicForNavigation.curTopicPage = Int32(boundedPage)
-        topicForNavigation.maxTopicPage = Int32(derivedMaxPage)
+        topicForNavigation.maxTopicPage = Int32(provisionalMaxPage)
 
         linkedTopic = topicForNavigation
         navigateToLinkedTopic = true

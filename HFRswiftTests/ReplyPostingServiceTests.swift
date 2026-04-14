@@ -333,6 +333,38 @@ final class ReplyPostingServiceTests: XCTestCase {
         XCTAssertEqual(template, "[quotemsg=1,2,3]Salut & merci[/quotemsg]\n")
     }
 
+    func testFetchQuoteTemplateDecodesNumericQuoteEntities() async throws {
+        let session = makeSession()
+
+        URLProtocolMock.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "GET")
+            let html = """
+            <html><body>
+            <form name=\"hop\" action=\"/bddpost.php\">
+              <textarea id=\"content_form\">[quotemsg=1980622109,61,15867]&#034;Conseillé&#034; &amp; test &#039;ok&#039;[/quotemsg]\r\n</textarea>
+            </form>
+            </body></html>
+            """
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                Data(html.utf8)
+            )
+        }
+
+        let service = ForumReplyQuoteTemplateService(
+            session: session,
+            sessionContextProvider: { _ in
+                ReplySessionContext(pseudoDisplay: "testeur", hashCheck: "hash123")
+            }
+        )
+
+        let template = try await service.fetchQuoteTemplate(
+            from: URL(string: "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=42&page=1&p=1")!
+        )
+
+        XCTAssertEqual(template, "[quotemsg=1980622109,61,15867]\"Conseillé\" & test 'ok'[/quotemsg]\n")
+    }
+
     func testFetchQuoteTemplateWhenHopFormIsMissingReturnsReplyFormUnavailable() async {
         let session = makeSession()
 
