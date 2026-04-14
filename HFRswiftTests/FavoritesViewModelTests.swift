@@ -2,7 +2,7 @@ import XCTest
 @testable import HFRswift
 
 final class FavoritesViewModelTests: XCTestCase {
-    func testRemoveTopicRemovesMatchingTopicAndDropsEmptySections() {
+    func testRemoveTopicRemovesMatchingTopicAndKeepsEmptySections() {
         let favoriteA = makeFavorite(sectionTitle: "A", topicIDs: [11, 12])
         let favoriteB = makeFavorite(sectionTitle: "B", topicIDs: [12])
         let viewModel = FavoritesViewModel(
@@ -12,9 +12,11 @@ final class FavoritesViewModelTests: XCTestCase {
 
         viewModel.removeTopic(withPostID: 12)
 
-        XCTAssertEqual(viewModel.favorites.count, 1)
+        XCTAssertEqual(viewModel.favorites.count, 2)
         let remainingTopics = (viewModel.favorites.first?.topics as? [Topic]) ?? []
         XCTAssertEqual(remainingTopics.map { Int($0.postID) }, [11])
+        let emptyTopics = (viewModel.favorites.last?.topics as? [Topic]) ?? []
+        XCTAssertTrue(emptyTopics.isEmpty)
     }
 
     func testRemoveTopicWithUnknownPostIDKeepsFavoritesUnchanged() {

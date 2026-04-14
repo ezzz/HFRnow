@@ -179,8 +179,8 @@ struct FavoritesListDensity {
                 sectionSpacing: 6,
                 sectionHeaderTopPadding: -4,
                 sectionHeaderBottomPadding: -5,
-                collapsedHeaderTopPadding: -5,
-                collapsedHeaderBottomPadding: -6,
+                collapsedHeaderTopPadding: -1,
+                collapsedHeaderBottomPadding: -2,
                 rowInsets: EdgeInsets(top: 3, leading: 12, bottom: 3, trailing: 12)
             )
         }
@@ -189,8 +189,8 @@ struct FavoritesListDensity {
             sectionSpacing: 12,
             sectionHeaderTopPadding: -2,
             sectionHeaderBottomPadding: -2,
-            collapsedHeaderTopPadding: -3,
-            collapsedHeaderBottomPadding: -3,
+            collapsedHeaderTopPadding: 1,
+            collapsedHeaderBottomPadding: 1,
             rowInsets: EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12)
         )
     }
@@ -263,9 +263,8 @@ class FavoritesViewModel: ObservableObject {
     func removeTopic(withPostID postID: Int) {
         guard postID > 0 else { return }
 
-        let updatedFavorites: [Favorite] = favorites.compactMap { favorite in
+        let updatedFavorites: [Favorite] = favorites.map { favorite in
             let topics = ((favorite.topics as? [Topic]) ?? []).filter { $0.postID != postID }
-            guard !topics.isEmpty else { return nil }
             favorite.topics = NSMutableArray(array: topics)
             return favorite
         }
@@ -291,6 +290,7 @@ struct FavoriteSectionView: View {
 
     // Cast centralisé
     private var topics: [Topic] { (favorite.topics as? [Topic]) ?? [] }
+    private var canCollapse: Bool { !topics.isEmpty }
 
     private var headerTitle: String {
         if let name = favorite.forum?.aTitle { return name }
@@ -332,21 +332,23 @@ struct FavoriteSectionView: View {
         .padding(.bottom, isCollapsed ? density.collapsedHeaderBottomPadding : density.sectionHeaderBottomPadding)
         .padding(.trailing, 34)
         .overlay(alignment: .trailing) {
-            Button {
-                withAnimation(.easeInOut(duration: 0.16)) {
-                    onToggleCollapse()
+            if canCollapse {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.16)) {
+                        onToggleCollapse()
+                    }
+                } label: {
+                    Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 18, height: 18)
+                        .frame(width: 38, height: 28, alignment: .center)
+                        .contentShape(Rectangle())
                 }
-            } label: {
-                Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 18, height: 18)
-                    .frame(width: 38, height: 28, alignment: .center)
-                    .contentShape(Rectangle())
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("favorite-section-toggle-\(sectionID)")
+                .accessibilityLabel(isCollapsed ? "Déplier \(headerTitle)" : "Plier \(headerTitle)")
             }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("favorite-section-toggle-\(sectionID)")
-            .accessibilityLabel(isCollapsed ? "Déplier \(headerTitle)" : "Plier \(headerTitle)")
         }
     }
 
@@ -381,6 +383,7 @@ struct FavoritesListView: View {
     @AppStorage("vos_sujets") private var favoritesTabBehavior = "0"
     @AppStorage("sujets_avec_cat") private var favoritesSortedByCategories = true
     @AppStorage(AppLayoutCompactMode.key) private var compactModeEnabled = false
+    @AppStorage("FavoritesShowCollapsedSections") private var showCollapsedSections = false
     @State private var visitedURLs: Set<String> = []
     @State private var showAddAccountSheet = false
     @State private var showLogoutConfirm = false
@@ -405,6 +408,10 @@ struct FavoritesListView: View {
 
     private var usesCategorizedFavoritesList: Bool {
         favoritesSortedByCategories
+    }
+
+    private var shouldShowEmptyFavoriteSections: Bool {
+        showCollapsedSections && favoritesTabBehavior == "0"
     }
 
     private func topicOpenContext(for topic: Topic) -> TopicOpenContext {
@@ -462,6 +469,29 @@ struct FavoritesListView: View {
         return "favorite-unknown"
     }
 
+    private func topics(in favorite: Favorite) -> [Topic] {
+        (favorite.topics as? [Topic]) ?? []
+    }
+
+    private func shouldDisplayCategorizedFavorite(_ favorite: Favorite) -> Bool {
+        let sectionID = sectionIdentifier(for: favorite)
+        if collapsedSectionIDs.contains(sectionID), !showCollapsedSections {
+            return false
+        }
+        if !topics(in: favorite).isEmpty {
+            return true
+        }
+        return shouldShowEmptyFavoriteSections
+    }
+
+    private var displayedCategorizedFavorites: [Favorite] {
+        viewModel.favorites.filter(shouldDisplayCategorizedFavorite(_:))
+    }
+
+    private var collapsibleSectionIDs: Set<String> {
+        Set(viewModel.favorites.filter { !topics(in: $0).isEmpty }.map(sectionIdentifier(for:)))
+    }
+
     private func toggleSectionCollapse(sectionID: String) {
         if collapsedSectionIDs.contains(sectionID) {
             collapsedSectionIDs.remove(sectionID)
@@ -482,9 +512,8 @@ struct FavoritesListView: View {
     }
 
     private func collapseAllSections() {
-        let allSectionIDs = Set(viewModel.favorites.map(sectionIdentifier(for:)))
-        collapsedSectionIDs = allSectionIDs
-        FavoritesCollapsedSectionsStore.save(allSectionIDs)
+        collapsedSectionIDs = collapsibleSectionIDs
+        FavoritesCollapsedSectionsStore.save(collapsibleSectionIDs)
     }
 
     private func expandAllSections() {
@@ -513,12 +542,12 @@ struct FavoritesListView: View {
                         Text("Erreur : \(errorMessage)")
                             .foregroundStyle(.red)
                     }
-                    if !viewModel.isLoading && viewModel.favorites.isEmpty && viewModel.errorMessage == nil {
+                    if !viewModel.isLoading && displayedCategorizedFavorites.isEmpty && flattenedTopics.isEmpty && viewModel.errorMessage == nil {
                         Text("Aucun favori")
                             .foregroundStyle(.secondary)
                     }
                     if usesCategorizedFavoritesList {
-                        ForEach(viewModel.favorites) { favorite in
+                        ForEach(displayedCategorizedFavorites) { favorite in
                             let sectionID = sectionIdentifier(for: favorite)
                             FavoriteSectionView(
                                 favorite: favorite,
@@ -598,7 +627,39 @@ struct FavoritesListView: View {
                     },
                     isLoading: viewModel.isLoading,
                     profileImage: accountsStore.currentAvatarImage,
-                    profileImageURL: nil
+                    profileImageURL: nil,
+                    leadingRefreshItem: AnyView(
+                        Button {
+                            AppHaptics.impact(.light)
+                            showCollapsedSections.toggle()
+                        } label: {
+                            Image(systemName: showCollapsedSections ? "list.bullet.circle.fill" : "list.bullet.circle")
+                                .foregroundStyle(.primary)
+                        }
+                        .disabled(!usesCategorizedFavoritesList)
+                        .contextMenu {
+                            Button {
+                                collapseAllSections()
+                            } label: {
+                                MenuActionLabel("Tout replier", systemImage: "rectangle.compress.vertical")
+                            }
+                            .disabled(!usesCategorizedFavoritesList || collapsibleSectionIDs.isEmpty || collapsibleSectionIDs.isSubset(of: collapsedSectionIDs))
+
+                            Button {
+                                expandAllSections()
+                            } label: {
+                                MenuActionLabel("Tout déplier", systemImage: "rectangle.expand.vertical")
+                            }
+                            .disabled(!usesCategorizedFavoritesList || collapsedSectionIDs.isEmpty)
+                        } preview: {
+                            Color.clear.frame(width: 1, height: 1)
+                        }
+                        .accessibilityLabel(
+                            showCollapsedSections
+                                ? "Masquer les sections repliées"
+                                : "Afficher les sections repliées"
+                        )
+                    )
                 ) {
                     if !accountsStore.accounts.isEmpty {
                         ForEach(accountsStore.accounts) { account in
@@ -610,21 +671,6 @@ struct FavoritesListView: View {
                         }
                         Divider()
                     }
-                    Button {
-                        collapseAllSections()
-                    } label: {
-                        MenuActionLabel("Tout plier", systemImage: "rectangle.compress.vertical")
-                    }
-                    .disabled(!usesCategorizedFavoritesList || viewModel.favorites.isEmpty || collapsedSectionIDs.count == viewModel.favorites.count)
-
-                    Button {
-                        expandAllSections()
-                    } label: {
-                        MenuActionLabel("Tout déplier", systemImage: "rectangle.expand.vertical")
-                    }
-                    .disabled(!usesCategorizedFavoritesList || viewModel.favorites.isEmpty || collapsedSectionIDs.isEmpty)
-
-                    Divider()
                     Button {
                         showAddAccountSheet = true
                     } label: {

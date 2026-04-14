@@ -521,8 +521,8 @@
     
     // Send result to SWIFT
     if (self.completion) {
-        NSLog(@"Favori send result to SWIFT : %ld", self.arrayNewData.count);
-        self.completion([self.arrayNewData copy], nil);
+        NSLog(@"Favori send result to SWIFT : %ld", self.arrayCategories.count);
+        self.completion([self.arrayCategories copy], nil);
     }    
 }
 

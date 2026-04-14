@@ -13,6 +13,7 @@ struct MainToolbarContent<MenuItems: View>: ToolbarContent {
     let isLoading: Bool
     let profileImage: UIImage?
     let profileImageURL: URL?
+    let leadingRefreshItem: AnyView?
     let menuItems: () -> MenuItems
 
     init(
@@ -20,17 +21,25 @@ struct MainToolbarContent<MenuItems: View>: ToolbarContent {
         isLoading: Bool = false,
         profileImage: UIImage? = nil,
         profileImageURL: URL? = nil,
+        leadingRefreshItem: AnyView? = nil,
         @ViewBuilder menuItems: @escaping () -> MenuItems
     ) {
         self.onRefresh = onRefresh
         self.isLoading = isLoading
         self.profileImage = profileImage
         self.profileImageURL = profileImageURL
+        self.leadingRefreshItem = leadingRefreshItem
         self.menuItems = menuItems
     }
 
     var body: some ToolbarContent {
-        ToolbarItemGroup(placement: .navigationBarTrailing) {
+        ToolbarItem(placement: .navigationBarTrailing) {
+            if let leadingRefreshItem {
+                leadingRefreshItem
+            }
+        }
+
+        ToolbarItem(placement: .navigationBarTrailing) {
             Button {
                 AppHaptics.impact(.light)
                 onRefresh()
@@ -40,6 +49,7 @@ struct MainToolbarContent<MenuItems: View>: ToolbarContent {
                         .controlSize(.small)
                 } else {
                     Image(systemName: "arrow.clockwise")
+                        .foregroundStyle(.primary)
                 }
             }
             .disabled(isLoading)
