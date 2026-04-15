@@ -78,6 +78,16 @@
 		</dict>
 		<dict>
 			<key>DefaultValue</key>
+			<true/>
+			<key>Key</key>
+			<string>tabbar_minimize_on_scroll</string>
+			<key>Title</key>
+			<string>Réduire la tab bar au scroll</string>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+		</dict>
+		<dict>
+			<key>DefaultValue</key>
 			<string>superblue</string>
 			<key>Key</key>
 			<string>icon</string>
@@ -85,9 +95,9 @@
 			<string>Icône</string>
 			<key>Titles</key>
 			<array>
+				<string>Défaut</string>
 				<string>Classique Yellow</string>
 				<string>Classique Red</string>
-				<string>Classique Blue</string>
 				<string>REDFACE</string>
 				<string>REDFACE Blue</string>
 				<string>Beta</string>
@@ -98,9 +108,9 @@
 			<string>PSMultiValueSpecifier</string>
 			<key>Values</key>
 			<array>
+				<string>superblue</string>
 				<string>classic</string>
 				<string>classic-red</string>
-				<string>superblue</string>
 				<string>redface</string>
 				<string>redface-blue</string>
 				<string>beta</string>
@@ -181,16 +191,6 @@
 			<string>PSChildPaneSpecifier</string>
 			<key>IASKViewControllerClass</key>
 			<string>ThemeSettingsViewController</string>
-		</dict>
-		<dict>
-			<key>DefaultValue</key>
-			<false/>
-			<key>Key</key>
-			<string>theme_noel_disabled</string>
-			<key>Title</key>
-			<string>Arrêter la magie de noël</string>
-			<key>Type</key>
-			<string>PSToggleSwitchSpecifier</string>
 		</dict>
 		<dict>
 			<key>Title</key>

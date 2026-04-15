@@ -29,9 +29,9 @@ struct AppSettingsView: View {
     }
 
     private enum AppIconOption: String, CaseIterable, Identifiable {
+        case superblue = "superblue"
         case classic = "classic"
         case classicRed = "classic-red"
-        case superblue = "superblue"
         case redface = "redface"
         case redfaceBlue = "redface-blue"
         case beta = "beta"
@@ -47,7 +47,7 @@ struct AppSettingsView: View {
             case .classicRed:
                 return "Classique Red"
             case .superblue:
-                return "Classique Blue"
+                return "Défaut"
             case .redface:
                 return "REDFACE"
             case .redfaceBlue:
@@ -86,6 +86,7 @@ struct AppSettingsView: View {
     @AppStorage("vos_sujets") private var favoritesTabBehavior = "0"
     @AppStorage("sujets_avec_cat") private var favoritesSortedByCategories = true
     @AppStorage(AppLayoutCompactMode.key) private var compactModeEnabled = false
+    @AppStorage(AppTabBarMinimizeOnScroll.key) private var tabBarMinimizeOnScroll = true
     @AppStorage(AppTextSizeScale.key) private var textSizeScaleRawValue = AppTextSizeScale.standard.rawValue
     @AppStorage("haptics") private var hapticsEnabled = true
     @AppStorage("icon") private var iconValue = AppIconOption.superblue.rawValue
@@ -93,7 +94,6 @@ struct AppSettingsView: View {
     @AppStorage("auto_theme") private var autoTheme = Constants.autoThemeIOS
     @AppStorage("theme") private var manualTheme = 0
     @AppStorage("theme_style") private var themeStyle = 1
-    @AppStorage("theme_noel_disabled") private var disableNoelMagic = false
 
     @AppStorage("blacklist_hide_pseudo") private var hideBlacklistedPseudo = false
     @AppStorage("size_smileys") private var smileySize = "double"
@@ -319,6 +319,7 @@ struct AppSettingsView: View {
 
             Toggle("Favoris triés par catégories", isOn: $favoritesSortedByCategories)
             Toggle("Mode compact", isOn: $compactModeEnabled)
+            Toggle("Réduire la tab bar au scroll", isOn: $tabBarMinimizeOnScroll)
 
             Picker("Taille du texte", selection: $textSizeScaleRawValue) {
                 ForEach(AppTextSizeScale.allCases) { option in
@@ -364,8 +365,6 @@ struct AppSettingsView: View {
                 Slider(value: $tintHue, in: 0...1, step: 0.001)
                     .tint(Color(hue: tintHue, saturation: 0.65, brightness: 1.0))
             }
-
-            Toggle("Arrêter la magie de noël", isOn: $disableNoelMagic)
         }
     }
 
@@ -436,9 +435,6 @@ struct AppSettingsView: View {
     private var aboutSection: some View {
         Section("À propos") {
             LabeledContent("Version", value: appVersion)
-            Text("Migration InAppSettingsKit -> SwiftUI en cours")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
         }
     }
 
@@ -467,9 +463,6 @@ struct AppSettingsView: View {
             if autoTheme == Constants.autoThemeManual {
                 applyThemeConfiguration()
             }
-        }
-        .onChange(of: disableNoelMagic) { _, _ in
-            ThemeManager.shared()?.refreshTheme()
         }
         .onChange(of: tintHue) { _, newValue in
             applyTintHue(newValue)

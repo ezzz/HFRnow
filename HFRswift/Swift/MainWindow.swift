@@ -904,6 +904,7 @@ struct RootTabView: View {
     @State private var messagesNavigationResetToken = UUID()
     @AppStorage("nb_mp") private var unreadMPCount = 0
     @AppStorage("mp_badge_enabled") private var mpBadgeEnabled = true
+    @AppStorage(AppTabBarMinimizeOnScroll.key) private var tabBarMinimizeOnScroll = true
 
     init() {
         _selectedTab = State(initialValue: RuntimeState.selectedTab)
@@ -1002,7 +1003,7 @@ struct RootTabView: View {
                 }
             }
         }
-        .tabBarMinimizeBehavior(.onScrollDown)
+        .tabBarMinimizeBehavior(tabBarMinimizeOnScroll ? .onScrollDown : .never)
         .preferredColorScheme(appTheme.preferredColorScheme)
         .tint(appTheme.actionTintColor)
         .environment(\.appThemePalette, appTheme.palette)

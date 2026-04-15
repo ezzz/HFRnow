@@ -87,6 +87,10 @@ enum AppLayoutCompactMode {
     static let key = "compact_mode"
 }
 
+enum AppTabBarMinimizeOnScroll {
+    static let key = "tabbar_minimize_on_scroll"
+}
+
 enum AppTextSizeScale: Int, CaseIterable, Identifiable {
     static let key = "text_size_scale"
 
