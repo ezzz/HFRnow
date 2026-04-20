@@ -3775,8 +3775,75 @@ API_AVAILABLE(ios(16.0)) {
     BOOL hasAnchor = (anchor != nil) && (anchor.length > 0);
     self.isSeparatorNewMessages = hasAnchor;
     self.stringFlagTopic = anchor;
-    
+
     [self fetchContent];
+}
+
+#pragma mark - Swift search bridge
+
+- (NSDictionary<NSString *, NSString *> *)swiftSearchInputData {
+    NSMutableDictionary<NSString *, NSString *> *snapshot = [NSMutableDictionary dictionary];
+    for (id rawKey in self.searchInputData) {
+        if (![rawKey isKindOfClass:[NSString class]]) { continue; }
+        id rawValue = [self.searchInputData objectForKey:rawKey];
+        if (![rawValue isKindOfClass:[NSString class]]) { continue; }
+        [snapshot setObject:(NSString *)rawValue forKey:(NSString *)rawKey];
+    }
+    return [snapshot copy];
+}
+
+- (void)performTopicSearchWithParams:(NSDictionary<NSString *, NSString *> *)params
+                          completion:(void (^)(NSString *resultURL, NSError *error))completion {
+    if (!completion) { return; }
+    if (!params || params.count == 0) {
+        NSError *noParams = [NSError errorWithDomain:@"MessagesTableViewController.search"
+                                                code:-10
+                                            userInfo:@{NSLocalizedDescriptionKey: @"Aucun critère de recherche"}];
+        dispatch_async(dispatch_get_main_queue(), ^{ completion(nil, noParams); });
+        return;
+    }
+
+    NSURL *searchURL = [NSURL URLWithString:[NSString stringWithFormat:@"%@/transsearch.php", [k ForumURL]]];
+    ASIFormDataRequest *searchRequest = [[ASIFormDataRequest alloc] initWithURL:searchURL];
+    for (NSString *key in params) {
+        NSString *value = [params objectForKey:key];
+        if (![key isKindOfClass:[NSString class]]) { continue; }
+        if (![value isKindOfClass:[NSString class]]) { continue; }
+        [searchRequest setPostValue:value forKey:key];
+    }
+    [searchRequest setShouldRedirect:NO];
+    [searchRequest setTimeOutSeconds:kTimeoutMaxi];
+
+    __weak ASIFormDataRequest *weakRequest = searchRequest;
+    [searchRequest setCompletionBlock:^{
+        __strong ASIFormDataRequest *strongRequest = weakRequest;
+        NSString *location = [[strongRequest responseHeaders] objectForKey:@"Location"];
+        NSError *requestError = [strongRequest error];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (requestError) {
+                completion(nil, requestError);
+                return;
+            }
+            if (location.length == 0) {
+                NSError *noLocation = [NSError errorWithDomain:@"MessagesTableViewController.search"
+                                                          code:-11
+                                                      userInfo:@{NSLocalizedDescriptionKey: @"Aucun résultat n'a été trouvé"}];
+                completion(nil, noLocation);
+                return;
+            }
+            completion(location, nil);
+        });
+    }];
+    [searchRequest setFailedBlock:^{
+        __strong ASIFormDataRequest *strongRequest = weakRequest;
+        NSError *requestError = [strongRequest error];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            completion(nil, requestError ?: [NSError errorWithDomain:@"MessagesTableViewController.search"
+                                                                code:-12
+                                                            userInfo:@{NSLocalizedDescriptionKey: @"Échec de la recherche"}]);
+        });
+    }];
+    [searchRequest startAsynchronous];
 }
 
 @end

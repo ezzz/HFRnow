@@ -2358,6 +2358,12 @@ struct MessagesView: View {
         let authorName: String
     }
 
+    private struct TopicSearchSheetState: Identifiable {
+        let id = UUID()
+        let initialParams: TopicSearchParams
+        let isFromResultsPage: Bool
+    }
+
     let topic: Topic
     let curPage: Int // Stored again as it can be updated when reloading the topic
     let maxPage: Int
@@ -2369,6 +2375,8 @@ struct MessagesView: View {
     let replyQuoteTemplateLoader: ReplyQuoteTemplateLoading
     let messageDeletionService: any MessageDeletionService
     let moderationAlertService: any ModerationAlertService
+    let topicSearchService: any TopicSearchServicing
+    let initialSearchContext: TopicSearchContext?
 
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var appTheme = AppThemeStore.shared
@@ -2433,6 +2441,14 @@ struct MessagesView: View {
     @State private var postSuccessToastText = "Hooray"
     @State private var activeTopicLoadToken: UUID?
     @State private var topicLoadTimeoutWorkItem: DispatchWorkItem?
+    @State private var searchContext: TopicSearchContext?
+    @State private var topicSearchSheetState: TopicSearchSheetState?
+    @State private var lastSearchFormSnapshot: [String: String] = [:]
+    @State private var pendingSearchPush: TopicSearchContext?
+    @State private var navigateToSearchResult = false
+    @State private var hasConsumedInitialSearchURL = false
+    @State private var isAdvancingSearchResults = false
+    @State private var searchErrorMessage: String?
     // Remove the unused
     // @State private var isPresentingAddMessage = false
 
@@ -2459,7 +2475,9 @@ struct MessagesView: View {
         topicPageRenderer: TopicPageRendering = OfflineStorageTopicPageRenderer(),
         replyQuoteTemplateLoader: ReplyQuoteTemplateLoading = ForumReplyQuoteTemplateService(),
         messageDeletionService: any MessageDeletionService = ForumMessageDeletionService(),
-        moderationAlertService: any ModerationAlertService = ForumModerationAlertService()
+        moderationAlertService: any ModerationAlertService = ForumModerationAlertService(),
+        topicSearchService: any TopicSearchServicing = ObjCTopicSearchService(),
+        initialSearchContext: TopicSearchContext? = nil
     ) {
         self.topic = topic
         self.curPage = curPage
@@ -2472,10 +2490,13 @@ struct MessagesView: View {
         self.replyQuoteTemplateLoader = replyQuoteTemplateLoader
         self.messageDeletionService = messageDeletionService
         self.moderationAlertService = moderationAlertService
+        self.topicSearchService = topicSearchService
+        self.initialSearchContext = initialSearchContext
         self._page = State(initialValue: curPage)
         self._availableMaxPage = State(initialValue: max(max(maxPage, curPage), 1))
         self._topicDisplayTitle = State(initialValue: topic._aTitle ?? "")
         self._initialScroll = State(initialValue: initialLoadScroll)
+        self._searchContext = State(initialValue: initialSearchContext)
 
         // extraire l’ancre (#xxxx) si présente
         if let url = URL(string: topic.aURL), let fragment = url.fragment {
@@ -2485,9 +2506,30 @@ struct MessagesView: View {
     }
 
     private func urlForPage(_ page: Int) -> String {
+        if isFilteredSearchMode, let searchContext {
+            return searchContext.resultURL.absoluteString
+        }
         let baseURL = topic.aURL ?? topic.aURLOfLastPage ?? topic.aURLOfFirstPage ?? ""
         print("Current url: \(baseURL)")
         return TopicPageURLRouting.replacingPage(in: baseURL, page: page)
+    }
+
+    private var isInSearchMode: Bool {
+        searchContext != nil
+    }
+
+    private var isFilteredSearchMode: Bool {
+        searchContext?.params.filterEnabled == true
+    }
+
+    private var toolbarSubtitleText: String {
+        if isFilteredSearchMode {
+            return "Recherche filtrée"
+        }
+        if isInSearchMode {
+            return "Recherche | \(page)/\(currentMaxPage)"
+        }
+        return "\(page)/\(currentMaxPage)"
     }
 
     private var currentMaxPage: Int {
@@ -2512,6 +2554,10 @@ struct MessagesView: View {
     }
 
     private func applyLoadedPagination(from content: TopicPageContent, requestedPage: Int) {
+        lastSearchFormSnapshot = content.searchInputData
+        if isFilteredSearchMode {
+            return
+        }
         let resolvedPage = max(content.currentPage ?? requestedPage, 1)
         let parsedMaxPage = content.maxPage ?? currentMaxPage
         let resolvedMaxPage = max(max(parsedMaxPage, resolvedPage), 1)
@@ -2575,6 +2621,7 @@ struct MessagesView: View {
         loadedMaxPage: Int,
         initialScroll: WebView.InitialScroll?
     ) {
+        if isFilteredSearchMode { return }
         let policy = TopicPageRefreshProbePolicy(
             previousPage: previousPage,
             previousMaxPage: previousMaxPage,
@@ -2621,9 +2668,21 @@ struct MessagesView: View {
 
                 switch result {
                 case .failure(let error):
+                    if self.isInSearchMode {
+                        self.showWebViewLoadCover = false
+                        self.lastSearchFormSnapshot = [:]
+                        self.showSuccessToast("Aucune réponse trouvée")
+                        return
+                    }
                     self.errorMessage = error.localizedDescription
                     self.showWebViewLoadCover = false
                 case .success(let content):
+                    if self.isInSearchMode, self.isEmptySearchResultContent(content) {
+                        self.showWebViewLoadCover = false
+                        self.lastSearchFormSnapshot = [:]
+                        self.showSuccessToast("Aucune réponse trouvée")
+                        return
+                    }
                     let requestedPage = page
                     let resolvedPage = max(content.currentPage ?? requestedPage, 1)
                     let parsedMaxPage = content.maxPage ?? previousMaxPage
@@ -2676,17 +2735,35 @@ struct MessagesView: View {
 
                 switch result {
                 case .failure(let error):
+                    if self.isInSearchMode {
+                        self.showWebViewLoadCover = false
+                        self.lastSearchFormSnapshot = [:]
+                        self.showSuccessToast("Aucune réponse trouvée")
+                        return
+                    }
                     self.errorMessage = error.localizedDescription
                     self.showWebViewLoadCover = false
                 case .success(let content):
+                    if self.isInSearchMode, self.isEmptySearchResultContent(content) {
+                        self.showWebViewLoadCover = false
+                        self.lastSearchFormSnapshot = [:]
+                        self.showSuccessToast("Aucune réponse trouvée")
+                        return
+                    }
                     let requestedPage = content.currentPage
                         ?? TopicPageURLRouting.pageNumber(from: topicURL)
                         ?? self.page
                     let resolvedPage = max(content.currentPage ?? requestedPage, 1)
                     let parsedMaxPage = content.maxPage ?? previousMaxPage
                     let resolvedMaxPage = max(max(parsedMaxPage, resolvedPage), 1)
+                    let renderHTML: String = {
+                        if self.isInSearchMode, !self.isFilteredSearchMode, let anchor = self.anchor {
+                            return self.rewriteSeparatorBeforeAnchor(in: content.html, anchor: anchor)
+                        }
+                        return content.html
+                    }()
                     do {
-                        let rendered = try topicPageRenderer.render(html: content.html)
+                        let rendered = try topicPageRenderer.render(html: renderHTML)
                         self.fileURL = rendered.fileURL
                         self.cacheURL = rendered.readAccessURL
                     } catch {
@@ -3004,6 +3081,17 @@ struct MessagesView: View {
         )
     }
 
+    private var isSearchErrorAlertPresented: Binding<Bool> {
+        Binding(
+            get: { searchErrorMessage != nil },
+            set: { isPresented in
+                if !isPresented {
+                    searchErrorMessage = nil
+                }
+            }
+        )
+    }
+
     private func openQuoteComposer(with url: URL) {
         activeComposerPresentationKind = .reply
         composerNavigationTitle = ComposerPresentationKind.reply.title
@@ -3268,6 +3356,197 @@ struct MessagesView: View {
         isComposerPresented = true
     }
 
+    private func openTopicSearchSheet() {
+        let initialParams: TopicSearchParams
+        let isFromResultsPage: Bool
+
+        if let searchContext {
+            if !lastSearchFormSnapshot.isEmpty {
+                var parsed = TopicSearchParams.fromLegacyDictionary(lastSearchFormSnapshot)
+                parsed.word = searchContext.params.word
+                parsed.spseudo = searchContext.params.spseudo
+                parsed.filterEnabled = searchContext.params.filterEnabled
+                initialParams = parsed
+            } else {
+                initialParams = searchContext.params
+            }
+            isFromResultsPage = true
+        } else if !lastSearchFormSnapshot.isEmpty {
+            var parsed = TopicSearchParams.fromLegacyDictionary(lastSearchFormSnapshot)
+            parsed.word = ""
+            parsed.spseudo = ""
+            parsed.filterEnabled = false
+            parsed.fromFirstPost = true
+            initialParams = parsed
+            isFromResultsPage = false
+        } else {
+            initialParams = .empty
+            isFromResultsPage = false
+        }
+
+        topicSearchSheetState = TopicSearchSheetState(
+            initialParams: initialParams,
+            isFromResultsPage: isFromResultsPage
+        )
+    }
+
+    private func handleSearchResult(url: URL, params: TopicSearchParams) {
+        let newContext = TopicSearchContext(params: params, resultURL: url)
+        if isInSearchMode {
+            // Already viewing search results — replace in place.
+            searchContext = newContext
+            hasConsumedInitialSearchURL = true
+            loadSearchResultURL(url)
+        } else {
+            // Normal topic → push a new MessagesView in search mode.
+            pendingSearchPush = newContext
+            navigateToSearchResult = true
+        }
+    }
+
+    private func advanceToNextSearchResults() {
+        guard let searchContext, !lastSearchFormSnapshot.isEmpty else { return }
+        guard !isAdvancingSearchResults else { return }
+        var params = TopicSearchParams.fromLegacyDictionary(lastSearchFormSnapshot)
+        params.word = searchContext.params.word
+        params.spseudo = searchContext.params.spseudo
+        params.filterEnabled = searchContext.params.filterEnabled
+        params.fromFirstPost = false
+
+        isAdvancingSearchResults = true
+        searchErrorMessage = nil
+
+        Task { @MainActor in
+            let result = await topicSearchService.performSearch(params: params)
+            isAdvancingSearchResults = false
+            switch result {
+            case .success(let url):
+                self.searchContext = TopicSearchContext(params: params, resultURL: url)
+                self.hasConsumedInitialSearchURL = true
+                loadSearchResultURL(url)
+            case .failure(let error):
+                if isNoMoreResultsError(error) {
+                    self.lastSearchFormSnapshot = [:]
+                    self.showSuccessToast("Aucune réponse trouvée")
+                } else {
+                    searchErrorMessage = error.localizedDescription
+                }
+            }
+        }
+    }
+
+    /// Load a URL returned by /transsearch.php, honoring a possible `#tXXXX`
+    /// fragment so the web view scrolls to the matched message (as if opening
+    /// a favorite). When there is no fragment we explicitly scroll to top to
+    /// avoid inheriting a stale `initialScroll`.
+    private func loadSearchResultURL(_ url: URL) {
+        if let fragment = url.fragment, !fragment.isEmpty {
+            self.anchor = fragment
+            self.initialScroll = nil
+            loadDirectURL(url.absoluteString)
+        } else {
+            self.anchor = nil
+            loadDirectURL(url.absoluteString, initialScroll: .top)
+        }
+    }
+
+    /// onAppear entry point. In non-filtered search mode the forum returns a
+    /// classic topic URL with a `#tXXXX` fragment — we must follow that URL
+    /// directly so the anchor scroll lands on the matched message.
+    private func performInitialLoad() {
+        if let searchContext, !hasConsumedInitialSearchURL, !isFilteredSearchMode {
+            hasConsumedInitialSearchURL = true
+            loadSearchResultURL(searchContext.resultURL)
+            return
+        }
+        loadPage(page)
+    }
+
+    /// Identifies the forum's "no match" response (the `<div class="hop">Désolé
+    /// aucune réponse…` page). We rely on a structural signal: the legacy
+    /// controller never parses any message rows from that response, so
+    /// `messageActionsByIndex` is empty. An HTML-text check is kept as a
+    /// belt-and-suspenders fallback for defensive cases.
+    /// The ObjC search controller signals a dry query by either returning
+    /// `.noResultURL` from the Swift service, or wrapping an `NSError` whose
+    /// domain is `MessagesTableViewController.search` with code -11 (no
+    /// Location header). Both must trigger the same "no more results" toast
+    /// instead of the modal error alert used for real failures.
+    private func isNoMoreResultsError(_ error: TopicSearchError) -> Bool {
+        switch error {
+        case .noResultURL:
+            return true
+        case .underlying(let underlying):
+            let nsError = underlying as NSError
+            return nsError.domain == "MessagesTableViewController.search" && nsError.code == -11
+        default:
+            return false
+        }
+    }
+
+    private func isEmptySearchResultContent(_ content: TopicPageContent) -> Bool {
+        if content.messageActionsByIndex.isEmpty {
+            return true
+        }
+        let lower = content.html.lowercased()
+        return lower.contains("aucune réponse")
+            || lower.contains("aucune r&eacute;ponse")
+            || lower.contains("aucune reponse")
+    }
+
+    /// For non-filtered search results the forum returns a classic topic page
+    /// with a `#tXXXX` fragment, and the legacy controller inserts
+    /// `<div class="separator1"></div>` *after* the matched post (favorite-like
+    /// semantics). In the search-result context it makes more sense to mark the
+    /// boundary *before* the match, so we swap the separator's position.
+    private func rewriteSeparatorBeforeAnchor(in html: String, anchor: String) -> String {
+        let separator = "<div class=\"separator1\"></div>"
+        guard let separatorRange = html.range(of: separator) else { return html }
+        let anchorAttribute = "name=\"\(anchor)\""
+        guard let anchorRange = html.range(of: anchorAttribute) else { return html }
+        let upToAnchor = html[..<anchorRange.lowerBound]
+        guard let messageOpen = upToAnchor.range(of: "<div class=\"message", options: .backwards) else {
+            return html
+        }
+        let messageStart = messageOpen.lowerBound
+        guard separatorRange.lowerBound > messageStart else { return html }
+
+        let messageBlock = html[messageStart..<separatorRange.lowerBound]
+        var result = html
+        result.replaceSubrange(messageStart..<separatorRange.upperBound, with: separator + messageBlock)
+        return result
+    }
+
+    @ViewBuilder
+    private var searchResultNavigationLink: some View {
+        NavigationLink(
+            "",
+            isActive: $navigateToSearchResult
+        ) {
+            if let pendingSearchPush {
+                MessagesView(
+                    topic: topic,
+                    curPage: page,
+                    maxPage: currentMaxPage,
+                    separatorNewMessages: false,
+                    navigationDepth: navigationDepth + 1,
+                    topicPageLoader: topicPageLoader,
+                    topicPageRenderer: topicPageRenderer,
+                    replyQuoteTemplateLoader: replyQuoteTemplateLoader,
+                    messageDeletionService: messageDeletionService,
+                    moderationAlertService: moderationAlertService,
+                    topicSearchService: topicSearchService,
+                    initialSearchContext: pendingSearchPush
+                )
+                .toolbar(.hidden, for: .tabBar)
+            } else {
+                EmptyView()
+            }
+        }
+        .hidden()
+        .allowsHitTesting(false)
+    }
+
     @ViewBuilder
     private var linkedTopicNavigationLink: some View {
         NavigationLink(
@@ -3501,7 +3780,7 @@ struct MessagesView: View {
                     }
                 }
                 .onAppear {
-                    loadPage(page)
+                    performInitialLoad()
                 }
                 .background(linkedTopicNavigationLink)
                 .sheet(item: $safariDestination) { destination in
@@ -3523,7 +3802,7 @@ struct MessagesView: View {
                             showSuccessToast(message)
                         }
                     )
-                    .presentationDetents([.medium, .large])
+                    .presentationDetents([.medium])
                 }
                 .fullScreenCover(item: $photoViewerDestination) { destination in
                     FullScreenPhotoViewer(url: destination.url, presentationID: destination.id)
@@ -3795,18 +4074,28 @@ struct MessagesView: View {
                                 .fontWeight(.bold)
                                 .lineLimit(1)
                                 .truncationMode(.tail)
-                            Text("\(page)/\(currentMaxPage)")
+                            Text(toolbarSubtitleText)
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
                         }
                         .multilineTextAlignment(.center)
                     }
-                    if hasPoll && pollIsNewVote {
+                    if hasPoll && pollIsNewVote && !isInSearchMode {
                         ToolbarItem(placement: .topBarTrailing) {
                             PollToolbarButton(isVotable: true) {
                                 Task { @MainActor in presentedPollData = pollData }
                             }
+                        }
+                    }
+                    if isInSearchMode {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button {
+                                openTopicSearchSheet()
+                            } label: {
+                                Image(systemName: "magnifyingglass")
+                            }
+                            .accessibilityLabel("Rechercher")
                         }
                     }
                     ToolbarItem(placement: .topBarTrailing) {
@@ -3825,62 +4114,94 @@ struct MessagesView: View {
                             } label: {
                                 MenuActionLabel("Répondre", systemImage: "pencil")
                             }
+                            Button {
+                                openTopicSearchSheet()
+                            } label: {
+                                MenuActionLabel("Rechercher", systemImage: "magnifyingglass")
+                            }
                         } label: {
                             Image(systemName: "ellipsis")
                         }
                     }
                     if !isComposerPresented {
-                        ToolbarItemGroup(placement: .bottomBar) {
-                            Button {
-                                navigateToPage(page - 1, initialScroll: .bottom)
-                            } label: {
-                                Image(systemName: "chevron.backward")
+                        if isFilteredSearchMode {
+                            ToolbarItemGroup(placement: .bottomBar) {
+                                Spacer()
+                                Button {
+                                    advanceToNextSearchResults()
+                                } label: {
+                                    Label("Résultats suivants", systemImage: "arrow.forward")
+                                }
+                                .topicBottomBarButtonStyle(isProminent: true)
+                                .disabled(isAdvancingSearchResults || lastSearchFormSnapshot.isEmpty)
+                                Spacer()
                             }
-                            .contextMenu {
-                                backwardContextMenuItems()
-                            } preview: {
-                                Color.clear.frame(width: 1, height: 1)
-                            }
-                            .disabled(page <= 1)
+                        } else {
+                            ToolbarItemGroup(placement: .bottomBar) {
+                                Button {
+                                    navigateToPage(page - 1, initialScroll: .bottom)
+                                } label: {
+                                    Image(systemName: "chevron.backward")
+                                }
+                                .contextMenu {
+                                    backwardContextMenuItems()
+                                } preview: {
+                                    Color.clear.frame(width: 1, height: 1)
+                                }
+                                .disabled(page <= 1)
 
-                            Button {
-                                navigateToPage(page + 1, initialScroll: .top)
-                            } label: {
-                                Image(systemName: "chevron.forward")
+                                Button {
+                                    navigateToPage(page + 1, initialScroll: .top)
+                                } label: {
+                                    Image(systemName: "chevron.forward")
+                                }
+                                .contextMenu {
+                                    forwardContextMenuItems()
+                                } preview: {
+                                    Color.clear.frame(width: 1, height: 1)
+                                }
+                                .topicBottomBarButtonStyle(isProminent: shouldHighlightNextPageButton)
+                                .disabled(page >= currentMaxPage)
                             }
-                            .contextMenu {
-                                forwardContextMenuItems()
-                            } preview: {
-                                Color.clear.frame(width: 1, height: 1)
+
+                            if isInSearchMode {
+                                ToolbarItem(placement: .bottomBar) {
+                                    Button {
+                                        advanceToNextSearchResults()
+                                    } label: {
+                                        Image(systemName: "arrow.forward")
+                                    }
+                                    .topicBottomBarButtonStyle(isProminent: true)
+                                    .disabled(isAdvancingSearchResults || lastSearchFormSnapshot.isEmpty)
+                                    .accessibilityLabel("Résultat suivant")
+                                }
                             }
-                            .topicBottomBarButtonStyle(isProminent: shouldHighlightNextPageButton)
-                            .disabled(page >= currentMaxPage)
-                        }
 
-                        ToolbarSpacer(.flexible, placement: .bottomBar)
+                            ToolbarSpacer(.flexible, placement: .bottomBar)
 
-                        if shouldShowBottomRefreshButton {
+                            if shouldShowBottomRefreshButton {
+                                ToolbarItem(placement: .bottomBar) {
+                                    Button {
+                                        refreshCurrentPageAtBottom()
+                                    } label: {
+                                        Image(systemName: "arrow.clockwise")
+                                            .font(.system(size: 16, weight: .semibold))
+                                    }
+                                    .buttonStyle(.glassProminent)
+                                    .accessibilityLabel("Actualiser")
+                                    .transition(.opacity.combined(with: .scale))
+                                }
+                                ToolbarSpacer(.fixed, placement: .bottomBar)
+                            }
+
                             ToolbarItem(placement: .bottomBar) {
                                 Button {
-                                    refreshCurrentPageAtBottom()
+                                    openReplyComposer()
                                 } label: {
-                                    Image(systemName: "arrow.clockwise")
-                                        .font(.system(size: 16, weight: .semibold))
+                                    Label("New", systemImage: "plus")
                                 }
-                                .buttonStyle(.glassProminent)
-                                .accessibilityLabel("Actualiser")
-                                .transition(.opacity.combined(with: .scale))
+                                .topicBottomBarButtonStyle(isProminent: false)
                             }
-                            ToolbarSpacer(.fixed, placement: .bottomBar)
-                        }
-
-                        ToolbarItem(placement: .bottomBar) {
-                            Button {
-                                openReplyComposer()
-                            } label: {
-                                Label("New", systemImage: "plus")
-                            }
-                            .topicBottomBarButtonStyle(isProminent: false)
                         }
                     }
                 }
@@ -3898,6 +4219,22 @@ struct MessagesView: View {
                     })
                 }
                 .background(linkedTopicNavigationLink)
+                .background(searchResultNavigationLink)
+                .sheet(item: $topicSearchSheetState) { state in
+                    TopicSearchSheetView(
+                        initialParams: state.initialParams,
+                        isFromResultsPage: state.isFromResultsPage,
+                        searchService: topicSearchService,
+                        onResultReady: { url, params in
+                            handleSearchResult(url: url, params: params)
+                        }
+                    )
+                }
+                .alert("Recherche impossible", isPresented: isSearchErrorAlertPresented) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(searchErrorMessage ?? "Erreur inconnue.")
+                }
                 .sheet(item: $safariDestination) { destination in
                     SafariInAppView(url: destination.url)
                         .ignoresSafeArea()
@@ -3917,7 +4254,7 @@ struct MessagesView: View {
                             showSuccessToast(message)
                         }
                     )
-                    .presentationDetents([.medium, .large])
+                    .presentationDetents([.medium])
                 }
                 .sheet(item: $avatarActionSheetState) { state in
                     MessageAvatarActionSheetView(
@@ -3972,18 +4309,28 @@ struct MessagesView: View {
                             .fontWeight(.bold)
                             .lineLimit(1)
                             .truncationMode(.tail)
-                        Text("\(page)/\(currentMaxPage)")
+                        Text(toolbarSubtitleText)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                     }
                     .multilineTextAlignment(.center)
                 }
-                if hasPoll && pollIsNewVote {
+                if hasPoll && pollIsNewVote && !isInSearchMode {
                     ToolbarItem(placement: .topBarTrailing) {
                         PollToolbarButton(isVotable: true) {
                             Task { @MainActor in presentedPollData = pollData }
                         }
+                    }
+                }
+                if isInSearchMode {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            openTopicSearchSheet()
+                        } label: {
+                            Image(systemName: "magnifyingglass")
+                        }
+                        .accessibilityLabel("Rechercher")
                     }
                 }
                 ToolbarItem(placement: .primaryAction) {
@@ -4002,43 +4349,73 @@ struct MessagesView: View {
                         } label: {
                             MenuActionLabel("Répondre", systemImage: "pencil")
                         }
+                        Button {
+                            openTopicSearchSheet()
+                        } label: {
+                            MenuActionLabel("Rechercher", systemImage: "magnifyingglass")
+                        }
                     } label: {
                         Image(systemName: "ellipsis")
                     }
                 }
-                ToolbarItemGroup(placement: .bottomBar) {
-                    Button {
-                        navigateToPage(page - 1, initialScroll: .bottom)
-                    } label: {
-                        Image(systemName: "chevron.backward")
+                if isFilteredSearchMode {
+                    ToolbarItemGroup(placement: .bottomBar) {
+                        Spacer()
+                        Button {
+                            advanceToNextSearchResults()
+                        } label: {
+                            Label("Résultats suivants", systemImage: "arrow.forward")
+                        }
+                        .topicBottomBarButtonStyle(isProminent: true)
+                        .disabled(isAdvancingSearchResults || lastSearchFormSnapshot.isEmpty)
+                        Spacer()
                     }
-                    .contextMenu {
-                        backwardContextMenuItems()
-                    } preview: {
-                        EmptyView()
-                    }
-                    .disabled(page <= 1)
+                } else {
+                    ToolbarItemGroup(placement: .bottomBar) {
+                        Button {
+                            navigateToPage(page - 1, initialScroll: .bottom)
+                        } label: {
+                            Image(systemName: "chevron.backward")
+                        }
+                        .contextMenu {
+                            backwardContextMenuItems()
+                        } preview: {
+                            EmptyView()
+                        }
+                        .disabled(page <= 1)
 
-                    Button {
-                        navigateToPage(page + 1, initialScroll: .top)
-                    } label: {
-                        Image(systemName: "chevron.forward")
-                    }
-                    .contextMenu {
-                        forwardContextMenuItems()
-                    } preview: {
-                        EmptyView()
-                    }
-                    .topicBottomBarButtonStyle(isProminent: shouldHighlightNextPageButton)
-                    .disabled(page >= currentMaxPage)
+                        Button {
+                            navigateToPage(page + 1, initialScroll: .top)
+                        } label: {
+                            Image(systemName: "chevron.forward")
+                        }
+                        .contextMenu {
+                            forwardContextMenuItems()
+                        } preview: {
+                            EmptyView()
+                        }
+                        .topicBottomBarButtonStyle(isProminent: shouldHighlightNextPageButton)
+                        .disabled(page >= currentMaxPage)
 
-                    Spacer()
-                    Button {
-                        openReplyComposer()
-                    } label: {
-                        Label("New", systemImage: "plus")
+                        if isInSearchMode {
+                            Button {
+                                advanceToNextSearchResults()
+                            } label: {
+                                Image(systemName: "arrow.forward")
+                            }
+                            .topicBottomBarButtonStyle(isProminent: true)
+                            .disabled(isAdvancingSearchResults || lastSearchFormSnapshot.isEmpty)
+                            .accessibilityLabel("Résultat suivant")
+                        }
+
+                        Spacer()
+                        Button {
+                            openReplyComposer()
+                        } label: {
+                            Label("New", systemImage: "plus")
+                        }
+                        .topicBottomBarButtonStyle(isProminent: false)
                     }
-                    .topicBottomBarButtonStyle(isProminent: false)
                 }
             }
             .sheet(isPresented: $isPagePickerPresented) {
@@ -4055,9 +4432,25 @@ struct MessagesView: View {
                 })
             }
             .onAppear {
-                loadPage(page)
+                performInitialLoad()
             }
             .background(linkedTopicNavigationLink)
+            .background(searchResultNavigationLink)
+            .sheet(item: $topicSearchSheetState) { state in
+                TopicSearchSheetView(
+                    initialParams: state.initialParams,
+                    isFromResultsPage: state.isFromResultsPage,
+                    searchService: topicSearchService,
+                    onResultReady: { url, params in
+                        handleSearchResult(url: url, params: params)
+                    }
+                )
+            }
+            .alert("Recherche impossible", isPresented: isSearchErrorAlertPresented) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(searchErrorMessage ?? "Erreur inconnue.")
+            }
             .sheet(item: $safariDestination) { destination in
                 SafariInAppView(url: destination.url)
                     .ignoresSafeArea()
@@ -4077,7 +4470,7 @@ struct MessagesView: View {
                         showSuccessToast(message)
                     }
                 )
-                .presentationDetents([.medium, .large])
+                .presentationDetents([.medium])
             }
             .sheet(item: $avatarActionSheetState) { state in
                 MessageAvatarActionSheetView(
@@ -4148,6 +4541,44 @@ private struct MessageSmileySheetView: View {
 
     private let previewHorizontalInset: CGFloat = 34
 
+    private func toggleFavorite() {
+        let add = !isFavorite
+        if onToggleFavorite(add) {
+            isFavorite.toggle()
+            onShowToast(add ? "Smiley ajouté aux favoris" : "Smiley retiré des favoris")
+        } else {
+            onShowToast("Erreur :/")
+        }
+    }
+
+    @ViewBuilder
+    private var favoriteButton: some View {
+        if isFavorite {
+            favoriteButtonBase
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+                .frame(maxWidth: .infinity, alignment: .center)
+        } else {
+            favoriteButtonBase
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .frame(maxWidth: .infinity, alignment: .center)
+        }
+    }
+
+    private var favoriteButtonBase: some View {
+        Button {
+            toggleFavorite()
+        } label: {
+            Label(
+                isFavorite ? "Retirer des favoris" : "Ajouter aux favoris",
+                systemImage: isFavorite ? "star.slash" : "star"
+            )
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -4181,59 +4612,32 @@ private struct MessageSmileySheetView: View {
                     Text(code)
                         .font(.title3.monospaced())
                         .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .center)
 
-                    Button {
-                        let add = !isFavorite
-                        if onToggleFavorite(add) {
-                            isFavorite.toggle()
-                            onShowToast(add ? "Smiley ajouté aux favoris" : "Smiley retiré des favoris")
-                        } else {
-                            onShowToast("Erreur :/")
-                        }
-                    } label: {
-                        Label(
-                            isFavorite ? "Retirer des favoris" : "Ajouter aux favoris",
-                            systemImage: isFavorite ? "star.slash" : "star"
-                        )
-                        .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
+                    favoriteButton
 
-                    Button {
-                        Task {
-                            isLoadingKeywords = true
-                            keywordsErrorMessage = nil
-                            switch await onFetchKeywords() {
-                            case .success(let fetchedKeywords):
-                                keywords = fetchedKeywords
-                            case .failure(let error):
-                                keywords = []
-                                keywordsErrorMessage = error.localizedDescription
+                    if isLoadingKeywords || !keywords.isEmpty || keywordsErrorMessage != nil {
+                        VStack(alignment: .leading, spacing: 8) {
+                            if isLoadingKeywords {
+                                ProgressView("Chargement des mots clés...")
+                                    .font(.footnote)
+                                    .frame(maxWidth: .infinity)
+                            } else if let keywordsErrorMessage {
+                                Text(keywordsErrorMessage)
+                                    .font(.footnote.monospaced())
+                                    .foregroundStyle(.red)
+                            } else if !keywords.isEmpty {
+                                ScrollView {
+                                    Text(keywords.joined(separator: "  "))
+                                        .font(.footnote.monospaced())
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .textSelection(.enabled)
+                                }
+                                .frame(maxHeight: 100)
                             }
-                            isLoadingKeywords = false
                         }
-                    } label: {
-                        Label("Mots clés", systemImage: "text.magnifyingglass")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(isLoadingKeywords)
-
-                    if isLoadingKeywords {
-                        ProgressView("Chargement des mots clés...")
-                            .font(.footnote)
-                    } else if let keywordsErrorMessage {
-                        Text(keywordsErrorMessage)
-                            .font(.footnote)
-                            .foregroundStyle(.red)
-                    } else if !keywords.isEmpty {
-                        ScrollView {
-                            Text(keywords.joined(separator: "  "))
-                                .font(.footnote.monospaced())
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .textSelection(.enabled)
-                        }
-                        .frame(maxHeight: 120)
+                        .padding()
+                        .glassEffect(in: .rect(cornerRadius: 12))
                     }
 
                 }
@@ -4243,6 +4647,18 @@ private struct MessageSmileySheetView: View {
             .scrollBounceBehavior(.basedOnSize)
             .navigationTitle("Smiley")
             .navigationBarTitleDisplayMode(.inline)
+            .task {
+                isLoadingKeywords = true
+                keywordsErrorMessage = nil
+                switch await onFetchKeywords() {
+                case .success(let fetchedKeywords):
+                    keywords = fetchedKeywords
+                case .failure(let error):
+                    keywords = []
+                    keywordsErrorMessage = error.localizedDescription
+                }
+                isLoadingKeywords = false
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
@@ -4256,9 +4672,13 @@ private struct MessageSmileySheetView: View {
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Fermer") {
+                    Button {
                         dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.footnote.bold())
                     }
+                    .glassEffect(in: .circle)
                 }
             }
         }

@@ -614,7 +614,7 @@ enum LegacyLoaderBridgeError: LocalizedError {
     }
 }
 
-private enum LegacyLoaderRuntime {
+enum LegacyLoaderRuntime {
     static func instantiateController(named className: String) -> NSObject? {
         guard let controllerClass = NSClassFromString(className) as? NSObject.Type else {
             return nil
@@ -1014,6 +1014,7 @@ struct TopicPageContent {
     let hasPoll: Bool
     let pollIsNewVote: Bool
     let pollData: PollData?
+    let searchInputData: [String: String]
 
     init(
         html: String,
@@ -1024,7 +1025,8 @@ struct TopicPageContent {
         topicTitle: String? = nil,
         hasPoll: Bool = false,
         pollIsNewVote: Bool = false,
-        pollData: PollData? = nil
+        pollData: PollData? = nil,
+        searchInputData: [String: String] = [:]
     ) {
         self.html = html
         self.topicAnswerURL = topicAnswerURL
@@ -1035,6 +1037,7 @@ struct TopicPageContent {
         self.hasPoll = hasPoll
         self.pollIsNewVote = pollIsNewVote
         self.pollData = pollData
+        self.searchInputData = searchInputData
     }
 }
 
@@ -1159,6 +1162,7 @@ final class ObjCTopicPageLoader: TopicPageLoading {
             let pollData = hasPoll
                 ? (controller.value(forKey: "swiftPollHTML") as? String).flatMap { PollHTMLParser.parse(from: $0) }
                 : nil
+            let searchInputData = (controller.value(forKey: "swiftSearchInputData") as? [String: String]) ?? [:]
             print("[Poll] hasPoll=\(hasPoll) pollIsNewVote=\(pollIsNewVote) pollData=\(pollData != nil)")
             completion(.success(TopicPageContent(
                 html: html,
@@ -1169,7 +1173,8 @@ final class ObjCTopicPageLoader: TopicPageLoading {
                 topicTitle: topicTitle,
                 hasPoll: hasPoll,
                 pollIsNewVote: pollIsNewVote,
-                pollData: pollData
+                pollData: pollData,
+                searchInputData: searchInputData
             )))
         }
         function(controller, selector, url as NSString, anchor as NSString?, block)

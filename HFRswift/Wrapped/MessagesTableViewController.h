@@ -252,6 +252,15 @@
                          anchor:(NSString * _Nullable)anchor
                      completion:(void (^_Nonnull)(NSString * _Nullable html, NSString * _Nullable topicAnswerUrl, NSNumber * _Nullable currentPage, NSNumber * _Nullable maxPage, NSError * _Nullable error))completion;
 
+/// Executes the topic search POST (transsearch.php) with the provided form params.
+/// Returns the redirect URL (Location header) via completion — this URL points to the filtered results page.
+- (void)performTopicSearchWithParams:(NSDictionary<NSString *, NSString *> * _Nonnull)params
+                          completion:(void (^_Nonnull)(NSString * _Nullable resultURL, NSError * _Nullable error))completion;
+
+/// Snapshot of the search form hidden/visible inputs parsed from the currently loaded page.
+/// Populated by -setupIntrSearch: when the page contains a /transsearch.php form.
+@property (nonatomic, readonly, nonnull) NSDictionary<NSString *, NSString *> *swiftSearchInputData;
+
 /// Returns the raw HTML of the poll (sondage) div for the last loaded topic page.
 /// Returns nil if no poll is present.
 @property (nonatomic, readonly, nullable) NSString *swiftPollHTML;
