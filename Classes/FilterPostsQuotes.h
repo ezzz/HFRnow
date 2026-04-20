@@ -36,4 +36,11 @@
 - (void)fetchContentForTopic:(Topic*)topic;
 - (void)fetchContentForTopic:(Topic*)topic startPage:(int)iStartPage;
 
+- (void)fetchFilteredPostsForTopic:(Topic * _Nonnull)topic
+                          startPage:(NSNumber * _Nullable)startPage
+                           progress:(void (^ _Nullable)(NSNumber * _Nonnull currentPage, NSNumber * _Nonnull maxPage, NSNumber * _Nonnull resultCount))progress
+                         completion:(void (^ _Nonnull)(NSArray * _Nullable items, NSNumber * _Nullable startPage, NSNumber * _Nullable endPage, NSNumber * _Nonnull finished, NSError * _Nullable error))completion;
+
+- (void)cancelSwiftFiltering;
+
 @end

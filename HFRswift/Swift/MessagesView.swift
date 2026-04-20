@@ -2377,6 +2377,8 @@ struct MessagesView: View {
     let moderationAlertService: any ModerationAlertService
     let topicSearchService: any TopicSearchServicing
     let initialSearchContext: TopicSearchContext?
+    let favoritePostFilterService: any FavoritePostFilteringServicing
+    let initialFavoritePostFilterResult: FavoritePostFilterResult?
 
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var appTheme = AppThemeStore.shared
@@ -2449,6 +2451,10 @@ struct MessagesView: View {
     @State private var hasConsumedInitialSearchURL = false
     @State private var isAdvancingSearchResults = false
     @State private var searchErrorMessage: String?
+    @State private var favoritePostFilterResult: FavoritePostFilterResult?
+    @State private var hasConsumedInitialFavoritePostFilterResult = false
+    @State private var isAdvancingFavoritePostFilterResults = false
+    @State private var favoritePostFilterErrorMessage: String?
     // Remove the unused
     // @State private var isPresentingAddMessage = false
 
@@ -2477,7 +2483,9 @@ struct MessagesView: View {
         messageDeletionService: any MessageDeletionService = ForumMessageDeletionService(),
         moderationAlertService: any ModerationAlertService = ForumModerationAlertService(),
         topicSearchService: any TopicSearchServicing = ObjCTopicSearchService(),
-        initialSearchContext: TopicSearchContext? = nil
+        initialSearchContext: TopicSearchContext? = nil,
+        favoritePostFilterService: any FavoritePostFilteringServicing = ObjCFavoritePostFilterService(),
+        initialFavoritePostFilterResult: FavoritePostFilterResult? = nil
     ) {
         self.topic = topic
         self.curPage = curPage
@@ -2492,11 +2500,14 @@ struct MessagesView: View {
         self.moderationAlertService = moderationAlertService
         self.topicSearchService = topicSearchService
         self.initialSearchContext = initialSearchContext
+        self.favoritePostFilterService = favoritePostFilterService
+        self.initialFavoritePostFilterResult = initialFavoritePostFilterResult
         self._page = State(initialValue: curPage)
         self._availableMaxPage = State(initialValue: max(max(maxPage, curPage), 1))
         self._topicDisplayTitle = State(initialValue: topic._aTitle ?? "")
         self._initialScroll = State(initialValue: initialLoadScroll)
         self._searchContext = State(initialValue: initialSearchContext)
+        self._favoritePostFilterResult = State(initialValue: initialFavoritePostFilterResult)
 
         // extraire l’ancre (#xxxx) si présente
         if let url = URL(string: topic.aURL), let fragment = url.fragment {
@@ -2522,7 +2533,14 @@ struct MessagesView: View {
         searchContext?.params.filterEnabled == true
     }
 
+    private var isFavoritePostFilterMode: Bool {
+        favoritePostFilterResult != nil
+    }
+
     private var toolbarSubtitleText: String {
+        if let favoritePostFilterResult {
+            return favoritePostFilterResult.subtitle
+        }
         if isFilteredSearchMode {
             return "Recherche filtrée"
         }
@@ -3092,6 +3110,17 @@ struct MessagesView: View {
         )
     }
 
+    private var isFavoritePostFilterErrorAlertPresented: Binding<Bool> {
+        Binding(
+            get: { favoritePostFilterErrorMessage != nil },
+            set: { isPresented in
+                if !isPresented {
+                    favoritePostFilterErrorMessage = nil
+                }
+            }
+        )
+    }
+
     private func openQuoteComposer(with url: URL) {
         activeComposerPresentationKind = .reply
         composerNavigationTitle = ComposerPresentationKind.reply.title
@@ -3435,6 +3464,56 @@ struct MessagesView: View {
         }
     }
 
+    private func renderFavoritePostFilterResult(_ result: FavoritePostFilterResult) {
+        do {
+            showWebViewLoadCover = true
+            let rendered = try topicPageRenderer.render(html: result.html)
+            fileURL = rendered.fileURL
+            cacheURL = rendered.readAccessURL
+            messageActionsByIndex = result.messageActionsByIndex
+            page = max(result.endPage, 1)
+            availableMaxPage = max(result.maxPage, page)
+            topicAnswerURL = nil
+            hasPoll = false
+            pollIsNewVote = false
+            pollData = nil
+            favoritePostFilterResult = result
+            initialScroll = .top
+            anchor = nil
+        } catch {
+            fileURL = nil
+            cacheURL = nil
+            errorMessage = error.localizedDescription
+            showWebViewLoadCover = false
+        }
+    }
+
+    private func advanceToNextFavoritePostFilterResults() {
+        guard let currentResult = favoritePostFilterResult, !currentResult.isFinished else { return }
+        guard !isAdvancingFavoritePostFilterResults else { return }
+
+        isAdvancingFavoritePostFilterResults = true
+        favoritePostFilterErrorMessage = nil
+
+        Task { @MainActor in
+            let result = await favoritePostFilterService.filterPosts(
+                topic: topic,
+                startPage: currentResult.endPage + 1
+            ) { _ in }
+
+            isAdvancingFavoritePostFilterResults = false
+            switch result {
+            case .success(let nextResult):
+                renderFavoritePostFilterResult(nextResult)
+            case .failure(.noResult):
+                favoritePostFilterResult = currentResult.markingFinished()
+                showSuccessToast("Aucun autre post trouvé")
+            case .failure(let error):
+                favoritePostFilterErrorMessage = error.localizedDescription
+            }
+        }
+    }
+
     /// Load a URL returned by /transsearch.php, honoring a possible `#tXXXX`
     /// fragment so the web view scrolls to the matched message (as if opening
     /// a favorite). When there is no fragment we explicitly scroll to top to
@@ -3454,6 +3533,11 @@ struct MessagesView: View {
     /// classic topic URL with a `#tXXXX` fragment — we must follow that URL
     /// directly so the anchor scroll lands on the matched message.
     private func performInitialLoad() {
+        if let initialFavoritePostFilterResult, !hasConsumedInitialFavoritePostFilterResult {
+            hasConsumedInitialFavoritePostFilterResult = true
+            renderFavoritePostFilterResult(initialFavoritePostFilterResult)
+            return
+        }
         if let searchContext, !hasConsumedInitialSearchURL, !isFilteredSearchMode {
             hasConsumedInitialSearchURL = true
             loadSearchResultURL(searchContext.resultURL)
@@ -3926,6 +4010,7 @@ struct MessagesView: View {
 
                 .simultaneousGesture(
                     DragGesture().onEnded { value in
+                        guard !isFavoritePostFilterMode else { return }
                         let horizontal = value.translation.width
                         let vertical = value.translation.height
                         let minDistance: CGFloat = 120
@@ -4124,7 +4209,23 @@ struct MessagesView: View {
                         }
                     }
                     if !isComposerPresented {
-                        if isFilteredSearchMode {
+                        if isFavoritePostFilterMode {
+                            ToolbarItemGroup(placement: .bottomBar) {
+                                Spacer()
+                                Button {
+                                    advanceToNextFavoritePostFilterResults()
+                                } label: {
+                                    if isAdvancingFavoritePostFilterResults {
+                                        Label("Filtrage...", systemImage: "hourglass")
+                                    } else {
+                                        Label("Résultats suivants", systemImage: "arrow.forward")
+                                    }
+                                }
+                                .topicBottomBarButtonStyle(isProminent: true)
+                                .disabled(isAdvancingFavoritePostFilterResults || favoritePostFilterResult?.isFinished == true)
+                                Spacer()
+                            }
+                        } else if isFilteredSearchMode {
                             ToolbarItemGroup(placement: .bottomBar) {
                                 Spacer()
                                 Button {
@@ -4234,6 +4335,11 @@ struct MessagesView: View {
                     Button("OK", role: .cancel) {}
                 } message: {
                     Text(searchErrorMessage ?? "Erreur inconnue.")
+                }
+                .alert("Filtre impossible", isPresented: isFavoritePostFilterErrorAlertPresented) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(favoritePostFilterErrorMessage ?? "Erreur inconnue.")
                 }
                 .sheet(item: $safariDestination) { destination in
                     SafariInAppView(url: destination.url)
@@ -4450,6 +4556,11 @@ struct MessagesView: View {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(searchErrorMessage ?? "Erreur inconnue.")
+            }
+            .alert("Filtre impossible", isPresented: isFavoritePostFilterErrorAlertPresented) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(favoritePostFilterErrorMessage ?? "Erreur inconnue.")
             }
             .sheet(item: $safariDestination) { destination in
                 SafariInAppView(url: destination.url)

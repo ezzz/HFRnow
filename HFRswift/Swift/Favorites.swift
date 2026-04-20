@@ -286,6 +286,7 @@ struct FavoriteSectionView: View {
     let onMarkRead: (Topic) -> Void
     let onToggleSuperFavorite: (Topic) -> Void
     let onRemoveFavorite: (Topic) -> Void
+    let onFilterPosts: (Topic) -> Void
     let openContextProvider: (Topic) -> TopicOpenContext
 
     // Cast centralisé
@@ -365,6 +366,7 @@ struct FavoriteSectionView: View {
                         onMarkRead: { onMarkRead(topic) },
                         onToggleSuperFavorite: { onToggleSuperFavorite(topic) },
                         onRemoveFavorite: { onRemoveFavorite(topic) },
+                        onFilterPosts: { onFilterPosts(topic) },
                         openContext: openContextProvider(topic)
                     )
                     .contentShape(Rectangle())
@@ -391,8 +393,19 @@ struct FavoritesListView: View {
     @State private var collapsedSectionIDs: Set<String>
     @State private var removingTopicIDs: Set<Int> = []
     @State private var topicActionErrorMessage: String?
+    @State private var favoritePostFilterProgress: FavoritePostFilterProgress?
+    @State private var favoritePostFilterTask: Task<Void, Never>?
+    @State private var favoritePostFilterTarget: FavoritePostFilterNavigationTarget?
+    @State private var navigateToFavoritePostFilter = false
 
     private let topicActionService: FavoritesTopicActionServicing
+    private let favoritePostFilterService: any FavoritePostFilteringServicing
+
+    private struct FavoritePostFilterNavigationTarget: Identifiable {
+        let id = UUID()
+        let topic: Topic
+        let result: FavoritePostFilterResult
+    }
 
     private var isLoggedIn: Bool {
         accountsStore.currentAccount != nil
@@ -434,13 +447,15 @@ struct FavoritesListView: View {
     init(
         viewModel: FavoritesViewModel? = nil,
         accountsStore: AccountsStore? = nil,
-        topicActionService: FavoritesTopicActionServicing = ForumFavoritesTopicActionService()
+        topicActionService: FavoritesTopicActionServicing = ForumFavoritesTopicActionService(),
+        favoritePostFilterService: any FavoritePostFilteringServicing = ObjCFavoritePostFilterService()
     ) {
         _viewModel = StateObject(wrappedValue: viewModel ?? FavoritesViewModel())
         _accountsStore = StateObject(wrappedValue: accountsStore ?? AccountsStore())
         _superFavoriteIDs = State(initialValue: FavoritesSuperFavoriteStore.load())
         _collapsedSectionIDs = State(initialValue: FavoritesCollapsedSectionsStore.load())
         self.topicActionService = topicActionService
+        self.favoritePostFilterService = favoritePostFilterService
     }
 
     private func normalizedNonEmpty(_ value: String?) -> String? {
@@ -602,6 +617,7 @@ struct FavoritesListView: View {
                                 onMarkRead: markTopicAsRead(_:),
                                 onToggleSuperFavorite: toggleSuperFavorite(_:),
                                 onRemoveFavorite: removeFavoriteFlag(_:),
+                                onFilterPosts: filterPosts(_:),
                                 openContextProvider: topicOpenContext(for:)
                             )
                         }
@@ -616,6 +632,7 @@ struct FavoritesListView: View {
                                 onMarkRead: { markTopicAsRead(topic) },
                                 onToggleSuperFavorite: { toggleSuperFavorite(topic) },
                                 onRemoveFavorite: { removeFavoriteFlag(topic) },
+                                onFilterPosts: { filterPosts(topic) },
                                 openContext: topicOpenContext(for: topic)
                             )
                             .contentShape(Rectangle())
@@ -637,6 +654,17 @@ struct FavoritesListView: View {
                 }
             }
             .navigationTitle("Favoris")
+            .safeAreaInset(edge: .bottom) {
+                if let favoritePostFilterProgress {
+                    FavoritePostFilterProgressBanner(
+                        progress: favoritePostFilterProgress,
+                        onCancel: cancelFavoritePostFilter
+                    )
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 8)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
             .onAppear {
                 superFavoriteIDs = FavoritesSuperFavoriteStore.load()
                 collapsedSectionIDs = FavoritesCollapsedSectionsStore.load()
@@ -726,6 +754,28 @@ struct FavoritesListView: View {
             .sheet(isPresented: $showAddAccountSheet) {
                 AddAccountView(accountsStore: accountsStore)
             }
+            .background {
+                NavigationLink(
+                    "",
+                    isActive: $navigateToFavoritePostFilter
+                ) {
+                    if let favoritePostFilterTarget {
+                        MessagesView(
+                            topic: favoritePostFilterTarget.topic,
+                            curPage: favoritePostFilterTarget.result.endPage,
+                            maxPage: favoritePostFilterTarget.result.maxPage,
+                            separatorNewMessages: false,
+                            navigationDepth: 1,
+                            initialFavoritePostFilterResult: favoritePostFilterTarget.result
+                        )
+                        .toolbar(.hidden, for: .tabBar)
+                    } else {
+                        EmptyView()
+                    }
+                }
+                .hidden()
+                .allowsHitTesting(false)
+            }
             .alert("Déconnexion", isPresented: $showLogoutConfirm) {
                 Button("Annuler", role: .cancel) {}
                 Button("Déconnecter", role: .destructive) {
@@ -797,6 +847,55 @@ struct FavoritesListView: View {
             removingTopicIDs.remove(postID)
         }
     }
+
+    private func filterPosts(_ topic: Topic) {
+        guard favoritePostFilterProgress == nil else { return }
+
+        favoritePostFilterProgress = FavoritePostFilterProgress(
+            currentPage: max(Int(topic.curTopicPage), 1),
+            maxPage: max(Int(topic.maxTopicPage), 1),
+            resultCount: 0
+        )
+
+        favoritePostFilterTask?.cancel()
+        favoritePostFilterTask = Task { @MainActor in
+            let result = await favoritePostFilterService.filterPosts(
+                topic: topic,
+                startPage: nil
+            ) { progress in
+                withAnimation(.easeOut(duration: 0.18)) {
+                    favoritePostFilterProgress = progress
+                }
+            }
+
+            guard !Task.isCancelled else { return }
+
+            withAnimation(.easeOut(duration: 0.18)) {
+                favoritePostFilterProgress = nil
+            }
+            favoritePostFilterTask = nil
+
+            switch result {
+            case .success(let filterResult):
+                favoritePostFilterTarget = FavoritePostFilterNavigationTarget(
+                    topic: topic,
+                    result: filterResult
+                )
+                navigateToFavoritePostFilter = true
+            case .failure(let error):
+                topicActionErrorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func cancelFavoritePostFilter() {
+        favoritePostFilterTask?.cancel()
+        favoritePostFilterTask = nil
+        favoritePostFilterService.cancel()
+        withAnimation(.easeOut(duration: 0.18)) {
+            favoritePostFilterProgress = nil
+        }
+    }
 }
 
 
@@ -809,6 +908,7 @@ struct TopicRowView: View {
     var onMarkRead: (() -> Void)?
     var onToggleSuperFavorite: (() -> Void)?
     var onRemoveFavorite: (() -> Void)?
+    var onFilterPosts: (() -> Void)?
     var openContext: TopicOpenContext = .favorites
     @Environment(\.appThemePalette) private var themePalette
     
@@ -881,6 +981,13 @@ struct TopicRowView: View {
                                 )
                             }
                         }
+                        if let onFilterPosts {
+                            Button {
+                                onFilterPosts()
+                            } label: {
+                                MenuActionLabel("Filtrer les posts", systemImage: "line.3.horizontal.decrease.circle")
+                            }
+                        }
                         if let onRemoveFavorite {
                             Button(role: .destructive) {
                                 onRemoveFavorite()
@@ -922,6 +1029,35 @@ struct TopicRowView: View {
                 }
                 .disabled(isRemovingFavorite)
             }
+        }
+    }
+}
+
+private struct FavoritePostFilterProgressBanner: View {
+    let progress: FavoritePostFilterProgress
+    let onCancel: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            ProgressView()
+                .controlSize(.small)
+            Text(progress.statusText)
+                .font(.footnote)
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+            Spacer(minLength: 8)
+            Button("Annuler") {
+                onCancel()
+            }
+            .font(.footnote.weight(.semibold))
+            .buttonStyle(.bordered)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.regularMaterial, in: .rect(cornerRadius: 8))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color(uiColor: .separator).opacity(0.35), lineWidth: 0.5)
         }
     }
 }

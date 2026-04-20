@@ -257,6 +257,13 @@
 - (void)performTopicSearchWithParams:(NSDictionary<NSString *, NSString *> * _Nonnull)params
                           completion:(void (^_Nonnull)(NSString * _Nullable resultURL, NSError * _Nullable error))completion;
 
+- (void)renderFilteredPosts:(NSArray * _Nonnull)items
+                      topic:(Topic * _Nonnull)topic
+                  startPage:(NSNumber * _Nonnull)startPage
+                    endPage:(NSNumber * _Nonnull)endPage
+                   finished:(NSNumber * _Nonnull)finished
+                 completion:(void (^_Nonnull)(NSString * _Nullable html, NSDictionary<NSNumber *, NSDictionary<NSString *, NSString *> *> * _Nullable messageActionsByIndex, NSError * _Nullable error))completion;
+
 /// Snapshot of the search form hidden/visible inputs parsed from the currently loaded page.
 /// Populated by -setupIntrSearch: when the page contains a /transsearch.php form.
 @property (nonatomic, readonly, nonnull) NSDictionary<NSString *, NSString *> *swiftSearchInputData;

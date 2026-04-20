@@ -179,6 +179,123 @@
     }
 }
 
+- (void)fetchFilteredPostsForTopic:(Topic *)topic
+                          startPage:(NSNumber *)startPage
+                           progress:(void (^)(NSNumber *currentPage, NSNumber *maxPage, NSNumber *resultCount))progress
+                         completion:(void (^)(NSArray *items, NSNumber *startPage, NSNumber *endPage, NSNumber *finished, NSError *error))completion {
+    if (!completion) { return; }
+    if (!topic) {
+        NSError *error = [NSError errorWithDomain:@"FilterPostsQuotes.swift"
+                                             code:-1
+                                         userInfo:@{NSLocalizedDescriptionKey: @"Topic invalide."}];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            completion(nil, nil, nil, @(YES), error);
+        });
+        return;
+    }
+
+    self.topic = topic;
+    [ASIHTTPRequest setDefaultTimeOutSeconds:kTimeoutMaxi];
+    self.arrData = [[NSMutableArray alloc] init];
+    self.bShowPostsRequired = NO;
+    self.stopRequired = NO;
+    self.bIsFinished = NO;
+
+    int iPageToLoad = topic.curTopicPage;
+    if (startPage && [startPage intValue] > 0) {
+        iPageToLoad = [startPage intValue];
+    }
+    if (iPageToLoad <= 0) {
+        iPageToLoad = 1;
+    }
+
+    int maxTopicPage = topic.maxTopicPage;
+    if (maxTopicPage <= 0) {
+        maxTopicPage = MAX(iPageToLoad, 1);
+    }
+
+    self.iStartPage = iPageToLoad;
+    NSString *sStartAfterPostId = nil;
+    if (!startPage || [startPage intValue] <= 0) {
+        NSRange foundRange = [topic.aURL rangeOfString:@"#t"];
+        if (foundRange.location != NSNotFound) {
+            NSRange rangeRes = NSMakeRange(foundRange.location + 1, topic.aURL.length - foundRange.location - 1);
+            sStartAfterPostId = [topic.aURL substringWithRange:rangeRes];
+        }
+    }
+
+    if (iPageToLoad > maxTopicPage) {
+        self.bIsFinished = YES;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            completion(@[], @(self.iStartPage), @(maxTopicPage), @(YES), nil);
+        });
+        return;
+    }
+
+    while (iPageToLoad <= maxTopicPage) {
+        if (self.stopRequired) {
+            break;
+        }
+
+        NSString *sURL = [NSString stringWithFormat:@"https://forum.hardware.fr%@", [topic getURLforPage:iPageToLoad]];
+        ASIHTTPRequest *request = [ASIHTTPRequest requestWithURL:[NSURL URLWithString:sURL]];
+        self.request = request;
+        [request setShouldRedirect:YES];
+        [request setDelegate:self];
+        [request setUseCookiePersistence:NO];
+        [request setRequestCookies:[[NSMutableArray alloc] init]];
+        [request startSynchronous];
+
+        if ([request error]) {
+            NSError *error = [request error];
+            self.request = nil;
+            dispatch_async(dispatch_get_main_queue(), ^{
+                completion(nil, @(self.iStartPage), @(iPageToLoad), @(self.bIsFinished), error);
+            });
+            return;
+        }
+
+        NSData *data = [request safeResponseData];
+        if (data) {
+            ParseMessagesOperation *parser = [[ParseMessagesOperation alloc] initWithData:data index:0 reverse:NO delegate:nil];
+            NSError *error = nil;
+            HTMLParser *myParser = [[HTMLParser alloc] initWithData:data error:&error];
+            [parser parseData:myParser filterPostsQuotes:YES startAfterThisPostId:sStartAfterPostId topicUrl:topic.aURL topicPage:iPageToLoad];
+            sStartAfterPostId = nil;
+            self.arrData = [self.arrData arrayByAddingObjectsFromArray:parser.workingArray];
+        }
+
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (progress) {
+                progress(@(iPageToLoad), @(maxTopicPage), @([self.arrData count]));
+            }
+        });
+
+        if (iPageToLoad == maxTopicPage) {
+            self.bIsFinished = YES;
+            break;
+        }
+        if (self.arrData.count >= 40 || self.stopRequired) {
+            break;
+        }
+
+        iPageToLoad++;
+    }
+
+    self.iLastPageLoaded = iPageToLoad;
+    self.request = nil;
+    BOOL finished = self.bIsFinished;
+    NSArray *items = [self.arrData copy] ?: @[];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        completion(items, @(self.iStartPage), @(self.iLastPageLoaded), @(finished), nil);
+    });
+}
+
+- (void)cancelSwiftFiltering {
+    self.stopRequired = YES;
+    [self.request cancel];
+}
+
 // --------------------------------------------------------------------------------
 #pragma mark -
 #pragma mark HMI methods

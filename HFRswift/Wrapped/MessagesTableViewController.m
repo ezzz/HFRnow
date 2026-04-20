@@ -3655,6 +3655,7 @@ API_AVAILABLE(ios(16.0)) {
             [entry setObject:item.postID forKey:@"postID"];
 
             NSString *permalinkURL = [self swiftPermalinkURLForPostID:item.postID
+                                                               itemURL:item.url
                                                              baseForum:realForumBaseURL];
             if (permalinkURL.length > 0) {
                 [entry setObject:permalinkURL forKey:@"permalinkURL"];
@@ -3747,12 +3748,15 @@ API_AVAILABLE(ios(16.0)) {
     return [self swiftAbsoluteForumURLFromRawURL:decoded forumBaseURL:forumBaseURL];
 }
 
-- (NSString *)swiftPermalinkURLForPostID:(NSString *)postID baseForum:(NSString *)baseForum {
+- (NSString *)swiftPermalinkURLForPostID:(NSString *)postID itemURL:(NSString *)itemURL baseForum:(NSString *)baseForum {
     NSString *trimmedPostID = [postID stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
     if (trimmedPostID.length == 0) {
         return nil;
     }
-    NSString *trimmedCurrentURL = [self.currentUrl stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    NSString *trimmedItemURL = [itemURL stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    NSString *trimmedCurrentURL = trimmedItemURL.length > 0
+        ? trimmedItemURL
+        : [self.currentUrl stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
     if (trimmedCurrentURL.length == 0) {
         return nil;
     }
@@ -3761,13 +3765,17 @@ API_AVAILABLE(ios(16.0)) {
     if (absoluteCurrentURL.length == 0) {
         return nil;
     }
+    NSRange fragmentRange = [absoluteCurrentURL rangeOfString:@"#" options:NSBackwardsSearch];
+    if (fragmentRange.location != NSNotFound) {
+        absoluteCurrentURL = [absoluteCurrentURL substringToIndex:fragmentRange.location];
+    }
 
     return [NSString stringWithFormat:@"%@#%@", absoluteCurrentURL, trimmedPostID];
 }
 
 - (void)fetchContentForTopicURL:(NSString *)topicURL
-                         anchor:(NSString * _Nullable)anchor
-                     completion:(void (^)(NSString *html, NSString *topicAnswerUrl, NSNumber *currentPage, NSNumber *maxPage, NSError *error))completion {
+	                         anchor:(NSString * _Nullable)anchor
+	                     completion:(void (^)(NSString *html, NSString *topicAnswerUrl, NSNumber *currentPage, NSNumber *maxPage, NSError *error))completion {
     // On stocke la completion en property pour pouvoir la rappeler plus tard
     self.completionHandler = completion;
     self.currentUrl = topicURL;
@@ -3776,7 +3784,59 @@ API_AVAILABLE(ios(16.0)) {
     self.isSeparatorNewMessages = hasAnchor;
     self.stringFlagTopic = anchor;
 
-    [self fetchContent];
+	[self fetchContent];
+}
+
+- (void)renderFilteredPosts:(NSArray *)items
+                      topic:(Topic *)topic
+                  startPage:(NSNumber *)startPage
+                    endPage:(NSNumber *)endPage
+                   finished:(NSNumber *)finished
+                 completion:(void (^)(NSString *html, NSDictionary<NSNumber *,NSDictionary<NSString *,NSString *> *> *messageActionsByIndex, NSError *error))completion {
+    if (!completion) { return; }
+    if (!topic) {
+        NSError *error = [NSError errorWithDomain:@"MessagesTableViewController.filteredPosts"
+                                             code:-1
+                                         userInfo:@{NSLocalizedDescriptionKey: @"Topic invalide."}];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            completion(nil, nil, error);
+        });
+        return;
+    }
+
+    NSArray *safeItems = items ?: @[];
+    NSString *topicURL = topic.aURL ?: topic.aURLOfLastPage ?: topic.aURLOfFirstPage ?: @"";
+    self.currentUrl = topicURL;
+    self.originalUrl = topicURL;
+    self.topic = topic;
+    self.topicName = topic.aTitle ?: topic._aTitle ?: @"";
+    self.isSeparatorNewMessages = NO;
+    self.stringFlagTopic = @"";
+    self.pageNumberFilterStart = [startPage intValue];
+    self.pageNumberFilterEnd = [endPage intValue];
+    self.filterPostsQuotes = nil;
+
+    if (!self.arrayInputData) {
+        self.arrayInputData = [[NSMutableDictionary alloc] init];
+    }
+    [self.arrayInputData removeAllObjects];
+    if (topic.postID > 0) {
+        [self.arrayInputData setObject:[NSString stringWithFormat:@"%d", topic.postID] forKey:@"post"];
+    }
+    if (topic.catID > 0) {
+        [self.arrayInputData setObject:[NSString stringWithFormat:@"%d", topic.catID] forKey:@"cat"];
+    }
+
+    __weak typeof(self) weakSelf = self;
+    self.completionHandler = ^(NSString *html, NSString *topicAnswerUrl, NSNumber *currentPage, NSNumber *maxPage, NSError *error) {
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        NSDictionary *actions = strongSelf ? [strongSelf swiftMessageActionsByIndex] : @{};
+        completion(html, actions, error);
+    };
+
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self manageLoadedItems:safeItems];
+    });
 }
 
 #pragma mark - Swift search bridge
