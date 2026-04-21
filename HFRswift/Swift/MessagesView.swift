@@ -32,6 +32,81 @@ enum ReplyQuoteDraftMerger {
     }
 }
 
+enum ReplyQuoteSelectionFormatter {
+    static func format(quoteTemplate: String, selectedText: String, boldSelection: Bool) -> String {
+        let selection = selectedText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !selection.isEmpty else {
+            return quoteTemplate
+        }
+
+        let matches = quoteMessageMatches(in: quoteTemplate)
+        guard !matches.isEmpty else {
+            return quoteTemplate
+        }
+
+        if matches.count > 1,
+           let matchingQuote = matches.first(where: { $0.fullText.range(of: selection, options: .caseInsensitive) != nil }) {
+            return boldSelection
+                ? boldedQuoteText(matchingQuote.fullText, selection: selection)
+                : selectedOnlyQuote(from: matchingQuote, selection: selection)
+        }
+
+        guard matches.count == 1, let match = matches.first else {
+            return quoteTemplate
+        }
+
+        return boldSelection
+            ? boldedQuoteText(quoteTemplate, selection: selection)
+            : selectedOnlyQuote(from: match, selection: selection)
+    }
+
+    private struct QuoteMessageMatch {
+        let postID: String
+        let categoryID: String
+        let messageID: String
+        let fullText: String
+    }
+
+    private static func quoteMessageMatches(in text: String) -> [QuoteMessageMatch] {
+        let pattern = "\\[quotemsg=([0-9]+),([0-9]+),([0-9]+)\\][\\s\\S]*?\\[/quotemsg\\]"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
+            return []
+        }
+
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        return regex.matches(in: text, options: [], range: range).compactMap { result in
+            guard
+                let fullRange = Range(result.range(at: 0), in: text),
+                let postRange = Range(result.range(at: 1), in: text),
+                let categoryRange = Range(result.range(at: 2), in: text),
+                let messageRange = Range(result.range(at: 3), in: text)
+            else {
+                return nil
+            }
+
+            return QuoteMessageMatch(
+                postID: String(text[postRange]),
+                categoryID: String(text[categoryRange]),
+                messageID: String(text[messageRange]),
+                fullText: String(text[fullRange])
+            )
+        }
+    }
+
+    private static func selectedOnlyQuote(from match: QuoteMessageMatch, selection: String) -> String {
+        "[quotemsg=\(match.postID),\(match.categoryID),\(match.messageID)]\(selection)[/quotemsg]\n"
+    }
+
+    private static func boldedQuoteText(_ text: String, selection: String) -> String {
+        guard let range = text.range(of: selection, options: .caseInsensitive) else {
+            return text
+        }
+        var result = text
+        result.replaceSubrange(range, with: "[b]\(String(text[range]))[/b]")
+        return result.hasSuffix("\n") ? result : result + "\n"
+    }
+}
+
 enum MessagePopupMenuActionKind: Equatable {
     case quote
     case quoteSelection(isSelected: Bool)
@@ -596,6 +671,108 @@ private enum MessageBlackWhiteListActionBridge {
     }
 }
 
+final class MessageWebView: WKWebView {
+    var messageActionsByIndex: [Int: TopicPageMessageActions] = [:]
+    var onTextQuoteRequest: ((URL, String, Bool) -> Void)?
+
+    private static let textQuoteSelector = #selector(MessageWebView.textQuote(_:))
+    private static let textQuoteBoldSelector = #selector(MessageWebView.textQuoteBold(_:))
+
+    static func installTextQuoteMenuItems() {
+        let menu = UIMenuController.shared
+        menu.menuItems = [
+            UIMenuItem(title: "Citer extrait", action: textQuoteSelector),
+            UIMenuItem(title: "Citer gras", action: textQuoteBoldSelector)
+        ]
+    }
+
+    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
+        if action == Self.textQuoteSelector || action == Self.textQuoteBoldSelector {
+            return onTextQuoteRequest != nil
+        }
+        return super.canPerformAction(action, withSender: sender)
+    }
+
+    override func buildMenu(with builder: UIMenuBuilder) {
+        super.buildMenu(with: builder)
+
+        guard onTextQuoteRequest != nil else { return }
+        let menu = UIMenu(
+            title: "",
+            options: .displayInline,
+            children: [
+                UICommand(title: "Citer extrait", image: UIImage(systemName: "quote.bubble"), action: Self.textQuoteSelector),
+                UICommand(title: "Citer gras", image: UIImage(systemName: "bold"), action: Self.textQuoteBoldSelector)
+            ]
+        )
+        builder.insertSibling(menu, afterMenu: .standardEdit)
+    }
+
+    @objc private func textQuote(_ sender: Any?) {
+        requestTextQuote(boldSelection: false)
+    }
+
+    @objc private func textQuoteBold(_ sender: Any?) {
+        requestTextQuote(boldSelection: true)
+    }
+
+    private func requestTextQuote(boldSelection: Bool) {
+        let script = """
+        (function() {
+          var selection = window.getSelection && window.getSelection();
+          if (!selection || selection.rangeCount === 0) { return null; }
+          var selectedText = selection.toString();
+          if (!selectedText || selectedText.trim().length === 0) { return null; }
+
+          var node = selection.anchorNode;
+          if (node && node.nodeType === Node.TEXT_NODE) {
+            node = node.parentElement;
+          }
+          while (node && node !== document.body && node !== document.documentElement) {
+            if (node.classList && node.classList.contains('message')) {
+              var rawID = node.getAttribute('id') || '';
+              var messageIndex = parseInt(rawID, 10);
+              if (!isNaN(messageIndex)) {
+                return { selectedText: selectedText, messageIndex: messageIndex };
+              }
+            }
+            node = node.parentElement;
+          }
+          return null;
+        })();
+        """
+
+        evaluateJavaScript(script) { [weak self] result, error in
+            guard
+                error == nil,
+                let self,
+                let payload = result as? [String: Any],
+                let selectedText = payload["selectedText"] as? String,
+                let messageIndex = Self.messageIndex(from: payload["messageIndex"]),
+                messageIndex < 100,
+                let quoteURL = self.messageActionsByIndex[messageIndex]?.quoteURL
+            else {
+                return
+            }
+
+            self.onTextQuoteRequest?(quoteURL, selectedText, boldSelection)
+        }
+    }
+
+    private static func messageIndex(from value: Any?) -> Int? {
+        if let intValue = value as? Int {
+            return intValue
+        }
+        if let numberValue = value as? NSNumber {
+            return numberValue.intValue
+        }
+        if let stringValue = value as? String {
+            return Int(stringValue)
+        }
+        return nil
+    }
+}
+
 struct WebView: UIViewRepresentable {
     enum InitialScroll {
         case top
@@ -633,6 +810,7 @@ struct WebView: UIViewRepresentable {
     var onPopupProfileRequest: ((URL) -> Void)?
     var onPopupAQRequest: ((TopicPageMessageActions) -> Void)?
     var onPopupBookmarkRequest: ((TopicPageMessageActions) -> Void)?
+    var onTextQuoteRequest: ((URL, String, Bool) -> Void)?
     var onContentReady: (() -> Void)?
     var onScrollPositionChange: ((Bool) -> Void)?
 
@@ -668,6 +846,7 @@ struct WebView: UIViewRepresentable {
         onPopupProfileRequest: ((URL) -> Void)? = nil,
         onPopupAQRequest: ((TopicPageMessageActions) -> Void)? = nil,
         onPopupBookmarkRequest: ((TopicPageMessageActions) -> Void)? = nil,
+        onTextQuoteRequest: ((URL, String, Bool) -> Void)? = nil,
         onContentReady: (() -> Void)? = nil,
         onScrollPositionChange: ((Bool) -> Void)? = nil
     ) {
@@ -702,6 +881,7 @@ struct WebView: UIViewRepresentable {
         self.onPopupProfileRequest = onPopupProfileRequest
         self.onPopupAQRequest = onPopupAQRequest
         self.onPopupBookmarkRequest = onPopupBookmarkRequest
+        self.onTextQuoteRequest = onTextQuoteRequest
         self.onContentReady = onContentReady
         self.onScrollPositionChange = onScrollPositionChange
     }
@@ -788,7 +968,11 @@ struct WebView: UIViewRepresentable {
         let configuration = WKWebViewConfiguration()
         configuration.userContentController = contentController
 
-        let webView = WKWebView(frame: .zero, configuration: configuration)
+        MessageWebView.installTextQuoteMenuItems()
+
+        let webView = MessageWebView(frame: .zero, configuration: configuration)
+        webView.messageActionsByIndex = messageActionsByIndex
+        webView.onTextQuoteRequest = onTextQuoteRequest
         webView.isOpaque = false
         webView.backgroundColor = baseBackgroundColor
         webView.scrollView.backgroundColor = baseBackgroundColor
@@ -822,6 +1006,10 @@ struct WebView: UIViewRepresentable {
         context.coordinator.messageLoveContentBackgroundColor = messageLoveContentBackgroundColor
         context.coordinator.messageLoveModernHeaderBackgroundColor = messageLoveModernHeaderBackgroundColor
         context.coordinator.messageClassicHeaderBackgroundColor = messageClassicHeaderBackgroundColor
+        if let messageWebView = webView as? MessageWebView {
+            messageWebView.messageActionsByIndex = messageActionsByIndex
+            messageWebView.onTextQuoteRequest = onTextQuoteRequest
+        }
         webView.backgroundColor = baseBackgroundColor
         webView.scrollView.backgroundColor = baseBackgroundColor
         if #available(iOS 15.0, *) {
@@ -3135,6 +3323,38 @@ struct MessagesView: View {
         prefillComposer(with: url, mode: .quote)
     }
 
+    private func openTextQuoteComposer(with url: URL, selectedText: String, boldSelection: Bool) {
+        guard !isLoadingQuoteTemplate else { return }
+
+        Task { @MainActor in
+            isLoadingQuoteTemplate = true
+            activeComposerPrefillMode = .quote
+            defer { isLoadingQuoteTemplate = false }
+
+            do {
+                let template = try await replyQuoteTemplateLoader.fetchQuoteTemplate(from: url)
+                composerInitialMessage = ReplyQuoteSelectionFormatter.format(
+                    quoteTemplate: template,
+                    selectedText: selectedText,
+                    boldSelection: boldSelection
+                )
+                activeComposerPresentationKind = .reply
+                composerNavigationTitle = ComposerPresentationKind.reply.title
+                composerRequiresSubject = false
+                composerRecipientName = nil
+                composerPersistsDraft = false
+                composerSubmitURL = topicAnswerURL ?? url
+                lastFailedQuoteTemplateURL = nil
+                quoteTemplateErrorMessage = nil
+                isComposerPresented = true
+            } catch {
+                lastFailedQuoteTemplateURL = url
+                lastFailedComposerPrefillMode = .quote
+                quoteTemplateErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            }
+        }
+    }
+
     private func openEditComposer(with url: URL) {
         activeComposerPresentationKind = .edit
         composerNavigationTitle = ComposerPresentationKind.edit.title
@@ -3955,6 +4175,13 @@ struct MessagesView: View {
                     },
                     onPopupBookmarkRequest: { actions in
                         askBookmarkPrompt(with: actions)
+                    },
+                    onTextQuoteRequest: { quoteURL, selectedText, boldSelection in
+                        openTextQuoteComposer(
+                            with: quoteURL,
+                            selectedText: selectedText,
+                            boldSelection: boldSelection
+                        )
                     },
                     onContentReady: {
                         withAnimation(.easeOut(duration: 0.14)) {

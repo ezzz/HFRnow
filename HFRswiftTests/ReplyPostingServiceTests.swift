@@ -1029,6 +1029,39 @@ final class ReplyPostingServiceTests: XCTestCase {
         XCTAssertEqual(merged, "Mon brouillon")
     }
 
+    func testReplyQuoteSelectionFormatterKeepsOnlySelectedText() {
+        let formatted = ReplyQuoteSelectionFormatter.format(
+            quoteTemplate: "[quotemsg=1,2,3]Bonjour tout le monde[/quotemsg]\n",
+            selectedText: "tout le monde",
+            boldSelection: false
+        )
+
+        XCTAssertEqual(formatted, "[quotemsg=1,2,3]tout le monde[/quotemsg]\n")
+    }
+
+    func testReplyQuoteSelectionFormatterBoldsSelectedTextInFullQuote() {
+        let formatted = ReplyQuoteSelectionFormatter.format(
+            quoteTemplate: "[quotemsg=1,2,3]Bonjour tout le monde[/quotemsg]\n",
+            selectedText: "tout le monde",
+            boldSelection: true
+        )
+
+        XCTAssertEqual(formatted, "[quotemsg=1,2,3]Bonjour [b]tout le monde[/b][/quotemsg]\n")
+    }
+
+    func testReplyQuoteSelectionFormatterUsesMatchingBlockWhenTemplateHasSeveralQuotes() {
+        let formatted = ReplyQuoteSelectionFormatter.format(
+            quoteTemplate: """
+            [quotemsg=1,2,3]Premier message[/quotemsg]
+            [quotemsg=4,5,6]Deuxieme message cible[/quotemsg]
+            """,
+            selectedText: "message cible",
+            boldSelection: false
+        )
+
+        XCTAssertEqual(formatted, "[quotemsg=4,5,6]message cible[/quotemsg]\n")
+    }
+
     func testComposerDraftPersistenceKeepsStoredDraftWhenEphemeralComposerCloses() {
         let persistedDraft = AnswerView.ComposerDraftPersistence.draftAfterDismiss(
             currentMessage: "[quotemsg=1,2,3]Citation[/quotemsg]\nRéponse en cours",
