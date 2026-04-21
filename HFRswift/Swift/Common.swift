@@ -1616,6 +1616,7 @@ enum TopicOpenContext: Equatable {
     case forum(selectedFlag: TopicListFlag)
     case favorites
     case favoritesOnly
+    case globalSearch
     case messages
 }
 
@@ -1646,6 +1647,14 @@ enum TopicQuickActionPolicy {
                 showOpenPagePicker: true,
                 showCopyLink: true
             )
+        case .globalSearch:
+            return TopicQuickActionsConfiguration(
+                showOpenFirstPage: true,
+                showOpenLastPage: true,
+                showOpenLastReply: true,
+                showOpenPagePicker: true,
+                showCopyLink: true
+            )
         case .messages:
             return TopicQuickActionsConfiguration(
                 showOpenFirstPage: true,
@@ -1669,7 +1678,7 @@ enum TopicQuickActionPolicy {
         switch context {
         case .favorites:
             return nonEmptyString(topic.aURLOfLastPage) ?? nonEmptyString(topic.aURLOfLastPost) ?? nonEmptyString(topic.aURL)
-        case .favoritesOnly, .forum, .messages, .generic:
+        case .favoritesOnly, .forum, .globalSearch, .messages, .generic:
             return nonEmptyString(topic.aURLOfLastPost) ?? nonEmptyString(topic.aURLOfLastPage) ?? nonEmptyString(topic.aURL)
         }
     }
@@ -1750,6 +1759,11 @@ struct TopicOpenPolicy {
             return Decision(
                 preferredURL: nonEmptyString(topic.aURL),
                 fallbackPage: currentPage
+            )
+        case .globalSearch:
+            return Decision(
+                preferredURL: nonEmptyString(topic.sLastSearchPostURL) ?? nonEmptyString(topic.aURL),
+                fallbackPage: max(TopicPageURLRouting.pageNumber(from: topic.sLastSearchPostURL) ?? currentPage, 1)
             )
         case .messages:
             return Decision(
@@ -2065,6 +2079,7 @@ struct TopicListRowView: View {
     var showUnreadBadgeWhenZero = false
     var leadingBottomText: String?
     var trailingBottomText: String?
+    var detailText: String?
     var rowBackgroundTint: Color?
     var contentPadding: EdgeInsets = EdgeInsets(top: 6, leading: 8, bottom: 6, trailing: 8)
     var rowBackgroundOverflow: EdgeInsets = EdgeInsets()
@@ -2133,6 +2148,10 @@ struct TopicListRowView: View {
 
     private var copyURL: String? {
         TopicQuickActionPolicy.copyLink(for: topic)
+    }
+
+    private var searchMatchURL: String? {
+        nonEmptyString(topic.sLastSearchPostURL)
     }
 
     private var unreadBadgeTextColor: Color {
@@ -2246,6 +2265,16 @@ struct TopicListRowView: View {
         )
     }
 
+    private func openSearchMatchAction() {
+        openNavigationTarget(
+            makeNavigationTarget(
+                preferredURL: searchMatchURL,
+                fallbackPage: TopicPageURLRouting.pageNumber(from: searchMatchURL) ?? currentPageValue,
+                initialScroll: .top
+            )
+        )
+    }
+
     private func openPagePickerAction() {
         pagePickerInput = "\(currentPageValue)"
         pagePickerSheet = TopicPagePickerSheetToken()
@@ -2273,6 +2302,13 @@ struct TopicListRowView: View {
 
     @ViewBuilder
     private var quickActionsMenuContent: some View {
+        if openContext == .globalSearch, searchMatchURL != nil {
+            Button {
+                openSearchMatchAction()
+            } label: {
+                MenuActionLabel("Dernière correspondance", systemImage: "magnifyingglass")
+            }
+        }
         if resolvedQuickActions.showOpenFirstPage, firstPageURL != nil {
             Button {
                 openFirstPageAction()
@@ -2347,6 +2383,13 @@ struct TopicListRowView: View {
                                 .background(Capsule().fill(unreadBadgeBackgroundColor))
                                 .foregroundStyle(unreadBadgeTextColor)
                         }
+                    }
+
+                    if let detailText, !detailText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Text(detailText)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(3)
                     }
 
                     if leadingBottomText != nil || trailingBottomText != nil {

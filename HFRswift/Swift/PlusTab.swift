@@ -22,11 +22,7 @@ struct PlusHomeView: View {
                 }
 
                 NavigationLink {
-                    ObjCViewControllerHost {
-                        let controller = TopicsSearchViewController()
-                        controller.currentCat = "13"
-                        return controller
-                    }
+                    ForumSearchView()
                 } label: {
                     PlusRow(title: "Rechercher sur le forum", systemImage: "magnifyingglass")
                 }

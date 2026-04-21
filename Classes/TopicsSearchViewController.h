@@ -11,6 +11,7 @@
 
 @class MessagesTableViewController;
 @class TopicSearchCellView;
+@class Topic;
 
 @interface TopicsSearchViewController : BaseTopicsViewController {
 }
@@ -48,5 +49,10 @@
 @property (nonatomic, strong)  NSString * currentElement;
 
 - (void)searchBar:(UISearchBar *)searchBar activate:(BOOL) active;
+- (void)performForumSearchWithParams:(NSDictionary *)params
+                           completion:(void (^)(NSArray<Topic *> *topics, NSDictionary *pageInfo, NSError *error))completion;
+- (void)fetchForumSearchPageURL:(NSString *)urlString
+                     completion:(void (^)(NSArray<Topic *> *topics, NSDictionary *pageInfo, NSError *error))completion;
+- (void)cancelForumSearch;
 
 @end
