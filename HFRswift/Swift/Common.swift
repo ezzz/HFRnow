@@ -948,7 +948,14 @@ enum TopicListFlag: Int {
 }
 
 protocol ForumTopicsLoading {
-    func fetchTopics(for forum: Forum, flag: TopicListFlag, completion: @escaping TopicsLoadCompletion)
+    func fetchTopics(for forum: Forum, flag: TopicListFlag, completion: @escaping ForumTopicsLoadCompletion)
+}
+
+typealias ForumTopicsLoadCompletion = (ForumTopicsLoadResult?, Error?) -> Void
+
+struct ForumTopicsLoadResult {
+    let topics: [Topic]
+    let newTopicURL: URL?
 }
 
 final class ObjCForumTopicsLoader: ForumTopicsLoading {
@@ -958,7 +965,7 @@ final class ObjCForumTopicsLoader: ForumTopicsLoading {
         self.controller = controller
     }
 
-    func fetchTopics(for forum: Forum, flag: TopicListFlag, completion: @escaping TopicsLoadCompletion) {
+    func fetchTopics(for forum: Forum, flag: TopicListFlag, completion: @escaping ForumTopicsLoadCompletion) {
         guard let controller else {
             completion(nil, LegacyLoaderBridgeError.unavailable("TopicsTableViewController"))
             return
@@ -975,9 +982,22 @@ final class ObjCForumTopicsLoader: ForumTopicsLoading {
         let implementation = controller.method(for: selector)
         let function = unsafeBitCast(implementation, to: Function.self)
         let block: CompletionBlock = { topics, error in
-            completion(topics as? [Topic], error)
+            let newTopicURL = Self.absoluteForumURL(from: controller.value(forKey: "forumNewTopicUrl") as? String)
+            completion(ForumTopicsLoadResult(topics: topics as? [Topic] ?? [], newTopicURL: newTopicURL), error)
         }
         function(controller, selector, forum, flag.rawValue, block)
+    }
+
+    private static func absoluteForumURL(from rawValue: String?) -> URL? {
+        guard let trimmed = rawValue?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !trimmed.isEmpty else {
+            return nil
+        }
+        if let absoluteURL = URL(string: trimmed), absoluteURL.scheme != nil {
+            return absoluteURL
+        }
+        let baseURL = URL(string: k.forumURL()) ?? URL(string: "https://forum.hardware.fr/")!
+        return URL(string: trimmed, relativeTo: baseURL)?.absoluteURL
     }
 }
 

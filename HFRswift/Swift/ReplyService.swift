@@ -91,6 +91,15 @@ struct ReplySessionContext {
 struct ReplyComposerContext: Equatable {
     let subject: String?
     let recipient: String?
+    let isSubjectEditable: Bool
+    let selectedSubcategoryID: String?
+    let subcategoryOptions: [ReplyComposerSubcategoryOption]
+    let isSubcategoryEditable: Bool
+}
+
+struct ReplyComposerSubcategoryOption: Identifiable, Equatable {
+    let id: String
+    let title: String
 }
 
 final class ForumReplyPostingService: ReplyPostingService, ReplyComposerContextPreloading, ReplyComposerContextLoading {
@@ -99,6 +108,9 @@ final class ForumReplyPostingService: ReplyPostingService, ReplyComposerContextP
     private struct FormPayload {
         var params: [String: String]
         var actionURL: URL?
+        var isSubjectEditable: Bool
+        var isSubcategoryEditable: Bool
+        var subcategoryOptions: [ReplyComposerSubcategoryOption]
     }
 
     private let session: URLSession
@@ -205,7 +217,11 @@ final class ForumReplyPostingService: ReplyPostingService, ReplyComposerContextP
         let payload = try await fetchReplyFormPayload(from: topicURL)
         return ReplyComposerContext(
             subject: normalizedOptionalValue(payload.params["sujet"]),
-            recipient: normalizedOptionalValue(payload.params["dest"])
+            recipient: normalizedOptionalValue(payload.params["dest"]),
+            isSubjectEditable: payload.isSubjectEditable,
+            selectedSubcategoryID: normalizedOptionalValue(payload.params["subcat"]),
+            subcategoryOptions: payload.subcategoryOptions,
+            isSubcategoryEditable: payload.isSubcategoryEditable
         )
     }
 
@@ -244,7 +260,13 @@ final class ForumReplyPostingService: ReplyPostingService, ReplyComposerContextP
             params[key] = value
         }
 
-        return FormPayload(params: params, actionURL: parseFormAction(from: formHTML, baseURL: url))
+        return FormPayload(
+            params: params,
+            actionURL: parseFormAction(from: formHTML, baseURL: url),
+            isSubjectEditable: containsEditableInput(named: "sujet", in: formHTML),
+            isSubcategoryEditable: containsSelect(named: "subcat", in: formHTML),
+            subcategoryOptions: parseSubcategoryOptions(formHTML)
+        )
     }
 
     private func queryParameters(from url: URL) -> [String: String] {
@@ -329,6 +351,80 @@ final class ForumReplyPostingService: ReplyPostingService, ReplyComposerContextP
         }
 
         return params
+    }
+
+    private func containsEditableInput(named expectedName: String, in html: String) -> Bool {
+        guard let regex = try? NSRegularExpression(pattern: "<input[^>]*>", options: [.caseInsensitive]) else {
+            return false
+        }
+
+        let range = NSRange(html.startIndex..<html.endIndex, in: html)
+        for match in regex.matches(in: html, options: [], range: range) {
+            guard let tagRange = Range(match.range, in: html) else { continue }
+            let tag = String(html[tagRange])
+            guard attributeValue(in: tag, attribute: "name")?.caseInsensitiveCompare(expectedName) == .orderedSame else {
+                continue
+            }
+            let type = attributeValue(in: tag, attribute: "type")?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            return type != "hidden"
+        }
+
+        return false
+    }
+
+    private func containsSelect(named expectedName: String, in html: String) -> Bool {
+        selectTags(in: html).contains { selectTag in
+            attributeValue(in: selectTag, attribute: "name")?.caseInsensitiveCompare(expectedName) == .orderedSame
+        }
+    }
+
+    private func parseSubcategoryOptions(_ html: String) -> [ReplyComposerSubcategoryOption] {
+        guard let selectTag = selectTags(in: html).first(where: { tag in
+            attributeValue(in: tag, attribute: "name")?.caseInsensitiveCompare("subcat") == .orderedSame
+        }) else {
+            return []
+        }
+
+        guard let optionRegex = try? NSRegularExpression(pattern: "<option[^>]*>[\\s\\S]*?</option>", options: [.caseInsensitive]) else {
+            return []
+        }
+
+        let range = NSRange(selectTag.startIndex..<selectTag.endIndex, in: selectTag)
+        return optionRegex.matches(in: selectTag, options: [], range: range).compactMap { match in
+            guard let optionRange = Range(match.range, in: selectTag) else { return nil }
+            let optionHTML = String(selectTag[optionRange])
+            guard let id = attributeValue(in: optionHTML, attribute: "value")?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !id.isEmpty else {
+                return nil
+            }
+            let title = strippedHTMLText(from: optionHTML)
+            return title.isEmpty ? nil : ReplyComposerSubcategoryOption(id: id, title: title)
+        }
+    }
+
+    private func selectTags(in html: String) -> [String] {
+        let pattern = "<select[^>]*name\\s*=\\s*(\"[^\"]+\"|'[^']+'|[^\\s>]+)[^>]*>[\\s\\S]*?</select>"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
+            return []
+        }
+
+        let range = NSRange(html.startIndex..<html.endIndex, in: html)
+        return regex.matches(in: html, options: [], range: range).compactMap { match in
+            guard let selectRange = Range(match.range, in: html) else { return nil }
+            return String(html[selectRange])
+        }
+    }
+
+    private func strippedHTMLText(from html: String) -> String {
+        guard let tagRegex = try? NSRegularExpression(pattern: "<[^>]+>", options: [.caseInsensitive]) else {
+            return decodeHTMLEntities(in: html).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        let range = NSRange(html.startIndex..<html.endIndex, in: html)
+        let stripped = tagRegex.stringByReplacingMatches(in: html, options: [], range: range, withTemplate: " ")
+        return decodeHTMLEntities(in: stripped)
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func firstSelectedOptionValue(in selectTag: String) -> String? {

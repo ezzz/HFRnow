@@ -46,6 +46,7 @@ final class ForumTopicsListViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var isLoading = false
     @Published var selectedFlag: TopicListFlag = .all
+    @Published var newTopicURL: URL?
 
     private var forum: Forum
     private let topicsLoader: ForumTopicsLoading
@@ -68,7 +69,8 @@ final class ForumTopicsListViewModel: ObservableObject {
         let requestID = loadRequestID
         isLoading = true
         errorMessage = nil
-        topicsLoader.fetchTopics(for: forum, flag: selectedFlag) { [weak self] topics, error in
+        newTopicURL = nil
+        topicsLoader.fetchTopics(for: forum, flag: selectedFlag) { [weak self] result, error in
             guard let self else { return }
             DispatchQueue.main.async {
                 guard requestID == self.loadRequestID else { return }
@@ -80,9 +82,11 @@ final class ForumTopicsListViewModel: ObservableObject {
                     }
                     self.errorMessage = error.localizedDescription
                     self.topics = []
+                    self.newTopicURL = nil
                 } else {
                     self.errorMessage = nil
-                    self.topics = topics ?? []
+                    self.topics = result?.topics ?? []
+                    self.newTopicURL = result?.newTopicURL
                 }
             }
         }
@@ -258,6 +262,8 @@ struct ForumTopicsListView: View {
     @State private var removingTopicIDs: Set<ObjectIdentifier> = []
     @State private var topicActionErrorMessage: String?
     @State private var selectedForumIdentifier: String
+    @State private var isNewTopicComposerPresented = false
+    @State private var newTopicDraftText = ""
 
     private let topicActionService: FavoritesTopicActionServicing
 
@@ -637,7 +643,15 @@ struct ForumTopicsListView: View {
                     ToolbarProfileImage(image: accountsStore.currentAvatarImage, url: nil)
                 }
             }
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button {
+                    AppHaptics.impact(.light)
+                    isNewTopicComposerPresented = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .disabled(!isLoggedIn || viewModel.newTopicURL == nil)
+
                 Button {
                     AppHaptics.impact(.light)
                     viewModel.load()
@@ -697,6 +711,23 @@ struct ForumTopicsListView: View {
         }
         .sheet(isPresented: $showAddAccountSheet) {
             AddAccountView(accountsStore: accountsStore)
+        }
+        .sheet(isPresented: $isNewTopicComposerPresented) {
+            AnswerView(
+                topicURL: viewModel.newTopicURL,
+                title: "Nouv. Sujet",
+                requiresSubject: true,
+                requiresSubcategory: true,
+                subjectCharacterLimit: 70,
+                subjectPlaceholder: "Sujet du topic",
+                initialMessage: newTopicDraftText,
+                onPostSuccess: { _ in
+                    newTopicDraftText = ""
+                    viewModel.load()
+                },
+                composerDraftText: $newTopicDraftText,
+                isComposerPresented: $isNewTopicComposerPresented
+            )
         }
         .alert("Déconnexion", isPresented: $showLogoutConfirm) {
             Button("Annuler", role: .cancel) {}
@@ -825,10 +856,10 @@ private enum CategoriesPreviewFactory {
             self.result = result
         }
 
-        func fetchTopics(for forum: Forum, flag: TopicListFlag, completion: @escaping TopicsLoadCompletion) {
+        func fetchTopics(for forum: Forum, flag: TopicListFlag, completion: @escaping ForumTopicsLoadCompletion) {
             switch result {
             case .success(let topics):
-                completion(topics, nil)
+                completion(ForumTopicsLoadResult(topics: topics, newTopicURL: URL(string: "https://forum.hardware.fr/bddpost.php?config=hfr.inc&cat=13&post=0")), nil)
             case .failure(let error):
                 completion(nil, error)
             }

@@ -41,6 +41,9 @@ struct AnswerView: View {
     let topicURL: URL?
     let title: String
     let requiresSubject: Bool
+    let requiresSubcategory: Bool
+    let subjectCharacterLimit: Int?
+    let subjectPlaceholder: String
     let initialRecipient: String?
     let initialMessage: String
     let persistsComposerDraft: Bool
@@ -61,6 +64,10 @@ struct AnswerView: View {
     @State private var message: String
     @State private var composerSubject = ""
     @State private var composerRecipient: String?
+    @State private var contextShowsSubjectField = false
+    @State private var contextShowsSubcategoryPicker = false
+    @State private var selectedSubcategoryID: String?
+    @State private var subcategoryOptions: [ReplyComposerSubcategoryOption] = []
     @State private var isPosting = false
     @State private var selectedRangeUTF16 = NSRange(location: 0, length: 0)
 
@@ -108,6 +115,9 @@ struct AnswerView: View {
         topicURL: URL?,
         title: String = "Répondre",
         requiresSubject: Bool = false,
+        requiresSubcategory: Bool = false,
+        subjectCharacterLimit: Int? = nil,
+        subjectPlaceholder: String = "Sujet du MP",
         initialRecipient: String? = nil,
         initialMessage: String = "",
         persistsComposerDraft: Bool = true,
@@ -121,6 +131,9 @@ struct AnswerView: View {
         self.topicURL = topicURL
         self.title = title
         self.requiresSubject = requiresSubject
+        self.requiresSubcategory = requiresSubcategory
+        self.subjectCharacterLimit = subjectCharacterLimit
+        self.subjectPlaceholder = subjectPlaceholder
         self.initialRecipient = initialRecipient
         self.initialMessage = initialMessage
         self.persistsComposerDraft = persistsComposerDraft
@@ -140,13 +153,32 @@ struct AnswerView: View {
 
     private var canSend: Bool {
         guard !isPosting, !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
-        if requiresSubject {
-            return !composerSubject.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        if showsSubjectField,
+           composerSubject.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return false
+        }
+        if showsSubcategoryPicker && subcategoryOptions.isEmpty {
+            return false
+        }
+        if showsSubcategoryPicker {
+            return selectedSubcategoryID?.isEmpty == false
         }
         return true
     }
 
-    private var showsMetadata: Bool { requiresSubject || composerRecipient != nil }
+    private var showsSubjectField: Bool { requiresSubject || contextShowsSubjectField }
+
+    private var showsSubcategoryPicker: Bool {
+        requiresSubcategory || contextShowsSubcategoryPicker || !subcategoryOptions.isEmpty
+    }
+
+    private var effectiveSubjectCharacterLimit: Int? {
+        subjectCharacterLimit ?? (showsSubjectField ? 70 : nil)
+    }
+
+    private var showsMetadata: Bool {
+        composerRecipient != nil || showsSubjectField || showsSubcategoryPicker
+    }
 
     // MARK: Body
 
@@ -226,6 +258,9 @@ struct AnswerView: View {
         }
         .onChange(of: imageUploadPreferences) { _, new in RehostPreferencesStore.save(new) }
         .onChange(of: uploadedImages) { _, new in RehostUploadHistoryStore.save(new) }
+        .onChange(of: composerSubject) { _, new in
+            enforceSubjectCharacterLimit(new)
+        }
         .onChange(of: message) { old, new in
             guard old != new else { return }
             if pendingHistoryMutationsToSkip > 0 {
@@ -319,7 +354,7 @@ struct AnswerView: View {
         .frame(height: 44)
     }
 
-    // MARK: Metadata (sujet MP / destinataire)
+    // MARK: Metadata (sujet / sous-catégorie / destinataire)
 
     @ViewBuilder
     private var metadataSection: some View {
@@ -330,28 +365,75 @@ struct AnswerView: View {
                     Text(recipient).font(.body).foregroundStyle(.primary)
                 }
             }
-            if requiresSubject {
+            if showsSubjectField {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Sujet").font(.caption).foregroundStyle(.secondary)
-                    if #available(iOS 26.0, *) {
-                        TextField("Sujet du MP", text: $composerSubject)
-                            .textInputAutocapitalization(.sentences)
-                            .autocorrectionDisabled()
+                    HStack {
+                        Text("Sujet").font(.caption).foregroundStyle(.secondary)
+                        Spacer()
+                        if let limit = effectiveSubjectCharacterLimit {
+                            Text("\(min(composerSubject.count, limit))/\(limit)")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    metadataTextField
+                }
+            }
+            if showsSubcategoryPicker {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Sous-catégorie").font(.caption).foregroundStyle(.secondary)
+                    if subcategoryOptions.isEmpty {
+                        Text("Chargement...")
+                            .font(.body)
+                            .foregroundStyle(.secondary)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 10)
-                            .glassEffect(in: .rect(cornerRadius: 10))
-                    } else {
-                        TextField("Sujet du MP", text: $composerSubject)
-                            .textInputAutocapitalization(.sentences)
-                            .autocorrectionDisabled()
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             .background(themePalette.editorBackgroundColor)
                             .clipShape(.rect(cornerRadius: 10))
+                    } else {
+                        Picker("Sous-catégorie", selection: subcategorySelection) {
+                            ForEach(subcategoryOptions) { option in
+                                Text(option.title).tag(option.id)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(themePalette.editorBackgroundColor)
+                        .clipShape(.rect(cornerRadius: 10))
                     }
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private var metadataTextField: some View {
+        if #available(iOS 26.0, *) {
+            TextField(subjectPlaceholder, text: $composerSubject)
+                .textInputAutocapitalization(.sentences)
+                .autocorrectionDisabled()
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .glassEffect(in: .rect(cornerRadius: 10))
+        } else {
+            TextField(subjectPlaceholder, text: $composerSubject)
+                .textInputAutocapitalization(.sentences)
+                .autocorrectionDisabled()
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(themePalette.editorBackgroundColor)
+                .clipShape(.rect(cornerRadius: 10))
+        }
+    }
+
+    private var subcategorySelection: Binding<String> {
+        Binding(
+            get: { selectedSubcategoryID ?? subcategoryOptions.first?.id ?? "" },
+            set: { selectedSubcategoryID = $0 }
+        )
     }
 
     // MARK: Toolbar
@@ -514,6 +596,11 @@ struct AnswerView: View {
         dismiss()
     }
 
+    private func enforceSubjectCharacterLimit(_ value: String) {
+        guard let limit = effectiveSubjectCharacterLimit, value.count > limit else { return }
+        composerSubject = String(value.prefix(limit))
+    }
+
     // MARK: Network
 
     private func loadComposerContext() async {
@@ -526,6 +613,13 @@ struct AnswerView: View {
                 if composerRecipient == nil, let recipient = context.recipient {
                     composerRecipient = recipient
                 }
+                contextShowsSubjectField = context.isSubjectEditable
+                contextShowsSubcategoryPicker = context.isSubcategoryEditable
+                subcategoryOptions = context.subcategoryOptions
+                if selectedSubcategoryID == nil {
+                    selectedSubcategoryID = context.selectedSubcategoryID ?? context.subcategoryOptions.first?.id
+                }
+                enforceSubjectCharacterLimit(composerSubject)
             }
         } else if let preloader = replyPostingService as? any ReplyComposerContextPreloading {
             await preloader.preloadReplyContext(topicURL: topicURL)
@@ -578,8 +672,11 @@ struct AnswerView: View {
         defer { isPosting = false }
         do {
             var overrides: [String: String] = [:]
-            if requiresSubject {
+            if showsSubjectField {
                 overrides["sujet"] = composerSubject.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            if showsSubcategoryPicker, let selectedSubcategoryID {
+                overrides["subcat"] = selectedSubcategoryID
             }
             if let recipient = composerRecipient { overrides["dest"] = recipient }
 
@@ -602,6 +699,7 @@ struct AnswerView: View {
                     persistsDraft: persistsComposerDraft
                 )
                 composerSubject = ""
+                selectedSubcategoryID = nil
                 dismissComposer()
             }
         } catch let error as ReplyPostingError {
