@@ -2285,6 +2285,11 @@ struct MessagesView: View {
         let url: URL
     }
 
+    private struct UserProfileDestination: Identifiable {
+        let id = UUID()
+        let url: URL
+    }
+
     private struct SmileySheetState: Identifiable {
         let id = UUID()
         let payload: MessageWebSmileyPayload
@@ -2409,6 +2414,7 @@ struct MessagesView: View {
     @State private var linkedTopic: Topic?
     @State private var navigateToLinkedTopic = false
     @State private var safariDestination: SafariDestination?
+    @State private var userProfileDestination: UserProfileDestination?
     @State private var smileySheetState: SmileySheetState?
     @State private var avatarActionSheetState: AvatarActionSheetState?
     @State private var photoViewerDestination: PhotoViewerDestination?
@@ -3183,7 +3189,7 @@ struct MessagesView: View {
     }
 
     private func openProfile(for url: URL) {
-        safariDestination = SafariDestination(url: url)
+        userProfileDestination = UserProfileDestination(url: url)
     }
 
     private func presentAvatarActionSheet(with actions: TopicPageMessageActions) {
@@ -3871,6 +3877,10 @@ struct MessagesView: View {
                     SafariInAppView(url: destination.url)
                         .ignoresSafeArea()
                 }
+                .sheet(item: $userProfileDestination) { destination in
+                    UserProfileView(profileURL: destination.url)
+                        .presentationGlassBackground()
+                }
                 .sheet(item: $smileySheetState) { state in
                     MessageSmileySheetView(
                         code: state.payload.code,
@@ -4345,6 +4355,10 @@ struct MessagesView: View {
                     SafariInAppView(url: destination.url)
                         .ignoresSafeArea()
                 }
+                .sheet(item: $userProfileDestination) { destination in
+                    UserProfileView(profileURL: destination.url)
+                        .presentationGlassBackground()
+                }
                 .sheet(item: $smileySheetState) { state in
                     MessageSmileySheetView(
                         code: state.payload.code,
@@ -4565,6 +4579,10 @@ struct MessagesView: View {
             .sheet(item: $safariDestination) { destination in
                 SafariInAppView(url: destination.url)
                     .ignoresSafeArea()
+            }
+            .sheet(item: $userProfileDestination) { destination in
+                UserProfileView(profileURL: destination.url)
+                    .presentationGlassBackground()
             }
             .sheet(item: $smileySheetState) { state in
                 MessageSmileySheetView(
