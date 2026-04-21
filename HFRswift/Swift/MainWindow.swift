@@ -901,8 +901,11 @@ struct RootTabView: View {
     @State private var selectedTab: RootTabIdentifier
     @State private var hasScheduledColdLaunchPrefetch = false
     @State private var coldLaunchPrefetchTask: Task<Void, Never>?
+    @State private var hasScheduledAQBadgeCheck = false
+    @State private var aqBadgeCheckTask: Task<Void, Never>?
     @State private var messagesNavigationResetToken = UUID()
     @AppStorage("nb_mp") private var unreadMPCount = 0
+    @AppStorage(AQUnreadCounter.storageKey) private var unreadAQCount = 0
     @AppStorage("mp_badge_enabled") private var mpBadgeEnabled = true
     @AppStorage(AppTabBarMinimizeOnScroll.key) private var tabBarMinimizeOnScroll = true
 
@@ -946,6 +949,23 @@ struct RootTabView: View {
     private func cancelColdLaunchPrefetch() {
         coldLaunchPrefetchTask?.cancel()
         coldLaunchPrefetchTask = nil
+    }
+
+    private func startAQBadgeCheckIfNeeded() {
+        guard !hasScheduledAQBadgeCheck else { return }
+        hasScheduledAQBadgeCheck = true
+
+        aqBadgeCheckTask?.cancel()
+        aqBadgeCheckTask = Task {
+            do {
+                try await Task.sleep(for: .seconds(3))
+            } catch {
+                return
+            }
+
+            guard !Task.isCancelled else { return }
+            await AQBadgeCheckService.shared.refreshUnreadCount()
+        }
     }
 
     private func handleUIKitTabSelection(_ selectedIndex: Int) {
@@ -1002,6 +1022,7 @@ struct RootTabView: View {
                     PlusHomeView()
                 }
             }
+            .badge(unreadAQCount > 0 ? unreadAQCount : 0)
         }
         .tabBarMinimizeBehavior(tabBarMinimizeOnScroll ? .onScrollDown : .never)
         .preferredColorScheme(appTheme.preferredColorScheme)
@@ -1011,6 +1032,7 @@ struct RootTabView: View {
             appTheme.refresh(systemColorScheme: systemColorScheme, forceThemeRevision: true)
             syncRuntimeSelectedTab(selectedTab)
             startColdLaunchPrefetchIfNeeded()
+            startAQBadgeCheckIfNeeded()
             handlePendingMessagesNotificationNavigationIfNeeded()
         }
         .onChange(of: selectedTab) { _, newValue in
@@ -1031,6 +1053,7 @@ struct RootTabView: View {
             guard newValue == .active else { return }
             appTheme.refresh(systemColorScheme: systemColorScheme, forceThemeRevision: true)
             startColdLaunchPrefetchIfNeeded()
+            startAQBadgeCheckIfNeeded()
             handlePendingMessagesNotificationNavigationIfNeeded()
             Task { await syncAppIconBadge() }
         }

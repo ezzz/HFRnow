@@ -11,6 +11,7 @@ import MessageUI
 struct PlusHomeView: View {
     @State private var showDeleteAccountComposer = false
     @State private var showMailUnavailableAlert = false
+    @AppStorage(AQUnreadCounter.storageKey) private var unreadAQCount = 0
 
     var body: some View {
         List {
@@ -36,7 +37,7 @@ struct PlusHomeView: View {
                 NavigationLink {
                     AQPlusView()
                 } label: {
-                    PlusRow(title: "Alertes Qualitay", systemImage: "bell")
+                    PlusRow(title: "Alertes Qualitay", systemImage: "bell", badgeCount: unreadAQCount)
                 }
 
                 NavigationLink {
@@ -77,9 +78,22 @@ struct PlusHomeView: View {
 private struct PlusRow: View {
     let title: String
     let systemImage: String
+    var badgeCount = 0
 
     var body: some View {
-        Label(title, systemImage: systemImage)
+        HStack {
+            Label(title, systemImage: systemImage)
+            Spacer()
+            if badgeCount > 0 {
+                Text("\(badgeCount)")
+                    .font(.caption2.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Capsule().fill(Color.red))
+                    .accessibilityLabel("\(badgeCount) nouvelles alertes")
+            }
+        }
     }
 }
 

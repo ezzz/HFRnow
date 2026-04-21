@@ -26,6 +26,71 @@ private struct AQParserContext {
     let shouldFilterCategory25: Bool
 }
 
+enum AQUnreadCounter {
+    static let storageKey = "nb_aq"
+
+    @MainActor
+    static func setCount(_ count: Int) {
+        UserDefaults.standard.set(max(count, 0), forKey: storageKey)
+    }
+}
+
+private enum AQSupport {
+    static let feedURL = URL(string: "https://aq.super-h.fr/rss.php")
+
+    static func lastCheckDate() -> Date {
+        if let date = UserDefaults.standard.object(forKey: "last_check_aq") as? Date {
+            return date
+        }
+        var comps = DateComponents()
+        comps.year = 2010
+        comps.month = 1
+        comps.day = 1
+        return Calendar.current.date(from: comps) ?? Date(timeIntervalSince1970: 0)
+    }
+
+    static func shouldFilterCategory25() -> Bool {
+        guard let pseudo = ObjCLegacyAccountsManager.shared.currentPseudo()?.lowercased(), !pseudo.isEmpty else {
+            return true
+        }
+        return pseudo == "applereview"
+    }
+}
+
+actor AQBadgeCheckService {
+    static let shared = AQBadgeCheckService()
+
+    private let session: URLSession
+
+    init(session: URLSession = .shared) {
+        self.session = session
+    }
+
+    func refreshUnreadCount() async {
+        guard let url = AQSupport.feedURL else { return }
+
+        do {
+            let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
+            let lastCheckDate = AQSupport.lastCheckDate()
+            let (data, _) = try await session.data(for: request)
+            let context = AQParserContext(
+                lastCheckDate: lastCheckDate,
+                shouldFilterCategory25: AQSupport.shouldFilterCategory25()
+            )
+            let parserDelegate = AQRSSParserDelegate(context: context)
+            let parser = XMLParser(data: data)
+            parser.delegate = parserDelegate
+            guard parser.parse() else { return }
+
+            let count = parserDelegate.items.filter(\.isNew).count
+            guard AQSupport.lastCheckDate() <= lastCheckDate else { return }
+            await AQUnreadCounter.setCount(count)
+        } catch {
+            print("AQBadgeCheckService: unread check failed — \(error)")
+        }
+    }
+}
+
 private final class AQRSSParserDelegate: NSObject, XMLParserDelegate {
     private struct WorkingItem {
         var title = ""
@@ -202,7 +267,7 @@ final class AQPlusViewModel: ObservableObject {
         let currentRequestID = requestID
         task?.cancel()
 
-        guard let url = URL(string: "https://aq.super-h.fr/rss.php") else {
+        guard let url = AQSupport.feedURL else {
             errorMessage = "URL AQ invalide"
             return
         }
@@ -232,8 +297,8 @@ final class AQPlusViewModel: ObservableObject {
                 }
 
                 let context = AQParserContext(
-                    lastCheckDate: self.lastCheckDate(),
-                    shouldFilterCategory25: self.shouldFilterCategory25()
+                    lastCheckDate: AQSupport.lastCheckDate(),
+                    shouldFilterCategory25: AQSupport.shouldFilterCategory25()
                 )
                 let parserDelegate = AQRSSParserDelegate(context: context)
                 let parser = XMLParser(data: data)
@@ -246,27 +311,10 @@ final class AQPlusViewModel: ObservableObject {
                 self.items = parserDelegate.items
                 self.errorMessage = nil
                 UserDefaults.standard.set(Date(), forKey: "last_check_aq")
+                AQUnreadCounter.setCount(0)
             }
         }
         task?.resume()
-    }
-
-    private func lastCheckDate() -> Date {
-        if let date = UserDefaults.standard.object(forKey: "last_check_aq") as? Date {
-            return date
-        }
-        var comps = DateComponents()
-        comps.year = 2010
-        comps.month = 1
-        comps.day = 1
-        return Calendar.current.date(from: comps) ?? Date(timeIntervalSince1970: 0)
-    }
-
-    private func shouldFilterCategory25() -> Bool {
-        guard let pseudo = ObjCLegacyAccountsManager.shared.currentPseudo()?.lowercased(), !pseudo.isEmpty else {
-            return true
-        }
-        return pseudo == "applereview"
     }
 }
 
