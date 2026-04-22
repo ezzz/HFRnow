@@ -813,6 +813,7 @@ struct WebView: UIViewRepresentable {
     var onTextQuoteRequest: ((URL, String, Bool) -> Void)?
     var onContentReady: (() -> Void)?
     var onScrollPositionChange: ((Bool) -> Void)?
+    var onTextInteractionStateChange: ((Bool) -> Void)?
 
     init(
         fileURL: URL? = nil,
@@ -848,7 +849,8 @@ struct WebView: UIViewRepresentable {
         onPopupBookmarkRequest: ((TopicPageMessageActions) -> Void)? = nil,
         onTextQuoteRequest: ((URL, String, Bool) -> Void)? = nil,
         onContentReady: (() -> Void)? = nil,
-        onScrollPositionChange: ((Bool) -> Void)? = nil
+        onScrollPositionChange: ((Bool) -> Void)? = nil,
+        onTextInteractionStateChange: ((Bool) -> Void)? = nil
     ) {
         self.fileURL = fileURL
         self.readAccessURL = readAccessURL
@@ -884,6 +886,7 @@ struct WebView: UIViewRepresentable {
         self.onTextQuoteRequest = onTextQuoteRequest
         self.onContentReady = onContentReady
         self.onScrollPositionChange = onScrollPositionChange
+        self.onTextInteractionStateChange = onTextInteractionStateChange
     }
 
     func makeCoordinator() -> Coordinator {
@@ -931,6 +934,7 @@ struct WebView: UIViewRepresentable {
         )
         contentController.addUserScript(bootstrapThemeScript)
         contentController.add(context.coordinator, name: "scrollState")
+        contentController.add(context.coordinator, name: "textInteractionState")
 
         let scrollTrackingScript = WKUserScript(
             source: """
@@ -964,6 +968,57 @@ struct WebView: UIViewRepresentable {
             forMainFrameOnly: true
         )
         contentController.addUserScript(scrollTrackingScript)
+
+        let textInteractionTrackingScript = WKUserScript(
+            source: """
+            (function() {
+              if (window.__hfrTextInteractionTrackingInstalled) { return; }
+              window.__hfrTextInteractionTrackingInstalled = true;
+
+              var lastActive = null;
+              var contextMenuTimer = null;
+
+              function hasTextSelection() {
+                var selection = window.getSelection && window.getSelection();
+                return !!selection && selection.rangeCount > 0 && selection.toString().trim().length > 0;
+              }
+
+              function notify(active) {
+                if (active === lastActive) { return; }
+                lastActive = active;
+                try { window.webkit.messageHandlers.textInteractionState.postMessage(active); } catch (e) {}
+              }
+
+              function refresh() {
+                notify(hasTextSelection());
+              }
+
+              document.addEventListener('selectionchange', function() {
+                setTimeout(refresh, 0);
+              }, false);
+
+              document.addEventListener('contextmenu', function() {
+                notify(true);
+                if (contextMenuTimer) {
+                  clearTimeout(contextMenuTimer);
+                }
+                contextMenuTimer = setTimeout(refresh, 1500);
+              }, true);
+
+              document.addEventListener('touchstart', function() {
+                if (!hasTextSelection()) {
+                  notify(false);
+                }
+              }, { passive: true });
+
+              window.addEventListener('blur', refresh, false);
+              setTimeout(refresh, 0);
+            })();
+            """,
+            injectionTime: .atDocumentEnd,
+            forMainFrameOnly: true
+        )
+        contentController.addUserScript(textInteractionTrackingScript)
 
         let configuration = WKWebViewConfiguration()
         configuration.userContentController = contentController
@@ -1191,19 +1246,35 @@ struct WebView: UIViewRepresentable {
         }
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-            guard message.name == "scrollState" else { return }
+            switch message.name {
+            case "scrollState":
+                let isAtBottom: Bool
+                if let boolValue = message.body as? Bool {
+                    isAtBottom = boolValue
+                } else if let numberValue = message.body as? NSNumber {
+                    isAtBottom = numberValue.boolValue
+                } else {
+                    return
+                }
 
-            let isAtBottom: Bool
-            if let boolValue = message.body as? Bool {
-                isAtBottom = boolValue
-            } else if let numberValue = message.body as? NSNumber {
-                isAtBottom = numberValue.boolValue
-            } else {
+                DispatchQueue.main.async {
+                    self.parent.onScrollPositionChange?(isAtBottom)
+                }
+            case "textInteractionState":
+                let isActive: Bool
+                if let boolValue = message.body as? Bool {
+                    isActive = boolValue
+                } else if let numberValue = message.body as? NSNumber {
+                    isActive = numberValue.boolValue
+                } else {
+                    return
+                }
+
+                DispatchQueue.main.async {
+                    self.parent.onTextInteractionStateChange?(isActive)
+                }
+            default:
                 return
-            }
-
-            DispatchQueue.main.async {
-                self.parent.onScrollPositionChange?(isAtBottom)
             }
         }
 
@@ -2632,6 +2703,7 @@ struct MessagesView: View {
     @State private var presentedPollData: PollData?
     @State private var showWebViewLoadCover = true
     @State private var isWebContentAtBottom = false
+    @State private var isMessageTextInteractionActive = false
     @State private var pendingPostedReply: ReplyPostingResult?
     @State private var showPostSuccessToast = false
     @State private var postSuccessToastText = "Hooray"
@@ -4194,6 +4266,9 @@ struct MessagesView: View {
                                 isWebContentAtBottom = isAtBottom
                             }
                         }
+                    },
+                    onTextInteractionStateChange: { isActive in
+                        isMessageTextInteractionActive = isActive
                     }
                 )
                     .id(page) // force a new WKWebView per page
@@ -4248,11 +4323,17 @@ struct MessagesView: View {
                 .simultaneousGesture(
                     DragGesture().onEnded { value in
                         guard !isFavoritePostFilterMode else { return }
+                        guard !isMessageTextInteractionActive else { return }
                         let horizontal = value.translation.width
                         let vertical = value.translation.height
                         let minDistance: CGFloat = 120
+                        let minHorizontalImpulse: CGFloat = 70
                         let maxVerticalRatio: CGFloat = 0.5
-                        if abs(horizontal) > minDistance && abs(vertical) < abs(horizontal) * maxVerticalRatio {
+                        let horizontalImpulse = value.predictedEndTranslation.width - horizontal
+                        if abs(horizontal) > minDistance &&
+                            abs(horizontalImpulse) > minHorizontalImpulse &&
+                            horizontal.sign == horizontalImpulse.sign &&
+                            abs(vertical) < abs(horizontal) * maxVerticalRatio {
                             if horizontal < 0, page < currentMaxPage {
                                 // Next page: start at top
                                 self.anchor = nil

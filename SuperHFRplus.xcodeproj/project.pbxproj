@@ -4417,7 +4417,7 @@
 			};
 			buildConfigurationList = C01FCF4E08A954540054247B /* Build configuration list for PBXProject "SuperHFRplus" */;
 			compatibilityVersion = "Xcode 3.2";
-			developmentRegion = en;
+			developmentRegion = fr;
 			hasScannedForEncodings = 1;
 			knownRegions = (
 				fr,
