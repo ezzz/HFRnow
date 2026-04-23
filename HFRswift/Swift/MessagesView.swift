@@ -5568,6 +5568,23 @@ struct FullScreenPhotoViewer: View {
     }
 }
 
+enum PhotoViewerNetworkRequestFactory {
+    static let forumReferer = "https://forum.hardware.fr"
+
+    static func makeRequest(for url: URL) -> URLRequest {
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
+        if requiresForumReferer(url) {
+            request.setValue(forumReferer, forHTTPHeaderField: "Referer")
+        }
+        return request
+    }
+
+    static func requiresForumReferer(_ url: URL) -> Bool {
+        guard let host = url.host?.lowercased() else { return false }
+        return host == "reho.st" || host.hasSuffix(".reho.st")
+    }
+}
+
 private struct ZoomableRemoteAnimatedImageView: UIViewRepresentable {
     let url: URL
     let presentationID: UUID
@@ -5672,7 +5689,8 @@ private struct ZoomableRemoteAnimatedImageView: UIViewRepresentable {
 
             scheduleState(.loading, visible: false)
 
-            let task = URLSession.shared.dataTask(with: url) { [weak self, weak view] data, response, _ in
+            let request = PhotoViewerNetworkRequestFactory.makeRequest(for: url)
+            let task = URLSession.shared.dataTask(with: request) { [weak self, weak view] data, response, _ in
                 guard let self else { return }
 
                 let isValidResponse = (response as? HTTPURLResponse).map { (200..<300).contains($0.statusCode) } ?? false
