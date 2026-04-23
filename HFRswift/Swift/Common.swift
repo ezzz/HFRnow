@@ -1781,9 +1781,10 @@ struct TopicOpenPolicy {
                 fallbackPage: currentPage
             )
         case .globalSearch:
+            let searchMatchURL = TopicPageURLRouting.searchMatchURL(from: topic.sLastSearchPostURL)
             return Decision(
-                preferredURL: nonEmptyString(topic.sLastSearchPostURL) ?? nonEmptyString(topic.aURL),
-                fallbackPage: max(TopicPageURLRouting.pageNumber(from: topic.sLastSearchPostURL) ?? currentPage, 1)
+                preferredURL: searchMatchURL ?? nonEmptyString(topic.aURL),
+                fallbackPage: max(TopicPageURLRouting.pageNumber(from: searchMatchURL) ?? currentPage, 1)
             )
         case .messages:
             return Decision(
@@ -1807,6 +1808,25 @@ struct TopicOpenPolicy {
 }
 
 enum TopicPageURLRouting {
+    static func searchMatchURL(from urlString: String?) -> String? {
+        guard let trimmedURL = nonEmptyString(urlString) else { return nil }
+        guard var components = URLComponents(string: trimmedURL) else {
+            return searchMatchURLByRegex(from: trimmedURL)
+        }
+
+        if let fragment = components.fragment, !fragment.isEmpty {
+            return components.string ?? trimmedURL
+        }
+
+        if let numReponse = components.queryItems?.first(where: { $0.name == "numreponse" })?.value,
+           let postID = normalizedPostAnchorID(from: numReponse) {
+            components.fragment = "t\(postID)"
+            return components.string ?? trimmedURL
+        }
+
+        return trimmedURL
+    }
+
     static func pageNumber(from urlString: String?) -> Int? {
         guard let urlString = nonEmptyString(urlString) else { return nil }
 
@@ -1881,6 +1901,32 @@ enum TopicPageURLRouting {
             return nil
         }
         return trimmed
+    }
+
+    private static func normalizedPostAnchorID(from value: String) -> String? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != "0" else { return nil }
+        return trimmed
+    }
+
+    private static func searchMatchURLByRegex(from urlString: String) -> String {
+        if urlString.contains("#") {
+            return urlString
+        }
+        guard
+            let regex = try? NSRegularExpression(pattern: "(?:\\?|&)numreponse=(\\d+)", options: [.caseInsensitive]),
+            let match = regex.firstMatch(
+                in: urlString,
+                options: [],
+                range: NSRange(urlString.startIndex..<urlString.endIndex, in: urlString)
+            ),
+            match.numberOfRanges > 1,
+            let captureRange = Range(match.range(at: 1), in: urlString),
+            let postID = normalizedPostAnchorID(from: String(urlString[captureRange]))
+        else {
+            return urlString
+        }
+        return "\(urlString)#t\(postID)"
     }
 }
 
@@ -2171,7 +2217,7 @@ struct TopicListRowView: View {
     }
 
     private var searchMatchURL: String? {
-        nonEmptyString(topic.sLastSearchPostURL)
+        TopicPageURLRouting.searchMatchURL(from: topic.sLastSearchPostURL)
     }
 
     private var unreadBadgeTextColor: Color {

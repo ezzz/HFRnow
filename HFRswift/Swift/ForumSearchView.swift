@@ -321,12 +321,8 @@ private struct ForumSearchTopicRow: View {
     }
 
     private var footerRight: String? {
-        let currentPage = Int(topic.curTopicPage)
         let maxPage = max(Int(topic.maxTopicPage), 1)
-        if currentPage > 0, currentPage <= maxPage {
-            return "\(currentPage) / \(maxPage)"
-        }
-        return "\(maxPage)"
+        return maxPage > 1 ? "\(maxPage) pages" : "1 page"
     }
 
     var body: some View {
