@@ -60,6 +60,36 @@ enum ReplySmileyCacheBridge {
         sharedCache.setValue(NSMutableArray(array: normalizedEntries), forKey: "arrFavoritesSmileysForum")
     }
 
+    static func isFavoriteFromApp(code: String) -> Bool {
+        guard let sharedCache = sharedCacheObject else {
+            return false
+        }
+        let selector = NSSelectorFromString("isFavoriteSmileyFromApp:")
+        guard sharedCache.responds(to: selector) else {
+            return false
+        }
+
+        typealias Function = @convention(c) (AnyObject, Selector, NSString) -> Bool
+        let implementation = sharedCache.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        return function(sharedCache, selector, code as NSString)
+    }
+
+    static func updateAppFavorite(code: String, imageURL: String, add: Bool) -> Bool {
+        guard let sharedCache = sharedCacheObject else {
+            return false
+        }
+        let selector = NSSelectorFromString("AddAndSaveDicFavoritesApp:source:addSmiley:")
+        guard sharedCache.responds(to: selector) else {
+            return false
+        }
+
+        typealias Function = @convention(c) (AnyObject, Selector, NSString, NSString, Bool) -> Bool
+        let implementation = sharedCache.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        return function(sharedCache, selector, code as NSString, imageURL as NSString, add)
+    }
+
     private static var sharedCacheObject: AnyObject? {
         guard let cacheClass = NSClassFromString("SmileyCache") as? NSObject.Type else {
             return nil

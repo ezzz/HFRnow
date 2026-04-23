@@ -285,9 +285,18 @@ struct AnswerView: View {
             .presentationDetents([.large])
 
         case .favoriteSmileys:
-            FavoriteSmileyPickerView(smileys: favoriteSmileys) { smiley in
-                insertSmileyCode(smiley.code)
-            }
+            FavoriteSmileyPickerView(
+                smileys: favoriteSmileys,
+                onSelect: { smiley in
+                    insertSmileyCode(smiley.code)
+                },
+                onToggleFavorite: { smiley, add in
+                    updateFavoriteSmiley(smiley, add: add)
+                },
+                onFetchKeywords: { code in
+                    await fetchSmileyKeywords(code: code)
+                }
+            )
             .presentationDetents([.large])
 
         case .imageInsertion:
@@ -720,6 +729,111 @@ struct AnswerView: View {
         AppHaptics.impact(success ? .light : .rigid)
     }
 
+    private func updateFavoriteSmiley(_ smiley: ReplySmiley, add: Bool) -> Bool {
+        guard case .remote(let imageURL) = smiley.imageSource else {
+            presentToast(success: false, text: "Smiley non compatible")
+            return false
+        }
+
+        let didUpdate = ReplySmileyCacheBridge.updateAppFavorite(
+            code: smiley.code,
+            imageURL: imageURL.absoluteString,
+            add: add
+        )
+        guard didUpdate else {
+            presentToast(success: false, text: "Erreur :/")
+            return false
+        }
+
+        favoriteSmileys = smileyCatalogLoader.loadFavoriteSmileys()
+        AppHaptics.impact(.light)
+        presentToast(
+            success: true,
+            text: add ? "Smiley ajouté aux favoris" : "Smiley retiré des favoris"
+        )
+        return true
+    }
+
+    private func fetchSmileyKeywords(code: String) async -> Result<[String], Error> {
+        let encodedCode = code.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? code
+        guard let url = URL(string: "https://forum.hardware.fr/wikismilies.php?config=hfr.inc&detail=\(encodedCode)") else {
+            return .failure(
+                NSError(
+                    domain: "AnswerView",
+                    code: 1,
+                    userInfo: [NSLocalizedDescriptionKey: "URL invalide."]
+                )
+            )
+        }
+
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+            guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
+                return .failure(
+                    NSError(
+                        domain: "AnswerView",
+                        code: 2,
+                        userInfo: [NSLocalizedDescriptionKey: "Réponse serveur invalide."]
+                    )
+                )
+            }
+
+            guard let html = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1) else {
+                return .failure(
+                    NSError(
+                        domain: "AnswerView",
+                        code: 3,
+                        userInfo: [NSLocalizedDescriptionKey: "Réponse illisible."]
+                    )
+                )
+            }
+
+            let pattern = #"name\s*=\s*"keywords0"[^>]*value\s*=\s*"([^"]*)""#
+            guard
+                let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]),
+                let match = regex.firstMatch(in: html, options: [], range: NSRange(html.startIndex..<html.endIndex, in: html)),
+                match.numberOfRanges > 1,
+                let valueRange = Range(match.range(at: 1), in: html)
+            else {
+                return .failure(
+                    NSError(
+                        domain: "AnswerView",
+                        code: 4,
+                        userInfo: [NSLocalizedDescriptionKey: "Aucun mot clé trouvé."]
+                    )
+                )
+            }
+
+            let rawValue = String(html[valueRange])
+            let decodedEntities = rawValue
+                .replacingOccurrences(of: "&amp;", with: "&")
+                .replacingOccurrences(of: "&quot;", with: "\"")
+                .replacingOccurrences(of: "&apos;", with: "'")
+                .replacingOccurrences(of: "&#39;", with: "'")
+                .replacingOccurrences(of: "&#x2F;", with: "/")
+                .replacingOccurrences(of: "&#47;", with: "/")
+
+            let keywords = decodedEntities
+                .replacingOccurrences(of: ",", with: " ")
+                .split(whereSeparator: { $0.isWhitespace })
+                .map(String.init)
+                .filter { !$0.isEmpty }
+
+            if keywords.isEmpty {
+                return .failure(
+                    NSError(
+                        domain: "AnswerView",
+                        code: 5,
+                        userInfo: [NSLocalizedDescriptionKey: "Aucun mot clé trouvé."]
+                    )
+                )
+            }
+            return .success(keywords)
+        } catch {
+            return .failure(error)
+        }
+    }
+
     // MARK: Toast
 
     private func presentToast(success: Bool, text: String) {
@@ -944,6 +1058,8 @@ private struct SmileyPickerView: View {
 private struct FavoriteSmileyPickerView: View {
     let smileys: [ReplySmiley]
     let onSelect: (ReplySmiley) -> Void
+    let onToggleFavorite: (ReplySmiley, Bool) -> Bool
+    let onFetchKeywords: (String) async -> Result<[String], Error>
 
     @Environment(\.dismiss) private var dismiss
     private let columns = [GridItem(.adaptive(minimum: 78, maximum: 90), spacing: 4)]
@@ -968,6 +1084,7 @@ private struct FavoriteSmileyPickerView: View {
     @State private var recentSuggestions: [SmileySearchHistoryEntry] = []
     @State private var topSuggestions: [SmileySearchHistoryEntry] = []
     @State private var searchTask: Task<Void, Never>?
+    @State private var presentedSmiley: ReplySmiley?
     @FocusState private var isSearchFieldFocused: Bool
 
     private var displayedSmileys: [ReplySmiley] {
@@ -990,60 +1107,85 @@ private struct FavoriteSmileyPickerView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            ComposerSheetCloseHeader(title: "Smileys favoris") { dismiss() }
+        ZStack {
+            VStack(spacing: 0) {
+                ComposerSheetCloseHeader(title: "Smileys favoris") { dismiss() }
 
-            ScrollView {
-                if case .empty = displayMode {
-                    emptyState
-                } else {
-                    LazyVGrid(columns: columns, spacing: 4) {
-                        ForEach(displayedSmileys) { smiley in
-                            Button {
-                                isSearchFieldFocused = false
-                                onSelect(smiley)
-                                dismiss()
-                            } label: {
-                                SmileyGridCell(smiley: smiley)
+                ScrollView {
+                    if case .empty = displayMode {
+                        emptyState
+                    } else {
+                        LazyVGrid(columns: columns, spacing: 4) {
+                            ForEach(displayedSmileys) { smiley in
+                                smileyItem(smiley)
                             }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel(smiley.code)
                         }
+                        .padding(8)
                     }
-                    .padding(8)
                 }
-            }
 
-            if showSuggestions && !suggestionChips.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(suggestionChips) { entry in
-                            Button {
-                                isSearchFieldFocused = false
-                                searchText = entry.text
-                                performSearch()
-                            } label: {
-                                HStack(spacing: 4) {
-                                    Image(systemName: searchText.isEmpty ? "clock" : "magnifyingglass")
-                                        .font(.caption2).foregroundStyle(.secondary)
-                                    Text(entry.text).font(.subheadline)
+                if showSuggestions && !suggestionChips.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(suggestionChips) { entry in
+                                Button {
+                                    search(using: entry.text)
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: searchText.isEmpty ? "clock" : "magnifyingglass")
+                                            .font(.caption2).foregroundStyle(.secondary)
+                                        Text(entry.text).font(.subheadline)
+                                    }
+                                    .padding(.horizontal, 12).padding(.vertical, 6)
+                                    .smileyChipStyle()
                                 }
-                                .padding(.horizontal, 12).padding(.vertical, 6)
-                                .smileyChipStyle()
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
                         }
+                        .padding(.horizontal, 12).padding(.vertical, 8)
                     }
-                    .padding(.horizontal, 12).padding(.vertical, 8)
                 }
-            }
 
-            Divider()
-            searchBarRow
-                .padding(.horizontal, 12).padding(.vertical, 10)
+                Divider()
+                searchBarRow
+                    .padding(.horizontal, 12).padding(.vertical, 10)
+            }
+            .allowsHitTesting(presentedSmiley == nil)
+
+            if let presentedSmiley {
+                Color.black.opacity(0.22)
+                    .ignoresSafeArea()
+
+                FavoriteSmileyDetailView(
+                    smiley: presentedSmiley,
+                    initiallyFavorite: ReplySmileyCacheBridge.isFavoriteFromApp(code: presentedSmiley.code),
+                    onInsert: {
+                        isSearchFieldFocused = false
+                        onSelect(presentedSmiley)
+                        dismiss()
+                    },
+                    onToggleFavorite: { add in
+                        onToggleFavorite(presentedSmiley, add)
+                    },
+                    onFetchKeywords: {
+                        await onFetchKeywords(presentedSmiley.code)
+                    },
+                    onSearchKeyword: { keyword in
+                        self.presentedSmiley = nil
+                        search(using: keyword)
+                    },
+                    onClose: {
+                        self.presentedSmiley = nil
+                    }
+                )
+                .padding(.horizontal, 16)
+                .transition(.scale(scale: 0.96).combined(with: .opacity))
+                .zIndex(1)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .presentationGlassBackground()
+        .animation(.easeInOut(duration: 0.18), value: presentedSmiley?.id)
         .onAppear { refreshSuggestions() }
         .onChange(of: searchText) { _, _ in refreshSuggestions() }
         .onDisappear { searchTask?.cancel() }
@@ -1088,7 +1230,7 @@ private struct FavoriteSmileyPickerView: View {
             if isSearching {
                 ProgressView().controlSize(.small).frame(width: 36, height: 36)
             } else {
-                Button(action: performSearch) {
+                Button(action: { performSearch() }) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 15, weight: .semibold))
                         .padding(8)
@@ -1118,10 +1260,13 @@ private struct FavoriteSmileyPickerView: View {
 
     // MARK: Logic
 
-    private func performSearch() {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+    private func performSearch(queryOverride: String? = nil) {
+        let query = (queryOverride ?? searchText).trimmingCharacters(in: .whitespacesAndNewlines)
         guard query.count >= 3 else { return }
         isSearchFieldFocused = false
+        if searchText != query {
+            searchText = query
+        }
         searchTask?.cancel()
         isSearching = true
         searchTask = Task {
@@ -1147,9 +1292,173 @@ private struct FavoriteSmileyPickerView: View {
         displayMode = .favorites
     }
 
+    private func search(using query: String) {
+        presentedSmiley = nil
+        performSearch(queryOverride: query)
+    }
+
     private func refreshSuggestions() {
         recentSuggestions = SmileySearchHistoryStore.recentSuggestions(matching: searchText)
         topSuggestions = SmileySearchHistoryStore.topSuggestions(matching: searchText)
+    }
+
+    private func smileyItem(_ smiley: ReplySmiley) -> some View {
+        Button {
+            isSearchFieldFocused = false
+            presentedSmiley = smiley
+        } label: {
+            SmileyGridCell(smiley: smiley)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(smiley.code)
+    }
+}
+
+private struct FavoriteSmileyDetailView: View {
+    let smiley: ReplySmiley
+    let initiallyFavorite: Bool
+    let onInsert: () -> Void
+    let onToggleFavorite: (Bool) -> Bool
+    let onFetchKeywords: () async -> Result<[String], Error>
+    let onSearchKeyword: (String) -> Void
+    let onClose: () -> Void
+
+    @Environment(\.appThemePalette) private var themePalette
+    @State private var isFavorite: Bool
+    @State private var keywords: [String] = []
+    @State private var isLoadingKeywords = false
+    @State private var keywordsErrorMessage: String?
+
+    init(
+        smiley: ReplySmiley,
+        initiallyFavorite: Bool,
+        onInsert: @escaping () -> Void,
+        onToggleFavorite: @escaping (Bool) -> Bool,
+        onFetchKeywords: @escaping () async -> Result<[String], Error>,
+        onSearchKeyword: @escaping (String) -> Void,
+        onClose: @escaping () -> Void
+    ) {
+        self.smiley = smiley
+        self.initiallyFavorite = initiallyFavorite
+        self.onInsert = onInsert
+        self.onToggleFavorite = onToggleFavorite
+        self.onFetchKeywords = onFetchKeywords
+        self.onSearchKeyword = onSearchKeyword
+        self.onClose = onClose
+        _isFavorite = State(initialValue: initiallyFavorite)
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Spacer()
+                    Button("Fermer", action: onClose)
+                        .font(.subheadline.weight(.semibold))
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
+                }
+
+                VStack(spacing: 14) {
+                    SmileyPreviewView(smiley: smiley)
+                        .frame(maxWidth: .infinity, minHeight: 150, maxHeight: 150)
+                        .background(themePalette.tertiaryBackgroundColor, in: .rect(cornerRadius: 16))
+
+                    Text(smiley.code)
+                        .font(.title3.monospaced())
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity)
+                }
+
+                VStack(spacing: 10) {
+                    Button(action: onInsert) {
+                        Label("Insérer", systemImage: "text.insert")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .replyTintedActionButtonStyle(useProminent: true, tint: .accentColor)
+
+                    Button {
+                        let add = !isFavorite
+                        guard onToggleFavorite(add) else { return }
+                        isFavorite.toggle()
+                    } label: {
+                        Label(
+                            isFavorite ? "Retirer des favoris" : "Ajouter aux favoris",
+                            systemImage: isFavorite ? "star.slash" : "star"
+                        )
+                        .frame(maxWidth: .infinity)
+                    }
+                    .replyTintedActionButtonStyle(useProminent: false, tint: .accentColor)
+                }
+
+                if isLoadingKeywords || !keywords.isEmpty || keywordsErrorMessage != nil {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Mots clés")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.secondary)
+
+                        if isLoadingKeywords {
+                            ProgressView("Chargement des mots clés…")
+                                .font(.footnote)
+                        } else if !keywords.isEmpty {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    ForEach(keywords, id: \.self) { keyword in
+                                        Button(keyword) {
+                                            onSearchKeyword(keyword)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .smileyChipStyle()
+                                    }
+                                }
+                            }
+                        } else if let keywordsErrorMessage {
+                            Text(keywordsErrorMessage)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(12)
+                    .background(themePalette.controlBackgroundColor.opacity(0.7), in: .rect(cornerRadius: 14))
+                }
+            }
+            .padding(18)
+            .frame(maxWidth: 460)
+            .frame(maxWidth: .infinity)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .background(detailBackground)
+        .clipShape(.rect(cornerRadius: 24))
+        .task {
+            isLoadingKeywords = true
+            keywordsErrorMessage = nil
+            switch await onFetchKeywords() {
+            case .success(let fetchedKeywords):
+                keywords = fetchedKeywords
+            case .failure(let error):
+                keywords = []
+                keywordsErrorMessage = error.localizedDescription
+            }
+            isLoadingKeywords = false
+        }
+    }
+
+    @ViewBuilder
+    private var detailBackground: some View {
+        if #available(iOS 26.0, *) {
+            Rectangle()
+                .fill(.clear)
+                .glassEffect(in: .rect(cornerRadius: 24))
+        } else {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(.regularMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
+                )
+        }
     }
 }
 
@@ -1173,6 +1482,7 @@ private struct SmileyGridCell: View {
 
 private struct SmileyThumbnailView: UIViewRepresentable {
     let smiley: ReplySmiley
+    var contentMode: UIView.ContentMode = .center
 
     func makeUIView(context: Context) -> UIImageView {
         let imageView: UIImageView
@@ -1182,7 +1492,7 @@ private struct SmileyThumbnailView: UIViewRepresentable {
         } else {
             imageView = UIImageView()
         }
-        imageView.contentMode = .center
+        imageView.contentMode = contentMode
         imageView.clipsToBounds = true
         return imageView
     }
@@ -1305,6 +1615,16 @@ private struct SmileyThumbnailView: UIViewRepresentable {
             let duration = unclamped ?? clamped ?? 0.1
             return duration < 0.011 ? 0.1 : duration
         }
+    }
+}
+
+private struct SmileyPreviewView: View {
+    let smiley: ReplySmiley
+
+    var body: some View {
+        SmileyThumbnailView(smiley: smiley, contentMode: .scaleAspectFit)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 12)
     }
 }
 
