@@ -582,6 +582,10 @@ private struct MessagePopupPromptSheet: View {
 
 private enum MessageBlackWhiteListActionBridge {
     static func toggleBlacklist(pseudo: String) -> String? {
+        let normalizedPseudo = normalizedPseudo(from: pseudo)
+        guard !normalizedPseudo.isEmpty else {
+            return nil
+        }
         guard let object = sharedObject() else {
             return nil
         }
@@ -593,7 +597,7 @@ private enum MessageBlackWhiteListActionBridge {
         typealias IsBLFunction = @convention(c) (AnyObject, Selector, NSString) -> Bool
         let isBLImplementation = object.method(for: isBLSelector)
         let isBLFunction = unsafeBitCast(isBLImplementation, to: IsBLFunction.self)
-        let isBL = isBLFunction(object, isBLSelector, pseudo as NSString)
+        let isBL = isBLFunction(object, isBLSelector, normalizedPseudo as NSString)
 
         if isBL {
             let selector = NSSelectorFromString("removeFromBlackList:andSave:")
@@ -603,10 +607,10 @@ private enum MessageBlackWhiteListActionBridge {
             typealias Function = @convention(c) (AnyObject, Selector, NSString, Bool) -> Bool
             let implementation = object.method(for: selector)
             let function = unsafeBitCast(implementation, to: Function.self)
-            let result = function(object, selector, pseudo as NSString, true)
+            let result = function(object, selector, normalizedPseudo as NSString, true)
             return result
-                ? "\(pseudo) a été supprimé de la liste noire"
-                : "Erreur! \(pseudo) n'a pas pu être supprimé de la liste noire"
+                ? "\(normalizedPseudo) a été supprimé de la liste noire"
+                : "Erreur! \(normalizedPseudo) n'a pas pu être supprimé de la liste noire"
         }
 
         let selector = NSSelectorFromString("addToBlackList:andSave:")
@@ -616,13 +620,17 @@ private enum MessageBlackWhiteListActionBridge {
         typealias Function = @convention(c) (AnyObject, Selector, NSString, Bool) -> Bool
         let implementation = object.method(for: selector)
         let function = unsafeBitCast(implementation, to: Function.self)
-        let result = function(object, selector, pseudo as NSString, true)
+        let result = function(object, selector, normalizedPseudo as NSString, true)
         return result
-            ? "BIM! \(pseudo) ajouté à la liste noire"
-            : "Erreur! \(pseudo) n'a pas pu être ajouté à la liste noire"
+            ? "BIM! \(normalizedPseudo) ajouté à la liste noire"
+            : "Erreur! \(normalizedPseudo) n'a pas pu être ajouté à la liste noire"
     }
 
     static func toggleWhitelist(pseudo: String) -> String? {
+        let normalizedPseudo = normalizedPseudo(from: pseudo)
+        guard !normalizedPseudo.isEmpty else {
+            return nil
+        }
         guard let object = sharedObject() else {
             return nil
         }
@@ -633,7 +641,7 @@ private enum MessageBlackWhiteListActionBridge {
         typealias IsWLFunction = @convention(c) (AnyObject, Selector, NSString) -> Bool
         let isWLImplementation = object.method(for: isWLSelector)
         let isWLFunction = unsafeBitCast(isWLImplementation, to: IsWLFunction.self)
-        let isWL = isWLFunction(object, isWLSelector, pseudo as NSString)
+        let isWL = isWLFunction(object, isWLSelector, normalizedPseudo as NSString)
 
         if isWL {
             let selector = NSSelectorFromString("removeFromWhiteList:")
@@ -643,8 +651,8 @@ private enum MessageBlackWhiteListActionBridge {
             typealias Function = @convention(c) (AnyObject, Selector, NSString) -> Bool
             let implementation = object.method(for: selector)
             let function = unsafeBitCast(implementation, to: Function.self)
-            _ = function(object, selector, pseudo as NSString)
-            return "OH NOES ! \(pseudo) a été supprimé de la love list"
+            _ = function(object, selector, normalizedPseudo as NSString)
+            return "OH NOES ! \(normalizedPseudo) a été supprimé de la love list"
         }
 
         let selector = NSSelectorFromString("addToWhiteList:")
@@ -654,8 +662,8 @@ private enum MessageBlackWhiteListActionBridge {
         typealias Function = @convention(c) (AnyObject, Selector, NSString) -> Void
         let implementation = object.method(for: selector)
         let function = unsafeBitCast(implementation, to: Function.self)
-        function(object, selector, pseudo as NSString)
-        return "BOUM BOUM ! \(pseudo) ajouté à la love list ♥"
+        function(object, selector, normalizedPseudo as NSString)
+        return "BOUM BOUM ! \(normalizedPseudo) ajouté à la love list ♥"
     }
 
     private static func sharedObject() -> NSObject? {
@@ -668,6 +676,12 @@ private enum MessageBlackWhiteListActionBridge {
             return nil
         }
         return unmanaged.takeUnretainedValue() as? NSObject
+    }
+
+    private static func normalizedPseudo(from pseudo: String) -> String {
+        pseudo
+            .replacingOccurrences(of: "\u{200B}", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 
@@ -2231,6 +2245,10 @@ struct WebView: UIViewRepresentable {
 
         private enum MessageBlackWhiteListBridge {
             static func toggleBlacklist(pseudo: String) -> String? {
+                let normalizedPseudo = normalizedPseudo(from: pseudo)
+                guard !normalizedPseudo.isEmpty else {
+                    return nil
+                }
                 guard let object = sharedObject() else {
                     return nil
                 }
@@ -2242,7 +2260,7 @@ struct WebView: UIViewRepresentable {
                 typealias IsBLFunction = @convention(c) (AnyObject, Selector, NSString) -> Bool
                 let isBLImplementation = object.method(for: isBLSelector)
                 let isBLFunction = unsafeBitCast(isBLImplementation, to: IsBLFunction.self)
-                let isBL = isBLFunction(object, isBLSelector, pseudo as NSString)
+                let isBL = isBLFunction(object, isBLSelector, normalizedPseudo as NSString)
 
                 if isBL {
                     let selector = NSSelectorFromString("removeFromBlackList:andSave:")
@@ -2252,10 +2270,10 @@ struct WebView: UIViewRepresentable {
                     typealias Function = @convention(c) (AnyObject, Selector, NSString, Bool) -> Bool
                     let implementation = object.method(for: selector)
                     let function = unsafeBitCast(implementation, to: Function.self)
-                    let result = function(object, selector, pseudo as NSString, true)
+                    let result = function(object, selector, normalizedPseudo as NSString, true)
                     return result
-                        ? "\(pseudo) a été supprimé de la liste noire"
-                        : "Erreur! \(pseudo) n'a pas pu être supprimé de la liste noire"
+                        ? "\(normalizedPseudo) a été supprimé de la liste noire"
+                        : "Erreur! \(normalizedPseudo) n'a pas pu être supprimé de la liste noire"
                 }
 
                 let selector = NSSelectorFromString("addToBlackList:andSave:")
@@ -2265,13 +2283,17 @@ struct WebView: UIViewRepresentable {
                 typealias Function = @convention(c) (AnyObject, Selector, NSString, Bool) -> Bool
                 let implementation = object.method(for: selector)
                 let function = unsafeBitCast(implementation, to: Function.self)
-                let result = function(object, selector, pseudo as NSString, true)
+                let result = function(object, selector, normalizedPseudo as NSString, true)
                 return result
-                    ? "BIM! \(pseudo) ajouté à la liste noire"
-                    : "Erreur! \(pseudo) n'a pas pu être ajouté à la liste noire"
+                    ? "BIM! \(normalizedPseudo) ajouté à la liste noire"
+                    : "Erreur! \(normalizedPseudo) n'a pas pu être ajouté à la liste noire"
             }
 
             static func toggleWhitelist(pseudo: String) -> String? {
+                let normalizedPseudo = normalizedPseudo(from: pseudo)
+                guard !normalizedPseudo.isEmpty else {
+                    return nil
+                }
                 guard let object = sharedObject() else {
                     return nil
                 }
@@ -2282,7 +2304,7 @@ struct WebView: UIViewRepresentable {
                 typealias IsWLFunction = @convention(c) (AnyObject, Selector, NSString) -> Bool
                 let isWLImplementation = object.method(for: isWLSelector)
                 let isWLFunction = unsafeBitCast(isWLImplementation, to: IsWLFunction.self)
-                let isWL = isWLFunction(object, isWLSelector, pseudo as NSString)
+                let isWL = isWLFunction(object, isWLSelector, normalizedPseudo as NSString)
 
                 if isWL {
                     let selector = NSSelectorFromString("removeFromWhiteList:")
@@ -2292,8 +2314,8 @@ struct WebView: UIViewRepresentable {
                     typealias Function = @convention(c) (AnyObject, Selector, NSString) -> Bool
                     let implementation = object.method(for: selector)
                     let function = unsafeBitCast(implementation, to: Function.self)
-                    _ = function(object, selector, pseudo as NSString)
-                    return "OH NOES ! \(pseudo) a été supprimé de la love list"
+                    _ = function(object, selector, normalizedPseudo as NSString)
+                    return "OH NOES ! \(normalizedPseudo) a été supprimé de la love list"
                 }
 
                 let selector = NSSelectorFromString("addToWhiteList:")
@@ -2303,8 +2325,8 @@ struct WebView: UIViewRepresentable {
                 typealias Function = @convention(c) (AnyObject, Selector, NSString) -> Void
                 let implementation = object.method(for: selector)
                 let function = unsafeBitCast(implementation, to: Function.self)
-                function(object, selector, pseudo as NSString)
-                return "BOUM BOUM ! \(pseudo) ajouté à la love list ♥"
+                function(object, selector, normalizedPseudo as NSString)
+                return "BOUM BOUM ! \(normalizedPseudo) ajouté à la love list ♥"
             }
 
             private static func sharedObject() -> NSObject? {
@@ -2317,6 +2339,12 @@ struct WebView: UIViewRepresentable {
                     return nil
                 }
                 return unmanaged.takeUnretainedValue() as? NSObject
+            }
+
+            private static func normalizedPseudo(from pseudo: String) -> String {
+                pseudo
+                    .replacingOccurrences(of: "\u{200B}", with: "")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
             }
         }
 
@@ -5154,11 +5182,6 @@ private struct MessageAvatarActionSheetView: View {
                     }
                     .padding(.horizontal, previewHorizontalInset)
                     .frame(maxWidth: .infinity, minHeight: 124, maxHeight: 124)
-
-                    Text(authorName)
-                        .font(.title3)
-                        .bold()
-                        .textSelection(.enabled)
 
                     if let profileURL = actions.profileURL {
                         Button {
