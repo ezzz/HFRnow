@@ -1155,6 +1155,10 @@ private struct FavoriteSmileyPickerView: View {
             if let presentedSmiley {
                 Color.black.opacity(0.22)
                     .ignoresSafeArea()
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        self.presentedSmiley = nil
+                    }
 
                 FavoriteSmileyDetailView(
                     smiley: presentedSmiley,
@@ -1178,7 +1182,7 @@ private struct FavoriteSmileyPickerView: View {
                         self.presentedSmiley = nil
                     }
                 )
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 28)
                 .transition(.scale(scale: 0.96).combined(with: .opacity))
                 .zIndex(1)
             }
@@ -1349,88 +1353,90 @@ private struct FavoriteSmileyDetailView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    Spacer()
-                    Button("Fermer", action: onClose)
-                        .font(.subheadline.weight(.semibold))
-                        .buttonStyle(.plain)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Spacer()
+                Button(action: onClose) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 11, weight: .bold))
+                        .frame(width: 26, height: 26)
                         .foregroundStyle(.secondary)
+                        .background(themePalette.controlBackgroundColor.opacity(0.9), in: Circle())
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Fermer")
+            }
 
-                VStack(spacing: 14) {
-                    SmileyPreviewView(smiley: smiley)
-                        .frame(maxWidth: .infinity, minHeight: 150, maxHeight: 150)
-                        .background(themePalette.tertiaryBackgroundColor, in: .rect(cornerRadius: 16))
+            VStack(spacing: 12) {
+                SmileyPreviewView(smiley: smiley)
+                    .frame(maxWidth: .infinity, minHeight: 132, maxHeight: 132)
+                    .background(themePalette.tertiaryBackgroundColor, in: .rect(cornerRadius: 14))
 
-                    Text(smiley.code)
-                        .font(.title3.monospaced())
-                        .textSelection(.enabled)
+                Text(smiley.code)
+                    .font(.title3.monospaced())
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity)
+            }
+
+            VStack(spacing: 10) {
+                Button(action: onInsert) {
+                    Label("Insérer", systemImage: "text.insert")
                         .frame(maxWidth: .infinity)
                 }
+                .replyTintedActionButtonStyle(useProminent: true, tint: .accentColor)
 
-                VStack(spacing: 10) {
-                    Button(action: onInsert) {
-                        Label("Insérer", systemImage: "text.insert")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .replyTintedActionButtonStyle(useProminent: true, tint: .accentColor)
-
-                    Button {
-                        let add = !isFavorite
-                        guard onToggleFavorite(add) else { return }
-                        isFavorite.toggle()
-                    } label: {
-                        Label(
-                            isFavorite ? "Retirer des favoris" : "Ajouter aux favoris",
-                            systemImage: isFavorite ? "star.slash" : "star"
-                        )
-                        .frame(maxWidth: .infinity)
-                    }
-                    .replyTintedActionButtonStyle(useProminent: false, tint: .accentColor)
+                Button {
+                    let add = !isFavorite
+                    guard onToggleFavorite(add) else { return }
+                    isFavorite.toggle()
+                } label: {
+                    Label(
+                        isFavorite ? "Retirer des favoris" : "Ajouter aux favoris",
+                        systemImage: isFavorite ? "star.slash" : "star"
+                    )
+                    .frame(maxWidth: .infinity)
                 }
+                .replyTintedActionButtonStyle(useProminent: false, tint: .accentColor)
+            }
 
-                if isLoadingKeywords || !keywords.isEmpty || keywordsErrorMessage != nil {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Mots clés")
-                            .font(.footnote.weight(.semibold))
-                            .foregroundStyle(.secondary)
+            if isLoadingKeywords || !keywords.isEmpty || keywordsErrorMessage != nil {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Mots clés")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.secondary)
 
-                        if isLoadingKeywords {
-                            ProgressView("Chargement des mots clés…")
-                                .font(.footnote)
-                        } else if !keywords.isEmpty {
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 8) {
-                                    ForEach(keywords, id: \.self) { keyword in
-                                        Button(keyword) {
-                                            onSearchKeyword(keyword)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .padding(.horizontal, 10)
-                                        .padding(.vertical, 6)
-                                        .smileyChipStyle()
+                    if isLoadingKeywords {
+                        ProgressView("Chargement des mots clés…")
+                            .font(.footnote)
+                    } else if !keywords.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(keywords, id: \.self) { keyword in
+                                    Button(keyword) {
+                                        onSearchKeyword(keyword)
                                     }
+                                    .buttonStyle(.plain)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .smileyChipStyle()
                                 }
                             }
-                        } else if let keywordsErrorMessage {
-                            Text(keywordsErrorMessage)
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
                         }
+                    } else if let keywordsErrorMessage {
+                        Text(keywordsErrorMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
                     }
-                    .padding(12)
-                    .background(themePalette.controlBackgroundColor.opacity(0.7), in: .rect(cornerRadius: 14))
                 }
+                .padding(10)
+                .background(themePalette.controlBackgroundColor.opacity(0.7), in: .rect(cornerRadius: 12))
             }
-            .padding(18)
-            .frame(maxWidth: 460)
-            .frame(maxWidth: .infinity)
         }
-        .scrollBounceBehavior(.basedOnSize)
+        .padding(14)
+        .frame(maxWidth: 340)
         .background(detailBackground)
         .clipShape(.rect(cornerRadius: 24))
+        .shadow(color: Color.black.opacity(0.18), radius: 18, y: 10)
         .task {
             isLoadingKeywords = true
             keywordsErrorMessage = nil
