@@ -6,3 +6,4 @@
 - Keep investigations targeted: use `rg`, focused diffs, and only read files needed for the current task.
 - Do not stage or revert unrelated local changes.
 - Use skills only when the user names one or when the task clearly needs it; do not load skill files for routine edits.
+- For iOS 26 Liquid Glass UI, prefer native SwiftUI glass APIs (`glassEffect`, `.buttonStyle(.glass)`, `.glassProminent` for true primary actions) over legacy materials or custom tinted translucent backgrounds. Keep tinting selective, avoid tint-on-tint button treatments unless there is a clear hierarchy reason, and provide a readable fallback for older iOS versions.

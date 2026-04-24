@@ -394,7 +394,9 @@ struct FavoritesListView: View {
     @State private var removingTopicIDs: Set<Int> = []
     @State private var topicActionErrorMessage: String?
     @State private var favoritePostFilterProgress: FavoritePostFilterProgress?
+    @State private var favoritePostFilterStatusMessage: String?
     @State private var favoritePostFilterTask: Task<Void, Never>?
+    @State private var favoritePostFilterStatusTask: Task<Void, Never>?
     @State private var favoritePostFilterTarget: FavoritePostFilterNavigationTarget?
     @State private var navigateToFavoritePostFilter = false
 
@@ -655,10 +657,11 @@ struct FavoritesListView: View {
             }
             .navigationTitle("Favoris")
             .safeAreaInset(edge: .bottom) {
-                if let favoritePostFilterProgress {
+                if favoritePostFilterProgress != nil || favoritePostFilterStatusMessage != nil {
                     FavoritePostFilterProgressBanner(
                         progress: favoritePostFilterProgress,
-                        onCancel: cancelFavoritePostFilter
+                        statusMessage: favoritePostFilterStatusMessage,
+                        onAction: favoritePostFilterStatusMessage == nil ? cancelFavoritePostFilter : dismissFavoritePostFilterStatusMessage
                     )
                     .padding(.horizontal, 12)
                     .padding(.bottom, 8)
@@ -851,6 +854,10 @@ struct FavoritesListView: View {
     private func filterPosts(_ topic: Topic) {
         guard favoritePostFilterProgress == nil else { return }
 
+        favoritePostFilterStatusTask?.cancel()
+        favoritePostFilterStatusTask = nil
+        favoritePostFilterStatusMessage = nil
+
         favoritePostFilterProgress = FavoritePostFilterProgress(
             currentPage: max(Int(topic.curTopicPage), 1),
             maxPage: max(Int(topic.maxTopicPage), 1),
@@ -882,6 +889,8 @@ struct FavoritesListView: View {
                     result: filterResult
                 )
                 navigateToFavoritePostFilter = true
+            case .failure(.noResult):
+                showFavoritePostFilterStatusMessage("Aucun post n'a été trouvé")
             case .failure(let error):
                 topicActionErrorMessage = error.localizedDescription
             }
@@ -894,6 +903,26 @@ struct FavoritesListView: View {
         favoritePostFilterService.cancel()
         withAnimation(.easeOut(duration: 0.18)) {
             favoritePostFilterProgress = nil
+        }
+    }
+
+    private func showFavoritePostFilterStatusMessage(_ message: String) {
+        favoritePostFilterStatusTask?.cancel()
+        withAnimation(.easeOut(duration: 0.18)) {
+            favoritePostFilterStatusMessage = message
+        }
+        favoritePostFilterStatusTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            guard !Task.isCancelled else { return }
+            dismissFavoritePostFilterStatusMessage()
+        }
+    }
+
+    private func dismissFavoritePostFilterStatusMessage() {
+        favoritePostFilterStatusTask?.cancel()
+        favoritePostFilterStatusTask = nil
+        withAnimation(.easeOut(duration: 0.18)) {
+            favoritePostFilterStatusMessage = nil
         }
     }
 }
@@ -1034,30 +1063,77 @@ struct TopicRowView: View {
 }
 
 private struct FavoritePostFilterProgressBanner: View {
-    let progress: FavoritePostFilterProgress
-    let onCancel: () -> Void
+    let progress: FavoritePostFilterProgress?
+    let statusMessage: String?
+    let onAction: () -> Void
+
+    private var displayText: String {
+        statusMessage ?? progress?.statusText ?? ""
+    }
+
+    private var buttonTitle: String {
+        statusMessage == nil ? "Annuler" : "OK"
+    }
 
     var body: some View {
         HStack(spacing: 10) {
-            ProgressView()
-                .controlSize(.small)
-            Text(progress.statusText)
+            if statusMessage == nil {
+                ProgressView()
+                    .controlSize(.small)
+            } else {
+                Image(systemName: "info.circle")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            Text(displayText)
                 .font(.footnote)
                 .foregroundStyle(.primary)
                 .lineLimit(1)
             Spacer(minLength: 8)
-            Button("Annuler") {
-                onCancel()
+            Button(buttonTitle) {
+                onAction()
             }
             .font(.footnote.weight(.semibold))
-            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .buttonBorderShape(.capsule)
+            .modifier(FavoritePostFilterActionButtonStyle())
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(.regularMaterial, in: .rect(cornerRadius: 8))
-        .overlay {
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(Color(uiColor: .separator).opacity(0.35), lineWidth: 0.5)
+        .modifier(FavoritePostFilterBannerSurface())
+    }
+}
+
+private struct FavoritePostFilterActionButtonStyle: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content
+                .buttonStyle(.glass)
+        } else {
+            content
+                .buttonStyle(.bordered)
+                .tint(.primary)
+        }
+    }
+}
+
+private struct FavoritePostFilterBannerSurface: ViewModifier {
+    private let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content
+                .glassEffect(.regular, in: shape)
+                .shadow(color: Color.black.opacity(0.18), radius: 12, y: 4)
+        } else {
+            content
+                .background(.thinMaterial, in: shape)
+                .overlay {
+                    shape.stroke(Color.primary.opacity(0.14), lineWidth: 0.7)
+                }
+                .shadow(color: Color.black.opacity(0.16), radius: 10, y: 4)
         }
     }
 }
