@@ -127,6 +127,75 @@ final class ReplyPostingServiceTests: XCTestCase {
         XCTAssertEqual(step, 2)
     }
 
+    func testPostReplyOmitsInactivePollFlagWhenEditingTopicOwnerPost() async throws {
+        let session = makeSession()
+        var step = 0
+
+        URLProtocolMock.requestHandler = { request in
+            step += 1
+            switch step {
+            case 1:
+                let html = """
+                <html><body>
+                <form name=\"hop\" action=\"/bddpost.php\">
+                  <input type=\"hidden\" name=\"cat\" value=\"13\" />
+                  <input type=\"hidden\" name=\"post\" value=\"42\" />
+                  <input type=\"text\" name=\"sujet\" value=\"Sujet initial\" />
+                  <select name=\"subcat\">
+                    <option value=\"430\" selected=\"selected\">Vie pratique</option>
+                  </select>
+                  <input type=\"checkbox\" name=\"have_sondage\" value=\"1\" />
+                  <input type=\"checkbox\" name=\"allowvisitor\" value=\"1\" />
+                  <input type=\"checkbox\" name=\"sticky\" value=\"1\" />
+                  <input type=\"checkbox\" name=\"sticky_everywhere\" value=\"1\" />
+                </form>
+                </body></html>
+                """
+                return (
+                    HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                    Data(html.utf8)
+                )
+            case 2:
+                let params = Self.formEncodedBodyParameters(from: Self.requestBodyData(from: request))
+                XCTAssertEqual(params["content_form"], "Message modifie")
+                XCTAssertEqual(params["sujet"], "Sujet final")
+                XCTAssertEqual(params["subcat"], "431")
+                XCTAssertNil(params["have_sondage"])
+                XCTAssertNil(params["allowvisitor"])
+                XCTAssertNil(params["sticky"])
+                XCTAssertNil(params["sticky_everywhere"])
+                let html = """
+                <html><body><div class=\"hop\">Message édité</div></body></html>
+                """
+                return (
+                    HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                    Data(html.utf8)
+                )
+            default:
+                XCTFail("Unexpected extra request")
+                throw URLError(.badServerResponse)
+            }
+        }
+
+        let service = ForumReplyPostingService(
+            session: session,
+            sessionContextProvider: { _ in
+                ReplySessionContext(pseudoDisplay: "testeur", hashCheck: "hash123")
+            }
+        )
+
+        _ = try await service.postReply(
+            message: "Message modifie",
+            topicURL: URL(string: "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=42&page=1&p=1&sondage=0&owntopic=1&numreponse=123")!,
+            formOverrides: [
+                "sujet": "Sujet final",
+                "subcat": "431"
+            ]
+        )
+
+        XCTAssertEqual(step, 2)
+    }
+
     func testPostReplyFailsWhenAuthIsRequired() async {
         let session = makeSession()
 

@@ -334,8 +334,11 @@
             if (linkItem.quotedNB) {
                 linkItem.quotedLINK = [[editedNode findChildTag:@"a"] getAttributeNamed:@"href"];
                 
-                // For the filtering feature, keep post quoted 3 times or more
-                if (bFilterPostsQuotes && bFilterCurrentPost && [[linkItem.quotedNB lowercaseString] intValue] >= 3) {
+                NSInteger minimumQuoteCount = [[NSUserDefaults standardUserDefaults] integerForKey:@"filter_posts_min_quotes"];
+                if (minimumQuoteCount <= 0) {
+                    minimumQuoteCount = 3;
+                }
+                if (bFilterPostsQuotes && bFilterCurrentPost && [[linkItem.quotedNB lowercaseString] intValue] >= minimumQuoteCount) {
                     bFilterCurrentPost = NO;
                 }
             }

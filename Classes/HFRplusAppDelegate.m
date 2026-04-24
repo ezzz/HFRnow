@@ -100,8 +100,13 @@ static NSString * const HFRSwiftNotificationDestinationMessages = @"messages";
         [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"auto_theme_night_time"];
     }
     
-    NSString* sFilterOn = @"wl_pseudo";
-    [[NSUserDefaults standardUserDefaults] setObject:sFilterOn forKey:@"filter_posts_quotes"];
+    if ([[NSUserDefaults standardUserDefaults] objectForKey:@"filter_posts_quotes"] == nil) {
+        NSString* sFilterOn = @"wl_pseudo";
+        [[NSUserDefaults standardUserDefaults] setObject:sFilterOn forKey:@"filter_posts_quotes"];
+    }
+    if ([[NSUserDefaults standardUserDefaults] objectForKey:@"filter_posts_min_quotes"] == nil) {
+        [[NSUserDefaults standardUserDefaults] setInteger:3 forKey:@"filter_posts_min_quotes"];
+    }
     NSString* sDisplayImages = @"yes";
     [[NSUserDefaults standardUserDefaults] setObject:sDisplayImages forKey:@"display_images"];
 

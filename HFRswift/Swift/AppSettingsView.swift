@@ -96,6 +96,8 @@ struct AppSettingsView: View {
     @AppStorage("theme_style") private var themeStyle = 1
 
     @AppStorage("blacklist_hide_pseudo") private var hideBlacklistedPseudo = false
+    @AppStorage("filter_posts_quotes") private var filterPostsMode = "wl_pseudo"
+    @AppStorage("filter_posts_min_quotes") private var filterPostsMinimumQuoteCount = 3
     @AppStorage("size_smileys") private var smileySize = "double"
     @AppStorage("embedded_videos") private var embeddedVideos = "yes"
     @AppStorage("display_sig") private var displaySignatures = "no"
@@ -149,6 +151,21 @@ struct AppSettingsView: View {
         StringOption(value: "yes", title: "Oui"),
         StringOption(value: "no", title: "Non")
     ]
+
+    private let filterPostsMinimumQuoteOptions = [
+        IntOption(value: 3, title: "3"),
+        IntOption(value: 4, title: "4"),
+        IntOption(value: 5, title: "5"),
+        IntOption(value: 7, title: "7"),
+        IntOption(value: 10, title: "10")
+    ]
+
+    private var filterPostsWhitelistBinding: Binding<Bool> {
+        Binding(
+            get: { filterPostsMode.contains("wl") },
+            set: { filterPostsMode = $0 ? "wl_pseudo" : "pseudo" }
+        )
+    }
 
     private var appVersion: String {
         let short = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
@@ -379,6 +396,18 @@ struct AppSettingsView: View {
 
             Toggle("Masquer les pseudos blacklistés", isOn: $hideBlacklistedPseudo)
 
+            NavigationLink {
+                ProfileFilterListEditorView(kind: .blacklist)
+            } label: {
+                Label("Liste noire", systemImage: "hand.raised")
+            }
+
+            NavigationLink {
+                ProfileFilterListEditorView(kind: .whitelist)
+            } label: {
+                Label("Liste blanche", systemImage: "heart")
+            }
+
             Picker("Taille des smileys", selection: $smileySize) {
                 ForEach(smileySizeOptions) { option in
                     Text(option.title).tag(option.value)
@@ -396,6 +425,19 @@ struct AppSettingsView: View {
                     Text(option.title).tag(option.value)
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private var filterPostsSection: some View {
+        Section("Filtrer les posts") {
+            Picker("Minimum de citations", selection: $filterPostsMinimumQuoteCount) {
+                ForEach(filterPostsMinimumQuoteOptions) { option in
+                    Text(option.title).tag(option.value)
+                }
+            }
+
+            Toggle("Inclure les pseudos whitelistés", isOn: filterPostsWhitelistBinding)
         }
     }
 
@@ -443,6 +485,7 @@ struct AppSettingsView: View {
             generalSection
             themeSection
             topicsSection
+            filterPostsSection
             notificationsSection
             mpStorageSection
             maintenanceSection
@@ -489,6 +532,161 @@ struct AppSettingsView: View {
         } message: {
             Text("Tous les onglets seront réinitialisés.")
         }
+    }
+}
+
+private enum ProfileFilterListKind {
+    case blacklist
+    case whitelist
+
+    var title: String {
+        switch self {
+        case .blacklist:
+            return "Liste noire"
+        case .whitelist:
+            return "Liste blanche"
+        }
+    }
+
+    var emptyMessage: String {
+        switch self {
+        case .blacklist:
+            return "Aucun pseudo blacklisté."
+        case .whitelist:
+            return "Aucun pseudo whitelisté."
+        }
+    }
+
+    var footer: String {
+        switch self {
+        case .blacklist:
+            return "La liste noire est liée au compte actif et reste synchronisée avec le comportement legacy."
+        case .whitelist:
+            return "La liste blanche est globale et utilisée pour les citations, les messages et le filtre des posts."
+        }
+    }
+}
+
+private struct ProfileFilterListEditorView: View {
+    let kind: ProfileFilterListKind
+
+    @State private var profiles: [String] = []
+    @State private var newProfile = ""
+    @State private var alertMessage: String?
+
+    private var trimmedNewProfile: String {
+        newProfile.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var canAddProfile: Bool {
+        !trimmedNewProfile.isEmpty
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                HStack {
+                    TextField("Pseudo", text: $newProfile)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+
+                    Button("Ajouter") {
+                        addProfile()
+                    }
+                    .disabled(!canAddProfile)
+                }
+            }
+
+            Section {
+                if profiles.isEmpty {
+                    Text(kind.emptyMessage)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(profiles, id: \.self) { profile in
+                        Text(profile)
+                    }
+                    .onDelete(perform: removeProfiles)
+                }
+            } header: {
+                Text(kind.title)
+            } footer: {
+                Text(kind.footer)
+            }
+        }
+        .navigationTitle(kind.title)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                EditButton()
+                    .disabled(profiles.isEmpty)
+            }
+        }
+        .onAppear(perform: reloadProfiles)
+        .alert("Erreur", isPresented: Binding(
+            get: { alertMessage != nil },
+            set: { if !$0 { alertMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(alertMessage ?? "")
+        }
+    }
+
+    private func reloadProfiles() {
+        profiles = loadProfiles().sorted {
+            $0.localizedCaseInsensitiveCompare($1) == .orderedAscending
+        }
+    }
+
+    private func loadProfiles() -> [String] {
+        let rawList: NSArray?
+        switch kind {
+        case .blacklist:
+            rawList = BlackList.shared().getForActiveCompte()
+        case .whitelist:
+            rawList = BlackList.shared().getAllWhiteList() as NSArray?
+        }
+
+        return (rawList as? [[AnyHashable: Any]])?
+            .compactMap { entry in
+                (entry["word"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            .filter { !$0.isEmpty } ?? []
+    }
+
+    private func addProfile() {
+        let profile = trimmedNewProfile
+        guard !profile.isEmpty else { return }
+
+        switch kind {
+        case .blacklist:
+            if !BlackList.shared().add(toBlackList: profile, andSave: true) {
+                alertMessage = "Impossible d'ajouter ce pseudo à la liste noire."
+                return
+            }
+        case .whitelist:
+            BlackList.shared().add(toWhiteList: profile)
+        }
+
+        newProfile = ""
+        reloadProfiles()
+    }
+
+    private func removeProfiles(at offsets: IndexSet) {
+        for index in offsets {
+            guard profiles.indices.contains(index) else { continue }
+            let profile = profiles[index]
+            switch kind {
+            case .blacklist:
+                if !BlackList.shared().remove(fromBlackList: profile, andSave: true) {
+                    alertMessage = "Impossible de supprimer \(profile) de la liste noire."
+                }
+            case .whitelist:
+                if !BlackList.shared().remove(fromWhiteList: profile) {
+                    alertMessage = "Impossible de supprimer \(profile) de la liste blanche."
+                }
+            }
+        }
+        reloadProfiles()
     }
 }
 

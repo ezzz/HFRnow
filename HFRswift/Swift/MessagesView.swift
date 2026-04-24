@@ -4745,6 +4745,8 @@ struct MessagesView: View {
                 .animation(.easeOut(duration: 0.18), value: shouldHighlightNextPageButton)
         } else {
             ZStack {
+                themePalette.webViewBackdropColor
+                    .ignoresSafeArea()
                 VStack(spacing: 8) {
                     ProgressView()
                     Text("Chargement...")

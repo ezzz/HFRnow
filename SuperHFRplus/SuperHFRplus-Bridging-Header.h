@@ -11,6 +11,7 @@
 #import "Forum.h"
 #import "Topic.h"
 #import "Bookmark.h"
+#import "BlackList.h"
 #import "OfflineStorage.h"
 #import "ThemeManager.h"
 #import "k.h"

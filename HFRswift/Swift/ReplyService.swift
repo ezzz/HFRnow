@@ -155,6 +155,7 @@ final class ForumReplyPostingService: ReplyPostingService, ReplyComposerContextP
                 payload.params[key] = value
             }
         }
+        removeInactiveTopicOptionFlags(from: &payload.params)
 
         payload.params["content_form"] = bodyString
         if let pseudoDisplay = sessionContext.pseudoDisplay {
@@ -288,6 +289,16 @@ final class ForumReplyPostingService: ReplyPostingService, ReplyComposerContextP
         guard let rawValue else { return nil }
         let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func removeInactiveTopicOptionFlags(from params: inout [String: String]) {
+        for key in ["allowvisitor", "have_sondage", "sticky", "sticky_everywhere"] {
+            guard let value = params[key]?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  value == "0" || value.isEmpty else {
+                continue
+            }
+            params.removeValue(forKey: key)
+        }
     }
 
     private func decodeHTML(_ data: Data) -> String {
