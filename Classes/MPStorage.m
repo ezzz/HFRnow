@@ -54,8 +54,9 @@ static MPStorage *_shared = nil;    // static instance variable
     bIsMPStorageSavedSuccessfully = YES; // Reset values
     if ([[NSUserDefaults standardUserDefaults] boolForKey:@"mpstorage_active"] && pseudo) {
         NSMutableDictionary* dicMPStorage_postid = [[NSUserDefaults standardUserDefaults] objectForKey:@"dicMPStorage_postid"];
+        NSString *cachedPostId = [self cachedStoragePostIdForPseudo:pseudo inDictionary:dicMPStorage_postid];
         
-        if (dicMPStorage_postid == nil || [dicMPStorage_postid objectForKey:pseudo] == nil) {
+        if (cachedPostId == nil) {
             // Find MP with title a2bcc09b796b8c6fab77058ff8446c34
             if ([self findStorageMPFromPage:1] == NO) {
                 NSLog(@"MPStorage 1");
@@ -104,7 +105,8 @@ static MPStorage *_shared = nil;    // static instance variable
             }
         }
         else {
-            sPostId = [dicMPStorage_postid valueForKey:pseudo];
+            sPostId = cachedPostId;
+            [self cacheStoragePostId:sPostId forPseudo:pseudo];
         }
         
         [[MPStorage shared] loadBlackListAsynchronous];
@@ -593,11 +595,80 @@ static MPStorage *_shared = nil;    // static instance variable
 
 #pragma mark - MPstorage general handling methods
 
+- (NSString *)normalizedStoragePseudoKey:(NSString *)pseudo {
+    NSString *trimmed = [[pseudo stringByReplacingOccurrencesOfString:@"\u200B" withString:@""] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    return [[trimmed lowercaseString] copy];
+}
+
+- (NSArray *)storagePseudoAliasesForPseudo:(NSString *)pseudo {
+    NSMutableOrderedSet *aliases = [NSMutableOrderedSet orderedSet];
+    NSDictionary *mainCompte = [[MultisManager sharedManager] getMainCompte];
+    NSArray *rawAliases = @[
+        pseudo ?: @"",
+        [[MultisManager sharedManager] getCurrentPseudo] ?: @"",
+        [mainCompte objectForKey:PSEUDO_DISPLAY_KEY] ?: @"",
+        [mainCompte objectForKey:PSEUDO_KEY] ?: @""
+    ];
+
+    for (NSString *alias in rawAliases) {
+        NSString *trimmed = [alias stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+        if ([trimmed length] == 0) continue;
+        [aliases addObject:trimmed];
+
+        NSString *normalized = [self normalizedStoragePseudoKey:trimmed];
+        if ([normalized length] > 0) {
+            [aliases addObject:normalized];
+        }
+    }
+
+    return [aliases array];
+}
+
+- (NSString *)cachedStoragePostIdForPseudo:(NSString *)pseudo inDictionary:(NSDictionary *)dictionary {
+    if (![dictionary isKindOfClass:[NSDictionary class]]) return nil;
+
+    for (NSString *alias in [self storagePseudoAliasesForPseudo:pseudo]) {
+        NSString *postId = [dictionary objectForKey:alias];
+        if ([postId isKindOfClass:[NSString class]] && [postId length] > 0) {
+            return postId;
+        }
+    }
+
+    return nil;
+}
+
+- (void)cacheStoragePostId:(NSString *)postId forPseudo:(NSString *)pseudo {
+    if ([postId length] == 0) return;
+
+    NSMutableDictionary* dicMPStorage_postid = [[[NSUserDefaults standardUserDefaults] objectForKey:@"dicMPStorage_postid"] mutableCopy];
+    if (dicMPStorage_postid == nil) dicMPStorage_postid = [NSMutableDictionary dictionary];
+
+    for (NSString *alias in [self storagePseudoAliasesForPseudo:pseudo]) {
+        [dicMPStorage_postid setValue:postId forKey:alias];
+    }
+
+    [[NSUserDefaults standardUserDefaults] setObject:dicMPStorage_postid forKey:@"dicMPStorage_postid"];
+}
+
+- (void)removeCachedStoragePostIdForCurrentPseudo {
+    NSMutableDictionary* dicMPStorage_postid = [[[NSUserDefaults standardUserDefaults] objectForKey:@"dicMPStorage_postid"] mutableCopy];
+    if (dicMPStorage_postid == nil) return;
+
+    for (NSString *alias in [self storagePseudoAliasesForPseudo:[[MultisManager sharedManager] getCurrentPseudo]]) {
+        [dicMPStorage_postid removeObjectForKey:alias];
+    }
+
+    [[NSUserDefaults standardUserDefaults] setObject:dicMPStorage_postid forKey:@"dicMPStorage_postid"];
+}
+
 // Method to find the MPStorage in the current MPs page
 - (BOOL)findStorageMPFromPage:(NSInteger)pageId {
     NSInteger iMaxPages = 0;
     NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=%ld&subcat=&sondage=0&owntopic=0&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0", pageId]];
     ASIHTTPRequest *request = [ASIHTTPRequest requestWithURL:url];
+    NSDictionary *mainCompte = [[MultisManager sharedManager] getMainCompte];
+    [request setUseCookiePersistence:NO];
+    [request setRequestCookies:[mainCompte objectForKey:COOKIES_KEY]];
     [request startSynchronous];
     NSError *error = [request error];
     if (!error) {
@@ -620,10 +691,7 @@ static MPStorage *_shared = nil;    // static instance variable
                     if ([key isEqualToString:@"post"]) {
                         sPostId = [[qs componentsSeparatedByString:@"="] objectAtIndex:1];
                         
-                        NSMutableDictionary* dicMPStorage_postid = [[[NSUserDefaults standardUserDefaults] objectForKey:@"dicMPStorage_postid"] mutableCopy];
-                        if (dicMPStorage_postid == nil) dicMPStorage_postid = [NSMutableDictionary dictionary];
-                        [dicMPStorage_postid setValue:sPostId forKey:[[MultisManager sharedManager] getCurrentPseudo]];
-                        [[NSUserDefaults standardUserDefaults] setObject:dicMPStorage_postid forKey:@"dicMPStorage_postid"];
+                        [self cacheStoragePostId:sPostId forPseudo:[[MultisManager sharedManager] getCurrentPseudo]];
                         
                         return YES;
                     }
@@ -674,7 +742,11 @@ static MPStorage *_shared = nil;    // static instance variable
 - (ASIHTTPRequest*)GETRequest {
     NSString* s = [NSString stringWithFormat:@"https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=prive&post=%@&numreponse=0&page=1&p=1&subcat=0&sondage=0&owntopic=0", sPostId];
     NSURL *url = [NSURL URLWithString:s];
-    return [ASIHTTPRequest requestWithURL:url];
+    ASIHTTPRequest *request = [ASIHTTPRequest requestWithURL:url];
+    NSDictionary *mainCompte = [[MultisManager sharedManager] getMainCompte];
+    [request setUseCookiePersistence:NO];
+    [request setRequestCookies:[mainCompte objectForKey:COOKIES_KEY]];
+    return request;
 }
 
 // Request to modify (POST) content from MP storage
@@ -736,6 +808,16 @@ static MPStorage *_shared = nil;    // static instance variable
 - (BOOL)parseMPStorage:(NSString *)content
 {
     if ([content containsString:@"destiné"]) {
+        [self removeCachedStoragePostIdForCurrentPseudo];
+        if ([self findStorageMPFromPage:1]) {
+            ASIHTTPRequest *request = [self GETRequest];
+            [request setShouldRedirect:NO];
+            [request startSynchronous];
+            if (![request error] && [request safeResponseString]) {
+                return [self parseMPStorage:[request safeResponseString]];
+            }
+        }
+
         NSLog(@"MPStorage 1");
         [HFRAlertView DisplayOKCancelAlertViewWithTitle:@"Stockage MP" andMessage:@"Le MP de stockage n'a pas été trouvé. Voulez-vous qu'il soit créé ?" handlerOK:^(UIAlertAction *action) {
             
