@@ -1028,93 +1028,112 @@ struct RootTabView: View {
     }
 
     var body: some View {
+        rootTabs
+            .hfrTabBarMinimizeBehavior(tabBarMinimizeOnScroll: tabBarMinimizeOnScroll)
+            .preferredColorScheme(appTheme.preferredColorScheme)
+            .tint(appTheme.actionTintColor)
+            .environment(\.appThemePalette, appTheme.palette)
+            .onAppear(perform: handleAppear)
+            .onChange(of: selectedTab) { _, newValue in
+                syncRuntimeSelectedTab(newValue)
+            }
+            .onChange(of: accountsStore.currentAccount?.id) { _, newValue in
+                handleCurrentAccountChange(newValue)
+            }
+            .onChange(of: systemColorScheme) { _, newValue in
+                appTheme.refresh(systemColorScheme: newValue)
+            }
+            .onChange(of: scenePhase) { _, newValue in
+                handleScenePhaseChange(newValue)
+            }
+            .onChange(of: unreadMPCount) { _, _ in
+                Task { await syncAppIconBadge() }
+            }
+            .onChange(of: mpBadgeEnabled) { _, _ in
+                Task { await syncAppIconBadge() }
+            }
+            .background(tabBarReselectionObserver)
+            .onReceive(NotificationCenter.default.publisher(for: MessagesNotificationNavigation.openMessagesNotification)) { _ in
+                handlePendingMessagesNotificationNavigationIfNeeded()
+            }
+    }
+
+    private var rootTabs: some View {
         TabView(selection: $selectedTab) {
-            Tab("Catégories", systemImage: "folder.fill", value: .categories) {
-                CategoriesListView()
-            }
-            Tab("Favoris", systemImage: "star.fill", value: .favorites) {
-                //FeedView()
-                FavoritesListView(
-                    viewModel: favoritesViewModel,
-                    accountsStore: accountsStore
-                )
-            }
-            Tab("Messages", systemImage: "envelope", value: .messages) {
-                MPListView(
-                    viewModel: messagesViewModel,
-                    accountsStore: accountsStore,
-                    isActive: selectedTab == .messages,
-                    navigationResetToken: messagesNavigationResetToken
-                )
-            }
+            CategoriesListView()
+                .tabItem { Label("Catégories", systemImage: "folder.fill") }
+                .tag(RootTabIdentifier.categories)
+
+            //FeedView()
+            FavoritesListView(
+                viewModel: favoritesViewModel,
+                accountsStore: accountsStore
+            )
+            .tabItem { Label("Favoris", systemImage: "star.fill") }
+            .tag(RootTabIdentifier.favorites)
+
+            MPListView(
+                viewModel: messagesViewModel,
+                accountsStore: accountsStore,
+                isActive: selectedTab == .messages,
+                navigationResetToken: messagesNavigationResetToken
+            )
+            .tabItem { Label("Messages", systemImage: "envelope") }
+            .tag(RootTabIdentifier.messages)
             .badge(mpBadgeEnabled && unreadMPCount > 0 ? unreadMPCount : 0)
-            Tab("Plus", systemImage: "ellipsis", value: .more) {
-                NavigationStack {
-                    PlusHomeView()
-                }
+
+            NavigationStack {
+                PlusHomeView()
             }
+            .tabItem { Label("Plus", systemImage: "ellipsis") }
+            .tag(RootTabIdentifier.more)
             .badge(unreadAQCount > 0 ? unreadAQCount : 0)
         }
-        .hfrTabBarMinimizeBehavior(tabBarMinimizeOnScroll: tabBarMinimizeOnScroll)
-        .preferredColorScheme(appTheme.preferredColorScheme)
-        .tint(appTheme.actionTintColor)
-        .environment(\.appThemePalette, appTheme.palette)
-        .onAppear {
-            appTheme.refresh(systemColorScheme: systemColorScheme, forceThemeRevision: true)
-            syncRuntimeSelectedTab(selectedTab)
-            startColdLaunchPrefetchIfNeeded()
-            startAQBadgeCheckIfNeeded()
-            handlePendingMessagesNotificationNavigationIfNeeded()
-        }
-        .onChange(of: selectedTab) { _, newValue in
-            syncRuntimeSelectedTab(newValue)
-        }
-        .onChange(of: accountsStore.currentAccount?.id) { _, newValue in
-            if newValue == nil {
-                cancelColdLaunchPrefetch()
-                hasScheduledColdLaunchPrefetch = false
-            } else {
-                startColdLaunchPrefetchIfNeeded()
+    }
+
+    private var tabBarReselectionObserver: some View {
+        TabBarReselectionObserver(
+            onSelect: handleUIKitTabSelection
+        ) { selectedIndex in
+            guard
+                let tab = RootTabIdentifier(rawValue: selectedIndex),
+                tab == .categories || tab == .favorites || tab == .messages
+            else {
+                return
             }
+            NotificationCenter.default.post(
+                name: .rootTabReselected,
+                object: nil,
+                userInfo: ["tab": tab.rawValue]
+            )
         }
-        .onChange(of: systemColorScheme) { _, newValue in
-            appTheme.refresh(systemColorScheme: newValue)
-        }
-        .onChange(of: scenePhase) { _, newValue in
-            guard newValue == .active else { return }
-            appTheme.refresh(systemColorScheme: systemColorScheme, forceThemeRevision: true)
+        .frame(width: 0, height: 0)
+    }
+
+    private func handleAppear() {
+        appTheme.refresh(systemColorScheme: systemColorScheme, forceThemeRevision: true)
+        syncRuntimeSelectedTab(selectedTab)
+        startColdLaunchPrefetchIfNeeded()
+        startAQBadgeCheckIfNeeded()
+        handlePendingMessagesNotificationNavigationIfNeeded()
+    }
+
+    private func handleCurrentAccountChange(_ accountID: String?) {
+        if accountID == nil {
+            cancelColdLaunchPrefetch()
+            hasScheduledColdLaunchPrefetch = false
+        } else {
             startColdLaunchPrefetchIfNeeded()
-            startAQBadgeCheckIfNeeded()
-            handlePendingMessagesNotificationNavigationIfNeeded()
-            Task { await syncAppIconBadge() }
         }
-        .onChange(of: unreadMPCount) { _, _ in
-            Task { await syncAppIconBadge() }
-        }
-        .onChange(of: mpBadgeEnabled) { _, _ in
-            Task { await syncAppIconBadge() }
-        }
-        .background(
-            TabBarReselectionObserver(
-                onSelect: handleUIKitTabSelection
-            ) { selectedIndex in
-                guard
-                    let tab = RootTabIdentifier(rawValue: selectedIndex),
-                    tab == .categories || tab == .favorites || tab == .messages
-                else {
-                    return
-                }
-                NotificationCenter.default.post(
-                    name: .rootTabReselected,
-                    object: nil,
-                    userInfo: ["tab": tab.rawValue]
-                )
-            }
-            .frame(width: 0, height: 0)
-        )
-        .onReceive(NotificationCenter.default.publisher(for: MessagesNotificationNavigation.openMessagesNotification)) { _ in
-            handlePendingMessagesNotificationNavigationIfNeeded()
-        }
+    }
+
+    private func handleScenePhaseChange(_ newValue: ScenePhase) {
+        guard newValue == .active else { return }
+        appTheme.refresh(systemColorScheme: systemColorScheme, forceThemeRevision: true)
+        startColdLaunchPrefetchIfNeeded()
+        startAQBadgeCheckIfNeeded()
+        handlePendingMessagesNotificationNavigationIfNeeded()
+        Task { await syncAppIconBadge() }
     }
 }
 
