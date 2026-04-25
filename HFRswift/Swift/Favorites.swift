@@ -1096,45 +1096,11 @@ private struct FavoritePostFilterProgressBanner: View {
             .font(.footnote.weight(.semibold))
             .controlSize(.small)
             .buttonBorderShape(.capsule)
-            .modifier(FavoritePostFilterActionButtonStyle())
+            .hfrGlassButton()
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .modifier(FavoritePostFilterBannerSurface())
-    }
-}
-
-private struct FavoritePostFilterActionButtonStyle: ViewModifier {
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
-            content
-                .buttonStyle(.glass)
-        } else {
-            content
-                .buttonStyle(.bordered)
-                .tint(.primary)
-        }
-    }
-}
-
-private struct FavoritePostFilterBannerSurface: ViewModifier {
-    private let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
-
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
-            content
-                .glassEffect(.regular, in: shape)
-                .shadow(color: Color.black.opacity(0.18), radius: 12, y: 4)
-        } else {
-            content
-                .background(.thinMaterial, in: shape)
-                .overlay {
-                    shape.stroke(Color.primary.opacity(0.14), lineWidth: 0.7)
-                }
-                .shadow(color: Color.black.opacity(0.16), radius: 10, y: 4)
-        }
+        .hfrLoadingPanel(in: RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 }
 

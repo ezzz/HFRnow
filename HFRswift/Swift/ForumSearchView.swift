@@ -353,10 +353,13 @@ private struct ForumSearchStatusBanner: View {
             Spacer(minLength: 8)
             Button("Annuler", action: onCancel)
                 .font(.footnote.weight(.semibold))
+                .controlSize(.small)
+                .buttonBorderShape(.capsule)
+                .hfrGlassButton()
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .hfrGlassSurface(in: RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 }
 
@@ -405,11 +408,11 @@ private struct ForumSearchPaginationBar: View {
             }
             .disabled(pageNumber >= lastPageNumber || pageInfo.lastPageURL == nil)
         }
-        .buttonStyle(.bordered)
+        .hfrGlassButton()
         .controlSize(.small)
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .hfrGlassSurface(in: RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 }
 

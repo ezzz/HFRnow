@@ -2177,9 +2177,7 @@ private struct ToastBanner: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(.ultraThinMaterial)
-        .clipShape(Capsule())
-        .shadow(radius: 6, y: 3)
+        .hfrToastSurface()
     }
 }
 

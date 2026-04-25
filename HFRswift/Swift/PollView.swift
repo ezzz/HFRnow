@@ -65,12 +65,12 @@ struct PollToolbarButton: View {
     var body: some View {
         if isVotable {
             Button("Sondage", systemImage: "chart.bar.doc.horizontal", action: action)
-                .buttonStyle(.borderedProminent)
+                .hfrGlassButton(prominent: true)
                 .buttonBorderShape(.capsule)
                 .controlSize(.small)
         } else {
             Button("Sondage", systemImage: "chart.bar.doc.horizontal", action: action)
-                .buttonStyle(.bordered)
+                .hfrGlassButton()
                 .buttonBorderShape(.capsule)
                 .controlSize(.small)
         }
@@ -159,7 +159,7 @@ struct PollContentView: View {
                 Color.black.opacity(0.15).ignoresSafeArea()
                 ProgressView()
                     .padding(20)
-                    .background(.regularMaterial, in: .rect(cornerRadius: 12))
+                    .hfrLoadingPanel(in: .rect(cornerRadius: 12))
             }
         }
         .alert("Erreur", isPresented: Binding(

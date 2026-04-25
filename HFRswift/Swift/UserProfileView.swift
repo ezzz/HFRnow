@@ -569,7 +569,7 @@ struct UserProfileView: View {
             Button("Réessayer") {
                 Task { await viewModel.load() }
             }
-            .buttonStyle(.borderedProminent)
+            .hfrGlassButton(prominent: true)
         }
     }
 
@@ -657,8 +657,7 @@ private struct UserProfileHeaderView: View {
             }
         }
         .padding(16)
-        .background(.regularMaterial, in: .rect(cornerRadius: 18))
-        .liquidGlassIfAvailable(in: .rect(cornerRadius: 18))
+        .hfrGlassSurface(in: .rect(cornerRadius: 18))
     }
 }
 
@@ -720,7 +719,7 @@ private struct UserProfileActionsView: View {
                             .lineLimit(2)
                             .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                     }
-                    .buttonStyle(.bordered)
+                    .hfrGlassButton()
                 }
             }
         }
@@ -789,8 +788,7 @@ private struct UserProfileSmiliesView: View {
             }
         }
         .padding(14)
-        .background(.regularMaterial, in: .rect(cornerRadius: 18))
-        .liquidGlassIfAvailable(in: .rect(cornerRadius: 18))
+        .hfrGlassSurface(in: .rect(cornerRadius: 18))
         .onAppear(perform: refreshFavorites)
     }
 

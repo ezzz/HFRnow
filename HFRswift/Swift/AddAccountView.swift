@@ -64,15 +64,10 @@ struct AddAccountView: View {
                     }
                 }
                 .disabled(!canSubmit)
-                .buttonStyle(.borderedProminent)
-                .liquidGlassIfAvailable(in: RoundedRectangle(cornerRadius: 12))
+                .hfrGlassButton(prominent: true)
             }
             .padding(20)
-            .background(
-                RoundedRectangle(cornerRadius: 24)
-                    .fill(Color(.systemBackground).opacity(0.85))
-            )
-            .liquidGlassIfAvailable(in: RoundedRectangle(cornerRadius: 24))
+            .hfrGlassSurface(in: RoundedRectangle(cornerRadius: 24, style: .continuous))
             .padding(20)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

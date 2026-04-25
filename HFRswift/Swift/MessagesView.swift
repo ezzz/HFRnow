@@ -537,7 +537,7 @@ private struct MessagePopupPromptSheet: View {
                         ProgressView()
                             .padding(.horizontal, 18)
                             .padding(.vertical, 12)
-                            .background(.ultraThinMaterial, in: .rect(cornerRadius: 12))
+                            .hfrLoadingPanel(in: .rect(cornerRadius: 12))
                     }
                 }
             }
@@ -4044,7 +4044,7 @@ struct MessagesView: View {
                             .font(.caption2.weight(.semibold))
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
-                            .background(.tint.opacity(0.15), in: Capsule())
+                            .hfrGlassSurface(in: Capsule(), shadowOpacity: 0.08, shadowRadius: 3, shadowY: 1)
                     }
                 }
             }
@@ -4314,7 +4314,7 @@ struct MessagesView: View {
                     ProgressView(activeComposerPrefillMode.loadingLabel)
                         .padding(.horizontal, 18)
                         .padding(.vertical, 12)
-                        .background(.ultraThinMaterial, in: .rect(cornerRadius: 12))
+                        .hfrLoadingPanel(in: .rect(cornerRadius: 12))
                 }
 
                 if isPreparingModerationAlert {
@@ -4323,7 +4323,7 @@ struct MessagesView: View {
                     ProgressView("Chargement de l'alerte...")
                         .padding(.horizontal, 18)
                         .padding(.vertical, 12)
-                        .background(.ultraThinMaterial, in: .rect(cornerRadius: 12))
+                        .hfrLoadingPanel(in: .rect(cornerRadius: 12))
                 }
 
                 if isDeletingMessage {
@@ -4332,7 +4332,7 @@ struct MessagesView: View {
                     ProgressView("Suppression...")
                         .padding(.horizontal, 18)
                         .padding(.vertical, 12)
-                        .background(.ultraThinMaterial, in: .rect(cornerRadius: 12))
+                        .hfrLoadingPanel(in: .rect(cornerRadius: 12))
                 }
 
                 if isPreparingAQPrompt {
@@ -4341,7 +4341,7 @@ struct MessagesView: View {
                     ProgressView("Chargement de l'AQ...")
                         .padding(.horizontal, 18)
                         .padding(.vertical, 12)
-                        .background(.ultraThinMaterial, in: .rect(cornerRadius: 12))
+                        .hfrLoadingPanel(in: .rect(cornerRadius: 12))
                 }
             }
             .ignoresSafeArea()
@@ -5022,12 +5022,12 @@ private struct MessageSmileySheetView: View {
     private var favoriteButton: some View {
         if isFavorite {
             favoriteButtonBase
-                .buttonStyle(.bordered)
+                .hfrGlassButton()
                 .controlSize(.large)
                 .frame(maxWidth: .infinity, alignment: .center)
         } else {
             favoriteButtonBase
-                .buttonStyle(.borderedProminent)
+                .hfrGlassButton(prominent: true)
                 .controlSize(.large)
                 .frame(maxWidth: .infinity, alignment: .center)
         }
@@ -5192,7 +5192,7 @@ private struct MessageAvatarActionSheetView: View {
                             Label("Profil", systemImage: "person.crop.circle")
                                 .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.borderedProminent)
+                        .hfrGlassButton(prominent: true)
                     }
 
                     if !actions.isOwnMessage, let privateMessageURL = actions.privateMessageURL {
@@ -5202,7 +5202,7 @@ private struct MessageAvatarActionSheetView: View {
                             Label("MP", systemImage: "message")
                                 .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.bordered)
+                        .hfrGlassButton()
                     }
 
                     if !actions.isOwnMessage, let authorName = actions.authorName?.trimmingCharacters(in: .whitespacesAndNewlines), !authorName.isEmpty {
@@ -5212,7 +5212,7 @@ private struct MessageAvatarActionSheetView: View {
                             Label("Whitelist", systemImage: "heart")
                                 .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.bordered)
+                        .hfrGlassButton()
 
                         Button(role: .destructive) {
                             onBlacklist(authorName)
@@ -5220,7 +5220,7 @@ private struct MessageAvatarActionSheetView: View {
                             Label("Blacklist", systemImage: "hand.raised")
                                 .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.bordered)
+                        .hfrGlassButton()
                     }
                 }
                 .padding(16)
@@ -6074,9 +6074,7 @@ private extension View {
         if #available(iOS 26.0, *) {
             self.buttonStyle(.glassProminent)
         } else {
-            self
-                .buttonStyle(.borderedProminent)
-                .tint(.black.opacity(0.55))
+            self.buttonStyle(.borderedProminent)
         }
     }
 }
@@ -6203,9 +6201,7 @@ private struct PostSuccessToastBanner: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(.ultraThinMaterial)
-        .clipShape(Capsule())
-        .shadow(radius: 6, y: 3)
+        .hfrToastSurface()
     }
 }
 

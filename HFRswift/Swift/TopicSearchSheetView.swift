@@ -162,7 +162,7 @@ struct TopicSearchSheetView: View {
                         Color.black.opacity(0.08).ignoresSafeArea()
                         ProgressView("Recherche en cours…")
                             .padding(24)
-                            .background(.ultraThinMaterial, in: .rect(cornerRadius: 14))
+                            .hfrLoadingPanel(in: .rect(cornerRadius: 14))
                     }
                     .transition(.opacity)
                 }
