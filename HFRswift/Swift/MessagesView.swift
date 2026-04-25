@@ -4624,7 +4624,9 @@ struct MessagesView: View {
                                 }
                             }
 
-                            ToolbarSpacer(.flexible, placement: .bottomBar)
+                            ToolbarItem(placement: .bottomBar) {
+                                Spacer()
+                            }
 
                             if shouldShowBottomRefreshButton {
                                 ToolbarItem(placement: .bottomBar) {
@@ -4634,11 +4636,10 @@ struct MessagesView: View {
                                         Image(systemName: "arrow.clockwise")
                                             .font(.system(size: 16, weight: .semibold))
                                     }
-                                    .buttonStyle(.glassProminent)
+                                    .topicBottomBarButtonStyle(isProminent: true)
                                     .accessibilityLabel("Actualiser")
                                     .transition(.opacity.combined(with: .scale))
                                 }
-                                ToolbarSpacer(.fixed, placement: .bottomBar)
                             }
 
                             ToolbarItem(placement: .bottomBar) {
@@ -5104,7 +5105,7 @@ private struct MessageSmileySheetView: View {
                             }
                         }
                         .padding()
-                        .glassEffect(in: .rect(cornerRadius: 12))
+                        .hfrGlassSurface(in: .rect(cornerRadius: 12))
                     }
 
                 }
@@ -5145,7 +5146,8 @@ private struct MessageSmileySheetView: View {
                         Image(systemName: "xmark")
                             .font(.footnote.bold())
                     }
-                    .glassEffect(in: .circle)
+                    .buttonBorderShape(.circle)
+                    .hfrGlassButton()
                 }
             }
         }

@@ -1104,26 +1104,6 @@ private struct FavoritePostFilterProgressBanner: View {
     }
 }
 
-struct TopicOptions: View {
-    @Environment(\.tabViewBottomAccessoryPlacement)
-    var placement
-    
-    var body: some View {
-        if (placement == .inline) {
-            Button("Add", systemImage: "star.fill") {
-                print("Clic")
-            }
-            .padding()
-        }
-        else {
-            Button("Add", systemImage: "envolope") {
-                print("Clic")
-            }
-            .padding()
-        }
-    }
-}
-
 private enum FavoritesPreviewFactory {
     final class PreviewFavoritesLoader: FavoritesLoading {
         enum Result {

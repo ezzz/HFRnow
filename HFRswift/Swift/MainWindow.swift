@@ -1055,7 +1055,7 @@ struct RootTabView: View {
             }
             .badge(unreadAQCount > 0 ? unreadAQCount : 0)
         }
-        .tabBarMinimizeBehavior(tabBarMinimizeOnScroll ? .onScrollDown : .never)
+        .hfrTabBarMinimizeBehavior(tabBarMinimizeOnScroll: tabBarMinimizeOnScroll)
         .preferredColorScheme(appTheme.preferredColorScheme)
         .tint(appTheme.actionTintColor)
         .environment(\.appThemePalette, appTheme.palette)
@@ -1211,6 +1211,17 @@ private struct TabBarReselectionObserver: UIViewControllerRepresentable {
                 .flatMap(\.windows)
                 .first(where: { $0.isKeyWindow })?
                 .rootViewController
+        }
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func hfrTabBarMinimizeBehavior(tabBarMinimizeOnScroll: Bool) -> some View {
+        if #available(iOS 26.0, *) {
+            self.tabBarMinimizeBehavior(tabBarMinimizeOnScroll ? .onScrollDown : .never)
+        } else {
+            self
         }
     }
 }
