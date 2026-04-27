@@ -929,6 +929,7 @@ struct RootTabView: View {
     @StateObject private var messagesViewModel = MPListViewModel()
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) private var systemColorScheme
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var selectedTab: RootTabIdentifier
     @State private var hasScheduledColdLaunchPrefetch = false
     @State private var coldLaunchPrefetchTask: Task<Void, Never>?
@@ -1028,8 +1029,7 @@ struct RootTabView: View {
     }
 
     var body: some View {
-        rootTabs
-            .hfrTabBarMinimizeBehavior(tabBarMinimizeOnScroll: tabBarMinimizeOnScroll)
+        rootContainer
             .preferredColorScheme(appTheme.preferredColorScheme)
             .tint(appTheme.actionTintColor)
             .environment(\.appThemePalette, appTheme.palette)
@@ -1056,6 +1056,21 @@ struct RootTabView: View {
             .onReceive(NotificationCenter.default.publisher(for: MessagesNotificationNavigation.openMessagesNotification)) { _ in
                 handlePendingMessagesNotificationNavigationIfNeeded()
             }
+    }
+
+    @ViewBuilder
+    private var rootContainer: some View {
+        if horizontalSizeClass == .regular {
+            iPadSidebarRoot
+        } else {
+            compactTabRoot
+        }
+    }
+
+    private var compactTabRoot: some View {
+        rootTabs
+            .hfrTabBarMinimizeBehavior(tabBarMinimizeOnScroll: tabBarMinimizeOnScroll)
+            .background(tabBarReselectionObserver)
     }
 
     private var rootTabs: some View {
@@ -1088,6 +1103,104 @@ struct RootTabView: View {
             .tabItem { Label("Plus", systemImage: "ellipsis") }
             .tag(RootTabIdentifier.more)
             .badge(unreadAQCount > 0 ? unreadAQCount : 0)
+        }
+    }
+
+    private var iPadSidebarRoot: some View {
+        NavigationSplitView {
+            List(selection: sidebarSelection) {
+                ForEach(Self.sidebarTabs, id: \.self) { tab in
+                    NavigationLink(value: tab) {
+                        sidebarRow(for: tab)
+                    }
+                }
+            }
+            .navigationTitle("HFRnow")
+        } detail: {
+            selectedTabContent
+        }
+        .navigationSplitViewStyle(.balanced)
+    }
+
+    private var sidebarSelection: Binding<RootTabIdentifier?> {
+        Binding {
+            selectedTab
+        } set: { newValue in
+            guard let newValue else { return }
+            selectedTab = newValue
+        }
+    }
+
+    @ViewBuilder
+    private var selectedTabContent: some View {
+        switch selectedTab {
+        case .categories:
+            CategoriesListView()
+        case .favorites:
+            FavoritesListView(
+                viewModel: favoritesViewModel,
+                accountsStore: accountsStore
+            )
+        case .messages:
+            MPListView(
+                viewModel: messagesViewModel,
+                accountsStore: accountsStore,
+                isActive: selectedTab == .messages,
+                navigationResetToken: messagesNavigationResetToken
+            )
+        case .more:
+            PlusHomeView()
+        }
+    }
+
+    private func sidebarRow(for tab: RootTabIdentifier) -> some View {
+        HStack {
+            Label(sidebarTitle(for: tab), systemImage: sidebarSystemImage(for: tab))
+            Spacer()
+            if sidebarBadgeCount(for: tab) > 0 {
+                Text("\(sidebarBadgeCount(for: tab))")
+                    .font(.caption2.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Capsule().fill(Color.red))
+            }
+        }
+    }
+
+    private static let sidebarTabs: [RootTabIdentifier] = [
+        .categories,
+        .favorites,
+        .messages,
+        .more
+    ]
+
+    private func sidebarTitle(for tab: RootTabIdentifier) -> String {
+        switch tab {
+        case .categories: "Catégories"
+        case .favorites: "Favoris"
+        case .messages: "Messages"
+        case .more: "Plus"
+        }
+    }
+
+    private func sidebarSystemImage(for tab: RootTabIdentifier) -> String {
+        switch tab {
+        case .categories: "folder.fill"
+        case .favorites: "star.fill"
+        case .messages: "envelope"
+        case .more: "ellipsis"
+        }
+    }
+
+    private func sidebarBadgeCount(for tab: RootTabIdentifier) -> Int {
+        switch tab {
+        case .messages:
+            mpBadgeEnabled ? unreadMPCount : 0
+        case .more:
+            unreadAQCount
+        case .categories, .favorites:
+            0
         }
     }
 
