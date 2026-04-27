@@ -10,6 +10,7 @@ import WebKit
 import UIKit
 import SafariServices
 import ImageIO
+import Photos
 
 enum ReplyQuoteDraftMerger {
     static func merge(quoteTemplate: String, into draft: String) -> String {
@@ -1049,6 +1050,7 @@ struct WebView: UIViewRepresentable {
             webView.underPageBackgroundColor = baseBackgroundColor
         }
         webView.navigationDelegate = context.coordinator
+        webView.uiDelegate = context.coordinator
         if #available(iOS 16.0, *) {
             let editMenuInteraction = UIEditMenuInteraction(delegate: context.coordinator)
             webView.addInteraction(editMenuInteraction)
@@ -1118,7 +1120,7 @@ struct WebView: UIViewRepresentable {
 
     }
 
-    class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler, UIEditMenuInteractionDelegate {
+    class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler, UIEditMenuInteractionDelegate, WKUIDelegate {
         var parent: WebView
         var anchor: String?
         var initialScroll: WebView.InitialScroll?
@@ -1290,6 +1292,46 @@ struct WebView: UIViewRepresentable {
             default:
                 return
             }
+        }
+
+        func webView(
+            _ webView: WKWebView,
+            contextMenuConfigurationForElement elementInfo: WKContextMenuElementInfo,
+            completionHandler: @escaping (UIContextMenuConfiguration?) -> Void
+        ) {
+            guard let imageURL = imageURLForContextMenuElementInfo(elementInfo) else {
+                completionHandler(nil)
+                return
+            }
+
+            let configuration = UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
+                guard let self else { return nil }
+
+                let openAction = UIAction(
+                    title: "Ouvrir l'image",
+                    image: UIImage(systemName: "photo")
+                ) { _ in
+                    self.parent.onWebAction?(.presentImageViewer(imageURL))
+                }
+
+                let saveAction = UIAction(
+                    title: "Save to Photos",
+                    image: UIImage(systemName: "square.and.arrow.down")
+                ) { _ in
+                    self.saveImageToPhotoLibrary(from: imageURL)
+                }
+
+                let copyAction = UIAction(
+                    title: "Copier le lien",
+                    image: UIImage(systemName: "doc.on.doc")
+                ) { _ in
+                    UIPasteboard.general.url = imageURL
+                }
+
+                return UIMenu(title: "", children: [openAction, saveAction, copyAction])
+            }
+
+            completionHandler(configuration)
         }
 
         private func notifyContentReadyIfNeeded() {
@@ -2211,6 +2253,74 @@ struct WebView: UIViewRepresentable {
             return true
         }
 
+        private func imageURLForContextMenuElementInfo(_ elementInfo: WKContextMenuElementInfo) -> URL? {
+            guard let linkURL = elementInfo.linkURL else {
+                return nil
+            }
+
+            let normalizedURL = normalizeContextMenuImageURL(linkURL)
+            return isImageURL(normalizedURL) ? normalizedURL : nil
+        }
+
+        private func isImageURL(_ url: URL) -> Bool {
+            let imageExtensions = ["jpg", "jpeg", "png", "gif", "webp", "bmp", "tif", "tiff", "heic", "heif"]
+            let pathExtension = url.pathExtension.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            if imageExtensions.contains(pathExtension) {
+                return true
+            }
+
+            if let host = url.host?.lowercased(),
+               host == "reho.st" || host.hasSuffix(".reho.st") || host == "img3.super-h.fr" || host == "rehost.diberie.com" {
+                return true
+            }
+
+            return false
+        }
+
+        private func saveImageToPhotoLibrary(from url: URL) {
+            Task {
+                let result = await MessageImagePhotoLibrarySaver.saveImage(from: url)
+                await MainActor.run {
+                    switch result {
+                    case .success:
+                        MessageLegacyAlertBridge.showToast("Photo enregistrée")
+                    case .failure(.permissionDenied):
+                        MessageLegacyAlertBridge.showTitleAndMessage(
+                            title: "Accès Photos refusé",
+                            message: "Autorise l'accès aux Photos pour enregistrer l'image."
+                        )
+                    case .failure(.invalidImageData):
+                        MessageLegacyAlertBridge.showTitleAndMessage(
+                            title: "Image invalide",
+                            message: "Impossible d'enregistrer cette image."
+                        )
+                    case .failure(.network):
+                        MessageLegacyAlertBridge.showToast("Erreur réseau")
+                    case .failure(.system):
+                        MessageLegacyAlertBridge.showTitleAndMessage(
+                            title: "Erreur",
+                            message: "L'enregistrement dans Photos a échoué."
+                        )
+                    }
+                }
+            }
+        }
+
+        private func normalizeContextMenuImageURL(_ url: URL) -> URL {
+            let raw = url.absoluteString
+            let normalized: String
+            if raw.contains("https://img3.super-h.fr/images/") {
+                normalized = raw.replacingOccurrences(of: ".th.", with: ".")
+            } else if raw.contains("reho.st/thumb/") {
+                normalized = raw.replacingOccurrences(of: "reho.st/thumb/", with: "reho.st/")
+            } else if raw.contains("rehost.diberie.com/Picture/Get/t/") {
+                normalized = raw.replacingOccurrences(of: "rehost.diberie.com/Picture/Get/t/", with: "rehost.diberie.com/Picture/Get/f/")
+            } else {
+                normalized = raw
+            }
+            return URL(string: normalized) ?? url
+        }
+
         private enum MessageLegacyAlertBridge {
             static func showToast(_ title: String) {
                 guard let alertClass = NSClassFromString("HFRAlertView") as? NSObject.Type else {
@@ -2505,6 +2615,63 @@ struct WebView: UIViewRepresentable {
 
             let menuTitle = popupMenuTitle(for: context.actions) ?? ""
             return UIMenu(title: menuTitle, children: children)
+        }
+    }
+}
+
+enum MessageImagePhotoLibrarySaver {
+    enum SaveError: Error {
+        case permissionDenied
+        case invalidImageData
+        case network
+        case system
+    }
+
+    static func saveImage(from url: URL) async -> Result<Void, SaveError> {
+        let authorizationStatus = await requestPhotoLibraryAccess()
+        guard authorizationStatus == .authorized || authorizationStatus == .limited else {
+            return .failure(.permissionDenied)
+        }
+
+        let request = PhotoViewerNetworkRequestFactory.makeRequest(for: url)
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            let isValidResponse = (response as? HTTPURLResponse).map { (200..<300).contains($0.statusCode) } ?? false
+            guard isValidResponse, UIImage(data: data) != nil else {
+                return .failure(.invalidImageData)
+            }
+
+            try await writeImageDataToPhotoLibrary(data)
+            return .success(())
+        } catch let error as SaveError {
+            return .failure(error)
+        } catch {
+            return .failure(.network)
+        }
+    }
+
+    @MainActor
+    private static func requestPhotoLibraryAccess() async -> PHAuthorizationStatus {
+        let currentStatus = PHPhotoLibrary.authorizationStatus(for: .addOnly)
+        if currentStatus == .notDetermined {
+            return await PHPhotoLibrary.requestAuthorization(for: .addOnly)
+        }
+        return currentStatus
+    }
+
+    private static func writeImageDataToPhotoLibrary(_ data: Data) async throws {
+        try await withCheckedThrowingContinuation { continuation in
+            PHPhotoLibrary.shared().performChanges({
+                let creationRequest = PHAssetCreationRequest.forAsset()
+                creationRequest.addResource(with: .photo, data: data, options: nil)
+            }) { success, _ in
+                if success {
+                    continuation.resume()
+                } else {
+                    continuation.resume(throwing: SaveError.system)
+                }
+            }
         }
     }
 }

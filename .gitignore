@@ -68,3 +68,5 @@ fastlane/test_output
 # 
 .DS_Store
 api_keys.h
+.claude/settings.local.json
+plugins/
