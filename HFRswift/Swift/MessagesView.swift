@@ -4334,6 +4334,75 @@ struct MessagesView: View {
         }
     }
 
+    @ViewBuilder
+    private func pageNavigationMenuItems() -> some View {
+        // Toolbar menus are displayed bottom-up here; declaration order is reversed
+        // to keep the visual order aligned with the requested page navigation flow.
+        if page < currentMaxPage {
+            Button {
+                self.anchor = nil
+                self.initialScroll = .bottom
+                loadPage(currentMaxPage)
+            } label: {
+                MenuActionLabel("Dernière réponse", systemImage: "text.append")
+            }
+        }
+        if page + 1 < currentMaxPage {
+            Button {
+                self.anchor = nil
+                self.initialScroll = .top
+                loadPage(currentMaxPage)
+            } label: {
+                MenuActionLabel("Dernière page", systemImage: "forward.end")
+            }
+        }
+        if page < currentMaxPage {
+            Button {
+                self.anchor = nil
+                self.initialScroll = .top
+                loadPage(page + 1)
+            } label: {
+                MenuActionLabel("Page suivante", systemImage: "chevron.forward")
+            }
+        }
+        Divider()
+        if page > 1 {
+            Button {
+                self.anchor = nil
+                self.initialScroll = .bottom
+                loadPage(page - 1)
+            } label: {
+                MenuActionLabel("Page précédente", systemImage: "chevron.backward")
+            }
+        }
+        if page > 2 {
+            Button {
+                self.anchor = nil
+                self.initialScroll = .top
+                loadPage(1)
+            } label: {
+                MenuActionLabel("Première page", systemImage: "backward.end")
+            }
+        }
+        Divider()
+        if currentMaxPage > 1 {
+            Button {
+                openPagePicker()
+            } label: {
+                MenuActionLabel("Page numéro...", systemImage: "number")
+            }
+        }
+    }
+
+    private var pageNavigationMenuButton: some View {
+        Menu {
+            pageNavigationMenuItems()
+        } label: {
+            Image(systemName: "ellipsis.circle")
+        }
+        .disabled(currentMaxPage <= 1)
+    }
+
     var body: some View {
         // Use ViewBuilder implicit grouping to avoid generic inference issues with Group
         if let errorMessage {
@@ -4752,30 +4821,18 @@ struct MessagesView: View {
                             }
                         } else {
                             ToolbarItemGroup(placement: .bottomBar) {
-                                Button {
-                                    navigateToPage(page - 1, initialScroll: .bottom)
-                                } label: {
-                                    Image(systemName: "chevron.backward")
-                                }
-                                .contextMenu {
-                                    backwardContextMenuItems()
-                                } preview: {
-                                    Color.clear.frame(width: 1, height: 1)
-                                }
-                                .disabled(page <= 1)
+                                pageNavigationMenuButton
 
-                                Button {
-                                    navigateToPage(page + 1, initialScroll: .top)
-                                } label: {
-                                    Image(systemName: "chevron.forward")
+                                if shouldHighlightNextPageButton {
+                                    Button {
+                                        navigateToPage(page + 1, initialScroll: .top)
+                                    } label: {
+                                        Image(systemName: "chevron.forward")
+                                    }
+                                    .topicBottomBarButtonStyle(isProminent: true)
+                                    .disabled(page >= currentMaxPage)
+                                    .transition(.opacity.combined(with: .scale))
                                 }
-                                .contextMenu {
-                                    forwardContextMenuItems()
-                                } preview: {
-                                    Color.clear.frame(width: 1, height: 1)
-                                }
-                                .topicBottomBarButtonStyle(isProminent: shouldHighlightNextPageButton)
-                                .disabled(page >= currentMaxPage)
                             }
 
                             if isInSearchMode {
@@ -4998,30 +5055,18 @@ struct MessagesView: View {
                     }
                 } else {
                     ToolbarItemGroup(placement: .bottomBar) {
-                        Button {
-                            navigateToPage(page - 1, initialScroll: .bottom)
-                        } label: {
-                            Image(systemName: "chevron.backward")
-                        }
-                        .contextMenu {
-                            backwardContextMenuItems()
-                        } preview: {
-                            EmptyView()
-                        }
-                        .disabled(page <= 1)
+                        pageNavigationMenuButton
 
-                        Button {
-                            navigateToPage(page + 1, initialScroll: .top)
-                        } label: {
-                            Image(systemName: "chevron.forward")
+                        if shouldHighlightNextPageButton {
+                            Button {
+                                navigateToPage(page + 1, initialScroll: .top)
+                            } label: {
+                                Image(systemName: "chevron.forward")
+                            }
+                            .topicBottomBarButtonStyle(isProminent: true)
+                            .disabled(page >= currentMaxPage)
+                            .transition(.opacity.combined(with: .scale))
                         }
-                        .contextMenu {
-                            forwardContextMenuItems()
-                        } preview: {
-                            EmptyView()
-                        }
-                        .topicBottomBarButtonStyle(isProminent: shouldHighlightNextPageButton)
-                        .disabled(page >= currentMaxPage)
 
                         if isInSearchMode {
                             Button {
