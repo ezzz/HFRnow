@@ -4182,11 +4182,27 @@ struct MessagesView: View {
         isPagePickerPresented = true
     }
 
-    private func navigateToPage(_ target: Int, initialScroll: WebView.InitialScroll) {
-        guard (1...currentMaxPage).contains(target), target != page else { return }
+    private func navigateToPage(_ target: Int, initialScroll: WebView.InitialScroll, source: String = "unspecified") {
+        print("[MessagesView] navigateToPage requested source=\(source) current=\(page) target=\(target) max=\(currentMaxPage) initialScroll=\(String(describing: initialScroll))")
+        guard (1...currentMaxPage).contains(target), target != page else {
+            print("[MessagesView] navigateToPage ignored source=\(source) current=\(page) target=\(target) max=\(currentMaxPage)")
+            return
+        }
         anchor = nil
         self.initialScroll = initialScroll
         loadPage(target)
+    }
+
+    private func navigateToPreviousPageFromBottomButton() {
+        let target = page - 1
+        print("[MessagesView] bottom previous tap current=\(page) target=\(target) max=\(currentMaxPage) atBottom=\(isWebContentAtBottom) showCover=\(showWebViewLoadCover)")
+        navigateToPage(target, initialScroll: .bottom, source: "bottom previous button")
+    }
+
+    private func navigateToNextPageFromBottomButton() {
+        let target = page + 1
+        print("[MessagesView] bottom next tap current=\(page) target=\(target) max=\(currentMaxPage) atBottom=\(isWebContentAtBottom) showCover=\(showWebViewLoadCover)")
+        navigateToPage(target, initialScroll: .top, source: "bottom next button")
     }
 
     private var shouldShowBottomRefreshButton: Bool {
@@ -4336,24 +4352,30 @@ struct MessagesView: View {
 
     @ViewBuilder
     private func pageNavigationMenuItems() -> some View {
-        // Toolbar menus are displayed bottom-up here; declaration order is reversed
-        // to keep the visual order aligned with the requested page navigation flow.
-        if page < currentMaxPage {
+        if currentMaxPage > 1 {
             Button {
-                self.anchor = nil
-                self.initialScroll = .bottom
-                loadPage(currentMaxPage)
+                openPagePicker()
             } label: {
-                MenuActionLabel("Dernière réponse", systemImage: "text.append")
+                MenuActionLabel("Page numéro...", systemImage: "number")
             }
         }
-        if page + 1 < currentMaxPage {
+        Divider()
+        if page > 2 {
             Button {
                 self.anchor = nil
                 self.initialScroll = .top
-                loadPage(currentMaxPage)
+                loadPage(1)
             } label: {
-                MenuActionLabel("Dernière page", systemImage: "forward.end")
+                MenuActionLabel("Première page", systemImage: "backward.end")
+            }
+        }
+        if page > 1 {
+            Button {
+                self.anchor = nil
+                self.initialScroll = .bottom
+                loadPage(page - 1)
+            } label: {
+                MenuActionLabel("Page précédente", systemImage: "chevron.backward")
             }
         }
         if page < currentMaxPage {
@@ -4366,41 +4388,24 @@ struct MessagesView: View {
             }
         }
         Divider()
-        if page > 1 {
-            Button {
-                self.anchor = nil
-                self.initialScroll = .bottom
-                loadPage(page - 1)
-            } label: {
-                MenuActionLabel("Page précédente", systemImage: "chevron.backward")
-            }
-        }
-        if page > 2 {
+        if page + 1 < currentMaxPage {
             Button {
                 self.anchor = nil
                 self.initialScroll = .top
-                loadPage(1)
+                loadPage(currentMaxPage)
             } label: {
-                MenuActionLabel("Première page", systemImage: "backward.end")
+                MenuActionLabel("Dernière page", systemImage: "forward.end")
             }
         }
-        Divider()
-        if currentMaxPage > 1 {
+        if page < currentMaxPage {
             Button {
-                openPagePicker()
+                self.anchor = nil
+                self.initialScroll = .bottom
+                loadPage(currentMaxPage)
             } label: {
-                MenuActionLabel("Page numéro...", systemImage: "number")
+                MenuActionLabel("Dernière réponse", systemImage: "text.append")
             }
         }
-    }
-
-    private var pageNavigationMenuButton: some View {
-        Menu {
-            pageNavigationMenuItems()
-        } label: {
-            Image(systemName: "ellipsis.circle")
-        }
-        .disabled(currentMaxPage <= 1)
     }
 
     var body: some View {
@@ -4786,6 +4791,10 @@ struct MessagesView: View {
                             } label: {
                                 MenuActionLabel("Rechercher", systemImage: "magnifyingglass")
                             }
+                            if currentMaxPage > 1 {
+                                Divider()
+                                pageNavigationMenuItems()
+                            }
                         } label: {
                             Image(systemName: "ellipsis")
                         }
@@ -4821,18 +4830,19 @@ struct MessagesView: View {
                             }
                         } else {
                             ToolbarItemGroup(placement: .bottomBar) {
-                                pageNavigationMenuButton
-
-                                if shouldHighlightNextPageButton {
-                                    Button {
-                                        navigateToPage(page + 1, initialScroll: .top)
-                                    } label: {
-                                        Image(systemName: "chevron.forward")
-                                    }
-                                    .topicBottomBarButtonStyle(isProminent: true)
-                                    .disabled(page >= currentMaxPage)
-                                    .transition(.opacity.combined(with: .scale))
+                                Button {
+                                    navigateToPreviousPageFromBottomButton()
+                                } label: {
+                                    Image(systemName: "chevron.backward")
                                 }
+                                .disabled(page <= 1)
+
+                                Button {
+                                    navigateToNextPageFromBottomButton()
+                                } label: {
+                                    Image(systemName: "chevron.forward")
+                                }
+                                .disabled(page >= currentMaxPage)
                             }
 
                             if isInSearchMode {
@@ -5037,6 +5047,10 @@ struct MessagesView: View {
                         } label: {
                             MenuActionLabel("Rechercher", systemImage: "magnifyingglass")
                         }
+                        if currentMaxPage > 1 {
+                            Divider()
+                            pageNavigationMenuItems()
+                        }
                     } label: {
                         Image(systemName: "ellipsis")
                     }
@@ -5055,18 +5069,19 @@ struct MessagesView: View {
                     }
                 } else {
                     ToolbarItemGroup(placement: .bottomBar) {
-                        pageNavigationMenuButton
-
-                        if shouldHighlightNextPageButton {
-                            Button {
-                                navigateToPage(page + 1, initialScroll: .top)
-                            } label: {
-                                Image(systemName: "chevron.forward")
-                            }
-                            .topicBottomBarButtonStyle(isProminent: true)
-                            .disabled(page >= currentMaxPage)
-                            .transition(.opacity.combined(with: .scale))
+                        Button {
+                            navigateToPreviousPageFromBottomButton()
+                        } label: {
+                            Image(systemName: "chevron.backward")
                         }
+                        .disabled(page <= 1)
+
+                        Button {
+                            navigateToNextPageFromBottomButton()
+                        } label: {
+                            Image(systemName: "chevron.forward")
+                        }
+                        .disabled(page >= currentMaxPage)
 
                         if isInSearchMode {
                             Button {
