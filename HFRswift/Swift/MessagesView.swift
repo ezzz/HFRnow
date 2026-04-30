@@ -4360,7 +4360,7 @@ struct MessagesView: View {
             }
         }
         Divider()
-        if page > 2 {
+        if page > 1 {
             Button {
                 self.anchor = nil
                 self.initialScroll = .top
@@ -4387,8 +4387,7 @@ struct MessagesView: View {
                 MenuActionLabel("Page suivante", systemImage: "chevron.forward")
             }
         }
-        Divider()
-        if page + 1 < currentMaxPage {
+        if page < currentMaxPage {
             Button {
                 self.anchor = nil
                 self.initialScroll = .top

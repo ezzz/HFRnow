@@ -1018,6 +1018,7 @@ struct TopicRowView: View {
                             }
                         }
                         if let onRemoveFavorite {
+                            Divider()
                             Button(role: .destructive) {
                                 onRemoveFavorite()
                             } label: {
