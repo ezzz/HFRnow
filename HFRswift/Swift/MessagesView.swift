@@ -581,111 +581,6 @@ private struct MessagePopupPromptSheet: View {
     }
 }
 
-private enum MessageBlackWhiteListActionBridge {
-    static func toggleBlacklist(pseudo: String) -> String? {
-        let normalizedPseudo = normalizedPseudo(from: pseudo)
-        guard !normalizedPseudo.isEmpty else {
-            return nil
-        }
-        guard let object = sharedObject() else {
-            return nil
-        }
-
-        let isBLSelector = NSSelectorFromString("isBL:")
-        guard object.responds(to: isBLSelector) else {
-            return nil
-        }
-        typealias IsBLFunction = @convention(c) (AnyObject, Selector, NSString) -> Bool
-        let isBLImplementation = object.method(for: isBLSelector)
-        let isBLFunction = unsafeBitCast(isBLImplementation, to: IsBLFunction.self)
-        let isBL = isBLFunction(object, isBLSelector, normalizedPseudo as NSString)
-
-        if isBL {
-            let selector = NSSelectorFromString("removeFromBlackList:andSave:")
-            guard object.responds(to: selector) else {
-                return nil
-            }
-            typealias Function = @convention(c) (AnyObject, Selector, NSString, Bool) -> Bool
-            let implementation = object.method(for: selector)
-            let function = unsafeBitCast(implementation, to: Function.self)
-            let result = function(object, selector, normalizedPseudo as NSString, true)
-            return result
-                ? "\(normalizedPseudo) a été supprimé de la liste noire"
-                : "Erreur! \(normalizedPseudo) n'a pas pu être supprimé de la liste noire"
-        }
-
-        let selector = NSSelectorFromString("addToBlackList:andSave:")
-        guard object.responds(to: selector) else {
-            return nil
-        }
-        typealias Function = @convention(c) (AnyObject, Selector, NSString, Bool) -> Bool
-        let implementation = object.method(for: selector)
-        let function = unsafeBitCast(implementation, to: Function.self)
-        let result = function(object, selector, normalizedPseudo as NSString, true)
-        return result
-            ? "BIM! \(normalizedPseudo) ajouté à la liste noire"
-            : "Erreur! \(normalizedPseudo) n'a pas pu être ajouté à la liste noire"
-    }
-
-    static func toggleWhitelist(pseudo: String) -> String? {
-        let normalizedPseudo = normalizedPseudo(from: pseudo)
-        guard !normalizedPseudo.isEmpty else {
-            return nil
-        }
-        guard let object = sharedObject() else {
-            return nil
-        }
-        let isWLSelector = NSSelectorFromString("isWL:")
-        guard object.responds(to: isWLSelector) else {
-            return nil
-        }
-        typealias IsWLFunction = @convention(c) (AnyObject, Selector, NSString) -> Bool
-        let isWLImplementation = object.method(for: isWLSelector)
-        let isWLFunction = unsafeBitCast(isWLImplementation, to: IsWLFunction.self)
-        let isWL = isWLFunction(object, isWLSelector, normalizedPseudo as NSString)
-
-        if isWL {
-            let selector = NSSelectorFromString("removeFromWhiteList:")
-            guard object.responds(to: selector) else {
-                return nil
-            }
-            typealias Function = @convention(c) (AnyObject, Selector, NSString) -> Bool
-            let implementation = object.method(for: selector)
-            let function = unsafeBitCast(implementation, to: Function.self)
-            _ = function(object, selector, normalizedPseudo as NSString)
-            return "OH NOES ! \(normalizedPseudo) a été supprimé de la love list"
-        }
-
-        let selector = NSSelectorFromString("addToWhiteList:")
-        guard object.responds(to: selector) else {
-            return nil
-        }
-        typealias Function = @convention(c) (AnyObject, Selector, NSString) -> Void
-        let implementation = object.method(for: selector)
-        let function = unsafeBitCast(implementation, to: Function.self)
-        function(object, selector, normalizedPseudo as NSString)
-        return "BOUM BOUM ! \(normalizedPseudo) ajouté à la love list ♥"
-    }
-
-    private static func sharedObject() -> NSObject? {
-        guard let klass = NSClassFromString("BlackList") as? NSObject.Type else {
-            return nil
-        }
-        let selector = NSSelectorFromString("shared")
-        guard klass.responds(to: selector),
-              let unmanaged = klass.perform(selector) else {
-            return nil
-        }
-        return unmanaged.takeUnretainedValue() as? NSObject
-    }
-
-    private static func normalizedPseudo(from pseudo: String) -> String {
-        pseudo
-            .replacingOccurrences(of: "\u{200B}", with: "")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-}
-
 final class MessageWebView: WKWebView {
     var messageActionsByIndex: [Int: TopicPageMessageActions] = [:]
     var onTextQuoteRequest: ((URL, String, Bool) -> Void)?
@@ -1784,7 +1679,7 @@ struct WebView: UIViewRepresentable {
                             isDestructive: actionKind.isDestructive,
                             handler: { [weak self] in
                                 guard let self else { return }
-                                let message = MessageBlackWhiteListBridge.toggleBlacklist(pseudo: authorName)
+                                let message = ObjCProfileFilterListManager.shared.toggleBlacklist(pseudo: authorName)
                                 if let message {
                                     MessageLegacyAlertBridge.showToast(message)
                                 }
@@ -1801,7 +1696,7 @@ struct WebView: UIViewRepresentable {
                             isDestructive: actionKind.isDestructive,
                             handler: { [weak self] in
                                 guard let self else { return }
-                                let message = MessageBlackWhiteListBridge.toggleWhitelist(pseudo: authorName)
+                                let message = ObjCProfileFilterListManager.shared.toggleWhitelist(pseudo: authorName)
                                 if let message {
                                     MessageLegacyAlertBridge.showToast(message)
                                 }
@@ -2353,111 +2248,6 @@ struct WebView: UIViewRepresentable {
             }
         }
 
-        private enum MessageBlackWhiteListBridge {
-            static func toggleBlacklist(pseudo: String) -> String? {
-                let normalizedPseudo = normalizedPseudo(from: pseudo)
-                guard !normalizedPseudo.isEmpty else {
-                    return nil
-                }
-                guard let object = sharedObject() else {
-                    return nil
-                }
-
-                let isBLSelector = NSSelectorFromString("isBL:")
-                guard object.responds(to: isBLSelector) else {
-                    return nil
-                }
-                typealias IsBLFunction = @convention(c) (AnyObject, Selector, NSString) -> Bool
-                let isBLImplementation = object.method(for: isBLSelector)
-                let isBLFunction = unsafeBitCast(isBLImplementation, to: IsBLFunction.self)
-                let isBL = isBLFunction(object, isBLSelector, normalizedPseudo as NSString)
-
-                if isBL {
-                    let selector = NSSelectorFromString("removeFromBlackList:andSave:")
-                    guard object.responds(to: selector) else {
-                        return nil
-                    }
-                    typealias Function = @convention(c) (AnyObject, Selector, NSString, Bool) -> Bool
-                    let implementation = object.method(for: selector)
-                    let function = unsafeBitCast(implementation, to: Function.self)
-                    let result = function(object, selector, normalizedPseudo as NSString, true)
-                    return result
-                        ? "\(normalizedPseudo) a été supprimé de la liste noire"
-                        : "Erreur! \(normalizedPseudo) n'a pas pu être supprimé de la liste noire"
-                }
-
-                let selector = NSSelectorFromString("addToBlackList:andSave:")
-                guard object.responds(to: selector) else {
-                    return nil
-                }
-                typealias Function = @convention(c) (AnyObject, Selector, NSString, Bool) -> Bool
-                let implementation = object.method(for: selector)
-                let function = unsafeBitCast(implementation, to: Function.self)
-                let result = function(object, selector, normalizedPseudo as NSString, true)
-                return result
-                    ? "BIM! \(normalizedPseudo) ajouté à la liste noire"
-                    : "Erreur! \(normalizedPseudo) n'a pas pu être ajouté à la liste noire"
-            }
-
-            static func toggleWhitelist(pseudo: String) -> String? {
-                let normalizedPseudo = normalizedPseudo(from: pseudo)
-                guard !normalizedPseudo.isEmpty else {
-                    return nil
-                }
-                guard let object = sharedObject() else {
-                    return nil
-                }
-                let isWLSelector = NSSelectorFromString("isWL:")
-                guard object.responds(to: isWLSelector) else {
-                    return nil
-                }
-                typealias IsWLFunction = @convention(c) (AnyObject, Selector, NSString) -> Bool
-                let isWLImplementation = object.method(for: isWLSelector)
-                let isWLFunction = unsafeBitCast(isWLImplementation, to: IsWLFunction.self)
-                let isWL = isWLFunction(object, isWLSelector, normalizedPseudo as NSString)
-
-                if isWL {
-                    let selector = NSSelectorFromString("removeFromWhiteList:")
-                    guard object.responds(to: selector) else {
-                        return nil
-                    }
-                    typealias Function = @convention(c) (AnyObject, Selector, NSString) -> Bool
-                    let implementation = object.method(for: selector)
-                    let function = unsafeBitCast(implementation, to: Function.self)
-                    _ = function(object, selector, normalizedPseudo as NSString)
-                    return "OH NOES ! \(normalizedPseudo) a été supprimé de la love list"
-                }
-
-                let selector = NSSelectorFromString("addToWhiteList:")
-                guard object.responds(to: selector) else {
-                    return nil
-                }
-                typealias Function = @convention(c) (AnyObject, Selector, NSString) -> Void
-                let implementation = object.method(for: selector)
-                let function = unsafeBitCast(implementation, to: Function.self)
-                function(object, selector, normalizedPseudo as NSString)
-                return "BOUM BOUM ! \(normalizedPseudo) ajouté à la love list ♥"
-            }
-
-            private static func sharedObject() -> NSObject? {
-                guard let klass = NSClassFromString("BlackList") as? NSObject.Type else {
-                    return nil
-                }
-                let selector = NSSelectorFromString("shared")
-                guard klass.responds(to: selector),
-                      let unmanaged = klass.perform(selector) else {
-                    return nil
-                }
-                return unmanaged.takeUnretainedValue() as? NSObject
-            }
-
-            private static func normalizedPseudo(from pseudo: String) -> String {
-                pseudo
-                    .replacingOccurrences(of: "\u{200B}", with: "")
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
-            }
-        }
-
         private enum MessageSmileyFavoritesBridge {
             static func isFavoriteFromApp(code: String) -> Bool {
                 guard let cache = sharedCacheObject() else {
@@ -2742,6 +2532,7 @@ struct MessagesView: View {
     private struct UserProfileDestination: Identifiable {
         let id = UUID()
         let url: URL
+        let avatarActions: TopicPageMessageActions?
     }
 
     private struct SmileySheetState: Identifiable {
@@ -3675,12 +3466,52 @@ struct MessagesView: View {
         }
     }
 
-    private func openProfile(for url: URL) {
-        userProfileDestination = UserProfileDestination(url: url)
+    private func openProfile(for url: URL, avatarActions: TopicPageMessageActions? = nil) {
+        userProfileDestination = UserProfileDestination(url: url, avatarActions: avatarActions)
+    }
+
+    private func userProfileQuickActions(for actions: TopicPageMessageActions?) -> UserProfileQuickActions? {
+        guard let actions else { return nil }
+        let authorName = actions.authorName?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let usableAuthorName = authorName?.isEmpty == false ? authorName : nil
+        let privateMessageURL = actions.isOwnMessage ? nil : actions.privateMessageURL
+        let canToggleLists = !actions.isOwnMessage && usableAuthorName != nil
+
+        guard privateMessageURL != nil || canToggleLists else {
+            return nil
+        }
+
+        return UserProfileQuickActions(
+            privateMessageURL: privateMessageURL,
+            authorName: usableAuthorName,
+            isBlacklisted: usableAuthorName.map { ObjCProfileFilterListManager.shared.isBlacklisted($0) } ?? false,
+            isWhitelisted: usableAuthorName.map { ObjCProfileFilterListManager.shared.isWhitelisted($0) } ?? false,
+            onPrivateMessage: { privateMessageURL in
+                openProfilePrivateMessage(privateMessageURL, actions: actions)
+            },
+            onBlacklist: { pseudo in
+                toggleProfileBlacklist(for: pseudo)
+            },
+            onWhitelist: { pseudo in
+                toggleProfileWhitelist(for: pseudo)
+            }
+        )
     }
 
     private func presentAvatarActionSheet(with actions: TopicPageMessageActions) {
+        if let profileURL = actions.profileURL {
+            openProfile(for: profileURL, avatarActions: actions)
+            return
+        }
         avatarActionSheetState = AvatarActionSheetState(actions: actions)
+    }
+
+    private func dismissUserProfile(then action: @escaping @MainActor () -> Void) {
+        userProfileDestination = nil
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 150_000_000)
+            action()
+        }
     }
 
     private func dismissAvatarActionSheet(then action: @escaping @MainActor () -> Void) {
@@ -3703,9 +3534,27 @@ struct MessagesView: View {
         }
     }
 
+    private func openProfilePrivateMessage(_ url: URL, actions: TopicPageMessageActions) {
+        dismissUserProfile {
+            openPrivateMessageComposer(with: url, actions: actions)
+        }
+    }
+
     private func toggleAvatarBlacklist(for pseudo: String) {
         dismissAvatarActionSheet {
-            let message = MessageBlackWhiteListActionBridge.toggleBlacklist(pseudo: pseudo)
+            let message = ObjCProfileFilterListManager.shared.toggleBlacklist(pseudo: pseudo)
+            if let message {
+                showSuccessToast(message)
+            } else {
+                popupActionErrorMessage = "Blacklist impossible"
+            }
+            loadPage(page)
+        }
+    }
+
+    private func toggleProfileBlacklist(for pseudo: String) {
+        dismissUserProfile {
+            let message = ObjCProfileFilterListManager.shared.toggleBlacklist(pseudo: pseudo)
             if let message {
                 showSuccessToast(message)
             } else {
@@ -3717,7 +3566,19 @@ struct MessagesView: View {
 
     private func toggleAvatarWhitelist(for pseudo: String) {
         dismissAvatarActionSheet {
-            let message = MessageBlackWhiteListActionBridge.toggleWhitelist(pseudo: pseudo)
+            let message = ObjCProfileFilterListManager.shared.toggleWhitelist(pseudo: pseudo)
+            if let message {
+                showSuccessToast(message)
+            } else {
+                popupActionErrorMessage = "Whitelist impossible"
+            }
+            loadPage(page)
+        }
+    }
+
+    private func toggleProfileWhitelist(for pseudo: String) {
+        dismissUserProfile {
+            let message = ObjCProfileFilterListManager.shared.toggleWhitelist(pseudo: pseudo)
             if let message {
                 showSuccessToast(message)
             } else {
@@ -4438,7 +4299,10 @@ struct MessagesView: View {
                         .ignoresSafeArea()
                 }
                 .sheet(item: $userProfileDestination) { destination in
-                    UserProfileView(profileURL: destination.url)
+                    UserProfileView(
+                        profileURL: destination.url,
+                        quickActions: userProfileQuickActions(for: destination.avatarActions)
+                    )
                         .presentationGlassBackground()
                 }
                 .sheet(item: $smileySheetState) { state in
@@ -4926,7 +4790,10 @@ struct MessagesView: View {
                         .ignoresSafeArea()
                 }
                 .sheet(item: $userProfileDestination) { destination in
-                    UserProfileView(profileURL: destination.url)
+                    UserProfileView(
+                        profileURL: destination.url,
+                        quickActions: userProfileQuickActions(for: destination.avatarActions)
+                    )
                         .presentationGlassBackground()
                 }
                 .sheet(item: $smileySheetState) { state in
@@ -5146,7 +5013,10 @@ struct MessagesView: View {
                     .ignoresSafeArea()
             }
             .sheet(item: $userProfileDestination) { destination in
-                UserProfileView(profileURL: destination.url)
+                UserProfileView(
+                    profileURL: destination.url,
+                    quickActions: userProfileQuickActions(for: destination.avatarActions)
+                )
                     .presentationGlassBackground()
             }
             .sheet(item: $smileySheetState) { state in

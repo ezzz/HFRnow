@@ -85,6 +85,16 @@ struct UserProfileAction: Identifiable, Equatable {
     }
 }
 
+struct UserProfileQuickActions {
+    let privateMessageURL: URL?
+    let authorName: String?
+    let isBlacklisted: Bool
+    let isWhitelisted: Bool
+    let onPrivateMessage: (URL) -> Void
+    let onBlacklist: (String) -> Void
+    let onWhitelist: (String) -> Void
+}
+
 enum UserProfileLoadingError: LocalizedError {
     case invalidProfile
 
@@ -491,9 +501,15 @@ struct UserProfileView: View {
     @State private var safariDestination: SafariDestination?
 
     private let profileURL: URL
+    private let quickActions: UserProfileQuickActions?
 
-    init(profileURL: URL, service: any UserProfileServicing = UserProfileService()) {
+    init(
+        profileURL: URL,
+        quickActions: UserProfileQuickActions? = nil,
+        service: any UserProfileServicing = UserProfileService()
+    ) {
         self.profileURL = profileURL
+        self.quickActions = quickActions
         _viewModel = State(initialValue: UserProfileViewModel(profileURL: profileURL, service: service))
     }
 
@@ -576,7 +592,7 @@ struct UserProfileView: View {
     private func profileContent(_ profile: UserProfile) -> some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 18) {
-                UserProfileHeaderView(profile: profile)
+                UserProfileHeaderView(profile: profile, quickActions: quickActions)
 
                 ForEach(profile.sections) { section in
                     UserProfileSectionView(section: section, openURL: openInSafari)
@@ -616,11 +632,12 @@ private struct UserProfileSafariView: UIViewControllerRepresentable {
 
 private struct UserProfileHeaderView: View {
     let profile: UserProfile
+    let quickActions: UserProfileQuickActions?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(alignment: .center, spacing: 16) {
-                UserProfileAvatarView(url: profile.avatarURL, size: 88)
+                UserProfileAvatarView(url: profile.avatarURL, width: 98, height: 70)
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(profile.displayName)
@@ -655,15 +672,71 @@ private struct UserProfileHeaderView: View {
                     }
                 }
             }
+
+            if let quickActions {
+                UserProfileQuickActionsView(actions: quickActions)
+            }
         }
         .padding(16)
         .hfrGlassSurface(in: .rect(cornerRadius: 18))
     }
 }
 
+private struct UserProfileQuickActionsView: View {
+    let actions: UserProfileQuickActions
+
+    private var canToggleLists: Bool {
+        actions.authorName?.isEmpty == false
+    }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            if let privateMessageURL = actions.privateMessageURL {
+                quickActionButton(title: "MP", systemImage: "message") {
+                    actions.onPrivateMessage(privateMessageURL)
+                }
+            }
+
+            if canToggleLists, let authorName = actions.authorName {
+                quickActionButton(
+                    title: actions.isWhitelisted ? "Retirer WL" : "Ajouter WL",
+                    systemImage: actions.isWhitelisted ? "heart.slash" : "heart"
+                ) {
+                    actions.onWhitelist(authorName)
+                }
+
+                quickActionButton(
+                    title: actions.isBlacklisted ? "Retirer BL" : "Ajouter BL",
+                    systemImage: actions.isBlacklisted ? "hand.raised.slash" : "hand.raised",
+                    role: actions.isBlacklisted ? nil : .destructive
+                ) {
+                    actions.onBlacklist(authorName)
+                }
+            }
+        }
+    }
+
+    private func quickActionButton(
+        title: String,
+        systemImage: String,
+        role: ButtonRole? = nil,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(role: role, action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.caption.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.76)
+                .frame(maxWidth: .infinity, minHeight: 36)
+        }
+        .hfrGlassButton()
+    }
+}
+
 private struct UserProfileAvatarView: View {
     let url: URL?
-    let size: CGFloat
+    let width: CGFloat
+    let height: CGFloat
 
     var body: some View {
         Group {
@@ -673,7 +746,7 @@ private struct UserProfileAvatarView: View {
                     case .success(let image):
                         image
                             .resizable()
-                            .scaledToFill()
+                            .scaledToFit()
                     case .failure:
                         placeholder
                     case .empty:
@@ -686,10 +759,13 @@ private struct UserProfileAvatarView: View {
                 placeholder
             }
         }
-        .frame(width: size, height: size)
-        .background(Color.secondary.opacity(0.12), in: .circle)
-        .clipShape(.circle)
-        .overlay(Circle().strokeBorder(.quaternary, lineWidth: 1))
+        .frame(width: width, height: height)
+        .background(Color.secondary.opacity(0.12), in: .rect(cornerRadius: 12))
+        .clipShape(.rect(cornerRadius: 12))
+        .overlay {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(.quaternary, lineWidth: 1)
+        }
     }
 
     private var placeholder: some View {
@@ -697,7 +773,7 @@ private struct UserProfileAvatarView: View {
             .resizable()
             .scaledToFit()
             .foregroundStyle(.secondary)
-            .padding(size * 0.12)
+            .padding(min(width, height) * 0.12)
     }
 }
 

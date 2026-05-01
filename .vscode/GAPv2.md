@@ -1,411 +1,414 @@
-# GAPv2 — Analyse des écarts HFRswift vs SuperHFRplus
+# GAPv2 — État courant migration UI SwiftUI
 
-> Révision complète basée sur l'inventaire exhaustif des fichiers XIB et controllers ObjC, avec vérification ligne par ligne des implémentations Swift existantes.
-
----
-
-## Décisions structurantes (héritées et à jour)
-
-1. `OfflineMessagesTableViewController` est déprécié et ne doit pas être porté en SwiftUI.
-2. `MessagesView` doit utiliser le rendu WebView fichier-local (pas de mode HTML inline) pour préserver le chargement des CSS/ressources locales.
-3. `OfflineStorage` ne doit pas être utilisé pour les flux offline-topic dépréciés ; en dehors du rendu des messages il reste opt-in et temporaire.
-4. Priorité de test : socle de sécurité minimal sur les wrappers ObjC et les politiques critiques d'ouverture/navigation (feature-first).
-5. Chaque écran SwiftUI migré doit avoir `#Preview` avec données mock (normal, loading, empty, error) quand c'est possible.
-6. Les Settings doivent supprimer la dépendance à l'ancienne COTS (`InAppSettingsKit`) et passer aux APIs SwiftUI modernes.
-7. La parité iPad est de priorité inférieure ; première étape = étude nécessité/impact.
-8. Cible finale : toute l'UI est SwiftUI ; Objective-C conservé uniquement pour les couches de traitement non-UI.
-9. L'usage XIB/NIB doit être supprimé des flux migrés dans `HFRswift` ; aucune nouvelle UI XIB/NIB ne doit être introduite.
-10. Focus implémentation actuel : parité `Répondre` et actions contextuelles niveau message ; modernisation Settings différée mais non supprimée.
-11. Périmètre sprint actions contextuelles limité à quote/profil et hardening associé ; autres actions par-post explicitement différées.
-12. G19 fermé : actions contextuelles quote/profil incluent un chemin fallback UIKit, validées sur vrais posts ; actions optionnelles par-post restent différées par scope.
-13. Pour G04, la réorganisation catégorie/topic est explicitement hors scope (coût > bénéfice) et remplacée par fold/unfold de section dans les Favoris.
-14. G06 est passé d'action-porting à hardening : le menu popup Swift couvre la majorité des actions legacy.
+> Mise à jour 2026-05-01 après dérive positive du plan initial. Objectif produit inchangé : porter toutes les features avec UI depuis Objective-C/UIKit vers SwiftUI, tout en conservant temporairement Objective-C pour les traitements lourds et risqués, notamment parsing forum, stockage historique et services legacy.
 
 ---
 
-## Méthode d'analyse v2
+## Synthèse
 
-Cette révision est fondée sur :
-- Inventaire exhaustif des 44 fichiers XIB dans `SuperHFRplus/XIB/`
-- Lecture des controllers ObjC associés (`.m` / `.h`) dans `Classes/`
-- Vérification des 23 fichiers Swift dans `HFRswift/Swift/`
-- Vérification des wrappers dans `HFRswift/Wrapped/`
-- Recoupement avec le GAP v1 pour les items déjà traités
+La migration UI est désormais proche de la couverture complète des flux visibles iPhone. Le plan initial sous-estimait ce qui a été livré depuis :
 
----
+- `UserProfileView.swift` remplace la vue profil UIKit et s’ouvre directement depuis les avatars/messages.
+- `PollView.swift` couvre l’affichage et le vote des sondages.
+- `ForumSearchView.swift` couvre la recherche forum native SwiftUI.
+- `MessagesView.swift` couvre largement les actions contextuelles : quote, profil, MP, BL/WL, AQ, bookmark, alerte modération, recherche dans topic, photos/GIF/smileys.
+- `AppSettingsView.swift` remplace l’essentiel des settings utilisateur, thème, listes noire/blanche.
+- `PlusTab.swift` expose déjà les routes Plus principales en SwiftUI : réglages, recherche forum, bookmarks, AQ, crédits, charte, suppression de compte.
 
-## Inventaire XIB / Controllers
+Le nouvel axe de travail n’est plus “porter les gros écrans UI”, mais :
 
-### Navigation principale
-
-| XIB | Controller | Fonctions clés |
-|-----|-----------|---------------|
-| `MainWindow.xib` | `AppDelegate` + `TabBarController` | Initialisation app, fenêtre root, 4 onglets (Forums, Favoris, Messages, Plus) |
-| `MainWindow-iPad.xib` | `AppDelegate` variante iPad | Layout iPad split-view |
-
-**Statut Swift** : `HFRswiftApp.swift` + `MainWindow.swift` (RootTabView). Onglets présents. `TabBarController` ObjC éliminé du flux SwiftUI.
+1. Identifier les dernières UI legacy réellement encore visibles.
+2. Stabiliser les écarts mineurs de parité.
+3. Réduire progressivement Objective-C au scope strict des traitements utilisés, sans suppression destructrice tant que l’usage n’est pas prouvé mort.
 
 ---
 
-### Forums et sujets
+## Décisions structurantes à jour
 
-| XIB | Controller | Fonctions clés |
-|-----|-----------|---------------|
-| `ForumCellView.xib` | `ForumCellView` (cell custom) | Affichage cellule forum avec info catégorie |
-| `TopicCellView.xib` | `TopicCellView` (cell custom) | Cellule sujet avec nb posts/auteur |
-| `SimpleCellView.xib` | `SimpleCellView` (cell custom) | Cellule générique réutilisable |
-| `TopicSearchCellView.xib` | `TopicSearchCellView` (cell custom) | Cellule résultat de recherche |
-| `TopicMPCellView.xib` | `TopicMPCellView` (cell custom) | Cellule sujet MP |
-
-**Controllers associés** :
-
-| Controller | Fonctions clés | Statut Swift |
-|-----------|---------------|-------------|
-| `ForumsTableViewController` | `viewDidLoad`, `numberOfRowsInSection`, `cellForRowAtIndexPath`, `didSelectRowAtIndexPath`, filtres rapides (Favoris/Suivis/Lus/Tous via long-press) | Migré : `CategoriesListViewModel` + `MainWindow.swift`. Filtres rapides absent (**G02**) |
-| `TopicsTableViewController` | `viewDidLoad`, `numberOfRowsInSection`, `cellForRowAtIndexPath`, `didSelectRowAtIndexPath`, actions rapides (première/dernière page, copier lien), pagination | Migré : `MainWindow.swift` + `Common.swift`. Actions rapides validées (**G03 Done**) |
-| `TopicsSearchViewController` | Recherche texte, affichage résultats en `UITableView`, `didSelectRowAtIndexPath` | **Partiellement** : enveloppé dans `ObjCViewControllerHost` dans `PlusTab.swift`. Pas de UI native Swift (**G21**) |
+1. `OfflineMessagesTableViewController` reste hors scope et ne doit pas être porté.
+2. `MessagesView` conserve le rendu WebView fichier-local (`loadFileURL`) pour préserver CSS et ressources locales.
+3. Objective-C reste autorisé pour le parsing forum, les bridges historiques, `MPStorage`, `MultisManager`, `BlackList`, `SmileyCache`, `k`, et les traitements réseau/HTML risqués.
+4. Toute nouvelle UI doit être SwiftUI. Aucun nouveau XIB/NIB dans le flux migré.
+5. Les choix techniques/UI récents priment sur le plan initial : Liquid Glass natif iOS 26 via helpers existants, sheets SwiftUI, `SFSafariViewController` seulement comme viewer web externe.
+6. Pas d’effort supplémentaire demandé sur les tests pour cette phase. Les tests existants restent utiles, mais le plan ne bloque plus les features sur une extension de couverture.
+7. iPad reste basse priorité, à décider plus tard.
+8. Après couverture UI, la phase suivante est une réduction prudente de l’Objective-C : observer, documenter, isoler, puis supprimer uniquement ce qui est prouvé inutilisé.
 
 ---
 
-### Messages privés
+## Inventaire SwiftUI actuel
 
-| Controller | Fonctions clés | Statut Swift |
-|-----------|---------------|-------------|
-| `HFRMPViewController` | `viewDidLoad`, `fetchContent` (callback Swift), `didSelectRowAtIndexPath`, actions rapides (première/dernière/page/copie), `UITableViewDelegate` | Migré : `MPListView.swift` + `MPListViewModel`. Actions validées (**G05 Done**) |
-
----
-
-### Composition de message
-
-| XIB | Controller | Fonctions clés |
-|-----|-----------|---------------|
-| `AddMessageViewController.xib` | `AddMessageViewController` | `viewDidLoad`, `initWithNibName`, `segmentFilterAction` (smiley/image), `loadSmileys` (pagination), `initData`, `updateExpandCompressSmiley`, `updateExpandCompressRehostImage`, `resizeViewWithKeyboard`, insertion smiley/image/GIF (Giphy), gestion undo/redo, brouillon |
-| `SmileyViewController.xib` | `SmileyViewController` | `viewDidLoad`, `changeDisplayMode` (3 modes : défaut/recherche/favoris), `loadSmileys`, `fetchSmileys`, `updateTheme`, `UICollectionViewDelegate`, `UITableViewDelegate` pour résultats recherche |
-| `SmileyCodeTableView.xib` | `SmileyCodeTableViewController` | Liste des codes smileys, `UITableViewDelegate/DataSource` |
-| `SmileyCodeCellView.xib` | `SmileyCodeCellView` | Cellule affichage code smiley |
-| `RehostImageViewController.xib` | `RehostImageViewController` | `updateExpandButton`, `getDisplayHeight`, `actionReduce`, `updateTheme`, `UIImagePickerControllerDelegate`, `UICollectionViewDelegate/DataSource`, upload avec progression, réhébergement 400px |
-| `RehostCell.xib` | `RehostCell` | Cellule upload image individuelle |
-| `AccessoryView.xib` | (Vue accessoire clavier) | Barre d'accessoire pour le champ texte |
-
-**Statut Swift** :
-- `AnswerView.swift` : composer SwiftUI natif avec smileys (communs/favoris), insertion image, GIF, quote template, undo/redo, haptics, erreurs nettoyées.
-- `ReplyComposer.swift`, `ReplySmileyCatalog.swift`, `ReplyService.swift` : couches service.
-- Intégration Giphy : **statut incertain** — à vérifier si l'insertion GIF via Giphy est couverte ou non (**G18 à préciser**).
-- `ObjCMessageComposerView.swift` : bridge commenté, non actif.
-
----
-
-### Authentification et comptes
-
-| XIB | Controller | Fonctions clés |
-|-----|-----------|---------------|
-| `IdentificationViewController.xib` | `IdentificationViewController` | Formulaire login : `pseudoField`, `passField`, action `connexion`, méthodes `finish`/`finishOK`, pattern délégué |
-| `CompteViewController.xib` | `CompteViewController` | `viewDidLoad`, `viewWillAppear` (thème), `viewDidAppear` (rafraîchissement), `addCompte`, `refreshComptes`, login/logout, `UITableViewDelegate` (ajout, suppression de comptes) |
-| `CompteTableViewCell.xib` | `CompteTableViewCell` | Cellule compte avec avatar/pseudo |
-
-**Statut Swift** :
-- `AccountsStore.swift`, `AddAccountView.swift`, `AccountMenuViews.swift`, `AccountSessionService.swift`, `LoginService.swift` : couches service et vues partielles.
-- **Formulaire login** : `LoginService.swift` existe (backend), mais UI native SwiftUI pour `IdentificationViewController` absente ou non identifiée (**G24**).
-- Gestion multi-comptes partiellement couverte (**G09 NotStarted**).
+| Zone | SwiftUI actuel | État |
+|---|---|---|
+| App/root/tabs | `HFRswiftApp.swift`, `MainWindow.swift`, `RootTabView` | Couvert |
+| Forums/catégories | `CategoriesListView`, `ForumTopicsListView` | Couvert |
+| Topics/actions rapides | `TopicListRowView`, `TopicQuickActionsConfiguration`, page picker | Couvert |
+| Messages topic | `MessagesView.swift`, `WebView`, action handler, rendu fichier-local | Couvert, hardening continu |
+| Réponse/édition/MP | `AnswerView.swift`, `ReplyComposer.swift`, `ReplyService.swift` | Couvert |
+| Smileys/images/GIF | `ReplySmileyCatalog`, smiley sheet, image viewer/GIF | Couvert |
+| Profil utilisateur | `UserProfileView.swift` | Couvert, polish récent |
+| Sondages | `PollView.swift`, `PollData.swift` | Couvert |
+| Recherche forum | `ForumSearchView.swift`, `ForumSearchService.swift` | Couvert |
+| Recherche dans topic | `TopicSearchSheetView.swift`, `TopicSearchService.swift` | Couvert |
+| Favoris | `Favorites.swift` | Couvert fonctionnellement, edge cases possibles |
+| Messages privés | `MPListView.swift` | Couvert |
+| Bookmarks | `BookmarksPlusView.swift` | Couvert |
+| Alertes Qualitay | `AQPlusView.swift` + création AQ depuis message | Couvert |
+| Alerte modération | `ModerationAlertComposerView` dans `MessagesView.swift`, `ReplyService.swift` | Couvert |
+| Settings | `AppSettingsView.swift` | Couvert principal, parité fine à vérifier |
+| Listes noire/blanche | `ProfileFilterListEditorView`, actions profil/message | Couvert |
+| Plus | `PlusTab.swift` | Couvert principal |
+| Pages statiques | `StaticInfoPageView.swift` credits/charte | Partiel |
+| Comptes/login | `AddAccountView`, `AccountMenuViews`, `LoginService`, `AccountsStore` | Couvert principal, hardening session restant |
 
 ---
 
-### Favoris
+## Manques prioritaires restants
 
-| XIB | Controller | Fonctions clés |
-|-----|-----------|---------------|
-| `FavoritesTableViewController.xib` | `FavoritesTableViewController` | `viewDidLoad`, `viewWillAppear`, `loadDataInTableView`, `numberOfSectionsInTableView`, `cellForRowAtIndexPath` (logique complexe ~1350 lignes), `editingStyleForRowAtIndexPath`, `lastPageAction`, `lastPostAction`, `copyLinkAction`, `textFieldTopicDidChange`, bridge Swift (completion block) |
-| `FavoriteCellView.xib` | `FavoriteCellView` | Cellule sujet favori avec catégorie/nb posts |
+### P0 — À clarifier avant réduction Objective-C
 
-**Statut Swift** :
-- `Favorites.swift` : `FavoritesTopicActionServicing` + `ForumFavoritesTopicActionService` (suppression flag favori, form URL, auth hash).
-- Liste complète des favoris avec sections, états colorés, swipe actions : **partiellement** présent via `FavoritesViewModel` (**G04 InProgress**).
-- Fold/unfold de section : en place. Réorganisation : hors scope.
+| ID | Statut | Manque | Pourquoi |
+|---|---|---|---|
+| G09 | InProgress | Hardening session/compte et contrat `MultisManager` | Risque transversal : login, cookies, hash, compte courant |
+| G10 | NotStarted | Validation startup/background | Risque runtime discret : restore onglet, refresh MP/AQ, cache, compte actif |
+| G12 | NotStarted | Cartographie du scope ObjC réellement utilisé | Prérequis avant réduction sans destruction |
+| G17 | InProgress | Inventaire XIB/NIB encore sur chemins visibles | Nécessaire pour savoir quoi garder, wrapper ou retirer |
 
----
+### P1 — Derniers écarts UI visibles probables
 
-### Bookmarks
+| ID | Statut | Manque | Décision actuelle |
+|---|---|---|---|
+| G02 | NotStarted | Filtres rapides forum Favoris/Suivis/Lus/Tous depuis liste forums | Seul manque power-user net côté forums |
+| G26 | InProgress | Parité thème avancée historique | `AppSettingsView` couvre accent/luminosité logique, mais parité ancien sélecteur couleur à confirmer |
+| G27 | NotStarted | Page Aide SwiftUI | À ajouter si encore exposée/utile dans Plus |
+| G28 | NotStarted | Infos app / feedback SwiftUI | À vérifier : peut être réduit ou remplacé par credits/charte/mail |
+| G29 | NotStarted | Vue paiement/abonnement si encore exposée | `PayViewController` existe côté ObjC, usage actuel à confirmer |
 
-| XIB | Controller | Fonctions clés |
-|-----|-----------|---------------|
-| `BookmarksTableView.xib` | `BookmarksTableViewController` | `UITableViewDelegate`, `UIActionSheetDelegate`, `UITextFieldDelegate` |
-| `BookmarksCellView.xib` | `BookmarksCellView` | Cellule marque-page |
+### P2 — Basse priorité / polish
 
-**Statut Swift** : `BookmarksPlusView.swift` — implémentation complète avec bridge `MPStorage`, rafraîchissement, gestion erreurs. **Migré**.
-
----
-
-### Messages Privés (liste)
-
-| XIB | Controller | Fonctions clés |
-|-----|-----------|---------------|
-| `TopicMPCellView.xib` | `TopicMPCellView` | Cellule MP (réutilisée) |
-
-**Statut Swift** : `MPListView.swift` + `MPListViewModel`. **Migré** (**G05 Done**).
+| ID | Statut | Manque | Décision actuelle |
+|---|---|---|---|
+| G11 | NotStarted | iPad split/master-detail | Étude d’intérêt seulement |
+| G15 | Deferred | Previews exhaustives mock | Non prioritaire selon demande actuelle |
+| G30 | NotStarted | Harmonisation finale Liquid Glass | À faire après stabilisation des dernières UI |
 
 ---
 
-### Vue de profil utilisateur
+## Gaps historiques reclassés
 
-| XIB | Controller | Fonctions clés |
-|-----|-----------|---------------|
-| `ProfilViewController.xib` | `ProfilViewController` | `initWithNibName:andUrl`, `profilTableView`, `loadingView`, gestion état chargement, `UITableViewDelegate/DataSource`, fetch HTTP, parsing profil |
-| `PersonnalLinkViewController.xib` | `PersonnalLinkViewController` | Liens personnels / contributions utilisateur |
-
-**Statut Swift** : **Absent**. Aucun équivalent SwiftUI trouvé. (**G20**)
-
----
-
-### AQ (Alertes Qualitay)
-
-| XIB | Controller | Fonctions clés |
-|-----|-----------|---------------|
-| `AQTableView.xib` | `AQTableViewController` | `viewDidLoad`, `numberOfSectionsInTableView`, `tableView:numberOfRowsInSection`, `tableView:cellForRowAtIndexPath`, `tableView:didSelectRowAtIndexPath` |
-| `AQCellView.xib` | `AQCellView` | Cellule AQ |
-
-**Statut Swift** : `AQPlusView.swift` — parsing RSS/XML (`AQRSSParserDelegate`), filtrage date/catégorie, détection nouveaux items. **Migré** (via onglet Plus).
-
----
-
-### Sondages (Polls)
-
-| XIB | Controller | Fonctions clés |
-|-----|-----------|---------------|
-| `PollTableViewController.xib` | `PollTableViewController` | Affichage sondage, vote, `UITableViewDelegate`, `UIAlertViewDelegate` |
-| `PollResultTableViewCell.xib` | `PollResultTableViewCell` | Cellule résultat de sondage |
-
-**Statut Swift** : **Absent**. Aucun équivalent SwiftUI. (**G23**)
-
----
-
-### Listes noire/blanche
-
-Aucun XIB propre — rendu depuis `MessagesTableViewController` popup menu.
-
-| Controller | Fonctions clés |
-|-----------|---------------|
-| `BlackListTableViewController` | Gestion liste noire : ajout, suppression, affichage |
-| `WhiteListTableViewController` | Gestion liste blanche |
-
-**Statut Swift** : `MessagePopupMenuActionKind` définit `.blacklist`/`.whitelist` dans `MessagesView.swift` mais **aucune vue de gestion UI**. (**G22**)
+| ID | Ancien état | État courant | Note |
+|---|---|---|---|
+| G01 Navigation catégories/forums | Done | Done | Stable |
+| G02 Filtres rapides forum | NotStarted | NotStarted | Reste un vrai manque |
+| G03 Actions rapides sujet | Done | Done | Stable |
+| G04 Favoris avancés | InProgress | Done/Watch | Fonctionnellement couvert ; garder en observation edge cases |
+| G05 MP actions rapides | Done | Done | Stable |
+| G06 Interactions WebView topic | InProgress | Done/Watch | Couverture large ; maintenir hardening |
+| G07 Flux réponse fiable | Done | Done | Stable |
+| G08 Routes Plus | NotStarted | Done/Watch | Plus principal SwiftUI, routes secondaires à vérifier |
+| G09 Session multi-compte | NotStarted | InProgress | UI présente, contrat session à durcir |
+| G10 Startup/background | NotStarted | NotStarted | À valider |
+| G11 iPad | NotStarted | NotStarted | Basse priorité |
+| G12 Frontière interop | NotStarted | NotStarted | Devient axe principal post-UI |
+| G13 Tests wrapper/politiques | InProgress | Deferred | Pas d’effort test supplémentaire demandé |
+| G14 Settings hors COTS | NotStarted | Done/Watch | `PlusTab` route vers `AppSettingsView`; vérifier dépendance legacy résiduelle hors flux |
+| G15 Previews mock | NotStarted | Deferred | Non bloquant |
+| G16 Offline topic déprécié | LockedOut | LockedOut | Inchangé |
+| G17 XIB/NIB flux migrés | NotStarted | InProgress | À inventorier précisément |
+| G18 Composer réponse | Done | Done | Stable |
+| G19 Actions contextuelles quote/profil | Done | Done+ | Étendu au-delà du scope initial |
+| G20 Profil utilisateur | NotStarted | Done | `UserProfileView.swift` |
+| G21 Recherche forum | NotStarted | Done | `ForumSearchView.swift` |
+| G22 Gestion listes BL/WL | NotStarted | Done | `AppSettingsView` + actions message/profil |
+| G23 Sondages | NotStarted | Done | `PollView.swift` |
+| G24 Login SwiftUI | InProgress | Done/Watch | `AddAccountView` + services ; hardening session dans G09 |
+| G25 Alerte modération | NotStarted | Done | `ModerationAlertComposerView` |
+| G26 Thème avancé | NotStarted | InProgress | À confirmer contre legacy |
+| G27 Aide | NotStarted | NotStarted | Reste possible manque |
+| G28 Infos/feedback | NotStarted | NotStarted | À confirmer produit |
 
 ---
 
-### Alerte modo
+## Objective-C restant — règle de réduction
 
-| XIB | Controller | Fonctions clés |
-|-----|-----------|---------------|
-| `AlerteModoViewController.xib` | `AlerteModoViewController` | `UITextViewDelegate`, saisie et envoi signalement modération |
+Ne pas supprimer “parce que ça semble vieux”. Réduction par étapes :
 
-**Statut Swift** : **Absent**. (**G25**)
+1. Lister les classes ObjC encore appelées par Swift ou par l’app delegate.
+2. Marquer chaque classe : `Traitement utilisé`, `UI legacy encore visible`, `UI legacy non visible`, `Inconnu`.
+3. Pour `Traitement utilisé`, garder et isoler derrière protocole Swift si le coût est faible.
+4. Pour `UI legacy encore visible`, décider : porter SwiftUI ou conserver temporairement si hors scope.
+5. Pour `UI legacy non visible`, garder en quarantaine documentaire jusqu’à preuve par build/runtime.
+6. Supprimer seulement après recherche statique, validation runtime et absence de référence projet/XIB.
 
----
+Classes ObjC probablement à conserver à court terme :
 
-### Settings et Thème
+| Classe/zone | Raison |
+|---|---|
+| `ParseMessagesOperation`, `LinkItem`, wrappers message | Parsing/rendu forum lourd |
+| `MultisManager` | Comptes, cookies, compte courant |
+| `MPStorage` | Bookmarks/MP/AQ historiques |
+| `BlackList` | BL/WL persistées |
+| `SmileyCache` | Cache smileys |
+| `k`, `ThemeManager`, constantes legacy | URLs, thème, compatibilité |
+| Services search/reply bridgés | Traitement/réseau legacy encore utile |
 
-| XIB | Controller | Fonctions clés |
-|-----|-----------|---------------|
-| `ThemeSettingsViewController.xib` | `ThemeSettingsViewController` | Paramètres thème/apparence |
-| `ThemeColorCellView.xib` | `ThemeColorCellView` | Cellule sélecteur couleur |
-| `ThemeBrightnessCellView.xib` | `ThemeBrightnessCellView` | Cellule slider luminosité |
-| `ColorPickerViewController.xib` | `ColorPickerViewController` | Sélecteur couleur complet |
-| `SettingsView.xib` | (Vue settings legacy) | Ancienne UI settings |
+Zones ObjC à auditer avant suppression :
 
-**Statut Swift** :
-- `AppSettingsView.swift` : 8 variantes icône, sélection thème auto/manuel.
-- Personnalisation couleur fine et sélecteur de luminosité : **partiellement absent** — `AppSettingsView` couvre les options de base mais pas l'éditeur de couleur custom. (**G26**)
-- `PlusSettingsViewController` dépend encore de `InAppSettingsKit` (**G14 NotStarted**).
-
----
-
-### Pages statiques et aide
-
-| XIB | Controller | Fonctions clés |
-|-----|-----------|---------------|
-| `CreditsViewController.xib` | `CreditsViewController` | `WKWebView`, `WKNavigationDelegate/WKUIDelegate`, chargement contenu web |
-| `AideViewController.xib` | `AideViewController` | `WKWebView`, navigation aide/documentation |
-| `InfosViewController.xib` | `InfosViewController` | Informations sur l'application |
-| `InfoTableViewCell.xib` | `InfoTableViewCell` | Cellule section info |
-| `ConfigurationViewController.xib` | `ConfigurationViewController` (étend `PageViewController`) | Page configuration avec WKWebView |
-| `FeedbackViewController.xib` | `FeedbackViewController` (étend `PageViewController`) | Affichage feedback avec `feedTableView`, `loadingView` |
-| `FeedbackTableViewCell.xib` | `FeedbackTableViewCell` | Cellule feedback |
-
-**Statut Swift** :
-- `StaticInfoPageView.swift` : enum `Kind` (`.credits`, `.charter`), affichage contenu web.
-- Crédits : **migré** via `StaticInfoPageView`.
-- Aide (`AideViewController`) : **absent** en Swift. (**G27**)
-- Infos app, Feedback, Configuration : **absents** en Swift.
+| Zone | Hypothèse |
+|---|---|
+| Controllers XIB Plus secondaires (`Aide`, `Infos`, `Feedback`, `Pay`) | Peut-être plus exposés dans SwiftUI, mais à confirmer |
+| Controllers liste legacy (`ForumsTableViewController`, `TopicsTableViewController`, `FavoritesTableViewController`) | Remplacés côté UI, mais peuvent contenir logique encore référencée |
+| `PlusSettingsViewController` / `InAppSettingsKit` | Probablement hors flux SwiftUI, usage projet à vérifier |
+| `SDWebImage.m` legacy | À garder tant que des écrans ObjC l’utilisent |
 
 ---
 
-### Divers
+## Audit Objective-C/XIB — 2026-05-01
 
-| XIB | Controller | Fonctions clés |
-|-----|-----------|---------------|
-| `PopupViewController.xib` | `PopupViewController` | Dialogue modal/popup générique |
-| `PlusCellView.xib` | `PlusCellView` | Cellule menu Plus |
-| `HFRDebugViewController.xib` | `HFRDebugViewController` | Panneau de debug (non à porter) |
-| `PayViewController.xib` | `PayViewController` | Vue abonnement/paiement |
+Audit statique réalisé sans suppression. Sources croisées :
 
----
+- Références Swift vers `NSClassFromString`, `LegacyLoaderRuntime`, `UIViewControllerRepresentable`.
+- XIB présents dans `Classes/`.
+- XIB et controllers encore référencés dans `SuperHFRplus.xcodeproj/project.pbxproj`.
 
-## Fichiers Swift — inventaire et usage
+### KEEP_TREATMENT — traitement Objective-C encore utilisé
 
-| Fichier | Rôle | Complet ? |
-|---------|------|----------|
-| `HFRswiftApp.swift` | Entry point `@main`, injection `HFRplusAppDelegate` | Oui |
-| `MainWindow.swift` | RootTabView, `CategoriesListViewModel`, `ForumTopicsListViewModel` | Oui |
-| `MessagesView.swift` | Affichage thread, `MessagePopupMenuActionKind`, menu contextuel, bridge ObjC | Partiel (G06) |
-| `MPListView.swift` | Liste MP, `MPListViewModel` | Oui |
-| `AnswerView.swift` | Composer SwiftUI (smileys, images, quote, undo/redo) | Oui (G07/G18 Done) |
-| `PlusTab.swift` | Menu Plus, `PlusHomeView`, wrappers ObjC restants | Partiel (G08) |
-| `BookmarksPlusView.swift` | Marque-pages, bridge `MPStorage` | Oui |
-| `AQPlusView.swift` | AQ RSS, filtrage, détection nouveautés | Oui |
-| `Favorites.swift` | `FavoritesTopicActionService`, suppression favori | Partiel (G04) |
-| `AppSettingsView.swift` | Settings icône/thème | Partiel (G14/G26) |
-| `ReplyComposer.swift` | État composer, `ReplyComposerPanel`, insertion texte | Oui |
-| `ReplySmileyCatalog.swift` | Cache smileys, protocole chargement | Oui |
-| `ReplyService.swift` | `ReplyPostingService`, pipeline d'envoi | Oui |
-| `AccountMenuViews.swift` | Sélecteur compte UI, `AccountAvatarView` | Oui |
-| `AccountSessionService.swift` | Session auth, suivi session | Partiel (G09) |
-| `AccountsStore.swift` | Persistance comptes, bridge `MultisManager` | Partiel (G09) |
-| `AddAccountView.swift` | UI ajout compte | Oui |
-| `LoginService.swift` | Orchestration login/logout | Partiel (G24) |
-| `MainToolbar.swift` | Barre de navigation, contrôles titre | Oui |
-| `ObjCMessageComposerView.swift` | Bridge `AddMessageViewController` (commenté, inactif) | Non actif |
-| `StaticInfoPageView.swift` | Pages statiques (crédits, charte) | Partiel (G27) |
-| `Common.swift` | Utilitaires partagés, thème, routing schemes, `showPopupMenu` | Oui |
-| `LiquidGlass.swift` | Effet verre liquid glass | Oui |
+Ces éléments restent dans le scope utile. Ils peuvent être isolés derrière protocoles Swift, mais ne doivent pas être supprimés.
 
----
+| Zone | Référence Swift actuelle | Raison |
+|---|---|---|
+| `MultisManager` | `ObjCLegacyAccountsManager`, `ObjCAccountSessionService`, `AppSettingsView`, `ReplyService`, `AQPlusView`, `MessagesView` | Compte courant, cookies, hash, session |
+| `MPStorage` / `Bookmark` | `ObjCMPStorageBridge`, `BookmarksPlusView`, `MessagesView`, settings MPStorage | Bookmarks, drapeaux, stockage historique |
+| `BlackList` | `AppSettingsView`, `MessagesView`, `ParseMessagesOperation`, `LinkItem` | BL/WL, rendu filtré, actions contextuelles |
+| `SmileyCache` | `ReplySmileyCatalog`, `AnswerView`, `MessagesView`, `UserProfileView` | Smileys favoris et cache |
+| `MessagesTableViewController` | `ObjCTopicPageLoader`, `ObjCTopicSearchService`, `ObjCFavoritePostFilterService` | Worker parsing/rendu topic, metadata actions, poll/search |
+| `ParseMessagesOperation` / `LinkItem` | via `MessagesTableViewController` wrapper | Parsing posts et metadata legacy |
+| `FavoritesTableViewController` | `ObjCFavoritesLoader` | Worker chargement favoris |
+| `ForumsTableViewController` | `ObjCForumsLoader` | Worker chargement catégories/forums |
+| `TopicsTableViewController` | `ObjCForumTopicsLoader` | Worker chargement topics |
+| `HFRMPViewController` | `ObjCMPTopicsLoader` | Worker chargement liste MP |
+| `TopicsSearchViewController` | `ObjCForumSearchService` | Worker recherche forum |
+| `FilterPostsQuotes` | `ObjCFavoritePostFilterService` | Filtre posts favoris |
+| `ThemeManager` / `ThemeColors` / `k` | `AppSettingsView`, wrappers, rendu legacy | Thème, URLs, compatibilité globale |
+| `HFRAlertView` | `MessagesView` | Toasts legacy depuis actions WebView |
+| `SDWebImage` / `SDAnimatedImageView` | `AnswerView` fallback GIF/animation + legacy ObjC | Animation image/GIF et compatibilité |
 
-## Matrice des écarts — version 2
+### WRAP — garder mais réduire le couplage
 
-> Champs : (1) Description utilisateur · (2) Implémentation ObjC · (3) Statut SwiftUI · (4) Dépendances ObjC non-UI · (5) Risques · (6) Effort S/M/L · (7) Priorité P0/P1/P2
+Ces éléments sont utiles, mais leur exposition Swift devrait être documentée et resserrée avant toute réduction.
 
-### Items hérités de GAP v1 (statuts mis à jour)
+| Zone | Action recommandée |
+|---|---|
+| `MessagesTableViewController` comme worker | Extraire/documenter le contrat Swift : `fetchContentForTopicURL`, `swiftMessageActionsByIndex`, poll, search form, render favorite filter |
+| `MultisManager` | Stabiliser un unique adaptateur session/compte ; éviter les appels directs dispersés |
+| `MPStorage` | Garder `ObjCMPStorageBridge` comme façade unique pour bookmarks/settings, puis auditer les autres appels directs |
+| `BlackList` | Centraliser lecture/toggle BL/WL pour éviter doublons `NSClassFromString` et appels directs |
+| Search ObjC (`TopicsSearchViewController`) | Conserver comme service worker tant que le parser/form POST n’est pas réécrit |
+| `SDWebImage` shim | Documenter les call sites restants et décider si SwiftUI peut tout couvrir via loaders natifs |
 
-| ID | (1) Description | (2) ObjC | (3) Swift | (4) Dépendances | (5) Risques | (6) | (7) |
-|----|----------------|----------|-----------|----------------|------------|-----|-----|
-| G01 | Navigation catégories/forums | `TabBarController`, `ForumsTableViewController`, XIB | **Done** — `CategoriesListView` + `ForumTopicsListView` SwiftUI natifs | `Forum`, `k` | Risque résiduel : parité backend/regression | M | P0 |
-| G02 | Filtres rapides forum (Favoris/Suivis/Lus/Tous) | `ForumsTableViewController` long-press ligne 1090-1100 | **NotStarted** — absent du flux SwiftUI | Logique URL forum `k` | Comportement power-user manquant | M | P1 |
-| G03 | Actions rapides sujet (première/dernière/page/copier) | `TopicsTableViewController` actions | **Done** — validé pour contextes forum/favoris/MP | Modèle pagination URL topic | Risque résiduel : edge cases on-device | M | P0 |
-| G04 | Favoris avancé (super favori/swipe/fold-unfold) | `FavoritesTableViewController` (~1700 lignes) | **InProgress** — super favoris, swipe, fold/unfold présents ; réorganisation hors scope | `FilterPostsQuotes`, données favoris | Edge cases heavy-user | M | P0 |
-| G05 | MP actions rapides | `HFRMPViewController` | **Done** — première/dernière/page/copie validés | `MPStorage` | Validation UX on-device | M | P0 |
-| G06 | Interactions WebView topic (schemes/popup/liens internes) | `MessagesTableViewController` `WKNavigationDelegate` | **InProgress** — routing couvert, menu popup Swift quasi-complet ; edge cases restants | `ParseMessagesOperation`, `BlackList`, `SmileyCache`, `MPStorage` | Dérive parité edge behaviors | M | P0 |
-| G07 | Flux réponse fiable (auth/hash/cookies/form post/erreurs) | Legacy composer + pipeline | **Done** — tests fiabilité passent | `MultisManager`, `HFRplusAppDelegate.hash_check` | Régressions posting/session | L | P0 |
-| G08 | Parité routes Plus (compte/search/bookmarks/AQ/settings/credits/charte/suppression) | `PlusTableViewController` routing | **NotStarted** — wrapper UIKit actif ; pas de SwiftUI natif | Services compte/session + AQ | Perte routes si wrapper retiré trop tôt | M | P1 |
-| G09 | Session multi-compte stable | `MultisManager` | **NotStarted** — fort couplage depuis Swift, non validé | `MultisManager` | Dérive état session, problèmes threading | M | P0 |
-| G10 | Parité lifecycle startup/background | `HFRplusAppDelegate didFinishLaunchingWithOptions` | **NotStarted** — non validé | `MultisManager`, `MPStorage`, `BlackList`, `SmileyCache` | Effets de bord startup/background | M | P1 |
-| G11 | Split/master-detail iPad | `MainWindow-iPad.xib`, branche iPad delegate | **NotStarted** | N/A | Gap UX iPad. Priorité basse. | M | P2 |
-| G12 | Hardening frontière interop (exposer uniquement les pièces ObjC non-UI nécessaires) | Bridging header large | **NotStarted** | `MultisManager`, `MPStorage`, `k` | Fragilité build, ralentissement migration | M | P0 |
-| G13 | Socle tests minimal sur wrappers/politiques | Wrapped classes + controllers ObjC appelés depuis Swift | **InProgress** — baseline wrapper + popup/action policy tests ; chemins bridge-heavy à renforcer | Dépendances service/controller wrappées | Régressions possibles dans bridges action | S | P0 |
-| G14 | Migration Settings : remplacer COTS legacy | `PlusSettingsViewController` utilise `InAppSettingsKit` | **NotStarted** | Préférences, thème, services compte | Dépendance COTS bloquante | M | P1 |
-| G15 | Previews SwiftUI avec données mock pour écrans migrés | N/A legacy | **NotStarted** | Services mock et fixtures | Itération UI plus lente | S | P1 |
-| G16 | Cache offline topic déprécié ne pas porter | `OfflineMessagesTableViewController` | **LockedOut** — hors scope explicite | Aucune | Effort inutile si réintroduit | S | P0 |
-| G17 | Supprimer XIB/NIB des flux migrés HFRswift | Controllers UIKit legacy + XIBs | **NotStarted** — wrappers dépendent encore des chemins UIKit/XIB | N/A (concern UI) | Coût maintenance et divergence | L | P1 |
-| G18 | Parité composer réponse (smileys défaut/favoris/image/quote) | `AddMessageViewController`, `SmileyViewController`, `RehostImageViewController`, `QuoteMessageViewController` | **Done** — smileys communs/favoris, insertion image/réhébergement 400px, GIF, quote template, undo/redo, haptics, erreurs | `ReplyService`, `AccountSessionService`, `SmileyCache`, `RehostImage` | Risque résiduel : fiabilité automatisée (G07) | L | P0 |
-| G19 | Actions contextuelles niveau message (quote post, ouvrir profil) | Schemes popup + `showMenuCon` dans `MessagesTableViewController` | **Done** — schemes gérés en Swift, menu contextuel quote/profil câblé, fallback UIKit | Champs modèle message parsé (`urlQuote`, `urlProfil`, `MPUrl`) | Risque résiduel : actions optionnelles différées par scope | M | P0 |
+### PORT_UI — UI legacy potentiellement encore visible à confirmer
 
----
+Ces écrans/controllers existent encore dans le projet et doivent être confirmés côté produit. S’ils restent visibles, ils doivent être portés SwiftUI ; sinon ils passent en quarantaine.
 
-### Nouveaux écarts identifiés par l'analyse XIB (G20–G28)
+| Zone | XIB/controller | Statut produit actuel |
+|---|---|---|
+| Aide | `AideViewController.xib` | Route SwiftUI non exposée actuellement ; décider ajout ou abandon |
+| Infos app | `InfosViewController.xib`, `InfoTableViewCell.xib` | Route SwiftUI non exposée actuellement ; décider remplacement par `StaticInfoPageView`/Plus |
+| Feedback | `FeedbackViewController.xib`, `FeedbackTableViewCell.xib` | Route SwiftUI non exposée actuellement ; décider utile ou abandon |
+| Pay/abonnement | `PayViewController.xib` | Usage actuel à confirmer |
+| Configuration / liens profil secondaires | `ConfigurationViewController.xib`, `PersonnalLinkViewController.xib` | `UserProfileView` ouvre les liens externes ; parité fine à confirmer |
+| Filtres rapides forum | pas un XIB dédié | Manque SwiftUI G02 confirmé |
 
-| ID | (1) Description | (2) ObjC | (3) Swift | (4) Dépendances | (5) Risques | (6) | (7) | Références concrètes |
-|----|----------------|----------|-----------|----------------|------------|-----|-----|----------------------|
-| G20 | Vue de profil utilisateur (pseudo, stats, historique, liens) | `ProfilViewController` + `PersonnalLinkViewController` : `initWithNibName:andUrl`, `profilTableView`, `loadingView`, `UITableViewDelegate/DataSource`, fetch HTTP, parsing | **Absent** en SwiftUI — aucun équivalent trouvé | Parsing réponse HTTP profil, service fetch | Fonctionnalité visible depuis menu popup message (lien "Profil") ; gap direct dans flux migré | M | P1 | `Classes/ProfilViewController.h`, `HFRswift/Swift/MessagesView.swift` (action `.profile`) |
-| G21 | Recherche forum native SwiftUI | `TopicsSearchViewController` : recherche texte, résultats `UITableView`, `didSelectRowAtIndexPath` | **Partiellement** — `ObjCViewControllerHost(TopicsSearchViewController)` dans `PlusTab.swift` ; pas de UI native Swift | Service search ObjC | Maintenance XIB maintenue ; pas de cohérence thème/navigation Swift | M | P2 | `HFRswift/Swift/PlusTab.swift:25-28`, `Classes/TopicsSearchViewController.m` |
-| G22 | Gestion UI liste noire / liste blanche | `BlackListTableViewController` / `WhiteListTableViewController` : ajout, suppression, affichage | **Absent** — `.blacklist`/`.whitelist` définis dans `MessagePopupMenuActionKind` mais aucune vue de gestion | `BlackList` (ObjC service) | L'action "Blacklister" dans le menu popup ne peut ouvrir aucune liste de gestion | S | P2 | `HFRswift/Swift/MessagesView.swift` (MessagePopupMenuActionKind), `Classes/BlackList.h` |
-| G23 | Affichage et vote de sondages | `PollTableViewController` : affichage sondage, vote, `UITableViewDelegate`, `UIAlertViewDelegate`; `PollResultTableViewCell` | **Absent** en SwiftUI | Parsing sondage dans `ParseMessagesOperation` | Les posts avec sondages n'ont aucun rendu de vote | M | P2 | `Classes/PollTableViewController.h`, `Classes/PollResultTableViewCell.h` |
-| G24 | Formulaire d'identification (login) SwiftUI natif | `IdentificationViewController` : `pseudoField`, `passField`, action `connexion`, `finish`/`finishOK`, pattern délégué | **Partiel** — `LoginService.swift` couvre le backend ; aucune vue SwiftUI native identifiée pour le formulaire de connexion | `MultisManager`, `AccountSessionService` | Le flux login peut encore reposer sur l'ObjC ; risque de dérive thème/UX | S | P1 | `Classes/IdentificationViewController.h`, `HFRswift/Swift/LoginService.swift`, `HFRswift/Swift/AddAccountView.swift` |
-| G25 | Alerte modération (signalement de post) | `AlerteModoViewController` : `UITextViewDelegate`, saisie motif, envoi signalement | **Absent** en SwiftUI | Service envoi modération | L'action "Alerter modo" dans le menu popup ne peut aboutir côté Swift | S | P2 | `Classes/AlerteModoViewController.h` |
-| G26 | Personnalisation thème avancée (couleur custom, luminosité) | `ThemeSettingsViewController` + `ThemeColorCellView` + `ThemeBrightnessCellView` + `ColorPickerViewController` : sélecteur couleur complet, slider luminosité | **Partiel** — `AppSettingsView.swift` couvre icône et thème auto/manuel ; éditeur de couleur custom et slider luminosité absents | Préférences thème persistées | Utilisateurs habitués à la personnalisation fine ne trouveront pas les options | M | P1 | `Classes/ThemeSettingsViewController.h`, `Classes/ColorPickerViewController.h`, `HFRswift/Swift/AppSettingsView.swift` |
-| G27 | Page d'aide / documentation | `AideViewController` : `WKWebView`, `WKNavigationDelegate`, navigation aide | **Absent** en SwiftUI — `StaticInfoPageView` ne couvre que Credits et Charte | N/A | Aide inaccessible dans le flux SwiftUI | S | P2 | `Classes/AideViewController.h`, `HFRswift/Swift/StaticInfoPageView.swift` |
-| G28 | Page d'informations app et feedback | `InfosViewController`, `FeedbackViewController` (étend `PageViewController`) : `feedTableView`, `loadingView` | **Absent** en SwiftUI | Service feedback HTTP | Informations app et remontée feedback inaccessibles | S | P2 | `Classes/InfosViewController.h`, `Classes/FeedbackViewController.h` |
+### QUARANTINE — probablement hors flux SwiftUI principal
 
----
+À ne pas supprimer encore : ils restent dans le projet Xcode et peuvent être référencés par des chemins legacy non testés.
 
-## Tracker de progression v2
+| Zone | Raison |
+|---|---|
+| `PlusTableViewController`, `PlusCellView.xib`, `PlusTableViewWrapper` | Plus principal remplacé par `PlusHomeView`; wrapper encore compilé mais pas routé dans SwiftUI actuel |
+| `PlusSettingsViewController`, `SettingsView.xib`, `InAppSettingsKit` | Settings principal remplacé par `AppSettingsView`; vérifier absence de route legacy avant déclassement |
+| `IdentificationViewController`, `CompteViewController`, cellules compte | Flux SwiftUI compte présent ; vérifier absence de fallback UIKit |
+| `ProfilViewController`, `PollTableViewController`, `AlerteModoViewController` | Remplacés par SwiftUI ; rester en quarantaine jusqu’à validation runtime |
+| `BookmarksTableViewController`, `AQTableViewController`, listes BL/WL UIKit | Remplacés côté Plus/Settings ; restent comme legacy compilé |
+| `AddMessageViewController`, `SmileyViewController`, `RehostImageViewController` | Composer SwiftUI actif ; `ObjCMessageComposerView` existe mais non routé |
+| XIB cellules legacy (`TopicCellView`, `TopicMPCellView`, `ForumCellView`, `FavoriteCellView`, etc.) | Probablement requis seulement par controllers legacy compilés |
+| `MainWindow.xib`, `MainWindow-iPad.xib`, `TabBarController` | Root SwiftUI actif, mais app delegate legacy encore présent |
+| `HFRDebugViewController` | Debug legacy, hors portage UI produit |
 
-| ID | Statut | Critère de sortie | Phase cible |
-|----|--------|-------------------|-------------|
-| G01 | Done | Navigation catégories/forums native SwiftUI, tests baseline validés | S1 |
-| G02 | NotStarted | Filtres rapides forum disponibles dans flux SwiftUI | S2 |
-| G03 | Done | Actions rapides sujet validées forum/favoris/MP + tests politique | S1 |
-| G04 | InProgress | Checklist parité favoris avancés validée | S2 |
-| G05 | Done | Parité MP actions rapides validée | S2 |
-| G06 | InProgress | Parité complète menu contextuel WebView validée (routing + actions legacy) | S1-S2 |
-| G07 | Done | Tests fiabilité réponse passent | S1-S2 |
-| G08 | NotStarted | Plus migré sans régression routes | S3 |
-| G09 | NotStarted | Service session/compte stable avec tests | S1 |
-| G10 | NotStarted | Parité comportement startup/background validée | S3 |
-| G11 | NotStarted | Étude nécessité iPad complétée ; implémentation seulement si justifiée | S4 |
-| G12 | NotStarted | Frontière bridging réduite et documentée | S0-S1 |
-| G13 | InProgress | Tests régression wrapper/politique minimaux en place et exécutés avant push | S0-S2 |
-| G14 | NotStarted | Settings ne dépend plus de InAppSettingsKit | S2-S3 |
-| G15 | NotStarted | Previews avec données mock ajoutés pour écrans SwiftUI migrés | Continu |
-| G16 | LockedOut | Flux OfflineMessages marqué non-portable et bloqué dans le plan | S0 |
-| G17 | NotStarted | Aucun chemin d'exécution XIB/NIB ne subsiste dans les flux migrés HFRswift | S2-S4 |
-| G18 | Done | Parité Répondre validée on-device (quote/smileys/images/undo-redo/haptics/erreurs) | S1-R |
-| G19 | Done | Actions popup contextuelles (quote/profil + fallback) validées ; actions optionnelles différées par scope | S1-R |
-| G20 | NotStarted | Vue profil utilisateur native SwiftUI, accessible depuis menu popup et menu Plus | S2 |
-| G21 | NotStarted | Recherche forum en UI native SwiftUI (sans `ObjCViewControllerHost`) | S3 |
-| G22 | NotStarted | Vues gestion liste noire/blanche accessibles depuis menu Plus et depuis action popup | S3 |
-| G23 | NotStarted | Sondages affichés dans vue message ; vote fonctionnel | S3 |
-| G24 | InProgress | Formulaire login SwiftUI natif confirmé ou créé ; flux `AddAccountView` complet | S1 |
-| G25 | NotStarted | Action "Alerter modo" dans popup ouvre formulaire SwiftUI natif | S3 |
-| G26 | NotStarted | Personnalisation couleur custom et luminosité disponibles dans Settings SwiftUI | S2-S3 |
-| G27 | NotStarted | Page aide accessible depuis menu Plus en SwiftUI | S3 |
-| G28 | NotStarted | Informations app et feedback accessibles en SwiftUI | S3 |
+### DELETE_LATER — aucun candidat immédiat
 
----
+Aucun fichier n’est proposé à la suppression dans cette passe. Les XIB sont encore référencés dans `project.pbxproj`, et plusieurs controllers legacy servent encore de workers ou restent compilés. La prochaine étape est une validation runtime des routes, puis seulement des petits PR/commits de quarantaine ou retrait ciblé.
 
-## Top priorités v2
+### Risques observés
 
-### P0 — Blocants ou critiques pour la cohérence du flux principal
+1. Certains controllers UIKit remplacés par SwiftUI restent utilisés comme workers de données (`FavoritesTableViewController`, `ForumsTableViewController`, `TopicsTableViewController`, `HFRMPViewController`, `MessagesTableViewController`, `TopicsSearchViewController`).
+2. Plusieurs bridges utilisent `NSClassFromString`; la suppression d’un fichier peut compiler jusqu’à casser au runtime.
+3. Le projet Xcode embarque toujours tous les XIB legacy dans les ressources, donc l’absence de route SwiftUI ne prouve pas l’inutilité.
+4. `PlusTableViewWrapper`, `MessageViewWrapper` et `ObjCMessageComposerView` existent encore comme wrappers Swift, mais l’audit statique ne montre pas de route active vers eux.
 
-1. **G09** — Hardening adaptateur session/compte.
-2. **G06** — Validation edge cases WebView et hardening bridge.
-3. **G13** — Socle tests régression wrapper/politique.
-4. **G04** — Validation edge cases parité favoris avancés.
-5. **G12** — Nettoyage frontière bridging.
+### Validation routes SwiftUI — 2026-05-01
 
-### P1 — Important pour la complétude utilisateur
+Validation statique des routes SwiftUI actives, sans lancement simulateur.
 
-6. **G24** — Confirmer/créer formulaire login SwiftUI natif.
-7. **G20** — Vue profil utilisateur en SwiftUI.
-8. **G26** — Personnalisation thème avancée (couleur/luminosité).
-9. **G02** — Filtres rapides forum.
-10. **G08** — Migration native SwiftUI des routes Plus.
-11. **G14** — Migration Settings hors InAppSettingsKit.
+| Entrée | Route active | Conclusion |
+|---|---|---|
+| Root app | `HFRswiftApp` → `RootTabView` | SwiftUI root actif |
+| Onglet Forums | `CategoriesListView` / `ForumTopicsListView` | Pas de route UIKit directe |
+| Onglet Favoris | `FavoritesListView` | UI SwiftUI ; `FavoritesTableViewController` reste worker de données |
+| Onglet Messages | `MPListView` | UI SwiftUI ; `HFRMPViewController` reste worker de données |
+| Onglet Plus | `NavigationStack { PlusHomeView() }` | UI SwiftUI ; `PlusTableViewWrapper` non routé |
+| iPad/sidebar | `selectedTabContent` vers vues SwiftUI | Pas de route `MainWindow-iPad.xib` dans root SwiftUI |
+| Plus > Réglages | `AppSettingsView` | Remplace `PlusSettingsViewController` / `SettingsView.xib` dans ce flux |
+| Plus > Recherche forum | `ForumSearchView` | UI SwiftUI ; `TopicsSearchViewController` reste worker service |
+| Plus > Bookmarks | `BookmarksPlusView` | Remplace UI bookmarks UIKit dans ce flux |
+| Plus > AQ | `AQPlusView` | Remplace UI AQ UIKit dans ce flux |
+| Plus > Crédits/Charte | `StaticInfoPageView` | Remplace crédits/charte UIKit pour ces deux pages |
+| Plus > Suppression compte | `DeleteAccountMailComposeView` | UIKit système `MFMailComposeViewController`, acceptable |
+| Topic depuis listes | `MessagesView` | UI SwiftUI ; `MessagesTableViewController` reste worker parser/rendu |
+| Répondre/éditer/MP | `AnswerView` | `ObjCMessageComposerView` commenté et non routé |
+| Profil | `UserProfileView` | Remplace `ProfilViewController` dans le flux SwiftUI |
+| Sondage | `PollSheet` / `PollView` | Remplace `PollTableViewController` dans le flux SwiftUI |
+| Alerte modération | `ModerationAlertComposerView` | Remplace `AlerteModoViewController` dans le flux SwiftUI |
 
-### P2 — Complétude et polish
+Wrappers Swift non routés par la navigation SwiftUI active :
 
-12. **G21** — Recherche forum native SwiftUI.
-13. **G22** — Gestion UI liste noire/blanche.
-14. **G23** — Affichage et vote sondages.
-15. **G25** — Formulaire alerte modération.
-16. **G27** — Page aide.
-17. **G28** — Infos app et feedback.
-18. **G10** — Parité lifecycle startup/background.
-19. **G11** — iPad split-view (après étude nécessité).
-20. **G15** — Previews SwiftUI avec données mock.
+| Wrapper | Statut |
+|---|---|
+| `PlusTableViewWrapper` | Fallback/debug uniquement d’après commentaire ; aucun usage trouvé |
+| `MessageViewWrapper` | Aucun usage trouvé |
+| `ObjCMessageComposerView` | Code commenté ; aucun usage actif |
+| `ObjCViewControllerHost` | Défini mais aucun usage actif depuis la migration `ForumSearchView` |
+
+Conséquence : les XIB Plus/settings/login/profil/poll/alerte/composer/bookmarks/AQ peuvent rester en `QUARANTINE`, mais ne doivent pas être supprimés avant validation runtime réelle et audit `project.pbxproj`.
+
+Validation smoke simulateur effectuée ensuite :
+
+| Étape | Résultat |
+|---|---|
+| Build `HFRswift` Debug iPhone 17 Pro iOS 26.4 | `BUILD SUCCEEDED` |
+| Installation simulateur | OK |
+| Lancement bundle `hfrplus.red.super` | OK, PID retourné |
+| Capture écran automatique | Non concluante : `simctl io screenshot` a bloqué et a été interrompu |
+
+Conclusion smoke : le binaire SwiftUI construit, s’installe et se lance. Cette validation ne remplace pas une navigation manuelle écran par écran ; elle suffit seulement à confirmer l’absence de crash immédiat au lancement après classification.
 
 ---
 
-## Prérequis techniques (mis à jour)
+## Tracker mis à jour
 
-1. Guardrail : ne pas porter `OfflineMessagesTableViewController`.
-2. Guardrail : aucun usage nouveau `OfflineStorage` sauf obligatoire et explicitement documenté.
-3. Définir des adapteurs Swift autour des classes ObjC wrappées et services non-UI.
-4. Maintenir un socle de tests minimal : smoke tests wrapper + `TopicOpenPolicy` + régressions lifecycle connues.
-5. Politique preview : chaque écran SwiftUI migré reçoit des previews mock quand possible.
-6. Remplacer COTS settings (`InAppSettingsKit`) par un stack Settings SwiftUI natif (`Form`, `AppStorage`).
-7. Conserver le travail iPad derrière une étude de nécessité dédiée.
-8. Maintenir matrice CI pour `HFRswift` sur iPhone en premier ; étendre iPad si l'étude confirme le scope.
-9. Conserver le comportement `SuperHFRplus` comme oracle pour les décisions de parité.
-10. Tracer la dette de contournement temporaire dans les docs et la supprimer après stabilisation.
-11. Définir et appliquer un pattern réutilisable de ligne Topic SwiftUI (comme dans Favoris/MP) pour éviter la dérive UI inter-écrans.
-12. Hardener et valider le contrat bridge Swift pour les actions contextuelles par-post (`messageIndex` → `urlQuote`, `urlProfil`) avant de fermer G19.
-13. **Nouveau** : Pour les nouveaux écrans G20–G28, définir les protocoles de service ObjC-side à exposer via le bridging header avant d'écrire l'UI SwiftUI.
-14. **Nouveau** : Vérifier l'état du flux `IdentificationViewController` → `AddAccountView` pour confirmer si G24 est réellement couvert ou s'il manque une UI native.
+| ID | Statut | Critère de sortie actuel | Priorité |
+|---|---|---|---|
+| G02 | NotStarted | Filtres rapides forum disponibles ou décision d’abandon documentée | P1 |
+| G09 | InProgress | Contrat session/compte documenté, chemins login/logout/switch validés manuellement | P0 |
+| G10 | NotStarted | Checklist startup/background validée | P0 |
+| G12 | InProgress | Inventaire ObjC utilisé + classification réduction validé par lancement manuel | P0 |
+| G17 | InProgress | Liste des XIB/NIB encore visibles ou supprimables validée par lancement manuel | P0 |
+| G26 | InProgress | Décision parité thème avancée : porter, simplifier ou abandonner | P1 |
+| G27 | NotStarted | Aide portée ou retirée du scope produit | P1 |
+| G28 | NotStarted | Infos/feedback portés ou remplacés | P1 |
+| G29 | NotStarted | Pay/abonnement confirmé utile ou dépriorisé | P1 |
+| G11 | NotStarted | Décision iPad documentée | P2 |
+| G15 | Deferred | Previews ajoutées opportunistiquement | P2 |
+| G30 | NotStarted | Passe UI finale Liquid Glass/cohérence | P2 |
+
+---
+
+## Plan de resserrage des façades ObjC
+
+Objectif : réduire les appels ObjC dispersés avant toute suppression. Cette étape ne supprime rien ; elle rend les dépendances explicites et testables manuellement.
+
+### Lot W1 — `BlackList`
+
+État observé :
+
+- Appels directs dans `AppSettingsView.swift` pour charger/ajouter/supprimer BL/WL.
+- Bridges séparés dans `MessagesView.swift` pour état et toggle BL/WL.
+- Usage interne ObjC dans `ParseMessagesOperation` et `LinkItem` pour rendu/filtrage.
+
+Action recommandée :
+
+| Étape | Résultat attendu |
+|---|---|
+| Créer une façade Swift unique `ProfileFilterListManaging` | Lecture BL/WL, ajout, suppression, toggle, état |
+| Remplacer les appels Swift directs à `BlackList.shared()` | `AppSettingsView` et `MessagesView` passent par la façade |
+| Garder les usages ObjC internes | `ParseMessagesOperation` / `LinkItem` restent inchangés |
+| Documenter la frontière | Swift ne connaît plus les selectors ObjC BL/WL hors façade |
+
+### Lot W2 — `MPStorage`
+
+État observé :
+
+- `ObjCMPStorageBridge` couvre déjà une partie : init/reset, parse bookmarks, count, get, remove, reload.
+- `MessagesView.swift` accède encore à `MPStorage` via `NSClassFromString` pour bookmarks/action post.
+- `AppSettingsView.swift` utilise la façade existante pour init/reload.
+
+Action recommandée :
+
+| Étape | Résultat attendu |
+|---|---|
+| Étendre `LegacyMPStorageManaging` aux opérations bookmarks post-level | Plus d’accès direct `NSClassFromString("MPStorage")` dans `MessagesView` |
+| Centraliser la création `Bookmark` | Une seule façade sait construire/ajouter un bookmark ObjC |
+| Garder `MPStorage` ObjC | Traitement historique conservé |
+
+### Lot W3 — `MessagesTableViewController` worker
+
+État observé :
+
+- Utilisé comme worker pour charger/rendre topic, actions message, sondage, search form.
+- Utilisé par `ObjCTopicSearchService` et `ObjCFavoritePostFilterService` comme renderer/service.
+- Contient encore du code UI legacy interne, mais les routes SwiftUI utilisent `MessagesView`.
+
+Action recommandée :
+
+| Étape | Résultat attendu |
+|---|---|
+| Documenter le contrat public Swift attendu | `fetchContentForTopicURL`, `cancelFetchContent`, `swiftMessageActionsByIndex`, poll/search fields |
+| Éviter toute nouvelle dépendance à ses méthodes UI legacy | Pas de nouveau chemin `presentViewController` via wrapper |
+| À moyen terme, extraire un worker ObjC non-UI | Seulement quand la surface utilisée est stable |
+
+### Lot W4 — Session/compte `MultisManager`
+
+État observé :
+
+- `ObjCLegacyAccountsManager` et `ObjCAccountSessionService` existent.
+- Appels depuis `AccountsStore`, `ReplyService`, `AQPlusView`, `AppSettingsView`, `MessagesView`.
+
+Action recommandée :
+
+| Étape | Résultat attendu |
+|---|---|
+| Confirmer que tous les flux passent par `LegacyAccountsManaging` / `AccountSessionService` | Pas d’accès dispersé à `MultisManager` depuis Swift |
+| Documenter les invariants | compte courant, cookies forcés, hash_check, suppression compte |
+| Valider manuellement switch/logout/login | Réduction du risque startup/background |
+
+### Lot W5 — `SmileyCache`
+
+État observé :
+
+- Façade `ReplySmileyCacheBridge` utilisée par composer.
+- Accès séparés dans `MessagesView` et `UserProfileView` pour favoris smileys.
+
+Action recommandée :
+
+| Étape | Résultat attendu |
+|---|---|
+| Unifier les opérations favoris smileys dans une façade Swift | `AnswerView`, `MessagesView`, `UserProfileView` partagent la même surface |
+| Garder `SmileyCache` ObjC | Cache existant conservé |
+
+### Ordre recommandé
+
+1. W1 `BlackList`, petit et visible.
+2. W2 `MPStorage`, nécessaire avant toute réduction bookmarks.
+3. W4 session/compte, avant cleanup runtime.
+4. W5 `SmileyCache`, opportuniste.
+5. W3 `MessagesTableViewController`, plus risqué, à faire seulement après stabilisation.
+
+---
+
+## Prochaine analyse recommandée
+
+1. Faire un audit statique des références ObjC/XIB encore dans le projet Xcode.
+2. Croiser avec les routes SwiftUI actuelles (`RootTabView`, `PlusTab`, `MessagesView`, sheets).
+3. Produire une table `KEEP / WRAP / PORT / QUARANTINE / DELETE-LATER`.
+4. Ne rien supprimer dans la première passe ; ajouter seulement des notes de scope et éventuellement des commentaires/doc.
+5. Ensuite traiter les derniers manques UI P1, en commençant par G02 si l’usage est confirmé.

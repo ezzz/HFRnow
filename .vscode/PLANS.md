@@ -1,247 +1,208 @@
-# Implementation Plan - HFRswift Continuation
+# Plan — Finalisation migration SwiftUI et réduction Objective-C
 
-## Summary
-Target outcome:
-- Migrate UI to modern SwiftUI while keeping ObjC non-UI treatment logic during phase 1.
-- End state: all app UI is SwiftUI; Objective-C remains only for non-UI processing where migration risk is high.
+## Objectif
 
-New mandatory constraints:
-1. Do not port `OfflineMessagesTableViewController` or offline topic-page storage flow.
-2. For `MessagesView`, keep file-based WebView rendering (local file + read access URL) and do not reintroduce inline HTML loading.
-3. Avoid `OfflineStorage` outside the mandatory message-rendering file path and deprecated-flow cleanup.
-4. Keep a minimal automated test floor on wrapped ObjC classes and critical navigation/opening policies (feature-first mode).
-5. Add SwiftUI previews with mock data whenever possible.
-6. Remove settings dependency on legacy COTS (`InAppSettingsKit`) and migrate to native modern SwiftUI capabilities.
-7. iPad is lower priority; do necessity study first.
-8. Remove XIB/NIB usage from migrated `HFRswift` user flows and do not add new XIB/NIB-based UI in the migration path.
-9. Use `Favorites.swift` migration style as baseline (SwiftUI screen + ObjC processing adapter), and mutualize topic-list row rendering across screens.
+Porter toutes les features avec UI en SwiftUI. Garder Objective-C pour les traitements lourds ou risqués tant qu’ils sont utilisés : parsing forum, services legacy, comptes/session, stockage historique, caches.
 
-## Scope
-In scope:
-- SwiftUI feature migration for active user flows.
-- ObjC wrapper stabilization with lean, high-value test coverage only.
-- Settings modernization away from legacy COTS.
-- Progressive removal of XIB/NIB-backed UI dependencies from migrated flows.
+Le plan initial a été dépassé par l’implémentation : la majorité des écrans UI sont maintenant SwiftUI. La suite doit donc éviter de continuer à raisonner comme une migration “à démarrer” et se concentrer sur les manques restants et la réduction prudente du legacy.
 
-Out of scope (phase 1):
-- Porting offline topic-page storage UI/flow (`OfflineMessagesTableViewController`).
-- Any broad reimplementation of ObjC treatment internals.
+## Contraintes
 
-## Public interfaces and planned additions
-| Interface/Type | Purpose |
+1. Ne pas porter `OfflineMessagesTableViewController`.
+2. Garder le rendu fichier-local de `MessagesView`.
+3. Ne pas ajouter de nouvelle UI XIB/NIB.
+4. Ne pas supprimer de code Objective-C tant que son inutilité n’est pas prouvée.
+5. Les choix UI récents priment : SwiftUI natif, Liquid Glass iOS 26 via helpers, fallback lisible iOS antérieurs.
+6. Pas d’effort dédié à compléter les tests dans cette phase.
+7. Les suppressions Objective-C arriveront après cartographie, pas pendant la finalisation UI.
+
+## État Actuel
+
+UI SwiftUI couverte :
+
+| Zone | Fichiers |
 |---|---|
-| `AppRoute` | Typed app navigation for tabs and deep links. |
-| `ForumsService` | Forum/category loading and filter modes. |
-| `TopicsService` | Topic list loading and page actions. |
-| `MessagesHTMLService` | Topic HTML retrieval from wrapped ObjC pipeline. |
-| `MessageWebActionHandler` | Swift-side routing for custom WebView actions. |
-| `ReplyPostingService` | Unified reply GET-form + POST with robust errors. |
-| `AccountSessionService` | Wrap `MultisManager` account/cookie/hash behavior. |
-| `SettingsStore` | Native Swift settings persistence and feature flags. |
-| `FeatureParityChecklist` | Feature-level done criteria and parity checks. |
+| Root/navigation/forums/topics | `MainWindow.swift`, `Common.swift` |
+| Messages topic/actions | `MessagesView.swift` |
+| Composer réponse/édition/MP | `AnswerView.swift`, `ReplyComposer.swift`, `ReplyService.swift` |
+| Profil | `UserProfileView.swift` |
+| Sondage | `PollView.swift`, `PollData.swift` |
+| Recherche forum | `ForumSearchView.swift`, `ForumSearchService.swift` |
+| Recherche topic | `TopicSearchSheetView.swift`, `TopicSearchService.swift` |
+| Favoris | `Favorites.swift` |
+| MP | `MPListView.swift` |
+| Bookmarks | `BookmarksPlusView.swift` |
+| AQ | `AQPlusView.swift` |
+| Settings/listes BL/WL | `AppSettingsView.swift` |
+| Plus principal | `PlusTab.swift` |
+| Crédits/charte | `StaticInfoPageView.swift` |
+| Comptes/login | `AddAccountView.swift`, `AccountsStore.swift`, `LoginService.swift`, `AccountSessionService.swift` |
 
-## Architecture guardrails
-1. No migration work should reintroduce `OfflineMessagesTableViewController` paths.
-2. `MessagesView` must keep file-based loading (`WKWebView.loadFileURL`) and must not use inline HTML loading.
-3. Any `OfflineStorage` use outside `MessagesView` rendering must have a short-lived justification note and removal follow-up.
-4. SwiftUI screens should depend on service interfaces, not directly on ObjC controllers.
-5. Keep wrapped ObjC classes thinly adapted and testable.
-6. New settings screens must be native SwiftUI and modern APIs only.
-7. In `HFRswift`, do not introduce new XIB/NIB or storyboard-based UI.
-8. For migrated topic lists, use shared SwiftUI row primitives to avoid duplicated behavior/UI drift.
-9. `SDWebImage` is legacy/transition dependency: keep it only for remaining ObjC/UIKit screens; for new SwiftUI screens prefer native image loading (`AsyncImage` or equivalent), and remove `SDWebImage` once ObjC call sites are migrated.
+Manques probables :
 
-## Delivery mode: feature-first with safety net
-1. Prioritize user-visible feature parity and bug fixes before broad test expansion.
-2. Keep mandatory tests only on high-regression-risk seams:
-   - wrapped ObjC adapters called by SwiftUI
-   - topic opening policy (`TopicOpenPolicy`)
-   - known lifecycle regressions already fixed (MP initial load and tab restore behavior)
-3. Defer non-critical UI/integration test expansion until S2+.
-4. Keep manual validation checklists short and focused per delivered feature.
+| Priorité | Manque | Action |
+|---|---|---|
+| P0 | Cartographie Objective-C restant | Inventorier avant réduction |
+| P0 | Session/compte startup/background | Valider manuellement et documenter |
+| P1 | Filtres rapides forum | Porter ou abandonner explicitement |
+| P1 | Aide / Infos / Feedback / Pay | Confirmer si encore produits utiles |
+| P1 | Thème avancé legacy | Comparer au nouveau `AppSettingsView` et décider |
+| P2 | iPad | Étude seulement |
+| P2 | Previews exhaustives | Opportuniste uniquement |
 
-## Roadmap
+## Phase F1 — Recalage Documentaire
 
-### Phase S0 - Foundation and constraints lock
-Objectives:
-- Lock non-goals and migration boundaries before more feature work.
+Objectif : aligner les docs sur l’état réel.
 
-Work:
-1. Finalize GAP list and constraint decisions (including offline de-scope).
-2. Add adapter interfaces for wrapped ObjC classes.
-3. Define lean test harness focused on wrapped ObjC classes and policy logic only.
-4. Document `OfflineStorage` temporary-use policy.
-5. Create preview policy and mock fixture conventions for SwiftUI.
+Travail :
 
-Exit criteria:
-- Constraints are explicit and enforced in docs/checklists.
-- Adapter layer baseline exists.
-- Minimal wrapper/policy test floor runs locally and is easy to run before push.
+1. Mettre à jour `GAPv2.md`.
+2. Reclasser les gaps historiques en `Done`, `Done/Watch`, `InProgress`, `NotStarted`, `Deferred`.
+3. Identifier les derniers manques UI probables.
+4. Retirer l’obligation d’étendre les tests comme critère bloquant.
 
-### Phase S1 - Core P0 parity
-Objectives:
-- Recover critical navigation and topic interactions.
+Critère de sortie :
 
-Work:
-1. Re-enable categories path and topic quick actions.
-2. Implement WebView action routing parity (`MessageWebActionHandler`).
-3. Stabilize reply posting with session-safe behavior.
-4. Move account/session flows behind `AccountSessionService`.
-5. Add mock previews for newly migrated SwiftUI screens.
-6. Introduce shared Topic list/row building blocks and apply to active SwiftUI lists.
+- Le plan reflète les features réellement livrées.
+- Les prochaines tâches ne réouvrent pas des migrations déjà faites.
 
-Exit criteria:
-- P0 reading/reply/session paths validated via targeted tests + manual smoke checks.
-- New SwiftUI screens include preview coverage where feasible.
+## Phase F2 — Audit Objective-C Sans Suppression
 
-### Phase S2 - Favorites/MP and settings modernization
-Objectives:
-- Close frequent-usage gaps and remove settings COTS.
+Objectif : savoir exactement ce qui reste utilisé.
 
-Work:
-1. Complete favorites advanced behavior parity.
-2. Complete MP advanced behavior parity.
-3. Replace `InAppSettingsKit` based settings with native SwiftUI settings stack.
-4. Add only critical regression tests for wrapper-backed settings dependencies and migration safety.
-5. Migrate remaining Favorites/MP list UI details away from legacy UIKit/XIB dependencies.
-6. Start `SDWebImage` reduction by removing usage from migrated SwiftUI flows and documenting remaining ObjC call sites.
+Statut 2026-05-01 : première passe statique effectuée et documentée dans `GAPv2.md`. Les routes SwiftUI actives ont aussi été validées statiquement. Un smoke simulateur a validé build, installation et lancement sans crash immédiat. Aucune suppression proposée. La suite de F2 doit valider par navigation manuelle sur simulateur/device, puis resserrer les wrappers.
 
-Exit criteria:
-- Favorites and MP parity validated.
-- Settings no longer depend on legacy COTS.
+Travail :
 
-### Priority pivot (agreed)
-Immediate focus shifts from settings to message composition and in-topic contextual actions:
-1. Reply composer parity (`Répondre`) with smileys + image insertion.
-2. Messages WebView contextual actions for per-post quote/profile.
-3. Settings modernization continues later (kept in backlog, not current sprint critical path).
+1. Lister les références Swift vers Objective-C. **Fait en statique.**
+2. Lister les XIB/NIB encore référencés dans le projet Xcode. **Fait en statique.**
+3. Classer chaque zone Objective-C. **Première classification faite.**
+   - `KEEP_TREATMENT` : traitement lourd encore utilisé.
+   - `WRAP` : traitement utilisé mais interface à isoler.
+   - `PORT_UI` : UI legacy encore visible à porter.
+   - `QUARANTINE` : probablement inutilisé, à garder temporairement.
+   - `DELETE_LATER` : suppression future après preuve.
+4. Documenter la table dans un fichier dédié ou dans `GAPv2.md`. **Fait dans `GAPv2.md`.**
+5. Valider statiquement les routes SwiftUI principales pour confirmer que les wrappers UIKit quarantaine ne sont pas routés. **Fait.**
+6. Valider par lancement manuel les routes SwiftUI principales pour confirmer que les wrappers UIKit quarantaine ne sont pas affichés. **Smoke lancement fait ; navigation manuelle restante.**
+7. Rédiger ensuite un plan de réduction par petits lots, sans suppression groupée.
 
-### Phase S1-R - Reply and Message Contextual Actions (new)
-Objectives:
-- Restore high-value posting UX parity before resuming settings migration.
-- Re-enable post-level contextual power actions inside the SwiftUI `MessagesView`.
-- Lock current contextual-action sprint scope to quote/profile and related hardening only.
+Critère de sortie :
 
-Work package S1-R1 (`Répondre` parity):
-1. Define target feature set for the SwiftUI reply flow:
-   - default smileys list
-   - favorite smileys list
-   - image/GIF insertion entry points
-2. Introduce a dedicated reply composer architecture with explicit non-UI adapters:
-   - smiley providers
-   - insertion toolbar actions
-   - image upload/rehost hooks
-3. Implement in staged mode:
-   - stage A: functional parity first (selection/insertion and posting continuity)
-   - stage B: UX polish and behavioral parity (draft, undo/redo, fullscreen panels if retained)
-4. Keep existing posting reliability path (`ForumReplyPostingService`) unchanged for first integration.
+- Aucune suppression dans F2.
+- Une carte fiable du legacy restant.
+- Les routes runtime ont confirmé les zones `QUARANTINE`.
 
-Work package S1-R2 (Messages contextual actions):
-1. Stop ignoring popup schemes generated by message HTML:
-   - `oijlkajsdoihjlkjasdopopupmessage`
-   - `oijlkajsdoihjlkjasdopopupavatar`
-2. Recreate per-post action surface with minimum P0 actions first:
-   - `Répondre/Citer`
-   - `Profil`
-3. Define URL/action metadata bridge from parsed ObjC message model to Swift action layer.
-4. Add test coverage for routing decisions and URL decoding edge cases.
+Résultat de première passe :
 
-Current status S1-R2:
-- Done: popup scheme routing in Swift web action handler.
-- Done: ObjC->Swift action metadata bridge (`messageIndex` to `quote/profile` URLs).
-- In progress: production hardening of quote/profile contextual flow (real-post validation + edge cases).
-- Deferred: non-P0 contextual actions (BL/WL, MP, Link, AQ, Bookmark, multi-quote toggle).
-
-Exit criteria S1-R:
-- Reply sheet supports smiley + image insertion with successful publish flow.
-- Contextual menu from message header opens quote/profile actions on real posts.
-- No regression on existing page navigation/open-link behavior in `MessagesView`.
-
-Immediate execution order (agreed):
-1. Finish S1-R2 quote/profile contextual actions and related hardening only.
-2. Keep other contextual actions in backlog for later phase.
-3. Start G18 (`Répondre` parity) right after S1-R2 closure.
-
-Deferred UX note:
-- `MessagesView` contextual menu visual modernization is postponed.
-- Keep current stable implementation (`UIEditMenuInteraction`) during S1.
-- Revisit later with a dedicated UX pass to align style with other SwiftUI context menus.
-
-### Phase S3 - Plus completion and lifecycle hardening
-Objectives:
-- Finalize Plus migration and stabilize runtime behavior.
-
-Work:
-1. Complete remaining Plus routes in SwiftUI.
-2. Validate startup/background behavior parity.
-3. Remove obsolete wrappers that are fully replaced.
-4. Keep `Recherche forum` explicitly deferred to a later step (post-S3), after core Plus parity and stability are complete.
-
-Exit criteria:
-- No open P0/P1 gaps in core phone flows.
-- Lifecycle checks pass.
-
-### Phase S4 - iPad decision then optional implementation
-Objectives:
-- Handle iPad only if product value justifies scope.
-
-Work:
-1. Run iPad necessity study (usage impact, UX delta, engineering cost).
-2. If approved, implement split/master-detail parity as separate effort.
-3. If not approved, document deferral with rationale.
-
-Exit criteria:
-- Decision documented.
-- Implementation done only when justified.
-
-## Test strategy (minimal baseline for speed)
-
-### Mandatory now (keep)
-1. `TopicOpenPolicy` decisions for `.forum(.all/.favorites/.tracked/.read)`, `.favorites`, `.messages`.
-2. Wrapper adapter smoke tests for:
-   - favorites loading bridge
-   - MP loading bridge
-   - topic page loading bridge
-3. Regression test for MP initial cancellation handling fallback.
-4. Regression test for selected tab restore in same process lifecycle.
-
-### Deferred (later phases)
-1. Broad end-to-end UI tests.
-2. Exhaustive Plus/settings integration matrix.
-3. Non-critical wrapper permutations.
-
-### Preview requirements
-For each migrated SwiftUI screen, add previews when feasible:
-1. happy path
-2. loading
-3. empty
-4. error
-
-Use deterministic mock fixtures and avoid runtime network in previews.
-
-## Risk management
-| Risk | Mitigation |
+| Classement | Conclusion |
 |---|---|
-| Offline legacy feature accidentally reintroduced | Explicit do-not-port guardrail and checklist gate. |
-| Overuse of OfflineStorage workaround | Mandatory justification + follow-up removal task. |
-| Wrapper regressions | Minimal mandatory wrapper/policy tests on each high-risk change. |
-| Settings migration regressions | Parallel native SwiftUI settings implementation with parity checks. |
-| Scope creep from iPad | Separate decision gate before implementation. |
-| Delayed `SDWebImage` removal | Track as explicit deferred backlog item and remove only when ObjC image-loading call sites are migrated/replaced. |
+| `KEEP_TREATMENT` | `MultisManager`, `MPStorage`, `BlackList`, `SmileyCache`, `MessagesTableViewController`, `ParseMessagesOperation`, loaders forums/topics/favoris/MP/search, `ThemeManager`, `k`, `SDWebImage` restent utiles |
+| `WRAP` | Priorité à resserrer `MessagesTableViewController`, session/compte, `MPStorage`, `BlackList` |
+| `PORT_UI` | Aide, Infos, Feedback, Pay, Configuration/liens profil secondaires, G02 filtres rapides forum à décider |
+| `QUARANTINE` | Plus/settings/login/profil/poll/alerte/composer/bookmarks/AQ UIKit remplacés côté SwiftUI mais encore compilés |
+| `DELETE_LATER` | Aucun candidat immédiat |
 
-## Acceptance criteria
-1. No implementation task targets `OfflineMessagesTableViewController`.
-2. No new `OfflineStorage` usage without explicit mandatory note.
-3. Minimal mandatory tests (wrapper/policy/lifecycle regressions) are present and run before push.
-4. New SwiftUI screens include mock previews when feasible.
-5. Settings COTS dependency removed.
-6. iPad has documented decision before engineering work starts.
-7. For migrated `HFRswift` flows, no XIB/NIB-backed UI remains in the execution path.
+Validation routes SwiftUI statique :
 
-## Assumptions and defaults
-1. `SuperHFRplus` remains behavior oracle for parity.
-2. Phone flows are prioritized over iPad.
-3. Migration is incremental with wrappers removed only after parity pass.
-4. Temporary workaround debt must be tracked and retired.
-5. `Favorites.swift` pattern is the reference migration template for list-based screens.
-6. Test effort stays intentionally minimal until core S1/S2 feature parity is complete.
+| Route | Résultat |
+|---|---|
+| Root tabs | `RootTabView` route vers `CategoriesListView`, `FavoritesListView`, `MPListView`, `PlusHomeView` |
+| iPad/sidebar | `selectedTabContent` route vers les mêmes vues SwiftUI |
+| Plus | `AppSettingsView`, `ForumSearchView`, `BookmarksPlusView`, `AQPlusView`, `StaticInfoPageView`, mail suppression compte |
+| Topics/listes | Navigation vers `MessagesView` |
+| Composer/profil/poll/alerte | SwiftUI (`AnswerView`, `UserProfileView`, `PollSheet`, `ModerationAlertComposerView`) |
+| Wrappers non routés | `PlusTableViewWrapper`, `MessageViewWrapper`, `ObjCMessageComposerView`, `ObjCViewControllerHost` |
+
+Smoke simulateur :
+
+| Étape | Résultat |
+|---|---|
+| Build Debug iPhone 17 Pro iOS 26.4 | OK |
+| Install app | OK |
+| Launch `hfrplus.red.super` | OK, PID retourné |
+| Screenshot automatique | Non concluant, `simctl io screenshot` bloqué |
+
+## Phase F3 — Derniers Manques UI
+
+Objectif : fermer les écarts utilisateur visibles.
+
+Ordre conseillé :
+
+1. G02 filtres rapides forum si encore considérés utiles.
+2. Aide/Infos/Feedback/Pay : décider route par route.
+3. Thème avancé : comparer legacy et `AppSettingsView`; ne porter que ce qui a une valeur réelle.
+4. Passe UI cohérence Liquid Glass sur les écrans récemment ajoutés.
+
+Critère de sortie :
+
+- Plus aucun écran UIKit/XIB visible dans le flux iPhone principal, sauf exception documentée.
+
+## Phase F4 — Stabilisation Runtime
+
+Objectif : éviter les régressions silencieuses liées au legacy conservé.
+
+Travail :
+
+1. Checklist manuelle startup/background.
+2. Checklist compte : ajout, switch, logout, cookies, hash.
+3. Checklist messages : ouvrir topic, répondre, éditer si applicable, MP, profil, sondage, AQ, alerte modération.
+4. Checklist Plus : settings, recherche, bookmarks, AQ, crédits/charte, suppression compte.
+
+Critère de sortie :
+
+- Les flux principaux iPhone passent en manuel.
+- Les anomalies deviennent des tickets ciblés, pas des refontes.
+
+## Phase F5 — Réduction Objective-C Progressive
+
+Objectif : réduire Objective-C au strict scope utile sans casser le projet.
+
+Règles :
+
+1. Une suppression doit avoir une preuve statique et une preuve runtime.
+2. Une classe de traitement peut rester Objective-C si elle est stable et risquée à porter.
+3. Une UI Objective-C encore visible doit être portée ou explicitement acceptée comme exception temporaire.
+4. Les wrappers doivent devenir plus petits avant que les fichiers legacy soient supprimés.
+
+Ordre conseillé :
+
+1. Isoler les traitements utilisés derrière protocoles Swift quand cela réduit le couplage.
+2. Retirer les routes SwiftUI vers wrappers UIKit si elles existent encore.
+3. Quarantiner les controllers legacy non visibles.
+4. Supprimer seulement les fichiers prouvés morts, en petits commits dédiés.
+
+Lots de resserrage avant suppression :
+
+| Lot | Cible | Pourquoi | Priorité |
+|---|---|---|---|
+| W1 | `BlackList` | Appels directs dispersés dans `AppSettingsView` et `MessagesView` | P0 |
+| W2 | `MPStorage` | Façade partielle ; `MessagesView` accède encore directement à `MPStorage`/`Bookmark` | P0 |
+| W4 | `MultisManager` session/compte | Risque transversal login/cookies/hash | P0 |
+| W5 | `SmileyCache` | Plusieurs façades/accès pour favoris smileys | P1 |
+| W3 | `MessagesTableViewController` worker | Surface large et risquée ; à documenter avant extraction | P1 |
+
+## Backlog Actuel
+
+| ID | Tâche | Priorité |
+|---|---|---|
+| B01 | Valider sur simulateur/device la classification Objective-C/XIB | P0 |
+| B02 | Validation compte/session/startup/background | P0 |
+| B03 | W1 créer façade Swift unique `BlackList` / BL-WL | P0 |
+| B04 | W2 étendre façade `MPStorage` pour bookmarks post-level | P0 |
+| B05 | W4 documenter et valider façade session/compte | P0 |
+| B06 | Décision et éventuel portage filtres rapides forum | P1 |
+| B07 | Décision Aide/Infos/Feedback/Pay | P1 |
+| B08 | Décision thème avancé legacy | P1 |
+| B09 | W5 unifier façade `SmileyCache` | P1 |
+| B10 | W3 documenter contrat `MessagesTableViewController` worker | P1 |
+| B11 | Passe cohérence UI Liquid Glass | P2 |
+| B12 | Étude iPad | P2 |
+
+## Non-Objectifs
+
+1. Réécrire le parsing forum en Swift maintenant.
+2. Supprimer massivement Objective-C.
+3. Recréer l’intégralité des tests UI.
+4. Porter les flux offline topic dépréciés.
+5. Garder une parité pixel-perfect avec UIKit si la SwiftUI récente offre une meilleure UX.

@@ -635,6 +635,188 @@ enum LegacyLoaderRuntime {
     }
 }
 
+protocol ProfileFilterListManaging {
+    func blacklistProfiles() -> [String]
+    func whitelistProfiles() -> [String]
+    func isBlacklisted(_ pseudo: String) -> Bool
+    func isWhitelisted(_ pseudo: String) -> Bool
+    func addToBlacklist(_ pseudo: String) -> Bool
+    func addToWhitelist(_ pseudo: String) -> Bool
+    func removeFromBlacklist(_ pseudo: String) -> Bool
+    func removeFromWhitelist(_ pseudo: String) -> Bool
+    func toggleBlacklist(pseudo: String) -> String?
+    func toggleWhitelist(pseudo: String) -> String?
+}
+
+final class ObjCProfileFilterListManager: ProfileFilterListManaging {
+    static let shared = ObjCProfileFilterListManager()
+
+    private let object: NSObject?
+
+    init(object: NSObject? = LegacyLoaderRuntime.sharedObject(named: "BlackList")) {
+        self.object = object
+    }
+
+    func blacklistProfiles() -> [String] {
+        profiles(from: rawList(selectorName: "getBlackListForActiveCompte"))
+    }
+
+    func whitelistProfiles() -> [String] {
+        profiles(from: rawList(selectorName: "getAllWhiteList"))
+    }
+
+    func isBlacklisted(_ pseudo: String) -> Bool {
+        membershipStatus(pseudo: pseudo, selectorName: "isBL:")
+    }
+
+    func isWhitelisted(_ pseudo: String) -> Bool {
+        membershipStatus(pseudo: pseudo, selectorName: "isWL:")
+    }
+
+    func addToBlacklist(_ pseudo: String) -> Bool {
+        let normalizedPseudo = normalizedPseudo(from: pseudo)
+        guard !normalizedPseudo.isEmpty,
+              let object,
+              let function = boolFunction(selectorName: "addToBlackList:andSave:")
+        else {
+            return false
+        }
+
+        return function(object, NSSelectorFromString("addToBlackList:andSave:"), normalizedPseudo as NSString, true)
+    }
+
+    func addToWhitelist(_ pseudo: String) -> Bool {
+        let normalizedPseudo = normalizedPseudo(from: pseudo)
+        guard !normalizedPseudo.isEmpty,
+              let object,
+              let function = voidFunction(selectorName: "addToWhiteList:")
+        else {
+            return false
+        }
+
+        function(object, NSSelectorFromString("addToWhiteList:"), normalizedPseudo as NSString)
+        return true
+    }
+
+    func removeFromBlacklist(_ pseudo: String) -> Bool {
+        let normalizedPseudo = normalizedPseudo(from: pseudo)
+        guard !normalizedPseudo.isEmpty,
+              let object,
+              let function = boolFunction(selectorName: "removeFromBlackList:andSave:")
+        else {
+            return false
+        }
+
+        return function(object, NSSelectorFromString("removeFromBlackList:andSave:"), normalizedPseudo as NSString, true)
+    }
+
+    func removeFromWhitelist(_ pseudo: String) -> Bool {
+        let normalizedPseudo = normalizedPseudo(from: pseudo)
+        guard !normalizedPseudo.isEmpty,
+              let object,
+              let function = unaryBoolFunction(selectorName: "removeFromWhiteList:")
+        else {
+            return false
+        }
+
+        return function(object, NSSelectorFromString("removeFromWhiteList:"), normalizedPseudo as NSString)
+    }
+
+    func toggleBlacklist(pseudo: String) -> String? {
+        let normalizedPseudo = normalizedPseudo(from: pseudo)
+        guard !normalizedPseudo.isEmpty else { return nil }
+
+        if isBlacklisted(normalizedPseudo) {
+            let success = removeFromBlacklist(normalizedPseudo)
+            return success
+                ? "\(normalizedPseudo) a été supprimé de la liste noire"
+                : "Erreur! \(normalizedPseudo) n'a pas pu être supprimé de la liste noire"
+        }
+
+        let success = addToBlacklist(normalizedPseudo)
+        return success
+            ? "BIM! \(normalizedPseudo) ajouté à la liste noire"
+            : "Erreur! \(normalizedPseudo) n'a pas pu être ajouté à la liste noire"
+    }
+
+    func toggleWhitelist(pseudo: String) -> String? {
+        let normalizedPseudo = normalizedPseudo(from: pseudo)
+        guard !normalizedPseudo.isEmpty else { return nil }
+
+        if isWhitelisted(normalizedPseudo) {
+            _ = removeFromWhitelist(normalizedPseudo)
+            return "OH NOES ! \(normalizedPseudo) a été supprimé de la love list"
+        }
+
+        guard addToWhitelist(normalizedPseudo) else { return nil }
+        return "BOUM BOUM ! \(normalizedPseudo) ajouté à la love list \u{2665}"
+    }
+
+    private func rawList(selectorName: String) -> NSArray? {
+        guard let object else { return nil }
+        let selector = NSSelectorFromString(selectorName)
+        guard object.responds(to: selector) else { return nil }
+
+        typealias Function = @convention(c) (AnyObject, Selector) -> NSArray?
+        let implementation = object.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        return function(object, selector)
+    }
+
+    private func profiles(from rawList: NSArray?) -> [String] {
+        (rawList as? [[AnyHashable: Any]])?
+            .compactMap { entry in
+                (entry["word"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            .filter { !$0.isEmpty } ?? []
+    }
+
+    private func membershipStatus(pseudo: String, selectorName: String) -> Bool {
+        let normalizedPseudo = normalizedPseudo(from: pseudo)
+        guard !normalizedPseudo.isEmpty,
+              let object,
+              let function = unaryBoolFunction(selectorName: selectorName)
+        else {
+            return false
+        }
+
+        return function(object, NSSelectorFromString(selectorName), normalizedPseudo as NSString)
+    }
+
+    private func boolFunction(selectorName: String) -> (@convention(c) (AnyObject, Selector, NSString, Bool) -> Bool)? {
+        guard let object else { return nil }
+        let selector = NSSelectorFromString(selectorName)
+        guard object.responds(to: selector) else { return nil }
+
+        let implementation = object.method(for: selector)
+        return unsafeBitCast(implementation, to: (@convention(c) (AnyObject, Selector, NSString, Bool) -> Bool).self)
+    }
+
+    private func unaryBoolFunction(selectorName: String) -> (@convention(c) (AnyObject, Selector, NSString) -> Bool)? {
+        guard let object else { return nil }
+        let selector = NSSelectorFromString(selectorName)
+        guard object.responds(to: selector) else { return nil }
+
+        let implementation = object.method(for: selector)
+        return unsafeBitCast(implementation, to: (@convention(c) (AnyObject, Selector, NSString) -> Bool).self)
+    }
+
+    private func voidFunction(selectorName: String) -> (@convention(c) (AnyObject, Selector, NSString) -> Void)? {
+        guard let object else { return nil }
+        let selector = NSSelectorFromString(selectorName)
+        guard object.responds(to: selector) else { return nil }
+
+        let implementation = object.method(for: selector)
+        return unsafeBitCast(implementation, to: (@convention(c) (AnyObject, Selector, NSString) -> Void).self)
+    }
+
+    private func normalizedPseudo(from pseudo: String) -> String {
+        pseudo
+            .replacingOccurrences(of: "\u{200B}", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}
+
 typealias LegacyRawCompte = [AnyHashable: Any]
 
 protocol LegacyAccountsManaging {

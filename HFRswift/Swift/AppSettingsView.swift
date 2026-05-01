@@ -638,19 +638,12 @@ private struct ProfileFilterListEditorView: View {
     }
 
     private func loadProfiles() -> [String] {
-        let rawList: NSArray?
         switch kind {
         case .blacklist:
-            rawList = BlackList.shared().getForActiveCompte()
+            return ObjCProfileFilterListManager.shared.blacklistProfiles()
         case .whitelist:
-            rawList = BlackList.shared().getAllWhiteList() as NSArray?
+            return ObjCProfileFilterListManager.shared.whitelistProfiles()
         }
-
-        return (rawList as? [[AnyHashable: Any]])?
-            .compactMap { entry in
-                (entry["word"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
-            }
-            .filter { !$0.isEmpty } ?? []
     }
 
     private func addProfile() {
@@ -659,12 +652,15 @@ private struct ProfileFilterListEditorView: View {
 
         switch kind {
         case .blacklist:
-            if !BlackList.shared().add(toBlackList: profile, andSave: true) {
+            if !ObjCProfileFilterListManager.shared.addToBlacklist(profile) {
                 alertMessage = "Impossible d'ajouter ce pseudo à la liste noire."
                 return
             }
         case .whitelist:
-            BlackList.shared().add(toWhiteList: profile)
+            if !ObjCProfileFilterListManager.shared.addToWhitelist(profile) {
+                alertMessage = "Impossible d'ajouter ce pseudo à la liste blanche."
+                return
+            }
         }
 
         newProfile = ""
@@ -677,11 +673,11 @@ private struct ProfileFilterListEditorView: View {
             let profile = profiles[index]
             switch kind {
             case .blacklist:
-                if !BlackList.shared().remove(fromBlackList: profile, andSave: true) {
+                if !ObjCProfileFilterListManager.shared.removeFromBlacklist(profile) {
                     alertMessage = "Impossible de supprimer \(profile) de la liste noire."
                 }
             case .whitelist:
-                if !BlackList.shared().remove(fromWhiteList: profile) {
+                if !ObjCProfileFilterListManager.shared.removeFromWhitelist(profile) {
                     alertMessage = "Impossible de supprimer \(profile) de la liste blanche."
                 }
             }
