@@ -114,7 +114,7 @@ protocol TopicSearchServicing {
 final class ObjCTopicSearchService: TopicSearchServicing {
     private let controller: NSObject?
 
-    init(controller: NSObject? = LegacyLoaderRuntime.instantiateController(named: "MessagesTableViewController")) {
+    init(controller: NSObject? = LegacyTopicWorkerRuntime.instantiate()) {
         self.controller = controller
     }
 
@@ -126,7 +126,7 @@ final class ObjCTopicSearchService: TopicSearchServicing {
             return .failure(.controllerUnavailable)
         }
 
-        let selector = NSSelectorFromString("performTopicSearchWithParams:completion:")
+        let selector = NSSelectorFromString(LegacyTopicWorkerRuntime.SelectorName.performSearch)
         guard controller.responds(to: selector) else {
             return .failure(.controllerUnavailable)
         }

@@ -178,8 +178,7 @@ struct AppSettingsView: View {
     }
 
     private var isLoggedIn: Bool {
-        let pseudo = ObjCLegacyAccountsManager.shared.currentPseudo()
-        return !(pseudo?.isEmpty ?? true)
+        ObjCLegacyAccountsManager.shared.currentAccountIdentity() != nil
     }
 
     private func applyThemeConfiguration() {
@@ -223,7 +222,7 @@ struct AppSettingsView: View {
             return
         }
 
-        guard let pseudo = ObjCLegacyAccountsManager.shared.currentPseudo(), !pseudo.isEmpty else {
+        guard let pseudo = ObjCLegacyAccountsManager.shared.currentAccountIdentity()?.pseudo else {
             mpStorageActive = false
             errorMessage = "Impossible de récupérer le pseudo actif."
             showErrorAlert = true
@@ -244,7 +243,7 @@ struct AppSettingsView: View {
             showErrorAlert = true
             return
         }
-        guard let pseudo = ObjCLegacyAccountsManager.shared.currentPseudo(), !pseudo.isEmpty else {
+        guard let pseudo = ObjCLegacyAccountsManager.shared.currentAccountIdentity()?.pseudo else {
             errorMessage = "Impossible de récupérer le pseudo actif."
             showErrorAlert = true
             return

@@ -176,11 +176,11 @@ Lots de resserrage avant suppression :
 
 | Lot | Cible | Pourquoi | Priorité |
 |---|---|---|---|
-| W1 | `BlackList` | Appels directs dispersés dans `AppSettingsView` et `MessagesView` | P0 |
-| W2 | `MPStorage` | Façade partielle ; `MessagesView` accède encore directement à `MPStorage`/`Bookmark` | P0 |
-| W4 | `MultisManager` session/compte | Risque transversal login/cookies/hash | P0 |
-| W5 | `SmileyCache` | Plusieurs façades/accès pour favoris smileys | P1 |
-| W3 | `MessagesTableViewController` worker | Surface large et risquée ; à documenter avant extraction | P1 |
+| W1 | `BlackList` | Fait : façade Swift unique pour BL/WL | P0 |
+| W2 | `MPStorage` | Fait : bookmarks post-level centralisés dans `ObjCMPStorageBridge` | P0 |
+| W4 | `MultisManager` session/compte | Fait côté code : identité Swift pour les vues ; validation manuelle restante | P0 |
+| W5 | `SmileyCache` | Fait : favoris smileys via `ReplySmileyCacheBridge` unique | P1 |
+| W3 | `MessagesTableViewController` worker | Fait côté Swift : runtime/selectors centralisés, extraction non-UI future | P1 |
 
 ## Backlog Actuel
 
@@ -188,14 +188,14 @@ Lots de resserrage avant suppression :
 |---|---|---|
 | B01 | Valider sur simulateur/device la classification Objective-C/XIB | P0 |
 | B02 | Validation compte/session/startup/background | P0 |
-| B03 | W1 créer façade Swift unique `BlackList` / BL-WL | P0 |
-| B04 | W2 étendre façade `MPStorage` pour bookmarks post-level | P0 |
-| B05 | W4 documenter et valider façade session/compte | P0 |
+| B03 | Fait : W1 créer façade Swift unique `BlackList` / BL-WL | P0 |
+| B04 | Fait : W2 étendre façade `MPStorage` pour bookmarks post-level | P0 |
+| B05 | W4 valider manuellement login/logout/switch/startup/background | P0 |
 | B06 | Décision et éventuel portage filtres rapides forum | P1 |
 | B07 | Décision Aide/Infos/Feedback/Pay | P1 |
 | B08 | Décision thème avancé legacy | P1 |
-| B09 | W5 unifier façade `SmileyCache` | P1 |
-| B10 | W3 documenter contrat `MessagesTableViewController` worker | P1 |
+| B09 | Fait : W5 unifier façade `SmileyCache` | P1 |
+| B10 | Fait : W3 documenter contrat `MessagesTableViewController` worker | P1 |
 | B11 | Passe cohérence UI Liquid Glass | P2 |
 | B12 | Étude iPad | P2 |
 

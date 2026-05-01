@@ -338,16 +338,16 @@ Action recommandée :
 
 État observé :
 
-- `ObjCMPStorageBridge` couvre déjà une partie : init/reset, parse bookmarks, count, get, remove, reload.
-- `MessagesView.swift` accède encore à `MPStorage` via `NSClassFromString` pour bookmarks/action post.
+- `ObjCMPStorageBridge` couvre init/reset, parse bookmarks, count, get, remove, reload.
+- W2 réalisé : `MessagesView.swift` ne connaît plus `NSClassFromString("MPStorage")` ni la construction Objective-C de `Bookmark`.
 - `AppSettingsView.swift` utilise la façade existante pour init/reload.
 
-Action recommandée :
+Action réalisée :
 
 | Étape | Résultat attendu |
 |---|---|
-| Étendre `LegacyMPStorageManaging` aux opérations bookmarks post-level | Plus d’accès direct `NSClassFromString("MPStorage")` dans `MessagesView` |
-| Centraliser la création `Bookmark` | Une seule façade sait construire/ajouter un bookmark ObjC |
+| Étendre `LegacyMPStorageManaging` aux opérations bookmarks post-level | Fait : plus d’accès direct `NSClassFromString("MPStorage")` dans `MessagesView` |
+| Centraliser la création `Bookmark` | Fait : `ObjCMPStorageBridge` construit et ajoute le bookmark ObjC |
 | Garder `MPStorage` ObjC | Traitement historique conservé |
 
 ### Lot W3 — `MessagesTableViewController` worker
@@ -357,51 +357,50 @@ Action recommandée :
 - Utilisé comme worker pour charger/rendre topic, actions message, sondage, search form.
 - Utilisé par `ObjCTopicSearchService` et `ObjCFavoritePostFilterService` comme renderer/service.
 - Contient encore du code UI legacy interne, mais les routes SwiftUI utilisent `MessagesView`.
+- W3 réalisé côté Swift : `LegacyTopicWorkerRuntime` centralise la classe worker et les selectors autorisés.
 
-Action recommandée :
+Action réalisée / restante :
 
 | Étape | Résultat attendu |
 |---|---|
-| Documenter le contrat public Swift attendu | `fetchContentForTopicURL`, `cancelFetchContent`, `swiftMessageActionsByIndex`, poll/search fields |
-| Éviter toute nouvelle dépendance à ses méthodes UI legacy | Pas de nouveau chemin `presentViewController` via wrapper |
-| À moyen terme, extraire un worker ObjC non-UI | Seulement quand la surface utilisée est stable |
+| Documenter le contrat public Swift attendu | Fait : `fetchContentForTopicURL`, `cancelFetchContent`, `swiftMessageActionsByIndex`, `performTopicSearchWithParams`, `renderFilteredPosts`, poll/search fields |
+| Éviter toute nouvelle dépendance à ses méthodes UI legacy | Fait côté Swift : les façades passent par `LegacyTopicWorkerRuntime` |
+| À moyen terme, extraire un worker ObjC non-UI | Restant : seulement quand la surface utilisée est stable |
 
 ### Lot W4 — Session/compte `MultisManager`
 
 État observé :
 
 - `ObjCLegacyAccountsManager` et `ObjCAccountSessionService` existent.
-- Appels depuis `AccountsStore`, `ReplyService`, `AQPlusView`, `AppSettingsView`, `MessagesView`.
+- W4 réalisé côté code : les vues consomment `LegacyAccountIdentity` pour pseudo/affichage, sans lire les dictionnaires `MultisManager`.
+- Les traitements qui ont besoin des cookies/hash gardent les raw comptes dans `ObjCAccountSessionService`.
 
-Action recommandée :
+Action réalisée / restante :
 
 | Étape | Résultat attendu |
 |---|---|
-| Confirmer que tous les flux passent par `LegacyAccountsManaging` / `AccountSessionService` | Pas d’accès dispersé à `MultisManager` depuis Swift |
-| Documenter les invariants | compte courant, cookies forcés, hash_check, suppression compte |
+| Confirmer que tous les flux passent par `LegacyAccountsManaging` / `AccountSessionService` | Fait : pas d’accès dispersé à `MultisManager` depuis Swift |
+| Documenter les invariants | Fait : compte courant exposé en `LegacyAccountIdentity`; cookies forcés et `hash_check` restent dans `ObjCAccountSessionService` |
 | Valider manuellement switch/logout/login | Réduction du risque startup/background |
 
 ### Lot W5 — `SmileyCache`
 
 État observé :
 
-- Façade `ReplySmileyCacheBridge` utilisée par composer.
-- Accès séparés dans `MessagesView` et `UserProfileView` pour favoris smileys.
+- W5 réalisé : `ReplySmileyCacheBridge` est la façade Swift unique pour les favoris smileys.
+- Les accès séparés dans `MessagesView` et `UserProfileView` ont été supprimés.
 
-Action recommandée :
+Action réalisée :
 
 | Étape | Résultat attendu |
 |---|---|
-| Unifier les opérations favoris smileys dans une façade Swift | `AnswerView`, `MessagesView`, `UserProfileView` partagent la même surface |
+| Unifier les opérations favoris smileys dans une façade Swift | Fait : `AnswerView`, `MessagesView`, `UserProfileView` partagent `ReplySmileyCacheBridge` |
 | Garder `SmileyCache` ObjC | Cache existant conservé |
 
 ### Ordre recommandé
 
-1. W1 `BlackList`, petit et visible.
-2. W2 `MPStorage`, nécessaire avant toute réduction bookmarks.
-3. W4 session/compte, avant cleanup runtime.
-4. W5 `SmileyCache`, opportuniste.
-5. W3 `MessagesTableViewController`, plus risqué, à faire seulement après stabilisation.
+1. W4 validation manuelle session/compte/startup/background.
+2. Extraction éventuelle d’un worker ObjC non-UI pour `MessagesTableViewController`, en petit lot dédié.
 
 ---
 

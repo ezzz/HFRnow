@@ -50,7 +50,7 @@ private enum AQSupport {
     }
 
     static func shouldFilterCategory25() -> Bool {
-        guard let pseudo = ObjCLegacyAccountsManager.shared.currentPseudo()?.lowercased(), !pseudo.isEmpty else {
+        guard let pseudo = ObjCLegacyAccountsManager.shared.currentAccountIdentity()?.pseudo.lowercased(), !pseudo.isEmpty else {
             return true
         }
         return pseudo == "applereview"

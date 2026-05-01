@@ -90,16 +90,8 @@ enum ReplySmileyCacheBridge {
         return function(sharedCache, selector, code as NSString, imageURL as NSString, add)
     }
 
-    private static var sharedCacheObject: AnyObject? {
-        guard let cacheClass = NSClassFromString("SmileyCache") as? NSObject.Type else {
-            return nil
-        }
-        let sharedSelector = NSSelectorFromString("shared")
-        guard cacheClass.responds(to: sharedSelector),
-              let unmanaged = cacheClass.perform(sharedSelector) else {
-            return nil
-        }
-        return unmanaged.takeUnretainedValue() as AnyObject
+    private static var sharedCacheObject: NSObject? {
+        LegacyLoaderRuntime.sharedObject(named: "SmileyCache")
     }
 }
 

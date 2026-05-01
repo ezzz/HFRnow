@@ -869,12 +869,12 @@ private struct UserProfileSmiliesView: View {
     }
 
     private func refreshFavorites() {
-        favoriteCodes = Set(smilies.map(\.code).filter(UserProfileSmileyFavoritesBridge.isFavoriteFromApp))
+        favoriteCodes = Set(smilies.map(\.code).filter(ReplySmileyCacheBridge.isFavoriteFromApp))
     }
 
     private func toggleFavorite(_ smiley: UserProfileSmiley) {
         let add = !favoriteCodes.contains(smiley.code)
-        guard UserProfileSmileyFavoritesBridge.updateFavorite(
+        guard ReplySmileyCacheBridge.updateAppFavorite(
             code: smiley.code,
             imageURL: smiley.imageURL.absoluteString,
             add: add
@@ -954,50 +954,6 @@ private struct UserProfileFieldRow: View {
         .font(.body)
         .padding(.horizontal, 16)
         .padding(.vertical, 11)
-    }
-}
-
-private enum UserProfileSmileyFavoritesBridge {
-    static func isFavoriteFromApp(code: String) -> Bool {
-        guard let cache = sharedCacheObject() else {
-            return false
-        }
-        let selector = NSSelectorFromString("isFavoriteSmileyFromApp:")
-        guard cache.responds(to: selector) else {
-            return false
-        }
-
-        typealias Function = @convention(c) (AnyObject, Selector, NSString) -> Bool
-        let implementation = cache.method(for: selector)
-        let function = unsafeBitCast(implementation, to: Function.self)
-        return function(cache, selector, code as NSString)
-    }
-
-    static func updateFavorite(code: String, imageURL: String, add: Bool) -> Bool {
-        guard let cache = sharedCacheObject() else {
-            return false
-        }
-        let selector = NSSelectorFromString("AddAndSaveDicFavoritesApp:source:addSmiley:")
-        guard cache.responds(to: selector) else {
-            return false
-        }
-
-        typealias Function = @convention(c) (AnyObject, Selector, NSString, NSString, Bool) -> Bool
-        let implementation = cache.method(for: selector)
-        let function = unsafeBitCast(implementation, to: Function.self)
-        return function(cache, selector, code as NSString, imageURL as NSString, add)
-    }
-
-    private static func sharedCacheObject() -> NSObject? {
-        guard let cacheClass = NSClassFromString("SmileyCache") as? NSObject.Type else {
-            return nil
-        }
-        let sharedSelector = NSSelectorFromString("shared")
-        guard cacheClass.responds(to: sharedSelector),
-              let unmanaged = cacheClass.perform(sharedSelector) else {
-            return nil
-        }
-        return unmanaged.takeUnretainedValue() as? NSObject
     }
 }
 

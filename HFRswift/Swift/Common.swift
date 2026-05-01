@@ -819,10 +819,20 @@ final class ObjCProfileFilterListManager: ProfileFilterListManaging {
 
 typealias LegacyRawCompte = [AnyHashable: Any]
 
+struct LegacyAccountIdentity: Equatable {
+    let pseudo: String
+    let displayName: String
+
+    var displayNameLowercased: String {
+        displayName.lowercased()
+    }
+}
+
 protocol LegacyAccountsManaging {
     func comptes() -> [LegacyRawCompte]
     func mainCompte() -> LegacyRawCompte?
     func currentPseudo() -> String?
+    func currentAccountIdentity() -> LegacyAccountIdentity?
     func setMainPseudo(_ pseudo: String)
     func deletePseudo(at index: Int)
     func addCompte(pseudo: String, cookies: [HTTPCookie], avatar: Data?, hash: String?)
@@ -870,6 +880,21 @@ final class ObjCLegacyAccountsManager: LegacyAccountsManaging {
         let implementation = manager.method(for: selector)
         let function = unsafeBitCast(implementation, to: Function.self)
         return function(manager, selector) as String?
+    }
+
+    func currentAccountIdentity() -> LegacyAccountIdentity? {
+        let mainCompte = mainCompte()
+        let pseudo =
+            normalizedString(currentPseudo()) ??
+            normalizedString(mainCompte?["PSEUDO"]) ??
+            normalizedString(mainCompte?["PSEUDO_DISPLAY"])
+
+        guard let pseudo else {
+            return nil
+        }
+
+        let displayName = normalizedString(mainCompte?["PSEUDO_DISPLAY"]) ?? pseudo
+        return LegacyAccountIdentity(pseudo: pseudo, displayName: displayName)
     }
 
     func setMainPseudo(_ pseudo: String) {
@@ -926,6 +951,12 @@ final class ObjCLegacyAccountsManager: LegacyAccountsManaging {
         let function = unsafeBitCast(implementation, to: Function.self)
         function(manager, selector, compte as NSDictionary, hash as NSString)
     }
+
+    private func normalizedString(_ value: Any?) -> String? {
+        guard let string = value as? String else { return nil }
+        let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
 }
 
 protocol LegacyMPStorageManaging {
@@ -934,6 +965,8 @@ protocol LegacyMPStorageManaging {
     func parseBookmarks()
     func bookmarksCount() -> Int
     func bookmark(at index: Int) -> Bookmark?
+    func bookmark(topicID: String, postID: String) -> Bookmark?
+    func addBookmark(topicID: String, topicCategory: String, postID: String, title: String, author: String) -> Bool
     func removeBookmark(_ bookmark: Bookmark) -> Bool
     func reloadAsynchronously()
 }
@@ -995,9 +1028,46 @@ final class ObjCMPStorageBridge: LegacyMPStorageManaging {
         return function(storage, selector, Int32(index)) as? Bookmark
     }
 
+    func bookmark(topicID: String, postID: String) -> Bookmark? {
+        guard let storage else { return nil }
+        let selector = NSSelectorFromString("getBookmarkForPost:numreponse:")
+        guard storage.responds(to: selector) else { return nil }
+
+        typealias Function = @convention(c) (AnyObject, Selector, NSString, NSString) -> AnyObject?
+        let implementation = storage.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        return function(storage, selector, topicID as NSString, postID as NSString) as? Bookmark
+    }
+
+    func addBookmark(topicID: String, topicCategory: String, postID: String, title: String, author: String) -> Bool {
+        guard let bookmark = LegacyLoaderRuntime.instantiateController(named: "Bookmark") else {
+            return false
+        }
+
+        bookmark.setValue(topicID, forKey: "sPost")
+        bookmark.setValue(topicCategory, forKey: "sCat")
+        bookmark.setValue(postID, forKey: "sNumResponse")
+        bookmark.setValue(title, forKey: "sLabel")
+        bookmark.setValue(author, forKey: "sAuthorPost")
+        bookmark.setValue(Date(), forKey: "dateBookmarkCreation")
+
+        return addBookmark(bookmark)
+    }
+
     func removeBookmark(_ bookmark: Bookmark) -> Bool {
         guard let storage else { return false }
         let selector = NSSelectorFromString("removeBookmarkSynchronous:")
+        guard storage.responds(to: selector) else { return false }
+
+        typealias Function = @convention(c) (AnyObject, Selector, AnyObject) -> Bool
+        let implementation = storage.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        return function(storage, selector, bookmark)
+    }
+
+    private func addBookmark(_ bookmark: NSObject) -> Bool {
+        guard let storage else { return false }
+        let selector = NSSelectorFromString("addBookmarkSynchronous:")
         guard storage.responds(to: selector) else { return false }
 
         typealias Function = @convention(c) (AnyObject, Selector, AnyObject) -> Bool
@@ -1263,6 +1333,29 @@ extension TopicPageLoading {
     func cancelTopicPageFetch() {}
 }
 
+enum LegacyTopicWorkerRuntime {
+    static let className = "MessagesTableViewController"
+
+    enum SelectorName {
+        static let cancelFetchContent = "cancelFetchContent"
+        static let fetchContent = "fetchContentForTopicURL:anchor:completion:"
+        static let messageActions = "swiftMessageActionsByIndex"
+        static let performSearch = "performTopicSearchWithParams:completion:"
+        static let renderFilteredPosts = "renderFilteredPosts:topic:startPage:endPage:finished:completion:"
+    }
+
+    static func instantiate() -> NSObject? {
+        LegacyLoaderRuntime.instantiateController(named: className)
+    }
+
+    static func unavailable(_ selectorName: String? = nil) -> LegacyLoaderBridgeError {
+        if let selectorName {
+            return .unavailable("\(className).\(selectorName)")
+        }
+        return .unavailable(className)
+    }
+}
+
 struct TopicPageRefreshProbePolicy {
     let previousPage: Int
     let previousMaxPage: Int
@@ -1309,14 +1402,14 @@ final class ObjCTopicPageLoader: TopicPageLoading {
 
     private let controller: NSObject?
 
-    init(controller: NSObject? = LegacyLoaderRuntime.instantiateController(named: "MessagesTableViewController")) {
+    init(controller: NSObject? = LegacyTopicWorkerRuntime.instantiate()) {
         self.controller = controller
     }
 
     func cancelTopicPageFetch() {
         guard let controller else { return }
 
-        let selector = NSSelectorFromString("cancelFetchContent")
+        let selector = NSSelectorFromString(LegacyTopicWorkerRuntime.SelectorName.cancelFetchContent)
         guard controller.responds(to: selector) else { return }
 
         typealias Function = @convention(c) (AnyObject, Selector) -> Void
@@ -1327,13 +1420,13 @@ final class ObjCTopicPageLoader: TopicPageLoading {
 
     func fetchTopicPage(url: String, anchor: String?, completion: @escaping (Result<TopicPageContent, Error>) -> Void) {
         guard let controller else {
-            completion(.failure(LegacyLoaderBridgeError.unavailable("MessagesTableViewController")))
+            completion(.failure(LegacyTopicWorkerRuntime.unavailable()))
             return
         }
 
-        let selector = NSSelectorFromString("fetchContentForTopicURL:anchor:completion:")
+        let selector = NSSelectorFromString(LegacyTopicWorkerRuntime.SelectorName.fetchContent)
         guard controller.responds(to: selector) else {
-            completion(.failure(LegacyLoaderBridgeError.unavailable("MessagesTableViewController.fetchContentForTopicURL")))
+            completion(.failure(LegacyTopicWorkerRuntime.unavailable("fetchContentForTopicURL")))
             return
         }
 
@@ -1383,7 +1476,7 @@ final class ObjCTopicPageLoader: TopicPageLoading {
     }
 
     private func extractMessageActionsByIndex(from controller: NSObject) -> [Int: TopicPageMessageActions] {
-        let selector = NSSelectorFromString("swiftMessageActionsByIndex")
+        let selector = NSSelectorFromString(LegacyTopicWorkerRuntime.SelectorName.messageActions)
         guard controller.responds(to: selector) else {
             return [:]
         }

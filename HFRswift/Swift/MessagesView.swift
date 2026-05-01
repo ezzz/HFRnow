@@ -398,18 +398,7 @@ enum MessagePopupActionSupport {
     }
 
     static func hasBookmark(topicID: String, postID: String) -> Bool {
-        guard let storage = sharedMPStorageObject() else {
-            return false
-        }
-        let selector = NSSelectorFromString("getBookmarkForPost:numreponse:")
-        guard storage.responds(to: selector) else {
-            return false
-        }
-
-        typealias Function = @convention(c) (AnyObject, Selector, NSString, NSString) -> AnyObject?
-        let implementation = storage.method(for: selector)
-        let function = unsafeBitCast(implementation, to: Function.self)
-        return function(storage, selector, topicID as NSString, postID as NSString) != nil
+        ObjCMPStorageBridge.shared.bookmark(topicID: topicID, postID: postID) != nil
     }
 
     static func createBookmark(
@@ -419,28 +408,13 @@ enum MessagePopupActionSupport {
         title: String,
         author: String
     ) -> Bool {
-        guard let storage = sharedMPStorageObject(),
-              let bookmarkClass = NSClassFromString("Bookmark") as? NSObject.Type else {
-            return false
-        }
-
-        let bookmark = bookmarkClass.init()
-        bookmark.setValue(topicID, forKey: "sPost")
-        bookmark.setValue(topicCategory, forKey: "sCat")
-        bookmark.setValue(postID, forKey: "sNumResponse")
-        bookmark.setValue(title, forKey: "sLabel")
-        bookmark.setValue(author, forKey: "sAuthorPost")
-        bookmark.setValue(Date(), forKey: "dateBookmarkCreation")
-
-        let selector = NSSelectorFromString("addBookmarkSynchronous:")
-        guard storage.responds(to: selector) else {
-            return false
-        }
-
-        typealias Function = @convention(c) (AnyObject, Selector, AnyObject) -> Bool
-        let implementation = storage.method(for: selector)
-        let function = unsafeBitCast(implementation, to: Function.self)
-        return function(storage, selector, bookmark)
+        ObjCMPStorageBridge.shared.addBookmark(
+            topicID: topicID,
+            topicCategory: topicCategory,
+            postID: postID,
+            title: title,
+            author: author
+        )
     }
 
     static func favoriteResponseMessage(from html: String) -> String? {
@@ -463,24 +437,9 @@ enum MessagePopupActionSupport {
     }
 
     private static func currentPseudoLowercased() -> String {
-        if let mainCompte = ObjCLegacyAccountsManager.shared.mainCompte(),
-           let pseudo = mainCompte["PSEUDO_DISPLAY"] as? String {
-            return pseudo.lowercased()
-        }
-        return ""
+        ObjCLegacyAccountsManager.shared.currentAccountIdentity()?.displayNameLowercased ?? ""
     }
 
-    private static func sharedMPStorageObject() -> NSObject? {
-        guard let klass = NSClassFromString("MPStorage") as? NSObject.Type else {
-            return nil
-        }
-        let selector = NSSelectorFromString("shared")
-        guard klass.responds(to: selector),
-              let unmanaged = klass.perform(selector) else {
-            return nil
-        }
-        return unmanaged.takeUnretainedValue() as? NSObject
-    }
 }
 
 private struct MessagePopupSheetSubmissionError: LocalizedError {
@@ -2113,7 +2072,7 @@ struct WebView: UIViewRepresentable {
                 return false
             }
 
-            let isFavorite = MessageSmileyFavoritesBridge.isFavoriteFromApp(code: payload.code)
+            let isFavorite = ReplySmileyCacheBridge.isFavoriteFromApp(code: payload.code)
             let actionTitle = isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"
 
             let alert = UIAlertController(
@@ -2124,7 +2083,7 @@ struct WebView: UIViewRepresentable {
 
             alert.addAction(
                 UIAlertAction(title: actionTitle, style: .default) { _ in
-                    _ = MessageSmileyFavoritesBridge.updateFavorite(
+                    _ = ReplySmileyCacheBridge.updateAppFavorite(
                         code: payload.code,
                         imageURL: payload.imageURL,
                         add: !isFavorite
@@ -2245,50 +2204,6 @@ struct WebView: UIViewRepresentable {
                 let implementation = alertClass.method(for: selector)
                 let function = unsafeBitCast(implementation, to: Function.self)
                 function(alertClass, selector, title as NSString, message as NSString, 1)
-            }
-        }
-
-        private enum MessageSmileyFavoritesBridge {
-            static func isFavoriteFromApp(code: String) -> Bool {
-                guard let cache = sharedCacheObject() else {
-                    return false
-                }
-                let selector = NSSelectorFromString("isFavoriteSmileyFromApp:")
-                guard cache.responds(to: selector) else {
-                    return false
-                }
-
-                typealias Function = @convention(c) (AnyObject, Selector, NSString) -> Bool
-                let implementation = cache.method(for: selector)
-                let function = unsafeBitCast(implementation, to: Function.self)
-                return function(cache, selector, code as NSString)
-            }
-
-            static func updateFavorite(code: String, imageURL: String, add: Bool) -> Bool {
-                guard let cache = sharedCacheObject() else {
-                    return false
-                }
-                let selector = NSSelectorFromString("AddAndSaveDicFavoritesApp:source:addSmiley:")
-                guard cache.responds(to: selector) else {
-                    return false
-                }
-
-                typealias Function = @convention(c) (AnyObject, Selector, NSString, NSString, Bool) -> Bool
-                let implementation = cache.method(for: selector)
-                let function = unsafeBitCast(implementation, to: Function.self)
-                return function(cache, selector, code as NSString, imageURL as NSString, add)
-            }
-
-            private static func sharedCacheObject() -> NSObject? {
-                guard let cacheClass = NSClassFromString("SmileyCache") as? NSObject.Type else {
-                    return nil
-                }
-                let sharedSelector = NSSelectorFromString("shared")
-                guard cacheClass.responds(to: sharedSelector),
-                      let unmanaged = cacheClass.perform(sharedSelector) else {
-                    return nil
-                }
-                return unmanaged.takeUnretainedValue() as? NSObject
             }
         }
 
@@ -3127,7 +3042,7 @@ struct MessagesView: View {
         case .showPopupMenu:
             break
         case .manageSmileyFavorite(let payload):
-            let isFavorite = SmileyFavoritesBridge.isFavoriteFromApp(code: payload.code)
+            let isFavorite = ReplySmileyCacheBridge.isFavoriteFromApp(code: payload.code)
             smileySheetState = SmileySheetState(payload: payload, isFavorite: isFavorite)
         case .presentImageViewer(let url):
             photoViewerDestination = PhotoViewerDestination(url: normalizeImageViewerURL(url))
@@ -3158,7 +3073,7 @@ struct MessagesView: View {
     }
 
     private func updateSmileyFavorite(code: String, imageURL: String, add: Bool) -> Bool {
-        SmileyFavoritesBridge.updateFavorite(code: code, imageURL: imageURL, add: add)
+        ReplySmileyCacheBridge.updateAppFavorite(code: code, imageURL: imageURL, add: add)
     }
 
     private func fetchSmileyKeywords(code: String) async -> Result<[String], Error> {
@@ -3238,50 +3153,6 @@ struct MessagesView: View {
             return .success(keywords)
         } catch {
             return .failure(error)
-        }
-    }
-
-    private enum SmileyFavoritesBridge {
-        static func isFavoriteFromApp(code: String) -> Bool {
-            guard let cache = sharedCacheObject() else {
-                return false
-            }
-            let selector = NSSelectorFromString("isFavoriteSmileyFromApp:")
-            guard cache.responds(to: selector) else {
-                return false
-            }
-
-            typealias Function = @convention(c) (AnyObject, Selector, NSString) -> Bool
-            let implementation = cache.method(for: selector)
-            let function = unsafeBitCast(implementation, to: Function.self)
-            return function(cache, selector, code as NSString)
-        }
-
-        static func updateFavorite(code: String, imageURL: String, add: Bool) -> Bool {
-            guard let cache = sharedCacheObject() else {
-                return false
-            }
-            let selector = NSSelectorFromString("AddAndSaveDicFavoritesApp:source:addSmiley:")
-            guard cache.responds(to: selector) else {
-                return false
-            }
-
-            typealias Function = @convention(c) (AnyObject, Selector, NSString, NSString, Bool) -> Bool
-            let implementation = cache.method(for: selector)
-            let function = unsafeBitCast(implementation, to: Function.self)
-            return function(cache, selector, code as NSString, imageURL as NSString, add)
-        }
-
-        private static func sharedCacheObject() -> NSObject? {
-            guard let cacheClass = NSClassFromString("SmileyCache") as? NSObject.Type else {
-                return nil
-            }
-            let sharedSelector = NSSelectorFromString("shared")
-            guard cacheClass.responds(to: sharedSelector),
-                  let unmanaged = cacheClass.perform(sharedSelector) else {
-                return nil
-            }
-            return unmanaged.takeUnretainedValue() as? NSObject
         }
     }
 

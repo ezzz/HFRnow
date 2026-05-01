@@ -207,11 +207,11 @@ final class ObjCFavoritePostFilterService: FavoritePostFilteringServicing {
         finished: Bool,
         maxPage: Int
     ) async throws -> FavoritePostFilterResult {
-        guard let renderer = LegacyLoaderRuntime.instantiateController(named: "MessagesTableViewController") else {
+        guard let renderer = LegacyTopicWorkerRuntime.instantiate() else {
             throw FavoritePostFilterError.renderUnavailable
         }
 
-        let selector = NSSelectorFromString("renderFilteredPosts:topic:startPage:endPage:finished:completion:")
+        let selector = NSSelectorFromString(LegacyTopicWorkerRuntime.SelectorName.renderFilteredPosts)
         guard renderer.responds(to: selector) else {
             throw FavoritePostFilterError.renderUnavailable
         }

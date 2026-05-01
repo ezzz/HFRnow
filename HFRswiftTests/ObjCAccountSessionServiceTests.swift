@@ -381,6 +381,15 @@ private final class MultisManagerStub: LegacyAccountsManaging {
         (mainComptePayload?["PSEUDO_DISPLAY"] as? String) ?? (mainComptePayload?["PSEUDO"] as? String)
     }
 
+    func currentAccountIdentity() -> LegacyAccountIdentity? {
+        guard let pseudo = currentPseudo()?.trimmingCharacters(in: .whitespacesAndNewlines), !pseudo.isEmpty else {
+            return nil
+        }
+        let rawDisplayName = (mainComptePayload?["PSEUDO_DISPLAY"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let displayName = rawDisplayName?.isEmpty == false ? rawDisplayName ?? pseudo : pseudo
+        return LegacyAccountIdentity(pseudo: pseudo, displayName: displayName)
+    }
+
     func setMainPseudo(_ pseudo: String) {
         setMainPseudoCalls.append(pseudo)
     }
