@@ -213,6 +213,7 @@ class FavoritesViewModel: ObservableObject {
     @Published private(set) var hasLoadedOnce: Bool
 
     private let favoritesLoader: FavoritesLoading
+    private var pendingForcedReload = false
 
     init(
         favoritesLoader: FavoritesLoading = ObjCFavoritesLoader(),
@@ -227,8 +228,13 @@ class FavoritesViewModel: ObservableObject {
         self.hasLoadedOnce = initialIsLoading || !initialFavorites.isEmpty || initialErrorMessage != nil
     }
 
-    func loadFavorites() {
-        guard !isLoading else { return }
+    func loadFavorites(force: Bool = false) {
+        guard !isLoading else {
+            if force {
+                pendingForcedReload = true
+            }
+            return
+        }
         isLoading = true
         errorMessage = nil
         favoritesLoader.fetchFavorites { [weak self] objcFavorites, error in
@@ -239,10 +245,18 @@ class FavoritesViewModel: ObservableObject {
                 if let error {
                     self.errorMessage = error.localizedDescription
                     self.favorites = []
+                    if self.pendingForcedReload {
+                        self.pendingForcedReload = false
+                        self.loadFavorites(force: true)
+                    }
                     return
                 }
                 self.favorites = objcFavorites ?? []
                 AppHaptics.impact(.light)
+                if self.pendingForcedReload {
+                    self.pendingForcedReload = false
+                    self.loadFavorites(force: true)
+                }
             }
         }
     }
@@ -255,6 +269,7 @@ class FavoritesViewModel: ObservableObject {
 
     func clearForLoggedOut() {
         isLoading = false
+        pendingForcedReload = false
         errorMessage = nil
         favorites = []
         hasLoadedOnce = false
@@ -436,7 +451,7 @@ struct FavoritesListView: View {
     private func refreshContentForSessionState(force: Bool = false) {
         if isLoggedIn {
             if force {
-                viewModel.loadFavorites()
+                viewModel.loadFavorites(force: true)
             } else {
                 viewModel.ensureLoaded()
             }
@@ -785,7 +800,7 @@ struct FavoritesListView: View {
                     accountsStore.deleteCurrent()
                 }
             } message: {
-                Text("Supprimer le compte courant ?")
+                Text("Déconnecter le compte courant ?")
             }
             .alert(
                 "Action impossible",

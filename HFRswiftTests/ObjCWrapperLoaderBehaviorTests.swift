@@ -97,11 +97,11 @@ final class ObjCWrapperLoaderBehaviorTests: XCTestCase {
         let loader = ObjCForumTopicsLoader(controller: controller)
 
         let expectation = expectation(description: "forum topics completion")
-        var receivedTopics: [Topic]?
+        var receivedResult: ForumTopicsLoadResult?
         var receivedError: Error?
 
-        loader.fetchTopics(for: forum, flag: .tracked) { topics, error in
-            receivedTopics = topics
+        loader.fetchTopics(for: forum, flag: .tracked) { result, error in
+            receivedResult = result
             receivedError = error
             expectation.fulfill()
         }
@@ -110,7 +110,7 @@ final class ObjCWrapperLoaderBehaviorTests: XCTestCase {
         XCTAssertTrue(controller.fetchCalled)
         XCTAssertTrue(controller.receivedForum === forum)
         XCTAssertEqual(controller.receivedFlagIndex, TopicListFlag.tracked.rawValue)
-        XCTAssertEqual(receivedTopics?.count, expectedTopics.count)
+        XCTAssertEqual(receivedResult?.topics.count, expectedTopics.count)
         XCTAssertNil(receivedError)
     }
 

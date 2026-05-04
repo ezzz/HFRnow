@@ -298,7 +298,7 @@
 
 -(void)loadDataInTableView:(NSData *)contentData
 {
-    NSLog(@"loadDataInTableView");
+    //NSLog(@"loadDataInTableView");
 
     self.arrayData = [[NSMutableArray alloc] init];
     self.arrayTopics = [[NSMutableArray alloc] init];
@@ -325,6 +325,16 @@
         }
         
         [[NSNotificationCenter defaultCenter] postNotificationName:kStatusChangedNotification object:self userInfo:notif];
+        if (self.completion) {
+            NSError *error = [NSError errorWithDomain:@"FavoritesTableViewController"
+                                                 code:[[notif valueForKey:@"status"] intValue]
+                                             userInfo:@{NSLocalizedDescriptionKey: [notif valueForKey:@"message"] ?: @"Authentification requise"}];
+            void (^completion)(NSArray<Favorite *> *, NSError *) = self.completion;
+            self.completion = nil;
+            dispatch_async(dispatch_get_main_queue(), ^{
+                completion(nil, error);
+            });
+        }
 		return;
 	}
         
@@ -384,7 +394,7 @@
     for (HTMLNode * trNode in temporaryFavoriteArray)
     {
         
-        NSLog(@"node %@", [trNode allContents]);
+        //NSLog(@"node %@", [trNode allContents]);
         
         if ([[trNode className] rangeOfString:@"fondForum1fCat"].location != NSNotFound)
         {

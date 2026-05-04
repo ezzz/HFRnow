@@ -47,6 +47,7 @@ final class MPListViewModel: ObservableObject {
     private let topicsLoader: MPTopicsLoading
     private var loadRequestID = 0
     private var lastSuccessfulLoadDate: Date?
+    private var pendingForcedReload = false
 
     init(
         topicsLoader: MPTopicsLoading = ObjCMPTopicsLoader(),
@@ -61,8 +62,13 @@ final class MPListViewModel: ObservableObject {
         self.hasLoadedOnce = initialIsLoading || !initialTopics.isEmpty || initialErrorMessage != nil
     }
 
-    func load(retryOnCancellation: Bool = true) {
-        guard !isLoading else { return }
+    func load(retryOnCancellation: Bool = true, force: Bool = false) {
+        guard !isLoading else {
+            if force {
+                pendingForcedReload = true
+            }
+            return
+        }
         loadRequestID += 1
         let requestID = loadRequestID
         isLoading = true
@@ -90,6 +96,10 @@ final class MPListViewModel: ObservableObject {
                     self.errorMessage = nil
                     self.topics = topics ?? []
                 }
+                if self.pendingForcedReload {
+                    self.pendingForcedReload = false
+                    self.load(retryOnCancellation: retryOnCancellation, force: true)
+                }
             }
         }
     }
@@ -116,6 +126,7 @@ final class MPListViewModel: ObservableObject {
 
     func clearForLoggedOut() {
         isLoading = false
+        pendingForcedReload = false
         errorMessage = nil
         topics = []
         hasLoadedOnce = false
@@ -160,7 +171,7 @@ struct MPListView: View {
     private func refreshContentForSessionState(force: Bool = false) {
         if isLoggedIn {
             if force {
-                viewModel.load()
+                viewModel.load(force: true)
             } else {
                 viewModel.ensureLoaded()
             }
@@ -312,7 +323,7 @@ struct MPListView: View {
                     accountsStore.deleteCurrent()
                 }
             } message: {
-                Text("Supprimer le compte courant ?")
+                Text("Déconnecter le compte courant ?")
             }
         }
         .id(navigationResetToken)

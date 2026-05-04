@@ -37,17 +37,18 @@ final class AccountsStore: ObservableObject {
         accountSessionService: AccountSessionService? = nil
     ) {
         self.accountSessionService = accountSessionService ?? ObjCAccountSessionService()
-        refresh()
+        refresh(source: "init")
 
         notificationCancellable = NotificationCenter.default
             .publisher(for: Notification.Name("kLoginChangedNotification"))
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
-                self?.refresh()
+                guard let self else { return }
+                self.refresh(source: "kLoginChangedNotification")
             }
     }
 
-    func refresh() {
+    func refresh(source: String = "manual") {
         let previousCurrentAccountID = currentAccount?.id
         let fetchedAccounts = accountSessionService.fetchAccounts()
         accounts = fetchedAccounts
@@ -62,12 +63,12 @@ final class AccountsStore: ObservableObject {
             return
         }
         accountSessionService.setMainAccount(id: account.id)
-        refresh()
+        refresh(source: "setMain")
     }
 
     func delete(_ account: Account) {
         accountSessionService.deleteAccount(id: account.id)
-        refresh()
+        refresh(source: "delete")
     }
 
     func deleteCurrent() {
@@ -77,7 +78,7 @@ final class AccountsStore: ObservableObject {
 
     func addAccount(pseudo: String, password: String) async throws {
         try await accountSessionService.addAccount(pseudo: pseudo, password: password)
-        refresh()
+        refresh(source: "addAccount")
     }
 
     var currentAvatarImage: UIImage? {

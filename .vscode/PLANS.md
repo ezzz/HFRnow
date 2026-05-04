@@ -187,10 +187,10 @@ Lots de resserrage avant suppression :
 | ID | Tâche | Priorité |
 |---|---|---|
 | B01 | Valider sur simulateur/device la classification Objective-C/XIB | P0 |
-| B02 | Validation compte/session/startup/background | P0 |
+| B02 | Partiel : tests session + build OK ; startup/background runtime à valider | P0 |
 | B03 | Fait : W1 créer façade Swift unique `BlackList` / BL-WL | P0 |
 | B04 | Fait : W2 étendre façade `MPStorage` pour bookmarks post-level | P0 |
-| B05 | W4 valider manuellement login/logout/switch/startup/background | P0 |
+| B05 | Partiel : W4 automatisé OK ; login/logout/switch manuel restant | P0 |
 | B06 | Décision et éventuel portage filtres rapides forum | P1 |
 | B07 | Décision Aide/Infos/Feedback/Pay | P1 |
 | B08 | Décision thème avancé legacy | P1 |
@@ -198,6 +198,23 @@ Lots de resserrage avant suppression :
 | B10 | Fait : W3 documenter contrat `MessagesTableViewController` worker | P1 |
 | B11 | Passe cohérence UI Liquid Glass | P2 |
 | B12 | Étude iPad | P2 |
+
+## Validation B02/B05
+
+Automatisé :
+
+1. `ObjCAccountSessionServiceTests` OK sur simulateur iPhone 17.
+2. Build `HFRswift` Debug iOS Simulator OK.
+3. Tests wrappers remis à jour sur le contrat `ForumTopicsLoadResult`.
+
+Manuel restant :
+
+1. Fresh install puis lancement avec et sans compte.
+2. Ajout de compte, vérification cookies et compte courant.
+3. Switch de compte et persistance après relance.
+4. Suppression/logout d’un compte et fallback du compte actif.
+5. Passage background/foreground sur messages, AQ et réponse.
+6. Vérification qu’aucun fallback UIKit compte/session visible ne réapparaît.
 
 ## Non-Objectifs
 

@@ -179,7 +179,7 @@ final class CategoriesFlowViewModelTests: XCTestCase {
         XCTAssertTrue(loader.requests[0].forum === forum)
         XCTAssertEqual(loader.requests[0].flag, .tracked)
 
-        loader.requests[0].completion([expectedTopic], nil)
+        loader.requests[0].completion(ForumTopicsLoadResult(topics: [expectedTopic], newTopicURL: nil), nil)
         flushMainQueue()
 
         XCTAssertFalse(viewModel.isLoading)
@@ -203,7 +203,7 @@ final class CategoriesFlowViewModelTests: XCTestCase {
 
         let cancellation = NSError(domain: NSURLErrorDomain, code: NSURLErrorCancelled)
         loader.requests[0].completion(nil, cancellation)
-        loader.requests[1].completion([expectedTopic], nil)
+        loader.requests[1].completion(ForumTopicsLoadResult(topics: [expectedTopic], newTopicURL: nil), nil)
         flushMainQueue()
 
         XCTAssertFalse(viewModel.isLoading)
@@ -220,7 +220,7 @@ final class CategoriesFlowViewModelTests: XCTestCase {
 
         viewModel.load()
         XCTAssertEqual(loader.requests.count, 1)
-        loader.requests[0].completion([initialTopic], nil)
+        loader.requests[0].completion(ForumTopicsLoadResult(topics: [initialTopic], newTopicURL: nil), nil)
         flushMainQueue()
         XCTAssertEqual(viewModel.topics.count, 1)
 
@@ -271,12 +271,12 @@ private final class ForumTopicsLoaderSpy: ForumTopicsLoading {
     struct Request {
         let forum: Forum
         let flag: TopicListFlag
-        let completion: TopicsLoadCompletion
+        let completion: ForumTopicsLoadCompletion
     }
 
     private(set) var requests: [Request] = []
 
-    func fetchTopics(for forum: Forum, flag: TopicListFlag, completion: @escaping TopicsLoadCompletion) {
+    func fetchTopics(for forum: Forum, flag: TopicListFlag, completion: @escaping ForumTopicsLoadCompletion) {
         requests.append(Request(forum: forum, flag: flag, completion: completion))
     }
 }

@@ -215,7 +215,7 @@ struct CategoriesListView: View {
                     accountsStore.deleteCurrent()
                 }
             } message: {
-                Text("Supprimer le compte courant ?")
+                Text("Déconnecter le compte courant ?")
             }
         }
     }
@@ -735,7 +735,7 @@ struct ForumTopicsListView: View {
                 accountsStore.deleteCurrent()
             }
         } message: {
-            Text("Supprimer le compte courant ?")
+            Text("Déconnecter le compte courant ?")
         }
         .alert(
             "Action impossible",
@@ -1037,8 +1037,8 @@ struct RootTabView: View {
             .onChange(of: selectedTab) { _, newValue in
                 syncRuntimeSelectedTab(newValue)
             }
-            .onChange(of: accountsStore.currentAccount?.id) { _, newValue in
-                handleCurrentAccountChange(newValue)
+            .onChange(of: accountsStore.currentAccount?.id) { oldValue, newValue in
+                handleCurrentAccountChange(from: oldValue, to: newValue)
             }
             .onChange(of: systemColorScheme) { _, newValue in
                 appTheme.refresh(systemColorScheme: newValue)
@@ -1075,7 +1075,7 @@ struct RootTabView: View {
 
     private var rootTabs: some View {
         TabView(selection: $selectedTab) {
-            CategoriesListView()
+            CategoriesListView(accountsStore: accountsStore)
                 .tabItem { Label("Catégories", systemImage: "folder.fill") }
                 .tag(RootTabIdentifier.categories)
 
@@ -1135,7 +1135,7 @@ struct RootTabView: View {
     private var selectedTabContent: some View {
         switch selectedTab {
         case .categories:
-            CategoriesListView()
+            CategoriesListView(accountsStore: accountsStore)
         case .favorites:
             FavoritesListView(
                 viewModel: favoritesViewModel,
@@ -1231,12 +1231,21 @@ struct RootTabView: View {
         handlePendingMessagesNotificationNavigationIfNeeded()
     }
 
-    private func handleCurrentAccountChange(_ accountID: String?) {
-        if accountID == nil {
+    private func handleCurrentAccountChange(from oldAccountID: String?, to newAccountID: String?) {
+        if newAccountID == nil {
             cancelColdLaunchPrefetch()
             hasScheduledColdLaunchPrefetch = false
         } else {
             startColdLaunchPrefetchIfNeeded()
+        }
+
+        guard oldAccountID != newAccountID, newAccountID != nil else { return }
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(
+                name: .rootTabReselected,
+                object: nil,
+                userInfo: ["tab": selectedTab.rawValue]
+            )
         }
     }
 

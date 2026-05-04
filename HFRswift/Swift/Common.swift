@@ -1092,6 +1092,12 @@ protocol FavoritesLoading {
     func fetchFavorites(completion: @escaping FavoritesLoadCompletion)
 }
 
+private enum LegacySessionPreparation {
+    static func prepareCurrentAccountSession() {
+        _ = try? ObjCAccountSessionService().makeReplySessionContext(cookieStorage: .shared)
+    }
+}
+
 final class ObjCFavoritesLoader: FavoritesLoading {
     private let controller: NSObject?
 
@@ -1104,6 +1110,8 @@ final class ObjCFavoritesLoader: FavoritesLoading {
             completion(nil, LegacyLoaderBridgeError.unavailable("FavoritesTableViewController"))
             return
         }
+
+        LegacySessionPreparation.prepareCurrentAccountSession()
 
         let selector = NSSelectorFromString("fetchContentWithCompletion:")
         guard controller.responds(to: selector) else {
@@ -1138,6 +1146,8 @@ final class ObjCMPTopicsLoader: MPTopicsLoading {
             completion(nil, LegacyLoaderBridgeError.unavailable("HFRMPViewController"))
             return
         }
+
+        LegacySessionPreparation.prepareCurrentAccountSession()
 
         (controller as? UIViewController)?.loadViewIfNeeded()
 
@@ -1222,6 +1232,8 @@ final class ObjCForumTopicsLoader: ForumTopicsLoading {
             completion(nil, LegacyLoaderBridgeError.unavailable("TopicsTableViewController"))
             return
         }
+
+        LegacySessionPreparation.prepareCurrentAccountSession()
 
         let selector = NSSelectorFromString("fetchContentForForum:flagIndex:completion:")
         guard controller.responds(to: selector) else {

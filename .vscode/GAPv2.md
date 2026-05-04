@@ -299,8 +299,8 @@ Conclusion smoke : le binaire SwiftUI construit, s’installe et se lance. Cette
 | ID | Statut | Critère de sortie actuel | Priorité |
 |---|---|---|---|
 | G02 | NotStarted | Filtres rapides forum disponibles ou décision d’abandon documentée | P1 |
-| G09 | InProgress | Contrat session/compte documenté, chemins login/logout/switch validés manuellement | P0 |
-| G10 | NotStarted | Checklist startup/background validée | P0 |
+| G09 | InProgress | Tests session automatisés OK ; login/logout/switch runtime à valider | P0 |
+| G10 | InProgress | Build OK ; checklist startup/background runtime à exécuter | P0 |
 | G12 | InProgress | Inventaire ObjC utilisé + classification réduction validé par lancement manuel | P0 |
 | G17 | InProgress | Liste des XIB/NIB encore visibles ou supprimables validée par lancement manuel | P0 |
 | G26 | InProgress | Décision parité thème avancée : porter, simplifier ou abandonner | P1 |
@@ -381,7 +381,7 @@ Action réalisée / restante :
 |---|---|
 | Confirmer que tous les flux passent par `LegacyAccountsManaging` / `AccountSessionService` | Fait : pas d’accès dispersé à `MultisManager` depuis Swift |
 | Documenter les invariants | Fait : compte courant exposé en `LegacyAccountIdentity`; cookies forcés et `hash_check` restent dans `ObjCAccountSessionService` |
-| Valider manuellement switch/logout/login | Réduction du risque startup/background |
+| Valider manuellement switch/logout/login | Partiel : `ObjCAccountSessionServiceTests` OK ; runtime login/logout/switch restant |
 
 ### Lot W5 — `SmileyCache`
 
@@ -399,7 +399,7 @@ Action réalisée :
 
 ### Ordre recommandé
 
-1. W4 validation manuelle session/compte/startup/background.
+1. Terminer B02/B05 par validation manuelle session/compte/startup/background sur simulateur ou device.
 2. Extraction éventuelle d’un worker ObjC non-UI pour `MessagesTableViewController`, en petit lot dédié.
 
 ---
