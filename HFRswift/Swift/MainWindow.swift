@@ -941,6 +941,10 @@ struct RootTabView: View {
     @AppStorage("mp_badge_enabled") private var mpBadgeEnabled = true
     @AppStorage(AppTabBarMinimizeOnScroll.key) private var tabBarMinimizeOnScroll = true
 
+    private var usesSidebarRoot: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad && horizontalSizeClass == .regular
+    }
+
     init() {
         _selectedTab = State(initialValue: RuntimeState.selectedTab)
     }
@@ -1060,7 +1064,7 @@ struct RootTabView: View {
 
     @ViewBuilder
     private var rootContainer: some View {
-        if horizontalSizeClass == .regular {
+        if usesSidebarRoot {
             iPadSidebarRoot
         } else {
             compactTabRoot
