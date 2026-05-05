@@ -100,7 +100,7 @@ struct AnswerView: View {
     @State private var isGiphyPresented = false
 
     enum ComposerPanel: String, Identifiable {
-        case defaultSmileys, favoriteSmileys, imageInsertion
+        case smileys, imageInsertion
         var id: String { rawValue }
     }
 
@@ -278,15 +278,10 @@ struct AnswerView: View {
     @ViewBuilder
     private func panelView(for panel: ComposerPanel) -> some View {
         switch panel {
-        case .defaultSmileys:
-            SmileyPickerView(title: "Smileys", smileys: defaultSmileys) { smiley in
-                insertSmileyCode(smiley.code)
-            }
-            .presentationDetents([.large])
-
-        case .favoriteSmileys:
-            FavoriteSmileyPickerView(
-                smileys: favoriteSmileys,
+        case .smileys:
+            CombinedSmileyPickerView(
+                defaultSmileys: defaultSmileys,
+                favoriteSmileys: favoriteSmileys,
                 onSelect: { smiley in
                     insertSmileyCode(smiley.code)
                 },
@@ -515,15 +510,8 @@ struct AnswerView: View {
                 isDisabled: isPosting
             ) {
                 if defaultSmileys.isEmpty { defaultSmileys = smileyCatalogLoader.loadDefaultSmileys() }
-                activePanel = .defaultSmileys
-            }
-            ComposerToolbarButton(
-                systemImage: "star",
-                accessibilityLabel: "Smileys favoris",
-                isDisabled: favoriteSmileys.isEmpty || isPosting
-            ) {
                 favoriteSmileys = smileyCatalogLoader.loadFavoriteSmileys()
-                activePanel = .favoriteSmileys
+                activePanel = .smileys
             }
             ComposerToolbarButton(
                 systemImage: "g.circle",
@@ -1017,46 +1005,14 @@ private struct ComposerSheetCloseHeader: View {
     }
 }
 
-// MARK: - Default smiley picker
-
-private struct SmileyPickerView: View {
-    let title: String
-    let smileys: [ReplySmiley]
-    let onSelect: (ReplySmiley) -> Void
-
-    @Environment(\.dismiss) private var dismiss
-    private let columns = [GridItem(.adaptive(minimum: 78, maximum: 90), spacing: 4)]
-
-    var body: some View {
-        VStack(spacing: 0) {
-            ComposerSheetCloseHeader(title: title) { dismiss() }
-            ScrollView {
-                LazyVGrid(columns: columns, spacing: 4) {
-                    ForEach(smileys) { smiley in
-                        Button {
-                            onSelect(smiley)
-                            dismiss()
-                        } label: {
-                            SmileyGridCell(smiley: smiley)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(smiley.code)
-                    }
-                }
-                .padding(8)
-            }
-        }
-        .presentationGlassBackground()
-    }
-}
-
-// MARK: - Favorite smiley picker (with search)
+// MARK: - Smiley picker (with favorites and search)
 //
 // Presented as a sheet — UIKit handles keyboard transitions naturally on present/dismiss.
 // No manual focus timing needed.
 
-private struct FavoriteSmileyPickerView: View {
-    let smileys: [ReplySmiley]
+private struct CombinedSmileyPickerView: View {
+    let defaultSmileys: [ReplySmiley]
+    let favoriteSmileys: [ReplySmiley]
     let onSelect: (ReplySmiley) -> Void
     let onToggleFavorite: (ReplySmiley, Bool) -> Bool
     let onFetchKeywords: (String) async -> Result<[String], Error>
@@ -1066,19 +1022,19 @@ private struct FavoriteSmileyPickerView: View {
     private let searchService: any SmileySearching = HFRSmileySearchService()
 
     enum DisplayMode: Equatable {
-        case favorites
+        case library
         case results([ReplySmiley])
         case empty
         static func == (lhs: DisplayMode, rhs: DisplayMode) -> Bool {
             switch (lhs, rhs) {
-            case (.favorites, .favorites), (.empty, .empty): return true
+            case (.library, .library), (.empty, .empty): return true
             case (.results(let a), .results(let b)): return a == b
             default: return false
             }
         }
     }
 
-    @State private var displayMode: DisplayMode = .favorites
+    @State private var displayMode: DisplayMode = .library
     @State private var searchText = ""
     @State private var isSearching = false
     @State private var recentSuggestions: [SmileySearchHistoryEntry] = []
@@ -1089,15 +1045,15 @@ private struct FavoriteSmileyPickerView: View {
 
     private var displayedSmileys: [ReplySmiley] {
         if case .results(let r) = displayMode { return r }
-        return smileys
+        return []
     }
     private var isShowingResults: Bool {
-        if case .favorites = displayMode { return false }
+        if case .library = displayMode { return false }
         return true
     }
     private var canSearch: Bool { searchText.trimmingCharacters(in: .whitespacesAndNewlines).count >= 3 }
     private var showSuggestions: Bool {
-        (!recentSuggestions.isEmpty || !topSuggestions.isEmpty) && displayMode == .favorites
+        (!recentSuggestions.isEmpty || !topSuggestions.isEmpty) && displayMode == .library
     }
     private var suggestionChips: [SmileySearchHistoryEntry] {
         if searchText.isEmpty { return Array(recentSuggestions.prefix(4)) }
@@ -1109,18 +1065,16 @@ private struct FavoriteSmileyPickerView: View {
     var body: some View {
         ZStack {
             VStack(spacing: 0) {
-                ComposerSheetCloseHeader(title: "Smileys favoris") { dismiss() }
+                ComposerSheetCloseHeader(title: "Smileys") { dismiss() }
 
                 ScrollView {
                     if case .empty = displayMode {
                         emptyState
+                    } else if isShowingResults {
+                        smileyGrid(displayedSmileys)
+                            .padding(8)
                     } else {
-                        LazyVGrid(columns: columns, spacing: 4) {
-                            ForEach(displayedSmileys) { smiley in
-                                smileyItem(smiley)
-                            }
-                        }
-                        .padding(8)
+                        smileyLibrary
                     }
                 }
 
@@ -1205,7 +1159,7 @@ private struct FavoriteSmileyPickerView: View {
                         .font(.system(size: 15, weight: .semibold))
                         .padding(8)
                 }
-                .accessibilityLabel("Retour aux favoris")
+                .accessibilityLabel("Retour aux smileys")
                 .smileySearchButtonStyle()
             }
 
@@ -1255,7 +1209,7 @@ private struct FavoriteSmileyPickerView: View {
                 .font(.system(size: 44)).foregroundStyle(.secondary)
             Text("Aucun smiley trouvé").font(.headline).foregroundStyle(.secondary)
             Text("Essayez avec un autre mot-clé.").font(.subheadline).foregroundStyle(.tertiary)
-            Button("Retour aux favoris", action: clearSearch)
+            Button("Retour aux smileys", action: clearSearch)
                 .font(.subheadline).padding(.top, 4)
         }
         .frame(maxWidth: .infinity)
@@ -1293,7 +1247,7 @@ private struct FavoriteSmileyPickerView: View {
         isSearchFieldFocused = false
         searchTask?.cancel()
         isSearching = false
-        displayMode = .favorites
+        displayMode = .library
     }
 
     private func search(using query: String) {
@@ -1315,6 +1269,52 @@ private struct FavoriteSmileyPickerView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(smiley.code)
+    }
+
+    private var smileyLibrary: some View {
+        LazyVStack(alignment: .leading, spacing: 18) {
+            smileySection(title: "Smileys basiques", smileys: defaultSmileys)
+
+            if favoriteSmileys.isEmpty {
+                emptyFavoritesSection
+            } else {
+                smileySection(title: "Smileys favoris", smileys: favoriteSmileys)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 10)
+    }
+
+    private func smileySection(title: String, smileys: [ReplySmiley]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.headline)
+                .foregroundStyle(.primary)
+                .padding(.horizontal, 4)
+            smileyGrid(smileys)
+        }
+    }
+
+    private var emptyFavoritesSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Smileys favoris")
+                .font(.headline)
+                .foregroundStyle(.primary)
+            Text("Aucun favori pour le moment. Touchez un smiley puis l’étoile pour l’ajouter.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 4)
+                .padding(.vertical, 8)
+        }
+        .padding(.horizontal, 4)
+    }
+
+    private func smileyGrid(_ smileys: [ReplySmiley]) -> some View {
+        LazyVGrid(columns: columns, spacing: 4) {
+            ForEach(smileys) { smiley in
+                smileyItem(smiley)
+            }
+        }
     }
 }
 
