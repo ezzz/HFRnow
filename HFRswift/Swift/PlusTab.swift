@@ -59,7 +59,7 @@ struct PlusHomeView: View {
                         showMailUnavailableAlert = true
                     }
                 } label: {
-                    PlusRow(title: "Supprimer mon compte", systemImage: "trash")
+                    PlusRow(title: "Supprimer mon compte", systemImage: "trash", foregroundStyle: .red)
                 }
             }
         }
@@ -79,10 +79,17 @@ private struct PlusRow: View {
     let title: String
     let systemImage: String
     var badgeCount = 0
+    var foregroundStyle: Color = .primary
 
     var body: some View {
         HStack {
-            Label(title, systemImage: systemImage)
+            Label {
+                Text(title)
+                    .foregroundStyle(foregroundStyle)
+            } icon: {
+                Image(systemName: systemImage)
+                    .foregroundStyle(foregroundStyle)
+            }
             Spacer()
             if badgeCount > 0 {
                 Text("\(badgeCount)")
@@ -94,6 +101,7 @@ private struct PlusRow: View {
                     .accessibilityLabel("\(badgeCount) nouvelles alertes")
             }
         }
+        .padding(.vertical, 11)
     }
 }
 

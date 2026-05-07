@@ -1191,7 +1191,9 @@ struct WebView: UIViewRepresentable {
         private func notifyContentReadyIfNeeded() {
             guard !didNotifyContentReadyForCurrentLoad else { return }
             didNotifyContentReadyForCurrentLoad = true
-            parent.onContentReady?()
+            DispatchQueue.main.async {
+                self.parent.onContentReady?()
+            }
         }
 
         func applyThemeIfNeeded(
@@ -2632,6 +2634,24 @@ struct MessagesView: View {
 
     private var shouldHideReplyComposerButton: Bool {
         UIDevice.current.userInterfaceIdiom == .phone && verticalSizeClass == .compact
+    }
+
+    private var loadingTopicView: some View {
+        ZStack {
+            themePalette.webViewBackdropColor
+                .ignoresSafeArea()
+            VStack(spacing: 8) {
+                ProgressView()
+                    .tint(.primary)
+                Text("Chargement...")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            .transition(.opacity)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
     }
 
     private var messageBodyFontSize: CGFloat {
@@ -4290,9 +4310,7 @@ struct MessagesView: View {
                     .id(page) // force a new WKWebView per page
 
                 if showWebViewLoadCover {
-                    themePalette.webViewBackdropColor
-                        .ignoresSafeArea()
-                        .allowsHitTesting(false)
+                    loadingTopicView
                         .transition(.opacity)
                 }
 
@@ -4737,19 +4755,9 @@ struct MessagesView: View {
                 .animation(.easeOut(duration: 0.22), value: shouldShowBottomRefreshButton)
                 .animation(.easeOut(duration: 0.18), value: shouldHighlightNextPageButton)
         } else {
-            ZStack {
-                themePalette.webViewBackdropColor
-                    .ignoresSafeArea()
-                VStack(spacing: 8) {
-                    ProgressView()
-                    Text("Chargement...")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            loadingTopicView
                 .navigationTitle("My title")
                 .navigationBarTitleDisplayMode(.inline)
-            }
             .navigationBarBackButtonHidden(navigationDepth > 0)
             .toolbar {
                 navigationDepthBackButton
