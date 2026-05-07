@@ -49,5 +49,9 @@
 - (void)fetchContentForForum:(Forum *)forum
                    flagIndex:(NSInteger)flagIndex
                   completion:(void (^)(NSArray<Topic *> *topics, NSError *error))completion;
+- (void)fetchContentForForum:(Forum *)forum
+                   flagIndex:(NSInteger)flagIndex
+                     pageURL:(NSString *)pageURL
+                  completion:(void (^)(NSArray<Topic *> *topics, NSError *error))completion;
 
 @end

@@ -1104,6 +1104,13 @@
 - (void)fetchContentForForum:(Forum *)forum
                    flagIndex:(NSInteger)flagIndex
                   completion:(void (^)(NSArray<Topic *> *topics, NSError *error))completion {
+    [self fetchContentForForum:forum flagIndex:flagIndex pageURL:nil completion:completion];
+}
+
+- (void)fetchContentForForum:(Forum *)forum
+                   flagIndex:(NSInteger)flagIndex
+                     pageURL:(NSString *)pageURL
+                  completion:(void (^)(NSArray<Topic *> *topics, NSError *error))completion {
     self.forumName = forum.aTitle;
 
     NSString *normalizedForumURL = [self normalizedRelativeForumURLString:forum.aURL];
@@ -1156,6 +1163,17 @@
             break;
     }
 
+    NSString *normalizedPageURL = [self normalizedRelativeForumURLString:pageURL];
+    if (normalizedPageURL.length > 0) {
+        self.currentUrl = normalizedPageURL;
+    }
+
+    self.firstPageNumber = 1;
+    self.lastPageNumber = 1;
+    self.firstPageUrl = nil;
+    self.lastPageUrl = nil;
+    self.nextPageUrl = nil;
+    self.previousPageUrl = nil;
     self.selectedFlagIndex = (int)flagIndex;
     self.completion = completion;
     [self fetchContentTrigger];

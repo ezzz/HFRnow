@@ -1270,7 +1270,13 @@ enum TopicListFlag: Int {
 }
 
 protocol ForumTopicsLoading {
-    func fetchTopics(for forum: Forum, flag: TopicListFlag, completion: @escaping ForumTopicsLoadCompletion)
+    func fetchTopics(for forum: Forum, flag: TopicListFlag, pageURL: String?, completion: @escaping ForumTopicsLoadCompletion)
+}
+
+extension ForumTopicsLoading {
+    func fetchTopics(for forum: Forum, flag: TopicListFlag, completion: @escaping ForumTopicsLoadCompletion) {
+        fetchTopics(for: forum, flag: flag, pageURL: nil, completion: completion)
+    }
 }
 
 typealias ForumTopicsLoadCompletion = (ForumTopicsLoadResult?, Error?) -> Void
@@ -1278,6 +1284,7 @@ typealias ForumTopicsLoadCompletion = (ForumTopicsLoadResult?, Error?) -> Void
 struct ForumTopicsLoadResult {
     let topics: [Topic]
     let newTopicURL: URL?
+    let pageInfo: ForumSearchPageInfo
 }
 
 final class ObjCForumTopicsLoader: ForumTopicsLoading {
@@ -1287,7 +1294,7 @@ final class ObjCForumTopicsLoader: ForumTopicsLoading {
         self.controller = controller
     }
 
-    func fetchTopics(for forum: Forum, flag: TopicListFlag, completion: @escaping ForumTopicsLoadCompletion) {
+    func fetchTopics(for forum: Forum, flag: TopicListFlag, pageURL: String?, completion: @escaping ForumTopicsLoadCompletion) {
         guard let controller else {
             completion(nil, LegacyLoaderBridgeError.unavailable("TopicsTableViewController"))
             return
@@ -1295,21 +1302,56 @@ final class ObjCForumTopicsLoader: ForumTopicsLoading {
 
         LegacySessionPreparation.prepareCurrentAccountSession()
 
-        let selector = NSSelectorFromString("fetchContentForForum:flagIndex:completion:")
+        let selector = NSSelectorFromString("fetchContentForForum:flagIndex:pageURL:completion:")
         guard controller.responds(to: selector) else {
             completion(nil, LegacyLoaderBridgeError.unavailable("TopicsTableViewController.fetchContentForForum"))
             return
         }
 
         typealias CompletionBlock = @convention(block) (NSArray?, NSError?) -> Void
-        typealias Function = @convention(c) (AnyObject, Selector, Forum, NSInteger, CompletionBlock) -> Void
+        typealias Function = @convention(c) (AnyObject, Selector, Forum, NSInteger, NSString?, CompletionBlock) -> Void
         let implementation = controller.method(for: selector)
         let function = unsafeBitCast(implementation, to: Function.self)
         let block: CompletionBlock = { topics, error in
+            let resolvedTopics = topics as? [Topic] ?? []
             let newTopicURL = Self.absoluteForumURL(from: controller.value(forKey: "forumNewTopicUrl") as? String)
-            completion(ForumTopicsLoadResult(topics: topics as? [Topic] ?? [], newTopicURL: newTopicURL), error)
+            let pageInfo = Self.pageInfo(from: controller, resultCount: resolvedTopics.count)
+            completion(ForumTopicsLoadResult(topics: resolvedTopics, newTopicURL: newTopicURL, pageInfo: pageInfo), error)
         }
-        function(controller, selector, forum, flag.rawValue, block)
+        function(controller, selector, forum, flag.rawValue, pageURL as NSString?, block)
+    }
+
+    private static func pageInfo(from controller: NSObject, resultCount: Int) -> ForumSearchPageInfo {
+        let raw: NSDictionary = [
+            "currentURL": stringValue(controller.value(forKey: "currentUrl")) ?? "",
+            "nextPageURL": stringValue(controller.value(forKey: "nextPageUrl")) ?? "",
+            "previousPageURL": stringValue(controller.value(forKey: "previousPageUrl")) ?? "",
+            "firstPageURL": stringValue(controller.value(forKey: "firstPageUrl")) ?? "",
+            "lastPageURL": stringValue(controller.value(forKey: "lastPageUrl")) ?? "",
+            "pageNumber": numberValue(controller.value(forKey: "pageNumber")),
+            "firstPageNumber": numberValue(controller.value(forKey: "firstPageNumber")),
+            "lastPageNumber": numberValue(controller.value(forKey: "lastPageNumber")),
+            "resultCount": resultCount
+        ]
+        return ForumSearchPageInfo(raw: raw)
+    }
+
+    private static func stringValue(_ value: Any?) -> String? {
+        guard let string = value as? String,
+              !string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
+        return string
+    }
+
+    private static func numberValue(_ value: Any?) -> NSNumber {
+        if let number = value as? NSNumber {
+            return number
+        }
+        if let integer = value as? Int {
+            return NSNumber(value: integer)
+        }
+        return NSNumber(value: 1)
     }
 
     private static func absoluteForumURL(from rawValue: String?) -> URL? {

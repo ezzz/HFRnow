@@ -47,6 +47,7 @@ final class ForumTopicsListViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var selectedFlag: TopicListFlag = .all
     @Published var newTopicURL: URL?
+    @Published var pageInfo: ForumSearchPageInfo = .empty
 
     private var forum: Forum
     private let topicsLoader: ForumTopicsLoading
@@ -64,13 +65,14 @@ final class ForumTopicsListViewModel: ObservableObject {
         self.forum = forum
     }
 
-    func load() {
+    func load(pageURL: String? = nil) {
         loadRequestID += 1
         let requestID = loadRequestID
         isLoading = true
         errorMessage = nil
         newTopicURL = nil
-        topicsLoader.fetchTopics(for: forum, flag: selectedFlag) { [weak self] result, error in
+        pageInfo = .empty
+        topicsLoader.fetchTopics(for: forum, flag: selectedFlag, pageURL: pageURL) { [weak self] result, error in
             guard let self else { return }
             DispatchQueue.main.async {
                 guard requestID == self.loadRequestID else { return }
@@ -83,10 +85,12 @@ final class ForumTopicsListViewModel: ObservableObject {
                     self.errorMessage = error.localizedDescription
                     self.topics = []
                     self.newTopicURL = nil
+                    self.pageInfo = .empty
                 } else {
                     self.errorMessage = nil
                     self.topics = result?.topics ?? []
                     self.newTopicURL = result?.newTopicURL
+                    self.pageInfo = result?.pageInfo ?? .empty
                 }
             }
         }
@@ -264,6 +268,8 @@ struct ForumTopicsListView: View {
     @State private var selectedForumIdentifier: String
     @State private var isNewTopicComposerPresented = false
     @State private var newTopicDraftText = ""
+    @State private var isPagePickerPresented = false
+    @State private var pagePickerInput = "1"
 
     private let topicActionService: FavoritesTopicActionServicing
 
@@ -321,6 +327,60 @@ struct ForumTopicsListView: View {
 
     private var isLoggedIn: Bool {
         accountsStore.currentAccount != nil
+    }
+
+    private var shouldShowPagination: Bool {
+        max(viewModel.pageInfo.lastPageNumber, 1) > 1
+    }
+
+    private var navigationTitleText: String {
+        forum.aTitle ?? "Topics"
+    }
+
+    private var navigationSubtitleText: String? {
+        guard shouldShowPagination else { return nil }
+        return "Page \(max(viewModel.pageInfo.pageNumber, 1)) / \(max(viewModel.pageInfo.lastPageNumber, 1))"
+    }
+
+    private func loadPage(_ urlString: String?) {
+        guard let urlString = normalizedNonEmpty(urlString) else { return }
+        AppHaptics.impact(.light)
+        viewModel.load(pageURL: urlString)
+    }
+
+    private func pageURL(for page: Int) -> String? {
+        let boundedPage = min(max(page, 1), max(viewModel.pageInfo.lastPageNumber, 1))
+        switch boundedPage {
+        case viewModel.pageInfo.pageNumber:
+            return viewModel.pageInfo.currentURL
+        case viewModel.pageInfo.firstPageNumber:
+            return viewModel.pageInfo.firstPageURL ?? TopicPageURLRouting.replacingPage(in: viewModel.pageInfo.currentURL ?? "", page: boundedPage)
+        case viewModel.pageInfo.lastPageNumber:
+            return viewModel.pageInfo.lastPageURL ?? TopicPageURLRouting.replacingPage(in: viewModel.pageInfo.currentURL ?? "", page: boundedPage)
+        case viewModel.pageInfo.pageNumber - 1:
+            return viewModel.pageInfo.previousPageURL ?? TopicPageURLRouting.replacingPage(in: viewModel.pageInfo.currentURL ?? "", page: boundedPage)
+        case viewModel.pageInfo.pageNumber + 1:
+            return viewModel.pageInfo.nextPageURL ?? TopicPageURLRouting.replacingPage(in: viewModel.pageInfo.currentURL ?? "", page: boundedPage)
+        default:
+            guard let baseURL = [
+                viewModel.pageInfo.currentURL,
+                viewModel.pageInfo.firstPageURL,
+                viewModel.pageInfo.lastPageURL,
+                resolvedSelectedForum.aURL
+            ].compactMap({ normalizedNonEmpty($0) }).first else {
+                return nil
+            }
+            return TopicPageURLRouting.replacingPage(in: baseURL, page: boundedPage)
+        }
+    }
+
+    private func openPagePicker() {
+        pagePickerInput = "\(max(viewModel.pageInfo.pageNumber, 1))"
+        isPagePickerPresented = true
+    }
+
+    private func navigateToPage(_ page: Int) {
+        loadPage(pageURL(for: page))
     }
 
     private func footerLeft(for topic: Topic) -> String {
@@ -502,6 +562,27 @@ struct ForumTopicsListView: View {
         }
     }
 
+    private func extraContextMenu(for topic: Topic, hasFlag: Bool, isRemoving: Bool) -> (() -> AnyView)? {
+        guard hasFlag else { return nil }
+        return {
+            AnyView(
+                Group {
+                    Button {
+                        markTopicAsRead(topic)
+                    } label: {
+                        MenuActionLabel("Lu", systemImage: "checkmark")
+                    }
+                    Button(role: .destructive) {
+                        removeFlag(topic)
+                    } label: {
+                        MenuActionLabel("Supprimer", systemImage: "trash", role: .destructive)
+                    }
+                    .disabled(isRemoving)
+                }
+            )
+        }
+    }
+
     var body: some View {
         List {
             if !subForums.isEmpty {
@@ -577,23 +658,7 @@ struct ForumTopicsListView: View {
                         ? EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8)
                         : EdgeInsets(),
                     openContext: .forum(selectedFlag: viewModel.selectedFlag),
-                    extraContextMenu: hasFlag ? {
-                        AnyView(
-                            Group {
-                                Button {
-                                    markTopicAsRead(topic)
-                                } label: {
-                                    MenuActionLabel("Lu", systemImage: "checkmark")
-                                }
-                                Button(role: .destructive) {
-                                    removeFlag(topic)
-                                } label: {
-                                    MenuActionLabel("Supprimer", systemImage: "trash", role: .destructive)
-                                }
-                                .disabled(isRemoving)
-                            }
-                        )
-                    } : nil
+                    extraContextMenu: extraContextMenu(for: topic, hasFlag: hasFlag, isRemoving: isRemoving)
                 ) { openedURL in
                     if let openedURL, !openedURL.isEmpty {
                         visitedURLs.insert(openedURL)
@@ -622,6 +687,20 @@ struct ForumTopicsListView: View {
                 }
                 .listRowInsets(EdgeInsets(top: 5, leading: 12, bottom: 5, trailing: 12))
             }
+
+            if shouldShowPagination {
+                ForumTopicsPaginationBar(
+                    pageInfo: viewModel.pageInfo,
+                    onFirst: { loadPage(viewModel.pageInfo.firstPageURL) },
+                    onPrevious: { loadPage(viewModel.pageInfo.previousPageURL) },
+                    onPagePicker: openPagePicker,
+                    onNext: { loadPage(viewModel.pageInfo.nextPageURL) },
+                    onLast: { loadPage(viewModel.pageInfo.lastPageURL) }
+                )
+                .listRowInsets(EdgeInsets(top: 12, leading: 12, bottom: 18, trailing: 12))
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+            }
         }
         .refreshable {
             await MainActor.run { viewModel.load() }
@@ -634,7 +713,7 @@ struct ForumTopicsListView: View {
                 checkDone()
             }
         }
-        .navigationTitle(forum.aTitle ?? "Topics")
+        .navigationTitle(navigationTitleText)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Menu {
@@ -642,6 +721,22 @@ struct ForumTopicsListView: View {
                 } label: {
                     ToolbarProfileImage(image: accountsStore.currentAvatarImage, url: nil)
                 }
+            }
+            ToolbarItem(placement: .principal) {
+                VStack(spacing: 2) {
+                    Text(navigationTitleText)
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    if let navigationSubtitleText {
+                        Text(navigationSubtitleText)
+                            .font(.caption2)
+                            .foregroundStyle(.primary.opacity(0.72))
+                            .lineLimit(1)
+                    }
+                }
+                .multilineTextAlignment(.center)
             }
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button {
@@ -729,6 +824,14 @@ struct ForumTopicsListView: View {
                 isComposerPresented: $isNewTopicComposerPresented
             )
         }
+        .sheet(isPresented: $isPagePickerPresented) {
+            TopicPagePickerSheet(
+                maxPage: max(viewModel.pageInfo.lastPageNumber, 1),
+                pageInput: $pagePickerInput
+            ) { selectedPage in
+                navigateToPage(selectedPage)
+            }
+        }
         .alert("Déconnexion", isPresented: $showLogoutConfirm) {
             Button("Annuler", role: .cancel) {}
             Button("Déconnecter", role: .destructive) {
@@ -812,6 +915,65 @@ private struct ForumCategoryIconView: View {
     }
 }
 
+private struct ForumTopicsPaginationBar: View {
+    let pageInfo: ForumSearchPageInfo
+    let onFirst: () -> Void
+    let onPrevious: () -> Void
+    let onPagePicker: () -> Void
+    let onNext: () -> Void
+    let onLast: () -> Void
+
+    private var pageNumber: Int {
+        max(pageInfo.pageNumber, 1)
+    }
+
+    private var lastPageNumber: Int {
+        max(pageInfo.lastPageNumber, 1)
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Button(action: onFirst) {
+                Image(systemName: "backward.end")
+            }
+            .disabled(pageNumber <= 1 || pageInfo.firstPageURL == nil)
+
+            Button(action: onPrevious) {
+                Image(systemName: "chevron.left")
+            }
+            .disabled(pageNumber <= 1 || pageInfo.previousPageURL == nil)
+
+            Spacer(minLength: 8)
+
+            Button(action: onPagePicker) {
+                Text("\(pageNumber) / \(lastPageNumber)")
+                    .font(.footnote.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(.primary.opacity(0.72))
+                    .frame(minWidth: 74)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Choisir une page")
+
+            Spacer(minLength: 8)
+
+            Button(action: onNext) {
+                Image(systemName: "chevron.right")
+            }
+            .disabled(pageNumber >= lastPageNumber || pageInfo.nextPageURL == nil)
+
+            Button(action: onLast) {
+                Image(systemName: "forward.end")
+            }
+            .disabled(pageNumber >= lastPageNumber || pageInfo.lastPageURL == nil)
+        }
+        .hfrGlassButton()
+        .controlSize(.small)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .hfrGlassSurface(in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+}
+
 private enum CategoriesPreviewFactory {
     final class PreviewForumsLoader: ForumsLoading {
         enum Result {
@@ -856,10 +1018,28 @@ private enum CategoriesPreviewFactory {
             self.result = result
         }
 
-        func fetchTopics(for forum: Forum, flag: TopicListFlag, completion: @escaping ForumTopicsLoadCompletion) {
+        func fetchTopics(for forum: Forum, flag: TopicListFlag, pageURL: String?, completion: @escaping ForumTopicsLoadCompletion) {
             switch result {
             case .success(let topics):
-                completion(ForumTopicsLoadResult(topics: topics, newTopicURL: URL(string: "https://forum.hardware.fr/bddpost.php?config=hfr.inc&cat=13&post=0")), nil)
+                let rawPageInfo: NSDictionary = [
+                    "currentURL": pageURL ?? "/forum1.php?config=hfr.inc&cat=13&page=2",
+                    "nextPageURL": "/forum1.php?config=hfr.inc&cat=13&page=3",
+                    "previousPageURL": "/forum1.php?config=hfr.inc&cat=13&page=1",
+                    "firstPageURL": "/forum1.php?config=hfr.inc&cat=13&page=1",
+                    "lastPageURL": "/forum1.php?config=hfr.inc&cat=13&page=8",
+                    "pageNumber": 2,
+                    "firstPageNumber": 1,
+                    "lastPageNumber": 8,
+                    "resultCount": topics.count
+                ]
+                completion(
+                    ForumTopicsLoadResult(
+                        topics: topics,
+                        newTopicURL: URL(string: "https://forum.hardware.fr/bddpost.php?config=hfr.inc&cat=13&post=0"),
+                        pageInfo: ForumSearchPageInfo(raw: rawPageInfo)
+                    ),
+                    nil
+                )
             case .failure(let error):
                 completion(nil, error)
             }
