@@ -98,6 +98,7 @@ struct AnswerView: View {
     // MARK: Panel
     @State private var activePanel: ComposerPanel?
     @State private var isGiphyPresented = false
+    @State private var didLockInterfaceOrientation = false
 
     enum ComposerPanel: String, Identifiable {
         case smileys, imageInsertion
@@ -235,6 +236,10 @@ struct AnswerView: View {
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.9), value: showToast)
         .onAppear {
+            if !didLockInterfaceOrientation {
+                HFRSwiftOrientationPolicy.lockForAnswerViewIfNeeded()
+                didLockInterfaceOrientation = true
+            }
             message = initialMessage
             undoHistory.removeAll()
             redoHistory.removeAll()
@@ -248,6 +253,10 @@ struct AnswerView: View {
             await loadComposerContext()
         }
         .onDisappear {
+            if didLockInterfaceOrientation {
+                HFRSwiftOrientationPolicy.unlockForAnswerViewIfNeeded()
+                didLockInterfaceOrientation = false
+            }
             imageUploadTask?.cancel()
             imageUploadTask = nil
             composerDraftText = ComposerDraftPersistence.draftAfterDismiss(

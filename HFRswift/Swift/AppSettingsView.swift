@@ -89,6 +89,7 @@ struct AppSettingsView: View {
     @AppStorage(AppTabBarMinimizeOnScroll.key) private var tabBarMinimizeOnScroll = true
     @AppStorage(AppTextSizeScale.key) private var textSizeScaleRawValue = AppTextSizeScale.standard.rawValue
     @AppStorage("haptics") private var hapticsEnabled = true
+    @AppStorage(AppScreenRotation.legacyKey) private var screenRotationMode = AppScreenRotation.enabledValue
     @AppStorage("icon") private var iconValue = AppIconOption.superblue.rawValue
 
     @AppStorage("auto_theme") private var autoTheme = Constants.autoThemeIOS
@@ -179,6 +180,16 @@ struct AppSettingsView: View {
 
     private var isLoggedIn: Bool {
         ObjCLegacyAccountsManager.shared.currentAccountIdentity() != nil
+    }
+
+    private var screenRotationBinding: Binding<Bool> {
+        Binding(
+            get: { screenRotationMode != AppScreenRotation.disabledValue },
+            set: { enabled in
+                screenRotationMode = enabled ? AppScreenRotation.enabledValue : AppScreenRotation.disabledValue
+                HFRSwiftOrientationPolicy.refreshSupportedOrientations()
+            }
+        )
     }
 
     private func applyThemeConfiguration() {
@@ -344,6 +355,7 @@ struct AppSettingsView: View {
             }
 
             Toggle("Retours haptiques", isOn: $hapticsEnabled)
+            Toggle("Rotation d’écran", isOn: screenRotationBinding)
 
             Picker("Icône", selection: $iconValue) {
                 ForEach(iconOptions) { option in

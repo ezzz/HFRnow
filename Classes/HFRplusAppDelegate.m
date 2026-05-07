@@ -86,8 +86,10 @@ static NSString * const HFRSwiftNotificationDestinationMessages = @"messages";
     
      // Force default settings for compatibiity with older settings
     // Disable shake to refresh
-    NSString* sLandscapeMode = @"galerie_message";
-    [[NSUserDefaults standardUserDefaults] setObject:sLandscapeMode forKey:@"landscape_mode"];
+    if ([[NSUserDefaults standardUserDefaults] objectForKey:@"landscape_mode"] == nil) {
+        NSString* sLandscapeMode = @"galerie_message";
+        [[NSUserDefaults standardUserDefaults] setObject:sLandscapeMode forKey:@"landscape_mode"];
+    }
     [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"shake_to_refresh"];
     [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"theme_noel_disabled"];
     
@@ -831,6 +833,10 @@ static NSString * const HFRSwiftNotificationDestinationMessages = @"messages";
      Free up as much memory as possible by purging cached data objects that can be recreated (or reloaded from disk) later.
      */
     //NSLog(@"mem warning %@ %@", self, NSStringFromSelector(_cmd));
+}
+
+- (UIInterfaceOrientationMask)application:(UIApplication *)application supportedInterfaceOrientationsForWindow:(UIWindow *)window {
+    return [HFRSwiftOrientationPolicy supportedInterfaceOrientations];
 }
 
 - (void)dealloc {

@@ -83,6 +83,66 @@ enum AppHaptics {
     }
 }
 
+enum AppScreenRotation {
+    static let legacyKey = "landscape_mode"
+    static let enabledValue = "galerie_message"
+    static let disabledValue = "none"
+
+    static var isEnabled: Bool {
+        let rawValue = UserDefaults.standard.string(forKey: legacyKey)
+        return rawValue != disabledValue
+    }
+
+    static func setEnabled(_ enabled: Bool) {
+        UserDefaults.standard.set(enabled ? enabledValue : disabledValue, forKey: legacyKey)
+        HFRSwiftOrientationPolicy.refreshSupportedOrientations()
+    }
+}
+
+@objc(HFRSwiftOrientationPolicy)
+final class HFRSwiftOrientationPolicy: NSObject {
+    private static var answerViewLockCount = 0
+
+    @objc static func supportedInterfaceOrientations() -> UIInterfaceOrientationMask {
+        guard UIDevice.current.userInterfaceIdiom == .phone else {
+            return .all
+        }
+        guard AppScreenRotation.isEnabled else {
+            return .portrait
+        }
+        return answerViewLockCount > 0 ? .portrait : .allButUpsideDown
+    }
+
+    static func lockForAnswerViewIfNeeded() {
+        guard UIDevice.current.userInterfaceIdiom == .phone else { return }
+        answerViewLockCount += 1
+        refreshSupportedOrientations()
+    }
+
+    static func unlockForAnswerViewIfNeeded() {
+        guard UIDevice.current.userInterfaceIdiom == .phone else { return }
+        answerViewLockCount = max(answerViewLockCount - 1, 0)
+        refreshSupportedOrientations()
+    }
+
+    static func refreshSupportedOrientations() {
+        guard UIDevice.current.userInterfaceIdiom == .phone else { return }
+
+        for scene in UIApplication.shared.connectedScenes {
+            guard let windowScene = scene as? UIWindowScene else { continue }
+            windowScene.windows.forEach {
+                $0.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+            }
+
+            if #available(iOS 16.0, *) {
+                windowScene.requestGeometryUpdate(
+                    .iOS(interfaceOrientations: supportedInterfaceOrientations())
+                )
+            }
+        }
+    }
+}
+
 enum AppLayoutCompactMode {
     static let key = "compact_mode"
 }
@@ -2385,21 +2445,45 @@ struct MenuActionLabel: View {
     let systemImage: String?
     let assetImage: String?
     let role: ButtonRole?
+    let tintColor: Color?
+    let iconTintUIColor: UIColor?
 
     init(
         _ title: String,
         systemImage: String? = nil,
         assetImage: String? = nil,
-        role: ButtonRole? = nil
+        role: ButtonRole? = nil,
+        tintColor: Color? = nil,
+        iconTintUIColor: UIColor? = nil
     ) {
         self.title = title
         self.systemImage = systemImage
         self.assetImage = assetImage
         self.role = role
+        self.tintColor = tintColor
+        self.iconTintUIColor = iconTintUIColor
     }
 
     private var foregroundColor: Color {
-        role == .destructive ? .red : .primary
+        if let tintColor { return tintColor }
+        return role == .destructive ? Color.red : Color.primary
+    }
+
+    private var iconTintColor: UIColor {
+        if let iconTintUIColor { return iconTintUIColor }
+        return role == .destructive ? UIColor.systemRed : UIColor.label
+    }
+
+    private var menuIconImage: UIImage? {
+        if let systemImage {
+            return UIImage(systemName: systemImage)?
+                .withTintColor(iconTintColor, renderingMode: .alwaysOriginal)
+        }
+        if let assetImage {
+            return UIImage(named: assetImage)?
+                .withTintColor(iconTintColor, renderingMode: .alwaysOriginal)
+        }
+        return nil
     }
 
     var body: some View {
@@ -2407,14 +2491,9 @@ struct MenuActionLabel: View {
             Text(title)
                 .foregroundStyle(foregroundColor)
         } icon: {
-            if let systemImage {
-                Image(systemName: systemImage)
-                    .symbolRenderingMode(.monochrome)
-                    .foregroundStyle(foregroundColor)
-            } else if let assetImage {
-                Image(assetImage)
-                    .renderingMode(.template)
-                    .foregroundStyle(foregroundColor)
+            if let menuIconImage {
+                Image(uiImage: menuIconImage)
+                    .renderingMode(.original)
             }
         }
     }

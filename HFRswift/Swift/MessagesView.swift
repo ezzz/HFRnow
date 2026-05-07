@@ -2546,6 +2546,7 @@ struct MessagesView: View {
     let initialFavoritePostFilterResult: FavoritePostFilterResult?
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @ObservedObject private var appTheme = AppThemeStore.shared
     @AppStorage(AppTextSizeScale.key) private var textSizeScaleRawValue = AppTextSizeScale.standard.rawValue
     @AppStorage("theme_style") private var messageDisplayStyleRawValue = 1
@@ -2627,6 +2628,10 @@ struct MessagesView: View {
 
     private var themePalette: AppThemePalette {
         appTheme.palette
+    }
+
+    private var shouldHideReplyComposerButton: Bool {
+        UIDevice.current.userInterfaceIdiom == .phone && verticalSizeClass == .compact
     }
 
     private var messageBodyFontSize: CGFloat {
@@ -3954,14 +3959,22 @@ struct MessagesView: View {
                 } label: {
                     HStack(spacing: 5) {
                         Image(systemName: "chevron.backward")
+                            .font(.body)
                             .fontWeight(.semibold)
+                            .foregroundStyle(themePalette.actionTintColor)
                         Text("\(navigationDepth)")
                             .font(.caption2.weight(.semibold))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .hfrGlassSurface(in: Capsule(), shadowOpacity: 0.08, shadowRadius: 3, shadowY: 1)
+                            .monospacedDigit()
+                            .foregroundStyle(.white)
+                            .frame(minWidth: 18, minHeight: 18)
+                            .background(themePalette.actionTintColor, in: Capsule())
                     }
+                    .padding(.horizontal, 9)
+                    .frame(height: 28, alignment: .center)
+                    .background(.clear, in: Capsule())
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
             }
         }
     }
@@ -4511,7 +4524,12 @@ struct MessagesView: View {
                                 Button {
                                     Task { @MainActor in presentedPollData = pollData }
                                 } label: {
-                                    MenuActionLabel("Sondage", systemImage: "chart.bar.doc.horizontal")
+                                    MenuActionLabel(
+                                        "Sondage",
+                                        systemImage: "chart.bar.doc.horizontal",
+                                        tintColor: themePalette.actionTintColor,
+                                        iconTintUIColor: themePalette.actionTintUIColor
+                                    )
                                 }
                                 Divider()
                             }
@@ -4531,6 +4549,7 @@ struct MessagesView: View {
                             }
                         } label: {
                             Image(systemName: "ellipsis")
+                                .foregroundStyle(hasPoll ? themePalette.actionTintColor : .primary)
                         }
                     }
                     if !isComposerPresented {
@@ -4610,13 +4629,15 @@ struct MessagesView: View {
                                 }
                             }
 
-                            ToolbarItem(placement: .bottomBar) {
-                                Button {
-                                    openReplyComposer()
-                                } label: {
-                                    Label("New", systemImage: "plus")
+                            if !shouldHideReplyComposerButton {
+                                ToolbarItem(placement: .bottomBar) {
+                                    Button {
+                                        openReplyComposer()
+                                    } label: {
+                                        Label("New", systemImage: "plus")
+                                    }
+                                    .topicBottomBarButtonStyle(isProminent: false)
                                 }
-                                .topicBottomBarButtonStyle(isProminent: false)
                             }
                         }
                     }
@@ -4770,7 +4791,12 @@ struct MessagesView: View {
                             Button {
                                 Task { @MainActor in presentedPollData = pollData }
                             } label: {
-                                MenuActionLabel("Sondage", systemImage: "chart.bar.doc.horizontal")
+                                MenuActionLabel(
+                                    "Sondage",
+                                    systemImage: "chart.bar.doc.horizontal",
+                                    tintColor: themePalette.actionTintColor,
+                                    iconTintUIColor: themePalette.actionTintUIColor
+                                )
                             }
                             Divider()
                         }
@@ -4790,6 +4816,7 @@ struct MessagesView: View {
                         }
                     } label: {
                         Image(systemName: "ellipsis")
+                            .foregroundStyle(hasPoll ? themePalette.actionTintColor : .primary)
                     }
                 }
                 if isFilteredSearchMode {
@@ -4832,12 +4859,14 @@ struct MessagesView: View {
                         }
 
                         Spacer()
-                        Button {
-                            openReplyComposer()
-                        } label: {
-                            Label("New", systemImage: "plus")
+                        if !shouldHideReplyComposerButton {
+                            Button {
+                                openReplyComposer()
+                            } label: {
+                                Label("New", systemImage: "plus")
+                            }
+                            .topicBottomBarButtonStyle(isProminent: false)
                         }
-                        .topicBottomBarButtonStyle(isProminent: false)
                     }
                 }
             }
