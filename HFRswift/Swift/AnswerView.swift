@@ -2180,8 +2180,9 @@ private struct ToastBanner: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: isSuccess ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
-                .foregroundStyle(isSuccess ? .green : .orange)
+            Image(systemName: isSuccess ? "checkmark.circle" : "exclamationmark.triangle.fill")
+                .foregroundStyle(isSuccess ? Color.primary : Color.orange)
+                .font(.headline)
             Text(text).font(.headline).foregroundStyle(.primary)
         }
         .padding(.horizontal, 14)

@@ -2737,9 +2737,9 @@ struct MessagesView: View {
             return "Recherche filtrée"
         }
         if isInSearchMode {
-            return "Recherche | \(page)/\(currentMaxPage)"
+            return "Recherche | \(page) / \(currentMaxPage)"
         }
-        return "\(page)/\(currentMaxPage)"
+        return "\(page) / \(currentMaxPage)"
     }
 
     private var currentMaxPage: Int {
@@ -4186,9 +4186,9 @@ struct MessagesView: View {
                                 .fontWeight(.bold)
                                 .lineLimit(1)
                                 .truncationMode(.tail)
-                            Text("\(page)/\(currentMaxPage)")
+                            Text("\(page) / \(currentMaxPage)")
                                 .font(.caption2)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(.primary.opacity(0.72))
                                 .lineLimit(1)
                         }
                         .multilineTextAlignment(.center)
@@ -4513,7 +4513,7 @@ struct MessagesView: View {
                                 .truncationMode(.tail)
                             Text(toolbarSubtitleText)
                                 .font(.caption2)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(.primary.opacity(0.72))
                                 .lineLimit(1)
                         }
                         .multilineTextAlignment(.center)
@@ -4770,7 +4770,7 @@ struct MessagesView: View {
                             .truncationMode(.tail)
                         Text(toolbarSubtitleText)
                             .font(.caption2)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.primary.opacity(0.72))
                             .lineLimit(1)
                     }
                     .multilineTextAlignment(.center)
@@ -6197,10 +6197,16 @@ private struct ModerationAlertComposerView: View {
 private struct PostSuccessToastBanner: View {
     let text: String
 
+    private var isError: Bool {
+        let lowercasedText = text.lowercased()
+        return lowercasedText.contains("erreur") || lowercasedText.contains("impossible")
+    }
+
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: "checkmark.seal.fill")
-                .foregroundStyle(.green)
+            Image(systemName: isError ? "exclamationmark.triangle.fill" : "checkmark.circle")
+                .foregroundStyle(isError ? Color.orange : Color.primary)
+                .font(.headline)
             Text(text)
                 .font(.headline)
                 .foregroundStyle(.primary)
