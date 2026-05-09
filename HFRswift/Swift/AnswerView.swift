@@ -78,7 +78,9 @@ struct AnswerView: View {
 
     // MARK: Smileys
     @State private var defaultSmileys: [ReplySmiley] = []
-    @State private var favoriteSmileys: [ReplySmiley] = []
+    @State private var forumFavoriteSmileys: [ReplySmiley] = []
+    @State private var appFavoriteSmileys: [ReplySmiley] = []
+    @State private var smileyPickerState = SmileyPickerSessionState()
 
     // MARK: Image upload
     @State private var imageUploadPreferences: RehostPreferences
@@ -245,7 +247,7 @@ struct AnswerView: View {
             redoHistory.removeAll()
             pendingHistoryMutationsToSkip = 0
             if defaultSmileys.isEmpty { defaultSmileys = smileyCatalogLoader.loadDefaultSmileys() }
-            favoriteSmileys = smileyCatalogLoader.loadFavoriteSmileys()
+            reloadFavoriteSmileys()
             selectedRangeUTF16 = NSRange(location: message.utf16.count, length: 0)
             requestEditorFocus()
         }
@@ -259,6 +261,7 @@ struct AnswerView: View {
             }
             imageUploadTask?.cancel()
             imageUploadTask = nil
+            smileyPickerState = SmileyPickerSessionState()
             composerDraftText = ComposerDraftPersistence.draftAfterDismiss(
                 currentMessage: message,
                 existingDraft: composerDraftText,
@@ -290,7 +293,9 @@ struct AnswerView: View {
         case .smileys:
             CombinedSmileyPickerView(
                 defaultSmileys: defaultSmileys,
-                favoriteSmileys: favoriteSmileys,
+                forumFavoriteSmileys: forumFavoriteSmileys,
+                appFavoriteSmileys: appFavoriteSmileys,
+                sessionState: $smileyPickerState,
                 onSelect: { smiley in
                     insertSmileyCode(smiley.code)
                 },
@@ -519,7 +524,7 @@ struct AnswerView: View {
                 isDisabled: isPosting
             ) {
                 if defaultSmileys.isEmpty { defaultSmileys = smileyCatalogLoader.loadDefaultSmileys() }
-                favoriteSmileys = smileyCatalogLoader.loadFavoriteSmileys()
+                reloadFavoriteSmileys()
                 activePanel = .smileys
             }
             ComposerToolbarButton(
@@ -551,6 +556,11 @@ struct AnswerView: View {
         message = result.text
         selectedRangeUTF16 = NSRange(location: result.cursorLocationUTF16, length: 0)
         // Focus is restored via the sheet's onDismiss — no action needed here.
+    }
+
+    private func reloadFavoriteSmileys() {
+        forumFavoriteSmileys = smileyCatalogLoader.loadForumFavoriteSmileys()
+        appFavoriteSmileys = smileyCatalogLoader.loadAppFavoriteSmileys()
     }
 
     private func performBBCode(_ tag: BBCodeTag, range: NSRange) {
@@ -631,7 +641,7 @@ struct AnswerView: View {
             await preloader.preloadReplyContext(topicURL: topicURL)
         }
         await MainActor.run {
-            favoriteSmileys = smileyCatalogLoader.loadFavoriteSmileys()
+            reloadFavoriteSmileys()
         }
     }
 
@@ -742,7 +752,7 @@ struct AnswerView: View {
             return false
         }
 
-        favoriteSmileys = smileyCatalogLoader.loadFavoriteSmileys()
+        reloadFavoriteSmileys()
         AppHaptics.impact(.light)
         presentToast(
             success: true,
@@ -1019,32 +1029,45 @@ private struct ComposerSheetCloseHeader: View {
 // Presented as a sheet — UIKit handles keyboard transitions naturally on present/dismiss.
 // No manual focus timing needed.
 
+private enum SmileyPickerDisplayMode: Equatable {
+    case library
+    case results([ReplySmiley])
+    case empty
+
+    static func == (lhs: SmileyPickerDisplayMode, rhs: SmileyPickerDisplayMode) -> Bool {
+        switch (lhs, rhs) {
+        case (.library, .library), (.empty, .empty):
+            return true
+        case (.results(let a), .results(let b)):
+            return a == b
+        default:
+            return false
+        }
+    }
+}
+
+private struct SmileyPickerSessionState: Equatable {
+    var displayMode: SmileyPickerDisplayMode = .library
+    var searchText = ""
+}
+
 private struct CombinedSmileyPickerView: View {
     let defaultSmileys: [ReplySmiley]
-    let favoriteSmileys: [ReplySmiley]
+    let forumFavoriteSmileys: [ReplySmiley]
+    let appFavoriteSmileys: [ReplySmiley]
+    @Binding var sessionState: SmileyPickerSessionState
     let onSelect: (ReplySmiley) -> Void
     let onToggleFavorite: (ReplySmiley, Bool) -> Bool
     let onFetchKeywords: (String) async -> Result<[String], Error>
 
     @Environment(\.dismiss) private var dismiss
-    private let columns = [GridItem(.adaptive(minimum: 78, maximum: 90), spacing: 4)]
+    @AppStorage("AnswerView.smileys.basic.expanded") private var isBasicSectionExpanded = true
+    @AppStorage("AnswerView.smileys.forumFavorites.expanded") private var isForumFavoritesSectionExpanded = true
+    @AppStorage("AnswerView.smileys.appFavorites.expanded") private var isAppFavoritesSectionExpanded = true
+    private let defaultColumns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
+    private let favoriteColumns = [GridItem(.adaptive(minimum: 78, maximum: 90), spacing: 4)]
     private let searchService: any SmileySearching = HFRSmileySearchService()
 
-    enum DisplayMode: Equatable {
-        case library
-        case results([ReplySmiley])
-        case empty
-        static func == (lhs: DisplayMode, rhs: DisplayMode) -> Bool {
-            switch (lhs, rhs) {
-            case (.library, .library), (.empty, .empty): return true
-            case (.results(let a), .results(let b)): return a == b
-            default: return false
-            }
-        }
-    }
-
-    @State private var displayMode: DisplayMode = .library
-    @State private var searchText = ""
     @State private var isSearching = false
     @State private var recentSuggestions: [SmileySearchHistoryEntry] = []
     @State private var topSuggestions: [SmileySearchHistoryEntry] = []
@@ -1053,19 +1076,19 @@ private struct CombinedSmileyPickerView: View {
     @FocusState private var isSearchFieldFocused: Bool
 
     private var displayedSmileys: [ReplySmiley] {
-        if case .results(let r) = displayMode { return r }
+        if case .results(let r) = sessionState.displayMode { return r }
         return []
     }
     private var isShowingResults: Bool {
-        if case .library = displayMode { return false }
+        if case .library = sessionState.displayMode { return false }
         return true
     }
-    private var canSearch: Bool { searchText.trimmingCharacters(in: .whitespacesAndNewlines).count >= 3 }
+    private var canSearch: Bool { sessionState.searchText.trimmingCharacters(in: .whitespacesAndNewlines).count >= 3 }
     private var showSuggestions: Bool {
-        (!recentSuggestions.isEmpty || !topSuggestions.isEmpty) && displayMode == .library
+        (!recentSuggestions.isEmpty || !topSuggestions.isEmpty) && sessionState.displayMode == .library
     }
     private var suggestionChips: [SmileySearchHistoryEntry] {
-        if searchText.isEmpty { return Array(recentSuggestions.prefix(4)) }
+        if sessionState.searchText.isEmpty { return Array(recentSuggestions.prefix(4)) }
         let recentTexts = Set(recentSuggestions.map { $0.text })
         let uniqueTop = topSuggestions.filter { !recentTexts.contains($0.text) }
         return Array((recentSuggestions + uniqueTop).prefix(5))
@@ -1077,10 +1100,10 @@ private struct CombinedSmileyPickerView: View {
                 ComposerSheetCloseHeader(title: "Smileys") { dismiss() }
 
                 ScrollView {
-                    if case .empty = displayMode {
+                    if case .empty = sessionState.displayMode {
                         emptyState
                     } else if isShowingResults {
-                        smileyGrid(displayedSmileys)
+                        smileyGrid(displayedSmileys, columns: favoriteColumns, isCompact: false)
                             .padding(8)
                     } else {
                         smileyLibrary
@@ -1095,7 +1118,7 @@ private struct CombinedSmileyPickerView: View {
                                     search(using: entry.text)
                                 } label: {
                                     HStack(spacing: 4) {
-                                        Image(systemName: searchText.isEmpty ? "clock" : "magnifyingglass")
+                                        Image(systemName: sessionState.searchText.isEmpty ? "clock" : "magnifyingglass")
                                             .font(.caption2).foregroundStyle(.secondary)
                                         Text(entry.text).font(.subheadline)
                                     }
@@ -1126,6 +1149,7 @@ private struct CombinedSmileyPickerView: View {
                 FavoriteSmileyDetailView(
                     smiley: presentedSmiley,
                     initiallyFavorite: ReplySmileyCacheBridge.isFavoriteFromApp(code: presentedSmiley.code),
+                    allowsFavoriteToggle: !isFavoriteLibrarySmiley(presentedSmiley),
                     onInsert: {
                         isSearchFieldFocused = false
                         onSelect(presentedSmiley)
@@ -1154,7 +1178,7 @@ private struct CombinedSmileyPickerView: View {
         .presentationGlassBackground()
         .animation(.easeInOut(duration: 0.18), value: presentedSmiley?.id)
         .onAppear { refreshSuggestions() }
-        .onChange(of: searchText) { _, _ in refreshSuggestions() }
+        .onChange(of: sessionState.searchText) { _, _ in refreshSuggestions() }
         .onDisappear { searchTask?.cancel() }
     }
 
@@ -1173,16 +1197,16 @@ private struct CombinedSmileyPickerView: View {
             }
 
             HStack {
-                TextField("Rechercher un smiley…", text: $searchText)
+                TextField("Rechercher un smiley…", text: $sessionState.searchText)
                     .focused($isSearchFieldFocused)
                     .submitLabel(.search)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
                     .onSubmit { performSearch() }
 
-                if !searchText.isEmpty {
+                if !sessionState.searchText.isEmpty {
                     Button {
-                        searchText = ""
+                        sessionState.searchText = ""
                         refreshSuggestions()
                     } label: {
                         Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
@@ -1228,11 +1252,11 @@ private struct CombinedSmileyPickerView: View {
     // MARK: Logic
 
     private func performSearch(queryOverride: String? = nil) {
-        let query = (queryOverride ?? searchText).trimmingCharacters(in: .whitespacesAndNewlines)
+        let query = (queryOverride ?? sessionState.searchText).trimmingCharacters(in: .whitespacesAndNewlines)
         guard query.count >= 3 else { return }
         isSearchFieldFocused = false
-        if searchText != query {
-            searchText = query
+        if sessionState.searchText != query {
+            sessionState.searchText = query
         }
         searchTask?.cancel()
         isSearching = true
@@ -1243,11 +1267,11 @@ private struct CombinedSmileyPickerView: View {
                 SmileySearchHistoryStore.record(query: query, resultCount: results.count)
                 await MainActor.run {
                     isSearching = false
-                    displayMode = results.isEmpty ? .empty : .results(results)
+                    sessionState.displayMode = results.isEmpty ? .empty : .results(results)
                 }
             } catch {
                 guard !Task.isCancelled else { return }
-                await MainActor.run { isSearching = false; displayMode = .empty }
+                await MainActor.run { isSearching = false; sessionState.displayMode = .empty }
             }
         }
     }
@@ -1256,7 +1280,7 @@ private struct CombinedSmileyPickerView: View {
         isSearchFieldFocused = false
         searchTask?.cancel()
         isSearching = false
-        displayMode = .library
+        sessionState.displayMode = .library
     }
 
     private func search(using query: String) {
@@ -1265,8 +1289,8 @@ private struct CombinedSmileyPickerView: View {
     }
 
     private func refreshSuggestions() {
-        recentSuggestions = SmileySearchHistoryStore.recentSuggestions(matching: searchText)
-        topSuggestions = SmileySearchHistoryStore.topSuggestions(matching: searchText)
+        recentSuggestions = SmileySearchHistoryStore.recentSuggestions(matching: sessionState.searchText)
+        topSuggestions = SmileySearchHistoryStore.topSuggestions(matching: sessionState.searchText)
     }
 
     private func smileyItem(_ smiley: ReplySmiley) -> some View {
@@ -1274,7 +1298,7 @@ private struct CombinedSmileyPickerView: View {
             isSearchFieldFocused = false
             presentedSmiley = smiley
         } label: {
-            SmileyGridCell(smiley: smiley)
+            SmileyGridCell(smiley: smiley, isCompact: false)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(smiley.code)
@@ -1282,46 +1306,115 @@ private struct CombinedSmileyPickerView: View {
 
     private var smileyLibrary: some View {
         LazyVStack(alignment: .leading, spacing: 18) {
-            smileySection(title: "Smileys basiques", smileys: defaultSmileys)
+            collapsibleSmileySection(
+                title: "Smileys basiques",
+                smileys: defaultSmileys,
+                isExpanded: $isBasicSectionExpanded,
+                columns: defaultColumns,
+                isCompact: true,
+                tapBehavior: .insertDirectly
+            )
 
-            if favoriteSmileys.isEmpty {
-                emptyFavoritesSection
-            } else {
-                smileySection(title: "Smileys favoris", smileys: favoriteSmileys)
-            }
+            collapsibleSmileySection(
+                title: "Smileys du forum",
+                smileys: forumFavoriteSmileys,
+                isExpanded: $isForumFavoritesSectionExpanded,
+                columns: favoriteColumns,
+                isCompact: false,
+                emptyText: "Aucun smiley forum disponible.",
+                tapBehavior: .showDetails
+            )
+
+            collapsibleSmileySection(
+                title: "Favoris de l'app",
+                smileys: appFavoriteSmileys,
+                isExpanded: $isAppFavoritesSectionExpanded,
+                columns: favoriteColumns,
+                isCompact: false,
+                emptyText: "Aucun favori dans l'app pour le moment.",
+                tapBehavior: .showDetails
+            )
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 10)
     }
 
-    private func smileySection(title: String, smileys: [ReplySmiley]) -> some View {
+    private enum SmileyTapBehavior {
+        case insertDirectly
+        case showDetails
+    }
+
+    private func collapsibleSmileySection(
+        title: String,
+        smileys: [ReplySmiley],
+        isExpanded: Binding<Bool>,
+        columns: [GridItem],
+        isCompact: Bool,
+        emptyText: String? = nil,
+        tapBehavior: SmileyTapBehavior
+    ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.headline)
-                .foregroundStyle(.primary)
+            Button {
+                withAnimation(.easeInOut(duration: 0.18)) {
+                    isExpanded.wrappedValue.toggle()
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: isExpanded.wrappedValue ? "chevron.down" : "chevron.right")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.secondary)
+                    Text(title)
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    Text("\(smileys.count)")
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
                 .padding(.horizontal, 4)
-            smileyGrid(smileys)
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded.wrappedValue {
+                if smileys.isEmpty, let emptyText {
+                    Text(emptyText)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 8)
+                } else {
+                    smileyGrid(smileys, columns: columns, isCompact: isCompact, tapBehavior: tapBehavior)
+                }
+            }
         }
     }
 
-    private var emptyFavoritesSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Smileys favoris")
-                .font(.headline)
-                .foregroundStyle(.primary)
-            Text("Aucun favori pour le moment. Touchez un smiley puis l’étoile pour l’ajouter.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 4)
-                .padding(.vertical, 8)
-        }
-        .padding(.horizontal, 4)
+    private func isFavoriteLibrarySmiley(_ smiley: ReplySmiley) -> Bool {
+        forumFavoriteSmileys.contains(smiley) || appFavoriteSmileys.contains(smiley)
     }
 
-    private func smileyGrid(_ smileys: [ReplySmiley]) -> some View {
+    private func smileyGrid(
+        _ smileys: [ReplySmiley],
+        columns: [GridItem],
+        isCompact: Bool,
+        tapBehavior: SmileyTapBehavior = .showDetails
+    ) -> some View {
         LazyVGrid(columns: columns, spacing: 4) {
             ForEach(smileys) { smiley in
-                smileyItem(smiley)
+                Button {
+                    isSearchFieldFocused = false
+                    switch tapBehavior {
+                    case .insertDirectly:
+                        onSelect(smiley)
+                        dismiss()
+                    case .showDetails:
+                        presentedSmiley = smiley
+                    }
+                } label: {
+                    SmileyGridCell(smiley: smiley, isCompact: isCompact)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(smiley.code)
             }
         }
     }
@@ -1330,6 +1423,7 @@ private struct CombinedSmileyPickerView: View {
 private struct FavoriteSmileyDetailView: View {
     let smiley: ReplySmiley
     let initiallyFavorite: Bool
+    let allowsFavoriteToggle: Bool
     let onInsert: () -> Void
     let onToggleFavorite: (Bool) -> Bool
     let onFetchKeywords: () async -> Result<[String], Error>
@@ -1345,6 +1439,7 @@ private struct FavoriteSmileyDetailView: View {
     init(
         smiley: ReplySmiley,
         initiallyFavorite: Bool,
+        allowsFavoriteToggle: Bool = true,
         onInsert: @escaping () -> Void,
         onToggleFavorite: @escaping (Bool) -> Bool,
         onFetchKeywords: @escaping () async -> Result<[String], Error>,
@@ -1353,6 +1448,7 @@ private struct FavoriteSmileyDetailView: View {
     ) {
         self.smiley = smiley
         self.initiallyFavorite = initiallyFavorite
+        self.allowsFavoriteToggle = allowsFavoriteToggle
         self.onInsert = onInsert
         self.onToggleFavorite = onToggleFavorite
         self.onFetchKeywords = onFetchKeywords
@@ -1406,6 +1502,8 @@ private struct FavoriteSmileyDetailView: View {
                     .frame(maxWidth: .infinity)
                 }
                 .replyTintedActionButtonStyle(useProminent: false, tint: .accentColor)
+                .disabled(!allowsFavoriteToggle)
+                .opacity(allowsFavoriteToggle ? 1 : 0.45)
             }
 
             if isLoadingKeywords || !keywords.isEmpty || keywordsErrorMessage != nil {
@@ -1481,14 +1579,15 @@ private struct FavoriteSmileyDetailView: View {
 
 private struct SmileyGridCell: View {
     let smiley: ReplySmiley
+    var isCompact = false
     @Environment(\.appThemePalette) private var themePalette
 
     var body: some View {
         SmileyThumbnailView(smiley: smiley)
-            .frame(width: 70, height: 50)
-            .frame(maxWidth: .infinity, minHeight: 58)
+            .frame(width: isCompact ? 40 : 70, height: isCompact ? 32 : 50)
+            .frame(maxWidth: .infinity, minHeight: isCompact ? 40 : 58)
             .background(themePalette.tertiaryBackgroundColor)
-            .clipShape(.rect(cornerRadius: 8))
+            .clipShape(.rect(cornerRadius: isCompact ? 7 : 8))
             .contentShape(Rectangle())
     }
 }

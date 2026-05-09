@@ -29,17 +29,29 @@ struct ReplySmiley: Identifiable, Equatable {
 protocol ReplySmileyCatalogLoading {
     func loadDefaultSmileys() -> [ReplySmiley]
     func loadFavoriteSmileys() -> [ReplySmiley]
+    func loadForumFavoriteSmileys() -> [ReplySmiley]
+    func loadAppFavoriteSmileys() -> [ReplySmiley]
 }
 
 enum ReplySmileyCacheBridge {
-    static func favoriteSmileyEntries() -> [[String: Any]] {
+    static func forumFavoriteSmileyEntries() -> [[String: Any]] {
         guard let sharedCache = sharedCacheObject else {
             return []
         }
 
-        let forumFavorites = sharedCache.value(forKey: "arrFavoritesSmileysForum") as? [[String: Any]] ?? []
-        let appFavorites = sharedCache.value(forKey: "arrFavoritesSmileysApp") as? [[String: Any]] ?? []
-        return forumFavorites + appFavorites
+        return sharedCache.value(forKey: "arrFavoritesSmileysForum") as? [[String: Any]] ?? []
+    }
+
+    static func appFavoriteSmileyEntries() -> [[String: Any]] {
+        guard let sharedCache = sharedCacheObject else {
+            return []
+        }
+
+        return sharedCache.value(forKey: "arrFavoritesSmileysApp") as? [[String: Any]] ?? []
+    }
+
+    static func favoriteSmileyEntries() -> [[String: Any]] {
+        forumFavoriteSmileyEntries() + appFavoriteSmileyEntries()
     }
 
     static func updateForumFavorites(_ entries: [[String: String]]) {
@@ -127,7 +139,19 @@ final class BundleReplySmileyCatalogLoader: ReplySmileyCatalogLoading {
     }
 
     func loadFavoriteSmileys() -> [ReplySmiley] {
-        ReplySmileyCacheBridge.favoriteSmileyEntries().compactMap { entry in
+        loadForumFavoriteSmileys() + loadAppFavoriteSmileys()
+    }
+
+    func loadForumFavoriteSmileys() -> [ReplySmiley] {
+        smileys(from: ReplySmileyCacheBridge.forumFavoriteSmileyEntries())
+    }
+
+    func loadAppFavoriteSmileys() -> [ReplySmiley] {
+        smileys(from: ReplySmileyCacheBridge.appFavoriteSmileyEntries())
+    }
+
+    private func smileys(from entries: [[String: Any]]) -> [ReplySmiley] {
+        entries.compactMap { entry in
             guard let code = entry["code"] as? String else { return nil }
             let sourceString = entry["source"] as? String
             let sourceURL = sourceString.flatMap(URL.init(string:))
