@@ -648,10 +648,16 @@ struct WebView: UIViewRepresentable {
         case bottom
     }
 
+    struct ScrollRequest: Equatable {
+        let id: UUID
+        let position: InitialScroll
+    }
+
     let fileURL: URL?
     let readAccessURL: URL?
     var anchor: String?
     var initialScroll: InitialScroll?
+    var scrollRequest: ScrollRequest?
     var currentPage: Int
     var maxPage: Int
     var colorScheme: ColorScheme
@@ -689,6 +695,7 @@ struct WebView: UIViewRepresentable {
         readAccessURL: URL? = nil,
         anchor: String? = nil,
         initialScroll: InitialScroll? = nil,
+        scrollRequest: ScrollRequest? = nil,
         currentPage: Int = 1,
         maxPage: Int = 1,
         colorScheme: ColorScheme = .light,
@@ -725,6 +732,7 @@ struct WebView: UIViewRepresentable {
         self.readAccessURL = readAccessURL
         self.anchor = anchor
         self.initialScroll = initialScroll
+        self.scrollRequest = scrollRequest
         self.currentPage = currentPage
         self.maxPage = maxPage
         self.colorScheme = colorScheme
@@ -960,6 +968,11 @@ struct WebView: UIViewRepresentable {
                 webView.isHidden = true
                 webView.loadFileURL(fileURL, allowingReadAccessTo: readAccessURL)
             } else {
+                if let scrollRequest,
+                   context.coordinator.lastHandledScrollRequestID != scrollRequest.id {
+                    context.coordinator.lastHandledScrollRequestID = scrollRequest.id
+                    context.coordinator.applyScrollRequest(scrollRequest, in: webView)
+                }
                 context.coordinator.applyThemeIfNeeded(in: webView, force: shouldForceThemeApplication) {
                     context.coordinator.applyMessageStyleIfNeeded(in: webView, force: shouldForceThemeApplication) {
                         context.coordinator.applyTextSizeIfNeeded(in: webView) {
@@ -997,6 +1010,7 @@ struct WebView: UIViewRepresentable {
         var lastAppliedMessageStyleSignature: String?
         var isWaitingForThemeApplication = false
         var didNotifyContentReadyForCurrentLoad = false
+        var lastHandledScrollRequestID: UUID?
         @available(iOS 16.0, *)
         weak var editMenuInteraction: UIEditMenuInteraction?
         private var pendingPopupContext: PendingPopupContext?
@@ -1112,6 +1126,28 @@ struct WebView: UIViewRepresentable {
                     self.scrollToBottom(in: webView)
                 }
                 print("Initial bottom scroll executed (native)")
+            }
+        }
+
+        func applyScrollRequest(_ request: WebView.ScrollRequest, in webView: WKWebView) {
+            switch request.position {
+            case .top:
+                let js = "try { window.scrollTo(0, 0); } catch(e) {}"
+                webView.evaluateJavaScript(js) { _, error in
+                    if let error {
+                        print("Scroll-to-top JS error:", error.localizedDescription)
+                    }
+                    DispatchQueue.main.async {
+                        let scrollView = webView.scrollView
+                        let targetOffset = CGPoint(
+                            x: -scrollView.adjustedContentInset.left,
+                            y: -scrollView.adjustedContentInset.top
+                        )
+                        scrollView.setContentOffset(targetOffset, animated: false)
+                    }
+                }
+            case .bottom:
+                scrollToBottom(in: webView)
             }
         }
 
@@ -2119,7 +2155,18 @@ struct WebView: UIViewRepresentable {
         }
 
         private func isImageURL(_ url: URL) -> Bool {
-            let imageExtensions = ["jpg", "jpeg", "png", "gif", "webp", "bmp", "tif", "tiff", "heic", "heif"]
+            let imageExtensions: Set<String> = [
+                "jpg",
+                "jpeg",
+                "png",
+                "gif",
+                "webp",
+                "bmp",
+                "tif",
+                "tiff",
+                "heic",
+                "heif"
+            ]
             let pathExtension = url.pathExtension.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
             if imageExtensions.contains(pathExtension) {
                 return true
@@ -2552,6 +2599,7 @@ struct MessagesView: View {
     @ObservedObject private var appTheme = AppThemeStore.shared
     @AppStorage(AppTextSizeScale.key) private var textSizeScaleRawValue = AppTextSizeScale.standard.rawValue
     @AppStorage("theme_style") private var messageDisplayStyleRawValue = 1
+    @AppStorage("topic_page_choice_menu_enabled") private var topicPageChoiceMenuEnabled = true
     @State private var page: Int
     @State private var availableMaxPage: Int
     @State private var topicDisplayTitle: String
@@ -2574,6 +2622,7 @@ struct MessagesView: View {
     @State private var animateLoadingSpinner = false
     @State private var isPagePickerPresented = false
     @State private var pagePickerInput: String = ""
+    @State private var webViewScrollRequest: WebView.ScrollRequest?
     @State private var linkedTopic: Topic?
     @State private var navigateToLinkedTopic = false
     @State private var safariDestination: SafariDestination?
@@ -3939,10 +3988,18 @@ struct MessagesView: View {
         isPagePickerPresented = true
     }
 
+    private func requestWebViewScroll(_ position: WebView.InitialScroll) {
+        webViewScrollRequest = WebView.ScrollRequest(id: UUID(), position: position)
+    }
+
     private func navigateToPage(_ target: Int, initialScroll: WebView.InitialScroll, source: String = "unspecified") {
         print("[MessagesView] navigateToPage requested source=\(source) current=\(page) target=\(target) max=\(currentMaxPage) initialScroll=\(String(describing: initialScroll))")
-        guard (1...currentMaxPage).contains(target), target != page else {
+        guard (1...currentMaxPage).contains(target) else {
             print("[MessagesView] navigateToPage ignored source=\(source) current=\(page) target=\(target) max=\(currentMaxPage)")
+            return
+        }
+        if target == page {
+            requestWebViewScroll(initialScroll)
             return
         }
         anchor = nil
@@ -3968,6 +4025,62 @@ struct MessagesView: View {
 
     private var shouldHighlightNextPageButton: Bool {
         page < currentMaxPage && isWebContentAtBottom
+    }
+
+    private var bottomPreviousPageButton: some View {
+        Button {
+            navigateToPreviousPageFromBottomButton()
+        } label: {
+            Image(systemName: "chevron.backward")
+                .font(.system(size: 15, weight: .semibold))
+        }
+        .disabled(page <= 1)
+    }
+
+    private var bottomNextPageButton: some View {
+        Button {
+            navigateToNextPageFromBottomButton()
+        } label: {
+            Image(systemName: "chevron.forward")
+                .font(.system(size: 15, weight: .semibold))
+        }
+        .disabled(page >= currentMaxPage)
+    }
+
+    private var bottomPageMenuButton: some View {
+        Menu {
+            Button("Dernier post") {
+                navigateToPage(currentMaxPage, initialScroll: .bottom, source: "bottom page menu last post")
+            }
+
+            ForEach(bottomPageMenuFinalTargets.reversed(), id: \.self) { target in
+                Button("Page \(target)") {
+                    navigateToPage(target, initialScroll: .top, source: "bottom page menu final")
+                }
+            }
+
+            Button("Page ...") {
+                openPagePicker()
+            }
+
+            Button("Page 1") {
+                navigateToPage(1, initialScroll: .top, source: "bottom page menu first")
+            }
+        } label: {
+            Image(systemName: "grid.circle")
+                .font(.system(size: 15, weight: .semibold))
+        }
+        .disabled(currentMaxPage <= 1)
+        .accessibilityLabel("Plus d'options de pagination")
+    }
+
+    private var bottomPageMenuFinalTargets: [Int] {
+        guard currentMaxPage > 1 else { return [] }
+        var seen = Set([1])
+        return [currentMaxPage - 2, currentMaxPage - 1, currentMaxPage].compactMap { target in
+            guard (2...currentMaxPage).contains(target), seen.insert(target).inserted else { return nil }
+            return target
+        }
     }
 
     @ToolbarContentBuilder
@@ -4173,9 +4286,11 @@ struct MessagesView: View {
     }
 
     var body: some View {
-        // Use ViewBuilder implicit grouping to avoid generic inference issues with Group
+        let content: AnyView
+
         if let errorMessage {
-            Text("Erreur : \(errorMessage)").foregroundColor(.red)
+            content = AnyView(
+                Text("Erreur : \(errorMessage)").foregroundColor(.red)
                 .navigationBarBackButtonHidden(navigationDepth > 0)
                 .toolbar {
                     navigationDepthBackButton
@@ -4229,8 +4344,10 @@ struct MessagesView: View {
                 .fullScreenCover(item: $photoViewerDestination) { destination in
                     FullScreenPhotoViewer(url: destination.url, presentationID: destination.id)
                 }
+            )
         } else if fileURL != nil && cacheURL != nil {
-            ZStack {
+            content = AnyView(
+                ZStack {
                 themePalette.webViewBackdropColor
 
                 WebView(
@@ -4238,6 +4355,7 @@ struct MessagesView: View {
                     readAccessURL: cacheURL,
                     anchor: anchor,
                     initialScroll: initialScroll,
+                    scrollRequest: webViewScrollRequest,
                     currentPage: page,
                     maxPage: currentMaxPage,
                     colorScheme: appTheme.effectiveColorScheme,
@@ -4298,9 +4416,7 @@ struct MessagesView: View {
                     },
                     onScrollPositionChange: { isAtBottom in
                         if isWebContentAtBottom != isAtBottom {
-                            withAnimation(.easeOut(duration: 0.18)) {
-                                isWebContentAtBottom = isAtBottom
-                            }
+                            isWebContentAtBottom = isAtBottom
                         }
                     },
                     onTextInteractionStateChange: { isActive in
@@ -4601,19 +4717,11 @@ struct MessagesView: View {
                             }
                         } else {
                             ToolbarItemGroup(placement: .bottomBar) {
-                                Button {
-                                    navigateToPreviousPageFromBottomButton()
-                                } label: {
-                                    Image(systemName: "chevron.backward")
+                                bottomPreviousPageButton
+                                if topicPageChoiceMenuEnabled {
+                                    bottomPageMenuButton
                                 }
-                                .disabled(page <= 1)
-
-                                Button {
-                                    navigateToNextPageFromBottomButton()
-                                } label: {
-                                    Image(systemName: "chevron.forward")
-                                }
-                                .disabled(page >= currentMaxPage)
+                                bottomNextPageButton
                             }
 
                             if isInSearchMode {
@@ -4753,9 +4861,10 @@ struct MessagesView: View {
                     }
                 }
                 .animation(.easeOut(duration: 0.22), value: shouldShowBottomRefreshButton)
-                .animation(.easeOut(duration: 0.18), value: shouldHighlightNextPageButton)
+            )
         } else {
-            loadingTopicView
+            content = AnyView(
+                loadingTopicView
                 .navigationTitle("My title")
                 .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(navigationDepth > 0)
@@ -4841,19 +4950,11 @@ struct MessagesView: View {
                     }
                 } else {
                     ToolbarItemGroup(placement: .bottomBar) {
-                        Button {
-                            navigateToPreviousPageFromBottomButton()
-                        } label: {
-                            Image(systemName: "chevron.backward")
+                        bottomPreviousPageButton
+                        if topicPageChoiceMenuEnabled {
+                            bottomPageMenuButton
                         }
-                        .disabled(page <= 1)
-
-                        Button {
-                            navigateToNextPageFromBottomButton()
-                        } label: {
-                            Image(systemName: "chevron.forward")
-                        }
-                        .disabled(page >= currentMaxPage)
+                        bottomNextPageButton
 
                         if isInSearchMode {
                             Button {
@@ -4966,7 +5067,10 @@ struct MessagesView: View {
             .fullScreenCover(item: $photoViewerDestination) { destination in
                 FullScreenPhotoViewer(url: destination.url, presentationID: destination.id)
             }
+            )
         }
+
+        return content
     }
 }
 
@@ -6312,60 +6416,92 @@ private enum MessagesPreviewFactory {
         topic.aURLOfLastPage = "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=42&page=\(maxPage)"
         return topic
     }
-}
 
-#Preview("Messages - happy path") {
-    NavigationStack {
-        MessagesView(
-            topic: MessagesPreviewFactory.sampleTopic(),
-            curPage: 55,
-            maxPage: 120,
-            separatorNewMessages: true,
-            topicPageLoader: MessagesPreviewFactory.PreviewTopicPageLoader(
-                result: .success(
-                    TopicPageContent(
-                        html: MessagesPreviewFactory.sampleHTML,
-                        topicAnswerURL: URL(string: "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=42")
-                    )
-                )
-            ),
-            topicPageRenderer: MessagesPreviewFactory.PreviewTopicPageRenderer()
-        )
+    @MainActor
+    static func messagesPreview(
+        page: Int = 55,
+        maxPage: Int = 120,
+        result: PreviewTopicPageLoader.Result,
+        delay: TimeInterval = 0
+    ) -> some View {
+        let topic = sampleTopic(page: page, maxPage: maxPage)
+        let loader = PreviewTopicPageLoader(result: result, delay: delay)
+        let renderer = PreviewTopicPageRenderer()
+
+        return NavigationStack {
+            MessagesView(
+                topic: topic,
+                curPage: page,
+                maxPage: maxPage,
+                separatorNewMessages: true,
+                topicPageLoader: loader,
+                topicPageRenderer: renderer
+            )
+        }
     }
 }
 
-#Preview("Messages - loading") {
-    NavigationStack {
-        MessagesView(
-            topic: MessagesPreviewFactory.sampleTopic(page: 12, maxPage: 48),
-            curPage: 12,
-            maxPage: 48,
-            separatorNewMessages: true,
-            topicPageLoader: MessagesPreviewFactory.PreviewTopicPageLoader(
-                result: .success(
-                    TopicPageContent(
-                        html: MessagesPreviewFactory.sampleHTML,
-                        topicAnswerURL: nil
-                    )
-                ),
-                delay: 3
-            ),
-            topicPageRenderer: MessagesPreviewFactory.PreviewTopicPageRenderer()
+#Preview("Messages - happy path") {
+    MessagesPreviewFactory.messagesPreview(
+        result: .success(
+            TopicPageContent(
+                html: MessagesPreviewFactory.sampleHTML,
+                topicAnswerURL: URL(string: "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=42")
+            )
         )
+    )
+}
+
+#Preview("Messages - loading") {
+    MessagesPreviewFactory.messagesPreview(
+        page: 12,
+        maxPage: 48,
+        result: .success(
+            TopicPageContent(
+                html: MessagesPreviewFactory.sampleHTML,
+                topicAnswerURL: nil
+            )
+        ),
+        delay: 3
+    )
+}
+
+#Preview("Messages - toolbar compact") {
+    NavigationStack {
+        VStack(spacing: 24) {
+            Text("Aperçu pagination")
+                .font(.headline)
+            HStack(spacing: 12) {
+                Button {} label: {
+                    Image(systemName: "chevron.backward")
+                }
+
+                Button {} label: {
+                    Text("55")
+                        .font(.body.monospacedDigit().weight(.semibold))
+                        .frame(minWidth: 34)
+                }
+
+                Button {} label: {
+                    Image(systemName: "chevron.forward")
+                }
+            }
+            .padding()
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            Text("Le rendu complet reste disponible dans l'aperçu happy path.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding()
+        .navigationTitle("Messages")
     }
 }
 
 #Preview("Messages - error") {
-    NavigationStack {
-        MessagesView(
-            topic: MessagesPreviewFactory.sampleTopic(page: 1, maxPage: 5),
-            curPage: 1,
-            maxPage: 5,
-            separatorNewMessages: true,
-            topicPageLoader: MessagesPreviewFactory.PreviewTopicPageLoader(
-                result: .failure(MessagesPreviewFactory.PreviewError.network)
-            ),
-            topicPageRenderer: MessagesPreviewFactory.PreviewTopicPageRenderer()
-        )
-    }
+    MessagesPreviewFactory.messagesPreview(
+        page: 1,
+        maxPage: 5,
+        result: .failure(MessagesPreviewFactory.PreviewError.network)
+    )
 }

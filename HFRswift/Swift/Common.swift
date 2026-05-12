@@ -2337,6 +2337,8 @@ private struct TopicPagePickerQuickButton: View {
     let accessibilityLabel: String
     let action: () -> Void
 
+    @Environment(\.appThemePalette) private var themePalette
+
     var body: some View {
         Button(action: action) {
             Group {
@@ -2346,10 +2348,10 @@ private struct TopicPagePickerQuickButton: View {
                 } else if let systemImage {
                     Image(systemName: systemImage)
                         .font(.headline)
+                        .foregroundStyle(themePalette.actionTintColor)
                 }
             }
             .frame(maxWidth: .infinity, minHeight: 36)
-            .foregroundStyle(.primary)
         }
         .buttonStyle(.bordered)
         .tint(Color(uiColor: .systemGray3))
