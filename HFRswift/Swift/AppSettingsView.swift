@@ -102,7 +102,6 @@ struct AppSettingsView: View {
     @AppStorage("size_smileys") private var smileySize = "double"
     @AppStorage("embedded_videos") private var embeddedVideos = "yes"
     @AppStorage("display_sig") private var displaySignatures = "no"
-    @AppStorage("topic_page_choice_menu_enabled") private var topicPageChoiceMenuEnabled = true
 
     @AppStorage("mpstorage_active") private var mpStorageActive = false
     @AppStorage("mpstorage_last_rw") private var mpStorageLastAccess = "-"
@@ -437,8 +436,6 @@ struct AppSettingsView: View {
                     Text(option.title).tag(option.value)
                 }
             }
-
-            Toggle("Menu choix de page", isOn: $topicPageChoiceMenuEnabled)
         }
     }
 

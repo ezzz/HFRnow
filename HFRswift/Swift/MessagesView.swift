@@ -2599,7 +2599,6 @@ struct MessagesView: View {
     @ObservedObject private var appTheme = AppThemeStore.shared
     @AppStorage(AppTextSizeScale.key) private var textSizeScaleRawValue = AppTextSizeScale.standard.rawValue
     @AppStorage("theme_style") private var messageDisplayStyleRawValue = 1
-    @AppStorage("topic_page_choice_menu_enabled") private var topicPageChoiceMenuEnabled = true
     @State private var page: Int
     @State private var availableMaxPage: Int
     @State private var topicDisplayTitle: String
@@ -4044,42 +4043,39 @@ struct MessagesView: View {
             Image(systemName: "chevron.forward")
                 .font(.system(size: 15, weight: .semibold))
         }
+        .topicBottomBarButtonStyle(isProminent: shouldHighlightNextPageButton)
         .disabled(page >= currentMaxPage)
     }
 
-    private var bottomPageMenuButton: some View {
-        Menu {
-            Button("Dernier post") {
-                navigateToPage(currentMaxPage, initialScroll: .bottom, source: "bottom page menu last post")
-            }
+    private var pageChoiceMenuFinalTargets: [Int] {
+        guard currentMaxPage > 1 else { return [] }
+        var seen = Set([1])
+        return [currentMaxPage - 2, currentMaxPage - 1, currentMaxPage].compactMap { target in
+            guard (2...currentMaxPage).contains(target), seen.insert(target).inserted else { return nil }
+            return target
+        }
+    }
 
-            ForEach(bottomPageMenuFinalTargets.reversed(), id: \.self) { target in
-                Button("Page \(target)") {
-                    navigateToPage(target, initialScroll: .top, source: "bottom page menu final")
-                }
+    @ViewBuilder
+    private func pageChoiceMenuItems() -> some View {
+        if currentMaxPage > 1 {
+            Button("Page 1") {
+                navigateToPage(1, initialScroll: .top, source: "top page menu first")
             }
 
             Button("Page ...") {
                 openPagePicker()
             }
 
-            Button("Page 1") {
-                navigateToPage(1, initialScroll: .top, source: "bottom page menu first")
+            ForEach(pageChoiceMenuFinalTargets, id: \.self) { target in
+                Button("Page \(target)") {
+                    navigateToPage(target, initialScroll: .top, source: "top page menu final")
+                }
             }
-        } label: {
-            Image(systemName: "grid.circle")
-                .font(.system(size: 15, weight: .semibold))
-        }
-        .disabled(currentMaxPage <= 1)
-        .accessibilityLabel("Plus d'options de pagination")
-    }
 
-    private var bottomPageMenuFinalTargets: [Int] {
-        guard currentMaxPage > 1 else { return [] }
-        var seen = Set([1])
-        return [currentMaxPage - 2, currentMaxPage - 1, currentMaxPage].compactMap { target in
-            guard (2...currentMaxPage).contains(target), seen.insert(target).inserted else { return nil }
-            return target
+            Button("Dernier post") {
+                navigateToPage(currentMaxPage, initialScroll: .bottom, source: "top page menu last post")
+            }
         }
     }
 
@@ -4154,135 +4150,6 @@ struct MessagesView: View {
         anchor = postedReply.refreshAnchor
         initialScroll = .bottom
         loadPage(currentMaxPage)
-    }
-
-    @ViewBuilder
-    private func backwardContextMenuItems() -> some View {
-        if page > 1 {
-            if page > 2 {
-                Button {
-                    // Go to first page: start at top
-                    self.anchor = nil
-                    self.initialScroll = .top
-                    loadPage(1)
-                } label: {
-                    MenuActionLabel("Première page", systemImage: "backward.end")
-                }
-            }
-            Button {
-                // Previous page: start at bottom
-                self.anchor = nil
-                self.initialScroll = .bottom
-                loadPage(page - 1)
-            } label: {
-                MenuActionLabel("Page précédente", systemImage: "chevron.backward")
-            }  
-        }
-        Divider()
-        if currentMaxPage > 1 {
-            Button {
-                openPagePicker()
-            } label: {
-                MenuActionLabel("Page numéro...", systemImage: "number")
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func forwardContextMenuItems() -> some View {
-        if page < currentMaxPage {
-            Button {
-                // Next page: start at top
-                self.anchor = nil
-                self.initialScroll = .top
-                loadPage(page + 1)
-            } label: {
-                MenuActionLabel("Page suivante", systemImage: "chevron.forward")
-            }
-            if page + 1 < currentMaxPage {
-                Button {
-                    // Last page: start at top
-                    self.anchor = nil
-                    self.initialScroll = .top
-                    loadPage(currentMaxPage)
-                } label: {
-                    MenuActionLabel("Dernière page", systemImage: "forward.end")
-                }
-            }
-            Button {
-                // Dernière réponse: start at top
-                self.anchor = nil
-                self.initialScroll = .bottom
-                loadPage(currentMaxPage)
-            } label: {
-                MenuActionLabel("Dernière réponse", systemImage: "text.append")
-            }
-        }
-        Divider()
-        if currentMaxPage > 1 {
-            Button {
-                openPagePicker()
-            } label: {
-                MenuActionLabel("Page numéro...", systemImage: "number")
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func pageNavigationMenuItems() -> some View {
-        if currentMaxPage > 1 {
-            Button {
-                openPagePicker()
-            } label: {
-                MenuActionLabel("Page numéro...", systemImage: "number")
-            }
-        }
-        Divider()
-        if page > 1 {
-            Button {
-                self.anchor = nil
-                self.initialScroll = .top
-                loadPage(1)
-            } label: {
-                MenuActionLabel("Première page", systemImage: "backward.end")
-            }
-        }
-        if page > 1 {
-            Button {
-                self.anchor = nil
-                self.initialScroll = .bottom
-                loadPage(page - 1)
-            } label: {
-                MenuActionLabel("Page précédente", systemImage: "chevron.backward")
-            }
-        }
-        if page < currentMaxPage {
-            Button {
-                self.anchor = nil
-                self.initialScroll = .top
-                loadPage(page + 1)
-            } label: {
-                MenuActionLabel("Page suivante", systemImage: "chevron.forward")
-            }
-        }
-        if page < currentMaxPage {
-            Button {
-                self.anchor = nil
-                self.initialScroll = .top
-                loadPage(currentMaxPage)
-            } label: {
-                MenuActionLabel("Dernière page", systemImage: "forward.end")
-            }
-        }
-        if page < currentMaxPage {
-            Button {
-                self.anchor = nil
-                self.initialScroll = .bottom
-                loadPage(currentMaxPage)
-            } label: {
-                MenuActionLabel("Dernière réponse", systemImage: "text.append")
-            }
-        }
     }
 
     var body: some View {
@@ -4665,21 +4532,20 @@ struct MessagesView: View {
                                         iconTintUIColor: themePalette.actionTintUIColor
                                     )
                                 }
-                                Divider()
-                            }
-                            Button {
-                                openReplyComposer()
-                            } label: {
-                                MenuActionLabel("Répondre", systemImage: "pencil")
                             }
                             Button {
                                 openTopicSearchSheet()
                             } label: {
-                                MenuActionLabel("Rechercher", systemImage: "magnifyingglass")
+                                MenuActionLabel(
+                                    "Rechercher",
+                                    systemImage: "magnifyingglass",
+                                    tintColor: themePalette.actionTintColor,
+                                    iconTintUIColor: themePalette.actionTintUIColor
+                                )
                             }
                             if currentMaxPage > 1 {
                                 Divider()
-                                pageNavigationMenuItems()
+                                pageChoiceMenuItems()
                             }
                         } label: {
                             Image(systemName: "ellipsis")
@@ -4718,9 +4584,6 @@ struct MessagesView: View {
                         } else {
                             ToolbarItemGroup(placement: .bottomBar) {
                                 bottomPreviousPageButton
-                                if topicPageChoiceMenuEnabled {
-                                    bottomPageMenuButton
-                                }
                                 bottomNextPageButton
                             }
 
@@ -4861,6 +4724,7 @@ struct MessagesView: View {
                     }
                 }
                 .animation(.easeOut(duration: 0.22), value: shouldShowBottomRefreshButton)
+                .animation(.easeOut(duration: 0.18), value: shouldHighlightNextPageButton)
             )
         } else {
             content = AnyView(
@@ -4915,21 +4779,20 @@ struct MessagesView: View {
                                     iconTintUIColor: themePalette.actionTintUIColor
                                 )
                             }
-                            Divider()
-                        }
-                        Button {
-                            openReplyComposer()
-                        } label: {
-                            MenuActionLabel("Répondre", systemImage: "pencil")
                         }
                         Button {
                             openTopicSearchSheet()
                         } label: {
-                            MenuActionLabel("Rechercher", systemImage: "magnifyingglass")
+                            MenuActionLabel(
+                                "Rechercher",
+                                systemImage: "magnifyingglass",
+                                tintColor: themePalette.actionTintColor,
+                                iconTintUIColor: themePalette.actionTintUIColor
+                            )
                         }
                         if currentMaxPage > 1 {
                             Divider()
-                            pageNavigationMenuItems()
+                            pageChoiceMenuItems()
                         }
                     } label: {
                         Image(systemName: "ellipsis")
@@ -4951,9 +4814,6 @@ struct MessagesView: View {
                 } else {
                     ToolbarItemGroup(placement: .bottomBar) {
                         bottomPreviousPageButton
-                        if topicPageChoiceMenuEnabled {
-                            bottomPageMenuButton
-                        }
                         bottomNextPageButton
 
                         if isInSearchMode {

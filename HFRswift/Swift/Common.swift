@@ -2345,6 +2345,7 @@ private struct TopicPagePickerQuickButton: View {
                 if let title {
                     Text(title)
                         .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(themePalette.actionTintColor)
                 } else if let systemImage {
                     Image(systemName: systemImage)
                         .font(.headline)
@@ -2461,9 +2462,14 @@ struct TopicPagePickerSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Fermer") {
+                    Button {
                         dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.footnote.bold())
                     }
+                    .buttonBorderShape(.circle)
+                    .accessibilityLabel("Fermer")
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
