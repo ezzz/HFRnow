@@ -158,6 +158,8 @@ Critère de sortie :
 
 Objectif : réduire Objective-C au strict scope utile sans casser le projet.
 
+Plan opérationnel détaillé : `.vscode/plans/F5-objective-c-reduction.md`.
+
 Règles :
 
 1. Une suppression doit avoir une preuve statique et une preuve runtime.

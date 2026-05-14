@@ -9,12 +9,12 @@
 #import "HFRplusAppDelegate.h"
 #import "MessagesTableViewController.h"
 
-#import "AideViewController.h"
-
 #import "TopicsTableViewController.h"
 #import "FavoritesTableViewController.h"
+#if !APP_SWIFT
 #import "PlusSettingsViewController.h"
 #import "PlusTableViewController.h"
+#endif
 #import "CompteViewController.h"
 #import "HFRMPViewController.h"
 #import "TabBarController.h"
@@ -68,10 +68,17 @@
         self.preferredDisplayMode = UISplitViewControllerDisplayModeAutomatic;
     }
     else if (self.tabIndex == 3) {
+#if !APP_SWIFT
         PlusTableViewController* vc = [[PlusTableViewController alloc] init];
         masterViewController = [[HFRNavigationController alloc] initWithRootViewController:vc];
         vc.detailNavigationViewController = detailNavigationController;
         self.preferredDisplayMode = UISplitViewControllerDisplayModeAllVisible;
+#else
+        UIViewController *vc = [[UIViewController alloc] init];
+        vc.title = @"Plus";
+        masterViewController = [[HFRNavigationController alloc] initWithRootViewController:vc];
+        self.preferredDisplayMode = UISplitViewControllerDisplayModeAllVisible;
+#endif
     }
 
     self.viewControllers = @[masterViewController, detailNavigationController];

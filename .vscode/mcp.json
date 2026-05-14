@@ -1,8 +1,14 @@
 {
-  "servers": {  
-    "sosumi": {
-      "type": "http",
-      "url": "https://sosumi.ai/mcp"
+  "mcp": {
+    "servers": {
+      "XcodeBuildMCP": {
+        "command": "npx",
+        "args": ["-y", "xcodebuildmcp@latest", "mcp"]
+      },
+      "sosumi": {
+        "type": "http",
+        "url": "https://sosumi.ai/mcp"
+      }
     }
   }
 }

@@ -105,18 +105,6 @@ private struct PlusRow: View {
     }
 }
 
-private struct ObjCViewControllerHost: UIViewControllerRepresentable {
-    let makeController: () -> UIViewController
-
-    func makeUIViewController(context: Context) -> UIViewController {
-        makeController()
-    }
-
-    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
-        // No-op: wrapped controllers own their lifecycle.
-    }
-}
-
 private struct DeleteAccountMailComposeView: UIViewControllerRepresentable {
     @Environment(\.dismiss) private var dismiss
 
@@ -152,15 +140,5 @@ private struct DeleteAccountMailComposeView: UIViewControllerRepresentable {
         ) {
             onDismiss()
         }
-    }
-}
-
-struct PlusTableViewWrapper: UIViewControllerRepresentable {
-    func makeUIViewController(context: Context) -> PlusTableViewController {
-        PlusTableViewController()
-    }
-
-    func updateUIViewController(_ uiViewController: PlusTableViewController, context: Context) {
-        // Kept only for fallback/debug while Plus root is now native SwiftUI.
     }
 }

@@ -18,7 +18,9 @@
 #import "Forum.h"
 #import "SubCatTableViewController.h"
 #import "UIScrollView+SVPullToRefresh.h"
+#if !APP_SWIFT
 #import "AideViewController.h"
+#endif
 #import "ThemeColors.h"
 #import "ThemeManager.h"
 #import "SmileyAlertView.h"
@@ -732,7 +734,7 @@
     
 }
 
-
+#if !APP_SWIFT
 -(void)test {
     AideViewController *avc = [[AideViewController alloc] initWithNibName:@"AideViewController" bundle:nil];
     [avc awakeFromNib];
@@ -743,6 +745,7 @@
     
     [self.navigationController pushViewController:avc animated:YES];
 }
+#endif
 
 
 

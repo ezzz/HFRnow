@@ -10,7 +10,9 @@
 #import "ThemeColors.h"
 #import "HFRswift-Swift.h"
 #import "AvatarTableViewCell.h"
+#if !APP_SWIFT
 #import "PlusCellView.h"
+#endif
 #import "SimpleCellView.h"
 #include <stdlib.h>
 
@@ -137,12 +139,14 @@ static NSString * const HFRManualThemeKey = @"theme";
         }
     }
 
+#if !APP_SWIFT
     if([cell isKindOfClass:[PlusCellView class]]){
         PlusCellView* plusCellView = (PlusCellView*)cell;
         UIImage *img =[plusCellView.titleImage.image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
         plusCellView.titleImage.image = img;
         plusCellView.titleImage.tintColor = [ThemeColors cellIconColor:resolvedTheme];
     }
+#endif
 
     if([cell isKindOfClass:[SimpleCellView class]]){
         SimpleCellView* simpleCellView = (SimpleCellView*)cell;
