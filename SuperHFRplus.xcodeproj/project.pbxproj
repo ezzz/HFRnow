@@ -860,7 +860,6 @@
 		158CFA3D2E300643000594F1 /* RehostCell.xib in Resources */ = {isa = PBXBuildFile; fileRef = CA63F38D185EC18B0092E9F9 /* RehostCell.xib */; };
 		158CFA3E2E300643000594F1 /* PollTableViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = CA5E109418AC2A4F00C481A9 /* PollTableViewController.xib */; };
 		158CFA3F2E300643000594F1 /* FeedbackViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = CAF5DB6F1933D3D8000B5215 /* FeedbackViewController.xib */; };
-		158CFA412E30067E000594F1 /* CompteViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 01BF8782121C4407007624B6 /* CompteViewController.m */; };
 		158CFA422E30067E000594F1 /* CreditsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 01BF877B121C4407007624B6 /* CreditsViewController.m */; };
 		158CFA432E30067E000594F1 /* ListTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1556408D22D91E980018A619 /* ListTableViewController.m */; };
 		158CFA442E30067E000594F1 /* ThemeBrightnessCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = 15F4F46422F1D32F00A7AC97 /* ThemeBrightnessCellView.m */; };
@@ -868,21 +867,16 @@
 		158CFA472E30067E000594F1 /* BlackListTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CB132991B905BF80081B44D /* BlackListTableViewController.m */; };
 		158CFA482E30067E000594F1 /* WhiteListTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1556409022D928D30018A619 /* WhiteListTableViewController.m */; };
 		158CFA492E30067E000594F1 /* BlackList.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CB132F71B90A1930081B44D /* BlackList.m */; };
-		158CFA4A2E30067E000594F1 /* IdentificationViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 01BF8780121C4407007624B6 /* IdentificationViewController.m */; };
 		158CFA4C2E30067E000594F1 /* ThemeColorCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1543743822ECB1C300AF00A5 /* ThemeColorCellView.m */; };
-		158CFA4E2E30067E000594F1 /* CompteTableViewCell.m in Sources */ = {isa = PBXBuildFile; fileRef = D87BB740216266F00079690C /* CompteTableViewCell.m */; };
 		158CFA4F2E30067E000594F1 /* HFRDebugViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = CAFD004115B9B665003CA3FC /* HFRDebugViewController.m */; };
 		158CFA502E30067E000594F1 /* MultisManager.m in Sources */ = {isa = PBXBuildFile; fileRef = D8C6A6E2216224F1003C6D59 /* MultisManager.m */; };
-		158CFA532E30067E000594F1 /* IdentificationViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 01BF8783121C4407007624B6 /* IdentificationViewController.xib */; };
 		158CFA542E30067E000594F1 /* WhiteListTableViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1556409222D9297C0018A619 /* WhiteListTableViewController.xib */; };
 		158CFA552E30067E000594F1 /* BlackListTableViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4CB1329A1B905BF80081B44D /* BlackListTableViewController.xib */; };
 		158CFA572E30067E000594F1 /* HFRDebugViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = CAFD004215B9B665003CA3FC /* HFRDebugViewController.xib */; };
 		158CFA592E30067E000594F1 /* ThemeBrightnessCellView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 15F4F46122F1D1F100A7AC97 /* ThemeBrightnessCellView.xib */; };
 		158CFA5A2E30067E000594F1 /* ColorPickerViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1543743422EC672F00AF00A5 /* ColorPickerViewController.xib */; };
-		158CFA5B2E30067E000594F1 /* CompteTableViewCell.xib in Resources */ = {isa = PBXBuildFile; fileRef = D87BB73E216266BA0079690C /* CompteTableViewCell.xib */; };
 		158CFA5E2E30067E000594F1 /* CreditsViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 01BF877D121C4407007624B6 /* CreditsViewController.xib */; };
 		158CFA5F2E30067E000594F1 /* ThemeColorCellView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1543743622ECAE3100AF00A5 /* ThemeColorCellView.xib */; };
-		158CFA602E30067E000594F1 /* CompteViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 01BF8784121C4407007624B6 /* CompteViewController.xib */; };
 		158CFA612E301097000594F1 /* RangeOfCharacters.m in Sources */ = {isa = PBXBuildFile; fileRef = CA00C46517C302610067B457 /* RangeOfCharacters.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		158CFA622E3011C2000594F1 /* UIMenuItem+CXAImageSupport.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CB132A61B908EC00081B44D /* UIMenuItem+CXAImageSupport.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
 		158CFA632E3011D8000594F1 /* UILabel+Boldify.m in Sources */ = {isa = PBXBuildFile; fileRef = 1553568B24A87EBC00917DE1 /* UILabel+Boldify.m */; };
@@ -5066,13 +5060,11 @@
 				15316E102E32A25500E2B7CD /* snow5.png in Resources */,
 				15316E112E32A25500E2B7CD /* snow18.png in Resources */,
 				15316E122E32A25500E2B7CD /* snow3.png in Resources */,
-				158CFA532E30067E000594F1 /* IdentificationViewController.xib in Resources */,
 				158CFA542E30067E000594F1 /* WhiteListTableViewController.xib in Resources */,
 				158CFA552E30067E000594F1 /* BlackListTableViewController.xib in Resources */,
 				158CFA572E30067E000594F1 /* HFRDebugViewController.xib in Resources */,
 				158CFA592E30067E000594F1 /* ThemeBrightnessCellView.xib in Resources */,
 				158CFA5A2E30067E000594F1 /* ColorPickerViewController.xib in Resources */,
-				158CFA5B2E30067E000594F1 /* CompteTableViewCell.xib in Resources */,
 				158CFA802E301BAB000594F1 /* MWPhotoBrowser.bundle in Resources */,
 				158CFA5E2E30067E000594F1 /* CreditsViewController.xib in Resources */,
 				158CFA5F2E30067E000594F1 /* ThemeColorCellView.xib in Resources */,
@@ -5080,7 +5072,6 @@
 				15316BC42E32A1CB00E2B7CD /* global.gif in Resources */,
 				15316BC52E32A1CB00E2B7CD /* multipleflag1.gif in Resources */,
 				15316BC62E32A1CB00E2B7CD /* multipleflag0.gif in Resources */,
-				158CFA602E30067E000594F1 /* CompteViewController.xib in Resources */,
 				158CFA3A2E300643000594F1 /* AlerteModoViewController.xib in Resources */,
 				158CFA3B2E300643000594F1 /* PersonnalLinkViewController.xib in Resources */,
 				158CFA3C2E300643000594F1 /* AddMessageViewController.xib in Resources */,
@@ -5806,7 +5797,6 @@
 				158CFA022E300643000594F1 /* TopicsTableViewController.m in Sources */,
 				158CFA032E300643000594F1 /* MessagesTableViewController.m in Sources */,
 				158CFA042E300643000594F1 /* PageViewController.m in Sources */,
-				158CFA412E30067E000594F1 /* CompteViewController.m in Sources */,
 				158CFA422E30067E000594F1 /* CreditsViewController.m in Sources */,
 				158CFA432E30067E000594F1 /* ListTableViewController.m in Sources */,
 				158CFA442E30067E000594F1 /* ThemeBrightnessCellView.m in Sources */,
@@ -5815,10 +5805,8 @@
 				158CFA472E30067E000594F1 /* BlackListTableViewController.m in Sources */,
 				158CFA482E30067E000594F1 /* WhiteListTableViewController.m in Sources */,
 				158CFA492E30067E000594F1 /* BlackList.m in Sources */,
-				158CFA4A2E30067E000594F1 /* IdentificationViewController.m in Sources */,
 				158CFA4C2E30067E000594F1 /* ThemeColorCellView.m in Sources */,
 				158CFA912E301E4F000594F1 /* UIScrollView+SVPullToRefresh.m in Sources */,
-				158CFA4E2E30067E000594F1 /* CompteTableViewCell.m in Sources */,
 				158CFA4F2E30067E000594F1 /* HFRDebugViewController.m in Sources */,
 				158CFA502E30067E000594F1 /* MultisManager.m in Sources */,
 				158CFA992E301EA3000594F1 /* MKStoreObserver.m in Sources */,

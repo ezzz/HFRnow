@@ -136,6 +136,14 @@ Critère :
 
 - Aucun fallback UIKit compte/session visible.
 
+Statut 2026-05-14 :
+
+- Précondition validée manuellement/bêta : flux SwiftUI compte/session utilisé par environ 40 testeurs sans retour négatif.
+- `IdentificationViewController`, `CompteViewController`, `CompteTableViewCell` et leurs XIB sont retirés de la cible `HFRswift`.
+- `AQTableViewController.h` ne dépend plus de `CompteViewController` sous `APP_SWIFT`.
+- `MultisManager`, `BlackList` et les services ObjC de session restent compilés.
+- Build `HFRswift` Debug iOS Simulator OK.
+
 ## Lot Q4 — UI topic/composer remplacée
 
 Candidats :

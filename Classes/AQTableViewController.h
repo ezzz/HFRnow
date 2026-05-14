@@ -10,7 +10,9 @@
 
 
 #import <UIKit/UIKit.h>
+#if !APP_SWIFT
 #import "CompteViewController.h"
+#endif
 #import "MessagesTableViewController.h"
 
 @class ASIHTTPRequest;

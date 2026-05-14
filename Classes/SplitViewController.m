@@ -15,7 +15,6 @@
 #import "PlusSettingsViewController.h"
 #import "PlusTableViewController.h"
 #endif
-#import "CompteViewController.h"
 #import "HFRMPViewController.h"
 #import "TabBarController.h"
 #import "ThemeManager.h"
