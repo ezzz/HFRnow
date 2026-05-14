@@ -244,7 +244,27 @@ Audit des suivants :
 - `SimplePhotoViewController` reste nécessaire : `MessagesTableViewController` l'instancie encore pour l'affichage photo.
 - `FavoriteCellView`, `FavoritesTableViewController` et leurs XIB restent nécessaires : `Common.swift` instancie encore `FavoritesTableViewController` comme worker pour les favoris.
 - `FilterPostsQuotes` reste nécessaire : `FavoritePostFilterService` l'instancie encore comme worker.
-- `SmileyCode*` reste nécessaire tant que l'action smiley dans `MessagesTableViewController` passe par `SmileyAlertView`.
+- `SmileyCode*` reste nécessaire tant que l'action smiley dans `MessagesTableViewController` passe par `SmileyAlertView`. Résolu dans la suite Q6 smileys.
+
+Statut 2026-05-14, suite Q6 :
+
+- `SimpleCellView.m` et `SimpleCellView.xib` sont retirés de la cible `HFRswift`.
+- La dépendance `ThemeManager -> SimpleCellView` est isolée hors `APP_SWIFT`, car `SimpleCellView` ne sert plus que le flux UIKit `SmileyViewController` déjà sorti de la cible Swift.
+- Build `HFRswift` Debug iOS Simulator OK.
+
+Statut 2026-05-14, suite Q6 smileys :
+
+- `SmileyAlertView.m`, `SmileyCodeTableViewController.m`, `SmileyCodeCellView.m`, `SmileyCodeTableView.xib` et `SmileyCodeCellView.xib` sont retirés de la cible `HFRswift`.
+- Les imports `SmileyAlertView` restants dans `MessagesTableViewController` et `TopicsTableViewController` sont isolés hors `APP_SWIFT`.
+- La cible Swift conserve le flux smiley via `MessageWebAction.manageSmileyFavorite` et `MessageSmileySheetView` dans `MessagesView`.
+- Build `HFRswift` Debug iOS Simulator OK.
+
+Statut 2026-05-14, suite Q6 favoris :
+
+- `ObjCFavoritesLoader` n'instancie plus `FavoritesTableViewController`; il utilise `ObjCFavoritesLoaderWorker`, un `NSObject` dédié au chargement/parsing des favoris.
+- `FavoritesTableViewController.m`, `FavoritesTableViewController.xib`, `FavoriteCell.m`, `FavoriteCellView.m` et `FavoriteCellView.xib` sont retirés de la cible `HFRswift`.
+- Les références UIKit legacy à `FavoritesTableViewController` dans `TabBarController`, `SplitViewController` et `HFRplusAppDelegate` sont isolées hors `APP_SWIFT`.
+- Build `HFRswift` Debug iOS Simulator OK.
 
 ## À garder explicitement pour l'instant
 

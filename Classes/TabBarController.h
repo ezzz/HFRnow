@@ -9,7 +9,13 @@
 #import "BrowserViewController.h"
 #import "Constants.h"
 #import "ForumsTableViewController.h"
+#if !APP_SWIFT
 #import "FavoritesTableViewController.h"
+#endif
+
+#if APP_SWIFT
+@class FavoritesTableViewController;
+#endif
 
 @interface TabBarController : UITabBarController <UITabBarControllerDelegate> {
 

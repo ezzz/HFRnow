@@ -33,7 +33,9 @@
 #import "OfflineStorage.h"
 #import "FilterPostsQuotes.h"
 #import "Bookmark.h"
+#if !APP_SWIFT
 #import "SmileyAlertView.h"
+#endif
 #import "SmileyCache.h"
 #import "SimplePhotoViewController.h"
 #import "k.h"
@@ -2144,6 +2146,9 @@
         }
         else if ([[aRequest.URL scheme] isEqualToString:@"oijlkajsdoihjlkjasdosmiley"])
         {
+#if APP_SWIFT
+            bAllow = NO;
+#else
             NSString *regularExpressionString = @"oijlkajsdoihjlkjasdosmiley://smileycode/([^/]+)/(.*)";
             NSString* sSmileyCode = [NSString stringWithFormat:@"[:%@]", [[[aRequest.URL absoluteString] stringByMatching:regularExpressionString capture:1L] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
             NSString* sSmileyImgUrl = [[[aRequest.URL absoluteString] stringByMatching:regularExpressionString capture:2L] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
@@ -2168,6 +2173,7 @@
             };
             [[SmileyAlertView shared] displaySmileyActionCancel:sSmileyCode withUrl:sSmileyImgUrlRaw addSmiley:bAddSmiley showAction:YES handlerDone:self.smileyAlertViewAddOK handlerFailed:self.smileyAlertViewAddFailed handlerSelectCode:nil baseController:self];
             bAllow = NO;
+#endif
         }
         else {
             

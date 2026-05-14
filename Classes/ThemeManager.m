@@ -12,8 +12,8 @@
 #import "AvatarTableViewCell.h"
 #if !APP_SWIFT
 #import "PlusCellView.h"
-#endif
 #import "SimpleCellView.h"
+#endif
 #include <stdlib.h>
 
 static NSString * const HFRAutoThemeKey = @"auto_theme";
@@ -148,12 +148,14 @@ static NSString * const HFRManualThemeKey = @"theme";
     }
 #endif
 
+#if !APP_SWIFT
     if([cell isKindOfClass:[SimpleCellView class]]){
         SimpleCellView* simpleCellView = (SimpleCellView*)cell;
         UIImage *img = [simpleCellView.imageIcon.image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
         simpleCellView.imageIcon.image = img;
         simpleCellView.imageIcon.tintColor = [ThemeColors cellIconColor:resolvedTheme];
     }
+#endif
 
     cell.selectionStyle = [ThemeColors cellSelectionStyle:resolvedTheme];
 }

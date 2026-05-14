@@ -25,7 +25,9 @@
 #endif
 #import "ThemeColors.h"
 #import "ThemeManager.h"
+#if !APP_SWIFT
 #import "SmileyAlertView.h"
+#endif
 #import "PullToRefreshErrorViewController.h"
 #import "TopicsSearchViewController.h"
 #import "k.h"

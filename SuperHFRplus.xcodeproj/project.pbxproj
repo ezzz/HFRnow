@@ -780,7 +780,6 @@
 		158CF9F42E3005F2000594F1 /* TopicCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = CAB16277124B9F8300D12569 /* TopicCellView.m */; };
 		158CF9F52E3005F2000594F1 /* HFRNavigationController.m in Sources */ = {isa = PBXBuildFile; fileRef = CAC4966815B77357009128BC /* HFRNavigationController.m */; };
 		158CF9F62E3005F2000594F1 /* SplitViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = CA7E25E215A1D17500721F6D /* SplitViewController.m */; };
-		158CF9F72E3005F2000594F1 /* SmileyAlertView.m in Sources */ = {isa = PBXBuildFile; fileRef = 154ACDFA26FA45EA00BAF716 /* SmileyAlertView.m */; };
 		158CF9F82E3005F2000594F1 /* TopicSearchCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = CA20FA3312F15CA700EC1771 /* TopicSearchCellView.m */; };
 		158CF9F92E3005F2000594F1 /* HFRAlertView.m in Sources */ = {isa = PBXBuildFile; fileRef = 15E25D67223047EF00474562 /* HFRAlertView.m */; };
 		158CF9FA2E3005F2000594F1 /* ThemeManager.m in Sources */ = {isa = PBXBuildFile; fileRef = D8C8F1541E56ECA000B1381E /* ThemeManager.m */; };
@@ -793,9 +792,7 @@
 		158CFA032E300643000594F1 /* MessagesTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 013F0E98121E117800BEBEB1 /* MessagesTableViewController.m */; };
 		158CFA042E300643000594F1 /* PageViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = CA77D0F41261424D00271D62 /* PageViewController.m */; };
 		158CFA052E300643000594F1 /* BaseTopicsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 152FD2F52DF55D31007268D3 /* BaseTopicsViewController.m */; };
-		158CFA072E300643000594F1 /* SmileyCodeCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1536E7DC257D2BF100B30209 /* SmileyCodeCellView.m */; };
 		158CFA0B2E300643000594F1 /* HFRTextView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C21E9821BA5CC1200691D65 /* HFRTextView.m */; };
-		158CFA0D2E300643000594F1 /* FavoriteCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 0140ABA9121E011D001C35C4 /* FavoriteCell.m */; };
 		158CFA0E2E300643000594F1 /* Favorite.m in Sources */ = {isa = PBXBuildFile; fileRef = CA8A79B115BB404700D8E9E7 /* Favorite.m */; };
 		158CFA112E300643000594F1 /* MPStorage.m in Sources */ = {isa = PBXBuildFile; fileRef = 15960FE422F6147B006BBD34 /* MPStorage.m */; };
 		158CFA122E300643000594F1 /* FilterPostsQuotes.m in Sources */ = {isa = PBXBuildFile; fileRef = 1540899B2439E7C900509862 /* FilterPostsQuotes.m */; };
@@ -803,27 +800,19 @@
 		158CFA142E300643000594F1 /* TopicsSearchViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = CA79581912836B24007C4E02 /* TopicsSearchViewController.m */; };
 		158CFA152E300643000594F1 /* AKSegmentedControl.m in Sources */ = {isa = PBXBuildFile; fileRef = CAA1B091125C0A53009C80E3 /* AKSegmentedControl.m */; };
 		158CFA172E300643000594F1 /* Topic.m in Sources */ = {isa = PBXBuildFile; fileRef = 01BF8B6F121DAEF3007624B6 /* Topic.m */; };
-		158CFA1A2E300643000594F1 /* FavoriteCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = 15C673D022567A7300B9E0BE /* FavoriteCellView.m */; };
 		158CFA1B2E300643000594F1 /* SubCatTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = CA7E260115A24A9A00721F6D /* SubCatTableViewController.m */; };
 		158CFA1D2E300643000594F1 /* SimplePhotoViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 151737FA2DA5B3AF005DDA75 /* SimplePhotoViewController.m */; };
 		158CFA1F2E300643000594F1 /* HFRMPViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0140AA85121DF25F001C35C4 /* HFRMPViewController.m */; };
 		158CFA202E300643000594F1 /* ForumsTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 01BF8A14121D7469007624B6 /* ForumsTableViewController.m */; };
-		158CFA212E300643000594F1 /* SimpleCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1591C0F4249DF5F00025560A /* SimpleCellView.m */; };
 		158CFA222E300643000594F1 /* Catcounter.m in Sources */ = {isa = PBXBuildFile; fileRef = 0140ABAC121E011D001C35C4 /* Catcounter.m */; };
 		158CFA242E300643000594F1 /* Forum.m in Sources */ = {isa = PBXBuildFile; fileRef = 01BF8A53121D7945007624B6 /* Forum.m */; };
 		158CFA252E300643000594F1 /* ParseMessagesOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 013F0E9E121E117900BEBEB1 /* ParseMessagesOperation.m */; };
-		158CFA262E300643000594F1 /* SmileyCodeTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1536E7D6257D26E600B30209 /* SmileyCodeTableViewController.m */; };
-		158CFA272E300643000594F1 /* FavoritesTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0140ABAE121E011D001C35C4 /* FavoritesTableViewController.m */; };
 		158CFA282E300643000594F1 /* SmileyCache.m in Sources */ = {isa = PBXBuildFile; fileRef = 159CE14F24801E1500BC17DA /* SmileyCache.m */; };
 		158CFA2A2E300643000594F1 /* MessagesSearchTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CB133131B90E9530081B44D /* MessagesSearchTableViewController.m */; };
 		158CFA2B2E300643000594F1 /* LinkItem.m in Sources */ = {isa = PBXBuildFile; fileRef = 013F0E96121E117800BEBEB1 /* LinkItem.m */; };
-		158CFA2D2E300643000594F1 /* SmileyCodeCellView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1536E7D9257D2A7800B30209 /* SmileyCodeCellView.xib */; };
-		158CFA312E300643000594F1 /* SimpleCellView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1591C0F6249DF60D0025560A /* SimpleCellView.xib */; };
-		158CFA342E300643000594F1 /* SmileyCodeTableView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1536E7D4257D26BE00B30209 /* SmileyCodeTableView.xib */; };
-		158CFA352E300643000594F1 /* FavoriteCellView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 15C673CB22552B6900B9E0BE /* FavoriteCellView.xib */; };
-		158CFA392E300643000594F1 /* FavoritesTableViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 0140ABD2121E034A001C35C4 /* FavoritesTableViewController.xib */; };
 		158CFA492E30067E000594F1 /* BlackList.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CB132F71B90A1930081B44D /* BlackList.m */; };
 		158CFA502E30067E000594F1 /* MultisManager.m in Sources */ = {isa = PBXBuildFile; fileRef = D8C6A6E2216224F1003C6D59 /* MultisManager.m */; };
+		158CFB022E37400100594F1 /* ObjCFavoritesLoaderWorker.m in Sources */ = {isa = PBXBuildFile; fileRef = 158CFB012E37400100594F1 /* ObjCFavoritesLoaderWorker.m */; };
 		158CFA612E301097000594F1 /* RangeOfCharacters.m in Sources */ = {isa = PBXBuildFile; fileRef = CA00C46517C302610067B457 /* RangeOfCharacters.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		158CFA622E3011C2000594F1 /* UIMenuItem+CXAImageSupport.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CB132A61B908EC00081B44D /* UIMenuItem+CXAImageSupport.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
 		158CFA632E3011D8000594F1 /* UILabel+Boldify.m in Sources */ = {isa = PBXBuildFile; fileRef = 1553568B24A87EBC00917DE1 /* UILabel+Boldify.m */; };
@@ -1693,6 +1682,8 @@
 		0140ABAD121E011D001C35C4 /* FavoritesTableViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = FavoritesTableViewController.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
 		0140ABAE121E011D001C35C4 /* FavoritesTableViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; lineEnding = 0; path = FavoritesTableViewController.m; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objc; };
 		0140ABD2121E034A001C35C4 /* FavoritesTableViewController.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = FavoritesTableViewController.xib; sourceTree = "<group>"; };
+		158CFB002E37400100594F1 /* ObjCFavoritesLoaderWorker.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjCFavoritesLoaderWorker.h; sourceTree = "<group>"; };
+		158CFB012E37400100594F1 /* ObjCFavoritesLoaderWorker.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjCFavoritesLoaderWorker.m; sourceTree = "<group>"; };
 		01BF8776121C4407007624B6 /* InfosViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = InfosViewController.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
 		01BF8777121C4407007624B6 /* InfosViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; lineEnding = 0; path = InfosViewController.m; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objc; };
 		01BF8778121C4407007624B6 /* AideViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = AideViewController.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
@@ -2813,6 +2804,8 @@
 				0140ABAD121E011D001C35C4 /* FavoritesTableViewController.h */,
 				0140ABAE121E011D001C35C4 /* FavoritesTableViewController.m */,
 				0140ABD2121E034A001C35C4 /* FavoritesTableViewController.xib */,
+				158CFB002E37400100594F1 /* ObjCFavoritesLoaderWorker.h */,
+				158CFB012E37400100594F1 /* ObjCFavoritesLoaderWorker.m */,
 			);
 			name = Favorites;
 			sourceTree = "<group>";
@@ -4373,8 +4366,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				158CFA2D2E300643000594F1 /* SmileyCodeCellView.xib in Resources */,
-				158CFA312E300643000594F1 /* SimpleCellView.xib in Resources */,
 				15316BC72E32A1D400E2B7CD /* fou.gif in Resources */,
 				15316BC82E32A1D400E2B7CD /* ddr555.gif in Resources */,
 				15316BC92E32A1D400E2B7CD /* int.gif in Resources */,
@@ -4829,8 +4820,6 @@
 				15316C012E32A1D400E2B7CD /* miam.gif in Resources */,
 				15316C022E32A1D400E2B7CD /* wink.gif in Resources */,
 				153170002E33A00100E2B7CD /* commonsmile.plist in Resources */,
-				158CFA342E300643000594F1 /* SmileyCodeTableView.xib in Resources */,
-				158CFA352E300643000594F1 /* FavoriteCellView.xib in Resources */,
 				15316BA52E32A1BA00E2B7CD /* Icon-BLUE-IPAD@2x.png in Resources */,
 				15316BA62E32A1BA00E2B7CD /* Icon-REDFACE@2x.png in Resources */,
 				15316BA72E32A1BA00E2B7CD /* Icon-REDFACE-BLUE-IPAD@2x.png in Resources */,
@@ -4976,7 +4965,6 @@
 				15316BC02E32A1BA00E2B7CD /* Icon-CLASSIC@3x.png in Resources */,
 				15316BC12E32A1BA00E2B7CD /* Icon-BETA@2x.png in Resources */,
 				15316BC22E32A1BA00E2B7CD /* Icon-CLASSIC-IPAD@2x.png in Resources */,
-				158CFA392E300643000594F1 /* FavoritesTableViewController.xib in Resources */,
 				15316DFE2E32A25500E2B7CD /* tab_snow@2x.png in Resources */,
 				15316DFF2E32A25500E2B7CD /* snow15.png in Resources */,
 				15316E002E32A25500E2B7CD /* snow11.png in Resources */,
@@ -5723,9 +5711,7 @@
 				158CFA502E30067E000594F1 /* MultisManager.m in Sources */,
 				158CFA992E301EA3000594F1 /* MKStoreObserver.m in Sources */,
 				158CFA052E300643000594F1 /* BaseTopicsViewController.m in Sources */,
-				158CFA072E300643000594F1 /* SmileyCodeCellView.m in Sources */,
 				158CFA0B2E300643000594F1 /* HFRTextView.m in Sources */,
-				158CFA0D2E300643000594F1 /* FavoriteCell.m in Sources */,
 				158CFA0E2E300643000594F1 /* Favorite.m in Sources */,
 				158CFA112E300643000594F1 /* MPStorage.m in Sources */,
 				158CFA812E301DF9000594F1 /* Reachability.m in Sources */,
@@ -5766,18 +5752,15 @@
 				158CFA762E301B75000594F1 /* ASIDownloadCache.m in Sources */,
 				158CFA772E301B75000594F1 /* ASINetworkQueue.m in Sources */,
 				158CFA172E300643000594F1 /* Topic.m in Sources */,
-				158CFA1A2E300643000594F1 /* FavoriteCellView.m in Sources */,
 				158CFA9D2E301F03000594F1 /* TabBarController.m in Sources */,
 				158CFA1B2E300643000594F1 /* SubCatTableViewController.m in Sources */,
 				158CFA1D2E300643000594F1 /* SimplePhotoViewController.m in Sources */,
 				158CFA1F2E300643000594F1 /* HFRMPViewController.m in Sources */,
 				158CFA202E300643000594F1 /* ForumsTableViewController.m in Sources */,
-				158CFA212E300643000594F1 /* SimpleCellView.m in Sources */,
 				158CFA222E300643000594F1 /* Catcounter.m in Sources */,
 				158CFA242E300643000594F1 /* Forum.m in Sources */,
 				158CFA252E300643000594F1 /* ParseMessagesOperation.m in Sources */,
-				158CFA262E300643000594F1 /* SmileyCodeTableViewController.m in Sources */,
-				158CFA272E300643000594F1 /* FavoritesTableViewController.m in Sources */,
+				158CFB022E37400100594F1 /* ObjCFavoritesLoaderWorker.m in Sources */,
 				158CFA612E301097000594F1 /* RangeOfCharacters.m in Sources */,
 				158CFA282E300643000594F1 /* SmileyCache.m in Sources */,
 				158CFA2A2E300643000594F1 /* MessagesSearchTableViewController.m in Sources */,
@@ -5810,7 +5793,6 @@
 				158CFA8E2E301E19000594F1 /* PSTCollectionViewCell.m in Sources */,
 				158CFA8F2E301E19000594F1 /* PSTCollectionViewData.m in Sources */,
 				158CFA622E3011C2000594F1 /* UIMenuItem+CXAImageSupport.m in Sources */,
-				158CF9F72E3005F2000594F1 /* SmileyAlertView.m in Sources */,
 				158CF9F82E3005F2000594F1 /* TopicSearchCellView.m in Sources */,
 				158CF9F92E3005F2000594F1 /* HFRAlertView.m in Sources */,
 				158CF9FA2E3005F2000594F1 /* ThemeManager.m in Sources */,
@@ -6113,13 +6095,11 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_ENTITLEMENTS = HFRswift/HFRswift.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = QMG83DG7YP;
+				DEVELOPMENT_TEAM = QMG83DG7YP;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -6162,7 +6142,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "iOS-Distribution-Profile-v2";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -6198,13 +6177,11 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_ENTITLEMENTS = HFRswift/HFRswift.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = QMG83DG7YP;
+				DEVELOPMENT_TEAM = QMG83DG7YP;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -6243,7 +6220,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = hfrplus.red.super;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "iOS-Distribution-Profile-v2";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;

@@ -7,7 +7,9 @@
 
 #import "TabBarController.h"
 #import "HFRplusAppDelegate.h"
+#if !APP_SWIFT
 #import "FavoritesTableViewController.h"
+#endif
 #import "HFRMPViewController.h"
 #import "ForumsTableViewController.h"
 #import "HFRTabBar.h"
@@ -190,9 +192,11 @@
                 [(ForumsTableViewController *)nv.topViewController reload];
             }
             
+#if !APP_SWIFT
             if ([nv.topViewController isKindOfClass:[FavoritesTableViewController class]]) {
                 [(FavoritesTableViewController *)nv.topViewController reload];
             }
+#endif
                         
             if ([nv.topViewController isKindOfClass:[HFRMPViewController class]]) {
                 [(HFRMPViewController *)nv.topViewController fetchContent];
@@ -224,9 +228,11 @@
         
         if ([viewController isKindOfClass:[UINavigationController class]]) {
             UINavigationController *nv = (UINavigationController *)viewController;
+#if !APP_SWIFT
             if ([nv.topViewController isKindOfClass:[FavoritesTableViewController class]]) {
                 NSLog("favprotes !!!");
             }
+#endif
         }
     }
 }

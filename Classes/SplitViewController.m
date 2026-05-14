@@ -10,8 +10,8 @@
 #import "MessagesTableViewController.h"
 
 #import "TopicsTableViewController.h"
-#import "FavoritesTableViewController.h"
 #if !APP_SWIFT
+#import "FavoritesTableViewController.h"
 #import "PlusSettingsViewController.h"
 #import "PlusTableViewController.h"
 #endif
@@ -55,9 +55,14 @@
     }
     else if (self.tabIndex == 1)
     {
+#if !APP_SWIFT
         FavoritesTableViewController* vc = [[FavoritesTableViewController alloc] initWithNibName:@"FavoritesTableViewController" bundle:nil];
         masterViewController = [[HFRNavigationController alloc] initWithRootViewController:vc];
         vc.detailNavigationViewController = detailNavigationController;
+#else
+        UIViewController *vc = [[UIViewController alloc] init];
+        masterViewController = [[HFRNavigationController alloc] initWithRootViewController:vc];
+#endif
         self.preferredDisplayMode = UISplitViewControllerDisplayModeAutomatic;
     }
     else if (self.tabIndex == 2) {
@@ -204,7 +209,10 @@
             for (int i = 0; i < counti; i++) {
                 //NSLog(@"intloop");
                 if (![[(UINavigationController*)masterVC.selectedViewController topViewController] isKindOfClass:[TopicsTableViewController class]]
-                    && ![[(UINavigationController*)masterVC.selectedViewController topViewController] isKindOfClass:[FavoritesTableViewController class]]) {
+#if !APP_SWIFT
+                    && ![[(UINavigationController*)masterVC.selectedViewController topViewController] isKindOfClass:[FavoritesTableViewController class]]
+#endif
+                    ) {
                     UIViewController *tmpVCC = [(UINavigationController*)masterVC.selectedViewController popViewControllerAnimated:NO];
                     
                     if (tmpVCC) {

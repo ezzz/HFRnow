@@ -1161,13 +1161,13 @@ private enum LegacySessionPreparation {
 final class ObjCFavoritesLoader: FavoritesLoading {
     private let controller: NSObject?
 
-    init(controller: NSObject? = LegacyLoaderRuntime.instantiateController(named: "FavoritesTableViewController")) {
+    init(controller: NSObject? = LegacyLoaderRuntime.instantiateController(named: "ObjCFavoritesLoaderWorker")) {
         self.controller = controller
     }
 
     func fetchFavorites(completion: @escaping FavoritesLoadCompletion) {
         guard let controller else {
-            completion(nil, LegacyLoaderBridgeError.unavailable("FavoritesTableViewController"))
+            completion(nil, LegacyLoaderBridgeError.unavailable("ObjCFavoritesLoaderWorker"))
             return
         }
 
@@ -1175,7 +1175,7 @@ final class ObjCFavoritesLoader: FavoritesLoading {
 
         let selector = NSSelectorFromString("fetchContentWithCompletion:")
         guard controller.responds(to: selector) else {
-            completion(nil, LegacyLoaderBridgeError.unavailable("FavoritesTableViewController.fetchContentWithCompletion"))
+            completion(nil, LegacyLoaderBridgeError.unavailable("ObjCFavoritesLoaderWorker.fetchContentWithCompletion"))
             return
         }
 

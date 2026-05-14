@@ -9,7 +9,9 @@
 #import "HFRplusAppDelegate.h"
 
 #import "HFRMPViewController.h"
+#if !APP_SWIFT
 #import "FavoritesTableViewController.h"
+#endif
 #import "ForumsTableViewController.h"
 
 #import "MKStoreManager.h"
@@ -794,10 +796,12 @@ static NSString * const HFRSwiftNotificationDestinationMessages = @"messages";
         
         if(favoritesNavController){
             if ([favoritesNavController respondsToSelector:@selector(visibleViewController)]) {
+#if !APP_SWIFT
                 FavoritesTableViewController* favVC = (FavoritesTableViewController *)[favoritesNavController visibleViewController];
                 if ([favVC respondsToSelector:@selector(reset)]) {
                     [favVC reset];
                 }
+#endif
             }
         }
         if(messagesNavController){
