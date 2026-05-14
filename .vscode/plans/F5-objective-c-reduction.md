@@ -206,6 +206,13 @@ Critère :
 
 - Plus/Settings restent SwiftUI, traitements ObjC conservés.
 
+Statut 2026-05-14 :
+
+- `BookmarksTableViewController`, `BookmarksCellView`, `AQTableViewController`, `AQCellView`, `BlackListTableViewController`, `WhiteListTableViewController`, `ListTableViewController` et leurs XIB sont retirés de la cible `HFRswift`.
+- `BookmarksPlusView` et `AQPlusView` restent les routes SwiftUI de l'onglet Plus.
+- Les actions BL/WL restent portées par `UserProfileView` via `ObjCProfileFilterListManager`.
+- `Bookmark`, `MPStorage`, `BlackList` et `ObjCMPStorageBridge` restent compilés dans `HFRswift`.
+
 ## Lot Q6 — Cellules/XIB legacy orphelins
 
 But : nettoyer les ressources XIB uniquement après suppression des controllers propriétaires.
