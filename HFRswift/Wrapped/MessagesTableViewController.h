@@ -10,25 +10,18 @@
 #import "PageViewController.h"
 
 #import "ParseMessagesOperation.h"
-#import "AddMessageViewController.h"
 
 //#import "FormViewController.h"
 //#import "EditFormView.h"
 //#import "QuoteFormView.h"
 
-#import "QuoteMessageViewController.h"
-#import "EditMessageViewController.h"
-#import "NewMessageViewController.h"
-#import "DeleteMessageViewController.h"
-#import "AlerteModoViewController.h"
-
 #import "MWPhotoBrowser.h"
 
 @class HTMLNode, MessageDetailViewController, ASIHTTPRequest, FilterPostsQuotes;
-@class MessageDetailViewController, SmileyCodeTableViewController;
+@class MessageDetailViewController;
 @class ASIHTTPRequest;
 
-@interface MessagesTableViewController : PageViewController <UIActionSheetDelegate, ParseMessagesOperationDelegate, AddMessageViewControllerDelegate, UIScrollViewDelegate, AlerteModoViewControllerDelegate, WKNavigationDelegate, WKUIDelegate, UIGestureRecognizerDelegate> {
+@interface MessagesTableViewController : PageViewController <UIActionSheetDelegate, ParseMessagesOperationDelegate, UIScrollViewDelegate, WKNavigationDelegate, WKUIDelegate, UIGestureRecognizerDelegate> {
     
     WKWebView *messagesWebView;
     UIView *loadingView;
@@ -138,8 +131,6 @@
 @property (nonatomic, strong) NSMutableArray *updatedArrayData;
 
 @property (nonatomic, strong) MessagesTableViewController *messagesTableViewController;
-@property (nonatomic, strong) SmileyCodeTableViewController *smileyCodeTableViewController;
-
 @property (nonatomic, strong) UISwipeGestureRecognizer *swipeLeftRecognizer;
 @property (nonatomic, strong) UISwipeGestureRecognizer *swipeRightRecognizer;
 

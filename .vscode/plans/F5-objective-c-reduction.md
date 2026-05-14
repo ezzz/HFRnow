@@ -170,6 +170,23 @@ Critère :
 
 - `MessagesView` reste fonctionnel et le worker ObjC reste isolé.
 
+Statut 2026-05-14 :
+
+- Q4.1 réalisé : `AlerteModoViewController` et son XIB sont retirés de la cible `HFRswift`.
+- `MessagesTableViewController` ne conforme plus à `AlerteModoViewControllerDelegate` et n'importe plus `AlerteModoViewController`.
+- L'ancien `actionAlerter` du worker ne présente plus d'UI UIKit ; `MessagesView` utilise déjà `ModerationAlertComposerView` via les `alertURL` exportées.
+- Build `HFRswift` Debug iOS Simulator OK.
+
+Statut 2026-05-14, passe Q4.2/Q4.3/Q4.4 :
+
+- `PollTableViewController`, `PollResultTableViewCell` et leurs XIB sont retirés de la cible `HFRswift`.
+- `ProfilViewController` et son XIB sont retirés de la cible `HFRswift`; le `FeedbackViewController` legacy embarqué dans son `.m` sort donc aussi de la cible Swift.
+- `AddMessageViewController`, `QuoteMessageViewController`, `EditMessageViewController`, `NewMessageViewController`, `DeleteMessageViewController`, `SmileyViewController`, `RehostImageViewController`, `RehostCell`, `RehostCollectionCell` et les XIB associés sont retirés de la cible `HFRswift`.
+- `MessagesTableViewController` conserve son rôle de worker, mais ne présente plus ces UI UIKit legacy; les chemins SwiftUI existants portent sondage, profil, réponse, quote, édition/suppression et MP.
+- `TopicsTableViewController` n'expose plus les headers du composer dans son header public; le fallback legacy reste isolé hors `APP_SWIFT`.
+- `SmileyAlertView` et `SmileyCodeTableViewController` restent dans `HFRswift` pour le menu d'action sur les smileys déjà affichés dans les messages.
+- Build `HFRswift` Debug iOS Simulator OK.
+
 ## Lot Q5 — Listes legacy remplacées par SwiftUI
 
 Candidats :

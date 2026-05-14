@@ -9,9 +9,7 @@
 
 #import "MessagesTableViewController.h"
 #import "MessagesSearchTableViewController.h"
-#import "SmileyCodeTableViewController.h"
 #import "TopicsTableViewController.h"
-#import "PollTableViewController.h"
 
 #import "RegexKitLite.h"
 #import "HTMLParser.h"
@@ -23,7 +21,6 @@
 
 #import "LinkItem.h"
 #import <CommonCrypto/CommonDigest.h>
-#import "ProfilViewController.h"
 #import "UIMenuItem+CXAImageSupport.h"
 #import "UIImpactFeedbackGenerator+UserDefaults.h"
 #import "BlackList.h"
@@ -43,7 +40,7 @@
 
 @implementation MessagesTableViewController
 
-@synthesize loaded, isLoading, _topicName, topicAnswerUrl, loadingView, errorLabelView, messagesWebView, arrayData, updatedArrayData, messagesTableViewController, smileyCodeTableViewController, pollNode, pollParser, isNewPoll;
+@synthesize loaded, isLoading, _topicName, topicAnswerUrl, loadingView, errorLabelView, messagesWebView, arrayData, updatedArrayData, messagesTableViewController, pollNode, pollParser, isNewPoll;
 @synthesize swipeLeftRecognizer, swipeRightRecognizer, overview, arrayActionsMessages, lastStringFlagTopic;
 @synthesize searchBg, searchBox, searchKeyword, searchPseudo, searchFilter, searchFromFP, searchInputData, isSearchInstra, errorReported, isSeparatorNewMessages;
 @synthesize queue;
@@ -1239,23 +1236,7 @@
 }
 
 -(void)showPoll {
-    
-    PollTableViewController *pollVC = [[PollTableViewController alloc] initWithPollNode:self.pollNode andParser:self.pollParser];
-    pollVC.delegate = self;
-    
-    // Set options
-    pollVC.wantsFullScreenLayout = YES; // Decide if you want the photo browser full screen, i.e. whether the status bar is affected (defaults to YES)
-
-    HFRNavigationController *nc = [[HFRNavigationController alloc] initWithRootViewController:pollVC];
-    //nc.modalTransitionStyle = UIModalTransitionStyleCoverVertical;
-    nc.modalPresentationStyle = UIModalPresentationFormSheet;
-
-    [self presentModalViewController:nc animated:YES];
-    
-    
-    //[self.navigationController pushViewController:browser animated:YES];
-    
-    
+    // The SwiftUI MessagesView presents PollSheet from exported poll metadata.
 }
 
 -(void)markUnread {
@@ -1307,21 +1288,7 @@
 
 -(void)answerTopic
 {
-	while (self.isAnimating) {
-	}
-         
-    HFRNavigationController *navigationController;
-    NewMessageViewController *addMessageViewController = [[NewMessageViewController alloc] initWithNibName:@"AddMessageViewController" bundle:nil];
-        addMessageViewController.delegate = self;
-        [addMessageViewController setUrlQuote:[NSString stringWithFormat:@"%@%@", [k ForumURL], topicAnswerUrl]];
-        addMessageViewController.title = @"Nouv. Réponse";
-     if (@available(iOS 13.0, *)) {
-         [addMessageViewController setModalPresentationStyle: UIModalPresentationFullScreen];
-    }
-
-    navigationController = [[HFRNavigationController alloc] initWithRootViewController:addMessageViewController];
-    navigationController.modalPresentationStyle = UIModalPresentationFullScreen;
-	[self presentModalViewController:navigationController animated:YES];
+    // The SwiftUI MessagesView presents AnswerView.
 }
 
 
@@ -1332,27 +1299,7 @@
 }
 
 -(void)quoteMessage:(NSString *)quoteUrl andSelectedText:(NSString *)selected withBold:(BOOL)boldSelection {
-    if (self.isAnimating) {
-        return;
-    }
-    
-    QuoteMessageViewController *quoteMessageViewController = [[QuoteMessageViewController alloc]
-                                                              initWithNibName:@"AddMessageViewController" bundle:nil];
-    quoteMessageViewController.delegate = self;
-    [quoteMessageViewController setUrlQuote:quoteUrl];
-    [quoteMessageViewController setTextQuote:selected];
-    [quoteMessageViewController setBoldQuote:boldSelection];
-    
-    // Create the navigation controller and present it modally.
-    HFRNavigationController *navigationController = [[HFRNavigationController alloc]
-                                                     initWithRootViewController:quoteMessageViewController];
-    
-    navigationController.modalPresentationStyle = UIModalPresentationFullScreen;
-    [self presentModalViewController:navigationController animated:YES];
-    
-    // The navigation controller is now owned by the current view controller
-    // and the root view controller is owned by the navigation controller,
-    // so both objects should be released to prevent over-retention.
+    // The SwiftUI MessagesView prepares quote drafts and presents AnswerView.
 }
 
 -(void)quoteMessage:(NSString *)quoteUrl andSelectedText:(NSString *)selected {
@@ -1366,22 +1313,7 @@
 
 -(void)editMessage:(NSString *)editUrl
 {
-	if (self.isAnimating) {
-		return;
-	}
-	
-	EditMessageViewController *editMessageViewController = [[EditMessageViewController alloc]
-															  initWithNibName:@"AddMessageViewController" bundle:nil];
-	editMessageViewController.delegate = self;
-	[editMessageViewController setUrlQuote:editUrl];
-	
-	// Create the navigation controller and present it modally.
-	HFRNavigationController *navigationController = [[HFRNavigationController alloc]
-													initWithRootViewController:editMessageViewController];
-    
-    navigationController.modalPresentationStyle = UIModalPresentationFullScreen;
-	[self presentModalViewController:navigationController animated:YES];
-    
+    // The SwiftUI MessagesView owns edit/delete flows.
 }
 
 - (void)viewWillAppear:(BOOL)animated {
@@ -1591,19 +1523,6 @@
 }
 
 #pragma mark -
-#pragma mark AlerteModo Delegate
-
-- (void)alertModoViewControllerDidFinish:(AlerteModoViewController *)controller {
-    NSLog(@"alertModoViewControllerDidFinish");
-    [self dismissModalViewControllerAnimated:YES];
-}
-- (void)alertModoViewControllerDidFinishOK:(AlerteModoViewController *)controller {
-    NSLog(@"alertModoViewControllerDidFinishOK");
-    [self dismissModalViewControllerAnimated:YES];
-
-}
-
-#pragma mark -
 #pragma mark AddMessage Delegate
 -(BOOL) canBeFavorite{
 	if ([self isUnreadable]) {
@@ -1655,65 +1574,6 @@
 	}
 }
 //--form to fast answer	
-
-- (void)addMessageViewControllerDidFinish:(AddMessageViewController *)controller {
-    //NSLog(@"addMessageViewControllerDidFinish %@", self.editFlagTopic);
-
-	[self setEditFlagTopic:nil];
-	[self dismissModalViewControllerAnimated:YES];
-}
-
-- (void)addMessageViewControllerDidFinishOK:(AddMessageViewController *)controller {
-	NSLog(@"addMessageViewControllerDidFinishOK");
-    [self dismissViewControllerAnimated:NO completion:^{
-        if (self.arrayData.count > 0) {
-            //NSLog(@"curid %d", self.curPostID);
-            NSString *components = [[[self.arrayData objectAtIndex:0] quoteJS] substringFromIndex:7];
-            components = [components stringByReplacingOccurrencesOfString:@"); return false;" withString:@""];
-            components = [components stringByReplacingOccurrencesOfString:@"'" withString:@""];
-            NSArray *quoteComponents = [components componentsSeparatedByString:@","];
-            NSString *nameCookie = [NSString stringWithFormat:@"quotes%@-%@-%@", [quoteComponents objectAtIndex:0], [quoteComponents objectAtIndex:1], [quoteComponents objectAtIndex:2]];
-            [self EffaceCookie:nameCookie];
-        }
-        
-        self.curPostID = -1;
-        [self setStringFlagTopic:[[controller refreshAnchor] copy]];
-        NSLog(@"addMessageViewControllerDidFinishOK stringFlagTopic %@", self.stringFlagTopic);
-        [self searchNewMessages:kNewMessageFromEditor];
-    }];
-
-    // Check if user is teletubbiesed
-    if (controller.statusMessage != nil && [controller.statusMessage rangeOfString:@"télétubbies"].location != NSNotFound) {
-        UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Tu es TT !"
-                                                                       message:controller.statusMessage
-                                                                preferredStyle:UIAlertControllerStyleAlert];
-
-        [self presentViewController:alert animated:YES completion:^{
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-                [alert dismissViewControllerAnimated:YES completion:^{
-                    [[HFRplusAppDelegate sharedAppDelegate] openURL:kTTURL];
-                }];
-            });
-        }];
-        [[ThemeManager sharedManager] applyThemeToAlertController:alert];
-    } else {
-        UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Hooray !"
-                                                                       message:controller.statusMessage
-                                                                preferredStyle:UIAlertControllerStyleAlert];
-
-        int duration = 1.5;
-        if (![[NSUserDefaults standardUserDefaults] boolForKey:@"theme_noel_disabled"]) {
-            duration = 1;
-        }
-        
-        [self presentViewController:alert animated:YES completion:^{
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, duration * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-                [alert dismissViewControllerAnimated:YES completion:nil];
-            });
-        }];
-        [[ThemeManager sharedManager] applyThemeToAlertController:alert];
-    }
-}
 
 #pragma mark -
 #pragma mark Parse Operation Delegate
@@ -2209,15 +2069,7 @@
             bAllow = NO;
         }
         else if ([[aRequest.URL host] isEqualToString:@"forum.hardware.fr"] && [[[aRequest.URL pathComponents] objectAtIndex:1] isEqualToString:@"hfr"] && [testProfilUrl evaluateWithObject: [[aRequest.URL pathComponents] objectAtIndex:2]]) {
-            ProfilViewController *profilVC = [[ProfilViewController alloc] initWithNibName:@"ProfilViewController" bundle:nil andUrl:[aRequest.URL path]];
-            
-            // Set options
-            profilVC.wantsFullScreenLayout = YES;
-            
-            HFRNavigationController *nc = [[HFRNavigationController alloc] initWithRootViewController:profilVC];
-            nc.modalPresentationStyle = UIModalPresentationFormSheet;
-            
-            [self presentModalViewController:nc animated:YES];
+            [[HFRplusAppDelegate sharedAppDelegate] openURL:[aRequest.URL absoluteString]];
             bAllow = NO;
         }
         else if ([[aRequest.URL host] isEqualToString:@"forum.hardware.fr"] && ([[[aRequest.URL pathComponents] objectAtIndex:1] isEqualToString:@"forum2.php"] || [[[aRequest.URL pathComponents] objectAtIndex:1] isEqualToString:@"hfr"])) {
@@ -2636,17 +2488,7 @@ API_AVAILABLE(ios(16.0)) {
 	
 }
 -(void)actionProfil:(NSNumber *)curMsgN {
-    int curMsg = [curMsgN intValue];
-
-    ProfilViewController *profilVC = [[ProfilViewController alloc] initWithNibName:@"ProfilViewController" bundle:nil andUrl:[[arrayData objectAtIndex:curMsg] urlProfil]];
-    
-    // Set options
-    profilVC.wantsFullScreenLayout = YES;
-    
-    HFRNavigationController *nc = [[HFRNavigationController alloc] initWithRootViewController:profilVC];
-    nc.modalPresentationStyle = UIModalPresentationFormSheet;
-    
-    [self presentModalViewController:nc animated:YES];
+    // The SwiftUI MessagesView presents UserProfileView from exported profile metadata.
 }
 
 - (void)actionAQ:(NSNumber *)curMsgN {
@@ -2916,27 +2758,7 @@ API_AVAILABLE(ios(16.0)) {
 
 -(void) actionAlerter:(NSNumber *)curMsgN {
     NSLog(@"actionAlerter %@", curMsgN);
-    if (self.isAnimating) {
-        return;
-    }
-    
-    int curMsg = [curMsgN intValue];
-    
-    NSString *alertUrl = [NSString stringWithFormat:@"%@%@", [k ForumURL], [[arrayData objectAtIndex:curMsg] urlAlert]];
-    
-    AlerteModoViewController *alerteMessageViewController = [[AlerteModoViewController alloc]
-                                                             initWithNibName:@"AlerteModoViewController" bundle:nil];
-    alerteMessageViewController.delegate = self;
-    [alerteMessageViewController setUrl:alertUrl];
-    
-    HFRNavigationController *navigationController = [[HFRNavigationController alloc]
-                                                     initWithRootViewController:alerteMessageViewController];
-    
-    navigationController.modalPresentationStyle = UIModalPresentationFormSheet;
-    [self presentModalViewController:navigationController animated:YES];
-
-    
-    
+    // The SwiftUI MessagesView handles moderation alerts from exported alertURL metadata.
 }
 
 -(void) actionAlerterAnon:(NSNumber *)curMsgN {
@@ -2955,26 +2777,7 @@ API_AVAILABLE(ios(16.0)) {
 
 -(void) actionSupprimer:(NSNumber *)curMsgN {
     NSLog(@"actionSupprimer %@", curMsgN);
-    if (self.isAnimating) {
-        return;
-    }
-
-    int curMsg = [curMsgN intValue];
-    
-    NSString *editUrl = [NSString stringWithFormat:@"%@%@", [k ForumURL], [[[arrayData objectAtIndex:curMsg] urlEdit] decodeSpanUrlFromString]];
-    NSLog(@"DEL editUrl = %@", editUrl);
-    
-    DeleteMessageViewController *delMessageViewController = [[DeleteMessageViewController alloc]
-                                                              initWithNibName:@"AddMessageViewController" bundle:nil];
-    delMessageViewController.delegate = self;
-    [delMessageViewController setUrlQuote:editUrl];
-    
-    HFRNavigationController *navigationController = [[HFRNavigationController alloc]
-                                                     initWithRootViewController:delMessageViewController];
-    
-    navigationController.modalPresentationStyle = UIModalPresentationFullScreen;
-    [self presentModalViewController:navigationController animated:YES];
-
+    // The SwiftUI MessagesView owns deletion through ReplyService.
 }
 
 -(void) actionBL:(NSNumber *)curMsgN {
@@ -3023,30 +2826,7 @@ API_AVAILABLE(ios(16.0)) {
 
 
 -(void)actionMessage:(NSNumber *)curMsgN {
-	if (self.isAnimating) {
-		return;
-	}
-	
-	int curMsg = [curMsgN intValue];
-	
-	//NSLog(@"actionMessage %d = %@", curMsg, curMsgN);
-	//[[HFRplusAppDelegate sharedAppDelegate] openURL:[NSString stringWithFormat:@"http://forum.hardware.fr%@", forumNewTopicUrl]];
-	
-	NewMessageViewController *editMessageViewController = [[NewMessageViewController alloc]
-														   initWithNibName:@"AddMessageViewController" bundle:nil];
-	editMessageViewController.delegate = self;
-	[editMessageViewController setUrlQuote:[NSString stringWithFormat:@"%@%@", [k ForumURL], [[arrayData objectAtIndex:curMsg] MPUrl]]];
-	editMessageViewController.title = @"Nouv. Message";
-	// Create the navigation controller and present it modally.
-	HFRNavigationController *navigationController = [[HFRNavigationController alloc]
-													initWithRootViewController:editMessageViewController];
-    
-    navigationController.modalPresentationStyle = UIModalPresentationFullScreen;
-	[self presentModalViewController:navigationController animated:YES];
-    
-	// The navigation controller is now owned by the current view controller
-	// and the root view controller is owned by the navigation controller,
-	// so both objects should be released to prevent over-retention.
+    // Legacy MP composer removed from the Swift target.
 }
 
 -(void) EcrireCookie:(NSString *)nom withVal:(NSString *)valeur {

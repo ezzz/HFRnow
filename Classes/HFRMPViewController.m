@@ -21,6 +21,7 @@
 #import <CommonCrypto/CommonDigest.h>
 #import "BlackList.h"
 #import "SDWebImage.h"
+#import "ASIHTTPRequest.h"
 
 @implementation HFRMPViewController
 

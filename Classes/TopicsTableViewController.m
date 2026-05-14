@@ -20,6 +20,8 @@
 #import "UIScrollView+SVPullToRefresh.h"
 #if !APP_SWIFT
 #import "AideViewController.h"
+#import "AddMessageViewController.h"
+#import "NewMessageViewController.h"
 #endif
 #import "ThemeColors.h"
 #import "ThemeManager.h"
@@ -208,6 +210,9 @@
 
 - (void)newTopic
 {
+#if APP_SWIFT
+    [[HFRplusAppDelegate sharedAppDelegate] openURL:[NSString stringWithFormat:@"%@%@", [k ForumURL], self.forumNewTopicUrl]];
+#else
 	//[[HFRplusAppDelegate sharedAppDelegate] openURL:[NSString stringWithFormat:@"http://forum.hardware.fr%@", forumNewTopicUrl]];
 
 	NewMessageViewController *editMessageViewController = [[NewMessageViewController alloc]
@@ -225,6 +230,7 @@
 	// The navigation controller is now owned by the current view controller
 	// and the root view controller is owned by the navigation controller,
 	// so both objects should be released to prevent over-retention.
+#endif
 
 }
 
@@ -448,6 +454,7 @@
 
 #pragma mark - AddMessage Delegate
 
+#if !APP_SWIFT
 - (void)addMessageViewControllerDidFinish:(AddMessageViewController *)controller {
     //NSLog(@"addMessageViewControllerDidFinish %@", self.editFlagTopic);
 	
@@ -461,6 +468,7 @@
 	[self dismissModalViewControllerAnimated:YES];
 	[self.navigationController popToViewController:self animated:NO];
 }
+#endif
 
 #pragma mark - Table view data source
 - (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section

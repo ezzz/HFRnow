@@ -29,6 +29,7 @@
 #import <BackgroundTasks/BackgroundTasks.h>
 #import <UserNotifications/UserNotifications.h>
 #import "HTMLParser.h"
+#import "ASIHTTPRequest.h"
 
 #define NOTIFICATION_BACKGROUND_REFRESH YES
 #define BACKGROUND_MAINTENANCE          YES

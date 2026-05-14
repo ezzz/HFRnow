@@ -16,10 +16,7 @@
 @class Topic;
 @class Forum;
 
-#import "AddMessageViewController.h"
-#import "NewMessageViewController.h"
-
-@interface TopicsTableViewController : BaseTopicsViewController <AddMessageViewControllerDelegate, UIPickerViewDelegate, UIPickerViewDataSource, UIActionSheetDelegate, UIGestureRecognizerDelegate, UITableViewDelegate, UITableViewDataSource, UIPopoverPresentationControllerDelegate, UIAdaptivePresentationControllerDelegate> {
+@interface TopicsTableViewController : BaseTopicsViewController <UIPickerViewDelegate, UIPickerViewDataSource, UIActionSheetDelegate, UIGestureRecognizerDelegate, UITableViewDelegate, UITableViewDataSource, UIPopoverPresentationControllerDelegate, UIAdaptivePresentationControllerDelegate> {
 	
 }
 
