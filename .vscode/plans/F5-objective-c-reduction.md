@@ -227,6 +227,25 @@ Critère :
 
 - Aucun XIB supprimé n'est chargé dynamiquement par nom.
 
+Statut 2026-05-14 :
+
+- `AccessoryView.xib`, `FeedbackTableViewCell`, `FeedbackViewController.xib`, `PersonnalLinkViewController.xib`, `ConfigurationViewController.xib`, `HFRDebugViewController` et son XIB sont retirés de la cible `HFRswift`.
+- `CreditsViewController` et son XIB sont retirés de la cible `HFRswift`; `credits.html` et `charte.html` restent conservés car `StaticInfoPageView` les utilise pour les routes SwiftUI.
+- `ColorPickerViewController`, `ThemeColorCellView`, `ThemeBrightnessCellView` et leurs XIB sont retirés de la cible `HFRswift`; `ThemeSettingsViewController` était déjà hors cible Swift.
+- `PopupViewController` et son XIB sont retirés de la cible `HFRswift`; ils ne sont plus référencés que par `SmileyViewController`, déjà sorti de cette cible.
+- `RehostImage.m` est retiré de la cible `HFRswift`; les écrans legacy `RehostImageViewController`, `RehostCell` et `RehostCollectionCell` étaient déjà hors cible Swift.
+- `SmileyAlertView`, `SmileyCodeTableViewController`, `SmileyCodeCellView` et leurs XIB restent conservés : `MessagesTableViewController` appelle encore `SmileyAlertView` pour l'action smiley depuis le rendu topic.
+- `SimpleCellView` reste conservé pour l'instant : `ThemeManager` référence encore explicitement sa classe.
+- Build `HFRswift` Debug iOS Simulator OK.
+
+Audit des suivants :
+
+- `PageViewController` reste nécessaire : `MessagesTableViewController`, `BaseTopicsViewController` et `OfflineMessagesTableViewController` en héritent encore.
+- `SimplePhotoViewController` reste nécessaire : `MessagesTableViewController` l'instancie encore pour l'affichage photo.
+- `FavoriteCellView`, `FavoritesTableViewController` et leurs XIB restent nécessaires : `Common.swift` instancie encore `FavoritesTableViewController` comme worker pour les favoris.
+- `FilterPostsQuotes` reste nécessaire : `FavoritePostFilterService` l'instancie encore comme worker.
+- `SmileyCode*` reste nécessaire tant que l'action smiley dans `MessagesTableViewController` passe par `SmileyAlertView`.
+
 ## À garder explicitement pour l'instant
 
 | Zone | Raison |
