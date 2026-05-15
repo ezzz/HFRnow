@@ -13,13 +13,18 @@
 #import "ASIHTTPRequest.h"
 #import "Constants.h"
 #import "ParseMessagesOperation.h"
+#if !APP_SWIFT
 #import "FavoritesTableViewController.h"
+#endif
 #import "MessagesTableViewController.h"
 #import "HFRAlertView.h"
 
 @implementation FilterPostsQuotes
 
-@synthesize topic, request, arrData, iLastPageLoaded, bIsFinished, progressView, alertProgress, favoriteVC, messagesTableVC, bShowPostsRequired, stopRequired;
+@synthesize topic, request, arrData, iLastPageLoaded, bIsFinished, progressView, alertProgress, messagesTableVC, bShowPostsRequired, stopRequired;
+#if !APP_SWIFT
+@synthesize favoriteVC;
+#endif
 
 //static FilterPostsQuotes *_shared = nil;    // static instance variable
 
@@ -39,6 +44,7 @@
 
 #pragma mark - Main method
 
+#if !APP_SWIFT
 - (void)checkPostsAndQuotesForTopic:(Topic *)topic andVC:(FavoritesTableViewController*) vc{
     self.favoriteVC = vc;
     self.messagesTableVC = nil;
@@ -47,6 +53,7 @@
         [self fetchContentForTopic:topic];
     });
 }
+#endif
 
 - (void)checkNextPostsAndQuotesWithVC:(MessagesTableViewController*) vc {
     self.messagesTableVC = vc;
@@ -120,12 +127,14 @@
                 self.arrData = [self.arrData arrayByAddingObjectsFromArray:parser.workingArray];
             }
         }
+#if !APP_SWIFT
         if (self.arrData.count > 0) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 NSArray* arrActions = [self.alertProgress actions];
                 [arrActions[0] setEnabled:YES];
             });
         }
+#endif
         float fProgress = ((float)iNbPagesLoaded+1)/(topic.maxTopicPage - self.iStartPage);
         NSString* sMessage = @"Aucun post trouvé";
         if (self.arrData.count == 1) {
@@ -135,7 +144,9 @@
             sMessage = [NSString stringWithFormat:@"%ld posts trouvés", (long)self.arrData.count];
         }
         sMessage = [NSString stringWithFormat:@"%@\n%ld/%ld", sMessage, (unsigned long)iPageToLoad, (unsigned long)topic.maxTopicPage];
+#if !APP_SWIFT
         [self updateProgressBarWithPercent:fProgress andMessage:sMessage];
+#endif
         
         if (iPageToLoad == topic.maxTopicPage) {
             self.bIsFinished = YES;
@@ -151,6 +162,7 @@
     }
     self.iLastPageLoaded = iPageToLoad;
     if (!self.stopRequired && (self.arrData.count >= 40 || self.bShowPostsRequired || (self.arrData.count >= 1 && bIsFinished))) {
+#if !APP_SWIFT
         dispatch_async(dispatch_get_main_queue(), ^{
             self.progressView.progress = 1.0;
         });
@@ -176,6 +188,7 @@
         dispatch_async(dispatch_get_main_queue(), ^{
             [self.alertProgress dismissViewControllerAnimated:YES completion:nil];
         });
+#endif
     }
 }
 
@@ -342,6 +355,7 @@
 }
 
 - (void) displayPosts:(Topic*)topic {
+#if !APP_SWIFT
     self.favoriteVC.messagesTableViewController = [[MessagesTableViewController alloc] init];
     self.favoriteVC.messagesTableViewController.currentUrl = topic.aURL;
     self.favoriteVC.messagesTableViewController.filterPostsQuotes = self;
@@ -350,6 +364,7 @@
     self.favoriteVC.messagesTableViewController.isViewed = topic.isViewed;
     
     [self.favoriteVC pushTopic];
+#endif
 }
 
 - (void) displayNextPosts {

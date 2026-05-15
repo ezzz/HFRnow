@@ -266,6 +266,97 @@ Statut 2026-05-14, suite Q6 favoris :
 - Les références UIKit legacy à `FavoritesTableViewController` dans `TabBarController`, `SplitViewController` et `HFRplusAppDelegate` sont isolées hors `APP_SWIFT`.
 - Build `HFRswift` Debug iOS Simulator OK.
 
+Audit 2026-05-15 :
+
+- `FilterPostsQuotes` est maintenant scindé de fait en deux usages :
+  - côté Swift actif : `fetchFilteredPostsForTopic:startPage:progress:completion:` et `cancelSwiftFiltering`, appelés par `FavoritePostFilterService`;
+  - côté UIKit legacy : `favoriteVC`, `checkPostsAndQuotesForTopic:andVC:`, barre de progression UIKit et `displayPosts:`, encore liés à `FavoritesTableViewController`.
+- Suite logique pour `FilterPostsQuotes` : isoler ou supprimer le chemin UIKit legacy sous `APP_SWIFT`, puis réduire son header public aux seules API utilisées par Swift et `MessagesTableViewController`.
+- `PageViewController` reste nécessaire dans `HFRswift` : `MessagesTableViewController` en hérite encore et utilise ses états de pagination, ses URLs de page et le support offline.
+- `BaseTopicsViewController` reste nécessaire dans `HFRswift` : `TopicsTableViewController` et `TopicsSearchViewController` en héritent encore, et les loaders Swift dépendent toujours de leur parsing/navigation topic.
+- Suite logique pour `PageViewController` / `BaseTopicsViewController` : ne pas tenter une suppression directe ; extraire d'abord des workers dédiés pour les listes topics (`TopicsTableViewController`, `TopicsSearchViewController`, éventuellement `HFRMPViewController`) puis réévaluer la hiérarchie UIKit restante.
+
+Statut 2026-05-15, suite Q6 `FilterPostsQuotes` :
+
+- La dépendance directe à `FavoritesTableViewController` est isolée hors `APP_SWIFT` dans `FilterPostsQuotes`.
+- Le chemin UIKit favoris legacy (`favoriteVC`, `checkPostsAndQuotesForTopic:andVC:`, `displayPosts:`) n'est plus exposé dans le build Swift.
+- Le chemin `MessagesTableViewController` reste conservé dans `HFRswift` : le worker topic appelle encore `checkNextPostsAndQuotesWithVC:`.
+- Build `HFRswift` Debug iOS Simulator OK.
+
+Découpage recommandé pour l'extraction topics :
+
+1. Extraire `ObjCForumTopicsLoaderWorker` depuis le chemin `fetchContentForForum:flagIndex:pageURL:completion:` de `TopicsTableViewController`.
+2. Extraire `ObjCForumSearchWorker` depuis les méthodes `performForumSearchWithParams:completion:` / `fetchForumSearchPageURL:completion:` de `TopicsSearchViewController`.
+3. Extraire `ObjCMPTopicsLoaderWorker` depuis `fetchContentWithCompletion:` de `HFRMPViewController`.
+4. Seulement après ces trois bascules, réauditer `BaseTopicsViewController` puis `PageViewController`.
+
+Statut 2026-05-15, extraction topics :
+
+- `ObjCForumTopicsLoader` n'instancie plus directement `TopicsTableViewController`; il passe par `ObjCForumTopicsLoaderWorker`.
+- Cette première extraction conserve provisoirement `BaseTopicsViewController` comme support de parsing partagé. Le parser topic y reste encore mêlé à du code UIKit, donc une suppression directe serait prématurée.
+- `TopicsTableViewController` reste compilé dans `HFRswift` pour l'instant : il reste utilisé par le legacy interne et n'est pas encore le prochain fichier supprimable.
+- Audit après cette bascule :
+  - `BaseTopicsViewController` reste requis par `ObjCForumTopicsLoaderWorker`, `TopicsTableViewController` et `TopicsSearchViewController`;
+  - `PageViewController` reste requis par `MessagesTableViewController`, `OfflineMessagesTableViewController` et `BaseTopicsViewController`.
+- Suite logique inchangée : extraire ensuite la recherche forum, puis les MP, avant de déplacer le parsing hors de la hiérarchie UIKit et de réévaluer les suppressions.
+
+Statut 2026-05-15, passe workers recherche/MP :
+
+- `ObjCForumSearchService` n'instancie plus directement `TopicsSearchViewController`; il passe par `ObjCForumSearchWorker`.
+- `ObjCMPTopicsLoader` n'instancie plus directement `HFRMPViewController`; il passe par `ObjCMPTopicsLoaderWorker`.
+- `ObjCMPTopicsLoaderWorker` réutilise désormais le chemin worker topic commun pour charger `/forum1.php?config=hfr.inc&cat=prive&page=1`, sans initialiser la vue UIKit MP.
+- Build `HFRswift` Debug iOS Simulator OK.
+
+Réaduit après les trois bascules worker :
+
+- `TopicsTableViewController`, `TopicsSearchViewController` et `HFRMPViewController` ne sont plus des points d'entrée directs depuis Swift.
+- Ils ne sont pas encore supprimables de `HFRswift` :
+  - `ObjCForumSearchWorker` hérite encore de `TopicsSearchViewController`, car toute la logique de recherche est encore portée par cette classe ;
+  - `HFRMPViewController` reste référencé par le legacy UIKit interne (`SplitViewController`, `TabBarController`, `HFRplusAppDelegate`) ;
+  - `TopicsTableViewController` reste la base UIKit de `HFRMPViewController` et garde des références legacy internes.
+- Le prochain vrai lot de suppression n'est donc plus un simple changement de loader : il faut extraire `parseTopicsListResult:` et l'état de pagination topic dans un composant non-UIKit, puis réimplémenter `ObjCForumSearchWorker` sans héritage de `TopicsSearchViewController`.
+- Après seulement cette extraction de parser, réauditer :
+  1. retrait de `TopicsSearchViewController` du build Swift ;
+  2. retrait éventuel de `HFRMPViewController` / `TopicsTableViewController` si les références legacy restantes sont isolables sous `!APP_SWIFT` ;
+  3. réduction ou retrait de `BaseTopicsViewController`, puis de `PageViewController`.
+
+Statut 2026-05-15, découplage recherche :
+
+- `ObjCForumSearchWorker` ne dépend plus de `TopicsSearchViewController`; il porte maintenant directement le bridge de recherche forum et réutilise le chemin worker topic partagé.
+- `TopicsSearchViewController` n'est donc plus requis par les routes Swift actives.
+- La tentative suivante de suppression doit rester séparée du déplacement de parser : `parseTopicsListResult:` mélange encore parsing, notifications et construction du footer UIKit dans `BaseTopicsViewController`.
+- Pour sortir réellement le parser, il faut d'abord séparer ce bloc en deux responsabilités :
+  1. un résultat de parsing sans UIKit (topics, pagination, filtres, état MP, statut) ;
+  2. l'application de ce résultat à l'UI legacy (`setSegmentEnabled`, footer de pagination, notifications).
+- `TopicsSearchViewController.m` est retiré de la cible `HFRswift`; le bouton de recherche forum UIKit restant dans `TopicsTableViewController` est isolé hors `APP_SWIFT`.
+
+Audit 2026-05-15 après validation runtime :
+
+- Validation manuelle utilisateur reçue après la bascule des trois workers : app toujours OK.
+- Suppression effectivement obtenue dans cette passe : `TopicsSearchViewController.m` sort de `HFRswift`.
+- Suppressions encore bloquées :
+  - `TopicsTableViewController` reste référencé par `ForumsTableViewController`, `FavoritesTableViewController`, `SplitViewController`, `OnlineMessagesTableViewController` et comme superclasse de `HFRMPViewController`;
+  - `HFRMPViewController` reste référencé par `SplitViewController`, `TabBarController` et `HFRplusAppDelegate`;
+  - `BaseTopicsViewController` reste nécessaire à `ObjCForumTopicsLoaderWorker`, `ObjCForumSearchWorker`, `ObjCMPTopicsLoaderWorker` et `TopicsTableViewController`;
+  - `PageViewController` reste nécessaire à `MessagesTableViewController`, `OfflineMessagesTableViewController` et `BaseTopicsViewController`.
+- Conclusion : les points 1 à 4 ne peuvent pas être terminés honnêtement par simple suppression après les tests manuels ; le prochain lot est un refactor structurant, pas un nettoyage :
+  1. introduire un `ObjCTopicListParsingResult` sans UIKit ;
+  2. extraire dans un parseur dédié la lecture HTML et la production de ce résultat ;
+  3. laisser `BaseTopicsViewController` appliquer seulement les effets UI legacy à partir du résultat ;
+  4. faire consommer le résultat directement par les workers, puis réauditer les retraits de `TopicsTableViewController`, `HFRMPViewController`, `BaseTopicsViewController` et `PageViewController`.
+
+Statut 2026-05-15, extraction parser topic :
+
+- `ObjCTopicListParsingResult` et `ObjCTopicListParser` isolent désormais le parsing HTML topic hors de la hiérarchie UIKit.
+- `BaseTopicsViewController` applique le résultat de parsing au legacy UI via `applyTopicListParsingResult:`.
+- `ObjCForumTopicsLoaderWorker`, `ObjCForumSearchWorker` et `ObjCMPTopicsLoaderWorker` consomment directement le résultat du parser partagé.
+- Réaudit après extraction :
+  - `TopicsSearchViewController.m` reste bien hors de `HFRswift`;
+  - `TopicsTableViewController` et `HFRMPViewController` restent compilés uniquement à cause de routes UIKit legacy internes encore présentes dans `ForumsTableViewController`, `SplitViewController`, `TabBarController` et `HFRplusAppDelegate`;
+  - `BaseTopicsViewController` reste requis par les workers pour le transport réseau et l'application commune du résultat;
+  - `PageViewController` reste requis par `MessagesTableViewController`, `OfflineMessagesTableViewController` et `BaseTopicsViewController`.
+- Conclusion de la passe : les étapes 1 à 4 sont réalisées, mais aucune suppression supplémentaire autre que `TopicsSearchViewController.m` n'est encore sûre sans traiter explicitement les dernières routes UIKit legacy elles-mêmes.
+
 ## À garder explicitement pour l'instant
 
 | Zone | Raison |

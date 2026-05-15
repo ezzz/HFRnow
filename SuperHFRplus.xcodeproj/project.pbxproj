@@ -60,6 +60,10 @@
 		152D2D4C24619CC500D9D644 /* 08-pin-20@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 152D2D4B24619CC400D9D644 /* 08-pin-20@2x.png */; };
 		152D2D4E2461AE1900D9D644 /* 08-pin@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 152D2D4D2461AE1900D9D644 /* 08-pin@2x.png */; };
 		152FD2F62DF55D31007268D3 /* BaseTopicsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 152FD2F52DF55D31007268D3 /* BaseTopicsViewController.m */; };
+		158CFB042E37400200594F1 /* ObjCForumTopicsLoaderWorker.m in Sources */ = {isa = PBXBuildFile; fileRef = 158CFB032E37400200594F1 /* ObjCForumTopicsLoaderWorker.m */; };
+		158CFB052E37400300594F1 /* ObjCForumSearchWorker.m in Sources */ = {isa = PBXBuildFile; fileRef = 158CFB072E37400300594F1 /* ObjCForumSearchWorker.m */; };
+		158CFB062E37400400594F1 /* ObjCMPTopicsLoaderWorker.m in Sources */ = {isa = PBXBuildFile; fileRef = 158CFB092E37400400594F1 /* ObjCMPTopicsLoaderWorker.m */; };
+		158CFB0B2E37400500594F1 /* ObjCTopicListParser.m in Sources */ = {isa = PBXBuildFile; fileRef = 158CFB0D2E37400500594F1 /* ObjCTopicListParser.m */; };
 		15316BA52E32A1BA00E2B7CD /* Icon-BLUE-IPAD@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15AEFA06223E9435005E6739 /* Icon-BLUE-IPAD@2x.png */; };
 		15316BA62E32A1BA00E2B7CD /* Icon-REDFACE@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 4C59E0821FA9D56C00C902F8 /* Icon-REDFACE@2x.png */; };
 		15316BA72E32A1BA00E2B7CD /* Icon-REDFACE-BLUE-IPAD@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15C6455F2DC773450033B935 /* Icon-REDFACE-BLUE-IPAD@2x.png */; };
@@ -1684,6 +1688,14 @@
 		0140ABD2121E034A001C35C4 /* FavoritesTableViewController.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = FavoritesTableViewController.xib; sourceTree = "<group>"; };
 		158CFB002E37400100594F1 /* ObjCFavoritesLoaderWorker.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjCFavoritesLoaderWorker.h; sourceTree = "<group>"; };
 		158CFB012E37400100594F1 /* ObjCFavoritesLoaderWorker.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjCFavoritesLoaderWorker.m; sourceTree = "<group>"; };
+		158CFB022E37400200594F1 /* ObjCForumTopicsLoaderWorker.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjCForumTopicsLoaderWorker.h; sourceTree = "<group>"; };
+		158CFB032E37400200594F1 /* ObjCForumTopicsLoaderWorker.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjCForumTopicsLoaderWorker.m; sourceTree = "<group>"; };
+		158CFB072E37400300594F1 /* ObjCForumSearchWorker.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjCForumSearchWorker.m; sourceTree = "<group>"; };
+		158CFB082E37400300594F1 /* ObjCForumSearchWorker.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjCForumSearchWorker.h; sourceTree = "<group>"; };
+		158CFB092E37400400594F1 /* ObjCMPTopicsLoaderWorker.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjCMPTopicsLoaderWorker.m; sourceTree = "<group>"; };
+		158CFB0A2E37400400594F1 /* ObjCMPTopicsLoaderWorker.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjCMPTopicsLoaderWorker.h; sourceTree = "<group>"; };
+		158CFB0C2E37400500594F1 /* ObjCTopicListParser.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjCTopicListParser.h; sourceTree = "<group>"; };
+		158CFB0D2E37400500594F1 /* ObjCTopicListParser.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjCTopicListParser.m; sourceTree = "<group>"; };
 		01BF8776121C4407007624B6 /* InfosViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = InfosViewController.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
 		01BF8777121C4407007624B6 /* InfosViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; lineEnding = 0; path = InfosViewController.m; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objc; };
 		01BF8778121C4407007624B6 /* AideViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = AideViewController.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
@@ -2913,6 +2925,14 @@
 				CA77D0F41261424D00271D62 /* PageViewController.m */,
 				152FD2F42DF55D31007268D3 /* BaseTopicsViewController.h */,
 				152FD2F52DF55D31007268D3 /* BaseTopicsViewController.m */,
+				158CFB022E37400200594F1 /* ObjCForumTopicsLoaderWorker.h */,
+				158CFB032E37400200594F1 /* ObjCForumTopicsLoaderWorker.m */,
+				158CFB082E37400300594F1 /* ObjCForumSearchWorker.h */,
+				158CFB072E37400300594F1 /* ObjCForumSearchWorker.m */,
+				158CFB0A2E37400400594F1 /* ObjCMPTopicsLoaderWorker.h */,
+				158CFB092E37400400594F1 /* ObjCMPTopicsLoaderWorker.m */,
+				158CFB0C2E37400500594F1 /* ObjCTopicListParser.h */,
+				158CFB0D2E37400500594F1 /* ObjCTopicListParser.m */,
 				01BF8B43121DAD33007624B6 /* TopicsTableViewController.h */,
 				01BF8B44121DAD33007624B6 /* TopicsTableViewController.m */,
 				0140AA84121DF25F001C35C4 /* HFRMPViewController.h */,
@@ -5703,6 +5723,10 @@
 				158CF9E92E3005F2000594F1 /* TopicMPCellView.m in Sources */,
 				158CF9EA2E3005F2000594F1 /* TopicsCell.m in Sources */,
 				158CFA022E300643000594F1 /* TopicsTableViewController.m in Sources */,
+				158CFB042E37400200594F1 /* ObjCForumTopicsLoaderWorker.m in Sources */,
+				158CFB052E37400300594F1 /* ObjCForumSearchWorker.m in Sources */,
+				158CFB062E37400400594F1 /* ObjCMPTopicsLoaderWorker.m in Sources */,
+				158CFB0B2E37400500594F1 /* ObjCTopicListParser.m in Sources */,
 				158CFA032E300643000594F1 /* MessagesTableViewController.m in Sources */,
 				158CFA042E300643000594F1 /* PageViewController.m in Sources */,
 				158CFA9B2E301EB9000594F1 /* NSData+Base64.m in Sources */,
@@ -5741,7 +5765,6 @@
 				158CFA902E301E3C000594F1 /* UIScrollView+SVInfiniteScrolling.m in Sources */,
 				158CFA122E300643000594F1 /* FilterPostsQuotes.m in Sources */,
 				158CFA132E300643000594F1 /* AvatarTableViewCell.m in Sources */,
-				158CFA142E300643000594F1 /* TopicsSearchViewController.m in Sources */,
 				158CFA152E300643000594F1 /* AKSegmentedControl.m in Sources */,
 				158CFA702E301B75000594F1 /* ASIAuthenticationDialog.m in Sources */,
 				158CFA712E301B75000594F1 /* ASIHTTPRequest.m in Sources */,

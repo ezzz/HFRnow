@@ -14,6 +14,7 @@
 @class MessagesTableViewController;
 @class ASIFormDataRequest;
 @class ASIHTTPRequest;
+@class ObjCTopicListParsingResult;
 
 @interface BaseTopicsViewController : PageViewController <UITableViewDelegate, UITableViewDataSource, UIActionSheetDelegate>
 
@@ -60,6 +61,7 @@
 - (void)fetchContentComplete:(ASIHTTPRequest *)theRequest;
 - (void)fetchContentFailed:(ASIHTTPRequest *)theRequest;
 - (void)parseTopicsListResult:(NSData *)contentData;
+- (void)applyTopicListParsingResult:(ObjCTopicListParsingResult *)result;
 - (void)reset;
 - (NSString *)newTopicTitle;
 - (void)setTopicViewed;

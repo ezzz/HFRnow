@@ -26,7 +26,9 @@
 @property (nonatomic, strong) UIActionSheet *actionSheet;
 @property (nonatomic, strong) UISegmentedControl  *subCatSegmentedControl;
 
+#if !APP_SWIFT
 @property (nonatomic, strong) TopicsSearchViewController *topicSearchViewController;
+#endif
 @property (nonatomic, strong) PullToRefreshErrorViewController *errorVC;
 
 @property (nonatomic, weak) IBOutlet TopicCellView *tmpCell;

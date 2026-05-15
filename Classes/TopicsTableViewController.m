@@ -29,12 +29,17 @@
 #import "SmileyAlertView.h"
 #endif
 #import "PullToRefreshErrorViewController.h"
+#if !APP_SWIFT
 #import "TopicsSearchViewController.h"
+#endif
 #import "k.h"
 
 @implementation TopicsTableViewController
 @synthesize arrayData, arrayNewData;
-@synthesize messagesTableViewController, detailNavigationViewController, topicSearchViewController, errorVC;
+@synthesize messagesTableViewController, detailNavigationViewController, errorVC;
+#if !APP_SWIFT
+@synthesize topicSearchViewController;
+#endif
 @synthesize pressedIndexPath;
 @synthesize imageForSelectedRow, imageForUnselectedRow;
 @synthesize imageForRedFlag, imageForYellowFlag, imageForBlueFlag, imageForGreyFlag;
@@ -186,15 +191,18 @@
 
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(loadSubCat) name:@"SubCatSelected" object:nil];
     
+#if !APP_SWIFT
     if (self.topicSearchViewController) {
         self.topicSearchViewController = nil;
     }
+#endif
     [self.topicsTableView reloadData];
 }
 
 
 -(void)searchForum
 {
+#if !APP_SWIFT
     self.topicSearchViewController = [[TopicsSearchViewController alloc] init];
     self.topicSearchViewController.currentCat = self.currentCat;
     if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad)
@@ -208,6 +216,7 @@
         [self.navigationController pushViewController:self.topicSearchViewController animated:YES];
         //self.navigationItem.backBarButtonItem.title = @"Topics";
     }
+#endif
 }
 
 - (void)newTopic

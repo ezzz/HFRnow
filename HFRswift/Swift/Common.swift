@@ -1197,23 +1197,21 @@ protocol MPTopicsLoading {
 final class ObjCMPTopicsLoader: MPTopicsLoading {
     private let controller: NSObject?
 
-    init(controller: NSObject? = LegacyLoaderRuntime.instantiateController(named: "HFRMPViewController")) {
+    init(controller: NSObject? = LegacyLoaderRuntime.instantiateController(named: "ObjCMPTopicsLoaderWorker")) {
         self.controller = controller
     }
 
     func fetchTopics(completion: @escaping TopicsLoadCompletion) {
         guard let controller else {
-            completion(nil, LegacyLoaderBridgeError.unavailable("HFRMPViewController"))
+            completion(nil, LegacyLoaderBridgeError.unavailable("ObjCMPTopicsLoaderWorker"))
             return
         }
 
         LegacySessionPreparation.prepareCurrentAccountSession()
 
-        (controller as? UIViewController)?.loadViewIfNeeded()
-
         let selector = NSSelectorFromString("fetchContentWithCompletion:")
         guard controller.responds(to: selector) else {
-            completion(nil, LegacyLoaderBridgeError.unavailable("HFRMPViewController.fetchContentWithCompletion"))
+            completion(nil, LegacyLoaderBridgeError.unavailable("ObjCMPTopicsLoaderWorker.fetchContentWithCompletion"))
             return
         }
 
@@ -1290,13 +1288,13 @@ struct ForumTopicsLoadResult {
 final class ObjCForumTopicsLoader: ForumTopicsLoading {
     private let controller: NSObject?
 
-    init(controller: NSObject? = LegacyLoaderRuntime.instantiateController(named: "TopicsTableViewController")) {
+    init(controller: NSObject? = LegacyLoaderRuntime.instantiateController(named: "ObjCForumTopicsLoaderWorker")) {
         self.controller = controller
     }
 
     func fetchTopics(for forum: Forum, flag: TopicListFlag, pageURL: String?, completion: @escaping ForumTopicsLoadCompletion) {
         guard let controller else {
-            completion(nil, LegacyLoaderBridgeError.unavailable("TopicsTableViewController"))
+            completion(nil, LegacyLoaderBridgeError.unavailable("ObjCForumTopicsLoaderWorker"))
             return
         }
 
@@ -1304,7 +1302,7 @@ final class ObjCForumTopicsLoader: ForumTopicsLoading {
 
         let selector = NSSelectorFromString("fetchContentForForum:flagIndex:pageURL:completion:")
         guard controller.responds(to: selector) else {
-            completion(nil, LegacyLoaderBridgeError.unavailable("TopicsTableViewController.fetchContentForForum"))
+            completion(nil, LegacyLoaderBridgeError.unavailable("ObjCForumTopicsLoaderWorker.fetchContentForForum"))
             return
         }
 

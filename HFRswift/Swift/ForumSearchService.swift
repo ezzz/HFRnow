@@ -267,7 +267,7 @@ final class ObjCForumSearchService: ForumSearchServicing {
     }
 
     private func perform(selectorName: String, argument: NSObject) async -> Result<ForumSearchResult, ForumSearchError> {
-        guard let worker = LegacyLoaderRuntime.instantiateController(named: "TopicsSearchViewController") else {
+        guard let worker = LegacyLoaderRuntime.instantiateController(named: "ObjCForumSearchWorker") else {
             return .failure(.workerUnavailable)
         }
 

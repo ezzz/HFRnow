@@ -8,7 +8,10 @@
 #import "Topic.h"
 #import "ASIHTTPRequest.h"
 
-@class FavoritesTableViewController, MessagesTableViewController, Topic;
+@class MessagesTableViewController, Topic;
+#if !APP_SWIFT
+@class FavoritesTableViewController;
+#endif
 
 @interface FilterPostsQuotes : NSObject
 {
@@ -23,13 +26,17 @@
 
 @property (nonatomic, strong) UIAlertController *alertProgress;
 @property (nonatomic, strong) UIProgressView *progressView;
+#if !APP_SWIFT
 @property (nonatomic, strong) FavoritesTableViewController* favoriteVC;
+#endif
 @property (nonatomic, strong) MessagesTableViewController* messagesTableVC;
 
 //+ (FilterPostsQuotes *)shared;
 
+#if !APP_SWIFT
 - (void)checkPostsAndQuotesForTopic:(Topic *)topic andVC:(FavoritesTableViewController*)vc;
 - (void)checkPostsAndQuotesForAllTopics:(NSArray *)arrTopics andVC:(FavoritesTableViewController*)vc;
+#endif
 
 - (void)checkNextPostsAndQuotesWithVC:(MessagesTableViewController*) vc;
 
