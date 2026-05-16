@@ -7,9 +7,8 @@
 
 #import "SplitViewController.h"
 #import "HFRplusAppDelegate.h"
-#import "MessagesTableViewController.h"
-
 #if !APP_SWIFT
+#import "MessagesTableViewController.h"
 #import "TopicsTableViewController.h"
 #import "FavoritesTableViewController.h"
 #import "PlusSettingsViewController.h"

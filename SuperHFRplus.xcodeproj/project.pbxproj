@@ -803,9 +803,6 @@
 		158CF9FE2E3005F2000594F1 /* TopicMPCellView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 15AC3583290418DA00CCD6FC /* TopicMPCellView.xib */; };
 		158CF9FF2E3005F2000594F1 /* ForumCellView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4C0B8E031BA45B0100D329BA /* ForumCellView.xib */; };
 		158CFA022E300643000594F1 /* TopicsTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 01BF8B44121DAD33007624B6 /* TopicsTableViewController.m */; };
-		158CFA032E300643000594F1 /* MessagesTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 013F0E98121E117800BEBEB1 /* MessagesTableViewController.m */; };
-		158CFA042E300643000594F1 /* PageViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = CA77D0F41261424D00271D62 /* PageViewController.m */; };
-		158CFA052E300643000594F1 /* BaseTopicsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 152FD2F52DF55D31007268D3 /* BaseTopicsViewController.m */; };
 		158CFA0B2E300643000594F1 /* HFRTextView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C21E9821BA5CC1200691D65 /* HFRTextView.m */; };
 		158CFA0E2E300643000594F1 /* Favorite.m in Sources */ = {isa = PBXBuildFile; fileRef = CA8A79B115BB404700D8E9E7 /* Favorite.m */; };
 		158CFA112E300643000594F1 /* MPStorage.m in Sources */ = {isa = PBXBuildFile; fileRef = 15960FE422F6147B006BBD34 /* MPStorage.m */; };
@@ -822,7 +819,6 @@
 		158CFA242E300643000594F1 /* Forum.m in Sources */ = {isa = PBXBuildFile; fileRef = 01BF8A53121D7945007624B6 /* Forum.m */; };
 		158CFA252E300643000594F1 /* ParseMessagesOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 013F0E9E121E117900BEBEB1 /* ParseMessagesOperation.m */; };
 		158CFA282E300643000594F1 /* SmileyCache.m in Sources */ = {isa = PBXBuildFile; fileRef = 159CE14F24801E1500BC17DA /* SmileyCache.m */; };
-		158CFA2A2E300643000594F1 /* MessagesSearchTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CB133131B90E9530081B44D /* MessagesSearchTableViewController.m */; };
 		158CFA2B2E300643000594F1 /* LinkItem.m in Sources */ = {isa = PBXBuildFile; fileRef = 013F0E96121E117800BEBEB1 /* LinkItem.m */; };
 		158CFA492E30067E000594F1 /* BlackList.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CB132F71B90A1930081B44D /* BlackList.m */; };
 		158CFA502E30067E000594F1 /* MultisManager.m in Sources */ = {isa = PBXBuildFile; fileRef = D8C6A6E2216224F1003C6D59 /* MultisManager.m */; };
@@ -5786,8 +5782,6 @@
 				158CFB212E37400D00594F1 /* ObjCTopicMessageContentBuilder.m in Sources */,
 				158CFB262E37400E00594F1 /* ObjCFilteredPostsRendererWorker.m in Sources */,
 				158CFB292E37400F00594F1 /* ObjCTopicPageWorker.m in Sources */,
-				158CFA032E300643000594F1 /* MessagesTableViewController.m in Sources */,
-				158CFA042E300643000594F1 /* PageViewController.m in Sources */,
 				158CFA9B2E301EB9000594F1 /* NSData+Base64.m in Sources */,
 				158CFA492E30067E000594F1 /* BlackList.m in Sources */,
 				158CFA912E301E4F000594F1 /* UIScrollView+SVPullToRefresh.m in Sources */,
@@ -5843,7 +5837,6 @@
 				158CFB022E37400100594F1 /* ObjCFavoritesLoaderWorker.m in Sources */,
 				158CFA612E301097000594F1 /* RangeOfCharacters.m in Sources */,
 				158CFA282E300643000594F1 /* SmileyCache.m in Sources */,
-				158CFA2A2E300643000594F1 /* MessagesSearchTableViewController.m in Sources */,
 				158CFA2B2E300643000594F1 /* LinkItem.m in Sources */,
 				158CF9EB2E3005F2000594F1 /* HFRTabBar.m in Sources */,
 				158CF9EC2E3005F2000594F1 /* BrowserViewController.m in Sources */,

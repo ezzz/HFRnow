@@ -445,11 +445,32 @@ Statut 2026-05-16, septième lot `MessagesTableViewController` :
 - `MessagesTableViewController` reste encore dans la cible Swift à cause du graphe UIKit legacy compilé autour de lui (`MessagesSearchTableViewController`, `PageViewController`, anciens contrôleurs de listes et fallbacks), pas à cause du chemin SwiftUI actif.
 - Suite logique : auditer puis retirer de la cible Swift les derniers chemins UIKit legacy qui maintiennent encore `MessagesTableViewController` compilé.
 
+Statut 2026-05-16, huitième lot `MessagesTableViewController` :
+
+- `MessagesSearchTableViewController` est sorti de la cible `HFRswift`.
+- La classe est une sous-classe vide de `MessagesTableViewController`, sans instanciation restante ni usage SwiftUI; les seules références encore présentes sont des imports legacy.
+- Build `HFRswift` Debug iOS Simulator OK après retrait de la cible.
+- Audit suivant :
+  1. `PageViewController` ne peut pas sortir tant que `BaseTopicsViewController` et `MessagesTableViewController` restent dans la cible;
+  2. les contrôleurs de listes legacy encore présents (`TopicsTableViewController`, `FavoritesTableViewController`, `HFRMPViewController`, `TopicsSearchViewController`) restent utilisés comme workers historiques;
+  3. le prochain vrai chantier doit donc viser leur remplacement worker par worker, puis la sortie conjointe de `BaseTopicsViewController` et `MessagesTableViewController`.
+
+Statut 2026-05-16, neuvième lot `MessagesTableViewController` :
+
+- Vérification du graphe réel de la cible `HFRswift` :
+  - `BaseTopicsViewController.m` n'était déjà plus présent dans la phase de sources de la cible;
+  - les anciens loaders SwiftUI utilisent déjà `ObjCForumTopicsLoaderWorker`, `ObjCFavoritesLoaderWorker`, `ObjCMPTopicsLoaderWorker` et `ObjCForumSearchWorker`, pas les contrôleurs de listes UIKit.
+- Les derniers chemins `FilterPostsQuotes` qui pilotaient l'ancien UI topic sont isolés sous `!APP_SWIFT`.
+- `MessagesTableViewController.m` et `PageViewController.m` sont retirés de la cible `HFRswift`.
+- Build `HFRswift` Debug iOS Simulator OK après retrait conjoint.
+- Conséquence : le chemin SwiftUI n'embarque plus le contrôleur topic UIKit ni sa superclasse de pagination; ils restent uniquement dans la cible legacy.
+- Prochain audit utile hors de ce sous-chantier : revoir les contrôleurs UIKit encore compilés dans `HFRswift` mais indépendants de `MessagesTableViewController` (`ForumsTableViewController`, `TabBarController`, `SplitViewController`, etc.).
+
 ## À garder explicitement pour l'instant
 
 | Zone | Raison |
 |---|---|
-| `MessagesTableViewController` | UI/worker legacy encore compilé via le graphe UIKit historique, mais plus utilisé par le chemin SwiftUI actif. |
+| `MessagesTableViewController`, `PageViewController`, `BaseTopicsViewController` | Conservés dans la cible legacy, plus compilés dans `HFRswift`. |
 | `ParseMessagesOperation`, `LinkItem` | Parsing/rendu HTML forum. |
 | `ForumsTableViewController`, `TopicsTableViewController`, `FavoritesTableViewController`, `HFRMPViewController`, `TopicsSearchViewController` | Workers de chargement tant que les loaders Swift s'appuient dessus. |
 | `MultisManager` | Session, cookies, compte courant. |

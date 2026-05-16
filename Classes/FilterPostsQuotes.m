@@ -16,14 +16,16 @@
 #if !APP_SWIFT
 #import "FavoritesTableViewController.h"
 #endif
+#if !APP_SWIFT
 #import "MessagesTableViewController.h"
+#endif
 #import "HFRAlertView.h"
 
 @implementation FilterPostsQuotes
 
-@synthesize topic, request, arrData, iLastPageLoaded, bIsFinished, progressView, alertProgress, messagesTableVC, bShowPostsRequired, stopRequired;
+@synthesize topic, request, arrData, iLastPageLoaded, bIsFinished, progressView, alertProgress, bShowPostsRequired, stopRequired;
 #if !APP_SWIFT
-@synthesize favoriteVC;
+@synthesize favoriteVC, messagesTableVC;
 #endif
 
 //static FilterPostsQuotes *_shared = nil;    // static instance variable
@@ -55,6 +57,7 @@
 }
 #endif
 
+#if !APP_SWIFT
 - (void)checkNextPostsAndQuotesWithVC:(MessagesTableViewController*) vc {
     self.messagesTableVC = vc;
     [self addProgressBar:vc];
@@ -62,7 +65,9 @@
         [self fetchContentForTopic:self.topic startPage:self.iLastPageLoaded + 1];
     });
 }
+#endif
 
+#if !APP_SWIFT
 - (void)checkPostsAndQuotesForAllTopics:(NSMutableArray *)arrTopics andVC:(FavoritesTableViewController*) vc{
     /*self.favoriteVC = vc;
     self.messagesTableVC = nil;
@@ -70,6 +75,7 @@
         [self checkContentForAllTopics:arrTopics];
     });*/
 }
+#endif
 
 
 
@@ -367,6 +373,7 @@
 #endif
 }
 
+#if !APP_SWIFT
 - (void) displayNextPosts {
     self.messagesTableVC.pageNumberFilterStart = self.iStartPage;
     self.messagesTableVC.pageNumberFilterEnd = self.iLastPageLoaded;
@@ -375,5 +382,6 @@
     self.messagesTableVC.pageNumberFilterEnd = self.iLastPageLoaded;
     [self.messagesTableVC setupScrollAndPage];
 }
+#endif
 
 @end
