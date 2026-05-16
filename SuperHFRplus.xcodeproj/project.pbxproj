@@ -74,6 +74,8 @@
 		158CFB212E37400D00594F1 /* ObjCTopicMessageContentBuilder.m in Sources */ = {isa = PBXBuildFile; fileRef = 158CFB252E37400D00594F1 /* ObjCTopicMessageContentBuilder.m */; };
 		158CFB262E37400E00594F1 /* ObjCFilteredPostsRendererWorker.m in Sources */ = {isa = PBXBuildFile; fileRef = 158CFB282E37400E00594F1 /* ObjCFilteredPostsRendererWorker.m */; };
 		158CFB292E37400F00594F1 /* ObjCTopicPageWorker.m in Sources */ = {isa = PBXBuildFile; fileRef = 158CFB2B2E37400F00594F1 /* ObjCTopicPageWorker.m */; };
+		158CFB2C2E37401000594F1 /* ObjCForumsParser.m in Sources */ = {isa = PBXBuildFile; fileRef = 158CFB2E2E37401000594F1 /* ObjCForumsParser.m */; };
+		158CFB2F2E37401100594F1 /* ObjCForumsLoaderWorker.m in Sources */ = {isa = PBXBuildFile; fileRef = 158CFB312E37401100594F1 /* ObjCForumsLoaderWorker.m */; };
 		15316BA52E32A1BA00E2B7CD /* Icon-BLUE-IPAD@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15AEFA06223E9435005E6739 /* Icon-BLUE-IPAD@2x.png */; };
 		15316BA62E32A1BA00E2B7CD /* Icon-REDFACE@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 4C59E0821FA9D56C00C902F8 /* Icon-REDFACE@2x.png */; };
 		15316BA72E32A1BA00E2B7CD /* Icon-REDFACE-BLUE-IPAD@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15C6455F2DC773450033B935 /* Icon-REDFACE-BLUE-IPAD@2x.png */; };
@@ -793,7 +795,6 @@
 		158CF9F32E3005F2000594F1 /* HFRplusAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D3623250D0F684500981E51 /* HFRplusAppDelegate.m */; };
 		158CF9F42E3005F2000594F1 /* TopicCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = CAB16277124B9F8300D12569 /* TopicCellView.m */; };
 		158CF9F52E3005F2000594F1 /* HFRNavigationController.m in Sources */ = {isa = PBXBuildFile; fileRef = CAC4966815B77357009128BC /* HFRNavigationController.m */; };
-		158CF9F62E3005F2000594F1 /* SplitViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = CA7E25E215A1D17500721F6D /* SplitViewController.m */; };
 		158CF9F82E3005F2000594F1 /* TopicSearchCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = CA20FA3312F15CA700EC1771 /* TopicSearchCellView.m */; };
 		158CF9F92E3005F2000594F1 /* HFRAlertView.m in Sources */ = {isa = PBXBuildFile; fileRef = 15E25D67223047EF00474562 /* HFRAlertView.m */; };
 		158CF9FA2E3005F2000594F1 /* ThemeManager.m in Sources */ = {isa = PBXBuildFile; fileRef = D8C8F1541E56ECA000B1381E /* ThemeManager.m */; };
@@ -814,7 +815,6 @@
 		158CFA1B2E300643000594F1 /* SubCatTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = CA7E260115A24A9A00721F6D /* SubCatTableViewController.m */; };
 		158CFA1D2E300643000594F1 /* SimplePhotoViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 151737FA2DA5B3AF005DDA75 /* SimplePhotoViewController.m */; };
 		158CFA1F2E300643000594F1 /* HFRMPViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0140AA85121DF25F001C35C4 /* HFRMPViewController.m */; };
-		158CFA202E300643000594F1 /* ForumsTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 01BF8A14121D7469007624B6 /* ForumsTableViewController.m */; };
 		158CFA222E300643000594F1 /* Catcounter.m in Sources */ = {isa = PBXBuildFile; fileRef = 0140ABAC121E011D001C35C4 /* Catcounter.m */; };
 		158CFA242E300643000594F1 /* Forum.m in Sources */ = {isa = PBXBuildFile; fileRef = 01BF8A53121D7945007624B6 /* Forum.m */; };
 		158CFA252E300643000594F1 /* ParseMessagesOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 013F0E9E121E117900BEBEB1 /* ParseMessagesOperation.m */; };
@@ -879,7 +879,6 @@
 		158CFA992E301EA3000594F1 /* MKStoreObserver.m in Sources */ = {isa = PBXBuildFile; fileRef = CA00C44D17C2FF4E0067B457 /* MKStoreObserver.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		158CFA9A2E301EAE000594F1 /* RegexKitLite.m in Sources */ = {isa = PBXBuildFile; fileRef = CA00C45817C300140067B457 /* RegexKitLite.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		158CFA9B2E301EB9000594F1 /* NSData+Base64.m in Sources */ = {isa = PBXBuildFile; fileRef = CA00C45117C3000B0067B457 /* NSData+Base64.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
-		158CFA9D2E301F03000594F1 /* TabBarController.m in Sources */ = {isa = PBXBuildFile; fileRef = CA9E86881243C11A000EE882 /* TabBarController.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
 		158CFA9F2E30ED33000594F1 /* libicucore.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 158CFA9E2E30ED33000594F1 /* libicucore.tbd */; };
 		158CFAA12E30ED5B000594F1 /* libiconv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 158CFAA02E30ED5B000594F1 /* libiconv.tbd */; };
 		158CFAA52E316314000594F1 /* GiphyUISDK.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 15B5FC5626512005006CBEF0 /* GiphyUISDK.xcframework */; };
@@ -1722,6 +1721,10 @@
 		158CFB282E37400E00594F1 /* ObjCFilteredPostsRendererWorker.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjCFilteredPostsRendererWorker.m; sourceTree = "<group>"; };
 		158CFB2A2E37400F00594F1 /* ObjCTopicPageWorker.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjCTopicPageWorker.h; sourceTree = "<group>"; };
 		158CFB2B2E37400F00594F1 /* ObjCTopicPageWorker.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjCTopicPageWorker.m; sourceTree = "<group>"; };
+		158CFB2D2E37401000594F1 /* ObjCForumsParser.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjCForumsParser.h; sourceTree = "<group>"; };
+		158CFB2E2E37401000594F1 /* ObjCForumsParser.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjCForumsParser.m; sourceTree = "<group>"; };
+		158CFB302E37401100594F1 /* ObjCForumsLoaderWorker.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjCForumsLoaderWorker.h; sourceTree = "<group>"; };
+		158CFB312E37401100594F1 /* ObjCForumsLoaderWorker.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjCForumsLoaderWorker.m; sourceTree = "<group>"; };
 		01BF8776121C4407007624B6 /* InfosViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = InfosViewController.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
 		01BF8777121C4407007624B6 /* InfosViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; lineEnding = 0; path = InfosViewController.m; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objc; };
 		01BF8778121C4407007624B6 /* AideViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = AideViewController.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
@@ -2979,6 +2982,10 @@
 				158CFB282E37400E00594F1 /* ObjCFilteredPostsRendererWorker.m */,
 				158CFB2A2E37400F00594F1 /* ObjCTopicPageWorker.h */,
 				158CFB2B2E37400F00594F1 /* ObjCTopicPageWorker.m */,
+				158CFB2D2E37401000594F1 /* ObjCForumsParser.h */,
+				158CFB2E2E37401000594F1 /* ObjCForumsParser.m */,
+				158CFB302E37401100594F1 /* ObjCForumsLoaderWorker.h */,
+				158CFB312E37401100594F1 /* ObjCForumsLoaderWorker.m */,
 				01BF8B43121DAD33007624B6 /* TopicsTableViewController.h */,
 				01BF8B44121DAD33007624B6 /* TopicsTableViewController.m */,
 				0140AA84121DF25F001C35C4 /* HFRMPViewController.h */,
@@ -5782,6 +5789,8 @@
 				158CFB212E37400D00594F1 /* ObjCTopicMessageContentBuilder.m in Sources */,
 				158CFB262E37400E00594F1 /* ObjCFilteredPostsRendererWorker.m in Sources */,
 				158CFB292E37400F00594F1 /* ObjCTopicPageWorker.m in Sources */,
+				158CFB2C2E37401000594F1 /* ObjCForumsParser.m in Sources */,
+				158CFB2F2E37401100594F1 /* ObjCForumsLoaderWorker.m in Sources */,
 				158CFA9B2E301EB9000594F1 /* NSData+Base64.m in Sources */,
 				158CFA492E30067E000594F1 /* BlackList.m in Sources */,
 				158CFA912E301E4F000594F1 /* UIScrollView+SVPullToRefresh.m in Sources */,
@@ -5827,10 +5836,8 @@
 				158CFA762E301B75000594F1 /* ASIDownloadCache.m in Sources */,
 				158CFA772E301B75000594F1 /* ASINetworkQueue.m in Sources */,
 				158CFA172E300643000594F1 /* Topic.m in Sources */,
-				158CFA9D2E301F03000594F1 /* TabBarController.m in Sources */,
 				158CFA1B2E300643000594F1 /* SubCatTableViewController.m in Sources */,
 				158CFA1D2E300643000594F1 /* SimplePhotoViewController.m in Sources */,
-				158CFA202E300643000594F1 /* ForumsTableViewController.m in Sources */,
 				158CFA222E300643000594F1 /* Catcounter.m in Sources */,
 				158CFA242E300643000594F1 /* Forum.m in Sources */,
 				158CFA252E300643000594F1 /* ParseMessagesOperation.m in Sources */,
@@ -5849,7 +5856,6 @@
 				158CF9F42E3005F2000594F1 /* TopicCellView.m in Sources */,
 				158CFA9A2E301EAE000594F1 /* RegexKitLite.m in Sources */,
 				158CF9F52E3005F2000594F1 /* HFRNavigationController.m in Sources */,
-				158CF9F62E3005F2000594F1 /* SplitViewController.m in Sources */,
 				158CFA832E301E19000594F1 /* PSTCollectionViewLayout.m in Sources */,
 				158CFA842E301E19000594F1 /* PSTCollectionViewUpdateItem.m in Sources */,
 				158CFA852E301E19000594F1 /* PSTGridLayoutRow.m in Sources */,

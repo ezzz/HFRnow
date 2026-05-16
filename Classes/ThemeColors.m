@@ -9,7 +9,6 @@
 #import "ThemeColors.h"
 #import "Constants.h"
 #import "ThemeManager.h"
-#import "TabBarController.h"
 #import "HFRswift-Swift.h"
 
 #define DEFAULT_VOID_COLOR [UIColor redColor]

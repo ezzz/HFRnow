@@ -466,6 +466,26 @@ Statut 2026-05-16, neuvième lot `MessagesTableViewController` :
 - Conséquence : le chemin SwiftUI n'embarque plus le contrôleur topic UIKit ni sa superclasse de pagination; ils restent uniquement dans la cible legacy.
 - Prochain audit utile hors de ce sous-chantier : revoir les contrôleurs UIKit encore compilés dans `HFRswift` mais indépendants de `MessagesTableViewController` (`ForumsTableViewController`, `TabBarController`, `SplitViewController`, etc.).
 
+Statut 2026-05-16, dixième lot `shell UIKit legacy` :
+
+- `TabBarController.m` et `SplitViewController.m` sont retirés de la cible `HFRswift`.
+- `HFRplusAppDelegate` ne dépend plus de leurs types concrets sous `APP_SWIFT` et n'instancie plus le shell UIKit legacy dans ce mode.
+- Les derniers appels `SplitViewController` encore présents dans `BrowserViewController` sont isolés hors `APP_SWIFT`.
+- Build `HFRswift` Debug iOS Simulator OK après retrait conjoint.
+- `ForumsTableViewController` ne peut pas encore sortir du même lot :
+  - `ObjCForumsLoader` l'instancie encore directement;
+  - le contrôleur contient toujours le parsing historique de la page d'accueil des forums via `fetchContentWithCompletion:` / `loadDataInTableView:`.
+- Suite logique : extraire ce parsing dans un `ObjCForumsLoaderWorker` ou un parser dédié, basculer `ObjCForumsLoader`, puis retirer `ForumsTableViewController.m` de `HFRswift`.
+
+Statut 2026-05-16, onzième lot `forums legacy` :
+
+- `ObjCForumsParser` porte désormais le parsing historique de la page d'accueil des forums hors de `ForumsTableViewController`.
+- `ObjCForumsLoaderWorker` porte le chargement réseau de cette page et réutilise le parser extrait.
+- `ObjCForumsLoader` instancie maintenant `ObjCForumsLoaderWorker` au lieu de `ForumsTableViewController`.
+- `ForumsTableViewController.m` est retiré de la cible `HFRswift`.
+- Build `HFRswift` Debug iOS Simulator OK après bascule et retrait.
+- Conséquence : les trois contrôleurs demandés du shell legacy (`ForumsTableViewController`, `TabBarController`, `SplitViewController`) ne sont plus compilés dans l'app SwiftUI.
+
 ## À garder explicitement pour l'instant
 
 | Zone | Raison |

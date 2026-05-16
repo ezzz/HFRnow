@@ -12,7 +12,10 @@
 #import "HFRMPViewController.h"
 #import "FavoritesTableViewController.h"
 #endif
+#if !APP_SWIFT
 #import "ForumsTableViewController.h"
+#import "TabBarController.h"
+#endif
 
 #import "MKStoreManager.h"
 #import "BrowserViewController.h"
@@ -123,11 +126,13 @@ static NSString * const HFRSwiftNotificationDestinationMessages = @"messages";
     [internetReach startNotifier];
     
     // Start up window
+#if !APP_SWIFT
     if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
         self.rootController = [[TabBarController alloc] init];
     }
     [window setRootViewController:rootController];
     [window makeKeyAndVisible];
+#endif
 
     if (BACKGROUND_MAINTENANCE) {
         periodicMaintenanceTimer = [NSTimer scheduledTimerWithTimeInterval:60*10

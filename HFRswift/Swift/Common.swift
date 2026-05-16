@@ -1233,19 +1233,19 @@ protocol ForumsLoading {
 final class ObjCForumsLoader: ForumsLoading {
     private let controller: NSObject?
 
-    init(controller: NSObject? = LegacyLoaderRuntime.instantiateController(named: "ForumsTableViewController")) {
+    init(controller: NSObject? = LegacyLoaderRuntime.instantiateController(named: "ObjCForumsLoaderWorker")) {
         self.controller = controller
     }
 
     func fetchForums(completion: @escaping ForumsLoadCompletion) {
         guard let controller else {
-            completion(nil, LegacyLoaderBridgeError.unavailable("ForumsTableViewController"))
+            completion(nil, LegacyLoaderBridgeError.unavailable("ObjCForumsLoaderWorker"))
             return
         }
 
         let selector = NSSelectorFromString("fetchContentWithCompletion:")
         guard controller.responds(to: selector) else {
-            completion(nil, LegacyLoaderBridgeError.unavailable("ForumsTableViewController.fetchContentWithCompletion"))
+            completion(nil, LegacyLoaderBridgeError.unavailable("ObjCForumsLoaderWorker.fetchContentWithCompletion"))
             return
         }
 

@@ -87,13 +87,16 @@
 - (void)cancel {
     [self viewDidUnload];
     
+#if !APP_SWIFT
     if (self.fullBrowser && [(SplitViewController *)[HFRplusAppDelegate sharedAppDelegate].window.rootViewController respondsToSelector:@selector(MoveRightToLeft)]) {
         [(SplitViewController *)[HFRplusAppDelegate sharedAppDelegate].window.rootViewController MoveLeftToRight];
-    }
-    else {
+    } else {
+#endif
         [self dismissModalViewControllerAnimated:YES];
         //[self.delegate browserViewControllerDidFinish:self];
+#if !APP_SWIFT
     }
+#endif
 }
 
 #pragma mark - View lifecycle

@@ -7,8 +7,10 @@
 
 #import <UIKit/UIKit.h>
 #import "Constants.h"
+#if !APP_SWIFT
 #import "TabBarController.h"
 #import "SplitViewController.h"
+#endif
 #import <BackgroundTasks/BackgroundTasks.h>
 
 #if !APP_SWIFT
@@ -20,8 +22,8 @@
 
 @interface HFRplusAppDelegate : UIResponder <UIApplicationDelegate, UNUserNotificationCenterDelegate> {
     UIWindow *window;
-    TabBarController *rootController;    
-    SplitViewController *splitViewController;
+    UITabBarController *rootController;
+    UISplitViewController *splitViewController;
 
     UINavigationController *forumsNavController;
     UINavigationController *favoritesNavController;
@@ -45,9 +47,9 @@
 
 @property (nonatomic, strong) IBOutlet UIWindow *window;
 //@property (nonatomic, strong) IBOutlet TabBarController *rootController;
-@property (strong, nonatomic) IBOutlet TabBarController *rootController;
+@property (strong, nonatomic) IBOutlet UITabBarController *rootController;
 
-@property (nonatomic, strong) IBOutlet SplitViewController *splitViewController;
+@property (nonatomic, strong) IBOutlet UISplitViewController *splitViewController;
 
 //@property (nonatomic, strong) IBOutlet UINavigationController *forumsNavController;
 @property (strong, nonatomic) IBOutlet UIViewController *forumsNavController;
