@@ -64,6 +64,16 @@
 		158CFB052E37400300594F1 /* ObjCForumSearchWorker.m in Sources */ = {isa = PBXBuildFile; fileRef = 158CFB072E37400300594F1 /* ObjCForumSearchWorker.m */; };
 		158CFB062E37400400594F1 /* ObjCMPTopicsLoaderWorker.m in Sources */ = {isa = PBXBuildFile; fileRef = 158CFB092E37400400594F1 /* ObjCMPTopicsLoaderWorker.m */; };
 		158CFB0B2E37400500594F1 /* ObjCTopicListParser.m in Sources */ = {isa = PBXBuildFile; fileRef = 158CFB0D2E37400500594F1 /* ObjCTopicListParser.m */; };
+		158CFB0E2E37400600594F1 /* ObjCTopicListLoaderWorkerBase.m in Sources */ = {isa = PBXBuildFile; fileRef = 158CFB102E37400600594F1 /* ObjCTopicListLoaderWorkerBase.m */; };
+		158CFB112E37400700594F1 /* ObjCTopicSearchWorker.m in Sources */ = {isa = PBXBuildFile; fileRef = 158CFB132E37400700594F1 /* ObjCTopicSearchWorker.m */; };
+		158CFB142E37400800594F1 /* ObjCMessageActionsBuilder.m in Sources */ = {isa = PBXBuildFile; fileRef = 158CFB162E37400800594F1 /* ObjCMessageActionsBuilder.m */; };
+		158CFB172E37400900594F1 /* ObjCTopicToolbarHTMLBuilder.m in Sources */ = {isa = PBXBuildFile; fileRef = 158CFB192E37400900594F1 /* ObjCTopicToolbarHTMLBuilder.m */; };
+		158CFB1A2E37400A00594F1 /* ObjCTopicHTMLRenderContext.m in Sources */ = {isa = PBXBuildFile; fileRef = 158CFB1D2E37400A00594F1 /* ObjCTopicHTMLRenderContext.m */; };
+		158CFB1B2E37400B00594F1 /* ObjCTopicHTMLRenderer.m in Sources */ = {isa = PBXBuildFile; fileRef = 158CFB1F2E37400B00594F1 /* ObjCTopicHTMLRenderer.m */; };
+		158CFB202E37400C00594F1 /* ObjCTopicMessageContentResult.m in Sources */ = {isa = PBXBuildFile; fileRef = 158CFB232E37400C00594F1 /* ObjCTopicMessageContentResult.m */; };
+		158CFB212E37400D00594F1 /* ObjCTopicMessageContentBuilder.m in Sources */ = {isa = PBXBuildFile; fileRef = 158CFB252E37400D00594F1 /* ObjCTopicMessageContentBuilder.m */; };
+		158CFB262E37400E00594F1 /* ObjCFilteredPostsRendererWorker.m in Sources */ = {isa = PBXBuildFile; fileRef = 158CFB282E37400E00594F1 /* ObjCFilteredPostsRendererWorker.m */; };
+		158CFB292E37400F00594F1 /* ObjCTopicPageWorker.m in Sources */ = {isa = PBXBuildFile; fileRef = 158CFB2B2E37400F00594F1 /* ObjCTopicPageWorker.m */; };
 		15316BA52E32A1BA00E2B7CD /* Icon-BLUE-IPAD@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15AEFA06223E9435005E6739 /* Icon-BLUE-IPAD@2x.png */; };
 		15316BA62E32A1BA00E2B7CD /* Icon-REDFACE@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 4C59E0821FA9D56C00C902F8 /* Icon-REDFACE@2x.png */; };
 		15316BA72E32A1BA00E2B7CD /* Icon-REDFACE-BLUE-IPAD@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 15C6455F2DC773450033B935 /* Icon-REDFACE-BLUE-IPAD@2x.png */; };
@@ -1696,6 +1706,26 @@
 		158CFB0A2E37400400594F1 /* ObjCMPTopicsLoaderWorker.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjCMPTopicsLoaderWorker.h; sourceTree = "<group>"; };
 		158CFB0C2E37400500594F1 /* ObjCTopicListParser.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjCTopicListParser.h; sourceTree = "<group>"; };
 		158CFB0D2E37400500594F1 /* ObjCTopicListParser.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjCTopicListParser.m; sourceTree = "<group>"; };
+		158CFB0F2E37400600594F1 /* ObjCTopicListLoaderWorkerBase.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjCTopicListLoaderWorkerBase.h; sourceTree = "<group>"; };
+		158CFB102E37400600594F1 /* ObjCTopicListLoaderWorkerBase.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjCTopicListLoaderWorkerBase.m; sourceTree = "<group>"; };
+		158CFB122E37400700594F1 /* ObjCTopicSearchWorker.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjCTopicSearchWorker.h; sourceTree = "<group>"; };
+		158CFB132E37400700594F1 /* ObjCTopicSearchWorker.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjCTopicSearchWorker.m; sourceTree = "<group>"; };
+		158CFB152E37400800594F1 /* ObjCMessageActionsBuilder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjCMessageActionsBuilder.h; sourceTree = "<group>"; };
+		158CFB162E37400800594F1 /* ObjCMessageActionsBuilder.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjCMessageActionsBuilder.m; sourceTree = "<group>"; };
+		158CFB182E37400900594F1 /* ObjCTopicToolbarHTMLBuilder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjCTopicToolbarHTMLBuilder.h; sourceTree = "<group>"; };
+		158CFB192E37400900594F1 /* ObjCTopicToolbarHTMLBuilder.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjCTopicToolbarHTMLBuilder.m; sourceTree = "<group>"; };
+		158CFB1C2E37400A00594F1 /* ObjCTopicHTMLRenderContext.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjCTopicHTMLRenderContext.h; sourceTree = "<group>"; };
+		158CFB1D2E37400A00594F1 /* ObjCTopicHTMLRenderContext.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjCTopicHTMLRenderContext.m; sourceTree = "<group>"; };
+		158CFB1E2E37400B00594F1 /* ObjCTopicHTMLRenderer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjCTopicHTMLRenderer.h; sourceTree = "<group>"; };
+		158CFB1F2E37400B00594F1 /* ObjCTopicHTMLRenderer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjCTopicHTMLRenderer.m; sourceTree = "<group>"; };
+		158CFB222E37400C00594F1 /* ObjCTopicMessageContentResult.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjCTopicMessageContentResult.h; sourceTree = "<group>"; };
+		158CFB232E37400C00594F1 /* ObjCTopicMessageContentResult.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjCTopicMessageContentResult.m; sourceTree = "<group>"; };
+		158CFB242E37400D00594F1 /* ObjCTopicMessageContentBuilder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjCTopicMessageContentBuilder.h; sourceTree = "<group>"; };
+		158CFB252E37400D00594F1 /* ObjCTopicMessageContentBuilder.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjCTopicMessageContentBuilder.m; sourceTree = "<group>"; };
+		158CFB272E37400E00594F1 /* ObjCFilteredPostsRendererWorker.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjCFilteredPostsRendererWorker.h; sourceTree = "<group>"; };
+		158CFB282E37400E00594F1 /* ObjCFilteredPostsRendererWorker.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjCFilteredPostsRendererWorker.m; sourceTree = "<group>"; };
+		158CFB2A2E37400F00594F1 /* ObjCTopicPageWorker.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjCTopicPageWorker.h; sourceTree = "<group>"; };
+		158CFB2B2E37400F00594F1 /* ObjCTopicPageWorker.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjCTopicPageWorker.m; sourceTree = "<group>"; };
 		01BF8776121C4407007624B6 /* InfosViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = InfosViewController.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
 		01BF8777121C4407007624B6 /* InfosViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; lineEnding = 0; path = InfosViewController.m; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objc; };
 		01BF8778121C4407007624B6 /* AideViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = AideViewController.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
@@ -2933,6 +2963,26 @@
 				158CFB092E37400400594F1 /* ObjCMPTopicsLoaderWorker.m */,
 				158CFB0C2E37400500594F1 /* ObjCTopicListParser.h */,
 				158CFB0D2E37400500594F1 /* ObjCTopicListParser.m */,
+				158CFB0F2E37400600594F1 /* ObjCTopicListLoaderWorkerBase.h */,
+				158CFB102E37400600594F1 /* ObjCTopicListLoaderWorkerBase.m */,
+				158CFB122E37400700594F1 /* ObjCTopicSearchWorker.h */,
+				158CFB132E37400700594F1 /* ObjCTopicSearchWorker.m */,
+				158CFB152E37400800594F1 /* ObjCMessageActionsBuilder.h */,
+				158CFB162E37400800594F1 /* ObjCMessageActionsBuilder.m */,
+				158CFB182E37400900594F1 /* ObjCTopicToolbarHTMLBuilder.h */,
+				158CFB192E37400900594F1 /* ObjCTopicToolbarHTMLBuilder.m */,
+				158CFB1C2E37400A00594F1 /* ObjCTopicHTMLRenderContext.h */,
+				158CFB1D2E37400A00594F1 /* ObjCTopicHTMLRenderContext.m */,
+				158CFB1E2E37400B00594F1 /* ObjCTopicHTMLRenderer.h */,
+				158CFB1F2E37400B00594F1 /* ObjCTopicHTMLRenderer.m */,
+				158CFB222E37400C00594F1 /* ObjCTopicMessageContentResult.h */,
+				158CFB232E37400C00594F1 /* ObjCTopicMessageContentResult.m */,
+				158CFB242E37400D00594F1 /* ObjCTopicMessageContentBuilder.h */,
+				158CFB252E37400D00594F1 /* ObjCTopicMessageContentBuilder.m */,
+				158CFB272E37400E00594F1 /* ObjCFilteredPostsRendererWorker.h */,
+				158CFB282E37400E00594F1 /* ObjCFilteredPostsRendererWorker.m */,
+				158CFB2A2E37400F00594F1 /* ObjCTopicPageWorker.h */,
+				158CFB2B2E37400F00594F1 /* ObjCTopicPageWorker.m */,
 				01BF8B43121DAD33007624B6 /* TopicsTableViewController.h */,
 				01BF8B44121DAD33007624B6 /* TopicsTableViewController.m */,
 				0140AA84121DF25F001C35C4 /* HFRMPViewController.h */,
@@ -5722,11 +5772,20 @@
 				158CF9E82E3005F2000594F1 /* ForumCellView.m in Sources */,
 				158CF9E92E3005F2000594F1 /* TopicMPCellView.m in Sources */,
 				158CF9EA2E3005F2000594F1 /* TopicsCell.m in Sources */,
-				158CFA022E300643000594F1 /* TopicsTableViewController.m in Sources */,
 				158CFB042E37400200594F1 /* ObjCForumTopicsLoaderWorker.m in Sources */,
 				158CFB052E37400300594F1 /* ObjCForumSearchWorker.m in Sources */,
 				158CFB062E37400400594F1 /* ObjCMPTopicsLoaderWorker.m in Sources */,
 				158CFB0B2E37400500594F1 /* ObjCTopicListParser.m in Sources */,
+				158CFB0E2E37400600594F1 /* ObjCTopicListLoaderWorkerBase.m in Sources */,
+				158CFB112E37400700594F1 /* ObjCTopicSearchWorker.m in Sources */,
+				158CFB142E37400800594F1 /* ObjCMessageActionsBuilder.m in Sources */,
+				158CFB172E37400900594F1 /* ObjCTopicToolbarHTMLBuilder.m in Sources */,
+				158CFB1A2E37400A00594F1 /* ObjCTopicHTMLRenderContext.m in Sources */,
+				158CFB1B2E37400B00594F1 /* ObjCTopicHTMLRenderer.m in Sources */,
+				158CFB202E37400C00594F1 /* ObjCTopicMessageContentResult.m in Sources */,
+				158CFB212E37400D00594F1 /* ObjCTopicMessageContentBuilder.m in Sources */,
+				158CFB262E37400E00594F1 /* ObjCFilteredPostsRendererWorker.m in Sources */,
+				158CFB292E37400F00594F1 /* ObjCTopicPageWorker.m in Sources */,
 				158CFA032E300643000594F1 /* MessagesTableViewController.m in Sources */,
 				158CFA042E300643000594F1 /* PageViewController.m in Sources */,
 				158CFA9B2E301EB9000594F1 /* NSData+Base64.m in Sources */,
@@ -5734,7 +5793,6 @@
 				158CFA912E301E4F000594F1 /* UIScrollView+SVPullToRefresh.m in Sources */,
 				158CFA502E30067E000594F1 /* MultisManager.m in Sources */,
 				158CFA992E301EA3000594F1 /* MKStoreObserver.m in Sources */,
-				158CFA052E300643000594F1 /* BaseTopicsViewController.m in Sources */,
 				158CFA0B2E300643000594F1 /* HFRTextView.m in Sources */,
 				158CFA0E2E300643000594F1 /* Favorite.m in Sources */,
 				158CFA112E300643000594F1 /* MPStorage.m in Sources */,
@@ -5778,7 +5836,6 @@
 				158CFA9D2E301F03000594F1 /* TabBarController.m in Sources */,
 				158CFA1B2E300643000594F1 /* SubCatTableViewController.m in Sources */,
 				158CFA1D2E300643000594F1 /* SimplePhotoViewController.m in Sources */,
-				158CFA1F2E300643000594F1 /* HFRMPViewController.m in Sources */,
 				158CFA202E300643000594F1 /* ForumsTableViewController.m in Sources */,
 				158CFA222E300643000594F1 /* Catcounter.m in Sources */,
 				158CFA242E300643000594F1 /* Forum.m in Sources */,

@@ -10,7 +10,9 @@
 #import "OfflineMessagesTableViewController.h"
 #import "MessagesSearchTableViewController.h"
 #import "MessageDetailViewController.h"
+#if !APP_SWIFT
 #import "TopicsTableViewController.h"
+#endif
 #import "PollTableViewController.h"
 
 #import "RegexKitLite.h"

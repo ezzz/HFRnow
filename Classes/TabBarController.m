@@ -9,8 +9,8 @@
 #import "HFRplusAppDelegate.h"
 #if !APP_SWIFT
 #import "FavoritesTableViewController.h"
-#endif
 #import "HFRMPViewController.h"
+#endif
 #import "ForumsTableViewController.h"
 #import "HFRTabBar.h"
 #import "ThemeColors.h"
@@ -198,9 +198,11 @@
             }
 #endif
                         
+#if !APP_SWIFT
             if ([nv.topViewController isKindOfClass:[HFRMPViewController class]]) {
                 [(HFRMPViewController *)nv.topViewController fetchContent];
             }
+#endif
             
         }
     }

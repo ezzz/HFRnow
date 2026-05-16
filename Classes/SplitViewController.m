@@ -9,13 +9,13 @@
 #import "HFRplusAppDelegate.h"
 #import "MessagesTableViewController.h"
 
-#import "TopicsTableViewController.h"
 #if !APP_SWIFT
+#import "TopicsTableViewController.h"
 #import "FavoritesTableViewController.h"
 #import "PlusSettingsViewController.h"
 #import "PlusTableViewController.h"
-#endif
 #import "HFRMPViewController.h"
+#endif
 #import "TabBarController.h"
 #import "ThemeManager.h"
 #import "ThemeColors.h"
@@ -66,9 +66,15 @@
         self.preferredDisplayMode = UISplitViewControllerDisplayModeAutomatic;
     }
     else if (self.tabIndex == 2) {
+#if !APP_SWIFT
         HFRMPViewController* vc = [[HFRMPViewController alloc] init];
         masterViewController = [[HFRNavigationController alloc] initWithRootViewController:vc];
         vc.detailNavigationViewController = detailNavigationController;
+#else
+        UIViewController *vc = [[UIViewController alloc] init];
+        vc.title = @"Messages";
+        masterViewController = [[HFRNavigationController alloc] initWithRootViewController:vc];
+#endif
         self.preferredDisplayMode = UISplitViewControllerDisplayModeAutomatic;
     }
     else if (self.tabIndex == 3) {
@@ -208,11 +214,13 @@
             
             for (int i = 0; i < counti; i++) {
                 //NSLog(@"intloop");
-                if (![[(UINavigationController*)masterVC.selectedViewController topViewController] isKindOfClass:[TopicsTableViewController class]]
 #if !APP_SWIFT
+                if (![[(UINavigationController*)masterVC.selectedViewController topViewController] isKindOfClass:[TopicsTableViewController class]]
                     && ![[(UINavigationController*)masterVC.selectedViewController topViewController] isKindOfClass:[FavoritesTableViewController class]]
-#endif
                     ) {
+#else
+                if (YES) {
+#endif
                     UIViewController *tmpVCC = [(UINavigationController*)masterVC.selectedViewController popViewControllerAnimated:NO];
                     
                     if (tmpVCC) {

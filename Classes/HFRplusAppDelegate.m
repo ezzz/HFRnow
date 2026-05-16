@@ -8,14 +8,15 @@
 
 #import "HFRplusAppDelegate.h"
 
-#import "HFRMPViewController.h"
 #if !APP_SWIFT
+#import "HFRMPViewController.h"
 #import "FavoritesTableViewController.h"
 #endif
 #import "ForumsTableViewController.h"
 
 #import "MKStoreManager.h"
 #import "BrowserViewController.h"
+#import "RegexKitLite.h"
 
 #import "ThemeColors.h"
 #import "ThemeManager.h"
@@ -804,6 +805,7 @@ static NSString * const HFRSwiftNotificationDestinationMessages = @"messages";
 #endif
             }
         }
+#if !APP_SWIFT
         if(messagesNavController){
             if ([messagesNavController respondsToSelector:@selector(visibleViewController)]) {
                 HFRMPViewController* mpVC = (HFRMPViewController *)[messagesNavController visibleViewController];
@@ -812,6 +814,7 @@ static NSString * const HFRSwiftNotificationDestinationMessages = @"messages";
                 }
             }
         }
+#endif
  
     }
     

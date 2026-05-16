@@ -8,7 +8,9 @@
 #import "HFRplusAppDelegate.h"
 
 #import "ForumsTableViewController.h"
+#if !APP_SWIFT
 #import "TopicsTableViewController.h"
+#endif
 #import "HFRNavigationController.h"
 
 #import "TabBarController.h"
@@ -1042,6 +1044,7 @@
 #pragma mark Table view delegate
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+#if !APP_SWIFT
 	
     NSLog(@"did Select row forum table views");
     
@@ -1110,6 +1113,7 @@
 	self.topicsTableViewController.pickerViewArray = [[arrayData objectAtIndex:indexPath.row] subCats];
 
 	[self.navigationController pushViewController:self.topicsTableViewController animated:YES];
+#endif
 
 }
 

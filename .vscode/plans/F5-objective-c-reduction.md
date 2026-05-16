@@ -357,11 +357,99 @@ Statut 2026-05-15, extraction parser topic :
   - `PageViewController` reste requis par `MessagesTableViewController`, `OfflineMessagesTableViewController` et `BaseTopicsViewController`.
 - Conclusion de la passe : les étapes 1 à 4 sont réalisées, mais aucune suppression supplémentaire autre que `TopicsSearchViewController.m` n'est encore sûre sans traiter explicitement les dernières routes UIKit legacy elles-mêmes.
 
+Statut 2026-05-15, retrait routes topics/MP legacy Swift :
+
+- Les derniers imports et appels UIKit vers `TopicsTableViewController` / `HFRMPViewController` sont isolés hors `APP_SWIFT` dans `SplitViewController`, `TabBarController`, `HFRplusAppDelegate`, `ForumsTableViewController`, `OnlineMessagesTableViewController` et `OfflineMessagesTableViewController`.
+- `TopicsTableViewController.m` et `HFRMPViewController.m` sont retirés de la cible `HFRswift`.
+- Les fichiers restent présents pour la cible Objective-C legacy; seule la cible Swift cesse de les compiler.
+- Build `HFRswift` Debug iOS Simulator OK après ajout explicite de l'import `RegexKitLite` dans `HFRplusAppDelegate`.
+- Réaudit :
+  - `BaseTopicsViewController` n'est plus requis par des écrans topics Swift actifs, mais reste la superclasse des workers topic/recherche/MP pour le transport réseau et l'application du résultat;
+  - `PageViewController` reste encore requis par `BaseTopicsViewController` et par les écrans messages legacy encore conservés;
+  - prochaine étape utile : extraire le transport réseau topic dans un worker non-UIViewController, puis faire quitter `BaseTopicsViewController` aux trois workers.
+
+Statut 2026-05-15, transport topic non-UI :
+
+- `ObjCTopicListLoaderWorkerBase` porte désormais le transport réseau et l'état partagé des workers topic sous forme d'un `NSObject`.
+- `ObjCForumTopicsLoaderWorker`, `ObjCForumSearchWorker` et `ObjCMPTopicsLoaderWorker` ne dépendent plus de `BaseTopicsViewController`.
+- `BaseTopicsViewController.m` est retiré de la cible `HFRswift`; il reste uniquement pour la cible Objective-C legacy avec `TopicsTableViewController` / `TopicsSearchViewController`.
+- Audit `OfflineMessagesTableViewController` :
+  - aucun usage depuis SwiftUI ni aucune entrée `OfflineMessagesTableViewController.m in Sources` dans `HFRswift`;
+  - les références trouvées sont internes à son propre fichier;
+  - la fonctionnalité d'écran offline legacy est donc déjà hors cible Swift.
+- Clarification `MessagesTableViewController` :
+  - il reste compilé non comme écran SwiftUI, mais comme worker legacy encore appelé par `ObjCTopicPageLoader`, `TopicSearchService` et `FavoritePostFilterService`;
+  - ses responsabilités actives côté Swift sont le chargement/parsing d'une page topic, l'extraction des actions par message, la recherche intra-topic et le rendu des posts filtrés;
+  - prochain chantier cohérent avec l'objectif produit : extraire ces responsabilités dans des workers métier non-UIKit, puis retirer à son tour l'UI de `MessagesTableViewController` de la cible Swift.
+
+Statut 2026-05-15, premier lot `MessagesTableViewController` :
+
+- `ObjCTopicSearchWorker` porte désormais la recherche intra-topic `/transsearch.php` hors de `MessagesTableViewController`.
+- `ObjCTopicSearchService` instancie ce worker dédié au lieu de passer par `LegacyTopicWorkerRuntime`.
+- Responsabilités encore actives dans `MessagesTableViewController` côté Swift :
+  1. chargement/parsing d'une page topic;
+  2. extraction des actions par message;
+  3. rendu des posts filtrés favoris.
+- Suite logique recommandée : extraire ensuite le rendu des posts filtrés, qui réutilise déjà des items parsés existants et ne nécessite pas de requête réseau.
+
+Statut 2026-05-15, second lot `MessagesTableViewController` :
+
+- Audit du rendu filtré : il reste encore trop couplé à `manageLoadedItems:` (HTML global, toolbar legacy, état de navigation, thèmes et side effects UIKit) pour être extrait proprement en un seul petit lot.
+- `ObjCMessageActionsBuilder` extrait la construction des actions par message hors de `MessagesTableViewController`.
+- `swiftMessageActionsByIndex` devient un adaptateur mince vers ce builder.
+- Ce builder est maintenant une brique métier partagée prête à être réutilisée quand le rendu HTML filtré puis le chargement topic seront extraits.
+- Suite logique : extraire un renderer HTML topic pur à partir de `manageLoadedItems:`; une fois ce renderer disponible, le rendu filtré pourra sortir sans recopier l'ancien contrôleur entier.
+
+Statut 2026-05-15, troisième lot `MessagesTableViewController` :
+
+- Le premier morceau du rendu HTML sort avec `ObjCTopicToolbarHTMLBuilder`.
+- `manageLoadedItems:` délègue désormais la génération du fragment de toolbar HTML à ce builder pur.
+- Le reste du gabarit HTML reste encore dans `MessagesTableViewController`; la prochaine extraction doit viser le document complet une fois les entrées de rendu regroupées dans une structure dédiée.
+
+Statut 2026-05-15, quatrième lot `MessagesTableViewController` :
+
+- `ObjCTopicHTMLRenderContext` formalise les entrées nécessaires au rendu du document HTML.
+- `ObjCTopicHTMLRenderer` porte désormais la génération du document HTML complet hors de `MessagesTableViewController`.
+- `manageLoadedItems:` conserve encore la préparation des messages, de l'ancre et des side effects UIKit, puis délègue le document final au renderer.
+- Le rendu filtré devient maintenant extractible par étapes : il reste à sortir la préparation du contenu message/ancre hors de `manageLoadedItems:`, puis il pourra partager le même renderer sans dépendre du contrôleur entier.
+
+Statut 2026-05-15, cinquième lot `MessagesTableViewController` :
+
+- `ObjCTopicMessageContentBuilder` et `ObjCTopicMessageContentResult` sortent la préparation du contenu message hors du contrôleur :
+  - assemblage HTML des `LinkItem`;
+  - insertion du séparateur de nouveaux messages;
+  - résolution de l'ancre la plus proche.
+- `manageLoadedItems:` ne conserve plus que l'orchestration et les side effects UIKit autour de ces briques métier.
+- Le rendu filtré dispose maintenant de toutes les briques pures nécessaires (`ObjCTopicMessageContentBuilder`, `ObjCTopicToolbarHTMLBuilder`, `ObjCTopicHTMLRenderer`, `ObjCMessageActionsBuilder`) pour être extrait au prochain lot.
+
+Statut 2026-05-15, sixième lot `MessagesTableViewController` :
+
+- `ObjCFilteredPostsRendererWorker` porte désormais `renderFilteredPosts:topic:startPage:endPage:finished:completion:` hors de `MessagesTableViewController`.
+- `FavoritePostFilterService` utilise ce worker dédié.
+- L'ancienne API de rendu filtré est retirée de `MessagesTableViewController`.
+- Responsabilités encore actives côté Swift dans `MessagesTableViewController` :
+  1. chargement/parsing d'une page topic;
+  2. exposition des actions par message sur la dernière page chargée.
+- Suite logique : extraire le chargement/parsing d'une page topic dans un worker dédié, en réutilisant les builders déjà sortis.
+
+Statut 2026-05-16, septième lot `MessagesTableViewController` :
+
+- `ObjCTopicPageWorker` porte désormais le chargement/parsing d'une page topic et l'exposition des actions de messages pour le chemin SwiftUI.
+- `LegacyTopicWorkerRuntime` instancie maintenant `ObjCTopicPageWorker` au lieu de `MessagesTableViewController`.
+- `MessagesView` ne dépend donc plus de `MessagesTableViewController` côté Swift pour :
+  1. le chargement d'une page topic;
+  2. la recherche intra-topic;
+  3. le rendu filtré;
+  4. les actions par message.
+- Build `HFRswift` Debug iOS Simulator OK après intégration du worker.
+- `MessagesTableViewController` reste encore dans la cible Swift à cause du graphe UIKit legacy compilé autour de lui (`MessagesSearchTableViewController`, `PageViewController`, anciens contrôleurs de listes et fallbacks), pas à cause du chemin SwiftUI actif.
+- Suite logique : auditer puis retirer de la cible Swift les derniers chemins UIKit legacy qui maintiennent encore `MessagesTableViewController` compilé.
+
 ## À garder explicitement pour l'instant
 
 | Zone | Raison |
 |---|---|
-| `MessagesTableViewController` | Worker topic/search/filter encore central. |
+| `MessagesTableViewController` | UI/worker legacy encore compilé via le graphe UIKit historique, mais plus utilisé par le chemin SwiftUI actif. |
 | `ParseMessagesOperation`, `LinkItem` | Parsing/rendu HTML forum. |
 | `ForumsTableViewController`, `TopicsTableViewController`, `FavoritesTableViewController`, `HFRMPViewController`, `TopicsSearchViewController` | Workers de chargement tant que les loaders Swift s'appuient dessus. |
 | `MultisManager` | Session, cookies, compte courant. |

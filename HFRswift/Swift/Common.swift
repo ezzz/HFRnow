@@ -1446,14 +1446,12 @@ extension TopicPageLoading {
 }
 
 enum LegacyTopicWorkerRuntime {
-    static let className = "MessagesTableViewController"
+    static let className = "ObjCTopicPageWorker"
 
     enum SelectorName {
         static let cancelFetchContent = "cancelFetchContent"
         static let fetchContent = "fetchContentForTopicURL:anchor:completion:"
         static let messageActions = "swiftMessageActionsByIndex"
-        static let performSearch = "performTopicSearchWithParams:completion:"
-        static let renderFilteredPosts = "renderFilteredPosts:topic:startPage:endPage:finished:completion:"
     }
 
     static func instantiate() -> NSObject? {

@@ -33,6 +33,12 @@
 #import "OfflineStorage.h"
 #import "FilterPostsQuotes.h"
 #import "Bookmark.h"
+#import "ObjCMessageActionsBuilder.h"
+#import "ObjCTopicToolbarHTMLBuilder.h"
+#import "ObjCTopicHTMLRenderContext.h"
+#import "ObjCTopicHTMLRenderer.h"
+#import "ObjCTopicMessageContentBuilder.h"
+#import "ObjCTopicMessageContentResult.h"
 #if !APP_SWIFT
 #import "SmileyAlertView.h"
 #endif
@@ -1605,59 +1611,14 @@
     }
     else {
         NSString *refreshBtn = @"";
-
-        int i;
-
-        NSCharacterSet* nonDigits = [[NSCharacterSet decimalDigitCharacterSet] invertedSet];
-        int currentFlagValue = [[self.stringFlagTopic stringByTrimmingCharactersInSet:nonDigits] intValue];
-        bool ifCurrentFlag = NO;
-        int closePostID = 0;
-        
-        if(!currentFlagValue) { //si pas de value on cherche soit le premier message (pas de flag) soit le dernier (#bas)
-            NSLog(@"!currentFlagValue");
-            
-            ifCurrentFlag = YES;
-        }
-        
-        // Ego quote not applyed on MP
-        BOOL bIsMP = YES;
-        if ([self.arrayInputData[@"cat"] isEqualToString: @"prive"]) {
-            bIsMP = NO;
-        }
-        
-        for (i = 0; i < [self.arrayData count]; i++) { //Loop through all the tags
-            NSString* sNewMessage = [[self.arrayData objectAtIndex:i] toHTML:i isMP:bIsMP];
-            tmpHTML = [tmpHTML stringByAppendingString:sNewMessage];
-
-            if (!ifCurrentFlag) {
-                int tmpFlagValue = [[[(LinkItem*)[self.arrayData objectAtIndex:i] postID] stringByTrimmingCharactersInSet:nonDigits] intValue];
-
-                if (tmpFlagValue == currentFlagValue) {
-                    if (self.isSeparatorNewMessages == YES) {
-                        // Add separator (but not after last post of page)
-                        if (i < [self.arrayData count] - 1) {
-                            tmpHTML = [tmpHTML stringByAppendingString:@"<div class=\"separator1\"></div>"];
-                        }
-                    }
-                    ifCurrentFlag = YES;
-                    closePostID = tmpFlagValue;
-                }
-
-                // Pas encore trouvé
-                if (closePostID && currentFlagValue && tmpFlagValue >= currentFlagValue) {
-                    //NSLog(@"On a trouvé plus grand, on set");
-                    closePostID = tmpFlagValue;
-                    ifCurrentFlag = YES;
-                }
-                else {  // on set le premier
-                    closePostID = tmpFlagValue;
-                }
-            }
-        }
-        
-        if (closePostID) { // On remplace au plus proche
-            self.stringFlagTopic = [NSString stringWithFormat:@"#t%d", closePostID];
-        }
+        BOOL isPrivateCategory = [self.arrayInputData[@"cat"] isEqualToString:@"prive"];
+        ObjCTopicMessageContentResult *contentResult = [[[ObjCTopicMessageContentBuilder alloc] init]
+            buildContentForItems:self.arrayData
+                   currentAnchor:self.stringFlagTopic
+              separatorRequested:self.isSeparatorNewMessages
+               isPrivateCategory:isPrivateCategory];
+        tmpHTML = contentResult.messagesHTML ?: @"";
+        self.stringFlagTopic = contentResult.resolvedAnchor ?: self.stringFlagTopic;
         
         // On ajoute le bouton de notif de sondage
         if (self.isNewPoll) {
@@ -1686,6 +1647,17 @@
             
         //Toolbar;
         NSString *tooBar = @"";
+        if (self.aToolbar || self.isSearchInstra || self.filterPostsQuotes) {
+            BOOL beginEnabled = self.aToolbar && [(UIBarButtonItem *)[self.aToolbar.items objectAtIndex:0] isEnabled];
+            BOOL endEnabled = self.aToolbar && [(UIBarButtonItem *)[self.aToolbar.items objectAtIndex:4] isEnabled];
+            tooBar = [[[ObjCTopicToolbarHTMLBuilder alloc] init] toolbarHTMLWithBeginEnabled:beginEnabled
+                                                                                  endEnabled:endEnabled
+                                                                                  pageNumber:self.pageNumber
+                                                                              lastPageNumber:self.lastPageNumber
+                                                                                searchActive:self.isSearchInstra
+                                                                        hasMoreFilteredPosts:(self.filterPostsQuotes && !self.filterPostsQuotes.bIsFinished)];
+        }
+        /*
         if (self.aToolbar && !self.isSearchInstra) {
             NSString *buttonBegin, *buttonEnd;
             NSString *buttonPrevious, *buttonNext;
@@ -1729,160 +1701,16 @@
         else if (self.filterPostsQuotes && !self.filterPostsQuotes.bIsFinished) {
             tooBar = [NSString stringWithFormat:@"<a href=\"oijlkajsdoihjlkjasdoauto://filterPostsQuotesNext\" id=\"searchintra_nextbutton\">Résultats suivants &raquo;</a>"];
         }
+        */
 
         
-        NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-        NSString *display_sig = [defaults stringForKey:@"display_sig"];
-        
-        NSString *display_sig_css = @"nosig";
-        
-        if ([display_sig isEqualToString:@"yes"]) {
-            display_sig_css = @"";
-        }
-        
-        NSString *doubleSmileysCSS = @"";
-        if ([[[NSUserDefaults standardUserDefaults] stringForKey:@"size_smileys"] isEqualToString:@"double"]) {
-            doubleSmileysCSS = @".smileycustom {max-height:45px;}";
-        }
-        // Forcé a double
-        doubleSmileysCSS = @".smileycustom {max-height:45px;}";
-
-        
-        
-        NSString *customFontSize = [self userTextSizeDidChange];
-        Theme theme = [[ThemeManager sharedManager] theme];
-
-        /*<link type='text/css' rel='stylesheet %@' href='style-liste-retina.css' id='light-styles-retina' media='all and (-webkit-min-device-pixel-ratio: 2)'/>\
-        <link type='text/css' rel='stylesheet %@' href='style-liste-dark.css' id='dark-styles'/>\
-        <link type='text/css' rel='stylesheet %@' href='style-liste-retina-dark.css' id='dark-styles-retina' media='all and (-webkit-min-device-pixel-ratio: 2)'/>\
-        <link type='text/css' rel='stylesheet %@' href='style-liste-oled.css' id='oled-styles'/>\
-        <link type='text/css' rel='stylesheet %@' href='style-liste-retina-oled.css' id='oled-styles-retina' media='all and (-webkit-min-device-pixel-ratio: 2)'/>\ */
-
-        
-
-        NSString* sCssStyle = @"style-liste-light.css";
-        /*
-        if ([[NSUserDefaults standardUserDefaults] integerForKey:@"theme_style"] == 0) {
-            sCssStyle = @"style-liste.css";
-        }*/
-
-        // Default value for light theme
-        NSString *sAvatarImageFile = @"url(avatar_male_gray_on_light_48x48.png)";
-        NSString *sLoadInfoImageFile = @"url(loadinfo.gif)";
-        NSString* sBorderHeader = @"none";
-        
-        // Modified in theme Dark or OLED
-        if (theme == ThemeDark) {
-            sAvatarImageFile = @"url(avatar_male_gray_on_dark_48x48.png)";
-            sLoadInfoImageFile = @"url(loadinfo.net.gif)";
-        }
-        
-        
-        NSString *HTMLString = [NSString
-                                stringWithFormat:@"<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\
-                                <html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"fr\" lang=\"fr\">\
-                                <head>\
-                                <script type='text/javascript' src='jquery-2.1.1.min.js'></script>\
-                                <script type='text/javascript' src='jquery.doubletap.js'></script>\
-                                <script type='text/javascript' src='jquery.base64.js'></script>\
-                                <meta name='viewport' content='initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no' />\
-                                <meta http-equiv='Content-Type' content='text/html; charset=UTF-8' />\
-                                <link type='text/css' rel='stylesheet' href='%@' id='light-styles'/>\
-                                <style type='text/css'>\
-                                %@\
-                                </style>\
-                                <style id='smileys_double' type='text/css'>\
-                                %@\
-                                </style>\
-                                </head><body class='iosversion'><a name='top' id='top'></a>\
-                                <div class='bunselected %@' id='qsdoiqjsdkjhqkjhqsdqdilkjqsd2'>\
-                                %@\
-                                </div>\
-                                %@\
-                                %@\
-                                <div id='endofpage'></div>\
-                                <div id='endofpagetoolbar'></div>\
-                                <a name='bas'></a>\
-                                <script type='text/javascript'>\
-                                document.addEventListener('DOMContentLoaded', loadedML);\
-                                document.addEventListener('touchstart', touchstart);\
-                                function loadedML() { setTimeout(function() {document.location.href = 'oijlkajsdoihjlkjasdoloaded://loaded';},700); };\
-                                function toggleDiv(id) { $(id).slideToggle('slow'); };\
-                                function HLtxt() { var el = document.getElementById('qsdoiqjsdkjhqkjhqsdqdilkjqsd');el.className='bselected'; }\
-                                function UHLtxt() { var el = document.getElementById('qsdoiqjsdkjhqkjhqsdqdilkjqsd');el.className='bunselected'; }\
-                                function swap_spoiler_states(obj){var div=obj.getElementsByTagName('div');if(div[0]){if(div[0].style.visibility==\"visible\"){div[0].style.visibility='hidden';}else if(div[0].style.visibility==\"hidden\"||!div[0].style.visibility){div[0].style.visibility='visible';}}}\
-                                $('img').error(function(){var failingSrc = $(this).attr('src');if(failingSrc.indexOf('https://reho.st')>-1){$(this).attr('src', 'photoDefaultClic.png')}else{$(this).attr('src', 'photoDefaultfailmini.png');}});\
-                                function touchstart() { document.location.href = 'oijlkajsdoihjlkjasdotouch://touchstart'};\
-                                function touchHeaderMessage(selectedNode, actionName) { event.stopPropagation(); var rect = selectedNode.getBoundingClientRect(); var parentRect = selectedNode.parentNode.getBoundingClientRect(); var x = Math.round(rect.left + (rect.width / 2)); var y = Math.round(parentRect.top); window.location = 'oijlkajsdoihjlkjasdopopup'+actionName+'://'+x+'/'+y+'/' + selectedNode.parentNode.parentNode.id; return false; };\
-                                document.documentElement.style.setProperty('--color-action', '%@');\
-                                document.documentElement.style.setProperty('--color-action-disabled', '%@');\
-                                document.documentElement.style.setProperty('--color-message-background', '%@');\
-                                document.documentElement.style.setProperty('--color-message-modo-background', '%@');\
-                                document.documentElement.style.setProperty('--color-message-header-me-background', '%@');\
-                                document.documentElement.style.setProperty('--color-message-mequoted-background', '%@');\
-                                document.documentElement.style.setProperty('--color-message-mequoted-borderleft', '%@');\
-                                document.documentElement.style.setProperty('--color-message-mequoted-borderother', '%@');\
-                                document.documentElement.style.setProperty('--color-message-header-love-background', '%@');\
-                                document.documentElement.style.setProperty('--color-message-quoted-love-background', '%@');\
-                                document.documentElement.style.setProperty('--color-message-quoted-love-borderleft', '%@');\
-                                document.documentElement.style.setProperty('--color-message-quoted-love-borderother', '%@');\
-                                document.documentElement.style.setProperty('--color-message-quoted-bl-background', '%@');\
-                                document.documentElement.style.setProperty('--color-message-header-bl-background', '%@');\
-                                document.documentElement.style.setProperty('--color-separator-new-message', '%@');\
-                                document.documentElement.style.setProperty('--color-text', '%@');\
-                                document.documentElement.style.setProperty('--color-text2', '%@');\
-                                document.documentElement.style.setProperty('--color-background-bars', '%@');\
-                                document.documentElement.style.setProperty('--color-searchintra-nextresults', '%@');\
-                                document.documentElement.style.setProperty('--imagefile-avatar', '%@');\
-                                document.documentElement.style.setProperty('--imagefile-loadinfo', '%@');\
-                                document.documentElement.style.setProperty('--color-border-quotation', '%@');\
-                                document.documentElement.style.setProperty('--color-border-avatar', '%@');\
-                                document.documentElement.style.setProperty('--color-text-pseudo', '%@');\
-                                document.documentElement.style.setProperty('--color-text-pseudo-bl', '%@');\
-                                document.documentElement.style.setProperty('--border-header', '%@');\
-                                </script>\
-                                </body></html>",
-                                sCssStyle, customFontSize,doubleSmileysCSS, display_sig_css, tmpHTML, refreshBtn, tooBar,
-                                [ThemeColors hexFromUIColor:[ThemeColors tintColor]], //--color-action
-                                [ThemeColors hexFromUIColor:[ThemeColors tintColorDisabled:theme]], //--color-action-disabled
-                                [ThemeColors hexFromUIColor:[ThemeColors messageBackgroundColor:theme]], //--color-message-background
-                                [ThemeColors hexFromUIColor:[ThemeColors messageModoBackgroundColor:theme]], //--color-message-background
-                                [[NSUserDefaults standardUserDefaults] integerForKey:@"theme_style"] == 1
-                                    ? [ThemeColors rgbaFromUIColor:[ThemeColors tintColor] withAlpha:0.03]
-                                    : [ThemeColors rgbaFromUIColor:[ThemeColors tintColor] withAlpha:0.15], // -color-message-header-me-background
-                                [ThemeColors rgbaFromUIColor:[ThemeColors tintColor] withAlpha:0.03], // color-message-mequoted-background
-                                [ThemeColors rgbaFromUIColor:[ThemeColors tintColor] withAlpha:1],  //--color-message-mequoted-borderleft
-                                [ThemeColors rgbaFromUIColor:[ThemeColors tintLightColorNoAlpha]],  //--color-message-mequoted-borderother
-                                [[NSUserDefaults standardUserDefaults] integerForKey:@"theme_style"] == 1
-                                    ? [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:0.4]
-                                    : [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:1.0], //--color-message-header-love-background
-                                [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:0.3], // --color-message-header-me-background
-                                [ThemeColors rgbaFromUIColor:[ThemeColors loveColor] withAlpha:1.0 addSaturation:1 addBrightness:1],  //--color-message-mequoted-borderleft
-                                [ThemeColors rgbaFromUIColor:[ThemeColors loveLightColorNoAlpha]], //--color-message-quoted-love-borderother
-                                [ThemeColors rgbaFromUIColor:[ThemeColors textColor:theme] withAlpha:0.05],  //--color-message-quoted-bl-background
-                                [ThemeColors rgbaFromUIColor:[ThemeColors textFieldBackgroundColor:theme] withAlpha:0.7],  //--color-message-header-bl-background
-                                [ThemeColors rgbaFromUIColor:[ThemeColors textColorPseudo:theme] withAlpha:0.5],  //--color-separator-new-message
-                                [ThemeColors hexFromUIColor:[ThemeColors textColor:theme]], //--color-text
-                                [ThemeColors hexFromUIColor:[ThemeColors textColor2:theme]], //--color-text2
-                                [ThemeColors hexFromUIColor:[ThemeColors textFieldBackgroundColor:theme]], //--color-background-bars
-                                [ThemeColors rgbaFromUIColor:[ThemeColors textFieldBackgroundColor:theme] withAlpha:0.9], //--color-searchintra-nextresults
-                                sAvatarImageFile,
-                                sLoadInfoImageFile,
-                                [ThemeColors getColorBorderQuotation:theme],
-                                [ThemeColors hexFromUIColor:[ThemeColors getColorBorderAvatar:theme]],
-                                [ThemeColors hexFromUIColor:[ThemeColors textColorPseudo:theme]],
-                                [ThemeColors rgbaFromUIColor:[ThemeColors textColorPseudo:theme] withAlpha:0.5],
-                                sBorderHeader
-                                ];
-        
-        
-        if (self.isSearchInstra) {
-            HTMLString = [HTMLString stringByReplacingOccurrencesOfString:@"iosversion" withString:@"ios7 searchintra"];
-        }
-        else {
-            HTMLString = [HTMLString stringByReplacingOccurrencesOfString:@"iosversion" withString:@"ios7"];
-        }
-        
+        ObjCTopicHTMLRenderContext *renderContext = [[ObjCTopicHTMLRenderContext alloc] init];
+        renderContext.messagesHTML = tmpHTML;
+        renderContext.refreshButtonHTML = refreshBtn;
+        renderContext.toolbarHTML = tooBar;
+        renderContext.customFontSizeCSS = [self userTextSizeDidChange];
+        renderContext.searchActive = self.isSearchInstra;
+        NSString *HTMLString = [[[ObjCTopicHTMLRenderer alloc] init] renderHTMLWithContext:renderContext];
 
         // Callback to SWIFT Quand c’est prêt → on appelle la completion
         NSError *error = nil; // ou une vraie erreur si besoin
@@ -3364,111 +3192,11 @@ API_AVAILABLE(ios(16.0)) {
 #pragma - SWIFT
 
 - (NSDictionary<NSNumber *, NSDictionary<NSString *, NSString *> *> *)swiftMessageActionsByIndex {
-    NSMutableDictionary<NSNumber *, NSDictionary<NSString *, NSString *> *> *actionsByIndex = [NSMutableDictionary dictionary];
-    NSString *forumBaseURL = [k ForumURL];
-    if (forumBaseURL.length == 0) {
-        forumBaseURL = @"https://forum.hardware.fr";
-    }
-    NSString *realForumBaseURL = [k RealForumURL];
-    if (realForumBaseURL.length == 0) {
-        realForumBaseURL = forumBaseURL;
-    }
-    BOOL canBeFavorite = [self canBeFavorite];
-    BOOL isPrivateCategory = [self.arrayInputData[@"cat"] isEqualToString:@"prive"];
-    BOOL canBookmark = [[NSUserDefaults standardUserDefaults] boolForKey:@"mpstorage_active"] && !isPrivateCategory;
-    BOOL canAQ = !isPrivateCategory;
-    NSString *topicID = [self.arrayInputData[@"post"] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-    NSString *topicCategory = [self.arrayInputData[@"cat"] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-    NSString *topicTitle = [self.topicName stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-
-    for (NSUInteger index = 0; index < self.arrayData.count; index++) {
-        id candidate = [self.arrayData objectAtIndex:index];
-        if (![candidate isKindOfClass:[LinkItem class]]) {
-            continue;
-        }
-
-        LinkItem *item = (LinkItem *)candidate;
-        NSMutableDictionary<NSString *, NSString *> *entry = [NSMutableDictionary dictionary];
-
-        NSString *quoteURL = [self swiftAbsoluteQuoteURLForLinkItem:item forumBaseURL:forumBaseURL];
-        if (quoteURL.length > 0) {
-            [entry setObject:quoteURL forKey:@"quoteURL"];
-        }
-
-        NSString *profileURL = [self swiftAbsoluteForumURLFromRawURL:item.urlProfil forumBaseURL:forumBaseURL];
-        if (profileURL.length > 0) {
-            [entry setObject:profileURL forKey:@"profileURL"];
-        }
-
-        NSString *privateMessageURL = [self swiftAbsoluteForumURLFromRawURL:item.MPUrl forumBaseURL:forumBaseURL];
-        if (privateMessageURL.length > 0) {
-            [entry setObject:privateMessageURL forKey:@"privateMessageURL"];
-        }
-
-        NSString *avatarImagePath = [item.imageUI stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-        if (avatarImagePath.length > 0) {
-            [entry setObject:avatarImagePath forKey:@"avatarImagePath"];
-        }
-
-        NSString *favoriteURL = [self swiftAbsoluteForumURLFromRawURL:item.addFlagUrl forumBaseURL:forumBaseURL];
-        if (favoriteURL.length > 0) {
-            [entry setObject:favoriteURL forKey:@"favoriteURL"];
-        }
-
-        NSString *alertURL = [self swiftAbsoluteForumURLFromRawURL:item.urlAlert forumBaseURL:forumBaseURL];
-        if (alertURL.length > 0) {
-            [entry setObject:alertURL forKey:@"alertURL"];
-        }
-
-        NSString *editURL = [self swiftAbsoluteDecodedForumURLFromRawURL:item.urlEdit forumBaseURL:forumBaseURL];
-        BOOL canDelete = NO;
-        if (editURL.length > 0) {
-            [entry setObject:@"1" forKey:@"isOwnMessage"];
-            [entry setObject:editURL forKey:@"editURL"];
-            canDelete = (index > 0);
-        } else {
-            [entry setObject:@"0" forKey:@"isOwnMessage"];
-        }
-
-        if (item.quoteJS.length > 0) {
-            [entry setObject:item.quoteJS forKey:@"quoteJS"];
-        }
-        if (item.name.length > 0) {
-            [entry setObject:item.name forKey:@"authorName"];
-        }
-
-        if (item.postID.length > 0) {
-            [entry setObject:item.postID forKey:@"postID"];
-
-            NSString *permalinkURL = [self swiftPermalinkURLForPostID:item.postID
-                                                               itemURL:item.url
-                                                             baseForum:realForumBaseURL];
-            if (permalinkURL.length > 0) {
-                [entry setObject:permalinkURL forKey:@"permalinkURL"];
-            }
-        }
-
-        [entry setObject:(canBeFavorite ? @"1" : @"0") forKey:@"canBeFavorite"];
-        [entry setObject:(isPrivateCategory ? @"1" : @"0") forKey:@"isPrivateCategory"];
-        [entry setObject:(canAQ ? @"1" : @"0") forKey:@"canAQ"];
-        [entry setObject:(canBookmark ? @"1" : @"0") forKey:@"canBookmark"];
-        [entry setObject:(canDelete ? @"1" : @"0") forKey:@"canDelete"];
-        if (topicID.length > 0) {
-            [entry setObject:topicID forKey:@"topicID"];
-        }
-        if (topicCategory.length > 0) {
-            [entry setObject:topicCategory forKey:@"topicCategory"];
-        }
-        if (topicTitle.length > 0) {
-            [entry setObject:topicTitle forKey:@"topicTitle"];
-        }
-
-        if (entry.count > 0) {
-            [actionsByIndex setObject:[entry copy] forKey:@((NSInteger)index)];
-        }
-    }
-
-    return [actionsByIndex copy];
+    return [[[ObjCMessageActionsBuilder alloc] init] actionsByIndexForItems:self.arrayData
+                                                                  inputData:self.arrayInputData
+                                                                  topicName:self.topicName
+                                                                 currentURL:self.currentUrl
+                                                              canBeFavorite:[self canBeFavorite]];
 }
 
 - (NSString *)swiftAbsoluteQuoteURLForLinkItem:(LinkItem *)item forumBaseURL:(NSString *)forumBaseURL {
@@ -3571,58 +3299,6 @@ API_AVAILABLE(ios(16.0)) {
     self.stringFlagTopic = anchor;
 
 	[self fetchContent];
-}
-
-- (void)renderFilteredPosts:(NSArray *)items
-                      topic:(Topic *)topic
-                  startPage:(NSNumber *)startPage
-                    endPage:(NSNumber *)endPage
-                   finished:(NSNumber *)finished
-                 completion:(void (^)(NSString *html, NSDictionary<NSNumber *,NSDictionary<NSString *,NSString *> *> *messageActionsByIndex, NSError *error))completion {
-    if (!completion) { return; }
-    if (!topic) {
-        NSError *error = [NSError errorWithDomain:@"MessagesTableViewController.filteredPosts"
-                                             code:-1
-                                         userInfo:@{NSLocalizedDescriptionKey: @"Topic invalide."}];
-        dispatch_async(dispatch_get_main_queue(), ^{
-            completion(nil, nil, error);
-        });
-        return;
-    }
-
-    NSArray *safeItems = items ?: @[];
-    NSString *topicURL = topic.aURL ?: topic.aURLOfLastPage ?: topic.aURLOfFirstPage ?: @"";
-    self.currentUrl = topicURL;
-    self.originalUrl = topicURL;
-    self.topic = topic;
-    self.topicName = topic.aTitle ?: topic._aTitle ?: @"";
-    self.isSeparatorNewMessages = NO;
-    self.stringFlagTopic = @"";
-    self.pageNumberFilterStart = [startPage intValue];
-    self.pageNumberFilterEnd = [endPage intValue];
-    self.filterPostsQuotes = nil;
-
-    if (!self.arrayInputData) {
-        self.arrayInputData = [[NSMutableDictionary alloc] init];
-    }
-    [self.arrayInputData removeAllObjects];
-    if (topic.postID > 0) {
-        [self.arrayInputData setObject:[NSString stringWithFormat:@"%d", topic.postID] forKey:@"post"];
-    }
-    if (topic.catID > 0) {
-        [self.arrayInputData setObject:[NSString stringWithFormat:@"%d", topic.catID] forKey:@"cat"];
-    }
-
-    __weak typeof(self) weakSelf = self;
-    self.completionHandler = ^(NSString *html, NSString *topicAnswerUrl, NSNumber *currentPage, NSNumber *maxPage, NSError *error) {
-        __strong typeof(weakSelf) strongSelf = weakSelf;
-        NSDictionary *actions = strongSelf ? [strongSelf swiftMessageActionsByIndex] : @{};
-        completion(html, actions, error);
-    };
-
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [self manageLoadedItems:safeItems];
-    });
 }
 
 #pragma mark - Swift search bridge

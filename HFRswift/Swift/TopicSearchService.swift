@@ -112,9 +112,13 @@ protocol TopicSearchServicing {
 }
 
 final class ObjCTopicSearchService: TopicSearchServicing {
+    private enum SelectorName {
+        static let performSearch = "performTopicSearchWithParams:completion:"
+    }
+
     private let controller: NSObject?
 
-    init(controller: NSObject? = LegacyTopicWorkerRuntime.instantiate()) {
+    init(controller: NSObject? = LegacyLoaderRuntime.instantiateController(named: "ObjCTopicSearchWorker")) {
         self.controller = controller
     }
 
@@ -126,7 +130,7 @@ final class ObjCTopicSearchService: TopicSearchServicing {
             return .failure(.controllerUnavailable)
         }
 
-        let selector = NSSelectorFromString(LegacyTopicWorkerRuntime.SelectorName.performSearch)
+        let selector = NSSelectorFromString(SelectorName.performSearch)
         guard controller.responds(to: selector) else {
             return .failure(.controllerUnavailable)
         }

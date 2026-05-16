@@ -1,9 +1,9 @@
-#import "BaseTopicsViewController.h"
+#import "ObjCTopicListLoaderWorkerBase.h"
 
 @class Forum;
 @class Topic;
 
-@interface ObjCForumTopicsLoaderWorker : BaseTopicsViewController
+@interface ObjCForumTopicsLoaderWorker : ObjCTopicListLoaderWorkerBase
 
 @property (nonatomic, copy) void (^completion)(NSArray<Topic *> *topics, NSError *error);
 

@@ -10,7 +10,9 @@
 #import "OnlineMessagesTableViewController.h"
 #import "MessagesSearchTableViewController.h"
 #import "MessageDetailViewController.h"
+#if !APP_SWIFT
 #import "TopicsTableViewController.h"
+#endif
 #import "PollTableViewController.h"
 
 //#import "HFR_EditorViewController.h"
@@ -902,7 +904,9 @@
             
             //[self reload];
             [[[HFRplusAppDelegate sharedAppDelegate] messagesNavController] popViewControllerAnimated:YES];
+#if !APP_SWIFT
             [(TopicsTableViewController *)[[[HFRplusAppDelegate sharedAppDelegate] messagesNavController] visibleViewController] fetchContent];
+#endif
         }
     }
     //NSLog(@"nonlu %@", self.isFavoritesOrRead);
