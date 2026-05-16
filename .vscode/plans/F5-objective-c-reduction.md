@@ -268,6 +268,16 @@ Statut 2026-05-16, suite inventaire `.m` :
 - La cible `HFRswift` passe de `66` à `50` fichiers `.m` compilés.
 - Build `HFRswift` Debug iOS Simulator OK.
 
+Statut 2026-05-16, suite réduction métier :
+
+- `Catcounter` est retiré de `HFRswift`; il n'était plus référencé que par `FavoritesTableViewController`, déjà hors cible Swift.
+- `LuminosityHandler` est retiré de `HFRswift`; `ThemeManager` ne l'utilisait plus depuis la simplification du thème automatique vers le mode système iOS.
+- `ASIDownloadCache` et `ASINetworkQueue` sont retirés de `HFRswift`; ils ne sont plus utilisés par les workers actifs, contrairement au noyau `ASIHTTPRequest` encore conservé.
+- Le bridging header Swift n'expose plus `PlusTableViewController` ni `NewMessageViewController`, deux headers UIKit legacy sans usage Swift restant.
+- `FilterPostsQuotes` reste conservé comme worker Swift, mais son ancienne moitié UIKit (progress alert, navigation legacy et méthodes `fetchContentForTopic`) est désormais exclue sous `APP_SWIFT`.
+- La cible `HFRswift` descend à `46` fichiers `.m` compilés.
+- Build `HFRswift` Debug iOS Simulator OK après chaque sous-lot.
+
 Statut 2026-05-14, suite Q6 favoris :
 
 - `ObjCFavoritesLoader` n'instancie plus `FavoritesTableViewController`; il utilise `ObjCFavoritesLoaderWorker`, un `NSObject` dédié au chargement/parsing des favoris.

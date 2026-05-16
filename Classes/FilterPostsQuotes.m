@@ -19,13 +19,12 @@
 #if !APP_SWIFT
 #import "MessagesTableViewController.h"
 #endif
-#import "HFRAlertView.h"
 
 @implementation FilterPostsQuotes
 
-@synthesize topic, request, arrData, iLastPageLoaded, bIsFinished, progressView, alertProgress, bShowPostsRequired, stopRequired;
+@synthesize topic, request, arrData, iLastPageLoaded, bIsFinished, bShowPostsRequired, stopRequired;
 #if !APP_SWIFT
-@synthesize favoriteVC, messagesTableVC;
+@synthesize progressView, alertProgress, favoriteVC, messagesTableVC;
 #endif
 
 //static FilterPostsQuotes *_shared = nil;    // static instance variable
@@ -81,6 +80,7 @@
 
 #pragma mark - Work methods
 
+#if !APP_SWIFT
 - (void)fetchContentForTopic:(Topic*)topic {
     [self fetchContentForTopic:topic startPage:0];
 }
@@ -197,6 +197,7 @@
 #endif
     }
 }
+#endif
 
 - (void)fetchFilteredPostsForTopic:(Topic *)topic
                           startPage:(NSNumber *)startPage
@@ -320,6 +321,7 @@
 #pragma mark HMI methods
 // --------------------------------------------------------------------------------
 
+#if !APP_SWIFT
 - (void) addProgressBar:(UIViewController*)vc {
     self.alertProgress = [UIAlertController alertControllerWithTitle:@"Chargement..." message:@"" preferredStyle:UIAlertControllerStyleAlert];
     UIAlertAction* actionAfficher = [UIAlertAction actionWithTitle:@"Afficher" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
@@ -361,7 +363,6 @@
 }
 
 - (void) displayPosts:(Topic*)topic {
-#if !APP_SWIFT
     self.favoriteVC.messagesTableViewController = [[MessagesTableViewController alloc] init];
     self.favoriteVC.messagesTableViewController.currentUrl = topic.aURL;
     self.favoriteVC.messagesTableViewController.filterPostsQuotes = self;
@@ -370,10 +371,8 @@
     self.favoriteVC.messagesTableViewController.isViewed = topic.isViewed;
     
     [self.favoriteVC pushTopic];
-#endif
 }
 
-#if !APP_SWIFT
 - (void) displayNextPosts {
     self.messagesTableVC.pageNumberFilterStart = self.iStartPage;
     self.messagesTableVC.pageNumberFilterEnd = self.iLastPageLoaded;

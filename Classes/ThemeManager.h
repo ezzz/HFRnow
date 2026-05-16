@@ -8,7 +8,6 @@
 
 #import <Foundation/Foundation.h>
 #import "Constants.h"
-#import "LuminosityHandler.h"
 
 #define AUTO_THEME_MANUAL 0
 #define AUTO_THEME_AUTO_IOS 3
@@ -16,11 +15,10 @@
 #define MANUAL_THEME_LIGHT 0
 #define MANUAL_THEME_DARK 1
 
-@interface ThemeManager : NSObject <LuminosityHandlerDelegate>  {
+@interface ThemeManager : NSObject {
 }
 
 @property Theme theme;
-@property LuminosityHandler *luminosityHandler;
 
 + (ThemeManager*)sharedManager;
 + (Theme)currentTheme;

@@ -5,7 +5,6 @@
 #ifndef Bridging_Header_h
 #define Bridging_Header_h
 
-#import "PlusTableViewController.h"
 #import "HFRplusAppDelegate.h"
 #import "Favorite.h"
 #import "Forum.h"
@@ -15,6 +14,5 @@
 #import "OfflineStorage.h"
 #import "ThemeManager.h"
 #import "k.h"
-#import "NewMessageViewController.h"
 
 #endif /* Bridging_Header_h */

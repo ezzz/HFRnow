@@ -24,12 +24,10 @@
 @property BOOL bIsFinished;
 @property BOOL bShowPostsRequired, stopRequired;
 
+#if !APP_SWIFT
 @property (nonatomic, strong) UIAlertController *alertProgress;
 @property (nonatomic, strong) UIProgressView *progressView;
-#if !APP_SWIFT
 @property (nonatomic, strong) FavoritesTableViewController* favoriteVC;
-#endif
-#if !APP_SWIFT
 @property (nonatomic, strong) MessagesTableViewController* messagesTableVC;
 #endif
 
@@ -44,8 +42,10 @@
 - (void)checkNextPostsAndQuotesWithVC:(MessagesTableViewController*) vc;
 #endif
 
+#if !APP_SWIFT
 - (void)fetchContentForTopic:(Topic*)topic;
 - (void)fetchContentForTopic:(Topic*)topic startPage:(int)iStartPage;
+#endif
 
 - (void)fetchFilteredPostsForTopic:(Topic * _Nonnull)topic
                           startPage:(NSNumber * _Nullable)startPage
