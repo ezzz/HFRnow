@@ -545,6 +545,35 @@ Statut 2026-05-16, seizième lot `galerie photo legacy` :
 - État cible après ce lot : `67` fichiers `.m` et `0` fichier `.xib` dans `HFRswift`.
 - Prochain audit recommandé : `AvatarTableViewCell`, puis un nouveau tri des dépendances restantes réellement vivantes.
 
+## Photo d'ensemble après réduction 2026-05-16
+
+État `HFRswift` : `67` fichiers `.m`, `0` fichier `.xib`.
+
+| Groupe | Nombre | Contenu |
+|---|---:|---|
+| Nouveau socle worker/parser | `20` | `ObjC*` extraits + `FilterPostsQuotes`, `ParseMessagesOperation`, `LinkItem` |
+| Modèles/services métier encore utiles | `17` | `Topic`, `Forum`, `Favorite`, `Bookmark`, `MPStorage`, `MultisManager`, `BlackList`, `OfflineStorage`, `SmileyCache`, `Theme*`, etc. |
+| Dépendances techniques / utilitaires | `30` | `ASI*`, `HTML*`, `RegexKitLite`, catégories UIKit, `MKStore*`, reachability, helpers |
+
+Lecture pratique :
+
+- Il ne reste plus qu'un vrai `UIViewController` first-party dans `HFRswift` : `LuminosityHandler`, encore référencé par `ThemeManager`.
+- Le vrai legacy résiduel évident est désormais petit :
+  - `AvatarTableViewCell` : encore couplé à `ThemeManager` par un test de classe;
+  - `HFRAlertView` : reste utilisé par `MPStorage`, donc encore vivant;
+  - quelques helpers UI historiques (`InAppSettingsKit+Theme`, `UIScrollView+SV*`, `UITableViewController+Ext`, etc.) à réauditer un par un.
+- La majorité du reliquat n'est plus de l'UI legacy mais soit :
+  - du traitement métier conservé volontairement;
+  - des briques techniques encore nécessaires aux workers existants.
+
+Statut 2026-05-16, dix-septième lot `AvatarTableViewCell` :
+
+- L'exception `ThemeManager` pour `AvatarTableViewCell` est isolée sous `!APP_SWIFT`; elle ne concernait plus qu'un écran profil UIKit déjà hors cible Swift.
+- `AvatarTableViewCell.m` est retiré de `HFRswift`.
+- Build `HFRswift` Debug iOS Simulator OK après retrait.
+- État cible après ce lot : `66` fichiers `.m` et `0` fichier `.xib` dans `HFRswift`.
+- Il ne reste plus de `UITableViewCell` first-party legacy compilée dans la cible Swift.
+
 ## À garder explicitement pour l'instant
 
 | Zone | Raison |

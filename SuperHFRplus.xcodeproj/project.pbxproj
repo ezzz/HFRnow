@@ -792,7 +792,6 @@
 		158CFA0E2E300643000594F1 /* Favorite.m in Sources */ = {isa = PBXBuildFile; fileRef = CA8A79B115BB404700D8E9E7 /* Favorite.m */; };
 		158CFA112E300643000594F1 /* MPStorage.m in Sources */ = {isa = PBXBuildFile; fileRef = 15960FE422F6147B006BBD34 /* MPStorage.m */; };
 		158CFA122E300643000594F1 /* FilterPostsQuotes.m in Sources */ = {isa = PBXBuildFile; fileRef = 1540899B2439E7C900509862 /* FilterPostsQuotes.m */; };
-		158CFA132E300643000594F1 /* AvatarTableViewCell.m in Sources */ = {isa = PBXBuildFile; fileRef = CAF5DB8019341BBB000B5215 /* AvatarTableViewCell.m */; };
 		158CFA142E300643000594F1 /* TopicsSearchViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = CA79581912836B24007C4E02 /* TopicsSearchViewController.m */; };
 		158CFA172E300643000594F1 /* Topic.m in Sources */ = {isa = PBXBuildFile; fileRef = 01BF8B6F121DAEF3007624B6 /* Topic.m */; };
 		158CFA1F2E300643000594F1 /* HFRMPViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0140AA85121DF25F001C35C4 /* HFRMPViewController.m */; };
@@ -5761,7 +5760,6 @@
 				158CFA6F2E3012D1000594F1 /* UIImage+Resize.m in Sources */,
 				158CFA902E301E3C000594F1 /* UIScrollView+SVInfiniteScrolling.m in Sources */,
 				158CFA122E300643000594F1 /* FilterPostsQuotes.m in Sources */,
-				158CFA132E300643000594F1 /* AvatarTableViewCell.m in Sources */,
 				158CFA702E301B75000594F1 /* ASIAuthenticationDialog.m in Sources */,
 				158CFA712E301B75000594F1 /* ASIHTTPRequest.m in Sources */,
 				158CFA722E301B75000594F1 /* ASIDataDecompressor.m in Sources */,
