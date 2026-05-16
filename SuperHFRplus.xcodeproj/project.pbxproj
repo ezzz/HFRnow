@@ -782,12 +782,9 @@
 		1572FC4D22F3826100D40789 /* icons8-reset-50.png in Resources */ = {isa = PBXBuildFile; fileRef = 1572FC4C22F3826100D40789 /* icons8-reset-50.png */; };
 		1572FC4F22F384AA00D40789 /* reset-512.png in Resources */ = {isa = PBXBuildFile; fileRef = 1572FC4E22F384AA00D40789 /* reset-512.png */; };
 		158CF9E12E3005BA000594F1 /* Bookmark.m in Sources */ = {isa = PBXBuildFile; fileRef = 152D2D44244CBA1100D9D644 /* Bookmark.m */; };
-		158CF9EB2E3005F2000594F1 /* HFRTabBar.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C0031221BD01CE700F87F13 /* HFRTabBar.m */; };
-		158CF9EC2E3005F2000594F1 /* BrowserViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = CA26862313ADE01100AC5511 /* BrowserViewController.m */; };
 		158CF9EE2E3005F2000594F1 /* LuminosityHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = D86ED58720447D1200A2D541 /* LuminosityHandler.m */; };
 		158CF9F12E3005F2000594F1 /* k.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C25E3D51D82CECD0031A2F2 /* k.m */; };
 		158CF9F32E3005F2000594F1 /* HFRplusAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D3623250D0F684500981E51 /* HFRplusAppDelegate.m */; };
-		158CF9F52E3005F2000594F1 /* HFRNavigationController.m in Sources */ = {isa = PBXBuildFile; fileRef = CAC4966815B77357009128BC /* HFRNavigationController.m */; };
 		158CF9F92E3005F2000594F1 /* HFRAlertView.m in Sources */ = {isa = PBXBuildFile; fileRef = 15E25D67223047EF00474562 /* HFRAlertView.m */; };
 		158CF9FA2E3005F2000594F1 /* ThemeManager.m in Sources */ = {isa = PBXBuildFile; fileRef = D8C8F1541E56ECA000B1381E /* ThemeManager.m */; };
 		158CF9FB2E3005F2000594F1 /* ThemeColors.m in Sources */ = {isa = PBXBuildFile; fileRef = D8F5CBB01DF462F100B029FC /* ThemeColors.m */; };
@@ -828,35 +825,12 @@
 		158CFA752E301B75000594F1 /* ASIDataCompressor.m in Sources */ = {isa = PBXBuildFile; fileRef = D80DBD571E55BE730051B751 /* ASIDataCompressor.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		158CFA762E301B75000594F1 /* ASIDownloadCache.m in Sources */ = {isa = PBXBuildFile; fileRef = D80DBD5B1E55BE730051B751 /* ASIDownloadCache.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		158CFA772E301B75000594F1 /* ASINetworkQueue.m in Sources */ = {isa = PBXBuildFile; fileRef = D80DBD651E55BE730051B751 /* ASINetworkQueue.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
-		158CFA782E301BA4000594F1 /* MWTapDetectingImageView.m in Sources */ = {isa = PBXBuildFile; fileRef = 15E209FD2D687699004AF5E2 /* MWTapDetectingImageView.m */; };
-		158CFA792E301BA4000594F1 /* MWPhotoBrowser.m in Sources */ = {isa = PBXBuildFile; fileRef = 15E209F92D687699004AF5E2 /* MWPhotoBrowser.m */; };
-		158CFA7A2E301BA4000594F1 /* MWZoomingScrollView.m in Sources */ = {isa = PBXBuildFile; fileRef = 15E20A012D687699004AF5E2 /* MWZoomingScrollView.m */; };
-		158CFA7B2E301BA4000594F1 /* MWTapDetectingView.m in Sources */ = {isa = PBXBuildFile; fileRef = 15E209FF2D687699004AF5E2 /* MWTapDetectingView.m */; };
-		158CFA7C2E301BA4000594F1 /* MWGridViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 15E209F42D687699004AF5E2 /* MWGridViewController.m */; };
-		158CFA7D2E301BA4000594F1 /* MWGridCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 15E209F22D687699004AF5E2 /* MWGridCell.m */; };
-		158CFA7E2E301BA4000594F1 /* MWPhoto.m in Sources */ = {isa = PBXBuildFile; fileRef = 15E209F62D687699004AF5E2 /* MWPhoto.m */; };
-		158CFA7F2E301BA4000594F1 /* MWCaptionView.m in Sources */ = {isa = PBXBuildFile; fileRef = 15E209EF2D687699004AF5E2 /* MWCaptionView.m */; };
 		158CFA802E301BAB000594F1 /* MWPhotoBrowser.bundle in Resources */ = {isa = PBXBuildFile; fileRef = 15E209F82D687699004AF5E2 /* MWPhotoBrowser.bundle */; };
 		158CFA812E301DF9000594F1 /* Reachability.m in Sources */ = {isa = PBXBuildFile; fileRef = D8F5CBAC1DF45C1100B029FC /* Reachability.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
-		158CFA822E301E0A000594F1 /* DACircularProgressView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C3903361BCACE4D00FD6F1F /* DACircularProgressView.m */; };
-		158CFA832E301E19000594F1 /* PSTCollectionViewLayout.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C39034B1BCACEC200FD6F1F /* PSTCollectionViewLayout.m */; };
-		158CFA842E301E19000594F1 /* PSTCollectionViewUpdateItem.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C39034D1BCACEC200FD6F1F /* PSTCollectionViewUpdateItem.m */; };
-		158CFA852E301E19000594F1 /* PSTGridLayoutRow.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C3903531BCACEC200FD6F1F /* PSTGridLayoutRow.m */; };
-		158CFA862E301E19000594F1 /* PSTCollectionViewItemKey.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C3903481BCACEC200FD6F1F /* PSTCollectionViewItemKey.m */; };
-		158CFA872E301E19000594F1 /* PSTCollectionView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C39033D1BCACEC200FD6F1F /* PSTCollectionView.m */; };
-		158CFA882E301E19000594F1 /* PSTGridLayoutInfo.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C39034F1BCACEC200FD6F1F /* PSTGridLayoutInfo.m */; };
-		158CFA892E301E19000594F1 /* PSTGridLayoutSection.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C3903551BCACEC200FD6F1F /* PSTGridLayoutSection.m */; };
-		158CFA8A2E301E19000594F1 /* PSTGridLayoutItem.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C3903511BCACEC200FD6F1F /* PSTGridLayoutItem.m */; };
-		158CFA8B2E301E19000594F1 /* NSIndexPath+PSTCollectionViewAdditions.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C39033B1BCACEC200FD6F1F /* NSIndexPath+PSTCollectionViewAdditions.m */; };
-		158CFA8C2E301E19000594F1 /* PSTCollectionViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C3903421BCACEC200FD6F1F /* PSTCollectionViewController.m */; };
-		158CFA8D2E301E19000594F1 /* PSTCollectionViewFlowLayout.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C3903461BCACEC200FD6F1F /* PSTCollectionViewFlowLayout.m */; };
-		158CFA8E2E301E19000594F1 /* PSTCollectionViewCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C39033F1BCACEC200FD6F1F /* PSTCollectionViewCell.m */; };
-		158CFA8F2E301E19000594F1 /* PSTCollectionViewData.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C3903441BCACEC200FD6F1F /* PSTCollectionViewData.m */; };
 		158CFA902E301E3C000594F1 /* UIScrollView+SVInfiniteScrolling.m in Sources */ = {isa = PBXBuildFile; fileRef = CACADFD419217CCA0071D2DA /* UIScrollView+SVInfiniteScrolling.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
 		158CFA912E301E4F000594F1 /* UIScrollView+SVPullToRefresh.m in Sources */ = {isa = PBXBuildFile; fileRef = CACADFD619217CCA0071D2DA /* UIScrollView+SVPullToRefresh.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
 		158CFA922E301E5F000594F1 /* HTMLNode.m in Sources */ = {isa = PBXBuildFile; fileRef = CA00C43B17C2FF3F0067B457 /* HTMLNode.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		158CFA932E301E7A000594F1 /* HTMLParser.m in Sources */ = {isa = PBXBuildFile; fileRef = CA00C43D17C2FF3F0067B457 /* HTMLParser.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
-		158CFA942E301E85000594F1 /* MBProgressHUD.m in Sources */ = {isa = PBXBuildFile; fileRef = CA00C3E517C2FE1B0067B457 /* MBProgressHUD.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		158CFA982E301E99000594F1 /* MKStoreManager.m in Sources */ = {isa = PBXBuildFile; fileRef = CA00C44B17C2FF4E0067B457 /* MKStoreManager.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		158CFA992E301EA3000594F1 /* MKStoreObserver.m in Sources */ = {isa = PBXBuildFile; fileRef = CA00C44D17C2FF4E0067B457 /* MKStoreObserver.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		158CFA9A2E301EAE000594F1 /* RegexKitLite.m in Sources */ = {isa = PBXBuildFile; fileRef = CA00C45817C300140067B457 /* RegexKitLite.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
@@ -5774,15 +5748,6 @@
 				158CFA0E2E300643000594F1 /* Favorite.m in Sources */,
 				158CFA112E300643000594F1 /* MPStorage.m in Sources */,
 				158CFA812E301DF9000594F1 /* Reachability.m in Sources */,
-				158CFA782E301BA4000594F1 /* MWTapDetectingImageView.m in Sources */,
-				158CFA792E301BA4000594F1 /* MWPhotoBrowser.m in Sources */,
-				158CFA7A2E301BA4000594F1 /* MWZoomingScrollView.m in Sources */,
-				158CFA7B2E301BA4000594F1 /* MWTapDetectingView.m in Sources */,
-				158CFA942E301E85000594F1 /* MBProgressHUD.m in Sources */,
-				158CFA7C2E301BA4000594F1 /* MWGridViewController.m in Sources */,
-				158CFA7D2E301BA4000594F1 /* MWGridCell.m in Sources */,
-				158CFA7E2E301BA4000594F1 /* MWPhoto.m in Sources */,
-				158CFA7F2E301BA4000594F1 /* MWCaptionView.m in Sources */,
 				158CFA642E3012D1000594F1 /* UIImage+BezierPath.m in Sources */,
 				158CFA652E3012D1000594F1 /* UIScrollView+Theme.m in Sources */,
 				158CFA662E3012D1000594F1 /* UITableViewController+Ext.m in Sources */,
@@ -5791,7 +5756,6 @@
 				158CFA692E3012D1000594F1 /* InAppSettingsKit+Theme.m in Sources */,
 				158CFA6A2E3012D1000594F1 /* NSDictionary+Merging.m in Sources */,
 				158CFA6B2E3012D1000594F1 /* ASIHTTPRequest+Tools.m in Sources */,
-				158CFA822E301E0A000594F1 /* DACircularProgressView.m in Sources */,
 				158CFA6D2E3012D1000594F1 /* UIImpactFeedbackGenerator+UserDefaults.m in Sources */,
 				158CFA6E2E3012D1000594F1 /* UINavigationBar+Helper.m in Sources */,
 				158CFA6F2E3012D1000594F1 /* UIImage+Resize.m in Sources */,
@@ -5814,28 +5778,12 @@
 				158CFA612E301097000594F1 /* RangeOfCharacters.m in Sources */,
 				158CFA282E300643000594F1 /* SmileyCache.m in Sources */,
 				158CFA2B2E300643000594F1 /* LinkItem.m in Sources */,
-				158CF9EB2E3005F2000594F1 /* HFRTabBar.m in Sources */,
-				158CF9EC2E3005F2000594F1 /* BrowserViewController.m in Sources */,
 				158CF9EE2E3005F2000594F1 /* LuminosityHandler.m in Sources */,
 				158CF9F12E3005F2000594F1 /* k.m in Sources */,
 				158CF9F32E3005F2000594F1 /* HFRplusAppDelegate.m in Sources */,
 				158CFA9A2E301EAE000594F1 /* RegexKitLite.m in Sources */,
-				158CF9F52E3005F2000594F1 /* HFRNavigationController.m in Sources */,
-				158CFA832E301E19000594F1 /* PSTCollectionViewLayout.m in Sources */,
-				158CFA842E301E19000594F1 /* PSTCollectionViewUpdateItem.m in Sources */,
-				158CFA852E301E19000594F1 /* PSTGridLayoutRow.m in Sources */,
 				158CFA932E301E7A000594F1 /* HTMLParser.m in Sources */,
-				158CFA862E301E19000594F1 /* PSTCollectionViewItemKey.m in Sources */,
 				158CFA922E301E5F000594F1 /* HTMLNode.m in Sources */,
-				158CFA872E301E19000594F1 /* PSTCollectionView.m in Sources */,
-				158CFA882E301E19000594F1 /* PSTGridLayoutInfo.m in Sources */,
-				158CFA892E301E19000594F1 /* PSTGridLayoutSection.m in Sources */,
-				158CFA8A2E301E19000594F1 /* PSTGridLayoutItem.m in Sources */,
-				158CFA8B2E301E19000594F1 /* NSIndexPath+PSTCollectionViewAdditions.m in Sources */,
-				158CFA8C2E301E19000594F1 /* PSTCollectionViewController.m in Sources */,
-				158CFA8D2E301E19000594F1 /* PSTCollectionViewFlowLayout.m in Sources */,
-				158CFA8E2E301E19000594F1 /* PSTCollectionViewCell.m in Sources */,
-				158CFA8F2E301E19000594F1 /* PSTCollectionViewData.m in Sources */,
 				158CFA622E3011C2000594F1 /* UIMenuItem+CXAImageSupport.m in Sources */,
 				158CF9F92E3005F2000594F1 /* HFRAlertView.m in Sources */,
 				158CF9FA2E3005F2000594F1 /* ThemeManager.m in Sources */,

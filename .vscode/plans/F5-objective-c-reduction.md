@@ -526,6 +526,25 @@ Statut 2026-05-16, quatorzième lot `XIB legacy orphelins` :
 - Build `HFRswift` Debug iOS Simulator OK après retrait.
 - État cible après ce lot : `93` fichiers `.m` et `0` fichier `.xib` dans `HFRswift`.
 
+Statut 2026-05-16, quinzième lot `navigation/browser legacy` :
+
+- `HFRTabBar.m`, `BrowserViewController.m` et `HFRNavigationController.m` sont retirés de la cible `HFRswift`.
+- Les références résiduelles viennent uniquement du vieux shell/topic UIKit déjà hors cible Swift (`TabBarController`, `SplitViewController`, `OnlineMessagesTableViewController`, `OfflineMessagesTableViewController`, anciens écrans compte).
+- Build `HFRswift` Debug iOS Simulator OK après retrait.
+- État cible après ce lot : `90` fichiers `.m` et `0` fichier `.xib` dans `HFRswift`.
+- Prochain audit recommandé : le bloc galerie/photo (`MWPhotoBrowser`, `MWGridViewController`, `PSTCollectionViewController` et dépendances associées), puis `AvatarTableViewCell`.
+
+Statut 2026-05-16, seizième lot `galerie photo legacy` :
+
+- Le bloc `MWPhotoBrowser` / `PSTCollectionView` est retiré de `HFRswift` :
+  - `MWPhotoBrowser`, `MWGridViewController`, `MWGridCell`, `MWPhoto`, `MWCaptionView`, `MWZoomingScrollView`, `MWTapDetecting*`;
+  - `PSTCollectionView*`, `PSTGridLayout*`, `NSIndexPath+PSTCollectionViewAdditions`;
+  - `DACircularProgressView`, `MBProgressHUD`.
+- Les seuls appels applicatifs restants vers la galerie viennent de `OnlineMessagesTableViewController` / `OfflineMessagesTableViewController`, déjà hors cible Swift.
+- Build `HFRswift` Debug iOS Simulator OK après retrait du paquet complet.
+- État cible après ce lot : `67` fichiers `.m` et `0` fichier `.xib` dans `HFRswift`.
+- Prochain audit recommandé : `AvatarTableViewCell`, puis un nouveau tri des dépendances restantes réellement vivantes.
+
 ## À garder explicitement pour l'instant
 
 | Zone | Raison |
