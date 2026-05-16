@@ -259,6 +259,15 @@ Statut 2026-05-14, suite Q6 smileys :
 - La cible Swift conserve le flux smiley via `MessageWebAction.manageSmileyFavorite` et `MessageSmileySheetView` dans `MessagesView`.
 - Build `HFRswift` Debug iOS Simulator OK.
 
+Statut 2026-05-16, suite inventaire `.m` :
+
+- Les helpers UI orphelins suivants sont retirés de la cible `HFRswift` : `InAppSettingsKit+Theme`, `UILabel+Boldify`, `UIImage+BezierPath`, `UIImage+Resize`, `UINavigationBar+Helper`, `UIScrollView+Theme`, `NSData+Base64`, `UIMenuItem+CXAImageSupport`, `UIScrollView+SVPullToRefresh`, `UIScrollView+SVInfiniteScrolling`, `UIImpactFeedbackGenerator+UserDefaults`.
+- Les catégories globales `UITableViewController+Ext`, `UIColor+Extension` et `NSDictionary+Merging` sont retirées de `HFRswift`; leurs imports dans `Constants.h` sont désormais isolés hors `APP_SWIFT`.
+- `MKStoreManager` et `MKStoreObserver` sont retirés de `HFRswift`; `PayViewController` était déjà hors cible Swift et l'import restant dans `HFRplusAppDelegate` n'était plus utilisé.
+- Les fichiers restent présents dans le dépôt pour la cible legacy, mais ne maintiennent plus artificiellement le binaire Swift.
+- La cible `HFRswift` passe de `66` à `50` fichiers `.m` compilés.
+- Build `HFRswift` Debug iOS Simulator OK.
+
 Statut 2026-05-14, suite Q6 favoris :
 
 - `ObjCFavoritesLoader` n'instancie plus `FavoritesTableViewController`; il utilise `ObjCFavoritesLoaderWorker`, un `NSObject` dédié au chargement/parsing des favoris.

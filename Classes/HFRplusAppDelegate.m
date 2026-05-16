@@ -17,7 +17,6 @@
 #import "TabBarController.h"
 #endif
 
-#import "MKStoreManager.h"
 #import "BrowserViewController.h"
 #import "RegexKitLite.h"
 

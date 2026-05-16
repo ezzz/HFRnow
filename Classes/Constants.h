@@ -6,10 +6,12 @@
 //
 
 #import <Foundation/Foundation.h>
+#if !APP_SWIFT
 #import "UITableViewController+Ext.h"
 #import "NSDictionary+Merging.h"
-#import "HFRNavigationController.h"
 #import "UIColor+Extension.h"
+#endif
+#import "HFRNavigationController.h"
 
 #ifdef CONFIGURATION_Release
 #define NSLog(__FORMAT__, ...)
