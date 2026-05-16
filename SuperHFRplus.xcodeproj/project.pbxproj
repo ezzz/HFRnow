@@ -782,38 +782,22 @@
 		1572FC4D22F3826100D40789 /* icons8-reset-50.png in Resources */ = {isa = PBXBuildFile; fileRef = 1572FC4C22F3826100D40789 /* icons8-reset-50.png */; };
 		1572FC4F22F384AA00D40789 /* reset-512.png in Resources */ = {isa = PBXBuildFile; fileRef = 1572FC4E22F384AA00D40789 /* reset-512.png */; };
 		158CF9E12E3005BA000594F1 /* Bookmark.m in Sources */ = {isa = PBXBuildFile; fileRef = 152D2D44244CBA1100D9D644 /* Bookmark.m */; };
-		158CF9E82E3005F2000594F1 /* ForumCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C0B8E021BA45B0100D329BA /* ForumCellView.m */; };
-		158CF9E92E3005F2000594F1 /* TopicMPCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = 15AC35862904332600CCD6FC /* TopicMPCellView.m */; };
-		158CF9EA2E3005F2000594F1 /* TopicsCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 01BF8A12121D7469007624B6 /* TopicsCell.m */; };
 		158CF9EB2E3005F2000594F1 /* HFRTabBar.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C0031221BD01CE700F87F13 /* HFRTabBar.m */; };
 		158CF9EC2E3005F2000594F1 /* BrowserViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = CA26862313ADE01100AC5511 /* BrowserViewController.m */; };
-		158CF9ED2E3005F2000594F1 /* InsetLabel.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C9C2B1A1BAE62C500511853 /* InsetLabel.m */; };
 		158CF9EE2E3005F2000594F1 /* LuminosityHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = D86ED58720447D1200A2D541 /* LuminosityHandler.m */; };
-		158CF9F02E3005F2000594F1 /* PullToRefreshErrorViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = CAF5DB5719328EB4000B5215 /* PullToRefreshErrorViewController.m */; };
 		158CF9F12E3005F2000594F1 /* k.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C25E3D51D82CECD0031A2F2 /* k.m */; };
-		158CF9F22E3005F2000594F1 /* HFRUIImagePickerController.m in Sources */ = {isa = PBXBuildFile; fileRef = D826903E1E5856A5006971C3 /* HFRUIImagePickerController.m */; };
 		158CF9F32E3005F2000594F1 /* HFRplusAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D3623250D0F684500981E51 /* HFRplusAppDelegate.m */; };
-		158CF9F42E3005F2000594F1 /* TopicCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = CAB16277124B9F8300D12569 /* TopicCellView.m */; };
 		158CF9F52E3005F2000594F1 /* HFRNavigationController.m in Sources */ = {isa = PBXBuildFile; fileRef = CAC4966815B77357009128BC /* HFRNavigationController.m */; };
-		158CF9F82E3005F2000594F1 /* TopicSearchCellView.m in Sources */ = {isa = PBXBuildFile; fileRef = CA20FA3312F15CA700EC1771 /* TopicSearchCellView.m */; };
 		158CF9F92E3005F2000594F1 /* HFRAlertView.m in Sources */ = {isa = PBXBuildFile; fileRef = 15E25D67223047EF00474562 /* HFRAlertView.m */; };
 		158CF9FA2E3005F2000594F1 /* ThemeManager.m in Sources */ = {isa = PBXBuildFile; fileRef = D8C8F1541E56ECA000B1381E /* ThemeManager.m */; };
 		158CF9FB2E3005F2000594F1 /* ThemeColors.m in Sources */ = {isa = PBXBuildFile; fileRef = D8F5CBB01DF462F100B029FC /* ThemeColors.m */; };
-		158CF9FC2E3005F2000594F1 /* TopicSearchCellView.xib in Resources */ = {isa = PBXBuildFile; fileRef = CA20FA3412F15CA700EC1771 /* TopicSearchCellView.xib */; };
-		158CF9FD2E3005F2000594F1 /* TopicCellView.xib in Resources */ = {isa = PBXBuildFile; fileRef = CAB16279124B9F9A00D12569 /* TopicCellView.xib */; };
-		158CF9FE2E3005F2000594F1 /* TopicMPCellView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 15AC3583290418DA00CCD6FC /* TopicMPCellView.xib */; };
-		158CF9FF2E3005F2000594F1 /* ForumCellView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4C0B8E031BA45B0100D329BA /* ForumCellView.xib */; };
 		158CFA022E300643000594F1 /* TopicsTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 01BF8B44121DAD33007624B6 /* TopicsTableViewController.m */; };
-		158CFA0B2E300643000594F1 /* HFRTextView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C21E9821BA5CC1200691D65 /* HFRTextView.m */; };
 		158CFA0E2E300643000594F1 /* Favorite.m in Sources */ = {isa = PBXBuildFile; fileRef = CA8A79B115BB404700D8E9E7 /* Favorite.m */; };
 		158CFA112E300643000594F1 /* MPStorage.m in Sources */ = {isa = PBXBuildFile; fileRef = 15960FE422F6147B006BBD34 /* MPStorage.m */; };
 		158CFA122E300643000594F1 /* FilterPostsQuotes.m in Sources */ = {isa = PBXBuildFile; fileRef = 1540899B2439E7C900509862 /* FilterPostsQuotes.m */; };
 		158CFA132E300643000594F1 /* AvatarTableViewCell.m in Sources */ = {isa = PBXBuildFile; fileRef = CAF5DB8019341BBB000B5215 /* AvatarTableViewCell.m */; };
 		158CFA142E300643000594F1 /* TopicsSearchViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = CA79581912836B24007C4E02 /* TopicsSearchViewController.m */; };
-		158CFA152E300643000594F1 /* AKSegmentedControl.m in Sources */ = {isa = PBXBuildFile; fileRef = CAA1B091125C0A53009C80E3 /* AKSegmentedControl.m */; };
 		158CFA172E300643000594F1 /* Topic.m in Sources */ = {isa = PBXBuildFile; fileRef = 01BF8B6F121DAEF3007624B6 /* Topic.m */; };
-		158CFA1B2E300643000594F1 /* SubCatTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = CA7E260115A24A9A00721F6D /* SubCatTableViewController.m */; };
-		158CFA1D2E300643000594F1 /* SimplePhotoViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 151737FA2DA5B3AF005DDA75 /* SimplePhotoViewController.m */; };
 		158CFA1F2E300643000594F1 /* HFRMPViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0140AA85121DF25F001C35C4 /* HFRMPViewController.m */; };
 		158CFA222E300643000594F1 /* Catcounter.m in Sources */ = {isa = PBXBuildFile; fileRef = 0140ABAC121E011D001C35C4 /* Catcounter.m */; };
 		158CFA242E300643000594F1 /* Forum.m in Sources */ = {isa = PBXBuildFile; fileRef = 01BF8A53121D7945007624B6 /* Forum.m */; };
@@ -830,11 +814,9 @@
 		158CFA652E3012D1000594F1 /* UIScrollView+Theme.m in Sources */ = {isa = PBXBuildFile; fileRef = D8A61744215E82E3006E9248 /* UIScrollView+Theme.m */; };
 		158CFA662E3012D1000594F1 /* UITableViewController+Ext.m in Sources */ = {isa = PBXBuildFile; fileRef = CA00C46917C302610067B457 /* UITableViewController+Ext.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		158CFA672E3012D1000594F1 /* UIColor+Extension.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CC814FC1BAC86ED00F8BB81 /* UIColor+Extension.m */; };
-		158CFA682E3012D1000594F1 /* AKSingleSegmentedControl.m in Sources */ = {isa = PBXBuildFile; fileRef = CA00C46117C302610067B457 /* AKSingleSegmentedControl.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		158CFA692E3012D1000594F1 /* InAppSettingsKit+Theme.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CCF76671FB5CE12008CF525 /* InAppSettingsKit+Theme.m */; };
 		158CFA6A2E3012D1000594F1 /* NSDictionary+Merging.m in Sources */ = {isa = PBXBuildFile; fileRef = CA00C46317C302610067B457 /* NSDictionary+Merging.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		158CFA6B2E3012D1000594F1 /* ASIHTTPRequest+Tools.m in Sources */ = {isa = PBXBuildFile; fileRef = 152D2D492456E56500D9D644 /* ASIHTTPRequest+Tools.m */; };
-		158CFA6C2E3012D1000594F1 /* HFRplusTabBar.m in Sources */ = {isa = PBXBuildFile; fileRef = D873E006271DBC5B006262C8 /* HFRplusTabBar.m */; };
 		158CFA6D2E3012D1000594F1 /* UIImpactFeedbackGenerator+UserDefaults.m in Sources */ = {isa = PBXBuildFile; fileRef = D89AB2E01FB459F9007A4281 /* UIImpactFeedbackGenerator+UserDefaults.m */; };
 		158CFA6E2E3012D1000594F1 /* UINavigationBar+Helper.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C17938A1E93B78B007EA6CB /* UINavigationBar+Helper.m */; };
 		158CFA6F2E3012D1000594F1 /* UIImage+Resize.m in Sources */ = {isa = PBXBuildFile; fileRef = CA00C46717C302610067B457 /* UIImage+Resize.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
@@ -5064,10 +5046,6 @@
 				15316BC42E32A1CB00E2B7CD /* global.gif in Resources */,
 				15316BC52E32A1CB00E2B7CD /* multipleflag1.gif in Resources */,
 				15316BC62E32A1CB00E2B7CD /* multipleflag0.gif in Resources */,
-				158CF9FC2E3005F2000594F1 /* TopicSearchCellView.xib in Resources */,
-				158CF9FD2E3005F2000594F1 /* TopicCellView.xib in Resources */,
-				158CF9FE2E3005F2000594F1 /* TopicMPCellView.xib in Resources */,
-				158CF9FF2E3005F2000594F1 /* ForumCellView.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -5772,9 +5750,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				158CF9E82E3005F2000594F1 /* ForumCellView.m in Sources */,
-				158CF9E92E3005F2000594F1 /* TopicMPCellView.m in Sources */,
-				158CF9EA2E3005F2000594F1 /* TopicsCell.m in Sources */,
 				158CFB042E37400200594F1 /* ObjCForumTopicsLoaderWorker.m in Sources */,
 				158CFB052E37400300594F1 /* ObjCForumSearchWorker.m in Sources */,
 				158CFB062E37400400594F1 /* ObjCMPTopicsLoaderWorker.m in Sources */,
@@ -5796,7 +5771,6 @@
 				158CFA912E301E4F000594F1 /* UIScrollView+SVPullToRefresh.m in Sources */,
 				158CFA502E30067E000594F1 /* MultisManager.m in Sources */,
 				158CFA992E301EA3000594F1 /* MKStoreObserver.m in Sources */,
-				158CFA0B2E300643000594F1 /* HFRTextView.m in Sources */,
 				158CFA0E2E300643000594F1 /* Favorite.m in Sources */,
 				158CFA112E300643000594F1 /* MPStorage.m in Sources */,
 				158CFA812E301DF9000594F1 /* Reachability.m in Sources */,
@@ -5814,11 +5788,9 @@
 				158CFA662E3012D1000594F1 /* UITableViewController+Ext.m in Sources */,
 				158CFA672E3012D1000594F1 /* UIColor+Extension.m in Sources */,
 				D9C70B8A2E40C54B00FE42CE /* OfflineStorage.m in Sources */,
-				158CFA682E3012D1000594F1 /* AKSingleSegmentedControl.m in Sources */,
 				158CFA692E3012D1000594F1 /* InAppSettingsKit+Theme.m in Sources */,
 				158CFA6A2E3012D1000594F1 /* NSDictionary+Merging.m in Sources */,
 				158CFA6B2E3012D1000594F1 /* ASIHTTPRequest+Tools.m in Sources */,
-				158CFA6C2E3012D1000594F1 /* HFRplusTabBar.m in Sources */,
 				158CFA822E301E0A000594F1 /* DACircularProgressView.m in Sources */,
 				158CFA6D2E3012D1000594F1 /* UIImpactFeedbackGenerator+UserDefaults.m in Sources */,
 				158CFA6E2E3012D1000594F1 /* UINavigationBar+Helper.m in Sources */,
@@ -5826,7 +5798,6 @@
 				158CFA902E301E3C000594F1 /* UIScrollView+SVInfiniteScrolling.m in Sources */,
 				158CFA122E300643000594F1 /* FilterPostsQuotes.m in Sources */,
 				158CFA132E300643000594F1 /* AvatarTableViewCell.m in Sources */,
-				158CFA152E300643000594F1 /* AKSegmentedControl.m in Sources */,
 				158CFA702E301B75000594F1 /* ASIAuthenticationDialog.m in Sources */,
 				158CFA712E301B75000594F1 /* ASIHTTPRequest.m in Sources */,
 				158CFA722E301B75000594F1 /* ASIDataDecompressor.m in Sources */,
@@ -5836,8 +5807,6 @@
 				158CFA762E301B75000594F1 /* ASIDownloadCache.m in Sources */,
 				158CFA772E301B75000594F1 /* ASINetworkQueue.m in Sources */,
 				158CFA172E300643000594F1 /* Topic.m in Sources */,
-				158CFA1B2E300643000594F1 /* SubCatTableViewController.m in Sources */,
-				158CFA1D2E300643000594F1 /* SimplePhotoViewController.m in Sources */,
 				158CFA222E300643000594F1 /* Catcounter.m in Sources */,
 				158CFA242E300643000594F1 /* Forum.m in Sources */,
 				158CFA252E300643000594F1 /* ParseMessagesOperation.m in Sources */,
@@ -5847,13 +5816,9 @@
 				158CFA2B2E300643000594F1 /* LinkItem.m in Sources */,
 				158CF9EB2E3005F2000594F1 /* HFRTabBar.m in Sources */,
 				158CF9EC2E3005F2000594F1 /* BrowserViewController.m in Sources */,
-				158CF9ED2E3005F2000594F1 /* InsetLabel.m in Sources */,
 				158CF9EE2E3005F2000594F1 /* LuminosityHandler.m in Sources */,
-				158CF9F02E3005F2000594F1 /* PullToRefreshErrorViewController.m in Sources */,
 				158CF9F12E3005F2000594F1 /* k.m in Sources */,
-				158CF9F22E3005F2000594F1 /* HFRUIImagePickerController.m in Sources */,
 				158CF9F32E3005F2000594F1 /* HFRplusAppDelegate.m in Sources */,
-				158CF9F42E3005F2000594F1 /* TopicCellView.m in Sources */,
 				158CFA9A2E301EAE000594F1 /* RegexKitLite.m in Sources */,
 				158CF9F52E3005F2000594F1 /* HFRNavigationController.m in Sources */,
 				158CFA832E301E19000594F1 /* PSTCollectionViewLayout.m in Sources */,
@@ -5872,7 +5837,6 @@
 				158CFA8E2E301E19000594F1 /* PSTCollectionViewCell.m in Sources */,
 				158CFA8F2E301E19000594F1 /* PSTCollectionViewData.m in Sources */,
 				158CFA622E3011C2000594F1 /* UIMenuItem+CXAImageSupport.m in Sources */,
-				158CF9F82E3005F2000594F1 /* TopicSearchCellView.m in Sources */,
 				158CF9F92E3005F2000594F1 /* HFRAlertView.m in Sources */,
 				158CF9FA2E3005F2000594F1 /* ThemeManager.m in Sources */,
 				158CF9FB2E3005F2000594F1 /* ThemeColors.m in Sources */,

@@ -486,6 +486,46 @@ Statut 2026-05-16, onzième lot `forums legacy` :
 - Build `HFRswift` Debug iOS Simulator OK après bascule et retrait.
 - Conséquence : les trois contrôleurs demandés du shell legacy (`ForumsTableViewController`, `TabBarController`, `SplitViewController`) ne sont plus compilés dans l'app SwiftUI.
 
+## Inventaire `HFRswift` après réduction 2026-05-16
+
+La phase de sources `HFRswift` contient désormais principalement :
+
+| Classement | Fichiers principaux |
+|---|---|
+| `KEEP_TREATMENT` workers/parsers | `ObjCForumsLoaderWorker`, `ObjCForumsParser`, `ObjCForumTopicsLoaderWorker`, `ObjCForumSearchWorker`, `ObjCMPTopicsLoaderWorker`, `ObjCFavoritesLoaderWorker`, `ObjCTopicListParser`, `ObjCTopicListLoaderWorkerBase`, `ObjCTopicPageWorker`, `ObjCTopicSearchWorker`, `ObjCFilteredPostsRendererWorker`, `ObjCMessageActionsBuilder`, `ObjCTopic*`, `FilterPostsQuotes`, `ParseMessagesOperation`, `LinkItem` |
+| `KEEP_TREATMENT` modèles/services | `Topic`, `Forum`, `Favorite`, `Bookmark`, `MPStorage`, `BlackList`, `MultisManager`, `SmileyCache`, `OfflineStorage`, `k`, `ThemeManager`, `ThemeColors` |
+| `KEEP_DEPENDENCY` techniques | `ASI*`, `HTMLParser`, `HTMLNode`, `RegexKitLite`, `RangeOfCharacters`, `NSData+Base64`, `Reachability`, `SD/MWPhoto*`, `PSTCollectionView*`, `UIScrollView+SV*`, catégories UIKit utilitaires |
+| `AUDIT_NEXT` UI résiduelle | `SubCatTableViewController`, `SimplePhotoViewController`, `BrowserViewController`, `HFRNavigationController`, `HFRUIImagePickerController`, `PullToRefreshErrorViewController`, `ForumCellView`, `TopicMPCellView`, `TopicsCell`, `TopicCellView`, `TopicSearchCellView`, `AvatarTableViewCell`, `HFRTabBar`, `HFRplusTabBar`, `InsetLabel`, `HFRAlertView`, `HFRTextView`, `AKSegmentedControl`, `AKSingleSegmentedControl` |
+
+Premières observations :
+
+- Plusieurs UI résiduelles ne sont plus référencées que par des contrôleurs legacy déjà sortis de `HFRswift` : `SubCatTableViewController`, `HFRUIImagePickerController`, `PullToRefreshErrorViewController`, `ForumCellView`, `TopicMPCellView`, `TopicCellView`, `TopicSearchCellView`, `InsetLabel`, `HFRTextView`, `AKSingleSegmentedControl`.
+- `HFRplusTabBar` n'a plus de référence active détectée hors son propre fichier.
+- `SimplePhotoViewController` n'a plus de référence active détectée.
+- `BrowserViewController`, `HFRNavigationController`, `HFRAlertView` et `AvatarTableViewCell` demandent encore un audit ciblé avant retrait : ils ont des références croisées avec des écrans legacy encore présents dans le repo ou avec `ThemeManager`.
+- Suite logique : traiter d'abord les candidats sans appel actif depuis le chemin Swift (`SimplePhotoViewController`, `HFRplusTabBar`, puis les cellules/UI uniquement référencées par des contrôleurs déjà hors cible).
+
+Statut 2026-05-16, douzième lot `orphelins sans référence active` :
+
+- `SimplePhotoViewController.m`, `HFRplusTabBar.m`, `TopicsCell.m` et `AKSegmentedControl.m` sont retirés de la cible `HFRswift`.
+- `rg` ne trouvait plus aucune référence active hors de leurs propres fichiers pour ces quatre classes.
+- Build `HFRswift` Debug iOS Simulator OK après retrait.
+- Les prochains candidats restent légèrement plus couplés : ils ne sont plus utilisés par le chemin SwiftUI actif, mais sont encore référencés par des contrôleurs legacy conservés dans le repo (`SubCatTableViewController`, `HFRUIImagePickerController`, `PullToRefreshErrorViewController`, cellules de listes, `InsetLabel`, `HFRTextView`, `AKSingleSegmentedControl`).
+
+Statut 2026-05-16, treizième lot `UI uniquement référencée par le legacy hors cible` :
+
+- `SubCatTableViewController.m`, `HFRUIImagePickerController.m`, `PullToRefreshErrorViewController.m`, `ForumCellView.m`, `TopicMPCellView.m`, `TopicCellView.m`, `TopicSearchCellView.m`, `InsetLabel.m`, `HFRTextView.m` et `AKSingleSegmentedControl.m` sont retirés de la cible `HFRswift`.
+- Les références restantes de ces classes proviennent uniquement de contrôleurs UIKit legacy déjà sortis de `HFRswift` (`TopicsTableViewController`, `HFRMPViewController`, `FavoritesTableViewController`, `RehostImageViewController`, `AddMessageViewController`, listes BL/WL legacy).
+- Build `HFRswift` Debug iOS Simulator OK après retrait groupé.
+- Le prochain audit doit repartir de la phase de sources résiduelle : les gros candidats UIKit encore visibles sont désormais surtout `BrowserViewController`, `HFRNavigationController`, `HFRTabBar`, `HFRAlertView`, `AvatarTableViewCell`, plus les dépendances techniques historiques.
+
+Statut 2026-05-16, quatorzième lot `XIB legacy orphelins` :
+
+- `ForumCellView.xib`, `TopicCellView.xib`, `TopicMPCellView.xib` et `TopicSearchCellView.xib` sont retirés de la phase de ressources `HFRswift`.
+- Les seuls chargements résiduels de ces XIB proviennent de contrôleurs legacy déjà hors cible Swift (`ForumsTableViewController`, `FavoritesTableViewController`, `TopicsTableViewController`, `HFRMPViewController`, `TopicsSearchViewController`).
+- Build `HFRswift` Debug iOS Simulator OK après retrait.
+- État cible après ce lot : `93` fichiers `.m` et `0` fichier `.xib` dans `HFRswift`.
+
 ## À garder explicitement pour l'instant
 
 | Zone | Raison |
