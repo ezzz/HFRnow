@@ -61,7 +61,8 @@
     __weak ASIHTTPRequest *weakRequest = request;
     [request setCompletionBlock:^{
         ASIHTTPRequest *strongRequest = weakRequest;
-        [weakSelf handleResponseData:[strongRequest safeResponseData] originalURL:strongRequest.originalURL.absoluteString];
+        NSString *effectiveURL = strongRequest.url.absoluteString ?: strongRequest.originalURL.absoluteString;
+        [weakSelf handleResponseData:[strongRequest safeResponseData] effectiveURL:effectiveURL];
     }];
     [request setFailedBlock:^{
         [weakSelf finishWithHTML:nil answerURL:nil currentPage:nil maxPage:nil error:weakRequest.error];
@@ -69,7 +70,7 @@
     [request startAsynchronous];
 }
 
-- (void)handleResponseData:(NSData *)data originalURL:(NSString *)originalURL {
+- (void)handleResponseData:(NSData *)data effectiveURL:(NSString *)effectiveURL {
     NSError *error = nil;
     HTMLParser *htmlParser = [[HTMLParser alloc] initWithData:data error:&error];
     if (!htmlParser || error) {
@@ -81,7 +82,7 @@
     self.items = [parser.workingArray copy] ?: @[];
     self._topicName = parser.topicName ?: @"";
     self.sNavigationViewTitle = self._topicName;
-    self.currentURL = [self relativeURLFromOriginalURL:originalURL fallback:self.currentURL];
+    self.currentURL = [self relativeURLFromOriginalURL:effectiveURL fallback:self.currentURL];
     [self parseMetadataFromBody:[htmlParser body] parser:htmlParser];
 
     NSInteger currentPage = [self pageNumberFromURL:self.currentURL];

@@ -1482,7 +1482,10 @@ struct TopicPageRefreshProbePolicy {
     }
 
     static func mergedMaxPage(currentMaxPage: Int, probeCurrentPage: Int?, probeMaxPage: Int?) -> Int {
-        max(max(currentMaxPage, probeCurrentPage ?? 0), max(probeMaxPage ?? 0, 1))
+        if let probeMaxPage {
+            return max(currentMaxPage, max(probeMaxPage, 1))
+        }
+        return max(max(currentMaxPage, probeCurrentPage ?? 0), 1)
     }
 }
 

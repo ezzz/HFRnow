@@ -685,6 +685,7 @@ struct WebView: UIViewRepresentable {
     var onPopupProfileRequest: ((URL) -> Void)?
     var onPopupAQRequest: ((TopicPageMessageActions) -> Void)?
     var onPopupBookmarkRequest: ((TopicPageMessageActions) -> Void)?
+    var onToastRequest: ((String) -> Void)?
     var onTextQuoteRequest: ((URL, String, Bool) -> Void)?
     var onContentReady: (() -> Void)?
     var onScrollPositionChange: ((Bool) -> Void)?
@@ -723,6 +724,7 @@ struct WebView: UIViewRepresentable {
         onPopupProfileRequest: ((URL) -> Void)? = nil,
         onPopupAQRequest: ((TopicPageMessageActions) -> Void)? = nil,
         onPopupBookmarkRequest: ((TopicPageMessageActions) -> Void)? = nil,
+        onToastRequest: ((String) -> Void)? = nil,
         onTextQuoteRequest: ((URL, String, Bool) -> Void)? = nil,
         onContentReady: (() -> Void)? = nil,
         onScrollPositionChange: ((Bool) -> Void)? = nil,
@@ -760,6 +762,7 @@ struct WebView: UIViewRepresentable {
         self.onPopupProfileRequest = onPopupProfileRequest
         self.onPopupAQRequest = onPopupAQRequest
         self.onPopupBookmarkRequest = onPopupBookmarkRequest
+        self.onToastRequest = onToastRequest
         self.onTextQuoteRequest = onTextQuoteRequest
         self.onContentReady = onContentReady
         self.onScrollPositionChange = onScrollPositionChange
@@ -1708,8 +1711,8 @@ struct WebView: UIViewRepresentable {
                             title: actionKind.title,
                             systemImageName: actionKind.systemImageName,
                             isDestructive: actionKind.isDestructive,
-                            handler: {
-                                Self.performFavoriteAction(favoriteURL)
+                            handler: { [weak self] in
+                                self?.performFavoriteAction(favoriteURL)
                             }
                         )
                     )
@@ -1930,12 +1933,12 @@ struct WebView: UIViewRepresentable {
             return !isSelected
         }
 
-        private static func performFavoriteAction(_ url: URL) {
+        private func performFavoriteAction(_ url: URL) {
             let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 10)
             URLSession.shared.dataTask(with: request) { data, _, error in
                 if error != nil {
                     DispatchQueue.main.async {
-                        MessageLegacyAlertBridge.showToast("Erreur réseau")
+                        self.parent.onToastRequest?("Erreur réseau")
                     }
                     return
                 }
@@ -1943,7 +1946,7 @@ struct WebView: UIViewRepresentable {
                 let response = data.flatMap { String(data: $0, encoding: .utf8) } ?? ""
                 let message = MessagePopupActionSupport.favoriteResponseMessage(from: response) ?? "Favori mis à jour"
                 DispatchQueue.main.async {
-                    MessageLegacyAlertBridge.showToast(message)
+                    self.parent.onToastRequest?(message)
                 }
             }.resume()
         }
@@ -4022,10 +4025,6 @@ struct MessagesView: View {
         page >= currentMaxPage && isWebContentAtBottom
     }
 
-    private var shouldHighlightNextPageButton: Bool {
-        page < currentMaxPage && isWebContentAtBottom
-    }
-
     private var bottomPreviousPageButton: some View {
         Button {
             navigateToPreviousPageFromBottomButton()
@@ -4043,7 +4042,6 @@ struct MessagesView: View {
             Image(systemName: "chevron.forward")
                 .font(.system(size: 15, weight: .semibold))
         }
-        .topicBottomBarButtonStyle(isProminent: shouldHighlightNextPageButton)
         .disabled(page >= currentMaxPage)
     }
 
@@ -4268,6 +4266,9 @@ struct MessagesView: View {
                     },
                     onPopupBookmarkRequest: { actions in
                         askBookmarkPrompt(with: actions)
+                    },
+                    onToastRequest: { message in
+                        showSuccessToast(message)
                     },
                     onTextQuoteRequest: { quoteURL, selectedText, boldSelection in
                         openTextQuoteComposer(
@@ -4724,7 +4725,6 @@ struct MessagesView: View {
                     }
                 }
                 .animation(.easeOut(duration: 0.22), value: shouldShowBottomRefreshButton)
-                .animation(.easeOut(duration: 0.18), value: shouldHighlightNextPageButton)
             )
         } else {
             content = AnyView(

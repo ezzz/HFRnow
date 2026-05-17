@@ -47,4 +47,14 @@ final class TopicPageRefreshProbePolicyTests: XCTestCase {
 
         XCTAssertEqual(merged, 11)
     }
+
+    func testMergedMaxPageIgnoresRequestedProbePageWhenServerStillReportsPreviousLastPage() {
+        let merged = TopicPageRefreshProbePolicy.mergedMaxPage(
+            currentMaxPage: 144,
+            probeCurrentPage: 145,
+            probeMaxPage: 144
+        )
+
+        XCTAssertEqual(merged, 144)
+    }
 }
