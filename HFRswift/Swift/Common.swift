@@ -2611,6 +2611,7 @@ struct TopicListRowView: View {
     var leadingBottomText: String?
     var trailingBottomText: String?
     var detailText: String?
+    var detailContent: AnyView?
     var rowBackgroundTint: Color?
     var contentPadding: EdgeInsets = EdgeInsets(top: 6, leading: 8, bottom: 6, trailing: 8)
     var rowBackgroundOverflow: EdgeInsets = EdgeInsets()
@@ -2916,7 +2917,9 @@ struct TopicListRowView: View {
                         }
                     }
 
-                    if let detailText, !detailText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    if let detailContent {
+                        detailContent
+                    } else if let detailText, !detailText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                         Text(detailText)
                             .font(.footnote)
                             .foregroundStyle(.secondary)

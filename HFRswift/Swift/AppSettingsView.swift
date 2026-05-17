@@ -85,6 +85,7 @@ struct AppSettingsView: View {
 
     @AppStorage("vos_sujets") private var favoritesTabBehavior = "0"
     @AppStorage("sujets_avec_cat") private var favoritesSortedByCategories = true
+    @AppStorage("favorites_auto_refresh") private var favoritesAutoRefresh = false
     @AppStorage(AppLayoutCompactMode.key) private var compactModeEnabled = false
     @AppStorage(AppTabBarMinimizeOnScroll.key) private var tabBarMinimizeOnScroll = true
     @AppStorage(AppTextSizeScale.key) private var textSizeScaleRawValue = AppTextSizeScale.standard.rawValue
@@ -345,6 +346,7 @@ struct AppSettingsView: View {
             }
 
             Toggle("Favoris triés par catégories", isOn: $favoritesSortedByCategories)
+            Toggle("Actualisation automatique des favoris", isOn: $favoritesAutoRefresh)
             Toggle("Mode compact", isOn: $compactModeEnabled)
             Toggle("Réduire la tab bar au scroll", isOn: $tabBarMinimizeOnScroll)
 

@@ -283,7 +283,8 @@
             else {
                 //NSLog(@"SEARCH NOT found > %@, %@", sExactTopicTitle, aTopic.sLastSearchPostContent);
             }
-            [aTopic setATitle: [[NSString alloc] initWithFormat:@"%@%@%@", aTopicAffix, [[topicTitleNode allContents] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]], aTopicSuffix]];
+            NSString *resolvedTopicTitle = searchContentNode ? sExactTopicTitle : [topicTitleNode allContents];
+            [aTopic setATitle: [[NSString alloc] initWithFormat:@"%@%@%@", aTopicAffix, [resolvedTopicTitle stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]], aTopicSuffix]];
 
             NSString *aTopicURL = [[NSString alloc] initWithString:[[topicTitleNode findChildTag:@"a"] getAttributeNamed:@"href"]];
             [aTopic setAURL:aTopicURL];

@@ -228,7 +228,7 @@ class FavoritesViewModel: ObservableObject {
         self.hasLoadedOnce = initialIsLoading || !initialFavorites.isEmpty || initialErrorMessage != nil
     }
 
-    func loadFavorites(force: Bool = false) {
+    func loadFavorites(force: Bool = false, shouldTriggerHaptic: Bool = true) {
         guard !isLoading else {
             if force {
                 pendingForcedReload = true
@@ -247,15 +247,17 @@ class FavoritesViewModel: ObservableObject {
                     self.favorites = []
                     if self.pendingForcedReload {
                         self.pendingForcedReload = false
-                        self.loadFavorites(force: true)
+                        self.loadFavorites(force: true, shouldTriggerHaptic: shouldTriggerHaptic)
                     }
                     return
                 }
                 self.favorites = objcFavorites ?? []
-                AppHaptics.impact(.light)
+                if shouldTriggerHaptic {
+                    AppHaptics.impact(.light)
+                }
                 if self.pendingForcedReload {
                     self.pendingForcedReload = false
-                    self.loadFavorites(force: true)
+                    self.loadFavorites(force: true, shouldTriggerHaptic: shouldTriggerHaptic)
                 }
             }
         }
@@ -399,6 +401,7 @@ struct FavoritesListView: View {
     @StateObject private var accountsStore: AccountsStore
     @AppStorage("vos_sujets") private var favoritesTabBehavior = "0"
     @AppStorage("sujets_avec_cat") private var favoritesSortedByCategories = true
+    @AppStorage("favorites_auto_refresh") private var favoritesAutoRefresh = false
     @AppStorage(AppLayoutCompactMode.key) private var compactModeEnabled = false
     @AppStorage("FavoritesShowCollapsedSections") private var showCollapsedSections = false
     @State private var visitedURLs: Set<String> = []
@@ -457,6 +460,20 @@ struct FavoritesListView: View {
             }
         } else {
             viewModel.clearForLoggedOut()
+        }
+    }
+
+    private func refreshContentWhenViewAppears() {
+        guard isLoggedIn else {
+            viewModel.clearForLoggedOut()
+            return
+        }
+
+        if favoritesAutoRefresh {
+            guard !viewModel.isLoading else { return }
+            viewModel.loadFavorites(force: true, shouldTriggerHaptic: false)
+        } else {
+            viewModel.ensureLoaded()
         }
     }
 
@@ -686,7 +703,7 @@ struct FavoritesListView: View {
             .onAppear {
                 superFavoriteIDs = FavoritesSuperFavoriteStore.load()
                 collapsedSectionIDs = FavoritesCollapsedSectionsStore.load()
-                refreshContentForSessionState()
+                refreshContentWhenViewAppears()
                 pruneCollapsedSections()
             }
             .onReceive(NotificationCenter.default.publisher(for: Notification.Name("kLoginChangedNotification"))) { _ in

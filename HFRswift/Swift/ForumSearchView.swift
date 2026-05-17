@@ -291,7 +291,9 @@ private struct ForumSearchTopicRow: View {
     let onOpen: (String?) -> Void
 
     private var cleanedTitle: String? {
-        let rawTitle = topic._aTitle ?? ""
+        let rawTitle = topic._aTitle?
+            .replacingOccurrences(of: "Dernier message correspondant :", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let snippet = cleanedSnippet ?? ""
         guard !rawTitle.isEmpty, !snippet.isEmpty else {
             return rawTitle.isEmpty ? nil : rawTitle
@@ -310,6 +312,21 @@ private struct ForumSearchTopicRow: View {
             .filter { !$0.isEmpty }
             .joined(separator: " ")
         return collapsed.isEmpty ? nil : collapsed
+    }
+
+    private var detailContent: AnyView? {
+        guard let cleanedSnippet else { return nil }
+        return AnyView(
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Dernier message correspondant")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                Text(cleanedSnippet)
+                    .font(.footnote)
+                    .foregroundStyle(isVisited ? .secondary : .primary)
+                    .lineLimit(3)
+            }
+        )
     }
 
     private var footerLeft: String? {
@@ -335,7 +352,7 @@ private struct ForumSearchTopicRow: View {
             titleOverride: cleanedTitle,
             leadingBottomText: footerLeft,
             trailingBottomText: footerRight,
-            detailText: cleanedSnippet,
+            detailContent: detailContent,
             openContext: .globalSearch,
             onOpen: onOpen
         )
