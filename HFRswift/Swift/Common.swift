@@ -83,6 +83,56 @@ enum AppHaptics {
     }
 }
 
+@objc(HFRSwiftAlertPresenter)
+final class HFRSwiftAlertPresenter: NSObject {
+    @objc(displayTransientAlertWithTitle:message:duration:)
+    static func displayTransientAlert(title: String?, message: String?, duration: Int) {
+        guard let presenter = topViewController() else { return }
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        presenter.present(alert, animated: true) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(max(duration, 0))) {
+                alert.dismiss(animated: true)
+            }
+        }
+    }
+
+    @objc(displayOKAlertWithTitle:message:)
+    static func displayOKAlert(title: String, message: String?) {
+        guard let presenter = topViewController() else { return }
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        presenter.present(alert, animated: true)
+    }
+
+    @objc(displayOKCancelAlertWithTitle:message:okHandler:cancelHandler:)
+    static func displayOKCancelAlert(
+        title: String,
+        message: String?,
+        okHandler: ((UIAlertAction) -> Void)?,
+        cancelHandler: ((UIAlertAction) -> Void)?
+    ) {
+        guard let presenter = topViewController() else { return }
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default, handler: okHandler))
+        alert.addAction(UIAlertAction(title: "Annuler", style: .cancel, handler: cancelHandler))
+        presenter.present(alert, animated: true)
+    }
+
+    private static func topViewController() -> UIViewController? {
+        let rootController = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow)?
+            .rootViewController
+
+        var controller = rootController
+        while let presentedController = controller?.presentedViewController {
+            controller = presentedController
+        }
+        return controller
+    }
+}
+
 enum AppScreenRotation {
     static let legacyKey = "landscape_mode"
     static let enabledValue = "galerie_message"

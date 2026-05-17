@@ -277,6 +277,7 @@ Statut 2026-05-16, suite réduction métier :
 - `FilterPostsQuotes` reste conservé comme worker Swift, mais son ancienne moitié UIKit (progress alert, navigation legacy et méthodes `fetchContentForTopic`) est désormais exclue sous `APP_SWIFT`.
 - La cible `HFRswift` descend à `46` fichiers `.m` compilés.
 - Build `HFRswift` Debug iOS Simulator OK après chaque sous-lot.
+- `HFRAlertView` est retiré de `HFRswift` : `MessagesView` utilise désormais son toast Swift moderne et `MPStorage` passe par `HFRSwiftAlertPresenter` sous `APP_SWIFT`.
 
 Statut 2026-05-14, suite Q6 favoris :
 

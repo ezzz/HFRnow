@@ -12,7 +12,11 @@
 #import "ASIFormDataRequest.h"
 #import "HTMLParser.h"
 #import "BlackList.h"
+#if APP_SWIFT
+#import "HFRswift-Swift.h"
+#else
 #import "HFRAlertView.h"
+#endif
 #import "MultisManager.h"
 #import "Bookmark.h"
 
@@ -22,6 +26,30 @@ NSString* const MP_STRUCTURE_VERSION = @"0.1";
 NSString* const MP_SOURCE_NAME = @"iOS";
 
 #define TIMESTAMP [NSNumber numberWithInteger:(NSInteger)(round([[NSDate date] timeIntervalSince1970]*1000))]
+
+static void MPStorageShowTransientAlert(NSString *title, NSString *message, long duration) {
+#if APP_SWIFT
+    [HFRSwiftAlertPresenter displayTransientAlertWithTitle:title message:message duration:duration];
+#else
+    [HFRAlertView DisplayAlertViewWithTitle:title andMessage:message forDuration:duration];
+#endif
+}
+
+static void MPStorageShowOKAlert(NSString *title, NSString *message) {
+#if APP_SWIFT
+    [HFRSwiftAlertPresenter displayOKAlertWithTitle:title message:message];
+#else
+    [HFRAlertView DisplayOKAlertViewWithTitle:title andMessage:message];
+#endif
+}
+
+static void MPStorageShowOKCancelAlert(NSString *title, NSString *message, void (^okHandler)(UIAlertAction *action), void (^cancelHandler)(UIAlertAction *action)) {
+#if APP_SWIFT
+    [HFRSwiftAlertPresenter displayOKCancelAlertWithTitle:title message:message okHandler:okHandler cancelHandler:cancelHandler];
+#else
+    [HFRAlertView DisplayOKCancelAlertViewWithTitle:title andMessage:message handlerOK:okHandler handlerCancel:cancelHandler];
+#endif
+}
 
 @implementation MPStorage
 
@@ -60,7 +88,7 @@ static MPStorage *_shared = nil;    // static instance variable
             // Find MP with title a2bcc09b796b8c6fab77058ff8446c34
             if ([self findStorageMPFromPage:1] == NO) {
                 NSLog(@"MPStorage 1");
-                [HFRAlertView DisplayOKCancelAlertViewWithTitle:@"Stockage MP" andMessage:@"Le MP de stockage n'a pas été trouvé. Voulez-vous qu'il soit créé ?" handlerOK:^(UIAlertAction *action) {
+                MPStorageShowOKCancelAlert(@"Stockage MP", @"Le MP de stockage n'a pas été trouvé. Voulez-vous qu'il soit créé ?", ^(UIAlertAction *action) {
                     /* NOT WORKING
                      UIActivityIndicatorView *spinner = nil;
                     UIViewController* activeVC = [UIApplication sharedApplication].keyWindow.rootViewController;
@@ -83,7 +111,7 @@ static MPStorage *_shared = nil;    // static instance variable
                     
                     // Search again to find post ID
                     if ([self findStorageMPFromPage:1] == NO) {
-                        [HFRAlertView DisplayOKAlertViewWithTitle:@"Oups !" andMessage:@"Failed to find MPStorage after its creation"];
+                        MPStorageShowOKAlert(@"Oups !", @"Failed to find MPStorage after its creation");
                         self.bIsActive = NO;
                         [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"mpstorage_active"];
                         return;
@@ -95,12 +123,11 @@ static MPStorage *_shared = nil;    // static instance variable
                      if (spinner) {
                         [spinner stopAnimating];
                     }*/
-                }
-                handlerCancel:^(UIAlertAction *action) {
+                }, ^(UIAlertAction *action) {
                     self.bIsActive = NO;
                     [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"mpstorage_active"];
                     return;
-                }];
+                });
                 return NO;
             }
         }
@@ -191,7 +218,7 @@ static MPStorage *_shared = nil;    // static instance variable
     }
     @catch (NSException * e) {
         NSLog(@"Exception: %@", e);
-        [HFRAlertView DisplayAlertViewWithTitle:@"Oups !" andMessage:@"MPstorage Parsing error for blacklist" forDuration:(long)1];
+        MPStorageShowTransientAlert(@"Oups !", @"MPstorage Parsing error for blacklist", 1);
     }
     @finally {}
     
@@ -461,7 +488,7 @@ static MPStorage *_shared = nil;    // static instance variable
     }
     @catch (NSException * e) {
         NSLog(@"Exception: %@", e);
-        [HFRAlertView DisplayOKAlertViewWithTitle:@"MPStorage error !" andMessage:@"Error parsing data while updating MP flags."];
+        MPStorageShowOKAlert(@"MPStorage error !", @"Error parsing data while updating MP flags.");
         return NO;
     }
     @finally {}
@@ -731,7 +758,7 @@ static MPStorage *_shared = nil;    // static instance variable
                 HTMLParser *myParser = [[HTMLParser alloc] initWithString:[requestPOST safeResponseString] error:&error];
                 HTMLNode * bodyNode = [myParser body]; //Find the body tag
                 HTMLNode * messagesNode = [bodyNode findChildWithAttribute:@"class" matchingName:@"hop" allowPartial:NO]; //Get all the <img alt="" />
-                [HFRAlertView DisplayAlertViewWithTitle:@"Oups !" andMessage:[NSString stringWithFormat:@"Failed to create MPStorage : %@", [messagesNode contents]] forDuration:(long)3];
+                MPStorageShowTransientAlert(@"Oups !", [NSString stringWithFormat:@"Failed to create MPStorage : %@", [messagesNode contents]], 3);
             }
         }
     }
@@ -819,7 +846,7 @@ static MPStorage *_shared = nil;    // static instance variable
         }
 
         NSLog(@"MPStorage 1");
-        [HFRAlertView DisplayOKCancelAlertViewWithTitle:@"Stockage MP" andMessage:@"Le MP de stockage n'a pas été trouvé. Voulez-vous qu'il soit créé ?" handlerOK:^(UIAlertAction *action) {
+        MPStorageShowOKCancelAlert(@"Stockage MP", @"Le MP de stockage n'a pas été trouvé. Voulez-vous qu'il soit créé ?", ^(UIAlertAction *action) {
             
             
             // Create empty structure
@@ -831,7 +858,7 @@ static MPStorage *_shared = nil;    // static instance variable
             
             // Search again to find post ID
             if ([self findStorageMPFromPage:1] == NO) {
-                [HFRAlertView DisplayOKAlertViewWithTitle:@"Oups !" andMessage:@"Failed to find MPStorage after its creation"];
+                MPStorageShowOKAlert(@"Oups !", @"Failed to find MPStorage after its creation");
                 self.bIsActive = NO;
                 [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"mpstorage_active"];
                 return;
@@ -839,7 +866,7 @@ static MPStorage *_shared = nil;    // static instance variable
             
             self.bIsActive = YES;
             [[MPStorage shared] loadBlackListAsynchronous];
-        }];
+        }, nil);
         return NO;
     }
 
@@ -859,7 +886,7 @@ static MPStorage *_shared = nil;    // static instance variable
         dData = [NSJSONSerialization JSONObjectWithData:jsonData options: NSJSONReadingMutableContainers error: &error];
 
         if (error) {
-            [HFRAlertView DisplayOKAlertViewWithTitle:@"Oups !" andMessage:@"Le MP de stockage semble être erroné. La fonctionalité va être desactivée"];
+            MPStorageShowOKAlert(@"Oups !", @"Le MP de stockage semble être erroné. La fonctionalité va être desactivée");
             [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"mpstorage_active"];
             return NO;
         }

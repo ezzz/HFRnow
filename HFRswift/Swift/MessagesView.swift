@@ -1681,7 +1681,7 @@ struct WebView: UIViewRepresentable {
                                 guard let self else { return }
                                 let message = ObjCProfileFilterListManager.shared.toggleBlacklist(pseudo: authorName)
                                 if let message {
-                                    MessageLegacyAlertBridge.showToast(message)
+                                    showToast(message)
                                 }
                                 self.parent.onWebAction?(.refreshCurrentPage)
                             }
@@ -1698,7 +1698,7 @@ struct WebView: UIViewRepresentable {
                                 guard let self else { return }
                                 let message = ObjCProfileFilterListManager.shared.toggleWhitelist(pseudo: authorName)
                                 if let message {
-                                    MessageLegacyAlertBridge.showToast(message)
+                                    showToast(message)
                                 }
                                 self.parent.onWebAction?(.refreshCurrentPage)
                             }
@@ -1982,21 +1982,18 @@ struct WebView: UIViewRepresentable {
                 let postID = MessagePopupActionSupport.numericPostID(from: actions.postID),
                 let permalinkURL = actions.permalinkURL
             else {
-                MessageLegacyAlertBridge.showToast("Données AQ incomplètes")
+                showToast("Données AQ incomplètes")
                 return
             }
 
             Task { @MainActor in
                 let alreadySignaled = await MessagePopupActionSupport.isAQAlreadySignaled(topicID: topicID, postID: postID)
                 if alreadySignaled == true {
-                    MessageLegacyAlertBridge.showToast("Post déjà signalé")
+                    showToast("Post déjà signalé")
                     return
                 }
                 if alreadySignaled == nil {
-                    MessageLegacyAlertBridge.showTitleAndMessage(
-                        title: "Erreur réseau",
-                        message: "Création d'AQ impossible"
-                    )
+                    showToast("Création d'AQ impossible")
                     return
                 }
 
@@ -2028,20 +2025,11 @@ struct WebView: UIViewRepresentable {
                             )
                             switch result {
                             case .success:
-                                MessageLegacyAlertBridge.showTitleAndMessage(
-                                    title: "Hooray !",
-                                    message: "Alerte Qualitay créée."
-                                )
+                                self.showToast("Alerte Qualitay créée.")
                             case .failure(let code):
-                                MessageLegacyAlertBridge.showTitleAndMessage(
-                                    title: "Oups !",
-                                    message: "Code erreur \(code)"
-                                )
+                                self.showToast("Code erreur \(code)")
                             case .networkError:
-                                MessageLegacyAlertBridge.showTitleAndMessage(
-                                    title: "Erreur réseau",
-                                    message: "Création d'AQ impossible"
-                                )
+                                self.showToast("Création d'AQ impossible")
                             }
                         }
                     }
@@ -2059,12 +2047,12 @@ struct WebView: UIViewRepresentable {
                 let topicCategory = actions.topicCategory,
                 let postID = MessagePopupActionSupport.numericPostID(from: actions.postID)
             else {
-                MessageLegacyAlertBridge.showToast("Données bookmark incomplètes")
+                showToast("Données bookmark incomplètes")
                 return
             }
 
             if MessagePopupActionSupport.hasBookmark(topicID: topicID, postID: postID) {
-                MessageLegacyAlertBridge.showToast("Post déjà dans les bookmarks")
+                showToast("Post déjà dans les bookmarks")
                 return
             }
 
@@ -2091,12 +2079,9 @@ struct WebView: UIViewRepresentable {
                         author: author
                     )
                     if created {
-                        MessageLegacyAlertBridge.showTitleAndMessage(title: "Hooray !", message: "Bookmark créé")
+                        self.showToast("Bookmark créé")
                     } else {
-                        MessageLegacyAlertBridge.showTitleAndMessage(
-                            title: "Oups !",
-                            message: "Erreur à la création du bookmark"
-                        )
+                        self.showToast("Erreur à la création du bookmark")
                     }
                 }
             )
@@ -2189,24 +2174,15 @@ struct WebView: UIViewRepresentable {
                 await MainActor.run {
                     switch result {
                     case .success:
-                        MessageLegacyAlertBridge.showToast("Photo enregistrée")
+                        showToast("Photo enregistrée")
                     case .failure(.permissionDenied):
-                        MessageLegacyAlertBridge.showTitleAndMessage(
-                            title: "Accès Photos refusé",
-                            message: "Autorise l'accès aux Photos pour enregistrer l'image."
-                        )
+                        showToast("Autorise l'accès aux Photos pour enregistrer l'image.")
                     case .failure(.invalidImageData):
-                        MessageLegacyAlertBridge.showTitleAndMessage(
-                            title: "Image invalide",
-                            message: "Impossible d'enregistrer cette image."
-                        )
+                        showToast("Impossible d'enregistrer cette image.")
                     case .failure(.network):
-                        MessageLegacyAlertBridge.showToast("Erreur réseau")
+                        showToast("Erreur réseau")
                     case .failure(.system):
-                        MessageLegacyAlertBridge.showTitleAndMessage(
-                            title: "Erreur",
-                            message: "L'enregistrement dans Photos a échoué."
-                        )
+                        showToast("L'enregistrement dans Photos a échoué.")
                     }
                 }
             }
@@ -2227,36 +2203,8 @@ struct WebView: UIViewRepresentable {
             return URL(string: normalized) ?? url
         }
 
-        private enum MessageLegacyAlertBridge {
-            static func showToast(_ title: String) {
-                guard let alertClass = NSClassFromString("HFRAlertView") as? NSObject.Type else {
-                    return
-                }
-                let selector = NSSelectorFromString("DisplayAlertViewWithTitle:forDuration:")
-                guard alertClass.responds(to: selector) else {
-                    return
-                }
-
-                typealias Function = @convention(c) (AnyObject, Selector, NSString, Int) -> Void
-                let implementation = alertClass.method(for: selector)
-                let function = unsafeBitCast(implementation, to: Function.self)
-                function(alertClass, selector, title as NSString, 1)
-            }
-
-            static func showTitleAndMessage(title: String, message: String) {
-                guard let alertClass = NSClassFromString("HFRAlertView") as? NSObject.Type else {
-                    return
-                }
-                let selector = NSSelectorFromString("DisplayAlertViewWithTitle:andMessage:forDuration:")
-                guard alertClass.responds(to: selector) else {
-                    return
-                }
-
-                typealias Function = @convention(c) (AnyObject, Selector, NSString, NSString, Int) -> Void
-                let implementation = alertClass.method(for: selector)
-                let function = unsafeBitCast(implementation, to: Function.self)
-                function(alertClass, selector, title as NSString, message as NSString, 1)
-            }
+        private func showToast(_ message: String) {
+            parent.onToastRequest?(message)
         }
 
         private func closestViewController(from view: UIView) -> UIViewController? {
