@@ -98,14 +98,10 @@ struct AnswerView: View {
     @State private var focusTrigger = 0
 
     // MARK: Panel
-    @State private var activePanel: ComposerPanel?
+    @State private var isSmileyPickerPresented = false
+    @State private var isImageInsertionPresented = false
     @State private var isGiphyPresented = false
     @State private var didLockInterfaceOrientation = false
-
-    enum ComposerPanel: String, Identifiable {
-        case smileys, imageInsertion
-        var id: String { rawValue }
-    }
 
     // MARK: Toast
     @State private var showToast = false
@@ -218,8 +214,11 @@ struct AnswerView: View {
         // All three panels are sheets.
         // onDismiss fires after the sheet animation completes — the editor is back
         // in the view hierarchy and can safely become first responder.
-        .sheet(item: $activePanel, onDismiss: requestEditorFocus) { panel in
-            panelView(for: panel)
+        .sheet(isPresented: $isSmileyPickerPresented, onDismiss: requestEditorFocus) {
+            smileyPickerPanel
+        }
+        .sheet(isPresented: $isImageInsertionPresented, onDismiss: requestEditorFocus) {
+            imageInsertionPanel
         }
         .fullScreenCover(isPresented: $isGiphyPresented, onDismiss: requestEditorFocus) {
             GiphyPanel {
@@ -287,39 +286,36 @@ struct AnswerView: View {
 
     // MARK: Panel content
 
-    @ViewBuilder
-    private func panelView(for panel: ComposerPanel) -> some View {
-        switch panel {
-        case .smileys:
-            CombinedSmileyPickerView(
-                defaultSmileys: defaultSmileys,
-                forumFavoriteSmileys: forumFavoriteSmileys,
-                appFavoriteSmileys: appFavoriteSmileys,
-                sessionState: $smileyPickerState,
-                onSelect: { smiley in
-                    insertSmileyCode(smiley.code)
-                },
-                onToggleFavorite: { smiley, add in
-                    updateFavoriteSmiley(smiley, add: add)
-                },
-                onFetchKeywords: { code in
-                    await fetchSmileyKeywords(code: code)
-                }
-            )
-            .presentationDetents([.large])
-
-        case .imageInsertion:
-            ReplyImageInsertionView(
-                preferences: $imageUploadPreferences,
-                uploadedImages: $uploadedImages,
-                isUploading: $isImageUploading,
-                uploadError: $imageUploadError,
-                onPickImage: startImageUpload
-            ) { snippet in
-                insertSnippet(snippet)
+    private var smileyPickerPanel: some View {
+        CombinedSmileyPickerView(
+            defaultSmileys: defaultSmileys,
+            forumFavoriteSmileys: forumFavoriteSmileys,
+            appFavoriteSmileys: appFavoriteSmileys,
+            sessionState: $smileyPickerState,
+            onSelect: { smiley in
+                insertSmileyCode(smiley.code)
+            },
+            onToggleFavorite: { smiley, add in
+                updateFavoriteSmiley(smiley, add: add)
+            },
+            onFetchKeywords: { code in
+                await fetchSmileyKeywords(code: code)
             }
-            .presentationDetents([.large])
+        )
+        .presentationDetents([.large])
+    }
+
+    private var imageInsertionPanel: some View {
+        ReplyImageInsertionView(
+            preferences: $imageUploadPreferences,
+            uploadedImages: $uploadedImages,
+            isUploading: $isImageUploading,
+            uploadError: $imageUploadError,
+            onPickImage: startImageUpload
+        ) { snippet in
+            insertSnippet(snippet)
         }
+        .presentationDetents([.large])
     }
 
     // MARK: Focus
@@ -525,7 +521,7 @@ struct AnswerView: View {
             ) {
                 if defaultSmileys.isEmpty { defaultSmileys = smileyCatalogLoader.loadDefaultSmileys() }
                 reloadFavoriteSmileys()
-                activePanel = .smileys
+                isSmileyPickerPresented = true
             }
             ComposerToolbarButton(
                 systemImage: "g.circle",
@@ -539,7 +535,7 @@ struct AnswerView: View {
                 accessibilityLabel: "Insérer image",
                 isDisabled: isPosting
             ) {
-                activePanel = .imageInsertion
+                isImageInsertionPresented = true
             }
         }
     }
@@ -1031,23 +1027,13 @@ private struct ComposerSheetCloseHeader: View {
 
 private enum SmileyPickerDisplayMode: Equatable {
     case library
-    case results([ReplySmiley])
+    case results
     case empty
-
-    static func == (lhs: SmileyPickerDisplayMode, rhs: SmileyPickerDisplayMode) -> Bool {
-        switch (lhs, rhs) {
-        case (.library, .library), (.empty, .empty):
-            return true
-        case (.results(let a), .results(let b)):
-            return a == b
-        default:
-            return false
-        }
-    }
 }
 
 private struct SmileyPickerSessionState: Equatable {
     var displayMode: SmileyPickerDisplayMode = .library
+    var searchResults: [ReplySmiley] = []
     var searchText = ""
 }
 
@@ -1076,7 +1062,7 @@ private struct CombinedSmileyPickerView: View {
     @FocusState private var isSearchFieldFocused: Bool
 
     private var displayedSmileys: [ReplySmiley] {
-        if case .results(let r) = sessionState.displayMode { return r }
+        if sessionState.displayMode == .results { return sessionState.searchResults }
         return []
     }
     private var isShowingResults: Bool {
@@ -1267,11 +1253,16 @@ private struct CombinedSmileyPickerView: View {
                 SmileySearchHistoryStore.record(query: query, resultCount: results.count)
                 await MainActor.run {
                     isSearching = false
-                    sessionState.displayMode = results.isEmpty ? .empty : .results(results)
+                    sessionState.searchResults = results
+                    sessionState.displayMode = results.isEmpty ? .empty : .results
                 }
             } catch {
                 guard !Task.isCancelled else { return }
-                await MainActor.run { isSearching = false; sessionState.displayMode = .empty }
+                await MainActor.run {
+                    isSearching = false
+                    sessionState.searchResults = []
+                    sessionState.displayMode = .empty
+                }
             }
         }
     }
@@ -1281,6 +1272,7 @@ private struct CombinedSmileyPickerView: View {
         searchTask?.cancel()
         isSearching = false
         sessionState.displayMode = .library
+        sessionState.searchResults = []
     }
 
     private func search(using query: String) {
