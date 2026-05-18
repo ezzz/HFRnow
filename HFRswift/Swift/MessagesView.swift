@@ -453,7 +453,7 @@ private struct MessagePopupPromptSheet: View {
     let message: String
     let placeholder: String
     let actionTitle: String
-    let onSubmit: (String) async throws -> String
+    let onSubmit: (String, @escaping (Result<String, Error>) -> Void) -> Void
     let onSuccess: (String) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -525,16 +525,17 @@ private struct MessagePopupPromptSheet: View {
         let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedValue.isEmpty, !isSubmitting else { return }
 
-        Task { @MainActor in
-            isSubmitting = true
-            defer { isSubmitting = false }
-
-            do {
-                let successMessage = try await onSubmit(trimmedValue)
-                dismiss()
-                onSuccess(successMessage)
-            } catch {
-                errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        isSubmitting = true
+        onSubmit(trimmedValue) { result in
+            Task { @MainActor in
+                isSubmitting = false
+                switch result {
+                case .success(let successMessage):
+                    dismiss()
+                    onSuccess(successMessage)
+                case .failure(let error):
+                    errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                }
             }
         }
     }
@@ -4145,8 +4146,10 @@ struct MessagesView: View {
                         onToggleFavorite: { add in
                             updateSmileyFavorite(code: state.payload.code, imageURL: state.payload.imageURL, add: add)
                         },
-                        onFetchKeywords: {
-                            await fetchSmileyKeywords(code: state.payload.code)
+                        onFetchKeywords: { completion in
+                            Task {
+                                completion(await fetchSmileyKeywords(code: state.payload.code))
+                            }
                         },
                         onShowToast: { message in
                             showSuccessToast(message)
@@ -4334,22 +4337,24 @@ struct MessagesView: View {
                         message: "Créer une Alerte Qualitay sur le post de \(state.authorName)",
                         placeholder: "Ajoutez un titre",
                         actionTitle: "Créer"
-                    ) { draftTitle in
-                        let result = await MessagePopupActionSupport.createAQ(
-                            title: draftTitle,
-                            topicID: state.topicID,
-                            topicTitle: state.topicTitle,
-                            postID: state.postID,
-                            postURL: state.postURL.absoluteString,
-                            author: state.authorName
-                        )
-                        switch result {
-                        case .success:
-                            return "Alerte Qualitay créée."
-                        case .failure(let code):
-                            throw MessagePopupSheetSubmissionError(message: "Code erreur \(code)")
-                        case .networkError:
-                            throw MessagePopupSheetSubmissionError(message: "Création d'AQ impossible")
+                    ) { draftTitle, completion in
+                        Task {
+                            let result = await MessagePopupActionSupport.createAQ(
+                                title: draftTitle,
+                                topicID: state.topicID,
+                                topicTitle: state.topicTitle,
+                                postID: state.postID,
+                                postURL: state.postURL.absoluteString,
+                                author: state.authorName
+                            )
+                            switch result {
+                            case .success:
+                                completion(.success("Alerte Qualitay créée."))
+                            case .failure(let code):
+                                completion(.failure(MessagePopupSheetSubmissionError(message: "Code erreur \(code)")))
+                            case .networkError:
+                                completion(.failure(MessagePopupSheetSubmissionError(message: "Création d'AQ impossible")))
+                            }
                         }
                     } onSuccess: { message in
                         showSuccessToast(message)
@@ -4362,7 +4367,7 @@ struct MessagesView: View {
                         message: "Créer un bookmark sur le post de \(state.authorName) ?",
                         placeholder: "Ajoutez un titre",
                         actionTitle: "Créer"
-                    ) { draftTitle in
+                    ) { draftTitle, completion in
                         let created = MessagePopupActionSupport.createBookmark(
                             topicID: state.topicID,
                             topicCategory: state.topicCategory,
@@ -4370,10 +4375,9 @@ struct MessagesView: View {
                             title: draftTitle,
                             author: state.authorName
                         )
-                        if created {
-                            return "Bookmark créé"
-                        }
-                        throw MessagePopupSheetSubmissionError(message: "Erreur à la création du bookmark")
+                        completion(created
+                            ? .success("Bookmark créé")
+                            : .failure(MessagePopupSheetSubmissionError(message: "Erreur à la création du bookmark")))
                     } onSuccess: { message in
                         showSuccessToast(message)
                     }
@@ -4634,8 +4638,10 @@ struct MessagesView: View {
                         onToggleFavorite: { add in
                             updateSmileyFavorite(code: state.payload.code, imageURL: state.payload.imageURL, add: add)
                         },
-                        onFetchKeywords: {
-                            await fetchSmileyKeywords(code: state.payload.code)
+                        onFetchKeywords: { completion in
+                            Task {
+                                completion(await fetchSmileyKeywords(code: state.payload.code))
+                            }
                         },
                         onShowToast: { message in
                             showSuccessToast(message)
@@ -4844,8 +4850,10 @@ struct MessagesView: View {
                     onToggleFavorite: { add in
                         updateSmileyFavorite(code: state.payload.code, imageURL: state.payload.imageURL, add: add)
                     },
-                    onFetchKeywords: {
-                        await fetchSmileyKeywords(code: state.payload.code)
+                    onFetchKeywords: { completion in
+                        Task {
+                            completion(await fetchSmileyKeywords(code: state.payload.code))
+                        }
                     },
                     onShowToast: { message in
                         showSuccessToast(message)
@@ -4887,7 +4895,7 @@ private struct MessageSmileySheetView: View {
     let imageURL: String
     let initiallyFavorite: Bool
     let onToggleFavorite: (Bool) -> Bool
-    let onFetchKeywords: () async -> Result<[String], Error>
+    let onFetchKeywords: (@escaping (Result<[String], Error>) -> Void) -> Void
     let onShowToast: (String) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -4903,7 +4911,7 @@ private struct MessageSmileySheetView: View {
         imageURL: String,
         initiallyFavorite: Bool,
         onToggleFavorite: @escaping (Bool) -> Bool,
-        onFetchKeywords: @escaping () async -> Result<[String], Error>,
+        onFetchKeywords: @escaping (@escaping (Result<[String], Error>) -> Void) -> Void,
         onShowToast: @escaping (String) -> Void
     ) {
         self.code = code
@@ -5031,17 +5039,21 @@ private struct MessageSmileySheetView: View {
             .scrollBounceBehavior(.basedOnSize)
             .navigationTitle("Smiley")
             .navigationBarTitleDisplayMode(.inline)
-            .task {
+            .onAppear {
                 isLoadingKeywords = true
                 keywordsErrorMessage = nil
-                switch await onFetchKeywords() {
-                case .success(let fetchedKeywords):
-                    keywords = fetchedKeywords
-                case .failure(let error):
-                    keywords = []
-                    keywordsErrorMessage = error.localizedDescription
+                onFetchKeywords { result in
+                    Task { @MainActor in
+                        switch result {
+                        case .success(let fetchedKeywords):
+                            keywords = fetchedKeywords
+                        case .failure(let error):
+                            keywords = []
+                            keywordsErrorMessage = error.localizedDescription
+                        }
+                        isLoadingKeywords = false
+                    }
                 }
-                isLoadingKeywords = false
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

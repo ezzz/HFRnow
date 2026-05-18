@@ -298,8 +298,10 @@ struct AnswerView: View {
             onToggleFavorite: { smiley, add in
                 updateFavoriteSmiley(smiley, add: add)
             },
-            onFetchKeywords: { code in
-                await fetchSmileyKeywords(code: code)
+            onFetchKeywords: { code, completion in
+                Task {
+                    completion(await fetchSmileyKeywords(code: code))
+                }
             }
         )
         .presentationDetents([.large])
@@ -1044,7 +1046,7 @@ private struct CombinedSmileyPickerView: View {
     @Binding var sessionState: SmileyPickerSessionState
     let onSelect: (ReplySmiley) -> Void
     let onToggleFavorite: (ReplySmiley, Bool) -> Bool
-    let onFetchKeywords: (String) async -> Result<[String], Error>
+    let onFetchKeywords: (String, @escaping (Result<[String], Error>) -> Void) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @AppStorage("AnswerView.smileys.basic.expanded") private var isBasicSectionExpanded = true
@@ -1144,8 +1146,8 @@ private struct CombinedSmileyPickerView: View {
                     onToggleFavorite: { add in
                         onToggleFavorite(presentedSmiley, add)
                     },
-                    onFetchKeywords: {
-                        await onFetchKeywords(presentedSmiley.code)
+                    onFetchKeywords: { completion in
+                        onFetchKeywords(presentedSmiley.code, completion)
                     },
                     onSearchKeyword: { keyword in
                         self.presentedSmiley = nil
@@ -1418,7 +1420,7 @@ private struct FavoriteSmileyDetailView: View {
     let allowsFavoriteToggle: Bool
     let onInsert: () -> Void
     let onToggleFavorite: (Bool) -> Bool
-    let onFetchKeywords: () async -> Result<[String], Error>
+    let onFetchKeywords: (@escaping (Result<[String], Error>) -> Void) -> Void
     let onSearchKeyword: (String) -> Void
     let onClose: () -> Void
 
@@ -1434,7 +1436,7 @@ private struct FavoriteSmileyDetailView: View {
         allowsFavoriteToggle: Bool = true,
         onInsert: @escaping () -> Void,
         onToggleFavorite: @escaping (Bool) -> Bool,
-        onFetchKeywords: @escaping () async -> Result<[String], Error>,
+        onFetchKeywords: @escaping (@escaping (Result<[String], Error>) -> Void) -> Void,
         onSearchKeyword: @escaping (String) -> Void,
         onClose: @escaping () -> Void
     ) {
@@ -1536,17 +1538,21 @@ private struct FavoriteSmileyDetailView: View {
         .background(detailBackground)
         .clipShape(.rect(cornerRadius: 24))
         .shadow(color: Color.black.opacity(0.18), radius: 18, y: 10)
-        .task {
+        .onAppear {
             isLoadingKeywords = true
             keywordsErrorMessage = nil
-            switch await onFetchKeywords() {
-            case .success(let fetchedKeywords):
-                keywords = fetchedKeywords
-            case .failure(let error):
-                keywords = []
-                keywordsErrorMessage = error.localizedDescription
+            onFetchKeywords { result in
+                Task { @MainActor in
+                    switch result {
+                    case .success(let fetchedKeywords):
+                        keywords = fetchedKeywords
+                    case .failure(let error):
+                        keywords = []
+                        keywordsErrorMessage = error.localizedDescription
+                    }
+                    isLoadingKeywords = false
+                }
             }
-            isLoadingKeywords = false
         }
     }
 
