@@ -678,7 +678,11 @@ private struct UserProfileHeaderView: View {
             }
         }
         .padding(16)
-        .hfrGlassSurface(in: .rect(cornerRadius: 18))
+        .background(.background, in: .rect(cornerRadius: 18))
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(.quaternary, lineWidth: 1)
+        }
     }
 }
 

@@ -34,6 +34,10 @@
 
 @synthesize delegate, dataToParse, workingArray, workingEntry, reverse, index, queue;
 
+- (void)waitForPendingAvatarLoads {
+    [self.queue waitUntilAllOperationsAreFinished];
+}
+
 -(id)initWithData:(NSData *)data index:(int)theIndex reverse:(BOOL)isReverse delegate:(id <ParseMessagesOperationDelegate>)theDelegate
 //- (id)initWithData:(NSData *)data delegate:(id <ParseMessagesOperationDelegate>)theDelegate
 {

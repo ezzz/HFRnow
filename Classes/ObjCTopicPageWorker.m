@@ -79,6 +79,7 @@
     }
     ParseMessagesOperation *parser = [[ParseMessagesOperation alloc] initWithData:data index:0 reverse:NO delegate:nil];
     [parser parseData:htmlParser];
+    [parser waitForPendingAvatarLoads];
     self.items = [parser.workingArray copy] ?: @[];
     self._topicName = parser.topicName ?: @"";
     self.sNavigationViewTitle = self._topicName;

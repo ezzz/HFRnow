@@ -32,6 +32,7 @@
 - (id)initWithData:(NSData *)data index:(int)theIndex reverse:(BOOL)isReverse delegate:(id <ParseMessagesOperationDelegate>)theDelegate;
 - (void)parseData:(HTMLParser*)myParser;
 - (void)parseData:(HTMLParser *)myParser filterPostsQuotes:(BOOL)bFilterPostsQuotes startAfterThisPostId:(NSString*)sStartAfterPostId topicUrl:(NSString*)sTopicUrl topicPage:(int)iPage;
+- (void)waitForPendingAvatarLoads;
 
 @end
 

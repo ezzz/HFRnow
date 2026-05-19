@@ -5029,7 +5029,11 @@ private struct MessageSmileySheetView: View {
                             }
                         }
                         .padding()
-                        .hfrGlassSurface(in: .rect(cornerRadius: 12))
+                        .background(.background, in: .rect(cornerRadius: 12))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .strokeBorder(.quaternary, lineWidth: 1)
+                        }
                     }
 
                 }
