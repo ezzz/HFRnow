@@ -917,9 +917,9 @@ private extension View {
             }
         } else {
             if isEnabled {
-                self.buttonStyle(.borderedProminent)
+                self.buttonBorderShape(.circle).buttonStyle(.borderedProminent)
             } else {
-                self.buttonStyle(.bordered)
+                self.buttonBorderShape(.circle).buttonStyle(.bordered)
             }
         }
     }

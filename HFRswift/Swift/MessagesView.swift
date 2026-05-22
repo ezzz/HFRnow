@@ -2574,7 +2574,7 @@ struct MessagesView: View {
     @State private var isPagePickerPresented = false
     @State private var pagePickerInput: String = ""
     @State private var webViewScrollRequest: WebView.ScrollRequest?
-    @State private var linkedTopic: Topic?
+    @State private var linkedTopicDestination: AnyView?
     @State private var navigateToLinkedTopic = false
     @State private var safariDestination: SafariDestination?
     @State private var userProfileDestination: UserProfileDestination?
@@ -2616,7 +2616,7 @@ struct MessagesView: View {
     @State private var searchContext: TopicSearchContext?
     @State private var topicSearchSheetState: TopicSearchSheetState?
     @State private var lastSearchFormSnapshot: [String: String] = [:]
-    @State private var pendingSearchPush: TopicSearchContext?
+    @State private var searchResultDestination: AnyView?
     @State private var navigateToSearchResult = false
     @State private var hasConsumedInitialSearchURL = false
     @State private var isAdvancingSearchResults = false
@@ -2632,6 +2632,30 @@ struct MessagesView: View {
         appTheme.palette
     }
 
+    private var linkedTopicNavigationBinding: Binding<Bool> {
+        Binding(
+            get: { navigateToLinkedTopic },
+            set: { isActive in
+                navigateToLinkedTopic = isActive
+                if !isActive {
+                    linkedTopicDestination = nil
+                }
+            }
+        )
+    }
+
+    private var searchResultNavigationBinding: Binding<Bool> {
+        Binding(
+            get: { navigateToSearchResult },
+            set: { isActive in
+                navigateToSearchResult = isActive
+                if !isActive {
+                    searchResultDestination = nil
+                }
+            }
+        )
+    }
+
     private var shouldHideReplyComposerButton: Bool {
         UIDevice.current.userInterfaceIdiom == .phone && verticalSizeClass == .compact
     }
@@ -2642,7 +2666,7 @@ struct MessagesView: View {
                 .ignoresSafeArea()
             VStack(spacing: 8) {
                 ProgressView()
-                    .tint(.primary)
+                    .neutralLoadingSpinner()
                 Text("Chargement...")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
@@ -3041,7 +3065,16 @@ struct MessagesView: View {
         topicForNavigation.curTopicPage = Int32(boundedPage)
         topicForNavigation.maxTopicPage = Int32(provisionalMaxPage)
 
-        linkedTopic = topicForNavigation
+        linkedTopicDestination = AnyView(
+            MessagesView(
+                topic: topicForNavigation,
+                curPage: boundedPage,
+                maxPage: max(provisionalMaxPage, 1),
+                separatorNewMessages: true,
+                navigationDepth: navigationDepth + 1
+            )
+            .toolbar(.hidden, for: .tabBar)
+        )
         navigateToLinkedTopic = true
     }
 
@@ -3678,7 +3711,23 @@ struct MessagesView: View {
             loadSearchResultURL(url)
         } else {
             // Normal topic → push a new MessagesView in search mode.
-            pendingSearchPush = newContext
+            searchResultDestination = AnyView(
+                MessagesView(
+                    topic: topic,
+                    curPage: page,
+                    maxPage: currentMaxPage,
+                    separatorNewMessages: false,
+                    navigationDepth: navigationDepth + 1,
+                    topicPageLoader: topicPageLoader,
+                    topicPageRenderer: topicPageRenderer,
+                    replyQuoteTemplateLoader: replyQuoteTemplateLoader,
+                    messageDeletionService: messageDeletionService,
+                    moderationAlertService: moderationAlertService,
+                    topicSearchService: topicSearchService,
+                    initialSearchContext: newContext
+                )
+                .toolbar(.hidden, for: .tabBar)
+            )
             navigateToSearchResult = true
         }
     }
@@ -3855,24 +3904,10 @@ struct MessagesView: View {
     private var searchResultNavigationLink: some View {
         NavigationLink(
             "",
-            isActive: $navigateToSearchResult
+            isActive: searchResultNavigationBinding
         ) {
-            if let pendingSearchPush {
-                MessagesView(
-                    topic: topic,
-                    curPage: page,
-                    maxPage: currentMaxPage,
-                    separatorNewMessages: false,
-                    navigationDepth: navigationDepth + 1,
-                    topicPageLoader: topicPageLoader,
-                    topicPageRenderer: topicPageRenderer,
-                    replyQuoteTemplateLoader: replyQuoteTemplateLoader,
-                    messageDeletionService: messageDeletionService,
-                    moderationAlertService: moderationAlertService,
-                    topicSearchService: topicSearchService,
-                    initialSearchContext: pendingSearchPush
-                )
-                .toolbar(.hidden, for: .tabBar)
+            if let searchResultDestination {
+                searchResultDestination
             } else {
                 EmptyView()
             }
@@ -3885,17 +3920,10 @@ struct MessagesView: View {
     private var linkedTopicNavigationLink: some View {
         NavigationLink(
             "",
-            isActive: $navigateToLinkedTopic
+            isActive: linkedTopicNavigationBinding
         ) {
-            if let linkedTopic {
-                MessagesView(
-                    topic: linkedTopic,
-                    curPage: Int(linkedTopic.curTopicPage),
-                    maxPage: max(Int(linkedTopic.maxTopicPage), 1),
-                    separatorNewMessages: true,
-                    navigationDepth: navigationDepth + 1
-                )
-                .toolbar(.hidden, for: .tabBar)
+            if let linkedTopicDestination {
+                linkedTopicDestination
             } else {
                 EmptyView()
             }
@@ -3903,7 +3931,6 @@ struct MessagesView: View {
         .hidden()
         .allowsHitTesting(false)
     }
-
 
     private func uniqueValidPages(_ candidates: [Int], excluding excludedTargets: Set<Int> = []) -> [Int] {
         var seen = excludedTargets
@@ -3982,6 +4009,7 @@ struct MessagesView: View {
                 .font(.system(size: 15, weight: .semibold))
         }
         .disabled(page <= 1)
+        .legacyPageButtonSpacing(edge: .trailing)
     }
 
     private var bottomNextPageButton: some View {
@@ -3992,6 +4020,7 @@ struct MessagesView: View {
                 .font(.system(size: 15, weight: .semibold))
         }
         .disabled(page >= currentMaxPage)
+        .legacyPageButtonSpacing(edge: .leading)
     }
 
     private var pageChoiceMenuFinalTargets: [Int] {
@@ -4253,6 +4282,7 @@ struct MessagesView: View {
                     Color.black.opacity(0.18)
                         .ignoresSafeArea()
                     ProgressView(activeComposerPrefillMode.loadingLabel)
+                        .neutralLoadingSpinner()
                         .padding(.horizontal, 18)
                         .padding(.vertical, 12)
                         .hfrLoadingPanel(in: .rect(cornerRadius: 12))
@@ -4565,7 +4595,7 @@ struct MessagesView: View {
                                         Image(systemName: "arrow.clockwise")
                                             .font(.system(size: 16, weight: .semibold))
                                     }
-                                    .topicBottomBarButtonStyle(isProminent: true)
+                                    .topicBottomBarCircularIconButtonStyle(isProminent: true)
                                     .accessibilityLabel("Actualiser")
                                     .transition(.opacity.combined(with: .scale))
                                 }
@@ -5987,6 +6017,20 @@ private final class ZoomingImageScrollView: UIScrollView, UIGestureRecognizerDel
 
 private extension View {
     @ViewBuilder
+    func neutralLoadingSpinner() -> some View {
+        self.tint(Color(uiColor: .secondaryLabel))
+    }
+
+    @ViewBuilder
+    func legacyPageButtonSpacing(edge: Edge.Set) -> some View {
+        if #available(iOS 26.0, *) {
+            self
+        } else {
+            self.padding(edge, 6)
+        }
+    }
+
+    @ViewBuilder
     func topicBottomBarButtonStyle(isProminent: Bool) -> some View {
         if #available(iOS 26.0, *) {
             if isProminent {
@@ -5999,6 +6043,23 @@ private extension View {
                 self.buttonStyle(.borderedProminent)
             } else {
                 self.buttonStyle(.automatic)
+            }
+        }
+    }
+
+    @ViewBuilder
+    func topicBottomBarCircularIconButtonStyle(isProminent: Bool) -> some View {
+        if #available(iOS 26.0, *) {
+            if isProminent {
+                self.buttonStyle(.glassProminent)
+            } else {
+                self.buttonStyle(.automatic)
+            }
+        } else {
+            if isProminent {
+                self.buttonBorderShape(.circle).buttonStyle(.borderedProminent)
+            } else {
+                self.buttonBorderShape(.circle).buttonStyle(.bordered)
             }
         }
     }
