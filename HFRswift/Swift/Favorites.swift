@@ -1042,21 +1042,21 @@ struct TopicRowView: View {
                                 )
                             }
                         }
-                        if let onFilterPosts {
-                            Button {
-                                onFilterPosts()
-                            } label: {
-                                MenuActionLabel("Filtrer les posts", systemImage: "line.3.horizontal.decrease.circle")
-                            }
-                        }
                         if let onRemoveFavorite {
-                            Divider()
                             Button(role: .destructive) {
                                 onRemoveFavorite()
                             } label: {
                                 MenuActionLabel("Supprimer", systemImage: "trash", role: .destructive)
                             }
                             .disabled(isRemovingFavorite)
+                        }
+                        if let onFilterPosts {
+                            Divider()
+                            Button {
+                                onFilterPosts()
+                            } label: {
+                                MenuActionLabel("Filtrer les posts", systemImage: "line.3.horizontal.decrease.circle")
+                            }
                         }
                     }
                 )

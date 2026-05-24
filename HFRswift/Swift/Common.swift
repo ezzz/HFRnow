@@ -2091,7 +2091,7 @@ enum TopicQuickActionPolicy {
             )
         case .favorites:
             return TopicQuickActionsConfiguration(
-                showOpenFirstPage: false,
+                showOpenFirstPage: true,
                 showOpenLastPage: true,
                 showOpenLastReply: true,
                 showOpenPagePicker: true,
