@@ -964,11 +964,20 @@ private extension View {
     @ViewBuilder
     func smileyChipStyle() -> some View {
         if #available(iOS 26.0, *) {
-            self.glassEffect(.regular.interactive(), in: .capsule)
+            self.glassEffect(.regular, in: .capsule)
         } else {
             self
-                .background(.thinMaterial, in: .capsule)
+                .background(Color(uiColor: .secondarySystemBackground).opacity(0.62), in: .capsule)
                 .overlay(Capsule().stroke(Color(uiColor: .separator).opacity(0.3), lineWidth: 0.5))
+        }
+    }
+
+    @ViewBuilder
+    func smileyPickerContentBackground() -> some View {
+        if #available(iOS 26.0, *) {
+            self
+        } else {
+            self.background(Color(uiColor: .systemGray6).opacity(0.55))
         }
     }
 
@@ -1052,6 +1061,7 @@ private struct CombinedSmileyPickerView: View {
     @AppStorage("AnswerView.smileys.basic.expanded") private var isBasicSectionExpanded = true
     @AppStorage("AnswerView.smileys.forumFavorites.expanded") private var isForumFavoritesSectionExpanded = true
     @AppStorage("AnswerView.smileys.appFavorites.expanded") private var isAppFavoritesSectionExpanded = true
+    @AppStorage("AnswerView.smileys.search.allKeywords") private var searchAllKeywords = false
     private let defaultColumns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
     private let favoriteColumns = [GridItem(.adaptive(minimum: 78, maximum: 90), spacing: 4)]
     private let searchService: any SmileySearching = HFRSmileySearchService()
@@ -1076,7 +1086,7 @@ private struct CombinedSmileyPickerView: View {
         (!recentSuggestions.isEmpty || !topSuggestions.isEmpty) && sessionState.displayMode == .library
     }
     private var suggestionChips: [SmileySearchHistoryEntry] {
-        if sessionState.searchText.isEmpty { return Array(recentSuggestions.prefix(4)) }
+        if sessionState.searchText.isEmpty { return Array(recentSuggestions.prefix(5)) }
         let recentTexts = Set(recentSuggestions.map { $0.text })
         let uniqueTop = topSuggestions.filter { !recentTexts.contains($0.text) }
         return Array((recentSuggestions + uniqueTop).prefix(5))
@@ -1097,26 +1107,11 @@ private struct CombinedSmileyPickerView: View {
                         smileyLibrary
                     }
                 }
-
-                if showSuggestions && !suggestionChips.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(suggestionChips) { entry in
-                                Button {
-                                    search(using: entry.text)
-                                } label: {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: sessionState.searchText.isEmpty ? "clock" : "magnifyingglass")
-                                            .font(.caption2).foregroundStyle(.secondary)
-                                        Text(entry.text).font(.subheadline)
-                                    }
-                                    .padding(.horizontal, 12).padding(.vertical, 6)
-                                    .smileyChipStyle()
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                        .padding(.horizontal, 12).padding(.vertical, 8)
+                .smileyPickerContentBackground()
+                .overlay(alignment: .bottom) {
+                    if showSuggestions && !suggestionChips.isEmpty {
+                        suggestionChipsRow
+                            .padding(.bottom, 4)
                     }
                 }
 
@@ -1172,52 +1167,91 @@ private struct CombinedSmileyPickerView: View {
 
     // MARK: Search bar
 
-    private var searchBarRow: some View {
-        HStack(spacing: 8) {
-            if isShowingResults {
-                Button(action: clearSearch) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 15, weight: .semibold))
-                        .padding(8)
+    private var suggestionChipsRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(suggestionChips) { entry in
+                    Button {
+                        search(using: entry.text)
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: sessionState.searchText.isEmpty ? "clock" : "magnifyingglass")
+                                .font(.caption2).foregroundStyle(.secondary)
+                            Text(entry.text).font(.subheadline)
+                        }
+                        .padding(.horizontal, 12).padding(.vertical, 6)
+                        .smileyChipStyle()
+                    }
+                    .buttonStyle(.plain)
                 }
-                .accessibilityLabel("Retour aux smileys")
-                .smileySearchButtonStyle()
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 4)
+        }
+        .background(Color.clear)
+        .scrollContentBackground(.hidden)
+        .scrollClipDisabled()
+    }
+
+    private var searchBarRow: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                if isShowingResults {
+                    Button(action: clearSearch) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 15, weight: .semibold))
+                            .padding(8)
+                    }
+                    .accessibilityLabel("Retour aux smileys")
+                    .smileySearchButtonStyle()
+                }
+
+                HStack {
+                    TextField("Rechercher un smiley…", text: $sessionState.searchText)
+                        .focused($isSearchFieldFocused)
+                        .submitLabel(.search)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                        .onSubmit { performSearch() }
+
+                    if !sessionState.searchText.isEmpty {
+                        Button {
+                            sessionState.searchText = ""
+                            refreshSuggestions()
+                        } label: {
+                            Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Effacer")
+                    }
+                }
+                .padding(.horizontal, 10).padding(.vertical, 9)
+                .smileySearchFieldStyle()
+
+                if isSearching {
+                    ProgressView().controlSize(.small).frame(width: 36, height: 36)
+                } else {
+                    Button(action: { performSearch() }) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 15, weight: .semibold))
+                            .padding(8)
+                    }
+                    .disabled(!canSearch)
+                    .opacity(canSearch ? 1 : 0.4)
+                    .accessibilityLabel("Rechercher")
+                    .smileySearchButtonStyle()
+                }
             }
 
             HStack {
-                TextField("Rechercher un smiley…", text: $sessionState.searchText)
-                    .focused($isSearchFieldFocused)
-                    .submitLabel(.search)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-                    .onSubmit { performSearch() }
-
-                if !sessionState.searchText.isEmpty {
-                    Button {
-                        sessionState.searchText = ""
-                        refreshSuggestions()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Effacer")
-                }
-            }
-            .padding(.horizontal, 10).padding(.vertical, 9)
-            .smileySearchFieldStyle()
-
-            if isSearching {
-                ProgressView().controlSize(.small).frame(width: 36, height: 36)
-            } else {
-                Button(action: { performSearch() }) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 15, weight: .semibold))
-                        .padding(8)
-                }
-                .disabled(!canSearch)
-                .opacity(canSearch ? 1 : 0.4)
-                .accessibilityLabel("Rechercher")
-                .smileySearchButtonStyle()
+                Text("Tous les mots clés")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 8)
+                Toggle("Tous les mots clés", isOn: $searchAllKeywords)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .scaleEffect(0.75)
             }
         }
     }
@@ -1242,6 +1276,7 @@ private struct CombinedSmileyPickerView: View {
     private func performSearch(queryOverride: String? = nil) {
         let query = (queryOverride ?? sessionState.searchText).trimmingCharacters(in: .whitespacesAndNewlines)
         guard query.count >= 3 else { return }
+        let submittedQuery = smileySearchQuery(from: query, requiresAllKeywords: searchAllKeywords)
         isSearchFieldFocused = false
         if sessionState.searchText != query {
             sessionState.searchText = query
@@ -1250,7 +1285,7 @@ private struct CombinedSmileyPickerView: View {
         isSearching = true
         searchTask = Task {
             do {
-                let results = try await searchService.search(query: query)
+                let results = try await searchService.search(query: submittedQuery)
                 guard !Task.isCancelled else { return }
                 SmileySearchHistoryStore.record(query: query, resultCount: results.count)
                 await MainActor.run {
@@ -1267,6 +1302,26 @@ private struct CombinedSmileyPickerView: View {
                 }
             }
         }
+    }
+
+    private func smileySearchQuery(from query: String, requiresAllKeywords: Bool) -> String {
+        let words = query
+            .components(separatedBy: .whitespacesAndNewlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        guard requiresAllKeywords else {
+            return words.map { smileySearchWordWithoutPlus($0) }.joined(separator: " ")
+        }
+        return words.map { "+\(smileySearchWordWithoutPlus($0))" }.joined(separator: " ")
+    }
+
+    private func smileySearchWordWithoutPlus(_ word: String) -> String {
+        var result = word
+        while result.hasPrefix("+") {
+            result.removeFirst()
+        }
+        return result
     }
 
     private func clearSearch() {

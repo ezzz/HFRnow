@@ -18,15 +18,8 @@ struct HFRSmileySearchService: SmileySearching {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= 3 else { return [] }
 
-        // Chaque mot est préfixé par "+" (recherche full-text HFR)
-        let words = trimmed.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
-        let formattedQuery = words.map { "+\($0)" }.joined(separator: " ")
-
         var components = URLComponents(string: "\(Self.baseURL)/message-smi-mp-aj.php")!
-        components.queryItems = [
-            URLQueryItem(name: "config", value: "hfr.inc"),
-            URLQueryItem(name: "findsmilies", value: formattedQuery)
-        ]
+        components.percentEncodedQuery = "config=hfr.inc&findsmilies=\(percentEncodedFindsmiliesQuery(trimmed))"
         guard let url = components.url else { return [] }
 
         let (data, response) = try await URLSession.shared.data(from: url)
@@ -40,6 +33,12 @@ struct HFRSmileySearchService: SmileySearching {
                 ?? String(data: data, encoding: .utf8)
                 ?? ""
         return parseSmileys(from: html)
+    }
+
+    private func percentEncodedFindsmiliesQuery(_ query: String) -> String {
+        var allowedCharacters = CharacterSet.urlQueryAllowed
+        allowedCharacters.remove(charactersIn: "+&=")
+        return query.addingPercentEncoding(withAllowedCharacters: allowedCharacters) ?? query
     }
 
     private func parseSmileys(from html: String) -> [ReplySmiley] {
