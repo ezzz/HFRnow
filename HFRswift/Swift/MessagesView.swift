@@ -644,9 +644,16 @@ final class MessageWebView: WKWebView {
 }
 
 struct WebView: UIViewRepresentable {
-    enum InitialScroll {
+    struct ScrollPosition: Equatable {
+        let y: CGFloat
+        let viewportHeight: CGFloat
+        let contentHeight: CGFloat
+    }
+
+    enum InitialScroll: Equatable {
         case top
         case bottom
+        case position(ScrollPosition)
     }
 
     struct ScrollRequest: Equatable {
@@ -690,6 +697,7 @@ struct WebView: UIViewRepresentable {
     var onTextQuoteRequest: ((URL, String, Bool) -> Void)?
     var onContentReady: (() -> Void)?
     var onScrollPositionChange: ((Bool) -> Void)?
+    var onScrollPositionSnapshotChange: ((ScrollPosition) -> Void)?
     var onTextInteractionStateChange: ((Bool) -> Void)?
 
     init(
@@ -729,6 +737,7 @@ struct WebView: UIViewRepresentable {
         onTextQuoteRequest: ((URL, String, Bool) -> Void)? = nil,
         onContentReady: (() -> Void)? = nil,
         onScrollPositionChange: ((Bool) -> Void)? = nil,
+        onScrollPositionSnapshotChange: ((ScrollPosition) -> Void)? = nil,
         onTextInteractionStateChange: ((Bool) -> Void)? = nil
     ) {
         self.fileURL = fileURL
@@ -767,6 +776,7 @@ struct WebView: UIViewRepresentable {
         self.onTextQuoteRequest = onTextQuoteRequest
         self.onContentReady = onContentReady
         self.onScrollPositionChange = onScrollPositionChange
+        self.onScrollPositionSnapshotChange = onScrollPositionSnapshotChange
         self.onTextInteractionStateChange = onTextInteractionStateChange
     }
 
@@ -833,7 +843,14 @@ struct WebView: UIViewRepresentable {
                 );
                 var distanceToBottom = contentHeight - (scrollY + viewport);
                 var atBottom = distanceToBottom <= 2;
-                try { window.webkit.messageHandlers.scrollState.postMessage(atBottom); } catch (e) {}
+                try {
+                  window.webkit.messageHandlers.scrollState.postMessage({
+                    atBottom: atBottom,
+                    y: scrollY,
+                    viewportHeight: viewport,
+                    contentHeight: contentHeight
+                  });
+                } catch (e) {}
               }
 
               window.addEventListener('scroll', notifyScrollState, { passive: true });
@@ -1130,6 +1147,12 @@ struct WebView: UIViewRepresentable {
                     self.scrollToBottom(in: webView)
                 }
                 print("Initial bottom scroll executed (native)")
+            case .position(let position):
+                restoreScrollPosition(position, in: webView)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                    self.restoreScrollPosition(position, in: webView)
+                }
+                print("Initial scroll restored at y=\(position.y)")
             }
         }
 
@@ -1152,6 +1175,8 @@ struct WebView: UIViewRepresentable {
                 }
             case .bottom:
                 scrollToBottom(in: webView)
+            case .position(let position):
+                restoreScrollPosition(position, in: webView)
             }
         }
 
@@ -1159,16 +1184,39 @@ struct WebView: UIViewRepresentable {
             switch message.name {
             case "scrollState":
                 let isAtBottom: Bool
-                if let boolValue = message.body as? Bool {
+                let scrollPosition: WebView.ScrollPosition?
+                if let payload = message.body as? [String: Any] {
+                    if let boolValue = payload["atBottom"] as? Bool {
+                        isAtBottom = boolValue
+                    } else if let numberValue = payload["atBottom"] as? NSNumber {
+                        isAtBottom = numberValue.boolValue
+                    } else {
+                        return
+                    }
+
+                    let y = Self.cgFloatValue(from: payload["y"]) ?? 0
+                    let viewportHeight = Self.cgFloatValue(from: payload["viewportHeight"]) ?? 0
+                    let contentHeight = Self.cgFloatValue(from: payload["contentHeight"]) ?? 0
+                    scrollPosition = WebView.ScrollPosition(
+                        y: max(y, 0),
+                        viewportHeight: max(viewportHeight, 0),
+                        contentHeight: max(contentHeight, 0)
+                    )
+                } else if let boolValue = message.body as? Bool {
                     isAtBottom = boolValue
+                    scrollPosition = nil
                 } else if let numberValue = message.body as? NSNumber {
                     isAtBottom = numberValue.boolValue
+                    scrollPosition = nil
                 } else {
                     return
                 }
 
                 DispatchQueue.main.async {
                     self.parent.onScrollPositionChange?(isAtBottom)
+                    if let scrollPosition {
+                        self.parent.onScrollPositionSnapshotChange?(scrollPosition)
+                    }
                 }
             case "textInteractionState":
                 let isActive: Bool
@@ -1186,6 +1234,22 @@ struct WebView: UIViewRepresentable {
             default:
                 return
             }
+        }
+
+        private static func cgFloatValue(from value: Any?) -> CGFloat? {
+            if let doubleValue = value as? Double {
+                return CGFloat(doubleValue)
+            }
+            if let intValue = value as? Int {
+                return CGFloat(intValue)
+            }
+            if let numberValue = value as? NSNumber {
+                return CGFloat(numberValue.doubleValue)
+            }
+            if let stringValue = value as? String, let doubleValue = Double(stringValue) {
+                return CGFloat(doubleValue)
+            }
+            return nil
         }
 
         func webView(
@@ -2258,6 +2322,49 @@ struct WebView: UIViewRepresentable {
             }
         }
 
+        private func restoreScrollPosition(_ position: WebView.ScrollPosition, in webView: WKWebView) {
+            let y = Double(max(position.y, 0))
+            let script = """
+            (function(targetY) {
+              function restore() {
+                var root = document.documentElement || {};
+                var body = document.body || {};
+                var viewport = window.innerHeight || root.clientHeight || 0;
+                var contentHeight = Math.max(
+                  body.scrollHeight || 0,
+                  root.scrollHeight || 0,
+                  body.offsetHeight || 0,
+                  root.offsetHeight || 0
+                );
+                var maxY = Math.max(0, contentHeight - viewport);
+                var y = Math.min(Math.max(0, targetY), maxY);
+                try { window.scrollTo(0, y); } catch(e) {}
+                return y;
+              }
+
+              setTimeout(restore, 50);
+              return restore();
+            })(\(y));
+            """
+
+            webView.evaluateJavaScript(script) { _, error in
+                guard error != nil else { return }
+
+                let scrollView = webView.scrollView
+                let minOffsetY = -scrollView.adjustedContentInset.top
+                let maxOffsetY = max(
+                    minOffsetY,
+                    scrollView.contentSize.height - scrollView.bounds.height + scrollView.adjustedContentInset.bottom
+                )
+                let targetOffsetY = min(max(minOffsetY + position.y, minOffsetY), maxOffsetY)
+                let targetOffset = CGPoint(
+                    x: -scrollView.adjustedContentInset.left,
+                    y: targetOffsetY
+                )
+                scrollView.setContentOffset(targetOffset, animated: false)
+            }
+        }
+
         private func adjustBottomAfterAnchorIfNeeded(in webView: WKWebView) {
             let script = """
             (function() {
@@ -2607,6 +2714,7 @@ struct MessagesView: View {
     @State private var presentedPollData: PollData?
     @State private var showWebViewLoadCover = true
     @State private var isWebContentAtBottom = false
+    @State private var lastWebScrollPosition: WebView.ScrollPosition?
     @State private var isMessageTextInteractionActive = false
     @State private var pendingPostedReply: ReplyPostingResult?
     @State private var showPostSuccessToast = false
@@ -3096,7 +3204,7 @@ struct MessagesView: View {
         case .loadPage(let targetPage, let initialScroll):
             navigateToPage(targetPage, initialScroll: webViewInitialScroll(initialScroll))
         case .refreshCurrentPage:
-            loadPage(page)
+            refreshCurrentPagePreservingScroll()
         case .showPopupMenu:
             break
         case .manageSmileyFavorite(let payload):
@@ -4084,9 +4192,13 @@ struct MessagesView: View {
         }
     }
 
-    private func refreshCurrentPageAtBottom() {
+    private func refreshCurrentPagePreservingScroll() {
         anchor = nil
-        initialScroll = .bottom
+        if let lastWebScrollPosition {
+            initialScroll = .position(lastWebScrollPosition)
+        } else {
+            initialScroll = .bottom
+        }
         loadPage(page)
     }
 
@@ -4266,6 +4378,9 @@ struct MessagesView: View {
                         if isWebContentAtBottom != isAtBottom {
                             isWebContentAtBottom = isAtBottom
                         }
+                    },
+                    onScrollPositionSnapshotChange: { position in
+                        lastWebScrollPosition = position
                     },
                     onTextInteractionStateChange: { isActive in
                         isMessageTextInteractionActive = isActive
@@ -4590,7 +4705,7 @@ struct MessagesView: View {
                             if shouldShowBottomRefreshButton {
                                 ToolbarItem(placement: .bottomBar) {
                                     Button {
-                                        refreshCurrentPageAtBottom()
+                                        refreshCurrentPagePreservingScroll()
                                     } label: {
                                         Image(systemName: "arrow.clockwise")
                                             .font(.system(size: 16, weight: .semibold))
