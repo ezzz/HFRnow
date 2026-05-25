@@ -6,6 +6,37 @@
 #import "Topic.h"
 #import "Constants.h"
 
+static NSInteger HFRTopicPageNumberFromURLString(NSString *urlString) {
+    if (urlString.length == 0) return 0;
+
+    NSURLComponents *components = [NSURLComponents componentsWithString:urlString];
+    for (NSURLQueryItem *item in components.queryItems) {
+        if ([item.name isEqualToString:@"page"]) {
+            NSInteger page = item.value.integerValue;
+            if (page > 0) return page;
+        }
+    }
+
+    NSArray<NSString *> *patterns = @[
+        @"(?:\\?|&)page=(\\d+)",
+        @"_(\\d+)\\.htm"
+    ];
+
+    for (NSString *pattern in patterns) {
+        NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:pattern options:NSRegularExpressionCaseInsensitive error:nil];
+        NSTextCheckingResult *match = [regex firstMatchInString:urlString options:0 range:NSMakeRange(0, urlString.length)];
+        if (match.numberOfRanges < 2) continue;
+
+        NSRange captureRange = [match rangeAtIndex:1];
+        if (captureRange.location == NSNotFound) continue;
+
+        NSInteger page = [[urlString substringWithRange:captureRange] integerValue];
+        if (page > 0) return page;
+    }
+
+    return 0;
+}
+
 @implementation ObjCTopicListParsingResult
 
 - (instancetype)init {
@@ -320,33 +351,11 @@
                     [aTopic setATypeOfFlag:@"yellow"];
                 }
             
-                // Read page of flag
-                int pageNumber = 0;
-                //Deux types d'URL:
-                //https://forum.hardware.fr/hfr/Discussions/Viepratique/questions-avffuo-sujet_55667_14466.htm#t72765761
-                //https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&subcat=432&post=55667&page=14466&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#t72765761
-                NSString *regexString  = @".*_(\\d+)\\.htm.*";
-                if ([aTopic.aURLOfFlag hasPrefix:@"/forum2.php"]) {
-                    regexString  = @".*page=([^&]+).*";
-                }
-                NSRange   matchedRange;// = NSMakeRange(NSNotFound, 0UL);
-                NSRange   searchRange = NSMakeRange(0, aTopic.aURLOfFlag.length);
-                NSError  *error2        = NULL;
-                
-                matchedRange = [aTopic.aURLOfFlag rangeOfRegex:regexString options:RKLNoOptions inRange:searchRange capture:1L error:&error2];
-                
-                if (matchedRange.location == NSNotFound) {
-                    NSRange rangeNumPage =  [aTopic.aURLOfFlag rangeOfCharactersFromSet:[NSCharacterSet decimalDigitCharacterSet] options:NSBackwardsSearch];
-                    pageNumber = [[aTopic.aURLOfFlag substringWithRange:rangeNumPage] intValue];
-                }
-                else {
-                    pageNumber = [[aTopic.aURLOfFlag substringWithRange:matchedRange] intValue];
-                    
-                }
+                NSInteger pageNumber = HFRTopicPageNumberFromURLString(aTopic.aURLOfFlag);
                 //NSLog(@"Read page of flag %@", aTopic.aURLOfFlag);
                 //NSLog(@"Current page of flag %ld", pageNumber);
 
-                [aTopic setCurTopicPage:pageNumber];
+                [aTopic setCurTopicPage:(int)pageNumber];
             }
             else {
                 [aTopic setAURLOfFlag:@""];

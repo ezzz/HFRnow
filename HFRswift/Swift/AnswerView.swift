@@ -1107,6 +1107,7 @@ private struct CombinedSmileyPickerView: View {
                         smileyLibrary
                     }
                 }
+                .safeAreaPadding(.bottom, showSuggestions && !suggestionChips.isEmpty ? 44 : 0)
                 .smileyPickerContentBackground()
                 .overlay(alignment: .bottom) {
                     if showSuggestions && !suggestionChips.isEmpty {

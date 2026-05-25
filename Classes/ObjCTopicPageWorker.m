@@ -9,8 +9,38 @@
 #import "ObjCTopicMessageContentBuilder.h"
 #import "ObjCTopicMessageContentResult.h"
 #import "ParseMessagesOperation.h"
-#import "RegexKitLite.h"
 #import "k.h"
+
+static NSInteger HFRTopicPageWorkerPageNumberFromURLString(NSString *urlString) {
+    if (urlString.length == 0) return 1;
+
+    NSURLComponents *components = [NSURLComponents componentsWithString:urlString];
+    for (NSURLQueryItem *item in components.queryItems) {
+        if ([item.name isEqualToString:@"page"]) {
+            NSInteger page = item.value.integerValue;
+            if (page > 0) return page;
+        }
+    }
+
+    NSArray<NSString *> *patterns = @[
+        @"(?:\\?|&)page=(\\d+)",
+        @"_(\\d+)\\.htm"
+    ];
+
+    for (NSString *pattern in patterns) {
+        NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:pattern options:NSRegularExpressionCaseInsensitive error:nil];
+        NSTextCheckingResult *match = [regex firstMatchInString:urlString options:0 range:NSMakeRange(0, urlString.length)];
+        if (match.numberOfRanges < 2) continue;
+
+        NSRange captureRange = [match rangeAtIndex:1];
+        if (captureRange.location == NSNotFound) continue;
+
+        NSInteger page = [[urlString substringWithRange:captureRange] integerValue];
+        if (page > 0) return page;
+    }
+
+    return 1;
+}
 
 @interface ObjCTopicPageWorker ()
 @property (nonatomic, strong) ASIHTTPRequest *request;
@@ -142,10 +172,7 @@
 }
 
 - (NSInteger)pageNumberFromURL:(NSString *)url {
-    NSRange range = [url rangeOfRegex:@".*page=([^&]+).*" options:RKLNoOptions inRange:NSMakeRange(0, url.length) capture:1 error:nil];
-    if (range.location != NSNotFound) return [[url substringWithRange:range] integerValue];
-    NSRange digit = [url rangeOfCharacterFromSet:NSCharacterSet.decimalDigitCharacterSet options:NSBackwardsSearch];
-    return digit.location != NSNotFound ? [[url substringWithRange:digit] integerValue] : 1;
+    return HFRTopicPageWorkerPageNumberFromURLString(url);
 }
 
 - (NSString *)relativeURLFromOriginalURL:(NSString *)originalURL fallback:(NSString *)fallback {
