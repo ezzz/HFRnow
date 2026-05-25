@@ -1079,6 +1079,9 @@ protocol LegacyMPStorageManaging {
     func addBookmark(topicID: String, topicCategory: String, postID: String, title: String, author: String) -> Bool
     func removeBookmark(_ bookmark: Bookmark) -> Bool
     func reloadAsynchronously()
+    func mpFlagURL(topicID: Int) -> String?
+    func mpFlagPage(topicID: Int) -> Int?
+    func updateMPFlag(topicID: Int, page: Int, p: String, href: String, uri: String)
 }
 
 final class ObjCMPStorageBridge: LegacyMPStorageManaging {
@@ -1195,6 +1198,72 @@ final class ObjCMPStorageBridge: LegacyMPStorageManaging {
         let implementation = storage.method(for: selector)
         let function = unsafeBitCast(implementation, to: Function.self)
         function(storage, selector)
+    }
+
+    func mpFlagURL(topicID: Int) -> String? {
+        guard let storage else { return nil }
+        let selector = NSSelectorFromString("getUrlFlagForTopidId:")
+        guard storage.responds(to: selector) else { return nil }
+
+        typealias Function = @convention(c) (AnyObject, Selector, Int32) -> NSString?
+        let implementation = storage.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        guard let url = function(storage, selector, Int32(topicID)) as String? else { return nil }
+        return Self.relativeForumURLString(from: url)
+    }
+
+    func mpFlagPage(topicID: Int) -> Int? {
+        guard let storage else { return nil }
+        let selector = NSSelectorFromString("getPageFlagForTopidId:")
+        guard storage.responds(to: selector) else { return nil }
+
+        typealias Function = @convention(c) (AnyObject, Selector, Int32) -> Int
+        let implementation = storage.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        let page = function(storage, selector, Int32(topicID))
+        return page > 0 ? page : nil
+    }
+
+    func updateMPFlag(topicID: Int, page: Int, p: String, href: String, uri: String) {
+        guard let storage else { return }
+        let selector = NSSelectorFromString("updateMPFlagAsynchronous:")
+        guard storage.responds(to: selector) else { return }
+
+        let flag: NSDictionary = [
+            "post": NSNumber(value: topicID),
+            "p": p,
+            "href": href,
+            "page": NSNumber(value: page),
+            "uri": uri
+        ]
+
+        typealias Function = @convention(c) (AnyObject, Selector, NSDictionary) -> Void
+        let implementation = storage.method(for: selector)
+        let function = unsafeBitCast(implementation, to: Function.self)
+        function(storage, selector, flag)
+    }
+
+    private static func relativeForumURLString(from rawURL: String) -> String? {
+        let trimmed = rawURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        guard
+            let components = URLComponents(string: trimmed),
+            let scheme = components.scheme?.lowercased(),
+            scheme == "http" || scheme == "https",
+            components.host?.lowercased() == "forum.hardware.fr"
+        else {
+            return trimmed
+        }
+
+        var relative = components.percentEncodedPath.isEmpty ? "/" : components.percentEncodedPath
+        if let query = components.percentEncodedQuery, !query.isEmpty {
+            relative += "?\(query)"
+        }
+        if let fragment = components.percentEncodedFragment, !fragment.isEmpty {
+            relative += "#\(fragment)"
+        }
+        return relative
     }
 }
 
@@ -2076,6 +2145,7 @@ enum TopicOpenContext: Equatable {
     case favoritesOnly
     case globalSearch
     case messages
+    case privateMessages
 }
 
 enum TopicQuickActionPolicy {
@@ -2113,7 +2183,7 @@ enum TopicQuickActionPolicy {
                 showOpenPagePicker: true,
                 showCopyLink: true
             )
-        case .messages:
+        case .messages, .privateMessages:
             return TopicQuickActionsConfiguration(
                 showOpenFirstPage: true,
                 showOpenLastPage: true,
@@ -2136,7 +2206,7 @@ enum TopicQuickActionPolicy {
         switch context {
         case .favorites:
             return nonEmptyString(topic.aURLOfLastPage) ?? nonEmptyString(topic.aURLOfLastPost) ?? nonEmptyString(topic.aURL)
-        case .favoritesOnly, .forum, .globalSearch, .messages, .generic:
+        case .favoritesOnly, .forum, .globalSearch, .messages, .privateMessages, .generic:
             return nonEmptyString(topic.aURLOfLastPost) ?? nonEmptyString(topic.aURLOfLastPage) ?? nonEmptyString(topic.aURL)
         }
     }
@@ -2228,6 +2298,11 @@ struct TopicOpenPolicy {
             return Decision(
                 preferredURL: nonEmptyString(topic.aURLOfLastPost) ?? nonEmptyString(topic.aURL),
                 fallbackPage: maxPage
+            )
+        case .privateMessages:
+            return Decision(
+                preferredURL: nonEmptyString(topic.aURLOfFlag) ?? nonEmptyString(topic.aURLOfLastPost) ?? nonEmptyString(topic.aURL),
+                fallbackPage: max(TopicPageURLRouting.pageNumber(from: topic.aURLOfFlag) ?? currentPage, 1)
             )
         case .generic:
             return Decision(
@@ -2716,6 +2791,11 @@ struct TopicListRowView: View {
         destination.aURLOfLastPage = nonEmptyString(topic.aURLOfLastPage) ?? url
         destination.curTopicPage = Int32(page)
         destination.maxTopicPage = Int32(max(maxPage, page))
+        destination.postID = topic.postID
+        destination.catID = topic.catID
+        destination.aAuthorOrInter = topic.aAuthorOrInter
+        destination.aAuthorOfLastPost = topic.aAuthorOfLastPost
+        destination.aDateOfLastPost = topic.aDateOfLastPost
         destination.isViewed = topic.isViewed
         destination.isViewedFromForumAtLoad = topic.isViewedFromForumAtLoad
         destination.isLocallyViewedInApp = topic.isLocallyViewedInApp

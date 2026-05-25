@@ -45,17 +45,20 @@ final class MPListViewModel: ObservableObject {
     @Published private(set) var hasLoadedOnce: Bool
 
     private let topicsLoader: MPTopicsLoading
+    private let mpStorage: LegacyMPStorageManaging
     private var loadRequestID = 0
     private var lastSuccessfulLoadDate: Date?
     private var pendingForcedReload = false
 
     init(
         topicsLoader: MPTopicsLoading = ObjCMPTopicsLoader(),
+        mpStorage: LegacyMPStorageManaging = ObjCMPStorageBridge.shared,
         initialTopics: [Topic] = [],
         initialErrorMessage: String? = nil,
         initialIsLoading: Bool = false
     ) {
         self.topicsLoader = topicsLoader
+        self.mpStorage = mpStorage
         self.topics = initialTopics
         self.errorMessage = initialErrorMessage
         self.isLoading = initialIsLoading
@@ -94,7 +97,7 @@ final class MPListViewModel: ObservableObject {
                     self.hasLoadedOnce = true
                     self.lastSuccessfulLoadDate = Date()
                     self.errorMessage = nil
-                    self.topics = topics ?? []
+                    self.topics = self.topicsDecoratedWithMPStorageFlags(topics ?? [])
                 }
                 if self.pendingForcedReload {
                     self.pendingForcedReload = false
@@ -138,6 +141,72 @@ final class MPListViewModel: ObservableObject {
         let didMarkUnreadTopic = MPTopicReadState.markTopicAsRead(topic)
         topics = topics
         return didMarkUnreadTopic
+    }
+
+    private func topicsDecoratedWithMPStorageFlags(_ topics: [Topic]) -> [Topic] {
+        guard UserDefaults.standard.bool(forKey: "mpstorage_active"), mpStorage.isAvailable else {
+            return topics
+        }
+
+        for topic in topics where Self.hasMultipleInterlocutors(topic) {
+            guard let topicID = Self.topicID(from: topic) else { continue }
+            guard let flagURL = mpStorage.mpFlagURL(topicID: topicID), !flagURL.isEmpty else { continue }
+
+            let page = mpStorage.mpFlagPage(topicID: topicID)
+                ?? TopicPageURLRouting.pageNumber(from: flagURL)
+                ?? max(Int(topic.curTopicPage), 1)
+
+            topic.aURLOfFlag = flagURL
+            topic.aTypeOfFlag = "red"
+            topic.curTopicPage = Int32(max(page, 1))
+            topic.maxTopicPage = Int32(max(Int(topic.maxTopicPage), page, 1))
+        }
+
+        return topics
+    }
+
+    private static func hasMultipleInterlocutors(_ topic: Topic) -> Bool {
+        topic.aAuthorOrInter?.localizedCaseInsensitiveContains("multiples") == true
+    }
+
+    private static func topicID(from topic: Topic) -> Int? {
+        if topic.postID > 0 {
+            return Int(topic.postID)
+        }
+        return topicID(from: topic.aURL)
+            ?? topicID(from: topic.aURLOfLastPost)
+            ?? topicID(from: topic.aURLOfLastPage)
+    }
+
+    private static func topicID(from urlString: String?) -> Int? {
+        guard let urlString, !urlString.isEmpty else { return nil }
+
+        if
+            let components = URLComponents(string: urlString),
+            let value = components.queryItems?.first(where: { $0.name == "post" })?.value,
+            let topicID = Int(value),
+            topicID > 0
+        {
+            return topicID
+        }
+
+        guard
+            let regex = try? NSRegularExpression(pattern: "(?:\\?|&)post=(\\d+)", options: [.caseInsensitive])
+        else {
+            return nil
+        }
+        let range = NSRange(urlString.startIndex..<urlString.endIndex, in: urlString)
+        guard
+            let match = regex.firstMatch(in: urlString, options: [], range: range),
+            match.numberOfRanges >= 2,
+            let captureRange = Range(match.range(at: 1), in: urlString),
+            let topicID = Int(urlString[captureRange]),
+            topicID > 0
+        else {
+            return nil
+        }
+
+        return topicID
     }
 
     private static func isCancellationError(_ error: Error) -> Bool {
@@ -333,6 +402,7 @@ struct MPListView: View {
 struct MPRowView: View {
     var topic: Topic
     var onOpen: (() -> Void)? = nil
+    @AppStorage("mpstorage_active") private var mpStorageActive = false
 
     // "[non lu]" prefix detection — strips brackets, returns the keyword if present.
     private static let nonLuPrefix = "[non lu]"
@@ -365,7 +435,15 @@ struct MPRowView: View {
 
     private var interlocutorLabel: String? {
         guard let interlocutor = topic.aAuthorOrInter else { return nil }
-        if interlocutor.contains("multiples") { return "Interlocuteurs multiples" }
+        if interlocutor.localizedCaseInsensitiveContains("multiples") {
+            if mpStorageActive,
+               topic.aURLOfFlag?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
+                let currentPage = max(Int(topic.curTopicPage), 1)
+                let maxPage = max(Int(topic.maxTopicPage), currentPage)
+                return "⚑ \(currentPage) / \(maxPage)"
+            }
+            return "Interlocuteurs multiples"
+        }
         return interlocutor
     }
 
@@ -392,8 +470,8 @@ struct MPRowView: View {
             trailingBottomText: trailingLabel,
             contentPadding: EdgeInsets(top: 2, leading: 0, bottom: 2, trailing: 0),
             leadingAccessory: avatarAccessory,
-            openContext: .messages,
-            quickActions: TopicQuickActionPolicy.defaults(for: .messages),
+            openContext: .privateMessages,
+            quickActions: TopicQuickActionPolicy.defaults(for: .privateMessages),
             onOpen: { _ in
             onOpen?()
             }

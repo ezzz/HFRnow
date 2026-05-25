@@ -2913,6 +2913,62 @@ struct MessagesView: View {
         synchronizeTopicPagination(currentPage: resolvedPage, maxPage: resolvedMaxPage)
     }
 
+    private func updateMPStorageFlagIfNeeded(content: TopicPageContent, loadedPage: Int) {
+        guard UserDefaults.standard.bool(forKey: "mpstorage_active") else { return }
+        guard !isInSearchMode, !isFavoritePostFilterMode else { return }
+        guard content.searchInputData["cat"] == "prive" else { return }
+        guard topic.aAuthorOrInter?.localizedCaseInsensitiveContains("multiples") == true else { return }
+        guard let topicID = intValue(from: content.searchInputData["post"]) else { return }
+        guard let lastPostAnchor = lastMessageAnchor(from: content.messageActionsByIndex) else { return }
+
+        let pageToSave = max(content.currentPage ?? loadedPage, 1)
+        let currentStoredPage = ObjCMPStorageBridge.shared.mpFlagPage(topicID: topicID) ?? -1
+        guard pageToSave >= currentStoredPage else { return }
+
+        let pValue = nonEmptyString(content.searchInputData["p"]) ?? "1"
+        let uri = "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=prive&post=\(topicID)&page=\(pageToSave)&p=\(pValue)&sondage=0&owntopic=0&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#\(lastPostAnchor)"
+
+        ObjCMPStorageBridge.shared.updateMPFlag(
+            topicID: topicID,
+            page: pageToSave,
+            p: pValue,
+            href: lastPostAnchor,
+            uri: uri
+        )
+    }
+
+    private func lastMessageAnchor(from actionsByIndex: [Int: TopicPageMessageActions]) -> String? {
+        actionsByIndex
+            .sorted { $0.key < $1.key }
+            .compactMap { normalizedMessageAnchor($0.value.postID) }
+            .last
+    }
+
+    private func normalizedMessageAnchor(_ value: String?) -> String? {
+        guard let trimmed = nonEmptyString(value) else { return nil }
+        if trimmed.lowercased().hasPrefix("t") {
+            return trimmed
+        }
+        if trimmed.allSatisfy(\.isNumber) {
+            return "t\(trimmed)"
+        }
+        return trimmed
+    }
+
+    private func intValue(from value: String?) -> Int? {
+        guard let trimmed = nonEmptyString(value), let intValue = Int(trimmed), intValue > 0 else {
+            return nil
+        }
+        return intValue
+    }
+
+    private func nonEmptyString(_ value: String?) -> String? {
+        guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
+            return nil
+        }
+        return trimmed
+    }
+
     private func beginTopicLoad(initialScroll overrideInitialScroll: WebView.InitialScroll? = nil) -> UUID {
         let token = UUID()
 
@@ -3044,6 +3100,7 @@ struct MessagesView: View {
                         self.showWebViewLoadCover = false
                     }
                     applyLoadedPagination(from: content, requestedPage: page)
+                    updateMPStorageFlagIfNeeded(content: content, loadedPage: resolvedPage)
                     self.topicAnswerURL = content.topicAnswerURL
                     self.messageActionsByIndex = content.messageActionsByIndex
                     self.hasPoll = content.hasPoll
@@ -3115,6 +3172,7 @@ struct MessagesView: View {
                         self.showWebViewLoadCover = false
                     }
                     applyLoadedPagination(from: content, requestedPage: requestedPage)
+                    updateMPStorageFlagIfNeeded(content: content, loadedPage: resolvedPage)
                     self.topicAnswerURL = content.topicAnswerURL
                     self.messageActionsByIndex = content.messageActionsByIndex
                     self.hasPoll = content.hasPoll
