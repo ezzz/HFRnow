@@ -431,6 +431,8 @@
 		15316D152E32A23100E2B7CD /* SupportFilled-40.png in Resources */ = {isa = PBXBuildFile; fileRef = 4C0B8D7B1BA4522900D329BA /* SupportFilled-40.png */; };
 		15316D162E32A23100E2B7CD /* cat-apple.png in Resources */ = {isa = PBXBuildFile; fileRef = 4C0B8D851BA4522900D329BA /* cat-apple.png */; };
 		15316D172E32A23100E2B7CD /* ProcessorFilled-40@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 4C0B8D821BA4522900D329BA /* ProcessorFilled-40@2x.png */; };
+		B132A1102F123456001A0001 /* AIFilled-40@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = B132A1002F123456001A0001 /* AIFilled-40@2x.png */; };
+		B132A1112F123456001A0001 /* AIFilled-40.png in Resources */ = {isa = PBXBuildFile; fileRef = B132A1012F123456001A0001 /* AIFilled-40.png */; };
 		15316D182E32A23100E2B7CD /* VideoCallFilled-40.png in Resources */ = {isa = PBXBuildFile; fileRef = 4C0B8D781BA4522900D329BA /* VideoCallFilled-40.png */; };
 		15316D192E32A23100E2B7CD /* ChatFilled-40.png in Resources */ = {isa = PBXBuildFile; fileRef = 4C0B8D6B1BA4522900D329BA /* ChatFilled-40.png */; };
 		15316D1A2E32A23100E2B7CD /* ControllerFilled-40.png in Resources */ = {isa = PBXBuildFile; fileRef = 4C0B8D741BA4522900D329BA /* ControllerFilled-40.png */; };
@@ -1001,6 +1003,8 @@
 		4C0B8DE91BA4522900D329BA /* KeyboardFilled-40.png in Resources */ = {isa = PBXBuildFile; fileRef = 4C0B8D811BA4522900D329BA /* KeyboardFilled-40.png */; };
 		4C0B8DEB1BA4522900D329BA /* ProcessorFilled-40@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 4C0B8D821BA4522900D329BA /* ProcessorFilled-40@2x.png */; };
 		4C0B8DED1BA4522900D329BA /* ProcessorFilled-40.png in Resources */ = {isa = PBXBuildFile; fileRef = 4C0B8D831BA4522900D329BA /* ProcessorFilled-40.png */; };
+		B132A1202F123456001A0001 /* AIFilled-40@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = B132A1002F123456001A0001 /* AIFilled-40@2x.png */; };
+		B132A1212F123456001A0001 /* AIFilled-40.png in Resources */ = {isa = PBXBuildFile; fileRef = B132A1012F123456001A0001 /* AIFilled-40.png */; };
 		4C0B8DEF1BA4522900D329BA /* cat-apple@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 4C0B8D841BA4522900D329BA /* cat-apple@2x.png */; };
 		4C0B8DF11BA4522900D329BA /* cat-apple.png in Resources */ = {isa = PBXBuildFile; fileRef = 4C0B8D851BA4522900D329BA /* cat-apple.png */; };
 		4C0B8DF51BA4526100D329BA /* BoldFilled-20@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 4C0B8DF21BA4526100D329BA /* BoldFilled-20@2x.png */; };
@@ -2047,6 +2051,8 @@
 		4C0B8D811BA4522900D329BA /* KeyboardFilled-40.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "KeyboardFilled-40.png"; sourceTree = "<group>"; };
 		4C0B8D821BA4522900D329BA /* ProcessorFilled-40@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ProcessorFilled-40@2x.png"; sourceTree = "<group>"; };
 		4C0B8D831BA4522900D329BA /* ProcessorFilled-40.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ProcessorFilled-40.png"; sourceTree = "<group>"; };
+		B132A1002F123456001A0001 /* AIFilled-40@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "AIFilled-40@2x.png"; sourceTree = "<group>"; };
+		B132A1012F123456001A0001 /* AIFilled-40.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "AIFilled-40.png"; sourceTree = "<group>"; };
 		4C0B8D841BA4522900D329BA /* cat-apple@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "cat-apple@2x.png"; sourceTree = "<group>"; };
 		4C0B8D851BA4522900D329BA /* cat-apple.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "cat-apple.png"; sourceTree = "<group>"; };
 		4C0B8DF21BA4526100D329BA /* BoldFilled-20@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "BoldFilled-20@2x.png"; sourceTree = "<group>"; };
@@ -3226,6 +3232,8 @@
 				4C0B8D811BA4522900D329BA /* KeyboardFilled-40.png */,
 				4C0B8D821BA4522900D329BA /* ProcessorFilled-40@2x.png */,
 				4C0B8D831BA4522900D329BA /* ProcessorFilled-40.png */,
+				B132A1002F123456001A0001 /* AIFilled-40@2x.png */,
+				B132A1012F123456001A0001 /* AIFilled-40.png */,
 				4C0B8D841BA4522900D329BA /* cat-apple@2x.png */,
 				4C0B8D851BA4522900D329BA /* cat-apple.png */,
 			);
@@ -4424,6 +4432,7 @@
 				15316D152E32A23100E2B7CD /* SupportFilled-40.png in Resources */,
 				15316D162E32A23100E2B7CD /* cat-apple.png in Resources */,
 				15316D172E32A23100E2B7CD /* ProcessorFilled-40@2x.png in Resources */,
+				B132A1102F123456001A0001 /* AIFilled-40@2x.png in Resources */,
 				15316D182E32A23100E2B7CD /* VideoCallFilled-40.png in Resources */,
 				15316D192E32A23100E2B7CD /* ChatFilled-40.png in Resources */,
 				15316D1A2E32A23100E2B7CD /* ControllerFilled-40.png in Resources */,
@@ -4482,6 +4491,7 @@
 				15316D252E32A23100E2B7CD /* LaptopFilled-40.png in Resources */,
 				15316D262E32A23100E2B7CD /* ChatFilled-40@2x.png in Resources */,
 				15316D272E32A23100E2B7CD /* ProcessorFilled-40.png in Resources */,
+				B132A1112F123456001A0001 /* AIFilled-40.png in Resources */,
 				15316D282E32A23100E2B7CD /* KeyboardFilled-40@2x.png in Resources */,
 				15316D292E32A23100E2B7CD /* VOIPGatewayFilled-40.png in Resources */,
 				15316D2A2E32A23100E2B7CD /* CircledUserMaleFilled-40.png in Resources */,
@@ -5202,6 +5212,7 @@
 				CA7C7000185EF50E00B348BA /* love.gif in Resources */,
 				4C9C2B8B1BAE801700511853 /* ThorHammerFilled-25.png in Resources */,
 				4C0B8DED1BA4522900D329BA /* ProcessorFilled-40.png in Resources */,
+				B132A1212F123456001A0001 /* AIFilled-40.png in Resources */,
 				D8B4EDEF21C184970042C392 /* snow4.png in Resources */,
 				4C9C2B201BAE66EB00511853 /* ThorHammerBlack-20@2x.png in Resources */,
 				4CB132D01B9099900081B44D /* MessageFilled-20.png in Resources */,
@@ -5250,6 +5261,7 @@
 				1553568924A500D400917DE1 /* rectangle.compress@3x.png in Resources */,
 				CA7C7012185EF50E00B348BA /* eek2.gif in Resources */,
 				4C0B8DEB1BA4522900D329BA /* ProcessorFilled-40@2x.png in Resources */,
+				B132A1202F123456001A0001 /* AIFilled-40@2x.png in Resources */,
 				CA7C7013185EF50E00B348BA /* ange.gif in Resources */,
 				CA7C7014185EF50E00B348BA /* ToolBarPrevious_off@2x.png in Resources */,
 				CA7C7015185EF50E00B348BA /* ToolBarFastRewind_off@2x.png in Resources */,
@@ -6042,7 +6054,7 @@
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
 				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 15;
+				CURRENT_PROJECT_VERSION = 16;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = QMG83DG7YP;
@@ -6127,7 +6139,7 @@
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
 				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 15;
+				CURRENT_PROJECT_VERSION = 16;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = QMG83DG7YP;

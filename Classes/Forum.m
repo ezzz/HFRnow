@@ -54,6 +54,8 @@
     if ([self.aURL isEqualToString:@"/hfr/Setietprojetsdistribues/liste_sujet-1.htm"]) return 9;
     if ([self.aURL isEqualToString:@"/hfr/Discussions/liste_sujet-1.htm"]) return 13;
     if ([self.aURL isEqualToString:@"/hfr/Blabla-Divers-back-to-life/liste_sujet-1.htm"]) return 24;
+    if ([self.aURL isEqualToString:@"/hfr/ia/liste_sujet-1.htm"]) return 32;
+    if ([self.aURL isEqualToString:@"https://forum.hardware.fr/hfr/ia/liste_sujet-1.htm"]) return 32;
     
     return 0;
 }
@@ -81,6 +83,8 @@
     if ([self.aURL isEqualToString:@"/hfr/Setietprojetsdistribues/liste_sujet-1.htm"]) return [self getImageFromID:9];
     if ([self.aURL isEqualToString:@"/hfr/Discussions/liste_sujet-1.htm"]) return [self getImageFromID:13];
     if ([self.aURL isEqualToString:@"/hfr/Blabla-Divers-back-to-life/liste_sujet-1.htm"]) return [self getImageFromID:24];
+    if ([self.aURL isEqualToString:@"/hfr/ia/liste_sujet-1.htm"]) return [self getImageFromID:32];
+    if ([self.aURL isEqualToString:@"https://forum.hardware.fr/hfr/ia/liste_sujet-1.htm"]) return [self getImageFromID:32];
     
     return [self getImageFromID:-1];
 }
@@ -116,6 +120,7 @@
         case 9: return @"BroadcastingFilled-40"; break;
         case 13: return @"ChatFilled-40"; break;
         case 24: return @"ChatFilled-40"; break;
+        case 32: return @"AIFilled-40"; break;
         default: return @"ShieldFilled-40";
             break;
     }
