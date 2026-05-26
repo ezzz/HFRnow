@@ -2838,15 +2838,18 @@ struct MessagesView: View {
             self._anchor = State(initialValue: fragment)
             print("INIT extracted anchor:", fragment)
         }
+        print("[TopicPageTrace][MessagesView.init] title=\(topic._aTitle ?? "") initCurPage=\(curPage) initMaxPage=\(maxPage) topicCur=\(topic.curTopicPage) topicMax=\(topic.maxTopicPage) topicURL=\(topic.aURL ?? "nil") flagURL=\(topic.aURLOfFlag ?? "nil") lastPostURL=\(topic.aURLOfLastPost ?? "nil") lastPageURL=\(topic.aURLOfLastPage ?? "nil") initialScroll=\(String(describing: initialLoadScroll))")
     }
 
     private func urlForPage(_ page: Int) -> String {
         if isFilteredSearchMode, let searchContext {
+            print("[TopicPageTrace][MessagesView.urlForPage] source=filteredSearch requestedPage=\(page) resultURL=\(searchContext.resultURL.absoluteString) statePage=\(self.page) stateMax=\(currentMaxPage)")
             return searchContext.resultURL.absoluteString
         }
         let baseURL = topic.aURL ?? topic.aURLOfLastPage ?? topic.aURLOfFirstPage ?? ""
-        print("Current url: \(baseURL)")
-        return TopicPageURLRouting.replacingPage(in: baseURL, page: page)
+        let resolvedURL = TopicPageURLRouting.replacingPage(in: baseURL, page: page)
+        print("[TopicPageTrace][MessagesView.urlForPage] source=topic requestedPage=\(page) baseURL=\(baseURL) resolvedURL=\(resolvedURL) statePage=\(self.page) stateMax=\(currentMaxPage) topicCur=\(topic.curTopicPage) topicMax=\(topic.maxTopicPage)")
+        return resolvedURL
     }
 
     private var isInSearchMode: Bool {
@@ -2879,11 +2882,17 @@ struct MessagesView: View {
     }
 
     private func synchronizeTopicPagination(currentPage resolvedPage: Int, maxPage resolvedMaxPage: Int) {
+        let previousCurPage = topic.curTopicPage
+        let previousMaxPage = topic.maxTopicPage
+        let baseURL = topic.aURL ?? topic.aURLOfLastPage ?? topic.aURLOfFirstPage ?? ""
+        print("[TopicPageTrace][MessagesView.syncPagination.before] resolvedPage=\(resolvedPage) resolvedMax=\(resolvedMaxPage) previousTopicCur=\(previousCurPage) previousTopicMax=\(previousMaxPage) baseURL=\(baseURL) statePage=\(page) stateMax=\(currentMaxPage)")
         topic.curTopicPage = Int32(resolvedPage)
         topic.maxTopicPage = Int32(resolvedMaxPage)
 
-        let baseURL = topic.aURL ?? topic.aURLOfLastPage ?? topic.aURLOfFirstPage ?? ""
-        guard !baseURL.isEmpty else { return }
+        guard !baseURL.isEmpty else {
+            print("[TopicPageTrace][MessagesView.syncPagination.after] skippedEmptyBaseURL topicCur=\(topic.curTopicPage) topicMax=\(topic.maxTopicPage)")
+            return
+        }
 
         let currentPageURL = TopicPageURLRouting.replacingPage(in: baseURL, page: resolvedPage)
         let lastPageURL = TopicPageURLRouting.replacingPage(in: baseURL, page: resolvedMaxPage)
@@ -2893,16 +2902,19 @@ struct MessagesView: View {
         if topic.aURLOfFirstPage == nil || topic.aURLOfFirstPage.isEmpty {
             topic.aURLOfFirstPage = TopicPageURLRouting.replacingPage(in: baseURL, page: 1)
         }
+        print("[TopicPageTrace][MessagesView.syncPagination.after] topicCur=\(topic.curTopicPage) topicMax=\(topic.maxTopicPage) topicURL=\(topic.aURL ?? "nil") firstPageURL=\(topic.aURLOfFirstPage ?? "nil") lastPageURL=\(topic.aURLOfLastPage ?? "nil")")
     }
 
     private func applyLoadedPagination(from content: TopicPageContent, requestedPage: Int) {
         lastSearchFormSnapshot = content.searchInputData
         if isFilteredSearchMode {
+            print("[TopicPageTrace][MessagesView.applyLoadedPagination] skippedFilteredSearch requestedPage=\(requestedPage) contentCurrent=\(String(describing: content.currentPage)) contentMax=\(String(describing: content.maxPage)) statePage=\(page) stateMax=\(currentMaxPage)")
             return
         }
         let resolvedPage = max(content.currentPage ?? requestedPage, 1)
         let parsedMaxPage = content.maxPage ?? currentMaxPage
         let resolvedMaxPage = max(max(parsedMaxPage, resolvedPage), 1)
+        print("[TopicPageTrace][MessagesView.applyLoadedPagination] requestedPage=\(requestedPage) contentCurrent=\(String(describing: content.currentPage)) contentMax=\(String(describing: content.maxPage)) resolvedPage=\(resolvedPage) parsedMax=\(parsedMaxPage) resolvedMax=\(resolvedMaxPage) statePageBefore=\(page) stateMaxBefore=\(currentMaxPage)")
 
         if page != resolvedPage {
             page = resolvedPage
@@ -3055,7 +3067,7 @@ struct MessagesView: View {
 
     private func loadPage(_ page: Int) {
         let url = urlForPage(page)
-        print("loadPage(\(page)) url:", url, "current anchor:", self.anchor as Any)
+        print("[TopicPageTrace][MessagesView.loadPage.start] requestedPage=\(page) url=\(url) anchor=\(String(describing: self.anchor)) statePage=\(self.page) stateMax=\(currentMaxPage) topicCur=\(topic.curTopicPage) topicMax=\(topic.maxTopicPage)")
         let previousPage = self.page
         let previousMaxPage = currentMaxPage
         let requestedInitialScroll = initialScroll
@@ -3085,6 +3097,7 @@ struct MessagesView: View {
                     let resolvedPage = max(content.currentPage ?? requestedPage, 1)
                     let parsedMaxPage = content.maxPage ?? previousMaxPage
                     let resolvedMaxPage = max(max(parsedMaxPage, resolvedPage), 1)
+                    print("[TopicPageTrace][MessagesView.loadPage.success] requestedPage=\(requestedPage) contentCurrent=\(String(describing: content.currentPage)) contentMax=\(String(describing: content.maxPage)) resolvedPage=\(resolvedPage) parsedMax=\(parsedMaxPage) resolvedMax=\(resolvedMaxPage) previousPage=\(previousPage) previousMax=\(previousMaxPage) url=\(url)")
                     do {
                         let rendered = try topicPageRenderer.render(html: content.html)
                         self.fileURL = rendered.fileURL
@@ -3126,6 +3139,7 @@ struct MessagesView: View {
         self.anchor = URL(string: topicURL)?.fragment
         let previousPage = page
         let previousMaxPage = currentMaxPage
+        print("[TopicPageTrace][MessagesView.loadDirectURL.start] topicURL=\(topicURL) anchor=\(String(describing: self.anchor)) statePage=\(page) stateMax=\(currentMaxPage) topicCur=\(topic.curTopicPage) topicMax=\(topic.maxTopicPage) initialScroll=\(String(describing: initialScroll))")
         let loadToken = beginTopicLoad(initialScroll: initialScroll)
 
         topicPageLoader.fetchTopicPage(url: topicURL, anchor: self.anchor) { result in
@@ -3155,6 +3169,7 @@ struct MessagesView: View {
                     let resolvedPage = max(content.currentPage ?? requestedPage, 1)
                     let parsedMaxPage = content.maxPage ?? previousMaxPage
                     let resolvedMaxPage = max(max(parsedMaxPage, resolvedPage), 1)
+                    print("[TopicPageTrace][MessagesView.loadDirectURL.success] topicURL=\(topicURL) requestedPage=\(requestedPage) contentCurrent=\(String(describing: content.currentPage)) contentMax=\(String(describing: content.maxPage)) resolvedPage=\(resolvedPage) parsedMax=\(parsedMaxPage) resolvedMax=\(resolvedMaxPage) previousPage=\(previousPage) previousMax=\(previousMaxPage)")
                     let renderHTML: String = {
                         if self.isInSearchMode, !self.isFilteredSearchMode, let anchor = self.anchor {
                             return self.rewriteSeparatorBeforeAnchor(in: content.html, anchor: anchor)
@@ -3223,6 +3238,7 @@ struct MessagesView: View {
             ?? 1
         let boundedPage = max(pageFromURL, 1)
         let provisionalMaxPage = boundedPage
+        print("[TopicPageTrace][MessagesView.openInternalTopic] sourceURL=\(url.absoluteString) normalizedURL=\(topicURLString) pageFromURL=\(pageFromURL) boundedPage=\(boundedPage) provisionalMax=\(provisionalMaxPage) currentStatePage=\(page) currentStateMax=\(currentMaxPage)")
 
         let topicForNavigation = Topic()
         topicForNavigation._aTitle = topic._aTitle
@@ -4137,9 +4153,9 @@ struct MessagesView: View {
     }
 
     private func navigateToPage(_ target: Int, initialScroll: WebView.InitialScroll, source: String = "unspecified") {
-        print("[MessagesView] navigateToPage requested source=\(source) current=\(page) target=\(target) max=\(currentMaxPage) initialScroll=\(String(describing: initialScroll))")
+        print("[TopicPageTrace][MessagesView.navigateToPage.requested] source=\(source) current=\(page) target=\(target) max=\(currentMaxPage) initialScroll=\(String(describing: initialScroll)) topicCur=\(topic.curTopicPage) topicMax=\(topic.maxTopicPage)")
         guard (1...currentMaxPage).contains(target) else {
-            print("[MessagesView] navigateToPage ignored source=\(source) current=\(page) target=\(target) max=\(currentMaxPage)")
+            print("[TopicPageTrace][MessagesView.navigateToPage.ignored] source=\(source) current=\(page) target=\(target) max=\(currentMaxPage)")
             return
         }
         if target == page {

@@ -2349,6 +2349,7 @@ enum TopicPageURLRouting {
             let page = Int(pageValue),
             page > 0
         {
+            print("[TopicPageTrace][TopicPageURLRouting.pageNumber] source=query url=\(urlString) parsedPage=\(page)")
             return page
         }
 
@@ -2370,9 +2371,11 @@ enum TopicPageURLRouting {
             else {
                 continue
             }
+            print("[TopicPageTrace][TopicPageURLRouting.pageNumber] source=regex pattern=\(pattern) url=\(urlString) parsedPage=\(page)")
             return page
         }
 
+        print("[TopicPageTrace][TopicPageURLRouting.pageNumber] source=nil url=\(urlString)")
         return nil
     }
 
@@ -2803,6 +2806,7 @@ struct TopicListRowView: View {
         destination.isClosed = topic.isClosed
         destination.isSticky = topic.isSticky
         destination.isSuperFavorite = topic.isSuperFavorite
+        print("[TopicPageTrace][TopicListRowView.navigationTopic] context=\(openContext) title=\(topic._aTitle ?? "") url=\(url) destinationPage=\(page) destinationMax=\(maxPage) sourceCur=\(topic.curTopicPage) sourceMax=\(topic.maxTopicPage) sourceFlag=\(topic.aURLOfFlag ?? "nil") sourceLastPage=\(topic.aURLOfLastPage ?? "nil")")
         return destination
     }
 
@@ -2817,6 +2821,7 @@ struct TopicListRowView: View {
 
         let resolvedPage = max(TopicPageURLRouting.pageNumber(from: openedURL) ?? fallbackPage ?? currentPageValue, 1)
         let resolvedMaxPage = max(maxTopicPageValue, resolvedPage)
+        print("[TopicPageTrace][TopicListRowView.makeNavigationTarget] context=\(openContext) title=\(titleText) openedURL=\(openedURL) fallbackPage=\(String(describing: fallbackPage)) currentPageValue=\(currentPageValue) maxTopicPageValue=\(maxTopicPageValue) resolvedPage=\(resolvedPage) resolvedMax=\(resolvedMaxPage)")
         let destinationTopic = navigationTopic(url: openedURL, page: resolvedPage, maxPage: resolvedMaxPage)
 
         return TopicNavigationTarget(
@@ -2830,6 +2835,7 @@ struct TopicListRowView: View {
 
     private func defaultOpenTarget() -> TopicNavigationTarget? {
         let decision = TopicOpenPolicy.defaultDecision(for: topic, context: openContext)
+        print("[TopicPageTrace][TopicListRowView.defaultOpenTarget] context=\(openContext) title=\(titleText) preferredURL=\(decision.preferredURL ?? "nil") fallbackPage=\(String(describing: decision.fallbackPage)) topicCur=\(topic.curTopicPage) topicMax=\(topic.maxTopicPage) topicURL=\(topic.aURL ?? "nil") flagURL=\(topic.aURLOfFlag ?? "nil") lastPostURL=\(topic.aURLOfLastPost ?? "nil") lastPageURL=\(topic.aURLOfLastPage ?? "nil")")
         return makeNavigationTarget(
             preferredURL: decision.preferredURL ?? defaultURL,
             fallbackPage: decision.fallbackPage

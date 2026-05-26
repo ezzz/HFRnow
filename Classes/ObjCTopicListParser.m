@@ -101,13 +101,16 @@ static NSInteger HFRTopicPageNumberFromURLString(NSString *urlString) {
     if (matchedRange.location == NSNotFound) {
         NSRange rangeNumPage =  [result.currentUrl rangeOfCharactersFromSet:[NSCharacterSet decimalDigitCharacterSet] options:NSBackwardsSearch];
         result.pageNumber = [[result.currentUrl substringWithRange:rangeNumPage] intValue];
+        NSLog(@"[TopicPageTrace][ObjCTopicListParser.currentPage] source=lastDigit currentURL=%@ parsedPage=%d", result.currentUrl, result.pageNumber);
     }
     else {
         result.pageNumber = [[result.currentUrl substringWithRange:matchedRange] intValue];
+        NSLog(@"[TopicPageTrace][ObjCTopicListParser.currentPage] source=query currentURL=%@ parsedPage=%d", result.currentUrl, result.pageNumber);
     }
     
     if (result.pageNumber == 0) {
         result.pageNumber = 1;
+        NSLog(@"[TopicPageTrace][ObjCTopicListParser.currentPage] source=fallback currentURL=%@ parsedPage=%d", result.currentUrl, result.pageNumber);
     }
     
     // Search catégorie
@@ -354,6 +357,12 @@ static NSInteger HFRTopicPageNumberFromURLString(NSString *urlString) {
                 NSInteger pageNumber = HFRTopicPageNumberFromURLString(aTopic.aURLOfFlag);
                 //NSLog(@"Read page of flag %@", aTopic.aURLOfFlag);
                 //NSLog(@"Current page of flag %ld", pageNumber);
+                NSLog(@"[TopicPageTrace][ObjCTopicListParser.flag] title=%@ flagURL=%@ topicURL=%@ parsedPage=%ld maxPage=%d",
+                      aTopic.aTitle,
+                      aTopic.aURLOfFlag,
+                      aTopic.aURL,
+                      (long)pageNumber,
+                      aTopic.maxTopicPage);
 
                 [aTopic setCurTopicPage:(int)pageNumber];
             }

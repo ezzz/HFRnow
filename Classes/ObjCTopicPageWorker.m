@@ -118,6 +118,13 @@ static NSInteger HFRTopicPageWorkerPageNumberFromURLString(NSString *urlString) 
 
     NSInteger currentPage = [self pageNumberFromURL:self.currentURL];
     NSInteger maxPage = MAX(parser.iLastPageNumber, 1);
+    NSLog(@"[TopicPageTrace][ObjCTopicPageWorker.response] effectiveURL=%@ currentURL=%@ parsedCurrentPage=%ld parsedMaxPage=%ld inputCat=%@ inputPost=%@",
+          effectiveURL,
+          self.currentURL,
+          (long)currentPage,
+          (long)maxPage,
+          self.inputData[@"cat"],
+          self.inputData[@"post"]);
     BOOL isPrivate = [self.inputData[@"cat"] isEqualToString:@"prive"];
     ObjCTopicMessageContentResult *content = [[[ObjCTopicMessageContentBuilder alloc] init]
         buildContentForItems:self.items
@@ -172,7 +179,9 @@ static NSInteger HFRTopicPageWorkerPageNumberFromURLString(NSString *urlString) 
 }
 
 - (NSInteger)pageNumberFromURL:(NSString *)url {
-    return HFRTopicPageWorkerPageNumberFromURLString(url);
+    NSInteger page = HFRTopicPageWorkerPageNumberFromURLString(url);
+    NSLog(@"[TopicPageTrace][ObjCTopicPageWorker.pageNumberFromURL] url=%@ parsedPage=%ld", url, (long)page);
+    return page;
 }
 
 - (NSString *)relativeURLFromOriginalURL:(NSString *)originalURL fallback:(NSString *)fallback {
