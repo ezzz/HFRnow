@@ -4269,11 +4269,21 @@ struct MessagesView: View {
     private func refreshCurrentPagePreservingScroll() {
         anchor = nil
         if let lastWebScrollPosition {
-            initialScroll = .position(lastWebScrollPosition)
+            initialScroll = .position(refreshRestoredScrollPosition(from: lastWebScrollPosition))
         } else {
             initialScroll = .bottom
         }
         loadPage(page)
+    }
+
+    private func refreshRestoredScrollPosition(from position: WebView.ScrollPosition) -> WebView.ScrollPosition {
+        let viewportHeight = max(position.viewportHeight, 0)
+        let cappedOffset = viewportHeight > 0 ? min(viewportHeight * 0.35, viewportHeight * 0.5) : 120
+        return WebView.ScrollPosition(
+            y: max(0, position.y - cappedOffset),
+            viewportHeight: position.viewportHeight,
+            contentHeight: position.contentHeight
+        )
     }
 
     private func handleReplySuccess(_ result: ReplyPostingResult) {
