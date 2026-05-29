@@ -13,6 +13,7 @@
 #import "BlackList.h"
 #import "OfflineStorage.h"
 #import "ThemeManager.h"
+#import "ThemeColors.h"
 #import "k.h"
 
 #endif /* Bridging_Header_h */

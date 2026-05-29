@@ -496,6 +496,7 @@ struct UserProfileView: View {
     }
 
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var appTheme = AppThemeStore.shared
     @State private var viewModel: UserProfileViewModel
     @State private var didLoad = false
     @State private var safariDestination: SafariDestination?
@@ -526,7 +527,7 @@ struct UserProfileView: View {
                     loadingView
                 }
             }
-            .navigationTitle(viewModel.profile?.displayName ?? "Profil")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -534,12 +535,12 @@ struct UserProfileView: View {
                         dismiss()
                     }
                 }
-                ToolbarItemGroup(placement: .topBarTrailing) {
-                    Button {
-                        safariDestination = SafariDestination(url: profileURL)
-                    } label: {
-                        Label("Ouvrir dans Safari", systemImage: "safari")
-                    }
+                ToolbarItem(placement: .principal) {
+                    Text("Profil")
+                        .font(.headline)
+                        .foregroundStyle(appTheme.effectiveColorScheme == .dark ? .white : .primary)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         Task { await viewModel.load() }
                     } label: {
@@ -555,9 +556,6 @@ struct UserProfileView: View {
             .task {
                 guard !didLoad else { return }
                 didLoad = true
-                await viewModel.load()
-            }
-            .refreshable {
                 await viewModel.load()
             }
             .sheet(item: $safariDestination) { destination in
@@ -867,8 +865,6 @@ private struct UserProfileSmiliesView: View {
                 }
             }
         }
-        .padding(14)
-        .hfrGlassSurface(in: .rect(cornerRadius: 18))
         .onAppear(perform: refreshFavorites)
     }
 

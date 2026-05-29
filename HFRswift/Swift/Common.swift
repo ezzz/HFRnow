@@ -257,13 +257,52 @@ extension View {
 }
 
 enum AppThemeResolver {
-    private static let autoThemeKey = "auto_theme"
-    private static let manualThemeKey = "theme"
-    private static let autoThemeIOSValue = 3
-    private static let darkThemeValue = 1
+    static let autoThemeKey = "auto_theme"
+    static let manualThemeKey = "theme"
+    static let autoThemeIOSValue = 3
+    static let autoThemeManualValue = 0
+    static let lightThemeValue = 0
+    static let darkThemeValue = 1
+
+    private static let deprecatedThemeKeys = [
+        "force_manual_theme",
+        "auto_theme_day_time",
+        "auto_theme_night_time"
+    ]
 
     static var usesSystemColorScheme: Bool {
         UserDefaults.standard.integer(forKey: autoThemeKey) == autoThemeIOSValue
+    }
+
+    @discardableResult
+    static func normalizeThemeDefaultsIfNeeded(defaults: UserDefaults = .standard) -> Bool {
+        let autoTheme = defaults.integer(forKey: autoThemeKey)
+        guard autoTheme != autoThemeManualValue, autoTheme != autoThemeIOSValue else {
+            return false
+        }
+        defaults.set(autoThemeIOSValue, forKey: autoThemeKey)
+        return true
+    }
+
+    @discardableResult
+    static func removeDeprecatedThemeKeysIfNeeded(defaults: UserDefaults = .standard) -> Bool {
+        var didRemoveKey = false
+        for key in deprecatedThemeKeys where defaults.object(forKey: key) != nil {
+            defaults.removeObject(forKey: key)
+            didRemoveKey = true
+        }
+        return didRemoveKey
+    }
+
+    static func setManualLegacyThemeValue(_ themeValue: Int, defaults: UserDefaults = .standard) {
+        defaults.set(autoThemeManualValue, forKey: autoThemeKey)
+        defaults.set(themeValue == darkThemeValue ? darkThemeValue : lightThemeValue, forKey: manualThemeKey)
+        defaults.removeObject(forKey: "force_manual_theme")
+    }
+
+    static func setUsesSystemColorScheme(defaults: UserDefaults = .standard) {
+        defaults.set(autoThemeIOSValue, forKey: autoThemeKey)
+        _ = removeDeprecatedThemeKeysIfNeeded(defaults: defaults)
     }
 
     static func preferredColorScheme() -> ColorScheme? {
@@ -283,22 +322,82 @@ enum AppThemeResolver {
         return preferredColorScheme() ?? .light
     }
 
+    static func resolvedColorScheme(traitCollection: UITraitCollection?) -> ColorScheme {
+        if usesSystemColorScheme {
+            let style = traitCollection?.userInterfaceStyle ?? currentSystemUserInterfaceStyle()
+            return style == .dark ? .dark : .light
+        }
+        return preferredColorScheme() ?? .light
+    }
+
+    static func preferredUIKitOverrideStyle() -> UIUserInterfaceStyle {
+        guard let preferredColorScheme = preferredColorScheme() else {
+            return .unspecified
+        }
+        return preferredColorScheme.uiUserInterfaceStyle
+    }
+
     private static func currentSystemColorScheme() -> ColorScheme {
-        let style =
-            UIApplication.shared.connectedScenes
-                .compactMap { $0 as? UIWindowScene }
-                .flatMap(\.windows)
-                .first(where: { $0.isKeyWindow })?
-                .traitCollection.userInterfaceStyle
-            ?? UITraitCollection.current.userInterfaceStyle
+        let style = currentSystemUserInterfaceStyle()
         return style == .dark ? .dark : .light
+    }
+
+    private static func currentSystemUserInterfaceStyle() -> UIUserInterfaceStyle {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first(where: { $0.isKeyWindow })?
+            .traitCollection.userInterfaceStyle
+        ?? UITraitCollection.current.userInterfaceStyle
+    }
+}
+
+private extension Notification.Name {
+    static let legacyThemeChanged = Notification.Name("kThemeChangedNotification")
+}
+
+@objc(HFRThemeBridge)
+final class HFRThemeBridge: NSObject {
+    @objc(normalizeThemeDefaultsIfNeeded)
+    @discardableResult
+    class func normalizeThemeDefaultsIfNeeded() -> Bool {
+        AppThemeResolver.normalizeThemeDefaultsIfNeeded()
+    }
+
+    @objc(removeDeprecatedThemeKeysIfNeeded)
+    @discardableResult
+    class func removeDeprecatedThemeKeysIfNeeded() -> Bool {
+        AppThemeResolver.removeDeprecatedThemeKeysIfNeeded()
+    }
+
+    @objc(resolvedLegacyThemeValue)
+    class func resolvedLegacyThemeValue() -> Int {
+        AppThemeResolver.currentColorScheme().legacyThemeValue
+    }
+
+    @objc(resolvedLegacyThemeValueForTraitCollection:)
+    class func resolvedLegacyThemeValue(for traitCollection: UITraitCollection?) -> Int {
+        AppThemeResolver.resolvedColorScheme(traitCollection: traitCollection).legacyThemeValue
+    }
+
+    @objc(setManualLegacyThemeValue:)
+    class func setManualLegacyThemeValue(_ themeValue: Int) {
+        AppThemeResolver.setManualLegacyThemeValue(themeValue)
+    }
+
+    @objc(setUsesSystemColorScheme)
+    class func setUsesSystemColorScheme() {
+        AppThemeResolver.setUsesSystemColorScheme()
+    }
+
+    @objc(preferredUIKitOverrideStyle)
+    class func preferredUIKitOverrideStyle() -> UIUserInterfaceStyle {
+        AppThemeResolver.preferredUIKitOverrideStyle()
     }
 }
 
 @objc(ThemeUserColorStore)
 final class ThemeUserColorStore: NSObject {
-    private static let autoThemeKey = "auto_theme"
-    private static let manualThemeKey = "theme"
     private static let noelDisabledKey = "theme_noel_disabled"
     private static let dayActionColorKey = "theme_day_color_action"
     private static let nightActionColorKey = "theme_night_color_action"
@@ -432,12 +531,7 @@ final class ThemeUserColorStore: NSObject {
     }
 
     private class func resolvedLegacyThemeValue(for traitCollection: UITraitCollection?) -> Int {
-        let autoTheme = UserDefaults.standard.integer(forKey: autoThemeKey)
-        guard autoTheme == 3 else {
-            return UserDefaults.standard.integer(forKey: manualThemeKey) == 1 ? 1 : 0
-        }
-        let interfaceStyle = traitCollection?.userInterfaceStyle ?? AppThemeResolver.currentColorScheme().uiUserInterfaceStyle
-        return interfaceStyle == .dark ? 1 : 0
+        HFRThemeBridge.resolvedLegacyThemeValue(for: traitCollection)
     }
 
     private class func serializedColor(from color: UIColor) -> String {
@@ -486,6 +580,10 @@ final class ThemeUserColorStore: NSObject {
 }
 
 private extension ColorScheme {
+    var legacyThemeValue: Int {
+        self == .dark ? AppThemeResolver.darkThemeValue : AppThemeResolver.lightThemeValue
+    }
+
     var uiUserInterfaceStyle: UIUserInterfaceStyle {
         self == .dark ? .dark : .light
     }
@@ -651,6 +749,12 @@ final class AppThemeStore: ObservableObject {
     private var themeChangeObserver: NSObjectProtocol?
 
     private init() {
+        let didNormalize = AppThemeResolver.normalizeThemeDefaultsIfNeeded()
+        let didCleanup = AppThemeResolver.removeDeprecatedThemeKeysIfNeeded()
+        if didNormalize || didCleanup {
+            UserDefaults.standard.synchronize()
+        }
+
         let initialColorScheme = AppThemeResolver.currentColorScheme()
         self.preferredColorScheme = AppThemeResolver.preferredColorScheme()
         self.effectiveColorScheme = initialColorScheme
@@ -658,17 +762,30 @@ final class AppThemeStore: ObservableObject {
         self.themeRevision = 0
 
         themeChangeObserver = NotificationCenter.default.addObserver(
-            forName: Notification.Name("kThemeChangedNotification"),
+            forName: .legacyThemeChanged,
             object: nil,
             queue: .main
-        ) { [weak self] _ in
+        ) { [weak self] notification in
+            let senderIsSelf = (notification.object as? AppThemeStore).map { sender in
+                guard let self else { return false }
+                return sender === self
+            } ?? false
+
             Task { @MainActor [weak self] in
-                self?.refresh(forceThemeRevision: true)
+                guard let self else { return }
+                if senderIsSelf {
+                    return
+                }
+                self.refresh(forceThemeRevision: true, notifyLegacy: false)
             }
         }
     }
 
-    func refresh(systemColorScheme: ColorScheme? = nil, forceThemeRevision: Bool = false) {
+    func refresh(
+        systemColorScheme: ColorScheme? = nil,
+        forceThemeRevision: Bool = false,
+        notifyLegacy: Bool = false
+    ) {
         if let systemColorScheme {
             lastKnownSystemColorScheme = systemColorScheme
         } else if AppThemeResolver.usesSystemColorScheme {
@@ -700,6 +817,9 @@ final class AppThemeStore: ObservableObject {
 
         if didChange || forceThemeRevision {
             themeRevision += 1
+            if notifyLegacy {
+                NotificationCenter.default.post(name: .legacyThemeChanged, object: self)
+            }
         }
     }
 

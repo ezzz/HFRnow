@@ -785,37 +785,23 @@ struct WebView: UIViewRepresentable {
     }
 
     func makeUIView(context: Context) -> WKWebView {
-        let bootstrapThemeScriptSource: String
-        if colorScheme == .dark {
-            bootstrapThemeScriptSource = """
-            (function() {
-              var root = document.documentElement;
-              if (!root) { return; }
-              root.setAttribute('data-theme', 'dark');
-              root.style.setProperty('--color-message-background', '#242529');
-              root.style.setProperty('--color-message-modo-background', '#4A2E3C');
-              root.style.setProperty('--color-separator-new-message', 'rgba(206, 206, 206, 0.30)');
-              root.style.setProperty('--color-text', '#CECECE');
-              root.style.setProperty('--color-text2', '#3C3C3C');
-              root.style.setProperty('--color-background-bars', 'rgba(46, 47, 51, 0.70)');
-              root.style.setProperty('--color-searchintra-nextresults', 'rgba(46, 47, 51, 0.90)');
-              root.style.setProperty('--color-border-quotation', 'rgba(255, 255, 255, 0.20)');
-              root.style.setProperty('--color-border-avatar', '#222222');
-              root.style.setProperty('--color-text-pseudo', '#CECECE');
-              root.style.setProperty('--color-text-pseudo-bl', 'rgba(206, 206, 206, 0.50)');
-              root.style.setProperty('--imagefile-avatar', 'url(avatar_male_gray_on_dark_48x48.png)');
-              root.style.setProperty('--imagefile-loadinfo', 'url(loadinfo.net.gif)');
-            })();
-            """
-        } else {
-            bootstrapThemeScriptSource = """
-            (function() {
-              var root = document.documentElement;
-              if (!root) { return; }
-              root.setAttribute('data-theme', 'light');
-            })();
-            """
-        }
+        let bootstrapTheme = colorScheme == .dark ? "dark" : "light"
+        let bootstrapVariables = MessageWebLegacyThemeVariables.variables(
+            for: colorScheme,
+            messageDisplayStyleRawValue: messageDisplayStyleRawValue
+        )
+        let bootstrapVariablesLiteral = MessageWebLegacyThemeVariables.javascriptObjectLiteral(for: bootstrapVariables)
+        let bootstrapThemeScriptSource = """
+        (function() {
+          var root = document.documentElement;
+          if (!root) { return; }
+          root.setAttribute('data-theme', '\(bootstrapTheme)');
+          var targetVars = \(bootstrapVariablesLiteral);
+          Object.keys(targetVars).forEach(function(key) {
+            root.style.setProperty(key, targetVars[key]);
+          });
+        })();
+        """
 
         let contentController = WKUserContentController()
         let bootstrapThemeScript = WKUserScript(
@@ -1311,6 +1297,11 @@ struct WebView: UIViewRepresentable {
                 return
             }
 
+            let targetVariables = MessageWebLegacyThemeVariables.variables(
+                for: colorScheme,
+                messageDisplayStyleRawValue: messageDisplayStyleRawValue
+            )
+            let targetVariablesLiteral = MessageWebLegacyThemeVariables.javascriptObjectLiteral(for: targetVariables)
             let script = """
             (function() {
               var theme = '\(targetTheme)';
@@ -1328,49 +1319,10 @@ struct WebView: UIViewRepresentable {
                 meta.setAttribute('content', 'light dark');
               }
 
-              var darkOverrides = {
-                '--color-message-background': '#242529',
-                '--color-message-modo-background': '#4A2E3C',
-                '--color-separator-new-message': 'rgba(206, 206, 206, 0.30)',
-                '--color-text': '#CECECE',
-                '--color-text2': '#3C3C3C',
-                '--color-background-bars': 'rgba(46, 47, 51, 0.70)',
-                '--color-searchintra-nextresults': 'rgba(46, 47, 51, 0.90)',
-                '--color-border-quotation': 'rgba(255, 255, 255, 0.20)',
-                '--color-border-avatar': '#222222',
-                '--color-text-pseudo': '#CECECE',
-                '--color-text-pseudo-bl': 'rgba(206, 206, 206, 0.50)',
-                '--color-message-header-background': '#242529',
-                '--color-message-style-header-text': '#CECECE',
-                '--imagefile-avatar': 'url(avatar_male_gray_on_dark_48x48.png)',
-                '--imagefile-loadinfo': 'url(loadinfo.net.gif)'
-              };
-
-              var overrideKeys = Object.keys(darkOverrides);
-              var storageKey = '__hfrswiftThemeBaseVars';
-              var baseVars = window[storageKey];
-              if (!baseVars) {
-                baseVars = {};
-                overrideKeys.forEach(function(key) {
-                  baseVars[key] = root.style.getPropertyValue(key);
-                });
-                window[storageKey] = baseVars;
-              }
-
-              if (theme === 'dark') {
-                overrideKeys.forEach(function(key) {
-                  root.style.setProperty(key, darkOverrides[key]);
-                });
-              } else {
-                overrideKeys.forEach(function(key) {
-                  var baseValue = baseVars[key];
-                  if (baseValue && baseValue.trim().length > 0) {
-                    root.style.setProperty(key, baseValue);
-                  } else {
-                    root.style.removeProperty(key);
-                  }
-                });
-              }
+              var targetVars = \(targetVariablesLiteral);
+              Object.keys(targetVars).forEach(function(key) {
+                root.style.setProperty(key, targetVars[key]);
+              });
             })();
             """
 
@@ -1417,9 +1369,7 @@ struct WebView: UIViewRepresentable {
             let messageHeaderLeftMarginTop = isModernStyle ? "6px" : "8px"
             let variables: [(String, String)] = [
                 ("--color-message-header-me-background-base", messageMeBaseBackgroundColor),
-                ("--color-message-mequoted-background", messageMeContentBackgroundColor),
                 ("--color-message-header-love-background-base", messageLoveBaseBackgroundColor),
-                ("--color-message-whitelist-content-background", messageLoveContentBackgroundColor),
                 ("--message-content-padding-top", messageContentPaddingTop),
                 ("--message-content-right-width", messageContentRightWidth),
                 ("--message-header-left-margin-top", messageHeaderLeftMarginTop),
@@ -1435,9 +1385,7 @@ struct WebView: UIViewRepresentable {
                 css = """
                 :root {
                   --color-message-header-me-background-base: \(messageMeBaseBackgroundColor);
-                  --color-message-mequoted-background: \(messageMeContentBackgroundColor);
                   --color-message-header-love-background-base: \(messageLoveBaseBackgroundColor);
-                  --color-message-whitelist-content-background: \(messageLoveContentBackgroundColor);
                   --message-content-padding-top: \(messageContentPaddingTop);
                   --message-content-right-width: \(messageContentRightWidth);
                   --message-header-left-margin-top: \(messageHeaderLeftMarginTop);
@@ -1450,9 +1398,7 @@ struct WebView: UIViewRepresentable {
                 css = """
                 :root {
                   --color-message-header-me-background-base: \(messageMeBaseBackgroundColor);
-                  --color-message-mequoted-background: \(messageMeContentBackgroundColor);
                   --color-message-header-love-background-base: \(messageLoveBaseBackgroundColor);
-                  --color-message-whitelist-content-background: \(messageLoveContentBackgroundColor);
                   --message-content-padding-top: \(messageContentPaddingTop);
                   --message-content-right-width: \(messageContentRightWidth);
                   --message-header-left-margin-top: \(messageHeaderLeftMarginTop);
@@ -2432,6 +2378,55 @@ struct WebView: UIViewRepresentable {
     }
 }
 
+private enum MessageWebLegacyThemeVariables {
+    static func variables(for colorScheme: ColorScheme, messageDisplayStyleRawValue: Int) -> [String: String] {
+        let theme = colorScheme == .dark ? ThemeDark : ThemeLight
+        let isModernStyle = messageDisplayStyleRawValue == 1
+        let tintColor = ThemeColors.tintColor(theme)
+        let loveColor = ThemeColors.loveColor(theme)
+        let textColor = ThemeColors.textColor(theme)
+        let textFieldBackgroundColor = ThemeColors.textFieldBackgroundColor(theme)
+        let textColorPseudo = ThemeColors.textColorPseudo(theme)
+
+        return [
+            "--color-action": ThemeColors.hex(from: tintColor),
+            "--color-action-disabled": ThemeColors.hex(from: ThemeColors.tintColorDisabled(theme)),
+            "--color-message-background": ThemeColors.hex(from: ThemeColors.messageBackgroundColor(theme)),
+            "--color-message-modo-background": ThemeColors.hex(from: ThemeColors.messageModoBackgroundColor(theme)),
+            "--color-message-header-me-background": ThemeColors.rgba(from: tintColor, withAlpha: isModernStyle ? 0.03 : 0.15),
+            "--color-message-mequoted-background": ThemeColors.rgba(from: tintColor, withAlpha: 0.03),
+            "--color-message-mequoted-borderleft": ThemeColors.rgba(from: tintColor, withAlpha: 1.0),
+            "--color-message-mequoted-borderother": ThemeColors.rgba(from: ThemeColors.tintLightColorNoAlpha()),
+            "--color-message-header-love-background": ThemeColors.rgba(from: loveColor, withAlpha: isModernStyle ? 0.4 : 1.0),
+            "--color-message-quoted-love-background": ThemeColors.rgba(from: loveColor, withAlpha: 0.3),
+            "--color-message-quoted-love-borderleft": ThemeColors.rgba(from: loveColor, withAlpha: 1.0, addSaturation: 1.0, addBrightness: 1.0),
+            "--color-message-quoted-love-borderother": ThemeColors.rgba(from: ThemeColors.loveLightColorNoAlpha()),
+            "--color-message-quoted-bl-background": ThemeColors.rgba(from: textColor, withAlpha: 0.05),
+            "--color-message-header-bl-background": ThemeColors.rgba(from: textFieldBackgroundColor, withAlpha: 0.7),
+            "--color-separator-new-message": ThemeColors.rgba(from: textColorPseudo, withAlpha: 0.5),
+            "--color-text": ThemeColors.hex(from: textColor),
+            "--color-text2": ThemeColors.hex(from: ThemeColors.textColor2(theme)),
+            "--color-background-bars": ThemeColors.hex(from: textFieldBackgroundColor),
+            "--color-searchintra-nextresults": ThemeColors.rgba(from: textFieldBackgroundColor, withAlpha: 0.9),
+            "--imagefile-avatar": colorScheme == .dark ? "url(avatar_male_gray_on_dark_48x48.png)" : "url(avatar_male_gray_on_light_48x48.png)",
+            "--imagefile-loadinfo": colorScheme == .dark ? "url(loadinfo.net.gif)" : "url(loadinfo.gif)",
+            "--color-border-quotation": ThemeColors.getColorBorderQuotation(theme),
+            "--color-border-avatar": ThemeColors.hex(from: ThemeColors.getColorBorderAvatar(theme)),
+            "--color-text-pseudo": ThemeColors.hex(from: textColorPseudo),
+            "--color-text-pseudo-bl": ThemeColors.rgba(from: textColorPseudo, withAlpha: 0.5),
+            "--border-header": "none"
+        ]
+    }
+
+    static func javascriptObjectLiteral(for variables: [String: String]) -> String {
+        let pairs = variables
+            .sorted { $0.key < $1.key }
+            .map { "\($0.key.debugDescription): \($0.value.debugDescription)" }
+            .joined(separator: ",\n                ")
+        return "{\n                \(pairs)\n              }"
+    }
+}
+
 enum MessageImagePhotoLibrarySaver {
     enum SaveError: Error {
         case permissionDenied
@@ -2714,7 +2709,6 @@ struct MessagesView: View {
     @State private var presentedPollData: PollData?
     @State private var showWebViewLoadCover = true
     @State private var isWebContentAtBottom = false
-    @State private var lastWebScrollPosition: WebView.ScrollPosition?
     @State private var isMessageTextInteractionActive = false
     @State private var pendingPostedReply: ReplyPostingResult?
     @State private var showPostSuccessToast = false
@@ -4268,22 +4262,8 @@ struct MessagesView: View {
 
     private func refreshCurrentPagePreservingScroll() {
         anchor = nil
-        if let lastWebScrollPosition {
-            initialScroll = .position(refreshRestoredScrollPosition(from: lastWebScrollPosition))
-        } else {
-            initialScroll = .bottom
-        }
+        initialScroll = .bottom
         loadPage(page)
-    }
-
-    private func refreshRestoredScrollPosition(from position: WebView.ScrollPosition) -> WebView.ScrollPosition {
-        let viewportHeight = max(position.viewportHeight, 0)
-        let cappedOffset = viewportHeight > 0 ? min(viewportHeight * 0.35, viewportHeight * 0.5) : 120
-        return WebView.ScrollPosition(
-            y: max(0, position.y - cappedOffset),
-            viewportHeight: position.viewportHeight,
-            contentHeight: position.contentHeight
-        )
     }
 
     private func handleReplySuccess(_ result: ReplyPostingResult) {
@@ -4462,9 +4442,6 @@ struct MessagesView: View {
                         if isWebContentAtBottom != isAtBottom {
                             isWebContentAtBottom = isAtBottom
                         }
-                    },
-                    onScrollPositionSnapshotChange: { position in
-                        lastWebScrollPosition = position
                     },
                     onTextInteractionStateChange: { isActive in
                         isMessageTextInteractionActive = isActive

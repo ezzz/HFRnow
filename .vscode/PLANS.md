@@ -200,6 +200,7 @@ Lots de resserrage avant suppression :
 | B10 | Fait : W3 documenter contrat `MessagesTableViewController` worker | P1 |
 | B11 | Passe cohérence UI Liquid Glass | P2 |
 | B12 | Étude iPad | P2 |
+| B13 | Étudier un espace scrollable bas dans `MessagesView` WebView pour éviter que le dernier message soit masqué par bottom bar/safe area après refresh | P2 |
 
 ## Validation B02/B05
 

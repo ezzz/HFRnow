@@ -99,13 +99,10 @@ static NSString * const HFRSwiftNotificationDestinationMessages = @"messages";
     [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"shake_to_refresh"];
     [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"theme_noel_disabled"];
     
-    // Normalize deprecated automatic theme values.
-    NSInteger iAutoTheme = [[NSUserDefaults standardUserDefaults] integerForKey:@"auto_theme"];
-    if (iAutoTheme != AUTO_THEME_MANUAL && iAutoTheme != AUTO_THEME_AUTO_IOS) {
-        [[NSUserDefaults standardUserDefaults] setInteger:AUTO_THEME_AUTO_IOS forKey:@"auto_theme"];
-        [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"force_manual_theme"];
-        [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"auto_theme_day_time"];
-        [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"auto_theme_night_time"];
+    BOOL didNormalizeTheme = [HFRThemeBridge normalizeThemeDefaultsIfNeeded];
+    BOOL didCleanupTheme = [HFRThemeBridge removeDeprecatedThemeKeysIfNeeded];
+    if (didNormalizeTheme || didCleanupTheme) {
+        [[NSUserDefaults standardUserDefaults] synchronize];
     }
     
     if ([[NSUserDefaults standardUserDefaults] objectForKey:@"filter_posts_quotes"] == nil) {
@@ -389,22 +386,7 @@ static NSString * const HFRSwiftNotificationDestinationMessages = @"messages";
     [[UINavigationBar appearance] setBarTintColor:[ThemeColors navBackgroundColor:theme]];
     
     if (@available(iOS 13.0, *)) {
-        NSInteger autoTheme = [[NSUserDefaults standardUserDefaults] integerForKey:@"auto_theme"];
-        if (autoTheme == AUTO_THEME_AUTO_IOS) {
-            self.window.overrideUserInterfaceStyle = UIUserInterfaceStyleUnspecified;
-        } else {
-            switch ([ThemeManager currentTheme]) {
-                case ThemeLight:
-                    self.window.overrideUserInterfaceStyle = UIUserInterfaceStyleLight;
-                    break;
-                case ThemeDark:
-                    self.window.overrideUserInterfaceStyle = UIUserInterfaceStyleDark;
-                    break;
-                default:
-                    self.window.overrideUserInterfaceStyle = UIUserInterfaceStyleUnspecified;
-                    break;
-            }
-        }
+        self.window.overrideUserInterfaceStyle = [HFRThemeBridge preferredUIKitOverrideStyle];
     }
 }
 

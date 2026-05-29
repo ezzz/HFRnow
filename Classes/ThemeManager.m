@@ -16,17 +16,10 @@
 #endif
 #include <stdlib.h>
 
-static NSString * const HFRAutoThemeKey = @"auto_theme";
-static NSString * const HFRManualThemeKey = @"theme";
-
 @interface ThemeManager ()
 - (Theme)boundedTheme:(Theme)candidate;
-- (UITraitCollection *)currentTraitCollection;
-- (Theme)resolvedThemeForTraitCollection:(UITraitCollection *)traitCollection;
 - (void)synchronizeResolvedTheme;
 - (void)postThemeChangedNotification;
-- (BOOL)normalizeAutoThemeSettingIfNeeded;
-- (BOOL)removeDeprecatedThemeKeysIfNeeded;
 @end
 
 @implementation ThemeManager
@@ -50,8 +43,8 @@ static NSString * const HFRManualThemeKey = @"theme";
 
 - (id)init {
     if (self = [super init]) {
-        BOOL didNormalize = [self normalizeAutoThemeSettingIfNeeded];
-        BOOL didCleanup = [self removeDeprecatedThemeKeysIfNeeded];
+        BOOL didNormalize = [HFRThemeBridge normalizeThemeDefaultsIfNeeded];
+        BOOL didCleanup = [HFRThemeBridge removeDeprecatedThemeKeysIfNeeded];
         [self synchronizeResolvedTheme];
         if (didNormalize || didCleanup) {
             [[NSUserDefaults standardUserDefaults] synchronize];
@@ -67,14 +60,12 @@ static NSString * const HFRManualThemeKey = @"theme";
 }
 
 - (void)setTheme:(Theme)newTheme {
-    _theme = [self boundedTheme:newTheme];
+    [HFRThemeBridge setManualLegacyThemeValue:[self boundedTheme:newTheme]];
+    [self synchronizeResolvedTheme];
 }
 
 - (BOOL)isLightForTraitCollection:(UITraitCollection *)traitCollection {
-    if ([[NSUserDefaults standardUserDefaults] integerForKey:HFRAutoThemeKey] == AUTO_THEME_AUTO_IOS) {
-        return [self resolvedThemeForTraitCollection:traitCollection] == ThemeLight;
-    }
-    return self.theme == ThemeLight;
+    return [HFRThemeBridge resolvedLegacyThemeValueForTraitCollection:traitCollection] == ThemeLight;
 }
 
 - (void)switchTheme {
@@ -83,8 +74,8 @@ static NSString * const HFRManualThemeKey = @"theme";
 }
 
 - (void)refreshTheme {
-    BOOL didNormalize = [self normalizeAutoThemeSettingIfNeeded];
-    BOOL didCleanup = [self removeDeprecatedThemeKeysIfNeeded];
+    BOOL didNormalize = [HFRThemeBridge normalizeThemeDefaultsIfNeeded];
+    BOOL didCleanup = [HFRThemeBridge removeDeprecatedThemeKeysIfNeeded];
     [self synchronizeResolvedTheme];
     if (didNormalize || didCleanup) {
         [[NSUserDefaults standardUserDefaults] synchronize];
@@ -94,10 +85,10 @@ static NSString * const HFRManualThemeKey = @"theme";
 }
 
 - (void)checkTheme {
-    BOOL didNormalize = [self normalizeAutoThemeSettingIfNeeded];
-    BOOL didCleanup = [self removeDeprecatedThemeKeysIfNeeded];
+    BOOL didNormalize = [HFRThemeBridge normalizeThemeDefaultsIfNeeded];
+    BOOL didCleanup = [HFRThemeBridge removeDeprecatedThemeKeysIfNeeded];
     Theme previousTheme = _theme;
-    Theme resolvedTheme = [self resolvedThemeForTraitCollection:nil];
+    Theme resolvedTheme = (Theme)[HFRThemeBridge resolvedLegacyThemeValue];
 
     if (!didNormalize && !didCleanup && previousTheme == resolvedTheme) {
         return;
@@ -269,10 +260,7 @@ static NSString * const HFRManualThemeKey = @"theme";
 }
 
 - (void)setThemeManually:(Theme)newTheme {
-    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    [defaults setInteger:AUTO_THEME_MANUAL forKey:HFRAutoThemeKey];
-    [defaults setInteger:[self boundedTheme:newTheme] forKey:HFRManualThemeKey];
-    [defaults removeObjectForKey:@"force_manual_theme"];
+    [HFRThemeBridge setManualLegacyThemeValue:[self boundedTheme:newTheme]];
     [self refreshTheme];
 }
 
@@ -280,36 +268,8 @@ static NSString * const HFRManualThemeKey = @"theme";
     return candidate == ThemeDark ? ThemeDark : ThemeLight;
 }
 
-- (UITraitCollection *)currentTraitCollection {
-    if (@available(iOS 13.0, *)) {
-        NSSet<UIScene *> *scenes = [UIApplication sharedApplication].connectedScenes;
-        for (UIScene *scene in scenes) {
-            if (![scene isKindOfClass:[UIWindowScene class]]) {
-                continue;
-            }
-            UIWindowScene *windowScene = (UIWindowScene *)scene;
-            for (UIWindow *window in windowScene.windows) {
-                if (window.isKeyWindow) {
-                    return window.traitCollection;
-                }
-            }
-        }
-    }
-    return [UIScreen mainScreen].traitCollection;
-}
-
-- (Theme)resolvedThemeForTraitCollection:(UITraitCollection *)traitCollection {
-    NSInteger autoTheme = [[NSUserDefaults standardUserDefaults] integerForKey:HFRAutoThemeKey];
-    if (autoTheme == AUTO_THEME_AUTO_IOS) {
-        UITraitCollection *resolvedTraitCollection = traitCollection ?: [self currentTraitCollection];
-        return resolvedTraitCollection.userInterfaceStyle == UIUserInterfaceStyleDark ? ThemeDark : ThemeLight;
-    }
-    NSInteger manualTheme = [[NSUserDefaults standardUserDefaults] integerForKey:HFRManualThemeKey];
-    return [self boundedTheme:(Theme)manualTheme];
-}
-
 - (void)synchronizeResolvedTheme {
-    _theme = [self resolvedThemeForTraitCollection:nil];
+    _theme = (Theme)[HFRThemeBridge resolvedLegacyThemeValue];
 }
 
 - (void)postThemeChangedNotification {
@@ -317,32 +277,6 @@ static NSString * const HFRManualThemeKey = @"theme";
                                                                   object:self
                                                                 userInfo:nil];
     [[NSNotificationCenter defaultCenter] postNotification:myNotification];
-}
-
-- (BOOL)normalizeAutoThemeSettingIfNeeded {
-    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    NSInteger autoTheme = [defaults integerForKey:HFRAutoThemeKey];
-    if (autoTheme == AUTO_THEME_MANUAL || autoTheme == AUTO_THEME_AUTO_IOS) {
-        return NO;
-    }
-    [defaults setInteger:AUTO_THEME_AUTO_IOS forKey:HFRAutoThemeKey];
-    return YES;
-}
-
-- (BOOL)removeDeprecatedThemeKeysIfNeeded {
-    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    NSArray<NSString *> *deprecatedKeys = @[@"force_manual_theme", @"auto_theme_day_time", @"auto_theme_night_time"];
-    BOOL didRemoveKey = NO;
-
-    for (NSString *key in deprecatedKeys) {
-        if ([defaults objectForKey:key] == nil) {
-            continue;
-        }
-        [defaults removeObjectForKey:key];
-        didRemoveKey = YES;
-    }
-
-    return didRemoveKey;
 }
 
 @end

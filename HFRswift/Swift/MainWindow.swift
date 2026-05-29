@@ -1225,7 +1225,7 @@ struct RootTabView: View {
                 handleCurrentAccountChange(from: oldValue, to: newValue)
             }
             .onChange(of: systemColorScheme) { _, newValue in
-                appTheme.refresh(systemColorScheme: newValue)
+                appTheme.refresh(systemColorScheme: newValue, notifyLegacy: true)
             }
             .onChange(of: scenePhase) { _, newValue in
                 handleScenePhaseChange(newValue)
@@ -1408,7 +1408,7 @@ struct RootTabView: View {
     }
 
     private func handleAppear() {
-        appTheme.refresh(systemColorScheme: systemColorScheme, forceThemeRevision: true)
+        appTheme.refresh(systemColorScheme: systemColorScheme, forceThemeRevision: true, notifyLegacy: true)
         syncRuntimeSelectedTab(selectedTab)
         startColdLaunchPrefetchIfNeeded()
         startAQBadgeCheckIfNeeded()
@@ -1435,7 +1435,7 @@ struct RootTabView: View {
 
     private func handleScenePhaseChange(_ newValue: ScenePhase) {
         guard newValue == .active else { return }
-        appTheme.refresh(systemColorScheme: systemColorScheme, forceThemeRevision: true)
+        appTheme.refresh(systemColorScheme: systemColorScheme, forceThemeRevision: true, notifyLegacy: true)
         startColdLaunchPrefetchIfNeeded()
         startAQBadgeCheckIfNeeded()
         handlePendingMessagesNotificationNavigationIfNeeded()

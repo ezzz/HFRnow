@@ -1133,7 +1133,7 @@ private struct CombinedSmileyPickerView: View {
                 FavoriteSmileyDetailView(
                     smiley: presentedSmiley,
                     initiallyFavorite: ReplySmileyCacheBridge.isFavoriteFromApp(code: presentedSmiley.code),
-                    allowsFavoriteToggle: !isFavoriteLibrarySmiley(presentedSmiley),
+                    allowsFavoriteToggle: !isForumFavoriteSmiley(presentedSmiley),
                     onInsert: {
                         isSearchFieldFocused = false
                         onSelect(presentedSmiley)
@@ -1439,8 +1439,8 @@ private struct CombinedSmileyPickerView: View {
         }
     }
 
-    private func isFavoriteLibrarySmiley(_ smiley: ReplySmiley) -> Bool {
-        forumFavoriteSmileys.contains(smiley) || appFavoriteSmileys.contains(smiley)
+    private func isForumFavoriteSmiley(_ smiley: ReplySmiley) -> Bool {
+        forumFavoriteSmileys.contains(smiley)
     }
 
     private func smileyGrid(

@@ -195,11 +195,10 @@ struct AppSettingsView: View {
 
     private func applyThemeConfiguration() {
         let defaults = UserDefaults.standard
-        let themeManager = ThemeManager.shared()
 
         if autoTheme == Constants.autoThemeIOS {
-            defaults.set(Constants.autoThemeIOS, forKey: "auto_theme")
-            themeManager?.refreshTheme()
+            AppThemeResolver.setUsesSystemColorScheme(defaults: defaults)
+            AppThemeStore.shared.refresh(forceThemeRevision: true, notifyLegacy: true)
             return
         }
 
@@ -207,9 +206,8 @@ struct AppSettingsView: View {
         if manualTheme != boundedTheme {
             manualTheme = boundedTheme
         }
-        defaults.set(Constants.autoThemeManual, forKey: "auto_theme")
-        defaults.set(boundedTheme, forKey: "theme")
-        themeManager?.refreshTheme()
+        AppThemeResolver.setManualLegacyThemeValue(boundedTheme, defaults: defaults)
+        AppThemeStore.shared.refresh(forceThemeRevision: true, notifyLegacy: true)
     }
 
     private func applyIconSelection() {
@@ -313,7 +311,7 @@ struct AppSettingsView: View {
 
         ThemeUserColorStore.storeColor(dayTint, forKey: "theme_day_color_action")
         ThemeUserColorStore.storeColor(nightTint, forKey: "theme_night_color_action")
-        ThemeManager.shared()?.refreshTheme()
+        AppThemeStore.shared.refresh(forceThemeRevision: true, notifyLegacy: true)
     }
 
     private func syncLegacyTextSizeSettings() {
