@@ -672,7 +672,7 @@ body.ios7 {
     color: var(--color-text-pseudo-bl);  /*texte nom pseudo bl*/
     font-weight: bolder;
     font-size: 13px !important;
-    margin-top: 13px !important;
+    margin-top: 9px !important;
     margin-left: 10px !important;
 }
 
