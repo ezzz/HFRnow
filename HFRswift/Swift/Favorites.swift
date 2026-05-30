@@ -228,7 +228,7 @@ class FavoritesViewModel: ObservableObject {
         self.hasLoadedOnce = initialIsLoading || !initialFavorites.isEmpty || initialErrorMessage != nil
     }
 
-    func loadFavorites(force: Bool = false, shouldTriggerHaptic: Bool = true) {
+    func loadFavorites(force: Bool = false, shouldTriggerHaptic: Bool = false) {
         guard !isLoading else {
             if force {
                 pendingForcedReload = true
@@ -253,7 +253,7 @@ class FavoritesViewModel: ObservableObject {
                 }
                 self.favorites = objcFavorites ?? []
                 if shouldTriggerHaptic {
-                    AppHaptics.impact(.light)
+                    AppHaptics.refreshCompleted()
                 }
                 if self.pendingForcedReload {
                     self.pendingForcedReload = false
@@ -677,7 +677,7 @@ struct FavoritesListView: View {
             }
             .compactListSectionSpacing(compactModeEnabled, spacing: listDensity.sectionSpacing, regularSpacing: listDensity.sectionSpacing)
             .refreshable {
-                await MainActor.run { viewModel.loadFavorites() }
+                await MainActor.run { viewModel.loadFavorites(shouldTriggerHaptic: true) }
                 await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                     @Sendable func checkDone() {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
@@ -719,12 +719,13 @@ struct FavoritesListView: View {
                 else {
                     return
                 }
-                refreshContentForSessionState(force: true)
+                AppHaptics.refreshStarted()
+                viewModel.loadFavorites(force: true, shouldTriggerHaptic: true)
             }
             .toolbar {
                 MainToolbarContent(
                     onRefresh: {
-                        viewModel.loadFavorites()
+                        viewModel.loadFavorites(shouldTriggerHaptic: true)
                     },
                     isLoading: viewModel.isLoading,
                     profileImage: accountsStore.currentAvatarImage,

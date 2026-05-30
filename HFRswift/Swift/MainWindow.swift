@@ -21,7 +21,7 @@ final class CategoriesListViewModel: ObservableObject {
         self.forumsLoader = forumsLoader ?? ObjCForumsLoader()
     }
 
-    func load() {
+    func load(shouldTriggerHaptic: Bool = false) {
         isLoading = true
         errorMessage = nil
         forumsLoader.fetchForums { [weak self] forums, error in
@@ -34,6 +34,9 @@ final class CategoriesListViewModel: ObservableObject {
                 } else {
                     self.errorMessage = nil
                     self.forums = forums ?? []
+                }
+                if shouldTriggerHaptic {
+                    AppHaptics.refreshCompleted()
                 }
             }
         }
@@ -65,7 +68,7 @@ final class ForumTopicsListViewModel: ObservableObject {
         self.forum = forum
     }
 
-    func load(pageURL: String? = nil) {
+    func load(pageURL: String? = nil, shouldTriggerHaptic: Bool = false) {
         loadRequestID += 1
         let requestID = loadRequestID
         isLoading = true
@@ -91,6 +94,9 @@ final class ForumTopicsListViewModel: ObservableObject {
                     self.topics = result?.topics ?? []
                     self.newTopicURL = result?.newTopicURL
                     self.pageInfo = result?.pageInfo ?? .empty
+                }
+                if shouldTriggerHaptic {
+                    AppHaptics.refreshCompleted()
                 }
             }
         }
@@ -180,8 +186,8 @@ struct CategoriesListView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        AppHaptics.impact(.light)
-                        viewModel.load()
+                        AppHaptics.refreshStarted()
+                        viewModel.load(shouldTriggerHaptic: true)
                     } label: {
                         if viewModel.isLoading {
                             ProgressView().controlSize(.small)
@@ -208,7 +214,8 @@ struct CategoriesListView: View {
                 else {
                     return
                 }
-                viewModel.load()
+                AppHaptics.refreshStarted()
+                viewModel.load(shouldTriggerHaptic: true)
             }
             .sheet(isPresented: $showAddAccountSheet) {
                 AddAccountView(accountsStore: accountsStore)
@@ -344,8 +351,8 @@ struct ForumTopicsListView: View {
 
     private func loadPage(_ urlString: String?) {
         guard let urlString = normalizedNonEmpty(urlString) else { return }
-        AppHaptics.impact(.light)
-        viewModel.load(pageURL: urlString)
+        AppHaptics.refreshStarted()
+        viewModel.load(pageURL: urlString, shouldTriggerHaptic: true)
     }
 
     private func pageURL(for page: Int) -> String? {
@@ -703,7 +710,7 @@ struct ForumTopicsListView: View {
             }
         }
         .refreshable {
-            await MainActor.run { viewModel.load() }
+            await MainActor.run { viewModel.load(shouldTriggerHaptic: true) }
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                 @Sendable func checkDone() {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
@@ -748,8 +755,8 @@ struct ForumTopicsListView: View {
                 .disabled(!isLoggedIn || viewModel.newTopicURL == nil)
 
                 Button {
-                    AppHaptics.impact(.light)
-                    viewModel.load()
+                    AppHaptics.refreshStarted()
+                    viewModel.load(shouldTriggerHaptic: true)
                 } label: {
                     if viewModel.isLoading {
                         ProgressView().controlSize(.small)
@@ -793,7 +800,8 @@ struct ForumTopicsListView: View {
                 return
             }
             guard hasLoaded else { return }
-            viewModel.load()
+            AppHaptics.refreshStarted()
+            viewModel.load(shouldTriggerHaptic: true)
         }
         .onReceive(NotificationCenter.default.publisher(for: .rootTabReselected)) { notification in
             guard

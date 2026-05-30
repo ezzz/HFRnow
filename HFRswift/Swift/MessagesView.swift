@@ -2659,6 +2659,7 @@ struct MessagesView: View {
     @State private var fileURL: URL?
     @State private var cacheURL: URL?
     @State private var errorMessage: String?
+    @State private var shouldTriggerRefreshCompletionHaptic = false
     @State private var anchor: String?
     @State private var initialScroll: WebView.InitialScroll?
     @State private var topicAnswerURL: URL?
@@ -3072,6 +3073,7 @@ struct MessagesView: View {
 
                 switch result {
                 case .failure(let error):
+                    self.finishRefreshHapticIfNeeded()
                     if self.isInSearchMode {
                         self.showWebViewLoadCover = false
                         self.lastSearchFormSnapshot = [:]
@@ -3082,6 +3084,7 @@ struct MessagesView: View {
                     self.showWebViewLoadCover = false
                 case .success(let content):
                     if self.isInSearchMode, self.isEmptySearchResultContent(content) {
+                        self.finishRefreshHapticIfNeeded()
                         self.showWebViewLoadCover = false
                         self.lastSearchFormSnapshot = [:]
                         self.showSuccessToast("Aucune réponse trouvée")
@@ -3116,6 +3119,7 @@ struct MessagesView: View {
                     if let newTitle = content.topicTitle, !newTitle.isEmpty {
                         self.topicDisplayTitle = newTitle
                     }
+                    self.finishRefreshHapticIfNeeded()
                     maybeProbeNextPageAfterRefresh(
                         previousPage: previousPage,
                         previousMaxPage: previousMaxPage,
@@ -4261,9 +4265,17 @@ struct MessagesView: View {
     }
 
     private func refreshCurrentPagePreservingScroll() {
+        AppHaptics.refreshStarted()
+        shouldTriggerRefreshCompletionHaptic = true
         anchor = nil
         initialScroll = .bottom
         loadPage(page)
+    }
+
+    private func finishRefreshHapticIfNeeded() {
+        guard shouldTriggerRefreshCompletionHaptic else { return }
+        shouldTriggerRefreshCompletionHaptic = false
+        AppHaptics.refreshCompleted()
     }
 
     private func handleReplySuccess(_ result: ReplyPostingResult) {

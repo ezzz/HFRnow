@@ -262,7 +262,7 @@ final class AQPlusViewModel: ObservableObject {
         task?.cancel()
     }
 
-    func refresh() {
+    func refresh(shouldTriggerHaptic: Bool = false) {
         requestID += 1
         let currentRequestID = requestID
         task?.cancel()
@@ -312,6 +312,9 @@ final class AQPlusViewModel: ObservableObject {
                 self.errorMessage = nil
                 UserDefaults.standard.set(Date(), forKey: "last_check_aq")
                 AQUnreadCounter.setCount(0)
+                if shouldTriggerHaptic {
+                    AppHaptics.refreshCompleted()
+                }
             }
         }
         task?.resume()
@@ -414,8 +417,8 @@ struct AQPlusView: View {
                     ProgressView()
                 } else {
                     Button("Actualiser", systemImage: "arrow.clockwise") {
-                        AppHaptics.impact(.light)
-                        viewModel.refresh()
+                        AppHaptics.refreshStarted()
+                        viewModel.refresh(shouldTriggerHaptic: true)
                     }
                 }
             }
@@ -427,7 +430,7 @@ struct AQPlusView: View {
             }
         }
         .refreshable {
-            viewModel.refresh()
+            viewModel.refresh(shouldTriggerHaptic: true)
         }
     }
 }

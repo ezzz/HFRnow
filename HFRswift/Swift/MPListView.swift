@@ -65,7 +65,7 @@ final class MPListViewModel: ObservableObject {
         self.hasLoadedOnce = initialIsLoading || !initialTopics.isEmpty || initialErrorMessage != nil
     }
 
-    func load(retryOnCancellation: Bool = true, force: Bool = false) {
+    func load(retryOnCancellation: Bool = true, force: Bool = false, shouldTriggerHaptic: Bool = false) {
         guard !isLoading else {
             if force {
                 pendingForcedReload = true
@@ -84,7 +84,7 @@ final class MPListViewModel: ObservableObject {
                 if let error, Self.isCancellationError(error) {
                     if retryOnCancellation {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
-                            self?.load(retryOnCancellation: false)
+                            self?.load(retryOnCancellation: false, shouldTriggerHaptic: shouldTriggerHaptic)
                         }
                     }
                     return
@@ -99,9 +99,12 @@ final class MPListViewModel: ObservableObject {
                     self.errorMessage = nil
                     self.topics = self.topicsDecoratedWithMPStorageFlags(topics ?? [])
                 }
+                if shouldTriggerHaptic {
+                    AppHaptics.refreshCompleted()
+                }
                 if self.pendingForcedReload {
                     self.pendingForcedReload = false
-                    self.load(retryOnCancellation: retryOnCancellation, force: true)
+                    self.load(retryOnCancellation: retryOnCancellation, force: true, shouldTriggerHaptic: shouldTriggerHaptic)
                 }
             }
         }
@@ -311,7 +314,7 @@ struct MPListView: View {
                 }
             }
             .refreshable {
-                await MainActor.run { viewModel.load() }
+                await MainActor.run { viewModel.load(shouldTriggerHaptic: true) }
                 await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                     @Sendable func checkDone() {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
@@ -348,12 +351,13 @@ struct MPListView: View {
                 else {
                     return
                 }
-                refreshContentForSessionState(force: true)
+                AppHaptics.refreshStarted()
+                viewModel.load(force: true, shouldTriggerHaptic: true)
             }
             .toolbar {
                 MainToolbarContent(
                     onRefresh: {
-                        viewModel.load()
+                        viewModel.load(shouldTriggerHaptic: true)
                     },
                     isLoading: viewModel.isLoading,
                     profileImage: accountsStore.currentAvatarImage,

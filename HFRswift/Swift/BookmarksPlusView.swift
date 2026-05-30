@@ -16,6 +16,7 @@ final class BookmarksPlusViewModel: ObservableObject {
 
     private let storage: LegacyMPStorageManaging
     private var refreshFallbackWorkItem: DispatchWorkItem?
+    private var shouldTriggerRefreshHaptic = false
 
     init(storage: LegacyMPStorageManaging = ObjCMPStorageBridge.shared) {
         self.storage = storage
@@ -55,7 +56,7 @@ final class BookmarksPlusViewModel: ObservableObject {
         }
     }
 
-    func refreshRemoteBookmarks() {
+    func refreshRemoteBookmarks(shouldTriggerHaptic: Bool = false) {
         guard storage.isAvailable else { return }
         guard isStorageEnabled else {
             errorMessage = "Activez le stockage MP dans Réglages pour synchroniser les bookmarks."
@@ -63,6 +64,7 @@ final class BookmarksPlusViewModel: ObservableObject {
         }
 
         errorMessage = nil
+        shouldTriggerRefreshHaptic = shouldTriggerHaptic
         isRefreshing = true
         storage.reloadAsynchronously()
 
@@ -99,6 +101,10 @@ final class BookmarksPlusViewModel: ObservableObject {
         refreshFallbackWorkItem = nil
         isRefreshing = false
         loadBookmarks()
+        if shouldTriggerRefreshHaptic {
+            shouldTriggerRefreshHaptic = false
+            AppHaptics.refreshCompleted()
+        }
     }
 }
 
@@ -190,8 +196,8 @@ struct BookmarksPlusView: View {
                     ProgressView()
                 } else {
                     Button("Actualiser", systemImage: "arrow.clockwise") {
-                        AppHaptics.impact(.light)
-                        viewModel.refreshRemoteBookmarks()
+                        AppHaptics.refreshStarted()
+                        viewModel.refreshRemoteBookmarks(shouldTriggerHaptic: true)
                     }
                 }
             }
@@ -206,7 +212,7 @@ struct BookmarksPlusView: View {
             viewModel.handleStorageUpdateSignal()
         }
         .refreshable {
-            viewModel.refreshRemoteBookmarks()
+            viewModel.refreshRemoteBookmarks(shouldTriggerHaptic: true)
         }
     }
 }

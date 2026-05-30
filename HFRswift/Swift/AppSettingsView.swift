@@ -419,17 +419,17 @@ struct AppSettingsView: View {
                 Label("Liste blanche", systemImage: "heart")
             }
 
-            Picker("Taille des smileys", selection: $smileySize) {
-                ForEach(smileySizeOptions) { option in
-                    Text(option.title).tag(option.value)
-                }
-            }
-
-            Picker("Afficher les vidéos", selection: $embeddedVideos) {
-                ForEach(embeddedVideoOptions) { option in
-                    Text(option.title).tag(option.value)
-                }
-            }
+//            Picker("Taille des smileys", selection: $smileySize) {
+//                ForEach(smileySizeOptions) { option in
+//                    Text(option.title).tag(option.value)
+//                }
+//            }
+//
+//            Picker("Afficher les vidéos", selection: $embeddedVideos) {
+//                ForEach(embeddedVideoOptions) { option in
+//                    Text(option.title).tag(option.value)
+//                }
+//            }
 
             Picker("Afficher les signatures", selection: $displaySignatures) {
                 ForEach(signatureOptions) { option in
@@ -475,9 +475,9 @@ struct AppSettingsView: View {
     @ViewBuilder
     private var maintenanceSection: some View {
         Section("Maintenance") {
-            Button("Vider le cache", role: .destructive) {
-                showClearCacheConfirmation = true
-            }
+//            Button("Vider le cache", role: .destructive) {
+//                showClearCacheConfirmation = true
+//            }
             Button("Ouvrir les réglages système") {
                 openSystemSettings()
             }

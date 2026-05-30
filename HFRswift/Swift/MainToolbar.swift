@@ -41,7 +41,7 @@ struct MainToolbarContent<MenuItems: View>: ToolbarContent {
 
         ToolbarItem(placement: .navigationBarTrailing) {
             Button {
-                AppHaptics.impact(.light)
+                AppHaptics.refreshStarted()
                 onRefresh()
             } label: {
                 if isLoading {

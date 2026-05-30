@@ -81,6 +81,14 @@ enum AppHaptics {
         generator.prepare()
         generator.notificationOccurred(type)
     }
+
+    static func refreshStarted() {
+        impact(.light)
+    }
+
+    static func refreshCompleted() {
+        impact(.light)
+    }
 }
 
 @objc(HFRSwiftAlertPresenter)

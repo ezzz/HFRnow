@@ -2184,6 +2184,7 @@ private struct ReplyTextEditor: UIViewRepresentable {
         tv.textContainer.lineFragmentPadding = 0
         tv.autocapitalizationType = .sentences
         tv.autocorrectionType = .yes
+        tv.keyboardType = .asciiCapable
         tv.keyboardDismissMode = .none
         return tv
     }
@@ -2229,6 +2230,14 @@ private struct ReplyTextEditor: UIViewRepresentable {
             }
         }
 
+        func textView(
+            _ textView: UITextView,
+            shouldChangeTextIn range: NSRange,
+            replacementText text: String
+        ) -> Bool {
+            !text.containsKeyboardEmoji
+        }
+
         @available(iOS 16.0, *)
         func textView(
             _ textView: UITextView,
@@ -2260,6 +2269,14 @@ private struct ReplyTextEditor: UIViewRepresentable {
             }
 
             return UIMenu(title: "", options: .displayInline, children: children)
+        }
+    }
+}
+
+private extension String {
+    var containsKeyboardEmoji: Bool {
+        unicodeScalars.contains { scalar in
+            scalar.properties.isEmojiPresentation || scalar.properties.isEmojiModifierBase
         }
     }
 }
