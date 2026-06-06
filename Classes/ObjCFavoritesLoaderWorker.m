@@ -20,8 +20,6 @@
 @property (nonatomic, strong) NSMutableArray<Favorite *> *arrayCategories;
 @property (nonatomic, strong) NSMutableArray<Favorite *> *arrayNewData;
 @property (nonatomic, strong) NSMutableArray<Topic *> *arrayTopics;
-@property (nonatomic, strong) NSMutableArray<NSString *> *arrayCategoriesVisibleOrder;
-@property (nonatomic, strong) NSMutableArray<NSString *> *arrayCategoriesHiddenOrder;
 @end
 
 @implementation ObjCFavoritesLoaderWorker
@@ -29,12 +27,9 @@
 - (instancetype)init {
     self = [super init];
     if (self) {
-        NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
         self.arrayCategories = [[NSMutableArray alloc] init];
         self.arrayNewData = [[NSMutableArray alloc] init];
         self.arrayTopics = [[NSMutableArray alloc] init];
-        self.arrayCategoriesVisibleOrder = [[defaults arrayForKey:@"arrayCategoriesVisibleOrder"] mutableCopy] ?: [[NSMutableArray alloc] init];
-        self.arrayCategoriesHiddenOrder = [[defaults arrayForKey:@"arrayCategoriesHiddenOrder"] mutableCopy] ?: [[NSMutableArray alloc] init];
     }
     return self;
 }
@@ -109,41 +104,21 @@
     NSArray *temporaryFavoriteArray = [tableNode findChildTags:@"tr"];
 
     BOOL first = YES;
-    BOOL catOrderIsEmpty = self.arrayCategoriesVisibleOrder.count + self.arrayCategoriesHiddenOrder.count == 0;
     int order = 0;
     Favorite *currentFavorite = nil;
     NSMutableArray<Favorite *> *visibleCategories = [[NSMutableArray alloc] init];
-    NSMutableArray<Favorite *> *hiddenCategories = [[NSMutableArray alloc] init];
     NSMutableArray<Topic *> *topics = [[NSMutableArray alloc] init];
 
     for (HTMLNode *trNode in temporaryFavoriteArray) {
         if ([[trNode className] rangeOfString:@"fondForum1fCat"].location != NSNotFound) {
             if (!first) {
-                [self appendFavorite:currentFavorite visibleCategories:visibleCategories hiddenCategories:hiddenCategories topics:topics];
+                [self appendFavorite:currentFavorite visibleCategories:visibleCategories topics:topics];
             }
 
             currentFavorite = [[Favorite alloc] init];
             [currentFavorite parseNode:trNode];
-
-            if (catOrderIsEmpty) {
-                currentFavorite.order = [NSNumber numberWithInt:order];
-                order++;
-                [self.arrayCategoriesVisibleOrder addObject:currentFavorite.forum.aID];
-            } else {
-                NSUInteger visibleOrder = [self.arrayCategoriesVisibleOrder indexOfObject:currentFavorite.forum.aID];
-                if (visibleOrder == NSNotFound) {
-                    NSUInteger hiddenOrder = [self.arrayCategoriesHiddenOrder indexOfObject:currentFavorite.forum.aID];
-                    if (hiddenOrder == NSNotFound) {
-                        currentFavorite.order = [NSNumber numberWithInteger:self.arrayCategoriesVisibleOrder.count];
-                        [self.arrayCategoriesVisibleOrder addObject:currentFavorite.forum.aID];
-                    } else {
-                        currentFavorite.order = [NSNumber numberWithUnsignedInteger:hiddenOrder];
-                    }
-                } else {
-                    currentFavorite.order = [NSNumber numberWithUnsignedInteger:visibleOrder];
-                    [self.arrayCategoriesHiddenOrder removeObject:currentFavorite.forum.aID];
-                }
-            }
+            currentFavorite.order = [NSNumber numberWithInt:order];
+            order++;
             first = NO;
         } else if ([[trNode className] rangeOfString:@"ligne_booleen"].location != NSNotFound) {
             [currentFavorite addTopicWithNode:trNode];
@@ -151,12 +126,8 @@
     }
 
     if (!first) {
-        [self appendFavorite:currentFavorite visibleCategories:visibleCategories hiddenCategories:hiddenCategories topics:topics];
+        [self appendFavorite:currentFavorite visibleCategories:visibleCategories topics:topics];
     }
-
-    [[NSUserDefaults standardUserDefaults] setObject:self.arrayCategoriesVisibleOrder forKey:@"arrayCategoriesVisibleOrder"];
-    [[NSUserDefaults standardUserDefaults] setObject:self.arrayCategoriesHiddenOrder forKey:@"arrayCategoriesHiddenOrder"];
-    [[NSUserDefaults standardUserDefaults] synchronize];
 
     NSSortDescriptor *sortDescriptor = [[NSSortDescriptor alloc] initWithKey:@"order" ascending:YES selector:@selector(compare:)];
     self.arrayCategories = [NSMutableArray arrayWithArray:[visibleCategories sortedArrayUsingDescriptors:@[sortDescriptor]]];
@@ -169,19 +140,14 @@
 
 - (void)appendFavorite:(Favorite *)favorite
      visibleCategories:(NSMutableArray<Favorite *> *)visibleCategories
-      hiddenCategories:(NSMutableArray<Favorite *> *)hiddenCategories
                 topics:(NSMutableArray<Topic *> *)topics {
-    if ([self.arrayCategoriesVisibleOrder containsObject:favorite.forum.aID]) {
-        if (favorite.topics.count > 0) {
-            [self.arrayNewData addObject:favorite];
-            for (Topic *topic in favorite.topics) {
-                [topics addObject:topic];
-            }
+    if (favorite.topics.count > 0) {
+        [self.arrayNewData addObject:favorite];
+        for (Topic *topic in favorite.topics) {
+            [topics addObject:topic];
         }
-        [visibleCategories addObject:favorite];
-    } else {
-        [hiddenCategories addObject:favorite];
     }
+    [visibleCategories addObject:favorite];
 }
 
 - (void)finishWithFavorites:(NSArray<Favorite *> *)favorites error:(NSError *)error {
