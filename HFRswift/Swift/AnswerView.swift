@@ -2184,7 +2184,6 @@ private struct ReplyTextEditor: UIViewRepresentable {
         tv.textContainer.lineFragmentPadding = 0
         tv.autocapitalizationType = .sentences
         tv.autocorrectionType = .yes
-        tv.keyboardType = .asciiCapable
         tv.keyboardDismissMode = .none
         return tv
     }
