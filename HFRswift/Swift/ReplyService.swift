@@ -1472,6 +1472,9 @@ final class ForumModerationAlertService: ModerationAlertService {
 
         var formParams = preparedForm.params
         formParams["raison"] = reason.replacingOccurrences(of: "\n", with: "\r\n")
+        if formParams["Submit"] == nil {
+            formParams["Submit"] = "Valider votre message"
+        }
 
         var request = URLRequest(url: preparedForm.submitURL)
         request.httpMethod = "POST"
@@ -1609,7 +1612,7 @@ final class ForumModerationAlertService: ModerationAlertService {
             let groupRange = match.range(at: group)
             if groupRange.location != NSNotFound,
                let valueRange = Range(groupRange, in: tag) {
-                return String(tag[valueRange])
+                return decodeHTMLEntities(in: String(tag[valueRange]))
             }
         }
 

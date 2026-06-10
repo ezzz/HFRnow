@@ -838,6 +838,55 @@ final class ReplyPostingServiceTests: XCTestCase {
         }
     }
 
+    func testModerationPrepareAlertDecodesForumFormAttributes() async throws {
+        let session = makeSession()
+
+        URLProtocolMock.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "GET")
+            let html = """
+            <html><body>
+            <form method="post" action="modo.php?cat=25&amp;ref=2&amp;post=1711&amp;numreponse=930055&amp;page=496&amp;config=hfr.inc">
+              <input type="hidden" name="hash_check" value="8bff1c66dd68eb51bc20c6617b192b23">
+              <input type="hidden" name="referer_page" value="https://forum.hardware.fr/forum2.php?config=hfr.inc&amp;cat=25&amp;post=1711&amp;page=496&amp;p=1&amp;sondage=0&amp;owntopic=1&amp;trash=0&amp;trash_post=0&amp;print=0&amp;numreponse=0&amp;quote_only=0&amp;new=0&amp;nojs=0">
+              <textarea cols="50" rows="10" name="raison"></textarea>
+              <input accesskey="s" type="submit" name="Submit" value="Valider votre message">
+            </form>
+            </body></html>
+            """
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                Data(html.utf8)
+            )
+        }
+
+        let service = ForumModerationAlertService(
+            session: session,
+            sessionContextProvider: { _ in
+                ReplySessionContext(pseudoDisplay: "testeur", hashCheck: "hash123")
+            }
+        )
+
+        let preparation = try await service.prepareAlert(
+            from: URL(string: "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=25&post=1711&page=496&p=1")!
+        )
+
+        switch preparation {
+        case .ready(let prepared):
+            XCTAssertEqual(
+                prepared.submitURL.absoluteString,
+                "https://forum.hardware.fr/modo.php?cat=25&ref=2&post=1711&numreponse=930055&page=496&config=hfr.inc"
+            )
+            XCTAssertEqual(
+                prepared.params["referer_page"],
+                "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=25&post=1711&page=496&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0"
+            )
+            XCTAssertEqual(prepared.params["hash_check"], "8bff1c66dd68eb51bc20c6617b192b23")
+            XCTAssertEqual(prepared.params["Submit"], "Valider votre message")
+        case .alreadyAlerted:
+            XCTFail("Expected ready moderation form")
+        }
+    }
+
     func testModerationPrepareAlertReturnsAuthenticationRequiredWhenLoginFormIsPresent() async {
         let session = makeSession()
 
@@ -892,6 +941,7 @@ final class ReplyPostingServiceTests: XCTestCase {
             XCTAssertEqual(params["cat"], "13")
             XCTAssertEqual(params["post"], "42")
             XCTAssertEqual(params["raison"], "Ligne 1\r\nLigne 2")
+            XCTAssertEqual(params["Submit"], "Valider votre message")
 
             let html = """
             <html><body><div class=\"hop\">Alerte envoyée.</div></body></html>
