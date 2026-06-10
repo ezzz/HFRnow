@@ -331,11 +331,12 @@ struct AQPlusView: View {
     }
 
     private func normalizedForumTopicURLString(from rawLink: String) -> String {
-        guard let url = URL(string: rawLink) else { return rawLink }
+        let targetLink = TopicPageURLRouting.searchMatchURL(from: rawLink) ?? rawLink
+        guard let url = URL(string: targetLink) else { return targetLink }
         let scheme = (url.scheme ?? "").lowercased()
         let host = (url.host ?? "").lowercased()
         guard (scheme == "http" || scheme == "https"), host == "forum.hardware.fr" else {
-            return rawLink
+            return targetLink
         }
 
         var relativeURL = url.path
@@ -348,14 +349,25 @@ struct AQPlusView: View {
         return relativeURL.isEmpty ? "/" : relativeURL
     }
 
+    private func pageNumber(for item: AQItem) -> Int {
+        let targetLink = TopicPageURLRouting.searchMatchURL(from: item.link) ?? item.link
+        return max(
+            TopicPageURLRouting.pageNumber(from: targetLink)
+                ?? TopicPageURLRouting.pageNumber(from: normalizedForumTopicURLString(from: item.link))
+                ?? 1,
+            1
+        )
+    }
+
     private func topic(for item: AQItem) -> Topic {
         let topic = Topic()
         topic._aTitle = item.topicTitle
         let normalizedURL = normalizedForumTopicURLString(from: item.link)
+        let page = pageNumber(for: item)
         topic.aURL = normalizedURL
         topic.aURLOfLastPage = normalizedURL
-        topic.curTopicPage = 1
-        topic.maxTopicPage = 1
+        topic.curTopicPage = Int32(page)
+        topic.maxTopicPage = Int32(page)
         return topic
     }
 
@@ -381,10 +393,11 @@ struct AQPlusView: View {
 
             ForEach(viewModel.items) { item in
                 NavigationLink {
+                    let page = pageNumber(for: item)
                     MessagesView(
                         topic: topic(for: item),
-                        curPage: 1,
-                        maxPage: 1,
+                        curPage: page,
+                        maxPage: page,
                         separatorNewMessages: true
                     )
                     .toolbar(.hidden, for: .tabBar)
