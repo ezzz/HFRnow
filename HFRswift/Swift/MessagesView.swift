@@ -2677,6 +2677,7 @@ struct MessagesView: View {
     @State private var isPagePickerPresented = false
     @State private var pagePickerInput: String = ""
     @State private var webViewScrollRequest: WebView.ScrollRequest?
+    @State private var lastWebViewScrollPosition: WebView.ScrollPosition?
     @State private var linkedTopicDestination: AnyView?
     @State private var navigateToLinkedTopic = false
     @State private var safariDestination: SafariDestination?
@@ -4268,8 +4269,15 @@ struct MessagesView: View {
         AppHaptics.refreshStarted()
         shouldTriggerRefreshCompletionHaptic = true
         anchor = nil
-        initialScroll = .bottom
+        initialScroll = currentScrollRestoration()
         loadPage(page)
+    }
+
+    private func currentScrollRestoration() -> WebView.InitialScroll? {
+        if let lastWebViewScrollPosition {
+            return .position(lastWebViewScrollPosition)
+        }
+        return isWebContentAtBottom ? .bottom : nil
     }
 
     private func finishRefreshHapticIfNeeded() {
@@ -4297,7 +4305,7 @@ struct MessagesView: View {
     }
 
     private func handleComposerDismissalIfNeeded() {
-        guard let postedReply = pendingPostedReply else { return }
+        guard pendingPostedReply != nil else { return }
         pendingPostedReply = nil
 
         let presentationKind = activeComposerPresentationKind
@@ -4306,14 +4314,9 @@ struct MessagesView: View {
         guard presentationKind.shouldRefreshTopicOnSuccess else { return }
         guard page >= currentMaxPage else { return }
 
-        if let refreshURL = postedReply.refreshURL {
-            loadDirectURL(refreshURL.absoluteString, initialScroll: .bottom)
-            return
-        }
-
-        anchor = postedReply.refreshAnchor
-        initialScroll = .bottom
-        loadPage(currentMaxPage)
+        anchor = nil
+        initialScroll = currentScrollRestoration()
+        loadPage(page)
     }
 
     var body: some View {
@@ -4455,6 +4458,9 @@ struct MessagesView: View {
                             isWebContentAtBottom = isAtBottom
                         }
                     },
+                    onScrollPositionSnapshotChange: { position in
+                        lastWebViewScrollPosition = position
+                    },
                     onTextInteractionStateChange: { isActive in
                         isMessageTextInteractionActive = isActive
                     }
@@ -4526,11 +4532,6 @@ struct MessagesView: View {
                                 self.anchor = nil
                                 self.initialScroll = .top
                                 loadPage(page + 1)
-                            } else if horizontal > 0, page > 1 {
-                                // Previous page: start at bottom
-                                self.anchor = nil
-                                self.initialScroll = .bottom
-                                loadPage(page - 1)
                             }
                         }
                     }
