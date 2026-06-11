@@ -2647,6 +2647,7 @@ struct MessagesView: View {
     let initialSearchContext: TopicSearchContext?
     let favoritePostFilterService: any FavoritePostFilteringServicing
     let initialFavoritePostFilterResult: FavoritePostFilterResult?
+    private let resetMessagesStackToRootAction: (() -> Void)?
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.verticalSizeClass) private var verticalSizeClass
@@ -2736,6 +2737,10 @@ struct MessagesView: View {
         appTheme.palette
     }
 
+    private var shouldShowMessagesStackRootButton: Bool {
+        resetMessagesStackToRootAction != nil && navigationDepth > 0
+    }
+
     private var linkedTopicNavigationBinding: Binding<Bool> {
         Binding(
             get: { navigateToLinkedTopic },
@@ -2805,7 +2810,8 @@ struct MessagesView: View {
         topicSearchService: any TopicSearchServicing = ObjCTopicSearchService(),
         initialSearchContext: TopicSearchContext? = nil,
         favoritePostFilterService: any FavoritePostFilteringServicing = ObjCFavoritePostFilterService(),
-        initialFavoritePostFilterResult: FavoritePostFilterResult? = nil
+        initialFavoritePostFilterResult: FavoritePostFilterResult? = nil,
+        resetMessagesStackToRootAction: (() -> Void)? = nil
     ) {
         self.topic = topic
         self.curPage = curPage
@@ -2822,6 +2828,7 @@ struct MessagesView: View {
         self.initialSearchContext = initialSearchContext
         self.favoritePostFilterService = favoritePostFilterService
         self.initialFavoritePostFilterResult = initialFavoritePostFilterResult
+        self.resetMessagesStackToRootAction = resetMessagesStackToRootAction
         self._page = State(initialValue: curPage)
         self._availableMaxPage = State(initialValue: max(max(maxPage, curPage), 1))
         self._topicDisplayTitle = State(initialValue: topic._aTitle ?? "")
@@ -2875,6 +2882,17 @@ struct MessagesView: View {
 
     private var currentMaxPage: Int {
         max(max(availableMaxPage, page), 1)
+    }
+
+    private var effectiveResetMessagesStackToRootAction: () -> Void {
+        resetMessagesStackToRootAction ?? resetMessagesStackToRoot
+    }
+
+    private func resetMessagesStackToRoot() {
+        navigateToLinkedTopic = false
+        navigateToSearchResult = false
+        linkedTopicDestination = nil
+        searchResultDestination = nil
     }
 
     private func synchronizeTopicPagination(currentPage resolvedPage: Int, maxPage resolvedMaxPage: Int) {
@@ -3252,7 +3270,8 @@ struct MessagesView: View {
                 curPage: boundedPage,
                 maxPage: max(provisionalMaxPage, 1),
                 separatorNewMessages: true,
-                navigationDepth: navigationDepth + 1
+                navigationDepth: navigationDepth + 1,
+                resetMessagesStackToRootAction: effectiveResetMessagesStackToRootAction
             )
             .toolbar(.hidden, for: .tabBar)
         )
@@ -3501,16 +3520,22 @@ struct MessagesView: View {
 
             do {
                 let template = try await replyQuoteTemplateLoader.fetchQuoteTemplate(from: url)
-                composerInitialMessage = ReplyQuoteSelectionFormatter.format(
+                let quoteTemplate = ReplyQuoteSelectionFormatter.format(
                     quoteTemplate: template,
                     selectedText: selectedText,
                     boldSelection: boldSelection
                 )
+                let mergedDraft = ReplyQuoteDraftMerger.merge(
+                    quoteTemplate: quoteTemplate,
+                    into: composerDraftText
+                )
+                composerDraftText = mergedDraft
+                composerInitialMessage = mergedDraft
                 activeComposerPresentationKind = .reply
                 composerNavigationTitle = ComposerPresentationKind.reply.title
                 composerRequiresSubject = false
                 composerRecipientName = nil
-                composerPersistsDraft = false
+                composerPersistsDraft = true
                 composerSubmitURL = topicAnswerURL ?? url
                 lastFailedQuoteTemplateURL = nil
                 quoteTemplateErrorMessage = nil
@@ -3557,12 +3582,19 @@ struct MessagesView: View {
 
             do {
                 let template = try await replyQuoteTemplateLoader.fetchQuoteTemplate(from: url)
-                composerInitialMessage = template
-                composerPersistsDraft = false
                 switch mode {
                 case .quote:
+                    let mergedDraft = ReplyQuoteDraftMerger.merge(
+                        quoteTemplate: template,
+                        into: composerDraftText
+                    )
+                    composerDraftText = mergedDraft
+                    composerInitialMessage = mergedDraft
+                    composerPersistsDraft = true
                     composerSubmitURL = topicAnswerURL ?? url
                 case .edit:
+                    composerInitialMessage = template
+                    composerPersistsDraft = false
                     composerSubmitURL = url
                 }
                 lastFailedQuoteTemplateURL = nil
@@ -3905,7 +3937,8 @@ struct MessagesView: View {
                     messageDeletionService: messageDeletionService,
                     moderationAlertService: moderationAlertService,
                     topicSearchService: topicSearchService,
-                    initialSearchContext: newContext
+                    initialSearchContext: newContext,
+                    resetMessagesStackToRootAction: effectiveResetMessagesStackToRootAction
                 )
                 .toolbar(.hidden, for: .tabBar)
             )
@@ -4081,38 +4114,6 @@ struct MessagesView: View {
         return result
     }
 
-    @ViewBuilder
-    private var searchResultNavigationLink: some View {
-        NavigationLink(
-            "",
-            isActive: searchResultNavigationBinding
-        ) {
-            if let searchResultDestination {
-                searchResultDestination
-            } else {
-                EmptyView()
-            }
-        }
-        .hidden()
-        .allowsHitTesting(false)
-    }
-
-    @ViewBuilder
-    private var linkedTopicNavigationLink: some View {
-        NavigationLink(
-            "",
-            isActive: linkedTopicNavigationBinding
-        ) {
-            if let linkedTopicDestination {
-                linkedTopicDestination
-            } else {
-                EmptyView()
-            }
-        }
-        .hidden()
-        .allowsHitTesting(false)
-    }
-
     private func uniqueValidPages(_ candidates: [Int], excluding excludedTargets: Set<Int> = []) -> [Int] {
         var seen = excludedTargets
         return candidates.compactMap { target in
@@ -4237,30 +4238,32 @@ struct MessagesView: View {
     }
 
     @ToolbarContentBuilder
-    private var navigationDepthBackButton: some ToolbarContent {
-        if navigationDepth > 0 {
+    private var messagesStackRootButton: some ToolbarContent {
+        if shouldShowMessagesStackRootButton {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
-                    dismiss()
+                    resetMessagesStackToRootAction?()
                 } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: "chevron.backward")
-                            .font(.body)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(themePalette.actionTintColor)
-                        Text("\(navigationDepth)")
-                            .font(.caption2.weight(.semibold))
-                            .monospacedDigit()
-                            .foregroundStyle(.white)
-                            .frame(minWidth: 18, minHeight: 18)
-                            .background(themePalette.actionTintColor, in: Capsule())
+                    ZStack(alignment: .topTrailing) {
+                        Image(systemName: "arrow.uturn.backward")
+                            .font(.system(size: 15, weight: .semibold))
+                            .frame(width: 28, height: 30)
+                            .offset(x: -4, y: 2)
+
+                        if navigationDepth > 0 {
+                            Text("\(navigationDepth)")
+                                .font(.system(size: 9, weight: .bold))
+                                .monospacedDigit()
+                                .foregroundStyle(.white)
+                                .frame(minWidth: 15, minHeight: 15)
+                                .background(themePalette.actionTintColor, in: Capsule())
+                                .offset(x: -1)
+                        }
                     }
-                    .padding(.horizontal, 9)
-                    .frame(height: 28, alignment: .center)
-                    .background(.clear, in: Capsule())
+                    .frame(width: 38, height: 34)
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .accessibilityLabel("Retour au premier affichage de messages empilé")
             }
         }
     }
@@ -4325,9 +4328,7 @@ struct MessagesView: View {
         if let errorMessage {
             content = AnyView(
                 Text("Erreur : \(errorMessage)").foregroundColor(.red)
-                .navigationBarBackButtonHidden(navigationDepth > 0)
                 .toolbar {
-                    navigationDepthBackButton
                     ToolbarItem(placement: .principal) {
                         VStack(spacing: 2) {
                             Text(topicDisplayTitle.isEmpty ? (topic._aTitle ?? "Messages") : topicDisplayTitle)
@@ -4342,11 +4343,11 @@ struct MessagesView: View {
                         }
                         .multilineTextAlignment(.center)
                     }
+                    messagesStackRootButton
                 }
                 .onAppear {
                     performInitialLoad()
                 }
-                .background(linkedTopicNavigationLink)
                 .sheet(item: $safariDestination) { destination in
                     SafariInAppView(url: destination.url)
                         .ignoresSafeArea()
@@ -4511,7 +4512,6 @@ struct MessagesView: View {
             }
             .ignoresSafeArea()
             .navigationBarTitleDisplayMode(.inline)
-            .navigationBarBackButtonHidden(navigationDepth > 0)
 
                 .simultaneousGesture(
                     DragGesture().onEnded { value in
@@ -4532,6 +4532,11 @@ struct MessagesView: View {
                                 self.anchor = nil
                                 self.initialScroll = .top
                                 loadPage(page + 1)
+                            } else if horizontal > 0, page > 1 {
+                                // Previous page: start at bottom
+                                self.anchor = nil
+                                self.initialScroll = .bottom
+                                loadPage(page - 1)
                             }
                         }
                     }
@@ -4658,7 +4663,6 @@ struct MessagesView: View {
                     Text(popupActionErrorMessage ?? "Erreur inconnue.")
                 }
                 .toolbar {
-                    navigationDepthBackButton
                     ToolbarItem(placement: .principal) {
                         VStack(spacing: 2) {
                             Text(topicDisplayTitle.isEmpty ? (topic._aTitle ?? "Messages") : topicDisplayTitle)
@@ -4673,6 +4677,7 @@ struct MessagesView: View {
                         }
                         .multilineTextAlignment(.center)
                     }
+                    messagesStackRootButton
                     if hasPoll && pollIsNewVote && !isInSearchMode {
                         ToolbarItem(placement: .topBarTrailing) {
                             PollToolbarButton(isVotable: true) {
@@ -4816,8 +4821,6 @@ struct MessagesView: View {
                         loadPage(page)
                     })
                 }
-                .background(linkedTopicNavigationLink)
-                .background(searchResultNavigationLink)
                 .sheet(item: $topicSearchSheetState) { state in
                     TopicSearchSheetView(
                         initialParams: state.initialParams,
@@ -4904,9 +4907,7 @@ struct MessagesView: View {
                 loadingTopicView
                 .navigationTitle("My title")
                 .navigationBarTitleDisplayMode(.inline)
-            .navigationBarBackButtonHidden(navigationDepth > 0)
             .toolbar {
-                navigationDepthBackButton
                 ToolbarItem(placement: .principal) {
                     VStack(spacing: 2) {
                         Text(topicDisplayTitle.isEmpty ? (topic._aTitle ?? "Messages") : topicDisplayTitle)
@@ -4921,6 +4922,7 @@ struct MessagesView: View {
                     }
                     .multilineTextAlignment(.center)
                 }
+                messagesStackRootButton
                 if hasPoll && pollIsNewVote && !isInSearchMode {
                     ToolbarItem(placement: .topBarTrailing) {
                         PollToolbarButton(isVotable: true) {
@@ -5028,8 +5030,6 @@ struct MessagesView: View {
             .onAppear {
                 performInitialLoad()
             }
-            .background(linkedTopicNavigationLink)
-            .background(searchResultNavigationLink)
             .sheet(item: $topicSearchSheetState) { state in
                 TopicSearchSheetView(
                     initialParams: state.initialParams,
@@ -5106,6 +5106,20 @@ struct MessagesView: View {
         }
 
         return content
+            .navigationDestination(isPresented: linkedTopicNavigationBinding) {
+                if let linkedTopicDestination {
+                    linkedTopicDestination
+                } else {
+                    EmptyView()
+                }
+            }
+            .navigationDestination(isPresented: searchResultNavigationBinding) {
+                if let searchResultDestination {
+                    searchResultDestination
+                } else {
+                    EmptyView()
+                }
+            }
     }
 }
 
