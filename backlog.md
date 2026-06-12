@@ -33,8 +33,8 @@ Priorites:
 | HFR-007 | Menu lateral iPad qui revient ouvert apres repli / retour app | Bug UX | Moyen a fort | Moyenne | Tres visible sur iPad et donne une impression d'instabilite. Moins lourd que restaurer l'ancien layout, donc a traiter separement si possible. | A faire |
 | HFR-035 | iPad portrait: scroll topic parfois ignore ou intercepte | Bug UX | Moyen a fort | Moyenne | Retour utilisateur sur lecture topic en iPad portrait: certains gestes de scroll semblent ne rien faire, possiblement lorsqu'ils sont un peu diagonaux. Piste: conflit ou interception par une vue/gesture au-dessus du contenu. A auditer car le scroll de lecture est un flux central, mais le retour reste a confirmer. | A auditer |
 | HFR-008 | Fin de page / fin de topic moins lisible | UX | Moyen | Faible a moyenne | Important pour la comprehension du statut de lecture. Probablement corrigeable par indicateur visuel explicite ou separateur plus net. | A faire |
-| HFR-009 | Refresh en bas de page qui saute au dernier message au lieu du dernier lu | Bug | Moyen | Moyenne | Peut faire perdre le contexte de lecture. A rapprocher de HFR-002 si le meme modele de position de lecture est implique. | A faire |
-| HFR-010 | Insertion de liens regressees dans l'editeur | Regression UX | Moyen | Moyenne | Moins bloquant que la saisie elle-meme, mais ralentit les posts construits. A corriger si l'ancien comportement peut etre restaure simplement via selection + presse-papier. | A faire |
+| HFR-009 | Refresh en bas de page qui saute au dernier message au lieu du dernier lu | Bug | Moyen | Moyenne | Rejete: doublon de HFR-002, qui couvre deja le retour au bon contexte de lecture apres action/rechargement. | Rejete |
+| HFR-010 | Insertion de liens regressees dans l'editeur | Regression UX | Moyen | Moyenne | Correction appliquee: l'action `Lien` sur une selection detecte une URL HTTP(S) dans le presse-papier, demande confirmation, puis insere directement `[url=URL]texte[/url]`. Sans URL detectee, le comportement standard `[url]texte[/url]` est conserve. | Corrige, a verifier sur appareil |
 | HFR-031 | Filtrer les posts: le bandeau `Resultats suivants` ne fonctionne pas | Bug UX | Moyen | Faible | Dans la vue filtree `<3`, le clic sur `Resultats suivants` ne fait rien alors que la grosse fleche fonctionne. Option probable: supprimer le bandeau redondant puisque la grosse fleche est affichee en permanence. | A faire |
 
 ## P3
@@ -72,7 +72,7 @@ Priorites:
 
 ## Ordre recommande
 
-1. Stabiliser les flux principaux: HFR-001, HFR-002, HFR-003, HFR-011, HFR-032, HFR-034, HFR-009.
+1. Stabiliser les flux principaux: HFR-001, HFR-002, HFR-003, HFR-011, HFR-032, HFR-034.
 2. Corriger les quick wins visibles: HFR-004, HFR-005, HFR-033, HFR-015, HFR-014, HFR-031.
 3. Restaurer le confort iPad: HFR-026, HFR-035, HFR-007 puis HFR-006.
 4. Repondre aux critiques de densite/lisibilite: HFR-013, HFR-012, HFR-016, HFR-008.

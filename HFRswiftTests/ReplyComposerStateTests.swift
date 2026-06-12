@@ -57,4 +57,18 @@ final class ReplyComposerStateTests: XCTestCase {
         XCTAssertEqual(result.text, "abc[img]u[/img]")
         XCTAssertEqual(result.cursorLocationUTF16, "abc[img]u[/img]".utf16.count)
     }
+
+    func testURLInsertionUsesClipboardURLAsOpeningTagAttribute() {
+        let text = "voir ce lien"
+        let selection = NSRange(location: 5, length: 7) // "ce lien"
+
+        let result = ReplyTextInsertionEngine.wrapSelectionWithURL(
+            "https://example.com/topic#post",
+            in: text,
+            selectedUTF16Range: selection
+        )
+
+        XCTAssertEqual(result.text, "voir [url=https://example.com/topic#post]ce lien[/url]")
+        XCTAssertEqual(result.cursorLocationUTF16, "voir [url=https://example.com/topic#post]ce lien[/url]".utf16.count)
+    }
 }

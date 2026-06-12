@@ -24,6 +24,11 @@ private final class TextEditorFocusRequest {
     }
 }
 
+private struct PendingClipboardLinkInsertion {
+    let urlString: String
+    let selectedRange: NSRange
+}
+
 // MARK: - AnswerView
 
 struct AnswerView: View {
@@ -64,6 +69,7 @@ struct AnswerView: View {
     @State private var message: String
     @State private var composerSubject = ""
     @State private var composerRecipient: String?
+    @State private var pendingClipboardLinkInsertion: PendingClipboardLinkInsertion?
     @State private var contextShowsSubjectField = false
     @State private var contextShowsSubcategoryPicker = false
     @State private var selectedSubcategoryID: String?
@@ -179,6 +185,18 @@ struct AnswerView: View {
         composerRecipient != nil || showsSubjectField || showsSubcategoryPicker
     }
 
+    private var isClipboardLinkAlertPresented: Binding<Bool> {
+        Binding(
+            get: { pendingClipboardLinkInsertion != nil },
+            set: { isPresented in
+                if !isPresented {
+                    pendingClipboardLinkInsertion = nil
+                    requestEditorFocus()
+                }
+            }
+        )
+    }
+
     // MARK: Body
 
     var body: some View {
@@ -219,6 +237,22 @@ struct AnswerView: View {
         }
         .sheet(isPresented: $isImageInsertionPresented, onDismiss: requestEditorFocus) {
             imageInsertionPanel
+        }
+        .alert(
+            "Insérer le lien du presse-papier ?",
+            isPresented: isClipboardLinkAlertPresented,
+            presenting: pendingClipboardLinkInsertion
+        ) { pending in
+            Button("Non", role: .cancel) {
+                pendingClipboardLinkInsertion = nil
+                applyURLTagWithoutClipboard(range: pending.selectedRange)
+            }
+            Button("Oui") {
+                pendingClipboardLinkInsertion = nil
+                applyClipboardURL(pending)
+            }
+        } message: { pending in
+            Text(pending.urlString)
         }
         .fullScreenCover(isPresented: $isGiphyPresented, onDismiss: requestEditorFocus) {
             GiphyPanel {
@@ -562,8 +596,48 @@ struct AnswerView: View {
     }
 
     private func performBBCode(_ tag: BBCodeTag, range: NSRange) {
+        if tag == .url,
+           range.length > 0,
+           let clipboardURLString = clipboardURLString() {
+            pendingClipboardLinkInsertion = PendingClipboardLinkInsertion(
+                urlString: clipboardURLString,
+                selectedRange: range
+            )
+            return
+        }
+
         let result = ReplyTextInsertionEngine.wrapWithBBCode(tag, in: message, selectedUTF16Range: range)
         applyInsertionResult(result)
+    }
+
+    private func applyURLTagWithoutClipboard(range: NSRange) {
+        let result = ReplyTextInsertionEngine.wrapWithBBCode(.url, in: message, selectedUTF16Range: range)
+        applyInsertionResult(result)
+    }
+
+    private func applyClipboardURL(_ pending: PendingClipboardLinkInsertion) {
+        let result = ReplyTextInsertionEngine.wrapSelectionWithURL(
+            pending.urlString,
+            in: message,
+            selectedUTF16Range: pending.selectedRange
+        )
+        applyInsertionResult(result)
+    }
+
+    private func clipboardURLString() -> String? {
+        let pasteboard = UIPasteboard.general
+        if let url = pasteboard.url, url.isHTTPOrHTTPS {
+            return url.absoluteString
+        }
+
+        guard let string = pasteboard.string?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !string.isEmpty,
+              let url = URL(string: string),
+              url.isHTTPOrHTTPS else {
+            return nil
+        }
+
+        return string
     }
 
     private func performSplitQuote(atUTF16Offset offset: Int) {
@@ -2330,6 +2404,13 @@ private extension String {
         unicodeScalars.contains { scalar in
             scalar.properties.isEmojiPresentation || scalar.properties.isEmojiModifierBase
         }
+    }
+}
+
+private extension URL {
+    var isHTTPOrHTTPS: Bool {
+        guard let scheme = scheme?.lowercased() else { return false }
+        return scheme == "http" || scheme == "https"
     }
 }
 

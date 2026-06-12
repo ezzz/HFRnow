@@ -134,6 +134,25 @@ enum ReplyTextInsertionEngine {
         return ReplyTextInsertionResult(text: newText, cursorLocationUTF16: cursorLocation)
     }
 
+    static func wrapSelectionWithURL(
+        _ urlString: String,
+        in text: String,
+        selectedUTF16Range: NSRange
+    ) -> ReplyTextInsertionResult {
+        guard let range = Range(selectedUTF16Range, in: text), selectedUTF16Range.length > 0 else {
+            return wrapWithBBCode(.url, in: text, selectedUTF16Range: selectedUTF16Range)
+        }
+
+        let selectedText = String(text[range])
+        let wrapped = "[url=\(urlString)]\(selectedText)[/url]"
+        let newText = text.replacingCharacters(in: range, with: wrapped)
+        let prefixUTF16Count = text[..<range.lowerBound].utf16.count
+        return ReplyTextInsertionResult(
+            text: newText,
+            cursorLocationUTF16: prefixUTF16Count + wrapped.utf16.count
+        )
+    }
+
     // MARK: Split quote
 
     /// Splits a [quotemsg=...]...[/quotemsg] block at the given cursor offset.
