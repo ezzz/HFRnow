@@ -21,6 +21,9 @@ Priorites:
 | HFR-005 | Liens des alertes qualite inoperants | Bug | Moyen | Faible a moyenne | Impact ponctuel mais c'est une regression visible. Cause confirmee: l'ouverture AQ reconstruisait le topic en forcant page 1. L'URL AQ est maintenant conservee avec sa page et son ancre de message. | Teste OK |
 | HFR-011 | Swipe retour bord gauche tres peu fiable | Bug UX | Fort | Moyenne | Cause mieux cernee: le probleme apparait sur le `MessagesView` pousse depuis un lien interne de topic. Le bouton retour custom avec badge et les fallbacks de swipe ont ete retires pour laisser le back natif. Un bouton leading type undo, a cote du back natif, affiche le nombre de vues empilees et permet de revenir au premier `MessagesView` empile. | Teste OK |
 | HFR-026 | Support multi-fenetre iPad / Split View | Fonction | Fort | Faible a moyenne | Demande prioritaire iPad. Cote SwiftUI, `WindowGroup` supporte les fenetres multiples si `UIApplicationSupportsMultipleScenes` est actif dans l'Info.plist. Flag active dans `HFRswift/Info.plist`; verifier sur iPad que l'etat global ne casse pas plusieurs scenes. | Corrige, a verifier sur iPad |
+| HFR-032 | Bottom bar MessagesView: boutons page/refresh parfois sans effet | Bug UX | Fort | Moyenne | Correction minimale appliquee: zone tactile externe stable 44x44 ajoutee aux boutons page precedente, page suivante, refresh et `+`, en conservant leur rendu principal et leur logique. | Corrige, a verifier sur appareil |
+| HFR-033 | AnswerView: recherche smiley ne remonte pas en haut | Bug UX | Moyen a fort | Faible | Correction appliquee: la liste smileys utilise une ancre haute via `ScrollViewReader` et revient en haut quand une nouvelle recherche termine, que les resultats soient vides ou non. | Corrige, a verifier sur appareil |
+| HFR-034 | AnswerView: zone d'edition ne suit pas le curseur sur message long | Bug UX | Fort | Moyenne | Correction appliquee: le `UITextView` de reponse garde un inset bas interne et force le caret a rester visible apres changement de texte ou de selection, sans figer la hauteur globale de la sheet. | Corrige, a verifier sur appareil |
 
 ## P2
 
@@ -28,6 +31,7 @@ Priorites:
 | --- | --- | --- | --- | --- | --- | --- |
 | HFR-006 | Perte du panneau lateral iPad liste topics/favoris + topic | Regression UX | Fort | Elevee | Gros impact pour les utilisateurs iPad en paysage. Correction probablement structurelle si la navigation SwiftUI a ete revue. A planifier apres les bugs de saisie/navigation. | A faire |
 | HFR-007 | Menu lateral iPad qui revient ouvert apres repli / retour app | Bug UX | Moyen a fort | Moyenne | Tres visible sur iPad et donne une impression d'instabilite. Moins lourd que restaurer l'ancien layout, donc a traiter separement si possible. | A faire |
+| HFR-035 | iPad portrait: scroll topic parfois ignore ou intercepte | Bug UX | Moyen a fort | Moyenne | Retour utilisateur sur lecture topic en iPad portrait: certains gestes de scroll semblent ne rien faire, possiblement lorsqu'ils sont un peu diagonaux. Piste: conflit ou interception par une vue/gesture au-dessus du contenu. A auditer car le scroll de lecture est un flux central, mais le retour reste a confirmer. | A auditer |
 | HFR-008 | Fin de page / fin de topic moins lisible | UX | Moyen | Faible a moyenne | Important pour la comprehension du statut de lecture. Probablement corrigeable par indicateur visuel explicite ou separateur plus net. | A faire |
 | HFR-009 | Refresh en bas de page qui saute au dernier message au lieu du dernier lu | Bug | Moyen | Moyenne | Peut faire perdre le contexte de lecture. A rapprocher de HFR-002 si le meme modele de position de lecture est implique. | A faire |
 | HFR-010 | Insertion de liens regressees dans l'editeur | Regression UX | Moyen | Moyenne | Moins bloquant que la saisie elle-meme, mais ralentit les posts construits. A corriger si l'ancien comportement peut etre restaure simplement via selection + presse-papier. | A faire |
@@ -68,8 +72,8 @@ Priorites:
 
 ## Ordre recommande
 
-1. Stabiliser les flux principaux: HFR-001, HFR-002, HFR-003, HFR-011, HFR-009.
-2. Corriger les quick wins visibles: HFR-004, HFR-005, HFR-015, HFR-014, HFR-031.
-3. Restaurer le confort iPad: HFR-026, HFR-007 puis HFR-006.
+1. Stabiliser les flux principaux: HFR-001, HFR-002, HFR-003, HFR-011, HFR-032, HFR-034, HFR-009.
+2. Corriger les quick wins visibles: HFR-004, HFR-005, HFR-033, HFR-015, HFR-014, HFR-031.
+3. Restaurer le confort iPad: HFR-026, HFR-035, HFR-007 puis HFR-006.
 4. Repondre aux critiques de densite/lisibilite: HFR-013, HFR-012, HFR-016, HFR-008.
 5. Traiter les ameliorations fonctionnelles non bloquantes: HFR-025, HFR-027 a HFR-029.

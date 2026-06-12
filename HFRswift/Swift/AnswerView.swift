@@ -1071,7 +1071,10 @@ private struct CombinedSmileyPickerView: View {
     @State private var topSuggestions: [SmileySearchHistoryEntry] = []
     @State private var searchTask: Task<Void, Never>?
     @State private var presentedSmiley: ReplySmiley?
+    @State private var searchResultsScrollResetID = UUID()
     @FocusState private var isSearchFieldFocused: Bool
+
+    private let scrollTopID = "smiley-picker-scroll-top"
 
     private var displayedSmileys: [ReplySmiley] {
         if sessionState.displayMode == .results { return sessionState.searchResults }
@@ -1097,22 +1100,33 @@ private struct CombinedSmileyPickerView: View {
             VStack(spacing: 0) {
                 ComposerSheetCloseHeader(title: "Smileys") { dismiss() }
 
-                ScrollView {
-                    if case .empty = sessionState.displayMode {
-                        emptyState
-                    } else if isShowingResults {
-                        smileyGrid(displayedSmileys, columns: favoriteColumns, isCompact: false)
-                            .padding(8)
-                    } else {
-                        smileyLibrary
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        Color.clear
+                            .frame(height: 0)
+                            .id(scrollTopID)
+
+                        if case .empty = sessionState.displayMode {
+                            emptyState
+                        } else if isShowingResults {
+                            smileyGrid(displayedSmileys, columns: favoriteColumns, isCompact: false)
+                                .padding(8)
+                        } else {
+                            smileyLibrary
+                        }
                     }
-                }
-                .safeAreaPadding(.bottom, showSuggestions && !suggestionChips.isEmpty ? 44 : 0)
-                .smileyPickerContentBackground()
-                .overlay(alignment: .bottom) {
-                    if showSuggestions && !suggestionChips.isEmpty {
-                        suggestionChipsRow
-                            .padding(.bottom, 4)
+                    .safeAreaPadding(.bottom, showSuggestions && !suggestionChips.isEmpty ? 44 : 0)
+                    .smileyPickerContentBackground()
+                    .overlay(alignment: .bottom) {
+                        if showSuggestions && !suggestionChips.isEmpty {
+                            suggestionChipsRow
+                                .padding(.bottom, 4)
+                        }
+                    }
+                    .onChange(of: searchResultsScrollResetID) { _, _ in
+                        withAnimation(.easeOut(duration: 0.18)) {
+                            proxy.scrollTo(scrollTopID, anchor: .top)
+                        }
                     }
                 }
 
@@ -1293,6 +1307,7 @@ private struct CombinedSmileyPickerView: View {
                     isSearching = false
                     sessionState.searchResults = results
                     sessionState.displayMode = results.isEmpty ? .empty : .results
+                    searchResultsScrollResetID = UUID()
                 }
             } catch {
                 guard !Task.isCancelled else { return }
@@ -1300,6 +1315,7 @@ private struct CombinedSmileyPickerView: View {
                     isSearching = false
                     sessionState.searchResults = []
                     sessionState.displayMode = .empty
+                    searchResultsScrollResetID = UUID()
                 }
             }
         }
@@ -2180,8 +2196,10 @@ private struct ReplyTextEditor: UIViewRepresentable {
         tv.font = editorFont
         tv.adjustsFontForContentSizeCategory = true
         tv.backgroundColor = .clear
-        tv.textContainerInset = .zero
+        tv.textContainerInset = UIEdgeInsets(top: 0, left: 0, bottom: 12, right: 0)
         tv.textContainer.lineFragmentPadding = 0
+        tv.isScrollEnabled = true
+        tv.alwaysBounceVertical = true
         tv.autocapitalizationType = .sentences
         tv.autocorrectionType = .yes
         tv.keyboardDismissMode = .none
@@ -2206,6 +2224,8 @@ private struct ReplyTextEditor: UIViewRepresentable {
         if focusRequest.consume() {
             uiView.becomeFirstResponder()
         }
+
+        context.coordinator.scheduleCaretVisibilityUpdate(in: uiView)
     }
 
     private func clampedRange(_ range: NSRange, utf16Count: Int) -> NSRange {
@@ -2216,16 +2236,49 @@ private struct ReplyTextEditor: UIViewRepresentable {
 
     final class Coordinator: NSObject, UITextViewDelegate {
         var parent: ReplyTextEditor
+        private var pendingCaretVisibilityUpdate = false
 
         init(_ parent: ReplyTextEditor) { self.parent = parent }
 
         func textViewDidChange(_ textView: UITextView) {
             if parent.text != textView.text { parent.text = textView.text }
+            if parent.selectedRange != textView.selectedRange {
+                parent.selectedRange = textView.selectedRange
+            }
+            scheduleCaretVisibilityUpdate(in: textView)
         }
 
         func textViewDidChangeSelection(_ textView: UITextView) {
             if parent.selectedRange != textView.selectedRange {
                 parent.selectedRange = textView.selectedRange
+            }
+            scheduleCaretVisibilityUpdate(in: textView)
+        }
+
+        func scheduleCaretVisibilityUpdate(in textView: UITextView) {
+            guard textView.isFirstResponder else { return }
+            guard !pendingCaretVisibilityUpdate else { return }
+            pendingCaretVisibilityUpdate = true
+
+            DispatchQueue.main.async { [weak self, weak textView] in
+                guard let self else { return }
+                self.pendingCaretVisibilityUpdate = false
+                guard let textView, textView.isFirstResponder else { return }
+
+                textView.layoutIfNeeded()
+
+                guard let selectedTextRange = textView.selectedTextRange else {
+                    textView.scrollRangeToVisible(textView.selectedRange)
+                    return
+                }
+
+                let caretRect = textView.caretRect(for: selectedTextRange.end)
+                if caretRect.isNull || caretRect.isEmpty {
+                    textView.scrollRangeToVisible(textView.selectedRange)
+                    return
+                }
+
+                textView.scrollRectToVisible(caretRect.insetBy(dx: 0, dy: -18), animated: false)
             }
         }
 

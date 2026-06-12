@@ -4192,6 +4192,7 @@ struct MessagesView: View {
         }
         .disabled(page <= 1)
         .legacyPageButtonSpacing(edge: .trailing)
+        .bottomBarStableHitTarget()
     }
 
     private var bottomNextPageButton: some View {
@@ -4203,6 +4204,7 @@ struct MessagesView: View {
         }
         .disabled(page >= currentMaxPage)
         .legacyPageButtonSpacing(edge: .leading)
+        .bottomBarStableHitTarget()
     }
 
     private var pageChoiceMenuFinalTargets: [Int] {
@@ -4790,6 +4792,7 @@ struct MessagesView: View {
                                             .font(.system(size: 16, weight: .semibold))
                                     }
                                     .topicBottomBarCircularIconButtonStyle(isProminent: true)
+                                    .bottomBarStableHitTarget()
                                     .accessibilityLabel("Actualiser")
                                     .transition(.opacity.combined(with: .scale))
                                 }
@@ -4803,6 +4806,8 @@ struct MessagesView: View {
                                         Label("New", systemImage: "plus")
                                     }
                                     .topicBottomBarButtonStyle(isProminent: false)
+                                    .bottomBarStableHitTarget()
+                                    .accessibilityLabel("Répondre")
                                 }
                             }
                         }
@@ -5010,6 +5015,8 @@ struct MessagesView: View {
                                 Label("New", systemImage: "plus")
                             }
                             .topicBottomBarButtonStyle(isProminent: false)
+                            .bottomBarStableHitTarget()
+                            .accessibilityLabel("Répondre")
                         }
                     }
                 }
@@ -6231,6 +6238,12 @@ private extension View {
         } else {
             self.padding(edge, 6)
         }
+    }
+
+    func bottomBarStableHitTarget() -> some View {
+        self
+            .frame(width: 44, height: 44)
+            .contentShape(Rectangle())
     }
 
     @ViewBuilder
