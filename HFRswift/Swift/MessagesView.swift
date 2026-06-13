@@ -2737,10 +2737,6 @@ struct MessagesView: View {
         appTheme.palette
     }
 
-    private var shouldShowMessagesStackRootButton: Bool {
-        resetMessagesStackToRootAction != nil && navigationDepth > 0
-    }
-
     private var linkedTopicNavigationBinding: Binding<Bool> {
         Binding(
             get: { navigateToLinkedTopic },
@@ -2878,6 +2874,48 @@ struct MessagesView: View {
             return "Recherche | \(page) / \(currentMaxPage)"
         }
         return "\(page) / \(currentMaxPage)"
+    }
+
+    @ViewBuilder
+    private var toolbarStackIndicatorView: some View {
+        if navigationDepth > 0 {
+            HStack(spacing: 2) {
+                Image(systemName: "chevron.backward")
+                    .font(.system(size: 7, weight: .bold))
+                Text("\(navigationDepth)")
+                    .font(.system(size: 9, weight: .bold))
+                    .monospacedDigit()
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 5)
+            .frame(minHeight: 14)
+            .background(themePalette.actionTintColor, in: Capsule())
+            .accessibilityLabel("\(navigationDepth) affichage de messages empilé")
+        }
+    }
+
+    private var toolbarTitleText: String {
+        topicDisplayTitle.isEmpty ? (topic._aTitle ?? "Messages") : topicDisplayTitle
+    }
+
+    private var toolbarTitleView: some View {
+        HStack(spacing: 4) {
+            toolbarStackIndicatorView
+            Text(toolbarTitleText)
+                .font(.caption2)
+                .fontWeight(.bold)
+                .lineLimit(1)
+                .truncationMode(.tail)
+        }
+    }
+
+    private var toolbarSubtitleView: some View {
+        HStack(spacing: 4) {
+            Text(toolbarSubtitleText)
+        }
+        .font(.caption2)
+        .foregroundStyle(.primary.opacity(0.72))
+        .lineLimit(1)
     }
 
     private var currentMaxPage: Int {
@@ -4239,37 +4277,6 @@ struct MessagesView: View {
         }
     }
 
-    @ToolbarContentBuilder
-    private var messagesStackRootButton: some ToolbarContent {
-        if shouldShowMessagesStackRootButton {
-            ToolbarItem(placement: .topBarLeading) {
-                Button {
-                    resetMessagesStackToRootAction?()
-                } label: {
-                    ZStack(alignment: .topTrailing) {
-                        Image(systemName: "arrow.uturn.backward")
-                            .font(.system(size: 15, weight: .semibold))
-                            .frame(width: 28, height: 30)
-                            .offset(x: -4, y: 2)
-
-                        if navigationDepth > 0 {
-                            Text("\(navigationDepth)")
-                                .font(.system(size: 9, weight: .bold))
-                                .monospacedDigit()
-                                .foregroundStyle(.white)
-                                .frame(minWidth: 15, minHeight: 15)
-                                .background(themePalette.actionTintColor, in: Capsule())
-                                .offset(x: -1)
-                        }
-                    }
-                    .frame(width: 38, height: 34)
-                    .contentShape(Rectangle())
-                }
-                .accessibilityLabel("Retour au premier affichage de messages empilé")
-            }
-        }
-    }
-
     private func refreshCurrentPagePreservingScroll() {
         AppHaptics.refreshStarted()
         shouldTriggerRefreshCompletionHaptic = true
@@ -4333,19 +4340,11 @@ struct MessagesView: View {
                 .toolbar {
                     ToolbarItem(placement: .principal) {
                         VStack(spacing: 2) {
-                            Text(topicDisplayTitle.isEmpty ? (topic._aTitle ?? "Messages") : topicDisplayTitle)
-                                .font(.caption2)
-                                .fontWeight(.bold)
-                                .lineLimit(1)
-                                .truncationMode(.tail)
-                            Text("\(page) / \(currentMaxPage)")
-                                .font(.caption2)
-                                .foregroundStyle(.primary.opacity(0.72))
-                                .lineLimit(1)
+                            toolbarTitleView
+                            toolbarSubtitleView
                         }
                         .multilineTextAlignment(.center)
                     }
-                    messagesStackRootButton
                 }
                 .onAppear {
                     performInitialLoad()
@@ -4667,19 +4666,11 @@ struct MessagesView: View {
                 .toolbar {
                     ToolbarItem(placement: .principal) {
                         VStack(spacing: 2) {
-                            Text(topicDisplayTitle.isEmpty ? (topic._aTitle ?? "Messages") : topicDisplayTitle)
-                                .font(.caption2)
-                                .fontWeight(.bold)
-                                .lineLimit(1)
-                                .truncationMode(.tail)
-                            Text(toolbarSubtitleText)
-                                .font(.caption2)
-                                .foregroundStyle(.primary.opacity(0.72))
-                                .lineLimit(1)
+                            toolbarTitleView
+                            toolbarSubtitleView
                         }
                         .multilineTextAlignment(.center)
                     }
-                    messagesStackRootButton
                     if hasPoll && pollIsNewVote && !isInSearchMode {
                         ToolbarItem(placement: .topBarTrailing) {
                             PollToolbarButton(isVotable: true) {
@@ -4916,19 +4907,11 @@ struct MessagesView: View {
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     VStack(spacing: 2) {
-                        Text(topicDisplayTitle.isEmpty ? (topic._aTitle ?? "Messages") : topicDisplayTitle)
-                            .font(.caption2)
-                            .fontWeight(.bold)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                        Text(toolbarSubtitleText)
-                            .font(.caption2)
-                            .foregroundStyle(.primary.opacity(0.72))
-                            .lineLimit(1)
+                        toolbarTitleView
+                        toolbarSubtitleView
                     }
                     .multilineTextAlignment(.center)
                 }
-                messagesStackRootButton
                 if hasPoll && pollIsNewVote && !isInSearchMode {
                     ToolbarItem(placement: .topBarTrailing) {
                         PollToolbarButton(isVotable: true) {

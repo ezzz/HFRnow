@@ -801,7 +801,6 @@ struct FavoritesListView: View {
                             curPage: favoritePostFilterTarget.result.endPage,
                             maxPage: favoritePostFilterTarget.result.maxPage,
                             separatorNewMessages: false,
-                            navigationDepth: 1,
                             initialFavoritePostFilterResult: favoritePostFilterTarget.result
                         )
                         .toolbar(.hidden, for: .tabBar)
