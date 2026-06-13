@@ -4188,7 +4188,7 @@ struct MessagesView: View {
             navigateToPreviousPageFromBottomButton()
         } label: {
             Image(systemName: "chevron.backward")
-                .font(.system(size: 15, weight: .semibold))
+                .font(.system(size: 14, weight: .semibold))
         }
         .disabled(page <= 1)
         .legacyPageButtonSpacing(edge: .trailing)
@@ -4200,7 +4200,7 @@ struct MessagesView: View {
             navigateToNextPageFromBottomButton()
         } label: {
             Image(systemName: "chevron.forward")
-                .font(.system(size: 15, weight: .semibold))
+                .font(.system(size: 14, weight: .semibold))
         }
         .disabled(page >= currentMaxPage)
         .legacyPageButtonSpacing(edge: .leading)
@@ -4789,7 +4789,7 @@ struct MessagesView: View {
                                         refreshCurrentPagePreservingScroll()
                                     } label: {
                                         Image(systemName: "arrow.clockwise")
-                                            .font(.system(size: 16, weight: .semibold))
+                                            .font(.system(size: 14, weight: .semibold))
                                     }
                                     .topicBottomBarCircularIconButtonStyle(isProminent: true)
                                     .bottomBarStableHitTarget()
@@ -4803,7 +4803,8 @@ struct MessagesView: View {
                                     Button {
                                         openReplyComposer()
                                     } label: {
-                                        Label("New", systemImage: "plus")
+                                        Image(systemName: "plus")
+                                            .font(.system(size: 14, weight: .semibold))
                                     }
                                     .topicBottomBarButtonStyle(isProminent: false)
                                     .bottomBarStableHitTarget()
@@ -5012,7 +5013,8 @@ struct MessagesView: View {
                             Button {
                                 openReplyComposer()
                             } label: {
-                                Label("New", systemImage: "plus")
+                                Image(systemName: "plus")
+                                    .font(.system(size: 14, weight: .semibold))
                             }
                             .topicBottomBarButtonStyle(isProminent: false)
                             .bottomBarStableHitTarget()
