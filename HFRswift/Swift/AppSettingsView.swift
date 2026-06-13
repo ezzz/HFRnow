@@ -83,6 +83,7 @@ struct AppSettingsView: View {
         }
     }
 
+    @AppStorage(AppStartupScreen.storageKey) private var startupScreenRawValue = AppStartupScreen.defaultValue
     @AppStorage("vos_sujets") private var favoritesTabBehavior = "0"
     @AppStorage("sujets_avec_cat") private var favoritesSortedByCategories = true
     @AppStorage("favorites_auto_refresh") private var favoritesAutoRefresh = false
@@ -121,6 +122,12 @@ struct AppSettingsView: View {
     private let favoritesTabOptions = [
         StringOption(value: "0", title: "Drapeaux & Favoris"),
         StringOption(value: "1", title: "Favoris uniquement")
+    ]
+
+    private let startupTabOptions = [
+        StringOption(value: AppStartupScreen.categoriesTabValue, title: "Tab Catégories"),
+        StringOption(value: AppStartupScreen.favoritesTabValue, title: "Tab Favoris"),
+        StringOption(value: AppStartupScreen.messagesTabValue, title: "Tab Messages")
     ]
 
     private let autoThemeOptions = [
@@ -337,6 +344,12 @@ struct AppSettingsView: View {
     @ViewBuilder
     private var generalSection: some View {
         Section("Général") {
+            Picker("Écran de démarrage", selection: $startupScreenRawValue) {
+                ForEach(startupTabOptions) { option in
+                    Text(option.title).tag(option.value)
+                }
+            }
+
             Picker("Favoris", selection: $favoritesTabBehavior) {
                 ForEach(favoritesTabOptions) { option in
                     Text(option.title).tag(option.value)
@@ -544,6 +557,7 @@ struct AppSettingsView: View {
             Text("Tous les onglets seront réinitialisés.")
         }
     }
+
 }
 
 private enum ProfileFilterListKind {

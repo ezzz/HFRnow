@@ -1108,7 +1108,15 @@ private enum CategoriesPreviewFactory {
 
 struct RootTabView: View {
     private enum RuntimeState {
-        static var selectedTab: RootTabIdentifier = .favorites
+        static var selectedTab: RootTabIdentifier?
+    }
+
+    private enum SidebarVisibilityStorage {
+        static let key = "HFRswiftIPadSidebarVisibility"
+        static let automatic = "automatic"
+        static let all = "all"
+        static let doubleColumn = "doubleColumn"
+        static let detailOnly = "detailOnly"
     }
 
     @StateObject private var appTheme = AppThemeStore.shared
@@ -1128,18 +1136,58 @@ struct RootTabView: View {
     @AppStorage(AQUnreadCounter.storageKey) private var unreadAQCount = 0
     @AppStorage("mp_badge_enabled") private var mpBadgeEnabled = true
     @AppStorage(AppTabBarMinimizeOnScroll.key) private var tabBarMinimizeOnScroll = true
+    @AppStorage(SidebarVisibilityStorage.key) private var iPadSidebarVisibilityRawValue = SidebarVisibilityStorage.automatic
 
     private var usesSidebarRoot: Bool {
         UIDevice.current.userInterfaceIdiom == .pad && horizontalSizeClass == .regular
     }
 
     init() {
-        _selectedTab = State(initialValue: RuntimeState.selectedTab)
+        let startupRawValue = UserDefaults.standard.string(forKey: AppStartupScreen.storageKey)
+        let runtimeTab = RuntimeState.selectedTab
+        let initialTab = runtimeTab ?? AppStartupScreen.rootTab(for: startupRawValue)
+        _selectedTab = State(initialValue: initialTab)
+        RuntimeState.selectedTab = initialTab
     }
 
     private func syncRuntimeSelectedTab(_ tab: RootTabIdentifier) {
         if RuntimeState.selectedTab != tab {
             RuntimeState.selectedTab = tab
+        }
+    }
+
+    private var iPadSidebarColumnVisibility: Binding<NavigationSplitViewVisibility> {
+        Binding {
+            Self.sidebarVisibility(from: iPadSidebarVisibilityRawValue)
+        } set: { newValue in
+            iPadSidebarVisibilityRawValue = Self.rawValue(for: newValue)
+        }
+    }
+
+    private static func sidebarVisibility(from rawValue: String) -> NavigationSplitViewVisibility {
+        switch rawValue {
+        case SidebarVisibilityStorage.all:
+            return .all
+        case SidebarVisibilityStorage.doubleColumn:
+            return .doubleColumn
+        case SidebarVisibilityStorage.detailOnly:
+            return .detailOnly
+        case SidebarVisibilityStorage.automatic:
+            fallthrough
+        default:
+            return .automatic
+        }
+    }
+
+    private static func rawValue(for visibility: NavigationSplitViewVisibility) -> String {
+        if visibility == .all {
+            return SidebarVisibilityStorage.all
+        } else if visibility == .doubleColumn {
+            return SidebarVisibilityStorage.doubleColumn
+        } else if visibility == .detailOnly {
+            return SidebarVisibilityStorage.detailOnly
+        } else {
+            return SidebarVisibilityStorage.automatic
         }
     }
 
@@ -1299,7 +1347,7 @@ struct RootTabView: View {
     }
 
     private var iPadSidebarRoot: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: iPadSidebarColumnVisibility) {
             List(selection: sidebarSelection) {
                 ForEach(Self.sidebarTabs, id: \.self) { tab in
                     NavigationLink(value: tab) {

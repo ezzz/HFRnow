@@ -29,6 +29,29 @@ enum RootTabIdentifier: Int {
     case more = 3
 }
 
+enum AppStartupScreen {
+    static let storageKey = "HFRswiftStartupScreen"
+    static let categoriesTabValue = "tab:categories"
+    static let favoritesTabValue = "tab:favorites"
+    static let messagesTabValue = "tab:messages"
+    static let defaultValue = favoritesTabValue
+
+    static func rootTab(for rawValue: String?) -> RootTabIdentifier {
+        guard let rawValue, !rawValue.isEmpty else { return .favorites }
+
+        switch rawValue {
+        case categoriesTabValue:
+            return .categories
+        case messagesTabValue:
+            return .messages
+        case favoritesTabValue:
+            fallthrough
+        default:
+            return .favorites
+        }
+    }
+}
+
 enum MessagesNotificationNavigation {
     static let openMessagesNotification = Notification.Name("HFRswiftOpenMessagesFromNotification")
     static let pendingOpenMessagesDefaultsKey = "HFRswiftOpenMessagesFromNotificationPending"
