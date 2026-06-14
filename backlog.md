@@ -20,7 +20,6 @@ Principe de mise a jour:
 | ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | HFR-001 | p.496 | Clavier tiers non conserve, surtout SwiftKey | Bug | Fort | Moyenne | Tres irritant pour les gros contributeurs: la saisie est centrale dans l'app et le bug revient a chaque reponse. Cause probable: `keyboardType = .asciiCapable` forcait un clavier compatible et pouvait exclure SwiftKey. Contrainte retiree, filtre anti-emoji conserve cote delegate. | Corrige, a verifier sur appareil |
-| HFR-002 | p.496, p.498 | Retour au mauvais endroit apres reponse/citation | Bug | Fort | Moyenne | Regression majeure du flux de lecture: apres avoir poste, l'utilisateur perd son contexte. Le flux ne suit plus l'URL/ancre du message poste: il recharge la page courante et restaure le dernier snapshot de scroll WebView. | Teste OK |
 | HFR-003 | p.495, p.497, p.499 | Multiquote peu clair ou casse | Bug / UX | Fort | Moyenne | Le bouton `+` et `Citer` utilisent maintenant la meme memoire de brouillon. Une citation ajoutee depuis un post est concatenee au brouillon existant avec une ligne vide, puis reste disponible si la fenetre est fermee et rouverte via `+`. | Teste OK |
 | HFR-004 | p.498 | Signalement forum qui renvoie une 404 | Bug | Moyen | Faible | Cause probable: l'action du formulaire `modo.php?...` et `referer_page` etaient parsees avec `&amp;` non decode, donnant des parametres invalides au POST. Les attributs du formulaire sont maintenant decodes et le champ `Submit` est garanti. | Teste OK |
 | HFR-005 | p.495 | Liens des alertes qualite inoperants | Bug | Moyen | Faible a moyenne | Impact ponctuel mais c'est une regression visible. Cause confirmee: l'ouverture AQ reconstruisait le topic en forcant page 1. L'URL AQ est maintenant conservee avec sa page et son ancre de message. | Teste OK |
@@ -30,14 +29,16 @@ Principe de mise a jour:
 | HFR-033 | Hors analyse initiale | AnswerView: recherche smiley ne remonte pas en haut | Bug UX | Moyen a fort | Faible | Correction appliquee: la liste smileys utilise une ancre haute via `ScrollViewReader` et revient en haut quand une nouvelle recherche termine, que les resultats soient vides ou non. | Corrige, a verifier sur appareil |
 | HFR-034 | Hors analyse initiale | AnswerView: zone d'edition ne suit pas le curseur sur message long | Bug UX | Fort | Moyenne | Correction appliquee: le `UITextView` de reponse garde un inset bas interne et force le caret a rester visible apres changement de texte ou de selection, sans figer la hauteur globale de la sheet. | Corrige, a verifier sur appareil |
 | HFR-007 | p.495, p.496 | Menu lateral iPad qui revient ouvert apres repli / retour app | Bug UX | Moyen a fort | Moyenne | Correction appliquee: la visibilite du `NavigationSplitView` iPad est maintenant pilotee explicitement et persistee, pour conserver l'etat replie/ouvert choisi par l'utilisateur au retour dans l'app. | Corrige, a verifier sur iPad |
-| HFR-009 | p.498 | Refresh en bas de page qui saute au dernier message au lieu du dernier lu | Bug | Moyen | Moyenne | Rejete: doublon de HFR-002, qui couvre deja le retour au bon contexte de lecture apres action/rechargement. | Rejete |
 | HFR-010 | p.497, p.499 | Insertion de liens regressees dans l'editeur | Regression UX | Moyen | Moyenne | Correction appliquee: l'action `Lien` sur une selection detecte une URL HTTP(S) dans le presse-papier, demande confirmation, puis insere directement `[url=URL]texte[/url]`. Sans URL detectee, le comportement standard `[url]texte[/url]` est conserve. | Corrige, a verifier sur appareil |
 | HFR-017 | p.498 | Fenetre de reponse non conservee quand elle est glissee vers le bas | UX / Perte de donnees | Moyen | Moyenne a elevee | Corrige via HFR-003: le bouton `+` et `Citer` partagent la meme memoire de brouillon, donc le contenu saisi est conserve quand l'editeur est ferme puis rouvert. | Corrige, a verifier sur appareil |
 | HFR-019 | p.498 | Demarrage pas au bon endroit / choix de l'ecran initial | UX | Moyen | Faible a moyenne | Correction appliquee: ajout du reglage `Ecran de demarrage` en premier dans les reglages, avec choix entre Categories, Favoris et Messages, dans l'ordre des tabs. Le choix s'applique au prochain lancement/restart de l'app. | Corrige, a verifier sur appareil |
 
 ## P1
 
-Aucune issue active.
+| ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| HFR-002 | p.496, p.498 | Retour au mauvais endroit apres reponse/citation | Bug | Fort | Moyenne | Regression majeure du flux de lecture: apres avoir poste, l'utilisateur perd son contexte. Le flux ne suit plus l'URL/ancre du message poste: il recharge la page courante et restaure le dernier snapshot de scroll WebView. | Corrige mais a ameliorer |
+| HFR-009 | p.498 | Refresh en bas de page qui saute au dernier message au lieu du dernier lu | Bug | Moyen | Moyenne | Anciennement considere comme doublon de HFR-002, mais a suivre separement si le refresh manuel garde un comportement imparfait ou surprenant. | Corrige mais a ameliorer |
 
 ## P2
 

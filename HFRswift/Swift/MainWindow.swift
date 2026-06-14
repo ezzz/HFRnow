@@ -1355,7 +1355,7 @@ struct RootTabView: View {
                     }
                 }
             }
-            .navigationTitle("HFRnow")
+            .navigationTitle("Hardware.fr")
         } detail: {
             selectedTabContent
         }
