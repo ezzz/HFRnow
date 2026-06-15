@@ -17,6 +17,8 @@ Principe de mise a jour:
 
 ## Traitees / sorties du backlog actif
 
+### Livrees build #21
+
 | ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | HFR-001 | p.496 | Clavier tiers non conserve, surtout SwiftKey | Bug | Fort | Moyenne | Tres irritant pour les gros contributeurs: la saisie est centrale dans l'app et le bug revient a chaque reponse. Cause probable: `keyboardType = .asciiCapable` forcait un clavier compatible et pouvait exclure SwiftKey. Contrainte retiree, filtre anti-emoji conserve cote delegate. | Corrige, a verifier sur appareil |
@@ -33,12 +35,16 @@ Principe de mise a jour:
 | HFR-017 | p.498 | Fenetre de reponse non conservee quand elle est glissee vers le bas | UX / Perte de donnees | Moyen | Moyenne a elevee | Corrige via HFR-003: le bouton `+` et `Citer` partagent la meme memoire de brouillon, donc le contenu saisi est conserve quand l'editeur est ferme puis rouvert. | Corrige, a verifier sur appareil |
 | HFR-019 | p.498 | Demarrage pas au bon endroit / choix de l'ecran initial | UX | Moyen | Faible a moyenne | Correction appliquee: ajout du reglage `Ecran de demarrage` en premier dans les reglages, avec choix entre Categories, Favoris et Messages, dans l'ordre des tabs. Le choix s'applique au prochain lancement/restart de l'app. | Corrige, a verifier sur appareil |
 
-## P1
+### Prochaine version build #22+
 
 | ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| HFR-002 | p.496, p.498 | Retour au mauvais endroit apres reponse/citation | Bug | Fort | Moyenne | Regression majeure du flux de lecture: apres avoir poste, l'utilisateur perd son contexte. Le flux ne suit plus l'URL/ancre du message poste: il recharge la page courante et restaure le dernier snapshot de scroll WebView. | Corrige mais a ameliorer |
-| HFR-009 | p.498 | Refresh en bas de page qui saute au dernier message au lieu du dernier lu | Bug | Moyen | Moyenne | Anciennement considere comme doublon de HFR-002, mais a suivre separement si le refresh manuel garde un comportement imparfait ou surprenant. | Corrige mais a ameliorer |
+| HFR-002 | p.496, p.498 | Retour au mauvais endroit apres reponse/citation | Bug | Fort | Moyenne | Correction amelioree: refresh/post/edition utilisent maintenant des ancres de message plutot qu'une restauration fragile par offset de scroll. | Corrige et teste OK |
+| HFR-009 | p.498 | Refresh en bas de page qui saute au dernier message au lieu du dernier lu | Bug | Moyen | Moyenne | Correction amelioree avec la meme logique que HFR-002: en bas de derniere page, l'ancien dernier post sert d'ancre et le bas de page est conserve s'il n'y a pas de nouveau message. | Corrige et teste OK |
+
+## P1
+
+Aucune issue active.
 
 ## P2
 

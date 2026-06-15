@@ -648,6 +648,11 @@ struct WebView: UIViewRepresentable {
         let y: CGFloat
         let viewportHeight: CGFloat
         let contentHeight: CGFloat
+        let visibleAnchor: String?
+
+        var distanceToBottom: CGFloat {
+            max(contentHeight - (y + viewportHeight), 0)
+        }
     }
 
     enum InitialScroll: Equatable {
@@ -816,6 +821,34 @@ struct WebView: UIViewRepresentable {
         let scrollTrackingScript = WKUserScript(
             source: """
             (function() {
+              function postAnchorForMessage(message) {
+                if (!message) { return null; }
+                var anchor = message.querySelector('a.anchorlink[name], a.anchorlink[id], a[name^="t"], a[id^="t"]');
+                if (!anchor) { return null; }
+                var value = anchor.getAttribute('name') || anchor.getAttribute('id') || '';
+                return /^t\\d+$/i.test(value) ? value : null;
+              }
+
+              function visiblePostAnchor(viewport) {
+                var messages = Array.prototype.slice.call(document.querySelectorAll('.message'));
+                var bestAnchor = null;
+                var bestScore = Number.MAX_VALUE;
+                for (var i = 0; i < messages.length; i++) {
+                  var message = messages[i];
+                  var rect = message.getBoundingClientRect();
+                  if (rect.bottom <= 0 || rect.top >= viewport) { continue; }
+                  var anchor = postAnchorForMessage(message);
+                  if (!anchor) { continue; }
+                  var score = Math.abs(rect.top - 8);
+                  if (rect.top < 0) { score += Math.abs(rect.top) * 0.25; }
+                  if (score < bestScore) {
+                    bestScore = score;
+                    bestAnchor = anchor;
+                  }
+                }
+                return bestAnchor;
+              }
+
               function notifyScrollState() {
                 var root = document.documentElement || {};
                 var body = document.body || {};
@@ -834,7 +867,8 @@ struct WebView: UIViewRepresentable {
                     atBottom: atBottom,
                     y: scrollY,
                     viewportHeight: viewport,
-                    contentHeight: contentHeight
+                    contentHeight: contentHeight,
+                    visibleAnchor: visiblePostAnchor(viewport)
                   });
                 } catch (e) {}
               }
@@ -1183,10 +1217,13 @@ struct WebView: UIViewRepresentable {
                     let y = Self.cgFloatValue(from: payload["y"]) ?? 0
                     let viewportHeight = Self.cgFloatValue(from: payload["viewportHeight"]) ?? 0
                     let contentHeight = Self.cgFloatValue(from: payload["contentHeight"]) ?? 0
+                    let visibleAnchor = (payload["visibleAnchor"] as? String)?
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
                     scrollPosition = WebView.ScrollPosition(
                         y: max(y, 0),
                         viewportHeight: max(viewportHeight, 0),
-                        contentHeight: max(contentHeight, 0)
+                        contentHeight: max(contentHeight, 0),
+                        visibleAnchor: visibleAnchor?.isEmpty == false ? visibleAnchor : nil
                     )
                 } else if let boolValue = message.body as? Bool {
                     isAtBottom = boolValue
@@ -2632,6 +2669,14 @@ struct MessagesView: View {
         let isFromResultsPage: Bool
     }
 
+    private struct TopicPageLoadRestoration {
+        let fetchAnchor: String?
+        let scrollAnchor: String?
+        let fallbackInitialScroll: WebView.InitialScroll?
+        let previousLastAnchor: String?
+        let scrollToBottomWhenNoNewerPost: Bool
+    }
+
     let topic: Topic
     let curPage: Int // Stored again as it can be updated when reloading the topic
     let maxPage: Int
@@ -3010,13 +3055,43 @@ struct MessagesView: View {
 
     private func normalizedMessageAnchor(_ value: String?) -> String? {
         guard let trimmed = nonEmptyString(value) else { return nil }
-        if trimmed.lowercased().hasPrefix("t") {
-            return trimmed
+        let hashless = trimmed.hasPrefix("#") ? String(trimmed.dropFirst()) : trimmed
+        if hashless.lowercased().hasPrefix("t") {
+            return hashless
         }
-        if trimmed.allSatisfy(\.isNumber) {
-            return "t\(trimmed)"
+        if hashless.allSatisfy(\.isNumber) {
+            return "t\(hashless)"
         }
-        return trimmed
+        return hashless
+    }
+
+    private func anchorNumericValue(_ anchor: String?) -> Int? {
+        guard let anchor = normalizedMessageAnchor(anchor) else { return nil }
+        let digits = anchor.trimmingCharacters(in: CharacterSet.decimalDigits.inverted)
+        return Int(digits)
+    }
+
+    private func isNewerLastAnchor(_ newAnchor: String?, than oldAnchor: String?) -> Bool {
+        guard let oldAnchor = normalizedMessageAnchor(oldAnchor),
+              let newAnchor = normalizedMessageAnchor(newAnchor) else {
+            return false
+        }
+        if let oldValue = anchorNumericValue(oldAnchor),
+           let newValue = anchorNumericValue(newAnchor) {
+            return newValue > oldValue
+        }
+        return newAnchor != oldAnchor
+    }
+
+    private var visibleMessageAnchor: String? {
+        normalizedMessageAnchor(lastWebViewScrollPosition?.visibleAnchor)
+    }
+
+    private var isNearBottomForPostReload: Bool {
+        guard let position = lastWebViewScrollPosition else {
+            return isWebContentAtBottom
+        }
+        return isWebContentAtBottom || position.distanceToBottom <= max(position.viewportHeight, 1)
     }
 
     private func intValue(from value: String?) -> Int? {
@@ -3076,6 +3151,29 @@ struct MessagesView: View {
         return false
     }
 
+    private func resolvedRestoration(
+        _ restoration: TopicPageLoadRestoration?,
+        content: TopicPageContent,
+        fetchAnchor: String?,
+        requestedInitialScroll: WebView.InitialScroll?
+    ) -> (anchor: String?, initialScroll: WebView.InitialScroll?) {
+        guard let restoration else {
+            return (normalizedMessageAnchor(fetchAnchor), requestedInitialScroll)
+        }
+
+        let newLastAnchor = lastMessageAnchor(from: content.messageActionsByIndex)
+        let hasNewerPost = isNewerLastAnchor(newLastAnchor, than: restoration.previousLastAnchor)
+        if restoration.scrollToBottomWhenNoNewerPost && !hasNewerPost {
+            return (nil, .bottom)
+        }
+
+        if let scrollAnchor = normalizedMessageAnchor(restoration.scrollAnchor) {
+            return (scrollAnchor, nil)
+        }
+
+        return (nil, restoration.fallbackInitialScroll)
+    }
+
     private func maybeProbeNextPageAfterRefresh(
         previousPage: Int,
         previousMaxPage: Int,
@@ -3117,14 +3215,15 @@ struct MessagesView: View {
         }
     }
 
-    private func loadPage(_ page: Int) {
+    private func loadPage(_ page: Int, restoration: TopicPageLoadRestoration? = nil) {
         let url = urlForPage(page)
-        print("[TopicPageTrace][MessagesView.loadPage.start] requestedPage=\(page) url=\(url) anchor=\(String(describing: self.anchor)) statePage=\(self.page) stateMax=\(currentMaxPage) topicCur=\(topic.curTopicPage) topicMax=\(topic.maxTopicPage)")
+        let fetchAnchor = restoration?.fetchAnchor ?? self.anchor
+        print("[TopicPageTrace][MessagesView.loadPage.start] requestedPage=\(page) url=\(url) anchor=\(String(describing: fetchAnchor)) statePage=\(self.page) stateMax=\(currentMaxPage) topicCur=\(topic.curTopicPage) topicMax=\(topic.maxTopicPage)")
         let previousPage = self.page
         let previousMaxPage = currentMaxPage
-        let requestedInitialScroll = initialScroll
-        let loadToken = beginTopicLoad()
-        topicPageLoader.fetchTopicPage(url: url, anchor: self.anchor) { result in
+        let requestedInitialScroll = restoration?.fallbackInitialScroll ?? initialScroll
+        let loadToken = beginTopicLoad(initialScroll: requestedInitialScroll)
+        topicPageLoader.fetchTopicPage(url: url, anchor: fetchAnchor) { result in
             DispatchQueue.main.async {
                 guard self.completeTopicLoad(loadToken) else { return }
 
@@ -3152,6 +3251,14 @@ struct MessagesView: View {
                     let parsedMaxPage = content.maxPage ?? previousMaxPage
                     let resolvedMaxPage = max(max(parsedMaxPage, resolvedPage), 1)
                     print("[TopicPageTrace][MessagesView.loadPage.success] requestedPage=\(requestedPage) contentCurrent=\(String(describing: content.currentPage)) contentMax=\(String(describing: content.maxPage)) resolvedPage=\(resolvedPage) parsedMax=\(parsedMaxPage) resolvedMax=\(resolvedMaxPage) previousPage=\(previousPage) previousMax=\(previousMaxPage) url=\(url)")
+                    let resolvedRestoration = self.resolvedRestoration(
+                        restoration,
+                        content: content,
+                        fetchAnchor: fetchAnchor,
+                        requestedInitialScroll: requestedInitialScroll
+                    )
+                    self.anchor = resolvedRestoration.anchor
+                    self.initialScroll = resolvedRestoration.initialScroll
                     do {
                         let rendered = try topicPageRenderer.render(html: content.html)
                         self.fileURL = rendered.fileURL
@@ -3191,13 +3298,22 @@ struct MessagesView: View {
 
     private func loadDirectURL(_ topicURL: String, initialScroll: WebView.InitialScroll? = nil) {
         guard !topicURL.isEmpty else { return }
-        self.anchor = URL(string: topicURL)?.fragment
+        let topicURLToLoad: String
+        if let url = URL(string: topicURL),
+           let scheme = url.scheme?.lowercased(),
+           scheme == "http" || scheme == "https" {
+            topicURLToLoad = normalizedForumTopicURLString(from: url)
+        } else {
+            topicURLToLoad = topicURL
+        }
+
+        self.anchor = URL(string: topicURLToLoad)?.fragment ?? URL(string: topicURL)?.fragment
         let previousPage = page
         let previousMaxPage = currentMaxPage
-        print("[TopicPageTrace][MessagesView.loadDirectURL.start] topicURL=\(topicURL) anchor=\(String(describing: self.anchor)) statePage=\(page) stateMax=\(currentMaxPage) topicCur=\(topic.curTopicPage) topicMax=\(topic.maxTopicPage) initialScroll=\(String(describing: initialScroll))")
+        print("[TopicPageTrace][MessagesView.loadDirectURL.start] topicURL=\(topicURLToLoad) anchor=\(String(describing: self.anchor)) statePage=\(page) stateMax=\(currentMaxPage) topicCur=\(topic.curTopicPage) topicMax=\(topic.maxTopicPage) initialScroll=\(String(describing: initialScroll))")
         let loadToken = beginTopicLoad(initialScroll: initialScroll)
 
-        topicPageLoader.fetchTopicPage(url: topicURL, anchor: self.anchor) { result in
+        topicPageLoader.fetchTopicPage(url: topicURLToLoad, anchor: self.anchor) { result in
             DispatchQueue.main.async {
                 guard self.completeTopicLoad(loadToken) else { return }
 
@@ -3219,12 +3335,12 @@ struct MessagesView: View {
                         return
                     }
                     let requestedPage = content.currentPage
-                        ?? TopicPageURLRouting.pageNumber(from: topicURL)
+                        ?? TopicPageURLRouting.pageNumber(from: topicURLToLoad)
                         ?? self.page
                     let resolvedPage = max(content.currentPage ?? requestedPage, 1)
                     let parsedMaxPage = content.maxPage ?? previousMaxPage
                     let resolvedMaxPage = max(max(parsedMaxPage, resolvedPage), 1)
-                    print("[TopicPageTrace][MessagesView.loadDirectURL.success] topicURL=\(topicURL) requestedPage=\(requestedPage) contentCurrent=\(String(describing: content.currentPage)) contentMax=\(String(describing: content.maxPage)) resolvedPage=\(resolvedPage) parsedMax=\(parsedMaxPage) resolvedMax=\(resolvedMaxPage) previousPage=\(previousPage) previousMax=\(previousMaxPage)")
+                    print("[TopicPageTrace][MessagesView.loadDirectURL.success] topicURL=\(topicURLToLoad) requestedPage=\(requestedPage) contentCurrent=\(String(describing: content.currentPage)) contentMax=\(String(describing: content.maxPage)) resolvedPage=\(resolvedPage) parsedMax=\(parsedMaxPage) resolvedMax=\(resolvedMaxPage) previousPage=\(previousPage) previousMax=\(previousMaxPage)")
                     let renderHTML: String = {
                         if self.isInSearchMode, !self.isFilteredSearchMode, let anchor = self.anchor {
                             return self.rewriteSeparatorBeforeAnchor(in: content.html, anchor: anchor)
@@ -4280,9 +4396,10 @@ struct MessagesView: View {
     private func refreshCurrentPagePreservingScroll() {
         AppHaptics.refreshStarted()
         shouldTriggerRefreshCompletionHaptic = true
+        let restoration = refreshCurrentPageRestoration()
         anchor = nil
-        initialScroll = currentScrollRestoration()
-        loadPage(page)
+        initialScroll = restoration.fallbackInitialScroll
+        loadPage(page, restoration: restoration)
     }
 
     private func currentScrollRestoration() -> WebView.InitialScroll? {
@@ -4290,6 +4407,91 @@ struct MessagesView: View {
             return .position(lastWebViewScrollPosition)
         }
         return isWebContentAtBottom ? .bottom : nil
+    }
+
+    private func refreshCurrentPageRestoration() -> TopicPageLoadRestoration {
+        let previousLastAnchor = lastMessageAnchor(from: messageActionsByIndex)
+        let fallbackInitialScroll = currentScrollRestoration()
+
+        guard !isInSearchMode, !isFavoritePostFilterMode else {
+            return TopicPageLoadRestoration(
+                fetchAnchor: nil,
+                scrollAnchor: nil,
+                fallbackInitialScroll: fallbackInitialScroll,
+                previousLastAnchor: nil,
+                scrollToBottomWhenNoNewerPost: false
+            )
+        }
+
+        if page >= currentMaxPage,
+           isWebContentAtBottom,
+           let previousLastAnchor {
+            return TopicPageLoadRestoration(
+                fetchAnchor: previousLastAnchor,
+                scrollAnchor: previousLastAnchor,
+                fallbackInitialScroll: .bottom,
+                previousLastAnchor: previousLastAnchor,
+                scrollToBottomWhenNoNewerPost: true
+            )
+        }
+
+        return TopicPageLoadRestoration(
+            fetchAnchor: nil,
+            scrollAnchor: visibleMessageAnchor,
+            fallbackInitialScroll: fallbackInitialScroll,
+            previousLastAnchor: nil,
+            scrollToBottomWhenNoNewerPost: false
+        )
+    }
+
+    private func reloadAfterEditedMessage(_ result: ReplyPostingResult) {
+        let refreshURLString = result.refreshURL.map { normalizedForumTopicURLString(from: $0) }
+        let refreshAnchor = normalizedMessageAnchor(result.refreshAnchor ?? result.refreshURL?.fragment)
+        let targetPage = TopicPageURLRouting.pageNumber(from: refreshURLString) ?? page
+        let fallbackInitialScroll: WebView.InitialScroll? = refreshAnchor == nil ? currentScrollRestoration() : .top
+        let restoration = TopicPageLoadRestoration(
+            fetchAnchor: nil,
+            scrollAnchor: refreshAnchor,
+            fallbackInitialScroll: fallbackInitialScroll,
+            previousLastAnchor: nil,
+            scrollToBottomWhenNoNewerPost: false
+        )
+
+        anchor = nil
+        initialScroll = fallbackInitialScroll
+        loadPage(targetPage, restoration: restoration)
+    }
+
+    private func reloadAfterPostedReply() {
+        guard page >= currentMaxPage else { return }
+
+        let previousLastAnchor = lastMessageAnchor(from: messageActionsByIndex)
+        let fallbackInitialScroll = currentScrollRestoration()
+
+        if isNearBottomForPostReload, let previousLastAnchor {
+            let restoration = TopicPageLoadRestoration(
+                fetchAnchor: previousLastAnchor,
+                scrollAnchor: previousLastAnchor,
+                fallbackInitialScroll: .bottom,
+                previousLastAnchor: previousLastAnchor,
+                scrollToBottomWhenNoNewerPost: true
+            )
+            anchor = nil
+            initialScroll = .bottom
+            loadPage(page, restoration: restoration)
+            return
+        }
+
+        let restoration = TopicPageLoadRestoration(
+            fetchAnchor: previousLastAnchor,
+            scrollAnchor: visibleMessageAnchor,
+            fallbackInitialScroll: fallbackInitialScroll,
+            previousLastAnchor: previousLastAnchor,
+            scrollToBottomWhenNoNewerPost: false
+        )
+        anchor = nil
+        initialScroll = fallbackInitialScroll
+        loadPage(page, restoration: restoration)
     }
 
     private func finishRefreshHapticIfNeeded() {
@@ -4317,18 +4519,22 @@ struct MessagesView: View {
     }
 
     private func handleComposerDismissalIfNeeded() {
-        guard pendingPostedReply != nil else { return }
+        guard let postedReply = pendingPostedReply else { return }
         pendingPostedReply = nil
 
         let presentationKind = activeComposerPresentationKind
         showSuccessToast(presentationKind.successToastText)
 
         guard presentationKind.shouldRefreshTopicOnSuccess else { return }
-        guard page >= currentMaxPage else { return }
 
-        anchor = nil
-        initialScroll = currentScrollRestoration()
-        loadPage(page)
+        switch presentationKind {
+        case .edit:
+            reloadAfterEditedMessage(postedReply)
+        case .reply:
+            reloadAfterPostedReply()
+        case .privateMessage:
+            break
+        }
     }
 
     var body: some View {
