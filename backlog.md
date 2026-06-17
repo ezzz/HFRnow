@@ -35,7 +35,7 @@ Principe de mise a jour:
 | HFR-017 | p.498 | Fenetre de reponse non conservee quand elle est glissee vers le bas | UX / Perte de donnees | Moyen | Moyenne a elevee | Corrige via HFR-003: le bouton `+` et `Citer` partagent la meme memoire de brouillon, donc le contenu saisi est conserve quand l'editeur est ferme puis rouvert. | Corrige, a verifier sur appareil |
 | HFR-019 | p.498 | Demarrage pas au bon endroit / choix de l'ecran initial | UX | Moyen | Faible a moyenne | Correction appliquee: ajout du reglage `Ecran de demarrage` en premier dans les reglages, avec choix entre Categories, Favoris et Messages, dans l'ordre des tabs. Le choix s'applique au prochain lancement/restart de l'app. | Corrige, a verifier sur appareil |
 
-### Prochaine version build #22+
+### Livrés build #22
 
 | ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -44,7 +44,10 @@ Principe de mise a jour:
 
 ## P1
 
-Aucune issue active.
+| ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| HFR-036 | Hors analyse initiale | Tab Messages: marquer des MP en non lus | Fonction / UX | Fort | Moyenne | Fonction de gestion importante pour les utilisateurs qui traitent leurs MP comme une file de suivi. A verifier cote forum/legacy si une action distante existe ou si un etat local suffit. | A faire |
+| HFR-037 | Hors analyse initiale | Tab Favoris: marquer un topic comme lu doit etre synchronise forum | Bug / Sync | Fort | Moyenne | Aujourd'hui le topic semble seulement passer en lu dans l'etat interne: apres kill/relance il redevient non lu. Le legacy envoyait probablement une requete forum pour marquer le topic lu, ce qui synchronise aussi avec le serveur. | A faire |
 
 ## P2
 
@@ -54,6 +57,7 @@ Aucune issue active.
 | HFR-035 | Hors analyse initiale | iPad portrait: scroll topic parfois ignore ou intercepte | Bug UX | Moyen a fort | Moyenne | Retour utilisateur sur lecture topic en iPad portrait: certains gestes de scroll semblent ne rien faire, possiblement lorsqu'ils sont un peu diagonaux. Piste: conflit ou interception par une vue/gesture au-dessus du contenu. A auditer car le scroll de lecture est un flux central, mais le retour reste a confirmer. | A auditer |
 | HFR-008 | p.497, p.498 | Fin de page / fin de topic moins lisible | UX | Moyen | Faible a moyenne | Important pour la comprehension du statut de lecture. Probablement corrigeable par indicateur visuel explicite ou separateur plus net. | A faire |
 | HFR-031 | Hors analyse initiale | Filtrer les posts: le bandeau `Resultats suivants` ne fonctionne pas | Bug UX | Moyen | Faible | Le cas peut arriver: le filtrage s'arrete volontairement apres un lot de resultats, notamment a partir de 40 posts trouves, sans forcement avoir scanne tout le topic. Le bouton sert alors a relancer le filtrage a partir de la page suivante, mais l'UX reste a clarifier car il peut donner l'impression d'un bouton redondant ou inactif. | A clarifier |
+| HFR-040 | Hors analyse initiale | MessagesView: refaire fonctionner les previews de videos intra-topic | Regression UX | Moyen a fort | Moyenne | Les previews video dans la vue intra-topic ameliorent fortement la lecture des messages avec contenus multimedia. A auditer cote parsing/HTML embarque/WebView et compatibilite des providers video. | A faire |
 
 ## P3
 
@@ -66,6 +70,8 @@ Aucune issue active.
 | HFR-016 | p.497, p.498 | Pastilles drapeaux/favoris moins identifiables | UX | Moyen | Faible a moyenne | Impact sur le scan des listes. Peut etre traite avec icones/couleurs plus distinctes sans revenir integralement a l'ancien design. | A faire |
 | HFR-018 | p.496 | Pull-to-refresh des favoris trop difficile a declencher | UX | Moyen | Faible a moyenne | Geste frequent, probablement corrigeable par ajustement de layout/scroll view si le probleme est localise. | A faire |
 | HFR-020 | p.497 | Insertion photo moins directe | UX | Faible a moyen | Moyenne | A optimiser apres les bugs editeur principaux. Peut etre lie aux contraintes modernes de Photo Picker. | A faire |
+| HFR-038 | Hors analyse initiale | MessagesView: masquer l'icone sondage si vote possible mais aucun choix disponible | Bug UX | Moyen | Faible a moyenne | Cas distinct d'un sondage deja repondu: si le detail indique qu'on peut voter mais qu'aucun choix n'est disponible, l'icone d'action est trompeuse et doit etre masquee. | A faire |
+| HFR-039 | Hors analyse initiale | MessagesView: toujours afficher l'icone sondage, prominent si reponse possible | UX | Moyen | Faible a moyenne | Rendre l'etat sondage plus coherent: icone visible des qu'un sondage existe, prominent uniquement quand l'utilisateur peut voter, non prominent sinon. A articuler avec HFR-038 pour le cas sans choix disponible. | A faire |
 
 ## P4
 
@@ -88,7 +94,8 @@ Aucune issue active.
 
 ## Ordre recommande
 
-1. Restaurer le confort iPad: HFR-035 puis HFR-006.
-2. Corriger les quick wins visibles: HFR-015, HFR-014, HFR-031.
-3. Repondre aux critiques de densite/lisibilite: HFR-013, HFR-012, HFR-016, HFR-008.
-4. Traiter les ameliorations fonctionnelles non bloquantes: HFR-025, HFR-027 a HFR-029.
+1. Traiter les P1 actifs: HFR-036 puis HFR-037.
+2. Restaurer le confort iPad: HFR-035 puis HFR-006.
+3. Corriger les quick wins visibles: HFR-015, HFR-014, HFR-031, HFR-038, HFR-039.
+4. Repondre aux critiques de densite/lisibilite: HFR-013, HFR-012, HFR-016, HFR-008.
+5. Traiter les ameliorations fonctionnelles non bloquantes: HFR-025, HFR-027 a HFR-029.

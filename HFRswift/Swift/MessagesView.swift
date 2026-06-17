@@ -4748,7 +4748,7 @@ struct MessagesView: View {
                         }
                     }
                 )
-                .sheet(isPresented: $isComposerPresented) {
+                .coverVerticalFullScreen(isPresented: $isComposerPresented) {
                     AnswerView(
                         topicURL: composerSubmitURL ?? topicAnswerURL,
                         title: composerNavigationTitle,
@@ -4760,7 +4760,6 @@ struct MessagesView: View {
                         composerDraftText: $composerDraftText,
                         isComposerPresented: $isComposerPresented
                     )
-                    .presentationDetents([.large])
                 }
                 .sheet(item: $aqPromptState) { state in
                     MessagePopupPromptSheet(
@@ -5318,6 +5317,107 @@ struct MessagesView: View {
                     EmptyView()
                 }
             }
+    }
+}
+
+private extension View {
+    func coverVerticalFullScreen<PresentedContent: View>(
+        isPresented: Binding<Bool>,
+        @ViewBuilder content: @escaping () -> PresentedContent
+    ) -> some View {
+        background(
+            CoverVerticalFullScreenPresenter(
+                isPresented: isPresented,
+                content: { AnyView(content()) }
+            )
+        )
+    }
+}
+
+private struct CoverVerticalFullScreenPresenter: UIViewControllerRepresentable {
+    @Binding var isPresented: Bool
+    let content: () -> AnyView
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(isPresented: $isPresented)
+    }
+
+    func makeUIViewController(context: Context) -> PresentationAnchorViewController {
+        let viewController = PresentationAnchorViewController()
+        viewController.view.backgroundColor = .clear
+        viewController.onDidAppear = { [weak coordinator = context.coordinator, weak viewController] in
+            guard let viewController else { return }
+            coordinator?.updatePresentation(from: viewController)
+        }
+        return viewController
+    }
+
+    func updateUIViewController(_ uiViewController: PresentationAnchorViewController, context: Context) {
+        context.coordinator.isPresented = $isPresented
+        context.coordinator.content = content
+        context.coordinator.updatePresentation(from: uiViewController)
+    }
+
+    final class Coordinator: NSObject, UIAdaptivePresentationControllerDelegate {
+        var isPresented: Binding<Bool>
+        var content: (() -> AnyView)?
+        private weak var hostingController: UIHostingController<AnyView>?
+
+        init(isPresented: Binding<Bool>) {
+            self.isPresented = isPresented
+        }
+
+        func updatePresentation(from presenter: UIViewController) {
+            guard presenter.view.window != nil else { return }
+
+            if isPresented.wrappedValue {
+                presentIfNeeded(from: presenter)
+            } else {
+                dismissIfNeeded()
+            }
+        }
+
+        func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
+            hostingController = nil
+            if isPresented.wrappedValue {
+                isPresented.wrappedValue = false
+            }
+        }
+
+        private func presentIfNeeded(from presenter: UIViewController) {
+            if let hostingController {
+                hostingController.rootView = content?() ?? AnyView(EmptyView())
+                return
+            }
+
+            guard presenter.presentedViewController == nil else { return }
+
+            let hostingController = UIHostingController(rootView: content?() ?? AnyView(EmptyView()))
+            hostingController.modalPresentationStyle = .fullScreen
+            hostingController.modalTransitionStyle = .coverVertical
+            hostingController.presentationController?.delegate = self
+            self.hostingController = hostingController
+
+            presenter.present(hostingController, animated: true)
+        }
+
+        private func dismissIfNeeded() {
+            guard let hostingController else { return }
+            self.hostingController = nil
+
+            if hostingController.presentingViewController != nil {
+                hostingController.dismiss(animated: true)
+            }
+        }
+    }
+
+    final class PresentationAnchorViewController: UIViewController {
+        var onDidAppear: (() -> Void)?
+
+        override func viewDidAppear(_ animated: Bool) {
+            super.viewDidAppear(animated)
+            onDidAppear?()
+        }
     }
 }
 

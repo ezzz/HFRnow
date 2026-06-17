@@ -24,6 +24,10 @@ private final class TextEditorFocusRequest {
     }
 }
 
+private final class TextEditorSelectionStore {
+    var currentRange = NSRange(location: 0, length: 0)
+}
+
 private struct PendingClipboardLinkInsertion {
     let urlString: String
     let selectedRange: NSRange
@@ -76,6 +80,7 @@ struct AnswerView: View {
     @State private var subcategoryOptions: [ReplyComposerSubcategoryOption] = []
     @State private var isPosting = false
     @State private var selectedRangeUTF16 = NSRange(location: 0, length: 0)
+    @State private var selectionStore = TextEditorSelectionStore()
 
     // MARK: Undo / Redo
     @State private var undoHistory: [String] = []
@@ -215,6 +220,7 @@ struct AnswerView: View {
             ReplyTextEditor(
                 text: $message,
                 selectedRange: $selectedRangeUTF16,
+                selectionStore: selectionStore,
                 focusRequest: focusRequest,
                 focusTrigger: focusTrigger,
                 textSizeScaleRawValue: textSizeScaleRawValue,
@@ -282,6 +288,7 @@ struct AnswerView: View {
             if defaultSmileys.isEmpty { defaultSmileys = smileyCatalogLoader.loadDefaultSmileys() }
             reloadFavoriteSmileys()
             selectedRangeUTF16 = NSRange(location: message.utf16.count, length: 0)
+            selectionStore.currentRange = selectedRangeUTF16
             requestEditorFocus()
         }
         .task(id: topicURL?.absoluteString) {
@@ -584,10 +591,21 @@ struct AnswerView: View {
 
     private func insertSnippet(_ snippet: String) {
         guard !snippet.isEmpty else { return }
-        let result = ReplyTextInsertionEngine.insert(snippet, into: message, selectedUTF16Range: selectedRangeUTF16)
+        let result = ReplyTextInsertionEngine.insert(snippet, into: message, selectedUTF16Range: currentSelectedRangeUTF16)
         message = result.text
         selectedRangeUTF16 = NSRange(location: result.cursorLocationUTF16, length: 0)
+        selectionStore.currentRange = selectedRangeUTF16
         // Focus is restored via the sheet's onDismiss — no action needed here.
+    }
+
+    private var currentSelectedRangeUTF16: NSRange {
+        clampedRange(selectionStore.currentRange, utf16Count: message.utf16.count)
+    }
+
+    private func clampedRange(_ range: NSRange, utf16Count: Int) -> NSRange {
+        let loc = max(0, min(range.location, utf16Count))
+        let len = max(0, min(range.length, utf16Count - loc))
+        return NSRange(location: loc, length: len)
     }
 
     private func reloadFavoriteSmileys() {
@@ -648,12 +666,14 @@ struct AnswerView: View {
     private func applyInsertionResult(_ result: ReplyTextInsertionResult) {
         message = result.text
         selectedRangeUTF16 = NSRange(location: result.cursorLocationUTF16, length: 0)
+        selectionStore.currentRange = selectedRangeUTF16
         requestEditorFocus()
     }
 
     private func clearComposer() {
         message = ""
         selectedRangeUTF16 = NSRange(location: 0, length: 0)
+        selectionStore.currentRange = selectedRangeUTF16
         requestEditorFocus()
     }
 
@@ -665,6 +685,7 @@ struct AnswerView: View {
         redoHistory.append(current)
         message = previous
         selectedRangeUTF16 = NSRange(location: previous.utf16.count, length: 0)
+        selectionStore.currentRange = selectedRangeUTF16
         requestEditorFocus()
     }
 
@@ -676,6 +697,7 @@ struct AnswerView: View {
         undoHistory.append(current)
         message = next
         selectedRangeUTF16 = NSRange(location: next.utf16.count, length: 0)
+        selectionStore.currentRange = selectedRangeUTF16
         requestEditorFocus()
     }
 
@@ -2248,6 +2270,7 @@ private struct ReplyPhotoLibraryPicker: UIViewControllerRepresentable {
 private struct ReplyTextEditor: UIViewRepresentable {
     @Binding var text: String
     @Binding var selectedRange: NSRange
+    let selectionStore: TextEditorSelectionStore
     let focusRequest: TextEditorFocusRequest
     let focusTrigger: Int   // changing this forces updateUIView to be called
     let textSizeScaleRawValue: Int
@@ -2277,6 +2300,7 @@ private struct ReplyTextEditor: UIViewRepresentable {
         tv.autocapitalizationType = .sentences
         tv.autocorrectionType = .yes
         tv.keyboardDismissMode = .none
+        selectionStore.currentRange = clampedRange(selectionStore.currentRange, utf16Count: text.utf16.count)
         return tv
     }
 
@@ -2284,22 +2308,42 @@ private struct ReplyTextEditor: UIViewRepresentable {
         context.coordinator.parent = self
         uiView.font = editorFont
 
-        if uiView.text != text {
+        let textWasDifferent = uiView.text != text
+
+        if textWasDifferent {
+            if context.coordinator.shouldStabilizeTextLayout(previousText: uiView.text, newText: text) {
+                context.coordinator.requestTextLayoutStabilization()
+            }
             uiView.text = text
         }
 
         let clamped = clampedRange(selectedRange, utf16Count: uiView.text.utf16.count)
-        if uiView.selectedRange != clamped {
+        let selectionStoreRange = clampedRange(selectionStore.currentRange, utf16Count: uiView.text.utf16.count)
+        let hasProgrammaticSelectionRequest = clamped == selectionStoreRange
+        var didApplySelectedRange = false
+        if hasProgrammaticSelectionRequest && uiView.selectedRange != clamped {
             uiView.selectedRange = clamped
+            didApplySelectedRange = true
         }
 
         // Consume a pending focus request. becomeFirstResponder is called only when
         // explicitly requested — not on every render — so no re-render loop occurs.
-        if focusRequest.consume() {
+        let didConsumeFocusRequest = focusRequest.consume()
+        if didConsumeFocusRequest {
             uiView.becomeFirstResponder()
         }
 
-        context.coordinator.scheduleCaretVisibilityUpdate(in: uiView)
+        let shouldScheduleCaretVisibilityUpdate = textWasDifferent
+            || didApplySelectedRange
+            || didConsumeFocusRequest
+            || context.coordinator.hasPendingTextLayoutStabilization
+
+        if shouldScheduleCaretVisibilityUpdate {
+            context.coordinator.scheduleCaretVisibilityUpdate(
+                in: uiView,
+                reason: "updateUIView textSync=\(textWasDifferent) selectedRange=\(didApplySelectedRange) focus=\(didConsumeFocusRequest) pendingStabilization=\(context.coordinator.hasPendingTextLayoutStabilization)"
+            )
+        }
     }
 
     private func clampedRange(_ range: NSRange, utf16Count: Int) -> NSRange {
@@ -2311,34 +2355,42 @@ private struct ReplyTextEditor: UIViewRepresentable {
     final class Coordinator: NSObject, UITextViewDelegate {
         var parent: ReplyTextEditor
         private var pendingCaretVisibilityUpdate = false
+        private var pendingTextLayoutStabilizationPasses = 0
 
         init(_ parent: ReplyTextEditor) { self.parent = parent }
 
+        var hasPendingTextLayoutStabilization: Bool {
+            pendingTextLayoutStabilizationPasses > 0
+        }
+
         func textViewDidChange(_ textView: UITextView) {
             if parent.text != textView.text { parent.text = textView.text }
-            if parent.selectedRange != textView.selectedRange {
-                parent.selectedRange = textView.selectedRange
-            }
-            scheduleCaretVisibilityUpdate(in: textView)
+            parent.selectionStore.currentRange = textView.selectedRange
+            stabilizeTextLayoutIfNeeded(in: textView)
+            scheduleCaretVisibilityUpdate(in: textView, reason: "textViewDidChange")
         }
 
         func textViewDidChangeSelection(_ textView: UITextView) {
-            if parent.selectedRange != textView.selectedRange {
-                parent.selectedRange = textView.selectedRange
-            }
-            scheduleCaretVisibilityUpdate(in: textView)
+            parent.selectionStore.currentRange = textView.selectedRange
         }
 
-        func scheduleCaretVisibilityUpdate(in textView: UITextView) {
-            guard textView.isFirstResponder else { return }
-            guard !pendingCaretVisibilityUpdate else { return }
+        func scheduleCaretVisibilityUpdate(in textView: UITextView, reason _: String) {
+            guard textView.isFirstResponder else {
+                return
+            }
+            guard !pendingCaretVisibilityUpdate else {
+                return
+            }
             pendingCaretVisibilityUpdate = true
 
             DispatchQueue.main.async { [weak self, weak textView] in
                 guard let self else { return }
                 self.pendingCaretVisibilityUpdate = false
-                guard let textView, textView.isFirstResponder else { return }
+                guard let textView, textView.isFirstResponder else {
+                    return
+                }
 
+                self.stabilizeTextLayoutIfNeeded(in: textView)
                 textView.layoutIfNeeded()
 
                 guard let selectedTextRange = textView.selectedTextRange else {
@@ -2361,8 +2413,48 @@ private struct ReplyTextEditor: UIViewRepresentable {
             shouldChangeTextIn range: NSRange,
             replacementText text: String
         ) -> Bool {
-            !text.containsKeyboardEmoji
+            guard !text.containsKeyboardEmoji else { return false }
+            if shouldStabilizeTextLayout(replacementText: text) {
+                requestTextLayoutStabilization()
+            }
+            return true
         }
+
+        func requestTextLayoutStabilization() {
+            pendingTextLayoutStabilizationPasses = max(pendingTextLayoutStabilizationPasses, 2)
+        }
+
+        func shouldStabilizeTextLayout(previousText: String, newText: String) -> Bool {
+            let oldLength = previousText.utf16.count
+            let newLength = newText.utf16.count
+            return abs(newLength - oldLength) >= 80 || hasMultipleLinesInserted(in: newText, comparedTo: previousText)
+        }
+
+        private func shouldStabilizeTextLayout(replacementText: String) -> Bool {
+            replacementText.utf16.count >= 80 || (replacementText.utf16.count > 1 && replacementText.contains("\n"))
+        }
+
+        private func hasMultipleLinesInserted(in newText: String, comparedTo previousText: String) -> Bool {
+            let newLineDelta = newText.reduce(0) { $0 + ($1 == "\n" ? 1 : 0) }
+                - previousText.reduce(0) { $0 + ($1 == "\n" ? 1 : 0) }
+            return newLineDelta >= 1
+        }
+
+        private func stabilizeTextLayoutIfNeeded(in textView: UITextView) {
+            guard pendingTextLayoutStabilizationPasses > 0 else { return }
+            pendingTextLayoutStabilizationPasses -= 1
+            stabilizeTextLayout(in: textView)
+        }
+
+        private func stabilizeTextLayout(in textView: UITextView) {
+            textView.setNeedsLayout()
+            if let textLayoutManager = textView.textLayoutManager {
+                textLayoutManager.ensureLayout(for: textLayoutManager.documentRange)
+            }
+            textView.layoutIfNeeded()
+            textView.invalidateIntrinsicContentSize()
+        }
+
 
         @available(iOS 16.0, *)
         func textView(
