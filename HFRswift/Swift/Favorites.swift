@@ -30,6 +30,7 @@ enum FavoritesTopicActionError: LocalizedError {
 }
 
 protocol FavoritesTopicActionServicing {
+    func markTopicRead(topic: Topic) async
     func removeFavoriteFlag(postID: Int, categoryID: Int) async throws
 }
 
@@ -38,6 +39,11 @@ final class ForumFavoritesTopicActionService: FavoritesTopicActionServicing {
 
     init(session: URLSession = .shared) {
         self.session = session
+    }
+
+    func markTopicRead(topic: Topic) async {
+        guard let requestURL = lastPageURL(for: topic) else { return }
+        _ = try? await session.data(from: requestURL)
     }
 
     func removeFavoriteFlag(postID: Int, categoryID: Int) async throws {
@@ -91,6 +97,20 @@ final class ForumFavoritesTopicActionService: FavoritesTopicActionServicing {
         guard (200...299).contains(httpResponse.statusCode) else {
             throw FavoritesTopicActionError.serverError(httpResponse.statusCode)
         }
+    }
+
+    private func lastPageURL(for topic: Topic) -> URL? {
+        guard let rawURL = topic.aURLOfLastPage?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !rawURL.isEmpty else {
+            return nil
+        }
+
+        if let absoluteURL = URL(string: rawURL), absoluteURL.scheme != nil {
+            return absoluteURL
+        }
+
+        let baseURL = URL(string: k.forumURL()) ?? URL(string: "https://forum.hardware.fr")!
+        return URL(string: rawURL, relativeTo: baseURL)?.absoluteURL
     }
 
     private func formURLEncoded(_ parameters: [String: String]) -> String {
@@ -838,12 +858,23 @@ struct FavoritesListView: View {
     }
 
     private func markTopicAsRead(_ topic: Topic) {
+        let postID = Int(topic.postID)
         let url = topic.aURL ?? topic.aURLOfLastPage ?? topic.aURLOfLastPost ?? ""
         if !url.isEmpty {
             visitedURLs.insert(url)
         }
         topic.isLocallyViewedInApp = true
         topic.isViewed = true
+
+        if postID > 0 {
+            withAnimation(.easeOut(duration: 0.18)) {
+                viewModel.removeTopic(withPostID: postID)
+            }
+        }
+
+        Task {
+            await topicActionService.markTopicRead(topic: topic)
+        }
     }
 
     private func toggleSuperFavorite(_ topic: Topic) {

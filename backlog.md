@@ -39,6 +39,7 @@ Principe de mise a jour:
 | ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | HFR-034 | Hors analyse initiale | AnswerView: zone d'edition ne suit pas le curseur sur message long | Bug UX | Fort | Moyenne | Correctif complementaire: les insertions programmatiques smiley/image/GIF conservent maintenant le curseur a la fin du contenu insere, et les remplacements rapides de suggestions clavier declenchent une stabilisation TextKit. | Corrige, test utilisateur OK |
+| HFR-037 | Hors analyse initiale | Tab Favoris: marquer un topic comme lu doit etre synchronise forum | Bug / Sync | Fort | Moyenne | Correction appliquee: l'action `Lu` retire immediatement le topic de la liste locale et lance en arriere-plan une requete vers la derniere page du topic, comme le legacy, pour synchroniser l'etat lu cote forum. | Corrige, a verifier sur appareil |
 
 ### Livrés build #23
 
@@ -58,7 +59,6 @@ Principe de mise a jour:
 | ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | HFR-036 | Hors analyse initiale | Tab Messages: marquer des MP en non lus | Fonction / UX | Fort | Moyenne | Fonction de gestion importante pour les utilisateurs qui traitent leurs MP comme une file de suivi. A verifier cote forum/legacy si une action distante existe ou si un etat local suffit. | A faire |
-| HFR-037 | Hors analyse initiale | Tab Favoris: marquer un topic comme lu doit etre synchronise forum | Bug / Sync | Fort | Moyenne | Aujourd'hui le topic semble seulement passer en lu dans l'etat interne: apres kill/relance il redevient non lu. Le legacy envoyait probablement une requete forum pour marquer le topic lu, ce qui synchronise aussi avec le serveur. | A faire |
 
 ## P2
 
