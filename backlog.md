@@ -105,7 +105,7 @@ Principe de mise a jour:
 
 ## Ordre recommande
 
-1. Traiter les P1 actifs: HFR-036 puis HFR-037.
+1. Traiter le P1 actif: HFR-036.
 2. Restaurer le confort iPad: HFR-035 puis HFR-006.
 3. Corriger les quick wins visibles: HFR-015, HFR-014, HFR-031, HFR-038, HFR-039.
 4. Repondre aux critiques de densite/lisibilite: HFR-013, HFR-012, HFR-016, HFR-008.
