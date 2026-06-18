@@ -2314,7 +2314,7 @@ private struct ReplyTextEditor: UIViewRepresentable {
             if context.coordinator.shouldStabilizeTextLayout(previousText: uiView.text, newText: text) {
                 context.coordinator.requestTextLayoutStabilization()
             }
-            uiView.text = text
+            context.coordinator.applyProgrammaticText(text, to: uiView)
         }
 
         let clamped = clampedRange(selectedRange, utf16Count: uiView.text.utf16.count)
@@ -2356,6 +2356,7 @@ private struct ReplyTextEditor: UIViewRepresentable {
         var parent: ReplyTextEditor
         private var pendingCaretVisibilityUpdate = false
         private var pendingTextLayoutStabilizationPasses = 0
+        private var isApplyingProgrammaticTextUpdate = false
 
         init(_ parent: ReplyTextEditor) { self.parent = parent }
 
@@ -2364,6 +2365,7 @@ private struct ReplyTextEditor: UIViewRepresentable {
         }
 
         func textViewDidChange(_ textView: UITextView) {
+            guard !isApplyingProgrammaticTextUpdate else { return }
             if parent.text != textView.text { parent.text = textView.text }
             parent.selectionStore.currentRange = textView.selectedRange
             stabilizeTextLayoutIfNeeded(in: textView)
@@ -2371,7 +2373,14 @@ private struct ReplyTextEditor: UIViewRepresentable {
         }
 
         func textViewDidChangeSelection(_ textView: UITextView) {
+            guard !isApplyingProgrammaticTextUpdate else { return }
             parent.selectionStore.currentRange = textView.selectedRange
+        }
+
+        func applyProgrammaticText(_ text: String, to textView: UITextView) {
+            isApplyingProgrammaticTextUpdate = true
+            defer { isApplyingProgrammaticTextUpdate = false }
+            textView.text = text
         }
 
         func scheduleCaretVisibilityUpdate(in textView: UITextView, reason _: String) {
@@ -2414,7 +2423,7 @@ private struct ReplyTextEditor: UIViewRepresentable {
             replacementText text: String
         ) -> Bool {
             guard !text.containsKeyboardEmoji else { return false }
-            if shouldStabilizeTextLayout(replacementText: text) {
+            if shouldStabilizeTextLayout(range: range, replacementText: text) {
                 requestTextLayoutStabilization()
             }
             return true
@@ -2430,8 +2439,10 @@ private struct ReplyTextEditor: UIViewRepresentable {
             return abs(newLength - oldLength) >= 80 || hasMultipleLinesInserted(in: newText, comparedTo: previousText)
         }
 
-        private func shouldStabilizeTextLayout(replacementText: String) -> Bool {
-            replacementText.utf16.count >= 80 || (replacementText.utf16.count > 1 && replacementText.contains("\n"))
+        private func shouldStabilizeTextLayout(range: NSRange, replacementText: String) -> Bool {
+            replacementText.utf16.count >= 80
+                || (replacementText.utf16.count > 1 && replacementText.contains("\n"))
+                || (range.length > 0 && replacementText.utf16.count > 1)
         }
 
         private func hasMultipleLinesInserted(in newText: String, comparedTo previousText: String) -> Bool {

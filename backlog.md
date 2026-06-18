@@ -29,11 +29,22 @@ Principe de mise a jour:
 | HFR-026 | p.496 | Support multi-fenetre iPad / Split View | Fonction | Fort | Faible a moyenne | Demande prioritaire iPad. Cote SwiftUI, `WindowGroup` supporte les fenetres multiples si `UIApplicationSupportsMultipleScenes` est actif dans l'Info.plist. Flag active dans `HFRswift/Info.plist`; verifier sur iPad que l'etat global ne casse pas plusieurs scenes. | Corrige, a verifier sur iPad |
 | HFR-032 | Hors analyse initiale | Bottom bar MessagesView: boutons page/refresh parfois sans effet | Bug UX | Fort | Moyenne | Correction minimale appliquee: zone tactile externe stable 44x44 ajoutee aux boutons page precedente, page suivante, refresh et `+`, en conservant leur rendu principal et leur logique. | Corrige, a verifier sur appareil |
 | HFR-033 | Hors analyse initiale | AnswerView: recherche smiley ne remonte pas en haut | Bug UX | Moyen a fort | Faible | Correction appliquee: la liste smileys utilise une ancre haute via `ScrollViewReader` et revient en haut quand une nouvelle recherche termine, que les resultats soient vides ou non. | Corrige, a verifier sur appareil |
-| HFR-034 | Hors analyse initiale | AnswerView: zone d'edition ne suit pas le curseur sur message long | Bug UX | Fort | Moyenne | Correction appliquee: le `UITextView` de reponse garde un inset bas interne et force le caret a rester visible apres changement de texte ou de selection, sans figer la hauteur globale de la sheet. | Corrige, a verifier sur appareil |
 | HFR-007 | p.495, p.496 | Menu lateral iPad qui revient ouvert apres repli / retour app | Bug UX | Moyen a fort | Moyenne | Correction appliquee: la visibilite du `NavigationSplitView` iPad est maintenant pilotee explicitement et persistee, pour conserver l'etat replie/ouvert choisi par l'utilisateur au retour dans l'app. | Corrige, a verifier sur iPad |
 | HFR-010 | p.497, p.499 | Insertion de liens regressees dans l'editeur | Regression UX | Moyen | Moyenne | Correction appliquee: l'action `Lien` sur une selection detecte une URL HTTP(S) dans le presse-papier, demande confirmation, puis insere directement `[url=URL]texte[/url]`. Sans URL detectee, le comportement standard `[url]texte[/url]` est conserve. | Corrige, a verifier sur appareil |
 | HFR-017 | p.498 | Fenetre de reponse non conservee quand elle est glissee vers le bas | UX / Perte de donnees | Moyen | Moyenne a elevee | Corrige via HFR-003: le bouton `+` et `Citer` partagent la meme memoire de brouillon, donc le contenu saisi est conserve quand l'editeur est ferme puis rouvert. | Corrige, a verifier sur appareil |
 | HFR-019 | p.498 | Demarrage pas au bon endroit / choix de l'ecran initial | UX | Moyen | Faible a moyenne | Correction appliquee: ajout du reglage `Ecran de demarrage` en premier dans les reglages, avec choix entre Categories, Favoris et Messages, dans l'ordre des tabs. Le choix s'applique au prochain lancement/restart de l'app. | Corrige, a verifier sur appareil |
+
+### Livrés build #24
+
+| ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| HFR-034 | Hors analyse initiale | AnswerView: zone d'edition ne suit pas le curseur sur message long | Bug UX | Fort | Moyenne | Correctif complementaire: les insertions programmatiques smiley/image/GIF conservent maintenant le curseur a la fin du contenu insere, et les remplacements rapides de suggestions clavier declenchent une stabilisation TextKit. | Corrige, test utilisateur OK |
+
+### Livrés build #23
+
+| ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| HFR-034 | Hors analyse initiale | AnswerView: zone d'edition ne suit pas le curseur sur message long | Bug UX | Fort | Moyenne | Correction appliquee: l'editeur de reponse evite les rerenders SwiftUI sur simple repositionnement du curseur, conserve la selection dans un store non observe et ne force le scroll du caret qu'apres un vrai changement de texte, focus ou selection programmatique. | Corrige, test utilisateur OK |
 
 ### Livrés build #22
 
