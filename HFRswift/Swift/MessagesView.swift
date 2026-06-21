@@ -2698,6 +2698,7 @@ struct MessagesView: View {
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @ObservedObject private var appTheme = AppThemeStore.shared
     @AppStorage(AppTextSizeScale.key) private var textSizeScaleRawValue = AppTextSizeScale.standard.rawValue
+    @AppStorage(AppTopicPageSwipeNavigation.key) private var topicPageSwipeNavigation = true
     @AppStorage("theme_style") private var messageDisplayStyleRawValue = 1
     @State private var page: Int
     @State private var availableMaxPage: Int
@@ -4722,6 +4723,7 @@ struct MessagesView: View {
 
                 .simultaneousGesture(
                     DragGesture().onEnded { value in
+                        guard topicPageSwipeNavigation else { return }
                         guard !isFavoritePostFilterMode else { return }
                         guard !isMessageTextInteractionActive else { return }
                         let horizontal = value.translation.width
@@ -4746,7 +4748,8 @@ struct MessagesView: View {
                                 loadPage(page - 1)
                             }
                         }
-                    }
+                    },
+                    including: topicPageSwipeNavigation ? .all : .none
                 )
                 .coverVerticalFullScreen(isPresented: $isComposerPresented) {
                     AnswerView(

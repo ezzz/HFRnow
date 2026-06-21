@@ -89,6 +89,7 @@ struct AppSettingsView: View {
     @AppStorage("favorites_auto_refresh") private var favoritesAutoRefresh = false
     @AppStorage(AppLayoutCompactMode.key) private var compactModeEnabled = false
     @AppStorage(AppTabBarMinimizeOnScroll.key) private var tabBarMinimizeOnScroll = true
+    @AppStorage(AppTopicPageSwipeNavigation.key) private var topicPageSwipeNavigation = true
     @AppStorage(AppTextSizeScale.key) private var textSizeScaleRawValue = AppTextSizeScale.standard.rawValue
     @AppStorage("haptics") private var hapticsEnabled = true
     @AppStorage(AppScreenRotation.legacyKey) private var screenRotationMode = AppScreenRotation.enabledValue
@@ -419,6 +420,8 @@ struct AppSettingsView: View {
             }
 
             Toggle("Masquer les pseudos blacklistés", isOn: $hideBlacklistedPseudo)
+
+            Toggle("Swipe changement de page", isOn: $topicPageSwipeNavigation)
 
             NavigationLink {
                 ProfileFilterListEditorView(kind: .blacklist)
