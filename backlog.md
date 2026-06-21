@@ -27,7 +27,6 @@ Principe de mise a jour:
 
 | ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| HFR-036 | Hors analyse initiale | Tab Messages: marquer des MP en non lus | Fonction / UX | Fort | Moyenne | Fonction de gestion importante pour les utilisateurs qui traitent leurs MP comme une file de suivi. A verifier cote forum/legacy si une action distante existe ou si un etat local suffit. | A faire |
 
 ## P2
 
@@ -76,13 +75,19 @@ Principe de mise a jour:
 
 ## Ordre recommande
 
-1. Traiter le P1 actif: HFR-036.
+1. Traiter le prochain P1 actif quand il sera identifie.
 2. Restaurer le confort iPad: HFR-006.
 3. Corriger les quick wins visibles: HFR-015, HFR-014, HFR-031, HFR-038, HFR-039.
 4. Repondre aux critiques de densite/lisibilite: HFR-013, HFR-012, HFR-016, HFR-008.
 5. Traiter les ameliorations fonctionnelles non bloquantes: HFR-025, HFR-027 a HFR-029.
 
 ## Historique des issues livrees
+
+### Livrés build #25
+
+| ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| HFR-036 | Hors analyse initiale | Tab Messages: marquer des MP en non lus et supprimer des MP | Fonction / UX | Fort | Moyenne | Ajout d'une action contextuelle `Marquer non lu` visible uniquement sur les MP lus. Ajout de l'action contextuelle `Supprimer` avec confirmation, en appelant le flux forum `valid_eff_prive`, puis retrait local de la conversation. | Livré |
 
 ### Livrees build #21
 

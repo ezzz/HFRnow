@@ -33,8 +33,202 @@ enum MPTopicReadState {
         return wasUnread
     }
 
+    static func markTopicAsUnread(_ topic: Topic) -> Bool {
+        let wasRead = topic.isViewed
+        topic.isLocallyViewedInApp = false
+        topic.isViewedFromForumAtLoad = false
+        topic.isViewed = false
+        return wasRead
+    }
+
     static func decrementedUnreadCount(_ count: Int, afterMarkingUnreadTopic didMarkUnreadTopic: Bool) -> Int {
         didMarkUnreadTopic ? max(count - 1, 0) : count
+    }
+
+    static func incrementedUnreadCount(_ count: Int, afterMarkingReadTopic didMarkReadTopic: Bool) -> Int {
+        didMarkReadTopic ? count + 1 : count
+    }
+}
+
+enum MPTopicActionError: LocalizedError {
+    case invalidTopicIdentifier
+    case missingHash
+    case invalidRequest
+    case serverError(Int)
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidTopicIdentifier:
+            return "MP invalide."
+        case .missingHash:
+            return "Session invalide: hash manquant."
+        case .invalidRequest:
+            return "Requête invalide."
+        case .serverError(let statusCode):
+            return "Erreur serveur (\(statusCode))."
+        }
+    }
+}
+
+protocol MPTopicActionServicing {
+    func markTopicUnread(topic: Topic) async throws
+    func deleteTopic(topic: Topic) async throws
+}
+
+final class ForumMPTopicActionService: MPTopicActionServicing {
+    private let session: URLSession
+
+    init(session: URLSession = .shared) {
+        self.session = session
+    }
+
+    func markTopicUnread(topic: Topic) async throws {
+        guard let topicID = topicID(from: topic) else {
+            throw MPTopicActionError.invalidTopicIdentifier
+        }
+
+        let baseURL = URL(string: k.forumURL()) ?? URL(string: "https://forum.hardware.fr")!
+        var components = URLComponents(
+            url: baseURL.appendingPathComponent("user/nonlu.php"),
+            resolvingAgainstBaseURL: false
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "config", value: "hfr.inc"),
+            URLQueryItem(name: "cat", value: "prive"),
+            URLQueryItem(name: "subcat", value: "0"),
+            URLQueryItem(name: "post", value: "\(topicID)"),
+            URLQueryItem(name: "page", value: "\(pageNumber(from: topic))"),
+            URLQueryItem(name: "p", value: "1"),
+            URLQueryItem(name: "sondage", value: "0"),
+            URLQueryItem(name: "owntopic", value: "0"),
+            URLQueryItem(name: "new", value: "0")
+        ]
+        guard let requestURL = components?.url else {
+            throw MPTopicActionError.invalidRequest
+        }
+
+        let (_, response) = try await session.data(from: requestURL)
+        try validate(response: response)
+    }
+
+    func deleteTopic(topic: Topic) async throws {
+        guard let topicID = topicID(from: topic) else {
+            throw MPTopicActionError.invalidTopicIdentifier
+        }
+        guard
+            let hash = HFRplusAppDelegate.shared()?
+                .hash_check?
+                .trimmingCharacters(in: .whitespacesAndNewlines),
+            !hash.isEmpty
+        else {
+            throw MPTopicActionError.missingHash
+        }
+
+        let baseURL = URL(string: k.forumURL()) ?? URL(string: "https://forum.hardware.fr")!
+        var components = URLComponents(
+            url: baseURL.appendingPathComponent("modo/manageaction.php"),
+            resolvingAgainstBaseURL: false
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "config", value: "hfr.inc"),
+            URLQueryItem(name: "cat", value: "prive"),
+            URLQueryItem(name: "type_page", value: "forum1"),
+            URLQueryItem(name: "moderation", value: "0")
+        ]
+        guard let requestURL = components?.url else {
+            throw MPTopicActionError.invalidRequest
+        }
+
+        var request = URLRequest(url: requestURL)
+        request.httpMethod = "POST"
+        request.setValue("application/x-www-form-urlencoded; charset=utf-8", forHTTPHeaderField: "Content-Type")
+        request.httpBody = formURLEncoded([
+            "hash_check": hash,
+            "topic0": "\(topicID)",
+            "valuecat0": "prive",
+            "valueforum0": "hardwarefr",
+            "topic1": "-1",
+            "topic_statusno1": "-1",
+            "action_reaction": "valid_eff_prive",
+            "type_page": "forum1"
+        ])
+        .data(using: .utf8)
+
+        let (_, response) = try await session.data(for: request)
+        try validate(response: response)
+    }
+
+    private func validate(response: URLResponse) throws {
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw MPTopicActionError.invalidRequest
+        }
+        guard (200...299).contains(httpResponse.statusCode) else {
+            throw MPTopicActionError.serverError(httpResponse.statusCode)
+        }
+    }
+
+    private func topicID(from topic: Topic) -> Int? {
+        if topic.postID > 0 {
+            return Int(topic.postID)
+        }
+        return topicID(from: topic.aURL)
+            ?? topicID(from: topic.aURLOfLastPost)
+            ?? topicID(from: topic.aURLOfLastPage)
+            ?? topicID(from: topic.aURLOfFirstPage)
+    }
+
+    private func topicID(from urlString: String?) -> Int? {
+        guard let urlString, !urlString.isEmpty else { return nil }
+
+        if
+            let components = URLComponents(string: urlString),
+            let value = components.queryItems?.first(where: { $0.name == "post" })?.value,
+            let topicID = Int(value),
+            topicID > 0
+        {
+            return topicID
+        }
+
+        guard
+            let regex = try? NSRegularExpression(pattern: "(?:\\?|&)post=(\\d+)", options: [.caseInsensitive])
+        else {
+            return nil
+        }
+        let range = NSRange(urlString.startIndex..<urlString.endIndex, in: urlString)
+        guard
+            let match = regex.firstMatch(in: urlString, options: [], range: range),
+            match.numberOfRanges >= 2,
+            let captureRange = Range(match.range(at: 1), in: urlString),
+            let topicID = Int(urlString[captureRange]),
+            topicID > 0
+        else {
+            return nil
+        }
+
+        return topicID
+    }
+
+    private func pageNumber(from topic: Topic) -> Int {
+        let page = TopicPageURLRouting.pageNumber(from: topic.aURL)
+            ?? TopicPageURLRouting.pageNumber(from: topic.aURLOfLastPost)
+            ?? TopicPageURLRouting.pageNumber(from: topic.aURLOfLastPage)
+            ?? Int(topic.curTopicPage)
+        return max(page, 1)
+    }
+
+    private func formURLEncoded(_ parameters: [String: String]) -> String {
+        parameters
+            .map { key, value in
+                "\(escapeForm(key))=\(escapeForm(value))"
+            }
+            .joined(separator: "&")
+    }
+
+    private func escapeForm(_ string: String) -> String {
+        var allowed = CharacterSet.urlQueryAllowed
+        allowed.remove(charactersIn: "&+=?")
+        let encoded = string.addingPercentEncoding(withAllowedCharacters: allowed) ?? string
+        return encoded.replacingOccurrences(of: "%20", with: "+")
     }
 }
 
@@ -146,6 +340,17 @@ final class MPListViewModel: ObservableObject {
         return didMarkUnreadTopic
     }
 
+    @discardableResult
+    func markTopicAsUnread(_ topic: Topic) -> Bool {
+        let didMarkReadTopic = MPTopicReadState.markTopicAsUnread(topic)
+        topics = topics
+        return didMarkReadTopic
+    }
+
+    func removeTopic(_ topic: Topic) {
+        topics.removeAll { $0 === topic }
+    }
+
     private func topicsDecoratedWithMPStorageFlags(_ topics: [Topic]) -> [Topic] {
         guard UserDefaults.standard.bool(forKey: "mpstorage_active"), mpStorage.isAvailable else {
             return topics
@@ -231,8 +436,12 @@ struct MPListView: View {
     @StateObject private var accountsStore: AccountsStore
     @State private var showAddAccountSheet = false
     @State private var showLogoutConfirm = false
+    @State private var topicActionErrorMessage: String?
+    @State private var pendingDeletedTopic: Topic?
+    @State private var processingTopicIDs: Set<ObjectIdentifier> = []
     @AppStorage("nb_mp") private var unreadMPCount = 0
 
+    private let topicActionService: any MPTopicActionServicing
     private let isActive: Bool
     private let navigationResetToken: UUID
 
@@ -264,11 +473,13 @@ struct MPListView: View {
     init(
         viewModel: MPListViewModel? = nil,
         accountsStore: AccountsStore? = nil,
+        topicActionService: (any MPTopicActionServicing)? = nil,
         isActive: Bool = true,
         navigationResetToken: UUID = UUID()
     ) {
         _viewModel = StateObject(wrappedValue: viewModel ?? MPListViewModel())
         _accountsStore = StateObject(wrappedValue: accountsStore ?? AccountsStore())
+        self.topicActionService = topicActionService ?? ForumMPTopicActionService()
         self.isActive = isActive
         self.navigationResetToken = navigationResetToken
     }
@@ -279,6 +490,73 @@ struct MPListView: View {
             unreadMPCount,
             afterMarkingUnreadTopic: didMarkUnreadTopic
         )
+    }
+
+    private var deleteConfirmationBinding: Binding<Bool> {
+        Binding(
+            get: { pendingDeletedTopic != nil },
+            set: { isPresented in
+                if !isPresented {
+                    pendingDeletedTopic = nil
+                }
+            }
+        )
+    }
+
+    private var topicActionErrorBinding: Binding<Bool> {
+        Binding(
+            get: { topicActionErrorMessage != nil },
+            set: { isPresented in
+                if !isPresented {
+                    topicActionErrorMessage = nil
+                }
+            }
+        )
+    }
+
+    private func markTopicAsUnread(_ topic: Topic) {
+        guard topic.isViewed else { return }
+        let topicID = ObjectIdentifier(topic)
+        guard !processingTopicIDs.contains(topicID) else { return }
+
+        processingTopicIDs.insert(topicID)
+        Task {
+            defer { processingTopicIDs.remove(topicID) }
+            do {
+                try await topicActionService.markTopicUnread(topic: topic)
+                let didMarkReadTopic = viewModel.markTopicAsUnread(topic)
+                unreadMPCount = MPTopicReadState.incrementedUnreadCount(
+                    unreadMPCount,
+                    afterMarkingReadTopic: didMarkReadTopic
+                )
+            } catch {
+                topicActionErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            }
+        }
+    }
+
+    private func requestDeleteTopic(_ topic: Topic) {
+        pendingDeletedTopic = topic
+    }
+
+    private func deleteTopic(_ topic: Topic) {
+        let topicID = ObjectIdentifier(topic)
+        guard !processingTopicIDs.contains(topicID) else { return }
+
+        processingTopicIDs.insert(topicID)
+        Task {
+            defer { processingTopicIDs.remove(topicID) }
+            do {
+                let wasUnread = !topic.isViewed
+                try await topicActionService.deleteTopic(topic: topic)
+                viewModel.removeTopic(topic)
+                if wasUnread {
+                    unreadMPCount = max(unreadMPCount - 1, 0)
+                }
+            } catch {
+                topicActionErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            }
+        }
     }
 
     var body: some View {
@@ -307,8 +585,15 @@ struct MPListView: View {
                             .foregroundStyle(.secondary)
                     }
                     ForEach(viewModel.topics) { topic in
+                        let isProcessing = processingTopicIDs.contains(ObjectIdentifier(topic))
                         MPRowView(topic: topic) {
                             markTopicAsRead(topic)
+                        } onMarkUnread: {
+                            markTopicAsUnread(topic)
+                        } onDelete: {
+                            requestDeleteTopic(topic)
+                        } isProcessingAction: {
+                            isProcessing
                         }
                     }
                 }
@@ -398,6 +683,24 @@ struct MPListView: View {
             } message: {
                 Text("Déconnecter le compte courant ?")
             }
+            .alert("Supprimer ce MP ?", isPresented: deleteConfirmationBinding) {
+                Button("Annuler", role: .cancel) {
+                    pendingDeletedTopic = nil
+                }
+                Button("Supprimer", role: .destructive) {
+                    if let pendingDeletedTopic {
+                        deleteTopic(pendingDeletedTopic)
+                    }
+                    pendingDeletedTopic = nil
+                }
+            } message: {
+                Text("La conversation sera effacée du forum.")
+            }
+            .alert("Action impossible", isPresented: topicActionErrorBinding) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(topicActionErrorMessage ?? "Erreur inconnue.")
+            }
         }
         .id(navigationResetToken)
     }
@@ -406,6 +709,9 @@ struct MPListView: View {
 struct MPRowView: View {
     var topic: Topic
     var onOpen: (() -> Void)? = nil
+    var onMarkUnread: (() -> Void)? = nil
+    var onDelete: (() -> Void)? = nil
+    var isProcessingAction: (() -> Bool)? = nil
     @AppStorage("mpstorage_active") private var mpStorageActive = false
 
     // "[non lu]" prefix detection — strips brackets, returns the keyword if present.
@@ -460,6 +766,38 @@ struct MPRowView: View {
         AnyView(MPAvatarView(interlocutor: topic.aAuthorOrInter))
     }
 
+    private var isProcessing: Bool {
+        isProcessingAction?() ?? false
+    }
+
+    private var extraContextMenu: (() -> AnyView)? {
+        guard onMarkUnread != nil || onDelete != nil else { return nil }
+
+        return {
+            AnyView(
+                Group {
+                    if isViewed, let onMarkUnread {
+                        Button {
+                            onMarkUnread()
+                        } label: {
+                            MenuActionLabel("Marquer non lu", systemImage: "envelope.badge")
+                        }
+                        .disabled(isProcessing)
+                    }
+
+                    if let onDelete {
+                        Button(role: .destructive) {
+                            onDelete()
+                        } label: {
+                            MenuActionLabel("Supprimer", systemImage: "trash", role: .destructive)
+                        }
+                        .disabled(isProcessing)
+                    }
+                }
+            )
+        }
+    }
+
     var body: some View {
         TopicListRowView(
             topic: topic,
@@ -476,6 +814,7 @@ struct MPRowView: View {
             leadingAccessory: avatarAccessory,
             openContext: .privateMessages,
             quickActions: TopicQuickActionPolicy.defaults(for: .privateMessages),
+            extraContextMenu: extraContextMenu,
             onOpen: { _ in
             onOpen?()
             }
