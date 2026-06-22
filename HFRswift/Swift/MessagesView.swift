@@ -643,6 +643,133 @@ final class MessageWebView: WKWebView {
     }
 }
 
+private enum MessageBodyTextSizeCSS {
+    static let styleElementID = "hfrswift-text-size"
+
+    static func css(fontSize: CGFloat) -> String {
+        let size = cssFontSizeValue(fontSize)
+        return """
+        :root {
+          --hfr-message-body-font-size: \(size)px;
+        }
+        .message .content .right {
+          font-size: var(--hfr-message-body-font-size) !important;
+        }
+        .message .content .right * {
+          font-size: 1em !important;
+        }
+        """
+    }
+
+    static func inject(into html: String, fontSize: CGFloat) -> String {
+        let styleTag = """
+        <style id="\(styleElementID)" type="text/css">
+        \(css(fontSize: fontSize))
+        </style>
+        """
+        let existingStylePattern = #"<style[^>]*\bid\s*=\s*['"]hfrswift-text-size['"][^>]*>[\s\S]*?</style>"#
+        if let range = html.range(of: existingStylePattern, options: [.regularExpression, .caseInsensitive]) {
+            return html.replacingCharacters(in: range, with: styleTag)
+        }
+        if let headEndRange = html.range(of: "</head>", options: [.caseInsensitive]) {
+            var output = html
+            output.insert(contentsOf: styleTag, at: headEndRange.lowerBound)
+            return output
+        }
+        return styleTag + html
+    }
+
+    static func applyJavaScript(fontSize: CGFloat) -> String {
+        let cssLiteral = css(fontSize: fontSize).debugDescription
+        let idLiteral = styleElementID.debugDescription
+        return """
+        (function() {
+          var css = \(cssLiteral);
+          var style = document.getElementById(\(idLiteral));
+          if (!style && document.head) {
+            style = document.createElement('style');
+            style.id = \(idLiteral);
+            style.setAttribute('type', 'text/css');
+            document.head.appendChild(style);
+          }
+          if (style) {
+            style.textContent = css;
+          }
+          return \(probeJavaScriptBody(fontSize: fontSize));
+        })();
+        """
+    }
+
+    static func probeJavaScript(fontSize: CGFloat) -> String {
+        """
+        (function() {
+          return \(probeJavaScriptBody(fontSize: fontSize));
+        })();
+        """
+    }
+
+    static func probeIsSatisfied(_ result: Any?, expectedFontSize: CGFloat) -> Bool {
+        guard let payload = result as? [String: Any] else { return true }
+        if let hasNode = payload["hasNode"] as? Bool, !hasNode {
+            return true
+        }
+        if let ok = payload["ok"] as? Bool {
+            return ok
+        }
+        if let number = payload["ok"] as? NSNumber {
+            return number.boolValue
+        }
+        guard let applied = numberValue(payload["applied"]) else { return true }
+        return abs(applied - Double(max(expectedFontSize, 1))) <= 0.51
+    }
+
+    static func appliedFontSizeDescription(from result: Any?) -> String {
+        guard let payload = result as? [String: Any] else { return "unknown" }
+        guard let applied = numberValue(payload["applied"]) else { return "nil" }
+        return cssFontSizeValue(CGFloat(applied))
+    }
+
+    private static func probeJavaScriptBody(fontSize: CGFloat) -> String {
+        let expected = cssFontSizeValue(fontSize)
+        return """
+        (function() {
+          var expected = \(expected);
+          var node = document.querySelector('.message .content .right');
+          if (!node || !window.getComputedStyle) {
+            return { expected: expected, applied: null, ok: true, hasNode: false };
+          }
+          var raw = window.getComputedStyle(node).fontSize || "";
+          var applied = parseFloat(raw);
+          var ok = !isNaN(applied) && Math.abs(applied - expected) <= 0.51;
+          return { expected: expected, applied: isNaN(applied) ? null : applied, ok: ok, hasNode: true };
+        })()
+        """
+    }
+
+    private static func cssFontSizeValue(_ fontSize: CGFloat) -> String {
+        String(format: "%.2f", locale: Locale(identifier: "en_US_POSIX"), Double(max(fontSize, 1)))
+    }
+
+    private static func numberValue(_ value: Any?) -> Double? {
+        if let double = value as? Double {
+            return double
+        }
+        if let cgFloat = value as? CGFloat {
+            return Double(cgFloat)
+        }
+        if let int = value as? Int {
+            return Double(int)
+        }
+        if let number = value as? NSNumber {
+            return number.doubleValue
+        }
+        if let string = value as? String {
+            return Double(string)
+        }
+        return nil
+    }
+}
+
 struct WebView: UIViewRepresentable {
     struct ScrollPosition: Equatable {
         let y: CGFloat
@@ -1492,28 +1619,53 @@ struct WebView: UIViewRepresentable {
             }
 
             let fontSize = max(messageBodyFontSize, 1)
-            let script = """
-            (function() {
-              var css = ".message .content .right { font-size: \(fontSize)px !important; }";
-              var style = document.getElementById('hfrswift-text-size');
-              if (!style && document.head) {
-                style = document.createElement('style');
-                style.id = 'hfrswift-text-size';
-                document.head.appendChild(style);
-              }
-              if (style) {
-                style.textContent = css;
-              }
-            })();
-            """
+            let script = MessageBodyTextSizeCSS.applyJavaScript(fontSize: fontSize)
 
             webView.evaluateJavaScript(script) { [weak self] _, error in
                 if let error = error {
                     print("Text size JS error:", error.localizedDescription)
                 } else {
                     self?.lastAppliedMessageBodyFontSize = fontSize
+                    self?.scheduleTextSizeInvariantChecks(in: webView, expectedFontSize: fontSize)
                 }
                 completion?()
+            }
+        }
+
+        private func scheduleTextSizeInvariantChecks(in webView: WKWebView, expectedFontSize: CGFloat) {
+            for delay in [0.18, 0.60] {
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self, weak webView] in
+                    guard let self, let webView else { return }
+                    self.verifyTextSizeInvariant(in: webView, expectedFontSize: expectedFontSize)
+                }
+            }
+        }
+
+        private func verifyTextSizeInvariant(in webView: WKWebView, expectedFontSize: CGFloat) {
+            let probeScript = MessageBodyTextSizeCSS.probeJavaScript(fontSize: expectedFontSize)
+            webView.evaluateJavaScript(probeScript) { result, error in
+                if let error {
+                    print("Text size probe JS error:", error.localizedDescription)
+                    return
+                }
+                guard !MessageBodyTextSizeCSS.probeIsSatisfied(result, expectedFontSize: expectedFontSize) else {
+                    return
+                }
+
+                print(
+                    "Text size invariant mismatch; expected:",
+                    expectedFontSize,
+                    "applied:",
+                    MessageBodyTextSizeCSS.appliedFontSizeDescription(from: result)
+                )
+                let applyScript = MessageBodyTextSizeCSS.applyJavaScript(fontSize: expectedFontSize)
+                webView.evaluateJavaScript(applyScript) { [weak self] _, error in
+                    if let error {
+                        print("Text size invariant reapply JS error:", error.localizedDescription)
+                    } else {
+                        self?.lastAppliedMessageBodyFontSize = expectedFontSize
+                    }
+                }
             }
         }
 
@@ -2837,6 +2989,11 @@ struct MessagesView: View {
         ).pointSize
     }
 
+    private func renderTopicPageHTML(_ html: String) throws -> TopicPageRenderOutput {
+        let hardenedHTML = MessageBodyTextSizeCSS.inject(into: html, fontSize: messageBodyFontSize)
+        return try topicPageRenderer.render(html: hardenedHTML)
+    }
+
     init(
         topic: Topic,
         curPage: Int,
@@ -3261,7 +3418,7 @@ struct MessagesView: View {
                     self.anchor = resolvedRestoration.anchor
                     self.initialScroll = resolvedRestoration.initialScroll
                     do {
-                        let rendered = try topicPageRenderer.render(html: content.html)
+                        let rendered = try renderTopicPageHTML(content.html)
                         self.fileURL = rendered.fileURL
                         self.cacheURL = rendered.readAccessURL
                         if self.fileURL == nil || self.cacheURL == nil {
@@ -3349,7 +3506,7 @@ struct MessagesView: View {
                         return content.html
                     }()
                     do {
-                        let rendered = try topicPageRenderer.render(html: renderHTML)
+                        let rendered = try renderTopicPageHTML(renderHTML)
                         self.fileURL = rendered.fileURL
                         self.cacheURL = rendered.readAccessURL
                     } catch {
@@ -4135,7 +4292,7 @@ struct MessagesView: View {
     private func renderFavoritePostFilterResult(_ result: FavoritePostFilterResult) {
         do {
             showWebViewLoadCover = true
-            let rendered = try topicPageRenderer.render(html: result.html)
+            let rendered = try renderTopicPageHTML(result.html)
             fileURL = rendered.fileURL
             cacheURL = rendered.readAccessURL
             messageActionsByIndex = result.messageActionsByIndex
