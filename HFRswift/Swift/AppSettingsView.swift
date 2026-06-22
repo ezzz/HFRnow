@@ -100,6 +100,7 @@ struct AppSettingsView: View {
     @AppStorage("theme_style") private var themeStyle = 1
 
     @AppStorage("blacklist_hide_pseudo") private var hideBlacklistedPseudo = false
+    @AppStorage(AppQuickReplyButton.key) private var quickReplyButtonEnabled = AppQuickReplyButton.defaultValue
     @AppStorage("filter_posts_quotes") private var filterPostsMode = "wl_pseudo"
     @AppStorage("filter_posts_min_quotes") private var filterPostsMinimumQuoteCount = 3
     @AppStorage("size_smileys") private var smileySize = "double"
@@ -422,6 +423,8 @@ struct AppSettingsView: View {
             Toggle("Masquer les pseudos blacklistés", isOn: $hideBlacklistedPseudo)
 
             Toggle("Swipe changement de page", isOn: $topicPageSwipeNavigation)
+
+            Toggle("Réponse rapide", isOn: $quickReplyButtonEnabled)
 
             NavigationLink {
                 ProfileFilterListEditorView(kind: .blacklist)

@@ -33,6 +33,123 @@ private struct PendingClipboardLinkInsertion {
     let selectedRange: NSRange
 }
 
+enum ReplyDraftSource: String, Codable {
+    case quickReply
+    case quote
+    case forumReply
+    case archived
+
+    var title: String {
+        switch self {
+        case .quickReply:
+            return "Réponse rapide"
+        case .quote:
+            return "Citation"
+        case .forumReply:
+            return "Répondre forum"
+        case .archived:
+            return "Brouillon archivé"
+        }
+    }
+}
+
+struct ReplyDraftTopicContext: Equatable {
+    let topicID: String
+    let topicTitle: String
+}
+
+struct ReplyDraftItem: Codable, Identifiable, Equatable {
+    let id: UUID
+    let topicID: String
+    let topicTitle: String
+    let source: ReplyDraftSource
+    let text: String
+    let createdAt: Date
+}
+
+enum ReplyDraftStore {
+    static let maxDraftsPerTopic = 3
+    private static let storageKey = "reply_drafts_by_topic_v1"
+
+    static func drafts(for context: ReplyDraftTopicContext?) -> [ReplyDraftItem] {
+        guard let context else { return [] }
+        return load()
+            .filter { $0.topicID == context.topicID }
+            .sorted { $0.createdAt > $1.createdAt }
+            .prefix(maxDraftsPerTopic)
+            .map { $0 }
+    }
+
+    @discardableResult
+    static func archive(
+        text: String,
+        context: ReplyDraftTopicContext?,
+        source: ReplyDraftSource
+    ) -> ReplyDraftItem? {
+        guard let context else { return nil }
+        let normalized = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalized.isEmpty else { return nil }
+
+        var allDrafts = load()
+        allDrafts.removeAll {
+            $0.topicID == context.topicID &&
+            $0.text.trimmingCharacters(in: .whitespacesAndNewlines) == normalized
+        }
+
+        let draft = ReplyDraftItem(
+            id: UUID(),
+            topicID: context.topicID,
+            topicTitle: context.topicTitle,
+            source: source,
+            text: text,
+            createdAt: Date()
+        )
+        allDrafts.insert(draft, at: 0)
+        allDrafts = trimPerTopic(allDrafts)
+        save(allDrafts)
+        return draft
+    }
+
+    static func remove(_ draft: ReplyDraftItem) {
+        var allDrafts = load()
+        allDrafts.removeAll { $0.id == draft.id }
+        save(allDrafts)
+    }
+
+    static func removeAll(for context: ReplyDraftTopicContext?) {
+        guard let context else { return }
+        var allDrafts = load()
+        allDrafts.removeAll { $0.topicID == context.topicID }
+        save(allDrafts)
+    }
+
+    private static func trimPerTopic(_ drafts: [ReplyDraftItem]) -> [ReplyDraftItem] {
+        var kept: [ReplyDraftItem] = []
+        var countsByTopic: [String: Int] = [:]
+        for draft in drafts.sorted(by: { $0.createdAt > $1.createdAt }) {
+            let count = countsByTopic[draft.topicID, default: 0]
+            guard count < maxDraftsPerTopic else { continue }
+            kept.append(draft)
+            countsByTopic[draft.topicID] = count + 1
+        }
+        return kept
+    }
+
+    private static func load() -> [ReplyDraftItem] {
+        guard let data = UserDefaults.standard.data(forKey: storageKey) else { return [] }
+        return (try? JSONDecoder().decode([ReplyDraftItem].self, from: data)) ?? []
+    }
+
+    private static func save(_ drafts: [ReplyDraftItem]) {
+        if drafts.isEmpty {
+            UserDefaults.standard.removeObject(forKey: storageKey)
+            return
+        }
+        guard let data = try? JSONEncoder().encode(drafts) else { return }
+        UserDefaults.standard.set(data, forKey: storageKey)
+    }
+}
+
 // MARK: - AnswerView
 
 struct AnswerView: View {
@@ -56,6 +173,8 @@ struct AnswerView: View {
     let initialRecipient: String?
     let initialMessage: String
     let persistsComposerDraft: Bool
+    let draftContext: ReplyDraftTopicContext?
+    let initialDraftSource: ReplyDraftSource
     private let replyPostingService: any ReplyPostingService
     private let smileyCatalogLoader: ReplySmileyCatalogLoading
     private let imageUploadService: any ReplyImageUploadService
@@ -79,6 +198,10 @@ struct AnswerView: View {
     @State private var selectedSubcategoryID: String?
     @State private var subcategoryOptions: [ReplyComposerSubcategoryOption] = []
     @State private var isPosting = false
+    @State private var isDraftSheetPresented = false
+    @State private var topicDrafts: [ReplyDraftItem] = []
+    @State private var selectedDraft: ReplyDraftItem?
+    @State private var currentDraftSource: ReplyDraftSource
     @State private var selectedRangeUTF16 = NSRange(location: 0, length: 0)
     @State private var selectionStore = TextEditorSelectionStore()
 
@@ -131,6 +254,8 @@ struct AnswerView: View {
         initialRecipient: String? = nil,
         initialMessage: String = "",
         persistsComposerDraft: Bool = true,
+        draftContext: ReplyDraftTopicContext? = nil,
+        initialDraftSource: ReplyDraftSource = .quickReply,
         replyPostingService: any ReplyPostingService = ForumReplyPostingService(),
         smileyCatalogLoader: ReplySmileyCatalogLoading = BundleReplySmileyCatalogLoader(),
         imageUploadService: any ReplyImageUploadService = Img3ReplyImageUploadService(),
@@ -147,6 +272,8 @@ struct AnswerView: View {
         self.initialRecipient = initialRecipient
         self.initialMessage = initialMessage
         self.persistsComposerDraft = persistsComposerDraft
+        self.draftContext = draftContext
+        self.initialDraftSource = initialDraftSource
         self.replyPostingService = replyPostingService
         self.smileyCatalogLoader = smileyCatalogLoader
         self.imageUploadService = imageUploadService
@@ -157,6 +284,7 @@ struct AnswerView: View {
         self._composerRecipient = State(initialValue: initialRecipient)
         self._imageUploadPreferences = State(initialValue: RehostPreferencesStore.load())
         self._uploadedImages = State(initialValue: RehostUploadHistoryStore.load())
+        self._currentDraftSource = State(initialValue: initialDraftSource)
     }
 
     // MARK: Computed
@@ -244,6 +372,16 @@ struct AnswerView: View {
         .sheet(isPresented: $isImageInsertionPresented, onDismiss: requestEditorFocus) {
             imageInsertionPanel
         }
+        .sheet(isPresented: $isDraftSheetPresented, onDismiss: requestEditorFocus) {
+            ReplyDraftPickerSheet(
+                drafts: topicDrafts,
+                onSelect: useDraft,
+                onDelete: removeDraft,
+                onDeleteAll: clearTopicDrafts
+            )
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+        }
         .alert(
             "Insérer le lien du presse-papier ?",
             isPresented: isClipboardLinkAlertPresented,
@@ -287,6 +425,7 @@ struct AnswerView: View {
             pendingHistoryMutationsToSkip = 0
             if defaultSmileys.isEmpty { defaultSmileys = smileyCatalogLoader.loadDefaultSmileys() }
             reloadFavoriteSmileys()
+            reloadTopicDrafts()
             selectedRangeUTF16 = NSRange(location: message.utf16.count, length: 0)
             selectionStore.currentRange = selectedRangeUTF16
             requestEditorFocus()
@@ -368,6 +507,59 @@ struct AnswerView: View {
         focusTrigger &+= 1
     }
 
+    // MARK: Drafts
+
+    private func reloadTopicDrafts() {
+        topicDrafts = ReplyDraftStore.drafts(for: draftContext)
+    }
+
+    private func useDraft(_ draft: ReplyDraftItem) {
+        let current = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        let selected = draft.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        var selectedDraftToUse = draft
+        if !current.isEmpty, current != selected {
+            ReplyDraftStore.archive(
+                text: message,
+                context: draftContext,
+                source: currentDraftSource
+            )
+            selectedDraftToUse = ReplyDraftStore.archive(
+                text: draft.text,
+                context: draftContext,
+                source: draft.source
+            ) ?? draft
+        }
+
+        if current != selected {
+            undoHistory.append(message)
+            if undoHistory.count > 200 { undoHistory.removeFirst(undoHistory.count - 200) }
+            redoHistory.removeAll()
+        }
+        message = draft.text
+        composerDraftText = draft.text
+        selectedDraft = selectedDraftToUse
+        currentDraftSource = draft.source
+        selectedRangeUTF16 = NSRange(location: message.utf16.count, length: 0)
+        selectionStore.currentRange = selectedRangeUTF16
+        reloadTopicDrafts()
+        isDraftSheetPresented = false
+        requestEditorFocus()
+    }
+
+    private func clearTopicDrafts() {
+        ReplyDraftStore.removeAll(for: draftContext)
+        selectedDraft = nil
+        reloadTopicDrafts()
+    }
+
+    private func removeDraft(_ draft: ReplyDraftItem) {
+        ReplyDraftStore.remove(draft)
+        if selectedDraft?.id == draft.id {
+            selectedDraft = nil
+        }
+        reloadTopicDrafts()
+    }
+
     // MARK: Header
 
     private var composerHeader: some View {
@@ -387,6 +579,21 @@ struct AnswerView: View {
                 }
                 .disabled(isPosting)
                 .composerCloseButtonStyle()
+
+                if draftContext != nil {
+                    Button {
+                        reloadTopicDrafts()
+                        isDraftSheetPresented = true
+                    } label: {
+                        Image(systemName: "tray")
+                            .font(.system(size: 15, weight: .semibold))
+                            .frame(width: 18, height: 18)
+                            .padding(8)
+                    }
+                    .disabled(isPosting)
+                    .composerDraftButtonStyle(isProminent: !topicDrafts.isEmpty)
+                    .accessibilityLabel("Brouillons")
+                }
 
                 Spacer()
 
@@ -808,6 +1015,11 @@ struct AnswerView: View {
                     existingDraft: composerDraftText,
                     persistsDraft: persistsComposerDraft
                 )
+                if let selectedDraft {
+                    ReplyDraftStore.remove(selectedDraft)
+                    self.selectedDraft = nil
+                    reloadTopicDrafts()
+                }
                 composerSubject = ""
                 selectedSubcategoryID = nil
                 dismissComposer()
@@ -1004,6 +1216,23 @@ private extension View {
     }
 
     @ViewBuilder
+    func composerDraftButtonStyle(isProminent: Bool) -> some View {
+        if #available(iOS 26.0, *) {
+            if isProminent {
+                self.buttonBorderShape(.circle).buttonStyle(.glassProminent)
+            } else {
+                self.buttonBorderShape(.circle).buttonStyle(.glass)
+            }
+        } else {
+            if isProminent {
+                self.buttonBorderShape(.circle).buttonStyle(.borderedProminent)
+            } else {
+                self.buttonStyle(.bordered).clipShape(.circle)
+            }
+        }
+    }
+
+    @ViewBuilder
     func composerSendButtonStyle(isEnabled: Bool) -> some View {
         if #available(iOS 26.0, *) {
             if isEnabled {
@@ -1124,6 +1353,135 @@ private struct ComposerSheetCloseHeader: View {
         .frame(height: 44)
         .padding(.horizontal, 16)
         .padding(.top, 10)
+    }
+}
+
+private struct ReplyDraftPickerSheet: View {
+    let drafts: [ReplyDraftItem]
+    let onSelect: (ReplyDraftItem) -> Void
+    let onDelete: (ReplyDraftItem) -> Void
+    let onDeleteAll: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 0) {
+            header
+
+            if drafts.isEmpty {
+                ContentUnavailableView(
+                    "Aucun brouillon",
+                    systemImage: "tray",
+                    description: Text("Les brouillons sont conservés par topic.")
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List {
+                    ForEach(drafts) { draft in
+                        Button {
+                            onSelect(draft)
+                        } label: {
+                            draftRow(draft)
+                        }
+                        .buttonStyle(.plain)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                onDelete(draft)
+                            } label: {
+                                Label("Supprimer", systemImage: "trash")
+                            }
+                        }
+                    }
+                }
+                .listStyle(.plain)
+            }
+        }
+    }
+
+    private var header: some View {
+        ZStack {
+            Text("Brouillons")
+                .font(.headline)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .padding(.horizontal, 112)
+
+            HStack {
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .bold))
+                        .frame(width: 18, height: 18)
+                        .padding(8)
+                }
+                .composerCloseButtonStyle()
+                .accessibilityLabel("Fermer")
+
+                Spacer()
+
+                Button(role: .destructive) {
+                    onDeleteAll()
+                } label: {
+                    Text("Vider")
+                }
+                .disabled(drafts.isEmpty)
+            }
+        }
+        .frame(height: 44)
+        .padding(.horizontal, 16)
+        .padding(.top, 10)
+    }
+
+    private func draftRow(_ draft: ReplyDraftItem) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 6) {
+                Text(draft.source.title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                Text("·")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Text(Self.formattedDate(draft.createdAt))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+
+            Text(Self.previewText(from: draft.text))
+                .font(.body)
+                .foregroundStyle(.primary)
+                .lineLimit(2)
+        }
+        .padding(.vertical, 8)
+        .contentShape(Rectangle())
+    }
+
+    private static func previewText(from text: String) -> String {
+        let normalized = text
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+            .split(separator: "\n", omittingEmptySubsequences: true)
+            .joined(separator: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return normalized.isEmpty ? "Brouillon vide" : normalized
+    }
+
+    private static func formattedDate(_ date: Date) -> String {
+        let calendar = Calendar.current
+        let timeFormatter = DateFormatter()
+        timeFormatter.dateFormat = "HH:mm"
+        if calendar.isDateInToday(date) {
+            return "Aujourd’hui \(timeFormatter.string(from: date))"
+        }
+        if calendar.isDateInYesterday(date) {
+            return "Hier \(timeFormatter.string(from: date))"
+        }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
 }
 

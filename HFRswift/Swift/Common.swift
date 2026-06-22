@@ -236,6 +236,11 @@ enum AppTopicPageSwipeNavigation {
     static let key = "topic_page_swipe_navigation"
 }
 
+enum AppQuickReplyButton {
+    static let key = "quick_reply_button_enabled"
+    static let defaultValue = true
+}
+
 enum AppTextSizeScale: Int, CaseIterable, Identifiable {
     static let key = "text_size_scale"
 

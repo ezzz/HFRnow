@@ -2710,12 +2710,15 @@ private extension MessageWebNavigationType {
 struct MessagesView: View {
     private enum ComposerPrefillMode {
         case quote
+        case forumReply
         case edit
 
         var loadingLabel: String {
             switch self {
             case .quote:
                 return "Chargement de la citation..."
+            case .forumReply:
+                return "Chargement de la réponse..."
             case .edit:
                 return "Chargement de l'edition..."
             }
@@ -2725,6 +2728,8 @@ struct MessagesView: View {
             switch self {
             case .quote:
                 return "Citation impossible"
+            case .forumReply:
+                return "Réponse impossible"
             case .edit:
                 return "Edition impossible"
             }
@@ -2851,6 +2856,7 @@ struct MessagesView: View {
     @ObservedObject private var appTheme = AppThemeStore.shared
     @AppStorage(AppTextSizeScale.key) private var textSizeScaleRawValue = AppTextSizeScale.standard.rawValue
     @AppStorage(AppTopicPageSwipeNavigation.key) private var topicPageSwipeNavigation = true
+    @AppStorage(AppQuickReplyButton.key) private var quickReplyButtonEnabled = AppQuickReplyButton.defaultValue
     @AppStorage("theme_style") private var messageDisplayStyleRawValue = 1
     @State private var page: Int
     @State private var availableMaxPage: Int
@@ -2887,6 +2893,7 @@ struct MessagesView: View {
     @State private var isLoadingQuoteTemplate = false
     @State private var activeComposerPrefillMode: ComposerPrefillMode = .quote
     @State private var activeComposerPresentationKind: ComposerPresentationKind = .reply
+    @State private var activeComposerDraftSource: ReplyDraftSource = .quickReply
     @State private var composerNavigationTitle: String = ComposerPresentationKind.reply.title
     @State private var composerRequiresSubject = false
     @State private var composerRecipientName: String?
@@ -2960,7 +2967,44 @@ struct MessagesView: View {
     }
 
     private var shouldHideReplyComposerButton: Bool {
-        UIDevice.current.userInterfaceIdiom == .phone && verticalSizeClass == .compact
+        !quickReplyButtonEnabled || (UIDevice.current.userInterfaceIdiom == .phone && verticalSizeClass == .compact)
+    }
+
+    private var replyDraftContext: ReplyDraftTopicContext? {
+        guard let topicID = resolvedTopicDraftID else { return nil }
+        let title = topicDisplayTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        return ReplyDraftTopicContext(
+            topicID: topicID,
+            topicTitle: title.isEmpty ? (topic._aTitle ?? "Topic") : title
+        )
+    }
+
+    private var resolvedTopicDraftID: String? {
+        if topic.postID > 0 {
+            return "post-\(topic.postID)"
+        }
+        for candidate in [topic.aURL, topic.aURLOfLastPage, topic.aURLOfFirstPage, topic.aURLOfLastPost, topicAnswerURL?.absoluteString] {
+            if let postID = postQueryValue(from: candidate) {
+                return "post-\(postID)"
+            }
+        }
+        return nil
+    }
+
+    private func postQueryValue(from urlString: String?) -> String? {
+        guard
+            let raw = urlString?.trimmingCharacters(in: .whitespacesAndNewlines),
+            !raw.isEmpty,
+            let components = URLComponents(string: raw)
+        else {
+            return nil
+        }
+        let postID = components.queryItems?
+            .first(where: { $0.name == "post" })?
+            .value?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let postID, !postID.isEmpty else { return nil }
+        return postID
     }
 
     private var loadingTopicView: some View {
@@ -3822,6 +3866,18 @@ struct MessagesView: View {
         prefillComposer(with: url, mode: .quote)
     }
 
+    private func openForumReplyComposer() {
+        guard let topicAnswerURL else {
+            openQuickReplyComposer()
+            return
+        }
+        activeComposerPresentationKind = .reply
+        composerNavigationTitle = ComposerPresentationKind.reply.title
+        composerRequiresSubject = false
+        composerRecipientName = nil
+        prefillComposer(with: topicAnswerURL, mode: .forumReply)
+    }
+
     private func openTextQuoteComposer(with url: URL, selectedText: String, boldSelection: Bool) {
         guard !isLoadingQuoteTemplate else { return }
 
@@ -3837,18 +3893,15 @@ struct MessagesView: View {
                     selectedText: selectedText,
                     boldSelection: boldSelection
                 )
-                let mergedDraft = ReplyQuoteDraftMerger.merge(
-                    quoteTemplate: quoteTemplate,
-                    into: composerDraftText
+                replaceComposerDraft(
+                    with: quoteTemplate,
+                    source: .quote,
+                    submitURL: topicAnswerURL ?? url
                 )
-                composerDraftText = mergedDraft
-                composerInitialMessage = mergedDraft
                 activeComposerPresentationKind = .reply
                 composerNavigationTitle = ComposerPresentationKind.reply.title
                 composerRequiresSubject = false
                 composerRecipientName = nil
-                composerPersistsDraft = true
-                composerSubmitURL = topicAnswerURL ?? url
                 lastFailedQuoteTemplateURL = nil
                 quoteTemplateErrorMessage = nil
                 isComposerPresented = true
@@ -3871,6 +3924,7 @@ struct MessagesView: View {
     private func openPrivateMessageComposer(with url: URL, actions: TopicPageMessageActions) {
         guard !isLoadingQuoteTemplate else { return }
         activeComposerPresentationKind = .privateMessage
+        activeComposerDraftSource = .quickReply
         composerRequiresSubject = true
         composerRecipientName = actions.authorName?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let composerRecipientName, !composerRecipientName.isEmpty {
@@ -3896,17 +3950,21 @@ struct MessagesView: View {
                 let template = try await replyQuoteTemplateLoader.fetchQuoteTemplate(from: url)
                 switch mode {
                 case .quote:
-                    let mergedDraft = ReplyQuoteDraftMerger.merge(
-                        quoteTemplate: template,
-                        into: composerDraftText
+                    replaceComposerDraft(
+                        with: template,
+                        source: .quote,
+                        submitURL: topicAnswerURL ?? url
                     )
-                    composerDraftText = mergedDraft
-                    composerInitialMessage = mergedDraft
-                    composerPersistsDraft = true
-                    composerSubmitURL = topicAnswerURL ?? url
+                case .forumReply:
+                    replaceComposerDraft(
+                        with: template,
+                        source: .forumReply,
+                        submitURL: url
+                    )
                 case .edit:
                     composerInitialMessage = template
                     composerPersistsDraft = false
+                    activeComposerDraftSource = .archived
                     composerSubmitURL = url
                 }
                 lastFailedQuoteTemplateURL = nil
@@ -3918,6 +3976,23 @@ struct MessagesView: View {
                 quoteTemplateErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             }
         }
+    }
+
+    private func replaceComposerDraft(with text: String, source: ReplyDraftSource, submitURL: URL?) {
+        let current = composerDraftText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let incoming = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !current.isEmpty, current != incoming {
+            ReplyDraftStore.archive(
+                text: composerDraftText,
+                context: replyDraftContext,
+                source: activeComposerDraftSource
+            )
+        }
+        composerDraftText = text
+        composerInitialMessage = text
+        composerPersistsDraft = true
+        composerSubmitURL = submitURL
+        activeComposerDraftSource = source
     }
 
     private func openProfile(for url: URL, avatarActions: TopicPageMessageActions? = nil) {
@@ -4183,12 +4258,17 @@ struct MessagesView: View {
     }
 
     private func openReplyComposer() {
+        openQuickReplyComposer()
+    }
+
+    private func openQuickReplyComposer() {
         activeComposerPresentationKind = .reply
         composerNavigationTitle = ComposerPresentationKind.reply.title
         composerRequiresSubject = false
         composerRecipientName = nil
         composerInitialMessage = composerDraftText
         composerPersistsDraft = true
+        activeComposerDraftSource = .quickReply
         composerSubmitURL = topicAnswerURL
         isComposerPresented = true
     }
@@ -4916,6 +4996,8 @@ struct MessagesView: View {
                         initialRecipient: composerRecipientName,
                         initialMessage: composerInitialMessage,
                         persistsComposerDraft: composerPersistsDraft,
+                        draftContext: activeComposerPresentationKind == .reply ? replyDraftContext : nil,
+                        initialDraftSource: activeComposerDraftSource,
                         onPostSuccess: handleReplySuccess,
                         composerDraftText: $composerDraftText,
                         isComposerPresented: $isComposerPresented
@@ -5077,6 +5159,19 @@ struct MessagesView: View {
                                     tintColor: themePalette.actionTintColor,
                                     iconTintUIColor: themePalette.actionTintUIColor
                                 )
+                            }
+                            if topicAnswerURL != nil {
+                                Button {
+                                    openForumReplyComposer()
+                                } label: {
+                                    MenuActionLabel(
+                                        "Répondre",
+                                        systemImage: "square.and.pencil",
+                                        tintColor: themePalette.actionTintColor,
+                                        iconTintUIColor: themePalette.actionTintUIColor
+                                    )
+                                }
+                                .disabled(isLoadingQuoteTemplate)
                             }
                             if currentMaxPage > 1 {
                                 Divider()
@@ -5318,6 +5413,19 @@ struct MessagesView: View {
                                 tintColor: themePalette.actionTintColor,
                                 iconTintUIColor: themePalette.actionTintUIColor
                             )
+                        }
+                        if topicAnswerURL != nil {
+                            Button {
+                                openForumReplyComposer()
+                            } label: {
+                                MenuActionLabel(
+                                    "Répondre",
+                                    systemImage: "square.and.pencil",
+                                    tintColor: themePalette.actionTintColor,
+                                    iconTintUIColor: themePalette.actionTintUIColor
+                                )
+                            }
+                            .disabled(isLoadingQuoteTemplate)
                         }
                         if currentMaxPage > 1 {
                             Divider()
