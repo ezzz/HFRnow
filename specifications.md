@@ -11,7 +11,11 @@ Clarifier les differents chemins d'ouverture de `AnswerView` pour eviter de mela
 
 ### Points d'entree
 
-Le bouton `+` de `MessagesView` est reserve a la reponse rapide. Il ouvre `AnswerView` avec le brouillon courant du topic, sans prechargement du formulaire forum. Le reglage `Sujets > Reponse rapide` sert uniquement a afficher ou masquer ce bouton.
+Le bouton de bottom bar de `MessagesView` est configurable via `Sujets > Bouton +` :
+
+- `Reponse rapide` affiche l'icone `+` et ouvre `AnswerView` avec le brouillon courant du topic, sans prechargement du formulaire forum ;
+- `Repondre comme le forum` affiche l'icone de reponse forum et charge `topicAnswerURL` avant d'ouvrir `AnswerView` ;
+- `Pas d'icone` masque ce bouton.
 
 L'action `Repondre` du menu `...` de `MessagesView` garde le comportement forum complet. Elle charge `topicAnswerURL`, recupere le contenu renvoye par le forum, y compris les citations cochees, puis ouvre `AnswerView`.
 
@@ -21,14 +25,18 @@ L'action `Editer` reste isolee : elle ouvre `AnswerView` avec le contenu du mess
 
 ### Brouillons
 
-Les brouillons de reponse sont contextualises par topic et limites aux 3 derniers brouillons par topic.
+Le brouillon actif de reponse est contextualise par topic : fermer `AnswerView` conserve le texte pour le topic courant uniquement. Ouvrir la reponse depuis un autre topic ne restaure pas ce contenu.
+
+Les brouillons archives de reponse sont aussi contextualises par topic et limites aux 3 derniers brouillons par topic.
 
 Quand un contenu charge depuis le forum doit remplir `AnswerView` alors qu'un brouillon courant non vide existe, le brouillon courant est archive avant remplacement. Le contenu charge remplace ensuite totalement le contenu de l'editeur.
 
 Dans `AnswerView`, le bouton `Brouillons` affiche une sheet listant les brouillons du topic. Choisir un brouillon remplace le texte courant ; si le texte courant est non vide et different, il est archive avant remplacement.
 
+La sheet des brouillons expose aussi l'action `Mettre de cote et vider` quand le texte courant est non vide. Cette action archive le texte courant dans les brouillons du topic, vide l'editeur et redonne le focus pour commencer une autre reponse.
+
 Un brouillon est supprime automatiquement lorsqu'il est selectionne puis poste avec succes. La sheet permet aussi de supprimer rapidement un brouillon par swipe gauche, ou de vider tous les brouillons du topic via l'action globale `Vider`.
 
 ### Principe UX
 
-Le `+` doit rester une action rapide et previsible. Le comportement forum complet est volontairement expose par une action nommee `Repondre`, plus explicite, car elle peut entrainer une requete reseau et charger des citations accumulees.
+L'icone du bouton de bottom bar doit indiquer clairement le mode choisi. Le comportement forum complet reste aussi expose par une action nommee `Repondre` dans le menu `...`, plus explicite, car elle peut entrainer une requete reseau et charger des citations accumulees.

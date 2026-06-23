@@ -70,6 +70,15 @@ struct ReplyDraftItem: Codable, Identifiable, Equatable {
 enum ReplyDraftStore {
     static let maxDraftsPerTopic = 3
     private static let storageKey = "reply_drafts_by_topic_v1"
+    private static let activeStorageKey = "reply_active_drafts_by_topic_v1"
+    private static let maxActiveDraftTopics = 50
+
+    private struct ActiveDraftItem: Codable {
+        let topicID: String
+        let topicTitle: String
+        let text: String
+        let updatedAt: Date
+    }
 
     static func drafts(for context: ReplyDraftTopicContext?) -> [ReplyDraftItem] {
         guard let context else { return [] }
@@ -78,6 +87,37 @@ enum ReplyDraftStore {
             .sorted { $0.createdAt > $1.createdAt }
             .prefix(maxDraftsPerTopic)
             .map { $0 }
+    }
+
+    static func activeText(for context: ReplyDraftTopicContext?) -> String {
+        guard let context else { return "" }
+        return loadActive()
+            .first { $0.topicID == context.topicID }?
+            .text ?? ""
+    }
+
+    static func saveActiveText(_ text: String, context: ReplyDraftTopicContext?) {
+        guard let context else { return }
+        let normalized = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        var activeDrafts = loadActive()
+        activeDrafts.removeAll { $0.topicID == context.topicID }
+
+        if !normalized.isEmpty {
+            activeDrafts.insert(
+                ActiveDraftItem(
+                    topicID: context.topicID,
+                    topicTitle: context.topicTitle,
+                    text: text,
+                    updatedAt: Date()
+                ),
+                at: 0
+            )
+        }
+
+        activeDrafts = Array(activeDrafts
+            .sorted { $0.updatedAt > $1.updatedAt }
+            .prefix(maxActiveDraftTopics))
+        saveActive(activeDrafts)
     }
 
     @discardableResult
@@ -147,6 +187,20 @@ enum ReplyDraftStore {
         }
         guard let data = try? JSONEncoder().encode(drafts) else { return }
         UserDefaults.standard.set(data, forKey: storageKey)
+    }
+
+    private static func loadActive() -> [ActiveDraftItem] {
+        guard let data = UserDefaults.standard.data(forKey: activeStorageKey) else { return [] }
+        return (try? JSONDecoder().decode([ActiveDraftItem].self, from: data)) ?? []
+    }
+
+    private static func saveActive(_ drafts: [ActiveDraftItem]) {
+        if drafts.isEmpty {
+            UserDefaults.standard.removeObject(forKey: activeStorageKey)
+            return
+        }
+        guard let data = try? JSONEncoder().encode(drafts) else { return }
+        UserDefaults.standard.set(data, forKey: activeStorageKey)
     }
 }
 
@@ -375,6 +429,8 @@ struct AnswerView: View {
         .sheet(isPresented: $isDraftSheetPresented, onDismiss: requestEditorFocus) {
             ReplyDraftPickerSheet(
                 drafts: topicDrafts,
+                canArchiveCurrentDraft: canArchiveCurrentDraft,
+                onArchiveAndClear: archiveAndClearCurrentDraft,
                 onSelect: useDraft,
                 onDelete: removeDraft,
                 onDeleteAll: clearTopicDrafts
@@ -441,11 +497,15 @@ struct AnswerView: View {
             imageUploadTask?.cancel()
             imageUploadTask = nil
             smileyPickerState = SmileyPickerSessionState()
-            composerDraftText = ComposerDraftPersistence.draftAfterDismiss(
+            let draftAfterDismiss = ComposerDraftPersistence.draftAfterDismiss(
                 currentMessage: message,
                 existingDraft: composerDraftText,
                 persistsDraft: persistsComposerDraft
             )
+            composerDraftText = draftAfterDismiss
+            if persistsComposerDraft {
+                ReplyDraftStore.saveActiveText(draftAfterDismiss, context: draftContext)
+            }
         }
         .onChange(of: imageUploadPreferences) { _, new in RehostPreferencesStore.save(new) }
         .onChange(of: uploadedImages) { _, new in RehostUploadHistoryStore.save(new) }
@@ -513,6 +573,10 @@ struct AnswerView: View {
         topicDrafts = ReplyDraftStore.drafts(for: draftContext)
     }
 
+    private var canArchiveCurrentDraft: Bool {
+        draftContext != nil && !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     private func useDraft(_ draft: ReplyDraftItem) {
         let current = message.trimmingCharacters(in: .whitespacesAndNewlines)
         let selected = draft.text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -537,9 +601,32 @@ struct AnswerView: View {
         }
         message = draft.text
         composerDraftText = draft.text
+        ReplyDraftStore.saveActiveText(draft.text, context: draftContext)
         selectedDraft = selectedDraftToUse
         currentDraftSource = draft.source
         selectedRangeUTF16 = NSRange(location: message.utf16.count, length: 0)
+        selectionStore.currentRange = selectedRangeUTF16
+        reloadTopicDrafts()
+        isDraftSheetPresented = false
+        requestEditorFocus()
+    }
+
+    private func archiveAndClearCurrentDraft() {
+        guard canArchiveCurrentDraft else { return }
+        ReplyDraftStore.archive(
+            text: message,
+            context: draftContext,
+            source: currentDraftSource
+        )
+        undoHistory.append(message)
+        if undoHistory.count > 200 { undoHistory.removeFirst(undoHistory.count - 200) }
+        redoHistory.removeAll()
+        message = ""
+        composerDraftText = ""
+        ReplyDraftStore.saveActiveText("", context: draftContext)
+        selectedDraft = nil
+        currentDraftSource = .quickReply
+        selectedRangeUTF16 = NSRange(location: 0, length: 0)
         selectionStore.currentRange = selectedRangeUTF16
         reloadTopicDrafts()
         isDraftSheetPresented = false
@@ -1015,6 +1102,9 @@ struct AnswerView: View {
                     existingDraft: composerDraftText,
                     persistsDraft: persistsComposerDraft
                 )
+                if persistsComposerDraft {
+                    ReplyDraftStore.saveActiveText(composerDraftText, context: draftContext)
+                }
                 if let selectedDraft {
                     ReplyDraftStore.remove(selectedDraft)
                     self.selectedDraft = nil
@@ -1358,6 +1448,8 @@ private struct ComposerSheetCloseHeader: View {
 
 private struct ReplyDraftPickerSheet: View {
     let drafts: [ReplyDraftItem]
+    let canArchiveCurrentDraft: Bool
+    let onArchiveAndClear: () -> Void
     let onSelect: (ReplyDraftItem) -> Void
     let onDelete: (ReplyDraftItem) -> Void
     let onDeleteAll: () -> Void
@@ -1367,6 +1459,10 @@ private struct ReplyDraftPickerSheet: View {
     var body: some View {
         VStack(spacing: 0) {
             header
+
+            if canArchiveCurrentDraft {
+                archiveCurrentDraftButton
+            }
 
             if drafts.isEmpty {
                 ContentUnavailableView(
@@ -1396,6 +1492,21 @@ private struct ReplyDraftPickerSheet: View {
                 .listStyle(.plain)
             }
         }
+    }
+
+    private var archiveCurrentDraftButton: some View {
+        Button {
+            onArchiveAndClear()
+        } label: {
+            Label("Mettre de côté et vider", systemImage: "tray.and.arrow.down")
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+        }
+        .buttonStyle(.plain)
+        .background(Color(.secondarySystemGroupedBackground))
+        .contentShape(Rectangle())
     }
 
     private var header: some View {

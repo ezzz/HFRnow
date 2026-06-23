@@ -22,6 +22,9 @@ Principe de mise a jour:
 | ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | HFR-035 | Hors analyse initiale | iPad portrait: scroll topic parfois ignore ou intercepte | Bug UX | Moyen a fort | Faible | Palliatif applique: ajout du reglage `Swipe changement de page` dans `Sujets`, actif par defaut. Le passage a Non desactive le swipe horizontal de changement de page pour verifier si ce geste est a l'origine des scrolls ignores, tout en conservant le swipe edge retour natif. | Palliatif, a tester |
+| HFR-036 | Hors analyse initiale | Tab Messages: marquer des MP en non lus et supprimer des MP | Fonction / UX | Fort | Moyenne | Ajout d'une action contextuelle `Marquer non lu` visible uniquement sur les MP lus. Ajout de l'action contextuelle `Supprimer` avec confirmation, en appelant le flux forum `valid_eff_prive`, puis retrait local de la conversation. | Livré |
+| HFR-041 | Beta p.19 | MessagesView: taille de police qui change parfois dans un topic | Bug UI | Moyen a fort | Moyenne | Correction appliquee: la taille de police des messages est injectee dans le HTML rendu avant chargement WebView, puis reverifiee apres chargement avec reapplique JS en cas d'ecart. | Corrige, a tester |
+| HFR-047 | Hors analyse initiale | AnswerView/MessagesView: clarifier reponse rapide, reponse forum et brouillons | UX / Fonction | Fort | Moyenne | Refonte du flux de reponse: reglage `Bouton +` a trois choix (`Reponse rapide`, `Repondre comme le forum`, `Pas d'icone`), action `Repondre` forum explicite dans le menu `...`, brouillon actif contextualise par topic, brouillons archives limites a trois par topic, archivage avant remplacement, sheet de brouillons avec action `Mettre de cote et vider`, suppression par swipe et action globale `Vider`. Specification ajoutee dans `specifications.md`. | Livré, a tester |
 
 ## P1
 
@@ -33,10 +36,10 @@ Principe de mise a jour:
 | ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | HFR-006 | p.495, p.496 | Perte du panneau lateral iPad liste topics/favoris + topic | Regression UX | Fort | Elevee | Gros impact pour les utilisateurs iPad en paysage. Correction probablement structurelle si la navigation SwiftUI a ete revue. A planifier apres les bugs de saisie/navigation. | A faire |
-| HFR-041 | Beta p.19 | MessagesView: taille de police qui change parfois dans un topic | Bug UI | Moyen a fort | A auditer | La taille de police peut changer pendant la lecture d'un topic et revient a la normale apres sortie/reouverture. Piste probable cote WebView, CSS injecte ou zoom texte. | A auditer |
 | HFR-008 | p.497, p.498 | Fin de page / fin de topic moins lisible | UX | Moyen | Faible a moyenne | Important pour la comprehension du statut de lecture. Probablement corrigeable par indicateur visuel explicite ou separateur plus net. | A faire |
 | HFR-031 | Hors analyse initiale | Filtrer les posts: le bandeau `Resultats suivants` ne fonctionne pas | Bug UX | Moyen | Faible | Le cas peut arriver: le filtrage s'arrete volontairement apres un lot de resultats, notamment a partir de 40 posts trouves, sans forcement avoir scanne tout le topic. Le bouton sert alors a relancer le filtrage a partir de la page suivante, mais l'UX reste a clarifier car il peut donner l'impression d'un bouton redondant ou inactif. | A clarifier |
 | HFR-040 | Hors analyse initiale | MessagesView: refaire fonctionner les previews de videos intra-topic | Regression UX | Moyen a fort | Moyenne | Les previews video dans la vue intra-topic ameliorent fortement la lecture des messages avec contenus multimedia. A auditer cote parsing/HTML embarque/WebView et compatibilite des providers video. | A faire |
+| HFR-048 | Hors analyse initiale | View image: la croix bleue de fermeture ne ferme pas la fenetre | Bug UX | Moyen a fort | Faible a moyenne | Le bouton de fermeture s'affiche mais le tap ne ferme pas le viewer image. Impact visible car l'utilisateur peut se retrouver bloque dans une vue media ou devoir utiliser un autre geste de sortie. | A faire |
 
 ## P3
 
@@ -82,12 +85,6 @@ Principe de mise a jour:
 5. Traiter les ameliorations fonctionnelles non bloquantes: HFR-025, HFR-027 a HFR-029.
 
 ## Historique des issues livrees
-
-### Livrés build #25
-
-| ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| HFR-036 | Hors analyse initiale | Tab Messages: marquer des MP en non lus et supprimer des MP | Fonction / UX | Fort | Moyenne | Ajout d'une action contextuelle `Marquer non lu` visible uniquement sur les MP lus. Ajout de l'action contextuelle `Supprimer` avec confirmation, en appelant le flux forum `valid_eff_prive`, puis retrait local de la conversation. | Livré |
 
 ### Livrees build #21
 

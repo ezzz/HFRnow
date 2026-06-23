@@ -2856,7 +2856,7 @@ struct MessagesView: View {
     @ObservedObject private var appTheme = AppThemeStore.shared
     @AppStorage(AppTextSizeScale.key) private var textSizeScaleRawValue = AppTextSizeScale.standard.rawValue
     @AppStorage(AppTopicPageSwipeNavigation.key) private var topicPageSwipeNavigation = true
-    @AppStorage(AppQuickReplyButton.key) private var quickReplyButtonEnabled = AppQuickReplyButton.defaultValue
+    @AppStorage(AppReplyButtonBehavior.key) private var replyButtonBehavior = AppReplyButtonBehavior.defaultValue
     @AppStorage("theme_style") private var messageDisplayStyleRawValue = 1
     @State private var page: Int
     @State private var availableMaxPage: Int
@@ -2870,7 +2870,7 @@ struct MessagesView: View {
     @State private var topicAnswerURL: URL?
     @State private var composerSubmitURL: URL?
     @State private var messageActionsByIndex: [Int: TopicPageMessageActions] = [:]
-    @AppStorage("composerDraftText") private var composerDraftText: String = ""
+    @State private var composerDraftText: String = ""
     @State private var isComposerPresented = false
     @State private var composerInitialMessage = ""
     @State private var composerPersistsDraft = false
@@ -2967,7 +2967,22 @@ struct MessagesView: View {
     }
 
     private var shouldHideReplyComposerButton: Bool {
-        !quickReplyButtonEnabled || (UIDevice.current.userInterfaceIdiom == .phone && verticalSizeClass == .compact)
+        replyButtonMode == .hidden || (UIDevice.current.userInterfaceIdiom == .phone && verticalSizeClass == .compact)
+    }
+
+    private var replyButtonMode: AppReplyButtonBehavior {
+        AppReplyButtonBehavior(rawValue: replyButtonBehavior) ?? .quick
+    }
+
+    private var replyButtonSystemImage: String {
+        switch replyButtonMode {
+        case .quick:
+            return "plus"
+        case .forum:
+            return "square.and.pencil"
+        case .hidden:
+            return "plus"
+        }
     }
 
     private var replyDraftContext: ReplyDraftTopicContext? {
@@ -2989,6 +3004,18 @@ struct MessagesView: View {
             }
         }
         return nil
+    }
+
+    private func activeReplyDraftText() -> String {
+        guard replyDraftContext != nil else {
+            return composerDraftText
+        }
+        return ReplyDraftStore.activeText(for: replyDraftContext)
+    }
+
+    private func saveActiveReplyDraftText(_ text: String) {
+        composerDraftText = text
+        ReplyDraftStore.saveActiveText(text, context: replyDraftContext)
     }
 
     private func postQueryValue(from urlString: String?) -> String? {
@@ -3979,16 +4006,17 @@ struct MessagesView: View {
     }
 
     private func replaceComposerDraft(with text: String, source: ReplyDraftSource, submitURL: URL?) {
-        let current = composerDraftText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let currentDraft = activeReplyDraftText()
+        let current = currentDraft.trimmingCharacters(in: .whitespacesAndNewlines)
         let incoming = text.trimmingCharacters(in: .whitespacesAndNewlines)
         if !current.isEmpty, current != incoming {
             ReplyDraftStore.archive(
-                text: composerDraftText,
+                text: currentDraft,
                 context: replyDraftContext,
                 source: activeComposerDraftSource
             )
         }
-        composerDraftText = text
+        saveActiveReplyDraftText(text)
         composerInitialMessage = text
         composerPersistsDraft = true
         composerSubmitURL = submitURL
@@ -4258,7 +4286,14 @@ struct MessagesView: View {
     }
 
     private func openReplyComposer() {
-        openQuickReplyComposer()
+        switch replyButtonMode {
+        case .quick:
+            openQuickReplyComposer()
+        case .forum:
+            openForumReplyComposer()
+        case .hidden:
+            break
+        }
     }
 
     private func openQuickReplyComposer() {
@@ -4266,7 +4301,9 @@ struct MessagesView: View {
         composerNavigationTitle = ComposerPresentationKind.reply.title
         composerRequiresSubject = false
         composerRecipientName = nil
-        composerInitialMessage = composerDraftText
+        let activeDraft = activeReplyDraftText()
+        composerDraftText = activeDraft
+        composerInitialMessage = activeDraft
         composerPersistsDraft = true
         activeComposerDraftSource = .quickReply
         composerSubmitURL = topicAnswerURL
@@ -5254,7 +5291,7 @@ struct MessagesView: View {
                                     Button {
                                         openReplyComposer()
                                     } label: {
-                                        Image(systemName: "plus")
+                                        Image(systemName: replyButtonSystemImage)
                                             .font(.system(size: 14, weight: .semibold))
                                     }
                                     .topicBottomBarButtonStyle(isProminent: false)
@@ -5469,7 +5506,7 @@ struct MessagesView: View {
                             Button {
                                 openReplyComposer()
                             } label: {
-                                Image(systemName: "plus")
+                                Image(systemName: replyButtonSystemImage)
                                     .font(.system(size: 14, weight: .semibold))
                             }
                             .topicBottomBarButtonStyle(isProminent: false)
