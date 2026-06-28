@@ -4612,6 +4612,10 @@ struct MessagesView: View {
         page >= currentMaxPage && isWebContentAtBottom
     }
 
+    private var shouldPromoteBottomNextPageButton: Bool {
+        page < currentMaxPage && isWebContentAtBottom
+    }
+
     private var bottomPreviousPageButton: some View {
         Button {
             navigateToPreviousPageFromBottomButton()
@@ -4634,6 +4638,21 @@ struct MessagesView: View {
         .disabled(page >= currentMaxPage)
         .legacyPageButtonSpacing(edge: .leading)
         .bottomBarStableHitTarget()
+    }
+
+    private var bottomProminentNextPageButton: some View {
+        Button {
+            navigateToNextPageFromBottomButton()
+        } label: {
+            Image(systemName: "chevron.forward")
+                .font(.system(size: 14, weight: .semibold))
+        }
+        .disabled(page >= currentMaxPage)
+        .topicBottomBarCircularIconButtonStyle(isProminent: true)
+        .legacyPageButtonSpacing(edge: .leading)
+        .bottomBarStableHitTarget()
+        .accessibilityLabel("Page suivante")
+        .transition(.opacity.combined(with: .scale))
     }
 
     private var pageChoiceMenuFinalTargets: [Int] {
@@ -5251,7 +5270,11 @@ struct MessagesView: View {
                         } else {
                             ToolbarItemGroup(placement: .bottomBar) {
                                 bottomPreviousPageButton
-                                bottomNextPageButton
+                                if shouldPromoteBottomNextPageButton {
+                                    bottomProminentNextPageButton
+                                } else {
+                                    bottomNextPageButton
+                                }
                             }
 
                             if isInSearchMode {
@@ -5395,6 +5418,7 @@ struct MessagesView: View {
                     }
                 }
                 .animation(.easeOut(duration: 0.22), value: shouldShowBottomRefreshButton)
+                .animation(.easeOut(duration: 0.22), value: shouldPromoteBottomNextPageButton)
             )
         } else {
             content = AnyView(
@@ -5488,7 +5512,11 @@ struct MessagesView: View {
                 } else {
                     ToolbarItemGroup(placement: .bottomBar) {
                         bottomPreviousPageButton
-                        bottomNextPageButton
+                        if shouldPromoteBottomNextPageButton {
+                            bottomProminentNextPageButton
+                        } else {
+                            bottomNextPageButton
+                        }
 
                         if isInSearchMode {
                             Button {
@@ -6350,12 +6378,15 @@ struct FullScreenPhotoViewer: View {
                 } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 15, weight: .semibold))
+                        .frame(width: 44, height: 44)
+                        .contentShape(Circle())
                 }
                 .ifAvailableiOS26GlassProminent()
                 .buttonBorderShape(.circle)
                 .accessibilityLabel("Fermer")
                 .padding(.top, 14)
                 .padding(.trailing, 14)
+                .zIndex(1)
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }

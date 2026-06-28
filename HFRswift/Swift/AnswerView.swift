@@ -1460,11 +1460,7 @@ private struct ReplyDraftPickerSheet: View {
         VStack(spacing: 0) {
             header
 
-            if canArchiveCurrentDraft {
-                archiveCurrentDraftButton
-            }
-
-            if drafts.isEmpty {
+            if drafts.isEmpty && !canArchiveCurrentDraft {
                 ContentUnavailableView(
                     "Aucun brouillon",
                     systemImage: "tray",
@@ -1473,40 +1469,42 @@ private struct ReplyDraftPickerSheet: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List {
-                    ForEach(drafts) { draft in
-                        Button {
-                            onSelect(draft)
-                        } label: {
-                            draftRow(draft)
-                        }
-                        .buttonStyle(.plain)
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                onDelete(draft)
+                    if canArchiveCurrentDraft {
+                        Section {
+                            Button {
+                                onArchiveAndClear()
                             } label: {
-                                Label("Supprimer", systemImage: "trash")
+                                Label("Mettre de côté et vider", systemImage: "tray.and.arrow.down")
+                            }
+                        }
+                    }
+
+                    Section {
+                        if drafts.isEmpty {
+                            Text("Aucun brouillon archivé")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ForEach(drafts) { draft in
+                                Button {
+                                    onSelect(draft)
+                                } label: {
+                                    draftRow(draft)
+                                }
+                                .buttonStyle(.plain)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        onDelete(draft)
+                                    } label: {
+                                        Label("Supprimer", systemImage: "trash")
+                                    }
+                                }
                             }
                         }
                     }
                 }
-                .listStyle(.plain)
+                .listStyle(.insetGrouped)
             }
         }
-    }
-
-    private var archiveCurrentDraftButton: some View {
-        Button {
-            onArchiveAndClear()
-        } label: {
-            Label("Mettre de côté et vider", systemImage: "tray.and.arrow.down")
-                .font(.subheadline.weight(.semibold))
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-        }
-        .buttonStyle(.plain)
-        .background(Color(.secondarySystemGroupedBackground))
-        .contentShape(Rectangle())
     }
 
     private var header: some View {

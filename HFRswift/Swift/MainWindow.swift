@@ -1310,7 +1310,6 @@ struct RootTabView: View {
     private var compactTabRoot: some View {
         rootTabs
             .hfrTabBarMinimizeBehavior(tabBarMinimizeOnScroll: tabBarMinimizeOnScroll)
-            .background(tabBarReselectionObserver)
     }
 
     private var rootTabs: some View {
@@ -1549,7 +1548,6 @@ private struct TabBarReselectionObserver: UIViewControllerRepresentable {
             guard self.tabBarController !== tabBarController else { return }
             self.tabBarController = tabBarController
             tabBarController.delegate = self
-            onSelect(tabBarController.selectedIndex)
         }
 
         func tabBarController(_ tabBarController: UITabBarController, didSelect viewController: UIViewController) {
