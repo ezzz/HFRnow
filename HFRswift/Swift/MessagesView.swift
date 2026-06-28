@@ -2985,6 +2985,19 @@ struct MessagesView: View {
         }
     }
 
+    private var shouldShowPollToolbarButton: Bool {
+        pollData != nil
+    }
+
+    private var pollToolbarButtonIsVotable: Bool {
+        pollData?.isVotable == true
+    }
+
+    private func openPollSheet() {
+        guard let pollData else { return }
+        presentedPollData = pollData
+    }
+
     private var replyDraftContext: ReplyDraftTopicContext? {
         guard let topicID = resolvedTopicDraftID else { return nil }
         let title = topicDisplayTitle.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -3520,6 +3533,30 @@ struct MessagesView: View {
                         loadedMaxPage: resolvedMaxPage,
                         initialScroll: requestedInitialScroll
                     )
+                }
+            }
+        }
+    }
+
+    @MainActor
+    private func reloadPollDataForCurrentPage() async -> PollData? {
+        await withCheckedContinuation { continuation in
+            let url = urlForPage(page)
+            let fetchAnchor = anchor
+            topicPageLoader.fetchTopicPage(url: url, anchor: fetchAnchor) { result in
+                DispatchQueue.main.async {
+                    switch result {
+                    case .failure:
+                        continuation.resume(returning: nil)
+                    case .success(let content):
+                        self.hasPoll = content.hasPoll
+                        self.pollIsNewVote = content.pollIsNewVote
+                        self.pollData = content.pollData
+                        if let pollData = content.pollData {
+                            self.presentedPollData = pollData
+                        }
+                        continuation.resume(returning: content.pollData)
+                    }
                 }
             }
         }
@@ -5174,10 +5211,10 @@ struct MessagesView: View {
                         }
                         .multilineTextAlignment(.center)
                     }
-                    if hasPoll && pollIsNewVote && !isInSearchMode {
+                    if shouldShowPollToolbarButton {
                         ToolbarItem(placement: .topBarTrailing) {
-                            PollToolbarButton(isVotable: true) {
-                                Task { @MainActor in presentedPollData = pollData }
+                            PollToolbarButton(isVotable: pollToolbarButtonIsVotable) {
+                                openPollSheet()
                             }
                         }
                     }
@@ -5194,18 +5231,6 @@ struct MessagesView: View {
                     ToolbarItem(placement: .topBarTrailing) {
                         // Menu avec options
                         Menu {
-                            if hasPoll && pollData != nil {
-                                Button {
-                                    Task { @MainActor in presentedPollData = pollData }
-                                } label: {
-                                    MenuActionLabel(
-                                        "Sondage",
-                                        systemImage: "chart.bar.doc.horizontal",
-                                        tintColor: themePalette.actionTintColor,
-                                        iconTintUIColor: themePalette.actionTintUIColor
-                                    )
-                                }
-                            }
                             Button {
                                 openTopicSearchSheet()
                             } label: {
@@ -5235,7 +5260,6 @@ struct MessagesView: View {
                             }
                         } label: {
                             Image(systemName: "ellipsis")
-                                .foregroundStyle(hasPoll ? themePalette.actionTintColor : .primary)
                         }
                     }
                     if !isComposerPresented {
@@ -5335,7 +5359,7 @@ struct MessagesView: View {
                 }
                 .sheet(item: $presentedPollData) { data in
                     PollSheet(pollData: data, onVoteSucceeded: {
-                        loadPage(page)
+                        await reloadPollDataForCurrentPage()
                     })
                 }
                 .sheet(item: $topicSearchSheetState) { state in
@@ -5433,10 +5457,10 @@ struct MessagesView: View {
                     }
                     .multilineTextAlignment(.center)
                 }
-                if hasPoll && pollIsNewVote && !isInSearchMode {
+                if shouldShowPollToolbarButton {
                     ToolbarItem(placement: .topBarTrailing) {
-                        PollToolbarButton(isVotable: true) {
-                            Task { @MainActor in presentedPollData = pollData }
+                        PollToolbarButton(isVotable: pollToolbarButtonIsVotable) {
+                            openPollSheet()
                         }
                     }
                 }
@@ -5453,18 +5477,6 @@ struct MessagesView: View {
                 ToolbarItem(placement: .primaryAction) {
                     // Menu avec options
                     Menu {
-                        if hasPoll && pollData != nil {
-                            Button {
-                                Task { @MainActor in presentedPollData = pollData }
-                            } label: {
-                                MenuActionLabel(
-                                    "Sondage",
-                                    systemImage: "chart.bar.doc.horizontal",
-                                    tintColor: themePalette.actionTintColor,
-                                    iconTintUIColor: themePalette.actionTintUIColor
-                                )
-                            }
-                        }
                         Button {
                             openTopicSearchSheet()
                         } label: {
@@ -5494,7 +5506,6 @@ struct MessagesView: View {
                         }
                     } label: {
                         Image(systemName: "ellipsis")
-                            .foregroundStyle(hasPoll ? themePalette.actionTintColor : .primary)
                     }
                 }
                 if isFilteredSearchMode {
@@ -5554,7 +5565,7 @@ struct MessagesView: View {
             }
             .sheet(item: $presentedPollData) { data in
                 PollSheet(pollData: data, onVoteSucceeded: {
-                    loadPage(page)
+                    await reloadPollDataForCurrentPage()
                 })
             }
             .onAppear {

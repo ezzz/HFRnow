@@ -15,6 +15,7 @@ final class PollViewModel {
     var pollData: PollData
     var selectedIndices: Set<Int> = []
     var isSubmitting = false
+    var isLoadingResults = false
     var errorMessage: String?
 
     init(pollData: PollData) {
@@ -22,7 +23,7 @@ final class PollViewModel {
     }
 
     var canSubmit: Bool {
-        !selectedIndices.isEmpty && !isSubmitting && pollData.isVotable
+        !selectedIndices.isEmpty && !isSubmitting && !isLoadingResults && pollData.isVotable
     }
 
     func toggle(_ index: Int) {
@@ -39,7 +40,7 @@ final class PollViewModel {
         }
     }
 
-    func submitVote(onSuccess: @escaping @MainActor () -> Void) async {
+    func submitVote(loadResults: (@MainActor () async -> PollData?)?) async {
         guard canSubmit else { return }
         isSubmitting = true
         errorMessage = nil
@@ -49,7 +50,16 @@ final class PollViewModel {
         isSubmitting = false
         switch result {
         case .success:
-            onSuccess()
+            guard let loadResults else { return }
+            isLoadingResults = true
+            let refreshedPollData = await loadResults()
+            isLoadingResults = false
+            if let refreshedPollData {
+                pollData = refreshedPollData
+                selectedIndices = []
+            } else {
+                errorMessage = "Vote enregistré, mais les résultats n'ont pas pu être chargés."
+            }
         case .error(let message):
             errorMessage = message
         }
@@ -63,17 +73,21 @@ struct PollToolbarButton: View {
     let action: () -> Void
 
     var body: some View {
-        if isVotable {
-            Button("Sondage", systemImage: "chart.bar.doc.horizontal", action: action)
-                .hfrGlassButton(prominent: true)
-                .buttonBorderShape(.capsule)
-                .controlSize(.small)
-        } else {
-            Button("Sondage", systemImage: "chart.bar.doc.horizontal", action: action)
-                .hfrGlassButton()
-                .buttonBorderShape(.capsule)
-                .controlSize(.small)
+        Group {
+            if isVotable {
+                Button("Sondage", systemImage: "chart.bar.doc.horizontal", action: action)
+                    .hfrGlassButton(prominent: true)
+                    .buttonBorderShape(.capsule)
+                    .controlSize(.small)
+            } else {
+                Button("Sondage", systemImage: "chart.bar.doc.horizontal", action: action)
+                    .hfrGlassButton()
+                    .buttonBorderShape(.capsule)
+                    .controlSize(.small)
+            }
         }
+        .accessibilityLabel(isVotable ? "Sondage, vote disponible" : "Sondage, résultats")
+        .accessibilityHint(isVotable ? "Ouvre le sondage pour voter" : "Ouvre les résultats du sondage")
     }
 }
 
@@ -82,11 +96,11 @@ struct PollToolbarButton: View {
 struct PollSheet: View {
     @Environment(\.dismiss) private var dismiss
     let pollData: PollData
-    var onVoteSucceeded: (() -> Void)?
+    var onVoteSucceeded: (@MainActor () async -> PollData?)?
 
     @State private var viewModel: PollViewModel
 
-    init(pollData: PollData, onVoteSucceeded: (() -> Void)? = nil) {
+    init(pollData: PollData, onVoteSucceeded: (@MainActor () async -> PollData?)? = nil) {
         self.pollData = pollData
         self.onVoteSucceeded = onVoteSucceeded
         self._viewModel = State(initialValue: PollViewModel(pollData: pollData))
@@ -105,10 +119,7 @@ struct PollSheet: View {
                         ToolbarItem(placement: .confirmationAction) {
                             Button("Voter") {
                                 Task {
-                                    await viewModel.submitVote {
-                                        dismiss()
-                                        onVoteSucceeded?()
-                                    }
+                                    await viewModel.submitVote(loadResults: onVoteSucceeded)
                                 }
                             }
                             .disabled(!viewModel.canSubmit)
@@ -155,7 +166,7 @@ struct PollContentView: View {
         }
         .listStyle(.insetGrouped)
         .overlay {
-            if viewModel.isSubmitting {
+            if viewModel.isSubmitting || viewModel.isLoadingResults {
                 Color.black.opacity(0.15).ignoresSafeArea()
                 ProgressView()
                     .padding(20)

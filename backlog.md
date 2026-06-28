@@ -15,77 +15,62 @@ Principe de mise a jour:
 - Les issues corrigees, testees OK, rejetees ou sorties du backlog actif sont deplacees dans l'historique des issues livrees en fin de fichier.
 - Les sections P1 a P5 ne gardent que les issues encore a faire, a auditer ou explicitement logguees pour plus tard.
 
-## Prochaine livraison
+## Backlog actif
 
-### Build #25
+| Priorite | ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| P2 | HFR-031 | Hors analyse initiale | Filtrer les posts: le bandeau `Resultats suivants` ne fonctionne pas | Bug UX | Moyen | Faible | Le cas peut arriver: le filtrage s'arrete volontairement apres un lot de resultats, notamment a partir de 40 posts trouves, sans forcement avoir scanne tout le topic. Le bouton sert alors a relancer le filtrage a partir de la page suivante, mais l'UX reste a clarifier car il peut donner l'impression d'un bouton redondant ou inactif. | A clarifier |
+| P3 | HFR-038 | Hors analyse initiale | MessagesView: masquer l'icone sondage si vote possible mais aucun choix disponible | Bug UX | Moyen | Faible a moyenne | Correction appliquee: le bouton sondage est maintenant pilote par `pollData` exploitable, pas seulement par `hasPoll`; un sondage annonce comme votable mais sans choix parseable ne produit donc plus de bouton inactif. | Corrige, a tester |
+| P3 | HFR-039 | Hors analyse initiale | MessagesView: toujours afficher l'icone sondage, prominent si reponse possible | UX | Moyen | Faible a moyenne | Correction appliquee: le bouton sondage est permanent des qu'un sondage exploitable existe, en style prominent quand le vote est possible et en style standard pour les resultats. Apres vote, la sheet reste ouverte, recharge les donnees du sondage et bascule directement sur les resultats. | Corrige, a tester |
+| P3 | HFR-042 | Beta p.19 | Images miniatures: tap simple ouvre une version illisible | UX / Bug media | Moyen | Moyenne | Sur certaines miniatures, le tap simple ouvre une version peu lisible alors que l'appui long permet d'ouvrir correctement l'image. Le geste naturel attendu est le tap simple vers l'image originale ou exploitable. | A faire |
+| P4 | HFR-025 | p.495 | Filtrage des topics par drapeaux dans Categories | Fonction | Faible a moyen | Moyenne | Amelioration utile, mais pas une regression bloquante. | A faire |
+| P4 | HFR-027 | p.495 | Creation de topic / TU peu claire ou indisponible selon appareil | Fonction / UX | Faible a moyen | Moyenne | A clarifier: si la fonction existe, ameliorer la decouvrabilite; sinon a planifier hors correctifs 4.0. | A faire |
+| P4 | HFR-028 | p.495 | Creation de sondage dans un topic | Fonction | Faible | Moyenne a elevee | Fonction avancee et rare. A garder en backlog, pas prioritaire. | A faire |
+| P4 | HFR-029 | p.495 | Plus de choix d'icones d'app | Finition | Faible | Faible | Simple si les assets existent, mais faible impact d'usage. | A faire |
+| P4 | HFR-043 | Beta p.19 | AnswerView: crash dans la recherche de smileys | Crash | Faible a moyen | A auditer | Un crash isole rapporte apres recherche de smiley puis scroll des resultats. Le feedback TestFlight ne contient pas de stack trace; conserver les smileys animes et surveiller les prochains crash logs avant correction intrusive. | A surveiller |
+
+## Backlog version 4.1
+
+| Priorite | ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| P2 | HFR-006 | p.495, p.496 | Perte du panneau lateral iPad liste topics/favoris + topic | Regression UX | Fort | Elevee | Gros impact pour les utilisateurs iPad en paysage. Correction probablement structurelle si la navigation SwiftUI a ete revue. A planifier apres la prochaine release. | Planifie 4.1 |
+| P2 | HFR-040 | Hors analyse initiale | MessagesView: refaire fonctionner les previews de videos intra-topic | Regression UX | Moyen a fort | Moyenne | Les previews video dans la vue intra-topic ameliorent fortement la lecture des messages avec contenus multimedia. A auditer cote parsing/HTML embarque/WebView et compatibilite des providers video. | Planifie 4.1 |
+| P5 | HFR-089 | Hors analyse initiale | iOS 27 beta: audit compatibilite et regressions UI | Compatibilite | A determiner | A auditer | Ticket de suivi a ouvrir au demarrage des betas iOS 27: verifier navigation, WebView, toolbars, Liquid Glass, saisie, partage media et comportements iPad. | Planifie 4.1 |
+
+## Ameliorations UX
+
+Ces points regroupent les feedbacks de confort et de finition. Ils ne sont pas traites comme des bugs unitaires bloquants: l'objectif est de les reprendre en fil rouge, par zones d'interface.
+
+| Priorite | References | Zone | Theme | Avis | Statut |
+| --- | --- | --- | --- | --- | --- |
+| P3 | HFR-012, HFR-013, HFR-024 | Densite | Interface jugee moins dense, option compact pas assez visible, taille de caracteres plus petite | A traiter comme un chantier coherent: rendre le mode compact plus lisible, plus visible et vraiment utile sans imposer un redesign global. | A cadrer |
+| P3 | HFR-014, HFR-023 | Theme sombre | Mode sombre trop gris, manque de contraste, espacement haut des listes | Grouper les ajustements de contraste, fonds et espacements pour eviter des corrections visuelles contradictoires. | A cadrer |
+| P3 | HFR-015, HFR-016, HFR-021 | Lisibilite de lecture | Separation anciens/nouveaux posts, pastilles drapeaux/favoris, indicateur de position dans les topics | Ameliorer les reperes de lecture et le scan des listes; eviter de traiter chaque micro-symptome isolement. | A cadrer |
+| P3 | HFR-018, HFR-020, HFR-022 | Ergonomie gestes/actions | Pull-to-refresh favoris, insertion photo, position du bouton `...` | Reprendre les gestes frequents et les actions de composition apres stabilisation des bugs principaux. | A cadrer |
+| P5 | HFR-030 | Direction produit | Revenir strictement a l'ancien design | Conserver comme signal de fond, sans en faire une issue implementable telle quelle. Les irritants precis doivent etre traites par les chantiers ci-dessus. | Loggue |
+
+## Ordre recommande
+
+1. Traiter le prochain P1 actif quand il sera identifie.
+2. Corriger les quick wins visibles du backlog actif: HFR-031, HFR-038, HFR-039.
+3. Corriger les medias et cas isoles: HFR-042, HFR-043.
+4. Cadrer les ameliorations UX par zone: densite, theme sombre, reperes de lecture, gestes/actions.
+5. Preparer la version 4.1: HFR-006, HFR-040, HFR-089.
+6. Traiter les ameliorations fonctionnelles non bloquantes: HFR-025, HFR-027 a HFR-029.
+
+## Historique des issues livrees
+
+### Livrees build #25
 
 | ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| HFR-008 | p.497, p.498 | Fin de page / fin de topic moins lisible | UX | Moyen | Faible a moyenne | Ajout d'un repere plus explicite en bas de page: le bouton page suivante repasse en style prominent sur les pages intermediaires, et le refresh reste reserve au bas de la derniere page. | Livré build #25 |
 | HFR-035 | Hors analyse initiale | iPad portrait: scroll topic parfois ignore ou intercepte | Bug UX | Moyen a fort | Faible | Palliatif applique: ajout du reglage `Swipe changement de page` dans `Sujets`, actif par defaut. Le passage a Non desactive le swipe horizontal de changement de page pour verifier si ce geste est a l'origine des scrolls ignores, tout en conservant le swipe edge retour natif. | Palliatif, a tester |
 | HFR-036 | Hors analyse initiale | Tab Messages: marquer des MP en non lus et supprimer des MP | Fonction / UX | Fort | Moyenne | Ajout d'une action contextuelle `Marquer non lu` visible uniquement sur les MP lus. Ajout de l'action contextuelle `Supprimer` avec confirmation, en appelant le flux forum `valid_eff_prive`, puis retrait local de la conversation. | Livré |
 | HFR-041 | Beta p.19 | MessagesView: taille de police qui change parfois dans un topic | Bug UI | Moyen a fort | Moyenne | Correction appliquee: la taille de police des messages est injectee dans le HTML rendu avant chargement WebView, puis reverifiee apres chargement avec reapplique JS en cas d'ecart. | Corrige, a tester |
 | HFR-047 | Hors analyse initiale | AnswerView/MessagesView: clarifier reponse rapide, reponse forum et brouillons | UX / Fonction | Fort | Moyenne | Refonte du flux de reponse: reglage `Bouton +` a trois choix (`Reponse rapide`, `Repondre comme le forum`, `Pas d'icone`), action `Repondre` forum explicite dans le menu `...`, brouillon actif contextualise par topic, brouillons archives limites a trois par topic, archivage avant remplacement, sheet de brouillons avec action `Mettre de cote et vider`, suppression par swipe et action globale `Vider`. Specification ajoutee dans `specifications.md`. | Livré, a tester |
 | HFR-048 | Hors analyse initiale | View image: la croix bleue de fermeture ne ferme pas la fenetre | Bug UX | Moyen a fort | Faible | Correctif minimal applique: le bouton de fermeture du viewer image garde son action `dismiss`, mais dispose maintenant d'une zone tactile explicite 44x44, d'une forme de hit test circulaire et reste au-dessus du viewer. | Corrige, a tester |
 | HFR-088 | Hors analyse initiale | MessagesView: remettre en avant le bouton page suivante en bas de page intermediaire | UX | Moyen | Faible | Retablissement de l'ancien repere: quand l'utilisateur arrive en bas d'une page qui n'est pas la derniere, le bouton page suivante passe en style prominent avec une animation legere. Le bouton refresh reste reserve au bas de la derniere page. | Corrige, a tester |
-
-## P1
-
-| ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-
-## P2
-
-| ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| HFR-006 | p.495, p.496 | Perte du panneau lateral iPad liste topics/favoris + topic | Regression UX | Fort | Elevee | Gros impact pour les utilisateurs iPad en paysage. Correction probablement structurelle si la navigation SwiftUI a ete revue. A planifier apres les bugs de saisie/navigation. | A faire |
-| HFR-008 | p.497, p.498 | Fin de page / fin de topic moins lisible | UX | Moyen | Faible a moyenne | Important pour la comprehension du statut de lecture. Probablement corrigeable par indicateur visuel explicite ou separateur plus net. | A faire |
-| HFR-031 | Hors analyse initiale | Filtrer les posts: le bandeau `Resultats suivants` ne fonctionne pas | Bug UX | Moyen | Faible | Le cas peut arriver: le filtrage s'arrete volontairement apres un lot de resultats, notamment a partir de 40 posts trouves, sans forcement avoir scanne tout le topic. Le bouton sert alors a relancer le filtrage a partir de la page suivante, mais l'UX reste a clarifier car il peut donner l'impression d'un bouton redondant ou inactif. | A clarifier |
-| HFR-040 | Hors analyse initiale | MessagesView: refaire fonctionner les previews de videos intra-topic | Regression UX | Moyen a fort | Moyenne | Les previews video dans la vue intra-topic ameliorent fortement la lecture des messages avec contenus multimedia. A auditer cote parsing/HTML embarque/WebView et compatibilite des providers video. | A faire |
-
-## P3
-
-| ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| HFR-012 | p.498 | Interface jugee moins dense | UX | Moyen | Moyenne | Sujet sensible mais subjectif. A traiter via option compact plus efficace plutot qu'un redesign global. | A faire |
-| HFR-013 | p.495, p.496 | Option compact pas assez visible / effet insuffisant | UX | Moyen | Faible a moyenne | Bon levier pour repondre aux critiques de densite sans penaliser tout le monde. Priorite raisonnable si les changements sont localises. | A faire |
-| HFR-014 | p.495 | Mode sombre trop gris / manque de contraste | UX | Moyen | Faible | Correction probablement simple sur les couleurs. Attention a garder les contrastes accessibles et coherents avec Liquid Glass / iOS 26. | A faire |
-| HFR-015 | p.495 | Separation anciens/nouveaux posts moins visible | UX | Moyen | Faible | Quick win probable: separateur plus net ou reprise d'un marqueur proche de l'ancien comportement. | A faire |
-| HFR-016 | p.497, p.498 | Pastilles drapeaux/favoris moins identifiables | UX | Moyen | Faible a moyenne | Impact sur le scan des listes. Peut etre traite avec icones/couleurs plus distinctes sans revenir integralement a l'ancien design. | A faire |
-| HFR-018 | p.496 | Pull-to-refresh des favoris trop difficile a declencher | UX | Moyen | Faible a moyenne | Geste frequent, probablement corrigeable par ajustement de layout/scroll view si le probleme est localise. | A faire |
-| HFR-020 | p.497 | Insertion photo moins directe | UX | Faible a moyen | Moyenne | A optimiser apres les bugs editeur principaux. Peut etre lie aux contraintes modernes de Photo Picker. | A faire |
-| HFR-038 | Hors analyse initiale | MessagesView: masquer l'icone sondage si vote possible mais aucun choix disponible | Bug UX | Moyen | Faible a moyenne | Cas distinct d'un sondage deja repondu: si le detail indique qu'on peut voter mais qu'aucun choix n'est disponible, l'icone d'action est trompeuse et doit etre masquee. | A faire |
-| HFR-039 | Hors analyse initiale | MessagesView: toujours afficher l'icone sondage, prominent si reponse possible | UX | Moyen | Faible a moyenne | Rendre l'etat sondage plus coherent: icone visible des qu'un sondage existe, prominent uniquement quand l'utilisateur peut voter, non prominent sinon. A articuler avec HFR-038 pour le cas sans choix disponible. | A faire |
-| HFR-042 | Beta p.19 | Images miniatures: tap simple ouvre une version illisible | UX / Bug media | Moyen | Moyenne | Sur certaines miniatures, le tap simple ouvre une version peu lisible alors que l'appui long permet d'ouvrir correctement l'image. Le geste naturel attendu est le tap simple vers l'image originale ou exploitable. | A faire |
-
-## P4
-
-| ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| HFR-021 | p.495 | Barre de defilement ou indicateur de position dans les topics | Amelioration | Faible a moyen | Faible a moyenne | Utile pour l'orientation dans les longues pages. Non bloquant, mais peut renforcer la lisibilite de fin de page. | A faire |
-| HFR-022 | p.498 | Bouton `...` demande plus bas, pres du `+` | UX | Faible a moyen | Faible | Ajustement ergonomique iPhone. A evaluer avec les contraintes de hierarchy toolbar/navigation. | A faire |
-| HFR-023 | p.495 | Espacement en haut des listes en theme sombre | Finition UI | Faible | Faible | Finition visuelle, probablement simple. A grouper avec les ajustements theme sombre. | A faire |
-| HFR-024 | p.495 | Taille de caracteres plus petite | Amelioration | Faible a moyen | Faible a moyenne | Demande legitime pour les utilisateurs qui veulent plus de densite. Peut etre combine avec HFR-013. | A faire |
-| HFR-025 | p.495 | Filtrage des topics par drapeaux dans Categories | Fonction | Faible a moyen | Moyenne | Amelioration utile, mais pas une regression bloquante. | A faire |
-| HFR-027 | p.495 | Creation de topic / TU peu claire ou indisponible selon appareil | Fonction / UX | Faible a moyen | Moyenne | A clarifier: si la fonction existe, ameliorer la decouvrabilite; sinon a planifier hors correctifs 4.0. | A faire |
-| HFR-028 | p.495 | Creation de sondage dans un topic | Fonction | Faible | Moyenne a elevee | Fonction avancee et rare. A garder en backlog, pas prioritaire. | A faire |
-| HFR-029 | p.495 | Plus de choix d'icones d'app | Finition | Faible | Faible | Simple si les assets existent, mais faible impact d'usage. | A faire |
-| HFR-043 | Beta p.19 | AnswerView: crash dans la recherche de smileys | Crash | Faible a moyen | A auditer | Un crash isole rapporte apres recherche de smiley puis scroll des resultats. Le feedback TestFlight ne contient pas de stack trace; conserver les smileys animes et surveiller les prochains crash logs avant correction intrusive. | A surveiller |
-
-## P5
-
-| ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| HFR-030 | Synthese p.495-p.499 | Revenir strictement a l'ancien design | Demande generale | Variable | Elevee | Demande exprimee indirectement via plusieurs irritants. Ne pas traiter comme une issue unique: preferer corriger les regressions precises listees ci-dessus. | Loggue |
-
-## Ordre recommande
-
-1. Traiter le prochain P1 actif quand il sera identifie.
-2. Restaurer le confort iPad: HFR-006.
-3. Corriger les quick wins visibles: HFR-015, HFR-014, HFR-031, HFR-038, HFR-039.
-4. Repondre aux critiques de densite/lisibilite: HFR-013, HFR-012, HFR-016, HFR-008.
-5. Traiter les ameliorations fonctionnelles non bloquantes: HFR-025, HFR-027 a HFR-029.
-
-## Historique des issues livrees
 
 ### Livrees build #21
 
