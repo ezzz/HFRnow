@@ -69,21 +69,33 @@ final class PollViewModel {
 // MARK: - Toolbar button
 
 struct PollToolbarButton: View {
+    @Environment(\.appThemePalette) private var themePalette
+
     let isVotable: Bool
     let action: () -> Void
 
     var body: some View {
         Group {
             if isVotable {
-                Button("Sondage", systemImage: "chart.bar.doc.horizontal", action: action)
-                    .hfrGlassButton(prominent: true)
-                    .buttonBorderShape(.capsule)
-                    .controlSize(.small)
+                Button(action: action) {
+                    Image(systemName: "chart.bar.doc.horizontal.fill")
+                        .font(.body.weight(.semibold))
+                }
+                .tint(themePalette.actionTintColor)
+                .hfrGlassButton(prominent: true)
+                .buttonBorderShape(.circle)
+                .controlSize(.small)
+                .frame(width: 32, height: 32)
+                .contentShape(Rectangle())
             } else {
-                Button("Sondage", systemImage: "chart.bar.doc.horizontal", action: action)
-                    .hfrGlassButton()
-                    .buttonBorderShape(.capsule)
-                    .controlSize(.small)
+                Button(action: action) {
+                    Image(systemName: "chart.bar.doc.horizontal")
+                        .font(.body)
+                        .foregroundStyle(themePalette.actionTintColor)
+                }
+                .buttonStyle(.plain)
+                .frame(width: 32, height: 32)
+                .contentShape(Rectangle())
             }
         }
         .accessibilityLabel(isVotable ? "Sondage, vote disponible" : "Sondage, résultats")

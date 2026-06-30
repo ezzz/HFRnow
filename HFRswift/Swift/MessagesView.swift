@@ -1065,6 +1065,93 @@ struct WebView: UIViewRepresentable {
         )
         contentController.addUserScript(textInteractionTrackingScript)
 
+        let linkedThumbnailImageTapScript = WKUserScript(
+            source: """
+            (function() {
+              if (window.__hfrLinkedThumbnailImageTapInstalled) { return; }
+              window.__hfrLinkedThumbnailImageTapInstalled = true;
+
+              var imageBrowserScheme = "oijlkajsdoihjlkjasdoimbrows";
+              var thumbnailPixelLimit = 200;
+              var allowedHosts = { "img3.super-h.fr": true };
+              var imageExtensions = {
+                "jpg": true,
+                "jpeg": true,
+                "png": true,
+                "gif": true,
+                "webp": true,
+                "bmp": true,
+                "tif": true,
+                "tiff": true,
+                "heic": true,
+                "heif": true
+              };
+
+              function absoluteURL(value) {
+                if (!value) { return null; }
+                try {
+                  var url = new URL(String(value).trim(), document.baseURI);
+                  var protocol = url.protocol.toLowerCase();
+                  return protocol === "http:" || protocol === "https:" ? url : null;
+                } catch (e) {
+                  return null;
+                }
+              }
+
+              function isAllowedHost(url) {
+                return !!url && !!allowedHosts[url.hostname.toLowerCase()];
+              }
+
+              function isImageURL(url) {
+                if (!url) { return false; }
+                var extensionMatch = url.pathname.toLowerCase().match(/\\.([a-z0-9]+)$/);
+                return !!extensionMatch && !!imageExtensions[extensionMatch[1]];
+              }
+
+              function imageIdentity(url) {
+                if (!isAllowedHost(url)) { return null; }
+                var path = decodeURIComponent(url.pathname || "").replace(/\\.th(?=\\.[a-z0-9]+$)/i, "").toLowerCase();
+                return url.hostname.toLowerCase() + path;
+              }
+
+              function linkedViewerURLForImage(img) {
+                var width = img.naturalWidth || 0;
+                var height = img.naturalHeight || 0;
+                if (width <= 0 || height <= 0 || width > thumbnailPixelLimit || height > thumbnailPixelLimit) {
+                  return null;
+                }
+
+                var thumbnailURL = absoluteURL(img.getAttribute("alt") || img.currentSrc || img.src);
+                var linkedURL = absoluteURL(img.getAttribute("longdesc"));
+                if (!thumbnailURL || !linkedURL || !isImageURL(linkedURL)) { return null; }
+
+                var thumbnailIdentity = imageIdentity(thumbnailURL);
+                var linkedIdentity = imageIdentity(linkedURL);
+                if (!thumbnailIdentity || thumbnailIdentity !== linkedIdentity) { return null; }
+
+                return linkedURL.href;
+              }
+
+              document.addEventListener("click", function(event) {
+                var target = event.target;
+                if (!target || !target.closest) { return; }
+                var image = target.closest("img.hfrplusimg");
+                if (!image) { return; }
+
+                var viewerURL = linkedViewerURLForImage(image);
+                if (!viewerURL) { return; }
+
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                window.location = imageBrowserScheme + "://" + (image.getAttribute("title") || "0") + "/" + encodeURIComponent(viewerURL);
+              }, true);
+            })();
+            """,
+            injectionTime: .atDocumentEnd,
+            forMainFrameOnly: true
+        )
+        contentController.addUserScript(linkedThumbnailImageTapScript)
+
         let configuration = WKWebViewConfiguration()
         configuration.userContentController = contentController
 
@@ -2338,34 +2425,8 @@ struct WebView: UIViewRepresentable {
                 return nil
             }
 
-            let normalizedURL = normalizeContextMenuImageURL(linkURL)
-            return isImageURL(normalizedURL) ? normalizedURL : nil
-        }
-
-        private func isImageURL(_ url: URL) -> Bool {
-            let imageExtensions: Set<String> = [
-                "jpg",
-                "jpeg",
-                "png",
-                "gif",
-                "webp",
-                "bmp",
-                "tif",
-                "tiff",
-                "heic",
-                "heif"
-            ]
-            let pathExtension = url.pathExtension.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-            if imageExtensions.contains(pathExtension) {
-                return true
-            }
-
-            if let host = url.host?.lowercased(),
-               host == "reho.st" || host.hasSuffix(".reho.st") || host == "img3.super-h.fr" || host == "rehost.diberie.com" {
-                return true
-            }
-
-            return false
+            let normalizedURL = MessageImageViewerURLResolver.normalizedViewerURL(for: linkURL)
+            return MessageImageViewerURLResolver.isImageURL(normalizedURL) ? normalizedURL : nil
         }
 
         private func saveImageToPhotoLibrary(from url: URL) {
@@ -2386,21 +2447,6 @@ struct WebView: UIViewRepresentable {
                     }
                 }
             }
-        }
-
-        private func normalizeContextMenuImageURL(_ url: URL) -> URL {
-            let raw = url.absoluteString
-            let normalized: String
-            if raw.contains("https://img3.super-h.fr/images/") {
-                normalized = raw.replacingOccurrences(of: ".th.", with: ".")
-            } else if raw.contains("reho.st/thumb/") {
-                normalized = raw.replacingOccurrences(of: "reho.st/thumb/", with: "reho.st/")
-            } else if raw.contains("rehost.diberie.com/Picture/Get/t/") {
-                normalized = raw.replacingOccurrences(of: "rehost.diberie.com/Picture/Get/t/", with: "rehost.diberie.com/Picture/Get/f/")
-            } else {
-                normalized = raw
-            }
-            return URL(string: normalized) ?? url
         }
 
         private func showToast(_ message: String) {
@@ -2776,11 +2822,11 @@ struct MessagesView: View {
         var title: String {
             switch self {
             case .reply:
-                return "Reply"
+                return "Répondre"
             case .edit:
-                return "Edition"
+                return "Édition"
             case .privateMessage:
-                return "Nouv. Message"
+                return "Nouv. message"
             }
         }
 
@@ -3723,7 +3769,7 @@ struct MessagesView: View {
             let isFavorite = ReplySmileyCacheBridge.isFavoriteFromApp(code: payload.code)
             smileySheetState = SmileySheetState(payload: payload, isFavorite: isFavorite)
         case .presentImageViewer(let url):
-            photoViewerDestination = PhotoViewerDestination(url: normalizeImageViewerURL(url))
+            photoViewerDestination = PhotoViewerDestination(url: MessageImageViewerURLResolver.normalizedViewerURL(for: url))
         case .openInternalTopic(let url):
             if url.scheme?.lowercased() == "file" {
                 loadDirectURL(url.absoluteString)
@@ -3733,21 +3779,6 @@ struct MessagesView: View {
         case .openExternalURL(let url):
             safariDestination = SafariDestination(url: url)
         }
-    }
-
-    private func normalizeImageViewerURL(_ url: URL) -> URL {
-        let raw = url.absoluteString
-        let normalized: String
-        if raw.contains("https://img3.super-h.fr/images/") {
-            normalized = raw.replacingOccurrences(of: ".th.", with: ".")
-        } else if raw.contains("reho.st/thumb/") {
-            normalized = raw.replacingOccurrences(of: "reho.st/thumb/", with: "reho.st/")
-        } else if raw.contains("rehost.diberie.com/Picture/Get/t/") {
-            normalized = raw.replacingOccurrences(of: "rehost.diberie.com/Picture/Get/t/", with: "rehost.diberie.com/Picture/Get/f/")
-        } else {
-            normalized = raw
-        }
-        return URL(string: normalized) ?? url
     }
 
     private func updateSmileyFavorite(code: String, imageURL: String, add: Bool) -> Bool {
@@ -5211,24 +5242,21 @@ struct MessagesView: View {
                         }
                         .multilineTextAlignment(.center)
                     }
-                    if shouldShowPollToolbarButton {
-                        ToolbarItem(placement: .topBarTrailing) {
+                    ToolbarItemGroup(placement: .topBarTrailing) {
+                        if shouldShowPollToolbarButton {
                             PollToolbarButton(isVotable: pollToolbarButtonIsVotable) {
                                 openPollSheet()
                             }
                         }
-                    }
-                    if isInSearchMode {
-                        ToolbarItem(placement: .topBarTrailing) {
+                        if isInSearchMode {
                             Button {
                                 openTopicSearchSheet()
                             } label: {
                                 Image(systemName: "magnifyingglass")
+                                    .foregroundStyle(.primary)
                             }
                             .accessibilityLabel("Rechercher")
                         }
-                    }
-                    ToolbarItem(placement: .topBarTrailing) {
                         // Menu avec options
                         Menu {
                             Button {
@@ -5260,6 +5288,7 @@ struct MessagesView: View {
                             }
                         } label: {
                             Image(systemName: "ellipsis")
+                                .foregroundStyle(.primary)
                         }
                     }
                     if !isComposerPresented {
@@ -5457,24 +5486,21 @@ struct MessagesView: View {
                     }
                     .multilineTextAlignment(.center)
                 }
-                if shouldShowPollToolbarButton {
-                    ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    if shouldShowPollToolbarButton {
                         PollToolbarButton(isVotable: pollToolbarButtonIsVotable) {
                             openPollSheet()
                         }
                     }
-                }
-                if isInSearchMode {
-                    ToolbarItem(placement: .topBarTrailing) {
+                    if isInSearchMode {
                         Button {
                             openTopicSearchSheet()
                         } label: {
                             Image(systemName: "magnifyingglass")
+                                .foregroundStyle(.primary)
                         }
                         .accessibilityLabel("Rechercher")
                     }
-                }
-                ToolbarItem(placement: .primaryAction) {
                     // Menu avec options
                     Menu {
                         Button {
@@ -5506,6 +5532,7 @@ struct MessagesView: View {
                         }
                     } label: {
                         Image(systemName: "ellipsis")
+                            .foregroundStyle(.primary)
                     }
                 }
                 if isFilteredSearchMode {

@@ -245,6 +245,61 @@ final class MessageWebActionHandlerTests: XCTestCase {
         XCTAssertEqual(action, .ignore)
     }
 
+    func testImageBrowserSchemeNormalizesSuperHThumbnail() {
+        let imageURL = "https%3A%2F%2Fimg3.super-h.fr%2Fimages%2F2026%2F06%2F18%2Fsnapshot_1970926097888085342.th.jpg"
+        let action = handler.action(
+            for: URL(string: "oijlkajsdoihjlkjasdoimbrows://12/\(imageURL)")!,
+            navigationType: .other,
+            currentPage: 3,
+            maxPage: 10
+        )
+
+        XCTAssertEqual(
+            action,
+            .presentImageViewer(URL(string: "https://img3.super-h.fr/images/2026/06/18/snapshot_1970926097888085342.jpg")!)
+        )
+    }
+
+    func testLinkedThumbnailResolverUsesSuperHFullImageForSmallSameImage() {
+        let thumbnailURL = URL(string: "https://img3.super-h.fr/images/2026/06/18/snapshot_1970926097888085342.th.jpg")!
+        let linkedURL = URL(string: "https://img3.super-h.fr/images/2026/06/18/snapshot_1970926097888085342.jpg")!
+
+        XCTAssertEqual(
+            MessageImageViewerURLResolver.linkedFullSizeURL(
+                thumbnailURL: thumbnailURL,
+                linkedURL: linkedURL,
+                imagePixelSize: CGSize(width: 160, height: 120)
+            ),
+            linkedURL
+        )
+    }
+
+    func testLinkedThumbnailResolverRequiresSmallImage() {
+        let thumbnailURL = URL(string: "https://img3.super-h.fr/images/2026/06/18/snapshot_1970926097888085342.th.jpg")!
+        let linkedURL = URL(string: "https://img3.super-h.fr/images/2026/06/18/snapshot_1970926097888085342.jpg")!
+
+        XCTAssertNil(
+            MessageImageViewerURLResolver.linkedFullSizeURL(
+                thumbnailURL: thumbnailURL,
+                linkedURL: linkedURL,
+                imagePixelSize: CGSize(width: 320, height: 180)
+            )
+        )
+    }
+
+    func testLinkedThumbnailResolverRejectsDifferentSuperHImage() {
+        let thumbnailURL = URL(string: "https://img3.super-h.fr/images/2026/06/18/snapshot_1970926097888085342.th.jpg")!
+        let linkedURL = URL(string: "https://img3.super-h.fr/images/2026/06/18/other.jpg")!
+
+        XCTAssertNil(
+            MessageImageViewerURLResolver.linkedFullSizeURL(
+                thumbnailURL: thumbnailURL,
+                linkedURL: linkedURL,
+                imagePixelSize: CGSize(width: 160, height: 120)
+            )
+        )
+    }
+
     func testSmileySchemeRoutesToManageFavoriteAction() {
         let imageURL = "https%253A%252F%252Fforum-images.hardware.fr%252Ficones%252Fsmiley.gif"
         let action = handler.action(

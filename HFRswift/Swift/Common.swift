@@ -2056,6 +2056,91 @@ struct MessageWebSmileyPayload: Equatable {
     let imageURL: String
 }
 
+enum MessageImageViewerURLResolver {
+    private static let thumbnailPixelLimit: CGFloat = 200
+    private static let linkedThumbnailHosts: Set<String> = ["img3.super-h.fr"]
+    private static let imageExtensions: Set<String> = [
+        "jpg",
+        "jpeg",
+        "png",
+        "gif",
+        "webp",
+        "bmp",
+        "tif",
+        "tiff",
+        "heic",
+        "heif"
+    ]
+
+    static func isImageURL(_ url: URL) -> Bool {
+        let pathExtension = url.pathExtension.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if imageExtensions.contains(pathExtension) {
+            return true
+        }
+
+        if let host = normalizedHost(url),
+           host == "reho.st" || host.hasSuffix(".reho.st") || host == "img3.super-h.fr" || host == "rehost.diberie.com" {
+            return true
+        }
+
+        return false
+    }
+
+    static func normalizedViewerURL(for url: URL) -> URL {
+        let raw = url.absoluteString
+        let normalized: String
+        if normalizedHost(url) == "img3.super-h.fr", raw.contains("/images/") {
+            normalized = raw.replacingOccurrences(of: ".th.", with: ".")
+        } else if raw.contains("reho.st/thumb/") {
+            normalized = raw.replacingOccurrences(of: "reho.st/thumb/", with: "reho.st/")
+        } else if raw.contains("rehost.diberie.com/Picture/Get/t/") {
+            normalized = raw.replacingOccurrences(of: "rehost.diberie.com/Picture/Get/t/", with: "rehost.diberie.com/Picture/Get/f/")
+        } else {
+            normalized = raw
+        }
+        return URL(string: normalized) ?? url
+    }
+
+    static func linkedFullSizeURL(thumbnailURL: URL, linkedURL: URL, imagePixelSize: CGSize?) -> URL? {
+        guard isSmallThumbnail(imagePixelSize) else { return nil }
+        guard isImageURL(linkedURL) else { return nil }
+        guard
+            let thumbnailIdentity = linkedThumbnailIdentity(for: thumbnailURL),
+            let linkedIdentity = linkedThumbnailIdentity(for: linkedURL),
+            thumbnailIdentity == linkedIdentity
+        else {
+            return nil
+        }
+        return linkedURL
+    }
+
+    private static func isSmallThumbnail(_ imagePixelSize: CGSize?) -> Bool {
+        guard let imagePixelSize else { return false }
+        let width = imagePixelSize.width
+        let height = imagePixelSize.height
+        guard width > 0, height > 0 else { return false }
+        return width <= thumbnailPixelLimit && height <= thumbnailPixelLimit
+    }
+
+    private static func linkedThumbnailIdentity(for url: URL) -> String? {
+        guard let host = normalizedHost(url), linkedThumbnailHosts.contains(host) else {
+            return nil
+        }
+        var path = url.path.removingPercentEncoding ?? url.path
+        guard !path.isEmpty else { return nil }
+        path = path.replacingOccurrences(
+            of: #"\.th(?=\.[A-Za-z0-9]+$)"#,
+            with: "",
+            options: .regularExpression
+        )
+        return "\(host)\(path.lowercased())"
+    }
+
+    private static func normalizedHost(_ url: URL) -> String? {
+        url.host?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+}
+
 enum MessageWebAction: Equatable {
     case allowNavigation
     case ignore
@@ -2216,7 +2301,7 @@ struct MessageWebActionHandler: MessageWebActionHandling {
             return .ignore
         }
 
-        return .presentImageViewer(imageURL)
+        return .presentImageViewer(MessageImageViewerURLResolver.normalizedViewerURL(for: imageURL))
     }
 
     private func smileyAction(for url: URL, scheme: String) -> MessageWebAction? {
