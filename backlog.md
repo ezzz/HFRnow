@@ -59,6 +59,12 @@ Ces points regroupent les feedbacks de confort et de finition. Ils ne sont pas t
 
 ## Historique des issues livrees
 
+### Livrees 4.0.2
+
+| ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| HFR-092 | iOS 27 beta | Tab bar: actions dans Messages/Plus qui rebascule sur Favoris | Bug navigation | Fort | Moyenne | Correction appliquee: ajout d'une instrumentation `RootTabAudit` et d'une resynchronisation defensive iOS 27 entre le contenu de tab visible, l'index reel du `UITabBarController` et l'etat SwiftUI `selectedTab`. Le correctif evite que Messages ou Plus apparaissent sans mutation officielle de selection, puis que SwiftUI revienne a Favoris lors de l'action suivante. | Corrige, a tester iOS 27 |
+
 ### Livrees 4.0.1
 
 | ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |

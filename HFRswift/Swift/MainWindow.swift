@@ -8,6 +8,7 @@
 import SwiftUI
 import Combine
 import UIKit
+import OSLog
 
 @MainActor
 final class CategoriesListViewModel: ObservableObject {
@@ -1106,6 +1107,105 @@ private enum CategoriesPreviewFactory {
     ]
 }
 
+private enum RootTabAudit {
+    private static let logger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "HFRswift",
+        category: "RootTabAudit"
+    )
+
+    static func log(
+        _ event: String,
+        source: String,
+        current: RootTabIdentifier? = nil,
+        previous: RootTabIdentifier? = nil,
+        target: RootTabIdentifier? = nil,
+        runtime: RootTabIdentifier? = nil,
+        selectedIndex: Int? = nil,
+        uiSelectedIndex: Int? = nil,
+        viewControllerCount: Int? = nil,
+        mode: String? = nil,
+        scenePhase: String? = nil,
+        note: String? = nil
+    ) {
+        var parts = [
+            "[RootTabAudit]",
+            "t=\(String(format: "%.3f", ProcessInfo.processInfo.systemUptime))",
+            "event=\(event)",
+            "source=\(source)"
+        ]
+
+        if let current { parts.append("current=\(current.auditName)") }
+        if let previous { parts.append("previous=\(previous.auditName)") }
+        if let target { parts.append("target=\(target.auditName)") }
+        if let runtime { parts.append("runtime=\(runtime.auditName)") }
+        if let selectedIndex { parts.append("selectedIndex=\(indexDescription(selectedIndex))") }
+        if let uiSelectedIndex { parts.append("uiSelectedIndex=\(indexDescription(uiSelectedIndex))") }
+        if let viewControllerCount { parts.append("vcCount=\(viewControllerCount)") }
+        if let mode { parts.append("mode=\(mode)") }
+        if let scenePhase { parts.append("scenePhase=\(scenePhase)") }
+        if let note { parts.append("note=\(note)") }
+
+        let message = parts.joined(separator: " ")
+        logger.notice("\(message, privacy: .public)")
+#if DEBUG
+        print(message)
+#endif
+    }
+
+    static func currentTabBarSnapshot() -> (selectedIndex: Int, viewControllerCount: Int)? {
+        guard let tabBarController = findTabBarController(in: keyWindowRootViewController()) else {
+            return nil
+        }
+        return (
+            selectedIndex: tabBarController.selectedIndex,
+            viewControllerCount: tabBarController.viewControllers?.count ?? 0
+        )
+    }
+
+    private static func indexDescription(_ index: Int) -> String {
+        if let tab = RootTabIdentifier(rawValue: index) {
+            return "\(index):\(tab.auditName)"
+        }
+        return "\(index):unknown"
+    }
+
+    private static func findTabBarController(in root: UIViewController?) -> UITabBarController? {
+        guard let root else { return nil }
+        if let tabBarController = root as? UITabBarController {
+            return tabBarController
+        }
+        for child in root.children {
+            if let tabBarController = findTabBarController(in: child) {
+                return tabBarController
+            }
+        }
+        return root.presentedViewController.flatMap { findTabBarController(in: $0) }
+    }
+
+    private static func keyWindowRootViewController() -> UIViewController? {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first(where: { $0.isKeyWindow })?
+            .rootViewController
+    }
+}
+
+private extension RootTabIdentifier {
+    var auditName: String {
+        switch self {
+        case .categories:
+            return "categories"
+        case .favorites:
+            return "favorites"
+        case .messages:
+            return "messages"
+        case .more:
+            return "more"
+        }
+    }
+}
+
 struct RootTabView: View {
     private enum RuntimeState {
         static var selectedTab: RootTabIdentifier?
@@ -1148,12 +1248,56 @@ struct RootTabView: View {
         let initialTab = runtimeTab ?? AppStartupScreen.rootTab(for: startupRawValue)
         _selectedTab = State(initialValue: initialTab)
         RuntimeState.selectedTab = initialTab
+        RootTabAudit.log(
+            "init",
+            source: "RootTabView.init",
+            target: initialTab,
+            runtime: runtimeTab,
+            note: "startup=\(startupRawValue ?? "nil")"
+        )
     }
 
-    private func syncRuntimeSelectedTab(_ tab: RootTabIdentifier) {
-        if RuntimeState.selectedTab != tab {
-            RuntimeState.selectedTab = tab
+    private var rootModeAuditName: String {
+        usesSidebarRoot ? "sidebar" : "tabbar"
+    }
+
+    private var tabSelectionBinding: Binding<RootTabIdentifier> {
+        Binding {
+            selectedTab
+        } set: { newValue in
+            setSelectedTab(newValue, source: "SwiftUI.TabView.selection")
         }
+    }
+
+    private func setSelectedTab(_ tab: RootTabIdentifier, source: String) {
+        let previous = selectedTab
+        RootTabAudit.log(
+            previous == tab ? "selectedTab.noop" : "selectedTab.set",
+            source: source,
+            current: selectedTab,
+            previous: previous,
+            target: tab,
+            runtime: RuntimeState.selectedTab,
+            mode: rootModeAuditName
+        )
+        if previous != tab {
+            selectedTab = tab
+        }
+        syncRuntimeSelectedTab(tab, source: "\(source).runtime")
+    }
+
+    private func syncRuntimeSelectedTab(_ tab: RootTabIdentifier, source: String) {
+        let previous = RuntimeState.selectedTab
+        guard previous != tab else { return }
+        RuntimeState.selectedTab = tab
+        RootTabAudit.log(
+            "runtimeSelectedTab.set",
+            source: source,
+            previous: previous,
+            target: tab,
+            runtime: RuntimeState.selectedTab,
+            mode: rootModeAuditName
+        )
     }
 
     private var iPadSidebarColumnVisibility: Binding<NavigationSplitViewVisibility> {
@@ -1242,18 +1386,30 @@ struct RootTabView: View {
 
     private func handleUIKitTabSelection(_ selectedIndex: Int) {
         guard let tab = RootTabIdentifier(rawValue: selectedIndex) else { return }
-        if selectedTab != tab {
-            selectedTab = tab
-        }
-        syncRuntimeSelectedTab(tab)
+        RootTabAudit.log(
+            "UIKit.didSelect",
+            source: "TabBarReselectionObserver",
+            current: selectedTab,
+            target: tab,
+            runtime: RuntimeState.selectedTab,
+            selectedIndex: selectedIndex,
+            mode: rootModeAuditName
+        )
+        setSelectedTab(tab, source: "UIKit.didSelect")
     }
 
     private func showMessagesList(forceRefresh: Bool) {
+        RootTabAudit.log(
+            "showMessagesList",
+            source: "MessagesNotificationNavigation",
+            current: selectedTab,
+            target: .messages,
+            runtime: RuntimeState.selectedTab,
+            mode: rootModeAuditName,
+            note: "forceRefresh=\(forceRefresh)"
+        )
         messagesNavigationResetToken = UUID()
-        if selectedTab != .messages {
-            selectedTab = .messages
-        }
-        syncRuntimeSelectedTab(.messages)
+        setSelectedTab(.messages, source: "showMessagesList")
 
         guard accountsStore.currentAccount != nil else { return }
         if forceRefresh {
@@ -1265,6 +1421,15 @@ struct RootTabView: View {
 
     private func handlePendingMessagesNotificationNavigationIfNeeded(forceRefresh: Bool = true) {
         guard MessagesNotificationNavigation.consumePendingOpenMessagesRequest() else { return }
+        RootTabAudit.log(
+            "pendingMessagesNotification.consume",
+            source: "MessagesNotificationNavigation",
+            current: selectedTab,
+            target: .messages,
+            runtime: RuntimeState.selectedTab,
+            mode: rootModeAuditName,
+            note: "forceRefresh=\(forceRefresh)"
+        )
         showMessagesList(forceRefresh: forceRefresh)
     }
 
@@ -1274,8 +1439,16 @@ struct RootTabView: View {
             .tint(appTheme.actionTintColor)
             .environment(\.appThemePalette, appTheme.palette)
             .onAppear(perform: handleAppear)
-            .onChange(of: selectedTab) { _, newValue in
-                syncRuntimeSelectedTab(newValue)
+            .onChange(of: selectedTab) { oldValue, newValue in
+                RootTabAudit.log(
+                    "selectedTab.observed",
+                    source: "SwiftUI.onChange",
+                    previous: oldValue,
+                    target: newValue,
+                    runtime: RuntimeState.selectedTab,
+                    mode: rootModeAuditName
+                )
+                syncRuntimeSelectedTab(newValue, source: "SwiftUI.onChange")
             }
             .onChange(of: accountsStore.currentAccount?.id) { oldValue, newValue in
                 handleCurrentAccountChange(from: oldValue, to: newValue)
@@ -1313,8 +1486,9 @@ struct RootTabView: View {
     }
 
     private var rootTabs: some View {
-        TabView(selection: $selectedTab) {
+        TabView(selection: tabSelectionBinding) {
             CategoriesListView(accountsStore: accountsStore)
+                .onAppear { auditTabContentAppear(.categories, source: "TabView.categories") }
                 .tabItem { Label("Catégories", systemImage: "folder.fill") }
                 .tag(RootTabIdentifier.categories)
 
@@ -1323,6 +1497,7 @@ struct RootTabView: View {
                 viewModel: favoritesViewModel,
                 accountsStore: accountsStore
             )
+            .onAppear { auditTabContentAppear(.favorites, source: "TabView.favorites") }
             .tabItem { Label("Favoris", systemImage: "star.fill") }
             .tag(RootTabIdentifier.favorites)
 
@@ -1332,6 +1507,7 @@ struct RootTabView: View {
                 isActive: selectedTab == .messages,
                 navigationResetToken: messagesNavigationResetToken
             )
+            .onAppear { auditTabContentAppear(.messages, source: "TabView.messages") }
             .tabItem { Label("Messages", systemImage: "envelope") }
             .tag(RootTabIdentifier.messages)
             .badge(mpBadgeEnabled && unreadMPCount > 0 ? unreadMPCount : 0)
@@ -1339,6 +1515,7 @@ struct RootTabView: View {
             NavigationStack {
                 PlusHomeView()
             }
+            .onAppear { auditTabContentAppear(.more, source: "TabView.more") }
             .tabItem { Label("Plus", systemImage: "ellipsis") }
             .tag(RootTabIdentifier.more)
             .badge(unreadAQCount > 0 ? unreadAQCount : 0)
@@ -1365,8 +1542,17 @@ struct RootTabView: View {
         Binding {
             selectedTab
         } set: { newValue in
-            guard let newValue else { return }
-            selectedTab = newValue
+            guard let newValue else {
+                RootTabAudit.log(
+                    "sidebarSelection.nilIgnored",
+                    source: "NavigationSplitView.sidebarSelection",
+                    current: selectedTab,
+                    runtime: RuntimeState.selectedTab,
+                    mode: rootModeAuditName
+                )
+                return
+            }
+            setSelectedTab(newValue, source: "NavigationSplitView.sidebarSelection")
         }
     }
 
@@ -1375,11 +1561,13 @@ struct RootTabView: View {
         switch selectedTab {
         case .categories:
             CategoriesListView(accountsStore: accountsStore)
+                .onAppear { auditTabContentAppear(.categories, source: "Sidebar.categories") }
         case .favorites:
             FavoritesListView(
                 viewModel: favoritesViewModel,
                 accountsStore: accountsStore
             )
+            .onAppear { auditTabContentAppear(.favorites, source: "Sidebar.favorites") }
         case .messages:
             MPListView(
                 viewModel: messagesViewModel,
@@ -1387,9 +1575,80 @@ struct RootTabView: View {
                 isActive: selectedTab == .messages,
                 navigationResetToken: messagesNavigationResetToken
             )
+            .onAppear { auditTabContentAppear(.messages, source: "Sidebar.messages") }
         case .more:
             PlusHomeView()
+                .onAppear { auditTabContentAppear(.more, source: "Sidebar.more") }
         }
+    }
+
+    private func auditTabContentAppear(_ tab: RootTabIdentifier, source: String) {
+        let tabBarSnapshot = RootTabAudit.currentTabBarSnapshot()
+        RootTabAudit.log(
+            "tabContent.onAppear",
+            source: source,
+            current: selectedTab,
+            target: tab,
+            runtime: RuntimeState.selectedTab,
+            uiSelectedIndex: tabBarSnapshot?.selectedIndex,
+            viewControllerCount: tabBarSnapshot?.viewControllerCount,
+            mode: rootModeAuditName
+        )
+        reconcileVisibleTabSelectionIfNeeded(
+            appearedTab: tab,
+            source: source,
+            tabBarSnapshot: tabBarSnapshot
+        )
+    }
+
+    private func reconcileVisibleTabSelectionIfNeeded(
+        appearedTab: RootTabIdentifier,
+        source: String,
+        tabBarSnapshot: (selectedIndex: Int, viewControllerCount: Int)?
+    ) {
+        guard #available(iOS 27.0, *) else { return }
+        guard !usesSidebarRoot else { return }
+        guard appearedTab != selectedTab else { return }
+
+        guard let tabBarSnapshot else {
+            RootTabAudit.log(
+                "visibleTab.reconcileSkipped",
+                source: source,
+                current: selectedTab,
+                target: appearedTab,
+                runtime: RuntimeState.selectedTab,
+                mode: rootModeAuditName,
+                note: "noUITabBarSnapshot"
+            )
+            return
+        }
+
+        guard tabBarSnapshot.selectedIndex == appearedTab.rawValue else {
+            RootTabAudit.log(
+                "visibleTab.reconcileSkipped",
+                source: source,
+                current: selectedTab,
+                target: appearedTab,
+                runtime: RuntimeState.selectedTab,
+                uiSelectedIndex: tabBarSnapshot.selectedIndex,
+                viewControllerCount: tabBarSnapshot.viewControllerCount,
+                mode: rootModeAuditName,
+                note: "uiSelectedIndexMismatch"
+            )
+            return
+        }
+
+        RootTabAudit.log(
+            "visibleTab.reconcile",
+            source: source,
+            current: selectedTab,
+            target: appearedTab,
+            runtime: RuntimeState.selectedTab,
+            uiSelectedIndex: tabBarSnapshot.selectedIndex,
+            viewControllerCount: tabBarSnapshot.viewControllerCount,
+            mode: rootModeAuditName
+        )
+        setSelectedTab(appearedTab, source: "\(source).visibleTabReconcile")
     }
 
     private func sidebarRow(for tab: RootTabIdentifier) -> some View {
@@ -1447,30 +1706,78 @@ struct RootTabView: View {
         TabBarReselectionObserver(
             onSelect: handleUIKitTabSelection
         ) { selectedIndex in
-            guard
-                let tab = RootTabIdentifier(rawValue: selectedIndex),
-                tab == .categories || tab == .favorites || tab == .messages
-            else {
-                return
-            }
-            NotificationCenter.default.post(
-                name: .rootTabReselected,
-                object: nil,
-                userInfo: ["tab": tab.rawValue]
-            )
+            handleUIKitTabReselection(selectedIndex)
         }
         .frame(width: 0, height: 0)
     }
 
+    private func handleUIKitTabReselection(_ selectedIndex: Int) {
+        guard let tab = RootTabIdentifier(rawValue: selectedIndex) else {
+            RootTabAudit.log(
+                "UIKit.reselect.unknownIndex",
+                source: "TabBarReselectionObserver",
+                current: selectedTab,
+                runtime: RuntimeState.selectedTab,
+                selectedIndex: selectedIndex,
+                mode: rootModeAuditName
+            )
+            return
+        }
+
+        RootTabAudit.log(
+            "UIKit.reselect",
+            source: "TabBarReselectionObserver",
+            current: selectedTab,
+            target: tab,
+            runtime: RuntimeState.selectedTab,
+            selectedIndex: selectedIndex,
+            mode: rootModeAuditName
+        )
+
+        guard tab == .categories || tab == .favorites || tab == .messages else {
+            return
+        }
+
+        RootTabAudit.log(
+            "rootTabReselected.post",
+            source: "UIKit.reselect",
+            current: selectedTab,
+            target: tab,
+            runtime: RuntimeState.selectedTab,
+            selectedIndex: selectedIndex,
+            mode: rootModeAuditName
+        )
+        NotificationCenter.default.post(
+            name: .rootTabReselected,
+            object: nil,
+            userInfo: ["tab": tab.rawValue]
+        )
+    }
+
     private func handleAppear() {
+        RootTabAudit.log(
+            "root.onAppear",
+            source: "RootTabView",
+            current: selectedTab,
+            runtime: RuntimeState.selectedTab,
+            mode: rootModeAuditName
+        )
         appTheme.refresh(systemColorScheme: systemColorScheme, forceThemeRevision: true, notifyLegacy: true)
-        syncRuntimeSelectedTab(selectedTab)
+        syncRuntimeSelectedTab(selectedTab, source: "RootTabView.onAppear")
         startColdLaunchPrefetchIfNeeded()
         startAQBadgeCheckIfNeeded()
         handlePendingMessagesNotificationNavigationIfNeeded()
     }
 
     private func handleCurrentAccountChange(from oldAccountID: String?, to newAccountID: String?) {
+        RootTabAudit.log(
+            "accountChange",
+            source: "RootTabView.onChangeAccount",
+            current: selectedTab,
+            runtime: RuntimeState.selectedTab,
+            mode: rootModeAuditName,
+            note: "oldNil=\(oldAccountID == nil) newNil=\(newAccountID == nil)"
+        )
         if newAccountID == nil {
             cancelColdLaunchPrefetch()
             hasScheduledColdLaunchPrefetch = false
@@ -1480,6 +1787,13 @@ struct RootTabView: View {
 
         guard oldAccountID != newAccountID, newAccountID != nil else { return }
         DispatchQueue.main.async {
+            RootTabAudit.log(
+                "rootTabReselected.post",
+                source: "accountChange",
+                current: selectedTab,
+                runtime: RuntimeState.selectedTab,
+                mode: rootModeAuditName
+            )
             NotificationCenter.default.post(
                 name: .rootTabReselected,
                 object: nil,
@@ -1489,6 +1803,14 @@ struct RootTabView: View {
     }
 
     private func handleScenePhaseChange(_ newValue: ScenePhase) {
+        RootTabAudit.log(
+            "scenePhase.change",
+            source: "RootTabView.onChangeScenePhase",
+            current: selectedTab,
+            runtime: RuntimeState.selectedTab,
+            mode: rootModeAuditName,
+            scenePhase: String(describing: newValue)
+        )
         guard newValue == .active else { return }
         appTheme.refresh(systemColorScheme: systemColorScheme, forceThemeRevision: true, notifyLegacy: true)
         startColdLaunchPrefetchIfNeeded()
@@ -1548,6 +1870,12 @@ private struct TabBarReselectionObserver: UIViewControllerRepresentable {
             guard self.tabBarController !== tabBarController else { return }
             self.tabBarController = tabBarController
             tabBarController.delegate = self
+            RootTabAudit.log(
+                "UIKit.bindTabBarController",
+                source: "TabBarReselectionObserver.Coordinator",
+                selectedIndex: tabBarController.selectedIndex,
+                viewControllerCount: tabBarController.viewControllers?.count
+            )
         }
 
         func tabBarController(_ tabBarController: UITabBarController, didSelect viewController: UIViewController) {
@@ -1557,16 +1885,32 @@ private struct TabBarReselectionObserver: UIViewControllerRepresentable {
             else {
                 return
             }
+            RootTabAudit.log(
+                "UIKit.delegate.didSelect",
+                source: "UITabBarControllerDelegate",
+                selectedIndex: selectedIndex,
+                uiSelectedIndex: tabBarController.selectedIndex,
+                viewControllerCount: viewControllers.count
+            )
             onSelect(selectedIndex)
         }
 
         func tabBarController(_ tabBarController: UITabBarController, shouldSelect viewController: UIViewController) -> Bool {
             if
                 let viewControllers = tabBarController.viewControllers,
-                let tappedIndex = viewControllers.firstIndex(where: { $0 === viewController }),
-                tappedIndex == tabBarController.selectedIndex
+                let tappedIndex = viewControllers.firstIndex(where: { $0 === viewController })
             {
-                onReselect(tappedIndex)
+                RootTabAudit.log(
+                    "UIKit.delegate.shouldSelect",
+                    source: "UITabBarControllerDelegate",
+                    selectedIndex: tappedIndex,
+                    uiSelectedIndex: tabBarController.selectedIndex,
+                    viewControllerCount: viewControllers.count,
+                    note: tappedIndex == tabBarController.selectedIndex ? "reselect=true" : "reselect=false"
+                )
+                if tappedIndex == tabBarController.selectedIndex {
+                    onReselect(tappedIndex)
+                }
             }
             return true
         }
