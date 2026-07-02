@@ -404,8 +404,7 @@ final class ForumReplyPostingService: ReplyPostingService, ReplyComposerContextP
         return optionRegex.matches(in: selectTag, options: [], range: range).compactMap { match in
             guard let optionRange = Range(match.range, in: selectTag) else { return nil }
             let optionHTML = String(selectTag[optionRange])
-            guard let id = attributeValue(in: optionHTML, attribute: "value")?.trimmingCharacters(in: .whitespacesAndNewlines),
-                  !id.isEmpty else {
+            guard let id = attributeValue(in: optionHTML, attribute: "value")?.trimmingCharacters(in: .whitespacesAndNewlines) else {
                 return nil
             }
             let title = strippedHTMLText(from: optionHTML)

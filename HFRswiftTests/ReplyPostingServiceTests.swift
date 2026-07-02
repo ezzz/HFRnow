@@ -196,6 +196,108 @@ final class ReplyPostingServiceTests: XCTestCase {
         XCTAssertEqual(step, 2)
     }
 
+    func testFetchComposerContextIncludesEmptySubcategoryOption() async throws {
+        let session = makeSession()
+
+        URLProtocolMock.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "GET")
+            let html = """
+            <html><body>
+            <form name=\"hop\" action=\"/bddpost.php\">
+              <input type=\"text\" name=\"sujet\" value=\"Sujet initial\" />
+              <select name=\"subcat\">
+                <option value=\"\">Aucune</option>
+                <option value=\"522\">Mac OS X</option>
+                <option value=\"528\" selected=\"selected\">Applications</option>
+              </select>
+            </form>
+            </body></html>
+            """
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                Data(html.utf8)
+            )
+        }
+
+        let service = ForumReplyPostingService(
+            session: session,
+            sessionContextProvider: { _ in
+                ReplySessionContext(pseudoDisplay: "testeur", hashCheck: "hash123")
+            }
+        )
+
+        let context = try await service.fetchComposerContext(
+            topicURL: URL(string: "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=42")!
+        )
+
+        XCTAssertEqual(context.selectedSubcategoryID, "528")
+        XCTAssertEqual(
+            context.subcategoryOptions,
+            [
+                ReplyComposerSubcategoryOption(id: "", title: "Aucune"),
+                ReplyComposerSubcategoryOption(id: "522", title: "Mac OS X"),
+                ReplyComposerSubcategoryOption(id: "528", title: "Applications")
+            ]
+        )
+    }
+
+    func testPostReplyCanSubmitEmptySubcategoryChoice() async throws {
+        let session = makeSession()
+        var step = 0
+
+        URLProtocolMock.requestHandler = { request in
+            step += 1
+            switch step {
+            case 1:
+                let html = """
+                <html><body>
+                <form name=\"hop\" action=\"/bddpost.php\">
+                  <input type=\"hidden\" name=\"cat\" value=\"13\" />
+                  <input type=\"text\" name=\"sujet\" value=\"Sujet initial\" />
+                  <select name=\"subcat\">
+                    <option value=\"\">Aucune</option>
+                    <option value=\"522\" selected=\"selected\">Mac OS X</option>
+                  </select>
+                </form>
+                </body></html>
+                """
+                return (
+                    HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                    Data(html.utf8)
+                )
+            case 2:
+                let params = Self.formEncodedBodyParameters(from: Self.requestBodyData(from: request))
+                XCTAssertEqual(params["content_form"], "Message modifie")
+                XCTAssertEqual(params["subcat"], "")
+                let html = """
+                <html><body><div class=\"hop\">Message édité</div></body></html>
+                """
+                return (
+                    HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                    Data(html.utf8)
+                )
+            default:
+                XCTFail("Unexpected extra request")
+                throw URLError(.badServerResponse)
+            }
+        }
+
+        let service = ForumReplyPostingService(
+            session: session,
+            sessionContextProvider: { _ in
+                ReplySessionContext(pseudoDisplay: "testeur", hashCheck: "hash123")
+            }
+        )
+
+        _ = try await service.postReply(
+            message: "Message modifie",
+            topicURL: URL(string: "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=42")!,
+            formOverrides: ["subcat": ""]
+        )
+
+        XCTAssertEqual(step, 2)
+    }
+
     func testPostReplyFailsWhenAuthIsRequired() async {
         let session = makeSession()
 

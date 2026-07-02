@@ -19,6 +19,8 @@ Principe de mise a jour:
 
 | Priorite | ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| P1 | HFR-090 | Hors analyse initiale | AnswerView: respecter le theme manuel clair quand iPadOS est en sombre | Bug UI | Fort | Faible a moyenne | Correction appliquee: la vue de reponse et ses panneaux appliquent explicitement le `preferredColorScheme` resolu par le theme de l'app, au lieu de laisser la presentation heriter du theme systeme. | Corrige, a tester |
+| P1 | HFR-091 | Hors analyse initiale | Edition du premier post: gerer la sous-categorie `Aucune` | Bug fonctionnel | Fort | Faible | Correction appliquee: le parsing du select `subcat` conserve l'option forum `value=""` affichee `Aucune`, et l'envoi accepte cette valeur vide comme choix explicite. | Corrige, a tester |
 | P2 | HFR-031 | Hors analyse initiale | Filtrer les posts: le bandeau `Resultats suivants` ne fonctionne pas | Bug UX | Moyen | Faible | Le cas peut arriver: le filtrage s'arrete volontairement apres un lot de resultats, notamment a partir de 40 posts trouves, sans forcement avoir scanne tout le topic. Le bouton sert alors a relancer le filtrage a partir de la page suivante, mais l'UX reste a clarifier car il peut donner l'impression d'un bouton redondant ou inactif. | A clarifier |
 | P4 | HFR-025 | p.495 | Filtrage des topics par drapeaux dans Categories | Fonction | Faible a moyen | Moyenne | Amelioration utile, mais pas une regression bloquante. | A faire |
 | P4 | HFR-027 | p.495 | Creation de topic / TU peu claire ou indisponible selon appareil | Fonction / UX | Faible a moyen | Moyenne | A clarifier: si la fonction existe, ameliorer la decouvrabilite; sinon a planifier hors correctifs 4.0. | A faire |

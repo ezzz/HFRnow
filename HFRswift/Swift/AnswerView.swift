@@ -238,6 +238,7 @@ struct AnswerView: View {
     @Binding var isComposerPresented: Bool
 
     // MARK: Environment
+    @ObservedObject private var appTheme = AppThemeStore.shared
     @Environment(\.appThemePalette) private var themePalette
     @Environment(\.dismiss) private var dismiss
     @AppStorage(AppTextSizeScale.key) private var textSizeScaleRawValue = AppTextSizeScale.standard.rawValue
@@ -352,9 +353,6 @@ struct AnswerView: View {
         if showsSubcategoryPicker && subcategoryOptions.isEmpty {
             return false
         }
-        if showsSubcategoryPicker {
-            return selectedSubcategoryID?.isEmpty == false
-        }
         return true
     }
 
@@ -422,9 +420,13 @@ struct AnswerView: View {
         // in the view hierarchy and can safely become first responder.
         .sheet(isPresented: $isSmileyPickerPresented, onDismiss: requestEditorFocus) {
             smileyPickerPanel
+                .preferredColorScheme(appTheme.preferredColorScheme)
+                .environment(\.appThemePalette, appTheme.palette)
         }
         .sheet(isPresented: $isImageInsertionPresented, onDismiss: requestEditorFocus) {
             imageInsertionPanel
+                .preferredColorScheme(appTheme.preferredColorScheme)
+                .environment(\.appThemePalette, appTheme.palette)
         }
         .sheet(isPresented: $isDraftSheetPresented, onDismiss: requestEditorFocus) {
             ReplyDraftPickerSheet(
@@ -437,6 +439,8 @@ struct AnswerView: View {
             )
             .presentationDetents([.medium])
             .presentationDragIndicator(.visible)
+            .preferredColorScheme(appTheme.preferredColorScheme)
+            .environment(\.appThemePalette, appTheme.palette)
         }
         .alert(
             "Insérer le lien du presse-papier ?",
@@ -461,6 +465,7 @@ struct AnswerView: View {
                 isGiphyPresented = false
             }
             .ignoresSafeArea()
+            .preferredColorScheme(appTheme.preferredColorScheme)
         }
         .overlay(alignment: .top) {
             if showToast {
@@ -522,6 +527,8 @@ struct AnswerView: View {
             if undoHistory.count > 200 { undoHistory.removeFirst(undoHistory.count - 200) }
             redoHistory.removeAll()
         }
+        .preferredColorScheme(appTheme.preferredColorScheme)
+        .environment(\.appThemePalette, appTheme.palette)
     }
 
     // MARK: Panel content
