@@ -19,8 +19,6 @@ Principe de mise a jour:
 
 | Priorite | ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| P1 | HFR-090 | Hors analyse initiale | AnswerView: respecter le theme manuel clair quand iPadOS est en sombre | Bug UI | Fort | Faible a moyenne | Correction appliquee: la vue de reponse et ses panneaux appliquent explicitement le `preferredColorScheme` resolu par le theme de l'app, au lieu de laisser la presentation heriter du theme systeme. | Corrige, a tester |
-| P1 | HFR-091 | Hors analyse initiale | Edition du premier post: gerer la sous-categorie `Aucune` | Bug fonctionnel | Fort | Faible | Correction appliquee: le parsing du select `subcat` conserve l'option forum `value=""` affichee `Aucune`, et l'envoi accepte cette valeur vide comme choix explicite. | Corrige, a tester |
 | P2 | HFR-031 | Hors analyse initiale | Filtrer les posts: le bandeau `Resultats suivants` ne fonctionne pas | Bug UX | Moyen | Faible | Le cas peut arriver: le filtrage s'arrete volontairement apres un lot de resultats, notamment a partir de 40 posts trouves, sans forcement avoir scanne tout le topic. Le bouton sert alors a relancer le filtrage a partir de la page suivante, mais l'UX reste a clarifier car il peut donner l'impression d'un bouton redondant ou inactif. | A clarifier |
 | P4 | HFR-025 | p.495 | Filtrage des topics par drapeaux dans Categories | Fonction | Faible a moyen | Moyenne | Amelioration utile, mais pas une regression bloquante. | A faire |
 | P4 | HFR-027 | p.495 | Creation de topic / TU peu claire ou indisponible selon appareil | Fonction / UX | Faible a moyen | Moyenne | A clarifier: si la fonction existe, ameliorer la decouvrabilite; sinon a planifier hors correctifs 4.0. | A faire |
@@ -50,12 +48,11 @@ Ces points regroupent les feedbacks de confort et de finition. Ils ne sont pas t
 
 ## Ordre recommande
 
-1. Traiter le prochain P1 actif quand il sera identifie.
-2. Clarifier le quick win visible du backlog actif: HFR-031.
-3. Surveiller les cas isoles restants: HFR-043.
-4. Cadrer les ameliorations UX par zone: densite, theme sombre, reperes de lecture, gestes/actions.
-5. Preparer la version 4.1: HFR-006, HFR-040, HFR-089.
-6. Traiter les ameliorations fonctionnelles non bloquantes: HFR-025, HFR-027 a HFR-029.
+1. Clarifier le quick win visible du backlog actif: HFR-031.
+2. Surveiller les cas isoles restants: HFR-043.
+3. Cadrer les ameliorations UX par zone: densite, theme sombre, reperes de lecture, gestes/actions.
+4. Preparer la version 4.1: HFR-006, HFR-040, HFR-089.
+5. Traiter les ameliorations fonctionnelles non bloquantes: HFR-025, HFR-027 a HFR-029.
 
 ## Historique des issues livrees
 
@@ -63,6 +60,8 @@ Ces points regroupent les feedbacks de confort et de finition. Ils ne sont pas t
 
 | ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| HFR-090 | Hors analyse initiale | AnswerView: respecter le theme manuel clair quand iPadOS est en sombre | Bug UI | Fort | Faible a moyenne | Correction appliquee: la vue de reponse et ses panneaux appliquent explicitement le `preferredColorScheme` resolu par le theme de l'app, au lieu de laisser la presentation heriter du theme systeme. | Corrige, a tester |
+| HFR-091 | Hors analyse initiale | Edition du premier post: gerer la sous-categorie `Aucune` | Bug fonctionnel | Fort | Faible | Correction appliquee: le parsing du select `subcat` conserve l'option forum `value=""` affichee `Aucune`, et l'envoi accepte cette valeur vide comme choix explicite. | Corrige, a tester |
 | HFR-092 | iOS 27 beta | Tab bar: actions dans Messages/Plus qui rebascule sur Favoris | Bug navigation | Fort | Moyenne | Correction appliquee: ajout d'une instrumentation `RootTabAudit` et d'une resynchronisation defensive iOS 27 entre le contenu de tab visible, l'index reel du `UITabBarController` et l'etat SwiftUI `selectedTab`. Le correctif evite que Messages ou Plus apparaissent sans mutation officielle de selection, puis que SwiftUI revienne a Favoris lors de l'action suivante. | Corrige, a tester iOS 27 |
 
 ### Livrees 4.0.1
