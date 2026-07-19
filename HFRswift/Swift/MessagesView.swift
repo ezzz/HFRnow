@@ -276,11 +276,11 @@ enum MessagePopupMenuPolicy {
 
     private static func priority(for actionKind: MessagePopupMenuActionKind) -> Int {
         switch actionKind {
-        case .quote:
-            return 0
-        case .quoteSelection:
-            return 1
         case .edit:
+            return 0
+        case .quote:
+            return 1
+        case .quoteSelection:
             return 2
         case .profile:
             return 3

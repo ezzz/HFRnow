@@ -2,7 +2,7 @@ import XCTest
 @testable import HFRswift
 
 final class MessagePopupMenuPolicyTests: XCTestCase {
-    func testMessageSourceKeepsQuoteActionsFirstAndEditThird() {
+    func testMessageSourcePlacesEditBeforeQuoteActions() {
         let actions = makeActions(
             quoteURL: url("https://forum.hardware.fr/message.php?post=42"),
             editURL: url("https://forum.hardware.fr/edit.php?post=42"),
@@ -20,7 +20,7 @@ final class MessagePopupMenuPolicyTests: XCTestCase {
             isQuoteSelectionEnabled: false
         ).map(\.title)
 
-        XCTAssertEqual(Array(titles.prefix(3)), ["Citer", "Citer ☐", "Editer"])
+        XCTAssertEqual(Array(titles.prefix(3)), ["Editer", "Citer", "Citer ☐"])
         XCTAssertTrue(titles.contains("AQ"))
         XCTAssertTrue(titles.contains("Bookmark"))
         XCTAssertTrue(titles.contains("Supprimer"))
