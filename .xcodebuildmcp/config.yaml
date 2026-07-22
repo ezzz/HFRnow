@@ -1,0 +1,13 @@
+schemaVersion: 1
+sessionDefaultsProfiles:
+  hfrswift-ios-latest:
+    projectPath: /Users/bruno/DocumentsLocal/Projects/HwFR/HFRnow/SuperHFRplus.xcodeproj
+    scheme: HFRswift
+    configuration: Debug
+    simulatorName: iPhone 17 Pro Max
+    useLatestOS: true
+    suppressWarnings: true
+    preferXcodebuild: true
+    simulatorId: 1A3B24D0-3A6E-4C57-B0B4-DE98E802034F
+    simulatorPlatform: iOS Simulator
+activeSessionDefaultsProfile: hfrswift-ios-latest
