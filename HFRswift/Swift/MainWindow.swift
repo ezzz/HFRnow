@@ -1878,7 +1878,67 @@ private struct TabBarReselectionObserver: UIViewControllerRepresentable {
             )
         }
 
+        @available(iOS 18.0, *)
+        func tabBarController(_ tabBarController: UITabBarController, shouldSelectTab tab: UITab) -> Bool {
+            guard #available(iOS 27.0, *) else { return true }
+
+            guard let tappedIndex = index(of: tab, in: tabBarController) else {
+                RootTabAudit.log(
+                    "UIKit.delegate.shouldSelectTab.unresolved",
+                    source: "UITabBarControllerDelegate",
+                    uiSelectedIndex: tabBarController.selectedIndex,
+                    viewControllerCount: tabBarController.tabs.count,
+                    note: "tabNotFoundInRootTabs"
+                )
+                return true
+            }
+
+            RootTabAudit.log(
+                "UIKit.delegate.shouldSelectTab",
+                source: "UITabBarControllerDelegate",
+                selectedIndex: tappedIndex,
+                uiSelectedIndex: tabBarController.selectedIndex,
+                viewControllerCount: tabBarController.tabs.count,
+                note: tappedIndex == tabBarController.selectedIndex ? "reselect=true" : "reselect=false"
+            )
+            if tappedIndex == tabBarController.selectedIndex {
+                onReselect(tappedIndex)
+            }
+            return true
+        }
+
+        @available(iOS 18.0, *)
+        func tabBarController(
+            _ tabBarController: UITabBarController,
+            didSelectTab selectedTab: UITab,
+            previousTab: UITab?
+        ) {
+            guard #available(iOS 27.0, *) else { return }
+
+            guard let selectedIndex = index(of: selectedTab, in: tabBarController) else {
+                RootTabAudit.log(
+                    "UIKit.delegate.didSelectTab.unresolved",
+                    source: "UITabBarControllerDelegate",
+                    uiSelectedIndex: tabBarController.selectedIndex,
+                    viewControllerCount: tabBarController.tabs.count,
+                    note: "tabNotFoundInRootTabs"
+                )
+                return
+            }
+
+            RootTabAudit.log(
+                "UIKit.delegate.didSelectTab",
+                source: "UITabBarControllerDelegate",
+                selectedIndex: selectedIndex,
+                uiSelectedIndex: tabBarController.selectedIndex,
+                viewControllerCount: tabBarController.tabs.count
+            )
+            onSelect(selectedIndex)
+        }
+
         func tabBarController(_ tabBarController: UITabBarController, didSelect viewController: UIViewController) {
+            guard #unavailable(iOS 27.0) else { return }
+
             guard
                 let viewControllers = tabBarController.viewControllers,
                 let selectedIndex = viewControllers.firstIndex(where: { $0 === viewController })
@@ -1896,6 +1956,8 @@ private struct TabBarReselectionObserver: UIViewControllerRepresentable {
         }
 
         func tabBarController(_ tabBarController: UITabBarController, shouldSelect viewController: UIViewController) -> Bool {
+            guard #unavailable(iOS 27.0) else { return true }
+
             if
                 let viewControllers = tabBarController.viewControllers,
                 let tappedIndex = viewControllers.firstIndex(where: { $0 === viewController })
@@ -1913,6 +1975,13 @@ private struct TabBarReselectionObserver: UIViewControllerRepresentable {
                 }
             }
             return true
+        }
+
+        @available(iOS 18.0, *)
+        private func index(of tab: UITab, in tabBarController: UITabBarController) -> Int? {
+            tabBarController.tabs.firstIndex {
+                $0 === tab || $0.identifier == tab.identifier
+            }
         }
 
         private func findTabBarController(in root: UIViewController?) -> UITabBarController? {
