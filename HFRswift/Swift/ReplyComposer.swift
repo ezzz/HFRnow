@@ -105,26 +105,43 @@ enum ReplyTextInsertionEngine {
         in text: String,
         selectedUTF16Range: NSRange
     ) -> ReplyTextInsertionResult {
-        let openTag = "[\(tag.rawValue)]"
-        let closeTag = "[/\(tag.rawValue)]"
+        wrapWithBBCode(
+            rawTag: tag.rawValue,
+            in: text,
+            selectedUTF16Range: selectedUTF16Range
+        )
+    }
+
+    static func wrapWithBBCode(
+        rawTag: String,
+        in text: String,
+        selectedUTF16Range: NSRange,
+        textForEmptySelection: String? = nil
+    ) -> ReplyTextInsertionResult {
+        let openTag = "[\(rawTag)]"
+        let closeTag = "[/\(rawTag)]"
         let hasSelection = selectedUTF16Range.length > 0
+        let insertedText = textForEmptySelection ?? ""
 
         guard let range = Range(selectedUTF16Range, in: text) else {
-            // Fallback: append at end with cursor between tags
-            let newText = text + openTag + closeTag
+            // Fallback: append at end, preserving optional clipboard content.
+            let wrapped = openTag + insertedText + closeTag
+            let newText = text + wrapped
+            let cursorLocation = text.utf16.count
+                + (textForEmptySelection == nil ? openTag.utf16.count : wrapped.utf16.count)
             return ReplyTextInsertionResult(
                 text: newText,
-                cursorLocationUTF16: text.utf16.count + openTag.utf16.count
+                cursorLocationUTF16: cursorLocation
             )
         }
 
-        let selectedText = String(text[range])
+        let selectedText = hasSelection ? String(text[range]) : insertedText
         let wrapped = openTag + selectedText + closeTag
         let newText = text.replacingCharacters(in: range, with: wrapped)
         let prefixUTF16Count = text[..<range.lowerBound].utf16.count
 
         let cursorLocation: Int
-        if hasSelection {
+        if hasSelection || textForEmptySelection != nil {
             // Cursor after closing tag
             cursorLocation = prefixUTF16Count + wrapped.utf16.count
         } else {

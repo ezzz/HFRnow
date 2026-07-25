@@ -71,4 +71,41 @@ final class ReplyComposerStateTests: XCTestCase {
         XCTAssertEqual(result.text, "voir [url=https://example.com/topic#post]ce lien[/url]")
         XCTAssertEqual(result.cursorLocationUTF16, "voir [url=https://example.com/topic#post]ce lien[/url]".utf16.count)
     }
+
+    func testBBCodeInsertionWrapsSelection() {
+        let text = "bonjour monde"
+        let selection = NSRange(location: 8, length: 5) // "monde"
+
+        let result = ReplyTextInsertionEngine.wrapWithBBCode(
+            .bold,
+            in: text,
+            selectedUTF16Range: selection
+        )
+
+        XCTAssertEqual(result.text, "bonjour [b]monde[/b]")
+        XCTAssertEqual(result.cursorLocationUTF16, "bonjour [b]monde[/b]".utf16.count)
+    }
+
+    func testBBCodeInsertionPlacesCursorBetweenEmptyTags() {
+        let result = ReplyTextInsertionEngine.wrapWithBBCode(
+            .italic,
+            in: "abc",
+            selectedUTF16Range: NSRange(location: 1, length: 0)
+        )
+
+        XCTAssertEqual(result.text, "a[i][/i]bc")
+        XCTAssertEqual(result.cursorLocationUTF16, "a[i]".utf16.count)
+    }
+
+    func testColorBBCodeInsertionUsesClipboardTextAndPlacesCursorAfterClosingTag() {
+        let result = ReplyTextInsertionEngine.wrapWithBBCode(
+            rawTag: "ff0000",
+            in: "Texte : ",
+            selectedUTF16Range: NSRange(location: 8, length: 0),
+            textForEmptySelection: "copié 👋"
+        )
+
+        XCTAssertEqual(result.text, "Texte : [ff0000]copié 👋[/ff0000]")
+        XCTAssertEqual(result.cursorLocationUTF16, result.text.utf16.count)
+    }
 }

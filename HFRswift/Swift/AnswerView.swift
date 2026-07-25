@@ -28,9 +28,76 @@ private final class TextEditorSelectionStore {
     var currentRange = NSRange(location: 0, length: 0)
 }
 
-private struct PendingClipboardLinkInsertion {
-    let urlString: String
-    let selectedRange: NSRange
+private enum ReplyFormattingTarget {
+    case bbCode(BBCodeTag)
+    case color(ReplyTextColor)
+
+    var rawTag: String {
+        switch self {
+        case .bbCode(let tag):
+            return tag.rawValue
+        case .color(let color):
+            return color.hex
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .bbCode(let tag):
+            return tag.label
+        case .color(let color):
+            return "Couleur \(color.name)"
+        }
+    }
+}
+
+private struct ReplyTextColor: Identifiable, Hashable {
+    let name: String
+    let hex: String
+
+    var id: String { hex }
+
+    var color: Color {
+        let value = Int(hex, radix: 16) ?? 0
+        return Color(
+            red: Double((value >> 16) & 0xff) / 255,
+            green: Double((value >> 8) & 0xff) / 255,
+            blue: Double(value & 0xff) / 255
+        )
+    }
+
+    static let palette: [ReplyTextColor] = [
+        ReplyTextColor(name: "Noir", hex: "000000"),
+        ReplyTextColor(name: "Gris", hex: "808080"),
+        ReplyTextColor(name: "Argent", hex: "c0c0c0"),
+        ReplyTextColor(name: "Blanc", hex: "ffffff"),
+        ReplyTextColor(name: "Rouge", hex: "ff0000"),
+        ReplyTextColor(name: "Bordeaux", hex: "800000"),
+        ReplyTextColor(name: "Orange", hex: "ff8000"),
+        ReplyTextColor(name: "Jaune", hex: "ffff00"),
+        ReplyTextColor(name: "Vert", hex: "00ff00"),
+        ReplyTextColor(name: "Vert foncé", hex: "008000"),
+        ReplyTextColor(name: "Cyan", hex: "00ffff"),
+        ReplyTextColor(name: "Turquoise", hex: "008080"),
+        ReplyTextColor(name: "Bleu", hex: "0000ff"),
+        ReplyTextColor(name: "Bleu marine", hex: "000080"),
+        ReplyTextColor(name: "Magenta", hex: "ff00ff"),
+        ReplyTextColor(name: "Violet", hex: "800080")
+    ]
+}
+
+private enum PendingClipboardInsertion {
+    case link(
+        urlString: String,
+        selectedRange: NSRange,
+        pasteboardChangeCount: Int
+    )
+    case formatting(
+        text: String,
+        target: ReplyFormattingTarget,
+        selectedRange: NSRange,
+        pasteboardChangeCount: Int
+    )
 }
 
 enum ReplyDraftSource: String, Codable {
@@ -247,7 +314,8 @@ struct AnswerView: View {
     @State private var message: String
     @State private var composerSubject = ""
     @State private var composerRecipient: String?
-    @State private var pendingClipboardLinkInsertion: PendingClipboardLinkInsertion?
+    @State private var pendingClipboardInsertion: PendingClipboardInsertion?
+    @State private var insertedClipboardChangeCount: Int?
     @State private var contextShowsSubjectField = false
     @State private var contextShowsSubcategoryPicker = false
     @State private var selectedSubcategoryID: String?
@@ -290,6 +358,8 @@ struct AnswerView: View {
     @State private var isSmileyPickerPresented = false
     @State private var isImageInsertionPresented = false
     @State private var isGiphyPresented = false
+    @State private var isFormattingBarPresented = false
+    @State private var isColorPalettePresented = false
     @State private var didLockInterfaceOrientation = false
 
     // MARK: Toast
@@ -370,12 +440,12 @@ struct AnswerView: View {
         composerRecipient != nil || showsSubjectField || showsSubcategoryPicker
     }
 
-    private var isClipboardLinkAlertPresented: Binding<Bool> {
+    private var isClipboardAlertPresented: Binding<Bool> {
         Binding(
-            get: { pendingClipboardLinkInsertion != nil },
+            get: { pendingClipboardInsertion != nil },
             set: { isPresented in
                 if !isPresented {
-                    pendingClipboardLinkInsertion = nil
+                    pendingClipboardInsertion = nil
                     requestEditorFocus()
                 }
             }
@@ -404,7 +474,6 @@ struct AnswerView: View {
                 focusRequest: focusRequest,
                 focusTrigger: focusTrigger,
                 textSizeScaleRawValue: textSizeScaleRawValue,
-                onBBCodeAction: performBBCode,
                 onSplitQuote: performSplitQuote
             )
             .padding(12)
@@ -443,20 +512,41 @@ struct AnswerView: View {
             .environment(\.appThemePalette, appTheme.palette)
         }
         .alert(
-            "Insérer le lien du presse-papier ?",
-            isPresented: isClipboardLinkAlertPresented,
-            presenting: pendingClipboardLinkInsertion
+            "Utiliser le presse-papiers ?",
+            isPresented: isClipboardAlertPresented,
+            presenting: pendingClipboardInsertion
         ) { pending in
-            Button("Non", role: .cancel) {
-                pendingClipboardLinkInsertion = nil
-                applyURLTagWithoutClipboard(range: pending.selectedRange)
-            }
-            Button("Oui") {
-                pendingClipboardLinkInsertion = nil
-                applyClipboardURL(pending)
+            switch pending {
+            case .link(_, let selectedRange, _):
+                Button("Non", role: .cancel) {
+                    pendingClipboardInsertion = nil
+                    applyURLTagWithoutClipboard(range: selectedRange)
+                }
+                Button("Oui") {
+                    pendingClipboardInsertion = nil
+                    if case .link(_, _, let changeCount) = pending {
+                        insertedClipboardChangeCount = changeCount
+                    }
+                    applyClipboardURL(pending)
+                }
+            case .formatting(_, let target, let selectedRange, let changeCount):
+                Button("Sans le presse-papiers", role: .cancel) {
+                    pendingClipboardInsertion = nil
+                    applyFormatting(target, range: selectedRange)
+                }
+                Button("Insérer") {
+                    pendingClipboardInsertion = nil
+                    insertedClipboardChangeCount = changeCount
+                    applyClipboardText(pending)
+                }
             }
         } message: { pending in
-            Text(pending.urlString)
+            switch pending {
+            case .link(let urlString, _, _):
+                Text(urlString)
+            case .formatting(let text, let target, _, _):
+                Text("Insérer « \(clipboardPreview(text)) » avec \(target.label) ?")
+            }
         }
         .fullScreenCover(isPresented: $isGiphyPresented, onDismiss: requestEditorFocus) {
             GiphyPanel {
@@ -797,12 +887,23 @@ struct AnswerView: View {
     // MARK: Toolbar
 
     private var composerToolbar: some View {
-        ViewThatFits(in: .horizontal) {
-            toolbarRow(spacing: 12)
-                .padding(.horizontal, 16).padding(.vertical, 12)
-            toolbarColumn(spacing: 10)
-                .padding(.horizontal, 16).padding(.vertical, 12)
+        VStack(spacing: 0) {
+            if isFormattingBarPresented {
+                formattingBar
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+
+            ViewThatFits(in: .horizontal) {
+                toolbarRow(spacing: 12)
+                    .padding(.horizontal, 16).padding(.vertical, 12)
+                toolbarColumn(spacing: 10)
+                    .padding(.horizontal, 16).padding(.vertical, 12)
+            }
         }
+        .animation(.easeInOut(duration: 0.2), value: isFormattingBarPresented)
+        .animation(.easeInOut(duration: 0.16), value: isColorPalettePresented)
     }
 
     @ViewBuilder
@@ -881,7 +982,162 @@ struct AnswerView: View {
             ) {
                 isImageInsertionPresented = true
             }
+            ComposerToolbarButton(
+                systemImage: "textformat",
+                accessibilityLabel: isFormattingBarPresented
+                    ? "Masquer les styles"
+                    : "Afficher les styles",
+                isDisabled: isPosting,
+                isSelected: isFormattingBarPresented
+            ) {
+                isFormattingBarPresented.toggle()
+                if !isFormattingBarPresented {
+                    isColorPalettePresented = false
+                }
+            }
         }
+    }
+
+    @ViewBuilder
+    private var formattingBar: some View {
+        if #available(iOS 26.0, *) {
+            formattingScrollContent
+                .padding(.horizontal, 6)
+                .padding(.vertical, 4)
+                .glassEffect(.regular, in: .capsule)
+        } else {
+            formattingScrollContent
+                .padding(.horizontal, 6)
+                .padding(.vertical, 4)
+                .background(Color(uiColor: .tertiarySystemBackground), in: .capsule)
+                .overlay {
+                    Capsule()
+                        .stroke(Color(uiColor: .separator).opacity(0.7), lineWidth: 1)
+                }
+        }
+    }
+
+    private var formattingScrollContent: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 2) {
+                if isColorPalettePresented {
+                    colorFormattingActions
+                } else {
+                    bbCodeFormattingActions
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var bbCodeFormattingActions: some View {
+        ForEach(BBCodeTag.allCases, id: \.rawValue) { tag in
+            formattingButton(
+                accessibilityLabel: tag.label,
+                action: {
+                    performFormatting(
+                        .bbCode(tag),
+                        range: currentSelectedRangeUTF16
+                    )
+                }
+            ) {
+                formattingLabel(for: tag)
+            }
+        }
+
+        formattingButton(
+            accessibilityLabel: "Choisir une couleur",
+            action: { isColorPalettePresented = true }
+        ) {
+            Image(systemName: "paintpalette")
+                .font(.system(size: 17, weight: .medium))
+        }
+    }
+
+    @ViewBuilder
+    private var colorFormattingActions: some View {
+        formattingButton(
+            accessibilityLabel: "Retour aux styles",
+            action: { isColorPalettePresented = false }
+        ) {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 16, weight: .semibold))
+        }
+
+        ForEach(ReplyTextColor.palette) { color in
+            Button {
+                performFormatting(
+                    .color(color),
+                    range: currentSelectedRangeUTF16
+                )
+                isColorPalettePresented = false
+            } label: {
+                Circle()
+                    .fill(color.color)
+                    .overlay {
+                        Circle()
+                            .stroke(Color.primary.opacity(0.4), lineWidth: 1)
+                    }
+                    .frame(width: 24, height: 24)
+                    .frame(width: 44, height: 44)
+                    .contentShape(.circle)
+            }
+            .buttonStyle(.plain)
+            .disabled(isPosting)
+            .opacity(isPosting ? 0.4 : 1)
+            .accessibilityLabel("\(color.name), hexadécimal \(color.hex)")
+        }
+    }
+
+    @ViewBuilder
+    private func formattingLabel(for tag: BBCodeTag) -> some View {
+        switch tag {
+        case .bold:
+            Text("G")
+                .font(.system(size: 18, weight: .bold))
+        case .italic:
+            Text("I")
+                .font(.system(size: 18))
+                .italic()
+        case .underline:
+            Text("S")
+                .font(.system(size: 18))
+                .underline()
+        case .strike:
+            Image(systemName: "strikethrough")
+                .font(.system(size: 17, weight: .medium))
+        case .spoiler:
+            Image(systemName: "eye.slash")
+                .font(.system(size: 17, weight: .medium))
+        case .quote:
+            Image(systemName: "quote.opening")
+                .font(.system(size: 17, weight: .medium))
+        case .url:
+            Image(systemName: "link")
+                .font(.system(size: 17, weight: .medium))
+        case .img:
+            Text("IMG")
+                .font(.system(size: 11, weight: .semibold))
+        case .fixed:
+            Text("CODE")
+                .font(.system(size: 10, weight: .semibold))
+        }
+    }
+
+    private func formattingButton<Label: View>(
+        accessibilityLabel: String,
+        action: @escaping () -> Void,
+        @ViewBuilder label: () -> Label
+    ) -> some View {
+        Button(action: action) {
+            label()
+                .frame(width: 44, height: 44)
+                .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .disabled(isPosting)
+        .opacity(isPosting ? 0.4 : 1)
+        .accessibilityLabel(accessibilityLabel)
     }
 
     // MARK: Insertion
@@ -914,39 +1170,89 @@ struct AnswerView: View {
         appFavoriteSmileys = smileyCatalogLoader.loadAppFavoriteSmileys()
     }
 
-    private func performBBCode(_ tag: BBCodeTag, range: NSRange) {
-        if tag == .url,
-           range.length > 0,
-           let clipboardURLString = clipboardURLString() {
-            pendingClipboardLinkInsertion = PendingClipboardLinkInsertion(
-                urlString: clipboardURLString,
-                selectedRange: range
+    private func performFormatting(_ target: ReplyFormattingTarget, range: NSRange) {
+        let selectedRange = clampedRange(range, utf16Count: message.utf16.count)
+
+        if case .bbCode(.url) = target,
+           selectedRange.length > 0,
+           let clipboard = clipboardURLCandidate() {
+            pendingClipboardInsertion = .link(
+                urlString: clipboard.text,
+                selectedRange: selectedRange,
+                pasteboardChangeCount: clipboard.changeCount
             )
             return
         }
 
-        let result = ReplyTextInsertionEngine.wrapWithBBCode(tag, in: message, selectedUTF16Range: range)
-        applyInsertionResult(result)
+        if selectedRange.length == 0,
+           let clipboard = clipboardTextCandidate() {
+            pendingClipboardInsertion = .formatting(
+                text: clipboard.text,
+                target: target,
+                selectedRange: selectedRange,
+                pasteboardChangeCount: clipboard.changeCount
+            )
+            return
+        }
+
+        applyFormatting(target, range: selectedRange)
     }
 
-    private func applyURLTagWithoutClipboard(range: NSRange) {
-        let result = ReplyTextInsertionEngine.wrapWithBBCode(.url, in: message, selectedUTF16Range: range)
-        applyInsertionResult(result)
-    }
-
-    private func applyClipboardURL(_ pending: PendingClipboardLinkInsertion) {
-        let result = ReplyTextInsertionEngine.wrapSelectionWithURL(
-            pending.urlString,
+    private func applyFormatting(
+        _ target: ReplyFormattingTarget,
+        range: NSRange,
+        textForEmptySelection: String? = nil
+    ) {
+        let result = ReplyTextInsertionEngine.wrapWithBBCode(
+            rawTag: target.rawTag,
             in: message,
-            selectedUTF16Range: pending.selectedRange
+            selectedUTF16Range: range,
+            textForEmptySelection: textForEmptySelection
         )
         applyInsertionResult(result)
     }
 
-    private func clipboardURLString() -> String? {
+    private func applyURLTagWithoutClipboard(range: NSRange) {
+        applyFormatting(.bbCode(.url), range: range)
+    }
+
+    private func applyClipboardURL(_ pending: PendingClipboardInsertion) {
+        guard case .link(let urlString, let selectedRange, _) = pending else { return }
+        let result = ReplyTextInsertionEngine.wrapSelectionWithURL(
+            urlString,
+            in: message,
+            selectedUTF16Range: selectedRange
+        )
+        applyInsertionResult(result)
+    }
+
+    private func applyClipboardText(_ pending: PendingClipboardInsertion) {
+        guard case .formatting(let text, let target, let selectedRange, _) = pending else { return }
+        applyFormatting(
+            target,
+            range: selectedRange,
+            textForEmptySelection: text
+        )
+    }
+
+    private func clipboardTextCandidate() -> (text: String, changeCount: Int)? {
         let pasteboard = UIPasteboard.general
+        let changeCount = pasteboard.changeCount
+        guard changeCount != insertedClipboardChangeCount,
+              let text = pasteboard.string,
+              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
+        return (text, changeCount)
+    }
+
+    private func clipboardURLCandidate() -> (text: String, changeCount: Int)? {
+        let pasteboard = UIPasteboard.general
+        let changeCount = pasteboard.changeCount
+        guard changeCount != insertedClipboardChangeCount else { return nil }
+
         if let url = pasteboard.url, url.isHTTPOrHTTPS {
-            return url.absoluteString
+            return (url.absoluteString, changeCount)
         }
 
         guard let string = pasteboard.string?.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -956,7 +1262,17 @@ struct AnswerView: View {
             return nil
         }
 
-        return string
+        return (string, changeCount)
+    }
+
+    private func clipboardPreview(_ text: String) -> String {
+        let singleLine = text
+            .replacingOccurrences(of: "\r\n", with: " ")
+            .replacingOccurrences(of: "\n", with: " ")
+            .replacingOccurrences(of: "\r", with: " ")
+        let limit = 140
+        guard singleLine.count > limit else { return singleLine }
+        return String(singleLine.prefix(limit)) + "…"
     }
 
     private func performSplitQuote(atUTF16Offset offset: Int) {
@@ -1283,6 +1599,7 @@ private struct ComposerToolbarButton: View {
     let accessibilityLabel: String
     var isDisabled: Bool = false
     var isDestructive: Bool = false
+    var isSelected: Bool = false
     let action: () -> Void
 
     var body: some View {
@@ -1291,7 +1608,11 @@ private struct ComposerToolbarButton: View {
                 .font(.system(size: 17, weight: .medium))
                 .frame(width: 18, height: 18)
                 .padding(8)
-                .foregroundStyle(isDestructive ? .red : .primary)
+                .foregroundStyle(
+                    isDestructive
+                        ? Color.red
+                        : (isSelected ? Color.accentColor : Color.primary)
+                )
         }
         .buttonStyle(.plain)
         .disabled(isDisabled)
@@ -2748,7 +3069,6 @@ private struct ReplyTextEditor: UIViewRepresentable {
     let focusRequest: TextEditorFocusRequest
     let focusTrigger: Int   // changing this forces updateUIView to be called
     let textSizeScaleRawValue: Int
-    var onBBCodeAction: ((BBCodeTag, NSRange) -> Void)?
     var onSplitQuote: ((Int) -> Void)?
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -2959,16 +3279,6 @@ private struct ReplyTextEditor: UIViewRepresentable {
                     self?.parent.onSplitQuote?(cursorLocation)
                 }
                 children.append(splitAction)
-            }
-
-            // Actions BBCode
-            for tag in BBCodeTag.allCases {
-                let capturedRange = range
-                let image = tag.systemImage.flatMap { UIImage(systemName: $0) }
-                let action = UIAction(title: tag.label, image: image) { [weak self] _ in
-                    self?.parent.onBBCodeAction?(tag, capturedRange)
-                }
-                children.append(action)
             }
 
             return UIMenu(title: "", options: .displayInline, children: children)
