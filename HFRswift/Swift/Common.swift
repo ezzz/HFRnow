@@ -2708,12 +2708,178 @@ enum TopicPageURLRouting {
     }
 }
 
-private struct TopicNavigationTarget {
+struct TopicNavigationID: Hashable, Identifiable, Codable {
+    let rawValue: String
+
+    var id: String { rawValue }
+}
+
+enum TopicNavigationIdentity {
+    static func id(for topic: Topic, context: TopicOpenContext) -> TopicNavigationID {
+        let namespace = namespace(for: context)
+        let explicitPostID = Int(topic.postID)
+        let explicitCategoryID = Int(topic.catID)
+
+        if explicitPostID > 0 {
+            return TopicNavigationID(
+                rawValue: stablePostIdentity(
+                    namespace: namespace,
+                    postID: explicitPostID,
+                    categoryID: explicitCategoryID
+                )
+            )
+        }
+
+        let candidates = [
+            topic.aURL,
+            topic.aURLOfFirstPage,
+            topic.aURLOfFlag,
+            topic.aURLOfLastPost,
+            topic.aURLOfLastPage
+        ]
+
+        for candidate in candidates {
+            guard let candidate = nonEmptyString(candidate) else { continue }
+            if let postID = postID(from: candidate), postID > 0 {
+                let categoryID = categoryID(from: candidate) ?? explicitCategoryID
+                return TopicNavigationID(
+                    rawValue: stablePostIdentity(
+                        namespace: namespace,
+                        postID: postID,
+                        categoryID: categoryID
+                    )
+                )
+            }
+        }
+
+        for candidate in candidates {
+            guard let candidate = nonEmptyString(candidate),
+                  let canonicalURL = canonicalURLIdentity(candidate) else {
+                continue
+            }
+            return TopicNavigationID(rawValue: "\(namespace):url:\(canonicalURL)")
+        }
+
+        let normalizedTitle = nonEmptyString(topic._aTitle)?
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
+            ?? "sans-titre"
+        return TopicNavigationID(
+            rawValue: "\(namespace):fallback:\(explicitCategoryID):\(normalizedTitle)"
+        )
+    }
+
+    private static func namespace(for context: TopicOpenContext) -> String {
+        switch context {
+        case .messages, .privateMessages:
+            return "private"
+        case .generic, .forum, .favorites, .favoritesOnly, .globalSearch:
+            return "forum"
+        }
+    }
+
+    private static func stablePostIdentity(
+        namespace: String,
+        postID: Int,
+        categoryID: Int
+    ) -> String {
+        guard categoryID > 0 else {
+            return "\(namespace):post:\(postID)"
+        }
+        return "\(namespace):category:\(categoryID):post:\(postID)"
+    }
+
+    private static func postID(from rawURL: String) -> Int? {
+        if let components = URLComponents(string: rawURL),
+           let value = components.queryItems?.first(where: { $0.name.lowercased() == "post" })?.value,
+           let postID = Int(value),
+           postID > 0 {
+            return postID
+        }
+
+        guard let regex = try? NSRegularExpression(
+            pattern: #"sujet_(\d+)_"#,
+            options: [.caseInsensitive]
+        ) else {
+            return nil
+        }
+        let range = NSRange(rawURL.startIndex..<rawURL.endIndex, in: rawURL)
+        guard let match = regex.firstMatch(in: rawURL, range: range),
+              match.numberOfRanges > 1,
+              let valueRange = Range(match.range(at: 1), in: rawURL),
+              let postID = Int(rawURL[valueRange]),
+              postID > 0 else {
+            return nil
+        }
+        return postID
+    }
+
+    private static func categoryID(from rawURL: String) -> Int? {
+        guard let components = URLComponents(string: rawURL),
+              let value = components.queryItems?.first(where: { $0.name.lowercased() == "cat" })?.value,
+              let categoryID = Int(value),
+              categoryID > 0 else {
+            return nil
+        }
+        return categoryID
+    }
+
+    private static func canonicalURLIdentity(_ rawURL: String) -> String? {
+        guard var components = URLComponents(string: rawURL) else { return nil }
+        components.fragment = nil
+        components.scheme = components.scheme?.lowercased()
+        components.host = components.host?.lowercased()
+        components.queryItems = components.queryItems?
+            .filter {
+                !["page", "numreponse", "p"].contains($0.name.lowercased())
+            }
+            .sorted {
+                if $0.name == $1.name {
+                    return ($0.value ?? "") < ($1.value ?? "")
+                }
+                return $0.name < $1.name
+            }
+        return nonEmptyString(components.string)
+    }
+
+    private static func nonEmptyString(_ value: String?) -> String? {
+        guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !trimmed.isEmpty else {
+            return nil
+        }
+        return trimmed
+    }
+}
+
+struct TopicNavigationTarget: Identifiable {
+    let id: TopicNavigationID
     let topic: Topic
     let page: Int
     let maxPage: Int
     let openedURL: String?
     let initialScroll: WebView.InitialScroll?
+    let separatorNewMessages: Bool
+    let initialFavoritePostFilterResult: FavoritePostFilterResult?
+
+    init(
+        topic: Topic,
+        page: Int,
+        maxPage: Int,
+        openedURL: String?,
+        initialScroll: WebView.InitialScroll?,
+        context: TopicOpenContext,
+        separatorNewMessages: Bool = true,
+        initialFavoritePostFilterResult: FavoritePostFilterResult? = nil
+    ) {
+        self.id = TopicNavigationIdentity.id(for: topic, context: context)
+        self.topic = topic
+        self.page = page
+        self.maxPage = maxPage
+        self.openedURL = openedURL
+        self.initialScroll = initialScroll
+        self.separatorNewMessages = separatorNewMessages
+        self.initialFavoritePostFilterResult = initialFavoritePostFilterResult
+    }
 }
 
 private struct TopicPagePickerSheetToken: Identifiable {
@@ -2959,7 +3125,9 @@ struct TopicListRowView: View {
     var openContext: TopicOpenContext = .generic
     var quickActions: TopicQuickActionsConfiguration?
     var extraContextMenu: (() -> AnyView)?
-    var onOpen: ((String?) -> Void)?
+    var selectedTopicID: TopicNavigationID?
+    var onSelectTarget: ((TopicNavigationTarget) -> Void)?
+    var onDidOpen: ((String?) -> Void)?
     @Environment(\.appThemePalette) private var themePalette
     @AppStorage(AppTextSizeScale.key) private var textSizeScaleRawValue = AppTextSizeScale.standard.rawValue
     @ScaledMetric(relativeTo: .body) private var scaledTitleBaseSize: CGFloat = 13
@@ -3027,15 +3195,40 @@ struct TopicListRowView: View {
     }
 
     private var unreadBadgeTextColor: Color {
-        themePalette.unreadBadgeTextColor(isVisited: isVisited)
+        if isSelected { return .white }
+        return themePalette.unreadBadgeTextColor(isVisited: isVisited)
     }
 
     private var unreadBadgeBackgroundColor: Color {
-        themePalette.unreadBadgeBackgroundColor(isVisited: isVisited)
+        if isSelected { return .white.opacity(0.22) }
+        return themePalette.unreadBadgeBackgroundColor(isVisited: isVisited)
     }
 
     private var stickySymbolColor: Color {
-        themePalette.stickyAccentColor
+        if isSelected { return .white }
+        return themePalette.stickyAccentColor
+    }
+
+    private var titleForegroundColor: Color {
+        if isSelected { return .white }
+        return isVisited ? .secondary : .primary
+    }
+
+    private var secondaryForegroundColor: Color {
+        isSelected ? .white.opacity(0.82) : .secondary
+    }
+
+    private var isSelected: Bool {
+        selectedTopicID == TopicNavigationIdentity.id(for: topic, context: openContext)
+    }
+
+    private var selectedBackgroundOverflow: EdgeInsets {
+        EdgeInsets(
+            top: max(rowBackgroundOverflow.top, 2),
+            leading: max(rowBackgroundOverflow.leading, 10),
+            bottom: max(rowBackgroundOverflow.bottom, 2),
+            trailing: max(rowBackgroundOverflow.trailing, 10)
+        )
     }
 
     private func nonEmptyString(_ value: String?) -> String? {
@@ -3091,7 +3284,8 @@ struct TopicListRowView: View {
             page: resolvedPage,
             maxPage: resolvedMaxPage,
             openedURL: openedURL,
-            initialScroll: initialScroll
+            initialScroll: initialScroll,
+            context: openContext
         )
     }
 
@@ -3106,6 +3300,11 @@ struct TopicListRowView: View {
 
     private func openNavigationTarget(_ target: TopicNavigationTarget?) {
         guard let target else { return }
+        if let onSelectTarget {
+            onSelectTarget(target)
+            onDidOpen?(target.openedURL)
+            return
+        }
         navigationTarget = target
         navigateToTarget = true
     }
@@ -3244,14 +3443,14 @@ struct TopicListRowView: View {
                         if topic.isClosed {
                             Image(systemName: "lock.fill")
                                 .font(.caption.weight(.semibold))
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(secondaryForegroundColor)
                         }
                         if let titleLeadingBadge {
                             titleLeadingBadge
                         }
                         Text(titleText)
                             .font(resolvedTitleFont)
-                            .foregroundStyle(isVisited ? .secondary : .primary)
+                            .foregroundStyle(titleForegroundColor)
                         Spacer()
                         if showUnreadBadge && (showUnreadBadgeWhenZero || unreadCount > 0) {
                             Text("\(unreadCount)")
@@ -3267,10 +3466,11 @@ struct TopicListRowView: View {
 
                     if let detailContent {
                         detailContent
+                            .foregroundStyle(isSelected ? .white : .primary)
                     } else if let detailText, !detailText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                         Text(detailText)
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(secondaryForegroundColor)
                             .lineLimit(3)
                     }
 
@@ -3279,13 +3479,13 @@ struct TopicListRowView: View {
                             if let leadingBottomText {
                                 Text(leadingBottomText)
                                     .font(resolvedFooterFont)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(secondaryForegroundColor)
                             }
                             Spacer()
                             if let trailingBottomText {
                                 Text(trailingBottomText)
                                     .font(resolvedFooterFont)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(secondaryForegroundColor)
                             }
                         }
                     }
@@ -3293,7 +3493,14 @@ struct TopicListRowView: View {
             }
             .padding(contentPadding)
             .background {
-                if let rowBackgroundTint {
+                if isSelected {
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(themePalette.actionTintColor)
+                        .padding(.top, -selectedBackgroundOverflow.top)
+                        .padding(.leading, -selectedBackgroundOverflow.leading)
+                        .padding(.bottom, -selectedBackgroundOverflow.bottom)
+                        .padding(.trailing, -selectedBackgroundOverflow.trailing)
+                } else if let rowBackgroundTint {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .fill(rowBackgroundTint)
                         .padding(.top, -rowBackgroundOverflow.top)
@@ -3305,7 +3512,9 @@ struct TopicListRowView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .tint(.primary)
+        .tint(isSelected ? .white : .primary)
+        .animation(nil, value: isSelected)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
         .contextMenu {
             quickActionsMenuContent
             if let extraContextMenu {
@@ -3323,11 +3532,12 @@ struct TopicListRowView: View {
                         topic: navigationTarget.topic,
                         curPage: navigationTarget.page,
                         maxPage: navigationTarget.maxPage,
-                        separatorNewMessages: true,
-                        initialLoadScroll: navigationTarget.initialScroll
+                        separatorNewMessages: navigationTarget.separatorNewMessages,
+                        initialLoadScroll: navigationTarget.initialScroll,
+                        initialFavoritePostFilterResult: navigationTarget.initialFavoritePostFilterResult
                     )
                     .onAppear {
-                        onOpen?(navigationTarget.openedURL)
+                        onDidOpen?(navigationTarget.openedURL)
                     }
                     .toolbar(.hidden, for: .tabBar)
                 } else {

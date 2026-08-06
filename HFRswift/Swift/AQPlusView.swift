@@ -324,10 +324,18 @@ final class AQPlusViewModel: ObservableObject {
 struct AQPlusView: View {
     @StateObject private var viewModel: AQPlusViewModel
     @State private var hasLoaded = false
+    private let selectedTopicID: TopicNavigationID?
+    private let onSelectTopic: ((TopicNavigationTarget) -> Void)?
 
     @MainActor
-    init(viewModel: AQPlusViewModel? = nil) {
+    init(
+        viewModel: AQPlusViewModel? = nil,
+        selectedTopicID: TopicNavigationID? = nil,
+        onSelectTopic: ((TopicNavigationTarget) -> Void)? = nil
+    ) {
         _viewModel = StateObject(wrappedValue: viewModel ?? AQPlusViewModel())
+        self.selectedTopicID = selectedTopicID
+        self.onSelectTopic = onSelectTopic
     }
 
     private func normalizedForumTopicURLString(from rawLink: String) -> String {
@@ -392,35 +400,21 @@ struct AQPlusView: View {
             }
 
             ForEach(viewModel.items) { item in
-                NavigationLink {
-                    let page = pageNumber(for: item)
-                    MessagesView(
-                        topic: topic(for: item),
-                        curPage: page,
-                        maxPage: page,
-                        separatorNewMessages: true
-                    )
-                    .toolbar(.hidden, for: .tabBar)
-                } label: {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(item.topicTitle)
-                            .font(.headline)
-                            .fontWeight(item.isNew ? .bold : .regular)
-                        Text(item.aqTitle)
-                            .font(.subheadline)
-                            .foregroundStyle(.primary)
-                        if !item.comment.isEmpty {
-                            Text(item.comment)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(2)
-                        }
-                        Text("par \(item.initiator) \(item.relativeDate)")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 4)
-                }
+                TopicListRowView(
+                    topic: topic(for: item),
+                    isVisited: !item.isNew,
+                    titleFont: .headline,
+                    titleWeight: item.isNew ? .bold : .regular,
+                    titleOverride: item.topicTitle,
+                    leadingBottomText: "par \(item.initiator)",
+                    trailingBottomText: item.relativeDate,
+                    detailText: item.comment.isEmpty
+                        ? item.aqTitle
+                        : "\(item.aqTitle)\n\(item.comment)",
+                    openContext: .generic,
+                    selectedTopicID: selectedTopicID,
+                    onSelectTarget: onSelectTopic
+                )
             }
         }
         .navigationTitle("Alertes Qualitay")

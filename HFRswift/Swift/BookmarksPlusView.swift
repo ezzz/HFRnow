@@ -112,10 +112,21 @@ struct BookmarksPlusView: View {
     @StateObject private var viewModel: BookmarksPlusViewModel
     @AppStorage("mpstorage_last_rw") private var mpStorageLastAccess = "-"
     @State private var hasLoaded = false
+    private let selectedTopicID: TopicNavigationID?
+    private let onSelectTopic: ((TopicNavigationTarget) -> Void)?
+    private let onDeleteTopic: ((TopicNavigationID) -> Void)?
 
     @MainActor
-    init(viewModel: BookmarksPlusViewModel? = nil) {
+    init(
+        viewModel: BookmarksPlusViewModel? = nil,
+        selectedTopicID: TopicNavigationID? = nil,
+        onSelectTopic: ((TopicNavigationTarget) -> Void)? = nil,
+        onDeleteTopic: ((TopicNavigationID) -> Void)? = nil
+    ) {
         _viewModel = StateObject(wrappedValue: viewModel ?? BookmarksPlusViewModel())
+        self.selectedTopicID = selectedTopicID
+        self.onSelectTopic = onSelectTopic
+        self.onDeleteTopic = onDeleteTopic
     }
 
     private static let dateFormatter: DateFormatter = {
@@ -142,6 +153,18 @@ struct BookmarksPlusView: View {
         return Self.dateFormatter.string(from: date)
     }
 
+    private func deleteBookmarks(at offsets: IndexSet) {
+        let deletedTopicIDs = offsets.compactMap { index -> TopicNavigationID? in
+            guard viewModel.bookmarks.indices.contains(index) else { return nil }
+            return TopicNavigationIdentity.id(
+                for: makeTopic(from: viewModel.bookmarks[index]),
+                context: .generic
+            )
+        }
+        viewModel.delete(at: offsets)
+        deletedTopicIDs.forEach { onDeleteTopic?($0) }
+    }
+
     var body: some View {
         List {
             if !viewModel.isStorageEnabled {
@@ -164,29 +187,22 @@ struct BookmarksPlusView: View {
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(Array(viewModel.bookmarks.enumerated()), id: \.offset) { _, bookmark in
-                    NavigationLink {
-                        MessagesView(
-                            topic: makeTopic(from: bookmark),
-                            curPage: 1,
-                            maxPage: 1,
-                            separatorNewMessages: true
-                        )
-                        .toolbar(.hidden, for: .tabBar)
-                    } label: {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text((bookmark.sLabel ?? "").isEmpty ? "Bookmark" : (bookmark.sLabel ?? "Bookmark"))
-                                .font(.headline)
-                            Text(bookmark.sAuthorPost ?? "")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                            Text(dateLabel(for: bookmark))
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.vertical, 4)
-                    }
+                    let topic = makeTopic(from: bookmark)
+                    TopicListRowView(
+                        topic: topic,
+                        isVisited: false,
+                        titleFont: .headline,
+                        titleOverride: (bookmark.sLabel ?? "").isEmpty
+                            ? "Bookmark"
+                            : (bookmark.sLabel ?? "Bookmark"),
+                        leadingBottomText: bookmark.sAuthorPost,
+                        trailingBottomText: dateLabel(for: bookmark),
+                        openContext: .generic,
+                        selectedTopicID: selectedTopicID,
+                        onSelectTarget: onSelectTopic
+                    )
                 }
-                .onDelete(perform: viewModel.delete)
+                .onDelete(perform: deleteBookmarks)
             }
         }
         .navigationTitle("Bookmarks")

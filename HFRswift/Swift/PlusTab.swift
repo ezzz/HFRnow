@@ -75,6 +75,36 @@ struct PlusHomeView: View {
     }
 }
 
+struct AccountDeletionView: View {
+    @State private var showDeleteAccountComposer = false
+    @State private var showMailUnavailableAlert = false
+
+    var body: some View {
+        ContentUnavailableView {
+            Label("Supprimer mon compte", systemImage: "trash")
+        } description: {
+            Text("Une demande de suppression sera préparée dans l’application Mail.")
+        } actions: {
+            Button("Préparer la demande", role: .destructive) {
+                if MFMailComposeViewController.canSendMail() {
+                    showDeleteAccountComposer = true
+                } else {
+                    showMailUnavailableAlert = true
+                }
+            }
+        }
+        .navigationTitle("Supprimer mon compte")
+        .sheet(isPresented: $showDeleteAccountComposer) {
+            DeleteAccountMailComposeView()
+        }
+        .alert("Mail indisponible", isPresented: $showMailUnavailableAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Aucun compte mail n’est configuré sur cet appareil.")
+        }
+    }
+}
+
 private struct PlusRow: View {
     let title: String
     let systemImage: String

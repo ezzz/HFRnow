@@ -354,7 +354,7 @@ private struct ForumSearchTopicRow: View {
             trailingBottomText: footerRight,
             detailContent: detailContent,
             openContext: .globalSearch,
-            onOpen: onOpen
+            onDidOpen: onOpen
         )
     }
 }

@@ -130,6 +130,9 @@ final class ForumTopicsListViewModel: ObservableObject {
 struct CategoriesListView: View {
     @StateObject private var viewModel: CategoriesListViewModel
     @StateObject private var accountsStore: AccountsStore
+    private let selectedTopicID: TopicNavigationID?
+    private let onSelectTopic: ((TopicNavigationTarget) -> Void)?
+    private let onSelectForum: ((Forum) -> Void)?
     @State private var hasLoaded = false
     @State private var showAddAccountSheet = false
     @State private var showLogoutConfirm = false
@@ -137,10 +140,16 @@ struct CategoriesListView: View {
     @MainActor
     init(
         viewModel: CategoriesListViewModel? = nil,
-        accountsStore: AccountsStore? = nil
+        accountsStore: AccountsStore? = nil,
+        selectedTopicID: TopicNavigationID? = nil,
+        onSelectTopic: ((TopicNavigationTarget) -> Void)? = nil,
+        onSelectForum: ((Forum) -> Void)? = nil
     ) {
         _viewModel = StateObject(wrappedValue: viewModel ?? CategoriesListViewModel())
         _accountsStore = StateObject(wrappedValue: accountsStore ?? AccountsStore())
+        self.selectedTopicID = selectedTopicID
+        self.onSelectTopic = onSelectTopic
+        self.onSelectForum = onSelectForum
     }
 
     var body: some View {
@@ -155,23 +164,23 @@ struct CategoriesListView: View {
                         .foregroundStyle(.secondary)
                 }
                 ForEach(viewModel.forums) { forum in
-                    NavigationLink {
-                        ForumTopicsListView(
-                            forum: forum,
-                            accountsStore: accountsStore
-                        )
-                    } label: {
-                        HStack(spacing: 12) {
-                            ForumCategoryIconView(forum: forum)
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(forum.aTitle ?? "Forum")
-                                if let subForums = forum.subCats as? [Forum], !subForums.isEmpty {
-                                    Text("\(subForums.count) sous-forums")
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
+                    if let onSelectForum {
+                        Button {
+                            onSelectForum(forum)
+                        } label: {
+                            forumRowLabel(forum)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        NavigationLink {
+                            ForumTopicsListView(
+                                forum: forum,
+                                accountsStore: accountsStore,
+                                selectedTopicID: selectedTopicID,
+                                onSelectTopic: onSelectTopic
+                            )
+                        } label: {
+                            forumRowLabel(forum)
                         }
                     }
                 }
@@ -232,6 +241,23 @@ struct CategoriesListView: View {
         }
     }
 
+    private func forumRowLabel(_ forum: Forum) -> some View {
+        HStack(spacing: 12) {
+            ForumCategoryIconView(forum: forum)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(forum.aTitle ?? "Forum")
+                    .foregroundStyle(.primary)
+                if let subForums = forum.subCats as? [Forum], !subForums.isEmpty {
+                    Text("\(subForums.count) sous-forums")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .contentShape(Rectangle())
+    }
+
     @ViewBuilder
     private var accountMenuItems: some View {
         if !accountsStore.accounts.isEmpty {
@@ -280,6 +306,10 @@ struct ForumTopicsListView: View {
     @State private var pagePickerInput = "1"
 
     private let topicActionService: FavoritesTopicActionServicing
+    private let selectedTopicID: TopicNavigationID?
+    private let onSelectTopic: ((TopicNavigationTarget) -> Void)?
+    private let onBack: (() -> Void)?
+    private let onContentContextChange: (() -> Void)?
 
     @MainActor
     init(
@@ -287,7 +317,11 @@ struct ForumTopicsListView: View {
         initialFlagOverride: TopicListFlag? = nil,
         viewModel: ForumTopicsListViewModel? = nil,
         accountsStore: AccountsStore? = nil,
-        topicActionService: FavoritesTopicActionServicing = ForumFavoritesTopicActionService()
+        topicActionService: FavoritesTopicActionServicing = ForumFavoritesTopicActionService(),
+        selectedTopicID: TopicNavigationID? = nil,
+        onSelectTopic: ((TopicNavigationTarget) -> Void)? = nil,
+        onBack: (() -> Void)? = nil,
+        onContentContextChange: (() -> Void)? = nil
     ) {
         self.forum = forum
         self.initialFlagOverride = initialFlagOverride
@@ -295,6 +329,10 @@ struct ForumTopicsListView: View {
         self._accountsStore = ObservedObject(wrappedValue: accountsStore ?? AccountsStore())
         _selectedForumIdentifier = State(initialValue: ForumTopicsListView.forumIdentifier(for: forum))
         self.topicActionService = topicActionService
+        self.selectedTopicID = selectedTopicID
+        self.onSelectTopic = onSelectTopic
+        self.onBack = onBack
+        self.onContentContextChange = onContentContextChange
     }
 
     private static func forumIdentifier(for forum: Forum) -> String {
@@ -352,6 +390,7 @@ struct ForumTopicsListView: View {
 
     private func loadPage(_ urlString: String?) {
         guard let urlString = normalizedNonEmpty(urlString) else { return }
+        onContentContextChange?()
         AppHaptics.refreshStarted()
         viewModel.load(pageURL: urlString, shouldTriggerHaptic: true)
     }
@@ -666,7 +705,9 @@ struct ForumTopicsListView: View {
                         ? EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8)
                         : EdgeInsets(),
                     openContext: .forum(selectedFlag: viewModel.selectedFlag),
-                    extraContextMenu: extraContextMenu(for: topic, hasFlag: hasFlag, isRemoving: isRemoving)
+                    extraContextMenu: extraContextMenu(for: topic, hasFlag: hasFlag, isRemoving: isRemoving),
+                    selectedTopicID: selectedTopicID,
+                    onSelectTarget: onSelectTopic
                 ) { openedURL in
                     if let openedURL, !openedURL.isEmpty {
                         visitedURLs.insert(openedURL)
@@ -723,7 +764,15 @@ struct ForumTopicsListView: View {
         }
         .navigationTitle(navigationTitleText)
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
+            ToolbarItemGroup(placement: .topBarLeading) {
+                if let onBack {
+                    Button {
+                        onBack()
+                    } label: {
+                        Image(systemName: "chevron.backward")
+                    }
+                    .accessibilityLabel("Retour aux catégories")
+                }
                 Menu {
                     accountMenuItems
                 } label: {
@@ -780,6 +829,7 @@ struct ForumTopicsListView: View {
             }
         }
         .onChange(of: selectedForumIdentifier) { _, _ in
+            onContentContextChange?()
             viewModel.updateForum(resolvedSelectedForum)
             guard hasLoaded else { return }
             viewModel.load()
@@ -792,6 +842,7 @@ struct ForumTopicsListView: View {
             if globalTopicListFlagRawValue != newValue.rawValue {
                 globalTopicListFlagRawValue = newValue.rawValue
             }
+            onContentContextChange?()
             guard hasLoaded else { return }
             viewModel.load()
         }
@@ -1211,8 +1262,43 @@ struct RootTabView: View {
         static var selectedTab: RootTabIdentifier?
     }
 
+    private enum IPadSidebarDestination: String, Hashable {
+        case categories
+        case favorites
+        case messages
+        case bookmarks
+        case qualityAlerts
+        case settings
+        case search
+        case credits
+        case charter
+        case deleteAccount
+
+        var rootTab: RootTabIdentifier {
+            switch self {
+            case .categories:
+                .categories
+            case .favorites:
+                .favorites
+            case .messages:
+                .messages
+            case .bookmarks, .qualityAlerts, .settings, .search, .credits, .charter, .deleteAccount:
+                .more
+            }
+        }
+
+        var usesTopicList: Bool {
+            switch self {
+            case .categories, .favorites, .messages, .bookmarks, .qualityAlerts:
+                true
+            case .settings, .search, .credits, .charter, .deleteAccount:
+                false
+            }
+        }
+    }
+
     private enum SidebarVisibilityStorage {
-        static let key = "HFRswiftIPadSidebarVisibility"
+        static let key = "HFRswiftIPadSplitColumnVisibilityV3"
         static let automatic = "automatic"
         static let all = "all"
         static let doubleColumn = "doubleColumn"
@@ -1227,16 +1313,27 @@ struct RootTabView: View {
     @Environment(\.colorScheme) private var systemColorScheme
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var selectedTab: RootTabIdentifier
+    @State private var iPadSidebarDestination: IPadSidebarDestination
     @State private var hasScheduledColdLaunchPrefetch = false
     @State private var coldLaunchPrefetchTask: Task<Void, Never>?
     @State private var hasScheduledAQBadgeCheck = false
     @State private var aqBadgeCheckTask: Task<Void, Never>?
     @State private var messagesNavigationResetToken = UUID()
+    @State private var detailNavigationResetToken = UUID()
+    @State private var preferredCompactColumn = NavigationSplitViewColumn.content
+    @State private var iPadDirectSidebarVisibility = NavigationSplitViewVisibility.all
+    @State private var categoriesSelectedForum: Forum?
+    @State private var categoriesInitialFlagOverride: TopicListFlag?
+    @State private var categoriesTopicTarget: TopicNavigationTarget?
+    @State private var favoritesTopicTarget: TopicNavigationTarget?
+    @State private var messagesTopicTarget: TopicNavigationTarget?
+    @State private var bookmarksTopicTarget: TopicNavigationTarget?
+    @State private var qualityAlertsTopicTarget: TopicNavigationTarget?
     @AppStorage("nb_mp") private var unreadMPCount = 0
     @AppStorage(AQUnreadCounter.storageKey) private var unreadAQCount = 0
     @AppStorage("mp_badge_enabled") private var mpBadgeEnabled = true
     @AppStorage(AppTabBarMinimizeOnScroll.key) private var tabBarMinimizeOnScroll = true
-    @AppStorage(SidebarVisibilityStorage.key) private var iPadSidebarVisibilityRawValue = SidebarVisibilityStorage.automatic
+    @AppStorage(SidebarVisibilityStorage.key) private var iPadSidebarVisibilityRawValue = SidebarVisibilityStorage.doubleColumn
 
     private var usesSidebarRoot: Bool {
         UIDevice.current.userInterfaceIdiom == .pad && horizontalSizeClass == .regular
@@ -1247,6 +1344,7 @@ struct RootTabView: View {
         let runtimeTab = RuntimeState.selectedTab
         let initialTab = runtimeTab ?? AppStartupScreen.rootTab(for: startupRawValue)
         _selectedTab = State(initialValue: initialTab)
+        _iPadSidebarDestination = State(initialValue: Self.defaultIPadDestination(for: initialTab))
         RuntimeState.selectedTab = initialTab
         RootTabAudit.log(
             "init",
@@ -1255,6 +1353,19 @@ struct RootTabView: View {
             runtime: runtimeTab,
             note: "startup=\(startupRawValue ?? "nil")"
         )
+    }
+
+    private static func defaultIPadDestination(for tab: RootTabIdentifier) -> IPadSidebarDestination {
+        switch tab {
+        case .categories:
+            .categories
+        case .favorites:
+            .favorites
+        case .messages:
+            .messages
+        case .more:
+            .settings
+        }
     }
 
     private var rootModeAuditName: String {
@@ -1282,6 +1393,11 @@ struct RootTabView: View {
         )
         if previous != tab {
             selectedTab = tab
+            if iPadSidebarDestination.rootTab != tab {
+                iPadSidebarDestination = Self.defaultIPadDestination(for: tab)
+            }
+            detailNavigationResetToken = UUID()
+            preferredCompactColumn = activeTopicTarget == nil ? .content : .detail
         }
         syncRuntimeSelectedTab(tab, source: "\(source).runtime")
     }
@@ -1409,7 +1525,15 @@ struct RootTabView: View {
             note: "forceRefresh=\(forceRefresh)"
         )
         messagesNavigationResetToken = UUID()
-        setSelectedTab(.messages, source: "showMessagesList")
+        messagesTopicTarget = nil
+        detailNavigationResetToken = UUID()
+        preferredCompactColumn = .content
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            iPadSidebarVisibilityRawValue = SidebarVisibilityStorage.doubleColumn
+            setIPadSidebarDestination(.messages, source: "showMessagesList")
+        } else {
+            setSelectedTab(.messages, source: "showMessagesList")
+        }
 
         guard accountsStore.currentAccount != nil else { return }
         if forceRefresh {
@@ -1455,6 +1579,9 @@ struct RootTabView: View {
             }
             .onChange(of: systemColorScheme) { _, newValue in
                 appTheme.refresh(systemColorScheme: newValue, notifyLegacy: true)
+            }
+            .onChange(of: horizontalSizeClass) { _, _ in
+                ensureVisibleIPadListIfNeeded()
             }
             .onChange(of: scenePhase) { _, newValue in
                 handleScenePhaseChange(newValue)
@@ -1522,25 +1649,65 @@ struct RootTabView: View {
         }
     }
 
+    @ViewBuilder
     private var iPadSidebarRoot: some View {
-        NavigationSplitView(columnVisibility: iPadSidebarColumnVisibility) {
-            List(selection: sidebarSelection) {
-                ForEach(Self.sidebarTabs, id: \.self) { tab in
-                    NavigationLink(value: tab) {
-                        sidebarRow(for: tab)
+        if iPadSidebarDestination.usesTopicList {
+            NavigationSplitView(
+                columnVisibility: iPadSidebarColumnVisibility,
+                preferredCompactColumn: $preferredCompactColumn
+            ) {
+                iPadSidebarNavigationList
+            } content: {
+                selectedIPadListContent
+                    .navigationSplitViewColumnWidth(min: 300, ideal: 380, max: 480)
+            } detail: {
+                selectedIPadDetail
+            }
+            .navigationSplitViewStyle(.balanced)
+        } else {
+            NavigationSplitView(
+                columnVisibility: $iPadDirectSidebarVisibility,
+                preferredCompactColumn: $preferredCompactColumn
+            ) {
+                iPadSidebarNavigationList
+            } detail: {
+                selectedIPadDetail
+            }
+            .navigationSplitViewStyle(.balanced)
+        }
+    }
+
+    private var iPadSidebarNavigationList: some View {
+        List(selection: iPadSidebarSelection) {
+            Section("Forum") {
+                ForEach(Self.forumSidebarDestinations, id: \.self) { destination in
+                    NavigationLink(value: destination) {
+                        iPadSidebarRow(for: destination)
                     }
                 }
             }
-            .navigationTitle("Hardware.fr")
-        } detail: {
-            selectedTabContent
+            Section("Outils") {
+                ForEach(Self.toolsSidebarDestinations, id: \.self) { destination in
+                    NavigationLink(value: destination) {
+                        iPadSidebarRow(for: destination)
+                    }
+                }
+            }
+            Section("Plus") {
+                ForEach(Self.moreSidebarDestinations, id: \.self) { destination in
+                    NavigationLink(value: destination) {
+                        iPadSidebarRow(for: destination)
+                    }
+                }
+            }
         }
-        .navigationSplitViewStyle(.balanced)
+        .navigationTitle("Hardware.fr")
+        .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 280)
     }
 
-    private var sidebarSelection: Binding<RootTabIdentifier?> {
+    private var iPadSidebarSelection: Binding<IPadSidebarDestination?> {
         Binding {
-            selectedTab
+            iPadSidebarDestination
         } set: { newValue in
             guard let newValue else {
                 RootTabAudit.log(
@@ -1552,20 +1719,49 @@ struct RootTabView: View {
                 )
                 return
             }
-            setSelectedTab(newValue, source: "NavigationSplitView.sidebarSelection")
+            setIPadSidebarDestination(
+                newValue,
+                source: "NavigationSplitView.sidebarSelection"
+            )
         }
     }
 
     @ViewBuilder
-    private var selectedTabContent: some View {
-        switch selectedTab {
+    private var selectedIPadListContent: some View {
+        switch iPadSidebarDestination {
         case .categories:
-            CategoriesListView(accountsStore: accountsStore)
+            if let categoriesSelectedForum {
+                ForumTopicsListView(
+                    forum: categoriesSelectedForum,
+                    initialFlagOverride: categoriesInitialFlagOverride,
+                    accountsStore: accountsStore,
+                    selectedTopicID: categoriesTopicTarget?.id,
+                    onSelectTopic: { selectTopic($0, for: .categories) },
+                    onBack: showCategoriesRoot,
+                    onContentContextChange: clearCategoriesTopicSelection
+                )
+                .id(iPadForumIdentity(for: categoriesSelectedForum))
+                .onAppear { auditTabContentAppear(.categories, source: "Sidebar.categories.topics") }
+            } else {
+                CategoriesListView(
+                    accountsStore: accountsStore,
+                    selectedTopicID: categoriesTopicTarget?.id,
+                    onSelectTopic: { selectTopic($0, for: .categories) },
+                    onSelectForum: {
+                        showTopicsForForum($0, initialFlagOverride: nil)
+                    }
+                )
                 .onAppear { auditTabContentAppear(.categories, source: "Sidebar.categories") }
+            }
         case .favorites:
             FavoritesListView(
                 viewModel: favoritesViewModel,
-                accountsStore: accountsStore
+                accountsStore: accountsStore,
+                selectedTopicID: favoritesTopicTarget?.id,
+                onSelectTopic: { selectTopic($0, for: .favorites) },
+                onOpenForum: {
+                    showTopicsForForum($0, initialFlagOverride: .favorites)
+                }
             )
             .onAppear { auditTabContentAppear(.favorites, source: "Sidebar.favorites") }
         case .messages:
@@ -1573,13 +1769,269 @@ struct RootTabView: View {
                 viewModel: messagesViewModel,
                 accountsStore: accountsStore,
                 isActive: selectedTab == .messages,
-                navigationResetToken: messagesNavigationResetToken
+                navigationResetToken: messagesNavigationResetToken,
+                selectedTopicID: messagesTopicTarget?.id,
+                onSelectTopic: { selectTopic($0, for: .messages) },
+                onDeleteTopic: handleDeletedMessageTopic
             )
             .onAppear { auditTabContentAppear(.messages, source: "Sidebar.messages") }
-        case .more:
-            PlusHomeView()
-                .onAppear { auditTabContentAppear(.more, source: "Sidebar.more") }
+        case .bookmarks:
+            BookmarksPlusView(
+                selectedTopicID: bookmarksTopicTarget?.id,
+                onSelectTopic: { selectTopic($0, for: .bookmarks) },
+                onDeleteTopic: handleDeletedBookmarkTopic
+            )
+            .onAppear { auditTabContentAppear(.more, source: "Sidebar.bookmarks") }
+        case .qualityAlerts:
+            AQPlusView(
+                selectedTopicID: qualityAlertsTopicTarget?.id,
+                onSelectTopic: { selectTopic($0, for: .qualityAlerts) }
+            )
+            .onAppear { auditTabContentAppear(.more, source: "Sidebar.qualityAlerts") }
+        case .settings, .search, .credits, .charter, .deleteAccount:
+            EmptyView()
         }
+    }
+
+    @ViewBuilder
+    private var selectedIPadDetail: some View {
+        NavigationStack {
+            if let target = activeTopicTarget {
+                MessagesView(
+                    topic: target.topic,
+                    curPage: target.page,
+                    maxPage: target.maxPage,
+                    separatorNewMessages: target.separatorNewMessages,
+                    initialLoadScroll: target.initialScroll,
+                    initialFavoritePostFilterResult: target.initialFavoritePostFilterResult,
+                    resetMessagesStackToRootAction: resetDetailNavigation
+                )
+            } else {
+                switch iPadSidebarDestination {
+                case .settings:
+                    AppSettingsView()
+                case .search:
+                    ForumSearchView()
+                case .credits:
+                    StaticInfoPageView(kind: .credits)
+                case .charter:
+                    StaticInfoPageView(kind: .charter)
+                case .deleteAccount:
+                    AccountDeletionView()
+                case .categories, .favorites, .messages, .bookmarks, .qualityAlerts:
+                    ContentUnavailableView {
+                        Label(
+                            detailPlaceholderTitle,
+                            systemImage: detailPlaceholderSystemImage
+                        )
+                    } description: {
+                        Text(detailPlaceholderDescription)
+                    }
+                }
+            }
+        }
+        .id(detailNavigationResetToken)
+        .toolbar {
+            if iPadSidebarDestination.usesTopicList,
+               activeTopicTarget != nil,
+               !isTopicListHidden {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        toggleTopicListVisibility()
+                    } label: {
+                        Image(systemName: "rectangle.leadinghalf.inset.filled")
+                    }
+                    .accessibilityLabel("Masquer la liste")
+                }
+            }
+        }
+    }
+
+    private var detailPlaceholderTitle: String {
+        switch iPadSidebarDestination {
+        case .bookmarks:
+            "Aucun bookmark sélectionné"
+        case .qualityAlerts:
+            "Aucune alerte sélectionnée"
+        case .categories, .favorites, .messages:
+            "Aucun topic sélectionné"
+        case .settings, .search, .credits, .charter, .deleteAccount:
+            ""
+        }
+    }
+
+    private var detailPlaceholderSystemImage: String {
+        switch iPadSidebarDestination {
+        case .bookmarks:
+            "pin"
+        case .qualityAlerts:
+            "bell"
+        case .categories, .favorites, .messages:
+            "text.bubble"
+        case .settings, .search, .credits, .charter, .deleteAccount:
+            "doc"
+        }
+    }
+
+    private var detailPlaceholderDescription: String {
+        switch iPadSidebarDestination {
+        case .categories:
+            categoriesSelectedForum == nil
+                ? "Choisissez une catégorie dans la liste."
+                : "Choisissez un topic dans la liste."
+        case .favorites:
+            "Choisissez un favori dans la liste."
+        case .messages:
+            "Choisissez une conversation dans la liste."
+        case .bookmarks:
+            "Choisissez un bookmark dans la liste."
+        case .qualityAlerts:
+            "Choisissez une alerte dans la liste."
+        case .settings, .search, .credits, .charter, .deleteAccount:
+            ""
+        }
+    }
+
+    private var activeTopicTarget: TopicNavigationTarget? {
+        switch iPadSidebarDestination {
+        case .categories:
+            categoriesTopicTarget
+        case .favorites:
+            favoritesTopicTarget
+        case .messages:
+            messagesTopicTarget
+        case .bookmarks:
+            bookmarksTopicTarget
+        case .qualityAlerts:
+            qualityAlertsTopicTarget
+        case .settings, .search, .credits, .charter, .deleteAccount:
+            nil
+        }
+    }
+
+    private var isTopicListHidden: Bool {
+        Self.sidebarVisibility(from: iPadSidebarVisibilityRawValue) == .detailOnly
+    }
+
+    private func setIPadSidebarDestination(
+        _ destination: IPadSidebarDestination,
+        source: String
+    ) {
+        let previousDestination = iPadSidebarDestination
+        guard previousDestination != destination else {
+            setSelectedTab(destination.rootTab, source: source)
+            return
+        }
+
+        iPadSidebarDestination = destination
+        setSelectedTab(destination.rootTab, source: source)
+        detailNavigationResetToken = UUID()
+
+        if destination.usesTopicList {
+            iPadSidebarVisibilityRawValue = SidebarVisibilityStorage.doubleColumn
+            preferredCompactColumn = activeTopicTarget == nil ? .content : .detail
+        } else {
+            iPadDirectSidebarVisibility = .all
+            preferredCompactColumn = .detail
+        }
+    }
+
+    private func selectTopic(
+        _ target: TopicNavigationTarget,
+        for destination: IPadSidebarDestination
+    ) {
+        switch destination {
+        case .categories:
+            categoriesTopicTarget = target
+        case .favorites:
+            favoritesTopicTarget = target
+        case .messages:
+            messagesTopicTarget = target
+        case .bookmarks:
+            bookmarksTopicTarget = target
+        case .qualityAlerts:
+            qualityAlertsTopicTarget = target
+        case .settings, .search, .credits, .charter, .deleteAccount:
+            return
+        }
+        detailNavigationResetToken = UUID()
+        preferredCompactColumn = .detail
+    }
+
+    private func showTopicsForForum(
+        _ forum: Forum,
+        initialFlagOverride: TopicListFlag?
+    ) {
+        categoriesSelectedForum = forum
+        categoriesInitialFlagOverride = initialFlagOverride
+        categoriesTopicTarget = nil
+        setIPadSidebarDestination(.categories, source: "showTopicsForForum")
+        iPadSidebarVisibilityRawValue = SidebarVisibilityStorage.doubleColumn
+        preferredCompactColumn = .content
+        detailNavigationResetToken = UUID()
+    }
+
+    private func showCategoriesRoot() {
+        categoriesSelectedForum = nil
+        categoriesInitialFlagOverride = nil
+        clearCategoriesTopicSelection()
+        iPadSidebarVisibilityRawValue = SidebarVisibilityStorage.doubleColumn
+        preferredCompactColumn = .content
+    }
+
+    private func clearCategoriesTopicSelection() {
+        categoriesTopicTarget = nil
+        if iPadSidebarDestination == .categories {
+            detailNavigationResetToken = UUID()
+            preferredCompactColumn = .content
+        }
+    }
+
+    private func iPadForumIdentity(for forum: Forum) -> String {
+        let forumIdentity = forum.aURL ?? forum.aID ?? forum.aTitle ?? "forum-root"
+        let flagIdentity = categoriesInitialFlagOverride
+            .map { String($0.rawValue) }
+            ?? "default"
+        return "\(forumIdentity):\(flagIdentity)"
+    }
+
+    private func handleDeletedMessageTopic(_ deletedTopicID: TopicNavigationID) {
+        guard messagesTopicTarget?.id == deletedTopicID else { return }
+        messagesTopicTarget = nil
+        if iPadSidebarDestination == .messages {
+            detailNavigationResetToken = UUID()
+            preferredCompactColumn = .content
+        }
+    }
+
+    private func handleDeletedBookmarkTopic(_ deletedTopicID: TopicNavigationID) {
+        guard bookmarksTopicTarget?.id == deletedTopicID else { return }
+        bookmarksTopicTarget = nil
+        if iPadSidebarDestination == .bookmarks {
+            detailNavigationResetToken = UUID()
+            preferredCompactColumn = .content
+        }
+    }
+
+    private func toggleTopicListVisibility() {
+        iPadSidebarVisibilityRawValue = isTopicListHidden
+            ? SidebarVisibilityStorage.doubleColumn
+            : SidebarVisibilityStorage.detailOnly
+    }
+
+    private func ensureVisibleIPadListIfNeeded() {
+        guard usesSidebarRoot,
+              iPadSidebarDestination.usesTopicList,
+              activeTopicTarget == nil,
+              isTopicListHidden else {
+            return
+        }
+        iPadSidebarVisibilityRawValue = SidebarVisibilityStorage.doubleColumn
+        preferredCompactColumn = .content
+    }
+
+    private func resetDetailNavigation() {
+        detailNavigationResetToken = UUID()
     }
 
     private func auditTabContentAppear(_ tab: RootTabIdentifier, source: String) {
@@ -1651,12 +2103,16 @@ struct RootTabView: View {
         setSelectedTab(appearedTab, source: "\(source).visibleTabReconcile")
     }
 
-    private func sidebarRow(for tab: RootTabIdentifier) -> some View {
+    private func iPadSidebarRow(for destination: IPadSidebarDestination) -> some View {
         HStack {
-            Label(sidebarTitle(for: tab), systemImage: sidebarSystemImage(for: tab))
+            Label(
+                iPadSidebarTitle(for: destination),
+                systemImage: iPadSidebarSystemImage(for: destination)
+            )
+            .foregroundStyle(destination == .deleteAccount ? Color.red : Color.primary)
             Spacer()
-            if sidebarBadgeCount(for: tab) > 0 {
-                Text("\(sidebarBadgeCount(for: tab))")
+            if iPadSidebarBadgeCount(for: destination) > 0 {
+                Text("\(iPadSidebarBadgeCount(for: destination))")
                     .font(.caption2.monospacedDigit().weight(.semibold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 6)
@@ -1666,38 +2122,62 @@ struct RootTabView: View {
         }
     }
 
-    private static let sidebarTabs: [RootTabIdentifier] = [
+    private static let forumSidebarDestinations: [IPadSidebarDestination] = [
         .categories,
         .favorites,
-        .messages,
-        .more
+        .messages
     ]
 
-    private func sidebarTitle(for tab: RootTabIdentifier) -> String {
-        switch tab {
+    private static let toolsSidebarDestinations: [IPadSidebarDestination] = [
+        .bookmarks,
+        .qualityAlerts
+    ]
+
+    private static let moreSidebarDestinations: [IPadSidebarDestination] = [
+        .settings,
+        .search,
+        .credits,
+        .charter,
+        .deleteAccount
+    ]
+
+    private func iPadSidebarTitle(for destination: IPadSidebarDestination) -> String {
+        switch destination {
         case .categories: "Catégories"
         case .favorites: "Favoris"
         case .messages: "Messages"
-        case .more: "Plus"
+        case .bookmarks: "Bookmarks"
+        case .qualityAlerts: "Alertes Qualitay"
+        case .settings: "Réglages"
+        case .search: "Rechercher sur le forum"
+        case .credits: "Crédits"
+        case .charter: "Charte du forum"
+        case .deleteAccount: "Supprimer mon compte"
         }
     }
 
-    private func sidebarSystemImage(for tab: RootTabIdentifier) -> String {
-        switch tab {
+    private func iPadSidebarSystemImage(for destination: IPadSidebarDestination) -> String {
+        switch destination {
         case .categories: "folder.fill"
         case .favorites: "star.fill"
         case .messages: "envelope"
-        case .more: "ellipsis"
+        case .bookmarks: "pin"
+        case .qualityAlerts: "bell"
+        case .settings: "gearshape"
+        case .search: "magnifyingglass"
+        case .credits: "info.circle"
+        case .charter: "doc.text"
+        case .deleteAccount: "trash"
         }
     }
 
-    private func sidebarBadgeCount(for tab: RootTabIdentifier) -> Int {
-        switch tab {
+    private func iPadSidebarBadgeCount(for destination: IPadSidebarDestination) -> Int {
+        switch destination {
         case .messages:
             mpBadgeEnabled ? unreadMPCount : 0
-        case .more:
+        case .qualityAlerts:
             unreadAQCount
-        case .categories, .favorites:
+        case .categories, .favorites, .bookmarks, .settings, .search, .credits, .charter, .deleteAccount:
             0
         }
     }
@@ -1764,6 +2244,7 @@ struct RootTabView: View {
         )
         appTheme.refresh(systemColorScheme: systemColorScheme, forceThemeRevision: true, notifyLegacy: true)
         syncRuntimeSelectedTab(selectedTab, source: "RootTabView.onAppear")
+        ensureVisibleIPadListIfNeeded()
         startColdLaunchPrefetchIfNeeded()
         startAQBadgeCheckIfNeeded()
         handlePendingMessagesNotificationNavigationIfNeeded()
@@ -1778,6 +2259,10 @@ struct RootTabView: View {
             mode: rootModeAuditName,
             note: "oldNil=\(oldAccountID == nil) newNil=\(newAccountID == nil)"
         )
+        if oldAccountID != newAccountID {
+            clearTopicSelections()
+        }
+
         if newAccountID == nil {
             cancelColdLaunchPrefetch()
             hasScheduledColdLaunchPrefetch = false
@@ -1800,6 +2285,18 @@ struct RootTabView: View {
                 userInfo: ["tab": selectedTab.rawValue]
             )
         }
+    }
+
+    private func clearTopicSelections() {
+        categoriesSelectedForum = nil
+        categoriesInitialFlagOverride = nil
+        categoriesTopicTarget = nil
+        favoritesTopicTarget = nil
+        messagesTopicTarget = nil
+        bookmarksTopicTarget = nil
+        qualityAlertsTopicTarget = nil
+        detailNavigationResetToken = UUID()
+        preferredCompactColumn = .content
     }
 
     private func handleScenePhaseChange(_ newValue: ScenePhase) {

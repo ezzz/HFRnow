@@ -325,6 +325,9 @@ struct FavoriteSectionView: View {
     let onRemoveFavorite: (Topic) -> Void
     let onFilterPosts: (Topic) -> Void
     let openContextProvider: (Topic) -> TopicOpenContext
+    let selectedTopicID: TopicNavigationID?
+    let onSelectTopic: ((TopicNavigationTarget) -> Void)?
+    let onOpenForum: ((Forum) -> Void)?
 
     // Cast centralisé
     private var topics: [Topic] { (favorite.topics as? [Topic]) ?? [] }
@@ -339,18 +342,31 @@ struct FavoriteSectionView: View {
     @ViewBuilder
     private var headerTitleView: some View {
         if let forum = favorite.forum {
-            NavigationLink {
-                ForumTopicsListView(
-                    forum: forum,
-                    initialFlagOverride: .favorites,
-                    accountsStore: accountsStore
-                )
-            } label: {
-                Text(headerTitle)
-                    .foregroundStyle(.primary)
+            if let onOpenForum {
+                Button {
+                    onOpenForum(forum)
+                } label: {
+                    Text(headerTitle)
+                        .foregroundStyle(.primary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Ouvrir le forum")
+            } else {
+                NavigationLink {
+                    ForumTopicsListView(
+                        forum: forum,
+                        initialFlagOverride: .favorites,
+                        accountsStore: accountsStore,
+                        selectedTopicID: selectedTopicID,
+                        onSelectTopic: onSelectTopic
+                    )
+                } label: {
+                    Text(headerTitle)
+                        .foregroundStyle(.primary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Ouvrir le forum")
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Ouvrir le forum")
         } else {
             Text(headerTitle)
                 .foregroundStyle(.primary)
@@ -404,7 +420,9 @@ struct FavoriteSectionView: View {
                         onToggleSuperFavorite: { onToggleSuperFavorite(topic) },
                         onRemoveFavorite: { onRemoveFavorite(topic) },
                         onFilterPosts: { onFilterPosts(topic) },
-                        openContext: openContextProvider(topic)
+                        openContext: openContextProvider(topic),
+                        selectedTopicID: selectedTopicID,
+                        onSelectTopic: onSelectTopic
                     )
                     .contentShape(Rectangle())
                     .listRowInsets(density.rowInsets)
@@ -440,6 +458,9 @@ struct FavoritesListView: View {
 
     private let topicActionService: FavoritesTopicActionServicing
     private let favoritePostFilterService: any FavoritePostFilteringServicing
+    private let selectedTopicID: TopicNavigationID?
+    private let onSelectTopic: ((TopicNavigationTarget) -> Void)?
+    private let onOpenForum: ((Forum) -> Void)?
 
     private struct FavoritePostFilterNavigationTarget: Identifiable {
         let id = UUID()
@@ -502,7 +523,10 @@ struct FavoritesListView: View {
         viewModel: FavoritesViewModel? = nil,
         accountsStore: AccountsStore? = nil,
         topicActionService: FavoritesTopicActionServicing = ForumFavoritesTopicActionService(),
-        favoritePostFilterService: any FavoritePostFilteringServicing = ObjCFavoritePostFilterService()
+        favoritePostFilterService: any FavoritePostFilteringServicing = ObjCFavoritePostFilterService(),
+        selectedTopicID: TopicNavigationID? = nil,
+        onSelectTopic: ((TopicNavigationTarget) -> Void)? = nil,
+        onOpenForum: ((Forum) -> Void)? = nil
     ) {
         _viewModel = StateObject(wrappedValue: viewModel ?? FavoritesViewModel())
         _accountsStore = StateObject(wrappedValue: accountsStore ?? AccountsStore())
@@ -510,6 +534,9 @@ struct FavoritesListView: View {
         _collapsedSectionIDs = State(initialValue: FavoritesCollapsedSectionsStore.load())
         self.topicActionService = topicActionService
         self.favoritePostFilterService = favoritePostFilterService
+        self.selectedTopicID = selectedTopicID
+        self.onSelectTopic = onSelectTopic
+        self.onOpenForum = onOpenForum
     }
 
     private func normalizedNonEmpty(_ value: String?) -> String? {
@@ -672,7 +699,10 @@ struct FavoritesListView: View {
                                 onToggleSuperFavorite: toggleSuperFavorite(_:),
                                 onRemoveFavorite: removeFavoriteFlag(_:),
                                 onFilterPosts: filterPosts(_:),
-                                openContextProvider: topicOpenContext(for:)
+                                openContextProvider: topicOpenContext(for:),
+                                selectedTopicID: selectedTopicID,
+                                onSelectTopic: onSelectTopic,
+                                onOpenForum: onOpenForum
                             )
                         }
                     } else {
@@ -687,7 +717,9 @@ struct FavoritesListView: View {
                                 onToggleSuperFavorite: { toggleSuperFavorite(topic) },
                                 onRemoveFavorite: { removeFavoriteFlag(topic) },
                                 onFilterPosts: { filterPosts(topic) },
-                                openContext: topicOpenContext(for: topic)
+                                openContext: topicOpenContext(for: topic),
+                                selectedTopicID: selectedTopicID,
+                                onSelectTopic: onSelectTopic
                             )
                             .contentShape(Rectangle())
                             .listRowInsets(listDensity.rowInsets)
@@ -947,11 +979,29 @@ struct FavoritesListView: View {
 
             switch result {
             case .success(let filterResult):
-                favoritePostFilterTarget = FavoritePostFilterNavigationTarget(
-                    topic: topic,
-                    result: filterResult
-                )
-                navigateToFavoritePostFilter = true
+                if let onSelectTopic {
+                    let openedURL = normalizedNonEmpty(topic.aURL)
+                        ?? normalizedNonEmpty(topic.aURLOfLastPage)
+                        ?? normalizedNonEmpty(topic.aURLOfLastPost)
+                    onSelectTopic(
+                        TopicNavigationTarget(
+                            topic: topic,
+                            page: max(filterResult.endPage, 1),
+                            maxPage: max(max(filterResult.maxPage, filterResult.endPage), 1),
+                            openedURL: openedURL,
+                            initialScroll: nil,
+                            context: topicOpenContext(for: topic),
+                            separatorNewMessages: false,
+                            initialFavoritePostFilterResult: filterResult
+                        )
+                    )
+                } else {
+                    favoritePostFilterTarget = FavoritePostFilterNavigationTarget(
+                        topic: topic,
+                        result: filterResult
+                    )
+                    navigateToFavoritePostFilter = true
+                }
             case .failure(.noResult):
                 showFavoritePostFilterStatusMessage("Aucun post n'a été trouvé")
             case .failure(let error):
@@ -1002,6 +1052,8 @@ struct TopicRowView: View {
     var onRemoveFavorite: (() -> Void)?
     var onFilterPosts: (() -> Void)?
     var openContext: TopicOpenContext = .favorites
+    var selectedTopicID: TopicNavigationID?
+    var onSelectTopic: ((TopicNavigationTarget) -> Void)?
     @Environment(\.appThemePalette) private var themePalette
     
     private var isVisited: Bool {
@@ -1091,7 +1143,9 @@ struct TopicRowView: View {
                         }
                     }
                 )
-            }
+            },
+            selectedTopicID: selectedTopicID,
+            onSelectTarget: onSelectTopic
         ) { openedURL in
             let url = openedURL ?? topic.aURL ?? topic.aURLOfLastPage ?? topic.aURLOfLastPost ?? ""
             if !url.isEmpty {

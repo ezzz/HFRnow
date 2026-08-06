@@ -1,221 +1,194 @@
-# HFR-006 - Analyse iPad split view
+# HFR-006 - iPad split view
 
-## Objectif
+Dernière vérification : 27 juillet 2026, branche `beta`, base version 4.0.2 build 28.
 
-Etudier la faisabilite UX et technique d'un affichage iPad en deux colonnes, proche de Mail :
+## Statut
 
-- a gauche, la liste des topics correspondant a la section active ;
-- a droite, le topic ouvert dans `MessagesView` ;
-- ratio vise autour de 30/70, avec adaptation aux tailles d'ecran iPad.
+HFR-006 et le recadrage issu de la recette iPad sont implémentés dans la copie de travail.
 
-Cette analyse ne propose pas de modification immediate du code. Elle sert a cadrer le refactor potentiel.
+Sur iPad en taille régulière, `RootTabView` coordonne deux présentations exclusives :
 
-## Conclusion courte
+- la sidebar de navigation contient directement Catégories, Favoris, Messages, Bookmarks, Alertes Qualitay et les pages de l'ancien onglet Plus ;
+- les rubriques à topics utilisent sidebar + liste + détail ;
+- les pages directes utilisent seulement sidebar + page, sans panel intermédiaire vide.
 
-La demande est pertinente et realisable. Sur iPad, le modele liste + detail correspond bien a l'usage forum : scanner des favoris ou messages prives, ouvrir rapidement un topic, garder le contexte de liste visible.
+Sur iPhone et lorsque l'iPad passe en taille compacte, le `TabView` et le flux liste puis push restent inchangés.
 
-Le chantier n'est cependant pas un simple reglage SwiftUI. Aujourd'hui, l'app a deja un `NavigationSplitView` sur iPad, mais il sert a selectionner l'onglet racine, pas a afficher une liste de topics a gauche et un topic a droite. Le refactor consiste donc surtout a deplacer la responsabilite d'ouverture des topics depuis les lignes vers un conteneur parent iPad.
+## Architecture retenue
 
-Risque estime : moyen. L'UX cible est saine, mais il faut eviter de dupliquer les vues iPhone/iPad et stabiliser la navigation.
+### Un coordinateur unique, deux géométries
 
-## Etat actuel observe
+```text
+RootTabView
+├── rubriques à topics : NavigationSplitView à trois colonnes
+│   ├── sidebar : rubriques
+│   ├── content : liste active
+│   └── detail : MessagesView / état vide
+└── pages directes : NavigationSplitView à deux colonnes
+    ├── sidebar : rubriques
+    └── detail : Réglages / Recherche / Crédits / Charte / Suppression
+```
 
-### Racine iPad
+Le détail n'est plus alimenté implicitement par des `NavigationLink` présents dans les listes. Toutes les sélections iPad remontent au coordinateur, qui remplace explicitement la racine du panel de droite.
 
-Sur iPad en taille reguliere, `RootTabView` utilise actuellement `NavigationSplitView` avec :
+Le passage conditionnel entre deux et trois colonnes conserve la même sélection de sidebar. Il évite que la sortie d'une page directe restaure d'abord un panel `content` vide avant la sidebar.
 
-- colonne gauche : liste des onglets racine ;
-- colonne droite : contenu de l'onglet selectionne.
+### Parcours Catégories en deux étapes
 
-Reference : `HFRswift/Swift/MainWindow.swift`, autour de `iPadSidebarRoot`.
+Le choix d'une catégorie remplace la liste des catégories par la liste de ses topics dans le panel de gauche. Le panel de droite reste alors disponible pour afficher le topic.
 
-Ce n'est donc pas encore le split attendu pour HFR-006. Le split actuel remplace le tab bar par une sidebar d'onglets.
+Un bouton retour dans la barre du panel gauche revient à la liste des catégories. Un changement de sous-forum, de filtre ou de page invalide la sélection de topic précédente afin que le détail ne représente jamais un autre contexte que la liste visible.
 
-### Listes de topics
+L'ouverture d'un forum depuis l'en-tête d'une section Favoris utilise le même parcours et bascule proprement vers Catégories.
 
-`FavoritesListView` et `MPListView` possedent chacune leur propre `NavigationStack`.
+### Deux modes pour les lignes de topics
 
-References :
+`TopicListRowView` fonctionne dans deux modes :
 
-- `HFRswift/Swift/Favorites.swift`, `FavoritesListView.body`
-- `HFRswift/Swift/MPListView.swift`, `MPListView.body`
+- mode push sans callback pour le flux compact historique ;
+- mode sélection avec `onSelectTarget` pour le split iPad.
 
-Les lignes de topics passent par `TopicListRowView`, qui construit une cible de navigation puis pousse directement `MessagesView` via un `NavigationLink` cache.
+Toutes les ouvertures partagent le même `TopicNavigationTarget` : tap normal, première ou dernière page, dernière réponse, résultat de recherche, page choisie manuellement et filtre des posts favoris.
 
-Reference : `HFRswift/Swift/Common.swift`, `TopicListRowView`.
+Le target transporte le topic, la page, la page maximale, l'URL, le scroll initial, le séparateur de nouveaux messages et l'éventuel résultat du filtre de posts favoris.
 
-Cette architecture est coherente pour iPhone, mais elle est le principal obstacle au split iPad : la ligne possede aujourd'hui la navigation, alors qu'en split la selection doit etre portee par le parent.
+### Identité stable
 
-### `MessagesView`
+La sélection n'utilise pas l'identité mémoire de `Topic`, qui change après un refresh. `TopicNavigationID` applique :
 
-`MessagesView` gere deja plusieurs presentations annexes :
+1. un espace de noms forum ou messages privés ;
+2. le `postID`, avec la catégorie lorsqu'elle est disponible ;
+3. l'identifiant extrait d'une URL HFR query ou SEO ;
+4. une URL canonique sans page, ancre ni paramètres de pagination ;
+5. un fallback catégorie + titre normalisé.
 
-- reponse via `coverVerticalFullScreen` et `AnswerView` ;
-- viewer image via `fullScreenCover` ;
-- sondage, recherche, page picker, profil, Safari in-app via sheets.
+Une liste recréée après refresh peut ainsi retrouver le topic sélectionné et conserver son détail.
 
-Reference : `HFRswift/Swift/MessagesView.swift`.
+## Comportements implémentés
 
-En mode split, `MessagesView` devra pouvoir etre affichee comme detail embarque, tout en gardant certaines presentations en plein ecran.
+### Synchronisation des rubriques
 
-## Analyse UX
+- Catégories, Favoris, Messages, Bookmarks et Alertes Qualitay possèdent chacun leur sélection indépendante.
+- Un changement de rubrique remplace immédiatement la liste et le détail par le contexte de cette rubrique.
+- Le passage d'une page directe à une liste, ou d'une liste à une autre, restaure l'affichage liste + détail.
+- Un ancien topic ne peut donc plus rester visible face à une liste appartenant à une autre rubrique.
+- Une notification MP ouvre Messages sur sa liste et efface son ancien détail.
 
-### Pertinence du modele Mail
+### Sélection et style
 
-Le modele est pertinent pour :
+- Catégories, Favoris, Messages, Bookmarks et Alertes Qualitay alimentent le panel droit.
+- La ligne active utilise le fond `tintColor`, du texte blanc et le trait d'accessibilité `isSelected`, dans l'esprit de Mail.
+- La transition de couleurs n'est pas animée : fond et texte changent dans le même rendu.
+- Le fond sélectionné s'étend presque sur toute la ligne avec un rayon de 6 points, afin de ne pas ressembler aux teintes de type de topic.
+- Une nouvelle sélection remplace le topic racine et réinitialise la pile interne du détail.
+- Les liens internes et résultats de recherche de `MessagesView` continuent à s'empiler dans cette pile.
+- La suppression du MP ou du bookmark affiché ferme le détail correspondant.
+- Un changement de compte ou une déconnexion efface toutes les sélections.
 
-- Favoris : consultation rapide de plusieurs topics ;
-- Messages prives : lecture de conversations avec maintien de la liste ;
-- Topics de forum : utile aussi, mais plus complexe a cause du niveau categorie -> liste de topics -> topic.
+### Affichage plein topic
 
-Le gain principal est la reduction des allers-retours. Sur iPad, le comportement actuel type iPhone pousse l'utilisateur a revenir en arriere pour changer de topic. Le split rend l'usage plus fluide.
+Lorsqu'un topic est sélectionné et que la liste est visible, un bouton `rectangle.leadinghalf.inset.filled` est disponible dans la barre du panel droit :
 
-### Comportement recommande
+- il replie le panel gauche avec `.detailOnly` ;
+- il disparaît lorsque la liste est repliée ;
+- le bouton système unique de `NavigationSplitView` réaffiche alors les colonnes ;
+- son libellé d'accessibilité est « Masquer la liste ».
 
-Sur iPhone :
+Cette combinaison évite les deux contrôles identiques observés en plein écran. Elle est partagée par Catégories, Favoris, Messages, Bookmarks et Alertes Qualitay.
 
-- conserver le flux actuel ;
-- liste puis push plein ecran vers `MessagesView`.
+### Suppression de l'onglet Plus dans la sidebar iPad
 
-Sur iPad regular :
-
-- colonne gauche : liste active ;
-- colonne droite : topic selectionne ;
-- etat vide a droite si aucun topic n'est selectionne ;
-- tap sur une ligne : mise a jour du detail, sans push ;
-- ligne selectionnee visuellement active.
-
-### Ratio de colonnes
-
-Le ratio 30/70 est bon comme intention, mais il vaut mieux eviter un pourcentage strict.
-
-Recommandation :
-
-- largeur gauche ideale autour de 320 a 420 pt ;
-- largeur minimale suffisante pour garder les titres lisibles ;
-- detail qui prend le reste ;
-- laisser `NavigationSplitView` adapter ou masquer la colonne selon portrait/paysage et taille disponible.
-
-### Fenetres annexes
-
-Recommandation UX :
-
-- reponse : toujours plein ecran sur l'ensemble de la scene, pas limitee a la colonne droite ;
-- viewer image : plein ecran ;
-- sondage : sheet acceptable depuis le detail ;
-- recherche/page picker/profil : sheet ou popover selon le point d'appel ;
-- login/compte : presentation globale, pas liee a une seule colonne.
-
-Le composeur de reponse ne doit pas etre contraint dans 70 % de largeur. La saisie longue, le clavier et les brouillons justifient une presentation plein ecran.
-
-## Analyse technique
-
-### Changement d'architecture de navigation
-
-La direction technique recommandee est de rendre `TopicListRowView` capable de fonctionner dans deux modes :
-
-- mode push : comportement actuel, utile pour iPhone ;
-- mode selection : la ligne calcule le `TopicNavigationTarget` et le remonte au parent, utile pour iPad split.
-
-Le parent iPad devient alors proprietaire de la selection et affiche :
-
-- a gauche, la liste ;
-- a droite, `MessagesView(topic: target.topic, curPage: target.page, ...)`.
-
-Cela evite de faire porter a chaque ligne une pile de navigation locale.
-
-### Factorisation a prevoir
-
-Pour garder la maintenabilite :
-
-- extraire des variantes "liste pure" pour Favoris et Messages ;
-- conserver les view models existants ;
-- mutualiser les lignes ;
-- eviter une duplication complete entre iPhone et iPad ;
-- centraliser la construction de `TopicNavigationTarget`.
-
-Le but n'est pas de creer une deuxieme app iPad, mais de partager les composants et de changer uniquement le proprietaire de navigation selon la taille d'ecran.
-
-### Etat simultane liste + detail
-
-Le split implique que la liste et `MessagesView` vivent en meme temps. Il faudra verifier :
-
-- topic marque lu alors que la ligne gauche se met a jour ;
-- favori retire ou deplace pendant que le topic reste ouvert ;
-- MP supprime ou marque non lu pendant qu'il est affiche ;
-- refresh de la liste sans recreation inutile de `MessagesView` ;
-- selection stable si l'objet `Topic` source disparait ou est remplace.
-
-Point favorable : `TopicListRowView` cree deja une copie de destination du topic pour la navigation. Ce principe est utile pour garder le detail stable meme si la liste evolue.
-
-### Liens internes depuis `MessagesView`
-
-Question a trancher pendant le design :
-
-- un lien interne vers un autre topic remplace-t-il le detail courant ?
-- ouvre-t-il un push dans la colonne detail ?
-- met-il aussi a jour la selection gauche si le topic existe dans la liste ?
-
-Recommandation initiale : remplacer le detail courant, sans chercher a synchroniser la selection gauche si le topic n'est pas present dans la liste active.
-
-### Tab racine iPad
-
-Le split actuel utilise la colonne gauche pour choisir les onglets. Or HFR-006 veut que cette colonne soit la liste des topics.
-
-Il faudra donc choisir une nouvelle organisation iPad :
-
-- soit garder une forme de selection d'onglet en haut ou dans une barre compacte ;
-- soit avoir un split specifique par onglet actif ;
-- soit envisager un modele 3 colonnes, mais ce n'est pas la demande actuelle.
-
-Pour respecter la demande, la meilleure piste est un split par onglet actif : quand Favoris est actif, gauche = favoris ; quand Messages est actif, gauche = MP ; quand une categorie/forum est actif, gauche = topics du forum.
-
-## Plan de mise en oeuvre propose
-
-### Phase 1 - Base de navigation
-
-- Rendre `TopicNavigationTarget` partageable si necessaire.
-- Ajouter un callback d'ouverture a `TopicListRowView`.
-- Garder le push actuel pour iPhone.
-- Ajouter un mode selection pour iPad.
-
-### Phase 2 - Favoris et Messages
-
-- Creer un conteneur split pour Favoris.
-- Creer un conteneur split pour Messages prives.
-- Afficher `MessagesView` en detail.
-- Ajouter un etat vide a droite.
-- Verifier selection, refresh, unread, suppression.
-
-### Phase 3 - Adapter `MessagesView`
-
-- Ajouter si necessaire une notion de contexte de presentation : push plein ecran ou detail split.
-- Eviter les hypotheses de tab bar cachee en mode detail.
-- Garder les presentations importantes en plein ecran : reponse et viewer image.
-
-### Phase 4 - Categories / forums
-
-- Traiter le cas plus complexe categorie -> liste de topics -> topic.
-- Decider si la selection de categorie reste un niveau avant le split, ou si elle s'integre dans une navigation plus large.
-
-### Phase 5 - Validation
-
-Scenarios a tester :
-
-- iPhone : comportement inchange ;
-- iPad paysage : deux colonnes visibles ;
-- iPad portrait : comportement de collapse acceptable ;
-- Favoris : ouverture, refresh, topic marque lu ;
-- MP : ouverture, marquer non lu, suppression ;
-- reponse : plein ecran ;
-- viewer image : plein ecran ;
-- sondage : flux sans conflit avec le split ;
-- liens internes depuis `MessagesView`.
-
-## Recommandation finale
-
-HFR-006 est un bon candidat pour une evolution iPad, mais il faut le traiter comme un refactor de navigation cible, pas comme une simple option d'affichage.
-
-Je recommande de commencer par Favoris et Messages, qui sont les deux flux les plus naturels pour le split. Les Categories peuvent venir ensuite, car leur navigation a un niveau supplementaire.
-
-Le critere de reussite principal : l'iPhone doit rester sur le flux actuel, tandis que l'iPad gagne un vrai mode liste/detail sans duplication massive de code.
+L'entrée intermédiaire Plus n'existe plus sur iPad régulier. Ses sous-rubriques sont directement accessibles :
+
+- Bookmarks et Alertes Qualitay utilisent le modèle liste à gauche / topic à droite ;
+- Réglages, Recherche, Crédits, Charte et Suppression du compte utilisent un split à deux colonnes, avec la sidebar directement accessible ;
+- le panel « Aucune liste » n'existe plus ;
+- l'iPhone conserve l'onglet Plus historique.
+
+Les badges Messages et Alertes Qualitay restent visibles sur leurs entrées respectives.
+
+### Présentations annexes
+
+`MessagesView` reste embarquée dans le détail sans modifier ses présentations :
+
+- réponse et édition en plein écran ;
+- viewer image en plein écran ;
+- sondage, recherche, page picker, profil et Safari via leurs présentations existantes.
+
+## Fichiers concernés
+
+- `HFRswift/Swift/MainWindow.swift`
+  - coordinateur, sidebar complète et sélection par rubrique ;
+  - parcours Catégories dans le panel gauche ;
+  - synchronisation du détail et visibilité des colonnes.
+- `HFRswift/Swift/Common.swift`
+  - identité et target de navigation partagés ;
+  - modes push / sélection de `TopicListRowView` ;
+  - style sélection façon Mail.
+- `HFRswift/Swift/Favorites.swift`
+  - sélection coordonnée, ouverture d'un forum et filtre de posts.
+- `HFRswift/Swift/MPListView.swift`
+  - sélection coordonnée et fermeture après suppression.
+- `HFRswift/Swift/BookmarksPlusView.swift`
+  - liste coordonnée et fermeture après suppression.
+- `HFRswift/Swift/AQPlusView.swift`
+  - liste coordonnée vers le détail.
+- `HFRswift/Swift/PlusTab.swift`
+  - page directe de suppression du compte pour iPad.
+- `HFRswift/Swift/ForumSearchView.swift`
+  - adaptation au callback `onDidOpen`.
+- `HFRswiftTests/TopicNavigationIdentityTests.swift`
+  - stabilité de l'identité et séparation forum / MP.
+
+## Audit de navigation
+
+Synthèse après recadrage :
+
+- CRITICAL : 0
+- HIGH : 0
+- MEDIUM : 1
+- LOW : 1
+- risque architectural résiduel estimé : 3/10.
+
+### MEDIUM - Ancien push compact encore non typé
+
+Le fallback iPhone de `TopicListRowView` et la navigation du filtre de favoris utilisent encore `NavigationLink(isActive:)`. Cette API dépréciée reste isolée au flux compact et n'intervient pas dans le coordinateur split.
+
+Une migration vers une route typée et `NavigationPath` peut être menée séparément.
+
+### LOW - Visibilité partagée entre scènes
+
+La visibilité des colonnes est stockée dans `AppStorage`. Une future gestion avancée de plusieurs fenêtres pourrait déplacer cet état vers `SceneStorage`.
+
+## Validation du 27 juillet 2026
+
+- build, installation et lancement iPad Air 13 pouces iOS 26.4 : succès ;
+- rendu iOS 26 vérifié en topic plein écran avec un seul bouton de restauration ;
+- sélection vérifiée avec texte blanc, fond étendu et faible arrondi ;
+- build, installation et lancement iPad Pro 13 pouces iOS 27.0 : succès ;
+- Réglages et Recherche vérifiés dans le split à deux colonnes, sans panel vide et avec sidebar immédiatement accessible ;
+- audit de navigation : aucun nouveau conflit de destination ou de coordinateur ;
+- `git diff --check` : succès.
+
+Les cinq `TopicNavigationIdentityTests` sont découverts, mais le target de tests ne compile pas encore à cause d'erreurs antérieures à HFR-006 dans `AccountsStoreTests` :
+
+- `ForumTopicsLoaderSpy` non conforme à `ForumTopicsLoading` ;
+- appels sans le paramètre `pageInfo`.
+
+Ces erreurs ne proviennent pas de HFR-006 et ne bloquent pas le build de l'application.
+
+## Recette manuelle recommandée
+
+- iPad paysage et portrait ;
+- Split View multitâche et Stage Manager ;
+- rotation regular → compact → regular ;
+- masquer/réafficher le panel gauche depuis un topic ;
+- Catégories → catégorie → topic → retour catégories ;
+- Catégories → Favoris → sélection d'un autre topic ;
+- Favoris → en-tête de forum → topic → retour Favoris ;
+- Bookmarks et Alertes Qualitay → topic ;
+- pages directes de l'ancienne rubrique Plus ;
+- refresh avec topic sélectionné ;
+- suppression du MP ou bookmark affiché ;
+- changement de compte, déconnexion et notification MP ;
+- liens internes, recherche, réponse/édition et viewer image depuis `MessagesView`.

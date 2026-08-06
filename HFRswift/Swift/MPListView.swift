@@ -444,6 +444,9 @@ struct MPListView: View {
     private let topicActionService: any MPTopicActionServicing
     private let isActive: Bool
     private let navigationResetToken: UUID
+    private let selectedTopicID: TopicNavigationID?
+    private let onSelectTopic: ((TopicNavigationTarget) -> Void)?
+    private let onDeleteTopic: ((TopicNavigationID) -> Void)?
 
     private var isLoggedIn: Bool {
         accountsStore.currentAccount != nil
@@ -475,13 +478,19 @@ struct MPListView: View {
         accountsStore: AccountsStore? = nil,
         topicActionService: (any MPTopicActionServicing)? = nil,
         isActive: Bool = true,
-        navigationResetToken: UUID = UUID()
+        navigationResetToken: UUID = UUID(),
+        selectedTopicID: TopicNavigationID? = nil,
+        onSelectTopic: ((TopicNavigationTarget) -> Void)? = nil,
+        onDeleteTopic: ((TopicNavigationID) -> Void)? = nil
     ) {
         _viewModel = StateObject(wrappedValue: viewModel ?? MPListViewModel())
         _accountsStore = StateObject(wrappedValue: accountsStore ?? AccountsStore())
         self.topicActionService = topicActionService ?? ForumMPTopicActionService()
         self.isActive = isActive
         self.navigationResetToken = navigationResetToken
+        self.selectedTopicID = selectedTopicID
+        self.onSelectTopic = onSelectTopic
+        self.onDeleteTopic = onDeleteTopic
     }
 
     private func markTopicAsRead(_ topic: Topic) {
@@ -550,6 +559,12 @@ struct MPListView: View {
                 let wasUnread = !topic.isViewed
                 try await topicActionService.deleteTopic(topic: topic)
                 viewModel.removeTopic(topic)
+                onDeleteTopic?(
+                    TopicNavigationIdentity.id(
+                        for: topic,
+                        context: .privateMessages
+                    )
+                )
                 if wasUnread {
                     unreadMPCount = max(unreadMPCount - 1, 0)
                 }
@@ -586,15 +601,23 @@ struct MPListView: View {
                     }
                     ForEach(viewModel.topics) { topic in
                         let isProcessing = processingTopicIDs.contains(ObjectIdentifier(topic))
-                        MPRowView(topic: topic) {
-                            markTopicAsRead(topic)
-                        } onMarkUnread: {
-                            markTopicAsUnread(topic)
-                        } onDelete: {
-                            requestDeleteTopic(topic)
-                        } isProcessingAction: {
-                            isProcessing
-                        }
+                        MPRowView(
+                            topic: topic,
+                            onOpen: {
+                                markTopicAsRead(topic)
+                            },
+                            onMarkUnread: {
+                                markTopicAsUnread(topic)
+                            },
+                            onDelete: {
+                                requestDeleteTopic(topic)
+                            },
+                            isProcessingAction: {
+                                isProcessing
+                            },
+                            selectedTopicID: selectedTopicID,
+                            onSelectTopic: onSelectTopic
+                        )
                     }
                 }
             }
@@ -712,6 +735,8 @@ struct MPRowView: View {
     var onMarkUnread: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
     var isProcessingAction: (() -> Bool)? = nil
+    var selectedTopicID: TopicNavigationID?
+    var onSelectTopic: ((TopicNavigationTarget) -> Void)?
     @AppStorage("mpstorage_active") private var mpStorageActive = false
 
     // "[non lu]" prefix detection — strips brackets, returns the keyword if present.
@@ -815,8 +840,10 @@ struct MPRowView: View {
             openContext: .privateMessages,
             quickActions: TopicQuickActionPolicy.defaults(for: .privateMessages),
             extraContextMenu: extraContextMenu,
-            onOpen: { _ in
-            onOpen?()
+            selectedTopicID: selectedTopicID,
+            onSelectTarget: onSelectTopic,
+            onDidOpen: { _ in
+                onOpen?()
             }
         )
         .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
