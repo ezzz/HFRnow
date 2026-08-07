@@ -5949,6 +5949,7 @@ private struct CoverVerticalFullScreenPresenter: UIViewControllerRepresentable {
         private func presentIfNeeded(from presenter: UIViewController) {
             if let hostingController {
                 hostingController.rootView = content?() ?? AnyView(EmptyView())
+                applyTheme(to: hostingController)
                 return
             }
 
@@ -5957,10 +5958,15 @@ private struct CoverVerticalFullScreenPresenter: UIViewControllerRepresentable {
             let hostingController = UIHostingController(rootView: content?() ?? AnyView(EmptyView()))
             hostingController.modalPresentationStyle = .fullScreen
             hostingController.modalTransitionStyle = .coverVertical
+            applyTheme(to: hostingController)
             hostingController.presentationController?.delegate = self
             self.hostingController = hostingController
 
             presenter.present(hostingController, animated: true)
+        }
+
+        private func applyTheme(to hostingController: UIHostingController<AnyView>) {
+            hostingController.overrideUserInterfaceStyle = AppThemeResolver.preferredUIKitOverrideStyle()
         }
 
         private func dismissIfNeeded() {
