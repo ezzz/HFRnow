@@ -86,6 +86,7 @@ static NSInteger HFRTopicPageWorkerPageNumberFromURLString(NSString *urlString) 
     NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"%@%@", [k ForumURL], topicURL]];
     ASIHTTPRequest *request = [ASIHTTPRequest requestWithURL:url];
     self.request = request;
+    [request setTimeOutSeconds:kTimeoutContent];
     request.responseEncoding = NSUTF8StringEncoding;
     __weak typeof(self) weakSelf = self;
     __weak ASIHTTPRequest *weakRequest = request;

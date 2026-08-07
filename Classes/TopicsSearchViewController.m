@@ -20,7 +20,7 @@
 #import "Forum.h"
 #import "k.h"
 
-#define TIME_OUT_INTERVAL_SEARCH 15
+#define TIME_OUT_INTERVAL_SEARCH 10
 
 @interface TopicsSearchViewController ()
 

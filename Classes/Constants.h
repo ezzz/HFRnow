@@ -67,8 +67,9 @@ typedef enum Theme : int {
 
 // $1 cat not 0 - $2 subcat 0 - $3 flag : 0=all, 1=flag+fav, 2=fav, 3=red
 
-#define kTimeoutMini		30
-#define kTimeoutMaxi		60
+#define kTimeoutContent		10
+#define kTimeoutMini		kTimeoutContent
+#define kTimeoutMaxi		kTimeoutContent
 #define kTimeoutAvatar      10
 
 #define MAX_HEIGHT 1200.0f 

@@ -70,7 +70,7 @@ actor AQBadgeCheckService {
         guard let url = AQSupport.feedURL else { return }
 
         do {
-            let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
+            let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: HFRNetworkTimeout.content)
             let lastCheckDate = AQSupport.lastCheckDate()
             let (data, _) = try await session.data(for: request)
             let context = AQParserContext(
@@ -275,7 +275,7 @@ final class AQPlusViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
 
-        let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
+        let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: HFRNetworkTimeout.content)
         task = session.dataTask(with: request) { [weak self] data, _, error in
             guard let self else { return }
             Task { @MainActor in

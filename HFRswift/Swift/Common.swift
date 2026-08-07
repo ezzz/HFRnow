@@ -1737,6 +1737,10 @@ protocol TopicPageLoading {
     func cancelTopicPageFetch()
 }
 
+enum HFRNetworkTimeout {
+    static let content: TimeInterval = 10
+}
+
 extension TopicPageLoading {
     func cancelTopicPageFetch() {}
 }
@@ -2144,6 +2148,7 @@ enum MessageImageViewerURLResolver {
 enum MessageWebAction: Equatable {
     case allowNavigation
     case ignore
+    case documentReady
     case loadPage(Int, MessageWebInitialScroll)
     case refreshCurrentPage
     case showPopupMenu(MessageWebPopupPayload)
@@ -2196,6 +2201,10 @@ struct MessageWebActionHandler: MessageWebActionHandling {
 
         if scheme == Constants.refreshScheme {
             return .refreshCurrentPage
+        }
+
+        if scheme == Constants.loadedScheme {
+            return .documentReady
         }
 
         if let popupAction = popupAction(for: url, scheme: scheme) {
@@ -2288,8 +2297,7 @@ struct MessageWebActionHandler: MessageWebActionHandling {
 
     private func isIgnoredCustomScheme(_ scheme: String) -> Bool {
         scheme == Constants.touchScheme ||
-            scheme == Constants.preloadedScheme ||
-            scheme == Constants.loadedScheme
+            scheme == Constants.preloadedScheme
     }
 
     private func imageBrowserAction(for url: URL, scheme: String) -> MessageWebAction? {

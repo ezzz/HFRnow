@@ -329,7 +329,9 @@ enum MessagePopupActionSupport {
         }
 
         do {
-            let (data, _) = try await URLSession.shared.data(from: url)
+            var request = URLRequest(url: url)
+            request.timeoutInterval = HFRNetworkTimeout.content
+            let (data, _) = try await URLSession.shared.data(for: request)
             let content = String(data: data, encoding: .utf8) ?? ""
             return content.contains(postID)
         } catch {
@@ -827,7 +829,9 @@ struct WebView: UIViewRepresentable {
     var onPopupBookmarkRequest: ((TopicPageMessageActions) -> Void)?
     var onToastRequest: ((String) -> Void)?
     var onTextQuoteRequest: ((URL, String, Bool) -> Void)?
+    var onDocumentReady: (() -> Void)?
     var onContentReady: (() -> Void)?
+    var onContentLoadFailure: ((String) -> Void)?
     var onScrollPositionChange: ((Bool) -> Void)?
     var onScrollPositionSnapshotChange: ((ScrollPosition) -> Void)?
     var onTextInteractionStateChange: ((Bool) -> Void)?
@@ -867,7 +871,9 @@ struct WebView: UIViewRepresentable {
         onPopupBookmarkRequest: ((TopicPageMessageActions) -> Void)? = nil,
         onToastRequest: ((String) -> Void)? = nil,
         onTextQuoteRequest: ((URL, String, Bool) -> Void)? = nil,
+        onDocumentReady: (() -> Void)? = nil,
         onContentReady: (() -> Void)? = nil,
+        onContentLoadFailure: ((String) -> Void)? = nil,
         onScrollPositionChange: ((Bool) -> Void)? = nil,
         onScrollPositionSnapshotChange: ((ScrollPosition) -> Void)? = nil,
         onTextInteractionStateChange: ((Bool) -> Void)? = nil
@@ -906,7 +912,9 @@ struct WebView: UIViewRepresentable {
         self.onPopupBookmarkRequest = onPopupBookmarkRequest
         self.onToastRequest = onToastRequest
         self.onTextQuoteRequest = onTextQuoteRequest
+        self.onDocumentReady = onDocumentReady
         self.onContentReady = onContentReady
+        self.onContentLoadFailure = onContentLoadFailure
         self.onScrollPositionChange = onScrollPositionChange
         self.onScrollPositionSnapshotChange = onScrollPositionSnapshotChange
         self.onTextInteractionStateChange = onTextInteractionStateChange
@@ -1179,6 +1187,14 @@ struct WebView: UIViewRepresentable {
         return webView
     }
 
+    static func dismantleUIView(_ webView: WKWebView, coordinator: Coordinator) {
+        coordinator.cancelPendingLoadTimers()
+        coordinator.activeNavigation = nil
+        webView.stopLoading()
+        webView.configuration.userContentController.removeScriptMessageHandler(forName: "scrollState")
+        webView.configuration.userContentController.removeScriptMessageHandler(forName: "textInteractionState")
+    }
+
     func updateUIView(_ webView: WKWebView, context: Context) {
         context.coordinator.parent = self
         context.coordinator.anchor = anchor
@@ -1219,9 +1235,16 @@ struct WebView: UIViewRepresentable {
                 context.coordinator.lastAppliedMessageBodyFontSize = nil
                 context.coordinator.lastAppliedMessageStyleSignature = nil
                 context.coordinator.isWaitingForThemeApplication = true
+                context.coordinator.cancelPendingLoadTimers()
+                context.coordinator.didRevealDocumentForCurrentLoad = false
+                context.coordinator.didNotifyDocumentReadyForCurrentLoad = false
                 context.coordinator.didNotifyContentReadyForCurrentLoad = false
+                context.coordinator.didUserInteractWithCurrentLoad = false
+                context.coordinator.shouldIgnoreNavigationFailureForCurrentLoad = false
                 webView.isHidden = true
-                webView.loadFileURL(fileURL, allowingReadAccessTo: readAccessURL)
+                let navigation = webView.loadFileURL(fileURL, allowingReadAccessTo: readAccessURL)
+                context.coordinator.activeNavigation = navigation
+                context.coordinator.scheduleLoadGuards(for: webView, navigation: navigation)
             } else {
                 if let scrollRequest,
                    context.coordinator.lastHandledScrollRequestID != scrollRequest.id {
@@ -1264,7 +1287,14 @@ struct WebView: UIViewRepresentable {
         var lastAppliedMessageBodyFontSize: CGFloat?
         var lastAppliedMessageStyleSignature: String?
         var isWaitingForThemeApplication = false
+        var activeNavigation: WKNavigation?
+        var documentReadyFallbackWorkItem: DispatchWorkItem?
+        var resourceLoadTimeoutWorkItem: DispatchWorkItem?
+        var didRevealDocumentForCurrentLoad = false
+        var didNotifyDocumentReadyForCurrentLoad = false
         var didNotifyContentReadyForCurrentLoad = false
+        var didUserInteractWithCurrentLoad = false
+        var shouldIgnoreNavigationFailureForCurrentLoad = false
         var lastHandledScrollRequestID: UUID?
         @available(iOS 16.0, *)
         weak var editMenuInteraction: UIEditMenuInteraction?
@@ -1298,17 +1328,88 @@ struct WebView: UIViewRepresentable {
             self.messageClassicHeaderBackgroundColor = parent.messageClassicHeaderBackgroundColor
         }
 
+        func scheduleLoadGuards(for webView: WKWebView, navigation: WKNavigation?) {
+            cancelPendingLoadTimers()
+
+            let documentReadyFallback = DispatchWorkItem { [weak self, weak webView] in
+                guard let self, let webView else { return }
+                guard self.activeNavigation == nil || self.activeNavigation === navigation else { return }
+                guard !self.didRevealDocumentForCurrentLoad else { return }
+                self.prepareAndRevealDocument(in: webView, finished: false)
+            }
+            documentReadyFallbackWorkItem = documentReadyFallback
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5, execute: documentReadyFallback)
+
+            let resourceTimeout = DispatchWorkItem { [weak self, weak webView] in
+                guard let self, let webView else { return }
+                guard self.activeNavigation == nil || self.activeNavigation === navigation else { return }
+                guard !self.didNotifyContentReadyForCurrentLoad else { return }
+                self.shouldIgnoreNavigationFailureForCurrentLoad = true
+                webView.stopLoading()
+                self.prepareAndRevealDocument(in: webView, finished: true)
+            }
+            resourceLoadTimeoutWorkItem = resourceTimeout
+            DispatchQueue.main.asyncAfter(deadline: .now() + 10, execute: resourceTimeout)
+        }
+
+        func cancelPendingLoadTimers() {
+            documentReadyFallbackWorkItem?.cancel()
+            documentReadyFallbackWorkItem = nil
+            resourceLoadTimeoutWorkItem?.cancel()
+            resourceLoadTimeoutWorkItem = nil
+        }
+
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            guard activeNavigation == nil || activeNavigation === navigation else { return }
             print("WKWebView didFinish. anchor =", anchor as Any, "initialScroll =", String(describing: initialScroll), "url:", webView.url?.absoluteString ?? "nil")
+            prepareAndRevealDocument(in: webView, finished: true)
+        }
+
+        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+            handleNavigationFailure(in: webView, navigation: navigation, error: error)
+        }
+
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+            handleNavigationFailure(in: webView, navigation: navigation, error: error)
+        }
+
+        private func handleNavigationFailure(in webView: WKWebView, navigation: WKNavigation!, error: Error) {
+            guard activeNavigation == nil || activeNavigation === navigation else { return }
+            guard !didNotifyContentReadyForCurrentLoad else { return }
+
+            if shouldIgnoreNavigationFailureForCurrentLoad || didRevealDocumentForCurrentLoad {
+                prepareAndRevealDocument(in: webView, finished: true)
+                return
+            }
+
+            cancelPendingLoadTimers()
+            parent.onContentLoadFailure?(error.localizedDescription)
+        }
+
+        private func prepareAndRevealDocument(in webView: WKWebView, finished: Bool) {
             applyThemeIfNeeded(in: webView, force: true) {
                 self.applyMessageStyleIfNeeded(in: webView, force: true) {
                     self.applyTextSizeIfNeeded(in: webView, force: true) {
                         self.isWaitingForThemeApplication = false
-                        webView.isHidden = false
-                        self.notifyContentReadyIfNeeded()
+                        if !self.didRevealDocumentForCurrentLoad {
+                            self.didRevealDocumentForCurrentLoad = true
+                            webView.isHidden = false
+                            self.applyInitialScroll(in: webView, final: false)
+                            self.notifyDocumentReadyIfNeeded()
+                        }
+                        if finished {
+                            webView.isHidden = false
+                            self.applyInitialScroll(in: webView, final: true)
+                            self.cancelPendingLoadTimers()
+                            self.notifyContentReadyIfNeeded()
+                        }
                     }
                 }
             }
+        }
+
+        private func applyInitialScroll(in webView: WKWebView, final: Bool) {
+            guard !final || !didUserInteractWithCurrentLoad else { return }
 
             if let a = anchor, !a.isEmpty {
                 // Probe: check if element exists by id or name
@@ -1534,6 +1635,14 @@ struct WebView: UIViewRepresentable {
             didNotifyContentReadyForCurrentLoad = true
             DispatchQueue.main.async {
                 self.parent.onContentReady?()
+            }
+        }
+
+        private func notifyDocumentReadyIfNeeded() {
+            guard !didNotifyDocumentReadyForCurrentLoad else { return }
+            didNotifyDocumentReadyForCurrentLoad = true
+            DispatchQueue.main.async {
+                self.parent.onDocumentReady?()
             }
         }
 
@@ -1779,13 +1888,19 @@ struct WebView: UIViewRepresentable {
             case .allowNavigation:
                 decisionHandler(.allow)
             case .ignore:
+                if url.scheme?.lowercased() == "oijlkajsdoihjlkjasdotouch" {
+                    didUserInteractWithCurrentLoad = true
+                }
                 decisionHandler(.cancel)
+            case .documentReady:
+                decisionHandler(.cancel)
+                prepareAndRevealDocument(in: webView, finished: false)
             case .showPopupMenu(let payload):
                 if !presentPopupMenu(for: payload, in: webView) {
                     parent.onWebAction?(action)
                 }
                 decisionHandler(.cancel)
-            case .manageSmileyFavorite(let payload):
+            case .manageSmileyFavorite:
                 parent.onWebAction?(action)
                 decisionHandler(.cancel)
             case .loadPage, .refreshCurrentPage, .presentImageViewer, .openInternalTopic, .openExternalURL:
@@ -2962,6 +3077,7 @@ struct MessagesView: View {
     @State private var pollData: PollData?
     @State private var presentedPollData: PollData?
     @State private var showWebViewLoadCover = true
+    @State private var isWebContentLoading = false
     @State private var isWebContentAtBottom = false
     @State private var isMessageTextInteractionActive = false
     @State private var pendingPostedReply: ReplyPostingResult?
@@ -3239,6 +3355,12 @@ struct MessagesView: View {
                 .fontWeight(.bold)
                 .lineLimit(1)
                 .truncationMode(.tail)
+            ProgressView()
+                .controlSize(.mini)
+                .frame(width: 12, height: 12)
+                .opacity(isWebContentLoading ? 1 : 0)
+                .accessibilityHidden(!isWebContentLoading)
+                .accessibilityLabel("Chargement du contenu")
         }
     }
 
@@ -3408,6 +3530,7 @@ struct MessagesView: View {
         }
 
         showWebViewLoadCover = true
+        isWebContentLoading = true
         isWebContentAtBottom = false
         errorMessage = nil
         messageActionsByIndex = [:]
@@ -3417,9 +3540,10 @@ struct MessagesView: View {
             self.topicPageLoader.cancelTopicPageFetch()
             self.errorMessage = "Le chargement du topic a expiré. Réessaie."
             self.showWebViewLoadCover = false
+            self.isWebContentLoading = false
         }
         topicLoadTimeoutWorkItem = timeoutWorkItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + 65, execute: timeoutWorkItem)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 10, execute: timeoutWorkItem)
 
         return token
     }
@@ -3520,16 +3644,19 @@ struct MessagesView: View {
                     self.finishRefreshHapticIfNeeded()
                     if self.isInSearchMode {
                         self.showWebViewLoadCover = false
+                        self.isWebContentLoading = false
                         self.lastSearchFormSnapshot = [:]
                         self.showSuccessToast("Aucune réponse trouvée")
                         return
                     }
                     self.errorMessage = error.localizedDescription
                     self.showWebViewLoadCover = false
+                    self.isWebContentLoading = false
                 case .success(let content):
                     if self.isInSearchMode, self.isEmptySearchResultContent(content) {
                         self.finishRefreshHapticIfNeeded()
                         self.showWebViewLoadCover = false
+                        self.isWebContentLoading = false
                         self.lastSearchFormSnapshot = [:]
                         self.showSuccessToast("Aucune réponse trouvée")
                         return
@@ -3554,12 +3681,14 @@ struct MessagesView: View {
                         if self.fileURL == nil || self.cacheURL == nil {
                             self.errorMessage = "Failed to render topic page to local file."
                             self.showWebViewLoadCover = false
+                            self.isWebContentLoading = false
                         }
                     } catch {
                         self.fileURL = nil
                         self.cacheURL = nil
                         self.errorMessage = error.localizedDescription
                         self.showWebViewLoadCover = false
+                        self.isWebContentLoading = false
                     }
                     applyLoadedPagination(from: content, requestedPage: page)
                     updateMPStorageFlagIfNeeded(content: content, loadedPage: resolvedPage)
@@ -3633,15 +3762,18 @@ struct MessagesView: View {
                 case .failure(let error):
                     if self.isInSearchMode {
                         self.showWebViewLoadCover = false
+                        self.isWebContentLoading = false
                         self.lastSearchFormSnapshot = [:]
                         self.showSuccessToast("Aucune réponse trouvée")
                         return
                     }
                     self.errorMessage = error.localizedDescription
                     self.showWebViewLoadCover = false
+                    self.isWebContentLoading = false
                 case .success(let content):
                     if self.isInSearchMode, self.isEmptySearchResultContent(content) {
                         self.showWebViewLoadCover = false
+                        self.isWebContentLoading = false
                         self.lastSearchFormSnapshot = [:]
                         self.showSuccessToast("Aucune réponse trouvée")
                         return
@@ -3668,6 +3800,7 @@ struct MessagesView: View {
                         self.cacheURL = nil
                         self.errorMessage = error.localizedDescription
                         self.showWebViewLoadCover = false
+                        self.isWebContentLoading = false
                     }
                     applyLoadedPagination(from: content, requestedPage: requestedPage)
                     updateMPStorageFlagIfNeeded(content: content, loadedPage: resolvedPage)
@@ -3758,6 +3891,8 @@ struct MessagesView: View {
         case .allowNavigation:
             break
         case .ignore:
+            break
+        case .documentReady:
             break
         case .loadPage(let targetPage, let initialScroll):
             navigateToPage(targetPage, initialScroll: webViewInitialScroll(initialScroll))
@@ -4477,6 +4612,7 @@ struct MessagesView: View {
     private func renderFavoritePostFilterResult(_ result: FavoritePostFilterResult) {
         do {
             showWebViewLoadCover = true
+            isWebContentLoading = true
             let rendered = try renderTopicPageHTML(result.html)
             fileURL = rendered.fileURL
             cacheURL = rendered.readAccessURL
@@ -4495,6 +4631,7 @@ struct MessagesView: View {
             cacheURL = nil
             errorMessage = error.localizedDescription
             showWebViewLoadCover = false
+            isWebContentLoading = false
         }
     }
 
@@ -4904,7 +5041,16 @@ struct MessagesView: View {
 
         if let errorMessage {
             content = AnyView(
-                Text("Erreur : \(errorMessage)").foregroundColor(.red)
+                VStack(spacing: 12) {
+                    Text("Erreur : \(errorMessage)")
+                        .foregroundStyle(.red)
+                        .multilineTextAlignment(.center)
+                    Button("Réessayer") {
+                        performInitialLoad()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .padding()
                 .toolbar {
                     ToolbarItem(placement: .principal) {
                         VStack(spacing: 2) {
@@ -4913,9 +5059,6 @@ struct MessagesView: View {
                         }
                         .multilineTextAlignment(.center)
                     }
-                }
-                .onAppear {
-                    performInitialLoad()
                 }
                 .sheet(item: $safariDestination) { destination in
                     SafariInAppView(url: destination.url)
@@ -5018,10 +5161,21 @@ struct MessagesView: View {
                             boldSelection: boldSelection
                         )
                     },
-                    onContentReady: {
+                    onDocumentReady: {
                         withAnimation(.easeOut(duration: 0.14)) {
                             showWebViewLoadCover = false
                         }
+                    },
+                    onContentReady: {
+                        isWebContentLoading = false
+                        withAnimation(.easeOut(duration: 0.14)) {
+                            showWebViewLoadCover = false
+                        }
+                    },
+                    onContentLoadFailure: { message in
+                        isWebContentLoading = false
+                        showWebViewLoadCover = false
+                        errorMessage = message
                     },
                     onScrollPositionChange: { isAtBottom in
                         if isWebContentAtBottom != isAtBottom {
@@ -6436,7 +6590,7 @@ enum PhotoViewerNetworkRequestFactory {
     static let forumReferer = "https://forum.hardware.fr"
 
     static func makeRequest(for url: URL) -> URLRequest {
-        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: HFRNetworkTimeout.content)
         if requiresForumReferer(url) {
             request.setValue(forumReferer, forHTTPHeaderField: "Referer")
         }

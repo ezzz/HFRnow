@@ -114,7 +114,7 @@ struct UserProfileService: UserProfileServicing {
     var session: URLSession = .shared
 
     func fetchProfile(url: URL) async throws -> UserProfile {
-        let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
+        let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: HFRNetworkTimeout.content)
         let (data, _) = try await session.data(for: request)
         let html = Self.decodeHTML(data)
         return try UserProfileHTMLParser.parse(html: html, sourceURL: url)

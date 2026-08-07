@@ -60,7 +60,7 @@ final class MessageWebActionHandlerTests: XCTestCase {
         XCTAssertEqual(action, .refreshCurrentPage)
     }
 
-    func testLoadedSchemeIsIgnored() {
+    func testLoadedSchemeSignalsDocumentReady() {
         let action = handler.action(
             for: URL(string: "oijlkajsdoihjlkjasdoloaded://data")!,
             navigationType: .other,
@@ -68,7 +68,7 @@ final class MessageWebActionHandlerTests: XCTestCase {
             maxPage: 10
         )
 
-        XCTAssertEqual(action, .ignore)
+        XCTAssertEqual(action, .documentReady)
     }
 
     func testPopupAvatarSchemeProducesPopupMenuAction() {

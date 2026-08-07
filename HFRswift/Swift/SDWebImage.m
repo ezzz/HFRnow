@@ -63,7 +63,7 @@
         ? NSURLRequestUseProtocolCachePolicy
         : NSURLRequestReloadIgnoringLocalCacheData;
 
-    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url cachePolicy:cachePolicy timeoutInterval:30.0];
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url cachePolicy:cachePolicy timeoutInterval:10.0];
     request.HTTPShouldHandleCookies = (options & SDWebImageDownloaderHandleCookies) != 0;
 
     __block _SDWebImageTaskOperation *operation = [_SDWebImageTaskOperation new];
