@@ -3393,6 +3393,7 @@ struct MessagesView: View {
                 .lineLimit(1)
                 .truncationMode(.tail)
             ProgressView()
+                .neutralLoadingSpinner()
                 .controlSize(.mini)
                 .frame(width: 12, height: 12)
                 .opacity(isWebContentLoading ? 1 : 0)
