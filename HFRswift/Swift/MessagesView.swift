@@ -550,6 +550,26 @@ final class MessageWebView: WKWebView {
     private static let textQuoteSelector = #selector(MessageWebView.textQuote(_:))
     private static let textQuoteBoldSelector = #selector(MessageWebView.textQuoteBold(_:))
 
+    func enforceHorizontalScrollLock() {
+        let scrollView = self.scrollView
+        scrollView.isDirectionalLockEnabled = true
+        scrollView.alwaysBounceHorizontal = false
+        scrollView.showsHorizontalScrollIndicator = false
+        if #available(iOS 17.4, *) {
+            // Apply the horizontal value last. iOS 27 beta can restore both
+            // axes when the vertical bounce value changes.
+            scrollView.bouncesVertically = true
+            scrollView.bouncesHorizontally = false
+        }
+
+        let lockedOffsetX = -scrollView.adjustedContentInset.left
+        if abs(scrollView.contentOffset.x - lockedOffsetX) > 0.5 {
+            var contentOffset = scrollView.contentOffset
+            contentOffset.x = lockedOffsetX
+            scrollView.setContentOffset(contentOffset, animated: false)
+        }
+    }
+
     static func installTextQuoteMenuItems() {
         let menu = UIMenuController.shared
         menu.menuItems = [
@@ -1171,6 +1191,7 @@ struct WebView: UIViewRepresentable {
         webView.isOpaque = false
         webView.backgroundColor = baseBackgroundColor
         webView.scrollView.backgroundColor = baseBackgroundColor
+        configureMessageScrollView(webView)
         if #available(iOS 15.0, *) {
             webView.underPageBackgroundColor = baseBackgroundColor
         }
@@ -1216,6 +1237,7 @@ struct WebView: UIViewRepresentable {
         }
         webView.backgroundColor = baseBackgroundColor
         webView.scrollView.backgroundColor = baseBackgroundColor
+        configureMessageScrollView(webView)
         if #available(iOS 15.0, *) {
             webView.underPageBackgroundColor = baseBackgroundColor
         }
@@ -1263,6 +1285,21 @@ struct WebView: UIViewRepresentable {
             }
         }
 
+    }
+
+    private func configureMessageScrollView(_ webView: WKWebView) {
+        if let messageWebView = webView as? MessageWebView {
+            messageWebView.enforceHorizontalScrollLock()
+        } else {
+            let scrollView = webView.scrollView
+            scrollView.isDirectionalLockEnabled = true
+            scrollView.alwaysBounceHorizontal = false
+            scrollView.showsHorizontalScrollIndicator = false
+            if #available(iOS 17.4, *) {
+                scrollView.bouncesVertically = true
+                scrollView.bouncesHorizontally = false
+            }
+        }
     }
 
     class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler, UIEditMenuInteractionDelegate, WKUIDelegate {
