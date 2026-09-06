@@ -104,7 +104,6 @@ struct AppSettingsView: View {
     @AppStorage("filter_posts_quotes") private var filterPostsMode = "wl_pseudo"
     @AppStorage("filter_posts_min_quotes") private var filterPostsMinimumQuoteCount = 3
     @AppStorage("size_smileys") private var smileySize = "double"
-    @AppStorage("embedded_videos") private var embeddedVideos = "yes"
     @AppStorage("display_sig") private var displaySignatures = "no"
 
     @AppStorage("mpstorage_active") private var mpStorageActive = false
@@ -150,12 +149,6 @@ struct AppSettingsView: View {
     private let smileySizeOptions = [
         StringOption(value: "default", title: "Normale"),
         StringOption(value: "double", title: "Grande")
-    ]
-
-    private let embeddedVideoOptions = [
-        StringOption(value: "no", title: "Lien"),
-        StringOption(value: "yes", title: "Intégré"),
-        StringOption(value: "both", title: "Intégré + lien")
     ]
 
     private let signatureOptions = [
@@ -448,12 +441,6 @@ struct AppSettingsView: View {
 //                }
 //            }
 //
-//            Picker("Afficher les vidéos", selection: $embeddedVideos) {
-//                ForEach(embeddedVideoOptions) { option in
-//                    Text(option.title).tag(option.value)
-//                }
-//            }
-
             Picker("Afficher les signatures", selection: $displaySignatures) {
                 ForEach(signatureOptions) { option in
                     Text(option.title).tag(option.value)

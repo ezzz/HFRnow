@@ -455,6 +455,7 @@ struct FavoritesListView: View {
     @State private var favoritePostFilterStatusTask: Task<Void, Never>?
     @State private var favoritePostFilterTarget: FavoritePostFilterNavigationTarget?
     @State private var navigateToFavoritePostFilter = false
+    @State private var showsCategoriesOnDemand = false
 
     private let topicActionService: FavoritesTopicActionServicing
     private let favoritePostFilterService: any FavoritePostFilteringServicing
@@ -481,11 +482,15 @@ struct FavoritesListView: View {
     }
 
     private var usesCategorizedFavoritesList: Bool {
-        favoritesSortedByCategories
+        favoritesSortedByCategories || showsCategoriesOnDemand
+    }
+
+    private var showsAllFavoriteSections: Bool {
+        favoritesSortedByCategories ? showCollapsedSections : showsCategoriesOnDemand
     }
 
     private var shouldShowEmptyFavoriteSections: Bool {
-        showCollapsedSections && favoritesTabBehavior == "0"
+        showsAllFavoriteSections && favoritesTabBehavior == "0"
     }
 
     private func topicOpenContext(for topic: Topic) -> TopicOpenContext {
@@ -571,7 +576,7 @@ struct FavoritesListView: View {
 
     private func shouldDisplayCategorizedFavorite(_ favorite: Favorite) -> Bool {
         let sectionID = sectionIdentifier(for: favorite)
-        if collapsedSectionIDs.contains(sectionID), !showCollapsedSections {
+        if collapsedSectionIDs.contains(sectionID), !showsAllFavoriteSections {
             return false
         }
         if !topics(in: favorite).isEmpty {
@@ -590,7 +595,7 @@ struct FavoritesListView: View {
 
     private var shouldShowAllSectionsCollapsedState: Bool {
         usesCategorizedFavoritesList
-        && !showCollapsedSections
+        && !showsAllFavoriteSections
         && !viewModel.isLoading
         && viewModel.errorMessage == nil
         && !collapsibleSectionIDs.isEmpty
@@ -774,6 +779,9 @@ struct FavoritesListView: View {
                 AppHaptics.refreshStarted()
                 viewModel.loadFavorites(force: true, shouldTriggerHaptic: true)
             }
+            .onChange(of: favoritesSortedByCategories) {
+                showsCategoriesOnDemand = false
+            }
             .toolbar {
                 MainToolbarContent(
                     onRefresh: {
@@ -785,12 +793,15 @@ struct FavoritesListView: View {
                     leadingRefreshItem: AnyView(
                         Button {
                             AppHaptics.impact(.light)
-                            showCollapsedSections.toggle()
+                            if favoritesSortedByCategories {
+                                showCollapsedSections.toggle()
+                            } else {
+                                showsCategoriesOnDemand.toggle()
+                            }
                         } label: {
-                            Image(systemName: showCollapsedSections ? "list.bullet.circle.fill" : "list.bullet.circle")
+                            Image(systemName: showsAllFavoriteSections ? "list.bullet.circle.fill" : "list.bullet.circle")
                                 .foregroundStyle(.primary)
                         }
-                        .disabled(!usesCategorizedFavoritesList)
                         .contextMenu {
                             Button {
                                 collapseAllSections()
@@ -809,9 +820,13 @@ struct FavoritesListView: View {
                             Color.clear.frame(width: 1, height: 1)
                         }
                         .accessibilityLabel(
-                            showCollapsedSections
-                                ? "Masquer les sections repliées"
-                                : "Afficher les sections repliées"
+                            favoritesSortedByCategories
+                                ? (showsAllFavoriteSections
+                                    ? "Masquer les sections repliées"
+                                    : "Afficher les sections repliées")
+                                : (showsCategoriesOnDemand
+                                    ? "Masquer les catégories"
+                                    : "Afficher toutes les catégories")
                         )
                     )
                 ) {

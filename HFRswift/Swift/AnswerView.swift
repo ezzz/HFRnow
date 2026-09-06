@@ -896,8 +896,10 @@ struct AnswerView: View {
             }
 
             ViewThatFits(in: .horizontal) {
-                toolbarRow(spacing: 12)
+                toolbarRow(layoutSpacing: 12, glassSpacing: 12)
                     .padding(.horizontal, 16).padding(.vertical, 12)
+                toolbarRow(layoutSpacing: 0, glassSpacing: 8)
+                    .padding(.horizontal, 8).padding(.vertical, 12)
                 toolbarColumn(spacing: 10)
                     .padding(.horizontal, 16).padding(.vertical, 12)
             }
@@ -907,15 +909,15 @@ struct AnswerView: View {
     }
 
     @ViewBuilder
-    private func toolbarRow(spacing: CGFloat) -> some View {
+    private func toolbarRow(layoutSpacing: CGFloat, glassSpacing: CGFloat) -> some View {
         if #available(iOS 26.0, *) {
-            GlassEffectContainer(spacing: spacing) {
-                HStack(alignment: .center, spacing: spacing) {
+            GlassEffectContainer(spacing: glassSpacing) {
+                HStack(alignment: .center, spacing: layoutSpacing) {
                     editionGroup; Spacer(minLength: 0); insertionGroup
                 }
             }
         } else {
-            HStack(alignment: .center, spacing: spacing) {
+            HStack(alignment: .center, spacing: layoutSpacing) {
                 editionGroup; Spacer(minLength: 0); insertionGroup
             }
         }

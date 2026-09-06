@@ -145,18 +145,6 @@
     myRawContent = [myRawContent stringByReplacingOccurrencesOfRegex:regEx02
                                                           withString:@"|NATIVE-$1-98787687687697|"];
     */
-    // Embedded video
-    NSString *regExYT = @"<a rel=\"nofollow\" href=\"([^\"]+)\" target=\"_blank\" class=\"embedvideo\" hrefemb=\"([^\"]+)\" hreftxt=\"([^\"]+)\">([^<]+)</a>";
-    //Example: <iframe width="560" height="315" src="https://www.youtube.com/embed/FMbSgh1hb6k?&autoplay=1"frameborder="0"></iframe>
-    //NSString *sFrameEmbedded = @"<div class=\"embedvideo\"><iframe width=\"100%\" height=\"100%\" src=\"$2\" frameborder=\"0\"></iframe></div>";
-    NSString *sFrameEmbedded = @"<div class=\"embedvideo\"><iframe src=\"$2\" frameborder=\"0\"></iframe></div>";
-    NSString* sVideoEmbedded = [[NSUserDefaults standardUserDefaults] stringForKey:@"embedded_videos"];
-    if ([sVideoEmbedded isEqualToString:@"both"]) {
-        sFrameEmbedded = @"<div class=\"embedvideo\"><iframe src=\"$2\" frameborder=\"0\"></iframe><br><a href=\"$1\">$3</a></div>";
-    }
-    myRawContent = [myRawContent stringByReplacingOccurrencesOfRegex:regExYT
-                                                          withString:sFrameEmbedded];
-    
 	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
 	NSString *display = [defaults stringForKey:@"display_images"];
 

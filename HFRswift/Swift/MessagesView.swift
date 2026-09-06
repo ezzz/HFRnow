@@ -2956,6 +2956,13 @@ struct MessagesView: View {
         let actions: TopicPageMessageActions
     }
 
+    private enum SheetDismissalAction {
+        case openProfile(URL)
+        case openPrivateMessage(URL, TopicPageMessageActions)
+        case toggleBlacklist(String)
+        case toggleWhitelist(String)
+    }
+
     private struct PhotoViewerDestination: Identifiable {
         let id = UUID()
         let url: URL
@@ -3087,6 +3094,8 @@ struct MessagesView: View {
     @State private var userProfileDestination: UserProfileDestination?
     @State private var smileySheetState: SmileySheetState?
     @State private var avatarActionSheetState: AvatarActionSheetState?
+    @State private var userProfileDismissalAction: SheetDismissalAction?
+    @State private var avatarActionSheetDismissalAction: SheetDismissalAction?
     @State private var photoViewerDestination: PhotoViewerDestination?
     @State private var isLoadingQuoteTemplate = false
     @State private var activeComposerPrefillMode: ComposerPrefillMode = .quote
@@ -4304,86 +4313,87 @@ struct MessagesView: View {
         avatarActionSheetState = AvatarActionSheetState(actions: actions)
     }
 
-    private func dismissUserProfile(then action: @escaping @MainActor () -> Void) {
+    private func dismissUserProfile(then action: SheetDismissalAction) {
+        userProfileDismissalAction = action
         userProfileDestination = nil
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 150_000_000)
-            action()
-        }
     }
 
-    private func dismissAvatarActionSheet(then action: @escaping @MainActor () -> Void) {
+    private func dismissAvatarActionSheet(then action: SheetDismissalAction) {
+        avatarActionSheetDismissalAction = action
         avatarActionSheetState = nil
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 150_000_000)
-            action()
+    }
+
+    private func handleUserProfileDismissal() {
+        guard let action = userProfileDismissalAction else { return }
+        userProfileDismissalAction = nil
+        performSheetDismissalAction(action)
+    }
+
+    private func handleAvatarActionSheetDismissal() {
+        guard let action = avatarActionSheetDismissalAction else { return }
+        avatarActionSheetDismissalAction = nil
+        performSheetDismissalAction(action)
+    }
+
+    private func performSheetDismissalAction(_ action: SheetDismissalAction) {
+        switch action {
+        case .openProfile(let url):
+            openProfile(for: url)
+        case .openPrivateMessage(let url, let actions):
+            openPrivateMessageComposer(with: url, actions: actions)
+        case .toggleBlacklist(let pseudo):
+            performToggleBlacklist(for: pseudo)
+        case .toggleWhitelist(let pseudo):
+            performToggleWhitelist(for: pseudo)
         }
     }
 
     private func openAvatarProfile(_ url: URL) {
-        dismissAvatarActionSheet {
-            openProfile(for: url)
-        }
+        dismissAvatarActionSheet(then: .openProfile(url))
     }
 
     private func openAvatarPrivateMessage(_ url: URL, actions: TopicPageMessageActions) {
-        dismissAvatarActionSheet {
-            openPrivateMessageComposer(with: url, actions: actions)
-        }
+        dismissAvatarActionSheet(then: .openPrivateMessage(url, actions))
     }
 
     private func openProfilePrivateMessage(_ url: URL, actions: TopicPageMessageActions) {
-        dismissUserProfile {
-            openPrivateMessageComposer(with: url, actions: actions)
-        }
+        dismissUserProfile(then: .openPrivateMessage(url, actions))
     }
 
     private func toggleAvatarBlacklist(for pseudo: String) {
-        dismissAvatarActionSheet {
-            let message = ObjCProfileFilterListManager.shared.toggleBlacklist(pseudo: pseudo)
-            if let message {
-                showSuccessToast(message)
-            } else {
-                popupActionErrorMessage = "Blacklist impossible"
-            }
-            loadPage(page)
-        }
+        dismissAvatarActionSheet(then: .toggleBlacklist(pseudo))
     }
 
     private func toggleProfileBlacklist(for pseudo: String) {
-        dismissUserProfile {
-            let message = ObjCProfileFilterListManager.shared.toggleBlacklist(pseudo: pseudo)
-            if let message {
-                showSuccessToast(message)
-            } else {
-                popupActionErrorMessage = "Blacklist impossible"
-            }
-            loadPage(page)
+        dismissUserProfile(then: .toggleBlacklist(pseudo))
+    }
+
+    private func performToggleBlacklist(for pseudo: String) {
+        let message = ObjCProfileFilterListManager.shared.toggleBlacklist(pseudo: pseudo)
+        if let message {
+            showSuccessToast(message)
+        } else {
+            popupActionErrorMessage = "Blacklist impossible"
         }
+        loadPage(page)
     }
 
     private func toggleAvatarWhitelist(for pseudo: String) {
-        dismissAvatarActionSheet {
-            let message = ObjCProfileFilterListManager.shared.toggleWhitelist(pseudo: pseudo)
-            if let message {
-                showSuccessToast(message)
-            } else {
-                popupActionErrorMessage = "Whitelist impossible"
-            }
-            loadPage(page)
-        }
+        dismissAvatarActionSheet(then: .toggleWhitelist(pseudo))
     }
 
     private func toggleProfileWhitelist(for pseudo: String) {
-        dismissUserProfile {
-            let message = ObjCProfileFilterListManager.shared.toggleWhitelist(pseudo: pseudo)
-            if let message {
-                showSuccessToast(message)
-            } else {
-                popupActionErrorMessage = "Whitelist impossible"
-            }
-            loadPage(page)
+        dismissUserProfile(then: .toggleWhitelist(pseudo))
+    }
+
+    private func performToggleWhitelist(for pseudo: String) {
+        let message = ObjCProfileFilterListManager.shared.toggleWhitelist(pseudo: pseudo)
+        if let message {
+            showSuccessToast(message)
+        } else {
+            popupActionErrorMessage = "Whitelist impossible"
         }
+        loadPage(page)
     }
 
     private func askAQPrompt(with actions: TopicPageMessageActions) {
@@ -5102,7 +5112,7 @@ struct MessagesView: View {
                     SafariInAppView(url: destination.url)
                         .ignoresSafeArea()
                 }
-                .sheet(item: $userProfileDestination) { destination in
+                .sheet(item: $userProfileDestination, onDismiss: handleUserProfileDismissal) { destination in
                     UserProfileView(
                         profileURL: destination.url,
                         quickActions: userProfileQuickActions(for: destination.avatarActions)
@@ -5607,7 +5617,7 @@ struct MessagesView: View {
                     SafariInAppView(url: destination.url)
                         .ignoresSafeArea()
                 }
-                .sheet(item: $userProfileDestination) { destination in
+                .sheet(item: $userProfileDestination, onDismiss: handleUserProfileDismissal) { destination in
                     UserProfileView(
                         profileURL: destination.url,
                         quickActions: userProfileQuickActions(for: destination.avatarActions)
@@ -5633,7 +5643,7 @@ struct MessagesView: View {
                     )
                     .presentationDetents([.medium])
                 }
-                .sheet(item: $avatarActionSheetState) { state in
+                .sheet(item: $avatarActionSheetState, onDismiss: handleAvatarActionSheetDismissal) { state in
                     MessageAvatarActionSheetView(
                         actions: state.actions,
                         colorScheme: appTheme.effectiveColorScheme,
@@ -5814,7 +5824,7 @@ struct MessagesView: View {
                 SafariInAppView(url: destination.url)
                     .ignoresSafeArea()
             }
-            .sheet(item: $userProfileDestination) { destination in
+            .sheet(item: $userProfileDestination, onDismiss: handleUserProfileDismissal) { destination in
                 UserProfileView(
                     profileURL: destination.url,
                     quickActions: userProfileQuickActions(for: destination.avatarActions)
@@ -5840,7 +5850,7 @@ struct MessagesView: View {
                 )
                 .presentationDetents([.medium])
             }
-            .sheet(item: $avatarActionSheetState) { state in
+            .sheet(item: $avatarActionSheetState, onDismiss: handleAvatarActionSheetDismissal) { state in
                 MessageAvatarActionSheetView(
                     actions: state.actions,
                     colorScheme: appTheme.effectiveColorScheme,
