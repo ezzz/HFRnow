@@ -544,7 +544,15 @@ final class ThemeUserColorStore: NSObject {
     @objc(creditsCSSForLegacyThemeValue:)
     class func creditsCSS(forLegacyThemeValue themeValue: Int) -> String {
         if themeValue == 1 {
-            return "body{background:rgba(30, 31, 33, 1);color: rgba(146, 147, 151, 1);} a{color: rgba(42, 153, 250, 1);} .ios7 h1 {background:rgba(36, 37, 41, 1);color: rgba(109, 109, 114, 1);}.ios7 ul, .ios7 p {background:rgba(30, 31, 33, 1);}"
+            let pageBackground = adjustedDarkThemeColor(
+                UIColor(red: 30.0 / 255.0, green: 31.0 / 255.0, blue: 33.0 / 255.0, alpha: 1.0),
+                minimumWhiteLevel: 0
+            ).cssRGBA(alpha: 1)
+            let headingBackground = adjustedDarkThemeColor(
+                UIColor(red: 36.0 / 255.0, green: 37.0 / 255.0, blue: 41.0 / 255.0, alpha: 1.0),
+                minimumWhiteLevel: 0
+            ).cssRGBA(alpha: 1)
+            return "body{background:\(pageBackground);color: rgba(146, 147, 151, 1);} a{color: rgba(42, 153, 250, 1);} .ios7 h1 {background:\(headingBackground);color: rgba(109, 109, 114, 1);}.ios7 ul, .ios7 p {background:\(pageBackground);}"
         }
         return "body{background:#efeff4;}.ios7 h1 {background:#efeff4;color: rgba(109, 109, 114, 1);}.ios7 ul {background:#fff;}.ios7 ul, .ios7 p {background:#fff;}"
     }
@@ -552,7 +560,11 @@ final class ThemeUserColorStore: NSObject {
     @objc(smileysCSSForLegacyThemeValue:)
     class func smileysCSS(forLegacyThemeValue themeValue: Int) -> String {
         if themeValue == 1 {
-            return "body.ios7 {background:rgba(30, 31, 33, 1);} body.ios7 .button { background-image : none !important; background-color : rgba(255, 255, 255,0.2); border-bottom:1px solid rgb(68,70,77); } body.ios7 #container_ajax img.smile, body.ios7 #smileperso img.smile { background-image : none !important; background-color: rgba(255, 255, 255, 0.2); border-bottom:1px solid rgb(68,70,77); } body.ios7 .button.selected, body.ios7 #container_ajax img.smile.selected, body.ios7 #smileperso img.smile.selected { background-image : none !important; background-color:rgba(255,255,255,0.1); }"
+            let background = adjustedDarkThemeColor(
+                UIColor(red: 30.0 / 255.0, green: 31.0 / 255.0, blue: 33.0 / 255.0, alpha: 1.0),
+                minimumWhiteLevel: 0
+            ).cssRGBA(alpha: 1)
+            return "body.ios7 {background:\(background);} body.ios7 .button { background-image : none !important; background-color : rgba(255, 255, 255,0.2); border-bottom:1px solid rgb(68,70,77); } body.ios7 #container_ajax img.smile, body.ios7 #smileperso img.smile { background-image : none !important; background-color: rgba(255, 255, 255, 0.2); border-bottom:1px solid rgb(68,70,77); } body.ios7 .button.selected, body.ios7 #container_ajax img.smile.selected, body.ios7 #smileperso img.smile.selected { background-image : none !important; background-color:rgba(255,255,255,0.1); }"
         }
         return "body.ios7 {background:#bbc2c9;} body.ios7 .button { background-image : none !important; background-color : rgba(255,255,255,1); border-bottom:1px solid rgb(136,138,142); } body.ios7 #container_ajax img.smile, body.ios7 #smileperso img.smile { background-image : none !important; background-color: rgba(255,255,255,1); border-bottom:1px solid rgb(136,138,142); } body.ios7 .button.selected, body.ios7 #container_ajax img.smile.selected, body.ios7 #smileperso img.smile.selected { background-image : none !important; background-color:rgba(136,138,142,1); }"
     }
@@ -585,6 +597,45 @@ final class ThemeUserColorStore: NSObject {
         let brightness = defaultBrightness(forKey: key)
         storeBrightness(brightness, forKey: key)
         return brightness
+    }
+
+    @objc(adjustedDarkThemeColor:minimumWhiteLevel:)
+    class func adjustedDarkThemeColor(_ color: UIColor, minimumWhiteLevel: CGFloat) -> UIColor {
+        let resolvedColor = color.resolvedColor(
+            with: UITraitCollection(userInterfaceStyle: .dark)
+        )
+        let brightnessMultiplier = min(
+            max(storedBrightness(forKey: nightBrightnessKey), 0),
+            1.5
+        )
+        let minimumBrightness = min(max(minimumWhiteLevel / 255.0, 0), 1)
+
+        var hue: CGFloat = 0
+        var saturation: CGFloat = 0
+        var brightness: CGFloat = 0
+        var alpha: CGFloat = 0
+        if resolvedColor.getHue(
+            &hue,
+            saturation: &saturation,
+            brightness: &brightness,
+            alpha: &alpha
+        ) {
+            let adjustedBrightness = brightnessMultiplier * (brightness - minimumBrightness) + minimumBrightness
+            return UIColor(
+                hue: hue,
+                saturation: saturation,
+                brightness: min(max(adjustedBrightness, 0), 1),
+                alpha: alpha
+            )
+        }
+
+        var white: CGFloat = 0
+        if resolvedColor.getWhite(&white, alpha: &alpha) {
+            let adjustedWhite = brightnessMultiplier * (white - minimumBrightness) + minimumBrightness
+            return UIColor(white: min(max(adjustedWhite, 0), 1), alpha: alpha)
+        }
+
+        return resolvedColor
     }
 
     private class func resolvedLegacyThemeValue(for traitCollection: UITraitCollection?) -> Int {
@@ -677,15 +728,15 @@ struct AppThemePalette {
     }
 
     var editorBackgroundColor: Color {
-        Color(uiColor: .secondarySystemBackground)
+        Color(uiColor: adjustedSurfaceColor(.secondarySystemBackground))
     }
 
     var controlBackgroundColor: Color {
-        Color(uiColor: .tertiarySystemFill)
+        Color(uiColor: adjustedSurfaceColor(.tertiarySystemFill))
     }
 
     var tertiaryBackgroundColor: Color {
-        Color(uiColor: .tertiarySystemBackground)
+        Color(uiColor: adjustedSurfaceColor(.tertiarySystemBackground))
     }
 
     var webViewBackdropUIColor: UIColor {
@@ -698,7 +749,9 @@ struct AppThemePalette {
 
     var staticPageBackgroundUIColor: UIColor {
         if colorScheme == .dark {
-            return UIColor(red: 30.0 / 255.0, green: 31.0 / 255.0, blue: 33.0 / 255.0, alpha: 1.0)
+            return adjustedSurfaceColor(
+                UIColor(red: 30.0 / 255.0, green: 31.0 / 255.0, blue: 33.0 / 255.0, alpha: 1.0)
+            )
         }
         return .systemGroupedBackground
     }
@@ -718,11 +771,21 @@ struct AppThemePalette {
     var messageClassicHeaderBackgroundCSS: String {
         let color: UIColor
         if colorScheme == .dark {
-            color = UIColor(red: 30.0 / 255.0, green: 31.0 / 255.0, blue: 34.0 / 255.0, alpha: 1.0)
+            color = adjustedSurfaceColor(
+                UIColor(red: 30.0 / 255.0, green: 31.0 / 255.0, blue: 34.0 / 255.0, alpha: 1.0)
+            )
         } else {
             color = UIColor(red: 244.0 / 255.0, green: 244.0 / 255.0, blue: 244.0 / 255.0, alpha: 1.0)
         }
         return color.cssRGBA(alpha: 1.0)
+    }
+
+    private func adjustedSurfaceColor(_ color: UIColor, minimumWhiteLevel: CGFloat = 0) -> UIColor {
+        guard colorScheme == .dark else { return color }
+        return ThemeUserColorStore.adjustedDarkThemeColor(
+            color,
+            minimumWhiteLevel: minimumWhiteLevel
+        )
     }
 
     var stickyAccentColor: Color {

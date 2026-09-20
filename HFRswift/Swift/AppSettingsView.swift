@@ -14,6 +14,8 @@ struct AppSettingsView: View {
         static let autoThemeIOS = 3
         static let autoThemeManual = 0
         static let defaultTintHue = 190.0 / 360.0
+        static let defaultDarkThemeBrightness = 1.0
+        static let maximumDarkThemeBrightness = 1.5
     }
 
     private struct IntOption: Identifiable {
@@ -115,6 +117,8 @@ struct AppSettingsView: View {
     @State private var showClearCacheConfirmation = false
     @State private var tintHue = Constants.defaultTintHue
     @State private var tintHueLoaded = false
+    @State private var darkThemeBrightness = Constants.defaultDarkThemeBrightness
+    @State private var darkThemeBrightnessLoaded = false
 
     private var iconOptions: [AppIconOption] {
         AppIconOption.allCases
@@ -316,6 +320,24 @@ struct AppSettingsView: View {
         AppThemeStore.shared.refresh(forceThemeRevision: true, notifyLegacy: true)
     }
 
+    private func loadDarkThemeBrightnessIfNeeded() {
+        guard !darkThemeBrightnessLoaded else { return }
+        darkThemeBrightnessLoaded = true
+        darkThemeBrightness = min(
+            max(Double(ThemeUserColorStore.storedBrightness(forKey: "theme_night_brightness")), 0),
+            Constants.maximumDarkThemeBrightness
+        )
+    }
+
+    private func applyDarkThemeBrightness(_ brightness: Double) {
+        let boundedBrightness = min(max(brightness, 0), Constants.maximumDarkThemeBrightness)
+        ThemeUserColorStore.storeBrightness(
+            CGFloat(boundedBrightness),
+            forKey: "theme_night_brightness"
+        )
+        AppThemeStore.shared.refresh(forceThemeRevision: true, notifyLegacy: true)
+    }
+
     private func syncLegacyTextSizeSettings() {
         let scale = AppTextSizeScale.value(for: textSizeScaleRawValue)
         let defaults = UserDefaults.standard
@@ -400,6 +422,24 @@ struct AppSettingsView: View {
                 }
                 Slider(value: $tintHue, in: 0...1, step: 0.001)
                     .tint(Color(hue: tintHue, saturation: 0.65, brightness: 1.0))
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("Luminosité du thème sombre")
+                    Spacer()
+                    Text(darkThemeBrightness, format: .percent.precision(.fractionLength(0)))
+                        .foregroundStyle(.secondary)
+                }
+                Slider(
+                    value: $darkThemeBrightness,
+                    in: 0...Constants.maximumDarkThemeBrightness,
+                    step: 0.01
+                )
+                .accessibilityLabel("Luminosité du thème sombre")
+                .accessibilityValue(
+                    Text(darkThemeBrightness, format: .percent.precision(.fractionLength(0)))
+                )
             }
         }
     }
@@ -516,6 +556,7 @@ struct AppSettingsView: View {
         .navigationTitle("Réglages")
         .onAppear {
             loadTintHueIfNeeded()
+            loadDarkThemeBrightnessIfNeeded()
             applyThemeConfiguration()
             migrateLegacyTextSizeSettingsIfNeeded()
             syncLegacyTextSizeSettings()
@@ -530,6 +571,9 @@ struct AppSettingsView: View {
         }
         .onChange(of: tintHue) { _, newValue in
             applyTintHue(newValue)
+        }
+        .onChange(of: darkThemeBrightness) { _, newValue in
+            applyDarkThemeBrightness(newValue)
         }
         .onChange(of: iconValue) { _, _ in
             applyIconSelection()

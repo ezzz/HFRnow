@@ -509,7 +509,7 @@
 + (UIColor *)cellHighlightBackgroundColor:(Theme)theme{
     switch (theme) {
         case ThemeLight: return [UIColor colorWithRed:217.0/255.0 green:217.0/255.0 blue:217.0/255.0 alpha:1.0];
-        case ThemeDark:  return [UIColor colorWithRed:46.0/255.0 green:47.0/255.0 blue:51.0/255.0 alpha:1.0];
+        case ThemeDark:  return [ThemeColors adjustDarkThemeBrightnessOfColor:[UIColor colorWithRed:46.0/255.0 green:47.0/255.0 blue:51.0/255.0 alpha:1.0] withMin:20.0];
         default:         return [UIColor colorWithRed:217.0/255.0 green:217.0/255.0 blue:217.0/255.0 alpha:1.0];
             
     }
@@ -736,7 +736,7 @@
 + (UIColor *)toolbarColor:(Theme)theme{
     switch (theme) {
         case ThemeLight: return [UIColor colorWithRed:249.0/255.0 green:249.0/255.0 blue:249.0/255.0 alpha:1.0];
-        case ThemeDark:  return [UIColor colorWithRed:19.0/255.0 green:19.0/255.0 blue:20.0/255.0 alpha:1.0];
+        case ThemeDark:  return [ThemeColors adjustDarkThemeBrightnessOfColor:[UIColor colorWithRed:19.0/255.0 green:19.0/255.0 blue:20.0/255.0 alpha:1.0]];
         default:  return [UIColor colorWithRed:249.0/255.0 green:249.0/255.0 blue:249.0/255.0 alpha:1.0];
     }
 }
@@ -744,7 +744,7 @@
 + (UIColor *)toolbarPageBackgroundColor:(Theme)theme{
     switch (theme) {
         case ThemeLight: return [UIColor colorWithRed:249.0/255.0 green:249.0/255.0 blue:249.0/255.0 alpha:1.0];
-        case ThemeDark:  return [UIColor colorWithRed:38.0/255.0 green:40.0/255.0 blue:46.0/255.0 alpha:1.0];
+        case ThemeDark:  return [ThemeColors adjustDarkThemeBrightnessOfColor:[UIColor colorWithRed:38.0/255.0 green:40.0/255.0 blue:46.0/255.0 alpha:1.0]];
         default:  return [UIColor colorWithRed:249.0/255.0 green:249.0/255.0 blue:249.0/255.0 alpha:1.0];
     }
 }
@@ -771,7 +771,7 @@
             else {
                 a = 0.7;
             }
-            return [UIColor colorWithRed:30.0/255.0 green:31.0/255.0 blue:33.0/255.0 alpha:a];
+            return [ThemeColors adjustDarkThemeBrightnessOfColor:[UIColor colorWithRed:30.0/255.0 green:31.0/255.0 blue:33.0/255.0 alpha:a]];
         default:         return [UIColor colorWithRed:255.0/255.0 green:255.0/255.0 blue:255.0/255.0 alpha:0.9];
     }
 }
@@ -1129,25 +1129,7 @@
 // Min = niveau de gris minimum entre 0 et 255
 + (UIColor*)adjustDarkThemeBrightnessOfColor:(UIColor*)color withMin:(CGFloat)min
 {
-    CGFloat hue, saturation, brightness, alpha;
-    if ([color getHue:&hue saturation:&saturation brightness:&brightness alpha:&alpha]) {
-        // Brithness of theme dark = 100%
-        // 100% - brightness (valeur entre 0 et 1)
-        // 0% - min/255
-        // fDarkColor1 - fDarkColor1/100*(brightness-min/255) + min/255
-        brightness = [ThemeColors getUserBrightness:@"theme_night_brightness"]*(brightness-min/255) + min/255;
-        brightness = MAX(MIN(brightness, 1.0), 0.0); // Be sure to have a value ≥0 and ≤1;
-        return [UIColor colorWithHue:hue saturation:saturation brightness:brightness alpha:alpha];
-    }
-    
-    CGFloat white;
-    if ([color getWhite:&white alpha:&alpha]) {
-        white = [ThemeColors getUserBrightness:@"theme_night_brightness"]*white;
-        white = MAX(MIN(white, 1.0), 0.0);
-        return [UIColor colorWithWhite:white alpha:alpha];
-    }
-    
-    return nil;
+    return [ThemeUserColorStore adjustedDarkThemeColor:color minimumWhiteLevel:min];
 }
 
 // Modify hue of color in param with value val
