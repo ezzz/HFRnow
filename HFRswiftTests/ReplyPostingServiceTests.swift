@@ -196,6 +196,120 @@ final class ReplyPostingServiceTests: XCTestCase {
         XCTAssertEqual(step, 2)
     }
 
+    func testEditingFirstPostCanCreatePollWithForumFields() async throws {
+        let session = makeSession()
+        var step = 0
+        URLProtocolMock.requestHandler = { request in
+            step += 1
+            if step <= 2 {
+                let html = """
+                <html><body><form name="hop" action="/bddpost.php">
+                  <input type="hidden" name="cat" value="25">
+                  <input type="hidden" name="post" value="8811">
+                  <input type="checkbox" name="have_sondage" value="1">
+                  <input name="textreponse0" value="">
+                  <input name="textreponse1" value="">
+                  <input name="textreponse2" value="">
+                  <select name="max_votes"><option value="1">1</option></select>
+                  <input type="checkbox" name="allowvisitor" value="1">
+                </form></body></html>
+                """
+                return (HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!, Data(html.utf8))
+            }
+            let params = Self.formEncodedBodyParameters(from: Self.requestBodyData(from: request))
+            XCTAssertEqual(params["have_sondage"], "1")
+            XCTAssertEqual(params["textreponse0"], "Question ?")
+            XCTAssertEqual(params["textreponse1"], "Oui")
+            XCTAssertEqual(params["textreponse2"], "Non")
+            XCTAssertEqual(params["max_votes"], "1")
+            XCTAssertNil(params["allowvisitor"])
+            XCTAssertEqual(params["content_form"], "Premier message")
+            let html = "<html><body><div class=\"hop\">Message édité</div></body></html>"
+            return (HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!, Data(html.utf8))
+        }
+
+        let service = ForumReplyPostingService(session: session, sessionContextProvider: { _ in
+            ReplySessionContext(pseudoDisplay: "testeur", hashCheck: "hash123")
+        })
+        let url = URL(string: "https://forum.hardware.fr/message.php?config=hfr.inc&cat=25&post=8811&numreponse=123")!
+        let context = try await service.fetchComposerContext(topicURL: url)
+        XCTAssertTrue(context.canCreatePoll)
+
+        var draft = TopicPollDraft()
+        draft.question = "Question ?"
+        draft.options = ["Oui", "Non"]
+        XCTAssertNil(draft.validationError())
+        _ = try await service.postReply(message: "Premier message", topicURL: url, formOverrides: draft.formOverrides())
+        XCTAssertEqual(step, 3)
+    }
+
+    func testViewResultsSubmitsNoVoteAnswer() async throws {
+        let session = makeSession()
+        URLProtocolMock.requestHandler = { request in
+            let params = Self.formEncodedBodyParameters(from: Self.requestBodyData(from: request))
+            XCTAssertEqual(request.url?.path, "/user/vote.php")
+            XCTAssertEqual(params["sondage_submit"], "Voir les résultats")
+            XCTAssertEqual(params["hash_check"], "hash123")
+            XCTAssertNil(params["reponse"])
+            return (HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!, Data("<div class=\"hop\">OK</div>".utf8))
+        }
+        let poll = PollData(question: "Question ?", footer: "", maxChoices: 1,
+                            options: [PollOption(id: 1, text: "Oui", fieldName: "reponse")],
+                            results: [], hiddenFields: ["hash_check": "hash123", "post": "8811"])
+        let result = await PollVoteSubmitter.submit(pollData: poll, action: .viewResults, session: session)
+        if case .error(let message) = result { XCTFail(message) }
+    }
+
+    func testExistingPollCannotBeCreatedAgain() async throws {
+        let session = makeSession()
+        URLProtocolMock.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "GET")
+            let html = """
+            <html><body><form name="hop" action="/bddpost.php">
+              <input type="checkbox" name="have_sondage" checked value="1">
+              <input name="textreponse0" value="Question existante">
+            </form></body></html>
+            """
+            return (HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!, Data(html.utf8))
+        }
+        let service = ForumReplyPostingService(session: session, sessionContextProvider: { _ in
+            ReplySessionContext(pseudoDisplay: "testeur", hashCheck: "hash123")
+        })
+        let url = URL(string: "https://forum.hardware.fr/message.php?cat=25&post=8811&numreponse=123")!
+        let context = try await service.fetchComposerContext(topicURL: url)
+        XCTAssertFalse(context.canCreatePoll)
+        do {
+            _ = try await service.postReply(message: "Premier message", topicURL: url,
+                                            formOverrides: ["have_sondage": "1"])
+            XCTFail("La création aurait dû être refusée")
+        } catch ReplyPostingError.pollCreationUnavailable {
+            // Le sondage existant est préservé.
+        }
+    }
+
+    func testPollFieldsOutsideHopFormAreDetected() async throws {
+        let session = makeSession()
+        URLProtocolMock.requestHandler = { request in
+            let html = """
+            <html><body>
+              <form name="hop" action="/bddpost.php"><input name="sujet" value="Sujet"></form>
+              <div id="sondagediv">
+                <input type="checkbox" name="have_sondage" value="1">
+                <input name="textreponse0" value="">
+              </div>
+            </body></html>
+            """
+            return (HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!, Data(html.utf8))
+        }
+        let service = ForumReplyPostingService(session: session, sessionContextProvider: { _ in
+            ReplySessionContext(pseudoDisplay: "testeur", hashCheck: "hash123")
+        })
+        let context = try await service.fetchComposerContext(
+            topicURL: URL(string: "https://forum.hardware.fr/message.php?cat=25&post=8811&numreponse=123")!
+        )
+        XCTAssertTrue(context.canCreatePoll)
+    }
+
     func testFetchComposerContextIncludesEmptySubcategoryOption() async throws {
         let session = makeSession()
 

@@ -71,8 +71,10 @@ static NSInteger HFRTopicPageWorkerPageNumberFromURLString(NSString *urlString) 
 }
 
 - (void)cancelFetchContent {
-    [self.request cancel];
+    ASIHTTPRequest *request = self.request;
     self.request = nil;
+    self.completion = nil;
+    [request cancel];
 }
 
 - (void)fetchContentForTopicURL:(NSString *)topicURL
@@ -91,12 +93,17 @@ static NSInteger HFRTopicPageWorkerPageNumberFromURLString(NSString *urlString) 
     __weak typeof(self) weakSelf = self;
     __weak ASIHTTPRequest *weakRequest = request;
     [request setCompletionBlock:^{
+        typeof(self) strongSelf = weakSelf;
         ASIHTTPRequest *strongRequest = weakRequest;
+        if (!strongSelf || !strongRequest || strongSelf.request != strongRequest) return;
         NSString *effectiveURL = strongRequest.url.absoluteString ?: strongRequest.originalURL.absoluteString;
-        [weakSelf handleResponseData:[strongRequest safeResponseData] effectiveURL:effectiveURL];
+        [strongSelf handleResponseData:[strongRequest safeResponseData] effectiveURL:effectiveURL];
     }];
     [request setFailedBlock:^{
-        [weakSelf finishWithHTML:nil answerURL:nil currentPage:nil maxPage:nil error:weakRequest.error];
+        typeof(self) strongSelf = weakSelf;
+        ASIHTTPRequest *strongRequest = weakRequest;
+        if (!strongSelf || !strongRequest || strongSelf.request != strongRequest) return;
+        [strongSelf finishWithHTML:nil answerURL:nil currentPage:nil maxPage:nil error:strongRequest.error];
     }];
     [request startAsynchronous];
 }
@@ -201,6 +208,7 @@ static NSInteger HFRTopicPageWorkerPageNumberFromURLString(NSString *urlString) 
 
 - (void)finishWithHTML:(NSString *)html answerURL:(NSString *)answerURL currentPage:(NSNumber *)currentPage maxPage:(NSNumber *)maxPage error:(NSError *)error {
     void (^completion)(NSString *, NSString *, NSNumber *, NSNumber *, NSError *) = self.completion;
+    self.request = nil;
     self.completion = nil;
     if (!completion) return;
     dispatch_async(dispatch_get_main_queue(), ^{

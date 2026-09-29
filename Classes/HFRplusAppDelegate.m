@@ -82,6 +82,9 @@ static NSString * const HFRSwiftNotificationDestinationMessages = @"messages";
 
     [self registerDefaultsFromSettingsBundle];
     [[OfflineStorage shared] copyAllRequiredResourcesFromBundleToCache];
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+        [HFRHTMLPageCacheManager performAutomaticCleanup];
+    });
     
     NSString *version = [NSString stringWithFormat:@"HFR+ %@ (%@)", [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"], [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"]];
 
@@ -517,6 +520,7 @@ static NSString * const HFRSwiftNotificationDestinationMessages = @"messages";
 {
     if (BACKGROUND_MAINTENANCE) {
         @autoreleasepool {
+            [HFRHTMLPageCacheManager performAutomaticCleanup];
         
         //NSLog(@"periodicMaintenanceBack");
 

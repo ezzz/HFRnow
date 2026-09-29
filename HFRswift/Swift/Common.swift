@@ -739,6 +739,18 @@ struct AppThemePalette {
         Color(uiColor: adjustedSurfaceColor(.tertiarySystemBackground))
     }
 
+    var listBackgroundColor: Color {
+        Color(uiColor: adjustedSurfaceColor(.systemGroupedBackground))
+    }
+
+    var listRowBackgroundColor: Color {
+        Color(uiColor: adjustedSurfaceColor(.secondarySystemGroupedBackground, minimumWhiteLevel: 12))
+    }
+
+    var listElevatedBackgroundColor: Color {
+        Color(uiColor: adjustedSurfaceColor(.tertiarySystemGroupedBackground, minimumWhiteLevel: 20))
+    }
+
     var webViewBackdropUIColor: UIColor {
         colorScheme == .dark ? .black : .systemGray6
     }

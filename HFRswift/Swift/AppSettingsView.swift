@@ -119,6 +119,7 @@ struct AppSettingsView: View {
     @State private var tintHueLoaded = false
     @State private var darkThemeBrightness = Constants.defaultDarkThemeBrightness
     @State private var darkThemeBrightnessLoaded = false
+    @State private var cacheStorageSnapshot: AppCacheStorageSnapshot?
 
     private var iconOptions: [AppIconOption] {
         AppIconOption.allCases
@@ -281,6 +282,17 @@ struct AppSettingsView: View {
             let folderURL = cacheRoot.appendingPathComponent(folder, isDirectory: true)
             try? fileManager.removeItem(at: folderURL)
         }
+    }
+
+    private func refreshCacheStorage() async {
+        let snapshot = await Task.detached(priority: .utility) {
+            HFRHTMLPageCacheManager.storageSnapshot()
+        }.value
+        cacheStorageSnapshot = snapshot
+    }
+
+    private func formattedStorageSize(_ bytes: Int64) -> String {
+        bytes.formatted(.byteCount(style: .file))
     }
 
     private func openSystemSettings() {
@@ -524,13 +536,34 @@ struct AppSettingsView: View {
 
     @ViewBuilder
     private var maintenanceSection: some View {
-        Section("Maintenance") {
-//            Button("Vider le cache", role: .destructive) {
-//                showClearCacheConfirmation = true
-//            }
+        Section {
+            if let cacheStorageSnapshot {
+                LabeledContent(
+                    "Caches de l’app",
+                    value: formattedStorageSize(cacheStorageSnapshot.totalBytes)
+                )
+                LabeledContent {
+                    Text(formattedStorageSize(cacheStorageSnapshot.htmlBytes))
+                } label: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Pages HTML")
+                        Text("\(cacheStorageSnapshot.htmlFileCount) fichiers")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } else {
+                LabeledContent("Caches de l’app") {
+                    ProgressView()
+                }
+            }
             Button("Ouvrir les réglages système") {
                 openSystemSettings()
             }
+        } header: {
+            Text("Maintenance")
+        } footer: {
+            Text("Les pages HTML de plus de 7 jours sont supprimées automatiquement. Leur cache est limité à 50 Mo.")
         }
     }
 
@@ -560,6 +593,9 @@ struct AppSettingsView: View {
             applyThemeConfiguration()
             migrateLegacyTextSizeSettingsIfNeeded()
             syncLegacyTextSizeSettings()
+        }
+        .task {
+            await refreshCacheStorage()
         }
         .onChange(of: autoTheme) { _, _ in
             applyThemeConfiguration()

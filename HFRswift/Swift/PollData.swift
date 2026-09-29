@@ -45,22 +45,35 @@ enum PollVoteSubmitResult {
 enum PollVoteSubmitter {
     private static let voteURL = "https://forum.hardware.fr/user/vote.php?config=hfr.inc"
 
-    static func submit(pollData: PollData, selectedIndices: Set<Int>) async -> PollVoteSubmitResult {
+    enum Action {
+        case vote(Set<Int>)
+        case viewResults
+    }
+
+    static func submit(pollData: PollData, action: Action, session: URLSession = .shared) async -> PollVoteSubmitResult {
         var params: [String: String] = pollData.hiddenFields
 
-        for index in selectedIndices {
-            guard let option = pollData.options.first(where: { $0.id == index }) else { continue }
-            if pollData.maxChoices == 1 {
-                params[option.fieldName] = "\(index)"
-            } else {
-                params[option.fieldName] = "1"
+        switch action {
+        case .vote(let selectedIndices):
+            guard !selectedIndices.isEmpty else { return .error("Sélectionnez une réponse.") }
+            params["sondage_submit"] = "Voter"
+            for index in selectedIndices {
+                guard let option = pollData.options.first(where: { $0.id == index }) else { continue }
+                if pollData.maxChoices == 1 {
+                    params[option.fieldName] = "\(index)"
+                } else {
+                    params[option.fieldName] = "1"
+                }
             }
+        case .viewResults:
+            params["sondage_submit"] = "Voir les résultats"
         }
 
         guard let url = URL(string: voteURL) else { return .error("URL invalide") }
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
+        request.httpShouldHandleCookies = true
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         request.httpBody = params
             .map { "\($0.key.percentEncoded)=\($0.value.percentEncoded)" }
@@ -68,8 +81,12 @@ enum PollVoteSubmitter {
             .data(using: .utf8)
 
         do {
-            let (data, _) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await session.data(for: request)
+            guard let http = response as? HTTPURLResponse else { return .error("Réponse serveur invalide.") }
             let html = String(data: data, encoding: .utf8) ?? ""
+            guard (200...299).contains(http.statusCode) else {
+                return .error("Erreur serveur (\(http.statusCode)).")
+            }
             return parseVoteResponse(html)
         } catch {
             return .error(error.localizedDescription)

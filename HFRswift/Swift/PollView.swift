@@ -45,20 +45,38 @@ final class PollViewModel {
         isSubmitting = true
         errorMessage = nil
 
-        let result = await PollVoteSubmitter.submit(pollData: pollData, selectedIndices: selectedIndices)
+        let result = await PollVoteSubmitter.submit(pollData: pollData, action: .vote(selectedIndices))
 
         isSubmitting = false
+        await handleSubmission(result, loadResults: loadResults)
+    }
+
+    func showResults(loadResults: (@MainActor () async -> PollData?)?) async {
+        guard pollData.isVotable, !isSubmitting, !isLoadingResults else { return }
+        isSubmitting = true
+        errorMessage = nil
+
+        let result = await PollVoteSubmitter.submit(pollData: pollData, action: .viewResults)
+
+        isSubmitting = false
+        await handleSubmission(result, loadResults: loadResults)
+    }
+
+    private func handleSubmission(_ result: PollVoteSubmitResult, loadResults: (@MainActor () async -> PollData?)?) async {
         switch result {
         case .success:
-            guard let loadResults else { return }
+            guard let loadResults else {
+                errorMessage = "Impossible de charger les résultats du sondage."
+                return
+            }
             isLoadingResults = true
             let refreshedPollData = await loadResults()
             isLoadingResults = false
-            if let refreshedPollData {
+            if let refreshedPollData, refreshedPollData.hasResults {
                 pollData = refreshedPollData
                 selectedIndices = []
             } else {
-                errorMessage = "Vote enregistré, mais les résultats n'ont pas pu être chargés."
+                errorMessage = "Action envoyée, mais les résultats n'ont pas pu être chargés."
             }
         case .error(let message):
             errorMessage = message
@@ -111,6 +129,7 @@ struct PollSheet: View {
     var onVoteSucceeded: (@MainActor () async -> PollData?)?
 
     @State private var viewModel: PollViewModel
+    @State private var isResultsConfirmationPresented = false
 
     init(pollData: PollData, onVoteSucceeded: (@MainActor () async -> PollData?)? = nil) {
         self.pollData = pollData
@@ -120,7 +139,9 @@ struct PollSheet: View {
 
     var body: some View {
         NavigationStack {
-            PollContentView(viewModel: viewModel)
+            PollContentView(viewModel: viewModel, onViewResults: {
+                isResultsConfirmationPresented = true
+            })
                 .navigationTitle("Sondage")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -143,6 +164,14 @@ struct PollSheet: View {
         .onChange(of: pollData.question) { _, _ in
             viewModel = PollViewModel(pollData: pollData)
         }
+        .alert("Voir les résultats ?", isPresented: $isResultsConfirmationPresented) {
+            Button("Annuler", role: .cancel) {}
+            Button("Voir les résultats", role: .destructive) {
+                Task { await viewModel.showResults(loadResults: onVoteSucceeded) }
+            }
+        } message: {
+            Text("Le forum indique qu'après cette action, vous ne pourrez plus voter à ce sondage.")
+        }
     }
 }
 
@@ -150,6 +179,7 @@ struct PollSheet: View {
 
 struct PollContentView: View {
     @Bindable var viewModel: PollViewModel
+    let onViewResults: () -> Void
 
     var body: some View {
         List {
@@ -225,6 +255,8 @@ struct PollContentView: View {
                 }
                 .buttonStyle(.plain)
             }
+            Button("Voir les résultats", action: onViewResults)
+                .disabled(viewModel.isSubmitting || viewModel.isLoadingResults)
         }
     }
 

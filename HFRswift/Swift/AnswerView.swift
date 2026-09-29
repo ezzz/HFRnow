@@ -289,6 +289,7 @@ struct AnswerView: View {
     let title: String
     let requiresSubject: Bool
     let requiresSubcategory: Bool
+    let offersPollConfiguration: Bool
     let subjectCharacterLimit: Int?
     let subjectPlaceholder: String
     let initialRecipient: String?
@@ -320,6 +321,11 @@ struct AnswerView: View {
     @State private var contextShowsSubcategoryPicker = false
     @State private var selectedSubcategoryID: String?
     @State private var subcategoryOptions: [ReplyComposerSubcategoryOption] = []
+    @State private var canCreatePoll = false
+    @State private var hasLoadedPollCapability = false
+    @State private var pollCapabilityError: String?
+    @State private var createdPollDraft: TopicPollDraft?
+    @State private var isPollCreationSheetPresented = false
     @State private var isPosting = false
     @State private var isDraftSheetPresented = false
     @State private var topicDrafts: [ReplyDraftItem] = []
@@ -374,6 +380,7 @@ struct AnswerView: View {
         title: String = "Répondre",
         requiresSubject: Bool = false,
         requiresSubcategory: Bool = false,
+        offersPollConfiguration: Bool = false,
         subjectCharacterLimit: Int? = nil,
         subjectPlaceholder: String = "Sujet du MP",
         initialRecipient: String? = nil,
@@ -392,6 +399,7 @@ struct AnswerView: View {
         self.title = title
         self.requiresSubject = requiresSubject
         self.requiresSubcategory = requiresSubcategory
+        self.offersPollConfiguration = offersPollConfiguration
         self.subjectCharacterLimit = subjectCharacterLimit
         self.subjectPlaceholder = subjectPlaceholder
         self.initialRecipient = initialRecipient
@@ -423,6 +431,7 @@ struct AnswerView: View {
         if showsSubcategoryPicker && subcategoryOptions.isEmpty {
             return false
         }
+        if let createdPollDraft, createdPollDraft.validationError() != nil { return false }
         return true
     }
 
@@ -437,7 +446,7 @@ struct AnswerView: View {
     }
 
     private var showsMetadata: Bool {
-        composerRecipient != nil || showsSubjectField || showsSubcategoryPicker
+        composerRecipient != nil || showsSubjectField || showsSubcategoryPicker || offersPollConfiguration
     }
 
     private var isClipboardAlertPresented: Binding<Bool> {
@@ -508,6 +517,13 @@ struct AnswerView: View {
             )
             .presentationDetents([.medium])
             .presentationDragIndicator(.visible)
+            .preferredColorScheme(appTheme.preferredColorScheme)
+            .environment(\.appThemePalette, appTheme.palette)
+        }
+        .sheet(isPresented: $isPollCreationSheetPresented, onDismiss: requestEditorFocus) {
+            TopicPollCreationSheet(draft: createdPollDraft ?? TopicPollDraft()) { draft in
+                createdPollDraft = draft
+            }
             .preferredColorScheme(appTheme.preferredColorScheme)
             .environment(\.appThemePalette, appTheme.palette)
         }
@@ -852,6 +868,43 @@ struct AnswerView: View {
                         .background(themePalette.editorBackgroundColor)
                         .clipShape(.rect(cornerRadius: 10))
                     }
+                }
+            }
+            if offersPollConfiguration {
+                HStack {
+                    Button(createdPollDraft == nil ? "Ajouter un sondage" : "Modifier le sondage") {
+                        isPollCreationSheetPresented = true
+                    }
+                    .disabled(!canCreatePoll)
+                    if createdPollDraft != nil {
+                        Button("Retirer") { createdPollDraft = nil }
+                            .foregroundStyle(.red)
+                    }
+                }
+                if !hasLoadedPollCapability {
+                    Text("Chargement des options de sondage...")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else if let pollCapabilityError {
+                    Text("Impossible de charger le formulaire du forum : \(pollCapabilityError)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Button("Réessayer") { Task { await loadComposerContext() } }
+                } else if !canCreatePoll {
+                    Text(requiresSubcategory
+                         ? "Le forum ne propose pas de sondage à cette étape. Créez le sujet, puis éditez son premier message."
+                         : "Le formulaire du forum ne propose pas la création d'un sondage pour ce message.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                if let createdPollDraft {
+                    Text(createdPollDraft.question)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                    Text("Le sondage sera créé lors de l'envoi du message.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
             }
         }
@@ -1334,24 +1387,40 @@ struct AnswerView: View {
 
     private func loadComposerContext() async {
         guard let topicURL else { return }
-        if let loader = replyPostingService as? any ReplyComposerContextLoading,
-           let context = try? await loader.fetchComposerContext(topicURL: topicURL) {
-            await MainActor.run {
-                if composerSubject.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                   let subject = context.subject { composerSubject = subject }
-                if composerRecipient == nil, let recipient = context.recipient {
-                    composerRecipient = recipient
+        await MainActor.run {
+            hasLoadedPollCapability = false
+            pollCapabilityError = nil
+            canCreatePoll = false
+        }
+        if let loader = replyPostingService as? any ReplyComposerContextLoading {
+            do {
+                let context = try await loader.fetchComposerContext(topicURL: topicURL)
+                await MainActor.run {
+                    if composerSubject.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                       let subject = context.subject { composerSubject = subject }
+                    if composerRecipient == nil, let recipient = context.recipient {
+                        composerRecipient = recipient
+                    }
+                    contextShowsSubjectField = context.isSubjectEditable
+                    contextShowsSubcategoryPicker = context.isSubcategoryEditable
+                    subcategoryOptions = context.subcategoryOptions
+                    canCreatePoll = context.canCreatePoll
+                    hasLoadedPollCapability = true
+                    pollCapabilityError = nil
+                    if selectedSubcategoryID == nil {
+                        selectedSubcategoryID = context.selectedSubcategoryID ?? context.subcategoryOptions.first?.id
+                    }
+                    enforceSubjectCharacterLimit(composerSubject)
                 }
-                contextShowsSubjectField = context.isSubjectEditable
-                contextShowsSubcategoryPicker = context.isSubcategoryEditable
-                subcategoryOptions = context.subcategoryOptions
-                if selectedSubcategoryID == nil {
-                    selectedSubcategoryID = context.selectedSubcategoryID ?? context.subcategoryOptions.first?.id
+            } catch {
+                await MainActor.run {
+                    hasLoadedPollCapability = true
+                    pollCapabilityError = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
                 }
-                enforceSubjectCharacterLimit(composerSubject)
             }
         } else if let preloader = replyPostingService as? any ReplyComposerContextPreloading {
             await preloader.preloadReplyContext(topicURL: topicURL)
+            await MainActor.run { hasLoadedPollCapability = true }
         }
         await MainActor.run {
             reloadFavoriteSmileys()
@@ -1408,6 +1477,13 @@ struct AnswerView: View {
                 overrides["subcat"] = selectedSubcategoryID
             }
             if let recipient = composerRecipient { overrides["dest"] = recipient }
+            if let createdPollDraft {
+                guard canCreatePoll, createdPollDraft.validationError() == nil else {
+                    presentToast(success: false, text: "Sondage invalide")
+                    return
+                }
+                overrides.merge(createdPollDraft.formOverrides()) { _, new in new }
+            }
 
             let result = try await replyPostingService.postReply(
                 message: message,

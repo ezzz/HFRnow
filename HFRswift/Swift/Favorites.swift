@@ -328,6 +328,7 @@ struct FavoriteSectionView: View {
     let selectedTopicID: TopicNavigationID?
     let onSelectTopic: ((TopicNavigationTarget) -> Void)?
     let onOpenForum: ((Forum) -> Void)?
+    @Environment(\.appThemePalette) private var themePalette
 
     // Cast centralisé
     private var topics: [Topic] { (favorite.topics as? [Topic]) ?? [] }
@@ -426,6 +427,7 @@ struct FavoriteSectionView: View {
                     )
                     .contentShape(Rectangle())
                     .listRowInsets(density.rowInsets)
+                    .listRowBackground(themePalette.listRowBackgroundColor)
                 }
             }
         }
@@ -437,6 +439,7 @@ struct FavoriteSectionView: View {
 struct FavoritesListView: View {
     @StateObject private var viewModel: FavoritesViewModel
     @StateObject private var accountsStore: AccountsStore
+    @Environment(\.appThemePalette) private var themePalette
     @AppStorage("vos_sujets") private var favoritesTabBehavior = "0"
     @AppStorage("sujets_avec_cat") private var favoritesSortedByCategories = true
     @AppStorage("favorites_auto_refresh") private var favoritesAutoRefresh = false
@@ -673,17 +676,21 @@ struct FavoritesListView: View {
                         .buttonStyle(.borderedProminent)
                     }
                     .padding(.vertical, 8)
+                    .listRowBackground(themePalette.listElevatedBackgroundColor)
                 } else {
                     if let errorMessage = viewModel.errorMessage {
                         Text("Erreur : \(errorMessage)")
                             .foregroundStyle(.red)
+                            .listRowBackground(themePalette.listRowBackgroundColor)
                     }
                     if shouldShowAllSectionsCollapsedState {
                         allSectionsCollapsedState
+                            .listRowBackground(themePalette.listElevatedBackgroundColor)
                     }
                     if shouldShowNoFavoritesState {
                         Text("Aucun favori")
                             .foregroundStyle(.secondary)
+                            .listRowBackground(themePalette.listRowBackgroundColor)
                     }
                     if usesCategorizedFavoritesList {
                         ForEach(displayedCategorizedFavorites) { favorite in
@@ -728,10 +735,13 @@ struct FavoritesListView: View {
                             )
                             .contentShape(Rectangle())
                             .listRowInsets(listDensity.rowInsets)
+                            .listRowBackground(themePalette.listRowBackgroundColor)
                         }
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(themePalette.listBackgroundColor)
             .compactListSectionSpacing(compactModeEnabled, spacing: listDensity.sectionSpacing, regularSpacing: listDensity.sectionSpacing)
             .refreshable {
                 await MainActor.run { viewModel.loadFavorites(shouldTriggerHaptic: true) }

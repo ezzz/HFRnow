@@ -838,7 +838,7 @@ struct WebView: UIViewRepresentable {
     var actionHandler: any MessageWebActionHandling
     var onWebAction: ((MessageWebAction) -> Void)?
     var onPopupQuoteRequest: ((URL) -> Void)?
-    var onPopupEditRequest: ((URL) -> Void)?
+    var onPopupEditRequest: ((URL, Bool) -> Void)?
     var onPopupPrivateMessageRequest: ((URL, TopicPageMessageActions) -> Void)?
     var onPopupDeleteRequest: ((URL) -> Void)?
     var onPopupAlertRequest: ((URL) -> Void)?
@@ -880,7 +880,7 @@ struct WebView: UIViewRepresentable {
         actionHandler: any MessageWebActionHandling = MessageWebActionHandler(),
         onWebAction: ((MessageWebAction) -> Void)? = nil,
         onPopupQuoteRequest: ((URL) -> Void)? = nil,
-        onPopupEditRequest: ((URL) -> Void)? = nil,
+        onPopupEditRequest: ((URL, Bool) -> Void)? = nil,
         onPopupPrivateMessageRequest: ((URL, TopicPageMessageActions) -> Void)? = nil,
         onPopupDeleteRequest: ((URL) -> Void)? = nil,
         onPopupAlertRequest: ((URL) -> Void)? = nil,
@@ -2081,7 +2081,7 @@ struct WebView: UIViewRepresentable {
                             systemImageName: actionKind.systemImageName,
                             isDestructive: actionKind.isDestructive,
                             handler: { [weak self] in
-                                self?.parent.onPopupEditRequest?(editURL)
+                                self?.parent.onPopupEditRequest?(editURL, payload.messageIndex == 0 && self?.parent.currentPage == 1)
                             }
                         )
                     )
@@ -3103,6 +3103,7 @@ struct MessagesView: View {
     @State private var activeComposerDraftSource: ReplyDraftSource = .quickReply
     @State private var composerNavigationTitle: String = ComposerPresentationKind.reply.title
     @State private var composerRequiresSubject = false
+    @State private var composerEditIsFirstPost = false
     @State private var composerRecipientName: String?
     @State private var quoteTemplateErrorMessage: String?
     @State private var lastFailedQuoteTemplateURL: URL?
@@ -4190,8 +4191,9 @@ struct MessagesView: View {
         }
     }
 
-    private func openEditComposer(with url: URL) {
+    private func openEditComposer(with url: URL, isFirstPost: Bool) {
         activeComposerPresentationKind = .edit
+        composerEditIsFirstPost = isFirstPost
         composerNavigationTitle = ComposerPresentationKind.edit.title
         composerRequiresSubject = false
         composerRecipientName = nil
@@ -5172,8 +5174,8 @@ struct MessagesView: View {
                     onPopupQuoteRequest: { quoteURL in
                         openQuoteComposer(with: quoteURL)
                     },
-                    onPopupEditRequest: { editURL in
-                        openEditComposer(with: editURL)
+                    onPopupEditRequest: { editURL, isFirstPost in
+                        openEditComposer(with: editURL, isFirstPost: isFirstPost)
                     },
                     onPopupPrivateMessageRequest: { privateMessageURL, actions in
                         openPrivateMessageComposer(with: privateMessageURL, actions: actions)
@@ -5319,6 +5321,7 @@ struct MessagesView: View {
                         topicURL: composerSubmitURL ?? topicAnswerURL,
                         title: composerNavigationTitle,
                         requiresSubject: composerRequiresSubject,
+                        offersPollConfiguration: activeComposerPresentationKind == .edit && composerEditIsFirstPost,
                         initialRecipient: composerRecipientName,
                         initialMessage: composerInitialMessage,
                         persistsComposerDraft: composerPersistsDraft,

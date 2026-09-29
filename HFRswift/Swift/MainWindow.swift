@@ -130,6 +130,7 @@ final class ForumTopicsListViewModel: ObservableObject {
 struct CategoriesListView: View {
     @StateObject private var viewModel: CategoriesListViewModel
     @StateObject private var accountsStore: AccountsStore
+    @Environment(\.appThemePalette) private var themePalette
     private let selectedTopicID: TopicNavigationID?
     private let onSelectTopic: ((TopicNavigationTarget) -> Void)?
     private let onSelectForum: ((Forum) -> Void)?
@@ -158,10 +159,12 @@ struct CategoriesListView: View {
                 if let errorMessage = viewModel.errorMessage {
                     Text("Erreur : \(errorMessage)")
                         .foregroundStyle(.red)
+                        .listRowBackground(themePalette.listRowBackgroundColor)
                 }
                 if !viewModel.isLoading && viewModel.forums.isEmpty && viewModel.errorMessage == nil {
                     Text("Aucune categorie")
                         .foregroundStyle(.secondary)
+                        .listRowBackground(themePalette.listRowBackgroundColor)
                 }
                 ForEach(viewModel.forums) { forum in
                     if let onSelectForum {
@@ -184,7 +187,10 @@ struct CategoriesListView: View {
                         }
                     }
                 }
+                .listRowBackground(themePalette.listRowBackgroundColor)
             }
+            .scrollContentBackground(.hidden)
+            .background(themePalette.listBackgroundColor)
             .navigationTitle("Categories")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -648,6 +654,7 @@ struct ForumTopicsListView: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                .listRowBackground(themePalette.listElevatedBackgroundColor)
             }
 
             Picker("Filtre", selection: $viewModel.selectedFlag) {
@@ -664,6 +671,7 @@ struct ForumTopicsListView: View {
             }
             .pickerStyle(.segmented)
             .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+            .listRowBackground(themePalette.listElevatedBackgroundColor)
 
             if !isLoggedIn {
                 VStack(alignment: .leading, spacing: 6) {
@@ -674,15 +682,18 @@ struct ForumTopicsListView: View {
                         .foregroundStyle(.secondary)
                 }
                 .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                .listRowBackground(themePalette.listElevatedBackgroundColor)
             }
 
             if let errorMessage = viewModel.errorMessage {
                 Text("Erreur : \(errorMessage)")
                     .foregroundStyle(.red)
+                    .listRowBackground(themePalette.listRowBackgroundColor)
             }
             if !viewModel.isLoading && viewModel.topics.isEmpty && viewModel.errorMessage == nil {
                 Text("Aucun topic")
                     .foregroundStyle(.secondary)
+                    .listRowBackground(themePalette.listRowBackgroundColor)
             }
 
             ForEach(viewModel.topics) { topic in
@@ -735,6 +746,7 @@ struct ForumTopicsListView: View {
                     }
                 }
                 .listRowInsets(EdgeInsets(top: 5, leading: 12, bottom: 5, trailing: 12))
+                .listRowBackground(themePalette.listRowBackgroundColor)
             }
 
             if shouldShowPagination {
@@ -748,9 +760,11 @@ struct ForumTopicsListView: View {
                 )
                 .listRowInsets(EdgeInsets(top: 12, leading: 12, bottom: 18, trailing: 12))
                 .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
+                .listRowBackground(themePalette.listElevatedBackgroundColor)
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(themePalette.listBackgroundColor)
         .refreshable {
             await MainActor.run { viewModel.load(shouldTriggerHaptic: true) }
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
@@ -873,6 +887,7 @@ struct ForumTopicsListView: View {
                 title: "Nouv. Sujet",
                 requiresSubject: true,
                 requiresSubcategory: true,
+                offersPollConfiguration: true,
                 subjectCharacterLimit: 70,
                 subjectPlaceholder: "Sujet du topic",
                 initialMessage: newTopicDraftText,
@@ -1420,7 +1435,47 @@ struct RootTabView: View {
         Binding {
             Self.sidebarVisibility(from: iPadSidebarVisibilityRawValue)
         } set: { newValue in
-            iPadSidebarVisibilityRawValue = Self.rawValue(for: newValue)
+            let requestedRawValue = Self.rawValue(for: newValue)
+            RootTabAudit.log(
+                "splitVisibility.bindingSet",
+                source: "NavigationSplitView.columnVisibility",
+                current: selectedTab,
+                runtime: RuntimeState.selectedTab,
+                mode: rootModeAuditName,
+                scenePhase: String(describing: scenePhase),
+                note: splitVisibilityAuditNote(
+                    extra: "previousStored=\(iPadSidebarVisibilityRawValue) requested=\(requestedRawValue)"
+                )
+            )
+            iPadSidebarVisibilityRawValue = requestedRawValue
+        }
+    }
+
+    private func splitVisibilityAuditNote(extra: String? = nil) -> String {
+        var parts = [
+            "stored=\(iPadSidebarVisibilityRawValue)",
+            "sizeClass=\(Self.sizeClassAuditName(horizontalSizeClass))",
+            "usesSidebarRoot=\(usesSidebarRoot)",
+            "preferredCompact=\(String(describing: preferredCompactColumn))",
+            "destination=\(iPadSidebarDestination.rawValue)",
+            "activeTopic=\(activeTopicTarget != nil)"
+        ]
+        if let extra {
+            parts.append(extra)
+        }
+        return parts.joined(separator: " ")
+    }
+
+    private static func sizeClassAuditName(_ sizeClass: UserInterfaceSizeClass?) -> String {
+        switch sizeClass {
+        case .compact:
+            return "compact"
+        case .regular:
+            return "regular"
+        case nil:
+            return "nil"
+        @unknown default:
+            return "unknown"
         }
     }
 
@@ -1580,8 +1635,32 @@ struct RootTabView: View {
             .onChange(of: systemColorScheme) { _, newValue in
                 appTheme.refresh(systemColorScheme: newValue, notifyLegacy: true)
             }
-            .onChange(of: horizontalSizeClass) { _, _ in
+            .onChange(of: horizontalSizeClass) { oldValue, newValue in
+                RootTabAudit.log(
+                    "splitVisibility.sizeClassChanged",
+                    source: "SwiftUI.horizontalSizeClass",
+                    current: selectedTab,
+                    runtime: RuntimeState.selectedTab,
+                    mode: rootModeAuditName,
+                    scenePhase: String(describing: scenePhase),
+                    note: splitVisibilityAuditNote(
+                        extra: "previousSizeClass=\(Self.sizeClassAuditName(oldValue)) newSizeClass=\(Self.sizeClassAuditName(newValue))"
+                    )
+                )
                 ensureVisibleIPadListIfNeeded()
+            }
+            .onChange(of: iPadSidebarVisibilityRawValue) { oldValue, newValue in
+                RootTabAudit.log(
+                    "splitVisibility.storedChanged",
+                    source: "AppStorage.onChange",
+                    current: selectedTab,
+                    runtime: RuntimeState.selectedTab,
+                    mode: rootModeAuditName,
+                    scenePhase: String(describing: scenePhase),
+                    note: splitVisibilityAuditNote(
+                        extra: "previousStored=\(oldValue) newStored=\(newValue)"
+                    )
+                )
             }
             .onChange(of: scenePhase) { _, newValue in
                 handleScenePhaseChange(newValue)
@@ -2242,6 +2321,15 @@ struct RootTabView: View {
             runtime: RuntimeState.selectedTab,
             mode: rootModeAuditName
         )
+        RootTabAudit.log(
+            "splitVisibility.rootAppear",
+            source: "RootTabView.onAppear",
+            current: selectedTab,
+            runtime: RuntimeState.selectedTab,
+            mode: rootModeAuditName,
+            scenePhase: String(describing: scenePhase),
+            note: splitVisibilityAuditNote()
+        )
         appTheme.refresh(systemColorScheme: systemColorScheme, forceThemeRevision: true, notifyLegacy: true)
         syncRuntimeSelectedTab(selectedTab, source: "RootTabView.onAppear")
         ensureVisibleIPadListIfNeeded()
@@ -2307,6 +2395,15 @@ struct RootTabView: View {
             runtime: RuntimeState.selectedTab,
             mode: rootModeAuditName,
             scenePhase: String(describing: newValue)
+        )
+        RootTabAudit.log(
+            "splitVisibility.scenePhaseChanged",
+            source: "RootTabView.onChangeScenePhase",
+            current: selectedTab,
+            runtime: RuntimeState.selectedTab,
+            mode: rootModeAuditName,
+            scenePhase: String(describing: newValue),
+            note: splitVisibilityAuditNote()
         )
         guard newValue == .active else { return }
         appTheme.refresh(systemColorScheme: systemColorScheme, forceThemeRevision: true, notifyLegacy: true)

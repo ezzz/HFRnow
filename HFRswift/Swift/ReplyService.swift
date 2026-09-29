@@ -15,6 +15,7 @@ enum ReplyPostingError: LocalizedError {
     case invalidResponse
     case serverError(statusCode: Int, message: String?)
     case submissionRejected(message: String?)
+    case pollCreationUnavailable
 
     var errorDescription: String? {
         switch self {
@@ -38,6 +39,8 @@ enum ReplyPostingError: LocalizedError {
                 return message
             }
             return "Le serveur a refusé le message."
+        case .pollCreationUnavailable:
+            return "Ce formulaire ne permet plus de créer un sondage sur ce sujet."
         }
     }
 }
@@ -95,6 +98,7 @@ struct ReplyComposerContext: Equatable {
     let selectedSubcategoryID: String?
     let subcategoryOptions: [ReplyComposerSubcategoryOption]
     let isSubcategoryEditable: Bool
+    let canCreatePoll: Bool
 }
 
 struct ReplyComposerSubcategoryOption: Identifiable, Equatable {
@@ -111,6 +115,7 @@ final class ForumReplyPostingService: ReplyPostingService, ReplyComposerContextP
         var isSubjectEditable: Bool
         var isSubcategoryEditable: Bool
         var subcategoryOptions: [ReplyComposerSubcategoryOption]
+        var canCreatePoll: Bool
     }
 
     private let session: URLSession
@@ -146,6 +151,9 @@ final class ForumReplyPostingService: ReplyPostingService, ReplyComposerContextP
         let sessionContext = try sessionContextProvider(cookieStorage)
 
         var payload = try await fetchReplyFormPayload(from: topicURL)
+        if formOverrides["have_sondage"] == "1", !payload.canCreatePoll {
+            throw ReplyPostingError.pollCreationUnavailable
+        }
         let queryParams = queryParameters(from: topicURL)
 
         if payload.params.isEmpty {
@@ -222,7 +230,8 @@ final class ForumReplyPostingService: ReplyPostingService, ReplyComposerContextP
             isSubjectEditable: payload.isSubjectEditable,
             selectedSubcategoryID: normalizedOptionalValue(payload.params["subcat"]),
             subcategoryOptions: payload.subcategoryOptions,
-            isSubcategoryEditable: payload.isSubcategoryEditable
+            isSubcategoryEditable: payload.isSubcategoryEditable,
+            canCreatePoll: payload.canCreatePoll
         )
     }
 
@@ -266,8 +275,37 @@ final class ForumReplyPostingService: ReplyPostingService, ReplyComposerContextP
             actionURL: parseFormAction(from: formHTML, baseURL: url),
             isSubjectEditable: containsEditableInput(named: "sujet", in: formHTML),
             isSubcategoryEditable: containsSelect(named: "subcat", in: formHTML),
-            subcategoryOptions: parseSubcategoryOptions(formHTML)
+            subcategoryOptions: parseSubcategoryOptions(formHTML),
+            canCreatePoll: containsInput(named: "have_sondage", in: html)
+                && containsInput(named: "textreponse0", in: html)
+                && payloadCheckboxIsUnchecked(named: "have_sondage", in: html)
         )
+    }
+
+    private func inputTag(named name: String, in html: String) -> String? {
+        guard let regex = try? NSRegularExpression(pattern: #"<input\b[^>]*>"#, options: [.caseInsensitive]) else { return nil }
+        for match in regex.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
+            guard let range = Range(match.range, in: html) else { continue }
+            let tag = String(html[range])
+            if attributeValue(in: tag, attribute: "name")?.caseInsensitiveCompare(name) == .orderedSame {
+                return tag
+            }
+        }
+        return nil
+    }
+
+    private func containsInput(named name: String, in html: String) -> Bool {
+        inputTag(named: name, in: html) != nil
+    }
+
+    private func payloadCheckboxIsUnchecked(named name: String, in html: String) -> Bool {
+        guard let tag = inputTag(named: name, in: html) else { return false }
+        return !hasBooleanAttribute("checked", in: tag)
+    }
+
+    private func hasBooleanAttribute(_ name: String, in tag: String) -> Bool {
+        tag.range(of: #"\b"# + NSRegularExpression.escapedPattern(for: name) + #"(?:\s*=|\s|/?>)"#,
+                  options: [.regularExpression, .caseInsensitive]) != nil
     }
 
     private func queryParameters(from url: URL) -> [String: String] {
@@ -324,7 +362,7 @@ final class ForumReplyPostingService: ReplyPostingService, ReplyComposerContextP
 
             let type = attributeValue(in: tag, attribute: "type")?.lowercased()
             if type == "checkbox" {
-                params[name] = attributeValue(in: tag, attribute: "checked") != nil ? "1" : "0"
+                params[name] = hasBooleanAttribute("checked", in: tag) ? "1" : "0"
                 continue
             }
             if type == "radio" {
