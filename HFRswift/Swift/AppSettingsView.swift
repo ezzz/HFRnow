@@ -92,6 +92,7 @@ struct AppSettingsView: View {
     @AppStorage(AppLayoutCompactMode.key) private var compactModeEnabled = false
     @AppStorage(AppTabBarMinimizeOnScroll.key) private var tabBarMinimizeOnScroll = true
     @AppStorage(AppTopicPageSwipeNavigation.key) private var topicPageSwipeNavigation = true
+    @AppStorage(AppOpenLinksInDefaultBrowser.key) private var openLinksInDefaultBrowser = false
     @AppStorage(AppTextSizeScale.key) private var textSizeScaleRawValue = AppTextSizeScale.standard.rawValue
     @AppStorage("haptics") private var hapticsEnabled = true
     @AppStorage(AppScreenRotation.legacyKey) private var screenRotationMode = AppScreenRotation.enabledValue
@@ -398,6 +399,14 @@ struct AppSettingsView: View {
 
             Toggle("Retours haptiques", isOn: $hapticsEnabled)
             Toggle("Rotation d’écran", isOn: screenRotationBinding)
+            Toggle(isOn: $openLinksInDefaultBrowser) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Navigateur par défaut")
+                    Text("Désactivé : navigateur intégré")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
 
             Picker("Icône", selection: $iconValue) {
                 ForEach(iconOptions) { option in

@@ -68,6 +68,16 @@
 		</dict>
 		<dict>
 			<key>DefaultValue</key>
+			<false/>
+			<key>Key</key>
+			<string>open_links_in_default_browser</string>
+			<key>Title</key>
+			<string>Ouvrir les liens dans le navigateur par défaut</string>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+		</dict>
+		<dict>
+			<key>DefaultValue</key>
 			<true/>
 			<key>Key</key>
 			<string>haptics</string>

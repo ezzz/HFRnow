@@ -496,6 +496,7 @@ struct UserProfileView: View {
     }
 
     @Environment(\.dismiss) private var dismiss
+    @AppStorage(AppOpenLinksInDefaultBrowser.key) private var openLinksInDefaultBrowser = false
     @ObservedObject private var appTheme = AppThemeStore.shared
     @State private var viewModel: UserProfileViewModel
     @State private var didLoad = false
@@ -593,7 +594,7 @@ struct UserProfileView: View {
                 UserProfileHeaderView(profile: profile, quickActions: quickActions)
 
                 ForEach(profile.sections) { section in
-                    UserProfileSectionView(section: section, openURL: openInSafari)
+                    UserProfileSectionView(section: section, openURL: openLink)
                 }
 
                 if !profile.personalSmilies.isEmpty {
@@ -601,7 +602,7 @@ struct UserProfileView: View {
                 }
 
                 if !profile.actions.isEmpty {
-                    UserProfileActionsView(actions: profile.actions, openURL: openInSafari)
+                    UserProfileActionsView(actions: profile.actions, openURL: openLink)
                 }
             }
             .padding(.horizontal, 16)
@@ -610,8 +611,12 @@ struct UserProfileView: View {
         .background(Color(.systemGroupedBackground))
     }
 
-    private func openInSafari(_ url: URL) {
-        safariDestination = SafariDestination(url: url)
+    private func openLink(_ url: URL) {
+        if openLinksInDefaultBrowser {
+            UIApplication.shared.open(url)
+        } else {
+            safariDestination = SafariDestination(url: url)
+        }
     }
 }
 

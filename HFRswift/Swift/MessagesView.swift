@@ -3061,6 +3061,7 @@ struct MessagesView: View {
     @ObservedObject private var appTheme = AppThemeStore.shared
     @AppStorage(AppTextSizeScale.key) private var textSizeScaleRawValue = AppTextSizeScale.standard.rawValue
     @AppStorage(AppTopicPageSwipeNavigation.key) private var topicPageSwipeNavigation = true
+    @AppStorage(AppOpenLinksInDefaultBrowser.key) private var openLinksInDefaultBrowser = false
     @AppStorage(AppReplyButtonBehavior.key) private var replyButtonBehavior = AppReplyButtonBehavior.defaultValue
     @AppStorage("theme_style") private var messageDisplayStyleRawValue = 1
     @State private var page: Int
@@ -3960,7 +3961,11 @@ struct MessagesView: View {
                 openInternalTopic(url)
             }
         case .openExternalURL(let url):
-            safariDestination = SafariDestination(url: url)
+            if openLinksInDefaultBrowser {
+                UIApplication.shared.open(url)
+            } else {
+                safariDestination = SafariDestination(url: url)
+            }
         }
     }
 
@@ -6546,6 +6551,7 @@ struct FullScreenPhotoViewer: View {
     @State private var showsCloseButton = false
     @State private var imageLoadState: MessageAnimatedImageLoadState = .idle
     @State private var hasVisibleImage = false
+    @State private var isSVG = false
 
     private var dismissBackgroundOpacity: Double {
         let progress = min(max(dismissDragOffset / 260, 0), 1)
@@ -6583,6 +6589,7 @@ struct FullScreenPhotoViewer: View {
                 presentationID: presentationID,
                 loadState: $imageLoadState,
                 hasVisibleImage: $hasVisibleImage,
+                isSVG: $isSVG,
                 onSingleTap: {
                     withAnimation(.easeInOut(duration: 0.18)) {
                         showsCloseButton.toggle()
@@ -6621,7 +6628,7 @@ struct FullScreenPhotoViewer: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             }
 
-            if showsCloseButton {
+            if showsCloseButton || isSVG || imageLoadState == .failure {
                 Button {
                     dismiss()
                 } label: {
@@ -6660,11 +6667,27 @@ enum PhotoViewerNetworkRequestFactory {
     }
 }
 
+enum PhotoViewerImageFormat {
+    static func isSVG(data: Data, response: URLResponse?) -> Bool {
+        if response?.mimeType?.lowercased() == "image/svg+xml" {
+            return true
+        }
+
+        let prefix = String(decoding: data.prefix(4096), as: UTF8.self)
+            .replacingOccurrences(of: "\u{FEFF}", with: "")
+        return prefix.range(
+            of: #"^\s*(?:<\?xml[^>]*>\s*)?<svg(?:\s|/|>)"#,
+            options: [.regularExpression, .caseInsensitive]
+        ) != nil
+    }
+}
+
 private struct ZoomableRemoteAnimatedImageView: UIViewRepresentable {
     let url: URL
     let presentationID: UUID
     @Binding var loadState: MessageAnimatedImageLoadState
     @Binding var hasVisibleImage: Bool
+    @Binding var isSVG: Bool
     let onSingleTap: () -> Void
     let onDismissProgress: (CGFloat) -> Void
     let onDismissRequest: () -> Void
@@ -6680,6 +6703,7 @@ private struct ZoomableRemoteAnimatedImageView: UIViewRepresentable {
             presentationID: presentationID,
             loadState: $loadState,
             hasVisibleImage: $hasVisibleImage,
+            isSVG: $isSVG,
             onSingleTap: onSingleTap,
             onDismissProgress: onDismissProgress,
             onDismissRequest: onDismissRequest
@@ -6722,6 +6746,7 @@ private struct ZoomableRemoteAnimatedImageView: UIViewRepresentable {
             presentationID: UUID,
             loadState: Binding<MessageAnimatedImageLoadState>,
             hasVisibleImage: Binding<Bool>,
+            isSVG: Binding<Bool>,
             onSingleTap: @escaping () -> Void,
             onDismissProgress: @escaping (CGFloat) -> Void,
             onDismissRequest: @escaping () -> Void
@@ -6739,6 +6764,10 @@ private struct ZoomableRemoteAnimatedImageView: UIViewRepresentable {
             configure(view)
 
             if currentPresentationID == presentationID, currentURL == url {
+                if view.isShowingSVG {
+                    scheduleState(view.hasLoadedSVG ? .success : .loading, visible: view.hasLoadedSVG)
+                    return
+                }
                 if view.scrollView.imageView.image != nil {
                     scheduleState(.success, visible: true)
                     return
@@ -6754,6 +6783,9 @@ private struct ZoomableRemoteAnimatedImageView: UIViewRepresentable {
             loadTask?.cancel()
             loadTask = nil
             view.reset(suppressCallbacks: true)
+            DispatchQueue.main.async {
+                isSVG.wrappedValue = false
+            }
 
             let cacheKey = url.absoluteString as NSString
             if let cachedImage = Self.imageCache.object(forKey: cacheKey) {
@@ -6769,6 +6801,27 @@ private struct ZoomableRemoteAnimatedImageView: UIViewRepresentable {
                 guard let self else { return }
 
                 let isValidResponse = (response as? HTTPURLResponse).map { (200..<300).contains($0.statusCode) } ?? false
+                if let data, isValidResponse, PhotoViewerImageFormat.isSVG(data: data, response: response) {
+                    DispatchQueue.main.async {
+                        guard self.currentPresentationID == presentationID, self.currentURL == url else { return }
+                        view?.display(svgData: data, onSingleTap: { [weak self] in
+                            self?.singleTapHandler?()
+                        }, onLoad: { [weak self, weak view] loaded in
+                            guard let self,
+                                  self.currentPresentationID == presentationID,
+                                  self.currentURL == url else { return }
+                            if !loaded {
+                                view?.reset(suppressCallbacks: true)
+                            }
+                            isSVG.wrappedValue = loaded
+                            hasVisibleImage.wrappedValue = loaded
+                            loadState.wrappedValue = loaded ? .success : .failure
+                        })
+                        self.loadTask = nil
+                        isSVG.wrappedValue = true
+                    }
+                    return
+                }
                 guard
                     let data,
                     isValidResponse,
@@ -6872,8 +6925,14 @@ private struct ZoomableRemoteAnimatedImageView: UIViewRepresentable {
     }
 }
 
-private final class ZoomingImageContainerView: UIView {
+private final class ZoomingImageContainerView: UIView, WKNavigationDelegate {
     let scrollView = ZoomingImageScrollView()
+    private var svgWebView: WKWebView?
+    private var svgTapHandler: (() -> Void)?
+    private var svgLoadHandler: ((Bool) -> Void)?
+
+    var isShowingSVG: Bool { svgWebView != nil }
+    private(set) var hasLoadedSVG = false
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -6897,7 +6956,73 @@ private final class ZoomingImageContainerView: UIView {
         scrollView.display(image: image, maximumZoomScale: maximumZoomScale)
     }
 
+    func display(svgData: Data, onSingleTap: @escaping () -> Void, onLoad: @escaping (Bool) -> Void) {
+        let configuration = WKWebViewConfiguration()
+        configuration.defaultWebpagePreferences.allowsContentJavaScript = false
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.navigationDelegate = self
+        webView.translatesAutoresizingMaskIntoConstraints = false
+        webView.isOpaque = false
+        webView.backgroundColor = .clear
+        webView.scrollView.backgroundColor = .clear
+        webView.scrollView.contentInsetAdjustmentBehavior = .never
+
+        svgTapHandler = onSingleTap
+        svgLoadHandler = onLoad
+        let singleTap = UITapGestureRecognizer(target: self, action: #selector(handleSVGSingleTap))
+        singleTap.cancelsTouchesInView = false
+        webView.addGestureRecognizer(singleTap)
+
+        scrollView.isHidden = true
+        addSubview(webView)
+        NSLayoutConstraint.activate([
+            webView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            webView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            webView.topAnchor.constraint(equalTo: topAnchor),
+            webView.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
+        svgWebView = webView
+
+        let imageSource = svgData.base64EncodedString()
+        let html = """
+        <html><head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=7.5, user-scalable=yes">
+        <style>html, body { margin: 0; width: 100%; height: 100%; background: black; }
+        img { display: block; width: 100%; height: 100%; object-fit: contain; }</style>
+        </head><body><img src="data:image/svg+xml;base64,\(imageSource)"></body></html>
+        """
+        webView.loadHTMLString(html, baseURL: nil)
+    }
+
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        guard webView === svgWebView else { return }
+        hasLoadedSVG = true
+        svgLoadHandler?(true)
+    }
+
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        guard webView === svgWebView else { return }
+        svgLoadHandler?(false)
+    }
+
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        guard webView === svgWebView else { return }
+        svgLoadHandler?(false)
+    }
+
+    @objc private func handleSVGSingleTap() {
+        svgTapHandler?()
+    }
+
     func reset(suppressCallbacks: Bool = false) {
+        svgWebView?.navigationDelegate = nil
+        svgWebView?.stopLoading()
+        svgWebView?.removeFromSuperview()
+        svgWebView = nil
+        svgTapHandler = nil
+        svgLoadHandler = nil
+        hasLoadedSVG = false
+        scrollView.isHidden = false
         scrollView.resetImage(suppressCallbacks: suppressCallbacks)
     }
 }

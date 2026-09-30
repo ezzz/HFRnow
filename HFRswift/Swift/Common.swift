@@ -236,6 +236,10 @@ enum AppTopicPageSwipeNavigation {
     static let key = "topic_page_swipe_navigation"
 }
 
+enum AppOpenLinksInDefaultBrowser {
+    static let key = "open_links_in_default_browser"
+}
+
 enum AppReplyButtonBehavior: String, CaseIterable, Identifiable {
     static let key = "reply_button_behavior"
     static let defaultValue = quick.rawValue

@@ -763,7 +763,16 @@ static NSString * const HFRSwiftNotificationDestinationMessages = @"messages";
 
 - (void)openURL:(NSString *)stringUrl
 {
-    SFSafariViewController *svc = [[SFSafariViewController alloc] initWithURL:[NSURL URLWithString:stringUrl]];
+    NSURL *url = [NSURL URLWithString:stringUrl];
+    if (url == nil) {
+        return;
+    }
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    if ([defaults boolForKey:@"open_links_in_default_browser"]) {
+        [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
+        return;
+    }
+    SFSafariViewController *svc = [[SFSafariViewController alloc] initWithURL:url];
     [self.rootController presentViewController:svc animated:YES completion:nil];
 }
 

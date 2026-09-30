@@ -56,4 +56,23 @@ final class TopicPageURLRoutingTests: XCTestCase {
 
         XCTAssertNil(request.value(forHTTPHeaderField: "Referer"))
     }
+
+    func testPhotoViewerRecognizesSVGWithoutFileExtension() throws {
+        let url = try XCTUnwrap(URL(string: "https://evkx.net/fr/models/audi/q6_e-tron/q6_e-tron_quattro/chargingcurve/chart/?battery=0"))
+        let response = try XCTUnwrap(HTTPURLResponse(
+            url: url,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: ["Content-Type": "image/svg+xml; charset=utf-8"]
+        ))
+
+        XCTAssertTrue(PhotoViewerImageFormat.isSVG(data: Data("<svg/>".utf8), response: response))
+    }
+
+    func testPhotoViewerRecognizesSVGWithGenericContentType() {
+        let svg = Data("<?xml version=\"1.0\"?>\n<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>".utf8)
+
+        XCTAssertTrue(PhotoViewerImageFormat.isSVG(data: svg, response: nil))
+        XCTAssertFalse(PhotoViewerImageFormat.isSVG(data: Data("<html><svg></svg></html>".utf8), response: nil))
+    }
 }
