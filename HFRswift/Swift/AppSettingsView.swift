@@ -325,7 +325,7 @@ struct AppSettingsView: View {
             .padding(.vertical, 4)
 
             VStack(alignment: .leading, spacing: 12) {
-                Text("Teinte d'accent")
+                Text("Couleur")
                 HStack(spacing: 0) {
                     ForEach(NatifAccent.all) { accent in
                         AccentSwatch(
@@ -335,6 +335,7 @@ struct AppSettingsView: View {
                         ) {
                             natifAccentIndex = accent.id
                             NatifAppearance.setAccent(accent)
+                            NatifUIKitAppearance.apply()
                         }
                         .frame(maxWidth: .infinity)
                     }
@@ -374,12 +375,14 @@ struct AppSettingsView: View {
 
             NavigationLink {
                 ProfileFilterListEditorView(kind: .blacklist)
+                    .natifPushedScreen()
             } label: {
                 Label("Liste noire", systemImage: "hand.raised")
             }
 
             NavigationLink {
                 ProfileFilterListEditorView(kind: .whitelist)
+                    .natifPushedScreen()
             } label: {
                 Label("Liste blanche", systemImage: "heart")
             }
@@ -477,6 +480,7 @@ struct AppSettingsView: View {
             maintenanceSection
             aboutSection
         }
+        .tint(natif.accent)
         .compactListSectionSpacing(compactModeEnabled, spacing: 8, regularSpacing: 14)
         .natifGroupedListBackground()
         .navigationTitle("Réglages")

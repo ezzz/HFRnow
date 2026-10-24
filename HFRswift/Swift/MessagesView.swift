@@ -4344,13 +4344,13 @@ struct MessagesView: View {
                         Image(systemName: "chevron.backward")
                             .font(.body)
                             .fontWeight(.semibold)
-                            .foregroundStyle(themePalette.actionTintColor)
+                            .foregroundStyle(.tint)
                         Text("\(navigationDepth)")
                             .font(.caption2.weight(.semibold))
                             .monospacedDigit()
                             .foregroundStyle(.white)
                             .frame(minWidth: 18, minHeight: 18)
-                            .background(themePalette.actionTintColor, in: Capsule())
+                            .background(.tint, in: Capsule())
                     }
                     .padding(.horizontal, 9)
                     .frame(height: 28, alignment: .center)
@@ -4421,7 +4421,7 @@ struct MessagesView: View {
         if let errorMessage {
             content = AnyView(
                 Text("Erreur : \(errorMessage)").foregroundColor(.red)
-                .navigationBarBackButtonHidden(navigationDepth > 0)
+                .navigationBarBackButtonHidden(true)
                 .toolbar {
                     navigationDepthBackButton
                     ToolbarItem(placement: .principal) {
@@ -4604,7 +4604,7 @@ struct MessagesView: View {
             }
             .ignoresSafeArea()
             .navigationBarTitleDisplayMode(.inline)
-            .navigationBarBackButtonHidden(navigationDepth > 0)
+            .navigationBarBackButtonHidden(true)
 
                 .simultaneousGesture(
                     DragGesture().onEnded { value in
@@ -4810,7 +4810,6 @@ struct MessagesView: View {
                             }
                         } label: {
                             Image(systemName: "ellipsis")
-                                .foregroundStyle(hasPoll ? themePalette.actionTintColor : .primary)
                         }
                     }
                     if !isComposerPresented {
@@ -4999,7 +4998,7 @@ struct MessagesView: View {
                 loadingTopicView
                 .navigationTitle(topicDisplayTitle.isEmpty ? "Chargement" : topicDisplayTitle)
                 .navigationBarTitleDisplayMode(.inline)
-            .navigationBarBackButtonHidden(navigationDepth > 0)
+            .navigationBarBackButtonHidden(true)
             .toolbar {
                 navigationDepthBackButton
                 ToolbarItem(placement: .principal) {
@@ -5053,7 +5052,6 @@ struct MessagesView: View {
                         }
                     } label: {
                         Image(systemName: "ellipsis")
-                            .foregroundStyle(hasPoll ? themePalette.actionTintColor : .primary)
                     }
                 }
                 if isFilteredSearchMode {
@@ -5189,8 +5187,10 @@ struct MessagesView: View {
             )
         }
 
+        // Depth > 0 shows its own back button (navigationDepthBackButton).
         return content
             .rootSidebarRevealButton()
+            .natifBackButton(isEnabled: navigationDepth == 0)
     }
 }
 
@@ -5766,7 +5766,8 @@ struct FullScreenPhotoViewer: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var dismissDragOffset: CGFloat = 0
-    @State private var showsCloseButton = false
+    /// Visible on open (a tap hides / shows it), so that the viewer can always be closed.
+    @State private var showsCloseButton = true
     @State private var imageLoadState: MessageAnimatedImageLoadState = .idle
     @State private var hasVisibleImage = false
 

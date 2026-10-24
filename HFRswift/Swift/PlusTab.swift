@@ -29,16 +29,19 @@ struct PlusHomeView: View {
             Section("Forum") {
                 NavigationLink {
                     ForumSearchView()
+                        .natifPushedScreen()
                 } label: {
                     PlusRow(title: "Recherche sur le forum", systemImage: "magnifyingglass")
                 }
                 NavigationLink {
                     BookmarksPlusView()
+                        .natifPushedScreen()
                 } label: {
                     PlusRow(title: "Bookmarks", systemImage: "bookmark")
                 }
                 NavigationLink {
                     AQPlusView()
+                        .natifPushedScreen()
                 } label: {
                     PlusRow(title: "Alertes Qualitay", systemImage: "megaphone", badgeCount: unreadAQCount)
                 }
@@ -48,6 +51,7 @@ struct PlusHomeView: View {
             Section("Application") {
                 NavigationLink {
                     AppSettingsView()
+                        .natifPushedScreen()
                 } label: {
                     PlusRow(title: "Réglages", systemImage: "gearshape")
                 }
@@ -57,11 +61,13 @@ struct PlusHomeView: View {
             Section("À propos") {
                 NavigationLink {
                     StaticInfoPageView(kind: .charter)
+                        .natifPushedScreen()
                 } label: {
                     PlusRow(title: "Charte du forum", systemImage: "book.closed")
                 }
                 NavigationLink {
                     StaticInfoPageView(kind: .credits)
+                        .natifPushedScreen()
                 } label: {
                     PlusRow(title: "Crédits", systemImage: "heart")
                 }
@@ -186,11 +192,17 @@ private struct PlusRow: View {
     var badgeCount = 0
     @Environment(\.natif) private var natif
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
         HStack(spacing: 12) {
-            NatifPictogram(systemImage: systemImage)
+            // Accessibility sizes: the pictogram would leave too little room and split words.
+            if !dynamicTypeSize.isAccessibilitySize {
+                NatifPictogram(systemImage: systemImage)
+            }
             Text(title)
                 .foregroundStyle(natif.text)
+                .layoutPriority(1)
             Spacer(minLength: 8)
             if badgeCount > 0 {
                 NatifRedBadge(count: badgeCount)

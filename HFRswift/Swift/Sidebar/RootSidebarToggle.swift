@@ -24,16 +24,29 @@ extension EnvironmentValues {
     }
 }
 
-private struct RootSidebarRevealButton: ViewModifier {
+private struct RootTabBarHiddenInRegularWidth: ViewModifier {
     @Environment(\.rootSidebarToggle) private var sidebar
 
     func body(content: Content) -> some View {
-        content.toolbar {
+        content.toolbar(sidebar.isAvailable ? .hidden : .automatic, for: .tabBar)
+    }
+}
+
+private struct RootSidebarRevealButton: ViewModifier {
+    @Environment(\.rootSidebarToggle) private var sidebar
+    @AppStorage(NatifAppearance.accentKey) private var accentID = 0
+
+    func body(content: Content) -> some View {
+        content
+            .rootTabBarHiddenInRegularWidth()
+            .toolbar {
             if sidebar.isAvailable {
                 ToolbarItem(placement: .topBarLeading) {
                     Button(sidebar.isVisible ? "Masquer la barre latérale" : "Afficher la barre latérale", systemImage: "sidebar.leading") {
                         sidebar.toggle()
                     }
+                    // Bar items keep the tint they were created with.
+                    .id(accentID)
                 }
             }
         }
@@ -47,9 +60,15 @@ extension View {
         modifier(RootSidebarRevealButton())
     }
 
-    /// Regular width: the tab bar is replaced by the sidebar, which covers `leadingInset` points.
+    /// Regular width: the sidebar covers `leadingInset` points of the tab content.
     func rootTabContent(usesRootSidebar: Bool, leadingInset: CGFloat) -> some View {
         padding(.leading, leadingInset)
-            .toolbar(usesRootSidebar ? .hidden : .automatic, for: .tabBar)
+    }
+
+    /// Regular width: the tab bar is replaced by the sidebar. Applied on each screen rather than on
+    /// the tab content: an outer `.automatic` there overrode the `.hidden` of pushed topic pages
+    /// on iPhone, which kept the tab bar over their bottom buttons.
+    func rootTabBarHiddenInRegularWidth() -> some View {
+        modifier(RootTabBarHiddenInRegularWidth())
     }
 }

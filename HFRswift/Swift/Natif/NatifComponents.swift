@@ -223,6 +223,10 @@ extension View {
         modifier(NatifListBackground(grouped: true))
     }
 
+    func natifListBackground(grouped: Bool) -> some View {
+        modifier(NatifListBackground(grouped: grouped))
+    }
+
     /// Plain list on the theme's main background.
     func natifPlainListBackground() -> some View {
         modifier(NatifListBackground(grouped: false))
@@ -242,6 +246,26 @@ private struct NatifListBackground: ViewModifier {
         content
             .scrollContentBackground(.hidden)
             .background((grouped ? natif.bgGrouped : natif.bg).ignoresSafeArea())
+            .toggleStyle(NatifSwitchToggleStyle())
+    }
+}
+
+/// Switches use the filled shade of the colour, like segmented controls and buttons. With the text
+/// shade, "Noir" gave white switches with a white knob in the dark themes.
+struct NatifSwitchToggleStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        NatifSwitch(configuration: configuration)
+    }
+}
+
+private struct NatifSwitch: View {
+    let configuration: ToggleStyleConfiguration
+    @Environment(\.natif) private var natif
+
+    var body: some View {
+        Toggle(configuration)
+            .toggleStyle(.switch)
+            .tint(natif.switchFill)
     }
 }
 

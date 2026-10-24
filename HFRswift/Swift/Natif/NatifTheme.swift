@@ -47,20 +47,24 @@ struct NatifAccent: Identifiable, Equatable {
     /// Dark themes: filled backgrounds (oklch L 0.56 / C 0.16).
     let darkFill: UIColor
 
-    /// Same lightness and chroma, only the hue changes. Teal and green are slightly darker than the
-    /// mockup so that white on the accent stays at 4.5:1.
+    /// "Couleur" choices, in display order. Same lightness and chroma for the hues; white on each
+    /// `light` / `darkFill` stays at 4.5:1.
     static let all: [NatifAccent] = [
+        // Black in the light theme, near white in the dark ones (filled backgrounds stay dark grey).
+        NatifAccent(id: 7, name: "Noir", light: UIColor(natifHex: 0x1D1D1F), darkText: UIColor(natifHex: 0xF0F2F4), darkFill: UIColor(natifHex: 0x636366)),
         NatifAccent(id: 0, name: "Bleu", light: UIColor(natifHex: 0x2171CC), darkText: UIColor(natifHex: 0x6AA7F4), darkFill: UIColor(natifHex: 0x2474CF)),
-        NatifAccent(id: 1, name: "Sarcelle", light: UIColor(natifHex: 0x008191), darkText: UIColor(natifHex: 0x00BBCC), darkFill: UIColor(natifHex: 0x008191)),
-        NatifAccent(id: 2, name: "Vert", light: UIColor(natifHex: 0x2B8443), darkText: UIColor(natifHex: 0x65BB76), darkFill: UIColor(natifHex: 0x2B8443)),
-        NatifAccent(id: 3, name: "Orange", light: UIColor(natifHex: 0xB25400), darkText: UIColor(natifHex: 0xE48B54), darkFill: UIColor(natifHex: 0xBA5100)),
         NatifAccent(id: 4, name: "Rouge", light: UIColor(natifHex: 0xBD423A), darkText: UIColor(natifHex: 0xEB8377), darkFill: UIColor(natifHex: 0xC0453D)),
-        NatifAccent(id: 5, name: "Magenta", light: UIColor(natifHex: 0xA3489D), darkText: UIColor(natifHex: 0xD285CB), darkFill: UIColor(natifHex: 0xA64BA0)),
+        NatifAccent(id: 3, name: "Orange", light: UIColor(natifHex: 0xB25400), darkText: UIColor(natifHex: 0xE48B54), darkFill: UIColor(natifHex: 0xBA5100)),
         NatifAccent(id: 6, name: "Violet", light: UIColor(natifHex: 0x735CC7), darkText: UIColor(natifHex: 0xA495F0), darkFill: UIColor(natifHex: 0x765FCA)),
+        NatifAccent(id: 5, name: "Rose", light: UIColor(natifHex: 0xC13F78), darkText: UIColor(natifHex: 0xEF86B2), darkFill: UIColor(natifHex: 0xC4427B)),
+        // Former choices (Sarcelle 1, Vert 2) fall back to Bleu.
     ]
 
-    static func accent(at index: Int) -> NatifAccent {
-        all.indices.contains(index) ? all[index] : all[0]
+    /// Looked up by `id` (the stored value), not by position in `all`.
+    static let blackID = 7
+
+    static func accent(at id: Int) -> NatifAccent {
+        all.first { $0.id == id } ?? all.first { $0.id == 0 } ?? all[0]
     }
 }
 
@@ -87,6 +91,15 @@ struct NatifTokens {
 
     var uiAccent: UIColor { variant.isDark ? accentChoice.darkText : accentChoice.light }
     var uiAccentFill: UIColor { variant.isDark ? accentChoice.darkFill : accentChoice.light }
+
+    /// Track of switches that are on. "Noir" in the dark themes needs a lighter grey than its fill,
+    /// or on and off tracks look the same.
+    var switchFill: Color {
+        if variant.isDark && accentChoice.id == NatifAccent.blackID {
+            return Color(natifHex: 0x8E8E93)
+        }
+        return accentFill
+    }
 
     /// Tinted background of category / Plus pictograms.
     var uiAccentSoft: UIColor {

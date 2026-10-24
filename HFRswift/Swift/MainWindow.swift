@@ -206,7 +206,10 @@ struct CategoriesListView: View {
             .navigationTitle("Catégories")
             .expandedPhoneInlineNavigationTitle()
             .navigationDestination(for: ForumRoute.self) { route in
+                // The sidebar replaces the pushed forum in place: without its own identity the
+                // view kept the previous forum's topics under the new title.
                 ForumTopicsListView(forum: route.forum, accountsStore: accountsStore)
+                    .id(route.id)
             }
             .rootSidebarRevealButton()
             .toolbar {
@@ -629,19 +632,13 @@ struct ForumTopicsListView: View {
         }
     }
 
-    private static let listTopID = "forum-topics-top"
-
     var body: some View {
-        ScrollViewReader { proxy in
-            topicsList
-                .onChange(of: viewModel.pageInfo.pageNumber) { oldValue, newValue in
-                    // A new page starts at the top (it used to keep the previous scroll offset).
-                    guard oldValue != newValue else { return }
-                    withAnimation(nil) {
-                        proxy.scrollTo(Self.listTopID, anchor: .top)
-                    }
-                }
-        }
+        topicsList
+            .background {
+                ListScrollToTopOnChange(token: viewModel.pageInfo.pageNumber)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
     }
 
     private var topicsList: some View {
@@ -678,7 +675,6 @@ struct ForumTopicsListView: View {
             .pickerStyle(.segmented)
             .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 10, trailing: 16))
             .listRowSeparator(.hidden)
-            .id(Self.listTopID)
 
             if !isLoggedIn {
                 VStack(alignment: .leading, spacing: 6) {
@@ -758,7 +754,10 @@ struct ForumTopicsListView: View {
         .listStyle(.plain)
         .natifPlainListBackground()
         .rootSidebarRevealButton()
+        .natifBackButton()
         .navigationTitle(navigationTitleText)
+        // Opened straight from the sidebar it flashed a large title over the sub-forum menu.
+        .expandedPhoneInlineNavigationTitle()
         .hfrNavigationSubtitle(navigationSubtitleText)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -919,6 +918,84 @@ struct ForumTopicsListView: View {
 }
 
 /// Natif CategoryRow: 30 pt pictogram, name, sub-forum count on the right.
+/// A new page of a topic list starts at the very top. `ScrollViewReader` put the first row under
+/// the navigation bar, which then hid the title and its buttons, and `ScrollPosition` has no effect
+/// on a `List`: the list's scroll view is reset to its top content inset instead.
+/// Tab bar item in the chosen colour. The iOS 26 tab bar draws unselected items in black and
+/// ignores UITabBar appearance colours, so the symbol is rendered with its colour baked in.
+private struct RootTabLabel: View {
+    let title: String
+    let systemImage: String
+    let color: UIColor
+
+    var body: some View {
+        Label {
+            Text(title)
+        } icon: {
+            if let image = UIImage(systemName: systemImage)?.withTintColor(color, renderingMode: .alwaysOriginal) {
+                Image(uiImage: image)
+            } else {
+                Image(systemName: systemImage)
+            }
+        }
+    }
+}
+
+private struct ListScrollToTopOnChange: UIViewRepresentable {
+    let token: Int
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        view.isUserInteractionEnabled = false
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+        guard context.coordinator.lastToken != token else { return }
+        let isFirstUpdate = context.coordinator.lastToken == nil
+        context.coordinator.lastToken = token
+        guard !isFirstUpdate else { return }
+        Task { @MainActor in
+            guard let scrollView = Self.listScrollView(near: uiView) else { return }
+            // Animated, like a status bar tap: the navigation bar expands again with the title.
+            scrollView.setContentOffset(
+                CGPoint(x: scrollView.contentOffset.x, y: -scrollView.adjustedContentInset.top),
+                animated: true
+            )
+        }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    final class Coordinator {
+        var lastToken: Int?
+    }
+
+    /// The `List` is a sibling of this background view: search the closest ancestors' subtrees.
+    private static func listScrollView(near view: UIView) -> UIScrollView? {
+        var ancestor = view.superview
+        while let current = ancestor {
+            if let found = firstScrollView(in: current, excluding: view) {
+                return found
+            }
+            ancestor = current.superview
+        }
+        return nil
+    }
+
+    private static func firstScrollView(in view: UIView, excluding excluded: UIView) -> UIScrollView? {
+        for subview in view.subviews where subview !== excluded {
+            if let scrollView = subview as? UICollectionView ?? subview as? UITableView {
+                return scrollView
+            }
+            if let found = firstScrollView(in: subview, excluding: excluded) {
+                return found
+            }
+        }
+        return nil
+    }
+}
+
 private struct CategoryRow: View {
     let forum: Forum
     @Environment(\.natif) private var natif
@@ -927,16 +1004,23 @@ private struct CategoryRow: View {
         (forum.subCats as? [Forum])?.count ?? 0
     }
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
         HStack(spacing: 12) {
-            NatifPictogram(systemImage: NatifForumCatalog.systemImage(for: forum.aTitle))
+            // Accessibility sizes: the pictogram would leave too little room and split words.
+            if !dynamicTypeSize.isAccessibilitySize {
+                NatifPictogram(systemImage: NatifForumCatalog.systemImage(for: forum.aTitle))
+            }
             Text(forum.aTitle ?? "Forum")
                 .font(.body)
                 .foregroundStyle(natif.text)
+                .layoutPriority(1)
             Spacer(minLength: 8)
             if subForumCount > 0 {
                 Text(subForumCount, format: .number)
                     .font(.body.monospacedDigit())
+                    .fixedSize()
                     .foregroundStyle(natif.text2)
                     .accessibilityLabel("\(subForumCount) sous-forums")
             }
@@ -1001,6 +1085,9 @@ private struct ForumTopicsPaginationBar: View {
                 .disabled(pageInfo.nextPageURL == nil || (pageInfo.isLastPageNumberExact && pageNumber >= lastPageNumber))
         }
         .font(.headline)
+        // In a List row, plain buttons take the text colour instead of the chosen colour.
+        .buttonStyle(.borderless)
+        .tint(natif.accent)
         .padding(.horizontal, 6)
         .hfrGlassSurface(in: Capsule())
         .contextMenu {
@@ -1382,17 +1469,21 @@ struct RootTabView: View {
     @available(iOS 18.0, *)
     private var sidebarAwareTabs: some View {
         TabView(selection: tabSelection) {
-            Tab("Catégories", systemImage: "square.grid.2x2.fill", value: RootSelection.tab(.categories)) {
+            Tab(value: RootSelection.tab(.categories)) {
                 CategoriesListView(viewModel: categoriesViewModel, accountsStore: accountsStore, path: $categoriesPath)
                     .rootTabContent(usesRootSidebar: usesRootSidebar, leadingInset: showsRootSidebar ? Self.rootSidebarWidth : 0)
+            } label: {
+                RootTabLabel(title: "Catégories", systemImage: "square.grid.2x2.fill", color: natifTokens.uiAccent)
             }
 
-            Tab("Favoris", systemImage: "flag.fill", value: RootSelection.tab(.favorites)) {
+            Tab(value: RootSelection.tab(.favorites)) {
                 FavoritesListView(viewModel: favoritesViewModel, accountsStore: accountsStore)
                     .rootTabContent(usesRootSidebar: usesRootSidebar, leadingInset: showsRootSidebar ? Self.rootSidebarWidth : 0)
+            } label: {
+                RootTabLabel(title: "Favoris", systemImage: "flag.fill", color: natifTokens.uiAccent)
             }
 
-            Tab("Messages", systemImage: "envelope.fill", value: RootSelection.tab(.messages)) {
+            Tab(value: RootSelection.tab(.messages)) {
                 MPListView(
                     viewModel: messagesViewModel,
                     accountsStore: accountsStore,
@@ -1401,24 +1492,30 @@ struct RootTabView: View {
                     path: $messagesPath
                 )
                 .rootTabContent(usesRootSidebar: usesRootSidebar, leadingInset: showsRootSidebar ? Self.rootSidebarWidth : 0)
+            } label: {
+                RootTabLabel(title: "Messages", systemImage: "envelope.fill", color: natifTokens.uiAccent)
             }
             .badge(mpBadgeEnabled && unreadMPCount > 0 ? unreadMPCount : 0)
 
-            Tab("Plus", systemImage: "ellipsis", value: RootSelection.tab(.more)) {
+            Tab(value: RootSelection.tab(.more)) {
                 NavigationStack {
                     PlusHomeView(accountsStore: accountsStore)
                 }
                 .rootTabContent(usesRootSidebar: usesRootSidebar, leadingInset: showsRootSidebar ? Self.rootSidebarWidth : 0)
+            } label: {
+                RootTabLabel(title: "Plus", systemImage: "ellipsis", color: natifTokens.uiAccent)
             }
             .badge(unreadAQCount > 0 ? unreadAQCount : 0)
 
-            Tab("Rechercher", systemImage: "magnifyingglass", value: RootSelection.search) {
+            Tab(value: RootSelection.search) {
                 NavigationStack {
                     ForumSearchView()
                         .expandedPhoneInlineNavigationTitle()
                         .rootSidebarRevealButton()
                 }
                 .rootTabContent(usesRootSidebar: usesRootSidebar, leadingInset: showsRootSidebar ? Self.rootSidebarWidth : 0)
+            } label: {
+                RootTabLabel(title: "Rechercher", systemImage: "magnifyingglass", color: natifTokens.uiAccent)
             }
             .hidden(!usesRootSidebar)
         }

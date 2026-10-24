@@ -337,7 +337,8 @@ struct MPListView: View {
                 }
             }
             .listStyle(.plain)
-            .natifPlainListBackground()
+            // Logged out: same grey background as the Favoris empty state.
+            .natifListBackground(grouped: !isLoggedIn)
             .navigationTitle("Messages")
             .expandedPhoneInlineNavigationTitle()
             .onAppear {
@@ -376,6 +377,7 @@ struct MPListView: View {
                     maxPage: route.item.maxPage,
                     separatorNewMessages: true
                 )
+                .id(route.item.id)
             }
             .rootSidebarRevealButton()
             .toolbar {

@@ -2849,7 +2849,6 @@ private struct TopicRowSwipeActions: ViewModifier {
     let onMarkRead: (() -> Void)?
     let onRemove: (() -> Void)?
     let isRemoveDisabled: Bool
-    let onFirstPage: () -> Void
     let onLastPage: () -> Void
     @Environment(\.natif) private var natif
 
@@ -2863,10 +2862,8 @@ private struct TopicRowSwipeActions: ViewModifier {
                             onMarkRead()
                         }
                         .tint(natif.accentFill)
-                    } else if showsPageActions {
-                        Button("Première page", systemImage: "backward.end", action: onFirstPage)
-                            .tint(natif.accentFill)
                     }
+                    // No "Première page" here: a leading action steals the edge swipe back.
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     if let onRemove {
@@ -2910,9 +2907,9 @@ struct TopicListRowView: View {
     var openContext: TopicOpenContext = .generic
     var quickActions: TopicQuickActionsConfiguration?
     var extraContextMenu: (() -> AnyView)?
-    /// Swipe actions of the forum topic lists: "Lu" / "Retirer" for flagged topics, and first /
-    /// last page for every topic, so that a horizontal swipe never falls through to the row
-    /// button (it opened the topic when the row had no action).
+    /// Swipe actions of the forum topic lists: "Lu" / "Retirer" for flagged topics, and "Dernière
+    /// page" for every topic, so that a swipe to the left never falls through to the row button
+    /// (it opened the topic when the row had no action).
     var showsPageSwipeActions = false
     var onSwipeMarkRead: (() -> Void)?
     var onSwipeRemove: (() -> Void)?
@@ -3287,7 +3284,6 @@ struct TopicListRowView: View {
             onMarkRead: onSwipeMarkRead,
             onRemove: onSwipeRemove,
             isRemoveDisabled: isSwipeRemoveDisabled,
-            onFirstPage: openFirstPageAction,
             onLastPage: openLastPageAction
         ))
         .background {

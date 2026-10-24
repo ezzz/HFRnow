@@ -18,5 +18,23 @@ import UIKit
         let appearance = UISegmentedControl.appearance()
         appearance.selectedSegmentTintColor = fill
         appearance.setTitleTextAttributes([.foregroundColor: UIColor.white], for: .selected)
+
+        // The appearance proxy only reaches controls created afterwards: update the visible ones.
+        for scene in UIApplication.shared.connectedScenes {
+            guard let windowScene = scene as? UIWindowScene else { continue }
+            for window in windowScene.windows {
+                updateSegmentedControls(in: window, fill: fill)
+            }
+        }
+    }
+
+    private static func updateSegmentedControls(in view: UIView, fill: UIColor) {
+        if let control = view as? UISegmentedControl {
+            control.selectedSegmentTintColor = fill
+            control.setTitleTextAttributes([.foregroundColor: UIColor.white], for: .selected)
+        }
+        for subview in view.subviews {
+            updateSegmentedControls(in: subview, fill: fill)
+        }
     }
 }

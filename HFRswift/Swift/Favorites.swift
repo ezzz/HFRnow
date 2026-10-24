@@ -773,7 +773,6 @@ struct FavoritesListView: View {
                             showCollapsedSections.toggle()
                         } label: {
                             Image(systemName: showCollapsedSections ? "list.bullet.circle.fill" : "list.bullet.circle")
-                                .foregroundStyle(.primary)
                         }
                         .disabled(!usesCategorizedFavoritesList)
                         .contextMenu {

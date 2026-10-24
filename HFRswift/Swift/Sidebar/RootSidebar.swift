@@ -145,6 +145,7 @@ private struct RootSidebarRow: View {
     /// Indentation: 1 for private messages and forum families, 2 for forums.
     var level = 0
     let action: () -> Void
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.natif) private var natif
 
     static let indentWidth: CGFloat = 14
@@ -172,7 +173,8 @@ private struct RootSidebarRow: View {
                 Text(title)
                     .fontWeight(isEmphasized ? .semibold : .regular)
                     .foregroundStyle(natif.text)
-                    .lineLimit(1)
+                    // Accessibility sizes: two lines rather than "Ordinateur…".
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
                 Spacer(minLength: 4)
                 if badge > 0 {
                     NatifRedBadge(count: badge)

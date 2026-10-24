@@ -45,7 +45,6 @@ struct MainToolbarContent<MenuItems: View>: ToolbarContent {
                 onRefresh()
             } label: {
                 ToolbarRefreshIcon(isLoading: isLoading)
-                    .foregroundStyle(.primary)
             }
             .disabled(isLoading)
         }
