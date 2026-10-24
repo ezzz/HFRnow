@@ -544,10 +544,10 @@ struct UserProfileView: View {
                     Button {
                         Task { await viewModel.load() }
                     } label: {
-                        if viewModel.isLoading {
-                            ProgressView()
-                        } else {
-                            Label("Actualiser", systemImage: "arrow.clockwise")
+                        Label {
+                            Text("Actualiser")
+                        } icon: {
+                            ToolbarRefreshIcon(isLoading: viewModel.isLoading)
                         }
                     }
                     .disabled(viewModel.isLoading)

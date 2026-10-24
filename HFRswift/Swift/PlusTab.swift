@@ -64,6 +64,7 @@ struct PlusHomeView: View {
             }
         }
         .navigationTitle("Plus")
+        .expandedPhoneInlineNavigationTitle()
         .sheet(isPresented: $showDeleteAccountComposer) {
             DeleteAccountMailComposeView()
         }

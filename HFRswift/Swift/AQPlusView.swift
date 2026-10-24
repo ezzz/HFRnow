@@ -413,14 +413,17 @@ struct AQPlusView: View {
         .navigationTitle("Alertes Qualitay")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                if viewModel.isLoading {
-                    ProgressView()
-                } else {
-                    Button("Actualiser", systemImage: "arrow.clockwise") {
-                        AppHaptics.refreshStarted()
-                        viewModel.refresh(shouldTriggerHaptic: true)
+                Button {
+                    AppHaptics.refreshStarted()
+                    viewModel.refresh(shouldTriggerHaptic: true)
+                } label: {
+                    Label {
+                        Text("Actualiser")
+                    } icon: {
+                        ToolbarRefreshIcon(isLoading: viewModel.isLoading)
                     }
                 }
+                .disabled(viewModel.isLoading)
             }
         }
         .onAppear {

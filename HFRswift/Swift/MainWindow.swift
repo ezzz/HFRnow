@@ -175,7 +175,8 @@ struct CategoriesListView: View {
                     }
                 }
             }
-            .navigationTitle("Categories")
+            .navigationTitle("Catégories")
+            .expandedPhoneInlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Menu {
@@ -189,11 +190,7 @@ struct CategoriesListView: View {
                         AppHaptics.refreshStarted()
                         viewModel.load(shouldTriggerHaptic: true)
                     } label: {
-                        if viewModel.isLoading {
-                            ProgressView().controlSize(.small)
-                        } else {
-                            Image(systemName: "arrow.clockwise")
-                        }
+                        ToolbarRefreshIcon(isLoading: viewModel.isLoading)
                     }
                     .disabled(viewModel.isLoading)
                 }
@@ -758,11 +755,7 @@ struct ForumTopicsListView: View {
                     AppHaptics.refreshStarted()
                     viewModel.load(shouldTriggerHaptic: true)
                 } label: {
-                    if viewModel.isLoading {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Image(systemName: "arrow.clockwise")
-                    }
+                    ToolbarRefreshIcon(isLoading: viewModel.isLoading)
                 }
                 .disabled(viewModel.isLoading)
             }
@@ -1129,6 +1122,9 @@ struct RootTabView: View {
     @AppStorage("mp_badge_enabled") private var mpBadgeEnabled = true
     @AppStorage(AppTabBarMinimizeOnScroll.key) private var tabBarMinimizeOnScroll = true
 
+    /// iPad only. On iPhone (iPhone Duo inner display included) the root stays a single adaptable
+    /// `TabView`: swapping roots on a size class change would rebuild the hierarchy and lose the
+    /// open topic every time the device is folded or unfolded.
     private var usesSidebarRoot: Bool {
         UIDevice.current.userInterfaceIdiom == .pad && horizontalSizeClass == .regular
     }
@@ -1192,12 +1188,28 @@ struct RootTabView: View {
         }
     }
 
-    private func handleUIKitTabSelection(_ selectedIndex: Int) {
-        guard let tab = RootTabIdentifier(rawValue: selectedIndex) else { return }
-        if selectedTab != tab {
-            selectedTab = tab
+    /// Selection stays owned by SwiftUI. Tapping the already selected tab goes through the setter
+    /// with the same value, which is used for "scroll to top / refresh". Reading UIKit's
+    /// `selectedIndex` instead resynced a stale tab in sidebar mode (iPhone Duo inner display).
+    private var tabSelection: Binding<RootTabIdentifier> {
+        Binding {
+            selectedTab
+        } set: { newValue in
+            if newValue == selectedTab {
+                handleTabReselection(newValue)
+            } else {
+                selectedTab = newValue
+            }
         }
-        syncRuntimeSelectedTab(tab)
+    }
+
+    private func handleTabReselection(_ tab: RootTabIdentifier) {
+        guard tab == .categories || tab == .favorites || tab == .messages else { return }
+        NotificationCenter.default.post(
+            name: .rootTabReselected,
+            object: nil,
+            userInfo: ["tab": tab.rawValue]
+        )
     }
 
     private func showMessagesList(forceRefresh: Bool) {
@@ -1244,7 +1256,6 @@ struct RootTabView: View {
             .onChange(of: mpBadgeEnabled) { _, _ in
                 Task { await syncAppIconBadge() }
             }
-            .background(tabBarReselectionObserver)
             .onReceive(NotificationCenter.default.publisher(for: MessagesNotificationNavigation.openMessagesNotification)) { _ in
                 handlePendingMessagesNotificationNavigationIfNeeded()
             }
@@ -1261,12 +1272,12 @@ struct RootTabView: View {
 
     private var compactTabRoot: some View {
         rootTabs
+            .hfrSidebarAdaptableTabs()
             .hfrTabBarMinimizeBehavior(tabBarMinimizeOnScroll: tabBarMinimizeOnScroll)
-            .background(tabBarReselectionObserver)
     }
 
     private var rootTabs: some View {
-        TabView(selection: $selectedTab) {
+        TabView(selection: tabSelection) {
             CategoriesListView(accountsStore: accountsStore)
                 .tabItem { Label("Catégories", systemImage: "folder.fill") }
                 .tag(RootTabIdentifier.categories)
@@ -1396,25 +1407,6 @@ struct RootTabView: View {
         }
     }
 
-    private var tabBarReselectionObserver: some View {
-        TabBarReselectionObserver(
-            onSelect: handleUIKitTabSelection
-        ) { selectedIndex in
-            guard
-                let tab = RootTabIdentifier(rawValue: selectedIndex),
-                tab == .categories || tab == .favorites || tab == .messages
-            else {
-                return
-            }
-            NotificationCenter.default.post(
-                name: .rootTabReselected,
-                object: nil,
-                userInfo: ["tab": tab.rawValue]
-            )
-        }
-        .frame(width: 0, height: 0)
-    }
-
     private func handleAppear() {
         appTheme.refresh(systemColorScheme: systemColorScheme, forceThemeRevision: true, notifyLegacy: true)
         syncRuntimeSelectedTab(selectedTab)
@@ -1451,104 +1443,23 @@ struct RootTabView: View {
     }
 }
 
-private struct TabBarReselectionObserver: UIViewControllerRepresentable {
-    let onSelect: (Int) -> Void
-    let onReselect: (Int) -> Void
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(onSelect: onSelect, onReselect: onReselect)
-    }
-
-    func makeUIViewController(context: Context) -> ObserverViewController {
-        let observer = ObserverViewController()
-        observer.onHierarchyUpdate = { host in
-            context.coordinator.attach(from: host)
-        }
-        return observer
-    }
-
-    func updateUIViewController(_ uiViewController: ObserverViewController, context: Context) {
-        uiViewController.onHierarchyUpdate = { host in
-            context.coordinator.attach(from: host)
-        }
-        context.coordinator.attach(from: uiViewController)
-    }
-
-    final class Coordinator: NSObject, UITabBarControllerDelegate {
-        private let onSelect: (Int) -> Void
-        private let onReselect: (Int) -> Void
-        private weak var tabBarController: UITabBarController?
-
-        init(onSelect: @escaping (Int) -> Void, onReselect: @escaping (Int) -> Void) {
-            self.onSelect = onSelect
-            self.onReselect = onReselect
-        }
-
-        func attach(from host: UIViewController?) {
-            if let tabBarController = host?.tabBarController ?? findTabBarController(in: host) {
-                bind(to: tabBarController)
-                return
-            }
-            if
-                let root = host?.view.window?.rootViewController ?? Self.keyWindowRootViewController(),
-                let tabBarController = findTabBarController(in: root)
-            {
-                bind(to: tabBarController)
-            }
-        }
-
-        private func bind(to tabBarController: UITabBarController) {
-            guard self.tabBarController !== tabBarController else { return }
-            self.tabBarController = tabBarController
-            tabBarController.delegate = self
-            onSelect(tabBarController.selectedIndex)
-        }
-
-        func tabBarController(_ tabBarController: UITabBarController, didSelect viewController: UIViewController) {
-            guard
-                let viewControllers = tabBarController.viewControllers,
-                let selectedIndex = viewControllers.firstIndex(where: { $0 === viewController })
-            else {
-                return
-            }
-            onSelect(selectedIndex)
-        }
-
-        func tabBarController(_ tabBarController: UITabBarController, shouldSelect viewController: UIViewController) -> Bool {
-            if
-                let viewControllers = tabBarController.viewControllers,
-                let tappedIndex = viewControllers.firstIndex(where: { $0 === viewController }),
-                tappedIndex == tabBarController.selectedIndex
-            {
-                onReselect(tappedIndex)
-            }
-            return true
-        }
-
-        private func findTabBarController(in root: UIViewController?) -> UITabBarController? {
-            guard let root else { return nil }
-            if let tabBarController = root as? UITabBarController {
-                return tabBarController
-            }
-            for child in root.children {
-                if let tabBarController = findTabBarController(in: child) {
-                    return tabBarController
-                }
-            }
-            return root.presentedViewController.flatMap { findTabBarController(in: $0) }
-        }
-
-        private static func keyWindowRootViewController() -> UIViewController? {
-            UIApplication.shared.connectedScenes
-                .compactMap { $0 as? UIWindowScene }
-                .flatMap(\.windows)
-                .first(where: { $0.isKeyWindow })?
-                .rootViewController
-        }
-    }
-}
-
 private extension View {
+    /// Tab bar in compact width, sidebar when there is room for one (iPhone Duo inner display).
+    @ViewBuilder
+    func hfrSidebarAdaptableTabs() -> some View {
+        if #available(iOS 27.0, *) {
+            self
+                .tabViewStyle(.sidebarAdaptable)
+                .defaultTabBarPlacement(.sidebar)
+        } else if #available(iOS 18.0, *) {
+            self
+                .tabViewStyle(.sidebarAdaptable)
+                .defaultAdaptableTabBarPlacement(.sidebar)
+        } else {
+            self
+        }
+    }
+
     @ViewBuilder
     func hfrTabBarMinimizeBehavior(tabBarMinimizeOnScroll: Bool) -> some View {
         if #available(iOS 26.0, *) {
@@ -1556,20 +1467,6 @@ private extension View {
         } else {
             self
         }
-    }
-}
-
-private final class ObserverViewController: UIViewController {
-    var onHierarchyUpdate: ((UIViewController) -> Void)?
-
-    override func didMove(toParent parent: UIViewController?) {
-        super.didMove(toParent: parent)
-        onHierarchyUpdate?(self)
-    }
-
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        onHierarchyUpdate?(self)
     }
 }
 
