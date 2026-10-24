@@ -1,0 +1,207 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: Inter; src: url(inter.woff2) format('woff2'); font-weight: 100 900; }
+  :root { --orange: #ff6a13; --navy: #0b1b3d; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: var(--W); height: var(--H); overflow: hidden; }
+  body {
+    font-family: Inter, sans-serif;
+    background:
+      radial-gradient(1200px 700px at 78% 45%, rgba(255,106,19,.22), transparent 60%),
+      radial-gradient(900px 600px at 15% 20%, rgba(70,120,255,.18), transparent 60%),
+      linear-gradient(160deg, #0d1f47 0%, #081430 55%, #050c1f 100%);
+    position: relative;
+  }
+  .grid { position: absolute; inset: 0;
+    background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+    background-size: 40px 40px; mask-image: radial-gradient(closest-side at 40% 50%, #000, transparent); }
+  canvas { position: absolute; left: 0; top: 0; }
+
+  .title { position: absolute; color: #fff; }
+  .title h1 { font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+  .title h1 span { color: var(--orange); }
+  .title p { color: rgba(255,255,255,.72); font-weight: 500; margin-top: .45em; }
+  .chips { display: flex; gap: 8px; margin-top: 16px; }
+  .chip { font-size: 13px; font-weight: 600; color: #fff; padding: 6px 11px; border-radius: 999px;
+          background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); }
+
+  /* iPhone: titanium frame, no buttons */
+  .phone { position: absolute; width: 430px; height: 884px; transform-origin: 0 0;
+    border-radius: 72px; padding: 14px;
+    background: linear-gradient(145deg, #5b5f66, #2a2d32 30%, #1a1c20 60%, #4a4e55);
+    box-shadow: 0 0 0 2px #0d0e10 inset, 0 40px 90px rgba(0,0,0,.55), 0 0 120px rgba(255,106,19,.25); }
+  .screen { width: 402px; height: 856px; border-radius: 58px; overflow: hidden; position: relative;
+    background: #f2f2f7; }
+  .island { position: absolute; top: 11px; left: 50%; transform: translateX(-50%); width: 124px; height: 36px;
+    border-radius: 20px; background: #000; z-index: 5; }
+  .status { height: 54px; display: flex; justify-content: space-between; align-items: center; padding: 6px 34px 0 42px;
+    font-weight: 600; font-size: 17px; color: #000; }
+  .status .r { display: flex; gap: 6px; align-items: center; }
+  .nav { padding: 6px 20px 0; }
+  .nav .sub { font-size: 13px; font-weight: 600; color: var(--orange); text-transform: uppercase; letter-spacing: .06em; }
+  .nav h2 { font-size: 34px; font-weight: 800; letter-spacing: -0.02em; color: #000; margin-top: 2px; }
+  .search { margin: 10px 16px 14px; height: 38px; border-radius: 11px; background: rgba(118,118,128,.14);
+    display: flex; align-items: center; gap: 7px; padding: 0 10px; color: #8a8a8e; font-size: 16px; }
+  .section { margin: 0 16px; font-size: 13px; color: #6d6d72; text-transform: uppercase; padding: 0 4px 6px; letter-spacing: .02em; }
+  .list { margin: 0 16px; background: #fff; border-radius: 14px; overflow: hidden; }
+  .row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; position: relative; }
+  .row + .row::before { content: ""; position: absolute; top: 0; left: 62px; right: 0; height: 1px; background: #e5e5ea; }
+  .ic { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; flex: none; }
+  .ic svg { width: 20px; height: 20px; }
+  .txt { flex: 1; min-width: 0; }
+  .txt b { display: block; font-size: 16px; font-weight: 600; color: #000; }
+  .txt small { display: block; font-size: 13px; color: #8a8a8e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .meta { text-align: right; flex: none; }
+  .meta time { display: block; font-size: 12px; color: #8a8a8e; }
+  .pill { display: inline-block; margin-top: 4px; min-width: 24px; padding: 1px 7px; border-radius: 999px; background: var(--orange);
+    color: #fff; font-size: 12px; font-weight: 700; text-align: center; }
+  .chev { color: #c7c7cc; font-size: 18px; margin-left: 2px; }
+  .tabbar { position: absolute; left: 0; right: 0; bottom: 0; height: 86px; padding-top: 8px;
+    background: rgba(249,249,251,.86); backdrop-filter: blur(20px); border-top: 1px solid rgba(0,0,0,.08);
+    display: flex; justify-content: space-around; }
+  .tab { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; font-weight: 600; color: #8a8a8e; }
+  .tab.on { color: var(--orange); }
+  .tab svg { width: 26px; height: 26px; }
+  .home { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 140px; height: 5px; border-radius: 3px; background: #000; }
+</style>
+</head>
+<body>
+<div class="grid"></div>
+<canvas id="c"></canvas>
+
+<div class="title" id="title">
+  <h1>Swift<span>HFR</span></h1>
+  <p id="tagline">The HFR forum, rebuilt native in Swift &amp; SwiftUI</p>
+  <div class="chips"><span class="chip">iOS 27</span><span class="chip">Swift 6.2</span><span class="chip">SwiftUI</span><span class="chip">Open community</span></div>
+</div>
+
+<div class="phone" id="phone">
+  <div class="screen">
+    <div class="island"></div>
+    <div class="status"><span>9:41</span>
+      <span class="r">
+        <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+        <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 11.5 5.6 9a3.4 3.4 0 0 1 4.8 0zM3.4 6.8a6.6 6.6 0 0 1 9.2 0l-1.4 1.4a4.6 4.6 0 0 0-6.4 0zM1.1 4.5a9.8 9.8 0 0 1 13.8 0l-1.4 1.4a7.8 7.8 0 0 0-11 0z"/></svg>
+        <svg width="27" height="13" viewBox="0 0 27 13"><rect x=".5" y=".5" width="23" height="12" rx="3.5" fill="none" stroke="#000" opacity=".4"/><rect x="2" y="2" width="18" height="9" rx="2"/><rect x="24.5" y="4.5" width="2" height="4" rx="1" opacity=".4"/></svg>
+      </span>
+    </div>
+    <div class="nav"><div class="sub">HardWare.fr</div><h2>Forums</h2></div>
+    <div class="search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#8a8a8e" stroke-width="2"><circle cx="7" cy="7" r="5"/><path d="m11 11 3.5 3.5"/></svg>Rechercher</div>
+    <div class="section">Catégories</div>
+    <div class="list" id="list"></div>
+    <div class="tabbar">
+      <div class="tab on"><svg viewBox="0 0 26 26" fill="currentColor"><rect x="3" y="4" width="20" height="4" rx="2"/><rect x="3" y="11" width="20" height="4" rx="2"/><rect x="3" y="18" width="20" height="4" rx="2"/></svg>Forums</div>
+      <div class="tab"><svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="m13 3 3 6.3 6.9.9-5 4.8 1.2 6.8L13 18.6l-6.1 3.2 1.2-6.8-5-4.8 6.9-.9z"/></svg>Favoris</div>
+      <div class="tab"><svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="20" height="14" rx="3"/><path d="m4 8 9 6 9-6"/></svg>Messages</div>
+      <div class="tab"><svg viewBox="0 0 26 26" fill="currentColor"><circle cx="6" cy="13" r="2.2"/><circle cx="13" cy="13" r="2.2"/><circle cx="20" cy="13" r="2.2"/></svg>Plus</div>
+    </div>
+    <div class="home"></div>
+  </div>
+</div>
+
+<script>
+const P = new URLSearchParams(location.search);
+const W = +P.get('w') || 1280, H = +P.get('h') || 640, mode = P.get('mode') || 'social';
+document.documentElement.style.setProperty('--W', W + 'px');
+document.documentElement.style.setProperty('--H', H + 'px');
+
+const glyph = {
+  chip: '<rect x="5" y="5" width="10" height="10" rx="1.5" fill="none" stroke="#fff" stroke-width="1.8"/><path d="M8 2v3M12 2v3M8 15v3M12 15v3M2 8h3M2 12h3M15 8h3M15 12h3" stroke="#fff" stroke-width="1.6"/>',
+  kb: '<rect x="1.5" y="5" width="17" height="10" rx="2" fill="none" stroke="#fff" stroke-width="1.8"/><path d="M5 12h10M5 8.5h1M8.5 8.5h1M12 8.5h1M15 8.5h0" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>',
+  laptop: '<rect x="4" y="4" width="12" height="9" rx="1.5" fill="none" stroke="#fff" stroke-width="1.8"/><path d="M1.5 16h17" stroke="#fff" stroke-width="2" stroke-linecap="round"/>',
+  fan: '<circle cx="10" cy="10" r="2" fill="#fff"/><path d="M10 8C9 4 11 2 13 3s1 4-1 5.5M12 10c4-1 6 1 5 3s-4 1-5.5-1M10 12c1 4-1 6-3 5s-1-4 1-5.5M8 10c-4 1-6-1-5-3s4-1 5.5 1" fill="none" stroke="#fff" stroke-width="1.6"/>',
+  phone: '<rect x="6" y="2" width="8" height="16" rx="2" fill="none" stroke="#fff" stroke-width="1.8"/><path d="M9 15h2" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>',
+  photo: '<rect x="2" y="5" width="16" height="11" rx="2" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="10" cy="10.5" r="3" fill="none" stroke="#fff" stroke-width="1.8"/><path d="M7 5l1.2-2h3.6L13 5" fill="none" stroke="#fff" stroke-width="1.6"/>',
+  game: '<path d="M5 6h10a4 4 0 0 1 3.8 5.3l-1 3a2 2 0 0 1-3.4.6L13 13H7l-1.4 1.9a2 2 0 0 1-3.4-.6l-1-3A4 4 0 0 1 5 6z" fill="none" stroke="#fff" stroke-width="1.7"/><path d="M6 8.5v3M4.5 10h3" stroke="#fff" stroke-width="1.6"/><circle cx="13.5" cy="9.5" r="1" fill="#fff"/><circle cx="15.5" cy="11" r="1" fill="#fff"/>',
+  code: '<path d="m7 6-4 4 4 4M13 6l4 4-4 4" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>',
+  cart: '<path d="M2 3h2.5l2 9h9l1.8-6.5H6" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/><circle cx="8" cy="15.5" r="1.4" fill="#fff"/><circle cx="14.5" cy="15.5" r="1.4" fill="#fff"/>',
+  chat: '<path d="M3 4h14a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H9l-4 3v-3H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/>',
+};
+const cats = [
+  ['Hardware', 'Carte mère · Processeur · Carte graphique', 'chip', '#ff6a13', '20:53', 12],
+  ['Hardware – Périphériques', 'Écran · Clavier / Souris · Onduleur', 'kb', '#5e5ce6', '22 oct.', 0],
+  ['Ordinateurs portables', 'Portable · Ultraportable · Conseils d’achat', 'laptop', '#0a84ff', '20:14', 3],
+  ['Overclocking, Cooling & Modding', 'CPU · GPU · Water & Xtreme Cooling', 'fan', '#30b0c7', '20:45', 5],
+  ['Technologies Mobiles', 'Android · Tablette · Opérateur', 'phone', '#34c759', '20:55', 8],
+  ['Photo numérique', 'Appareil · Objectif · Retouche', 'photo', '#ff9f0a', '20:32', 2],
+  ['Jeux Vidéo', 'PC · Consoles · Teams & LAN', 'game', '#ff375f', '20:54', 27],
+  ['Programmation', 'Swift · C++ · Java · SQL', 'code', '#bf5af2', '19:59', 1],
+  ['Achats & Ventes', 'Hardware · Photo · Téléphonie', 'cart', '#64d2ff', '20:50', 9],
+  ['Discussions', 'Actualité · Cinéma · Sciences · Sports', 'chat', '#8e8e93', '20:58', 41],
+];
+document.getElementById('list').innerHTML = cats.map(([t, s, g, c, time, n]) => `
+  <div class="row"><div class="ic" style="background:linear-gradient(160deg,${c},${c}cc)"><svg viewBox="0 0 20 20">${glyph[g]}</svg></div>
+  <div class="txt"><b>${t}</b><small>${s}</small></div>
+  <div class="meta"><time>${time}</time>${n ? `<span class="pill">${n}</span>` : ''}</div><span class="chev">›</span></div>`).join('');
+
+// Layout per mode
+const L = mode === 'social'
+  ? { page: { x: 40, y: 250, w: 600 }, phone: { x: 905, y: 34, h: 572 }, title: { x: 48, y: 52, size: 64, tag: 22 } }
+  : { page: { x: 60, y: 160, w: 860 }, phone: { x: 1215, y: 40, h: 720 }, title: null };
+
+const phone = document.getElementById('phone');
+const scale = L.phone.h / 884;
+phone.style.left = L.phone.x + 'px'; phone.style.top = L.phone.y + 'px'; phone.style.transform = `scale(${scale})`;
+
+const title = document.getElementById('title');
+if (L.title) {
+  title.style.left = L.title.x + 'px'; title.style.top = L.title.y + 'px';
+  title.querySelector('h1').style.fontSize = L.title.size + 'px';
+  document.getElementById('tagline').style.fontSize = L.title.tag + 'px';
+} else title.remove();
+
+// Genie effect: the page is drawn column by column; columns get vertically squeezed (smoothstep)
+// and horizontally compressed (convex source mapping) as they approach a slot on the phone screen.
+const cv = document.getElementById('c'), dpr = window.devicePixelRatio || 1;
+cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
+const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+const img = new Image();
+img.onload = () => {
+  const iw = img.naturalWidth, ih = img.naturalHeight;
+  const pw = L.page.w, ph = pw * ih / iw, px = L.page.x, py = L.page.y;
+  const screenX = L.phone.x + 14 * scale + 2;               // phone screen left edge
+  const screenY = L.phone.y + 14 * scale, screenH = 856 * scale;
+  const slotC = screenY + screenH * 0.40, slotH = screenH * 0.10;
+  const flat = 0.32;                                        // fraction of the path that stays undistorted
+  const x0 = px, x1 = screenX, span = x1 - x0;
+  const smooth = (e0, e1, u) => { const t = Math.min(1, Math.max(0, (u - e0) / (e1 - e0))); return t * t * (3 - 2 * t); };
+  // source mapping: identity over the flat part, then increasingly compressed
+  const flatW = pw * 1.0;
+  const srcAt = (x) => {
+    const d = x - x0;
+    if (d <= flatW * flat) return (d / pw) * iw;
+    const u = (d - flatW * flat) / (span - flatW * flat);
+    const start = flat * iw;
+    return start + (iw - start) * Math.pow(u, 1.45);
+  };
+  // soft shadow under the flat part
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = 40; ctx.shadowOffsetY = 18;
+  ctx.fillStyle = 'rgba(0,0,0,.001)'; ctx.fillRect(px, py, pw * flat, ph); ctx.restore();
+
+  for (let x = x0; x < x1; x += 1) {
+    const u = (x - x0) / span;
+    const s = smooth(flat * 0.9, 1, u);
+    const top = py + (slotC - slotH / 2 - py) * s;
+    const bot = (py + ph) + (slotC + slotH / 2 - (py + ph)) * s;
+    const sx = srcAt(x), sx2 = srcAt(x + 1);
+    ctx.globalAlpha = 1 - 0.35 * Math.pow(u, 3);
+    ctx.drawImage(img, sx, 0, Math.max(0.5, sx2 - sx), ih, x, top, 1.6, bot - top);
+  }
+  ctx.globalAlpha = 1;
+  // glow where the page enters the phone
+  const g = ctx.createRadialGradient(x1, slotC, 0, x1, slotC, 160);
+  g.addColorStop(0, 'rgba(255,140,60,.55)'); g.addColorStop(1, 'rgba(255,106,19,0)');
+  ctx.fillStyle = g; ctx.fillRect(x1 - 160, slotC - 160, 320, 320);
+  // thin frame around the flat page for definition
+  ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(px + pw * flat * 0.9, py); ctx.lineTo(px, py); ctx.lineTo(px, py + ph); ctx.lineTo(px + pw * flat * 0.9, py + ph); ctx.stroke();
+  document.body.dataset.ready = '1';
+};
+img.src = 'hfr.webp';
+</script>
+</body>
+</html>
