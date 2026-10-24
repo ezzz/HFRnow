@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: en-US
+reviews:
+  profile: assertive
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  auto_review:
+    enabled: true
+    drafts: false
+  path_instructions:
+    - path: "Packages/HFRKit/Sources/**"
+      instructions: >-
+        Engine code. Enforce AGENTS.md: Foundation-only (no SwiftUI/UIKit/WebKit), HFRParsing/HFRNetwork/HFRStorage
+        must not import each other, SwiftSoup only inside HFRParsing, async/await only, no force unwraps,
+        parsers must be pure functions. Flag any secret, cookie or credential handling that could leak to logs.
+    - path: "Packages/HFRKit/Tests/**/Fixtures/**"
+      instructions: >-
+        Fixtures must be anonymized (docs/FIXTURES.md): no real pseudos, cookies, session IDs, hash_check tokens,
+        e-mails or private message content. Flag anything that looks real.
+    - path: ".github/workflows/**"
+      instructions: >-
+        Actions must be pinned by full commit SHA, permissions least-privilege, no pull_request_target with checkout
+        of untrusted code, no secrets exposed to forks.
+    - path: "docs/**"
+      instructions: "Check consistency with AGENTS.md and that HFR protocol facts cite a source."
+chat:
+  auto_reply: true

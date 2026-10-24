@@ -1,0 +1,38 @@
+name: Bug report
+description: Something does not work as expected
+labels: ["type: bug", "status: needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: "Search existing issues first. **Never paste cookies, passwords or session data.** Security issues: use the private report link."
+  - type: textarea
+    id: what
+    attributes: { label: What happened, description: "Actual vs expected behaviour" }
+    validations: { required: true }
+  - type: textarea
+    id: steps
+    attributes: { label: Steps to reproduce }
+    validations: { required: true }
+  - type: input
+    id: version
+    attributes: { label: Version / commit and device, placeholder: "e.g. 7f3a2c1, iPhone, iOS 27.0" }
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options: [high, medium, low]
+    validations: { required: true }
+  - type: dropdown
+    id: difficulty
+    attributes:
+      label: Difficulty
+      description: Your best estimate. Maintainers may adjust it.
+      options: [trivial, easy, medium, difficult]
+    validations: { required: true }
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [models, parsing, network, storage, app, ci, docs]
+    validations: { required: true }

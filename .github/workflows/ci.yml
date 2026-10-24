@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: SwiftLint
+    runs-on: ubuntu-latest
+    container: ghcr.io/realm/swiftlint:0.65.1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - run: swiftlint lint --strict --reporter github-actions-logging
+
+  engine-linux:
+    name: HFRKit tests (Linux)
+    runs-on: ubuntu-latest
+    container: swift:6.2
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - run: swift --version
+      - run: swift test --package-path Packages/HFRKit --parallel
+
+  engine-apple:
+    name: HFRKit tests (macOS) + iOS 27 build
+    runs-on: xcode-27
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - run: xcodebuild -version && swift --version
+      - name: Test on macOS
+        run: swift test --package-path Packages/HFRKit --parallel
+      - name: Build for iOS 27 (simulator SDK)
+        working-directory: Packages/HFRKit
+        run: >-
+          xcodebuild build -scheme HFRKit-Package
+          -destination 'generic/platform=iOS Simulator'
+          -skipPackagePluginValidation CODE_SIGNING_ALLOWED=NO

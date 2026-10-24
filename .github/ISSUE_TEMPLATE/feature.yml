@@ -1,0 +1,34 @@
+name: Feature request
+description: Propose a new capability or an improvement
+labels: ["type: feature", "status: needs-triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes: { label: Problem / need, description: "What are you trying to do?" }
+    validations: { required: true }
+  - type: textarea
+    id: proposal
+    attributes: { label: Proposal }
+  - type: textarea
+    id: legacy
+    attributes: { label: Legacy behaviour, description: "How the legacy app handles it, if it does" }
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options: [high, medium, low]
+    validations: { required: true }
+  - type: dropdown
+    id: difficulty
+    attributes:
+      label: Difficulty
+      description: Your best estimate. Maintainers may adjust it.
+      options: [trivial, easy, medium, difficult]
+    validations: { required: true }
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [models, parsing, network, storage, app, ci, docs]
+    validations: { required: true }

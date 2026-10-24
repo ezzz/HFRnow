@@ -1,0 +1,25 @@
+# Single source of truth for labels. Synced by .github/workflows/labels.yml. Documented in AGENTS.md §7.
+- { name: "type: bug",            color: "d73a4a", description: "Something does not work as expected" }
+- { name: "type: feature",        color: "a2eeef", description: "New capability or enhancement" }
+- { name: "type: security",       color: "b60205", description: "Security issue or hardening" }
+- { name: "type: roadmap",        color: "5319e7", description: "Roadmap item / phase work" }
+- { name: "type: chore",          color: "c5def5", description: "Maintenance, tooling, CI" }
+- { name: "type: docs",           color: "0075ca", description: "Documentation" }
+- { name: "priority: high",       color: "e11d21", description: "Do first" }
+- { name: "priority: medium",     color: "fbca04", description: "Do soon" }
+- { name: "priority: low",        color: "0e8a16", description: "When possible" }
+- { name: "difficulty: trivial",  color: "c2e0c6", description: "Minutes, mechanical (Haiku)" }
+- { name: "difficulty: easy",     color: "bfdadc", description: "Well specified, low risk (Sonnet)" }
+- { name: "difficulty: medium",   color: "f9d0c4", description: "Needs design or careful porting (Opus)" }
+- { name: "difficulty: difficult", color: "e99695", description: "High risk or ambiguity (Fable/Opus)" }
+- { name: "area: models",         color: "ededed", description: "HFRModels" }
+- { name: "area: parsing",        color: "ededed", description: "HFRParsing" }
+- { name: "area: network",        color: "ededed", description: "HFRNetwork" }
+- { name: "area: storage",        color: "ededed", description: "HFRStorage" }
+- { name: "area: app",            color: "ededed", description: "iOS app / UI" }
+- { name: "area: ci",             color: "ededed", description: "CI, security tooling, repository settings" }
+- { name: "area: docs",           color: "ededed", description: "Documentation" }
+- { name: "status: needs-triage", color: "ffffff", description: "Not yet reviewed by a maintainer" }
+- { name: "status: ready",        color: "0e8a16", description: "Specified and ready to be picked" }
+- { name: "status: blocked",      color: "000000", description: "Waiting on something else" }
+- { name: "dependencies",         color: "0366d6", description: "Dependency update (Dependabot)" }

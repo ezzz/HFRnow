@@ -1,0 +1,21 @@
+included:
+  - Packages/HFRKit/Sources
+  - Packages/HFRKit/Tests
+  - App
+excluded:
+  - "**/.build"
+  - "**/Fixtures"
+opt_in_rules:
+  - force_unwrapping
+  - implicitly_unwrapped_optional
+  - discouraged_optional_boolean
+  - empty_count
+  - first_where
+  - modifier_order
+  - redundant_nil_coalescing
+  - sorted_first_last
+line_length:
+  warning: 140
+  error: 200
+identifier_name:
+  excluded: [id, x, y]

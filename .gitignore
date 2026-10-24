@@ -1,0 +1,15 @@
+.DS_Store
+.build/
+.swiftpm/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcscmblueprint
+Package.resolved.orig
+*.ipa
+*.dSYM.zip
+*.mobileprovision
+*.p12
+*.cer
+.env
+.env.*

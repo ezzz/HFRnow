@@ -1,0 +1,14 @@
+version: 2
+updates:
+  - package-ecosystem: swift
+    directory: /Packages/HFRKit
+    schedule: { interval: weekly }
+    labels: ["dependencies", "area: ci"]
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+    labels: ["dependencies", "area: ci"]
+    groups:
+      actions:
+        patterns: ["*"]
