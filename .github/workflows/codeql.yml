@@ -11,34 +11,70 @@ permissions:
   contents: read
 
 jobs:
-  analyze:
-    name: Analyze (${{ matrix.language }})
-    runs-on: ${{ matrix.runner }}
+  changes:
+    name: Detect Swift changes
+    runs-on: ubuntu-latest
+    outputs:
+      swift: ${{ steps.diff.outputs.swift }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: diff
+        name: Does this change touch Swift code?
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          # Swift analysis takes ~10 min; on PRs it only runs when Swift sources or the package manifest change.
+          # Pushes to master and the weekly schedule always analyze.
+          if [ "$EVENT" != "pull_request" ]; then echo "swift=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if git diff --name-only "origin/$BASE_REF...HEAD" | grep -qE '\.swift$|(^|/)Package\.(swift|resolved)$'; then
+            echo "swift=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "swift=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  analyze-actions:
+    name: Analyze (actions)
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       security-events: write
       actions: read
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - language: actions
-            runner: ubuntu-latest
-            build-mode: none
-          # CodeQL's Swift extractor lags behind preview toolchains: analyze with the stable Xcode on macos-26.
-          - language: swift
-            runner: macos-26
-            build-mode: manual
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
       - uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
-          languages: ${{ matrix.language }}
-          build-mode: ${{ matrix.build-mode }}
+          languages: actions
+          build-mode: none
           queries: security-and-quality
-      - if: matrix.build-mode == 'manual'
-        name: Build (traced by CodeQL)
+      - uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          category: "/language:actions"
+
+  analyze-swift:
+    name: Analyze (swift)
+    needs: changes
+    # A job skipped by this condition reports "skipped", which satisfies the required check.
+    if: needs.changes.outputs.swift == 'true'
+    # CodeQL's Swift extractor lags behind preview toolchains: analyze with the stable Xcode on macos-26.
+    runs-on: macos-26
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          languages: swift
+          build-mode: manual
+          queries: security-and-quality
+      - name: Build (traced by CodeQL)
         shell: bash
         run: |
           xcodebuild -version
@@ -50,4 +86,4 @@ jobs:
           fi
       - uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
-          category: "/language:${{ matrix.language }}"
+          category: "/language:swift"
