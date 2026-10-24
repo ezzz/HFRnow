@@ -158,6 +158,13 @@ extension EnvironmentValues {
 enum NatifAppearance {
     static let themeModeKey = "natif_theme_mode"
     static let accentKey = "natif_accent"
+    /// Smiley zoom in topics: 1, 1.5 or 2.
+    static let smileyScaleKey = "natif_smiley_scale"
+
+    static func smileyScale(defaults: UserDefaults = .standard) -> Double {
+        let value = defaults.double(forKey: smileyScaleKey)
+        return [1, 1.5, 2].contains(value) ? value : 1
+    }
 
     static func themeMode(defaults: UserDefaults = .standard) -> NatifThemeMode {
         if let raw = defaults.string(forKey: themeModeKey), let mode = NatifThemeMode(rawValue: raw) {

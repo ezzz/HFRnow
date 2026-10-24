@@ -143,7 +143,27 @@ enum NatifPostStyle {
     html[data-natif] body .message .content .right img[src*="/icones/"],
     html[data-natif] body .message .content .right img.smileycustom {
       vertical-align: -3px;
+      zoom: var(--n-smiley-scale, 1);
     }
+
+    /* Compact mode */
+    html[data-natif-compact="1"] body .message { padding: 8px 20px 12px !important; }
+    html[data-natif-compact="1"] body .message .header,
+    html[data-natif-compact="1"] body.ios7 .message .header {
+      grid-template-columns: 26px minmax(0, 1fr) auto 44px;
+      grid-template-rows: auto;
+      min-height: 32px;
+    }
+    html[data-natif-compact="1"] body .message .header .left2 {
+      grid-row: 1; width: 26px !important; height: 26px !important;
+    }
+    html[data-natif-compact="1"] body .message .header .left { grid-row: 1; align-self: center; font-size: 14px !important; }
+    html[data-natif-compact="1"] body .message .header .leftdate {
+      grid-column: 3; grid-row: 1; align-self: center; margin: 0 !important; font-size: 12px !important;
+    }
+    html[data-natif-compact="1"] body .message .header .right { grid-column: 4; grid-row: 1; }
+    html[data-natif-compact="1"] body .message .header .right::before { background: transparent; }
+    html[data-natif-compact="1"] body .message .content { padding-top: 6px !important; }
 
     /* Images and link rows */
     html[data-natif] body .message .content .right img.hfrplusimg {
@@ -229,7 +249,14 @@ enum NatifPostStyle {
 
     /// JavaScript that tags the document with the theme and accent and installs the stylesheet.
     /// Safe to run at document start (before <head> exists) and again on every theme change.
-    static func installationScript(themeName: String, accent: String, accentFill: String, accentSoft: String) -> String {
+    static func installationScript(
+        themeName: String,
+        accent: String,
+        accentFill: String,
+        accentSoft: String,
+        smileyScale: Double = 1,
+        isCompact: Bool = false
+    ) -> String {
         let cssLiteral = javascriptStringLiteral(css)
         return """
         (function() {
@@ -239,6 +266,8 @@ enum NatifPostStyle {
           root.style.setProperty('--n-accent', '\(accent)');
           root.style.setProperty('--n-accent-fill', '\(accentFill)');
           root.style.setProperty('--n-accent-soft', '\(accentSoft)');
+          root.style.setProperty('--n-smiley-scale', '\(smileyScale)');
+          root.setAttribute('data-natif-compact', '\(isCompact ? 1 : 0)');
           function install() {
             var style = document.getElementById('\(styleElementID)');
             if (!style) {
@@ -261,7 +290,9 @@ enum NatifPostStyle {
             themeName: tokens.variant.rawValue,
             accent: tokens.uiAccent.natifCSSHex,
             accentFill: tokens.uiAccentFill.natifCSSHex,
-            accentSoft: tokens.uiAccentSoft.natifCSSHex
+            accentSoft: tokens.uiAccentSoft.natifCSSHex,
+            smileyScale: NatifAppearance.smileyScale(),
+            isCompact: UserDefaults.standard.bool(forKey: AppLayoutCompactMode.key)
         )
     }
 

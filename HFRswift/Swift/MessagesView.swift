@@ -681,10 +681,20 @@ struct WebView: UIViewRepresentable {
     var messageLoveModernHeaderBackgroundColor: String
     var messageClassicHeaderBackgroundColor: String
     @Environment(\.natif) private var natif
+    // Observed so that a change re-renders the WebView and re-injects the Natif script.
+    @AppStorage(NatifAppearance.smileyScaleKey) private var natifSmileyScale = 1.0
+    @AppStorage(AppLayoutCompactMode.key) private var natifCompactMode = false
 
     /// Natif stylesheet + theme/accent tagging, see NatifPostStyle.
     private var natifInstallScript: String {
-        NatifPostStyle.installationScript(tokens: natif)
+        NatifPostStyle.installationScript(
+            themeName: natif.variant.rawValue,
+            accent: natif.uiAccent.natifCSSHex,
+            accentFill: natif.uiAccentFill.natifCSSHex,
+            accentSoft: natif.uiAccentSoft.natifCSSHex,
+            smileyScale: natifSmileyScale,
+            isCompact: natifCompactMode
+        )
     }
     var messageActionsByIndex: [Int: TopicPageMessageActions]
     var actionHandler: any MessageWebActionHandling
@@ -2692,6 +2702,8 @@ struct MessagesView: View {
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @ObservedObject private var appTheme = AppThemeStore.shared
     @Environment(\.natif) private var natif
+    /// Read so that a Dynamic Type change re-renders the page with the new body size.
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AppStorage(AppTextSizeScale.key) private var textSizeScaleRawValue = AppTextSizeScale.standard.rawValue
     @AppStorage("theme_style") private var messageDisplayStyleRawValue = 1
     @State private var page: Int
@@ -2754,8 +2766,8 @@ struct MessagesView: View {
     /// Refresh of the current page from the bottom button: keep the content and the button on
     /// screen (the arrow spins) instead of blanking the page behind "Chargement…".
     @State private var isRefreshingInPlace = false
-    @State private var isMessageTextInteractionActive = false
     @State private var isLoginRequiredAlertPresented = false
+    @State private var isMessageTextInteractionActive = false
     @State private var pendingPostedReply: ReplyPostingResult?
     @State private var showPostSuccessToast = false
     @State private var postSuccessToastText = "Hooray"
@@ -2832,7 +2844,8 @@ struct MessagesView: View {
     }
 
     private var messageBodyFontSize: CGFloat {
-        AppTextSizeScale.scaledUIFont(
+        _ = dynamicTypeSize
+        return AppTextSizeScale.scaledUIFont(
             textStyle: .body,
             basePointSize: 17,
             rawValue: textSizeScaleRawValue
@@ -4570,6 +4583,8 @@ struct MessagesView: View {
                     DragGesture().onEnded { value in
                         guard !isFavoritePostFilterMode else { return }
                         guard !isMessageTextInteractionActive else { return }
+                        // A drag starting at the left edge is the system "back" gesture, not a page turn.
+                        guard value.startLocation.x > 32 else { return }
                         let horizontal = value.translation.width
                         let vertical = value.translation.height
                         let minDistance: CGFloat = 120
@@ -4757,7 +4772,7 @@ struct MessagesView: View {
                                 } label: {
                                     MenuActionLabel(
                                         "Sondage",
-                                        systemImage: "chart.bar.doc.horizontal",
+                                        systemImage: "chart.bar.fill",
                                         tintColor: themePalette.actionTintColor,
                                         iconTintUIColor: themePalette.actionTintUIColor
                                     )
@@ -5011,7 +5026,7 @@ struct MessagesView: View {
                             } label: {
                                 MenuActionLabel(
                                     "Sondage",
-                                    systemImage: "chart.bar.doc.horizontal",
+                                    systemImage: "chart.bar.fill",
                                     tintColor: themePalette.actionTintColor,
                                     iconTintUIColor: themePalette.actionTintUIColor
                                 )

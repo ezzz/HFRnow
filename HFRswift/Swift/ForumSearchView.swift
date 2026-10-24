@@ -135,6 +135,7 @@ struct ForumSearchView: View {
             searchFormSection
             resultSection
         }
+        .natifGroupedListBackground()
         .navigationTitle("Recherche")
         .safeAreaInset(edge: .bottom) {
             bottomAccessory

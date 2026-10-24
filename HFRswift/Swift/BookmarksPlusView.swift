@@ -191,6 +191,7 @@ struct BookmarksPlusView: View {
                 .onDelete(perform: viewModel.delete)
             }
         }
+        .natifGroupedListBackground()
         .navigationTitle("Bookmarks")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {

@@ -497,6 +497,7 @@ struct UserProfileView: View {
 
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var appTheme = AppThemeStore.shared
+    @Environment(\.natif) private var natif
     @State private var viewModel: UserProfileViewModel
     @State private var didLoad = false
     @State private var safariDestination: SafariDestination?
@@ -607,7 +608,7 @@ struct UserProfileView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 18)
         }
-        .background(Color(.systemGroupedBackground))
+        .background(natif.bgGrouped)
     }
 
     private func openInSafari(_ url: URL) {
@@ -628,64 +629,70 @@ private struct UserProfileSafariView: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {}
 }
 
+/// Natif 4a header: centered avatar, pseudo, status, quick action tiles, then an "Infos" card.
 private struct UserProfileHeaderView: View {
     let profile: UserProfile
     let quickActions: UserProfileQuickActions?
+    @Environment(\.natif) private var natif
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack(alignment: .center, spacing: 16) {
-                UserProfileAvatarView(url: profile.avatarURL, width: 98, height: 70)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(profile.displayName)
-                        .font(.title2.weight(.semibold))
-                        .textSelection(.enabled)
-                    if let status = profile.status, !status.isEmpty {
-                        Label(status, systemImage: "person.text.rectangle")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                Spacer(minLength: 0)
-            }
-
-            if !profile.summary.isEmpty {
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: min(profile.summary.count, 3)), alignment: .leading, spacing: 10) {
-                    ForEach(profile.summary) { item in
-                        VStack(alignment: .leading, spacing: 6) {
-                            Label(item.title, systemImage: item.systemImage)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                            Text(item.value)
-                                .font(.callout.weight(.semibold))
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.68)
-                                .textSelection(.enabled)
-                        }
-                        .frame(maxWidth: .infinity, minHeight: 58, alignment: .topLeading)
-                        .padding(10)
-                        .background(Color(.secondarySystemGroupedBackground), in: .rect(cornerRadius: 8))
-                    }
+        VStack(spacing: 18) {
+            VStack(spacing: 8) {
+                UserProfileAvatarView(url: profile.avatarURL, width: 88, height: 88)
+                    .clipShape(Circle())
+                Text(profile.displayName)
+                    .font(.title.bold())
+                    .foregroundStyle(natif.text)
+                    .multilineTextAlignment(.center)
+                    .textSelection(.enabled)
+                if let status = profile.status, !status.isEmpty {
+                    Text(status)
+                        .font(.subheadline)
+                        .foregroundStyle(natif.text2)
+                        .multilineTextAlignment(.center)
                 }
             }
+            .frame(maxWidth: .infinity)
 
             if let quickActions {
                 UserProfileQuickActionsView(actions: quickActions)
             }
-        }
-        .padding(16)
-        .background(.background, in: .rect(cornerRadius: 18))
-        .overlay {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(.quaternary, lineWidth: 1)
+
+            if !profile.summary.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Infos")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(natif.text2)
+                        .padding(.leading, 16)
+                    VStack(spacing: 0) {
+                        ForEach(Array(profile.summary.enumerated()), id: \.element.id) { index, item in
+                            if index > 0 {
+                                Divider().padding(.leading, 16)
+                            }
+                            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                                Text(item.title)
+                                    .foregroundStyle(natif.text)
+                                Spacer(minLength: 12)
+                                Text(item.value)
+                                    .foregroundStyle(natif.text2)
+                                    .multilineTextAlignment(.trailing)
+                                    .textSelection(.enabled)
+                            }
+                            .font(.body)
+                            .padding(.horizontal, 16)
+                            .frame(minHeight: 44)
+                        }
+                    }
+                    .background(natif.cell, in: .rect(cornerRadius: 24))
+                }
+            }
         }
     }
 }
 
 private struct UserProfileQuickActionsView: View {
     let actions: UserProfileQuickActions
+    @Environment(\.natif) private var natif
 
     private var canToggleLists: Bool {
         actions.authorName?.isEmpty == false
@@ -725,13 +732,19 @@ private struct UserProfileQuickActionsView: View {
         action: @escaping () -> Void
     ) -> some View {
         Button(role: role, action: action) {
-            Label(title, systemImage: systemImage)
-                .font(.caption.weight(.semibold))
-                .lineLimit(1)
-                .minimumScaleFactor(0.76)
-                .frame(maxWidth: .infinity, minHeight: 36)
+            VStack(spacing: 4) {
+                Image(systemName: systemImage)
+                    .font(.title3)
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.76)
+            }
+            .foregroundStyle(role == .destructive ? natif.destructive : natif.accent)
+            .frame(maxWidth: .infinity, minHeight: 60)
+            .background(natif.cell, in: .rect(cornerRadius: 16))
         }
-        .hfrGlassButton()
+        .buttonStyle(.plain)
     }
 }
 
@@ -762,12 +775,7 @@ private struct UserProfileAvatarView: View {
             }
         }
         .frame(width: width, height: height)
-        .background(Color.secondary.opacity(0.12), in: .rect(cornerRadius: 12))
-        .clipShape(.rect(cornerRadius: 12))
-        .overlay {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(.quaternary, lineWidth: 1)
-        }
+        .background(Color.secondary.opacity(0.12))
     }
 
     private var placeholder: some View {
@@ -807,6 +815,7 @@ private struct UserProfileActionsView: View {
 private struct UserProfileSmiliesView: View {
     let smilies: [UserProfileSmiley]
     @State private var favoriteCodes: Set<String> = []
+    @Environment(\.natif) private var natif
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -857,11 +866,7 @@ private struct UserProfileSmiliesView: View {
                     }
                     .padding(10)
                     .frame(maxWidth: .infinity)
-                    .background(.background, in: .rect(cornerRadius: 8))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .strokeBorder(.quaternary, lineWidth: 1)
-                    )
+                    .background(natif.cell, in: .rect(cornerRadius: 16))
                 }
             }
         }
@@ -894,11 +899,14 @@ private struct UserProfileSmiliesView: View {
 private struct UserProfileSectionView: View {
     let section: UserProfileSection
     let openURL: (URL) -> Void
+    @Environment(\.natif) private var natif
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             Text(section.title)
-                .font(.headline)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(natif.text2)
+                .padding(.leading, 16)
 
             VStack(spacing: 0) {
                 ForEach(Array(section.fields.enumerated()), id: \.element.id) { index, field in
@@ -909,11 +917,7 @@ private struct UserProfileSectionView: View {
                     }
                 }
             }
-            .background(.background, in: .rect(cornerRadius: 12))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(.quaternary, lineWidth: 1)
-            )
+            .background(natif.cell, in: .rect(cornerRadius: 24))
         }
     }
 }

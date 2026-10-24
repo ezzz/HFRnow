@@ -96,6 +96,7 @@ struct AppSettingsView: View {
     @AppStorage("filter_posts_quotes") private var filterPostsMode = "wl_pseudo"
     @AppStorage("filter_posts_min_quotes") private var filterPostsMinimumQuoteCount = 3
     @AppStorage("size_smileys") private var smileySize = "double"
+    @AppStorage(NatifAppearance.smileyScaleKey) private var natifSmileyScale = 1.0
     @AppStorage("embedded_videos") private var embeddedVideos = "yes"
     @AppStorage("display_sig") private var displaySignatures = "no"
 
@@ -348,7 +349,7 @@ struct AppSettingsView: View {
 
     @ViewBuilder
     private var topicsSection: some View {
-        Section("Sujets") {
+        Section("Lecture") {
             Picker("Style des messages", selection: $themeStyle) {
                 ForEach(themeStyleOptions) { option in
                     Text(option.title).tag(option.value)
@@ -369,12 +370,18 @@ struct AppSettingsView: View {
                 Label("Liste blanche", systemImage: "heart")
             }
 
-//            Picker("Taille des smileys", selection: $smileySize) {
-//                ForEach(smileySizeOptions) { option in
-//                    Text(option.title).tag(option.value)
-//                }
-//            }
-//
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Taille des smileys")
+                Picker("Taille des smileys", selection: $natifSmileyScale) {
+                    Text("1×").tag(1.0)
+                    Text("1,5×").tag(1.5)
+                    Text("2×").tag(2.0)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+            }
+            .padding(.vertical, 4)
+
 //            Picker("Afficher les vidéos", selection: $embeddedVideos) {
 //                ForEach(embeddedVideoOptions) { option in
 //                    Text(option.title).tag(option.value)

@@ -812,13 +812,13 @@ struct FavoritesListView: View {
                     Button {
                         showAddAccountSheet = true
                     } label: {
-                        MenuActionLabel("Ajouter un pseudo", systemImage: "person.badge.plus")
+                        MenuActionLabel("Ajouter un compte", systemImage: "person.badge.plus")
                     }
                     Divider()
                     Button(role: .destructive) {
                         showLogoutConfirm = true
                     } label: {
-                        MenuActionLabel("Déconnexion", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive)
+                        MenuActionLabel("Se déconnecter", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive)
                     }
                     .disabled(accountsStore.currentAccount == nil)
                 }
@@ -1123,23 +1123,32 @@ struct TopicRowView: View {
         .swipeActions(edge: .leading, allowsFullSwipe: true) {
             if let onMarkRead {
                 Button {
+                    AppHaptics.impact(.light)
                     onMarkRead()
                 } label: {
-                    Label("Lu", systemImage: "checkmark")
+                    Label("Lu", systemImage: "checkmark.message")
                 }
+                .tint(natif.accentFill)
             }
         }
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+        // Natif: trailing "Lu" (full swipe) then "Retirer".
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            if let onMarkRead {
+                Button {
+                    AppHaptics.impact(.light)
+                    onMarkRead()
+                } label: {
+                    Label("Lu", systemImage: "checkmark.message")
+                }
+                .tint(natif.accentFill)
+            }
             if let onRemoveFavorite {
                 Button(role: .destructive) {
                     onRemoveFavorite()
                 } label: {
-                    if isRemovingFavorite {
-                        Label("Suppression...", systemImage: "hourglass")
-                    } else {
-                        Label("Supprimer", systemImage: "trash")
-                    }
+                    Label("Retirer", systemImage: "trash")
                 }
+                .tint(natif.destructive)
                 .disabled(isRemovingFavorite)
             }
         }

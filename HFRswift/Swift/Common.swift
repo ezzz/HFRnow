@@ -2643,32 +2643,21 @@ private struct TopicPagePickerSheetToken: Identifiable {
     let id = UUID()
 }
 
-private struct TopicPagePickerQuickButton: View {
-    let title: String?
-    let systemImage: String?
-    let accessibilityLabel: String
+private struct PagePickerShortcut: View {
+    let title: String
+    let systemImage: String
     let action: () -> Void
-
-    @Environment(\.appThemePalette) private var themePalette
+    @Environment(\.natif) private var natif
 
     var body: some View {
         Button(action: action) {
-            Group {
-                if let title {
-                    Text(title)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(themePalette.actionTintColor)
-                } else if let systemImage {
-                    Image(systemName: systemImage)
-                        .font(.headline)
-                        .foregroundStyle(themePalette.actionTintColor)
-                }
-            }
-            .frame(maxWidth: .infinity, minHeight: 36)
+            Label(title, systemImage: systemImage)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(natif.accent)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .background(Capsule().fill(natif.surface))
         }
-        .buttonStyle(.bordered)
-        .tint(Color(uiColor: .systemGray3))
-        .accessibilityLabel(accessibilityLabel)
+        .buttonStyle(.plain)
     }
 }
 
@@ -2686,6 +2675,7 @@ struct TopicPagePickerSheet: View {
     }
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.natif) private var natif
 
     private var trimmedInput: String {
         pageInput.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -2714,92 +2704,69 @@ struct TopicPagePickerSheet: View {
         dismiss()
     }
 
+    private var sliderValue: Binding<Double> {
+        Binding {
+            Double(resolvedPage)
+        } set: { newValue in
+            setPage(Int(newValue.rounded()))
+        }
+    }
+
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 16) {
-                Text(isMaxPageApproximate ? "Choisir une page (au moins \(maxPage))" : "Choisir une page entre 1 et \(maxPage)")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+            VStack(spacing: 20) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    TextField("Page", text: $pageInput)
+                        .keyboardType(.numberPad)
+                        .font(.largeTitle.weight(.semibold).monospacedDigit())
+                        .multilineTextAlignment(.trailing)
+                        .fixedSize()
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 6)
+                        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(natif.surface2))
+                        .accessibilityLabel("Numéro de page")
+                    Text("/ \(maxPage.formatted())")
+                        .font(.title2.monospacedDigit())
+                        .foregroundStyle(natif.text2)
+                }
+
+                if maxPage > 1 {
+                    Slider(value: sliderValue, in: 1...Double(maxPage), step: 1)
+                        .accessibilityLabel("Page")
+                }
 
                 HStack(spacing: 10) {
-                    TopicPagePickerQuickButton(
-                        title: nil,
-                        systemImage: "backward.end",
-                        accessibilityLabel: "Première page"
-                    ) {
+                    PagePickerShortcut(title: "Première", systemImage: "chevron.left.to.line") {
                         setPage(1)
                     }
-
-                    TextField("1...\(maxPage)", text: $pageInput)
-                        .keyboardType(.numberPad)
-                        .font(.body.monospacedDigit())
-                        .textFieldStyle(.roundedBorder)
-                        .multilineTextAlignment(.center)
-
-                    TopicPagePickerQuickButton(
-                        title: nil,
-                        systemImage: "forward.end",
-                        accessibilityLabel: "Dernière page"
-                    ) {
+                    PagePickerShortcut(title: "Dernière", systemImage: "chevron.right.to.line") {
                         setPage(maxPage)
                     }
                 }
 
-                HStack(spacing: 10) {
-                    TopicPagePickerQuickButton(
-                        title: "-10",
-                        systemImage: nil,
-                        accessibilityLabel: "Dix pages en moins"
-                    ) {
-                        offsetPage(by: -10)
-                    }
-                    TopicPagePickerQuickButton(
-                        title: "-1",
-                        systemImage: nil,
-                        accessibilityLabel: "Une page en moins"
-                    ) {
-                        offsetPage(by: -1)
-                    }
-                    TopicPagePickerQuickButton(
-                        title: "+1",
-                        systemImage: nil,
-                        accessibilityLabel: "Une page en plus"
-                    ) {
-                        offsetPage(by: 1)
-                    }
-                    TopicPagePickerQuickButton(
-                        title: "+10",
-                        systemImage: nil,
-                        accessibilityLabel: "Dix pages en plus"
-                    ) {
-                        offsetPage(by: 10)
-                    }
+                Button(action: submit) {
+                    Text("Aller")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity, minHeight: 50)
+                        .background(Capsule().fill(natif.accentFill))
                 }
+                .buttonStyle(.plain)
+                .disabled(!isInputValid)
+                .opacity(isInputValid ? 1 : 0.5)
             }
             .padding(20)
-            .navigationTitle("Page numéro")
+            .navigationTitle("Aller à la page")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button {
+                    Button("Fermer", systemImage: "xmark") {
                         dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.footnote.bold())
                     }
-                    .buttonBorderShape(.circle)
-                    .accessibilityLabel("Fermer")
-                }
-
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Valider") {
-                        submit()
-                    }
-                    .disabled(!isInputValid)
                 }
             }
         }
-        .presentationDetents([.height(260)])
+        .presentationDetents([.medium])
         .presentationDragIndicator(.visible)
         .onAppear {
             if trimmedInput.isEmpty {
@@ -2887,6 +2854,9 @@ struct TopicListRowView: View {
     var showsStatusGutter = true
     /// Overrides the status derived from the unread count (e.g. private messages).
     var forcedStatus: NatifTopicStatus?
+    /// Mail-like first line (private messages): correspondent on the left, time on the right.
+    var headerText: String?
+    var headerTrailingText: String?
     var leadingAccessory: AnyView?
     var openContext: TopicOpenContext = .generic
     var quickActions: TopicQuickActionsConfiguration?
@@ -3172,6 +3142,23 @@ struct TopicListRowView: View {
                         }
                 }
                 VStack(alignment: .leading, spacing: isCompactMode ? 2 : 4) {
+                    if headerText != nil || headerTrailingText != nil {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            if let headerText {
+                                Text(headerText)
+                                    .font(.headline)
+                                    .foregroundStyle(natif.text)
+                                    .lineLimit(1)
+                            }
+                            Spacer(minLength: 8)
+                            if let headerTrailingText {
+                                Text(headerTrailingText)
+                                    .font(.subheadline)
+                                    .foregroundStyle(natif.text2)
+                                    .lineLimit(1)
+                            }
+                        }
+                    }
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         if topic.isSticky {
                             Image(systemName: "pin.fill")

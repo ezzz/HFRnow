@@ -422,27 +422,12 @@ struct AQPlusView: View {
                     )
                     .toolbar(.hidden, for: .tabBar)
                 } label: {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(item.topicTitle)
-                            .font(.headline)
-                            .fontWeight(item.isNew ? .bold : .regular)
-                        Text(item.aqTitle)
-                            .font(.subheadline)
-                            .foregroundStyle(.primary)
-                        if !item.comment.isEmpty {
-                            Text(item.comment)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(2)
-                        }
-                        Text("par \(item.initiator) \(item.relativeDate)")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 4)
+                    AQRow(item: item)
                 }
+                .natifCellBackground()
             }
         }
+        .natifGroupedListBackground()
         .navigationTitle("Alertes Qualitay")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -474,5 +459,38 @@ struct AQPlusView: View {
 #Preview("AQ Plus") {
     NavigationStack {
         AQPlusView()
+    }
+}
+
+
+/// Alertes Qualitay row: unread dot for new alerts, topic title, alert title, comment, initiator.
+private struct AQRow: View {
+    let item: AQItem
+    @Environment(\.natif) private var natif
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            NatifStatusIndicator(status: item.isNew ? .unread : nil)
+                .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + 4 }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.topicTitle)
+                    .font(.headline)
+                    .fontWeight(item.isNew ? .semibold : .regular)
+                    .foregroundStyle(natif.text)
+                Text(item.aqTitle)
+                    .font(.subheadline)
+                    .foregroundStyle(natif.accent)
+                if !item.comment.isEmpty {
+                    Text(item.comment)
+                        .font(.subheadline)
+                        .foregroundStyle(natif.text2)
+                        .lineLimit(2)
+                }
+                Text("par \(item.initiator) · \(item.relativeDate)")
+                    .font(.footnote)
+                    .foregroundStyle(natif.text2)
+            }
+        }
+        .padding(.vertical, 6)
     }
 }

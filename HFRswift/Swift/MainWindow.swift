@@ -277,13 +277,13 @@ struct CategoriesListView: View {
         Button {
             showAddAccountSheet = true
         } label: {
-            MenuActionLabel("Ajouter un pseudo", systemImage: "person.badge.plus")
+            MenuActionLabel("Ajouter un compte", systemImage: "person.badge.plus")
         }
         Divider()
         Button(role: .destructive) {
             showLogoutConfirm = true
         } label: {
-            MenuActionLabel("Déconnexion", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive)
+            MenuActionLabel("Se déconnecter", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive)
         }
         .disabled(accountsStore.currentAccount == nil)
     }
@@ -296,6 +296,7 @@ struct ForumTopicsListView: View {
     @StateObject private var viewModel: ForumTopicsListViewModel
     @ObservedObject private var accountsStore: AccountsStore
     @Environment(\.appThemePalette) private var themePalette
+    @Environment(\.natif) private var natif
     @AppStorage("HFRswiftGlobalTopicListFlag") private var globalTopicListFlagRawValue = TopicListFlag.all.rawValue
     @State private var hasLoaded = false
     @State private var visitedURLs: Set<String> = []
@@ -618,7 +619,22 @@ struct ForumTopicsListView: View {
         }
     }
 
+    private static let listTopID = "forum-topics-top"
+
     var body: some View {
+        ScrollViewReader { proxy in
+            topicsList
+                .onChange(of: viewModel.pageInfo.pageNumber) { oldValue, newValue in
+                    // A new page starts at the top (it used to keep the previous scroll offset).
+                    guard oldValue != newValue else { return }
+                    withAnimation(nil) {
+                        proxy.scrollTo(Self.listTopID, anchor: .top)
+                    }
+                }
+        }
+    }
+
+    private var topicsList: some View {
         List {
             if !subForums.isEmpty {
                 Menu {
@@ -652,6 +668,7 @@ struct ForumTopicsListView: View {
             .pickerStyle(.segmented)
             .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 10, trailing: 16))
             .listRowSeparator(.hidden)
+            .id(Self.listTopID)
 
             if !isLoggedIn {
                 VStack(alignment: .leading, spacing: 6) {
@@ -701,8 +718,9 @@ struct ForumTopicsListView: View {
                         Button {
                             markTopicAsRead(topic)
                         } label: {
-                            Label("Lu", systemImage: "checkmark")
+                            Label("Lu", systemImage: "checkmark.message")
                         }
+                        .tint(natif.accentFill)
                     }
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
@@ -710,7 +728,7 @@ struct ForumTopicsListView: View {
                         Button(role: .destructive) {
                             removeFlag(topic)
                         } label: {
-                            Label(isRemoving ? "Suppression..." : "Supprimer", systemImage: isRemoving ? "hourglass" : "trash")
+                            Label("Retirer", systemImage: "trash")
                         }
                         .disabled(isRemoving)
                     }
@@ -893,13 +911,13 @@ struct ForumTopicsListView: View {
         Button {
             showAddAccountSheet = true
         } label: {
-            MenuActionLabel("Ajouter un pseudo", systemImage: "person.badge.plus")
+            MenuActionLabel("Ajouter un compte", systemImage: "person.badge.plus")
         }
         Divider()
         Button(role: .destructive) {
             showLogoutConfirm = true
         } label: {
-            MenuActionLabel("Déconnexion", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive)
+            MenuActionLabel("Se déconnecter", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive)
         }
         .disabled(accountsStore.currentAccount == nil)
     }
@@ -948,47 +966,41 @@ private struct ForumTopicsPaginationBar: View {
         max(pageInfo.lastPageNumber, 1)
     }
 
+    @Environment(\.natif) private var natif
+
+    /// Natif PageControl: glass capsule "‹ Page 1 / 500 ›"; tapping the number opens "Aller à la page".
     var body: some View {
-        HStack(spacing: 8) {
-            Button(action: onFirst) {
-                Image(systemName: "backward.end")
-            }
-            .disabled(pageNumber <= 1 || pageInfo.firstPageURL == nil)
-
-            Button(action: onPrevious) {
-                Image(systemName: "chevron.left")
-            }
-            .disabled(pageNumber <= 1 || pageInfo.previousPageURL == nil)
-
-            Spacer(minLength: 8)
+        HStack(spacing: 4) {
+            Button("Page précédente", systemImage: "chevron.left", action: onPrevious)
+                .labelStyle(.iconOnly)
+                .frame(width: 44, height: 44)
+                .disabled(pageNumber <= 1 || pageInfo.previousPageURL == nil)
 
             Button(action: onPagePicker) {
-                Text(pageInfo.isLastPageNumberExact ? "\(pageNumber) / \(lastPageNumber)" : "Page \(pageNumber)")
-                    .font(.footnote.monospacedDigit().weight(.semibold))
-                    .foregroundStyle(.primary.opacity(0.72))
-                    .frame(minWidth: 74)
+                Text("Page \(pageNumber.formatted()) / \(lastPageNumber.formatted())")
+                    .font(.subheadline.weight(.semibold).monospacedDigit())
+                    .foregroundStyle(natif.text)
+                    .padding(.horizontal, 6)
+                    .frame(minHeight: 44)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Choisir une page")
+            .accessibilityLabel("Page \(pageNumber) sur \(lastPageNumber), aller à la page")
 
-            Spacer(minLength: 8)
-
-            Button(action: onNext) {
-                Image(systemName: "chevron.right")
-            }
-            .disabled(pageInfo.nextPageURL == nil || (pageInfo.isLastPageNumberExact && pageNumber >= lastPageNumber))
-
-            // Without the real total, "last page" would only go to the farthest linked page.
-            Button(action: onLast) {
-                Image(systemName: "forward.end")
-            }
-            .disabled(!pageInfo.isLastPageNumberExact || pageNumber >= lastPageNumber || pageInfo.lastPageURL == nil)
+            Button("Page suivante", systemImage: "chevron.right", action: onNext)
+                .labelStyle(.iconOnly)
+                .frame(width: 44, height: 44)
+                .disabled(pageNumber >= lastPageNumber || pageInfo.nextPageURL == nil)
         }
-        .hfrGlassButton()
-        .controlSize(.small)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .hfrGlassSurface(in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .font(.headline)
+        .padding(.horizontal, 6)
+        .hfrGlassSurface(in: Capsule())
+        .contextMenu {
+            Button("Première page", systemImage: "chevron.left.to.line", action: onFirst)
+                .disabled(pageNumber <= 1 || pageInfo.firstPageURL == nil)
+            Button("Dernière page", systemImage: "chevron.right.to.line", action: onLast)
+                .disabled(pageNumber >= lastPageNumber || pageInfo.lastPageURL == nil)
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -1389,12 +1401,7 @@ struct RootTabView: View {
             Label(sidebarTitle(for: tab), systemImage: sidebarSystemImage(for: tab))
             Spacer()
             if sidebarBadgeCount(for: tab) > 0 {
-                Text("\(sidebarBadgeCount(for: tab))")
-                    .font(.caption2.monospacedDigit().weight(.semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Capsule().fill(Color.red))
+                NatifRedBadge(count: sidebarBadgeCount(for: tab))
             }
         }
     }
