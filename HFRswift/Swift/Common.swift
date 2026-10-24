@@ -284,6 +284,23 @@ extension View {
     }
 }
 
+/// Refresh icon for toolbar buttons that spins while loading. Keep the button content stable:
+/// swapping the label for a `ProgressView` during a push makes the Liquid Glass toolbar morph
+/// balloon into a huge white circle on the iPhone Duo inner display.
+struct ToolbarRefreshIcon: View {
+    let isLoading: Bool
+
+    var body: some View {
+        if #available(iOS 18.0, *) {
+            Image(systemName: "arrow.clockwise")
+                .symbolEffect(.rotate, options: .repeating, isActive: isLoading)
+        } else {
+            Image(systemName: "arrow.clockwise")
+                .opacity(isLoading ? 0.4 : 1)
+        }
+    }
+}
+
 private struct ExpandedPhoneInlineNavigationTitle: ViewModifier {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass

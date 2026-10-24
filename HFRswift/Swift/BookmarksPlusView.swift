@@ -192,14 +192,17 @@ struct BookmarksPlusView: View {
         .navigationTitle("Bookmarks")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                if viewModel.isRefreshing {
-                    ProgressView()
-                } else {
-                    Button("Actualiser", systemImage: "arrow.clockwise") {
-                        AppHaptics.refreshStarted()
-                        viewModel.refreshRemoteBookmarks(shouldTriggerHaptic: true)
+                Button {
+                    AppHaptics.refreshStarted()
+                    viewModel.refreshRemoteBookmarks(shouldTriggerHaptic: true)
+                } label: {
+                    Label {
+                        Text("Actualiser")
+                    } icon: {
+                        ToolbarRefreshIcon(isLoading: viewModel.isRefreshing)
                     }
                 }
+                .disabled(viewModel.isRefreshing)
             }
         }
         .onAppear {
