@@ -371,7 +371,8 @@ struct ForumTopicsListView: View {
     }
 
     private var initialFlagForCurrentPresentation: TopicListFlag {
-        let preferredFlag = initialFlagOverride ?? persistedGlobalFlag
+        // A forum always opens on "Tous": a filter kept from another forum went unnoticed.
+        let preferredFlag = initialFlagOverride ?? .all
         if !isLoggedIn && preferredFlag != .all {
             return .all
         }
@@ -665,10 +666,10 @@ struct ForumTopicsListView: View {
                 Text("Favoris")
                     .tag(TopicListFlag.favorites)
                     .disabled(!isLoggedIn)
-                Text("Suivis")
+                Text("Drapeaux")
                     .tag(TopicListFlag.tracked)
                     .disabled(!isLoggedIn)
-                Text("Lus")
+                Text("Déjà lus")
                     .tag(TopicListFlag.read)
                     .disabled(!isLoggedIn)
             }
@@ -676,9 +677,21 @@ struct ForumTopicsListView: View {
             .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 10, trailing: 16))
             .listRowSeparator(.hidden)
 
+            if isLoggedIn, viewModel.selectedFlag != .all, !viewModel.isLoading || !viewModel.topics.isEmpty {
+                TopicFilterSummary(
+                    flag: viewModel.selectedFlag,
+                    count: viewModel.topics.count,
+                    forumTitle: resolvedSelectedForum.aTitle ?? navigationTitleText
+                ) {
+                    viewModel.selectedFlag = .all
+                }
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 8, trailing: 16))
+                .listRowSeparator(.hidden)
+            }
+
             if !isLoggedIn {
                 VStack(alignment: .leading, spacing: 6) {
-                    Label("Connexion requise pour Favoris, Suivis et Lus", systemImage: "person.crop.circle.badge.exclamationmark")
+                    Label("Connexion requise pour Favoris, Drapeaux et Déjà lus", systemImage: "person.crop.circle.badge.exclamationmark")
                         .font(.footnote.weight(.semibold))
                     Text("Vous pouvez consulter \"Tous\" sans compte.")
                         .font(.footnote)
@@ -938,6 +951,50 @@ private struct RootTabLabel: View {
                 Image(systemName: systemImage)
             }
         }
+    }
+}
+
+/// Explains the active filter of a forum topic list, with a shortcut back to "Tous".
+private struct TopicFilterSummary: View {
+    let flag: TopicListFlag
+    let count: Int
+    let forumTitle: String
+    let onShowAll: () -> Void
+    @Environment(\.natif) private var natif
+
+    private var description: String {
+        let topics = count == 1 ? "1 sujet" : "\(count) sujets"
+        switch flag {
+        case .favorites: return "\(topics) en favori (étoile) dans \(forumTitle)"
+        case .tracked: return "\(topics) avec ton drapeau dans \(forumTitle)"
+        case .read: return "\(topics) déjà lus dans \(forumTitle)"
+        case .all: return ""
+        }
+    }
+
+    private var systemImage: String {
+        switch flag {
+        case .favorites: "star.fill"
+        case .tracked: "flag.fill"
+        case .read: "checkmark.circle.fill"
+        case .all: "line.3.horizontal.decrease.circle"
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: systemImage)
+                .foregroundStyle(natif.accent)
+            Text(description)
+                .font(.footnote)
+                .foregroundStyle(natif.text2)
+            Spacer(minLength: 4)
+            Button("Tout afficher", action: onShowAll)
+                .font(.footnote.weight(.semibold))
+                .buttonStyle(.borderless)
+                .tint(natif.accent)
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 

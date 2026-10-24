@@ -678,10 +678,19 @@ private struct AccentSwatch: View {
     let isSelected: Bool
     let action: () -> Void
 
+    /// Liquid Glass: a blue-to-clear glassy gradient.
+    private var swatchFill: AnyShapeStyle {
+        let color = Color(isDark ? accent.darkFill : accent.light)
+        guard accent.isLiquidGlass else { return AnyShapeStyle(color) }
+        return AnyShapeStyle(
+            LinearGradient(colors: [color.opacity(0.35), color], startPoint: .topLeading, endPoint: .bottomTrailing)
+        )
+    }
+
     var body: some View {
         Button(action: action) {
             Circle()
-                .fill(Color(isDark ? accent.darkFill : accent.light))
+                .fill(swatchFill)
                 .frame(width: 36, height: 36)
                 .padding(4.5)
                 .overlay {

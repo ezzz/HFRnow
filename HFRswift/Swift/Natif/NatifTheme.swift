@@ -50,6 +50,14 @@ struct NatifAccent: Identifiable, Equatable {
     /// "Couleur" choices, in display order. Same lightness and chroma for the hues; white on each
     /// `light` / `darkFill` stays at 4.5:1.
     static let all: [NatifAccent] = [
+        // iOS 26 system blue, applied everywhere like the other colours.
+        NatifAccent(
+            id: liquidGlassID,
+            name: "Liquid Glass",
+            light: UIColor.systemBlue.resolvedColor(with: UITraitCollection(userInterfaceStyle: .light)),
+            darkText: UIColor.systemBlue.resolvedColor(with: UITraitCollection(userInterfaceStyle: .dark)),
+            darkFill: UIColor.systemBlue.resolvedColor(with: UITraitCollection(userInterfaceStyle: .dark))
+        ),
         // Black in the light theme, near white in the dark ones (filled backgrounds stay dark grey).
         NatifAccent(id: 7, name: "Noir", light: UIColor(natifHex: 0x1D1D1F), darkText: UIColor(natifHex: 0xF0F2F4), darkFill: UIColor(natifHex: 0x636366)),
         NatifAccent(id: 0, name: "Bleu", light: UIColor(natifHex: 0x2171CC), darkText: UIColor(natifHex: 0x6AA7F4), darkFill: UIColor(natifHex: 0x2474CF)),
@@ -62,6 +70,10 @@ struct NatifAccent: Identifiable, Equatable {
 
     /// Looked up by `id` (the stored value), not by position in `all`.
     static let blackID = 7
+    static let liquidGlassID = 8
+
+    /// Liquid Glass: drawn as a glassy gradient in the colour picker.
+    var isLiquidGlass: Bool { id == Self.liquidGlassID }
 
     static func accent(at id: Int) -> NatifAccent {
         all.first { $0.id == id } ?? all.first { $0.id == 0 } ?? all[0]
