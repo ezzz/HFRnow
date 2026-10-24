@@ -2483,7 +2483,8 @@ enum TopicPageURLRouting {
 
         let patterns = [
             "page=(\\d+)",
-            "_(\\d+)\\.htm"
+            "_(\\d+)\\.htm",
+            "liste_sujet-(\\d+)\\.htm"
         ]
         for pattern in patterns {
             guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
@@ -2524,6 +2525,11 @@ enum TopicPageURLRouting {
         }
         if let range = updated.range(of: "_\\d+\\.htm", options: .regularExpression) {
             updated.replaceSubrange(range, with: "_\(page).htm")
+            return updated
+        }
+        // Topic lists use a dash: /hfr/Hardware/liste_sujet-11.htm. A "?page=" query is ignored there.
+        if let range = updated.range(of: "liste_sujet-\\d+\\.htm", options: .regularExpression) {
+            updated.replaceSubrange(range, with: "liste_sujet-\(page).htm")
             return updated
         }
         if var components = URLComponents(string: updated) {
