@@ -29,6 +29,7 @@ License: [PolyForm Noncommercial 1.0.0](LICENSE) — no commercial use, credit t
 | `docs/FIXTURES.md` | How fixtures are captured, anonymized and used |
 | `docs/adr/` | Architecture Decision Records. A decision not in an ADR is not a decision |
 | `.github/labels.yml` | The label taxonomy (§7) — the only place labels are defined |
+| `scripts/configure-repo.sh` | Repository settings as code (protection, security features). Run by the maintainer |
 
 Legacy codebase (read-only reference): <https://github.com/francoisgn/hfrnow>.
 When a behaviour is unclear, **read the legacy code** instead of guessing, and cite the file and line in the lot spec.
@@ -126,4 +127,5 @@ Keep entries short and dated. Remove anything that became false.
 
 ### Learnings log
 
+- 2026-10-24 — Phase 0: cloud agents cannot change repository settings (proxy returns 403); settings live in `scripts/configure-repo.sh`, run by the maintainer.
 - 2026-10-24 — Phase 0: GitHub-hosted runners provide Xcode 27 only through the `xcode-27` runner label (preview). Default `macos-26` images ship Xcode 26.x and cannot build the iOS 27 target.
