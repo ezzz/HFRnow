@@ -73,8 +73,8 @@ final class ForumTopicsListViewModel: ObservableObject {
         let requestID = loadRequestID
         isLoading = true
         errorMessage = nil
-        newTopicURL = nil
-        pageInfo = .empty
+        // Keep the current rows and page info until the response arrives: clearing them made
+        // the list jump during pull-to-refresh.
         topicsLoader.fetchTopics(for: forum, flag: selectedFlag, pageURL: pageURL) { [weak self] result, error in
             guard let self else { return }
             DispatchQueue.main.async {
@@ -100,6 +100,12 @@ final class ForumTopicsListViewModel: ObservableObject {
                 }
             }
         }
+    }
+
+    /// Reloads the page currently displayed (pull-to-refresh, refresh button).
+    func reload(shouldTriggerHaptic: Bool = false) {
+        let currentURL = pageInfo.currentURL?.trimmingCharacters(in: .whitespacesAndNewlines)
+        load(pageURL: (currentURL?.isEmpty == false) ? currentURL : nil, shouldTriggerHaptic: shouldTriggerHaptic)
     }
 
     private static func isCancellationError(_ error: Error) -> Bool {
@@ -198,6 +204,12 @@ struct CategoriesListView: View {
                     .disabled(viewModel.isLoading)
                 }
             }
+            .refreshable {
+                await MainActor.run { viewModel.load(shouldTriggerHaptic: true) }
+                while await MainActor.run(body: { viewModel.isLoading }) {
+                    try? await Task.sleep(for: .milliseconds(50))
+                }
+            }
             .onAppear {
                 if !hasLoaded {
                     viewModel.load()
@@ -277,6 +289,7 @@ struct ForumTopicsListView: View {
     @State private var newTopicDraftText = ""
     @State private var isPagePickerPresented = false
     @State private var pagePickerInput = "1"
+    @State private var isRevertingLoggedOutFlag = false
 
     private let topicActionService: FavoritesTopicActionServicing
 
@@ -710,7 +723,7 @@ struct ForumTopicsListView: View {
             }
         }
         .refreshable {
-            await MainActor.run { viewModel.load(shouldTriggerHaptic: true) }
+            await MainActor.run { viewModel.reload(shouldTriggerHaptic: true) }
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                 @Sendable func checkDone() {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
@@ -756,7 +769,7 @@ struct ForumTopicsListView: View {
 
                 Button {
                     AppHaptics.refreshStarted()
-                    viewModel.load(shouldTriggerHaptic: true)
+                    viewModel.reload(shouldTriggerHaptic: true)
                 } label: {
                     if viewModel.isLoading {
                         ProgressView().controlSize(.small)
@@ -783,9 +796,15 @@ struct ForumTopicsListView: View {
             guard hasLoaded else { return }
             viewModel.load()
         }
-        .onChange(of: viewModel.selectedFlag) { _, newValue in
+        .onChange(of: viewModel.selectedFlag) { oldValue, newValue in
             if !isLoggedIn && newValue != .all {
+                // Logged out: these filters need an account. Snap back without reloading.
+                isRevertingLoggedOutFlag = true
                 viewModel.selectedFlag = .all
+                return
+            }
+            if isRevertingLoggedOutFlag {
+                isRevertingLoggedOutFlag = false
                 return
             }
             if globalTopicListFlagRawValue != newValue.rawValue {

@@ -142,7 +142,7 @@ enum MessagePopupMenuActionKind: Equatable {
         case .favorite:
             return "Favoris"
         case .link:
-            return "Link"
+            return "Lien"
         case .alert:
             return "Alerter"
         case .aq:
@@ -2606,7 +2606,7 @@ struct MessagesView: View {
         var title: String {
             switch self {
             case .reply:
-                return "Reply"
+                return "Répondre"
             case .edit:
                 return "Edition"
             case .privateMessage:
@@ -2734,7 +2734,11 @@ struct MessagesView: View {
     @State private var presentedPollData: PollData?
     @State private var showWebViewLoadCover = true
     @State private var isWebContentAtBottom = false
+    /// Refresh of the current page from the bottom button: keep the content and the button on
+    /// screen (the arrow spins) instead of blanking the page behind "Chargement…".
+    @State private var isRefreshingInPlace = false
     @State private var isMessageTextInteractionActive = false
+    @State private var isLoginRequiredAlertPresented = false
     @State private var pendingPostedReply: ReplyPostingResult?
     @State private var showPostSuccessToast = false
     @State private var postSuccessToastText = "Hooray"
@@ -3011,8 +3015,10 @@ struct MessagesView: View {
             initialScroll = overrideInitialScroll
         }
 
-        showWebViewLoadCover = true
-        isWebContentAtBottom = false
+        if !isRefreshingInPlace {
+            showWebViewLoadCover = true
+            isWebContentAtBottom = false
+        }
         errorMessage = nil
         messageActionsByIndex = [:]
 
@@ -3030,6 +3036,7 @@ struct MessagesView: View {
 
     private func completeTopicLoad(_ token: UUID) -> Bool {
         guard activeTopicLoadToken == token else { return false }
+        isRefreshingInPlace = false
         activeTopicLoadToken = nil
         topicLoadTimeoutWorkItem?.cancel()
         topicLoadTimeoutWorkItem = nil
@@ -3862,6 +3869,11 @@ struct MessagesView: View {
     }
 
     private func openReplyComposer() {
+        // Logged out: posting cannot work, explain instead of opening an empty composer.
+        guard ObjCLegacyAccountsManager.shared.currentAccountIdentity() != nil else {
+            isLoginRequiredAlertPresented = true
+            return
+        }
         activeComposerPresentationKind = .reply
         composerNavigationTitle = ComposerPresentationKind.reply.title
         composerRequiresSubject = false
@@ -4293,6 +4305,7 @@ struct MessagesView: View {
         shouldTriggerRefreshCompletionHaptic = true
         anchor = nil
         initialScroll = .bottom
+        isRefreshingInPlace = true
         loadPage(page)
     }
 
@@ -4806,8 +4819,10 @@ struct MessagesView: View {
                                     } label: {
                                         Image(systemName: "arrow.clockwise")
                                             .font(.system(size: 16, weight: .semibold))
+                                            .opacity(isRefreshingInPlace ? 0.4 : 1)
                                     }
                                     .topicBottomBarCircularIconButtonStyle(isProminent: true)
+                                    .disabled(isRefreshingInPlace)
                                     .accessibilityLabel("Actualiser")
                                     .transition(.opacity.combined(with: .scale))
                                 }
@@ -4818,7 +4833,7 @@ struct MessagesView: View {
                                     Button {
                                         openReplyComposer()
                                     } label: {
-                                        Label("New", systemImage: "plus")
+                                        Label("Répondre", systemImage: "square.and.pencil")
                                     }
                                     .topicBottomBarButtonStyle(isProminent: false)
                                 }
@@ -4850,6 +4865,11 @@ struct MessagesView: View {
                             handleSearchResult(url: url, params: params)
                         }
                     )
+                }
+                .alert("Connexion requise", isPresented: $isLoginRequiredAlertPresented) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text("Ajoutez votre compte HFR (Plus › Se connecter) pour répondre.")
                 }
                 .alert("Recherche impossible", isPresented: isSearchErrorAlertPresented) {
                     Button("OK", role: .cancel) {}
@@ -4925,7 +4945,7 @@ struct MessagesView: View {
         } else {
             content = AnyView(
                 loadingTopicView
-                .navigationTitle("My title")
+                .navigationTitle(topicDisplayTitle.isEmpty ? "Chargement" : topicDisplayTitle)
                 .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(navigationDepth > 0)
             .toolbar {
@@ -5028,7 +5048,7 @@ struct MessagesView: View {
                             Button {
                                 openReplyComposer()
                             } label: {
-                                Label("New", systemImage: "plus")
+                                Label("Répondre", systemImage: "square.and.pencil")
                             }
                             .topicBottomBarButtonStyle(isProminent: false)
                         }

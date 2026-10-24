@@ -132,8 +132,9 @@ struct BookmarksPlusView: View {
         let url = bookmark.getUrl() ?? ""
         topic.aURL = url
         topic.aURLOfLastPage = url
-        topic.curTopicPage = 1
-        topic.maxTopicPage = 1
+        let page = Int32(TopicPageURLRouting.pageNumber(from: url) ?? 1)
+        topic.curTopicPage = page
+        topic.maxTopicPage = page
         return topic
     }
 
@@ -165,10 +166,11 @@ struct BookmarksPlusView: View {
             } else {
                 ForEach(Array(viewModel.bookmarks.enumerated()), id: \.offset) { _, bookmark in
                     NavigationLink {
+                        let bookmarkTopic = makeTopic(from: bookmark)
                         MessagesView(
-                            topic: makeTopic(from: bookmark),
-                            curPage: 1,
-                            maxPage: 1,
+                            topic: bookmarkTopic,
+                            curPage: Int(bookmarkTopic.curTopicPage),
+                            maxPage: Int(bookmarkTopic.maxTopicPage),
                             separatorNewMessages: true
                         )
                         .toolbar(.hidden, for: .tabBar)

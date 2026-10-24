@@ -346,7 +346,9 @@ struct AppSettingsView: View {
             Toggle("Favoris triés par catégories", isOn: $favoritesSortedByCategories)
             Toggle("Actualisation automatique des favoris", isOn: $favoritesAutoRefresh)
             Toggle("Mode compact", isOn: $compactModeEnabled)
-            Toggle("Réduire la tab bar au scroll", isOn: $tabBarMinimizeOnScroll)
+            if UIDevice.current.userInterfaceIdiom == .phone {
+                Toggle("Réduire la tab bar au scroll", isOn: $tabBarMinimizeOnScroll)
+            }
 
             Picker("Taille du texte", selection: $textSizeScaleRawValue) {
                 ForEach(AppTextSizeScale.allCases) { option in

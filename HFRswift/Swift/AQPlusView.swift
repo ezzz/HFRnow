@@ -384,8 +384,10 @@ struct AQPlusView: View {
         let normalizedURL = normalizedForumTopicURLString(from: item.link)
         topic.aURL = normalizedURL
         topic.aURLOfLastPage = normalizedURL
-        topic.curTopicPage = 1
-        topic.maxTopicPage = 1
+        // The alert links to a precise page and post: open that page, not page 1.
+        let page = Int32(TopicPageURLRouting.pageNumber(from: normalizedURL) ?? 1)
+        topic.curTopicPage = page
+        topic.maxTopicPage = page
         return topic
     }
 
@@ -411,10 +413,11 @@ struct AQPlusView: View {
 
             ForEach(viewModel.items) { item in
                 NavigationLink {
+                    let alertTopic = topic(for: item)
                     MessagesView(
-                        topic: topic(for: item),
-                        curPage: 1,
-                        maxPage: 1,
+                        topic: alertTopic,
+                        curPage: Int(alertTopic.curTopicPage),
+                        maxPage: Int(alertTopic.maxTopicPage),
                         separatorNewMessages: true
                     )
                     .toolbar(.hidden, for: .tabBar)
