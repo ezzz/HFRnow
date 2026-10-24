@@ -162,7 +162,7 @@ final class HFRSwiftOrientationPolicy: NSObject {
     private static var answerViewLockCount = 0
 
     @objc static func supportedInterfaceOrientations() -> UIInterfaceOrientationMask {
-        guard UIDevice.current.userInterfaceIdiom == .phone else {
+        guard UIDevice.current.userInterfaceIdiom == .phone, !isShowingExpandedPhoneLayout else {
             return .all
         }
         guard AppScreenRotation.isEnabled else {
@@ -183,6 +183,14 @@ final class HFRSwiftOrientationPolicy: NSObject {
         refreshSupportedOrientations()
     }
 
+    /// iPhone Duo inner display: regular width and height on a `.phone` idiom. The system ignores
+    /// supported orientations there, so the portrait locks only apply once the device is folded.
+    private static var isShowingExpandedPhoneLayout: Bool {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .contains { $0.traitCollection.horizontalSizeClass == .regular && $0.traitCollection.verticalSizeClass == .regular }
+    }
+
     static func refreshSupportedOrientations() {
         guard UIDevice.current.userInterfaceIdiom == .phone else { return }
 
@@ -190,6 +198,11 @@ final class HFRSwiftOrientationPolicy: NSObject {
             guard let windowScene = scene as? UIWindowScene else { continue }
             windowScene.windows.forEach {
                 $0.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+            }
+
+            let traits = windowScene.traitCollection
+            if traits.horizontalSizeClass == .regular && traits.verticalSizeClass == .regular {
+                continue
             }
 
             if #available(iOS 16.0, *) {
@@ -261,6 +274,47 @@ extension View {
         } else {
             self
         }
+    }
+
+    /// Workaround for an iOS 27.1 hang on the iPhone Duo inner display: once a large title has
+    /// collapsed on scroll, the next push loops forever in `UINavigationController` layout.
+    /// Applied to each tab's root view; pushed views inherit the inline mode. Also used on iPad in
+    /// regular width, where a large title next to the root sidebar loses its leading margin.
+    func expandedPhoneInlineNavigationTitle() -> some View {
+        modifier(ExpandedPhoneInlineNavigationTitle())
+    }
+}
+
+/// Refresh icon for toolbar buttons that spins while loading. Keep the button content stable:
+/// swapping the label for a `ProgressView` during a push makes the Liquid Glass toolbar morph
+/// balloon into a huge white circle on the iPhone Duo inner display.
+struct ToolbarRefreshIcon: View {
+    let isLoading: Bool
+
+    var body: some View {
+        if #available(iOS 18.0, *) {
+            Image(systemName: "arrow.clockwise")
+                .symbolEffect(.rotate, options: .repeating, isActive: isLoading)
+        } else {
+            Image(systemName: "arrow.clockwise")
+                .opacity(isLoading ? 0.4 : 1)
+        }
+    }
+}
+
+private struct ExpandedPhoneInlineNavigationTitle: ViewModifier {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+
+    private var isExpandedPhoneLayout: Bool {
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            return horizontalSizeClass == .regular
+        }
+        return horizontalSizeClass == .regular && verticalSizeClass == .regular
+    }
+
+    func body(content: Content) -> some View {
+        content.navigationBarTitleDisplayMode(isExpandedPhoneLayout ? .inline : .automatic)
     }
 }
 
@@ -1576,6 +1630,7 @@ final class ObjCForumTopicsLoader: ForumTopicsLoading {
             "pageNumber": numberValue(controller.value(forKey: "pageNumber")),
             "firstPageNumber": numberValue(controller.value(forKey: "firstPageNumber")),
             "lastPageNumber": numberValue(controller.value(forKey: "lastPageNumber")),
+            "lastPageNumberIsExact": (controller.value(forKey: "lastPageNumberIsExact") as? NSNumber)?.boolValue ?? true,
             "resultCount": resultCount
         ]
         return ForumSearchPageInfo(raw: raw)
@@ -2483,7 +2538,8 @@ enum TopicPageURLRouting {
 
         let patterns = [
             "page=(\\d+)",
-            "_(\\d+)\\.htm"
+            "_(\\d+)\\.htm",
+            "liste_sujet-(\\d+)\\.htm"
         ]
         for pattern in patterns {
             guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
@@ -2524,6 +2580,11 @@ enum TopicPageURLRouting {
         }
         if let range = updated.range(of: "_\\d+\\.htm", options: .regularExpression) {
             updated.replaceSubrange(range, with: "_\(page).htm")
+            return updated
+        }
+        // Topic lists use a dash: /hfr/Hardware/liste_sujet-11.htm. A "?page=" query is ignored there.
+        if let range = updated.range(of: "liste_sujet-\\d+\\.htm", options: .regularExpression) {
+            updated.replaceSubrange(range, with: "liste_sujet-\(page).htm")
             return updated
         }
         if var components = URLComponents(string: updated) {
@@ -2586,58 +2647,56 @@ private struct TopicPagePickerSheetToken: Identifiable {
     let id = UUID()
 }
 
-private struct TopicPagePickerQuickButton: View {
-    let title: String?
-    let systemImage: String?
-    let accessibilityLabel: String
+private struct PagePickerShortcut: View {
+    let title: String
+    let systemImage: String
     let action: () -> Void
-
-    @Environment(\.appThemePalette) private var themePalette
+    @Environment(\.natif) private var natif
 
     var body: some View {
         Button(action: action) {
-            Group {
-                if let title {
-                    Text(title)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(themePalette.actionTintColor)
-                } else if let systemImage {
-                    Image(systemName: systemImage)
-                        .font(.headline)
-                        .foregroundStyle(themePalette.actionTintColor)
-                }
-            }
-            .frame(maxWidth: .infinity, minHeight: 36)
+            Label(title, systemImage: systemImage)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(natif.accent)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .background(Capsule().fill(natif.surface))
         }
-        .buttonStyle(.bordered)
-        .tint(Color(uiColor: .systemGray3))
-        .accessibilityLabel(accessibilityLabel)
+        .buttonStyle(.plain)
     }
 }
 
 struct TopicPagePickerSheet: View {
     let maxPage: Int
+    /// `maxPage` is only the farthest linked page (forum topic lists): shown as "500+", and any
+    /// page number can be typed.
+    var isMaxPageApproximate = false
     @Binding var pageInput: String
     let onSubmit: (Int) -> Void
 
+    static let approximateUpperBound = 99_999
+
+    private var inputUpperBound: Int {
+        isMaxPageApproximate ? max(maxPage, Self.approximateUpperBound) : maxPage
+    }
+
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.natif) private var natif
 
     private var trimmedInput: String {
         pageInput.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private var resolvedPage: Int {
-        let fallback = min(max(1, Int(trimmedInput) ?? 1), maxPage)
-        return min(max(fallback, 1), maxPage)
+        min(max(Int(trimmedInput) ?? 1, 1), inputUpperBound)
     }
 
     private var isInputValid: Bool {
         guard let page = Int(trimmedInput) else { return false }
-        return (1...maxPage).contains(page)
+        return (1...inputUpperBound).contains(page)
     }
 
     private func setPage(_ page: Int) {
-        let clampedPage = min(max(page, 1), maxPage)
+        let clampedPage = min(max(page, 1), inputUpperBound)
         pageInput = "\(clampedPage)"
     }
 
@@ -2650,92 +2709,72 @@ struct TopicPagePickerSheet: View {
         dismiss()
     }
 
+    private var sliderValue: Binding<Double> {
+        Binding {
+            Double(min(resolvedPage, maxPage))
+        } set: { newValue in
+            setPage(Int(newValue.rounded()))
+        }
+    }
+
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Choisir une page entre 1 et \(maxPage)")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+            VStack(spacing: 20) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    TextField("Page", text: $pageInput)
+                        .keyboardType(.numberPad)
+                        .font(.largeTitle.weight(.semibold).monospacedDigit())
+                        .multilineTextAlignment(.center)
+                        .fixedSize()
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 6)
+                        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(natif.surface2))
+                        .accessibilityLabel("Numéro de page")
+                    Text(isMaxPageApproximate ? "/ \(maxPage.formatted())+" : "/ \(maxPage.formatted())")
+                        .font(.title2.monospacedDigit())
+                        .foregroundStyle(natif.text2)
+                }
+
+                if maxPage > 1 {
+                    Slider(value: sliderValue, in: 1...Double(maxPage), step: 1)
+                        .accessibilityLabel("Page")
+                }
 
                 HStack(spacing: 10) {
-                    TopicPagePickerQuickButton(
-                        title: nil,
-                        systemImage: "backward.end",
-                        accessibilityLabel: "Première page"
-                    ) {
+                    PagePickerShortcut(title: "Première", systemImage: "chevron.left.to.line") {
                         setPage(1)
                     }
-
-                    TextField("1...\(maxPage)", text: $pageInput)
-                        .keyboardType(.numberPad)
-                        .font(.body.monospacedDigit())
-                        .textFieldStyle(.roundedBorder)
-                        .multilineTextAlignment(.center)
-
-                    TopicPagePickerQuickButton(
-                        title: nil,
-                        systemImage: "forward.end",
-                        accessibilityLabel: "Dernière page"
+                    PagePickerShortcut(
+                        title: isMaxPageApproximate ? "Page \(maxPage.formatted())" : "Dernière",
+                        systemImage: "chevron.right.to.line"
                     ) {
                         setPage(maxPage)
                     }
                 }
 
-                HStack(spacing: 10) {
-                    TopicPagePickerQuickButton(
-                        title: "-10",
-                        systemImage: nil,
-                        accessibilityLabel: "Dix pages en moins"
-                    ) {
-                        offsetPage(by: -10)
-                    }
-                    TopicPagePickerQuickButton(
-                        title: "-1",
-                        systemImage: nil,
-                        accessibilityLabel: "Une page en moins"
-                    ) {
-                        offsetPage(by: -1)
-                    }
-                    TopicPagePickerQuickButton(
-                        title: "+1",
-                        systemImage: nil,
-                        accessibilityLabel: "Une page en plus"
-                    ) {
-                        offsetPage(by: 1)
-                    }
-                    TopicPagePickerQuickButton(
-                        title: "+10",
-                        systemImage: nil,
-                        accessibilityLabel: "Dix pages en plus"
-                    ) {
-                        offsetPage(by: 10)
-                    }
+                Button(action: submit) {
+                    Text("Aller")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity, minHeight: 50)
+                        .background(Capsule().fill(natif.accentFill))
                 }
+                .buttonStyle(.plain)
+                .disabled(!isInputValid)
+                .opacity(isInputValid ? 1 : 0.5)
             }
             .padding(20)
-            .navigationTitle("Page numéro")
+            .navigationTitle("Aller à la page")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button {
+                    Button("Fermer", systemImage: "xmark") {
                         dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.footnote.bold())
                     }
-                    .buttonBorderShape(.circle)
-                    .accessibilityLabel("Fermer")
-                }
-
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Valider") {
-                        submit()
-                    }
-                    .disabled(!isInputValid)
                 }
             }
         }
-        .presentationDetents([.height(260)])
+        .presentationDetents([.medium])
         .presentationDragIndicator(.visible)
         .onAppear {
             if trimmedInput.isEmpty {
@@ -2776,7 +2815,9 @@ struct MenuActionLabel: View {
 
     private var iconTintColor: UIColor {
         if let iconTintUIColor { return iconTintUIColor }
-        return role == .destructive ? UIColor.systemRed : UIColor.label
+        if role == .destructive { return UIColor.systemRed }
+        // Menu icons follow the "Couleur" setting like every other icon.
+        return NatifAppearance.tokens(for: UITraitCollection.current.userInterfaceStyle == .dark ? .dark : .light).uiAccent
     }
 
     private var menuIconImage: UIImage? {
@@ -2804,6 +2845,44 @@ struct MenuActionLabel: View {
     }
 }
 
+private struct TopicRowSwipeActions: ViewModifier {
+    let isEnabled: Bool
+    let showsPageActions: Bool
+    let onMarkRead: (() -> Void)?
+    let onRemove: (() -> Void)?
+    let isRemoveDisabled: Bool
+    let onLastPage: () -> Void
+    @Environment(\.natif) private var natif
+
+    func body(content: Content) -> some View {
+        if isEnabled {
+            content
+                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                    if let onMarkRead {
+                        Button("Lu", systemImage: "checkmark.message") {
+                            AppHaptics.impact(.light)
+                            onMarkRead()
+                        }
+                        .tint(natif.accentFill)
+                    }
+                    // No "Première page" here: a leading action steals the edge swipe back.
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    if let onRemove {
+                        Button("Retirer", systemImage: "trash", role: .destructive, action: onRemove)
+                            .disabled(isRemoveDisabled)
+                    }
+                    if showsPageActions {
+                        Button("Dernière page", systemImage: "forward.end", action: onLastPage)
+                            .tint(natif.accentFill)
+                    }
+                }
+        } else {
+            content
+        }
+    }
+}
+
 struct TopicListRowView: View {
     let topic: Topic
     let isVisited: Bool
@@ -2818,17 +2897,30 @@ struct TopicListRowView: View {
     var trailingBottomText: String?
     var detailText: String?
     var detailContent: AnyView?
-    var rowBackgroundTint: Color?
-    var contentPadding: EdgeInsets = EdgeInsets(top: 6, leading: 8, bottom: 6, trailing: 8)
-    var rowBackgroundOverflow: EdgeInsets = EdgeInsets()
+    var contentPadding: EdgeInsets = EdgeInsets(top: 12, leading: 0, bottom: 12, trailing: 0)
+    /// Shows the unread dot / followed ring gutter (topic lists and favorites).
+    var showsStatusGutter = true
+    /// Overrides the status derived from the unread count (e.g. private messages).
+    var forcedStatus: NatifTopicStatus?
+    /// Mail-like first line (private messages): correspondent on the left, time on the right.
+    var headerText: String?
+    var headerTrailingText: String?
     var leadingAccessory: AnyView?
     var openContext: TopicOpenContext = .generic
     var quickActions: TopicQuickActionsConfiguration?
     var extraContextMenu: (() -> AnyView)?
+    /// Swipe actions of the forum topic lists: "Lu" / "Retirer" for flagged topics, and "Dernière
+    /// page" for every topic, so that a swipe to the left never falls through to the row button
+    /// (it opened the topic when the row had no action).
+    var showsPageSwipeActions = false
+    var onSwipeMarkRead: (() -> Void)?
+    var onSwipeRemove: (() -> Void)?
+    var isSwipeRemoveDisabled = false
     var onOpen: ((String?) -> Void)?
-    @Environment(\.appThemePalette) private var themePalette
+    @Environment(\.natif) private var natif
     @AppStorage(AppTextSizeScale.key) private var textSizeScaleRawValue = AppTextSizeScale.standard.rawValue
-    @ScaledMetric(relativeTo: .body) private var scaledTitleBaseSize: CGFloat = 13
+    @AppStorage(AppLayoutCompactMode.key) private var isCompactMode = false
+    @ScaledMetric(relativeTo: .headline) private var scaledTitleBaseSize: CGFloat = 16
     @ScaledMetric(relativeTo: .footnote) private var scaledFooterBaseSize: CGFloat = 13
 
     @State private var navigateToTarget = false
@@ -2848,16 +2940,23 @@ struct TopicListRowView: View {
         AppTextSizeScale.value(for: textSizeScaleRawValue).factor
     }
 
+    /// Natif TopicRow: 16/600 title (15 in compact mode), scaled by Dynamic Type and the app text size.
     private var resolvedTitleFont: Font {
-        if let titleBaseSize {
-            let normalizedBaseSize = scaledTitleBaseSize * (titleBaseSize / 13)
-            return .system(size: normalizedBaseSize * appTextSizeFactor, weight: titleWeight)
+        if titleBaseSize != nil || titleFont == nil {
+            let base = isCompactMode ? scaledTitleBaseSize * 15 / 16 : scaledTitleBaseSize
+            return .system(size: base * appTextSizeFactor, weight: titleWeight)
         }
         return titleFont ?? .headline
     }
 
     private var resolvedFooterFont: Font {
-        .system(size: scaledFooterBaseSize * appTextSizeFactor)
+        .system(size: (isCompactMode ? scaledFooterBaseSize * 12 / 13 : scaledFooterBaseSize) * appTextSizeFactor)
+    }
+
+    private var status: NatifTopicStatus? {
+        if let forcedStatus { return forcedStatus }
+        guard showUnreadBadge else { return nil }
+        return unreadCount > 0 ? .unread : .followed
     }
 
     private var maxTopicPageValue: Int {
@@ -2890,18 +2989,6 @@ struct TopicListRowView: View {
 
     private var searchMatchURL: String? {
         TopicPageURLRouting.searchMatchURL(from: topic.sLastSearchPostURL)
-    }
-
-    private var unreadBadgeTextColor: Color {
-        themePalette.unreadBadgeTextColor(isVisited: isVisited)
-    }
-
-    private var unreadBadgeBackgroundColor: Color {
-        themePalette.unreadBadgeBackgroundColor(isVisited: isVisited)
-    }
-
-    private var stickySymbolColor: Color {
-        themePalette.stickyAccentColor
     }
 
     private func nonEmptyString(_ value: String?) -> String? {
@@ -3096,38 +3183,61 @@ struct TopicListRowView: View {
         Button {
             openDefaultTopic()
         } label: {
-            HStack(alignment: .top, spacing: 10) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                if showsStatusGutter {
+                    NatifStatusIndicator(status: status)
+                        .alignmentGuide(.firstTextBaseline) { dimensions in
+                            dimensions[VerticalAlignment.center] + 4
+                        }
+                }
                 if let leadingAccessory {
                     leadingAccessory
+                        .alignmentGuide(.firstTextBaseline) { dimensions in
+                            dimensions[VerticalAlignment.center] + 4
+                        }
                 }
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: isCompactMode ? 2 : 4) {
+                    if headerText != nil || headerTrailingText != nil {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            if let headerText {
+                                Text(headerText)
+                                    .font(.headline)
+                                    .foregroundStyle(natif.text)
+                                    .lineLimit(1)
+                            }
+                            Spacer(minLength: 8)
+                            if let headerTrailingText {
+                                Text(headerTrailingText)
+                                    .font(.subheadline)
+                                    .foregroundStyle(natif.text2)
+                                    .lineLimit(1)
+                            }
+                        }
+                    }
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         if topic.isSticky {
                             Image(systemName: "pin.fill")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(stickySymbolColor)
+                                .font(.subheadline)
+                                .foregroundStyle(natif.text2)
+                                .accessibilityLabel("Épinglé")
                         }
                         if topic.isClosed {
                             Image(systemName: "lock.fill")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.secondary)
+                                .font(.subheadline)
+                                .foregroundStyle(natif.text2)
+                                .accessibilityLabel("Verrouillé")
                         }
                         if let titleLeadingBadge {
                             titleLeadingBadge
                         }
                         Text(titleText)
                             .font(resolvedTitleFont)
-                            .foregroundStyle(isVisited ? .secondary : .primary)
-                        Spacer()
+                            .foregroundStyle(natif.text)
+                            .lineSpacing(2)
+                            .lineLimit(isCompactMode ? 1 : 2)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         if showUnreadBadge && (showUnreadBadgeWhenZero || unreadCount > 0) {
-                            Text("\(unreadCount)")
-                                .font(.caption2)
-                                .bold()
-                                .padding(.horizontal, 4)
-                                .padding(.vertical, 2)
-                                .frame(minWidth: 20)
-                                .background(Capsule().fill(unreadBadgeBackgroundColor))
-                                .foregroundStyle(unreadBadgeTextColor)
+                            NatifCountCapsule(count: unreadCount)
                         }
                     }
 
@@ -3136,38 +3246,29 @@ struct TopicListRowView: View {
                     } else if let detailText, !detailText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                         Text(detailText)
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(natif.text2)
                             .lineLimit(3)
                     }
 
                     if leadingBottomText != nil || trailingBottomText != nil {
-                        HStack {
+                        HStack(spacing: 8) {
                             if let leadingBottomText {
                                 Text(leadingBottomText)
-                                    .font(resolvedFooterFont)
-                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
                             }
-                            Spacer()
+                            Spacer(minLength: 8)
                             if let trailingBottomText {
                                 Text(trailingBottomText)
-                                    .font(resolvedFooterFont)
-                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
                             }
                         }
+                        .font(resolvedFooterFont)
+                        .foregroundStyle(natif.text2)
                     }
                 }
             }
-            .padding(contentPadding)
-            .background {
-                if let rowBackgroundTint {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(rowBackgroundTint)
-                        .padding(.top, -rowBackgroundOverflow.top)
-                        .padding(.leading, -rowBackgroundOverflow.leading)
-                        .padding(.bottom, -rowBackgroundOverflow.bottom)
-                        .padding(.trailing, -rowBackgroundOverflow.trailing)
-                }
-            }
+            .padding(isCompactMode ? EdgeInsets(top: 8, leading: contentPadding.leading, bottom: 8, trailing: contentPadding.trailing) : contentPadding)
+            .frame(minHeight: 44)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -3179,6 +3280,14 @@ struct TopicListRowView: View {
                 extraContextMenu()
             }
         }
+        .modifier(TopicRowSwipeActions(
+            isEnabled: showsPageSwipeActions || onSwipeMarkRead != nil || onSwipeRemove != nil,
+            showsPageActions: showsPageSwipeActions && firstPageURL != nil,
+            onMarkRead: onSwipeMarkRead,
+            onRemove: onSwipeRemove,
+            isRemoveDisabled: isSwipeRemoveDisabled,
+            onLastPage: openLastPageAction
+        ))
         .background {
             NavigationLink(
                 "",

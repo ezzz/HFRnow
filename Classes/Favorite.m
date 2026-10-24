@@ -98,7 +98,7 @@
     
     [aTopic setATitle:aTopicTitle];
     
-    NSString *aTopicURL = [[NSString alloc] initWithString:[[topicTitleNode findChildTag:@"a"] getAttributeNamed:@"href"]];
+    NSString *aTopicURL = [[[topicTitleNode findChildTag:@"a"] getAttributeNamed:@"href"] copy];
     [aTopic setAURLOfFirstPage:aTopicURL];
 
     
@@ -109,10 +109,10 @@
     //Author & Url of Last Post & Date
     HTMLNode * lastRepNode = [topicNode findChildWithAttribute:@"class" matchingName:@"sujetCase9" allowPartial:YES];		
     HTMLNode * linkLastRepNode = [lastRepNode firstChild];
-    NSString *aAuthorOfLastPost = [[NSString alloc] initWithString:[[linkLastRepNode findChildTag:@"b"] contents]];
+    NSString *aAuthorOfLastPost = [[[linkLastRepNode findChildTag:@"b"] contents] copy];
     [aTopic setAAuthorOfLastPost:aAuthorOfLastPost];
     
-    NSString *aURLOfLastPost = [[NSString alloc] initWithString:[linkLastRepNode getAttributeNamed:@"href"]];
+    NSString *aURLOfLastPost = [[linkLastRepNode getAttributeNamed:@"href"] copy];
     [aTopic setAURLOfLastPost:aURLOfLastPost];
     
     
@@ -151,7 +151,7 @@
     //URL of Last Page
     HTMLNode * topicLastPageNode = [[topicNode findChildWithAttribute:@"class" matchingName:@"sujetCase4" allowPartial:NO] findChildTag:@"a"];
     if (topicLastPageNode) {
-        NSString *aURLOfLastPage = [[NSString alloc] initWithString:[topicLastPageNode getAttributeNamed:@"href"]];
+        NSString *aURLOfLastPage = [[topicLastPageNode getAttributeNamed:@"href"] copy];
         [aTopic setAURLOfLastPage:aURLOfLastPage];
         [aTopic setMaxTopicPage:[[topicLastPageNode contents] intValue]];            
     }
@@ -166,14 +166,14 @@
     
     if (!topicFlagLinkNode) {
         // Si pas de dernier topic = url = last page
-        NSString *aTopicURL = [[NSString alloc] initWithString:[linkLastRepNode getAttributeNamed:@"href"]];
+        NSString *aTopicURL = [[linkLastRepNode getAttributeNamed:@"href"] copy];
         [aTopic setAURL:aTopicURL];
         
         [aTopic setIsViewed:YES];
     }
     else
     {
-        NSString *aTopicURL = [[NSString alloc] initWithString:[topicFlagLinkNode getAttributeNamed:@"href"]];
+        NSString *aTopicURL = [[topicFlagLinkNode getAttributeNamed:@"href"] copy];
         [aTopic setAURL:aTopicURL];
     }
 

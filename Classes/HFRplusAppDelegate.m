@@ -77,6 +77,7 @@ static NSString * const HFRSwiftNotificationDestinationMessages = @"messages";
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {    
 
     NSLog(@"[AppInit] didFinishLaunchingWithOptions");
+    [NatifUIKitAppearance apply];
     
     [[UIApplication sharedApplication] setStatusBarHidden:NO withAnimation:YES];
 
@@ -354,7 +355,7 @@ static NSString * const HFRSwiftNotificationDestinationMessages = @"messages";
 
 -(void)setThemeFromNotification:(NSNotification *)notification{
     [self setTheme:[[ThemeManager sharedManager] theme]];
-    UISegmentedControl.appearance.selectedSegmentTintColor = [ThemeUserColorStore dynamicActionTintColor];
+    [NatifUIKitAppearance apply];
 }
 
 -(void)setTheme:(Theme)theme{
@@ -374,8 +375,14 @@ static NSString * const HFRSwiftNotificationDestinationMessages = @"messages";
         [[UITabBar appearance] setTranslucent:YES];
     }
     
+#if APP_SWIFT
+    // Dynamic color: appearance proxies only reach bars created later, so a fixed color stayed
+    // dark-on-dark on already visible bars after a live theme switch.
+    [[UINavigationBar appearance] setTitleTextAttributes:@{NSForegroundColorAttributeName : [UIColor labelColor]}];
+#else
     [[UINavigationBar appearance] setTitleTextAttributes:@{NSForegroundColorAttributeName : [ThemeColors titleTextAttributesColor:theme]}];
-    
+#endif
+
     if ([[NSUserDefaults standardUserDefaults] boolForKey:@"theme_noel_disabled"]) {
         [[UINavigationBar appearance] setBackgroundImage:[ThemeColors imageFromColor:[UIColor clearColor]] forBarMetrics:UIBarMetricsDefault];
     }else{

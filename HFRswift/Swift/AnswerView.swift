@@ -57,6 +57,7 @@ struct AnswerView: View {
 
     // MARK: Environment
     @Environment(\.appThemePalette) private var themePalette
+    @Environment(\.natif) private var natif
     @Environment(\.dismiss) private var dismiss
     @AppStorage(AppTextSizeScale.key) private var textSizeScaleRawValue = AppTextSizeScale.standard.rawValue
 
@@ -333,6 +334,7 @@ struct AnswerView: View {
         ZStack {
             Text(title)
                 .font(.headline)
+                .foregroundStyle(natif.text)
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .padding(.horizontal, 96)
@@ -349,20 +351,15 @@ struct AnswerView: View {
 
                 Spacer()
 
+                // The symbol stays the same while sending and pulses (Natif rule: no spinner swap).
                 Button { Task { await postMessage() } } label: {
-                    if isPosting {
-                        ProgressView()
-                            .controlSize(.small)
-                            .frame(width: 18, height: 18)
-                            .padding(8)
-                    } else {
-                        Image(systemName: "arrow.up")
-                            .font(.system(size: 16, weight: .bold))
-                            .frame(width: 18, height: 18)
-                            .padding(8)
-                    }
+                    Image(systemName: "arrow.up")
+                        .font(.system(size: 16, weight: .bold))
+                        .symbolEffect(.pulse, options: .repeating, isActive: isPosting)
+                        .frame(width: 18, height: 18)
+                        .padding(8)
                 }
-                .disabled(!canSend)
+                .disabled(!canSend || isPosting)
                 .composerSendButtonStyle(isEnabled: canSend)
                 .accessibilityLabel("Envoyer")
             }
@@ -854,6 +851,15 @@ struct AnswerView: View {
 
 // MARK: - Toolbar components
 
+/// Editor on the theme surface (glass made the BBCode hard to read on busy backgrounds).
+private struct NatifComposerEditorBackground: ViewModifier {
+    @Environment(\.natif) private var natif
+
+    func body(content: Content) -> some View {
+        content.background(natif.surface, in: .rect(cornerRadius: 18))
+    }
+}
+
 private struct ComposerToolbarGroup<Content: View>: View {
     @ViewBuilder let content: Content
 
@@ -927,7 +933,7 @@ private extension View {
     @ViewBuilder
     func composerEditorStyle() -> some View {
         if #available(iOS 26.0, *) {
-            self.glassEffect(in: .rect(cornerRadius: 18))
+            self.modifier(NatifComposerEditorBackground())
         } else {
             self
                 .background(Color(uiColor: .secondarySystemBackground), in: .rect(cornerRadius: 18))

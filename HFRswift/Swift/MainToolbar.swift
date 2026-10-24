@@ -44,13 +44,7 @@ struct MainToolbarContent<MenuItems: View>: ToolbarContent {
                 AppHaptics.refreshStarted()
                 onRefresh()
             } label: {
-                if isLoading {
-                    ProgressView()
-                        .controlSize(.small)
-                } else {
-                    Image(systemName: "arrow.clockwise")
-                        .foregroundStyle(.primary)
-                }
+                ToolbarRefreshIcon(isLoading: isLoading)
             }
             .disabled(isLoading)
         }

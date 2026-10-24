@@ -34,13 +34,23 @@ enum StaticInfoPageKind {
 struct StaticInfoPageView: View {
     let kind: StaticInfoPageKind
     @ObservedObject private var appTheme = AppThemeStore.shared
+    @Environment(\.natif) private var natif
+
+    /// Natif background (pure black in OLED), text and links in the chosen colour.
+    private var natifCSS: String {
+        let background = UIColor(natif.bg).natifCSSHex
+        let text = UIColor(natif.text).natifCSSHex
+        let link = natif.uiAccent.natifCSSHex
+        return "html, body { background: \(background) !important; color: \(text) !important; } a, a:visited { color: \(link) !important; }"
+    }
 
     var body: some View {
         StaticHTMLWebView(
             filename: kind.filename,
             theme: appTheme.resolvedLegacyTheme,
-            backgroundColor: appTheme.palette.staticPageBackgroundUIColor,
-            themeRevision: appTheme.themeRevision
+            backgroundColor: UIColor(natif.bg),
+            themeRevision: appTheme.themeRevision,
+            extraCSS: natifCSS
         )
             .navigationTitle(kind.title)
             .navigationBarTitleDisplayMode(.inline)
@@ -52,6 +62,7 @@ private struct StaticHTMLWebView: UIViewRepresentable {
     let theme: Theme
     let backgroundColor: UIColor
     let themeRevision: Int
+    let extraCSS: String
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -66,6 +77,7 @@ private struct StaticHTMLWebView: UIViewRepresentable {
         context.coordinator.lastFilename = filename
         context.coordinator.lastThemeRevision = themeRevision
         context.coordinator.currentTheme = theme
+        context.coordinator.extraCSS = extraCSS
         context.coordinator.loadHTML(filename: filename, theme: theme, into: webView)
         return webView
     }
@@ -78,6 +90,8 @@ private struct StaticHTMLWebView: UIViewRepresentable {
         let didChangeFile = coordinator.lastFilename != filename
         let didChangeTheme = coordinator.currentTheme != theme
         let didChangeRevision = coordinator.lastThemeRevision != themeRevision
+        let didChangeCSS = coordinator.extraCSS != extraCSS
+        coordinator.extraCSS = extraCSS
 
         coordinator.lastFilename = filename
         coordinator.lastThemeRevision = themeRevision
@@ -85,7 +99,7 @@ private struct StaticHTMLWebView: UIViewRepresentable {
 
         if didChangeFile {
             coordinator.loadHTML(filename: filename, theme: theme, into: webView)
-        } else if didChangeTheme || didChangeRevision {
+        } else if didChangeTheme || didChangeRevision || didChangeCSS {
             coordinator.applyTheme(theme: theme, to: webView)
         }
     }
@@ -94,6 +108,7 @@ private struct StaticHTMLWebView: UIViewRepresentable {
         var lastFilename: String?
         var lastThemeRevision: Int = -1
         var currentTheme: Theme = ThemeLight
+        var extraCSS = ""
 
         func loadHTML(filename: String, theme: Theme, into webView: WKWebView) {
             guard let htmlPath = Bundle.main.path(forResource: filename, ofType: "html") else {
@@ -157,7 +172,7 @@ private struct StaticHTMLWebView: UIViewRepresentable {
         }
 
         private func currentCreditsCSS(theme: Theme) -> String {
-            ThemeUserColorStore.creditsCSS(forLegacyThemeValue: theme == ThemeDark ? 1 : 0)
+            ThemeUserColorStore.creditsCSS(forLegacyThemeValue: theme == ThemeDark ? 1 : 0) + " " + extraCSS
         }
     }
 }

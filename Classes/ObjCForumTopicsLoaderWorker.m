@@ -147,6 +147,7 @@
 
     self.firstPageNumber = 1;
     self.lastPageNumber = 1;
+    self.lastPageNumberIsExact = YES;
     self.firstPageUrl = nil;
     self.lastPageUrl = nil;
     self.nextPageUrl = nil;

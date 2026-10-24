@@ -59,12 +59,12 @@
 		
 		//Title
 		HTMLNode * topicNode = [temporaryForumArray objectAtIndex:1];		
-		NSString *aForumTitle = [[NSString alloc] initWithString:[[[topicNode findChildTag:@"b"] allContents] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]]];
+		NSString *aForumTitle = [[[[topicNode findChildTag:@"b"] allContents] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] copy];
 		[aForum setATitle:aForumTitle];
 
   
 		//URL
-		NSString *aForumURL = [[NSString alloc] initWithString:[[topicNode findChildWithAttribute:@"class" matchingName:@"cCatTopic" allowPartial:YES] getAttributeNamed:@"href"]];
+		NSString *aForumURL = [[[topicNode findChildWithAttribute:@"class" matchingName:@"cCatTopic" allowPartial:YES] getAttributeNamed:@"href"] copy];
 		
 		if ([aForumURL isEqualToString:@"/hfr/AchatsVentes/Hardware/liste_sujet-1.htm"]) {
 			[aForum setAURL:@"/hfr/AchatsVentes/liste_sujet-1.htm"];
@@ -101,11 +101,11 @@
                     Forum *aSubForum = [[Forum alloc] init];
 
                     //Title
-                    NSString *aSubForumTitle = [[NSString alloc] initWithString:[[subForumNode allContents] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]]];
+                    NSString *aSubForumTitle = [[[subForumNode allContents] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] copy];
                     [aSubForum setATitle:aSubForumTitle];
 
                     //URL
-                    NSString *aSubForumURL = [[NSString alloc] initWithString:[subForumNode getAttributeNamed:@"href"]];
+                    NSString *aSubForumURL = [[subForumNode getAttributeNamed:@"href"] copy];
                     [aSubForum setAURL:aSubForumURL];
                     
                     if ([aSubForum.aURL isEqualToString:@"/hfr/Programmation/API-Win32/liste_sujet-1.htm"]) {
