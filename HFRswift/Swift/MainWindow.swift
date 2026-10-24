@@ -170,31 +170,29 @@ struct CategoriesListView: View {
                         .foregroundStyle(.red)
                 }
                 if !viewModel.isLoading && viewModel.forums.isEmpty && viewModel.errorMessage == nil {
-                    Text("Aucune categorie")
+                    Text("Aucune catégorie")
                         .foregroundStyle(.secondary)
                 }
-                ForEach(viewModel.forums) { forum in
-                    NavigationLink {
-                        ForumTopicsListView(
-                            forum: forum,
-                            accountsStore: accountsStore
-                        )
-                    } label: {
-                        HStack(spacing: 12) {
-                            ForumCategoryIconView(forum: forum)
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(forum.aTitle ?? "Forum")
-                                if let subForums = forum.subCats as? [Forum], !subForums.isEmpty {
-                                    Text("\(subForums.count) sous-forums")
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
-                                }
+                ForEach(forumSections, id: \.group) { section in
+                    Section {
+                        ForEach(section.forums) { forum in
+                            NavigationLink {
+                                ForumTopicsListView(
+                                    forum: forum,
+                                    accountsStore: accountsStore
+                                )
+                            } label: {
+                                CategoryRow(forum: forum)
                             }
+                            .natifCellBackground()
                         }
+                    } header: {
+                        Text(section.group.title)
                     }
                 }
             }
+            .listStyle(.insetGrouped)
+            .natifGroupedListBackground()
             .navigationTitle("Catégories")
             .expandedPhoneInlineNavigationTitle()
             .toolbar {
@@ -251,6 +249,16 @@ struct CategoriesListView: View {
             } message: {
                 Text("Déconnecter le compte courant ?")
             }
+        }
+    }
+
+    /// Forums grouped as in the Natif design (Matériel, Multimédia, Logiciels & réseaux, Communauté),
+    /// keeping the forum order inside each group.
+    private var forumSections: [(group: NatifForumGroup, forums: [Forum])] {
+        let grouped = Dictionary(grouping: viewModel.forums) { NatifForumCatalog.group(for: $0.aTitle) }
+        return NatifForumGroup.allCases.compactMap { group in
+            guard let forums = grouped[group], !forums.isEmpty else { return nil }
+            return (group, forums)
         }
     }
 
@@ -431,25 +439,6 @@ struct ForumTopicsListView: View {
             return "⚑\(pollSuffix) \(currentPage) / \(maxPage)"
         }
         return "\(maxPage) \(pageLabel)\(pollSuffix)"
-    }
-
-    private func rowBackgroundTint(for topic: Topic) -> Color? {
-        if !topicHasFlag(topic) {
-            return nil
-        }
-        guard
-            let flagType = topic.aTypeOfFlag?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
-            !flagType.isEmpty
-        else {
-            return nil
-        }
-
-        switch flagType {
-        case "yellow", "blue", "red":
-            return themePalette.topicFlagBackgroundColor(flagType: flagType)
-        default:
-            return nil
-        }
     }
 
     private func footerRight(for topic: Topic) -> String? {
@@ -687,11 +676,6 @@ struct ForumTopicsListView: View {
                     showUnreadBadge: hasFlag && !topic.isViewedFromForumAtLoad,
                     leadingBottomText: footerLeft(for: topic),
                     trailingBottomText: footerRight(for: topic),
-                    rowBackgroundTint: rowBackgroundTint(for: topic),
-                    contentPadding: EdgeInsets(top: 2, leading: 0, bottom: 2, trailing: 0),
-                    rowBackgroundOverflow: hasFlag
-                        ? EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8)
-                        : EdgeInsets(),
                     openContext: .forum(selectedFlag: viewModel.selectedFlag),
                     extraContextMenu: extraContextMenu(for: topic, hasFlag: hasFlag, isRemoving: isRemoving)
                 ) { openedURL in
@@ -720,7 +704,7 @@ struct ForumTopicsListView: View {
                         .disabled(isRemoving)
                     }
                 }
-                .listRowInsets(EdgeInsets(top: 5, leading: 12, bottom: 5, trailing: 12))
+                .listRowInsets(EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 16))
             }
 
             if shouldShowPagination {
@@ -923,34 +907,30 @@ struct ForumTopicsListView: View {
     }
 }
 
-private struct ForumCategoryIconView: View {
+/// Natif CategoryRow: 30 pt pictogram, name, sub-forum count on the right.
+private struct CategoryRow: View {
     let forum: Forum
-    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.natif) private var natif
 
-    private var resolvedImage: UIImage? {
-        let resolved = forum.getImage().trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !resolved.isEmpty else { return nil }
-        return UIImage(named: resolved)
+    private var subForumCount: Int {
+        (forum.subCats as? [Forum])?.count ?? 0
     }
 
     var body: some View {
-        Group {
-            if let resolvedImage {
-                Image(uiImage: resolvedImage.withRenderingMode(.alwaysTemplate))
-                    .resizable()
-                    .scaledToFit()
-                    .foregroundStyle(colorScheme == .dark ? .white : .black)
-            } else {
-                Image(systemName: "folder.fill")
-                    .resizable()
-                    .scaledToFit()
-                    .foregroundStyle(.secondary)
-                    .padding(4)
+        HStack(spacing: 12) {
+            NatifPictogram(systemImage: NatifForumCatalog.systemImage(for: forum.aTitle))
+            Text(forum.aTitle ?? "Forum")
+                .font(.body)
+                .foregroundStyle(natif.text)
+            Spacer(minLength: 8)
+            if subForumCount > 0 {
+                Text(subForumCount, format: .number)
+                    .font(.body.monospacedDigit())
+                    .foregroundStyle(natif.text2)
+                    .accessibilityLabel("\(subForumCount) sous-forums")
             }
         }
-        .frame(width: 28, height: 28)
-        .clipShape(.rect(cornerRadius: 6))
-        .accessibilityHidden(true)
+        .frame(minHeight: 44)
     }
 }
 
@@ -1160,6 +1140,16 @@ struct RootTabView: View {
     @AppStorage(AQUnreadCounter.storageKey) private var unreadAQCount = 0
     @AppStorage("mp_badge_enabled") private var mpBadgeEnabled = true
     @AppStorage(AppTabBarMinimizeOnScroll.key) private var tabBarMinimizeOnScroll = true
+    @AppStorage(NatifAppearance.themeModeKey) private var natifThemeModeRawValue = ""
+    @AppStorage(NatifAppearance.accentKey) private var natifAccentIndex = 0
+
+    private var natifTokens: NatifTokens {
+        let mode = NatifThemeMode(rawValue: natifThemeModeRawValue) ?? NatifAppearance.themeMode()
+        return NatifTokens(
+            variant: NatifAppearance.variant(for: appTheme.effectiveColorScheme, mode: mode),
+            accent: NatifAccent.accent(at: natifAccentIndex)
+        )
+    }
 
     /// iPad only. On iPhone (iPhone Duo inner display included) the root stays a single adaptable
     /// `TabView`: swapping roots on a size class change would rebuild the hierarchy and lose the
@@ -1274,8 +1264,9 @@ struct RootTabView: View {
     var body: some View {
         rootContainer
             .preferredColorScheme(appTheme.preferredColorScheme)
-            .tint(appTheme.actionTintColor)
+            .tint(natifTokens.accent)
             .environment(\.appThemePalette, appTheme.palette)
+            .environment(\.natif, natifTokens)
             .onAppear(perform: handleAppear)
             .onChange(of: selectedTab) { _, newValue in
                 syncRuntimeSelectedTab(newValue)
@@ -1318,7 +1309,7 @@ struct RootTabView: View {
     private var rootTabs: some View {
         TabView(selection: tabSelection) {
             CategoriesListView(accountsStore: accountsStore)
-                .tabItem { Label("Catégories", systemImage: "folder.fill") }
+                .tabItem { Label("Catégories", systemImage: "square.grid.2x2.fill") }
                 .tag(RootTabIdentifier.categories)
 
             //FeedView()
@@ -1326,7 +1317,7 @@ struct RootTabView: View {
                 viewModel: favoritesViewModel,
                 accountsStore: accountsStore
             )
-            .tabItem { Label("Favoris", systemImage: "star.fill") }
+            .tabItem { Label("Favoris", systemImage: "flag.fill") }
             .tag(RootTabIdentifier.favorites)
 
             MPListView(
@@ -1335,7 +1326,7 @@ struct RootTabView: View {
                 isActive: selectedTab == .messages,
                 navigationResetToken: messagesNavigationResetToken
             )
-            .tabItem { Label("Messages", systemImage: "envelope") }
+            .tabItem { Label("Messages", systemImage: "envelope.fill") }
             .tag(RootTabIdentifier.messages)
             .badge(mpBadgeEnabled && unreadMPCount > 0 ? unreadMPCount : 0)
 
@@ -1428,9 +1419,9 @@ struct RootTabView: View {
 
     private func sidebarSystemImage(for tab: RootTabIdentifier) -> String {
         switch tab {
-        case .categories: "folder.fill"
-        case .favorites: "star.fill"
-        case .messages: "envelope"
+        case .categories: "square.grid.2x2.fill"
+        case .favorites: "flag.fill"
+        case .messages: "envelope.fill"
         case .more: "ellipsis"
         }
     }
@@ -1447,11 +1438,24 @@ struct RootTabView: View {
     }
 
     private func handleAppear() {
+        migrateToNatifAppearanceIfNeeded()
         appTheme.refresh(systemColorScheme: systemColorScheme, forceThemeRevision: true, notifyLegacy: true)
         syncRuntimeSelectedTab(selectedTab)
         startColdLaunchPrefetchIfNeeded()
         startAQBadgeCheckIfNeeded()
         handlePendingMessagesNotificationNavigationIfNeeded()
+    }
+
+    /// First launch of the reskin: persist the derived theme mode and align the legacy accent keys
+    /// (used by Objective-C screens and the topic WebView) with the default Natif accent.
+    private func migrateToNatifAppearanceIfNeeded() {
+        let defaults = UserDefaults.standard
+        if defaults.string(forKey: NatifAppearance.themeModeKey) == nil {
+            defaults.set(NatifAppearance.themeMode(defaults: defaults).rawValue, forKey: NatifAppearance.themeModeKey)
+        }
+        if defaults.object(forKey: NatifAppearance.accentKey) == nil {
+            NatifAppearance.setAccent(NatifAccent.accent(at: 0), defaults: defaults)
+        }
     }
 
     private func handleCurrentAccountChange(from oldAccountID: String?, to newAccountID: String?) {

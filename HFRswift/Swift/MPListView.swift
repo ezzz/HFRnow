@@ -473,7 +473,7 @@ struct MPRowView: View {
             showUnreadBadge: false,
             leadingBottomText: interlocutorLabel,
             trailingBottomText: trailingLabel,
-            contentPadding: EdgeInsets(top: 2, leading: 0, bottom: 2, trailing: 0),
+            forcedStatus: isViewed ? nil : .unread,
             leadingAccessory: avatarAccessory,
             openContext: .privateMessages,
             quickActions: TopicQuickActionPolicy.defaults(for: .privateMessages),

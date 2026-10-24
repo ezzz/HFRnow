@@ -1018,11 +1018,6 @@ struct TopicRowView: View {
             showUnreadBadgeWhenZero: false,
             leadingBottomText: pageLabel,
             trailingBottomText: trailingLabel,
-            rowBackgroundTint: isSuperFavorite ? themePalette.superFavoriteBackgroundColor : nil,
-            contentPadding: EdgeInsets(top: 2, leading: 6, bottom: 2, trailing: 0),
-            rowBackgroundOverflow: isSuperFavorite
-                ? EdgeInsets(top: 4, leading: 8, bottom: 2, trailing: 8)
-                : EdgeInsets(),
             openContext: openContext,
             extraContextMenu: {
                 AnyView(

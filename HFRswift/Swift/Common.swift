@@ -2882,17 +2882,20 @@ struct TopicListRowView: View {
     var trailingBottomText: String?
     var detailText: String?
     var detailContent: AnyView?
-    var rowBackgroundTint: Color?
-    var contentPadding: EdgeInsets = EdgeInsets(top: 6, leading: 8, bottom: 6, trailing: 8)
-    var rowBackgroundOverflow: EdgeInsets = EdgeInsets()
+    var contentPadding: EdgeInsets = EdgeInsets(top: 12, leading: 0, bottom: 12, trailing: 0)
+    /// Shows the unread dot / followed ring gutter (topic lists and favorites).
+    var showsStatusGutter = true
+    /// Overrides the status derived from the unread count (e.g. private messages).
+    var forcedStatus: NatifTopicStatus?
     var leadingAccessory: AnyView?
     var openContext: TopicOpenContext = .generic
     var quickActions: TopicQuickActionsConfiguration?
     var extraContextMenu: (() -> AnyView)?
     var onOpen: ((String?) -> Void)?
-    @Environment(\.appThemePalette) private var themePalette
+    @Environment(\.natif) private var natif
     @AppStorage(AppTextSizeScale.key) private var textSizeScaleRawValue = AppTextSizeScale.standard.rawValue
-    @ScaledMetric(relativeTo: .body) private var scaledTitleBaseSize: CGFloat = 13
+    @AppStorage(AppLayoutCompactMode.key) private var isCompactMode = false
+    @ScaledMetric(relativeTo: .headline) private var scaledTitleBaseSize: CGFloat = 16
     @ScaledMetric(relativeTo: .footnote) private var scaledFooterBaseSize: CGFloat = 13
 
     @State private var navigateToTarget = false
@@ -2912,16 +2915,23 @@ struct TopicListRowView: View {
         AppTextSizeScale.value(for: textSizeScaleRawValue).factor
     }
 
+    /// Natif TopicRow: 16/600 title (15 in compact mode), scaled by Dynamic Type and the app text size.
     private var resolvedTitleFont: Font {
-        if let titleBaseSize {
-            let normalizedBaseSize = scaledTitleBaseSize * (titleBaseSize / 13)
-            return .system(size: normalizedBaseSize * appTextSizeFactor, weight: titleWeight)
+        if titleBaseSize != nil || titleFont == nil {
+            let base = isCompactMode ? scaledTitleBaseSize * 15 / 16 : scaledTitleBaseSize
+            return .system(size: base * appTextSizeFactor, weight: titleWeight)
         }
         return titleFont ?? .headline
     }
 
     private var resolvedFooterFont: Font {
-        .system(size: scaledFooterBaseSize * appTextSizeFactor)
+        .system(size: (isCompactMode ? scaledFooterBaseSize * 12 / 13 : scaledFooterBaseSize) * appTextSizeFactor)
+    }
+
+    private var status: NatifTopicStatus? {
+        if let forcedStatus { return forcedStatus }
+        guard showUnreadBadge else { return nil }
+        return unreadCount > 0 ? .unread : .followed
     }
 
     private var maxTopicPageValue: Int {
@@ -2954,18 +2964,6 @@ struct TopicListRowView: View {
 
     private var searchMatchURL: String? {
         TopicPageURLRouting.searchMatchURL(from: topic.sLastSearchPostURL)
-    }
-
-    private var unreadBadgeTextColor: Color {
-        themePalette.unreadBadgeTextColor(isVisited: isVisited)
-    }
-
-    private var unreadBadgeBackgroundColor: Color {
-        themePalette.unreadBadgeBackgroundColor(isVisited: isVisited)
-    }
-
-    private var stickySymbolColor: Color {
-        themePalette.stickyAccentColor
     }
 
     private func nonEmptyString(_ value: String?) -> String? {
@@ -3160,38 +3158,44 @@ struct TopicListRowView: View {
         Button {
             openDefaultTopic()
         } label: {
-            HStack(alignment: .top, spacing: 10) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                if showsStatusGutter {
+                    NatifStatusIndicator(status: status)
+                        .alignmentGuide(.firstTextBaseline) { dimensions in
+                            dimensions[VerticalAlignment.center] + 4
+                        }
+                }
                 if let leadingAccessory {
                     leadingAccessory
+                        .alignmentGuide(.firstTextBaseline) { dimensions in
+                            dimensions[VerticalAlignment.center] + 4
+                        }
                 }
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: isCompactMode ? 2 : 4) {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         if topic.isSticky {
                             Image(systemName: "pin.fill")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(stickySymbolColor)
+                                .font(.subheadline)
+                                .foregroundStyle(natif.text2)
+                                .accessibilityLabel("Épinglé")
                         }
                         if topic.isClosed {
                             Image(systemName: "lock.fill")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.secondary)
+                                .font(.subheadline)
+                                .foregroundStyle(natif.text2)
+                                .accessibilityLabel("Verrouillé")
                         }
                         if let titleLeadingBadge {
                             titleLeadingBadge
                         }
                         Text(titleText)
                             .font(resolvedTitleFont)
-                            .foregroundStyle(isVisited ? .secondary : .primary)
-                        Spacer()
+                            .foregroundStyle(natif.text)
+                            .lineSpacing(2)
+                            .lineLimit(isCompactMode ? 1 : 2)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         if showUnreadBadge && (showUnreadBadgeWhenZero || unreadCount > 0) {
-                            Text("\(unreadCount)")
-                                .font(.caption2)
-                                .bold()
-                                .padding(.horizontal, 4)
-                                .padding(.vertical, 2)
-                                .frame(minWidth: 20)
-                                .background(Capsule().fill(unreadBadgeBackgroundColor))
-                                .foregroundStyle(unreadBadgeTextColor)
+                            NatifCountCapsule(count: unreadCount)
                         }
                     }
 
@@ -3200,38 +3204,29 @@ struct TopicListRowView: View {
                     } else if let detailText, !detailText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                         Text(detailText)
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(natif.text2)
                             .lineLimit(3)
                     }
 
                     if leadingBottomText != nil || trailingBottomText != nil {
-                        HStack {
+                        HStack(spacing: 8) {
                             if let leadingBottomText {
                                 Text(leadingBottomText)
-                                    .font(resolvedFooterFont)
-                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
                             }
-                            Spacer()
+                            Spacer(minLength: 8)
                             if let trailingBottomText {
                                 Text(trailingBottomText)
-                                    .font(resolvedFooterFont)
-                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
                             }
                         }
+                        .font(resolvedFooterFont)
+                        .foregroundStyle(natif.text2)
                     }
                 }
             }
-            .padding(contentPadding)
-            .background {
-                if let rowBackgroundTint {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(rowBackgroundTint)
-                        .padding(.top, -rowBackgroundOverflow.top)
-                        .padding(.leading, -rowBackgroundOverflow.leading)
-                        .padding(.bottom, -rowBackgroundOverflow.bottom)
-                        .padding(.trailing, -rowBackgroundOverflow.trailing)
-                }
-            }
+            .padding(isCompactMode ? EdgeInsets(top: 8, leading: contentPadding.leading, bottom: 8, trailing: contentPadding.trailing) : contentPadding)
+            .frame(minHeight: 44)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
