@@ -2759,8 +2759,9 @@ struct MessagesView: View {
         )
     }
 
+    /// Size class only, no idiom check: iPhone Duo is a `.phone` whose inner display is regular/regular.
     private var shouldHideReplyComposerButton: Bool {
-        UIDevice.current.userInterfaceIdiom == .phone && verticalSizeClass == .compact
+        verticalSizeClass == .compact
     }
 
     private var loadingTopicView: some View {
@@ -5544,6 +5545,10 @@ private struct MessageAnimatedGIFImageView: UIViewRepresentable {
 
             loadState.wrappedValue = .loading
 
+            // Read on the main thread: the decode runs in the URLSession callback, and the
+            // window's screen can change (iPhone Duo inner/outer display).
+            let displayScale = imageView.traitCollection.displayScale
+
             let task = URLSession.shared.dataTask(with: url) { [weak self, weak imageView] data, response, _ in
                 guard let self else { return }
 
@@ -5551,7 +5556,7 @@ private struct MessageAnimatedGIFImageView: UIViewRepresentable {
                 guard
                     let data,
                     isValidResponse,
-                    let decodedImage = Self.decodeAnimatedImage(from: data)
+                    let decodedImage = Self.decodeAnimatedImage(from: data, displayScale: displayScale)
                 else {
                     DispatchQueue.main.async {
                         guard self.currentURL == url else { return }
@@ -5584,7 +5589,7 @@ private struct MessageAnimatedGIFImageView: UIViewRepresentable {
             currentURL = nil
         }
 
-        private static func decodeAnimatedImage(from data: Data) -> UIImage? {
+        private nonisolated static func decodeAnimatedImage(from data: Data, displayScale: CGFloat) -> UIImage? {
             let animatedGIFSelector = NSSelectorFromString("sd_animatedGIFWithData:")
             let imageClass: AnyObject = UIImage.self
             if imageClass.responds(to: animatedGIFSelector),
@@ -5604,7 +5609,7 @@ private struct MessageAnimatedGIFImageView: UIViewRepresentable {
 
             var frames: [UIImage] = []
             var totalDuration: Double = 0
-            let scale = UIScreen.main.scale
+            let scale = displayScale > 0 ? displayScale : 1
 
             for index in 0..<frameCount {
                 guard let cgImage = CGImageSourceCreateImageAtIndex(source, index, nil) else {
@@ -5624,7 +5629,7 @@ private struct MessageAnimatedGIFImageView: UIViewRepresentable {
             return UIImage.animatedImage(with: frames, duration: totalDuration)
         }
 
-        private static func frameDuration(at index: Int, in source: CGImageSource) -> Double {
+        private nonisolated static func frameDuration(at index: Int, in source: CGImageSource) -> Double {
             guard
                 let frameProperties = CGImageSourceCopyPropertiesAtIndex(source, index, nil) as? [CFString: Any],
                 let gifProperties = frameProperties[kCGImagePropertyGIFDictionary] as? [CFString: Any]
@@ -5866,6 +5871,9 @@ private struct ZoomableRemoteAnimatedImageView: UIViewRepresentable {
 
             scheduleState(.loading, visible: false)
 
+            // Read on the main thread: the decode runs in the URLSession callback.
+            let displayScale = view.traitCollection.displayScale
+
             let request = PhotoViewerNetworkRequestFactory.makeRequest(for: url)
             let task = URLSession.shared.dataTask(with: request) { [weak self, weak view] data, response, _ in
                 guard let self else { return }
@@ -5874,7 +5882,7 @@ private struct ZoomableRemoteAnimatedImageView: UIViewRepresentable {
                 guard
                     let data,
                     isValidResponse,
-                    let image = Self.decodeAnimatedImage(from: data)
+                    let image = Self.decodeAnimatedImage(from: data, displayScale: displayScale)
                 else {
                     DispatchQueue.main.async {
                         guard self.currentPresentationID == presentationID, self.currentURL == url else { return }
@@ -5918,7 +5926,7 @@ private struct ZoomableRemoteAnimatedImageView: UIViewRepresentable {
             (scrollView as? ZoomingImageScrollView)?.centerImage()
         }
 
-        private static func decodeAnimatedImage(from data: Data) -> UIImage? {
+        private nonisolated static func decodeAnimatedImage(from data: Data, displayScale: CGFloat) -> UIImage? {
             let animatedGIFSelector = NSSelectorFromString("sd_animatedGIFWithData:")
             let imageClass: AnyObject = UIImage.self
             if imageClass.responds(to: animatedGIFSelector),
@@ -5938,7 +5946,7 @@ private struct ZoomableRemoteAnimatedImageView: UIViewRepresentable {
 
             var frames: [UIImage] = []
             var totalDuration: Double = 0
-            let scale = UIScreen.main.scale
+            let scale = displayScale > 0 ? displayScale : 1
 
             for index in 0..<frameCount {
                 guard let cgImage = CGImageSourceCreateImageAtIndex(source, index, nil) else {
@@ -5958,7 +5966,7 @@ private struct ZoomableRemoteAnimatedImageView: UIViewRepresentable {
             return UIImage.animatedImage(with: frames, duration: totalDuration)
         }
 
-        private static func frameDuration(at index: Int, in source: CGImageSource) -> Double {
+        private nonisolated static func frameDuration(at index: Int, in source: CGImageSource) -> Double {
             guard
                 let frameProperties = CGImageSourceCopyPropertiesAtIndex(source, index, nil) as? [CFString: Any],
                 let gifProperties = frameProperties[kCGImagePropertyGIFDictionary] as? [CFString: Any]

@@ -1129,6 +1129,9 @@ struct RootTabView: View {
     @AppStorage("mp_badge_enabled") private var mpBadgeEnabled = true
     @AppStorage(AppTabBarMinimizeOnScroll.key) private var tabBarMinimizeOnScroll = true
 
+    /// iPad only. On iPhone (iPhone Duo inner display included) the root stays a single adaptable
+    /// `TabView`: swapping roots on a size class change would rebuild the hierarchy and lose the
+    /// open topic every time the device is folded or unfolded.
     private var usesSidebarRoot: Bool {
         UIDevice.current.userInterfaceIdiom == .pad && horizontalSizeClass == .regular
     }
@@ -1261,6 +1264,7 @@ struct RootTabView: View {
 
     private var compactTabRoot: some View {
         rootTabs
+            .hfrSidebarAdaptableTabs()
             .hfrTabBarMinimizeBehavior(tabBarMinimizeOnScroll: tabBarMinimizeOnScroll)
             .background(tabBarReselectionObserver)
     }
@@ -1549,6 +1553,22 @@ private struct TabBarReselectionObserver: UIViewControllerRepresentable {
 }
 
 private extension View {
+    /// Tab bar in compact width, sidebar when there is room for one (iPhone Duo inner display).
+    @ViewBuilder
+    func hfrSidebarAdaptableTabs() -> some View {
+        if #available(iOS 27.0, *) {
+            self
+                .tabViewStyle(.sidebarAdaptable)
+                .defaultTabBarPlacement(.sidebar)
+        } else if #available(iOS 18.0, *) {
+            self
+                .tabViewStyle(.sidebarAdaptable)
+                .defaultAdaptableTabBarPlacement(.sidebar)
+        } else {
+            self
+        }
+    }
+
     @ViewBuilder
     func hfrTabBarMinimizeBehavior(tabBarMinimizeOnScroll: Bool) -> some View {
         if #available(iOS 26.0, *) {

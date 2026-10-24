@@ -162,7 +162,7 @@ final class HFRSwiftOrientationPolicy: NSObject {
     private static var answerViewLockCount = 0
 
     @objc static func supportedInterfaceOrientations() -> UIInterfaceOrientationMask {
-        guard UIDevice.current.userInterfaceIdiom == .phone else {
+        guard UIDevice.current.userInterfaceIdiom == .phone, !isShowingExpandedPhoneLayout else {
             return .all
         }
         guard AppScreenRotation.isEnabled else {
@@ -183,6 +183,14 @@ final class HFRSwiftOrientationPolicy: NSObject {
         refreshSupportedOrientations()
     }
 
+    /// iPhone Duo inner display: regular width and height on a `.phone` idiom. The system ignores
+    /// supported orientations there, so the portrait locks only apply once the device is folded.
+    private static var isShowingExpandedPhoneLayout: Bool {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .contains { $0.traitCollection.horizontalSizeClass == .regular && $0.traitCollection.verticalSizeClass == .regular }
+    }
+
     static func refreshSupportedOrientations() {
         guard UIDevice.current.userInterfaceIdiom == .phone else { return }
 
@@ -190,6 +198,11 @@ final class HFRSwiftOrientationPolicy: NSObject {
             guard let windowScene = scene as? UIWindowScene else { continue }
             windowScene.windows.forEach {
                 $0.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+            }
+
+            let traits = windowScene.traitCollection
+            if traits.horizontalSizeClass == .regular && traits.verticalSizeClass == .regular {
+                continue
             }
 
             if #available(iOS 16.0, *) {
