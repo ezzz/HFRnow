@@ -34,12 +34,26 @@ final class CategoriesListViewModel: ObservableObject {
                 } else {
                     self.errorMessage = nil
                     self.forums = forums ?? []
+                    Self.writeSearchCategoriesCache(self.forums)
                 }
                 if shouldTriggerHaptic {
                     AppHaptics.refreshCompleted()
                 }
             }
         }
+    }
+
+    /// Forum search reads its category list from forumsCache.plist, which only the legacy
+    /// Objective-C categories screen used to write; without it the search offered "Discussions" only.
+    private static func writeSearchCategoriesCache(_ forums: [Forum]) {
+        guard
+            !forums.isEmpty,
+            let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).last,
+            let data = try? NSKeyedArchiver.archivedData(withRootObject: forums, requiringSecureCoding: false)
+        else {
+            return
+        }
+        try? data.write(to: directory.appendingPathComponent("forumsCache.plist"), options: .atomic)
     }
 }
 
@@ -73,8 +87,8 @@ final class ForumTopicsListViewModel: ObservableObject {
         let requestID = loadRequestID
         isLoading = true
         errorMessage = nil
-        newTopicURL = nil
-        pageInfo = .empty
+        // Keep the current rows and page info until the response arrives: clearing them made
+        // the list jump during pull-to-refresh.
         topicsLoader.fetchTopics(for: forum, flag: selectedFlag, pageURL: pageURL) { [weak self] result, error in
             guard let self else { return }
             DispatchQueue.main.async {
@@ -100,6 +114,12 @@ final class ForumTopicsListViewModel: ObservableObject {
                 }
             }
         }
+    }
+
+    /// Reloads the page currently displayed (pull-to-refresh, refresh button).
+    func reload(shouldTriggerHaptic: Bool = false) {
+        let currentURL = pageInfo.currentURL?.trimmingCharacters(in: .whitespacesAndNewlines)
+        load(pageURL: (currentURL?.isEmpty == false) ? currentURL : nil, shouldTriggerHaptic: shouldTriggerHaptic)
     }
 
     private static func isCancellationError(_ error: Error) -> Bool {
@@ -198,6 +218,12 @@ struct CategoriesListView: View {
                     .disabled(viewModel.isLoading)
                 }
             }
+            .refreshable {
+                await MainActor.run { viewModel.load(shouldTriggerHaptic: true) }
+                while await MainActor.run(body: { viewModel.isLoading }) {
+                    try? await Task.sleep(for: .milliseconds(50))
+                }
+            }
             .onAppear {
                 if !hasLoaded {
                     viewModel.load()
@@ -277,6 +303,7 @@ struct ForumTopicsListView: View {
     @State private var newTopicDraftText = ""
     @State private var isPagePickerPresented = false
     @State private var pagePickerInput = "1"
+    @State private var isRevertingLoggedOutFlag = false
 
     private let topicActionService: FavoritesTopicActionServicing
 
@@ -346,7 +373,10 @@ struct ForumTopicsListView: View {
 
     private var navigationSubtitleText: String? {
         guard shouldShowPagination else { return nil }
-        return "Page \(max(viewModel.pageInfo.pageNumber, 1)) / \(max(viewModel.pageInfo.lastPageNumber, 1))"
+        let page = max(viewModel.pageInfo.pageNumber, 1)
+        // HFR only links the pages around the current one and by hundreds: no real total then.
+        guard viewModel.pageInfo.isLastPageNumberExact else { return "Page \(page)" }
+        return "Page \(page) / \(max(viewModel.pageInfo.lastPageNumber, 1))"
     }
 
     private func loadPage(_ urlString: String?) {
@@ -356,7 +386,8 @@ struct ForumTopicsListView: View {
     }
 
     private func pageURL(for page: Int) -> String? {
-        let boundedPage = min(max(page, 1), max(viewModel.pageInfo.lastPageNumber, 1))
+        let upperBound = viewModel.pageInfo.isLastPageNumberExact ? max(viewModel.pageInfo.lastPageNumber, 1) : TopicPagePickerSheet.approximateUpperBound
+        let boundedPage = min(max(page, 1), upperBound)
         switch boundedPage {
         case viewModel.pageInfo.pageNumber:
             return viewModel.pageInfo.currentURL
@@ -710,7 +741,7 @@ struct ForumTopicsListView: View {
             }
         }
         .refreshable {
-            await MainActor.run { viewModel.load(shouldTriggerHaptic: true) }
+            await MainActor.run { viewModel.reload(shouldTriggerHaptic: true) }
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                 @Sendable func checkDone() {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
@@ -756,7 +787,7 @@ struct ForumTopicsListView: View {
 
                 Button {
                     AppHaptics.refreshStarted()
-                    viewModel.load(shouldTriggerHaptic: true)
+                    viewModel.reload(shouldTriggerHaptic: true)
                 } label: {
                     if viewModel.isLoading {
                         ProgressView().controlSize(.small)
@@ -783,9 +814,15 @@ struct ForumTopicsListView: View {
             guard hasLoaded else { return }
             viewModel.load()
         }
-        .onChange(of: viewModel.selectedFlag) { _, newValue in
+        .onChange(of: viewModel.selectedFlag) { oldValue, newValue in
             if !isLoggedIn && newValue != .all {
+                // Logged out: these filters need an account. Snap back without reloading.
+                isRevertingLoggedOutFlag = true
                 viewModel.selectedFlag = .all
+                return
+            }
+            if isRevertingLoggedOutFlag {
+                isRevertingLoggedOutFlag = false
                 return
             }
             if globalTopicListFlagRawValue != newValue.rawValue {
@@ -835,6 +872,7 @@ struct ForumTopicsListView: View {
         .sheet(isPresented: $isPagePickerPresented) {
             TopicPagePickerSheet(
                 maxPage: max(viewModel.pageInfo.lastPageNumber, 1),
+                isMaxPageApproximate: !viewModel.pageInfo.isLastPageNumberExact,
                 pageInput: $pagePickerInput
             ) { selectedPage in
                 navigateToPage(selectedPage)
@@ -954,7 +992,7 @@ private struct ForumTopicsPaginationBar: View {
             Spacer(minLength: 8)
 
             Button(action: onPagePicker) {
-                Text("\(pageNumber) / \(lastPageNumber)")
+                Text(pageInfo.isLastPageNumberExact ? "\(pageNumber) / \(lastPageNumber)" : "Page \(pageNumber)")
                     .font(.footnote.monospacedDigit().weight(.semibold))
                     .foregroundStyle(.primary.opacity(0.72))
                     .frame(minWidth: 74)
@@ -967,12 +1005,13 @@ private struct ForumTopicsPaginationBar: View {
             Button(action: onNext) {
                 Image(systemName: "chevron.right")
             }
-            .disabled(pageNumber >= lastPageNumber || pageInfo.nextPageURL == nil)
+            .disabled(pageInfo.nextPageURL == nil || (pageInfo.isLastPageNumberExact && pageNumber >= lastPageNumber))
 
+            // Without the real total, "last page" would only go to the farthest linked page.
             Button(action: onLast) {
                 Image(systemName: "forward.end")
             }
-            .disabled(pageNumber >= lastPageNumber || pageInfo.lastPageURL == nil)
+            .disabled(!pageInfo.isLastPageNumberExact || pageNumber >= lastPageNumber || pageInfo.lastPageURL == nil)
         }
         .hfrGlassButton()
         .controlSize(.small)

@@ -48,6 +48,7 @@ static NSInteger HFRTopicPageNumberFromURLString(NSString *urlString) {
         _pageNumber = 1;
         _firstPageNumber = 1;
         _lastPageNumber = 1;
+        _lastPageNumberIsExact = YES;
     }
     return self;
 }
@@ -175,7 +176,7 @@ static NSInteger HFRTopicPageNumberFromURLString(NSString *urlString) {
         HTMLNode * pagesLinkNode = [pagesTrNode findChildWithAttribute:@"class" matchingName:@"left" allowPartial:NO];
         //NSLog(@"pagesLinkNode %@", rawContentsOfNode([pagesLinkNode _node], [myParser _doc]));
 
-        if (pagesLinkNode) {
+        if (pagesLinkNode && [[pagesLinkNode children] count] > 2) {
             //NSLog(@"pagesLinkNode %@", rawContentsOfNode([pagesLinkNode _node], [myParser _doc]));
             NSArray *temporaryNumPagesArray = [pagesLinkNode children];
             result.firstPageNumber = [[[temporaryNumPagesArray objectAtIndex:2] contents] intValue];
@@ -189,29 +190,39 @@ static NSInteger HFRTopicPageNumberFromURLString(NSString *urlString) {
                 NSLog(@"tagname %@", [[temporaryNumPagesArray objectAtIndex:2] tagName]);
 
                 if ([[[temporaryNumPagesArray objectAtIndex:2] tagName] isEqualToString:@"span"]) {
-                    newFirstPageUrl = [[NSString alloc] initWithString:[[[temporaryNumPagesArray objectAtIndex:2] className] decodeSpanUrlFromString2]];
+                    newFirstPageUrl = [[[[temporaryNumPagesArray objectAtIndex:2] className] decodeSpanUrlFromString2] copy];
                 }
                 else {
-                    newFirstPageUrl = [[NSString alloc] initWithString:[[temporaryNumPagesArray objectAtIndex:2] getAttributeNamed:@"href"]];
+                    newFirstPageUrl = [[[temporaryNumPagesArray objectAtIndex:2] getAttributeNamed:@"href"] copy];
                 }
                 
                 result.firstPageUrl = newFirstPageUrl;
             }
             
             result.lastPageNumber = [[[temporaryNumPagesArray lastObject] contents] intValue];
+
+            int previousLinkedPage = 0;
+            for (NSInteger index = (NSInteger)temporaryNumPagesArray.count - 2; index >= 2; index--) {
+                int linkedPage = [[[temporaryNumPagesArray objectAtIndex:index] contents] intValue];
+                if (linkedPage > 0) {
+                    previousLinkedPage = linkedPage;
+                    break;
+                }
+            }
+            result.lastPageNumberIsExact = previousLinkedPage == 0 || result.lastPageNumber - previousLinkedPage <= 1;
             
             if (result.pageNumber == result.lastPageNumber) {
-                NSString *newLastPageUrl = [[NSString alloc] initWithString:result.currentUrl];
+                NSString *newLastPageUrl = [result.currentUrl copy];
                 result.lastPageUrl = newLastPageUrl;
             }
             else {
                 NSString *newLastPageUrl;
                 
                 if ([[[temporaryNumPagesArray lastObject] tagName] isEqualToString:@"span"]) {
-                    newLastPageUrl = [[NSString alloc] initWithString:[[[temporaryNumPagesArray lastObject] className] decodeSpanUrlFromString2]];
+                    newLastPageUrl = [[[[temporaryNumPagesArray lastObject] className] decodeSpanUrlFromString2] copy];
                 }
                 else {
-                    newLastPageUrl = [[NSString alloc] initWithString:[[temporaryNumPagesArray lastObject] getAttributeNamed:@"href"]];
+                    newLastPageUrl = [[[temporaryNumPagesArray lastObject] getAttributeNamed:@"href"] copy];
                 }
                 
                 result.lastPageUrl = newLastPageUrl;
@@ -320,7 +331,7 @@ static NSInteger HFRTopicPageNumberFromURLString(NSString *urlString) {
             NSString *resolvedTopicTitle = searchContentNode ? sExactTopicTitle : [topicTitleNode allContents];
             [aTopic setATitle: [[NSString alloc] initWithFormat:@"%@%@%@", aTopicAffix, [resolvedTopicTitle stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]], aTopicSuffix]];
 
-            NSString *aTopicURL = [[NSString alloc] initWithString:[[topicTitleNode findChildTag:@"a"] getAttributeNamed:@"href"]];
+            NSString *aTopicURL = [[[topicTitleNode findChildTag:@"a"] getAttributeNamed:@"href"] copy];
             [aTopic setAURL:aTopicURL];
 
             
@@ -339,10 +350,10 @@ static NSInteger HFRTopicPageNumberFromURLString(NSString *urlString) {
             if (topicFlagLinkNode) {
                 HTMLNode * topicFlagImgNode = [topicFlagLinkNode firstChild];
 
-                NSString *aURLOfFlag = [[NSString alloc] initWithString:[topicFlagLinkNode getAttributeNamed:@"href"]];
+                NSString *aURLOfFlag = [[topicFlagLinkNode getAttributeNamed:@"href"] copy];
                 [aTopic setAURLOfFlag:aURLOfFlag];
                 
-                NSString *imgFlagSrc = [[NSString alloc] initWithString:[topicFlagImgNode getAttributeNamed:@"src"]];
+                NSString *imgFlagSrc = [[topicFlagImgNode getAttributeNamed:@"src"] copy];
                 
                 if (!([imgFlagSrc rangeOfString:@"flag0.gif"].location == NSNotFound)) {
                     [aTopic setATypeOfFlag:@"red"];
@@ -414,7 +425,7 @@ static NSInteger HFRTopicPageNumberFromURLString(NSString *urlString) {
                 [aTopic setAAuthorOfLastPost:@""];
             }
             
-            NSString *aURLOfLastPost = [[NSString alloc] initWithString:[linkLastRepNode getAttributeNamed:@"href"]];
+            NSString *aURLOfLastPost = [[linkLastRepNode getAttributeNamed:@"href"] copy];
             [aTopic setAURLOfLastPost:aURLOfLastPost];
             
 
@@ -452,7 +463,7 @@ static NSInteger HFRTopicPageNumberFromURLString(NSString *urlString) {
             //URL of Last Page & maxPage
             HTMLNode * topicLastPageNode = [[topicNode findChildWithAttribute:@"class" matchingName:@"sujetCase4" allowPartial:NO] findChildTag:@"a"];
             if (topicLastPageNode) {
-                NSString *aURLOfLastPage = [[NSString alloc] initWithString:[topicLastPageNode getAttributeNamed:@"href"]];
+                NSString *aURLOfLastPage = [[topicLastPageNode getAttributeNamed:@"href"] copy];
                 [aTopic setAURLOfLastPage:aURLOfLastPage];
             [aTopic setMaxTopicPage:[[topicLastPageNode contents] intValue]];
 

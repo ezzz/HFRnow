@@ -17,6 +17,9 @@
 @property (nonatomic, assign) int pageNumber;
 @property (nonatomic, assign) int firstPageNumber;
 @property (nonatomic, assign) int lastPageNumber;
+/// NO when the pagination ends with a jump (".. 100 200 .. 500"): HFR only links pages around
+/// the current one and by hundreds, so the real last page of a forum is unknown.
+@property (nonatomic, assign) BOOL lastPageNumberIsExact;
 @property (nonatomic, strong) NSString *firstPageUrl;
 @property (nonatomic, strong) NSString *lastPageUrl;
 @property (nonatomic, strong) NSString *nextPageUrl;

@@ -142,7 +142,7 @@ enum MessagePopupMenuActionKind: Equatable {
         case .favorite:
             return "Favoris"
         case .link:
-            return "Link"
+            return "Lien"
         case .alert:
             return "Alerter"
         case .aq:
@@ -812,6 +812,14 @@ struct WebView: UIViewRepresentable {
         contentController.addUserScript(bootstrapThemeScript)
         contentController.add(context.coordinator, name: "scrollState")
         contentController.add(context.coordinator, name: "textInteractionState")
+        contentController.add(context.coordinator, name: "domReady")
+        contentController.addUserScript(
+            WKUserScript(
+                source: "window.webkit.messageHandlers.domReady.postMessage(1);",
+                injectionTime: .atDocumentEnd,
+                forMainFrameOnly: true
+            )
+        )
 
         let scrollTrackingScript = WKUserScript(
             source: """
@@ -972,6 +980,7 @@ struct WebView: UIViewRepresentable {
                 context.coordinator.lastAppliedMessageStyleSignature = nil
                 context.coordinator.isWaitingForThemeApplication = true
                 context.coordinator.didNotifyContentReadyForCurrentLoad = false
+                context.coordinator.didHandlePageReadyForCurrentLoad = false
                 webView.isHidden = true
                 webView.loadFileURL(fileURL, allowingReadAccessTo: readAccessURL)
             } else {
@@ -1017,6 +1026,7 @@ struct WebView: UIViewRepresentable {
         var lastAppliedMessageStyleSignature: String?
         var isWaitingForThemeApplication = false
         var didNotifyContentReadyForCurrentLoad = false
+        var didHandlePageReadyForCurrentLoad = false
         var lastHandledScrollRequestID: UUID?
         @available(iOS 16.0, *)
         weak var editMenuInteraction: UIEditMenuInteraction?
@@ -1052,6 +1062,15 @@ struct WebView: UIViewRepresentable {
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             print("WKWebView didFinish. anchor =", anchor as Any, "initialScroll =", String(describing: initialScroll), "url:", webView.url?.absoluteString ?? "nil")
+            handlePageReady(in: webView)
+        }
+
+        /// Runs once per load, on DOMContentLoaded (domReady message) or didFinish, whichever comes
+        /// first. didFinish waits for every subresource (embedded videos, big images...), which could
+        /// keep the page hidden behind "Chargement…" for a very long time.
+        func handlePageReady(in webView: WKWebView) {
+            guard !didHandlePageReadyForCurrentLoad else { return }
+            didHandlePageReadyForCurrentLoad = true
             applyThemeIfNeeded(in: webView, force: true) {
                 self.applyMessageStyleIfNeeded(in: webView, force: true) {
                     self.applyTextSizeIfNeeded(in: webView, force: true) {
@@ -1203,6 +1222,11 @@ struct WebView: UIViewRepresentable {
                     if let scrollPosition {
                         self.parent.onScrollPositionSnapshotChange?(scrollPosition)
                     }
+                }
+            case "domReady":
+                guard let webView = message.webView else { return }
+                DispatchQueue.main.async {
+                    self.handlePageReady(in: webView)
                 }
             case "textInteractionState":
                 let isActive: Bool
@@ -2582,7 +2606,7 @@ struct MessagesView: View {
         var title: String {
             switch self {
             case .reply:
-                return "Reply"
+                return "Répondre"
             case .edit:
                 return "Edition"
             case .privateMessage:
@@ -2710,7 +2734,11 @@ struct MessagesView: View {
     @State private var presentedPollData: PollData?
     @State private var showWebViewLoadCover = true
     @State private var isWebContentAtBottom = false
+    /// Refresh of the current page from the bottom button: keep the content and the button on
+    /// screen (the arrow spins) instead of blanking the page behind "Chargement…".
+    @State private var isRefreshingInPlace = false
     @State private var isMessageTextInteractionActive = false
+    @State private var isLoginRequiredAlertPresented = false
     @State private var pendingPostedReply: ReplyPostingResult?
     @State private var showPostSuccessToast = false
     @State private var postSuccessToastText = "Hooray"
@@ -2987,8 +3015,10 @@ struct MessagesView: View {
             initialScroll = overrideInitialScroll
         }
 
-        showWebViewLoadCover = true
-        isWebContentAtBottom = false
+        if !isRefreshingInPlace {
+            showWebViewLoadCover = true
+            isWebContentAtBottom = false
+        }
         errorMessage = nil
         messageActionsByIndex = [:]
 
@@ -3006,6 +3036,7 @@ struct MessagesView: View {
 
     private func completeTopicLoad(_ token: UUID) -> Bool {
         guard activeTopicLoadToken == token else { return false }
+        isRefreshingInPlace = false
         activeTopicLoadToken = nil
         topicLoadTimeoutWorkItem?.cancel()
         topicLoadTimeoutWorkItem = nil
@@ -3838,6 +3869,11 @@ struct MessagesView: View {
     }
 
     private func openReplyComposer() {
+        // Logged out: posting cannot work, explain instead of opening an empty composer.
+        guard ObjCLegacyAccountsManager.shared.currentAccountIdentity() != nil else {
+            isLoginRequiredAlertPresented = true
+            return
+        }
         activeComposerPresentationKind = .reply
         composerNavigationTitle = ComposerPresentationKind.reply.title
         composerRequiresSubject = false
@@ -4269,6 +4305,7 @@ struct MessagesView: View {
         shouldTriggerRefreshCompletionHaptic = true
         anchor = nil
         initialScroll = .bottom
+        isRefreshingInPlace = true
         loadPage(page)
     }
 
@@ -4782,8 +4819,10 @@ struct MessagesView: View {
                                     } label: {
                                         Image(systemName: "arrow.clockwise")
                                             .font(.system(size: 16, weight: .semibold))
+                                            .opacity(isRefreshingInPlace ? 0.4 : 1)
                                     }
                                     .topicBottomBarCircularIconButtonStyle(isProminent: true)
+                                    .disabled(isRefreshingInPlace)
                                     .accessibilityLabel("Actualiser")
                                     .transition(.opacity.combined(with: .scale))
                                 }
@@ -4794,7 +4833,7 @@ struct MessagesView: View {
                                     Button {
                                         openReplyComposer()
                                     } label: {
-                                        Label("New", systemImage: "plus")
+                                        Label("Répondre", systemImage: "square.and.pencil")
                                     }
                                     .topicBottomBarButtonStyle(isProminent: false)
                                 }
@@ -4826,6 +4865,11 @@ struct MessagesView: View {
                             handleSearchResult(url: url, params: params)
                         }
                     )
+                }
+                .alert("Connexion requise", isPresented: $isLoginRequiredAlertPresented) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text("Ajoutez votre compte HFR (Plus › Se connecter) pour répondre.")
                 }
                 .alert("Recherche impossible", isPresented: isSearchErrorAlertPresented) {
                     Button("OK", role: .cancel) {}
@@ -4901,7 +4945,7 @@ struct MessagesView: View {
         } else {
             content = AnyView(
                 loadingTopicView
-                .navigationTitle("My title")
+                .navigationTitle(topicDisplayTitle.isEmpty ? "Chargement" : topicDisplayTitle)
                 .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(navigationDepth > 0)
             .toolbar {
@@ -5004,7 +5048,7 @@ struct MessagesView: View {
                             Button {
                                 openReplyComposer()
                             } label: {
-                                Label("New", systemImage: "plus")
+                                Label("Répondre", systemImage: "square.and.pencil")
                             }
                             .topicBottomBarButtonStyle(isProminent: false)
                         }

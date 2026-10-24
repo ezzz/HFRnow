@@ -138,7 +138,7 @@ private final class AQRSSParserDelegate: NSObject, XMLParserDelegate {
 
         switch elementName {
         case "title":
-            item.title = value
+            item.title = Self.decodeEntities(value)
         case "link":
             item.link = value
         case "description":
@@ -185,17 +185,47 @@ private final class AQRSSParserDelegate: NSObject, XMLParserDelegate {
         }
 
         if let topic = Self.firstCapture(pattern: #"detect[ée]e[^<]*<b>([^<]+)"#, in: item.description), !topic.isEmpty {
-            item.topicTitle = topic
+            item.topicTitle = Self.decodeEntities(topic)
         }
         if let number = Self.firstCapture(pattern: #"signal[ée]e[^<]*<b>([^<]+)"#, in: item.description), !number.isEmpty {
             item.number = number
         }
         if let initiator = Self.firstCapture(pattern: #">([^<]+)\s+\(initiateur\)"#, in: item.description), !initiator.isEmpty {
-            item.initiator = initiator.trimmingCharacters(in: .whitespacesAndNewlines)
+            item.initiator = Self.decodeEntities(initiator.trimmingCharacters(in: .whitespacesAndNewlines))
         }
         if let comment = Self.firstCapture(pattern: #"\(initiateur\)</b>\s*:\s*([^<]+)"#, in: item.description), !comment.isEmpty {
-            item.comment = comment.trimmingCharacters(in: .whitespacesAndNewlines)
+            item.comment = Self.decodeEntities(comment.trimmingCharacters(in: .whitespacesAndNewlines))
         }
+    }
+
+    /// The description is HTML embedded in the RSS: captured fragments still carry entities
+    /// such as `&quot;` or `&#039;`.
+    private static func decodeEntities(_ text: String) -> String {
+        guard text.contains("&") else { return text }
+        var result = text
+            .replacingOccurrences(of: "&nbsp;", with: " ")
+            .replacingOccurrences(of: "&lt;", with: "<")
+            .replacingOccurrences(of: "&gt;", with: ">")
+            .replacingOccurrences(of: "&quot;", with: "\"")
+            .replacingOccurrences(of: "&apos;", with: "'")
+
+        guard let regex = try? NSRegularExpression(pattern: #"&#(x?[0-9A-Fa-f]+);"#, options: [.caseInsensitive]) else {
+            return result.replacingOccurrences(of: "&amp;", with: "&")
+        }
+        for match in regex.matches(in: result, range: NSRange(result.startIndex..., in: result)).reversed() {
+            guard
+                let fullRange = Range(match.range, in: result),
+                let tokenRange = Range(match.range(at: 1), in: result)
+            else { continue }
+            let token = result[tokenRange]
+            let scalarValue = token.lowercased().hasPrefix("x")
+                ? UInt32(token.dropFirst(), radix: 16)
+                : UInt32(token, radix: 10)
+            if let scalarValue, let scalar = Unicode.Scalar(scalarValue) {
+                result.replaceSubrange(fullRange, with: String(Character(scalar)))
+            }
+        }
+        return result.replacingOccurrences(of: "&amp;", with: "&")
     }
 
     private func parsePublicationDate(_ value: String, into item: inout WorkingItem) {
@@ -354,8 +384,10 @@ struct AQPlusView: View {
         let normalizedURL = normalizedForumTopicURLString(from: item.link)
         topic.aURL = normalizedURL
         topic.aURLOfLastPage = normalizedURL
-        topic.curTopicPage = 1
-        topic.maxTopicPage = 1
+        // The alert links to a precise page and post: open that page, not page 1.
+        let page = Int32(TopicPageURLRouting.pageNumber(from: normalizedURL) ?? 1)
+        topic.curTopicPage = page
+        topic.maxTopicPage = page
         return topic
     }
 
@@ -381,10 +413,11 @@ struct AQPlusView: View {
 
             ForEach(viewModel.items) { item in
                 NavigationLink {
+                    let alertTopic = topic(for: item)
                     MessagesView(
-                        topic: topic(for: item),
-                        curPage: 1,
-                        maxPage: 1,
+                        topic: alertTopic,
+                        curPage: Int(alertTopic.curTopicPage),
+                        maxPage: Int(alertTopic.maxTopicPage),
                         separatorNewMessages: true
                     )
                     .toolbar(.hidden, for: .tabBar)

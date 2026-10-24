@@ -136,6 +136,9 @@ struct ForumSearchPageInfo: Equatable {
     let pageNumber: Int
     let firstPageNumber: Int
     let lastPageNumber: Int
+    /// False for forum topic lists whose pagination ends with a jump (".. 400 500"): the total is
+    /// then only the farthest linked page.
+    let isLastPageNumberExact: Bool
     let resultCount: Int
 
     static let empty = ForumSearchPageInfo(
@@ -148,6 +151,7 @@ struct ForumSearchPageInfo: Equatable {
         pageNumber: 1,
         firstPageNumber: 1,
         lastPageNumber: 1,
+        isLastPageNumberExact: true,
         resultCount: 0
     )
 
@@ -161,6 +165,7 @@ struct ForumSearchPageInfo: Equatable {
         self.pageNumber = Self.integer(raw?["pageNumber"], fallback: 1)
         self.firstPageNumber = Self.integer(raw?["firstPageNumber"], fallback: 1)
         self.lastPageNumber = Self.integer(raw?["lastPageNumber"], fallback: 1)
+        self.isLastPageNumberExact = (raw?["lastPageNumberIsExact"] as? NSNumber)?.boolValue ?? true
         self.resultCount = Self.integer(raw?["resultCount"], fallback: 0)
     }
 
@@ -174,6 +179,7 @@ struct ForumSearchPageInfo: Equatable {
         pageNumber: Int,
         firstPageNumber: Int,
         lastPageNumber: Int,
+        isLastPageNumberExact: Bool,
         resultCount: Int
     ) {
         self.currentURL = currentURL
@@ -185,6 +191,7 @@ struct ForumSearchPageInfo: Equatable {
         self.pageNumber = pageNumber
         self.firstPageNumber = firstPageNumber
         self.lastPageNumber = lastPageNumber
+        self.isLastPageNumberExact = isLastPageNumberExact
         self.resultCount = resultCount
     }
 

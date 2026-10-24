@@ -71,8 +71,12 @@ static NSInteger HFRTopicPageWorkerPageNumberFromURLString(NSString *urlString) 
 }
 
 - (void)cancelFetchContent {
-    [self.request cancel];
+    // Detach first: ASIHTTPRequest reports the cancellation asynchronously, and its failure block
+    // must not complete the request started next (it did, with a "cancelled" error, when the page
+    // buttons were tapped quickly).
+    ASIHTTPRequest *request = self.request;
     self.request = nil;
+    [request clearDelegatesAndCancel];
 }
 
 - (void)fetchContentForTopicURL:(NSString *)topicURL
@@ -91,11 +95,17 @@ static NSInteger HFRTopicPageWorkerPageNumberFromURLString(NSString *urlString) 
     __weak ASIHTTPRequest *weakRequest = request;
     [request setCompletionBlock:^{
         ASIHTTPRequest *strongRequest = weakRequest;
+        // A response that was already queued when a newer fetch started belongs to no one.
+        if (strongRequest == nil || weakSelf.request != strongRequest) return;
+        weakSelf.request = nil;
         NSString *effectiveURL = strongRequest.url.absoluteString ?: strongRequest.originalURL.absoluteString;
         [weakSelf handleResponseData:[strongRequest safeResponseData] effectiveURL:effectiveURL];
     }];
     [request setFailedBlock:^{
-        [weakSelf finishWithHTML:nil answerURL:nil currentPage:nil maxPage:nil error:weakRequest.error];
+        ASIHTTPRequest *strongRequest = weakRequest;
+        if (strongRequest == nil || weakSelf.request != strongRequest) return;
+        weakSelf.request = nil;
+        [weakSelf finishWithHTML:nil answerURL:nil currentPage:nil maxPage:nil error:strongRequest.error];
     }];
     [request startAsynchronous];
 }
