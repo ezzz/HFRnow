@@ -205,11 +205,7 @@ struct CategoriesListView: View {
                         AppHaptics.refreshStarted()
                         viewModel.load(shouldTriggerHaptic: true)
                     } label: {
-                        if viewModel.isLoading {
-                            ProgressView().controlSize(.small)
-                        } else {
-                            Image(systemName: "arrow.clockwise")
-                        }
+                        ToolbarRefreshIcon(isLoading: viewModel.isLoading)
                     }
                     .disabled(viewModel.isLoading)
                 }
@@ -822,11 +818,7 @@ struct ForumTopicsListView: View {
                     AppHaptics.refreshStarted()
                     viewModel.load(shouldTriggerHaptic: true)
                 } label: {
-                    if viewModel.isLoading {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Image(systemName: "arrow.clockwise")
-                    }
+                    ToolbarRefreshIcon(isLoading: viewModel.isLoading)
                 }
                 .disabled(viewModel.isLoading)
             }
