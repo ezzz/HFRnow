@@ -192,6 +192,7 @@ struct CategoriesListView: View {
             .scrollContentBackground(.hidden)
             .background(themePalette.listBackgroundColor)
             .navigationTitle("Categories")
+            .expandedPhoneInlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Menu {

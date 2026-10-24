@@ -328,6 +328,26 @@ extension View {
             self
         }
     }
+
+    /// Workaround for an iOS 27.1 hang on the iPhone Duo inner display: once a large title has
+    /// collapsed on scroll, the next push loops forever in `UINavigationController` layout.
+    /// Applied to each tab's root view; pushed views inherit the inline mode.
+    func expandedPhoneInlineNavigationTitle() -> some View {
+        modifier(ExpandedPhoneInlineNavigationTitle())
+    }
+}
+
+private struct ExpandedPhoneInlineNavigationTitle: ViewModifier {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+
+    private var isExpandedPhoneLayout: Bool {
+        UIDevice.current.userInterfaceIdiom == .phone && horizontalSizeClass == .regular && verticalSizeClass == .regular
+    }
+
+    func body(content: Content) -> some View {
+        content.navigationBarTitleDisplayMode(isExpandedPhoneLayout ? .inline : .automatic)
+    }
 }
 
 /// Refresh icon for toolbar buttons that spins while loading. Keep the button content stable:
