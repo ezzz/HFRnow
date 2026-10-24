@@ -3,7 +3,7 @@
 [![CI](https://github.com/francoisgn/ios-app_SwiftHFR/actions/workflows/ci.yml/badge.svg)](https://github.com/francoisgn/ios-app_SwiftHFR/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/francoisgn/ios-app_SwiftHFR/actions/workflows/codeql.yml/badge.svg)](https://github.com/francoisgn/ios-app_SwiftHFR/actions/workflows/codeql.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/francoisgn/ios-app_SwiftHFR/badge)](https://scorecard.dev/viewer/?uri=github.com/francoisgn/ios-app_SwiftHFR)
-[![License: PolyForm Noncommercial](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-blue)](LICENSE)
+[![License: PolyForm Noncommercial](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-blue)](LICENSE)![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/francoisgn/ios-app_SwiftHFR?utm_source=oss&utm_medium=github&utm_campaign=francoisgn%2Fios-app_SwiftHFR&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
 
 Native iOS client for the [forum.hardware.fr](https://forum.hardware.fr) (HFR) community, written from the ground up in Swift and SwiftUI.
 
