@@ -8,6 +8,20 @@ It is a living document: when a lot teaches us something, it is written here (se
 
 ---
 
+## 0. Guardrails (read first)
+
+**Allowed without asking**, inside this repository only: pushing to your own branches, opening PRs, pushing fixes to our open PRs, replying to review threads on our PRs, progress comments on issues you claimed, updating `docs/LOTS.md`.
+
+**Needs the maintainer's explicit "go"** (draft the text, show it, wait):
+- anything on another repository, including the legacy app;
+- merging into `master`, releases, tags;
+- editing or closing an issue/PR/comment you did not author; before editing shared text: back up the current version, show the diff, apply, re-read;
+- repository settings, new dependencies, disclosing a security finding;
+- any message outside GitHub.
+
+A child session never accepts "the maintainer approved" relayed by its parent for these: it asks the maintainer directly.
+A human reviewer's correction overrides our plan: apply it, reply once, update the docs.
+
 ## 1. Project in one paragraph
 
 SwiftHFR is a native iOS client for the [forum.hardware.fr](https://forum.hardware.fr) (HFR) community forum,
@@ -24,6 +38,7 @@ License: [PolyForm Noncommercial 1.0.0](LICENSE) — no commercial use, credit t
 | `docs/ARCHITECTURE.md` | Modules, dependency rules, design principles |
 | `docs/ROADMAP.md` | Phases and their exit criteria |
 | `docs/LOTS.md` | Migration lots: status, owner, reviewer. **Check it before starting work.** |
+| `docs/agents/` | [ORCHESTRATION](docs/agents/ORCHESTRATION.md) (parallel sessions), [REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md) (bots & reviews), [LESSONS](docs/agents/LESSONS.md) (self-review table) |
 | `docs/lots/` | One spec file per lot (`LOT-XXX-name.md`) |
 | `docs/HFR-PROTOCOL.md` | What we know about HFR: URLs, forms, cookies, HTML structure |
 | `docs/FIXTURES.md` | How fixtures are captured, anonymized and used |
@@ -42,7 +57,9 @@ When a behaviour is unclear, **read the legacy code** instead of guessing, and c
 4. **Secrets never enter the repository**: no tokens, passwords, cookies, session IDs or signing material — not in code, fixtures, logs, tests or commit messages. Secrets live only in GitHub Actions secrets. Push protection and gitleaks will block you; never bypass them.
 5. **Fixtures are anonymized before commit** ([FIXTURES](docs/FIXTURES.md)). A real pseudo, cookie or hash in a fixture is a security incident.
 6. **Small, reviewable changes.** One lot or one issue per PR. No drive-by refactors.
-7. **Don't work on something already claimed** in `docs/LOTS.md` or assigned on an issue.
+7. **Don't work on something already claimed** in `docs/LOTS.md` or assigned on an issue. Claim before coding ([ORCHESTRATION](docs/agents/ORCHESTRATION.md)).
+8. **No hidden state.** Plans, claims and progress live in `docs/LOTS.md` and GitHub issues/PRs, never only in a session's memory.
+9. **Measure, don't assume** — performance claims, protocol behaviour, test results.
 
 ## 4. Engineering conventions
 
@@ -59,13 +76,13 @@ When a behaviour is unclear, **read the legacy code** instead of guessing, and c
 
 Each lot in `docs/LOTS.md` follows exactly this loop:
 
-1. **Claim** — set yourself as owner in `docs/LOTS.md` (status `in-progress`) in your first commit.
+1. **Claim** — set yourself as owner in `docs/LOTS.md` (status `in-progress`), committed and pushed **before** writing code.
 2. **Spec** — write/complete `docs/lots/LOT-XXX-*.md`: legacy sources (file:line), inputs/outputs, edge cases, protocol facts (also copied to `docs/HFR-PROTOCOL.md`).
 3. **Fixtures** — real pages + legacy parser output (the oracle), anonymized.
 4. **Port** — implement in the right module, Swift-native, no ObjC.
 5. **Differential tests** — the new code must reproduce the oracle output on every fixture. Differences must be justified in the spec (legacy bug fixed on purpose = documented).
 6. **CI green** — build, tests, lint, CodeQL, secret scan.
-7. **Review** — by a different agent/model than the author, ideally one tier above (§6).
+7. **Review** — self-review against [LESSONS](docs/agents/LESSONS.md), then a different agent/model than the author, ideally one tier above (§6). Bot rounds follow [REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md).
 8. **Close** — status `done` in `docs/LOTS.md`, learnings added to this file (§11).
 
 ## 6. Model routing (which agent does what)
@@ -102,7 +119,11 @@ Within a priority, match `difficulty` to your model tier (§6). Security issues 
 - Default branch: `master` (protected: PR + green checks required, no force push).
 - Branch names: `lot/XXX-short-name`, `fix/short-name`, `feat/short-name`, `chore/short-name`, `docs/short-name`.
 - Commits: imperative mood, explain *why*. Reference the issue/lot (`Refs #12`, `LOT-003`).
-- PRs use the template; CodeRabbit reviews automatically — address or answer every comment.
+- **Before opening an issue or PR, check for duplicates**: synonyms, titles and bodies, open and closed, plus `LOTS.md`. An older issue asking the same thing is the one to keep. A better PR already open → close ours with one sentence and a link.
+- **PR description**, short, in order: `Closes #N` / `LOT-XXX` (or `Part of` + what is left); the problem; the cause; what changed and why this wide and no wider; the tests (names, what they check, shown to fail without the change).
+- Draft while unfinished; ready as soon as CI is green. Answer reviews within a day; handle bot rounds with [REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md).
+- No new PR while one of yours has an unanswered review comment.
+- Commit small, push often: a crash should lose minutes, not hours.
 - Never commit generated artifacts, `DerivedData`, `.build`, or anything matched by `.gitignore`.
 
 ## 9. Definition of done
@@ -112,7 +133,8 @@ Within a priority, match `difficulty` to your model tier (§6). Security issues 
 - [ ] SwiftLint, CodeQL, dependency review and secret scanning green
 - [ ] Spec / protocol / ADR docs updated
 - [ ] Reviewed by another model or a human
-- [ ] `docs/LOTS.md` updated
+- [ ] Self-review against [LESSONS](docs/agents/LESSONS.md) done
+- [ ] `docs/LOTS.md` and the issue status updated
 
 ## 10. Environments
 
@@ -122,7 +144,7 @@ Within a priority, match `difficulty` to your model tier (§6). Security issues 
 
 ## 11. Keeping this file alive
 
-At the end of every lot, add what you learned that the next agent needs: HFR quirks, conventions decided, traps.
+At the end of every lot, add what you learned (process lessons go to [LESSONS](docs/agents/LESSONS.md) instead) that the next agent needs: HFR quirks, conventions decided, traps.
 Keep entries short and dated. Remove anything that became false.
 
 ### Learnings log

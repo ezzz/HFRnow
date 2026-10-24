@@ -7,7 +7,7 @@ Each phase has exit criteria. Work items live in [LOTS.md](LOTS.md) and GitHub i
 - [x] `HFRKit` package skeleton with SwiftSoup
 - [x] CI (Linux + macOS/Xcode 27), CodeQL, dependency review, Dependabot, gitleaks, Scorecard
 - [x] Issue forms, label taxonomy, auto-labelling, PR template, CodeRabbit config
-- [ ] Repository settings: run `scripts/configure-repo.sh` from the maintainer's Mac (branch protection, secret scanning push protection, private vulnerability reporting, topics) — cloud agents cannot change repository settings
+- [ ] Repository settings: run `scripts/configure-repo.sh` from the maintainer's machine (branch protection, secret scanning push protection, private vulnerability reporting, topics) — cloud agents cannot change repository settings
 - [ ] CodeRabbit GitHub app installed (maintainer)
 - [ ] iOS app target created on the Mac (Xcode 27) and wired to `HFRKit`; ADR on project-file strategy
 
