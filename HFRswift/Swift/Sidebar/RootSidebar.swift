@@ -203,7 +203,7 @@ private struct RootSidebarGroupRow: View {
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.footnote.weight(.semibold))
-                    .foregroundStyle(natif.text3)
+                    .foregroundStyle(natif.accent)
                     .rotationEffect(.degrees(isExpanded ? 90 : 0))
                     .frame(width: 32, height: 32)
             }
@@ -228,7 +228,7 @@ private struct RootSidebarChevron: View {
         } label: {
             Image(systemName: "chevron.right")
                 .font(.footnote.weight(.semibold))
-                .foregroundStyle(natif.text3)
+                .foregroundStyle(natif.accent)
                 .rotationEffect(.degrees(isExpanded ? 90 : 0))
                 .frame(width: 32, height: 44)
                 .contentShape(.rect)

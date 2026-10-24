@@ -76,7 +76,7 @@ struct NatifMessagePreview: View {
     private var moreButton: some View {
         Image(systemName: "ellipsis")
             .font(.footnote.weight(.bold))
-            .foregroundStyle(natif.text)
+            .foregroundStyle(natif.accent)
             .frame(width: 30, height: 30)
             .background(Circle().fill(isCompact ? Color.clear : natif.surface))
             .accessibilityHidden(true)

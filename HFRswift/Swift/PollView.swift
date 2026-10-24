@@ -128,10 +128,15 @@ struct PollContentView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Label("Sondage", systemImage: "chart.bar.fill")
-                    .font(.caption.weight(.semibold))
-                    .textCase(.uppercase)
-                    .foregroundStyle(natif.text2)
+                Label {
+                    Text("Sondage")
+                        .foregroundStyle(natif.text2)
+                } icon: {
+                    Image(systemName: "chart.bar.fill")
+                        .foregroundStyle(natif.accent)
+                }
+                .font(.caption.weight(.semibold))
+                .textCase(.uppercase)
 
                 if !viewModel.pollData.question.isEmpty {
                     Text(viewModel.pollData.question)

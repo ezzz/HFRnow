@@ -115,7 +115,7 @@ enum NatifPostStyle {
     html[data-natif] body .message .header .right::after {
       content: "\\2022\\2022\\2022"; position: absolute; left: 0; right: 0; top: 0;
       line-height: 44px; text-align: center;
-      font-size: 10px; letter-spacing: 1px; color: var(--n-text);
+      font-size: 10px; letter-spacing: 1px; color: var(--n-accent);
     }
     html[data-natif] body .message .header .clear { display: none !important; }
 

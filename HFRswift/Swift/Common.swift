@@ -2815,7 +2815,9 @@ struct MenuActionLabel: View {
 
     private var iconTintColor: UIColor {
         if let iconTintUIColor { return iconTintUIColor }
-        return role == .destructive ? UIColor.systemRed : UIColor.label
+        if role == .destructive { return UIColor.systemRed }
+        // Menu icons follow the "Couleur" setting like every other icon.
+        return NatifAppearance.tokens(for: UITraitCollection.current.userInterfaceStyle == .dark ? .dark : .light).uiAccent
     }
 
     private var menuIconImage: UIImage? {

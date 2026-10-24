@@ -277,8 +277,8 @@ struct AppSettingsView: View {
                     Text(option.title).tag(option.value)
                 }
             }
-            // Menu pickers keep the tint they were created with: rebuild on accent change.
-            .id(natifAccentIndex)
+            // Menu pickers keep the tint they were created with: rebuild on colour or theme change.
+            .id("\(natifAccentIndex)-\(natif.variant.rawValue)")
 
             Toggle("Favoris triés par catégories", isOn: $favoritesSortedByCategories)
             Toggle("Actualisation automatique des favoris", isOn: $favoritesAutoRefresh)
@@ -292,8 +292,8 @@ struct AppSettingsView: View {
                     Text(option.title).tag(option.rawValue)
                 }
             }
-            // Menu pickers keep the tint they were created with: rebuild on accent change.
-            .id(natifAccentIndex)
+            // Menu pickers keep the tint they were created with: rebuild on colour or theme change.
+            .id("\(natifAccentIndex)-\(natif.variant.rawValue)")
 
             Toggle("Retours haptiques", isOn: $hapticsEnabled)
             Toggle("Rotation d’écran", isOn: screenRotationBinding)
@@ -304,8 +304,8 @@ struct AppSettingsView: View {
                 }
             }
             .disabled(!hasAlternateIconSupport)
-            // Menu pickers keep the tint they were created with: rebuild on accent change.
-            .id(natifAccentIndex)
+            // Menu pickers keep the tint they were created with: rebuild on colour or theme change.
+            .id("\(natifAccentIndex)-\(natif.variant.rawValue)")
         }
     }
 
@@ -368,8 +368,8 @@ struct AppSettingsView: View {
                     Text(option.title).tag(option.value)
                 }
             }
-            // Menu pickers keep the tint they were created with: rebuild on accent change.
-            .id(natifAccentIndex)
+            // Menu pickers keep the tint they were created with: rebuild on colour or theme change.
+            .id("\(natifAccentIndex)-\(natif.variant.rawValue)")
 
             Toggle("Masquer les pseudos blacklistés", isOn: $hideBlacklistedPseudo)
 
@@ -410,8 +410,8 @@ struct AppSettingsView: View {
                     Text(option.title).tag(option.value)
                 }
             }
-            // Menu pickers keep the tint they were created with: rebuild on accent change.
-            .id(natifAccentIndex)
+            // Menu pickers keep the tint they were created with: rebuild on colour or theme change.
+            .id("\(natifAccentIndex)-\(natif.variant.rawValue)")
         }
     }
 
@@ -423,8 +423,8 @@ struct AppSettingsView: View {
                     Text(option.title).tag(option.value)
                 }
             }
-            // Menu pickers keep the tint they were created with: rebuild on accent change.
-            .id(natifAccentIndex)
+            // Menu pickers keep the tint they were created with: rebuild on colour or theme change.
+            .id("\(natifAccentIndex)-\(natif.variant.rawValue)")
 
             Toggle("Inclure les pseudos whitelistés", isOn: filterPostsWhitelistBinding)
         }
