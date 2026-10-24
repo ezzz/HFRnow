@@ -108,6 +108,7 @@ final class ForumSearchViewModel: ObservableObject {
 }
 
 struct ForumSearchView: View {
+    @Environment(\.natif) private var natif
     @StateObject private var viewModel: ForumSearchViewModel
     @AppStorage("recherche_categorie") private var storedCategoryID = "13"
     @State private var categories: [ForumSearchCategory]
@@ -147,10 +148,13 @@ struct ForumSearchView: View {
                         viewModel.cancel()
                     }
                 } else {
+                    // Pale colour while there is nothing to search, like the other disabled
+                    // buttons (the system drew it grey).
                     Button {
                         startSearch()
                     } label: {
                         Image(systemName: "magnifyingglass")
+                            .foregroundStyle(natif.accent.opacity(canSubmit ? 1 : 0.4))
                     }
                     .disabled(!canSubmit)
                     .accessibilityLabel("Lancer la recherche")
