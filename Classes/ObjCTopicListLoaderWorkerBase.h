@@ -22,6 +22,7 @@
 @property (nonatomic, assign) int pageNumber;
 @property (nonatomic, assign) int firstPageNumber;
 @property (nonatomic, assign) int lastPageNumber;
+@property (nonatomic, assign) BOOL lastPageNumberIsExact;
 @property (nonatomic, strong) NSString *firstPageUrl;
 @property (nonatomic, strong) NSString *lastPageUrl;
 @property (nonatomic, strong) NSString *nextPageUrl;

@@ -15,6 +15,7 @@
         _forumNewTopicUrl = @"";
         _firstPageNumber = 1;
         _lastPageNumber = 1;
+        _lastPageNumberIsExact = YES;
     }
     return self;
 }
@@ -66,6 +67,7 @@
     self.pageNumber = result.pageNumber;
     self.firstPageNumber = result.firstPageNumber;
     self.lastPageNumber = result.lastPageNumber;
+    self.lastPageNumberIsExact = result.lastPageNumberIsExact;
     self.firstPageUrl = result.firstPageUrl;
     self.lastPageUrl = result.lastPageUrl;
     self.nextPageUrl = result.nextPageUrl;

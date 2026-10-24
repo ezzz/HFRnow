@@ -1576,6 +1576,7 @@ final class ObjCForumTopicsLoader: ForumTopicsLoading {
             "pageNumber": numberValue(controller.value(forKey: "pageNumber")),
             "firstPageNumber": numberValue(controller.value(forKey: "firstPageNumber")),
             "lastPageNumber": numberValue(controller.value(forKey: "lastPageNumber")),
+            "lastPageNumberIsExact": (controller.value(forKey: "lastPageNumberIsExact") as? NSNumber)?.boolValue ?? true,
             "resultCount": resultCount
         ]
         return ForumSearchPageInfo(raw: raw)
@@ -2623,8 +2624,16 @@ private struct TopicPagePickerQuickButton: View {
 
 struct TopicPagePickerSheet: View {
     let maxPage: Int
+    /// `maxPage` is only the farthest linked page (forum topic lists): any page number can be typed.
+    var isMaxPageApproximate = false
     @Binding var pageInput: String
     let onSubmit: (Int) -> Void
+
+    static let approximateUpperBound = 99_999
+
+    private var inputUpperBound: Int {
+        isMaxPageApproximate ? max(maxPage, Self.approximateUpperBound) : maxPage
+    }
 
     @Environment(\.dismiss) private var dismiss
 
@@ -2633,17 +2642,16 @@ struct TopicPagePickerSheet: View {
     }
 
     private var resolvedPage: Int {
-        let fallback = min(max(1, Int(trimmedInput) ?? 1), maxPage)
-        return min(max(fallback, 1), maxPage)
+        min(max(Int(trimmedInput) ?? 1, 1), inputUpperBound)
     }
 
     private var isInputValid: Bool {
         guard let page = Int(trimmedInput) else { return false }
-        return (1...maxPage).contains(page)
+        return (1...inputUpperBound).contains(page)
     }
 
     private func setPage(_ page: Int) {
-        let clampedPage = min(max(page, 1), maxPage)
+        let clampedPage = min(max(page, 1), inputUpperBound)
         pageInput = "\(clampedPage)"
     }
 
@@ -2659,7 +2667,7 @@ struct TopicPagePickerSheet: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 16) {
-                Text("Choisir une page entre 1 et \(maxPage)")
+                Text(isMaxPageApproximate ? "Choisir une page (au moins \(maxPage))" : "Choisir une page entre 1 et \(maxPage)")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
 

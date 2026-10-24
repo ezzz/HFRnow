@@ -48,6 +48,7 @@ static NSInteger HFRTopicPageNumberFromURLString(NSString *urlString) {
         _pageNumber = 1;
         _firstPageNumber = 1;
         _lastPageNumber = 1;
+        _lastPageNumberIsExact = YES;
     }
     return self;
 }
@@ -199,6 +200,16 @@ static NSInteger HFRTopicPageNumberFromURLString(NSString *urlString) {
             }
             
             result.lastPageNumber = [[[temporaryNumPagesArray lastObject] contents] intValue];
+
+            int previousLinkedPage = 0;
+            for (NSInteger index = (NSInteger)temporaryNumPagesArray.count - 2; index >= 2; index--) {
+                int linkedPage = [[[temporaryNumPagesArray objectAtIndex:index] contents] intValue];
+                if (linkedPage > 0) {
+                    previousLinkedPage = linkedPage;
+                    break;
+                }
+            }
+            result.lastPageNumberIsExact = previousLinkedPage == 0 || result.lastPageNumber - previousLinkedPage <= 1;
             
             if (result.pageNumber == result.lastPageNumber) {
                 NSString *newLastPageUrl = [result.currentUrl copy];

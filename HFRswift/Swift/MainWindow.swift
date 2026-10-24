@@ -373,7 +373,10 @@ struct ForumTopicsListView: View {
 
     private var navigationSubtitleText: String? {
         guard shouldShowPagination else { return nil }
-        return "Page \(max(viewModel.pageInfo.pageNumber, 1)) / \(max(viewModel.pageInfo.lastPageNumber, 1))"
+        let page = max(viewModel.pageInfo.pageNumber, 1)
+        // HFR only links the pages around the current one and by hundreds: no real total then.
+        guard viewModel.pageInfo.isLastPageNumberExact else { return "Page \(page)" }
+        return "Page \(page) / \(max(viewModel.pageInfo.lastPageNumber, 1))"
     }
 
     private func loadPage(_ urlString: String?) {
@@ -383,7 +386,8 @@ struct ForumTopicsListView: View {
     }
 
     private func pageURL(for page: Int) -> String? {
-        let boundedPage = min(max(page, 1), max(viewModel.pageInfo.lastPageNumber, 1))
+        let upperBound = viewModel.pageInfo.isLastPageNumberExact ? max(viewModel.pageInfo.lastPageNumber, 1) : TopicPagePickerSheet.approximateUpperBound
+        let boundedPage = min(max(page, 1), upperBound)
         switch boundedPage {
         case viewModel.pageInfo.pageNumber:
             return viewModel.pageInfo.currentURL
@@ -868,6 +872,7 @@ struct ForumTopicsListView: View {
         .sheet(isPresented: $isPagePickerPresented) {
             TopicPagePickerSheet(
                 maxPage: max(viewModel.pageInfo.lastPageNumber, 1),
+                isMaxPageApproximate: !viewModel.pageInfo.isLastPageNumberExact,
                 pageInput: $pagePickerInput
             ) { selectedPage in
                 navigateToPage(selectedPage)
@@ -987,7 +992,7 @@ private struct ForumTopicsPaginationBar: View {
             Spacer(minLength: 8)
 
             Button(action: onPagePicker) {
-                Text("\(pageNumber) / \(lastPageNumber)")
+                Text(pageInfo.isLastPageNumberExact ? "\(pageNumber) / \(lastPageNumber)" : "Page \(pageNumber)")
                     .font(.footnote.monospacedDigit().weight(.semibold))
                     .foregroundStyle(.primary.opacity(0.72))
                     .frame(minWidth: 74)
@@ -1000,12 +1005,13 @@ private struct ForumTopicsPaginationBar: View {
             Button(action: onNext) {
                 Image(systemName: "chevron.right")
             }
-            .disabled(pageNumber >= lastPageNumber || pageInfo.nextPageURL == nil)
+            .disabled(pageInfo.nextPageURL == nil || (pageInfo.isLastPageNumberExact && pageNumber >= lastPageNumber))
 
+            // Without the real total, "last page" would only go to the farthest linked page.
             Button(action: onLast) {
                 Image(systemName: "forward.end")
             }
-            .disabled(pageNumber >= lastPageNumber || pageInfo.lastPageURL == nil)
+            .disabled(!pageInfo.isLastPageNumberExact || pageNumber >= lastPageNumber || pageInfo.lastPageURL == nil)
         }
         .hfrGlassButton()
         .controlSize(.small)
