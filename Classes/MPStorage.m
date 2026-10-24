@@ -711,7 +711,7 @@ static MPStorage *_shared = nil;    // static instance variable
             HTMLNode * topicTitleNode = [topicNode findChildWithAttribute:@"class" matchingName:@"sujetCase3" allowPartial:NO];
             NSString* sTitle = [topicTitleNode allContents];
             if ([sTitle isEqualToString:MP_NAME] || [sTitle isEqualToString:[NSString stringWithFormat:@"[non lu] %@", MP_NAME]]) {
-                NSString *aTopicURL = [[NSString alloc] initWithString:[[topicTitleNode findChildTag:@"a"] getAttributeNamed:@"href"]];
+                NSString *aTopicURL = [[[topicTitleNode findChildTag:@"a"] getAttributeNamed:@"href"] copy];
                 NSLog(@"Topic title FOUND : >%@<\nURL:>%@<", [topicTitleNode allContents], aTopicURL);
                 for (NSString *qs in [aTopicURL componentsSeparatedByString:@"&"]) {
                     NSString *key = [[qs componentsSeparatedByString:@"="] objectAtIndex:0];

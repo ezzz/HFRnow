@@ -142,7 +142,7 @@ enum MessagePopupMenuActionKind: Equatable {
         case .favorite:
             return "Favoris"
         case .link:
-            return "Link"
+            return "Lien"
         case .alert:
             return "Alerter"
         case .aq:
@@ -680,6 +680,22 @@ struct WebView: UIViewRepresentable {
     var messageLoveContentBackgroundColor: String
     var messageLoveModernHeaderBackgroundColor: String
     var messageClassicHeaderBackgroundColor: String
+    @Environment(\.natif) private var natif
+    // Observed so that a change re-renders the WebView and re-injects the Natif script.
+    @AppStorage(NatifAppearance.smileyScaleKey) private var natifSmileyScale = 1.0
+    @AppStorage(AppLayoutCompactMode.key) private var natifCompactMode = false
+
+    /// Natif stylesheet + theme/accent tagging, see NatifPostStyle.
+    private var natifInstallScript: String {
+        NatifPostStyle.installationScript(
+            themeName: natif.variant.rawValue,
+            accent: natif.uiAccent.natifCSSHex,
+            accentFill: natif.uiAccentFill.natifCSSHex,
+            accentSoft: natif.uiAccentSoft.natifCSSHex,
+            smileyScale: natifSmileyScale,
+            isCompact: natifCompactMode
+        )
+    }
     var messageActionsByIndex: [Int: TopicPageMessageActions]
     var actionHandler: any MessageWebActionHandling
     var onWebAction: ((MessageWebAction) -> Void)?
@@ -810,8 +826,21 @@ struct WebView: UIViewRepresentable {
             forMainFrameOnly: true
         )
         contentController.addUserScript(bootstrapThemeScript)
+        if !natifInstallScript.isEmpty {
+            contentController.addUserScript(
+                WKUserScript(source: natifInstallScript, injectionTime: .atDocumentStart, forMainFrameOnly: true)
+            )
+        }
         contentController.add(context.coordinator, name: "scrollState")
         contentController.add(context.coordinator, name: "textInteractionState")
+        contentController.add(context.coordinator, name: "domReady")
+        contentController.addUserScript(
+            WKUserScript(
+                source: "window.webkit.messageHandlers.domReady.postMessage(1);",
+                injectionTime: .atDocumentEnd,
+                forMainFrameOnly: true
+            )
+        )
 
         let scrollTrackingScript = WKUserScript(
             source: """
@@ -946,6 +975,7 @@ struct WebView: UIViewRepresentable {
         context.coordinator.messageLoveContentBackgroundColor = messageLoveContentBackgroundColor
         context.coordinator.messageLoveModernHeaderBackgroundColor = messageLoveModernHeaderBackgroundColor
         context.coordinator.messageClassicHeaderBackgroundColor = messageClassicHeaderBackgroundColor
+        context.coordinator.natifInstallScript = natifInstallScript
         if let messageWebView = webView as? MessageWebView {
             messageWebView.messageActionsByIndex = messageActionsByIndex
             messageWebView.onTextQuoteRequest = onTextQuoteRequest
@@ -972,6 +1002,7 @@ struct WebView: UIViewRepresentable {
                 context.coordinator.lastAppliedMessageStyleSignature = nil
                 context.coordinator.isWaitingForThemeApplication = true
                 context.coordinator.didNotifyContentReadyForCurrentLoad = false
+                context.coordinator.didHandlePageReadyForCurrentLoad = false
                 webView.isHidden = true
                 webView.loadFileURL(fileURL, allowingReadAccessTo: readAccessURL)
             } else {
@@ -1009,6 +1040,7 @@ struct WebView: UIViewRepresentable {
         var messageLoveContentBackgroundColor: String
         var messageLoveModernHeaderBackgroundColor: String
         var messageClassicHeaderBackgroundColor: String
+        var natifInstallScript: String
         var loadedFileURL: URL?
         var loadedReadAccessURL: URL?
         var lastAppliedTheme: String?
@@ -1017,6 +1049,7 @@ struct WebView: UIViewRepresentable {
         var lastAppliedMessageStyleSignature: String?
         var isWaitingForThemeApplication = false
         var didNotifyContentReadyForCurrentLoad = false
+        var didHandlePageReadyForCurrentLoad = false
         var lastHandledScrollRequestID: UUID?
         @available(iOS 16.0, *)
         weak var editMenuInteraction: UIEditMenuInteraction?
@@ -1048,10 +1081,20 @@ struct WebView: UIViewRepresentable {
             self.messageLoveContentBackgroundColor = parent.messageLoveContentBackgroundColor
             self.messageLoveModernHeaderBackgroundColor = parent.messageLoveModernHeaderBackgroundColor
             self.messageClassicHeaderBackgroundColor = parent.messageClassicHeaderBackgroundColor
+            self.natifInstallScript = parent.natifInstallScript
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             print("WKWebView didFinish. anchor =", anchor as Any, "initialScroll =", String(describing: initialScroll), "url:", webView.url?.absoluteString ?? "nil")
+            handlePageReady(in: webView)
+        }
+
+        /// Runs once per load, on DOMContentLoaded (domReady message) or didFinish, whichever comes
+        /// first. didFinish waits for every subresource (embedded videos, big images...), which could
+        /// keep the page hidden behind "Chargement…" for a very long time.
+        func handlePageReady(in webView: WKWebView) {
+            guard !didHandlePageReadyForCurrentLoad else { return }
+            didHandlePageReadyForCurrentLoad = true
             applyThemeIfNeeded(in: webView, force: true) {
                 self.applyMessageStyleIfNeeded(in: webView, force: true) {
                     self.applyTextSizeIfNeeded(in: webView, force: true) {
@@ -1204,6 +1247,11 @@ struct WebView: UIViewRepresentable {
                         self.parent.onScrollPositionSnapshotChange?(scrollPosition)
                     }
                 }
+            case "domReady":
+                guard let webView = message.webView else { return }
+                DispatchQueue.main.async {
+                    self.handlePageReady(in: webView)
+                }
             case "textInteractionState":
                 let isActive: Bool
                 if let boolValue = message.body as? Bool {
@@ -1292,7 +1340,8 @@ struct WebView: UIViewRepresentable {
             completion: (() -> Void)? = nil
         ) {
             let targetTheme = colorScheme == .dark ? "dark" : "light"
-            guard force || lastAppliedTheme != targetTheme else {
+            let targetThemeKey = "\(targetTheme)|\(natifInstallScript.hashValue)"
+            guard force || lastAppliedTheme != targetThemeKey else {
                 completion?()
                 return
             }
@@ -1324,13 +1373,14 @@ struct WebView: UIViewRepresentable {
                 root.style.setProperty(key, targetVars[key]);
               });
             })();
+            \(natifInstallScript)
             """
 
             webView.evaluateJavaScript(script) { [weak self] _, error in
                 if let error = error {
                     print("Theme JS error:", error.localizedDescription)
                 } else {
-                    self?.lastAppliedTheme = targetTheme
+                    self?.lastAppliedTheme = targetThemeKey
                     self?.lastAppliedThemeRevision = self?.themeRevision ?? -1
                     print("Theme JS applied:", targetTheme)
                 }
@@ -2582,7 +2632,7 @@ struct MessagesView: View {
         var title: String {
             switch self {
             case .reply:
-                return "Reply"
+                return "Répondre"
             case .edit:
                 return "Edition"
             case .privateMessage:
@@ -2651,6 +2701,9 @@ struct MessagesView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @ObservedObject private var appTheme = AppThemeStore.shared
+    @Environment(\.natif) private var natif
+    /// Read so that a Dynamic Type change re-renders the page with the new body size.
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AppStorage(AppTextSizeScale.key) private var textSizeScaleRawValue = AppTextSizeScale.standard.rawValue
     @AppStorage("theme_style") private var messageDisplayStyleRawValue = 1
     @State private var page: Int
@@ -2710,6 +2763,10 @@ struct MessagesView: View {
     @State private var presentedPollData: PollData?
     @State private var showWebViewLoadCover = true
     @State private var isWebContentAtBottom = false
+    /// Refresh of the current page from the bottom button: keep the content and the button on
+    /// screen (the arrow spins) instead of blanking the page behind "Chargement…".
+    @State private var isRefreshingInPlace = false
+    @State private var isLoginRequiredAlertPresented = false
     @State private var isMessageTextInteractionActive = false
     @State private var pendingPostedReply: ReplyPostingResult?
     @State private var showPostSuccessToast = false
@@ -2759,13 +2816,14 @@ struct MessagesView: View {
         )
     }
 
+    /// Size class only, no idiom check: iPhone Duo is a `.phone` whose inner display is regular/regular.
     private var shouldHideReplyComposerButton: Bool {
-        UIDevice.current.userInterfaceIdiom == .phone && verticalSizeClass == .compact
+        verticalSizeClass == .compact
     }
 
     private var loadingTopicView: some View {
         ZStack {
-            themePalette.webViewBackdropColor
+            natif.bg
                 .ignoresSafeArea()
             VStack(spacing: 8) {
                 ProgressView()
@@ -2781,10 +2839,15 @@ struct MessagesView: View {
         .allowsHitTesting(false)
     }
 
+    private var webViewBaseBackgroundColor: UIColor {
+        UIColor(natif.bg)
+    }
+
     private var messageBodyFontSize: CGFloat {
-        AppTextSizeScale.scaledUIFont(
+        _ = dynamicTypeSize
+        return AppTextSizeScale.scaledUIFont(
             textStyle: .body,
-            basePointSize: 15,
+            basePointSize: 17,
             rawValue: textSizeScaleRawValue
         ).pointSize
     }
@@ -2987,8 +3050,10 @@ struct MessagesView: View {
             initialScroll = overrideInitialScroll
         }
 
-        showWebViewLoadCover = true
-        isWebContentAtBottom = false
+        if !isRefreshingInPlace {
+            showWebViewLoadCover = true
+            isWebContentAtBottom = false
+        }
         errorMessage = nil
         messageActionsByIndex = [:]
 
@@ -3006,6 +3071,7 @@ struct MessagesView: View {
 
     private func completeTopicLoad(_ token: UUID) -> Bool {
         guard activeTopicLoadToken == token else { return false }
+        isRefreshingInPlace = false
         activeTopicLoadToken = nil
         topicLoadTimeoutWorkItem?.cancel()
         topicLoadTimeoutWorkItem = nil
@@ -3838,6 +3904,11 @@ struct MessagesView: View {
     }
 
     private func openReplyComposer() {
+        // Logged out: posting cannot work, explain instead of opening an empty composer.
+        guard ObjCLegacyAccountsManager.shared.currentAccountIdentity() != nil else {
+            isLoginRequiredAlertPresented = true
+            return
+        }
         activeComposerPresentationKind = .reply
         composerNavigationTitle = ComposerPresentationKind.reply.title
         composerRequiresSubject = false
@@ -4269,6 +4340,7 @@ struct MessagesView: View {
         shouldTriggerRefreshCompletionHaptic = true
         anchor = nil
         initialScroll = .bottom
+        isRefreshingInPlace = true
         loadPage(page)
     }
 
@@ -4381,7 +4453,7 @@ struct MessagesView: View {
         } else if fileURL != nil && cacheURL != nil {
             content = AnyView(
                 ZStack {
-                themePalette.webViewBackdropColor
+                natif.bg
 
                 WebView(
                     fileURL: fileURL,
@@ -4392,7 +4464,7 @@ struct MessagesView: View {
                     currentPage: page,
                     maxPage: currentMaxPage,
                     colorScheme: appTheme.effectiveColorScheme,
-                    baseBackgroundColor: themePalette.webViewBackdropUIColor,
+                    baseBackgroundColor: webViewBaseBackgroundColor,
                     themeRevision: appTheme.themeRevision,
                     messageBodyFontSize: messageBodyFontSize,
                     messageDisplayStyleRawValue: messageDisplayStyleRawValue,
@@ -4511,6 +4583,8 @@ struct MessagesView: View {
                     DragGesture().onEnded { value in
                         guard !isFavoritePostFilterMode else { return }
                         guard !isMessageTextInteractionActive else { return }
+                        // A drag starting at the left edge is the system "back" gesture, not a page turn.
+                        guard value.startLocation.x > 32 else { return }
                         let horizontal = value.translation.width
                         let vertical = value.translation.height
                         let minDistance: CGFloat = 120
@@ -4698,7 +4772,7 @@ struct MessagesView: View {
                                 } label: {
                                     MenuActionLabel(
                                         "Sondage",
-                                        systemImage: "chart.bar.doc.horizontal",
+                                        systemImage: "chart.bar.fill",
                                         tintColor: themePalette.actionTintColor,
                                         iconTintUIColor: themePalette.actionTintUIColor
                                     )
@@ -4780,10 +4854,11 @@ struct MessagesView: View {
                                     Button {
                                         refreshCurrentPagePreservingScroll()
                                     } label: {
-                                        Image(systemName: "arrow.clockwise")
+                                        ToolbarRefreshIcon(isLoading: isRefreshingInPlace)
                                             .font(.system(size: 16, weight: .semibold))
                                     }
                                     .topicBottomBarCircularIconButtonStyle(isProminent: true)
+                                    .disabled(isRefreshingInPlace)
                                     .accessibilityLabel("Actualiser")
                                     .transition(.opacity.combined(with: .scale))
                                 }
@@ -4794,7 +4869,7 @@ struct MessagesView: View {
                                     Button {
                                         openReplyComposer()
                                     } label: {
-                                        Label("New", systemImage: "plus")
+                                        Label("Répondre", systemImage: "square.and.pencil")
                                     }
                                     .topicBottomBarButtonStyle(isProminent: false)
                                 }
@@ -4826,6 +4901,11 @@ struct MessagesView: View {
                             handleSearchResult(url: url, params: params)
                         }
                     )
+                }
+                .alert("Connexion requise", isPresented: $isLoginRequiredAlertPresented) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text("Ajoutez votre compte HFR (Plus › Se connecter) pour répondre.")
                 }
                 .alert("Recherche impossible", isPresented: isSearchErrorAlertPresented) {
                     Button("OK", role: .cancel) {}
@@ -4901,7 +4981,7 @@ struct MessagesView: View {
         } else {
             content = AnyView(
                 loadingTopicView
-                .navigationTitle("My title")
+                .navigationTitle(topicDisplayTitle.isEmpty ? "Chargement" : topicDisplayTitle)
                 .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(navigationDepth > 0)
             .toolbar {
@@ -4946,7 +5026,7 @@ struct MessagesView: View {
                             } label: {
                                 MenuActionLabel(
                                     "Sondage",
-                                    systemImage: "chart.bar.doc.horizontal",
+                                    systemImage: "chart.bar.fill",
                                     tintColor: themePalette.actionTintColor,
                                     iconTintUIColor: themePalette.actionTintUIColor
                                 )
@@ -5004,7 +5084,7 @@ struct MessagesView: View {
                             Button {
                                 openReplyComposer()
                             } label: {
-                                Label("New", systemImage: "plus")
+                                Label("Répondre", systemImage: "square.and.pencil")
                             }
                             .topicBottomBarButtonStyle(isProminent: false)
                         }
@@ -5544,6 +5624,10 @@ private struct MessageAnimatedGIFImageView: UIViewRepresentable {
 
             loadState.wrappedValue = .loading
 
+            // Read on the main thread: the decode runs in the URLSession callback, and the
+            // window's screen can change (iPhone Duo inner/outer display).
+            let displayScale = imageView.traitCollection.displayScale
+
             let task = URLSession.shared.dataTask(with: url) { [weak self, weak imageView] data, response, _ in
                 guard let self else { return }
 
@@ -5551,7 +5635,7 @@ private struct MessageAnimatedGIFImageView: UIViewRepresentable {
                 guard
                     let data,
                     isValidResponse,
-                    let decodedImage = Self.decodeAnimatedImage(from: data)
+                    let decodedImage = Self.decodeAnimatedImage(from: data, displayScale: displayScale)
                 else {
                     DispatchQueue.main.async {
                         guard self.currentURL == url else { return }
@@ -5584,7 +5668,7 @@ private struct MessageAnimatedGIFImageView: UIViewRepresentable {
             currentURL = nil
         }
 
-        private static func decodeAnimatedImage(from data: Data) -> UIImage? {
+        private nonisolated static func decodeAnimatedImage(from data: Data, displayScale: CGFloat) -> UIImage? {
             let animatedGIFSelector = NSSelectorFromString("sd_animatedGIFWithData:")
             let imageClass: AnyObject = UIImage.self
             if imageClass.responds(to: animatedGIFSelector),
@@ -5604,7 +5688,7 @@ private struct MessageAnimatedGIFImageView: UIViewRepresentable {
 
             var frames: [UIImage] = []
             var totalDuration: Double = 0
-            let scale = UIScreen.main.scale
+            let scale = displayScale > 0 ? displayScale : 1
 
             for index in 0..<frameCount {
                 guard let cgImage = CGImageSourceCreateImageAtIndex(source, index, nil) else {
@@ -5624,7 +5708,7 @@ private struct MessageAnimatedGIFImageView: UIViewRepresentable {
             return UIImage.animatedImage(with: frames, duration: totalDuration)
         }
 
-        private static func frameDuration(at index: Int, in source: CGImageSource) -> Double {
+        private nonisolated static func frameDuration(at index: Int, in source: CGImageSource) -> Double {
             guard
                 let frameProperties = CGImageSourceCopyPropertiesAtIndex(source, index, nil) as? [CFString: Any],
                 let gifProperties = frameProperties[kCGImagePropertyGIFDictionary] as? [CFString: Any]
@@ -5866,6 +5950,9 @@ private struct ZoomableRemoteAnimatedImageView: UIViewRepresentable {
 
             scheduleState(.loading, visible: false)
 
+            // Read on the main thread: the decode runs in the URLSession callback.
+            let displayScale = view.traitCollection.displayScale
+
             let request = PhotoViewerNetworkRequestFactory.makeRequest(for: url)
             let task = URLSession.shared.dataTask(with: request) { [weak self, weak view] data, response, _ in
                 guard let self else { return }
@@ -5874,7 +5961,7 @@ private struct ZoomableRemoteAnimatedImageView: UIViewRepresentable {
                 guard
                     let data,
                     isValidResponse,
-                    let image = Self.decodeAnimatedImage(from: data)
+                    let image = Self.decodeAnimatedImage(from: data, displayScale: displayScale)
                 else {
                     DispatchQueue.main.async {
                         guard self.currentPresentationID == presentationID, self.currentURL == url else { return }
@@ -5918,7 +6005,7 @@ private struct ZoomableRemoteAnimatedImageView: UIViewRepresentable {
             (scrollView as? ZoomingImageScrollView)?.centerImage()
         }
 
-        private static func decodeAnimatedImage(from data: Data) -> UIImage? {
+        private nonisolated static func decodeAnimatedImage(from data: Data, displayScale: CGFloat) -> UIImage? {
             let animatedGIFSelector = NSSelectorFromString("sd_animatedGIFWithData:")
             let imageClass: AnyObject = UIImage.self
             if imageClass.responds(to: animatedGIFSelector),
@@ -5938,7 +6025,7 @@ private struct ZoomableRemoteAnimatedImageView: UIViewRepresentable {
 
             var frames: [UIImage] = []
             var totalDuration: Double = 0
-            let scale = UIScreen.main.scale
+            let scale = displayScale > 0 ? displayScale : 1
 
             for index in 0..<frameCount {
                 guard let cgImage = CGImageSourceCreateImageAtIndex(source, index, nil) else {
@@ -5958,7 +6045,7 @@ private struct ZoomableRemoteAnimatedImageView: UIViewRepresentable {
             return UIImage.animatedImage(with: frames, duration: totalDuration)
         }
 
-        private static func frameDuration(at index: Int, in source: CGImageSource) -> Double {
+        private nonisolated static func frameDuration(at index: Int, in source: CGImageSource) -> Double {
             guard
                 let frameProperties = CGImageSourceCopyPropertiesAtIndex(source, index, nil) as? [CFString: Any],
                 let gifProperties = frameProperties[kCGImagePropertyGIFDictionary] as? [CFString: Any]

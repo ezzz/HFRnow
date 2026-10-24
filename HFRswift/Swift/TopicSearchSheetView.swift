@@ -168,6 +168,7 @@ struct TopicSearchSheetView: View {
                 }
             }
             .animation(.easeInOut(duration: 0.18), value: isSubmitting)
+            .natifGroupedListBackground()
             .navigationTitle("Rechercher")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -24,59 +24,97 @@ struct AddAccountView: View {
         !isSubmitting && !trimmedPseudo.isEmpty && !password.isEmpty
     }
 
+    @Environment(\.natif) private var natif
+    @Environment(\.openURL) private var openURL
+    @FocusState private var focusedField: Field?
+
+    private enum Field {
+        case pseudo
+        case password
+    }
+
     var body: some View {
         NavigationStack {
-            VStack(spacing: 16) {
-                Text("Ajouter un pseudo")
-                    .font(.title3)
-                    .bold()
-
-                VStack(spacing: 12) {
-                    TextField("Pseudo", text: $pseudo)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .textContentType(.username)
-                        .textFieldStyle(.roundedBorder)
-
-                    SecureField("Mot de passe", text: $password)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .textContentType(.password)
-                        .textFieldStyle(.roundedBorder)
-                }
-
-                if let errorMessage {
-                    Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundColor(.red)
+            Form {
+                Section {
+                    Text("Connectez-vous avec votre compte hardware.fr pour retrouver vos drapeaux, favoris et messages privés.")
+                        .font(.subheadline)
+                        .foregroundStyle(natif.text2)
                         .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                        .listRowBackground(Color.clear)
                 }
 
-                Button {
-                    submit()
-                } label: {
-                    if isSubmitting {
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                    } else {
-                        Text("Valider")
-                            .frame(maxWidth: .infinity)
+                Section {
+                    LabeledContent {
+                        TextField("Votre pseudo", text: $pseudo)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .textContentType(.username)
+                            .focused($focusedField, equals: .pseudo)
+                            .submitLabel(.next)
+                            .onSubmit { focusedField = .password }
+                    } label: {
+                        Text("Pseudo").frame(width: 110, alignment: .leading)
+                    }
+                    LabeledContent {
+                        SecureField("Requis", text: $password)
+                            .textContentType(.password)
+                            .focused($focusedField, equals: .password)
+                            .submitLabel(.go)
+                            .onSubmit(submit)
+                    } label: {
+                        Text("Mot de passe").frame(width: 110, alignment: .leading)
+                    }
+                } footer: {
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .foregroundStyle(natif.destructive)
                     }
                 }
-                .disabled(!canSubmit)
-                .hfrGlassButton(prominent: true)
+                .natifCellBackground()
+
+                Section {
+                    Button(action: submit) {
+                        Text("Se connecter")
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity, minHeight: 50)
+                            .background(Capsule().fill(natif.accentFill))
+                            .opacity(canSubmit || isSubmitting ? 1 : 0.5)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!canSubmit)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
+                } footer: {
+                    VStack(spacing: 12) {
+                        Text("Les identifiants sont stockés dans le trousseau iOS.")
+                        Button("Créer un compte sur hardware.fr") {
+                            if let url = URL(string: "https://forum.hardware.fr/inscription.php") {
+                                openURL(url)
+                            }
+                        }
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(natif.accent)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 8)
+                }
             }
-            .padding(20)
-            .hfrGlassSurface(in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-            .padding(20)
+            .natifGroupedListBackground()
+            .navigationTitle("Ajouter un compte")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Annuler") {
                         dismiss()
                     }
+                    .disabled(isSubmitting)
                 }
             }
+            .onAppear { focusedField = .pseudo }
         }
     }
 

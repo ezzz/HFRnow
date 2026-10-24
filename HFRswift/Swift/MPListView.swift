@@ -230,6 +230,7 @@ struct MPListView: View {
     @StateObject private var viewModel: MPListViewModel
     @StateObject private var accountsStore: AccountsStore
     @State private var showAddAccountSheet = false
+    @Environment(\.openURL) private var openURL
     @State private var showLogoutConfirm = false
     @AppStorage("nb_mp") private var unreadMPCount = 0
 
@@ -285,18 +286,20 @@ struct MPListView: View {
         NavigationStack {
             List {
                 if !isLoggedIn {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Label("Connectez-vous pour accéder aux MP", systemImage: "envelope.badge")
-                            .font(.headline)
-                        Text("Ajoutez un pseudo pour charger vos messages privés.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        Button("Ajouter un pseudo") {
-                            showAddAccountSheet = true
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-                    .padding(.vertical, 8)
+                    NatifEmptyState(
+                        systemImage: "envelope",
+                        title: "Connectez-vous pour accéder aux MP",
+                        message: "Vos conversations privées HFR apparaîtront ici.",
+                        primary: .init(title: "Se connecter") { showAddAccountSheet = true },
+                        secondary: .init(title: "Créer un compte") {
+                            if let url = URL(string: "https://forum.hardware.fr/inscription.php") {
+                                openURL(url)
+                            }
+                        },
+                        onGroupedBackground: false
+                    )
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
                 } else {
                     if let errorMessage = viewModel.errorMessage {
                         Text("Erreur : \(errorMessage)")
@@ -324,7 +327,10 @@ struct MPListView: View {
                     checkDone()
                 }
             }
+            .listStyle(.plain)
+            .natifPlainListBackground()
             .navigationTitle("Messages")
+            .expandedPhoneInlineNavigationTitle()
             .onAppear {
                 if isActive {
                     refreshContentOnVisibility()
@@ -376,13 +382,13 @@ struct MPListView: View {
                     Button {
                         showAddAccountSheet = true
                     } label: {
-                        MenuActionLabel("Ajouter un pseudo", systemImage: "person.badge.plus")
+                        MenuActionLabel("Ajouter un compte", systemImage: "person.badge.plus")
                     }
                     Divider()
                     Button(role: .destructive) {
                         showLogoutConfirm = true
                     } label: {
-                        MenuActionLabel("Déconnexion", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive)
+                        MenuActionLabel("Se déconnecter", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive)
                     }
                     .disabled(accountsStore.currentAccount == nil)
                 }
@@ -425,18 +431,6 @@ struct MPRowView: View {
             .trimmingCharacters(in: .whitespaces)
     }
 
-    private var nonLuBadge: AnyView? {
-        guard hasNonLuPrefix else { return nil }
-        return AnyView(
-            Text("non lu")
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(Color(uiColor: .systemGray).opacity(isViewed ? 0.5 : 1), in: Capsule())
-        )
-    }
-
     private var interlocutorLabel: String? {
         guard let interlocutor = topic.aAuthorOrInter else { return nil }
         if interlocutor.localizedCaseInsensitiveContains("multiples") {
@@ -451,9 +445,22 @@ struct MPRowView: View {
         return interlocutor
     }
 
-    private var trailingLabel: String? {
-        guard let author = topic.aAuthorOfLastPost, let when = topic.aDateOfLastPost else { return nil }
-        return "\(author) - \(when)"
+    private var dateLabel: String? {
+        topic.aDateOfLastPost?.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// "Dernier message de X" when the last post is not from the correspondent.
+    private var lastPostLabel: String? {
+        guard
+            let author = topic.aAuthorOfLastPost?.trimmingCharacters(in: .whitespacesAndNewlines),
+            !author.isEmpty,
+            author.caseInsensitiveCompare(topic.aAuthorOrInter ?? "") != .orderedSame
+        else { return nil }
+        return "Dernier message de \(author)"
+    }
+
+    private var isUnread: Bool {
+        hasNonLuPrefix || !isViewed
     }
 
     private var avatarAccessory: AnyView {
@@ -464,15 +471,13 @@ struct MPRowView: View {
         TopicListRowView(
             topic: topic,
             isVisited: isViewed,
-            titleFont: nil,
-            titleBaseSize: 14.3,
-            titleWeight: isViewed ? .regular : .semibold,
+            titleFont: isUnread ? .subheadline.weight(.semibold) : .subheadline,
             titleOverride: cleanedTitle,
-            titleLeadingBadge: nonLuBadge,
             showUnreadBadge: false,
-            leadingBottomText: interlocutorLabel,
-            trailingBottomText: trailingLabel,
-            contentPadding: EdgeInsets(top: 2, leading: 0, bottom: 2, trailing: 0),
+            leadingBottomText: lastPostLabel,
+            forcedStatus: isUnread ? .unread : nil,
+            headerText: interlocutorLabel,
+            headerTrailingText: dateLabel,
             leadingAccessory: avatarAccessory,
             openContext: .privateMessages,
             quickActions: TopicQuickActionPolicy.defaults(for: .privateMessages),
@@ -480,7 +485,7 @@ struct MPRowView: View {
             onOpen?()
             }
         )
-        .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
+        .listRowInsets(EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 16))
     }
 }
 
@@ -492,31 +497,21 @@ private struct MPAvatarView: View {
         MPAvatarImageStore.image(for: interlocutor, colorScheme: colorScheme)
     }
 
+    private var isMultiple: Bool {
+        interlocutor?.localizedCaseInsensitiveContains("multiples") == true
+    }
+
     var body: some View {
-        Group {
-            if let resolvedImage {
-                Image(uiImage: resolvedImage)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                Circle()
-                    .fill(.quaternary)
-                    .overlay {
-                        Image(systemName: "person.crop.circle.fill")
-                            .resizable()
-                            .scaledToFit()
-                            .foregroundStyle(.secondary)
-                            .padding(5)
-                    }
-            }
+        if isMultiple {
+            Image(systemName: "person.2.fill")
+                .font(.system(size: 18))
+                .foregroundStyle(.white)
+                .frame(width: 44, height: 44)
+                .background(Circle().fill(Color.secondary.opacity(0.5)))
+                .accessibilityHidden(true)
+        } else {
+            NatifAvatar(pseudo: interlocutor, image: resolvedImage, size: 44)
         }
-        .frame(width: 34, height: 34)
-        .clipShape(Circle())
-        .overlay {
-            Circle()
-                .stroke(.tertiary, lineWidth: 1)
-        }
-        .accessibilityHidden(true)
     }
 }
 

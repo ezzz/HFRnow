@@ -34,6 +34,13 @@ final class ForumSearchViewModel: ObservableObject {
         self.service = service ?? ObjCForumSearchService()
     }
 
+    /// HFR's full-text search ignores words shorter than 4 letters and then finds nothing.
+    var hasShortSearchWord: Bool {
+        params.searchText
+            .split(whereSeparator: { $0.isWhitespace })
+            .contains { $0.count < 4 }
+    }
+
     var resultSummary: String {
         guard hasSearched else { return "" }
         if topics.isEmpty {
@@ -128,6 +135,7 @@ struct ForumSearchView: View {
             searchFormSection
             resultSection
         }
+        .natifGroupedListBackground()
         .navigationTitle("Recherche")
         .safeAreaInset(edge: .bottom) {
             bottomAccessory
@@ -225,8 +233,15 @@ struct ForumSearchView: View {
                     Text(errorMessage)
                         .foregroundStyle(.red)
                 } else if !viewModel.isLoading && viewModel.topics.isEmpty {
-                    Text("Aucun résultat")
-                        .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Aucun résultat")
+                            .foregroundStyle(.secondary)
+                        if viewModel.hasShortSearchWord {
+                            Text("HFR n'indexe pas les mots de moins de 4 lettres (ex. « rtx ») : essayez un mot plus long.")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
 
                 ForEach(viewModel.topics) { topic in

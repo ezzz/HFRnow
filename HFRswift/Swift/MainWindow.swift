@@ -34,12 +34,26 @@ final class CategoriesListViewModel: ObservableObject {
                 } else {
                     self.errorMessage = nil
                     self.forums = forums ?? []
+                    Self.writeSearchCategoriesCache(self.forums)
                 }
                 if shouldTriggerHaptic {
                     AppHaptics.refreshCompleted()
                 }
             }
         }
+    }
+
+    /// Forum search reads its category list from forumsCache.plist, which only the legacy
+    /// Objective-C categories screen used to write; without it the search offered "Discussions" only.
+    private static func writeSearchCategoriesCache(_ forums: [Forum]) {
+        guard
+            !forums.isEmpty,
+            let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).last,
+            let data = try? NSKeyedArchiver.archivedData(withRootObject: forums, requiringSecureCoding: false)
+        else {
+            return
+        }
+        try? data.write(to: directory.appendingPathComponent("forumsCache.plist"), options: .atomic)
     }
 }
 
@@ -73,8 +87,8 @@ final class ForumTopicsListViewModel: ObservableObject {
         let requestID = loadRequestID
         isLoading = true
         errorMessage = nil
-        newTopicURL = nil
-        pageInfo = .empty
+        // Keep the current rows and page info until the response arrives: clearing them made
+        // the list jump during pull-to-refresh.
         topicsLoader.fetchTopics(for: forum, flag: selectedFlag, pageURL: pageURL) { [weak self] result, error in
             guard let self else { return }
             DispatchQueue.main.async {
@@ -100,6 +114,12 @@ final class ForumTopicsListViewModel: ObservableObject {
                 }
             }
         }
+    }
+
+    /// Reloads the page currently displayed (pull-to-refresh, refresh button).
+    func reload(shouldTriggerHaptic: Bool = false) {
+        let currentURL = pageInfo.currentURL?.trimmingCharacters(in: .whitespacesAndNewlines)
+        load(pageURL: (currentURL?.isEmpty == false) ? currentURL : nil, shouldTriggerHaptic: shouldTriggerHaptic)
     }
 
     private static func isCancellationError(_ error: Error) -> Bool {
@@ -150,32 +170,37 @@ struct CategoriesListView: View {
                         .foregroundStyle(.red)
                 }
                 if !viewModel.isLoading && viewModel.forums.isEmpty && viewModel.errorMessage == nil {
-                    Text("Aucune categorie")
+                    Text("Aucune catégorie")
                         .foregroundStyle(.secondary)
                 }
-                ForEach(viewModel.forums) { forum in
-                    NavigationLink {
-                        ForumTopicsListView(
-                            forum: forum,
-                            accountsStore: accountsStore
-                        )
-                    } label: {
-                        HStack(spacing: 12) {
-                            ForumCategoryIconView(forum: forum)
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(forum.aTitle ?? "Forum")
-                                if let subForums = forum.subCats as? [Forum], !subForums.isEmpty {
-                                    Text("\(subForums.count) sous-forums")
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
-                                }
+                ForEach(forumSections, id: \.group) { section in
+                    Section {
+                        ForEach(section.forums) { forum in
+                            NavigationLink {
+                                ForumTopicsListView(
+                                    forum: forum,
+                                    accountsStore: accountsStore
+                                )
+                            } label: {
+                                CategoryRow(forum: forum)
                             }
+                            .natifCellBackground()
                         }
+                    } header: {
+                        Text(section.group.title)
                     }
                 }
             }
-            .navigationTitle("Categories")
+            .listStyle(.insetGrouped)
+            .natifGroupedListBackground()
+            .refreshable {
+                await MainActor.run { viewModel.load(shouldTriggerHaptic: true) }
+                while await MainActor.run(body: { viewModel.isLoading }) {
+                    try? await Task.sleep(for: .milliseconds(50))
+                }
+            }
+            .navigationTitle("Catégories")
+            .expandedPhoneInlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Menu {
@@ -189,11 +214,7 @@ struct CategoriesListView: View {
                         AppHaptics.refreshStarted()
                         viewModel.load(shouldTriggerHaptic: true)
                     } label: {
-                        if viewModel.isLoading {
-                            ProgressView().controlSize(.small)
-                        } else {
-                            Image(systemName: "arrow.clockwise")
-                        }
+                        ToolbarRefreshIcon(isLoading: viewModel.isLoading)
                     }
                     .disabled(viewModel.isLoading)
                 }
@@ -231,6 +252,16 @@ struct CategoriesListView: View {
         }
     }
 
+    /// Forums grouped as in the Natif design (Matériel, Multimédia, Logiciels & réseaux, Communauté),
+    /// keeping the forum order inside each group.
+    private var forumSections: [(group: NatifForumGroup, forums: [Forum])] {
+        let grouped = Dictionary(grouping: viewModel.forums) { NatifForumCatalog.group(for: $0.aTitle) }
+        return NatifForumGroup.allCases.compactMap { group in
+            guard let forums = grouped[group], !forums.isEmpty else { return nil }
+            return (group, forums)
+        }
+    }
+
     @ViewBuilder
     private var accountMenuItems: some View {
         if !accountsStore.accounts.isEmpty {
@@ -246,13 +277,13 @@ struct CategoriesListView: View {
         Button {
             showAddAccountSheet = true
         } label: {
-            MenuActionLabel("Ajouter un pseudo", systemImage: "person.badge.plus")
+            MenuActionLabel("Ajouter un compte", systemImage: "person.badge.plus")
         }
         Divider()
         Button(role: .destructive) {
             showLogoutConfirm = true
         } label: {
-            MenuActionLabel("Déconnexion", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive)
+            MenuActionLabel("Se déconnecter", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive)
         }
         .disabled(accountsStore.currentAccount == nil)
     }
@@ -265,6 +296,7 @@ struct ForumTopicsListView: View {
     @StateObject private var viewModel: ForumTopicsListViewModel
     @ObservedObject private var accountsStore: AccountsStore
     @Environment(\.appThemePalette) private var themePalette
+    @Environment(\.natif) private var natif
     @AppStorage("HFRswiftGlobalTopicListFlag") private var globalTopicListFlagRawValue = TopicListFlag.all.rawValue
     @State private var hasLoaded = false
     @State private var visitedURLs: Set<String> = []
@@ -277,6 +309,7 @@ struct ForumTopicsListView: View {
     @State private var newTopicDraftText = ""
     @State private var isPagePickerPresented = false
     @State private var pagePickerInput = "1"
+    @State private var isRevertingLoggedOutFlag = false
 
     private let topicActionService: FavoritesTopicActionServicing
 
@@ -340,13 +373,17 @@ struct ForumTopicsListView: View {
         max(viewModel.pageInfo.lastPageNumber, 1) > 1
     }
 
+    private var isSubForumSelected: Bool {
+        Self.forumIdentifier(for: resolvedSelectedForum) != Self.forumIdentifier(for: forum)
+    }
+
+    /// Natif 2b: large title = current sub-forum (menu to switch), subtitle = parent category.
     private var navigationTitleText: String {
-        forum.aTitle ?? "Topics"
+        (isSubForumSelected ? resolvedSelectedForum.aTitle : forum.aTitle) ?? "Sujets"
     }
 
     private var navigationSubtitleText: String? {
-        guard shouldShowPagination else { return nil }
-        return "Page \(max(viewModel.pageInfo.pageNumber, 1)) / \(max(viewModel.pageInfo.lastPageNumber, 1))"
+        isSubForumSelected ? forum.aTitle : nil
     }
 
     private func loadPage(_ urlString: String?) {
@@ -356,7 +393,8 @@ struct ForumTopicsListView: View {
     }
 
     private func pageURL(for page: Int) -> String? {
-        let boundedPage = min(max(page, 1), max(viewModel.pageInfo.lastPageNumber, 1))
+        let upperBound = viewModel.pageInfo.isLastPageNumberExact ? max(viewModel.pageInfo.lastPageNumber, 1) : TopicPagePickerSheet.approximateUpperBound
+        let boundedPage = min(max(page, 1), upperBound)
         switch boundedPage {
         case viewModel.pageInfo.pageNumber:
             return viewModel.pageInfo.currentURL
@@ -390,48 +428,39 @@ struct ForumTopicsListView: View {
         loadPage(pageURL(for: page))
     }
 
+    private var subForumPicker: some View {
+        Picker("Sous-forum", selection: $selectedForumIdentifier) {
+            Text("Tous les sous-forums")
+                .tag(Self.forumIdentifier(for: forum))
+            Divider()
+            // A sub-forum can point to the category itself; listing it would show two checkmarks.
+            ForEach(subForums.filter { Self.forumIdentifier(for: $0) != Self.forumIdentifier(for: forum) }) { subForum in
+                Text(subForum.aTitle ?? "Sous-forum")
+                    .tag(Self.forumIdentifier(for: subForum))
+            }
+        }
+    }
+
+    /// Natif TopicRow meta: "2 851 pages · Kaiju" (or "p. 2 847 / 2 851" when followed), time on the right.
     private func footerLeft(for topic: Topic) -> String {
         let currentPage = Int(topic.curTopicPage)
         let maxPage = max(Int(topic.maxTopicPage), 1)
-        let pollSuffix = topic.isPoll ? " \u{2263}" : ""
-        let pageLabel = maxPage > 1 ? "pages" : "page"
-
-        if topic.isViewedFromForumAtLoad {
-            return "⚑\(pollSuffix) \(maxPage) / \(maxPage)"
-        }
+        let pages: String
         if topicHasFlag(topic), currentPage > 0 && currentPage <= maxPage {
-            return "⚑\(pollSuffix) \(currentPage) / \(maxPage)"
+            let lastRead = topic.isViewedFromForumAtLoad ? maxPage : currentPage
+            pages = "p. \(lastRead.formatted()) / \(maxPage.formatted())"
+        } else {
+            pages = "\(maxPage.formatted()) \(maxPage > 1 ? "pages" : "page")"
         }
-        return "\(maxPage) \(pageLabel)\(pollSuffix)"
-    }
-
-    private func rowBackgroundTint(for topic: Topic) -> Color? {
-        if !topicHasFlag(topic) {
-            return nil
+        var parts = [topic.isPoll ? "\(pages) · sondage" : pages]
+        if let author = normalizedNonEmpty(topic.aAuthorOfLastPost) {
+            parts.append(author)
         }
-        guard
-            let flagType = topic.aTypeOfFlag?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
-            !flagType.isEmpty
-        else {
-            return nil
-        }
-
-        switch flagType {
-        case "yellow", "blue", "red":
-            return themePalette.topicFlagBackgroundColor(flagType: flagType)
-        default:
-            return nil
-        }
+        return parts.joined(separator: " · ")
     }
 
     private func footerRight(for topic: Topic) -> String? {
-        guard
-            let author = topic.aAuthorOfLastPost,
-            let when = topic.aDateOfLastPost
-        else {
-            return nil
-        }
-        return "\(author) - \(when)"
+        normalizedNonEmpty(topic.aDateOfLastPost)
     }
 
     private func normalizedNonEmpty(_ value: String?) -> String? {
@@ -590,24 +619,38 @@ struct ForumTopicsListView: View {
         }
     }
 
+    private static let listTopID = "forum-topics-top"
+
     var body: some View {
+        ScrollViewReader { proxy in
+            topicsList
+                .onChange(of: viewModel.pageInfo.pageNumber) { oldValue, newValue in
+                    // A new page starts at the top (it used to keep the previous scroll offset).
+                    guard oldValue != newValue else { return }
+                    withAnimation(nil) {
+                        proxy.scrollTo(Self.listTopID, anchor: .top)
+                    }
+                }
+        }
+    }
+
+    private var topicsList: some View {
         List {
             if !subForums.isEmpty {
-                LabeledContent("Sous-forum") {
-                    Picker("Sous-forum", selection: $selectedForumIdentifier) {
-                        Text("Tous les sous-forums")
-                            .tag(Self.forumIdentifier(for: forum))
-                        ForEach(subForums) { subForum in
-                            Text(subForum.aTitle ?? "Sous-forum")
-                                .tag(Self.forumIdentifier(for: subForum))
-                        }
+                Menu {
+                    subForumPicker
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(isSubForumSelected ? "Changer de sous-forum" : "Tous les sous-forums")
+                        Image(systemName: "chevron.down")
+                            .font(.footnote.weight(.semibold))
                     }
-                    .pickerStyle(.menu)
-                    .labelsHidden()
+                    .font(.subheadline.weight(.semibold))
+                    .frame(minHeight: 32)
                 }
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                .listRowSeparator(.hidden)
+                .accessibilityLabel("Changer de sous-forum")
             }
 
             Picker("Filtre", selection: $viewModel.selectedFlag) {
@@ -623,7 +666,9 @@ struct ForumTopicsListView: View {
                     .disabled(!isLoggedIn)
             }
             .pickerStyle(.segmented)
-            .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 10, trailing: 16))
+            .listRowSeparator(.hidden)
+            .id(Self.listTopID)
 
             if !isLoggedIn {
                 VStack(alignment: .leading, spacing: 6) {
@@ -659,11 +704,6 @@ struct ForumTopicsListView: View {
                     showUnreadBadge: hasFlag && !topic.isViewedFromForumAtLoad,
                     leadingBottomText: footerLeft(for: topic),
                     trailingBottomText: footerRight(for: topic),
-                    rowBackgroundTint: rowBackgroundTint(for: topic),
-                    contentPadding: EdgeInsets(top: 2, leading: 0, bottom: 2, trailing: 0),
-                    rowBackgroundOverflow: hasFlag
-                        ? EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8)
-                        : EdgeInsets(),
                     openContext: .forum(selectedFlag: viewModel.selectedFlag),
                     extraContextMenu: extraContextMenu(for: topic, hasFlag: hasFlag, isRemoving: isRemoving)
                 ) { openedURL in
@@ -678,8 +718,9 @@ struct ForumTopicsListView: View {
                         Button {
                             markTopicAsRead(topic)
                         } label: {
-                            Label("Lu", systemImage: "checkmark")
+                            Label("Lu", systemImage: "checkmark.message")
                         }
+                        .tint(natif.accentFill)
                     }
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
@@ -687,12 +728,12 @@ struct ForumTopicsListView: View {
                         Button(role: .destructive) {
                             removeFlag(topic)
                         } label: {
-                            Label(isRemoving ? "Suppression..." : "Supprimer", systemImage: isRemoving ? "hourglass" : "trash")
+                            Label("Retirer", systemImage: "trash")
                         }
                         .disabled(isRemoving)
                     }
                 }
-                .listRowInsets(EdgeInsets(top: 5, leading: 12, bottom: 5, trailing: 12))
+                .listRowInsets(EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 16))
             }
 
             if shouldShowPagination {
@@ -710,7 +751,7 @@ struct ForumTopicsListView: View {
             }
         }
         .refreshable {
-            await MainActor.run { viewModel.load(shouldTriggerHaptic: true) }
+            await MainActor.run { viewModel.reload(shouldTriggerHaptic: true) }
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                 @Sendable func checkDone() {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
@@ -720,7 +761,10 @@ struct ForumTopicsListView: View {
                 checkDone()
             }
         }
+        .listStyle(.plain)
+        .natifPlainListBackground()
         .navigationTitle(navigationTitleText)
+        .hfrNavigationSubtitle(navigationSubtitleText)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Menu {
@@ -728,22 +772,6 @@ struct ForumTopicsListView: View {
                 } label: {
                     ToolbarProfileImage(image: accountsStore.currentAvatarImage, url: nil)
                 }
-            }
-            ToolbarItem(placement: .principal) {
-                VStack(spacing: 2) {
-                    Text(navigationTitleText)
-                        .font(.caption2)
-                        .fontWeight(.bold)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                    if let navigationSubtitleText {
-                        Text(navigationSubtitleText)
-                            .font(.caption2)
-                            .foregroundStyle(.primary.opacity(0.72))
-                            .lineLimit(1)
-                    }
-                }
-                .multilineTextAlignment(.center)
             }
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button {
@@ -756,13 +784,9 @@ struct ForumTopicsListView: View {
 
                 Button {
                     AppHaptics.refreshStarted()
-                    viewModel.load(shouldTriggerHaptic: true)
+                    viewModel.reload(shouldTriggerHaptic: true)
                 } label: {
-                    if viewModel.isLoading {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Image(systemName: "arrow.clockwise")
-                    }
+                    ToolbarRefreshIcon(isLoading: viewModel.isLoading)
                 }
                 .disabled(viewModel.isLoading)
             }
@@ -783,9 +807,15 @@ struct ForumTopicsListView: View {
             guard hasLoaded else { return }
             viewModel.load()
         }
-        .onChange(of: viewModel.selectedFlag) { _, newValue in
+        .onChange(of: viewModel.selectedFlag) { oldValue, newValue in
             if !isLoggedIn && newValue != .all {
+                // Logged out: these filters need an account. Snap back without reloading.
+                isRevertingLoggedOutFlag = true
                 viewModel.selectedFlag = .all
+                return
+            }
+            if isRevertingLoggedOutFlag {
+                isRevertingLoggedOutFlag = false
                 return
             }
             if globalTopicListFlagRawValue != newValue.rawValue {
@@ -835,6 +865,7 @@ struct ForumTopicsListView: View {
         .sheet(isPresented: $isPagePickerPresented) {
             TopicPagePickerSheet(
                 maxPage: max(viewModel.pageInfo.lastPageNumber, 1),
+                isMaxPageApproximate: !viewModel.pageInfo.isLastPageNumberExact,
                 pageInput: $pagePickerInput
             ) { selectedPage in
                 navigateToPage(selectedPage)
@@ -880,46 +911,42 @@ struct ForumTopicsListView: View {
         Button {
             showAddAccountSheet = true
         } label: {
-            MenuActionLabel("Ajouter un pseudo", systemImage: "person.badge.plus")
+            MenuActionLabel("Ajouter un compte", systemImage: "person.badge.plus")
         }
         Divider()
         Button(role: .destructive) {
             showLogoutConfirm = true
         } label: {
-            MenuActionLabel("Déconnexion", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive)
+            MenuActionLabel("Se déconnecter", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive)
         }
         .disabled(accountsStore.currentAccount == nil)
     }
 }
 
-private struct ForumCategoryIconView: View {
+/// Natif CategoryRow: 30 pt pictogram, name, sub-forum count on the right.
+private struct CategoryRow: View {
     let forum: Forum
-    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.natif) private var natif
 
-    private var resolvedImage: UIImage? {
-        let resolved = forum.getImage().trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !resolved.isEmpty else { return nil }
-        return UIImage(named: resolved)
+    private var subForumCount: Int {
+        (forum.subCats as? [Forum])?.count ?? 0
     }
 
     var body: some View {
-        Group {
-            if let resolvedImage {
-                Image(uiImage: resolvedImage.withRenderingMode(.alwaysTemplate))
-                    .resizable()
-                    .scaledToFit()
-                    .foregroundStyle(colorScheme == .dark ? .white : .black)
-            } else {
-                Image(systemName: "folder.fill")
-                    .resizable()
-                    .scaledToFit()
-                    .foregroundStyle(.secondary)
-                    .padding(4)
+        HStack(spacing: 12) {
+            NatifPictogram(systemImage: NatifForumCatalog.systemImage(for: forum.aTitle))
+            Text(forum.aTitle ?? "Forum")
+                .font(.body)
+                .foregroundStyle(natif.text)
+            Spacer(minLength: 8)
+            if subForumCount > 0 {
+                Text(subForumCount, format: .number)
+                    .font(.body.monospacedDigit())
+                    .foregroundStyle(natif.text2)
+                    .accessibilityLabel("\(subForumCount) sous-forums")
             }
         }
-        .frame(width: 28, height: 28)
-        .clipShape(.rect(cornerRadius: 6))
-        .accessibilityHidden(true)
+        .frame(minHeight: 44)
     }
 }
 
@@ -939,46 +966,41 @@ private struct ForumTopicsPaginationBar: View {
         max(pageInfo.lastPageNumber, 1)
     }
 
+    @Environment(\.natif) private var natif
+
+    /// Natif PageControl: glass capsule "‹ Page 1 / 500 ›"; tapping the number opens "Aller à la page".
     var body: some View {
-        HStack(spacing: 8) {
-            Button(action: onFirst) {
-                Image(systemName: "backward.end")
-            }
-            .disabled(pageNumber <= 1 || pageInfo.firstPageURL == nil)
-
-            Button(action: onPrevious) {
-                Image(systemName: "chevron.left")
-            }
-            .disabled(pageNumber <= 1 || pageInfo.previousPageURL == nil)
-
-            Spacer(minLength: 8)
+        HStack(spacing: 4) {
+            Button("Page précédente", systemImage: "chevron.left", action: onPrevious)
+                .labelStyle(.iconOnly)
+                .frame(width: 44, height: 44)
+                .disabled(pageNumber <= 1 || pageInfo.previousPageURL == nil)
 
             Button(action: onPagePicker) {
-                Text("\(pageNumber) / \(lastPageNumber)")
-                    .font(.footnote.monospacedDigit().weight(.semibold))
-                    .foregroundStyle(.primary.opacity(0.72))
-                    .frame(minWidth: 74)
+                Text("Page \(pageNumber.formatted()) / \(lastPageNumber.formatted())")
+                    .font(.subheadline.weight(.semibold).monospacedDigit())
+                    .foregroundStyle(natif.text)
+                    .padding(.horizontal, 6)
+                    .frame(minHeight: 44)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Choisir une page")
+            .accessibilityLabel("Page \(pageNumber) sur \(lastPageNumber), aller à la page")
 
-            Spacer(minLength: 8)
-
-            Button(action: onNext) {
-                Image(systemName: "chevron.right")
-            }
-            .disabled(pageNumber >= lastPageNumber || pageInfo.nextPageURL == nil)
-
-            Button(action: onLast) {
-                Image(systemName: "forward.end")
-            }
-            .disabled(pageNumber >= lastPageNumber || pageInfo.lastPageURL == nil)
+            Button("Page suivante", systemImage: "chevron.right", action: onNext)
+                .labelStyle(.iconOnly)
+                .frame(width: 44, height: 44)
+                .disabled(pageNumber >= lastPageNumber || pageInfo.nextPageURL == nil)
         }
-        .hfrGlassButton()
-        .controlSize(.small)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .hfrGlassSurface(in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .font(.headline)
+        .padding(.horizontal, 6)
+        .hfrGlassSurface(in: Capsule())
+        .contextMenu {
+            Button("Première page", systemImage: "chevron.left.to.line", action: onFirst)
+                .disabled(pageNumber <= 1 || pageInfo.firstPageURL == nil)
+            Button("Dernière page", systemImage: "chevron.right.to.line", action: onLast)
+                .disabled(pageNumber >= lastPageNumber || pageInfo.lastPageURL == nil)
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -1128,7 +1150,20 @@ struct RootTabView: View {
     @AppStorage(AQUnreadCounter.storageKey) private var unreadAQCount = 0
     @AppStorage("mp_badge_enabled") private var mpBadgeEnabled = true
     @AppStorage(AppTabBarMinimizeOnScroll.key) private var tabBarMinimizeOnScroll = true
+    @AppStorage(NatifAppearance.themeModeKey) private var natifThemeModeRawValue = ""
+    @AppStorage(NatifAppearance.accentKey) private var natifAccentIndex = 0
 
+    private var natifTokens: NatifTokens {
+        let mode = NatifThemeMode(rawValue: natifThemeModeRawValue) ?? NatifAppearance.themeMode()
+        return NatifTokens(
+            variant: NatifAppearance.variant(for: appTheme.effectiveColorScheme, mode: mode),
+            accent: NatifAccent.accent(at: natifAccentIndex)
+        )
+    }
+
+    /// iPad only. On iPhone (iPhone Duo inner display included) the root stays a single adaptable
+    /// `TabView`: swapping roots on a size class change would rebuild the hierarchy and lose the
+    /// open topic every time the device is folded or unfolded.
     private var usesSidebarRoot: Bool {
         UIDevice.current.userInterfaceIdiom == .pad && horizontalSizeClass == .regular
     }
@@ -1192,12 +1227,28 @@ struct RootTabView: View {
         }
     }
 
-    private func handleUIKitTabSelection(_ selectedIndex: Int) {
-        guard let tab = RootTabIdentifier(rawValue: selectedIndex) else { return }
-        if selectedTab != tab {
-            selectedTab = tab
+    /// Selection stays owned by SwiftUI. Tapping the already selected tab goes through the setter
+    /// with the same value, which is used for "scroll to top / refresh". Reading UIKit's
+    /// `selectedIndex` instead resynced a stale tab in sidebar mode (iPhone Duo inner display).
+    private var tabSelection: Binding<RootTabIdentifier> {
+        Binding {
+            selectedTab
+        } set: { newValue in
+            if newValue == selectedTab {
+                handleTabReselection(newValue)
+            } else {
+                selectedTab = newValue
+            }
         }
-        syncRuntimeSelectedTab(tab)
+    }
+
+    private func handleTabReselection(_ tab: RootTabIdentifier) {
+        guard tab == .categories || tab == .favorites || tab == .messages else { return }
+        NotificationCenter.default.post(
+            name: .rootTabReselected,
+            object: nil,
+            userInfo: ["tab": tab.rawValue]
+        )
     }
 
     private func showMessagesList(forceRefresh: Bool) {
@@ -1223,8 +1274,9 @@ struct RootTabView: View {
     var body: some View {
         rootContainer
             .preferredColorScheme(appTheme.preferredColorScheme)
-            .tint(appTheme.actionTintColor)
+            .tint(natifTokens.accent)
             .environment(\.appThemePalette, appTheme.palette)
+            .environment(\.natif, natifTokens)
             .onAppear(perform: handleAppear)
             .onChange(of: selectedTab) { _, newValue in
                 syncRuntimeSelectedTab(newValue)
@@ -1244,7 +1296,6 @@ struct RootTabView: View {
             .onChange(of: mpBadgeEnabled) { _, _ in
                 Task { await syncAppIconBadge() }
             }
-            .background(tabBarReselectionObserver)
             .onReceive(NotificationCenter.default.publisher(for: MessagesNotificationNavigation.openMessagesNotification)) { _ in
                 handlePendingMessagesNotificationNavigationIfNeeded()
             }
@@ -1261,14 +1312,14 @@ struct RootTabView: View {
 
     private var compactTabRoot: some View {
         rootTabs
+            .hfrSidebarAdaptableTabs()
             .hfrTabBarMinimizeBehavior(tabBarMinimizeOnScroll: tabBarMinimizeOnScroll)
-            .background(tabBarReselectionObserver)
     }
 
     private var rootTabs: some View {
-        TabView(selection: $selectedTab) {
+        TabView(selection: tabSelection) {
             CategoriesListView(accountsStore: accountsStore)
-                .tabItem { Label("Catégories", systemImage: "folder.fill") }
+                .tabItem { Label("Catégories", systemImage: "square.grid.2x2.fill") }
                 .tag(RootTabIdentifier.categories)
 
             //FeedView()
@@ -1276,7 +1327,7 @@ struct RootTabView: View {
                 viewModel: favoritesViewModel,
                 accountsStore: accountsStore
             )
-            .tabItem { Label("Favoris", systemImage: "star.fill") }
+            .tabItem { Label("Favoris", systemImage: "flag.fill") }
             .tag(RootTabIdentifier.favorites)
 
             MPListView(
@@ -1285,12 +1336,12 @@ struct RootTabView: View {
                 isActive: selectedTab == .messages,
                 navigationResetToken: messagesNavigationResetToken
             )
-            .tabItem { Label("Messages", systemImage: "envelope") }
+            .tabItem { Label("Messages", systemImage: "envelope.fill") }
             .tag(RootTabIdentifier.messages)
             .badge(mpBadgeEnabled && unreadMPCount > 0 ? unreadMPCount : 0)
 
             NavigationStack {
-                PlusHomeView()
+                PlusHomeView(accountsStore: accountsStore)
             }
             .tabItem { Label("Plus", systemImage: "ellipsis") }
             .tag(RootTabIdentifier.more)
@@ -1341,7 +1392,7 @@ struct RootTabView: View {
                 navigationResetToken: messagesNavigationResetToken
             )
         case .more:
-            PlusHomeView()
+            PlusHomeView(accountsStore: accountsStore)
         }
     }
 
@@ -1350,12 +1401,7 @@ struct RootTabView: View {
             Label(sidebarTitle(for: tab), systemImage: sidebarSystemImage(for: tab))
             Spacer()
             if sidebarBadgeCount(for: tab) > 0 {
-                Text("\(sidebarBadgeCount(for: tab))")
-                    .font(.caption2.monospacedDigit().weight(.semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Capsule().fill(Color.red))
+                NatifRedBadge(count: sidebarBadgeCount(for: tab))
             }
         }
     }
@@ -1378,9 +1424,9 @@ struct RootTabView: View {
 
     private func sidebarSystemImage(for tab: RootTabIdentifier) -> String {
         switch tab {
-        case .categories: "folder.fill"
-        case .favorites: "star.fill"
-        case .messages: "envelope"
+        case .categories: "square.grid.2x2.fill"
+        case .favorites: "flag.fill"
+        case .messages: "envelope.fill"
         case .more: "ellipsis"
         }
     }
@@ -1396,31 +1442,25 @@ struct RootTabView: View {
         }
     }
 
-    private var tabBarReselectionObserver: some View {
-        TabBarReselectionObserver(
-            onSelect: handleUIKitTabSelection
-        ) { selectedIndex in
-            guard
-                let tab = RootTabIdentifier(rawValue: selectedIndex),
-                tab == .categories || tab == .favorites || tab == .messages
-            else {
-                return
-            }
-            NotificationCenter.default.post(
-                name: .rootTabReselected,
-                object: nil,
-                userInfo: ["tab": tab.rawValue]
-            )
-        }
-        .frame(width: 0, height: 0)
-    }
-
     private func handleAppear() {
+        migrateToNatifAppearanceIfNeeded()
         appTheme.refresh(systemColorScheme: systemColorScheme, forceThemeRevision: true, notifyLegacy: true)
         syncRuntimeSelectedTab(selectedTab)
         startColdLaunchPrefetchIfNeeded()
         startAQBadgeCheckIfNeeded()
         handlePendingMessagesNotificationNavigationIfNeeded()
+    }
+
+    /// First launch of the reskin: persist the derived theme mode and align the legacy accent keys
+    /// (used by Objective-C screens and the topic WebView) with the default Natif accent.
+    private func migrateToNatifAppearanceIfNeeded() {
+        let defaults = UserDefaults.standard
+        if defaults.string(forKey: NatifAppearance.themeModeKey) == nil {
+            defaults.set(NatifAppearance.themeMode(defaults: defaults).rawValue, forKey: NatifAppearance.themeModeKey)
+        }
+        if defaults.object(forKey: NatifAppearance.accentKey) == nil {
+            NatifAppearance.setAccent(NatifAccent.accent(at: 0), defaults: defaults)
+        }
     }
 
     private func handleCurrentAccountChange(from oldAccountID: String?, to newAccountID: String?) {
@@ -1451,104 +1491,23 @@ struct RootTabView: View {
     }
 }
 
-private struct TabBarReselectionObserver: UIViewControllerRepresentable {
-    let onSelect: (Int) -> Void
-    let onReselect: (Int) -> Void
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(onSelect: onSelect, onReselect: onReselect)
-    }
-
-    func makeUIViewController(context: Context) -> ObserverViewController {
-        let observer = ObserverViewController()
-        observer.onHierarchyUpdate = { host in
-            context.coordinator.attach(from: host)
-        }
-        return observer
-    }
-
-    func updateUIViewController(_ uiViewController: ObserverViewController, context: Context) {
-        uiViewController.onHierarchyUpdate = { host in
-            context.coordinator.attach(from: host)
-        }
-        context.coordinator.attach(from: uiViewController)
-    }
-
-    final class Coordinator: NSObject, UITabBarControllerDelegate {
-        private let onSelect: (Int) -> Void
-        private let onReselect: (Int) -> Void
-        private weak var tabBarController: UITabBarController?
-
-        init(onSelect: @escaping (Int) -> Void, onReselect: @escaping (Int) -> Void) {
-            self.onSelect = onSelect
-            self.onReselect = onReselect
-        }
-
-        func attach(from host: UIViewController?) {
-            if let tabBarController = host?.tabBarController ?? findTabBarController(in: host) {
-                bind(to: tabBarController)
-                return
-            }
-            if
-                let root = host?.view.window?.rootViewController ?? Self.keyWindowRootViewController(),
-                let tabBarController = findTabBarController(in: root)
-            {
-                bind(to: tabBarController)
-            }
-        }
-
-        private func bind(to tabBarController: UITabBarController) {
-            guard self.tabBarController !== tabBarController else { return }
-            self.tabBarController = tabBarController
-            tabBarController.delegate = self
-            onSelect(tabBarController.selectedIndex)
-        }
-
-        func tabBarController(_ tabBarController: UITabBarController, didSelect viewController: UIViewController) {
-            guard
-                let viewControllers = tabBarController.viewControllers,
-                let selectedIndex = viewControllers.firstIndex(where: { $0 === viewController })
-            else {
-                return
-            }
-            onSelect(selectedIndex)
-        }
-
-        func tabBarController(_ tabBarController: UITabBarController, shouldSelect viewController: UIViewController) -> Bool {
-            if
-                let viewControllers = tabBarController.viewControllers,
-                let tappedIndex = viewControllers.firstIndex(where: { $0 === viewController }),
-                tappedIndex == tabBarController.selectedIndex
-            {
-                onReselect(tappedIndex)
-            }
-            return true
-        }
-
-        private func findTabBarController(in root: UIViewController?) -> UITabBarController? {
-            guard let root else { return nil }
-            if let tabBarController = root as? UITabBarController {
-                return tabBarController
-            }
-            for child in root.children {
-                if let tabBarController = findTabBarController(in: child) {
-                    return tabBarController
-                }
-            }
-            return root.presentedViewController.flatMap { findTabBarController(in: $0) }
-        }
-
-        private static func keyWindowRootViewController() -> UIViewController? {
-            UIApplication.shared.connectedScenes
-                .compactMap { $0 as? UIWindowScene }
-                .flatMap(\.windows)
-                .first(where: { $0.isKeyWindow })?
-                .rootViewController
-        }
-    }
-}
-
 private extension View {
+    /// Tab bar in compact width, sidebar when there is room for one (iPhone Duo inner display).
+    @ViewBuilder
+    func hfrSidebarAdaptableTabs() -> some View {
+        if #available(iOS 27.0, *) {
+            self
+                .tabViewStyle(.sidebarAdaptable)
+                .defaultTabBarPlacement(.sidebar)
+        } else if #available(iOS 18.0, *) {
+            self
+                .tabViewStyle(.sidebarAdaptable)
+                .defaultAdaptableTabBarPlacement(.sidebar)
+        } else {
+            self
+        }
+    }
+
     @ViewBuilder
     func hfrTabBarMinimizeBehavior(tabBarMinimizeOnScroll: Bool) -> some View {
         if #available(iOS 26.0, *) {
@@ -1556,20 +1515,6 @@ private extension View {
         } else {
             self
         }
-    }
-}
-
-private final class ObserverViewController: UIViewController {
-    var onHierarchyUpdate: ((UIViewController) -> Void)?
-
-    override func didMove(toParent parent: UIViewController?) {
-        super.didMove(toParent: parent)
-        onHierarchyUpdate?(self)
-    }
-
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        onHierarchyUpdate?(self)
     }
 }
 
