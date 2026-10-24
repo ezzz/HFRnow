@@ -715,33 +715,17 @@ struct ForumTopicsListView: View {
                     leadingBottomText: footerLeft(for: topic),
                     trailingBottomText: footerRight(for: topic),
                     openContext: .forum(selectedFlag: viewModel.selectedFlag),
-                    extraContextMenu: extraContextMenu(for: topic, hasFlag: hasFlag, isRemoving: isRemoving)
+                    extraContextMenu: extraContextMenu(for: topic, hasFlag: hasFlag, isRemoving: isRemoving),
+                    showsPageSwipeActions: true,
+                    onSwipeMarkRead: hasFlag ? { markTopicAsRead(topic) } : nil,
+                    onSwipeRemove: hasFlag ? { removeFlag(topic) } : nil,
+                    isSwipeRemoveDisabled: isRemoving
                 ) { openedURL in
                     if let openedURL, !openedURL.isEmpty {
                         visitedURLs.insert(openedURL)
                     }
                     topic.isLocallyViewedInApp = true
                     topic.isViewed = true
-                }
-                .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                    if hasFlag {
-                        Button {
-                            markTopicAsRead(topic)
-                        } label: {
-                            Label("Lu", systemImage: "checkmark.message")
-                        }
-                        .tint(natif.accentFill)
-                    }
-                }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    if hasFlag {
-                        Button(role: .destructive) {
-                            removeFlag(topic)
-                        } label: {
-                            Label("Retirer", systemImage: "trash")
-                        }
-                        .disabled(isRemoving)
-                    }
                 }
                 .listRowInsets(EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 16))
             }
@@ -977,6 +961,20 @@ private struct ForumTopicsPaginationBar: View {
         max(pageInfo.lastPageNumber, 1)
     }
 
+    /// HFR only links the pages around the current one and by hundreds: without the real total,
+    /// the capsule shows "Page N" alone.
+    private var pageText: String {
+        pageInfo.isLastPageNumberExact
+            ? "Page \(pageNumber.formatted()) / \(lastPageNumber.formatted())"
+            : "Page \(pageNumber.formatted())"
+    }
+
+    private var pageAccessibilityLabel: String {
+        pageInfo.isLastPageNumberExact
+            ? "Page \(pageNumber) sur \(lastPageNumber), aller à la page"
+            : "Page \(pageNumber), aller à la page"
+    }
+
     @Environment(\.natif) private var natif
 
     /// Natif PageControl: glass capsule "‹ Page 1 / 500 ›"; tapping the number opens "Aller à la page".
@@ -988,19 +986,19 @@ private struct ForumTopicsPaginationBar: View {
                 .disabled(pageNumber <= 1 || pageInfo.previousPageURL == nil)
 
             Button(action: onPagePicker) {
-                Text("Page \(pageNumber.formatted()) / \(lastPageNumber.formatted())")
+                Text(pageText)
                     .font(.subheadline.weight(.semibold).monospacedDigit())
                     .foregroundStyle(natif.text)
                     .padding(.horizontal, 6)
                     .frame(minHeight: 44)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Page \(pageNumber) sur \(lastPageNumber), aller à la page")
+            .accessibilityLabel(pageAccessibilityLabel)
 
             Button("Page suivante", systemImage: "chevron.right", action: onNext)
                 .labelStyle(.iconOnly)
                 .frame(width: 44, height: 44)
-                .disabled(pageNumber >= lastPageNumber || pageInfo.nextPageURL == nil)
+                .disabled(pageInfo.nextPageURL == nil || (pageInfo.isLastPageNumberExact && pageNumber >= lastPageNumber))
         }
         .font(.headline)
         .padding(.horizontal, 6)
@@ -1008,8 +1006,10 @@ private struct ForumTopicsPaginationBar: View {
         .contextMenu {
             Button("Première page", systemImage: "chevron.left.to.line", action: onFirst)
                 .disabled(pageNumber <= 1 || pageInfo.firstPageURL == nil)
-            Button("Dernière page", systemImage: "chevron.right.to.line", action: onLast)
-                .disabled(pageNumber >= lastPageNumber || pageInfo.lastPageURL == nil)
+            if pageInfo.isLastPageNumberExact {
+                Button("Dernière page", systemImage: "chevron.right.to.line", action: onLast)
+                    .disabled(pageNumber >= lastPageNumber || pageInfo.lastPageURL == nil)
+            }
         }
         .frame(maxWidth: .infinity)
     }

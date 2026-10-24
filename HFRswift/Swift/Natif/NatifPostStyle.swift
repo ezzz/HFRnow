@@ -86,7 +86,7 @@ enum NatifPostStyle {
       float: none !important; display: block !important;
       margin: 0 !important; height: auto !important;
       align-self: end;
-      font-size: 15px !important; font-weight: 600 !important; line-height: 1.25 !important;
+      font-size: calc(15px * var(--n-text-scale, 1)) !important; font-weight: 600 !important; line-height: 1.25 !important;
       color: var(--n-text) !important; text-shadow: none !important;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
@@ -95,7 +95,7 @@ enum NatifPostStyle {
       float: none !important; display: block !important;
       margin: 2px 0 0 !important; height: auto !important;
       align-self: start; text-align: left !important;
-      font-size: 12.5px !important; font-weight: 400 !important; line-height: 1.25 !important;
+      font-size: calc(12.5px * var(--n-text-scale, 1)) !important; font-weight: 400 !important; line-height: 1.25 !important;
       color: var(--n-text2) !important; text-shadow: none !important;
     }
     html[data-natif] body .message .header .right {
@@ -157,9 +157,9 @@ enum NatifPostStyle {
     html[data-natif-compact="1"] body .message .header .left2 {
       grid-row: 1; width: 26px !important; height: 26px !important;
     }
-    html[data-natif-compact="1"] body .message .header .left { grid-row: 1; align-self: center; font-size: 14px !important; }
+    html[data-natif-compact="1"] body .message .header .left { grid-row: 1; align-self: center; font-size: calc(14px * var(--n-text-scale, 1)) !important; }
     html[data-natif-compact="1"] body .message .header .leftdate {
-      grid-column: 3; grid-row: 1; align-self: center; margin: 0 !important; font-size: 12px !important;
+      grid-column: 3; grid-row: 1; align-self: center; margin: 0 !important; font-size: calc(12px * var(--n-text-scale, 1)) !important;
     }
     html[data-natif-compact="1"] body .message .header .right { grid-column: 4; grid-row: 1; }
     html[data-natif-compact="1"] body .message .header .right::before { background: transparent; }
@@ -205,7 +205,7 @@ enum NatifPostStyle {
     html[data-natif] body td > p > br:last-child { display: none; }
     html[data-natif] body td > p:last-child { margin-bottom: 0 !important; }
     html[data-natif] body b.s1, html[data-natif] body b.s1 a, html[data-natif] body b.s1 a.Topic {
-      font-size: 13px !important; font-weight: 600 !important;
+      font-size: calc(13px * var(--n-text-scale, 1)) !important; font-weight: 600 !important;
       color: var(--n-accent) !important; text-decoration: none !important;
     }
     html[data-natif] body table table.citation,
@@ -230,11 +230,11 @@ enum NatifPostStyle {
       display: block;
       margin-top: 10px !important; padding-top: 8px !important;
       border-top: .5px solid var(--n-sep);
-      font-size: 12.5px !important; line-height: 1.35;
+      font-size: calc(12.5px * var(--n-text-scale, 1)) !important; line-height: 1.35;
       color: var(--n-text2) !important;
     }
     html[data-natif] body .message .content .right p.editedhfrlink {
-      font-size: 12.5px !important; font-style: normal;
+      font-size: calc(12.5px * var(--n-text-scale, 1)) !important; font-style: normal;
       color: var(--n-text2) !important; text-align: left;
       margin: 8px 0 0 !important;
     }

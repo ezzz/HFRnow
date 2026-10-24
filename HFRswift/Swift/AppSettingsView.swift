@@ -277,6 +277,8 @@ struct AppSettingsView: View {
                     Text(option.title).tag(option.value)
                 }
             }
+            // Menu pickers keep the tint they were created with: rebuild on accent change.
+            .id(natifAccentIndex)
 
             Toggle("Favoris triés par catégories", isOn: $favoritesSortedByCategories)
             Toggle("Actualisation automatique des favoris", isOn: $favoritesAutoRefresh)
@@ -290,6 +292,8 @@ struct AppSettingsView: View {
                     Text(option.title).tag(option.rawValue)
                 }
             }
+            // Menu pickers keep the tint they were created with: rebuild on accent change.
+            .id(natifAccentIndex)
 
             Toggle("Retours haptiques", isOn: $hapticsEnabled)
             Toggle("Rotation d’écran", isOn: screenRotationBinding)
@@ -300,6 +304,8 @@ struct AppSettingsView: View {
                 }
             }
             .disabled(!hasAlternateIconSupport)
+            // Menu pickers keep the tint they were created with: rebuild on accent change.
+            .id(natifAccentIndex)
         }
     }
 
@@ -361,6 +367,8 @@ struct AppSettingsView: View {
                     Text(option.title).tag(option.value)
                 }
             }
+            // Menu pickers keep the tint they were created with: rebuild on accent change.
+            .id(natifAccentIndex)
 
             Toggle("Masquer les pseudos blacklistés", isOn: $hideBlacklistedPseudo)
 
@@ -399,6 +407,8 @@ struct AppSettingsView: View {
                     Text(option.title).tag(option.value)
                 }
             }
+            // Menu pickers keep the tint they were created with: rebuild on accent change.
+            .id(natifAccentIndex)
         }
     }
 
@@ -410,6 +420,8 @@ struct AppSettingsView: View {
                     Text(option.title).tag(option.value)
                 }
             }
+            // Menu pickers keep the tint they were created with: rebuild on accent change.
+            .id(natifAccentIndex)
 
             Toggle("Inclure les pseudos whitelistés", isOn: filterPostsWhitelistBinding)
         }

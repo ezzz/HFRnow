@@ -77,6 +77,7 @@ static NSString * const HFRSwiftNotificationDestinationMessages = @"messages";
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {    
 
     NSLog(@"[AppInit] didFinishLaunchingWithOptions");
+    [NatifUIKitAppearance apply];
     
     [[UIApplication sharedApplication] setStatusBarHidden:NO withAnimation:YES];
 
@@ -354,7 +355,7 @@ static NSString * const HFRSwiftNotificationDestinationMessages = @"messages";
 
 -(void)setThemeFromNotification:(NSNotification *)notification{
     [self setTheme:[[ThemeManager sharedManager] theme]];
-    UISegmentedControl.appearance.selectedSegmentTintColor = [ThemeUserColorStore dynamicActionTintColor];
+    [NatifUIKitAppearance apply];
 }
 
 -(void)setTheme:(Theme)theme{

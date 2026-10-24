@@ -1505,8 +1505,12 @@ struct WebView: UIViewRepresentable {
             }
 
             let fontSize = max(messageBodyFontSize, 1)
+            // Post headers, quote titles and signatures follow the body size (Dynamic Type and
+            // the app text size) through --n-text-scale (see NatifPostStyle).
+            let textScale = fontSize / 17
             let script = """
             (function() {
+              document.documentElement.style.setProperty('--n-text-scale', '\(textScale)');
               var css = ".message .content .right { font-size: \(fontSize)px !important; }";
               var style = document.getElementById('hfrswift-text-size');
               if (!style && document.head) {
@@ -2920,6 +2924,29 @@ struct MessagesView: View {
 
     private var isFavoritePostFilterMode: Bool {
         favoritePostFilterResult != nil
+    }
+
+    /// Title and "page / total"; outside searches, a menu to jump straight to a page.
+    @ViewBuilder
+    private var topicTitleToolbarContent: some View {
+        if currentMaxPage > 1 && !isInSearchMode && !isFavoritePostFilterMode {
+            TopicPageTitleMenu(
+                currentPage: page,
+                maxPage: currentMaxPage,
+                onSelectPage: { target in
+                    navigateToPage(target, initialScroll: .top, source: "title page menu")
+                },
+                onPagePicker: openPagePicker
+            ) {
+                TopicTitleLabel(title: topicTitleText, subtitle: toolbarSubtitleText, showsMenuIndicator: true)
+            }
+        } else {
+            TopicTitleLabel(title: topicTitleText, subtitle: toolbarSubtitleText, showsMenuIndicator: false)
+        }
+    }
+
+    private var topicTitleText: String {
+        topicDisplayTitle.isEmpty ? (topic._aTitle ?? "Messages") : topicDisplayTitle
     }
 
     private var toolbarSubtitleText: String {
@@ -4733,18 +4760,7 @@ struct MessagesView: View {
                 .toolbar {
                     navigationDepthBackButton
                     ToolbarItem(placement: .principal) {
-                        VStack(spacing: 2) {
-                            Text(topicDisplayTitle.isEmpty ? (topic._aTitle ?? "Messages") : topicDisplayTitle)
-                                .font(.caption2)
-                                .fontWeight(.bold)
-                                .lineLimit(1)
-                                .truncationMode(.tail)
-                            Text(toolbarSubtitleText)
-                                .font(.caption2)
-                                .foregroundStyle(.primary.opacity(0.72))
-                                .lineLimit(1)
-                        }
-                        .multilineTextAlignment(.center)
+                        topicTitleToolbarContent
                     }
                     if hasPoll && pollIsNewVote && !isInSearchMode {
                         ToolbarItem(placement: .topBarTrailing) {
@@ -4987,18 +5003,7 @@ struct MessagesView: View {
             .toolbar {
                 navigationDepthBackButton
                 ToolbarItem(placement: .principal) {
-                    VStack(spacing: 2) {
-                        Text(topicDisplayTitle.isEmpty ? (topic._aTitle ?? "Messages") : topicDisplayTitle)
-                            .font(.caption2)
-                            .fontWeight(.bold)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                        Text(toolbarSubtitleText)
-                            .font(.caption2)
-                            .foregroundStyle(.primary.opacity(0.72))
-                            .lineLimit(1)
-                    }
-                    .multilineTextAlignment(.center)
+                    topicTitleToolbarContent
                 }
                 if hasPoll && pollIsNewVote && !isInSearchMode {
                     ToolbarItem(placement: .topBarTrailing) {
@@ -5186,6 +5191,34 @@ struct MessagesView: View {
 
         return content
             .rootSidebarRevealButton()
+    }
+}
+
+private struct TopicTitleLabel: View {
+    let title: String
+    let subtitle: String
+    let showsMenuIndicator: Bool
+
+    var body: some View {
+        VStack(spacing: 2) {
+            Text(title)
+                .font(.caption2)
+                .bold()
+                .lineLimit(1)
+                .truncationMode(.tail)
+            HStack(spacing: 3) {
+                Text(subtitle)
+                if showsMenuIndicator {
+                    Image(systemName: "chevron.down")
+                        .imageScale(.small)
+                }
+            }
+            .font(.caption2)
+            .foregroundStyle(.primary.opacity(0.72))
+            .lineLimit(1)
+        }
+        .multilineTextAlignment(.center)
+        .foregroundStyle(.primary)
     }
 }
 

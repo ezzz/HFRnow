@@ -2667,7 +2667,8 @@ private struct PagePickerShortcut: View {
 
 struct TopicPagePickerSheet: View {
     let maxPage: Int
-    /// `maxPage` is only the farthest linked page (forum topic lists): any page number can be typed.
+    /// `maxPage` is only the farthest linked page (forum topic lists): shown as "500+", and any
+    /// page number can be typed.
     var isMaxPageApproximate = false
     @Binding var pageInput: String
     let onSubmit: (Int) -> Void
@@ -2710,7 +2711,7 @@ struct TopicPagePickerSheet: View {
 
     private var sliderValue: Binding<Double> {
         Binding {
-            Double(resolvedPage)
+            Double(min(resolvedPage, maxPage))
         } set: { newValue in
             setPage(Int(newValue.rounded()))
         }
@@ -2723,13 +2724,13 @@ struct TopicPagePickerSheet: View {
                     TextField("Page", text: $pageInput)
                         .keyboardType(.numberPad)
                         .font(.largeTitle.weight(.semibold).monospacedDigit())
-                        .multilineTextAlignment(.trailing)
+                        .multilineTextAlignment(.center)
                         .fixedSize()
                         .padding(.horizontal, 14)
                         .padding(.vertical, 6)
                         .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(natif.surface2))
                         .accessibilityLabel("Numéro de page")
-                    Text("/ \(maxPage.formatted())")
+                    Text(isMaxPageApproximate ? "/ \(maxPage.formatted())+" : "/ \(maxPage.formatted())")
                         .font(.title2.monospacedDigit())
                         .foregroundStyle(natif.text2)
                 }
@@ -2743,7 +2744,10 @@ struct TopicPagePickerSheet: View {
                     PagePickerShortcut(title: "Première", systemImage: "chevron.left.to.line") {
                         setPage(1)
                     }
-                    PagePickerShortcut(title: "Dernière", systemImage: "chevron.right.to.line") {
+                    PagePickerShortcut(
+                        title: isMaxPageApproximate ? "Page \(maxPage.formatted())" : "Dernière",
+                        systemImage: "chevron.right.to.line"
+                    ) {
                         setPage(maxPage)
                     }
                 }
@@ -2839,6 +2843,47 @@ struct MenuActionLabel: View {
     }
 }
 
+private struct TopicRowSwipeActions: ViewModifier {
+    let isEnabled: Bool
+    let showsPageActions: Bool
+    let onMarkRead: (() -> Void)?
+    let onRemove: (() -> Void)?
+    let isRemoveDisabled: Bool
+    let onFirstPage: () -> Void
+    let onLastPage: () -> Void
+    @Environment(\.natif) private var natif
+
+    func body(content: Content) -> some View {
+        if isEnabled {
+            content
+                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                    if let onMarkRead {
+                        Button("Lu", systemImage: "checkmark.message") {
+                            AppHaptics.impact(.light)
+                            onMarkRead()
+                        }
+                        .tint(natif.accentFill)
+                    } else if showsPageActions {
+                        Button("Première page", systemImage: "backward.end", action: onFirstPage)
+                            .tint(natif.accentFill)
+                    }
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    if let onRemove {
+                        Button("Retirer", systemImage: "trash", role: .destructive, action: onRemove)
+                            .disabled(isRemoveDisabled)
+                    }
+                    if showsPageActions {
+                        Button("Dernière page", systemImage: "forward.end", action: onLastPage)
+                            .tint(natif.accentFill)
+                    }
+                }
+        } else {
+            content
+        }
+    }
+}
+
 struct TopicListRowView: View {
     let topic: Topic
     let isVisited: Bool
@@ -2865,6 +2910,13 @@ struct TopicListRowView: View {
     var openContext: TopicOpenContext = .generic
     var quickActions: TopicQuickActionsConfiguration?
     var extraContextMenu: (() -> AnyView)?
+    /// Swipe actions of the forum topic lists: "Lu" / "Retirer" for flagged topics, and first /
+    /// last page for every topic, so that a horizontal swipe never falls through to the row
+    /// button (it opened the topic when the row had no action).
+    var showsPageSwipeActions = false
+    var onSwipeMarkRead: (() -> Void)?
+    var onSwipeRemove: (() -> Void)?
+    var isSwipeRemoveDisabled = false
     var onOpen: ((String?) -> Void)?
     @Environment(\.natif) private var natif
     @AppStorage(AppTextSizeScale.key) private var textSizeScaleRawValue = AppTextSizeScale.standard.rawValue
@@ -3229,6 +3281,15 @@ struct TopicListRowView: View {
                 extraContextMenu()
             }
         }
+        .modifier(TopicRowSwipeActions(
+            isEnabled: showsPageSwipeActions || onSwipeMarkRead != nil || onSwipeRemove != nil,
+            showsPageActions: showsPageSwipeActions && firstPageURL != nil,
+            onMarkRead: onSwipeMarkRead,
+            onRemove: onSwipeRemove,
+            isRemoveDisabled: isSwipeRemoveDisabled,
+            onFirstPage: openFirstPageAction,
+            onLastPage: openLastPageAction
+        ))
         .background {
             NavigationLink(
                 "",

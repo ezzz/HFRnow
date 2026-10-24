@@ -76,6 +76,23 @@ struct PlusHomeView: View {
                         .foregroundStyle(natif.destructive)
                         .frame(minHeight: 44)
                 }
+                // Attached to the button so that the popover points at it on iPad / iPhone Duo.
+                .confirmationDialog(
+                    "Supprimer votre compte HFR ?",
+                    isPresented: $showDeleteAccountConfirm,
+                    titleVisibility: .visible
+                ) {
+                    Button("Écrire la demande de suppression", role: .destructive) {
+                        if MFMailComposeViewController.canSendMail() {
+                            showDeleteAccountComposer = true
+                        } else {
+                            showMailUnavailableAlert = true
+                        }
+                    }
+                    Button("Annuler", role: .cancel) {}
+                } message: {
+                    Text("La suppression est faite par l'équipe du forum, à partir d'un e-mail de demande.")
+                }
             } footer: {
                 Text("Le compte HFR est supprimé côté forum. Cette action est irréversible.")
             }
@@ -86,22 +103,6 @@ struct PlusHomeView: View {
         .navigationTitle("Plus")
         .rootSidebarRevealButton()
         .expandedPhoneInlineNavigationTitle()
-        .confirmationDialog(
-            "Supprimer votre compte HFR ?",
-            isPresented: $showDeleteAccountConfirm,
-            titleVisibility: .visible
-        ) {
-            Button("Écrire la demande de suppression", role: .destructive) {
-                if MFMailComposeViewController.canSendMail() {
-                    showDeleteAccountComposer = true
-                } else {
-                    showMailUnavailableAlert = true
-                }
-            }
-            Button("Annuler", role: .cancel) {}
-        } message: {
-            Text("La suppression est faite par l'équipe du forum, à partir d'un e-mail de demande.")
-        }
         .sheet(isPresented: $showDeleteAccountComposer) {
             DeleteAccountMailComposeView()
         }
