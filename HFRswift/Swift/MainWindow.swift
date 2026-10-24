@@ -1294,6 +1294,7 @@ struct RootTabView: View {
     @StateObject private var messagesViewModel = MPListViewModel()
     /// Shared with the Catégories tab so the sidebar can list the forums without a second load.
     @StateObject private var categoriesViewModel = CategoriesListViewModel()
+    @StateObject private var topicPresence = TopicPresence()
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) private var systemColorScheme
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -1505,6 +1506,7 @@ struct RootTabView: View {
                 .frame(width: Self.rootSidebarWidth)
             }
         }
+        .environment(\.topicPresence, topicPresence)
         .environment(\.rootSidebarToggle, RootSidebarToggle(
             isAvailable: usesRootSidebar,
             isVisible: isRootSidebarVisible,
@@ -1528,14 +1530,14 @@ struct RootTabView: View {
         TabView(selection: tabSelection) {
             Tab(value: RootSelection.tab(.categories)) {
                 CategoriesListView(viewModel: categoriesViewModel, accountsStore: accountsStore, path: $categoriesPath)
-                    .rootTabContent(usesRootSidebar: usesRootSidebar, leadingInset: showsRootSidebar ? Self.rootSidebarWidth : 0)
+                    .rootTabContent(usesRootSidebar: usesRootSidebar, leadingInset: showsRootSidebar ? Self.rootSidebarWidth : 0, hidesTabBar: topicPresence.visibleTopicCount > 0)
             } label: {
                 RootTabLabel(title: "Catégories", systemImage: "square.grid.2x2.fill", color: natifTokens.uiAccent)
             }
 
             Tab(value: RootSelection.tab(.favorites)) {
                 FavoritesListView(viewModel: favoritesViewModel, accountsStore: accountsStore)
-                    .rootTabContent(usesRootSidebar: usesRootSidebar, leadingInset: showsRootSidebar ? Self.rootSidebarWidth : 0)
+                    .rootTabContent(usesRootSidebar: usesRootSidebar, leadingInset: showsRootSidebar ? Self.rootSidebarWidth : 0, hidesTabBar: topicPresence.visibleTopicCount > 0)
             } label: {
                 RootTabLabel(title: "Favoris", systemImage: "flag.fill", color: natifTokens.uiAccent)
             }
@@ -1548,7 +1550,7 @@ struct RootTabView: View {
                     navigationResetToken: messagesNavigationResetToken,
                     path: $messagesPath
                 )
-                .rootTabContent(usesRootSidebar: usesRootSidebar, leadingInset: showsRootSidebar ? Self.rootSidebarWidth : 0)
+                .rootTabContent(usesRootSidebar: usesRootSidebar, leadingInset: showsRootSidebar ? Self.rootSidebarWidth : 0, hidesTabBar: topicPresence.visibleTopicCount > 0)
             } label: {
                 RootTabLabel(title: "Messages", systemImage: "envelope.fill", color: natifTokens.uiAccent)
             }
@@ -1558,7 +1560,7 @@ struct RootTabView: View {
                 NavigationStack {
                     PlusHomeView(accountsStore: accountsStore)
                 }
-                .rootTabContent(usesRootSidebar: usesRootSidebar, leadingInset: showsRootSidebar ? Self.rootSidebarWidth : 0)
+                .rootTabContent(usesRootSidebar: usesRootSidebar, leadingInset: showsRootSidebar ? Self.rootSidebarWidth : 0, hidesTabBar: topicPresence.visibleTopicCount > 0)
             } label: {
                 RootTabLabel(title: "Plus", systemImage: "ellipsis", color: natifTokens.uiAccent)
             }
@@ -1570,7 +1572,7 @@ struct RootTabView: View {
                         .expandedPhoneInlineNavigationTitle()
                         .rootSidebarRevealButton()
                 }
-                .rootTabContent(usesRootSidebar: usesRootSidebar, leadingInset: showsRootSidebar ? Self.rootSidebarWidth : 0)
+                .rootTabContent(usesRootSidebar: usesRootSidebar, leadingInset: showsRootSidebar ? Self.rootSidebarWidth : 0, hidesTabBar: topicPresence.visibleTopicCount > 0)
             } label: {
                 RootTabLabel(title: "Rechercher", systemImage: "magnifyingglass", color: natifTokens.uiAccent)
             }

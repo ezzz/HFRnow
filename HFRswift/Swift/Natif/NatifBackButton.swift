@@ -11,6 +11,7 @@ import UIKit
 
 private struct NatifBackButton: ViewModifier {
     let isEnabled: Bool
+    let alwaysHidesTabBar: Bool
     @Environment(\.dismiss) private var dismiss
     @Environment(\.isPresented) private var isPresented
     @AppStorage(NatifAppearance.accentKey) private var accentID = 0
@@ -20,7 +21,7 @@ private struct NatifBackButton: ViewModifier {
     func body(content: Content) -> some View {
         if showsButton {
             content
-                .rootTabBarHiddenInRegularWidth()
+                .rootTabBarVisibility(alwaysHidden: alwaysHidesTabBar)
                 .navigationBarBackButtonHidden(true)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
@@ -38,7 +39,7 @@ private struct NatifBackButton: ViewModifier {
                 }
         } else {
             content
-                .rootTabBarHiddenInRegularWidth()
+                .rootTabBarVisibility(alwaysHidden: alwaysHidesTabBar)
         }
     }
 }
@@ -52,8 +53,22 @@ extension View {
 
     /// Replaces the system back button of a pushed screen by one in the accent colour.
     /// `isEnabled: false` keeps the system button (e.g. when the screen shows its own back button).
-    func natifBackButton(isEnabled: Bool = true) -> some View {
-        modifier(NatifBackButton(isEnabled: isEnabled))
+    /// `alwaysHidesTabBar`: topic pages, whose bottom bar (‹ › and reply) cannot share the screen
+    /// with the tab bar.
+    func natifBackButton(isEnabled: Bool = true, alwaysHidesTabBar: Bool = false) -> some View {
+        modifier(NatifBackButton(isEnabled: isEnabled, alwaysHidesTabBar: alwaysHidesTabBar))
+    }
+
+    /// The `.automatic` used in compact width by `rootTabBarHiddenInRegularWidth` overrode the
+    /// `.hidden` set by the caller on topic pages: the tab bar then pushed the bottom bar items
+    /// into an overflow "•••" menu and left an empty button (folded Duo).
+    @ViewBuilder
+    fileprivate func rootTabBarVisibility(alwaysHidden: Bool) -> some View {
+        if alwaysHidden {
+            toolbar(.hidden, for: .tabBar)
+        } else {
+            rootTabBarHiddenInRegularWidth()
+        }
     }
 }
 

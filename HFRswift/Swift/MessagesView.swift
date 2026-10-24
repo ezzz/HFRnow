@@ -2704,6 +2704,13 @@ struct MessagesView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    /// Bar items lose their symbols when the iPhone Duo is folded / unfolded (the bar moves between
+    /// the side column and the bottom): rebuilding them on each size class change keeps them drawn.
+    private var toolbarLayoutID: String {
+        "\(String(describing: horizontalSizeClass))-\(String(describing: verticalSizeClass))"
+    }
     @ObservedObject private var appTheme = AppThemeStore.shared
     @Environment(\.natif) private var natif
     /// Read so that a Dynamic Type change re-renders the page with the new body size.
@@ -4287,6 +4294,7 @@ struct MessagesView: View {
                 .font(.system(size: 15, weight: .semibold))
         }
         .disabled(page <= 1)
+        .id("previous-\(toolbarLayoutID)")
         .legacyPageButtonSpacing(edge: .trailing)
     }
 
@@ -4298,6 +4306,7 @@ struct MessagesView: View {
                 .font(.system(size: 15, weight: .semibold))
         }
         .disabled(page >= currentMaxPage)
+        .id("next-\(toolbarLayoutID)")
         .legacyPageButtonSpacing(edge: .leading)
     }
 
@@ -4887,6 +4896,7 @@ struct MessagesView: View {
                                         Label("Répondre", systemImage: "square.and.pencil")
                                     }
                                     .topicBottomBarButtonStyle(isProminent: false)
+                                    .id("reply-\(toolbarLayoutID)")
                                 }
                             }
                         }
@@ -5190,7 +5200,8 @@ struct MessagesView: View {
         // Depth > 0 shows its own back button (navigationDepthBackButton).
         return content
             .rootSidebarRevealButton()
-            .natifBackButton(isEnabled: navigationDepth == 0)
+            .natifBackButton(isEnabled: navigationDepth == 0, alwaysHidesTabBar: true)
+            .reportsTopicPresence()
     }
 }
 
