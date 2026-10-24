@@ -176,6 +176,7 @@ struct CategoriesListView: View {
                 }
             }
             .navigationTitle("Categories")
+            .expandedPhoneInlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Menu {
