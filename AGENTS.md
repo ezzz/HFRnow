@@ -29,7 +29,7 @@ License: [PolyForm Noncommercial 1.0.0](LICENSE) — no commercial use, credit t
 
 | Path | Content |
 |---|---|
-| `Packages/HFRKit/` | UI-free engine (Swift package): `HFRModels`, `HFRParsing`, `HFRNetwork`, `HFRStorage` |
+| `Packages/HFRKit/` | UI-free engine (Swift package): `HFRModels`, `HFRParsing`, `HFRNetwork`, `HFRStorage`, `HFRClient` |
 | `App/` | iOS app target (SwiftUI). Created during the first Mac session — see [ROADMAP](docs/ROADMAP.md) |
 | `docs/ARCHITECTURE.md` | Modules, dependency rules, design principles |
 | `docs/ROADMAP.md` | Phases and their exit criteria |
@@ -48,9 +48,9 @@ When a behaviour is unclear, **read the legacy code** instead of guessing, and c
 ## 3. Ground rules
 
 1. **No guessing about HFR.** Every URL, form field, cookie or HTML selector must be traced to the legacy code or a captured fixture, and recorded in `docs/HFR-PROTOCOL.md`.
-2. **Respect module boundaries** ([ARCHITECTURE](docs/ARCHITECTURE.md)). `HFRParsing`, `HFRNetwork` and `HFRStorage` never import each other. Nothing in `HFRKit` imports SwiftUI or UIKit.
+2. **Respect module boundaries** ([ARCHITECTURE](docs/ARCHITECTURE.md)). `HFRParsing`, `HFRNetwork` and `HFRStorage` never import each other; multi-step flows live in `HFRClient`, which never imports `HFRStorage` ([ADR 0008](docs/adr/0008-hfrclient-orchestration-module.md)). Nothing in `HFRKit` imports SwiftUI or UIKit.
 3. **No new dependency** without an ADR and the maintainer's approval. Today the only third-party dependency is SwiftSoup ([ADR 0002](docs/adr/0002-swiftsoup-html-parser.md)).
-4. **Secrets never enter the repository**: no tokens, passwords, cookies, session IDs or signing material — not in code, fixtures, logs, tests or commit messages. Secrets live only in GitHub Actions secrets. Push protection and gitleaks will block you; never bypass them.
+4. **Secrets never enter the repository**: no tokens, passwords, cookies, session IDs or signing material — not in code, fixtures, logs, tests or commit messages. Secrets live in GitHub Actions secrets; for local builds only in git-ignored configuration files as defined by [ADR 0007](docs/adr/0007-third-party-api-keys.md). Push protection and gitleaks will block you; never bypass them.
 5. **Fixtures are anonymized before commit** ([FIXTURES](docs/FIXTURES.md)). A real pseudo, cookie or hash in a fixture is a security incident.
 6. **Small, reviewable changes.** One lot or one issue per PR. No drive-by refactors.
 7. **Don't work on something already claimed** in `docs/LOTS.md` or assigned on an issue. Claim before coding ([ORCHESTRATION](docs/agents/ORCHESTRATION.md)).
@@ -88,8 +88,8 @@ Starting hypothesis, adjusted after the first lots (record changes here).
 | Work | Model |
 |---|---|
 | Structuring decisions, ADRs on hard problems, the message parser (`ParseMessagesOperation` port) | Fable 5.1 |
-| Audit synthesis, module design, network/auth/cookies, reply posting, all reviews of Sonnet work | Opus 5.5 |
-| Bulk porting of well-specified lots, simple parsers, storage, CI | Sonnet 5.5 |
+| Audit synthesis, module design, sessions/auth/cookies, posting and other state-changing flows, all reviews of Sonnet work | Opus 5.5 |
+| Bulk porting of well-specified lots, simple parsers, read-only fetchers and clients, storage, CI | Sonnet 5.5 |
 | Mechanical work: fixture anonymization, renames, doc/label upkeep, convention checks | Haiku 5.5 |
 
 Rule: **the reviewer is never the author model.**
@@ -145,6 +145,7 @@ Keep entries short and dated. Remove anything that became false.
 
 ### Learnings log
 
+- 2026-10-24 — LOT-000: audit agents proposed lots that mixed parsing and networking; the synthesis copied it and only the independent review caught it. Always check lot dependencies against `Package.swift` (LESSONS #19).
 - 2026-10-24 — Phase 0: from cloud sessions, `@mentions` in posted comments are altered, so bot commands (`@dependabot rebase`, `@coderabbitai review`) do not work. Ask the operator to post them.
 - 2026-10-24 — Phase 0: CodeQL's Swift extractor failed on the preview Xcode 27 toolchain; Swift analysis runs on `macos-26` (stable Xcode), the iOS 27 build check stays on `xcode-27`.
 - 2026-10-24 — Phase 0: job logs cannot be downloaded from cloud sessions; read job steps and check-run annotations instead, and make CI print key failure output as `::error::` annotations.

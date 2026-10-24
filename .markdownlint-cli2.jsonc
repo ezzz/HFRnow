@@ -1,0 +1,9 @@
+// Only rules that catch real breakage in rendered docs (broken tables, broken anchors).
+{
+  "config": {
+    "default": false,
+    "MD051": true,
+    "MD056": true
+  },
+  "globs": ["**/*.md", "!**/.build/**"]
+}

@@ -11,16 +11,27 @@ App (SwiftUI, iOS 27)                 composition root, navigation, views, view 
         ├── HFRModels                  value types (Forum, Topic, Message, …). No dependencies.
         ├── HFRParsing   → HFRModels   HTML → models. Pure functions. SwiftSoup inside only.
         ├── HFRNetwork   → HFRModels   URLSession client, cookies, session, accounts, typed endpoints
-        └── HFRStorage   → HFRModels   drafts, blacklist/whitelist, local favorites, caches
+        ├── HFRStorage   → HFRModels   drafts, blacklist/whitelist, local favorites, caches
+        └── HFRClient    → HFRModels, HFRParsing, HFRNetwork
+                                       multi-step flows: login, posting, search, MPStorage… (ADR 0008)
 ```
 
 ## Dependency rules (enforced by `Package.swift`)
 
 1. `HFRModels` depends on nothing.
 2. `HFRParsing`, `HFRNetwork`, `HFRStorage` depend only on `HFRModels` — **never on each other**.
-   The app (or a feature module) orchestrates: fetch with `HFRNetwork`, parse with `HFRParsing`, persist with `HFRStorage`.
-3. Nothing in `HFRKit` imports SwiftUI, UIKit or WebKit. The engine must build and test on Linux.
-4. Third-party code is confined: SwiftSoup is visible only inside `HFRParsing` ([ADR 0002](adr/0002-swiftsoup-html-parser.md)).
+   Multi-step flows are composed in `HFRClient`; the app persists their results with `HFRStorage`.
+3. `HFRClient` sits above Parsing and Network to compose multi-step flows; it never depends on `HFRStorage` ([ADR 0008](adr/0008-hfrclient-orchestration-module.md)).
+4. Nothing in `HFRKit` imports SwiftUI, UIKit or WebKit. The engine must build and test on Linux.
+5. Third-party code is confined: SwiftSoup is visible only inside `HFRParsing` ([ADR 0002](adr/0002-swiftsoup-html-parser.md)).
+
+## Linux rules
+
+The engine is tested on Linux CI, so Apple-only APIs are isolated:
+- `URLSession`, `HTTPCookie`, `HTTPCookieStorage` come from `FoundationNetworking` on Linux: `#if canImport(FoundationNetworking) import FoundationNetworking #endif` in `HFRNetwork`.
+- Cookies cross module boundaries only as the Codable value type `StoredCookie` (HFRModels), never as `HTTPCookie`.
+- Keychain (`Security`) is used only behind a protocol, with the Keychain implementation under `#if canImport(Security)` and in-memory/file implementations for Linux tests.
+- `XMLParser` (RSS) comes from `FoundationXML` on Linux.
 
 ## Abstractions
 

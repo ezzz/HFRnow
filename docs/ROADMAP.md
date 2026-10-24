@@ -14,7 +14,7 @@ Each phase has exit criteria. Work items live in [LOTS.md](LOTS.md) and GitHub i
 
 Moved out of Phase 0: the iOS app target (Xcode 27, Mac session) is created before Phase 4; the engine phases do not need it.
 
-## Phase 1 — Audit of the legacy engine
+## Phase 1 — Audit of the legacy engine *(done — 2026-10-24, [audit](audit/README.md))*
 Deep audit of the ~10 k lines of legacy Objective-C networking, HTML parsing and storage, and of vendor usage.
 Output: dependency graph, ordered lots in [LOTS.md](LOTS.md), first version of [HFR-PROTOCOL.md](HFR-PROTOCOL.md).
 **Exit:** every legacy engine file mapped to a lot; lot order reviewed.

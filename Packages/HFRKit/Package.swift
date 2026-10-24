@@ -7,6 +7,8 @@ import PackageDescription
 //   HFRModels  <-  HFRNetwork
 //   HFRModels  <-  HFRStorage
 // HFRParsing, HFRNetwork and HFRStorage must never depend on each other.
+//   HFRModels + HFRParsing + HFRNetwork  <-  HFRClient   (multi-step flows, ADR 0008)
+// HFRClient never depends on HFRStorage: the app passes stored values in and persists results.
 let package = Package(
     name: "HFRKit",
     platforms: [
@@ -17,7 +19,8 @@ let package = Package(
         .library(name: "HFRModels", targets: ["HFRModels"]),
         .library(name: "HFRParsing", targets: ["HFRParsing"]),
         .library(name: "HFRNetwork", targets: ["HFRNetwork"]),
-        .library(name: "HFRStorage", targets: ["HFRStorage"])
+        .library(name: "HFRStorage", targets: ["HFRStorage"]),
+        .library(name: "HFRClient", targets: ["HFRClient"])
     ],
     dependencies: [
         // ADR 0002: SwiftSoup is the only HTML parser, used exclusively inside HFRParsing.
@@ -34,6 +37,7 @@ let package = Package(
         ),
         .target(name: "HFRNetwork", dependencies: ["HFRModels"]),
         .target(name: "HFRStorage", dependencies: ["HFRModels"]),
+        .target(name: "HFRClient", dependencies: ["HFRModels", "HFRParsing", "HFRNetwork"]),
 
         .testTarget(name: "HFRModelsTests", dependencies: ["HFRModels"]),
         .testTarget(
@@ -42,7 +46,8 @@ let package = Package(
             resources: [.copy("Fixtures")]
         ),
         .testTarget(name: "HFRNetworkTests", dependencies: ["HFRNetwork"]),
-        .testTarget(name: "HFRStorageTests", dependencies: ["HFRStorage"])
+        .testTarget(name: "HFRStorageTests", dependencies: ["HFRStorage"]),
+        .testTarget(name: "HFRClientTests", dependencies: ["HFRClient"])
     ],
     swiftLanguageModes: [.v6]
 )

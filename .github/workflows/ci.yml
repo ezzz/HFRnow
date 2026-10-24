@@ -23,6 +23,17 @@ jobs:
         with: { persist-credentials: false }
       - run: swiftlint lint --strict --reporter github-actions-logging
 
+  docs:
+    name: Docs consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - name: Lot dependencies respect module rules
+        run: python3 scripts/check-lot-deps.py
+      - name: Markdown tables and links
+        run: npx --yes markdownlint-cli2@0.18.1
+
   engine-linux:
     name: HFRKit tests (Linux)
     runs-on: ubuntu-latest
