@@ -2,16 +2,17 @@
 
 Each phase has exit criteria. Work items live in [LOTS.md](LOTS.md) and GitHub issues (`type: roadmap`).
 
-## Phase 0 — Foundations *(in progress)*
+## Phase 0 — Foundations *(done — 2026-10-24)*
 - [x] License (PolyForm Noncommercial), credits, README, AGENTS.md
 - [x] `HFRKit` package skeleton with SwiftSoup
 - [x] CI (Linux + macOS/Xcode 27), CodeQL, dependency review, Dependabot, gitleaks, Scorecard
 - [x] Issue forms, label taxonomy, auto-labelling, PR template, CodeRabbit config
-- [ ] Repository settings: run `scripts/configure-repo.sh` from the maintainer's machine (branch protection, secret scanning push protection, private vulnerability reporting, topics) — cloud agents cannot change repository settings
-- [ ] CodeRabbit GitHub app installed (maintainer)
-- [ ] iOS app target created on the Mac (Xcode 27) and wired to `HFRKit`; ADR on project-file strategy
+- [x] Repository settings applied with `scripts/configure-repo.sh` (branch protection, secret scanning push protection, private vulnerability reporting, topics)
+- [x] CodeRabbit installed and reviewing PRs
 
-**Exit:** CI green on `master`, protections active, app target builds in CI.
+**Exit:** CI green on `master`, protections active. ✓
+
+Moved out of Phase 0: the iOS app target (Xcode 27, Mac session) is created before Phase 4; the engine phases do not need it.
 
 ## Phase 1 — Audit of the legacy engine
 Deep audit of the ~10 k lines of legacy Objective-C networking, HTML parsing and storage, and of vendor usage.
@@ -27,6 +28,7 @@ Lots ported one by one with differential tests (`HFRModels`, `HFRNetwork`, parse
 **Exit:** all lots `done`; the engine covers every feature of the legacy app.
 
 ## Phase 4 — App
+Prerequisite: create the iOS app target on the Mac (Xcode 27), wire it to `HFRKit`, add an app build job to CI, record the project-file strategy in an ADR.
 Reuse and adapt the legacy SwiftUI views on top of `HFRKit`; remove everything unused.
 
 ## Phase 5 — iOS 27 experience
