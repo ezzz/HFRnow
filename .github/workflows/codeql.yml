@@ -25,8 +25,9 @@ jobs:
           - language: actions
             runner: ubuntu-latest
             build-mode: none
+          # CodeQL's Swift extractor lags behind preview toolchains: analyze with the stable Xcode on macos-26.
           - language: swift
-            runner: xcode-27
+            runner: macos-26
             build-mode: manual
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -37,7 +38,16 @@ jobs:
           build-mode: ${{ matrix.build-mode }}
           queries: security-and-quality
       - if: matrix.build-mode == 'manual'
-        run: swift build --package-path Packages/HFRKit
+        name: Build (traced by CodeQL)
+        shell: bash
+        run: |
+          xcodebuild -version
+          set -o pipefail
+          # Logs are not readable from cloud sessions; surface the tail of a failed build as annotations.
+          if ! swift build --package-path Packages/HFRKit 2>&1 | tee build.log; then
+            tail -n 25 build.log | sed 's/^/::error title=swift build::/'
+            exit 1
+          fi
       - uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           category: "/language:${{ matrix.language }}"
