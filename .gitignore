@@ -13,3 +13,4 @@ Package.resolved.orig
 *.cer
 .env
 .env.*
+CLAUDE.local.md

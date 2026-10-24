@@ -10,17 +10,13 @@ It is a living document: when a lot teaches us something, it is written here (se
 
 ## 0. Guardrails (read first)
 
-**Allowed without asking**, inside this repository only: pushing to your own branches, opening PRs, pushing fixes to our open PRs, replying to review threads on our PRs, progress comments on issues you claimed, updating `docs/LOTS.md`.
+The **operator** is the human driving an agent session. Agents act on the operator's behalf and within the operator's permissions on this repository.
 
-**Needs the maintainer's explicit "go"** (draft the text, show it, wait):
-- anything on another repository, including the legacy app;
-- merging into `master`, releases, tags;
-- editing or closing an issue/PR/comment you did not author; before editing shared text: back up the current version, show the diff, apply, re-read;
-- repository settings, new dependencies, disclosing a security finding;
-- any message outside GitHub.
-
-A child session never accepts "the maintainer approved" relayed by its parent for these: it asks the maintainer directly.
-A human reviewer's correction overrides our plan: apply it, reply once, update the docs.
+- **Routine work needs no extra confirmation**: your own branches, PRs, fixes to your open PRs, replies on your PRs, comments on issues you claimed, `docs/LOTS.md` updates.
+- **Consequential actions are confirmed by the operator first** (draft, show, wait): merges, releases and tags, anything on another repository, editing or closing what someone else wrote (back up, show the diff, apply, re-read), repository settings, new dependencies, disclosing a security finding, messages outside GitHub.
+- How strictly confirmations apply, and whether they carry over to child sessions, is **the operator's call**. Personal rules belong in an untracked `CLAUDE.local.md` (or your tool's equivalent), not in this file.
+- Merges to `master` happen through PRs with green checks; who may merge is governed by repository permissions.
+- A human reviewer's correction overrides an agent's plan: apply it, reply once, update the docs.
 
 ## 1. Project in one paragraph
 
