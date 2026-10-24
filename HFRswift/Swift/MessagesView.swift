@@ -812,6 +812,14 @@ struct WebView: UIViewRepresentable {
         contentController.addUserScript(bootstrapThemeScript)
         contentController.add(context.coordinator, name: "scrollState")
         contentController.add(context.coordinator, name: "textInteractionState")
+        contentController.add(context.coordinator, name: "domReady")
+        contentController.addUserScript(
+            WKUserScript(
+                source: "window.webkit.messageHandlers.domReady.postMessage(1);",
+                injectionTime: .atDocumentEnd,
+                forMainFrameOnly: true
+            )
+        )
 
         let scrollTrackingScript = WKUserScript(
             source: """
@@ -972,6 +980,7 @@ struct WebView: UIViewRepresentable {
                 context.coordinator.lastAppliedMessageStyleSignature = nil
                 context.coordinator.isWaitingForThemeApplication = true
                 context.coordinator.didNotifyContentReadyForCurrentLoad = false
+                context.coordinator.didHandlePageReadyForCurrentLoad = false
                 webView.isHidden = true
                 webView.loadFileURL(fileURL, allowingReadAccessTo: readAccessURL)
             } else {
@@ -1017,6 +1026,7 @@ struct WebView: UIViewRepresentable {
         var lastAppliedMessageStyleSignature: String?
         var isWaitingForThemeApplication = false
         var didNotifyContentReadyForCurrentLoad = false
+        var didHandlePageReadyForCurrentLoad = false
         var lastHandledScrollRequestID: UUID?
         @available(iOS 16.0, *)
         weak var editMenuInteraction: UIEditMenuInteraction?
@@ -1052,6 +1062,15 @@ struct WebView: UIViewRepresentable {
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             print("WKWebView didFinish. anchor =", anchor as Any, "initialScroll =", String(describing: initialScroll), "url:", webView.url?.absoluteString ?? "nil")
+            handlePageReady(in: webView)
+        }
+
+        /// Runs once per load, on DOMContentLoaded (domReady message) or didFinish, whichever comes
+        /// first. didFinish waits for every subresource (embedded videos, big images...), which could
+        /// keep the page hidden behind "Chargement…" for a very long time.
+        func handlePageReady(in webView: WKWebView) {
+            guard !didHandlePageReadyForCurrentLoad else { return }
+            didHandlePageReadyForCurrentLoad = true
             applyThemeIfNeeded(in: webView, force: true) {
                 self.applyMessageStyleIfNeeded(in: webView, force: true) {
                     self.applyTextSizeIfNeeded(in: webView, force: true) {
@@ -1203,6 +1222,11 @@ struct WebView: UIViewRepresentable {
                     if let scrollPosition {
                         self.parent.onScrollPositionSnapshotChange?(scrollPosition)
                     }
+                }
+            case "domReady":
+                guard let webView = message.webView else { return }
+                DispatchQueue.main.async {
+                    self.handlePageReady(in: webView)
                 }
             case "textInteractionState":
                 let isActive: Bool
