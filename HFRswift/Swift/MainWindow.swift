@@ -34,12 +34,26 @@ final class CategoriesListViewModel: ObservableObject {
                 } else {
                     self.errorMessage = nil
                     self.forums = forums ?? []
+                    Self.writeSearchCategoriesCache(self.forums)
                 }
                 if shouldTriggerHaptic {
                     AppHaptics.refreshCompleted()
                 }
             }
         }
+    }
+
+    /// Forum search reads its category list from forumsCache.plist, which only the legacy
+    /// Objective-C categories screen used to write; without it the search offered "Discussions" only.
+    private static func writeSearchCategoriesCache(_ forums: [Forum]) {
+        guard
+            !forums.isEmpty,
+            let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).last,
+            let data = try? NSKeyedArchiver.archivedData(withRootObject: forums, requiringSecureCoding: false)
+        else {
+            return
+        }
+        try? data.write(to: directory.appendingPathComponent("forumsCache.plist"), options: .atomic)
     }
 }
 
