@@ -374,8 +374,14 @@ static NSString * const HFRSwiftNotificationDestinationMessages = @"messages";
         [[UITabBar appearance] setTranslucent:YES];
     }
     
+#if APP_SWIFT
+    // Dynamic color: appearance proxies only reach bars created later, so a fixed color stayed
+    // dark-on-dark on already visible bars after a live theme switch.
+    [[UINavigationBar appearance] setTitleTextAttributes:@{NSForegroundColorAttributeName : [UIColor labelColor]}];
+#else
     [[UINavigationBar appearance] setTitleTextAttributes:@{NSForegroundColorAttributeName : [ThemeColors titleTextAttributesColor:theme]}];
-    
+#endif
+
     if ([[NSUserDefaults standardUserDefaults] boolForKey:@"theme_noel_disabled"]) {
         [[UINavigationBar appearance] setBackgroundImage:[ThemeColors imageFromColor:[UIColor clearColor]] forBarMetrics:UIBarMetricsDefault];
     }else{
