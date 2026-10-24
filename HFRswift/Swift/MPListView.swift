@@ -236,6 +236,13 @@ struct MPListView: View {
 
     private let isActive: Bool
     private let navigationResetToken: UUID
+    @State private var localPath: [PrivateMessageRoute] = []
+    /// Owned by the root when the sidebar can open a private message directly.
+    private let externalPath: Binding<[PrivateMessageRoute]>?
+
+    private var path: Binding<[PrivateMessageRoute]> {
+        externalPath ?? $localPath
+    }
 
     private var isLoggedIn: Bool {
         accountsStore.currentAccount != nil
@@ -266,12 +273,14 @@ struct MPListView: View {
         viewModel: MPListViewModel? = nil,
         accountsStore: AccountsStore? = nil,
         isActive: Bool = true,
-        navigationResetToken: UUID = UUID()
+        navigationResetToken: UUID = UUID(),
+        path: Binding<[PrivateMessageRoute]>? = nil
     ) {
         _viewModel = StateObject(wrappedValue: viewModel ?? MPListViewModel())
         _accountsStore = StateObject(wrappedValue: accountsStore ?? AccountsStore())
         self.isActive = isActive
         self.navigationResetToken = navigationResetToken
+        externalPath = path
     }
 
     private func markTopicAsRead(_ topic: Topic) {
@@ -283,7 +292,7 @@ struct MPListView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: path) {
             List {
                 if !isLoggedIn {
                     NatifEmptyState(
@@ -360,6 +369,15 @@ struct MPListView: View {
                 AppHaptics.refreshStarted()
                 viewModel.load(force: true, shouldTriggerHaptic: true)
             }
+            .navigationDestination(for: PrivateMessageRoute.self) { route in
+                MessagesView(
+                    topic: route.item.topic,
+                    curPage: route.item.page,
+                    maxPage: route.item.maxPage,
+                    separatorNewMessages: true
+                )
+            }
+            .rootSidebarRevealButton()
             .toolbar {
                 MainToolbarContent(
                     onRefresh: {

@@ -84,6 +84,7 @@ struct PlusHomeView: View {
         .listStyle(.insetGrouped)
         .natifGroupedListBackground()
         .navigationTitle("Plus")
+        .rootSidebarRevealButton()
         .expandedPhoneInlineNavigationTitle()
         .confirmationDialog(
             "Supprimer votre compte HFR ?",

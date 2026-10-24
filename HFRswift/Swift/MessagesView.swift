@@ -5185,6 +5185,7 @@ struct MessagesView: View {
         }
 
         return content
+            .rootSidebarRevealButton()
     }
 }
 

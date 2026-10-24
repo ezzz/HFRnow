@@ -722,6 +722,7 @@ struct FavoritesListView: View {
             .listStyle(.insetGrouped)
             .natifGroupedListBackground()
             .navigationTitle("Favoris")
+            .rootSidebarRevealButton()
             .hfrNavigationSubtitle(unreadSubtitle)
             .expandedPhoneInlineNavigationTitle()
             .safeAreaInset(edge: .bottom) {

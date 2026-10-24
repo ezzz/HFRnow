@@ -152,18 +152,27 @@ struct CategoriesListView: View {
     @State private var hasLoaded = false
     @State private var showAddAccountSheet = false
     @State private var showLogoutConfirm = false
+    @State private var localPath: [ForumRoute] = []
+    /// Owned by the root when the sidebar can open a forum directly.
+    private let externalPath: Binding<[ForumRoute]>?
 
     @MainActor
     init(
         viewModel: CategoriesListViewModel? = nil,
-        accountsStore: AccountsStore? = nil
+        accountsStore: AccountsStore? = nil,
+        path: Binding<[ForumRoute]>? = nil
     ) {
         _viewModel = StateObject(wrappedValue: viewModel ?? CategoriesListViewModel())
         _accountsStore = StateObject(wrappedValue: accountsStore ?? AccountsStore())
+        externalPath = path
+    }
+
+    private var path: Binding<[ForumRoute]> {
+        externalPath ?? $localPath
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: path) {
             List {
                 if let errorMessage = viewModel.errorMessage {
                     Text("Erreur : \(errorMessage)")
@@ -176,12 +185,7 @@ struct CategoriesListView: View {
                 ForEach(forumSections, id: \.group) { section in
                     Section {
                         ForEach(section.forums) { forum in
-                            NavigationLink {
-                                ForumTopicsListView(
-                                    forum: forum,
-                                    accountsStore: accountsStore
-                                )
-                            } label: {
+                            NavigationLink(value: ForumRoute(forum: forum)) {
                                 CategoryRow(forum: forum)
                             }
                             .natifCellBackground()
@@ -201,6 +205,10 @@ struct CategoriesListView: View {
             }
             .navigationTitle("Catégories")
             .expandedPhoneInlineNavigationTitle()
+            .navigationDestination(for: ForumRoute.self) { route in
+                ForumTopicsListView(forum: route.forum, accountsStore: accountsStore)
+            }
+            .rootSidebarRevealButton()
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Menu {
@@ -221,7 +229,9 @@ struct CategoriesListView: View {
             }
             .onAppear {
                 if !hasLoaded {
-                    viewModel.load()
+                    if viewModel.forums.isEmpty && !viewModel.isLoading {
+                        viewModel.load()
+                    }
                     hasLoaded = true
                 }
             }
@@ -763,6 +773,7 @@ struct ForumTopicsListView: View {
         }
         .listStyle(.plain)
         .natifPlainListBackground()
+        .rootSidebarRevealButton()
         .navigationTitle(navigationTitleText)
         .hfrNavigationSubtitle(navigationSubtitleText)
         .toolbar {
@@ -1137,10 +1148,22 @@ struct RootTabView: View {
     @StateObject private var accountsStore = AccountsStore()
     @StateObject private var favoritesViewModel = FavoritesViewModel()
     @StateObject private var messagesViewModel = MPListViewModel()
+    /// Shared with the Catégories tab so the sidebar can list the forums without a second load.
+    @StateObject private var categoriesViewModel = CategoriesListViewModel()
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) private var systemColorScheme
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    @State private var selectedTab: RootTabIdentifier
+    @State private var selection: RootSelection
+    @State private var categoriesPath: [ForumRoute] = []
+    @State private var messagesPath: [PrivateMessageRoute] = []
+    @AppStorage("root_sidebar_visible") private var isRootSidebarVisible = true
+
+    /// Main tab behind the current selection (a sidebar forum belongs to Catégories, a private
+    /// message to Messages). Setting it selects that tab.
+    private var selectedTab: RootTabIdentifier {
+        get { selection.tab }
+        nonmutating set { selection = .tab(newValue) }
+    }
     @State private var hasScheduledColdLaunchPrefetch = false
     @State private var coldLaunchPrefetchTask: Task<Void, Never>?
     @State private var hasScheduledAQBadgeCheck = false
@@ -1161,15 +1184,21 @@ struct RootTabView: View {
         )
     }
 
-    /// iPad only. On iPhone (iPhone Duo inner display included) the root stays a single adaptable
-    /// `TabView`: swapping roots on a size class change would rebuild the hierarchy and lose the
-    /// open topic every time the device is folded or unfolded.
-    private var usesSidebarRoot: Bool {
-        UIDevice.current.userInterfaceIdiom == .pad && horizontalSizeClass == .regular
+    /// Regular width (iPhone Duo inner display, iPad): the tab bar is replaced by `RootSidebar`.
+    /// The `TabView` stays the root in every width, so folding or unfolding keeps the open screens.
+    private var usesRootSidebar: Bool {
+        guard #available(iOS 18.0, *) else { return false }
+        return horizontalSizeClass == .regular
+    }
+
+    private static let rootSidebarWidth: CGFloat = 300
+
+    private var showsRootSidebar: Bool {
+        usesRootSidebar && isRootSidebarVisible
     }
 
     init() {
-        _selectedTab = State(initialValue: RuntimeState.selectedTab)
+        _selection = State(initialValue: .tab(RuntimeState.selectedTab))
     }
 
     private func syncRuntimeSelectedTab(_ tab: RootTabIdentifier) {
@@ -1230,14 +1259,14 @@ struct RootTabView: View {
     /// Selection stays owned by SwiftUI. Tapping the already selected tab goes through the setter
     /// with the same value, which is used for "scroll to top / refresh". Reading UIKit's
     /// `selectedIndex` instead resynced a stale tab in sidebar mode (iPhone Duo inner display).
-    private var tabSelection: Binding<RootTabIdentifier> {
+    private var tabSelection: Binding<RootSelection> {
         Binding {
-            selectedTab
+            selection
         } set: { newValue in
-            if newValue == selectedTab {
-                handleTabReselection(newValue)
+            if newValue == selection, case .tab(let tab) = newValue {
+                handleTabReselection(tab)
             } else {
-                selectedTab = newValue
+                selection = newValue
             }
         }
     }
@@ -1253,6 +1282,7 @@ struct RootTabView: View {
 
     private func showMessagesList(forceRefresh: Bool) {
         messagesNavigationResetToken = UUID()
+        messagesPath = []
         if selectedTab != .messages {
             selectedTab = .messages
         }
@@ -1281,6 +1311,9 @@ struct RootTabView: View {
             .onChange(of: selectedTab) { _, newValue in
                 syncRuntimeSelectedTab(newValue)
             }
+            .onChange(of: horizontalSizeClass) { _, _ in
+                normalizeSelectionForCompactWidth()
+            }
             .onChange(of: accountsStore.currentAccount?.id) { oldValue, newValue in
                 handleCurrentAccountChange(from: oldValue, to: newValue)
             }
@@ -1301,26 +1334,166 @@ struct RootTabView: View {
             }
     }
 
-    @ViewBuilder
+    /// The tab view keeps the full width; each tab's content is inset by the sidebar width instead.
+    /// Resizing the tab view itself made the Duo navigation bar lose its trailing items when the
+    /// sidebar was hidden.
     private var rootContainer: some View {
-        if usesSidebarRoot {
-            iPadSidebarRoot
+        ZStack(alignment: .leading) {
+            rootTabs
+                .hfrTabBarMinimizeBehavior(tabBarMinimizeOnScroll: tabBarMinimizeOnScroll)
+
+            if showsRootSidebar {
+                HStack(spacing: 0) {
+                    RootSidebar(
+                        forums: categoriesViewModel.forums,
+                        privateMessages: sidebarPrivateMessages,
+                        isLoggedIn: accountsStore.currentAccount != nil,
+                        messagesBadge: mpBadgeEnabled && unreadMPCount > 0 ? unreadMPCount : 0,
+                        moreBadge: unreadAQCount > 0 ? unreadAQCount : 0,
+                        selectedItem: sidebarSelectedItem,
+                        onSelect: selectSidebarItem
+                    )
+                    Rectangle()
+                        .fill(natifTokens.separator)
+                        .frame(width: 0.5)
+                        .ignoresSafeArea()
+                }
+                .frame(width: Self.rootSidebarWidth)
+            }
+        }
+        .environment(\.rootSidebarToggle, RootSidebarToggle(
+            isAvailable: usesRootSidebar,
+            isVisible: isRootSidebarVisible,
+            toggle: { isRootSidebarVisible.toggle() }
+        ))
+    }
+
+    @ViewBuilder
+    private var rootTabs: some View {
+        if #available(iOS 18.0, *) {
+            sidebarAwareTabs
         } else {
-            compactTabRoot
+            legacyRootTabs
         }
     }
 
-    private var compactTabRoot: some View {
-        rootTabs
-            .hfrSidebarAdaptableTabs()
-            .hfrTabBarMinimizeBehavior(tabBarMinimizeOnScroll: tabBarMinimizeOnScroll)
+    /// iOS 18+: the four tabs of the tab bar, plus the search that only the sidebar lists. In
+    /// regular width the tab bar is hidden and `RootSidebar` drives the selection.
+    @available(iOS 18.0, *)
+    private var sidebarAwareTabs: some View {
+        TabView(selection: tabSelection) {
+            Tab("Catégories", systemImage: "square.grid.2x2.fill", value: RootSelection.tab(.categories)) {
+                CategoriesListView(viewModel: categoriesViewModel, accountsStore: accountsStore, path: $categoriesPath)
+                    .rootTabContent(usesRootSidebar: usesRootSidebar, leadingInset: showsRootSidebar ? Self.rootSidebarWidth : 0)
+            }
+
+            Tab("Favoris", systemImage: "flag.fill", value: RootSelection.tab(.favorites)) {
+                FavoritesListView(viewModel: favoritesViewModel, accountsStore: accountsStore)
+                    .rootTabContent(usesRootSidebar: usesRootSidebar, leadingInset: showsRootSidebar ? Self.rootSidebarWidth : 0)
+            }
+
+            Tab("Messages", systemImage: "envelope.fill", value: RootSelection.tab(.messages)) {
+                MPListView(
+                    viewModel: messagesViewModel,
+                    accountsStore: accountsStore,
+                    isActive: selection == .tab(.messages),
+                    navigationResetToken: messagesNavigationResetToken,
+                    path: $messagesPath
+                )
+                .rootTabContent(usesRootSidebar: usesRootSidebar, leadingInset: showsRootSidebar ? Self.rootSidebarWidth : 0)
+            }
+            .badge(mpBadgeEnabled && unreadMPCount > 0 ? unreadMPCount : 0)
+
+            Tab("Plus", systemImage: "ellipsis", value: RootSelection.tab(.more)) {
+                NavigationStack {
+                    PlusHomeView(accountsStore: accountsStore)
+                }
+                .rootTabContent(usesRootSidebar: usesRootSidebar, leadingInset: showsRootSidebar ? Self.rootSidebarWidth : 0)
+            }
+            .badge(unreadAQCount > 0 ? unreadAQCount : 0)
+
+            Tab("Rechercher", systemImage: "magnifyingglass", value: RootSelection.search) {
+                NavigationStack {
+                    ForumSearchView()
+                        .expandedPhoneInlineNavigationTitle()
+                        .rootSidebarRevealButton()
+                }
+                .rootTabContent(usesRootSidebar: usesRootSidebar, leadingInset: showsRootSidebar ? Self.rootSidebarWidth : 0)
+            }
+            .hidden(!usesRootSidebar)
+        }
     }
 
-    private var rootTabs: some View {
+    private var sidebarPrivateMessages: [SidebarPrivateMessageItem] {
+        guard accountsStore.currentAccount != nil else { return [] }
+        return messagesViewModel.topics.map(SidebarPrivateMessageItem.init(topic:))
+    }
+
+    /// Sidebar row matching the current screen: the forum or private message opened from the
+    /// sidebar, otherwise the tab itself.
+    private var sidebarSelectedItem: RootSidebarItem? {
+        switch selection {
+        case .search:
+            .search
+        case .tab(.categories):
+            categoriesPath.first.map { .forum($0.id) } ?? .categories
+        case .tab(.messages):
+            messagesPath.first.map { .privateMessage($0.item.id) } ?? .messages
+        case .tab(.favorites):
+            .favorites
+        case .tab(.more):
+            .more
+        }
+    }
+
+    /// Like a tab bar: coming back from another section shows the screens left open there; tapping
+    /// the entry of the section already shown goes back to that entry (root or forum / message).
+    private func selectSidebarItem(_ item: RootSidebarItem) {
+        switch item {
+        case .search:
+            selection = .search
+        case .messages:
+            if selection == .tab(.messages) {
+                messagesPath = []
+            }
+            selection = .tab(.messages)
+        case .privateMessage(let id):
+            let isShowingIt = messagesPath.first?.item.id == id
+            if selection == .tab(.messages) || !isShowingIt,
+               let message = sidebarPrivateMessages.first(where: { $0.id == id }) {
+                messagesPath = [PrivateMessageRoute(item: message)]
+            }
+            selection = .tab(.messages)
+        case .favorites:
+            selection = .tab(.favorites)
+        case .categories:
+            if selection == .tab(.categories) {
+                categoriesPath = []
+            }
+            selection = .tab(.categories)
+        case .forum(let id):
+            let isShowingIt = categoriesPath.first?.id == id
+            if selection == .tab(.categories) || !isShowingIt,
+               let forum = categoriesViewModel.forums.first(where: { ForumRoute.id(for: $0) == id }) {
+                categoriesPath = [ForumRoute(forum: forum)]
+            }
+            selection = .tab(.categories)
+        case .more:
+            selection = .tab(.more)
+        }
+    }
+
+    /// The search is not in the compact tab bar (folded Duo): fall back to Plus.
+    private func normalizeSelectionForCompactWidth() {
+        guard horizontalSizeClass == .compact, selection == .search else { return }
+        selection = .tab(.more)
+    }
+
+    private var legacyRootTabs: some View {
         TabView(selection: tabSelection) {
-            CategoriesListView(accountsStore: accountsStore)
+            CategoriesListView(viewModel: categoriesViewModel, accountsStore: accountsStore)
                 .tabItem { Label("Catégories", systemImage: "square.grid.2x2.fill") }
-                .tag(RootTabIdentifier.categories)
+                .tag(RootSelection.tab(.categories))
 
             //FeedView()
             FavoritesListView(
@@ -1328,122 +1501,32 @@ struct RootTabView: View {
                 accountsStore: accountsStore
             )
             .tabItem { Label("Favoris", systemImage: "flag.fill") }
-            .tag(RootTabIdentifier.favorites)
+            .tag(RootSelection.tab(.favorites))
 
             MPListView(
                 viewModel: messagesViewModel,
                 accountsStore: accountsStore,
-                isActive: selectedTab == .messages,
+                isActive: selection == .tab(.messages),
                 navigationResetToken: messagesNavigationResetToken
             )
             .tabItem { Label("Messages", systemImage: "envelope.fill") }
-            .tag(RootTabIdentifier.messages)
+            .tag(RootSelection.tab(.messages))
             .badge(mpBadgeEnabled && unreadMPCount > 0 ? unreadMPCount : 0)
 
             NavigationStack {
                 PlusHomeView(accountsStore: accountsStore)
             }
             .tabItem { Label("Plus", systemImage: "ellipsis") }
-            .tag(RootTabIdentifier.more)
+            .tag(RootSelection.tab(.more))
             .badge(unreadAQCount > 0 ? unreadAQCount : 0)
-        }
-    }
-
-    private var iPadSidebarRoot: some View {
-        NavigationSplitView {
-            List(selection: sidebarSelection) {
-                ForEach(Self.sidebarTabs, id: \.self) { tab in
-                    NavigationLink(value: tab) {
-                        sidebarRow(for: tab)
-                    }
-                }
-            }
-            .navigationTitle("HFRnow")
-        } detail: {
-            selectedTabContent
-        }
-        .navigationSplitViewStyle(.balanced)
-    }
-
-    private var sidebarSelection: Binding<RootTabIdentifier?> {
-        Binding {
-            selectedTab
-        } set: { newValue in
-            guard let newValue else { return }
-            selectedTab = newValue
-        }
-    }
-
-    @ViewBuilder
-    private var selectedTabContent: some View {
-        switch selectedTab {
-        case .categories:
-            CategoriesListView(accountsStore: accountsStore)
-        case .favorites:
-            FavoritesListView(
-                viewModel: favoritesViewModel,
-                accountsStore: accountsStore
-            )
-        case .messages:
-            MPListView(
-                viewModel: messagesViewModel,
-                accountsStore: accountsStore,
-                isActive: selectedTab == .messages,
-                navigationResetToken: messagesNavigationResetToken
-            )
-        case .more:
-            PlusHomeView(accountsStore: accountsStore)
-        }
-    }
-
-    private func sidebarRow(for tab: RootTabIdentifier) -> some View {
-        HStack {
-            Label(sidebarTitle(for: tab), systemImage: sidebarSystemImage(for: tab))
-            Spacer()
-            if sidebarBadgeCount(for: tab) > 0 {
-                NatifRedBadge(count: sidebarBadgeCount(for: tab))
-            }
-        }
-    }
-
-    private static let sidebarTabs: [RootTabIdentifier] = [
-        .categories,
-        .favorites,
-        .messages,
-        .more
-    ]
-
-    private func sidebarTitle(for tab: RootTabIdentifier) -> String {
-        switch tab {
-        case .categories: "Catégories"
-        case .favorites: "Favoris"
-        case .messages: "Messages"
-        case .more: "Plus"
-        }
-    }
-
-    private func sidebarSystemImage(for tab: RootTabIdentifier) -> String {
-        switch tab {
-        case .categories: "square.grid.2x2.fill"
-        case .favorites: "flag.fill"
-        case .messages: "envelope.fill"
-        case .more: "ellipsis"
-        }
-    }
-
-    private func sidebarBadgeCount(for tab: RootTabIdentifier) -> Int {
-        switch tab {
-        case .messages:
-            mpBadgeEnabled ? unreadMPCount : 0
-        case .more:
-            unreadAQCount
-        case .categories, .favorites:
-            0
         }
     }
 
     private func handleAppear() {
         migrateToNatifAppearanceIfNeeded()
+        if categoriesViewModel.forums.isEmpty && !categoriesViewModel.isLoading {
+            categoriesViewModel.load()
+        }
         appTheme.refresh(systemColorScheme: systemColorScheme, forceThemeRevision: true, notifyLegacy: true)
         syncRuntimeSelectedTab(selectedTab)
         startColdLaunchPrefetchIfNeeded()
@@ -1492,22 +1575,6 @@ struct RootTabView: View {
 }
 
 private extension View {
-    /// Tab bar in compact width, sidebar when there is room for one (iPhone Duo inner display).
-    @ViewBuilder
-    func hfrSidebarAdaptableTabs() -> some View {
-        if #available(iOS 27.0, *) {
-            self
-                .tabViewStyle(.sidebarAdaptable)
-                .defaultTabBarPlacement(.sidebar)
-        } else if #available(iOS 18.0, *) {
-            self
-                .tabViewStyle(.sidebarAdaptable)
-                .defaultAdaptableTabBarPlacement(.sidebar)
-        } else {
-            self
-        }
-    }
-
     @ViewBuilder
     func hfrTabBarMinimizeBehavior(tabBarMinimizeOnScroll: Bool) -> some View {
         if #available(iOS 26.0, *) {
@@ -1545,4 +1612,19 @@ private extension View {
             forumsLoader: CategoriesPreviewFactory.PreviewForumsLoader(result: .failure(CategoriesPreviewFactory.PreviewError.offline))
         )
     )
+}
+
+
+/// Root selection: a main tab, or the search (only listed in the regular-width sidebar; in the
+/// tab bar it lives in Plus).
+enum RootSelection: Hashable {
+    case tab(RootTabIdentifier)
+    case search
+
+    var tab: RootTabIdentifier {
+        switch self {
+        case .tab(let tab): tab
+        case .search: .more
+        }
+    }
 }
