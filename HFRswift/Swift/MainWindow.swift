@@ -193,6 +193,12 @@ struct CategoriesListView: View {
             }
             .listStyle(.insetGrouped)
             .natifGroupedListBackground()
+            .refreshable {
+                await MainActor.run { viewModel.load(shouldTriggerHaptic: true) }
+                while await MainActor.run(body: { viewModel.isLoading }) {
+                    try? await Task.sleep(for: .milliseconds(50))
+                }
+            }
             .navigationTitle("Catégories")
             .expandedPhoneInlineNavigationTitle()
             .toolbar {
@@ -211,12 +217,6 @@ struct CategoriesListView: View {
                         ToolbarRefreshIcon(isLoading: viewModel.isLoading)
                     }
                     .disabled(viewModel.isLoading)
-                }
-            }
-            .refreshable {
-                await MainActor.run { viewModel.load(shouldTriggerHaptic: true) }
-                while await MainActor.run(body: { viewModel.isLoading }) {
-                    try? await Task.sleep(for: .milliseconds(50))
                 }
             }
             .onAppear {
@@ -372,16 +372,17 @@ struct ForumTopicsListView: View {
         max(viewModel.pageInfo.lastPageNumber, 1) > 1
     }
 
+    private var isSubForumSelected: Bool {
+        Self.forumIdentifier(for: resolvedSelectedForum) != Self.forumIdentifier(for: forum)
+    }
+
+    /// Natif 2b: large title = current sub-forum (menu to switch), subtitle = parent category.
     private var navigationTitleText: String {
-        forum.aTitle ?? "Topics"
+        (isSubForumSelected ? resolvedSelectedForum.aTitle : forum.aTitle) ?? "Sujets"
     }
 
     private var navigationSubtitleText: String? {
-        guard shouldShowPagination else { return nil }
-        let page = max(viewModel.pageInfo.pageNumber, 1)
-        // HFR only links the pages around the current one and by hundreds: no real total then.
-        guard viewModel.pageInfo.isLastPageNumberExact else { return "Page \(page)" }
-        return "Page \(page) / \(max(viewModel.pageInfo.lastPageNumber, 1))"
+        isSubForumSelected ? forum.aTitle : nil
     }
 
     private func loadPage(_ urlString: String?) {
@@ -426,29 +427,39 @@ struct ForumTopicsListView: View {
         loadPage(pageURL(for: page))
     }
 
+    private var subForumPicker: some View {
+        Picker("Sous-forum", selection: $selectedForumIdentifier) {
+            Text("Tous les sous-forums")
+                .tag(Self.forumIdentifier(for: forum))
+            Divider()
+            // A sub-forum can point to the category itself; listing it would show two checkmarks.
+            ForEach(subForums.filter { Self.forumIdentifier(for: $0) != Self.forumIdentifier(for: forum) }) { subForum in
+                Text(subForum.aTitle ?? "Sous-forum")
+                    .tag(Self.forumIdentifier(for: subForum))
+            }
+        }
+    }
+
+    /// Natif TopicRow meta: "2 851 pages · Kaiju" (or "p. 2 847 / 2 851" when followed), time on the right.
     private func footerLeft(for topic: Topic) -> String {
         let currentPage = Int(topic.curTopicPage)
         let maxPage = max(Int(topic.maxTopicPage), 1)
-        let pollSuffix = topic.isPoll ? " \u{2263}" : ""
-        let pageLabel = maxPage > 1 ? "pages" : "page"
-
-        if topic.isViewedFromForumAtLoad {
-            return "⚑\(pollSuffix) \(maxPage) / \(maxPage)"
-        }
+        let pages: String
         if topicHasFlag(topic), currentPage > 0 && currentPage <= maxPage {
-            return "⚑\(pollSuffix) \(currentPage) / \(maxPage)"
+            let lastRead = topic.isViewedFromForumAtLoad ? maxPage : currentPage
+            pages = "p. \(lastRead.formatted()) / \(maxPage.formatted())"
+        } else {
+            pages = "\(maxPage.formatted()) \(maxPage > 1 ? "pages" : "page")"
         }
-        return "\(maxPage) \(pageLabel)\(pollSuffix)"
+        var parts = [topic.isPoll ? "\(pages) · sondage" : pages]
+        if let author = normalizedNonEmpty(topic.aAuthorOfLastPost) {
+            parts.append(author)
+        }
+        return parts.joined(separator: " · ")
     }
 
     private func footerRight(for topic: Topic) -> String? {
-        guard
-            let author = topic.aAuthorOfLastPost,
-            let when = topic.aDateOfLastPost
-        else {
-            return nil
-        }
-        return "\(author) - \(when)"
+        normalizedNonEmpty(topic.aDateOfLastPost)
     }
 
     private func normalizedNonEmpty(_ value: String?) -> String? {
@@ -610,21 +621,20 @@ struct ForumTopicsListView: View {
     var body: some View {
         List {
             if !subForums.isEmpty {
-                LabeledContent("Sous-forum") {
-                    Picker("Sous-forum", selection: $selectedForumIdentifier) {
-                        Text("Tous les sous-forums")
-                            .tag(Self.forumIdentifier(for: forum))
-                        ForEach(subForums) { subForum in
-                            Text(subForum.aTitle ?? "Sous-forum")
-                                .tag(Self.forumIdentifier(for: subForum))
-                        }
+                Menu {
+                    subForumPicker
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(isSubForumSelected ? "Changer de sous-forum" : "Tous les sous-forums")
+                        Image(systemName: "chevron.down")
+                            .font(.footnote.weight(.semibold))
                     }
-                    .pickerStyle(.menu)
-                    .labelsHidden()
+                    .font(.subheadline.weight(.semibold))
+                    .frame(minHeight: 32)
                 }
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                .listRowSeparator(.hidden)
+                .accessibilityLabel("Changer de sous-forum")
             }
 
             Picker("Filtre", selection: $viewModel.selectedFlag) {
@@ -640,7 +650,8 @@ struct ForumTopicsListView: View {
                     .disabled(!isLoggedIn)
             }
             .pickerStyle(.segmented)
-            .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 10, trailing: 16))
+            .listRowSeparator(.hidden)
 
             if !isLoggedIn {
                 VStack(alignment: .leading, spacing: 6) {
@@ -732,7 +743,10 @@ struct ForumTopicsListView: View {
                 checkDone()
             }
         }
+        .listStyle(.plain)
+        .natifPlainListBackground()
         .navigationTitle(navigationTitleText)
+        .hfrNavigationSubtitle(navigationSubtitleText)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Menu {
@@ -740,22 +754,6 @@ struct ForumTopicsListView: View {
                 } label: {
                     ToolbarProfileImage(image: accountsStore.currentAvatarImage, url: nil)
                 }
-            }
-            ToolbarItem(placement: .principal) {
-                VStack(spacing: 2) {
-                    Text(navigationTitleText)
-                        .font(.caption2)
-                        .fontWeight(.bold)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                    if let navigationSubtitleText {
-                        Text(navigationSubtitleText)
-                            .font(.caption2)
-                            .foregroundStyle(.primary.opacity(0.72))
-                            .lineLimit(1)
-                    }
-                }
-                .multilineTextAlignment(.center)
             }
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button {
@@ -1331,7 +1329,7 @@ struct RootTabView: View {
             .badge(mpBadgeEnabled && unreadMPCount > 0 ? unreadMPCount : 0)
 
             NavigationStack {
-                PlusHomeView()
+                PlusHomeView(accountsStore: accountsStore)
             }
             .tabItem { Label("Plus", systemImage: "ellipsis") }
             .tag(RootTabIdentifier.more)
@@ -1382,7 +1380,7 @@ struct RootTabView: View {
                 navigationResetToken: messagesNavigationResetToken
             )
         case .more:
-            PlusHomeView()
+            PlusHomeView(accountsStore: accountsStore)
         }
     }
 

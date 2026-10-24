@@ -10,12 +10,6 @@ import UIKit
 
 @MainActor
 struct AppSettingsView: View {
-    private enum Constants {
-        static let autoThemeIOS = 3
-        static let autoThemeManual = 0
-        static let defaultTintHue = 190.0 / 360.0
-    }
-
     private struct IntOption: Identifiable {
         let value: Int
         let title: String
@@ -93,8 +87,9 @@ struct AppSettingsView: View {
     @AppStorage(AppScreenRotation.legacyKey) private var screenRotationMode = AppScreenRotation.enabledValue
     @AppStorage("icon") private var iconValue = AppIconOption.superblue.rawValue
 
-    @AppStorage("auto_theme") private var autoTheme = Constants.autoThemeIOS
-    @AppStorage("theme") private var manualTheme = 0
+    @AppStorage(NatifAppearance.themeModeKey) private var natifThemeModeRawValue = ""
+    @AppStorage(NatifAppearance.accentKey) private var natifAccentIndex = 0
+    @Environment(\.natif) private var natif
     @AppStorage("theme_style") private var themeStyle = 1
 
     @AppStorage("blacklist_hide_pseudo") private var hideBlacklistedPseudo = false
@@ -111,8 +106,6 @@ struct AppSettingsView: View {
     @State private var showErrorAlert = false
     @State private var errorMessage = ""
     @State private var showClearCacheConfirmation = false
-    @State private var tintHue = Constants.defaultTintHue
-    @State private var tintHueLoaded = false
 
     private var iconOptions: [AppIconOption] {
         AppIconOption.allCases
@@ -121,16 +114,6 @@ struct AppSettingsView: View {
     private let favoritesTabOptions = [
         StringOption(value: "0", title: "Drapeaux & Favoris"),
         StringOption(value: "1", title: "Favoris uniquement")
-    ]
-
-    private let autoThemeOptions = [
-        IntOption(value: Constants.autoThemeIOS, title: "Automatique (iOS)"),
-        IntOption(value: Constants.autoThemeManual, title: "Manuel")
-    ]
-
-    private let manualThemeOptions = [
-        IntOption(value: 0, title: "Clair"),
-        IntOption(value: 1, title: "Sombre")
     ]
 
     private let themeStyleOptions = [
@@ -191,23 +174,6 @@ struct AppSettingsView: View {
                 HFRSwiftOrientationPolicy.refreshSupportedOrientations()
             }
         )
-    }
-
-    private func applyThemeConfiguration() {
-        let defaults = UserDefaults.standard
-
-        if autoTheme == Constants.autoThemeIOS {
-            AppThemeResolver.setUsesSystemColorScheme(defaults: defaults)
-            AppThemeStore.shared.refresh(forceThemeRevision: true, notifyLegacy: true)
-            return
-        }
-
-        let boundedTheme = manualTheme == 1 ? 1 : 0
-        if manualTheme != boundedTheme {
-            manualTheme = boundedTheme
-        }
-        AppThemeResolver.setManualLegacyThemeValue(boundedTheme, defaults: defaults)
-        AppThemeStore.shared.refresh(forceThemeRevision: true, notifyLegacy: true)
     }
 
     private func applyIconSelection() {
@@ -282,38 +248,6 @@ struct AppSettingsView: View {
         UIApplication.shared.open(url)
     }
 
-    private func loadTintHueIfNeeded() {
-        guard !tintHueLoaded else { return }
-        tintHueLoaded = true
-        tintHue = resolvedTintHue()
-    }
-
-    private func resolvedTintHue() -> Double {
-        let currentTintColor =
-            ThemeUserColorStore.storedColor(forKey: "theme_day_color_action")
-            ?? ThemeUserColorStore.defaultTintColor(forLegacyThemeValue: 0)
-
-        var hue: CGFloat = 0
-        var saturation: CGFloat = 0
-        var brightness: CGFloat = 0
-        var alpha: CGFloat = 0
-
-        guard currentTintColor.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha) else {
-            return Constants.defaultTintHue
-        }
-        return Double(hue)
-    }
-
-    private func applyTintHue(_ hue: Double) {
-        let boundedHue = min(max(hue, 0), 1)
-        let dayTint = UIColor(hue: boundedHue, saturation: 0.65, brightness: 1.0, alpha: 1.0)
-        let nightTint = UIColor(hue: boundedHue, saturation: 0.70, brightness: 0.95, alpha: 1.0)
-
-        ThemeUserColorStore.storeColor(dayTint, forKey: "theme_day_color_action")
-        ThemeUserColorStore.storeColor(nightTint, forKey: "theme_night_color_action")
-        AppThemeStore.shared.refresh(forceThemeRevision: true, notifyLegacy: true)
-    }
-
     private func syncLegacyTextSizeSettings() {
         let scale = AppTextSizeScale.value(for: textSizeScaleRawValue)
         let defaults = UserDefaults.standard
@@ -370,31 +304,45 @@ struct AppSettingsView: View {
 
     @ViewBuilder
     private var themeSection: some View {
-        Section("Thème") {
-            Picker("Changement de thème", selection: $autoTheme) {
-                ForEach(autoThemeOptions) { option in
-                    Text(option.title).tag(option.value)
+        Section("Apparence") {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Thème")
+                Picker("Thème", selection: themeModeBinding) {
+                    ForEach(NatifThemeMode.allCases) { mode in
+                        Text(mode.title).tag(mode)
+                    }
                 }
+                .pickerStyle(.segmented)
+                .labelsHidden()
             }
+            .padding(.vertical, 4)
 
-            if autoTheme == Constants.autoThemeManual {
-                Picker("Luminosité du thème", selection: $manualTheme) {
-                    ForEach(manualThemeOptions) { option in
-                        Text(option.title).tag(option.value)
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Teinte d'accent")
+                HStack(spacing: 0) {
+                    ForEach(NatifAccent.all) { accent in
+                        AccentSwatch(
+                            accent: accent,
+                            isDark: natif.variant.isDark,
+                            isSelected: accent.id == natifAccentIndex
+                        ) {
+                            natifAccentIndex = accent.id
+                            NatifAppearance.setAccent(accent)
+                        }
+                        .frame(maxWidth: .infinity)
                     }
                 }
             }
+            .padding(.vertical, 4)
+        }
+    }
 
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("Teinte d'accent")
-                    Spacer()
-                    Text(tintHue, format: .number.precision(.fractionLength(2)))
-                        .foregroundStyle(.secondary)
-                }
-                Slider(value: $tintHue, in: 0...1, step: 0.001)
-                    .tint(Color(hue: tintHue, saturation: 0.65, brightness: 1.0))
-            }
+    private var themeModeBinding: Binding<NatifThemeMode> {
+        Binding {
+            NatifThemeMode(rawValue: natifThemeModeRawValue) ?? NatifAppearance.themeMode()
+        } set: { mode in
+            natifThemeModeRawValue = mode.rawValue
+            NatifAppearance.setThemeMode(mode)
         }
     }
 
@@ -505,23 +453,11 @@ struct AppSettingsView: View {
             aboutSection
         }
         .compactListSectionSpacing(compactModeEnabled, spacing: 8, regularSpacing: 14)
+        .natifGroupedListBackground()
         .navigationTitle("Réglages")
         .onAppear {
-            loadTintHueIfNeeded()
-            applyThemeConfiguration()
             migrateLegacyTextSizeSettingsIfNeeded()
             syncLegacyTextSizeSettings()
-        }
-        .onChange(of: autoTheme) { _, _ in
-            applyThemeConfiguration()
-        }
-        .onChange(of: manualTheme) { _, _ in
-            if autoTheme == Constants.autoThemeManual {
-                applyThemeConfiguration()
-            }
-        }
-        .onChange(of: tintHue) { _, newValue in
-            applyTintHue(newValue)
         }
         .onChange(of: iconValue) { _, _ in
             applyIconSelection()
@@ -702,5 +638,33 @@ private struct ProfileFilterListEditorView: View {
 #Preview("Réglages") {
     NavigationStack {
         AppSettingsView()
+    }
+}
+
+
+/// 36 pt accent swatch; the selection gets a 2.5 pt ring spaced 2 pt from the disc.
+private struct AccentSwatch: View {
+    let accent: NatifAccent
+    let isDark: Bool
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Circle()
+                .fill(Color(isDark ? accent.darkFill : accent.light))
+                .frame(width: 36, height: 36)
+                .padding(4.5)
+                .overlay {
+                    if isSelected {
+                        Circle().strokeBorder(Color(isDark ? accent.darkText : accent.light), lineWidth: 2.5)
+                    }
+                }
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accent.name)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

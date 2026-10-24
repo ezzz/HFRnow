@@ -181,7 +181,7 @@ struct FavoritesListDensity {
                 sectionHeaderBottomPadding: -5,
                 collapsedHeaderTopPadding: -1,
                 collapsedHeaderBottomPadding: -2,
-                rowInsets: EdgeInsets(top: 3, leading: 12, bottom: 3, trailing: 12)
+                rowInsets: EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12)
             )
         }
 
@@ -191,7 +191,7 @@ struct FavoritesListDensity {
             sectionHeaderBottomPadding: -2,
             collapsedHeaderTopPadding: 1,
             collapsedHeaderBottomPadding: 1,
-            rowInsets: EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12)
+            rowInsets: EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16)
         )
     }
 }
@@ -306,6 +306,8 @@ struct FavoriteSectionView: View {
     let onFilterPosts: (Topic) -> Void
     let openContextProvider: (Topic) -> TopicOpenContext
 
+    @Environment(\.natif) private var natif
+
     // Cast centralisé
     private var topics: [Topic] { (favorite.topics as? [Topic]) ?? [] }
     private var canCollapse: Bool { !topics.isEmpty }
@@ -327,14 +329,30 @@ struct FavoriteSectionView: View {
                 )
             } label: {
                 Text(headerTitle)
-                    .foregroundStyle(.primary)
+                    .font(.headline.bold())
+                    .foregroundStyle(natif.text)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Ouvrir le forum")
         } else {
             Text(headerTitle)
-                .foregroundStyle(.primary)
+                .font(.headline.bold())
+                .foregroundStyle(natif.text)
         }
+    }
+
+    private var unreadTotal: Int {
+        topics.reduce(0) { $0 + max(Int($1.maxTopicPage - $1.curTopicPage), 0) }
+    }
+
+    /// Collapsed summary: "4 sujets · 23 non lus".
+    private var collapsedSummary: String {
+        let count = topics.count
+        var summary = "\(count) \(count > 1 ? "sujets" : "sujet")"
+        if unreadTotal > 0 {
+            summary += " · \(unreadTotal) non lus"
+        }
+        return summary
     }
 
     @ViewBuilder
@@ -342,10 +360,14 @@ struct FavoriteSectionView: View {
         HStack(spacing: 10) {
             headerTitleView
             Spacer(minLength: 8)
-            Text("\(topics.count)")
-                .font(.footnote.monospacedDigit())
-                .foregroundStyle(.secondary)
+            if isCollapsed {
+                Text(collapsedSummary)
+                    .font(.footnote)
+                    .foregroundStyle(natif.text2)
+                    .lineLimit(1)
+            }
         }
+        .textCase(nil)
         .padding(.top, isCollapsed ? density.collapsedHeaderTopPadding : density.sectionHeaderTopPadding)
         .padding(.bottom, isCollapsed ? density.collapsedHeaderBottomPadding : density.sectionHeaderBottomPadding)
         .padding(.trailing, 34)
@@ -357,10 +379,9 @@ struct FavoriteSectionView: View {
                     }
                 } label: {
                     Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 18, height: 18)
-                        .frame(width: 38, height: 28, alignment: .center)
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(natif.accent)
+                        .frame(width: 44, height: 44)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -388,6 +409,7 @@ struct FavoriteSectionView: View {
                     )
                     .contentShape(Rectangle())
                     .listRowInsets(density.rowInsets)
+                    .natifCellBackground()
                 }
             }
         }
@@ -406,6 +428,7 @@ struct FavoritesListView: View {
     @AppStorage("FavoritesShowCollapsedSections") private var showCollapsedSections = false
     @State private var visitedURLs: Set<String> = []
     @State private var showAddAccountSheet = false
+    @Environment(\.openURL) private var openURL
     @State private var showLogoutConfirm = false
     @State private var superFavoriteIDs: Set<Int>
     @State private var collapsedSectionIDs: Set<String>
@@ -433,6 +456,14 @@ struct FavoritesListView: View {
 
     private var flattenedTopics: [Topic] {
         FavoritesTopicListOrdering.flattenedTopics(from: viewModel.favorites)
+    }
+
+    /// Navigation subtitle: total of unread pages across favourites.
+    private var unreadSubtitle: String? {
+        guard isLoggedIn else { return nil }
+        let unreadPages = flattenedTopics.reduce(0) { $0 + max(Int($1.maxTopicPage - $1.curTopicPage), 0) }
+        guard unreadPages > 0 else { return nil }
+        return "\(unreadPages.formatted()) \(unreadPages > 1 ? "pages non lues" : "page non lue")"
     }
 
     private var listDensity: FavoritesListDensity {
@@ -609,18 +640,19 @@ struct FavoritesListView: View {
         NavigationStack {
             List {
                 if !isLoggedIn {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Label("Connectez-vous pour accéder aux favoris", systemImage: "star.slash")
-                            .font(.headline)
-                        Text("Ajoutez un pseudo pour charger vos favoris et vos drapeaux.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        Button("Ajouter un pseudo") {
-                            showAddAccountSheet = true
+                    NatifEmptyState(
+                        systemImage: "flag",
+                        title: "Connectez-vous pour accéder aux favoris",
+                        message: "Vos drapeaux et favoris HFR apparaîtront ici, groupés par catégorie.",
+                        primary: .init(title: "Se connecter") { showAddAccountSheet = true },
+                        secondary: .init(title: "Créer un compte") {
+                            if let url = URL(string: "https://forum.hardware.fr/inscription.php") {
+                                openURL(url)
+                            }
                         }
-                        .buttonStyle(.borderedProminent)
-                    }
-                    .padding(.vertical, 8)
+                    )
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
                 } else {
                     if let errorMessage = viewModel.errorMessage {
                         Text("Erreur : \(errorMessage)")
@@ -687,7 +719,10 @@ struct FavoritesListView: View {
                     checkDone()
                 }
             }
+            .listStyle(.insetGrouped)
+            .natifGroupedListBackground()
             .navigationTitle("Favoris")
+            .hfrNavigationSubtitle(unreadSubtitle)
             .expandedPhoneInlineNavigationTitle()
             .safeAreaInset(edge: .bottom) {
                 if favoritePostFilterProgress != nil || favoritePostFilterStatusMessage != nil {
@@ -973,7 +1008,7 @@ struct TopicRowView: View {
     var onRemoveFavorite: (() -> Void)?
     var onFilterPosts: (() -> Void)?
     var openContext: TopicOpenContext = .favorites
-    @Environment(\.appThemePalette) private var themePalette
+    @Environment(\.natif) private var natif
     
     private var isVisited: Bool {
         let url = topic.aURL ?? topic.aURLOfLastPage ?? topic.aURLOfLastPost ?? ""
@@ -986,25 +1021,42 @@ struct TopicRowView: View {
         return Int(max - current)
     }
 
+    /// Natif FavoriteRow: "p. 2 847 / 2 851" (last page read / total).
     private var pageLabel: String {
         let currentPage = Int(topic.curTopicPage)
         let maxPage = max(Int(topic.maxTopicPage), 1)
-        let pollSuffix = topic.isPoll ? " \u{2263}" : ""
-
         if currentPage > 0 && currentPage <= maxPage {
-            return "⚑\(pollSuffix) \(currentPage) / \(maxPage)"
+            return "p. \(currentPage.formatted()) / \(maxPage.formatted())"
         }
-        return "\(maxPage)\(pollSuffix)"
+        return "\(maxPage.formatted()) \(maxPage > 1 ? "pages" : "page")"
     }
 
-    private var trailingLabel: String? {
-        guard
-            let author = topic.aAuthorOfLastPost,
-            let when = topic.aDateOfLastPost
-        else {
-            return nil
+    /// Flag = topic you posted in (HFR "drapeau"), star = favourite or super favourite.
+    private var kindSymbol: String {
+        if isSuperFavorite { return "star.fill" }
+        switch topic.aTypeOfFlag?.lowercased() {
+        case "yellow": return "star.fill"
+        case "red": return "flag"
+        default: return "flag.fill"
         }
-        return "\(author) - \(when)"
+    }
+
+    private var kindIcon: AnyView {
+        AnyView(
+            Image(systemName: kindSymbol)
+                .font(.subheadline)
+                .foregroundStyle(unreadCount > 0 ? natif.accent : natif.text3)
+                .frame(width: 18)
+                .accessibilityHidden(true)
+        )
+    }
+
+    /// "Dernier posteur · heure".
+    private var lastPostLabel: String? {
+        let parts = [topic.aAuthorOfLastPost, topic.aDateOfLastPost]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     var body: some View {
@@ -1012,12 +1064,14 @@ struct TopicRowView: View {
             topic: topic,
             isVisited: isVisited,
             titleFont: nil,
-            titleBaseSize: 14.3,
-            titleWeight: isVisited ? .regular : .semibold,
+            titleBaseSize: 16,
+            titleWeight: unreadCount > 0 ? .semibold : .regular,
             showUnreadBadge: true,
             showUnreadBadgeWhenZero: false,
-            leadingBottomText: pageLabel,
-            trailingBottomText: trailingLabel,
+            leadingBottomText: lastPostLabel,
+            trailingBottomText: pageLabel,
+            showsStatusGutter: false,
+            leadingAccessory: kindIcon,
             openContext: openContext,
             extraContextMenu: {
                 AnyView(

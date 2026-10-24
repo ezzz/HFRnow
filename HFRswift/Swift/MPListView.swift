@@ -230,6 +230,7 @@ struct MPListView: View {
     @StateObject private var viewModel: MPListViewModel
     @StateObject private var accountsStore: AccountsStore
     @State private var showAddAccountSheet = false
+    @Environment(\.openURL) private var openURL
     @State private var showLogoutConfirm = false
     @AppStorage("nb_mp") private var unreadMPCount = 0
 
@@ -285,18 +286,20 @@ struct MPListView: View {
         NavigationStack {
             List {
                 if !isLoggedIn {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Label("Connectez-vous pour accéder aux MP", systemImage: "envelope.badge")
-                            .font(.headline)
-                        Text("Ajoutez un pseudo pour charger vos messages privés.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        Button("Ajouter un pseudo") {
-                            showAddAccountSheet = true
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-                    .padding(.vertical, 8)
+                    NatifEmptyState(
+                        systemImage: "envelope",
+                        title: "Connectez-vous pour accéder aux MP",
+                        message: "Vos conversations privées HFR apparaîtront ici.",
+                        primary: .init(title: "Se connecter") { showAddAccountSheet = true },
+                        secondary: .init(title: "Créer un compte") {
+                            if let url = URL(string: "https://forum.hardware.fr/inscription.php") {
+                                openURL(url)
+                            }
+                        },
+                        onGroupedBackground: false
+                    )
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
                 } else {
                     if let errorMessage = viewModel.errorMessage {
                         Text("Erreur : \(errorMessage)")
@@ -324,6 +327,8 @@ struct MPListView: View {
                     checkDone()
                 }
             }
+            .listStyle(.plain)
+            .natifPlainListBackground()
             .navigationTitle("Messages")
             .expandedPhoneInlineNavigationTitle()
             .onAppear {

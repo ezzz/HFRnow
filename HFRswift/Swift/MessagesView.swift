@@ -680,6 +680,12 @@ struct WebView: UIViewRepresentable {
     var messageLoveContentBackgroundColor: String
     var messageLoveModernHeaderBackgroundColor: String
     var messageClassicHeaderBackgroundColor: String
+    @Environment(\.natif) private var natif
+
+    /// Natif stylesheet + theme/accent tagging, see NatifPostStyle.
+    private var natifInstallScript: String {
+        NatifPostStyle.installationScript(tokens: natif)
+    }
     var messageActionsByIndex: [Int: TopicPageMessageActions]
     var actionHandler: any MessageWebActionHandling
     var onWebAction: ((MessageWebAction) -> Void)?
@@ -810,6 +816,11 @@ struct WebView: UIViewRepresentable {
             forMainFrameOnly: true
         )
         contentController.addUserScript(bootstrapThemeScript)
+        if !natifInstallScript.isEmpty {
+            contentController.addUserScript(
+                WKUserScript(source: natifInstallScript, injectionTime: .atDocumentStart, forMainFrameOnly: true)
+            )
+        }
         contentController.add(context.coordinator, name: "scrollState")
         contentController.add(context.coordinator, name: "textInteractionState")
         contentController.add(context.coordinator, name: "domReady")
@@ -954,6 +965,7 @@ struct WebView: UIViewRepresentable {
         context.coordinator.messageLoveContentBackgroundColor = messageLoveContentBackgroundColor
         context.coordinator.messageLoveModernHeaderBackgroundColor = messageLoveModernHeaderBackgroundColor
         context.coordinator.messageClassicHeaderBackgroundColor = messageClassicHeaderBackgroundColor
+        context.coordinator.natifInstallScript = natifInstallScript
         if let messageWebView = webView as? MessageWebView {
             messageWebView.messageActionsByIndex = messageActionsByIndex
             messageWebView.onTextQuoteRequest = onTextQuoteRequest
@@ -1018,6 +1030,7 @@ struct WebView: UIViewRepresentable {
         var messageLoveContentBackgroundColor: String
         var messageLoveModernHeaderBackgroundColor: String
         var messageClassicHeaderBackgroundColor: String
+        var natifInstallScript: String
         var loadedFileURL: URL?
         var loadedReadAccessURL: URL?
         var lastAppliedTheme: String?
@@ -1058,6 +1071,7 @@ struct WebView: UIViewRepresentable {
             self.messageLoveContentBackgroundColor = parent.messageLoveContentBackgroundColor
             self.messageLoveModernHeaderBackgroundColor = parent.messageLoveModernHeaderBackgroundColor
             self.messageClassicHeaderBackgroundColor = parent.messageClassicHeaderBackgroundColor
+            self.natifInstallScript = parent.natifInstallScript
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
@@ -1316,7 +1330,8 @@ struct WebView: UIViewRepresentable {
             completion: (() -> Void)? = nil
         ) {
             let targetTheme = colorScheme == .dark ? "dark" : "light"
-            guard force || lastAppliedTheme != targetTheme else {
+            let targetThemeKey = "\(targetTheme)|\(natifInstallScript.hashValue)"
+            guard force || lastAppliedTheme != targetThemeKey else {
                 completion?()
                 return
             }
@@ -1348,13 +1363,14 @@ struct WebView: UIViewRepresentable {
                 root.style.setProperty(key, targetVars[key]);
               });
             })();
+            \(natifInstallScript)
             """
 
             webView.evaluateJavaScript(script) { [weak self] _, error in
                 if let error = error {
                     print("Theme JS error:", error.localizedDescription)
                 } else {
-                    self?.lastAppliedTheme = targetTheme
+                    self?.lastAppliedTheme = targetThemeKey
                     self?.lastAppliedThemeRevision = self?.themeRevision ?? -1
                     print("Theme JS applied:", targetTheme)
                 }
@@ -2675,6 +2691,7 @@ struct MessagesView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @ObservedObject private var appTheme = AppThemeStore.shared
+    @Environment(\.natif) private var natif
     @AppStorage(AppTextSizeScale.key) private var textSizeScaleRawValue = AppTextSizeScale.standard.rawValue
     @AppStorage("theme_style") private var messageDisplayStyleRawValue = 1
     @State private var page: Int
@@ -2794,7 +2811,7 @@ struct MessagesView: View {
 
     private var loadingTopicView: some View {
         ZStack {
-            themePalette.webViewBackdropColor
+            natif.bg
                 .ignoresSafeArea()
             VStack(spacing: 8) {
                 ProgressView()
@@ -2810,10 +2827,14 @@ struct MessagesView: View {
         .allowsHitTesting(false)
     }
 
+    private var webViewBaseBackgroundColor: UIColor {
+        UIColor(natif.bg)
+    }
+
     private var messageBodyFontSize: CGFloat {
         AppTextSizeScale.scaledUIFont(
             textStyle: .body,
-            basePointSize: 15,
+            basePointSize: 17,
             rawValue: textSizeScaleRawValue
         ).pointSize
     }
@@ -4419,7 +4440,7 @@ struct MessagesView: View {
         } else if fileURL != nil && cacheURL != nil {
             content = AnyView(
                 ZStack {
-                themePalette.webViewBackdropColor
+                natif.bg
 
                 WebView(
                     fileURL: fileURL,
@@ -4430,7 +4451,7 @@ struct MessagesView: View {
                     currentPage: page,
                     maxPage: currentMaxPage,
                     colorScheme: appTheme.effectiveColorScheme,
-                    baseBackgroundColor: themePalette.webViewBackdropUIColor,
+                    baseBackgroundColor: webViewBaseBackgroundColor,
                     themeRevision: appTheme.themeRevision,
                     messageBodyFontSize: messageBodyFontSize,
                     messageDisplayStyleRawValue: messageDisplayStyleRawValue,
@@ -4818,9 +4839,8 @@ struct MessagesView: View {
                                     Button {
                                         refreshCurrentPagePreservingScroll()
                                     } label: {
-                                        Image(systemName: "arrow.clockwise")
+                                        ToolbarRefreshIcon(isLoading: isRefreshingInPlace)
                                             .font(.system(size: 16, weight: .semibold))
-                                            .opacity(isRefreshingInPlace ? 0.4 : 1)
                                     }
                                     .topicBottomBarCircularIconButtonStyle(isProminent: true)
                                     .disabled(isRefreshingInPlace)

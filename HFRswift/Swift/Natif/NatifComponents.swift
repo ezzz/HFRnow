@@ -154,7 +154,13 @@ struct NatifEmptyState: View {
     let message: String
     var primary: Action? = nil
     var secondary: Action? = nil
+    /// On a grouped background `surface` blends in: use the cell colour for the fills instead.
+    var onGroupedBackground = true
     @Environment(\.natif) private var natif
+
+    private var fill: Color {
+        onGroupedBackground ? natif.cell : natif.surface
+    }
 
     var body: some View {
         VStack(spacing: 14) {
@@ -162,7 +168,7 @@ struct NatifEmptyState: View {
                 .font(.system(size: 40))
                 .foregroundStyle(natif.text2)
                 .frame(width: 84, height: 84)
-                .background(Circle().fill(natif.surface))
+                .background(Circle().fill(fill))
                 .accessibilityHidden(true)
 
             VStack(spacing: 8) {
@@ -198,7 +204,7 @@ struct NatifEmptyState: View {
                         }
                         .buttonStyle(.plain)
                         .foregroundStyle(natif.accent)
-                        .background(Capsule().fill(natif.surface))
+                        .background(Capsule().fill(fill))
                     }
                 }
                 .padding(.top, 6)
@@ -244,5 +250,19 @@ private struct NatifCellBackground: ViewModifier {
 
     func body(content: Content) -> some View {
         content.listRowBackground(natif.cell)
+    }
+}
+
+// MARK: - Navigation
+
+extension View {
+    /// System navigation subtitle (iOS 26+), e.g. the parent category under a sub-forum title.
+    @ViewBuilder
+    func hfrNavigationSubtitle(_ subtitle: String?) -> some View {
+        if #available(iOS 26.0, *), let subtitle, !subtitle.isEmpty {
+            self.navigationSubtitle(Text(subtitle))
+        } else {
+            self
+        }
     }
 }
