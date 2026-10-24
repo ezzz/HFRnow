@@ -349,6 +349,12 @@ struct AppSettingsView: View {
 
     @ViewBuilder
     private var topicsSection: some View {
+        Section {
+            NatifMessagePreview()
+        } header: {
+            Text("Aperçu")
+        }
+
         Section("Lecture") {
             Picker("Style des messages", selection: $themeStyle) {
                 ForEach(themeStyleOptions) { option in
