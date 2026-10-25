@@ -35,7 +35,13 @@ curl -fsSL "${BASE}.tar.gz.sig" -o "${WORK}/swift.tar.gz.sig"
 # Verify the toolchain signature with swift.org's published release keys.
 export GNUPGHOME="${WORK}/gnupg"
 mkdir -m 700 "$GNUPGHOME"
-curl -fsSL https://www.swift.org/keys/all-keys.asc | gpg --batch --quiet --import
+curl -fsSL https://www.swift.org/keys/all-keys.asc -o "${WORK}/keys.asc"
+# gpg 2.4 rejects the whole concatenated file because some old blocks do not import:
+# import block by block, then require a valid signature anyway.
+awk -v dir="${WORK}" '/BEGIN PGP PUBLIC KEY BLOCK/ { n++ } { print > (dir "/key-" n ".asc") }' "${WORK}/keys.asc"
+for key in "${WORK}"/key-*.asc; do
+  gpg --batch --quiet --import "$key" 2>/dev/null || true
+done
 gpg --batch --verify "${WORK}/swift.tar.gz.sig" "${WORK}/swift.tar.gz"
 
 rm -rf "/opt/${NAME}"
