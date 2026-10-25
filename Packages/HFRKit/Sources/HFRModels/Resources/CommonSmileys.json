@@ -1,0 +1,356 @@
+[
+ {
+  "code": ":pfff:",
+  "resource": "pfff.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/pfff.gif",
+  "editor": true
+ },
+ {
+  "code": ":)",
+  "resource": "smile.gif",
+  "url": "https://forum-images.hardware.fr/icones/smile.gif",
+  "editor": true
+ },
+ {
+  "code": ":o",
+  "resource": "redface.gif",
+  "url": "https://forum-images.hardware.fr/icones/redface.gif",
+  "editor": true
+ },
+ {
+  "code": ":mad:",
+  "resource": "mad.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/mad.gif",
+  "editor": true
+ },
+ {
+  "code": ":love:",
+  "resource": "love.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/love.gif",
+  "editor": true
+ },
+ {
+  "code": ":pt1cable:",
+  "resource": "pt1cable.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/pt1cable.gif",
+  "editor": true
+ },
+ {
+  "code": ":ange:",
+  "resource": "ange.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/ange.gif",
+  "editor": true
+ },
+ {
+  "code": ":(",
+  "resource": "frown.gif",
+  "url": "https://forum-images.hardware.fr/icones/frown.gif",
+  "editor": true
+ },
+ {
+  "code": ":??:",
+  "resource": "confused.gif",
+  "url": "https://forum-images.hardware.fr/icones/confused.gif",
+  "editor": true
+ },
+ {
+  "code": ":jap:",
+  "resource": "jap.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/jap.gif",
+  "editor": true
+ },
+ {
+  "code": ":heink:",
+  "resource": "heink.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/heink.gif",
+  "editor": true
+ },
+ {
+  "code": ":sleep:",
+  "resource": "sleep.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/sleep.gif",
+  "editor": true
+ },
+ {
+  "code": ":non:",
+  "resource": "non.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/non.gif",
+  "editor": true
+ },
+ {
+  "code": ":D",
+  "resource": "biggrin.gif",
+  "url": "https://forum-images.hardware.fr/icones/biggrin.gif",
+  "editor": true
+ },
+ {
+  "code": ":p",
+  "resource": "tongue.gif",
+  "url": "https://forum-images.hardware.fr/icones/tongue.gif",
+  "editor": true
+ },
+ {
+  "code": ":lol:",
+  "resource": "lol.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/lol.gif",
+  "editor": true
+ },
+ {
+  "code": ":cry:",
+  "resource": "cry.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/cry.gif",
+  "editor": true
+ },
+ {
+  "code": ":sweat:",
+  "resource": "sweat.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/sweat.gif",
+  "editor": true
+ },
+ {
+  "code": ":bounce:",
+  "resource": "bounce.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/bounce.gif",
+  "editor": true
+ },
+ {
+  "code": ";)",
+  "resource": "wink.gif",
+  "url": "https://forum-images.hardware.fr/icones/wink.gif",
+  "editor": true
+ },
+ {
+  "code": ":na:",
+  "resource": "na.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/na.gif",
+  "editor": true
+ },
+ {
+  "code": ":wahoo:",
+  "resource": "wahoo.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/wahoo.gif",
+  "editor": true
+ },
+ {
+  "code": ":whistle:",
+  "resource": "whistle.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/whistle.gif",
+  "editor": true
+ },
+ {
+  "code": ":hello:",
+  "resource": "hello.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/hello.gif",
+  "editor": true
+ },
+ {
+  "code": ":ouch:",
+  "resource": "ouch.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/ouch.gif",
+  "editor": true
+ },
+ {
+  "code": ":sarcastic:",
+  "resource": "sarcastic.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/sarcastic.gif",
+  "editor": true
+ },
+ {
+  "code": ":kaola:",
+  "resource": "kaola.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/kaola.gif",
+  "editor": true
+ },
+ {
+  "code": ":sol:",
+  "resource": "sol.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/sol.gif",
+  "editor": true
+ },
+ {
+  "code": ":'(",
+  "resource": "ohill.gif",
+  "url": "https://forum-images.hardware.fr/icones/ohill.gif",
+  "editor": false
+ },
+ {
+  "code": ":/",
+  "resource": "ohwell.gif",
+  "url": "https://forum-images.hardware.fr/icones/ohwell.gif",
+  "editor": false
+ },
+ {
+  "code": ":vomi:",
+  "resource": "vomi.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/vomi.gif",
+  "editor": false
+ },
+ {
+  "code": ":sum:",
+  "resource": "sum.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/sum.gif",
+  "editor": false
+ },
+ {
+  "code": ":spookie:",
+  "resource": "spookie.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/spookie.gif",
+  "editor": false
+ },
+ {
+  "code": ":spamafote:",
+  "resource": "spamafote.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/spamafote.gif",
+  "editor": true
+ },
+ {
+  "code": ":pouah:",
+  "resource": "pouah.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/pouah.gif",
+  "editor": true
+ },
+ {
+  "code": ":ouimaitre:",
+  "resource": "ouimaitre.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/ouimaitre.gif",
+  "editor": false
+ },
+ {
+  "code": ":mouais:",
+  "resource": "mouais.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/mouais.gif",
+  "editor": true
+ },
+ {
+  "code": ":mmmfff:",
+  "resource": "mmmfff.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/mmmfff.gif",
+  "editor": true
+ },
+ {
+  "code": ":miam:",
+  "resource": "miam.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/miam.gif",
+  "editor": true
+ },
+ {
+  "code": ":int:",
+  "resource": "int.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/int.gif",
+  "editor": false
+ },
+ {
+  "code": ":hot:",
+  "resource": "hot.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/hot.gif",
+  "editor": false
+ },
+ {
+  "code": ":hebe:",
+  "resource": "hebe.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/hebe.gif",
+  "editor": false
+ },
+ {
+  "code": ":hap:",
+  "resource": "hap.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/hap.gif",
+  "editor": false
+ },
+ {
+  "code": ":gun:",
+  "resource": "gun.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/gun.gif",
+  "editor": false
+ },
+ {
+  "code": ":gratgrat:",
+  "resource": "gratgrat.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/gratgrat.gif",
+  "editor": true
+ },
+ {
+  "code": ":fuck:",
+  "resource": "fuck.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/fuck.gif",
+  "editor": true
+ },
+ {
+  "code": ":fouyaya:",
+  "resource": "fouyaya.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/fouyaya.gif",
+  "editor": false
+ },
+ {
+  "code": ":foudtag:",
+  "resource": "foudtag.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/foudtag.gif",
+  "editor": false
+ },
+ {
+  "code": ":fou:",
+  "resource": "fou.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/fou.gif",
+  "editor": false
+ },
+ {
+  "code": ":evil:",
+  "resource": "fou.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/fou.gif",
+  "editor": false
+ },
+ {
+  "code": ":eek2:",
+  "resource": "eek2.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/eek2.gif",
+  "editor": false
+ },
+ {
+  "code": ":eek:",
+  "resource": "eek.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/eek.gif",
+  "editor": false
+ },
+ {
+  "code": ":dtc:",
+  "resource": "dtc.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/dtc.gif",
+  "editor": false
+ },
+ {
+  "code": ":crazy:",
+  "resource": "crazy.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/crazy.gif",
+  "editor": false
+ },
+ {
+  "code": ":calimero:",
+  "resource": "calimero.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/calimero.gif",
+  "editor": false
+ },
+ {
+  "code": ":bug:",
+  "resource": "bug.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/bug.gif",
+  "editor": false
+ },
+ {
+  "code": ":bic:",
+  "resource": "bic.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/bic.gif",
+  "editor": false
+ },
+ {
+  "code": ":benetton:",
+  "resource": "benetton.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/benetton.gif",
+  "editor": false
+ },
+ {
+  "code": ":24:",
+  "resource": "24.gif",
+  "url": "https://forum-images.hardware.fr/icones/smilies/24.gif",
+  "editor": false
+ }
+]

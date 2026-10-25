@@ -27,7 +27,7 @@ let package = Package(
         .package(url: "https://github.com/scinfu/SwiftSoup.git", exact: "2.14.3")
     ],
     targets: [
-        .target(name: "HFRModels"),
+        .target(name: "HFRModels", resources: [.process("Resources")]),
         .target(
             name: "HFRParsing",
             dependencies: [
