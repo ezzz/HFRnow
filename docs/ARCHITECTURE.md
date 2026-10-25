@@ -1,5 +1,9 @@
 # Architecture
 
+![SwiftHFR target architecture](architecture/architecture.svg)
+
+Editable source: [architecture.excalidraw](architecture/architecture.excalidraw).
+
 ## Layers
 
 ```

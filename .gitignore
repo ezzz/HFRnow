@@ -15,3 +15,9 @@ Package.resolved.orig
 .env.*
 CLAUDE.local.md
 docs/assets/source/inter.woff2
+docs/architecture/source/package/
+docs/architecture/source/*.tgz
+docs/architecture/source/excalidraw-utils.min.js
+docs/architecture/source/Virgil-Regular.woff2
+docs/architecture/source/preview.png
+docs/architecture/source/architecture.*
