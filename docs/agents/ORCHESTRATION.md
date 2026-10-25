@@ -18,6 +18,7 @@ Operators may keep private notes (ledger, handoff lists) outside the repository;
 2. Check what changed on your open items (reviews, CI, merges, new comments) **before starting work**.
 
 ## Claims
+- **When an orchestrator session is active**, it alone edits `docs/LOTS.md` (claims and statuses, in small batch PRs); lot PRs never touch `LOTS.md`, which avoids conflicts between parallel PRs on adjacent rows. Lot sessions claim by asking the orchestrator, then work on their branch.
 - Claim = owner + `in-progress` in `LOTS.md` (committed and pushed), or self-assignment + `status:` label on the issue — **before writing code**.
 - An item claimed by another session is off limits: don't touch its branch, don't post on its PR.
 - Looks abandoned for 24 h → ask the maintainer, never take it over.

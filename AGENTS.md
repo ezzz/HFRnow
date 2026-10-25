@@ -72,7 +72,7 @@ When a behaviour is unclear, **read the legacy code** instead of guessing, and c
 
 Each lot in `docs/LOTS.md` follows exactly this loop:
 
-1. **Claim** — set yourself as owner in `docs/LOTS.md` (status `in-progress`), committed and pushed **before** writing code.
+1. **Claim** — set yourself as owner in `docs/LOTS.md` (status `in-progress`), committed and pushed **before** writing code. When an orchestrator session is active, ask it to claim for you instead and do not edit `LOTS.md` ([ORCHESTRATION](docs/agents/ORCHESTRATION.md)).
 2. **Spec** — write/complete `docs/lots/LOT-XXX-*.md`: legacy sources (file:line), inputs/outputs, edge cases, protocol facts (also copied to `docs/HFR-PROTOCOL.md`).
 3. **Fixtures** — real pages + legacy parser output (the oracle), anonymized.
 4. **Port** — implement in the right module, Swift-native, no ObjC.
