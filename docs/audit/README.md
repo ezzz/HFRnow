@@ -15,7 +15,7 @@ Every fact in the reports cites `file:line` in the legacy repo. The reports pred
 
 ## Results
 
-- [docs/LOTS.md](../LOTS.md): 54 lots after LOT-000 (4 Phase 2 tooling, 48 engine, 2 docs/gates; LOT-067 since dropped), merged from ~66 overlapping proposals, with dependencies, difficulty and model routing. 16 lots (✱) need no fixtures to start.
+- [docs/LOTS.md](../LOTS.md): 56 lots after LOT-000 (4 Phase 2 tooling, 50 engine, 2 docs/gates), merged from ~66 overlapping proposals and later research, with dependencies, difficulty and model routing. 16 lots (✱) need no fixtures to start.
 - [docs/HFR-PROTOCOL.md](../HFR-PROTOCOL.md): consolidated protocol reference (endpoints, write flows, cookies, tokens, encoding).
 - [ADR 0008](../adr/0008-hfrclient-orchestration-module.md) (accepted): new `HFRClient` module for multi-step flows. [ADR 0006](../adr/0006-content-normalization-in-parsing.md) and [ADR 0007](../adr/0007-third-party-api-keys.md) (accepted).
 
@@ -87,7 +87,7 @@ Decisions recorded on 2026-10-24 are marked **Decided**.
 |---|---|---|---|
 | ADR 0006 | Where does DOM-level content rewriting live, given SwiftSoup is confined to `HFRParsing`? | LOT-034 | **Decided** (ADR accepted): in `HFRParsing`, display-independent output (normalized HTML + typed lists), sanitization contract |
 | ADR 0007 | How are third-party API keys injected; keep Giphy? | LOT-056, Giphy | **Decided** (ADR accepted): build configuration + CI secret, never committed; legacy key values reused for now, replaceable later; Giphy decision deferred to Phase 4 |
-| Q-1 | Is SwiftHFR published as an update of the existing App Store app (same bundle id `hfrplus.red.super`, same developer team)? Only then can it import data the old app kept on the device (accounts, local lists, settings, drafts, smiley favourites, layout). MPStorage data lives on the forum and needs no import. | LOT-067 | **Decided**: no import — a new app does not take over another app's data. LOT-067 dropped |
+| Q-1 | Is SwiftHFR published as an update of the existing App Store app (same bundle id `hfrplus.red.super`, same developer team)? Only then can it import data the old app kept on the device (accounts, local lists, settings, drafts, smiley favourites, layout: [E §2–3](E-storage-vendors.md), legacy `MultisManager.m`, `BlackList.m`, `SmileyCache.m`). MPStorage data lives on the forum and needs no import ([HFR-PROTOCOL](../HFR-PROTOCOL.md) §3.3, D §2.10). | LOT-067 | **Reopened** (2026-10-25): the plan is now to ship SwiftHFR from the legacy maintainer's repository, on a `swift` branch that later replaces `main`, as an update of the existing app. Import is back in scope (LOT-067); to confirm with the maintainer (bundle id, team) |
 | Q-2 | Server charset per endpoint (UTF-8 vs ISO-8859-1) | LOT-040 decoding defaults | **Settled for topic pages**: UTF-8 (observed live 2026-10-25); other HTML pages and endpoints still to capture |
 | Q-3 | Emoji policy when posting (strip like legacy, keep, or encode) | LOT-048 | **Informed**: HFR silently truncates at the first non-BMP character (reported by redface2). Never send them: warn and let the user remove them (to confirm in LOT-001) |
 | Q-4 | Keep the AQ integration? `aq.super-h.fr` is a community server outside HFR; the app sends it the user's pseudo, topic and post data, unauthenticated. | LOT-055 | **Decided**: keep, with a first-use notice. Third-party services get an inventory and disclosure policy (LOT-071) |

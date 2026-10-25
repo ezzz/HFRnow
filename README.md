@@ -76,7 +76,7 @@ SwiftHFR keeps the spirit and restarts on a clean foundation: **100 % Swift, mod
 | Phase | Scope | Status |
 |---|---|---|
 | 0 · Foundations | Repository, CI, security tooling, agent rules | **done** |
-| 1 · Audit | Legacy engine mapped into [54 migration lots](docs/LOTS.md) (one since dropped) | **done** — [audit](docs/audit/README.md) |
+| 1 · Audit | Legacy engine mapped into [56 migration lots](docs/LOTS.md) | **done** — [audit](docs/audit/README.md) |
 | 2 · Fixtures | Real HFR pages + legacy parser output as test oracle | next |
 | 3 · Engine | Models, parsing, network, storage, flows | starting (16 lots need no fixtures) |
 | 4 · App | SwiftUI app on top of `HFRKit` | planned |
