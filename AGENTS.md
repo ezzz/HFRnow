@@ -148,6 +148,6 @@ Keep entries short and dated. Remove anything that became false.
 - 2026-10-24 — LOT-000: audit agents proposed lots that mixed parsing and networking; the synthesis copied it and only the independent review caught it. Always check lot dependencies against `Package.swift` (LESSONS #19).
 - 2026-10-24 — Phase 0: from cloud sessions, `@mentions` in posted comments are altered, so bot commands (`@dependabot rebase`, `@coderabbitai review`) do not work. Ask the operator to post them.
 - 2026-10-24 — Phase 0: CodeQL's Swift extractor failed on the preview Xcode 27 toolchain; Swift analysis runs on `macos-26` (stable Xcode), the iOS 27 build check stays on `xcode-27`.
-- 2026-10-24 — Phase 0: job logs cannot be downloaded from cloud sessions; read job steps and check-run annotations instead, and make CI print key failure output as `::error::` annotations.
+- 2026-10-25 — Wave 1: CI job logs **can** be read from cloud sessions with the GitHub MCP tool `get_job_logs` (only `gh api …/logs` is blocked, because logs are served from another host). Annotations remain the quickest signal.
 - 2026-10-24 — Phase 0: cloud agents cannot change repository settings (proxy returns 403); settings live in `scripts/configure-repo.sh`, run by the maintainer.
 - 2026-10-24 — Phase 0: GitHub-hosted runners provide Xcode 27 only through the `xcode-27` runner label (preview). Default `macos-26` images ship Xcode 26.x and cannot build the iOS 27 target.

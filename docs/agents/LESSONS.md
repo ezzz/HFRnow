@@ -25,3 +25,8 @@ Seeded from a previous multi-agent project, filtered for SwiftHFR.
 | 18 | Fixtures and logs contain no real pseudo, cookie, token or private content | SwiftHFR |
 | 19 | Every "depends on" between lots respects module direction; a flow that parses then submits belongs to `HFRClient`. Enforced by `scripts/check-lot-deps.py` in CI | LOT-000 reviews (Fable F1, CodeRabbit) |
 | 20 | A `\|` inside a code span in a Markdown table must be escaped, or the row breaks. Enforced by markdownlint (MD056) in CI | LOT-000 CodeRabbit |
+| 21 | SwiftLint is not installed in cloud sessions: before pushing, check line length (≤ 140), `String(decoding:)` (flagged by `optional_data_string_conversion`), identifier length and `inclusive_language` (e.g. no `blacklist` identifiers; the wire key may keep it) | wave 1 (C1, C2) |
+| 22 | On Linux, `Date.description` crashes on non-finite dates: never let a test print a value holding one | wave 1 (C1) |
+| 23 | After late edits, check `git ls-files` (tracked changes), not only untracked files, before pushing | wave 1 (C1) |
+| 24 | swift-corelibs-foundation ignores `timeoutInterval` and per-task redirect delegates, and `URLProtocol` cannot redirect: enforce deadlines yourself and test redirects against a loopback server | wave 1 (C2) |
+| 25 | A test socket server must be closed by the thread that owns it, otherwise its file descriptor number can be reused by another server | wave 1 (C2) |
