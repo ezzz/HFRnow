@@ -11,4 +11,4 @@ Thanks for helping! Humans and AI agents follow the same process.
 Opening issues: use the forms (bug, feature, task). They set type, priority, difficulty and area labels automatically.
 Security problems go through [SECURITY.md](SECURITY.md), never a public issue.
 
-By contributing you agree that your contribution is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE).
+By contributing you agree that your contribution is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE), except contributions to `docs/HFR-PROTOCOL.md` and to fixtures under `Packages/HFRKit/Tests/**/Fixtures/`, which are licensed under [CC BY 4.0](LICENSE-docs.md).

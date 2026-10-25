@@ -157,7 +157,8 @@ Found a security issue? Follow [SECURITY.md](SECURITY.md), never a public issue.
 
 ## License and credits
 
-Licensed under [PolyForm Noncommercial 1.0.0](LICENSE): free to use, modify and share for any noncommercial purpose. Commercial use is not allowed, and the copyright notice must be kept.
+Code is licensed under [PolyForm Noncommercial 1.0.0](LICENSE): free to use, modify and share for any noncommercial purpose. Commercial use is not allowed, and the copyright notice must be kept.
+The [HFR protocol documentation](docs/HFR-PROTOCOL.md) and the fixtures under `Packages/HFRKit/Tests/**/Fixtures/` are open under [CC BY 4.0](LICENSE-docs.md), so other community clients can reuse them.
 
 SwiftHFR stands on the shoulders of the previous apps and their authors: see [CREDITS.md](CREDITS.md).
 It is an independent community project, not affiliated with Hardware.fr.

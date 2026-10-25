@@ -2,7 +2,9 @@
 
 Everything we know about how forum.hardware.fr works: URLs, parameters, forms, cookies, tokens, HTML signals.
 **Every entry cites its source**: a legacy `file:line` (repo <https://github.com/francoisgn/hfrnow> @ `2440d79`) and/or an audit section.
-Status per fact: **code** = read from legacy code only · **verified** = confirmed by a committed fixture. Until Phase 2 delivers fixtures, everything here is *code*.
+Status per fact: **code** = read from legacy code only · **live** = observed by us on the live forum · **rf2** = reported by the redface2 Android client's documentation (rewritten in our words, not copied; GPL project) · **verified** = confirmed by a committed fixture. Until Phase 2 delivers fixtures, nothing is *verified*; §7 lists the open points to settle with fixtures.
+
+This document and the test fixtures are licensed under [CC BY 4.0](../LICENSE-docs.md) ([ADR 0009](adr/0009-open-protocol-docs-license.md)), unlike the code.
 
 Host: `https://forum.hardware.fr` (`Classes/k.m:37-40`). Forum config `config=hfr.inc` on all pages except global search (`config=hardwarefr.inc`).
 
@@ -14,7 +16,7 @@ Host: `https://forum.hardware.fr` (`Classes/k.m:37-40`). Forum config `config=hf
 | R2 | Topic list of a forum | GET | `/forum1.php?config=hfr.inc&cat={cat}&page={n}&subcat=&owntopic={0..3}` | `owntopic`: 0 all, 1 tracked (flag1), 2 read (flag0), 3 favourites | `ObjCForumTopicsLoaderWorker.m:36-89, 128-141` · A §3.1 E2 |
 | R3 | Favourites across forums | GET | `/forum1f.php?owntopic={1\|3}` | `3` when setting `vos_sujets == 1` | `ObjCFavoritesLoaderWorker.m:46-48` · A E3 |
 | R4 | Private messages list | GET | `/forum1.php?config=hfr.inc&cat=prive&page=1` | legacy list shows page 1 only; multi-page scan (`page=N` + long query) exists only in MPStorage | `ObjCMPTopicsLoaderWorker.m:9`, `MPStorage.m:692-736` · A E4, E §2.6 |
-| R5 | Topic page | GET | `/forum2.php?config=hfr.inc&cat=..&post=..&page=..` or `/hfr/<cat>/<sub>/<slug>_<id>_<page>.htm` | Follow redirects; the **final URL** gives the page (permalink `post=` → page) | `ObjCTopicPageWorker.m:14-43, 86-94` · A E5, §3.4 |
+| R5 | Topic page | GET | `/forum2.php?config=hfr.inc&cat=..&post=..&page=..`, which redirects (301) to the canonical `/hfr/<cat>/<slug>-sujet_<post>_<page>.htm` (**live**, §6) | Follow redirects; the **final URL** gives the page: read it from the `sujet_<post>_<page>` segment. The legacy regex `_(\d+)\.htm` matches the same form; the older `/hfr/<cat>/<sub>/<slug>_<id>_<page>.htm` shape cited by legacy code is unverified | `ObjCTopicPageWorker.m:14-43, 86-94` · A E5, §3.4 |
 | R6 | Profile page | GET | `/user/editprofil.php?config=hfr.inc&page={5\|1}` | page 5: `hash_check` + avatar after login; page 1: cookie refresh | `LoginService.swift:87-113`, `MultisManager.m:281` · A E10 |
 | R7 | Smiley search | GET | `/message-smi-mp-aj.php?config=hfr.inc&findsmilies=+w1+w2` | ≥ 3 chars | `SmileySearchService.swift:12-42` · A E11 |
 | R8 | MP unread count | GET | `/` | first integer in `.cCatTopic.red` | `MPBackgroundService.swift:80-135` · A E12 |
@@ -32,7 +34,7 @@ Host: `https://forum.hardware.fr` (`Classes/k.m:37-40`). Forum config `config=hf
 
 ### 3.1 Common pattern (reply, edit, delete, new topic, MP)
 1. GET the form page (answer URL, edit URL, new-topic URL, MP URL). It contains `<form name="hop">`.
-2. Copy every `<input>` (checkbox → `"1"`/`"0"`, radio → value only if checked, others → `value`) and every `<select>` (selected or first option). Values must be HTML-entity-decoded (legacy Swift does not: bug).
+2. Copy every `<input>` (legacy: checkbox → `"1"`/`"0"`; **rf2: browsers send nothing for an unchecked checkbox or radio** ([research](research/redface2-comparison.md) §4.2 X3, open point §4.4 item 3); radio → value only if checked, others → `value`) and every `<select>` (selected or first option). Values must be HTML-entity-decoded (legacy Swift does not: bug).
 3. Override `content_form` (message, `\n` → `\r\n`), `pseudo`, `hash_check`, `config=hfr.inc`; and `sujet`, `subcat`, `dest` when the form exposes them.
 4. POST `application/x-www-form-urlencoded; charset=utf-8` to the form `action`, resolved against the form URL. Default `/bddpost.php` only when the form has no usable action. The edit form's action is unverified (`/bdd.php` is established only for MPStorage updates, §3.3) — **always read the action, never hard-code**.
 5. Classify the response (HTTP 200 even on rejection):
@@ -46,7 +48,7 @@ Sources: `ReplyService.swift:145-183, 294-365, 579-719` · `AddMessageViewContro
 |---|---|---|---|
 | Reply | `href` of the first `<a>` in `#repondre_form` on the topic page | | `ObjCTopicPageWorker.m:156-157` · D §2.1 |
 | Edit | decoded `editURL` of an own message | same form, `content_form` replaced | D §2.3 |
-| Delete | decoded `editURL` | edit with `delete=1` and the unchanged text; first post of a topic not deletable | `ReplyService.swift:954-1038` · D §2.4 |
+| Delete | decoded `editURL` | edit with `delete=1` and the unchanged text. Legacy UI never offers deleting the first post; **rf2: the topic owner can, and it deletes the whole topic** (§7) | `ReplyService.swift:954-1038` · D §2.4 |
 | New topic | `href` of `#md_btn_new_topic` on the topic list | `sujet` (text), `subcat` (select) | `ObjCTopicListParser.m:134-135` · D §2.5 |
 | New MP | author block link `/message.php?config=hfr.inc&cat=prive&…&dest=` | `dest`, `sujet` | `ParseMessagesOperation.m:389-390` · D §2.5 |
 | Moderator alert | first `href` containing `/user/modo.php` in the message | form `action~modo.php`, field `raison`; `.hop` with a link = **already alerted** (inverse of reply) | `ReplyService.swift:1400-1531` · D §2.6 |
@@ -68,7 +70,7 @@ Source: `Classes/MPStorage.m:21-22, 152-156, 249-355, 536-666, 737-885` · D §2
 
 ## 4. Quotes
 
-- **Single quote**: GET the decoded `quoteURL`; the server returns the form with `content_form` prefilled `[quotemsg=cat,post,numreponse]…[/quotemsg]`. The reply is then posted to the topic's answer URL. `ReplyService.swift:767-841` · D §2.2
+- **Single quote**: GET the decoded `quoteURL`; the server returns the form with `content_form` prefilled `[quotemsg=a,b,c]…[/quotemsg]` (argument meaning unsettled: rf2 reports cited `numreponse`, an opaque index, cited author id — [research](research/redface2-comparison.md) §4.2 X2, open point §4.4 item 2; always reuse the server's prefill, never build it). The reply is then posted to the topic's answer URL. `ReplyService.swift:767-841` · D §2.2
 - **Multi-quote** (client-side cookie, as the site's JS does): `quoteJS` = `quoter('hardwarefr', cat, post, numreponse)`; cookie `quotes<arg0>-<arg1>-<arg2>` (e.g. `quoteshardwarefr-13-42`), value = concatenated `|<numreponse>`, domain `.hardware.fr`, path `/`, expires +1 h; deleted when empty. The next quote/answer GET must carry it. Match ids **exactly** (legacy substring match is a bug). `MessagesView.swift:1853-1929` · D §2.2b, C §5
 - **Obfuscated URLs**: quote and edit URLs are stored in the CSS `class` of the element around `<img alt="answer">` (prefix of 20 characters); list pager links use `md_cryptlink` (prefix of 12). Decode: drop the prefix, then map each pair of characters through the alphabet `0A12B34C56D78E9F` (index = nibble) into one byte. Decode only if `length > 20` and the string contains neither `/` nor `http`. `RangeOfCharacters.m:92-114`, `ObjCMessageActionsBuilder.m:80-89` · C §3.4, D §2.2
 
@@ -81,12 +83,43 @@ Source: `Classes/MPStorage.m:21-22, 152-156, 249-355, 536-666, 737-885` · D §2
 
 ## 6. Transport behaviour
 
-- **Encoding — unresolved (Q-2)**: legacy *sends* UTF-8 everywhere; *reads* UTF-8 with Latin-1/CP1252 fallbacks, inconsistently. Real `Content-Type` / `<meta charset>` per endpoint must be captured. A §3.2, D §2
+- **Encoding — UTF-8** (**live**, 2026-10-25: `Content-Type: text/html; charset=utf-8` and `<meta charset=UTF-8>` on topic 1711 pages 450–510, [user feedback](research/user-feedback-p450-510.md) §4; rf2 captures agree, [research](research/redface2-comparison.md) §4.3 E27). Legacy Latin-1 fallbacks are unnecessary for HTML pages; other endpoints still to capture. A §3.2
+- **Topic URL redirect** (**live**, 2026-10-25, request to topic 1711 page 450; rf2 agrees, [research](research/redface2-comparison.md) §4.3 E13): `forum2.php?…&page=N` answers **301** with a relative `Location: /hfr/<cat>/<slug>-sujet_<post>_<N>.htm`; read the page from the `sujet_<post>_<N>` segment.
+- **Emoji** (**rf2**, [research](research/redface2-comparison.md) §4.2 X9; users report the same, [user feedback](research/user-feedback-p450-510.md) p. 478; decides Q-3): HFR cuts a posted message at the first character outside the Basic Multilingual Plane (most emoji) and still answers success; everything after it is lost silently. Never send such characters.
 - **HTTP status**: legacy ignores it; application errors are detected from content (`.hop`, `login_redirection.php`, missing `id`, `Location`). A §3.4
 - **Headers**: no custom User-Agent, Referer or Origin; gzip accepted. Whether HFR checks any is unverified. A §3.3
 - **Timeouts** (legacy): lists 30 s, topic search 60 s, global search 15 s, background MP check 5 s. No retry, no backoff, no rate limiting. A §3.5
 
-## 7. Third-party services
+## 7. Reported by redface2, to verify with our fixtures
+
+Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).
+
+| Topic | Reported fact | Id |
+|---|---|---|
+| Write constant | Every `bddpost.php` / `bdd.php` POST carries `verifrequet=1100`; the poll vote does not | X4 |
+| Write markers | Distinct success sentences for reply, edit, create and delete; specific texts for empty body, invalid token, flood | E15 |
+| First post | Owner can delete it, which deletes the topic (then 404) | X1 |
+| Create topic | Success redirects to the category list; no topic id returned | E14 |
+| Login | Success = `Set-Cookie: md_user` equal to the pseudo; failure and login-flood texts; cookie set may include `md_pass`, `md_forum` | X5, X12 |
+| CRLF | No `\n` → `\r\n` conversion in rf2; whether HFR needs it is open | X11 |
+| Favourite removal | Single removal by `GET /user/delflag.php?…`; success text "Drapeau effacé…" | X6 |
+| Global search | The POST answers a waiting page; results are a cookie-less `GET /forum1.php?recherches=1&…`; four result shapes | X7, E12 |
+| Intra-topic search | `transsearch.php` needs `hash_check`; `dep=0` + `firstnum` only on a fresh search | E28 |
+| Multi-quote | Can be done without the cookie: fetch one quote form per post, concatenate prefills, submit once | X10 |
+| MPStorage read | JSON read from the first post's edit form `content_form`, not the rendered text; real documents hold many namespaces from other clients; 64 KiB safety cap; refuse to write non-BMP characters | X8, E23, E24 |
+| MP | Mark unread: `GET /user/nonlu.php?…`; group MP members in `newdest` (owner only); MP quote URL shape | E6, E8, E9 |
+| Read marking | Any authenticated topic GET marks flags read: prefetch anonymously | E25 |
+| REST API | `GET /webservices/rest_api.php?uri=…` for categories, topics and flag buckets | E1 |
+| Obfuscated links | Three prefixes: `md_noclass_cryptlink` (20), `md_blank_cryptlink` (18), `md_cryptlink` (12); intermittent; URL shape depends on auth | E7 |
+| Polls | Vote body order and `reponse` / `reponse<N>` fields; close and create flows | E10, E11 |
+| Identity | `numreponse` is unique per category, not global: key posts by (cat, topic, numreponse) | E18 |
+| Posts per page | A user setting, not a constant 40 | E19 |
+| Images | `reho.st` needs `Referer: https://forum.hardware.fr/`; some hosts are http-only: load images with a separate cookie-less client | E26 |
+| `quote_only=1` | Lists posts quoting a given post | E2 |
+
+Points the two clients disagree on are listed in the comparison report §4.4 and must be part of the LOT-001 capture checklist.
+
+## 8. Third-party services
 
 | Service | Use | Notes | Source |
 |---|---|---|---|
