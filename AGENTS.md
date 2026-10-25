@@ -134,7 +134,7 @@ Within a priority, match `difficulty` to your model tier (§6). Security issues 
 
 ## 10. Environments
 
-- **Linux cloud agents**: can edit code and docs; `swift test` on `HFRKit` is expected to work on Linux (keep the engine Foundation-only). Cannot build the app.
+- **Linux cloud agents**: can edit code and docs and run `swift test` on `HFRKit` (keep the engine Foundation-only). The Swift toolchain comes from [`scripts/cloud-setup.sh`](scripts/cloud-setup.sh), pasted into the cloud environment's setup script (needs `download.swift.org` in the allowed domains). Cannot build the app.
 - **Mac agents (Claude Code CLI on the maintainer's Mac)**: Xcode builds, simulator, device installs.
 - **CI** is the arbiter: if it is not green in CI, it is not done.
 
