@@ -1,0 +1,21 @@
+{
+  "id": "R02",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/",
+  "url": "https://forum.hardware.fr/",
+  "final_url": "https://forum.hardware.fr/",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 26 Oct 2026 04:03:41 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "home logged in as user1 with one unread MP (thread A from user2)",
+  "file": "R02-home-logged-in-unread-mp.html",
+  "private": false
+}

@@ -1,0 +1,34 @@
+{
+  "id": "R52a",
+  "account": "user2",
+  "method": "POST",
+  "url_template": "POST /transsearch.php (topic page search form, browser semantics)",
+  "url": "https://forum.hardware.fr/transsearch.php",
+  "final_url": "https://forum.hardware.fr/transsearch.php",
+  "status": 302,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 26 Oct 2026 03:44:36 GMT",
+  "redirects": [
+    {
+      "status": 302,
+      "location": "/forum2.php?post=28563&cat=13&config=hfr.inc&cache=&page=1&sondage=0&owntopic=0&word=NAPOLITAINE&spseudo=&currentnum=2666649#t2666649"
+    }
+  ],
+  "set_cookie_names": [],
+  "request_fields": [
+    "hash_check",
+    "post",
+    "cat",
+    "config",
+    "p",
+    "sondage",
+    "owntopic",
+    "word",
+    "spseudo",
+    "dep",
+    "firstnum"
+  ],
+  "note": "intra-topic search word=napolitaine, redirect not followed",
+  "request_body": "hash_check=REDACTED&post=28563&cat=13&config=hfr.inc&p=1&sondage=0&owntopic=0&word=napolitaine&spseudo=&dep=0&firstnum=2666649",
+  "private": false
+}

@@ -1,0 +1,17 @@
+{
+  "id": "R06",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/hfr/<cat>/<sub>/liste_sujet-<n>.htm",
+  "url": "https://forum.hardware.fr/hfr/Discussions/Cuisine/liste_sujet-1.htm",
+  "final_url": "https://forum.hardware.fr/hfr/Discussions/Cuisine/liste_sujet-1.htm",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 26 Oct 2026 03:09:38 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "p"
+  ],
+  "file": "R06-list-subcat-cuisine-anon.html",
+  "private": false
+}

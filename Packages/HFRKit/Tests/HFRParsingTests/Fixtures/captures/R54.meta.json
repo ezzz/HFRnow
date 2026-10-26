@@ -1,0 +1,15 @@
+{
+  "id": "R54",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/wikismilies.php?config=hfr.inc&detail={urlencoded smiley code}",
+  "url": "https://forum.hardware.fr/wikismilies.php?config=hfr.inc&detail=%5B%3Auser3%5D",
+  "final_url": "https://forum.hardware.fr/wikismilies.php?config=hfr.inc&detail=%5B%3Auser3%5D",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 26 Oct 2026 03:14:10 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "file": "R54-smiley-wiki-detail-anon.html",
+  "private": false
+}

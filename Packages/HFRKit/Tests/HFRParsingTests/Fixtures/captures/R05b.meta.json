@@ -1,0 +1,22 @@
+{
+  "id": "R05b",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/forum1.php?config=hfr.inc&cat={cat}&page={n}&subcat=&owntopic=0",
+  "url": "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=13&page=500&subcat=&owntopic=0",
+  "final_url": "https://forum.hardware.fr/hfr/Discussions/liste_sujet-500.htm",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 26 Oct 2026 03:09:07 GMT",
+  "redirects": [
+    {
+      "status": 301,
+      "location": "/hfr/Discussions/liste_sujet-500.htm"
+    }
+  ],
+  "set_cookie_names": [
+    "p"
+  ],
+  "file": "R05b-list-cat13-p500-anon.html",
+  "private": false
+}

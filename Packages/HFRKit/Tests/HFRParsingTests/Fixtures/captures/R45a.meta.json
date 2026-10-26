@@ -1,0 +1,21 @@
+{
+  "id": "R45a",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/hfr/<cat>/nouveau_sujet.htm (#md_btn_new_topic href)",
+  "url": "https://forum.hardware.fr/hfr/Discussions/nouveau_sujet.htm",
+  "final_url": "https://forum.hardware.fr/hfr/Discussions/nouveau_sujet.htm",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 26 Oct 2026 03:18:12 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "new-topic form, never submitted",
+  "file": "R45a-new-topic-form.html",
+  "private": false
+}

@@ -1,0 +1,15 @@
+{
+  "id": "R01",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/",
+  "url": "https://forum.hardware.fr/",
+  "final_url": "https://forum.hardware.fr/",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 26 Oct 2026 03:08:14 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "file": "R01-home-anon.html",
+  "private": false
+}

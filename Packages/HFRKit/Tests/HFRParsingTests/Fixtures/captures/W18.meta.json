@@ -1,0 +1,16 @@
+{
+  "id": "W18",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/user/nonlu.php?config=hfr.inc&cat=prive&subcat=0&post={post}&page={page}&p=1&sondage=0&owntopic=0&new=0",
+  "url": "https://forum.hardware.fr/user/nonlu.php?config=hfr.inc&cat=prive&subcat=0&post=3207033&page=1&p=1&sondage=0&owntopic=0&new=0",
+  "final_url": "https://forum.hardware.fr/user/nonlu.php?config=hfr.inc&cat=prive&subcat=0&post=3207033&page=1&p=1&sondage=0&owntopic=0&new=0",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 26 Oct 2026 03:41:56 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "mark MP unread (user2 view), state-changing GET",
+  "file": "W18-mp-mark-unread-success.html",
+  "private": false
+}

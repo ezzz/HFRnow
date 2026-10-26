@@ -1,0 +1,24 @@
+{
+  "id": "R22b",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/forum2.php?config=hfr.inc&cat={cat}&post={post}&page={page}",
+  "url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=28563&page=2201",
+  "final_url": "https://forum.hardware.fr/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_2201.htm",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 26 Oct 2026 03:10:44 GMT",
+  "redirects": [
+    {
+      "status": 301,
+      "location": "/hfr/Discussions/pizza-maison-sujet_28563_2201.htm"
+    },
+    {
+      "status": 301,
+      "location": "/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_2201.htm"
+    }
+  ],
+  "set_cookie_names": [],
+  "file": "R22b-topic-last-page-anon.html",
+  "private": false
+}

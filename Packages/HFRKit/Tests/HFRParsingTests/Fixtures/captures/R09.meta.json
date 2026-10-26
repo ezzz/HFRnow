@@ -1,0 +1,22 @@
+{
+  "id": "R09",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/forum1.php?config=hfr.inc&cat={cat}&page=1&subcat=&owntopic=3",
+  "url": "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=13&page=1&subcat=&owntopic=3",
+  "final_url": "https://forum.hardware.fr/hfr/Discussions/liste_sujet-1.htm",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 26 Oct 2026 03:09:50 GMT",
+  "redirects": [
+    {
+      "status": 301,
+      "location": "/hfr/Discussions/liste_sujet-1.htm"
+    }
+  ],
+  "set_cookie_names": [
+    "p"
+  ],
+  "file": "R09-list-cat13-owntopic3-anon.html",
+  "private": false
+}

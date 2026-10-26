@@ -1,0 +1,24 @@
+{
+  "id": "R26",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/forum2.php?config=hfr.inc&cat={cat}&post={post}&page={page}",
+  "url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=19297&page=35600",
+  "final_url": "https://forum.hardware.fr/hfr/Discussions/Loisirs/topic-insomniaks-erres-sujet_19297_35600.htm",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 26 Oct 2026 03:11:26 GMT",
+  "redirects": [
+    {
+      "status": 301,
+      "location": "/hfr/Discussions/topic-insomniaks-erres-sujet_19297_35600.htm"
+    },
+    {
+      "status": 301,
+      "location": "/hfr/Discussions/Loisirs/topic-insomniaks-erres-sujet_19297_35600.htm"
+    }
+  ],
+  "set_cookie_names": [],
+  "file": "R26-topic-quotes-smileys-anon.html",
+  "private": false
+}

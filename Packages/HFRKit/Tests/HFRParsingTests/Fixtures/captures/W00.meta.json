@@ -1,0 +1,16 @@
+{
+  "id": "W00",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/login.php?config=hfr.inc",
+  "url": "https://forum.hardware.fr/login.php?config=hfr.inc",
+  "final_url": "https://forum.hardware.fr/login.php?config=hfr.inc",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 26 Oct 2026 03:13:00 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "login form, fetched to diagnose W01 failure",
+  "file": "W00-login-form-anon.html",
+  "private": false
+}

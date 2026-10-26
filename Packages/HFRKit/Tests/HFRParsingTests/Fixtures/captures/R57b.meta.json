@@ -1,0 +1,15 @@
+{
+  "id": "R57b",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/webservices/rest_api.php?uri=forums/hardwarefr/categories/{cat}/topics/last/",
+  "url": "https://forum.hardware.fr/webservices/rest_api.php?uri=forums/hardwarefr/categories/13/topics/last/",
+  "final_url": "https://forum.hardware.fr/webservices/rest_api.php?uri=forums/hardwarefr/categories/13/topics/last/",
+  "status": 200,
+  "content_type": "application/json",
+  "date": "Mon, 26 Oct 2026 03:14:17 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "file": "R57b-rest-category-topics-last.json",
+  "private": false
+}

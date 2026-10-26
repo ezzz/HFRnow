@@ -1,0 +1,16 @@
+{
+  "id": "P03a",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/user/addflag.php?config=hfr.inc&cat={cat}&post={post}&numreponse={numreponse}&page={page}&ref={rank}&p=1&sondage=0&owntopic=0&subcat={subcat} (link on the topic page)",
+  "url": "https://forum.hardware.fr/user/addflag.php?config=hfr.inc&cat=13&post=28563&numreponse=2666649&page=1&ref=1&p=1&sondage=0&owntopic=0&subcat=433",
+  "final_url": "https://forum.hardware.fr/user/addflag.php?config=hfr.inc&cat=13&post=28563&numreponse=2666649&page=1&ref=1&p=1&sondage=0&owntopic=0&subcat=433",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 26 Oct 2026 03:42:39 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "add favourite on public topic 28563 (state-changing GET)",
+  "file": "P03a-addflag-success.html",
+  "private": false
+}

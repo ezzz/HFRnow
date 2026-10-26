@@ -1,0 +1,30 @@
+{
+  "id": "R32b",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/forum2.php?config=hfr.inc&cat={cat}&post={post}&page={page}",
+  "url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=98162&page=1",
+  "final_url": "https://forum.hardware.fr/hfr/Discussions/Auto-Moto/rouleurs-essence-alcoolisee-sujet_98162_1.htm",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 26 Oct 2026 03:18:40 GMT",
+  "redirects": [
+    {
+      "status": 301,
+      "location": "/hfr/Discussions/rouleurs-essence-alcoolisee-sujet_98162_1.htm"
+    },
+    {
+      "status": 301,
+      "location": "/hfr/Discussions/Auto-Moto/rouleurs-essence-alcoolisee-sujet_98162_1.htm"
+    }
+  ],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "poll topic logged in (user2, has not voted); marks read",
+  "file": "R32b-topic-poll-logged-in-not-voted.html",
+  "private": false
+}

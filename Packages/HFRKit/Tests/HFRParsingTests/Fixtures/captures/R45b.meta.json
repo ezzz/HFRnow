@@ -1,0 +1,21 @@
+{
+  "id": "R45b",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/message.php?config=hfr.inc&cat=prive&sond=&p=1&subcat=&dest=<pseudo>&subcatgroup=0",
+  "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&sond=&p=1&subcat=&dest=user1&subcatgroup=0",
+  "final_url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&sond=&p=1&subcat=&dest=user1&subcatgroup=0",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 26 Oct 2026 03:17:41 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "new-MP form user2 -> user1",
+  "file": "R45b-new-mp-form.html",
+  "private": true
+}

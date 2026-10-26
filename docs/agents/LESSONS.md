@@ -37,3 +37,5 @@ Seeded from a previous multi-agent project, filtered for SwiftHFR.
 | 30 | On Linux, `URLSession` carries the cookies it added onto a followed redirect, whatever the new host: account sessions refuse redirects that leave the allowed hosts | wave 2 (C2c, Fable) |
 | 31 | Keep other clients' JSON numbers as written (lexeme or Decimal), never through `Double`: preserved data must round-trip byte-exact | wave 2 (Fable on LOT-062) |
 | 32 | Header-name checks (in code and in tests) must trim and lowercase names, or `" Cookie"` slips through | wave 2 (C2c) |
+| 33 | An anonymizer's position list is checked by an independent verifier (other parser, other patterns) and by a grep of names harvested from the **raw** files; the list that produced the output never vouches for it. Tests isolate one position each (a name also caught elsewhere hides a missing selector) | PR #38 Fable review (LOT-001) |
+| 34 | Patterns over attribute values are quote-aware: a raw `'` inside a double-quoted value ended two "independent" regexes at the same place | LOT-001 v2 fix round |

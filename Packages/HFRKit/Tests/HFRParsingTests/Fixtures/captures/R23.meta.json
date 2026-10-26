@@ -1,0 +1,24 @@
+{
+  "id": "R23",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/forum2.php?config=hfr.inc&cat={cat}&post={post}&page={page}",
+  "url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=91031&page=1",
+  "final_url": "https://forum.hardware.fr/hfr/Discussions/Loisirs/tequila-jose-cuervo-sujet_91031_1.htm",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 26 Oct 2026 03:12:06 GMT",
+  "redirects": [
+    {
+      "status": 301,
+      "location": "/hfr/Discussions/tequila-jose-cuervo-sujet_91031_1.htm"
+    },
+    {
+      "status": 301,
+      "location": "/hfr/Discussions/Loisirs/tequila-jose-cuervo-sujet_91031_1.htm"
+    }
+  ],
+  "set_cookie_names": [],
+  "file": "R23-topic-single-page-anon.html",
+  "private": false
+}

@@ -1,0 +1,18 @@
+{
+  "id": "R50c",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/forum1.php?recherches=1&… (no-result query)",
+  "url": "https://forum.hardware.fr/forum1.php?recherches=1&cat=13&orderSearch=0&config=hfr.inc&pseud=&search=zzqxwvfixture&titre=3&jour=&mois=&annee=&resSearch=200&daterange=2&subcat=0&searchtype=1&trash=0&trash_post=0&moderation=0",
+  "final_url": "https://forum.hardware.fr/forum1.php?recherches=1&cat=13&orderSearch=0&config=hfr.inc&pseud=&search=zzqxwvfixture&titre=3&jour=&mois=&annee=&resSearch=200&daterange=2&subcat=0&searchtype=1&trash=0&trash_post=0&moderation=0",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 26 Oct 2026 03:44:00 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "p"
+  ],
+  "note": "no result, without cookies",
+  "file": "R50c-search-no-result-no-cookie.html",
+  "private": false
+}

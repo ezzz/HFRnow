@@ -1,0 +1,22 @@
+{
+  "id": "P03f",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/forum1.php?config=hfr.inc&cat={cat}&page=1&subcat=&owntopic=2",
+  "url": "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=13&page=1&subcat=&owntopic=2",
+  "final_url": "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=13&page=1&subcat=&owntopic=2",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 26 Oct 2026 03:43:05 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "p",
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "read flags after P03d (expected unchanged vs R08-2)",
+  "file": "P03f-list-owntopic2-after-delflag.html",
+  "private": false
+}

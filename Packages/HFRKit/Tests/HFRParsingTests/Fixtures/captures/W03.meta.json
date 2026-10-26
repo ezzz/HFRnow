@@ -1,0 +1,26 @@
+{
+  "id": "W03",
+  "account": "user2",
+  "method": "POST",
+  "url_template": "/login_validation.php?config=hfr.inc",
+  "url": "https://forum.hardware.fr/login_validation.php?config=hfr.inc",
+  "final_url": "https://forum.hardware.fr/login_validation.php?config=hfr.inc",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 26 Oct 2026 03:13:15 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_passs",
+    "md_id"
+  ],
+  "request_fields": [
+    "pseudo",
+    "password",
+    "action",
+    "login"
+  ],
+  "request_body": "pseudo=user2&password=REDACTED&action=send&login=Se+connecter",
+  "file": "W03-login-success.html",
+  "private": false
+}

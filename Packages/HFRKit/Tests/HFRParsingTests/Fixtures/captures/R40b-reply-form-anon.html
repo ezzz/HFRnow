@@ -1,0 +1,645 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+	<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="fr" lang="fr">
+	<head>
+	<title>FORUM HardWare.fr - Répondre / éditer un message</title><link type="text/css" rel="stylesheet" href="/include/the_style1.php?color_key=FFFFFF/DEDFDF/000080/C2C3F4/001932/FFFFFF/FFFFFF/000000/000080/000000/000080/F7F7F7/DEDFDF/F7F7F7/DEDFDF/C0C0C0/C0C0C0/FFFFFF/000000/000000/0000FF/EEEEFF/DDDDEE/000000/FFEEEE/000000/FFFFFF/FF0000/FFFFFF/0/1/https%3A%redacted@example.invalid/NULL/&amp;abs_img_path=%40data%40sites%40forum%40www%40static%40&amp;hide_bg_onglet=0&amp;v=11102781422" /><style type="text/css">
+<!--
+.fastsearchMain{ width: 330px; }
+.fastsearchInput{ width: 70px; border: 1px solid black; }
+.fastsearchSubmit{ background-color: ; border: 0px;}
+.header2 { background-image: url(/img/forum3_1.gif);background-repeat: repeat-x; }
+.menuExt { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color:#000; }
+.menuExt a { color:#000;text-decoration:none; }
+.menuExt a:hover { color:#000;text-decoration:underline; }
+form { display: inline; }
+.header { background-image: url(//forum-images.hardware.fr/img/header-bg.gif); background-repeat: repeat-x; }
+.tdmenu { width: 1px;height: 1px;color: #000000; }
+.hfrheadmenu { font-family: Arial, Helvetica, sans-serif;font-size:13px;font-weight:bold; }
+.hfrheadmenu span {color:;}
+.hfrheadmenu a { color:;text-decoration: none; }
+.hfrheadmenu a:hover { color:;text-decoration: underline; }
+.concours { font-family: Arial, Helvetica, sans-serif;color:;font-size: 16px;text-decoration: none;font-weight: bold;}
+.concours:hover { font-family: Arial, Helvetica, sans-serif;color:;font-size: 16px;text-decoration: underline;font-weight: bold; }
+.searchmenu { font-family: Arial, Helvetica, sans-serif;color:;font-size: 13px;text-decoration: none;font-weight: bold; }
+.fastsearch { display: none; }
+.fastsearchHeader { font-family: Arial, Helvetica, sans-serif;color:;font-size: 13px;text-decoration: none;font-weight: bold; }
+.fastsearchHeader:hover { font-family: Arial, Helvetica, sans-serif;color:;font-size: 13px;text-decoration: underline;font-weight: bold; }
+-->
+</style>
+<script async src="https://securepubads.g.doubleclick.net/tag/js/gpt.js"></script>
+<script>
+  window.googletag = window.googletag || {cmd: []};
+  googletag.cmd.push(function() {
+    googletag.defineSlot('/2172442/forum_discussions_carre_bas', [336, 280], 'div-gpt-ad-1511901001563-11').addService(googletag.pubads());
+    googletag.defineSlot('/2172442/forum_discussions_carre_haut', [336, 280], 'div-gpt-ad-1511901001563-12').addService(googletag.pubads());
+    googletag.defineSlot('/2172442/forum_discussions_carre_milieu', [336, 280], 'div-gpt-ad-1511901001563-13').addService(googletag.pubads());
+    googletag.pubads().enableSingleRequest();
+    googletag.enableServices();
+  });
+</script>
+<script type='text/javascript'>
+     (function(){
+       var loc = window.location.href;
+       var dd = document.createElement('script');
+       dd.type = 'text/javascript'; dd.src = '//static.digidip.net/hardware.js?loc=' + loc;
+       var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(dd, s);
+     })();
+</script><script type="text/javascript">
+
+var hash_check = "&hash_check=";
+var _adresseRecherche = "/user/message-aj.php";
+var adresseFindSmiley = "/message-smi-mp-aj.php";
+var tempo_smilies= 0;
+
+var img_path= "https://forum-images.hardware.fr";
+
+function verif_join_form() {
+	if ((document.getElementById('submit_upload')) && (document.getElementById('submit_upload').style.fontWeight == 'bold')) {
+		return confirm('Attention : vous n\'avez pas joint l\'image que vous avez sélectionnée');
+	}
+	return true;
+}
+
+function verif_not_empty() {
+	if (document.getElementById('delete').checked == true) {
+		return true;
+	}
+	if (document.hop.sujet && trim(document.hop.sujet.value) =='') {
+		alert('Vous devez remplir tous les champs avant de poster ce message');
+		return false;
+	}
+	if (document.hop.content_form && trim(document.hop.content_form.value) == '') {
+		alert('Vous devez remplir tous les champs avant de poster ce message');
+		return false;
+	}
+	if (document.hop.codecaptcha && trim(document.hop.codecaptcha.value) == '') {
+		alert('Vous devez remplir tous les champs avant de poster ce message');
+		return false;
+	}
+	if (document.getElementById('have_sondage') && document.getElementById('have_sondage').checked == true && document.getElementById('annee').value && document.getElementById('annee').value.length != 4) {
+		alert('L\'année du sondage doit être sur 4 chiffres');
+		return false;
+	}
+
+	return true;
+}
+
+function trim(string) {
+	return string.replace(/(^\s*)|(\s*$)/g,"");
+}
+</script><script language="javascript" type="text/javascript">
+	<!--
+ var opera=0;
+	function putSmiley(tt,src) {
+TAinsert(" "+tt+" ","");}
+	//-->
+	</script><link type="text/css" rel="stylesheet" href="https://forum-images.hardware.fr/compressed/the_style.css?v=11102781422" />
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<meta http-equiv="Pragma" content="no-cache" />
+	<meta http-equiv="Cache-Control" content="no-cache, must-revalidate" />
+	<meta http-equiv="Expires" content="0" />
+	<meta http-equiv="Imagetoolbar" content="no" />
+	<meta name="Robots" content="noindex, nofollow" />
+<script language="Javascript" type="text/javascript" src="https://forum-images.hardware.fr/compressed/editPost.js?v=11102781422"></script><script language="Javascript" type="text/javascript" src="https://forum-images.hardware.fr/compressed/message.js?v=11102781422"></script><script language="Javascript" type="text/javascript" src="https://forum-images.hardware.fr/compressed/common.js?v=11102781422"></script></head><body id="category__redaction_form__form_message"  ><script language="JavaScript" type="text/javascript" src="/js/cookiechoices.js"></script>
+<script language="javascript" type="text/javascript" src="/js/jquery-1.11.1.min.js"></script>
+<script language="JavaScript" type="text/javascript" src="/js/cnil.js"></script>
+<script>
+ document.addEventListener('DOMContentLoaded', function(event) {
+    cookieChoices.showCookieConsentBar('HardWare.fr utilise des cookies pour une navigation optimale et des cookies tiers pour l\'analyse du trafic et la publicité',
+      'Fermer', 'En savoir plus', 'https://www.hardware.fr/html/donnees_personnelles/');
+  });
+</script>
+<style>
+#cookieChoiceInfo span
+,#cookieChoiceDismiss
+,#PlusCookieChoice{
+	font-family:Tahoma,Arial,Helvetica,sans-serif;
+}
+#cookieChoiceDismiss
+,#PlusCookieChoice
+{
+	color:black;
+	text-decoration:none;
+}
+#cookieChoiceDismiss:hover
+,#PlusCookieChoice:hover
+{
+	color:#cc6908;
+}
+</style>
+ <table cellspacing="0" cellpadding="0" width="98%" bgcolor="#000000" border="0" align="center" class="hfrheadmenu" style="border:1px solid #000;border-top:0;">
+        <tr>
+          <td style="vertical-align: top">
+            <table cellspacing="0" cellpadding="0" width="100%" border="0">
+              <tr>
+                <td style="width: 100%" align="left" valign="middle" colspan="2" class="header2"><span class="md_cryptlink45CBCBC0C22D1F1FCCCCCC19454AC14BCC4AC1431944C1"><img src="/img/forum_logo.gif" width="900" height="71" border="0" alt="" /></span></td>
+              </tr>
+              <tr>
+                <td style="background-color:#001932">
+                  <table cellspacing="0" cellpadding="2" width="100%" border="0">
+                    <tr>
+                      <td>&nbsp;<a class="cHeader" href="/">Forum</a>&nbsp;|&nbsp;
+<a class="cHeader" href="https://www.hardware.fr/">HardWare.fr</a>&nbsp;|&nbsp;<a class="cHeader" href="https://www.hardware.fr/html/news/">News</a>&nbsp;|&nbsp;<a class="cHeader" href="https://www.hardware.fr/html/articles/">Articles</a>&nbsp;|&nbsp;<a class="cHeader" href="https://www.hardware.fr/articles/786-1/guide-pc-hardware-fr.html">PC</a>&nbsp;|&nbsp;<span class="md_cryptlink1F484F4C464919C045C02F424F4944464C2E454AC14BCC4AC14344C119464942">S'identifier</span>&nbsp;|&nbsp;<span class="md_cryptlink1F4649C242C146C0CB464F4919C045C02F424F4944464C2E454AC14BCC4AC14344C119464942">S'inscrire</span>&nbsp;|&nbsp;<a class="cHeader" href="https://shop.hardware.fr/" target="_blank" style="position: relative; padding: 0 21px 0 0;display: inline-block;">Shop <img src="/img/shop.png" style="height: 17px; display: inline; position: absolute; right: 0; top: -2px; "></a></td>
+<td align="right"><a class="cHeader" href="/search.php?config=hardwarefr.inc&cat=13&subcat=433">Recherche <img src="//forum-images.hardware.fr/themes_static/images_forum/1/ongletsearch.gif"></a></td>
+                    </tr>
+                    </table></td></tr></table>
+</td></tr></table><div style="width: 99%" align="right">
+<span class="s2Ext menuExt"><span class="md_cryptlink1F4F494846494319C045C02F424F4944464C2E454AC14BCC4AC14344C119464942">3107 connect&eacute;s&nbsp;</span></span></div><br /><div class="container"><div class="mesdiscussions" id="mesdiscussions"><div class="arbo">
+<span  id="md_arbo_tree_1" ><img src="https://forum-images.hardware.fr/themes_static/images_forum/1/open.gif" alt="" />&nbsp;&nbsp;<a href="/" class="Ext">FORUM HardWare.fr</a></span>
+<br />
+<span  id="md_arbo_tree_2" ><img src="https://forum-images.hardware.fr/themes_static/images_forum/1/tline.gif" alt="" /><img src="https://forum-images.hardware.fr/themes_static/images_forum/1/open.gif" alt="" />&nbsp;&nbsp;<a href="/hfr/Discussions/liste_sujet-1.htm" class="Ext">Discussions</a></span>
+<br />
+<span  id="md_arbo_tree_3" ><img src="https://forum-images.hardware.fr/themes_static/images_forum/1/tline3.gif" alt="" /><img src="https://forum-images.hardware.fr/themes_static/images_forum/1/open.gif" alt="" />&nbsp;&nbsp;<a href="/hfr/Discussions/Cuisine/liste_sujet-1.htm" class="Ext">Cuisine</a></span>
+<br />
+<h1  id="md_arbo_tree_4" ><img src="https://forum-images.hardware.fr/themes_static/images_forum/1/tline4.gif" alt="" /><img src="https://forum-images.hardware.fr/themes_static/images_forum/1/open.gif" alt="" />&nbsp;&nbsp;<a href="/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm" class="Ext">Topic pizza maison</a></h1>
+</div><div class="rightbutton fastsearch"><table class="main fastsearchMain" cellspacing="0" cellpadding="2"><tr class="cBackHeader fondForumDescription"><th><form method="post" id="fastsearch" action="/forum1.php"><input type="hidden" name="hash_check" value="" /><label for="fastsearchinputid"><a rel="nofollow" href="/search.php?config=hfr.inc&amp;cat=13&amp;subcat=433" class="cHeader fastsearchHeader">Recherche :</a>&nbsp;<input type="text" name="search" id="fastsearchinputid" value="" class="fastsearchInput" alt="Search string" /></label><input type="hidden" name="recherches" value="1" /><input type="hidden" name="searchtype" value="1" /><input type="hidden" name="titre" value="3" /><input type="hidden" name="resSearch" value="200" /><input type="hidden" name="orderSearch" value="1" /><input type="hidden" name="config" value="hfr.inc" /><input type="hidden" name="cat" value="13" /><input type="hidden" name="subcat" value="433" />&nbsp;<input type="image" src="https://forum-images.hardware.fr/themes_static/images_forum/1/ongletsearch.gif" class="fastsearchSubmit" title="Lancer une recherche" alt="Lancer une recherche" /></form></th></tr></table></div><div class="spacer">&nbsp;</div><br /><div></div><br /><table class="main" style="margin:auto;" cellspacing="0" cellpadding="4">
+				<tr class="cBackHeader">
+				<th colspan="2">Dernière réponse</th>
+			</tr>
+			<tr class="reponse">
+				<th colspan="2">
+					Sujet : Topic pizza maison</th>
+			</tr><tr class="reponse">
+				<td class="messCase1bis" width="160" valign="top">user3</td>
+				<td>par chez moi certains mettent les pizzas cuites sous vide. Je prefere mes pizzas fraiches, je fais la pate une ou deux jours avant mes jours de repos, le matin du jour de cuisson tu les sors du frigo et tu fais chauffer la pierre.<br />c'est pas si chronophage que cela, meme si, ok mes garnitures sont pas les plus folichons.<br />l'oignon congele devient bien mou<br />sympa la video, je vais re-regarder avec un peu de temps. je venais juste de penser a utiliser un sourdogh starter, voulant changer des napolitaines.<div style="clear: both;"> </div></td>
+			</tr>
+			</table><br /><a name="formulaire"></a><form name="hop" id="hop" action="/bddpost.php?config=hfr.inc" method="post" onsubmit=" 
+	return verif_join_form();
+	document.hop.submit.style.visibility='hidden';"><input type="hidden" name="hash_check" value="" />	<input type="hidden" name="subcat" value="433" />
+<input type="hidden" name="parents" value="" />
+<input type="hidden" name="post" value="28563" />
+<input type="hidden" name="stickold" value="0" />
+<input type="hidden" name="new" value="0" />
+<input type="hidden" name="cat" id="catid" value="13" />
+<input type="hidden" name="numreponse" value="" />
+<input type="hidden" name="numrep" value="" />
+<input type="hidden" name="page" value="1" />
+<input type="hidden" name="verifrequet" value="1100" />
+<input type="hidden" name="p" value="1" />
+<input type="hidden" name="sondage" value="0" />
+<input type="hidden" name="sond" value="0" />
+<input type="hidden" name="cache" value="cache" />
+<input type="hidden" name="owntopic" value="0" />
+<input type="hidden" name="config" id="configid" value="hfr.inc" />
+<input type="hidden" name="sujet" value="Topic pizza maison" /><table class="main" cellspacing="0" cellpadding="4" width="100%">
+	<tr class="cBackHeader">
+		<th colspan="2" style="text-align:center">Votre réponse</th>
+	</tr>
+	<tr class="reponse pseudoform" id="pseudoform">
+		<th class="repCase1">Nom d'utilisateur</th>
+		<td class="repCase2">
+			<input maxlength="25" accesskey="p" size="25" name="pseudo" value="" onfocus="passfocus()" />		&nbsp;&nbsp; <a href="/inscription.php?config=hfr.inc" class="Topic">Pour poster, vous devez être inscrit sur ce forum .... si ce n'est pas le cas, cliquez ici !</a>	</td>
+	</tr><tr class="reponse" style="display:none; display:none; " id="passf">
+		<th class="repCase1">Mot de passe</th>
+		<td class="repCase2">			<input type="password" maxlength="40" size="25" name="password" value="" />
+			&nbsp;&nbsp; <a href="/password.php?config=hfr.inc" class="Topic">Vous avez perdu votre mot de passe ? Cliquez ici !</a>
+		</td>
+	</tr><tr class="reponse">
+				<th class="repCase1">Le ton de votre message</th>
+					<td class="repCase2"><input id="icone1" type="radio" value="1" name="MsgIcon" checked="checked" />
+					&nbsp;<label for="icone1"><img src="https://forum-images.hardware.fr/icones/message/icon1.gif" alt="" /></label>&nbsp;<input id="icone2" type="radio" value="2" name="MsgIcon" />
+					&nbsp;<label for="icone2"><img src="https://forum-images.hardware.fr/icones/message/icon2.gif" alt="" /></label>&nbsp;<input id="icone3" type="radio" value="3" name="MsgIcon" />
+					&nbsp;<label for="icone3"><img src="https://forum-images.hardware.fr/icones/message/icon3.gif" alt="" /></label>&nbsp;<input id="icone4" type="radio" value="4" name="MsgIcon" />
+					&nbsp;<label for="icone4"><img src="https://forum-images.hardware.fr/icones/message/icon4.gif" alt="" /></label>&nbsp;<input id="icone5" type="radio" value="5" name="MsgIcon" />
+					&nbsp;<label for="icone5"><img src="https://forum-images.hardware.fr/icones/message/icon5.gif" alt="" /></label>&nbsp;<input id="icone6" type="radio" value="6" name="MsgIcon" />
+					&nbsp;<label for="icone6"><img src="https://forum-images.hardware.fr/icones/message/icon6.gif" alt="" /></label>&nbsp;<input id="icone7" type="radio" value="7" name="MsgIcon" />
+					&nbsp;<label for="icone7"><img src="https://forum-images.hardware.fr/icones/message/icon7.gif" alt="" /></label>&nbsp;<input id="icone8" type="radio" value="8" name="MsgIcon" />
+					&nbsp;<label for="icone8"><img src="https://forum-images.hardware.fr/icones/message/icon8.gif" alt="" /></label>&nbsp;<br /><input id="icone9" type="radio" value="9" name="MsgIcon" />
+					&nbsp;<label for="icone9"><img src="https://forum-images.hardware.fr/icones/message/icon9.gif" alt="" /></label>&nbsp;<input id="icone10" type="radio" value="10" name="MsgIcon" />
+					&nbsp;<label for="icone10"><img src="https://forum-images.hardware.fr/icones/message/icon10.gif" alt="" /></label>&nbsp;<input id="icone11" type="radio" value="11" name="MsgIcon" />
+					&nbsp;<label for="icone11"><img src="https://forum-images.hardware.fr/icones/message/icon11.gif" alt="" /></label>&nbsp;<input id="icone12" type="radio" value="12" name="MsgIcon" />
+					&nbsp;<label for="icone12"><img src="https://forum-images.hardware.fr/icones/message/icon12.gif" alt="" /></label>&nbsp;<input id="icone13" type="radio" value="13" name="MsgIcon" />
+					&nbsp;<label for="icone13"><img src="https://forum-images.hardware.fr/icones/message/icon13.gif" alt="" /></label>&nbsp;<input id="icone14" type="radio" value="14" name="MsgIcon" />
+					&nbsp;<label for="icone14"><img src="https://forum-images.hardware.fr/icones/message/icon14.gif" alt="" /></label>&nbsp;<input id="icone15" type="radio" value="15" name="MsgIcon" />
+					&nbsp;<label for="icone15"><img src="https://forum-images.hardware.fr/icones/message/icon15.gif" alt="" /></label>&nbsp;<input id="icone16" type="radio" value="16" name="MsgIcon" />
+					&nbsp;<label for="icone16"><img src="https://forum-images.hardware.fr/icones/message/icon16.gif" alt="" /></label>&nbsp;</td>
+			</tr><tr class="reponse">
+		<th class="repCase1">Votre réponse<br /><br /><br />
+			<div><div class="center">	<a target="_blank" href="/smilies.php?config=hfr.inc" class="s1Topic">Smilies</a>
+				<br />&nbsp;
+				<div class="smiley">
+					<div>
+						<img src="https://forum-images.hardware.fr/icones/smilies/pfff.gif" alt=":pfff:" title=":pfff:" onclick="putSmiley(this.alt,this.src)" /><br />
+						<img src="https://forum-images.hardware.fr/icones/smilies/ange.gif" alt=":ange:" title=":ange:" onclick="putSmiley(this.alt,this.src)" /><br />
+						<img src="https://forum-images.hardware.fr/icones/smilies/non.gif" alt=":non:" title=":non:" onclick="putSmiley(this.alt,this.src)" /><br />
+						<img src="https://forum-images.hardware.fr/icones/smilies/bounce.gif" alt=":bounce:" title=":bounce:" onclick="putSmiley(this.alt,this.src)" />
+					</div>
+					<div>
+						<img src="https://forum-images.hardware.fr/icones/smile.gif" alt=":)" title=":)" onclick="putSmiley(this.alt,this.src)" /><br />
+						<img src="https://forum-images.hardware.fr/icones/frown.gif" alt=":(" title=":(" onclick="putSmiley(this.alt,this.src)" /><br />
+						<img src="https://forum-images.hardware.fr/icones/biggrin.gif" alt=":D" title=":D" onclick="putSmiley(this.alt,this.src)" /><br />
+						<img src="https://forum-images.hardware.fr/icones/wink.gif" alt=";)" title=";)" onclick="putSmiley(this.alt,this.src)" /><br />
+						<img src="https://forum-images.hardware.fr/icones/smilies/ouch.gif" alt=":ouch:" title=":ouch:" onclick="putSmiley(this.alt,this.src)" />
+					</div>
+					<div>
+						<img src="https://forum-images.hardware.fr/icones/redface.gif" alt=":o" title=":o" onclick="putSmiley(this.alt,this.src)" /><br />
+						<img src="https://forum-images.hardware.fr/icones/confused.gif" alt=":??:" title=":??:" onclick="putSmiley(this.alt,this.src)" /><br />
+						<img src="https://forum-images.hardware.fr/icones/tongue.gif" alt=":p" title=":p" onclick="putSmiley(this.alt,this.src)" /><br />
+						<img src="https://forum-images.hardware.fr/icones/smilies/na.gif" alt=":na:" title=":na:" onclick="putSmiley(this.alt,this.src)" /><br />
+						<img src="https://forum-images.hardware.fr/icones/smilies/sarcastic.gif" alt=":sarcastic:" title=":sarcastic:" onclick="putSmiley(this.alt,this.src)" />
+					</div>
+					<div>
+						<img src="https://forum-images.hardware.fr/icones/smilies/fou.gif" alt=":fou:" title=":fou:" onclick="putSmiley(this.alt,this.src)" /><br />
+						<img src="https://forum-images.hardware.fr/icones/smilies/jap.gif" alt=":jap:" title=":jap:" onclick="putSmiley(this.alt,this.src)" /><br />
+						<img src="https://forum-images.hardware.fr/icones/smilies/lol.gif" alt=":lol:" title=":lol:" onclick="putSmiley(this.alt,this.src)" /><br />
+						<img src="https://forum-images.hardware.fr/icones/smilies/wahoo.gif" alt=":wahoo:" title=":wahoo:" onclick="putSmiley(this.alt,this.src)" /><br />
+						<img src="https://forum-images.hardware.fr/icones/smilies/kaola.gif" alt=":kaola:" title=":kaola:" onclick="putSmiley(this.alt,this.src)" />
+					</div>
+					<div>
+						<img src="https://forum-images.hardware.fr/icones/smilies/love.gif" alt=":love:" title=":love:" onclick="putSmiley(this.alt,this.src)" /><br />
+						<img src="https://forum-images.hardware.fr/icones/smilies/heink.gif" alt=":heink:" title=":heink:" onclick="putSmiley(this.alt,this.src)" /><br />
+						<img src="https://forum-images.hardware.fr/icones/smilies/cry.gif" alt=":cry:" title=":cry:" onclick="putSmiley(this.alt,this.src)" /><br />
+						<img src="https://forum-images.hardware.fr/icones/smilies/whistle.gif" alt=":whistle:" title=":whistle:" onclick="putSmiley(this.alt,this.src)" /><br />
+						<img src="https://forum-images.hardware.fr/icones/smilies/sol.gif" alt=":sol:" title=":sol:" onclick="putSmiley(this.alt,this.src)" />
+					</div>
+					<div>
+						<img src="https://forum-images.hardware.fr/icones/smilies/pt1cable.gif" alt=":pt1cable:" title=":pt1cable:" onclick="putSmiley(this.alt,this.src)" /><br />
+						<img src="https://forum-images.hardware.fr/icones/smilies/sleep.gif" alt=":sleep:" title=":sleep:" onclick="putSmiley(this.alt,this.src)" /><br />
+						<img src="https://forum-images.hardware.fr/icones/smilies/sweat.gif" alt=":sweat:" title=":sweat:" onclick="putSmiley(this.alt,this.src)" /><br />
+						<img src="https://forum-images.hardware.fr/icones/smilies/hello.gif" alt=":hello:" title=":hello:" onclick="putSmiley(this.alt,this.src)" />
+					</div>
+				</div>
+				<div class="spacer">&nbsp;</div>
+				<br /><a href="/wikismilies.php?config=hfr.inc&amp;threecol=1" target="_blank" class="s1Topic">Liste des smilies perso</a><br /><a target="_blank" href="/wikismilies.php?config=hfr.inc" class="s1Topic">Wiki smilies</a><br /><span class="small">Chercher un smiley<br /><div id="dynamic_smilies"></div></div></div></th><td class="repCase2" valign="top">		<div class="left">
+				<img style="cursor:pointer" class="text_bold" onclick="TAinsert('[b]','[/b]');" title="Mettre en gras le texte. Syntaxe : [b]texte[/b]" alt="[b]" src="https://forum-images.hardware.fr/icones/message/bold.gif" width="27" height="28" /><img
+				style="cursor:pointer" class="text_ita" onclick="TAinsert('[i]','[/i]');" title="Mettre en italique le texte. Syntaxe : [i]texte[/i]" alt="[i]" src="https://forum-images.hardware.fr/icones/message/italic.gif" width="25" height="28" /><img
+				style="cursor:pointer" class="text_under" onclick="TAinsert('[u]','[/u]');" title="Souligner le texte. Syntaxe : [u]texte[/u]" alt="[u]" src="https://forum-images.hardware.fr/icones/message/underline.gif" width="26" height="28" /><img
+				style="cursor:pointer" class="text_strike" onclick="TAinsert('[strike]','[/strike]');" title="Barrer le texte. Syntaxe : [strike]texte[/strike]" alt="[strike]" src="https://forum-images.hardware.fr/icones/message/strike.gif" width="26" height="28" /><img
+				style="cursor:pointer" class="text_spoiler" onclick="TAinsert('[spoiler]','[/spoiler]');" title="Masquer le texte. Syntaxe : [spoiler]texte[/spoiler]" alt="[spoiler]" src="https://forum-images.hardware.fr/icones/message/spoiler.gif" width="26" height="28" /><img
+				style="cursor:pointer" class="text_fixed" onclick="TAinsert('[fixed]','[/fixed]');" title="Ecrire avec une police de taille fixe. Syntaxe : [fixed]texte[/fixed]" alt="[fixed]" src="https://forum-images.hardware.fr/icones/message/fixe.gif" width="26" height="28" /><img
+				style="cursor:pointer" class="cpp" onclick="TAinsert('[cpp]','[/cpp]');" title="Insérer du code C/C++. Syntaxe : [cpp]texte[/cpp]" alt="[cpp]" src="https://forum-images.hardware.fr/icones/message/c.gif" width="26" height="28" /><img
+				style="cursor:pointer" class="text_url" onclick="TAinsert('[url]','[/url]');" title="Insérer une URL. Syntaxe : [url]texte[/url]" alt="[url]" src="https://forum-images.hardware.fr/icones/message/url.gif" width="26" height="28" /><img
+				style="cursor:pointer" class="text_email" onclick="TAinsert('[email]','[/email]');" title="Insérer une adresse email. Syntaxe : [email]redacted@example.invalid[/email]" alt="[email]" src="https://forum-images.hardware.fr/icones/message/email.gif" width="26" height="28" /><img
+				style="cursor:pointer" class="image" onclick="TAinsert('[img]','[/img]');" title="Insérer une image. Syntaxe : [img]http://www.exemple.com/exemple.jpg[/img]" alt="[img]" src="https://forum-images.hardware.fr/icones/message/image.gif" width="26" height="28" /><img
+				style="cursor:pointer" class="text_puce" onclick="TAinsert('[*]','');" title="Insérer une puce. Syntaxe : [*]texte" alt="[*]" src="https://forum-images.hardware.fr/icones/message/puce.gif" width="23" height="28" />
+				&nbsp;&nbsp;
+			</div>
+			<div class="left" style="width:270px;">
+				<table class="none" style="margin-top:6px; border:0px" id="ColorPanel" cellspacing="0" cellpadding="0">
+					<tr>
+						<td style="margin:0; padding:0; line-height:10px; cursor:pointer; width:15px; border:1px solid #000000" id="ColorUsed" title="Dernière couleur sélectionnée"><img src="https://forum-images.hardware.fr/icones/trans.gif" alt="" width="15" height="17" onclick="TAinsert('['+document.getElementById('ColorUsed').bgColor+']','[/'+document.getElementById('ColorUsed').bgColor+']');" style="padding:0; margin:0" /><input type="hidden" value="" name="ColorUsedMem" id="ColorUsedMem" /></td>
+						<td width="5" style="margin:0; padding:0">&nbsp;
+							<script language="JavaScript" type="text/javascript">
+								rgb(0,col0,0,'https://forum-images.hardware.fr/icones/trans.gif','Mettre du texte en couleur');
+								rgb(18,col1,50,'https://forum-images.hardware.fr/icones/trans.gif','Mettre du texte en couleur');
+								rgb(36,col2,100,'https://forum-images.hardware.fr/icones/trans.gif','Mettre du texte en couleur');
+								rgb(0,col3,150,'https://forum-images.hardware.fr/icones/trans.gif','Mettre du texte en couleur');
+							</script>
+						</td>
+					</tr>
+				</table>
+			</div>
+			<div class="left">
+				&nbsp;&nbsp;
+				<img style="cursor:pointer" onclick="TAinsert('[quote]','[/quote]');" title="Insérer une citation. Syntaxe : [quote]texte[/quote]" alt="[quote]" src="https://forum-images.hardware.fr/icones/message/citation.gif" width="69" height="28" />
+			</div>
+			<div class="spacer">&nbsp;</div>
+	<br /><textarea cols="75" rows="14" class="contenu" name="content_form" id="content_form" accesskey="c"></textarea><input type="hidden" name="wysiwyg" value="0" />
+<input onclick=" return verif_not_empty()" type="submit" accesskey="s" value="Valider votre message" name="submit" /><input type="button" accesskey="a" value="Aperçu" onclick="apercevoir();" />		<div id="addCommentMessage"></div>
+		</td>
+	</tr>
+	<tr class="reponse">
+		<th class="repCase1">Options</th>
+		<td class="repCase2" style="font-weight:bold">	<input class="checkbox opt" type="checkbox" value="1" name="signature" id="signature" /><label for="signature">Activer votre signature</label>
+	<br /><input class="checkbox opt" type="checkbox" value="1" name="smiley" id="smiley" /><label for="smiley">Désactiver les smilies</label>
+	<br /><input class="checkbox opt" type="checkbox" value="1" name="emaill" id="emaill" /><label for="emaill">Activer la notification par email du sujet</label>
+	&nbsp;</td></tr></table></form><table class="main" cellspacing="0" cellpadding="4" width="100%">		<tr style="display:none" id="apercu" class="reponse">
+			<th class="repCase1">Aperçu</th>
+			<th class="repCase2"><iframe name="apercu_frame" id="apercu_frame" style="border:0px" src=""></iframe></th>
+		</tr>
+	</table><form action="/apercu.php" target="apercu_frame" method="post" name="apercu_form" id="apercu_form">
+<input type="hidden" name="hash_check" value="" /><input type="hidden" name="apercu_contenu" id="apercu_contenu" value="" />
+<input type="hidden" name="apercu_smiley" id="apercu_smiley" value="" />
+<input type="hidden" name="config" value="hfr.inc" />
+</form>
+<a href="/password.php?config=hfr.inc" class="s2Ext">Vous avez perdu votre mot de passe ?</a>
+<br />
+<br />
+
+<br /><table class="main" cellspacing="0" cellpadding="4" width="100%">
+			<tr class="cBackHeader">
+				<th class="padding">Vue Rapide de la discussion</th>
+			</tr>
+		</table>		<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#DEDFDF">
+						<td class="messCase1bis" width="160" valign="top">user4</td>
+			<td>Bon, voici ma recette pour la pâte à pizza.<br />&nbsp;<br />1/ Ingrédients pour 3-4 personnes<br />&nbsp;<br /></p><ul><li>500g de farine blanche</li><li>3 dl d'eau tiède</li><li>3 c.s d'huile d'olive extra-vierge</li><li>3 c.c de sel</li><li>40g de levure de boulanger</li><li>une pincée de sucre</li></ul><p><br />2/ Préparation, dans un grand saladier en plastique<br />&nbsp;<br />a) faire fondre la levure dans de l'eau tiède tirée des 3 dl mesurés dans une tasse<br />b) mélanger la farine, le sel et le sucre dans le saladier<br />c) faire une fontaine avec le mélange dans le saladier et verser le contenu de la tasse<br />d) rajouter l'huile<br />e) commencer à pétrir et rajouter de l'eau progressivement<br />&nbsp;<br />la quantité d'eau est donnée de façon approximative. Il faut parfois en rajouter un peu à la fin (si la pâte est trop dure) ou au contraire en mettre un peu moins (ou ajouter un peu de farine si on en a mis trop). Il faut pétrir environ 20 minute. Une fois que c'est fait, il faut couvrir le saladier avec un torchon de cuisine propre et une couverture. La pâte doit doubler de volume, ça prends environ 2-3 heures. Placer à un endroit chaud, à l'abris des courants d'air.<br />&nbsp;<br />Ne pas oublier de goûter la pâte pour savoir si elle est assez salée !!<br />&nbsp;<br />[:user5]<div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#F7F7F7">
+						<td class="messCase1bis" width="160" valign="top">user6</td>
+			<td></p><div class="container"><table class="citation"><tr class="none"><td><b class="s1"><a href="/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm#t3195697" class="Topic">user7 a écrit :</a></b><br /><br /><p>Photo de mes pizzas &#034;maison&#034; :<br /><a rel="nofollow" href="http://panda2k3.free.fr/pizza01.jpg" target="_blank" class="cLink">http://panda2k3.free.fr/pizza01.jpg</a><br /><a rel="nofollow" href="http://panda2k3.free.fr/pizza_2502.jpg" target="_blank" class="cLink">http://panda2k3.free.fr/pizza_2502.jpg</a><br />&nbsp;<br />La pâte est faite à....la machine à pain.<br />&nbsp;<br />C'est trop bon &nbsp;:love:<br /></p></td></tr></table></div><p> :love: [:user8][:user9]<div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#DEDFDF">
+						<td class="messCase1bis" width="160" valign="top">user10</td>
+			<td>et on peut mettre de la levure chimique a la place de la levure de boulanger ? :/<br />&nbsp;<br />quand j'en fais, la pate a un peu trop le gout du pain :/<div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#F7F7F7">
+						<td class="messCase1bis" width="160" valign="top">user11</td>
+			<td>la pate !! la pate::<br />vitte !!!<br /><div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#DEDFDF">
+						<td class="messCase1bis" width="160" valign="top">user12</td>
+			<td>La pate m'a l'air vraiment pas mal comment tu l'as faite panda?<div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#F7F7F7">
+						<td class="messCase1bis" width="160" valign="top">user13</td>
+			<td>Oui, la recette, Panda ^^<div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#DEDFDF">
+						<td class="messCase1bis" width="160" valign="top">user11</td>
+			<td>panda &nbsp;<br />tu peux nous donner la recette de ta pate a pizza (machine a pain) et ta recette de pizza &nbsp;<br />&nbsp;<br />strokool<br />+++<br /><div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#F7F7F7">
+						<td class="messCase1bis" width="160" valign="top">user14</td>
+			<td>J'm'en taperais bien une tout de suite :/<div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#DEDFDF">
+						<td class="messCase1bis" width="160" valign="top">user15</td>
+			<td>Bon user4 si tu passes par là donne-leur ta recette ... ses pizzas sont trop bonnes !!!!!! [:user5] :D (les italiens, y a que ça de vrai :whistle: )<br />pout la pâte je sais plus trop la recette, mais quelques conseils que je peux donner comme ça ... la pâte il faut la faire gonfler (env. 2h) dans un très grand saladier pour qu'elle puisse prendre de la place, si possible couvrir le saladier (avec une couverture) et le mettre dans un endroit chaud pour que la levure fasse son effet (près d'un radiateur l'hiver).<br />Autrement, pour la sauce, nous on prend en général des boites de tomtates pelées qu'on mixe et dans les lesquelles on rajoute de l'huile d'olive et de l'origan et qu'on sale. Pour que ça reste bon, moi j'en étale sur toute la pizza mais en couche très fine. &nbsp;<br />Le four, il faut qu'il soit très chaud (le notre, un four électrique on le met à 250°) et pas besoin de plaques spéciales, nous on la fait tout simplement dans les grandes plaques du four, dans de grandes plaques à tarte, etc.<div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#F7F7F7">
+						<td class="messCase1bis" width="160" valign="top">user13</td>
+			<td>Wow, merci pour les conseils. Je m'y remet dès ce soir!<div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#DEDFDF">
+						<td class="messCase1bis" width="160" valign="top">user7</td>
+			<td>Photo de mes pizzas &#034;maison&#034; :<br /><a rel="nofollow" href="http://panda2k3.free.fr/pizza01.jpg" target="_blank" class="cLink">http://panda2k3.free.fr/pizza01.jpg</a> &nbsp;<br /><a rel="nofollow" href="http://panda2k3.free.fr/pizza_2502.jpg" target="_blank" class="cLink">http://panda2k3.free.fr/pizza_2502.jpg</a> &nbsp;<br />&nbsp;<br />La pâte est faite à....la machine à pain.<br />&nbsp;<br />C'est trop bon &nbsp;:love: <div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#F7F7F7">
+						<td class="messCase1bis" width="160" valign="top">user16</td>
+			<td></p><div class="container"><table class="citation"><tr class="none"><td><b class="s1"><a href="/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm#t3190346" class="Topic">user17 a écrit :</a></b><br /><br /><p>+ huile d'olive !!<br /></p></td></tr></table></div><p><br />&nbsp;<br />C'est évident &nbsp;:) <div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#DEDFDF">
+						<td class="messCase1bis" width="160" valign="top">user18</td>
+			<td></p><div class="container"><table class="citation"><tr class="none"><td><b class="s1"><a href="/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm#t2666682" class="Topic">user19 a écrit :</a></b><br /><br /><p><a rel="nofollow" href="http://bibi.hn.org/~bibi/user37/P0002208.JPG" target="_blank" class="cLink">http://bibi.hn.org/~bibi/user37/P0002208.JPG</a><br />&nbsp;<br />y a pas de fromage car je ne suis pas fan :d<br /></p></td></tr></table></div><p>P'tain user38 a les memes gouts !!! :D <div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#F7F7F7">
+						<td class="messCase1bis" width="160" valign="top">user17</td>
+			<td></p><div class="container"><table class="citation"><tr class="none"><td><b class="s1"><a href="/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm#t3184809" class="Topic">user16 a écrit :</a></b><br /><br /><p>C'est vrai que la sauce user39 est très importante, le coulis de user39 brut est trop fade et il risque de ramolir la pate car trop d'eau, et comme je n'aime pas trop le gout du concentré pour moi le meilleur est le coulis amélioré, mijoté dans une casserole pour le faire réduire avec un peu d'oignons , et du basilic ou thym/herbes de provences selon le gout.<br />On obient ainsi une sauce user39 digne de ce nom et pas trop liquide.<br />&nbsp;<br /><br /></p></td></tr></table></div><p><br />&nbsp;<br />+ huile d'olive !!<div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#DEDFDF">
+						<td class="messCase1bis" width="160" valign="top">user16</td>
+			<td>C'est vrai que la sauce user39 est très importante, le coulis de user39 brut est trop fade et il risque de ramolir la pate car trop d'eau, et comme je n'aime pas trop le gout du concentré pour moi le meilleur est le coulis amélioré, mijoté dans une casserole pour le faire réduire avec un peu d'oignons , et du basilic ou thym/herbes de provences selon le gout.<br />On obient ainsi une sauce user39 digne de ce nom et pas trop liquide.<br />&nbsp;<br />Ensuite pour la pate ce qui est super bon c'est la pate à pain : la vrai hein ! pas celle de carouf toute prête, non celle du boulanger. Chez moi je peux commander à mon boulanger de la pate crue pour faire de la pizza (je sais plus si c'est l'équivalent d'une demi baguette ou d'une baguette pour une pizza).<br />&nbsp;<br />Après, un petit tour dans le frigo pour la garniture <a rel="nofollow" href="http://yelims.free.fr/Faim/Faim17.gif" target="_blank" class="cLink">http://yelims.free.fr/Faim/Faim17.gif</a> &nbsp;et pour la cuisson il faut pousser le four dans ses derniers retranchements : à fond (généralement 250°C) et surtout attendre qu'il soit à la température avant de mettre la pizza, ensuite cuisson sans ouvrir la porte.<br />&nbsp;<br />Et voila <a rel="nofollow" href="http://yelims.free.fr/Faim/Faim01.gif" target="_blank" class="cLink">http://yelims.free.fr/Faim/Faim01.gif</a> &nbsp;<br /><div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#F7F7F7">
+						<td class="messCase1bis" width="160" valign="top">user20</td>
+			<td></p><div class="container"><table class="citation"><tr class="none"><td><b class="s1"><a href="/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm#t2677462" class="Topic">user21 a écrit :</a></b><br /><br /><p>Ensuite, tu mets un peu de concentré de tomates dessus (briquettes Heinz dans le commerce), [...]<br /></p></td></tr></table></div><p><br />Le coulis de user39, c'est franchement pas terrible, trop fluide, pas assez de gout.<br />Pour mes pizzas, perso, j'utilise du double concentré de user39 : ça se trouve en petites boites métal, pas en pack, et c'est d'une force !!!! Avec une garniture au choix, un peu de parmesan et un filet d'huile d'olive, ça donne une pizza puissance 10 :) :) :)<div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#DEDFDF">
+						<td class="messCase1bis" width="160" valign="top">user17</td>
+			<td>faut faire une recette illustrée :o<div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#F7F7F7">
+						<td class="messCase1bis" width="160" valign="top">user11</td>
+			<td>ca sert a quoi une plaque chamotte? <div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#DEDFDF">
+						<td class="messCase1bis" width="160" valign="top">user11</td>
+			<td>salut tout le monde &nbsp;<br />est ce qu'un robot menager peut faire la pate a pizza (pate a pain)<br /><div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#F7F7F7">
+						<td class="messCase1bis" width="160" valign="top">user22</td>
+			<td></p><div class="container"><table class="citation"><tr class="none"><td><b class="s1"><a href="/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm#t2666682" class="Topic">user19 a écrit :</a></b><br /><br /><p><a rel="nofollow" href="http://bibi.hn.org/~bibi/user37/P0002208.JPG" target="_blank" class="cLink">http://bibi.hn.org/~bibi/user37/P0002208.JPG</a><br />&nbsp;<br />y a pas de fromage car je ne suis pas fan :d<br /><br /></p></td></tr></table></div><p><br />&nbsp;<br />c'est quoi sa ?? &nbsp;:heink: <div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#DEDFDF">
+						<td class="messCase1bis" width="160" valign="top">user21</td>
+			<td>Les connaisseurs auront corrigés d'eux-mêmes :<br />à la ligne 6, i l faut lire :<br />Tu remplis de gobelet d'EAU.<br />@+<div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#F7F7F7">
+						<td class="messCase1bis" width="160" valign="top">user21</td>
+			<td>Ah la la...<br />Bon.<br />&nbsp;<br />TU prends un gobelet.<br />Tu le remplis 3 fois de farine T55 (blanche tout venant, la moins chère).<br />Tu remplis le gobelet.<br />Tu prends une cuillère à café que tu remplis 2 fois de levure style &#034;briochin&#034; (pas de la chimique, hein...).<br />Tu mets une cuillère et demi de sel.<br />Tu pétris tout ça.<br />Tu laisses lever à température ambiante, disons une heure.<br />Tu repétris.<br />Tu re laisses lever à température ambiante, disons une heure.<br />Tu fais des boulettes que tu applatis, soit à la main comme à la télé, soit avec un rouleau, soit avec une bonne bouteille solide si t'as pas le matos... le tout sur une surface farinée (style écran LCD 17 pouces !!!!). Tu farines la galette des 2 côtés.<br />Ensuite, tu mets un peu de concentré de tomates dessus (briquettes Heinz dans le commerce), et tu garnis comme tu aimes... là, ça dépend de tes goûts, donc je ne rentre pas dans les détails...<br />Et hop, un coup au four, gril, tu surveilles, et quand ça brunit, voire noircit... selon ta préférence, tu sers... Tu peux rajouter un filet d'huile dessus à la sortie du four, olive bien sûr...<br />et hop... miaaaaaammmmmmmmmm<br />J'en fais pour les apéros dinatoires, et personne ne s'est jamais plaint !!!!<br /><div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#DEDFDF">
+						<td class="messCase1bis" width="160" valign="top">user23</td>
+			<td>Ben quand je décide d'en faire, j'appel mes parents pour la recette car je m'en rappelle jamais et j'ai la flème de la marquer.<br />Le hic c ke la ils sont en vacances...<br />Désolé<div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#F7F7F7">
+						<td class="messCase1bis" width="160" valign="top">user13</td>
+			<td></p><div class="container"><table class="citation"><tr class="none"><td><b class="s1"><a href="/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm#t2674081" class="Topic">user23 a écrit :</a></b><br /><br /><p>Mes parents avaient une pizzeria il y a quelques années.<br />&nbsp;<br />La pate reste très bonne même décongelé. Enfin ca depend de la recette...<br /><br /></p></td></tr></table></div><p><br />&nbsp;<br />Et tu veux bien partager ta recette? &nbsp;:) <div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#DEDFDF">
+						<td class="messCase1bis" width="160" valign="top">user23</td>
+			<td>Mes parents avaient une pizzeria il y a quelques années.<br />Certe, le four est TRES important mais la pate l'est aussi !!<br />Mais ce qu'il y a, c qu'un pizzaiolo fait une patte pour plusieurs boules et non pas pour une seule. De ce fait, il est très difficile d'imaginer la recette pour une pizza unique, même en tenant compte des proportions...<br />&nbsp;<br />A savoir, quand je veux faire une pizza, je fais une pate pour 5 ou 6 pizza et je congele ce qui me reste. La pate reste très bonne même décongelé. Enfin ca depend de la recette...<br /><div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#F7F7F7">
+						<td class="messCase1bis" width="160" valign="top">user24</td>
+			<td>Je fais souvent mes pizza maison :love: &nbsp;<br />J'ai testé différentes recettes de pate, les boules de pate à pain carrefour, et les pates à pizza toutes faites de carrefour (Pub inside :whistle: )<br />&nbsp;<br />Au final je prend que les pates toutes faites, car elles sont bonne et au moins c'est rapide &nbsp;:D .<br />&nbsp;<br />Apres le secret pour une cuisson réussie, c'est d'avoir le four tres chaud, et je met la pizza sur une plaque froide en l'enfournant.<br />&nbsp;<br />Du coup, on a la pizza qui cuit plus uniformément, et la pate ne durcie pas. [:user25] &nbsp;<br />&nbsp;<br />Apres en garniture, c'est selon le gout.<br />&nbsp;<br />pizza saumon : pulpe de user39+creme, saumon fumé, gruyere rapé, mozzarella et origan, sel poivre.<br />&nbsp;<br />Pizza chorizo : pareil avec du chorizo à la place du saumon.<br />&nbsp;[:user26] &nbsp;[:user24] <div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#DEDFDF">
+						<td class="messCase1bis" width="160" valign="top">user27</td>
+			<td>Ya t-il des livreurs de pizza dans ce forum ???<div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#F7F7F7">
+						<td class="messCase1bis" width="160" valign="top">user13</td>
+			<td></p><div class="container"><table class="citation"><tr class="none"><td><b class="s1"><a href="/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm#t2668817" class="Topic">user28 a écrit :</a></b><br /><br /><p>Il faut acheter une plaque chamotte<br /><br /></p></td></tr></table></div><p><br />&nbsp;<br />Très chaud en dessous, ça a l'air d'une bonne idée, vais essayer. &nbsp;<br />Merci!<div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#DEDFDF">
+						<td class="messCase1bis" width="160" valign="top">user29</td>
+			<td>un barbecue à pizzas [:user30]<div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#F7F7F7">
+						<td class="messCase1bis" width="160" valign="top">user28</td>
+			<td>Il y a aussi des petits fours à pizza:<br />&nbsp;<br /><a rel="nofollow" href="http://www.azmaison.com/detailprod.asp?id=101" target="_blank" class="cLink">http://www.azmaison.com/detailprod.asp?id=101</a><br /><div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#DEDFDF">
+						<td class="messCase1bis" width="160" valign="top">user29</td>
+			<td></p><div class="container"><table class="citation"><tr class="none"><td><b class="s1"><a href="/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm#t2668817" class="Topic">user28 a écrit :</a></b><br /><br /><p>Il faut acheter une plaque chamotte:<br />&nbsp;<br /><a rel="nofollow" href="http://www.camif.fr/wwwSurf/images/loupes/1/2/C030100_639_10.jpg" target="_blank" class="cLink">http://www.camif.fr/wwwSurf/images [...] 639_10.jpg</a><br />&nbsp;<br /><a rel="nofollow" href="http://www.camif.fr/wwwSurf/pages/multimedia/OffreDuJour.asp?REFERENCE=125340" target="_blank" class="cLink">http://www.camif.fr/wwwSurf/pages/ [...] NCE=125340</a><br /><br /></p></td></tr></table></div><div class="container"><table class="quote"><tr class="none"><td><b class="s1">Citation :</b><br /><br /><p>La technologie utilisée pour réaliser cette rubrique nécessite que votre navigateur accepte les cookies mémoire.<br />&nbsp;<br />Merci de les activer dans les options de votre navigateur pour poursuivre votre visite.<br /></p></td></tr></table></div><p>mais va chier, site de merde! :fou:<br />&nbsp;<br />&nbsp;<br /><div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#F7F7F7">
+						<td class="messCase1bis" width="160" valign="top">user28</td>
+			<td>Il faut acheter une plaque chamotte:<br />&nbsp;<br /><a rel="nofollow" href="http://www.camif.fr/wwwSurf/images/loupes/1/2/C030100_639_10.jpg" target="_blank" class="cLink">http://www.camif.fr/wwwSurf/images [...] 639_10.jpg</a> &nbsp;<br />&nbsp;<br /><a rel="nofollow" href="http://www.camif.fr/wwwSurf/pages/multimedia/OffreDuJour.asp?REFERENCE=125340" target="_blank" class="cLink">http://www.camif.fr/wwwSurf/pages/ [...] NCE=125340</a><br /><div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#DEDFDF">
+						<td class="messCase1bis" width="160" valign="top">user13</td>
+			<td>Merki pour les réponses. &nbsp;<br />&nbsp;<br />Oui, je suis très conscient que le four a une grande importance. &nbsp;<br />&nbsp;<br />La pizz en photo là a l'air pas mal, comment est la pâte? Et, si coeur généreux ce soir, quelle en est la recette?<br />&nbsp;<br />Le 7 up (une cuillère à café) est pour alléger la pâte mais ça marche pas trop: pâte lourde pas cuite et très craquante sans être moelleuse.<div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#F7F7F7">
+						<td class="messCase1bis" width="160" valign="top">user31</td>
+			<td></p><div class="container"><table class="citation"><tr class="none"><td><b class="s1"><a href="/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm#t2666832" class="Topic">user32 a écrit :</a></b><br /><br /><p>les fours professionnels chauffent très fort et très vite, ce que ne sont pas capables de reproduire les fours domestiques,<br /><br /></p></td></tr></table></div><p><br />&nbsp;<br />et en allumant le mode pyrolise d'un four pour le nettoyage ça chauffe pas vite ?<br />&nbsp;<br />bon le pb sur certains modèles, c'est que la porte du four est bloquée à partir d'une certaine temperature, mais c'est un détail :o<br />&nbsp;<br />A+<div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#DEDFDF">
+						<td class="messCase1bis" width="160" valign="top">user29</td>
+			<td></p><div class="container"><table class="citation"><tr class="none"><td><b class="s1"><a href="/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm#t2666649" class="Topic">user13 a écrit :</a></b><br /><br /><p>recettes de pâtes à pizza (même avec le petit coup de seven up)<br /><br /></p></td></tr></table></div><p>[:user33]<div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#F7F7F7">
+						<td class="messCase1bis" width="160" valign="top">user32</td>
+			<td></p><div class="container"><table class="citation"><tr class="none"><td><b class="s1"><a href="/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm#t2666695" class="Topic">user34 a écrit :</a></b><br /><br /><p>s'pas une pizza alors [:user35]<br /><br /></p></td></tr></table></div><p><br />&nbsp;<br />Il y a des centaines &nbsp;de pizzas différentes et de très nombreuses sans fromage (et même certaines sans user39). &nbsp;<br />&nbsp;<br />Pour la pâte, il est vrai qu'il est difficile d'obtenir le même résultat qu'en pizzeria. Le secret réside en partie dans la cuisson et donc dans le four, les fours professionnels chauffent très fort et très vite, ce que ne sont pas capables de reproduire les fours domestiques, la pâte a donc tendance à lever au début de cuisson. Bref, pas grand chose à faire. Certains conseillent de mettre un oeuf dans la pâte. Personnellement je mets un peu d'huile d'olive et j'utilise de la levure de marque briochin. Je fais ensuite lever la pâte durant une heure ou deux, puis je l'étale sur une plaque à pizza (une vraie, pas un moule à tarte). Pour la garniture, chacun fait comme il veut, mais l'absence de fromage (de la mozzarella plutôt que de l'emmental) a tendance à dessécher la pizza, mettre plus de sauce dans ces cas là. Ne pas hésiter à arroser d'huile d'olive la pizza juste avant de la mettre au four. Le four doit être très chaud dès qu'on met la pizza (il est préférable de cuire à thermostat fort, mais peu de temps, que de &nbsp;cuire à thermostat faible longtemps). Attention à ne pas faire trop cuire la pizza sinon elle se durcit et devient sèche.<br />&nbsp;<br />Bref, il n'y a pas de secret dans la pizza, il faut avoir un bon four. Sinon pour ceux qui galèrent trop avec la pâte, je conseille d'aller faire un tour chez le boulanger et de commander de la pâte à pain de qualité. <div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#DEDFDF">
+						<td class="messCase1bis" width="160" valign="top">user19</td>
+			<td></p><div class="container"><table class="citation"><tr class="none"><td><b class="s1"><a href="/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm#t2666695" class="Topic">user34 a écrit :</a></b><br /><br /><p>s'pas une pizza alors [:user35]<br /><br /></p></td></tr></table></div><p><br />&nbsp;<br />ca y ressemble pas mal quand même et ca se mange :d<div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#F7F7F7">
+						<td class="messCase1bis" width="160" valign="top">user34</td>
+			<td></p><div class="container"><table class="citation"><tr class="none"><td><b class="s1"><a href="/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm#t2666682" class="Topic">user19 a écrit :</a></b><br /><br /><p><a rel="nofollow" href="http://bibi.hn.org/~bibi/user37/P0002208.JPG" target="_blank" class="cLink">http://bibi.hn.org/~bibi/user37/P0002208.JPG</a><br />&nbsp;<br />y a pas de fromage car je ne suis pas fan :d<br /><br /></p></td></tr></table></div><p><br />&nbsp;<br />s'pas une pizza alors [:user35]<div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#DEDFDF">
+						<td class="messCase1bis" width="160" valign="top">user19</td>
+			<td><a rel="nofollow" href="http://bibi.hn.org/~bibi/user37/P0002208.JPG" target="_blank" class="cLink">http://bibi.hn.org/~bibi/user37/P0002208.JPG</a> &nbsp;<br />&nbsp;<br />y a pas de fromage car je ne suis pas fan :d<div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+			<table cellspacing="0" cellpadding="4" width="100%">
+					<tr class="message" style="background-color:#F7F7F7">
+						<td class="messCase1bis" width="160" valign="top">user36</td>
+			<td><span style="color:#0055aa"> <span class="u"><strong>La pizza Napolitaine</span></strong></span> &nbsp;<br />&nbsp;<br />&nbsp;<br /><a rel="nofollow" href="http://img11.hostingpics.net/pics/99283950kalo.jpg" target="_blank" class="cLink">http://img11.hostingpics.net/pics/99283950kalo.jpg</a> &nbsp;<br />&nbsp;<br />&nbsp;<br /><span class="u"><strong>Méthode traditionnelle à température ambiante </span></strong><br />&nbsp;<br />&nbsp;<br /><strong>pour 12h à température ambiante:</strong><br />1600g de farine 00 W220<br />1l d'eau 2g de levure de bière<strong>*</strong> et 40g de sel marin<br />pétrissage long, 2h de pointage en vrac, façonnage des pâtons<br />10h d’apprêt &nbsp;<br />&nbsp;<br />&nbsp;<br /><strong>pour 18h à température ambiante:</strong><br />&nbsp;<br /><a rel="nofollow" href="http://www.italiasquisita.net/impasto-base-pizza-napoletana-dei-fratelli-salvo/" target="_blank" class="cLink">L’impasto base per la pizza napoletana dei fratelli Salvo</a><br />1500g de farine Caputo 00 W220<br />1l d'eau et 50g de sel marin<br />1g de levure de bière<strong>*</strong><br />pétrissage court, 10h de pointage en vrac, façonnage des pâtons<br />7-8h d’apprêt &nbsp;<br />&nbsp;<br />&nbsp;<br /><strong>pour 24h à température ambiante:</strong><br />1550g de Caputo Cuoco<br />1l d'eau et 50g de sel marin<br />50g de levain bien actif ou 0.7g de levure de bière<strong>*</strong><br />pétrissage court, 18h de pointage en vrac, façonnage des pâtons<br />6h d’apprêt &nbsp;<br />&nbsp;<br />&nbsp;<br />*La dose de levure est a adapter <a rel="nofollow" href="http://pizzanapo.fr/index.php?/topic/3-rafcalc/" target="_blank" class="cLink">à l'aide du calculateur RafCalc</a> suivant la température de votre cuisine.<br />&nbsp;<br />Pour le levain, il y a <a rel="nofollow" href="https://s14.postimg.cc/ye0e5k19d/levain.jpg" target="_blank" class="cLink">le tableau de TXCraig1</a><br />La dose maximale à utiliser pour une pizza napolitaine est de <strong>50g</strong> au litre. ( c'est le temps de maturation qui développe les arômes ) &nbsp;<br />&nbsp;<br />* on utilise une farine italienne '00' spéciale pizza, ou a défaut une farine de type 45 d'une force boulangère (W) <strong>choisie en fonction de la durée de maturation</strong> (pour une maturation courte a température ambiante, une farine de force moyenne W220-260 et pour une maturation longue ou pour le <a href="http://forum.hardware.fr/hfr/Discussions/Cuisine/unique-maison-francaise-sujet_28563_25.htm#t29181769" target="_blank" class="cLink">frigo</a>, une farine plus forte W300-330 ) &nbsp;<br />&nbsp;<br /><strong>Toujours utiliser une balance électronique pour tout peser! </strong><br />Vu la faible dose de levure utilisée, <strong> délayez la levure pour un litre </strong> puis utilisez la quantité dont vous avez besoin.<br />&nbsp;<br />&nbsp;<br />&nbsp;<br />&nbsp;<span style="color:#0055aa"> <span class="u"><strong>Ou trouver de la farine spécial pizza &nbsp;? </span></strong></span> &nbsp;<br />&nbsp;<br />&nbsp;<br /><a rel="nofollow" href="http://www.molinocaputo.it/index.php?module=ecommerce&amp;modulePage=prodotti" target="_blank" class="cLink">Caputo:</a> &nbsp;<br /><a href="http://forum.hardware.fr/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1353.htm#t44795902" target="_blank" class="cLink">Pro Pizza</a> à Orly<br /><a rel="nofollow" href="http://www.italatfrance.com/prodotti/prodotti-da-forno/?lang=fr" target="_blank" class="cLink">ITALAT FRANCE</a> à Rungis, &nbsp;<br /><a rel="nofollow" href="http://www.siagi.eu/recherche?search_query=caputo&amp;submitSearch=" target="_blank" class="cLink">SIAGI</a> à Bordeaux<br /><a rel="nofollow" href="http://www.specialitadallacampania.it/" target="_blank" class="cLink">Specialita dalla Campania/</a><br /><a rel="nofollow" href="http://www.youdreamitaly.com/fr/Farine-Pizza-Taralli-Flour-03900039-Pizzeria-25-kg.xhtml?id=630" target="_blank" class="cLink">You Dream Italy</a><br /><a rel="nofollow" href="http://www.emporiogustarosso.de" target="_blank" class="cLink">Emporio Gustarosso</a><br /><a rel="nofollow" href="https://www.bienmanger.com/1F32853_Farine_Caputo_Cuoco_Type_Rouge.html" target="_blank" class="cLink">bienmanger.com</a><br />&nbsp;<br />&nbsp;<br /><a rel="nofollow" href="http://www.le5stagioni.it" target="_blank" class="cLink">5 Stagioni:</a><br /><a rel="nofollow" href="http://www.casimages.com/f_get.php?f=121020061608633823.pdf" target="_blank" class="cLink">Liste des distributeurs Français</a> &nbsp;<br />La Ferrarese Rue du Dobbelenberg 115 1130 Bruxelles Tel: 02 240 75 75 &nbsp;<br /><a rel="nofollow" href="https://www.bienmanger.com/1F32853_Farine_Caputo_Cuoco_Type_Rouge.html" target="_blank" class="cLink">bienmanger.com</a><br />&nbsp;<br /><a rel="nofollow" href="http://www.polselli.it/" target="_blank" class="cLink">Polselli</a> chez <a rel="nofollow" href="http://www.sitadis.be/fr/livraison.html" target="_blank" class="cLink">Sita</a> (B)<br />&nbsp;<br /><a rel="nofollow" href="http://www.molinospadoni.it/pizzeria_en.php" target="_blank" class="cLink">Spadoni:</a><br /><a href="http://forum.hardware.fr/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1353.htm#t44795902" target="_blank" class="cLink">Pro Pizza</a> à Orly[/url]<br /><a rel="nofollow" href="https://www.metro.fr/accueil.html" target="_blank" class="cLink">Metro</a>(pro) &nbsp; 5.75&euro; HT /5Kg &nbsp;<br /><a rel="nofollow" href="http://www.produitsditalie.fr" target="_blank" class="cLink">produits d'Italie</a><br /><a rel="nofollow" href="http://www.lepaste.org" target="_blank" class="cLink">Chrisa pâtes</a> à Anderlues (B)<br />&nbsp;<br /><a rel="nofollow" href="http://www.divella.it/category/prodotti-divella/farine-e-semole/farine-per-uso-professionale/linea-pizzeria/?lang=en" target="_blank" class="cLink">Divella:</a> <a rel="nofollow" href="http://www.agridistribution.com" target="_blank" class="cLink">Agridistribution</a> à Bruxelles &nbsp;<br />La Divella rouge pizza &nbsp;est aussi disponible en Belgique dans les <a rel="nofollow" href="http://www.cora.be/cora/front/splash/display.do" target="_blank" class="cLink">hypermarchés Cora.</a><br />&nbsp;<br />Farine <a rel="nofollow" href="http://www.dallagiovanna.it" target="_blank" class="cLink">Dallagiovanna</a> 00 Universale chez Colruyt. (B)<br />&nbsp;<br /><a rel="nofollow" href="http://www.moqu.info/EN/" target="_blank" class="cLink">Molino Quaglia</a> <a rel="nofollow" href="http://www.farinapetra.it/" target="_blank" class="cLink">Petra 3</a> &nbsp;<a rel="nofollow" href="http://www.rapparis.fr/" target="_blank" class="cLink">Epicerie Rap Paris</a><br />&nbsp;<br /><a rel="nofollow" href="http://www.molinopasini.com/eng/prodotticateg-46-1.asp" target="_blank" class="cLink">Pasini</a> chez <a rel="nofollow" href="http://www.promocash.com/" target="_blank" class="cLink">Promocash</a>(pro) &nbsp;<br />&nbsp;<br />&nbsp;<br />La levure fraiche de boulangerie/bière &nbsp;se trouve généralement au rayon frais ou pâtisserie des grandes surfaces, elle est disponible en petit cube de 42g.<br />&nbsp;<br />&nbsp;<br />&nbsp;<br />&nbsp;<span style="color:#0055aa"> <span class="u"><strong>Préparation de la pâte en vidéo</span></strong></span> &nbsp;<br />&nbsp;<br />Vickauars: <a rel="nofollow" href="http://www.youtube.com/watch?v=ec9KrG01p4c" target="_blank" class="cLink">Impasto a mano pizza napoletana</a><br />Jaws: <a rel="nofollow" href="http://www.youtube.com/watch?v=IsMGQt5au3s" target="_blank" class="cLink">Impasto napoletano , la mia versione</a><br />&nbsp;<br />&nbsp;<br /><strong>La température de la pâte ne doit pas dépasser 23° en fin de pétrissage. </strong><br />&nbsp;<br />&nbsp;<br />&nbsp;<span style="color:#0055aa"> <span class="u"><strong><a rel="nofollow" href="http://www.laverace.info/forum/viewtopic.php?f=135&amp;t=34" target="_blank" class="cLink">Abaisse des pâtons en vidéo</a></span></strong></span> &nbsp;<br />&nbsp;<br />&nbsp;<br />&nbsp;<br />&nbsp;<br /><span style="color:#0055aa"> <span class="u"><strong>La pizza in teglia</span></strong></span> &nbsp;<br />&nbsp;<br /><a rel="nofollow" href="https://i.imgur.com/sPyViHi.jpg" target="_blank" class="cLink">https://i.imgur.com/sPyViHi.jpg</a> &nbsp;<br />&nbsp;<br />&nbsp;<br />La pizza à la romaine cuite sur plaque et vendue au poids, avec son fond croustillant, légère et moelleuse à l’intérieur c'est <strong>LA pizza à tester dans votre four traditionnel.</strong><br />&nbsp;<br />&nbsp;<br /><span style="color:#0055aa"> <span class="u"><strong>Recette:</span></strong></span> pour une plaque* de 30x40 (700g) &nbsp;<br />&nbsp;<br />Farine** : 380g &nbsp;<br />Eau froide: 304g &nbsp;<br />Sel: 8g<br />Levure de bière: 4,5g &nbsp;<br />huile: 10g (optionel)<br />&nbsp;<br />* Pour une plaque de 60x40 doublez les proportions.<br />Utilisez de préférence une plaque à bord haut en tôle bleue qui permet de bien colorer le fond.<br /><strong><br />**Pas de T55 de supermarché, on utilise une farine qui supporte une haute hydratation !</strong> ( W320-360: Spadoni PZ4, Caputo rouge / Cuoco &nbsp;/violette, Polselli Super, 5Stagioni bleue / roma / teglia, Iaquone taglio alla romana) &nbsp;<br />&nbsp;<br />Pour donner plus de gout à la pâte, je vous conseille d'utiliser 15-20% de farine complète. &nbsp;<br />&nbsp;<br /><strong>On utilise de l'eau et de la farine du frigo (+/- 5°) car la température en fin de pétrissage ne devrait pas dépasser 18-22°</strong><br />&nbsp;<br />Diluez la levure dans l'eau.<br />Versez 80% de l'eau dans un cul de poule ou le robot.<br />A vitesse 1, incorporez toute la farine ensuite augmentez la vitesse du robot au maximum, lorsque la pâte ne colle presque plus au fond du bol rajoutez un filet d'eau et ainsi de suite.<br />Ajoutez le sel et l'huile à la fin du pétrissage. &nbsp;<br />Le pétrissage est terminé lorsque la pâte se gélifie et ne colle plus au fond du bol.<br />&nbsp;<br />Le protocole <a rel="nofollow" href="http://www.youtube.com/watch?v=YrODFJhpiLY" target="_blank" class="cLink">en vidéo</a> avec la star des hautes hydratations, le petit <a rel="nofollow" href="http://laconfraternitadellapizza.forumfree.it/?t=63163511" target="_blank" class="cLink">Bosch Num 4405.</a><br />&nbsp;<br />Laissez reposer la pâte 1h a température ambiante puis resservez la au frigo pour 24h minimum (48h conseillés) la pâte DOIT doubler de volume et blober. &nbsp;<br />Sortir la pâte du frigo, &nbsp;semoulez généreusement le plan de travail puis façonnez votre pâton comme sur <a rel="nofollow" href="http://www.youtube.com/watch?v=FeCHO4Y3fDo" target="_blank" class="cLink">cette vidéo</a><br />Placez-le dans un grand tupperware rectangulaire bien huilé et laissez le reposer à température ambiante couvercle fermé pour +/- 2 heures.<br />Préchauffez votre four au maximum (250-300°) &nbsp;<br />A l'aide d'un pinceau, huilez légèrement votre plaque puis étalez votre pâton dessus comme expliqué <a rel="nofollow" href="http://www.youtube.com/watch?v=4u8bIf0-e1I&amp;feature=youtu.be" target="_blank" class="cLink">sur cette vidéo</a><br />&nbsp;<br />Prenez bien soin de masser délicatement la pâte du bout des doigts pour l'étaler sans les enfoncer dans celle-ci pour éviter d’écraser les bulles de gaz.<br />&nbsp;<br />Garnir votre pizza avec juste la sauce user39 ou un filet d'huile d'olive pour la précuisson, puis enfournez la directement sur la fond du four pour 10 minutes à 250-300° ( fonction Chaleur de sole) &nbsp;<br />Sortir la pizza, la garnir puis enfournez-la sur la grille à mi hauteur jusqu’à ce que votre garniture soit cuite à votre gout. &nbsp;<br />&nbsp;<br />&nbsp;<br />&nbsp;<br />&nbsp;<br />&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<span style="color:#0055aa"><strong><span class="u">La garniture</span></strong></span><br />&nbsp;<br />On utilise les meilleurs ingrédients que l'on peut trouver, c'est un des secrets d'une bonne pizza.<br />&nbsp;<br /><a href="http://forum.hardware.fr/hfr/Discussions/Cuisine/unique-pizza-maison-sujet_28563_122.htm#t30171969" target="_blank" class="cLink">Des idées pour la garniture:</a><br />&nbsp;<br />&nbsp;<br />&nbsp;<span style="color:#0055aa"> <span class="u"><strong>La sauce user39 &nbsp;</span></strong></span> &nbsp;<br />&nbsp;<br /><a rel="nofollow" href="http://img11.hostingpics.net/pics/361164toma.jpg" target="_blank" class="cLink">http://img11.hostingpics.net/pics/361164toma.jpg</a> &nbsp;<br />&nbsp;<br />On utilise des conserves de tomates entières italiennes <strong>de qualité !</strong> le top du top étant la variété <a rel="nofollow" href="http://www.consorziopomodorosanmarzanodop.it/index.php?lang=en" target="_blank" class="cLink">San Marzano</a> &nbsp;<br />&nbsp;<br />Quelques marques recommandées: <a rel="nofollow" href="http://www.agrigenus.com/san-marzano.htm" target="_blank" class="cLink">Agrigenus</a>, <a rel="nofollow" href="http://www.salvatispa.it/en/dettaglio-prodotto.php?id=295" target="_blank" class="cLink">Fontanella</a>, <a rel="nofollow" href="http://www.lafiammante.it/web/fr/content/pomodoro-pelato" target="_blank" class="cLink">La Fiammante</a>, <a rel="nofollow" href="http://www.casabarone.it/index.php?pageId=33" target="_blank" class="cLink">Casa Barone</a>, <a rel="nofollow" href="http://www.soleaconserve.it/site/modules/tinycontent/index.php?id=8" target="_blank" class="cLink">Solea</a>, <a rel="nofollow" href="http://www.pomilia.it/en/home/the-products" target="_blank" class="cLink">Pomilia</a>, <a rel="nofollow" href="http://www.annalisa.it/en/products/rossi-conserve/peeled-tomatoes" target="_blank" class="cLink">Annalisa</a>, <a rel="nofollow" href="http://italian-tomatoes.latorrente.com/?mc_tk=Yih7ZXZ5EBEfRhFDQENNGUwNXENMEgEIAw==" target="_blank" class="cLink">La torrente</a>, <a rel="nofollow" href="http://www.danicoop.com/index.php?lang=fr" target="_blank" class="cLink">DaniCoop</a>, <a rel="nofollow" href="http://www.isaporidicorbara.it" target="_blank" class="cLink">I sapori di corbara</a>, <a rel="nofollow" href="http://www.gmasrl.it/it/lorto-di-lucullo/" target="_blank" class="cLink">L’Orto di Lucullo</a>, <a rel="nofollow" href="http://www.cmdo.it/FRA/ciaoFRA.html" target="_blank" class="cLink">Ciao</a>, <a rel="nofollow" href="https://www.casamarrazzo.it/" target="_blank" class="cLink">Casa Marrazzo</a> ,<a rel="nofollow" href="http://www.cirio1856.fr/index.php?section=prodotti&amp;cat=1-i-rossi" target="_blank" class="cLink">Cirio</a>... &nbsp;<br />&nbsp;<br />&nbsp;<br /><a rel="nofollow" href="http://nsa34.casimages.com/img/2014/07/17/140717115417787719.jpg" target="_blank" class="cLink">http://nsa34.casimages.com/img/201 [...] 787719.jpg</a> &nbsp;<br />&nbsp;<br /><a rel="nofollow" href="https://www.youtube.com/watch?v=-MOwdm619Js" target="_blank" class="cLink">La préparation en vidéo</a><br />&nbsp;<br />Ouvrez votre boite de tomates pelées et versez le contenu dans un cul de poule, écrasez les tomates à la main pour obtenir une texture épaisse puis ajoutez 1% de sel. &nbsp;( à la place du sel on peut utiliser du <a rel="nofollow" href="http://www.pecorinoromano.com" target="_blank" class="cLink">pécorino romano</a>)<br />&nbsp;<br />La sauce ne doit pas être passée au mixer car les graines de user39 broyées vont la rendre acide.<br />&nbsp;<br />&nbsp;<br /><a rel="nofollow" href="http://img11.hostingpics.net/pics/510822tomentieres.jpg" target="_blank" class="cLink">http://img11.hostingpics.net/pics/ [...] tieres.jpg</a> &nbsp;<br />&nbsp;<br />les variétés suivantes sont utilisées en garniture: <a rel="nofollow" href="https://www.youtube.com/watch?v=s-8EAeGz7sI" target="_blank" class="cLink">Pomodorino del Piennolo del Vesuvio DOP</a>, <a rel="nofollow" href="https://youtu.be/RrGdyybzPVA?t=1m5s" target="_blank" class="cLink">Pomodorino di Corbara</a>, <a rel="nofollow" href="https://www.youtube.com/watch?v=OWNbgzqU1iY" target="_blank" class="cLink">Pomodorino Giallo da serbo.</a><br />&nbsp;<br />&nbsp;<br />&nbsp;<br />&nbsp;<span style="color:#0055aa"> <span class="u"><strong>Le fior di latte </span></strong></span> &nbsp;<br />&nbsp;<br /><a rel="nofollow" href="http://img15.hostingpics.net/pics/423639fior.jpg" target="_blank" class="cLink">http://img15.hostingpics.net/pics/423639fior.jpg</a> &nbsp;<br />&nbsp;<br />&nbsp;<br />A Naples les pizzerias utilisent principalement du <a rel="nofollow" href="http://www.fiordagerola.eu/en/classic-fiordilatte-cheese.html" target="_blank" class="cLink">Fior di latte</a> produit artisanalement à partir de lait de vache qui rend beaucoup moins d'eau que la <a rel="nofollow" href="http://www.mozzarelladop.it/" target="_blank" class="cLink">Mozzarella di Bufala Campana</a> &nbsp;<br />&nbsp;<br />Quelques petits trucs pour éviter ce problème.<br />&nbsp;<br />Sortez la mozzarella du paquet, égouttez et séchez-la soigneusement avec du sopalin, puis coupez-la en lanières d'un centimètre, réservez le tout au frigo 12h au minimum pour qu'elle rende une partie de son eau.<br />&nbsp;<br /><a rel="nofollow" href="http://nsa33.casimages.com/img/2014/06/12/140612112354401459.jpg" target="_blank" class="cLink">http://nsa33.casimages.com/img/201 [...] 401459.jpg</a> &nbsp;<br />&nbsp;<br />Une demi-boule par pizza évite aussi l'inondation &nbsp;! &nbsp;<br />&nbsp;<br />&nbsp;<br />&nbsp;<span style="color:#0055aa"> <span class="u"><strong>Le Basilic </span></strong></span><br />&nbsp;<br /><a rel="nofollow" href="http://nsa34.casimages.com/img/2013/05/25/130525094102755183.jpg" target="_blank" class="cLink">http://nsa34.casimages.com/img/201 [...] 755183.jpg</a> &nbsp;<br />&nbsp;<br />Pour éviter qu'il ne brunisse à la cuisson, trempez-le brièvement dans l'eau avant de vous en servir.<br />&nbsp;<br />&nbsp;<br /><span style="color:#0055aa"> <span class="u"><strong>L'origan </span></strong></span><br />&nbsp;<br /><a rel="nofollow" href="http://img15.hostingpics.net/pics/929426origan.jpg" target="_blank" class="cLink">http://img15.hostingpics.net/pics/929426origan.jpg</a> &nbsp;<br />&nbsp;<br />Ingrédient indispensable d'une pizza marinara, utilisez de préférence de l'origan sauvage de montagne vendu dans les épiceries Italiennes spécialisées, il est bien plus parfumé que celui de grande surface.<br />&nbsp;<br />&nbsp;<br />&nbsp;<br />&nbsp;<span style="color:#0055aa"> <span class="u"><strong>Le &nbsp;pétrin </span></strong></span> &nbsp;<br />&nbsp;<br />Rien ne remplace un pétrissage à la main, néanmoins si vous cherchez un bon pétrin pour vous faciliter la vie, je vous recommande le <a rel="nofollow" href="https://www.youtube.com/watch?v=O-SFkWB4z0s" target="_blank" class="cLink">Bosch Universal</a> ou le pétrin à bras plongeants <a rel="nofollow" href="http://www.bernardi-impastatrici.it/linea_professional.php?lang=it" target="_blank" class="cLink">Bernardi Miss Baker.</a><br />&nbsp;<br />&nbsp;<br />&nbsp;<span style="color:#0055aa"> <span class="u"><strong>Le &nbsp;four </span></strong></span> &nbsp;<br />&nbsp;<br />Ici réside tout le secret d'une bonne pizza, sans lui point de salut! idéalement une pizza napolitaine se cuit en une minute à 485°C<br />&nbsp;<br />Au niveau amateur la meilleure approximation reste l'achat d'un four électrique dédié à la cuisson des pizzas, si vous avez un petit budget, optez pour un <a rel="nofollow" href="http://G3Ferrari / Optima " target="_blank" class="cLink">G3Ferrari / Optima</a> modèle Napoli, bien meilleur que tout four domestique, il permet &nbsp;d'atteindre des températures de plus de 400°C &nbsp;<br />&nbsp;<br />Disponible sur ebay.it &nbsp;auprès du vendeur rotex-italia.<br />&nbsp;<br />&nbsp;<br /><a rel="nofollow" href="http://nsa33.casimages.com/img/2013/08/15/130815113141535706.jpg" target="_blank" class="cLink">http://nsa33.casimages.com/img/201 [...] 535706.jpg</a> &nbsp;<br />&nbsp;<br />En modèle semi-professionnel pour le particulier il existe de bons fours, notamment le Effeuno P134H (<a rel="nofollow" href="https://www.scuolacammarota.com/index.php/it/shop" target="_blank" class="cLink">four + biscotto à 529&euro; FDPIN</a>) &nbsp;<br />&nbsp;<br />&nbsp;<br /><strong>plus d'infos sur les fours <a href="http://forum.hardware.fr/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_6.htm#t28098153" target="_blank" class="cLink">en page 6</a></strong><br />&nbsp;<br />&nbsp;<br />&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<span style="color:#0055aa"><span class="u"><strong>Four domestique:</strong></span></span> &nbsp;<br />&nbsp;<br />Pour en tirer le meilleur, il vous faut une pierre réfractaire ou une <a rel="nofollow" href="http://boulanger-amateur.fr/viewtopic.php?f=14&amp;t=417&amp;hilit=steel" target="_blank" class="cLink">plaque en acier</a> placez la assez prés de la résistance du dessus comme sur la photo, préchauffez le four 45minutes thermostat au maximum et enfournez la pizza lorsque la résistance du grill est bien rouge, pas avant ! &nbsp;pour éviter de trop cuire la garniture vous pouvez la recouvrir de papier aluminium en laissant les bords découverts pour qu'ils dorent bien.<br />&nbsp;<br /><a rel="nofollow" href="http://nsa31.casimages.com/img/2013/02/21/13022107445884598.jpg" target="_blank" class="cLink">http://nsa31.casimages.com/img/201 [...] 884598.jpg</a> &nbsp;<br />&nbsp;<br />Et si vous avez la chance d'avoir la <strong>fonction pyrolyse </strong>, vous pouvez sortir de magnifiques pizzas en un rien de temps en <a href="https://forum.hardware.fr/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1322.htm#t43495544" target="_blank" class="cLink">bypassant la sécurité du four.</a> &nbsp;:ange: &nbsp;<br />&nbsp;<br />&nbsp;<br />&nbsp;<span style="color:#0055aa"><span class="u"><strong>Four à bois traditionnel napolitain:</strong></span></span> &nbsp;<br />&nbsp;<br />On rêve tous d'en avoir un, si vous voulez vous lancer dans sa construction, allez faire un tour sur <a rel="nofollow" href="http://www.pizzamaking.com/forum/index.php/topic,26441.msg266852.html#msg266852" target="_blank" class="cLink">ce topic.</a><br />&nbsp;<br />En modèle commercial, je vous recommande le <a rel="nofollow" href="https://www.youtube.com/watch?v=7aym1CK_fBc&amp;feature=youtu.be" target="_blank" class="cLink">Pizza Party</a> avec l'option 4 BISCOTTO SAPUTO ou le <a rel="nofollow" href="https://youtu.be/vP2e1wKiAA4" target="_blank" class="cLink">Subito Cotto</a><br />&nbsp;<br />&nbsp;<br />&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<span style="color:#0055aa"><span class="u"><strong>Liens utiles:</strong></span></span><br /><a rel="nofollow" href="http://de.phaidon.com/agenda/food/articles/2016/may/09/daniel-youngs-top-20-best-pizza-places-in-the-world" target="_blank" class="cLink">Daniel Young's top 20 best pizza places in the world</a><br /><a rel="nofollow" href="http://domanieunaltroforno.it/blog/come-una-pizza.html" target="_blank" class="cLink">Salvatore Salvo Come una... pizza!!!</a><br /><a rel="nofollow" href="http://pizza2calc.altervista.org/pagina/index.html" target="_blank" class="cLink">Pizza2Calc</a>Pizza2Calc, l'outil indispensable pour calculer vos empattements.<br /><a rel="nofollow" href="http://www.pizza-du-monde.fr/wp-content/uploads/2011/06/c_04020080214fr001700251.pdf" target="_blank" class="cLink">La recette de la pizza Napolitaine STG</a><br /><a rel="nofollow" href="http://www.pizzamaking.com/forum/index.php/topic,14249.0.html" target="_blank" class="cLink">Le garage de Craig's</a> et <a rel="nofollow" href="http://www.pizzamaking.com/forum/index.php/topic,20477.msg202047.html#msg202047" target="_blank" class="cLink">comment il fait sa pâte.</a><br /><a rel="nofollow" href="http://www.scribd.com/doc/18661551/Wood-Fired-Pizza" target="_blank" class="cLink">Forno Bravo Wood Fired Pizza</a> Superbe Pdf &nbsp;<br /><a rel="nofollow" href="http://www.scribd.com/doc/45959059/Pizza-Stone-Pizza" target="_blank" class="cLink">Forno Bravo Pizza Stone</a> le même pour votre four domestique.<br /><a rel="nofollow" href="http://www.varasanos.com/PizzaRecipe.htm" target="_blank" class="cLink">Jeff Varasano's NY Pizza Recipe</a><br /><a rel="nofollow" href="http://www.chefnini.com/mozzarella-maison-en-images/" target="_blank" class="cLink">Faire sa mozzarella maison</a> &nbsp;<br /><a rel="nofollow" href="http://pizzanapoletanismo.com/2011/09/27/a-philosophy-of-pizza-napoletanismo/" target="_blank" class="cLink">A Philosophy of Pizza Napoletanismo</a> le blog d'Omid, pour tout savoir sur l'histoire de la pizza Napolitaine.<br /><a rel="nofollow" href="http://www.cfaitmaison.com/levain/crea-levain.html" target="_blank" class="cLink">La création d'un levain naturel</a> pour une pizza authentique.<br /><a rel="nofollow" href="http://www.sourdo.com/home/cultures/italian-cultures-includes-two/" target="_blank" class="cLink">Sourdoughs International</a> Starter d'Ischia et Camaldoli<br /><a rel="nofollow" href="http://hjemmeriet.dk/visprodukt.php?id=299&amp;kat=84" target="_blank" class="cLink">Hjemmeriet</a> Un autre endroit ou commander votre Starter d'Ischia<br /><a rel="nofollow" href="http://www.pizzamaking.com/forum/index.php/topic,22649.0.html" target="_blank" class="cLink">Tableau pour calculer la dose de levain à utiliser</a><br /><a rel="nofollow" href="http://yumarama.com/2624/drying-your-starter/" target="_blank" class="cLink">drying your starter</a> une assurance en cas de problèmes<br /><strong><br />Forums:</strong><br /><a rel="nofollow" href="http://pizzanapo.fr" target="_blank" class="cLink">pizzanapo.fr</a><br /><a rel="nofollow" href="http://www.laverace.info/forum/" target="_blank" class="cLink">La verace</a><br /><a rel="nofollow" href="http://www.pizzamaking.com/" target="_blank" class="cLink">PizzaMaking.com</a><br /><a rel="nofollow" href="http://laconfraternitadellapizza.forumfree.it/" target="_blank" class="cLink">La Confraternita della Pizza</a> &nbsp; &nbsp;<br /><a rel="nofollow" href="http://www.pizza.it" target="_blank" class="cLink">Pizza.it</a><br /><a rel="nofollow" href="http://www.fornobravo.com/" target="_blank" class="cLink">Forno Bravo</a> &nbsp; &nbsp;<br />&nbsp;<br /><strong>Videos: </strong><br />&nbsp;<br /><a rel="nofollow" href="https://youtu.be/vV4gegZ7JNU" target="_blank" class="cLink">Pizza napoletana: i 6 errori più comuni - Enzo Coccia</a><br />Neapolitan Pizza Making with the Masters! <a rel="nofollow" href="http://www.youtube.com/watch?v=EvbYcABI2IA&amp;feature=player_embedded" target="_blank" class="cLink">Part1</a> <a rel="nofollow" href="http://youtu.be/HEVCrqbfRJ4" target="_blank" class="cLink">Part2</a> <a rel="nofollow" href="http://www.youtube.com/watch?feature=player_embedded&amp;v=WzYmI1_3IHI" target="_blank" class="cLink">Part3</a> A VOIR ! &nbsp;<br /><a rel="nofollow" href="https://www.youtube.com/watch?v=4lXKy6Svv1M" target="_blank" class="cLink">La pizza Cosacca di Salvatore Salvo</a><br /><a rel="nofollow" href="https://www.youtube.com/watch?v=E4r0tGfTh68" target="_blank" class="cLink">La pizza napoletana di Gino Sorbillo</a><br /><a rel="nofollow" href="https://www.youtube.com/user/maestrovitoiacopelli/videos" target="_blank" class="cLink">Vito Iacopelli youtube channel</a> pas mal de bons conseils pour débuter.<br /><a rel="nofollow" href="https://www.youtube.com/watch?v=TBTa3n_0N-A" target="_blank" class="cLink">La margherita 50 Kalò di Ciro Salvo</a><br /><a rel="nofollow" href="http://laconfraternitadellapizza.forumfree.it/?t=69820571" target="_blank" class="cLink">Empattement STG de Salvatore Di Matteo</a><br /><a rel="nofollow" href="http://www.youtube.com/watch?v=Z5oxa8BdqBY" target="_blank" class="cLink">Impasto per pizza napoletana dei fratelli Salvo</a><br /><a rel="nofollow" href="http://www.youtube.com/watch?v=hAcmLhrOEG4" target="_blank" class="cLink">La ricetta della pizza napoletana di Gino Sorbillo</a><br /><a rel="nofollow" href="http://www.youtube.com/watch?v=IEbMsRT7TD4" target="_blank" class="cLink">La ricetta della pizza napoletana dei fratelli Salvo</a><br /><a rel="nofollow" href="http://www.youtube.com/watch?v=v27p2e90oqE" target="_blank" class="cLink">Salvatore Di Matteo: la ricetta della pizza napoletana</a><br /><a rel="nofollow" href="http://www.youtube.com/watch?v=pE-jHltRtNg" target="_blank" class="cLink">Pizza margherita: la ricetta di Franco Pepe</a><br /><a rel="nofollow" href="http://www.youtube.com/watch?v=8gX_ioZCdzo" target="_blank" class="cLink">Impasto base per pizza napoletana di Enzo Coccia</a><br /><a rel="nofollow" href="http://www.youtube.com/watch?v=mDUjsK_cX8U" target="_blank" class="cLink">Pizza napoletana: la ricetta di Enzo Coccia</a><br /><a rel="nofollow" href="http://youtu.be/KttdS9Y80J4" target="_blank" class="cLink">Enzo Coccia: pétrissage à la main</a><br /><a rel="nofollow" href="http://www.youtube.com/watch?v=fcX6cAH0u98" target="_blank" class="cLink">Salvatore Di Matteo: la ricetta della pizza napoletana</a><br /><a rel="nofollow" href="http://www.youtube.com/watch?v=PVEhqdzCYhc" target="_blank" class="cLink">La pizza montanara di Antonio Starita</a><br /><a rel="nofollow" href="http://www.youtube.com/watch?v=IkOUhVY1-Pg" target="_blank" class="cLink">Il calzone napoletano di Gino Sorbillo</a><br /><a rel="nofollow" href="https://www.youtube.com/watch?v=g-5s9C3tNlE" target="_blank" class="cLink">Calzone napoletano: ricetta di Salvatore Salvo</a><br /><a rel="nofollow" href="http://www.lucianopignataro.it/a/la-ricetta-pizza-fritta-di-gino-sorbillo-napol/82447/" target="_blank" class="cLink">Ricetta: come si fa la pizza fritta di Gino Sorbillo</a><br /><a rel="nofollow" href="http://www.youtube.com/watch?v=ptyHo7d947c" target="_blank" class="cLink">la pizza fritta al La Figlia del Presidente</a><br /><a rel="nofollow" href="http://vimeo.com/6938721" target="_blank" class="cLink">Naturally Risen</a><br /><a rel="nofollow" href="http://videos.nymag.com/video/Pure-and-Simple" target="_blank" class="cLink">Pure and simple</a><br /><a rel="nofollow" href="http://www.youtube.com/watch?v=Uq-qRZtG1FM" target="_blank" class="cLink">tecnica di stesura alla napoletana</a> abaisse de la pâte, la méthode napolitaine.<br /><a rel="nofollow" href="https://vimeo.com/126527223" target="_blank" class="cLink">Artisanal Mozzarella Process</a><br />&nbsp;<br />&nbsp;<br /><strong>Pizza in Teglia:</strong><br />&nbsp;<br /><a rel="nofollow" href="http://www.youtube.com/watch?v=tST77naES6M" target="_blank" class="cLink">Pizza in teglia Le videoricette di Molino sul Clitunno</a><br /><a rel="nofollow" href="https://www.youtube.com/watch?v=HRH1ULtAFrU" target="_blank" class="cLink">Impasto teglia romana 85 % Kitchen Aid con gancio modificato by Jaws</a><br /><a rel="nofollow" href="http://www.laverace.info/forum/download/file.php?id=3422" target="_blank" class="cLink">Recettes de Marco Lungo</a><br /><a rel="nofollow" href="http://laconfraternitadellapizza.forumfree.it/?t=72606195" target="_blank" class="cLink">L'Autentica Pizza in Teglia Alla Romana - Alta Idratazione, Il Disciplinare</a><br /><a rel="nofollow" href="http://www.agrodolce.it/ricette/pizza-teglia/" target="_blank" class="cLink">Pizza in teglia di Gabriele Valdès</a><br /><a rel="nofollow" href="http://www.youtube.com/watch?v=FeCHO4Y3fDo" target="_blank" class="cLink">Massimo Bosco pizza in teglia: staglio</a><br /><a rel="nofollow" href="http://www.youtube.com/watch?v=24RY9Zc5Ldo&amp;list=UL" target="_blank" class="cLink">Massimo Bosco pizza in teglia: stesura</a><br /><a rel="nofollow" href="http://www.youtube.com/watch?v=gEAWrrfUWRE" target="_blank" class="cLink">Pino Arletto pizza in teglia: staglio</a><br /><a rel="nofollow" href="http://youtu.be/4u8bIf0-e1I" target="_blank" class="cLink">Pino Arletto pizza in teglia: tecnica di stesura</a><br /><a rel="nofollow" href="http://www.dissapore.com/cucina/a-lezione-di-pizza-da-gabriele-bonci-volume-1/" target="_blank" class="cLink">A lezione di pizza da Gabriele Bonci (volume 1)</a><br /><a rel="nofollow" href="http://www.dissapore.com/cucina/a-lezione-di-pizza-da-gabriele-bonci-volume-2-cottura-e-condimenti/" target="_blank" class="cLink">A lezione di pizza da Gabriele Bonci (volume 2: cottura e condimenti)</a><br /><a rel="nofollow" href="http://www.youtube.com/watch?v=iTNF0U12CMU" target="_blank" class="cLink">Empatement à 100% d'hydratation au Kenwood</a><div style="clear: both;"> </div></td>
+			</tr>
+		</table>
+	
+<div class="copyright">
+<br /><a href="http://www.mesdiscussions.net" target="_blank" class="copyright">Forum MesDiscussions.Net</a>, Version 2010.2 <br />(c) 2000-2011 Doctissimo<br /></div>
+</div>
+</div>
+<center><font color="#000000" size="1" face="Arial, Helvetica, sans-serif"><br />Copyright © 1997-2025 Groupe <a href="https://www.ldlc.com" title="Achat de materiel Informatique">LDLC</a> (<a href="https://www.hardware.fr/html/donnees_personnelles/">Signaler un contenu illicite / Données personnelles</a>)</font></center>
+<!-- Matomo -->
+<script>
+  var _paq = window._paq = window._paq || [];
+  /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="https://tracking.groupe-ldlc.com/";
+    _paq.push(['setTrackerUrl', u+'matomo.php']);
+    _paq.push(['setSiteId', '26']);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<noscript><p><img src="https://tracking.groupe-ldlc.com/matomo.php?idsite=26&rec=1" style="border:0;" alt="" /></p></noscript>
+<!-- End Matomo Code --><script type="text/javascript">
+md_forum_decryptlink.init();
+</script>
+<script type="text/javascript">
+md_forum_decryptlink.init();
+</script>
+<script type="text/javascript">
+
+		window.onload = function(){aff_add_img_js();};
+		
+	function warning() {
+		if (alert('Vous devez spécifier une sous-catégorie !')) {
+			return false;
+		} else {
+			return false;
+		}
+	}
+	function add_join_img() {
+	var addform= 0;
+	for (i=0;i<10;i++) {
+		if ((!document.getElementById('add_image'+i)) && (addform == 0)) {
+			//var inner_add_form= document.getElementById('add_image_form').innerHTML;
+			//document.getElementById('add_image_form').innerHTML= inner_add_form+ '<br /><input type="file" name="add_image'+i+'" id="add_image'+i+'" onchange="document.join_form.sub.style.fontWeight=\'bold\'" />';
+			addform= 1;
+			var addFile=document.createElement("DIV");
+			addFile.innerHTML= '<input type="file" name="add_image'+i+'" id="add_image'+i+'" onchange="document.join_form.sub.style.fontWeight=\'bold\'" />';
+		    document.getElementById('add_image_form').appendChild(addFile)
+			if (i == 9) {
+				document.getElementById('add_img_js').style.display= 'none';
+			}
+		}
+	}
+}
+
+function aff_add_img_js() {
+	if (document.getElementById('add_img_js')) {
+		document.getElementById('add_img_js').style.display= 'block';
+	}
+}
+function message_upload_img() {
+	no_image= 1;
+	for (i=0;i<10;i++) {
+		if ((document.getElementById('add_image'+i)) && (document.getElementById('add_image'+i).value != '')) {
+			no_image= 0;
+		}
+	}
+	if (no_image == 1) {
+		alert('Vous n\'avez pas choisi d\'image à joindre');
+		return false;
+	}
+	document.getElementById('add_img_js').style.display= 'none';
+	document.getElementById('add_image_form').style.display= 'none';
+	document.getElementById('submit_upload').style.display= 'none';
+	document.getElementById('join_form').action= '/user/join_image_b.php?config=hfr.inc';
+	document.getElementById('upload_frame').style.display= '';
+	document.getElementById('join_form').target= 'upload_frame';
+	document.getElementById('img_wait_upload_img').style.display= '';
+	document.getElementById('join_form').submit();
+	document.getElementById('submit_upload').style.fontWeight= 'normal';
+}
+</script>
+</body>
+</html>

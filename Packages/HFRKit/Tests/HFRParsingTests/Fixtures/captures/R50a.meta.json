@@ -1,0 +1,28 @@
+{
+  "id": "R50a",
+  "account": "user2",
+  "method": "POST",
+  "url_template": "POST /search.php?config=hardwarefr.inc (S1 field order)",
+  "url": "https://forum.hardware.fr/search.php?config=hardwarefr.inc",
+  "final_url": "https://forum.hardware.fr/search.php?config=hardwarefr.inc",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 26 Oct 2026 03:43:39 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "request_fields": [
+    "hash_check",
+    "cat",
+    "search",
+    "resSearch",
+    "orderSearch",
+    "titre",
+    "searchtype",
+    "pseud",
+    "daterange"
+  ],
+  "note": "global search, legacy body",
+  "request_body": "hash_check=REDACTED&cat=13&search=pizza+napolitaine&resSearch=200&orderSearch=0&titre=3&searchtype=1&pseud=&daterange=2",
+  "file": "R50a-search-post-waiting-page.html",
+  "private": false
+}

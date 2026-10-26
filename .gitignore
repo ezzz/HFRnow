@@ -21,3 +21,8 @@ docs/architecture/source/excalidraw-utils.min.js
 docs/architecture/source/Virgil-Regular.woff2
 docs/architecture/source/preview.png
 docs/architecture/source/architecture.*
+
+# Fixture tooling: operator config (real pseudos) and raw captures never enter the repo
+tooling/fixtures/local.json
+tooling/fixtures/captures/
+__pycache__/

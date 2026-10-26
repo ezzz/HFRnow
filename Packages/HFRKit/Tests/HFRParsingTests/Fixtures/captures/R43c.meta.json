@@ -1,0 +1,21 @@
+{
+  "id": "R43c",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/message.php?config=hfr.inc&cat=prive&post={post}&numreponse={numreponse}&page={page}&p=1&subcat=0&sondage=0&owntopic=0 (decoded edit link)",
+  "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207033&numreponse=1980875031&page=1&p=1&subcat=0&sondage=0&owntopic=0",
+  "final_url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207033&numreponse=1980875031&page=1&p=1&subcat=0&sondage=0&owntopic=0",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 26 Oct 2026 03:41:25 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "edit form of W12 (non-BMP read-back)",
+  "file": "R43c-mp-edit-form-nonbmp-post.html",
+  "private": true
+}

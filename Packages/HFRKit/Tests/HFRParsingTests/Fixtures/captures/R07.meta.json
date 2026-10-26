@@ -1,0 +1,17 @@
+{
+  "id": "R07",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/hfr/<cat>/liste_sujet-<n>.htm",
+  "url": "https://forum.hardware.fr/hfr/Graphisme/liste_sujet-1.htm",
+  "final_url": "https://forum.hardware.fr/hfr/Graphisme/liste_sujet-1.htm",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 26 Oct 2026 03:09:45 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "p"
+  ],
+  "file": "R07-list-graphisme-anon.html",
+  "private": false
+}

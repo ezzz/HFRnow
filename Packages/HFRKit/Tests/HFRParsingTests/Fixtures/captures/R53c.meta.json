@@ -1,0 +1,16 @@
+{
+  "id": "R53c",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/message-smi-mp-aj.php?config=hfr.inc&findsmilies=+w1+w2",
+  "url": "https://forum.hardware.fr/message-smi-mp-aj.php?config=hfr.inc&findsmilies=+chat+noir",
+  "final_url": "https://forum.hardware.fr/message-smi-mp-aj.php?config=hfr.inc&findsmilies=+chat+noir",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 26 Oct 2026 03:19:04 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "two words (AND form)",
+  "file": "R53c-smiley-search-two-words.html",
+  "private": false
+}

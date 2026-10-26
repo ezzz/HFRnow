@@ -1,0 +1,19 @@
+{
+  "id": "R25",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/forum2.php?config=hfr.inc&cat={cat}&post={post}&page=1&numreponse={numreponse}",
+  "url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=28563&page=1&numreponse=39971312",
+  "final_url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=28563&page=1&numreponse=39971312",
+  "status": 301,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 26 Oct 2026 03:11:06 GMT",
+  "redirects": [
+    {
+      "status": 301,
+      "location": "/hfr/Discussions/pizza-maison-sujet_28563_1100.htm#t39971312"
+    }
+  ],
+  "set_cookie_names": [],
+  "private": false
+}

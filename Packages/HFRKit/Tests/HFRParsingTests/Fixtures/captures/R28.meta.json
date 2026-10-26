@@ -1,0 +1,24 @@
+{
+  "id": "R28",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/forum2.php?config=hfr.inc&cat={cat}&post={post}&page={page}",
+  "url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=78667&page=15990",
+  "final_url": "https://forum.hardware.fr/hfr/Discussions/Loisirs/images-etonnantes-cons-sujet_78667_15990.htm",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 26 Oct 2026 03:11:35 GMT",
+  "redirects": [
+    {
+      "status": 301,
+      "location": "/hfr/Discussions/images-etonnantes-cons-sujet_78667_15990.htm"
+    },
+    {
+      "status": 301,
+      "location": "/hfr/Discussions/Loisirs/images-etonnantes-cons-sujet_78667_15990.htm"
+    }
+  ],
+  "set_cookie_names": [],
+  "file": "R28-topic-images-videos-anon.html",
+  "private": false
+}
