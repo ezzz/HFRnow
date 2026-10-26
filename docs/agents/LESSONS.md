@@ -39,3 +39,7 @@ Seeded from a previous multi-agent project, filtered for SwiftHFR.
 | 32 | Header-name checks (in code and in tests) must trim and lowercase names, or `" Cookie"` slips through | wave 2 (C2c) |
 | 33 | An anonymizer's position list is checked by an independent verifier (other parser, other patterns) and by a grep of names harvested from the **raw** files; the list that produced the output never vouches for it. Tests isolate one position each (a name also caught elsewhere hides a missing selector) | PR #38 Fable review (LOT-001) |
 | 34 | Patterns over attribute values are quote-aware: a raw `'` inside a double-quoted value ended two "independent" regexes at the same place | LOT-001 v2 fix round |
+| 35 | Before starting a parser lot, check **both** inputs exist: the captures it reads **and** a legacy-oracle exporter that covers it (ADR 0004). Fixtures alone are not a requirement met | wave 3 (CodeRabbit on #45, LOT-025) |
+| 36 | A capture checklist row skipped or "dropped" by the capture session is a gap to send back to it, not a cue to hand-build the page in the cloud | wave 3 (R33/R56, LOT-026/027) |
+| 37 | A URL extracted from a page and then requested with the session must be checked for scheme **and** host: an explicit `http://host:80/` passes a host-only check | wave 3 (CodeRabbit on #45, CWE-319) |
+| 38 | Read the capture before designing states: the checklist expected poll results for anonymous visitors, the page shows the voting form | wave 3 (C5, LOT-026) |
