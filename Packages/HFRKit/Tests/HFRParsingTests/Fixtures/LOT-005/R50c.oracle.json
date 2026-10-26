@@ -1,0 +1,34 @@
+{
+  "case" : "R50c",
+  "exception" : null,
+  "input" : {
+    "bytes" : 1623,
+    "currentURL" : null,
+    "file" : "../captures/R50c-search-no-result-no-cookie.html",
+    "now" : null,
+    "sha256" : "c4213342badd8b6437585959b3b885b686d4fbd4736a4d3ef319bb8c04ee00b1"
+  },
+  "kind" : "search-redirect",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "absoluteURL" : null,
+    "error" : {
+      "code" : -2,
+      "domain" : "TopicsSearchViewController.search",
+      "message" : "Aucune page de résultats n'a été trouvée."
+    },
+    "hasRedirect" : false,
+    "redirectURL" : null,
+    "relativeURL" : null
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

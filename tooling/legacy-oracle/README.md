@@ -4,7 +4,7 @@ Runs the **real** Objective-C parsers of the legacy app ([hfrnow](https://github
 pinned at `2440d79`) offline on saved HTML pages and writes one `<case>.oracle.json` per page. These files
 are the expected values of the differential tests in `HFRParsing` (AGENTS.md §5 step 5).
 Specs: list parsers [LOT-002](../../docs/lots/LOT-002-list-oracle.md), topic pages [LOT-003](../../docs/lots/LOT-003-topic-oracle.md),
-forms, write responses and storage formats [LOT-004](../../docs/lots/LOT-004-forms-storage-oracle.md).
+forms, write responses and storage formats [LOT-004](../../docs/lots/LOT-004-forms-storage-oracle.md), small parsers (search redirect, profile edit page, smiley search and keywords, poll, public profile) [LOT-005](../../docs/lots/LOT-005-small-parsers-oracle.md).
 
 Local tooling for the maintainer's Mac. It is not part of CI (Xcode 27 + Carthage + simulator).
 
@@ -12,7 +12,7 @@ Local tooling for the maintainer's Mac. It is not part of CI (Xcode 27 + Carthag
 
 | File | Use |
 |---|---|
-| `hfrnow.patch` | Local edits to hfrnow: the `OracleExport` test class (`OracleExport.swift`, topic kind in `OracleExportTopic.swift`, `form`/`response`/`storage` kinds in `OracleExportWrite.swift` and `OracleLegacyWrite.m`) and its Objective-C helper in `HFRswiftTests`, plus the spy-signature fix in `AccountsStoreTests.swift` that the tests need to compile |
+| `hfrnow.patch` | Local edits to hfrnow: the `OracleExport` test class (`OracleExport.swift`, topic kind in `OracleExportTopic.swift`, `form`/`response`/`storage` kinds in `OracleExportWrite.swift` and `OracleLegacyWrite.m`, the LOT-005 kinds in `OracleExportSmall.swift` and `OracleLegacySmall.m`) and its Objective-C helper in `HFRswiftTests`, plus the spy-signature fix in `AccountsStoreTests.swift` that the tests need to compile |
 | `run-oracle.sh` | Checks the legacy commit, applies the patch, bootstraps Carthage, creates or reuses the simulator, runs the export, reports counts |
 | `carthage-xcode27.xcconfig` | Build settings Carthage needs on Xcode 27 (see below) |
 | `samples/` | Synthetic pages (fake pseudos, fake hash) and their `oracle-map.json`, to prove the harness end to end (`topic-*` for LOT-003, `form-*`, `response-*`, `storage-*` for LOT-004; all hand-written, no capture) |
@@ -47,7 +47,7 @@ corpus, e.g. `"path": "../captures/R04-list-cat13-p1-anon.html"`; the case name 
 the legacy code sees, needed when the output depends on the date, as the list parser's relative dates do).
 
 Kinds: `forums`, `topics`, `favorites`, `mp`, `search` (LOT-002), `topic` (one topic page, LOT-003), and `form`, `response`,
-`storage` (LOT-004: write-flow form extraction and POST body, write-response classifier, MPStorage and on-device formats). `currentURL` is
+`storage` (LOT-004: write-flow form extraction and POST body, write-response classifier, MPStorage and on-device formats), and `search-redirect`, `profile-edit`, `smiley-search`, `smiley-keywords`, `poll`, `profile` (LOT-005, options in [LOT-005](../../docs/lots/LOT-005-small-parsers-oracle.md#inputs)). `currentURL` is
 optional (the parsers take it as input; defaults are in the specs). A `topic` entry also takes `anchor`, `ownPseudo`,
 `blacklist`, `whitelist`, `settings`, `avatarFetch` and `filter` ([LOT-003](../../docs/lots/LOT-003-topic-oracle.md#inputs)). An unknown kind, an unreadable file, or an input file (`.html`, `.json`) missing from the map
 is listed in `errors.json` (`oracle-map.json`, `errors.json` and `*.oracle.json` are not inputs). Options of the LOT-004 kinds (`mode`, `overrides`, `flow`, `storage`, ...) are in
@@ -94,7 +94,7 @@ the exporter in hfrnow, regenerate it:
 
 ```sh
 git -C ~/Git/hfrnow add -N HFRswiftTests/OracleExport.swift HFRswiftTests/OracleExportTopic.swift HFRswiftTests/OracleExportWrite.swift \
-  HFRswiftTests/OracleLegacyWrite.m HFRswiftTests/OracleObjCSafe.m
+  HFRswiftTests/OracleLegacyWrite.m HFRswiftTests/OracleObjCSafe.m HFRswiftTests/OracleExportSmall.swift HFRswiftTests/OracleLegacySmall.m
 git -C ~/Git/hfrnow diff --no-color > tooling/legacy-oracle/hfrnow.patch
 ```
 

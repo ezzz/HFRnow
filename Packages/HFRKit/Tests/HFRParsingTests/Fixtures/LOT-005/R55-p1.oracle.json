@@ -1,0 +1,64 @@
+{
+  "case" : "R55-p1",
+  "exception" : null,
+  "input" : {
+    "bytes" : 30479,
+    "context" : {
+      "password" : "FAKE_PASSWORD",
+      "pseudo" : "user2",
+      "servedAs" : "GET /user/editprofil.php?config=hfr.inc&page=5"
+    },
+    "currentURL" : null,
+    "file" : "../captures/R55-p1-profile-edit-page1.html",
+    "now" : null,
+    "sha256" : "2cac00dcf77929e6aff25a75f6bbad74977daa85d7c7219cfd8b563b22fae8d5"
+  },
+  "kind" : "profile-edit",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "avatarDataBytes" : 12,
+    "avatarDataIsStub" : true,
+    "cookies" : [
+      {
+        "domain" : ".hardware.fr",
+        "name" : "md_user",
+        "path" : "/"
+      }
+    ],
+    "displayPseudo" : "user2",
+    "hash" : "HASH_PLACEHOLDER",
+    "hashLength" : 8,
+    "outcome" : "success",
+    "pseudoKey" : "FAKE_PSEUDO_KEY",
+    "requests" : [
+      {
+        "bodyFields" : [
+          "action",
+          "login",
+          "password",
+          "pseudo"
+        ],
+        "method" : "POST",
+        "url" : "https://forum.hardware.fr/login_validation.php?config=hfr.inc"
+      },
+      {
+        "method" : "GET",
+        "url" : "https://forum.hardware.fr/user/editprofil.php?config=hfr.inc&page=5"
+      },
+      {
+        "method" : "GET",
+        "url" : "https://forum-images.hardware.fr/themes_static/images_forum/1/aide.gif"
+      }
+    ]
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

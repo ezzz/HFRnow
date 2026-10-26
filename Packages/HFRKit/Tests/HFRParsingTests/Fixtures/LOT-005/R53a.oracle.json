@@ -1,0 +1,45 @@
+{
+  "case" : "R53a",
+  "exception" : null,
+  "input" : {
+    "bytes" : 46,
+    "context" : {
+      "query" : "zzqxw"
+    },
+    "currentURL" : null,
+    "file" : "../captures/R53a-smiley-search-no-result.html",
+    "now" : null,
+    "sha256" : "943a71c267d67ed3c605f0d0796785dea69f87ccac53b6b31d88906fdd8113cf"
+  },
+  "kind" : "smiley-search",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "legacy" : {
+      "items" : [
+
+      ],
+      "noResult" : 1
+    },
+    "live" : {
+      "requests" : [
+        {
+          "method" : "GET",
+          "url" : "https://forum.hardware.fr/message-smi-mp-aj.php?config=hfr.inc&findsmilies=zzqxw"
+        }
+      ],
+      "smileys" : [
+
+      ]
+    }
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

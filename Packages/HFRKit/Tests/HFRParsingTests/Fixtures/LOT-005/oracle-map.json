@@ -1,0 +1,94 @@
+{
+  "R32a.html": {
+    "currentURL": "/forum2.php?config=hfr.inc&cat=13&post=98162&page=1",
+    "kind": "poll",
+    "path": "../captures/R32a-topic-poll-anon.html"
+  },
+  "R32b.html": {
+    "currentURL": "/forum2.php?config=hfr.inc&cat=13&post=98162&page=1",
+    "kind": "poll",
+    "ownPseudo": "user2",
+    "path": "../captures/R32b-topic-poll-logged-in-not-voted.html"
+  },
+  "R33a.html": {
+    "currentURL": "/hfr/Discussions/Sports/football-after-mercredi-sujet_119463_1.htm",
+    "kind": "poll",
+    "path": "../captures/R33a-topic-poll-closed-anon.html"
+  },
+  "R33b.html": {
+    "currentURL": "/forum2.php?config=hfr.inc&cat=25&subcat=525&post=8900&page=1&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+    "kind": "poll",
+    "ownPseudo": "user1",
+    "path": "../captures/R33b-topic-poll-already-voted.html"
+  },
+  "R50a.html": {
+    "kind": "search-redirect",
+    "path": "../captures/R50a-search-post-waiting-page.html"
+  },
+  "R50b.html": {
+    "kind": "search-redirect",
+    "path": "../captures/R50b-search-results-no-cookie.html"
+  },
+  "R50c.html": {
+    "kind": "search-redirect",
+    "path": "../captures/R50c-search-no-result-no-cookie.html"
+  },
+  "R53a.html": {
+    "kind": "smiley-search",
+    "path": "../captures/R53a-smiley-search-no-result.html",
+    "query": "zzqxw"
+  },
+  "R53b.html": {
+    "kind": "smiley-search",
+    "path": "../captures/R53b-smiley-search-one-word.html",
+    "query": "chat"
+  },
+  "R53c.html": {
+    "kind": "smiley-search",
+    "path": "../captures/R53c-smiley-search-two-words.html",
+    "query": "chat noir"
+  },
+  "R54.html": {
+    "code": "[:user3]",
+    "kind": "smiley-keywords",
+    "path": "../captures/R54-smiley-wiki-detail-anon.html"
+  },
+  "R55-p1.html": {
+    "kind": "profile-edit",
+    "path": "../captures/R55-p1-profile-edit-page1.html",
+    "session": {
+      "pseudo": "user2"
+    }
+  },
+  "R55-p3.html": {
+    "kind": "profile-edit",
+    "path": "../captures/R55-p3-profile-edit-page3.html",
+    "session": {
+      "pseudo": "user2"
+    }
+  },
+  "R55-p5.html": {
+    "kind": "profile-edit",
+    "path": "../captures/R55-p5-profile-edit-page5.html",
+    "session": {
+      "pseudo": "user2"
+    }
+  },
+  "R55-p5u1.html": {
+    "kind": "profile-edit",
+    "path": "../captures/R55-p5u1-profile-edit-page5-avatar.html",
+    "session": {
+      "pseudo": "user1"
+    }
+  },
+  "R56a.html": {
+    "kind": "profile",
+    "path": "../captures/R56a-profile-operator-anon.html",
+    "url": "https://forum.hardware.fr/hfr/profil-900002.htm"
+  },
+  "R56b.html": {
+    "kind": "profile",
+    "path": "../captures/R56b-profile-other-member-anon.html",
+    "url": "https://forum.hardware.fr/hfr/profil-910001.htm"
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "case" : "R33b",
+  "exception" : null,
+  "input" : {
+    "bytes" : 202660,
+    "context" : {
+      "anchor" : "",
+      "avatarFetch" : "succeed",
+      "blacklist" : [
+
+      ],
+      "filter" : null,
+      "ownPseudo" : "user1",
+      "settings" : {
+        "auto_theme" : 0,
+        "blacklist_hide_pseudo" : false,
+        "display_images" : "yes",
+        "display_sig" : "no",
+        "embedded_videos" : "yes",
+        "filter_posts_min_quotes" : 3,
+        "filter_posts_quotes" : "wl_pseudo",
+        "mpstorage_active" : false,
+        "theme" : 0,
+        "theme_noel_disabled" : true,
+        "theme_style" : 1
+      },
+      "whitelist" : [
+
+      ]
+    },
+    "currentURL" : "/forum2.php?config=hfr.inc&cat=25&subcat=525&post=8900&page=1&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+    "file" : "../captures/R33b-topic-poll-already-voted.html",
+    "now" : null,
+    "sha256" : "30929f308035aee1904d6346ba10a3d6e3931f3b20ae256e71c83efc4ca799d2"
+  },
+  "kind" : "poll",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "currentURL" : "/forum2.php?config=hfr.inc&cat=25&subcat=525&post=8900&page=1&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+    "poll" : {
+      "hasPoll" : true,
+      "html" : "<div class=\"sondage\">\n<b class=\"s2\">Allez-vous acheter l'iPhone Ultra ?</b><br>(Multipseudo detecté, vous ne pourrez pas voter à ce sondage avec vos autres pseudos)<br><br><br><div style=\"position:relative\" class=\"sondageLeft\">\n<div class=\"barre\" style=\"width:51%\"> </div>\n<div style=\"position:absolute;left:0px\" class=\"sondageTop\">33.3 %</div>\n<div class=\"sondageTop\"> 28 votes</div>\n</div>\n<div class=\"sondageRight\">1.  Oui</div>\n<div class=\"spacer\"> </div>\n<div style=\"position:relative\" class=\"sondageLeft\">\n<div class=\"barre\" style=\"width:80%\"> </div>\n<div style=\"position:absolute;left:0px\" class=\"sondageTop\">52.4 %</div>\n<div class=\"sondageTop\"> 44 votes</div>\n</div>\n<div class=\"sondageRight\">2.  Non</div>\n<div class=\"spacer\"> </div>\n<div style=\"position:relative\" class=\"sondageLeft\">\n<div class=\"barre\" style=\"width:22%\"> </div>\n<div style=\"position:absolute;left:0px\" class=\"sondageTop\">14.3 %</div>\n<div class=\"sondageTop\"> 12 votes</div>\n</div>\n<div class=\"sondageRight\">3.  Obiwan</div>\n<div class=\"spacer\"> </div>\n<br><div>\n<b>Total : 89 votes</b> (5 votes blancs)</div>\n</div>\n",
+      "isNewVote" : false,
+      "parsed" : {
+        "footer" : "",
+        "hiddenFields" : {
+
+        },
+        "isVotable" : false,
+        "maxChoices" : 1,
+        "options" : [
+
+        ],
+        "question" : "Allez-vous acheter l'iPhone Ultra ?",
+        "results" : [
+          {
+            "id" : 1,
+            "label" : "1.  Oui",
+            "percentage" : 33.299999999999997,
+            "voteCount" : 28
+          },
+          {
+            "id" : 2,
+            "label" : "2.  Non",
+            "percentage" : 52.399999999999999,
+            "voteCount" : 44
+          },
+          {
+            "id" : 3,
+            "label" : "3.  Obiwan",
+            "percentage" : 14.300000000000001,
+            "voteCount" : 12
+          }
+        ]
+      }
+    }
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "case" : "R55-p5u1",
+  "exception" : null,
+  "input" : {
+    "bytes" : 25314,
+    "context" : {
+      "password" : "FAKE_PASSWORD",
+      "pseudo" : "user1",
+      "servedAs" : "GET /user/editprofil.php?config=hfr.inc&page=5"
+    },
+    "currentURL" : null,
+    "file" : "../captures/R55-p5u1-profile-edit-page5-avatar.html",
+    "now" : null,
+    "sha256" : "4556757458b1895908dbe80d67555ac8d976dee90e43d0caf3771500872d04cc"
+  },
+  "kind" : "profile-edit",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "avatarDataBytes" : 12,
+    "avatarDataIsStub" : true,
+    "cookies" : [
+      {
+        "domain" : ".hardware.fr",
+        "name" : "md_user",
+        "path" : "/"
+      }
+    ],
+    "displayPseudo" : "user1",
+    "hash" : "HASH_PLACEHOLDER",
+    "hashLength" : 8,
+    "outcome" : "success",
+    "pseudoKey" : "FAKE_PSEUDO_KEY",
+    "requests" : [
+      {
+        "bodyFields" : [
+          "action",
+          "login",
+          "password",
+          "pseudo"
+        ],
+        "method" : "POST",
+        "url" : "https://forum.hardware.fr/login_validation.php?config=hfr.inc"
+      },
+      {
+        "method" : "GET",
+        "url" : "https://forum.hardware.fr/user/editprofil.php?config=hfr.inc&page=5"
+      },
+      {
+        "method" : "GET",
+        "url" : "https://forum-images.hardware.fr/images/mesdiscussions-900001.jpg"
+      }
+    ]
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

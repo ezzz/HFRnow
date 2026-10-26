@@ -1,0 +1,88 @@
+{
+  "case" : "R33a",
+  "exception" : null,
+  "input" : {
+    "bytes" : 108998,
+    "context" : {
+      "anchor" : "",
+      "avatarFetch" : "succeed",
+      "blacklist" : [
+
+      ],
+      "filter" : null,
+      "ownPseudo" : null,
+      "settings" : {
+        "auto_theme" : 0,
+        "blacklist_hide_pseudo" : false,
+        "display_images" : "yes",
+        "display_sig" : "no",
+        "embedded_videos" : "yes",
+        "filter_posts_min_quotes" : 3,
+        "filter_posts_quotes" : "wl_pseudo",
+        "mpstorage_active" : false,
+        "theme" : 0,
+        "theme_noel_disabled" : true,
+        "theme_style" : 1
+      },
+      "whitelist" : [
+
+      ]
+    },
+    "currentURL" : "/hfr/Discussions/Sports/football-after-mercredi-sujet_119463_1.htm",
+    "file" : "../captures/R33a-topic-poll-closed-anon.html",
+    "now" : null,
+    "sha256" : "5a0177d46758461ccb12b39aa79970d5217043911daf44c74049a30b5efb6747"
+  },
+  "kind" : "poll",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "currentURL" : "/hfr/Discussions/Sports/football-after-mercredi-sujet_119463_1.htm",
+    "poll" : {
+      "hasPoll" : true,
+      "html" : "<div class=\"sondage\">\n<b class=\"s2\">Ils l'ont tous embrassé mais c'est lui qui la tient, c'est lui qui la soulève...</b><br><br><br><div style=\"position:relative\" class=\"sondageLeft\">\n<div class=\"barre\" style=\"width:80%\"> </div>\n<div style=\"position:absolute;left:0px\" class=\"sondageTop\">65.2 %</div>\n<div class=\"sondageTop\"> 116 votes</div>\n</div>\n<div class=\"sondageRight\">1.  Hugo Lloris</div>\n<div class=\"spacer\"> </div>\n<div style=\"position:relative\" class=\"sondageLeft\">\n<div class=\"barre\" style=\"width:12%\"> </div>\n<div style=\"position:absolute;left:0px\" class=\"sondageTop\">10.1 %</div>\n<div class=\"sondageTop\">  18 votes</div>\n</div>\n<div class=\"sondageRight\">2.  Lionel Messi</div>\n<div class=\"spacer\"> </div>\n<div style=\"position:relative\" class=\"sondageLeft\">\n<div class=\"barre\" style=\"width:30%\"> </div>\n<div style=\"position:absolute;left:0px\" class=\"sondageTop\">24.7 %</div>\n<div class=\"sondageTop\"> 44 votes</div>\n</div>\n<div class=\"sondageRight\">3.  Trifon</div>\n<div class=\"spacer\"> </div>\n<br><div>\n<b>Total : 194 votes</b> (16 votes blancs)</div>\n</div>\n",
+      "isNewVote" : false,
+      "parsed" : {
+        "footer" : "",
+        "hiddenFields" : {
+
+        },
+        "isVotable" : false,
+        "maxChoices" : 1,
+        "options" : [
+
+        ],
+        "question" : "Ils l'ont tous embrassé mais c'est lui qui la tient, c'est lui qui la soulève...",
+        "results" : [
+          {
+            "id" : 1,
+            "label" : "1.  Hugo Lloris",
+            "percentage" : 65.200000000000003,
+            "voteCount" : 116
+          },
+          {
+            "id" : 2,
+            "label" : "2.  Lionel Messi",
+            "percentage" : 10.1,
+            "voteCount" : 18
+          },
+          {
+            "id" : 3,
+            "label" : "3.  Trifon",
+            "percentage" : 24.699999999999999,
+            "voteCount" : 44
+          }
+        ]
+      }
+    }
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

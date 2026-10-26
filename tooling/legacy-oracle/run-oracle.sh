@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run the legacy-app oracle exporter (LOT-002, LOT-003, LOT-004): apply hfrnow.patch to the legacy checkout, build it,
+# Run the legacy-app oracle exporter (LOT-002, LOT-003, LOT-004, LOT-005): apply hfrnow.patch to the legacy checkout, build it,
 # run the real Objective-C list parsers, topic-page pipeline, write-flow form/response logic and storage formats
 # on saved HTML/JSON inputs and write <case>.oracle.json files.
 # macOS + Xcode 27 only. Nothing is ever committed or pushed in the legacy checkout.

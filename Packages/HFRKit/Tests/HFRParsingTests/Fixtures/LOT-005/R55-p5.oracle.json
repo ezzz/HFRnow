@@ -1,0 +1,64 @@
+{
+  "case" : "R55-p5",
+  "exception" : null,
+  "input" : {
+    "bytes" : 23594,
+    "context" : {
+      "password" : "FAKE_PASSWORD",
+      "pseudo" : "user2",
+      "servedAs" : "GET /user/editprofil.php?config=hfr.inc&page=5"
+    },
+    "currentURL" : null,
+    "file" : "../captures/R55-p5-profile-edit-page5.html",
+    "now" : null,
+    "sha256" : "d899b296947627ecad7e3d773894371750ddc490ca576e3b3fd6fca545d84d67"
+  },
+  "kind" : "profile-edit",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "avatarDataBytes" : 12,
+    "avatarDataIsStub" : true,
+    "cookies" : [
+      {
+        "domain" : ".hardware.fr",
+        "name" : "md_user",
+        "path" : "/"
+      }
+    ],
+    "displayPseudo" : "user2",
+    "hash" : "HASH_PLACEHOLDER",
+    "hashLength" : 8,
+    "outcome" : "success",
+    "pseudoKey" : "FAKE_PSEUDO_KEY",
+    "requests" : [
+      {
+        "bodyFields" : [
+          "action",
+          "login",
+          "password",
+          "pseudo"
+        ],
+        "method" : "POST",
+        "url" : "https://forum.hardware.fr/login_validation.php?config=hfr.inc"
+      },
+      {
+        "method" : "GET",
+        "url" : "https://forum.hardware.fr/user/editprofil.php?config=hfr.inc&page=5"
+      },
+      {
+        "method" : "GET",
+        "url" : "https://tracking.groupe-ldlc.com/matomo.php?idsite=26&rec=1"
+      }
+    ]
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

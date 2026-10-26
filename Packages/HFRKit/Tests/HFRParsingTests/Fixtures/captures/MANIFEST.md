@@ -56,10 +56,10 @@ gets `Profile field removed.` or, for dates, `01/01/2000`; post count → `100`,
 | R27-list | `R27-list-list-programmation-anon.html` | Programmation list page 1 (used to pick R27b) | — | 022 |
 | R28 | `R28-topic-images-videos-anon.html` | 42 images, quotes, spoiler, YouTube | R28, R29 | 034, 035, 056 |
 | R31 | `R31-topic-locked-anon.html` | Locked, sticky, single-page topic | R31 | 033, 036 |
-| R32a | `R32a-topic-poll-anon.html` | Poll topic logged out: vote form `/user/vote.php?config=hfr.inc` shown, radio `reponse` | R32 | 026, 054 |
-| R32b | `R32b-topic-poll-logged-in-not-voted.html` | Same, logged in, not voted | R32 | 026, 054 |
-| R33a | `R33a-topic-poll-closed-anon.html` | Closed poll (locked topic), logged out: results only (bars, `N votes`, `Total`), no form, "Ce sondage est clos, vous ne pouvez plus voter" | R33 | 026, 054 |
-| R33b | `R33b-topic-poll-already-voted.html` | Poll already voted from the operator's accounts, logged in (user1): results only, no form, "(Multipseudo detecté, vous ne pourrez pas voter à ce sondage avec vos autres pseudos)" (user2 sees the same notice; the page does not tell which account voted) | R33 | 026, 054 |
+| R32a | `R32a-topic-poll-anon.html` | Poll topic logged out: vote form `/user/vote.php?config=hfr.inc` shown, radio `reponse` | R32 | 005, 026, 054 |
+| R32b | `R32b-topic-poll-logged-in-not-voted.html` | Same, logged in, not voted | R32 | 005, 026, 054 |
+| R33a | `R33a-topic-poll-closed-anon.html` | Closed poll (locked topic), logged out: results only (bars, `N votes`, `Total`), no form, "Ce sondage est clos, vous ne pouvez plus voter" | R33 | 005, 026, 054 |
+| R33b | `R33b-topic-poll-already-voted.html` | Poll already voted from the operator's accounts, logged in (user1): results only, no form, "(Multipseudo detecté, vous ne pourrez pas voter à ce sondage avec vos autres pseudos)" (user2 sees the same notice; the page does not tell which account voted) | R33 | 005, 026, 054 |
 | R40a | `R40a-reply-form-logged-in.html` | Reply composer (`message.php`), logged in: `hop` form to `/bddpost.php?config=hfr.inc`, `verifrequet=1100`, pseudo echoed, checkboxes | R40 | 036, 048 |
 | R40b | `R40b-reply-form-anon.html` | Same composer logged out: empty `hash_check`, visible pseudo/password | R40 | 036, 048 |
 | R41a | `R41a-quote-form.html` | Quote form (`numrep=<cited>&ref=1`): prefill `[quotemsg=<numreponse>,1,<author id>]` | R41 | 036, 049 |
@@ -68,16 +68,16 @@ gets `Profile field removed.` or, for dates, `01/01/2000`; post count → `100`,
 | R45a | `R45a-new-topic-form.html` | New-topic form `/hfr/Discussions/nouveau_sujet.htm`: `sujet`, `toread1..5`, `subcat` select | R45 | 036, 048 |
 | R45b | `R45b-new-mp-form.html` | New-MP form (`dest` prefilled), never submitted | R45 | 036, 048 |
 | R46 | `R46-modo-alert-form.html` | Moderator alert form, GET only, never submitted | R46 | 036, 050 |
-| R53a | `R53a-smiley-search-no-result.html` | Smiley search, no result: 40-byte text "Désolé, aucune réponse n'a été trouvée !" | R53 | 025, 053 |
-| R53b | `R53b-smiley-search-one-word.html` | One word: 657 smileys | R53 | 025, 053 |
-| R53c | `R53c-smiley-search-two-words.html` | Two words: 1010 smileys (words are OR-ed, not AND-ed) | R53 | 025, 053 |
-| R54 | `R54-smiley-wiki-detail-anon.html` | Smiley wiki detail page | R54 | 053 |
-| R55-p1 | `R55-p1-profile-edit-page1.html` | `/user/editprofil.php?page=1`: personal fields (redacted, birth date and gender unselected) | R55 | 025, 043, 044 |
-| R55-p3 | `R55-p3-profile-edit-page3.html` | Page 3: display settings incl. `topicpp` (posts per page) | R55 | 025, 044 |
-| R55-p5 | `R55-p5-profile-edit-page5.html` | Page 5: `hash_check` only form | R55 | 025, 043, 044 |
-| R55-p5u1 | `R55-p5u1-profile-edit-page5-avatar.html` | Page 5 as user1, an account with an avatar: avatar `mesdiscussions-<id>.jpg`, "Effacer votre avatar" (`clearimage.php?…&codehex=`, redacted), personal smileys `[:code]`…`[:code:5]`, favourite smileys | R55 | 025, 043, 044 |
-| R56a | `R56a-profile-operator-anon.html` | Public profile `/hfr/profil-<id>.htm` of user2, logged out: no avatar, no personal smiley, e-mail "Vous n'avez pas accès à cette information", "Statut" | R56 | 027 |
-| R56b | `R56b-profile-other-member-anon.html` | Public profile of another member (a post author of R26), logged out: avatar, 4 personal smileys, "Configuration matérielle" link, transactions | R56 | 027 |
+| R53a | `R53a-smiley-search-no-result.html` | Smiley search, no result: 40-byte text "Désolé, aucune réponse n'a été trouvée !" | R53 | 005, 025, 053 |
+| R53b | `R53b-smiley-search-one-word.html` | One word: 657 smileys | R53 | 005, 025, 053 |
+| R53c | `R53c-smiley-search-two-words.html` | Two words: 1010 smileys (words are OR-ed, not AND-ed) | R53 | 005, 025, 053 |
+| R54 | `R54-smiley-wiki-detail-anon.html` | Smiley wiki detail page | R54 | 005, 053 |
+| R55-p1 | `R55-p1-profile-edit-page1.html` | `/user/editprofil.php?page=1`: personal fields (redacted, birth date and gender unselected) | R55 | 005, 025, 043, 044 |
+| R55-p3 | `R55-p3-profile-edit-page3.html` | Page 3: display settings incl. `topicpp` (posts per page) | R55 | 005, 025, 044 |
+| R55-p5 | `R55-p5-profile-edit-page5.html` | Page 5: `hash_check` only form | R55 | 005, 025, 043, 044 |
+| R55-p5u1 | `R55-p5u1-profile-edit-page5-avatar.html` | Page 5 as user1, an account with an avatar: avatar `mesdiscussions-<id>.jpg`, "Effacer votre avatar" (`clearimage.php?…&codehex=`, redacted), personal smileys `[:code]`…`[:code:5]`, favourite smileys | R55 | 005, 025, 043, 044 |
+| R56a | `R56a-profile-operator-anon.html` | Public profile `/hfr/profil-<id>.htm` of user2, logged out: no avatar, no personal smiley, e-mail "Vous n'avez pas accès à cette information", "Statut" | R56 | 005, 027 |
+| R56b | `R56b-profile-other-member-anon.html` | Public profile of another member (a post author of R26), logged out: avatar, 4 personal smileys, "Configuration matérielle" link, transactions | R56 | 005, 027 |
 | R57a | `R57a-rest-categories.json` | REST categories (20) | R57 | 057 |
 | R57b | `R57b-rest-category-topics-last.json` | REST last topics of cat 13 (25 per page) | R57 | 057 |
 | R57c | `R57c-rest-topic.json` | REST one topic | R57 | 057 |
@@ -109,9 +109,9 @@ gets `Profile field removed.` or, for dates, `01/01/2000`; post count → `100`,
 | P03d | `P03d-delflag-favourite-success.html` | `delflag.php?…&owntopic=3`: "Drapeau effacé avec succès" | P03 | 051 |
 | P03e | `P03e-favourites-after-delflag-empty.html` | Favourites empty again (state restored) | P03 | 024 |
 | P03f | `P03f-list-owntopic2-after-delflag.html` | Read list after delflag: the topic's read flag is gone too | P03 | 024, 051 |
-| R50a | `R50a-search-post-waiting-page.html` | Global search POST: "Votre recherche est en cours…", refresh to `GET /forum1.php?recherches=1&…&config=hfr.inc` | R50 | 025, 046 |
-| R50b | `R50b-search-results-no-cookie.html` | That GET without cookies: 50 rows, `post_cat_list` | R50, R51 | 022, 046 |
-| R50c | `R50c-search-no-result-no-cookie.html` | No result: `.hop` "Désolé, aucune réponse n'a été trouvée !" | R50 | 046 |
+| R50a | `R50a-search-post-waiting-page.html` | Global search POST: "Votre recherche est en cours…", refresh to `GET /forum1.php?recherches=1&…&config=hfr.inc` | R50 | 005, 025, 046 |
+| R50b | `R50b-search-results-no-cookie.html` | That GET without cookies: 50 rows, `post_cat_list` | R50, R51 | 005, 022, 046 |
+| R50c | `R50c-search-no-result-no-cookie.html` | No result: `.hop` "Désolé, aucune réponse n'a été trouvée !" | R50 | 005, 046 |
 | R52a | (meta only) | `transsearch.php` match: **302**, `Location: /forum2.php?…&word=<UPPER>&currentnum=<n>#t<n>` | R52 | 046 |
 | R52b | `R52b-transsearch-no-match.html` | No match: 200, `.hop` "Désolé aucune réponse n'a été trouvée" | R52 | 046 |
 | W17a | `W17a-mp-reply-empty-body-rejected.html` | Empty body: "Vous devez remplir tous les champs avant de poster ce message" | W17 | 037 |

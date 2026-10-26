@@ -1,0 +1,49 @@
+{
+  "case" : "R54",
+  "exception" : null,
+  "input" : {
+    "bytes" : 31322,
+    "context" : {
+      "code" : "[:user3]"
+    },
+    "currentURL" : null,
+    "file" : "../captures/R54-smiley-wiki-detail-anon.html",
+    "now" : null,
+    "sha256" : "cf8f55cfc1220bd6de9a4db61a89df970b2b9d8d2311e946c7dacadf51b27730"
+  },
+  "kind" : "smiley-keywords",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "legacyObjC" : {
+      "arrCodeList" : [
+        "musique",
+        "guitare",
+        "guitariste"
+      ],
+      "commaRemovalIsNoOp" : true,
+      "commasWouldBeRemoved" : 0,
+      "enabled" : 1,
+      "inputFound" : 1,
+      "value" : "musique guitare guitariste"
+    },
+    "swiftApp" : {
+      "keywords" : [
+        "musique",
+        "guitare",
+        "guitariste"
+      ],
+      "outcome" : "success",
+      "rawValue" : "musique guitare guitariste"
+    }
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

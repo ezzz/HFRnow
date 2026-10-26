@@ -40,11 +40,11 @@ index b0a205a..2c5f491 100644
  }
 diff --git a/HFRswiftTests/OracleExport.swift b/HFRswiftTests/OracleExport.swift
 new file mode 100644
-index 0000000..8e82a04
+index 0000000..ca9d04a
 --- /dev/null
 +++ b/HFRswiftTests/OracleExport.swift
-@@ -0,0 +1,385 @@
-+// Oracle exporter for SwiftHFR LOT-002 (list parsers), LOT-003 (topic pages, OracleExportTopic.swift) and LOT-004
+@@ -0,0 +1,388 @@
++// Oracle exporter for SwiftHFR LOT-002 (list parsers), LOT-003 (topic pages, OracleExportTopic.swift), LOT-004 and LOT-005
 +// (write flows and storage formats, OracleExportWrite.swift). Local-only: never committed to hfrnow.
 +//
 +// Runs the REAL legacy parsers, offline, on saved HTML pages and writes one `<case>.oracle.json` per page.
@@ -178,7 +178,7 @@ index 0000000..8e82a04
 +    }
 +
 +    private func runCase(file: String, spec: CaseSpec, inDir: URL, delegate: NSObject, legacyCommit: String?) throws -> [String: Any] {
-+        guard ["forums", "topics", "favorites", "mp", "search", "topic"].contains(spec.kind) || Self.writeKinds.contains(spec.kind) else {
++        guard ["forums", "topics", "favorites", "mp", "search", "topic"].contains(spec.kind) || Self.writeKinds.contains(spec.kind) || Self.smallKinds.contains(spec.kind) else {
 +            throw HarnessError(message: "unknown kind '\(spec.kind)'")
 +        }
 +        // `path` (optional map key) points at the page relative to the map folder, so a corpus can be used in place.
@@ -222,6 +222,9 @@ index 0000000..8e82a04
 +            outcome = try runResponse(data, options: spec.options, extras: &topicExtras)
 +        case "storage":
 +            outcome = try runStorage(data, inDir: inDir, options: spec.options, extras: &topicExtras)
++        case _ where Self.smallKinds.contains(spec.kind):
++            currentURL = spec.kind == "poll" ? (spec.currentURL ?? Self.defaultTopicPageURL) : nil
++            outcome = try runSmall(kind: spec.kind, data: data, currentURL: currentURL, options: spec.options, extras: &topicExtras)
 +        case "search":
 +            currentURL = spec.currentURL ?? Self.defaultTopicsURL
 +            outcome = runSearch(data, currentURL: currentURL ?? "")
@@ -427,6 +430,338 @@ index 0000000..8e82a04
 +        var data = try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys, .prettyPrinted, .withoutEscapingSlashes])
 +        data.append(0x0A)
 +        try data.write(to: url, options: .atomic)
++    }
++}
+diff --git a/HFRswiftTests/OracleExportSmall.swift b/HFRswiftTests/OracleExportSmall.swift
+new file mode 100644
+index 0000000..cbb51bc
+--- /dev/null
++++ b/HFRswiftTests/OracleExportSmall.swift
+@@ -0,0 +1,326 @@
++// Oracle exporter for SwiftHFR LOT-005: the small parsers (search redirect, profile edit page, smiley search,
++// smiley wiki keywords, topic poll, public profile). Local-only: never committed to hfrnow.
++//
++// Kind `search-redirect`  ObjCForumSearchWorker redirect extraction + the "no result page" error of the POST callback
++//                         (ObjCForumSearchWorker.m:46-55, 305-345), real methods called through the runtime.
++// Kind `profile-edit`     the live LoginService over a stub URLSession: hash_check and avatar regexes of the page-5 fetch
++//                         (LoginService.swift:87-113). The page under test is served as the editprofil answer.
++// Kind `smiley-search`    the live HFRSmileySearchService over a stub (SmileySearchService.swift:17-37, 44-75) and, beside it, the
++//                         legacy ObjC parsing (SmileyViewController.m:904-911, OracleLegacySmall.m).
++// Kind `smiley-keywords`  wiki detail page: the legacy ObjC step (SmileyAlertView.m:162-197, OracleLegacySmall.m) and the two
++//                         private Swift copies (MessagesView.swift:3317-3392, AnswerView.swift:762-836), transliterated.
++// Kind `poll`             the topic pipeline of LOT-003, reduced to the poll: swiftPollHTML and PollHTMLParser.parse.
++// Kind `profile`          the live UserProfileService over a stub (UserProfileView.swift:113-430, UserProfileHTMLParser.parse).
++//
++// oracle-map.json options:
++//   search-redirect  none
++//   profile-edit     session {pseudo}
++//   smiley-search    query (what the user typed; the live service builds the URL from it)
++//   smiley-keywords  code (the smiley code the page was fetched for)
++//   poll             currentURL, ownPseudo (as the `topic` kind)
++//   profile          url (the profile URL the page was fetched from)
++
++import UIKit
++import XCTest
++@testable import HFRswift
++
++/// URLProtocol answering the live services from a handler, requests logged (method, URL, body field names only).
++final class OracleRouteStub: URLProtocol, @unchecked Sendable {
++    nonisolated(unsafe) static var handler: ((URLRequest) -> (status: Int, headers: [String: String], data: Data))?
++    nonisolated(unsafe) static var log: [[String: Any]] = []
++    private static let lock = NSLock()
++
++    static func reset(_ handler: @escaping (URLRequest) -> (status: Int, headers: [String: String], data: Data)) {
++        lock.lock(); defer { lock.unlock() }
++        Self.handler = handler
++        log = []
++    }
++
++    static func drain() -> [[String: Any]] {
++        lock.lock(); defer { lock.unlock() }
++        let copy = log
++        log = []
++        handler = nil
++        return copy
++    }
++
++    override class func canInit(with request: URLRequest) -> Bool { true }
++    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
++
++    override func startLoading() {
++        var body = request.httpBody
++        if body == nil, let stream = request.httpBodyStream {
++            stream.open()
++            var collected = Data()
++            var buffer = [UInt8](repeating: 0, count: 4096)
++            while stream.hasBytesAvailable {
++                let count = stream.read(&buffer, maxLength: buffer.count)
++                if count <= 0 { break }
++                collected.append(buffer, count: count)
++            }
++            stream.close()
++            body = collected
++        }
++        let method = request.httpMethod ?? "GET"
++        var entry: [String: Any] = ["method": method, "url": request.url?.absoluteString ?? ""]
++        if method == "POST" {
++            // Field names only: the values of a login are credentials, even fake ones.
++            let text = String(data: body ?? Data(), encoding: .utf8) ?? ""
++            entry["bodyFields"] = text.split(separator: "&").map { String($0.split(separator: "=", maxSplits: 1)[0]) }.sorted()
++        }
++        Self.lock.lock()
++        Self.log.append(entry)
++        let answer = Self.handler?(request) ?? (status: 404, headers: [:], data: Data())
++        Self.lock.unlock()
++        var headers = ["Content-Type": "text/html; charset=utf-8"]
++        for (key, value) in answer.headers { headers[key] = value }
++        let response = HTTPURLResponse(url: request.url ?? URL(string: "https://forum.hardware.fr/")!, statusCode: answer.status,
++                                       httpVersion: "HTTP/1.1", headerFields: headers)!
++        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
++        client?.urlProtocol(self, didLoad: answer.data)
++        client?.urlProtocolDidFinishLoading(self)
++    }
++
++    override func stopLoading() {}
++}
++
++extension OracleExport {
++    static let smallKinds = ["search-redirect", "profile-edit", "smiley-search", "smiley-keywords", "poll", "profile"]
++    private static let placeholderHash = "HASH_PLACEHOLDER"
++    private static let fakePseudoKey = "FAKE_PSEUDO_KEY"
++    private static let fakeAvatarBytes = Data("AVATAR-BYTES".utf8)
++
++    private func smallStubSession() -> URLSession {
++        let config = URLSessionConfiguration.ephemeral
++        config.protocolClasses = [OracleRouteStub.self]
++        return URLSession(configuration: config)
++    }
++
++    private func smallHelper(_ selector: String, _ first: Any?) -> [String: Any] {
++        guard let type = NSClassFromString("OracleLegacySmall") as AnyObject? else { fatalError("OracleLegacySmall missing") }
++        return type.perform(NSSelectorFromString(selector), with: first)?.takeUnretainedValue() as? [String: Any] ?? [:]
++    }
++
++    private func decodeUTF8(_ data: Data) -> String {
++        String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1) ?? ""
++    }
++
++    func runSmall(kind: String, data: Data, currentURL: String?, options: [String: Any],
++                  extras: inout TopicCaseExtras) throws -> (Any?, String?) {
++        switch kind {
++        case "search-redirect": return runSearchRedirect(data, extras: &extras)
++        case "profile-edit": return runProfileEdit(data, options: options, extras: &extras)
++        case "smiley-search": return try runSmileySearch(data, options: options, extras: &extras)
++        case "smiley-keywords": return runSmileyKeywords(data, options: options, extras: &extras)
++        case "poll": return try runPoll(data, currentURL: currentURL ?? Self.defaultTopicPageURL, options: options, extras: &extras)
++        default: return try runProfile(data, options: options, extras: &extras)
++        }
++    }
++
++    // MARK: search-redirect
++
++    /// ObjCForumSearchWorker.m:46-55: the POST answer is decoded as UTF-8 (nil becomes ""), the refresh URL is looked up, and no
++    /// URL means the error "Aucune page de résultats n'a été trouvée." (domain TopicsSearchViewController.search, code -2).
++    /// The error object is built inline in the completion handler, so it is rebuilt here from the same literals.
++    private func runSearchRedirect(_ data: Data, extras: inout TopicCaseExtras) -> (Any?, String?) {
++        let worker = instance("ObjCForumSearchWorker")
++        let html = String(data: data, encoding: .utf8) ?? ""
++        let redirect = invoke(worker, "forumSearchRedirectURLFromHTML:", [html])
++        if let exception = redirect.exception { return (nil, exception) }
++        let url = redirect.result as? String
++        var result: [String: Any] = ["redirectURL": plain(url), "hasRedirect": !(url ?? "").isEmpty]
++        if let url, !url.isEmpty {
++            let absolute = invoke(worker, "forumSearchAbsoluteURLStringFromString:", [url])
++            let absoluteString = absolute.result as? String
++            result["absoluteURL"] = absolute.exception.map { ["exception": $0] as Any } ?? plain(absoluteString)
++            let relative = absoluteString.map { invoke(worker, "forumSearchRelativeURLStringFromString:", [$0]) }
++            result["relativeURL"] = relative.map { $0.exception.map { ["exception": $0] as Any } ?? plain($0.result) } ?? NSNull()
++            result["error"] = NSNull()
++        } else {
++            result["absoluteURL"] = NSNull()
++            result["relativeURL"] = NSNull()
++            result["error"] = ["domain": "TopicsSearchViewController.search", "code": -2,
++                               "message": "Aucune page de résultats n'a été trouvée."] as [String: Any]
++        }
++        return (result, nil)
++    }
++
++    // MARK: profile-edit
++
++    private func runProfileEdit(_ data: Data, options: [String: Any], extras: inout TopicCaseExtras) -> (Any?, String?) {
++        let pseudo = (options["session"] as? [String: Any])?["pseudo"] as? String ?? "user1"
++        extras.context = ["pseudo": pseudo, "password": "FAKE_PASSWORD", "servedAs": "GET /user/editprofil.php?config=hfr.inc&page=5"]
++        OracleRouteStub.reset { request in
++            let path = request.url?.path ?? ""
++            if path.hasSuffix("/login_validation.php") {
++                return (200, ["Set-Cookie": "md_user=\(Self.fakePseudoKey); Domain=.hardware.fr; Path=/"],
++                        Data("<html><a href=\"login_redirection.php\">ok</a></html>".utf8))
++            }
++            if path.hasSuffix("/editprofil.php") { return (200, [:], data) }
++            return (200, ["Content-Type": "image/gif"], Self.fakeAvatarBytes)
++        }
++        let service = LoginService(session: smallStubSession())
++        var outcome: [String: Any] = [:]
++        let finished = runBlocking {
++            do {
++                let login = try await service.login(pseudo: pseudo, password: "FAKE_PASSWORD")
++                outcome = [
++                    "outcome": "success",
++                    "displayPseudo": login.displayPseudo,
++                    "pseudoKey": login.pseudoKey,
++                    "hash": login.hash.isEmpty ? "" : Self.placeholderHash,
++                    "hashLength": login.hash.count,
++                    "avatarDataBytes": login.avatarData.map { $0.count as Any } ?? NSNull(),
++                    "avatarDataIsStub": login.avatarData == Self.fakeAvatarBytes,
++                    "cookies": login.cookies.map { ["name": $0.name, "domain": $0.domain, "path": $0.path] }
++                        .sorted { ($0["name"] ?? "") < ($1["name"] ?? "") }
++                ]
++            } catch let error as LoginError {
++                let name: String
++                switch error {
++                case .invalidCredentials: name = "invalidCredentials"
++                case .invalidResponse: name = "invalidResponse"
++                case .missingHash: name = "missingHash"
++                case .missingPseudoCookie: name = "missingPseudoCookie"
++                case .network: name = "network"
++                }
++                outcome = ["outcome": "error", "error": name, "message": error.errorDescription ?? ""]
++            } catch {
++                outcome = ["outcome": "error", "error": "other", "message": "\(error)"]
++            }
++        }
++        let log = OracleRouteStub.drain()
++        // The login service clears and fills the process-wide cookie jar: leave it empty.
++        for cookie in HTTPCookieStorage.shared.cookies ?? [] where cookie.domain.contains("hardware.fr") {
++            HTTPCookieStorage.shared.deleteCookie(cookie)
++        }
++        if !finished { return (nil, "login did not finish") }
++        outcome["requests"] = log
++        return (outcome, nil)
++    }
++
++    // MARK: smiley-search
++
++    private func runSmileySearch(_ data: Data, options: [String: Any], extras: inout TopicCaseExtras) throws -> (Any?, String?) {
++        guard let query = options["query"] as? String else { throw HarnessError(message: "smiley-search needs a `query` option") }
++        extras.context = ["query": query]
++        OracleRouteStub.reset { _ in (200, [:], data) }
++        URLProtocol.registerClass(OracleRouteStub.self)
++        defer { URLProtocol.unregisterClass(OracleRouteStub.self) }
++        var live: [String: Any] = [:]
++        let finished = runBlocking {
++            do {
++                let found = try await HFRSmileySearchService().search(query: query)
++                live["smileys"] = found.map { smiley -> [String: Any] in
++                    let source: Any
++                    switch smiley.imageSource {
++                    case .remote(let url): source = ["remote": url.absoluteString]
++                    case .bundledGIF(let name): source = ["bundledGIF": name]
++                    case .none: source = "none"
++                    }
++                    return ["code": smiley.code, "imageSource": source]
++                }
++            } catch {
++                live["error"] = "\(error)"
++            }
++        }
++        let log = OracleRouteStub.drain()
++        if !finished { return (nil, "smiley search did not finish") }
++        live["requests"] = log
++        let legacy = smallHelper("smileySearchImages:", ["content": decodeUTF8(data)])
++        return (["live": live, "legacy": legacy], nil)
++    }
++
++    // MARK: smiley-keywords
++
++    private func runSmileyKeywords(_ data: Data, options: [String: Any], extras: inout TopicCaseExtras) -> (Any?, String?) {
++        extras.context = ["code": options["code"] ?? NSNull()]
++        let legacy = smallHelper("smileyKeywords:", ["content": decodeUTF8(data)])
++        return (["legacyObjC": legacy, "swiftApp": swiftKeywords(decodeUTF8(data))], nil)
++    }
++
++    /// MessagesView.swift:3317-3392 and AnswerView.swift:762-836 (identical bodies; private to SwiftUI views, so transliterated): from the
++    /// 2xx check on. The HTTP part is not reproduced; the page is the answer.
++    private func swiftKeywords(_ html: String) -> [String: Any] {
++        let pattern = #"name\s*=\s*"keywords0"[^>]*value\s*=\s*"([^"]*)""#
++        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]),
++              let match = regex.firstMatch(in: html, options: [], range: NSRange(html.startIndex..<html.endIndex, in: html)),
++              match.numberOfRanges > 1,
++              let valueRange = Range(match.range(at: 1), in: html) else {
++            return ["outcome": "failure", "code": 4, "message": "Aucun mot clé trouvé."]
++        }
++        let rawValue = String(html[valueRange])
++        let decodedEntities = rawValue
++            .replacingOccurrences(of: "&amp;", with: "&")
++            .replacingOccurrences(of: "&quot;", with: "\"")
++            .replacingOccurrences(of: "&apos;", with: "'")
++            .replacingOccurrences(of: "&#39;", with: "'")
++            .replacingOccurrences(of: "&#x2F;", with: "/")
++            .replacingOccurrences(of: "&#47;", with: "/")
++        let keywords = decodedEntities
++            .replacingOccurrences(of: ",", with: " ")
++            .split(whereSeparator: { $0.isWhitespace })
++            .map(String.init)
++            .filter { !$0.isEmpty }
++        if keywords.isEmpty { return ["outcome": "failure", "code": 5, "message": "Aucun mot clé trouvé."] }
++        return ["outcome": "success", "rawValue": rawValue, "keywords": keywords]
++    }
++
++    // MARK: poll
++
++    private func runPoll(_ data: Data, currentURL: String, options: [String: Any], extras: inout TopicCaseExtras) throws -> (Any?, String?) {
++        let run = try runTopic(data, currentURL: currentURL, options: options, extras: &extras)
++        if let exception = run.1 { return (nil, exception) }
++        guard let page = (run.0 as? [String: Any])?["page"] as? [String: Any], let poll = page["poll"] as? [String: Any] else {
++            throw HarnessError(message: "topic pipeline returned no poll section")
++        }
++        // The poll is all this kind exports: drop the topic pipeline's side effects (avatar requests, defaults) as noise.
++        extras.sideEffects = [:]
++        return (["poll": poll, "currentURL": currentURL], nil)
++    }
++
++    // MARK: profile
++
++    private func runProfile(_ data: Data, options: [String: Any], extras: inout TopicCaseExtras) throws -> (Any?, String?) {
++        guard let urlString = options["url"] as? String, let url = URL(string: urlString) else {
++            throw HarnessError(message: "profile needs a `url` option")
++        }
++        extras.context = ["url": urlString]
++        OracleRouteStub.reset { _ in (200, [:], data) }
++        var result: [String: Any] = [:]
++        let finished = runBlocking {
++            do {
++                let profile = try await UserProfileService(session: self.smallStubSession()).fetchProfile(url: url)
++                result["profile"] = Self.profileDict(profile)
++            } catch {
++                result["error"] = "\(error)"
++                result["errorMessage"] = (error as? LocalizedError)?.errorDescription ?? NSNull()
++            }
++        }
++        _ = OracleRouteStub.drain()
++        if !finished { return (nil, "profile fetch did not finish") }
++        return (result, nil)
++    }
++
++    private static func profileDict(_ profile: UserProfile) -> [String: Any] {
++        [
++            "pseudo": profile.pseudo,
++            "status": profile.status ?? NSNull(),
++            "avatarURL": profile.avatarURL?.absoluteString ?? NSNull(),
++            "summary": profile.summary.map { ["id": $0.id, "title": $0.title, "value": $0.value, "systemImage": $0.systemImage] },
++            "sections": profile.sections.map { section -> [String: Any] in
++                ["id": section.id, "title": section.title, "fields": section.fields.map { field -> [String: Any] in
++                    ["id": field.id, "title": field.title, "value": field.value, "url": field.url?.absoluteString ?? NSNull(),
++                     "isPlaceholder": field.isPlaceholder]
++                }]
++            },
++            "personalSmilies": profile.personalSmilies.map { smiley -> [String: Any] in
++                ["id": smiley.id, "code": smiley.code, "imageURL": smiley.imageURL.absoluteString, "title": smiley.title ?? NSNull()]
++            },
++            "actions": profile.actions.map { action -> [String: Any] in
++                ["id": action.id, "title": action.title, "subtitle": action.subtitle ?? NSNull(), "url": action.url.absoluteString,
++                 "kind": "\(action.kind)"]
++            }
++        ]
 +    }
 +}
 diff --git a/HFRswiftTests/OracleExportTopic.swift b/HFRswiftTests/OracleExportTopic.swift
@@ -1376,6 +1711,97 @@ index 0000000..c223f92
 +        return (result, nil)
 +    }
 +}
+diff --git a/HFRswiftTests/OracleLegacySmall.m b/HFRswiftTests/OracleLegacySmall.m
+new file mode 100644
+index 0000000..e901b5e
+--- /dev/null
++++ b/HFRswiftTests/OracleLegacySmall.m
+@@ -0,0 +1,85 @@
++// Oracle exporter helper (SwiftHFR LOT-005): UI-bound parsing steps of the small legacy parsers, offline.
++// Local-only: never committed to hfrnow.
++//
++// SmileyAlertView and SmileyViewController are compiled only into the old SuperHFRplus target, not the HFRswift test
++// host. The parsing part of their ASIHTTPRequest callbacks is transliterated here line for line (legacy line in a
++// comment) and run on the REAL building blocks they use: HTMLParser/HTMLNode (libxml2) and NSRegularExpression.
++// Legacy classes are reached through the runtime only: no legacy header is imported.
++#import <Foundation/Foundation.h>
++#import <UIKit/UIKit.h>
++#import <objc/message.h>
++#import <objc/runtime.h>
++
++@interface NSObject (OracleLegacySmallProbe)
++- (id)initWithString:(NSString *)string error:(NSError **)error;
++- (id)body;
++- (id)doc;
++- (id)findChildWithAttribute:(NSString *)attribute matchingName:(NSString *)name allowPartial:(BOOL)partial;
++- (NSArray *)findChildTags:(NSString *)tag;
++- (NSString *)getAttributeNamed:(NSString *)name;
++@end
++
++@interface OracleLegacySmall : NSObject
+++ (NSDictionary *)smileyKeywords:(NSDictionary *)spec;
+++ (NSDictionary *)smileySearchImages:(NSDictionary *)spec;
++@end
++
++static NSString *SmallException(NSException *exception) {
++    return [NSString stringWithFormat:@"%@: %@", exception.name, exception.reason ?: @""];
++}
++
++@implementation OracleLegacySmall
++
++/// SmileyAlertView.m:162-197 (-requestSmileyComplete:), the parsing part. `content` is `[request responseString]`.
+++ (NSDictionary *)smileyKeywords:(NSDictionary *)spec {
++    NSString *content = spec[@"content"];
++    NSMutableDictionary *out = [NSMutableDictionary dictionary];
++    @try {
++        NSError *error = nil;
++        id myParser = [[NSClassFromString(@"HTMLParser") alloc] initWithString:content error:&error]; // :169
++        id bodyNode = [myParser body];                                                                  // :170
++        id inputNode = [bodyNode findChildWithAttribute:@"name" matchingName:@"keywords0" allowPartial:NO]; // :171
++        NSString *text = [inputNode getAttributeNamed:@"value"];                                         // :172
++        out[@"inputFound"] = @(inputNode != nil);
++        out[@"value"] = text ?: [NSNull null];
++        NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"  +" options:NSRegularExpressionCaseInsensitive error:&error]; // :182
++        NSString *trimmedString = [regex stringByReplacingMatchesInString:text options:0 range:NSMakeRange(0, text.length) withTemplate:@" "]; // :183
++        // :185 `[trimmedString stringByReplacingOccurrencesOfString:@"," withString:@""];` is called and its result dropped:
++        // the commas stay (recorded as `commaRemovalIsNoOp`, checked below).
++        NSString *commasRemoved = [trimmedString stringByReplacingOccurrencesOfString:@"," withString:@""];
++        out[@"commaRemovalIsNoOp"] = @YES;
++        out[@"commasWouldBeRemoved"] = @(![commasRemoved isEqualToString:trimmedString]);
++        NSArray *arrCodeList = [[trimmedString componentsSeparatedByString:@" "] copy];                   // :186
++        out[@"arrCodeList"] = arrCodeList ?: [NSNull null];
++        out[@"enabled"] = @(arrCodeList.count > 0);                                                       // :188-190 (actionSmileyCode setEnabled)
++    } @catch (NSException *exception) {                                                                   // :193
++        out[@"exception"] = SmallException(exception);
++    }
++    return out;
++}
++
++/// SmileyViewController.m:893-924 (-fetchSmileContentComplete:), the parsing part: every <img> becomes {source, code}.
+++ (NSDictionary *)smileySearchImages:(NSDictionary *)spec {
++    NSString *content = spec[@"content"];
++    NSMutableDictionary *out = [NSMutableDictionary dictionary];
++    @try {
++        id myParser = [[NSClassFromString(@"HTMLParser") alloc] initWithString:content error:NULL];       // :904
++        id smileNode = [myParser doc];                                                                    // :905
++        NSArray *tmpImageArray = [smileNode findChildTags:@"img"];                                        // :906
++        NSMutableArray *items = [NSMutableArray array];
++        for (id imgNode in tmpImageArray) {                                                               // :907
++            // :908 builds {source: src, code: alt} with dictionaryWithObjects:forKeys:, which raises if src or alt is nil
++            NSString *src = [imgNode getAttributeNamed:@"src"];
++            NSString *alt = [imgNode getAttributeNamed:@"alt"];
++            [items addObject:[NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:src, alt, nil]
++                                                         forKeys:[NSArray arrayWithObjects:@"source", @"code", nil]]];
++        }
++        out[@"items"] = items;
++        out[@"noResult"] = @(items.count == 0);                                                           // :911
++    } @catch (NSException *exception) {
++        out[@"exception"] = SmallException(exception);
++    }
++    return out;
++}
++
++@end
 diff --git a/HFRswiftTests/OracleLegacyWrite.m b/HFRswiftTests/OracleLegacyWrite.m
 new file mode 100644
 index 0000000..94787c3

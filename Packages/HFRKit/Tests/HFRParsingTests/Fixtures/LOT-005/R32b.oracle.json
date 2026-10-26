@@ -1,0 +1,127 @@
+{
+  "case" : "R32b",
+  "exception" : null,
+  "input" : {
+    "bytes" : 212880,
+    "context" : {
+      "anchor" : "",
+      "avatarFetch" : "succeed",
+      "blacklist" : [
+
+      ],
+      "filter" : null,
+      "ownPseudo" : "user2",
+      "settings" : {
+        "auto_theme" : 0,
+        "blacklist_hide_pseudo" : false,
+        "display_images" : "yes",
+        "display_sig" : "no",
+        "embedded_videos" : "yes",
+        "filter_posts_min_quotes" : 3,
+        "filter_posts_quotes" : "wl_pseudo",
+        "mpstorage_active" : false,
+        "theme" : 0,
+        "theme_noel_disabled" : true,
+        "theme_style" : 1
+      },
+      "whitelist" : [
+
+      ]
+    },
+    "currentURL" : "/forum2.php?config=hfr.inc&cat=13&post=98162&page=1",
+    "file" : "../captures/R32b-topic-poll-logged-in-not-voted.html",
+    "now" : null,
+    "sha256" : "234d0153272691f0b25dbda7580806824de56592e7daa37c3622ab2a9c08196b"
+  },
+  "kind" : "poll",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "currentURL" : "/forum2.php?config=hfr.inc&cat=13&post=98162&page=1",
+    "poll" : {
+      "hasPoll" : true,
+      "html" : "<div class=\"sondage\">\n<input type=\"hidden\" name=\"cat\" value=\"13\"><input type=\"hidden\" name=\"p\" value=\"1\"><input type=\"hidden\" name=\"page\" value=\"1\"><input type=\"hidden\" name=\"sondage\" value=\"1\"><input type=\"hidden\" name=\"owntopic\" value=\"0\"><input type=\"hidden\" name=\"subcat\" value=\"431\"><input type=\"hidden\" name=\"numeropost\" value=\"98162\"><input type=\"hidden\" name=\"hash_check\" value=\"REDACTED\"><b class=\"s2\">Quelle est votre proportion en superéthanol E85 (période estivale) ?</b><br><br><ol type=\"1\">\n<li>\n<input type=\"radio\" value=\"1\" id=\"sond1\" name=\"reponse\"><label for=\"sond1\">SP 95-98 je veux même pas entendre parler du E10 ou plus !</label>\n</li>\n<li>\n<input type=\"radio\" value=\"2\" id=\"sond2\" name=\"reponse\"><label for=\"sond2\">Je roule au SP95-E10, pas testé plus d'éthanol</label>\n</li>\n<li>\n<input type=\"radio\" value=\"3\" id=\"sond3\" name=\"reponse\"><label for=\"sond3\">E85 entre 25 &amp; 40 % + SP</label>\n</li>\n<li>\n<input type=\"radio\" value=\"4\" id=\"sond4\" name=\"reponse\"><label for=\"sond4\">E85 à environ la moitié (45 à 55 %) + SP</label>\n</li>\n<li>\n<input type=\"radio\" value=\"5\" id=\"sond5\" name=\"reponse\"><label for=\"sond5\">E85 entre 60 &amp; 75 % + SP</label>\n</li>\n<li>\n<input type=\"radio\" value=\"6\" id=\"sond6\" name=\"reponse\"><label for=\"sond6\">plus de 75 % mais je rajoute une lampée de SP</label>\n</li>\n<li>\n<input type=\"radio\" value=\"7\" id=\"sond7\" name=\"reponse\"><label for=\"sond7\">seulement E85 sans modification du moteur</label>\n</li>\n<li>\n<input type=\"radio\" value=\"8\" id=\"sond8\" name=\"reponse\"><label for=\"sond8\">seulement E85 avec boitier /  modif' du moteur</label>\n</li>\n<li>\n<input type=\"radio\" value=\"9\" id=\"sond9\" name=\"reponse\"><label for=\"sond9\">Dark Vador enfume tout le monde avec son mazout</label>\n</li>\n<li>\n<input type=\"radio\" value=\"10\" id=\"sond10\" name=\"reponse\"><label for=\"sond10\">Obi-Wan Kenobi se déplace en land speeder électrique</label>\n</li>\n</ol>\n<br><input type=\"submit\" name=\"sondage_submit\" value=\"Voter\"><input type=\"submit\" name=\"sondage_submit\" value=\"Voir les résultats\"><br><br>Attention si vous cliquez sur \"voir les résultats\" vous ne pourrez plus voter</div>",
+      "isNewVote" : true,
+      "parsed" : {
+        "footer" : "",
+        "hiddenFields" : {
+          "cat" : "13",
+          "hash_check" : "REDACTED",
+          "numeropost" : "98162",
+          "owntopic" : "0",
+          "p" : "1",
+          "page" : "1",
+          "sondage" : "1",
+          "subcat" : "431"
+        },
+        "isVotable" : true,
+        "maxChoices" : 1,
+        "options" : [
+          {
+            "fieldName" : "reponse",
+            "id" : 1,
+            "text" : "SP 95-98 je veux même pas entendre parler du E10 ou plus !"
+          },
+          {
+            "fieldName" : "reponse",
+            "id" : 2,
+            "text" : "Je roule au SP95-E10, pas testé plus d'éthanol"
+          },
+          {
+            "fieldName" : "reponse",
+            "id" : 3,
+            "text" : "E85 entre 25 &amp; 40 % + SP"
+          },
+          {
+            "fieldName" : "reponse",
+            "id" : 4,
+            "text" : "E85 à environ la moitié (45 à 55 %) + SP"
+          },
+          {
+            "fieldName" : "reponse",
+            "id" : 5,
+            "text" : "E85 entre 60 &amp; 75 % + SP"
+          },
+          {
+            "fieldName" : "reponse",
+            "id" : 6,
+            "text" : "plus de 75 % mais je rajoute une lampée de SP"
+          },
+          {
+            "fieldName" : "reponse",
+            "id" : 7,
+            "text" : "seulement E85 sans modification du moteur"
+          },
+          {
+            "fieldName" : "reponse",
+            "id" : 8,
+            "text" : "seulement E85 avec boitier / modif' du moteur"
+          },
+          {
+            "fieldName" : "reponse",
+            "id" : 9,
+            "text" : "Dark Vador enfume tout le monde avec son mazout"
+          },
+          {
+            "fieldName" : "reponse",
+            "id" : 10,
+            "text" : "Obi-Wan Kenobi se déplace en land speeder électrique"
+          }
+        ],
+        "question" : "Quelle est votre proportion en superéthanol E85 (période estivale) ?",
+        "results" : [
+
+        ]
+      }
+    }
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

@@ -1,0 +1,221 @@
+{
+  "case" : "R56b",
+  "exception" : null,
+  "input" : {
+    "bytes" : 5901,
+    "context" : {
+      "url" : "https://forum.hardware.fr/hfr/profil-910001.htm"
+    },
+    "currentURL" : null,
+    "file" : "../captures/R56b-profile-other-member-anon.html",
+    "now" : null,
+    "sha256" : "8e53b829a4f4cee30e9c3dab55fa91165f8979f92797cccf7af05c6c74dff3df"
+  },
+  "kind" : "profile",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "profile" : {
+      "actions" : [
+        {
+          "id" : "action|configuration|https://forum.hardware.fr/configuration.php?config=hfr.inc&pseudo=user3",
+          "kind" : "configuration",
+          "subtitle" : null,
+          "title" : "Configuration matérielle",
+          "url" : "https://forum.hardware.fr/configuration.php?config=hfr.inc&pseudo=user3"
+        },
+        {
+          "id" : "action|transaction|https://forum.hardware.fr/transactions_reports.php?config=hfr.inc&cat=5&id_user=910001",
+          "kind" : "transaction",
+          "subtitle" : "Historique des transactions",
+          "title" : "Jeux Video -> Transactions (0)",
+          "url" : "https://forum.hardware.fr/transactions_reports.php?config=hfr.inc&cat=5&id_user=910001"
+        },
+        {
+          "id" : "action|transaction|https://forum.hardware.fr/transactions_reports.php?config=hfr.inc&cat=6&id_user=910001",
+          "kind" : "transaction",
+          "subtitle" : "Historique des transactions",
+          "title" : "Achats & Ventes -> Transactions (0)",
+          "url" : "https://forum.hardware.fr/transactions_reports.php?config=hfr.inc&cat=6&id_user=910001"
+        },
+        {
+          "id" : "action|privateMessage|https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&sond=&p=1&subcat=&dest=user3&subcatgroup=0",
+          "kind" : "privateMessage",
+          "subtitle" : "Informations complémentaires",
+          "title" : "Envoyer un message privé à user3",
+          "url" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&sond=&p=1&subcat=&dest=user3&subcatgroup=0"
+        },
+        {
+          "id" : "action|allMessages|https://forum.hardware.fr/hfr/recherche/pseudo-user3.htm",
+          "kind" : "allMessages",
+          "subtitle" : "Informations complémentaires",
+          "title" : "Accéder à la liste de tous ses messages",
+          "url" : "https://forum.hardware.fr/hfr/recherche/pseudo-user3.htm"
+        }
+      ],
+      "avatarURL" : "https://forum-images.hardware.fr/images/mesdiscussions-910001.jpg",
+      "personalSmilies" : [
+        {
+          "code" : "[:user3]",
+          "id" : "smiley|[:user3]|https://forum-images.hardware.fr/images/perso/user3.gif",
+          "imageURL" : "https://forum-images.hardware.fr/images/perso/user3.gif",
+          "title" : "smilie perso"
+        },
+        {
+          "code" : "[:user3:1]",
+          "id" : "smiley|[:user3:1]|https://forum-images.hardware.fr/images/perso/1/user3.gif",
+          "imageURL" : "https://forum-images.hardware.fr/images/perso/1/user3.gif",
+          "title" : "user3:1"
+        },
+        {
+          "code" : "[:user3:2]",
+          "id" : "smiley|[:user3:2]|https://forum-images.hardware.fr/images/perso/2/user3.gif",
+          "imageURL" : "https://forum-images.hardware.fr/images/perso/2/user3.gif",
+          "title" : "user3:2"
+        },
+        {
+          "code" : "[:user3:3]",
+          "id" : "smiley|[:user3:3]|https://forum-images.hardware.fr/images/perso/3/user3.gif",
+          "imageURL" : "https://forum-images.hardware.fr/images/perso/3/user3.gif",
+          "title" : "user3:3"
+        }
+      ],
+      "pseudo" : "user3",
+      "sections" : [
+        {
+          "fields" : [
+            {
+              "id" : "field|Informations générales|Pseudo",
+              "isPlaceholder" : false,
+              "title" : "Pseudo",
+              "url" : null,
+              "value" : "user3"
+            },
+            {
+              "id" : "field|Informations générales|Email",
+              "isPlaceholder" : false,
+              "title" : "Email",
+              "url" : null,
+              "value" : "Vous n'avez pas accès à cette information"
+            },
+            {
+              "id" : "field|Informations générales|Date de naissance",
+              "isPlaceholder" : true,
+              "title" : "Date de naissance",
+              "url" : null,
+              "value" : "Non renseigné"
+            },
+            {
+              "id" : "field|Informations générales|Sexe",
+              "isPlaceholder" : false,
+              "title" : "Sexe",
+              "url" : null,
+              "value" : "Profile field removed."
+            },
+            {
+              "id" : "field|Informations générales|Ville",
+              "isPlaceholder" : true,
+              "title" : "Ville",
+              "url" : null,
+              "value" : "Non renseigné"
+            },
+            {
+              "id" : "field|Informations générales|Profession",
+              "isPlaceholder" : false,
+              "title" : "Profession",
+              "url" : null,
+              "value" : "Profile field removed."
+            },
+            {
+              "id" : "field|Informations générales|Loisirs",
+              "isPlaceholder" : false,
+              "title" : "Loisirs",
+              "url" : null,
+              "value" : "Profile field removed."
+            }
+          ],
+          "id" : "section|Informations générales|0",
+          "title" : "Informations générales"
+        },
+        {
+          "fields" : [
+            {
+              "id" : "field|Informations relatives au forum|Statut",
+              "isPlaceholder" : false,
+              "title" : "Statut",
+              "url" : null,
+              "value" : "Membre"
+            },
+            {
+              "id" : "field|Informations relatives au forum|Nombre de messages postés",
+              "isPlaceholder" : false,
+              "title" : "Nombre de messages postés",
+              "url" : null,
+              "value" : "100"
+            },
+            {
+              "id" : "field|Informations relatives au forum|Date d'arrivée sur le forum",
+              "isPlaceholder" : false,
+              "title" : "Date d'arrivée sur le forum",
+              "url" : null,
+              "value" : "01/01/2000"
+            },
+            {
+              "id" : "field|Informations relatives au forum|Date du dernier message",
+              "isPlaceholder" : false,
+              "title" : "Date du dernier message",
+              "url" : null,
+              "value" : "01-01-2000 à 00:00"
+            },
+            {
+              "id" : "field|Informations relatives au forum|Citation personnelle associée au pseudo",
+              "isPlaceholder" : true,
+              "title" : "Citation personnelle associée au pseudo",
+              "url" : null,
+              "value" : "Non renseigné"
+            },
+            {
+              "id" : "field|Informations relatives au forum|Signature des messages",
+              "isPlaceholder" : false,
+              "title" : "Signature des messages",
+              "url" : null,
+              "value" : "Profile field removed."
+            }
+          ],
+          "id" : "section|Informations relatives au forum|1",
+          "title" : "Informations relatives au forum"
+        }
+      ],
+      "status" : "Membre",
+      "summary" : [
+        {
+          "id" : "Nombre de messages postés",
+          "systemImage" : "text.bubble",
+          "title" : "Messages",
+          "value" : "100"
+        },
+        {
+          "id" : "Date d'arrivée sur le forum",
+          "systemImage" : "calendar",
+          "title" : "Arrivée",
+          "value" : "01/01/2000"
+        },
+        {
+          "id" : "Date du dernier message",
+          "systemImage" : "clock",
+          "title" : "Dernier",
+          "value" : "01-01-2000 à 00:00"
+        }
+      ]
+    }
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}
