@@ -1,0 +1,112 @@
+{
+  "case" : "R10",
+  "exception" : null,
+  "input" : {
+    "bytes" : 34720,
+    "currentURL" : null,
+    "file" : "../captures/R10-favourites-owntopic1.html",
+    "now" : "2026-10-26T03:14:39Z",
+    "sha256" : "ac7aeb8db12495bde25cf6b69561a20f194d6b3e02a138a8b686c2b760722f33"
+  },
+  "kind" : "favorites",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "favorites" : [
+      {
+        "forum" : {
+          "aID" : "8",
+          "aTitle" : "Emploi & Etudes",
+          "aURL" : "/forum1.php?config=hfr.inc&cat=8&page=1&subcat=&sondage=0&owntopic=1&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0",
+          "subCats" : [
+
+          ]
+        },
+        "order" : 0,
+        "topics" : [
+          {
+            "aAuthorOfLastPost" : "user4",
+            "aAuthorOrInter" : "",
+            "aDateOfLastPost" : "23/10/26",
+            "aDateOfLastPostKind" : "absolute",
+            "aRepCount" : 72574,
+            "aTitle" : "• TU • Les questions relatives aux SALAIRES",
+            "aTypeOfFlag" : "",
+            "aURL" : "/forum2.php?config=hfr.inc&cat=8&subcat=233&post=8081&page=1700&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#t5240788",
+            "aURLOfFirstPage" : "/forum2.php?config=hfr.inc&cat=8&subcat=233&post=8081&page=1&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+            "aURLOfFlag" : "",
+            "aURLOfLastPage" : "/forum2.php?config=hfr.inc&cat=8&subcat=233&post=8081&page=1815&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+            "aURLOfLastPost" : "/forum2.php?config=hfr.inc&cat=8&subcat=233&post=8081&page=1815&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#bas",
+            "catID" : 8,
+            "curTopicPage" : 1700,
+            "dDateOfLastPost" : "2026-10-23T08:37:00Z",
+            "isClosed" : false,
+            "isLocallyViewedInApp" : false,
+            "isPoll" : false,
+            "isSticky" : false,
+            "isSuperFavorite" : false,
+            "isViewed" : false,
+            "isViewedFromForumAtLoad" : false,
+            "maxTopicPage" : 1815,
+            "postID" : 8081,
+            "sLastSearchPostContent" : null,
+            "sLastSearchPostURL" : null
+          },
+          {
+            "aAuthorOfLastPost" : "user6",
+            "aAuthorOrInter" : "",
+            "aDateOfLastPost" : "15/06/26",
+            "aDateOfLastPostKind" : "absolute",
+            "aRepCount" : 345532,
+            "aTitle" : "• Le Cabinet Nwâr • nainjauneland - Paix & Amour",
+            "aTypeOfFlag" : "",
+            "aURL" : "/forum2.php?config=hfr.inc&cat=8&subcat=235&post=73795&page=3763&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#t5244372",
+            "aURLOfFirstPage" : "/forum2.php?config=hfr.inc&cat=8&subcat=235&post=73795&page=1&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+            "aURLOfFlag" : "",
+            "aURLOfLastPage" : "/forum2.php?config=hfr.inc&cat=8&subcat=235&post=73795&page=8639&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+            "aURLOfLastPost" : "/forum2.php?config=hfr.inc&cat=8&subcat=235&post=73795&page=8639&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#bas",
+            "catID" : 8,
+            "curTopicPage" : 3763,
+            "dDateOfLastPost" : "2026-06-15T19:42:00Z",
+            "isClosed" : true,
+            "isLocallyViewedInApp" : false,
+            "isPoll" : true,
+            "isSticky" : false,
+            "isSuperFavorite" : false,
+            "isViewed" : false,
+            "isViewedFromForumAtLoad" : false,
+            "maxTopicPage" : 8639,
+            "postID" : 73795,
+            "sLastSearchPostContent" : null,
+            "sLastSearchPostURL" : null
+          }
+        ]
+      }
+    ],
+    "topicsSortedByLastPostDesc" : [
+      {
+        "aTitle" : "• TU • Les questions relatives aux SALAIRES",
+        "catID" : 8,
+        "postID" : 8081
+      },
+      {
+        "aTitle" : "• Le Cabinet Nwâr • nainjauneland - Paix & Amour",
+        "catID" : 8,
+        "postID" : 73795
+      }
+    ]
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : [
+
+    ],
+    "arrayCategoriesVisibleOrder" : [
+      "8"
+    ],
+    "hashCheck" : "REDACTED",
+    "nbMP" : 0,
+    "statusNotifications" : [
+
+    ]
+  }
+}

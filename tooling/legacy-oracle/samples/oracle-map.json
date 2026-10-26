@@ -1,0 +1,28 @@
+{
+  "favorites-empty.html": "favorites",
+  "favorites-multi-cat.html": "favorites",
+  "favorites-noauth.html": "favorites",
+  "forums-loggedin.html": "forums",
+  "forums-loggedout.html": "forums",
+  "forums-maintenance.html": "forums",
+  "mp-list.html": "mp",
+  "search-redirect.html": "search",
+  "search-results.html": {
+    "currentURL": "/transsearch.php?config=hfr.inc&cat=13&fake=1&page=1",
+    "kind": "search"
+  },
+  "topics-bad-date.html": "topics",
+  "topics-broken-pager.html": "topics",
+  "topics-empty.html": "topics",
+  "topics-maintenance.html": "topics",
+  "topics-noauth.html": "topics",
+  "topics-page-last-spans.html": {
+    "currentURL": "/forum1.php?config=hfr.inc&cat=13&page=5&subcat=&owntopic=0",
+    "kind": "topics"
+  },
+  "topics-page2.html": {
+    "currentURL": "/forum1.php?config=hfr.inc&cat=13&page=2&subcat=&owntopic=0",
+    "kind": "topics"
+  },
+  "topics-single-page.html": "topics"
+}

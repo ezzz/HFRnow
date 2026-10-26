@@ -1,0 +1,57 @@
+{
+  "case" : "R50c",
+  "exception" : null,
+  "input" : {
+    "bytes" : 1623,
+    "currentURL" : "/forum1.php?recherches=1&cat=13&orderSearch=0&config=hfr.inc&pseud=&search=zzqxwvfixture&titre=3&jour=&mois=&annee=&resSearch=200&daterange=2&subcat=0&searchtype=1&trash=0&trash_post=0&moderation=0",
+    "file" : "../captures/R50c-search-no-result-no-cookie.html",
+    "now" : "2026-10-26T03:44:00Z",
+    "sha256" : "c4213342badd8b6437585959b3b885b686d4fbd4736a4d3ef319bb8c04ee00b1"
+  },
+  "kind" : "search",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "currentCat" : "",
+    "currentUrl" : "/forum1.php?recherches=1&cat=13&orderSearch=0&config=hfr.inc&pseud=&search=zzqxwvfixture&titre=3&jour=&mois=&annee=&resSearch=200&daterange=2&subcat=0&searchtype=1&trash=0&trash_post=0&moderation=0",
+    "firstPageNumber" : 1,
+    "firstPageUrl" : null,
+    "forumBaseURL" : null,
+    "forumFavorisURL" : null,
+    "forumFlag0URL" : null,
+    "forumFlag1URL" : null,
+    "forumNewTopicUrl" : "",
+    "lastPageNumber" : 1,
+    "lastPageUrl" : null,
+    "needToUpdateMP" : false,
+    "nextPageUrl" : null,
+    "page" : "results",
+    "pageInfo" : {
+      "currentURL" : "/forum1.php?recherches=1&cat=13&orderSearch=0&config=hfr.inc&pseud=&search=zzqxwvfixture&titre=3&jour=&mois=&annee=&resSearch=200&daterange=2&subcat=0&searchtype=1&trash=0&trash_post=0&moderation=0",
+      "firstPageNumber" : 1,
+      "lastPageNumber" : 1,
+      "pageNumber" : 1,
+      "resultCount" : 0
+    },
+    "pageNumber" : 1,
+    "previousPageUrl" : null,
+    "sNewMPNumber" : null,
+    "statusInfo" : {
+      "message" : "Désolé, aucune réponse n'a été trouvée !",
+      "status" : 3,
+      "statusName" : "noAuth"
+    },
+    "topics" : [
+
+    ]
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

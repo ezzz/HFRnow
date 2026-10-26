@@ -1,0 +1,29 @@
+{
+  "case" : "R50a",
+  "exception" : null,
+  "input" : {
+    "bytes" : 1849,
+    "currentURL" : "/search.php?config=hardwarefr.inc",
+    "file" : "../captures/R50a-search-post-waiting-page.html",
+    "now" : "2026-10-26T03:43:39Z",
+    "sha256" : "289e57c41f70c8c19a66018419ebecc2faabdc019545f1af68a061f4aab71aea"
+  },
+  "kind" : "search",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "absoluteURL" : "https://forum.hardware.fr/forum1.php?recherches=1&cat=13&orderSearch=0&config=hfr.inc&pseud=&search=pizza+napolitaine&titre=3&jour=&mois=&annee=&resSearch=200&daterange=2&subcat=0&searchtype=1&trash=0&trash_post=0&moderation=0",
+    "page" : "redirect",
+    "redirectURL" : "/forum1.php?recherches=1&cat=13&orderSearch=0&config=hfr.inc&pseud=&search=pizza+napolitaine&titre=3&jour=&mois=&annee=&resSearch=200&daterange=2&subcat=0&searchtype=1&trash=0&trash_post=0&moderation=0",
+    "relativeURL" : "/forum1.php?recherches=1&cat=13&orderSearch=0&config=hfr.inc&pseud=&search=pizza+napolitaine&titre=3&jour=&mois=&annee=&resSearch=200&daterange=2&subcat=0&searchtype=1&trash=0&trash_post=0&moderation=0"
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

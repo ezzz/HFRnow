@@ -1,0 +1,153 @@
+{
+  "P03c.html": {
+    "kind": "favorites",
+    "now": "2026-10-26T03:42:45Z",
+    "path": "../captures/P03c-favourites-after-addflag.html"
+  },
+  "P03e.html": {
+    "kind": "favorites",
+    "now": "2026-10-26T03:43:01Z",
+    "path": "../captures/P03e-favourites-after-delflag-empty.html"
+  },
+  "P03f.html": {
+    "currentURL": "/forum1.php?config=hfr.inc&cat=13&page=1&subcat=&owntopic=2",
+    "kind": "topics",
+    "now": "2026-10-26T03:43:05Z",
+    "path": "../captures/P03f-list-owntopic2-after-delflag.html"
+  },
+  "R01.html": {
+    "kind": "forums",
+    "path": "../captures/R01-home-anon.html"
+  },
+  "R02.html": {
+    "kind": "forums",
+    "path": "../captures/R02-home-logged-in-unread-mp.html"
+  },
+  "R03.html": {
+    "kind": "forums",
+    "path": "../captures/R03-home-logged-in-no-unread-mp.html"
+  },
+  "R04.html": {
+    "currentURL": "/hfr/Discussions/liste_sujet-1.htm",
+    "kind": "topics",
+    "now": "2026-10-26T03:08:24Z",
+    "path": "../captures/R04-list-cat13-p1-anon.html"
+  },
+  "R05a.html": {
+    "currentURL": "/hfr/Discussions/liste_sujet-12.htm",
+    "kind": "topics",
+    "now": "2026-10-26T03:09:03Z",
+    "path": "../captures/R05a-list-cat13-p12-anon.html"
+  },
+  "R05b.html": {
+    "currentURL": "/hfr/Discussions/liste_sujet-500.htm",
+    "kind": "topics",
+    "now": "2026-10-26T03:09:07Z",
+    "path": "../captures/R05b-list-cat13-p500-anon.html"
+  },
+  "R06.html": {
+    "currentURL": "/hfr/Discussions/Cuisine/liste_sujet-1.htm",
+    "kind": "topics",
+    "now": "2026-10-26T03:09:38Z",
+    "path": "../captures/R06-list-subcat-cuisine-anon.html"
+  },
+  "R07.html": {
+    "currentURL": "/hfr/Graphisme/liste_sujet-1.htm",
+    "kind": "topics",
+    "now": "2026-10-26T03:09:45Z",
+    "path": "../captures/R07-list-graphisme-anon.html"
+  },
+  "R08-1.html": {
+    "currentURL": "/forum1.php?config=hfr.inc&cat=13&page=1&subcat=&owntopic=1",
+    "kind": "topics",
+    "now": "2026-10-26T03:18:27Z",
+    "path": "../captures/R08-1-list-cat13-owntopic1-empty.html"
+  },
+  "R08-2.html": {
+    "currentURL": "/forum1.php?config=hfr.inc&cat=13&page=1&subcat=&owntopic=2",
+    "kind": "topics",
+    "now": "2026-10-26T03:18:31Z",
+    "path": "../captures/R08-2-list-cat13-owntopic2.html"
+  },
+  "R08-3.html": {
+    "currentURL": "/forum1.php?config=hfr.inc&cat=13&page=1&subcat=&owntopic=3",
+    "kind": "topics",
+    "now": "2026-10-26T03:18:34Z",
+    "path": "../captures/R08-3-list-cat13-owntopic3-empty.html"
+  },
+  "R09.html": {
+    "currentURL": "/hfr/Discussions/liste_sujet-1.htm",
+    "kind": "topics",
+    "now": "2026-10-26T03:09:50Z",
+    "path": "../captures/R09-list-cat13-owntopic3-anon.html"
+  },
+  "R10.html": {
+    "kind": "favorites",
+    "now": "2026-10-26T03:14:39Z",
+    "path": "../captures/R10-favourites-owntopic1.html"
+  },
+  "R11.html": {
+    "kind": "favorites",
+    "now": "2026-10-26T03:14:42Z",
+    "path": "../captures/R11-favourites-owntopic3-empty.html"
+  },
+  "R12.html": {
+    "kind": "favorites",
+    "now": "2026-10-26T03:09:52Z",
+    "path": "../captures/R12-favourites-anon.html"
+  },
+  "R13a.html": {
+    "currentURL": "/forum1.php?config=hfr.inc&cat=prive&page=1",
+    "kind": "mp",
+    "now": "2026-10-26T03:39:14Z",
+    "path": "../captures/R13a-mp-list.html"
+  },
+  "R13b.html": {
+    "currentURL": "/forum1.php?config=hfr.inc&cat=prive&page=1",
+    "kind": "mp",
+    "now": "2026-10-26T03:41:59Z",
+    "path": "../captures/R13b-mp-list-after-mark-unread.html"
+  },
+  "R13c.html": {
+    "currentURL": "/forum1.php?config=hfr.inc&cat=prive&page=1",
+    "kind": "mp",
+    "now": "2026-10-26T04:15:23Z",
+    "path": "../captures/R13c-mp-list-empty-after-delete.html"
+  },
+  "R13u1.html": {
+    "currentURL": "/forum1.php?config=hfr.inc&cat=prive&page=1",
+    "kind": "mp",
+    "now": "2026-10-26T04:03:57Z",
+    "path": "../captures/R13u1-mp-list-recipient-unread.html"
+  },
+  "R13u1b.html": {
+    "currentURL": "/forum1.php?config=hfr.inc&cat=prive&page=1",
+    "kind": "mp",
+    "now": "2026-10-26T04:15:26Z",
+    "path": "../captures/R13u1b-mp-list-recipient-after-owner-delete.html"
+  },
+  "R27-list.html": {
+    "currentURL": "/hfr/Programmation/liste_sujet-1.htm",
+    "kind": "topics",
+    "now": "2026-10-26T03:11:50Z",
+    "path": "../captures/R27-list-list-programmation-anon.html"
+  },
+  "R50a.html": {
+    "currentURL": "/search.php?config=hardwarefr.inc",
+    "kind": "search",
+    "now": "2026-10-26T03:43:39Z",
+    "path": "../captures/R50a-search-post-waiting-page.html"
+  },
+  "R50b.html": {
+    "currentURL": "/forum1.php?recherches=1&cat=13&orderSearch=0&config=hfr.inc&pseud=&search=pizza+napolitaine&titre=3&jour=&mois=&annee=&resSearch=200&daterange=2&subcat=0&searchtype=1&trash=0&trash_post=0&moderation=0",
+    "kind": "search",
+    "now": "2026-10-26T03:43:57Z",
+    "path": "../captures/R50b-search-results-no-cookie.html"
+  },
+  "R50c.html": {
+    "currentURL": "/forum1.php?recherches=1&cat=13&orderSearch=0&config=hfr.inc&pseud=&search=zzqxwvfixture&titre=3&jour=&mois=&annee=&resSearch=200&daterange=2&subcat=0&searchtype=1&trash=0&trash_post=0&moderation=0",
+    "kind": "search",
+    "now": "2026-10-26T03:44:00Z",
+    "path": "../captures/R50c-search-no-result-no-cookie.html"
+  }
+}

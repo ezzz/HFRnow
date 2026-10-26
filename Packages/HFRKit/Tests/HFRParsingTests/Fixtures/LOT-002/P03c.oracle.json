@@ -1,0 +1,79 @@
+{
+  "case" : "P03c",
+  "exception" : null,
+  "input" : {
+    "bytes" : 32166,
+    "currentURL" : null,
+    "file" : "../captures/P03c-favourites-after-addflag.html",
+    "now" : "2026-10-26T03:42:45Z",
+    "sha256" : "1c5de9df7032e3ef3246037737f5681527048c6f9c52490613511cb4ffdcacbb"
+  },
+  "kind" : "favorites",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "favorites" : [
+      {
+        "forum" : {
+          "aID" : "13",
+          "aTitle" : "Discussions",
+          "aURL" : "/forum1.php?config=hfr.inc&cat=13&page=1&subcat=&sondage=0&owntopic=3&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0",
+          "subCats" : [
+
+          ]
+        },
+        "order" : 0,
+        "topics" : [
+          {
+            "aAuthorOfLastPost" : "user4",
+            "aAuthorOrInter" : "",
+            "aDateOfLastPost" : "il y a 1 h",
+            "aDateOfLastPostKind" : "relative",
+            "aRepCount" : 88008,
+            "aTitle" : "Topic pizza maison",
+            "aTypeOfFlag" : "",
+            "aURL" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=28563&page=1&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#t2666649",
+            "aURLOfFirstPage" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=28563&page=1&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+            "aURLOfFlag" : "",
+            "aURLOfLastPage" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=28563&page=2201&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+            "aURLOfLastPost" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=28563&page=2201&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#bas",
+            "catID" : 13,
+            "curTopicPage" : 1,
+            "dDateOfLastPost" : "2026-10-26T01:50:00Z",
+            "isClosed" : false,
+            "isLocallyViewedInApp" : false,
+            "isPoll" : false,
+            "isSticky" : false,
+            "isSuperFavorite" : false,
+            "isViewed" : false,
+            "isViewedFromForumAtLoad" : false,
+            "maxTopicPage" : 2201,
+            "postID" : 28563,
+            "sLastSearchPostContent" : null,
+            "sLastSearchPostURL" : null
+          }
+        ]
+      }
+    ],
+    "topicsSortedByLastPostDesc" : [
+      {
+        "aTitle" : "Topic pizza maison",
+        "catID" : 13,
+        "postID" : 28563
+      }
+    ]
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : [
+
+    ],
+    "arrayCategoriesVisibleOrder" : [
+      "13"
+    ],
+    "hashCheck" : "REDACTED",
+    "nbMP" : 1,
+    "statusNotifications" : [
+
+    ]
+  }
+}

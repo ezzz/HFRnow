@@ -1,0 +1,1702 @@
+{
+  "case" : "R02",
+  "exception" : null,
+  "input" : {
+    "bytes" : 66727,
+    "currentURL" : null,
+    "file" : "../captures/R02-home-logged-in-unread-mp.html",
+    "now" : null,
+    "sha256" : "7cf3295259fa2abb929b8813efa023f6f525a29e8dd29226cc7e701f2b713fcd"
+  },
+  "kind" : "forums",
+  "legacyCommit" : "2440d79",
+  "result" : [
+    {
+      "aID" : "",
+      "aTitle" : "Hardware",
+      "aURL" : "/hfr/Hardware/liste_sujet-1.htm",
+      "subCats" : [
+        {
+          "aID" : "",
+          "aTitle" : "Hardware",
+          "aURL" : "/hfr/Hardware/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Carte mère",
+          "aURL" : "/hfr/Hardware/carte-mere/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Mémoire",
+          "aURL" : "/hfr/Hardware/Memoire/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Processeur",
+          "aURL" : "/hfr/Hardware/Processeur/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Carte graphique",
+          "aURL" : "/hfr/Hardware/2D-3D/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Boitier",
+          "aURL" : "/hfr/Hardware/Boitier/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Alimentation",
+          "aURL" : "/hfr/Hardware/Alimentation/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Disque dur",
+          "aURL" : "/hfr/Hardware/HDD/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Disque SSD",
+          "aURL" : "/hfr/Hardware/SSD/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "CD/DVD/BD",
+          "aURL" : "/hfr/Hardware/lecteur-graveur/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Mini PC",
+          "aURL" : "/hfr/Hardware/minipc/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Bench",
+          "aURL" : "/hfr/Hardware/Benchs/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Matériels & problèmes divers",
+          "aURL" : "/hfr/Hardware/Materiels-problemes-divers/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Conseil d'achat",
+          "aURL" : "/hfr/Hardware/conseilsachats/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "HFR",
+          "aURL" : "/hfr/Hardware/hfr/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Actus",
+          "aURL" : "/hfr/Hardware/actualites/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "aID" : "",
+      "aTitle" : "Hardware - Périphériques",
+      "aURL" : "/hfr/HardwarePeripheriques/liste_sujet-1.htm",
+      "subCats" : [
+        {
+          "aID" : "",
+          "aTitle" : "Hardware - Périphériques",
+          "aURL" : "/hfr/HardwarePeripheriques/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Ecran",
+          "aURL" : "/hfr/HardwarePeripheriques/Ecran/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Imprimante",
+          "aURL" : "/hfr/HardwarePeripheriques/Imprimante/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Scanner",
+          "aURL" : "/hfr/HardwarePeripheriques/Scanner/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Webcam / Caméra IP",
+          "aURL" : "/hfr/HardwarePeripheriques/webcam-camera-ip/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Clavier / Souris",
+          "aURL" : "/hfr/HardwarePeripheriques/Clavier-Souris/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Joys",
+          "aURL" : "/hfr/HardwarePeripheriques/Joys/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Onduleur",
+          "aURL" : "/hfr/HardwarePeripheriques/Onduleur/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Divers",
+          "aURL" : "/hfr/HardwarePeripheriques/Divers/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "aID" : "",
+      "aTitle" : "Ordinateurs portables",
+      "aURL" : "/hfr/OrdinateursPortables/liste_sujet-1.htm",
+      "subCats" : [
+        {
+          "aID" : "",
+          "aTitle" : "Ordinateurs portables",
+          "aURL" : "/hfr/OrdinateursPortables/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Portable",
+          "aURL" : "/hfr/OrdinateursPortables/portable/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Ultraportable",
+          "aURL" : "/hfr/OrdinateursPortables/Ultraportable/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Transportable",
+          "aURL" : "/hfr/OrdinateursPortables/Transportable/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Netbook",
+          "aURL" : "/hfr/OrdinateursPortables/Netbook/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Composant",
+          "aURL" : "/hfr/OrdinateursPortables/Composant/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Accessoire",
+          "aURL" : "/hfr/OrdinateursPortables/Accessoire/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Conseils d'achat",
+          "aURL" : "/hfr/OrdinateursPortables/Conseils-d-achat/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "SAV",
+          "aURL" : "/hfr/OrdinateursPortables/SAV/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "aID" : "",
+      "aTitle" : "Overclocking, Cooling & Modding",
+      "aURL" : "/hfr/OverclockingCoolingModding/liste_sujet-1.htm",
+      "subCats" : [
+        {
+          "aID" : "",
+          "aTitle" : "Overclocking, Cooling & Modding",
+          "aURL" : "/hfr/OverclockingCoolingModding/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "CPU",
+          "aURL" : "/hfr/OverclockingCoolingModding/CPU/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "GPU",
+          "aURL" : "/hfr/OverclockingCoolingModding/GPU/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Air Cooling",
+          "aURL" : "/hfr/OverclockingCoolingModding/Air-Cooling/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Water & Xtreme Cooling",
+          "aURL" : "/hfr/OverclockingCoolingModding/Water-Xtreme-Cooling/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Silence",
+          "aURL" : "/hfr/OverclockingCoolingModding/Silence/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Modding",
+          "aURL" : "/hfr/OverclockingCoolingModding/Modding/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "aID" : "",
+      "aTitle" : "Electronique, domotique, DIY",
+      "aURL" : "/hfr/electroniquedomotiquediy/liste_sujet-1.htm",
+      "subCats" : [
+        {
+          "aID" : "",
+          "aTitle" : "Electronique, domotique, DIY",
+          "aURL" : "/hfr/electroniquedomotiquediy/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Conception, dépannage, mods",
+          "aURL" : "/hfr/electroniquedomotiquediy/conception_depannage_mods/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Nano-ordinateur, microcontrôleurs, FPGA",
+          "aURL" : "/hfr/electroniquedomotiquediy/nano-ordinateur_microcontroleurs_fpga/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Domotique et maison connectée",
+          "aURL" : "/hfr/electroniquedomotiquediy/domotique_maisonconnectee/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Mécanique, prototypage",
+          "aURL" : "/hfr/electroniquedomotiquediy/mecanique_prototypage/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Imprimantes 3D",
+          "aURL" : "/hfr/electroniquedomotiquediy/imprimantes3D/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Robotique et modélisme",
+          "aURL" : "/hfr/electroniquedomotiquediy/robotique_modelisme/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Divers",
+          "aURL" : "/hfr/electroniquedomotiquediy/divers/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "aID" : "",
+      "aTitle" : "Technologies Mobiles",
+      "aURL" : "/hfr/gsmgpspda/liste_sujet-1.htm",
+      "subCats" : [
+        {
+          "aID" : "",
+          "aTitle" : "Technologies Mobiles",
+          "aURL" : "/hfr/gsmgpspda/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Autres OS Mobiles",
+          "aURL" : "/hfr/gsmgpspda/autres-os-mobiles/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Opérateur",
+          "aURL" : "/hfr/gsmgpspda/operateur/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Téléphone Android",
+          "aURL" : "/hfr/gsmgpspda/telephone-android/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Téléphone Windows Phone",
+          "aURL" : "/hfr/gsmgpspda/telephone-windows-phone/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Téléphone",
+          "aURL" : "/hfr/gsmgpspda/telephone/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Tablette",
+          "aURL" : "/hfr/gsmgpspda/tablette/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Android",
+          "aURL" : "/hfr/gsmgpspda/android/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Windows Phone",
+          "aURL" : "/hfr/gsmgpspda/windows-phone/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "GPS / PDA",
+          "aURL" : "/hfr/gsmgpspda/GPS-PDA/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Accessoires",
+          "aURL" : "/hfr/gsmgpspda/accessoires/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "aID" : "",
+      "aTitle" : "Apple",
+      "aURL" : "/hfr/apple/liste_sujet-1.htm",
+      "subCats" : [
+        {
+          "aID" : "",
+          "aTitle" : "Apple",
+          "aURL" : "/hfr/apple/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Mac OS X",
+          "aURL" : "/hfr/apple/Mac-OS-X/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Applications",
+          "aURL" : "/hfr/apple/Applications/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Mac",
+          "aURL" : "/hfr/apple/Mac/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Macbook",
+          "aURL" : "/hfr/apple/Macbook/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Iphone & Ipod",
+          "aURL" : "/hfr/apple/Iphone-amp-Ipod/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Ipad",
+          "aURL" : "/hfr/apple/Ipad/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Périphériques",
+          "aURL" : "/hfr/apple/Peripheriques/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "aID" : "",
+      "aTitle" : "Video & Son",
+      "aURL" : "/hfr/VideoSon/liste_sujet-1.htm",
+      "subCats" : [
+        {
+          "aID" : "",
+          "aTitle" : "Video & Son",
+          "aURL" : "/hfr/VideoSon/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "HiFi & Home Cinema",
+          "aURL" : "/hfr/VideoSon/HiFi-HomeCinema/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Matériel",
+          "aURL" : "/hfr/VideoSon/Materiel/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Traitement Audio",
+          "aURL" : "/hfr/VideoSon/Traitement-Audio/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Traitement Vidéo",
+          "aURL" : "/hfr/VideoSon/Traitement-Video/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "aID" : "",
+      "aTitle" : "Photo numérique",
+      "aURL" : "/hfr/Photonumerique/liste_sujet-1.htm",
+      "subCats" : [
+        {
+          "aID" : "",
+          "aTitle" : "Photo numérique",
+          "aURL" : "/hfr/Photonumerique/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Appareil",
+          "aURL" : "/hfr/Photonumerique/Appareil/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Objectif",
+          "aURL" : "/hfr/Photonumerique/Objectif/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Accessoire",
+          "aURL" : "/hfr/Photonumerique/Accessoire/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Photos",
+          "aURL" : "/hfr/Photonumerique/Photos/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Technique",
+          "aURL" : "/hfr/Photonumerique/Technique/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Logiciels & Retouche",
+          "aURL" : "/hfr/Photonumerique/Logiciels-Retouche/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Argentique",
+          "aURL" : "/hfr/Photonumerique/Argentique/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Concours",
+          "aURL" : "/hfr/Photonumerique/Concours/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Galerie Perso",
+          "aURL" : "/hfr/Photonumerique/Galerie-Perso/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Divers",
+          "aURL" : "/hfr/Photonumerique/Divers-7/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "aID" : "",
+      "aTitle" : "Jeux Video",
+      "aURL" : "/hfr/JeuxVideo/liste_sujet-1.htm",
+      "subCats" : [
+        {
+          "aID" : "",
+          "aTitle" : "Jeux Video",
+          "aURL" : "/hfr/JeuxVideo/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "PC",
+          "aURL" : "/hfr/JeuxVideo/PC/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Consoles",
+          "aURL" : "/hfr/JeuxVideo/Consoles/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Achat & Ventes",
+          "aURL" : "/hfr/JeuxVideo/Achat-Ventes/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Teams & LAN",
+          "aURL" : "/hfr/JeuxVideo/Teams-LAN/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Tips & Dépannage",
+          "aURL" : "/hfr/JeuxVideo/Tips-Depannage/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Réalité virtuelle",
+          "aURL" : "/hfr/JeuxVideo/VR-Realite-Virtuelle/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Mobiles",
+          "aURL" : "/hfr/JeuxVideo/mobiles/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "aID" : "",
+      "aTitle" : "Windows & Software",
+      "aURL" : "/hfr/WindowsSoftware/liste_sujet-1.htm",
+      "subCats" : [
+        {
+          "aID" : "",
+          "aTitle" : "Windows & Software",
+          "aURL" : "/hfr/WindowsSoftware/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Win 11",
+          "aURL" : "/hfr/WindowsSoftware/windows-11/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Win 10",
+          "aURL" : "/hfr/WindowsSoftware/windows-10/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Win 8",
+          "aURL" : "/hfr/WindowsSoftware/windows-8/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Win 7",
+          "aURL" : "/hfr/WindowsSoftware/Windows-7-seven/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Win Vista",
+          "aURL" : "/hfr/WindowsSoftware/Windows-vista/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Win NT/2K/XP",
+          "aURL" : "/hfr/WindowsSoftware/Windows-nt-2k-xp/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Win 9x/Me",
+          "aURL" : "/hfr/WindowsSoftware/Win-9x-me/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Sécurité",
+          "aURL" : "/hfr/WindowsSoftware/Securite/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Virus/Spywares",
+          "aURL" : "/hfr/WindowsSoftware/Virus-Spywares/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Stockage/Sauvegarde",
+          "aURL" : "/hfr/WindowsSoftware/Stockage-Sauvegarde/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Logiciels",
+          "aURL" : "/hfr/WindowsSoftware/Logiciels/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Tutoriels",
+          "aURL" : "/hfr/WindowsSoftware/Tutoriels/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "aID" : "",
+      "aTitle" : "Réseaux grand public / SoHo",
+      "aURL" : "/hfr/reseauxpersosoho/liste_sujet-1.htm",
+      "subCats" : [
+        {
+          "aID" : "",
+          "aTitle" : "Réseaux grand public / SoHo",
+          "aURL" : "/hfr/reseauxpersosoho/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "FAI",
+          "aURL" : "/hfr/reseauxpersosoho/FAI/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Réseaux",
+          "aURL" : "/hfr/reseauxpersosoho/Reseaux/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Sécurité",
+          "aURL" : "/hfr/reseauxpersosoho/Routage-et-securite/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "WiFi et CPL",
+          "aURL" : "/hfr/reseauxpersosoho/WiFi-et-CPL/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Hébergement",
+          "aURL" : "/hfr/reseauxpersosoho/Hebergement/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Tel / TV sur IP",
+          "aURL" : "/hfr/reseauxpersosoho/Tel-TV-sur-IP/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Chat, visio et voix",
+          "aURL" : "/hfr/reseauxpersosoho/Chat-visio-et-voix/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Tutoriels",
+          "aURL" : "/hfr/reseauxpersosoho/Tutoriels/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "aID" : "",
+      "aTitle" : "Systèmes & Réseaux Pro",
+      "aURL" : "/hfr/systemereseauxpro/liste_sujet-1.htm",
+      "subCats" : [
+        {
+          "aID" : "",
+          "aTitle" : "Systèmes & Réseaux Pro",
+          "aURL" : "/hfr/systemereseauxpro/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Réseaux",
+          "aURL" : "/hfr/systemereseauxpro/Reseaux/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Sécurité",
+          "aURL" : "/hfr/systemereseauxpro/Securite/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Télécom",
+          "aURL" : "/hfr/systemereseauxpro/Telecom/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Infrastructures serveurs",
+          "aURL" : "/hfr/systemereseauxpro/Infrastructures-serveurs/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Stockage",
+          "aURL" : "/hfr/systemereseauxpro/Stockage/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Logiciels d'entreprise",
+          "aURL" : "/hfr/systemereseauxpro/Logiciels-entreprise/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Management du SI",
+          "aURL" : "/hfr/systemereseauxpro/Management-SI/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Poste de travail",
+          "aURL" : "/hfr/systemereseauxpro/poste-de-travail/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "aID" : "",
+      "aTitle" : "Linux et OS Alternatifs",
+      "aURL" : "/hfr/OSAlternatifs/liste_sujet-1.htm",
+      "subCats" : [
+        {
+          "aID" : "",
+          "aTitle" : "Linux et OS Alternatifs",
+          "aURL" : "/hfr/OSAlternatifs/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Codes et scripts",
+          "aURL" : "/hfr/OSAlternatifs/Codes-scripts/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Débats",
+          "aURL" : "/hfr/OSAlternatifs/Debats/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Divers",
+          "aURL" : "/hfr/OSAlternatifs/Divers-2/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Hardware",
+          "aURL" : "/hfr/OSAlternatifs/Hardware-2/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Installation",
+          "aURL" : "/hfr/OSAlternatifs/Installation/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Logiciels",
+          "aURL" : "/hfr/OSAlternatifs/Logiciels-2/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Multimédia",
+          "aURL" : "/hfr/OSAlternatifs/Multimedia/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "réseaux et sécurité",
+          "aURL" : "/hfr/OSAlternatifs/reseaux-securite/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "aID" : "",
+      "aTitle" : "Programmation",
+      "aURL" : "/hfr/Programmation/liste_sujet-1.htm",
+      "subCats" : [
+        {
+          "aID" : "",
+          "aTitle" : "Programmation",
+          "aURL" : "/hfr/Programmation/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "C++",
+          "aURL" : "/hfr/Programmation/C-2/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "C#/.NET managed",
+          "aURL" : "/hfr/Programmation/CNET-managed/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "HTML/CSS",
+          "aURL" : "/hfr/Programmation/HTML-CSS-Javascript/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Java",
+          "aURL" : "/hfr/Programmation/Java/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Langages fonctionnels",
+          "aURL" : "/hfr/Programmation/Langages-fonctionnels/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "PDA",
+          "aURL" : "/hfr/Programmation/PDA/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Perl",
+          "aURL" : "/hfr/Programmation/Perl/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "PHP",
+          "aURL" : "/hfr/Programmation/PHP/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Python",
+          "aURL" : "/hfr/Programmation/Python/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Ruby/Rails",
+          "aURL" : "/hfr/Programmation/Ruby/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "SQL/NoSQL",
+          "aURL" : "/hfr/Programmation/SGBD-SQL/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Shell/Batch",
+          "aURL" : "/hfr/Programmation/Shell-Batch/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "VB/VBA/VBS",
+          "aURL" : "/hfr/Programmation/VB-VBA-VBS/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "XML/XSL",
+          "aURL" : "/hfr/Programmation/XML-XSL/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "aID" : "",
+      "aTitle" : "Intelligence Artificielle",
+      "aURL" : "/hfr/ia/liste_sujet-1.htm",
+      "subCats" : [
+
+      ]
+    },
+    {
+      "aID" : "",
+      "aTitle" : "Graphisme",
+      "aURL" : "/hfr/Graphisme/liste_sujet-1.htm",
+      "subCats" : [
+        {
+          "aID" : "",
+          "aTitle" : "Graphisme",
+          "aURL" : "/hfr/Graphisme/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Cours",
+          "aURL" : "/hfr/Graphisme/Cours/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Galerie",
+          "aURL" : "/hfr/Graphisme/Galerie/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Infographie 2D",
+          "aURL" : "/hfr/Graphisme/Infographie-2D/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "PAO / Desktop Publishing",
+          "aURL" : "/hfr/Graphisme/PAO-Desktop-Publishing/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Infographie 3D",
+          "aURL" : "/hfr/Graphisme/Infographie-3D/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Web design",
+          "aURL" : "/hfr/Graphisme/Webdesign/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Arts traditionnels",
+          "aURL" : "/hfr/Graphisme/Arts-traditionnels/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Concours",
+          "aURL" : "/hfr/Graphisme/Concours-2/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Ressources",
+          "aURL" : "/hfr/Graphisme/Ressources/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Divers",
+          "aURL" : "/hfr/Graphisme/Divers-5/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "aID" : "",
+      "aTitle" : "Achats & Ventes",
+      "aURL" : "/hfr/AchatsVentes/liste_sujet-1.htm",
+      "subCats" : [
+        {
+          "aID" : "",
+          "aTitle" : "Achats & Ventes",
+          "aURL" : "/hfr/AchatsVentes/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Hardware",
+          "aURL" : "/hfr/AchatsVentes/Hardware/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "PC Portables",
+          "aURL" : "/hfr/AchatsVentes/pc-portables/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Tablettes",
+          "aURL" : "/hfr/AchatsVentes/tablettes/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Photo",
+          "aURL" : "/hfr/AchatsVentes/Photo-Audio-Video/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Audio, Vidéo",
+          "aURL" : "/hfr/AchatsVentes/audio-video/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Téléphonie",
+          "aURL" : "/hfr/AchatsVentes/Telephonie/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Softs, livres",
+          "aURL" : "/hfr/AchatsVentes/Softs-livres/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Divers",
+          "aURL" : "/hfr/AchatsVentes/Divers-4/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Avis, estimations",
+          "aURL" : "/hfr/AchatsVentes/Avis-estimations/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Feed-back",
+          "aURL" : "/hfr/AchatsVentes/Feedback/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Règles et coutumes",
+          "aURL" : "/hfr/AchatsVentes/Regles-coutumes/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "aID" : "",
+      "aTitle" : "Emploi & Etudes",
+      "aURL" : "/hfr/EmploiEtudes/liste_sujet-1.htm",
+      "subCats" : [
+        {
+          "aID" : "",
+          "aTitle" : "Emploi & Etudes",
+          "aURL" : "/hfr/EmploiEtudes/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Marché de l'emploi",
+          "aURL" : "/hfr/EmploiEtudes/Marche-emploi/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Etudes / Orientation",
+          "aURL" : "/hfr/EmploiEtudes/Etudes-Orientation/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Annonces d'emplois",
+          "aURL" : "/hfr/EmploiEtudes/Annonces-emplois/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Feedback sur les entreprises",
+          "aURL" : "/hfr/EmploiEtudes/Feedback-entreprises/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Aide aux devoirs",
+          "aURL" : "/hfr/EmploiEtudes/Aide-devoirs/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "aID" : "",
+      "aTitle" : "Discussions",
+      "aURL" : "/hfr/Discussions/liste_sujet-1.htm",
+      "subCats" : [
+        {
+          "aID" : "",
+          "aTitle" : "Discussions",
+          "aURL" : "/hfr/Discussions/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Actualité",
+          "aURL" : "/hfr/Discussions/Actualite/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Politique",
+          "aURL" : "/hfr/Discussions/politique/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Société",
+          "aURL" : "/hfr/Discussions/Societe/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Cinéma",
+          "aURL" : "/hfr/Discussions/Cinema/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Musique",
+          "aURL" : "/hfr/Discussions/Musique/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Arts & Lecture",
+          "aURL" : "/hfr/Discussions/Arts-Lecture/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "TV, Radio",
+          "aURL" : "/hfr/Discussions/TV-Radio/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Sciences",
+          "aURL" : "/hfr/Discussions/Sciences/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Santé",
+          "aURL" : "/hfr/Discussions/Sante/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Sports",
+          "aURL" : "/hfr/Discussions/Sports/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Auto / Moto",
+          "aURL" : "/hfr/Discussions/Auto-Moto/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Cuisine",
+          "aURL" : "/hfr/Discussions/Cuisine/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Loisirs",
+          "aURL" : "/hfr/Discussions/Loisirs/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Voyages",
+          "aURL" : "/hfr/Discussions/voyages/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        },
+        {
+          "aID" : "",
+          "aTitle" : "Vie pratique",
+          "aURL" : "/hfr/Discussions/Viepratique/liste_sujet-1.htm",
+          "subCats" : [
+
+          ]
+        }
+      ]
+    }
+  ],
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : "REDACTED",
+    "nbMP" : 10,
+    "statusNotifications" : [
+
+    ]
+  }
+}

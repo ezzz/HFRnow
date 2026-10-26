@@ -1,0 +1,471 @@
+diff --git a/HFRswiftTests/AccountsStoreTests.swift b/HFRswiftTests/AccountsStoreTests.swift
+index b0a205a..2c5f491 100644
+--- a/HFRswiftTests/AccountsStoreTests.swift
++++ b/HFRswiftTests/AccountsStoreTests.swift
+@@ -179,7 +179,7 @@ final class CategoriesFlowViewModelTests: XCTestCase {
+         XCTAssertTrue(loader.requests[0].forum === forum)
+         XCTAssertEqual(loader.requests[0].flag, .tracked)
+ 
+-        loader.requests[0].completion(ForumTopicsLoadResult(topics: [expectedTopic], newTopicURL: nil), nil)
++        loader.requests[0].completion(ForumTopicsLoadResult(topics: [expectedTopic], newTopicURL: nil, pageInfo: .empty), nil)
+         flushMainQueue()
+ 
+         XCTAssertFalse(viewModel.isLoading)
+@@ -203,7 +203,7 @@ final class CategoriesFlowViewModelTests: XCTestCase {
+ 
+         let cancellation = NSError(domain: NSURLErrorDomain, code: NSURLErrorCancelled)
+         loader.requests[0].completion(nil, cancellation)
+-        loader.requests[1].completion(ForumTopicsLoadResult(topics: [expectedTopic], newTopicURL: nil), nil)
++        loader.requests[1].completion(ForumTopicsLoadResult(topics: [expectedTopic], newTopicURL: nil, pageInfo: .empty), nil)
+         flushMainQueue()
+ 
+         XCTAssertFalse(viewModel.isLoading)
+@@ -220,7 +220,7 @@ final class CategoriesFlowViewModelTests: XCTestCase {
+ 
+         viewModel.load()
+         XCTAssertEqual(loader.requests.count, 1)
+-        loader.requests[0].completion(ForumTopicsLoadResult(topics: [initialTopic], newTopicURL: nil), nil)
++        loader.requests[0].completion(ForumTopicsLoadResult(topics: [initialTopic], newTopicURL: nil, pageInfo: .empty), nil)
+         flushMainQueue()
+         XCTAssertEqual(viewModel.topics.count, 1)
+ 
+@@ -276,7 +276,7 @@ private final class ForumTopicsLoaderSpy: ForumTopicsLoading {
+ 
+     private(set) var requests: [Request] = []
+ 
+-    func fetchTopics(for forum: Forum, flag: TopicListFlag, completion: @escaping ForumTopicsLoadCompletion) {
++    func fetchTopics(for forum: Forum, flag: TopicListFlag, pageURL: String?, completion: @escaping ForumTopicsLoadCompletion) {
+         requests.append(Request(forum: forum, flag: flag, completion: completion))
+     }
+ }
+diff --git a/HFRswiftTests/OracleExport.swift b/HFRswiftTests/OracleExport.swift
+new file mode 100644
+index 0000000..a715171
+--- /dev/null
++++ b/HFRswiftTests/OracleExport.swift
+@@ -0,0 +1,368 @@
++// Oracle exporter for SwiftHFR LOT-002 (list parsers). Local-only: never committed to hfrnow.
++//
++// Runs the REAL legacy parsers, offline, on saved HTML pages and writes one `<case>.oracle.json` per page.
++// Inert unless HFR_ORACLE_IN and HFR_ORACLE_OUT are set (xcodebuild forwards them as TEST_RUNNER_HFR_ORACLE_*).
++//
++//   HFR_ORACLE_IN   directory with the input pages (*.html; *.json specs for kinds that take one) and an `oracle-map.json`;
++//                   an input file missing from the map is reported in errors.json
++//                   { "<file>.html": "forums|topics|favorites|mp|search"
++//                                  | { "kind": "...", "currentURL": "/forum1.php?..." } }
++//   HFR_ORACLE_OUT  directory receiving <case>.oracle.json and errors.json
++//   HFR_ORACLE_LEGACY_COMMIT  optional, copied into every output (provenance, not a run-time value)
++//
++// The parsers are reached through the Objective-C runtime (as the Swift wrappers do), exactly as the loader
++// workers call them: ObjCForumsLoaderWorker.m:28, ObjCForumTopicsLoaderWorker.m:163,
++// ObjCForumSearchWorker.m:249, ObjCFavoritesLoaderWorker.m:64.
++
++import CryptoKit
++import UIKit
++import XCTest
++@testable import HFRswift
++
++@MainActor
++final class OracleExport: XCTestCase {
++    private static let schemaVersion = 1
++    private static let statusNames = [0: "idle", 1: "maintenance", 2: "noResults", 3: "noAuth", 4: "complete"]
++    /// UserDefaults keys the list parsers read or write (ObjCFavoritesLoaderWorker.m:36-37,157-158,
++    /// HFRplusAppDelegate.m:702, ObjCForumSearchWorker.m:28).
++    private static let defaultsKeys = ["nb_mp", "arrayCategoriesVisibleOrder", "arrayCategoriesHiddenOrder", "recherche_categorie"]
++    private static let defaultTopicsURL = "/forum1.php?config=hfr.inc&cat=13&page=1"
++    private static let defaultMPURL = "/forum1.php?config=hfr.inc&cat=prive&page=1" // ObjCMPTopicsLoaderWorker.m:9
++
++    private static let topicStringKeys = [
++        "aTitle", "aURL", "aURLOfFirstPage", "aURLOfFlag", "aTypeOfFlag", "aURLOfLastPost", "aURLOfLastPage",
++        "aAuthorOfLastPost", "aAuthorOrInter", "sLastSearchPostContent", "sLastSearchPostURL"
++    ]
++    private static let topicIntKeys = ["aRepCount", "maxTopicPage", "curTopicPage", "postID", "catID"]
++    private static let topicBoolKeys = [
++        "isViewed", "isViewedFromForumAtLoad", "isLocallyViewedInApp", "isPoll", "isSticky", "isClosed", "isSuperFavorite"
++    ]
++    private static let listStringKeys = [
++        "currentUrl", "currentCat", "forumNewTopicUrl", "forumBaseURL", "forumFavorisURL", "forumFlag1URL", "forumFlag0URL",
++        "firstPageUrl", "lastPageUrl", "nextPageUrl", "previousPageUrl", "sNewMPNumber"
++    ]
++    private static let listIntKeys = ["pageNumber", "firstPageNumber", "lastPageNumber"]
++
++    private struct HarnessError: Error { let message: String }
++
++    // MARK: entry point
++
++    func testExportListOracles() throws {
++        let env = ProcessInfo.processInfo.environment
++        guard let inPath = env["HFR_ORACLE_IN"], !inPath.isEmpty, let outPath = env["HFR_ORACLE_OUT"], !outPath.isEmpty else {
++            throw XCTSkip("HFR_ORACLE_IN / HFR_ORACLE_OUT not set: oracle export skipped")
++        }
++        let inDir = URL(fileURLWithPath: inPath, isDirectory: true)
++        let outDir = URL(fileURLWithPath: outPath, isDirectory: true)
++        try FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
++
++        var errors: [[String: String]] = []
++        let map = loadMap(in: inDir, errors: &errors)
++
++        // The SwiftUI app delegate adaptor is not an HFRplusAppDelegate, but the parsers call
++        // `[HFRplusAppDelegate sharedAppDelegate]` (HFRplusAppDelegate.m:430). Install a real one for the run.
++        let delegateClass = try XCTUnwrap(NSClassFromString("HFRplusAppDelegate") as? NSObject.Type)
++        let oracleDelegate = delegateClass.init()
++        let previousDelegate = UIApplication.shared.delegate
++        UIApplication.shared.delegate = oracleDelegate as? UIApplicationDelegate
++        let savedDefaults = Self.defaultsKeys.map { ($0, UserDefaults.standard.object(forKey: $0)) }
++        defer {
++            UIApplication.shared.delegate = previousDelegate
++            for (key, value) in savedDefaults { UserDefaults.standard.set(value, forKey: key) }
++        }
++
++        let legacyCommit = env["HFR_ORACLE_LEGACY_COMMIT"].flatMap { $0.isEmpty ? nil : $0 }
++        var written = 0
++        for (file, spec) in map.sorted(by: { $0.key < $1.key }) {
++            do {
++                let output = try runCase(file: file, spec: spec, inDir: inDir, delegate: oracleDelegate, legacyCommit: legacyCommit)
++                let name = (file as NSString).deletingPathExtension
++                try writeJSON(output, to: outDir.appendingPathComponent("\(name).oracle.json"))
++                written += 1
++            } catch let error as HarnessError {
++                errors.append(["file": file, "error": error.message])
++            }
++        }
++
++        let mapped = Set(map.keys)
++        let present = (try? FileManager.default.contentsOfDirectory(atPath: inDir.path)) ?? []
++        for file in present.sorted() where Self.isInputFile(file) && !mapped.contains(file) {
++            errors.append(["file": file, "error": "not listed in oracle-map.json"])
++        }
++
++        errors.sort { ($0["file"] ?? "", $0["error"] ?? "") < ($1["file"] ?? "", $1["error"] ?? "") }
++        try writeJSON(errors, to: outDir.appendingPathComponent("errors.json"))
++        print("ORACLE_SUMMARY written=\(written) errors=\(errors.count)")
++        XCTAssertTrue(errors.isEmpty, "oracle export reported \(errors.count) error(s), see errors.json")
++    }
++
++    /// Inputs are `.html` pages and `.json` specs (LOT-004 `storage` cases). The map, `errors.json` and the oracles are not
++    /// inputs: the output directory may be the input directory (oracles committed beside their pages).
++    static func isInputFile(_ file: String) -> Bool {
++        if file == "oracle-map.json" || file == "errors.json" || file.hasSuffix(".oracle.json") { return false }
++        return file.hasSuffix(".html") || file.hasSuffix(".json")
++    }
++
++    // MARK: one case
++
++    private struct CaseSpec { let kind: String; let currentURL: String?; var path: String?; var now: String? }
++
++    private func loadMap(in dir: URL, errors: inout [[String: String]]) -> [String: CaseSpec] {
++        let mapURL = dir.appendingPathComponent("oracle-map.json")
++        guard let data = try? Data(contentsOf: mapURL),
++              let raw = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
++            errors.append(["file": "oracle-map.json", "error": "missing or not a JSON object"])
++            return [:]
++        }
++        var result: [String: CaseSpec] = [:]
++        for (file, value) in raw {
++            if let kind = value as? String {
++                result[file] = CaseSpec(kind: kind, currentURL: nil, path: nil, now: nil)
++            } else if let object = value as? [String: Any], let kind = object["kind"] as? String {
++                result[file] = CaseSpec(kind: kind, currentURL: object["currentURL"] as? String, path: object["path"] as? String, now: object["now"] as? String)
++            } else {
++                errors.append(["file": file, "error": "oracle-map entry must be a kind string or {kind, currentURL}"])
++            }
++        }
++        return result
++    }
++
++    private func runCase(file: String, spec: CaseSpec, inDir: URL, delegate: NSObject, legacyCommit: String?) throws -> [String: Any] {
++        guard ["forums", "topics", "favorites", "mp", "search"].contains(spec.kind) else {
++            throw HarnessError(message: "unknown kind '\(spec.kind)'")
++        }
++        // `path` (optional map key) points at the page relative to the map folder, so a corpus can be used in place.
++        let inputPath = spec.path ?? file
++        // `now` (optional, ISO-8601): the clock the legacy code sees, for pages whose output depends on the date.
++        let nowString = spec.now
++        guard let data = try? Data(contentsOf: inDir.appendingPathComponent(inputPath)) else {
++            throw HarnessError(message: "cannot read \(file)")
++        }
++
++        // Reset state the parsers touch, so one case cannot leak into the next.
++        for key in Self.defaultsKeys { UserDefaults.standard.removeObject(forKey: key) }
++        delegate.setValue(nil, forKey: "hash_check")
++        var notifications: [[String: Any]] = []
++        let token = NotificationCenter.default.addObserver(forName: Notification.Name("kStatusChangedNotification"), object: nil, queue: nil) { note in
++            let status = (note.userInfo?["status"] as? NSNumber)?.intValue
++            notifications.append([
++                "status": status.map { $0 as Any } ?? NSNull(),
++                "statusName": status.flatMap { Self.statusNames[$0] }.map { $0 as Any } ?? NSNull(),
++                "message": note.userInfo?["message"] ?? NSNull()
++            ])
++        }
++        defer { NotificationCenter.default.removeObserver(token) }
++
++        var currentURL: String?
++        var outcome: (result: Any?, exception: String?)
++        let restoreClock = try Self.freezeClock(nowString)
++        defer { restoreClock() }
++        switch spec.kind {
++        case "forums":
++            outcome = runForums(data)
++        case "favorites":
++            outcome = runFavorites(data)
++        case "search":
++            currentURL = spec.currentURL ?? Self.defaultTopicsURL
++            outcome = runSearch(data, currentURL: currentURL ?? "")
++        default:
++            currentURL = spec.currentURL ?? (spec.kind == "mp" ? Self.defaultMPURL : Self.defaultTopicsURL)
++            outcome = runTopicList(data, currentURL: currentURL ?? "")
++        }
++
++        let defaults = UserDefaults.standard
++        let sideEffects: [String: Any] = [
++            "hashCheck": plain(delegate.value(forKey: "hash_check")),
++            "nbMP": defaults.object(forKey: "nb_mp") ?? NSNull(),
++            "arrayCategoriesVisibleOrder": defaults.array(forKey: "arrayCategoriesVisibleOrder") ?? NSNull(),
++            "arrayCategoriesHiddenOrder": defaults.array(forKey: "arrayCategoriesHiddenOrder") ?? NSNull(),
++            "statusNotifications": notifications
++        ]
++        return [
++            "schema": Self.schemaVersion,
++            "case": (file as NSString).deletingPathExtension,
++            "kind": spec.kind,
++            "legacyCommit": legacyCommit ?? NSNull(),
++            "input": [
++                "file": inputPath,
++                "bytes": data.count,
++                "sha256": SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined(),
++                "currentURL": currentURL ?? NSNull(),
++                "now": nowString ?? NSNull()
++            ] as [String: Any],
++            "exception": outcome.exception ?? NSNull(),
++            "result": outcome.result ?? NSNull(),
++            "sideEffects": sideEffects
++        ]
++    }
++
++    // MARK: parsers
++
++    private func instance(_ className: String) -> NSObject {
++        guard let type = NSClassFromString(className) as? NSObject.Type else { fatalError("legacy class \(className) missing") }
++        return type.init()
++    }
++
++    private func runForums(_ data: Data) -> (Any?, String?) {
++        let call = invoke(instance("ObjCForumsParser"), "parseForumsFromData:", [data])
++        guard let forums = call.result as? [NSObject] else { return (nil, call.exception) }
++        return (forums.map(forumDict), nil)
++    }
++
++    private func runFavorites(_ data: Data) -> (Any?, String?) {
++        let worker = instance("ObjCFavoritesLoaderWorker")
++        let call = invoke(worker, "parseFavoritesFromData:", [data])
++        guard let favorites = call.result as? [NSObject] else { return (nil, call.exception) }
++        let sorted = (worker.value(forKey: "arrayTopics") as? [NSObject] ?? []).map { topic -> [String: Any] in
++            ["catID": plain(topic.value(forKey: "catID")), "postID": plain(topic.value(forKey: "postID")),
++             "aTitle": plain(topic.value(forKey: "aTitle"))]
++        }
++        let list = favorites.map { favorite -> [String: Any] in
++            let forum = favorite.value(forKey: "forum") as? NSObject
++            let topics = favorite.value(forKey: "topics") as? [NSObject] ?? []
++            return [
++                "forum": forum.map(forumDict) ?? NSNull(),
++                "order": plain(favorite.value(forKey: "order")),
++                "topics": topics.map(topicDict)
++            ]
++        }
++        return (["favorites": list, "topicsSortedByLastPostDesc": sorted], nil)
++    }
++
++    private func runTopicList(_ data: Data, currentURL: String) -> (Any?, String?) {
++        let call = invoke(instance("ObjCTopicListParser"), "parseData:currentURL:", [data, currentURL])
++        guard let result = call.result as? NSObject else { return (nil, call.exception) }
++        return (listResultDict(result), nil)
++    }
++
++    /// Search: a POST answers with a meta-refresh page, the redirect target is the results list
++    /// (ObjCForumSearchWorker.m:47, 242-257, 304-320). A page without refresh is parsed as a results page.
++    private func runSearch(_ data: Data, currentURL: String) -> (Any?, String?) {
++        let worker = instance("ObjCForumSearchWorker")
++        let html = String(data: data, encoding: .utf8) ?? ""
++        let redirect = invoke(worker, "forumSearchRedirectURLFromHTML:", [html])
++        if let url = redirect.result as? String, !url.isEmpty {
++            let absolute = invoke(worker, "forumSearchAbsoluteURLStringFromString:", [url]).result as? String
++            let relative = absolute.flatMap { invoke(worker, "forumSearchRelativeURLStringFromString:", [$0]).result as? String }
++            return (["page": "redirect", "redirectURL": url, "absoluteURL": plain(absolute), "relativeURL": plain(relative)], nil)
++        }
++        worker.setValue(currentURL, forKey: "currentUrl")
++        let parse = invoke(instance("ObjCTopicListParser"), "parseData:currentURL:", [data, currentURL])
++        guard let result = parse.result as? NSObject else { return (nil, parse.exception) }
++        _ = invoke(worker, "applyTopicListParsingResult:", [result])
++        let count = (result.value(forKey: "topics") as? [NSObject])?.count ?? 0
++        let info = invoke(worker, "forumSearchPageInfoWithResultCount:", [NSNumber(value: count)]).result as? [String: Any]
++        var dict = listResultDict(result)
++        dict["page"] = "results"
++        dict["pageInfo"] = info ?? NSNull()
++        return (dict, nil)
++    }
++
++
++    /// Freezes `+[NSDate date]` and `[[NSDate alloc] init]` at a case's `now` (ISO-8601) while the legacy code runs. The list parser shows a last-post date
++    /// as "il y a 5 min" / "il y a 2 h" when it is under 24 h old (ObjCTopicListParser.m:421-447), so a capture's oracle
++    /// depends on the day it is exported unless the clock is fixed to the capture time. Returns the undo.
++    private static var clockFrozen = false
++    private static func freezeClock(_ iso: String?) throws -> () -> Void {
++        guard let iso else { return {} }
++        guard let date = ISO8601DateFormatter().date(from: iso) else { throw HarnessError(message: "bad now '\(iso)' (ISO-8601 expected)") }
++        guard let method = class_getClassMethod(NSDate.self, NSSelectorFromString("date")) else {
++            throw HarnessError(message: "+[NSDate date] not found")
++        }
++        // `[[NSDate alloc] init]` (what the list parsers use) is -[__NSPlaceholderDate init]; `init` returns an owned object.
++        guard let placeholder = NSClassFromString("__NSPlaceholderDate"),
++              let initMethod = class_getInstanceMethod(placeholder, NSSelectorFromString("init")) else {
++            throw HarnessError(message: "-[__NSPlaceholderDate init] not found")
++        }
++        let dateBlock: @convention(block) (AnyObject) -> NSDate = { _ in date as NSDate }
++        let initBlock: @convention(block) (AnyObject) -> Unmanaged<NSDate> = { _ in Unmanaged.passRetained(date as NSDate) }
++        let previousDate = method_setImplementation(method, imp_implementationWithBlock(dateBlock))
++        let previousInit = method_setImplementation(initMethod, imp_implementationWithBlock(initBlock))
++        clockFrozen = true
++        return {
++            method_setImplementation(method, previousDate)
++            method_setImplementation(initMethod, previousInit)
++            clockFrozen = false
++        }
++    }
++
++    // MARK: model to JSON
++
++    private func forumDict(_ forum: NSObject) -> [String: Any] {
++        let subCats = forum.value(forKey: "subCats") as? [NSObject]
++        return [
++            "aTitle": plain(forum.value(forKey: "aTitle")),
++            "aURL": plain(forum.value(forKey: "aURL")),
++            "aID": plain(forum.value(forKey: "aID")),
++            "subCats": subCats.map { $0.map(forumDict) } ?? NSNull()
++        ]
++    }
++
++    private func topicDict(_ topic: NSObject) -> [String: Any] {
++        var dict: [String: Any] = [:]
++        for key in Self.topicStringKeys { dict[key] = plain(topic.value(forKey: key)) }
++        for key in Self.topicIntKeys { dict[key] = plain(topic.value(forKey: key)) }
++        for key in Self.topicBoolKeys { dict[key] = (topic.value(forKey: key) as? NSNumber)?.boolValue ?? false }
++        dict["dDateOfLastPost"] = plain(topic.value(forKey: "dDateOfLastPost"))
++        // aDateOfLastPost depends on the run date ("il y a 5 min", "il y a 2 h"): keep only the stable forms.
++        if let display = topic.value(forKey: "aDateOfLastPost") as? String {
++            let relative = display.hasPrefix("il y a ")
++            dict["aDateOfLastPostKind"] = relative ? "relative" : "absolute"
++            dict["aDateOfLastPost"] = relative && !Self.clockFrozen ? NSNull() : display
++        } else {
++            dict["aDateOfLastPostKind"] = NSNull()
++            dict["aDateOfLastPost"] = NSNull()
++        }
++        return dict
++    }
++
++    private func listResultDict(_ result: NSObject) -> [String: Any] {
++        var dict: [String: Any] = [:]
++        for key in Self.listStringKeys { dict[key] = plain(result.value(forKey: key)) }
++        for key in Self.listIntKeys { dict[key] = plain(result.value(forKey: key)) }
++        dict["needToUpdateMP"] = (result.value(forKey: "needToUpdateMP") as? NSNumber)?.boolValue ?? false
++        if let info = result.value(forKey: "statusInfo") as? [String: Any] {
++            let status = (info["status"] as? NSNumber)?.intValue
++            dict["statusInfo"] = [
++                "status": status.map { $0 as Any } ?? NSNull(),
++                "statusName": status.flatMap { Self.statusNames[$0] }.map { $0 as Any } ?? NSNull(),
++                "message": plain(info["message"])
++            ] as [String: Any]
++        } else {
++            dict["statusInfo"] = NSNull()
++        }
++        dict["topics"] = (result.value(forKey: "topics") as? [NSObject] ?? []).map(topicDict)
++        return dict
++    }
++
++    // MARK: plumbing
++
++    private func invoke(_ target: NSObject, _ selector: String, _ args: [Any]) -> (result: Any?, exception: String?) {
++        guard let helper = NSClassFromString("OracleObjCSafe") as AnyObject? else { fatalError("OracleObjCSafe missing") }
++        let spec: [String: Any] = ["target": target, "selector": selector, "args": args]
++        let out = helper.perform(NSSelectorFromString("invoke:"), with: spec)?.takeUnretainedValue() as? [String: Any] ?? [:]
++        if let exception = out["exception"] as? String { return (nil, exception) }
++        let result = out["result"]
++        return (result is NSNull ? nil : result, nil)
++    }
++
++    /// JSON-safe value: nil becomes null, dates become UTC ISO-8601 (legacy nil vs "" is a real difference, keep it).
++    private func plain(_ value: Any?) -> Any {
++        switch value {
++        case nil, is NSNull: return NSNull()
++        case let date as Date:
++            let formatter = ISO8601DateFormatter()
++            formatter.timeZone = TimeZone(identifier: "UTC")
++            return formatter.string(from: date)
++        case let string as String: return string
++        case let number as NSNumber: return number
++        default: return String(describing: value ?? "")
++        }
++    }
++
++    private func writeJSON(_ object: Any, to url: URL) throws {
++        var data = try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys, .prettyPrinted, .withoutEscapingSlashes])
++        data.append(0x0A)
++        try data.write(to: url, options: .atomic)
++    }
++}
+diff --git a/HFRswiftTests/OracleObjCSafe.m b/HFRswiftTests/OracleObjCSafe.m
+new file mode 100644
+index 0000000..d49ba13
+--- /dev/null
++++ b/HFRswiftTests/OracleObjCSafe.m
+@@ -0,0 +1,51 @@
++// Oracle exporter helper (SwiftHFR LOT-002): calls an Objective-C method through NSInvocation and
++// turns a thrown NSException into data. The legacy parsers raise on malformed pages (nil URL,
++// out-of-bounds child index...), and Swift cannot catch NSException, so a raise would kill the run.
++#import <Foundation/Foundation.h>
++
++@interface OracleObjCSafe : NSObject
+++ (NSDictionary *)invoke:(NSDictionary *)spec;
++@end
++
++@implementation OracleObjCSafe
++
+++ (NSDictionary *)invoke:(NSDictionary *)spec {
++    id target = spec[@"target"];
++    SEL selector = NSSelectorFromString(spec[@"selector"]);
++    NSArray *args = spec[@"args"] ?: @[];
++    @try {
++        NSMethodSignature *signature = [target methodSignatureForSelector:selector];
++        if (signature == nil) {
++            return @{@"exception": [NSString stringWithFormat:@"OracleNoSuchSelector: %@", spec[@"selector"]]};
++        }
++        NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
++        invocation.target = target;
++        invocation.selector = selector;
++        for (NSUInteger i = 0; i < args.count; i++) {
++            id arg = args[i];
++            const char *type = [signature getArgumentTypeAtIndex:i + 2];
++            if (type[0] == '@') {
++                id value = [arg isKindOfClass:[NSNull class]] ? nil : arg;
++                [invocation setArgument:&value atIndex:i + 2];
++            } else if (type[0] == 'Q') {
++                unsigned long long value = [(NSNumber *)arg unsignedLongLongValue];
++                [invocation setArgument:&value atIndex:i + 2];
++            } else {
++                long long value = [(NSNumber *)arg longLongValue];
++                [invocation setArgument:&value atIndex:i + 2];
++            }
++        }
++        [invocation invoke];
++        id result = nil;
++        if (signature.methodReturnType[0] == '@') {
++            __unsafe_unretained id raw = nil;
++            [invocation getReturnValue:&raw];
++            result = raw;
++        }
++        return @{@"result": result ?: [NSNull null]};
++    } @catch (NSException *exception) {
++        return @{@"exception": [NSString stringWithFormat:@"%@: %@", exception.name, exception.reason ?: @""]};
++    }
++}
++
++@end

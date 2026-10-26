@@ -1,0 +1,35 @@
+{
+  "case" : "R11",
+  "exception" : null,
+  "input" : {
+    "bytes" : 28861,
+    "currentURL" : null,
+    "file" : "../captures/R11-favourites-owntopic3-empty.html",
+    "now" : "2026-10-26T03:14:42Z",
+    "sha256" : "81f1cd8b831390d5f155fcf5543a95e60bf17dd51d14964965671bc2837d8de6"
+  },
+  "kind" : "favorites",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "favorites" : [
+
+    ],
+    "topicsSortedByLastPostDesc" : [
+
+    ]
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : [
+
+    ],
+    "arrayCategoriesVisibleOrder" : [
+
+    ],
+    "hashCheck" : "REDACTED",
+    "nbMP" : 0,
+    "statusNotifications" : [
+
+    ]
+  }
+}

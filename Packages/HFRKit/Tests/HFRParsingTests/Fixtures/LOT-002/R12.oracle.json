@@ -1,0 +1,24 @@
+{
+  "case" : "R12",
+  "exception" : "FavoritesLoadError: Aucun sujet que vous avez lu n'est connu",
+  "input" : {
+    "bytes" : 1617,
+    "currentURL" : null,
+    "file" : "../captures/R12-favourites-anon.html",
+    "now" : "2026-10-26T03:09:52Z",
+    "sha256" : "027807e852bb77be2706aa6974b2846912c4028c6e7dc1e8a877917fee1fce5a"
+  },
+  "kind" : "favorites",
+  "legacyCommit" : "2440d79",
+  "result" : null,
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

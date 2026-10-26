@@ -1,0 +1,49 @@
+{
+  "case" : "R13c",
+  "exception" : null,
+  "input" : {
+    "bytes" : 25355,
+    "currentURL" : "/forum1.php?config=hfr.inc&cat=prive&page=1",
+    "file" : "../captures/R13c-mp-list-empty-after-delete.html",
+    "now" : "2026-10-26T04:15:23Z",
+    "sha256" : "9146a34a829174ef6a1eaa050a12554c1a9a886d763bea5f25552c939d65c28e"
+  },
+  "kind" : "mp",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "currentCat" : "",
+    "currentUrl" : "/forum1.php?config=hfr.inc&cat=prive&page=1",
+    "firstPageNumber" : 1,
+    "firstPageUrl" : null,
+    "forumBaseURL" : null,
+    "forumFavorisURL" : null,
+    "forumFlag0URL" : null,
+    "forumFlag1URL" : null,
+    "forumNewTopicUrl" : "/message.php?config=hfr.inc&cat=prive&sond=0&p=1&subcat=0&dest=&subcatgroup=0",
+    "lastPageNumber" : 1,
+    "lastPageUrl" : null,
+    "needToUpdateMP" : false,
+    "nextPageUrl" : null,
+    "pageNumber" : 1,
+    "previousPageUrl" : null,
+    "sNewMPNumber" : null,
+    "statusInfo" : {
+      "message" : "Aucun message",
+      "status" : 2,
+      "statusName" : "noResults"
+    },
+    "topics" : [
+
+    ]
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

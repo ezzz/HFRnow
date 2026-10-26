@@ -1,0 +1,35 @@
+{
+  "case" : "P03e",
+  "exception" : null,
+  "input" : {
+    "bytes" : 28878,
+    "currentURL" : null,
+    "file" : "../captures/P03e-favourites-after-delflag-empty.html",
+    "now" : "2026-10-26T03:43:01Z",
+    "sha256" : "5c261168611f9254fafa2a7a837752dc14368c3fffaf45badc90db8c7cea4321"
+  },
+  "kind" : "favorites",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "favorites" : [
+
+    ],
+    "topicsSortedByLastPostDesc" : [
+
+    ]
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : [
+
+    ],
+    "arrayCategoriesVisibleOrder" : [
+
+    ],
+    "hashCheck" : "REDACTED",
+    "nbMP" : 1,
+    "statusNotifications" : [
+
+    ]
+  }
+}

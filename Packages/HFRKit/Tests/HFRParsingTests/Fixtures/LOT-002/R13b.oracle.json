@@ -1,0 +1,72 @@
+{
+  "case" : "R13b",
+  "exception" : null,
+  "input" : {
+    "bytes" : 28470,
+    "currentURL" : "/forum1.php?config=hfr.inc&cat=prive&page=1",
+    "file" : "../captures/R13b-mp-list-after-mark-unread.html",
+    "now" : "2026-10-26T03:41:59Z",
+    "sha256" : "5c7b1455a394ac54e278304e7761954529637739bf91d45fb3c0919d122770ef"
+  },
+  "kind" : "mp",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "currentCat" : "",
+    "currentUrl" : "/forum1.php?config=hfr.inc&cat=prive&page=1",
+    "firstPageNumber" : 1,
+    "firstPageUrl" : "/forum1.php?config=hfr.inc&cat=prive&page=1",
+    "forumBaseURL" : null,
+    "forumFavorisURL" : null,
+    "forumFlag0URL" : null,
+    "forumFlag1URL" : null,
+    "forumNewTopicUrl" : "/message.php?config=hfr.inc&cat=prive&sond=0&p=1&subcat=0&dest=&subcatgroup=0",
+    "lastPageNumber" : 1,
+    "lastPageUrl" : "/forum1.php?config=hfr.inc&cat=prive&page=1",
+    "needToUpdateMP" : false,
+    "nextPageUrl" : "",
+    "pageNumber" : 1,
+    "previousPageUrl" : "",
+    "sNewMPNumber" : null,
+    "statusInfo" : null,
+    "topics" : [
+      {
+        "aAuthorOfLastPost" : "user2​",
+        "aAuthorOrInter" : "user1",
+        "aDateOfLastPost" : "il y a 1 min",
+        "aDateOfLastPostKind" : "relative",
+        "aRepCount" : 2,
+        "aTitle" : "[non lu] fixture-test-1",
+        "aTypeOfFlag" : "",
+        "aURL" : "/forum2.php?config=hfr.inc&cat=prive&post=3207033&page=1&p=1&sondage=0&owntopic=0&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+        "aURLOfFirstPage" : "",
+        "aURLOfFlag" : "",
+        "aURLOfLastPage" : "/forum2.php?config=hfr.inc&cat=prive&post=3207033&page=1&p=1&sondage=0&owntopic=0&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+        "aURLOfLastPost" : "/forum2.php?config=hfr.inc&cat=prive&post=3207033&page=1&p=1&sondage=0&owntopic=0&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#bas",
+        "catID" : 0,
+        "curTopicPage" : 0,
+        "dDateOfLastPost" : "2026-10-26T03:40:00Z",
+        "isClosed" : false,
+        "isLocallyViewedInApp" : false,
+        "isPoll" : false,
+        "isSticky" : false,
+        "isSuperFavorite" : false,
+        "isViewed" : false,
+        "isViewedFromForumAtLoad" : false,
+        "maxTopicPage" : 1,
+        "postID" : 0,
+        "sLastSearchPostContent" : null,
+        "sLastSearchPostURL" : null
+      }
+    ]
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

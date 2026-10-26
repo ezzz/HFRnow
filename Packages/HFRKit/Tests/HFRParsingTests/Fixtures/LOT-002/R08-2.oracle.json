@@ -1,0 +1,72 @@
+{
+  "case" : "R08-2",
+  "exception" : null,
+  "input" : {
+    "bytes" : 26232,
+    "currentURL" : "/forum1.php?config=hfr.inc&cat=13&page=1&subcat=&owntopic=2",
+    "file" : "../captures/R08-2-list-cat13-owntopic2.html",
+    "now" : "2026-10-26T03:18:31Z",
+    "sha256" : "0fe10ca62dcc770ca5859db0056fcff34c5e6c00d50c92ba42db01f9c6902cac"
+  },
+  "kind" : "topics",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "currentCat" : "13",
+    "currentUrl" : "/forum1.php?config=hfr.inc&cat=13&page=1&subcat=&owntopic=2",
+    "firstPageNumber" : 1,
+    "firstPageUrl" : "/forum1.php?config=hfr.inc&cat=13&page=1&subcat=&owntopic=2",
+    "forumBaseURL" : "/hfr/Discussions/liste_sujet-1.htm",
+    "forumFavorisURL" : "/forum1.php?config=hfr.inc&cat=13&page=1&subcat=0&sondage=0&owntopic=3&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0",
+    "forumFlag0URL" : "/forum1.php?config=hfr.inc&cat=13&page=1&subcat=0&sondage=0&owntopic=2&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0",
+    "forumFlag1URL" : "/forum1.php?config=hfr.inc&cat=13&page=1&subcat=0&sondage=0&owntopic=1&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0",
+    "forumNewTopicUrl" : "/hfr/Discussions/nouveau_sujet.htm",
+    "lastPageNumber" : 1,
+    "lastPageUrl" : "/forum1.php?config=hfr.inc&cat=13&page=1&subcat=&owntopic=2",
+    "needToUpdateMP" : true,
+    "nextPageUrl" : "",
+    "pageNumber" : 1,
+    "previousPageUrl" : "",
+    "sNewMPNumber" : " Messages privés",
+    "statusInfo" : null,
+    "topics" : [
+      {
+        "aAuthorOfLastPost" : "user4",
+        "aAuthorOrInter" : "user3​",
+        "aDateOfLastPost" : "il y a 1 h",
+        "aDateOfLastPostKind" : "relative",
+        "aRepCount" : 88008,
+        "aTitle" : "Topic pizza maison",
+        "aTypeOfFlag" : "red",
+        "aURL" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=28563&page=1&p=1&sondage=0&owntopic=2&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+        "aURLOfFirstPage" : "",
+        "aURLOfFlag" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=28563&page=2&p=1&sondage=0&owntopic=2&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#t3204775",
+        "aURLOfLastPage" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=28563&page=2201&p=1&sondage=0&owntopic=2&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+        "aURLOfLastPost" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=28563&page=2201&p=1&sondage=0&owntopic=2&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#bas",
+        "catID" : 0,
+        "curTopicPage" : 2,
+        "dDateOfLastPost" : "2026-10-26T01:50:00Z",
+        "isClosed" : false,
+        "isLocallyViewedInApp" : false,
+        "isPoll" : false,
+        "isSticky" : false,
+        "isSuperFavorite" : false,
+        "isViewed" : false,
+        "isViewedFromForumAtLoad" : false,
+        "maxTopicPage" : 2201,
+        "postID" : 0,
+        "sLastSearchPostContent" : null,
+        "sLastSearchPostURL" : null
+      }
+    ]
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

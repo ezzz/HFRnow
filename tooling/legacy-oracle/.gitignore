@@ -1,0 +1,3 @@
+# run-oracle.sh defaults: derived data, step logs and exports stay out of git
+.work/
+out/
