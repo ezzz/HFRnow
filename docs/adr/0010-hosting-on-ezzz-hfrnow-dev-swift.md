@@ -16,14 +16,16 @@ The project moves into that repository so that the successor sits next to the ap
 | CI, CodeQL on push/PR, gitleaks, dependency review | Works | — |
 | CodeRabbit | Works on PRs into `dev-swift` (`base_branches`); owner installs the app | — |
 | CodeQL weekly schedule | Inert | Lands with `dev-swift` becoming default, or a copy on `master` |
-| Dependabot version updates | Inert | `.github/dependabot.yml` (with `target-branch: dev-swift`) copied to `master`, owner's PR |
+| Dependabot version updates | Inert | `.github/dependabot.yml` (every entry `target-branch: dev-swift`) copied to `master` by a PR the owner merges |
 | Dependabot alerts on our dependencies | Not computed (dependency graph follows the default branch) | Same; dependency review still blocks new vulnerable dependencies on PRs |
 | Issue forms, auto-labelling | Inert | `.github/ISSUE_TEMPLATE/` and `issue-triage.yml` on `master`, owner's decision since issues are shared with the legacy app |
 | Label sync | `push` trigger works; manual dispatch does not | `scripts/configure-repo.sh` syncs labels |
-| OpenSSF Scorecard | Removed: it scores the default branch, i.e. the legacy app | Re-add when `dev-swift` becomes default |
+| OpenSSF Scorecard | Removed: it only runs from the default branch and scores it, i.e. the legacy app, and would publish that score and file its findings in the shared Security tab | Re-add when `dev-swift` becomes default |
+| Dependabot security updates | Off: they only open PRs against the default branch | Same as Scorecard |
 | Repository license detection | GitHub shows the legacy `master`'s license | `dev-swift` carries its own `LICENSE` (ADR 0003) |
 
 ## Consequences
 - Issue and PR numbers restart at ezzz/HFRnow's counters; older references are written `francoisgn/ios-app_SwiftHFR#N`. Issues cannot be transferred across owners: open ones are recreated.
 - Cloud sessions clone the default branch: agents must switch to `dev-swift` first (AGENTS.md §10).
+- Nothing of SwiftHFR acts on `master`: Dependabot entries target `dev-swift`, CodeRabbit auto-review on `master` follows the owner's CodeRabbit settings, and an optional ruleset (`configure-repo.sh --guard-master`) keeps every GitHub app, Claude included, from updating `master`.
 - `francoisgn/ios-app_SwiftHFR` is frozen after the cutover (README pointer, then archived by its owner).

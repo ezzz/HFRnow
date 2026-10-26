@@ -1,4 +1,5 @@
-# GitHub reads this file from the default branch only: a copy must live on master of ezzz/HFRnow (ADR 0010).
+# Dependabot reads this file from the default branch only: the live copy is on master of ezzz/HFRnow (ADR 0010).
+# Every entry targets dev-swift, so Dependabot never opens a PR against the legacy master.
 version: 2
 updates:
   - package-ecosystem: swift

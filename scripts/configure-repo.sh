@@ -2,9 +2,10 @@
 # Repository configuration for SwiftHFR on ezzz/HFRnow, branch dev-swift (ADR 0005, ADR 0010).
 # Run from a maintainer machine with the GitHub CLI:
 #   gh auth login && ./scripts/configure-repo.sh              # dev-swift scope: ruleset + labels
-#   ./scripts/configure-repo.sh --repo-wide                   # also the repository-wide security settings
-# The default branch (master) is the legacy app: nothing here touches it, and repository-wide settings
-# (they apply to master too) only run with --repo-wide, after the owner (ezzz) agreed.
+#   ./scripts/configure-repo.sh --repo-wide                   # + repository-wide security settings
+#   ./scripts/configure-repo.sh --guard-master                # + ruleset keeping apps and non-admins off master
+# The default branch (master) is the legacy app. Options that touch it or the whole repository only run
+# after the owner (ezzz) agreed.
 # Idempotent: safe to re-run after changing required checks.
 set -euo pipefail
 
@@ -12,7 +13,14 @@ REPO="ezzz/HFRnow"
 BRANCH="dev-swift"
 RULESET="SwiftHFR dev-swift"
 REPO_WIDE=false
-[[ "${1:-}" == "--repo-wide" ]] && REPO_WIDE=true
+GUARD_MASTER=false
+for arg in "$@"; do
+  case "$arg" in
+    --repo-wide) REPO_WIDE=true ;;
+    --guard-master) GUARD_MASTER=true ;;
+    *) echo "Unknown option: $arg" >&2; exit 1 ;;
+  esac
+done
 
 command -v yq >/dev/null || { echo "yq is required for the label sync (brew install yq)" >&2; exit 1; }
 
@@ -23,9 +31,9 @@ if [[ "$(gh api "repos/$REPO" --jq .permissions.admin)" != "true" ]]; then
 fi
 
 if $REPO_WIDE; then
-  echo "› Security: Dependabot alerts + fixes, private vulnerability reporting, secret scanning + push protection"
+  echo "› Security: Dependabot alerts, private vulnerability reporting, secret scanning + push protection"
+  # Dependabot security updates stay off: they only open PRs against the default branch, i.e. the legacy master.
   gh api -X PUT "repos/$REPO/vulnerability-alerts" >/dev/null
-  gh api -X PUT "repos/$REPO/automated-security-fixes" >/dev/null
   gh api -X PUT "repos/$REPO/private-vulnerability-reporting" >/dev/null
   gh api -X PATCH "repos/$REPO" --input - >/dev/null <<'JSON'
 {"security_and_analysis":{"secret_scanning":{"status":"enabled"},"secret_scanning_push_protection":{"status":"enabled"}}}
@@ -85,6 +93,21 @@ if [[ -n "$RULESET_ID" ]]; then
   gh api -X PUT "repos/$REPO/rulesets/$RULESET_ID" --input - >/dev/null <<<"$RULESET_JSON"
 else
   gh api -X POST "repos/$REPO/rulesets" --input - >/dev/null <<<"$RULESET_JSON"
+fi
+
+if $GUARD_MASTER; then
+  echo "› Ruleset 'Legacy master' on the default branch"
+  # Only repository admins (the owner) may update master; GitHub apps (Claude, CodeRabbit, Dependabot) may not.
+  MASTER_JSON='{"name":"Legacy master","target":"branch","enforcement":"active",
+    "conditions":{"ref_name":{"include":["~DEFAULT_BRANCH"],"exclude":[]}},
+    "bypass_actors":[{"actor_id":5,"actor_type":"RepositoryRole","bypass_mode":"always"}],
+    "rules":[{"type":"update"},{"type":"deletion"},{"type":"non_fast_forward"}]}'
+  MASTER_ID=$(gh api "repos/$REPO/rulesets" --jq '.[] | select(.name == "Legacy master") | .id')
+  if [[ -n "$MASTER_ID" ]]; then
+    gh api -X PUT "repos/$REPO/rulesets/$MASTER_ID" --input - >/dev/null <<<"$MASTER_JSON"
+  else
+    gh api -X POST "repos/$REPO/rulesets" --input - >/dev/null <<<"$MASTER_JSON"
+  fi
 fi
 
 echo "› Labels (the 'Sync labels' workflow cannot be dispatched from a non-default branch)"

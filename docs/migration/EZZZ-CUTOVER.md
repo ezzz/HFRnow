@@ -8,7 +8,8 @@ Every step is idempotent or checked first. Stop at the first unexpected result a
 | Step | Actor | Why |
 |---|---|---|
 | Install the Claude and CodeRabbit GitHub apps on ezzz/HFRnow | **ezzz** (owner) | On a personal-account repository only the owner can install apps |
-| Agree to the repository-wide security settings (`--repo-wide`) | **ezzz** | They also apply to the legacy `master` |
+| Agree to the repository-wide security settings (`--repo-wide`) and, if wanted, the `master` guard (`--guard-master`) | **ezzz** | They also apply to the legacy `master` |
+| Merge the Dependabot PR into `master` (step 6) | **ezzz** | It is his branch |
 | Everything else below | Maintainer (`francoisgn`) | Collaborator with admin rights on the repository (checked in step 1) |
 
 ## Prompt for the Mac session
@@ -55,7 +56,8 @@ git push ezzz origin/master:refs/heads/dev-swift
 
 ```sh
 ./scripts/configure-repo.sh                 # ruleset on dev-swift + labels
-./scripts/configure-repo.sh --repo-wide     # only once ezzz agreed (message sent separately)
+./scripts/configure-repo.sh --repo-wide     # only once ezzz agreed
+./scripts/configure-repo.sh --guard-master  # only if ezzz asked for it: apps can no longer update master
 ```
 
 Check in Settings → Rules → Rulesets: `SwiftHFR dev-swift` active, 7 required checks.
@@ -74,18 +76,35 @@ Expected:
 - [ ] CodeRabbit reviews **only this diff**. If it says the review is skipped because the base is not the default branch, ezzz adds `dev-swift` under CodeRabbit → repository settings → Reviews → Auto review → Base branches, then comment `@coderabbitai review` on the PR.
 - [ ] **[confirm]** Squash-merge. The push to `dev-swift` then runs CI and CodeQL: both green.
 
-## 6. Secrets and environments
+## 6. Dependabot PR into `master` **[confirm]**
+
+Dependabot reads its configuration from the default branch only. The file only declares `dev-swift` targets, so it never opens a PR against `master`.
+
+```sh
+git fetch ezzz master
+git switch -c chore/dependabot-dev-swift ezzz/master
+mkdir -p .github && git show chore/ezzz-envelope:.github/dependabot.yml > .github/dependabot.yml
+git add .github/dependabot.yml && git commit -m "Enable Dependabot version updates for dev-swift only"
+git push ezzz chore/dependabot-dev-swift
+gh pr create -R ezzz/HFRnow --base master --head chore/dependabot-dev-swift \
+  --title "Dependabot : mises à jour pour dev-swift uniquement" \
+  --body "Ajoute .github/dependabot.yml. Dependabot ne lit ce fichier que sur la branche par défaut, d'où cette PR sur master. Les deux entrées (package Swift HFRKit, GitHub Actions) ciblent \`dev-swift\` : aucune PR Dependabot ne visera master, et aucun fichier de l'app legacy n'est modifié. À merger par ezzz."
+```
+
+Once merged: Insights → Dependency graph → Dependabot lists both entries for `dev-swift`.
+
+## 7. Secrets and environments
 
 - [ ] `gh secret list -R francoisgn/ios-app_SwiftHFR` — recreate each one on ezzz/HFRnow (`gh secret set NAME -R ezzz/HFRnow`) from its source (ADR 0007: the local untracked configuration). Secret values cannot be exported.
 - [ ] Claude Code cloud environment: new sessions use **ezzz/HFRnow** as the only source named HFRnow (two sources named `hfrnow` collide in one checkout directory), same setup script (`scripts/cloud-setup.sh`). Sessions start on the legacy `master`: AGENTS.md §10 makes them switch to `dev-swift`.
 
-## 7. What stayed open **[confirm]**
+## 8. What stayed open **[confirm]**
 
 - Remaining PRs: `git push ezzz origin/<branch>:refs/heads/<branch>`, rebase on `ezzz/dev-swift` if needed, `gh pr create -R ezzz/HFRnow --base dev-swift`, body `Moved from francoisgn/ios-app_SwiftHFR#N`. If its review was complete there, add `@coderabbitai ignore` to the body to skip a second review.
 - Open issues (#14): recreate on ezzz/HFRnow with a link to the original (no transfer across owners).
 - `docs/LOTS.md` claims stay valid; PR links in it keep the old `#N` and are read as `francoisgn/ios-app_SwiftHFR#N`.
 
-## 8. Close the old repository **[confirm]**
+## 9. Close the old repository **[confirm]**
 
 - PR on francoisgn/ios-app_SwiftHFR adding at the top of the README: "Moved to [ezzz/HFRnow, branch dev-swift](https://github.com/ezzz/HFRnow/tree/dev-swift)".
 - Then Settings → Archive this repository.
@@ -93,4 +112,4 @@ Expected:
 
 ## Later, owner's decision (ezzz)
 
-Files GitHub only reads from the default branch (ADR 0010 table): `.github/dependabot.yml` with `target-branch: dev-swift` (recommended), issue forms + `issue-triage.yml` (issues are shared with the legacy app). Proposed as PRs into `master`, merged by ezzz.
+Issue forms and `issue-triage.yml` (ADR 0010 table): issues are shared with the legacy app, so they only land on `master` if ezzz wants them, through a PR he merges.
