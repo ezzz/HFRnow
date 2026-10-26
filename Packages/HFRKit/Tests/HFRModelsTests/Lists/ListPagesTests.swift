@@ -23,6 +23,14 @@ import Testing
         #expect(try roundTrip(page) == page)
     }
 
+    @Test func noticePageKeepsTheServerMessageAndRoundTrips() throws {
+        let page = TopicListPage(notice: "Aucun favori n'est repertorié")
+        #expect(page.topics.isEmpty)
+        #expect(page.notice == "Aucun favori n'est repertorié")
+        #expect(try roundTrip(page) == page)
+        #expect(TopicListPage().notice == nil)
+    }
+
     @Test func emptyTopicListPageIsAValueNotAnError() throws {
         let page = TopicListPage()
         #expect(page.topics.isEmpty)

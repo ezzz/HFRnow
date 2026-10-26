@@ -44,6 +44,28 @@ struct AttributeSearchTests {
         #expect(table.firstDescendant(matching: .contains("sujet ligne_booleen"))?.hasClass("ligne_sticky") == false)
     }
 
+    @Test("Equivalence guard: the early-exit first match equals the first of all matches, receiver excluded")
+    func firstDescendantAgreesWithDescendants() throws {
+        let nestedHTML = "<div id='n'><p class='k'><b class='k'></b></p><i class='k'></i></div>"
+        let document = try HTMLDocumentLoader.document(from: Self.html + nestedHTML)
+        let body = try #require(document.body())
+        let table = try #require(try document.select("table.main").first())
+        let nested = try #require(try document.getElementById("n"))
+        let matches: [AttributeMatch] = [
+            .classToken("k"), .exact("left nav"), .contains("ligne"), .classToken("sujetCase1"), .exact("absent")
+        ]
+        for root in [body, table, nested] {
+            for match in matches {
+                #expect(root.firstDescendant(matching: match) === root.descendants(matching: match).first)
+            }
+        }
+        #expect(nested.firstDescendant(matching: .classToken("k"))?.tagName() == "p")   // the parent comes before its child
+        // The walk starts at the children: a receiver matching its own search is never returned.
+        #expect(nested.firstDescendant(attribute: "id", matching: .exact("n")) == nil)
+        let paragraph = try #require(nested.children().first())
+        #expect(paragraph.firstDescendant(matching: .classToken("k"))?.tagName() == "b")
+    }
+
     @Test("Other attributes and missing attributes")
     func otherAttributes() throws {
         let table = try #require(try HTMLDocumentLoader.document(from: Self.html).select("table.main").first())

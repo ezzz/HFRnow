@@ -12,6 +12,8 @@ public struct TopicListPage: Sendable, Hashable, Codable {
     public var newTopicPath: String?
     /// Unread private messages announced by the page header.
     public var unreadPrivateMessages: Int?
+    /// Message HFR shows instead of the list (an empty filter or search: "Aucun favori n'est repertorié"); nil on a list page.
+    public var notice: String?
 
     /// Creates a topic list page.
     public init(
@@ -20,7 +22,8 @@ public struct TopicListPage: Sendable, Hashable, Codable {
         tabs: TopicListTabs = TopicListTabs(),
         categoryID: CategoryID? = nil,
         newTopicPath: String? = nil,
-        unreadPrivateMessages: Int? = nil
+        unreadPrivateMessages: Int? = nil,
+        notice: String? = nil
     ) {
         self.topics = topics
         self.navigation = navigation
@@ -28,5 +31,6 @@ public struct TopicListPage: Sendable, Hashable, Codable {
         self.categoryID = categoryID
         self.newTopicPath = newTopicPath
         self.unreadPrivateMessages = unreadPrivateMessages
+        self.notice = notice
     }
 }

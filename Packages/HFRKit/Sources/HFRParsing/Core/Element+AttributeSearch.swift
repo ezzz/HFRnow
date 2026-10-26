@@ -20,8 +20,19 @@ extension Element {
     }
 
     /// First descendant whose `attribute` satisfies `match` (legacy `findChildWithAttribute:…`), or nil.
+    ///
+    /// Walks the subtree in document order and stops at the first match, instead of materializing it like
+    /// `descendants`: on a 55-row list page (R04) a whole-body search cost about 5 ms in release, and most list
+    /// header lookups hit early (LOT-022).
     func firstDescendant(attribute: String = "class", matching match: AttributeMatch) -> Element? {
-        descendants(attribute: attribute, matching: match).first
+        var pending = Array(children().array().reversed())
+        while let element = pending.popLast() {
+            if element.hasAttr(attribute), let value = try? element.attr(attribute), match.matches(value) {
+                return element
+            }
+            pending.append(contentsOf: element.children().array().reversed())
+        }
+        return nil
     }
 
     /// Like `firstDescendant`, but a missing element is a typed error naming the search.
