@@ -22,7 +22,7 @@ Audit [A](../audit/A-network-sessions.md) §3.2–3.5 and lot NET-01 / NET-14; l
 All in `Packages/HFRKit/Sources/HFRNetwork/Transport/`.
 
 - `HTTPTransport.perform(_:)` returns the raw answer for any status; `send(_:)` (protocol extension, the call sites use this one) additionally throws `NetworkError.httpStatus(code:url:)` for 4xx/5xx. 3xx is returned, so `RedirectPolicy.doNotFollow` works.
-- `HTTPRequest` / `HTTPResponse` / `HTTPHeaders` are plain `Sendable` values; headers are case-insensitive. `HTTPResponse.url` is the **final** URL after followed redirects; `redirectLocation` resolves a relative `Location` (HFR sends relative ones, HFR-PROTOCOL §6).
+- `HTTPRequest` / `HTTPResponse` / `HTTPHeaders` are plain `Sendable` values; headers are case-insensitive and names are trimmed (` Cookie` is `cookie`, LOT-042). `HTTPResponse.url` is the **final** URL after followed redirects; `redirectLocation` resolves a relative `Location` (HFR sends relative ones, HFR-PROTOCOL §6).
 - `URLSessionTransport`: wraps an injectable `URLSession` (LOT-042 passes one per account). Default session is ephemeral and cookie-less. No retry of any request (POST replay is dangerous, redface2 E29), no TLS delegate (system trust only).
 - Redirects: `.follow` is the default. `.doNotFollow` uses a second session built from the same configuration (same cookie storage) with a session delegate refusing redirects, because swift-corelibs-foundation ignores per-task delegates.
 - Timeout: `HTTPRequest.timeout` is a **total** limit enforced by the transport on every platform (corelibs ignores `timeoutInterval`); presets in `RequestTimeout` (30 / 60 / 15 / 5 s).

@@ -70,4 +70,15 @@ struct MockTransportTests {
         headers["content-type"] = nil
         #expect(headers.fields.isEmpty)
     }
+
+    @Test func headerNamesAreTrimmed() {
+        var headers = HTTPHeaders([" Cookie": "a"])
+        #expect(headers.fields == ["cookie": "a"])
+        headers["Cookie "] = "b"
+        #expect(headers["cookie"] == "b")
+        headers["\tcookie\n"] = nil
+        #expect(headers.fields.isEmpty)
+        let literal: HTTPHeaders = ["X-A ": "1"]
+        #expect(literal.fields == ["x-a": "1"])
+    }
 }
