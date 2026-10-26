@@ -1,0 +1,102 @@
+{
+  "case" : "RA5",
+  "exception" : null,
+  "input" : {
+    "bytes" : 1622,
+    "context" : {
+      "anchor" : "",
+      "avatarFetch" : "succeed",
+      "blacklist" : [
+
+      ],
+      "filter" : null,
+      "ownPseudo" : "user2",
+      "settings" : {
+        "auto_theme" : 0,
+        "blacklist_hide_pseudo" : false,
+        "display_images" : "yes",
+        "display_sig" : "no",
+        "embedded_videos" : "yes",
+        "filter_posts_min_quotes" : 3,
+        "filter_posts_quotes" : "wl_pseudo",
+        "mpstorage_active" : false,
+        "theme" : 0,
+        "theme_noel_disabled" : true,
+        "theme_style" : 1
+      },
+      "whitelist" : [
+
+      ]
+    },
+    "currentURL" : "/forum2.php?config=hfr.inc&cat=prive&post=3207033&page=1",
+    "file" : "../captures/RA5-mp-thread-after-delete-owner.html",
+    "now" : null,
+    "sha256" : "40373233d1702ae83461e106ef48ace19c6eb55541b8af3f4f9760223b024c96"
+  },
+  "kind" : "topic",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "actions" : [
+
+    ],
+    "messages" : [
+
+    ],
+    "page" : {
+      "answerURL" : null,
+      "completionError" : null,
+      "currentPage" : 1,
+      "currentURL" : "/forum2.php?config=hfr.inc&cat=prive&post=3207033&page=1",
+      "inputData" : {
+
+      },
+      "maxPage" : 1,
+      "poll" : {
+        "hasPoll" : false,
+        "html" : null,
+        "isNewVote" : false,
+        "parsed" : null
+      },
+      "searchInputData" : {
+
+      },
+      "sNavigationViewTitle" : "",
+      "topicAnswerURL" : null,
+      "topicName" : "",
+      "unreadable" : false
+    },
+    "parser" : {
+      "iFirstPageNumber" : 0,
+      "iLastPageNumber" : 0,
+      "itemCount" : 0,
+      "topicName" : null
+    },
+    "render" : {
+      "builderException" : null,
+      "messagesHTMLIfNotRebuildable" : null,
+      "pageHTML" : "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">                      <html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"fr\" lang=\"fr\">                      <head>                      <script type='text/javascript' src='jquery-2.1.1.min.js'></script>                      <script type='text/javascript' src='jquery.doubletap.js'></script>                      <script type='text/javascript' src='jquery.base64.js'></script>                      <meta name='viewport' content='initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no' />                      <meta http-equiv='Content-Type' content='text/html; charset=UTF-8' />                      <link type='text/css' rel='stylesheet' href='style-liste-light.css' id='light-styles'/>                      <style type='text/css'></style>                      <style id='smileys_double' type='text/css'>.smileycustom {max-height:45px;}</style>                      </head><body class='ios7'><a name='top' id='top'></a>                      <div class='bunselected nosig' id='qsdoiqjsdkjhqkjhqsdqdilkjqsd2'></div>                                            <div id='endofpage'></div><div id='endofpagetoolbar'></div><a name='bas'></a>                      <script type='text/javascript'>                      document.addEventListener('DOMContentLoaded', loadedML);                      document.addEventListener('touchstart', touchstart);                      function loadedML() { setTimeout(function() {document.location.href = 'oijlkajsdoihjlkjasdoloaded://loaded';},700); };                      function toggleDiv(id) { $(id).slideToggle('slow'); };                      function HLtxt() { var el = document.getElementById('qsdoiqjsdkjhqkjhqsdqdilkjqsd');el.className='bselected'; }                      function UHLtxt() { var el = document.getElementById('qsdoiqjsdkjhqkjhqsdqdilkjqsd');el.className='bunselected'; }                      function swap_spoiler_states(obj){var div=obj.getElementsByTagName('div');if(div[0]){if(div[0].style.visibility==\"visible\"){div[0].style.visibility='hidden';}else if(div[0].style.visibility==\"hidden\"||!div[0].style.visibility){div[0].style.visibility='visible';}}}                      $('img').error(function(){var failingSrc = $(this).attr('src');if(failingSrc.indexOf('https://reho.st')>-1){$(this).attr('src', 'photoDefaultClic.png')}else{$(this).attr('src', 'photoDefaultfailmini.png');}});                      function touchstart() { document.location.href = 'oijlkajsdoihjlkjasdotouch://touchstart'};                      function touchHeaderMessage(selectedNode, actionName) { event.stopPropagation(); var rect = selectedNode.getBoundingClientRect(); var parentRect = selectedNode.parentNode.getBoundingClientRect(); var x = Math.round(rect.left + (rect.width / 2)); var y = Math.round(parentRect.top); window.location = 'oijlkajsdoihjlkjasdopopup'+actionName+'://'+x+'/'+y+'/' + selectedNode.parentNode.parentNode.id; return false; };                      document.documentElement.style.setProperty('--color-action', '#59E3FF');                      document.documentElement.style.setProperty('--color-action-disabled', '#C8C8C8');                      document.documentElement.style.setProperty('--color-message-background', '#FFFFFF');                      document.documentElement.style.setProperty('--color-message-modo-background', '#FFEEEE');                      document.documentElement.style.setProperty('--color-message-header-me-background', 'rgba(89, 227, 255, 0.03)');                      document.documentElement.style.setProperty('--color-message-mequoted-background', 'rgba(89, 227, 255, 0.03)');                      document.documentElement.style.setProperty('--color-message-mequoted-borderleft', 'rgba(89, 227, 255, 1.00)');                      document.documentElement.style.setProperty('--color-message-mequoted-borderother', 'rgba(204, 246, 255, 1.00)');                      document.documentElement.style.setProperty('--color-message-header-love-background', 'rgba(255, 229, 244, 0.40)');                      document.documentElement.style.setProperty('--color-message-quoted-love-background', 'rgba(255, 229, 244, 0.30)');                      document.documentElement.style.setProperty('--color-message-quoted-love-borderleft', 'rgba(255, 0, 152, 1.00)');                      document.documentElement.style.setProperty('--color-message-quoted-love-borderother', 'rgba(255, 204, 234, 1.00)');                      document.documentElement.style.setProperty('--color-message-quoted-bl-background', 'rgba(0, 0, 0, 0.05)');                      document.documentElement.style.setProperty('--color-message-header-bl-background', 'rgba(230, 230, 230, 0.70)');                      document.documentElement.style.setProperty('--color-separator-new-message', 'rgba(120, 120, 120, 0.50)');                      document.documentElement.style.setProperty('--color-text', '#000000');                      document.documentElement.style.setProperty('--color-text2', '#E0E0E0');                      document.documentElement.style.setProperty('--color-background-bars', '#E6E6E6');                      document.documentElement.style.setProperty('--color-searchintra-nextresults', 'rgba(230, 230, 230, 0.90)');                      document.documentElement.style.setProperty('--imagefile-avatar', 'url(avatar_male_gray_on_light_48x48.png)');                      document.documentElement.style.setProperty('--imagefile-loadinfo', 'url(loadinfo.gif)');                      document.documentElement.style.setProperty('--color-border-quotation', 'silver');                      document.documentElement.style.setProperty('--color-border-avatar', '#717D85');                      document.documentElement.style.setProperty('--color-text-pseudo', '#787878');                      document.documentElement.style.setProperty('--color-text-pseudo-bl', 'rgba(120, 120, 120, 0.50)');                      document.documentElement.style.setProperty('--border-header', 'none');                      </script></body></html>",
+      "pageHTMLTokenized" : false,
+      "resolvedAnchor" : "",
+      "separatorAfterIndex" : null,
+      "workerAnchorAfter" : ""
+    }
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "defaultsWritten" : {
+      "theme_day_color_action" : "{0.350, 0.892, 1.000, 1.000}",
+      "theme_day_color_love" : "{1.000, 0.900, 0.960, 1.000}"
+    },
+    "hashCheck" : null,
+    "nbMP" : null,
+    "networkRequests" : [
+
+    ],
+    "safeResponseDataChangedBytes" : false,
+    "statusNotifications" : [
+
+    ]
+  }
+}

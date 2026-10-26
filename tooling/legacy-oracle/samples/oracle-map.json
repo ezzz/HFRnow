@@ -11,6 +11,65 @@
     "currentURL": "/transsearch.php?config=hfr.inc&cat=13&fake=1&page=1",
     "kind": "search"
   },
+  "topic-anonymous.html": {
+    "currentURL": "/forum2.php?config=hfr.inc&cat=13&post=1000&page=1",
+    "kind": "topic"
+  },
+  "topic-content-variants.html": {
+    "avatarFetch": "fail",
+    "blacklist": [
+      "fakeuser3"
+    ],
+    "currentURL": "/forum2.php?config=hfr.inc&cat=13&post=1000&page=1",
+    "kind": "topic",
+    "ownPseudo": "fakeuser1",
+    "settings": {
+      "blacklist_hide_pseudo": true,
+      "display_sig": "yes",
+      "embedded_videos": "both"
+    },
+    "whitelist": [
+      "fakeuser2"
+    ]
+  },
+  "topic-content.html": {
+    "blacklist": [
+      "fakeuser3"
+    ],
+    "currentURL": "/forum2.php?config=hfr.inc&cat=13&post=1000&page=1",
+    "filter": {
+      "topicPage": 1,
+      "topicUrl": "/forum2.php?config=hfr.inc&cat=13&post=1000&page=1#t2001"
+    },
+    "kind": "topic",
+    "ownPseudo": "fakeuser1",
+    "whitelist": [
+      "fakeuser2"
+    ]
+  },
+  "topic-empty.html": {
+    "kind": "topic"
+  },
+  "topic-loggedin.html": {
+    "anchor": "#t1004",
+    "currentURL": "/hfr/Discussions/Fake/fake-topic-sujet_1000_2.htm",
+    "kind": "topic",
+    "ownPseudo": "fakeuser1"
+  },
+  "topic-mp.html": {
+    "currentURL": "/forum2.php?config=hfr.inc&cat=prive&post=1000&page=1",
+    "kind": "topic",
+    "ownPseudo": "fakeuser1"
+  },
+  "topic-poll-results.html": {
+    "avatarFetch": "blocked",
+    "currentURL": "/forum2.php?config=hfr.inc&cat=13&post=1000&page=4",
+    "kind": "topic"
+  },
+  "topic-poll-vote.html": {
+    "kind": "topic",
+    "ownPseudo": "fakeuser1"
+  },
   "topics-bad-date.html": "topics",
   "topics-broken-pager.html": "topics",
   "topics-empty.html": "topics",

@@ -3,7 +3,7 @@
 Runs the **real** Objective-C parsers of the legacy app ([hfrnow](https://github.com/francoisgn/hfrnow),
 pinned at `2440d79`) offline on saved HTML pages and writes one `<case>.oracle.json` per page. These files
 are the expected values of the differential tests in `HFRParsing` (AGENTS.md §5 step 5).
-Spec of the list exporter: [LOT-002](../../docs/lots/LOT-002-list-oracle.md).
+Specs: list parsers [LOT-002](../../docs/lots/LOT-002-list-oracle.md), topic pages [LOT-003](../../docs/lots/LOT-003-topic-oracle.md).
 
 Local tooling for the maintainer's Mac. It is not part of CI (Xcode 27 + Carthage + simulator).
 
@@ -11,10 +11,10 @@ Local tooling for the maintainer's Mac. It is not part of CI (Xcode 27 + Carthag
 
 | File | Use |
 |---|---|
-| `hfrnow.patch` | Local edits to hfrnow: the `OracleExport` test class and its Objective-C helper in `HFRswiftTests`, plus the spy-signature fix in `AccountsStoreTests.swift` that the tests need to compile |
+| `hfrnow.patch` | Local edits to hfrnow: the `OracleExport` test class (`OracleExport.swift`, topic kind in `OracleExportTopic.swift`) and its Objective-C helper in `HFRswiftTests`, plus the spy-signature fix in `AccountsStoreTests.swift` that the tests need to compile |
 | `run-oracle.sh` | Checks the legacy commit, applies the patch, bootstraps Carthage, creates or reuses the simulator, runs the export, reports counts |
 | `carthage-xcode27.xcconfig` | Build settings Carthage needs on Xcode 27 (see below) |
-| `samples/` | Synthetic pages (fake pseudos, fake hash) and their `oracle-map.json`, to prove the harness end to end |
+| `samples/` | Synthetic pages (fake pseudos, fake hash) and their `oracle-map.json`, to prove the harness end to end (`topic-*` for LOT-003) |
 
 ## Run
 
@@ -45,8 +45,9 @@ Optional entry keys: `path` (the page, relative to the map folder: the oracle fo
 corpus, e.g. `"path": "../captures/R04-list-cat13-p1-anon.html"`; the case name is still the key without extension) and `now` (ISO-8601: the clock
 the legacy code sees, needed when the output depends on the date, as the list parser's relative dates do).
 
-Kinds: `forums`, `topics`, `favorites`, `mp`, `search`. `currentURL` is optional (the parsers take it as
-input; defaults are in the spec). An unknown kind, an unreadable file, or an input file (`.html`, `.json`) missing from the map
+Kinds: `forums`, `topics`, `favorites`, `mp`, `search` (LOT-002) and `topic` (one topic page, LOT-003). `currentURL` is
+optional (the parsers take it as input; defaults are in the specs). A `topic` entry also takes `anchor`, `ownPseudo`,
+`blacklist`, `whitelist`, `settings`, `avatarFetch` and `filter` ([LOT-003](../../docs/lots/LOT-003-topic-oracle.md#inputs)). An unknown kind, an unreadable file, or an input file (`.html`, `.json`) missing from the map
 is listed in `errors.json` (`oracle-map.json`, `errors.json` and `*.oracle.json` are not inputs).
 
 ## How it works
@@ -59,6 +60,11 @@ is listed in `errors.json` (`oracle-map.json`, `errors.json` and `*.oracle.json`
   malformed pages, and Swift cannot catch that.
 - State the parsers touch (`hash_check` on the app delegate, `nb_mp` and the favorites category order in
   `UserDefaults`, status notifications) is reset before each case and captured in `sideEffects`.
+- Topic cases run with a fixed settings set, an in-memory blacklist and whitelist, and runtime hooks for the case:
+  the account list returns the case's pseudo, `ASIHTTPRequest` never touches the network (avatar requests are
+  recorded and completed according to `avatarFetch`, on the main thread as ASIHTTPRequest does, so no download races the
+  parser; quirk Q33), and the avatar queue of `ParseMessagesOperation` is serial (requests in message order). Everything is
+  restored after the case.
 - Output uses sorted keys and no run-time timestamps. Dates are UTC ISO-8601; relative display strings
   ("il y a 5 min") depend on the run date: without `now` they are exported as `null`; with `now` the clock is
   frozen at that instant and they are exported unchanged.
@@ -80,7 +86,7 @@ hfrnow is local only: never commit, push or open a PR there. The patch is how it
 the exporter in hfrnow, regenerate it:
 
 ```sh
-git -C ~/Git/hfrnow add -N HFRswiftTests/OracleExport.swift HFRswiftTests/OracleObjCSafe.m
+git -C ~/Git/hfrnow add -N HFRswiftTests/OracleExport.swift HFRswiftTests/OracleExportTopic.swift HFRswiftTests/OracleObjCSafe.m
 git -C ~/Git/hfrnow diff --no-color > tooling/legacy-oracle/hfrnow.patch
 ```
 

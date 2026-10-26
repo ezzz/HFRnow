@@ -1,0 +1,186 @@
+{
+  "case" : "R27b",
+  "exception" : null,
+  "input" : {
+    "bytes" : 32247,
+    "context" : {
+      "anchor" : "",
+      "avatarFetch" : "succeed",
+      "blacklist" : [
+
+      ],
+      "filter" : null,
+      "ownPseudo" : null,
+      "settings" : {
+        "auto_theme" : 0,
+        "blacklist_hide_pseudo" : false,
+        "display_images" : "yes",
+        "display_sig" : "no",
+        "embedded_videos" : "yes",
+        "filter_posts_min_quotes" : 3,
+        "filter_posts_quotes" : "wl_pseudo",
+        "mpstorage_active" : false,
+        "theme" : 0,
+        "theme_noel_disabled" : true,
+        "theme_style" : 1
+      },
+      "whitelist" : [
+
+      ]
+    },
+    "currentURL" : "/hfr/Programmation/C-2/affichage-ameliorations-possibles-sujet_148773_1.htm",
+    "file" : "../captures/R27b-topic-code-blocks-anon.html",
+    "now" : null,
+    "sha256" : "d5950cd9963d6400d92e1f83c51088c17b344e4b472101c3d207774cecca9cc5"
+  },
+  "kind" : "topic",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "actions" : [
+      {
+        "authorName" : "user3",
+        "canAQ" : "1",
+        "canBeFavorite" : "1",
+        "canBookmark" : "0",
+        "canDelete" : "0",
+        "index" : 0,
+        "isOwnMessage" : "0",
+        "isPrivateCategory" : "0",
+        "permalinkURL" : "https://forum.hardware.fr/hfr/Programmation/C-2/affichage-ameliorations-possibles-sujet_148773_1.htm#t2542632",
+        "postID" : "t2542632",
+        "profileURL" : "https://forum.hardware.fr/hfr/profil-910001.htm",
+        "quoteURL" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=10&post=148773&numrep=2542632&ref=1&page=1&p=1&subcat=386&sondage=0&owntopic=0&new=0#formulaire",
+        "topicTitle" : "[C++] Affichage uptime - Améliorations possibles ?"
+      },
+      {
+        "authorName" : "user3",
+        "canAQ" : "1",
+        "canBeFavorite" : "1",
+        "canBookmark" : "0",
+        "canDelete" : "0",
+        "index" : 1,
+        "isOwnMessage" : "0",
+        "isPrivateCategory" : "0",
+        "permalinkURL" : "https://forum.hardware.fr/hfr/Programmation/C-2/affichage-ameliorations-possibles-sujet_148773_1.htm#t2544074",
+        "postID" : "t2544074",
+        "profileURL" : "https://forum.hardware.fr/hfr/profil-910001.htm",
+        "quoteURL" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=10&post=148773&numrep=2544074&ref=2&page=1&p=1&subcat=386&sondage=0&owntopic=0&new=0#formulaire",
+        "topicTitle" : "[C++] Affichage uptime - Améliorations possibles ?"
+      }
+    ],
+    "messages" : [
+      {
+        "addFlagUrl" : null,
+        "dicoHTML" : "<div id=\"para2542632\">\n<p>Bonjour,\r<br> <br>Pour faire suite à mon problème de reboot aléatoire de mon PC, je me suis dis qu'une commande uptime serait quand même bien pratique <img src=\"https://forum-images.hardware.fr/icones/redface.gif\" alt=\":o\" title=\":o\">, parce que \"systeminfo\" en ligne de commande c'est pas pratique, faut scroller en haut de la fenêtre à chaque fois pour avoir l'heure de démarrage du système...\r<br> <br>J'ai donc fais le programme suivant :\r<br> <br></p>\n<table class=\"code\"><tr class=\"none\"><td>\n<b class=\"s1\" style=\"font-family: Verdana, Helvetica, Arial, Sans-serif;\">Code :</b><br><ol id=\"code1\" class=\"olcode\">\n<li>\n<span style=\"color:blue\">#include</span> \"windows.h\"</li>\n<li>\n<li>\n<span style=\"color:blue\">#include</span> &lt;iostream&gt;</li>\n<li>\n<span style=\"color:blue\">#include</span> &lt;chrono&gt;</li>\n<li>\n<span style=\"color:blue\">#include</span> &lt;format&gt;</li>\n<li>\n<li>\n<span style=\"color:blue\">int</span> main()</li>\n<li>{</li>\n<li>    <span style=\"color:green\"><i>// 0. Définir la page de code de la console en UTF-8 (65001)\r</i></span>\n</li>\n<li>    SetConsoleOutputCP(65001);</li>\n<li>    SetConsoleCP(65001);</li>\n<li>\n<li>    <span style=\"color:green\"><i>// 1. Récupération du nombre de millisecondes écoulées depuis le démarrage du système\r</i></span>\n</li>\n<li>    <span style=\"color:blue\">auto</span> uptime = std::chrono::milliseconds(GetTickCount64());</li>\n<li>\n<li>    <span style=\"color:green\"><i>// 2. Calcul de la date de démarrage du système\r</i></span>\n</li>\n<li>    <span style=\"color:blue\">auto</span> boot_time = std::chrono::system_clock::now() - uptime;</li>\n<li>    <span style=\"color:green\"><i>// 2.1 Suppression des microsecondes\r</i></span>\n</li>\n<li>    <span style=\"color:blue\">auto</span> boot_time_no_s = std::chrono::floor&lt;std::chrono::seconds&gt;(boot_time);</li>\n<li>\n<li>    <span style=\"color:green\"><i>// 3. Affichage de la date et l'heure de démarrage du système\r</i></span>\n</li>\n<li>    std::cout &lt;&lt; \"Heure de démarrage du système:\\t\" &lt;&lt; std::format(\"{:%Y-%m-%d %H:%M:%S}\", std::chrono::current_zone()-&gt;to_local(boot_time_no_s)) &lt;&lt; std::endl;</li>\n<li>\n<li>    <span style=\"color:green\"><i>// 4. Calcul de l'uptime en jour, heures, minutes, secondes\r</i></span>\n</li>\n<li>    <span style=\"color:blue\">auto</span> uptime_secondes = uptime.count() / 1000;</li>\n<li>    <span style=\"color:blue\">auto</span> up_days  = uptime_secondes / 86400;</li>\n<li>    <span style=\"color:blue\">auto</span> up_hours = uptime_secondes % 86400 / 3600;</li>\n<li>    <span style=\"color:blue\">auto</span> up_min   = uptime_secondes % 86400 % 3600 / 60;</li>\n<li>    <span style=\"color:blue\">auto</span> up_sec   = uptime_secondes % 86400 % 3600 % 60;</li>\n<li>\n<li>    <span style=\"color:green\"><i>// 5. Affichage\r</i></span>\n</li>\n<li>    <span style=\"color:blue\">switch</span> (up_days)</li>\n<li>    {</li>\n<li>    <span style=\"color:blue\">case</span> 0:</li>\n<li>        std::cout &lt;&lt; \"Uptime :\\t\\t\\t\" &lt;&lt; up_hours &lt;&lt; \" heures, \" &lt;&lt; up_min &lt;&lt; \" minutes, \" &lt;&lt; up_sec &lt;&lt; \" secondes\" &lt;&lt; std::endl;</li>\n<li>        <span style=\"color:blue\">break</span>;</li>\n<li>    <span style=\"color:blue\">case</span> 1:</li>\n<li>        std::cout &lt;&lt; \"Uptime :\\t\\t\\t\" &lt;&lt; up_days &lt;&lt; \" jour, \" &lt;&lt; up_hours &lt;&lt; \" heures, \" &lt;&lt; up_min &lt;&lt; \" minutes, \" &lt;&lt; up_sec &lt;&lt; \" secondes\" &lt;&lt; std::endl;</li>\n<li>        <span style=\"color:blue\">break</span>;</li>\n<li>\n<li>    <span style=\"color:blue\">default</span>:</li>\n<li>        std::cout &lt;&lt; \"Uptime :\\t\\t\\t\" &lt;&lt; up_days &lt;&lt; \" jours, \" &lt;&lt; up_hours &lt;&lt; \" heures, \" &lt;&lt; up_min &lt;&lt; \" minutes, \" &lt;&lt; up_sec &lt;&lt; \" secondes\" &lt;&lt; std::endl;</li>\n<li>        <span style=\"color:blue\">break</span>;</li>\n<li>    }</li>\n<li>}</li>\n</ol>\n</td></tr></table>\n<p>\r<br> <br>Sortie :\r<br></p>\n<table class=\"fixed\"><tr class=\"none\"><td><p>\r<br>C:\\Users\\user3&gt;uptime\r<br>Heure de démarrage du système:  2026-09-20 23:15:49\r<br>Uptime :                        1 jour, 6 heures, 48 minutes, 31 secondes\r<br> <br>C:\\Users\\user3&gt;\r<br></p></td></tr></table>\n<p>\r<br> <br>Ca marche, ca fait exactement ce que je voulais  <img src=\"https://forum-images.hardware.fr/icones/smilies/sol.gif\" alt=\":sol:\" title=\":sol:\">  <br> <br>Ca fait des siècles que je n'ai pas développé, et encore moins en C++ moderne, je n'y connais rien à la librairie standard.\r<br> <br>Est-ce qu'il y a un moyen de passer outre les deux lignes SetConsoleOutputCP/SetConsoleCP ? Le fichier source est en UTF-8\r<br>Est-ce qu'il y a pas moyen de se passer des calculs d'apothicaires pour calculer le nombre de jours/heures/minutes/secondes de l'uptime avec des objets C++ ?\r<br> <br>Je ne veux pas utiliser d'IA, je veux comprendre et surtout apprendre ce que je fais.</p>\n<div style=\"clear: both;\"> </div>\n<br><span class=\"signature\">Signature removed.</span>\n</div>",
+        "editedTime" : null,
+        "html" : "<div class=\"message\" id=\"0\"><a class=\"anchorlink\" name=\"t2542632\" id=\"t2542632\"></a><div class=\"header\">\t<div class=\"left2 noavatar\" style=\"\" onClick=\"touchHeaderMessage(this,'avatar')\"></div>    <div class=\"left\" onClick=\"touchHeaderMessage(this,'avatar')\">user3</div>    <div class=\"right\" onClick=\"touchHeaderMessage(this,'message')\"> + </div>    <div class=\"leftdate\" onClick=\"touchHeaderMessage(this,'message')\">22-09-2026 06:10:10</div>\t<div class=\"clear\" onClick=\"touchHeaderMessage(this,'message')\"></div></div><div class=\"content\">\t<div class=\"right\">\t\t<div id=\"para2542632\"><p>Bonjour,\r<br> <br>Pour faire suite à mon problème de reboot aléatoire de mon PC, je me suis dis qu'une commande uptime serait quand même bien pratique <img src=\"https://forum-images.hardware.fr/icones/redface.gif\" alt=\":o\" title=\":o\">, parce que \"systeminfo\" en ligne de commande c'est pas pratique, faut scroller en haut de la fenêtre à chaque fois pour avoir l'heure de démarrage du système...\r<br> <br>J'ai donc fais le programme suivant :\r<br> <br></p><table class=\"code\"><tr class=\"none\"><td><b class=\"s1\" style=\"font-family: Verdana, Helvetica, Arial, Sans-serif;\">Code :</b><br><ol id=\"code1\" class=\"olcode\"><li><span style=\"color:var( --color-action)\">#include</span> \"windows.h\"</li><li><li><span style=\"color:var( --color-action)\">#include</span> &lt;iostream&gt;</li><li><span style=\"color:var( --color-action)\">#include</span> &lt;chrono&gt;</li><li><span style=\"color:var( --color-action)\">#include</span> &lt;format&gt;</li><li><li><span style=\"color:var( --color-action)\">int</span> main()</li><li>{</li><li>    <span style=\"color:green\"><i>// 0. Définir la page de code de la console en UTF-8 (65001)\r</i></span></li><li>    SetConsoleOutputCP(65001);</li><li>    SetConsoleCP(65001);</li><li><li>    <span style=\"color:green\"><i>// 1. Récupération du nombre de millisecondes écoulées depuis le démarrage du système\r</i></span></li><li>    <span style=\"color:var( --color-action)\">auto</span> uptime = std::chrono::milliseconds(GetTickCount64());</li><li><li>    <span style=\"color:green\"><i>// 2. Calcul de la date de démarrage du système\r</i></span></li><li>    <span style=\"color:var( --color-action)\">auto</span> boot_time = std::chrono::system_clock::now() - uptime;</li><li>    <span style=\"color:green\"><i>// 2.1 Suppression des microsecondes\r</i></span></li><li>    <span style=\"color:var( --color-action)\">auto</span> boot_time_no_s = std::chrono::floor&lt;std::chrono::seconds&gt;(boot_time);</li><li><li>    <span style=\"color:green\"><i>// 3. Affichage de la date et l'heure de démarrage du système\r</i></span></li><li>    std::cout &lt;&lt; \"Heure de démarrage du système:\\t\" &lt;&lt; std::format(\"{:%Y-%m-%d %H:%M:%S}\", std::chrono::current_zone()-&gt;to_local(boot_time_no_s)) &lt;&lt; std::endl;</li><li><li>    <span style=\"color:green\"><i>// 4. Calcul de l'uptime en jour, heures, minutes, secondes\r</i></span></li><li>    <span style=\"color:var( --color-action)\">auto</span> uptime_secondes = uptime.count() / 1000;</li><li>    <span style=\"color:var( --color-action)\">auto</span> up_days  = uptime_secondes / 86400;</li><li>    <span style=\"color:var( --color-action)\">auto</span> up_hours = uptime_secondes % 86400 / 3600;</li><li>    <span style=\"color:var( --color-action)\">auto</span> up_min   = uptime_secondes % 86400 % 3600 / 60;</li><li>    <span style=\"color:var( --color-action)\">auto</span> up_sec   = uptime_secondes % 86400 % 3600 % 60;</li><li><li>    <span style=\"color:green\"><i>// 5. Affichage\r</i></span></li><li>    <span style=\"color:var( --color-action)\">switch</span> (up_days)</li><li>    {</li><li>    <span style=\"color:var( --color-action)\">case</span> 0:</li><li>        std::cout &lt;&lt; \"Uptime :\\t\\t\\t\" &lt;&lt; up_hours &lt;&lt; \" heures, \" &lt;&lt; up_min &lt;&lt; \" minutes, \" &lt;&lt; up_sec &lt;&lt; \" secondes\" &lt;&lt; std::endl;</li><li>        <span style=\"color:var( --color-action)\">break</span>;</li><li>    <span style=\"color:var( --color-action)\">case</span> 1:</li><li>        std::cout &lt;&lt; \"Uptime :\\t\\t\\t\" &lt;&lt; up_days &lt;&lt; \" jour, \" &lt;&lt; up_hours &lt;&lt; \" heures, \" &lt;&lt; up_min &lt;&lt; \" minutes, \" &lt;&lt; up_sec &lt;&lt; \" secondes\" &lt;&lt; std::endl;</li><li>        <span style=\"color:var( --color-action)\">break</span>;</li><li><li>    <span style=\"color:var( --color-action)\">default</span>:</li><li>        std::cout &lt;&lt; \"Uptime :\\t\\t\\t\" &lt;&lt; up_days &lt;&lt; \" jours, \" &lt;&lt; up_hours &lt;&lt; \" heures, \" &lt;&lt; up_min &lt;&lt; \" minutes, \" &lt;&lt; up_sec &lt;&lt; \" secondes\" &lt;&lt; std::endl;</li><li>        <span style=\"color:var( --color-action)\">break</span>;</li><li>    }</li><li>}</li></ol></td></tr></table><p>\r<br> <br>Sortie :\r<br></p><table class=\"fixed\"><tr class=\"none\"><td><p>\r<br>C:\\Users\\user3&gt;uptime\r<br>Heure de démarrage du système:  2026-09-20 23:15:49\r<br>Uptime :                        1 jour, 6 heures, 48 minutes, 31 secondes\r<br> <br>C:\\Users\\user3&gt;\r<br></p></td></tr></table><p>\r<br> <br>Ca marche, ca fait exactement ce que je voulais  <img src=\"https://forum-images.hardware.fr/icones/smilies/sol.gif\" alt=\":sol:\" title=\":sol:\">  <br> <br>Ca fait des siècles que je n'ai pas développé, et encore moins en C++ moderne, je n'y connais rien à la librairie standard.\r<br> <br>Est-ce qu'il y a un moyen de passer outre les deux lignes SetConsoleOutputCP/SetConsoleCP ? Le fichier source est en UTF-8\r<br>Est-ce qu'il y a pas moyen de se passer des calculs d'apothicaires pour calculer le nombre de jours/heures/minutes/secondes de l'uptime avec des objets C++ ?\r<br> <br>Je ne veux pas utiliser d'IA, je veux comprendre et surtout apprendre ce que je fais.</p><div style=\"clear: both;\"> </div><br></div>\t</div>\t<div class=\"clear\"></div></div><div class=\"clear\"></div></div>",
+        "htmlException" : null,
+        "imageUI" : null,
+        "index" : 0,
+        "iPage" : 0,
+        "isDel" : false,
+        "messageDate" : "22-09-2026 06:10:10",
+        "MPUrl" : null,
+        "name" : "user3",
+        "postID" : "t2542632",
+        "quotedLINK" : null,
+        "quotedNB" : null,
+        "quoteJS" : null,
+        "url" : null,
+        "urlAlert" : null,
+        "urlEdit" : null,
+        "urlEditDecoded" : null,
+        "urlProfil" : "/hfr/profil-910001.htm",
+        "urlQuote" : "md_noclass_cryptlink1F4E43C2C24A4C4319C045C02F424F4944464C2E4544C11946494214424ACB2E2A2014C04FC2CB2E2A2B252C2C221449C34EC143C02E21232B2124222114C143442E2A14C04A4C432E2A14C02E2A14C2C341424ACB2E22252414C24F494B4A4C432E20144FCC49CB4FC046422E20144943CC2E2012444FC14EC3484A46C143",
+        "urlQuoteDecoded" : "/message.php?config=hfr.inc&cat=10&post=148773&numrep=2542632&ref=1&page=1&p=1&subcat=386&sondage=0&owntopic=0&new=0#formulaire"
+      },
+      {
+        "addFlagUrl" : null,
+        "dicoHTML" : "<div id=\"para2544074\">\n<p>version finale <img src=\"https://forum-images.hardware.fr/icones/redface.gif\" alt=\":o\" title=\":o\">\r<br> <br></p>\n<table class=\"code\"><tr class=\"none\"><td>\n<b class=\"s1\" style=\"font-family: Verdana, Helvetica, Arial, Sans-serif;\">Code :</b><br><ol id=\"code2\" class=\"olcode\">\n<li>\n<span style=\"color:blue\">#include</span> \"windows.h\"</li>\n<li>\n<li>\n<span style=\"color:blue\">#include</span> &lt;iostream&gt;</li>\n<li>\n<span style=\"color:blue\">#include</span> &lt;chrono&gt;</li>\n<li>\n<span style=\"color:blue\">#include</span> &lt;format&gt;</li>\n<li>\n<li>\n<span style=\"color:blue\">int</span> main()</li>\n<li>{</li>\n<li>    <span style=\"color:green\"><i>// 0. Définir la page de code de la console en UTF-8 (65001)\r</i></span>\n</li>\n<li>    SetConsoleOutputCP(65001);</li>\n<li>    SetConsoleCP(65001);</li>\n<li>\n<li>    <span style=\"color:green\"><i>// 1. Récupération du nombre de millisecondes écoulées depuis le démarrage du système\r</i></span>\n</li>\n<li>    <span style=\"color:blue\">auto</span> uptime_ms = std::chrono::milliseconds(GetTickCount64());</li>\n<li>\n<li>   </li>\n<li>    <span style=\"color:green\"><i>// 2. Calcul de la date de démarrage du système\r</i></span>\n</li>\n<li>    <span style=\"color:blue\">auto</span> now = std::chrono::system_clock::now();</li>\n<li>    <span style=\"color:blue\">auto</span> boot_time_ms    = now - uptime_ms;</li>\n<li>    <span style=\"color:green\"><i>// 2.1 Suppression des microsecondes\r</i></span>\n</li>\n<li>    <span style=\"color:blue\">auto</span> now_s           = std::chrono::floor&lt;std::chrono::seconds&gt;(now);</li>\n<li>    <span style=\"color:blue\">auto</span> boot_time_s     = std::chrono::floor&lt;std::chrono::seconds&gt;(boot_time_ms);</li>\n<li>    <span style=\"color:green\"><i>// 2.2 Récupération de l'heure locale suivant le fuseau horaire\r</i></span>\n</li>\n<li>    <span style=\"color:blue\">auto</span> now_local       = std::chrono::current_zone()-&gt;to_local(now_s);</li>\n<li>    <span style=\"color:blue\">auto</span> boot_time_local = std::chrono::current_zone()-&gt;to_local(boot_time_s);</li>\n<li>\n<li>\n<li>    <span style=\"color:green\"><i>// 3. Calcul de l'uptime en jour, heures, minutes, secondes\r</i></span>\n</li>\n<li>    <span style=\"color:blue\">auto</span> uptime_seconds = uptime_ms.count() / 1000;</li>\n<li>    <span style=\"color:blue\">auto</span> up_days  = uptime_seconds / 86400;</li>\n<li>    <span style=\"color:blue\">auto</span> up_hours = uptime_seconds % 86400 / 3600;</li>\n<li>    <span style=\"color:blue\">auto</span> up_mins  = uptime_seconds % 86400 % 3600 / 60;</li>\n<li>    <span style=\"color:blue\">auto</span> up_secs  = uptime_seconds % 86400 % 3600 % 60;</li>\n<li>\n<li>   </li>\n<li>    <span style=\"color:green\"><i>// 4. Affichage\r</i></span>\n</li>\n<li>    std::cout &lt;&lt; \"Heure de démarrage du système\\t: \" &lt;&lt; std::format(\"{:%d/%m/%Y %H:%M:%S}\", boot_time_local) &lt;&lt; std::endl;</li>\n<li>    std::cout &lt;&lt; \"Heure actuelle\\t\\t\\t: \" &lt;&lt; std::format(\"{:%d/%m/%Y %H:%M:%S}\", now_local) &lt;&lt; std::endl;</li>\n<li>    std::cout &lt;&lt; \"Démarré depuis\\t\\t\\t: \" &lt;&lt; std::format(\"{:02}\", up_days) &lt;&lt; \":\" &lt;&lt; std::format(\"{:02}\", up_hours) &lt;&lt; \":\" &lt;&lt; std::format(\"{:02}\", up_mins) &lt;&lt; \":\" &lt;&lt; std::format(\"{:02}\", up_secs);</li>\n<li>\n<li>\n<li>    <span style=\"color:green\"><i>//5. Sortie\r</i></span>\n</li>\n<li>    <span style=\"color:blue\">return</span> 0;</li>\n<li>}</li>\n</ol>\n</td></tr></table>\n<p></p>\n<div style=\"clear: both;\"> </div>\n<div class=\"edited\">\n<br>Message édité par user3 le 12-10-2026 à 23:09:44</div>\n<br><span class=\"signature\">Signature removed.</span>\n</div>",
+        "editedTime" : "user3 le 12-10-2026 à 23:09:44",
+        "html" : "<div class=\"message\" id=\"1\"><a class=\"anchorlink\" name=\"t2544074\" id=\"t2544074\"></a><div class=\"header\">\t<div class=\"left2 noavatar\" style=\"\" onClick=\"touchHeaderMessage(this,'avatar')\"></div>    <div class=\"left\" onClick=\"touchHeaderMessage(this,'avatar')\">user3</div>    <div class=\"right\" onClick=\"touchHeaderMessage(this,'message')\"> + </div>    <div class=\"leftdate\" onClick=\"touchHeaderMessage(this,'message')\">12-10-2026 23:04:26</div>\t<div class=\"clear\" onClick=\"touchHeaderMessage(this,'message')\"></div></div><div class=\"content\">\t<div class=\"right\">\t\t<div id=\"para2544074\"><p>version finale <img src=\"https://forum-images.hardware.fr/icones/redface.gif\" alt=\":o\" title=\":o\">\r<br> <br></p><table class=\"code\"><tr class=\"none\"><td><b class=\"s1\" style=\"font-family: Verdana, Helvetica, Arial, Sans-serif;\">Code :</b><br><ol id=\"code2\" class=\"olcode\"><li><span style=\"color:var( --color-action)\">#include</span> \"windows.h\"</li><li><li><span style=\"color:var( --color-action)\">#include</span> &lt;iostream&gt;</li><li><span style=\"color:var( --color-action)\">#include</span> &lt;chrono&gt;</li><li><span style=\"color:var( --color-action)\">#include</span> &lt;format&gt;</li><li><li><span style=\"color:var( --color-action)\">int</span> main()</li><li>{</li><li>    <span style=\"color:green\"><i>// 0. Définir la page de code de la console en UTF-8 (65001)\r</i></span></li><li>    SetConsoleOutputCP(65001);</li><li>    SetConsoleCP(65001);</li><li><li>    <span style=\"color:green\"><i>// 1. Récupération du nombre de millisecondes écoulées depuis le démarrage du système\r</i></span></li><li>    <span style=\"color:var( --color-action)\">auto</span> uptime_ms = std::chrono::milliseconds(GetTickCount64());</li><li><li>   </li><li>    <span style=\"color:green\"><i>// 2. Calcul de la date de démarrage du système\r</i></span></li><li>    <span style=\"color:var( --color-action)\">auto</span> now = std::chrono::system_clock::now();</li><li>    <span style=\"color:var( --color-action)\">auto</span> boot_time_ms    = now - uptime_ms;</li><li>    <span style=\"color:green\"><i>// 2.1 Suppression des microsecondes\r</i></span></li><li>    <span style=\"color:var( --color-action)\">auto</span> now_s           = std::chrono::floor&lt;std::chrono::seconds&gt;(now);</li><li>    <span style=\"color:var( --color-action)\">auto</span> boot_time_s     = std::chrono::floor&lt;std::chrono::seconds&gt;(boot_time_ms);</li><li>    <span style=\"color:green\"><i>// 2.2 Récupération de l'heure locale suivant le fuseau horaire\r</i></span></li><li>    <span style=\"color:var( --color-action)\">auto</span> now_local       = std::chrono::current_zone()-&gt;to_local(now_s);</li><li>    <span style=\"color:var( --color-action)\">auto</span> boot_time_local = std::chrono::current_zone()-&gt;to_local(boot_time_s);</li><li><li><li>    <span style=\"color:green\"><i>// 3. Calcul de l'uptime en jour, heures, minutes, secondes\r</i></span></li><li>    <span style=\"color:var( --color-action)\">auto</span> uptime_seconds = uptime_ms.count() / 1000;</li><li>    <span style=\"color:var( --color-action)\">auto</span> up_days  = uptime_seconds / 86400;</li><li>    <span style=\"color:var( --color-action)\">auto</span> up_hours = uptime_seconds % 86400 / 3600;</li><li>    <span style=\"color:var( --color-action)\">auto</span> up_mins  = uptime_seconds % 86400 % 3600 / 60;</li><li>    <span style=\"color:var( --color-action)\">auto</span> up_secs  = uptime_seconds % 86400 % 3600 % 60;</li><li><li>   </li><li>    <span style=\"color:green\"><i>// 4. Affichage\r</i></span></li><li>    std::cout &lt;&lt; \"Heure de démarrage du système\\t: \" &lt;&lt; std::format(\"{:%d/%m/%Y %H:%M:%S}\", boot_time_local) &lt;&lt; std::endl;</li><li>    std::cout &lt;&lt; \"Heure actuelle\\t\\t\\t: \" &lt;&lt; std::format(\"{:%d/%m/%Y %H:%M:%S}\", now_local) &lt;&lt; std::endl;</li><li>    std::cout &lt;&lt; \"Démarré depuis\\t\\t\\t: \" &lt;&lt; std::format(\"{:02}\", up_days) &lt;&lt; \":\" &lt;&lt; std::format(\"{:02}\", up_hours) &lt;&lt; \":\" &lt;&lt; std::format(\"{:02}\", up_mins) &lt;&lt; \":\" &lt;&lt; std::format(\"{:02}\", up_secs);</li><li><li><li>    <span style=\"color:green\"><i>//5. Sortie\r</i></span></li><li>    <span style=\"color:var( --color-action)\">return</span> 0;</li><li>}</li></ol></td></tr></table><p></p><div style=\"clear: both;\"> </div><div class=\"edited\"><br>Message édité par user3 le 12-10-2026 à 23:09:44</div><br></div><p class=\"editedhfrlink\">édité par user3 le 12-10-2026 à 23:09:44</p>\t</div>\t<div class=\"clear\"></div></div><div class=\"clear\"></div></div>",
+        "htmlException" : null,
+        "imageUI" : null,
+        "index" : 1,
+        "iPage" : 0,
+        "isDel" : false,
+        "messageDate" : "12-10-2026 23:04:26",
+        "MPUrl" : null,
+        "name" : "user3",
+        "postID" : "t2544074",
+        "quotedLINK" : null,
+        "quotedNB" : null,
+        "quoteJS" : null,
+        "url" : null,
+        "urlAlert" : null,
+        "urlEdit" : null,
+        "urlEditDecoded" : null,
+        "urlProfil" : "/hfr/profil-910001.htm",
+        "urlQuote" : "md_noclass_cryptlink1F4E43C2C24A4C4319C045C02F424F4944464C2E4544C11946494214424ACB2E2A2014C04FC2CB2E2A2B252C2C221449C34EC143C02E21232B2B202C2B14C143442E2114C04A4C432E2A14C02E2A14C2C341424ACB2E22252414C24F494B4A4C432E20144FCC49CB4FC046422E20144943CC2E2012444FC14EC3484A46C143",
+        "urlQuoteDecoded" : "/message.php?config=hfr.inc&cat=10&post=148773&numrep=2544074&ref=2&page=1&p=1&subcat=386&sondage=0&owntopic=0&new=0#formulaire"
+      }
+    ],
+    "page" : {
+      "answerURL" : null,
+      "completionError" : null,
+      "currentPage" : 1,
+      "currentURL" : "/hfr/Programmation/C-2/affichage-ameliorations-possibles-sujet_148773_1.htm",
+      "inputData" : {
+
+      },
+      "maxPage" : 1,
+      "poll" : {
+        "hasPoll" : false,
+        "html" : null,
+        "isNewVote" : false,
+        "parsed" : null
+      },
+      "searchInputData" : {
+        "cat" : "10",
+        "firstnum" : "2542632",
+        "hash_check" : "",
+        "p" : "1",
+        "post" : "148773",
+        "spseudo" : "",
+        "word" : ""
+      },
+      "sNavigationViewTitle" : "[C++] Affichage uptime - Améliorations possibles ?",
+      "topicAnswerURL" : null,
+      "topicName" : "[C++] Affichage uptime - Améliorations possibles ?",
+      "unreadable" : false
+    },
+    "parser" : {
+      "iFirstPageNumber" : 0,
+      "iLastPageNumber" : 0,
+      "itemCount" : 2,
+      "topicName" : "[C++] Affichage uptime - Améliorations possibles ?"
+    },
+    "render" : {
+      "builderException" : null,
+      "messagesHTMLIfNotRebuildable" : null,
+      "pageHTML" : "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">                      <html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"fr\" lang=\"fr\">                      <head>                      <script type='text/javascript' src='jquery-2.1.1.min.js'></script>                      <script type='text/javascript' src='jquery.doubletap.js'></script>                      <script type='text/javascript' src='jquery.base64.js'></script>                      <meta name='viewport' content='initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no' />                      <meta http-equiv='Content-Type' content='text/html; charset=UTF-8' />                      <link type='text/css' rel='stylesheet' href='style-liste-light.css' id='light-styles'/>                      <style type='text/css'></style>                      <style id='smileys_double' type='text/css'>.smileycustom {max-height:45px;}</style>                      </head><body class='ios7'><a name='top' id='top'></a>                      <div class='bunselected nosig' id='qsdoiqjsdkjhqkjhqsdqdilkjqsd2'><!--ORACLE:messagesHTML--></div>                                            <div id='endofpage'></div><div id='endofpagetoolbar'></div><a name='bas'></a>                      <script type='text/javascript'>                      document.addEventListener('DOMContentLoaded', loadedML);                      document.addEventListener('touchstart', touchstart);                      function loadedML() { setTimeout(function() {document.location.href = 'oijlkajsdoihjlkjasdoloaded://loaded';},700); };                      function toggleDiv(id) { $(id).slideToggle('slow'); };                      function HLtxt() { var el = document.getElementById('qsdoiqjsdkjhqkjhqsdqdilkjqsd');el.className='bselected'; }                      function UHLtxt() { var el = document.getElementById('qsdoiqjsdkjhqkjhqsdqdilkjqsd');el.className='bunselected'; }                      function swap_spoiler_states(obj){var div=obj.getElementsByTagName('div');if(div[0]){if(div[0].style.visibility==\"visible\"){div[0].style.visibility='hidden';}else if(div[0].style.visibility==\"hidden\"||!div[0].style.visibility){div[0].style.visibility='visible';}}}                      $('img').error(function(){var failingSrc = $(this).attr('src');if(failingSrc.indexOf('https://reho.st')>-1){$(this).attr('src', 'photoDefaultClic.png')}else{$(this).attr('src', 'photoDefaultfailmini.png');}});                      function touchstart() { document.location.href = 'oijlkajsdoihjlkjasdotouch://touchstart'};                      function touchHeaderMessage(selectedNode, actionName) { event.stopPropagation(); var rect = selectedNode.getBoundingClientRect(); var parentRect = selectedNode.parentNode.getBoundingClientRect(); var x = Math.round(rect.left + (rect.width / 2)); var y = Math.round(parentRect.top); window.location = 'oijlkajsdoihjlkjasdopopup'+actionName+'://'+x+'/'+y+'/' + selectedNode.parentNode.parentNode.id; return false; };                      document.documentElement.style.setProperty('--color-action', '#59E3FF');                      document.documentElement.style.setProperty('--color-action-disabled', '#C8C8C8');                      document.documentElement.style.setProperty('--color-message-background', '#FFFFFF');                      document.documentElement.style.setProperty('--color-message-modo-background', '#FFEEEE');                      document.documentElement.style.setProperty('--color-message-header-me-background', 'rgba(89, 227, 255, 0.03)');                      document.documentElement.style.setProperty('--color-message-mequoted-background', 'rgba(89, 227, 255, 0.03)');                      document.documentElement.style.setProperty('--color-message-mequoted-borderleft', 'rgba(89, 227, 255, 1.00)');                      document.documentElement.style.setProperty('--color-message-mequoted-borderother', 'rgba(204, 246, 255, 1.00)');                      document.documentElement.style.setProperty('--color-message-header-love-background', 'rgba(255, 229, 244, 0.40)');                      document.documentElement.style.setProperty('--color-message-quoted-love-background', 'rgba(255, 229, 244, 0.30)');                      document.documentElement.style.setProperty('--color-message-quoted-love-borderleft', 'rgba(255, 0, 152, 1.00)');                      document.documentElement.style.setProperty('--color-message-quoted-love-borderother', 'rgba(255, 204, 234, 1.00)');                      document.documentElement.style.setProperty('--color-message-quoted-bl-background', 'rgba(0, 0, 0, 0.05)');                      document.documentElement.style.setProperty('--color-message-header-bl-background', 'rgba(230, 230, 230, 0.70)');                      document.documentElement.style.setProperty('--color-separator-new-message', 'rgba(120, 120, 120, 0.50)');                      document.documentElement.style.setProperty('--color-text', '#000000');                      document.documentElement.style.setProperty('--color-text2', '#E0E0E0');                      document.documentElement.style.setProperty('--color-background-bars', '#E6E6E6');                      document.documentElement.style.setProperty('--color-searchintra-nextresults', 'rgba(230, 230, 230, 0.90)');                      document.documentElement.style.setProperty('--imagefile-avatar', 'url(avatar_male_gray_on_light_48x48.png)');                      document.documentElement.style.setProperty('--imagefile-loadinfo', 'url(loadinfo.gif)');                      document.documentElement.style.setProperty('--color-border-quotation', 'silver');                      document.documentElement.style.setProperty('--color-border-avatar', '#717D85');                      document.documentElement.style.setProperty('--color-text-pseudo', '#787878');                      document.documentElement.style.setProperty('--color-text-pseudo-bl', 'rgba(120, 120, 120, 0.50)');                      document.documentElement.style.setProperty('--border-header', 'none');                      </script></body></html>",
+      "pageHTMLTokenized" : true,
+      "resolvedAnchor" : "",
+      "separatorAfterIndex" : null,
+      "workerAnchorAfter" : ""
+    }
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "defaultsWritten" : {
+      "theme_day_color_action" : "{0.350, 0.892, 1.000, 1.000}",
+      "theme_day_color_love" : "{1.000, 0.900, 0.960, 1.000}"
+    },
+    "hashCheck" : null,
+    "nbMP" : null,
+    "networkRequests" : [
+
+    ],
+    "safeResponseDataChangedBytes" : false,
+    "statusNotifications" : [
+
+    ]
+  }
+}

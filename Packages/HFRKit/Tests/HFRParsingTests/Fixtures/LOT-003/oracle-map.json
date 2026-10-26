@@ -1,0 +1,111 @@
+{
+  "R20.html": {
+    "currentURL": "/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm",
+    "kind": "topic",
+    "path": "../captures/R20-topic-p1-anon.html"
+  },
+  "R21.html": {
+    "currentURL": "/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm",
+    "kind": "topic",
+    "ownPseudo": "user2",
+    "path": "../captures/R21-topic-p1-logged-in.html"
+  },
+  "R22a.html": {
+    "currentURL": "/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1100.htm",
+    "kind": "topic",
+    "path": "../captures/R22a-topic-middle-page-anon.html"
+  },
+  "R22b.html": {
+    "currentURL": "/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_2201.htm",
+    "kind": "topic",
+    "path": "../captures/R22b-topic-last-page-anon.html"
+  },
+  "R23.html": {
+    "currentURL": "/hfr/Discussions/Loisirs/tequila-jose-cuervo-sujet_91031_1.htm",
+    "kind": "topic",
+    "path": "../captures/R23-topic-single-page-anon.html"
+  },
+  "R24.html": {
+    "currentURL": "/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_2201.htm",
+    "kind": "topic",
+    "path": "../captures/R24-topic-beyond-last-page-anon.html"
+  },
+  "R26.html": {
+    "currentURL": "/hfr/Discussions/Loisirs/topic-insomniaks-erres-sujet_19297_35600.htm",
+    "kind": "topic",
+    "path": "../captures/R26-topic-quotes-smileys-anon.html"
+  },
+  "R27.html": {
+    "currentURL": "/hfr/Discussions/Cinema/series-science-fiction-sujet_91474_600.htm",
+    "kind": "topic",
+    "path": "../captures/R27-topic-spoilers-anon.html"
+  },
+  "R27b.html": {
+    "currentURL": "/hfr/Programmation/C-2/affichage-ameliorations-possibles-sujet_148773_1.htm",
+    "kind": "topic",
+    "path": "../captures/R27b-topic-code-blocks-anon.html"
+  },
+  "R28.html": {
+    "currentURL": "/hfr/Discussions/Loisirs/images-etonnantes-cons-sujet_78667_15990.htm",
+    "kind": "topic",
+    "path": "../captures/R28-topic-images-videos-anon.html"
+  },
+  "R31.html": {
+    "currentURL": "/hfr/Discussions/Actualite/droits-auteurs-articles-sujet_100217_1.htm",
+    "kind": "topic",
+    "path": "../captures/R31-topic-locked-anon.html"
+  },
+  "R32a.html": {
+    "currentURL": "/hfr/Discussions/Auto-Moto/rouleurs-essence-alcoolisee-sujet_98162_1.htm",
+    "kind": "topic",
+    "path": "../captures/R32a-topic-poll-anon.html"
+  },
+  "R32b.html": {
+    "currentURL": "/hfr/Discussions/Auto-Moto/rouleurs-essence-alcoolisee-sujet_98162_1.htm",
+    "kind": "topic",
+    "ownPseudo": "user2",
+    "path": "../captures/R32b-topic-poll-logged-in-not-voted.html"
+  },
+  "RA1.html": {
+    "currentURL": "/forum2.php?config=hfr.inc&cat=prive&post=3207033&page=1",
+    "kind": "topic",
+    "ownPseudo": "user2",
+    "path": "../captures/RA1-mp-thread-after-create.html"
+  },
+  "RA2.html": {
+    "currentURL": "/forum2.php?config=hfr.inc&cat=prive&post=3207033&page=1",
+    "kind": "topic",
+    "ownPseudo": "user2",
+    "path": "../captures/RA2-mp-thread-crlf-lf-nonbmp.html"
+  },
+  "RA3.html": {
+    "currentURL": "/forum2.php?config=hfr.inc&cat=prive&post=3207033&page=1",
+    "kind": "topic",
+    "ownPseudo": "user2",
+    "path": "../captures/RA3-mp-thread-before-cleanup.html"
+  },
+  "RA4.html": {
+    "currentURL": "/forum2.php?config=hfr.inc&cat=prive&post=3207033&page=1",
+    "kind": "topic",
+    "ownPseudo": "user2",
+    "path": "../captures/RA4-mp-thread-both-accounts.html"
+  },
+  "RA5.html": {
+    "currentURL": "/forum2.php?config=hfr.inc&cat=prive&post=3207033&page=1",
+    "kind": "topic",
+    "ownPseudo": "user2",
+    "path": "../captures/RA5-mp-thread-after-delete-owner.html"
+  },
+  "RU1.html": {
+    "currentURL": "/forum2.php?config=hfr.inc&cat=prive&post=3207033&page=1",
+    "kind": "topic",
+    "ownPseudo": "user1",
+    "path": "../captures/RU1-mp-thread-recipient-view.html"
+  },
+  "RU2.html": {
+    "currentURL": "/forum2.php?config=hfr.inc&cat=prive&post=3207033&page=1",
+    "kind": "topic",
+    "ownPseudo": "user1",
+    "path": "../captures/RU2-mp-thread-recipient-after-owner-delete.html"
+  }
+}

@@ -40,19 +40,20 @@ index b0a205a..2c5f491 100644
  }
 diff --git a/HFRswiftTests/OracleExport.swift b/HFRswiftTests/OracleExport.swift
 new file mode 100644
-index 0000000..a715171
+index 0000000..3215104
 --- /dev/null
 +++ b/HFRswiftTests/OracleExport.swift
-@@ -0,0 +1,368 @@
-+// Oracle exporter for SwiftHFR LOT-002 (list parsers). Local-only: never committed to hfrnow.
+@@ -0,0 +1,378 @@
++// Oracle exporter for SwiftHFR LOT-002 (list parsers) and LOT-003 (topic pages, OracleExportTopic.swift).
++// Local-only: never committed to hfrnow.
 +//
 +// Runs the REAL legacy parsers, offline, on saved HTML pages and writes one `<case>.oracle.json` per page.
 +// Inert unless HFR_ORACLE_IN and HFR_ORACLE_OUT are set (xcodebuild forwards them as TEST_RUNNER_HFR_ORACLE_*).
 +//
 +//   HFR_ORACLE_IN   directory with the input pages (*.html; *.json specs for kinds that take one) and an `oracle-map.json`;
 +//                   an input file missing from the map is reported in errors.json
-+//                   { "<file>.html": "forums|topics|favorites|mp|search"
-+//                                  | { "kind": "...", "currentURL": "/forum1.php?..." } }
++//                   { "<file>.html": "forums|topics|favorites|mp|search|topic"
++//                                  | { "kind": "...", "currentURL": "/forum1.php?...", ...topic options } }
 +//   HFR_ORACLE_OUT  directory receiving <case>.oracle.json and errors.json
 +//   HFR_ORACLE_LEGACY_COMMIT  optional, copied into every output (provenance, not a run-time value)
 +//
@@ -89,7 +90,7 @@ index 0000000..a715171
 +    ]
 +    private static let listIntKeys = ["pageNumber", "firstPageNumber", "lastPageNumber"]
 +
-+    private struct HarnessError: Error { let message: String }
++    struct HarnessError: Error { let message: String }
 +
 +    // MARK: entry point
 +
@@ -111,8 +112,10 @@ index 0000000..a715171
 +        let oracleDelegate = delegateClass.init()
 +        let previousDelegate = UIApplication.shared.delegate
 +        UIApplication.shared.delegate = oracleDelegate as? UIApplicationDelegate
-+        let savedDefaults = Self.defaultsKeys.map { ($0, UserDefaults.standard.object(forKey: $0)) }
++        let savedDefaults = (Self.defaultsKeys + Self.topicSettingsKeys).map { ($0, UserDefaults.standard.object(forKey: $0)) }
++        let savedLists = saveBlockLists()
 +        defer {
++            endTopicRun(restoring: savedLists)
 +            UIApplication.shared.delegate = previousDelegate
 +            for (key, value) in savedDefaults { UserDefaults.standard.set(value, forKey: key) }
 +        }
@@ -151,7 +154,7 @@ index 0000000..a715171
 +
 +    // MARK: one case
 +
-+    private struct CaseSpec { let kind: String; let currentURL: String?; var path: String?; var now: String? }
++    struct CaseSpec { let kind: String; let currentURL: String?; var options: [String: Any] = [:] }
 +
 +    private func loadMap(in dir: URL, errors: inout [[String: String]]) -> [String: CaseSpec] {
 +        let mapURL = dir.appendingPathComponent("oracle-map.json")
@@ -163,9 +166,9 @@ index 0000000..a715171
 +        var result: [String: CaseSpec] = [:]
 +        for (file, value) in raw {
 +            if let kind = value as? String {
-+                result[file] = CaseSpec(kind: kind, currentURL: nil, path: nil, now: nil)
++                result[file] = CaseSpec(kind: kind, currentURL: nil)
 +            } else if let object = value as? [String: Any], let kind = object["kind"] as? String {
-+                result[file] = CaseSpec(kind: kind, currentURL: object["currentURL"] as? String, path: object["path"] as? String, now: object["now"] as? String)
++                result[file] = CaseSpec(kind: kind, currentURL: object["currentURL"] as? String, options: object)
 +            } else {
 +                errors.append(["file": file, "error": "oracle-map entry must be a kind string or {kind, currentURL}"])
 +            }
@@ -174,13 +177,13 @@ index 0000000..a715171
 +    }
 +
 +    private func runCase(file: String, spec: CaseSpec, inDir: URL, delegate: NSObject, legacyCommit: String?) throws -> [String: Any] {
-+        guard ["forums", "topics", "favorites", "mp", "search"].contains(spec.kind) else {
++        guard ["forums", "topics", "favorites", "mp", "search", "topic"].contains(spec.kind) else {
 +            throw HarnessError(message: "unknown kind '\(spec.kind)'")
 +        }
 +        // `path` (optional map key) points at the page relative to the map folder, so a corpus can be used in place.
-+        let inputPath = spec.path ?? file
++        let inputPath = spec.options["path"] as? String ?? file
 +        // `now` (optional, ISO-8601): the clock the legacy code sees, for pages whose output depends on the date.
-+        let nowString = spec.now
++        let nowString = spec.options["now"] as? String
 +        guard let data = try? Data(contentsOf: inDir.appendingPathComponent(inputPath)) else {
 +            throw HarnessError(message: "cannot read \(file)")
 +        }
@@ -201,6 +204,7 @@ index 0000000..a715171
 +
 +        var currentURL: String?
 +        var outcome: (result: Any?, exception: String?)
++        var topicExtras = TopicCaseExtras()
 +        let restoreClock = try Self.freezeClock(nowString)
 +        defer { restoreClock() }
 +        switch spec.kind {
@@ -208,6 +212,9 @@ index 0000000..a715171
 +            outcome = runForums(data)
 +        case "favorites":
 +            outcome = runFavorites(data)
++        case "topic":
++            currentURL = spec.currentURL ?? Self.defaultTopicPageURL
++            outcome = try runTopic(data, currentURL: currentURL ?? "", options: spec.options, extras: &topicExtras)
 +        case "search":
 +            currentURL = spec.currentURL ?? Self.defaultTopicsURL
 +            outcome = runSearch(data, currentURL: currentURL ?? "")
@@ -217,25 +224,28 @@ index 0000000..a715171
 +        }
 +
 +        let defaults = UserDefaults.standard
-+        let sideEffects: [String: Any] = [
++        var sideEffects: [String: Any] = [
 +            "hashCheck": plain(delegate.value(forKey: "hash_check")),
 +            "nbMP": defaults.object(forKey: "nb_mp") ?? NSNull(),
 +            "arrayCategoriesVisibleOrder": defaults.array(forKey: "arrayCategoriesVisibleOrder") ?? NSNull(),
 +            "arrayCategoriesHiddenOrder": defaults.array(forKey: "arrayCategoriesHiddenOrder") ?? NSNull(),
 +            "statusNotifications": notifications
 +        ]
++        sideEffects.merge(topicExtras.sideEffects) { _, new in new }
++        var input: [String: Any] = [
++            "file": inputPath,
++            "bytes": data.count,
++            "sha256": SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined(),
++            "currentURL": currentURL ?? NSNull(),
++            "now": nowString ?? NSNull()
++        ]
++        if let context = topicExtras.context { input["context"] = context }
 +        return [
 +            "schema": Self.schemaVersion,
 +            "case": (file as NSString).deletingPathExtension,
 +            "kind": spec.kind,
 +            "legacyCommit": legacyCommit ?? NSNull(),
-+            "input": [
-+                "file": inputPath,
-+                "bytes": data.count,
-+                "sha256": SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined(),
-+                "currentURL": currentURL ?? NSNull(),
-+                "now": nowString ?? NSNull()
-+            ] as [String: Any],
++            "input": input,
 +            "exception": outcome.exception ?? NSNull(),
 +            "result": outcome.result ?? NSNull(),
 +            "sideEffects": sideEffects
@@ -244,7 +254,7 @@ index 0000000..a715171
 +
 +    // MARK: parsers
 +
-+    private func instance(_ className: String) -> NSObject {
++    func instance(_ className: String) -> NSObject {
 +        guard let type = NSClassFromString(className) as? NSObject.Type else { fatalError("legacy class \(className) missing") }
 +        return type.init()
 +    }
@@ -383,7 +393,7 @@ index 0000000..a715171
 +
 +    // MARK: plumbing
 +
-+    private func invoke(_ target: NSObject, _ selector: String, _ args: [Any]) -> (result: Any?, exception: String?) {
++    func invoke(_ target: NSObject, _ selector: String, _ args: [Any]) -> (result: Any?, exception: String?) {
 +        guard let helper = NSClassFromString("OracleObjCSafe") as AnyObject? else { fatalError("OracleObjCSafe missing") }
 +        let spec: [String: Any] = ["target": target, "selector": selector, "args": args]
 +        let out = helper.perform(NSSelectorFromString("invoke:"), with: spec)?.takeUnretainedValue() as? [String: Any] ?? [:]
@@ -393,7 +403,7 @@ index 0000000..a715171
 +    }
 +
 +    /// JSON-safe value: nil becomes null, dates become UTC ISO-8601 (legacy nil vs "" is a real difference, keep it).
-+    private func plain(_ value: Any?) -> Any {
++    func plain(_ value: Any?) -> Any {
 +        switch value {
 +        case nil, is NSNull: return NSNull()
 +        case let date as Date:
@@ -412,20 +422,354 @@ index 0000000..a715171
 +        try data.write(to: url, options: .atomic)
 +    }
 +}
+diff --git a/HFRswiftTests/OracleExportTopic.swift b/HFRswiftTests/OracleExportTopic.swift
+new file mode 100644
+index 0000000..385774d
+--- /dev/null
++++ b/HFRswiftTests/OracleExportTopic.swift
+@@ -0,0 +1,290 @@
++// Oracle exporter for SwiftHFR LOT-003: the topic-page pipeline. Local-only: never committed to hfrnow.
++//
++// Kind `topic` runs, offline, what the app runs for one topic page (ObjCTopicPageWorker.m:103-146):
++// safeResponseData -> HTMLParser -> ParseMessagesOperation -> page metadata -> ObjCTopicMessageContentBuilder
++// (LinkItem.toHTML per message) -> ObjCTopicHTMLRenderer, then ObjCMessageActionsBuilder through
++// -swiftMessageActionsByIndex and the Swift PollHTMLParser on swiftPollHTML (Common.swift:1800-1836).
++//
++// oracle-map.json options for a topic case (all optional):
++//   currentURL   relative topic URL the page was fetched from        (default defaultTopicPageURL)
++//   anchor       URL fragment of the request, e.g. "#t1003"          (default "": no separator)
++//   ownPseudo    pseudo of the main account; absent or null = no account
++//   blacklist    [pseudo] of the main account; whitelist [pseudo]
++//   settings     { UserDefaults key: value } overriding topicDefaultSettings
++//   avatarFetch  succeed | fail | blocked (see OracleObjCSafe.m)    (default succeed)
++//   filter       { startAfterPostId, topicUrl, topicPage }: also run ParseMessagesOperation in filter mode
++
++import UIKit
++import XCTest
++@testable import HFRswift
++
++/// What a topic case adds to the envelope: `input.context` and extra `sideEffects` keys.
++struct TopicCaseExtras {
++    var context: [String: Any]?
++    var sideEffects: [String: Any] = [:]
++}
++
++extension OracleExport {
++    static let defaultTopicPageURL = "/forum2.php?config=hfr.inc&cat=13&post=1000&page=1"
++    static let topicDefaultSettings: [String: Any] = [
++        // Forced at every launch (HFRplusAppDelegate.m:100, 108-116)
++        "display_images": "yes", "filter_posts_quotes": "wl_pseudo", "filter_posts_min_quotes": 3, "theme_noel_disabled": true,
++        // InAppSettings.bundle/Root.inApp.plist DefaultValue (registered at launch, HFRplusAppDelegate.m:394-426)
++        "display_sig": "no", "embedded_videos": "yes", "blacklist_hide_pseudo": false, "theme_style": 1, "mpstorage_active": false,
++        // Manual light theme (Common.swift:268-273, 304-308)
++        "auto_theme": 0, "theme": 0
++    ]
++    /// Every key a topic case sets or clears; saved before the run and restored after it.
++    static let topicSettingsKeys = Array(topicDefaultSettings.keys).sorted() + [
++        "force_manual_theme", "theme_day_color_action", "theme_night_color_action", "theme_day_color_love", "theme_night_color_love",
++        "theme_day_color_superfavori", "theme_night_color_superfavori", "theme_night_brightness"
++    ]
++    private static let messageStringKeys = [
++        "postID", "name", "messageDate", "dicoHTML", "imageUI", "urlQuote", "urlEdit", "urlProfil", "urlAlert", "addFlagUrl",
++        "quoteJS", "MPUrl", "quotedNB", "quotedLINK", "editedTime", "url"
++    ]
++    private static let messagesToken = "<!--ORACLE:messagesHTML-->"
++    private static let separatorHTML = "<div class=\"separator1\"></div>" // ObjCTopicMessageContentBuilder.m:31
++
++    private var cachesPath: String {
++        NSSearchPathForDirectoriesInDomains(.cachesDirectory, .userDomainMask, true).first ?? "/nonexistent"
++    }
++
++    private func helper() -> AnyObject {
++        guard let helper = NSClassFromString("OracleObjCSafe") else { fatalError("OracleObjCSafe missing") }
++        return helper as AnyObject
++    }
++
++    private func helperObject(_ selector: String, _ first: Any? = nil, _ second: Any? = nil) -> Any? {
++        helper().perform(NSSelectorFromString(selector), with: first, with: second)?.takeUnretainedValue()
++    }
++
++    private func helperVoid(_ selector: String, _ first: Any? = nil, _ second: Any? = nil) {
++        _ = helper().perform(NSSelectorFromString(selector), with: first, with: second)
++    }
++
++    private func blackList() -> NSObject {
++        guard let type = NSClassFromString("BlackList") as AnyObject?,
++              let shared = type.perform(NSSelectorFromString("shared"))?.takeUnretainedValue() as? NSObject else {
++            fatalError("BlackList missing")
++        }
++        return shared
++    }
++
++    // MARK: run-level state
++
++    func saveBlockLists() -> (Any?, Any?) {
++        let list = blackList()
++        return (list.value(forKey: "dicBlackList"), list.value(forKey: "listWhiteList"))
++    }
++
++    func endTopicRun(restoring saved: (Any?, Any?)) {
++        helperVoid("removeTopicHooks")
++        let list = blackList()
++        list.setValue(saved.0, forKey: "dicBlackList")
++        list.setValue(saved.1, forKey: "listWhiteList")
++        try? FileManager.default.removeItem(atPath: cachesPath + "/cache/avatars")
++    }
++
++    // MARK: one topic case
++
++    func runTopic(_ data: Data, currentURL: String, options: [String: Any], extras: inout TopicCaseExtras) throws -> (Any?, String?) {
++        let ownPseudo = options["ownPseudo"] as? String
++        let blacklisted = options["blacklist"] as? [String] ?? []
++        let whitelisted = options["whitelist"] as? [String] ?? []
++        let anchor = options["anchor"] as? String ?? ""
++        let avatarFetch = options["avatarFetch"] as? String ?? "succeed"
++        guard ["succeed", "fail", "blocked"].contains(avatarFetch) else {
++            throw HarnessError(message: "avatarFetch must be succeed, fail or blocked")
++        }
++
++        // Settings: a fixed set, then the case's overrides.
++        let defaults = UserDefaults.standard
++        for key in Self.topicSettingsKeys { defaults.removeObject(forKey: key) }
++        var settings = Self.topicDefaultSettings
++        for (key, value) in options["settings"] as? [String: Any] ?? [:] { settings[key] = value }
++        for (key, value) in settings { defaults.set(value, forKey: key) }
++
++        // Blacklist and whitelist live in memory on the shared BlackList (BlackList.m:92-143); never saved here.
++        let entry = { (pseudo: String) -> NSDictionary in ["word": pseudo, "alias": "", "mode": 0] }
++        let list = blackList()
++        let perAccount = NSMutableDictionary()
++        if let ownPseudo { perAccount[ownPseudo] = NSMutableArray(array: blacklisted.map(entry)) }
++        list.setValue(perAccount, forKey: "dicBlackList")
++        list.setValue(NSMutableArray(array: whitelisted.map(entry)), forKey: "listWhiteList")
++
++        // Avatar cache emptied so every case starts like a first launch (ParseMessagesOperation.m:124-132,423-450).
++        try? FileManager.default.removeItem(atPath: cachesPath + "/cache/avatars")
++
++        extras.context = [
++            "ownPseudo": ownPseudo ?? NSNull(), "blacklist": blacklisted, "whitelist": whitelisted, "anchor": anchor,
++            "avatarFetch": avatarFetch, "settings": settings, "filter": options["filter"] ?? NSNull()
++        ]
++
++        helperVoid("installTopicHooks")
++        defer { helperVoid("removeTopicHooks") }
++        helperVoid("setTopicHookPseudo:avatarMode:", ownPseudo, avatarFetch)
++        let domain = Bundle.main.bundleIdentifier ?? ""
++        let before = defaults.persistentDomain(forName: domain) ?? [:]
++
++        let absoluteURL = "https://forum.hardware.fr" + currentURL
++        let safeData = helperObject("safeResponseDataFor:url:", data, absoluteURL) as? Data ?? Data()
++        let run = helperObject("runTopicWorker:", ["data": safeData, "currentURL": currentURL, "anchor": anchor]) as? [String: Any] ?? [:]
++        let requests = helperObject("drainNetworkRequests") as? [String] ?? []
++        let after = defaults.persistentDomain(forName: domain) ?? [:]
++        var written: [String: Any] = [:]
++        for key in Set(before.keys).union(after.keys) where !((before[key] as? NSObject)?.isEqual(after[key]) ?? (after[key] == nil)) {
++            written[key] = plain(after[key])
++        }
++        extras.sideEffects = [
++            "networkRequests": requests,
++            "defaultsWritten": written,
++            "safeResponseDataChangedBytes": safeData != data
++        ]
++
++        if let exception = run["exception"] as? String { return (nil, exception) }
++        guard let worker = run["worker"] as? NSObject, let completion = run["completion"] as? [String: Any] else {
++            throw HarnessError(message: "runTopicWorker returned no worker")
++        }
++        var result = topicResult(worker: worker, completion: completion, anchor: anchor)
++
++        // The worker keeps neither iLastPageNumber nor the raw title: parse once more for them.
++        let raw = helperObject("parseMessagesRaw:", ["data": safeData]) as? [String: Any] ?? [:]
++        _ = helperObject("drainNetworkRequests")
++        result["parser"] = raw["exception"].map { ["exception": $0] } ?? [
++            "iLastPageNumber": plain(raw["iLastPageNumber"]), "iFirstPageNumber": plain(raw["iFirstPageNumber"]),
++            "topicName": plain(raw["topicName"]), "itemCount": (raw["items"] as? [Any])?.count ?? 0
++        ]
++
++        if let filter = options["filter"] as? [String: Any] {
++            var spec: [String: Any] = filter
++            spec["data"] = safeData
++            spec["filter"] = true
++            let filtered = helperObject("parseMessagesRaw:", spec) as? [String: Any] ?? [:]
++            extras.sideEffects["filterNetworkRequests"] = helperObject("drainNetworkRequests") as? [String] ?? []
++            if let exception = filtered["exception"] {
++                result["filterMode"] = ["exception": exception]
++            } else {
++                // ObjCFilteredPostsRendererWorker.m:34-43: isPrivateCategory is never true there, so isMP is YES.
++                let items = filtered["items"] as? [NSObject] ?? []
++                result["filterMode"] = ["messages": items.enumerated().map { messageDict($1, index: $0, isMP: true) }]
++            }
++        }
++        return (normalizePaths(result), nil)
++    }
++
++    private func topicResult(worker: NSObject, completion: [String: Any], anchor: String) -> [String: Any] {
++        let items = worker.value(forKey: "items") as? [NSObject] ?? []
++        let inputData = worker.value(forKey: "inputData") as? [String: String] ?? [:]
++        let isPrivate = inputData["cat"] == "prive" // ObjCTopicPageWorker.m:128
++        let pollHTML = worker.value(forKey: "swiftPollHTML") as? String
++
++        let messages = items.enumerated().map { messageDict($1, index: $0, isMP: !isPrivate) }
++
++        let actionsCall = invoke(worker, "swiftMessageActionsByIndex", [])
++        let actionsByIndex = actionsCall.result as? [NSNumber: [String: String]] ?? [:]
++        let actions: Any = actionsCall.exception.map { ["exception": $0] as Any }
++            ?? actionsByIndex.keys.sorted { $0.intValue < $1.intValue }.map { key -> [String: Any] in
++                var entry: [String: Any] = actionsByIndex[key] ?? [:]
++                entry["index"] = key.intValue
++                return entry
++            }
++
++        return [
++            "page": [
++                "topicName": plain(worker.value(forKey: "_topicName")),
++                "sNavigationViewTitle": plain(worker.value(forKey: "sNavigationViewTitle")),
++                "currentURL": plain(worker.value(forKey: "currentURL")),
++                "currentPage": plain(completion["currentPage"]),
++                "maxPage": plain(completion["maxPage"]),
++                "answerURL": plain(completion["answerURL"]),
++                "topicAnswerURL": plain(worker.value(forKey: "topicAnswerURL")),
++                "inputData": inputData,
++                "unreadable": (worker.value(forKey: "unreadable") as? NSNumber)?.boolValue ?? false,
++                "searchInputData": worker.value(forKey: "swiftSearchInputData") as? [String: String] ?? [:],
++                "poll": [
++                    "hasPoll": (worker.value(forKey: "swiftHasPoll") as? NSNumber)?.boolValue ?? false,
++                    "isNewVote": (worker.value(forKey: "swiftPollIsNewVote") as? NSNumber)?.boolValue ?? false,
++                    "html": pollHTML ?? NSNull(),
++                    "parsed": pollHTML.flatMap { PollHTMLParser.parse(from: $0) }.map(pollDict) ?? NSNull()
++                ] as [String: Any],
++                "completionError": plain(completion["error"])
++            ] as [String: Any],
++            "messages": messages,
++            "actions": actions,
++            "render": renderDict(items: items, messages: messages, anchor: anchor, isPrivate: isPrivate,
++                                 pageHTML: completion["html"] as? String, workerAnchor: worker.value(forKey: "anchor") as? String)
++        ]
++    }
++
++    private func messageDict(_ item: NSObject, index: Int, isMP: Bool) -> [String: Any] {
++        var dict: [String: Any] = ["index": index]
++        for key in Self.messageStringKeys { dict[key] = plain(item.value(forKey: key)) }
++        dict["isDel"] = (item.value(forKey: "isDel") as? NSNumber)?.boolValue ?? false
++        dict["iPage"] = plain(item.value(forKey: "iPage"))
++        // Raw decode of the obfuscated links (RangeOfCharacters.m:92-114), whatever their shape; the actions
++        // builder decodes only under its own conditions (ObjCMessageActionsBuilder.m:80-89).
++        for key in ["urlQuote", "urlEdit"] {
++            guard let raw = item.value(forKey: key) as? String else { dict[key + "Decoded"] = NSNull(); continue }
++            let call = invoke(raw as NSString, "decodeSpanUrlFromString", [])
++            dict[key + "Decoded"] = call.exception.map { ["exception": $0] as Any } ?? plain(call.result)
++        }
++        let html = invoke(item, "toHTML:isMP:", [NSNumber(value: index), NSNumber(value: isMP)])
++        dict["html"] = plain(html.result)
++        dict["htmlException"] = plain(html.exception)
++        return dict
++    }
++
++    /// The page HTML with the messages part replaced by a token (it is already in messages[].html), and how the
++    /// messages part is made from messages[].html (concatenation, plus the "new messages" separator).
++    private func renderDict(items: [NSObject], messages: [[String: Any]], anchor: String, isPrivate: Bool,
++                            pageHTML: String?, workerAnchor: String?) -> [String: Any] {
++        let build = invoke(instance("ObjCTopicMessageContentBuilder"), "buildContentForItems:currentAnchor:separatorRequested:isPrivateCategory:",
++                           [items, anchor, NSNumber(value: !anchor.isEmpty), NSNumber(value: isPrivate)])
++        let content = build.result as? NSObject
++        let messagesHTML = content?.value(forKey: "messagesHTML") as? String ?? ""
++        let parts = messages.map { $0["html"] as? String ?? "" }
++        var separatorAfter: Any = NSNull()
++        var messagesHTMLRaw: Any = NSNull()
++        if messagesHTML != parts.joined() {
++            let index = parts.indices.first { index in
++                (parts[...index].joined() + Self.separatorHTML + parts[(index + 1)...].joined()) == messagesHTML
++            }
++            if let index { separatorAfter = index } else { messagesHTMLRaw = messagesHTML }
++        }
++        var shell: Any = pageHTML ?? NSNull()
++        var tokenized = false
++        if let pageHTML, !messagesHTML.isEmpty, pageHTML.components(separatedBy: messagesHTML).count == 2 {
++            shell = pageHTML.replacingOccurrences(of: messagesHTML, with: Self.messagesToken)
++            tokenized = true
++        }
++        return [
++            "builderException": plain(build.exception),
++            "separatorAfterIndex": separatorAfter,
++            "messagesHTMLIfNotRebuildable": messagesHTMLRaw,
++            "resolvedAnchor": plain(content?.value(forKey: "resolvedAnchor")),
++            "workerAnchorAfter": plain(workerAnchor),
++            "pageHTMLTokenized": tokenized,
++            "pageHTML": shell
++        ]
++    }
++
++    private func pollDict(_ poll: PollData) -> [String: Any] {
++        [
++            "question": poll.question, "footer": poll.footer, "maxChoices": poll.maxChoices, "isVotable": poll.isVotable,
++            "options": poll.options.map { ["id": $0.id, "text": $0.text, "fieldName": $0.fieldName] as [String: Any] },
++            "results": poll.results.map { ["id": $0.id, "label": $0.label, "percentage": $0.percentage, "voteCount": $0.voteCount] as [String: Any] },
++            "hiddenFields": poll.hiddenFields
++        ]
++    }
++
++    /// The simulator container path changes per install: replace it so outputs are reproducible.
++    private func normalizePaths(_ value: Any) -> Any {
++        switch value {
++        case let string as String: return string.replacingOccurrences(of: cachesPath, with: "$CACHES")
++        case let array as [Any]: return array.map(normalizePaths)
++        case let dict as [String: Any]: return dict.mapValues(normalizePaths)
++        default: return value
++        }
++    }
++}
 diff --git a/HFRswiftTests/OracleObjCSafe.m b/HFRswiftTests/OracleObjCSafe.m
 new file mode 100644
-index 0000000..d49ba13
+index 0000000..a5c92b3
 --- /dev/null
 +++ b/HFRswiftTests/OracleObjCSafe.m
-@@ -0,0 +1,51 @@
-+// Oracle exporter helper (SwiftHFR LOT-002): calls an Objective-C method through NSInvocation and
+@@ -0,0 +1,282 @@
++// Oracle exporter helper (SwiftHFR LOT-002, LOT-003): calls an Objective-C method through NSInvocation and
 +// turns a thrown NSException into data. The legacy parsers raise on malformed pages (nil URL,
 +// out-of-bounds child index...), and Swift cannot catch NSException, so a raise would kill the run.
++//
++// LOT-003 adds the topic-page pipeline: hooks that replace the account store and the network for the run,
++// and two entry points that drive the real legacy classes (ObjCTopicPageWorker, ParseMessagesOperation).
++// Legacy classes are reached through the runtime only: no legacy header is imported.
 +#import <Foundation/Foundation.h>
++#import <objc/message.h>
++#import <objc/runtime.h>
 +
 +@interface OracleObjCSafe : NSObject
 ++ (NSDictionary *)invoke:(NSDictionary *)spec;
+++ (void)installTopicHooks;
+++ (void)removeTopicHooks;
+++ (void)setTopicHookPseudo:(NSString *)pseudo avatarMode:(NSString *)mode;
+++ (NSArray *)drainNetworkRequests;
+++ (NSData *)safeResponseDataFor:(NSData *)data url:(NSString *)url;
+++ (NSDictionary *)runTopicWorker:(NSDictionary *)spec;
+++ (NSDictionary *)parseMessagesRaw:(NSDictionary *)spec;
 +@end
++
++// State read by the hooks. Written on the main thread between cases; the network hook runs on
++// NSOperationQueue threads, hence the lock around the request log and the mode.
++static NSString *gOraclePseudo = nil;
++static NSString *gOracleAvatarMode = @"succeed";
++static NSMutableArray<NSString *> *gOracleRequests = nil;
++static IMP gOrigGetMainCompte = NULL;
++static IMP gOrigGetCurrentPseudo = NULL;
++static IMP gOrigRequestStart = NULL;
++static IMP gOrigParseInit = NULL;
++
++/// Runs the main-queue blocks queued so far (avatar completions), so they never land in a later case.
++/// Main thread only: blocks are FIFO, so once the sentinel ran, every earlier one did.
++static void OracleDrainMainQueue(void) {
++    __block BOOL drained = NO;
++    dispatch_async(dispatch_get_main_queue(), ^{ drained = YES; });
++    NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:10];
++    while (!drained && deadline.timeIntervalSinceNow > 0) {
++        [[NSRunLoop mainRunLoop] runMode:NSDefaultRunLoopMode beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.05]];
++    }
++}
++
++static NSString *OracleExceptionString(NSException *exception) {
++    return [NSString stringWithFormat:@"%@: %@", exception.name, exception.reason ?: @""];
++}
 +
 +@implementation OracleObjCSafe
 +
@@ -450,6 +794,12 @@ index 0000000..d49ba13
 +            } else if (type[0] == 'Q') {
 +                unsigned long long value = [(NSNumber *)arg unsignedLongLongValue];
 +                [invocation setArgument:&value atIndex:i + 2];
++            } else if (type[0] == 'i') {
++                int value = [(NSNumber *)arg intValue];
++                [invocation setArgument:&value atIndex:i + 2];
++            } else if (type[0] == 'B' || type[0] == 'c') {
++                BOOL value = [(NSNumber *)arg boolValue];
++                [invocation setArgument:&value atIndex:i + 2];
 +            } else {
 +                long long value = [(NSNumber *)arg longLongValue];
 +                [invocation setArgument:&value atIndex:i + 2];
@@ -464,7 +814,194 @@ index 0000000..d49ba13
 +        }
 +        return @{@"result": result ?: [NSNull null]};
 +    } @catch (NSException *exception) {
-+        return @{@"exception": [NSString stringWithFormat:@"%@: %@", exception.name, exception.reason ?: @""]};
++        return @{@"exception": OracleExceptionString(exception)};
++    }
++}
++
++#pragma mark - LOT-003 hooks
++
++// The parsers read the own pseudo from the keychain-backed account list (MultisManager.m:43-47,168-188),
++// and ParseMessagesOperation downloads avatars with ASIHTTPRequest (ParseMessagesOperation.m:452-473).
++// For a reproducible offline run both are replaced: the account list by the case's pseudo, the network by a
++// recorder that completes each request according to the avatar mode without sending anything:
++//   succeed  run the request's completion block (the avatar is "downloaded": empty file, imageUI set)
++//   fail     run its failure block (imageUI nil)
++//   blocked  run neither (imageUI keeps what the cache check set)
++// The block runs where ASIHTTPRequest runs it: on the main thread, asynchronously when the request finishes on another
++// thread (-requestFinished / -failWithError:, ASIHTTPRequest.m:1992-2004, 2103-2108, "ALWAYS CALLED ON MAIN THREAD").
++// The avatar requests run on ParseMessagesOperation's own queue (ParseMessagesOperation.m:54, 469) while the worker
++// parses and waits on the main thread (ObjCTopicPageWorker.m:110-112), so no completion, and no cache file, can
++// appear before the page is built: running the block on the queue thread made the cache check of a later message by
++// the same author (:430-450) race the download (LOT-003 quirk Q33). That queue is also made serial, so the requests
++// are recorded in message order.
+++ (void)installTopicHooks {
++    if (gOrigRequestStart != NULL) return;
++    gOracleRequests = [NSMutableArray array];
++
++    Class multis = NSClassFromString(@"MultisManager");
++    Method mainCompte = class_getInstanceMethod(multis, NSSelectorFromString(@"getMainCompte"));
++    gOrigGetMainCompte = method_setImplementation(mainCompte, imp_implementationWithBlock(^NSDictionary *(id me) {
++        // PSEUDO_DISPLAY_KEY and MAIN_KEY, Constants.h:119,121
++        return gOraclePseudo ? @{@"PSEUDO_DISPLAY": gOraclePseudo, @"MAIN": @YES} : nil;
++    }));
++    Method currentPseudo = class_getInstanceMethod(multis, NSSelectorFromString(@"getCurrentPseudo"));
++    gOrigGetCurrentPseudo = method_setImplementation(currentPseudo, imp_implementationWithBlock(^NSString *(id me) {
++        return gOraclePseudo;
++    }));
++
++    Class asi = NSClassFromString(@"ASIHTTPRequest");
++    Method start = class_getInstanceMethod(asi, NSSelectorFromString(@"start"));
++    gOrigRequestStart = method_setImplementation(start, imp_implementationWithBlock(^(id request) {
++        NSURL *url = [request valueForKey:@"url"];
++        NSString *mode;
++        @synchronized (gOracleRequests) {
++            [gOracleRequests addObject:url.absoluteString ?: @""];
++            mode = gOracleAvatarMode;
++        }
++        const char *ivarName = [mode isEqualToString:@"succeed"] ? "completionBlock"
++                             : [mode isEqualToString:@"fail"] ? "failureBlock" : NULL;
++        if (ivarName != NULL) {
++            Ivar ivar = class_getInstanceVariable(asi, ivarName);
++            void (^block)(void) = ivar ? object_getIvar(request, ivar) : nil;
++            if (block && [NSThread isMainThread]) {
++                block();
++            } else if (block) {
++                dispatch_async(dispatch_get_main_queue(), block);
++            }
++        }
++        ((void (*)(id, SEL))objc_msgSend)(request, NSSelectorFromString(@"markAsFinished"));
++    }));
++
++    Class parse = NSClassFromString(@"ParseMessagesOperation");
++    Method parseInit = class_getInstanceMethod(parse, NSSelectorFromString(@"initWithData:index:reverse:delegate:"));
++    gOrigParseInit = method_setImplementation(parseInit, imp_implementationWithBlock(^id(id me, NSData *data, int index, BOOL reverse, id delegate) {
++        id operation = ((id (*)(id, SEL, NSData *, int, BOOL, id))gOrigParseInit)(
++            me, NSSelectorFromString(@"initWithData:index:reverse:delegate:"), data, index, reverse, delegate);
++        NSOperationQueue *queue = [operation valueForKey:@"queue"];
++        queue.maxConcurrentOperationCount = 1;
++        return operation;
++    }));
++}
++
+++ (void)removeTopicHooks {
++    if (gOrigRequestStart == NULL) return;
++    Class multis = NSClassFromString(@"MultisManager");
++    method_setImplementation(class_getInstanceMethod(multis, NSSelectorFromString(@"getMainCompte")), gOrigGetMainCompte);
++    method_setImplementation(class_getInstanceMethod(multis, NSSelectorFromString(@"getCurrentPseudo")), gOrigGetCurrentPseudo);
++    Class asi = NSClassFromString(@"ASIHTTPRequest");
++    method_setImplementation(class_getInstanceMethod(asi, NSSelectorFromString(@"start")), gOrigRequestStart);
++    Class parse = NSClassFromString(@"ParseMessagesOperation");
++    method_setImplementation(class_getInstanceMethod(parse, NSSelectorFromString(@"initWithData:index:reverse:delegate:")), gOrigParseInit);
++    gOrigGetMainCompte = gOrigGetCurrentPseudo = gOrigRequestStart = gOrigParseInit = NULL;
++    gOraclePseudo = nil;
++    @synchronized (gOracleRequests) {
++        gOracleAvatarMode = @"succeed"; // the default, so a later case never inherits "fail" or "blocked"
++    }
++}
++
+++ (void)setTopicHookPseudo:(NSString *)pseudo avatarMode:(NSString *)mode {
++    gOraclePseudo = [pseudo isKindOfClass:[NSString class]] ? [pseudo copy] : nil;
++    @synchronized (gOracleRequests) {
++        gOracleAvatarMode = [mode copy] ?: @"succeed";
++        [gOracleRequests removeAllObjects];
++    }
++}
++
+++ (NSArray *)drainNetworkRequests {
++    @synchronized (gOracleRequests) {
++        NSArray *copy = [gOracleRequests copy] ?: @[];
++        [gOracleRequests removeAllObjects];
++        return copy;
++    }
++}
++
++#pragma mark - LOT-003 pipeline entry points
++
++/// The bytes the worker gets in the app: -[ASIHTTPRequest safeResponseData] (ASIHTTPRequest+Tools.m:14-38,
++/// called at ObjCTopicPageWorker.m:95) drops invalid UTF-8 sequences with iconv.
+++ (NSData *)safeResponseDataFor:(NSData *)data url:(NSString *)url {
++    Class asi = NSClassFromString(@"ASIHTTPRequest");
++    id request = ((id (*)(id, SEL, NSURL *))objc_msgSend)(asi, NSSelectorFromString(@"requestWithURL:"), [NSURL URLWithString:url]);
++    [request setValue:[data mutableCopy] forKey:@"rawResponseData"];
++    return ((NSData * (*)(id, SEL))objc_msgSend)(request, NSSelectorFromString(@"safeResponseData"));
++}
++
++/// Mirrors -[ObjCTopicPageWorker fetchContentForTopicURL:anchor:completion:] (ObjCTopicPageWorker.m:78-101)
++/// without the request: the same properties are set, then the response handler runs on the saved bytes
++/// (ObjCTopicPageWorker.m:103-146). The worker dispatches its completion to the main queue (:201-208),
++/// so the main run loop is spun until it fires.
+++ (NSDictionary *)runTopicWorker:(NSDictionary *)spec {
++    NSData *data = spec[@"data"];
++    NSString *currentURL = spec[@"currentURL"];
++    NSString *anchor = [spec[@"anchor"] isKindOfClass:[NSString class]] ? spec[@"anchor"] : nil;
++    id worker = [[NSClassFromString(@"ObjCTopicPageWorker") alloc] init];
++    __block BOOL done = NO;
++    __block NSDictionary *completionOut = nil;
++    void (^completion)(NSString *, NSString *, NSNumber *, NSNumber *, NSError *) =
++        ^(NSString *html, NSString *answerURL, NSNumber *currentPage, NSNumber *maxPage, NSError *error) {
++            completionOut = @{
++                @"html": html ?: [NSNull null],
++                @"answerURL": answerURL ?: [NSNull null],
++                @"currentPage": currentPage ?: [NSNull null],
++                @"maxPage": maxPage ?: [NSNull null],
++                @"error": error ? [NSString stringWithFormat:@"%@ %ld", error.domain, (long)error.code] : [NSNull null]
++            };
++            done = YES;
++        };
++    @try {
++        [worker setValue:completion forKey:@"completion"];
++        [worker setValue:currentURL forKey:@"currentURL"];
++        [worker setValue:(anchor ?: @"") forKey:@"anchor"];
++        [worker setValue:@(anchor.length > 0) forKey:@"separatorRequested"];
++        NSString *forumURL = ((NSString * (*)(id, SEL))objc_msgSend)(NSClassFromString(@"k"), NSSelectorFromString(@"ForumURL"));
++        // effectiveURL = request.url.absoluteString (ObjCTopicPageWorker.m:94); there is no redirect offline.
++        NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"%@%@", forumURL, currentURL]];
++        ((void (*)(id, SEL, NSData *, NSString *))objc_msgSend)(worker, NSSelectorFromString(@"handleResponseData:effectiveURL:"),
++                                                               data, url.absoluteString);
++    } @catch (NSException *exception) {
++        return @{@"worker": worker, @"exception": OracleExceptionString(exception)};
++    }
++    NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:10];
++    while (!done && deadline.timeIntervalSinceNow > 0) {
++        [[NSRunLoop mainRunLoop] runMode:NSDefaultRunLoopMode beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.05]];
++    }
++    if (!done) {
++        return @{@"worker": worker, @"exception": @"OracleTimeout: the worker completion did not fire within 10 s"};
++    }
++    return @{@"worker": worker, @"completion": completionOut};
++}
++
++/// ParseMessagesOperation on its own, as ObjCTopicPageWorker.m:110-112 (normal mode) and, for the parse call only,
++/// FilterPostsQuotes.m:279-283 (filter mode; legacy does not wait for avatars there). Exposes what the worker drops:
++/// iLastPageNumber, raw topicName. The avatar completions it queued for the main thread are drained before returning,
++/// so they never reach a later parse or case.
+++ (NSDictionary *)parseMessagesRaw:(NSDictionary *)spec {
++    NSData *data = spec[@"data"];
++    BOOL filter = [spec[@"filter"] boolValue];
++    NSString *startAfter = [spec[@"startAfterPostId"] isKindOfClass:[NSString class]] ? spec[@"startAfterPostId"] : nil;
++    NSString *topicURL = [spec[@"topicUrl"] isKindOfClass:[NSString class]] ? spec[@"topicUrl"] : nil;
++    int topicPage = [spec[@"topicPage"] intValue];
++    @try {
++        NSError *error = nil;
++        id htmlParser = ((id (*)(id, SEL, NSData *, NSError **))objc_msgSend)([NSClassFromString(@"HTMLParser") alloc],
++                                                                             NSSelectorFromString(@"initWithData:error:"), data, &error);
++        id operation = ((id (*)(id, SEL, NSData *, int, BOOL, id))objc_msgSend)([NSClassFromString(@"ParseMessagesOperation") alloc],
++                                                                                NSSelectorFromString(@"initWithData:index:reverse:delegate:"),
++                                                                                data, 0, NO, nil);
++        ((void (*)(id, SEL, id, BOOL, NSString *, NSString *, int))objc_msgSend)(
++            operation, NSSelectorFromString(@"parseData:filterPostsQuotes:startAfterThisPostId:topicUrl:topicPage:"),
++            htmlParser, filter, startAfter, topicURL, topicPage);
++        ((void (*)(id, SEL))objc_msgSend)(operation, NSSelectorFromString(@"waitForPendingAvatarLoads"));
++        NSArray *items = [[operation valueForKey:@"workingArray"] copy] ?: @[];
++        OracleDrainMainQueue();
++        return @{
++            @"items": items,
++            @"topicName": [operation valueForKey:@"topicName"] ?: [NSNull null],
++            @"iLastPageNumber": [operation valueForKey:@"iLastPageNumber"] ?: @0,
++            @"iFirstPageNumber": [operation valueForKey:@"iFirstPageNumber"] ?: @0
++        };
++    } @catch (NSException *exception) {
++        return @{@"exception": OracleExceptionString(exception)};
 +    }
 +}
 +
