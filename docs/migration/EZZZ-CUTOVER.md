@@ -27,7 +27,7 @@ Every step is idempotent or checked first. Stop at the first unexpected result a
 ```sh
 gh auth status
 gh api repos/ezzz/HFRnow --jq .permissions          # expect "admin": true, otherwise ezzz runs step 4
-git ls-remote --heads https://github.com/ezzz/HFRnow dev-swift   # expect nothing
+git ls-remote --heads https://github.com/ezzz/HFRnow dev-swift   # nothing, or the placeholder created from the web UI (see step 3)
 brew list yq >/dev/null 2>&1 || brew install yq
 ```
 
@@ -46,6 +46,13 @@ swift test --package-path Packages/HFRKit
 
 ```sh
 git push ezzz origin/master:refs/heads/dev-swift
+```
+
+If a placeholder `dev-swift` was created from the web UI (a copy of the legacy `master`), the push is refused as non-fast-forward. Replace it, before step 4 adds the ruleset that forbids force pushes:
+
+```sh
+git fetch ezzz dev-swift
+git push --force-with-lease=dev-swift:ezzz/dev-swift ezzz origin/master:refs/heads/dev-swift
 ```
 
 - A direct push opens no PR, so **CodeRabbit reviews nothing**: the code was reviewed on the old repository.
