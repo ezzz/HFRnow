@@ -1,12 +1,15 @@
+# GitHub reads this file from the default branch only: a copy must live on master of ezzz/HFRnow (ADR 0010).
 version: 2
 updates:
   - package-ecosystem: swift
     directory: /Packages/HFRKit
+    target-branch: dev-swift
     schedule: { interval: weekly }
     labels: ["dependencies", "area: ci"]
     open-pull-requests-limit: 5
   - package-ecosystem: github-actions
     directory: /
+    target-branch: dev-swift
     schedule: { interval: weekly }
     labels: ["dependencies", "area: ci"]
     groups:

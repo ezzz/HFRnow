@@ -1,64 +1,98 @@
 #!/usr/bin/env bash
-# One-time repository configuration (ADR 0005). Run from a maintainer machine with the GitHub CLI:
-#   gh auth login && ./scripts/configure-repo.sh
+# Repository configuration for SwiftHFR on ezzz/HFRnow, branch dev-swift (ADR 0005, ADR 0010).
+# Run from a maintainer machine with the GitHub CLI:
+#   gh auth login && ./scripts/configure-repo.sh              # dev-swift scope: ruleset + labels
+#   ./scripts/configure-repo.sh --repo-wide                   # also the repository-wide security settings
+# The default branch (master) is the legacy app: nothing here touches it, and repository-wide settings
+# (they apply to master too) only run with --repo-wide, after the owner (ezzz) agreed.
 # Idempotent: safe to re-run after changing required checks.
 set -euo pipefail
 
-REPO="francoisgn/ios-app_SwiftHFR"
-BRANCH="master"
+REPO="ezzz/HFRnow"
+BRANCH="dev-swift"
+RULESET="SwiftHFR dev-swift"
+REPO_WIDE=false
+[[ "${1:-}" == "--repo-wide" ]] && REPO_WIDE=true
 
-echo "› Description, topics, merge settings"
-gh api -X PATCH "repos/$REPO" \
-  -f description="Native iOS client for the forum.hardware.fr (HFR) community — full Swift/SwiftUI rewrite of HFR+/HFRnow. Modular engine, iOS 27." \
-  -F has_wiki=false -F has_projects=false \
-  -F delete_branch_on_merge=true -F allow_auto_merge=true \
-  -F allow_squash_merge=true -F allow_merge_commit=false -F allow_rebase_merge=false >/dev/null
-gh repo edit "$REPO" \
-  --add-topic ios,swift,swiftui,hardware-fr,hfr,forum-client,ios-app,swift-package,community,ai-assisted
+command -v yq >/dev/null || { echo "yq is required for the label sync (brew install yq)" >&2; exit 1; }
 
-echo "› Security: Dependabot alerts + fixes, private vulnerability reporting, secret scanning + push protection"
-gh api -X PUT "repos/$REPO/vulnerability-alerts" >/dev/null
-gh api -X PUT "repos/$REPO/automated-security-fixes" >/dev/null
-gh api -X PUT "repos/$REPO/private-vulnerability-reporting" >/dev/null
-gh api -X PATCH "repos/$REPO" --input - >/dev/null <<'JSON'
+echo "› Permissions of $(gh api user --jq .login) on $REPO"
+if [[ "$(gh api "repos/$REPO" --jq .permissions.admin)" != "true" ]]; then
+  echo "  Admin access is required for rulesets and security settings: ask the owner to run this script." >&2
+  exit 1
+fi
+
+if $REPO_WIDE; then
+  echo "› Security: Dependabot alerts + fixes, private vulnerability reporting, secret scanning + push protection"
+  gh api -X PUT "repos/$REPO/vulnerability-alerts" >/dev/null
+  gh api -X PUT "repos/$REPO/automated-security-fixes" >/dev/null
+  gh api -X PUT "repos/$REPO/private-vulnerability-reporting" >/dev/null
+  gh api -X PATCH "repos/$REPO" --input - >/dev/null <<'JSON'
 {"security_and_analysis":{"secret_scanning":{"status":"enabled"},"secret_scanning_push_protection":{"status":"enabled"}}}
 JSON
 
-echo "› Workflow token: read-only by default, Actions cannot approve PRs"
-gh api -X PUT "repos/$REPO/actions/permissions/workflow" \
-  -f default_workflow_permissions=read -F can_approve_pull_request_reviews=false >/dev/null
+  echo "› Workflow token: read-only by default, Actions cannot approve PRs"
+  gh api -X PUT "repos/$REPO/actions/permissions/workflow" \
+    -f default_workflow_permissions=read -F can_approve_pull_request_reviews=false >/dev/null
+fi
 
-echo "› Branch protection on $BRANCH"
+echo "› Ruleset '$RULESET' on $BRANCH"
+# A ruleset scoped to dev-swift rather than repository-wide merge settings, so the legacy master keeps its own rules.
 # Check names must match the job names in .github/workflows (update here if a job is renamed).
-gh api -X PUT "repos/$REPO/branches/$BRANCH/protection" --input - >/dev/null <<'JSON'
+RULESET_JSON=$(cat <<JSON
 {
-  "required_status_checks": {
-    "strict": true,
-    "contexts": [
-      "SwiftLint",
-      "HFRKit tests (Linux)",
-      "HFRKit tests (macOS) + iOS 27 build",
-      "gitleaks",
-      "Analyze (swift)",
-      "Analyze (actions)",
-      "review"
-    ]
-  },
-  "enforce_admins": false,
-  "required_pull_request_reviews": {
-    "required_approving_review_count": 0,
-    "dismiss_stale_reviews": true,
-    "require_last_push_approval": false
-  },
-  "required_conversation_resolution": true,
-  "required_linear_history": true,
-  "allow_force_pushes": false,
-  "allow_deletions": false,
-  "restrictions": null
+  "name": "$RULESET",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": { "ref_name": { "include": ["refs/heads/$BRANCH"], "exclude": [] } },
+  "bypass_actors": [ { "actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always" } ],
+  "rules": [
+    { "type": "deletion" },
+    { "type": "non_fast_forward" },
+    { "type": "required_linear_history" },
+    {
+      "type": "pull_request",
+      "parameters": {
+        "required_approving_review_count": 0,
+        "dismiss_stale_reviews_on_push": true,
+        "require_code_owner_review": false,
+        "require_last_push_approval": false,
+        "required_review_thread_resolution": true,
+        "allowed_merge_methods": ["squash"]
+      }
+    },
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": true,
+        "required_status_checks": [
+          { "context": "SwiftLint" },
+          { "context": "HFRKit tests (Linux)" },
+          { "context": "HFRKit tests (macOS) + iOS 27 build" },
+          { "context": "gitleaks" },
+          { "context": "Analyze (swift)" },
+          { "context": "Analyze (actions)" },
+          { "context": "review" }
+        ]
+      }
+    }
+  ]
 }
 JSON
+)
+RULESET_ID=$(gh api "repos/$REPO/rulesets" --jq ".[] | select(.name == \"$RULESET\") | .id")
+if [[ -n "$RULESET_ID" ]]; then
+  gh api -X PUT "repos/$REPO/rulesets/$RULESET_ID" --input - >/dev/null <<<"$RULESET_JSON"
+else
+  gh api -X POST "repos/$REPO/rulesets" --input - >/dev/null <<<"$RULESET_JSON"
+fi
 
-echo "› Labels (also synced by the 'Sync labels' workflow)"
-gh workflow run labels.yml --repo "$REPO" || echo "  (run 'Sync labels' manually from the Actions tab)"
+echo "› Labels (the 'Sync labels' workflow cannot be dispatched from a non-default branch)"
+yq -o=json '.' "$(dirname "$0")/../.github/labels.yml" | jq -c '.[]' | while read -r label; do
+  gh label create "$(jq -r .name <<<"$label")" --repo "$REPO" \
+    --color "$(jq -r .color <<<"$label")" \
+    --description "$(jq -r .description <<<"$label")" \
+    --force
+done
 
-echo "✓ Done. Remaining manual step: install the CodeRabbit GitHub app on $REPO (https://github.com/apps/coderabbitai)."
+echo "✓ Done. The CodeRabbit and Claude GitHub apps are installed by the owner (docs/migration/EZZZ-CUTOVER.md)."

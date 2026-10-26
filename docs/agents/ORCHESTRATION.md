@@ -7,7 +7,7 @@ They coordinate **only through shared, visible state**. Scratchpads, agent memor
 
 | Where | Role |
 |---|---|
-| [`docs/LOTS.md`](../LOTS.md) on `master` | Migration lots: claims, owners, reviewers, status |
+| [`docs/LOTS.md`](../LOTS.md) on `dev-swift` | Migration lots: claims, owners, reviewers, status |
 | GitHub issues | Every other task: claim by self-assignment + `status:` label, progress in comments |
 | GitHub PRs | Work in review; the PR thread is the record of what was done and why |
 

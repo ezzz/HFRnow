@@ -8,6 +8,10 @@ reviews:
   auto_review:
     enabled: true
     drafts: false
+    # SwiftHFR lives on dev-swift of ezzz/HFRnow, whose default branch (master) is the legacy app (ADR 0010).
+    # CodeRabbit only auto-reviews PRs into the default branch unless the base is listed here.
+    base_branches:
+      - "^dev-swift$"
   path_instructions:
     - path: "Packages/HFRKit/Sources/**"
       instructions: >-
