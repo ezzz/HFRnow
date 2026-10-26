@@ -84,6 +84,67 @@ PERSONAL_BLOCKS = (
     (re.compile(r"<(span)\b[^>]*\bclass=[\"']signature[\"'][^>]*>", re.I), "Signature removed."),
     (re.compile(r"<(span)\b[^>]*\bclass=[\"']MoodStatus[\"'][^>]*>", re.I), "Mood removed."),
 )
+# Public profile page (R56): the value cell of these rows is the member's own data. Personal rows get a
+# placeholder; dates and counters keep their format with fixed values (with the pseudo and id aliased, a
+# real arrival date or post count would still single the member out).
+PROFILE_PLACEHOLDER = "Profile field removed."
+PROFILE_NO_ACCESS = "Vous n'avez pas accès à cette information"  # Email row when logged out (live R56a)
+PROFILE_PERSONAL_LABELS = (r"Email", r"Date de naissance", r"Sexe", r"Ville", r"Profession", r"Loisirs",
+                           r"Site (?:web|perso|internet)", r"Homepage", r"Citation personnelle[^<:]*",
+                           r"Signature des messages")
+PROFILE_STAT_LABELS = (r"Nombre de messages post(?:é|&eacute;)s", r"Date d(?:'|&#0*39;)arriv(?:é|&eacute;)e[^<:]*",
+                       r"Date du dernier message")
+PROFILE_ROW_RE = re.compile(
+    r"(<td\b[^>]*\bclass=[\"']profilCase2[\"'][^>]*>\s*(%s)(?:&nbsp;|\s)*:\s*</td>\s*"
+    r"<td\b[^>]*\bclass=[\"']profilCase3[\"'][^>]*>)(.*?)(</td>)"
+    % "|".join(PROFILE_PERSONAL_LABELS + PROFILE_STAT_LABELS), re.I | re.S)
+PROFILE_STAT_RE = re.compile(r"^(?:%s)$" % "|".join(PROFILE_STAT_LABELS), re.I)
+PROFILE_DATE_RE = re.compile(r"\d{1,2}([/-])\d{1,2}\1\d{4}|\d{1,2}:\d{2}(?::\d{2})?|\d+")
+# Only on the public profile page: the profile edit form (R55-p1) uses the same row labels around its inputs.
+PROFILE_PAGE_RE = re.compile(r"<body\b[^>]*\bid=[\"']unique__user_page__view_user_profile[\"']", re.I)
+PROFILE_TRANSACTIONS_RE = re.compile(r"(>\s*Transactions\s*\()(\d+)(\)\s*<)", re.I)
+
+
+def _profile_number(m):
+    if m.group(1):
+        return "01%s01%s2000" % (m.group(1), m.group(1))
+    if ":" in m.group(0):
+        return "00:00"
+    return "100"
+
+
+# Markup a personal cell may keep: layout elements whose only attributes are class/style (no url()).
+# Anything else (img, a, iframe…, or a data-carrying attribute) can hold the value without any text:
+# a website or IM icon link, a signature image (CodeRabbit on PR #50).
+LAYOUT_TAG_RE = re.compile(
+    r"</?(?:br|div|span|i|b|p)\b(?:\s+(?:class|style)\s*=\s*(?:\"[^\"]*\"|'[^']*'))*\s*/?>", re.I)
+
+
+def layout_only(value):
+    """True when every tag of a cell value is a layout element without data-carrying attributes."""
+    return all(LAYOUT_TAG_RE.fullmatch(t) and not re.search(r"url\s*\(|expression\s*\(", t, re.I)
+               for t in re.findall(r"<[^>]*>", value))
+
+
+def profile_field_value(label, value):
+    """The anonymized content of a public-profile value cell (idempotent)."""
+    text = _strip_tags(value).replace("\xa0", " ").strip()
+    if PROFILE_STAT_RE.match(label) or (label.lower().startswith("date de naissance")
+                                         and re.fullmatch(r"\d{1,2}([/-])\d{1,2}\1\d{4}", text)):
+        return PROFILE_DATE_RE.sub(_profile_number, value)
+    if (not text or text in (PROFILE_PLACEHOLDER, PROFILE_NO_ACCESS)) and layout_only(value):
+        return value
+    return PROFILE_PLACEHOLDER
+
+
+def anonymize_profile_fields(text):
+    """Replace the public-profile value cells (personal rows, dates, counters, transaction counts)."""
+    if not PROFILE_PAGE_RE.search(text):
+        return text
+    text = PROFILE_ROW_RE.sub(lambda m: m.group(1) + profile_field_value(m.group(2), m.group(3)) + m.group(4), text)
+    return PROFILE_TRANSACTIONS_RE.sub(lambda m: m.group(1) + "0" + m.group(3), text)
+
+
 PARA_OPEN_RE = re.compile(r"<(\w+)\b[^>]*\bid=([\"'])para[^\"']*\2[^>]*>", re.I)
 
 # Member pseudos other than the operator's: every position where HFR prints one (live, LOT-001
@@ -122,6 +183,10 @@ DISCOVER = tuple((label, re.compile(rx, re.I | re.S), group, mode) for label, rx
      1, "name"),
     ("MP to", r"\b(?:title|alt)=\"[^\"]*?message priv%s\s+%s\s+([^\"]+?)\s*\"" % (_E, _AGRAVE), 1, "name"),
     ("contact list", r"\b(?:title|alt)=\"Ajouter\s+([^\"]+?)\s+%s votre liste de contacts" % _AGRAVE, 1, "name"),
+    # The same sentences as link text (public profile `a.cLink`, R56a/R56b): a short or common pseudo
+    # would escape the free-text pass, so they are positions too.
+    ("MP to text", r"<a\b[^>]*>\s*Envoyer un message priv%s\s+%s\s+([^<>]+?)\s*</a>" % (_E, _AGRAVE), 1, "name"),
+    ("contact list text", r"<a\b[^>]*>\s*Ajouter\s+([^<>]+?)\s+%s votre liste de contacts" % _AGRAVE, 1, "name"),
     # Topic lists, favourites, search results, MP list: author column and last poster.
     ("list author", r"<td\b[^>]*\bclass=%ssujetCase6\b[^\"']*%s[^>]*>(.*?)</td>" % (_Q, _Q), 1, "inner"),
     ("last poster", r"\bclass=%sTableau%s[^>]*>[^<]*<br\s*/?>\s*<b>(.*?)</b>" % (_Q, _Q), 1, "inner"),
@@ -135,11 +200,25 @@ DISCOVER = tuple((label, re.compile(rx, re.I | re.S), group, mode) for label, rx
     # Codes may hold an apostrophe, kept raw in the double-quoted src (live R53b).
     ("personal smiley in URL", r"%5B%3A((?:(?!%5D|%3A\d)[^&\"'\s<>#]){1,240}?)(?:%3A\d+)?%5D", 1, "smileyparam"),
     ("personal smiley image", r"/images/perso/(?:\d+/)?([^\"<>/?#]+?)\.(?:gif|png|jpe?g)\b", 1, "smileypath"),
+    # Personal smiley images print their code again in alt/title (`code`, `code:N`; live raw R55-p5u1, raw R56c = corpus R56b).
+    ("personal smiley alt", r"<img\b[^>]*?/images/perso/[^>]*?\balt=\"(?!\[:)([^\"<>\[\]]{1,80}?)(?::\d+)?\"", 1, "smiley"),
+    ("personal smiley title", r"<img\b[^>]*?/images/perso/[^>]*?\btitle=\"(?!\[:)([^\"<>\[\]]{1,80}?)(?::\d+)?\"", 1,
+     "smiley"),
+    # Avatars carry the member's pseudo in alt (public profile, live raw R56c = corpus R56b).
+    ("avatar alt", r"<img\b[^>]*?mesdiscussions-\d+\.\w+\"[^>]*?\balt=\"([^\"<>]+)\"", 1, "name"),
+    # Public profile page /hfr/profil-N.htm (R56): page title, header, pseudo cell, link to the member's posts.
+    ("profile page title", r"<title>\s*([^<]*?)\s+-\s+FORUM HardWare\.fr\s*</title>(?=(?:(?!<body\b).){0,4000}?"
+     r"<body\b[^>]*\bid=%sunique__user_page__view_user_profile%s)" % (_Q, _Q), 1, "name"),
+    ("profile header", r"<h4\b[^>]*>\s*Informations sur\s*:\s*([^<]+?)\s*</h4>", 1, "name"),
+    ("profile pseudo", r"<td\b[^>]*\bclass=%sprofilCase2%s[^>]*>\s*Pseudo(?:&nbsp;|\s)*:\s*</td>\s*"
+     r"<td\b[^>]*\bclass=%sprofilCase3%s[^>]*>([^<]*)</td>" % (_Q, _Q, _Q, _Q), 1, "inner"),
+    ("posts by pseudo path", r"/hfr/recherche/pseudo-([^\"'<>/?#\s]{1,240}?)\.htm\b", 1, "path"),
     # REST API (R57*): author objects.
     ("REST author", r"\"(?:last_)?author\"\s*:\s*\{[^{}]*?\"title\"\s*:\s*\"((?:[^\"\\]|\\.)*)\"", 1, "json"),
 ))
 SMILEY_MODES = {"smiley", "smileypath", "smileyparam"}
-NOT_A_MEMBER = {"", "publicité", "publicite", "anonyme", REDACTED.lower(), "interlocuteurs multiples"}
+# "smilie perso": the fixed alt of the first personal smiley on a public profile (live raw R56c = corpus R56b).
+NOT_A_MEMBER = {"", "publicité", "publicite", "anonyme", REDACTED.lower(), "interlocuteurs multiples", "smilie perso"}
 FAKE_NAME_RE = re.compile(r"user\d+$")
 
 # Member ids, mapped through one table per file (operators -> 9000NN, others -> 9100NN): profile
@@ -353,6 +432,8 @@ def decode_name(raw, mode):
         return html.unescape(urllib.parse.unquote_plus(raw)).strip()
     if mode == "smileypath":
         return html.unescape(urllib.parse.unquote(raw)).strip()
+    if mode == "path":
+        return html.unescape(urllib.parse.unquote_plus(html.unescape(raw))).strip()
     if mode == "inner":
         return _strip_tags(raw)
     return html.unescape(raw).replace("\xa0", " ").strip()
@@ -406,7 +487,41 @@ URL_IN_TEXT_RE = re.compile(r"(?:https?://|www\.)[^\s<>\"']+", re.I)
 # structural). The meta files get the same treatment, so final_url keeps matching the page.
 SLUG_RE = re.compile(r"(/hfr/(?:[^/\s\"'<>?#]+/)+)([^/\s\"'<>?#]+?)(-sujet_\d+_\d+\.htm)")
 EXT_URL_RE = re.compile(r"(?:https?:)?//(?![\w.-]*hardware\.fr(?![\w.-]))[^\s\"'<>]+", re.I)
+# Forum and sub-forum list links (`/hfr/<cat>/[<sub>/]liste_sujet-N.htm`, `forum1.php?…cat=`).
+LIST_LINK_RE = re.compile(
+    r"<a\b[^>]*\bhref=([\"'])(?:https?://forum\.hardware\.fr)?(?:/hfr/[^\"'?#]*/liste_sujet-\d+\.htm|"
+    r"/forum1\.php\?(?:(?!\1)(?!%s=)[^#])*)\1" % _PARAMS, re.I)
 JSON_STR_RE = re.compile(r"\"((?:[^\"\\]|\\.)*)\"(\s*:)?")
+_CLASS_RE = re.compile(r"\bclass\s*=\s*([\"'])([^\"']*)\1", re.I)
+
+
+def _classes(tag):
+    m = _CLASS_RE.search(tag)
+    return set(m.group(2).split()) if m else set()
+
+
+def text_link_kinds(text):
+    """{(start, end): kind} for the text segments inside a list link: "category" when it is a sub-forum
+    label, `a.cHeader` in the list page's `td.padding` bar (live R04-R07, R27-list: HFR prints category
+    names there, never a member), else "list link". Free-text names stay replaced in the second kind."""
+    kinds, in_padding, link = {}, False, None
+    for kind, start, end in iter_segments(text):
+        seg = text[start:end]
+        if kind == "tag":
+            low = seg.lower()
+            if re.match(r"<td\b", low):
+                in_padding = "padding" in _classes(seg)
+            elif low.startswith("</td"):
+                in_padding = False
+            elif re.match(r"<a\b", low):
+                link = None
+                if LIST_LINK_RE.match(seg):
+                    link = "category" if in_padding and "cHeader" in _classes(seg) else "list link"
+            elif low.startswith("</a"):
+                link = None
+        elif kind == "text" and link:
+            kinds[(start, end)] = link
+    return kinds
 
 
 def iter_segments(text):
@@ -704,11 +819,14 @@ class Anonymizer:
                 val = self._free_urls(val) if key[0] in ("href", "tns3") else self._free_text(val)
                 return '"%s"' % val
             return JSON_STR_RE.sub(jsub, text)
-        out = []
+        out, links = [], text_link_kinds(text)
         for kind, start, end in iter_segments(text):
             seg = text[start:end]
             if kind == "text":
-                seg = self._free_text(self._operators(seg))
+                seg = self._operators(seg)
+                # A sub-forum label is a category name ("Big <word>"), never a member: kept as printed.
+                if links.get((start, end)) != "category":
+                    seg = self._free_text(seg)
             elif kind == "raw":
                 seg = self._operators(seg)
             else:
@@ -789,6 +907,7 @@ class Anonymizer:
                 parts += [text[last:start], placeholder]
                 last = end
             text = "".join(parts) + text[last:]
+        text = anonymize_profile_fields(text)
         # Dropping `selected` from personal fields is an intended markup change too: do it first.
         text = PERSONAL_SELECT_RE.sub(lambda m: m.group(1) + SELECTED_RE.sub("", m.group(2)) + m.group(3), text)
         before = markup_signature(text)
@@ -870,11 +989,23 @@ class Anonymizer:
             for m in PERSONAL_SELECT_RE.finditer(chunk):
                 if SELECTED_RE.search(m.group(2)):
                     add(m.start(), "personal profile field still selected")
+            for m in PROFILE_ROW_RE.finditer(chunk if PROFILE_PAGE_RE.search(chunk) else ""):
+                if profile_field_value(m.group(2), m.group(3)) != m.group(3):
+                    add(m.start(), "public profile field not replaced")
+            for m in PROFILE_TRANSACTIONS_RE.finditer(chunk if PROFILE_PAGE_RE.search(chunk) else ""):
+                if m.group(2) != "0":
+                    add(m.start(), "public profile transaction count not replaced")
             for name, pos, _mode in self.discover(chunk):
                 key = name_key(name)
                 if key not in NOT_A_MEMBER and not FAKE_NAME_RE.match(key) and len(name) <= 80:
                     add(pos, "member pseudo not anonymized", len(name))
         scan(text, 0, "")
+        if self.free and not looks_json(text):
+            # Known member names are kept only in sub-forum labels; a list link elsewhere ("Message de X"
+            # pointing at a forum list) must have them replaced (CodeRabbit on PR #50).
+            for (start, end), kind in text_link_kinds(text).items():
+                if kind != "category" and self._free_regex().search(text[start:end]):
+                    res.append((line_of(text, start), column_of(text, start), "known member name in a list link text"))
         res += verify_structure(text, private=private)
         for pos, _prefix, _payload, decoded, _m in iter_tokens(text):
             if decoded is not None:
@@ -898,6 +1029,13 @@ _V_IDS = {label: re.compile(rx) for label, rx in (
     ("member id id_user=", r"id_user=(\d+)"), ("member id avatar", r"mesdiscussions-(\d+)"),
     ("member id quotemsg", r"quotemsg=\d+,\d+,(\d+)\]"))}
 _V_PARAM = re.compile(r"(?:^|[?&;/])(pseudo|spseudo|dest|auteur)=([^&#\"<>\n]{0,120})", re.I)
+_V_POSTS_PATH = re.compile(r"/hfr/recherche/pseudo-([^/?#\"'<>\s]+)\.htm")
+# Public profile rows (R56), matched on the label cell's text: the value must be a placeholder or a fixed value.
+_V_PROFILE_PERSONAL = re.compile(r"(?:Email|Date de naissance|Sexe|Ville|Profession|Loisirs|Site\b.*|Homepage|"
+                                 r"Citation personnelle.*|Signature des messages)$", re.I)
+_V_PROFILE_STAT = re.compile(r"(?:Nombre de messages postés|Date d'arrivée.*|Date du dernier message)$", re.I)
+_V_LAYOUT_TAGS = {"br", "div", "span", "i", "b", "p"}
+_V_PROFILE_FIXED = re.compile(r"(?:100|01([/-])01\1(?:2000)(?:\s*à\s*00:00)?)?")
 _V_SMILEY = re.compile(r"\[:([^\]\[]+?)(?::\d+)?\]")
 _V_PERSO = re.compile(r"/images/perso/(?:\d+/)?([^/?#\"<>]+?)\.(?:gif|png|jpe?g)", re.I)
 _V_ATTR_ONE = {label: re.compile(rx, re.I | re.S) for label, rx in (
@@ -908,7 +1046,13 @@ _V_ATTR_ONE = {label: re.compile(rx, re.I | re.S) for label, rx in (
 _V_ATTR_LIST = {label: re.compile(rx, re.I | re.S) for label, rx in (
     ("unread-by list", r"lu par\s*:\s*(.+)$"), ("recipients list", r"Message privé pour\s+(.+)$"))}
 _V_TEXT_ONE = {label: re.compile(rx, re.I | re.S) for label, rx in (
-    ("quote header", r"^\s*(.+?)\s+a écrit\s*:"), ("edit notice", r"édité par\s+(.+?)\s+le\s+\d"))}
+    ("quote header", r"^\s*(.+?)\s+a écrit\s*:"), ("edit notice", r"édité par\s+(.+?)\s+le\s+\d"),
+    )}
+# Phrases that hold a member only in one element: the profile page's h4, and action links.
+_V_TEXT_IN = {label: (tag, re.compile(rx, re.I | re.S)) for label, tag, rx in (
+    ("profile header", "h4", r"^\s*Informations sur\s*:\s*(.+?)\s*$"),
+    ("MP to text", "a", r"^\s*Envoyer un message privé à\s+(.+?)\s*$"),
+    ("contact list text", "a", r"^\s*Ajouter\s+(.+?)\s+à votre liste de contacts"))}
 _V_FIXTURE_SUBJECT = re.compile(r"fixture-test-\d+")
 _V_VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source",
            "track", "wbr"}
@@ -929,6 +1073,9 @@ class StructuralVerifier(html.parser.HTMLParser):
         self.found = []
         self.stack = []
         self.private = private
+        self.title = None          # page <title> text, checked once the body says it is a profile page
+        self.profile_label = None  # text of the last td.profilCase2 (public profile row label)
+        self.profile_page = False  # body id of the public profile page (the edit form reuses the labels)
 
     # -- reporting
     def _bad(self, where, value, line=None):
@@ -959,6 +1106,8 @@ class StructuralVerifier(html.parser.HTMLParser):
                 self._name("personal smiley code in URL", m.group(1), line)
         for m in _V_PERSO.finditer(s):
             self._name("personal smiley image", urllib.parse.unquote(m.group(1)), line)
+        for m in _V_POSTS_PATH.finditer(s):
+            self._name("posts by pseudo path", html.unescape(urllib.parse.unquote_plus(m.group(1))), line)
 
     def _check_attr_text(self, s):
         for label, rx in _V_ATTR_ONE.items():
@@ -977,6 +1126,11 @@ class StructuralVerifier(html.parser.HTMLParser):
     def handle_starttag(self, tag, attrs):
         a = {k: (v or "") for k, v in attrs}
         cls = set(a.get("class", "").split())
+        if any(e["where"] == "profile personal field" for e in self.stack):
+            # Inside a personal profile cell only bare layout may remain: an <img>/<a> carries data without text.
+            if tag not in _V_LAYOUT_TAGS or set(a) - {"class", "style"} or re.search(
+                    r"url\s*\(|expression\s*\(", a.get("style", ""), re.I):
+                self._bad("public profile field markup", tag)
         for k, v in a.items():
             self.check_value(v)
             if k in ("title", "alt", "content"):
@@ -989,6 +1143,17 @@ class StructuralVerifier(html.parser.HTMLParser):
                         self.check_value(decoded)
         if tag == "input" and a.get("name", "").lower() in ("pseudo", "spseudo", "dest", "auteur") and a.get("value"):
             self._name("pseudo input", a["value"])
+        if tag == "img" and "/images/perso/" in a.get("src", ""):
+            for k in ("alt", "title"):
+                v = a.get(k, "")
+                if v and not v.startswith("[:"):
+                    self._name("personal smiley %s" % k, re.sub(r":\d+$", "", v))
+        if tag == "img" and "mesdiscussions-" in a.get("src", "") and a.get("alt"):
+            self._name("avatar alt", a["alt"])
+        if tag == "body" and a.get("id") == "unique__user_page__view_user_profile":
+            self.profile_page = True
+        if self.profile_page and tag == "body" and self.title is not None:
+            self._name("profile page title", re.sub(r"\s+-\s+FORUM HardWare\.fr\s*$", "", self.title.strip()))
         if tag in _V_VOID:
             return
         where = None
@@ -1007,6 +1172,18 @@ class StructuralVerifier(html.parser.HTMLParser):
             where = "MP link text"
         elif tag == "span" and cls & {"signature", "MoodStatus"}:
             where = "signature or mood"
+        elif tag == "title":
+            where = "page title"
+        elif tag == "td" and "profilCase2" in cls:
+            where = "profile label"
+        elif tag == "td" and "profilCase3" in cls and self.profile_label:
+            label, self.profile_label = self.profile_label, None
+            if label.lower().startswith("pseudo"):
+                where = "profile pseudo"
+            elif self.profile_page and _V_PROFILE_STAT.match(label):
+                where = "profile counter or date"
+            elif self.profile_page and _V_PROFILE_PERSONAL.match(label):
+                where = "profile personal field"
         elif self.private and tag == "a" and "cCatTopic" in cls and self._ctx("td", "sujetCase3"):
             where = "private MP subject"
         elif tag == "span" and "title" in a and self._ctx("td", "sujetCase6"):
@@ -1044,7 +1221,17 @@ class StructuralVerifier(html.parser.HTMLParser):
             text = "".join(e["text"]).strip()
             if e["where"] == "home last poster":
                 text = re.sub(r"^par\s+", "", text)
-            if e["where"] == "signature or mood":
+            if e["where"] == "page title":
+                self.title = text
+            elif e["where"] == "profile label":
+                self.profile_label = re.sub(r"\s*:$", "", text.replace("\xa0", " ")).strip()
+            elif e["where"] == "profile counter or date":
+                if not _V_PROFILE_FIXED.fullmatch(text.replace("\xa0", " ")):
+                    self._bad("public profile counter or date", text, e["line"])
+            elif e["where"] == "profile personal field":
+                if text not in ("", PROFILE_PLACEHOLDER, PROFILE_NO_ACCESS) and not re.fullmatch(r"01([/-])01\1(?:2000)", text):
+                    self._bad("public profile field", text, e["line"])
+            elif e["where"] == "signature or mood":
                 if text not in ("", "Signature removed.", "Mood removed."):
                     self._bad("signature or mood text", text, e["line"])
             elif e["where"] == "private MP subject":
@@ -1059,9 +1246,16 @@ class StructuralVerifier(html.parser.HTMLParser):
             if e["where"] or e.get("params"):
                 e["text"].append(data)
         self.check_value(data)
+        for m in re.finditer(r"Transactions\s*\((\d+)\)", data if self.profile_page else ""):
+            if m.group(1) != "0":
+                self._bad("public profile transaction count", m.group(1))
         for label, rx in _V_TEXT_ONE.items():
             for m in rx.finditer(data):
                 self._name(label, m.group(1))
+        for label, (tag, rx) in _V_TEXT_IN.items():
+            if self.stack and self.stack[-1]["tag"] == tag:
+                for m in rx.finditer(data):
+                    self._name(label, m.group(1))
 
     def close(self):
         super().close()

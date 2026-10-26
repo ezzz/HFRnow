@@ -53,14 +53,22 @@ span, `Ce message privé à X`, `Mettre X en ignore list`), list author (`td.suj
 (`a.Tableau … <b>X</b>`, home `catCase3` `<b>par X</b>`), `Envoyer un message privé à X`, `Ajouter X à votre liste
 de contacts`, the review under the reply form (`td.messCase1bis`), `Auteur : X` in the description meta, personal
 smileys (`[:code]`, `[:code:N]` and `/images/perso/[N/]code.gif` get the same alias as a member of that name, so
-`[:user12:1]` pairs with `/images/perso/1/user12.gif`, also `%`-encoded in URLs such as `detail=%5B%3Acode%5D`), REST `author` / `last_author` titles. Signatures (`span.signature`) and mood statuses (`span.MoodStatus`) are a member's own words (real names, handles, links): their content is always replaced by `Signature removed.` / `Mood removed.`. Names are matched
+`[:user12:1]` pairs with `/images/perso/1/user12.gif`, also `%`-encoded in URLs such as `detail=%5B%3Acode%5D`, and the
+`alt`/`title` (`code`, `code:N`) of those images), REST `author` / `last_author` titles, avatar `alt`, and on the public
+profile page (R56) its `<title>` "X - FORUM HardWare.fr", `h4` "Informations sur : X", the Pseudo cell,
+`/hfr/recherche/pseudo-X.htm` and the link texts "Envoyer un message privé à X" / "Ajouter X à votre liste de contacts".
+On that page only (`body#unique__user_page__view_user_profile`), the value cell of every personal row (e-mail, birth
+date, gender, city, job, hobbies, quote, signature) becomes `Profile field removed.` (a birth date `01/01/2000`), the post
+count `100`, the arrival and last-post dates `01/01/2000` / `01-01-2000 à 00:00` and transaction counts `0`: with the
+pseudo and id aliased, real values would still single the member out. Signatures (`span.signature`) and mood statuses (`span.MoodStatus`) are a member's own words (real names, handles, links): their content is always replaced by `Signature removed.` / `Mood removed.`. Names are matched
 whole (a multi-word pseudo is never split) and decoded from entities, `%`-escapes and JSON escapes.
 
 **Member ids** go through the id table wherever they appear: `profil-N`, `adduser=N`, `id_user=N`, avatars
 `mesdiscussions-N` (also REST `tns3`) and the third `[quotemsg=…,…,N]` value.
 
 **Free text**: a member name of 3+ characters that is not a function word or site/markup token (`COMMON_WORDS`, kept short on purpose: an ordinary noun used as a pseudo is still replaced in prose) is also replaced in text
-nodes, text attributes (`title`, `alt`, `value`, `content`…), external URLs and internal topic slugs (also in the
+nodes (except the sub-forum labels: `a.cHeader` list links in the list page's `td.padding` bar, where HFR prints
+category names; a known name left in any other list link text fails `check`), text attributes (`title`, `alt`, `value`, `content`…), external URLs and internal topic slugs (also in the
 meta URLs, so `final_url` matches the page). In a slug a name takes HFR's slug form (`slug_words`: no accents, lower
 case, `_` and non-ASCII punctuation deleted, `-` between words); HFR keeps at most 3 title words (HFR-PROTOCOL.md "Topic slug", 341 pairs of R04-R07, R09, R27-list, R50b), so a name printed in
 the file also has each of its specific words replaced in its slugs (`[Ab Cdef] colo en cours` → `cdef-cours-2018`,

@@ -1,0 +1,16 @@
+{
+  "id": "R33a",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/hfr/{forum}/{subcat}/{slug}-sujet_{post}_{page}.htm",
+  "url": "https://forum.hardware.fr/hfr/Discussions/Sports/football-after-mercredi-sujet_119463_1.htm",
+  "final_url": "https://forum.hardware.fr/hfr/Discussions/Sports/football-after-mercredi-sujet_119463_1.htm",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 26 Oct 2026 15:33:12 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "closed poll (locked topic, results only, \"Ce sondage est clos, vous ne pouvez plus voter\"), logged out",
+  "file": "R33a-topic-poll-closed-anon.html",
+  "private": false
+}

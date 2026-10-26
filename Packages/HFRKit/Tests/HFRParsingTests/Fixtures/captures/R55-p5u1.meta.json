@@ -1,0 +1,21 @@
+{
+  "id": "R55-p5u1",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/user/editprofil.php?config=hfr.inc&page={5|1|3}",
+  "url": "https://forum.hardware.fr/user/editprofil.php?config=hfr.inc&page=5",
+  "final_url": "https://forum.hardware.fr/user/editprofil.php?config=hfr.inc&page=5",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 26 Oct 2026 15:35:50 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "R55 page 5 as user1 (account with an avatar)",
+  "file": "R55-p5u1-profile-edit-page5-avatar.html",
+  "private": false
+}

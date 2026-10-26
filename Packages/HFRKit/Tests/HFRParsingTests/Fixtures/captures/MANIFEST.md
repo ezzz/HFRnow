@@ -20,6 +20,12 @@ the write flows inside **one** throwaway MP thread `fixture-test-1` (user2 → u
 on a public topic (state restored), the searches, then user1 again with a corrected password (W01b). Private files
 (`"private": true` in the meta) were anonymized with `--private`: MP bodies and the subjects of every MP that is not a
 fixture thread (`fixture-test-N`) or the MPStorage thread are replaced, whatever their content (digits included).
+Run 3 (follow-up, 11 requests, 115 in total, read-only) added R33a/R33b, R55-p5u1 and R56a/R56b. Public profile pages
+(R56) keep their structure; the pseudo (title, header, pseudo cell, avatar `alt`, personal smileys, MP and
+"all posts" links) is aliased, every personal row (e-mail, birth date, gender, city, job, hobbies, quote, signature)
+gets `Profile field removed.` or, for dates, `01/01/2000`; post count → `100`, arrival and last-post dates →
+`01/01/2000` / `01-01-2000 à 00:00`, transaction counts → `0`. Category link texts (`liste_sujet-N.htm`,
+`forum1.php?…cat=`) are never rewritten, so a member named like a word of a category name leaves the category alone.
 
 | Id | File | Covers | Row | Lots |
 |---|---|---|---|---|
@@ -52,6 +58,8 @@ fixture thread (`fixture-test-N`) or the MPStorage thread are replaced, whatever
 | R31 | `R31-topic-locked-anon.html` | Locked, sticky, single-page topic | R31 | 033, 036 |
 | R32a | `R32a-topic-poll-anon.html` | Poll topic logged out: vote form `/user/vote.php?config=hfr.inc` shown, radio `reponse` | R32 | 026, 054 |
 | R32b | `R32b-topic-poll-logged-in-not-voted.html` | Same, logged in, not voted | R32 | 026, 054 |
+| R33a | `R33a-topic-poll-closed-anon.html` | Closed poll (locked topic), logged out: results only (bars, `N votes`, `Total`), no form, "Ce sondage est clos, vous ne pouvez plus voter" | R33 | 026, 054 |
+| R33b | `R33b-topic-poll-already-voted.html` | Poll already voted from the operator's accounts, logged in (user1): results only, no form, "(Multipseudo detecté, vous ne pourrez pas voter à ce sondage avec vos autres pseudos)" (user2 sees the same notice; the page does not tell which account voted) | R33 | 026, 054 |
 | R40a | `R40a-reply-form-logged-in.html` | Reply composer (`message.php`), logged in: `hop` form to `/bddpost.php?config=hfr.inc`, `verifrequet=1100`, pseudo echoed, checkboxes | R40 | 036, 048 |
 | R40b | `R40b-reply-form-anon.html` | Same composer logged out: empty `hash_check`, visible pseudo/password | R40 | 036, 048 |
 | R41a | `R41a-quote-form.html` | Quote form (`numrep=<cited>&ref=1`): prefill `[quotemsg=<numreponse>,1,<author id>]` | R41 | 036, 049 |
@@ -67,6 +75,9 @@ fixture thread (`fixture-test-N`) or the MPStorage thread are replaced, whatever
 | R55-p1 | `R55-p1-profile-edit-page1.html` | `/user/editprofil.php?page=1`: personal fields (redacted, birth date and gender unselected) | R55 | 025, 043, 044 |
 | R55-p3 | `R55-p3-profile-edit-page3.html` | Page 3: display settings incl. `topicpp` (posts per page) | R55 | 025, 044 |
 | R55-p5 | `R55-p5-profile-edit-page5.html` | Page 5: `hash_check` only form | R55 | 025, 043, 044 |
+| R55-p5u1 | `R55-p5u1-profile-edit-page5-avatar.html` | Page 5 as user1, an account with an avatar: avatar `mesdiscussions-<id>.jpg`, "Effacer votre avatar" (`clearimage.php?…&codehex=`, redacted), personal smileys `[:code]`…`[:code:5]`, favourite smileys | R55 | 025, 043, 044 |
+| R56a | `R56a-profile-operator-anon.html` | Public profile `/hfr/profil-<id>.htm` of user2, logged out: no avatar, no personal smiley, e-mail "Vous n'avez pas accès à cette information", "Statut" | R56 | 027 |
+| R56b | `R56b-profile-other-member-anon.html` | Public profile of another member (a post author of R26), logged out: avatar, 4 personal smileys, "Configuration matérielle" link, transactions | R56 | 027 |
 | R57a | `R57a-rest-categories.json` | REST categories (20) | R57 | 057 |
 | R57b | `R57b-rest-category-topics-last.json` | REST last topics of cat 13 (25 per page) | R57 | 057 |
 | R57c | `R57c-rest-topic.json` | REST one topic | R57 | 057 |
@@ -132,7 +143,7 @@ fixture thread (`fixture-test-N`) or the MPStorage thread are replaced, whatever
 |---|---|
 | W02 | Dropped: W01's refusal already gives the failure page; a second failed login was not worth the lockout risk. |
 | A second throwaway thread | HFR allows one new topic per 60 minutes (W11x); everything ran in one thread. |
-| R33, R34, R51, R58 | Dropped per the checklist (R51 covered by R50b, R58 by R08-2). |
-| R56 | Skipped: a public profile shows personal data. |
+| R34, R51, R58 | Dropped per the checklist (R51 covered by R50b, R58 by R08-2). |
+| R33, poll voted by the account itself without the multipseudo notice | Searched, not found: the poll topics of user1's followed list (`forum1f.php?owntopic=1`, 27 poll topics) were opened page 1 for four of them; one is R33b (with the multipseudo notice, also for user2), the three others still offer the vote form. A plain "already voted" page would need a vote (P05, out of scope): synthetic per checklist §C N06 if a lot needs it. |
 | X10 cookie-less multi-quote, poll vote, public posting | Out of the approved scope or not needed. |
 | oldcitation, Streamable/Dailymotion/Twitch, reho.st images | Not present on the pages picked; synthetic or a later capture. |

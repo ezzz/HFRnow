@@ -1,0 +1,21 @@
+{
+  "id": "R33b",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/forum2.php?config=hfr.inc&cat={cat}&subcat={subcat}&post={post}&page={page}&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+  "url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=25&subcat=525&post=8900&page=1&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+  "final_url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=25&subcat=525&post=8900&page=1&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 26 Oct 2026 15:34:08 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "poll already voted from the operator's accounts (results only, no vote form, \"Multipseudo detecté\" notice); logged in (user1), link from forum1f.php?owntopic=1; marks the topic read for user1",
+  "file": "R33b-topic-poll-already-voted.html",
+  "private": false
+}

@@ -1,0 +1,16 @@
+{
+  "id": "R56b",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/hfr/profil-{id}.htm",
+  "url": "https://forum.hardware.fr/hfr/profil-910001.htm",
+  "final_url": "https://forum.hardware.fr/hfr/profil-910001.htm",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 26 Oct 2026 15:35:42 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "R56: public profile of another member (author in R26, has a personal smiley), logged out",
+  "file": "R56b-profile-other-member-anon.html",
+  "private": false
+}

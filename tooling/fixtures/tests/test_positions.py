@@ -82,6 +82,33 @@ CASES = (
      '<a href="/wikismilies.php?detail=%5B%3Awxyz+qrst%5D">x</a>', ["wxyz"], ["detail=%5B%3Auser1%5D"]),
     ("smiley_image", "personal smiley image",
      '<img src="/images/perso/wxyz qrst.gif" alt="" />', ["wxyz"], ["/images/perso/user1.gif"]),
+    # Public profile page and profile edit page (R56, R55-p5u1): the code printed again in alt/title.
+    ("smiley_alt", "personal smiley alt",
+     '<img src="/images/perso/1/user7.gif" alt="%s:1" />' % N, [N], ['alt="user1:1"']),
+    ("smiley_title", "personal smiley title",
+     '<img src="/images/perso/user7.gif" title="%s" />' % N, [N], ['title="user1"']),
+    ("avatar_alt", "avatar alt",
+     '<img src="https://forum-images.hardware.fr/images/mesdiscussions-910001.jpg" alt="%s" />' % N, [N],
+     ['alt="user1"']),
+    ("profile_page_title", "profile page title",
+     '<html><head><title>%s - FORUM HardWare.fr</title></head>'
+     '<body id="unique__user_page__view_user_profile"><p>x</p></body></html>' % N, [N],
+     ["<title>user1 - FORUM HardWare.fr</title>"]),
+    ("profile_header", "profile header",
+     '<h4 class="Ext">Informations sur :  %s</h4>' % N, [N], ["Informations sur :  user1</h4>"]),
+    ("profile_pseudo", "profile pseudo",
+     '<tr class="profil"><td class="profilCase2">Pseudo&nbsp;: </td><td class="profilCase3"> %s\t</td></tr>' % N,
+     [N], ['class="profilCase3"> user1\t</td>']),
+    ("posts_by_pseudo_path", "posts by pseudo path",
+     '<a href="/hfr/recherche/pseudo-Wxyz%20Qrst.htm" class="cLink">x</a>', ["Wxyz", "Qrst"],
+     ['href="/hfr/recherche/pseudo-user1.htm"']),
+    # Two letters: never replaced in free text, so only these text positions can alias them (R56 a.cLink).
+    ("mp_to_text", "MP to text",
+     '<a rel="nofollow" href="/message.php?config=hfr.inc&amp;cat=prive" class="cLink">Envoyer un message privé à Mo</a>',
+     [" Mo<"], ["Envoyer un message privé à user1</a>"]),
+    ("contact_list_text", "contact list text",
+     '<a href="/user/contactlist.php?config=hfr.inc" class="cLink">Ajouter Mo à votre liste de contacts</a>',
+     ["Ajouter Mo "], ["Ajouter user1 à votre liste de contacts"]),
     ("id_profil", "member id profil-",
      '<a href="/hfr/profil-555001.htm"><img src="/p.gif" alt="" /></a>', ["555001"], ["profil-910001"]),
     ("id_adduser", "member id adduser=",
@@ -155,6 +182,132 @@ class PartialAliasTests(unittest.TestCase):
         self.assertEqual(A.verify_structure('<a onclick="go(\'/p.php?pseudo=user5\', 1)">p</a>'), [])
 
 
+PROFILE_BODY = '<body id="unique__user_page__view_user_profile"><table>%s</table></body>'
+
+
+def _row(label, value):
+    return PROFILE_BODY % ('<tr class="profil"><td class="profilCase2">%s&nbsp;: </td><td class="profilCase3">%s</td></tr>'
+                           % (label, value))
+
+
+class ProfileFieldTests(unittest.TestCase):
+    """Public profile rows (R56): each value cell is the member's own data, checked by both layers."""
+
+    def _both(self, page, label, gone, kept, scan="public profile field not replaced"):
+        self.assertIn("structural check: %s not aliased" % label, [r for _l, _c, r in A.verify_structure(page)])
+        self.assertIn(scan, [r for _l, _c, r in A.Anonymizer(A.Config()).findings(page)])
+        out = A.Anonymizer(A.Config()).anonymize(page)
+        for value in gone:
+            self.assertNotIn(value, out)
+        for text in kept:
+            self.assertIn(text, out)
+        self.assertEqual(A.Anonymizer(A.Config()).findings(out), [])
+        return out
+
+    def test_personal_rows_get_a_placeholder(self):
+        for label, value in (("Ville", "Qrstville"), ("Profession", "Wxyz at Qrst"), ("Loisirs", "Qrst"),
+                             ("Sexe", "Qrst"), ("Citation personnelle associée au pseudo", "Qrst"),
+                             ("Signature des messages", ' <br /><div style="clear: both;"> </div>Qrst https://q.example/'),
+                             ("Email", "<i>wxyz.qrst@example.org</i>"), ("Date de naissance", "Qrst")):
+            with self.subTest(label=label):
+                self._both(_row(label, value), "public profile field", ["Qrst"], [A.PROFILE_PLACEHOLDER])
+
+    def test_markup_only_values_get_a_placeholder(self):
+        # No text at all: the value is in the markup (CodeRabbit on PR #50).
+        for label, value in (("Signature des messages", '<img src="https://q.example/wxyz.png" alt="" />'),
+                             ("Site web", '<a href="https://wxyz.example/"><img src="/w.gif" /></a>'),
+                             ("Loisirs", '<span title="Wxyz Qrst"></span>'),
+                             ("Citation personnelle associée au pseudo", '<div style="background:url(/wxyz.png)"></div>')):
+            with self.subTest(label=label):
+                self._both(_row(label, value), "public profile field markup", ["wxyz", "Wxyz"],
+                           [A.PROFILE_PLACEHOLDER])
+
+    def test_layout_only_empty_value_is_kept(self):
+        page = _row("Signature des messages", ' <br /><div style="clear: both;"> </div>&nbsp;')
+        self.assertEqual(A.verify_structure(page), [])
+        self.assertEqual(A.Anonymizer(A.Config()).anonymize(page), page)
+
+    def test_birth_date_keeps_its_format(self):
+        self._both(_row("Date de naissance", "17/06/1983"), "public profile field", ["17/06", "1983"],
+                   ["01/01/2000"])
+
+    def test_logged_out_email_notice_is_kept(self):
+        page = _row("Email", "\n<i>%s</i>\t" % A.PROFILE_NO_ACCESS)
+        self.assertEqual(A.verify_structure(page), [])
+        self.assertEqual(A.Anonymizer(A.Config()).anonymize(page), page)
+
+    def test_counters_and_dates_get_fixed_values(self):
+        for label, value, kept in (("Nombre de messages postés", "6123", ">100<"),
+                                   ("Date d'arrivée sur le forum", "17/06/2003", ">01/01/2000<"),
+                                   ("Date du dernier message", "\n26-10-2026&nbsp;à&nbsp;15:34\t",
+                                    "01-01-2000&nbsp;à&nbsp;00:00")):
+            with self.subTest(label=label):
+                self._both(_row(label, value), "public profile counter or date", [value.strip()], [kept])
+
+    def test_profile_edit_form_rows_are_left_alone(self):
+        # The edit form (R55-p1) has the same labels around its inputs: only the public page is rewritten.
+        page = ('<body id="unique__user_page__edit_profile"><table><tr><td class="profilCase2">Ville&nbsp;: </td>'
+                '<td class="profilCase3"><input type="text" name="custom_ville" value="" /></td></tr></table></body>')
+        self.assertEqual(A.Anonymizer(A.Config()).anonymize(page), page)
+        self.assertEqual(A.verify_structure(page), [])
+
+    def test_transaction_count(self):
+        page = PROFILE_BODY % '<tr><td class="profilCase3"><a href="/t.php">Transactions (28)</a></td></tr>'
+        self._both(page, "public profile transaction count", ["(28)"], ["Transactions (0)"],
+                   scan="public profile transaction count not replaced")
+
+
+class CategoryLabelTests(unittest.TestCase):
+    """A member named like a word of a category is aliased everywhere but in the sub-forum labels."""
+
+    BAR = ('<td class="padding" align="center" colspan="9">'
+           '<a href="/hfr/Programmation/Big-Wxyz/liste_sujet-1.htm" class="cHeader">BI/Big Wxyz </a> | '
+           '<a href="/forum1.php?config=hfr.inc&amp;cat=10&amp;subcat=1" class="cHeader">Big Wxyz</a></td>')
+
+    def test_sub_forum_label_is_kept(self):
+        page = self.BAR + '<p>Une pensée pour Wxyz</p>'
+        out = A.Anonymizer(A.Config(), known_names=["Wxyz"]).anonymize(page)
+        self.assertIn('class="cHeader">BI/Big Wxyz </a>', out)
+        self.assertIn('class="cHeader">Big Wxyz</a>', out)
+        self.assertIn("<p>Une pensée pour user1</p>", out)
+        self.assertEqual(A.Anonymizer(A.Config(), known_names=["Wxyz"]).findings(out), [])
+
+    def test_list_link_outside_the_bar_is_not_a_label(self):
+        # A list URL alone does not make a category label: "Message de X" linking to a forum list.
+        page = ('<td class="sujetCase3"><a href="/hfr/Discussions/Cuisine/liste_sujet-1.htm" class="cHeader">'
+                'Message de Wxyz</a></td>')
+        anon = A.Anonymizer(A.Config(), known_names=["Wxyz"])
+        self.assertIn("known member name in a list link text", [r for _l, _c, r in anon.findings(page)])
+        out = anon.anonymize(page)
+        self.assertIn(">Message de user1</a>", out)
+        self.assertEqual(anon.findings(out), [])
+
+    def test_member_link_to_a_list_is_not_a_category(self):
+        page = '<td class="padding"><a href="/forum1.php?config=hfr.inc&amp;cat=13&amp;spseudo=x" class="cHeader">Wxyz</a></td>'
+        out = A.Anonymizer(A.Config(), known_names=["Wxyz"]).anonymize(page)
+        self.assertNotIn(">Wxyz<", out)
+
+
+class ScopedPhraseTests(unittest.TestCase):
+    """Profile and action-link phrases are checked in their element only, not in prose."""
+
+    def test_prose_is_not_a_profile_header_or_action_link(self):
+        for page in ("<p>Informations sur : le processeur</p>",
+                     "<div id=\"para1\"><p>Envoyer un message privé à la modération</p></div>",
+                     "<p>Ajouter le topic à votre liste de contacts ?</p>"):
+            with self.subTest(page=page):
+                self.assertEqual(A.verify_structure(page), [])
+                self.assertEqual(A.Anonymizer(A.Config()).anonymize(page), page)
+
+    def test_elements_are_still_checked(self):
+        for page, label in (("<h4 class=\"Ext\">Informations sur :  Wxyz</h4>", "profile header"),
+                            ("<a href=\"/m.php\" class=\"cLink\">Envoyer un message privé à Mo</a>", "MP to text"),
+                            ("<a href=\"/c.php\">Ajouter Mo à votre liste de contacts</a>", "contact list text")):
+            with self.subTest(label=label):
+                self.assertIn("structural check: %s not aliased" % label,
+                              [r for _l, _c, r in A.verify_structure(page)])
+
+
 class CoverageTests(unittest.TestCase):
     def test_every_discover_entry_has_a_position_test(self):
         # A new DISCOVER entry without a row here would go untested.
@@ -168,7 +321,11 @@ class CoverageTests(unittest.TestCase):
             "home last poster": "home_last_poster", "form review author": "form_review_author",
             "description author": "description_author", "personal smiley": "smiley_code",
             "personal smiley in URL": "smiley_code_in_url", "personal smiley image": "smiley_image",
-            "REST author": "rest_author"}
+            "REST author": "rest_author", "personal smiley alt": "smiley_alt",
+            "personal smiley title": "smiley_title", "avatar alt": "avatar_alt",
+            "profile page title": "profile_page_title", "profile header": "profile_header",
+            "profile pseudo": "profile_pseudo", "posts by pseudo path": "posts_by_pseudo_path",
+            "MP to text": "mp_to_text", "contact list text": "contact_list_text"}
         self.assertEqual(sorted(d[0] for d in A.DISCOVER), sorted(covered))
         ids = {c[0] for c in CASES}
         self.assertTrue(set(covered.values()) <= ids)
