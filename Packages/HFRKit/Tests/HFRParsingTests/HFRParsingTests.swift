@@ -15,6 +15,12 @@ import Testing
     #expect(try HFRParsing.documentTitle(in: "<html><body></body></html>") == nil)
 }
 
+/// The smoke helper goes through `HTMLDocumentLoader`: only `ParsingError` can escape the public API.
+@Test func documentTitleThrowsOnlyParsingError() {
+    let typed: (String) throws(ParsingError) -> String? = HFRParsing.documentTitle(in:)
+    #expect(throws: Never.self) { try typed("<?xml version=\"1.0\"?><title>X</title>") }
+}
+
 @Test func fixturesBundleIsAvailable() {
     #expect(Bundle.module.url(forResource: "Fixtures", withExtension: nil) != nil)
 }
