@@ -150,6 +150,24 @@ Fixture-backed (**live**) facts not covered by a row above. Ids refer to `Fixtur
 - **Printed pseudos** (`R04`-`R13u1`, `R20`): list pages (author and last-poster columns) insert U+200B after the 10th character of a longer pseudo, topic pages keep it in some author cells but not in links; compare names without zero-width characters. Personal smiley files keep a raw apostrophe or space in their path (`/images/perso/[N/]<code>.gif`, `R53b`), with the `[:code:N]` code in `alt`/`title`.
 - **Flags** (`P03a`-`P03f`): `addflag.php` (link from the post, with `ref`, `page`, `p`) answers "Favori positionné avec succès" and is idempotent; its refresh goes to the sub-forum list.
 
+## 6c. Verified by parser tests
+
+Facts confirmed by a committed capture **and** asserted by a test of the parser that reads it (**verified**). Ids refer to `Fixtures/captures/`.
+
+### LOT-030 — message blocks
+
+Source: [LOT-030](lots/LOT-030-message-blocks.md), `MessageBlockParser`, on the 20 topic oracles of LOT-003 (`R20`–`R32b`, `RA1`–`RA5`, `RU1`, `RU2`; 358 messages).
+
+- **Block layout**: one `<table class="messagetable">` per message, holding one `<tr class="message …">` with `<td class="messCase1">` (author cell) and `<td class="messCase2">` (content cell). The author cell starts with `<a name="t<numreponse>"></a>` (MP threads add `<a name="bas"></a>` right after it on the last post), the pseudo is `<b class="s2">`; the content cell holds `<div class="toolbar">` (date and action links), then `<div id="para<numreponse>">` (the message HTML), then optionally `<div class="edited">`. No other element carries an `id` containing `para`.
+- **Advertisement block** (`R20`, `R22a`, `R23`, `R27`, `R27b`, `R31`, `R32a`): the same `messagetable` with `<b class="s2">Publicité</b>`, no `<a name>` anchor and no `para` element; 3 per logged-out page (1 on single-page topics), **none logged in** (`R21`, `R32b`: 40 tables, 40 messages). Skipped by the author cell text.
+- **Continuation block** (`R22a`, `R22b`, `R24`, `R26`, `R27`, `R28`): page 2 and later open with a copy of the previous page's last post (same `numreponse`), whose content starts `<p><strong>Reprise du message précédent :</strong><br />`; its quote link carries `ref=0`. Page 1, single pages and MP threads have none.
+- **Toolbar date**: `Posté le dd-MM-yyyy&nbsp;à&nbsp;HH:mm:ss` (U+00A0 around `à`), one per block on all 358 messages.
+- **Edit trailer** `div.edited` (`R20`, `R22b`, `R27`, `R32a`): `<a href="/forum2.php?…&numreponse=<n>&quote_only=1&new=0&nojs=0" class="cLink">Message cité N fois</a>`, then `<br />Message édité par <pseudo> le dd-MM-yyyy&nbsp;à&nbsp;HH:mm:ss`, either part alone or both in this order; the `quote_only=1` link is the only link of the trailer.
+- **Avatar** (`RU2`): `<div class="avatar_center" style="clear:both"><img src="https://forum-images.hardware.fr/images/mesdiscussions-<user id>.jpg" alt="">` inside the author cell; present only on the recipient's own post of the MP thread, on no public capture.
+- **Pseudos**: the author cell prints U+200B inside some pseudos (`R21` message 0, `RA1`); the legacy `LinkItem.name` of the oracle has none, so the parser drops it.
+- **Deleted conversation** (`RA5`): a page without any `messagetable` is an ordinary page (`.hop` notice), not an error.
+- **Pending capture**: the `messagetabledel` wrapper of a deleted post (legacy `ParseMessagesOperation.m:153`; `RA3` shows that a deleted MP post simply disappears) and the in-topic search result shape (a leading `<a>` in `messCase2`, `:365-368`).
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).
