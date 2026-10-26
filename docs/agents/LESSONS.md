@@ -30,3 +30,10 @@ Seeded from a previous multi-agent project, filtered for SwiftHFR.
 | 23 | After late edits, check `git ls-files` (tracked changes), not only untracked files, before pushing | wave 1 (C1) |
 | 24 | swift-corelibs-foundation ignores `timeoutInterval` and per-task redirect delegates, and `URLProtocol` cannot redirect: enforce deadlines yourself and test redirects against a loopback server | wave 1 (C2) |
 | 25 | A test socket server must be closed by the thread that owns it, otherwise its file descriptor number can be reused by another server | wave 1 (C2) |
+| 26 | Parse HTML with `SwiftSoup.parseHTML`, never `parse`: `parse` switches to the XML parser when a page starts with `<?xml` | wave 1 (C4) |
+| 27 | SwiftLint runs locally from its Linux release binary (or builds from source in ~10 min): lint before pushing instead of spending a CI round | wave 1–2 (C4, C3b) |
+| 28 | `URL.cachesDirectory` does not exist on Linux, and `FileManager.replaceItemAt` fails there: use explicit paths and `rename(2)` for atomic writes | wave 2 (C3a, C3b) |
+| 29 | Never let file deletion follow symlinks: validate every path component from the root, refuse symlinked roots, areas and entries | wave 2 (C3a, CodeRabbit) |
+| 30 | On Linux, `URLSession` carries the cookies it added onto a followed redirect, whatever the new host: account sessions refuse redirects that leave the allowed hosts | wave 2 (C2c, Fable) |
+| 31 | Keep other clients' JSON numbers as written (lexeme or Decimal), never through `Double`: preserved data must round-trip byte-exact | wave 2 (Fable on LOT-062) |
+| 32 | Header-name checks (in code and in tests) must trim and lowercase names, or `" Cookie"` slips through | wave 2 (C2c) |
