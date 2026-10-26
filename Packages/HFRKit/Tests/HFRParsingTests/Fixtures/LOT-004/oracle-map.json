@@ -1,0 +1,255 @@
+{
+  "R40a.html": {
+    "kind": "form",
+    "mode": "reply",
+    "path": "../captures/R40a-reply-form-logged-in.html",
+    "session": {
+      "pseudo": "user2"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=28563&page=1&p=1&subcat=433&sondage=0&owntopic=0&new=0"
+  },
+  "R40b.html": {
+    "kind": "form",
+    "mode": "reply",
+    "path": "../captures/R40b-reply-form-anon.html",
+    "session": {
+      "pseudo": "user1"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=28563&page=1&p=1&subcat=433&sondage=0&owntopic=0&new=0"
+  },
+  "R41a.html": {
+    "kind": "form",
+    "mode": "quote",
+    "path": "../captures/R41a-quote-form.html",
+    "session": {
+      "pseudo": "user2"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=28563&numrep=2666649&ref=1&page=1&p=1&subcat=433&sondage=0&owntopic=0&new=0"
+  },
+  "R41b.html": {
+    "kind": "form",
+    "mode": "quote",
+    "path": "../captures/R41b-quote-form-of-quoting-post.html",
+    "session": {
+      "pseudo": "user2"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=28563&numrep=2666695&ref=3&page=1&p=1&subcat=433&sondage=0&owntopic=0&new=0"
+  },
+  "R42.html": {
+    "kind": "form",
+    "mode": "quote",
+    "path": "../captures/R42-multiquote-form-cookie.html",
+    "session": {
+      "pseudo": "user2"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=28563&page=1&p=1&subcat=433&sondage=0&owntopic=0&new=0"
+  },
+  "R43a.html": {
+    "kind": "form",
+    "mode": "edit",
+    "path": "../captures/R43a-mp-edit-form-first-post.html",
+    "session": {
+      "pseudo": "user2"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207033&numreponse=1980875029&page=1&p=1&subcat=0&sondage=0&owntopic=0"
+  },
+  "R43b.html": {
+    "kind": "form",
+    "mode": "edit",
+    "path": "../captures/R43b-mp-edit-form-lf-post.html",
+    "session": {
+      "pseudo": "user2"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207033&numreponse=1980875030&page=1&p=1&subcat=0&sondage=0&owntopic=0"
+  },
+  "R43c.html": {
+    "kind": "form",
+    "mode": "edit",
+    "path": "../captures/R43c-mp-edit-form-nonbmp-post.html",
+    "session": {
+      "pseudo": "user2"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207033&numreponse=1980875031&page=1&p=1&subcat=0&sondage=0&owntopic=0"
+  },
+  "R44.html": {
+    "kind": "form",
+    "mode": "edit",
+    "path": "../captures/R44-mp-edit-form-other-account-message.html",
+    "session": {
+      "pseudo": "user2"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207033&numreponse=1980875038&page=1&p=1&subcat=0&sondage=0&owntopic=0"
+  },
+  "R45a.html": {
+    "kind": "form",
+    "mode": "newtopic",
+    "path": "../captures/R45a-new-topic-form.html",
+    "session": {
+      "pseudo": "user2"
+    },
+    "url": "https://forum.hardware.fr/hfr/Discussions/nouveau_sujet.htm"
+  },
+  "R45b.html": {
+    "kind": "form",
+    "mode": "mp",
+    "path": "../captures/R45b-new-mp-form.html",
+    "session": {
+      "pseudo": "user2"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&sond=&p=1&subcat=&dest=user1&subcatgroup=0"
+  },
+  "R46.html": {
+    "kind": "form",
+    "mode": "alert",
+    "path": "../captures/R46-modo-alert-form.html",
+    "session": {
+      "pseudo": "user2"
+    },
+    "url": "https://forum.hardware.fr/user/modo.php?config=hfr.inc&cat=13&post=28563&numreponse=2666649&page=1&ref=1"
+  },
+  "R47a.html": {
+    "kind": "form",
+    "mode": "quote",
+    "path": "../captures/R47a-mp-quote-form.html",
+    "session": {
+      "pseudo": "user2"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207033&numrep=1980875030&ref=2&page=1&p=1&subcat=0&sondage=0&owntopic=0&new=0"
+  },
+  "R47b.html": {
+    "kind": "form",
+    "mode": "reply",
+    "path": "../captures/R47b-mp-reply-composer.html",
+    "session": {
+      "pseudo": "user2"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207033&page=1&p=1&subcat=0&sondage=0&owntopic=0&new=0"
+  },
+  "R47c.html": {
+    "kind": "form",
+    "mode": "quote",
+    "path": "../captures/R47c-mp-composer-multiquote-cookie.html",
+    "session": {
+      "pseudo": "user2"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207033&page=1&p=1&subcat=0&sondage=0&owntopic=0&new=0"
+  },
+  "R47u1.html": {
+    "kind": "form",
+    "mode": "reply",
+    "path": "../captures/R47u1-mp-reply-composer-recipient.html",
+    "session": {
+      "pseudo": "user1"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207033&page=1&p=1&subcat=0&sondage=0&owntopic=0&new=0"
+  },
+  "S-find-R13a.json": {
+    "kind": "storage",
+    "pseudo": "user2",
+    "storage": "mpstorage-op"
+  },
+  "S-find-R13u1.json": {
+    "kind": "storage",
+    "pseudo": "user1",
+    "storage": "mpstorage-op"
+  },
+  "S-find-R13u1b.json": {
+    "kind": "storage",
+    "pseudo": "user1",
+    "storage": "mpstorage-op"
+  },
+  "W10.html": {
+    "flow": "reply",
+    "kind": "response",
+    "path": "../captures/W10-mp-create-crlf-success.html"
+  },
+  "W11.html": {
+    "flow": "reply",
+    "kind": "response",
+    "path": "../captures/W11-mp-reply-lf-legacy-success.html"
+  },
+  "W11x.html": {
+    "flow": "reply",
+    "kind": "response",
+    "path": "../captures/W11x-mp-create-second-topic-flood.html"
+  },
+  "W12.html": {
+    "flow": "reply",
+    "kind": "response",
+    "path": "../captures/W12-mp-reply-nonbmp-success.html"
+  },
+  "W13b.html": {
+    "flow": "reply",
+    "kind": "response",
+    "path": "../captures/W13b-mp-reply-browser-semantics-success.html"
+  },
+  "W13c.html": {
+    "flow": "reply",
+    "kind": "response",
+    "path": "../captures/W13c-mp-reply-recipient-success.html"
+  },
+  "W13cx.html": {
+    "flow": "reply",
+    "kind": "response",
+    "path": "../captures/W13cx-mp-reply-flood-other-account.html"
+  },
+  "W14.html": {
+    "flow": "reply",
+    "kind": "response",
+    "path": "../captures/W14-mp-reply-multiquote-success.html"
+  },
+  "W14x.html": {
+    "flow": "reply",
+    "kind": "response",
+    "path": "../captures/W14x-mp-reply-flood-fourth-consecutive.html"
+  },
+  "W15.html": {
+    "flow": "reply",
+    "kind": "response",
+    "path": "../captures/W15-mp-edit-success.html",
+    "urlQuote": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207033&numreponse=1980875030&page=1&p=1&subcat=&sondage=0&owntopic=0&new=0"
+  },
+  "W16a.html": {
+    "flow": "delete",
+    "kind": "response",
+    "path": "../captures/W16a-mp-delete-post-success.html",
+    "urlQuote": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207033&numreponse=1980875031&page=1&p=1&subcat=&sondage=0&owntopic=0&new=0"
+  },
+  "W16b.html": {
+    "flow": "delete",
+    "kind": "response",
+    "path": "../captures/W16b-mp-delete-post-again.html",
+    "urlQuote": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207033&numreponse=1980875031&page=1&p=1&subcat=&sondage=0&owntopic=0&new=0"
+  },
+  "W17a.html": {
+    "flow": "reply",
+    "kind": "response",
+    "path": "../captures/W17a-mp-reply-empty-body-rejected.html"
+  },
+  "W17b.html": {
+    "flow": "reply",
+    "kind": "response",
+    "path": "../captures/W17b-mp-reply-bad-token-rejected.html"
+  },
+  "W17c.html": {
+    "flow": "reply",
+    "kind": "response",
+    "path": "../captures/W17c-mp-reply-logged-out-rejected.html"
+  },
+  "W19.html": {
+    "flow": "delete",
+    "kind": "response",
+    "path": "../captures/W19-mp-delete-first-post-success.html",
+    "urlQuote": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207033&numreponse=1980875029&page=1&p=1&subcat=&sondage=0&owntopic=0&new=0"
+  },
+  "W20a.html": {
+    "flow": "reply",
+    "kind": "response",
+    "path": "../captures/W20a-mp-reply-flood.html"
+  },
+  "W20b.html": {
+    "flow": "reply",
+    "kind": "response",
+    "path": "../captures/W20b-mp-reply-flood-again.html"
+  }
+}

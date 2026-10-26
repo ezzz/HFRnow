@@ -1,0 +1,47 @@
+{
+  "case" : "W15",
+  "exception" : null,
+  "input" : {
+    "bytes" : 1775,
+    "context" : {
+      "charset" : "utf-8",
+      "flow" : "reply",
+      "status" : 200,
+      "urlQuote" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207033&numreponse=1980875030&page=1&p=1&subcat=&sondage=0&owntopic=0&new=0"
+    },
+    "currentURL" : null,
+    "file" : "../captures/W15-mp-edit-success.html",
+    "now" : null,
+    "sha256" : "f9d5bc46b39bdaeaf078c7eb55e0b0df42c075c556959f2fee347fc7beeabb15"
+  },
+  "kind" : "response",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "legacy" : {
+      "anchor" : "#t1980875030",
+      "anchorMatches" : 1,
+      "classification" : "success",
+      "decoded" : true,
+      "hopFound" : true,
+      "hopHasInput" : false,
+      "hopHasLink" : false,
+      "message" : "Votre message a été édité avec succès !"
+    },
+    "live" : {
+      "ok" : true,
+      "refreshAnchor" : "t1980875030",
+      "refreshURL" : "https://forum.hardware.fr/forum2.php?config=hfr.inc&amp;cat=prive&amp;post=3207033&amp;page=1&amp;p=1&amp;sondage=0&amp;owntopic=0&amp;trash=&amp;trash_post=&amp;print=0&amp;numreponse=0&amp;quote_only=0&amp;new=0&amp;nojs=0#t1980875030",
+      "statusMessage" : "Votre message a été édité avec succès !"
+    }
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

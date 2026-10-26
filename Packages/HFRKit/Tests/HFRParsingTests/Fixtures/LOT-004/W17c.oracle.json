@@ -1,0 +1,43 @@
+{
+  "case" : "W17c",
+  "exception" : null,
+  "input" : {
+    "bytes" : 3300,
+    "context" : {
+      "charset" : "utf-8",
+      "flow" : "reply",
+      "status" : 200,
+      "urlQuote" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=1000&numreponse=1003&page=1&p=1&subcat=&sondage=0&owntopic=0&new=0"
+    },
+    "currentURL" : null,
+    "file" : "../captures/W17c-mp-reply-logged-out-rejected.html",
+    "now" : null,
+    "sha256" : "701b6036bb1a576b6365d285109fbacc24bdb95e8a85a0fb4ad4bc3972eee70b"
+  },
+  "kind" : "response",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "legacy" : {
+      "classification" : "rejected",
+      "decoded" : true,
+      "hopFound" : true,
+      "hopHasInput" : true,
+      "hopHasLink" : false,
+      "message" : "Désolé, vous devez être enregistré pour poster sur le forum"
+    },
+    "live" : {
+      "error" : "submissionRejected",
+      "message" : "Désolé, vous devez être enregistré pour poster sur le forum"
+    }
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

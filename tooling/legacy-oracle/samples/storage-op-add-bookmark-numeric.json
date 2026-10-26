@@ -1,0 +1,16 @@
+{
+  "args": {
+    "sAuthorPost": "fakeuser2",
+    "sCat": "13",
+    "sLabel": "Nouveau",
+    "sNumResponse": "777",
+    "sPost": "100"
+  },
+  "numRep": "59533822",
+  "op": "addBookmark",
+  "postId": "202",
+  "responses": [
+    "storage-mp-page-numeric.html",
+    "response-mp-success.html"
+  ]
+}

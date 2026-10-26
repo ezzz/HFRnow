@@ -40,19 +40,19 @@ index b0a205a..2c5f491 100644
  }
 diff --git a/HFRswiftTests/OracleExport.swift b/HFRswiftTests/OracleExport.swift
 new file mode 100644
-index 0000000..3215104
+index 0000000..8e82a04
 --- /dev/null
 +++ b/HFRswiftTests/OracleExport.swift
-@@ -0,0 +1,378 @@
-+// Oracle exporter for SwiftHFR LOT-002 (list parsers) and LOT-003 (topic pages, OracleExportTopic.swift).
-+// Local-only: never committed to hfrnow.
+@@ -0,0 +1,385 @@
++// Oracle exporter for SwiftHFR LOT-002 (list parsers), LOT-003 (topic pages, OracleExportTopic.swift) and LOT-004
++// (write flows and storage formats, OracleExportWrite.swift). Local-only: never committed to hfrnow.
 +//
 +// Runs the REAL legacy parsers, offline, on saved HTML pages and writes one `<case>.oracle.json` per page.
 +// Inert unless HFR_ORACLE_IN and HFR_ORACLE_OUT are set (xcodebuild forwards them as TEST_RUNNER_HFR_ORACLE_*).
 +//
 +//   HFR_ORACLE_IN   directory with the input pages (*.html; *.json specs for kinds that take one) and an `oracle-map.json`;
 +//                   an input file missing from the map is reported in errors.json
-+//                   { "<file>.html": "forums|topics|favorites|mp|search|topic"
++//                   { "<file>.html|.json": "forums|topics|favorites|mp|search|topic|form|response|storage"
 +//                                  | { "kind": "...", "currentURL": "/forum1.php?...", ...topic options } }
 +//   HFR_ORACLE_OUT  directory receiving <case>.oracle.json and errors.json
 +//   HFR_ORACLE_LEGACY_COMMIT  optional, copied into every output (provenance, not a run-time value)
@@ -72,7 +72,8 @@ index 0000000..3215104
 +    private static let statusNames = [0: "idle", 1: "maintenance", 2: "noResults", 3: "noAuth", 4: "complete"]
 +    /// UserDefaults keys the list parsers read or write (ObjCFavoritesLoaderWorker.m:36-37,157-158,
 +    /// HFRplusAppDelegate.m:702, ObjCForumSearchWorker.m:28).
-+    private static let defaultsKeys = ["nb_mp", "arrayCategoriesVisibleOrder", "arrayCategoriesHiddenOrder", "recherche_categorie"]
++    private static let defaultsKeys = ["nb_mp", "arrayCategoriesVisibleOrder", "arrayCategoriesHiddenOrder", "recherche_categorie",
++                                       "dicMPStorage_postid"] // dicMPStorage_postid: LOT-004 (MPStorage.m:667-678)
 +    private static let defaultTopicsURL = "/forum1.php?config=hfr.inc&cat=13&page=1"
 +    private static let defaultMPURL = "/forum1.php?config=hfr.inc&cat=prive&page=1" // ObjCMPTopicsLoaderWorker.m:9
 +
@@ -177,7 +178,7 @@ index 0000000..3215104
 +    }
 +
 +    private func runCase(file: String, spec: CaseSpec, inDir: URL, delegate: NSObject, legacyCommit: String?) throws -> [String: Any] {
-+        guard ["forums", "topics", "favorites", "mp", "search", "topic"].contains(spec.kind) else {
++        guard ["forums", "topics", "favorites", "mp", "search", "topic"].contains(spec.kind) || Self.writeKinds.contains(spec.kind) else {
 +            throw HarnessError(message: "unknown kind '\(spec.kind)'")
 +        }
 +        // `path` (optional map key) points at the page relative to the map folder, so a corpus can be used in place.
@@ -215,6 +216,12 @@ index 0000000..3215104
 +        case "topic":
 +            currentURL = spec.currentURL ?? Self.defaultTopicPageURL
 +            outcome = try runTopic(data, currentURL: currentURL ?? "", options: spec.options, extras: &topicExtras)
++        case "form":
++            outcome = try runForm(data, options: spec.options, extras: &topicExtras)
++        case "response":
++            outcome = try runResponse(data, options: spec.options, extras: &topicExtras)
++        case "storage":
++            outcome = try runStorage(data, inDir: inDir, options: spec.options, extras: &topicExtras)
 +        case "search":
 +            currentURL = spec.currentURL ?? Self.defaultTopicsURL
 +            outcome = runSearch(data, currentURL: currentURL ?? "")
@@ -424,10 +431,10 @@ index 0000000..3215104
 +}
 diff --git a/HFRswiftTests/OracleExportTopic.swift b/HFRswiftTests/OracleExportTopic.swift
 new file mode 100644
-index 0000000..385774d
+index 0000000..77757c8
 --- /dev/null
 +++ b/HFRswiftTests/OracleExportTopic.swift
-@@ -0,0 +1,290 @@
+@@ -0,0 +1,291 @@
 +// Oracle exporter for SwiftHFR LOT-003: the topic-page pipeline. Local-only: never committed to hfrnow.
 +//
 +// Kind `topic` runs, offline, what the app runs for one topic page (ObjCTopicPageWorker.m:103-146):
@@ -509,6 +516,7 @@ index 0000000..385774d
 +    }
 +
 +    func endTopicRun(restoring saved: (Any?, Any?)) {
++        endWriteRun() // LOT-004
 +        helperVoid("removeTopicHooks")
 +        let list = blackList()
 +        list.setValue(saved.0, forKey: "dicBlackList")
@@ -718,12 +726,1439 @@ index 0000000..385774d
 +        }
 +    }
 +}
+diff --git a/HFRswiftTests/OracleExportWrite.swift b/HFRswiftTests/OracleExportWrite.swift
+new file mode 100644
+index 0000000..c223f92
+--- /dev/null
++++ b/HFRswiftTests/OracleExportWrite.swift
+@@ -0,0 +1,644 @@
++// Oracle exporter for SwiftHFR LOT-004: write flows (forms, write responses) and storage formats. Local-only.
++//
++// Kind `form`      a form page (reply, quote, edit, delete, new topic, MP, moderation alert) through
++//                  (a) the legacy extraction + POST building (OracleLegacyWrite.m, transliterated from the legacy view
++//                      controllers and run on the real HTMLParser / ASIFormDataRequest), and
++//                  (b) the live Swift services (ForumReplyPostingService, ForumReplyQuoteTemplateService,
++//                      ForumMessageDeletionService, ForumModerationAlertService) over a stubbed URLSession.
++// Kind `response`  a POST response through the legacy classifier and the live classifier (same services, POST answered
++//                  with the sample), plus the real MPStorage success test.
++// Kind `storage`   MPStorage page parsing / saving / mutation (real MPStorage.m), and synthetic on-device formats
++//                  (Keychain account blob, BlackList plists, SmileyCache, OfflineStorage) built with the real classes.
++//
++// oracle-map.json options:
++//   form      mode (reply|quote|edit|delete|newtopic|mp|alert), url, session {pseudo, hash}, message (the alert reason in alert mode), mutatePostedContent (self-test: the case must fail),
++//             overrides {sujet, subcat, dest}
++//   response  flow (reply|delete|alertPrepare|alertSubmit|mpstorage), charset (utf-8|iso-8859-1), status, urlQuote (default: a reply URL with numreponse=1003;
++//             charset only changes the legacy decoding and the MPStorage path, the live stub always answers utf-8)
++//   storage   storage (mpstorage-page|mpstorage-op|keychain|blacklist|smileys|offline), pseudo, charset
++
++import CryptoKit
++import UIKit
++import XCTest
++@testable import HFRswift
++
++/// URLProtocol answering the live services without a network: one canned answer per HTTP method, requests logged.
++final class OracleStubURLProtocol: URLProtocol, @unchecked Sendable {
++    nonisolated(unsafe) static var responses: [String: (status: Int, data: Data)] = [:]
++    nonisolated(unsafe) static var log: [[String: Any]] = []
++    private static let lock = NSLock()
++
++    static func reset(get: Data?, post: Data?, postStatus: Int = 200) {
++        lock.lock(); defer { lock.unlock() }
++        responses = [:]
++        if let get { responses["GET"] = (200, get) }
++        if let post { responses["POST"] = (postStatus, post) }
++        log = []
++    }
++
++    static func drain() -> [[String: Any]] {
++        lock.lock(); defer { lock.unlock() }
++        let copy = log
++        log = []
++        return copy
++    }
++
++    override class func canInit(with request: URLRequest) -> Bool { true }
++    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
++
++    override func startLoading() {
++        var body = request.httpBody
++        if body == nil, let stream = request.httpBodyStream {
++            stream.open()
++            var collected = Data()
++            var buffer = [UInt8](repeating: 0, count: 4096)
++            while stream.hasBytesAvailable {
++                let count = stream.read(&buffer, maxLength: buffer.count)
++                if count <= 0 { break }
++                collected.append(buffer, count: count)
++            }
++            stream.close()
++            body = collected
++        }
++        let method = request.httpMethod ?? "GET"
++        var entry: [String: Any] = ["method": method, "url": request.url?.absoluteString ?? ""]
++        if method == "POST" {
++            entry["contentType"] = request.value(forHTTPHeaderField: "Content-Type") ?? NSNull()
++            entry["body"] = String(data: body ?? Data(), encoding: .utf8) ?? "<not UTF-8>"
++        }
++        Self.lock.lock()
++        Self.log.append(entry)
++        let answer = Self.responses[method] ?? (404, Data())
++        Self.lock.unlock()
++        let response = HTTPURLResponse(url: request.url ?? URL(string: "https://forum.hardware.fr/")!, statusCode: answer.status,
++                                       httpVersion: "HTTP/1.1", headerFields: ["Content-Type": "text/html; charset=utf-8"])!
++        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
++        client?.urlProtocol(self, didLoad: answer.data)
++        client?.urlProtocolDidFinishLoading(self)
++    }
++
++    override func stopLoading() {}
++}
++
++extension OracleExport {
++    static let writeKinds = ["form", "response", "storage"]
++
++    /// Minimal logged-in reply form served by the stub when a case only brings the POST response.
++    static let builtinReplyForm = """
++    <html><body><form name="hop" action="/bddpost.php?config=hfr.inc" method="post">\
++    <input type="hidden" name="hash_check" value="0123456789abcdef0123456789abcdef01234567" />\
++    <input type="hidden" name="cat" value="13" /><input type="hidden" name="post" value="1000" />\
++    <input name="pseudo" value="fakeuser1" /><textarea name="content_form" id="content_form"></textarea>\
++    <input type="submit" name="submit" value="Valider votre message" /></form></body></html>
++    """
++    static let builtinModoForm = """
++    <html><body><form action="modo.php?config=hfr.inc" method="post">\
++    <input type="hidden" name="hash_check" value="0123456789abcdef0123456789abcdef01234567" />\
++    <input type="hidden" name="cat" value="13" /><input type="hidden" name="post" value="1000" />\
++    <input type="hidden" name="numreponse" value="1002" /><textarea name="raison"></textarea></form></body></html>
++    """
++
++    // MARK: helpers
++
++    private func writeHelper() -> AnyObject {
++        guard let helper = NSClassFromString("OracleLegacyWrite") else { fatalError("OracleLegacyWrite missing") }
++        return helper as AnyObject
++    }
++
++    func writeCall(_ selector: String, _ first: Any? = nil) -> Any? {
++        writeHelper().perform(NSSelectorFromString(selector), with: first)?.takeUnretainedValue()
++    }
++
++    func writeVoid(_ selector: String, _ first: Any? = nil) {
++        _ = writeHelper().perform(NSSelectorFromString(selector), with: first)
++    }
++
++    private func topicHelper(_ selector: String, _ first: Any? = nil, _ second: Any? = nil) {
++        guard let helper = NSClassFromString("OracleObjCSafe") as AnyObject? else { fatalError("OracleObjCSafe missing") }
++        _ = helper.perform(NSSelectorFromString(selector), with: first, with: second)
++    }
++
++    func endWriteRun() {
++        writeVoid("removeWriteHooks")
++    }
++
++    /// Hooks for a write case: account store and ASI network replaced (topic hooks), startSynchronous and alerts recorded.
++    private func beginWriteHooks(pseudo: String?, hash: String?) {
++        topicHelper("installTopicHooks")
++        topicHelper("setTopicHookPseudo:avatarMode:", pseudo, "blocked")
++        topicHelper("setTopicHookHash:", hash)
++        writeVoid("installWriteHooks")
++        writeVoid("setWriteResponses:", [Any]())
++    }
++
++    private func endWriteHooks() {
++        writeVoid("removeWriteHooks")
++        topicHelper("removeTopicHooks")
++    }
++
++    /// Runs an async body to completion on the main actor, spinning the main run loop (the runner is synchronous).
++    func runBlocking(timeout: TimeInterval = 30, _ body: @escaping @MainActor () async -> Void) -> Bool {
++        var finished = false
++        Task { @MainActor in
++            await body()
++            finished = true
++        }
++        let deadline = Date(timeIntervalSinceNow: timeout)
++        while !finished && deadline.timeIntervalSinceNow > 0 {
++            RunLoop.main.run(mode: .default, before: Date(timeIntervalSinceNow: 0.02))
++        }
++        return finished
++    }
++
++    /// "a=b&c=d" -> pairs sorted by key then value. `plusIsSpace`: the live encoder writes spaces as "+" (ReplyService.swift:716-719),
++    /// the legacy ASIFormDataRequest writes "%20".
++    func sortedPairs(_ body: String, plusIsSpace: Bool) -> [[String]] {
++        body.split(separator: "&", omittingEmptySubsequences: true).map { part -> [String] in
++            let pieces = part.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false).map(String.init)
++            let decode = { (text: String) -> String in
++                (plusIsSpace ? text.replacingOccurrences(of: "+", with: " ") : text).removingPercentEncoding ?? text
++            }
++            return [decode(pieces[0]), decode(pieces.count > 1 ? pieces[1] : "")]
++        }
++        .sorted { ($0[0], $0[1]) < ($1[0], $1[1]) }
++    }
++
++    /// The POST the live service sent, in the same shape as the legacy one. The wire order of the live body is a
++    /// Swift Dictionary order (random per process), so only the sorted pairs are exported.
++    private func livePost(from log: [[String: Any]]) -> Any {
++        guard let entry = log.last(where: { ($0["method"] as? String) == "POST" }), let body = entry["body"] as? String else { return NSNull() }
++        let pairs = sortedPairs(body, plusIsSpace: true)
++        return [
++            "url": entry["url"] ?? NSNull(), "method": "POST", "contentType": entry["contentType"] ?? NSNull(),
++            "bodyBytes": body.utf8.count, "bodySorted": body.split(separator: "&").map(String.init).sorted().joined(separator: "&"),
++            "pairs": pairs, "bodyOrder": "unspecified (Swift Dictionary iteration)"
++        ] as [String: Any]
++    }
++
++    private func describe(_ error: Error) -> [String: Any] {
++        guard let posting = error as? ReplyPostingError else { return ["error": "other", "description": String(describing: error)] }
++        switch posting {
++        case .emptyMessage: return ["error": "emptyMessage"]
++        case .authenticationRequired: return ["error": "authenticationRequired"]
++        case .replyFormUnavailable: return ["error": "replyFormUnavailable"]
++        case .noActiveAccount: return ["error": "noActiveAccount"]
++        case .invalidResponse: return ["error": "invalidResponse"]
++        case .serverError(let status, let message): return ["error": "serverError", "statusCode": status, "message": message ?? NSNull()]
++        case .submissionRejected(let message): return ["error": "submissionRejected", "message": message ?? NSNull()]
++        }
++    }
++
++    private func describe(_ result: ReplyPostingResult) -> [String: Any] {
++        ["ok": true, "refreshAnchor": result.refreshAnchor ?? NSNull(), "refreshURL": result.refreshURL?.absoluteString ?? NSNull(),
++         "statusMessage": result.statusMessage ?? NSNull()]
++    }
++
++    /// The cookie store handed to the live services. A group-container store is persistent: it lives on disk in the
++    /// simulator and survives runs, so it is emptied for every case (the stub responses set no cookie; the live
++    /// services read the session from the injected provider, not from this store).
++    private func oracleCookieJar() -> HTTPCookieStorage {
++        let jar = HTTPCookieStorage.sharedCookieStorage(forGroupContainerIdentifier: "oracle-lot004")
++        for cookie in jar.cookies ?? [] { jar.deleteCookie(cookie) }
++        return jar
++    }
++
++    private func stubSession() -> URLSession {
++        let config = URLSessionConfiguration.ephemeral
++        config.protocolClasses = [OracleStubURLProtocol.self]
++        return URLSession(configuration: config)
++    }
++
++    private func charsetEncoding(_ options: [String: Any]) -> UInt {
++        (options["charset"] as? String) == "iso-8859-1" ? String.Encoding.isoLatin1.rawValue : String.Encoding.utf8.rawValue
++    }
++
++    // MARK: kind `form`
++
++    func runForm(_ data: Data, options: [String: Any], extras: inout TopicCaseExtras) throws -> (Any?, String?) {
++        let mode = options["mode"] as? String ?? "reply"
++        guard ["reply", "quote", "edit", "delete", "newtopic", "mp", "alert"].contains(mode) else {
++            throw HarnessError(message: "form mode must be reply, quote, edit, delete, newtopic, mp or alert")
++        }
++        let session = options["session"] as? [String: String] ?? [:]
++        let pseudo = session["pseudo"] ?? "fakeuser1"
++        let hash = session["hash"] ?? "0123456789abcdef0123456789abcdef01234567"
++        let defaultURL = mode == "alert"
++            ? "https://forum.hardware.fr/user/modo.php?config=hfr.inc&cat=13&post=1000&numreponse=1002"
++            : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=1000&numrep=1001&page=1&p=1&subcat=&sondage=0&owntopic=0&new=0"
++        let urlString = options["url"] as? String ?? defaultURL
++        guard let url = URL(string: urlString) else { throw HarnessError(message: "bad url") }
++        let overrides = options["overrides"] as? [String: String] ?? [:]
++        extras.context = ["mode": mode, "url": urlString, "session": ["pseudo": pseudo, "hash": hash],
++                          "message": options["message"] ?? NSNull(), "overrides": overrides]
++
++        beginWriteHooks(pseudo: pseudo, hash: hash)
++        defer { endWriteHooks() }
++        var result: [String: Any] = [:]
++
++        // (a) legacy
++        let parsed = writeCall("legacyFormParse:", ["data": data, "flavor": mode == "alert" ? "modo" : "hop"]) as? [String: Any] ?? [:]
++        var legacy = parsed
++        legacy["fetchURL"] = urlString.lowercased() // QuoteMessageViewController.m:36, AlerteModoViewController.m:40
++        let prefill = parsed["contentForm"] as? String ?? ""
++        let inputData = parsed["inputData"] as? [String: String] ?? [:]
++        let defaultMessage = "Test message\nline two: é & + = % 100%"
++        let message = options["message"] as? String ?? (["quote", "edit", "delete"].contains(mode) ? prefill : defaultMessage)
++        if parsed["exception"] == nil, !(mode == "alert" && (parsed["alreadyAlerted"] as? Bool ?? false)) {
++            var spec: [String: Any] = [
++                "flavor": mode == "alert" ? "alert" : "add", "inputData": inputData, "formSubmit": parsed["formSubmit"] ?? "",
++                "pseudo": pseudo, "hash": hash, "content": mode == "alert" ? (options["message"] as? String ?? "Alert reason") : message,
++                "haveTitle": parsed["haveTitle"] ?? false, "haveCategory": parsed["haveCategory"] ?? false, "haveTo": parsed["haveTo"] ?? false,
++                "sujet": overrides["sujet"] ?? inputData["sujet"] ?? "", "subcat": overrides["subcat"] ?? inputData["subcat"] ?? "",
++                "dest": overrides["dest"] ?? inputData["dest"] ?? "", "deleteMode": mode == "delete"
++            ]
++            if mode == "alert" { spec["inputData"] = inputData }
++            var legacyPost = writeCall("legacyPost:", spec) as? [String: Any] ?? [:]
++            // legacyPost: strips emoji (-[NSString removeEmoji]) before building the body: record the text it really sent.
++            let sent = legacyPost.removeValue(forKey: "sentContent") as? String
++            legacy["post"] = legacyPost.isEmpty ? NSNull() : legacyPost
++            legacy["postedContent"] = sent ?? NSNull()
++            if let mismatch = postedContentMismatch(selfTest(legacy["postedContent"] as? String, options), post: legacy["post"] as? [String: Any], mode: mode) {
++                return (nil, "OracleSelfCheck: legacy \(mismatch)")
++            }
++        }
++        result["legacy"] = legacy
++
++        // (b) live
++        let postPage = Data("""
++        <html><head><meta http-equiv="Refresh" content="0;url=/forum2.php?config=hfr.inc&cat=13&post=1000&page=1#t1002" /></head>\
++        <body><div class="hop">Votre message a bien été pris en compte.</div></body></html>
++        """.utf8)
++        OracleStubURLProtocol.reset(get: data, post: postPage)
++        var live: [String: Any] = [:]
++        let finished = runBlocking { [self] in
++            let provider: (HTTPCookieStorage) throws -> ReplySessionContext = { _ in ReplySessionContext(pseudoDisplay: pseudo, hashCheck: hash) }
++            let jar = oracleCookieJar()
++            switch mode {
++            case "quote":
++                let service = ForumReplyQuoteTemplateService(session: stubSession(), cookieStorage: jar, sessionContextProvider: provider)
++                do { live["quoteTemplate"] = try await service.fetchQuoteTemplate(from: url) } catch { live["quoteTemplate"] = describe(error) }
++                fallthrough
++            case "reply", "edit", "newtopic", "mp":
++                let service = ForumReplyPostingService(session: stubSession(), cookieStorage: jar, sessionContextProvider: provider)
++                do {
++                    let context = try await service.fetchComposerContext(topicURL: url)
++                    live["composerContext"] = [
++                        "subject": context.subject ?? NSNull(), "recipient": context.recipient ?? NSNull(),
++                        "isSubjectEditable": context.isSubjectEditable, "selectedSubcategoryID": context.selectedSubcategoryID ?? NSNull(),
++                        "isSubcategoryEditable": context.isSubcategoryEditable,
++                        "subcategoryOptions": context.subcategoryOptions.map { ["id": $0.id, "title": $0.title] }
++                    ] as [String: Any]
++                } catch { live["composerContext"] = describe(error) }
++                _ = OracleStubURLProtocol.drain()
++                do { live["result"] = describe(try await service.postReply(message: message, topicURL: url, formOverrides: overrides)) }
++                catch { live["result"] = describe(error) }
++            case "delete":
++                let service = ForumMessageDeletionService(session: stubSession(), cookieStorage: jar, sessionContextProvider: provider)
++                do { live["result"] = describe(try await service.deleteMessage(editURL: url)) } catch { live["result"] = describe(error) }
++            default: // alert
++                let service = ForumModerationAlertService(session: stubSession(), cookieStorage: jar, sessionContextProvider: provider)
++                do {
++                    switch try await service.prepareAlert(from: url) {
++                    case .alreadyAlerted(let text): live["prepare"] = ["state": "alreadyAlerted", "message": text]
++                    case .ready(let form):
++                        live["prepare"] = ["state": "ready", "submitURL": form.submitURL.absoluteString,
++                                           "params": form.params] as [String: Any]
++                        do {
++                            let text = try await service.submitAlert(reason: options["message"] as? String ?? "Alert reason", with: form)
++                            live["result"] = ["ok": true, "statusMessage": text] as [String: Any]
++                        } catch { live["result"] = describe(error) }
++                    }
++                } catch { live["prepare"] = describe(error) }
++            }
++        }
++        if !finished { return (nil, "OracleTimeout: live write service did not finish within 30 s") }
++        let log = OracleStubURLProtocol.drain()
++        live["post"] = livePost(from: log)
++        live["requests"] = log.map { ["method": $0["method"] ?? "", "url": $0["url"] ?? ""] }
++        // What the live service really posted: the text handed to it (the composer text, or the alert reason), and for a
++        // delete the unchanged text the service reads from the edit form. Null when no POST was sent.
++        let liveIntended: String? = mode == "alert" ? (options["message"] as? String ?? "Alert reason") : (mode == "delete" ? nil : message)
++        let livePostBody = live["post"] as? [String: Any]
++        if livePostBody == nil {
++            live["postedContent"] = NSNull()
++        } else if let intended = liveIntended {
++            live["postedContent"] = intended
++            if let mismatch = postedContentMismatch(selfTest(intended, options), post: livePostBody, mode: mode) { return (nil, "OracleSelfCheck: live \(mismatch)") }
++        } else {
++            live["postedContent"] = postedField(livePostBody, mode: mode) ?? NSNull()
++        }
++        result["live"] = live
++        result["comparison"] = compareForms(legacy: legacy["post"] as? [String: Any], live: live["post"] as? [String: Any])
++        _ = writeCall("drainWriteLog")
++        return (result, nil)
++    }
++
++    /// The posted text field of a POST (`raison` for an alert, `content_form` otherwise), line breaks normalised to `\n`.
++    private func postedField(_ post: [String: Any]?, mode: String) -> String? {
++        let name = mode == "alert" ? "raison" : "content_form"
++        guard let pairs = post?["pairs"] as? [[String]], let pair = pairs.first(where: { $0[0] == name }) else { return nil }
++        return pair[1].replacingOccurrences(of: "\r\n", with: "\n")
++    }
++
++    /// Self-test of the self-check: option `mutatePostedContent: true` corrupts the expected text, so the case must fail.
++    private func selfTest(_ text: String?, _ options: [String: Any]) -> String? {
++        (options["mutatePostedContent"] as? Bool) == true ? text.map { $0 + "!" } : text
++    }
++
++    /// Harness self-check: `postedContent` must equal the text field of the body it describes. Returns a message on mismatch.
++    private func postedContentMismatch(_ posted: String?, post: [String: Any]?, mode: String) -> String? {
++        guard let posted else { return nil }
++        let field = postedField(post, mode: mode)
++        let expected = posted.replacingOccurrences(of: "\r\n", with: "\n")
++        return field == expected ? nil : "postedContent \(expected.debugDescription) differs from the posted field \(String(describing: field))"
++    }
++
++    /// Field-by-field difference between the two POSTs (names in the sorted pairs; a name repeated keeps its last value).
++    private func compareForms(legacy: [String: Any]?, live: [String: Any]?) -> [String: Any] {
++        func fields(_ post: [String: Any]?) -> [String: String]? {
++            guard let pairs = post?["pairs"] as? [[String]] else { return nil }
++            return Dictionary(pairs.map { ($0[0], $0[1]) }, uniquingKeysWith: { _, last in last })
++        }
++        guard let left = fields(legacy), let right = fields(live) else {
++            return ["comparable": false, "legacyPosted": legacy != nil, "livePosted": live != nil]
++        }
++        var different: [[String: String]] = []
++        for key in Set(left.keys).intersection(right.keys).sorted() where left[key] != right[key] {
++            different.append(["name": key, "legacy": left[key] ?? "", "live": right[key] ?? ""])
++        }
++        return [
++            "comparable": true, "onlyLegacy": Set(left.keys).subtracting(right.keys).sorted(),
++            "onlyLive": Set(right.keys).subtracting(left.keys).sorted(), "different": different,
++            "sameUrl": (legacy?["url"] as? String) == (live?["url"] as? String),
++            "legacyUrl": legacy?["url"] ?? NSNull(), "liveUrl": live?["url"] ?? NSNull()
++        ]
++    }
++
++    // MARK: kind `response`
++
++    func runResponse(_ data: Data, options: [String: Any], extras: inout TopicCaseExtras) throws -> (Any?, String?) {
++        let flow = options["flow"] as? String ?? "reply"
++        guard ["reply", "delete", "alertPrepare", "alertSubmit", "mpstorage"].contains(flow) else {
++            throw HarnessError(message: "response flow must be reply, delete, alertPrepare, alertSubmit or mpstorage")
++        }
++        let charset = options["charset"] as? String ?? "utf-8"
++        let status = options["status"] as? Int ?? 200
++        let urlQuote = options["urlQuote"] as? String
++            ?? "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=1000&numreponse=1003&page=1&p=1&subcat=&sondage=0&owntopic=0&new=0"
++        extras.context = ["flow": flow, "charset": charset, "status": status, "urlQuote": urlQuote]
++        beginWriteHooks(pseudo: "fakeuser1", hash: "0123456789abcdef0123456789abcdef01234567")
++        defer { endWriteHooks() }
++        var result: [String: Any] = [:]
++
++        // legacy classification
++        let legacyFlavor = flow == "reply" ? "add" : flow
++        result["legacy"] = writeCall("legacyClassify:", ["data": data, "encoding": charset, "flavor": legacyFlavor, "urlQuote": urlQuote]) ?? NSNull()
++
++        // live classification: the sample is the POST answer (alertPrepare: the GET answer)
++        let url = URL(string: flow == "alertPrepare" || flow == "alertSubmit"
++            ? "https://forum.hardware.fr/user/modo.php?config=hfr.inc&cat=13&post=1000&numreponse=1002" : urlQuote)!
++        switch flow {
++        case "alertPrepare": OracleStubURLProtocol.reset(get: data, post: nil)
++        case "alertSubmit": OracleStubURLProtocol.reset(get: Data(Self.builtinModoForm.utf8), post: data, postStatus: status)
++        default: OracleStubURLProtocol.reset(get: Data(Self.builtinReplyForm.utf8), post: data, postStatus: status)
++        }
++        var live: [String: Any] = [:]
++        if flow != "mpstorage" {
++            let finished = runBlocking { [self] in
++                let provider: (HTTPCookieStorage) throws -> ReplySessionContext = { _ in
++                    ReplySessionContext(pseudoDisplay: "fakeuser1", hashCheck: "0123456789abcdef0123456789abcdef01234567")
++                }
++                let jar = oracleCookieJar()
++                switch flow {
++                case "reply":
++                    let service = ForumReplyPostingService(session: stubSession(), cookieStorage: jar, sessionContextProvider: provider)
++                    do { live = describe(try await service.postReply(message: "Test", topicURL: url)) } catch { live = describe(error) }
++                case "delete":
++                    let service = ForumMessageDeletionService(session: stubSession(), cookieStorage: jar, sessionContextProvider: provider)
++                    do { live = describe(try await service.deleteMessage(editURL: url)) } catch { live = describe(error) }
++                default:
++                    let service = ForumModerationAlertService(session: stubSession(), cookieStorage: jar, sessionContextProvider: provider)
++                    do {
++                        switch try await service.prepareAlert(from: url) {
++                        case .alreadyAlerted(let text): live = ["state": "alreadyAlerted", "message": text]
++                        case .ready(let form):
++                            if flow == "alertPrepare" {
++                                live = ["state": "ready", "submitURL": form.submitURL.absoluteString, "params": form.params]
++                            } else {
++                                do { live = ["ok": true, "statusMessage": try await service.submitAlert(reason: "Reason", with: form)] }
++                                catch { live = describe(error) }
++                            }
++                        }
++                    } catch { live = describe(error) }
++                }
++            }
++            if !finished { return (nil, "OracleTimeout: live classifier did not finish within 30 s") }
++            _ = OracleStubURLProtocol.drain()
++            result["live"] = live
++        } else {
++            // The real MPStorage save and create paths with this answer (MPStorage.m:738-766, 905-930)
++            let mp = mpStorage()
++            resetMPStorageFlags(mp)
++            mp.setValue(NSMutableDictionary(dictionary: ["data": [["version": "0.1"]], "sourceName": "iOS", "lastUpdate": 0]), forKey: "dData")
++            mp.setValue("123456", forKey: "sPostId")
++            mp.setValue("7890", forKey: "sNumRep")
++            let response = [["data": data, "encoding": charsetEncoding(options)] as [String: Any]]
++            writeVoid("setWriteResponses:", response)
++            let save = invoke(mp, "saveMPStorageSynchronous", [])
++            let saved = (mp.value(forKey: "bIsMPStorageSavedSuccessfully") as? NSNumber)?.boolValue
++            result["mpSave"] = ["returned": save.result ?? NSNull(), "exception": save.exception ?? NSNull(),
++                                "bIsMPStorageSavedSuccessfully": saved ?? NSNull()] as [String: Any]
++            writeVoid("setWriteResponses:", response)
++            let create = invoke(mp, "createEmptyMPStorage", [])
++            let log = writeCall("drainWriteLog") as? [String: Any] ?? [:]
++            result["mpCreate"] = ["returned": create.result ?? NSNull(), "exception": create.exception ?? NSNull(),
++                                  "alerts": log["alerts"] ?? []] as [String: Any]
++        }
++        _ = writeCall("drainWriteLog")
++        return (result, nil)
++    }
++
++    // MARK: kind `storage`
++
++    private func mpStorage() -> NSObject {
++        guard let type = NSClassFromString("MPStorage") as AnyObject?,
++              let shared = type.perform(NSSelectorFromString("shared"))?.takeUnretainedValue() as? NSObject else { fatalError("MPStorage missing") }
++        return shared
++    }
++
++    /// The flags the shared MPStorage keeps between calls, set back to their launch values (MPStorage.m:71-72): a case that
++    /// fails a save would otherwise leave bIsMPStorageSavedSuccessfully NO for every later case.
++    private func resetMPStorageFlags(_ mp: NSObject) {
++        mp.setValue(false, forKey: "bIsActive")
++        mp.setValue(true, forKey: "bIsMPStorageSavedSuccessfully")
++    }
++
++    private func bookmarkDict(_ bookmark: NSObject) -> [String: Any] {
++        var dict: [String: Any] = [:]
++        for key in ["sPost", "sCat", "sNumResponse", "sLabel", "sAuthorPost"] { dict[key] = plain(bookmark.value(forKey: key)) }
++        // a bookmark just added carries createDate = TIMESTAMP (MPStorage.m:28, :343), read back as dateBookmarkCreation
++        // (MPStorage.m:606-607): keep the output reproducible
++        if let date = bookmark.value(forKey: "dateBookmarkCreation") as? Date, abs(date.timeIntervalSinceNow) < 3 * 24 * 3600 {
++            dict["dateBookmarkCreation"] = "<now>"
++        } else {
++            dict["dateBookmarkCreation"] = plain(bookmark.value(forKey: "dateBookmarkCreation"))
++        }
++        return dict
++    }
++
++    /// JSON-safe copy of a Foundation object graph (NSJSONSerialization accepts only those types).
++    private func jsonSafe(_ value: Any?) -> Any {
++        switch value {
++        case nil, is NSNull: return NSNull()
++        case let dict as [String: Any]: return dict.mapValues { jsonSafe($0) }
++        case let dict as NSDictionary: return Dictionary(uniqueKeysWithValues: dict.map { (String(describing: $0.key), jsonSafe($0.value)) })
++        case let array as [Any]: return array.map { jsonSafe($0) }
++        case is String, is NSNumber: return value!
++        default: return String(describing: value!)
++        }
++    }
++
++    /// Timestamps written at run time (TIMESTAMP, MPStorage.m:28) are replaced by a token so output is reproducible.
++    private func normalizeTimestamps(_ value: Any) -> Any {
++        let now = Date().timeIntervalSince1970 * 1000
++        let isRecent = { (number: NSNumber) -> Bool in abs(number.doubleValue - now) < 3 * 24 * 3600 * 1000 && number.doubleValue > 1e12 }
++        switch value {
++        case let dict as [String: Any]:
++            return dict.mapValues { normalizeTimestamps($0) }
++        case let array as [Any]:
++            return array.map { normalizeTimestamps($0) }
++        case let number as NSNumber where CFGetTypeID(number) != CFBooleanGetTypeID() && isRecent(number):
++            return "<now-ms>"
++        default:
++            return value
++        }
++    }
++
++    private func describeStorageRequests(_ log: [String: Any]) -> [[String: Any]] {
++        (log["requests"] as? [[String: Any]] ?? []).map { request in
++            var entry: [String: Any] = ["method": request["method"] ?? "", "url": request["url"] ?? ""]
++            if let pairs = request["pairs"] as? [[String]] {
++                entry["contentType"] = request["contentType"] ?? NSNull()
++                entry["pairs"] = pairs.map { pair -> [Any] in
++                    guard pair[0] == "content_form", let data = pair[1].data(using: .utf8),
++                          let object = try? JSONSerialization.jsonObject(with: data) else { return pair }
++                    let normalized = normalizeTimestamps(object)
++                    let text = (try? JSONSerialization.data(withJSONObject: normalized, options: [.sortedKeys, .withoutEscapingSlashes]))
++                        .flatMap { String(data: $0, encoding: .utf8) } ?? pair[1]
++                    return ["content_form", ["rawBytes": pair[1].utf8.count, "json": normalized, "jsonSorted": text] as [String: Any]]
++                }
++            }
++            return entry
++        }
++    }
++
++    func runStorage(_ data: Data, inDir: URL, options: [String: Any], extras: inout TopicCaseExtras) throws -> (Any?, String?) {
++        let storage = options["storage"] as? String ?? ""
++        guard ["mpstorage-page", "mpstorage-op", "keychain", "blacklist", "smileys", "offline"].contains(storage) else {
++            throw HarnessError(message: "storage must be mpstorage-page, mpstorage-op, keychain, blacklist, smileys or offline")
++        }
++        let pseudo = options["pseudo"] as? String ?? "fakeuser1"
++        extras.context = ["storage": storage, "pseudo": pseudo, "charset": options["charset"] ?? "utf-8"]
++        let spec = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
++        beginWriteHooks(pseudo: pseudo, hash: "0123456789abcdef0123456789abcdef01234567")
++        defer { endWriteHooks() }
++        switch storage {
++        case "keychain": return (jsonSafe(writeCall("keychainAccounts:", spec)), nil)
++        case "blacklist": return (jsonSafe(writeCall("blacklistFiles:", spec)), nil)
++        case "smileys": return (jsonSafe(writeCall("smileyFavorites:", spec)), nil)
++        case "offline": return (jsonSafe(writeCall("offlineTopics:", spec)), nil)
++        default: break
++        }
++
++        let defaults = UserDefaults.standard
++        defaults.removeObject(forKey: "dicMPStorage_postid")
++        defaults.set(true, forKey: "mpstorage_active")
++        let mp = mpStorage()
++        mp.setValue(nil, forKey: "dData")
++        mp.setValue(nil, forKey: "sPostId")
++        mp.setValue(nil, forKey: "sNumRep")
++        mp.setValue(NSMutableArray(), forKey: "listBookmarks")
++        resetMPStorageFlags(mp)
++        let list = (NSClassFromString("BlackList") as AnyObject).perform(NSSelectorFromString("shared"))?.takeUnretainedValue() as? NSObject
++        list?.setValue(NSMutableDictionary(), forKey: "dicBlackList")
++        let encoding = charsetEncoding(options)
++        var result: [String: Any] = [:]
++
++        func snapshot() -> [String: Any] {
++            let documents = (mp.value(forKey: "dData") as? NSDictionary).map { normalizeTimestamps(jsonSafe($0)) } ?? NSNull()
++            return [
++                "dData": documents,
++                "sNumRep": plain(mp.value(forKey: "sNumRep")), "sPostId": plain(mp.value(forKey: "sPostId")),
++                "listBookmarks": (mp.value(forKey: "listBookmarks") as? [NSObject] ?? []).map(bookmarkDict),
++                "bIsMPStorageSavedSuccessfully": plain(mp.value(forKey: "bIsMPStorageSavedSuccessfully")),
++                "dicMPStorage_postid": jsonSafe(defaults.object(forKey: "dicMPStorage_postid")),
++                "mpstorage_active": defaults.bool(forKey: "mpstorage_active"),
++                "blackListOfActiveAccount": (list?.value(forKey: "dicBlackList") as? NSDictionary).map { jsonSafe($0[pseudo]) } ?? NSNull()
++            ]
++        }
++
++        if storage == "mpstorage-page" {
++            // [request safeResponseString] is what the callers pass (MPStorage.m:195-198, 340-345)
++            let page = String(data: data, encoding: encoding == String.Encoding.isoLatin1.rawValue ? .isoLatin1 : .utf8) ?? ""
++            let parse = invoke(mp, "parseMPStorage:", [page])
++            result["parse"] = ["returned": parse.result ?? NSNull(), "exception": parse.exception ?? NSNull()] as [String: Any]
++            result["state"] = snapshot()
++            let parseLog = writeCall("drainWriteLog") as? [String: Any] ?? [:]
++            result["alerts"] = parseLog["alerts"] ?? []
++            result["requests"] = describeStorageRequests(parseLog)
++            if (parse.result as? NSNumber)?.boolValue == true {
++                mp.setValue(nil, forKey: "dData")
++                let update = invoke(mp, "updateBlackList:", [page])
++                result["updateBlackList"] = ["returned": update.result ?? NSNull(), "exception": update.exception ?? NSNull(),
++                                             "blackListOfActiveAccount": (list?.value(forKey: "dicBlackList") as? NSDictionary).map { jsonSafe($0[pseudo]) } ?? NSNull()] as [String: Any]
++            }
++            _ = writeCall("drainWriteLog")
++            return (result, nil)
++        }
++
++        // mpstorage-op: a scripted read-modify-write against canned pages
++        let op = spec["op"] as? String ?? ""
++        guard ["addBlackList", "removeBlackList", "addBookmark", "removeBookmark", "save", "create", "find"].contains(op) else {
++            throw HarnessError(message: "op must be addBlackList, removeBlackList, addBookmark, removeBookmark, save, create or find")
++        }
++        mp.setValue(spec["postId"] as? String, forKey: "sPostId")
++        mp.setValue(spec["numRep"] as? String, forKey: "sNumRep")
++        if let document = spec["dData"] as? [String: Any] {
++            let copy = (try? JSONSerialization.data(withJSONObject: document))
++                .flatMap { try? JSONSerialization.jsonObject(with: $0, options: .mutableContainers) } as? NSMutableDictionary
++            mp.setValue(copy, forKey: "dData")
++        }
++        var responses: [[String: Any]] = []
++        for name in spec["responses"] as? [String] ?? [] {
++            guard let page = try? Data(contentsOf: inDir.appendingPathComponent(name)) else { throw HarnessError(message: "cannot read \(name)") }
++            responses.append(["data": page, "encoding": encoding])
++        }
++        writeVoid("setWriteResponses:", responses)
++        let args = spec["args"] as? [String: Any] ?? [:]
++        let bookmark: NSObject? = {
++            guard op.hasSuffix("Bookmark"), let type = NSClassFromString("Bookmark") as? NSObject.Type else { return nil }
++            let object = type.init()
++            for key in ["sPost", "sCat", "sNumResponse", "sLabel", "sAuthorPost"] { object.setValue(args[key], forKey: key) }
++            return object
++        }()
++        let call: (result: Any?, exception: String?)
++        switch op {
++        case "addBlackList": call = invoke(mp, "addBlackListSynchronous:", [args["pseudo"] ?? ""])
++        case "removeBlackList": call = invoke(mp, "removeBlackListSynchronous:", [args["pseudo"] ?? ""])
++        case "addBookmark": call = invoke(mp, "addBookmarkSynchronous:", [bookmark as Any])
++        case "removeBookmark": call = invoke(mp, "removeBookmarkSynchronous:", [bookmark as Any])
++        case "save": call = invoke(mp, "saveMPStorageSynchronous", [])
++        case "find": call = invoke(mp, "findStorageMPFromPage:", [1])
++        default: call = invoke(mp, "createEmptyMPStorage", [])
++        }
++        result["op"] = op
++        result["returned"] = call.result ?? NSNull()
++        result["exception"] = call.exception ?? NSNull()
++        let log = writeCall("drainWriteLog") as? [String: Any] ?? [:]
++        result["requests"] = describeStorageRequests(log)
++        result["alerts"] = log["alerts"] ?? []
++        result["unusedResponses"] = log["unusedResponses"] ?? 0
++        result["state"] = snapshot()
++        return (result, nil)
++    }
++}
+diff --git a/HFRswiftTests/OracleLegacyWrite.m b/HFRswiftTests/OracleLegacyWrite.m
+new file mode 100644
+index 0000000..94787c3
+--- /dev/null
++++ b/HFRswiftTests/OracleLegacyWrite.m
+@@ -0,0 +1,771 @@
++// Oracle exporter helper (SwiftHFR LOT-004): the legacy write flows and storage formats, offline.
++// Local-only: never committed to hfrnow.
++//
++// The legacy composer view controllers (QuoteMessageViewController, AddMessageViewController,
++// AlerteModoViewController) are compiled only into the old SuperHFRplus target, so they cannot be called from the
++// HFRswift test host. Their parsing and POST-building steps are transliterated here line for line, keeping the
++// legacy source line in a comment, and run on the REAL legacy building blocks the controllers use: HTMLParser/HTMLNode
++// (libxml2), ASIFormDataRequest (URL encoding of the POST body), -[NSString removeEmoji], RegexKitLite, k.ForumURL.
++// MPStorage, BlackList, SmileyCache, OfflineStorage and Topic are called as they are (all are in the HFRswift target).
++//
++// Legacy classes are reached through the runtime only: no legacy header is imported.
++#import <Foundation/Foundation.h>
++#import <UIKit/UIKit.h>
++#import <objc/message.h>
++#import <objc/runtime.h>
++
++// Selectors of the legacy classes, declared so ARC accepts messages to `id`. Nothing is implemented here.
++@interface NSObject (OracleLegacyProbe)
++- (id)initWithData:(NSData *)data error:(NSError **)error;
++- (id)initWithString:(NSString *)string error:(NSError **)error;
++- (id)body;
++- (id)findChildWithAttribute:(NSString *)attribute matchingName:(NSString *)name allowPartial:(BOOL)partial;
++- (NSArray *)findChildTags:(NSString *)tag;
++- (id)findChildTag:(NSString *)tag;
++- (NSString *)getAttributeNamed:(NSString *)name;
++- (NSString *)tagName;
++- (NSString *)contents;
++- (NSString *)allContents;
++- (NSArray *)children;
++- (id)firstChild;
++- (void)setPostValue:(id)value forKey:(NSString *)key;
++- (void)buildPostBody;
++- (NSString *)safeResponseString;
++@end
++
++@interface NSString (OracleLegacyTools)
++- (NSString *)removeEmoji;
++- (NSArray *)arrayOfCaptureComponentsMatchedByRegex:(NSString *)regex;
++@end
++
++@interface OracleLegacyWrite : NSObject
+++ (void)installWriteHooks;
+++ (void)removeWriteHooks;
+++ (void)setWriteResponses:(NSArray *)responses;
+++ (NSDictionary *)drainWriteLog;
+++ (NSDictionary *)legacyFormParse:(NSDictionary *)spec;
+++ (NSDictionary *)legacyPost:(NSDictionary *)spec;
+++ (NSDictionary *)legacyClassify:(NSDictionary *)spec;
+++ (NSDictionary *)keychainAccounts:(NSDictionary *)spec;
+++ (NSDictionary *)blacklistFiles:(NSDictionary *)spec;
+++ (NSDictionary *)smileyFavorites:(NSDictionary *)spec;
+++ (NSDictionary *)offlineTopics:(NSDictionary *)spec;
++@end
++
++static NSMutableArray *gWriteResponses = nil;  // canned responses, popped by startSynchronous
++static NSMutableArray *gWriteRequests = nil;   // what the legacy code tried to send
++static NSMutableArray *gWriteAlerts = nil;     // alerts the legacy code tried to show
++static IMP gOrigStartSync = NULL;
++static NSMutableArray *gAlertRestore = nil;    // {class, selector, IMP}
++
++static NSString *ExceptionString(NSException *exception) {
++    return [NSString stringWithFormat:@"%@: %@", exception.name, exception.reason ?: @""];
++}
++
++static id Nullable(id value) { return value ?: [NSNull null]; }
++
++static NSString *ForumURL(void) {
++    return ((NSString * (*)(id, SEL))objc_msgSend)(NSClassFromString(@"k"), NSSelectorFromString(@"ForumURL"));
++}
++
++static NSString *Trimmed(NSString *string) {
++    return [string stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
++}
++
++static NSString *Base64(NSData *data) { return [data base64EncodedStringWithOptions:0]; }
++
++static id NewInstance(NSString *className) {
++    Class type = NSClassFromString(className);
++    if (type == Nil) @throw [NSException exceptionWithName:@"OracleMissingClass" reason:className userInfo:nil];
++    return [[type alloc] init];
++}
++
++/// "a=b&c=d" -> sorted [[k, v], ...] with percent-decoding; used for urlencoded bodies.
++static NSArray *SortedPairs(NSString *body) {
++    NSMutableArray *pairs = [NSMutableArray array];
++    for (NSString *part in [body componentsSeparatedByString:@"&"]) {
++        if (part.length == 0) continue;
++        NSRange eq = [part rangeOfString:@"="];
++        NSString *key = eq.location == NSNotFound ? part : [part substringToIndex:eq.location];
++        NSString *value = eq.location == NSNotFound ? @"" : [part substringFromIndex:eq.location + 1];
++        [pairs addObject:@[key.stringByRemovingPercentEncoding ?: key, value.stringByRemovingPercentEncoding ?: value]];
++    }
++    [pairs sortUsingComparator:^NSComparisonResult(NSArray *a, NSArray *b) {
++        NSComparisonResult byKey = [a[0] compare:b[0]];
++        return byKey != NSOrderedSame ? byKey : [a[1] compare:b[1]];
++    }];
++    return pairs;
++}
++
++/// Body of an ASIFormDataRequest exactly as the legacy code would put it on the wire.
++static NSDictionary *DescribePost(id request) {
++    [request buildPostBody];
++    NSData *bodyData = [request valueForKey:@"postBody"];
++    NSString *body = bodyData ? [[NSString alloc] initWithData:bodyData encoding:NSUTF8StringEncoding] : @"";
++    NSDictionary *headers = [request valueForKey:@"requestHeaders"];
++    NSURL *url = [request valueForKey:@"url"];
++    // The wire order is the NSDictionary iteration order of the caller, randomized per process: only sorted forms are exported.
++    NSArray *rawParts = [[body ?: @"" componentsSeparatedByString:@"&"] sortedArrayUsingSelector:@selector(compare:)];
++    return @{
++        @"url": Nullable(url.absoluteString),
++        @"method": @"POST",
++        @"contentType": Nullable(headers[@"Content-Type"]),
++        @"bodyBytes": @(bodyData.length),
++        @"bodySorted": [rawParts componentsJoinedByString:@"&"],
++        @"pairs": SortedPairs(body ?: @"")
++    };
++}
++
++@implementation OracleLegacyWrite
++
++#pragma mark - hooks
++
++/// startSynchronous never touches the network: it logs the request (a form request is built and described) and
++/// answers with the next canned response. The legacy MPStorage uses it for every read and write (MPStorage.m:230-420).
+++ (void)installWriteHooks {
++    if (gOrigStartSync != NULL) return;
++    gWriteResponses = [NSMutableArray array];
++    gWriteRequests = [NSMutableArray array];
++    gWriteAlerts = [NSMutableArray array];
++    gAlertRestore = [NSMutableArray array];
++
++    Class asi = NSClassFromString(@"ASIHTTPRequest");
++    Method startSync = class_getInstanceMethod(asi, NSSelectorFromString(@"startSynchronous"));
++    gOrigStartSync = method_setImplementation(startSync, imp_implementationWithBlock(^(id request) {
++        Class form = NSClassFromString(@"ASIFormDataRequest");
++        NSMutableDictionary *entry = [NSMutableDictionary dictionary];
++        if (form != Nil && [request isKindOfClass:form]) {
++            [entry addEntriesFromDictionary:DescribePost(request)];
++        } else {
++            NSURL *url = [request valueForKey:@"url"];
++            entry[@"url"] = Nullable(url.absoluteString);
++            entry[@"method"] = @"GET";
++        }
++        NSDictionary *response = gWriteResponses.count > 0 ? gWriteResponses.firstObject : nil;
++        if (response) [gWriteResponses removeObjectAtIndex:0];
++        entry[@"cannedResponse"] = response ? @YES : @NO;
++        [gWriteRequests addObject:entry];
++        NSData *data = response[@"data"] ?: [NSData data];
++        [request setValue:[data mutableCopy] forKey:@"rawResponseData"];
++        [request setValue:response[@"encoding"] ?: @(NSUTF8StringEncoding) forKey:@"responseEncoding"];
++    }));
++
++    // Alerts the legacy model code shows (MPStorage.m:26-52 -> HFRSwiftAlertPresenter, Common.swift:95-127) become data.
++    Class presenter = NSClassFromString(@"HFRswift.HFRSwiftAlertPresenter") ?: NSClassFromString(@"HFRSwiftAlertPresenter");
++    if (presenter != Nil) {
++        void (^hook)(NSString *, id) = ^(NSString *selectorName, id block) {
++            Method method = class_getClassMethod(presenter, NSSelectorFromString(selectorName));
++            if (method == NULL) return;
++            IMP original = method_setImplementation(method, imp_implementationWithBlock(block));
++            [gAlertRestore addObject:@[presenter, selectorName, [NSValue valueWithPointer:(const void *)original]]];
++        };
++        hook(@"displayTransientAlertWithTitle:message:duration:", ^(id me, NSString *title, NSString *message, long duration) {
++            [gWriteAlerts addObject:@{@"kind": @"transient", @"title": Nullable(title), @"message": Nullable(message)}];
++        });
++        hook(@"displayOKAlertWithTitle:message:", ^(id me, NSString *title, NSString *message) {
++            [gWriteAlerts addObject:@{@"kind": @"ok", @"title": Nullable(title), @"message": Nullable(message)}];
++        });
++        hook(@"displayOKCancelAlertWithTitle:message:okHandler:cancelHandler:",
++             ^(id me, NSString *title, NSString *message, id okHandler, id cancelHandler) {
++            [gWriteAlerts addObject:@{@"kind": @"okCancel", @"title": Nullable(title), @"message": Nullable(message)}];
++        });
++    }
++}
++
+++ (void)removeWriteHooks {
++    if (gOrigStartSync == NULL) return;
++    Class asi = NSClassFromString(@"ASIHTTPRequest");
++    method_setImplementation(class_getInstanceMethod(asi, NSSelectorFromString(@"startSynchronous")), gOrigStartSync);
++    gOrigStartSync = NULL;
++    for (NSArray *saved in gAlertRestore) {
++        Method method = class_getClassMethod(saved[0], NSSelectorFromString(saved[1]));
++        if (method) method_setImplementation(method, (IMP)[saved[2] pointerValue]);
++    }
++    gAlertRestore = nil;
++}
++
++/// responses: [{data: NSData, encoding: NSNumber}] answered in order to the next startSynchronous calls.
+++ (void)setWriteResponses:(NSArray *)responses {
++    [gWriteResponses removeAllObjects];
++    [gWriteResponses addObjectsFromArray:responses];
++    [gWriteRequests removeAllObjects];
++    [gWriteAlerts removeAllObjects];
++}
++
+++ (NSDictionary *)drainWriteLog {
++    NSDictionary *log = @{@"requests": [gWriteRequests copy] ?: @[], @"alerts": [gWriteAlerts copy] ?: @[],
++                          @"unusedResponses": @(gWriteResponses.count)};
++    [gWriteRequests removeAllObjects];
++    [gWriteAlerts removeAllObjects];
++    return log;
++}
++
++#pragma mark - form extraction (QuoteMessageViewController, AlerteModoViewController)
++
++/// flavor "hop": QuoteMessageViewController.m -loadDataInTableView: (QuoteMessageViewController.m:112-533; form part 209-290, 459, 532), which
++/// also serves reply, edit, delete, new topic and MP forms through the Quote/New/Edit/Delete subclasses.
++/// flavor "modo": AlerteModoViewController.m -loadDataInTableView: (AlerteModoViewController.m:144-178).
+++ (NSDictionary *)legacyFormParse:(NSDictionary *)spec {
++    NSData *data = spec[@"data"];
++    BOOL modo = [spec[@"flavor"] isEqualToString:@"modo"];
++    NSMutableDictionary *out = [NSMutableDictionary dictionary];
++    @try {
++        NSError *error = nil;
++        id parser = [[NSClassFromString(@"HTMLParser") alloc] initWithData:data error:&error]; // QuoteMessageViewController.m:119
++        id bodyNode = [parser body];
++        NSMutableDictionary *inputData = [NSMutableDictionary dictionary]; // self.arrayInputData
++        out[@"inputData"] = inputData;
++
++        if (modo) {
++            // AlerteModoViewController.m:154-156: .hop containing a link or an input = already alerted
++            id hop = [bodyNode findChildWithAttribute:@"class" matchingName:@"hop" allowPartial:NO];
++            BOOL already = [hop findChildTag:@"a"] || [hop findChildTag:@"input"];
++            out[@"alreadyAlerted"] = @(already);
++            out[@"hopText"] = Nullable(Trimmed([hop contents]));
++            if (already) return out;
++            id form = [bodyNode findChildWithAttribute:@"action" matchingName:@"modo.php" allowPartial:YES]; // :164
++            for (id node in [form findChildTags:@"input"]) { // :166-172
++                if ([node getAttributeNamed:@"value"] && [node getAttributeNamed:@"name"]) {
++                    inputData[[node getAttributeNamed:@"name"]] = [node getAttributeNamed:@"value"];
++                }
++            }
++            out[@"formAction"] = Nullable([form getAttributeNamed:@"action"]);
++            out[@"formSubmit"] = [NSString stringWithFormat:@"%@/user/%@", ForumURL(), [form getAttributeNamed:@"action"]]; // :176
++            return out;
++        }
++
++        // QuoteMessageViewController.m:127-140: logged-in flag and username
++        id hashCheckNode = [bodyNode findChildWithAttribute:@"name" matchingName:@"hash_check" allowPartial:NO];
++        out[@"isLogged"] = @((BOOL)(hashCheckNode && ![[hashCheckNode getAttributeNamed:@"value"] isEqualToString:@""]));
++        id usernameNode = [bodyNode findChildWithAttribute:@"name" matchingName:@"pseudo" allowPartial:NO];
++        NSString *username = @"";
++        if (usernameNode && ![[usernameNode getAttributeNamed:@"value"] isEqualToString:@""]) {
++            username = [usernameNode getAttributeNamed:@"value"];
++        }
++        out[@"username"] = Nullable(username);
++
++        // :143-200 custom smileys (dynamic_smilies); the cache downloads are not part of the form
++        id smileyNode = [bodyNode findChildWithAttribute:@"id" matchingName:@"dynamic_smilies" allowPartial:NO];
++        NSMutableArray *smileys = [NSMutableArray array];
++        for (id img in [smileyNode findChildTags:@"img"]) {
++            [smileys addObject:@{@"src": Nullable([img getAttributeNamed:@"src"]), @"alt": Nullable([img getAttributeNamed:@"alt"])}];
++        }
++        out[@"smileys"] = smileys;
++
++        id fastAnswerNode = [bodyNode findChildWithAttribute:@"name" matchingName:@"hop" allowPartial:NO]; // :209
++        NSArray *all = [[fastAnswerNode findChildTags:@"input"] arrayByAddingObjectsFromArray:[fastAnswerNode findChildTags:@"select"]]; // :211-214
++        BOOL haveTitle = NO, haveTo = NO, haveCategory = NO;
++        NSMutableArray *subcats = [NSMutableArray array];
++        NSMutableArray *order = [NSMutableArray array];  // document order of the loop, for the spec
++        NSMutableArray *raised = [NSMutableArray array]; // places where the legacy code raises (uncaught in the app: form load aborts)
++        for (id node in all) { // :217
++            NSString *name = [node getAttributeNamed:@"name"];
++            if ([node getAttributeNamed:@"value"] && name) { // :221
++                [order addObject:name];
++                if ([name isEqualToString:@"MsgIcon"]) { // :223-228
++                    if ([[node getAttributeNamed:@"checked"] isEqualToString:@"checked"]) inputData[name] = [node getAttributeNamed:@"value"];
++                } else if ([[node getAttributeNamed:@"type"] isEqualToString:@"checkbox"]) { // :229-240
++                    inputData[name] = [[node getAttributeNamed:@"checked"] isEqualToString:@"checked"] ? @"1" : @"0";
++                } else {
++                    inputData[name] = [node getAttributeNamed:@"value"]; // :243
++                }
++                if ([name isEqualToString:@"sujet"] && ![[node getAttributeNamed:@"type"] isEqualToString:@"hidden"]) haveTitle = YES; // :245-253
++                if ([name isEqualToString:@"dest"]) haveTo = YES; // :254-257
++            } else if ([[node tagName] isEqualToString:@"select"]) { // :259
++                [order addObject:[NSString stringWithFormat:@"select:%@", Nullable(name)]];
++                if ([name isEqualToString:@"subcat"]) { // :261
++                    haveCategory = YES;
++                    @try {
++                        for (id catNode in [node children]) { // :264-276 (raises on a node without value: initWithString:nil)
++                            NSString *title = [[NSString alloc] initWithString:Trimmed([catNode allContents])]; // :269
++                            NSString *identifier = [[NSString alloc] initWithString:Trimmed([catNode getAttributeNamed:@"value"])];
++                            [subcats addObject:@{@"id": identifier, @"title": title}];
++                        }
++                    } @catch (NSException *exception) {
++                        // the app does not catch this: the whole form load aborts here; the oracle goes on to record the rest
++                        out[@"subcatException"] = ExceptionString(exception);
++                    }
++                }
++                id selected = [node findChildWithAttribute:@"selected" matchingName:@"selected" allowPartial:NO]; // :280
++                @try {
++                    if (selected) {
++                        [inputData setObject:[selected getAttributeNamed:@"value"] forKey:name]; // :283 (nil value raises)
++                    } else {
++                        [inputData setObject:[[node firstChild] getAttributeNamed:@"value"] forKey:name]; // :287 (nil value raises)
++                    }
++                } @catch (NSException *exception) {
++                    [raised addObject:[NSString stringWithFormat:@"select %@: %@", Nullable(name), ExceptionString(exception)]];
++                }
++            }
++        }
++        out[@"loopOrder"] = order;
++        out[@"raisedInLegacy"] = raised;
++        out[@"haveTitle"] = @(haveTitle);
++        out[@"haveTo"] = @(haveTo);
++        out[@"haveCategory"] = @(haveCategory);
++        out[@"subcats"] = subcats;
++
++        // :459-461 the textarea prefill, CRLF -> LF
++        NSString *text = [[fastAnswerNode findChildWithAttribute:@"id" matchingName:@"content_form" allowPartial:NO] contents];
++        out[@"contentFormRaw"] = Nullable(text);
++        out[@"contentForm"] = Nullable([text stringByReplacingOccurrencesOfString:@"\r\n" withString:@"\n"]);
++        // :532-533 formSubmit = ForumURL + the form action
++        out[@"formAction"] = Nullable([fastAnswerNode getAttributeNamed:@"action"]);
++        out[@"formSubmit"] = [NSString stringWithFormat:@"%@%@", ForumURL(), [fastAnswerNode getAttributeNamed:@"action"]];
++    } @catch (NSException *exception) {
++        out[@"exception"] = ExceptionString(exception);
++    }
++    return out;
++}
++
++#pragma mark - POST building (AddMessageViewController -done, AlerteModoViewController -done)
++
++/// flavor "add": AddMessageViewController.m -done (AddMessageViewController.m:513-570); spec.deleteMode makes
++/// -isDeleteMode true (DeleteMessageViewController.m:42-44). flavor "alert": AlerteModoViewController.m:198-213.
++/// spec: inputData, formSubmit, pseudo, hash, content (composer text, LF newlines), sujet/subcat/dest (field texts),
++/// haveTitle/haveCategory/haveTo, deleteMode.
+++ (NSDictionary *)legacyPost:(NSDictionary *)spec {
++    @try {
++        NSDictionary *inputData = spec[@"inputData"];
++        NSString *formSubmit = spec[@"formSubmit"];
++        NSURL *url = [NSURL URLWithString:formSubmit];
++        id request = ((id (*)(id, SEL, NSURL *))objc_msgSend)([NSClassFromString(@"ASIFormDataRequest") alloc], NSSelectorFromString(@"initWithURL:"), url);
++        NSMutableDictionary *notes = [NSMutableDictionary dictionary];
++        if ([spec[@"flavor"] isEqualToString:@"alert"]) {
++            for (NSString *key in inputData) [request setPostValue:inputData[key] forKey:key]; // AlerteModoViewController.m:202-207
++            NSString *reason = [[spec[@"content"] removeEmoji] stringByReplacingOccurrencesOfString:@"\n" withString:@"\r\n"]; // :209-211
++            [request setPostValue:reason forKey:@"raison"];
++            notes[@"sentContent"] = [spec[@"content"] removeEmoji]; // what is really posted (before \n to \r\n); runForm moves it to postedContent
++        } else {
++            for (NSString *key in inputData) { // AddMessageViewController.m:519-552
++                if ([key isEqualToString:@"allowvisitor"] || [key isEqualToString:@"have_sondage"] || [key isEqualToString:@"sticky"] || [key isEqualToString:@"sticky_everywhere"]) {
++                    if ([inputData[key] isEqualToString:@"1"]) [request setPostValue:inputData[key] forKey:key]; // :521-526
++                } else if ([key isEqualToString:@"delete"]) {
++                    if ([spec[@"deleteMode"] boolValue]) [request setPostValue:@"1" forKey:key]; // :527-531
++                } else if ([key isEqualToString:@"pseudo"]) {
++                    [request setPostValue:spec[@"pseudo"] forKey:@"pseudo"]; // :532-535
++                } else if ([key isEqualToString:@"hash_check"]) {
++                    if (spec[@"hash"]) [request setPostValue:spec[@"hash"] forKey:@"hash_check"]; // :536-538
++                    else notes[@"hashFromAppDelegate"] = @YES; // :539-547 falls back to the app delegate (nil offline)
++                } else {
++                    [request setPostValue:inputData[key] forKey:key]; // :549-551
++                }
++            }
++            NSString *text = [[spec[@"content"] removeEmoji] stringByReplacingOccurrencesOfString:@"\n" withString:@"\r\n"]; // :553-554
++            [request setPostValue:text forKey:@"content_form"];
++            notes[@"sentContent"] = [spec[@"content"] removeEmoji]; // see the alert branch
++            if ([spec[@"haveTitle"] boolValue]) [request setPostValue:spec[@"sujet"] forKey:@"sujet"]; // :558-561
++            if ([spec[@"haveCategory"] boolValue]) [request setPostValue:spec[@"subcat"] forKey:@"subcat"]; // :562-565
++            if ([spec[@"haveTo"] boolValue]) [request setPostValue:spec[@"dest"] forKey:@"dest"]; // :566-569
++        }
++        NSMutableDictionary *out = [DescribePost(request) mutableCopy];
++        [out addEntriesFromDictionary:notes];
++        return out;
++    } @catch (NSException *exception) {
++        return @{@"exception": ExceptionString(exception)};
++    }
++}
++
++#pragma mark - response classification
++
++/// spec: data, encoding ("utf-8"|"iso-8859-1": what the response header would say), flavor, urlQuote.
++/// add/delete: AddMessageViewController.m:586-622 (done); alertPrepare: AlerteModoViewController.m:154-163;
++/// alertSubmit: AlerteModoViewController.m:229-236; mpstorage: MPStorage.m:752-761 (create) / 921-924, 961-964 (save).
+++ (NSDictionary *)legacyClassify:(NSDictionary *)spec {
++    NSMutableDictionary *out = [NSMutableDictionary dictionary];
++    @try {
++        NSString *flavor = spec[@"flavor"];
++        NSStringEncoding encoding = [spec[@"encoding"] isEqualToString:@"iso-8859-1"] ? NSISOLatin1StringEncoding : NSUTF8StringEncoding;
++        // [arequest safeResponseString] (ASIHTTPRequest+Tools.m:40-48): iconv drops invalid UTF-8, then decodes with responseEncoding
++        id request = ((id (*)(id, SEL, NSURL *))objc_msgSend)(NSClassFromString(@"ASIHTTPRequest"), NSSelectorFromString(@"requestWithURL:"),
++                                                              [NSURL URLWithString:@"https://forum.hardware.fr/bddpost.php"]);
++        [request setValue:[spec[@"data"] mutableCopy] forKey:@"rawResponseData"];
++        [request setValue:@(encoding) forKey:@"responseEncoding"];
++        NSString *html = [request safeResponseString];
++        out[@"decoded"] = @((BOOL)(html != nil));
++        if (!html) return out;
++
++        if ([flavor isEqualToString:@"mpstorage"]) {
++            BOOL succeeded = [html containsString:@"succès"];
++            out[@"classification"] = succeeded ? @"success" : @"failure";
++            if (!succeeded) {
++                id parser = [[NSClassFromString(@"HTMLParser") alloc] initWithString:html error:nil];
++                id hop = [[parser body] findChildWithAttribute:@"class" matchingName:@"hop" allowPartial:NO];
++                out[@"message"] = Nullable([hop contents]); // not trimmed: MPStorage.m:761 passes [messagesNode contents]
++            }
++            return out;
++        }
++
++        id parser = [[NSClassFromString(@"HTMLParser") alloc] initWithString:html error:nil];
++        id hop = [[parser body] findChildWithAttribute:@"class" matchingName:@"hop" allowPartial:NO];
++        BOOL hasLink = [hop findChildTag:@"a"] != nil, hasInput = [hop findChildTag:@"input"] != nil;
++        NSString *text = Trimmed([hop contents]);
++        out[@"hopFound"] = @((BOOL)(hop != nil));
++        out[@"hopHasLink"] = @(hasLink);
++        out[@"hopHasInput"] = @(hasInput);
++        out[@"message"] = Nullable(text);
++
++        if ([flavor isEqualToString:@"alertSubmit"]) {
++            out[@"classification"] = @"alertSent"; // the legacy shows whatever .hop says (AlerteModoViewController.m:233)
++            return out;
++        }
++        if ([flavor isEqualToString:@"alertPrepare"]) {
++            out[@"classification"] = (hasLink || hasInput) ? @"alreadyAlerted" : @"form";
++            return out;
++        }
++        if (hasLink || hasInput) {
++            out[@"classification"] = @"rejected"; // :594-598
++            return out;
++        }
++        out[@"classification"] = @"success"; // :599-607 a missing .hop is also "success" (nil messages)
++        NSArray *captures;
++        if ([flavor isEqualToString:@"delete"]) {
++            captures = [spec[@"urlQuote"] arrayOfCaptureComponentsMatchedByRegex:@"numreponse=([0-9]+)&"]; // :611-614
++        } else {
++            captures = [html arrayOfCaptureComponentsMatchedByRegex:@"<meta http-equiv=\"Refresh\" content=\"[^#]+([^\"]*)\" />"]; // :616-622
++        }
++        NSString *anchor = @"";
++        if (captures.count > 0 && [[captures[0] objectAtIndex:1] length] > 0) anchor = [captures[0] objectAtIndex:1];
++        out[@"anchor"] = anchor;
++        out[@"anchorMatches"] = @(captures.count);
++    } @catch (NSException *exception) {
++        out[@"exception"] = ExceptionString(exception);
++    }
++    return out;
++}
++
++#pragma mark - synthetic on-device formats
++
++static NSString *DocumentsPath(void) {
++    return [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) lastObject];
++}
++
++static NSDate *DateFromISO(NSString *iso) {
++    NSISO8601DateFormatter *formatter = [[NSISO8601DateFormatter alloc] init];
++    return [formatter dateFromString:iso];
++}
++
++static NSString *ISOFromDate(NSDate *date) {
++    if (![date isKindOfClass:[NSDate class]]) return nil;
++    NSISO8601DateFormatter *formatter = [[NSISO8601DateFormatter alloc] init];
++    return [formatter stringFromDate:date];
++}
++
++/// JSON-safe image of a decoded legacy object graph (cookies, dates and binary data made explicit).
++static id JSONSafe(id value) {
++    if ([value isKindOfClass:[NSHTTPCookie class]]) {
++        NSHTTPCookie *cookie = value;
++        return @{@"name": cookie.name, @"value": cookie.value, @"domain": cookie.domain, @"path": cookie.path,
++                 @"expiresDate": Nullable(ISOFromDate(cookie.expiresDate)), @"isSecure": @(cookie.isSecure),
++                 @"isHTTPOnly": @(cookie.isHTTPOnly), @"version": @(cookie.version),
++                 @"created": Nullable(cookie.properties[@"Created"])};
++    }
++    if ([value isKindOfClass:[NSDictionary class]]) {
++        NSMutableDictionary *out = [NSMutableDictionary dictionary];
++        for (id key in value) out[[key description]] = JSONSafe(value[key]);
++        return out;
++    }
++    if ([value isKindOfClass:[NSArray class]]) {
++        NSMutableArray *out = [NSMutableArray array];
++        for (id item in value) [out addObject:JSONSafe(item)];
++        return out;
++    }
++    if ([value isKindOfClass:[NSData class]]) return @{@"$data": Base64(value), @"bytes": @([value length])};
++    if ([value isKindOfClass:[NSDate class]]) return ISOFromDate(value);
++    if ([value isKindOfClass:[NSString class]] || [value isKindOfClass:[NSNumber class]] || value == [NSNull null]) return value;
++    if (value == nil) return [NSNull null];
++    return @{@"$class": NSStringFromClass([value class]), @"$description": [value description]};
++}
++
++static NSString *PlistXML(id plistObject) {
++    NSData *xml = [NSPropertyListSerialization dataWithPropertyList:plistObject format:NSPropertyListXMLFormat_v1_0 options:0 error:nil];
++    return xml ? [[NSString alloc] initWithData:xml encoding:NSUTF8StringEncoding] : nil;
++}
++
++#pragma clang diagnostic push
++#pragma clang diagnostic ignored "-Wdeprecated-declarations"
++
++/// The Keychain account blob (MultisManager.m:44-86, 88-101): an NSKeyedArchiver archive of
++/// NSArray<NSMutableDictionary>, one dictionary per account, stored in A0SimpleKeychain under HFR_COMPTES_KEY.
++/// spec: accounts [{display, userCookie (md_user value), hash, avatarBase64, cookies [{name,value,domain,path,expires,secure}]}],
++/// main (userCookie of the main account, as setPseudoAsMain sets it), tryKeychain (also round-trip the real keychain).
+++ (NSDictionary *)keychainAccounts:(NSDictionary *)spec {
++    NSMutableArray *comptes = [NSMutableArray array];
++    for (NSDictionary *account in spec[@"accounts"]) {
++        NSMutableArray *cookies = [NSMutableArray array];
++        for (NSDictionary *c in account[@"cookies"]) {
++            NSMutableDictionary *props = [@{NSHTTPCookieName: c[@"name"], NSHTTPCookieValue: c[@"value"],
++                                            NSHTTPCookieDomain: c[@"domain"], NSHTTPCookiePath: c[@"path"] ?: @"/"} mutableCopy];
++            if (c[@"expires"]) props[NSHTTPCookieExpires] = DateFromISO(c[@"expires"]);
++            if (c[@"created"]) props[@"Created"] = @([DateFromISO(c[@"created"]) timeIntervalSinceReferenceDate]); // reproducible archive bytes
++            if ([c[@"secure"] boolValue]) props[NSHTTPCookieSecure] = @"TRUE";
++            NSHTTPCookie *cookie = [NSHTTPCookie cookieWithProperties:props];
++            if (cookie) [cookies addObject:cookie];
++        }
++        // addCompteWithPseudo:andCookies:andAvatar:andHash: (MultisManager.m:49-86)
++        NSMutableDictionary *newCompte = [NSMutableDictionary dictionary];
++        NSString *cookiesPseudo = @"";
++        for (NSHTTPCookie *cookie in cookies) {
++            if ([cookie.name isEqualToString:@"md_user"] && ![cookie.value isEqualToString:@"deleted"]) {
++                [newCompte setValue:cookie.value forKey:@"PSEUDO"];
++                cookiesPseudo = cookie.value;
++            }
++        }
++        [newCompte setValue:account[@"display"] forKey:@"PSEUDO_DISPLAY"];
++        [newCompte setValue:cookies forKey:@"COOKIES"];
++        if (account[@"hash"]) [newCompte setValue:account[@"hash"] forKey:@"HASH"];
++        if (account[@"avatarBase64"]) [newCompte setValue:[[NSData alloc] initWithBase64EncodedString:account[@"avatarBase64"] options:0] forKey:@"AVATAR"];
++        if (comptes.count == 0) [newCompte setObject:@YES forKey:@"MAIN"]; // MultisManager.m:70-71 first account only
++        (void)cookiesPseudo;
++        [comptes addObject:newCompte];
++    }
++    if (spec[@"main"]) { // setPseudoAsMain: (MultisManager.m:88-101): every account gets an explicit MAIN
++        for (NSMutableDictionary *compte in comptes) {
++            [compte setObject:@([spec[@"main"] isEqualToString:compte[@"PSEUDO"]]) forKey:@"MAIN"];
++        }
++    }
++
++    NSMutableDictionary *out = [NSMutableDictionary dictionary];
++    NSData *archive = [NSKeyedArchiver archivedDataWithRootObject:comptes]; // MultisManager.m:81
++    out[@"archiveBase64"] = Base64(archive);
++    out[@"archiveBytes"] = @(archive.length);
++    NSDictionary *plist = [NSPropertyListSerialization propertyListWithData:archive options:0 format:nil error:nil];
++    out[@"archiveTopLevelKeys"] = [[plist allKeys] sortedArrayUsingSelector:@selector(compare:)] ?: @[];
++    out[@"archiver"] = Nullable(plist[@"$archiver"]);
++    // getComtpes (MultisManager.m:44-47): the deprecated unarchiveObjectWithData:
++    NSArray *decoded = (NSArray *)[NSKeyedUnarchiver unarchiveObjectWithData:archive];
++    out[@"decoded"] = JSONSafe(decoded);
++
++    // The real MultisManager.getComtpes (MultisManager.m:44-47) reading this blob: A0SimpleKeychain.dataForKey: is
++    // replaced for the call so the Keychain (not available to a test host) is out of the picture.
++    NSMutableDictionary *reader = [NSMutableDictionary dictionary];
++    Class keychainClass = NSClassFromString(@"A0SimpleKeychain");
++    if (keychainClass != Nil) {
++        Method dataForKey = class_getInstanceMethod(keychainClass, NSSelectorFromString(@"dataForKey:"));
++        IMP original = method_setImplementation(dataForKey, imp_implementationWithBlock(^NSData *(id me, NSString *key) {
++            return [key isEqualToString:@"HFR_COMPTES_KEY"] ? archive : nil;
++        }));
++        @try {
++            id manager = ((id (*)(id, SEL))objc_msgSend)(NSClassFromString(@"MultisManager"), NSSelectorFromString(@"sharedManager"));
++            NSArray *viaManager = ((NSArray * (*)(id, SEL))objc_msgSend)(manager, NSSelectorFromString(@"getComtpes"));
++            reader[@"count"] = @(viaManager.count);
++            reader[@"equalsDecoded"] = @([JSONSafe(viaManager) isEqual:JSONSafe(decoded)]);
++            reader[@"first"] = Nullable(JSONSafe(viaManager.firstObject));
++        } @catch (NSException *exception) {
++            reader[@"exception"] = ExceptionString(exception);
++        }
++        method_setImplementation(dataForKey, original);
++    }
++    out[@"multisManagerGetComtpes"] = reader;
++
++    if ([spec[@"tryKeychain"] boolValue]) {
++        // The real Keychain, under the real key, restored afterwards. A test host without Keychain access reports the error.
++        NSMutableDictionary *kc = [NSMutableDictionary dictionary];
++        @try {
++            id keychain = ((id (*)(id, SEL))objc_msgSend)(keychainClass, NSSelectorFromString(@"keychain"));
++            kc[@"service"] = Nullable([keychain valueForKey:@"service"]); // A0SimpleKeychain.m:32-33: the bundle identifier
++            kc[@"defaultAccessibility"] = Nullable([keychain valueForKey:@"defaultAccessiblity"]); // A0SimpleKeychain.m:45
++            NSData *previous = ((NSData * (*)(id, SEL, NSString *))objc_msgSend)(keychain, NSSelectorFromString(@"dataForKey:"), @"HFR_COMPTES_KEY");
++            kc[@"previousItem"] = @((BOOL)(previous != nil));
++            BOOL stored = ((BOOL (*)(id, SEL, NSData *, NSString *))objc_msgSend)(keychain, NSSelectorFromString(@"setData:forKey:"), archive, @"HFR_COMPTES_KEY");
++            kc[@"stored"] = @(stored);
++            if (stored) {
++                NSData *back = ((NSData * (*)(id, SEL, NSString *))objc_msgSend)(keychain, NSSelectorFromString(@"dataForKey:"), @"HFR_COMPTES_KEY");
++                kc[@"readBackEqualsArchive"] = @((BOOL)[back isEqualToData:archive]);
++                if (previous) {
++                    ((BOOL (*)(id, SEL, NSData *, NSString *))objc_msgSend)(keychain, NSSelectorFromString(@"setData:forKey:"), previous, @"HFR_COMPTES_KEY");
++                } else {
++                    ((BOOL (*)(id, SEL, NSString *))objc_msgSend)(keychain, NSSelectorFromString(@"deleteEntryForKey:"), @"HFR_COMPTES_KEY");
++                }
++            }
++        } @catch (NSException *exception) {
++            kc[@"exception"] = ExceptionString(exception);
++        }
++        out[@"keychainRoundTrip"] = kc;
++    }
++    return out;
++}
++
++/// BlackList.m on disk (BlackList.m:44-60 add, 163-170 save, 173-202 load): blackListDico.plist {pseudo: [{word,alias,mode}]},
++/// whiteList.plist [{word,alias,mode}], and the v0 blackList.plist migration branch (BlackList.m:187-192).
++/// spec: pseudo (current account), blacklist [words], whitelist [words], v0 [words].
+++ (NSDictionary *)blacklistFiles:(NSDictionary *)spec {
++    NSString *dir = DocumentsPath();
++    NSString *dico = [dir stringByAppendingPathComponent:@"blackListDico.plist"];
++    NSString *white = [dir stringByAppendingPathComponent:@"whiteList.plist"];
++    NSString *v0 = [dir stringByAppendingPathComponent:@"blackList.plist"];
++    NSFileManager *fm = [NSFileManager defaultManager];
++    NSMutableDictionary *saved = [NSMutableDictionary dictionary]; // back up whatever is there
++    for (NSString *path in @[dico, white, v0]) if ([fm fileExistsAtPath:path]) saved[path] = [NSData dataWithContentsOfFile:path];
++    for (NSString *path in @[dico, white, v0]) [fm removeItemAtPath:path error:nil];
++
++    NSMutableDictionary *out = [NSMutableDictionary dictionary];
++    @try {
++        id list = ((id (*)(id, SEL))objc_msgSend)(NSClassFromString(@"BlackList"), NSSelectorFromString(@"shared"));
++        NSDictionary *previousDico = [list valueForKey:@"dicBlackList"];
++        NSArray *previousWhite = [list valueForKey:@"listWhiteList"];
++        NSString *pseudo = spec[@"pseudo"];
++        NSMutableArray *words = [NSMutableArray array];
++        for (NSString *word in spec[@"blacklist"]) {
++            [words addObject:[NSDictionary dictionaryWithObjectsAndKeys:word, @"word", @"", @"alias", [NSNumber numberWithInt:0], @"mode", nil]];
++        }
++        NSMutableArray *whites = [NSMutableArray array];
++        for (NSString *word in spec[@"whitelist"]) {
++            [whites addObject:[NSDictionary dictionaryWithObjectsAndKeys:word, @"word", @"", @"alias", [NSNumber numberWithInt:0], @"mode", nil]];
++        }
++        [list setValue:[NSMutableDictionary dictionaryWithObject:words forKey:pseudo] forKey:@"dicBlackList"];
++        [list setValue:whites forKey:@"listWhiteList"];
++        ((void (*)(id, SEL))objc_msgSend)(list, NSSelectorFromString(@"save")); // BlackList.m:163-170
++        out[@"blackListDicoPlist"] = Nullable(PlistXML([NSDictionary dictionaryWithContentsOfFile:dico]));
++        out[@"blackListDicoBytes"] = @([[NSData dataWithContentsOfFile:dico] length]);
++        out[@"whiteListPlist"] = Nullable(PlistXML([NSArray arrayWithContentsOfFile:white]));
++
++        // load (BlackList.m:173-202): reset memory, read the files back
++        [list setValue:[NSMutableDictionary dictionary] forKey:@"dicBlackList"];
++        [list setValue:[NSMutableArray array] forKey:@"listWhiteList"];
++        ((void (*)(id, SEL))objc_msgSend)(list, NSSelectorFromString(@"load"));
++        out[@"loaded"] = JSONSafe(@{@"dicBlackList": [list valueForKey:@"dicBlackList"], @"listWhiteList": [list valueForKey:@"listWhiteList"]});
++
++        // v0 migration branch: only blackList.plist exists
++        [fm removeItemAtPath:dico error:nil];
++        NSMutableArray *v0words = [NSMutableArray array];
++        for (NSString *word in spec[@"v0"]) {
++            [v0words addObject:[NSDictionary dictionaryWithObjectsAndKeys:word, @"word", @"", @"alias", [NSNumber numberWithInt:0], @"mode", nil]];
++        }
++        [v0words writeToFile:v0 atomically:YES];
++        out[@"v0Input"] = Nullable(PlistXML(v0words));
++        [list setValue:[NSMutableDictionary dictionary] forKey:@"dicBlackList"];
++        ((void (*)(id, SEL))objc_msgSend)(list, NSSelectorFromString(@"load"));
++        out[@"v0AfterLoad"] = JSONSafe(@{
++            @"dicBlackListInMemory": [list valueForKey:@"dicBlackList"],
++            @"blackListPlistStillExists": @([fm fileExistsAtPath:v0]),
++            @"blackListDicoPlistWritten": @([fm fileExistsAtPath:dico])
++        });
++        [list setValue:previousDico forKey:@"dicBlackList"];
++        [list setValue:previousWhite forKey:@"listWhiteList"];
++    } @catch (NSException *exception) {
++        out[@"exception"] = ExceptionString(exception);
++    }
++    for (NSString *path in @[dico, white, v0]) [fm removeItemAtPath:path error:nil];
++    for (NSString *path in saved) [saved[path] writeToFile:path atomically:YES];
++    return out;
++}
++
++/// SmileyCache app favourites (SmileyCache.m:18-35 SmileyFavorite coding, 353-362 load, 389-439 save):
++/// Documents/smiley_favorites_cache2 = NSKeyedArchiver archive of NSMutableDictionary<code, SmileyFavorite>.
++/// spec: smileys [{code, url, dateAdded ISO-8601}] (fixed dates: the legacy save stamps [NSDate now]).
+++ (NSDictionary *)smileyFavorites:(NSDictionary *)spec {
++    NSString *file = [DocumentsPath() stringByAppendingPathComponent:@"smiley_favorites_cache2"];
++    NSFileManager *fm = [NSFileManager defaultManager];
++    NSData *saved = [fm fileExistsAtPath:file] ? [NSData dataWithContentsOfFile:file] : nil;
++    NSMutableDictionary *out = [NSMutableDictionary dictionary];
++    @try {
++        NSMutableDictionary *dic = [NSMutableDictionary dictionary];
++        for (NSDictionary *item in spec[@"smileys"]) {
++            id favorite = NewInstance(@"SmileyFavorite");
++            [favorite setValue:item[@"code"] forKey:@"sCode"];
++            [favorite setValue:item[@"url"] forKey:@"sRawUrl"];
++            [favorite setValue:DateFromISO(item[@"dateAdded"]) forKey:@"dateAdded"];
++            dic[item[@"code"]] = favorite;
++        }
++        NSMutableData *data = [[NSMutableData alloc] init];
++        NSKeyedArchiver *archiver = [[NSKeyedArchiver alloc] initForWritingWithMutableData:data]; // SmileyCache.m:391-392
++        [archiver encodeObject:dic];
++        [archiver finishEncoding];
++        out[@"archiveBase64"] = Base64(data);
++        out[@"archiveBytes"] = @(data.length);
++        [data writeToFile:file atomically:YES];
++
++        // the real loader (SmileyCache.m:353-362 -loadDicFavorties) on a fresh cache object
++        id cache = NewInstance(@"SmileyCache");
++        ((void (*)(id, SEL))objc_msgSend)(cache, NSSelectorFromString(@"loadDicFavorties"));
++        NSMutableDictionary *loaded = [NSMutableDictionary dictionary];
++        for (NSString *code in [cache valueForKey:@"dicFavoritesSmileys"]) {
++            id favorite = [cache valueForKey:@"dicFavoritesSmileys"][code];
++            loaded[code] = @{@"sCode": Nullable([favorite valueForKey:@"sCode"]), @"sRawUrl": Nullable([favorite valueForKey:@"sRawUrl"]),
++                             @"dateAdded": Nullable(ISOFromDate([favorite valueForKey:@"dateAdded"]))};
++        }
++        out[@"loadedDicFavoritesSmileys"] = loaded;
++        out[@"arrFavoritesSmileysApp"] = JSONSafe([cache valueForKey:@"arrFavoritesSmileysApp"]);
++        NSDictionary *plist = [NSPropertyListSerialization propertyListWithData:data options:0 format:nil error:nil];
++        out[@"archiver"] = Nullable(plist[@"$archiver"]);
++        // the real save path, to document what it stamps: one favourite added through AddAndSaveDicFavoritesApp
++        [fm removeItemAtPath:file error:nil];
++        id realCache = NewInstance(@"SmileyCache");
++        [realCache setValue:[NSMutableDictionary dictionary] forKey:@"dicFavoritesSmileys"];
++        [realCache setValue:[NSMutableArray array] forKey:@"arrFavoritesSmileysApp"];
++        NSDictionary *first = [spec[@"smileys"] firstObject];
++        BOOL added = ((BOOL (*)(id, SEL, NSString *, NSString *, BOOL))objc_msgSend)(
++            realCache, NSSelectorFromString(@"AddAndSaveDicFavoritesApp:source:addSmiley:"), first[@"code"], first[@"url"], YES);
++        NSData *realData = [NSData dataWithContentsOfFile:file];
++        NSDictionary *realPlist = realData ? [NSPropertyListSerialization propertyListWithData:realData options:0 format:nil error:nil] : nil;
++        NSKeyedUnarchiver *realUnarchiver = realData ? [[NSKeyedUnarchiver alloc] initForReadingWithData:realData] : nil; // SmileyCache.m:359-361
++        NSDictionary *realDecoded = [realUnarchiver decodeObject];
++        id realFavorite = realDecoded[first[@"code"]];
++        NSDate *stamped = [realFavorite valueForKey:@"dateAdded"];
++        out[@"realSave"] = @{@"returned": @((BOOL)added), @"fileWritten": @((BOOL)(realData != nil)), @"archiver": Nullable(realPlist[@"$archiver"]),
++                             @"keys": [realDecoded.allKeys sortedArrayUsingSelector:@selector(compare:)] ?: @[],
++                             @"dateAddedIsNow": @((BOOL)(stamped && fabs(stamped.timeIntervalSinceNow) < 60))};
++    } @catch (NSException *exception) {
++        out[@"exception"] = ExceptionString(exception);
++    }
++    [fm removeItemAtPath:file error:nil];
++    if (saved) [saved writeToFile:file atomically:YES];
++    return out;
++}
++
++/// OfflineStorage (OfflineStorage.m:88-143) + Topic NSCoding (Topic.m:101-157): Documents/offlineTopicsDico.plist =
++/// NSKeyedArchiver archive of NSMutableDictionary<NSNumber postID, Topic>.
++/// spec: topics [{postID, catID, aTitle, aURL, ..., dDateOfLastPost ISO}].
+++ (NSDictionary *)offlineTopics:(NSDictionary *)spec {
++    NSString *file = [DocumentsPath() stringByAppendingPathComponent:@"offlineTopicsDico.plist"];
++    NSFileManager *fm = [NSFileManager defaultManager];
++    NSData *saved = [fm fileExistsAtPath:file] ? [NSData dataWithContentsOfFile:file] : nil;
++    [fm removeItemAtPath:file error:nil];
++    NSMutableDictionary *out = [NSMutableDictionary dictionary];
++    id storage = nil;
++    NSDictionary *previous = nil;
++    @try {
++        storage = ((id (*)(id, SEL))objc_msgSend)(NSClassFromString(@"OfflineStorage"), NSSelectorFromString(@"shared"));
++        previous = [[storage valueForKey:@"dicOfflineTopics"] copy];
++        [storage setValue:[NSMutableDictionary dictionary] forKey:@"dicOfflineTopics"];
++        for (NSDictionary *item in spec[@"topics"]) {
++            id topic = NewInstance(@"Topic");
++            for (NSString *key in item) {
++                id value = item[key];
++                if ([key isEqualToString:@"dDateOfLastPost"]) value = DateFromISO(value);
++                [topic setValue:value forKey:key];
++            }
++            ((void (*)(id, SEL, id))objc_msgSend)(storage, NSSelectorFromString(@"addTopicToOfflineTopics:"), topic); // OfflineStorage.m:73-78 -> save :123-132
++        }
++        NSData *data = [NSData dataWithContentsOfFile:file];
++        out[@"archiveBase64"] = Nullable(data ? Base64(data) : nil);
++        out[@"archiveBytes"] = @(data.length);
++        NSDictionary *plist = data ? [NSPropertyListSerialization propertyListWithData:data options:0 format:nil error:nil] : nil;
++        out[@"archiver"] = Nullable(plist[@"$archiver"]);
++        // the real loader (OfflineStorage.m:88-103)
++        [storage setValue:[NSMutableDictionary dictionary] forKey:@"dicOfflineTopics"];
++        ((void (*)(id, SEL))objc_msgSend)(storage, NSSelectorFromString(@"load"));
++        NSDictionary *loaded = [storage valueForKey:@"dicOfflineTopics"];
++        NSMutableDictionary *summary = [NSMutableDictionary dictionary];
++        NSArray *keys = @[@"postID", @"catID", @"aTitle", @"aURL", @"aRepCount", @"aURLOfFirstPage", @"aURLOfFlag", @"aTypeOfFlag", @"aURLOfLastPost",
++                          @"aURLOfLastPage", @"aDateOfLastPost", @"dDateOfLastPost", @"aAuthorOfLastPost", @"aAuthorOrInter", @"maxTopicPage",
++                          @"curTopicPage", @"isTopicLoadedInCache", @"maxTopicPageLoaded", @"curTopicPageLoaded", @"minTopicPageLoaded"];
++        for (id key in loaded) {
++            NSMutableDictionary *fields = [NSMutableDictionary dictionary];
++            for (NSString *field in keys) fields[field] = JSONSafe([loaded[key] valueForKey:field]);
++            summary[[key description]] = fields;
++        }
++        out[@"loaded"] = summary;
++    } @catch (NSException *exception) {
++        out[@"exception"] = ExceptionString(exception);
++    }
++    if (storage && previous) [storage setValue:[previous mutableCopy] forKey:@"dicOfflineTopics"];
++    [fm removeItemAtPath:file error:nil];
++    if (saved) [saved writeToFile:file atomically:YES];
++    return out;
++}
++
++#pragma clang diagnostic pop
++
++@end
 diff --git a/HFRswiftTests/OracleObjCSafe.m b/HFRswiftTests/OracleObjCSafe.m
 new file mode 100644
-index 0000000..a5c92b3
+index 0000000..3c94bd5
 --- /dev/null
 +++ b/HFRswiftTests/OracleObjCSafe.m
-@@ -0,0 +1,282 @@
+@@ -0,0 +1,302 @@
 +// Oracle exporter helper (SwiftHFR LOT-002, LOT-003): calls an Objective-C method through NSInvocation and
 +// turns a thrown NSException into data. The legacy parsers raise on malformed pages (nil URL,
 +// out-of-bounds child index...), and Swift cannot catch NSException, so a raise would kill the run.
@@ -741,6 +2176,7 @@ index 0000000..a5c92b3
 ++ (void)removeTopicHooks;
 ++ (void)setTopicHookPseudo:(NSString *)pseudo avatarMode:(NSString *)mode;
 ++ (NSArray *)drainNetworkRequests;
+++ (void)setTopicHookHash:(NSString *)hash;
 ++ (NSData *)safeResponseDataFor:(NSData *)data url:(NSString *)url;
 ++ (NSDictionary *)runTopicWorker:(NSDictionary *)spec;
 ++ (NSDictionary *)parseMessagesRaw:(NSDictionary *)spec;
@@ -749,6 +2185,7 @@ index 0000000..a5c92b3
 +// State read by the hooks. Written on the main thread between cases; the network hook runs on
 +// NSOperationQueue threads, hence the lock around the request log and the mode.
 +static NSString *gOraclePseudo = nil;
++static NSString *gOracleHash = nil; // LOT-004
 +static NSString *gOracleAvatarMode = @"succeed";
 +static NSMutableArray<NSString *> *gOracleRequests = nil;
 +static IMP gOrigGetMainCompte = NULL;
@@ -807,10 +2244,20 @@ index 0000000..a5c92b3
 +        }
 +        [invocation invoke];
 +        id result = nil;
-+        if (signature.methodReturnType[0] == '@') {
++        const char *returnType = signature.methodReturnType;
++        if (returnType[0] == '@') {
 +            __unsafe_unretained id raw = nil;
 +            [invocation getReturnValue:&raw];
 +            result = raw;
++        } else if (returnType[0] == 'B' || returnType[0] == 'c') { // LOT-004: BOOL returns (MPStorage saves)
++            BOOL raw = NO;
++            [invocation getReturnValue:&raw];
++            result = @(raw);
++        } else if (returnType[0] == 'i' || returnType[0] == 'q' || returnType[0] == 'l') {
++            long long raw = 0;
++            if (returnType[0] == 'i') { int small = 0; [invocation getReturnValue:&small]; raw = small; }
++            else { [invocation getReturnValue:&raw]; }
++            result = @(raw);
 +        }
 +        return @{@"result": result ?: [NSNull null]};
 +    } @catch (NSException *exception) {
@@ -842,7 +2289,10 @@ index 0000000..a5c92b3
 +    Method mainCompte = class_getInstanceMethod(multis, NSSelectorFromString(@"getMainCompte"));
 +    gOrigGetMainCompte = method_setImplementation(mainCompte, imp_implementationWithBlock(^NSDictionary *(id me) {
 +        // PSEUDO_DISPLAY_KEY and MAIN_KEY, Constants.h:119,121
-+        return gOraclePseudo ? @{@"PSEUDO_DISPLAY": gOraclePseudo, @"MAIN": @YES} : nil;
++        if (!gOraclePseudo) return nil;
++        // LOT-004: HASH (HASH_KEY, Constants.h:120) when a write case sets one
++        return gOracleHash ? @{@"PSEUDO_DISPLAY": gOraclePseudo, @"MAIN": @YES, @"HASH": gOracleHash}
++                           : @{@"PSEUDO_DISPLAY": gOraclePseudo, @"MAIN": @YES};
 +    }));
 +    Method currentPseudo = class_getInstanceMethod(multis, NSSelectorFromString(@"getCurrentPseudo"));
 +    gOrigGetCurrentPseudo = method_setImplementation(currentPseudo, imp_implementationWithBlock(^NSString *(id me) {
@@ -894,6 +2344,7 @@ index 0000000..a5c92b3
 +    method_setImplementation(class_getInstanceMethod(parse, NSSelectorFromString(@"initWithData:index:reverse:delegate:")), gOrigParseInit);
 +    gOrigGetMainCompte = gOrigGetCurrentPseudo = gOrigRequestStart = gOrigParseInit = NULL;
 +    gOraclePseudo = nil;
++    gOracleHash = nil;
 +    @synchronized (gOracleRequests) {
 +        gOracleAvatarMode = @"succeed"; // the default, so a later case never inherits "fail" or "blocked"
 +    }
@@ -905,6 +2356,10 @@ index 0000000..a5c92b3
 +        gOracleAvatarMode = [mode copy] ?: @"succeed";
 +        [gOracleRequests removeAllObjects];
 +    }
++}
++
+++ (void)setTopicHookHash:(NSString *)hash {
++    gOracleHash = [hash isKindOfClass:[NSString class]] ? [hash copy] : nil;
 +}
 +
 ++ (NSArray *)drainNetworkRequests {

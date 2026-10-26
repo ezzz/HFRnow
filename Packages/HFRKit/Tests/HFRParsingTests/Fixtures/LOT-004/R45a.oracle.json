@@ -1,0 +1,601 @@
+{
+  "case" : "R45a",
+  "exception" : null,
+  "input" : {
+    "bytes" : 31482,
+    "context" : {
+      "message" : null,
+      "mode" : "newtopic",
+      "overrides" : {
+
+      },
+      "session" : {
+        "hash" : "0123456789abcdef0123456789abcdef01234567",
+        "pseudo" : "user2"
+      },
+      "url" : "https://forum.hardware.fr/hfr/Discussions/nouveau_sujet.htm"
+    },
+    "currentURL" : null,
+    "file" : "../captures/R45a-new-topic-form.html",
+    "now" : null,
+    "sha256" : "bed104254fe17167a1f28b47f5e12f302e6d4af79ecb7525c867e5633b07bcc6"
+  },
+  "kind" : "form",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "comparison" : {
+      "comparable" : true,
+      "different" : [
+
+      ],
+      "legacyUrl" : "https://forum.hardware.fr/bddpost.php?config=hfr.inc",
+      "liveUrl" : "https://forum.hardware.fr/bddpost.php?config=hfr.inc",
+      "onlyLegacy" : [
+
+      ],
+      "onlyLive" : [
+
+      ],
+      "sameUrl" : true
+    },
+    "legacy" : {
+      "contentForm" : null,
+      "contentFormRaw" : null,
+      "fetchURL" : "https://forum.hardware.fr/hfr/discussions/nouveau_sujet.htm",
+      "formAction" : "/bddpost.php?config=hfr.inc",
+      "formSubmit" : "https://forum.hardware.fr/bddpost.php?config=hfr.inc",
+      "haveCategory" : true,
+      "haveTitle" : true,
+      "haveTo" : false,
+      "inputData" : {
+        "cache" : "cache",
+        "cat" : "13",
+        "ColorUsedMem" : "",
+        "config" : "hfr.inc",
+        "emaill" : "0",
+        "hash_check" : "REDACTED",
+        "MsgIcon" : "1",
+        "new" : "0",
+        "numrep" : "",
+        "numreponse" : "",
+        "owntopic" : "0",
+        "p" : "1",
+        "page" : "1",
+        "parents" : "",
+        "password" : "",
+        "post" : "",
+        "pseudo" : "user2",
+        "search_smilies" : "",
+        "signature" : "0",
+        "smiley" : "0",
+        "sond" : "0",
+        "sondage" : "0",
+        "stickold" : "",
+        "subcat" : "",
+        "submit" : "Valider votre message",
+        "sujet" : "",
+        "toread1" : "",
+        "toread2" : "",
+        "toread3" : "",
+        "toread4" : "",
+        "toread5" : "",
+        "verifrequet" : "1100",
+        "wysiwyg" : "0"
+      },
+      "isLogged" : true,
+      "loopOrder" : [
+        "hash_check",
+        "parents",
+        "post",
+        "stickold",
+        "new",
+        "cat",
+        "numreponse",
+        "numrep",
+        "page",
+        "verifrequet",
+        "p",
+        "sondage",
+        "sond",
+        "cache",
+        "owntopic",
+        "config",
+        "pseudo",
+        "password",
+        "sujet",
+        "toread1",
+        "toread2",
+        "toread3",
+        "toread4",
+        "toread5",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "search_smilies",
+        "ColorUsedMem",
+        "wysiwyg",
+        "submit",
+        "signature",
+        "smiley",
+        "emaill",
+        "select:subcat"
+      ],
+      "post" : {
+        "bodyBytes" : 477,
+        "bodySorted" : "ColorUsedMem=&MsgIcon=1&cache=cache&cat=13&config=hfr.inc&content_form=Test%20message%0D%0Aline%20two%3A%20%C3%A9%20%26%20%2B%20%3D%20%25%20100%25&emaill=0&hash_check=0123456789abcdef0123456789abcdef01234567&new=0&numrep=&numreponse=&owntopic=0&p=1&page=1&parents=&password=&post=&pseudo=user2&search_smilies=&signature=0&smiley=0&sond=0&sondage=0&stickold=&subcat=&submit=Valider%20votre%20message&sujet=&toread1=&toread2=&toread3=&toread4=&toread5=&verifrequet=1100&wysiwyg=0",
+        "contentType" : "application/x-www-form-urlencoded; charset=utf-8",
+        "method" : "POST",
+        "pairs" : [
+          [
+            "ColorUsedMem",
+            ""
+          ],
+          [
+            "MsgIcon",
+            "1"
+          ],
+          [
+            "cache",
+            "cache"
+          ],
+          [
+            "cat",
+            "13"
+          ],
+          [
+            "config",
+            "hfr.inc"
+          ],
+          [
+            "content_form",
+            "Test message\r\nline two: é & + = % 100%"
+          ],
+          [
+            "emaill",
+            "0"
+          ],
+          [
+            "hash_check",
+            "0123456789abcdef0123456789abcdef01234567"
+          ],
+          [
+            "new",
+            "0"
+          ],
+          [
+            "numrep",
+            ""
+          ],
+          [
+            "numreponse",
+            ""
+          ],
+          [
+            "owntopic",
+            "0"
+          ],
+          [
+            "p",
+            "1"
+          ],
+          [
+            "page",
+            "1"
+          ],
+          [
+            "parents",
+            ""
+          ],
+          [
+            "password",
+            ""
+          ],
+          [
+            "post",
+            ""
+          ],
+          [
+            "pseudo",
+            "user2"
+          ],
+          [
+            "search_smilies",
+            ""
+          ],
+          [
+            "signature",
+            "0"
+          ],
+          [
+            "smiley",
+            "0"
+          ],
+          [
+            "sond",
+            "0"
+          ],
+          [
+            "sondage",
+            "0"
+          ],
+          [
+            "stickold",
+            ""
+          ],
+          [
+            "subcat",
+            ""
+          ],
+          [
+            "submit",
+            "Valider votre message"
+          ],
+          [
+            "sujet",
+            ""
+          ],
+          [
+            "toread1",
+            ""
+          ],
+          [
+            "toread2",
+            ""
+          ],
+          [
+            "toread3",
+            ""
+          ],
+          [
+            "toread4",
+            ""
+          ],
+          [
+            "toread5",
+            ""
+          ],
+          [
+            "verifrequet",
+            "1100"
+          ],
+          [
+            "wysiwyg",
+            "0"
+          ]
+        ],
+        "url" : "https://forum.hardware.fr/bddpost.php?config=hfr.inc"
+      },
+      "postedContent" : "Test message\nline two: é & + = % 100%",
+      "raisedInLegacy" : [
+
+      ],
+      "smileys" : [
+
+      ],
+      "subcats" : [
+        {
+          "id" : "",
+          "title" : "Aucune"
+        },
+        {
+          "id" : "422",
+          "title" : "Actualité"
+        },
+        {
+          "id" : "482",
+          "title" : "Politique"
+        },
+        {
+          "id" : "423",
+          "title" : "Société"
+        },
+        {
+          "id" : "424",
+          "title" : "Cinéma"
+        },
+        {
+          "id" : "425",
+          "title" : "Musique"
+        },
+        {
+          "id" : "426",
+          "title" : "Arts & Lecture"
+        },
+        {
+          "id" : "427",
+          "title" : "TV, Radio"
+        },
+        {
+          "id" : "428",
+          "title" : "Sciences"
+        },
+        {
+          "id" : "429",
+          "title" : "Santé"
+        },
+        {
+          "id" : "430",
+          "title" : "Sports"
+        },
+        {
+          "id" : "431",
+          "title" : "Auto / Moto"
+        },
+        {
+          "id" : "433",
+          "title" : "Cuisine"
+        },
+        {
+          "id" : "434",
+          "title" : "Loisirs"
+        },
+        {
+          "id" : "557",
+          "title" : "Voyages"
+        },
+        {
+          "id" : "432",
+          "title" : "Vie pratique"
+        }
+      ],
+      "username" : "user2"
+    },
+    "live" : {
+      "composerContext" : {
+        "isSubcategoryEditable" : true,
+        "isSubjectEditable" : true,
+        "recipient" : null,
+        "selectedSubcategoryID" : null,
+        "subcategoryOptions" : [
+          {
+            "id" : "422",
+            "title" : "Actualité"
+          },
+          {
+            "id" : "482",
+            "title" : "Politique"
+          },
+          {
+            "id" : "423",
+            "title" : "Société"
+          },
+          {
+            "id" : "424",
+            "title" : "Cinéma"
+          },
+          {
+            "id" : "425",
+            "title" : "Musique"
+          },
+          {
+            "id" : "426",
+            "title" : "Arts & Lecture"
+          },
+          {
+            "id" : "427",
+            "title" : "TV, Radio"
+          },
+          {
+            "id" : "428",
+            "title" : "Sciences"
+          },
+          {
+            "id" : "429",
+            "title" : "Santé"
+          },
+          {
+            "id" : "430",
+            "title" : "Sports"
+          },
+          {
+            "id" : "431",
+            "title" : "Auto / Moto"
+          },
+          {
+            "id" : "433",
+            "title" : "Cuisine"
+          },
+          {
+            "id" : "434",
+            "title" : "Loisirs"
+          },
+          {
+            "id" : "557",
+            "title" : "Voyages"
+          },
+          {
+            "id" : "432",
+            "title" : "Vie pratique"
+          }
+        ],
+        "subject" : null
+      },
+      "post" : {
+        "bodyBytes" : 455,
+        "bodyOrder" : "unspecified (Swift Dictionary iteration)",
+        "bodySorted" : "ColorUsedMem=&MsgIcon=1&cache=cache&cat=13&config=hfr.inc&content_form=Test+message%0D%0Aline+two:+%C3%A9+%26+%2B+%3D+%25+100%25&emaill=0&hash_check=0123456789abcdef0123456789abcdef01234567&new=0&numrep=&numreponse=&owntopic=0&p=1&page=1&parents=&password=&post=&pseudo=user2&search_smilies=&signature=0&smiley=0&sond=0&sondage=0&stickold=&subcat=&submit=Valider+votre+message&sujet=&toread1=&toread2=&toread3=&toread4=&toread5=&verifrequet=1100&wysiwyg=0",
+        "contentType" : "application/x-www-form-urlencoded; charset=utf-8",
+        "method" : "POST",
+        "pairs" : [
+          [
+            "ColorUsedMem",
+            ""
+          ],
+          [
+            "MsgIcon",
+            "1"
+          ],
+          [
+            "cache",
+            "cache"
+          ],
+          [
+            "cat",
+            "13"
+          ],
+          [
+            "config",
+            "hfr.inc"
+          ],
+          [
+            "content_form",
+            "Test message\r\nline two: é & + = % 100%"
+          ],
+          [
+            "emaill",
+            "0"
+          ],
+          [
+            "hash_check",
+            "0123456789abcdef0123456789abcdef01234567"
+          ],
+          [
+            "new",
+            "0"
+          ],
+          [
+            "numrep",
+            ""
+          ],
+          [
+            "numreponse",
+            ""
+          ],
+          [
+            "owntopic",
+            "0"
+          ],
+          [
+            "p",
+            "1"
+          ],
+          [
+            "page",
+            "1"
+          ],
+          [
+            "parents",
+            ""
+          ],
+          [
+            "password",
+            ""
+          ],
+          [
+            "post",
+            ""
+          ],
+          [
+            "pseudo",
+            "user2"
+          ],
+          [
+            "search_smilies",
+            ""
+          ],
+          [
+            "signature",
+            "0"
+          ],
+          [
+            "smiley",
+            "0"
+          ],
+          [
+            "sond",
+            "0"
+          ],
+          [
+            "sondage",
+            "0"
+          ],
+          [
+            "stickold",
+            ""
+          ],
+          [
+            "subcat",
+            ""
+          ],
+          [
+            "submit",
+            "Valider votre message"
+          ],
+          [
+            "sujet",
+            ""
+          ],
+          [
+            "toread1",
+            ""
+          ],
+          [
+            "toread2",
+            ""
+          ],
+          [
+            "toread3",
+            ""
+          ],
+          [
+            "toread4",
+            ""
+          ],
+          [
+            "toread5",
+            ""
+          ],
+          [
+            "verifrequet",
+            "1100"
+          ],
+          [
+            "wysiwyg",
+            "0"
+          ]
+        ],
+        "url" : "https://forum.hardware.fr/bddpost.php?config=hfr.inc"
+      },
+      "postedContent" : "Test message\nline two: é & + = % 100%",
+      "requests" : [
+        {
+          "method" : "GET",
+          "url" : "https://forum.hardware.fr/hfr/Discussions/nouveau_sujet.htm"
+        },
+        {
+          "method" : "POST",
+          "url" : "https://forum.hardware.fr/bddpost.php?config=hfr.inc"
+        }
+      ],
+      "result" : {
+        "ok" : true,
+        "refreshAnchor" : "t1002",
+        "refreshURL" : "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=1000&page=1#t1002",
+        "statusMessage" : "Votre message a bien été pris en compte."
+      }
+    }
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

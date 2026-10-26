@@ -1,0 +1,434 @@
+{
+  "case" : "R41b",
+  "exception" : null,
+  "input" : {
+    "bytes" : 93152,
+    "context" : {
+      "message" : null,
+      "mode" : "quote",
+      "overrides" : {
+
+      },
+      "session" : {
+        "hash" : "0123456789abcdef0123456789abcdef01234567",
+        "pseudo" : "user2"
+      },
+      "url" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=28563&numrep=2666695&ref=3&page=1&p=1&subcat=433&sondage=0&owntopic=0&new=0"
+    },
+    "currentURL" : null,
+    "file" : "../captures/R41b-quote-form-of-quoting-post.html",
+    "now" : null,
+    "sha256" : "b7a44a48282af011f8264780d3720e067a3fe7fed82963e0444c77260b117152"
+  },
+  "kind" : "form",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "comparison" : {
+      "comparable" : true,
+      "different" : [
+
+      ],
+      "legacyUrl" : "https://forum.hardware.fr/bddpost.php?config=hfr.inc",
+      "liveUrl" : "https://forum.hardware.fr/bddpost.php?config=hfr.inc",
+      "onlyLegacy" : [
+
+      ],
+      "onlyLive" : [
+        "ref"
+      ],
+      "sameUrl" : true
+    },
+    "legacy" : {
+      "contentForm" : "[quotemsg=2666695,3,910001]\n\ns'pas une pizza alors [:user5][/quotemsg]\n",
+      "contentFormRaw" : "[quotemsg=2666695,3,910001]\r\n\r\ns'pas une pizza alors [:user5][/quotemsg]\n",
+      "fetchURL" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=28563&numrep=2666695&ref=3&page=1&p=1&subcat=433&sondage=0&owntopic=0&new=0",
+      "formAction" : "/bddpost.php?config=hfr.inc",
+      "formSubmit" : "https://forum.hardware.fr/bddpost.php?config=hfr.inc",
+      "haveCategory" : false,
+      "haveTitle" : false,
+      "haveTo" : false,
+      "inputData" : {
+        "cache" : "cache",
+        "cat" : "13",
+        "ColorUsedMem" : "",
+        "config" : "hfr.inc",
+        "emaill" : "0",
+        "hash_check" : "REDACTED",
+        "MsgIcon" : "1",
+        "new" : "0",
+        "numrep" : "2666695",
+        "numreponse" : "",
+        "owntopic" : "0",
+        "p" : "1",
+        "page" : "1",
+        "parents" : "",
+        "password" : "",
+        "post" : "28563",
+        "pseudo" : "user2",
+        "search_smilies" : "",
+        "signature" : "0",
+        "smiley" : "0",
+        "sond" : "0",
+        "sondage" : "0",
+        "stickold" : "0",
+        "subcat" : "433",
+        "submit" : "Valider votre message",
+        "sujet" : "Topic pizza maison",
+        "verifrequet" : "1100",
+        "wysiwyg" : "0"
+      },
+      "isLogged" : true,
+      "loopOrder" : [
+        "hash_check",
+        "subcat",
+        "parents",
+        "post",
+        "stickold",
+        "new",
+        "cat",
+        "numreponse",
+        "numrep",
+        "page",
+        "verifrequet",
+        "p",
+        "sondage",
+        "sond",
+        "cache",
+        "owntopic",
+        "config",
+        "sujet",
+        "pseudo",
+        "password",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "search_smilies",
+        "ColorUsedMem",
+        "wysiwyg",
+        "submit",
+        "signature",
+        "smiley",
+        "emaill"
+      ],
+      "post" : {
+        "bodyBytes" : 513,
+        "bodySorted" : "ColorUsedMem=&MsgIcon=1&cache=cache&cat=13&config=hfr.inc&content_form=%5Bquotemsg%3D2666695%2C3%2C910001%5D%0D%0A%0D%0As%27pas%20une%20pizza%20alors%20%5B%3Auser5%5D%5B%2Fquotemsg%5D%0D%0A&emaill=0&hash_check=0123456789abcdef0123456789abcdef01234567&new=0&numrep=2666695&numreponse=&owntopic=0&p=1&page=1&parents=&password=&post=28563&pseudo=user2&search_smilies=&signature=0&smiley=0&sond=0&sondage=0&stickold=0&subcat=433&submit=Valider%20votre%20message&sujet=Topic%20pizza%20maison&verifrequet=1100&wysiwyg=0",
+        "contentType" : "application/x-www-form-urlencoded; charset=utf-8",
+        "method" : "POST",
+        "pairs" : [
+          [
+            "ColorUsedMem",
+            ""
+          ],
+          [
+            "MsgIcon",
+            "1"
+          ],
+          [
+            "cache",
+            "cache"
+          ],
+          [
+            "cat",
+            "13"
+          ],
+          [
+            "config",
+            "hfr.inc"
+          ],
+          [
+            "content_form",
+            "[quotemsg=2666695,3,910001]\r\n\r\ns'pas une pizza alors [:user5][/quotemsg]\r\n"
+          ],
+          [
+            "emaill",
+            "0"
+          ],
+          [
+            "hash_check",
+            "0123456789abcdef0123456789abcdef01234567"
+          ],
+          [
+            "new",
+            "0"
+          ],
+          [
+            "numrep",
+            "2666695"
+          ],
+          [
+            "numreponse",
+            ""
+          ],
+          [
+            "owntopic",
+            "0"
+          ],
+          [
+            "p",
+            "1"
+          ],
+          [
+            "page",
+            "1"
+          ],
+          [
+            "parents",
+            ""
+          ],
+          [
+            "password",
+            ""
+          ],
+          [
+            "post",
+            "28563"
+          ],
+          [
+            "pseudo",
+            "user2"
+          ],
+          [
+            "search_smilies",
+            ""
+          ],
+          [
+            "signature",
+            "0"
+          ],
+          [
+            "smiley",
+            "0"
+          ],
+          [
+            "sond",
+            "0"
+          ],
+          [
+            "sondage",
+            "0"
+          ],
+          [
+            "stickold",
+            "0"
+          ],
+          [
+            "subcat",
+            "433"
+          ],
+          [
+            "submit",
+            "Valider votre message"
+          ],
+          [
+            "sujet",
+            "Topic pizza maison"
+          ],
+          [
+            "verifrequet",
+            "1100"
+          ],
+          [
+            "wysiwyg",
+            "0"
+          ]
+        ],
+        "url" : "https://forum.hardware.fr/bddpost.php?config=hfr.inc"
+      },
+      "postedContent" : "[quotemsg=2666695,3,910001]\n\ns'pas une pizza alors [:user5][/quotemsg]\n",
+      "raisedInLegacy" : [
+
+      ],
+      "smileys" : [
+
+      ],
+      "subcats" : [
+
+      ],
+      "username" : "user2"
+    },
+    "live" : {
+      "composerContext" : {
+        "isSubcategoryEditable" : false,
+        "isSubjectEditable" : false,
+        "recipient" : null,
+        "selectedSubcategoryID" : "433",
+        "subcategoryOptions" : [
+
+        ],
+        "subject" : "Topic pizza maison"
+      },
+      "post" : {
+        "bodyBytes" : 493,
+        "bodyOrder" : "unspecified (Swift Dictionary iteration)",
+        "bodySorted" : "ColorUsedMem=&MsgIcon=1&cache=cache&cat=13&config=hfr.inc&content_form=%5Bquotemsg%3D2666695,3,910001%5D%0D%0A%0D%0As'pas+une+pizza+alors+%5B:user5%5D%5B/quotemsg%5D%0D%0A&emaill=0&hash_check=0123456789abcdef0123456789abcdef01234567&new=0&numrep=2666695&numreponse=&owntopic=0&p=1&page=1&parents=&password=&post=28563&pseudo=user2&ref=3&search_smilies=&signature=0&smiley=0&sond=0&sondage=0&stickold=0&subcat=433&submit=Valider+votre+message&sujet=Topic+pizza+maison&verifrequet=1100&wysiwyg=0",
+        "contentType" : "application/x-www-form-urlencoded; charset=utf-8",
+        "method" : "POST",
+        "pairs" : [
+          [
+            "ColorUsedMem",
+            ""
+          ],
+          [
+            "MsgIcon",
+            "1"
+          ],
+          [
+            "cache",
+            "cache"
+          ],
+          [
+            "cat",
+            "13"
+          ],
+          [
+            "config",
+            "hfr.inc"
+          ],
+          [
+            "content_form",
+            "[quotemsg=2666695,3,910001]\r\n\r\ns'pas une pizza alors [:user5][/quotemsg]\r\n"
+          ],
+          [
+            "emaill",
+            "0"
+          ],
+          [
+            "hash_check",
+            "0123456789abcdef0123456789abcdef01234567"
+          ],
+          [
+            "new",
+            "0"
+          ],
+          [
+            "numrep",
+            "2666695"
+          ],
+          [
+            "numreponse",
+            ""
+          ],
+          [
+            "owntopic",
+            "0"
+          ],
+          [
+            "p",
+            "1"
+          ],
+          [
+            "page",
+            "1"
+          ],
+          [
+            "parents",
+            ""
+          ],
+          [
+            "password",
+            ""
+          ],
+          [
+            "post",
+            "28563"
+          ],
+          [
+            "pseudo",
+            "user2"
+          ],
+          [
+            "ref",
+            "3"
+          ],
+          [
+            "search_smilies",
+            ""
+          ],
+          [
+            "signature",
+            "0"
+          ],
+          [
+            "smiley",
+            "0"
+          ],
+          [
+            "sond",
+            "0"
+          ],
+          [
+            "sondage",
+            "0"
+          ],
+          [
+            "stickold",
+            "0"
+          ],
+          [
+            "subcat",
+            "433"
+          ],
+          [
+            "submit",
+            "Valider votre message"
+          ],
+          [
+            "sujet",
+            "Topic pizza maison"
+          ],
+          [
+            "verifrequet",
+            "1100"
+          ],
+          [
+            "wysiwyg",
+            "0"
+          ]
+        ],
+        "url" : "https://forum.hardware.fr/bddpost.php?config=hfr.inc"
+      },
+      "postedContent" : "[quotemsg=2666695,3,910001]\n\ns'pas une pizza alors [:user5][/quotemsg]\n",
+      "quoteTemplate" : "[quotemsg=2666695,3,910001]\n\ns'pas une pizza alors [:user5][/quotemsg]\n",
+      "requests" : [
+        {
+          "method" : "GET",
+          "url" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=28563&numrep=2666695&ref=3&page=1&p=1&subcat=433&sondage=0&owntopic=0&new=0"
+        },
+        {
+          "method" : "POST",
+          "url" : "https://forum.hardware.fr/bddpost.php?config=hfr.inc"
+        }
+      ],
+      "result" : {
+        "ok" : true,
+        "refreshAnchor" : "t1002",
+        "refreshURL" : "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=1000&page=1#t1002",
+        "statusMessage" : "Votre message a bien été pris en compte."
+      }
+    }
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "case" : "W10",
+  "exception" : null,
+  "input" : {
+    "bytes" : 1741,
+    "context" : {
+      "charset" : "utf-8",
+      "flow" : "reply",
+      "status" : 200,
+      "urlQuote" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=1000&numreponse=1003&page=1&p=1&subcat=&sondage=0&owntopic=0&new=0"
+    },
+    "currentURL" : null,
+    "file" : "../captures/W10-mp-create-crlf-success.html",
+    "now" : null,
+    "sha256" : "16226e751abd09b63939163d517f06bfd9f23c4216092088d1d1d317e0718332"
+  },
+  "kind" : "response",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "legacy" : {
+      "anchor" : "",
+      "anchorMatches" : 1,
+      "classification" : "success",
+      "decoded" : true,
+      "hopFound" : true,
+      "hopHasInput" : false,
+      "hopHasLink" : false,
+      "message" : "Votre message a été posté avec succès !"
+    },
+    "live" : {
+      "ok" : true,
+      "refreshAnchor" : null,
+      "refreshURL" : "https://forum.hardware.fr/forum1.php?config=hfr.inc&amp;cat=prive&amp;page=1&amp;subcat=0&amp;sondage=0&amp;owntopic=0&amp;trash=0&amp;trash_post=0&amp;moderation=0&amp;new=0&amp;nojs=0&amp;subcatgroup=0",
+      "statusMessage" : "Votre message a été posté avec succès !"
+    }
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

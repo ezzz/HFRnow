@@ -1,0 +1,14 @@
+{
+  "blacklist": [
+    "fakeuser3",
+    "Fake​User4"
+  ],
+  "pseudo": "fakeuser1",
+  "v0": [
+    "fakeuser3",
+    "fakeuser5"
+  ],
+  "whitelist": [
+    "fakeuser2"
+  ]
+}

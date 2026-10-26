@@ -1,0 +1,12 @@
+{
+  "args": {
+    "pseudo": "fakeuser5"
+  },
+  "numRep": "59533822",
+  "op": "addBlackList",
+  "postId": "202",
+  "responses": [
+    "storage-mp-page.html",
+    "response-mp-success.html"
+  ]
+}

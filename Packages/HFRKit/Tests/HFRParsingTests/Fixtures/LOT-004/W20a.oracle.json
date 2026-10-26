@@ -1,0 +1,43 @@
+{
+  "case" : "W20a",
+  "exception" : null,
+  "input" : {
+    "bytes" : 1707,
+    "context" : {
+      "charset" : "utf-8",
+      "flow" : "reply",
+      "status" : 200,
+      "urlQuote" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=1000&numreponse=1003&page=1&p=1&subcat=&sondage=0&owntopic=0&new=0"
+    },
+    "currentURL" : null,
+    "file" : "../captures/W20a-mp-reply-flood.html",
+    "now" : null,
+    "sha256" : "9841babad3cee64c598c214d0931c3b391b73b948f9d17ad6ad3dc06def40806"
+  },
+  "kind" : "response",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "legacy" : {
+      "classification" : "rejected",
+      "decoded" : true,
+      "hopFound" : true,
+      "hopHasInput" : false,
+      "hopHasLink" : true,
+      "message" : "Afin de prevenir les tentatives de flood, vous ne pouvez poster plus de 3 réponses consécutives dans un intervalle de 10 minutes"
+    },
+    "live" : {
+      "error" : "submissionRejected",
+      "message" : "Afin de prevenir les tentatives de flood, vous ne pouvez poster plus de 3 réponses consécutives dans un intervalle de 10 minutes Retour à la page précédente"
+    }
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

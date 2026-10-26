@@ -1,0 +1,47 @@
+{
+  "case" : "W16a",
+  "exception" : null,
+  "input" : {
+    "bytes" : 1749,
+    "context" : {
+      "charset" : "utf-8",
+      "flow" : "delete",
+      "status" : 200,
+      "urlQuote" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207033&numreponse=1980875031&page=1&p=1&subcat=&sondage=0&owntopic=0&new=0"
+    },
+    "currentURL" : null,
+    "file" : "../captures/W16a-mp-delete-post-success.html",
+    "now" : null,
+    "sha256" : "773728c36ddb65ffee33f9da341fb22abfcb8e86e6374b0bf855b50aa8bfaf0d"
+  },
+  "kind" : "response",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "legacy" : {
+      "anchor" : "1980875031",
+      "anchorMatches" : 1,
+      "classification" : "success",
+      "decoded" : true,
+      "hopFound" : true,
+      "hopHasInput" : false,
+      "hopHasLink" : false,
+      "message" : "Message effacé avec succès !"
+    },
+    "live" : {
+      "ok" : true,
+      "refreshAnchor" : "1980875031",
+      "refreshURL" : "https://forum.hardware.fr/forum2.php?config=hfr.inc&amp;cat=prive&amp;post=3207033&amp;page=1&amp;p=1&amp;sondage=0&amp;owntopic=0&amp;trash=&amp;trash_post=&amp;print=0&amp;numreponse=0&amp;quote_only=0&amp;new=0&amp;nojs=0",
+      "statusMessage" : "Message effacé avec succès !"
+    }
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

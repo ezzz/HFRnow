@@ -1,0 +1,26 @@
+{
+  "topics": [
+    {
+      "aAuthorOfLastPost": "fakeuser2",
+      "aAuthorOrInter": "fakeuser1",
+      "aDateOfLastPost": "02-01-2020 à 10:30",
+      "aRepCount": 42,
+      "aTitle": "Fake offline topic",
+      "aTypeOfFlag": "favoris",
+      "aURL": "/forum2.php?config=hfr.inc&cat=13&post=1000&page=1",
+      "aURLOfFirstPage": "/forum2.php?config=hfr.inc&cat=13&post=1000&page=1",
+      "aURLOfFlag": "",
+      "aURLOfLastPage": "/forum2.php?config=hfr.inc&cat=13&post=1000&page=2",
+      "aURLOfLastPost": "/forum2.php?config=hfr.inc&cat=13&post=1000&page=2#t1042",
+      "catID": 13,
+      "curTopicPage": 1,
+      "curTopicPageLoaded": 1,
+      "dDateOfLastPost": "2020-01-02T10:30:00Z",
+      "isTopicLoadedInCache": true,
+      "maxTopicPage": 2,
+      "maxTopicPageLoaded": 2,
+      "minTopicPageLoaded": 1,
+      "postID": 1000
+    }
+  ]
+}

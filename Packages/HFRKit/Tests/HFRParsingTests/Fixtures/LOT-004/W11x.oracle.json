@@ -1,0 +1,43 @@
+{
+  "case" : "W11x",
+  "exception" : null,
+  "input" : {
+    "bytes" : 3351,
+    "context" : {
+      "charset" : "utf-8",
+      "flow" : "reply",
+      "status" : 200,
+      "urlQuote" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=1000&numreponse=1003&page=1&p=1&subcat=&sondage=0&owntopic=0&new=0"
+    },
+    "currentURL" : null,
+    "file" : "../captures/W11x-mp-create-second-topic-flood.html",
+    "now" : null,
+    "sha256" : "4494c97212e5f2fd65d36654391193c9311759818d919022fd6a9382d0d90718"
+  },
+  "kind" : "response",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "legacy" : {
+      "classification" : "rejected",
+      "decoded" : true,
+      "hopFound" : true,
+      "hopHasInput" : true,
+      "hopHasLink" : false,
+      "message" : "Afin de prevenir les tentatives de flood, vous ne pouvez poster plus de 1 nouveaux sujets consécutifs dans un intervalle de 60 minutes"
+    },
+    "live" : {
+      "error" : "submissionRejected",
+      "message" : "Afin de prevenir les tentatives de flood, vous ne pouvez poster plus de 1 nouveaux sujets consécutifs dans un intervalle de 60 minutes"
+    }
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "smileys": [
+    {
+      "code": "[:fake1]",
+      "dateAdded": "2024-01-02T03:04:05Z",
+      "url": "https://forum-images.hardware.fr/images/perso/fake1.gif"
+    },
+    {
+      "code": "[:fake2]",
+      "dateAdded": "2024-01-01T00:00:00Z",
+      "url": "https://forum-images.hardware.fr/images/perso/fake2.gif"
+    }
+  ]
+}

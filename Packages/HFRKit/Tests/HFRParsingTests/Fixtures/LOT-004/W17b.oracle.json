@@ -1,0 +1,45 @@
+{
+  "case" : "W17b",
+  "exception" : null,
+  "input" : {
+    "bytes" : 99,
+    "context" : {
+      "charset" : "utf-8",
+      "flow" : "reply",
+      "status" : 200,
+      "urlQuote" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=1000&numreponse=1003&page=1&p=1&subcat=&sondage=0&owntopic=0&new=0"
+    },
+    "currentURL" : null,
+    "file" : "../captures/W17b-mp-reply-bad-token-rejected.html",
+    "now" : null,
+    "sha256" : "93b0eb96499f128a8ce76f3c5e0812cdca92c4545303117df9e83f26fb87ab33"
+  },
+  "kind" : "response",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "legacy" : {
+      "anchor" : "",
+      "anchorMatches" : 0,
+      "classification" : "success",
+      "decoded" : true,
+      "hopFound" : false,
+      "hopHasInput" : false,
+      "hopHasLink" : false,
+      "message" : null
+    },
+    "live" : {
+      "error" : "submissionRejected",
+      "message" : null
+    }
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

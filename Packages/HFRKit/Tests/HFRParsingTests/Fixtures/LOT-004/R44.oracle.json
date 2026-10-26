@@ -1,0 +1,404 @@
+{
+  "case" : "R44",
+  "exception" : null,
+  "input" : {
+    "bytes" : 41499,
+    "context" : {
+      "message" : null,
+      "mode" : "edit",
+      "overrides" : {
+
+      },
+      "session" : {
+        "hash" : "0123456789abcdef0123456789abcdef01234567",
+        "pseudo" : "user2"
+      },
+      "url" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207033&numreponse=1980875038&page=1&p=1&subcat=0&sondage=0&owntopic=0"
+    },
+    "currentURL" : null,
+    "file" : "../captures/R44-mp-edit-form-other-account-message.html",
+    "now" : null,
+    "sha256" : "d7c58ade8c7113010a54f8c1a2039cd8c6cf3ce6bdc3c5dcbc8c0ecc60102135"
+  },
+  "kind" : "form",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "comparison" : {
+      "comparable" : true,
+      "different" : [
+
+      ],
+      "legacyUrl" : "https://forum.hardware.fr/bdd.php?config=hfr.inc",
+      "liveUrl" : "https://forum.hardware.fr/bdd.php?config=hfr.inc",
+      "onlyLegacy" : [
+
+      ],
+      "onlyLive" : [
+
+      ],
+      "sameUrl" : true
+    },
+    "legacy" : {
+      "contentForm" : "fixture-test 6, reply from user1",
+      "contentFormRaw" : "fixture-test 6, reply from user1",
+      "fetchURL" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207033&numreponse=1980875038&page=1&p=1&subcat=0&sondage=0&owntopic=0",
+      "formAction" : "/bdd.php?config=hfr.inc",
+      "formSubmit" : "https://forum.hardware.fr/bdd.php?config=hfr.inc",
+      "haveCategory" : false,
+      "haveTitle" : false,
+      "haveTo" : false,
+      "inputData" : {
+        "cache" : "",
+        "cat" : "prive",
+        "ColorUsedMem" : "",
+        "config" : "hfr.inc",
+        "emaill" : "0",
+        "hash_check" : "REDACTED",
+        "new" : "0",
+        "numrep" : "",
+        "numreponse" : "1980875038",
+        "owntopic" : "0",
+        "p" : "1",
+        "page" : "1",
+        "parents" : "",
+        "password" : "",
+        "post" : "3207033",
+        "pseudo" : "user2",
+        "search_smilies" : "",
+        "signature" : "1",
+        "smiley" : "0",
+        "sond" : "0",
+        "sondage" : "0",
+        "stickold" : "",
+        "subcat" : "0",
+        "submit" : "Valider votre message",
+        "sujet" : "fixture-test-1",
+        "verifrequet" : "1100",
+        "wysiwyg" : "0"
+      },
+      "isLogged" : true,
+      "loopOrder" : [
+        "hash_check",
+        "subcat",
+        "parents",
+        "post",
+        "stickold",
+        "new",
+        "cat",
+        "numreponse",
+        "numrep",
+        "page",
+        "verifrequet",
+        "p",
+        "sondage",
+        "sond",
+        "cache",
+        "owntopic",
+        "config",
+        "sujet",
+        "pseudo",
+        "password",
+        "search_smilies",
+        "ColorUsedMem",
+        "wysiwyg",
+        "submit",
+        "signature",
+        "smiley",
+        "emaill"
+      ],
+      "post" : {
+        "bodyBytes" : 419,
+        "bodySorted" : "ColorUsedMem=&cache=&cat=prive&config=hfr.inc&content_form=fixture-test%206%2C%20reply%20from%20user1&emaill=0&hash_check=0123456789abcdef0123456789abcdef01234567&new=0&numrep=&numreponse=1980875038&owntopic=0&p=1&page=1&parents=&password=&post=3207033&pseudo=user2&search_smilies=&signature=1&smiley=0&sond=0&sondage=0&stickold=&subcat=0&submit=Valider%20votre%20message&sujet=fixture-test-1&verifrequet=1100&wysiwyg=0",
+        "contentType" : "application/x-www-form-urlencoded; charset=utf-8",
+        "method" : "POST",
+        "pairs" : [
+          [
+            "ColorUsedMem",
+            ""
+          ],
+          [
+            "cache",
+            ""
+          ],
+          [
+            "cat",
+            "prive"
+          ],
+          [
+            "config",
+            "hfr.inc"
+          ],
+          [
+            "content_form",
+            "fixture-test 6, reply from user1"
+          ],
+          [
+            "emaill",
+            "0"
+          ],
+          [
+            "hash_check",
+            "0123456789abcdef0123456789abcdef01234567"
+          ],
+          [
+            "new",
+            "0"
+          ],
+          [
+            "numrep",
+            ""
+          ],
+          [
+            "numreponse",
+            "1980875038"
+          ],
+          [
+            "owntopic",
+            "0"
+          ],
+          [
+            "p",
+            "1"
+          ],
+          [
+            "page",
+            "1"
+          ],
+          [
+            "parents",
+            ""
+          ],
+          [
+            "password",
+            ""
+          ],
+          [
+            "post",
+            "3207033"
+          ],
+          [
+            "pseudo",
+            "user2"
+          ],
+          [
+            "search_smilies",
+            ""
+          ],
+          [
+            "signature",
+            "1"
+          ],
+          [
+            "smiley",
+            "0"
+          ],
+          [
+            "sond",
+            "0"
+          ],
+          [
+            "sondage",
+            "0"
+          ],
+          [
+            "stickold",
+            ""
+          ],
+          [
+            "subcat",
+            "0"
+          ],
+          [
+            "submit",
+            "Valider votre message"
+          ],
+          [
+            "sujet",
+            "fixture-test-1"
+          ],
+          [
+            "verifrequet",
+            "1100"
+          ],
+          [
+            "wysiwyg",
+            "0"
+          ]
+        ],
+        "url" : "https://forum.hardware.fr/bdd.php?config=hfr.inc"
+      },
+      "postedContent" : "fixture-test 6, reply from user1",
+      "raisedInLegacy" : [
+
+      ],
+      "smileys" : [
+
+      ],
+      "subcats" : [
+
+      ],
+      "username" : "user2"
+    },
+    "live" : {
+      "composerContext" : {
+        "isSubcategoryEditable" : false,
+        "isSubjectEditable" : false,
+        "recipient" : null,
+        "selectedSubcategoryID" : "0",
+        "subcategoryOptions" : [
+
+        ],
+        "subject" : "fixture-test-1"
+      },
+      "post" : {
+        "bodyBytes" : 405,
+        "bodyOrder" : "unspecified (Swift Dictionary iteration)",
+        "bodySorted" : "ColorUsedMem=&cache=&cat=prive&config=hfr.inc&content_form=fixture-test+6,+reply+from+user1&emaill=0&hash_check=0123456789abcdef0123456789abcdef01234567&new=0&numrep=&numreponse=1980875038&owntopic=0&p=1&page=1&parents=&password=&post=3207033&pseudo=user2&search_smilies=&signature=1&smiley=0&sond=0&sondage=0&stickold=&subcat=0&submit=Valider+votre+message&sujet=fixture-test-1&verifrequet=1100&wysiwyg=0",
+        "contentType" : "application/x-www-form-urlencoded; charset=utf-8",
+        "method" : "POST",
+        "pairs" : [
+          [
+            "ColorUsedMem",
+            ""
+          ],
+          [
+            "cache",
+            ""
+          ],
+          [
+            "cat",
+            "prive"
+          ],
+          [
+            "config",
+            "hfr.inc"
+          ],
+          [
+            "content_form",
+            "fixture-test 6, reply from user1"
+          ],
+          [
+            "emaill",
+            "0"
+          ],
+          [
+            "hash_check",
+            "0123456789abcdef0123456789abcdef01234567"
+          ],
+          [
+            "new",
+            "0"
+          ],
+          [
+            "numrep",
+            ""
+          ],
+          [
+            "numreponse",
+            "1980875038"
+          ],
+          [
+            "owntopic",
+            "0"
+          ],
+          [
+            "p",
+            "1"
+          ],
+          [
+            "page",
+            "1"
+          ],
+          [
+            "parents",
+            ""
+          ],
+          [
+            "password",
+            ""
+          ],
+          [
+            "post",
+            "3207033"
+          ],
+          [
+            "pseudo",
+            "user2"
+          ],
+          [
+            "search_smilies",
+            ""
+          ],
+          [
+            "signature",
+            "1"
+          ],
+          [
+            "smiley",
+            "0"
+          ],
+          [
+            "sond",
+            "0"
+          ],
+          [
+            "sondage",
+            "0"
+          ],
+          [
+            "stickold",
+            ""
+          ],
+          [
+            "subcat",
+            "0"
+          ],
+          [
+            "submit",
+            "Valider votre message"
+          ],
+          [
+            "sujet",
+            "fixture-test-1"
+          ],
+          [
+            "verifrequet",
+            "1100"
+          ],
+          [
+            "wysiwyg",
+            "0"
+          ]
+        ],
+        "url" : "https://forum.hardware.fr/bdd.php?config=hfr.inc"
+      },
+      "postedContent" : "fixture-test 6, reply from user1",
+      "requests" : [
+        {
+          "method" : "GET",
+          "url" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207033&numreponse=1980875038&page=1&p=1&subcat=0&sondage=0&owntopic=0"
+        },
+        {
+          "method" : "POST",
+          "url" : "https://forum.hardware.fr/bdd.php?config=hfr.inc"
+        }
+      ],
+      "result" : {
+        "ok" : true,
+        "refreshAnchor" : "t1002",
+        "refreshURL" : "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=1000&page=1#t1002",
+        "statusMessage" : "Votre message a bien été pris en compte."
+      }
+    }
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "accounts": [
+    {
+      "cookies": [
+        {
+          "created": "2026-09-01T00:00:00Z",
+          "domain": ".hardware.fr",
+          "expires": "2027-03-01T00:00:00Z",
+          "name": "md_user",
+          "path": "/",
+          "secure": false,
+          "value": "fakeuser1"
+        },
+        {
+          "created": "2026-09-01T00:00:00Z",
+          "domain": ".hardware.fr",
+          "expires": "2027-03-01T00:00:00Z",
+          "name": "md_passs",
+          "path": "/",
+          "secure": true,
+          "value": "fakepasshash1"
+        }
+      ],
+      "display": "fakeuser1"
+    }
+  ],
+  "tryKeychain": false
+}

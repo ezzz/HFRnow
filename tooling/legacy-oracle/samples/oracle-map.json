@@ -2,14 +2,228 @@
   "favorites-empty.html": "favorites",
   "favorites-multi-cat.html": "favorites",
   "favorites-noauth.html": "favorites",
+  "form-alert-already.html": {
+    "kind": "form",
+    "mode": "alert"
+  },
+  "form-alert.html": {
+    "kind": "form",
+    "message": "Ce message pose problème.\nMerci.",
+    "mode": "alert"
+  },
+  "form-delete.html": {
+    "kind": "form",
+    "mode": "delete",
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=1000&numreponse=1003&ref=1&page=1&p=1&subcat=&sondage=0&owntopic=0&new=0"
+  },
+  "form-edit.html": {
+    "kind": "form",
+    "message": "Texte édité\nok",
+    "mode": "edit",
+    "overrides": {
+      "subcat": "433",
+      "sujet": "Titre modifié & co"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=1000&numreponse=1003&ref=1&page=1&p=1&subcat=426&sondage=0&owntopic=1&new=0"
+  },
+  "form-mp.html": {
+    "kind": "form",
+    "mode": "mp",
+    "overrides": {
+      "dest": "fakeuser2",
+      "sujet": "Sujet MP de test"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&sond=&p=1&subcat=&dest=fakeuser2&subcatgroup=0"
+  },
+  "form-newtopic-pretty.html": {
+    "kind": "form",
+    "mode": "newtopic",
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&new=1"
+  },
+  "form-newtopic.html": {
+    "kind": "form",
+    "mode": "newtopic",
+    "overrides": {
+      "subcat": "422",
+      "sujet": "Nouveau sujet de test"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&new=1"
+  },
+  "form-quirks.html": {
+    "kind": "form",
+    "message": "Quirks",
+    "mode": "reply",
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=1000&numrep=1001&ref=1&page=1&p=1&subcat=&sondage=0&owntopic=0&new=0"
+  },
+  "form-quote.html": {
+    "kind": "form",
+    "mode": "quote",
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=1000&numrep=1001&ref=1&page=1&p=1&subcat=&sondage=0&owntopic=0&new=0"
+  },
+  "form-reply-anon.html": {
+    "kind": "form",
+    "mode": "reply"
+  },
+  "form-reply-emoji.html": {
+    "kind": "form",
+    "message": "Smile 😀 and ❤ ☺ voila\nligne 2",
+    "mode": "reply",
+    "url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=1000&numreponse=0&page=1&p=1&subcat=0&sondage=0&owntopic=0"
+  },
+  "form-reply.html": {
+    "kind": "form",
+    "message": "Réponse de test\nligne 2 & + = % 100%",
+    "mode": "reply",
+    "url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=1000&numreponse=0&page=1&p=1&subcat=0&sondage=0&owntopic=0"
+  },
   "forums-loggedin.html": "forums",
   "forums-loggedout.html": "forums",
   "forums-maintenance.html": "forums",
   "mp-list.html": "mp",
+  "response-alert-already.html": {
+    "flow": "alertPrepare",
+    "kind": "response"
+  },
+  "response-alert-ok.html": {
+    "flow": "alertSubmit",
+    "kind": "response"
+  },
+  "response-delete-ok.html": {
+    "flow": "delete",
+    "kind": "response"
+  },
+  "response-mp-failure.html": {
+    "flow": "mpstorage",
+    "kind": "response"
+  },
+  "response-mp-success-latin1.html": {
+    "charset": "iso-8859-1",
+    "flow": "mpstorage",
+    "kind": "response"
+  },
+  "response-mp-success.html": {
+    "flow": "mpstorage",
+    "kind": "response"
+  },
+  "response-reply-500.html": {
+    "flow": "reply",
+    "kind": "response",
+    "status": 500
+  },
+  "response-reply-empty.html": {
+    "flow": "reply",
+    "kind": "response"
+  },
+  "response-reply-flood.html": {
+    "flow": "reply",
+    "kind": "response"
+  },
+  "response-reply-hop-and-refresh.html": {
+    "flow": "reply",
+    "kind": "response"
+  },
+  "response-reply-latin1.html": {
+    "charset": "iso-8859-1",
+    "flow": "reply",
+    "kind": "response"
+  },
+  "response-reply-loggedout.html": {
+    "flow": "reply",
+    "kind": "response"
+  },
+  "response-reply-nohop.html": {
+    "flow": "reply",
+    "kind": "response"
+  },
+  "response-reply-ok-noanchor.html": {
+    "flow": "reply",
+    "kind": "response"
+  },
+  "response-reply-ok.html": {
+    "flow": "reply",
+    "kind": "response"
+  },
   "search-redirect.html": "search",
   "search-results.html": {
     "currentURL": "/transsearch.php?config=hfr.inc&cat=13&fake=1&page=1",
     "kind": "search"
+  },
+  "storage-blacklist.json": {
+    "kind": "storage",
+    "storage": "blacklist"
+  },
+  "storage-keychain-single.json": {
+    "kind": "storage",
+    "storage": "keychain"
+  },
+  "storage-keychain.json": {
+    "kind": "storage",
+    "storage": "keychain"
+  },
+  "storage-mp-list.html": "mp",
+  "storage-mp-page-destine.html": {
+    "kind": "storage",
+    "storage": "mpstorage-page"
+  },
+  "storage-mp-page-empty-doc.html": {
+    "kind": "storage",
+    "storage": "mpstorage-page"
+  },
+  "storage-mp-page-malformed.html": {
+    "kind": "storage",
+    "storage": "mpstorage-page"
+  },
+  "storage-mp-page-numeric.html": {
+    "kind": "storage",
+    "storage": "mpstorage-page"
+  },
+  "storage-mp-page.html": {
+    "kind": "storage",
+    "storage": "mpstorage-page"
+  },
+  "storage-offline.json": {
+    "kind": "storage",
+    "storage": "offline"
+  },
+  "storage-op-add-blacklist-existing.json": {
+    "kind": "storage",
+    "storage": "mpstorage-op"
+  },
+  "storage-op-add-blacklist.json": {
+    "kind": "storage",
+    "storage": "mpstorage-op"
+  },
+  "storage-op-add-bookmark-numeric.json": {
+    "kind": "storage",
+    "storage": "mpstorage-op"
+  },
+  "storage-op-add-bookmark.json": {
+    "kind": "storage",
+    "storage": "mpstorage-op"
+  },
+  "storage-op-create.json": {
+    "kind": "storage",
+    "storage": "mpstorage-op"
+  },
+  "storage-op-find.json": {
+    "kind": "storage",
+    "storage": "mpstorage-op"
+  },
+  "storage-op-remove-blacklist.json": {
+    "kind": "storage",
+    "storage": "mpstorage-op"
+  },
+  "storage-op-remove-bookmark.json": {
+    "kind": "storage",
+    "storage": "mpstorage-op"
+  },
+  "storage-op-save-failure.json": {
+    "kind": "storage",
+    "storage": "mpstorage-op"
+  },
+  "storage-smileys.json": {
+    "kind": "storage",
+    "storage": "smileys"
   },
   "topic-anonymous.html": {
     "currentURL": "/forum2.php?config=hfr.inc&cat=13&post=1000&page=1",

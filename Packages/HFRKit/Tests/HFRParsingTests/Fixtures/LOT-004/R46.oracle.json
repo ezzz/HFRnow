@@ -1,0 +1,142 @@
+{
+  "case" : "R46",
+  "exception" : null,
+  "input" : {
+    "bytes" : 21714,
+    "context" : {
+      "message" : null,
+      "mode" : "alert",
+      "overrides" : {
+
+      },
+      "session" : {
+        "hash" : "0123456789abcdef0123456789abcdef01234567",
+        "pseudo" : "user2"
+      },
+      "url" : "https://forum.hardware.fr/user/modo.php?config=hfr.inc&cat=13&post=28563&numreponse=2666649&page=1&ref=1"
+    },
+    "currentURL" : null,
+    "file" : "../captures/R46-modo-alert-form.html",
+    "now" : null,
+    "sha256" : "c6033ad8a9eef66ea9cd964e2f38f27ceb980b598e0b7e16c2cfe07f6eb33f39"
+  },
+  "kind" : "form",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "comparison" : {
+      "comparable" : true,
+      "different" : [
+
+      ],
+      "legacyUrl" : "https://forum.hardware.fr/user/modo.php?cat=13&ref=1&post=28563&numreponse=2666649&page=1&config=hfr.inc",
+      "liveUrl" : "https://forum.hardware.fr/user/modo.php?cat=13&amp;ref=1&amp;post=28563&amp;numreponse=2666649&amp;page=1&amp;config=hfr.inc",
+      "onlyLegacy" : [
+
+      ],
+      "onlyLive" : [
+
+      ],
+      "sameUrl" : false
+    },
+    "legacy" : {
+      "alreadyAlerted" : false,
+      "fetchURL" : "https://forum.hardware.fr/user/modo.php?config=hfr.inc&cat=13&post=28563&numreponse=2666649&page=1&ref=1",
+      "formAction" : "modo.php?cat=13&ref=1&post=28563&numreponse=2666649&page=1&config=hfr.inc",
+      "formSubmit" : "https://forum.hardware.fr/user/modo.php?cat=13&ref=1&post=28563&numreponse=2666649&page=1&config=hfr.inc",
+      "hopText" : null,
+      "inputData" : {
+        "hash_check" : "REDACTED",
+        "referer_page" : "",
+        "Submit" : "Valider votre message"
+      },
+      "post" : {
+        "bodyBytes" : 88,
+        "bodySorted" : "Submit=Valider%20votre%20message&hash_check=REDACTED&raison=Alert%20reason&referer_page=",
+        "contentType" : "application/x-www-form-urlencoded; charset=utf-8",
+        "method" : "POST",
+        "pairs" : [
+          [
+            "Submit",
+            "Valider votre message"
+          ],
+          [
+            "hash_check",
+            "REDACTED"
+          ],
+          [
+            "raison",
+            "Alert reason"
+          ],
+          [
+            "referer_page",
+            ""
+          ]
+        ],
+        "url" : "https://forum.hardware.fr/user/modo.php?cat=13&ref=1&post=28563&numreponse=2666649&page=1&config=hfr.inc"
+      },
+      "postedContent" : "Alert reason"
+    },
+    "live" : {
+      "post" : {
+        "bodyBytes" : 82,
+        "bodyOrder" : "unspecified (Swift Dictionary iteration)",
+        "bodySorted" : "Submit=Valider+votre+message&hash_check=REDACTED&raison=Alert+reason&referer_page=",
+        "contentType" : "application/x-www-form-urlencoded; charset=utf-8",
+        "method" : "POST",
+        "pairs" : [
+          [
+            "Submit",
+            "Valider votre message"
+          ],
+          [
+            "hash_check",
+            "REDACTED"
+          ],
+          [
+            "raison",
+            "Alert reason"
+          ],
+          [
+            "referer_page",
+            ""
+          ]
+        ],
+        "url" : "https://forum.hardware.fr/user/modo.php?cat=13&amp;ref=1&amp;post=28563&amp;numreponse=2666649&amp;page=1&amp;config=hfr.inc"
+      },
+      "postedContent" : "Alert reason",
+      "prepare" : {
+        "params" : {
+          "hash_check" : "REDACTED",
+          "referer_page" : "",
+          "Submit" : "Valider votre message"
+        },
+        "state" : "ready",
+        "submitURL" : "https://forum.hardware.fr/user/modo.php?cat=13&amp;ref=1&amp;post=28563&amp;numreponse=2666649&amp;page=1&amp;config=hfr.inc"
+      },
+      "requests" : [
+        {
+          "method" : "GET",
+          "url" : "https://forum.hardware.fr/user/modo.php?config=hfr.inc&cat=13&post=28563&numreponse=2666649&page=1&ref=1"
+        },
+        {
+          "method" : "POST",
+          "url" : "https://forum.hardware.fr/user/modo.php?cat=13&amp;ref=1&amp;post=28563&amp;numreponse=2666649&amp;page=1&amp;config=hfr.inc"
+        }
+      ],
+      "result" : {
+        "ok" : true,
+        "statusMessage" : "Votre message a bien été pris en compte."
+      }
+    }
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

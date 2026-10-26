@@ -1,0 +1,47 @@
+{
+  "case" : "W14",
+  "exception" : null,
+  "input" : {
+    "bytes" : 1768,
+    "context" : {
+      "charset" : "utf-8",
+      "flow" : "reply",
+      "status" : 200,
+      "urlQuote" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=1000&numreponse=1003&page=1&p=1&subcat=&sondage=0&owntopic=0&new=0"
+    },
+    "currentURL" : null,
+    "file" : "../captures/W14-mp-reply-multiquote-success.html",
+    "now" : null,
+    "sha256" : "86b0041edaafd7a0fd3af6642a7d9960566e60032df76f1962baa31f8685f6d3"
+  },
+  "kind" : "response",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "legacy" : {
+      "anchor" : "#bas",
+      "anchorMatches" : 1,
+      "classification" : "success",
+      "decoded" : true,
+      "hopFound" : true,
+      "hopHasInput" : false,
+      "hopHasLink" : false,
+      "message" : "Votre réponse a été postée avec succès !"
+    },
+    "live" : {
+      "ok" : true,
+      "refreshAnchor" : "bas",
+      "refreshURL" : "https://forum.hardware.fr/forum2.php?config=hfr.inc&amp;cat=prive&amp;post=3207033&amp;page=1&amp;p=1&amp;sondage=0&amp;owntopic=0&amp;trash=&amp;trash_post=&amp;print=0&amp;numreponse=0&amp;quote_only=0&amp;new=0&amp;nojs=0#bas",
+      "statusMessage" : "Votre réponse a été postée avec succès !"
+    }
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

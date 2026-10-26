@@ -1,0 +1,55 @@
+{
+  "case" : "S-find-R13a",
+  "exception" : null,
+  "input" : {
+    "bytes" : 77,
+    "context" : {
+      "charset" : "utf-8",
+      "pseudo" : "user2",
+      "storage" : "mpstorage-op"
+    },
+    "currentURL" : null,
+    "file" : "S-find-R13a.json",
+    "now" : null,
+    "sha256" : "02f94b78b724892252ba7867005a06d716d43490834572fcbd9641a8280df2ca"
+  },
+  "kind" : "storage",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "alerts" : [
+
+    ],
+    "exception" : null,
+    "op" : "find",
+    "requests" : [
+      {
+        "method" : "GET",
+        "url" : "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=1&subcat=&sondage=0&owntopic=0&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0"
+      }
+    ],
+    "returned" : false,
+    "state" : {
+      "bIsMPStorageSavedSuccessfully" : true,
+      "blackListOfActiveAccount" : null,
+      "dData" : null,
+      "dicMPStorage_postid" : null,
+      "listBookmarks" : [
+
+      ],
+      "mpstorage_active" : true,
+      "sNumRep" : null,
+      "sPostId" : null
+    },
+    "unusedResponses" : 0
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}
