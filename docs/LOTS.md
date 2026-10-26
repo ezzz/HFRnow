@@ -45,9 +45,9 @@ Model column: author → reviewer ([AGENTS.md §6](../AGENTS.md#6-model-routing-
 | LOT-022 ★ | Topic list parser (forums, MP, search results) — critical path | HFRParsing | difficult | Opus → Fable | 010, 020, 002 | B5 | — | todo |
 | LOT-023 ★ | MP list specifics + unread badge (one parser for the 3 legacy variants) | HFRParsing | easy | Sonnet → Opus | 022 | B6, NET-13 | — | todo |
 | LOT-024 | Favourites page parser | HFRParsing | medium | Sonnet → Opus | 022 | B7 | — | todo |
-| LOT-025 | Small parsers: search redirect, `editprofil` page (hash, avatar), smiley search results, AQ listing and AQ RSS feed | HFRParsing | easy | Sonnet → Opus | 020 | B8, NET-04, NET-12, D6, D9 | — | todo |
-| LOT-026 | Poll parser (vote / results / closed) | HFRParsing | medium | Sonnet → Opus | 011, 020 | B9, C07, D11 | — | todo |
-| LOT-027 | User profile page parser (`/hfr/profil-NNN.htm`: fields, avatar, personal smileys) | HFRParsing | medium | Sonnet → Opus | 010, 020 | review F4 | — | todo |
+| LOT-025 | Small parsers: search redirect, `editprofil` page (hash, avatar), smiley search results, AQ listing and AQ RSS feed | HFRParsing | easy | Sonnet → Opus | 020 | B8, NET-04, NET-12, D6, D9 | cloud/c5-sonnet (2026-10-26) | in-progress |
+| LOT-026 | Poll parser (vote / results / closed) | HFRParsing | medium | Sonnet → Opus | 011, 020 | B9, C07, D11 | cloud/c5-sonnet (2026-10-26) | in-progress |
+| LOT-027 | User profile page parser (`/hfr/profil-NNN.htm`: fields, avatar, personal smileys) | HFRParsing | medium | Sonnet → Opus | 010, 020 | review F4 | — | blocked (R56 public profile capture missing) |
 | LOT-030 | Message block extraction — core of the topic page | HFRParsing | difficult | Fable → Opus | 011, 020, 003 | C03 | — | todo |
 | LOT-031 | Per-message action links (quote, edit, alert, profile, MP, flag, quoteJS) | HFRParsing | medium | Opus → Fable | 030 | C04 | — | todo |
 | LOT-032 | Quote analysis (authors, nesting) | HFRParsing | medium | Sonnet → Opus | 030 | C05 | — | todo |
