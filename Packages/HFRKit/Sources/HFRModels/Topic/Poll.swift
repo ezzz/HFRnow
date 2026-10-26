@@ -30,15 +30,18 @@ public struct Poll: Sendable, Hashable, Codable {
     public var question: String
     /// Footer text (end date, total), nil when absent.
     public var footer: String?
+    /// Status line HFR prints with a results page: the closed-poll sentence or the multi-pseudo notice. Nil on a voting form.
+    public var notice: String?
     /// How many answers may be selected (the initializer raises values below 1 to 1).
     public var maxChoices: Int
     /// Voting form or results.
     public var kind: Kind
 
     /// Creates a poll; `maxChoices` is raised to at least 1.
-    public init(question: String, footer: String? = nil, maxChoices: Int = 1, kind: Kind) {
+    public init(question: String, footer: String? = nil, notice: String? = nil, maxChoices: Int = 1, kind: Kind) {
         self.question = question
         self.footer = footer
+        self.notice = notice
         self.maxChoices = max(1, maxChoices)
         self.kind = kind
     }

@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import HFRModels
 
@@ -32,6 +33,14 @@ import Testing
             return
         }
         #expect(lines.first?.percentage == 16.7)
+    }
+
+    @Test func noticeRoundTripsAndIsOptionalInStoredData() throws {
+        let poll = Poll(question: "Q", footer: "Total : 3 votes", notice: "Ce sondage est clos", kind: .results([]))
+        #expect(try roundTrip(poll).notice == "Ce sondage est clos")
+        let stored = Data(#"{"question":"Q","maxChoices":1,"kind":{"results":{"_0":[]}}}"#.utf8)
+        #expect(try JSONDecoder().decode(Poll.self, from: stored).notice == nil)
+        #expect(Poll(question: "Q", notice: "n", kind: .results([])) != Poll(question: "Q", kind: .results([])))
     }
 
     @Test func votableAndResultsAreDifferent() {
