@@ -67,10 +67,18 @@ SELECTED_RE = re.compile(r"\s+selected(?:\s*=\s*(?:[\"'][^\"']*[\"']|[^\s>]+))?"
 # Operator ids also appear as bare numbers ([quotemsg=…,…,<id>], md_id, user_id=): ids this long only.
 MIN_BARE_ID_DIGITS = 5
 
-# MP list subjects are private too (live R13u1); fixture threads, MPStorage title and page numbers stay.
-SUBJECT_RE = re.compile(r"(<a\b[^>]*\bclass=[\"']cCatTopic[\"'][^>]*>)(.*?)(</a>)", re.I | re.S)
-KEEP_SUBJECT_RE = re.compile(r"\s*(?:\d+|fixture-test[\w -]*|[0-9a-f]{32}|%s)\s*$" % re.escape("Private subject"))
+# MP list subjects are private too (live R13u1). A subject is the `a.cCatTopic` of the title cell
+# `td.sujetCase3`; the page links of a long thread (`td.sujetCase4 a.cCatTopic`) are not subjects.
+# The position decides, never the content: a subject may be digits only (live R13u1).
+SUBJECT_RE = re.compile(
+    r"(<td\b[^>]*\bclass=[\"'][^\"']*\bsujetCase3\b[^\"']*[\"'][^>]*>(?:(?!</td>).)*?"
+    r"<a\b[^>]*\bclass=[\"']cCatTopic[\"'][^>]*>)(.*?)(</a>)", re.I | re.S)
 PRIVATE_SUBJECT = "Private subject"
+# Kept subjects: the operator's fixture threads, and the title of the MPStorage thread, a public
+# constant of the legacy app (Classes/MPStorage.m:23 `MP_NAME`, the same for every user), which
+# LOT-038 needs to locate the storage MP.
+MPSTORAGE_SUBJECT = "a2bcc09b796b8c6fab77058ff8446c34"
+KEEP_SUBJECT_RE = re.compile(r"\s*(?:fixture-test-\d+|%s|%s)\s*$" % (MPSTORAGE_SUBJECT, re.escape(PRIVATE_SUBJECT)))
 # Signatures and mood statuses are a member's own words (names, handles, links): always replaced.
 PERSONAL_BLOCKS = (
     (re.compile(r"<(span)\b[^>]*\bclass=[\"']signature[\"'][^>]*>", re.I), "Signature removed."),
@@ -292,10 +300,21 @@ def column_of(text, pos):
     return pos - text.rfind("\n", 0, pos)
 
 
-def slug_form(name):
-    """How HFR would print a name in a topic slug: no accents, lower case, `-` between words."""
+def slug_words(name):
+    """The words HFR would print for a name in a topic slug.
+
+    Rules measured on the 341 title/slug pairs of the LOT-001 lists R04, R05a, R05b, R06, R07, R09,
+    R27-list and R50b (docs/HFR-PROTOCOL.md "Topic slug"): accents stripped, lower case,
+    `_` and non-ASCII punctuation (`’`) deleted (the words around them are joined), any other
+    character separates words. HFR then keeps at most 3 words of the title and drops the others
+    (short ones, but also some longer ones), so a multi-word name may appear by one word only."""
     plain = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode("ascii")
-    return re.sub(r"[^a-z0-9]+", "-", plain.lower()).strip("-")
+    return [w for w in re.split(r"[^a-z0-9]+", plain.lower().replace("_", "")) if w]
+
+
+def slug_form(name):
+    """How HFR would print a whole name in a topic slug: slug_words joined by `-`."""
+    return "-".join(slug_words(name))
 
 
 def _free_text_name(key):
@@ -462,8 +481,11 @@ class Anonymizer:
         self.config = config
         self.known = {name_key(n) for n in known_names if _free_text_name(name_key(n))}
         self.known |= {name_key(n) for n in config.extra_pseudos}
+        # The operator's pseudos are replaced everywhere by _operators, but a slug spells them differently.
+        self.own = {name_key(p) for p in config.pseudos}
         self.names = {}      # name key -> fake name for the current file
         self.free = set()    # name keys also replaced in free text
+        self.present = set()  # free name keys printed in the current file
         self.ids = {}        # real member id -> fake id for the current file
         self.stats = {}
         self._regex_cache = {}
@@ -473,6 +495,7 @@ class Anonymizer:
     def _reset(self):
         self.names = {name_key(p): "user%d" % (i + 1) for i, p in enumerate(self.config.pseudos)}
         self.free = set(self.known)
+        self.present = set()  # free-text names printed in the current file (their slug words go too)
         self.ids = {pid: str(FAKE_ID_OPERATOR + i) for i, pid in enumerate(self.config.profile_ids) if pid}
         self.stats = {"tokens": 0, "undecoded_tokens": 0, "others": 0, "private_blocks": 0}
         self._free_rx = None
@@ -591,10 +614,7 @@ class Anonymizer:
             s = self._rx(name_key(p)).sub(lambda m, f=fake: f + "".join(ZW_TOKEN_RE.findall(m.group(0))), s)
         return s
 
-    def _free_sub(self, s):
-        """Replace the free-text names in s (no URL handling)."""
-        if not self.free:
-            return s
+    def _free_regex(self):
         if self._free_rx is None:
             self._free_rx = self._regex_cache.get(frozenset(self.free))
         if self._free_rx is None:
@@ -603,16 +623,33 @@ class Anonymizer:
             self._free_rx = re.compile(r"(?:(?<!\w)|(?<=%[0-9A-Fa-f]{2}))(?:" + "|".join(bodies)
                                        + r")(?!\w)", re.I)
             self._regex_cache[frozenset(self.free)] = self._free_rx
+        return self._free_rx
+
+    def _free_key(self, got):
+        """The free name key a match of the free-text regex stands for."""
+        norm = re.sub(r"\\u([0-9a-fA-F]{4})", lambda u: chr(int(u.group(1), 16)), got)
+        key = name_key(html.unescape(urllib.parse.unquote_plus(norm)).replace("\xa0", " "))
+        if key not in self.free:
+            key = next(k for k in self.free if self._rx(k).fullmatch(got))
+        return key
+
+    def _note_present(self, text):
+        """Record the free and operator names printed anywhere in text (over-inclusive on purpose: slugs only)."""
+        if self.free:
+            self.present |= {self._free_key(m.group(0)) for m in self._free_regex().finditer(text)}
+        self.present |= {k for k in self.own if self._rx(k).search(text)}
+
+    def _free_sub(self, s):
+        """Replace the free-text names in s (no URL handling)."""
+        if not self.free:
+            return s
 
         def sub(m):
             got = m.group(0)
-            norm = re.sub(r"\\u([0-9a-fA-F]{4})", lambda u: chr(int(u.group(1), 16)), got)
-            key = name_key(html.unescape(urllib.parse.unquote_plus(norm)).replace("\xa0", " "))
-            if key not in self.free:
-                key = next(k for k in self.free if self._rx(k).fullmatch(got))
+            key = self._free_key(got)
             fake = self._alias(key) if key not in self.names else self.names[key]
             return fake + "".join(ZW_TOKEN_RE.findall(got))
-        return self._free_rx.sub(sub, s)
+        return self._free_regex().sub(sub, s)
 
     def _free_text(self, s):
         """Replace the free-text names in a text node or text attribute; URLs in it as _free_urls."""
@@ -623,14 +660,22 @@ class Anonymizer:
         return "".join(out) + self._free_sub(s[pos:])
 
     def _slug_sub(self, s):
-        """Replace free-text names in a topic slug, where they are lower case with `-` separators."""
-        key = ("slug", frozenset(self.free))
+        """Replace free-text names in a topic slug, where they are lower case with `-` separators.
+
+        A name printed in this file also has each of its specific words replaced on its own: HFR keeps
+        at most 3 title words in a slug, so `[Ab Cdef] colo en cours` may become `cdef-cours-2018`
+        (live R07). Other corpus-wide names are replaced in their whole slug form only."""
+        key = ("slug", frozenset(self.free), frozenset(self.present))
         if key not in self._regex_cache:
             forms = {}
-            for k in self.free:
+            for k in sorted(self.free | self.own):
                 form = slug_form(k)
                 if len(form) >= MIN_FREE_TEXT_LEN:
                     forms.setdefault(form, k)
+            for k in sorted(self.present):
+                for word in slug_words(k):
+                    if _free_text_name(word):
+                        forms.setdefault(word, k)
             rx = re.compile(r"(?<![a-z0-9])(%s)(?![a-z0-9])" % "|".join(
                 re.escape(f) for f in sorted(forms, key=len, reverse=True)), re.I) if forms else None
             self._regex_cache[key] = (rx, forms)
@@ -641,7 +686,7 @@ class Anonymizer:
 
     def _free_urls(self, s):
         """Free-text names inside internal topic slugs and external URLs of s."""
-        if not self.free:
+        if not self.free and not self.own:
             return s
         s = SLUG_RE.sub(lambda m: m.group(1) + self._slug_sub(self._free_sub(m.group(2))) + m.group(3), s)
         return EXT_URL_RE.sub(lambda m: self._free_sub(m.group(0)), s)
@@ -749,6 +794,10 @@ class Anonymizer:
         before = markup_signature(text)
         tokens = list(iter_tokens(text))
         self.learn(text, [(pos, dec) for pos, _p, _pl, dec, _m in tokens if dec is not None])
+        self._note_present(text)
+        for _pos, _p, _pl, dec, _m in tokens:
+            if dec is not None:
+                self._note_present(dec)
         # Obfuscated links: decode, redact, re-encode with the same prefix.
         out, last = [], 0
         for _pos, prefix, _payload, decoded, m in tokens:
@@ -826,7 +875,7 @@ class Anonymizer:
                 if key not in NOT_A_MEMBER and not FAKE_NAME_RE.match(key) and len(name) <= 80:
                     add(pos, "member pseudo not anonymized", len(name))
         scan(text, 0, "")
-        res += verify_structure(text)
+        res += verify_structure(text, private=private)
         for pos, _prefix, _payload, decoded, _m in iter_tokens(text):
             if decoded is not None:
                 scan(decoded, pos, " (in obfuscated link)")
@@ -860,6 +909,7 @@ _V_ATTR_LIST = {label: re.compile(rx, re.I | re.S) for label, rx in (
     ("unread-by list", r"lu par\s*:\s*(.+)$"), ("recipients list", r"Message privé pour\s+(.+)$"))}
 _V_TEXT_ONE = {label: re.compile(rx, re.I | re.S) for label, rx in (
     ("quote header", r"^\s*(.+?)\s+a écrit\s*:"), ("edit notice", r"édité par\s+(.+?)\s+le\s+\d"))}
+_V_FIXTURE_SUBJECT = re.compile(r"fixture-test-\d+")
 _V_VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source",
            "track", "wbr"}
 
@@ -874,10 +924,11 @@ def allowed_name(name):
 class StructuralVerifier(html.parser.HTMLParser):
     """Collects (line, column, reason) for every non-aliased name or real id in member positions."""
 
-    def __init__(self):
+    def __init__(self, private=False):
         super().__init__(convert_charrefs=True)
         self.found = []
         self.stack = []
+        self.private = private
 
     # -- reporting
     def _bad(self, where, value, line=None):
@@ -956,6 +1007,8 @@ class StructuralVerifier(html.parser.HTMLParser):
             where = "MP link text"
         elif tag == "span" and cls & {"signature", "MoodStatus"}:
             where = "signature or mood"
+        elif self.private and tag == "a" and "cCatTopic" in cls and self._ctx("td", "sujetCase3"):
+            where = "private MP subject"
         elif tag == "span" and "title" in a and self._ctx("td", "sujetCase6"):
             for item in a["title"].split(","):
                 if item.strip():
@@ -994,6 +1047,10 @@ class StructuralVerifier(html.parser.HTMLParser):
             if e["where"] == "signature or mood":
                 if text not in ("", "Signature removed.", "Mood removed."):
                     self._bad("signature or mood text", text, e["line"])
+            elif e["where"] == "private MP subject":
+                # Any text but the placeholder, a fixture thread or the MPStorage title (digits too).
+                if text and not (text in (PRIVATE_SUBJECT, MPSTORAGE_SUBJECT) or _V_FIXTURE_SUBJECT.fullmatch(text)):
+                    self._bad("private MP subject", text, e["line"])
             elif text:
                 self._name(e["where"], text, e["line"])
 
@@ -1034,11 +1091,11 @@ def _verify_json(text):
     return v.found
 
 
-def verify_structure(text):
-    """Independent check of every member position (HTML or JSON); [] when clean."""
+def verify_structure(text, private=False):
+    """Independent check of every member position (HTML or JSON), and of MP subjects when private; [] when clean."""
     if looks_json(text):
         return _verify_json(text)
-    v = StructuralVerifier()
+    v = StructuralVerifier(private=private)
     v.feed(text)
     v.close()
     return v.found

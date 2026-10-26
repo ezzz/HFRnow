@@ -19,7 +19,7 @@ splits a row into several captures. Public topics were picked from the anonymous
 the write flows inside **one** throwaway MP thread `fixture-test-1` (user2 → user1, neutral text), the flag test P03
 on a public topic (state restored), the searches, then user1 again with a corrected password (W01b). Private files
 (`"private": true` in the meta) were anonymized with `--private`: MP bodies and the subjects of every MP that is not a
-fixture thread are replaced.
+fixture thread (`fixture-test-N`) or the MPStorage thread are replaced, whatever their content (digits included).
 
 | Id | File | Covers | Row | Lots |
 |---|---|---|---|---|

@@ -24,6 +24,12 @@ def post(name):
     return '<td class="messCase1" width="180"><div><b class="s2">%s</b></div></td>' % name
 
 
+def mp_row(subject, pages=""):
+    """An MP list row the way R13u1 prints it: subject in the title cell, page links in the next one."""
+    return ('<tr><td scope="row" class="sujetCase3" ondblclick="location.href=\'/m\'"><a href="/m" class="cCatTopic" '
+            'title="Sujet n°1">%s</a></td><td class="sujetCase4">%s</td></tr>' % (subject, pages))
+
+
 def anon(html, private=False):
     return A.Anonymizer(CFG).anonymize(html, private=private)
 
@@ -178,8 +184,8 @@ class RedactionTests(unittest.TestCase):
         self.assertNotIn("7777", out)
 
     def test_private_mp_list_subjects(self):
-        html = ('<a class="cCatTopic" href="/a">Weekend chez Paul</a><a class="cCatTopic" href="/b">fixture-test-1</a>'
-                '<a class="cCatTopic" href="/c">a2bcc09b796b8c6fab77058ff8446c34</a><a class="cCatTopic" href="/d">12</a>')
+        html = (mp_row("Weekend chez Paul") + mp_row("fixture-test-1") + mp_row(A.MPSTORAGE_SUBJECT)
+                + '<tr><td class="sujetCase4"><a href="/d" class="cCatTopic">12</a></td></tr>')
         self.assertTrue(leaks(html, private=True))
         self.assertFalse(leaks(html))  # public topic titles are not private
         out = anon(html, private=True)
@@ -187,6 +193,32 @@ class RedactionTests(unittest.TestCase):
         for kept in ("fixture-test-1", "a2bcc09b796b8c6fab77058ff8446c34", ">12<", ">Private subject<"):
             self.assertIn(kept, out)
         self.assertEqual(leaks(out, private=True), [])
+
+    def test_private_digit_only_subject_is_replaced_page_number_kept(self):
+        # Live R13u1: three MP subjects were digits only and were kept as if they were page numbers.
+        # The title cell (sujetCase3) decides, not the content; the page links (sujetCase4) stay.
+        html = mp_row("12345") + mp_row("2024", pages='<a href="/p2" class="cCatTopic">2</a>')
+        out = anon(html, private=True)
+        self.assertNotIn("12345", out)
+        self.assertNotIn(">2024<", out)
+        self.assertEqual(out.count(">Private subject<"), 2)
+        self.assertIn('<a href="/p2" class="cCatTopic">2</a>', out)
+        self.assertEqual(leaks(out, private=True), [])
+
+    def test_check_private_flags_digit_only_subject(self):
+        reasons = [r for _l, _c, r in leaks(mp_row("1234"), private=True)]
+        self.assertIn("private MP subject not replaced", reasons)
+        self.assertIn("structural check: private MP subject not aliased", reasons)
+        page_link = '<tr><td class="sujetCase4"><a href="/p2" class="cCatTopic">2</a></td></tr>'
+        self.assertEqual(leaks(page_link, private=True), [])
+
+    def test_structural_verifier_flags_any_kept_subject_in_private_file(self):
+        # Independent of SUBJECT_RE / KEEP_SUBJECT_RE: only the placeholder, fixture threads and MPStorage pass.
+        for subject in ("1234", "Weekend chez Paul", "fixture-test-1 Paul"):
+            self.assertTrue(A.verify_structure(mp_row(subject), private=True), subject)
+            self.assertEqual(A.verify_structure(mp_row(subject)), [], subject)
+        for subject in (A.PRIVATE_SUBJECT, "fixture-test-2", A.MPSTORAGE_SUBJECT):
+            self.assertEqual(A.verify_structure(mp_row(subject), private=True), [], subject)
 
     def test_zero_width_variant_shares_alias(self):
         # Live R21: the author block prints the pseudo with U+200B, the MP link without it.
@@ -517,6 +549,33 @@ class FreeTextTests(unittest.TestCase):
         self.assertTrue(meta["final_url"].endswith("/hfr/Discussions/Cuisine/user1-maison-sujet_28563_1.htm"))
         self.assertEqual(meta["note"], "user1")
 
+    def test_slug_keeps_one_word_of_a_name_aliased_in_the_title(self):
+        # Live R07: title `[Ab Cdef ] colo en cours 10-2018`, slug `cdef-cours-2018` (HFR keeps 3 title words).
+        # The title was aliased, the slug kept the name's second word (in hrefs and in the meta URLs).
+        a = A.Anonymizer(A.Config(), known_names=["Rhubarbe Tagada"])
+        page = ('<td class="sujetCase3"><a href="/hfr/Graphisme/Galerie/tagada-cours-2018-sujet_21064_1.htm" '
+                'class="cCatTopic">[Rhubarbe Tagada ] colo en cours 10-2018</a></td>'
+                '<a href="/hfr/Graphisme/Galerie/tagada-cours-2018-sujet_21064_109.htm#bas">x</a>')
+        out = a.anonymize(page)
+        meta = a.anonymize_meta({"final_url": "https://forum.hardware.fr/hfr/Graphisme/Galerie/"
+                                              "tagada-cours-2018-sujet_21064_1.htm"})
+        self.assertNotIn("tagada", out.lower())
+        self.assertIn(">[user1 ] colo en cours 10-2018<", out)
+        self.assertIn("/user1-cours-2018-sujet_21064_1.htm", out)
+        self.assertIn("/user1-cours-2018-sujet_21064_109.htm#bas", out)
+        self.assertTrue(meta["final_url"].endswith("/user1-cours-2018-sujet_21064_1.htm"))
+        # A corpus-wide name not printed in this file keeps the whole-form rule only (no collateral).
+        other = A.Anonymizer(A.Config(), known_names=["Rhubarbe Tagada"]).anonymize(
+            '<a href="/hfr/Cuisine/tarte-rhubarbe-sujet_1_1.htm">Tarte</a>')
+        self.assertIn("/tarte-rhubarbe-sujet_1_1.htm", other)
+
+    def test_slug_words_follow_hfr_rules(self):
+        # Measured on the LOT-001 title/slug pairs: `_` and non-ASCII punctuation join, other characters split.
+        self.assertEqual(A.slug_words("Écureuil_Fou’x l'Ami"), ["ecureuilfoux", "l", "ami"])
+        a = A.Anonymizer(A.Config(), known_names=["Grand_Manitou"])
+        out = a.anonymize('<a href="/hfr/A/B/grandmanitou-retour-sujet_5_1.htm">Grand_Manitou retour</a>')
+        self.assertIn("/user1-retour-sujet_5_1.htm", out)
+
     def test_internal_paths_and_scripts_keep_their_words(self):
         html = (post("Discussions") + '<a href="/hfr/Discussions/liste_sujet-1.htm">x</a>'
                 "<script>var Discussions = 1;</script>")
@@ -621,6 +680,25 @@ class CliTests(unittest.TestCase):
                 self.assertEqual(fh.read(), post("user1") + ' é <input name="hash_check" value="REDACTED">')
             self.assertEqual(A.main(["check", "--config", cfg, dst]), 0)
             self.assertNotEqual(A.main(["check", "--config", cfg, src]), 0)
+
+    def test_cli_slug_word_of_operator_and_extra_pseudos(self):
+        # CodeRabbit on PR #49: the configured pseudos never entered the per-word slug rule (they are not
+        # corpus-known names), so the direct CLI, with no known names, left one word of them in a slug.
+        import json
+        with tempfile.TemporaryDirectory() as d:
+            cfg = os.path.join(d, "local.json")
+            with open(cfg, "w") as fh:
+                json.dump({"pseudos": ["Rhubarbe Tagada"], "extra_pseudos": ["Myrtille Gelee"]}, fh)
+            src, dst = os.path.join(d, "in.html"), os.path.join(d, "out.html")
+            with open(src, "w", encoding="utf-8") as fh:
+                fh.write('<a href="/hfr/A/B/tagada-cours-2018-sujet_1_1.htm">[Rhubarbe Tagada] colo en cours</a>'
+                         '<a href="/hfr/A/B/gelee-photos-sujet_2_1.htm">Myrtille Gelee photos</a>')
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(A.main(["--config", cfg, src, dst]), 0)
+            with open(dst, encoding="utf-8") as fh:
+                out = fh.read()
+            self.assertIn('href="/hfr/A/B/user1-cours-2018-sujet_1_1.htm">[user1] colo en cours<', out)
+            self.assertIn('href="/hfr/A/B/user2-photos-sujet_2_1.htm">user2 photos<', out)
 
 
 if __name__ == "__main__":

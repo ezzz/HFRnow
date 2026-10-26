@@ -61,7 +61,10 @@ whole (a multi-word pseudo is never split) and decoded from entities, `%`-escape
 
 **Free text**: a member name of 3+ characters that is not a function word or site/markup token (`COMMON_WORDS`, kept short on purpose: an ordinary noun used as a pseudo is still replaced in prose) is also replaced in text
 nodes, text attributes (`title`, `alt`, `value`, `content`…), external URLs and internal topic slugs (also in the
-meta URLs, so `final_url` matches the page). Never in tag or attribute names, internal paths and queries (other than
+meta URLs, so `final_url` matches the page). In a slug a name takes HFR's slug form (`slug_words`: no accents, lower
+case, `_` and non-ASCII punctuation deleted, `-` between words); HFR keeps at most 3 title words (HFR-PROTOCOL.md "Topic slug", 341 pairs of R04-R07, R09, R27-list, R50b), so a name printed in
+the file also has each of its specific words replaced in its slugs (`[Ab Cdef] colo en cours` → `cdef-cours-2018`,
+live R07). Never in tag or attribute names, internal paths and queries (other than
 the parameters above) or scripts. Shorter names and common words (a member called `Le` or `follow`) are replaced in
 their positions only. Names known from any capture of the corpus (`publish.py` collects them) are replaced in the
 free text of every file. Names seen only as smiley codes are replaced in smiley positions only. The anonymizer
@@ -90,7 +93,10 @@ Also redacted: `hash_check` and the logout `codehex` token (inputs, URLs, JS), c
 hidden token-like inputs, personal profile fields (`email`, `homepage`, `custom_*` values; birth date and gender
 selections), e-mails, IPv4 addresses (replaced by `192.0.2.1`), operator ids also as bare numbers of 5+ digits.
 
-Obfuscated links (`md_noclass_cryptlink`, `md_blank_cryptlink`, `md_cryptlink` class tokens) are decoded (alphabet `0A12B34C56D78E9F`, two characters per byte), redacted, then **re-encoded with the same prefix** so the fixture keeps the real structure. Check mode decodes them too. `--private` replaces the content of every element whose `id` starts with `para` (message body) and the subjects of non-fixture MPs; `check --private` verifies it.
+Obfuscated links (`md_noclass_cryptlink`, `md_blank_cryptlink`, `md_cryptlink` class tokens) are decoded (alphabet `0A12B34C56D78E9F`, two characters per byte), redacted, then **re-encoded with the same prefix** so the fixture keeps the real structure. Check mode decodes them too. `--private` replaces the content of every element whose `id` starts with `para` (message body) and every MP subject
+(the `a.cCatTopic` of the title cell `td.sujetCase3`, chosen by position, never by content: a subject may be digits
+only, and the page links of `td.sujetCase4` are not subjects) except the fixture threads `fixture-test-N` and the
+MPStorage title (FIXTURES.md); `check --private` verifies it, in both verifiers.
 
 The CLI runs `check` on its own output and writes nothing if a leak remains. `check` exits non-zero and prints each offending line.
 
