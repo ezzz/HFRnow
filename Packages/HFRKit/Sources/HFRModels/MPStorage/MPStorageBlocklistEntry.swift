@@ -2,7 +2,7 @@ import Foundation
 
 /// A blocked pseudo in the synced MPStorage document (wire namespace `blacklist`: `{"createDate":ms,"username":s}`).
 public struct MPStorageBlocklistEntry: Sendable, Hashable, Codable {
-    /// Blacklisted pseudo, as written (matching rules live in HFRStorage).
+    /// Blacklisted pseudo, as written (the merge matches it case-insensitively; display matching rules are LOT-061).
     public var username: String
     /// When the entry was added.
     public var createdAt: Date?

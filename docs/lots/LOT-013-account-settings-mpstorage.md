@@ -29,7 +29,7 @@ Decisions:
 2. **Lenient reading, legacy-shaped writing.** `post`, `numreponse`, `page`, `cat` accept numbers or numeric strings (other clients differ); writing follows the legacy shape (`post` and `cat` strings, `numreponse` number for bookmarks, `post` number for flags). Timestamps are integer milliseconds.
 3. **`{}` sections** (real documents) decode to an empty list and re-encode as `{"list":[]}`: the only normalisation, harmless for readers.
 4. **`Bookmark` lives here** (`MPStorageBookmark`), not in LOT-010: it is the wire type. Its `id` includes the category because `numreponse` is unique per category only (E18).
-5. **No mutation, merge, `lastUpdate` conflict logic or pseudo normalisation** in this lot: HFRStorage (LOT-062, E-2, E-3). No 64 KiB cap or non-BMP guard either: those belong to the writer (E24, Q-3).
+5. **No mutation, merge, `lastUpdate` conflict logic or pseudo normalisation** in this lot: mutation, merge and write guards are LOT-062 (HFRModels), pseudo normalisation LOT-061 (E-2, E-3). No 64 KiB cap or non-BMP guard either: those belong to the writer (E24, Q-3).
 6. **Secrets.** `StoredCookie` and `Account` implement `CustomStringConvertible`, `CustomDebugStringConvertible` and `CustomReflectable` without cookie values or token. `customMirror` redacts them in `dump` and the debugger as well. `Codable` output contains the secrets by design: only the Keychain store may persist it.
 7. **Naming.** SwiftLint's `inclusive_language` rule rejects `blacklist` in declarations, so Swift names say "blocklist" (`MPStorageBlocklistEntry`, `MPStorageEntry.blocklist`) while the wire key stays `blacklist`. For the same reason (`identifier_name` minimum of 3 characters) the legacy `no` value is `EmbeddedVideosMode.never`, `ImageDisplayMode.never`, with the legacy strings as raw values.
 8. **Not in this lot:** `MPStorageIndex` (cached storage topic id) and the 30-odd UserDefaults keys: HFRStorage.
@@ -40,7 +40,7 @@ Decisions:
 - A bookmark without `post`, `cat` or `numreponse`, or a blacklist entry without `username`, is kept raw, never dropped.
 - Unknown `version` strings are preserved as text; deciding whether to write is the store's job.
 - Timestamps must be finite and within +/-8.64e15 ms (Foundation's `Date` span): anything else is a decoding error, so a bad item date lands in `undecodableItems`, and encoding a `Date` outside that span throws `EncodingError` instead of trapping (CodeRabbit round 1).
-- Integers above 2^53 inside `JSONValue` lose precision (documented).
+- Integers above 2^53 inside `JSONValue` lost precision here; LOT-062 keeps every number's exact text through `MPStorageCodec`.
 
 ## Fixtures
 None (synthetic documents in the tests). Real MPStorage documents (empty, 100+ bookmarks, nbsp-polluted, malformed, future version) arrive with LOT-004 and LOT-062.

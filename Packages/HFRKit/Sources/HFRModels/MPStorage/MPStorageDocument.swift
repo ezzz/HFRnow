@@ -2,7 +2,7 @@ import Foundation
 
 /// The JSON document HFR clients keep in a private message used as a database (audit E §2.6, E23).
 /// `{"data":[{"version":"0.1", ...}],"sourceName":s,"lastUpdate":ms}`. Decoding never resets or drops what it
-/// does not understand; mutation and conflict handling are HFRStorage's job.
+/// does not understand. Edits: `MPStorageDocument+Mutations`; merge: `MPStorageMerge`; write guards: `MPStorageCodec` (LOT-062).
 public struct MPStorageDocument: Sendable, Hashable, Codable {
     /// Subject of the storage private message.
     public static let subject = "a2bcc09b796b8c6fab77058ff8446c34"

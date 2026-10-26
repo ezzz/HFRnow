@@ -1,12 +1,13 @@
 /// Any JSON value, used to keep parts of the MPStorage document this app does not model (other clients write them).
-/// Numbers are `Double`: integers above 2^53 lose precision.
+/// Numbers keep their exact text when the document goes through `MPStorageCodec`; a plain `JSONDecoder` /
+/// `JSONEncoder` round trip goes through `Int64` or `Double` instead.
 public enum JSONValue: Sendable, Hashable, Codable {
     /// `null`.
     case null
     /// `true` / `false`.
     case bool(Bool)
-    /// Any number.
-    case number(Double)
+    /// Any number, as written.
+    case number(JSONNumber)
     /// A string.
     case string(String)
     /// An array.
@@ -21,10 +22,12 @@ public enum JSONValue: Sendable, Hashable, Codable {
             self = .null
         } else if let value = try? container.decode(Bool.self) {
             self = .bool(value)
+        } else if let value = try? container.decode(Int64.self) {
+            self = .number(JSONNumber(value))
         } else if let value = try? container.decode(Double.self) {
-            self = .number(value)
+            self = .number(JSONNumber(value))
         } else if let value = try? container.decode(String.self) {
-            self = .string(value)
+            self = JSONNumberBox.unbox(value).map(JSONValue.number) ?? .string(value)
         } else if let value = try? container.decode([JSONValue].self) {
             self = .array(value)
         } else {
@@ -38,7 +41,18 @@ public enum JSONValue: Sendable, Hashable, Codable {
         switch self {
         case .null: try container.encodeNil()
         case .bool(let value): try container.encode(value)
-        case .number(let value): try container.encode(value)
+        case .number(let value):
+            guard JSONNumber.isValid(value.lexeme) else {
+                // Only `JSONNumber(Double)` with a non-finite value can get here.
+                throw EncodingError.invalidValue(value.lexeme, .init(codingPath: encoder.codingPath, debugDescription: "Not a JSON number"))
+            }
+            if encoder.userInfo[JSONNumberBox.userInfoKey] as? Bool == true {
+                try container.encode(JSONNumberBox.box(value))
+            } else if let integer = value.int64Value {
+                try container.encode(integer)
+            } else {
+                try container.encode(value.doubleValue ?? 0)
+            }
         case .string(let value): try container.encode(value)
         case .array(let value): try container.encode(value)
         case .object(let value): try container.encode(value)

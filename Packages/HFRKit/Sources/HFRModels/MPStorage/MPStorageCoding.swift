@@ -46,19 +46,31 @@ extension KeyedDecodingContainer {
     func decodeLenientIntIfPresent(forKey key: Key) throws -> Int? {
         guard contains(key), try !decodeNil(forKey: key) else { return nil }
         if let value = try? decode(Int.self, forKey: key) { return value }
-        if let value = try? decode(Double.self, forKey: key), value.rounded() == value, abs(value) < 9e15 {
-            return Int(value)
-        }
-        if let text = try? decode(String.self, forKey: key), let value = Int(text.trimmingCharacters(in: .whitespaces)) {
-            return value
+        if let value = try? decode(Double.self, forKey: key), let integer = Self.wholeInteger(value) { return integer }
+        if let text = try? decode(String.self, forKey: key) {
+            if let lexeme = JSONNumberBox.lexeme(text) {
+                if let value = Int(lexeme) { return value }
+                if let value = Double(lexeme), let integer = Self.wholeInteger(value) { return integer }
+            } else if let value = Int(text.trimmingCharacters(in: .whitespaces)) {
+                return value
+            }
         }
         throw DecodingError.typeMismatch(Int.self, .init(codingPath: codingPath + [key], debugDescription: "Not an integer"))
+    }
+
+    /// The integer a whole double holds, when it is exactly representable.
+    private static func wholeInteger(_ value: Double) -> Int? {
+        value.rounded() == value && abs(value) < 9e15 ? Int(value) : nil
     }
 
     /// Reads a string written as a string or a number.
     func decodeLenientStringIfPresent(forKey key: Key) throws -> String? {
         guard contains(key), try !decodeNil(forKey: key) else { return nil }
-        if let value = try? decode(String.self, forKey: key) { return value }
+        if let value = try? decode(String.self, forKey: key) {
+            guard let lexeme = JSONNumberBox.lexeme(value) else { return value }
+            if let integer = Int(lexeme) { return String(integer) }
+            return Double(lexeme).map { String($0) } ?? lexeme
+        }
         if let value = try? decode(Int.self, forKey: key) { return String(value) }
         if let value = try? decode(Double.self, forKey: key) { return String(value) }
         throw DecodingError.typeMismatch(String.self, .init(codingPath: codingPath + [key], debugDescription: "Not a string"))
@@ -71,7 +83,7 @@ extension KeyedDecodingContainer {
         if let value = try? decode(Double.self, forKey: key) {
             milliseconds = value
         } else if let text = try? decode(String.self, forKey: key) {
-            milliseconds = Double(text.trimmingCharacters(in: .whitespaces))
+            milliseconds = Double(JSONNumberBox.lexeme(text) ?? text.trimmingCharacters(in: .whitespaces))
         } else {
             milliseconds = nil
         }
