@@ -168,6 +168,19 @@ Source: [LOT-030](lots/LOT-030-message-blocks.md), `MessageBlockParser`, on the 
 - **Deleted conversation** (`RA5`): a page without any `messagetable` is an ordinary page (`.hop` notice), not an error.
 - **Pending capture**: the `messagetabledel` wrapper of a deleted post (legacy `ParseMessagesOperation.m:153`; `RA3` shows that a deleted MP post simply disappears) and the in-topic search result shape (a leading `<a>` in `messCase2`, `:365-368`).
 
+### LOT-033 — topic page metadata
+
+Source: [LOT-033](lots/LOT-033-topic-page-metadata.md), `TopicPageMetadataParser`, checked by `TopicPageMetadataOracleTests` on the 20 LOT-003 oracle cases `R20`, `R21`, `R22a`, `R22b`, `R23`, `R24`, `R26`, `R27`, `R27b`, `R28`, `R31`, `R32a`, `R32b`, `RA1`, `RA2`, `RA3`, `RA4`, `RA5`, `RU1`, `RU2`; `R25` is excluded (no body).
+
+- **Title**: the `h3` of the `tr.fondForum2Title` row ("Sujet : <h3>…</h3>"), present on every page with messages; absent on "Ce message ne vous est pas destiné" (`RA5`).
+- **Pager**: `tr.fondForum2PagesHaut` holds `div.left` with `Page :` in a `<b>`, numbered links, `..` for gaps; the current page is a `<b>` number (first and last page included, `R20`, `R22b`), the last child is the highest page. A single-page topic has no `div.left` (`R23`, `R27b`, `R31` and the private threads); `R23` and `R31` keep the row with only a "Bas de page" link.
+- **Current page** is not in the page: it comes from the URL served. A page beyond the end is redirected to the last page (`R24`, final URL `…_2201.htm`).
+- **Answer form**: `form#repondre_form` with a hidden `hash_check`, a hidden `repondre_contenu` and one `a` to `/message.php?config=hfr.inc&cat=&post=&page=&p=&subcat=&sondage=0&owntopic=0&new=0`; only logged in, and absent on the locked topic as seen by a visitor (`R31`) like on every anonymous page.
+- **Quick-answer form** `form[name=hop]` (action `/bddpost.php`): 17 hidden inputs when logged in (`cache, cat, config, emaill, hash_check, new, numrep, owntopic, p, page, post, pseudo, signature, sondage, subcat, sujet, verifrequet`); `cat=prive` on private conversations; absent anonymous (`R20`) and on a conversation the owner deleted (`RU2`). `hash_check` is a secret.
+- **In-topic search form** `form[action="/transsearch.php"]` exists for visitors too (empty `hash_check`); it carries `cat` and `post` when `hop` does not. Absent on `RA5`.
+- **`nonlu`**: a link whose `href` contains `nonlu` exists on every private conversation page that shows messages (`RA1`–`RA4`, `RU1`, `RU2`; not on the empty `RA5`) and on no public topic page of the corpus.
+- **Poll block**: `div.sondage` exists on `R32a` and `R32b` only.
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).
