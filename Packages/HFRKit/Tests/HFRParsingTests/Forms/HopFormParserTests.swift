@@ -149,7 +149,7 @@ struct HopFormParserTests {
     func moderationForm() throws {
         let html = try Fixture.capture("R46-modo-alert-form")
         let form = try HopFormParser.parseModerationForm(html)
-        #expect(form.action == "modo.php?cat=13&ref=1&post=28563&numreponse=2666649&page=1&config=hfr.inc")
+        #expect(form.action == "/user/modo.php?cat=13&ref=1&post=28563&numreponse=2666649&page=1&config=hfr.inc")
         #expect(form.fields.map(\.name) == ["hash_check", "referer_page", "Submit"])
         #expect(form.field(named: "Submit")?.kind == .submit)
         #expect(form.textareaContent == nil)
@@ -245,6 +245,48 @@ struct HopFormParserTests {
         #expect(form.textareaContent == "in")
         let anchorOnly = "<a name=\"hop\"></a><input name=\"x\" />"
         #expect(throws: ParsingError.missingElement("form name=hop")) { try HopFormParser.parse(anchorOnly) }
+    }
+
+    @Test("the action stays on the forum origin: other hosts, protocol-relative, http, other ports are refused",
+          arguments: [
+              "https://evil.example/x", "//evil.example/x", "http://evil.example/x",
+              "http://forum.hardware.fr:80/bddpost.php", "https://forum.hardware.fr:8443/bddpost.php",
+              "https://forum.hardware.fr//evil.example/x", "https://user@forum.hardware.fr/x", "javascript:alert(1)", ""
+          ])
+    func offOriginAction(action: String) throws {
+        let form = try HopFormParser.parse("<form name=\"hop\" action=\"\(action)\"><input name=\"a\" /></form>")
+        #expect(form.action == nil)
+        #expect(form.fields.map(\.name) == ["a"])
+    }
+
+    @Test("a backslash after the slash cannot turn the path into another host")
+    func backslashAction() throws {
+        let form = try HopFormParser.parse("<form name=\"hop\" action=\"/\\evil.example/x\"></form>")
+        // Foundation reads the backslash as path text, so the result stays a forum path with the character escaped.
+        #expect(form.action == nil || form.action?.hasPrefix("/%5C") == true)
+    }
+
+    @Test("forum actions are kept as paths: absolute URL, https on 443, absolute path, relative to the page")
+    func forumActions() throws {
+        func action(_ value: String, page: URL = HFRURL.base) throws -> String? {
+            try HopFormParser.parse("<form name=\"hop\" action=\"\(value)\"></form>", pageURL: page).action
+        }
+        #expect(try action("https://forum.hardware.fr/bddpost.php?config=hfr.inc") == "/bddpost.php?config=hfr.inc")
+        #expect(try action("https://forum.hardware.fr:443/bdd.php?a=1&amp;b=2") == "/bdd.php?a=1&b=2")
+        #expect(try action("http://forum.hardware.fr/bdd.php") == "/bdd.php")
+        #expect(try action("/bddpost.php?config=hfr.inc") == "/bddpost.php?config=hfr.inc")
+        let page = try #require(URL(string: "https://forum.hardware.fr/user/modo.php?cat=13"))
+        #expect(try action("bddpost.php?x=1", page: page) == "/user/bddpost.php?x=1")
+    }
+
+    @Test("the moderation action is resolved against /user/ and refused off-origin")
+    func moderationAction() throws {
+        func action(_ value: String) throws -> String? {
+            try HopFormParser.parseModerationForm("<form action=\"\(value)\">modo.php</form>").action
+        }
+        #expect(try action("modo.php?cat=13&amp;ref=1") == "/user/modo.php?cat=13&ref=1")
+        #expect(try action("https://evil.example/modo.php") == nil)
+        #expect(try action("//evil.example/modo.php") == nil)
     }
 
     @Test("a form without action keeps nil; favourite smileys keep alt and https image, skip the unusable ones")

@@ -14,30 +14,38 @@ public enum HopFormParser {
     /// checkbox as `"1"`/`"0"`, `QuoteMessageViewController.m:209-290`). The `content_form` textarea gives
     /// `textareaContent` (quote or edit prefill, `[quotemsg=…]` blocks included), entity-decoded with line breaks as `\n`;
     /// `nil` when the textarea is empty or absent. `#dynamic_smilies` gives the favourite smileys of the account.
+    ///
+    /// `action` is resolved against `pageURL` (the URL the page was served from) and kept only as a forum-origin path,
+    /// because the posting flow sends the session, `hash_check` and the text there (LESSONS 37): an off-origin,
+    /// protocol-relative, `http` or non-443 action, or none at all, gives `nil`, and the caller must not post.
     /// - Throws: `missingElement` when the page has no form named `hop` (a `.hop` message page, a login wall, an error page);
     ///   telling those apart is the job of the response classifier (LOT-037).
-    public static func parse(_ html: String) throws(ParsingError) -> ForumForm {
+    public static func parse(_ html: String, pageURL: URL = HFRURL.base) throws(ParsingError) -> ForumForm {
         let document = try HTMLDocumentLoader.document(from: html)
         guard let form = form(in: document, attribute: "name", matching: .exact("hop")) else {
             throw .missingElement("form name=hop")
         }
-        return makeForm(form, in: document)
+        return makeForm(form, in: document, pageURL: pageURL)
     }
 
     /// The moderator alert form of `/user/modo.php`: the form whose `action` contains `modo.php`.
     ///
     /// It holds `hash_check`, `referer_page` and the submit button, and a `raison` textarea that is not read (the reason is
-    /// the user's text). Its `action` is relative to the page URL (`modo.php?…` served from `/user/modo.php`), and keeps
-    /// the decoded query (legacy decoded `&amp;`, the Swift service did not: LOT-004 quirk 5).
+    /// the user's text). Its `action` is relative to the page URL (`modo.php?…` served from `/user/modo.php`), hence the
+    /// `pageURL` default; it comes back as a forum-origin path (`/user/modo.php?…`) with the decoded query (legacy decoded
+    /// `&amp;`, the Swift service did not: LOT-004 quirk 5), and `nil` when it leaves the forum origin (see `parse`).
     /// - Throws: `missingElement` when there is no such form, which is also the case of a message already reported
     ///   (a `.hop` block with a link replaces the form, `AlerteModoViewController.m:154-163`).
-    public static func parseModerationForm(_ html: String) throws(ParsingError) -> ForumForm {
+    public static func parseModerationForm(_ html: String, pageURL: URL = moderationPageURL) throws(ParsingError) -> ForumForm {
         let document = try HTMLDocumentLoader.document(from: html)
         guard let form = form(in: document, attribute: "action", matching: .contains("modo.php")) else {
             throw .missingElement("form action*=modo.php")
         }
-        return makeForm(form, in: document)
+        return makeForm(form, in: document, pageURL: pageURL)
     }
+
+    /// Where the alert form is served from (`AlerteModoViewController.m:176`: `ForumURL/user/` + action).
+    public static let moderationPageURL: URL = HFRURL.absolute("/user/modo.php") ?? HFRURL.base
 
     // MARK: - Implementation
 
@@ -47,9 +55,9 @@ public enum HopFormParser {
         document.descendants(attribute: attribute, matching: match).first { $0.tagName() == "form" }
     }
 
-    private static func makeForm(_ form: Element, in document: Document) -> ForumForm {
+    private static func makeForm(_ form: Element, in document: Document, pageURL: URL) -> ForumForm {
         ForumForm(
-            action: attribute("action", of: form),
+            action: attribute("action", of: form).flatMap { forumPath(of: $0, pageURL: pageURL) },
             fields: elements("input", in: form).compactMap(field),
             selects: elements("select", in: form).compactMap(select),
             textareaContent: prefill(in: form),
@@ -59,6 +67,12 @@ public enum HopFormParser {
 
     private static func elements(_ tag: String, in element: Element) -> [Element] {
         ((try? element.getElementsByTag(tag))?.array() ?? []).filter { $0 !== element }
+    }
+
+    /// The action as a path on the forum origin, nil when it points elsewhere: resolved against the page first, so a
+    /// relative `modo.php?…` lands in `/user/`, then restricted like every link the session may follow (LESSONS 37, 43).
+    private static func forumPath(of action: String, pageURL: URL) -> String? {
+        HFRURL.absolute(action, relativeTo: pageURL).flatMap { HFRURL.forumRelativePath($0.absoluteString) }
     }
 
     /// Attribute value, nil when the attribute is absent. SwiftSoup decodes entities, which legacy did not (bug B1).

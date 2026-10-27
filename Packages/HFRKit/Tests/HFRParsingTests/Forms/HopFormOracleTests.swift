@@ -72,7 +72,8 @@ struct HopFormOracleTests {
     func moderation() throws {
         let oracle = try Lot004FormOracle.load("R46")
         let form = try HopFormParser.parseModerationForm(oracle.html)
-        #expect(form.action == oracle.legacy["formAction"] as? String)
+        // Legacy kept the relative action and prefixed `/user/` when building the URL (`AlerteModoViewController.m:176`).
+        #expect(form.action == "/user/" + (oracle.legacy["formAction"] as? String ?? "?"))
         let expected = try #require(oracle.legacy["inputData"] as? [String: String])
         #expect(Self.legacyInputData(of: form) == expected)
         #expect(form.textareaContent == nil)
