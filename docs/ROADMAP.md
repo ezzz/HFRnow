@@ -33,3 +33,8 @@ Reuse and adapt the legacy SwiftUI views on top of `HFRKit`; remove everything u
 
 ## Phase 5 — iOS 27 experience
 Column-based navigation and large/foldable layouts. Design documentation provided by the maintainer.
+New app features (Home, page navigator, Shortcuts check, themes…) come from the [feature backlog](FEATURES.md); each one goes through a spec and, if needed, engine lots ([COLLABORATION §3](COLLABORATION.md#3-from-an-idea-to-a-merged-feature)).
+
+## Handover and production switch
+- **Handover** *(done — 2026-10-27)*: this codebase lives on `ezzz/HFRnow:dev-swift` with its history; `francoisgn/ios-app_SwiftHFR` is its mirror ([ADR 0010](adr/0010-hosting-on-ezzz-hfrnow-dev-swift.md)).
+- **Production switch** (own ADR): archive the Objective-C app (`legacy/objc-final`, `archive/objc`), `dev-swift` becomes the default branch, CI and default-branch automation move with it ([ADR 0011](adr/0011-contribution-model-and-feature-intake.md)).

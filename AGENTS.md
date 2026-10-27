@@ -34,6 +34,8 @@ License: [PolyForm Noncommercial 1.0.0](LICENSE) — no commercial use, credit t
 | `docs/ARCHITECTURE.md` | Modules, dependency rules, design principles |
 | `docs/ROADMAP.md` | Phases and their exit criteria |
 | `docs/LOTS.md` | Migration lots: status, owner, reviewer. **Check it before starting work.** |
+| `docs/FEATURES.md` | App feature backlog (proposals from contributors, with credit) and their status |
+| `docs/COLLABORATION.md` | Branches vs forks, roles, idea → feature path, PR entry criteria ([ADR 0011](docs/adr/0011-contribution-model-and-feature-intake.md)) |
 | `docs/agents/` | [ORCHESTRATION](docs/agents/ORCHESTRATION.md) (parallel sessions), [REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md) (bots & reviews), [LESSONS](docs/agents/LESSONS.md) (self-review table) |
 | `docs/lots/` | One spec file per lot (`LOT-XXX-name.md`) |
 | `docs/HFR-PROTOCOL.md` | What we know about HFR: URLs, forms, cookies, HTML structure |
@@ -117,7 +119,8 @@ Within a priority, match `difficulty` to your model tier (§6). Security issues 
 
 ## 8. Git and PR workflow
 
-- Integration branch: `dev-swift` (ruleset: PR + green checks required, squash only, no force push). `master` is the legacy app.
+- Integration branch: `dev-swift` (ruleset: PR + green checks + one approval by someone other than the author, squash only, no force push). `master` is the legacy app.
+- Maintainers branch in `ezzz/HFRnow`; everyone else works from a fork. PRs from contributors meet the entry criteria of [COLLABORATION §4](docs/COLLABORATION.md#4-entry-criteria-for-a-pr-on-dev-swift) before review starts.
 - Issue and PR numbers restart on ezzz/HFRnow: cite the old ones as `francoisgn/ios-app_SwiftHFR#N`.
 - Branch names: `lot/XXX-short-name`, `fix/short-name`, `feat/short-name`, `chore/short-name`, `docs/short-name`.
 - Commits: imperative mood, explain *why*. Reference the issue/lot (`Refs #12`, `LOT-003`).
@@ -159,5 +162,6 @@ Keep entries short and dated. Remove anything that became false.
 - 2026-10-24 — Phase 0: GitHub-hosted runners provide Xcode 27 only through the `xcode-27` runner label (preview). Default `macos-26` images ship Xcode 26.x and cannot build the iOS 27 target.
 - 2026-10-26 — LOT-001: Carthage on Xcode 27 needs `XCODE_XCCONFIG_FILE` (deployment target 15.0, no `-Werror`); the iOS 27.1 simulator runtime refuses iPhone 18 Pro, use 27.0. HFR's live behaviour differs from the docs in several places (cookies `md_user`/`md_passs`/`md_id`/`md_data`, two-hop topic redirect, shared flood limit): trust `docs/HFR-PROTOCOL.md` §6b/§7 results over audit notes.
 - 2026-10-26 — Hosting move to ezzz/HFRnow `dev-swift` (ADR 0010): issue forms, Dependabot, scheduled workflows, `workflow_dispatch` and Scorecard only work from the default branch, which is the legacy app. The Claude and CodeRabbit GitHub apps on a personal-account repository can only be installed by its owner, whatever the collaborator's rights.
+- 2026-10-27 — Two sessions designed the move in parallel and both took ADR 0010; the duplicate was found after the force push. Before a cutover, list every unmerged branch (`git branch -r --no-merged`) and decide its fate.
 - 2026-10-26 — LOT-001: a first corpus PR leaked member pseudos on the public repo because the anonymizer's `check` reused the redactor's own selectors. Corpus checks must be independent of the redactor, and every corpus change gets an independent reviewer before it is pushed, not after (FIXTURES.md policy, LESSONS 33–34).
 - 2026-10-26 — LOT-002..004: the legacy oracle runs real legacy code from a test host via `tooling/legacy-oracle/run-oracle.sh`, with a local patch to hfrnow at 2440d79 (never pushed). Each oracle lot's `hfrnow.patch` is a superset of the previous one, and hfrnow must carry exactly the patch of the branch being run (the script refuses otherwise).

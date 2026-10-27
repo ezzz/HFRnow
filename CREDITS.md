@@ -17,6 +17,10 @@ Code and knowledge from these projects are reused with gratitude.
 
 Everyone who contributed to the projects above, and every contributor listed in this repository's history.
 
+| Contributor | Contribution |
+|---|---|
+| Bybifok ([`moust4ki`](https://github.com/moust4ki)) | Feature proposals, design boards, protocol findings and prototype [Ultra HFR](https://github.com/moust4ki/ultra-hfr) — inventory in [docs/research/bybifok-proposals.md](docs/research/bybifok-proposals.md) |
+
 ## Third-party software
 
 | Component | License | Use |

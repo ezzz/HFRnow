@@ -152,4 +152,4 @@ Afterwards, by the maintainer: check Settings → Rules shows `SwiftHFR dev-swif
 
 ## Later, owner's decision (ezzz)
 
-Issue forms and `issue-triage.yml` (ADR 0010 table): issues are shared with the legacy app, so they only land on `master` if ezzz wants them, through a PR he merges.
+Issue forms and `issue-triage.yml` (ADR 0010 table): issues are shared with the legacy app, so they only land on `master` if ezzz wants them, through a PR ezzz merges.
