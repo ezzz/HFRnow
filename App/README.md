@@ -6,6 +6,7 @@ The iOS app target (SwiftUI, iOS 27), `App/SwiftHFR.xcodeproj` ([ADR 0012](../do
 |---|---|
 | `SwiftHFR.xcodeproj` | Project and shared scheme `SwiftHFR`; links the local package `../Packages/HFRKit` |
 | `SwiftHFR/` | App sources and assets (folder-synchronized: add files here, the project file does not change) |
+| `SwiftHFR/Accounts/` | Accounts and login ([LOT-081](../docs/lots/LOT-081-accounts-login.md)): `AccountsModel` owns every account `HFRSession`; `currentSession` is the session of the current account |
 | `SwiftHFRTests/` | Unit tests (Swift Testing), hosted by the app |
 
 Build and test on the simulator (unsigned, as CI does):

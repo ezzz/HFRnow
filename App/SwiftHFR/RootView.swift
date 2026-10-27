@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Placeholder root screen until the login (LOT-081) and navigation (LOT-082) lots replace it.
+/// Placeholder root screen until the navigation lot (LOT-082) replaces it; carries the account menu (LOT-081).
 struct RootView: View {
     var body: some View {
         NavigationStack {
@@ -12,10 +12,16 @@ struct RootView: View {
                 }
             }
             .navigationTitle("HFR")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    AccountMenuButton()
+                }
+            }
         }
     }
 }
 
 #Preview {
     RootView()
+        .environment(AccountsModel.preview())
 }
