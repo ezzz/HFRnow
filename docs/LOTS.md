@@ -171,6 +171,9 @@ Page states that merged lots listed as **pending capture** (never hand-built in 
 | Topic list: MP list logged out, cross-category search results, rare row shapes | LOT-022 | see the LOT-022 spec |
 | Locked topic seen logged in; favourite/flagged topic page; checked in-topic search filter (R52a was a 302) | LOT-033 | |
 | Deleted message wrapper `messagetabledel`; in-topic search prefix link | LOT-030 | |
+| Message holding an `hfr-rehost.net` link or image (host rewrite ported from `LinkItem.m:163`) | LOT-034 | no corpus occurrence of `hfr-rehost.net` or `reho.st` |
+| Message holding the `---------------` separator legacy deleted (`LinkItem.m:74`): what it is for | LOT-034 | not ported until a capture shows it |
+| Legacy oracle with `display_sig=yes`, `display_images=no`, `embedded_videos=no`; the deepest nesting HFR serves | LOT-034, LOT-035 | oracle re-run with other settings (LOT-003 tooling), not a page capture |
 | Profile: logged in, banned/deleted member, real birth date and signature, status other than "Membre", smiley file name with apostrophe/space, non-jpg avatar | LOT-027 | anonymize every free-text field |
 | Home row without `id="cat<N>"`; full sub-forum lists | LOT-021 | REST R57a counts 27 sub-forums for Programmation, page + table give 14 |
 | Topic page with `quote_only=1` (LOT-001 checklist R34, dropped as optional): is there any server signal that someone quoted me? | FEAT-018, HFR-PROTOCOL §7b B11 | read-only GET; settles feasibility before FEAT-018 is promised |

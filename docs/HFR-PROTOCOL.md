@@ -242,9 +242,11 @@ Source: [LOT-027](lots/LOT-027-profile-parser.md), `UserProfileParser`, checked 
 Source: [LOT-034](lots/LOT-034-content-normalization.md), `MessageContentNormalizer`, checked by `MessageContentOracleTests`,
 `MessageContentNormalizerTests` and `MessageContentSanitizationTests` on the 20 LOT-003 oracle cases (358 messages).
 
-- **Content element**: `div#para<numreponse>` holds the message HTML, then the signature, then HFR's layout trailer and the LOT-030 edit
-  trailer, in this order: `…<div style="clear: both;"> </div></p><br /><span class="signature">…</span>` then `<div class="edited">…</div>`
-  (`R20`, `R27`, `R28`); 125 of the 358 messages carry a signature. The stray `</p>` after the clear trailer is HFR's.
+- **Content element**: `div#para<numreponse>` holds the message HTML, then HFR's layout trailer `<div style="clear: both;"> </div>`
+  (closed by a stray `</p>`), then the LOT-030 edit trailer `<div class="edited">…</div>` when the message was edited or quoted, then
+  `<br /><span class="signature">…</span>` when the author has one. Measured on the 358 messages: 119 clear only, 92 clear > edited,
+  80 clear > signature, 45 clear > edited > signature, 22 none of them (private threads `RA1`–`RU2`); never another order
+  (`R20` message 1 `para2666682`, 0 `para2666649`, 2 `para2666695`, `para3182834`). 125 messages carry a signature.
 - **Smileys**: `<img src alt title>` on `forum-images.hardware.fr`, standard ones under `/icones/` (`/icones/smilies/ange.gif` with
   `alt=":ange:"`, `/icones/redface.gif` with `alt=":o"`, `/icones/biggrin.gif` with `alt=":d" title=":D"`), personal ones under
   `/images/perso/` with `alt="[:<code>]"` (`R20`, `R26`, `R27`); 103 messages hold a personal smiley. Every smiley of the corpus is `https`.

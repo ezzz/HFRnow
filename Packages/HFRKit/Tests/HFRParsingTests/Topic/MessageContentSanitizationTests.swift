@@ -97,9 +97,9 @@ struct MessageContentSanitizationTests {
     func escaping() throws {
         let html = "<p>&lt;b&gt; &amp;amp; \"q\" <a href=\"https://x.example/?a=1&amp;b=2\" title=\"&quot;t&quot; &lt;i&gt;\">l</a></p>"
         let content = try MessageContentNormalizer.normalize(contentHTML: html)
-        // SwiftSoup's base escape mode writes `<` raw inside a quoted attribute value, where it is not markup.
+        // SwiftSoup's base escape mode writes `<` raw inside a quoted attribute value: the normalizer removes it instead.
         #expect(content.html
-            == "<p>&lt;b&gt; &amp;amp; \"q\" <a href=\"https://x.example/?a=1&amp;b=2\" title=\"&quot;t&quot; <i>\">l</a></p>")
+            == "<p>&lt;b&gt; &amp;amp; \"q\" <a href=\"https://x.example/?a=1&amp;b=2\" title=\"&quot;t&quot; i\">l</a></p>")
         #expect(content.links.map(\.url.absoluteString) == ["https://x.example/?a=1&b=2"])
     }
 
@@ -137,10 +137,42 @@ struct MessageContentSanitizationTests {
         #expect(content.images.map(\.isInSignature) == [true])
     }
 
-    @Test("Without a signature, signatureHTML is nil; an empty signature span gives an empty string")
+    @Test("signatureHTML is nil without a signature, and when the signature span has no content left")
     func noSignature() throws {
         #expect(try MessageContentNormalizer.normalize(contentHTML: "<p>x</p>").signatureHTML == nil)
-        #expect(try MessageContentNormalizer.normalize(contentHTML: "<p>x</p><span class=\"signature\"></span>").signatureHTML == "")
+        #expect(try MessageContentNormalizer.normalize(contentHTML: "<p>x</p><span class=\"signature\"></span>").signatureHTML == nil)
+        let dropped = "<p>x</p><span class=\"signature\"><script>s()</script><img src=\"javascript:x\"></span>"
+        #expect(try MessageContentNormalizer.normalize(contentHTML: dropped).signatureHTML == nil)
+        #expect(try MessageContentNormalizer.normalize(contentHTML: "<span class=\"signature\"> </span>").signatureHTML == " ")
+    }
+
+    @Test("Angle brackets never reach an attribute value; the typed lists keep the text as served")
+    func attributeAngleBrackets() throws {
+        let html = "<img src=\"https://i.example/a.png\" alt=\"&quot;&gt;<b>x</b>\" title=\"a<b\">"
+            + "<a href=\"https://a.example/\" title=\"&lt;t&gt;\">l</a>"
+        let content = try MessageContentNormalizer.normalize(contentHTML: html)
+        #expect(content.html == "<img src=\"https://i.example/a.png\" alt=\"&quot;bx/b\" title=\"ab\" class=\"hfrplusimg\" />"
+            + "<a href=\"https://a.example/\" title=\"t\">l</a>")
+        #expect(content.images.map(\.altText) == ["\"><b>x</b>"])
+        #expect(content.html.firstMatch(of: /="[^"]*[<>][^"]*"/) == nil, "no < or > inside any attribute value")
+    }
+
+    @Test("Deep nesting is normalized on a background thread's stack, where a recursive walk would overflow")
+    func deepNesting() async throws {
+        let depth = 10_000
+        let bold = String(repeating: "<b>", count: depth) + "x" + String(repeating: "</b>", count: depth)
+        let nested = depth / 5
+        let mixed = String(repeating: "<div><p><a href=\"https://a.example/\">", count: nested) + "y"
+        let (boldContent, mixedContent) = try await Task.detached {
+            (try MessageContentNormalizer.normalize(contentHTML: bold), try MessageContentNormalizer.normalize(contentHTML: mixed))
+        }.value
+        #expect(try Self.text(of: boldContent.html) == "x")
+        #expect(boldContent.html.hasPrefix(String(repeating: "<b>", count: 50)))
+        #expect(try Self.text(of: mixedContent.html) == "y")
+        // The tree builder reopens an `<a>` around the block it cannot contain, so the exact link count is its own;
+        // every link is finished after its children and the innermost one carries the text.
+        #expect(mixedContent.links.count >= nested)
+        #expect(mixedContent.links.contains { $0.text == "y" })
     }
 
     @Test("The clear trailer and empty paragraphs are dropped; a div with that style but content stays as a plain div")

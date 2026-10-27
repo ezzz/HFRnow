@@ -53,7 +53,7 @@ copied into an allow-listed element with allow-listed attributes, unwrapped (its
 | Elements dropped with their content | `script style iframe object embed applet template noscript svg math form input button select textarea link meta base frame frameset video audio source track canvas head title` |
 | Other elements | unwrapped: the element disappears, its children are processed in place (`font`, `center`, `h3`…) |
 | Other nodes | comments, data and declarations are dropped; text nodes are copied |
-| Attributes kept | `a`: `href`, `title`, `class` · `img`: `src`, `alt`, `title`, `class` · `span`: `class`, `style` · every other kept element: `class`. Everything else is dropped, in particular every `on*` handler, `id`, `name`, `style` elsewhere, `target`, `rel`, `onload`, `longdesc`, sizes |
+| Attributes kept | `a`: `href`, `title`, `class` · `img`: `src`, `alt`, `title`, `class` · `span`: `class`, `style` · every other kept element: `class`. Everything else is dropped, in particular every `on*` handler, `id`, `name`, `style` elsewhere, `target`, `rel`, `onload`, `longdesc`, sizes. The free-text values `alt` and `title` lose their `<` and `>` (SwiftSoup escapes `&` and `"` in attributes but writes angle brackets raw); the typed lists keep the text as served |
 | `class` | tokens filtered through the allow-list `cLink Topic citation oldcitation quote spoiler code fixed container masque s1 s1Topic signature u olcode none hfrplusimg smileycustom`; no attribute when no token survives |
 | `style` on `span` | kept only as `color:<value>` with `<value>` a `#` followed by 3 or 6 hex digits, or 1 to 20 ASCII letters (user colours and the `olcode` syntax colours); anything else (`url(`, `expression(`, `position`, several declarations) is dropped |
 | `href` | `HFRURL.absolute(raw, relativeTo: page)` plus the rules below; nil (empty, `javascript:`, `data:`, `file:`, `blob:`, `vbscript:`, user info…) → the link is **unwrapped**: its text stays, the `<a>` goes |
@@ -63,8 +63,9 @@ copied into an allow-listed element with allow-listed attributes, unwrapped (its
 ### Structure rewrites, in document order
 
 1. `div.edited` (the LOT-030 trailer HFR nests inside the content element) is dropped.
-2. The **first** `span.signature` is cut out: its inner content, normalized, is `signatureHTML` (nil when the message has none; `""` never);
-   later `span.signature` elements are dropped (legacy cut everything after the first). Images and links inside it carry `isInSignature`.
+2. The **first** `span.signature` is cut out: its inner content, normalized, is `signatureHTML`; nil when the message has none or when
+   nothing survives inside the span (`""` never). Later `span.signature` elements are dropped (legacy cut everything after the first), and so
+   is a `span.signature` nested inside the first, with its content. Images and links inside the signature carry `isInSignature`.
 3. `div` with no class whose `style` is exactly `clear: both;` (HFR's layout trailer) and no element child is dropped.
 4. `<p>` without any child node is dropped (HFR's `<p></p>` before a quote block, and the empty paragraph the HTML5 tree builder makes of
    the stray `</p>` that follows the clear trailer, LOT-030 difference 5).
@@ -78,6 +79,9 @@ copied into an allow-listed element with allow-listed attributes, unwrapped (its
    keep their structure and classes; the spoiler's `onclick`/`style` and the code header's `font-family` go with the attribute rules.
 9. Quotes: `table.citation`, `table.oldcitation`, `table.quote`, `div.container`, `tr.none`, `b.s1`, `a.Topic` are kept as served.
 10. `embeds` is always empty (LOT-035).
+11. The walk is iterative and the tree is assembled bottom-up (an element joins its parent once its children are copied): nesting depth
+    is bounded by memory, not by the stack. Checked at 10 000 nested elements on a cooperative-pool thread (512 KB stack), where a
+    recursive copy, or SwiftSoup's own `appendChild` on an attached deep node, overflows at about 5 000.
 
 ### What the following lots build on
 
@@ -87,12 +91,23 @@ copied into an allow-listed element with allow-listed attributes, unwrapped (its
   `images`, signature visibility by choosing to append `signatureHTML`, bundled smileys from `smileys`); it must provide the spoiler toggle
   (click on `table.spoiler` toggles `div.masque`, CSS `div.masque { visibility: hidden }`), the `blue` → action colour tweak for `olcode`,
   tap handling on `img.hfrplusimg` and `img.smileycustom`, and the `quotedhfrlink`/`editedhfrlink` trailers from `MessageBlock`.
+  - **Context contract**: `html` and `signatureHTML` are HTML **body markup**, escaped for that context only. They are inserted as element
+    content of an HTML document, never into a JavaScript string, an attribute, an XHTML/XML document or a raw-text element (`<script>`,
+    `<style>`, `<textarea>`): those contexts need their own escaping.
+  - **Image URL hand-off** (policy stays out of the parser, as legacy: any http(s) `src` is an image, `http://192.168.1.1/admin` or
+    `https://forum.hardware.fr/user/logout.php` included): the reader's web view carries no HFR cookie (images go through the cookie-less
+    client, LOT-045), so a forum URL used as an image cannot act on the account; images auto-load only under the image display mode; the
+    builder decides what to do with private/LAN hosts and with non-image `*.hardware.fr` paths before loading them. **Open question for the
+    operator** (not decided here): third-party image hosts learn the reader's IP and `Referer` on auto-load — accept (legacy behaviour),
+    proxy, or load on tap only.
 
 ## Edge cases
 
 Checked on the 20 LOT-003 captures (358 messages; facts in HFR-PROTOCOL §6c "LOT-034"):
 
-- Signature present on 125 messages (`span.signature` after the clear trailer, preceded by a `<br />` that stays in `html` as legacy kept it).
+- Trailer order inside the content element, on all 358 messages: body, `<div style="clear: both;">`, then `div.edited` when present, then
+  `<br /><span class="signature">` when present (119 clear only, 92 clear > edited, 80 clear > signature, 45 all three, 22 none); never
+  another order. 125 messages carry a signature; the `<br />` before it stays in `html`, as legacy kept it.
 - Personal smileys (`images/perso/<alias>.gif`, `alt="[:<alias>]"`) and standard ones (`icones/smilies/<name>.gif` or `icones/<name>.gif`,
   `alt=":<name>:"` or `:o`, `:d`); `title` may differ from `alt` in case (`alt=":d" title=":D"`, R20).
 - Images: bare `<img src alt title onload="md_verif_size(…)" style="margin: 5px">` (R20, R28) or inside `<a rel="nofollow" href target="_blank"
@@ -109,11 +124,14 @@ Checked on the 20 LOT-003 captures (358 messages; facts in HFR-PROTOCOL §6c "LO
 - Formatting: `strong`, `em`, `i`, `strike`, `span.u`, `span[style=color:#0055aa]`, `ul`/`li`; `&nbsp;` lines.
 - Error paths (inline snippets, no page state): every rejected scheme (`javascript:`, `JaVaScRiPt:`, `java\nscript:`, `&#106;avascript:`,
   `data:`, `file:`, `blob:`, `vbscript:`), a protocol-relative `//host` (resolved to `https`), user info, `on*` attributes, `<script>`,
-  `<iframe>`, `style` injections, `id`s, unknown classes, unknown elements, a comment, nested and repeated signatures, an image without `src`.
+  `<iframe>`, `style` injections, `id`s, unknown classes, unknown elements, a comment, nested and repeated signatures, an image without `src`,
+  angle brackets in `alt`/`title`, 10 000 nested elements on a background thread.
 
 **Pending capture** (ported from legacy code, no positive fixture; the corpus is checked negative):
 
 - `hfr-rehost.net` links and images (legacy `:163`); no capture holds the host (`reho.st` neither).
+- The nesting depth HFR actually serves (the deepest capture nests a few quote levels): the 10 000-level check is a robustness bound,
+  not an observed page.
 - The `---------------` separator (legacy `:74`): not in any capture, not ported (Intentional differences 8).
 - Oracle settings: the LOT-003 oracle runs one combination only (`display_images=yes`, `display_sig=no`, `embedded_videos=yes`). Untested
   against legacy output: signatures shown (`display_sig=yes`: legacy keeps `<span class="signature">` inline, our `signatureHTML` is its inner
@@ -148,7 +166,7 @@ Captures (`Fixtures/captures/`, LOT-001) and the LOT-003 oracles, through `oracl
 | every other `img` (`src`, `alt`) | `smileys` of kind `.standard` | https standard smileys are not rewritten by legacy (LOT-003 Q23) |
 | `a` elements other than the ones around `hfrplusimg` images (`href`, text) | `links`, embedded links removed | through `HFRURL.absolute` and the same host rules on both sides (legacy made only `/forum2.php` and `/hfr/` absolute and kept `http://forum.hardware.fr`); a legacy link whose `href` is not a URL (the `G3Ferrari` one) is left out, the text comparison shows its text survived |
 | signature cut | `signatureHTML != nil` ⇔ the capture block holds `span.signature`; the text comparison proves the cut point | the oracle holds no signature text |
-| totals | 125 signatures, 103 messages with personal smileys, 36 with images (LOT-003 RC3.9) | guards against a vacuous comparison |
+| totals | 125 signatures, 103 messages with personal smileys, 36 with images (LOT-003 RC3.9), 484 links, 2 legacy links whose `href` is not a URL (the `G3Ferrari` one, R20 and R21 message 0) | guards against a vacuous comparison; a regression rejecting a class of real links would raise the last count (LESSONS 50) |
 
 Plus, on every message: no `on*` attribute, `id`, `script` or `javascript:` in `html` and `signatureHTML`; `embeds` empty.
 `MessageContentNormalizerTests` checks the capture facts above, `MessageContentSanitizationTests` the error paths on inline snippets.
@@ -173,14 +191,18 @@ Plus, on every message: no `on*` attribute, `id`, `script` or `javascript:` in `
 10. **`oldcitation` is not renamed**: both classes are contract (ADR 0006); the app styles both, as the legacy CSS did
     (`style-liste-light.css:353`).
 11. **Fragment-only links** resolve against the page URL given by the caller (the forum root by default); legacy left them relative.
+12. **Angle brackets are removed from `alt` and `title`** (defense in depth); legacy copied them raw, inside and outside attributes.
 
 ## Learnings
 
 To copy into AGENTS.md §11 when the lot closes:
 
-- HFR nests the `div.edited` trailer and its `<div style="clear: both;">` **inside** `div#para<numreponse>`, after the signature: content
-  normalization must drop both, or the trailer text ends up in the body.
+- HFR nests its `<div style="clear: both;">` and the `div.edited` trailer **inside** `div#para<numreponse>`, between the body and the
+  signature: content normalization must drop both, or the trailer text ends up in the body.
 - The legacy oracle's `html` for a message is cut at the signature (`display_sig=no`): comparing its text with the normalized body proves
   the cut point exactly, without any signature fixture.
 - Legacy `toHTML` deleted every `\n` of the content, so its visible text can glue words across a source newline: compare text with all
   whitespace removed, not whitespace-normalized.
+- SwiftSoup's `appendChild` walks up to the owner document **recursively** (`markSourceDirty` → `ownerDocument()`): building a tree
+  top-down under an attached root overflows a 512 KB stack at about 5 000 levels, while its parser and serializer are iterative. Assemble
+  bottom-up (attach a subtree once complete) and keep the walk on an explicit stack.

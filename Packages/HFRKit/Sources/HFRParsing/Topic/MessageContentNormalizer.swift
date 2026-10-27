@@ -20,7 +20,7 @@ public enum MessageContentNormalizer {
     /// Same from the content element of an `ExtractedMessageBlock`; the source tree is read, never mutated.
     static func normalize(_ content: Element, relativeTo page: URL) throws(ParsingError) -> MessageContent {
         guard let builder = Builder(page: page) else { throw .malformedDocument }
-        builder.copyChildren(of: content, into: builder.main, inSignature: false)
+        builder.copy(childrenOf: content)
         return try builder.result()
     }
 
@@ -78,10 +78,28 @@ public enum MessageContentNormalizer {
         return nil
     }
 
+    /// A free-text attribute value (`alt`, `title`) without `<` and `>`: SwiftSoup escapes `&` and `"` there but writes
+    /// angle brackets raw, and the output must stay inert wherever the app's builder puts it (defense in depth).
+    static func attributeText(_ value: String) -> String {
+        value.filter { $0 != "<" && $0 != ">" }
+    }
+
     // MARK: - Tree builder
 
     /// Copies the allowed parts of the source tree into a fresh document and collects the typed lists on the way.
+    ///
+    /// The walk is iterative (an explicit stack of steps): a post can nest tags thousands deep, and a recursive copy
+    /// would overflow the 512 KB stack of a background thread long before SwiftSoup's own parser gives up. The tree is
+    /// assembled bottom-up for the same reason: a copied element joins its parent only once its children are in place,
+    /// so every `appendChild` runs on a detached root (SwiftSoup walks up to the owner document recursively on append).
     private final class Builder {
+        /// One unit of work: copy a source node under a target, or finish a copied element once its children are copied.
+        private enum Step {
+            case copy(Node, into: Element, inSignature: Bool)
+            case finishElement(Element, into: Element)
+            case finishLink(Element, into: Element, URL, inSignature: Bool)
+        }
+
         let page: URL
         let document: Document
         /// Root of the body HTML.
@@ -93,6 +111,8 @@ public enum MessageContentNormalizer {
         private var links: [MessageLink] = []
         /// The image copied last, to attach the link that wraps it.
         private var lastImage: (element: Element, index: Int)?
+        /// Pending steps, last in first out, so children are copied in document order right after their parent.
+        private var pending: [Step] = []
 
         init?(page: URL) {
             self.page = page
@@ -110,14 +130,32 @@ public enum MessageContentNormalizer {
             var signatureHTML: String?
             if let signature {
                 guard let text = try? signature.html() else { throw .malformedDocument }
-                signatureHTML = text
+                // A signature span without content (or with dropped content only) is no signature.
+                signatureHTML = text.isEmpty ? nil : text
             }
             return MessageContent(html: html, signatureHTML: signatureHTML, images: images, smileys: smileys, links: links)
         }
 
-        func copyChildren(of source: Element, into target: Element, inSignature: Bool) {
-            for node in source.getChildNodes() {
-                copy(node, into: target, inSignature: inSignature)
+        /// Copies every child of `content` under `main`, running the step stack to completion.
+        func copy(childrenOf content: Element) {
+            schedule(childrenOf: content, into: main, inSignature: false)
+            while let step = pending.popLast() {
+                switch step {
+                case .copy(let node, let target, let inSignature):
+                    copy(node, into: target, inSignature: inSignature)
+                case .finishElement(let element, let target):
+                    // HFR writes `<p></p>` before quote blocks and the tree builder makes one of its stray `</p>`.
+                    guard element.tagName() != "p" || element.childNodeSize() > 0 else { break }
+                    append(element, to: target)
+                case .finishLink(let link, let target, let url, let inSignature):
+                    finishLink(link, into: target, url: url, inSignature: inSignature)
+                }
+            }
+        }
+
+        private func schedule(childrenOf source: Element, into target: Element, inSignature: Bool) {
+            for node in source.getChildNodes().reversed() {
+                pending.append(.copy(node, into: target, inSignature: inSignature))
             }
         }
 
@@ -145,11 +183,11 @@ public enum MessageContentNormalizer {
                 copyElement(source, classes: classes, into: target, inSignature: inSignature)
             default:
                 // Unknown element: unwrapped, its children stay in place.
-                copyChildren(of: source, into: target, inSignature: inSignature)
+                schedule(childrenOf: source, into: target, inSignature: inSignature)
             }
         }
 
-        /// An allow-listed element: its kept classes, a colour on `span`, its children; an empty `<p>` is dropped.
+        /// An allow-listed element: its kept classes, a colour on `span`, then its children; an empty `<p>` is dropped.
         private func copyElement(_ source: Element, classes: [String], into target: Element, inSignature: Bool) {
             let tag = source.tagName()
             guard let copy = Self.element(tag) else { return }
@@ -157,18 +195,17 @@ public enum MessageContentNormalizer {
             if tag == "span", let color = Self.color(in: source) {
                 set("style", "color:\(color)", on: copy)
             }
-            copyChildren(of: source, into: copy, inSignature: inSignature)
-            // HFR writes `<p></p>` before quote blocks and the tree builder makes one of its stray `</p>`.
-            guard tag != "p" || copy.childNodeSize() > 0 else { return }
-            append(copy, to: target)
+            pending.append(.finishElement(copy, into: target))
+            schedule(childrenOf: source, into: copy, inSignature: inSignature)
         }
 
-        /// The first `span.signature` becomes the signature; legacy cut the string there, so later ones are dropped too.
+        /// The first `span.signature` becomes the signature; legacy cut the string there, so later ones are dropped too,
+        /// as is a signature span nested inside the first.
         private func copySignature(_ source: Element, inSignature: Bool) {
             guard signature == nil, !inSignature, let root = Self.element("div"), let body = document.body() else { return }
             append(root, to: body)
             signature = root
-            copyChildren(of: source, into: root, inSignature: true)
+            schedule(childrenOf: source, into: root, inSignature: true)
         }
 
         /// A link with a rejected URL is unwrapped: its text stays, the element goes (ADR 0006 amendment 1).
@@ -177,20 +214,25 @@ public enum MessageContentNormalizer {
                 let href = try? source.attr("href"), let url = normalizedURL(href, relativeTo: page),
                 let copy = Self.element("a")
             else {
-                copyChildren(of: source, into: target, inSignature: inSignature)
+                schedule(childrenOf: source, into: target, inSignature: inSignature)
                 return
             }
             set("href", url.absoluteString, on: copy)
             copyText("title", from: source, to: copy)
             setClass(Self.classTokens(of: source), on: copy)
-            copyChildren(of: source, into: copy, inSignature: inSignature)
-            if let image = lastImage, Self.wrapsOnly(image.element, copy) {
-                // A link around an image is the image's target, not a link of its own (legacy `longdesc`).
+            pending.append(.finishLink(copy, into: target, url, inSignature: inSignature))
+            schedule(childrenOf: source, into: copy, inSignature: inSignature)
+        }
+
+        /// Once its children are copied: a link around an image is the image's target, not a link of its own
+        /// (legacy `longdesc`); any other link joins the list with its visible text. Then the link joins its parent.
+        private func finishLink(_ link: Element, into target: Element, url: URL, inSignature: Bool) {
+            if let image = lastImage, Self.wrapsOnly(image.element, link) {
                 images[image.index].linkURL = url
             } else {
-                links.append(MessageLink(url: url, text: (try? copy.text()) ?? "", isInSignature: inSignature))
+                links.append(MessageLink(url: url, text: (try? link.text()) ?? "", isInSignature: inSignature))
             }
-            append(copy, to: target)
+            append(link, to: target)
         }
 
         /// An image with a rejected URL is removed (ADR 0006 amendment 1); smileys and images go to their lists.
@@ -201,7 +243,7 @@ public enum MessageContentNormalizer {
             else { return }
             set("src", url.absoluteString, on: copy)
             let alt = (try? source.attr("alt")) ?? ""
-            set("alt", alt, on: copy)
+            set("alt", attributeText(alt), on: copy)
             copyText("title", from: source, to: copy)
             if let kind = smileyKind(of: url) {
                 smileys.append(MessageSmiley(code: alt, url: url, kind: kind))
@@ -231,9 +273,10 @@ public enum MessageContentNormalizer {
             _ = try? element.attr(attribute, value)
         }
 
+        /// Copies a free-text attribute (`title`), angle brackets removed; absent or empty attributes are not copied.
         private func copyText(_ attribute: String, from source: Element, to target: Element) {
             guard source.hasAttr(attribute), let value = try? source.attr(attribute), !value.isEmpty else { return }
-            set(attribute, value, on: target)
+            set(attribute, attributeText(value), on: target)
         }
 
         private func setClass(_ tokens: [String], on element: Element) {

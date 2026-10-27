@@ -35,8 +35,15 @@ struct MessageContentOracleTests {
             #expect(
                 content.smileys.filter { $0.kind == .standard }.map(Self.smileyKey) == legacy.standardSmileys, "\(label): standard smileys"
             )
-            let links = content.links.filter { !embedded.contains($0.url) }.map(Self.linkKey)
+            // Set aside one link per embedded URL, by count: a second link to the same video stays a link on both sides.
+            var embeddedLeft = embedded
+            let links = content.links.filter { link in
+                guard let index = embeddedLeft.firstIndex(of: link.url) else { return true }
+                embeddedLeft.remove(at: index)
+                return false
+            }.map(Self.linkKey)
             #expect(links == legacy.links, "\(label): links")
+            #expect(embeddedLeft.isEmpty, "\(label): every embedded link was listed")
             #expect((content.signatureHTML != nil) == block.contentHTML.contains("<span class=\"signature\">"), "\(label): signature")
             #expect(content.embeds.isEmpty, "\(label): embeds are LOT-035")
             for html in [content.html, content.signatureHTML ?? ""] {
@@ -49,21 +56,26 @@ struct MessageContentOracleTests {
     @Test("The corpus totals of LOT-003 RC3.9 are reproduced, so the comparison is not vacuous")
     func corpusTotals() throws {
         let map = try TopicOracle.loadMap()
-        var signatures = 0, withCustomSmileys = 0, withImages = 0, links = 0
+        var signatures = 0, withCustomSmileys = 0, withImages = 0, links = 0, unresolvable = 0
         for caseID in Self.cases {
             let entry = try #require(map[caseID])
-            for block in try MessageBlockParser.blocks(in: TopicOracle.capture(for: entry)) {
+            let oracle = try TopicOracle.load(caseID)
+            for (block, expected) in zip(try MessageBlockParser.blocks(in: TopicOracle.capture(for: entry)), oracle.result.messages) {
                 let content = try MessageContentNormalizer.normalize(contentHTML: block.contentHTML)
                 signatures += content.signatureHTML == nil ? 0 : 1
                 withCustomSmileys += content.smileys.contains { $0.kind == .custom } ? 1 : 0
                 withImages += content.images.isEmpty ? 0 : 1
                 links += content.links.count
+                unresolvable += try LegacyContent(html: #require(expected.html)).unresolvableLinks
             }
         }
         #expect(signatures == 125)
         #expect(withCustomSmileys == 103)
         #expect(withImages == 36)
-        #expect(links > 300, "the corpus holds hundreds of links (\(links))")
+        #expect(links == 484)
+        // The `http://G3Ferrari / Optima` link of R20 and R21 message 0 (HFR-PROTOCOL §6c LOT-034): the only legacy link
+        // whose href is not a URL. A regression rejecting a class of real links would raise this count (LESSONS 50).
+        #expect(unresolvable == 2)
     }
 
     // MARK: - Keys compared on both sides
@@ -128,6 +140,8 @@ struct MessageContentOracleTests {
         var links: [String] = []
         /// Video links legacy replaced by an iframe (`div.embedvideo`).
         var embeds = 0
+        /// Legacy links whose `href` is not a URL, which the normalizer unwraps to text.
+        var unresolvableLinks = 0
 
         init(html: String) throws {
             let document = try SwiftSoup.parseBodyFragment(html)
@@ -142,6 +156,7 @@ struct MessageContentOracleTests {
                 case "a" where !(try Self.wrapsLegacyImage(element)):
                     // Legacy fixed only the `/forum2.php` and `/hfr/` prefixes; the same resolver on both sides compares the rest.
                     guard let url = MessageContentNormalizer.normalizedURL(try element.attr("href"), relativeTo: HFRURL.base) else {
+                        unresolvableLinks += 1
                         continue
                     }
                     links.append("\(MessageContentOracleTests.urlKey(url))|\(MessageContentOracleTests.compact(try element.text()))")
