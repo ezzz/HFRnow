@@ -28,8 +28,8 @@ public enum PostingError: Error, Sendable, Equatable {
     case unknownSubcategory
     /// A subject was given for a message whose subject cannot be edited (a reply, a later post of a thread).
     case subjectNotEditable
-    /// An option was set that the form does not offer; the payload is the form field name.
-    case optionNotOffered(String)
+    /// An option was set that the form does not offer.
+    case optionNotOffered(PostOption)
     /// The edit form has no `delete` box (HFR serves it without one for another account's message, `R44`).
     case deleteNotOffered
     /// Deleting this message deletes the whole thread; the caller must confirm it explicitly.

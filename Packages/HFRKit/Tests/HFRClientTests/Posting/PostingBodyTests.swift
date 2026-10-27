@@ -6,13 +6,20 @@ import Testing
 @testable import HFRClient
 
 /// Browser rules of `PostingBody` on small models, and the differential against the LOT-004 legacy oracle.
+/// A textarea placed after the input at `after` in a test layout.
+private struct TestTextarea {
+    var after: Int
+    var name = "content_form"
+    var disabled = false
+}
+
 @Suite("Posting body")
 struct PostingBodyTests {
     private let base = [
         FormField(name: "hash_check", value: "t", kind: .hidden), FormField(name: "verifrequet", value: "1100", kind: .hidden)
     ]
 
-    private func layout(_ form: ForumForm, textareas: [(after: Int, name: String, disabled: Bool)] = [], disabled: Set<Int> = [])
+    private func layout(_ form: ForumForm, textareas: [TestTextarea] = [], disabled: Set<Int> = [])
         -> HopFormLayout {
         var controls: [HopFormLayout.Control] = []
         for (index, field) in form.fields.enumerated() {
@@ -40,7 +47,7 @@ struct PostingBodyTests {
                 FormField(name: "box", value: "1", kind: .checkbox, isChecked: true)
             ]
         )
-        var shape = layout(form, textareas: [(1, "content_form", false)], disabled: [4])
+        var shape = layout(form, textareas: [TestTextarea(after: 1)], disabled: [4])
         shape.controls.append(.button(name: "preview"))
         let body = try PostingBody.make(form: form, layout: shape, text: "a\nb")
         #expect(names(body) == ["hash_check", "verifrequet", "content_form", "subcat", "subcat", "submit", "box"])
@@ -55,7 +62,7 @@ struct PostingBodyTests {
             FormField(name: "signature", value: "1", kind: .checkbox, isChecked: true)
         ])
         let body = try PostingBody.make(
-            form: form, layout: layout(form, textareas: [(1, "content_form", false)]), text: "t",
+            form: form, layout: layout(form, textareas: [TestTextarea(after: 1)]), text: "t",
             checkboxes: ["smiley": true, "signature": false, "MsgIcon": true]
         )
         #expect(body.fields.filter { $0.name == "MsgIcon" }.map(\.value) == ["1"])
@@ -73,7 +80,7 @@ struct PostingBodyTests {
             ]
         )
         let body = try PostingBody.make(
-            form: form, layout: layout(form, textareas: [(2, "content_form", false)]), text: "t", overrides: ["sujet": "new", "subcat": "7"]
+            form: form, layout: layout(form, textareas: [TestTextarea(after: 2)]), text: "t", overrides: ["sujet": "new", "subcat": "7"]
         )
         let sent = body.fields.map { "\($0.name)=\($0.value)" }
         #expect(sent == ["hash_check=t", "verifrequet=1100", "sujet=new", "content_form=t", "subcat=7"])
@@ -85,7 +92,7 @@ struct PostingBodyTests {
     )
     func unsupportedForms(variant: String) {
         var fields = base
-        var textarea = (after: 0, name: "content_form", disabled: false)
+        var textarea = TestTextarea(after: 0)
         switch variant {
         case "other input type": fields.append(FormField(name: "file", kind: .other))
         case "other textarea": textarea.name = "notes"
@@ -108,24 +115,32 @@ struct PostingBodyTests {
     }
 }
 
+/// The parts of a LOT-004 `form` oracle the differential test reads.
+private struct LegacyFormOracle: Decodable {
+    let result: LegacyFormResult
+}
+
+private struct LegacyFormResult: Decodable {
+    let legacy: LegacyFormPost
+}
+
+private struct LegacyFormPost: Decodable {
+    let postedContent: String?
+    let post: LegacyPairs?
+}
+
+private struct LegacyPairs: Decodable {
+    let pairs: [[String]]
+}
+
 /// The posted fields match what legacy posted from the same captured form (LOT-004 `form` oracle, `legacy.post.pairs`),
 /// except for the documented differences: an unchecked box is not sent (legacy `"0"`), and `hash_check` comes from the
 /// form (legacy: the account's stored token, here the oracle's fake one).
 @Suite("Posting body: legacy oracle")
 struct PostingBodyOracleTests {
-    private struct Oracle: Decodable {
-        struct Result: Decodable { let legacy: Legacy }
-        struct Legacy: Decodable {
-            let postedContent: String?
-            let post: Post?
-        }
-        struct Post: Decodable { let pairs: [[String]] }
-        let result: Result
-    }
-
-    private static func oracle(_ id: String) throws -> Oracle {
+    private static func oracle(_ id: String) throws -> LegacyFormOracle {
         let url = Capture.directory.deletingLastPathComponent().appendingPathComponent("LOT-004/\(id).oracle.json")
-        return try JSONDecoder().decode(Oracle.self, from: try Data(contentsOf: url))
+        return try JSONDecoder().decode(LegacyFormOracle.self, from: try Data(contentsOf: url))
     }
 
     @Test(

@@ -28,28 +28,50 @@ enum PostingBody {
     ) throws(PostingError) -> FormBody {
         try check(form: form, layout: layout)
         var body = FormBody(newlines: .crlf)
+        let values = Values(text: text, overrides: overrides, checkboxes: checkboxes)
         var submitted = false
         for control in layout.controls {
-            switch control {
-            case let .input(index, name, isDisabled):
-                guard !isDisabled, !name.isEmpty else { continue }
-                let field = form.fields[index]
-                // Only the first submit button is "clicked"; later ones stay out like any unclicked button.
-                if field.kind == .submit, submitted { continue }
-                submitted = submitted || field.kind == .submit
-                if let value = try value(of: field, overrides: overrides, checkboxes: checkboxes) { body.append(name, value) }
-            case let .select(index, name, isDisabled):
-                guard !isDisabled, !name.isEmpty else { continue }
-                if let value = overrides[name] ?? form.selects[index].effectiveValue { body.append(name, value) }
-            case let .textarea(name, isDisabled):
-                guard !isDisabled, !name.isEmpty else { continue }
-                guard name == contentField else { throw .unsupportedForm(reason: "textarea \(name)") }
-                body.append(name, text)
-            case .button:
-                continue
+            if let entry = try entry(for: control, form: form, values: values, submitted: &submitted) {
+                body.append(entry.name, entry.value)
             }
         }
         return body
+    }
+
+    /// What the write puts into the form.
+    private struct Values {
+        let text: String
+        let overrides: [String: String]
+        let checkboxes: [String: Bool]
+    }
+
+    /// The name and value a browser writes for one control, nil when it writes nothing.
+    private static func entry(
+        for control: HopFormLayout.Control,
+        form: ForumForm,
+        values: Values,
+        submitted: inout Bool
+    ) throws(PostingError) -> (name: String, value: String)? {
+        switch control {
+        case let .input(index, name, isDisabled):
+            guard !isDisabled, !name.isEmpty else { return nil }
+            let field = form.fields[index]
+            // Only the first submit button is "clicked"; later ones stay out like any unclicked button.
+            if field.kind == .submit {
+                if submitted { return nil }
+                submitted = true
+            }
+            return try value(of: field, overrides: values.overrides, checkboxes: values.checkboxes).map { (name, $0) }
+        case let .select(index, name, isDisabled):
+            guard !isDisabled, !name.isEmpty else { return nil }
+            return (values.overrides[name] ?? form.selects[index].effectiveValue).map { (name, $0) }
+        case let .textarea(name, isDisabled):
+            guard !isDisabled, !name.isEmpty else { return nil }
+            guard name == contentField else { throw .unsupportedForm(reason: "textarea \(name)") }
+            return (name, values.text)
+        case .button:
+            return nil
+        }
     }
 
     /// What a browser sends for one input, nil when it sends nothing. A checkbox sends its `value` attribute; none of the
@@ -79,27 +101,22 @@ enum PostingBody {
     /// The layout must describe the same inputs and selects as the parsed form, in the same order, and the form must
     /// hold the fields every captured write carries.
     private static func check(form: ForumForm, layout: HopFormLayout) throws(PostingError) {
-        var inputNames: [String] = []
-        var selectNames: [String] = []
-        var hasContent = false
+        var inputs: [(index: Int, name: String)] = []
+        var selects: [(index: Int, name: String)] = []
         for control in layout.controls {
             switch control {
-            case let .input(index, name, _):
-                guard index == inputNames.count else { throw .unsupportedForm(reason: "layout") }
-                inputNames.append(name)
-            case let .select(index, name, _):
-                guard index == selectNames.count else { throw .unsupportedForm(reason: "layout") }
-                selectNames.append(name)
-            case let .textarea(name, isDisabled):
-                hasContent = hasContent || (name == contentField && !isDisabled)
-            case .button:
-                continue
+            case let .input(index, name, _): inputs.append((index, name))
+            case let .select(index, name, _): selects.append((index, name))
+            case .textarea, .button: continue
             }
         }
-        guard inputNames == form.fields.map(\.name), selectNames == form.selects.map(\.name) else {
-            throw .unsupportedForm(reason: "layout")
+        guard
+            inputs.map(\.index) == Array(inputs.indices), inputs.map(\.name) == form.fields.map(\.name),
+            selects.map(\.index) == Array(selects.indices), selects.map(\.name) == form.selects.map(\.name)
+        else { throw .unsupportedForm(reason: "layout") }
+        guard layout.controls.contains(.textarea(name: contentField, isDisabled: false)) else {
+            throw .unsupportedForm(reason: "no \(contentField)")
         }
-        guard hasContent else { throw .unsupportedForm(reason: "no \(contentField)") }
         guard form.field(named: requestCheckField) != nil else { throw .unsupportedForm(reason: "no \(requestCheckField)") }
     }
 }

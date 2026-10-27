@@ -25,7 +25,7 @@ public struct PostingFlow: Sendable {
     }
 
     /// Replies with `text` through a reply or quote form (`PostingForm.Shape.reply`), topic or private message.
-    public func reply(_ text: String, options: PostOptions = PostOptions(), with form: PostingForm)
+    public func reply(_ text: String, options: [PostOption: Bool] = [:], with form: PostingForm)
         async throws(PostingError) -> PostingResult {
         try require(form, is: .reply)
         try checkText(text)
@@ -35,7 +35,7 @@ public struct PostingFlow: Sendable {
     /// Starts a topic. `subcategory` is one of `form.form.subcategories`' values; nil sends the form's own choice
     /// (the selected option, else the first one, "Aucune" on `R45a`).
     public func newTopic(
-        subject: String, subcategory: String? = nil, text: String, options: PostOptions = PostOptions(), with form: PostingForm
+        subject: String, subcategory: String? = nil, text: String, options: [PostOption: Bool] = [:], with form: PostingForm
     ) async throws(PostingError) -> PostingResult {
         try require(form, is: .newTopic)
         try checkInput(subject, as: .subject)
@@ -50,7 +50,7 @@ public struct PostingFlow: Sendable {
 
     /// Starts a private-message thread with `recipient`.
     public func newPrivateMessage(
-        to recipient: String, subject: String, text: String, options: PostOptions = PostOptions(), with form: PostingForm
+        to recipient: String, subject: String, text: String, options: [PostOption: Bool] = [:], with form: PostingForm
     ) async throws(PostingError) -> PostingResult {
         try require(form, is: .newPrivateMessage)
         try checkInput(recipient, as: .recipient)
@@ -64,7 +64,7 @@ public struct PostingFlow: Sendable {
     /// Replaces an own message's text with `text` through its edit form; `subject` renames the thread and is accepted
     /// only on the first post, whose edit form shows the subject (`R43a`). The `delete` box is never sent.
     public func edit(
-        _ text: String, subject: String? = nil, options: PostOptions = PostOptions(), with form: PostingForm
+        _ text: String, subject: String? = nil, options: [PostOption: Bool] = [:], with form: PostingForm
     ) async throws(PostingError) -> PostingResult {
         try require(form, is: .edit)
         var overrides: [String: String] = [:]
@@ -88,7 +88,7 @@ public struct PostingFlow: Sendable {
         guard form.canDelete else { throw .deleteNotOffered }
         if form.deletesWholeTopic, !confirmingWholeTopic { throw .wholeTopicDeletionNotConfirmed }
         return try await submit(
-            .delete, form: form, text: form.form.textareaContent ?? "", overrides: [:], options: PostOptions(),
+            .delete, form: form, text: form.form.textareaContent ?? "", overrides: [:], options: [:],
             checkboxes: [PostingForm.deleteField: true]
         )
     }
@@ -127,15 +127,15 @@ public struct PostingFlow: Sendable {
         form: PostingForm,
         text: String,
         overrides: [String: String],
-        options: PostOptions,
+        options: [PostOption: Bool],
         checkboxes: [String: Bool] = [:]
     ) async throws(PostingError) -> PostingResult {
         var boxes = checkboxes
-        for (name, checked) in options.checkboxes {
-            guard form.form.fields.contains(where: { $0.name == name && $0.kind == .checkbox }) else {
-                throw .optionNotOffered(name)
+        for (option, checked) in options {
+            guard form.form.fields.contains(where: { $0.name == option.fieldName && $0.kind == .checkbox }) else {
+                throw .optionNotOffered(option)
             }
-            boxes[name] = checked
+            boxes[option.fieldName] = checked
         }
         guard
             let path = form.form.action,

@@ -160,8 +160,8 @@ struct PostingInputTests {
         }
         let formURL = try PostingCapture.pageURL("R47b")
         let outcome = await PostingHarness.run(formPage: page, formURL: formURL) { flow, form async throws(PostingError) in
-            try await flow.reply("text", options: PostOptions(emailNotification: true), with: form)
+            try await flow.reply("text", options: [.emailNotification: true], with: form)
         }
-        expectNoPost(outcome, .optionNotOffered("emaill"))
+        expectNoPost(outcome, .optionNotOffered(.emailNotification))
     }
 }

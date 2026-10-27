@@ -55,7 +55,7 @@ struct PostingCaptureTests {
     func replyBrowserSemantics() async throws {
         let outcome = try await PostingHarness.run(form: "R47b", answer: "W13b") { flow, form async throws(PostingError) in
             try await flow.reply(
-                "fixture-test 4, browser semantics, smiley box checked :)", options: PostOptions(disablesSmileys: true), with: form
+                "fixture-test 4, browser semantics, smiley box checked :)", options: [.disablesSmileys: true], with: form
             )
         }
         #expect(outcome.body == (try Capture.meta("W13b").requestBody))
@@ -65,7 +65,7 @@ struct PostingCaptureTests {
     @Test("W13c: the recipient's reply from R47u1 with the signature box")
     func replyWithSignature() async throws {
         let outcome = try await PostingHarness.run(form: "R47u1", answer: "W13c") { flow, form async throws(PostingError) in
-            try await flow.reply("fixture-test 6, reply from user1", options: PostOptions(signature: true), with: form)
+            try await flow.reply("fixture-test 6, reply from user1", options: [.signature: true], with: form)
         }
         try expectPost(outcome, to: Self.postURL, body: "W13c")
         #expect(outcome.body?.contains("pseudo=user1") == true)
