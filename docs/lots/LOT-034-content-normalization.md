@@ -163,14 +163,14 @@ Captures (`Fixtures/captures/`, LOT-001) and the LOT-003 oracles, through `oracl
 
 | Oracle | Compared with | Note |
 |---|---|---|
-| `div.embedvideo` count | the `a.cLink` links of `html` two levels under the root, text-only, matching the four legacy video regexes (`ParseMessagesOperation.m:241-244, 260-264`) | the oracle ran with `embedded_videos=yes`: legacy replaced those links by an iframe, text included (LOT-035). They are set aside from the text and link comparisons below, and their number must equal the oracle's iframes (LESSONS 50) |
+| `div.embedvideo` count | the `a.cLink` links of `html` two levels under the root, text-only, matching the four legacy video regexes (`ParseMessagesOperation.m:241-244, 260-264`) | the oracle ran with `embedded_videos=yes`: legacy replaced those links by an iframe, text included (LOT-035). They are set aside from the text and link comparisons below, and their number must equal the oracle's iframes (LESSONS 51) |
 | visible text | text of `html`, embedded links removed | whitespace removed on both sides: legacy deleted every `\n` (quirk 2) and libxml2 wrote U+00A0 raw |
 | `img.smileycustom` (`src`, code in the `onClick` scheme) | `smileys` of kind `.custom` (`url`, `code == "[:<code>]"`) | legacy dropped `alt`/`title` and escaped `'` in the code |
 | `img.hfrplusimg` (`src`, `longdesc`) | `images` (`url`, `linkURL`) | `longdesc` is the wrapping link's URL, empty for a bare image that legacy wrapped in a link to itself |
 | every other `img` (`src`, `alt`) | `smileys` of kind `.standard` | https standard smileys are not rewritten by legacy (LOT-003 Q23) |
 | `a` elements other than the ones around `hfrplusimg` images (`href`, text) | `links`, embedded links removed | through `HFRURL.absolute` and the same host rules on both sides (legacy made only `/forum2.php` and `/hfr/` absolute and kept `http://forum.hardware.fr`); a legacy link whose `href` is not a URL (the `G3Ferrari` one) is left out, the text comparison shows its text survived |
 | signature cut | `signatureHTML != nil` ⇔ the capture block holds `span.signature`; the text comparison proves the cut point | the oracle holds no signature text |
-| totals | 125 signatures, 103 messages with personal smileys, 36 with images (LOT-003 RC3.9), 484 links, 2 legacy links whose `href` is not a URL (the `G3Ferrari` one, R20 and R21 message 0) | guards against a vacuous comparison; a regression rejecting a class of real links would raise the last count (LESSONS 50) |
+| totals | 125 signatures, 103 messages with personal smileys, 36 with images (LOT-003 RC3.9), 484 links, 2 legacy links whose `href` is not a URL (the `G3Ferrari` one, R20 and R21 message 0) | guards against a vacuous comparison; a regression rejecting a class of real links would raise the last count (LESSONS 51) |
 
 Plus, on every message: no `on*` attribute, `id`, `script` or `javascript:` in `html` and `signatureHTML`; `embeds` empty.
 `MessageContentNormalizerTests` checks the capture facts above, `MessageContentSanitizationTests` the error paths on inline snippets.

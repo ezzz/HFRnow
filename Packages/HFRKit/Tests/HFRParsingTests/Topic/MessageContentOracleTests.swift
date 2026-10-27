@@ -74,7 +74,7 @@ struct MessageContentOracleTests {
         #expect(withImages == 36)
         #expect(links == 484)
         // The `http://G3Ferrari / Optima` link of R20 and R21 message 0 (HFR-PROTOCOL §6c LOT-034): the only legacy link
-        // whose href is not a URL. A regression rejecting a class of real links would raise this count (LESSONS 50).
+        // whose href is not a URL. A regression rejecting a class of real links would raise this count (LESSONS 51).
         #expect(unresolvable == 2)
     }
 
