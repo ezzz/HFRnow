@@ -69,4 +69,13 @@ struct PrivateMessageBadgeParserTests {
         #expect(derived != html)
         #expect(try PrivateMessageBadgeParser.unreadCount(in: derived) == 0)
     }
+
+    @Test("An earlier `table.none` of another shape does not hide the header (P03f with one inserted, derived from the capture)")
+    func earlierTableOfOtherShape() throws {
+        let html = try Fixture.capture("P03f-list-owntopic2-after-delflag")
+        let other = "<table class=\"none\"><tr><td>only one cell</td></tr></table>"
+        let derived = html.replacing(/<body[^>]*>/, maxReplacements: 1) { "\($0.output)\(other)" }
+        #expect(derived != html)
+        #expect(try PrivateMessageBadgeParser.unreadCount(in: derived) == 1)
+    }
 }

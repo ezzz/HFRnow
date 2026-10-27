@@ -41,7 +41,7 @@ The one reader of the three legacy variants. The page kind comes from `<body id>
 | Page | Rule | Result |
 |---|---|---|
 | home (`unique__home__listing_category`) | `a.cCatTopic` whose `href` has `cat=prive`: first integer of its text | R02 "Vous avez 10 nouveaux messages privés" → 10; R03 "Envoyer / lire des messages privés" → 0; R01 (logged out, no row) → nil |
-| logged-in forum list (`…__topics_listing__…`) | first `.none` block with exactly 3 `td`: first integer of the middle cell | P03f "Vous avez 1 nouveau message privé" → 1; R08-2 "Messages privés" → 0; anonymous lists, the MP list, search results → nil |
+| logged-in forum list (`…__topics_listing__…`) | first `table.none` with exactly 3 `td` (one of another shape is skipped, unlike legacy, which stopped at the first `.none`): first integer of the middle cell | P03f "Vous avez 1 nouveau message privé" → 1; R08-2 "Messages privés" → 0; anonymous lists, the MP list, search results → nil |
 | anything else (message page, topic page) | none | nil |
 
 `nil` = the page shows no private messages entry (logged out, or not a page that has one); `0` = it shows the entry without a number. A poll (LOT-047)
