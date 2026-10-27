@@ -94,6 +94,15 @@ struct PostingRefusalTests {
         #expect(outcome.requests.filter { $0.method == .post }.count == 1)
     }
 
+    @Test("A POST the session refuses to send is a plain failure: nothing left the device")
+    func postRefusedBySession() async throws {
+        let outcome = await PostingHarness.run(
+            formPage: try PostingCapture.form("R47b"), formURL: try PostingCapture.pageURL("R47b"),
+            answer: .failure(.invalidRequest(reason: "host")), write: Self.reply
+        )
+        #expect(outcome.error == .network(.invalidRequest(reason: "host")))
+    }
+
     @Test("An HTTP error answer to the POST is unconfirmed")
     func httpErrorAfterPost() async throws {
         let url = PostingCapture.url("https://forum.hardware.fr/bddpost.php?config=hfr.inc")
@@ -124,6 +133,16 @@ struct PostingRefusalTests {
         #expect(outcome.error == .notLoggedIn)
         #expect(outcome.requests.count == 1)
         #expect(outcome.hashChecks.isEmpty)
+    }
+
+    @Test("A composer with an empty token is not logged in, even with a pseudo")
+    func emptyToken() async throws {
+        let page = try PostingHarness.editedForm("R47b") {
+            $0.replacing("name=\"hash_check\" value=\"REDACTED\"", with: "name=\"hash_check\" value=\"\"")
+        }
+        let outcome = await PostingHarness.run(formPage: page, formURL: try PostingCapture.pageURL("R47b"), write: Self.reply)
+        #expect(outcome.error == .notLoggedIn)
+        #expect(outcome.requests.count == 1)
     }
 
     @Test("A page without the form reports its .hop sentence (RA5), or a logged-out session (W17c)")
