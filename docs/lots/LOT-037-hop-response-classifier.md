@@ -33,9 +33,9 @@ answer is a transport failure, decided before parsing).
 | `.hop` (class exactly `hop`) with an `<a>` or `<input>`, text contains "vous devez être enregistré" | `loggedOut` | `W17c` |
 | same, `context: .write` | `rejected` | flood (`W11x`, `W13cx`, `W14x`, `W20a/b`), empty body (`W17a`); `message` is the sentence |
 | same, `context: .alertPrepare` | `alreadyAlerted` | legacy structural rule, text not captured |
-| `.hop` with no link/input, a sentence, **and** a refresh meta to an `https` forum URL, `context: .write` | `success` | `W10`-`W16`, `W18`, `W19`, `P03a/b/d`; `refreshURL` resolved against `requestURL`, `refreshAnchor` = fragment without `#` (nil when none) |
+| `.hop` with no link/input, a sentence containing "avec succès", **and** a refresh meta to an `https` forum URL (port absent or 443), `context: .write` | `success` | `W10`, `W11`, `W12`, `W13b`, `W13c`, `W14`, `W15`, `W16a`, `W16b`, `W19`, `W18`, `P03a`, `P03b`, `P03d` (all say "avec succès"; login failure `W01`, login success `W01b`/`W03`, empty lists `R08-1`/`R08-3` and the search wait `R50a` refresh with a link-less `.hop` but never say it, so they are `unrecognized`); `refreshURL` resolved against `requestURL`, `refreshAnchor` = fragment without `#` (nil when none) |
 | no `.hop`, body text starts "Une erreur est survenue lors de l'envoi des données" | `rejected` | invalid `hash_check`, `W17b` |
-| anything else | `unrecognized` (message kept when a `.hop` exists) | R12, RA5 (read pages), R44 and R46 (forms), empty body, `.hop` without refresh, refresh without `.hop`, refresh off the forum |
+| anything else | `unrecognized` (message kept when a `.hop` exists) | R12, RA5 (read pages), R44 and R46 (forms), empty body, `.hop` without refresh or without "avec succès", refresh without `.hop`, refresh off the forum. `R12`/`RA5` (read pages with a back link) are `rejected` by shape: this is not a read-page classifier |
 
 `message` is the **own text** of the `.hop` block, whitespace collapsed and trimmed: the sentence without the "Retour à la page
 précédente" link or button (a child-element sentence falls back to all the text). `refreshURL` and `refreshAnchor` are set on
@@ -47,19 +47,19 @@ form; the page alone cannot say which.
 ## Edge cases
 - Refresh target: `&amp;` decoded, relative resolved, only `https` on `forum.hardware.fr` accepted (same rule as `SearchRedirectParser`, LESSONS 37; `http://forum.hardware.fr:80/…`, other hosts, `//host/…`, `javascript:` are not a confirmation). A refresh without `url=` is ignored. The first valid-looking refresh meta decides.
 - A delete's refresh has no fragment (`W16a`, `W19`): `refreshAnchor` is nil. The post to scroll to is the caller's `numreponse`, as in legacy.
-- A `.hop` with an empty sentence is never a success.
-- `.alertPrepare` never returns `success`: the alert's own success page is not captured.
+- A `.hop` with an empty sentence is never a success. A test sweeps the whole capture corpus: only the 14 write confirmations above classify as success.
+- `.alertPrepare` never returns `success`: the alert's own success page is not captured. On the alert form page (`R46`, no `.hop`) it returns `unrecognized`, which is **not** a go-ahead for LOT-050: the alert flow submits only when LOT-036 finds the alert form (`form[action~=modo.php]`, field `raison`); the classifier only answers "already alerted or not".
 - Latin-1 pages (`ASIHTTPRequest+Tools` quirk 13) are the caller's decoding concern; this parser takes a `String`.
 
 ## Fixtures
 Existing captures and LOT-004 oracles, no new file:
 `W10 W11 W11x W12 W13b W13c W13cx W14 W14x W15 W16a W16b W17a W17b W17c W19 W20a W20b` (differential), `W18 P03a P03b P03d`
 (GET writes), `R12 RA5` (read pages with `.hop`), `R44`, `R46` (forms, `.hop` absent). Small hand-written HTML in the tests only
-exercises structural edges (refresh target validation, link next to a refresh, `.alertPrepare` shape); none of it is offered as a
+exercises structural edges (refresh target validation incl. port, link next to a refresh, `.alertPrepare` shape); none of it is offered as a
 captured state.
 
 ## Intentional differences from legacy
-1. **Never success without HFR's confirmation.** Legacy: no `.hop` → success; `.hop` without link/input → success even without a refresh. Here a refresh to the forum and a sentence are both required. Consequence: `W17b` (bad `hash_check`, 99-byte plain text, no HTML) is `rejected`, where the oracle says `success` (`hopFound: false`, a known oracle bug: legacy `messagesNode` is nil and the `findChildTag` tests fall through to the success branch). Tests assert both the legacy value and the corrected one.
+1. **Never success without HFR's confirmation.** Legacy: no `.hop` → success; `.hop` without link/input → success even without a refresh. Here a refresh to the forum, a link-less `.hop` and the sentence "avec succès" are all required (a refresh and a sentence alone also match login failure, empty lists and the search wait page). Consequence: `W17b` (bad `hash_check`, 99-byte plain text, no HTML) is `rejected`, where the oracle says `success` (`hopFound: false`, a known oracle bug: legacy `messagesNode` is nil and the `findChildTag` tests fall through to the success branch). Tests assert both the legacy value and the corrected one.
 2. **`loggedOut`** refines the legacy "rejected" for `W17c` (HFR's own "vous devez être enregistré" sentence). `message` is kept.
 3. **Delete anchor**: legacy reads `numreponse` from the request URL; the classifier reports only what the page says (nil).
 4. **Anchor without `#`** (legacy `"#t1003"`, `""` when none): `HopResponse.refreshAnchor` has no `#` (LOT-012 decision 3).
@@ -76,4 +76,4 @@ Reported to the orchestrator for the capture backlog in `docs/LOTS.md` (this lot
 
 ## Learnings
 To copy into AGENTS.md §11 when the lot closes.
-- A write answer is `success` only with both HFR's refresh and a sentence; the legacy "no `.hop` means success" turned a 99-byte refusal into a success.
+- A write answer is `success` only with HFR's refresh, a link-less `.hop` and "avec succès"; refresh plus sentence also matches login and list pages. The legacy "no `.hop` means success" turned a 99-byte refusal into a success.

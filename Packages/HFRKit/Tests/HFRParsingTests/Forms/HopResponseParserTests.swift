@@ -106,6 +106,39 @@ struct HopResponseParserTests {
         #expect(response == HopResponse(kind: .rejected, message: pair[1]))
     }
 
+    /// Pages that refresh and carry a `.hop` sentence but are not write confirmations.
+    static let refreshingNonWrites = [
+        "W01-login-failure", "W01b-login-success-user1", "W03-login-success", "R08-1-list-cat13-owntopic1-empty",
+        "R08-3-list-cat13-owntopic3-empty", "R50a-search-post-waiting-page"
+    ]
+
+    @Test("Refresh plus a .hop sentence is not a confirmation: login, empty list, search wait are never success",
+          arguments: refreshingNonWrites)
+    func refreshingPagesAreNotSuccess(name: String) throws {
+        #expect(try HopResponseParser.classify(html: Fixture.capture(name)).kind != .success)
+    }
+
+    /// Every capture whose classification is success, under `.write`: the write confirmations and nothing else.
+    static let writeConfirmations: Set<String> = [
+        "W10-mp-create-crlf-success", "W11-mp-reply-lf-legacy-success", "W12-mp-reply-nonbmp-success",
+        "W13b-mp-reply-browser-semantics-success", "W13c-mp-reply-recipient-success", "W14-mp-reply-multiquote-success",
+        "W15-mp-edit-success", "W16a-mp-delete-post-success", "W16b-mp-delete-post-again", "W19-mp-delete-first-post-success",
+        "W18-mp-mark-unread-success", "P03a-addflag-success", "P03b-addflag-again", "P03d-delflag-favourite-success"
+    ]
+
+    @Test("Sweep: across the whole capture corpus only the write confirmations classify as success")
+    func corpusSweep() throws {
+        let url = try #require(Bundle.module.url(forResource: "captures", withExtension: nil, subdirectory: "Fixtures"))
+        let names = try FileManager.default.contentsOfDirectory(atPath: url.path)
+            .filter { $0.hasSuffix(".html") }.map { String($0.dropLast(5)) }
+        #expect(names.count > 50)
+        var successes: Set<String> = []
+        for name in names where try HopResponseParser.classify(html: Fixture.capture(name)).kind == .success {
+            successes.insert(name)
+        }
+        #expect(successes == Self.writeConfirmations)
+    }
+
     @Test("A page without .hop (the edit form R44) is unrecognized")
     func formPageIsUnrecognized() throws {
         let response = try HopResponseParser.classify(html: Fixture.capture("R44-mp-edit-form-other-account-message"))
@@ -128,9 +161,9 @@ struct HopResponseParserTests {
 
     @Test("Alert prepare: a .hop with a link or an input is 'already alerted' (legacy rule, text not captured)")
     func alreadyAlerted() throws {
-        let link = page(hop: "Message déjà alerté <a href=\"javascript:history.back(1)\">Retour</a>")
+        let link = page(hop: "Placeholder alert page text <a href=\"javascript:history.back(1)\">Retour</a>")
         let response = try HopResponseParser.classify(html: link, context: .alertPrepare)
-        #expect(response == HopResponse(kind: .alreadyAlerted, message: "Message déjà alerté"))
+        #expect(response == HopResponse(kind: .alreadyAlerted, message: "Placeholder alert page text"))
         let input = page(hop: "x <input type=\"submit\" value=\"Retour\">")
         #expect(try HopResponseParser.classify(html: input, context: .alertPrepare).kind == .alreadyAlerted)
         // The same shape in a submitted write is a refusal.
@@ -139,7 +172,7 @@ struct HopResponseParserTests {
 
     @Test("Alert prepare never reports success")
     func alertPrepareNeverSucceeds() throws {
-        let html = page(head: refresh, hop: "Votre alerte a été prise en compte")
+        let html = page(head: refresh, hop: "Placeholder text")
         #expect(try HopResponseParser.classify(html: html, context: .alertPrepare).kind == .unrecognized)
     }
 
@@ -163,7 +196,8 @@ struct HopResponseParserTests {
     }
 
     @Test("A refresh that leaves the forum is not a confirmation", arguments: [
-        "https://evil.example/forum1.php", "//evil.example/x", "http://forum.hardware.fr:80/forum1.php", "javascript:alert(1)"
+        "https://evil.example/forum1.php", "//evil.example/x", "http://forum.hardware.fr:80/forum1.php", "javascript:alert(1)",
+        "https://forum.hardware.fr:8443/forum1.php"
     ])
     func offForumRefresh(target: String) throws {
         let head = "<meta http-equiv=\"refresh\" content=\"1; url=\(target)\">"
@@ -176,7 +210,7 @@ struct HopResponseParserTests {
     func relativeAgainstRequest() throws {
         let head = "<meta http-equiv=\"refresh\" content=\"1; url=forum2.php?post=1#t5\">"
         let request = try #require(URL(string: "https://forum.hardware.fr/user/nonlu.php?post=1"))
-        let response = try HopResponseParser.classify(html: page(head: head, hop: "ok"), requestURL: request)
+        let response = try HopResponseParser.classify(html: page(head: head, hop: "ok avec succès"), requestURL: request)
         #expect(response.refreshURL?.absoluteString == "https://forum.hardware.fr/user/forum2.php?post=1#t5")
         #expect(response.refreshAnchor == "t5")
     }
