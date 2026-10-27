@@ -180,6 +180,7 @@ Page states that merged lots listed as **pending capture** (never hand-built in 
 | Moderator alert: submit success (text, refresh, "avec succès"?) | LOT-037, LOT-050 | until captured, an alert write cannot be classified `success` |
 | Other logged-out write answers (flag GET, alert, vote) and login-form pages | LOT-037 | `loggedOut` matches only the W17c sentence |
 | Poll vote answer; other refusal sentences (locked topic, ban) | LOT-037, LOT-054 | classified `rejected` by shape only |
+| Topic page logged in with one of the viewer's own posts on a **public** topic; a quote or edit link printed in clear (not `md_noclass_cryptlink`) | LOT-031 | every edit link of the corpus is in an MP thread; read-only GET of a page holding a post of the account |
 
 ## Issues to open (backlog until Issues are enabled on ezzz/HFRnow)
 
