@@ -228,6 +228,19 @@ Source: [LOT-027](lots/LOT-027-profile-parser.md), `UserProfileParser`, checked 
 - **Sub-forums missing from the page**: the home page lists only some sub-forums. The legacy completion table adds real forums: with it the sub-forum counts equal the REST `number_of_subcategories` (`R57a`) for Hardware 15, Photo numérique 10, Windows & Software 12, Graphisme 10, Achats & Ventes 11; Overclocking (REST 7) stays at 6 and Programmation (REST 27) reaches 14, so REST is the complete source.
 
 
+### LOT-036 — write forms
+
+Source: [LOT-036](lots/LOT-036-hop-form-parser.md), `HopFormParser`, checked by `HopFormOracleTests` against the LOT-004 oracles and by `HopFormParserTests` on `R40a`, `R40b`, `R41a`, `R41b`, `R42`, `R43a`–`R43c`, `R44`, `R45a`, `R45b`, `R46`, `R47a`–`R47c`, `R47u1`.
+
+- **Form**: `<form name="hop" id="hop" action=… method="post">` holds the inputs, the selects and the `<textarea id="content_form" name="content_form">`. Reply, quote and MP-reply forms post to `/bddpost.php?config=hfr.inc`; the **private-message edit forms** (`R43a`–`R44`) post to `/bdd.php?config=hfr.inc` (public-topic edit not captured, see the lot's "Pending capture"). The `action` is always read from the page.
+- **Reply form** (`R40a`, logged in, 43 inputs): hidden `hash_check, subcat, parents, post, stickold, new, cat, numreponse, numrep, page, verifrequet (1100), p, sondage, sond, cache, owntopic, config, sujet`; text `pseudo` (the account's), `password` (hidden row), 16 `MsgIcon` radios (the first `checked`), `search_smilies`, hidden `ColorUsedMem` and `wysiwyg`, the `submit` input ("Valider votre message") and three checkboxes `signature`, `smiley`, `emaill` (value `1`, unchecked). No `<select>`.
+- **Anonymous composer** (`R40b`): the same form, with an **empty** `hash_check` and an empty `pseudo`. `hash_check` also sits in the header search form of every page, so its presence says nothing about the session.
+- **Edit form** (`R43a`–`R44`): `stickold` empty, `pseudo` and `sujet`; `sujet` is a visible text input on the first post of a conversation and hidden on a later one; a `delete` checkbox (value `1`, unchecked) except on `R44` (another account's message, served without it); the text is the stored one, with `\r\n` as sent (`R43a`, bytes) or `\n` (`R43b`).
+- **Quote prefill** (`R41a`, `R41b`, `R47a`): `[quotemsg=<numreponse>,<ref>,<author id>]<text>[/quotemsg]` plus a trailing newline, line breaks `\r\n` in the HTML bytes; `&` of cited links is written `&amp;` and decoded by the parser. A multi-quote cookie gives one block per cited message (`R42`, `R47c`: two).
+- **New topic** (`R45a`): visible `sujet`, `toread1`..`toread5`, `<select name="subcat">` of 16 options, the first `value=""` "Aucune", none `selected`. **New MP** (`R45b`): visible `dest` (prefilled) and `sujet`, no select. **MP reply** (`R47b`, `R47u1`): hidden `sujet`, no `dest`, no `newdest`.
+- **Favourite smileys** (`R47u1`, user1): `#dynamic_smilies` holds `<img src=".../images/perso/[N/]<name>.gif" alt="[:name[:N]]" title=… onclick="putSmiley(this.alt,this.src)">`, 8 of them; empty or absent for the other accounts (`R40a`, `R47b`).
+- **Moderator alert form** (`R46`): `<form method="post" action="modo.php?cat=13&amp;ref=1&amp;post=…&amp;numreponse=…&amp;page=1&amp;config=hfr.inc">` (relative to `/user/`, not a `hop` form) with `hash_check`, `referer_page` (empty), the `raison` textarea (no id) and `Submit`; the page also has the `#fastsearch` form (`action="/forum1.php"`, its own `hash_check`).
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).
