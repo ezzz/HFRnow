@@ -38,7 +38,7 @@ Rows pass through LOT-022's `HFRURL.forumRelativePath` (links to another host or
 makes the row resume at its last post.
 
 ## Edge cases
-- Non-regression (`docs/LOTS.md`, issues to open #1): a link without `href` must not break the parser. The favourites page has no pager; the
+- Non-regression ([#102](https://github.com/ezzz/HFRnow/issues/102)): a link without `href` must not break the parser. The favourites page has no pager; the
   equivalent is the last-page link of a row, tested without `href` (row kept, one page). A header link without `href` is tested too.
 - The oracle's `isViewed` is true only for a row with no flag link; every captured row has one.
 - Flag colour differs by page: `flag1.gif` (blue) on `owntopic=1` (R10), `favoris.gif` (yellow) on `owntopic=3` (P03c).
