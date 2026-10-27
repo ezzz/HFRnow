@@ -9,9 +9,10 @@ on:
 permissions:
   contents: read
 
+# A new push to a PR cancels its running CI; pushes to dev-swift are never cancelled.
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   lint:
@@ -98,13 +99,14 @@ jobs:
           if [ "$EVENT" != "pull_request" ]; then
             echo "app=true" >> "$GITHUB_OUTPUT"; echo "engine=true" >> "$GITHUB_OUTPUT"; exit 0
           fi
+          # No pipe into grep -q: on a large diff the writer gets SIGPIPE and pipefail turns a match into a miss.
           changed=$(git diff --no-renames --name-only "origin/$BASE_REF...HEAD")
-          if printf '%s\n' "$changed" | grep -qE '^(App/|Packages/|\.github/workflows/ci\.yml$)'; then
+          if grep -qE '^(App/|Packages/|\.github/workflows/ci\.yml$)' <<< "$changed"; then
             echo "app=true" >> "$GITHUB_OUTPUT"
           else
             echo "app=false" >> "$GITHUB_OUTPUT"
           fi
-          if printf '%s\n' "$changed" | grep -qE '^(Packages/|\.github/workflows/ci\.yml$)'; then
+          if grep -qE '^(Packages/|\.github/workflows/ci\.yml$)' <<< "$changed"; then
             echo "engine=true" >> "$GITHUB_OUTPUT"
           else
             echo "engine=false" >> "$GITHUB_OUTPUT"
