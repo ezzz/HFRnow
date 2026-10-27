@@ -157,8 +157,8 @@ The iOS app target (Xcode 27) is created before the app phase.
 ## Contributing
 
 1. Read **[AGENTS.md](AGENTS.md)**, then [CONTRIBUTING.md](CONTRIBUTING.md).
-2. Pick an issue labelled `status: ready` and not `status: claimed` (every open lot has one, see [docs/LOTS.md](docs/LOTS.md); [label guide](AGENTS.md#7-labels-and-prioritization)) and claim it with a `/claim <host>/<name>` comment.
-3. Open a PR against `dev-swift` with `Closes #N` (or `Refs #N` for partial work) and `Claim: <host>/<name>`, or `Direct-PR: <reason>` for a small fix without an issue. It is merged only when it meets the **[merge criteria](CONTRIBUTING.md#2-merge-criteria)** — 9 required checks green, no conflict, every conversation resolved, and an approval once ADR 0011 is accepted.
+2. Claim a `ready` [migration lot](docs/LOTS.md) with no owner: a PR that sets you as owner and `in-progress` (the only tracker until Issues are enabled on ezzz/HFRnow).
+3. Open a PR against `dev-swift` naming its lot (`LOT-XXX`). It is merged only when it meets the **[merge criteria](CONTRIBUTING.md#2-merge-criteria)** — 9 required checks green, no conflict, every conversation resolved, and an approval once ADR 0011 is accepted.
 
 ### Starting an agent
 
@@ -166,7 +166,7 @@ Paste this at the start of the session (Claude also loads [CLAUDE.md](CLAUDE.md)
 
 ```text
 Read AGENTS.md and follow it. Repository ezzz/HFRnow: create a task branch from dev-swift,
-never work on dev-swift itself, never touch master. Work only on <issue #N | LOT-XXX>, claimed first.
+never work on dev-swift itself, never touch master. Work only on <LOT-XXX>, claimed first in docs/LOTS.md.
 Write the spec and the tests before the code.
 Stop and ask me when an HFR behaviour is not documented. Do not merge: open a PR that meets CONTRIBUTING.md §2.
 ```

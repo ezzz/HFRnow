@@ -4,10 +4,13 @@ name: Issue and claim
 # Break-glass: a `Direct-PR: <reason>` line or the `direct-pr` label passes, and the PR is labelled `direct-pr` for stats.
 # The line is self-service: this check records the choice, the reviewer judges it. Removing the label re-runs the check:
 # without a `Direct-PR:` line the normal rule applies again; with one, the label comes back (a veto is a body edit or a review).
-# pull_request_target runs this workflow and the script from the base branch, so a PR cannot weaken its own check.
+# pull_request_target runs this workflow and the script from the DEFAULT branch (GitHub, since 2025-11), so a PR cannot
+# weaken its own check. On ezzz/HFRnow the default branch is the legacy master: this copy on dev-swift is inert, and the
+# check is not in the dev-swift ruleset, until the owner puts it on master or makes dev-swift the default (ADR 0010).
 # The PR's code is never checked out; the token can only read, and write labels (issues: write) for `direct-pr`.
 on:
   pull_request_target:
+    branches: [dev-swift]  # SwiftHFR PRs only, never the legacy app's PRs into master
     types: [opened, edited, reopened, synchronize, ready_for_review, labeled, unlabeled]
 
 # One run per PR at a time, newest wins; the script also re-reads the PR's current body and labels.
@@ -28,7 +31,7 @@ jobs:
       pull-requests: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: { persist-credentials: false }  # base branch: the default for pull_request_target
+        with: { persist-credentials: false }  # default branch: the ref of pull_request_target, never the PR's code
       - name: Linked issue is open and claimed by the session named in the PR
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

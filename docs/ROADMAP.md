@@ -1,6 +1,6 @@
 # Roadmap
 
-Each phase has exit criteria. The plan lives in [LOTS.md](LOTS.md); live work items are GitHub issues (`type: lot`, `type: roadmap`), claimed with `/claim`.
+Each phase has exit criteria. Work items, their owners and status live in [LOTS.md](LOTS.md), the only tracker until Issues are enabled on ezzz/HFRnow (then GitHub issues `type: lot`, `type: roadmap`, claimed with `/claim`; ADR 0010).
 
 ## Phase 0 — Foundations *(done — 2026-10-24)*
 - [x] License (PolyForm Noncommercial), credits, README, AGENTS.md
