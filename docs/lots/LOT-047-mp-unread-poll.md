@@ -17,7 +17,7 @@ Legacy app: `master` of ezzz/HFRnow (same lines as francoisgn/hfrnow @ `2440d79`
 ## Behaviour
 `MPUnreadPoll(session: HFRSession).unreadCount() async throws(MPUnreadPollError) -> Int?`, in `Packages/HFRKit/Sources/HFRClient/MPPoll/`.
 
-1. One GET of the home page (`HFREndpoint.home`, R1) with the account's cookies in a probe session (`PageFetcher.home(as: .authenticated)`, see "Session" below). It is the cheapest page
+1. One GET of the home page (`HFREndpoint.privateMessageCheck()`, `GET /` with the 5 s background timeout) with the account's cookies in a probe session (see "Session" below). It is the cheapest page
    that carries the entry (the legacy choice): a forum list header also does (P03f, R08-2) but needs a category and a longer page; the MP list has none.
 2. `PrivateMessageBadgeParser.unreadCount(in:)` on the decoded text: a number, `0` for an entry without a number (R03), `nil` for no entry (R01).
 3. Failures are typed: `MPUnreadPollError.network(NetworkError)` (offline, timeout, HTTP 4xx/5xx, cancellation) and `.page(ListPageFailure)`
@@ -55,6 +55,7 @@ until captured, the poll says `nil` in both cases (a `.hop` page has no `<body i
 | D1 | no `cCatTopic red` node (nothing unread) returned nil, same as a failure | `0` for "entry without a number", `nil` for "no entry" (LOT-023 D2) | the caller can tell "none unread" from "not logged in" |
 | D2 | network errors printed and swallowed | typed `MPUnreadPollError` | the app counts failures and decides |
 | D3 | `URLSession.shared` and the shared cookie jar | a probe seeded from the account's `HFRSession`, never written back | one session per account, no stale write |
+| D4 | 5 s timeout (`MPBackgroundService.swift:86`) | kept: `HFREndpoint.privateMessageCheck()` (`RequestTimeout.background`), not the 30 s page default | a background task must not hang |
 
 ## Learnings
 To copy into AGENTS.md §11 when the lot closes:

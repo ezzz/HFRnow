@@ -22,14 +22,21 @@ struct MPUnreadPollTests {
         StoredCookie(name: "md_passs", value: "fakepass", domain: ".hardware.fr", path: "/", expiresDate: Date().addingTimeInterval(86_400))
     ]
 
+    /// A poll with its scripted probe and the account session it reads.
+    struct Ready {
+        let poll: MPUnreadPoll
+        let probe: MockTransport
+        let seeds: Seeds
+        let account: HFRSession
+    }
+
     private func poll(
         _ reply: Result<HTTPResponse, NetworkError>, account: HFRSession = HFRSession(cookies: MPUnreadPollTests.cookies)
-    ) -> (poll: MPUnreadPoll, probe: MockTransport, anonymous: MockTransport, seeds: Seeds, account: HFRSession) {
+    ) -> Ready {
         let probe = MockTransport(replies: [reply])
-        let anonymous = MockTransport(replies: [])
         let seeds = Seeds()
-        let poll = MPUnreadPoll(session: account, makeProbe: { seeds.add($0); return probe }, anonymous: anonymous)
-        return (poll, probe, anonymous, seeds, account)
+        let poll = MPUnreadPoll(session: account, makeProbe: { seeds.add($0); return probe })
+        return Ready(poll: poll, probe: probe, seeds: seeds, account: account)
     }
 
     private func html(_ body: String) -> Result<HTTPResponse, NetworkError> {
@@ -49,7 +56,7 @@ struct MPUnreadPollTests {
         #expect(try await ready.poll.unreadCount() == expected)
     }
 
-    @Test("One GET of the home page through the probe: no topic page, nothing through the cookie-less transport")
+    @Test("One GET of the home page through the probe with the 5 s background timeout, no topic page")
     func requestsOnlyTheHomePage() async throws {
         let ready = poll(.success(try Capture.response("R02-home-logged-in-unread-mp", url: Self.homeURL)))
         _ = try await ready.poll.unreadCount()
@@ -57,7 +64,7 @@ struct MPUnreadPollTests {
         #expect(sent.count == 1)
         #expect(sent.first?.method == .get)
         #expect(sent.first?.url == Self.homeURL)
-        #expect(await ready.anonymous.requests.isEmpty)
+        #expect(sent.first?.timeout == RequestTimeout.background)
     }
 
     @Test("The probe starts from exactly the account's cookies, and the account session is left unchanged")
@@ -69,6 +76,28 @@ struct MPUnreadPollTests {
         #expect(!before.isEmpty)
         #expect(await ready.account.cookies() == before)
         #expect(await ready.account.hashCheck == nil)
+    }
+
+    @Test("An answer that sets cookies, landing after the account logged in again, does not overwrite the new cookies")
+    func staleAnswerDoesNotOverwriteAccount() async throws {
+        let account = HFRSession(cookies: Self.cookies)
+        let expiry = Date().addingTimeInterval(86_400)
+        let fresh = StoredCookie(name: "md_passs", value: "freshpass", domain: ".hardware.fr", path: "/", expiresDate: expiry)
+        let stale = StoredCookie(name: "md_passs", value: "stalepass", domain: ".hardware.fr", path: "/", expiresDate: expiry)
+        let reply = try Capture.response("R02-home-logged-in-unread-mp", url: Self.homeURL)
+        // A stateful probe: like HFRSession, it stores the cookies the answer sets; a login lands while the GET is in flight.
+        let probeJar = HFRSession(cookies: Self.cookies)
+        let probe = MockTransport { _ async throws(NetworkError) -> HTTPResponse in
+            await account.mergeCookies([fresh])
+            await probeJar.mergeCookies([stale])
+            return reply
+        }
+        let poll = MPUnreadPoll(session: account, makeProbe: { _ in probe })
+        #expect(try await poll.unreadCount() == 10)
+        let held = await account.cookies().first { $0.name == "md_passs" }
+        #expect(held?.value == "freshpass")
+        let probed = await probeJar.cookies().first { $0.name == "md_passs" }
+        #expect(probed?.value == "stalepass")
     }
 
     @Test("A page that is not the home page or a forum list says nothing (nil), not 0: the MP list, a topic page", arguments: [

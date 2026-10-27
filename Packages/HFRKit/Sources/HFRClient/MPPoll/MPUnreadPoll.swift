@@ -20,22 +20,16 @@ import HFRParsing
 public struct MPUnreadPoll: Sendable {
     private let account: HFRSession
     private let makeProbe: @Sendable ([StoredCookie]) -> any HTTPTransport
-    private let anonymous: any HTTPTransport
 
     /// Creates a poll that reads the home page with the cookies of `session`, without ever changing it.
     public init(session: HFRSession) {
-        self.init(session: session, makeProbe: { HFRSession(cookies: $0) }, anonymous: AnonymousTransport())
+        self.init(session: session, makeProbe: { HFRSession(cookies: $0) })
     }
 
-    /// Creates a poll with another probe factory and cookie-less transport (tests).
-    init(
-        session: HFRSession,
-        makeProbe: @escaping @Sendable ([StoredCookie]) -> any HTTPTransport,
-        anonymous: any HTTPTransport
-    ) {
+    /// Creates a poll with another probe factory (tests).
+    init(session: HFRSession, makeProbe: @escaping @Sendable ([StoredCookie]) -> any HTTPTransport) {
         self.account = session
         self.makeProbe = makeProbe
-        self.anonymous = anonymous
     }
 
     /// Fetches the home page and returns the unread private messages count it announces.
@@ -44,9 +38,14 @@ public struct MPUnreadPoll: Sendable {
         let page: RawPage
         let probe = makeProbe(await account.cookies())
         do {
-            page = try await PageFetcher(session: probe, anonymous: anonymous).home(as: .authenticated)
-        } catch {
+            // The 5 s background timeout of the legacy check (`MPBackgroundService.swift:86`), not the page default.
+            let request = try HFREndpoint.privateMessageCheck()
+            if Task.isCancelled { throw NetworkError.cancelled }
+            page = RawPage(response: try await probe.send(request))
+        } catch let error as NetworkError {
             throw .network(error)
+        } catch {
+            throw .network(.invalidRequest(reason: "request could not be built"))
         }
         do {
             return try PrivateMessageBadgeParser.unreadCount(in: page.text)
