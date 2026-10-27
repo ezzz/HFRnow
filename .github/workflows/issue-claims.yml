@@ -1,0 +1,37 @@
+name: Issue claims
+
+# `/claim <session-id>` and `/release` comments on issues (AGENTS.md §5): keeps the `status: claimed` label in step with
+# the active claim and answers a refused claim. Runs from the default branch; comment text is only parsed, never run.
+# Edited and deleted comments re-sync too, since the claim is replayed from the current text of every comment.
+# After a sync, the latest "Issue and claim" run of each open PR linking the issue is re-run, so it follows the claim.
+# Only repository members' comments start a run (their comments are the only ones that count).
+# Concurrency: a newer run may replace a queued one; every run replays the full history, so the labels end right,
+# but the reply to a superseded refused claim can be lost.
+on:
+  issue_comment:
+    types: [created, edited, deleted]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: issue-claims-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: ${{ !github.event.issue.pull_request && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10  # may wait for an in-progress PR check before re-running it
+    permissions:
+      actions: write        # re-run "Issue and claim" on open PRs linking this issue
+      contents: read
+      issues: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - name: Sync the claim label
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/issue_claims.py sync-issue

@@ -3,6 +3,15 @@ description: Propose a new capability or an improvement
 labels: ["type: feature", "status: needs-triage"]
 body:
   - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: >-
+        First thing a human reads. A user story ("As a <who>, I want <what>, so that <why>") or a two-line
+        executive summary of the intent. Details go in the fields below.
+      placeholder: "As a reader, I want …, so that …"
+    validations: { required: true }
+  - type: textarea
     id: problem
     attributes: { label: Problem / need, description: "What are you trying to do?" }
     validations: { required: true }

@@ -7,15 +7,14 @@ Thanks for helping! Humans and AI agents follow the same process. The rules are 
 ## 1. From a task to a PR
 
 1. Read **[AGENTS.md](AGENTS.md)** — guardrails, conventions, migration loop, labels, definition of done.
-2. **Claim** before writing anything ([ORCHESTRATION](docs/agents/ORCHESTRATION.md#claims)):
-   - an engine lot: owner + `in-progress` in [docs/LOTS.md](docs/LOTS.md);
-   - anything else: an issue (open one if none exists), assigned to you, with its `status:` label.
+2. **Claim** before writing anything ([ORCHESTRATION](docs/agents/ORCHESTRATION.md#claims)): pick an issue labelled `status: ready` and not `status: claimed` (every open lot has one, see [docs/LOTS.md](docs/LOTS.md)) and comment `/claim <host>/<name>` on it (e.g. `/claim human/<your-login>`); release it with `/release` if you stop. Claims count from repository members; others, ask a maintainer.
+   Every PR links its issue (`Closes #N`, or `Refs #N` for partial work with what is left) and states `Claim: <session-id>` on its own line; this stays required for every PR that does not use the `Direct-PR` break-glass: no issue for a small fix? Write `Direct-PR: <reason>` on its own line instead, and the PR is labelled `direct-pr`.
 3. Branch from **`dev-swift`** (`lot/…`, `fix/…`, `feat/…`, `chore/…`, `docs/…`); contributors without write access work from a fork. Never branch from or target `master`: it is the legacy app.
 4. Work from **one description**: the spec file `docs/lots/LOT-XXX-*.md` for a lot, `docs/features/FEAT-XXX.md` for an app feature; the issue itself for a bug, a chore or a docs change. Never guess how HFR behaves ([AGENTS.md §3](AGENTS.md#3-ground-rules)).
 5. Code with its tests; run `swift test --package-path Packages/HFRKit` and SwiftLint locally when you can; self-review against [LESSONS](docs/agents/LESSONS.md). Agent-written code is reviewed by a different model before the PR ([AGENTS.md §6](AGENTS.md#6-model-routing-which-agent-does-what)).
-6. Open the PR against `dev-swift` with the template: `Closes #N` or `LOT-XXX`, what changed and why, the tests.
+6. Open the PR against `dev-swift` with the template: the issue link and `Claim:` line (or `Direct-PR:`), what changed and why, the tests.
 
-Issues: until the production switch the issue forms do not show (GitHub only reads them from the default branch, the legacy `master`); open a blank issue titled `[SwiftHFR] …` and set one label per axis ([AGENTS.md §7](AGENTS.md#7-labels-and-prioritization)).
+Issues: every issue starts with a **Summary**: a user story ("As a …, I want …, so that …") or a two-line executive summary. Until the production switch the issue forms do not show (GitHub only reads them from the default branch, the legacy `master`); open a blank issue titled `[SwiftHFR] …`, start it with `### Summary` and set one label per axis ([AGENTS.md §7](AGENTS.md#7-labels-and-prioritization)).
 Security problems go through [SECURITY.md](SECURITY.md), never a public issue.
 
 ## 2. Merge criteria

@@ -1,0 +1,35 @@
+name: Issue and claim
+
+# Every PR links an open issue and works under that issue's active claim (AGENTS.md §5, §8; scripts/issue_claims.py).
+# Break-glass: a `Direct-PR: <reason>` line or the `direct-pr` label passes, and the PR is labelled `direct-pr` for stats.
+# The line is self-service: this check records the choice, the reviewer judges it. Removing the label re-runs the check:
+# without a `Direct-PR:` line the normal rule applies again; with one, the label comes back (a veto is a body edit or a review).
+# pull_request_target runs this workflow and the script from the base branch, so a PR cannot weaken its own check.
+# The PR's code is never checked out; the token can only read, and write labels (issues: write) for `direct-pr`.
+on:
+  pull_request_target:
+    types: [opened, edited, reopened, synchronize, ready_for_review, labeled, unlabeled]
+
+# One run per PR at a time, newest wins; the script also re-reads the PR's current body and labels.
+concurrency:
+  group: issue-and-claim-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Issue and claim
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write  # adds the `direct-pr` label only
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }  # base branch: the default for pull_request_target
+      - name: Linked issue is open and claimed by the session named in the PR
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/issue_claims.py check-pr

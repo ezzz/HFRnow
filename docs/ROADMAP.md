@@ -1,6 +1,6 @@
 # Roadmap
 
-Each phase has exit criteria. Work items live in [LOTS.md](LOTS.md) and GitHub issues (`type: roadmap`).
+Each phase has exit criteria. The plan lives in [LOTS.md](LOTS.md); live work items are GitHub issues (`type: lot`, `type: roadmap`), claimed with `/claim`.
 
 ## Phase 0 — Foundations *(done — 2026-10-24)*
 - [x] License (PolyForm Noncommercial), credits, README, AGENTS.md
