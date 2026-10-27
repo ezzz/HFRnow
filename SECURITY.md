@@ -17,6 +17,6 @@ Out of scope: vulnerabilities of forum.hardware.fr itself (report them to Hardwa
 
 - Secret scanning with push protection, plus gitleaks in CI
 - CodeQL static analysis (SAST)
-- Dependabot alerts and updates, dependency review on every PR (SCA)
+- Dependency review on every PR (SCA). Dependabot version updates target `dev-swift` and run once the owner adds `.github/dependabot.yml` to `master`; Dependabot alerts follow the default branch (`master`) and do not cover dependencies that exist only on `dev-swift` ([ADR 0010](docs/adr/0010-hosting-on-ezzz-hfrnow-dev-swift.md))
 - Actions pinned by commit SHA, least-privilege workflow tokens
 - Protected integration branch (`dev-swift`) with mandatory checks

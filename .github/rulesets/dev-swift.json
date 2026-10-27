@@ -27,6 +27,8 @@
           { "context": "SwiftLint" },
           { "context": "HFRKit tests (Linux)" },
           { "context": "HFRKit tests (macOS) + iOS 27 build" },
+          { "context": "Docs consistency" },
+          { "context": "Fixture tooling tests" },
           { "context": "gitleaks" },
           { "context": "Analyze (swift)" },
           { "context": "Analyze (actions)" },
