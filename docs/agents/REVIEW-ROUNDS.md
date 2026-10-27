@@ -14,4 +14,6 @@ Each round costs a CI run, a re-review and tokens. Do it once, completely.
 8. **Optional findings** (nit, suggestion): never start a push for them. One-line reply; fold them into the next push that touches those files.
 9. **After the round**: compare findings with [LESSONS.md](LESSONS.md). Already listed = the self-review missed it, tighten that step. New kind = new row.
 
+CodeRabbit can skip a review ("Review skipped") or pause on a branch: after pushing, check that it reviewed the new head, and if not, ask for `@coderabbitai review`. From cloud sessions `@mentions` are altered, so the operator posts it. Check again afterwards: the round is complete only when CodeRabbit has reviewed the pushed head.
+
 CI noise vs real failure: a check failing in seconds with no log (missing token, unavailable service) is not "CI red" — say so and point to the real checks (build, tests, lint, CodeQL). "Flaky" is not a cause: one re-run at most, then investigate.
