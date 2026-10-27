@@ -144,6 +144,7 @@ Orchestrator: `mac/orch-opus` (2026-10-27), operator brief of 2026-10-27. **MVP*
 | 1 | LOT-023 MP list ★ | B | Sonnet → Opus | critical path → 038, 047 |
 | 1 | LOT-036 `hop` form parser | A | Sonnet → Opus | → 048 |
 | 1 | LOT-037 `hop` response classifier | A | Sonnet → Opus | → 048, 050, 051, 054 |
+| 1 | LOT-080 iOS app target (Mac) | D | Opus → Fable | operator request: critical path of the MVP (→ 081, 082, 083) |
 | 2 (planned) | LOT-044, 031, 032, 038, 047, 048, 056, 064 | A–E | per row | when their dependencies are done |
 
 ## Other work
