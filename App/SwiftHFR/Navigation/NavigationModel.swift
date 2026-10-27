@@ -15,7 +15,8 @@ final class NavigationModel {
 
     private let dataSource: any ForumDataSource
     private let sessionIsLoggedIn: @Sendable () async -> Bool
-    private var topicLists: [TopicSource: TopicListModel] = [:]
+    /// A cache, not display state: `topicList(for:)` is called from a view body and must not invalidate it.
+    @ObservationIgnored private var topicLists: [TopicSource: TopicListModel] = [:]
 
     /// Creates the navigation over `dataSource`.
     init(

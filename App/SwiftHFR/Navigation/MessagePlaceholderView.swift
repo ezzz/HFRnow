@@ -11,10 +11,15 @@ struct MessagePlaceholderView: View {
             ContentUnavailableView {
                 Label(topic.title, systemImage: "text.bubble")
             } description: {
-                Text("La lecture des messages arrive bientôt. \(FrenchPlural.count(topic.repliesCount, "réponse", "réponses")) sur \(FrenchPlural.count(topic.pageCount, "page", "pages")).")
+                Text("La lecture des messages arrive bientôt. \(counts(of: topic)).")
             }
         } else {
             ContentUnavailableView("Choisissez un sujet", systemImage: "text.bubble")
         }
+    }
+
+    private func counts(of topic: TopicSummary) -> String {
+        let replies = FrenchPlural.count(topic.repliesCount, "réponse", "réponses")
+        return "\(replies) sur \(FrenchPlural.count(topic.pageCount, "page", "pages"))"
     }
 }

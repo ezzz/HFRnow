@@ -32,7 +32,9 @@ struct LiveForumDataSource: ForumDataSource {
     }
 
     func topicList(category: CategoryID, page: Int) async throws(ListLoadError) -> TopicListPage {
-        let raw = try await fetch { () async throws(NetworkError) -> RawPage in try await fetcher.topicList(category: category, filter: .all, page: page) }
+        let raw = try await fetch { () async throws(NetworkError) -> RawPage in
+            try await fetcher.topicList(category: category, filter: .all, page: page)
+        }
         do throws(ListPageFailure) {
             return try TopicListParser.parse(raw.text, pageURL: raw.finalURL.absoluteString)
         } catch {

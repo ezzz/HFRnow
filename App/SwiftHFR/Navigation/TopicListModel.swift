@@ -40,7 +40,8 @@ struct TopicListContent: Sendable, Equatable {
         groups = favorites.sections.map { TopicGroup(id: $0.id, title: $0.forum.title, topics: $0.topics) }
         page = 1
         hasNext = false
-        emptyReason = Self.reason(isEmpty: favorites.sections.allSatisfy { $0.topics.isEmpty }, notice: favorites.notice, isLoggedIn: isLoggedIn)
+        let isEmpty = favorites.sections.allSatisfy { $0.topics.isEmpty }
+        emptyReason = Self.reason(isEmpty: isEmpty, notice: favorites.notice, isLoggedIn: isLoggedIn)
     }
 
     private static func reason(isEmpty: Bool, notice: String?, isLoggedIn: Bool) -> EmptyReason? {
