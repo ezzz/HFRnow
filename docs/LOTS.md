@@ -81,7 +81,7 @@ Model column: author → reviewer ([AGENTS.md §6](../AGENTS.md#6-model-routing-
 | LOT-043 | Login (validate before replacing cookies) | HFRClient | medium | Opus → Fable | 042, 025 | NET-04 | high | mac/w1-043-opus (2026-10-27) · old [#72](https://github.com/francoisgn/ios-app_SwiftHFR/issues/72) | done (#21) |
 | LOT-044 | Session health & refresh (expiry detection, cookie merge) | HFRClient | medium | Opus → Fable | 042, 013 | NET-07 | medium | mac/w2-044-opus (2026-10-27) · old [#73](https://github.com/francoisgn/ios-app_SwiftHFR/issues/73) | in-progress |
 | LOT-046 | Search: global (meta-refresh flow, banned-word list → refuse with a warning, Q-7) and intra-topic (no-redirect flow) | HFRClient | medium | Sonnet → Opus | 041, 025 | NET-10, NET-11 | medium | — · old [#74](https://github.com/francoisgn/ios-app_SwiftHFR/issues/74) | todo |
-| LOT-047 | MP unread count poll (scheduling stays in the app) | HFRClient | easy | Sonnet → Opus | 023, 045 | NET-13 | medium | mac/w3-047-sonnet (2026-10-27) · old [#75](https://github.com/francoisgn/ios-app_SwiftHFR/issues/75) | in-progress |
+| LOT-047 | MP unread count poll (scheduling stays in the app) | HFRClient | easy | Sonnet → Opus | 023, 045 | NET-13 | medium | mac/w3-047-sonnet (2026-10-27) · old [#75](https://github.com/francoisgn/ios-app_SwiftHFR/issues/75) | done (#35) |
 | LOT-048 | Post-form engine: reply, edit, delete (incl. first post = whole topic), new topic, new MP, MP reply — posts as the **selected** account (Q-8); `verifrequet`, browser checkbox semantics, refuses non-BMP characters (Q-3), per-flow success markers, never reports success unless HFR confirmed it | HFRClient | difficult | Opus → Fable | 036, 037, 042 | D3 | medium | mac/w3-048-opus (2026-10-27) · old [#76](https://github.com/francoisgn/ios-app_SwiftHFR/issues/76) | done (#36) |
 | LOT-049 | Quote engine: quote template GET, `[quotemsg]` selection formatter | HFRClient | medium | Opus → Fable | 048, 031 | D4 | medium | — · old [#77](https://github.com/francoisgn/ios-app_SwiftHFR/issues/77) | blocked |
 | LOT-050 | Moderator alert | HFRClient | easy | Sonnet → Opus | 036, 037 | D5 | medium | — · old [#78](https://github.com/francoisgn/ios-app_SwiftHFR/issues/78) | blocked |
@@ -185,6 +185,7 @@ Page states that merged lots listed as **pending capture** (never hand-built in 
 | MP list row with the ignore icon in its other state (`ignore1.gif`) | LOT-023 | not modelled yet |
 | MP pseudos containing a comma (`[non lu]` tooltip, group tooltip) | LOT-023 | whether HFR allows one is unknown |
 | Badge on a logged-in topic page | LOT-023 | R20 is anonymous; the parser returns nil on topic pages |
+| Home page (`/`) answered to a logged-in session with expired cookies: logged-out home or `.hop` page? | LOT-047 | the poll reads both as nil (no information, never proof of expiry); the capture identifies the response shape |
 | Topic list: MP list logged out, cross-category search results, rare row shapes | LOT-022 | see the LOT-022 spec |
 | Locked topic seen logged in; favourite/flagged topic page; checked in-topic search filter (R52a was a 302) | LOT-033 | |
 | Deleted message wrapper `messagetabledel`; in-topic search prefix link | LOT-030 | |
