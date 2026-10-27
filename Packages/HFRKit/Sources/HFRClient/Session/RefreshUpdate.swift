@@ -2,19 +2,6 @@ import Foundation
 import HFRModels
 import HFRNetwork
 
-/// A transport with its own cookie jar, seeded with the account's cookies, in which a refresh runs before anything
-/// reaches the account session.
-///
-/// `HFRSession` is the real one; tests script the answers and the cookies they set.
-protocol RefreshProbe: HTTPTransport {
-    /// Every non-expired cookie of the jar.
-    func cookies(now: Date) async -> [StoredCookie]
-    /// Value of a usable `md_user` (see `HFRSession.userKey(now:)`).
-    func userKey(now: Date) async -> String?
-}
-
-extension HFRSession: RefreshProbe {}
-
 /// The account session as the refresh found it, read in one actor turn.
 struct RefreshSeed: Sendable {
     /// Usable `md_user` value, nil when the session is logged out.

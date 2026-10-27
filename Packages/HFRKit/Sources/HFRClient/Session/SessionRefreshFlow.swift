@@ -9,10 +9,10 @@ import HFRParsing
 /// cookies with only those of the answer, whatever the page said. Here the request runs in a probe jar seeded with the
 /// session's cookies; the session changes only when the answer is the account's own profile page, so an ambiguous
 /// page never logs an account out. When to refresh (launch, after a flow saw a logged-out notice) is the app's call:
-/// flows that meet such a notice (LOT-023 `.notAuthenticated`, LOT-037 `.loggedOut`) confirm it here instead of
-/// clearing the session.
+/// flows that meet such a notice (LOT-023 `.notAuthenticated`, LOT-037 `.loggedOut`) re-check it here instead of
+/// clearing the session; a `valid` clears the doubt, anything else leaves the session alone.
 public struct SessionRefreshFlow: Sendable {
-    private let makeProbe: @Sendable ([StoredCookie], Date) -> any RefreshProbe
+    private let makeProbe: @Sendable ([StoredCookie], Date) -> any SessionJar
 
     /// A flow whose probes are fresh `HFRSession`s.
     public init() {
@@ -20,7 +20,7 @@ public struct SessionRefreshFlow: Sendable {
     }
 
     /// A flow with another probe factory (tests).
-    init(makeProbe: @escaping @Sendable ([StoredCookie], Date) -> any RefreshProbe) {
+    init(makeProbe: @escaping @Sendable ([StoredCookie], Date) -> any SessionJar) {
         self.makeProbe = makeProbe
     }
 
@@ -33,10 +33,14 @@ public struct SessionRefreshFlow: Sendable {
     public func refresh(_ session: HFRSession, now: Date = Date()) async throws(NetworkError) -> SessionHealth {
         let seed = await session.refreshSeed(now: now)
         guard let identity = seed.identity else { return .expired(.noIdentityCookie) }
-        let request = try Self.profilePageRequest()
+        var request = try Self.profilePageRequest()
+        // A redirect (to page 5, to the login page) is not page 1: return it and let the URL check refuse it.
+        request.redirectPolicy = .doNotFollow
         let probe = makeProbe(seed.cookies, now)
         let response = try await probe.send(request)
-        guard let token = Self.accountToken(in: response) else { return .unconfirmed(.unrecognizedPage) }
+        guard let token = Self.accountToken(in: response, expectedURL: request.url) else {
+            return .unconfirmed(.unrecognizedPage)
+        }
         // Read after the answer: logged-in pages set `md_user` and `md_passs` again (`R55-p1` meta).
         guard await probe.userKey(now: now) == identity else { return .unconfirmed(.identityNotConfirmed) }
         let update = RefreshUpdate(seed: seed.cookies, after: await probe.cookies(now: now), hashCheck: token)
@@ -59,9 +63,12 @@ public struct SessionRefreshFlow: Sendable {
     ///
     /// HFR prints the token on its pages only for a logged-in session (empty on `R01`, `W00`, `R40b`); a GET answer
     /// cannot echo one back. A `.hop` notice is refused even with a token: a replayed form can carry the token it was
-    /// posted with (`W17c`). The answer must be a 2xx served at the profile page, not a redirect to another page.
-    static func accountToken(in response: HTTPResponse) -> String? {
-        guard (200..<300).contains(response.statusCode), response.url.path == "/user/editprofil.php" else { return nil }
+    /// posted with (`W17c`). The answer must be a 2xx served at exactly `expectedURL`, the profile page 1 of the forum
+    /// over HTTPS (port absent or 443, LESSONS 37), not a page reached by a redirect or from another origin.
+    static func accountToken(in response: HTTPResponse, expectedURL: URL) -> String? {
+        guard
+            (200..<300).contains(response.statusCode), response.url == expectedURL, isForumProfilePage(response.url)
+        else { return nil }
         let html = response.decodedText().text
         guard
             let hop = try? HopResponseParser.classify(html: html, requestURL: response.url),
@@ -69,5 +76,12 @@ public struct SessionRefreshFlow: Sendable {
             let page = try? ProfileEditPageParser.parse(html)
         else { return nil }
         return page.hashCheck
+    }
+
+    private static func isForumProfilePage(_ url: URL) -> Bool {
+        url.scheme?.lowercased() == "https"
+            && url.host?.lowercased() == HFRURL.base.host?.lowercased()
+            && (url.port == nil || url.port == 443)
+            && url.path == "/user/editprofil.php"
     }
 }

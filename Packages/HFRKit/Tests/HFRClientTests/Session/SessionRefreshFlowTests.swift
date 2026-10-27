@@ -47,7 +47,7 @@ struct SessionRefreshFlowTests {
     /// `R55-p1` with the cookies its meta says it sets (`md_user` again, a new `md_passs`).
     private func validStep() throws -> ScriptedProbe.Step {
         .init(
-            reply: .success(try RefreshCapture.response("R55-p1-profile-edit-page1")),
+            reply: .success(try Capture.response("R55-p1-profile-edit-page1")),
             setCookies: [forumCookie("md_user", "user2"), forumCookie("md_passs", "newpass")]
         )
     }
@@ -55,8 +55,9 @@ struct SessionRefreshFlowTests {
     // MARK: - Valid
 
     @Test func captureMetaShapesTheScript() throws {
-        let meta = try RefreshCapture.meta("R55-p1")
+        let meta = try Capture.meta("R55-p1")
         #expect(meta.method == "GET")
+        #expect(meta.url == Capture.profilePage1.absoluteString)
         #expect(meta.status == 200)
         #expect(Set(meta.setCookieNames) == ["md_user", "md_passs"])
     }
@@ -75,13 +76,14 @@ struct SessionRefreshFlowTests {
         let requests = await probe.requests
         #expect(requests.count == 1)
         #expect(requests.first?.method == .get)
-        #expect(requests.first?.url == RefreshCapture.profilePage1)
+        #expect(requests.first?.url == Capture.profilePage1)
+        #expect(requests.first?.redirectPolicy == .doNotFollow)
     }
 
     @Test func probeStartsFromTheSessionCookies() async throws {
         let session = accountSession()
         let before = await session.cookies(now: now)
-        let (_, factory) = try await run(.init(reply: .success(try RefreshCapture.response("W00-login-form-anon"))), on: session)
+        let (_, factory) = try await run(.init(reply: .success(try Capture.response("W00-login-form-anon"))), on: session)
         #expect(await factory.probes.first?.seed == before)
     }
 
@@ -140,7 +142,7 @@ struct SessionRefreshFlowTests {
     func pagesWithoutTheAccountTokenAreUnconfirmed(_ file: String) async throws {
         let session = accountSession()
         let step = ScriptedProbe.Step(
-            reply: .success(try RefreshCapture.response(file)),
+            reply: .success(try Capture.response(file)),
             setCookies: [forumCookie("md_passs", "newpass")]
         )
         #expect(try await run(step, on: session).0 == .unconfirmed(.unrecognizedPage))
@@ -148,15 +150,36 @@ struct SessionRefreshFlowTests {
     }
 
     @Test func profilePageServedElsewhereOrRedirectedIsUnconfirmed() async throws {
-        let home = URL(string: "https://forum.hardware.fr/") ?? RefreshCapture.profilePage1
+        let home = URL(string: "https://forum.hardware.fr/") ?? Capture.profilePage1
+        let page5 = URL(string: "https://forum.hardware.fr/user/editprofil.php?config=hfr.inc&page=5") ?? Capture.profilePage1
         for reply in [
-            try RefreshCapture.response("R55-p1-profile-edit-page1", url: home),
-            try RefreshCapture.response("R55-p1-profile-edit-page1", status: 302)
+            try Capture.response("R55-p1-profile-edit-page1", url: home),
+            // A redirect followed anyway (by a transport ignoring the policy) to another page of the same path.
+            try Capture.response("R55-p5-profile-edit-page5", url: page5),
+            try Capture.response("R55-p1-profile-edit-page1", status: 302)
         ] {
             let session = accountSession()
             #expect(try await run(.init(reply: .success(reply)), on: session).0 == .unconfirmed(.unrecognizedPage))
             await expectUnchanged(session)
         }
+    }
+
+    /// The profile page answered from another origin (a probe reached elsewhere) proves nothing about the forum session.
+    @Test(arguments: [
+        "https://forum.hardware.fr.example.com/user/editprofil.php?config=hfr.inc&page=1",
+        "https://example.com/user/editprofil.php?config=hfr.inc&page=1",
+        "http://forum.hardware.fr/user/editprofil.php?config=hfr.inc&page=1",
+        "https://forum.hardware.fr:8443/user/editprofil.php?config=hfr.inc&page=1"
+    ])
+    func profilePageFromAnotherOriginIsUnconfirmed(_ origin: String) async throws {
+        let url = try #require(URL(string: origin))
+        let session = accountSession()
+        let step = ScriptedProbe.Step(
+            reply: .success(try Capture.response("R55-p1-profile-edit-page1", url: url)),
+            setCookies: [forumCookie("md_user", "user2"), forumCookie("md_passs", "newpass")]
+        )
+        #expect(try await run(step, on: session).0 == .unconfirmed(.unrecognizedPage))
+        await expectUnchanged(session)
     }
 
     @Test(arguments: ["deleted", "user1", "removed"])
@@ -187,11 +210,11 @@ struct SessionRefreshFlowTests {
 
     // MARK: - Errors
 
-    @Test(arguments: [NetworkError.timedOut, .offline, .httpStatus(code: 500, url: RefreshCapture.profilePage1)])
+    @Test(arguments: [NetworkError.timedOut, .offline, .httpStatus(code: 500, url: Capture.profilePage1)])
     func transportFailuresThrowAndChangeNothing(_ failure: NetworkError) async throws {
         let session = accountSession()
         let reply: Result<HTTPResponse, NetworkError> = switch failure {
-        case .httpStatus: .success(try RefreshCapture.response("R55-p1-profile-edit-page1", status: 500))
+        case .httpStatus: .success(try Capture.response("R55-p1-profile-edit-page1", status: 500))
         default: .failure(failure)
         }
         let step = ScriptedProbe.Step(reply: reply, setCookies: [forumCookie("md_passs", "newpass")])

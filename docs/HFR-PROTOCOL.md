@@ -260,7 +260,7 @@ Source: [LOT-027](lots/LOT-027-profile-parser.md), `UserProfileParser`, checked 
 [LOT-044](lots/LOT-044-session-health.md), tests `SessionRefreshFlowTests`.
 
 - **Profile page 1 logged in** (`R55-p1`, **verified**): `GET /user/editprofil.php?config=hfr.inc&page=1` answers 200 with a non-empty `hash_check`, no `.hop`, and sets `md_user` and `md_passs` (each name twice in the meta; attributes not recorded). A refresh is confirmed only by that shape with the same `md_user` afterwards.
-- **Token echo** (`W17c`, **verified**): a `.hop` refusal can hold a non-empty `hash_check` in its replay form (the posted value), so a non-empty token proves a logged-in session only on a GET answer without `.hop`.
+- **Token echo** (`W17c`, **verified**): a `.hop` refusal can hold a non-empty `hash_check` in its replay form although the POST carried no cookies, so a non-empty token proves a logged-in session only on a GET answer without `.hop`.
 - Not captured: page 1 with stale cookies, `md_user=deleted` sent by HFR, attributes of the doubled `Set-Cookie` (see the lot's Pending capture).
 
 ## 7. Reported by redface2, to verify with our fixtures

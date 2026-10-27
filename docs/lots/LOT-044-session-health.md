@@ -22,10 +22,10 @@ Legacy app: `master` of ezzz/HFRnow @ `21173e7` (same lines as francoisgn/hfrnow
 `SessionRefreshFlow().refresh(_ session: HFRSession, now:) async throws(NetworkError) -> SessionHealth`, in `Packages/HFRKit/Sources/HFRClient/Session/`.
 
 1. Read the session's identity (`userKey`), cookies and `hash_check` in one actor turn. No usable `md_user` (absent, past its expiry, or `deleted`) → `expired(.noIdentityCookie)`, nothing sent.
-2. Create a **probe** `HFRSession` seeded with those cookies and GET profile page 1 through it (`send`: 4xx/5xx throw).
+2. Create a **probe** `HFRSession` seeded with those cookies (internal `SessionJar` protocol, shared with LOT-043's login) and GET profile page 1 through it without following redirects (`send`: 4xx/5xx throw).
 3. The answer confirms the session only if all hold, else `unconfirmed(.unrecognizedPage)`:
-   - 2xx, served at `/user/editprofil.php` (a 3xx returned by the session's redirect policy, or a page reached by a redirect, is something else);
-   - no `.hop` block (`HopResponseParser` finds none): `W17c` shows a `.hop` refusal can carry a replayed form with the token it was posted with;
+   - 2xx, served at exactly the requested page-1 URL on `https://forum.hardware.fr` (port absent or 443, LESSONS 37); a 3xx (to page 5, to a login page) or a page from another origin is something else;
+   - no `.hop` block (`HopResponseParser` finds none): `W17c` shows a `.hop` refusal holding a non-empty `hash_check` in its replay form although the POST carried no cookies;
    - `ProfileEditPageParser` finds a non-empty `hash_check` (`R55-p1`). HFR prints an empty token to a logged-out visitor (`R01`, `W00`, `R40b`), and a GET carries no token to echo.
 4. The probe's `md_user` after the answer must be the same usable value, else `unconfirmed(.identityNotConfirmed)` (removed, changed or `deleted`).
 5. Diff the probe's cookies with the seed by `jarKey`. In one actor turn on the session (`adoptRefresh`): cancellation check (`NetworkError.cancelled`), identity still the seed's (else `unconfirmed(.sessionChanged)`), then for each changed key write the probe's cookies, or delete the key if HFR removed it, **only when the session still holds the seed's cookies for that key**; same compare-and-set for `hash_check`. Return `valid`.
@@ -44,14 +44,14 @@ Whatever is returned other than `valid`, and whenever `refresh` throws, the sess
 
 ## Fixtures
 
-Shared corpus only, no new file, read in place (`Tests/HFRClientTests/Session/RefreshSupport.swift`): `R55-p1` (page 1 logged in; its meta: GET, 200, sets `md_user` and `md_passs`), and as stand-ins for a page that is not the logged-in profile page: `W00`, `R01`, `R40b` (logged-out GET pages, empty token), `R12` (`.hop` notice, no token), `W17c` (`.hop` refusal echoing a token). None of them is offered as the captured answer of page 1 to stale cookies. Cookie values in tests are fake.
+Shared corpus only, no new file, read in place (`Tests/HFRClientTests/Support/Capture.swift`, shared with LOT-043): `R55-p1` (page 1 logged in; its meta: GET, 200, sets `md_user` and `md_passs`), and as stand-ins for a page that is not the logged-in profile page: `W00`, `R01`, `R40b` (logged-out GET pages, empty token), `R12` (`.hop` notice, no token), `W17c` (`.hop` refusal echoing a token). None of them is offered as the captured answer of page 1 to stale cookies. Cookie values in tests are fake.
 
 ## Tests
 
 `SessionRefreshFlowTests` (scripted probe on the captures, real `HFRSession` as the account session):
-`captureMetaShapesTheScript`, `validRefreshMergesWhatHFRSetAndTheToken`, `probeStartsFromTheSessionCookies`, `cookieRemovedByHFRIsRemovedOnAValidRefresh`, `concurrentChangesWinOverTheProbeCopy`, `noUsableIdentityIsExpiredWithoutSending` (absent, expired, `deleted`), `pagesWithoutTheAccountTokenAreUnconfirmed` (5 pages), `profilePageServedElsewhereOrRedirectedIsUnconfirmed`, `identityNotKeptByTheAnswerIsUnconfirmed` (`deleted`, other user, removed), `sessionLoggedOutDuringTheRefreshIsNotRevived`, `transportFailuresThrowAndChangeNothing` (timeout, offline, HTTP 500), `cancellationChangesNothing`.
+`captureMetaShapesTheScript`, `validRefreshMergesWhatHFRSetAndTheToken`, `probeStartsFromTheSessionCookies`, `cookieRemovedByHFRIsRemovedOnAValidRefresh`, `concurrentChangesWinOverTheProbeCopy`, `noUsableIdentityIsExpiredWithoutSending` (absent, expired, `deleted`), `pagesWithoutTheAccountTokenAreUnconfirmed` (5 pages), `profilePageServedElsewhereOrRedirectedIsUnconfirmed`, `profilePageFromAnotherOriginIsUnconfirmed` (other host, look-alike host, `http`, port 8443), `identityNotKeptByTheAnswerIsUnconfirmed` (`deleted`, other user, removed), `sessionLoggedOutDuringTheRefreshIsNotRevived`, `transportFailuresThrowAndChangeNothing` (timeout, offline, HTTP 500), `cancellationChangesNothing`.
 
-Shown to fail without the change (mutations run locally, each fails its tests): dropping the `.hop` check, the URL check, the identity check after the answer, the identity check at adoption, the cookie or token compare-and-set, the cancellation check, the no-identity shortcut, and replacing the jar with the answer's cookies (legacy `updateCookies`).
+Shown to fail without the change (mutations run locally, each fails its tests): dropping the `.hop` check, the URL path check, the exact-URL check with `doNotFollow`, the origin check (scheme, host, port), the identity check after the answer, the identity check at adoption, the cookie or token compare-and-set, the cancellation check, the no-identity shortcut, and replacing the jar with the answer's cookies (legacy `updateCookies`).
 
 ## Pending capture
 
@@ -71,4 +71,4 @@ Added to the capture backlog in `docs/LOTS.md`. None blocks the lot; until captu
 
 ## Learnings
 
-- A `.hop` refusal can carry a non-empty `hash_check` (the replayed form of `W17c`): "non-empty token = logged in" holds only for a GET answer without `.hop`.
+- A `.hop` refusal can hold a non-empty `hash_check` in its replay form although the POST carried no cookies (`W17c`): "non-empty token = logged in" holds only for a GET answer without `.hop`.
