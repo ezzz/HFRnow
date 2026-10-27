@@ -25,11 +25,14 @@ public struct HopFormLayout: Sendable, Hashable {
     /// Text of the `<label for=…>` of each checkbox, by checkbox name (`delete`: "Effacer l'intégralité du sujet" on the
     /// first post of a thread, "Effacer ce message" on a later one, `R43a`, `R43b`).
     public var checkboxLabels: [String: String]
+    /// The `maxlength` of each input that has a valid one, by name, first input of a name wins (`sujet`: 70, `R45a`).
+    public var maxLengths: [String: Int]
 
     /// Creates a layout.
-    public init(controls: [Control] = [], checkboxLabels: [String: String] = [:]) {
+    public init(controls: [Control] = [], checkboxLabels: [String: String] = [:], maxLengths: [String: Int] = [:]) {
         self.controls = controls
         self.checkboxLabels = checkboxLabels
+        self.maxLengths = maxLengths
     }
 }
 
@@ -49,6 +52,7 @@ extension HopFormParser {
         var inputs = 0
         var selects = 0
         var checkboxIDs: [String: String] = [:]
+        var maxLengths: [String: Int] = [:]
         for element in elements where element.hasAttr("name") {
             let name = (try? element.attr("name")) ?? ""
             let isDisabled = element.hasAttr("disabled")
@@ -56,6 +60,9 @@ extension HopFormParser {
             case "input":
                 controls.append(.input(index: inputs, name: name, isDisabled: isDisabled))
                 inputs += 1
+                if maxLengths[name] == nil, let limit = (try? element.attr("maxlength")).flatMap({ Int($0) }), limit >= 0 {
+                    maxLengths[name] = limit
+                }
                 if (try? element.attr("type"))?.lowercased() == "checkbox", let id = try? element.attr("id"), !id.isEmpty {
                     checkboxIDs[id] = name
                 }
@@ -70,7 +77,7 @@ extension HopFormParser {
                 continue
             }
         }
-        return HopFormLayout(controls: controls, checkboxLabels: labels(in: form, for: checkboxIDs))
+        return HopFormLayout(controls: controls, checkboxLabels: labels(in: form, for: checkboxIDs), maxLengths: maxLengths)
     }
 
     /// Label texts of the checkboxes, matched by the label's `for` and the box's `id` (HFR writes the label after the box).

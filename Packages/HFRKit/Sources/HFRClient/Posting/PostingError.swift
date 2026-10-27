@@ -24,6 +24,10 @@ public enum PostingError: Error, Sendable, Equatable {
     /// An input holds characters outside the Basic Multilingual Plane (most emoji): HFR cuts the text at the first one
     /// and still answers success (`W12`), so they are refused before sending (decision Q-3). Distinct characters in order.
     case unsupportedCharacters(PostingInput, [Character])
+    /// A subject or a recipient holds a line break, which a one-line input cannot hold.
+    case lineBreak(PostingInput)
+    /// A subject or a recipient is longer than the input's `maxlength` (UTF-16 code units, as a browser counts).
+    case tooLong(PostingInput, maximum: Int)
     /// The sub-category is not one of the form's options.
     case unknownSubcategory
     /// A subject was given for a message whose subject cannot be edited (a reply, a later post of a thread).
@@ -50,6 +54,15 @@ public enum PostingInput: String, Sendable, Hashable {
     case subject
     /// The recipient of a new private message (`dest`).
     case recipient
+
+    /// The form field the input is written to.
+    var fieldName: String {
+        switch self {
+        case .text: "content_form"
+        case .subject: "sujet"
+        case .recipient: "dest"
+        }
+    }
 }
 
 /// Why a write that may have reached HFR is not reported as done.

@@ -38,7 +38,7 @@ public struct PostingFlow: Sendable {
         subject: String, subcategory: String? = nil, text: String, options: [PostOption: Bool] = [:], with form: PostingForm
     ) async throws(PostingError) -> PostingResult {
         try require(form, is: .newTopic)
-        try checkInput(subject, as: .subject)
+        try checkLine(subject, as: .subject, in: form)
         try checkText(text)
         var overrides = ["sujet": subject]
         if let subcategory {
@@ -53,8 +53,8 @@ public struct PostingFlow: Sendable {
         to recipient: String, subject: String, text: String, options: [PostOption: Bool] = [:], with form: PostingForm
     ) async throws(PostingError) -> PostingResult {
         try require(form, is: .newPrivateMessage)
-        try checkInput(recipient, as: .recipient)
-        try checkInput(subject, as: .subject)
+        try checkLine(recipient, as: .recipient, in: form)
+        try checkLine(subject, as: .subject, in: form)
         try checkText(text)
         return try await submit(
             .newPrivateMessage, form: form, text: text, overrides: ["dest": recipient, "sujet": subject], options: options
@@ -70,7 +70,7 @@ public struct PostingFlow: Sendable {
         var overrides: [String: String] = [:]
         if let subject {
             guard form.form.isSubjectEditable else { throw .subjectNotEditable }
-            try checkInput(subject, as: .subject)
+            try checkLine(subject, as: .subject, in: form)
             overrides["sujet"] = subject
         }
         try checkText(text)
@@ -81,15 +81,22 @@ public struct PostingFlow: Sendable {
 
     /// Deletes an own message through its edit form: the stored text sent back unchanged with the `delete` box checked
     /// (`DeleteMessageViewController.m:44`, `W16a`). On the first post of a thread this deletes the whole thread
-    /// (`W19`; the other party keeps its copy of a private thread, HFR-PROTOCOL §7 X1): `confirmingWholeTopic` must then
-    /// be true, else nothing is sent.
-    public func delete(with form: PostingForm, confirmingWholeTopic: Bool = false) async throws(PostingError) -> PostingResult {
+    /// (`W19`; the other party keeps its copy of a private thread, HFR-PROTOCOL §7 X1). Pass `isFirstPost` when the topic
+    /// page tells it. `confirmingWholeTopic` must be true whenever `form.requiresWholeTopicConfirmation(isFirstPost:)` is
+    /// (first post by the hint or the form, or any public topic), else nothing is sent. An empty stored text is refused
+    /// locally: HFR refuses an empty `content_form` (`W17a`).
+    public func delete(
+        with form: PostingForm, isFirstPost: Bool = false, confirmingWholeTopic: Bool = false
+    ) async throws(PostingError) -> PostingResult {
         try require(form, is: .edit)
         guard form.canDelete else { throw .deleteNotOffered }
-        if form.deletesWholeTopic, !confirmingWholeTopic { throw .wholeTopicDeletionNotConfirmed }
+        if form.requiresWholeTopicConfirmation(isFirstPost: isFirstPost), !confirmingWholeTopic {
+            throw .wholeTopicDeletionNotConfirmed
+        }
+        let stored = form.form.textareaContent ?? ""
+        guard !stored.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw .emptyInput(.text) }
         return try await submit(
-            .delete, form: form, text: form.form.textareaContent ?? "", overrides: [:], options: [:],
-            checkboxes: [PostingForm.deleteField: true]
+            .delete, form: form, text: stored, overrides: [:], options: [:], checkboxes: [PostingForm.deleteField: true]
         )
     }
 
@@ -167,6 +174,16 @@ public struct PostingFlow: Sendable {
 
     private func checkText(_ text: String) throws(PostingError) {
         try checkInput(text, as: .text)
+    }
+
+    /// A subject or a recipient is a one-line text input: a browser cannot put a line break in it, and cuts it at the
+    /// input's `maxlength` (counted in UTF-16 code units; `sujet` has 70 on `R43a`, `R45a`, `R45b`, `dest` none).
+    private func checkLine(_ value: String, as input: PostingInput, in form: PostingForm) throws(PostingError) {
+        try checkInput(value, as: input)
+        guard !value.contains(where: \.isNewline) else { throw .lineBreak(input) }
+        if let maximum = form.layout.maxLengths[input.fieldName], value.utf16.count > maximum {
+            throw .tooLong(input, maximum: maximum)
+        }
     }
 
     /// Refuses an empty input, and characters HFR would cut the text at (Q-3): telling the user beats a silent loss.

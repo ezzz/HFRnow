@@ -44,11 +44,17 @@ All in `Packages/HFRKit/Sources/HFRClient/Posting/`, plus `HFRParsing/Forms/HopF
 3. **Local checks** (nothing sent): text, subject and recipient must not be blank (`emptyInput`); a character with a scalar
    above U+FFFF in any of them is refused (`unsupportedCharacters(input, characters)`, Q-3: HFR cuts the text there and
    answers success, `W12`); a sub-category must be one of the select's option values; a subject on an edit only when the
-   form shows it (`R43a`); options (`[PostOption: Bool]`: boxes `signature`, `smiley`, `emaill`) only when the form has that box; delete
-   needs the `delete` box (`R44` has none) and, on a first post, `confirmingWholeTopic: true`.
+   form shows it (`R43a`); a subject or a recipient holding a line break (`lineBreak`) or longer than the input's
+   `maxlength` in UTF-16 code units (`tooLong`; `sujet` 70 on `R43a`, `R45a`, `R45b`; `dest` has none) is refused; options (`[PostOption: Bool]`: boxes `signature`, `smiley`, `emaill`) only when the form has that box; delete
+   needs the `delete` box (`R44` has none) and a non-blank stored text (HFR refuses an empty one, `W17a`), and
+   `confirmingWholeTopic: true` whenever `requiresWholeTopicConfirmation(isFirstPost:)` is true (next item).
 4. **First post** — `PostingForm.deletesWholeTopic` is true when the edit form shows the subject **or** its `delete` label
    says "intégralité" ("Effacer l'intégralité du sujet", `R43a`; a later post: hidden subject and "Effacer ce message",
-   `R43b`). Either sign is enough, so a page showing only one still asks for confirmation.
+   `R43b`). Either sign is enough, so a page showing only one still asks for confirmation. These signs are verified on
+   private messages only, so they are trusted only when the form's hidden `cat` is `prive`:
+   `requiresWholeTopicConfirmation(isFirstPost:)` is true when the caller says the message is the first post (the
+   topic page knows it), when the form shows a sign, **or** when the thread is not private. Every public delete asks
+   for confirmation until a public first-post edit form is captured (fail closed).
 5. **Body** (`PostingBody.make`, browser form submission): walk the controls in document order; send text, hidden and
    password inputs with their value (or an override: `sujet`, `dest`), a checkbox or radio only when checked (with
    the options and the flow's own `delete` value applied to checkboxes only), the first submit input only, a select's
@@ -59,7 +65,7 @@ All in `Packages/HFRKit/Sources/HFRClient/Posting/`, plus `HFRParsing/Forms/HopF
    `pseudo` and `hash_check` are the form's (the selected account's); nothing from the fetch URL is merged.
 6. **Writes** — `reply`, `newTopic(subject:subcategory:text:)` (nil sub-category: the form's selected option, else the
    first, "Aucune" on `R45a`), `newPrivateMessage(to:subject:text:)`, `edit(_:subject:)` (sends `delete` unchecked even if
-   the page served it checked), `delete(with:confirmingWholeTopic:)` (stored text sent back, `delete=1`).
+   the page served it checked), `delete(with:isFirstPost:confirmingWholeTopic:)` (stored text sent back, `delete=1`).
 7. **POST** — to the form's `action` (forum-origin path from LOT-036; nil or off-origin → `missingAction`, no default),
    `application/x-www-form-urlencoded; charset=utf-8`, 60 s (legacy writes had URLSession's default), redirects **not
    followed** (a 3xx is classified, never re-sent elsewhere). Sent once; cancellation is checked right before. A session
@@ -102,7 +108,7 @@ state.
   (delete), `W19` (whole thread, confirmed); the body equals the captured `request_body` once legacy's `"0"` boxes are
   dropped and line breaks written CRLF; URL, content type, timeout, no-redirect policy, recorded token, result sentence,
   anchor and `numreponse`. New topic from `R45a`: field order with the select in place.
-- `PostingBodyOracleTests` (differential, LOT-004): on the 14 logged-in composers, the fields and values equal legacy's
+- `PostingBodyOracleTests` (in `PostingBodyTests.swift`, differential, LOT-004): on the 14 logged-in composers, the fields and values equal legacy's
   `post.pairs` except the unchecked boxes and the token.
 - `PostingRefusalTests`: captured refusals (`W17b`, `W20a`, `W20b`, `W14x`, `W13cx`, `W11x`), `W17c` logged out, another write's
   confirmation (`W15`, `W18`), unknown pages, transport failures and HTTP 500 after the POST (unconfirmed, one POST), a 302
@@ -111,6 +117,9 @@ state.
 - `PostingInputTests`: non-BMP in text, subject, recipient (`W12`'s emoji), blank inputs (`W17a`), shapes of every captured
   composer, form mismatches, `R44` delete, unconfirmed whole-thread delete and both first-post signs, edit with `delete`
   served checked, subject on a later post, unknown sub-category, option not offered.
+- `PostingGuardTests`: a probe derived from `R43a` (neither first-post sign) as a public topic needs confirmation; the
+  `isFirstPost` hint on the private probe; a later post of a public topic (`R43b` as category 13); empty stored text on
+  delete; line breaks and `maxlength` in subjects and recipients.
 - `PostingBodyTests`: browser rules on small models (disabled, unnamed, second submit, button, repeated names, radio vs
   checkbox overrides, select overrides and empty selects, unsupported forms).
 - `HopFormLayoutTests` (HFRParsing): indices match `parse` on all 15 composers, `content_form` and `subcat` positions, delete
@@ -119,7 +128,7 @@ state.
 Shown to fail without the change: legacy `"0"` boxes, no per-write sentence check, no non-BMP check, no whole-thread
 guard, edit without the forced `delete` off, followed redirects, transport failures as `network`, the subject-only
 first-post sign, the textarea missing from the layout, no token check, no blank check, no form URL check, newlines
-preserved, no shape distinction, no `invalidRequest` mapping, no `verifrequet` check, no option check.
+preserved, no shape distinction, no `invalidRequest` mapping, no `verifrequet` check, no option check; after the Fable review: public deletes trusted to the form signs, no `isFirstPost` hint, no empty-text check on delete, no line-break check, no `maxlength` check, `maxlength` not read.
 
 ## Intentional differences from legacy
 
@@ -139,11 +148,14 @@ preserved, no shape distinction, no `invalidRequest` mapping, no `verifrequet` c
 
 ## Pending capture
 
-Not hand-built (LESSONS 36). None blocks the lot; until captured, each state is handled conservatively.
+Not hand-built (LESSONS 36). None blocks the lot; until captured, each state is handled conservatively. The first two are
+**MVP priority** in the capture backlog: until they are captured, every public reply, new topic, edit and delete surfaces
+as `unconfirmed(.unexpectedConfirmation)` unless HFR uses the MP sentences, and every public delete asks for whole-topic
+confirmation.
 - **Public-topic answers**: a reply, a new topic, an edit and a delete in a forum topic (`cat=<forum>`). Only private-message
   writes are captured; public writes expect the same sentences, and another sentence is reported `unconfirmed`, never success.
 - **Public edit form** of an own message, first post and later post: the `action` (HFR-PROTOCOL §3.1), the subject field and
-  the `delete` label that tell a first post (until then both signs ask for confirmation).
+  the `delete` label that tell a first post (until then every public delete asks for confirmation).
 - **Delete of a public topic's first post**: what HFR answers, and whether the whole topic goes (rf2 X1).
 - **New-topic answer** in a forum category: sentence and refresh target (E14).
 - **Reply form of a locked topic or of a topic the account may not post in** (already listed for LOT-036/037): reported as

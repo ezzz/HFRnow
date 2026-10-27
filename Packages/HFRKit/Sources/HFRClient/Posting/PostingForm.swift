@@ -41,13 +41,27 @@ public struct PostingForm: Sendable {
         form.fields.contains { $0.name == Self.deleteField && $0.kind == .checkbox }
     }
 
-    /// True when deleting through this edit form deletes the whole thread: the first post of a thread has a visible
-    /// subject and its box reads "Effacer l'intégralité du sujet" (`R43a`; a later post: hidden subject, "Effacer ce
-    /// message", `R43b`). Either sign is enough, so a page that shows only one of them still asks for confirmation.
+    /// True when the form itself says that deleting through it deletes the whole thread: the first post of a thread
+    /// has a visible subject and its box reads "Effacer l'intégralité du sujet" (`R43a`; a later post: hidden subject,
+    /// "Effacer ce message", `R43b`). Either sign is enough. These signs are verified on private messages only: for a
+    /// public topic (pending capture) use `requiresWholeTopicConfirmation(isFirstPost:)`, which fails closed.
     public var deletesWholeTopic: Bool {
         guard shape == .edit, canDelete else { return false }
         let label = layout.checkboxLabels[Self.deleteField]?.lowercased() ?? ""
         return form.isSubjectEditable || label.contains("intégralité")
+    }
+
+    /// True when the form belongs to a private-message thread (its hidden `cat` is `prive`, `R43a`-`R47u1`).
+    public var isPrivateThread: Bool {
+        form.field(named: "cat")?.value == "prive"
+    }
+
+    /// True when a delete through this form must be confirmed as a whole-thread delete: the caller knows the message is
+    /// the first post (`isFirstPost`, from the topic page), the form says so (`deletesWholeTopic`), or the thread is not
+    /// a private one. The first-post signs of a public topic's edit form are not captured, so every public delete is
+    /// treated as possibly deleting the topic until they are (fail closed).
+    public func requiresWholeTopicConfirmation(isFirstPost: Bool = false) -> Bool {
+        isFirstPost || deletesWholeTopic || !isPrivateThread
     }
 
     /// `numreponse` of the message an edit form belongs to.

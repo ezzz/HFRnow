@@ -70,6 +70,16 @@ struct HopFormLayoutTests {
         #expect(later.checkboxLabels["smiley"] == "Désactiver les smilies")
     }
 
+    @Test("maxlength is read by input name: sujet 70 on R45a, none on dest (R45b)")
+    func maxLengths() throws {
+        let topic = try HopFormParser.layout(Fixture.capture("R45a-new-topic-form"))
+        #expect(topic.maxLengths["sujet"] == 70)
+        #expect(topic.maxLengths["toread1"] == 10)
+        let message = try HopFormParser.layout(Fixture.capture("R45b-new-mp-form"))
+        #expect(message.maxLengths["sujet"] == 70)
+        #expect(message.maxLengths["dest"] == nil)
+    }
+
     @Test("Disabled controls, named buttons and unnamed controls on a small page")
     func inlineShapes() throws {
         let html = """

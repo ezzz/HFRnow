@@ -171,6 +171,8 @@ Page states that merged lots listed as **pending capture** (never hand-built in 
 
 | State | Wanted by | Note |
 |---|---|---|
+| **MVP priority.** Public-topic writes (`cat=<forum>`): reply, new topic, edit and delete of an own message, with their answers | LOT-048 | only private-message writes are captured (W10-W19); public answers with another sentence are reported unconfirmed, never success, so until captured every public reply, new topic, edit and delete shows as "may have been posted" |
+| **MVP priority.** Edit form of the first post of a public topic, and its delete answer: subject field, `delete` label, does the whole topic go? | LOT-048 | the first-post signs (visible subject, "Effacer l'intégralité du sujet") are verified on MPs only (R43a); rf2 X1; until captured every public delete asks for whole-topic confirmation |
 | Favourites: logged-in `forum1f.php?owntopic=1` with no flagged topic; two or more categories; a row without flag link, a single-page topic, sticky / closed / poll rows | LOT-024 | R10 has one category with two topics (MANIFEST says two); the empty `owntopic=1` page decides what HFRClient may assume from a `.hop` |
 | Maintenance page (home, lists) | LOT-021, LOT-022 | cannot be provoked; capture when HFR shows one |
 | Poll: multi-choice | LOT-026 | find a topic with a multi-choice poll |
@@ -191,8 +193,6 @@ Page states that merged lots listed as **pending capture** (never hand-built in 
 | Topic page with `quote_only=1` (LOT-001 checklist R34, dropped as optional): is there any server signal that someone quoted me? | FEAT-018, HFR-PROTOCOL §7b B11 | read-only GET; settles feasibility before FEAT-018 is promised |
 | Site `apple-app-site-association` (AASA): which App IDs and paths it names | FEAT-020, Q-1 | reported live 2026-10-26 to name `QMG83DG7YP.hfrplus.red.super` (old format), not captured; plain GET, no account |
 | Edit form of an own message in a public topic (`cat=<forum>`): is the `action` `/bdd.php`, as on the MP edit forms? | LOT-036, LOT-048 | only MP edit forms are captured (R43a-R44) |
-| Public-topic writes (`cat=<forum>`): reply, new topic, edit and delete of an own message, with their answers | LOT-048 | only private-message writes are captured (W10-W19); public answers with another sentence are reported unconfirmed, never success |
-| Edit form of the first post of a public topic, and its delete answer: subject field, `delete` label, does the whole topic go? | LOT-048 | the first-post signs (visible subject, "Effacer l'intégralité du sujet") are verified on MPs only (R43a); rf2 X1 |
 | New-topic form reached with a sub-category preselected (a `selected` option in `subcat`) | LOT-036 | R45a has none |
 | Edit or quote form of a message whose stored text starts with a newline | LOT-036 | tells whether a browser's dropped leading newline corrupts the round trip |
 | Reply form of a locked topic, and of a topic where the account may not post | LOT-036, LOT-037 | what the page serves instead of the form |
