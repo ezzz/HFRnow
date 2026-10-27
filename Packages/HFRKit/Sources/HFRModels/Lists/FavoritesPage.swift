@@ -42,7 +42,8 @@ public struct FavoritesPage: Sendable, Hashable, CustomStringConvertible, Custom
     public var description: String {
         let unread = unreadPrivateMessages.map(String.init) ?? "nil"
         let token = hashCheck == nil ? "nil" : "<redacted>"
-        return "FavoritesPage(\(sections.count) sections, unreadPrivateMessages: \(unread), hashCheck: \(token))"
+        let message = notice ?? "nil"
+        return "FavoritesPage(\(sections.count) sections, unreadPrivateMessages: \(unread), hashCheck: \(token), notice: \(message))"
     }
 
     /// Same as `description`.
@@ -53,7 +54,8 @@ public struct FavoritesPage: Sendable, Hashable, CustomStringConvertible, Custom
         Mirror(self, children: [
             "sections": sections,
             "unreadPrivateMessages": unreadPrivateMessages as Any,
-            "hashCheck": hashCheck == nil ? "nil" : "<redacted>"
+            "hashCheck": hashCheck == nil ? "nil" : "<redacted>",
+            "notice": notice as Any
         ], displayStyle: .struct)
     }
 }

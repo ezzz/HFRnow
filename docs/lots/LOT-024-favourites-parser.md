@@ -60,12 +60,11 @@ list equals the map's `favorites` list, R12 included); R12's legacy exception an
 in `FavoritesParserTests.swift`; the mutations of captures there (last-page link without `href`, foreign flag link, header without link, a second header inserted before R10's second row, the same header without link) are the
 only derived pages and are built by replacing or inserting one element in a capture.
 
-**Pending capture** (none is hand-built; `captures/MANIFEST.md` says R10 has "two categories"; the capture has one category with two topics (the MANIFEST is the capture owner's file, left as is)):
+**Pending capture** (no page is hand-built, the derived ones are listed above; `captures/MANIFEST.md` says R10 has "two categories"; the capture has one category with two topics (the MANIFEST is the capture owner's file, left as is)):
 - favourites spanning two or more categories (section order, grouping, the second header);
 - a favourites row without flag link (resume at the last post, legacy `isViewed`), a single-page topic, a sticky, closed or poll topic;
-- `forum1f.php?owntopic=1` logged in with no flagged topic: the `.hop` rule assumes the list body, as R11 for `owntopic=3`; if it is a `.hop`,
-  the page would be an empty one carrying a `notice` either way, so the parser is already right, but the capture settles what the caller
-  may assume (HFRClient decides logged out or empty from the session);
+- `forum1f.php?owntopic=1` logged in with no flagged topic: either the list body (as R11 for `owntopic=3`) or a `.hop` page. The parser returns an empty
+  page either way (with a `notice` for `.hop`); the capture settles what HFRClient may assume (logged out vs empty);
 - the maintenance page (shared with LOT-022).
 
 ## Intentional differences from legacy

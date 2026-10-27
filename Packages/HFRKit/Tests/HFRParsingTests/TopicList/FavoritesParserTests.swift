@@ -193,6 +193,16 @@ struct FavoritesParserTests {
         }
     }
 
+    @Test("Only the rows of table.main count (legacy :103-104): without that table, rows are not placed")
+    func tableMainScoping() throws {
+        let html = try Fixture.capture("R10-favourites-owntopic1")
+            .replacing(#"<table class="main" cellspacing="0" cellpadding="2"><form name="form1""#,
+                       with: #"<table class="other" cellspacing="0" cellpadding="2"><form name="form1""#)
+        #expect(throws: ListPageFailure.malformed("2 of 2 rows not under a readable category header")) {
+            try FavoritesParser.parse(html)
+        }
+    }
+
     @Test("A category header without link makes its rows unplaceable: malformed, not an empty list")
     func headerWithoutLink() throws {
         let html = try Fixture.capture("R10-favourites-owntopic1")

@@ -23,6 +23,12 @@ import Testing
         #expect(page.topicsByLastPost.map(\.title) == ["new", "tieFirst", "tieSecond", "old", "undated1", "undated2"])
     }
 
+    @Test func descriptionsShowTheNotice() {
+        let page = FavoritesPage(notice: "Aucun sujet")
+        #expect(page.description.contains("Aucun sujet"))
+        #expect(String(describing: Mirror(reflecting: page).children.map { "\($0.value)" }).contains("Aucun sujet"))
+    }
+
     @Test func descriptionsHideTheToken() {
         let page = FavoritesPage(hashCheck: "0123456789abcdef0123456789abcdef")
         #expect(!page.description.contains("0123456789abcdef"))
