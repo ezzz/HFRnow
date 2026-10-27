@@ -78,7 +78,7 @@ Model column: author → reviewer ([AGENTS.md §6](../AGENTS.md#6-model-routing-
 
 | Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Owner | Status |
 |---|---|---|---|---|---|---|---|---|---|
-| LOT-043 | Login (validate before replacing cookies) | HFRClient | medium | Opus → Fable | 042, 025 | NET-04 | high | mac/w1-043-opus (2026-10-27) · old [#72](https://github.com/francoisgn/ios-app_SwiftHFR/issues/72) | in-progress |
+| LOT-043 | Login (validate before replacing cookies) | HFRClient | medium | Opus → Fable | 042, 025 | NET-04 | high | mac/w1-043-opus (2026-10-27) · old [#72](https://github.com/francoisgn/ios-app_SwiftHFR/issues/72) | done (#21) |
 | LOT-044 | Session health & refresh (expiry detection, cookie merge) | HFRClient | medium | Opus → Fable | 042, 013 | NET-07 | medium | — · old [#73](https://github.com/francoisgn/ios-app_SwiftHFR/issues/73) | todo |
 | LOT-046 | Search: global (meta-refresh flow, banned-word list → refuse with a warning, Q-7) and intra-topic (no-redirect flow) | HFRClient | medium | Sonnet → Opus | 041, 025 | NET-10, NET-11 | medium | — · old [#74](https://github.com/francoisgn/ios-app_SwiftHFR/issues/74) | todo |
 | LOT-047 | MP unread count poll (scheduling stays in the app) | HFRClient | easy | Sonnet → Opus | 023, 045 | NET-13 | medium | — · old [#75](https://github.com/francoisgn/ios-app_SwiftHFR/issues/75) | blocked |
