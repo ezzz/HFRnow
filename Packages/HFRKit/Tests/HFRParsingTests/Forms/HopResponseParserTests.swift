@@ -73,27 +73,35 @@ struct HopResponseParserTests {
         #expect(create.refreshAnchor == nil)
     }
 
+    /// A captured GET write: file, sentence, refresh path (nil when the capture is not asserted on it).
+    struct GetWrite: Sendable {
+        let name: String
+        let message: String
+        let path: String?
+    }
+
     @Test("GET writes (mark unread, flags) follow the same shape", arguments: [
-        ("W18-mp-mark-unread-success", "Le message a été marqué comme non lu avec succès", "/forum1.php"),
-        ("P03a-addflag-success", "Favori positionné avec succès", "/hfr/Discussions/Cuisine/liste_sujet-1.htm"),
-        ("P03b-addflag-again", "Favori positionné avec succès", "/hfr/Discussions/Cuisine/liste_sujet-1.htm"),
-        ("P03d-delflag-favourite-success", "Drapeau effacé avec succès", nil)
-    ] as [(String, String, String?)])
-    func getWrites(name: String, message: String, path: String?) throws {
-        let response = try HopResponseParser.classify(html: Fixture.capture(name))
+        GetWrite(name: "W18-mp-mark-unread-success", message: "Le message a été marqué comme non lu avec succès",
+                 path: "/forum1.php"),
+        GetWrite(name: "P03a-addflag-success", message: "Favori positionné avec succès", path: "/hfr/Discussions/Cuisine/liste_sujet-1.htm"),
+        GetWrite(name: "P03b-addflag-again", message: "Favori positionné avec succès", path: "/hfr/Discussions/Cuisine/liste_sujet-1.htm"),
+        GetWrite(name: "P03d-delflag-favourite-success", message: "Drapeau effacé avec succès", path: nil)
+    ])
+    func getWrites(write: GetWrite) throws {
+        let response = try HopResponseParser.classify(html: Fixture.capture(write.name))
         #expect(response.kind == .success)
-        #expect(response.message == message)
-        if let path { #expect(response.refreshURL?.path == path) }
+        #expect(response.message == write.message)
+        if let path = write.path { #expect(response.refreshURL?.path == path) }
         #expect(response.refreshURL?.host() == "forum.hardware.fr")
     }
 
     @Test("A read page with a .hop message is never a success (not a write answer: no refresh)", arguments: [
-        ("R12-favourites-anon", "Aucun sujet que vous avez lu n'est connu"),
-        ("RA5-mp-thread-after-delete-owner", "Ce message ne vous est pas destiné, désolé")
+        ["R12-favourites-anon", "Aucun sujet que vous avez lu n'est connu"],
+        ["RA5-mp-thread-after-delete-owner", "Ce message ne vous est pas destiné, désolé"]
     ])
-    func readPagesAreNotSuccess(name: String, message: String) throws {
-        let response = try HopResponseParser.classify(html: Fixture.capture(name))
-        #expect(response == HopResponse(kind: .rejected, message: message))
+    func readPagesAreNotSuccess(case pair: [String]) throws {
+        let response = try HopResponseParser.classify(html: Fixture.capture(pair[0]))
+        #expect(response == HopResponse(kind: .rejected, message: pair[1]))
     }
 
     @Test("A page without .hop (the edit form R44) is unrecognized")
