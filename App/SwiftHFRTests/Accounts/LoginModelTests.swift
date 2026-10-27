@@ -87,11 +87,14 @@ struct AccountMessagesTests {
         #expect(messages.count == errors.count)
         #expect(Set(messages).count == messages.count - 2) // transport, invalidResponse and invalidRequest share one text
         #expect(AccountMessages.message(for: LoginError.network(.cancelled)) == nil)
-        #expect(AccountMessages.message(for: LoginError.network(.httpStatus(code: 503, url: URL(filePath: "/"))))?.contains("503") == true)
+        let serverError = LoginError.network(.httpStatus(code: 503, url: URL(filePath: "/")))
+        #expect(AccountMessages.message(for: serverError)?.contains("503") == true)
     }
 
     @Test func storeErrorsAndProblemsHaveTexts() {
-        let errors: [CredentialStoreError] = [.corrupted, .unsupportedVersion(2), .invalidPseudo, .pseudoMismatch, .keychain(status: -25_308)]
+        let errors: [CredentialStoreError] = [
+            .corrupted, .unsupportedVersion(2), .invalidPseudo, .pseudoMismatch, .keychain(status: -25_308)
+        ]
         #expect(errors.allSatisfy { !AccountMessages.message(for: $0).isEmpty })
         #expect(StoreProblem(.keychain(status: -25_308)) == .unavailable(status: -25_308))
         #expect(StoreProblem(.unsupportedVersion(3)) == .newerVersion)
