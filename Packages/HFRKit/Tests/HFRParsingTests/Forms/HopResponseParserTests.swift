@@ -83,8 +83,10 @@ struct HopResponseParserTests {
     @Test("GET writes (mark unread, flags) follow the same shape", arguments: [
         GetWrite(name: "W18-mp-mark-unread-success", message: "Le message a été marqué comme non lu avec succès",
                  path: "/forum1.php"),
-        GetWrite(name: "P03a-addflag-success", message: "Favori positionné avec succès", path: "/hfr/Discussions/Cuisine/liste_sujet-1.htm"),
-        GetWrite(name: "P03b-addflag-again", message: "Favori positionné avec succès", path: "/hfr/Discussions/Cuisine/liste_sujet-1.htm"),
+        GetWrite(name: "P03a-addflag-success", message: "Favori positionné avec succès",
+                 path: "/hfr/Discussions/Cuisine/liste_sujet-1.htm"),
+        GetWrite(name: "P03b-addflag-again", message: "Favori positionné avec succès",
+                 path: "/hfr/Discussions/Cuisine/liste_sujet-1.htm"),
         GetWrite(name: "P03d-delflag-favourite-success", message: "Drapeau effacé avec succès", path: nil)
     ])
     func getWrites(write: GetWrite) throws {
