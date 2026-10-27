@@ -1,21 +1,10 @@
 import SwiftUI
 
-/// Placeholder root screen until the login (LOT-081) and navigation (LOT-082) lots replace it.
+/// Root screen: the adaptive navigation. The login lot puts the account screens around it.
 struct RootView: View {
-    var body: some View {
-        NavigationStack {
-            List {
-                Section("HFRKit") {
-                    ForEach(EngineInfo.linkedModules, id: \.self) { module in
-                        Label(module, systemImage: "shippingbox")
-                    }
-                }
-            }
-            .navigationTitle("HFR")
-        }
-    }
-}
+    let environment: AppEnvironment
 
-#Preview {
-    RootView()
+    var body: some View {
+        AdaptiveNavigationView(environment: environment)
+    }
 }
