@@ -256,7 +256,7 @@ Legend. **Covered**: a LOT clearly owns the engine part. **Partial**: engine par
 6. **Search and filter posts.** Global, in-topic, sub-category; filter for heavily quoted posts with throttled sequential fetching (LOT-046, C11).
 7. **iPad, landscape and foldable layout.** Keep a favourites and topics column, support multiple windows and restoration (Phase 5; the 4.0 rollout shows how loudly this is missed).
 8. **Awareness without push.** MP badge poll, quoted-me badge on refresh, AQ badge optional (LOT-047, 055, C11).
-9. **Blacklist and personal data continuity.** MP-storage sync is the migration path since legacy import is dropped (LOT-061, 062, 052, 038).
+9. **Blacklist and personal data continuity.** Legacy import is in scope (LOT-067, Q-1 decided 2026-10-26) for data on the device; MP-storage sync carries what lives on the forum (LOT-061, 062, 052, 038).
 10. **Accessibility and personalisation.** Dynamic Type for post content, full-black theme, seasonal theme, dark icon variants, a small set of settings people actually missed: image loading policy, system or in-app browser, classic vs modern layout, start tab, "+" behaviour (LOT-060, Phase 4).
 
 ### 3.4 Process lessons from the 4.0 rollout

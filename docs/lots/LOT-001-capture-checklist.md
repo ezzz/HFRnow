@@ -112,7 +112,7 @@ All use two **throwaway MP threads** titled `fixture-test-1`/`-2` created by W10
 |---|---|---|---|---|
 | P01 | Reply in a **public** topic | public form differs from MP (`cat`, `sujet`, `subcat`) and success redirect `…#bas` (E13) | rely on R40/R41/R43 (GET forms of public topics) + MP POSTs; or one reply "test" in a topic the operator owns, then edit it, never delete others' content | skip |
 | P02 | Create a public topic and delete it (X1, E14 category redirect, D R10 new topic without subject) | topic creation response, `sujet`/`subcat` | one topic in the least-visited sub-category, neutral title, deleted by the owner right after (W19-like); operator names the category | skip |
-| P03 | Favourite add/remove (`addflag` GET, `delflag` GET, `manageaction.php` POST) | D R12/R13, X6, 4.4#10 (`ref`/`page`/`p` needed?) | flags are private to the account: user2 adds then removes one flag on a public topic and restores the previous state; captures both responses and "already flagged" | **proposed yes**, operator to confirm |
+| P03 | Favourite add/remove (`addflag` GET, `delflag` GET, `manageaction.php` POST) | D R12/R13, X6, 4.4#10 (`ref`/`page`/`p` needed?) | flags are private to the account: user2 adds then removes one flag on a public topic and restores the previous state; captures both responses and "already flagged" | **yes**: approved by the operator on 2026-10-26 (line 3) and captured (`P03a`–`P03f`, corpus `MANIFEST.md`) |
 | P04 | Moderator alert POST (sent / duplicate / pending / treated states, E3) | D R11 | none: alerts go to moderators. Cover with synthetic fixtures (§C N04) | skip |
 | P05 | Poll vote POST (single, multi, already voted) | E10, D11, `vote.php` | none: votes are public. Synthetic (§C N05) | skip |
 | P06 | Poll create/close (E11) | LOT-054 extension | MP threads cannot hold polls as far as we know: not captured | skip |
@@ -139,6 +139,6 @@ All use two **throwaway MP threads** titled `fixture-test-1`/`-2` created by W10
 
 ## D. Totals and dependencies
 - Read-only captures: ≈ 55 files from ≈ 40 ids (several ids hold 2-5 captures). **Over the 25-40 target**: the least valuable to drop first are R34, R14, R58 (folded), R06 second capture, R51. The operator can cut A-1/A-4 rows without blocking Phase 3.
-- Writes: 13 MP/session flows (W01-W20) + 1 proposed flag test (P03).
+- Writes: 13 MP/session flows (W01-W20) + 1 flag test (P03, approved and captured).
 - Dependency order: W01, W03 → W10 → R02 → W13 → R03 → W11, W12, W14, W15, W16, W17, W18 → R13, R43, R47 → W19 (cleanup). Topic pages R20-R34 are independent.
 - Consumers coverage check: 021 (R01-R03, R07), 022 (R04-R09, R13), 023 (R02, R03, R13, W18), 024 (R08, R10-R12), 025 (R50-R55), 026 (R32, R33), 027 (R56), 030-035 (R20-R31), 036-037 (R40-R47, W10-W20), 038 (R13, N01), 041-042 (W01, W03, R40), 043-044 (W01-W03, R55), 045 (R20-R25, R15), 046 (R50-R52), 047 (R02, R03), 048-051 (W10-W19, D03), 052 (N01 + W15), 053 (R53, R54), 054 (R32), 056 (R28), 057 (R57), 058 (W18, R47).
