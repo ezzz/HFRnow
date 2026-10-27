@@ -37,7 +37,7 @@ License: [PolyForm Noncommercial 1.0.0](LICENSE) — no commercial use, credit t
 | Path | Content |
 |---|---|
 | `Packages/HFRKit/` | UI-free engine (Swift package): `HFRModels`, `HFRParsing`, `HFRNetwork`, `HFRStorage`, `HFRClient` |
-| `App/` | iOS app target (SwiftUI). Created during the first Mac session — see [ROADMAP](docs/ROADMAP.md) |
+| `App/` | iOS app target (SwiftUI), `App/SwiftHFR.xcodeproj` — see [App/README](App/README.md) and [ADR 0012](docs/adr/0012-app-project-file-strategy.md) |
 | `docs/ARCHITECTURE.md` | Modules, dependency rules, design principles |
 | `docs/ROADMAP.md` | Phases and their exit criteria |
 | `docs/LOTS.md` | Migration lots: scope, dependencies, model routing, owner, status — the **only tracker** until Issues are enabled on ezzz/HFRnow. **Check it before starting work.** |
@@ -187,3 +187,4 @@ Keep entries short and dated. Remove anything that became false.
 - 2026-10-27 — LOT-024: SwiftSoup `Element.ownerDocument()` is nil for elements of a document nobody retains, and elements of two parses of one page are never identical: keep the `Document` that produced the elements you match against.
 - 2026-10-27 — LOT-037: a write answer is `success` only with HFR's own confirmation (refresh to the forum, a link-less `.hop` **and** "avec succès": login failure, empty lists and the search wait page also refresh with a link-less `.hop`); the legacy "no refusal found means success" turned the 99-byte bad-token reply into a success. The same `.hop` + link shape is a refusal after a write and "already alerted" before the alert form, so the classifier takes a context.
 - 2026-10-27 — LOT-043: a login is validated in a fresh `HFRSession` and only then installed in the account's session (`LoginFlow`). Profile page 5 sets `md_user` and `md_passs` again (`R55-p5`): read a jar after the last request of a flow, not after the POST.
+- 2026-10-27 — LOT-080: the app project uses folder-synchronized groups ([ADR 0012](docs/adr/0012-app-project-file-strategy.md)): add files under `App/SwiftHFR/` without touching `project.pbxproj`. A signed device build needs the team's account in the maintainer's Xcode (no profile on a fresh Mac); CI and agents build unsigned and never pass `-allowProvisioningUpdates`.
