@@ -77,7 +77,7 @@ SwiftHFR keeps the spirit and restarts on a clean foundation: **100 % Swift, mod
 | 0 · Foundations | Repository, CI, security tooling, agent rules | **done** |
 | 1 · Audit | Legacy engine mapped into [migration lots](docs/LOTS.md) (64 today) | **done** — [audit](docs/audit/README.md) |
 | 2 · Fixtures | Real HFR pages + legacy parser output as test oracle | **done** — capture corpus and oracles LOT-001 to 005 |
-| 3 · Engine | Models, parsing, network, storage, flows | **in progress** — 23 of 52 lots done (models, network base, storage, home, lists, topic pages, small parsers); flows next |
+| 3 · Engine | Models, parsing, network, storage, flows | **in progress** — 23 of 54 lots done (models, network base, storage, home, lists, topic pages, small parsers); flows next |
 | 4 · App | SwiftUI app on top of `HFRKit` | **starting** — app target on the Mac (LOT-080); login, navigation and reader lots defined |
 | 5 · iOS 27 experience | Column navigation, large and foldable layouts | planned |
 
@@ -133,6 +133,7 @@ flowchart LR
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Phases and their exit criteria |
 | [docs/LOTS.md](docs/LOTS.md) | The migration plan: lots, dependencies, model routing, one issue each |
 | [docs/lots/](docs/lots/) | One spec per engine lot — the file a lot is built from |
+| [docs/FEATURES.md](docs/FEATURES.md) | The app feature backlog (FEAT-XXX): proposals with credit, status |
 | `docs/features/` | One spec per app feature (`FEAT-XXX.md`), created with the first feature |
 | [docs/HFR-PROTOCOL.md](docs/HFR-PROTOCOL.md) | How forum.hardware.fr works, every fact with its source |
 | [docs/FIXTURES.md](docs/FIXTURES.md) | How pages are captured and anonymized |
