@@ -49,7 +49,7 @@ Model column: author → reviewer ([AGENTS.md §6](../AGENTS.md#6-model-routing-
 | LOT-021 | Forum list (home page) parser (returns all categories; hiding Apple for reviewers is app policy, Q-7) | HFRParsing | medium | Sonnet → Opus | 010, 020, 002 | B4 | — | cloud/c6-sonnet (2026-10-26) | done (#53) |
 | LOT-022 ★ | Topic list parser (forums, MP, search results) — critical path | HFRParsing | difficult | Opus → Fable | 010, 020, 002 | B5 | — | cloud/c7-opus (2026-10-26) | done (#55) |
 | LOT-023 ★ | MP list specifics + unread badge (one parser for the 3 legacy variants) | HFRParsing | easy | Sonnet → Opus | 022 | B6, NET-13 | medium | mac/w1-023-sonnet (2026-10-27) · old [#63](https://github.com/francoisgn/ios-app_SwiftHFR/issues/63) | in-progress |
-| LOT-024 | Favourites page parser | HFRParsing | medium | Sonnet → Opus | 022 | B7 | high | mac/w1-024-sonnet (2026-10-27) · old [#64](https://github.com/francoisgn/ios-app_SwiftHFR/issues/64) | in-progress |
+| LOT-024 | Favourites page parser | HFRParsing | medium | Sonnet → Opus | 022 | B7 | high | mac/w1-024-sonnet (2026-10-27) · old [#64](https://github.com/francoisgn/ios-app_SwiftHFR/issues/64) | done (#20) |
 | LOT-025 | Small parsers: search redirect, `editprofil` page (hash, avatar), smiley search results, AQ listing and AQ RSS feed | HFRParsing | easy | Sonnet → Opus | 020, 005 | B8, NET-04, NET-12, D6, D9 | — | cloud/c5-sonnet (2026-10-26) | done (#45; AQ part split to LOT-028) |
 | LOT-026 | Poll parser (vote / results / closed) | HFRParsing | medium | Sonnet → Opus | 011, 020, 005 | B9, C07, D11 | — | cloud/c5-sonnet (2026-10-26) | done (#46; multi-choice and plain "already voted" pending capture) |
 | LOT-027 | User profile page parser (`/hfr/profil-NNN.htm`: fields, avatar, personal smileys) | HFRParsing | medium | Sonnet → Opus | 010, 020, 005 | review F4 | — | cloud/c10-sonnet (2026-10-26) | done (#59) |
@@ -123,7 +123,7 @@ Posting comes next (LOT-036, 037, 048, 031, 049). The app module is `App` (the X
 
 | Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Owner | Status |
 |---|---|---|---|---|---|---|---|---|---|
-| LOT-080 | iOS app target: Xcode 27 project in `App/` (iOS 27), local package `HFRKit` linked, simulator and device build, app build job in CI, ADR on the project-file strategy | App | medium | Opus → Fable | — | ROADMAP Phase 4 | high | — · old [#94](https://github.com/francoisgn/ios-app_SwiftHFR/issues/94) | todo |
+| LOT-080 | iOS app target: Xcode 27 project in `App/` (iOS 27), local package `HFRKit` linked, simulator and device build, app build job in CI, ADR on the project-file strategy | App | medium | Opus → Fable | — | ROADMAP Phase 4 | high | mac/w1-080-opus (2026-10-27) · old [#94](https://github.com/francoisgn/ios-app_SwiftHFR/issues/94) | in-progress |
 | LOT-081 | Accounts and login screen: add, select and remove an account, login through `HFRClient`, credentials in the account store, session restored at launch, typed errors shown | App | medium | Opus → Fable | 080, 043, 065 | E-6, NET-04 | high | — · old [#95](https://github.com/francoisgn/ios-app_SwiftHFR/issues/95) | blocked |
 | LOT-082 | Adaptive navigation: one `NavigationSplitView` app (iPhone, iPad, foldables) forums → topics → messages; forum list, topic list with pagination, flags/favourites; hiding the Apple category for reviewers is applied here (Q-7) | App | medium | Sonnet → Opus | 080, 021, 022, 024, 045 | B1-B7 | high | — · old [#96](https://github.com/francoisgn/ios-app_SwiftHFR/issues/96) | blocked |
 | LOT-083 | Topic reader: page shell and resources, message HTML builder from the normalized `MessageContent` (ADR 0006), WebView without remote scripts, page navigation, images through the cookie-less client | App | difficult | Opus → Fable | 080, 030, 033, 034, 045 | C12, C13 | high | — · old [#97](https://github.com/francoisgn/ios-app_SwiftHFR/issues/97) | blocked |
@@ -144,6 +144,7 @@ Orchestrator: `mac/orch-opus` (2026-10-27), operator brief of 2026-10-27. **MVP*
 | 1 | LOT-023 MP list ★ | B | Sonnet → Opus | critical path → 038, 047 |
 | 1 | LOT-036 `hop` form parser | A | Sonnet → Opus | → 048 |
 | 1 | LOT-037 `hop` response classifier | A | Sonnet → Opus | → 048, 050, 051, 054 |
+| 1 | LOT-080 iOS app target (Mac) | D | Opus → Fable | operator request: critical path of the MVP (→ 081, 082, 083) |
 | 2 (planned) | LOT-044, 031, 032, 038, 047, 048, 056, 064 | A–E | per row | when their dependencies are done |
 
 ## Other work
@@ -162,6 +163,7 @@ Page states that merged lots listed as **pending capture** (never hand-built in 
 
 | State | Wanted by | Note |
 |---|---|---|
+| Favourites: logged-in `forum1f.php?owntopic=1` with no flagged topic; two or more categories; a row without flag link, a single-page topic, sticky / closed / poll rows | LOT-024 | R10 has one category with two topics (MANIFEST says two); the empty `owntopic=1` page decides what HFRClient may assume from a `.hop` |
 | Maintenance page (home, lists) | LOT-021, LOT-022 | cannot be provoked; capture when HFR shows one |
 | Poll: multi-choice | LOT-026 | find a topic with a multi-choice poll |
 | Poll: plain "already voted" without the multipseudo notice | LOT-026 | needs a vote (P05 out of scope) → only if the operator agrees |
