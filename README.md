@@ -158,7 +158,7 @@ The iOS app target (Xcode 27) is created before the app phase.
 
 1. Read **[AGENTS.md](AGENTS.md)**, then [CONTRIBUTING.md](CONTRIBUTING.md).
 2. Claim a free [migration lot](docs/LOTS.md) or an issue labelled `status: ready` ([label guide](AGENTS.md#7-labels-and-prioritization)).
-3. Open a PR against `dev-swift`: it is merged only when it meets the **[merge criteria](CONTRIBUTING.md#2-merge-criteria)** — 9 required checks green, no conflict, every conversation resolved, and an approval once ADR 0011 is accepted.
+3. Open a PR against `dev-swift`: it is merged only when it meets the **[merge criteria](CONTRIBUTING.md#2-merge-criteria)** — 9 required checks green, no conflict, every conversation resolved.
 
 ### Starting an agent
 
