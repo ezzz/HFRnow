@@ -60,4 +60,13 @@ struct PrivateMessageBadgeParserTests {
     func sentences(text: String, expected: Int) {
         #expect(PrivateMessageBadgeParser.count(inText: text) == expected)
     }
+
+    @Test("Only a table of class `none` is the header block (R08-2 with a decoy `div.none`, derived from the capture)")
+    func decoyNoneElement() throws {
+        let html = try Fixture.capture("R08-2-list-cat13-owntopic2")
+        let decoy = "<div class=\"none\"><table><tr><td>a</td><td>Vous avez 7 nouveaux messages</td><td>c</td></tr></table></div>"
+        let derived = html.replacing(/<body[^>]*>/, maxReplacements: 1) { "\($0.output)\(decoy)" }
+        #expect(derived != html)
+        #expect(try PrivateMessageBadgeParser.unreadCount(in: derived) == 0)
+    }
 }

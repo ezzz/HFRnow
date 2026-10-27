@@ -48,7 +48,8 @@ public enum PrivateMessageBadgeParser {
     /// Logged-in forum lists: the first `.none` block with exactly 3 cells, whose middle one reads "Vous avez N nouveau
     /// message privé" (P03f) or "Messages privés" (R08-2). Anonymous lists, the MP list and search results differ: nil.
     static func countInListHeader(_ body: Element) -> Int? {
-        guard let block = body.firstDescendant(matching: .classToken("none")) else { return nil }
+        // `table.none`, not any `.none` element: an earlier non-table element with three cells must not count.
+        guard let block = body.descendants(matching: .classToken("none")).first(where: { $0.tagName() == "table" }) else { return nil }
         let cells = (try? block.getElementsByTag("td").array()) ?? []
         guard cells.count == 3 else { return nil }
         return count(inText: cells[1].rawText)
