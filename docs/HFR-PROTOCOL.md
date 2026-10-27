@@ -314,11 +314,11 @@ Feasibility questions raised by the same proposals, to answer with evidence befo
 
 ## 8. Third-party services
 
-Inventory, data sent to each host, owners, first-use notices and the image-loading decision (D-071-1, option C): [LOT-071](lots/LOT-071-third-party-services.md). This table keeps the wire facts.
+Inventory, data sent to each host, owners, first-use notices and the decisions on image loading (D-071-1), video players (D-071-2) and AQ requests (D-071-3): [LOT-071](lots/LOT-071-third-party-services.md). This table keeps the wire facts.
 
 | Service | Use | Notes | Source |
 |---|---|---|---|
 | `aq.super-h.fr` | "Alerte Qualitay" community reports | GET `/api/getAlertesByTopic.php?topic_id=`; POST `/api/addAlerte.php` (fixed field order, response `"1"` = success); RSS `/rss.php` (badge, "new since" `last_check_aq`, category 25 hidden unless pseudo `applereview`); unauthenticated, sends pseudo | D §2.7, `AQPlusView.swift:29-87` (decisions Q-4, Q-7) |
 | Image rehost (Chevereto) | Image upload for posts | API key required (ADR 0007) | D §3.2 |
 | Giphy | GIF picker | API key required (ADR 0007) | E §6 |
-| Video players | YouTube, Vimeo, Streamable links shown as `<iframe>` players (`embedded_videos`) | Dailymotion, Coub, Twitch commented out in legacy; display policy open (LOT-071 Q-071-1) | `ParseMessagesOperation.m:238-300`, `LinkItem.m:149-158` |
+| Video players | YouTube, Vimeo, Streamable links shown as `<iframe>` players (`embedded_videos`) | Dailymotion, Coub, Twitch commented out in legacy; removed from the live app by `d645f52`; SwiftHFR shows a placeholder, player on tap (LOT-071 D-071-2) | `ParseMessagesOperation.m:238-300`, `LinkItem.m:149-158` |

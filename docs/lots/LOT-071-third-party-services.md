@@ -13,25 +13,33 @@ the rules below; a PR that makes the app contact a new third-party host adds its
 
 ## Legacy sources
 
-Legacy citations are `HFRswift/…` files of <https://github.com/francoisgn/hfrnow> @ `2440d79` (the live Swift app), unless the row says
-`Classes/…` (Objective-C app, not compiled into HFRswift). Grep of every `http(s)://` literal of `HFRswift/`, `Classes/` and `Extensions/`.
+Legacy citations are files of <https://github.com/francoisgn/hfrnow> @ `2440d79`, relative to `HFRswift/` unless they start with
+`Classes/`, `SuperHFRplus` or `HFRplus/`. A path's folder does not tell its target: each row says when a file is **not** compiled into the
+live Swift app (target HFRswift); `Classes/HFRplusAppDelegate.m`, `Wrapped/LinkItem.m` and `Wrapped/ParseMessagesOperation.m` are, while
+`Wrapped/MessagesTableViewController.m` and `Classes/OnlineMessagesTableViewController.m` are not. Grep of every `http(s)://` literal of
+`HFRswift/`, `Classes/` and `Extensions/`.
+
+Drift: `origin/master` has moved past `2440d79`; its commit `d645f52` (2026-09-06) removed embedded videos from the live app (the
+`embedded_videos` code of `ParseMessagesOperation.m`, `LinkItem.m` and the setting are gone). The video rows below describe `2440d79`.
 
 | Service | Legacy code |
 |---|---|
 | AQ RSS badge, at launch | `Swift/MainWindow.swift:1178-1192` (3 s after the main window appears, once per process, logged out too; called from `:1422`, `:1448`), `Swift/AQPlusView.swift:39, 52-57, 69-90` |
 | AQ "already reported" check | `Swift/MessagesView.swift:325-338` (`URLSession.shared`, body searched for the post id), called on the AQ action (`:2001`, `:3716`) |
 | AQ create | `Swift/MessagesView.swift:340-399` (POST, 5 s, ASCII body with lossy conversion, response `"1"` = success) |
-| AQ, older host | `Classes/OnlineMessagesTableViewController.m:2307, 2443` (`http://alerte-qualitay.toyonos.info/…php5`): not compiled into HFRswift, not carried over |
+| AQ, older host | `Classes/OnlineMessagesTableViewController.m:2307, 2443` (`http://alerte-qualitay.toyonos.info/…php5`): not in the HFRswift target, not carried over |
 | Image rehost upload (Chevereto) | `Swift/ReplyService.swift:1970` (`img3.super-h.fr/api/1/upload/?key=…`), `:1984-1997` (JPEG quality 1.0, cookies off, file name `snapshot_<random>.jpg`), `:2045-2055` (multipart, constant `imageCaption`) |
 | Rehost hosts in the viewer | `Swift/MessagesView.swift:2175, 2205-2210, 3301-3306` (`reho.st/thumb/` → full, `rehost.diberie.com/Picture/Get/t/` → `/f/`, `img3` thumbnails), `Wrapped/LinkItem.m:163` (`hfr-rehost.net` → `reho.st`); dead `reho.st/upload` code in `Classes/RehostImage.m:140-168` |
 | Giphy | `Swift/HFRswiftApp.swift:9, 20` (SDK configured at launch with an embedded key; value deliberately not copied), `Swift/AnswerView.swift:533, 2305-2335` (picker, rating R, inserts `[img]<gif URL>[/img]`); binary `GiphyUISDK.xcframework` 2.1.7 (audit E §6) |
 | Images in messages | `Wrapped/LinkItem.m:161-226` (`display_images` modes), forced to `yes` at every launch by `Classes/HFRplusAppDelegate.m:115-116` (audit C §1.3); topic page loaded from a file URL into a `WKWebView` that fetches every `img src` itself (`Swift/MessagesView.swift:976`) |
+| Animated GIFs and remote smileys | `Swift/MessagesView.swift:5441-5547` (`MessageAnimatedGIFImageView` loads message GIFs) and `Swift/AnswerView.swift:1738-1742` (`loadRemoteGIF`, composer smileys): `URLSession.shared`, the jar that holds the forum cookies |
+| App Transport Security | `HFRswift/Info.plist` has no `NSAppTransportSecurity` key; the Objective-C target allows everything (`SuperHFRplus-Info.plist:216-218`, `NSAllowsArbitraryLoads = true`). Input to D-071-1 point 4 |
 | Photo viewer | `Swift/MessagesView.swift:2444-2447, 5749-5762`: `URLSession.shared` (the jar that holds the forum cookies, domain `.hardware.fr`, audit A §4.1), `Referer: https://forum.hardware.fr` for `reho.st` only |
 | Video embeds | `Wrapped/ParseMessagesOperation.m:238-300` (`embedded_videos` `yes`/`both`: YouTube, Vimeo, Streamable links become players; Dailymotion, Coub, Twitch commented out), `Wrapped/LinkItem.m:149-158` (`<iframe src=…>`); setting default `yes` (`Swift/AppSettingsView.swift:104`) |
 | External links | `Swift/MessagesView.swift:2492`, `Swift/UserProfileView.swift:623` (`SFSafariViewController`, on tap) |
-| Hard-coded mail address | `Swift/MessagesView.swift:3774` (illegal-content report fallback), `Swift/PlusTab.swift:119` (account deletion request), `Wrapped/MessagesTableViewController.m:2606` |
+| Hard-coded mail address | `Swift/MessagesView.swift:3774` (illegal-content report fallback), `Swift/PlusTab.swift:119` (account deletion request); `Wrapped/MessagesTableViewController.m:2606` (not in the HFRswift target) |
 | Analytics, crash reporting | none: no Firebase, Crashlytics, Sentry, MetricKit or other SDK (audit E §6.2; grep of the three trees on 2026-10-27) |
-| Legacy-only links | `Classes/PayViewController.m:77` (`apps.flkone.com` donation page), `HFRplus/HFRplus.plist:14` (ad-hoc IPA on `raw.githubusercontent.com`): not compiled into HFRswift, not carried over |
+| Legacy-only links | `Classes/PayViewController.m:77` (`apps.flkone.com` donation page), `HFRplus/HFRplus.plist:14` (ad-hoc IPA on `raw.githubusercontent.com`), `Classes/Constants.h:66` (unused URL constant), `LSApplicationQueriesSchemes` `itms-apps`, `googlechrome`, `youtube` (`SuperHFRplus-Info.plist:208-213`, to open those apps): Objective-C target only, not carried over |
 
 ## Inventory
 
@@ -40,24 +48,25 @@ Owner = who runs the host; none of them is this project or HFR.
 
 | # | Service | Hosts | Trigger (legacy) | Data sent | Owner | SwiftHFR lot | Status |
 |---|---|---|---|---|---|---|---|
-| T1 | AQ RSS feed (badge "new since") | `aq.super-h.fr` | automatic, at launch | nothing else | community operator of `super-h.fr` | LOT-028 (parser), LOT-055 (client), FEAT-001 | kept (Q-4), notice rule N3 |
-| T2 | AQ per-topic check | `aq.super-h.fr` | user opens the AQ action | topic id (says which topic the user reads) | same | LOT-055 | kept (Q-4) |
-| T3 | AQ create | `aq.super-h.fr` | user confirms an AQ | pseudo (lower case), topic id and title, post id and permalink, post author, free-text title, comment `post de <author>`; unauthenticated, so anyone can post as anyone | same | LOT-055 | kept (Q-4), notice N1 |
+| T1 | AQ RSS feed (badge "new since") | `aq.super-h.fr` | automatic, at launch | nothing else | community operator of `super-h.fr` | LOT-028 (parser), LOT-055 (client), FEAT-001 | kept as legacy: fetched at launch (D-071-3) |
+| T2 | AQ per-topic check | `aq.super-h.fr` | user opens the AQ action | topic id (says which topic the user reads) | same | LOT-055 | kept (Q-4, D-071-3) |
+| T3 | AQ create | `aq.super-h.fr` | user confirms an AQ | pseudo (lower case), topic id and title, post id and permalink, post author, free-text title, comment `post de <author>`; unauthenticated, so anyone can post as anyone | same | LOT-055 | kept, notice before the first creation (Q-4, D-071-3) |
 | T4 | Image rehost (Chevereto) | `img3.super-h.fr` | user uploads an image in the composer | the image (re-encoded JPEG, downscaled to the user setting), the API key in the query; no cookie. The uploaded image becomes public; no delete API is evidenced (HFR-PROTOCOL §7b B12). Whether the re-encode strips EXIF/GPS is unverified (audit D §10 Q9) | community operator of `super-h.fr` (also owns the key, ADR 0007) | LOT-056 | kept, notice N1 |
 | T5 | GIF search (Giphy) | Giphy API and CDN | user opens the GIF picker | search terms; the closed SDK may send more (not audited). The chosen GIF URL is posted, so every reader then loads it from Giphy's CDN (T6) | Giphy | Phase 4 (E-10) | undecided (ADR 0007): no SDK without an ADR (AGENTS.md §3.3) |
 | T6 | Images in messages and signatures | any host a poster chose | displaying a page | an image request per URL; `Referer` and cookies depend on who fetches (see rules R3, R4) | the host's operator, unknown | LOT-034 (lists `MessageImage`), LOT-045 (cookie-less client), LOT-056 (host table), LOT-083 (loading), FEAT-011 (setting) | **decided**: D-071-1 |
-| T7 | Video players | `www.youtube.com`, `player.vimeo.com`, `streamable.com` (legacy active list) | displaying a page with a matching link (`embedded_videos`) | a player iframe: the provider's page, scripts and cookies, loaded without a tap | the provider | LOT-035 (detection), LOT-083 (display) | open: Q-071-1 |
+| T7 | Video players | `www.youtube.com`, `player.vimeo.com`, `streamable.com` (legacy active list) | displaying a page with a matching link (`embedded_videos`) | a player iframe: the provider's page, scripts and cookies, loaded without a tap | the provider | LOT-035 (detection), LOT-083 (display) | **decided**: D-071-2 (player on tap) |
 | T8 | External links | any | user taps a link | normal browsing in `SFSafariViewController` (Safari's own data, not the app's) | the site | LOT-083 | unchanged, no notice (user-initiated navigation) |
 
 Seen in the captures: the `img` elements of the topic captures `R20`–`R28`, `RA*`, `RU*` reference 24 third-party hosts (for example
 `i.imgur.com`, `rehost.diberie.com`, `i85.servimg.com`, `media.tenor.com`, `i.redd.it`, `casimages.com`, `hostingpics.net`); 10 of them
-are `http://` only (`hostingpics.net`, `casimages.com`, `free.fr`, `photorapide.com` and others, mostly in `R28`). No capture holds a
+are `http://` only (`hostingpics.net`, `casimages.com`, `free.fr`, `photorapide.com`, `camif.fr`, `hn.org`), all in `R20`, `R21` and
+`R22a`; the images of `R28` are all `https`. No capture holds a
 `reho.st` or `img3.super-h.fr` image.
 
 Not third-party services of the app:
 
-- **HFR's own page chrome**: every captured HTML page carries Google ad scripts (`securepubads.g.doubleclick.net`) and a tracking pixel
-  (`tracking.groupe-ldlc.com`). SwiftHFR never renders the chrome: parsers read the page and fetch nothing, the reader renders only the
+- **HFR's own page chrome**: captured topic and list pages carry Google ad scripts (`securepubads.g.doubleclick.net`, 31 captured HTML
+  pages) and a tracking pixel (`tracking.groupe-ldlc.com`, 65 pages). SwiftHFR never renders the chrome: parsers read the page and fetch nothing, the reader renders only the
   normalized `MessageContent` without remote scripts (LOT-034, LOT-083). Legacy did the same.
 - **`marc@hardware.fr`** (Q-10): an HFR address used through the system mail composer, so the user sends the mail. It stays out of source,
   as configuration, decided per feature (Phase 4).
@@ -65,35 +74,35 @@ Not third-party services of the app:
 
 ## Rules for SwiftHFR
 
-Decided before this lot (cited) and decided here (D-071-1). Each lot implementing a row of the inventory applies them and tests them.
+R1, R2 and R4 rest on decisions (cited); R3, R5 and R6 are **proposed** by this lot and applied unless the operator objects. Each lot
+implementing a row of the inventory applies them and tests them.
 
 - **R1 — No forum cookie leaves `*.hardware.fr`** (HFR-PROTOCOL §5 session isolation, LOT-042, LOT-045): account sessions contact only
   `*.hardware.fr`; every third-party request (T1–T6) goes through a cookie-less transport (`AnonymousTransport`). Legacy sent AQ and
-  viewer requests through `URLSession.shared`, so a `*.hardware.fr` URL opened in the photo viewer carried the session cookies.
+  viewer, GIF and remote-smiley requests through `URLSession.shared`, so a `*.hardware.fr` URL opened there carried the session cookies.
 - **R2 — Keys and base URLs are configuration** (ADR 0007, Q-10): engine clients take them as parameters; a build without a key disables
   the feature with a clear message. The configuration names are set by the first lot that needs each one (LOT-055, LOT-056), in the
-  untracked key file of ADR 0007 / ADR 0012, and listed in that lot's spec. AQ's base URL is configuration too.
-- **R3 — No `Referer` to third parties**, except for a host that needs it in the LOT-056 host table (`reho.st`, reported by redface2,
+  untracked key file of ADR 0007, and listed in that lot's spec. AQ's base URL is configuration too.
+- **R3 (proposed) — No `Referer` to third parties**, except for a host that needs it in the LOT-056 host table (`reho.st`, reported by redface2,
   HFR-PROTOCOL §7 E26: **pending capture**). The reader document must not leak its own URL either (LOT-083: a `no-referrer` policy or
   images fetched by the cookie-less client).
-- **R4 — Image loading** follows D-071-1.
-- **R5 — No analytics or crash-reporting SDK.** Adding one is a new dependency: ADR, maintainer approval (AGENTS.md §3.3) and a row here.
-- **R6 — The inventory is the allow-list**: the app contacts no third-party host for a feature that is not in it. Images (T6) and links
+- **R4 — Image loading** follows D-071-1, video players D-071-2.
+- **R5 (proposed) — No analytics or crash-reporting SDK.** Adding one is a new dependency: ADR, maintainer approval (AGENTS.md §3.3) and a row here.
+- **R6 (proposed) — The inventory is the allow-list**: the app contacts no third-party host for a feature that is not in it. Images (T6) and links
   (T8) are open by nature and governed by R4 and the user's tap.
 
 ### First-use notices
 
-Q-4 decided: AQ is kept with a first-use notice. The same rule applies to every service that sends user data (proposed here, applied by
-LOT-055, LOT-056 and the Phase 4 GIF lot):
+Q-4 and D-071-3 decided the AQ case: a notice before the first AQ creation. N1 to N3 extend it and are **proposed**, applied by
+LOT-055, LOT-056 and the Phase 4 GIF lot unless the operator objects.
 
 - **N1 — Before the first request** that sends user data (T3, T4, T5), a notice says: the host and who runs it (not HFR, not this app),
   what is sent (the "Data sent" cell above, in plain words), that the result is public when it is (AQ, uploaded images), and that the
   operator's terms apply. Two choices: continue, or cancel (nothing is sent). Accepted once per service and per device; the choice is
-  stored in the settings store (LOT-060) and can be reset in Settings.
-- **N2 — Read-only checks** (T2) are covered by the AQ notice: the check runs only after the user accepted it.
-- **N3 — Automatic contacts** (T1, the launch-time RSS badge) start only once the AQ notice was accepted; before that the badge and the AQ
-  feed (FEAT-001) show an entry that leads to the notice. Legacy contacted `aq.super-h.fr` at every launch, logged out included.
-- **N4 — Wording** stays factual and short; it is written in the app lot that shows it, and reviewed against this table.
+  stored in the settings store (LOT-060) and can be reset in Settings. For AQ this is the decided notice of Q-4 / D-071-3.
+- **N2 — Read-only AQ requests** (T1 badge and feed, T2 check) need no notice and run as in legacy (D-071-3): they send no user data
+  beyond the topic id.
+- **N3 — Wording** stays factual and short; it is written in the app lot that shows it, and reviewed against this table.
 
 ## Decision D-071-1 — Image loading in the topic reader
 
@@ -116,9 +125,12 @@ A relay or image proxy run by the project was not offered, for the same reason A
 
 What C means, for LOT-083 (which applies it) and FEAT-011:
 
-1. **Never loaded**, whatever the setting or a tap: hosts that are IP literals or names in private, loopback, link-local or
-   unique-local ranges (IPv4 `10/8`, `172.16/12`, `192.168/16`, `127/8`, `169.254/16`, `100.64/10`; IPv6 `::1`, `fc00::/7`,
-   `fe80::/10`), names without a dot and `.local` names; and `*.hardware.fr` URLs that are not an image path (the
+1. **Never loaded**, whatever the setting or a tap: IP literals in private, loopback, link-local or unique-local ranges (IPv4
+   `10/8`, `172.16/12`, `192.168/16`, `127/8`, `169.254/16`, `100.64/10`; IPv6 `::1`, `fc00::/7`, `fe80::/10`, IPv4-mapped forms);
+   **any host whose dot-separated labels are all numeric** (decimal, `0x` hex or leading-zero octal, e.g. `0xC0.0xA8.1.1`,
+   `0300.0250.1.1`, `192.168.1`), unless it is a canonical dotted-quad of four decimal labels outside those ranges, because Foundation's
+   `URL.host()` returns such text unchanged and the system resolver (`inet_aton`) reads it as an address; names without a dot (this is
+   what catches a single-number host such as `3232235777`) and `.local` names; and `*.hardware.fr` URLs that are not an image path (the
    `forum-images.hardware.fr` smiley and avatar paths are images). The image shows as a link, which the user may still open in the browser
    (T8). The block happens before any request, in the reader, not in the parser.
 2. **Third-party images** load on tap, unless the image-loading setting (`display_images`, `ImageDisplayMode`, FEAT-011) allows
@@ -129,12 +141,22 @@ What C means, for LOT-083 (which applies it) and FEAT-011:
    the captures) need an App Transport Security decision in LOT-083 (exception for images vs. https upgrade vs. broken image); measure it
    on the Mac.
 
-## Open question for the operator
+## Decision D-071-2 — Video players
 
-- **Q-071-1 — Video players (T7).** Legacy turns YouTube, Vimeo and Streamable links into player iframes that load without a tap
-  (`embedded_videos=yes` by default), which loads the provider's scripts and cookies, against the "no remote scripts" line of LOT-083.
-  Options: (a) keep legacy auto-players; (b) a placeholder that loads the player on tap (same spirit as D-071-1); (c) links only, opened
-  in the browser. Decided in LOT-083 or LOT-035 once the operator chooses; not decided here.
+**Decided by the operator (francoisgn), 2026-10-27:** a placeholder that loads the third-party player only on tap.
+
+Options considered: (a) auto-loaded player iframes, as `2440d79` did with `embedded_videos=yes` by default: rejected, they load the
+provider's scripts and cookies without a tap; (b) placeholder, player loaded on tap: **chosen**; (c) links only, opened in the browser:
+rejected. The live legacy app has since dropped embeds altogether (`d645f52`, see Legacy sources). LOT-035 detects the links, LOT-083
+shows the placeholder; the player request follows R1 and R3.
+
+## Decision D-071-3 — AQ requests
+
+**Decided by the operator (francoisgn), 2026-10-27:** keep the legacy behaviour. The AQ badge (RSS feed) is fetched at launch as legacy
+does, and the per-topic check runs on the AQ action; the first-use notice of Q-4 is shown before the first AQ creation.
+
+Options considered: (a) legacy behaviour with the notice before the first creation: **chosen**; (b) no contact with `aq.super-h.fr`,
+badge included, before the notice is accepted (proposed by this lot as N3 in the first draft): not adopted.
 
 Already open elsewhere, not reopened here: whether to keep GIF search and how (ADR 0007, audit E-10, Phase 4).
 
@@ -143,8 +165,9 @@ Already open elsewhere, not reopened here: whether to keep GIF search and how (A
 - A poster's image URL that redirects: the block rules of D-071-1 apply to every hop (a public host redirecting to a private address),
   as LESSONS 30 and 37 apply to sessions.
 - An image inside a link: blocking the image does not follow the link; the link stays a tap-only navigation (T8).
-- Hosts given as decimal or hex IPv4 (`http://3232235777/`) or IPv4-mapped IPv6 are IP literals: they are parsed by the URL type before
-  the range check, not matched as text.
+- Numeric host spellings are **not** normalized by Foundation (`URL(string: "http://0xC0.0xA8.1.1/")?.host()` is the literal text) but
+  are resolved as addresses by the system: point 1 rejects them by shape, never by matching the text against the ranges. LOT-083 tests
+  `0xC0.0xA8.1.1`, `0300.0250.1.1`, `192.168.1`, `3232235777`, `[::ffff:192.168.1.1]` and `[::1]`.
 - A user who accepted a notice and then switches account: notices are per device, not per account (the data sent includes the pseudo, so
   the notice names "your pseudo", not a specific one).
 
@@ -154,13 +177,13 @@ No new fixture. Facts come from the legacy code above and from the topic capture
 
 **Pending capture** (added to the Capture backlog in [LOTS.md](../LOTS.md)): a `reho.st` image fetched cookie-less with and without
 `Referer: https://forum.hardware.fr/` (settles HFR-PROTOCOL §7 E26 for the LOT-056 host table), and one `http://`-only image host of
-`R28` requested over `https` (does it upgrade?). Plain GETs, no account, no upload. The AQ captures are already in the backlog (LOT-028).
+`R20`/`R21`/`R22a` requested over `https` (does it upgrade?). Plain GETs, no account, no upload. The AQ captures are already in the backlog (LOT-028).
 
 ## Intentional differences from legacy
 
-- AQ, check and badge contact `aq.super-h.fr` only after the AQ notice is accepted (legacy: at every launch, no notice).
+- AQ: a notice before the first creation (legacy: none); badge and check unchanged (D-071-3).
 - No forum cookie on any image or third-party request (legacy viewer used the shared jar).
-- Images: D-071-1 replaces automatic loading of every host.
+- Images: D-071-1 replaces automatic loading of every host; video players load on tap (D-071-2).
 - Third-party keys and base URLs out of source (ADR 0007).
 - Giphy SDK not carried over (AGENTS.md §3.3); GIF search is a Phase 4 decision.
 
