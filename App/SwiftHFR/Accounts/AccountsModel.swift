@@ -296,6 +296,9 @@ final class AccountsModel {
         guard let session = sessions[id], await session.isLoggedIn() else { return }
         let cookies = await session.cookies()
         let hashCheck = await session.hashCheck
+        // Replaced (a new login of the same pseudo) or removed while the jar was read: its cookies must not overwrite
+        // what the store holds now. No suspension point follows before the write.
+        guard sessions[id] === session else { return }
         do {
             try store.update { book in
                 guard var account = book.account(matching: id) else { return }
