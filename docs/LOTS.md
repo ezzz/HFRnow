@@ -48,20 +48,20 @@ Model column: author → reviewer ([AGENTS.md §6](../AGENTS.md#6-model-routing-
 | LOT-020 ✱ | Parsing core: selector helpers, HFR dates (Europe/Paris), URL helpers, obfuscated-URL decoder, integer extraction, typed errors | HFRParsing | medium | Opus → Fable | 010, 011 | B3, C02, D4 | — | cloud/c4-opus (2026-10-25) | done |
 | LOT-021 | Forum list (home page) parser (returns all categories; hiding Apple for reviewers is app policy, Q-7) | HFRParsing | medium | Sonnet → Opus | 010, 020, 002 | B4 | — | cloud/c6-sonnet (2026-10-26) | done (#53) |
 | LOT-022 ★ | Topic list parser (forums, MP, search results) — critical path | HFRParsing | difficult | Opus → Fable | 010, 020, 002 | B5 | — | cloud/c7-opus (2026-10-26) | done (#55) |
-| LOT-023 ★ | MP list specifics + unread badge (one parser for the 3 legacy variants) | HFRParsing | easy | Sonnet → Opus | 022 | B6, NET-13 | medium | mac/w1-023-sonnet (2026-10-27) · old [#63](https://github.com/francoisgn/ios-app_SwiftHFR/issues/63) | in-progress |
+| LOT-023 ★ | MP list specifics + unread badge (one parser for the 3 legacy variants) | HFRParsing | easy | Sonnet → Opus | 022 | B6, NET-13 | medium | mac/w1-023-sonnet (2026-10-27) · old [#63](https://github.com/francoisgn/ios-app_SwiftHFR/issues/63) | done (#19) |
 | LOT-024 | Favourites page parser | HFRParsing | medium | Sonnet → Opus | 022 | B7 | high | mac/w1-024-sonnet (2026-10-27) · old [#64](https://github.com/francoisgn/ios-app_SwiftHFR/issues/64) | done (#20) |
 | LOT-025 | Small parsers: search redirect, `editprofil` page (hash, avatar), smiley search results, AQ listing and AQ RSS feed | HFRParsing | easy | Sonnet → Opus | 020, 005 | B8, NET-04, NET-12, D6, D9 | — | cloud/c5-sonnet (2026-10-26) | done (#45; AQ part split to LOT-028) |
 | LOT-026 | Poll parser (vote / results / closed) | HFRParsing | medium | Sonnet → Opus | 011, 020, 005 | B9, C07, D11 | — | cloud/c5-sonnet (2026-10-26) | done (#46; multi-choice and plain "already voted" pending capture) |
 | LOT-027 | User profile page parser (`/hfr/profil-NNN.htm`: fields, avatar, personal smileys) | HFRParsing | medium | Sonnet → Opus | 010, 020, 005 | review F4 | — | cloud/c10-sonnet (2026-10-26) | done (#59) |
 | LOT-028 | AQ listing and AQ RSS feed parsers (the AQ part of LOT-025), HTML entities decoded | HFRParsing | easy | Sonnet → Opus | 020, 012 | D6, B4 | low | — | blocked (AQ capture) |
 | LOT-030 | Message block extraction — core of the topic page | HFRParsing | difficult | Fable → Opus | 011, 020, 003 | C03 | — | cloud/c8-fable (2026-10-26) | done (#54) |
-| LOT-031 | Per-message action links (quote, edit, alert, profile, MP, flag, quoteJS) | HFRParsing | medium | Opus → Fable | 030 | C04 | medium | — · old [#65](https://github.com/francoisgn/ios-app_SwiftHFR/issues/65) | todo |
+| LOT-031 | Per-message action links (quote, edit, alert, profile, MP, flag, quoteJS) | HFRParsing | medium | Opus → Fable | 030 | C04 | medium | mac/w2-031-opus (2026-10-27) · old [#65](https://github.com/francoisgn/ios-app_SwiftHFR/issues/65) | in-progress |
 | LOT-032 | Quote analysis (authors, nesting) | HFRParsing | medium | Sonnet → Opus | 030 | C05 | medium | — · old [#66](https://github.com/francoisgn/ios-app_SwiftHFR/issues/66) | todo |
 | LOT-033 | Topic page metadata (title, pagination, answer form, hidden fields) | HFRParsing | medium | Sonnet → Opus | 011, 020, 003 | C06 | — | cloud/c9-sonnet (2026-10-26) | done (#52) |
 | LOT-034 | Content normalization (smileys, images, links, signature, code, spoilers) | HFRParsing | difficult | Fable → Opus | 030, ADR 0006 | C08 | high | mac/w1-034-fable (2026-10-27) · old [#67](https://github.com/francoisgn/ios-app_SwiftHFR/issues/67) | in-progress |
 | LOT-035 | Video embed detection (fixes the YouTube hour bug) | HFRParsing | easy | Sonnet → Opus | 034 | C09 | low | — · old [#68](https://github.com/francoisgn/ios-app_SwiftHFR/issues/68) | blocked |
 | LOT-036 | `hop` form parser (inputs, selects, `content_form` textarea incl. `[quotemsg]` prefill, entity decoding) | HFRParsing | medium | Sonnet → Opus | 012, 020, 004 | D1 | medium | mac/w1-036-sonnet (2026-10-27) · old [#69](https://github.com/francoisgn/ios-app_SwiftHFR/issues/69) | done (#22) |
-| LOT-037 | `hop` response classifier (success, rejected, logged out, already alerted) | HFRParsing | medium | Sonnet → Opus | 012, 004 | D2 | medium | mac/w1-037-sonnet (2026-10-27) · old [#70](https://github.com/francoisgn/ios-app_SwiftHFR/issues/70) | in-progress |
+| LOT-037 | `hop` response classifier (success, rejected, logged out, already alerted) | HFRParsing | medium | Sonnet → Opus | 012, 004 | D2 | medium | mac/w1-037-sonnet (2026-10-27) · old [#70](https://github.com/francoisgn/ios-app_SwiftHFR/issues/70) | done (#18) |
 | LOT-038 ★ | MPStorage page parsing (locate the storage MP, read its JSON) | HFRParsing | medium | Sonnet → Opus | 023, 030 | D8 | medium | — · old [#71](https://github.com/francoisgn/ios-app_SwiftHFR/issues/71) | blocked |
 
 ### Network (`HFRNetwork`) — transport, endpoints, sessions, raw fetchers
@@ -78,8 +78,8 @@ Model column: author → reviewer ([AGENTS.md §6](../AGENTS.md#6-model-routing-
 
 | Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Owner | Status |
 |---|---|---|---|---|---|---|---|---|---|
-| LOT-043 | Login (validate before replacing cookies) | HFRClient | medium | Opus → Fable | 042, 025 | NET-04 | high | mac/w1-043-opus (2026-10-27) · old [#72](https://github.com/francoisgn/ios-app_SwiftHFR/issues/72) | in-progress |
-| LOT-044 | Session health & refresh (expiry detection, cookie merge) | HFRClient | medium | Opus → Fable | 042, 013 | NET-07 | medium | — · old [#73](https://github.com/francoisgn/ios-app_SwiftHFR/issues/73) | todo |
+| LOT-043 | Login (validate before replacing cookies) | HFRClient | medium | Opus → Fable | 042, 025 | NET-04 | high | mac/w1-043-opus (2026-10-27) · old [#72](https://github.com/francoisgn/ios-app_SwiftHFR/issues/72) | done (#21) |
+| LOT-044 | Session health & refresh (expiry detection, cookie merge) | HFRClient | medium | Opus → Fable | 042, 013 | NET-07 | medium | mac/w2-044-opus (2026-10-27) · old [#73](https://github.com/francoisgn/ios-app_SwiftHFR/issues/73) | in-progress |
 | LOT-046 | Search: global (meta-refresh flow, banned-word list → refuse with a warning, Q-7) and intra-topic (no-redirect flow) | HFRClient | medium | Sonnet → Opus | 041, 025 | NET-10, NET-11 | medium | — · old [#74](https://github.com/francoisgn/ios-app_SwiftHFR/issues/74) | todo |
 | LOT-047 | MP unread count poll (scheduling stays in the app) | HFRClient | easy | Sonnet → Opus | 023, 045 | NET-13 | medium | — · old [#75](https://github.com/francoisgn/ios-app_SwiftHFR/issues/75) | blocked |
 | LOT-048 | Post-form engine: reply, edit, delete (incl. first post = whole topic), new topic, new MP, MP reply — posts as the **selected** account (Q-8); `verifrequet`, browser checkbox semantics, refuses non-BMP characters (Q-3), per-flow success markers, never reports success unless HFR confirmed it | HFRClient | difficult | Opus → Fable | 036, 037, 042 | D3 | medium | — · old [#76](https://github.com/francoisgn/ios-app_SwiftHFR/issues/76) | blocked |
@@ -111,7 +111,7 @@ Model column: author → reviewer ([AGENTS.md §6](../AGENTS.md#6-model-routing-
 
 | Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Owner | Status |
 |---|---|---|---|---|---|---|---|---|---|
-| LOT-071 | Third-party services: inventory (image rehost, AQ, Giphy…), data sent, owner, first-use notices, configuration (Q-4, ADR 0007) | docs | easy | Opus → Fable | — | review Q-4 | medium | — · old [#91](https://github.com/francoisgn/ios-app_SwiftHFR/issues/91) | todo |
+| LOT-071 | Third-party services: inventory (image rehost, AQ, Giphy…), data sent, owner, first-use notices, configuration (Q-4, ADR 0007) | docs | easy | Opus → Fable | — | review Q-4 | medium | mac/w2-071-opus (2026-10-27) · old [#91](https://github.com/francoisgn/ios-app_SwiftHFR/issues/91) | done (#27) |
 | LOT-072 | Shared pseudo normaliser (ZWSP and format characters, case rules) used by blocklist, drafts and accounts; removes the three private copies | HFRStorage | easy | Sonnet → Opus | 061, 063, 065 | reviews of #30, #31, #34 | low | — · old [#92](https://github.com/francoisgn/ios-app_SwiftHFR/issues/92) | todo |
 | LOT-073 | MPStorage JSON tokenizer that preserves number lexemes natively, replacing the private-use marker workaround of LOT-062 | HFRModels | medium | Opus → Fable | 062 | review of #33 | low | — · old [#93](https://github.com/francoisgn/ios-app_SwiftHFR/issues/93) | todo |
 | LOT-070 | Parity gates: differential roll-up, persistence parity checklist, write chapter of HFR-PROTOCOL | docs/tests | medium | Opus → Fable | all parsing/network/storage lots | C18, E-9, D13 | medium | — · old [#90](https://github.com/francoisgn/ios-app_SwiftHFR/issues/90) | blocked |
@@ -123,10 +123,10 @@ Posting comes next (LOT-036, 037, 048, 031, 049). The app module is `App` (the X
 
 | Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Owner | Status |
 |---|---|---|---|---|---|---|---|---|---|
-| LOT-080 | iOS app target: Xcode 27 project in `App/` (iOS 27), local package `HFRKit` linked, simulator and device build, app build job in CI, ADR on the project-file strategy | App | medium | Opus → Fable | — | ROADMAP Phase 4 | high | — · old [#94](https://github.com/francoisgn/ios-app_SwiftHFR/issues/94) | todo |
-| LOT-081 | Accounts and login screen: add, select and remove an account, login through `HFRClient`, credentials in the account store, session restored at launch, typed errors shown | App | medium | Opus → Fable | 080, 043, 065 | E-6, NET-04 | high | — · old [#95](https://github.com/francoisgn/ios-app_SwiftHFR/issues/95) | blocked |
-| LOT-082 | Adaptive navigation: one `NavigationSplitView` app (iPhone, iPad, foldables) forums → topics → messages; forum list, topic list with pagination, flags/favourites; hiding the Apple category for reviewers is applied here (Q-7) | App | medium | Sonnet → Opus | 080, 021, 022, 024, 045 | B1-B7 | high | — · old [#96](https://github.com/francoisgn/ios-app_SwiftHFR/issues/96) | blocked |
-| LOT-083 | Topic reader: page shell and resources, message HTML builder from the normalized `MessageContent` (ADR 0006), WebView without remote scripts, page navigation, images through the cookie-less client | App | difficult | Opus → Fable | 080, 030, 033, 034, 045 | C12, C13 | high | — · old [#97](https://github.com/francoisgn/ios-app_SwiftHFR/issues/97) | blocked |
+| LOT-080 | iOS app target: Xcode 27 project in `App/` (iOS 27), local package `HFRKit` linked, simulator and device build, app build job in CI, ADR on the project-file strategy | App | medium | Opus → Fable | — | ROADMAP Phase 4 | high | `mac/w1-080-opus` (2026-10-27) · old [#94](https://github.com/francoisgn/ios-app_SwiftHFR/issues/94) | done (#25) |
+| LOT-081 | Accounts and login screen: add, select and remove an account, login through `HFRClient`, credentials in the account store, session restored at launch, typed errors shown | App | medium | Opus → Fable | 080, 043, 065 | E-6, NET-04 | high | mac/w2-081-opus (2026-10-27) · old [#95](https://github.com/francoisgn/ios-app_SwiftHFR/issues/95) | in-progress |
+| LOT-082 | Adaptive navigation: one `NavigationSplitView` app (iPhone, iPad, foldables) forums → topics → messages; forum list, topic list with pagination, flags/favourites; hiding the Apple category for reviewers is applied here (Q-7) | App | medium | Sonnet → Opus | 080, 021, 022, 024, 045 | B1-B7 | high | mac/w2-082-sonnet (2026-10-27) · old [#96](https://github.com/francoisgn/ios-app_SwiftHFR/issues/96) | in-progress |
+| LOT-083 | Topic reader: page shell and resources, message HTML builder from the normalized `MessageContent` (ADR 0006), WebView without remote scripts, page navigation, images through the cookie-less client; image loading policy C (operator 2026-10-27, recorded by LOT-071): no private/LAN hosts, no non-image `*.hardware.fr` paths, third-party images on tap or per the image setting | App | difficult | Opus → Fable | 080, 030, 033, 034, 045, 071 | C12, C13 | high | — · old [#97](https://github.com/francoisgn/ios-app_SwiftHFR/issues/97) | blocked |
 
 ## Phase 4 backlog — app side (not engine)
 
@@ -144,7 +144,13 @@ Orchestrator: `mac/orch-opus` (2026-10-27), operator brief of 2026-10-27. **MVP*
 | 1 | LOT-023 MP list ★ | B | Sonnet → Opus | critical path → 038, 047 |
 | 1 | LOT-036 `hop` form parser | A | Sonnet → Opus | → 048 |
 | 1 | LOT-037 `hop` response classifier | A | Sonnet → Opus | → 048, 050, 051, 054 |
-| 2 (planned) | LOT-044, 031, 032, 038, 047, 048, 056, 064 | A–E | per row | when their dependencies are done |
+| 1 | LOT-080 iOS app target (Mac) | D | Opus → Fable | operator request: critical path of the MVP (→ 081, 082, 083) |
+| 2 | LOT-044 session health & refresh | E | Opus → Fable | MVP login/session basics |
+| 2 | LOT-031 per-message actions | C | Opus → Fable | → 049 quote engine; message actions for the reader |
+| 2 | LOT-071 third-party services inventory | E | Opus → Fable | → 055, 083: records the third-party loading policy (operator decision 2026-10-27: option C) |
+| 2 | LOT-081 accounts and login screen (Mac) | D | Opus → Fable | all deps done (080, 043, 065): MVP login |
+| 2 | LOT-082 adaptive navigation (Mac) | D | Sonnet → Opus | all deps done (080, 021, 022, 024, 045): MVP browsing |
+| 3 (planned) | LOT-048 (after 036), 038 and 047 (after 023), 032, 056, 064 | A–E | per row | when their dependencies are done |
 
 ## Other work
 
@@ -155,6 +161,7 @@ Work that is not a lot, listed so nothing lives only in a session's memory. Clai
 | Pre-commit config (syntax, lint, secrets; pinned versions) and a CI job replaying `pre-commit run --all-files` | old [#14](https://github.com/francoisgn/ios-app_SwiftHFR/issues/14) | — | todo |
 | App feature backlog FEAT-001…021: each feature gets its spec `docs/features/FEAT-XXX.md`, then engine lots here and app PRs ([ADR 0011](adr/0011-contribution-model-and-feature-intake.md) §2) | [FEATURES.md](FEATURES.md) | — | todo |
 | Cutover follow-ups: ADR 0010 → Accepted and learnings in AGENTS.md §11, once ezzz has done the owner actions of [EZZZ-CUTOVER](migration/EZZZ-CUTOVER.md) step 9; then delete the runbook | [ADR 0010](adr/0010-hosting-on-ezzz-hfrnow-dev-swift.md) | — | blocked (ezzz, step 9) |
+| Analyze `App/` with CodeQL once a CodeQL-compatible Xcode 27 runner exists ([ADR 0012](adr/0012-app-project-file-strategy.md)) | LOT-080 review | — | blocked |
 
 ## Capture backlog (Mac)
 
@@ -167,6 +174,13 @@ Page states that merged lots listed as **pending capture** (never hand-built in 
 | Poll: multi-choice | LOT-026 | find a topic with a multi-choice poll |
 | Poll: plain "already voted" without the multipseudo notice | LOT-026 | needs a vote (P05 out of scope) → only if the operator agrees |
 | `div.sondageFooter` | LOT-026 | |
+| MP list page past the last page (`page=N` after a deletion); is the answer a `.hop` page? | LOT-023 | decides how pager walks (LOT-038/047) read `.notAuthenticated` |
+| MP list row of a one-to-one thread whose interlocutor was deleted or banned | LOT-023 | `sujetCase6` shape; the parser then reads a plain span as not a group |
+| MP list logged out | LOT-023 | the `.notAuthenticated` rule is checked on another list's `.hop` page |
+| Forum-list header badge with N > 1 ("Vous avez N nouveaux messages privés" in `table.none`) | LOT-023 | plural captured on the home page only |
+| MP list row with the ignore icon in its other state (`ignore1.gif`) | LOT-023 | not modelled yet |
+| MP pseudos containing a comma (`[non lu]` tooltip, group tooltip) | LOT-023 | whether HFR allows one is unknown |
+| Badge on a logged-in topic page | LOT-023 | R20 is anonymous; the parser returns nil on topic pages |
 | Topic list: MP list logged out, cross-category search results, rare row shapes | LOT-022 | see the LOT-022 spec |
 | Locked topic seen logged in; favourite/flagged topic page; checked in-topic search filter (R52a was a 302) | LOT-033 | |
 | Deleted message wrapper `messagetabledel`; in-topic search prefix link | LOT-030 | |
@@ -179,6 +193,14 @@ Page states that merged lots listed as **pending capture** (never hand-built in 
 | Edit or quote form of a message whose stored text starts with a newline | LOT-036 | tells whether a browser's dropped leading newline corrupts the round trip |
 | Reply form of a locked topic, and of a topic where the account may not post | LOT-036, LOT-037 | what the page serves instead of the form |
 | AQ listing (`getAlertesByTopic`) and AQ RSS feed, with HTML entities in titles, authors and comments | LOT-028, LOT-055, issue to open #4 | third-party host `aq.super-h.fr` (LOT-001 checklist row P08, skipped while Q-4 was open); Q-4 is decided (keep, first-use notice), so capture it now, plus a legacy oracle for the parser |
+| `reho.st` image fetched cookie-less with and without `Referer: https://forum.hardware.fr/`; one `http://`-only image host of `R20`/`R21`/`R22a` requested over `https` | LOT-056, LOT-071, LOT-083 | settles HFR-PROTOCOL §7 E26 and the `http`-only hosts of the LOT-071 decision D-071-1; plain GETs, no account, no upload |
+| Moderator alert: page of an already-reported message (text, is it `.hop` + link/input?) | LOT-037, LOT-050 | `modo.php` GET on a message the account already reported; `alreadyAlerted` rests on the legacy rule alone |
+| Moderator alert: submit success (text, refresh, "avec succès"?) | LOT-037, LOT-050 | until captured, an alert write cannot be classified `success` |
+| Other logged-out write answers (flag GET, alert, vote) and login-form pages | LOT-037 | `loggedOut` matches only the W17c sentence |
+| Poll vote answer; other refusal sentences (locked topic, ban) | LOT-037, LOT-054 | classified `rejected` by shape only |
+| Login refused for flood or lockout (several wrong passwords in a row) | LOT-043 | its text is unknown (HFR-PROTOCOL §7 "Login"); today reported as `unrecognizedResponse`. Use a throwaway account: it may lock it |
+| Login with the pseudo typed in another case, and with a pseudo holding a space or an accent: the `md_user` value set | LOT-043 | settles whether `md_user` keeps the typed case and how it is URL-encoded; `expectedUserKey` stays an exact comparison with the stored cookie value (`LoginResult.userKey`, LOT-043 spec) |
+| `editprofil.php?config=hfr.inc&page=5` without a working session (logged out or expired cookies) | LOT-043 | settles what the login flow's page-5 check sees when the new cookies do not work (not captured; until then `LoginFlow` treats a page without a non-empty `hash_check` as `missingHashCheck`, see [LOT-043 spec](lots/LOT-043-login.md)) |
 
 ## Issues to open (backlog until Issues are enabled on ezzz/HFRnow)
 

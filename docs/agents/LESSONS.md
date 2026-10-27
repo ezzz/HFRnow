@@ -54,3 +54,4 @@ Seeded from a previous multi-agent project, filtered for SwiftHFR.
 | 47 | At every check-in, re-read reviews, CI and **all** open threads on our PRs: bots post late threads after a PR looked ready | wave 4 (late CodeRabbit threads on #45, #52, #55, #59); other project's harness |
 | 48 | Background work (draft autosave, MP polling, offline saves) goes through the normal code path, so its side effects run, and never lands in the middle of a user interaction | other project's harness, for Phase 4 |
 | 49 | Code that runs on every frame, render or loop iteration (SwiftUI `body`, scroll and change handlers) skips per-item work and side effects on empty input; the view still shows its empty, loading or error state | other project's harness, for Phase 4 |
+| 50 | A Swift Testing test that cancels its own task is reported as *cancelled*, neither passed nor failed: drive cancellation through a child `Task` and await its value | wave 1 (LOT-043) |
