@@ -135,8 +135,8 @@ Real legacy bugs found by Bybifok (`moust4ki`) in [ezzz/HFRnow#3](https://github
 |---|---|---|---|---|
 | 1 | Topic-list pager: a link without `href` must not break the parser | `237db70` | parsing · medium · easy · ready | Non-regression test in LOT-022 (and LOT-021, later 024/MP lists): skip the entry, keep the rows |
 | 2 | Topic-list page N must really load page N (`liste_sujet` paging) | `a817498` | network · high · easy · ready | LOT-041 builder never yields `liste_sujet-1.htm?page=N`; capture to settle HFR-PROTOCOL §7b B2 |
-| 3 | Topic lists must not show a fake total page count | `dc93420` | parsing · high · medium · ready | LOT-022 `PageNavigation`: windowed pager = lower bound, not total (B1) |
-| 4 | AQ RSS: decode HTML entities in titles, authors and comments | `a817498` | parsing · low · easy · blocked (Q-4) | Test in the AQ part of LOT-025; capture to settle B4 |
+| 3 | Topic lists must not show a fake total page count | `dc93420` | parsing · high · medium · ready | LOT-022 `PageNavigation`: windowed pager = lower bound, not total (HFR-PROTOCOL §7b B1) |
+| 4 | AQ RSS: decode HTML entities in titles, authors and comments | `a817498` | parsing · low · easy · blocked (Q-4) | Test in the AQ part of LOT-025; capture to settle HFR-PROTOCOL §7b B4 |
 | 5 | Links to a post (AQ, bookmarks) must open its page and anchor, not page 1 | `246a9c7` | app · medium · easy · ready | Page and `#t<numreponse>` kept through LOT-020, 045, 083; tests on both URL shapes |
 | 6 | Refresh must reload the current page, not page 1 | `246a9c7` | app · medium · easy · blocked (LOT-082/083) | Acceptance criteria of LOT-082/083: current page, content kept while loading, kept on failure |
 | 7 | Topic loading: a cancelled request must never complete the next load | `be196f8` | app · medium · medium · blocked (LOT-083) | One task per load, cancelled one cannot deliver; show at `DOMContentLoaded`; test with a fake page driver |
