@@ -107,15 +107,18 @@ final class ScriptedLogin: AccountLoggingIn {
 final class ScriptedChecker: SessionChecking {
     private let results: [String: SessionCheckResult]
     private let refreshedPass: String?
-    private let logsOut: Bool
+    private let identityAfter: String?
     private let gate: Gate?
     private let count = Mutex(0)
 
-    /// `logsOut` makes the forum answer `md_user=deleted` before a `valid`; `gate` suspends every check until opened.
-    init(_ results: [String: SessionCheckResult], refreshedPass: String? = nil, logsOut: Bool = false, gate: Gate? = nil) {
+    /// `identityAfter` makes the forum set `md_user` to that value (`deleted`, another pseudo) before answering;
+    /// `gate` suspends every check until opened.
+    init(
+        _ results: [String: SessionCheckResult], refreshedPass: String? = nil, identityAfter: String? = nil, gate: Gate? = nil
+    ) {
         self.results = results
         self.refreshedPass = refreshedPass
-        self.logsOut = logsOut
+        self.identityAfter = identityAfter
         self.gate = gate
     }
 
@@ -126,9 +129,9 @@ final class ScriptedChecker: SessionChecking {
         guard let user = await session.userKey() else { return .expired }
         await gate?.wait()
         let result = results[user] ?? .unconfirmed
-        if logsOut {
-            let logout = StoredCookie(name: "md_user", value: "deleted", domain: ".hardware.fr", expiresDate: Fake.tomorrow)
-            await session.mergeCookies([logout])
+        if let identityAfter {
+            let identity = StoredCookie(name: "md_user", value: identityAfter, domain: ".hardware.fr", expiresDate: Fake.tomorrow)
+            await session.mergeCookies([identity])
         }
         if result == .valid, let refreshedPass {
             await session.mergeCookies(Fake.cookies(user: user, pass: refreshedPass))

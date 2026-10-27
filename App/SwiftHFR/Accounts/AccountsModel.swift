@@ -66,6 +66,10 @@ final class AccountsModel {
     private(set) var hasRestored = false
     /// True while a restore (read and session checks) runs; a retry then waits for it instead of starting another.
     private(set) var isRestoring = false
+    /// Changes whenever `currentSession` becomes another object (select, remove, logout, a known current account
+    /// added again). Screens built on the current session are rebuilt on it, never on `current?.id`, which does not
+    /// change when the current account's session is replaced.
+    private(set) var currentSessionGeneration = 0
 
     @ObservationIgnored private let store: any CredentialStore
     @ObservationIgnored private let loginService: any AccountLoggingIn
@@ -74,6 +78,7 @@ final class AccountsModel {
     @ObservationIgnored private var sessions: [String: HFRSession] = [:]
     @ObservationIgnored private var statuses: [String: AccountSessionStatus] = [:]
     @ObservationIgnored private var restoreTask: Task<Void, Never>?
+    @ObservationIgnored private var currentSessionID: ObjectIdentifier?
     /// Decoded avatars by account, so views never decode image bytes while rendering (LESSONS 49).
     @ObservationIgnored private var avatarImages: [String: (data: Data, image: UIImage)] = [:]
     /// The last avatar download started by a login (tests await it).
@@ -150,6 +155,7 @@ final class AccountsModel {
             storeProblem = StoreProblem(error)
             rows = []
             sessions = [:]
+            noteCurrentSession()
             hasRestored = true
             return
         }
@@ -166,6 +172,11 @@ final class AccountsModel {
         }
         publish(book)
         hasRestored = true
+        // A retry after a failed write: sessions already confirmed are written again, or their refreshed cookies
+        // would stay unsaved until the next check.
+        for account in book.accounts where statuses[account.pseudo] == .valid {
+            await persistSession(of: account.pseudo)
+        }
         await checkSessions(book.accounts.map(\.pseudo))
     }
 
@@ -287,12 +298,31 @@ final class AccountsModel {
                 // `add` refreshes in place and refuses cookies whose `md_user` names another pseudo.
                 try book.add(account, makeMain: false)
             }
+        } catch CredentialStoreError.pseudoMismatch, CredentialStoreError.invalidPseudo {
+            // The jar names another pseudo than the account: nothing is written and the store is intact, so this is
+            // not a store problem. The screens must not keep using a jar of another identity: the session is rebuilt
+            // from what is stored, and stays unconfirmed.
+            restoreStoredSession(of: id)
         } catch {
             storeProblem = StoreProblem(error)
         }
     }
+}
 
-    // MARK: - Private
+// MARK: - Private
+
+extension AccountsModel {
+
+    private func restoreStoredSession(of id: String) {
+        do {
+            guard let account = try store.load().account(matching: id) else { return }
+            sessions[account.pseudo] = HFRSession(cookies: account.cookies, hashCheck: account.hashCheck)
+            statuses[account.pseudo] = .restored
+            reloadRows()
+        } catch {
+            storeProblem = StoreProblem(error)
+        }
+    }
 
     private func fetchAvatar(at url: URL, for id: String) async {
         // Decoded once here: bytes that are not an image are never stored.
@@ -326,6 +356,15 @@ final class AccountsModel {
                 avatar: avatar(for: account), status: statuses[account.pseudo] ?? .restored
             )
         }
+        noteCurrentSession()
+    }
+
+    /// Bumps `currentSessionGeneration` when the current session is another object than last time.
+    private func noteCurrentSession() {
+        let identity = currentSession.map(ObjectIdentifier.init)
+        guard identity != currentSessionID else { return }
+        currentSessionID = identity
+        currentSessionGeneration += 1
     }
 
     /// The decoded avatar of an account, decoding only bytes not seen before.
