@@ -23,3 +23,4 @@
 - { name: "status: ready",        color: "0e8a16", description: "Specified and ready to be picked" }
 - { name: "status: blocked",      color: "000000", description: "Waiting on something else" }
 - { name: "dependencies",         color: "0366d6", description: "Dependency update (Dependabot)" }
+- { name: "moust4ki aka bybifok finding", color: "fbca04", description: "Found by Bybifok (GitHub moust4ki): credit them in the fix" }
