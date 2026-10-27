@@ -228,6 +228,15 @@ Source: [LOT-027](lots/LOT-027-profile-parser.md), `UserProfileParser`, checked 
 - **Sub-forums missing from the page**: the home page lists only some sub-forums. The legacy completion table adds real forums: with it the sub-forum counts equal the REST `number_of_subcategories` (`R57a`) for Hardware 15, Photo numérique 10, Windows & Software 12, Graphisme 10, Achats & Ventes 11; Overclocking (REST 7) stays at 6 and Programmation (REST 27) reaches 14, so REST is the complete source.
 
 
+### LOT-023 — MP list and unread badge
+
+[LOT-023](lots/LOT-023-mp-list.md), tests `PrivateMessageListParserTests`, `PrivateMessageBadgeParserTests`.
+
+- **MP row** (`R13a`, `R13b`, `R13u1`, **verified**): own state is `sujetCase1` (`closedbp.gif` `alt="On"` title "Nouveau message. Message privé pour <others>", `closedp.gif` `alt="Off"`); the `[non lu]` marker is `<span class="red" title="Ce message n'a pas été lu par : <pseudos>">` before the title link in `sujetCase3`, the pseudos joined with `, ` (the group tooltip of `sujetCase6` with `,`). The two states are independent: `R13u1` has read threads marked `[non lu]`. `sujetCase2` holds a message icon and the ignore link `/user/ignore.php?…&auteur=<pseudo>` (`ignore0.gif`).
+- **Group thread** (`R13u1`): `sujetCase6` is `<span title="<pseudos>">Interlocuteurs multiples</span>` with no profile link; one-to-one threads link `profilebdd.php?…&pseudo=`.
+- **Unread count** (`R02`, `R03`, `P03f`, `R08-2`, **verified**): the home page announces it in the `tr.cat` row linking `cat=prive` (`a.cCatTopic.red` "Vous avez 10 nouveaux messages privés"; "Envoyer / lire des messages privés" with no number and no `red` class when none is unread), logged-in forum lists in the middle cell of the 3-cell `table.none` ("Vous avez 1 nouveau message privé" in `a.red`, else "Messages privés"). The MP list, anonymous pages and the topic page have neither.
+
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).

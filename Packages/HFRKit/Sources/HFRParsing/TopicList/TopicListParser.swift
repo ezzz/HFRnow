@@ -61,7 +61,7 @@ public enum TopicListParser {
             tabs: tabContainer.map(tabs(in:)) ?? TopicListTabs(),
             categoryID: category,
             newTopicPath: link(in: body, id: "md_btn_new_topic"),
-            unreadPrivateMessages: unreadPrivateMessages(in: body)
+            unreadPrivateMessages: PrivateMessageBadgeParser.countInListHeader(body)
         )
         return ParsedTopicList(page: page, rows: rows)
     }
@@ -126,18 +126,6 @@ public enum TopicListParser {
             flagBlue: link(in: container, id: "onglet3"),
             flagRed: link(in: container, id: "onglet4")
         )
-    }
-
-    /// Unread private messages from the header block `table.none` (`:83-92`).
-    ///
-    /// Logged-in forum lists show three cells; the middle one reads "Vous avez N nouveau(x) message(s) privé(s)" (P03f)
-    /// or just "Messages privés" when there is none (R08-2), which gives 0. Anonymous pages, the MP list and the search
-    /// results have another shape and give nil. Shared header logic for LOT-023's badge parser.
-    static func unreadPrivateMessages(in body: Element) -> Int? {
-        guard let block = body.firstDescendant(matching: .classToken("none")) else { return nil }
-        let cells = (try? block.getElementsByTag("td").array()) ?? []
-        guard cells.count == 3 else { return nil }
-        return HFRText.firstInteger(in: cells[1].rawText) ?? 0
     }
 
     /// Forum-relative `href` of the descendant with this `id`.

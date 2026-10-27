@@ -64,7 +64,7 @@ public enum ForumListParser {
         let topicLink = try require(cell.firstDescendant(matching: .contains("cCatTopic")), "forum link (class*=cCatTopic)")
         let rawHref = try require(nonEmptyAttribute("href", of: topicLink), "forum link href")
         if HFRURL.category(in: rawHref) == .privateMessages {
-            return .privateMessages(unread: HFRText.firstInteger(in: textContent(of: topicLink)) ?? 0)
+            return .privateMessages(unread: PrivateMessageBadgeParser.count(inText: textContent(of: topicLink)))
         }
         // Paths are requested with the session later: only forum-relative links are kept (LESSONS 37).
         let href = try require(HFRURL.forumRelativePath(rawHref), "forum link href")
