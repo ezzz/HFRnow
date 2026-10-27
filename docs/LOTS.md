@@ -62,7 +62,7 @@ Model column: author → reviewer ([AGENTS.md §6](../AGENTS.md#6-model-routing-
 | LOT-035 | Video embed detection (fixes the YouTube hour bug) | HFRParsing | easy | Sonnet → Opus | 034 | C09 | low | — · old [#68](https://github.com/francoisgn/ios-app_SwiftHFR/issues/68) | blocked |
 | LOT-036 | `hop` form parser (inputs, selects, `content_form` textarea incl. `[quotemsg]` prefill, entity decoding) | HFRParsing | medium | Sonnet → Opus | 012, 020, 004 | D1 | medium | mac/w1-036-sonnet (2026-10-27) · old [#69](https://github.com/francoisgn/ios-app_SwiftHFR/issues/69) | done (#22) |
 | LOT-037 | `hop` response classifier (success, rejected, logged out, already alerted) | HFRParsing | medium | Sonnet → Opus | 012, 004 | D2 | medium | mac/w1-037-sonnet (2026-10-27) · old [#70](https://github.com/francoisgn/ios-app_SwiftHFR/issues/70) | done (#18) |
-| LOT-038 ★ | MPStorage page parsing (locate the storage MP, read its JSON) | HFRParsing | medium | Sonnet → Opus | 023, 030 | D8 | medium | — · old [#71](https://github.com/francoisgn/ios-app_SwiftHFR/issues/71) | blocked |
+| LOT-038 ★ | MPStorage page parsing (locate the storage MP, read its JSON) | HFRParsing | medium | Sonnet → Opus | 023, 030 | D8 | medium | mac/w3-038-sonnet (2026-10-27) · old [#71](https://github.com/francoisgn/ios-app_SwiftHFR/issues/71) | in-progress |
 
 ### Network (`HFRNetwork`) — transport, endpoints, sessions, raw fetchers
 
@@ -81,8 +81,8 @@ Model column: author → reviewer ([AGENTS.md §6](../AGENTS.md#6-model-routing-
 | LOT-043 | Login (validate before replacing cookies) | HFRClient | medium | Opus → Fable | 042, 025 | NET-04 | high | mac/w1-043-opus (2026-10-27) · old [#72](https://github.com/francoisgn/ios-app_SwiftHFR/issues/72) | done (#21) |
 | LOT-044 | Session health & refresh (expiry detection, cookie merge) | HFRClient | medium | Opus → Fable | 042, 013 | NET-07 | medium | mac/w2-044-opus (2026-10-27) · old [#73](https://github.com/francoisgn/ios-app_SwiftHFR/issues/73) | in-progress |
 | LOT-046 | Search: global (meta-refresh flow, banned-word list → refuse with a warning, Q-7) and intra-topic (no-redirect flow) | HFRClient | medium | Sonnet → Opus | 041, 025 | NET-10, NET-11 | medium | — · old [#74](https://github.com/francoisgn/ios-app_SwiftHFR/issues/74) | todo |
-| LOT-047 | MP unread count poll (scheduling stays in the app) | HFRClient | easy | Sonnet → Opus | 023, 045 | NET-13 | medium | — · old [#75](https://github.com/francoisgn/ios-app_SwiftHFR/issues/75) | blocked |
-| LOT-048 | Post-form engine: reply, edit, delete (incl. first post = whole topic), new topic, new MP, MP reply — posts as the **selected** account (Q-8); `verifrequet`, browser checkbox semantics, refuses non-BMP characters (Q-3), per-flow success markers, never reports success unless HFR confirmed it | HFRClient | difficult | Opus → Fable | 036, 037, 042 | D3 | medium | — · old [#76](https://github.com/francoisgn/ios-app_SwiftHFR/issues/76) | blocked |
+| LOT-047 | MP unread count poll (scheduling stays in the app) | HFRClient | easy | Sonnet → Opus | 023, 045 | NET-13 | medium | mac/w3-047-sonnet (2026-10-27) · old [#75](https://github.com/francoisgn/ios-app_SwiftHFR/issues/75) | in-progress |
+| LOT-048 | Post-form engine: reply, edit, delete (incl. first post = whole topic), new topic, new MP, MP reply — posts as the **selected** account (Q-8); `verifrequet`, browser checkbox semantics, refuses non-BMP characters (Q-3), per-flow success markers, never reports success unless HFR confirmed it | HFRClient | difficult | Opus → Fable | 036, 037, 042 | D3 | medium | mac/w3-048-opus (2026-10-27) · old [#76](https://github.com/francoisgn/ios-app_SwiftHFR/issues/76) | in-progress |
 | LOT-049 | Quote engine: quote template GET, `[quotemsg]` selection formatter | HFRClient | medium | Opus → Fable | 048, 031 | D4 | medium | — · old [#77](https://github.com/francoisgn/ios-app_SwiftHFR/issues/77) | blocked |
 | LOT-050 | Moderator alert | HFRClient | easy | Sonnet → Opus | 036, 037 | D5 | medium | — · old [#78](https://github.com/francoisgn/ios-app_SwiftHFR/issues/78) | blocked |
 | LOT-051 | Topic flags & favourites writes | HFRClient | medium | Opus → Fable | 037, 042 | D7 | medium | — · old [#79](https://github.com/francoisgn/ios-app_SwiftHFR/issues/79) | blocked |
@@ -150,7 +150,10 @@ Orchestrator: `mac/orch-opus` (2026-10-27), operator brief of 2026-10-27. **MVP*
 | 2 | LOT-071 third-party services inventory | E | Opus → Fable | → 055, 083: records the third-party loading policy (operator decision 2026-10-27: option C) |
 | 2 | LOT-081 accounts and login screen (Mac) | D | Opus → Fable | all deps done (080, 043, 065): MVP login |
 | 2 | LOT-082 adaptive navigation (Mac) | D | Sonnet → Opus | all deps done (080, 021, 022, 024, 045): MVP browsing |
-| 3 (planned) | LOT-048 (after 036), 038 and 047 (after 023), 032, 056, 064 | A–E | per row | when their dependencies are done |
+| 3 | LOT-048 post-form engine | A | Opus → Fable | MVP posting basics (deps 036, 037, 042 done) |
+| 3 | LOT-038 MPStorage page parsing ★ | B | Sonnet → Opus | critical path → 052 (deps 023, 030 done) |
+| 3 | LOT-047 MP unread count poll | B | Sonnet → Opus | deps 023, 045 done |
+| 4 (planned) | LOT-083 (after 034), 049 (after 031 + 048), 050, 051, 054, 058, 032, 056, 064 | A–E | per row | when their dependencies are done |
 
 ## Other work
 
