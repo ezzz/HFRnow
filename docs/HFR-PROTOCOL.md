@@ -166,6 +166,15 @@ Facts confirmed by a committed capture **and** asserted by a test of the parser 
 - **Header**: `form#fastsearch` holds a hidden `cat` (`13`, `12`, `10`, `prive`) on every list page, logged in or not; the tabs `div.cadreonglet` `#onglet1`-`#onglet4` and `#onglet9` (search, with `cat=`) appear on logged-in forum lists only, not on anonymous lists nor the MP list (`R04`, `R08-2`, `R13a`). Logged-in forum lists have `table.none` with 3 cells, the middle one "Vous avez N nouveau message privé" or just "Messages privés" (`P03f`, `R08-2`).
 - **Search rows** (`R50b`): `sujetCase3` holds the title link, then a `forum2.php?…&numreponse=<n>` link around `span.s1` (the matching message, ending "[...] ").
 
+### LOT-024 — favourites page
+
+[LOT-024](lots/LOT-024-favourites-parser.md), tests `FavoritesDifferentialTests` and `FavoritesParserTests`.
+
+- **List body**: `GET /forum1f.php?owntopic={1|3}` logged in answers the topic list markup, `<body id="category__topics_listing__listing_topic">`, title "Vos sujets", even with no topic (`R11`, `P03e`: no row). Logged out it answers a bare `<body>` with `.hop` "Aucun sujet que vous avez lu n'est connu" (`R12`), which the parser reports as not authenticated.
+- **Sections**: each category is a `tr.cBackHeader.fondForum1fCat` whose `th` holds a "reset flags" link (`suppressflag.php…&codehex=<token>`, a secret) then `a.cHeader` to `/forum1.php?…&cat=<id>…`; its `tr.sujet.ligne_booleen` rows follow, in the same table (`R10`).
+- **Rows**: same cells as a forum list; the flag cell links to the last read position (`…&page=<n>…#t<post>`) with `flag1.gif` on `owntopic=1` and `favoris.gif` on `owntopic=3`; the checkbox cell `sujetCase10` holds `topic<N>` and `valuecat<N>`.
+- **Not captured**: favourites across several categories (`R10` has one category with two topics), a row without flag link, `owntopic=1` with no flagged topic.
+
 ### LOT-030 — message blocks
 
 Source: [LOT-030](lots/LOT-030-message-blocks.md), `MessageBlockParser`, on the 20 topic oracles of LOT-003 (`R20`–`R32b`, `RA1`–`RA5`, `RU1`, `RU2`; 358 messages).

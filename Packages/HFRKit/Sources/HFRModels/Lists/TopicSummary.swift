@@ -12,9 +12,10 @@ public struct TopicSummary: Sendable, Hashable, Identifiable, Codable {
     public var topicID: TopicID?
     /// Title as HFR serves it; display rewrites (such as the legacy "TU" normalisation) are a presentation concern.
     public var title: String
-    /// Path of the title link, relative to the forum base URL.
+    /// Path of the title link, relative to the forum base URL. On favourites rows it is the resume path (flag link,
+    /// else last post) and the title link is `firstPagePath`.
     public var path: String
-    /// Path of the first page (favourites rows only).
+    /// Path of the first page: the title link of a favourites row (favourites rows only).
     public var firstPagePath: String?
     /// Number of replies shown in the row.
     public var repliesCount: Int
