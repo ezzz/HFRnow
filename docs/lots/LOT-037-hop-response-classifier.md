@@ -31,14 +31,14 @@ answer is a transport failure, decided before parsing).
 | Page | Kind | Rule |
 |---|---|---|
 | `.hop` (class exactly `hop`) with an `<a>` or `<input>`, text contains "vous devez être enregistré" | `loggedOut` | `W17c` |
-| same, `context: .write` | `rejected` | flood (`W11x`, `W13cx`, `W14x`, `W20a/b`), empty body (`W17a`); `message` is the sentence |
-| same, `context: .alertPrepare` | `alreadyAlerted` | legacy structural rule, text not captured |
+| same, `context: .write` | `rejected` | flood (`W11x`, `W13cx`, `W14x`, `W20a/b`), empty body (`W17a`), and the read pages `R12`, `RA5` (back link, no refresh: rejected by shape, this is not a read-page classifier); `message` is the sentence |
+| same, `context: .alertPrepare` | `alreadyAlerted` | legacy structural rule, text not captured. **For LOT-050:** every `.hop` + link/input page comes back `alreadyAlerted` here (flood, `RA5`, `R12`, `W17a` included; legacy rule, fails safe), so LOT-050 must show HFR's own `message`, never a fixed text |
 | `.hop` with no link/input, a sentence containing "avec succès", **and** a refresh meta to an `https` forum URL (port absent or 443), `context: .write` | `success` | `W10`, `W11`, `W12`, `W13b`, `W13c`, `W14`, `W15`, `W16a`, `W16b`, `W19`, `W18`, `P03a`, `P03b`, `P03d` (all say "avec succès"; login failure `W01`, login success `W01b`/`W03`, empty lists `R08-1`/`R08-3` and the search wait `R50a` refresh with a link-less `.hop` but never say it, so they are `unrecognized`); `refreshURL` resolved against `requestURL`, `refreshAnchor` = fragment without `#` (nil when none) |
 | no `.hop`, body text starts "Une erreur est survenue lors de l'envoi des données" | `rejected` | invalid `hash_check`, `W17b` |
-| anything else | `unrecognized` (message kept when a `.hop` exists) | R12, RA5 (read pages), R44 and R46 (forms), empty body, `.hop` without refresh or without "avec succès", refresh without `.hop`, refresh off the forum. `R12`/`RA5` (read pages with a back link) are `rejected` by shape: this is not a read-page classifier |
+| anything else | `unrecognized` (message kept when a `.hop` exists) | `W01`/`W01b`/`W03`, `R08-1`/`R08-3`, `R50a`, R44 and R46 (forms), empty body, `.hop` without refresh or without "avec succès", refresh without `.hop`, refresh off the forum |
 
-`message` is the **own text** of the `.hop` block, whitespace collapsed and trimmed: the sentence without the "Retour à la page
-précédente" link or button (a child-element sentence falls back to all the text). `refreshURL` and `refreshAnchor` are set on
+`message` is the text of the `.hop` block outside links and buttons (nested elements such as `<b>` included), whitespace collapsed and trimmed: the sentence without the "Retour à la page
+précédente" link or button. `refreshURL` and `refreshAnchor` are set on
 `success` only, so a caller never follows the refresh of a refusal.
 
 `context` exists because the same shape (`.hop` with a link) is a refusal after a write and "already alerted" before the alert
@@ -63,7 +63,7 @@ captured state.
 2. **`loggedOut`** refines the legacy "rejected" for `W17c` (HFR's own "vous devez être enregistré" sentence). `message` is kept.
 3. **Delete anchor**: legacy reads `numreponse` from the request URL; the classifier reports only what the page says (nil).
 4. **Anchor without `#`** (legacy `"#t1003"`, `""` when none): `HopResponse.refreshAnchor` has no `#` (LOT-012 decision 3).
-5. **Message**: legacy `contents` of the node (first text child); live concatenates link text ("… Retour à la page précédente", quirk 12). Here the block's own text, which equals legacy on every capture and drops the link text.
+5. **Message**: legacy `contents` of the node (first text child); live concatenates link text ("… Retour à la page précédente", quirk 12). Here the text of the block outside links and buttons (nested `<b>` and the like included), which equals legacy on every capture and drops the link text.
 6. **Refresh plus a `.hop` link** is `rejected` (legacy rule; the live Swift service said success, audit B4).
 7. `refreshURL` has `&amp;` decoded (live kept it, quirk 6).
 

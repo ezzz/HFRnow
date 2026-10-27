@@ -139,6 +139,13 @@ struct HopResponseParserTests {
         #expect(successes == Self.writeConfirmations)
     }
 
+    @Test("A sentence split by a nested element is read whole: the logged-out marker inside <b> still counts")
+    func nestedSentence() throws {
+        let html = page(hop: "Désolé, vous devez <b>être enregistré</b> pour poster <a href=\"/\">Retour</a>")
+        let response = try HopResponseParser.classify(html: html)
+        #expect(response == HopResponse(kind: .loggedOut, message: "Désolé, vous devez être enregistré pour poster"))
+    }
+
     @Test("A page without .hop (the edit form R44) is unrecognized")
     func formPageIsUnrecognized() throws {
         let response = try HopResponseParser.classify(html: Fixture.capture("R44-mp-edit-form-other-account-message"))

@@ -63,13 +63,28 @@ public enum HopResponseParser {
         return HopResponse(kind: .rejected, message: text)
     }
 
-    /// Own text of the `.hop` block: the sentence, not the "Retour à la page précédente" link or button.
-    /// Falls back to all the text when the sentence sits in a child element. Nil when empty.
+    /// Text of the `.hop` block outside links, buttons and inputs: the sentence, not "Retour à la page précédente",
+    /// and still the whole sentence when part of it sits in a nested element such as `<b>`. Nil when empty.
     private static func text(ofHop hop: Element) -> String? {
-        var text = collapsed(hop.ownRawText)
-        if text.isEmpty, let all = try? hop.text() { text = collapsed(all) }
+        var text = ""
+        appendSentence(of: hop, to: &text)
+        text = collapsed(text)
         return text.isEmpty ? nil : text
     }
+
+    private static func appendSentence(of element: Element, to text: inout String) {
+        for node in element.getChildNodes() {
+            if let textNode = node as? TextNode {
+                text += textNode.getWholeText()
+            } else if let child = node as? Element, !skippedTags.contains(child.tagName()) {
+                text += " "
+                appendSentence(of: child, to: &text)
+                text += " "
+            }
+        }
+    }
+
+    private static let skippedTags: Set<String> = ["a", "button", "input", "script", "style"]
 
     private static func hasLinkOrInput(_ hop: Element) -> Bool {
         guard let found = try? hop.select("a, input") else { return false }
