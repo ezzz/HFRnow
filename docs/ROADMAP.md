@@ -23,7 +23,7 @@ Output: dependency graph, ordered lots in [LOTS.md](LOTS.md), first version of [
 Harness in the legacy app exporting parser output as JSON from real pages; capture on the maintainer's Mac; anonymization.
 **Exit:** fixtures + oracle output committed for every parsing lot.
 
-## Phase 3 — Engine port *(in progress — 23 of 52 engine lots done on 2026-10-27)*
+## Phase 3 — Engine port *(in progress — 23 of 55 engine lots done on 2026-10-27)*
 Lots ported one by one with differential tests (`HFRModels`, `HFRNetwork`, parsers, reply posting, `HFRStorage`).
 **Exit:** all lots `done`; the engine covers every feature of the legacy app.
 
@@ -33,3 +33,6 @@ Reuse and adapt the legacy SwiftUI views on top of `HFRKit`; remove everything u
 
 ## Phase 5 — iOS 27 experience
 Column-based navigation and large/foldable layouts. Design documentation provided by the maintainer.
+
+## App features (Phases 4–5)
+New app features (Home, page navigator, Shortcuts check, themes…) come from the [feature backlog](FEATURES.md); each goes through a feature issue (its FEATURES.md entry until Issues are enabled), a spec and, when `HFRKit` lacks a capability, engine lots ([ADR 0011](adr/0011-contribution-model-and-feature-intake.md) §2).

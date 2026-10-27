@@ -43,6 +43,7 @@ License: [PolyForm Noncommercial 1.0.0](LICENSE) — no commercial use, credit t
 | `docs/LOTS.md` | Migration lots: scope, dependencies, model routing, owner, status — the **only tracker** until Issues are enabled on ezzz/HFRnow. **Check it before starting work.** |
 | `docs/agents/` | [ORCHESTRATION](docs/agents/ORCHESTRATION.md) (parallel sessions), [REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md) (bots & reviews), [LESSONS](docs/agents/LESSONS.md) (self-review table) |
 | `docs/lots/` | One spec file per lot (`LOT-XXX-name.md`) |
+| `docs/FEATURES.md` | App feature backlog (FEAT-XXX, with credit to who proposed it) and status; one spec per feature in `docs/features/FEAT-XXX.md` ([ADR 0011](docs/adr/0011-contribution-model-and-feature-intake.md) §2) |
 | `docs/HFR-PROTOCOL.md` | What we know about HFR: URLs, forms, cookies, HTML structure |
 | `docs/FIXTURES.md` | How fixtures are captured, anonymized and used |
 | `docs/adr/` | Architecture Decision Records. A decision not in an ADR is not a decision |

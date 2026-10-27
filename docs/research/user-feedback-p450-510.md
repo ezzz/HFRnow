@@ -219,8 +219,8 @@ Legend. **Covered**: a LOT clearly owns the engine part. **Partial**: engine par
 | 10 | Reading position and back stack (≈14 + 20) | Partial: LOT-033, 045, Phase 4 page shell (C13) | Drop the repeated first post of each page ("Reprise du message précédent"), anchor on the post id (`#t<id>`), do not wait for images before showing the page (p. 506), keep a navigation stack that survives iOS killing the app |
 | 11 | Filter posts (quoted at least 3 times, love-list) | Covered: Phase 4 C11, LOT-032 | Needs sequential fetching of all pages between flag and last page: throttle, cache, manual trigger first (maintainer's own conclusion, p. 487) |
 | 12 | Quoted-me alert, followed-topic push (≈10) | Partial: LOT-047 (MP poll), C11 | No server, so no real push; allow an in-app badge after a manual or foreground scan; background poll every 20 minutes for MP (p. 486) |
-| 13 | AQ feed (host moved in 2023, p. 463-466; links broken in 4.0, p. 495-504) | Covered: LOT-055 (blocked on Q-4) | Feed URL must be configuration, links must jump to the flagged post, optional badge (p. 506) |
-| 14 | Blacklist, love list, MP-storage sync (≈10) | Covered: LOT-061, 062, 052, 038 | LOT-067 (legacy import) is dropped, so MP storage is the only migration path: raise its priority; validate page >= 1 before writing (page 0 overwrite bug, p. 474); "never overwrite with empty" matches the loss reported on p. 483 |
+| 13 | AQ feed (host moved in 2023, p. 463-466; links broken in 4.0, p. 495-504) | Covered: LOT-055 (blocked on LOT-071 and the AQ capture; Q-4 decided: keep) | Feed URL must be configuration, links must jump to the flagged post, optional badge (p. 506) |
+| 14 | Blacklist, love list, MP-storage sync (≈10) | Covered: LOT-061, 062, 052, 038 | LOT-067 (legacy import) is in scope since Q-1 was decided (2026-10-26); MP storage stays the path for data that is not on the device; validate page >= 1 before writing (page 0 overwrite bug, p. 474); "never overwrite with empty" matches the loss reported on p. 483 |
 | 15 | Smileys (≈14) | Covered: LOT-053, 064, 012 | Percent-encode apostrophes in smiley URLs (p. 472); forum favourites capped at about ten, local list unlimited (p. 466) |
 | 16 | Drafts | Covered: LOT-063 | Users want both: keep text after accidental dismissal, and a clear way to discard (p. 498, 504) |
 | 17 | Polls | Covered: LOT-026, 054 | Poll creation (HFR-028, p. 501) is not in the plan |
@@ -256,7 +256,7 @@ Legend. **Covered**: a LOT clearly owns the engine part. **Partial**: engine par
 6. **Search and filter posts.** Global, in-topic, sub-category; filter for heavily quoted posts with throttled sequential fetching (LOT-046, C11).
 7. **iPad, landscape and foldable layout.** Keep a favourites and topics column, support multiple windows and restoration (Phase 5; the 4.0 rollout shows how loudly this is missed).
 8. **Awareness without push.** MP badge poll, quoted-me badge on refresh, AQ badge optional (LOT-047, 055, C11).
-9. **Blacklist and personal data continuity.** MP-storage sync is the migration path since legacy import is dropped (LOT-061, 062, 052, 038).
+9. **Blacklist and personal data continuity.** Legacy import is in scope (LOT-067, Q-1 decided 2026-10-26) for data on the device; MP-storage sync carries what lives on the forum (LOT-061, 062, 052, 038).
 10. **Accessibility and personalisation.** Dynamic Type for post content, full-black theme, seasonal theme, dark icon variants, a small set of settings people actually missed: image loading policy, system or in-app browser, classic vs modern layout, start tab, "+" behaviour (LOT-060, Phase 4).
 
 ### 3.4 Process lessons from the 4.0 rollout
