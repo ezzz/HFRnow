@@ -113,6 +113,60 @@ struct MessageActionsParserTests {
         #expect(after[0] == before[0] && Array(after[2...]) == Array(before[2...]), "other blocks are unchanged")
     }
 
+    /// One-change derivations of R21 message 1 (numreponse 2666682): a parameter value that names another action's path.
+    static let lookalikes = [
+        Lookalike(label: "MP dest names addflag", find: "dest=user4&amp;", replace: "dest=x/user/addflag.php?numreponse=2666682&amp;"),
+        Lookalike(label: "MP dest names modo", find: "dest=user4&amp;", replace: "dest=x/user/modo.php?numreponse=2666682&amp;"),
+        Lookalike(label: "profile query names modo", find: "profil-910002.htm\"",
+                  replace: "profil-910002.htm?r=/user/modo.php%3Fnumreponse%3D2666682\""),
+        Lookalike(label: "bbcode query holds the legacy MP prefix", find: "numreponse=2666682\" onclick",
+                  replace: "numreponse=2666682&amp;q=/message.php?config=hfr.inc&amp;cat=prive&amp;sond=&amp;p=1&amp;subcat="
+                    + "&amp;dest=z\" onclick")
+    ]
+
+    /// One substring replaced in a capture.
+    struct Lookalike {
+        let label: String
+        let find: String
+        let replace: String
+    }
+
+    @Test("Derived from R21: a parameter value naming another action's path never becomes that action",
+          arguments: lookalikes.indices)
+    func actionsByPathNotSubstring(index: Int) throws {
+        let variation = Self.lookalikes[index]
+        // Derived page, not a capture: one substring of the second block's toolbar replaced.
+        let original = try Fixture.capture("R21-topic-p1-logged-in")
+        let anchor = try #require(original.range(of: "<a name=\"t2666682\">"))
+        let para = try #require(original.range(of: "<div id=\"para2666682\">", range: anchor.upperBound..<original.endIndex))
+        let target = try #require(original.range(of: variation.find, range: anchor.upperBound..<para.lowerBound), "\(variation.label)")
+        var derived = original
+        derived.replaceSubrange(target, with: variation.replace)
+        let before = try MessageActionsParser.actions(in: original)[1]
+        let after = try MessageActionsParser.actions(in: derived)[1]
+        #expect(after.favoriteURL == before.favoriteURL, "\(variation.label): favourite")
+        #expect(after.alertURL == before.alertURL, "\(variation.label): alert")
+        #expect(after.quoteURL == before.quoteURL, "\(variation.label): quote")
+        #expect(after.privateMessageURL?.path() == before.privateMessageURL?.path(), "\(variation.label): MP still found")
+        #expect(after.profileURL?.path() == before.profileURL?.path(), "\(variation.label): profile still found")
+    }
+
+    @Test("Each action needs its own path and, for alert and favourite, this block's numreponse")
+    func pathsAndParameters() throws {
+        let wrongNumber = """
+            <a href="/user/modo.php?numreponse=8">!</a><a href="/user/addflag.php?numreponse=8">f</a>
+            """
+        #expect(try Self.actions(toolbar: wrongNumber) == MessageActions())
+        let wrongPaths = """
+            <a href="/user/addflag.php?numreponse=9"><img alt="profil" src="p.gif"></a>
+            <span class="\(ObfuscatedURL.encode("/user/addflag.php?numreponse=9", prefix: .noClass))"><img alt="answer" src="q.gif"></span>
+            <a href="/user/contactlist.php?x=/user/modo.php&amp;numreponse=9">c</a>
+            """
+        let actions = try Self.actions(toolbar: wrongPaths)
+        #expect(actions.profileURL == nil && actions.quoteURL == nil && actions.alertURL == nil)
+        #expect(actions.favoriteURL?.absoluteString == "https://forum.hardware.fr/user/addflag.php?numreponse=9")
+    }
+
     @Test("A block without toolbar has no action, even with action-like links in its content")
     func missingToolbarGivesNoAction() throws {
         let html = Self.page(cells: "<td><div id=\"para9\"><a href=\"/user/addflag.php?post=1\">x</a></div></td>")
@@ -120,12 +174,12 @@ struct MessageActionsParserTests {
     }
 
     @Test("Links that leave the forum origin are dropped", arguments: [
-        "https://evil.example/user/modo.php?x=1",
-        "//evil.example/user/modo.php?x=1",
-        "http://forum.hardware.fr:80/user/modo.php?x=1",
-        "https://forum.hardware.fr@evil.example/user/modo.php",
-        "javascript:alert('/user/modo.php')",
-        "/\\evil.example/user/modo.php"
+        "https://evil.example/user/modo.php?numreponse=9",
+        "//evil.example/user/modo.php?numreponse=9",
+        "http://forum.hardware.fr:80/user/modo.php?numreponse=9",
+        "https://forum.hardware.fr@evil.example/user/modo.php?numreponse=9",
+        "javascript:alert('/user/modo.php?numreponse=9')",
+        "/\\evil.example/user/modo.php?numreponse=9"
     ])
     func offOriginAlert(href: String) throws {
         let escaped = href.replacing("&", with: "&amp;").replacing("\"", with: "&quot;")
@@ -136,13 +190,13 @@ struct MessageActionsParserTests {
     @Test("An http forum link without port is upgraded; a relative one is resolved on the forum root")
     func forumOriginForms() throws {
         let toolbar = """
-            <a href="http://forum.hardware.fr/user/modo.php?a=1&amp;b=2">!</a>
-            <a href="user/addflag.php?post=1"><img alt="Favoris" src="f.gif"></a>
+            <a href="http://forum.hardware.fr/user/modo.php?a=1&amp;numreponse=9">!</a>
+            <a href="user/addflag.php?post=1&amp;numreponse=9"><img alt="Favoris" src="f.gif"></a>
             <a href="https://forum.hardware.fr/hfr/profil-5.htm"><img alt="profil" src="p.gif"></a>
             """
         let actions = try Self.actions(toolbar: toolbar)
-        #expect(actions.alertURL?.absoluteString == "https://forum.hardware.fr/user/modo.php?a=1&b=2")
-        #expect(actions.favoriteURL?.absoluteString == "https://forum.hardware.fr/user/addflag.php?post=1")
+        #expect(actions.alertURL?.absoluteString == "https://forum.hardware.fr/user/modo.php?a=1&numreponse=9")
+        #expect(actions.favoriteURL?.absoluteString == "https://forum.hardware.fr/user/addflag.php?post=1&numreponse=9")
         #expect(actions.profileURL?.absoluteString == "https://forum.hardware.fr/hfr/profil-5.htm")
     }
 

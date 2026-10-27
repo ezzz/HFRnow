@@ -22,20 +22,31 @@ public enum MessageActionsParser {
     /// Every link is looked up inside the block's `div.toolbar`, where HFR prints them, not in the whole message row as
     /// legacy did: a link posted in the message body must not become an action the app follows with the session.
     /// A "toolbar" inside the message content is member markup, not HFR's, and gives no action either.
-    /// Every URL is kept only on the forum origin (LESSONS 37, 43).
+    /// Every URL is kept only on the forum origin (LESSONS 37, 43), and each action is recognised by its exact path and
+    /// required parameters, never by a substring of the whole URL: a pseudo in `dest=` or any other parameter value must not
+    /// turn one link into another action.
     static func actions(of extracted: ExtractedMessageBlock) -> MessageActions {
         guard let toolbar = extracted.toolbar, !isInside(toolbar, extracted.content) else { return MessageActions() }
         let elements = (try? toolbar.getAllElements().array().dropFirst()) ?? []
+        let numreponse = extracted.block.numreponse
+        let isPost = { (url: URL) in path(of: url) == messagePath }
         return MessageActions(
-            quoteURL: obfuscatedLink(wrappingImageWithAlt: "answer", in: elements),
-            editURL: obfuscatedLink(wrappingImageWithAlt: "edit", in: elements),
-            alertURL: firstLink(in: elements) { $0.contains("/user/modo.php") },
-            profileURL: imageParent(alt: "profil", in: elements).flatMap { forumURL(attribute: "href", of: $0) },
+            quoteURL: keep(obfuscatedLink(wrappingImageWithAlt: "answer", in: elements), if: isPost),
+            editURL: keep(obfuscatedLink(wrappingImageWithAlt: "edit", in: elements), if: isPost),
+            alertURL: firstLink(in: elements) { isMessageLink($0, path: alertPath, numreponse: numreponse) },
+            profileURL: keep(imageParent(alt: "profil", in: elements).flatMap { forumURL(attribute: "href", of: $0) }, if: isProfileLink),
             privateMessageURL: firstLink(in: elements, where: isPrivateMessageLink),
-            favoriteURL: firstLink(in: elements) { $0.contains("addflag") },
-            quoteSelection: quoteSelection(in: elements, numreponse: extracted.block.numreponse)
+            favoriteURL: firstLink(in: elements) { isMessageLink($0, path: favoritePath, numreponse: numreponse) },
+            quoteSelection: quoteSelection(in: elements, numreponse: numreponse)
         )
     }
+
+    /// Path of the quote, edit and new-MP forms (`ParseMessagesOperation.m:371-375, 389`).
+    static let messagePath = "/message.php"
+    /// Path of the moderator alert form (`:377`).
+    static let alertPath = "/user/modo.php"
+    /// Path of the state-changing favourite GET (`:383`, HFR-PROTOCOL §3.2).
+    static let favoritePath = "/user/addflag.php"
 
     // MARK: - Links
 
@@ -56,9 +67,19 @@ public enum MessageActionsParser {
         return raw.contains("/") ? forumURL(raw) : nil
     }
 
-    /// The first element whose `href` satisfies `predicate`, as a forum URL (legacy `findChildWithAttribute:@"href"`).
-    private static func firstLink(in elements: some Collection<Element>, where predicate: (String) -> Bool) -> URL? {
-        elements.first { attribute("href", of: $0).map(predicate) ?? false }.flatMap { forumURL(attribute: "href", of: $0) }
+    /// The first `href` whose forum URL satisfies `predicate` (legacy `findChildWithAttribute:@"href"`, which matched a substring).
+    private static func firstLink(in elements: some Collection<Element>, where predicate: (URL) -> Bool) -> URL? {
+        elements.lazy.compactMap { forumURL(attribute: "href", of: $0) }.first(where: predicate)
+    }
+
+    /// `path` exactly, with `numreponse=` naming this block's message (alert and favourite links, every capture).
+    private static func isMessageLink(_ url: URL, path expected: String, numreponse: Int) -> Bool {
+        path(of: url) == expected && HFRURL.numreponse(in: url.absoluteString) == numreponse
+    }
+
+    /// `/hfr/profil-<id>.htm`, the only profile shape of the corpus (HFR-PROTOCOL R9).
+    private static func isProfileLink(_ url: URL) -> Bool {
+        path(of: url).wholeMatch(of: profilePattern) != nil
     }
 
     /// A new-MP link to the author: `/message.php` with `cat=prive` and a non-empty `dest` (`:389`).
@@ -66,8 +87,9 @@ public enum MessageActionsParser {
     /// Legacy matched the literal prefix `/message.php?config=hfr.inc&cat=prive&sond=&p=1&subcat=&dest=`; the parameters
     /// that make it an MP to someone are read instead, so a reordered query is still found and the multi-quote link of an
     /// MP thread (`/message.php?…&cat=prive&…&numrep=`, no `dest`) is not.
-    private static func isPrivateMessageLink(_ href: String) -> Bool {
-        guard let link = HFRURL.forumRelativePath(href), link.hasPrefix("/message.php?") else { return false }
+    private static func isPrivateMessageLink(_ url: URL) -> Bool {
+        let link = url.absoluteString
+        guard path(of: url) == messagePath else { return false }
         return HFRURL.queryValue(named: "cat", in: link) == "prive" && !(HFRURL.queryValue(named: "dest", in: link) ?? "").isEmpty
     }
 
@@ -94,6 +116,16 @@ public enum MessageActionsParser {
     }
 
     // MARK: - Helpers
+
+    /// `url` when it satisfies `predicate`, else nil.
+    private static func keep(_ url: URL?, if predicate: (URL) -> Bool) -> URL? {
+        url.flatMap { predicate($0) ? $0 : nil }
+    }
+
+    /// Percent-encoded path of a forum URL, `""` when it has none.
+    private static func path(of url: URL) -> String {
+        URLComponents(url: url, resolvingAgainstBaseURL: true)?.percentEncodedPath ?? ""
+    }
 
     /// Whether `element` is a descendant of `ancestor`.
     private static func isInside(_ element: Element, _ ancestor: Element) -> Bool {
@@ -123,6 +155,8 @@ public enum MessageActionsParser {
 
     // `Regex` is not `Sendable` (its output type could hold non-Sendable captures). This literal captures
     // only `Substring`s and the compiled program is initialised atomically by the runtime, so sharing is safe.
+    /// Profile page path `/hfr/profil-<id>.htm`.
+    nonisolated(unsafe) private static let profilePattern = /\/hfr\/profil-[0-9]+\.htm/
     /// `quoter('<forum>','<cat>',<post>,<numreponse>)`; legacy stripped either quote from every argument and read the first
     /// four of four or more (`MessagesView.swift:1852-1876`), so each one may be quoted or not and more arguments may follow.
     nonisolated(unsafe) private static let quoterPattern =

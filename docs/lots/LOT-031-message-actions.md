@@ -46,12 +46,12 @@ state-changing GET (LESSONS 37, 43).
 
 | Field | Rule |
 |---|---|
-| `quoteURL` | Parent of the first `img` whose whole `alt` is `answer` (not `answer +`); its `class` decoded by `ObfuscatedURL.decode(classAttribute:)`; a class that does not decode but holds a `/` is a link in clear (legacy rule); any other class gives nil |
-| `editURL` | Same with `alt="edit"` |
-| `alertURL` | First element whose `href` contains `/user/modo.php` |
-| `profileURL` | `href` of the parent of the first `img` with `alt="profil"` |
-| `privateMessageURL` | First `href` whose forum-relative form starts with `/message.php?` and whose `cat` is `prive` and whose `dest` is non-empty |
-| `favoriteURL` | First element whose `href` contains `addflag` |
+| `quoteURL` | Parent of the first `img` whose whole `alt` is `answer` (not `answer +`); its `class` decoded by `ObfuscatedURL.decode(classAttribute:)`; a class that does not decode but holds a `/` is a link in clear (legacy rule); any other class gives nil; the URL path must be `/message.php` |
+| `editURL` | Same with `alt="edit"`, path `/message.php` |
+| `alertURL` | First `href` whose URL path is exactly `/user/modo.php` and whose `numreponse` is the block's own |
+| `profileURL` | `href` of the parent of the first `img` with `alt="profil"`, kept when its path is `/hfr/profil-<digits>.htm` |
+| `privateMessageURL` | First `href` whose URL path is exactly `/message.php`, whose `cat` is `prive` and whose `dest` is non-empty |
+| `favoriteURL` | First `href` whose URL path is exactly `/user/addflag.php` and whose `numreponse` is the block's own |
 | `quoteSelection` | First `onclick` containing `quoter('hardwarefr'`, read as `quoter(<forum>, <cat>, <post>, <numreponse>[, …])` (the first four of four or more arguments, as legacy), each argument optionally quoted with `'` or `"`; `<forum>` must be `hardwarefr`; `cat` must be a `CategoryID` (`13`, `prive`), `post` and `numreponse` positive integers, and `numreponse` must be the block's own; otherwise nil |
 
 ## Edge cases
@@ -69,6 +69,7 @@ Checked on the captures (facts in HFR-PROTOCOL §6c "LOT-031"):
 - Inline tests (no page state involved, attacks and forms no capture shows): links posted in the message body, off-origin links
   (`https://evil.example`, `//host`, `http://forum.hardware.fr:80`, user info, `javascript:`, `/\host`), an obfuscated link decoding off the
   forum, an undecodable payload, a link in clear in the class, a reordered MP query, a `quoter` call for another message or forum,
+  parameter values naming another action's path (four one-change derivations of `R21`), wrong paths or `numreponse`,
   and a page derived from `R21` (one change: a block's toolbar moved into its content, labelled derived in the test).
 
 **Pending capture** (implemented from legacy code, positive test on inline blocks only):
@@ -108,6 +109,10 @@ Not compared (policy, LOT-011 decision 5): `isOwnMessage`, `canDelete`, `canAQ`,
    (`ObfuscatedURL` already refuses a prefixed class that fails to decode, LOT-020).
 4. **MP link by its parameters**, not by the literal prefix `/message.php?config=hfr.inc&cat=prive&sond=&p=1&subcat=&dest=`: a reordered
    query is still found; the multi-quote `href` of an MP thread (`cat=prive`, no `dest`) is still not.
+   More generally, **every action is recognised by its exact path and required parameters**, never by a substring of the whole URL
+   (legacy: `href` containing `/user/modo.php`, `addflag`, the MP prefix): a pseudo in `dest=` or any parameter value naming another
+   action's path (`dest=x/user/addflag.php…`) would otherwise turn the MP link into the favourite or alert action. Alert and favourite
+   links must name the block's own `numreponse` (true on every capture). Tested on one-change derivations of `R21` (labelled derived).
 5. **Typed multi-quote token.** `quoteJS` (a JavaScript string the app parsed at tap time) becomes `QuoteSelectionToken`; a call whose
    `numreponse` is not the block's own, or whose first argument is not `hardwarefr`, gives nil, so a token can only select its own
    message. Arguments must be names or digits (legacy kept any text between commas).
