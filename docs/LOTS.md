@@ -180,6 +180,9 @@ Page states that merged lots listed as **pending capture** (never hand-built in 
 | Moderator alert: submit success (text, refresh, "avec succès"?) | LOT-037, LOT-050 | until captured, an alert write cannot be classified `success` |
 | Other logged-out write answers (flag GET, alert, vote) and login-form pages | LOT-037 | `loggedOut` matches only the W17c sentence |
 | Poll vote answer; other refusal sentences (locked topic, ban) | LOT-037, LOT-054 | classified `rejected` by shape only |
+| Profile page 1 (`editprofil.php?page=1`) with stale or invalidated cookies (old `md_passs`, or after `unlog.php`): status, redirect, body, `Set-Cookie` | LOT-044 | the session-expiry rule of NET-07; until captured a refresh says `unconfirmed`, never `expired` |
+| Attributes of the doubled `md_user` / `md_passs` `Set-Cookie` on logged-in pages (`R55-p1`, `R03` metas list each name twice): domain, path, expiry, any `deleted` value | LOT-044, LOT-043 | metas keep names only; a `deleted` half would make every refresh `identityNotConfirmed` |
+| `md_user=deleted` sent by HFR (when, on which answer) | LOT-044, LOT-042 | legacy code reads it as logged out; never observed live |
 
 ## Issues to open (backlog until Issues are enabled on ezzz/HFRnow)
 

@@ -247,6 +247,14 @@ Source: [LOT-027](lots/LOT-027-profile-parser.md), `UserProfileParser`, checked 
 - **Sub-forums missing from the page**: the home page lists only some sub-forums. The legacy completion table adds real forums: with it the sub-forum counts equal the REST `number_of_subcategories` (`R57a`) for Hardware 15, Photo numérique 10, Windows & Software 12, Graphisme 10, Achats & Ventes 11; Overclocking (REST 7) stays at 6 and Programmation (REST 27) reaches 14, so REST is the complete source.
 
 
+### LOT-044 — session refresh
+
+[LOT-044](lots/LOT-044-session-health.md), tests `SessionRefreshFlowTests`.
+
+- **Profile page 1 logged in** (`R55-p1`, **verified**): `GET /user/editprofil.php?config=hfr.inc&page=1` answers 200 with a non-empty `hash_check`, no `.hop`, and sets `md_user` and `md_passs` (each name twice in the meta; attributes not recorded). A refresh is confirmed only by that shape with the same `md_user` afterwards.
+- **Token echo** (`W17c`, **verified**): a `.hop` refusal can hold a non-empty `hash_check` in its replay form (the posted value), so a non-empty token proves a logged-in session only on a GET answer without `.hop`.
+- Not captured: page 1 with stale cookies, `md_user=deleted` sent by HFR, attributes of the doubled `Set-Cookie` (see the lot's Pending capture).
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).
