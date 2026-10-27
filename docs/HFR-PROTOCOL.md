@@ -268,7 +268,7 @@ Facts and open questions found by **Bybifok** ([`moust4ki`](https://github.com/m
 | List paging | Paging goes through the path `liste_sujet-<n>.htm`; `?page=` on `liste_sujet-1.htm` is ignored | B2 | Unsettled. Logged out, `forum1.php?…&page=<n>` answers 301 to `liste_sujet-<n>.htm` (R2) |
 | Search | Words shorter than 4 letters are not indexed | B3 | Unsettled |
 | AQ RSS | Titles and descriptions keep HTML entities (`&quot;`, `&#039;`) | B4 | Unsettled (AQ part of LOT-025 pending Q-4) |
-| Search URLs | Intra-topic results are a plain GET `forum2.php?…&word=&spseudo=&filter=1&currentnum=`; a member's posts at `/hfr/recherche/pseudo-<name>.htm` | B5 | **Results URL settled** (§7 E28, `R52a`); member-posts URL unsettled |
+| Search URLs | Intra-topic results are a plain GET `forum2.php?…&word=<UPPERCASED>&spseudo=&currentnum=<match>#t<match>`; a member's posts at `/hfr/recherche/pseudo-<name>.htm` | B5 | **Results URL settled** (§7 E28, `R52a`); member-posts URL unsettled |
 | Flags page | "Mes drapeaux" lists only followed topics with news and carries a `suppressflag.php` link, never to call without an explicit user action | B6 | Unsettled; cross-check with `R10` |
 | Row icons | `closedb_new` does not say whether a followed topic is read; icon paths depend on the account's theme (`images_forum/1` vs `images/defaut`): match on `alt` or file name | B7 | **First part consistent** (§6c LOT-022: `closedb_new.gif` on every anonymous row); theme-dependent paths unsettled |
 | MP list | `[non lu]` means the correspondent has not read it | B8 | **Settled** (§6b, `R13a`, `R13b`, `R13u1`) |
