@@ -96,10 +96,11 @@ copied into an allow-listed element with allow-listed attributes, unwrapped (its
     `<style>`, `<textarea>`): those contexts need their own escaping.
   - **Image URL hand-off** (policy stays out of the parser, as legacy: any http(s) `src` is an image, `http://192.168.1.1/admin` or
     `https://forum.hardware.fr/user/logout.php` included): the reader's web view carries no HFR cookie (images go through the cookie-less
-    client, LOT-045), so a forum URL used as an image cannot act on the account; images auto-load only under the image display mode; the
-    builder decides what to do with private/LAN hosts and with non-image `*.hardware.fr` paths before loading them. **Open question for the
-    operator** (not decided here): third-party image hosts learn the reader's IP and `Referer` on auto-load — accept (legacy behaviour),
-    proxy, or load on tap only.
+    client, LOT-045), so a forum URL used as an image cannot act on the account. **Operator decision (2026-10-27, option C), applied by
+    LOT-083**: the builder blocks images on private/LAN hosts (loopback, RFC 1918, link-local, `.local`) and non-image `*.hardware.fr`
+    paths (anything outside `forum-images.hardware.fr` and the known image paths); third-party images load on tap, or automatically per
+    the image display setting, so a third-party host learns the reader's IP and `Referer` only when the reader chose to. The parser's own
+    rule does not change: every http(s) `src` stays in `images` with its URL, the policy reads the list.
 
 ## Edge cases
 
