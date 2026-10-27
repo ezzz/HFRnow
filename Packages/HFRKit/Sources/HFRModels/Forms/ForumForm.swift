@@ -1,6 +1,7 @@
 /// The `<form name="hop">` HFR serves for replies, edits, new topics and private messages (and the moderation variant).
 public struct ForumForm: Sendable, Hashable, Codable {
-    /// The form `action`, as served (never assume `bddpost.php`; the edit form's action is unverified).
+    /// The form `action` as a path on the forum origin, resolved against the page (never assume `bddpost.php`).
+    /// Nil when absent or when it leaves the forum origin: then nothing may be posted.
     public var action: String?
     /// Inputs in page order.
     public var fields: [FormField]
