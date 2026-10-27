@@ -9,12 +9,27 @@ import Testing
 struct MPUnreadPollTests {
     private static let homeURL = URL(string: "https://forum.hardware.fr/") ?? URL(fileURLWithPath: "/")
 
+    /// What the probe factory was given.
+    final class Seeds: @unchecked Sendable {
+        private let lock = NSLock()
+        private var all: [[StoredCookie]] = []
+        func add(_ cookies: [StoredCookie]) { lock.lock(); all.append(cookies); lock.unlock() }
+        var values: [[StoredCookie]] { lock.lock(); defer { lock.unlock() }; return all }
+    }
+
+    private static let cookies = [
+        StoredCookie(name: "md_user", value: "fakeuser", domain: ".hardware.fr", path: "/", expiresDate: Date().addingTimeInterval(86_400)),
+        StoredCookie(name: "md_passs", value: "fakepass", domain: ".hardware.fr", path: "/", expiresDate: Date().addingTimeInterval(86_400))
+    ]
+
     private func poll(
-        _ reply: Result<HTTPResponse, NetworkError>
-    ) -> (poll: MPUnreadPoll, session: MockTransport, anonymous: MockTransport) {
-        let session = MockTransport(replies: [reply])
+        _ reply: Result<HTTPResponse, NetworkError>, account: HFRSession = HFRSession(cookies: MPUnreadPollTests.cookies)
+    ) -> (poll: MPUnreadPoll, probe: MockTransport, anonymous: MockTransport, seeds: Seeds, account: HFRSession) {
+        let probe = MockTransport(replies: [reply])
         let anonymous = MockTransport(replies: [])
-        return (MPUnreadPoll(session: session, anonymous: anonymous), session, anonymous)
+        let seeds = Seeds()
+        let poll = MPUnreadPoll(session: account, makeProbe: { seeds.add($0); return probe }, anonymous: anonymous)
+        return (poll, probe, anonymous, seeds, account)
     }
 
     private func html(_ body: String) -> Result<HTTPResponse, NetworkError> {
@@ -34,15 +49,26 @@ struct MPUnreadPollTests {
         #expect(try await ready.poll.unreadCount() == expected)
     }
 
-    @Test("One GET of the home page through the session: no topic page, nothing through the cookie-less transport")
+    @Test("One GET of the home page through the probe: no topic page, nothing through the cookie-less transport")
     func requestsOnlyTheHomePage() async throws {
         let ready = poll(.success(try Capture.response("R02-home-logged-in-unread-mp", url: Self.homeURL)))
         _ = try await ready.poll.unreadCount()
-        let sent = await ready.session.requests
+        let sent = await ready.probe.requests
         #expect(sent.count == 1)
         #expect(sent.first?.method == .get)
         #expect(sent.first?.url == Self.homeURL)
         #expect(await ready.anonymous.requests.isEmpty)
+    }
+
+    @Test("The probe starts from exactly the account's cookies, and the account session is left unchanged")
+    func probeIsSeededAndAccountUntouched() async throws {
+        let ready = poll(.success(try Capture.response("R02-home-logged-in-unread-mp", url: Self.homeURL)))
+        let before = await ready.account.cookies()
+        _ = try await ready.poll.unreadCount()
+        #expect(ready.seeds.values == [before])
+        #expect(!before.isEmpty)
+        #expect(await ready.account.cookies() == before)
+        #expect(await ready.account.hashCheck == nil)
     }
 
     @Test("A page that is not the home page or a forum list says nothing (nil), not 0: the MP list, a topic page", arguments: [
@@ -90,6 +116,6 @@ struct MPUnreadPollTests {
             return try await ready.poll.unreadCount()
         }
         await #expect(throws: MPUnreadPollError.network(.cancelled)) { try await task.value }
-        #expect(await ready.session.requests.isEmpty)
+        #expect(await ready.probe.requests.isEmpty)
     }
 }

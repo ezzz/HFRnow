@@ -67,6 +67,10 @@ extension Capture {
         guard let data = try? Data(contentsOf: url) else { throw Missing(name: id + ".oracle") }
         guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let effects = root["sideEffects"] as? [String: Any] else { throw Missing(name: id + ".oracle sideEffects") }
-        return effects["nbMP"] as? Int
+        // Only an explicit JSON null is "no entry"; a missing key or another type is a broken oracle.
+        guard let value = effects["nbMP"] else { throw Missing(name: id + ".oracle nbMP") }
+        if value is NSNull { return nil }
+        guard let count = value as? Int else { throw Missing(name: id + ".oracle nbMP type") }
+        return count
     }
 }

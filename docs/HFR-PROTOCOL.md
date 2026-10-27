@@ -268,7 +268,7 @@ Source: [LOT-027](lots/LOT-027-profile-parser.md), `UserProfileParser`, checked 
 
 [LOT-047](lots/LOT-047-mp-unread-poll.md), tests `MPUnreadPollTests`.
 
-- **Poll page** (`R01`, `R02`, `R03`, **verified**): `GET /` carries the unread count in the `cat=prive` row (see LOT-023), 200 for anonymous and logged-in visitors, served at `https://forum.hardware.fr/` (no redirect, meta `final_url`). The poll reads only that page, through the session; no topic page, so no flag is marked read (§7, E25).
+- **Poll page** (`R01`, `R02`, `R03`, **verified**): `GET /` carries the unread count in the `cat=prive` row (see LOT-023), 200 for anonymous and logged-in visitors, served at `https://forum.hardware.fr/` (no redirect, meta `final_url`). The poll reads only that page; no topic page, so no flag is marked read (§7, E25). The logged-in answer sets `md_user` and `md_passs` (each twice, R02/R03 metas), so the poll sends from a probe jar and does not write them back.
 - **Pending capture:** the home page answered to a logged-in session with expired cookies; until captured a poll reads it as `nil` (no information) whichever form HFR serves.
 
 
