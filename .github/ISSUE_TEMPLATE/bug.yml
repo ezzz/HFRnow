@@ -2,6 +2,15 @@ name: Bug report
 description: Something does not work as expected
 labels: ["type: bug", "status: needs-triage"]
 body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: >-
+        First thing a human reads. A user story ("As a <who>, I want <what>, so that <why>") or a two-line
+        executive summary of the intent. Details go in the fields below.
+      placeholder: "As a reader, I want …, so that …"
+    validations: { required: true }
   - type: markdown
     attributes:
       value: "Search existing issues first. **Never paste cookies, passwords or session data.** Security issues: use the private report link."

@@ -25,10 +25,10 @@ jobs:
               return match ? match[1].trim().toLowerCase() : null;
             };
             const allowed = {
-              Type: ["roadmap", "chore", "docs", "security"],
+              Type: ["lot", "roadmap", "chore", "docs", "security"],
               Priority: ["high", "medium", "low"],
               Difficulty: ["trivial", "easy", "medium", "difficult"],
-              Area: ["models", "parsing", "network", "storage", "app", "ci", "docs"],
+              Area: ["models", "parsing", "network", "storage", "client", "app", "tooling", "ci", "docs"],
             };
             const prefixes = { Type: "type", Priority: "priority", Difficulty: "difficulty", Area: "area" };
             const current = context.payload.issue.labels.map((l) => l.name);
@@ -50,3 +50,12 @@ jobs:
             }
             if (add.length) await github.rest.issues.addLabels({ ...issue, labels: add });
             core.info("added: " + add.join(", ") + " | removed: " + remove.join(", "));
+            // Every issue opens with a "### Summary" (user story or executive summary, AGENTS.md §8).
+            const summary = body.match(/^###[ \t]*Summary[ \t]*\r?\n(?:[ \t]*\r?\n)*[ \t]*(?!#{1,6}[ \t])(\S[^\r\n]*)/im);
+            if (context.payload.action === "opened" && !summary) {
+              await github.rest.issues.addLabels({ ...issue, labels: ["status: needs-triage"] });
+              await github.rest.issues.removeLabel({ ...issue, name: "status: ready" }).catch(() => {});
+              await github.rest.issues.createComment({ ...issue, body:
+                "Please start the description with a `### Summary` section: a user story (\"As a …, I want …, so that …\") " +
+                "or a two-line executive summary, so the intent is clear at a glance (AGENTS.md §8)." });
+            }

@@ -7,15 +7,14 @@ Thanks for helping! Humans and AI agents follow the same process. The rules are 
 ## 1. From a task to a PR
 
 1. Read **[AGENTS.md](AGENTS.md)** — guardrails, conventions, migration loop, labels, definition of done.
-2. **Claim** before writing anything ([ORCHESTRATION](docs/agents/ORCHESTRATION.md#claims)):
-   - an engine lot: owner + `in-progress` in [docs/LOTS.md](docs/LOTS.md);
-   - anything else: an issue (open one if none exists), assigned to you, with its `status:` label.
+2. **Claim** before writing anything ([ORCHESTRATION](docs/agents/ORCHESTRATION.md#claims)): until Issues are enabled on ezzz/HFRnow, [docs/LOTS.md](docs/LOTS.md) is the only tracker. Pick a `todo` lot with no owner and open a PR on `dev-swift` that sets its row to your id (`human/<your-login>` or `<host>/<session>`, with the date) and `in-progress`; start once it is merged. Give it back the same way (owner `—`, status `todo`) if you stop.
+   Every PR names its lot (`LOT-XXX`); work that is not a lot (small fix, CI, docs) says so in its description. The old issues of `francoisgn/ios-app_SwiftHFR` linked from `LOTS.md` are frozen history: read them, never claim or comment there.
 3. Branch from **`dev-swift`** (`lot/…`, `fix/…`, `feat/…`, `chore/…`, `docs/…`); contributors without write access work from a fork. Never branch from or target `master`: it is the legacy app.
-4. Work from **one description**: the spec file `docs/lots/LOT-XXX-*.md` for a lot, `docs/features/FEAT-XXX.md` for an app feature; the issue itself for a bug, a chore or a docs change. Never guess how HFR behaves ([AGENTS.md §3](AGENTS.md#3-ground-rules)).
+4. Work from **one description**: the spec file `docs/lots/LOT-XXX-*.md` for a lot, `docs/features/FEAT-XXX.md` for an app feature; the `LOTS.md` row (or the PR description) for a bug, a chore or a docs change. Never guess how HFR behaves ([AGENTS.md §3](AGENTS.md#3-ground-rules)).
 5. Code with its tests; run `swift test --package-path Packages/HFRKit` and SwiftLint locally when you can; self-review against [LESSONS](docs/agents/LESSONS.md). Agent-written code is reviewed by a different model before the PR ([AGENTS.md §6](AGENTS.md#6-model-routing-which-agent-does-what)).
-6. Open the PR against `dev-swift` with the template: `Closes #N` or `LOT-XXX`, what changed and why, the tests.
+6. Open the PR against `dev-swift` with the template: the lot (`LOT-XXX`), what changed and why, the tests.
 
-Issues: until the production switch the issue forms do not show (GitHub only reads them from the default branch, the legacy `master`); open a blank issue titled `[SwiftHFR] …` and set one label per axis ([AGENTS.md §7](AGENTS.md#7-labels-and-prioritization)).
+Issues: disabled on ezzz/HFRnow for now (the owner's decision, [ADR 0010](docs/adr/0010-hosting-on-ezzz-hfrnow-dev-swift.md)). A bug or task found meanwhile goes into `docs/LOTS.md` by PR ("Issues to open" backlog). Once Issues are enabled, the target process applies ([ORCHESTRATION](docs/agents/ORCHESTRATION.md#target-process-once-ezzz-enables-issues)): every issue starts with a **Summary** (a user story "As a …, I want …, so that …" or a two-line executive summary), is claimed with `/claim <host>/<name>`, and every PR states `Closes #N` + `Claim:` (or `Direct-PR: <reason>`). Issue forms only show from the default branch: until they land there, open a blank issue titled `[SwiftHFR] …` with one label per axis ([AGENTS.md §7](AGENTS.md#7-labels-and-prioritization)).
 Security problems go through [SECURITY.md](SECURITY.md), never a public issue.
 
 ## 2. Merge criteria

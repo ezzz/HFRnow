@@ -42,6 +42,8 @@ jobs:
         with: { persist-credentials: false }
       - name: Unit tests (synthetic pages only)
         run: python3 -m unittest discover tooling/fixtures/tests
+      - name: Unit tests (issue claims and repository scripts)
+        run: python3 -m unittest discover scripts/tests
       - name: Anonymization check of the committed capture corpus
         # Config-less: the structural verifier, tokens, cookies, ids and private bodies (from each meta).
         run: python3 tooling/fixtures/anonymize.py check --quiet --corpus Packages/HFRKit/Tests/HFRParsingTests/Fixtures/captures

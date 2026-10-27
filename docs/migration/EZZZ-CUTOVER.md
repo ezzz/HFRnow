@@ -98,8 +98,12 @@ A deploy key is used because `GITHUB_TOKEN` cannot push commits that touch workf
 
 ```sh
 MIRROR=francoisgn/ios-app_SwiftHFR
-# 6a. Bootstrap: master of the mirror = dev-swift (fast-forward: dev-swift is master + the envelope commit)
-git fetch ezzz dev-swift && git push origin ezzz/dev-swift:refs/heads/master
+# 6a. Bootstrap: master of the mirror = dev-swift. NOT a fast-forward: #100 and #102 were merged on the old master after
+#     the snapshot and reached dev-swift as cherry-picks (chore/port-100-102), so the old master is replaced. Run 6c's
+#     DELETE of the branch protection first (it forbids force pushes), and check that dev-swift carries both ports.
+git fetch origin master && git fetch ezzz dev-swift
+git show ezzz/dev-swift:scripts/issue_claims.py >/dev/null && git show ezzz/dev-swift:docs/agents/LESSONS.md | grep -q '^| 49 |'   # both ports landed
+git push --force-with-lease=master:c3ab1295804f05074490ca5811f6b395e29d7616 origin ezzz/dev-swift:refs/heads/master
 
 # 6b. Deploy key with write access, private half as an Actions secret, then delete the local copy
 ssh-keygen -t ed25519 -N "" -C "swifthfr-mirror" -f ~/.ssh/swifthfr-mirror
@@ -124,8 +128,8 @@ Expected: the run succeeds and does nothing (already in sync). On the mirror, on
 ## 7. What stayed open **[confirm]**
 
 - Remaining PRs of the old repository: `git push ezzz origin/<branch>:refs/heads/<branch>`, rebase on `ezzz/dev-swift` if needed, `gh pr create -R ezzz/HFRnow --base dev-swift`, body `Moved from francoisgn/ios-app_SwiftHFR#N`. If its review was complete there, add `@coderabbitai ignore` to the body. Then close the old PR with a link to the new one.
-- Open issues (#14): recreate on ezzz/HFRnow with a link to the original, close the original with a link to the new one.
-- Then disable issues on the mirror: `gh repo edit francoisgn/ios-app_SwiftHFR --enable-issues=false`.
+- Open issues (the lot issues #63–#98 and the rest): **frozen**, not recreated. Issues are disabled on ezzz/HFRnow, so `docs/LOTS.md` on `dev-swift` became the only tracker: each open lot's owner and status were copied from its issue on 2026-10-27, with the old issue's URL as reference (ADR 0010). Once ezzz enables Issues, new issues are opened from `LOTS.md`, not from the mirror.
+- Keep issues **enabled but frozen** on the mirror: `docs/LOTS.md` links each open lot to its old issue, and the discussions there are not copied yet (operator decision, 2026-10-27). Disable them (`gh repo edit francoisgn/ios-app_SwiftHFR --enable-issues=false`) only once their content is re-hosted on ezzz/HFRnow.
 
 ## 8. Checklist before handing over to ezzz
 
@@ -134,7 +138,7 @@ Expected: the run succeeds and does nothing (already in sync). On the mirror, on
 - [ ] Labels present on ezzz/HFRnow
 - [ ] Secrets recreated (or none needed)
 - [ ] Mirror run green, `francoisgn/ios-app_SwiftHFR` master = `ezzz/HFRnow` dev-swift
-- [ ] Open PRs and issues moved
+- [ ] Open PRs moved; issues frozen in `LOTS.md`, issues kept enabled (frozen) on the mirror until re-hosted
 
 Then post the step 9 message (forum, plain text).
 
@@ -153,3 +157,5 @@ Afterwards, by the maintainer: check Settings → Rules shows `SwiftHFR dev-swif
 ## Later, owner's decision (ezzz)
 
 Issue forms and `issue-triage.yml` (ADR 0010 table): issues are shared with the legacy app, so they only land on `master` if ezzz wants them, through a PR he merges.
+
+Issues and the claim process (francoisgn/ios-app_SwiftHFR#100): enabling Issues on ezzz/HFRnow, then putting `issue-claims.yml`, `pr-issue.yml` (it filters on PRs into `dev-swift`) and `scripts/issue_claims.py` on `master` so `/claim` and the **Issue and claim** check run, then adding that check to `dev-swift.json`. `issue-claims.yml` acts on every issue of the repository, the legacy app's included (it only reads `/claim` and `/release` comments from members). Until then `docs/LOTS.md` is the only tracker (ADR 0010).

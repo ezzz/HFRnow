@@ -6,13 +6,20 @@ It is a living document: when a lot teaches us something, it is written here (se
 
 > `CLAUDE.md` imports this file and adds the guardrails a Claude session must never break; it never contradicts this file. Do not put instructions anywhere else.
 
+**Starting a session — in this order:**
+1. Read this file, [ORCHESTRATION](docs/agents/ORCHESTRATION.md), [REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md) and [LESSONS](docs/agents/LESSONS.md).
+2. Look at [`docs/LOTS.md`](docs/LOTS.md) on `dev-swift`, not memory: the lots you own (`in-progress` with your session id), then `todo` lots with no owner (§7). It is the only tracker until Issues are enabled on ezzz/HFRnow ([ADR 0010](docs/adr/0010-hosting-on-ezzz-hfrnow-dev-swift.md)).
+3. Work only under a lot you claimed in `LOTS.md` (§5). Every PR names its lot (`LOT-XXX`) (§8).
+4. Get the PR reviewed by another model and handle bot rounds per REVIEW-ROUNDS. Merging is the operator's call (§0).
+5. Before you stop: say where each lot you own stands (on its PR), and give back what you will not finish (owner `—`, status back to `todo`, by PR).
+
 ---
 
 ## 0. Guardrails (read first)
 
 The **operator** is the human driving an agent session. Agents act on the operator's behalf and within the operator's permissions on this repository.
 
-- **Routine work needs no extra confirmation**: your own branches, PRs, fixes to your open PRs, replies on your PRs, comments on issues you claimed, `docs/LOTS.md` updates.
+- **Routine work needs no extra confirmation**: your own branches, PRs, fixes to your open PRs, replies on your PRs, your claim PRs and your lot's own row in `docs/LOTS.md`.
 - **Consequential actions are confirmed by the operator first** (draft, show, wait): merges, releases and tags, anything on another repository, editing or closing what someone else wrote (back up, show the diff, apply, re-read), repository settings, new dependencies, disclosing a security finding, messages outside GitHub.
 - How strictly confirmations apply, and whether they carry over to child sessions, is **the operator's call**. Personal rules belong in an untracked `CLAUDE.local.md` (or your tool's equivalent), not in this file.
 - Merges to `dev-swift` happen through PRs with green checks; who may merge is governed by repository permissions.
@@ -33,7 +40,7 @@ License: [PolyForm Noncommercial 1.0.0](LICENSE) — no commercial use, credit t
 | `App/` | iOS app target (SwiftUI). Created during the first Mac session — see [ROADMAP](docs/ROADMAP.md) |
 | `docs/ARCHITECTURE.md` | Modules, dependency rules, design principles |
 | `docs/ROADMAP.md` | Phases and their exit criteria |
-| `docs/LOTS.md` | Migration lots: status, owner, reviewer. **Check it before starting work.** |
+| `docs/LOTS.md` | Migration lots: scope, dependencies, model routing, owner, status — the **only tracker** until Issues are enabled on ezzz/HFRnow. **Check it before starting work.** |
 | `docs/agents/` | [ORCHESTRATION](docs/agents/ORCHESTRATION.md) (parallel sessions), [REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md) (bots & reviews), [LESSONS](docs/agents/LESSONS.md) (self-review table) |
 | `docs/lots/` | One spec file per lot (`LOT-XXX-name.md`) |
 | `docs/HFR-PROTOCOL.md` | What we know about HFR: URLs, forms, cookies, HTML structure |
@@ -47,7 +54,7 @@ License: [PolyForm Noncommercial 1.0.0](LICENSE) — no commercial use, credit t
 **Hosting** ([ADR 0010](docs/adr/0010-hosting-on-ezzz-hfrnow-dev-swift.md)): SwiftHFR lives on the `dev-swift` branch of [ezzz/HFRnow](https://github.com/ezzz/HFRnow).
 The default branch `master` of that repository **is the legacy app**: never branch from it, never target it, never let a session's `CLAUDE.md` from `master` drive work on SwiftHFR.
 
-`francoisgn/ios-app_SwiftHFR` is a read-only mirror of `dev-swift`, synced hourly: never open issues or PRs there.
+`francoisgn/ios-app_SwiftHFR` is a read-only mirror of `dev-swift`, synced hourly: never open issues or PRs there. Its issues are frozen history: read them for context (`LOTS.md` links each open lot's old issue), never claim, comment on or close them.
 
 Legacy codebase (read-only reference): the `master` branch of ezzz/HFRnow. Citations written before the move point to <https://github.com/francoisgn/hfrnow> @ `2440d79` and stay valid.
 When a behaviour is unclear, **read the legacy code** instead of guessing, and cite the file and line in the lot spec.
@@ -60,8 +67,8 @@ When a behaviour is unclear, **read the legacy code** instead of guessing, and c
 4. **Secrets never enter the repository**: no tokens, passwords, cookies, session IDs or signing material — not in code, fixtures, logs, tests or commit messages. Secrets live in GitHub Actions secrets; for local builds only in git-ignored configuration files as defined by [ADR 0007](docs/adr/0007-third-party-api-keys.md). Push protection and gitleaks will block you; never bypass them.
 5. **Fixtures are anonymized before commit** ([FIXTURES](docs/FIXTURES.md)). A real pseudo, cookie or hash in a fixture is a security incident.
 6. **Small, reviewable changes.** One lot or one issue per PR. No drive-by refactors.
-7. **Don't work on something already claimed** in `docs/LOTS.md` or assigned on an issue. Claim before coding ([ORCHESTRATION](docs/agents/ORCHESTRATION.md)).
-8. **No hidden state.** Plans, claims and progress live in `docs/LOTS.md` and GitHub issues/PRs, never only in a session's memory.
+7. **Don't work on something already claimed.** Claim a lot in `docs/LOTS.md` (owner + `in-progress`, by PR) before coding (§5, [ORCHESTRATION](docs/agents/ORCHESTRATION.md#claims)).
+8. **No hidden state.** Claims and status live in `docs/LOTS.md`, progress and blockers in PRs, never only in a session's memory. Saw a problem that belongs to another lot? Say it on that lot's PR, or add it to the lot's spec or the backlog in `LOTS.md` by PR.
 9. **Measure, don't assume** — performance claims, protocol behaviour, test results.
 
 ## 4. Engineering conventions
@@ -77,16 +84,17 @@ When a behaviour is unclear, **read the legacy code** instead of guessing, and c
 
 ## 5. The migration loop (one lot)
 
-Each lot in `docs/LOTS.md` follows exactly this loop:
+Each lot in `docs/LOTS.md` follows exactly this loop (once Issues are enabled on ezzz/HFRnow, each lot gets an issue and the claim moves to it: [ORCHESTRATION, target process](docs/agents/ORCHESTRATION.md#claims)):
 
-1. **Claim** — set yourself as owner in `docs/LOTS.md` (status `in-progress`), committed and pushed **before** writing code. When an orchestrator session is active, ask it to claim for you instead and do not edit `LOTS.md` ([ORCHESTRATION](docs/agents/ORCHESTRATION.md)).
-2. **Spec** — write/complete `docs/lots/LOT-XXX-*.md`: legacy sources (file:line), inputs/outputs, edge cases, protocol facts (also copied to `docs/HFR-PROTOCOL.md`).
-3. **Fixtures** — real pages + legacy parser output (the oracle), anonymized.
+1. **Claim** — set yourself as owner of the lot's row in `docs/LOTS.md` with status `in-progress`, in a PR on `dev-swift` merged **before** writing code. When an orchestrator session is active, it claims for you instead and you do not edit `LOTS.md`. The owner is a session id `<host>/<name>`, e.g. `cloud/c12-sonnet`, `mac/M1`, `human/<login>`, plus the date; keep it for the whole lot. Check first that the lot is `todo` (every dependency done, inputs available) and has no owner; the first claim merged wins.
+   Stuck or stopping? Say on your PR what is done and what is left, then give the lot back (owner `—`, status `todo`) by PR. A claim that looks abandoned for 24 h: ask the maintainer, never take it over.
+2. **Spec** — write/complete `docs/lots/LOT-XXX-*.md`: legacy sources (file:line), inputs/outputs, edge cases, intentional differences from legacy, *pending capture* states. Verified protocol facts go to `docs/HFR-PROTOCOL.md` §6c under the lot's own `###` subsection.
+3. **Fixtures** — real pages + legacy parser output (the oracle), anonymized. **Both must exist before you claim a parser lot** (LESSONS 35). A state that was not captured is listed as *pending capture* and added to the capture backlog in `docs/LOTS.md`; never hand-build it in the cloud (LESSONS 36).
 4. **Port** — implement in the right module, Swift-native, no ObjC.
 5. **Differential tests** — the new code must reproduce the oracle output on every fixture. Differences must be justified in the spec (legacy bug fixed on purpose = documented).
 6. **CI green** — build, tests, lint, CodeQL, secret scan.
-7. **Review** — self-review against [LESSONS](docs/agents/LESSONS.md), then a different agent/model than the author, ideally one tier above (§6). Bot rounds follow [REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md).
-8. **Close** — status `done` in `docs/LOTS.md`, learnings added to this file (§11).
+7. **Review** — self-review against [LESSONS](docs/agents/LESSONS.md), then an **adversarial review** by a different model than the author (§6): the reviewer gets the diff, the lot spec and LESSONS, not the author's conclusions, and returns APPROVE or REQUEST CHANGES with numbered findings (severity, file:line, failing scenario, fix). Fix every finding in one commit per round, re-review until APPROVE. Bot rounds follow [REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md); security findings stay open until the operator decides.
+8. **Close** — the PR (`LOT-XXX`) sets the lot's own row in `docs/LOTS.md` to `done (#PR)`. Learnings go to [LESSONS](docs/agents/LESSONS.md).
 
 ## 6. Model routing (which agent does what)
 
@@ -99,24 +107,28 @@ Starting hypothesis, adjusted after the first lots (record changes here).
 | Bulk porting of well-specified lots, simple parsers, read-only fetchers and clients, storage, CI | Sonnet 5.5 |
 | Mechanical work: fixture anonymization, renames, doc/label upkeep, convention checks | Haiku 5.5 |
 
-Rule: **the reviewer is never the author model.**
+Rule: **the reviewer is never the author model.** Opus-authored work is reviewed by Fable; Sonnet- and Haiku-authored work by Opus; Fable-authored work by Opus.
+Sub-agents launched by a session work under the claim they are given, open one PR per lot, and never merge.
 
 ## 7. Labels and prioritization
 
-Labels are defined in [`.github/labels.yml`](.github/labels.yml) and synced automatically. Issue forms set them; a workflow applies them.
+Labels are defined in [`.github/labels.yml`](.github/labels.yml) and synced automatically. Issue forms set them; a workflow applies them — both only from the default branch, so they wait for Issues on ezzz/HFRnow (ADR 0010). Until then the same axes are the columns of `docs/LOTS.md`.
 Every issue carries one label per axis:
 
 | Axis | Labels | Meaning |
 |---|---|---|
-| Type | `type: bug`, `type: feature`, `type: security`, `type: roadmap`, `type: chore`, `type: docs` | What it is |
+| Type | `type: bug`, `type: feature`, `type: security`, `type: lot`, `type: roadmap`, `type: chore`, `type: docs` | What it is |
 | Priority | `priority: high`, `priority: medium`, `priority: low` | How soon |
 | Difficulty | `difficulty: trivial`, `difficulty: easy`, `difficulty: medium`, `difficulty: difficult` | Effort/risk — drives model routing (§6) |
-| Area | `area: models`, `area: parsing`, `area: network`, `area: storage`, `area: app`, `area: ci`, `area: docs` | Where |
-| Status | `status: needs-triage`, `status: blocked`, `status: ready` | Workflow state |
+| Area | `area: models`, `area: parsing`, `area: network`, `area: storage`, `area: client`, `area: app`, `area: tooling`, `area: ci`, `area: docs` | Where |
+| Status | `status: needs-triage`, `status: blocked`, `status: ready`, `status: claimed` | Workflow state; `status: claimed` is set and removed by the claim workflow only |
+| Host | `host: mac` | Needs the maintainer's Mac (Xcode, legacy app, live captures); cloud sessions leave it alone |
 
 Credit labels: `moust4ki aka bybifok finding` marks work found by Bybifok; the fix credits them.
 
-**Picking work:** take `status: ready` issues in this order: `type: security` first, then `priority: high` → `low`.
+**Writing an issue:** it starts with `### Summary` (user story or two-line executive summary, §8), then scope, sources and acceptance criteria.
+
+**Picking work:** today, `todo` rows of `docs/LOTS.md` with no owner, security first, then the critical path (★) and the lots that unblock others. Once Issues are enabled: `status: ready` issues that are not `status: claimed`, in this order: `type: security` first, then `priority: high` → `low`.
 Within a priority, match `difficulty` to your model tier (§6). Security issues are never reported publicly — see [SECURITY.md](SECURITY.md).
 
 ## 8. Git and PR workflow
@@ -124,9 +136,14 @@ Within a priority, match `difficulty` to your model tier (§6). Security issues 
 - Integration branch: `dev-swift` (ruleset: PR + green checks required, squash only, no force push). `master` is the legacy app.
 - Issue and PR numbers restart on ezzz/HFRnow: cite the old ones as `francoisgn/ios-app_SwiftHFR#N`.
 - Branch names: `lot/XXX-short-name`, `fix/short-name`, `feat/short-name`, `chore/short-name`, `docs/short-name`.
-- Commits: imperative mood, explain *why*. Reference the issue/lot (`Refs #12`, `LOT-003`).
-- **Before opening an issue or PR, check for duplicates**: synonyms, titles and bodies, open and closed, plus `LOTS.md`. An older issue asking the same thing is the one to keep. A better PR already open → close ours with one sentence and a link.
-- **PR description**, short, in order: `Closes #N` / `LOT-XXX` (or `Part of` + what is left); the problem; the cause; what changed and why this wide and no wider; the tests (names, what they check, shown to fail without the change).
+- Commits: imperative mood, explain *why*. Reference the lot (`LOT-003`).
+- **Every issue starts with `### Summary`** (once Issues are enabled): a user story ("As a <who>, I want <what>, so that <why>") or a two-line executive summary, so a human judges the intent at a glance. Scope, sources and acceptance criteria come after. The issue forms ask for it; an issue opened without it gets `status: needs-triage` and a reminder.
+- **Every PR names its lot, claimed by its author** in `docs/LOTS.md` (`LOT-XXX` in the description; partial work says what is left). Work that is not a lot (small fix, CI, docs) says so in the description; anything that takes more than one session gets a row in `LOTS.md` first. Dependabot PRs are exempt.
+- **Target process, once ezzz enables Issues** (ADR 0010 "Later, owner's decision"; the machinery from francoisgn/ios-app_SwiftHFR#100 is on `dev-swift`, inert until then): every PR has an issue claimed by its author, checked by **Issue and claim** — `Closes #N` (or `Refs #N` for partial work) and, on its own line, `Claim: <session-id>` equal to the issue's active claim, with the break-glass `Direct-PR: <reason>` for small fixes, labelled `direct-pr`. Details in [ORCHESTRATION](docs/agents/ORCHESTRATION.md#claims).
+- **Before opening a PR (or, later, an issue), check for duplicates**: synonyms, titles and bodies, open and closed, plus `LOTS.md`. An older issue asking the same thing is the one to keep. A better PR already open → close ours with one sentence and a link.
+- **Right before opening a PR**, search the open PRs that cite the same lot or touch the same files (e.g. `docs/HFR-PROTOCOL.md`, `docs/LOTS.md`): coordinate on their PR, or merge `dev-swift` once they land, instead of discovering the conflict at merge time.
+- **Public actions outside this repository** (a post on the HFR forum, an issue or comment on another project, a message to another maintainer) are confirmed by the operator first (§0), then recorded on the related PR (or, later, issue), in the same work unit: the link, or, for a private channel (e-mail, chat), the channel and the date, never the private content. Other sessions learn our public footprint from there.
+- **PR description**, short, in order: `LOT-XXX` (or what is left, for partial work); the problem; the cause; what changed and why this wide and no wider; the tests (names, what they check, shown to fail without the change).
 - Draft while unfinished; ready as soon as CI is green. Answer reviews within a day; handle bot rounds with [REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md).
 - No new PR while one of yours has an unanswered review comment.
 - Commit small, push often: a crash should lose minutes, not hours.
@@ -140,7 +157,7 @@ Within a priority, match `difficulty` to your model tier (§6). Security issues 
 - [ ] Spec / protocol / ADR docs updated
 - [ ] Reviewed by another model or a human
 - [ ] Self-review against [LESSONS](docs/agents/LESSONS.md) done
-- [ ] `docs/LOTS.md` and the issue status updated
+- [ ] The lot's row in `docs/LOTS.md` set to `done (#PR)` by the closing PR
 
 ## 10. Environments
 
