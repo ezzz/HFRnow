@@ -3,10 +3,14 @@ import HFRModels
 import HFRNetwork
 @testable import SwiftHFR
 import Testing
+import UIKit
 import WebKit
 
 /// The real web view, driven end to end: what the page may run, request and navigate to.
+///
+/// Serialized, with long deadlines: a cold CI simulator starts WebKit's processes slowly, and parallel web views compete.
 @MainActor
+@Suite(.serialized)
 struct ReaderWebControllerTests {
     nonisolated private static let pixel = Data(
         base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
@@ -27,6 +31,8 @@ struct ReaderWebControllerTests {
     private final class Recorder {
         var ready: [Int] = []
         var links: [URL] = []
+        /// Hosts the web view in a window, as on screen (keeps WebKit from treating it as hidden and throttling it).
+        var window: UIWindow?
     }
 
     private func makeController(transport: MockTransport, autoLoad: Bool = false) -> (ReaderWebController, Recorder) {
@@ -37,6 +43,14 @@ struct ReaderWebControllerTests {
         controller.events = ReaderWebController.Events(
             ready: { recorder.ready.append($0) }, link: { recorder.links.append($0) }, video: { _, _, _ in }
         )
+        if let scene = UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene {
+            let window = UIWindow(windowScene: scene)
+            window.frame = CGRect(x: 0, y: 0, width: 400, height: 800)
+            controller.webView.frame = window.bounds
+            window.addSubview(controller.webView)
+            window.isHidden = false
+            recorder.window = window
+        }
         return (controller, recorder)
     }
 
@@ -52,7 +66,7 @@ struct ReaderWebControllerTests {
         )
     }
 
-    private func until(_ condition: () -> Bool, timeout: Duration = .seconds(20)) async -> Bool {
+    private func until(_ condition: () -> Bool, timeout: Duration = .seconds(90)) async -> Bool {
         let clock = ContinuousClock()
         let deadline = clock.now + timeout
         while !condition() {
@@ -62,7 +76,7 @@ struct ReaderWebControllerTests {
         return true
     }
 
-    private func until(async condition: () async -> Bool, timeout: Duration = .seconds(20)) async -> Bool {
+    private func until(async condition: () async -> Bool, timeout: Duration = .seconds(90)) async -> Bool {
         let clock = ContinuousClock()
         let deadline = clock.now + timeout
         while await !condition() {
@@ -86,7 +100,7 @@ struct ReaderWebControllerTests {
         let transport = imageTransport()
         let (controller, recorder) = makeController(transport: transport)
         controller.show(document(token: 1))
-        #expect(await until { recorder.ready == [1] })
+        #expect(await until { recorder.ready == [1] }, "ready: \(recorder.ready), images: \(controller.imageRequests.count)")
         // Images settle after DOMContentLoaded.
         #expect(await until { controller.imageRequests.count >= 3 })
         try await Task.sleep(for: .milliseconds(300))
@@ -113,7 +127,7 @@ struct ReaderWebControllerTests {
     @Test func theStylesheetLoadsAndASpoilerOpensOnTap() async throws {
         let (controller, recorder) = makeController(transport: imageTransport())
         controller.show(document(token: 1))
-        #expect(await until { recorder.ready == [1] })
+        #expect(await until { recorder.ready == [1] }, "ready: \(recorder.ready), images: \(controller.imageRequests.count)")
         let visibility = "return getComputedStyle(document.querySelector('div.masque')).visibility;"
         #expect(await until(async: { (try? await self.evaluate(visibility, in: controller) as? String) == "hidden" }))
         _ = try await evaluate("document.querySelector('table.spoiler td').click(); return true;", in: controller)
@@ -124,7 +138,7 @@ struct ReaderWebControllerTests {
         let transport = imageTransport()
         let (controller, recorder) = makeController(transport: transport)
         controller.show(document(token: 1))
-        #expect(await until { recorder.ready == [1] })
+        #expect(await until { recorder.ready == [1] }, "ready: \(recorder.ready), images: \(controller.imageRequests.count)")
         #expect(await transport.requests.contains { $0.url.host() == "i.imgur.com" } == false)
         _ = try await evaluate("document.querySelector('button.image-tap').click(); return true;", in: controller)
         #expect(await until { controller.imageRequests.contains { $0.requested.host() == "i.imgur.com" && $0.allowed } })
@@ -141,7 +155,7 @@ struct ReaderWebControllerTests {
         let transport = imageTransport()
         let (controller, recorder) = makeController(transport: transport, autoLoad: true)
         controller.show(document(token: 1))
-        #expect(await until { recorder.ready == [1] })
+        #expect(await until { recorder.ready == [1] }, "ready: \(recorder.ready), images: \(controller.imageRequests.count)")
         #expect(await until { controller.imageRequests.contains { $0.requested.host() == "i.imgur.com" } })
         #expect(!controller.imageRequests.contains { $0.requested.host() == "192.168.1.1" })
     }
@@ -149,7 +163,7 @@ struct ReaderWebControllerTests {
     @Test func aTappedLinkLeavesTheReaderToTheApp() async throws {
         let (controller, recorder) = makeController(transport: imageTransport())
         controller.show(document(token: 1))
-        #expect(await until { recorder.ready == [1] })
+        #expect(await until { recorder.ready == [1] }, "ready: \(recorder.ready), images: \(controller.imageRequests.count)")
         _ = try await evaluate("document.querySelector('a[href=\"https://example.com/page\"]').click(); return true;", in: controller)
         #expect(await until { recorder.links == [URL(string: "https://example.com/page")] })
         #expect(controller.webView.url == ReaderWebController.pageURL(token: 1))
