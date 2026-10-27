@@ -19,15 +19,15 @@ Deep audit of the ~10 k lines of legacy Objective-C networking, HTML parsing and
 Output: dependency graph, ordered lots in [LOTS.md](LOTS.md), first version of [HFR-PROTOCOL.md](HFR-PROTOCOL.md).
 **Exit:** every legacy engine file mapped to a lot; lot order reviewed.
 
-## Phase 2 — Fixtures and oracle
+## Phase 2 — Fixtures and oracle *(done — 2026-10-26, LOT-001 to LOT-005)*
 Harness in the legacy app exporting parser output as JSON from real pages; capture on the maintainer's Mac; anonymization.
 **Exit:** fixtures + oracle output committed for every parsing lot.
 
-## Phase 3 — Engine port
+## Phase 3 — Engine port *(in progress — 23 of 52 engine lots done on 2026-10-27)*
 Lots ported one by one with differential tests (`HFRModels`, `HFRNetwork`, parsers, reply posting, `HFRStorage`).
 **Exit:** all lots `done`; the engine covers every feature of the legacy app.
 
-## Phase 4 — App
+## Phase 4 — App *(starting — app target LOT-080 on the Mac; first usable build = LOT-080 to 083, see [LOTS.md](LOTS.md))*
 Prerequisite: create the iOS app target on the Mac (Xcode 27), wire it to `HFRKit`, add an app build job to CI, record the project-file strategy in an ADR.
 Reuse and adapt the legacy SwiftUI views on top of `HFRKit`; remove everything unused.
 

@@ -71,15 +71,15 @@ SwiftHFR keeps the spirit and restarts on a clean foundation: **100 % Swift, mod
 ## Where we are
 
 > [!NOTE]
-> **Nothing to install on a phone yet.** The foundations and the full audit of the legacy app are done; the engine migration starts now.
+> **Nothing to install on a phone yet.** Real HFR pages and the legacy app's output are captured; the engine is being ported lot by lot. The first usable build (log in, browse, read) is defined in [LOTS.md](docs/LOTS.md#phase-4--app-first-usable-build).
 
 | Phase | Scope | Status |
 |---|---|---|
 | 0 · Foundations | Repository, CI, security tooling, agent rules | **done** |
-| 1 · Audit | Legacy engine mapped into [56 migration lots](docs/LOTS.md) | **done** — [audit](docs/audit/README.md) |
-| 2 · Fixtures | Real HFR pages + legacy parser output as test oracle | next |
-| 3 · Engine | Models, parsing, network, storage, flows | starting (16 lots need no fixtures) |
-| 4 · App | SwiftUI app on top of `HFRKit` | planned |
+| 1 · Audit | Legacy engine mapped into [migration lots](docs/LOTS.md) (64 today) | **done** — [audit](docs/audit/README.md) |
+| 2 · Fixtures | Real HFR pages + legacy parser output as test oracle | **done** — capture corpus and oracles LOT-001 to 005 |
+| 3 · Engine | Models, parsing, network, storage, flows | **in progress** — 23 of 52 lots done (models, network base, storage, home, lists, topic pages, small parsers); flows next |
+| 4 · App | SwiftUI app on top of `HFRKit` | **starting** — app target on the Mac (LOT-080); login, navigation and reader lots defined |
 | 5 · iOS 27 experience | Column navigation, large and foldable layouts | planned |
 
 Details and exit criteria: [roadmap](docs/ROADMAP.md).
