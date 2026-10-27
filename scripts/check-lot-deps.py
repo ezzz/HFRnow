@@ -13,7 +13,7 @@ ALLOWED = {
 }
 ENGINE = set(ALLOWED)
 
-EXPECTED_CELLS = 9
+EXPECTED_CELLS = 10  # Lot, Scope, Module, Difficulty, Model, Depends on, Audit, Priority, Owner, Status
 
 
 def split_row(row: str) -> list[str]:
