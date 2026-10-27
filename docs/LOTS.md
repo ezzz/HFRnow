@@ -62,7 +62,7 @@ Model column: author → reviewer ([AGENTS.md §6](../AGENTS.md#6-model-routing-
 | LOT-035 | Video embed detection (fixes the YouTube hour bug) | HFRParsing | easy | Sonnet → Opus | 034 | C09 | low | — · old [#68](https://github.com/francoisgn/ios-app_SwiftHFR/issues/68) | blocked |
 | LOT-036 | `hop` form parser (inputs, selects, `content_form` textarea incl. `[quotemsg]` prefill, entity decoding) | HFRParsing | medium | Sonnet → Opus | 012, 020, 004 | D1 | medium | mac/w1-036-sonnet (2026-10-27) · old [#69](https://github.com/francoisgn/ios-app_SwiftHFR/issues/69) | done (#22) |
 | LOT-037 | `hop` response classifier (success, rejected, logged out, already alerted) | HFRParsing | medium | Sonnet → Opus | 012, 004 | D2 | medium | mac/w1-037-sonnet (2026-10-27) · old [#70](https://github.com/francoisgn/ios-app_SwiftHFR/issues/70) | done (#18) |
-| LOT-038 ★ | MPStorage page parsing (locate the storage MP, read its JSON) | HFRParsing | medium | Sonnet → Opus | 023, 030 | D8 | medium | mac/w3-038-sonnet (2026-10-27) · old [#71](https://github.com/francoisgn/ios-app_SwiftHFR/issues/71) | in-progress |
+| LOT-038 ★ | MPStorage page parsing (locate the storage MP, read its JSON) | HFRParsing | medium | Sonnet → Opus | 023, 030 | D8 | medium | — · old [#71](https://github.com/francoisgn/ios-app_SwiftHFR/issues/71) | blocked |
 
 ### Network (`HFRNetwork`) — transport, endpoints, sessions, raw fetchers
 
@@ -151,9 +151,8 @@ Orchestrator: `mac/orch-opus` (2026-10-27), operator brief of 2026-10-27. **MVP*
 | 2 | LOT-081 accounts and login screen (Mac) | D | Opus → Fable | all deps done (080, 043, 065): MVP login |
 | 2 | LOT-082 adaptive navigation (Mac) | D | Sonnet → Opus | all deps done (080, 021, 022, 024, 045): MVP browsing |
 | 3 | LOT-048 post-form engine | A | Opus → Fable | MVP posting basics (deps 036, 037, 042 done) |
-| 3 | LOT-038 MPStorage page parsing ★ | B | Sonnet → Opus | critical path → 052 (deps 023, 030 done) |
 | 3 | LOT-047 MP unread count poll | B | Sonnet → Opus | deps 023, 045 done |
-| 4 (planned) | LOT-083 (after 034), 049 (after 031 + 048), 050, 051, 054, 058, 032, 056, 064 | A–E | per row | when their dependencies are done |
+| 4 (planned) | LOT-038 (after its MPStorage captures), LOT-083 (after 034), 049 (after 031 + 048), 050, 051, 054, 058, 032, 056, 064 | A–E | per row | when their dependencies are done |
 
 ## Other work
 
@@ -195,6 +194,7 @@ Page states that merged lots listed as **pending capture** (never hand-built in 
 | New-topic form reached with a sub-category preselected (a `selected` option in `subcat`) | LOT-036 | R45a has none |
 | Edit or quote form of a message whose stored text starts with a newline | LOT-036 | tells whether a browser's dropped leading newline corrupts the round trip |
 | Reply form of a locked topic, and of a topic where the account may not post | LOT-036, LOT-037 | what the page serves instead of the form |
+| MPStorage thread: its first-post page (rendered) and the edit form of that first post with the real JSON in `content_form` (several namespaces, exact bytes; redact pseudos/hashes consistently); ideally a second one near the 64 KiB cap or with a non-BMP character; then the LOT-004 exporter `mpstorage-page` kind on the page | LOT-038, LOT-052 | the thread is in `R13u1` but was never opened (HFR-PROTOCOL MPStorage read row, LOT-004 spec); without it LOT-038 cannot start (LESSONS 35-36) |
 | AQ listing (`getAlertesByTopic`) and AQ RSS feed, with HTML entities in titles, authors and comments | LOT-028, LOT-055, issue to open #4 | third-party host `aq.super-h.fr` (LOT-001 checklist row P08, skipped while Q-4 was open); Q-4 is decided (keep, first-use notice), so capture it now, plus a legacy oracle for the parser |
 | `reho.st` image fetched cookie-less with and without `Referer: https://forum.hardware.fr/`; one `http://`-only image host of `R20`/`R21`/`R22a` requested over `https` | LOT-056, LOT-071, LOT-083 | settles HFR-PROTOCOL §7 E26 and the `http`-only hosts of the LOT-071 decision D-071-1; plain GETs, no account, no upload |
 | Moderator alert: page of an already-reported message (text, is it `.hop` + link/input?) | LOT-037, LOT-050 | `modo.php` GET on a message the account already reported; `alreadyAlerted` rests on the legacy rule alone |
