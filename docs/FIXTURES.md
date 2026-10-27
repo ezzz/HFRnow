@@ -35,6 +35,9 @@ Public forum post content may stay when needed for the test; prefer neutral exce
   (`fixture-test-N`) and `a2bcc09b796b8c6fab77058ff8446c34`. That one is **not** a leak: it is the fixed title of the
   MPStorage thread, a public constant of the legacy app (`Classes/MPStorage.m:23`, `MP_NAME`, the same for every
   user), kept so LOT-038 can test locating the storage MP.
+- The first post of that thread is the MPStorage JSON document LOT-038 parses: `--private` keeps it, and only it,
+  when the page is the storage thread and the document holds known keys and the strings `0.1` and `iOS` (R60a); any other
+  key or string (a blacklisted pseudo, another client's data) stops the anonymizer until that position gets aliasing.
 A reviewer must check anonymization; `check --corpus` and gitleaks run on every push as safety nets.
 
 ## Capture
