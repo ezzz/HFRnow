@@ -227,6 +227,16 @@ Source: [LOT-027](lots/LOT-027-profile-parser.md), `UserProfileParser`, checked 
 - **Smiley search** (`R53a-c`, **verified**): the answer is a bare fragment (no `<html>`), one `<img src alt title onclick="putSmiley(this.alt,this.src)" />` per smiley, all personal smileys: code `[:name]` with image `/images/perso/name.gif`, or `[:name:N]` with image `/images/perso/N/name.gif` (the suffix `N` is the folder). Counts: one word 657, two words 1010 (OR); the same smiley can be served twice (`R53c`). No result: the 40-character text "Désolé, aucune réponse n'a été trouvée !" with no markup.
 - **Smiley wiki detail** (`R54`, **verified**): `GET /wikismilies.php?config=hfr.inc&detail=%5B%3Aname%5D` (the code percent-encoded) works logged out. The entry row holds `<img src alt title>` with `<input type="hidden" name="smiley0" value="[:name]">` and `<input type="text" name="keywords0" value="word word word">` (space-separated keywords), followed by the contribution history (member profile link, date `dd-MM-yyyy à HH:mm`, keywords).
 
+### LOT-037 — write responses
+
+[LOT-037](lots/LOT-037-hop-response-classifier.md), tests `HopResponseParserTests` (oracles `W10`-`W20b`, `W17b`/`W17c` included).
+
+- **Shape**: every answer to a write is HTTP 200 with a `div.hop` message, except the invalid-token reply (`W17b`, plain text, below); a refusal that offers a way back adds `<br /><br />` and either `<a href="javascript:history.back(1)" class="Topic"><b>Retour à la page précédente</b></a>` or a replay form (`<form action="/message.php…">` of hidden inputs ending in `<input type="submit" value="Retour à la page précédente">`) (`W11x`, `W13cx`, `W17a`, `W17c`, `W20a`). A success has neither.
+- **Success** = `<meta http-equiv="Refresh" content="1; url=/forum…">` in the head, a `.hop` without link or input **and** an affirmative sentence containing "avec succès" (no `ne`/`pas`/`aucun`/`erreur`… word) and a refresh target that resolves to an `https` `forum.hardware.fr` URL (port absent or 443) (the only discriminator: login failure `W01`, empty lists `R08-1`/`R08-3`, the search waiting page `R50a` and login success `W01b`/`W03` also refresh with a link-less `.hop`): reply (`…#bas`), edit (`…#t<numreponse>`), create (refresh to the MP list), delete (no fragment), mark unread and flags (`W10`-`W16b`, `W18`, `W19`, `P03a`, `P03b`, `P03d`). `P03a`/`P03b` refresh to a canonical `/hfr/…/liste_sujet-1.htm` path, `W18` to `/forum1.php`.
+- **Refusals**: flood, empty body and logged out are `.hop` + link/input (`W11x`, `W13cx`, `W14x`, `W17a`, `W17c`, `W20a`, `W20b`); invalid `hash_check` is **plain text without any HTML** (`W17b`, 99 bytes). A write refusal carries no refresh (`W11x`-`W20b`); other refusals do (`W01` refresh to `/`).
+- **Read pages with a `.hop`**: `R12` (empty favourites) and `RA5` (message not addressed to the account) have the back link and no refresh; the empty lists `R08-1`/`R08-3` refresh to the forum list with a link-less `.hop`. None is a write answer and none classifies as success (corpus sweep test).
+- Not captured: alert already sent, alert submitted, other logged-out write answers (see the lot's Pending capture).
+
 ### LOT-021 — forum list
 
 [LOT-021](lots/LOT-021-forum-list-parser.md), tests `ForumListParserTests`.
@@ -235,6 +245,14 @@ Source: [LOT-027](lots/LOT-027-profile-parser.md), `UserProfileParser`, checked 
 - **Achats & Ventes** (`R01`-`R03`): its `cCatTopic` link points to `/hfr/AchatsVentes/Hardware/liste_sujet-1.htm` (its Hardware sub-forum); the category list is `/hfr/AchatsVentes/liste_sujet-1.htm`.
 - **Private messages row** (`R02`, `R03`): `tr.cat` without `id`, link `forum1.php?config=hfr.inc&cat=prive&page=1…`; text "Vous avez N nouveaux messages privés" with class `cCatTopic red` (N = 10 on `R02`) or "Envoyer / lire des messages privés" without number (`R03`). Absent when logged out (`R01`).
 - **Sub-forums missing from the page**: the home page lists only some sub-forums. The legacy completion table adds real forums: with it the sub-forum counts equal the REST `number_of_subcategories` (`R57a`) for Hardware 15, Photo numérique 10, Windows & Software 12, Graphisme 10, Achats & Ventes 11; Overclocking (REST 7) stays at 6 and Programmation (REST 27) reaches 14, so REST is the complete source.
+
+### LOT-043 — login
+
+[LOT-043](lots/LOT-043-login.md), tests `LoginResponseTests`, `LoginFlowTests` and `HFREndpointLoginTests`.
+
+- **Answer** (`W01`, `W01b`, `W03`, **verified**): `POST /login_validation.php?config=hfr.inc` with the legacy body `pseudo, password, action=send, login=Se connecter` answers HTTP 200 either way. Success pages contain `login_redirection.php` (the `<meta http-equiv="Refresh" content="1; url=login_redirection.php?config=hfr.inc&referer_page=…">`, relative); the refusal holds "Votre mot de passe ou nom d'utilisateur n'est pas valide" and does not. The legacy substring test and the port agree on every capture.
+- **Cookies** (metas of `W01`, `W01b`, `W03`, **verified**): success sets `md_user`, `md_passs`, `md_id`; the refusal sets none.
+- **Profile page 5 after login** (`R55-p5` meta, **verified**): the page sets `md_user` and `md_passs` again (each twice in the answer), so the session cookies are read after it. Its `hash_check` is the token a new session posts with.
 
 
 ### LOT-023 — MP list and unread badge
@@ -305,8 +323,11 @@ Feasibility questions raised by the same proposals, to answer with evidence befo
 
 ## 8. Third-party services
 
+Inventory, data sent to each host, owners, first-use notices and the decisions on image loading (D-071-1), video players (D-071-2) and AQ requests (D-071-3): [LOT-071](lots/LOT-071-third-party-services.md). This table keeps the wire facts.
+
 | Service | Use | Notes | Source |
 |---|---|---|---|
 | `aq.super-h.fr` | "Alerte Qualitay" community reports | GET `/api/getAlertesByTopic.php?topic_id=`; POST `/api/addAlerte.php` (fixed field order, response `"1"` = success); RSS `/rss.php` (badge, "new since" `last_check_aq`, category 25 hidden unless pseudo `applereview`); unauthenticated, sends pseudo | D §2.7, `AQPlusView.swift:29-87` (decisions Q-4, Q-7) |
 | Image rehost (Chevereto) | Image upload for posts | API key required (ADR 0007) | D §3.2 |
 | Giphy | GIF picker | API key required (ADR 0007) | E §6 |
+| Video players | YouTube, Vimeo, Streamable links shown as `<iframe>` players (`embedded_videos`) | Dailymotion, Coub, Twitch commented out in legacy; removed from the live app by `d645f52`; SwiftHFR shows a placeholder, player on tap (LOT-071 D-071-2) | `ParseMessagesOperation.m:238-300`, `LinkItem.m:149-158` |

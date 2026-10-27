@@ -4,13 +4,13 @@ import Foundation
 public struct HopResponse: Sendable, Hashable, Codable {
     /// What the page says happened.
     public enum Kind: String, Sendable, Codable {
-        /// A refresh redirect, or a `.hop` block without link or input.
+        /// A `.hop` block without link or input **and** a refresh to the forum: HFR's own confirmation.
         case success
         /// A `.hop` block with a link or input (flood, invalid token...); `message` explains.
         case rejected
         /// The session is not logged in.
         case loggedOut
-        /// Moderator alert page: the message was already reported.
+        /// Moderator alert page of a message that was already reported.
         case alreadyAlerted
         /// Matches no known shape; callers must not report success.
         case unrecognized

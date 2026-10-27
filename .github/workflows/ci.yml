@@ -9,9 +9,10 @@ on:
 permissions:
   contents: read
 
+# A new push to a PR cancels its running CI; pushes to dev-swift are never cancelled.
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   lint:
@@ -60,6 +61,10 @@ jobs:
 
   engine-apple:
     name: HFRKit tests (macOS) + iOS 27 build
+    needs: app-changes
+    # Skipped when a PR leaves the engine alone (a skipped job satisfies the required check);
+    # runs anyway if change detection failed, so a broken detector never waves a PR through.
+    if: ${{ !cancelled() && (needs.app-changes.result != 'success' || needs.app-changes.outputs.engine == 'true') }}
     runs-on: xcode-27
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -73,3 +78,82 @@ jobs:
           xcodebuild build -scheme HFRKit-Package
           -destination 'generic/platform=iOS Simulator'
           -skipPackagePluginValidation CODE_SIGNING_ALLOWED=NO
+
+  app-changes:
+    name: Detect app changes
+    runs-on: ubuntu-latest
+    outputs:
+      app: ${{ steps.diff.outputs.app }}
+      engine: ${{ steps.diff.outputs.engine }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: diff
+        name: Does this change touch the app, the engine or this workflow?
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          # The macOS jobs take ~10 min each on the shared xcode-27 queue; docs-only PRs skip them.
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "app=true" >> "$GITHUB_OUTPUT"; echo "engine=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          # No pipe into grep -q: on a large diff the writer gets SIGPIPE and pipefail turns a match into a miss.
+          changed=$(git diff --no-renames --name-only "origin/$BASE_REF...HEAD")
+          if grep -qE '^(App/|Packages/|\.github/workflows/ci\.yml$)' <<< "$changed"; then
+            echo "app=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "app=false" >> "$GITHUB_OUTPUT"
+          fi
+          if grep -qE '^(Packages/|\.github/workflows/ci\.yml$)' <<< "$changed"; then
+            echo "engine=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "engine=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  app:
+    name: App build + tests (iOS 27 simulator)
+    needs: app-changes
+    # A job skipped by this condition reports "skipped", which satisfies a required check;
+    # it runs anyway if change detection failed.
+    if: ${{ !cancelled() && (needs.app-changes.result != 'success' || needs.app-changes.outputs.app == 'true') }}
+    runs-on: xcode-27
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - run: xcodebuild -version && xcrun simctl list runtimes
+      - name: Pick an iPhone simulator on iOS 27.0
+        id: sim
+        shell: bash
+        # AGENTS.md §11: the 27.1 runtime refuses some devices; prefer 27.0, fall back to any iOS 27 runtime.
+        run: |
+          set -o pipefail
+          id=$(xcrun simctl list devices available --json | python3 -c '
+          import json, sys
+          runtimes = json.load(sys.stdin)["devices"]
+          for prefix in ("iOS-27-0", "iOS-27-"):
+              for runtime, devices in sorted(runtimes.items()):
+                  if runtime.rsplit(".", 1)[-1].startswith(prefix):
+                      for device in devices:
+                          if device["name"].startswith("iPhone"):
+                              print(device["udid"], file=sys.stderr, end=" ")
+                              print(runtime, device["name"], file=sys.stderr)
+                              print(device["udid"])
+                              sys.exit(0)
+          sys.exit("no iPhone simulator on an iOS 27 runtime")
+          ')
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+      - name: Build and test on the simulator (unsigned)
+        env:
+          SIMULATOR_ID: ${{ steps.sim.outputs.id }}
+        run: >-
+          xcodebuild build test -project App/SwiftHFR.xcodeproj -scheme SwiftHFR
+          -destination "id=$SIMULATOR_ID"
+          -disableAutomaticPackageResolution -skipPackagePluginValidation CODE_SIGNING_ALLOWED=NO
+      - name: Build for a generic iOS device (Release, unsigned)
+        run: >-
+          xcodebuild build -project App/SwiftHFR.xcodeproj -scheme SwiftHFR -configuration Release
+          -destination 'generic/platform=iOS'
+          -disableAutomaticPackageResolution -skipPackagePluginValidation CODE_SIGNING_ALLOWED=NO
