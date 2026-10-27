@@ -52,6 +52,9 @@ public enum HopResponseParser {
     private static let invalidTokenPrefix = "Une erreur est survenue lors de l'envoi des données"
     /// Part of the `.hop` text of every captured write success (`W10`-`W16b`, `W18`, `W19`, `P03a`, `P03b`, `P03d`).
     private static let successMarker = "avec succès"
+    /// Words that turn a sentence negative; none occurs in a captured confirmation (`non lu` of `W18` is not one).
+    /// Apostrophes split words, so `n'a` yields `n`.
+    private static let negations: Set<String> = ["ne", "n", "pas", "aucun", "aucune", "impossible", "erreur", "échec", "jamais"]
     /// Part of the `.hop` text of a write sent without a session (`W17c`).
     private static let loggedOutMarker = "vous devez être enregistré"
 
@@ -77,9 +80,11 @@ public enum HopResponseParser {
             if let textNode = node as? TextNode {
                 text += textNode.getWholeText()
             } else if let child = node as? Element, !skippedTags.contains(child.tagName()) {
-                text += " "
+                // Inline markup keeps a split word whole (`enre<b>gistré</b>`); breaks and blocks separate words.
+                let separator = child.isBlock() || child.tagName() == "br" ? " " : ""
+                text += separator
                 appendSentence(of: child, to: &text)
-                text += " "
+                text += separator
             }
         }
     }
@@ -92,8 +97,11 @@ public enum HopResponseParser {
     }
 
     /// Positive confirmation: a refresh plus a `.hop` sentence is not enough (`W01` refusal, `R08-1`, `R50a` have both).
+    /// The sentence must also be affirmative: "n'a pas été posté avec succès" is a refusal that contains the marker.
     private static func isSuccessSentence(_ message: String?) -> Bool {
-        message?.lowercased().contains(successMarker) ?? false
+        guard let lowered = message?.lowercased(), lowered.contains(successMarker) else { return false }
+        let words = lowered.split { !$0.isLetter }
+        return !words.contains { negations.contains(String($0)) }
     }
 
     private static func isLoggedOutMessage(_ message: String?) -> Bool {

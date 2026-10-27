@@ -146,6 +146,26 @@ struct HopResponseParserTests {
         #expect(response == HopResponse(kind: .loggedOut, message: "Désolé, vous devez être enregistré pour poster"))
     }
 
+    @Test("Inline markup does not split a word: enre<b>gistré</b> is still the logged-out marker")
+    func splitWord() throws {
+        let html = page(hop: "Désolé, vous devez être enre<b>gistré</b> pour poster <a href=\"/\">Retour</a>")
+        #expect(try HopResponseParser.classify(html: html).kind == .loggedOut)
+        let broken = page(hop: "Désolé, vous devez être enre<br>gistré <a href=\"/\">Retour</a>")
+        #expect(try HopResponseParser.classify(html: broken).kind == .rejected)
+    }
+
+    /// Derived from the captured W10 sentence "Votre message a été posté avec succès !" by one negation (not captured).
+    @Test("A negated sentence containing 'avec succès' is not a confirmation (derived from W10)", arguments: [
+        "Votre message n'a pas été posté avec succès !", "Votre message ne a pas été posté avec succès !",
+        "Erreur : Votre message a été posté avec succès ?", "Aucun message n'a été posté avec succès !",
+        "Impossible : Votre message a été posté avec succès"
+    ])
+    func negatedSentence(sentence: String) throws {
+        let response = try HopResponseParser.classify(html: page(head: refresh, hop: sentence))
+        #expect(response.kind == .unrecognized)
+        #expect(response.refreshURL == nil)
+    }
+
     @Test("A page without .hop (the edit form R44) is unrecognized")
     func formPageIsUnrecognized() throws {
         let response = try HopResponseParser.classify(html: Fixture.capture("R44-mp-edit-form-other-account-message"))
