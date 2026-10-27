@@ -2,7 +2,7 @@
 
 Thanks for helping! Humans and AI agents follow the same process. The rules are in **[AGENTS.md](AGENTS.md)**; this page is the path from a task to a merged PR.
 
-![From the issue to the merge: claim an issue or a lot, branch from dev-swift, write the spec, code and tests, second-model review, open the PR, iterate with CI and CodeRabbit, approval, squash merge; a red check or an unresolved comment sends the work back to the code](docs/assets/work-process.png)
+![From the issue to the merge: claim an issue or a lot, branch from dev-swift, write the spec, code and tests, second-model review, open the PR, iterate with CI and CodeRabbit, squash merge; a red check or an unresolved comment sends the work back to the code](docs/assets/work-process.png)
 
 ## 1. From a task to a PR
 
@@ -38,10 +38,9 @@ A PR into `dev-swift` is merged only when **all** of these hold (enforced by the
   | `Fixture tooling tests` | The anonymizer works and the committed capture corpus holds no personal data |
 - [ ] **No conflict** with `dev-swift`: rebase or merge `dev-swift` into the branch; everything runs again.
 - [ ] **Every conversation is resolved**, CodeRabbit's included: for each comment, either fix and push, or reply why not — **then resolve the conversation**. A reply alone does not unblock the merge.
-- [ ] **One approval by someone other than the author** — required once [ADR 0011](docs/adr/) is accepted and the ruleset updated.
 - [ ] The [definition of done](AGENTS.md#9-definition-of-done) is met.
 
-Every new commit re-runs the checks and CodeRabbit. The merge is a **squash** (one commit per PR). Only the repository owner can bypass these rules, for emergencies.
+No human approval is required ([ADR 0011](docs/adr/0011-contribution-model-and-feature-intake.md)): the author merges once everything above holds. Every new commit re-runs the checks and CodeRabbit. The merge is a **squash** (one commit per PR). Only the repository owner can bypass these rules, for emergencies.
 Dependabot PRs follow the same criteria. After the merge, CI and CodeQL run again on `dev-swift`, and the mirror `francoisgn/ios-app_SwiftHFR` follows within the hour.
 
 Tool documentation: [CodeRabbit](https://docs.coderabbit.ai/) · [CodeQL](https://docs.github.com/en/code-security/code-scanning/introduction-to-code-scanning/about-code-scanning-with-codeql) · [Dependabot](https://docs.github.com/en/code-security/dependabot) · [dependency review](https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/about-dependency-review) · [secret scanning](https://docs.github.com/en/code-security/secret-scanning/introduction/about-secret-scanning) and [push protection](https://docs.github.com/en/code-security/secret-scanning/introduction/about-push-protection) · [gitleaks](https://github.com/gitleaks/gitleaks) · [SwiftLint](https://github.com/realm/SwiftLint) · [rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets).
