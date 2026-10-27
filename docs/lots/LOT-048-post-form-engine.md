@@ -151,10 +151,11 @@ preserved, no shape distinction, no `invalidRequest` mapping, no `verifrequet` c
 Not hand-built (LESSONS 36). None blocks the lot; until captured, each state is handled conservatively. The first two are
 **MVP priority** in the capture backlog: until they are captured, every public reply, new topic, edit and delete surfaces
 as `unconfirmed` unless HFR answers with LOT-037's success shape (link-less `.hop`, "avec succès", refresh to the forum)
-**and** the MP sentence of that write, and every public delete asks for whole-topic confirmation.
+**and** that write's own confirmation sentence (`PostingAction.confirmation`: reply, new thread, edit or delete, captured on
+private messages, HFR-PROTOCOL §7 E15), and every public delete asks for whole-topic confirmation.
 - **Public-topic answers**: a reply, a new topic, an edit and a delete in a forum topic (`cat=<forum>`). Only private-message
-  writes are captured; a public write is a success only with LOT-037's `success` (refresh URL included) and the MP sentence of
-  that write; another sentence, or a missing refresh, is reported `unconfirmed`, never success.
+  writes are captured; a public write is a success only with LOT-037's `success` (refresh URL included) and that write's own
+  confirmation sentence (`PostingAction.confirmation`, HFR-PROTOCOL §7 E15); another sentence, or a missing refresh, is reported `unconfirmed`, never success.
 - **Public edit form** of an own message, first post and later post: the `action` (HFR-PROTOCOL §3.1), the subject field and
   the `delete` label that tell a first post (until then every public delete asks for confirmation).
 - **Delete of a public topic's first post**: what HFR answers, and whether the whole topic goes (rf2 X1).
