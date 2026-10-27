@@ -7,7 +7,7 @@ struct HFREndpointLoginTests {
         request.body.flatMap { String(bytes: $0, encoding: .utf8) } ?? ""
     }
 
-    @Test func loginPostsTheLegacyFieldsInOrder() throws {
+    @Test func loginPostsTheCapturedFieldsInOrder() throws {
         let request = try HFREndpoint.login(pseudo: "user2", password: "fake")
         #expect(request.method == .post)
         #expect(request.url.absoluteString == "https://forum.hardware.fr/login_validation.php?config=hfr.inc")

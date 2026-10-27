@@ -3,7 +3,9 @@ import Foundation
 /// What a validated login tells the app about the account. The secrets (cookies, `hash_check`) stay in the session:
 /// the app persists them with `HFRSession.cookies(now:)` and `HFRSession.hashCheck`.
 public struct LoginResult: Sendable, Equatable {
-    /// Value of the `md_user` cookie set by the login: the account's stable key (`Account.pseudo`).
+    /// Raw value of the `md_user` cookie, which HFR URL-encodes (HFR-PROTOCOL §5): the account's stable key.
+    /// Persist `Account.pseudo` from this value, and pass it back as `expectedUserKey`; it can differ from `displayName`
+    /// for a pseudo with a space or an accent.
     public var userKey: String
     /// The pseudo as submitted (trimmed), for display (legacy `displayPseudo`).
     public var displayName: String

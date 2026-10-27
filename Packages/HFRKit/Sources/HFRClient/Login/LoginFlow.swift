@@ -28,6 +28,9 @@ public struct LoginFlow: Sendable {
     /// The pseudo is trimmed, as legacy did before logging in (`AccountSessionService.swift:62`); the password is sent
     /// as typed. Pass `expectedUserKey` (the account's `md_user` value, `Account.pseudo`) when logging an existing
     /// account in again: credentials of another account are then refused instead of replacing its cookies.
+    /// `expectedUserKey` is compared exactly with the raw cookie value, which HFR URL-encodes (HFR-PROTOCOL §5): pass the
+    /// stored `LoginResult.userKey`, never the typed pseudo. The identity must be the same after the profile page,
+    /// which sets `md_user` again: `deleted` or absent then throws `missingIdentityCookie`, another value `accountMismatch`.
     /// The whole jar is replaced, so cookies the session held before (multi-quote selections included) are dropped.
     /// - Throws: `LoginError`; the session is unchanged whenever it throws.
     public func login(
@@ -58,11 +61,12 @@ public struct LoginFlow: Sendable {
         } catch {
             throw .missingHashCheck
         }
-        // The profile page sets `md_user` and `md_passs` again (`R55-p5`): read the jar only now.
+        // The profile page sets `md_user` and `md_passs` again (`R55-p5`): read the jar only now, and check that the
+        // identity it ends with is still the one validated above (and so the expected one).
         let cookies = await jar.cookies(now: now)
-        // A cancelled login must not change the session, even when HFR already accepted it.
-        if Task.isCancelled { throw .network(.cancelled) }
-        await session.adoptLogin(cookies: cookies, hashCheck: page.hashCheck, now: now)
+        guard let finalUserKey = await jar.userKey(now: now) else { throw .missingIdentityCookie }
+        guard finalUserKey == userKey else { throw .accountMismatch }
+        try await session.adoptLogin(cookies: cookies, hashCheck: page.hashCheck, now: now)
         return LoginResult(userKey: userKey, displayName: pseudo, avatarURL: page.avatarURL)
     }
 

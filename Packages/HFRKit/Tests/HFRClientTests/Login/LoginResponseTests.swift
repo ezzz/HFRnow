@@ -27,7 +27,7 @@ struct LoginResponseTests {
     }
 
     /// The facts the flow relies on, read from the capture metadata: one POST answered 200 either way, cookies only
-    /// on success, `md_user` among them, and the legacy field order accepted.
+    /// on success, `md_user` among them, and the captured field order accepted.
     @Test(arguments: [("W01", false), ("W01b", true), ("W03", true)])
     func captureMetadata(id: String, succeeded: Bool) throws {
         let meta = try Capture.meta(id)

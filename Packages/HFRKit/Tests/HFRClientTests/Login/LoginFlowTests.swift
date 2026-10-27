@@ -78,7 +78,7 @@ struct LoginFlowTests {
         let post = try #require(requests.first)
         #expect(post.method == .post)
         #expect(post.url == Self.loginURL)
-        // Trimmed pseudo, password as typed, legacy field order (W03 meta).
+        // Trimmed pseudo, password as typed, field order of the captures (W03 meta).
         #expect(post.body.flatMap { String(bytes: $0, encoding: .utf8) }
             == "pseudo=user2&password=fake+password&action=send&login=Se+connecter")
         #expect(requests.last?.method == .get)
@@ -155,6 +155,20 @@ struct LoginFlowTests {
         }
         await expectUnchanged(session)
         #expect(await jar.requests.count == 1) // refused before reading the profile page
+    }
+
+    /// Page 5 sets `md_user` again (`R55-p5`): an identity changed or logged out by it must not be installed.
+    @Test(arguments: [("user3", LoginError.accountMismatch), ("deleted", .missingIdentityCookie)])
+    func identityChangedByTheProfilePageIsRefused(newValue: String, expected: LoginError) async throws {
+        var steps = try successSteps(user: "user2")
+        steps[1].setCookies = [forumCookie("md_user", newValue)]
+        let (flow, _) = flow(ScriptedLoginJar(steps))
+        let session = targetSession()
+
+        await #expect(throws: expected) {
+            try await flow.login(pseudo: "user2", password: "fake", into: session, expectedUserKey: "user2", now: now)
+        }
+        await expectUnchanged(session)
     }
 
     /// `W00` prints `hash_check` empty, as every logged-out page does (`R01`): stands for a profile page read without
