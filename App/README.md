@@ -1,4 +1,18 @@
 # App
 
-The iOS app target (SwiftUI, iOS 27) is created during the first Mac session with Xcode 27,
-then wired to the `HFRKit` package. The project-file strategy (plain Xcode project vs. generated) will be recorded in an ADR.
+The iOS app target (SwiftUI, iOS 27), `App/SwiftHFR.xcodeproj` ([ADR 0012](../docs/adr/0012-app-project-file-strategy.md), [LOT-080](../docs/lots/LOT-080-app-target.md)).
+
+| Path | Content |
+|---|---|
+| `SwiftHFR.xcodeproj` | Project and shared scheme `SwiftHFR`; links the local package `../Packages/HFRKit` |
+| `SwiftHFR/` | App sources and assets (folder-synchronized: add files here, the project file does not change) |
+| `SwiftHFRTests/` | Unit tests (Swift Testing), hosted by the app |
+
+Build and test on the simulator (unsigned, as CI does):
+
+```sh
+xcodebuild build test -project App/SwiftHFR.xcodeproj -scheme SwiftHFR \
+  -destination 'platform=iOS Simulator,OS=27.0,name=iPhone 18 Pro' CODE_SIGNING_ALLOWED=NO
+```
+
+Signing is automatic with the team `QMG83DG7YP` and bundle id `hfrplus.red.super`; a device build needs that team's account in Xcode. Never commit certificates, profiles or `xcuserdata/`.
