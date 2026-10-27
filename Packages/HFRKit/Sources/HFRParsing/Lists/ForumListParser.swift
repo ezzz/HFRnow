@@ -93,7 +93,7 @@ public enum ForumListParser {
     }
 
     /// Value of the first `hash_check` field when it is not empty: the page is then a logged-in one (`ObjCForumsParser.m:36-43`).
-    private static func hashCheck(in body: Element) -> String? {
+    static func hashCheck(in body: Element) -> String? {
         guard
             let field = body.firstDescendant(attribute: "name", matching: .exact("hash_check")),
             let value = attribute("value", of: field),

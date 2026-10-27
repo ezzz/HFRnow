@@ -63,7 +63,7 @@ public enum TopicListParser {
             newTopicPath: link(in: body, id: "md_btn_new_topic"),
             unreadPrivateMessages: PrivateMessageBadgeParser.countInListHeader(body)
         )
-        return ParsedTopicList(page: page, rows: rows)
+        return ParsedTopicList(page: page, rows: rows, body: body)
     }
 
     // MARK: - Page parts
@@ -101,7 +101,7 @@ public enum TopicListParser {
             throw .notAuthenticated(message)
         }
         let navigation = PageNavigation(current: pagePath.flatMap(TopicListPager.pageNumber(inPagePath:)) ?? 1)
-        return ParsedTopicList(page: TopicListPage(navigation: navigation, notice: message), rows: [])
+        return ParsedTopicList(page: TopicListPage(navigation: navigation, notice: message), rows: [], body: nil)
     }
 
     /// Category of the list: the search tab's `cat=` (legacy, logged in only, `:116-131`), else the header search form's
