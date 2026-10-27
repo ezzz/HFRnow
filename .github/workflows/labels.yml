@@ -1,8 +1,9 @@
 name: Sync labels
 
+# workflow_dispatch only works from the default branch; until then run scripts/configure-repo.sh (ADR 0010).
 on:
   push:
-    branches: [master]
+    branches: [dev-swift]
     paths: [".github/labels.yml"]
   workflow_dispatch:
 

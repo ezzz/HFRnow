@@ -1,12 +1,16 @@
+# Dependabot reads this file from the default branch only: the live copy is on master of ezzz/HFRnow (ADR 0010).
+# Every entry targets dev-swift, so Dependabot never opens a PR against the legacy master.
 version: 2
 updates:
   - package-ecosystem: swift
     directory: /Packages/HFRKit
+    target-branch: dev-swift
     schedule: { interval: weekly }
     labels: ["dependencies", "area: ci"]
     open-pull-requests-limit: 5
   - package-ecosystem: github-actions
     directory: /
+    target-branch: dev-swift
     schedule: { interval: weekly }
     labels: ["dependencies", "area: ci"]
     groups:

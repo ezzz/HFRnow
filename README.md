@@ -12,11 +12,10 @@
   <tr>
     <td align="right"><sub><b>BUILD &amp; SECURITY</b></sub></td>
     <td>
-      <a href="https://github.com/francoisgn/ios-app_SwiftHFR/actions/workflows/ci.yml"><img src="https://github.com/francoisgn/ios-app_SwiftHFR/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-      <a href="https://github.com/francoisgn/ios-app_SwiftHFR/actions/workflows/codeql.yml"><img src="https://github.com/francoisgn/ios-app_SwiftHFR/actions/workflows/codeql.yml/badge.svg" alt="CodeQL"></a>
-      <a href="https://scorecard.dev/viewer/?uri=github.com/francoisgn/ios-app_SwiftHFR"><img src="https://api.scorecard.dev/projects/github.com/francoisgn/ios-app_SwiftHFR/badge" alt="OpenSSF Scorecard"></a>
-      <a href="https://github.com/francoisgn/ios-app_SwiftHFR/network/updates"><img src="https://img.shields.io/badge/Dependabot-enabled-025E8C?logo=dependabot&amp;logoColor=white" alt="Dependabot"></a>
-      <a href="https://coderabbit.ai"><img src="https://img.shields.io/coderabbit/prs/github/francoisgn/ios-app_SwiftHFR?utm_source=oss&amp;utm_medium=github&amp;utm_campaign=francoisgn%2Fios-app_SwiftHFR&amp;labelColor=171717&amp;color=FF570A&amp;link=https%3A%2F%2Fcoderabbit.ai&amp;label=CodeRabbit+Reviews" alt="CodeRabbit Pull Request Reviews"></a>
+      <a href="https://github.com/ezzz/HFRnow/actions/workflows/ci.yml?query=branch%3Adev-swift"><img src="https://github.com/ezzz/HFRnow/actions/workflows/ci.yml/badge.svg?branch=dev-swift" alt="CI"></a>
+      <a href="https://github.com/ezzz/HFRnow/actions/workflows/codeql.yml?query=branch%3Adev-swift"><img src="https://github.com/ezzz/HFRnow/actions/workflows/codeql.yml/badge.svg?branch=dev-swift" alt="CodeQL"></a>
+      <a href="https://github.com/ezzz/HFRnow/network/updates"><img src="https://img.shields.io/badge/Dependabot-enabled-025E8C?logo=dependabot&amp;logoColor=white" alt="Dependabot"></a>
+      <a href="https://coderabbit.ai"><img src="https://img.shields.io/coderabbit/prs/github/ezzz/HFRnow?utm_source=oss&amp;utm_medium=github&amp;utm_campaign=ezzz%2FHFRnow&amp;labelColor=171717&amp;color=FF570A&amp;link=https%3A%2F%2Fcoderabbit.ai&amp;label=CodeRabbit+Reviews" alt="CodeRabbit Pull Request Reviews"></a>
     </td>
   </tr>
   <tr>
@@ -33,8 +32,8 @@
     <td align="right"><sub><b>PROJECT</b></sub></td>
     <td>
       <a href="LICENSE"><img src="https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-blue.svg" alt="License: PolyForm Noncommercial 1.0.0"></a>
-      <a href="https://github.com/francoisgn/ios-app_SwiftHFR/commits/master"><img src="https://img.shields.io/github/last-commit/francoisgn/ios-app_SwiftHFR" alt="Last commit"></a>
-      <a href="https://github.com/francoisgn/ios-app_SwiftHFR/issues"><img src="https://img.shields.io/github/issues/francoisgn/ios-app_SwiftHFR" alt="Open issues"></a>
+      <a href="https://github.com/ezzz/HFRnow/commits/dev-swift"><img src="https://img.shields.io/github/last-commit/ezzz/HFRnow/dev-swift" alt="Last commit"></a>
+      <a href="https://github.com/ezzz/HFRnow/issues"><img src="https://img.shields.io/github/issues/ezzz/HFRnow" alt="Open issues"></a>
       <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs welcome"></a>
     </td>
   </tr>
@@ -135,8 +134,8 @@ flowchart LR
 The engine builds and tests on macOS or Linux with Swift 6.2+:
 
 ```sh
-git clone https://github.com/francoisgn/ios-app_SwiftHFR.git
-cd ios-app_SwiftHFR
+git clone --branch dev-swift https://github.com/ezzz/HFRnow.git SwiftHFR
+cd SwiftHFR
 swift test --package-path Packages/HFRKit
 python3 scripts/check-lot-deps.py   # migration plan respects module boundaries
 ```
@@ -152,7 +151,7 @@ The iOS app target (Xcode 27) is created before the app phase.
 Found a security issue? Follow [SECURITY.md](SECURITY.md), never a public issue.
 
 <p align="center">
-  <a href="https://github.com/francoisgn/ios-app_SwiftHFR/graphs/contributors"><img src="https://contrib.rocks/image?repo=francoisgn/ios-app_SwiftHFR" alt="Contributors"></a>
+  <a href="https://github.com/ezzz/HFRnow/graphs/contributors"><img src="https://contrib.rocks/image?repo=ezzz/HFRnow" alt="Contributors"></a>
 </p>
 
 ## License and credits

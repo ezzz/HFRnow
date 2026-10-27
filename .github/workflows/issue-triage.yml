@@ -1,5 +1,6 @@
 name: Issue auto-labelling
 
+# `issues` events run the copy of this workflow on the default branch only: inert until it lands on master (ADR 0010).
 on:
   issues:
     types: [opened, edited]

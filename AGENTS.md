@@ -15,7 +15,7 @@ The **operator** is the human driving an agent session. Agents act on the operat
 - **Routine work needs no extra confirmation**: your own branches, PRs, fixes to your open PRs, replies on your PRs, comments on issues you claimed, `docs/LOTS.md` updates.
 - **Consequential actions are confirmed by the operator first** (draft, show, wait): merges, releases and tags, anything on another repository, editing or closing what someone else wrote (back up, show the diff, apply, re-read), repository settings, new dependencies, disclosing a security finding, messages outside GitHub.
 - How strictly confirmations apply, and whether they carry over to child sessions, is **the operator's call**. Personal rules belong in an untracked `CLAUDE.local.md` (or your tool's equivalent), not in this file.
-- Merges to `master` happen through PRs with green checks; who may merge is governed by repository permissions.
+- Merges to `dev-swift` happen through PRs with green checks; who may merge is governed by repository permissions.
 - A human reviewer's correction overrides an agent's plan: apply it, reply once, update the docs.
 
 ## 1. Project in one paragraph
@@ -42,7 +42,12 @@ License: [PolyForm Noncommercial 1.0.0](LICENSE) — no commercial use, credit t
 | `.github/labels.yml` | The label taxonomy (§7) — the only place labels are defined |
 | `scripts/configure-repo.sh` | Repository settings as code (protection, security features). Run by the maintainer |
 
-Legacy codebase (read-only reference): <https://github.com/francoisgn/hfrnow>.
+**Hosting** ([ADR 0010](docs/adr/0010-hosting-on-ezzz-hfrnow-dev-swift.md)): SwiftHFR lives on the `dev-swift` branch of [ezzz/HFRnow](https://github.com/ezzz/HFRnow).
+The default branch `master` of that repository **is the legacy app**: never branch from it, never target it, never let a session's `CLAUDE.md` from `master` drive work on SwiftHFR.
+
+`francoisgn/ios-app_SwiftHFR` is a read-only mirror of `dev-swift`, synced hourly: never open issues or PRs there.
+
+Legacy codebase (read-only reference): the `master` branch of ezzz/HFRnow. Citations written before the move point to <https://github.com/francoisgn/hfrnow> @ `2440d79` and stay valid.
 When a behaviour is unclear, **read the legacy code** instead of guessing, and cite the file and line in the lot spec.
 
 ## 3. Ground rules
@@ -112,7 +117,8 @@ Within a priority, match `difficulty` to your model tier (§6). Security issues 
 
 ## 8. Git and PR workflow
 
-- Default branch: `master` (protected: PR + green checks required, no force push).
+- Integration branch: `dev-swift` (ruleset: PR + green checks required, squash only, no force push). `master` is the legacy app.
+- Issue and PR numbers restart on ezzz/HFRnow: cite the old ones as `francoisgn/ios-app_SwiftHFR#N`.
 - Branch names: `lot/XXX-short-name`, `fix/short-name`, `feat/short-name`, `chore/short-name`, `docs/short-name`.
 - Commits: imperative mood, explain *why*. Reference the issue/lot (`Refs #12`, `LOT-003`).
 - **Before opening an issue or PR, check for duplicates**: synonyms, titles and bodies, open and closed, plus `LOTS.md`. An older issue asking the same thing is the one to keep. A better PR already open → close ours with one sentence and a link.
@@ -134,7 +140,7 @@ Within a priority, match `difficulty` to your model tier (§6). Security issues 
 
 ## 10. Environments
 
-- **Linux cloud agents**: can edit code and docs and run `swift test` on `HFRKit` (keep the engine Foundation-only). The Swift toolchain comes from [`scripts/cloud-setup.sh`](scripts/cloud-setup.sh), pasted into the cloud environment's setup script (needs `download.swift.org` in the allowed domains). Cannot build the app.
+- **Linux cloud agents**: start every session with `git fetch origin dev-swift && git switch dev-swift` (the clone lands on the legacy `master`), then branch from it. They can edit code and docs and run `swift test` on `HFRKit` (keep the engine Foundation-only). The Swift toolchain comes from [`scripts/cloud-setup.sh`](scripts/cloud-setup.sh), pasted into the cloud environment's setup script (needs `download.swift.org` in the allowed domains). Cannot build the app.
 - **Mac agents (Claude Code CLI on the maintainer's Mac)**: Xcode builds, simulator, device installs.
 - **CI** is the arbiter: if it is not green in CI, it is not done.
 
@@ -152,5 +158,6 @@ Keep entries short and dated. Remove anything that became false.
 - 2026-10-24 — Phase 0: cloud agents cannot change repository settings (proxy returns 403); settings live in `scripts/configure-repo.sh`, run by the maintainer.
 - 2026-10-24 — Phase 0: GitHub-hosted runners provide Xcode 27 only through the `xcode-27` runner label (preview). Default `macos-26` images ship Xcode 26.x and cannot build the iOS 27 target.
 - 2026-10-26 — LOT-001: Carthage on Xcode 27 needs `XCODE_XCCONFIG_FILE` (deployment target 15.0, no `-Werror`); the iOS 27.1 simulator runtime refuses iPhone 18 Pro, use 27.0. HFR's live behaviour differs from the docs in several places (cookies `md_user`/`md_passs`/`md_id`/`md_data`, two-hop topic redirect, shared flood limit): trust `docs/HFR-PROTOCOL.md` §6b/§7 results over audit notes.
+- 2026-10-26 — Hosting move to ezzz/HFRnow `dev-swift` (ADR 0010): issue forms, Dependabot, scheduled workflows, `workflow_dispatch` and Scorecard only work from the default branch, which is the legacy app. The Claude and CodeRabbit GitHub apps on a personal-account repository can only be installed by its owner, whatever the collaborator's rights.
 - 2026-10-26 — LOT-001: a first corpus PR leaked member pseudos on the public repo because the anonymizer's `check` reused the redactor's own selectors. Corpus checks must be independent of the redactor, and every corpus change gets an independent reviewer before it is pushed, not after (FIXTURES.md policy, LESSONS 33–34).
 - 2026-10-26 — LOT-002..004: the legacy oracle runs real legacy code from a test host via `tooling/legacy-oracle/run-oracle.sh`, with a local patch to hfrnow at 2440d79 (never pushed). Each oracle lot's `hfrnow.patch` is a superset of the previous one, and hfrnow must carry exactly the patch of the branch being run (the script refuses otherwise).
