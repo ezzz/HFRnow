@@ -232,16 +232,17 @@ final class AccountsModel {
         } catch {
             throw .login(error)
         }
-        if case .existing(let id, _) = target {
-            // Removed while the login ran: saving now would bring the account back.
-            guard sessions[id] === session else { throw .unknownAccount }
-            // The login already renewed this session in memory; it stays valid even if the store write below fails.
-            statuses[id] = .valid
-        }
         let account = Account(
             pseudo: result.userKey, displayName: result.displayName,
             cookies: await session.cookies(), hashCheck: await session.hashCheck
         )
+        // From here to the save there is no suspension point, so these checks still hold when the store is written.
+        if case .existing(let id, _) = target {
+            // Removed while the login ran (or while the jar was read above): saving now would bring the account back.
+            guard sessions[id] === session else { throw .unknownAccount }
+            // The login already renewed this session in memory; it stays valid even if the store write below fails.
+            statuses[id] = .valid
+        }
         // A new account whose sheet was dismissed meanwhile is not added. A re-login is saved even then: its session
         // is already renewed in memory (LOT-043), and the store must hold what the session holds.
         if target == .newAccount, Task.isCancelled { throw .login(.network(.cancelled)) }

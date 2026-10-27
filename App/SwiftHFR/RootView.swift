@@ -33,6 +33,9 @@ struct RootView: View {
 }
 
 #Preview {
+    let accounts = AccountsModel.preview()
     RootView()
-        .environment(AccountsModel.preview())
+        .environment(accounts)
+        // As `SwiftHFRApp`: the navigation appears once the (empty) preview store is read.
+        .task { await accounts.restore() }
 }
