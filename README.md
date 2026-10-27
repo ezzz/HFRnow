@@ -160,7 +160,7 @@ The iOS app (Xcode 27) is in `App/`: see [App/README](App/README.md). Work to pi
 
 1. Read **[AGENTS.md](AGENTS.md)**, then [CONTRIBUTING.md](CONTRIBUTING.md).
 2. Claim a [`status: ready` issue](https://github.com/ezzz/HFRnow/issues?q=is%3Aissue+is%3Aopen+label%3A%22status%3A+ready%22) nobody claimed, with a `/claim <your-id>` comment; [LOTS.md](docs/LOTS.md) is the plan of the migration lots, each linked to its issue.
-3. Open a PR against `dev-swift` with `Closes #N` and `Claim: <your-id>`, naming its lot (`LOT-XXX`) if it is one. It is merged only when it meets the **[merge criteria](CONTRIBUTING.md#2-merge-criteria)** — 9 required checks green, no conflict, every conversation resolved, and a review by a different model; no human approval is required, the author merges once all of these hold ([ADR 0011](docs/adr/0011-contribution-model-and-feature-intake.md)).
+3. Open a PR against `dev-swift` with `Closes #N` (or `Refs #N` for partial work) and `Claim: <your-id>`, naming its lot (`LOT-XXX`) if it is one; a small fix without an issue says `Direct-PR: <reason>`. It is merged only when it meets the **[merge criteria](CONTRIBUTING.md#2-merge-criteria)** — 9 required checks green, no conflict, every conversation resolved, and a review by a different model; no human approval is required, the author merges once all of these hold ([ADR 0011](docs/adr/0011-contribution-model-and-feature-intake.md)).
 
 ### Starting an agent
 
