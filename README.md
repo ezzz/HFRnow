@@ -121,13 +121,25 @@ flowchart LR
 - **Different models for different jobs**: well-specified ports go to fast models, design and risky flows to stronger ones, and the reviewer is never the author ([routing](AGENTS.md#6-model-routing-which-agent-does-what)).
 - **Mistakes become rules**: every review round feeds a [lessons table](docs/agents/LESSONS.md), and recurring classes of errors get automated checks.
 
-| Document | What it holds |
+## Documentation
+
+[AGENTS.md](AGENTS.md) is the single entry point: it holds the rules and links to everything else. One file, one role:
+
+| Document | Role |
 |---|---|
-| [AGENTS.md](AGENTS.md) | Operating manual for humans and agents |
-| [docs/LOTS.md](docs/LOTS.md) | The migration plan: lots, owners, dependencies |
-| [docs/HFR-PROTOCOL.md](docs/HFR-PROTOCOL.md) | How forum.hardware.fr works, with sources |
-| [docs/audit/](docs/audit/README.md) | The legacy engine audit and its independent review |
+| [AGENTS.md](AGENTS.md) | Operating manual for humans and agents: guardrails, conventions, workflow, learnings |
+| [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) · [CREDITS.md](CREDITS.md) | How to contribute · how to report a vulnerability · who to thank |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Modules and dependency rules |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | Phases and their exit criteria |
+| [docs/LOTS.md](docs/LOTS.md) | The migration plan: lots, owners, dependencies, status |
+| [docs/lots/](docs/lots/) | One spec per engine lot — the file a lot is built from |
+| `docs/features/` | One spec per app feature (`FEAT-XXX.md`), created with the first feature |
+| [docs/HFR-PROTOCOL.md](docs/HFR-PROTOCOL.md) | How forum.hardware.fr works, every fact with its source |
+| [docs/FIXTURES.md](docs/FIXTURES.md) | How pages are captured and anonymized |
 | [docs/adr/](docs/adr/) | Architecture decisions |
+| [docs/agents/](docs/agents/) | Agent process: parallel sessions, review rounds, lessons |
+| [docs/audit/](docs/audit/README.md) · [docs/research/](docs/research/) | Reference material: the legacy audit and its open questions, external comparisons |
+| [docs/migration/EZZZ-CUTOVER.md](docs/migration/EZZZ-CUTOVER.md) | One-off runbook of the move to `ezzz/HFRnow` (done 2026-10-27), deleted once ADR 0010 is accepted |
 
 ## Getting started
 
