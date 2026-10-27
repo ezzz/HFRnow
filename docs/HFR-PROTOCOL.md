@@ -170,7 +170,7 @@ Facts confirmed by a committed capture **and** asserted by a test of the parser 
 
 [LOT-024](lots/LOT-024-favourites-parser.md), tests `FavoritesDifferentialTests` and `FavoritesParserTests`.
 
-- **List body**: `GET /forum1f.php?owntopic={1|3}` logged in answers the topic list markup, `<body id="category__topics_listing__listing_topic">`, title "Vos sujets", even with no topic (`R11`, `P03e`: no row). Logged out it answers a bare `<body>` with `.hop` "Aucun sujet que vous avez lu n'est connu" (`R12`), which the parser reports as not authenticated.
+- **List body**: `GET /forum1f.php?owntopic={1|3}` logged in answers the topic list markup, `<body id="category__topics_listing__listing_topic">`, title "Vos sujets", even with no topic (`R11`, `P03e`: no row). Logged out it answers a bare `<body>` with `.hop` "Aucun sujet que vous avez lu n'est connu" (`R12`); the parser returns an empty page with that `notice`, as for LOT-022 lists (a logged-in empty `owntopic=1` may be the same page, to capture), and the caller decides from its session.
 - **Sections**: each category is a `tr.cBackHeader.fondForum1fCat` whose `th` holds a "reset flags" link (`suppressflag.php…&codehex=<token>`, a secret) then `a.cHeader` to `/forum1.php?…&cat=<id>…`; its `tr.sujet.ligne_booleen` rows follow, in the same table (`R10`).
 - **Rows**: same cells as a forum list; the flag cell links to the last read position (`…&page=<n>…#t<post>`) with `flag1.gif` on `owntopic=1` and `favoris.gif` on `owntopic=3`; the checkbox cell `sujetCase10` holds `topic<N>` and `valuecat<N>`.
 - **Not captured**: favourites across several categories (`R10` has one category with two topics), a row without flag link, `owntopic=1` with no flagged topic.

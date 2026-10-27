@@ -95,14 +95,15 @@ struct FavoritesDifferentialTests {
         #expect(page.topicsByLastPost.map { "\($0.topicID?.category.queryValue ?? "?")-\($0.topicID?.topic ?? 0)" } == expected)
     }
 
-    @Test("A logged-out page raises notAuthenticated with HFR's message (R12)")
-    func loggedOut() throws {
+    @Test("A message page is an empty page carrying HFR's message (R12)")
+    func messagePage() throws {
         let oracle = try FavoritesOracle.load("R12")
         #expect(oracle.exception == "FavoritesLoadError: Aucun sujet que vous avez lu n'est connu")
         #expect(oracle.result == nil)
-        #expect(throws: ListPageFailure.notAuthenticated("Aucun sujet que vous avez lu n'est connu")) {
-            try FavoritesParser.parse(oracle.capture())
-        }
+        let page = try FavoritesParser.parse(oracle.capture())
+        #expect(page.notice == "Aucun sujet que vous avez lu n'est connu")
+        #expect(page.sections.isEmpty)
+        #expect(page.hashCheck == nil)
     }
 
     private struct MapEntry: Decodable {
@@ -127,12 +128,8 @@ struct FavoritesParserTests {
     func emptyList(_ capture: String) throws {
         let page = try FavoritesParser.parse(Fixture.capture(capture))
         #expect(page.sections.isEmpty)
+        #expect(page.notice == nil)
         #expect(page.topicsByLastPost.isEmpty)
-    }
-
-    @Test("A logged-out visitor is told so, not given an empty list (R12)")
-    func loggedOutIsNotEmpty() throws {
-        #expect(throws: ListPageFailure.self) { try FavoritesParser.parse(Fixture.capture("R12-favourites-anon")) }
     }
 
     @Test("A page that is not a list is malformed (topic page, R20)")
@@ -174,11 +171,33 @@ struct FavoritesParserTests {
         #expect(rows.map(\.currentPage) == [1815, 8639])
     }
 
+    private static let secondRow = #"<tr class="sujet ligne_booleen cBackCouleurTab3 " >"#
+
+    @Test("A second category header starts a second section (R10 with its second row moved under a new header)")
+    func secondHeader() throws {
+        let link = #"<a href="/forum1.php?config=hfr.inc&amp;cat=9" class="cHeader">Other</a>"#
+        let header = #"<tr class="cBackHeader fondForum1fCat"><th>"# + link + "</th></tr>"
+        let html = try Fixture.capture("R10-favourites-owntopic1").replacing(Self.secondRow, with: header + Self.secondRow)
+        let sections = try FavoritesParser.parse(html).sections
+        #expect(sections.map(\.forum.title) == ["Emploi & Etudes", "Other"])
+        #expect(sections.map { $0.categoryID?.queryValue } == ["8", "9"])
+        #expect(sections.map(\.topics.count) == [1, 1])
+    }
+
+    @Test("A later header without link must not drop its rows silently: malformed, not a partial list")
+    func laterHeaderWithoutLink() throws {
+        let header = #"<tr class="cBackHeader fondForum1fCat"><th><a class="cHeader">Broken</a></th></tr>"#
+        let html = try Fixture.capture("R10-favourites-owntopic1").replacing(Self.secondRow, with: header + Self.secondRow)
+        #expect(throws: ListPageFailure.malformed("1 of 2 rows not under a readable category header")) {
+            try FavoritesParser.parse(html)
+        }
+    }
+
     @Test("A category header without link makes its rows unplaceable: malformed, not an empty list")
     func headerWithoutLink() throws {
         let html = try Fixture.capture("R10-favourites-owntopic1")
             .replacing(#/<a href="/forum1\.php[^"]*" class="cHeader">/#, with: #"<a class="cHeader">"#)
-        #expect(throws: ListPageFailure.malformed("2 rows, none under a readable category header")) {
+        #expect(throws: ListPageFailure.malformed("2 of 2 rows not under a readable category header")) {
             try FavoritesParser.parse(html)
         }
     }

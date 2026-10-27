@@ -8,12 +8,21 @@ public struct FavoritesPage: Sendable, Hashable, CustomStringConvertible, Custom
     public var unreadPrivateMessages: Int?
     /// The `hash_check` token of the page (a secret: never log it); nil when the page has none.
     public var hashCheck: String?
+    /// Message HFR shows instead of the list (R12: "Aucun sujet que vous avez lu n'est connu"); nil on a list page.
+    /// It is the page of a logged-out visitor, and possibly of a member with nothing flagged: the caller knows the session.
+    public var notice: String?
 
     /// Creates a favourites page.
-    public init(sections: [FavoriteSection] = [], unreadPrivateMessages: Int? = nil, hashCheck: String? = nil) {
+    public init(
+        sections: [FavoriteSection] = [],
+        unreadPrivateMessages: Int? = nil,
+        hashCheck: String? = nil,
+        notice: String? = nil
+    ) {
         self.sections = sections
         self.unreadPrivateMessages = unreadPrivateMessages
         self.hashCheck = hashCheck
+        self.notice = notice
     }
 
     /// Every topic of every section, most recent last post first; topics without a date come last, page order breaks ties.

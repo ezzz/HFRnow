@@ -11,42 +11,38 @@ public enum FavoritesParser {
     /// Parses the favourites page.
     ///
     /// Sections come in page order. A page with the list body and no row is an account without favourite: no section.
-    /// - Throws: `maintenance` for the maintenance page, `notAuthenticated` for HFR's message page, which this URL serves
-    ///   only to logged-out visitors (an empty list keeps the list body, R11, P03e), `malformed` for a page that is neither,
-    ///   or whose rows are all unreadable or outside any readable category header.
+    /// A page where HFR shows a message instead (R12) is an empty page carrying that `notice`: like LOT-022's lists, it cannot
+    /// be told from a login wall here (an empty `owntopic=1` list may well be the same page), so the caller decides from its session.
+    /// - Throws: `maintenance` for the maintenance page, `malformed` for a page that is neither a list nor a message, or
+    ///   whose rows are unreadable or outside a readable category header.
     public static func parse(_ html: String) throws(ListPageFailure) -> FavoritesPage {
-        // Page status and the all-rows-unreadable check are the topic list's: same body id, `.hop` page and row cells.
+        // Page status and the unreadable-rows check are the topic list's: same body id, `.hop` page and row cells.
         let list = try TopicListParser.parseRows(html, pageURL: "/forum1f.php")
-        if let notice = list.page.notice { throw .notAuthenticated(notice) }
-        let document: Document
-        do {
-            document = try HTMLDocumentLoader.document(from: html)
-        } catch {
-            throw .malformed("unreadable HTML document")
+        guard let body = list.body else {
+            return FavoritesPage(notice: list.page.notice)
         }
-        guard let body = document.body() else { throw .malformed("page without body") }
 
-        // Rows are read again here, per section, so that each one knows its category.
+        // Legacy walks the rows of `table.main` only (`ObjCFavoritesLoaderWorker.m:103-104`).
+        let table = body.firstDescendant(matching: .exact("main"))
+        let summaries = Dictionary(uniqueKeysWithValues: list.rows.map { (ObjectIdentifier($0.element), $0.summary) })
         var sections: [FavoriteSection] = []
         var current: FavoriteSection?
         var placed = 0
-        for row in (try? body.getElementsByTag("tr").array()) ?? [] {
+        for row in (try? table?.getElementsByTag("tr").array()) ?? [] {
             if hasClass("fondForum1fCat", row) {
                 if let finished = current { sections.append(finished) }
                 current = header(of: row)
-            } else if
-                let section = current,
-                isTopicRow(row),
-                let summary = TopicListRowParser.summary(from: row, pageCategory: section.categoryID) {
+            } else if let summary = summaries[ObjectIdentifier(row)], current != nil {
                 current?.topics.append(resuming(summary))
                 placed += 1
             }
         }
         if let finished = current { sections.append(finished) }
 
-        // Rows were readable but no category header was: a markup change, not an empty favourites list (LESSONS 44).
-        if !list.rows.isEmpty && placed == 0 {
-            throw .malformed("\(list.rows.count) rows, none under a readable category header")
+        // A readable row outside a readable category header is a markup change, not a shorter list: never return a partial one
+        // (LESSONS 44).
+        if placed < list.rows.count {
+            throw .malformed("\(list.rows.count - placed) of \(list.rows.count) rows not under a readable category header")
         }
         return FavoritesPage(
             sections: sections,
@@ -79,11 +75,6 @@ public enum FavoritesParser {
         row.currentPage = resume.flatMap(HFRURL.page(in:))
         row.readState = .unknown
         return row
-    }
-
-    /// `tr.sujet.ligne_booleen`, as `TopicListParser.rowElements` selects rows.
-    private static func isTopicRow(_ row: Element) -> Bool {
-        hasClass("ligne_booleen", row) && hasClass("sujet", row)
     }
 
     private static func hasClass(_ token: String, _ element: Element) -> Bool {
