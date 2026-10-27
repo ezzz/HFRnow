@@ -227,6 +227,16 @@ Source: [LOT-027](lots/LOT-027-profile-parser.md), `UserProfileParser`, checked 
 - **Smiley search** (`R53a-c`, **verified**): the answer is a bare fragment (no `<html>`), one `<img src alt title onclick="putSmiley(this.alt,this.src)" />` per smiley, all personal smileys: code `[:name]` with image `/images/perso/name.gif`, or `[:name:N]` with image `/images/perso/N/name.gif` (the suffix `N` is the folder). Counts: one word 657, two words 1010 (OR); the same smiley can be served twice (`R53c`). No result: the 40-character text "Désolé, aucune réponse n'a été trouvée !" with no markup.
 - **Smiley wiki detail** (`R54`, **verified**): `GET /wikismilies.php?config=hfr.inc&detail=%5B%3Aname%5D` (the code percent-encoded) works logged out. The entry row holds `<img src alt title>` with `<input type="hidden" name="smiley0" value="[:name]">` and `<input type="text" name="keywords0" value="word word word">` (space-separated keywords), followed by the contribution history (member profile link, date `dd-MM-yyyy à HH:mm`, keywords).
 
+### LOT-037 — write responses
+
+[LOT-037](lots/LOT-037-hop-response-classifier.md), tests `HopResponseParserTests` (oracles `W10`-`W20b`, `W17b`/`W17c` included).
+
+- **Shape**: every answer to a write is HTTP 200 with a `div.hop` message, except the invalid-token reply (`W17b`, plain text, below); a refusal that offers a way back adds `<br /><br />` and either `<a href="javascript:history.back(1)" class="Topic"><b>Retour à la page précédente</b></a>` or a replay form (`<form action="/message.php…">` of hidden inputs ending in `<input type="submit" value="Retour à la page précédente">`) (`W11x`, `W13cx`, `W17a`, `W17c`, `W20a`). A success has neither.
+- **Success** = `<meta http-equiv="Refresh" content="1; url=/forum…">` in the head, a `.hop` without link or input **and** an affirmative sentence containing "avec succès" (no `ne`/`pas`/`aucun`/`erreur`… word) and a refresh target that resolves to an `https` `forum.hardware.fr` URL (port absent or 443) (the only discriminator: login failure `W01`, empty lists `R08-1`/`R08-3`, the search waiting page `R50a` and login success `W01b`/`W03` also refresh with a link-less `.hop`): reply (`…#bas`), edit (`…#t<numreponse>`), create (refresh to the MP list), delete (no fragment), mark unread and flags (`W10`-`W16b`, `W18`, `W19`, `P03a`, `P03b`, `P03d`). `P03a`/`P03b` refresh to a canonical `/hfr/…/liste_sujet-1.htm` path, `W18` to `/forum1.php`.
+- **Refusals**: flood, empty body and logged out are `.hop` + link/input (`W11x`, `W13cx`, `W14x`, `W17a`, `W17c`, `W20a`, `W20b`); invalid `hash_check` is **plain text without any HTML** (`W17b`, 99 bytes). A write refusal carries no refresh (`W11x`-`W20b`); other refusals do (`W01` refresh to `/`).
+- **Read pages with a `.hop`**: `R12` (empty favourites) and `RA5` (message not addressed to the account) have the back link and no refresh; the empty lists `R08-1`/`R08-3` refresh to the forum list with a link-less `.hop`. None is a write answer and none classifies as success (corpus sweep test).
+- Not captured: alert already sent, alert submitted, other logged-out write answers (see the lot's Pending capture).
+
 ### LOT-021 — forum list
 
 [LOT-021](lots/LOT-021-forum-list-parser.md), tests `ForumListParserTests`.
