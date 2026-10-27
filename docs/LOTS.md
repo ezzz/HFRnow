@@ -162,6 +162,7 @@ Page states that merged lots listed as **pending capture** (never hand-built in 
 
 | State | Wanted by | Note |
 |---|---|---|
+| Favourites: logged-in `forum1f.php?owntopic=1` with no flagged topic; two or more categories; a row without flag link, a single-page topic, sticky / closed / poll rows | LOT-024 | R10 has one category with two topics (MANIFEST says two); the empty `owntopic=1` page decides what HFRClient may assume from a `.hop` |
 | Maintenance page (home, lists) | LOT-021, LOT-022 | cannot be provoked; capture when HFR shows one |
 | Poll: multi-choice | LOT-026 | find a topic with a multi-choice poll |
 | Poll: plain "already voted" without the multipseudo notice | LOT-026 | needs a vote (P05 out of scope) → only if the operator agrees |
