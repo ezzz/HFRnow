@@ -13,7 +13,7 @@ permissions:
 
 # A new push to a PR cancels its running analysis; pushes to dev-swift and scheduled runs are never cancelled.
 concurrency:
-  group: codeql-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  group: codeql-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -66,8 +66,9 @@ jobs:
   analyze-swift:
     name: Analyze (swift)
     needs: changes
-    # A job skipped by this condition reports "skipped", which satisfies the required check.
-    if: needs.changes.outputs.swift == 'true'
+    # A job skipped by this condition reports "skipped", which satisfies the required check;
+    # it runs anyway if change detection failed, so a broken detector never waves a PR through.
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.swift == 'true') }}
     # CodeQL's Swift extractor lags behind preview toolchains: analyze with the stable Xcode on macos-26.
     runs-on: macos-26
     permissions:

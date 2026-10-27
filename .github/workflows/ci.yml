@@ -11,7 +11,7 @@ permissions:
 
 # A new push to a PR cancels its running CI; pushes to dev-swift are never cancelled.
 concurrency:
-  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -62,8 +62,9 @@ jobs:
   engine-apple:
     name: HFRKit tests (macOS) + iOS 27 build
     needs: app-changes
-    # Skipped when a PR leaves the engine alone: a skipped job still satisfies the required check.
-    if: needs.app-changes.outputs.engine == 'true'
+    # Skipped when a PR leaves the engine alone (a skipped job satisfies the required check);
+    # runs anyway if change detection failed, so a broken detector never waves a PR through.
+    if: ${{ !cancelled() && (needs.app-changes.result != 'success' || needs.app-changes.outputs.engine == 'true') }}
     runs-on: xcode-27
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -115,8 +116,9 @@ jobs:
   app:
     name: App build + tests (iOS 27 simulator)
     needs: app-changes
-    # A job skipped by this condition reports "skipped", which satisfies a required check.
-    if: needs.app-changes.outputs.app == 'true'
+    # A job skipped by this condition reports "skipped", which satisfies a required check;
+    # it runs anyway if change detection failed.
+    if: ${{ !cancelled() && (needs.app-changes.result != 'success' || needs.app-changes.outputs.app == 'true') }}
     runs-on: xcode-27
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

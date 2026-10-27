@@ -29,8 +29,8 @@ A PR into `dev-swift` is merged only when **all** of these hold (enforced by the
   |---|---|
   | `SwiftLint` | Style and conventions of the Swift code |
   | `HFRKit tests (Linux)` | The engine builds and its tests pass on Linux (Swift 6.2) |
-  | `HFRKit tests (macOS) + iOS 27 build` | Same on macOS, plus a build for iOS 27; skipped, and counted as passed, when the PR touches neither `Packages/` nor `ci.yml` (if the change-detection job itself fails, the gated checks are skipped too: check that `Detect app changes` / `Detect Swift changes` passed) |
-  | `Analyze (swift)` | CodeQL static analysis (SAST) of the Swift code; skipped, and counted as passed, when the PR touches no Swift |
+  | `HFRKit tests (macOS) + iOS 27 build` | Same on macOS, plus a build for iOS 27; skipped, and counted as passed, when the PR touches neither `Packages/` nor `ci.yml` (if change detection fails, the gated checks run anyway) |
+  | `Analyze (swift)` | CodeQL static analysis (SAST) of the Swift code; skipped, and counted as passed, when the PR touches no Swift (if change detection fails, it runs anyway) |
   | `Analyze (actions)` | CodeQL analysis of the workflows |
   | `gitleaks` | No secret (password, cookie, key) in the PR's commits |
   | `review` | Dependency review (SCA): no dependency with a known vulnerability of moderate severity or more |
