@@ -117,7 +117,7 @@ struct AccountsModelRestoreTests {
 
     @Test func retryDuringARunningRestoreChecksEachSessionOnce() async throws {
         let store = try InMemoryCredentialStore(accounts: [Fake.account("user1", main: true)])
-        let gate = Gate()
+        let gate = CheckGate()
         let checker = ScriptedChecker([:], gate: gate)
         let model = makeModel(store: store, checker: checker)
 

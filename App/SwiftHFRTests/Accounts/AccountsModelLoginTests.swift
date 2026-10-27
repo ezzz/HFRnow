@@ -188,7 +188,7 @@ struct AccountsModelLoginTests {
 
     @Test func loginThatFinishesDuringTheLaunchCheckWins() async throws {
         let store = try InMemoryCredentialStore(accounts: [Fake.account("user1", main: true)])
-        let gate = Gate()
+        let gate = CheckGate()
         let login = ScriptedLogin([.success(
             userKey: "user1", displayName: "user1", cookies: Fake.cookies(user: "user1"), hashCheck: "h", avatarURL: nil
         )])

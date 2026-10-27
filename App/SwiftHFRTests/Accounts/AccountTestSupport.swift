@@ -25,7 +25,7 @@ enum Fake {
 }
 
 /// A one-shot barrier: `wait()` suspends until `open()`; `entered()` waits until someone is suspended in `wait()`.
-actor Gate {
+actor CheckGate {
     private var isOpen = false
     private var waiters: [CheckedContinuation<Void, Never>] = []
     private var arrivals: [CheckedContinuation<Void, Never>] = []
@@ -108,13 +108,13 @@ final class ScriptedChecker: SessionChecking {
     private let results: [String: SessionCheckResult]
     private let refreshedPass: String?
     private let identityAfter: String?
-    private let gate: Gate?
+    private let gate: CheckGate?
     private let count = Mutex(0)
 
     /// `identityAfter` makes the forum set `md_user` to that value (`deleted`, another pseudo) before answering;
     /// `gate` suspends every check until opened.
     init(
-        _ results: [String: SessionCheckResult], refreshedPass: String? = nil, identityAfter: String? = nil, gate: Gate? = nil
+        _ results: [String: SessionCheckResult], refreshedPass: String? = nil, identityAfter: String? = nil, gate: CheckGate? = nil
     ) {
         self.results = results
         self.refreshedPass = refreshedPass

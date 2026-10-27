@@ -79,6 +79,8 @@ final class AccountsModel {
     @ObservationIgnored private var statuses: [String: AccountSessionStatus] = [:]
     @ObservationIgnored private var restoreTask: Task<Void, Never>?
     @ObservationIgnored private var currentSessionID: ObjectIdentifier?
+    /// Cookie jar for browsing logged out; never holds an account's cookies.
+    @ObservationIgnored private let loggedOutSession = HFRSession()
     /// Decoded avatars by account, so views never decode image bytes while rendering (LESSONS 49).
     @ObservationIgnored private var avatarImages: [String: (data: Data, image: UIImage)] = [:]
     /// The last avatar download started by a login (tests await it).
@@ -109,6 +111,9 @@ final class AccountsModel {
 
     /// The current account's session, for the screens that read the forum as that account; nil when logged out.
     var currentSession: HFRSession? { current.flatMap { sessions[$0.id] } }
+
+    /// The session the forum screens use: the current account's, or one logged-out session kept for the whole run.
+    var forumSession: HFRSession { currentSession ?? loggedOutSession }
 
     /// The session of an account.
     func session(for id: String) -> HFRSession? { sessions[id] }
