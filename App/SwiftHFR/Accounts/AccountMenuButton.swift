@@ -10,7 +10,11 @@ struct AccountMenuButton: View {
 
     var body: some View {
         Group {
-            if accounts.rows.isEmpty {
+            if !accounts.hasRestored {
+                // Until the store is read, neither "logged out" nor an account list would be true.
+                Button("Comptes", systemImage: "person.crop.circle") {}
+                    .disabled(true)
+            } else if accounts.rows.isEmpty {
                 Button("Se connecter", systemImage: "person.crop.circle") {
                     if accounts.storeProblem == nil { loginTarget = .newAccount } else { showsAccounts = true }
                 }
@@ -26,6 +30,7 @@ struct AccountMenuButton: View {
                                 Text(row.displayName)
                             }
                         }
+                        .accessibilityValue(row.status == .expired ? "Session expirée" : "")
                     }
                     Divider()
                     if let current = accounts.current, current.status == .expired {

@@ -96,10 +96,12 @@ struct AccountMessagesTests {
             .corrupted, .unsupportedVersion(2), .invalidPseudo, .pseudoMismatch, .keychain(status: -25_308)
         ]
         #expect(errors.allSatisfy { !AccountMessages.message(for: $0).isEmpty })
-        #expect(StoreProblem(.keychain(status: -25_308)) == .unavailable(status: -25_308))
-        #expect(StoreProblem(.unsupportedVersion(3)) == .newerVersion)
-        #expect(StoreProblem(.corrupted) == .corrupted)
-        for problem in [StoreProblem.corrupted, .newerVersion, .unavailable(status: -1)] {
+        #expect(StoreProblem(CredentialStoreError.keychain(status: -25_308)) == .unavailable(status: -25_308))
+        #expect(StoreProblem(CredentialStoreError.unsupportedVersion(3)) == .newerVersion)
+        #expect(StoreProblem(CredentialStoreError.corrupted) == .corrupted)
+        #expect(StoreProblem(CocoaError(.fileWriteNoPermission)) == .unavailable(status: nil))
+        #expect(AccountMessages.message(for: AccountActionError.storeFailed)?.isEmpty == false)
+        for problem in [StoreProblem.corrupted, .newerVersion, .unavailable(status: -1), .unavailable(status: nil)] {
             #expect(!AccountMessages.message(for: problem).isEmpty)
         }
     }
@@ -124,7 +126,9 @@ struct AnonymousAvatarLoaderTests {
 
     @Test func avatarIsFetchedWithoutFollowingRedirects() async throws {
         let url = try #require(Self.avatar)
-        let transport = MockTransport(replies: [.success(HTTPResponse(statusCode: 200, url: url, body: Data([1, 2])))])
+        let transport = MockTransport(replies: [.success(HTTPResponse(
+            statusCode: 200, headers: ["Content-Type": "image/jpeg"], url: url, body: Data([1, 2])
+        ))])
         #expect(await AnonymousAvatarLoader(transport: transport).avatarData(at: url) == Data([1, 2]))
         #expect(await transport.requests.map(\.redirectPolicy) == [.doNotFollow])
     }
@@ -134,8 +138,13 @@ struct AnonymousAvatarLoaderTests {
         let replies: [Result<HTTPResponse, NetworkError>] = [
             .success(HTTPResponse(statusCode: 302, headers: ["Location": "https://example.com/"], url: url)),
             .success(HTTPResponse(statusCode: 404, url: url, body: Data([1]))),
-            .success(HTTPResponse(statusCode: 200, url: url)),
-            .success(HTTPResponse(statusCode: 200, url: url, body: Data(count: AnonymousAvatarLoader.maximumBytes + 1))),
+            .success(HTTPResponse(statusCode: 200, headers: ["Content-Type": "image/jpeg"], url: url)),
+            .success(HTTPResponse(statusCode: 200, headers: ["Content-Type": "text/html; charset=utf-8"], url: url, body: Data([1]))),
+            .success(HTTPResponse(statusCode: 200, url: url, body: Data([1]))),
+            .success(HTTPResponse(
+                statusCode: 200, headers: ["Content-Type": "image/jpeg"], url: url,
+                body: Data(count: AnonymousAvatarLoader.maximumBytes + 1)
+            )),
             .failure(.offline)
         ]
         let loader = AnonymousAvatarLoader(transport: MockTransport(replies: replies))

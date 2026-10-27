@@ -73,12 +73,18 @@ struct AnonymousAvatarLoader: AvatarLoading {
         url.scheme?.lowercased() == "https" && url.host()?.lowercased() == allowedHost && (url.port == nil || url.port == 443)
     }
 
+    /// True for an `image/…` content type (parameters and case ignored).
+    static func isImage(_ contentType: String?) -> Bool {
+        contentType?.trimmingCharacters(in: .whitespaces).lowercased().hasPrefix("image/") == true
+    }
+
     /// Downloads the avatar; any failure is nil and the list shows the placeholder.
     func avatarData(at url: URL) async -> Data? {
         guard Self.isAllowed(url) else { return nil }
         // Follow no redirect: a redirect could leave the allowed host.
         guard let response = try? await transport.send(.get(url, redirectPolicy: .doNotFollow)),
-              response.statusCode == 200, !response.body.isEmpty, response.body.count <= Self.maximumBytes
+              response.statusCode == 200, !response.body.isEmpty, response.body.count <= Self.maximumBytes,
+              Self.isImage(response.headers["Content-Type"])
         else { return nil }
         return response.body
     }

@@ -10,6 +10,8 @@ enum AccountActionError: Error, Sendable, Equatable {
     case store(CredentialStoreError)
     /// The account is no longer in the store (removed meanwhile).
     case unknownAccount
+    /// The store failed with an error of its storage layer (file system), not a `CredentialStoreError`.
+    case storeFailed
 }
 
 /// A problem reading the account store at launch, with what the user can do about it.
@@ -18,15 +20,16 @@ enum StoreProblem: Sendable, Equatable {
     case corrupted
     /// A newer app version wrote the accounts; this version neither reads nor overwrites them.
     case newerVersion
-    /// The Keychain refused access; retrying may work (device locked, transient failure).
-    case unavailable(status: Int32)
+    /// The Keychain (with its `OSStatus`) or the storage refused access; retrying may work (device locked).
+    case unavailable(status: Int32?)
 
-    /// Maps a store error read at launch.
-    init(_ error: CredentialStoreError) {
-        switch error {
+    /// Maps a store error; an error that is not a `CredentialStoreError` (file system) is `unavailable`.
+    init(_ error: any Error) {
+        switch error as? CredentialStoreError {
         case .corrupted, .invalidPseudo, .pseudoMismatch: self = .corrupted
         case .unsupportedVersion: self = .newerVersion
         case .keychain(let status): self = .unavailable(status: status)
+        case nil: self = .unavailable(status: nil)
         }
     }
 }
@@ -39,6 +42,7 @@ enum AccountMessages {
         case .login(let error): message(for: error)
         case .store(let error): message(for: error)
         case .unknownAccount: "Ce compte n’est plus enregistré. Ajoutez-le de nouveau."
+        case .storeFailed: "L’enregistrement du compte a échoué. Réessayez."
         }
     }
 
@@ -99,8 +103,10 @@ enum AccountMessages {
             "Les comptes enregistrés sont illisibles. Effacez-les, puis ajoutez de nouveau vos comptes."
         case .newerVersion:
             "Les comptes ont été enregistrés par une version plus récente de l’app. Mettez l’app à jour pour les retrouver."
-        case .unavailable(let status):
+        case .unavailable(let status?):
             "Le trousseau est inaccessible (code \(status)). Déverrouillez l’appareil puis réessayez."
+        case .unavailable(nil):
+            "Les comptes enregistrés sont inaccessibles. Déverrouillez l’appareil puis réessayez."
         }
     }
 }

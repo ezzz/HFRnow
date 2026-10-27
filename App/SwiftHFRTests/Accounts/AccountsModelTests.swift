@@ -66,6 +66,48 @@ struct AccountsModelRestoreTests {
         #expect(stored.hashCheck == "refreshed-hash")
     }
 
+    @Test func validCheckOfAJarThatLostItsIdentityWritesNothing() async throws {
+        let store = try InMemoryCredentialStore(accounts: [Fake.account("user1", main: true)])
+        let before = store.envelope
+        let model = makeModel(store: store, checker: ScriptedChecker(["user1": .valid], logsOut: true))
+
+        await model.restore()
+
+        #expect(store.envelope == before)
+        #expect(model.storeProblem == nil)
+    }
+
+    @Test func failedWriteAfterAValidCheckIsReported() async throws {
+        let store = try FlakyStore(accounts: [Fake.account("user1", main: true)])
+        store.failWrites.withLock { $0 = true }
+        let model = makeModel(store: store, checker: ScriptedChecker(["user1": .valid], refreshedPass: "fake-pass-2"))
+
+        await model.restore()
+
+        #expect(model.storeProblem == .unavailable(status: -25_308))
+        #expect(try store.mainAccount()?.cookies.first { $0.name == "md_passs" }?.value == "fake-pass")
+    }
+
+    @Test func retryDuringARunningRestoreChecksEachSessionOnce() async throws {
+        let store = try InMemoryCredentialStore(accounts: [Fake.account("user1", main: true)])
+        let gate = Gate()
+        let checker = ScriptedChecker([:], gate: gate)
+        let model = makeModel(store: store, checker: checker)
+
+        let restoring = Task { await model.restore() }
+        await gate.entered()
+        #expect(model.isRestoring)
+        let retrying = Task { await model.retryRestore() }
+        // Give a second restore every chance to reach the checker before the first one is released.
+        for _ in 0..<200 where checker.checks < 2 { await Task.yield() }
+        await gate.open()
+        await restoring.value
+        await retrying.value
+
+        #expect(checker.checks == 1)
+        #expect(!model.isRestoring)
+    }
+
     @Test func checkOutcomesOtherThanValidWriteNothing() async throws {
         let store = try InMemoryCredentialStore(accounts: [Fake.account("user1"), Fake.account("user2")])
         let before = store.envelope
@@ -245,8 +287,79 @@ struct AccountsModelLoginTests {
         await model.avatarTask?.value
 
         #expect(avatars.requested == [url])
-        #expect(model.current?.avatarData == avatars.data)
+        #expect(model.current?.avatar != nil)
         #expect(try store.mainAccount()?.avatarData == avatars.data)
+    }
+
+    @Test func bytesThatAreNotAnImageAreNeverStored() async throws {
+        let store = InMemoryCredentialStore()
+        let url = try #require(URL(string: "https://forum-images.hardware.fr/images/mesdiscussions-1.jpg"))
+        let login = ScriptedLogin([.success(
+            userKey: "user1", displayName: "user1", cookies: Fake.cookies(user: "user1"), hashCheck: "h", avatarURL: url
+        )])
+        let model = makeModel(store: store, login: login, avatars: RecordingAvatars(data: Data("<html>".utf8)))
+
+        try await model.logIn(pseudo: "user1", password: "fake-password", for: .newAccount)
+        await model.avatarTask?.value
+
+        #expect(model.current?.avatar == nil)
+        #expect(try store.mainAccount()?.avatarData == nil)
+    }
+
+    @Test func accountRemovedWhileItsReloginRunsIsNotBroughtBack() async throws {
+        let store = try InMemoryCredentialStore(accounts: [Fake.account("user1", main: true), Fake.account("user2")])
+        let login = ScriptedLogin([.success(
+            userKey: "user2", displayName: "user2", cookies: Fake.cookies(user: "user2"), hashCheck: "h", avatarURL: nil
+        )])
+        let model = makeModel(store: store, login: login)
+        await model.restore()
+        login.beforeReturn.withLock { $0 = { await MainActor.run { _ = try? model.remove("user2") } } }
+
+        await #expect(throws: AccountActionError.unknownAccount) {
+            try await model.logIn(pseudo: "user2", password: "fake-password", for: .existing(id: "user2", displayName: "user2"))
+        }
+
+        #expect(model.rows.map(\.id) == ["user1"])
+        #expect(try store.accounts().map(\.pseudo) == ["user1"])
+        #expect(model.session(for: "user2") == nil)
+    }
+
+    @Test func newAccountCancelledAfterTheLoginIsNotAdded() async throws {
+        let store = try InMemoryCredentialStore(accounts: [Fake.account("user1", main: true)])
+        let before = store.envelope
+        let login = ScriptedLogin([.success(
+            userKey: "user2", displayName: "user2", cookies: Fake.cookies(user: "user2"), hashCheck: "h", avatarURL: nil
+        )])
+        let model = makeModel(store: store, login: login)
+        await model.restore()
+        let running = TaskBox()
+        login.beforeReturn.withLock { $0 = { running.cancel() } }
+
+        let task = Task { try await model.logIn(pseudo: "user2", password: "fake-password", for: .newAccount) }
+        running.set(task)
+        await #expect(throws: AccountActionError.login(.network(.cancelled))) { try await task.value }
+
+        #expect(store.envelope == before)
+        #expect(model.rows.map(\.id) == ["user1"])
+        #expect(model.current?.id == "user1")
+    }
+
+    @Test func loginThatFinishesDuringTheLaunchCheckWins() async throws {
+        let store = try InMemoryCredentialStore(accounts: [Fake.account("user1", main: true)])
+        let gate = Gate()
+        let login = ScriptedLogin([.success(
+            userKey: "user1", displayName: "user1", cookies: Fake.cookies(user: "user1"), hashCheck: "h", avatarURL: nil
+        )])
+        let model = makeModel(store: store, login: login, checker: ScriptedChecker(["user1": .expired], gate: gate))
+
+        let restoring = Task { await model.restore() }
+        await gate.entered()
+        #expect(model.current?.status == .checking)
+        try await model.logIn(pseudo: "user1", password: "fake-password", for: .existing(id: "user1", displayName: "user1"))
+        await gate.open()
+        await restoring.value
+
+        #expect(model.current?.status == .valid)
     }
 
     @Test func noAvatarURLMeansNoDownload() async throws {

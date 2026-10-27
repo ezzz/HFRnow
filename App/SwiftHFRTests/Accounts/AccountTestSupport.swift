@@ -5,6 +5,7 @@ import HFRNetwork
 import HFRStorage
 @testable import SwiftHFR
 import Synchronization
+import UIKit
 
 /// Fake test data: cookie values, tokens and pseudos are made up.
 enum Fake {
@@ -23,6 +24,42 @@ enum Fake {
     }
 }
 
+/// A one-shot barrier: `wait()` suspends until `open()`; `entered()` waits until someone is suspended in `wait()`.
+actor Gate {
+    private var isOpen = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+    private var arrivals: [CheckedContinuation<Void, Never>] = []
+    private var arrived = false
+
+    func wait() async {
+        arrived = true
+        arrivals.forEach { $0.resume() }
+        arrivals = []
+        if isOpen { return }
+        await withCheckedContinuation { waiters.append($0) }
+    }
+
+    func entered() async {
+        if arrived { return }
+        await withCheckedContinuation { arrivals.append($0) }
+    }
+
+    func open() {
+        isOpen = true
+        waiters.forEach { $0.resume() }
+        waiters = []
+    }
+}
+
+/// Holds a task so a test double can cancel it from inside the work it runs.
+final class TaskBox: Sendable {
+    private let task = Mutex<Task<Void, any Error>?>(nil)
+
+    func set(_ task: Task<Void, any Error>) { self.task.withLock { $0 = task } }
+
+    func cancel() { task.withLock { $0 }?.cancel() }
+}
+
 /// One scripted login: what HFR "answers" and what the flow would install.
 enum LoginScript: Sendable {
     case success(userKey: String, displayName: String, cookies: [StoredCookie], hashCheck: String, avatarURL: URL?)
@@ -38,6 +75,8 @@ final class ScriptedLogin: AccountLoggingIn {
     }
 
     private let state: Mutex<(scripts: [LoginScript], calls: [Call])>
+    /// Runs after the cookies are installed and before the result returns (to interleave another action).
+    let beforeReturn = Mutex<(@Sendable () async -> Void)?>(nil)
 
     init(_ scripts: [LoginScript]) {
         state = Mutex((scripts, []))
@@ -58,6 +97,7 @@ final class ScriptedLogin: AccountLoggingIn {
         case let .success(userKey, displayName, cookies, hashCheck, avatarURL):
             await session.replaceCookies(with: cookies)
             await session.updateHashCheck(hashCheck)
+            if let hook = beforeReturn.withLock({ $0 }) { await hook() }
             return LoginResult(userKey: userKey, displayName: displayName, avatarURL: avatarURL)
         }
     }
@@ -67,11 +107,16 @@ final class ScriptedLogin: AccountLoggingIn {
 final class ScriptedChecker: SessionChecking {
     private let results: [String: SessionCheckResult]
     private let refreshedPass: String?
+    private let logsOut: Bool
+    private let gate: Gate?
     private let count = Mutex(0)
 
-    init(_ results: [String: SessionCheckResult], refreshedPass: String? = nil) {
+    /// `logsOut` makes the forum answer `md_user=deleted` before a `valid`; `gate` suspends every check until opened.
+    init(_ results: [String: SessionCheckResult], refreshedPass: String? = nil, logsOut: Bool = false, gate: Gate? = nil) {
         self.results = results
         self.refreshedPass = refreshedPass
+        self.logsOut = logsOut
+        self.gate = gate
     }
 
     var checks: Int { count.withLock { $0 } }
@@ -79,7 +124,12 @@ final class ScriptedChecker: SessionChecking {
     func check(_ session: HFRSession) async -> SessionCheckResult {
         count.withLock { $0 += 1 }
         guard let user = await session.userKey() else { return .expired }
+        await gate?.wait()
         let result = results[user] ?? .unconfirmed
+        if logsOut {
+            let logout = StoredCookie(name: "md_user", value: "deleted", domain: ".hardware.fr", expiresDate: Fake.tomorrow)
+            await session.mergeCookies([logout])
+        }
         if result == .valid, let refreshedPass {
             await session.mergeCookies(Fake.cookies(user: user, pass: refreshedPass))
             await session.updateHashCheck("refreshed-hash")
@@ -93,7 +143,13 @@ final class RecordingAvatars: AvatarLoading {
     private let urls = Mutex<[URL]>([])
     let data: Data?
 
-    init(data: Data? = Data([0x89, 0x50, 0x4E, 0x47])) {
+    /// A real 2×2 PNG, so the model can decode it.
+    static let png: Data = UIGraphicsImageRenderer(size: CGSize(width: 2, height: 2)).pngData { context in
+        UIColor.red.setFill()
+        context.fill(CGRect(x: 0, y: 0, width: 2, height: 2))
+    }
+
+    init(data: Data? = RecordingAvatars.png) {
         self.data = data
     }
 

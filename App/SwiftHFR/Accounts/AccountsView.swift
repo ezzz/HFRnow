@@ -75,6 +75,7 @@ struct AccountsView: View {
                 Button("Effacer les comptes enregistrés", role: .destructive) { confirmErase = true }
             case .unavailable:
                 Button("Réessayer") { Task { await accounts.retryRestore() } }
+                    .disabled(accounts.isRestoring)
             case .newerVersion:
                 EmptyView()
             }
@@ -120,7 +121,7 @@ struct AccountRowView: View {
         HStack(spacing: 12) {
             Button(action: onSelect) {
                 HStack(spacing: 12) {
-                    AccountAvatarView(data: row.avatarData)
+                    AccountAvatarView(image: row.avatar)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(row.displayName)
                             .foregroundStyle(.primary)
@@ -159,14 +160,14 @@ struct AccountRowView: View {
     }
 }
 
-/// An account's avatar, or a placeholder; scales with Dynamic Type.
+/// An account's avatar (decoded by `AccountsModel`), or a placeholder; scales with Dynamic Type.
 struct AccountAvatarView: View {
-    let data: Data?
+    let image: UIImage?
     @ScaledMetric(relativeTo: .body) private var size: CGFloat = 32
 
     var body: some View {
         Group {
-            if let data, let image = UIImage(data: data) {
+            if let image {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()

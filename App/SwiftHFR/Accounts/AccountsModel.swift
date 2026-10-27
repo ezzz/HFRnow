@@ -4,6 +4,7 @@ import HFRModels
 import HFRNetwork
 import HFRStorage
 import Observation
+import UIKit
 
 /// What the app knows about an account's session.
 enum AccountSessionStatus: Sendable, Equatable {
@@ -27,8 +28,8 @@ struct AccountRow: Sendable, Equatable, Identifiable {
     let displayName: String
     /// The current account, whose session the app uses.
     let isMain: Bool
-    /// Avatar bytes, if downloaded.
-    let avatarData: Data?
+    /// Avatar, decoded once by the model.
+    let avatar: UIImage?
     /// Session state.
     let status: AccountSessionStatus
 }
@@ -61,8 +62,10 @@ final class AccountsModel {
     private(set) var rows: [AccountRow] = []
     /// A launch-time store problem, shown with its way out; nil when the store reads fine.
     private(set) var storeProblem: StoreProblem?
-    /// True once `restore()` has read the store.
+    /// True once `restore()` has read the store; until then the screens show no logged-out state.
     private(set) var hasRestored = false
+    /// True while a restore (read and session checks) runs; a retry then waits for it instead of starting another.
+    private(set) var isRestoring = false
 
     @ObservationIgnored private let store: any CredentialStore
     @ObservationIgnored private let loginService: any AccountLoggingIn
@@ -71,6 +74,8 @@ final class AccountsModel {
     @ObservationIgnored private var sessions: [String: HFRSession] = [:]
     @ObservationIgnored private var statuses: [String: AccountSessionStatus] = [:]
     @ObservationIgnored private var restoreTask: Task<Void, Never>?
+    /// Decoded avatars by account, so views never decode image bytes while rendering (LESSONS 49).
+    @ObservationIgnored private var avatarImages: [String: (data: Data, image: UIImage)] = [:]
     /// The last avatar download started by a login (tests await it).
     @ObservationIgnored private(set) var avatarTask: Task<Void, Never>?
 
@@ -85,6 +90,8 @@ final class AccountsModel {
     /// The model the app runs with: Keychain store keyed by the bundle identifier, `LoginFlow`, local session check.
     static func live() -> AccountsModel {
         AccountsModel(
+            // An app bundle always has an identifier; the fallback is the project's own (LOT-080), so the item's
+            // service never depends on it being missing.
             store: KeychainCredentialStore(service: Bundle.main.bundleIdentifier ?? "hfrplus.red.super"),
             loginService: LoginFlow(),
             checker: LocalSessionCheck(),
@@ -107,13 +114,19 @@ final class AccountsModel {
     /// Runs once; later calls wait for the first one. `retryRestore()` reads again after a store problem.
     func restore() async {
         if let restoreTask { return await restoreTask.value }
-        let task = Task { await performRestore() }
+        isRestoring = true
+        let task = Task {
+            await performRestore()
+            isRestoring = false
+        }
         restoreTask = task
         await task.value
     }
 
-    /// Reads the store again (after the device was unlocked, for example).
+    /// Reads the store again (after the device was unlocked, for example). While a restore runs, waits for it
+    /// instead: two restores at once would check every session twice.
     func retryRestore() async {
+        if isRestoring, let restoreTask { return await restoreTask.value }
         restoreTask = nil
         await restore()
     }
@@ -123,7 +136,7 @@ final class AccountsModel {
         do {
             try store.removeAll()
         } catch {
-            storeProblem = .unavailable(status: (error as? CredentialStoreError).flatMap(Self.keychainStatus) ?? 0)
+            storeProblem = StoreProblem(error)
             return
         }
         await retryRestore()
@@ -134,7 +147,7 @@ final class AccountsModel {
         do {
             book = try store.load()
         } catch {
-            storeProblem = StoreProblem(error as? CredentialStoreError ?? .corrupted)
+            storeProblem = StoreProblem(error)
             rows = []
             sessions = [:]
             hasRestored = true
@@ -204,6 +217,8 @@ final class AccountsModel {
             throw .login(error)
         }
         if case .existing(let id, _) = target {
+            // Removed while the login ran: saving now would bring the account back.
+            guard sessions[id] === session else { throw .unknownAccount }
             // The login already renewed this session in memory; it stays valid even if the store write below fails.
             statuses[id] = .valid
         }
@@ -211,12 +226,15 @@ final class AccountsModel {
             pseudo: result.userKey, displayName: result.displayName,
             cookies: await session.cookies(), hashCheck: await session.hashCheck
         )
+        // A new account whose sheet was dismissed meanwhile is not added. A re-login is saved even then: its session
+        // is already renewed in memory (LOT-043), and the store must hold what the session holds.
+        if target == .newAccount, Task.isCancelled { throw .login(.network(.cancelled)) }
         let stored: Account
         do {
             stored = try store.save(account, makeMain: target == .newAccount)
         } catch {
             reloadRows()
-            throw .store(error as? CredentialStoreError ?? .corrupted)
+            throw Self.actionError(error)
         }
         sessions[stored.pseudo] = session
         statuses[stored.pseudo] = .valid
@@ -234,7 +252,7 @@ final class AccountsModel {
         } catch let error as AccountActionError {
             throw error
         } catch {
-            throw .store(error as? CredentialStoreError ?? .corrupted)
+            throw Self.actionError(error)
         }
         reloadRows()
     }
@@ -247,7 +265,7 @@ final class AccountsModel {
         } catch let error as AccountActionError {
             throw error
         } catch {
-            throw .store(error as? CredentialStoreError ?? .corrupted)
+            throw Self.actionError(error)
         }
         sessions[id] = nil
         statuses[id] = nil
@@ -255,7 +273,8 @@ final class AccountsModel {
     }
 
     /// Writes an account's current cookies and token back to the store, after the forum refreshed them. Skipped
-    /// when the session lost its identity: a logged-out jar never replaces stored cookies.
+    /// when the session lost its identity: a logged-out jar never replaces stored cookies. A failed write keeps the
+    /// previous cookies and is reported as a store problem (LESSONS 8); the session in memory keeps working.
     func persistSession(of id: String) async {
         guard let session = sessions[id], await session.isLoggedIn() else { return }
         let cookies = await session.cookies()
@@ -269,16 +288,16 @@ final class AccountsModel {
                 try book.add(account, makeMain: false)
             }
         } catch {
-            // The stored cookies stay the previous ones; the session in memory still works, and the next
-            // successful check or login writes again.
-            return
+            storeProblem = StoreProblem(error)
         }
     }
 
     // MARK: - Private
 
     private func fetchAvatar(at url: URL, for id: String) async {
-        guard let data = await avatars.avatarData(at: url) else { return }
+        // Decoded once here: bytes that are not an image are never stored.
+        guard let data = await avatars.avatarData(at: url), let image = UIImage(data: data) else { return }
+        avatarImages[id] = (data, image)
         do {
             try store.update { book in
                 guard var account = book.account(matching: id) else { return }
@@ -296,7 +315,7 @@ final class AccountsModel {
         do {
             publish(try store.load())
         } catch {
-            storeProblem = StoreProblem(error as? CredentialStoreError ?? .corrupted)
+            storeProblem = StoreProblem(error)
         }
     }
 
@@ -304,13 +323,24 @@ final class AccountsModel {
         rows = book.accounts.map { account in
             AccountRow(
                 id: account.pseudo, displayName: account.displayName, isMain: account.isMain,
-                avatarData: account.avatarData, status: statuses[account.pseudo] ?? .restored
+                avatar: avatar(for: account), status: statuses[account.pseudo] ?? .restored
             )
         }
     }
 
-    private static func keychainStatus(_ error: CredentialStoreError) -> Int32? {
-        if case .keychain(let status) = error { return status }
-        return nil
+    /// The decoded avatar of an account, decoding only bytes not seen before.
+    private func avatar(for account: Account) -> UIImage? {
+        guard let data = account.avatarData else {
+            avatarImages[account.pseudo] = nil
+            return nil
+        }
+        if let cached = avatarImages[account.pseudo], cached.data == data { return cached.image }
+        guard let image = UIImage(data: data) else { return nil }
+        avatarImages[account.pseudo] = (data, image)
+        return image
+    }
+
+    private static func actionError(_ error: any Error) -> AccountActionError {
+        (error as? CredentialStoreError).map(AccountActionError.store) ?? .storeFailed
     }
 }
