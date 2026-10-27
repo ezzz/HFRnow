@@ -17,7 +17,7 @@ Legacy repository <https://github.com/francoisgn/hfrnow> at `2440d79` (`origin/m
 | `QuoteMessageViewController.m:187-190` (element named `hop`, its `input` and `select` descendants) | `HopFormParser.parse` |
 | `QuoteMessageViewController.m:192-290` (value per name; `MsgIcon` only when checked; checkbox `"1"`/`"0"`; select selected or first option; `haveTitle`, `haveTo`, `haveCategory`, sub-category list) | `fields`, `selects`, derived `isSubjectEditable`, `recipient`, `isSubcategoryEditable`, `subcategories` (LOT-012) |
 | `QuoteMessageViewController.m:459` (`content_form` contents, `\r\n` to `\n`) | `textareaContent` |
-| `QuoteMessageViewController.m:532` (action appended to the forum URL) | `action`, kept as served |
+| `QuoteMessageViewController.m:532` (action appended to the forum URL) | `action`: the HTML attribute is the input, `ForumForm.action` the resolved, forum-origin output (never the raw attribute) |
 | `Classes/AlerteModoViewController.m:144-178` (element whose `action` contains `modo.php`, its inputs) | `HopFormParser.parseModerationForm` |
 
 Not ported: the selection-quote logic (`QuoteMessageViewController.m:460-520`), which builds a prefill client-side from a web selection.
@@ -33,7 +33,7 @@ Not ported: the selection-quote logic (`QuoteMessageViewController.m:460-520`), 
 
 | `ForumForm` | Rule |
 |---|---|
-| `action` | the `action` attribute, entity-decoded, **resolved against `pageURL`** (default the forum root for `parse`, `/user/modo.php` for `parseModerationForm`) and returned as a forum-origin path (`/bddpost.php?config=hfr.inc`, `/bdd.php?config=hfr.inc`, `/user/modo.php?…`) through `HFRURL.forumRelativePath` (LESSONS 37, 43). Nil when the attribute is absent or empty, or when the action is off-origin (another host, `//host`, `http`, a port other than 443, user info, `javascript:`): the session, `hash_check` and the text would go there. The rest of the form is still returned; **LOT-048 must not post when `action` is nil** and must not substitute a default silently |
+| `action` | the `action` attribute, entity-decoded, **resolved against `pageURL`** (default the forum root for `parse`, `/user/modo.php` for `parseModerationForm`) and returned as a forum-origin path (`/bddpost.php?config=hfr.inc`, `/bdd.php?config=hfr.inc`, `/user/modo.php?…`) through `HFRURL.forumRelativePath` (LESSONS 37, 43). Nil when the attribute is absent or empty, or when the action is off-origin (another host, `//host` to another host, an `http` URL that is not upgraded, a port other than 443, user info, `javascript:`); `http://forum.hardware.fr/…` without a port is upgraded to `https` and accepted: the session, `hash_check` and the text would go there. The rest of the form is still returned; **LOT-048 must not post when `action` is nil** and must not substitute a default silently |
 | `fields` | every `<input>` with a `name` inside the form, in page order, duplicates kept (16 `MsgIcon` radios); `value` entity-decoded, `""` when absent; `kind` from `type` (LOT-012); `isChecked` = the `checked` attribute is present, whatever its value |
 | `selects` | every `<select>` with a `name`, in page order; options (also inside `<optgroup>`) with `value` (the text when the attribute is absent, as a browser does) and trimmed text label; `selectedValue` = the first option with `selected`, nil when none |
 | `textareaContent` | text of the `<textarea id="content_form">` of the form: entities decoded (by the HTML tokenizer), `\r\n` and lone `\r` read as `\n`, leading newline kept; nil when the textarea is empty or absent. It holds the quote or edit prefill, `[quotemsg=<numreponse>,<ref>,<author id>]` blocks included, untouched |
@@ -51,7 +51,7 @@ The moderation form has no `content_form` and no `select`: `fields` is `hash_che
 - Controls outside the form (the `#fastsearch` form with its own `hash_check`, a second `content_form`) are not read; the smiley container is looked up on the whole page, like legacy.
 - An input with no `name` (and `type="image"` without `name`) is skipped; `type="file"` and other types are kept with kind `.other`.
 - A select with no option is kept (`effectiveValue` nil); two options with `selected`: the first wins, as in legacy (a browser would take the last; no captured page has two).
-- A textarea starting with a newline keeps it (legacy, libxml, did too; a browser drops one newline after the tag). Every capture writes the text right after the tag, so HFR adds no newline of its own: a leading `\n` can only be part of the stored text, and keeping it makes the round trip exact. See "Pending capture".
+- A textarea starting with a newline keeps it (legacy, libxml, did too; a browser drops one newline after the tag). Every capture writes the text right after the tag, so HFR adds no newline of its own: a leading `\n` can only be part of the stored text, and keeping it makes the round trip exact. Verified: no capture starts with a newline; pending: a stored text that does (see "Pending capture").
 - Option values are not trimmed (legacy trimmed the id of a sub-category; captured values have no whitespace).
 
 ## Fixtures

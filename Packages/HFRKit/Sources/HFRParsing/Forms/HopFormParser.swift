@@ -16,8 +16,9 @@ public enum HopFormParser {
     /// `nil` when the textarea is empty or absent. `#dynamic_smilies` gives the favourite smileys of the account.
     ///
     /// `action` is resolved against `pageURL` (the URL the page was served from) and kept only as a forum-origin path,
-    /// because the posting flow sends the session, `hash_check` and the text there (LESSONS 37): an off-origin,
-    /// protocol-relative, `http` or non-443 action, or none at all, gives `nil`, and the caller must not post.
+    /// because the posting flow sends the session, `hash_check` and the text there (LESSONS 37): an action on another
+    /// host, an `http` one that is not upgraded (explicit port), a non-443 port, user info, or none at all gives `nil`, and
+    /// the caller must not post. `http://forum.hardware.fr/…` without a port is upgraded to `https` and accepted.
     /// - Throws: `missingElement` when the page has no form named `hop` (a `.hop` message page, a login wall, an error page);
     ///   telling those apart is the job of the response classifier (LOT-037).
     public static func parse(_ html: String, pageURL: URL = HFRURL.base) throws(ParsingError) -> ForumForm {
