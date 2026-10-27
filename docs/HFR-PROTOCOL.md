@@ -246,6 +246,14 @@ Source: [LOT-027](lots/LOT-027-profile-parser.md), `UserProfileParser`, checked 
 - **Private messages row** (`R02`, `R03`): `tr.cat` without `id`, link `forum1.php?config=hfr.inc&cat=prive&page=1…`; text "Vous avez N nouveaux messages privés" with class `cCatTopic red` (N = 10 on `R02`) or "Envoyer / lire des messages privés" without number (`R03`). Absent when logged out (`R01`).
 - **Sub-forums missing from the page**: the home page lists only some sub-forums. The legacy completion table adds real forums: with it the sub-forum counts equal the REST `number_of_subcategories` (`R57a`) for Hardware 15, Photo numérique 10, Windows & Software 12, Graphisme 10, Achats & Ventes 11; Overclocking (REST 7) stays at 6 and Programmation (REST 27) reaches 14, so REST is the complete source.
 
+### LOT-043 — login
+
+[LOT-043](lots/LOT-043-login.md), tests `LoginResponseTests`, `LoginFlowTests` and `HFREndpointLoginTests`.
+
+- **Answer** (`W01`, `W01b`, `W03`, **verified**): `POST /login_validation.php?config=hfr.inc` with the legacy body `pseudo, password, action=send, login=Se connecter` answers HTTP 200 either way. Success pages contain `login_redirection.php` (the `<meta http-equiv="Refresh" content="1; url=login_redirection.php?config=hfr.inc&referer_page=…">`, relative); the refusal holds "Votre mot de passe ou nom d'utilisateur n'est pas valide" and does not. The legacy substring test and the port agree on every capture.
+- **Cookies** (metas of `W01`, `W01b`, `W03`, **verified**): success sets `md_user`, `md_passs`, `md_id`; the refusal sets none.
+- **Profile page 5 after login** (`R55-p5` meta, **verified**): the page sets `md_user` and `md_passs` again (each twice in the answer), so the session cookies are read after it. Its `hash_check` is the token a new session posts with.
+
 
 ### LOT-044 — session refresh
 
