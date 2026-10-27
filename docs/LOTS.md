@@ -126,3 +126,17 @@ Posting comes next (LOT-036, 037, 048, 031, 049). The app module is `App` (the X
 ## Phase 4 backlog — app side (not engine)
 
 Pure Swift but app-side, kept here so nothing is lost: visibility policy (BL/WL/filters, C10) · filtered-posts use case (C11, candidate for `HFRClient`) · message HTML builder (C12) · page shell & resources (C13) · typed JS bridge (C14) · message action policy (C15) · image/GIF decoding (E-8) · background MP check scheduling (NET-13) · Giphy (E-10) · MP list decoration with `mpFlags` · account deletion mail and other hard-coded addresses (Q-10) · static pages, alternate icons, haptics, tab-bar settings UI · App Review policy: hide the Apple category (cat 25) when logged out or for the configured review account (Q-7) · inbound link router (forum links open the app) · Dynamic Type everywhere · iPad multi-window and favourites side panel · "posts quoting me" view (`quote_only=1`) · reply "+" carries selected quotes, classic post layout option (user feedback, docs/research/user-feedback-p450-510.md).
+
+## Issues to open (backlog until Issues are enabled on ezzz/HFRnow)
+
+Real legacy bugs found by Bybifok (`moust4ki`) in [ezzz/HFRnow#3](https://github.com/ezzz/HFRnow/pull/3), to check and fix in SwiftHFR. Each becomes an issue titled `[SwiftHFR] …` with labels `type: bug`, `moust4ki aka bybifok finding`, its area, priority, difficulty and status, then this section is deleted.
+
+| # | Issue | Legacy commit | Area · priority · difficulty · status | SwiftHFR work |
+|---|---|---|---|---|
+| 1 | Topic-list pager: a link without `href` must not break the parser | `237db70` | parsing · medium · easy · ready | Non-regression test in LOT-022 (and LOT-021, later 024/MP lists): skip the entry, keep the rows |
+| 2 | Topic-list page N must really load page N (`liste_sujet` paging) | `a817498` | network · high · easy · ready | LOT-041 builder never yields `liste_sujet-1.htm?page=N`; capture to settle HFR-PROTOCOL §7b B2 |
+| 3 | Topic lists must not show a fake total page count | `dc93420` | parsing · high · medium · ready | LOT-022 `PageNavigation`: windowed pager = lower bound, not total (B1) |
+| 4 | AQ RSS: decode HTML entities in titles, authors and comments | `a817498` | parsing · low · easy · blocked (Q-4) | Test in the AQ part of LOT-025; capture to settle B4 |
+| 5 | Links to a post (AQ, bookmarks) must open its page and anchor, not page 1 | `246a9c7` | app · medium · easy · ready | Page and `#t<numreponse>` kept through LOT-020, 045, 083; tests on both URL shapes |
+| 6 | Refresh must reload the current page, not page 1 | `246a9c7` | app · medium · easy · blocked (LOT-082/083) | Acceptance criteria of LOT-082/083: current page, content kept while loading, kept on failure |
+| 7 | Topic loading: a cancelled request must never complete the next load | `be196f8` | app · medium · medium · blocked (LOT-083) | One task per load, cancelled one cannot deliver; show at `DOMContentLoaded`; test with a fake page driver |

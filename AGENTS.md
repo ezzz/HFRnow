@@ -112,6 +112,8 @@ Every issue carries one label per axis:
 | Area | `area: models`, `area: parsing`, `area: network`, `area: storage`, `area: app`, `area: ci`, `area: docs` | Where |
 | Status | `status: needs-triage`, `status: blocked`, `status: ready` | Workflow state |
 
+Credit labels: `moust4ki aka bybifok finding` marks work found by Bybifok; the fix credits them.
+
 **Picking work:** take `status: ready` issues in this order: `type: security` first, then `priority: high` → `low`.
 Within a priority, match `difficulty` to your model tier (§6). Security issues are never reported publicly — see [SECURITY.md](SECURITY.md).
 
