@@ -70,7 +70,7 @@ Maintainer (write access): labels only, the script skips the admin parts.
 
 ezzz (admin), **right after the force push**, either from the web UI:
 - Settings → Rules → Rulesets → New ruleset → **Import a ruleset** → `.github/rulesets/dev-swift.json` (from the `dev-swift` branch) → Create.
-- If he asked for the `master` guard: same with `.github/rulesets/legacy-master.json`.
+- If he asked for the `master` guard: same with `.github/rulesets/legacy-master.json`. It also blocks direct pushes to `master` by `write` collaborators (`francoisgn`, `moust4ki` / Bybifok): they go through PRs merged by ezzz.
 - Settings → Code security: enable Dependabot alerts, private vulnerability reporting, secret scanning and push protection; leave Dependabot security updates **off**. Settings → Actions → General → Workflow permissions: read repository contents.
 
 or with the GitHub CLI: `./scripts/configure-repo.sh --repo-wide` (add `--guard-master` if wanted).
