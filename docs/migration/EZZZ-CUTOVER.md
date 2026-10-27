@@ -129,7 +129,7 @@ Expected: the run succeeds and does nothing (already in sync). On the mirror, on
 
 - Remaining PRs of the old repository: `git push ezzz origin/<branch>:refs/heads/<branch>`, rebase on `ezzz/dev-swift` if needed, `gh pr create -R ezzz/HFRnow --base dev-swift`, body `Moved from francoisgn/ios-app_SwiftHFR#N`. If its review was complete there, add `@coderabbitai ignore` to the body. Then close the old PR with a link to the new one.
 - Open issues (the lot issues #63–#98 and the rest): **frozen**, not recreated. Issues are disabled on ezzz/HFRnow, so `docs/LOTS.md` on `dev-swift` became the only tracker: each open lot's owner and status were copied from its issue on 2026-10-27, with the old issue's URL as reference (ADR 0010). Once ezzz enables Issues, new issues are opened from `LOTS.md`, not from the mirror.
-- Then disable issues on the mirror: `gh repo edit francoisgn/ios-app_SwiftHFR --enable-issues=false`.
+- Keep issues **enabled but frozen** on the mirror: `docs/LOTS.md` links each open lot to its old issue, and the discussions there are not copied yet (operator decision, 2026-10-27). Disable them (`gh repo edit francoisgn/ios-app_SwiftHFR --enable-issues=false`) only once their content is re-hosted on ezzz/HFRnow.
 
 ## 8. Checklist before handing over to ezzz
 
@@ -138,7 +138,7 @@ Expected: the run succeeds and does nothing (already in sync). On the mirror, on
 - [ ] Labels present on ezzz/HFRnow
 - [ ] Secrets recreated (or none needed)
 - [ ] Mirror run green, `francoisgn/ios-app_SwiftHFR` master = `ezzz/HFRnow` dev-swift
-- [ ] Open PRs moved; issues frozen in `LOTS.md`, issues disabled on the mirror
+- [ ] Open PRs moved; issues frozen in `LOTS.md`, issues kept enabled (frozen) on the mirror until re-hosted
 
 Then post the step 9 message (forum, plain text).
 

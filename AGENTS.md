@@ -8,10 +8,10 @@ It is a living document: when a lot teaches us something, it is written here (se
 
 **Starting a session — in this order:**
 1. Read this file, [ORCHESTRATION](docs/agents/ORCHESTRATION.md), [REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md) and [LESSONS](docs/agents/LESSONS.md).
-2. Look at [`docs/LOTS.md`](docs/LOTS.md) on `dev-swift`, not memory: the lots you own (`in-progress` with your session id), then `ready` lots with no owner (§7). It is the only tracker until Issues are enabled on ezzz/HFRnow ([ADR 0010](docs/adr/0010-hosting-on-ezzz-hfrnow-dev-swift.md)).
+2. Look at [`docs/LOTS.md`](docs/LOTS.md) on `dev-swift`, not memory: the lots you own (`in-progress` with your session id), then `todo` lots with no owner (§7). It is the only tracker until Issues are enabled on ezzz/HFRnow ([ADR 0010](docs/adr/0010-hosting-on-ezzz-hfrnow-dev-swift.md)).
 3. Work only under a lot you claimed in `LOTS.md` (§5). Every PR names its lot (`LOT-XXX`) (§8).
 4. Get the PR reviewed by another model and handle bot rounds per REVIEW-ROUNDS. Merging is the operator's call (§0).
-5. Before you stop: say where each lot you own stands (on its PR), and give back what you will not finish (owner `—`, status back to `ready`, by PR).
+5. Before you stop: say where each lot you own stands (on its PR), and give back what you will not finish (owner `—`, status back to `todo`, by PR).
 
 ---
 
@@ -86,8 +86,8 @@ When a behaviour is unclear, **read the legacy code** instead of guessing, and c
 
 Each lot in `docs/LOTS.md` follows exactly this loop (once Issues are enabled on ezzz/HFRnow, each lot gets an issue and the claim moves to it: [ORCHESTRATION, target process](docs/agents/ORCHESTRATION.md#claims)):
 
-1. **Claim** — set yourself as owner of the lot's row in `docs/LOTS.md` with status `in-progress`, in a PR on `dev-swift` merged **before** writing code. When an orchestrator session is active, it claims for you instead and you do not edit `LOTS.md`. The owner is a session id `<host>/<name>`, e.g. `cloud/c12-sonnet`, `mac/M1`, `human/<login>`, plus the date; keep it for the whole lot. Check first that the lot is `ready` (every dependency done, inputs available) and has no owner; the first claim merged wins.
-   Stuck or stopping? Say on your PR what is done and what is left, then give the lot back (owner `—`, status `ready`) by PR. A claim that looks abandoned for 24 h: ask the maintainer, never take it over.
+1. **Claim** — set yourself as owner of the lot's row in `docs/LOTS.md` with status `in-progress`, in a PR on `dev-swift` merged **before** writing code. When an orchestrator session is active, it claims for you instead and you do not edit `LOTS.md`. The owner is a session id `<host>/<name>`, e.g. `cloud/c12-sonnet`, `mac/M1`, `human/<login>`, plus the date; keep it for the whole lot. Check first that the lot is `todo` (every dependency done, inputs available) and has no owner; the first claim merged wins.
+   Stuck or stopping? Say on your PR what is done and what is left, then give the lot back (owner `—`, status `todo`) by PR. A claim that looks abandoned for 24 h: ask the maintainer, never take it over.
 2. **Spec** — write/complete `docs/lots/LOT-XXX-*.md`: legacy sources (file:line), inputs/outputs, edge cases, intentional differences from legacy, *pending capture* states. Verified protocol facts go to `docs/HFR-PROTOCOL.md` §6c under the lot's own `###` subsection.
 3. **Fixtures** — real pages + legacy parser output (the oracle), anonymized. **Both must exist before you claim a parser lot** (LESSONS 35). A state that was not captured is listed as *pending capture* and added to the capture backlog in `docs/LOTS.md`; never hand-build it in the cloud (LESSONS 36).
 4. **Port** — implement in the right module, Swift-native, no ObjC.
@@ -128,7 +128,7 @@ Credit labels: `moust4ki aka bybifok finding` marks work found by Bybifok; the f
 
 **Writing an issue:** it starts with `### Summary` (user story or two-line executive summary, §8), then scope, sources and acceptance criteria.
 
-**Picking work:** today, `ready` rows of `docs/LOTS.md` with no owner, security first, then the critical path (★) and the lots that unblock others. Once Issues are enabled: `status: ready` issues that are not `status: claimed`, in this order: `type: security` first, then `priority: high` → `low`.
+**Picking work:** today, `todo` rows of `docs/LOTS.md` with no owner, security first, then the critical path (★) and the lots that unblock others. Once Issues are enabled: `status: ready` issues that are not `status: claimed`, in this order: `type: security` first, then `priority: high` → `low`.
 Within a priority, match `difficulty` to your model tier (§6). Security issues are never reported publicly — see [SECURITY.md](SECURITY.md).
 
 ## 8. Git and PR workflow

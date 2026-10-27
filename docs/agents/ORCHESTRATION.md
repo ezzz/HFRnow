@@ -16,14 +16,14 @@ Operators may keep private notes (ledger, handoff lists) outside the repository;
 ## Session start
 1. `git fetch origin dev-swift` and update; read `AGENTS.md`, this file, [REVIEW-ROUNDS](REVIEW-ROUNDS.md) and [LESSONS](LESSONS.md).
 2. List the lots you own in `LOTS.md` (`in-progress` with your session id) and check what changed on your PRs (reviews, CI, merges, new comments) **before starting work**.
-3. New work: a `ready` lot with no owner, not `host: mac` work if you run in the cloud (Mac-only work is marked in its scope or spec). Claim it, then start.
+3. New work: a `todo` lot with no owner, not `host: mac` work if you run in the cloud (Mac-only work is marked in its scope or spec). Claim it, then start.
 
 ## Claims
 - Claim = a PR on `dev-swift` that sets the lot's row in `LOTS.md` to your session id (`<host>/<name> (date)`) and `in-progress`, merged **before writing code** (AGENTS.md §5). The first claim merged wins; a claim PR touches only the claimed rows.
 - An orchestrator claims for the child sessions it launches (one claim PR for the lots it hands out) and passes the same id to each child; children never edit `LOTS.md` and never claim something else.
 - Every PR names its lot (`LOT-XXX`). Work that is not a lot (small fix, CI, docs) says so in its description; anything bigger than one session gets a row in `LOTS.md` first (a new lot, or the backlog).
 - A lot owned by another session is off limits: don't touch its branch. A problem you see in it goes on its PR, or in the lot's spec by PR.
-- Stopping before done → say the state on your PR, then give the lot back (owner `—`, status `ready`) by PR. Looks abandoned for 24 h → ask the maintainer, never take it over.
+- Stopping before done → say the state on your PR, then give the lot back (owner `—`, status `todo`) by PR. Looks abandoned for 24 h → ask the maintainer, never take it over.
 - Done = the closing PR merged, and the lot's row in `LOTS.md` set to `done (#PR)` by that PR. `LOTS.md` changes only for that row, in claim and release PRs, or in the PR that adds a new lot.
 
 ### Target process, once ezzz enables Issues

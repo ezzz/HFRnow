@@ -157,7 +157,7 @@ The iOS app target (Xcode 27) is created before the app phase.
 ## Contributing
 
 1. Read **[AGENTS.md](AGENTS.md)**, then [CONTRIBUTING.md](CONTRIBUTING.md).
-2. Claim a `ready` [migration lot](docs/LOTS.md) with no owner: a PR that sets you as owner and `in-progress` (the only tracker until Issues are enabled on ezzz/HFRnow).
+2. Claim a `todo` [migration lot](docs/LOTS.md) with no owner: a PR that sets you as owner and `in-progress` (the only tracker until Issues are enabled on ezzz/HFRnow).
 3. Open a PR against `dev-swift` naming its lot (`LOT-XXX`). It is merged only when it meets the **[merge criteria](CONTRIBUTING.md#2-merge-criteria)** — 9 required checks green, no conflict, every conversation resolved, and an approval once ADR 0011 is accepted.
 
 ### Starting an agent
