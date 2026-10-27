@@ -139,7 +139,7 @@ flowchart LR
 | [docs/adr/](docs/adr/) | Architecture decisions |
 | [docs/agents/](docs/agents/) | Agent process: parallel sessions, review rounds, lessons |
 | [docs/audit/](docs/audit/README.md) · [docs/research/](docs/research/) | Reference material: the legacy audit and its open questions, external comparisons |
-| [docs/migration/EZZZ-CUTOVER.md](docs/migration/EZZZ-CUTOVER.md) | One-off runbook of the move to `ezzz/HFRnow` (done 2026-10-27), deleted once ADR 0010 is accepted |
+| [docs/migration/EZZZ-CUTOVER.md](docs/migration/EZZZ-CUTOVER.md) | One-off runbook of the move to `ezzz/HFRnow`; deleted once its outcome is recorded in ADR 0010 |
 
 ## Getting started
 
