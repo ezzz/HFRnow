@@ -93,13 +93,6 @@ public enum MessageContentNormalizer {
     /// assembled bottom-up for the same reason: a copied element joins its parent only once its children are in place,
     /// so every `appendChild` runs on a detached root (SwiftSoup walks up to the owner document recursively on append).
     private final class Builder {
-        /// One unit of work: copy a source node under a target, or finish a copied element once its children are copied.
-        private enum Step {
-            case copy(Node, into: Element, inSignature: Bool)
-            case finishElement(Element, into: Element)
-            case finishLink(Element, into: Element, URL, inSignature: Bool)
-        }
-
         let page: URL
         let document: Document
         /// Root of the body HTML.
@@ -112,7 +105,7 @@ public enum MessageContentNormalizer {
         /// The image copied last, to attach the link that wraps it.
         private var lastImage: (element: Element, index: Int)?
         /// Pending steps, last in first out, so children are copied in document order right after their parent.
-        private var pending: [Step] = []
+        private var pending: [CopyStep] = []
 
         init?(page: URL) {
             self.page = page
@@ -319,4 +312,11 @@ public enum MessageContentNormalizer {
         nonisolated(unsafe) private static let colorPattern =
             /\s*color\s*:\s*(#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3}|[a-zA-Z]{1,20})\s*;?\s*/.ignoresCase()
     }
+}
+
+/// One unit of the builder's work: copy a source node under a target, or finish a copied element once its children are copied.
+private enum CopyStep {
+    case copy(Node, into: Element, inSignature: Bool)
+    case finishElement(Element, into: Element)
+    case finishLink(Element, into: Element, URL, inSignature: Bool)
 }
