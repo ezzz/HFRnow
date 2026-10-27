@@ -75,9 +75,9 @@ SwiftHFR keeps the spirit and restarts on a clean foundation: **100 % Swift, mod
 | Phase | Scope | Status |
 |---|---|---|
 | 0 · Foundations | Repository, CI, security tooling, agent rules | **done** |
-| 1 · Audit | Legacy engine mapped into [migration lots](docs/LOTS.md) (64 today) | **done** — [audit](docs/audit/README.md) |
+| 1 · Audit | Legacy engine mapped into [migration lots](docs/LOTS.md) (65 today) | **done** — [audit](docs/audit/README.md) |
 | 2 · Fixtures | Real HFR pages + legacy parser output as test oracle | **done** — capture corpus and oracles LOT-001 to 005 |
-| 3 · Engine | Models, parsing, network, storage, flows | **in progress** — 23 of 54 lots done (models, network base, storage, home, lists, topic pages, small parsers); flows next |
+| 3 · Engine | Models, parsing, network, storage, flows | **in progress** — 23 of 55 lots done (models, network base, storage, home, lists, topic pages, small parsers); flows next |
 | 4 · App | SwiftUI app on top of `HFRKit` | **starting** — app target on the Mac (LOT-080); login, navigation and reader lots defined |
 | 5 · iOS 27 experience | Column navigation, large and foldable layouts | planned |
 
@@ -159,7 +159,7 @@ The iOS app target (Xcode 27) is created before the app phase.
 
 1. Read **[AGENTS.md](AGENTS.md)**, then [CONTRIBUTING.md](CONTRIBUTING.md).
 2. Claim a `todo` [migration lot](docs/LOTS.md) with no owner: a PR that sets you as owner and `in-progress` (the only tracker until Issues are enabled on ezzz/HFRnow).
-3. Open a PR against `dev-swift` naming its lot (`LOT-XXX`). It is merged only when it meets the **[merge criteria](CONTRIBUTING.md#2-merge-criteria)** — 9 required checks green, no conflict, every conversation resolved, and an approval once ADR 0011 is accepted.
+3. Open a PR against `dev-swift` naming its lot (`LOT-XXX`). It is merged only when it meets the **[merge criteria](CONTRIBUTING.md#2-merge-criteria)** — 9 required checks green, no conflict, every conversation resolved, and a review by a different model (no human approval, [ADR 0011](docs/adr/0011-contribution-model-and-feature-intake.md)).
 
 ### Starting an agent
 

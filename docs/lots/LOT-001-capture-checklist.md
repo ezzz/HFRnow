@@ -1,6 +1,6 @@
 # LOT-001 capture checklist
 
-Approved by the operator on 2026-10-26, including W02, W20 and P03 from §B-2; every other §B-2 row is skipped. Run status and deviations: corpus `MANIFEST.md`.
+Approved by the operator on 2026-10-26, including W02, W20 and P03 from §B-2; every other §B-2 row is skipped, except P08 (AQ), moved to the Capture backlog of `docs/LOTS.md` once Q-4 was decided (2026-10-27). Run status and deviations: corpus `MANIFEST.md`.
 
 ## 0. Rules for every capture
 - Raw bytes + headers + redirect chain are kept for every id (settles charset, audit A §3.2, D Q1; PROTOCOL §6). Anonymized afterwards ([FIXTURES](../FIXTURES.md), LOT-001 anonymizer); the legacy oracle runs on the anonymized file.
@@ -117,7 +117,7 @@ All use two **throwaway MP threads** titled `fixture-test-1`/`-2` created by W10
 | P05 | Poll vote POST (single, multi, already voted) | E10, D11, `vote.php` | none: votes are public. Synthetic (§C N05) | skip |
 | P06 | Poll create/close (E11) | LOT-054 extension | MP threads cannot hold polls as far as we know: not captured | skip |
 | P07 | Flood on a public topic | E15 | W20 in MP covers the wording; public limit may differ | skip |
-| P08 | AQ service GET (`getAlertesByTopic`, RSS) | D A1-A3 | third-party host, not HFR; skipped while Q-4 was open. Q-4 is decided (keep): now in the Capture backlog of `docs/LOTS.md` (LOT-025 AQ part, LOT-055) | capture (read-only) |
+| P08 | AQ service GET (`getAlertesByTopic`, RSS) | D A1-A3 | third-party host, not HFR; skipped while Q-4 was open. Q-4 is decided (keep): now in the Capture backlog of `docs/LOTS.md` (LOT-028, LOT-055) | capture (read-only) |
 
 ## C. What we cannot capture safely, and how the oracle covers it
 

@@ -50,9 +50,10 @@ Model column: author → reviewer ([AGENTS.md §6](../AGENTS.md#6-model-routing-
 | LOT-022 ★ | Topic list parser (forums, MP, search results) — critical path | HFRParsing | difficult | Opus → Fable | 010, 020, 002 | B5 | — | cloud/c7-opus (2026-10-26) | done (#55) |
 | LOT-023 ★ | MP list specifics + unread badge (one parser for the 3 legacy variants) | HFRParsing | easy | Sonnet → Opus | 022 | B6, NET-13 | medium | — · old [#63](https://github.com/francoisgn/ios-app_SwiftHFR/issues/63) | todo |
 | LOT-024 | Favourites page parser | HFRParsing | medium | Sonnet → Opus | 022 | B7 | high | — · old [#64](https://github.com/francoisgn/ios-app_SwiftHFR/issues/64) | todo |
-| LOT-025 | Small parsers: search redirect, `editprofil` page (hash, avatar), smiley search results, AQ listing and AQ RSS feed | HFRParsing | easy | Sonnet → Opus | 020, 005 | B8, NET-04, NET-12, D6, D9 | — | cloud/c5-sonnet (2026-10-26) | done (#45; AQ part pending an AQ capture, see the Capture backlog) |
+| LOT-025 | Small parsers: search redirect, `editprofil` page (hash, avatar), smiley search results, AQ listing and AQ RSS feed | HFRParsing | easy | Sonnet → Opus | 020, 005 | B8, NET-04, NET-12, D6, D9 | — | cloud/c5-sonnet (2026-10-26) | done (#45; AQ part split to LOT-028) |
 | LOT-026 | Poll parser (vote / results / closed) | HFRParsing | medium | Sonnet → Opus | 011, 020, 005 | B9, C07, D11 | — | cloud/c5-sonnet (2026-10-26) | done (#46; multi-choice and plain "already voted" pending capture) |
 | LOT-027 | User profile page parser (`/hfr/profil-NNN.htm`: fields, avatar, personal smileys) | HFRParsing | medium | Sonnet → Opus | 010, 020, 005 | review F4 | — | cloud/c10-sonnet (2026-10-26) | done (#59) |
+| LOT-028 | AQ listing and AQ RSS feed parsers (the AQ part of LOT-025), HTML entities decoded | HFRParsing | easy | Sonnet → Opus | 020, 012 | D6, B4 | low | — | blocked (AQ capture) |
 | LOT-030 | Message block extraction — core of the topic page | HFRParsing | difficult | Fable → Opus | 011, 020, 003 | C03 | — | cloud/c8-fable (2026-10-26) | done (#54) |
 | LOT-031 | Per-message action links (quote, edit, alert, profile, MP, flag, quoteJS) | HFRParsing | medium | Opus → Fable | 030 | C04 | medium | — · old [#65](https://github.com/francoisgn/ios-app_SwiftHFR/issues/65) | todo |
 | LOT-032 | Quote analysis (authors, nesting) | HFRParsing | medium | Sonnet → Opus | 030 | C05 | medium | — · old [#66](https://github.com/francoisgn/ios-app_SwiftHFR/issues/66) | todo |
@@ -88,7 +89,7 @@ Model column: author → reviewer ([AGENTS.md §6](../AGENTS.md#6-model-routing-
 | LOT-052 ★ | MPStorage transport (find, read, create, update; conflict-aware) | HFRClient | difficult | Opus → Fable | 038, 048, 062 | D8 | medium | — · old [#80](https://github.com/francoisgn/ios-app_SwiftHFR/issues/80) | blocked |
 | LOT-053 | Smileys: search, wiki | HFRClient | easy | Sonnet → Opus | 025 | NET-12, D9 | low | — · old [#81](https://github.com/francoisgn/ios-app_SwiftHFR/issues/81) | todo |
 | LOT-054 | Poll vote | HFRClient | medium | Sonnet → Opus | 026, 037 | D11 | medium | — · old [#82](https://github.com/francoisgn/ios-app_SwiftHFR/issues/82) | blocked |
-| LOT-055 | AQ client: per-topic check, create, RSS feed + "new since" badge; returns every item with its category (hiding Apple for reviewers is app policy, Q-7) | HFRClient | easy | Sonnet → Opus | 025, 071 | D6 | low | — · old [#83](https://github.com/francoisgn/ios-app_SwiftHFR/issues/83) | blocked |
+| LOT-055 | AQ client: per-topic check, create, RSS feed + "new since" badge; returns every item with its category (hiding Apple for reviewers is app policy, Q-7) | HFRClient | easy | Sonnet → Opus | 028, 071 | D6 | low | — · old [#83](https://github.com/francoisgn/ios-app_SwiftHFR/issues/83) | blocked |
 | LOT-057 | REST browsing client (`rest_api.php`: categories, topics, flag buckets) with HTML fallback | HFRClient | medium | Opus → Fable | 040, 041, 010, 021, 022, 024, 001 | redface2 E1 | medium | — · old [#85](https://github.com/francoisgn/ios-app_SwiftHFR/issues/85) | blocked |
 | LOT-058 | MP actions: mark unread, group MP members, MP quote | HFRClient | easy | Sonnet → Opus | 042, 045, 036 | redface2 E6, E8, E9 | low | — · old [#86](https://github.com/francoisgn/ios-app_SwiftHFR/issues/86) | blocked |
 
@@ -156,7 +157,9 @@ Page states that merged lots listed as **pending capture** (never hand-built in 
 | Deleted message wrapper `messagetabledel`; in-topic search prefix link | LOT-030 | |
 | Profile: logged in, banned/deleted member, real birth date and signature, status other than "Membre", smiley file name with apostrophe/space, non-jpg avatar | LOT-027 | anonymize every free-text field |
 | Home row without `id="cat<N>"`; full sub-forum lists | LOT-021 | REST R57a counts 27 sub-forums for Programmation, page + table give 14 |
-| AQ listing (`getAlertesByTopic`) and AQ RSS feed, with HTML entities in titles, authors and comments | LOT-025 (AQ part), LOT-055, issue to open #4 | third-party host `aq.super-h.fr` (LOT-001 checklist row P08, skipped while Q-4 was open); Q-4 is decided (keep, first-use notice), so capture it now, plus a legacy oracle for the parser |
+| Topic page with `quote_only=1` (LOT-001 checklist R34, dropped as optional): is there any server signal that someone quoted me? | FEAT-018, HFR-PROTOCOL §7b B11 | read-only GET; settles feasibility before FEAT-018 is promised |
+| Site `apple-app-site-association` (AASA): which App IDs and paths it names | FEAT-020, Q-1 | reported live 2026-10-26 to name `QMG83DG7YP.hfrplus.red.super` (old format), not captured; plain GET, no account |
+| AQ listing (`getAlertesByTopic`) and AQ RSS feed, with HTML entities in titles, authors and comments | LOT-028, LOT-055, issue to open #4 | third-party host `aq.super-h.fr` (LOT-001 checklist row P08, skipped while Q-4 was open); Q-4 is decided (keep, first-use notice), so capture it now, plus a legacy oracle for the parser |
 
 ## Issues to open (backlog until Issues are enabled on ezzz/HFRnow)
 
@@ -167,7 +170,7 @@ Real legacy bugs found by Bybifok (`moust4ki`) in [ezzz/HFRnow#3](https://github
 | 1 | Topic-list pager: a link without `href` must not break the parser | `237db70` | parsing · medium · easy · todo | Non-regression test in LOT-022 (and LOT-021, later 024/MP lists): skip the entry, keep the rows |
 | 2 | Topic-list page N must really load page N (`liste_sujet` paging) | `a817498` | network · high · easy · todo | LOT-041 builder never yields `liste_sujet-1.htm?page=N`; capture to settle HFR-PROTOCOL §7b B2 |
 | 3 | Topic lists must not show a fake total page count | `dc93420` | parsing · high · medium · todo | LOT-022 `PageNavigation`: windowed pager = lower bound, not total (HFR-PROTOCOL §7b B1) |
-| 4 | AQ RSS: decode HTML entities in titles, authors and comments | `a817498` | parsing · low · easy · blocked (AQ capture) | Test in the AQ part of LOT-025; the AQ capture (Capture backlog) settles HFR-PROTOCOL §7b B4 |
+| 4 | AQ RSS: decode HTML entities in titles, authors and comments | `a817498` | parsing · low · easy · blocked (AQ capture) | Test in LOT-028; the AQ capture (Capture backlog) settles HFR-PROTOCOL §7b B4 |
 | 5 | Links to a post (AQ, bookmarks) must open its page and anchor, not page 1 | `246a9c7` | app · medium · easy · todo | Page and `#t<numreponse>` kept through LOT-020, 045, 083; tests on both URL shapes |
 | 6 | Refresh must reload the current page, not page 1 | `246a9c7` | app · medium · easy · blocked (LOT-082/083) | Acceptance criteria of LOT-082/083: current page, content kept while loading, kept on failure |
 | 7 | Topic loading: a cancelled request must never complete the next load | `be196f8` | app · medium · medium · blocked (LOT-083) | One task per load, cancelled one cannot deliver; show at `DOMContentLoaded`; test with a fake page driver |

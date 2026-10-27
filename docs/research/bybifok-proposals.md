@@ -61,11 +61,11 @@ multi-account · blacklist and whitelist · MPStorage sync · bookmarks · post 
 
 | Claim | Verdict |
 |---|---|
-| HFR gives no total page count in topic lists | 🟠 True for the list pager, false for each topic (row `sujetCase4`) |
-| No universal links: the site publishes no `apple-app-site-association` | 🔴 False: the AASA exists (old format) and names the legacy App ID `QMG83DG7YP.hfrplus.red.super` (checked live 2026-10-26). Universal links work for a release under that App ID (Q-1), not for a third-party app |
-| HFR cuts a message at the first emoji | 🟢 At the first non-BMP character (HFR-PROTOCOL, `W12`); BMP emoji untested |
-| Upload deletion on reho.st | 🔴 No delete API evidenced for guest uploads |
-| No instant push | 🟢 |
+| HFR gives no total page count in topic lists | 🟠 True for the list pager, false for each topic (row `sujetCase4`): HFR-PROTOCOL §7b B1 (`R04`, `R05a`, `R05b`) |
+| No universal links: the site publishes no `apple-app-site-association` | 🔴 False: the AASA exists (old format) and names the legacy App ID `QMG83DG7YP.hfrplus.red.super` (checked live 2026-10-26, not captured yet: Capture backlog in LOTS.md). Universal links work for a release under that App ID (Q-1), not for a third-party app |
+| HFR cuts a message at the first emoji | 🟢 At the first non-BMP character (HFR-PROTOCOL §6 and §7b B13, `W12`); BMP emoji untested |
+| Upload deletion on reho.st | 🔴 No delete API evidenced for guest uploads: the legacy rehost client only uploads (HFR-PROTOCOL §7b B12 and §8; LOT-056); not captured |
+| No instant push | 🟢 The legacy app polls the MP count in the background (audit NET-13, LOT-047); no push service in the legacy code |
 
 ## 7. Bybifok's PRs on `ezzz/HFRnow:master` (#3–#6)
 
@@ -88,7 +88,7 @@ Fixes from #3 are also **non-regression tests to write** in SwiftHFR (LOT-022, 0
 | `237db70` | Topic-list pager: a link without `href` must not break the parser (test + fix) | parsing | LOT-022, 021 |
 | `a817498` | Topic-list page N must really load page N (`liste_sujet` paging) | network | LOT-041 |
 | `dc93420` | No fake total page count from the windowed pager | parsing | LOT-022 |
-| `a817498` | AQ RSS: decode HTML entities in titles, authors, comments | parsing | LOT-025 (needs the AQ capture) |
+| `a817498` | AQ RSS: decode HTML entities in titles, authors, comments | parsing | LOT-028 (needs the AQ capture) |
 | `246a9c7` | Links to a post (AQ, bookmarks) open its page and `#t` anchor, not page 1 | app | LOT-020, 045, 083 |
 | `246a9c7` | Refresh reloads the current page and keeps content meanwhile | app | LOT-082, 083 |
 | `be196f8` | A cancelled topic request never completes the next load; show at `DOMContentLoaded` | app | LOT-083 |
