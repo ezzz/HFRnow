@@ -176,16 +176,16 @@ MPStorage and on-device formats:
 
 ### Real captures
 
-Computed on the LOT-001 corpus (`Fixtures/LOT-004/`, 37 cases, read in place through the map's `path`; about 0.7 MB; `errors.json` empty; two full runs byte-identical):
+Computed on the LOT-001 corpus (`Fixtures/LOT-004/`, 39 cases (R60a/R60b added 2026-10-27 by the MPStorage capture), read in place through the map's `path`; about 0.7 MB; `errors.json` empty; two full runs byte-identical):
 
 | Kind | Cases (corpus ids) | Inputs taken from the capture's meta |
 |---|---|---|
-| `form` (16) | R40a, R40b (reply), R41a, R41b, R47a (quote), R42, R47c (quote with multi-quote cookie), R43a, R43b, R43c, R44 (edit), R45a (new topic), R45b (new MP), R46 (alert), R47b, R47u1 (MP reply) | `url` = the meta's `final_url`, `session.pseudo` = the account's alias (`user1` as placeholder for the anonymous R40b); the session hash is the harness's fake 40-hex, so `post.pairs` holds `0123...4567`; `inputData.hash_check` is the corpus `REDACTED` |
+| `form` (17) | R40a, R40b (reply), R41a, R41b, R47a (quote), R42, R47c (quote with multi-quote cookie), R43a, R43b, R43c, R44, R60b (edit), R45a (new topic), R45b (new MP), R46 (alert), R47b, R47u1 (MP reply) | `url` = the meta's `final_url`, `session.pseudo` = the account's alias (`user1` as placeholder for the anonymous R40b); the session hash is the harness's fake 40-hex, so `post.pairs` holds `0123...4567`; `inputData.hash_check` is the corpus `REDACTED` |
 | `response` (18) | W10, W11, W11x, W12, W13b, W13c, W13cx, W14, W14x, W15, W17a, W17b, W17c, W20a, W20b (`reply` flow), W16a, W16b, W19 (`delete` flow) | `urlQuote` built from the captured POST body (`cat`, `post`, `numreponse`), `status` from the meta |
-| `storage` (3) | `S-find-R13u1`, `S-find-R13u1b` (user1), `S-find-R13a` (user2): `mpstorage-op` `find` over the MP list page (spec files `S-find-*.json` beside the map) | |
+| `storage` (4) | `S-find-R13u1`, `S-find-R13u1b` (user1), `S-find-R13a` (user2): `mpstorage-op` `find` over the MP list page (spec files `S-find-*.json` beside the map); R60a (user1): `mpstorage-page` on the storage thread page | `pseudo` = the account's alias |
 
-Not run: the login pages W00/W01/W01b/W03 (not a write response of the classifier), the GET-only flag pages W18 and P03* (`nonlu.php`, `addflag.php`, `delflag.php`), search POSTs R50a/R52, and the storage sub-kinds that need a MPStorage **thread page**
-(`mpstorage-page`, `update`, `create`) or on-device data (`keychain`, `blacklist`, `smileys`, `offline`): the corpus has no capture of them.
+Not run: the login pages W00/W01/W01b/W03 (not a write response of the classifier), the GET-only flag pages W18 and P03* (`nonlu.php`, `addflag.php`, `delflag.php`), search POSTs R50a/R52, the storage sub-kinds that need a MPStorage **write**
+(`update`, `create`: no capture of their answers) or on-device data (`keychain`, `blacklist`, `smileys`, `offline`): the corpus has no capture of them.
 
 ### Real-capture findings (`RC4.n`)
 Each item contradicts or refines an assumption above.
@@ -204,6 +204,10 @@ Each item contradicts or refines an assumption above.
 - RC4.5 (quirk 6) The live refresh URL keeps `&amp;` on real answers (W10, W16a); the legacy side only reads the fragment. All real answers are UTF-8 (`charset` default), so quirk 13 (Latin-1) was not exercised.
 - RC4.6 **MPStorage find.** user1's inbox has the storage thread (subject `MP_NAME`, `MPStorage.m:23`) on page 1 of R13u1 and R13u1b: `find` returns `true` after one GET of page 1 and caches `dicMPStorage_postid = {"user1": "3157083"}`. user2's list R13a has none: `false`, one GET (the pager has one page).
   The legacy pager reading (`lastObject` of the pager children as page count) is the same windowed pager as LOT-002 RC2.1; on a 7-page list it would only be right because the whole range is shown.
+- RC4.7 **MPStorage page and edit form (R60a, R60b).** The page parse reads user1's live document from the rendered first post: `returned true`, `mpstorage_active true`, `sNumRep` = the first post's
+  `numreponse`, `dData` = the empty legacy structure (`sourceName` `iOS`, one `lastUpdate` everywhere), no alert, no request; `sPostId` stays `null` (the parse does not set it, `find` does).
+  The edit form parses like R43a (`haveTitle true`, `onlyLive: ["delete", "subcat"]`); `contentForm` is the document byte for byte, so the legacy update would post it back unchanged apart from its own edits.
+  Only an empty document was observed: other clients' namespaces, pseudos and the size and non-BMP limits are still pending capture (`docs/LOTS.md`, Capture backlog).
 
 ## Fixtures
 `tooling/legacy-oracle/samples/`, all synthetic (fake pseudos `fakeuser1..3`, fake hash). Expected JSON is generated, not committed. Real cases: see "Real captures" above (`Fixtures/LOT-004/`).

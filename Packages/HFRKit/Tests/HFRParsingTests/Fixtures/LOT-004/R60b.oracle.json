@@ -1,0 +1,461 @@
+{
+  "case" : "R60b",
+  "exception" : null,
+  "input" : {
+    "bytes" : 46283,
+    "context" : {
+      "message" : null,
+      "mode" : "edit",
+      "overrides" : {
+
+      },
+      "session" : {
+        "hash" : "0123456789abcdef0123456789abcdef01234567",
+        "pseudo" : "user1"
+      },
+      "url" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3157083&numreponse=1980164061&page=1&p=1&subcat=0&sondage=0&owntopic=0"
+    },
+    "currentURL" : null,
+    "file" : "../captures/R60b-mpstorage-edit-form-first-post.html",
+    "now" : null,
+    "sha256" : "6583a29c7ea2d98ddd84803a7ad180c5f9c92ac5b32183b757479c7f2687a3ff"
+  },
+  "kind" : "form",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "comparison" : {
+      "comparable" : true,
+      "different" : [
+
+      ],
+      "legacyUrl" : "https://forum.hardware.fr/bdd.php?config=hfr.inc",
+      "liveUrl" : "https://forum.hardware.fr/bdd.php?config=hfr.inc",
+      "onlyLegacy" : [
+
+      ],
+      "onlyLive" : [
+        "delete",
+        "subcat"
+      ],
+      "sameUrl" : true
+    },
+    "legacy" : {
+      "contentForm" : "{\"data\":[{\"version\":\"0.1\",\"blacklist\":{\"list\":[],\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553},\"mpFlags\":{\"list\":[],\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553},\"bookmarks\":{\"list\":[],\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553},\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553}],\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553}",
+      "contentFormRaw" : "{\"data\":[{\"version\":\"0.1\",\"blacklist\":{\"list\":[],\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553},\"mpFlags\":{\"list\":[],\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553},\"bookmarks\":{\"list\":[],\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553},\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553}],\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553}",
+      "fetchURL" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3157083&numreponse=1980164061&page=1&p=1&subcat=0&sondage=0&owntopic=0",
+      "formAction" : "/bdd.php?config=hfr.inc",
+      "formSubmit" : "https://forum.hardware.fr/bdd.php?config=hfr.inc",
+      "haveCategory" : false,
+      "haveTitle" : true,
+      "haveTo" : false,
+      "inputData" : {
+        "cache" : "",
+        "cat" : "prive",
+        "ColorUsedMem" : "",
+        "config" : "hfr.inc",
+        "delete" : "0",
+        "emaill" : "0",
+        "hash_check" : "REDACTED",
+        "MsgIcon" : "1",
+        "new" : "0",
+        "numrep" : "",
+        "numreponse" : "1980164061",
+        "owntopic" : "0",
+        "p" : "1",
+        "page" : "1",
+        "parents" : "",
+        "password" : "",
+        "post" : "3157083",
+        "pseudo" : "user1",
+        "search_smilies" : "",
+        "signature" : "1",
+        "smiley" : "0",
+        "sond" : "0",
+        "sondage" : "0",
+        "stickold" : "",
+        "submit" : "Valider votre message",
+        "sujet" : "a2bcc09b796b8c6fab77058ff8446c34",
+        "verifrequet" : "1100",
+        "wysiwyg" : "0"
+      },
+      "isLogged" : true,
+      "loopOrder" : [
+        "hash_check",
+        "parents",
+        "post",
+        "stickold",
+        "new",
+        "cat",
+        "numreponse",
+        "numrep",
+        "page",
+        "verifrequet",
+        "p",
+        "sondage",
+        "sond",
+        "cache",
+        "owntopic",
+        "config",
+        "pseudo",
+        "password",
+        "sujet",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "search_smilies",
+        "ColorUsedMem",
+        "wysiwyg",
+        "submit",
+        "signature",
+        "smiley",
+        "emaill",
+        "delete"
+      ],
+      "post" : {
+        "bodyBytes" : 918,
+        "bodySorted" : "ColorUsedMem=&MsgIcon=1&cache=&cat=prive&config=hfr.inc&content_form=%7B%22data%22%3A%5B%7B%22version%22%3A%220.1%22%2C%22blacklist%22%3A%7B%22list%22%3A%5B%5D%2C%22sourceName%22%3A%22iOS%22%2C%22lastUpdate%22%3A1745779603553%7D%2C%22mpFlags%22%3A%7B%22list%22%3A%5B%5D%2C%22sourceName%22%3A%22iOS%22%2C%22lastUpdate%22%3A1745779603553%7D%2C%22bookmarks%22%3A%7B%22list%22%3A%5B%5D%2C%22sourceName%22%3A%22iOS%22%2C%22lastUpdate%22%3A1745779603553%7D%2C%22sourceName%22%3A%22iOS%22%2C%22lastUpdate%22%3A1745779603553%7D%5D%2C%22sourceName%22%3A%22iOS%22%2C%22lastUpdate%22%3A1745779603553%7D&emaill=0&hash_check=0123456789abcdef0123456789abcdef01234567&new=0&numrep=&numreponse=1980164061&owntopic=0&p=1&page=1&parents=&password=&post=3157083&pseudo=user1&search_smilies=&signature=1&smiley=0&sond=0&sondage=0&stickold=&submit=Valider%20votre%20message&sujet=a2bcc09b796b8c6fab77058ff8446c34&verifrequet=1100&wysiwyg=0",
+        "contentType" : "application/x-www-form-urlencoded; charset=utf-8",
+        "method" : "POST",
+        "pairs" : [
+          [
+            "ColorUsedMem",
+            ""
+          ],
+          [
+            "MsgIcon",
+            "1"
+          ],
+          [
+            "cache",
+            ""
+          ],
+          [
+            "cat",
+            "prive"
+          ],
+          [
+            "config",
+            "hfr.inc"
+          ],
+          [
+            "content_form",
+            "{\"data\":[{\"version\":\"0.1\",\"blacklist\":{\"list\":[],\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553},\"mpFlags\":{\"list\":[],\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553},\"bookmarks\":{\"list\":[],\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553},\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553}],\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553}"
+          ],
+          [
+            "emaill",
+            "0"
+          ],
+          [
+            "hash_check",
+            "0123456789abcdef0123456789abcdef01234567"
+          ],
+          [
+            "new",
+            "0"
+          ],
+          [
+            "numrep",
+            ""
+          ],
+          [
+            "numreponse",
+            "1980164061"
+          ],
+          [
+            "owntopic",
+            "0"
+          ],
+          [
+            "p",
+            "1"
+          ],
+          [
+            "page",
+            "1"
+          ],
+          [
+            "parents",
+            ""
+          ],
+          [
+            "password",
+            ""
+          ],
+          [
+            "post",
+            "3157083"
+          ],
+          [
+            "pseudo",
+            "user1"
+          ],
+          [
+            "search_smilies",
+            ""
+          ],
+          [
+            "signature",
+            "1"
+          ],
+          [
+            "smiley",
+            "0"
+          ],
+          [
+            "sond",
+            "0"
+          ],
+          [
+            "sondage",
+            "0"
+          ],
+          [
+            "stickold",
+            ""
+          ],
+          [
+            "submit",
+            "Valider votre message"
+          ],
+          [
+            "sujet",
+            "a2bcc09b796b8c6fab77058ff8446c34"
+          ],
+          [
+            "verifrequet",
+            "1100"
+          ],
+          [
+            "wysiwyg",
+            "0"
+          ]
+        ],
+        "url" : "https://forum.hardware.fr/bdd.php?config=hfr.inc"
+      },
+      "postedContent" : "{\"data\":[{\"version\":\"0.1\",\"blacklist\":{\"list\":[],\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553},\"mpFlags\":{\"list\":[],\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553},\"bookmarks\":{\"list\":[],\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553},\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553}],\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553}",
+      "raisedInLegacy" : [
+
+      ],
+      "smileys" : [
+        {
+          "alt" : "[:user4]",
+          "src" : "https://forum-images.hardware.fr/images/perso/user4.gif"
+        },
+        {
+          "alt" : "[:user5]",
+          "src" : "https://forum-images.hardware.fr/images/perso/user5.gif"
+        },
+        {
+          "alt" : "[:user1]",
+          "src" : "https://forum-images.hardware.fr/images/perso/user1.gif"
+        },
+        {
+          "alt" : "[:user1:1]",
+          "src" : "https://forum-images.hardware.fr/images/perso/1/user1.gif"
+        },
+        {
+          "alt" : "[:user1:2]",
+          "src" : "https://forum-images.hardware.fr/images/perso/2/user1.gif"
+        },
+        {
+          "alt" : "[:user1:3]",
+          "src" : "https://forum-images.hardware.fr/images/perso/3/user1.gif"
+        },
+        {
+          "alt" : "[:user1:4]",
+          "src" : "https://forum-images.hardware.fr/images/perso/4/user1.gif"
+        },
+        {
+          "alt" : "[:user1:5]",
+          "src" : "https://forum-images.hardware.fr/images/perso/5/user1.gif"
+        }
+      ],
+      "subcats" : [
+
+      ],
+      "username" : "user1"
+    },
+    "live" : {
+      "composerContext" : {
+        "isSubcategoryEditable" : false,
+        "isSubjectEditable" : true,
+        "recipient" : null,
+        "selectedSubcategoryID" : null,
+        "subcategoryOptions" : [
+
+        ],
+        "subject" : "a2bcc09b796b8c6fab77058ff8446c34"
+      },
+      "post" : {
+        "bodyBytes" : 870,
+        "bodyOrder" : "unspecified (Swift Dictionary iteration)",
+        "bodySorted" : "ColorUsedMem=&MsgIcon=1&cache=&cat=prive&config=hfr.inc&content_form=%7B%22data%22:%5B%7B%22version%22:%220.1%22,%22blacklist%22:%7B%22list%22:%5B%5D,%22sourceName%22:%22iOS%22,%22lastUpdate%22:1745779603553%7D,%22mpFlags%22:%7B%22list%22:%5B%5D,%22sourceName%22:%22iOS%22,%22lastUpdate%22:1745779603553%7D,%22bookmarks%22:%7B%22list%22:%5B%5D,%22sourceName%22:%22iOS%22,%22lastUpdate%22:1745779603553%7D,%22sourceName%22:%22iOS%22,%22lastUpdate%22:1745779603553%7D%5D,%22sourceName%22:%22iOS%22,%22lastUpdate%22:1745779603553%7D&delete=0&emaill=0&hash_check=0123456789abcdef0123456789abcdef01234567&new=0&numrep=&numreponse=1980164061&owntopic=0&p=1&page=1&parents=&password=&post=3157083&pseudo=user1&search_smilies=&signature=1&smiley=0&sond=0&sondage=0&stickold=&subcat=0&submit=Valider+votre+message&sujet=a2bcc09b796b8c6fab77058ff8446c34&verifrequet=1100&wysiwyg=0",
+        "contentType" : "application/x-www-form-urlencoded; charset=utf-8",
+        "method" : "POST",
+        "pairs" : [
+          [
+            "ColorUsedMem",
+            ""
+          ],
+          [
+            "MsgIcon",
+            "1"
+          ],
+          [
+            "cache",
+            ""
+          ],
+          [
+            "cat",
+            "prive"
+          ],
+          [
+            "config",
+            "hfr.inc"
+          ],
+          [
+            "content_form",
+            "{\"data\":[{\"version\":\"0.1\",\"blacklist\":{\"list\":[],\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553},\"mpFlags\":{\"list\":[],\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553},\"bookmarks\":{\"list\":[],\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553},\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553}],\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553}"
+          ],
+          [
+            "delete",
+            "0"
+          ],
+          [
+            "emaill",
+            "0"
+          ],
+          [
+            "hash_check",
+            "0123456789abcdef0123456789abcdef01234567"
+          ],
+          [
+            "new",
+            "0"
+          ],
+          [
+            "numrep",
+            ""
+          ],
+          [
+            "numreponse",
+            "1980164061"
+          ],
+          [
+            "owntopic",
+            "0"
+          ],
+          [
+            "p",
+            "1"
+          ],
+          [
+            "page",
+            "1"
+          ],
+          [
+            "parents",
+            ""
+          ],
+          [
+            "password",
+            ""
+          ],
+          [
+            "post",
+            "3157083"
+          ],
+          [
+            "pseudo",
+            "user1"
+          ],
+          [
+            "search_smilies",
+            ""
+          ],
+          [
+            "signature",
+            "1"
+          ],
+          [
+            "smiley",
+            "0"
+          ],
+          [
+            "sond",
+            "0"
+          ],
+          [
+            "sondage",
+            "0"
+          ],
+          [
+            "stickold",
+            ""
+          ],
+          [
+            "subcat",
+            "0"
+          ],
+          [
+            "submit",
+            "Valider votre message"
+          ],
+          [
+            "sujet",
+            "a2bcc09b796b8c6fab77058ff8446c34"
+          ],
+          [
+            "verifrequet",
+            "1100"
+          ],
+          [
+            "wysiwyg",
+            "0"
+          ]
+        ],
+        "url" : "https://forum.hardware.fr/bdd.php?config=hfr.inc"
+      },
+      "postedContent" : "{\"data\":[{\"version\":\"0.1\",\"blacklist\":{\"list\":[],\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553},\"mpFlags\":{\"list\":[],\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553},\"bookmarks\":{\"list\":[],\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553},\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553}],\"sourceName\":\"iOS\",\"lastUpdate\":1745779603553}",
+      "requests" : [
+        {
+          "method" : "GET",
+          "url" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3157083&numreponse=1980164061&page=1&p=1&subcat=0&sondage=0&owntopic=0"
+        },
+        {
+          "method" : "POST",
+          "url" : "https://forum.hardware.fr/bdd.php?config=hfr.inc"
+        }
+      ],
+      "result" : {
+        "ok" : true,
+        "refreshAnchor" : "t1002",
+        "refreshURL" : "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=1000&page=1#t1002",
+        "statusMessage" : "Votre message a bien été pris en compte."
+      }
+    }
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

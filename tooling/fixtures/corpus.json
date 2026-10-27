@@ -107,6 +107,8 @@
     {"raw": "RA5", "id": "RA5", "slug": "mp-thread-after-delete-owner", "ext": "html", "private": false},
     {"raw": "R13c", "id": "R13c", "slug": "mp-list-empty-after-delete", "ext": "html", "private": true},
     {"raw": "R13u1b", "id": "R13u1b", "slug": "mp-list-recipient-after-owner-delete", "ext": "html", "private": true},
-    {"raw": "RU2", "id": "RU2", "slug": "mp-thread-recipient-after-owner-delete", "ext": "html", "private": true}
+    {"raw": "RU2", "id": "RU2", "slug": "mp-thread-recipient-after-owner-delete", "ext": "html", "private": true},
+    {"raw": "R60a", "id": "R60a", "slug": "mpstorage-thread-first-post", "ext": "html", "private": true},
+    {"raw": "R60b", "id": "R60b", "slug": "mpstorage-edit-form-first-post", "ext": "html", "private": true}
   ]
 }

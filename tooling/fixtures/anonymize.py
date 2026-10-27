@@ -79,6 +79,41 @@ PRIVATE_SUBJECT = "Private subject"
 # LOT-038 needs to locate the storage MP.
 MPSTORAGE_SUBJECT = "a2bcc09b796b8c6fab77058ff8446c34"
 KEEP_SUBJECT_RE = re.compile(r"\s*(?:fixture-test-\d+|%s|%s)\s*$" % (MPSTORAGE_SUBJECT, re.escape(PRIVATE_SUBJECT)))
+# The MPStorage thread page (live R60a): its first post is the storage JSON document LOT-038 parses, so
+# --private keeps that one body when the thread header (`th.padding` "Sujet : <h3>MP_NAME</h3>") says it
+# is the storage thread and the document only holds what is known to be impersonal. Fail closed: a
+# document with any other key or string (blacklisted pseudos, another client's data) stops the run, so
+# the anonymizer gets aliasing for that position first. Every other body of the page is replaced.
+MPSTORAGE_HEADER_RE = re.compile(
+    r"<th\b[^>]*\bclass=[\"'][^\"']*\bpadding\b[^\"']*[\"'][^>]*>(?:\s|&nbsp;)*Sujet\s*:\s*<h3>\s*%s\s*</h3>"
+    % MPSTORAGE_SUBJECT, re.I)
+# Keys and string values seen in the live document (R60b; `Classes/MPStorage.m:24-26, 737-739`).
+MPSTORAGE_KEYS = {"data", "version", "blacklist", "mpFlags", "bookmarks", "list", "sourceName", "lastUpdate"}
+MPSTORAGE_STRING_VALUES = {"version": {"0.1"}, "sourceName": {"iOS"}}
+
+
+def mpstorage_document_problem(inner):
+    """None when the first post's HTML is a JSON document with known keys and string values only."""
+    try:
+        doc = json.loads(_strip_tags(inner).replace("\u00a0", ""))
+    except ValueError:
+        return "not a JSON document"
+
+    def walk(node, key):
+        if isinstance(node, dict):
+            for k, v in node.items():
+                problem = "unknown key" if k not in MPSTORAGE_KEYS else walk(v, k)
+                if problem:
+                    return problem
+        elif isinstance(node, list):
+            for v in node:
+                problem = walk(v, key)
+                if problem:
+                    return problem
+        elif isinstance(node, str) and node not in MPSTORAGE_STRING_VALUES.get(key, ()):
+            return "string value outside the known ones"
+        return None
+    return walk(doc, None)
 # Signatures and mood statuses are a member's own words (names, handles, links): always replaced.
 PERSONAL_BLOCKS = (
     (re.compile(r"<(span)\b[^>]*\bclass=[\"']signature[\"'][^>]*>", re.I), "Signature removed."),
@@ -194,6 +229,9 @@ DISCOVER = tuple((label, re.compile(rx, re.I | re.S), group, mode) for label, rx
      1, "inner"),
     # Reply / quote forms: the review of the last posts under the form.
     ("form review author", r"<td\b[^>]*\bclass=%smessCase1bis%s[^>]*>(.*?)</td>" % (_Q, _Q), 1, "inner"),
+    # MP reply and edit forms: the recipient row (`th.repCase1` "Destinataire", live R47u1, R60b).
+    ("MP form recipient", r"<th\b[^>]*\bclass=%srepCase1%s[^>]*>\s*Destinataire\s*</th>\s*<td\b[^>]*\bclass=%srepCase2%s"
+     r"[^>]*>\s*(?:<span\b[^>]*>)?([^<]*)" % (_Q, _Q, _Q, _Q), 1, "list"),
     ("description author", r"\bAuteur\s*:\s*([^\"<>]{1,80}?)\s+-\s+Page\b", 1, "name"),
     # Personal smileys are named after a member: [:code] / [:code:N] and /images/perso/[N/]code.gif.
     ("personal smiley", r"\[:([^\[\]:<>\"]{1,80}?)(?::\d+)?\]", 1, "smiley"),
@@ -222,10 +260,12 @@ NOT_A_MEMBER = {"", "publicité", "publicite", "anonyme", REDACTED.lower(), "int
 FAKE_NAME_RE = re.compile(r"user\d+$")
 
 # Member ids, mapped through one table per file (operators -> 9000NN, others -> 9100NN): profile
-# links, contact-list links, the logged-in header, avatars (also REST `tns3`), quote prefills.
+# links, contact-list links, the logged-in header, avatars (also REST `tns3`), quote prefills, and the
+# composer's smiley search `find_smilies_timer('hfr.inc',<id>)` (the logged-in member, live R60b).
 ID_POSITIONS = tuple(re.compile(rx, re.I) for rx in (
     r"(profil-)(\d+)", r"(\badduser=)(\d+)", r"(\bid_user=)(\d+)", r"(mesdiscussions-)(\d+)",
-    r"(\[quotemsg=\d+,\d+,)(\d+)(?=\])", r"(%5Bquotemsg%3D\d+%2C\d+%2C)(\d+)(?=%5D)"))
+    r"(\[quotemsg=\d+,\d+,)(\d+)(?=\])", r"(%5Bquotemsg%3D\d+%2C\d+%2C)(\d+)(?=%5D)",
+    r"(find_smilies_timer\(\s*'[^']*'\s*,\s*)(\d+)(?=\s*\))"))
 FAKE_ID_RE = re.compile(r"9[01]\d{4}$")
 
 # Free-text replacement skips short names and common words (a member called "Le" or "follow" must
@@ -417,6 +457,10 @@ def known_member_names(texts):
 
 class AnonymizeError(Exception):
     """The anonymized page would not keep the structure of the original."""
+
+
+class MPStorageDocumentError(AnonymizeError):
+    """The MPStorage document holds a key or value the anonymizer cannot vouch for."""
 
 
 def decode_name(raw, mode):
@@ -890,8 +934,15 @@ class Anonymizer:
         self._reset()
         if private:
             parts, last = [], 0
+            keep_first = bool(MPSTORAGE_HEADER_RE.search(text))
             for start, end in _find_para_blocks(text):
                 if start < last:
+                    continue
+                if keep_first:
+                    keep_first = False
+                    problem = mpstorage_document_problem(text[start:end])
+                    if problem:
+                        raise MPStorageDocumentError("MPStorage document: %s; extend the anonymizer" % problem)
                     continue
                 parts += [text[last:start], PRIVATE_PLACEHOLDER]
                 last = end
@@ -1014,7 +1065,12 @@ class Anonymizer:
             for m in SUBJECT_RE.finditer(text):
                 if not KEEP_SUBJECT_RE.match(_strip_tags(m.group(2))):
                     res.append((line_of(text, m.start()), column_of(text, m.start()), "private MP subject not replaced"))
+            storage = bool(_V_MPSTORAGE_TITLE.search(text))
             for start, end in _find_para_blocks(text):
+                if storage:
+                    storage = False
+                    if _v_mpstorage_document_ok(text[start:end]):
+                        continue
                 if _strip_tags(text[start:end]) != PRIVATE_PLACEHOLDER:
                     res.append((line_of(text, start), column_of(text, start), "private message body not replaced"))
         return sorted(set(res))
@@ -1024,10 +1080,45 @@ class Anonymizer:
 # position the anonymizer misses is reported here. Every name found must be an alias (`userN`) or
 # a known placeholder, every member id a fake one (9000NN / 9100NN).
 # Each rule has its own label, reported in the finding ("structural check: <label> not aliased").
+# MPStorage first post, checked apart from MPSTORAGE_HEADER_RE / mpstorage_document_problem: the page
+# <title> names the thread, and every JSON string (keys included) must be one of a fixed set of words.
+_V_MPSTORAGE_TITLE = re.compile(r"<title>\s*%s - Messages priv" % MPSTORAGE_SUBJECT, re.I)
+_V_MPSTORAGE_WORDS = frozenset(("data", "version", "0.1", "blacklist", "mpFlags", "bookmarks", "list",
+                                "sourceName", "iOS", "lastUpdate"))
+
+
+def _v_mpstorage_document_ok(inner):
+    """True when the body's text is JSON whose every key and string value is a known impersonal word."""
+    strings = []
+
+    def pairs(items):
+        strings.extend(k for k, _v in items)
+        strings.extend(v for _k, v in items if isinstance(v, str))
+        return dict(items)
+    body = html.unescape(re.sub(r"<[^>]*>", " ", inner)).replace("\u00a0", " ")
+    try:
+        doc = json.loads(body, object_pairs_hook=pairs)
+    except ValueError:
+        return False
+    if not isinstance(doc, dict):
+        return False
+    stack = [doc]
+    while stack:
+        node = stack.pop()
+        values = node.values() if isinstance(node, dict) else node if isinstance(node, list) else ()
+        for v in values:
+            if isinstance(v, (dict, list)):
+                stack.append(v)
+            elif isinstance(v, str) and isinstance(node, list):
+                strings.append(v)
+    return all(w in _V_MPSTORAGE_WORDS for w in strings)
+
+
 _V_IDS = {label: re.compile(rx) for label, rx in (
     ("member id profil-", r"profil-(\d+)"), ("member id adduser=", r"adduser=(\d+)"),
     ("member id id_user=", r"id_user=(\d+)"), ("member id avatar", r"mesdiscussions-(\d+)"),
-    ("member id quotemsg", r"quotemsg=\d+,\d+,(\d+)\]"))}
+    ("member id quotemsg", r"quotemsg=\d+,\d+,(\d+)\]"),
+    ("member id smiley search", r"find_smilies_timer\([^,)]*,\s*(\d+)"))}
 _V_PARAM = re.compile(r"(?:^|[?&;/])(pseudo|spseudo|dest|auteur)=([^&#\"<>\n]{0,120})", re.I)
 _V_POSTS_PATH = re.compile(r"/hfr/recherche/pseudo-([^/?#\"'<>\s]+)\.htm")
 # Public profile rows (R56), matched on the label cell's text: the value must be a placeholder or a fixed value.
@@ -1075,6 +1166,7 @@ class StructuralVerifier(html.parser.HTMLParser):
         self.private = private
         self.title = None          # page <title> text, checked once the body says it is a profile page
         self.profile_label = None  # text of the last td.profilCase2 (public profile row label)
+        self.form_label = None  # text of the last th.repCase1 (reply / edit form row label)
         self.profile_page = False  # body id of the public profile page (the edit form reuses the labels)
 
     # -- reporting
@@ -1176,6 +1268,11 @@ class StructuralVerifier(html.parser.HTMLParser):
             where = "page title"
         elif tag == "td" and "profilCase2" in cls:
             where = "profile label"
+        elif tag == "th" and "repCase1" in cls:
+            where = "form label"
+        elif tag == "td" and "repCase2" in cls and self.form_label == "destinataire":
+            self.form_label = None
+            where = "MP form recipient"
         elif tag == "td" and "profilCase3" in cls and self.profile_label:
             label, self.profile_label = self.profile_label, None
             if label.lower().startswith("pseudo"):
@@ -1223,6 +1320,12 @@ class StructuralVerifier(html.parser.HTMLParser):
                 text = re.sub(r"^par\s+", "", text)
             if e["where"] == "page title":
                 self.title = text
+            elif e["where"] == "form label":
+                self.form_label = text.lower()
+            elif e["where"] == "MP form recipient":
+                for item in text.split(","):
+                    if item.strip():
+                        self._name("MP form recipient", item.strip(), e["line"])
             elif e["where"] == "profile label":
                 self.profile_label = re.sub(r"\s*:$", "", text.replace("\xa0", " ")).strip()
             elif e["where"] == "profile counter or date":

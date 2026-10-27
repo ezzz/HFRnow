@@ -143,6 +143,21 @@
     },
     "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207033&page=1&p=1&subcat=0&sondage=0&owntopic=0&new=0"
   },
+  "R60a.html": {
+    "kind": "storage",
+    "path": "../captures/R60a-mpstorage-thread-first-post.html",
+    "pseudo": "user1",
+    "storage": "mpstorage-page"
+  },
+  "R60b.html": {
+    "kind": "form",
+    "mode": "edit",
+    "path": "../captures/R60b-mpstorage-edit-form-first-post.html",
+    "session": {
+      "pseudo": "user1"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3157083&numreponse=1980164061&page=1&p=1&subcat=0&sondage=0&owntopic=0"
+  },
   "S-find-R13a.json": {
     "kind": "storage",
     "pseudo": "user2",

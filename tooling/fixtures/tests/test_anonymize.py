@@ -300,6 +300,72 @@ class PrivateTests(unittest.TestCase):
         self.assertTrue(any("private" in r for _l, _c, r in leaks(self.PAGE, private=True)))
 
 
+def storage_page(document, title=True, header=True, second="other words"):
+    """An MPStorage thread page shaped like live R60a: <title>, topic header, JSON first post, then a reply."""
+    q = document.replace('"', "&#034;")
+    return (('<html><head><title>%s - Messages privés - FORUM HardWare.fr</title></head><body>' % A.MPSTORAGE_SUBJECT
+             if title else '<html><head><title>Messages privés</title></head><body>')
+            + ('<table><tr><th scope="col" class="padding">&nbsp;Sujet : <h3>%s</h3></th></tr></table>'
+               % (A.MPSTORAGE_SUBJECT if header else "Weekend"))
+            + '<table class="messagetable"><tr><td><div id="para1980000001"><p>%s<div style="clear: both;"> </div>'
+              '</p></div></td></tr></table>' % q
+            + '<table class="messagetable"><tr><td><div id="para1980000002"><p>%s</p></div></td></tr></table>'
+              '</body></html>' % second)
+
+
+class MPStorageTests(unittest.TestCase):
+    EMPTY = ('{"data":[{"version":"0.1","blacklist":{"list":[],"sourceName":"iOS","lastUpdate":1700000000001},'
+             '"mpFlags":{"list":[],"sourceName":"iOS","lastUpdate":1700000000001},'
+             '"bookmarks":{"list":[],"sourceName":"iOS","lastUpdate":1700000000001},"sourceName":"iOS",'
+             '"lastUpdate":1700000000001}],"sourceName":"iOS","lastUpdate":1700000000001}')
+
+    def reasons(self, html):
+        return [r for _l, _c, r in leaks(html, private=True)]
+
+    def test_storage_first_post_kept_exactly_other_bodies_replaced(self):
+        page = storage_page(self.EMPTY)
+        out = anon(page, private=True)
+        first = page[page.index('<div id="para1980000001">'):page.index('<div id="para1980000002">')]
+        self.assertIn(first, out)
+        self.assertNotIn("other words", out)
+        self.assertEqual(out.count(A.PRIVATE_PLACEHOLDER), 1)
+        self.assertEqual(leaks(out, private=True), [])
+
+    def test_ordinary_mp_with_json_body_is_replaced(self):
+        out = anon(storage_page(self.EMPTY, title=False, header=False), private=True)
+        self.assertNotIn("lastUpdate", out)
+        self.assertEqual(out.count(A.PRIVATE_PLACEHOLDER), 2)
+
+    def test_check_does_not_trust_the_header_alone(self):
+        # The verifier finds the thread by its <title>, not by the header the anonymizer reads.
+        out = anon(storage_page(self.EMPTY, title=False), private=True)
+        self.assertIn("lastUpdate", out)
+        self.assertIn("private message body not replaced", self.reasons(out))
+
+    def test_pseudo_in_document_stops_the_run(self):
+        doc = self.EMPTY.replace('"blacklist":{"list":[]', '"blacklist":{"list":["Quuxbar"]')
+        with self.assertRaises(A.MPStorageDocumentError):
+            anon(storage_page(doc), private=True)
+        self.assertIn("private message body not replaced", self.reasons(storage_page(doc)))
+
+    def test_unknown_key_stops_the_run(self):
+        doc = self.EMPTY.replace('"lastUpdate":1700000000001}],', '"lastUpdate":1700000000001,"Quuxbar":1}],')
+        with self.assertRaises(A.MPStorageDocumentError):
+            anon(storage_page(doc), private=True)
+        self.assertIn("private message body not replaced", self.reasons(storage_page(doc)))
+
+    def test_unknown_source_name_stops_the_run(self):
+        doc = self.EMPTY.replace('"sourceName":"iOS"', '"sourceName":"Quuxbar"', 1)
+        with self.assertRaises(A.MPStorageDocumentError):
+            anon(storage_page(doc), private=True)
+        self.assertIn("private message body not replaced", self.reasons(storage_page(doc)))
+
+    def test_malformed_document_stops_the_run(self):
+        with self.assertRaises(A.MPStorageDocumentError):
+            anon(storage_page('{"data":[}'), private=True)
+        self.assertIn("private message body not replaced", self.reasons(storage_page('{"data":[}')))
+
+
 class CheckTests(unittest.TestCase):
     def reasons(self, html):
         return [r for _l, _c, r in leaks(html)]
@@ -476,6 +542,14 @@ class PositionTests(unittest.TestCase):
         self.assertIn("[quotemsg=99,1,910002]", out)
         self.assertIn("profil-910002.htm", out)
         self.assertIn("mesdiscussions-910002.jpg", out)
+
+    def test_smiley_search_member_id_uses_the_id_table(self):
+        # Live R60b: the composer's smiley search passes the logged-in member's id; alone in the page here,
+        # so neither a profile link nor the operator ids of the config can hide a missing position.
+        html = ('<input type="text" value="" name="search_smilies" id="search_smilies" size="10" '
+                'onkeyup="find_smilies_timer(\'hfr.inc\',55512)"/>')
+        out = self.check_page(html, "55512")
+        self.assertIn("find_smilies_timer('hfr.inc',910001)", out)
 
     def test_rest_api_authors(self):
         doc = ('{"resource":{"resources":[{"title":"Topic of X-ray","links":{"last_author":{"type":"link",'

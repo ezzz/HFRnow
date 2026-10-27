@@ -20,7 +20,12 @@ the write flows inside **one** throwaway MP thread `fixture-test-1` (user2 → u
 on a public topic (state restored), the searches, then user1 again with a corrected password (W01b). Private files
 (`"private": true` in the meta) were anonymized with `--private`: MP bodies and the subjects of every MP that is not a
 fixture thread (`fixture-test-N`) or the MPStorage thread are replaced, whatever their content (digits included).
-Run 3 (follow-up, 11 requests, 115 in total, read-only) added R33a/R33b, R55-p5u1 and R56a/R56b. Public profile pages
+Run 3 (follow-up, 11 requests, 115 in total, read-only) added R33a/R33b, R55-p5u1 and R56a/R56b.
+Run 4 (2026-10-27, LOT-038 inputs, 4 requests: user1 login, MP list page 1 to locate the thread, R60a, R60b; read-only
+on HFR, nothing submitted) opened user1's MPStorage thread, which marked it read for that account (its own storage
+thread). Its first post is the storage JSON document: `--private` keeps that one body (thread header and page title
+name the MPStorage thread, and the document holds only known keys and the strings `0.1` and `iOS`; anything else stops
+the anonymizer), every other body is replaced as usual. Public profile pages
 (R56) keep their structure; the pseudo (title, header, pseudo cell, avatar `alt`, personal smileys, MP and
 "all posts" links) is aliased, every personal row (e-mail, birth date, gender, city, job, hobbies, quote, signature)
 gets `Profile field removed.` or, for dates, `01/01/2000`; post count → `100`, arrival and last-post dates →
@@ -136,6 +141,8 @@ gets `Profile field removed.` or, for dates, `01/01/2000`; post count → `100`,
 | R13c | `R13c-mp-list-empty-after-delete.html` | Owner's MP list: empty | W19 | 023 |
 | R13u1b | `R13u1b-mp-list-recipient-after-owner-delete.html` | Recipient's list: the thread is **still there** | W19, X1 | 023 |
 | RU2 | `RU2-mp-thread-recipient-after-owner-delete.html` | Recipient can still read the whole thread | W19, X1 | 030, 048 |
+| R60a | `R60a-mpstorage-thread-first-post.html` | user1's MPStorage thread (subject `MP_NAME`) opened with the legacy read URL (`MPStorage.m:766`): one post, `div#para<numreponse>` > `p` holding the JSON document (`"` as `&#034;`, a `div` clear inside the `p`); the live document is the empty structure the legacy app creates (three empty sections, `sourceName` `iOS`, 568 bytes); JSON body kept, see Run 4 | R13, X8 | 038, 052 |
+| R60b | `R60b-mpstorage-edit-form-first-post.html` | Edit form of that first post (toolbar `edit-in` link of R60a), GET only: `hop` form to `/bdd.php?config=hfr.inc`, `numreponse` of the first post, `sujet` = `MP_NAME`, `content_form` = the same JSON as R60a's rendered text, recipient row (aliased) | X8, E23 | 038, 052, 036 |
 
 ## Not captured
 
@@ -147,3 +154,4 @@ gets `Profile field removed.` or, for dates, `01/01/2000`; post count → `100`,
 | R33, poll voted by the account itself without the multipseudo notice | Searched, not found: the poll topics of user1's followed list (`forum1f.php?owntopic=1`, 27 poll topics) were opened page 1 for four of them; one is R33b (with the multipseudo notice, also for user2), the three others still offer the vote form. A plain "already voted" page would need a vote (P05, out of scope): synthetic per checklist §C N06 if a lot needs it. |
 | X10 cookie-less multi-quote, poll vote, public posting | Out of the approved scope or not needed. |
 | oldcitation, Streamable/Dailymotion/Twitch, reho.st images | Not present on the pages picked; synthetic or a later capture. |
+| MPStorage document with other clients' namespaces, member pseudos (blacklist), near the 64 KiB cap or with a non-BMP character | None exists in the kit's accounts: user1's document is the empty legacy structure (R60a/R60b), user2 has no storage thread (R13a). Producing one needs a write to a document shared with the user's other clients: out of scope (Capture backlog in `docs/LOTS.md`). |
