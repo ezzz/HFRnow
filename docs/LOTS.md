@@ -166,6 +166,13 @@ Page states that merged lots listed as **pending capture** (never hand-built in 
 | Poll: multi-choice | LOT-026 | find a topic with a multi-choice poll |
 | Poll: plain "already voted" without the multipseudo notice | LOT-026 | needs a vote (P05 out of scope) → only if the operator agrees |
 | `div.sondageFooter` | LOT-026 | |
+| MP list page past the last page (`page=N` after a deletion); is the answer a `.hop` page? | LOT-023 | decides how pager walks (LOT-038/047) read `.notAuthenticated` |
+| MP list row of a one-to-one thread whose interlocutor was deleted or banned | LOT-023 | `sujetCase6` shape; the parser then reads a plain span as not a group |
+| MP list logged out | LOT-023 | the `.notAuthenticated` rule is checked on another list's `.hop` page |
+| Forum-list header badge with N > 1 ("Vous avez N nouveaux messages privés" in `table.none`) | LOT-023 | plural captured on the home page only |
+| MP list row with the ignore icon in its other state (`ignore1.gif`) | LOT-023 | not modelled yet |
+| MP pseudos containing a comma (`[non lu]` tooltip, group tooltip) | LOT-023 | whether HFR allows one is unknown |
+| Badge on a logged-in topic page | LOT-023 | R20 is anonymous; the parser returns nil on topic pages |
 | Topic list: MP list logged out, cross-category search results, rare row shapes | LOT-022 | see the LOT-022 spec |
 | Locked topic seen logged in; favourite/flagged topic page; checked in-topic search filter (R52a was a 302) | LOT-033 | |
 | Deleted message wrapper `messagetabledel`; in-topic search prefix link | LOT-030 | |

@@ -9,7 +9,9 @@ public struct PrivateMessageThread: Sendable, Hashable, Identifiable, Codable {
     /// A member's own unread state is `isUnread`: HFR's `[non lu]` is about the others.
     public var unreadBy: [String]
     /// Whether the thread shows the `[non lu]` marker, even when the tooltip names nobody.
-    public var isUnreadByOthers: Bool
+    public var hasUnreadMarker: Bool
+    /// Whether the others have not read it: the marker is shown or the tooltip names someone (computed, so it cannot disagree).
+    public var isUnreadByOthers: Bool { hasUnreadMarker || !unreadBy.isEmpty }
     /// The other participants: the interlocutor of a one-to-one thread, the tooltip names of a group thread.
     /// Printed as served, so long pseudos may carry U+200B; compare with `HFRText.pseudoComparisonKey`.
     public var interlocutors: [String]
@@ -29,7 +31,7 @@ public struct PrivateMessageThread: Sendable, Hashable, Identifiable, Codable {
     ) {
         self.summary = summary
         self.unreadBy = unreadBy
-        self.isUnreadByOthers = isUnreadByOthers || !unreadBy.isEmpty
+        self.hasUnreadMarker = isUnreadByOthers
         self.interlocutors = interlocutors
         self.isGroup = isGroup
     }

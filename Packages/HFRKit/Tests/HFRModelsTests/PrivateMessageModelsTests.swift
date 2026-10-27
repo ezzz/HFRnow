@@ -22,6 +22,14 @@ struct PrivateMessageModelsTests {
         #expect(!PrivateMessageThread(summary: Self.summary(unread: false)).isUnreadByOthers)
     }
 
+    @Test("The others' unread state follows later changes to the names")
+    func computedOthersState() {
+        var thread = PrivateMessageThread(summary: Self.summary(unread: false))
+        #expect(!thread.isUnreadByOthers)
+        thread.unreadBy = ["user2"]
+        #expect(thread.isUnreadByOthers)
+    }
+
     @Test("A thread keeps the identity of its row; the page counts own unread threads only")
     func identityAndCount() {
         let page = PrivateMessageListPage(threads: [

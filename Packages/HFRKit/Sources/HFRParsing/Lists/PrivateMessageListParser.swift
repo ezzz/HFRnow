@@ -14,6 +14,8 @@ public enum PrivateMessageListParser {
     ///   - pageURL: The URL the page was served from, as for `TopicListParser.parse`.
     /// - Throws: `.notAuthenticated` for the `.hop` message HFR serves to a logged-out request, `.maintenance` and
     ///   `.malformed` as `TopicListParser`; `.malformed` too when the page is a list of another category.
+    ///   A `.notAuthenticated` on a page after the first is not proof of a lost session (the page may be past the end after a
+    ///   deletion, never captured): callers confirm on page 1 before clearing a session.
     public static func parse(_ html: String, pageURL: String) throws(ListPageFailure) -> PrivateMessageListPage {
         let parsed = try TopicListParser.parseRows(html, pageURL: pageURL)
         // Whatever the URL, a message page in answer to the MP list is the login wall: an empty mailbox keeps its list body (R13c).
@@ -44,7 +46,10 @@ public enum PrivateMessageListParser {
         let starterCell = row.element.firstDescendant(matching: .classToken("sujetCase6"))
         // A profile link is a one-to-one thread; without one, the span "Interlocuteurs multiples" names the others in its tooltip.
         let hasProfileLink = starterCell.map { !((try? $0.getElementsByTag("a").array()) ?? []).isEmpty } ?? false
-        let groupSpan = hasProfileLink ? nil : starterCell.flatMap { try? $0.getElementsByTag("span").first() }
+        // A span without a tooltip is not taken for a group: a deleted interlocutor may print one (never captured, pending in the spec).
+        let groupSpan = hasProfileLink ? nil : starterCell
+            .flatMap { try? $0.getElementsByTag("span").first() }
+            .flatMap { ((try? $0.attr("title")) ?? "").isEmpty ? nil : $0 }
         let interlocutors: [String]
         if let groupSpan {
             interlocutors = pseudos(in: (try? groupSpan.attr("title")) ?? "")

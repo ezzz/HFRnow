@@ -5,14 +5,15 @@
 - **Issue:** none (lot tracked in `docs/LOTS.md`; audit items B6 in [B](../audit/B-list-parsing-models.md) and NET-13 in [A](../audit/A-network-sessions.md); old issue francoisgn/ios-app_SwiftHFR#63)
 
 ## Legacy sources
-Legacy repository <https://github.com/francoisgn/hfrnow>, commit `2440d79` (the files are unchanged on `master` for these lines).
+Legacy repository <https://github.com/francoisgn/hfrnow>, commit `2440d79`.
 
 | Legacy | Replaced by |
 |---|---|
 | `Classes/ObjCMPTopicsLoaderWorker.m:9-21` (fixed URL `/forum1.php?config=hfr.inc&cat=prive&page=1`, nav fields reset: page 1 only) | `PrivateMessageListParser` (the URL is `HFRClient`'s, LOT-045; the pager is kept) |
 | `Classes/ObjCTopicListParser.m:59-470` (the MP list is the topic list on `cat=prive`) | `TopicListParser.parseRows` (LOT-022), reused |
-| `HFRswift/Swift/MPListView.swift:12-36` (`MPTopicReadState.isUnread` = `[non lu]` title prefix **or** `!isViewed`), `:172` (group = "multiples") | `PrivateMessageThread.isUnread`, `.unreadBy`, `.isGroup` |
+| `HFRswift/Swift/MPListView.swift:12-36` (`MPTopicReadState.isUnread` = `[non lu]` title prefix **or** `!isViewed`); group = "multiples" at `:377`, `:773`, `:894` | `PrivateMessageThread.isUnread`, `.unreadBy`, `.isGroup` |
 | `Classes/ObjCForumsParser.m:516-525` (home `cat=prive` row, replace-all regex) | `PrivateMessageBadgeParser.countOnHomePage` |
+| `Classes/HFRplusAppDelegate.m:242` (a fourth reader: `findChildOfClass:@"cCatTopic red"`, same regex) | `PrivateMessageBadgeParser.unreadCount(in:)` |
 | `Classes/ObjCTopicListParser.m:83-92` (header `.none` block with 3 `td`) | `PrivateMessageBadgeParser.countInListHeader` |
 | `HFRswift/Swift/MPBackgroundService.swift:115-139` (`class="cCatTopic red"`, first integer) | `PrivateMessageBadgeParser.unreadCount(in:)`, which LOT-047 calls |
 
@@ -26,12 +27,13 @@ the new-message link too; this adds the MP-only facts.
 | `threads[].summary` | the `TopicSummary` of the row with the `[non lu]` marker removed from `title` (the marker is `span.red` in `sujetCase3`; the text after it, trimmed) |
 | `isUnread` | the member's own state: `summary.readState == .unread`, i.e. `sujetCase1` icon `closedbp.gif`, `alt="On"` ("Nouveau message"); `closedp.gif` `alt="Off"` is read (R13a, R13b, R13u1) |
 | `isUnreadByOthers`, `unreadBy` | `[non lu]` is the **other party** not having read (HFR-PROTOCOL §6b, B8): `span.red` present; `unreadBy` = pseudos after the colon of its `title` ("Ce message n'a pas été lu par : a, b"), split on `,`, trimmed |
-| `isGroup`, `interlocutors` | `sujetCase6` with a profile link: one interlocutor (its text); without one, the `span` "Interlocuteurs multiples" is a group and its `title` lists the others (split like `unreadBy`). Pseudos are as served (U+200B kept) |
+| `isGroup`, `interlocutors` | `sujetCase6` with a profile link: one interlocutor (its text); without one, a `span` **with a `title`** ("Interlocuteurs multiples") is a group and its `title` lists the others; a span without `title` is not (the starter text is the one interlocutor) (split like `unreadBy`). Pseudos are as served (U+200B kept) |
 | `unreadThreadCount` (page) | threads of **this page** with `isUnread`; not the mailbox total (use the badge) |
 | `navigation`, `newMessagePath` | `TopicListPage.navigation` / `.newTopicPath` (R13u1: 7 pages; R13c, R13a: one) |
 
 Failures: `.notAuthenticated(message)` for a `.hop` message page, whatever the URL (an empty mailbox keeps the list body, R13c, so a message page can
 only be the login wall); `.maintenance` and `.malformed` as `TopicListParser`; `.malformed` when the page is a list whose category is not `prive`.
+**For LOT-038/047 (walking the pager):** a thread deleted mid-walk may leave `page=N` past the last page, and HFR's answer there was never captured; if it is a `.hop` page, the parser reports `.notAuthenticated` for a logged-in member. A `.notAuthenticated` on a page after the first must be confirmed (re-read page 1) before the session is cleared.
 
 ### `PrivateMessageBadgeParser.unreadCount(in:) throws(ListPageFailure) -> Int?`
 The one reader of the three legacy variants. The page kind comes from `<body id>`:
@@ -49,9 +51,10 @@ treats nil as "no information", never as 0. A maintenance page throws `.maintena
 ## Edge cases
 - Own unread and the others' `[non lu]` are independent: R13u1 has rows read by the member but marked `[non lu]` and the reverse.
 - Marking a thread unread (W18, R13b) flips `isUnread`, not the marker.
-- A group row with a `span` but no `title` gives `isGroup` with no interlocutors.
+- A `span` without `title` in `sujetCase6` is not a group (a deleted or banned interlocutor may print one; unverified, pending). Tested on a capture row with its tooltip removed, a derived variation, not a capture.
+- `isUnreadByOthers` is computed from the marker and `unreadBy`, so it cannot disagree with them.
 - The count is of conversations (R02: 10 = the 10 `closedbp` rows, but page-bounded; the badge is the total).
-- Pseudos holding a comma would split in `unreadBy`/`interlocutors` (HFR joins with `, ` or `,`; no captured pseudo has one).
+- Whether a pseudo can hold a comma is **unknown** (no source for HFR's pseudo rules); if it can, `unreadBy`/`interlocutors` split it (HFR joins with `, ` or `,`; no captured pseudo has one).
 
 ## Fixtures
 Existing captures and LOT-002 oracles (`Fixtures/captures`, `Fixtures/LOT-002`); none added.
@@ -68,7 +71,7 @@ Existing captures and LOT-002 oracles (`Fixtures/captures`, `Fixtures/LOT-002`);
 `sideEffects.nbMP` (R01-R03) and, on the 18 list cases, with `needToUpdateMP`/`sNewMPNumber` (`PrivateMessageBadgeParserTests`). Tooltip names are
 checked against regexes over the raw rows, independent of SwiftSoup (LESSONS 33).
 
-**Pending capture:** the MP list logged out (the `.notAuthenticated` rule is checked on another list's `.hop` page); the header badge with N > 1 ("Vous avez N
+**Pending capture:** the MP list page past the last page (after a deletion mid-walk); a one-to-one thread whose interlocutor was deleted or banned (the `sujetCase6` shape); the MP list logged out (the `.notAuthenticated` rule is checked on another list's `.hop` page); the header badge with N > 1 ("Vous avez N
 nouveaux messages privés" in `table.none`; the plural is captured on the home page only, so the digit rule is what is tested); a mailbox whose rows hold a
 closed-for-the-member thread or the ignore icon in another state (`ignore1.gif`); pseudos containing a comma; the badge on a page of another section (a topic
 page logged in: R20 is anonymous). None is hand-built.

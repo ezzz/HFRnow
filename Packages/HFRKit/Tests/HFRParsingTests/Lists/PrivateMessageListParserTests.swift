@@ -98,6 +98,16 @@ struct PrivateMessageListParserTests {
         #expect(page.newMessagePath == "/message.php?config=hfr.inc&cat=prive&sond=0&p=1&subcat=0&dest=&subcatgroup=0")
     }
 
+    @Test("A span without tooltip in the starter cell is not a group (derived from R13u1 by removing the tooltip)")
+    func spanWithoutTooltip() throws {
+        let html = try Fixture.capture("R13u1-mp-list-recipient-unread")
+        let stripped = html.replacing(/<span title="[^"]*">Interlocuteurs multiples<\/span>/, with: "<span>Interlocuteurs multiples</span>")
+        #expect(stripped != html)
+        let page = try PrivateMessageListParser.parse(stripped, pageURL: Self.listURL)
+        #expect(page.threads.allSatisfy { !$0.isGroup })
+        #expect(page.threads[1].interlocutors == ["Interlocuteurs multiples"])
+    }
+
     @Test("An empty mailbox is an empty page, not a failure (R13c)")
     func emptyMailbox() throws {
         let page = try PrivateMessageListParser.parse(Fixture.capture("R13c-mp-list-empty-after-delete"), pageURL: Self.listURL)
