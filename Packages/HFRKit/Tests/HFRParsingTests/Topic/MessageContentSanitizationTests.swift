@@ -10,7 +10,6 @@ import Testing
 struct MessageContentSanitizationTests {
     static let imageHost = MessageContentNormalizerTests.imageHost
 
-
     @Test(
         "A link with a rejected scheme is unwrapped to its text",
         arguments: [
