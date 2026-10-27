@@ -7,8 +7,12 @@ struct AdaptiveNavigationView: View {
     @State private var preferredCompactColumn = NavigationSplitViewColumn.sidebar
 
     init(environment: AppEnvironment) {
-        let forums = ForumListModel(dataSource: environment.dataSource, accountName: environment.accountName)
-        _navigation = State(initialValue: NavigationModel(dataSource: environment.dataSource, forums: forums))
+        let forums = ForumListModel(
+            dataSource: environment.dataSource, visibility: environment.visibility, accountName: environment.accountName
+        )
+        _navigation = State(initialValue: NavigationModel(
+            dataSource: environment.dataSource, forums: forums, sessionIsLoggedIn: environment.isLoggedIn
+        ))
     }
 
     var body: some View {

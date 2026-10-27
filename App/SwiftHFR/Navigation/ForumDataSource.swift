@@ -8,6 +8,8 @@ protocol ForumDataSource: Sendable {
     func forumList() async throws(ListLoadError) -> ForumListPage
     /// One page of a forum's topic list.
     func topicList(category: CategoryID, page: Int) async throws(ListLoadError) -> TopicListPage
+    /// One page of a forum opened from its forum-relative path (`/hfr/<cat>/<sub>/liste_sujet-1.htm`).
+    func topicList(path: String, page: Int) async throws(ListLoadError) -> TopicListPage
     /// The favourites page for `filter` (`.favorites` or `.flagged`).
     func favorites(filter: TopicListFilter) async throws(ListLoadError) -> FavoritesPage
 }
@@ -17,6 +19,8 @@ protocol ForumDataSource: Sendable {
 /// Lists are fetched with the account's session (flags need it); no topic page is fetched here, so nothing is marked read.
 struct LiveForumDataSource: ForumDataSource {
     let fetcher: PageFetcher
+    /// The account's session, for pages the fetcher has no endpoint for (a sub-forum link).
+    let transport: any HTTPTransport
 
     func forumList() async throws(ListLoadError) -> ForumListPage {
         let raw = try await fetch { () async throws(NetworkError) -> RawPage in try await fetcher.home() }
@@ -29,6 +33,23 @@ struct LiveForumDataSource: ForumDataSource {
 
     func topicList(category: CategoryID, page: Int) async throws(ListLoadError) -> TopicListPage {
         let raw = try await fetch { () async throws(NetworkError) -> RawPage in try await fetcher.topicList(category: category, filter: .all, page: page) }
+        do throws(ListPageFailure) {
+            return try TopicListParser.parse(raw.text, pageURL: raw.finalURL.absoluteString)
+        } catch {
+            throw ListLoadError(error)
+        }
+    }
+
+    func topicList(path: String, page: Int) async throws(ListLoadError) -> TopicListPage {
+        // HFR pages a forum through `liste_sujet-<n>.htm` (HFR-PROTOCOL §7b B2); the link comes from the home page, so it is
+        // a forum path, never a URL of another host.
+        guard let pagePath = SubforumPath.page(page, of: path), let url = HFREndpoint.absoluteURL(href: pagePath) else {
+            throw .other
+        }
+        let raw = try await fetch { () async throws(NetworkError) -> RawPage in
+            if Task.isCancelled { throw .cancelled }
+            return RawPage(response: try await transport.send(.get(url)))
+        }
         do throws(ListPageFailure) {
             return try TopicListParser.parse(raw.text, pageURL: raw.finalURL.absoluteString)
         } catch {

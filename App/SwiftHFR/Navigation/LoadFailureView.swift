@@ -7,7 +7,7 @@ struct LoadFailureView: View {
 
     var body: some View {
         ContentUnavailableView {
-            Label(error.title, systemImage: "wifi.exclamationmark")
+            Label(error.title, systemImage: error.symbol)
         } description: {
             Text(error.detail)
         } actions: {
@@ -24,7 +24,7 @@ struct LoadFailureBanner: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+            Image(systemName: error.symbol).foregroundStyle(.orange).accessibilityHidden(true)
             VStack(alignment: .leading) {
                 Text(error.title).font(.subheadline).bold()
                 Text(error.detail).font(.caption).foregroundStyle(.secondary)

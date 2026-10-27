@@ -14,21 +14,31 @@ final class NavigationModel {
     var selectedTopic: TopicSummary?
 
     private let dataSource: any ForumDataSource
+    private let sessionIsLoggedIn: @Sendable () async -> Bool
     private var topicLists: [TopicSource: TopicListModel] = [:]
 
     /// Creates the navigation over `dataSource`.
-    init(dataSource: any ForumDataSource, forums: ForumListModel? = nil) {
+    init(
+        dataSource: any ForumDataSource,
+        forums: ForumListModel? = nil,
+        sessionIsLoggedIn: @escaping @Sendable () async -> Bool = { false }
+    ) {
         self.dataSource = dataSource
+        self.sessionIsLoggedIn = sessionIsLoggedIn
         self.forums = forums ?? ForumListModel(dataSource: dataSource)
     }
 
-    /// Whether the account is signed in, as the last forum list says.
-    var isLoggedIn: Bool { forums.loader.value?.isLoggedIn ?? false }
+    /// Whether the account is signed in: what the last forum list says, else what the session says (a list opened before the
+    /// home page loaded must not call a plain HFR notice a login wall).
+    func isLoggedIn() async -> Bool {
+        if let known = forums.loader.value?.isLoggedIn { return known }
+        return await sessionIsLoggedIn()
+    }
 
     /// The model of `source`, created once so going back keeps rows, page and scroll position.
     func topicList(for source: TopicSource) -> TopicListModel {
         if let existing = topicLists[source] { return existing }
-        let model = TopicListModel(source: source, dataSource: dataSource, isLoggedIn: { [weak self] in self?.isLoggedIn ?? false })
+        let model = TopicListModel(source: source, dataSource: dataSource, isLoggedIn: { [weak self] in await self?.isLoggedIn() ?? false })
         topicLists[source] = model
         return model
     }

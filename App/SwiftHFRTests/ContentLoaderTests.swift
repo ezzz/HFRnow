@@ -5,8 +5,15 @@ import Testing
 private actor Gate {
     private var continuation: CheckedContinuation<Void, Never>?
     private var opened = false
+    private var arrived = false
+
+    /// Returns once a load is parked on `wait()`.
+    func untilArrived() async {
+        while !arrived { await Task.yield() }
+    }
 
     func wait() async {
+        arrived = true
         if opened { return }
         await withCheckedContinuation { continuation = $0 }
     }
@@ -44,7 +51,7 @@ struct ContentLoaderTests {
         await loader.load { 1 }
         let gate = Gate()
         let reload = Task { await loader.load { await gate.wait(); return 2 } }
-        await Task.yield()
+        await gate.untilArrived()
         #expect(loader.value == 1)
         #expect(loader.isLoading)
         await gate.open()
@@ -56,7 +63,7 @@ struct ContentLoaderTests {
         let loader = ContentLoader<Int>()
         let gate = Gate()
         let slow = Task { await loader.load { await gate.wait(); return 1 } }
-        await Task.yield()
+        await gate.untilArrived()
         await loader.load { 2 }
         await gate.open()
         await slow.value
@@ -76,7 +83,7 @@ struct ContentLoaderTests {
         let loader = ContentLoader<Int>()
         let gate = Gate()
         let slow = Task { await loader.load { await gate.wait(); return 1 } }
-        await Task.yield()
+        await gate.untilArrived()
         loader.cancel()
         await gate.open()
         await slow.value

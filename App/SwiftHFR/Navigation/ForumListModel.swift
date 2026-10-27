@@ -1,11 +1,11 @@
 import HFRModels
 import Observation
 
-/// One forum entry of the sidebar; `source` is nil when the forum has no known category id, so it cannot be opened.
+/// One forum entry of the sidebar.
 struct ForumRow: Identifiable, Hashable, Sendable {
     let id: String
     let title: String
-    let source: TopicSource?
+    let source: TopicSource
 }
 
 /// A category of the sidebar with its own list and its sub-forums.
@@ -29,12 +29,11 @@ struct ForumListContent: Sendable, Equatable {
     }
 
     private static func section(for forum: ForumCategory) -> ForumSection {
+        // The category opens by its id when known (same list as its path), every sub-forum by the link the page gave.
         let own = forum.categoryID ?? ForumCatalogue.categoryID(forPath: forum.path)
-        var rows = [ForumRow(id: forum.id, title: "Tous les sujets", source: own.map { .forum($0, title: forum.title) })]
-        rows += forum.subforums.map { link in
-            let category = ForumCatalogue.categoryID(forPath: link.path)
-            return ForumRow(id: link.path, title: link.title, source: category.map { .forum($0, title: link.title) })
-        }
+        let ownSource = own.map { TopicSource.forum($0, title: forum.title) } ?? .subforum(path: forum.path, title: forum.title)
+        var rows = [ForumRow(id: forum.id, title: "Tous les sujets", source: ownSource)]
+        rows += forum.subforums.map { ForumRow(id: $0.path, title: $0.title, source: .subforum(path: $0.path, title: $0.title)) }
         return ForumSection(id: forum.id, title: forum.title, rows: rows)
     }
 }

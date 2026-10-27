@@ -11,8 +11,8 @@ struct ForumListModelTests {
             ForumCategory(
                 categoryID: .forum(1), title: "Hardware", path: "/hfr/Hardware/liste_sujet-1.htm",
                 subforums: [
-                    ForumLink(title: "Known", path: "/hfr/apple/liste_sujet-1.htm"),
-                    ForumLink(title: "Unknown", path: "/hfr/nowhere/liste_sujet-1.htm")
+                    ForumLink(title: "Mini PC", path: "/hfr/Hardware/minipc/liste_sujet-1.htm"),
+                    ForumLink(title: "Bench", path: "/hfr/Hardware/Benchs/liste_sujet-1.htm")
                 ]
             ),
             ForumCategory(categoryID: .forum(25), title: "Apple", path: "/hfr/apple/liste_sujet-1.htm")
@@ -29,8 +29,11 @@ struct ForumListModelTests {
         await model.loadIfNeeded()
         let sections = model.loader.value?.sections
         #expect(sections?.map(\.title) == ["Hardware", "Apple"])
+        // Every sub-forum opens from the link the home page gave, whether or not the catalogue knows it.
         #expect(sections?.first?.rows.map(\.source) == [
-            .forum(.forum(1), title: "Hardware"), .forum(.forum(25), title: "Known"), nil
+            .forum(.forum(1), title: "Hardware"),
+            .subforum(path: "/hfr/Hardware/minipc/liste_sujet-1.htm", title: "Mini PC"),
+            .subforum(path: "/hfr/Hardware/Benchs/liste_sujet-1.htm", title: "Bench")
         ])
         #expect(model.loader.value?.unreadPrivateMessages == 2)
     }
@@ -62,7 +65,7 @@ struct ForumListModelTests {
         source.forumHandler = { page }
         let model = ForumListModel(dataSource: source, accountName: { "someone" })
         await model.loadIfNeeded()
-        model.reveal(.forum(.forum(25), title: "Known"))
+        model.reveal(.subforum(path: "/hfr/Hardware/minipc/liste_sujet-1.htm", title: "Mini PC"))
         #expect(model.expandedSections == ["/hfr/Hardware/liste_sujet-1.htm"])
     }
 }
@@ -74,5 +77,28 @@ struct ListLoadErrorTests {
         #expect(ListLoadError(.httpStatus(code: 503, url: URL(string: "https://forum.hardware.fr/")!)) == .server(status: 503))
         #expect(ListLoadError(ListPageFailure.malformed("x")) == .unreadable)
         #expect(ListLoadError(ListPageFailure.maintenance("m")) == .maintenance("m"))
+    }
+}
+
+struct SubforumPathTests {
+    @Test func replacesThePageOfAListPath() {
+        #expect(SubforumPath.page(3, of: "/hfr/Hardware/minipc/liste_sujet-1.htm") == "/hfr/Hardware/minipc/liste_sujet-3.htm")
+        #expect(SubforumPath.page(12, of: "/hfr/Hardware/liste_sujet-7.htm") == "/hfr/Hardware/liste_sujet-12.htm")
+    }
+
+    @Test func refusesWhatIsNotAListPathOrPage() {
+        #expect(SubforumPath.page(1, of: "/forum2.php?cat=1") == nil)
+        #expect(SubforumPath.page(0, of: "/hfr/Hardware/liste_sujet-1.htm") == nil)
+    }
+
+    @Test func frenchPluralTreatsZeroAndOneAsSingular() {
+        #expect(FrenchPlural.count(0, "réponse", "réponses") == "0 réponse")
+        #expect(FrenchPlural.count(1, "page", "pages") == "1 page")
+        #expect(FrenchPlural.count(2, "page", "pages") == "2 pages")
+    }
+
+    @Test func everyFailureHasASymbolAndMaintenanceIsNotAWifiIcon() {
+        #expect(ListLoadError.maintenance("m").symbol != ListLoadError.offline.symbol)
+        #expect(ListLoadError.server(status: 500).symbol == "exclamationmark.triangle")
     }
 }

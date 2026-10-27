@@ -15,12 +15,7 @@ struct ForumListView: View {
                 ForEach(content.sections) { section in
                     Section(section.title, isExpanded: expansion(of: section.id)) {
                         ForEach(section.rows) { row in
-                            if let source = row.source {
-                                Text(row.title).tag(source)
-                            } else {
-                                // No known category id: shown so the list matches the forum, but it cannot be opened.
-                                Text(row.title).foregroundStyle(.secondary)
-                            }
+                            Text(row.title).tag(row.source)
                         }
                     }
                 }

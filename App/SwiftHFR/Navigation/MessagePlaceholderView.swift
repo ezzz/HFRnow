@@ -11,7 +11,7 @@ struct MessagePlaceholderView: View {
             ContentUnavailableView {
                 Label(topic.title, systemImage: "text.bubble")
             } description: {
-                Text("La lecture des messages arrive bientôt. \(topic.repliesCount) réponses sur \(topic.pageCount) pages.")
+                Text("La lecture des messages arrive bientôt. \(FrenchPlural.count(topic.repliesCount, "réponse", "réponses")) sur \(FrenchPlural.count(topic.pageCount, "page", "pages")).")
             }
         } else {
             ContentUnavailableView("Choisissez un sujet", systemImage: "text.bubble")

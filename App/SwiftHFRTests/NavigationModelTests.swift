@@ -31,12 +31,21 @@ struct NavigationModelTests {
         #expect(model.topicList(for: .favorites) !== first)
     }
 
-    @Test func loggedInStateComesFromTheForumList() async {
+    @Test func loggedInStateComesFromTheForumListOnceLoaded() async {
         let source = FakeDataSource()
         source.forumHandler = { ForumListPage(forums: [ForumCategory(categoryID: .forum(1), title: "A", path: "/a")], isLoggedIn: true) }
         let model = NavigationModel(dataSource: source)
-        #expect(!model.isLoggedIn)
+        #expect(await !model.isLoggedIn())
         await model.forums.loadIfNeeded()
-        #expect(model.isLoggedIn)
+        #expect(await model.isLoggedIn())
+    }
+
+    @Test func beforeTheHomePageLoadsTheSessionDecidesSoANoticeIsNotALoginWall() async {
+        let source = FakeDataSource()
+        source.favoritesHandler = { _ in FavoritesPage(notice: "Aucun sujet") }
+        let model = NavigationModel(dataSource: source, sessionIsLoggedIn: { true })
+        let flags = model.topicList(for: .flagged)
+        await flags.loadIfNeeded()
+        #expect(flags.loader.value?.emptyReason == .notice("Aucun sujet"))
     }
 }

@@ -108,4 +108,31 @@ struct TopicListModelTests {
         await model.loadIfNeeded()
         #expect(model.loader.value?.emptyReason == .nothing)
     }
+
+    @Test func aSubforumPagesThroughItsOwnLinkAndRefreshesTheCurrentPage() async {
+        let source = FakeDataSource()
+        let path = "/hfr/Hardware/minipc/liste_sujet-1.htm"
+        let model = TopicListModel(source: .subforum(path: path, title: "Mini PC"), dataSource: source)
+        await model.loadIfNeeded()
+        await model.goToNextPage()
+        await model.refresh()
+        #expect(source.requests == ["path:\(path):1", "path:\(path):2", "path:\(path):2"])
+        #expect(model.canGoToPrevious)
+    }
+
+    @Test func flagsAndFavouritesRefreshWhenTheyReappearKeepingRows() async {
+        let source = FakeDataSource()
+        let model = TopicListModel(source: .flagged, dataSource: source)
+        await model.onAppear()
+        await model.onAppear()
+        #expect(source.requests == ["favorites:1", "favorites:1"])
+    }
+
+    @Test func aForumPageIsNotReloadedWhenItReappears() async {
+        let source = FakeDataSource()
+        let model = forumModel(source)
+        await model.onAppear()
+        await model.onAppear()
+        #expect(source.requests == ["topics:13:1"])
+    }
 }

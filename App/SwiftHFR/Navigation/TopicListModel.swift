@@ -63,10 +63,10 @@ final class TopicListModel {
     private(set) var requestedPage = 1
 
     private let dataSource: any ForumDataSource
-    private let isLoggedIn: @MainActor () -> Bool
+    private let isLoggedIn: @Sendable () async -> Bool
 
     /// Creates the model; `isLoggedIn` is read when a load starts.
-    init(source: TopicSource, dataSource: any ForumDataSource, isLoggedIn: @escaping @MainActor () -> Bool = { false }) {
+    init(source: TopicSource, dataSource: any ForumDataSource, isLoggedIn: @escaping @Sendable () async -> Bool = { false }) {
         self.source = source
         self.dataSource = dataSource
         self.isLoggedIn = isLoggedIn
@@ -83,6 +83,12 @@ final class TopicListModel {
         await load(page: 1)
     }
 
+    /// The list became visible: first load, or a refresh for flags and favourites, whose content changes while the user
+    /// reads elsewhere. Rows stay meanwhile. Forum pages are left alone: the user refreshes those.
+    func onAppear() async {
+        if loader.value == nil { await loadIfNeeded() } else if !source.isPaged, !loader.isLoading { await refresh() }
+    }
+
     /// Reloads the page on screen.
     func refresh() async { await load(page: currentPage) }
 
@@ -97,9 +103,13 @@ final class TopicListModel {
         requestedPage = page
         let source = source
         let dataSource = dataSource
-        let loggedIn = isLoggedIn()
+        let isLoggedIn = isLoggedIn
         await loader.load { () async throws(ListLoadError) -> TopicListContent in
+            let loggedIn = await isLoggedIn()
             switch source {
+            case .subforum(let path, _):
+                let list = try await dataSource.topicList(path: path, page: page)
+                return TopicListContent(page: list, isLoggedIn: loggedIn)
             case .forum(let category, _):
                 let list = try await dataSource.topicList(category: category, page: page)
                 return TopicListContent(page: list, isLoggedIn: loggedIn)

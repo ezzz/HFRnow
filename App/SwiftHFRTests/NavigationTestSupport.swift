@@ -10,6 +10,7 @@ final class FakeDataSource: ForumDataSource, @unchecked Sendable {
     private var recorded: [String] = []
     var forumHandler: @Sendable () async throws(ListLoadError) -> ForumListPage = { ForumListPage(forums: []) }
     var topicHandler: TopicHandler = { _, page in topicPage(page: page) }
+    var pathHandler: @Sendable (String, Int) async throws(ListLoadError) -> TopicListPage = { _, page in topicPage(page: page) }
     var favoritesHandler: @Sendable (TopicListFilter) async throws(ListLoadError) -> FavoritesPage = { _ in FavoritesPage() }
 
     /// Requests received, in order, as `forums`, `topics:<cat>:<page>` or `favorites:<filter>`.
@@ -25,6 +26,11 @@ final class FakeDataSource: ForumDataSource, @unchecked Sendable {
     func topicList(category: CategoryID, page: Int) async throws(ListLoadError) -> TopicListPage {
         record("topics:\(category.queryValue):\(page)")
         return try await topicHandler(category, page)
+    }
+
+    func topicList(path: String, page: Int) async throws(ListLoadError) -> TopicListPage {
+        record("path:\(path):\(page)")
+        return try await pathHandler(path, page)
     }
 
     func favorites(filter: TopicListFilter) async throws(ListLoadError) -> FavoritesPage {

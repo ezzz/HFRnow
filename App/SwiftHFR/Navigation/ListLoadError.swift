@@ -64,4 +64,15 @@ enum ListLoadError: Error, Equatable, Sendable {
         case .cancelled, .other: "Réessayez."
         }
     }
+
+    /// SF Symbol matching the failure.
+    var symbol: String {
+        switch self {
+        case .offline: "wifi.slash"
+        case .timedOut: "clock.badge.exclamationmark"
+        case .maintenance: "wrench.and.screwdriver"
+        case .notAuthenticated: "lock"
+        case .server, .unreadable, .cancelled, .other: "exclamationmark.triangle"
+        }
+    }
 }

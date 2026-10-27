@@ -31,7 +31,7 @@ struct TopicListView: View {
             if model.source.isPaged, loader.value != nil { PageBar(model: model) }
         }
         .refreshable { await model.refresh() }
-        .task { await model.loadIfNeeded() }
+        .task { await model.onAppear() }
     }
 
     private func rows(_ topics: [TopicSummary]) -> some View {

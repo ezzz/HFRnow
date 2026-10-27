@@ -7,6 +7,9 @@ struct TopicRowView: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
+            if topic.readState == .unread {
+                Image(systemName: "circle.fill").font(.system(size: 8)).foregroundStyle(.tint).padding(.top, 7).accessibilityLabel("Non lu")
+            }
             flagIcon
             VStack(alignment: .leading, spacing: 2) {
                 Text(topic.title)
@@ -29,7 +32,7 @@ struct TopicRowView: View {
     private var summary: String {
         var parts: [String] = []
         if !topic.starterOrInterlocutors.isEmpty { parts.append(topic.starterOrInterlocutors) }
-        parts.append("\(topic.repliesCount) réponses")
+        parts.append(FrenchPlural.count(topic.repliesCount, "réponse", "réponses"))
         if let date = topic.lastPost?.date { parts.append(date.formatted(.relative(presentation: .named))) }
         return parts.joined(separator: " · ")
     }
