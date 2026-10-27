@@ -27,8 +27,15 @@ struct RefreshSeed: Sendable {
 
 /// What a confirmed refresh changes: cookies HFR set or removed, compared with the seed, and the page's token.
 struct RefreshUpdate: Sendable {
-    /// For each changed jar key, the probe's cookies for that key (empty when HFR removed it) and the seed's ones.
-    let changes: [(key: String, seed: [StoredCookie], after: [StoredCookie])]
+    /// One changed jar key: the seed's cookies for it and the probe's (empty when HFR removed it).
+    struct Change: Sendable {
+        let key: String
+        let seed: [StoredCookie]
+        let after: [StoredCookie]
+    }
+
+    /// Every jar key whose cookies differ between the seed and the probe after the answer.
+    let changes: [Change]
     /// The token read on the profile page.
     let hashCheck: String
 
@@ -39,7 +46,7 @@ struct RefreshUpdate: Sendable {
         changes = keys.compactMap { key in
             let old = before[key] ?? []
             let new = now[key] ?? []
-            return Set(old) == Set(new) ? nil : (key, old, new)
+            return Set(old) == Set(new) ? nil : Change(key: key, seed: old, after: new)
         }
         self.hashCheck = hashCheck
     }

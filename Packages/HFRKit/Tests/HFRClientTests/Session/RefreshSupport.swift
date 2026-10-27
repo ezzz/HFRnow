@@ -27,8 +27,15 @@ enum RefreshCapture {
         return text
     }
 
-    /// `set_cookie_names`, `method` and `status` of `<id>.meta.json`.
-    static func meta(_ id: String) throws -> (method: String, status: Int, setCookieNames: [String]) {
+    /// The fields of a capture's `<id>.meta.json` the tests use.
+    struct Meta {
+        let method: String
+        let status: Int
+        let setCookieNames: [String]
+    }
+
+    /// `method`, `status` and `set_cookie_names` of `<id>.meta.json`.
+    static func meta(_ id: String) throws -> Meta {
         let url = directory.appendingPathComponent(id + ".meta.json")
         guard
             let data = try? Data(contentsOf: url),
@@ -37,7 +44,7 @@ enum RefreshCapture {
             let status = object["status"] as? Int,
             let names = object["set_cookie_names"] as? [String]
         else { throw Missing(name: id) }
-        return (method, status, names)
+        return Meta(method: method, status: status, setCookieNames: names)
     }
 
     /// `file` served as HFR served the captures: 200, UTF-8 HTML, at `url` (profile page 1 by default).
