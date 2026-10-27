@@ -93,8 +93,28 @@ struct MessageActionsParserTests {
         #expect(actions == MessageActions())
     }
 
-    @Test("A block without toolbar has no action")
-    func noToolbar() throws {
+    @Test("Derived from R21 (toolbar of message 1 moved into its content): a toolbar inside the content gives no action")
+    func toolbarInsideContentIgnored() throws {
+        // Derived page, not a capture: one change to R21, the second block's `div.toolbar` moved into its `div#para`, the shape a
+        // member's own markup would have when HFR prints no toolbar.
+        let original = try Fixture.capture("R21-topic-p1-logged-in")
+        let anchor = try #require(original.range(of: "<a name=\"t2666682\">"))
+        let start = try #require(original.range(of: "<div class=\"toolbar\">", range: anchor.upperBound..<original.endIndex))
+        let paraTag = "<div id=\"para2666682\">"
+        let para = try #require(original.range(of: paraTag, range: start.upperBound..<original.endIndex))
+        let toolbar = original[start.lowerBound..<para.lowerBound]
+        var derived = original
+        derived.replaceSubrange(start.lowerBound..<para.upperBound, with: paraTag + toolbar)
+        let before = try MessageActionsParser.actions(in: original)
+        #expect(before[1].favoriteURL != nil && before[1].quoteSelection != nil, "the toolbar of the capture is read")
+        let after = try MessageActionsParser.actions(in: derived)
+        try #require(after.count == 40)
+        #expect(after[1] == MessageActions())
+        #expect(after[0] == before[0] && Array(after[2...]) == Array(before[2...]), "other blocks are unchanged")
+    }
+
+    @Test("A block without toolbar has no action, even with action-like links in its content")
+    func missingToolbarGivesNoAction() throws {
         let html = Self.page(cells: "<td><div id=\"para9\"><a href=\"/user/addflag.php?post=1\">x</a></div></td>")
         #expect(try MessageActionsParser.actions(in: html) == [MessageActions()])
     }
@@ -170,6 +190,10 @@ struct MessageActionsParserTests {
         #expect(try token("quoter('hardwarefr','prive',42,9)")?.topic.category == .privateMessages)
         #expect(try token("quoter('hardwarefr','13',42,8)") == nil, "another message's number")
         #expect(try token("quoter('otherforum','13',42,9)") == nil)
+        #expect(try token("quoter('otherforum','13',42,9); quoter('hardwarefr','13',42,9)") == nil,
+                "the call read must be the hardwarefr one the element was selected for")
+        #expect(try token("quoter('hardwarefr','13',42,9,'extra')") == expected, "legacy read the first four of four or more")
+        #expect(try token("quoter('hardwarefr','13',42,9x)") == nil)
         #expect(try token("quoter('hardwarefr','x-1',42,9)") == nil, "not a category")
         #expect(try token("quoter('hardwarefr','13',0,9)") == nil, "topic 0")
     }

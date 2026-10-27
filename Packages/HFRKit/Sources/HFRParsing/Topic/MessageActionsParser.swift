@@ -21,9 +21,10 @@ public enum MessageActionsParser {
     ///
     /// Every link is looked up inside the block's `div.toolbar`, where HFR prints them, not in the whole message row as
     /// legacy did: a link posted in the message body must not become an action the app follows with the session.
+    /// A "toolbar" inside the message content is member markup, not HFR's, and gives no action either.
     /// Every URL is kept only on the forum origin (LESSONS 37, 43).
     static func actions(of extracted: ExtractedMessageBlock) -> MessageActions {
-        guard let toolbar = extracted.toolbar else { return MessageActions() }
+        guard let toolbar = extracted.toolbar, !isInside(toolbar, extracted.content) else { return MessageActions() }
         let elements = (try? toolbar.getAllElements().array().dropFirst()) ?? []
         return MessageActions(
             quoteURL: obfuscatedLink(wrappingImageWithAlt: "answer", in: elements),
@@ -78,6 +79,7 @@ public enum MessageActionsParser {
         guard
             let script = elements.lazy.compactMap({ attribute("onclick", of: $0) }).first(where: { $0.contains(marker) }),
             let match = script.firstMatch(of: quoterPattern),
+            match.output.1 == quoteForum,
             let category = CategoryID(queryValue: String(match.output.2)),
             let topic = HFRURL.positiveInteger(match.output.3),
             let number = HFRURL.positiveInteger(match.output.4),
@@ -92,6 +94,16 @@ public enum MessageActionsParser {
     }
 
     // MARK: - Helpers
+
+    /// Whether `element` is a descendant of `ancestor`.
+    private static func isInside(_ element: Element, _ ancestor: Element) -> Bool {
+        var node = element.parent()
+        while let current = node {
+            if current === ancestor { return true }
+            node = current.parent()
+        }
+        return false
+    }
 
     /// `href` (or another attribute) of `element` as a forum URL.
     private static func forumURL(attribute name: String, of element: Element) -> URL? {
@@ -111,8 +123,8 @@ public enum MessageActionsParser {
 
     // `Regex` is not `Sendable` (its output type could hold non-Sendable captures). This literal captures
     // only `Substring`s and the compiled program is initialised atomically by the runtime, so sharing is safe.
-    /// `quoter('<forum>','<cat>',<post>,<numreponse>)`; legacy stripped either quote from every argument
-    /// (`MessagesView.swift:1852-1876`), so each one may be quoted or not.
+    /// `quoter('<forum>','<cat>',<post>,<numreponse>)`; legacy stripped either quote from every argument and read the first
+    /// four of four or more (`MessagesView.swift:1852-1876`), so each one may be quoted or not and more arguments may follow.
     nonisolated(unsafe) private static let quoterPattern =
-        /quoter\(\s*['"]?([A-Za-z0-9_]+)['"]?\s*,\s*['"]?([A-Za-z0-9]+)['"]?\s*,\s*['"]?([0-9]+)['"]?\s*,\s*['"]?([0-9]+)['"]?\s*\)/
+        /quoter\(\s*['"]?([A-Za-z0-9_]+)['"]?\s*,\s*['"]?([A-Za-z0-9]+)['"]?\s*,\s*['"]?([0-9]+)['"]?\s*,\s*['"]?([0-9]+)['"]?\s*[,)]/
 }

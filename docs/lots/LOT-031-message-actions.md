@@ -38,8 +38,8 @@ The topic's own flag state (`delflag.php` header link, `flagn0.gif`) is page-lev
 
 ### Fields
 
-Every lookup runs over the elements of the block's `div.toolbar`, in document order, first match wins; a block without toolbar gives
-`MessageActions()`. Every URL goes through the forum-origin check: `HFRURL.forumRelativePath` (an `https` `forum.hardware.fr` URL without
+Every lookup runs over the elements of the block's `div.toolbar`, in document order, first match wins; a block without toolbar, or whose
+first `div.toolbar` sits inside the message content (member markup, not HFR's), gives `MessageActions()`. Every URL goes through the forum-origin check: `HFRURL.forumRelativePath` (an `https` `forum.hardware.fr` URL without
 user info nor a port other than 443, or a single-`/` path; `http://forum.hardware.fr/` without port is upgraded), then made absolute on
 `https://forum.hardware.fr/`. Anything else gives nil: these links are requested with the account session, and `favoriteURL` is a
 state-changing GET (LESSONS 37, 43).
@@ -52,7 +52,7 @@ state-changing GET (LESSONS 37, 43).
 | `profileURL` | `href` of the parent of the first `img` with `alt="profil"` |
 | `privateMessageURL` | First `href` whose forum-relative form starts with `/message.php?` and whose `cat` is `prive` and whose `dest` is non-empty |
 | `favoriteURL` | First element whose `href` contains `addflag` |
-| `quoteSelection` | First `onclick` containing `quoter('hardwarefr'`, read as `quoter(<forum>, <cat>, <post>, <numreponse>)`, each argument optionally quoted with `'` or `"`; `cat` must be a `CategoryID` (`13`, `prive`), `post` and `numreponse` positive integers, and `numreponse` must be the block's own; otherwise nil |
+| `quoteSelection` | First `onclick` containing `quoter('hardwarefr'`, read as `quoter(<forum>, <cat>, <post>, <numreponse>[, …])` (the first four of four or more arguments, as legacy), each argument optionally quoted with `'` or `"`; `<forum>` must be `hardwarefr`; `cat` must be a `CategoryID` (`13`, `prive`), `post` and `numreponse` positive integers, and `numreponse` must be the block's own; otherwise nil |
 
 ## Edge cases
 
@@ -68,14 +68,16 @@ Checked on the captures (facts in HFR-PROTOCOL §6c "LOT-031"):
 - `RA5` (deleted conversation) and `R04` (list page): no block, `[]`.
 - Inline tests (no page state involved, attacks and forms no capture shows): links posted in the message body, off-origin links
   (`https://evil.example`, `//host`, `http://forum.hardware.fr:80`, user info, `javascript:`, `/\host`), an obfuscated link decoding off the
-  forum, an undecodable payload, a link in clear in the class, a reordered MP query, a `quoter` call for another message or forum.
+  forum, an undecodable payload, a link in clear in the class, a reordered MP query, a `quoter` call for another message or forum,
+  and a page derived from `R21` (one change: a block's toolbar moved into its content, labelled derived in the test).
 
 **Pending capture** (implemented from legacy code, positive test on inline blocks only):
 
 - The viewer's own post on a **public** topic: the edit link shape there and which other links (MP, favourite, alert) remain. Every edit
   link of the corpus is in a private conversation.
-- A quote or edit link printed in clear (`<a href>` or a class holding the path) instead of `md_noclass_cryptlink`: legacy handled it,
-  no capture shows it.
+- A quote or edit link printed in clear instead of `md_noclass_cryptlink`. Legacy, like this parser, reads only the wrapper's `class`, so
+  only a path in clear **in the class** is supported (inline test); a wrapper `<a href>` without obfuscated class gives nil in both and
+  would need a capture before being read.
 
 ## Fixtures
 
@@ -100,14 +102,15 @@ Not compared (policy, LOT-011 decision 5): `isOwnMessage`, `canDelete`, `canAQ`,
 
 1. **Toolbar only.** Legacy searched the whole message row (`firstChild` of the table, content included); a link posted in a message
    (`addflag.php`, `modo.php`, an image with `alt="edit"`) became an action when the toolbar lacked it, and the app would follow it with
-   the session. Identical on all 358 messages.
+   the session. A `div.toolbar` inside the content is refused for the same reason. Identical on all 358 messages.
 2. **Forum origin only.** Legacy made any link absolute, whatever its host. Off-origin links give nil (LESSONS 37, 43).
 3. **No URL from a class name.** Legacy turned an undecodable class into `https://forum.hardware.fr/<class>`; it gives nil
    (`ObfuscatedURL` already refuses a prefixed class that fails to decode, LOT-020).
 4. **MP link by its parameters**, not by the literal prefix `/message.php?config=hfr.inc&cat=prive&sond=&p=1&subcat=&dest=`: a reordered
    query is still found; the multi-quote `href` of an MP thread (`cat=prive`, no `dest`) is still not.
 5. **Typed multi-quote token.** `quoteJS` (a JavaScript string the app parsed at tap time) becomes `QuoteSelectionToken`; a call whose
-   `numreponse` is not the block's own gives nil, so a token can only select its own message.
+   `numreponse` is not the block's own, or whose first argument is not `hardwarefr`, gives nil, so a token can only select its own
+   message. Arguments must be names or digits (legacy kept any text between commas).
 
 ## Learnings
 
