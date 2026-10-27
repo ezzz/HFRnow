@@ -4,7 +4,7 @@ This file is the single source of truth for **how** work is done on SwiftHFR.
 Every agent (Claude Code, Codex, or any other) must read it before touching the repository.
 It is a living document: when a lot teaches us something, it is written here (see [§11](#11-keeping-this-file-alive)).
 
-> `CLAUDE.md` only imports this file. Do not put instructions anywhere else.
+> `CLAUDE.md` imports this file and adds the guardrails a Claude session must never break; it never contradicts this file. Do not put instructions anywhere else.
 
 ---
 

@@ -145,8 +145,18 @@ The iOS app target (Xcode 27) is created before the app phase.
 ## Contributing
 
 1. Read **[AGENTS.md](AGENTS.md)**, then [CONTRIBUTING.md](CONTRIBUTING.md).
-2. Pick a free [migration lot](docs/LOTS.md) or an issue labelled `status: ready` ([label guide](AGENTS.md#7-labels-and-prioritization)).
-3. Open a PR: CI, CodeQL and CodeRabbit review it.
+2. Claim a free [migration lot](docs/LOTS.md) or an issue labelled `status: ready` ([label guide](AGENTS.md#7-labels-and-prioritization)).
+3. Open a PR against `dev-swift`: it is merged only when it meets the **[merge criteria](CONTRIBUTING.md#2-merge-criteria)** — 7 required checks green, no conflict, every conversation resolved, approval.
+
+### Starting an agent
+
+Paste this at the start of the session (Claude also loads [CLAUDE.md](CLAUDE.md), its guardrails):
+
+```text
+Read AGENTS.md and follow it. Work on branch dev-swift of ezzz/HFRnow only, never master.
+Work only on <issue #N | LOT-XXX>, claimed first. Write the spec and the tests before the code.
+Stop and ask me when an HFR behaviour is not documented. Do not merge: open a PR that meets CONTRIBUTING.md §2.
+```
 
 Found a security issue? Follow [SECURITY.md](SECURITY.md), never a public issue.
 
