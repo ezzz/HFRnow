@@ -46,7 +46,8 @@ public enum SearchRedirectParser {
     // MARK: - Implementation
 
     /// `url=<target>` part of a refresh `content` (`<delay>;url=…`, `,` accepted as HTML does), unquoted; nil when absent.
-    private static func target(inRefreshContent content: String) -> String? {
+    /// Shared with `HopResponseParser`, which reads the same meta on write responses.
+    static func target(inRefreshContent content: String) -> String? {
         guard let match = content.wholeMatch(of: refreshPattern) else { return nil }
         var target = String(match.output.1)
         if let quote = target.first, quote == "\"" || quote == "'" {
