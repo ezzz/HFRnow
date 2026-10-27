@@ -15,3 +15,4 @@ Format: Context → Decision → Consequences. Never rewrite an accepted ADR; su
 | [0008](0008-hfrclient-orchestration-module.md) | HFRClient: a module for multi-step forum flows | Accepted |
 | [0009](0009-open-protocol-docs-license.md) | Protocol documentation and fixtures under CC BY 4.0 | Accepted |
 | [0010](0010-hosting-on-ezzz-hfrnow-dev-swift.md) | Hosting on ezzz/HFRnow, branch `dev-swift` | Proposed |
+| [0011](0011-contribution-model-and-feature-intake.md) | Contribution model, feature intake and legacy archive | Proposed |
