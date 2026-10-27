@@ -14,5 +14,5 @@ LOT-
 - [ ] Module boundaries respected (no sibling imports in HFRKit, no UI framework in HFRKit)
 - [ ] Tests added/updated — differential tests for ported logic
 - [ ] No secrets; fixtures anonymized
-- [ ] Docs updated (lot spec, HFR-PROTOCOL.md §6c, ADR); after the merge, the issue closed by hand with this PR's link
+- [ ] Docs updated (lot spec, HFR-PROTOCOL.md §6c, ADR); after the merge, the `Closes #N` issue closed by hand with this PR's link
 - [ ] Author model: … / Reviewer model: … (must differ)
