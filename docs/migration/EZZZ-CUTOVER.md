@@ -1,6 +1,6 @@
 # Cutover runbook — SwiftHFR to ezzz/HFRnow `dev-swift`
 
-Decision: [ADR 0010](../adr/0010-hosting-on-ezzz-hfrnow-dev-swift.md). Executed **once**, from the maintainer's Mac (Claude Code CLI or by hand), because cloud sessions cannot write to ezzz/HFRnow until its owner installs the Claude GitHub app.
+Decision: [ADR 0010](../adr/0010-hosting-on-ezzz-hfrnow-dev-swift.md). Executed **once**, from the maintainer's Mac (Claude Code CLI or by hand) or from a cloud session that has ezzz/HFRnow as a source (the Claude GitHub app is installed since 2026-10-27).
 Every step is idempotent or checked first. Stop at the first unexpected result and report it.
 
 ## Who does what
@@ -10,7 +10,8 @@ Every step is idempotent or checked first. Stop at the first unexpected result a
 | Install the Claude and CodeRabbit GitHub apps on ezzz/HFRnow | **ezzz** (owner) | On a personal-account repository only the owner can install apps |
 | Agree to the repository-wide security settings (`--repo-wide`) and, if wanted, the `master` guard (`--guard-master`) | **ezzz** | They also apply to the legacy `master` |
 | Merge the Dependabot PR into `master` (step 6) | **ezzz** | It is his branch |
-| Everything else below | Maintainer (`francoisgn`) | Collaborator with admin rights on the repository (checked in step 1) |
+| Rulesets and security settings (step 4) | **ezzz** | Admin only; on a personal-account repository collaborators have `write`, never `admin` |
+| Everything else below | Maintainer (`francoisgn`) | `write` collaborator: push, force push before the ruleset exists, labels, PRs |
 
 ## Prompt for the Mac session
 
@@ -26,7 +27,7 @@ Every step is idempotent or checked first. Stop at the first unexpected result a
 
 ```sh
 gh auth status
-gh api repos/ezzz/HFRnow --jq .permissions          # expect "admin": true, otherwise ezzz runs step 4
+gh api repos/ezzz/HFRnow --jq .permissions          # expect "push": true ("admin" is the owner's only)
 git ls-remote --heads https://github.com/ezzz/HFRnow dev-swift   # nothing, or the placeholder created from the web UI (see step 3)
 brew list yq >/dev/null 2>&1 || brew install yq
 ```
@@ -61,11 +62,18 @@ git push --force-with-lease=dev-swift:ezzz/dev-swift ezzz origin/master:refs/hea
 
 ## 4. Configure the branch **[confirm]**
 
+Maintainer (write access): labels only, the script skips the admin parts.
+
 ```sh
-./scripts/configure-repo.sh                 # ruleset on dev-swift + labels
-./scripts/configure-repo.sh --repo-wide     # only once ezzz agreed
-./scripts/configure-repo.sh --guard-master  # only if ezzz asked for it: apps can no longer update master
+./scripts/configure-repo.sh
 ```
+
+ezzz (admin), **right after the force push**, either from the web UI:
+- Settings → Rules → Rulesets → New ruleset → **Import a ruleset** → `.github/rulesets/dev-swift.json` (from the `dev-swift` branch) → Create.
+- If he asked for the `master` guard: same with `.github/rulesets/legacy-master.json`.
+- Settings → Code security: enable Dependabot alerts, private vulnerability reporting, secret scanning and push protection; leave Dependabot security updates **off**. Settings → Actions → General → Workflow permissions: read repository contents.
+
+or with the GitHub CLI: `./scripts/configure-repo.sh --repo-wide` (add `--guard-master` if wanted).
 
 Check in Settings → Rules → Rulesets: `SwiftHFR dev-swift` active, 7 required checks.
 

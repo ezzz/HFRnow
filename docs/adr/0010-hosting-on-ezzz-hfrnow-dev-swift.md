@@ -3,7 +3,7 @@
 **Status:** Proposed — 2026-10-26 (maintainer; becomes Accepted when the cutover in [EZZZ-CUTOVER](../migration/EZZZ-CUTOVER.md) is done)
 
 ## Context
-SwiftHFR was developed on `francoisgn/ios-app_SwiftHFR`. The community app lives on [ezzz/HFRnow](https://github.com/ezzz/HFRnow), a personal-account repository whose default branch `master` is the legacy app (Objective-C + Swift). The maintainer is a collaborator there, not the owner.
+SwiftHFR was developed on `francoisgn/ios-app_SwiftHFR`. The community app lives on [ezzz/HFRnow](https://github.com/ezzz/HFRnow), a personal-account repository whose default branch `master` is the legacy app (Objective-C + Swift). The maintainer is a `write` collaborator there: on a personal-account repository only the owner is admin, so rulesets and security settings are applied by the owner (`.github/rulesets/*.json` are importable from the web UI).
 The project moves into that repository so that the successor sits next to the app it replaces, on a dedicated branch.
 
 ## Decision
