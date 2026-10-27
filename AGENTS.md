@@ -45,6 +45,8 @@ License: [PolyForm Noncommercial 1.0.0](LICENSE) — no commercial use, credit t
 **Hosting** ([ADR 0010](docs/adr/0010-hosting-on-ezzz-hfrnow-dev-swift.md)): SwiftHFR lives on the `dev-swift` branch of [ezzz/HFRnow](https://github.com/ezzz/HFRnow).
 The default branch `master` of that repository **is the legacy app**: never branch from it, never target it, never let a session's `CLAUDE.md` from `master` drive work on SwiftHFR.
 
+`francoisgn/ios-app_SwiftHFR` is a read-only mirror of `dev-swift`, synced hourly: never open issues or PRs there.
+
 Legacy codebase (read-only reference): the `master` branch of ezzz/HFRnow. Citations written before the move point to <https://github.com/francoisgn/hfrnow> @ `2440d79` and stay valid.
 When a behaviour is unclear, **read the legacy code** instead of guessing, and cite the file and line in the lot spec.
 

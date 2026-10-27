@@ -1,0 +1,33 @@
+name: Mirror from ezzz/HFRnow
+
+# francoisgn/ios-app_SwiftHFR is a read-only mirror of ezzz/HFRnow dev-swift (ADR 0010).
+# The job only runs in the mirror; on ezzz/HFRnow it is skipped.
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mirror
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    if: github.repository == 'francoisgn/ios-app_SwiftHFR'
+    runs-on: ubuntu-latest
+    steps:
+      # A deploy key, not GITHUB_TOKEN: the token cannot push commits that touch .github/workflows.
+      # Credentials must persist for the push below; the key only has write access to this mirror.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: master
+          fetch-depth: 0
+          ssh-key: ${{ secrets.MIRROR_DEPLOY_KEY }}
+      - name: Fast-forward master to ezzz/HFRnow dev-swift
+        run: |
+          git fetch --no-tags https://github.com/ezzz/HFRnow.git dev-swift
+          git merge --ff-only FETCH_HEAD
+          git push origin HEAD:master

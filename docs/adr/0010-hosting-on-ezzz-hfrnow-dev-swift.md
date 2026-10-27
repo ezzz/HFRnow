@@ -28,4 +28,4 @@ The project moves into that repository so that the successor sits next to the ap
 - Issue and PR numbers restart at ezzz/HFRnow's counters; older references are written `francoisgn/ios-app_SwiftHFR#N`. Issues cannot be transferred across owners: open ones are recreated.
 - Cloud sessions clone the default branch: agents must switch to `dev-swift` first (AGENTS.md §10).
 - Nothing of SwiftHFR acts on `master`: Dependabot entries target `dev-swift`, CodeRabbit auto-review on `master` follows the owner's CodeRabbit settings, and an optional ruleset (`configure-repo.sh --guard-master`) keeps every GitHub app, Claude included, from updating `master`.
-- `francoisgn/ios-app_SwiftHFR` is frozen after the cutover (README pointer, then archived by its owner).
+- `francoisgn/ios-app_SwiftHFR` becomes a read-only mirror of `dev-swift`: `mirror-from-ezzz.yml` fast-forwards its `master` hourly with a deploy key (`GITHUB_TOKEN` cannot push workflow changes), and a ruleset lets only that key and admins update it. Issues and PRs go to ezzz/HFRnow.
