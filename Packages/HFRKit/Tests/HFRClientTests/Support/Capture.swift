@@ -59,3 +59,14 @@ struct CaptureMeta: Decodable {
         case requestBody = "request_body"
     }
 }
+
+extension Capture {
+    /// `sideEffects.nbMP` the LOT-002 legacy oracle recorded for home capture `id` (`R01`-`R03`); nil when legacy found no entry.
+    static func legacyUnreadCount(_ id: String) throws -> Int? {
+        let url = directory.deletingLastPathComponent().appendingPathComponent("LOT-002/\(id).oracle.json")
+        guard let data = try? Data(contentsOf: url) else { throw Missing(name: id + ".oracle") }
+        guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let effects = root["sideEffects"] as? [String: Any] else { throw Missing(name: id + ".oracle sideEffects") }
+        return effects["nbMP"] as? Int
+    }
+}

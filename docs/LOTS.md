@@ -181,6 +181,7 @@ Page states that merged lots listed as **pending capture** (never hand-built in 
 | MP list row with the ignore icon in its other state (`ignore1.gif`) | LOT-023 | not modelled yet |
 | MP pseudos containing a comma (`[non lu]` tooltip, group tooltip) | LOT-023 | whether HFR allows one is unknown |
 | Badge on a logged-in topic page | LOT-023 | R20 is anonymous; the parser returns nil on topic pages |
+| Home page (`/`) answered to a logged-in session with expired cookies: logged-out home or `.hop` page? | LOT-047 | the poll reads both as nil (no information); decides whether LOT-044 can use the poll as an expiry signal |
 | Topic list: MP list logged out, cross-category search results, rare row shapes | LOT-022 | see the LOT-022 spec |
 | Locked topic seen logged in; favourite/flagged topic page; checked in-topic search filter (R52a was a 302) | LOT-033 | |
 | Deleted message wrapper `messagetabledel`; in-topic search prefix link | LOT-030 | |
