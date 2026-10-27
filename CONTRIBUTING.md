@@ -2,7 +2,7 @@
 
 Thanks for helping! Humans and AI agents follow the same process. The rules are in **[AGENTS.md](AGENTS.md)**; this page is the path from a task to a merged PR.
 
-![From the issue to the merge](docs/assets/work-process.png)
+![From the issue to the merge: claim an issue or a lot, branch from dev-swift, write the spec, code and tests, second-model review, open the PR, iterate with CI and CodeRabbit, approval, squash merge; a red check or an unresolved comment sends the work back to the code](docs/assets/work-process.png)
 
 ## 1. From a task to a PR
 
@@ -11,7 +11,7 @@ Thanks for helping! Humans and AI agents follow the same process. The rules are 
    - an engine lot: owner + `in-progress` in [docs/LOTS.md](docs/LOTS.md);
    - anything else: an issue (open one if none exists), assigned to you, with its `status:` label.
 3. Branch from **`dev-swift`** (`lot/…`, `fix/…`, `feat/…`, `chore/…`, `docs/…`); contributors without write access work from a fork. Never branch from or target `master`: it is the legacy app.
-4. Work from **one spec file**: `docs/lots/LOT-XXX-*.md` for a lot, `docs/features/FEAT-XXX.md` for an app feature. Never guess how HFR behaves ([AGENTS.md §3](AGENTS.md#3-ground-rules)).
+4. Work from **one description**: the spec file `docs/lots/LOT-XXX-*.md` for a lot, `docs/features/FEAT-XXX.md` for an app feature; the issue itself for a bug, a chore or a docs change. Never guess how HFR behaves ([AGENTS.md §3](AGENTS.md#3-ground-rules)).
 5. Code with its tests; run `swift test --package-path Packages/HFRKit` and SwiftLint locally when you can; self-review against [LESSONS](docs/agents/LESSONS.md). Agent-written code is reviewed by a different model before the PR ([AGENTS.md §6](AGENTS.md#6-model-routing-which-agent-does-what)).
 6. Open the PR against `dev-swift` with the template: `Closes #N` or `LOT-XXX`, what changed and why, the tests.
 
@@ -20,11 +20,11 @@ Security problems go through [SECURITY.md](SECURITY.md), never a public issue.
 
 ## 2. Merge criteria
 
-![What happens when a PR is opened](docs/assets/ci-pipeline.png)
+![What happens when a PR is opened: the 9 required checks and CodeRabbit run, then the PR is merged when everything is green, conflict-free and resolved; otherwise fix, push and everything runs again](docs/assets/ci-pipeline.png)
 
 A PR into `dev-swift` is merged only when **all** of these hold (enforced by the [`dev-swift` ruleset](.github/rulesets/dev-swift.json)):
 
-- [ ] **The 7 required checks are green**:
+- [ ] **The 9 required checks are green**:
 
   | Check | What it verifies |
   |---|---|
@@ -35,8 +35,8 @@ A PR into `dev-swift` is merged only when **all** of these hold (enforced by the
   | `Analyze (actions)` | CodeQL analysis of the workflows |
   | `gitleaks` | No secret (password, cookie, key) in the PR's commits |
   | `review` | Dependency review (SCA): no dependency with a known vulnerability of moderate severity or more |
-
-  `Docs consistency` and `Fixture tooling tests` also run; they are not required but must be understood before merging.
+  | `Docs consistency` | Lot dependencies respect the module rules; markdown tables and links are valid |
+  | `Fixture tooling tests` | The anonymizer works and the committed capture corpus holds no personal data |
 - [ ] **No conflict** with `dev-swift`: rebase or merge `dev-swift` into the branch; everything runs again.
 - [ ] **Every conversation is resolved**, CodeRabbit's included: for each comment, either fix and push, or reply why not — **then resolve the conversation**. A reply alone does not unblock the merge.
 - [ ] **One approval by someone other than the author** — required once [ADR 0011](docs/adr/) is accepted and the ruleset updated.
