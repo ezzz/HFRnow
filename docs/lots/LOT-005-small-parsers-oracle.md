@@ -2,7 +2,7 @@
 
 - **Module:** tooling (legacy app)
 - **Difficulty / model:** medium (Sonnet → Fable)
-- **Issue:** none (lot tracked in `docs/LOTS.md`)
+- **Issue:** [#42](https://github.com/ezzz/HFRnow/issues/42)
 
 Harness, patch and run instructions: [`tooling/legacy-oracle/`](../../tooling/legacy-oracle/README.md) (shared with [LOT-002](LOT-002-list-oracle.md),
 [LOT-003](LOT-003-topic-oracle.md), [LOT-004](LOT-004-forms-storage-oracle.md)). ADR 0004 requires each ported parser to reproduce the legacy

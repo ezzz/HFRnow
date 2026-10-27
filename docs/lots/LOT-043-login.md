@@ -2,7 +2,7 @@
 
 - **Module:** HFRClient (plus the login request builder in HFRNetwork)
 - **Difficulty / model:** medium (Opus 5.5 → Fable)
-- **Issue:** none (claimed by the orchestrator in `docs/LOTS.md`; old francoisgn/ios-app_SwiftHFR#72)
+- **Issue:** [#69](https://github.com/ezzz/HFRnow/issues/69) (old francoisgn/ios-app_SwiftHFR#72)
 - **Depends on:** LOT-042 (`HFRSession`, `replaceCookies(with:now:)`, `updateHashCheck(_:)`, `userKey(now:)`), LOT-025 (`ProfileEditPageParser`)
 
 ## Legacy sources

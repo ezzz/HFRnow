@@ -2,7 +2,7 @@
 
 - **Module:** HFRParsing (one minimal HFRModels addition, see Behaviour)
 - **Difficulty / model:** difficult (Opus → Fable)
-- **Issue:** none (lot tracked in `docs/LOTS.md`; audit item B5 in [B](../audit/B-list-parsing-models.md))
+- **Issue:** [#50](https://github.com/ezzz/HFRnow/issues/50) (audit item B5 in [B](../audit/B-list-parsing-models.md))
 
 ## Legacy sources
 Legacy repository <https://github.com/francoisgn/hfrnow>, commit `2440d79`.
