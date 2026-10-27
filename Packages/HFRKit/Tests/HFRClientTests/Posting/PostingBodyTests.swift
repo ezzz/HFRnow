@@ -85,7 +85,7 @@ struct PostingBodyTests {
     )
     func unsupportedForms(variant: String) {
         var fields = base
-        var textarea = (after: 1, name: "content_form", disabled: false)
+        var textarea = (after: 0, name: "content_form", disabled: false)
         switch variant {
         case "other input type": fields.append(FormField(name: "file", kind: .other))
         case "other textarea": textarea.name = "notes"
