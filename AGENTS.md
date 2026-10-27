@@ -37,7 +37,7 @@ License: [PolyForm Noncommercial 1.0.0](LICENSE) — no commercial use, credit t
 | Path | Content |
 |---|---|
 | `Packages/HFRKit/` | UI-free engine (Swift package): `HFRModels`, `HFRParsing`, `HFRNetwork`, `HFRStorage`, `HFRClient` |
-| `App/` | iOS app target (SwiftUI). Created during the first Mac session — see [ROADMAP](docs/ROADMAP.md) |
+| `App/` | iOS app target (SwiftUI), `App/SwiftHFR.xcodeproj` — see [App/README](App/README.md) and [ADR 0012](docs/adr/0012-app-project-file-strategy.md) |
 | `docs/ARCHITECTURE.md` | Modules, dependency rules, design principles |
 | `docs/ROADMAP.md` | Phases and their exit criteria |
 | `docs/LOTS.md` | Migration lots: scope, dependencies, model routing, owner, status — the **only tracker** until Issues are enabled on ezzz/HFRnow. **Check it before starting work.** |

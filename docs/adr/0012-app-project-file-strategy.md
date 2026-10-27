@@ -26,4 +26,5 @@ AGENTS.md ground rule 3 forbids a new dependency or tool without an ADR and the 
 - Lots add files under `App/SwiftHFR/` without editing the project file; a project-file change (new target, setting, package) is rare and reviewed on its own.
 - New targets (widgets, share extension) are added in Xcode and follow the same pattern: one synchronized folder per target.
 - The app job in CI (`App build + tests (iOS 27 simulator)`) is not yet a required check: adding it to the [`dev-swift` ruleset](../../.github/rulesets/dev-swift.json) is the repository owner's action.
+- A dependency change in `HFRKit` (Dependabot watches only `/Packages/HFRKit`) re-resolves and commits the app's `Package.resolved` in the same PR: `xcodebuild -resolvePackageDependencies -project App/SwiftHFR.xcodeproj`. Otherwise the app job, which never resolves, keeps building the old pin. `Packages/HFRKit/Package.resolved` stays untracked (git-ignored): the package pins SwiftSoup with `exact:` and the app's file is the only committed resolution.
 - CodeQL still analyzes only `HFRKit`: its Swift job runs on `macos-26` (Xcode 26), which cannot build an iOS 27 app target.

@@ -123,7 +123,7 @@ Posting comes next (LOT-036, 037, 048, 031, 049). The app module is `App` (the X
 
 | Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Owner | Status |
 |---|---|---|---|---|---|---|---|---|---|
-| LOT-080 | iOS app target: Xcode 27 project in `App/` (iOS 27), local package `HFRKit` linked, simulator and device build, app build job in CI, ADR on the project-file strategy | App | medium | Opus → Fable | — | ROADMAP Phase 4 | high | — · old [#94](https://github.com/francoisgn/ios-app_SwiftHFR/issues/94) | todo |
+| LOT-080 | iOS app target: Xcode 27 project in `App/` (iOS 27), local package `HFRKit` linked, simulator and device build, app build job in CI, ADR on the project-file strategy | App | medium | Opus → Fable | — | ROADMAP Phase 4 | high | `mac/w1-080-opus` (2026-10-27) · old [#94](https://github.com/francoisgn/ios-app_SwiftHFR/issues/94) | done (#25) |
 | LOT-081 | Accounts and login screen: add, select and remove an account, login through `HFRClient`, credentials in the account store, session restored at launch, typed errors shown | App | medium | Opus → Fable | 080, 043, 065 | E-6, NET-04 | high | — · old [#95](https://github.com/francoisgn/ios-app_SwiftHFR/issues/95) | blocked |
 | LOT-082 | Adaptive navigation: one `NavigationSplitView` app (iPhone, iPad, foldables) forums → topics → messages; forum list, topic list with pagination, flags/favourites; hiding the Apple category for reviewers is applied here (Q-7) | App | medium | Sonnet → Opus | 080, 021, 022, 024, 045 | B1-B7 | high | — · old [#96](https://github.com/francoisgn/ios-app_SwiftHFR/issues/96) | blocked |
 | LOT-083 | Topic reader: page shell and resources, message HTML builder from the normalized `MessageContent` (ADR 0006), WebView without remote scripts, page navigation, images through the cookie-less client | App | difficult | Opus → Fable | 080, 030, 033, 034, 045 | C12, C13 | high | — · old [#97](https://github.com/francoisgn/ios-app_SwiftHFR/issues/97) | blocked |
@@ -155,6 +155,7 @@ Work that is not a lot, listed so nothing lives only in a session's memory. Clai
 | Pre-commit config (syntax, lint, secrets; pinned versions) and a CI job replaying `pre-commit run --all-files` | old [#14](https://github.com/francoisgn/ios-app_SwiftHFR/issues/14) | — | todo |
 | App feature backlog FEAT-001…021: each feature gets its spec `docs/features/FEAT-XXX.md`, then engine lots here and app PRs ([ADR 0011](adr/0011-contribution-model-and-feature-intake.md) §2) | [FEATURES.md](FEATURES.md) | — | todo |
 | Cutover follow-ups: ADR 0010 → Accepted and learnings in AGENTS.md §11, once ezzz has done the owner actions of [EZZZ-CUTOVER](migration/EZZZ-CUTOVER.md) step 9; then delete the runbook | [ADR 0010](adr/0010-hosting-on-ezzz-hfrnow-dev-swift.md) | — | blocked (ezzz, step 9) |
+| Analyze `App/` with CodeQL once a CodeQL-compatible Xcode 27 runner exists ([ADR 0012](adr/0012-app-project-file-strategy.md)) | LOT-080 review | — | blocked |
 
 ## Capture backlog (Mac)
 

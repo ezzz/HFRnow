@@ -15,4 +15,10 @@ xcodebuild build test -project App/SwiftHFR.xcodeproj -scheme SwiftHFR \
   -destination 'platform=iOS Simulator,OS=27.0,name=iPhone 18 Pro' CODE_SIGNING_ALLOWED=NO
 ```
 
+A dependency change in `HFRKit` re-resolves and commits this project's `Package.resolved` in the same PR (CI never resolves packages):
+
+```sh
+xcodebuild -resolvePackageDependencies -project App/SwiftHFR.xcodeproj
+```
+
 Signing is automatic with the team `QMG83DG7YP` and bundle id `hfrplus.red.super`; a device build needs that team's account in Xcode. Never commit certificates, profiles or `xcuserdata/`.

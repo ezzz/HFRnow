@@ -74,8 +74,35 @@ jobs:
           -destination 'generic/platform=iOS Simulator'
           -skipPackagePluginValidation CODE_SIGNING_ALLOWED=NO
 
+  app-changes:
+    name: Detect app changes
+    runs-on: ubuntu-latest
+    outputs:
+      app: ${{ steps.diff.outputs.app }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: diff
+        name: Does this change touch the app, the engine or this workflow?
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          # The app job takes ~10 min on the shared xcode-27 queue; docs-only PRs skip it.
+          if [ "$EVENT" != "pull_request" ]; then echo "app=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if git diff --name-only "origin/$BASE_REF...HEAD" | grep -qE '^(App/|Packages/|\.github/workflows/ci\.yml$)'; then
+            echo "app=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "app=false" >> "$GITHUB_OUTPUT"
+          fi
+
   app:
     name: App build + tests (iOS 27 simulator)
+    needs: app-changes
+    # A job skipped by this condition reports "skipped", which satisfies a required check.
+    if: needs.app-changes.outputs.app == 'true'
     runs-on: xcode-27
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -103,9 +130,11 @@ jobs:
           ')
           echo "id=$id" >> "$GITHUB_OUTPUT"
       - name: Build and test on the simulator (unsigned)
+        env:
+          SIMULATOR_ID: ${{ steps.sim.outputs.id }}
         run: >-
           xcodebuild build test -project App/SwiftHFR.xcodeproj -scheme SwiftHFR
-          -destination "id=${{ steps.sim.outputs.id }}"
+          -destination "id=$SIMULATOR_ID"
           -disableAutomaticPackageResolution -skipPackagePluginValidation CODE_SIGNING_ALLOWED=NO
       - name: Build for a generic iOS device (Release, unsigned)
         run: >-
