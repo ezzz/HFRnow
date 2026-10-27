@@ -258,6 +258,33 @@ Facts from the redface2 project documentation, rewritten here; each becomes *ver
 
 Points the two clients disagree on are listed in the comparison report §4.4 and must be part of the LOT-001 capture checklist.
 
+## 7b. Reported by Bybifok, to verify with our fixtures
+
+Facts and open questions found by **Bybifok** ([`moust4ki`](https://github.com/moust4ki)) in the legacy fixes of [ezzz/HFRnow#3](https://github.com/ezzz/HFRnow/pull/3) and the prototype [moust4ki/ultra-hfr](https://github.com/moust4ki/ultra-hfr) (reviewed 2026-10-26). Each becomes *verified* only through a captured fixture; the entry that settles it credits Bybifok.
+
+| Topic | Reported fact | Id | Status (2026-10-27) |
+|---|---|---|---|
+| List pager | The forum-list pager is a window (`1 … 10 20 … 100 200 … 500`): its last link is a lower bound, not the page count; the exact page count of a topic is in its row (`sujetCase4`) | B1 | **Shape settled** (§6c LOT-022, `R04`, `R05a`, `R05b`); "lower bound" follows from it; `sujetCase4` count to assert in a test |
+| List paging | Paging goes through the path `liste_sujet-<n>.htm`; `?page=` on `liste_sujet-1.htm` is ignored | B2 | Unsettled. Logged out, `forum1.php?…&page=<n>` answers 301 to `liste_sujet-<n>.htm` (R2) |
+| Search | Words shorter than 4 letters are not indexed | B3 | Unsettled |
+| AQ RSS | Titles and descriptions keep HTML entities (`&quot;`, `&#039;`) | B4 | Unsettled (AQ part of LOT-025 pending Q-4) |
+| Search URLs | Intra-topic results are a plain GET `forum2.php?…&word=<UPPERCASED>&spseudo=&currentnum=<match>#t<match>`; a member's posts at `/hfr/recherche/pseudo-<name>.htm` | B5 | **Results URL settled** (§7 E28, `R52a`); member-posts URL unsettled |
+| Flags page | "Mes drapeaux" lists only followed topics with news and carries a `suppressflag.php` link, never to call without an explicit user action | B6 | Unsettled; cross-check with `R10` |
+| Row icons | `closedb_new` does not say whether a followed topic is read; icon paths depend on the account's theme (`images_forum/1` vs `images/defaut`): match on `alt` or file name | B7 | **First part consistent** (§6c LOT-022: `closedb_new.gif` on every anonymous row); theme-dependent paths unsettled |
+| MP list | `[non lu]` means the correspondent has not read it | B8 | **Settled** (§6b, `R13a`, `R13b`, `R13u1`) |
+| Old links | `forum2.php3` links still work; "Achats & Ventes" points to its first sub-forum | B9 | **Second part settled** (§6c LOT-021, `R01`-`R03`); `forum2.php3` unsettled |
+| Home | 20 category rows | B10 | **Settled** (§6b, `R01`, `R57a`) |
+
+Feasibility questions raised by the same proposals, to answer with evidence before a feature depends on them:
+
+| Question | Feature | Id | Status (2026-10-27) |
+|---|---|---|---|
+| Is there any server signal that someone quoted me (`quote_only=1`)? | "On t'a cité" | B11 | Not captured (§7 E2) |
+| Can a guest upload on `reho.st` be deleted by its uploader? | Upload history | B12 | No delete API evidenced |
+| Does HFR accept emoji inside the Basic Multilingual Plane? | Emoji refusal with smiley suggestion | B13 | Non-BMP truncates (§6, `W12`); BMP untested |
+| Can continuous scrolling prefetch pages without moving flags? | Continuous scrolling | B14 | Principle settled: prefetch without session, reload the current page with it (§7 E25) |
+| What check interval stays polite for a background "Vérifier HFR" Shortcuts intent, without ever fetching a topic page? | Shortcuts check | B15 | Unsettled |
+
 ## 8. Third-party services
 
 | Service | Use | Notes | Source |
