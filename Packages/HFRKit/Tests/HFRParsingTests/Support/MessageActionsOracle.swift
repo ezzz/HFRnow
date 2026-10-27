@@ -3,7 +3,7 @@ import Foundation
 /// The per-message action links of a LOT-003 topic oracle: `result.messages[]` (the raw `LinkItem` fields, read with
 /// `ParseMessagesOperation.m:371-390`) and `result.actions[]` (the absolute URLs `ObjCMessageActionsBuilder` made of them).
 struct MessageActionsOracle: Decodable {
-    /// The raw link fields of a legacy `LinkItem`.
+    /// The raw link fields of a legacy `LinkItem` (`MPUrl` is left out: only `result.actions[]` is compared).
     struct Message: Decodable {
         var index: Int
         var postID: String?
@@ -11,14 +11,8 @@ struct MessageActionsOracle: Decodable {
         var urlEdit: String?
         var urlAlert: String?
         var urlProfil: String?
-        var privateMessageURL: String?
         var addFlagUrl: String?
         var quoteJS: String?
-
-        enum CodingKeys: String, CodingKey {
-            case index, postID, urlQuote, urlEdit, urlAlert, urlProfil, addFlagUrl, quoteJS
-            case privateMessageURL = "MPUrl"
-        }
     }
 
     /// One entry of `swiftMessageActionsByIndex`; absent keys are actions legacy did not offer.
