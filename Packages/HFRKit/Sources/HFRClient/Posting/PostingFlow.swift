@@ -111,6 +111,8 @@ public struct PostingFlow: Sendable {
         } catch {
             throw .network(error)
         }
+        // Redirects may end on another `hardware.fr` host: its token and pseudo must not be posted to the forum.
+        guard Self.isForumPage(response.url) else { throw .invalidFormURL }
         let html = response.decodedText().text
         let form: ForumForm
         let layout: HopFormLayout
@@ -138,6 +140,8 @@ public struct PostingFlow: Sendable {
         checkboxes: [String: Bool] = [:]
     ) async throws(PostingError) -> PostingResult {
         var boxes = checkboxes
+        // Only `delete` may check the box: a composer served with it checked must not delete through another write.
+        if action != .delete { boxes[PostingForm.deleteField] = false }
         for (option, checked) in options {
             guard form.form.fields.contains(where: { $0.name == option.fieldName && $0.kind == .checkbox }) else {
                 throw .optionNotOffered(option)

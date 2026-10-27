@@ -6,7 +6,7 @@ import HFRNetwork
 /// have reached HFR: the app must not resend it on its own (double post), only tell the user to check the topic.
 /// No case carries the user's text, a token or a cookie; `rejected` and `formUnavailable` carry HFR's own sentence.
 public enum PostingError: Error, Sendable, Equatable {
-    /// The form URL is not an `https` page of `forum.hardware.fr`; nothing was requested.
+    /// The form URL, or the page it redirected to, is not an `https` page of `forum.hardware.fr`; nothing was posted.
     case invalidFormURL
     /// The page has no `hop` form (locked topic, message not addressed to the account…); `message` is its `.hop` text.
     case formUnavailable(message: String?)

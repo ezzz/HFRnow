@@ -31,7 +31,7 @@ All in `Packages/HFRKit/Sources/HFRClient/Posting/`, plus `HFRParsing/Forms/HopF
 
 1. **Load** — `PostingFlow.loadForm(at:in:)` takes the composer URL (answer link, quote link, decoded edit link, new-topic
    link, new-MP link) and an `HFRSession`. The URL must be `https` on `forum.hardware.fr`, default port, no user info
-   (`invalidFormURL`, nothing requested). GET through the session (followed redirects stay on the forum, LOT-042). The page
+   (`invalidFormURL`, nothing requested). GET through the session; the final URL after redirects must pass the same check (the session follows redirects to any `hardware.fr` host, LOT-042), else `invalidFormURL` and nothing is kept. The page
    is parsed twice from the same string: `HopFormParser.parse` (LOT-036) for the fields, `HopFormParser.layout` for the
    document order. No form: the page's `.hop` is classified (LOT-037); the logged-out sentence gives `notLoggedIn`,
    anything else `formUnavailable(message:)` (`RA5`). An empty `hash_check` or `pseudo` (anonymous composer `R40b`) gives
@@ -86,7 +86,7 @@ the refused characters. Every case except `unconfirmed` means nothing was posted
 - Double post: a POST is never resent by the engine; `unconfirmed` tells the app to let the user check the topic.
 - A redirect answering the POST is not followed (a 307/308 would re-POST): `unconfirmed`.
 - A form fetched with account A cannot be posted with account B: the form carries its session.
-- An edit form served with `delete` checked never deletes through `edit`.
+- A form served with `delete` checked never deletes through `edit`, `reply`, `newTopic` or `newPrivateMessage`: every write but `delete` sends the box unchecked.
 - Several submit inputs: only the first is sent, as if clicked (captured forms have one, `submit`). A `<button name>` is
   never sent. A checkbox without a `value` attribute would be sent with an empty value (a browser sends `on`); every
   captured box has `value="1"`.
@@ -128,7 +128,7 @@ state.
 Shown to fail without the change: legacy `"0"` boxes, no per-write sentence check, no non-BMP check, no whole-thread
 guard, edit without the forced `delete` off, followed redirects, transport failures as `network`, the subject-only
 first-post sign, the textarea missing from the layout, no token check, no blank check, no form URL check, newlines
-preserved, no shape distinction, no `invalidRequest` mapping, no `verifrequet` check, no option check; after the Fable review: public deletes trusted to the form signs, no `isFirstPost` hint, no empty-text check on delete, no line-break check, no `maxlength` check, `maxlength` not read.
+preserved, no shape distinction, no `invalidRequest` mapping, no `verifrequet` check, no option check; after the Fable review: public deletes trusted to the form signs, no `isFirstPost` hint, no empty-text check on delete, no line-break check, no `maxlength` check, `maxlength` not read; after round 2: `delete` not forced off on non-delete writes, final form URL not checked.
 
 ## Intentional differences from legacy
 

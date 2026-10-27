@@ -115,4 +115,46 @@ struct PostingGuardTests {
         }
         #expect(exact.error == nil)
     }
+
+    @Test(
+        "Derived (R47b, R45a, R45b with a checked delete box): a non-delete write never sends delete",
+        arguments: ["R47b", "R45a", "R45b"]
+    )
+    func deleteNeverEchoed(formID: String) async throws {
+        let page = try PostingHarness.editedForm(formID) {
+            $0.replacing(
+                "name=\"emaill\" id=\"emaill\" />",
+                with: "name=\"emaill\" id=\"emaill\" /><input type=\"checkbox\" value=\"1\" name=\"delete\" checked=\"checked\" />"
+            )
+        }
+        let outcome = await PostingHarness.run(
+            formPage: page, formURL: try PostingCapture.pageURL(formID), answer: try PostingCapture.answer("W10")
+        ) { flow, form async throws(PostingError) in
+            #expect(form.form.field(named: "delete")?.isChecked == true)
+            switch form.shape {
+            case .newTopic: return try await flow.newTopic(subject: "s", text: "t", with: form)
+            case .newPrivateMessage: return try await flow.newPrivateMessage(to: "user1", subject: "s", text: "t", with: form)
+            default: return try await flow.reply("t", with: form)
+            }
+        }
+        let body = try #require(outcome.body)
+        #expect(!PostingHarness.pairs(of: body).contains { $0.name == "delete" })
+    }
+
+    @Test("A form page reached on another hardware.fr host is refused before anything is posted")
+    func formServedOffForum() async throws {
+        let html = try Capture.page("R47b-mp-reply-composer")
+        let redirected = HTTPResponse(
+            statusCode: 200, headers: ["Content-Type": "text/html; charset=utf-8"],
+            url: PostingCapture.url("https://www.hardware.fr/message.php"), body: Data(html.utf8)
+        )
+        let outcome = await PostingHarness.run(
+            formPage: .success(redirected), formURL: try PostingCapture.pageURL("R47b"), write: { flow, form async throws(PostingError) in
+                try await flow.reply("t", with: form)
+            }
+        )
+        #expect(outcome.error == .invalidFormURL)
+        #expect(outcome.requests.count == 1)
+        #expect(outcome.hashChecks.isEmpty)
+    }
 }
