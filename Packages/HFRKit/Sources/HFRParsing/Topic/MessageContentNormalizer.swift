@@ -141,22 +141,26 @@ public enum MessageContentNormalizer {
                 copyLink(source, into: target, inSignature: inSignature)
             case "img":
                 copyImage(source, into: target, inSignature: inSignature)
+            case _ where keptTags.contains(tag):
+                copyElement(source, classes: classes, into: target, inSignature: inSignature)
             default:
-                guard keptTags.contains(tag) else {
-                    // Unknown element: unwrapped, its children stay in place.
-                    copyChildren(of: source, into: target, inSignature: inSignature)
-                    return
-                }
-                guard let copy = Self.element(tag) else { return }
-                setClass(classes, on: copy)
-                if tag == "span", let color = Self.color(in: source) {
-                    set("style", "color:\(color)", on: copy)
-                }
-                copyChildren(of: source, into: copy, inSignature: inSignature)
-                // HFR writes `<p></p>` before quote blocks and the tree builder makes one of its stray `</p>`.
-                guard tag != "p" || copy.childNodeSize() > 0 else { return }
-                append(copy, to: target)
+                // Unknown element: unwrapped, its children stay in place.
+                copyChildren(of: source, into: target, inSignature: inSignature)
             }
+        }
+
+        /// An allow-listed element: its kept classes, a colour on `span`, its children; an empty `<p>` is dropped.
+        private func copyElement(_ source: Element, classes: [String], into target: Element, inSignature: Bool) {
+            let tag = source.tagName()
+            guard let copy = Self.element(tag) else { return }
+            setClass(classes, on: copy)
+            if tag == "span", let color = Self.color(in: source) {
+                set("style", "color:\(color)", on: copy)
+            }
+            copyChildren(of: source, into: copy, inSignature: inSignature)
+            // HFR writes `<p></p>` before quote blocks and the tree builder makes one of its stray `</p>`.
+            guard tag != "p" || copy.childNodeSize() > 0 else { return }
+            append(copy, to: target)
         }
 
         /// The first `span.signature` becomes the signature; legacy cut the string there, so later ones are dropped too.

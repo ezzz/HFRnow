@@ -151,6 +151,7 @@ Captures (`Fixtures/captures/`, LOT-001) and the LOT-003 oracles, through `oracl
 | totals | 125 signatures, 103 messages with personal smileys, 36 with images (LOT-003 RC3.9) | guards against a vacuous comparison |
 
 Plus, on every message: no `on*` attribute, `id`, `script` or `javascript:` in `html` and `signatureHTML`; `embeds` empty.
+`MessageContentNormalizerTests` checks the capture facts above, `MessageContentSanitizationTests` the error paths on inline snippets.
 
 ## Intentional differences from legacy
 

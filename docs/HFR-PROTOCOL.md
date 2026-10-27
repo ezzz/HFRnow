@@ -230,8 +230,8 @@ Source: [LOT-027](lots/LOT-027-profile-parser.md), `UserProfileParser`, checked 
 
 ### LOT-034 — message content
 
-Source: [LOT-034](lots/LOT-034-content-normalization.md), `MessageContentNormalizer`, checked by `MessageContentOracleTests` and
-`MessageContentNormalizerTests` on the 20 LOT-003 oracle cases (358 messages).
+Source: [LOT-034](lots/LOT-034-content-normalization.md), `MessageContentNormalizer`, checked by `MessageContentOracleTests`,
+`MessageContentNormalizerTests` and `MessageContentSanitizationTests` on the 20 LOT-003 oracle cases (358 messages).
 
 - **Content element**: `div#para<numreponse>` holds the message HTML, then the signature, then HFR's layout trailer and the LOT-030 edit
   trailer, in this order: `…<div style="clear: both;"> </div></p><br /><span class="signature">…</span>` then `<div class="edited">…</div>`
