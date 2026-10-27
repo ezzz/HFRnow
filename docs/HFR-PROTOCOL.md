@@ -228,6 +228,36 @@ Source: [LOT-027](lots/LOT-027-profile-parser.md), `UserProfileParser`, checked 
 - **Sub-forums missing from the page**: the home page lists only some sub-forums. The legacy completion table adds real forums: with it the sub-forum counts equal the REST `number_of_subcategories` (`R57a`) for Hardware 15, Photo numérique 10, Windows & Software 12, Graphisme 10, Achats & Ventes 11; Overclocking (REST 7) stays at 6 and Programmation (REST 27) reaches 14, so REST is the complete source.
 
 
+### LOT-034 — message content
+
+Source: [LOT-034](lots/LOT-034-content-normalization.md), `MessageContentNormalizer`, checked by `MessageContentOracleTests` and
+`MessageContentNormalizerTests` on the 20 LOT-003 oracle cases (358 messages).
+
+- **Content element**: `div#para<numreponse>` holds the message HTML, then the signature, then HFR's layout trailer and the LOT-030 edit
+  trailer, in this order: `…<div style="clear: both;"> </div></p><br /><span class="signature">…</span>` then `<div class="edited">…</div>`
+  (`R20`, `R27`, `R28`); 125 of the 358 messages carry a signature. The stray `</p>` after the clear trailer is HFR's.
+- **Smileys**: `<img src alt title>` on `forum-images.hardware.fr`, standard ones under `/icones/` (`/icones/smilies/ange.gif` with
+  `alt=":ange:"`, `/icones/redface.gif` with `alt=":o"`, `/icones/biggrin.gif` with `alt=":d" title=":D"`), personal ones under
+  `/images/perso/` with `alt="[:<code>]"` (`R20`, `R26`, `R27`); 103 messages hold a personal smiley. Every smiley of the corpus is `https`.
+- **Images**: `<img src alt title onload="md_verif_size(this,'Cliquez pour agrandir','2','250')" style="margin: 5px">`, `alt` and `title`
+  equal to the URL, `style` sometimes with `width`/`height`; bare (`R20`, `R28`) or inside `<a rel="nofollow" href target="_blank"
+  class="cLink">` (16 pairs on `R28`); 36 messages hold an image. Image hosts may stay `http`.
+- **Links**: external `<a rel="nofollow" href="…" target="_blank" class="cLink">`; forum links written `http://forum.hardware.fr/hfr/…`
+  (`R20`); quote headers `<a href="/hfr/<cat>/<slug>-sujet_<post>_<page>.htm#t<numreponse>" class="Topic">` (relative). One `R20` link
+  has raw spaces in its host (`http://G3Ferrari / Optima`): not a URL.
+- **Quotes**: `<div class="container"><table class="citation"><tr class="none"><td><b class="s1"><a class="Topic">…a écrit :</a></b>
+  <br /><br /><p>…</p></td></tr></table></div>` (126 on the corpus), `table.quote` with `<b class="s1">Citation :</b>` for anonymous
+  citations (9); `oldcitation` never seen.
+- **Spoilers** (`R27`, `R28`, 4 blocks): `<table class="spoiler" onclick="javascript:swap_spoiler_states(this)" style="cursor:pointer;">`
+  with `<b class="s1Topic">Spoiler :</b><br /><br /><div class="Topic masque">…</div>`.
+- **Code** (`R27b`): `<table class="code">` (or `fixed`) with `<b class="s1" style="font-family: Verdana, Helvetica, Arial, Sans-serif;">
+  Code :</b><br /><ol id="code1" class="olcode">`, one `<li>` per line (`<li></li>` for blank lines), `<span style="color:blue">`
+  keywords, `<span style="color:green"><i>` comments ending with a raw CR, entities `&#034;`, `&lt;`, `&nbsp;` for indentation.
+- **Formatting seen**: `strong`, `em`, `i`, `strike`, `span.u`, `span[style="color:#0055aa"]` (and `#e2001c`), `ul`/`li`, `br`,
+  `&nbsp;` lines; no `script`, `iframe`, `on*` attribute other than the spoiler's `onclick` and the images' `onload`, no `id` other
+  than `code<N>`.
+- **Not in the corpus**: `hfr-rehost.net` or `reho.st` URLs, the `---------------` separator, `oldcitation`.
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).
