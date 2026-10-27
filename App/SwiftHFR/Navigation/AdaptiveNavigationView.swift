@@ -5,13 +5,16 @@ import SwiftUI
 struct AdaptiveNavigationView: View {
     @State private var navigation: NavigationModel
     @State private var preferredCompactColumn = NavigationSplitViewColumn.sidebar
+    private let reader: ReaderServices
 
     init(environment: AppEnvironment) {
+        reader = environment.reader
         let forums = ForumListModel(
             dataSource: environment.dataSource, visibility: environment.visibility, accountName: environment.accountName
         )
         _navigation = State(initialValue: NavigationModel(
-            dataSource: environment.dataSource, forums: forums, sessionIsLoggedIn: environment.isLoggedIn
+            dataSource: environment.dataSource, forums: forums, sessionIsLoggedIn: environment.isLoggedIn,
+            topicPages: environment.topicPages, renderOptions: environment.reader.settings.renderOptions
         ))
     }
 
@@ -26,7 +29,12 @@ struct AdaptiveNavigationView: View {
                 ContentUnavailableView("Choisissez un forum", systemImage: "list.bullet")
             }
         } detail: {
-            MessagePlaceholderView(topic: navigation.selectedTopic)
+            if let topic = navigation.selectedTopic, let model = navigation.reader(for: topic) {
+                TopicReaderView(model: model, services: reader)
+                    .id(topic.id)
+            } else {
+                MessagePlaceholderView(topic: navigation.selectedTopic)
+            }
         }
     }
 }

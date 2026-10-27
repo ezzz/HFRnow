@@ -10,10 +10,14 @@ final class NavigationModel {
     var selectedSource: TopicSource? {
         didSet { if selectedSource != oldValue { selectedTopic = nil } }
     }
-    /// Topic chosen in the middle column (the message pane is a placeholder until the topic reader lands).
+    /// Topic chosen in the middle column, shown by the reader in the detail column.
     var selectedTopic: TopicSummary?
 
     private let dataSource: any ForumDataSource
+    private let topicPages: any TopicPageSource
+    private let renderOptions: @Sendable () -> ReaderRenderOptions
+    /// The reader of the selected topic, created once per selection so a view update never refetches the page (E25).
+    @ObservationIgnored private var currentReader: (id: String, model: TopicReaderModel)?
     private let sessionIsLoggedIn: @Sendable () async -> Bool
     /// A cache, not display state: `topicList(for:)` is called from a view body and must not invalidate it.
     @ObservationIgnored private var topicLists: [TopicSource: TopicListModel] = [:]
@@ -22,9 +26,13 @@ final class NavigationModel {
     init(
         dataSource: any ForumDataSource,
         forums: ForumListModel? = nil,
-        sessionIsLoggedIn: @escaping @Sendable () async -> Bool = { false }
+        sessionIsLoggedIn: @escaping @Sendable () async -> Bool = { false },
+        topicPages: any TopicPageSource = UnavailableTopicPages(),
+        renderOptions: @escaping @Sendable () -> ReaderRenderOptions = { ReaderRenderOptions() }
     ) {
         self.dataSource = dataSource
+        self.topicPages = topicPages
+        self.renderOptions = renderOptions
         self.sessionIsLoggedIn = sessionIsLoggedIn
         self.forums = forums ?? ForumListModel(dataSource: dataSource)
     }
@@ -43,4 +51,19 @@ final class NavigationModel {
         topicLists[source] = model
         return model
     }
+
+    /// The reader of `topic`: the same model while the topic stays selected, a new one (a new load) for another topic.
+    /// Nil when the row names no topic page.
+    func reader(for topic: TopicSummary) -> TopicReaderModel? {
+        if let currentReader, currentReader.id == topic.id { return currentReader.model }
+        guard let target = ReaderTarget(opening: topic) else { return nil }
+        let model = TopicReaderModel(target: target, title: topic.title, source: topicPages, renderOptions: renderOptions)
+        currentReader = (topic.id, model)
+        return model
+    }
+}
+
+/// A topic page source that has no forum behind it (previews and tests that never open a topic).
+struct UnavailableTopicPages: TopicPageSource {
+    func page(for target: ReaderTarget) async throws(ListLoadError) -> ReaderPage { throw .other }
 }
