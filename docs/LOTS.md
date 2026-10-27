@@ -48,7 +48,7 @@ Model column: author → reviewer ([AGENTS.md §6](../AGENTS.md#6-model-routing-
 | LOT-020 ✱ | Parsing core: selector helpers, HFR dates (Europe/Paris), URL helpers, obfuscated-URL decoder, integer extraction, typed errors | HFRParsing | medium | Opus → Fable | 010, 011 | B3, C02, D4 | — | cloud/c4-opus (2026-10-25) | done |
 | LOT-021 | Forum list (home page) parser (returns all categories; hiding Apple for reviewers is app policy, Q-7) | HFRParsing | medium | Sonnet → Opus | 010, 020, 002 | B4 | — | cloud/c6-sonnet (2026-10-26) | done (#53) |
 | LOT-022 ★ | Topic list parser (forums, MP, search results) — critical path | HFRParsing | difficult | Opus → Fable | 010, 020, 002 | B5 | — | cloud/c7-opus (2026-10-26) | done (#55) |
-| LOT-023 ★ | MP list specifics + unread badge (one parser for the 3 legacy variants) | HFRParsing | easy | Sonnet → Opus | 022 | B6, NET-13 | medium | mac/w1-023-sonnet (2026-10-27) · old [#63](https://github.com/francoisgn/ios-app_SwiftHFR/issues/63) | in-progress |
+| LOT-023 ★ | MP list specifics + unread badge (one parser for the 3 legacy variants) | HFRParsing | easy | Sonnet → Opus | 022 | B6, NET-13 | medium | mac/w1-023-sonnet (2026-10-27) · old [#63](https://github.com/francoisgn/ios-app_SwiftHFR/issues/63) | done (#19) |
 | LOT-024 | Favourites page parser | HFRParsing | medium | Sonnet → Opus | 022 | B7 | high | mac/w1-024-sonnet (2026-10-27) · old [#64](https://github.com/francoisgn/ios-app_SwiftHFR/issues/64) | done (#20) |
 | LOT-025 | Small parsers: search redirect, `editprofil` page (hash, avatar), smiley search results, AQ listing and AQ RSS feed | HFRParsing | easy | Sonnet → Opus | 020, 005 | B8, NET-04, NET-12, D6, D9 | — | cloud/c5-sonnet (2026-10-26) | done (#45; AQ part split to LOT-028) |
 | LOT-026 | Poll parser (vote / results / closed) | HFRParsing | medium | Sonnet → Opus | 011, 020, 005 | B9, C07, D11 | — | cloud/c5-sonnet (2026-10-26) | done (#46; multi-choice and plain "already voted" pending capture) |
@@ -172,6 +172,13 @@ Page states that merged lots listed as **pending capture** (never hand-built in 
 | Poll: multi-choice | LOT-026 | find a topic with a multi-choice poll |
 | Poll: plain "already voted" without the multipseudo notice | LOT-026 | needs a vote (P05 out of scope) → only if the operator agrees |
 | `div.sondageFooter` | LOT-026 | |
+| MP list page past the last page (`page=N` after a deletion); is the answer a `.hop` page? | LOT-023 | decides how pager walks (LOT-038/047) read `.notAuthenticated` |
+| MP list row of a one-to-one thread whose interlocutor was deleted or banned | LOT-023 | `sujetCase6` shape; the parser then reads a plain span as not a group |
+| MP list logged out | LOT-023 | the `.notAuthenticated` rule is checked on another list's `.hop` page |
+| Forum-list header badge with N > 1 ("Vous avez N nouveaux messages privés" in `table.none`) | LOT-023 | plural captured on the home page only |
+| MP list row with the ignore icon in its other state (`ignore1.gif`) | LOT-023 | not modelled yet |
+| MP pseudos containing a comma (`[non lu]` tooltip, group tooltip) | LOT-023 | whether HFR allows one is unknown |
+| Badge on a logged-in topic page | LOT-023 | R20 is anonymous; the parser returns nil on topic pages |
 | Topic list: MP list logged out, cross-category search results, rare row shapes | LOT-022 | see the LOT-022 spec |
 | Locked topic seen logged in; favourite/flagged topic page; checked in-topic search filter (R52a was a 302) | LOT-033 | |
 | Deleted message wrapper `messagetabledel`; in-topic search prefix link | LOT-030 | |
