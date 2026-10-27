@@ -12,7 +12,7 @@ enum ImageOrigin: Equatable, Sendable {
 }
 
 /// Why an image URL is never requested.
-enum ImageBlockReason: Equatable, Sendable {
+enum ImageBlockReason: Error, Equatable, Sendable {
     /// Not an `http(s)` URL, or a URL with user info.
     case scheme
     /// A host the policy cannot read safely: empty label, percent-encoding, characters outside `[a-z0-9.-]`.
@@ -44,27 +44,40 @@ enum ImagePolicy {
     static func classify(_ url: URL) -> ImageOrigin {
         guard let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http",
               url.user() == nil, url.password() == nil else { return .blocked(.scheme) }
-        guard let rawHost = url.host(percentEncoded: true), !rawHost.isEmpty else { return .blocked(.malformedHost) }
+        switch host(of: url) {
+        case .failure(let reason): return .blocked(reason)
+        case .success(let host): return classify(host: host, pathExtension: url.pathExtension.lowercased())
+        }
+    }
+
+    /// The host of `url`, lowercased, trailing dots removed; refused when the policy cannot read it safely.
+    private static func host(of url: URL) -> Result<String, ImageBlockReason> {
+        guard let rawHost = url.host(percentEncoded: true), !rawHost.isEmpty else { return .failure(.malformedHost) }
         // Any colon is an IPv6 literal (Foundation drops the brackets). Every one is refused: mapped, NAT64 and 6to4 forms
         // embed IPv4 private addresses, and zone ids name local interfaces, so range matching would be error-prone.
-        if rawHost.contains(":") { return .blocked(.privateAddress) }
+        if rawHost.contains(":") { return .failure(.privateAddress) }
         var host = rawHost.lowercased()
         while host.hasSuffix(".") { host.removeLast() }
-        guard !host.isEmpty, host.utf8.allSatisfy(isHostByte) else { return .blocked(.malformedHost) }
-        let labels = host.split(separator: ".", omittingEmptySubsequences: false)
-        guard !labels.contains(where: \.isEmpty) else { return .blocked(.malformedHost) }
+        guard !host.isEmpty, host.utf8.allSatisfy(isHostByte),
+              !host.split(separator: ".", omittingEmptySubsequences: false).contains(where: \.isEmpty) else {
+            return .failure(.malformedHost)
+        }
+        return .success(host)
+    }
+
+    /// The origin of a well-formed, lowercased host.
+    private static func classify(host: String, pathExtension: String) -> ImageOrigin {
+        let labels = host.split(separator: ".")
         if labels.allSatisfy(isNumericLabel) {
             guard let address = canonicalIPv4(labels) else { return .blocked(.numericHost) }
             return isPublic(address) ? .thirdParty : .blocked(.privateAddress)
         }
-        guard labels.count > 1, host != "localhost", !localSuffixes.contains(where: host.hasSuffix) else {
+        if labels.count < 2 || host == "localhost" || localSuffixes.contains(where: host.hasSuffix) {
             return .blocked(.localName)
         }
-        if host == "hardware.fr" || host.hasSuffix(".hardware.fr") {
-            if host == forumImageHost { return .forum }
-            return imageExtensions.contains(url.pathExtension.lowercased()) ? .forum : .blocked(.forumNonImage)
-        }
-        return .thirdParty
+        guard host == "hardware.fr" || host.hasSuffix(".hardware.fr") else { return .thirdParty }
+        if host == forumImageHost || imageExtensions.contains(pathExtension) { return .forum }
+        return .blocked(.forumNonImage)
     }
 
     /// `[a-z0-9.-]` (after lowercasing): no percent-encoding, no Unicode, no `_` tricks.

@@ -173,7 +173,8 @@ struct TopicReaderModelTests {
         let post = url("https://forum.hardware.fr/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_4.htm#t401")
         #expect(reader.action(forLink: post) == .reader(ReaderTarget(source: .topic(readerTopic), page: 4, anchor: 401)))
         #expect(reader.action(forLink: url("https://example.com/a")) == .external(url("https://example.com/a")))
-        #expect(reader.action(forLink: url("https://forum.hardware.fr/user/logout.php")) == .external(url("https://forum.hardware.fr/user/logout.php")))
+        let logout = url("https://forum.hardware.fr/user/logout.php")
+        #expect(reader.action(forLink: logout) == .external(logout))
         #expect(reader.action(forLink: url("mailto:someone@example.com")) == .ignored)
     }
 

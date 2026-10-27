@@ -82,7 +82,8 @@ enum TopicHTMLBuilder {
         if message.isDeleted { classes.append("deleted") }
         let anchor = message.isContinuation ? "" : " id=\"t\(message.numreponse)\""
         let label = message.dateText.isEmpty ? "Message de \(author)" : "Message de \(author), \(date)"
-        var html = "<article class=\"\(classes.joined(separator: " "))\"\(anchor) data-post=\"\(message.numreponse)\" aria-label=\"\(label)\">\n"
+        var html = "<article class=\"\(classes.joined(separator: " "))\"\(anchor) data-post=\"\(message.numreponse)\""
+        html += " aria-label=\"\(label)\">\n"
         html += "<header class=\"header\">"
         if let avatar = message.avatarURL {
             html += "<img class=\"avatar\" src=\"\(HTMLEscaping.text(avatar.absoluteString))\" alt=\"\">"

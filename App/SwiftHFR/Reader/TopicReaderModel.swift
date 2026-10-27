@@ -186,7 +186,9 @@ final class TopicReaderModel {
         await task.value
     }
 
-    private func finish(_ result: Result<ReaderPage, ListLoadError>, target: ReaderTarget, keepsScrollPosition: Bool, generation mine: Int) {
+    private func finish(
+        _ result: Result<ReaderPage, ListLoadError>, target: ReaderTarget, keepsScrollPosition: Bool, generation mine: Int
+    ) {
         // A superseded or cancelled load never delivers (issue #108).
         guard mine == generation else { return }
         isLoading = false

@@ -6,13 +6,18 @@ import Testing
 /// The reader document: untrusted values escaped, content inserted as body markup only, nothing remote.
 struct TopicHTMLBuilderTests {
     private func message(
-        author: String = "auteur", content: MessageContent = MessageContent(html: "<p>Bonjour</p>"),
-        continuation: Bool = false, editNote: String? = nil, quotedBy: Int? = nil, avatar: URL? = nil
+        author: String = "auteur", content: MessageContent = MessageContent(html: "<p>Bonjour</p>"), continuation: Bool = false
     ) -> ReaderMessage {
         ReaderMessage(
-            numreponse: 42, author: author, isDeleted: false, isContinuation: continuation, avatarURL: avatar,
-            dateText: "27-10-2026 10:00:00", editNote: editNote, quotedByCount: quotedBy, content: content
+            numreponse: 42, author: author, isDeleted: false, isContinuation: continuation, avatarURL: nil,
+            dateText: "27-10-2026 10:00:00", editNote: nil, quotedByCount: nil, content: content
         )
+    }
+
+    private func edited(_ message: ReaderMessage, note: String) -> ReaderMessage {
+        var message = message
+        message.editNote = note
+        return message
     }
 
     private func page(_ messages: [ReaderMessage], title: String = "Sujet") -> ReaderPage {
@@ -22,7 +27,7 @@ struct TopicHTMLBuilderTests {
     @Test func injectedValuesAreEscaped() {
         let hostile = "<script>alert(1)</script>\"' onmouseover=x"
         let html = TopicHTMLBuilder.document(
-            for: page([message(author: hostile, editNote: hostile)], title: hostile), token: 1
+            for: page([edited(message(author: hostile), note: hostile)], title: hostile), token: 1
         )
         #expect(!html.contains("<script"))
         #expect(!html.contains("\"' onmouseover"))
@@ -68,10 +73,10 @@ struct TopicHTMLBuilderTests {
     }
 
     @Test func trailersAndAvatar() {
-        let html = TopicHTMLBuilder.document(
-            for: page([message(editNote: "auteur le 27-10-2026", quotedBy: 3, avatar: url("https://forum-images.hardware.fr/a.png"))]),
-            token: 1
-        )
+        var trailed = edited(message(), note: "auteur le 27-10-2026")
+        trailed.quotedByCount = 3
+        trailed.avatarURL = url("https://forum-images.hardware.fr/a.png")
+        let html = TopicHTMLBuilder.document(for: page([trailed]), token: 1)
         #expect(html.contains("Message édité par auteur le 27-10-2026"))
         #expect(html.contains("Message cité 3 fois"))
         #expect(html.contains("<img class=\"avatar\" src=\"https://forum-images.hardware.fr/a.png\" alt=\"\">"))

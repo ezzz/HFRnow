@@ -36,9 +36,10 @@ struct LiveTopicPageSourceTests {
         let page = try await source.page(for: ReaderTarget(source: .topic(readerTopic), page: 1, anchor: 5))
         let requests = await session.requests
         #expect(requests.count == 1)
-        #expect(requests.first?.url.absoluteString.hasPrefix("https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=28563&page=1") == true)
+        let expected = "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=28563&page=1"
+        #expect(requests.first?.url.absoluteString.hasPrefix(expected) == true)
         #expect(await anonymous.requests.isEmpty)
-        let blocks = try MessageBlockParser.blocks(in: String(decoding: body, as: UTF8.self))
+        let blocks = try MessageBlockParser.blocks(in: try #require(String(data: body, encoding: .utf8)))
         #expect(page.messages.count == blocks.count)
         #expect(page.messages.map(\.numreponse) == blocks.map(\.numreponse))
         #expect(page.messages.allSatisfy { $0.content.html.hasPrefix("<p>normalized ") })
@@ -85,7 +86,7 @@ struct LiveTopicPageSourceTests {
     @Test(arguments: ["R22a-topic-middle-page-anon.html", "R26-topic-quotes-smileys-anon.html", "R27-topic-spoilers-anon.html",
                       "R27b-topic-code-blocks-anon.html", "R28-topic-images-videos-anon.html", "R31-topic-locked-anon.html"])
     func realPagesBuildADocumentWithoutPageScript(_ name: String) throws {
-        let html = String(decoding: try Self.capture(name), as: UTF8.self)
+        let html = try #require(String(data: try Self.capture(name), encoding: .utf8))
         let page = try LiveTopicPageSource.parse(html, pageURL: url(Self.canonical), normalizer: ContentNormalizer())
         #expect(!page.messages.isEmpty)
         let document = TopicHTMLBuilder.document(for: page, token: 1)
