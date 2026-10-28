@@ -206,7 +206,7 @@ Every legacy function and the Phase 4 features, one reviewable PR per lot; each 
 
 | Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Issue |
 |---|---|---|---|---|---|---|---|---|
-| LOT-130 | MPStorage sync service and settings; sync on by itself when the account already has a storage thread, else asked at the first bookmark or blacklist write (creating the thread is a write), declining remembered per account; remote load merges instead of replacing ([ADR 0013](adr/0013-storage-tiers.md) §7, operator 2026-10-28) | App | difficult | Opus → Fable | 052, 062, 060, 119, 081, 126 | legacy parity | medium | [#220](https://github.com/ezzz/HFRnow/issues/220) |
+| LOT-130 | MPStorage sync service and settings; a per-HFR-account state record `mpstorage.<pseudo>` (`unasked` / `on` / `declined` / `off`, iCloud KVS) replaces the app-wide `mpstorage_active`: `on` by itself when the account already has a storage thread, else asked at the first bookmark or blacklist write (creating the thread is a write), one account's choice never applies to another; remote load merges instead of replacing ([ADR 0013](adr/0013-storage-tiers.md) §7, operator 2026-10-28) | App | difficult | Opus → Fable | 052, 062, 060, 119, 081, 126 | legacy parity | medium | [#220](https://github.com/ezzz/HFRnow/issues/220) |
 | LOT-131 | Blacklist sync with MPStorage | App | medium | Opus → Fable | 130, 061, 118 | legacy parity | low | [#221](https://github.com/ezzz/HFRnow/issues/221) |
 | LOT-132 | Bookmarks | App | medium | Opus → Fable | 130, 087 | legacy parity | medium | [#222](https://github.com/ezzz/HFRnow/issues/222) |
 
@@ -232,7 +232,7 @@ Every legacy function and the Phase 4 features, one reviewable PR per lot; each 
 | LOT-156 | Multi-account consistency | App | medium | Opus → Fable | 081, 084, 130, 140 | legacy parity | medium | [#246](https://github.com/ezzz/HFRnow/issues/246) |
 | LOT-157 | Account deletion screen (HFR procedure) and local data wipe | App | easy | Opus → Fable | 081, 119 | legacy parity | medium | [#247](https://github.com/ezzz/HFRnow/issues/247) |
 | LOT-158 | Legacy data import on first launch | App | medium | Opus → Fable | 067, 081, 119 | legacy parity | high | [#248](https://github.com/ezzz/HFRnow/issues/248) |
-| LOT-173 | Opt-in "Synchroniser mes comptes via le trousseau iCloud" (second, synchronizable Keychain item; the device-only item stays the master) and optional Face ID / code app lock with grace delay ([ADR 0013](adr/0013-storage-tiers.md) §6, operator 2026-10-28); security-routed | App | medium | Opus → Fable | 065, 081, 119, 160 | ADR 0013 | medium | [#312](https://github.com/ezzz/HFRnow/issues/312) |
+| LOT-173 | Opt-in "Synchroniser mes comptes via le trousseau iCloud" (second, synchronizable Keychain item; the device-only item stays the master; bootstrap on a new device, newest-envelope-wins divergence, switching off deletes the copy everywhere: [ADR 0013](adr/0013-storage-tiers.md) §6, confirmed by the maintainer in the spec) and optional Face ID / code app lock with grace delay (operator 2026-10-28); security-routed | App | medium | Opus → Fable | 065, 081, 119, 160 | ADR 0013 | medium | [#312](https://github.com/ezzz/HFRnow/issues/312) |
 
 ### Background and notifications
 

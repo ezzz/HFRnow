@@ -48,7 +48,7 @@ An item has exactly one authoritative store and at most one local copy:
 | iCloud KVS, scalar preferences | **last writer wins per key**, as the store does; on the initial sync (`NSUbiquitousKeyValueStoreInitialSyncChange`) the cloud value wins over the local one | the only conflict is the same setting changed on two devices while offline; the later tap is the user's intent |
 | iCloud KVS, lists (allowlist, super-favourites, smiley favourites) | **last writer wins on the whole list**, each list one key holding `{version, items:[{id, addedAt}]}`; a union merge with tombstones is the documented upgrade if users report lost adds | simplification: these lists change a few times a month; a merge layer would duplicate LOT-062 for three tiny lists |
 | iCloud KVS, reading positions | last writer wins per topic key; the newest `updatedAt` is kept when both devices wrote | a position is a point in time |
-| iCloud account change (`NSUbiquitousKeyValueStoreAccountChange`, sign-out) | keep the local mirror, do not clear anything, resume with the next account's values on the next initial sync; a schema version key lets an older build ignore values it cannot read | never lose data because the Apple ID changed |
+| iCloud account change (`NSUbiquitousKeyValueStoreAccountChange`, sign-out) | the system replaces the store's content with the new Apple ID's data: the app **quarantines** the previous mirror values and any pending KVS write (moved to a device-only file, never uploaded under the new Apple ID), blocks synced reads and writes until the new account's initial sync has completed, then applies the new account's values to the mirror. Device-scoped settings are untouched. The quarantined values are restored only if that Apple ID becomes active again, and deleted after 90 days. A schema version key lets an older build ignore values it cannot read | one Apple ID's data never reaches another Apple ID's store; nothing is lost because the Apple ID changed |
 
 ### 4. Offline behaviour
 
@@ -69,17 +69,23 @@ SwiftHFR ships as an in-place update of `hfrplus.red.super` under the ezzz team,
 
 Accounts stay in a device-only Keychain item (LOT-065, Q-9). Two options, both off by default, are added by LOT-173 ([#312](https://github.com/ezzz/HFRnow/issues/312)):
 
-- **"Synchroniser mes comptes via le trousseau iCloud"**: when on, the credential envelope is also written to a second, **synchronizable** Keychain item (`kSecAttrSynchronizable`, `AfterFirstUnlock`), which iCloud Keychain carries to the user's other devices end to end encrypted; the device-only item stays the local master; switching off deletes the synchronizable copy. The setting explains what travels and how to stop.
+- **"Synchroniser mes comptes via le trousseau iCloud"**: when on, the credential envelope is also written to a second, **synchronizable** Keychain item (`kSecAttrSynchronizable`, `AfterFirstUnlock`), which iCloud Keychain carries to the user's other devices end to end encrypted. The setting explains what travels and how to stop. Rules of the copy (one item, one envelope, `updatedAt` in the envelope):
+  - *Master.* The device-only item stays the master on each device; every change to it (login, re-login, deletion, main account) is pushed to the synchronizable item while the switch is on.
+  - *Bootstrap.* A device with no device-only item that finds the synchronizable item imports it into a new device-only item and turns the switch on; the imported accounts are not logged in again (the cookies are the session).
+  - *Divergence.* On launch and on foreground, when both items exist and differ, the **newer `updatedAt` wins the whole envelope** (last writer wins, like the KVS lists): a credential refreshed on another device replaces the local copy, a device that was offline longer loses its stale copy. `AccountBook.init(accounts:)` repairs duplicates and the main flag after a replacement; accounts are never silently merged into more than the user had on the winning side.
+  - *Switching off.* Deletes the synchronizable item, which iCloud Keychain removes from every device; a device that finds its switch on and the item gone turns its switch off and keeps its device-only item. Switching off never deletes a device-only item anywhere.
+  These rules are confirmed by the maintainer in the LOT-173 spec before implementation; the ADR records the default.
 - **App lock** (Face ID / Touch ID / device code, `LocalAuthentication`) with a grace delay, covering every scene.
 
 Nothing else about secrets changes: no password is stored, no cookie leaves the Keychain.
 
 ### 7. MPStorage sync: on when the account already has a storage thread, else asked at the first write (Q14)
 
-Blacklist and bookmarks stay in MPStorage. `mpstorage_active` (synced through KVS, app-wide as in legacy) is no longer simply "off by default":
+Blacklist and bookmarks stay in MPStorage. The legacy app-wide boolean `mpstorage_active` becomes a **per-HFR-account record** `mpstorage.<normalised pseudo>` = `{state, decidedAt}` with `state` in `unasked` (default), `on`, `declined`, `off` (turned off in Settings), kept in iCloud KVS (one small key per account, same scope rules as the lists):
 
-- At login or first sync, LOT-130 looks for the account's storage thread (the LOT-038 scan, read-only). **Found → sync is on** for that account: the user already chose it in another client, and reading the document costs nothing.
-- **Not found → the app asks** at the first bookmark or blacklist write, because creating the thread is a write to the forum (a private message to `MultiMP`); until the user answers, the list stays device-only. Declining is remembered per account; the setting can be turned on later in Settings.
+- At login or first sync, while the record is `unasked`, LOT-130 looks for the account's storage thread (the LOT-038 scan, read-only). **Found → `on`** for that account: the user already chose it in another client, and reading the document costs nothing.
+- **Not found → the app asks** at the first bookmark or blacklist write, because creating the thread is a write to the forum (a private message to `MultiMP`); until the user answers, the list stays device-only. Declining sets `declined` for that account only; Settings shows the state per account and can set `on` or `off` later.
+- Sync runs for an account only when its record is `on`; one account's state never applies to another. The legacy `mpstorage_active` key is read once by the import (LOT-067): `true` → every imported account starts `on`, `false` → `unasked`; the key is not written any more.
 
 ### 8. Simplifications (settings dropped or merged)
 
@@ -92,7 +98,7 @@ Blacklist and bookmarks stay in MPStorage. `mpstorage_active` (synced through KV
 | Dropped unless the reader reads it | `size_smileys` | the reader's CSS decides smiley size (LOT-083/106); keep the key only if the renderer reads it |
 | Kept as legacy | `vos_sujets`, `sujets_avec_cat`, `favorites_auto_refresh` | unchanged (the FEAT-001 Home proposal is not implemented, operator 2026-10-28) |
 | No user-facing "sync with iCloud" switch for KVS | — | on whenever the device has an iCloud account, like Apple's own apps; the data is private to the Apple ID and small. (The Keychain sync of accounts is the one opt-in switch, §6.) |
-| No per-account settings | — | preferences stay app-wide (as legacy); only the lists, the reading positions and the MPStorage items are per HFR account |
+| No per-account settings | — | preferences stay app-wide (as legacy); only the lists, the reading positions, the MPStorage sync state (§7) and the MPStorage items are per HFR account |
 | Four keys added on `master` after the audit | `HFRswiftStartupScreen`, `topic_page_swipe_navigation`, `open_links_in_default_browser`, `reply_button_behavior` | in the LOT-060 catalogue (two of them by LOT-119), synced |
 
 ### 9. Needs
@@ -145,7 +151,7 @@ Legacy citations are read on `origin/master` of ezzz/HFRnow at `21173e7` (2026-1
 | MP flags (`mpFlags.list[{post, p, href, page, uri}]`) = read position of group conversations | MPStorage (`MPStorage.m:463-525`); written by DTCloud (`sourceName` `DTCloud_GM`), read by redface2 (rf2 C8, E23) | **Yes**: DTCloud writes, redface2 reads | Personal | ~150 B each; per MP open | **MPStorage** (unchanged) | The only item with proven cross-platform consumers. |
 | Other clients' namespaces (`hfrChat`, `superFavs`, `hfr4k`, `egoQuote`, `egoPost`, `lastRead`, `ezzziDrap`, `fastDelete`, `fastValid`, `catMP`, `oemMP`, ...) | not read by legacy iOS; preserved on rewrite (`MPStorage.m:886, 908`) | Yes (theirs) | Unknown | counts towards the shared 64 KiB | **MPStorage, verbatim** (LOT-013/062) | Never modelled, never dropped. `superFavs` and `lastRead` may overlap ours: schema pending capture (#272). |
 | MPStorage location cache: thread `post` id per pseudo/alias | UserDefaults `dicMPStorage_postid` (`MPStorage.m:82-86, 670-688`) | redface2 caches the same per account (rf2 §2) | Low (own pseudos) | < 1 KiB; rare | **Device-only**, per account (LOT-052's store) | A cache, rebuilt by a scan. |
-| `mpstorage_active` (sync switch) | UserDefaults, default off (`AppSettingsView.swift:112`, `MPStorage.m:83`) | n/a | Low | 1 key | **iCloud KVS**; on when a thread exists, else asked at first write (§7) | Enabling it on one Apple device enables it on the others; LOT-062 handles two writers. |
+| MPStorage sync state (legacy app-wide `mpstorage_active`, now `mpstorage.<pseudo>` = `{state, decidedAt}` per HFR account) | UserDefaults, default off (`AppSettingsView.swift:112`, `MPStorage.m:83`) | n/a | Low (own pseudos) | 1 key per account | **iCloud KVS**; `on` when a thread exists, else asked at first write (§7); the legacy key is read once by the import | Enabling it on one Apple device enables it on the others; LOT-062 handles two writers; one account's choice never applies to another. |
 | `mpstorage_last_rw` (last successful sync) | UserDefaults via `registerDefaults:` (volatile, `MPStorage.m:969-978`); shown in Settings (`AppSettingsView.swift:113`) | n/a | None | 1 key; every sync | **Device-only**, per account | A fact about *this device's* last sync. |
 
 ### C. User lists that are not in MPStorage today
@@ -217,4 +223,4 @@ Rule applied: a **content** preference syncs through iCloud KVS; a **device pres
 
 ### Budget check (iCloud KVS)
 
-≈ 25 scalar preference keys (< 100 B each), one accent, one schema version, per HFR account: 2 list keys (≤ 10 KiB each), 1 reading-position key (≤ 200 topics × ~40 B ≈ 8 KiB); 1 global allowlist key. Worst case with 5 accounts: ≈ 45 keys, < 200 KiB. Limits: 1024 keys, 1 MB. Drafts, histories and caches are excluded because they would not fit or would churn.
+≈ 25 scalar preference keys (< 100 B each), one accent, one schema version, per HFR account: 2 list keys (≤ 10 KiB each), 1 reading-position key (≤ 200 topics × ~40 B ≈ 8 KiB); 1 global allowlist key. Worst case with 5 accounts (plus one sync-state key per account): ≈ 50 keys, < 200 KiB. Limits: 1024 keys, 1 MB. Drafts, histories and caches are excluded because they would not fit or would churn.
