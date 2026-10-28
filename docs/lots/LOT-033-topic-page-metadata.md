@@ -35,6 +35,7 @@ page was finally served from (after redirects; the page fetchers return it as `f
 | `hasPoll` | an element with `class="sondage"` (the whole attribute) exists. A poll shape is read by `PollParser`; a thrown `PollParser` error means "poll unavailable" for the caller, never a failed page (LOT-026 "Callers") |
 | `searchFormFields` | for the first element whose `action` is `/transsearch.php`: its `input`s named `hash_check, p, post, cat, firstnum, currentnum, word, spseudo, filter` that have a `value`; a checkbox only when `checked`; nil without the form |
 | `topicID` | `cat` + `post` of `answerFormFields`, else of `searchFormFields`, else of the `pageURL` query (`cat=`, `post=`); nil if none has both |
+| `flag` (#306) | in the first `tr.fondForum2Fonctions` (the function bar) only, the first `a` whose `href` resolves to `https://forum.hardware.fr/user/delflag.php` (port 443, no user info, exact path; a relative or `http` forum link is read as `https`, ADR 0006): `TopicPageFlag(flag:removalURL:)`, the flag from the icon file name (`flagn0.gif` `.red`, `flagn1.gif` `.blue`, `favorisn.gif` `.yellow`, other nil). nil without such a link |
 
 `TopicPageMetadata` is `Sendable`/`Hashable`, deliberately not `Codable`; `description`, `debugDescription` and `customMirror` print
 counts, never values (`hash_check`), like `TopicPage`.
@@ -60,6 +61,7 @@ Captures (`Fixtures/captures/`) with their oracles (`Fixtures/LOT-003/`), all 20
 |---|---|
 | R20, R22a, R22b, R24, R26, R27, R28 | anonymous: first, middle, last and redirected pages, pager with ellipsis, long titles with brackets and quotes |
 | R21, R32b | logged in (`user2`): answer form, 17 hidden fields, search form |
+| P03m, R63a, R63e; R21, R32b; R33b, R61d, R61e | function bar flag (#306): `favorisn.gif` favourite, `flagn0.gif` read, `flagn1.gif` participated; `P03m`'s link is `P03n`'s request |
 | R23, R27b | single page topics (no pager block) |
 | R31 | locked topic (visitor view) |
 | R32a, R32b | poll presence |
@@ -67,13 +69,15 @@ Captures (`Fixtures/captures/`) with their oracles (`Fixtures/LOT-003/`), all 20
 | RU2 | recipient view after the owner's delete: no reply form |
 | RA5 | conversation deleted by its owner: no title, no forms |
 
-`TopicPageMetadataParserTests` adds expectations written from reading the captures (not from the oracle) and a few small inline
+`TopicPageFlagTests` (#306) checks the flag on every capture that has the link and on anonymous and private pages without
+it, against the raw pages (the LOT-003 oracle does not export `isFavoritesOrRead`, LESSONS 52), plus in-memory edits for the
+scope and origin rules. `TopicPageMetadataParserTests` adds expectations written from reading the captures (not from the oracle) and a few small inline
 pages for parser rules that no capture exercises (foreign answer link, trailing text in the pager, duplicated hidden names, checked
 checkbox). Those inline pages state our parsing rules, not facts about HFR.
 
 Pending capture (no fixture, nothing hand-built): a topic page with a **checked** `filter` box in the search form (search result page
 of `transsearch.php`; R52a is a 302 without body), a **locked topic seen by a logged-in account** (does it keep `hop`?), a
-**favourite/flagged** topic as seen logged in (`delflag` links), a pager whose current page sits between two ellipses with a trailing
+a pager whose current page sits between two ellipses with a trailing
 text node, a poll **results** page (R33, LOT-026).
 
 ## Intentional differences from legacy
@@ -84,8 +88,11 @@ text node, a poll **results** page (R33, LOT-026).
 3. **The answer URL is restricted to `https://forum.hardware.fr`.** Legacy prefixed any value not starting with `http` with the forum URL
    and accepted any `http…` link, including another host and clear `http`.
 4. **A checked checkbox is any `checked` attribute and the `type` is case-insensitive** (HTML semantics); legacy compared both as exact text.
-5. **No topic flag state** (`delflag`, red flag): legacy does not read it in the live path either (C §1.2); `isUnreadable` stays the
-   only flag-related field, and it is not a "cannot be favourite" rule (LOT-003 RC3.3): that is app policy.
+5. **Topic flag state is read from the function bar only** (#306, for LOT-051's `removeFlag`). Legacy's reader took the first `href`
+   containing `delflag` anywhere in the body and set `isRedFlagged` from `flagn0.gif` (`MessagesTableViewController.m:1559-1566`), so on a
+   page whose bar has no such link a link posted in a message became the remove-flag action (the LOT-031 learning). Here the lookup is
+   scoped to `tr.fondForum2Fonctions`, the link must stay on the forum origin, and all three icons are named, not only the red one.
+   `isUnreadable` is unchanged, and it is not a "cannot be favourite" rule (LOT-003 RC3.3): that is app policy.
 6. **`topicID` is new**: legacy had the category from `hop` only (RC3.4); here the search form and the page URL are fallbacks.
 7. **`hasPoll` only.** Legacy's `isNewVote` (a poll `input` exists) is a poll-parser concern; `PollParser` returns the votable or results kind.
 8. Typed values instead of `NSDictionary`; `[:]` and nil are distinct for the search form (legacy: always a dictionary).

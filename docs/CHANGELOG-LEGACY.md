@@ -27,5 +27,6 @@ Registre des problèmes **présents dans l'app legacy** (HFR+ / HFRnow, branche 
 | 19 | UX | Liens du forum : chaque forme (sujet, liste, profil, MP, favoris, recherche) ouvre son propre écran ; le legacy ouvrait tout lien `forum2.php` ou `/hfr/…` comme un sujet (listes et profils compris). | LOT-095 #187 | `Common.swift:2473-2479` (`isForumTopicURL`) |
 | 20 | UX | Lien vers un message (signet, permalien `numreponse=M`, lignes de liste) : la page est laissée au serveur au lieu de retomber sur la page 1 (le serveur ignore `page=` quand `numreponse` est présent). | LOT-095 #187, bug #106 | `Common.swift:2693-2727` (`pageNumber`), `BookmarksPlusView.swift:143-146`, `Bookmark.m:17`, capture R25 |
 | 21 | T | Lien interne : un port explicite ou un schéma autre que http(s) n'est plus traité comme un lien du forum (seul l'hôte était comparé). | LOT-095 #187 | `Common.swift:2474` |
+| 22 | T | Drapeau d'un sujet : seul le lien de la barre de fonctions du sujet compte. Un lien « retirer le drapeau » posté dans un message ne peut plus devenir l'action du bouton. | LOT-033, #306 | `MessagesTableViewController.m:1559-1566` (premier `href` contenant `delflag` dans toute la page) |
 
 Points « non corrigés volontairement » (comportement legacy gardé) : AQ appelé au lancement (D-071-3).
