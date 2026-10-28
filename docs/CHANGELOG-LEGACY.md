@@ -24,5 +24,9 @@ Registre des problèmes **présents dans l'app legacy** (HFR+ / HFRnow, branche 
 | 16 | UX | Sous-forums : pagination et ouverture depuis la page d'accueil fiables. | LOT-082 #32 | — |
 | 17 | T | Formulaires : une action de formulaire hors du forum est refusée (pas d'envoi des cookies ailleurs). | LOT-036 #22 | legacy préfixait l'URL du forum (pas de faille legacy ; garde-fou conservé) |
 | 18 | T | Suppression d'un premier post (= tout le sujet) : confirmation obligatoire hors MP. | LOT-048 #36 | legacy : détection par libellé seulement |
+| 19 | UX | Réponse : le brouillon est enregistré pendant la frappe (par sujet et par compte) et survit à un kill ; fermer demande garder / supprimer, le glissement vers le bas ne perd plus le texte. | LOT-084 | `AnswerView.swift:603-620` (sauvegarde au `onDisappear` seulement), retours p. 498-506 |
+| 20 | UX | Réponse : un échec garde toujours le texte et dit si le message a pu partir ; « peut-être posté » invite à vérifier le sujet au lieu de renvoyer. | LOT-084 | `AnswerView.swift:1518-1525` (toast `localizedDescription` / « Ooops ») |
+| 21 | UX | Réponse : les emoji hors BMP sont refusés avant l'envoi avec la liste (HFR coupait le message au premier). | LOT-084 (règle LOT-048, Q-3) | `ReplyService.swift:150` (texte envoyé tel quel), capture W12 |
+| 22 | UX | Après une réponse, le lecteur ouvre la dernière page du sujet sur le dernier message, où que l'on lise (legacy : rechargement seulement si la dernière page était affichée). | LOT-084 | `MessagesView.swift:5019-5020` |
 
 Points « non corrigés volontairement » (comportement legacy gardé) : AQ appelé au lancement (D-071-3).

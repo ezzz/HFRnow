@@ -327,6 +327,12 @@ Source: [LOT-031](lots/LOT-031-message-actions.md), `MessageActionsParser`, chec
 - **Not read** (no legacy use): `viewbbcode.php`, `edit_in(…)` quick edit, `/user/contactlist.php?adduser=<id>`.
 - **Pending capture**: the viewer's own post on a public topic (edit link shape and which other links remain), a quote or edit link printed in clear instead of obfuscated.
 
+### LOT-084 — reply composer
+
+Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `LiveTopicPageSource.parse` (LOT-033 metadata).
+
+- **Answer link** (`R61d`, **verified**): a logged-in topic page's `#repondre_form` holds one `a` to `/message.php?config=hfr.inc&cat=<cat>&post=<post>&page=<page>&p=1&subcat=<sub>&sondage=0&owntopic=0&new=0` (the page shown, here 30), the reply composer `R61b` serves; none on anonymous pages (`R20`) nor on a locked topic seen anonymously (`R31`). A locked topic seen by a member is pending capture (#131).
+- **Where a reply lands vs HFR's refresh** (`W30`, `R61d`, **verified**): the reply answer refreshes to page **1** with `#bas` (`…-sujet_6510_1.htm#bas`), while the reply is the last message of the topic's last page (`R61d`, page 30): the app opens `page = max + 1`, which HFR redirects to the last page (`R24`, 302 from the canonical path), at its last message.
 
 ## 7. Reported by redface2, to verify with our fixtures
 

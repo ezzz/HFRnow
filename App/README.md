@@ -8,6 +8,7 @@ The iOS app target (SwiftUI, iOS 27), `App/SwiftHFR.xcodeproj` ([ADR 0012](../do
 | `SwiftHFR/` | App sources and assets (folder-synchronized: add files here, the project file does not change) |
 | `SwiftHFR/Accounts/` | Accounts and login ([LOT-081](../docs/lots/LOT-081-accounts-login.md)): `AccountsModel` owns every account `HFRSession`; `currentSession` is the session of the current account; `RootView` rebuilds the navigation (`AppEnvironment`) whenever `currentSessionGeneration` changes |
 | `SwiftHFR/Reader/` | Topic reader ([LOT-083](../docs/lots/LOT-083-topic-reader.md)): `TopicReaderModel` (loads, pages, links), `TopicHTMLBuilder` (document), `ReaderWebController` (`WKWebView`, `hfrreader:` scheme, CSP, no page script), `ImagePolicy` + `ReaderImageFetcher` (policy C, cookie-less images), `Resources/` (`reader.css`, `reader.js`) |
+| `SwiftHFR/Composer/` | Reply composer ([LOT-084](../docs/lots/LOT-084-reply-composer.md)): `ReplyComposerModel` (text, draft restore and debounced autosave, send, close choice), `ReplyComposerView` (sheet), `ReaderReplyFlow` (the reader's "Répondre" button, sheet and confirmation banner), `LiveReplyPoster` (LOT-048 through the current account's session), `ComposerServices` (poster, the app's single `DraftStore`, account), `ComposerMessages` (French texts per `PostingError`) |
 | `SwiftHFRTests/` | Unit tests (Swift Testing), hosted by the app |
 
 Build and test on the simulator (unsigned, as CI does):
