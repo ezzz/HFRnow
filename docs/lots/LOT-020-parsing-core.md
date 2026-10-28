@@ -2,7 +2,7 @@
 
 - **Module:** HFRParsing
 - **Difficulty / model:** medium (Opus → Fable)
-- **Issue:** none (lot tracked in `docs/LOTS.md`)
+- **Issue:** [#48](https://github.com/ezzz/HFRnow/issues/48)
 
 ## Legacy sources
 

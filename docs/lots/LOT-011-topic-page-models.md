@@ -2,7 +2,7 @@
 
 - **Module:** HFRModels
 - **Difficulty / model:** easy (Sonnet → Opus)
-- **Issue:** none (lot tracked in `docs/LOTS.md`)
+- **Issue:** [#44](https://github.com/ezzz/HFRnow/issues/44)
 
 ## Legacy sources
 Legacy repository <https://github.com/francoisgn/hfrnow> at `2440d79`. Audit: [C §3.2, §3.3, §3.5, §7 (C01)](../audit/C-message-parsing.md), [ADR 0006](../adr/0006-content-normalization-in-parsing.md) with amendment 1, [B §3.6 and 2.1](../audit/B-list-parsing-models.md) (poll), [redface2 comparison](../research/redface2-comparison.md) §4.3 E18 and E20.

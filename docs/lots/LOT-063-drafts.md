@@ -2,7 +2,7 @@
 
 - **Module:** HFRStorage
 - **Difficulty / model:** easy (Sonnet → Opus)
-- **Issue:** none (lot tracked in `docs/LOTS.md`)
+- **Issue:** [#88](https://github.com/ezzz/HFRnow/issues/88)
 
 ## Legacy sources
 Legacy repository <https://github.com/francoisgn/hfrnow> at `2440d79`. Audit: [D §4, §8 (D12)](../audit/D-posting.md), [E §3.2, §8 (E-4)](../audit/E-storage-vendors.md), [redface2 comparison](../research/redface2-comparison.md) (per-account drafts with a retention TTL).
