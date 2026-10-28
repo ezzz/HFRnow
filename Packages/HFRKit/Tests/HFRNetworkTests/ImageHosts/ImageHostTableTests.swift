@@ -73,6 +73,11 @@ struct ImageHostTableTests {
         }
     }
 
+    @Test func nonUTF8PercentEscapesSurviveTheRewrite() throws {
+        let rewritten = table.fullSizeURL(for: try url("https://reho.st/thumb/caf%E9.jpg"))
+        #expect(rewritten.absoluteString == "https://reho.st/caf%E9.jpg")
+    }
+
     @Test func extensionlessHostsAreListed() throws {
         for text in ["https://reho.st/abc", "https://img3.super-h.fr/images/x", "https://rehost.diberie.com/Picture/Get/f/1"] {
             #expect(table.servesExtensionlessImages(try url(text)), "\(text)")

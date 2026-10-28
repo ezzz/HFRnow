@@ -83,15 +83,13 @@ struct RehostClientTests {
 
     @Test func aTransportErrorNeverCarriesTheKeyOrFreeText() async throws {
         let withKey = try #require(URL(string: "https://img.example/api/1/upload/?key=FAKEKEY"))
-        let leaky: [NetworkError] = [.httpStatus(code: 500, url: withKey), .invalidRequest(reason: "bad url ?key=FAKEKEY")]
-        for error in leaky {
-            let client = client(MockTransport(replies: [.failure(error)]))
-            do {
-                _ = try await client.upload(jpeg: Self.jpeg)
-                Issue.record("expected a failure")
-            } catch {
-                #expect(!String(describing: error).contains("FAKEKEY"), "\(error)")
-            }
+        let sanitizedURL = try #require(URL(string: "https://img.example/api/1/upload/"))
+        let cases: [(NetworkError, NetworkError)] = [
+            (.httpStatus(code: 500, url: withKey), .httpStatus(code: 500, url: sanitizedURL)),
+            (.invalidRequest(reason: "bad url ?key=FAKEKEY"), .invalidRequest(reason: "upload request refused"))
+        ]
+        for (raised, expected) in cases {
+            await expectFailure(.network(expected), replies: [.failure(raised)])
         }
     }
 

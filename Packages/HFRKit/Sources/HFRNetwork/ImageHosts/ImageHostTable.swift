@@ -73,7 +73,7 @@ public struct ImageHostTable: Sendable, Equatable {
             rewritten = String(path[...slash]) + name.replacingOccurrences(of: marker, with: ".")
         }
         // Foundation's setter traps on a bad percent escape, and a rule is data (a custom one may hold a lone `%`).
-        guard rewritten.removingPercentEncoding != nil else { return url }
+        guard Self.isValidEncodedPath(rewritten) else { return url }
         components.percentEncodedPath = rewritten
         return components.url ?? url
     }
@@ -81,6 +81,23 @@ public struct ImageHostTable: Sendable, Equatable {
     /// True when the host's image URLs have no file extension (so the extension test cannot be used on them).
     public func servesExtensionlessImages(_ url: URL) -> Bool {
         rule(for: url)?.servesExtensionlessImages ?? false
+    }
+
+    /// True when `path` only holds characters RFC 3986 allows in a path and every `%` starts two hex digits.
+    ///
+    /// It does not decode: `%E9` (Latin-1, not UTF-8) is a valid escape that HFR-era hosts use.
+    static func isValidEncodedPath(_ path: String) -> Bool {
+        let allowed = Set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~!$&'()*+,;=:@/")
+        let hex = Set("0123456789abcdefABCDEF")
+        var chars = path.makeIterator()
+        while let char = chars.next() {
+            if char == "%" {
+                guard let first = chars.next(), let second = chars.next(), hex.contains(first), hex.contains(second) else { return false }
+            } else if !allowed.contains(char) {
+                return false
+            }
+        }
+        return true
     }
 
     /// Lower-case host without trailing dot for an `http(s)` URL, `nil` otherwise.
