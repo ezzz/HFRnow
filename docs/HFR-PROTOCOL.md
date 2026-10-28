@@ -344,6 +344,13 @@ Source: [LOT-031](lots/LOT-031-message-actions.md), `MessageActionsParser`, chec
 - **Not read** (no legacy use): `viewbbcode.php`, `edit_in(…)` quick edit, `/user/contactlist.php?adduser=<id>`.
 - **Pending capture**: the viewer's own post on a public topic (edit link shape and which other links remain), a quote or edit link printed in clear instead of obfuscated.
 
+### LOT-044 — session refresh
+
+[LOT-044](lots/LOT-044-session-health.md), asserted by the capture-backed flow tests `SessionRefreshFlowTests` (the pages are read by `ProfileEditPageParser` and `HopResponseParser`, already verified above).
+
+- **Profile page 1 logged in** (`R55-p1`, **verified**): `GET /user/editprofil.php?config=hfr.inc&page=1` answers 200 with a non-empty `hash_check`, no `.hop`, and sets `md_user` and `md_passs` (each name twice in the meta; attributes not recorded). A refresh is confirmed only by that shape with the same `md_user` afterwards.
+- **Token echo** (`W17c`, **verified**): a `.hop` refusal can hold a non-empty `hash_check` in its replay form although the POST carried no cookies, so a non-empty token is evidence of a logged-in session only on the expected profile-page GET, after its URL and `.hop` checks.
+- Not captured: page 1 with stale cookies, `md_user=deleted` sent by HFR, attributes of the doubled `Set-Cookie` (see the lot's Pending capture).
 
 ## 7. Reported by redface2, to verify with our fixtures
 
