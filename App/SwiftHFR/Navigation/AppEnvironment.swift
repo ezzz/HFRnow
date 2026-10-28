@@ -20,7 +20,8 @@ struct AppEnvironment {
     static func make(session: HFRSession, accountName: String?) -> AppEnvironment {
         let fetcher = PageFetcher(session: session)
         let source = LiveForumDataSource(fetcher: fetcher, transport: session)
-        let pages = LiveTopicPageSource(fetcher: fetcher, session: session, normalizer: ContentNormalizer())
+        NetworkMonitor.start()
+        let pages = LiveTopicPageSource(fetcher: fetcher, session: session, normalizer: LiveContentNormalizer())
         let reader = ReaderServices(
             imageFetcher: ReaderImageFetcher(),
             settings: .live(store: UserDefaultsSettingsStore(), isOnWiFi: { NetworkMonitor.shared.isOnWiFi })

@@ -5,7 +5,7 @@
   "use strict";
   const channel = window.webkit.messageHandlers.reader;
   const token = Number(document.documentElement.dataset.token);
-  const proxied = (src, tapped) => "hfrreader://image/?u=" + encodeURIComponent(src) + (tapped ? "&tap=1" : "");
+  const proxied = (src) => "hfrreader://image/?u=" + encodeURIComponent(src);
 
   const hostOf = (src) => {
     try { return new URL(src).host; } catch (error) { return ""; }
@@ -22,9 +22,9 @@
     img.replaceWith(node);
   };
 
-  const load = (img, src, tapped) => {
+  const load = (img, src) => {
     img.addEventListener("error", () => replaceWithLink(img, src), { once: true });
-    img.setAttribute("src", proxied(src, tapped));
+    img.setAttribute("src", proxied(src));
   };
 
   const placeholder = (img, src) => {
@@ -38,14 +38,16 @@
     button.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
-      button.replaceWith(img);
-      load(img, src, true);
+      // Consent is recorded by the app for this exact URL before the image is asked for.
+      channel.postMessage({ type: "tap", token, url: src }).then((allowed) => {
+        if (allowed === true) { button.replaceWith(img); load(img, src); }
+      });
     });
     img.replaceWith(button);
   };
 
   const apply = (img, src, decision) => {
-    if (decision === "load") { load(img, src, false); }
+    if (decision === "load") { load(img, src); }
     else if (decision === "tap") { placeholder(img, src); }
     else { replaceWithLink(img, src); }
   };

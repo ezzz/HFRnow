@@ -39,9 +39,13 @@ enum TopicHTMLBuilder {
     static let scheme = "hfrreader"
 
     /// The policy delivered with the page, as a header and as a `<meta>`: nothing remote, no script from the page, no
-    /// frame, no form, no base URL. Inline `style` stays allowed for the sanitized `color:` spans of the content.
+    /// frame, no form, no base URL. Style attributes stay allowed (`style-src-attr`) because LOT-034 keeps the sanitized
+    /// `color:` of user colours and code highlighting there; `<style>` elements are refused (`style-src-elem`), and any
+    /// CSS `url()` falls under `img-src`, i.e. the app's scheme and its policy. `style-src` is the fallback for engines
+    /// without the CSP 3 split.
     static let contentSecurityPolicy = [
-        "default-src 'none'", "img-src \(scheme):", "style-src \(scheme): 'unsafe-inline'", "script-src 'none'",
+        "default-src 'none'", "img-src \(scheme):", "style-src \(scheme): 'unsafe-inline'", "style-src-elem \(scheme):",
+        "style-src-attr 'unsafe-inline'", "script-src 'none'",
         "frame-src 'none'", "child-src 'none'", "connect-src 'none'", "font-src 'none'", "media-src 'none'",
         "object-src 'none'", "manifest-src 'none'", "worker-src 'none'", "form-action 'none'", "base-uri 'none'"
     ].joined(separator: "; ")

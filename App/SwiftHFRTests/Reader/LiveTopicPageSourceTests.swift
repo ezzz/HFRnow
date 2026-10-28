@@ -57,7 +57,8 @@ struct LiveTopicPageSourceTests {
             fetcher: PageFetcher(session: session, anonymous: MockTransport(replies: [])), session: session,
             normalizer: MarkingNormalizer()
         )
-        let page = try await source.page(for: ReaderTarget(source: .path("/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm")))
+        let path = "/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm?logout=1#t5"
+        let page = try await source.page(for: ReaderTarget(source: .path(path)))
         #expect(await session.requests.map(\.url.absoluteString) == [Self.canonical])
         #expect(page.topicID == readerTopic)
     }
@@ -73,6 +74,14 @@ struct LiveTopicPageSourceTests {
         #expect(await session.requests.isEmpty)
     }
 
+    /// A page that carries HFR's message instead of messages (a `.hop` notice, `R08-1`) shows that message.
+    @Test func aNoticePageShowsHFRsMessage() throws {
+        let html = try #require(String(data: try Self.capture("R08-1-list-cat13-owntopic1-empty.html"), encoding: .utf8))
+        let page = try LiveTopicPageSource.parse(html, pageURL: url(Self.canonical), normalizer: LiveContentNormalizer())
+        #expect(page.messages.isEmpty)
+        #expect(page.notice?.isEmpty == false)
+    }
+
     @Test func networkFailuresAreActionable() async {
         let session = MockTransport(replies: [.failure(.offline)])
         let source = LiveTopicPageSource(
@@ -83,14 +92,44 @@ struct LiveTopicPageSourceTests {
         }
     }
 
-    @Test(arguments: ["R22a-topic-middle-page-anon.html", "R26-topic-quotes-smileys-anon.html", "R27-topic-spoilers-anon.html",
-                      "R27b-topic-code-blocks-anon.html", "R28-topic-images-videos-anon.html", "R31-topic-locked-anon.html"])
-    func realPagesBuildADocumentWithoutPageScript(_ name: String) throws {
-        let html = try #require(String(data: try Self.capture(name), encoding: .utf8))
-        let page = try LiveTopicPageSource.parse(html, pageURL: url(Self.canonical), normalizer: ContentNormalizer())
+    /// The reader page of a capture, through the real LOT-030/033/034 chain.
+    static func readerPage(of name: String) throws -> ReaderPage {
+        let html = try #require(String(data: try capture(name), encoding: .utf8))
+        return try LiveTopicPageSource.parse(html, pageURL: url(canonical), normalizer: LiveContentNormalizer())
+    }
+
+    /// Real pages render their normalized content as body markup, inside the message's content element and nowhere else.
+    @Test(arguments: [
+        ("R22a-topic-middle-page-anon.html", nil), ("R26-topic-quotes-smileys-anon.html", "table class=\"citation\""),
+        ("R27-topic-spoilers-anon.html", "table class=\"spoiler\""), ("R27b-topic-code-blocks-anon.html", "ol class=\"olcode\""),
+        ("R28-topic-images-videos-anon.html", "class=\"hfrplusimg\""), ("R31-topic-locked-anon.html", nil)
+    ] as [(String, String?)])
+    func realPagesRenderTheirContentUnderTheContract(_ name: String, marker: String?) throws {
+        let page = try Self.readerPage(of: name)
         #expect(!page.messages.isEmpty)
         let document = TopicHTMLBuilder.document(for: page, token: 1)
+        let body = try #require(document.components(separatedBy: "<body").last)
+        for message in page.messages {
+            #expect(body.contains("<div class=\"content\">\(message.content.html)</div>"), "message \(message.numreponse)")
+        }
+        if let marker { #expect(body.contains(marker), "\(name) renders \(marker)") }
         #expect(!document.contains("<script"))
+        #expect(!document.lowercased().contains("javascript:"))
         #expect(document.firstMatch(of: /<[a-z]+[^>]*\son[a-z]+\s*=/) == nil)
+        #expect(document.firstMatch(of: /\sid="(?!t[0-9]+")/) == nil, "only the reader's own t<numreponse> ids")
+    }
+
+    /// Signatures (`R20`, `R21` carry them) follow `display_sig`: absent by default, in their own element when shown.
+    @Test(arguments: ["R20-topic-p1-anon.html", "R21-topic-p1-logged-in.html"])
+    func signaturesFollowTheSettingOnRealPages(_ name: String) throws {
+        let page = try Self.readerPage(of: name)
+        let signatures = page.messages.compactMap(\.content.signatureHTML)
+        #expect(!signatures.isEmpty)
+        let hidden = TopicHTMLBuilder.document(for: page, token: 1)
+        #expect(!hidden.contains("<div class=\"signature\">"))
+        let shown = TopicHTMLBuilder.document(for: page, token: 1, options: ReaderRenderOptions(showsSignatures: true))
+        for signature in signatures {
+            #expect(shown.contains("<div class=\"signature\">\(signature)</div>"))
+        }
     }
 }

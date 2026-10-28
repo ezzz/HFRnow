@@ -40,6 +40,14 @@ struct ReaderTargetTests {
         #expect(ReaderTarget(link: link) == nil)
     }
 
+    @Test func aCanonicalLinkDropsItsQuery() throws {
+        let link = "https://forum.hardware.fr/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_3.htm?logout=1&x=2#t301"
+        let target = try #require(ReaderTarget(link: link))
+        #expect(target.source == .path("/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_3.htm"))
+        #expect(target.page == 3)
+        #expect(target.anchor == 301)
+    }
+
     @Test func anHTTPForumLinkIsFetchedOverHTTPS() throws {
         let url = try #require(ReaderTarget.forumURL("http://forum.hardware.fr/hfr/a/b-sujet_1_2.htm"))
         #expect(url.absoluteString == "https://forum.hardware.fr/hfr/a/b-sujet_1_2.htm")

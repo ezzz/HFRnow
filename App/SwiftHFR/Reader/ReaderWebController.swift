@@ -28,6 +28,8 @@ final class ReaderWebController: NSObject {
     static let channel = "reader"
     /// Most images routed per document, so a hostile page cannot make the app hold an unbounded list.
     static let maximumImages = 5_000
+    /// Image downloads in flight at once; the others wait their turn.
+    static let maximumConcurrentImages = 6
 
     let webView: WKWebView
     var events = Events()
@@ -38,6 +40,11 @@ final class ReaderWebController: NSObject {
     private var savedOffset: CGPoint?
     private var appliedScrollID: Int?
     private var running: [ObjectIdentifier: Task<Void, Never>] = [:]
+    private var waiting: [(key: ObjectIdentifier, start: () -> Void)] = []
+    /// Third-party image URLs the user tapped in the current document, as `reader.js` reported them. Consent lives here,
+    /// never in the image URL: the page's own markup can name the `hfrreader:` scheme (an `img` or a CSS `url()`), and
+    /// WebKit's preload scanner requests it before `reader.js` runs.
+    private var consented: Set<String> = []
     /// Image requests of the current document and whether the policy let them through (tests read it).
     private(set) var imageRequests: [(requested: URL, allowed: Bool)] = []
 
@@ -80,6 +87,7 @@ final class ReaderWebController: NSObject {
         savedOffset = document.keepsScrollPosition ? webView.scrollView.contentOffset : nil
         self.document = document
         imageRequests.removeAll()
+        consented.removeAll()
         webView.load(URLRequest(url: Self.pageURL(token: document.token)))
     }
 
@@ -95,6 +103,7 @@ final class ReaderWebController: NSObject {
         webView.stopLoading()
         for task in running.values { task.cancel() }
         running.removeAll()
+        waiting.removeAll()
     }
 
     static func pageURL(token: Int) -> URL {
@@ -133,6 +142,12 @@ final class ReaderWebController: NSObject {
                 guard let text = value as? String, let url = URL(string: text) else { return ImageDecision.block.rawValue }
                 return ImageDecision(origin: ImagePolicy.classify(url), autoLoadsThirdParty: auto).rawValue
             }
+        case "tap":
+            // The user tapped a placeholder: consent for that exact URL, third-party only, in this document only.
+            guard let text = body["url"] as? String, let url = URL(string: text), ImagePolicy.classify(url) == .thirdParty,
+                  consented.count < Self.maximumImages else { return false }
+            consented.insert(text)
+            return true
         case "ready":
             if let anchor = document.anchor {
                 scroll(to: anchor)
@@ -177,6 +192,8 @@ final class ReaderWebController: NSObject {
         let key = ObjectIdentifier(task)
         running[key]?.cancel()
         running[key] = nil
+        waiting.removeAll { $0.key == key }
+        startWaitingImages()
     }
 
     private func startImage(_ task: any WKURLSchemeTask, url: URL) {
@@ -184,29 +201,42 @@ final class ReaderWebController: NSObject {
         guard let source = items.first(where: { $0.name == "u" })?.value, let imageURL = URL(string: source) else {
             return fail(task)
         }
-        let tapped = items.contains { $0.name == "tap" && $0.value == "1" }
-        // The decision is taken again here: the page's own markup could name this scheme, and a tap only consents to a
-        // third-party host, never to a blocked one.
-        let decision = ImageDecision(
-            origin: ImagePolicy.classify(imageURL), autoLoadsThirdParty: autoLoadsThirdPartyImages(), tapped: tapped
-        )
+        // The decision is taken again here: the page's own markup could name this scheme, and only a tap the app
+        // recorded consents to a third party, never to a blocked host.
+        let origin = ImagePolicy.classify(imageURL)
+        let autoLoads = autoLoadsThirdPartyImages()
+        let decision = ImageDecision(origin: origin, autoLoadsThirdParty: autoLoads, tapped: consented.contains(source))
         if imageRequests.count < Self.maximumImages { imageRequests.append((imageURL, decision == .load)) }
         guard decision == .load else { return fail(task) }
         let key = ObjectIdentifier(task)
         let fetcher = imageFetcher
-        let allowsThirdParty = ImagePolicy.classify(imageURL) == .thirdParty
-        running[key] = Task { [weak self] in
-            let result: Result<(data: Data, mimeType: String), ReaderImageFetcher.Failure>
-            do throws(ReaderImageFetcher.Failure) {
-                result = .success(try await fetcher.image(at: imageURL, allowsThirdParty: allowsThirdParty))
-            } catch {
-                result = .failure(error)
+        // A redirect may reach a third party when this image was one, or when the setting loads third parties anyway.
+        let allowsThirdParty = origin == .thirdParty || autoLoads
+        let start = { [weak self] in
+            guard let self else { return }
+            self.running[key] = Task { [weak self] in
+                let result: Result<(data: Data, mimeType: String), ReaderImageFetcher.Failure>
+                do throws(ReaderImageFetcher.Failure) {
+                    result = .success(try await fetcher.image(at: imageURL, allowsThirdParty: allowsThirdParty))
+                } catch {
+                    result = .failure(error)
+                }
+                guard let self, self.running.removeValue(forKey: key) != nil else { return }
+                switch result {
+                case .success(let image): self.respond(task, url: url, data: image.data, mimeType: image.mimeType)
+                case .failure: self.fail(task)
+                }
+                self.startWaitingImages()
             }
-            guard let self, self.running.removeValue(forKey: key) != nil else { return }
-            switch result {
-            case .success(let image): self.respond(task, url: url, data: image.data, mimeType: image.mimeType)
-            case .failure: self.fail(task)
-            }
+        }
+        waiting.append((key, start))
+        startWaitingImages()
+    }
+
+    /// Starts waiting downloads while fewer than `maximumConcurrentImages` run.
+    private func startWaitingImages() {
+        while running.count < Self.maximumConcurrentImages, !waiting.isEmpty {
+            waiting.removeFirst().start()
         }
     }
 

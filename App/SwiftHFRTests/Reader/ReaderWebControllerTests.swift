@@ -11,99 +11,15 @@ import WebKit
 /// Serialized, with long deadlines: a cold CI simulator starts WebKit's processes slowly, and parallel web views compete.
 @MainActor
 @Suite(.serialized)
-struct ReaderWebControllerTests {
-    nonisolated private static let pixel = Data(
-        base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
-    ) ?? Data()
-
-    /// Content that a broken sanitizer could let through: page scripts and handlers must stay inert anyway.
-    private static let hostileContent = """
-        <p>Bonjour <img src="https://forum-images.hardware.fr/icones/smile.gif" alt=":)"></p>
-        <script>document.title = "script ran";</script>
-        <img src="https://forum-images.hardware.fr/icones/none.gif" onerror="document.title = 'handler ran'">
-        <p><img class="hfrplusimg" src="https://i.imgur.com/photo.jpg" alt="photo"></p>
-        <p><img class="hfrplusimg" src="http://192.168.1.1/admin.png" alt="lan"></p>
-        <p><a href="https://example.com/page">un lien</a></p>
-        <iframe src="https://example.com/frame"></iframe>
-        <table class="spoiler"><tr><td><b class="s1Topic">Spoiler :</b><br><div class="Topic masque"><p>secret</p></div></td></tr></table>
-        """
-
-    private final class Recorder {
-        var ready: [Int] = []
-        var links: [URL] = []
-        /// Hosts the web view in a window, as on screen (keeps WebKit from treating it as hidden and throttling it).
-        var window: UIWindow?
-    }
-
-    private func makeController(transport: MockTransport, autoLoad: Bool = false) -> (ReaderWebController, Recorder) {
-        let controller = ReaderWebController(
-            imageFetcher: ReaderImageFetcher(transport: transport), autoLoadsThirdPartyImages: { autoLoad }
-        )
-        let recorder = Recorder()
-        controller.events = ReaderWebController.Events(
-            ready: { recorder.ready.append($0) }, link: { recorder.links.append($0) }, video: { _, _, _ in }
-        )
-        if let scene = UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene {
-            let window = UIWindow(windowScene: scene)
-            window.frame = CGRect(x: 0, y: 0, width: 400, height: 800)
-            controller.webView.frame = window.bounds
-            window.addSubview(controller.webView)
-            window.isHidden = false
-            recorder.window = window
-        }
-        return (controller, recorder)
-    }
-
-    private func document(token: Int, content: String = hostileContent) -> ReaderDocument {
-        let message = ReaderMessage(
-            numreponse: 7, author: "auteur", isDeleted: false, isContinuation: false,
-            avatarURL: URL(string: "https://forum-images.hardware.fr/avatars/a.png"), dateText: "27-10-2026 10:00:00",
-            editNote: nil, quotedByCount: nil, content: MessageContent(html: content)
-        )
-        let page = ReaderPage(topicID: readerTopic, title: "Titre", currentPage: 1, maxPage: 1, messages: [message])
-        return ReaderDocument(
-            token: token, html: TopicHTMLBuilder.document(for: page, token: token), anchor: nil, keepsScrollPosition: false
-        )
-    }
-
-    private func until(_ condition: () -> Bool, timeout: Duration = .seconds(90)) async -> Bool {
-        let clock = ContinuousClock()
-        let deadline = clock.now + timeout
-        while !condition() {
-            if clock.now > deadline { return false }
-            try? await Task.sleep(for: .milliseconds(20))
-        }
-        return true
-    }
-
-    private func until(async condition: () async -> Bool, timeout: Duration = .seconds(90)) async -> Bool {
-        let clock = ContinuousClock()
-        let deadline = clock.now + timeout
-        while await !condition() {
-            if clock.now > deadline { return false }
-            try? await Task.sleep(for: .milliseconds(20))
-        }
-        return true
-    }
-
-    private func evaluate(_ script: String, in controller: ReaderWebController) async throws -> Any? {
-        try await controller.webView.callAsyncJavaScript(script, arguments: [:], in: nil, contentWorld: ReaderWebController.world)
-    }
-
-    private func imageTransport() -> MockTransport {
-        MockTransport { request in
-            HTTPResponse(statusCode: 200, headers: ["Content-Type": "image/png"], url: request.url, body: Self.pixel)
-        }
-    }
-
+struct ReaderWebControllerTests: ReaderWebTesting {
     @Test func thePageRunsNoScriptAndRoutesEveryImageThroughThePolicy() async throws {
         let transport = imageTransport()
         let (controller, recorder) = makeController(transport: transport)
         controller.show(document(token: 1))
         #expect(await until { recorder.ready == [1] }, "ready: \(recorder.ready), images: \(controller.imageRequests.count)")
         // Images settle after DOMContentLoaded.
-        #expect(await until { controller.imageRequests.count >= 3 })
-        try await Task.sleep(for: .milliseconds(300))
+        #expect(await until { controller.imageRequests.count >= 3 }, "image requests: \(controller.imageRequests)")
+        #expect(await settled(controller))
 
         let title = try await evaluate("return document.title;", in: controller) as? String
         #expect(title == "Titre")
@@ -112,7 +28,7 @@ struct ReaderWebControllerTests {
             "https://forum-images.hardware.fr/icones/smile.gif", "https://forum-images.hardware.fr/icones/none.gif",
             "https://forum-images.hardware.fr/avatars/a.png"
         ])
-        #expect(controller.imageRequests.allSatisfy { $0.allowed })
+        #expect(controller.imageRequests.allSatisfy { $0.allowed }, "image requests: \(controller.imageRequests)")
         let placeholders = try await evaluate("return document.querySelectorAll('button.image-tap').length;", in: controller)
         #expect((placeholders as? NSNumber)?.intValue == 1)
         let blocked = try await evaluate(
@@ -174,9 +90,29 @@ struct ReaderWebControllerTests {
         controller.show(document(token: 1))
         controller.show(document(token: 2, content: "<p>deux</p>"))
         #expect(await until { recorder.ready.contains(2) })
-        try await Task.sleep(for: .milliseconds(300))
+        #expect(await settled(controller))
         #expect(recorder.ready == [2])
         let text = try await evaluate("return document.querySelector('.content').textContent;", in: controller) as? String
         #expect(text == "deux")
+    }
+
+    /// A real page (`R28`: 42 posted images, spoiler, smileys) in tap mode: only forum images reach the client.
+    @Test func aRealPageRequestsOnlyForumImagesBeforeATap() async throws {
+        let page = try LiveTopicPageSourceTests.readerPage(of: "R28-topic-images-videos-anon.html")
+        let posted = page.messages.flatMap(\.content.images)
+        #expect(!posted.isEmpty)
+        let transport = imageTransport()
+        let (controller, recorder) = makeController(transport: transport)
+        controller.show(ReaderDocument(
+            token: 1, html: TopicHTMLBuilder.document(for: page, token: 1), anchor: nil, keepsScrollPosition: false
+        ))
+        #expect(await until { recorder.ready == [1] }, "ready: \(recorder.ready)")
+        #expect(await settled(controller))
+        let hosts = Set(await transport.requests.compactMap { $0.url.host() })
+        #expect(hosts.isSubset(of: ["forum-images.hardware.fr"]), "requested: \(hosts)")
+        let placeholders = try await evaluate("return document.querySelectorAll('button.image-tap').length;", in: controller)
+        #expect(((placeholders as? NSNumber)?.intValue ?? 0) > 0)
+        let title = try await evaluate("return document.title;", in: controller) as? String
+        #expect(title == page.title)
     }
 }

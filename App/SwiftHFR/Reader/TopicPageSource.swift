@@ -16,6 +16,13 @@ protocol MessageContentNormalizing: Sendable {
     func normalize(contentHTML: String, pageURL: URL) throws(ParsingError) -> MessageContent
 }
 
+/// LOT-034's normalizer: the sanitizer of record (ADR 0006); fragment-only links resolve against the page URL.
+struct LiveContentNormalizer: MessageContentNormalizing {
+    func normalize(contentHTML: String, pageURL: URL) throws(ParsingError) -> MessageContent {
+        try MessageContentNormalizer.normalize(contentHTML: contentHTML, relativeTo: pageURL)
+    }
+}
+
 /// The live source: `PageFetcher` (LOT-045) with the session, then the page parsers (LOT-030, 033) and the normalizer.
 ///
 /// `nonisolated` async functions of a `Sendable` struct run off the main actor, so parsing a long page never blocks the UI.
@@ -33,7 +40,12 @@ struct LiveTopicPageSource: TopicPageSource {
     private func fetch(_ target: ReaderTarget) async throws(ListLoadError) -> RawPage {
         var pathURL: URL?
         if case .path(let path) = target.source {
-            guard let url = ReaderTarget.forumURL(path) else { throw .other }
+            // The path only: no query or fragment reaches the session GET.
+            guard var components = ReaderTarget.forumURL(path).flatMap({ URLComponents(url: $0, resolvingAgainstBaseURL: false) })
+            else { throw .other }
+            components.query = nil
+            components.fragment = nil
+            guard let url = components.url else { throw .other }
             pathURL = url
         }
         do throws(NetworkError) {
@@ -52,6 +64,7 @@ struct LiveTopicPageSource: TopicPageSource {
 
     /// Builds the reader page from a topic page's HTML; `pageURL` is the final URL after redirects.
     static func parse(_ html: String, pageURL: URL, normalizer: any MessageContentNormalizing) throws(ListLoadError) -> ReaderPage {
+        var page: ReaderPage
         do throws(ParsingError) {
             let metadata = try TopicPageMetadataParser.parse(html: html, pageURL: pageURL.absoluteString)
             let blocks = try MessageBlockParser.blocks(in: html)
@@ -70,7 +83,7 @@ struct LiveTopicPageSource: TopicPageSource {
                     content: try normalizer.normalize(contentHTML: block.contentHTML, pageURL: pageURL)
                 ))
             }
-            return ReaderPage(
+            page = ReaderPage(
                 topicID: metadata.topicID,
                 title: metadata.title,
                 currentPage: max(1, metadata.currentPage),
@@ -79,6 +92,20 @@ struct LiveTopicPageSource: TopicPageSource {
             )
         } catch {
             throw .unreadable
+        }
+        if page.messages.isEmpty { page.notice = try notice(in: html, pageURL: pageURL) }
+        return page
+    }
+
+    /// A page without any message may be one of HFR's message pages: the maintenance page and the `.hop` notices are
+    /// read by the list parser's classification (LOT-022), so the reader shows HFR's text instead of "no message".
+    private static func notice(in html: String, pageURL: URL) throws(ListLoadError) -> String? {
+        do throws(ListPageFailure) {
+            return try TopicListParser.parse(html, pageURL: pageURL.absoluteString).notice
+        } catch .malformed {
+            return nil
+        } catch {
+            throw ListLoadError(error)
         }
     }
 }

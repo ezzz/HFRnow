@@ -37,7 +37,9 @@ struct ReaderImageFetcher: Sendable {
             case .thirdParty where !allowsThirdParty: throw .refused
             case .forum, .thirdParty: break
             }
-            let request = HTTPRequest.get(Self.upgraded(next), timeout: RequestTimeout.standard, redirectPolicy: .doNotFollow)
+            var request = HTTPRequest.get(Self.upgraded(next), timeout: RequestTimeout.standard, redirectPolicy: .doNotFollow)
+            // The transport stops reading past the cap (or on a larger Content-Length); the check below covers any transport.
+            request.maximumBodyBytes = Self.maximumBytes
             let response: HTTPResponse
             do throws(NetworkError) {
                 response = try await transport.perform(request)

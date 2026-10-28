@@ -26,7 +26,9 @@ Legacy app: `master` of ezzz/HFRnow (read-only), functional reference only; no l
 stays for "nothing selected" and rows whose link names no topic page). `ReaderTarget(opening:)` takes the row's flag link (last read
 position, with its `#t<numreponse>`) or else its own link (favourites rows already hold their resume link, LOT-024). A link with `cat`
 and `post` becomes `forum2.php` through `PageFetcher.topicPage`; a canonical `…-sujet_<post>_<page>.htm` path without a category is
-fetched as is (forum host, `https`, default port only, LESSONS 37/43), and the page's own `TopicID` is used from then on.
+fetched as a path only (forum host, `https`, default port, query and fragment dropped, LESSONS 37/43), and the page's own `TopicID` is
+used from then on. A page without any message is classified like a list page (LOT-022): maintenance and login walls are errors with
+HFR's text, a `.hop` notice is shown in place of the messages.
 
 **Fetching (E25).** The page the user opens is fetched **once, with the account session** (`.authenticated`): `NavigationModel` keeps
 one `TopicReaderModel` per selected topic and `onAppear()` loads only when nothing is shown, loading or failed, so view updates,
@@ -55,9 +57,12 @@ the number), header (avatar, pseudo, date), `MessageContent.html` as body markup
 
 **Web view (`ReaderWebController`).** The page, `reader.css` and every image come from the `hfrreader:` scheme handler; the page is
 served with the CSP header (repeated as `<meta>`): `default-src 'none'; img-src hfrreader:; style-src hfrreader: 'unsafe-inline';
-script-src 'none'; frame-src 'none'; …; form-action 'none'; base-uri 'none'`, `Referrer-Policy: no-referrer`, DNS prefetch off.
+style-src-elem hfrreader:; style-src-attr 'unsafe-inline'; script-src 'none'; frame-src 'none'; …; form-action 'none'; base-uri
+'none'`, `Referrer-Policy: no-referrer`, DNS prefetch off.
 Content JavaScript is off; `reader.js` runs as a user script in the app's own `WKContentWorld` and talks to the app through a message
-channel registered in that world only. The data store is non-persistent. `'unsafe-inline'` styles stay for the sanitized `color:` spans.
+channel registered in that world only. The data store is non-persistent. Style attributes stay allowed because LOT-034 keeps the
+sanitized `color:` of user colours and code highlighting there; `<style>` elements are refused, and a CSS `url()` falls under
+`img-src`, so it reaches the app's scheme and its policy like any image.
 
 **Images (policy C, D-071-1).** `reader.js` sends the `src` of every image to the app, which answers `load`, `tap` or `block` per URL:
 
@@ -69,14 +74,17 @@ channel registered in that world only. The data store is non-persistent. `'unsaf
   their URL (a link the user may open, T8; plain text inside an existing link).
 - **Forum images** (smileys, avatars, `forum-images.hardware.fr`): loaded.
 - **Third-party images:** loaded when the image mode allows it, else a "toucher pour charger" placeholder; nothing is requested before
-  the tap. Mode: the stored `display_images` value when there is one (`always`; `wifiOnly` = unmetered Wi-Fi or Ethernet,
-  `NWPathMonitor`; `never` = tap), else **Wi-Fi only** (the setting's own default `always` is legacy's forced value, not policy C).
-  FEAT-011 adds the settings screen.
+  the tap. Mode: `display_images` (`always`; `wifiOnly` = unmetered Wi-Fi or Ethernet, `NWPathMonitor` started at launch;
+  `never` = tap), default `wifiOnly`. FEAT-011 adds the settings screen.
 
-The scheme handler decides again for every image request (the page's markup could name the scheme; a tap consents to a third party,
-never to a blocked host) and fetches through `ReaderImageFetcher`: `AnonymousTransport` (no cookie, no `Referer`, no cache), redirects
-followed one hop at a time with the policy on each hop (a forum image redirecting to a third party needs the same permission), at most 5
-hops, `image/*` only, 15 MB at most. `http` is requested over `https` (see Decisions).
+**Consent lives in the app.** A tap on a placeholder makes `reader.js` post `{type: "tap", token, url}`; the controller records
+that exact third-party URL for the current document (cleared with every new document) and only then does the script ask for the image.
+The scheme handler decides again for every image request and honours a tap only for a recorded URL: the page's own markup can name the
+`hfrreader:` scheme (an `img`, a CSS `url()`), and WebKit's preload scanner requests it before `reader.js` runs, so nothing in an image
+URL counts as consent. Downloads go through `ReaderImageFetcher`: `AnonymousTransport` (no cookie, no `Referer`, no cache), redirects
+followed one hop at a time with the policy on each hop (a hop to a third party is allowed when the image was a third-party one the user
+allowed, or when the mode loads third parties), at most 5 hops, `image/*` only, at most 6 downloads at once, 15 MB at most: the
+transport stops reading past the cap or on a larger `Content-Length` (`HTTPRequest.maximumBodyBytes`, HFRNetwork). `http` is requested over `https` (see Decisions).
 
 **Videos (D-071-2).** Each `MessageContent.embeds` entry is a placeholder button (provider name, no provider URL in the page). A tap
 opens `VideoPlayerSheet`, a separate web view (JavaScript on, non-persistent store) that loads the embed URL only when it is `https` on
@@ -96,10 +104,9 @@ Confirmed by the orchestrator on 2026-10-28, consistent with the operator's deci
   stays a pending capture.
 - **Blocked IPv6**: every IPv6 literal is refused, not only the ranges D-071-1 lists. Deliberately stricter: mapped, NAT64, 6to4 and
   zone forms embed private addresses, and no capture holds a public IPv6 image.
-- **Default image mode** without a stored value (operator decision): automatic on Wi-Fi, tap on cellular. The reader reads the raw
-  `display_images` key and applies this default itself; no settings change in this lot. **For FEAT-011:** `SettingKey.displayImages`
-  still defaults to `always` (legacy's forced value) and must change to this default in FEAT-011's lot, after which the direct check in
-  `ReaderSettings.autoLoad(store:)` can go.
+- **Default image mode** (operator decision): automatic on Wi-Fi or Ethernet, tap on cellular. `SettingKey.displayImages` now
+  defaults to `wifiOnly` (it defaulted to `always`, legacy's forced value); a value stored by the user or imported from legacy is kept
+  (`LegacySettingsNormalizer` does not force it). FEAT-011 adds the screen.
 
 ## Edge cases
 
@@ -112,13 +119,16 @@ Confirmed by the orchestrator on 2026-10-28, consistent with the operator's deci
 
 ## Fixtures
 
-Captures `R20`, `R22a`, `R26`, `R27`, `R27b`, `R28`, `R31` (read from `Packages/HFRKit/Tests/HFRParsingTests/Fixtures/captures/`) feed
+Captures `R20`, `R21`, `R22a`, `R26`, `R27`, `R27b`, `R28`, `R31` and `R08-1` (a `.hop` notice) through the real LOT-030/033/034 chain (read from `Packages/HFRKit/Tests/HFRParsingTests/Fixtures/captures/`) feed
 `LiveTopicPageSourceTests`. Tests (`App/SwiftHFRTests/Reader/`): `ImagePolicyTests` (every host spelling of LOT-071 and its neighbours),
 `ReaderImageFetcherTests` (cookie-less, redirects, types, size, https upgrade, setting), `ReaderTargetTests` (both URL shapes of #106,
 flag rows), `TopicHTMLBuilderTests` (escaping, context, CSP, signature, anchors, video), `TopicReaderModelTests` (E25 once, #107, #108,
-links, pages), `LiveTopicPageSourceTests` (session vs cookie-less transport, real pages) and `ReaderWebControllerTests`, which drive a
+links, pages), `LiveTopicPageSourceTests` (session vs cookie-less transport; real pages render their normalized content as body markup in the content element only, signatures per `display_sig`, notices) and `ReaderWebControllerTests`, which drive a
 real `WKWebView`: no page script or handler runs, only allowed images reach the client, a tap loads a third-party image, a link tap
-leaves the page to the app, the stylesheet loads and a spoiler opens, only the latest document reports ready.
+leaves the page to the app, the stylesheet loads and a spoiler opens, only the latest document reports ready, markup cannot forge a
+tap (preload and CSS `url()`), a tap consents to one URL in one document, a local server sees no request from remote `src`, `href`
+or `url()`, `<style>` elements are refused while colour attributes apply, downloads are throttled, redirects follow the setting, and a
+real page (`R28`) requests only forum images before a tap.
 
 **Pending capture:** a logged-in topic page opened by the reader marks its flag read (E25 is from legacy code and HFR-PROTOCOL §7);
 `http`-only image hosts over `https` (LOT-071 backlog row, shared with LOT-056).
@@ -139,4 +149,7 @@ leaves the page to the app, the stylesheet loads and a spoiler opens, only the l
   working: the page runs nothing while the app's adapter script still runs.
 - Serving the page through a `WKURLSchemeHandler` lets the CSP arrive as a response header, before any markup (and before WebKit's
   preload scanner); `img-src <scheme>:` then confines every image to the handler.
-- A reader test can drive a real `WKWebView` from the app-hosted Swift Testing bundle, no window needed.
+- A reader test can drive a real `WKWebView` from the app-hosted Swift Testing bundle. On a cold CI simulator, host the web view in
+  a `UIWindow`, serialize the suite and use long deadlines; otherwise the tests time out.
+- A tap flag in a URL is not consent when the page can write URLs of that scheme: WebKit's preload scanner requests `img src`
+  before any script runs. Keep consent in the app, keyed by the exact URL and the document.

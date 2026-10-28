@@ -69,7 +69,7 @@ struct TopicReaderView: View {
             ContentUnavailableView {
                 Label("Aucun message", systemImage: "text.bubble")
             } description: {
-                Text("Cette page ne contient aucun message.")
+                Text(page.notice ?? "Cette page ne contient aucun message.")
             } actions: {
                 Button("Actualiser") { Task { await model.refresh() } }
             }

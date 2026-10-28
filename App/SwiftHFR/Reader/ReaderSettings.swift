@@ -22,11 +22,8 @@ struct ReaderSettings: Sendable {
         )
     }
 
-    /// The image mode: the stored `display_images` value when there is one, else the reader's default (Wi-Fi only).
-    /// `SettingKey.displayImages` defaults to `always` (legacy forced it); policy C (LOT-071) does not, so an absent key
-    /// is read here, not through the setting's default.
+    /// The image mode from `display_images` (default `wifi`, policy C).
     static func autoLoad(store: any SettingsStore) -> ImageAutoLoad {
-        guard store.rawValue(forKey: SettingKey.displayImages.key) != nil else { return ImageAutoLoad(setting: nil) }
-        return ImageAutoLoad(setting: store.value(for: SettingKey.displayImages))
+        ImageAutoLoad(setting: store.value(for: SettingKey.displayImages))
     }
 }

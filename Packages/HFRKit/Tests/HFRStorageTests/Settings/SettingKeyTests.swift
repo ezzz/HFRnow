@@ -41,7 +41,7 @@ import Testing
         #expect(store.value(for: SettingKey.doubleSizeSmileys))
         #expect(store.value(for: SettingKey.embeddedVideos) == .inlinePlayer)
         #expect(!store.value(for: SettingKey.displaySignatures))
-        #expect(store.value(for: SettingKey.displayImages) == .always)
+        #expect(store.value(for: SettingKey.displayImages) == .wifiOnly)
         #expect(!store.value(for: SettingKey.mpStorageActive))
         #expect(store.value(for: SettingKey.mpStorageLastSync) == nil)
         #expect(store.value(for: SettingKey.searchCategory) == .forum(13))
@@ -148,7 +148,7 @@ import Testing
     @Test func unknownEnumStringFallsBackToTheDefault() {
         let store = InMemorySettingsStore(["embedded_videos": .string("sometimes"), "display_images": .int(4)])
         #expect(store.value(for: SettingKey.embeddedVideos) == .inlinePlayer)
-        #expect(store.value(for: SettingKey.displayImages) == .always)
+        #expect(store.value(for: SettingKey.displayImages) == .wifiOnly)
     }
 
     @Test func searchCategoryAcceptsNumbersAndRejectsGarbage() {

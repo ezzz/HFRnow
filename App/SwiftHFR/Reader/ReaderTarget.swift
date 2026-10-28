@@ -51,7 +51,9 @@ struct ReaderTarget: Hashable, Sendable {
             if let fallbackTopic, fallbackTopic.topic == canonical.topic {
                 self.init(source: .topic(fallbackTopic), page: canonical.page, anchor: anchor)
             } else {
-                self.init(source: .path(HFRURL.removingAnchor(Self.relativePath(of: url))), page: canonical.page, anchor: anchor)
+                // Only the path is kept: a canonical topic URL needs no query, and the session GET must not carry one the
+                // link's author chose.
+                self.init(source: .path(url.path(percentEncoded: true)), page: canonical.page, anchor: anchor)
             }
         } else {
             return nil
@@ -77,11 +79,5 @@ struct ReaderTarget: Hashable, Sendable {
               components.port == nil else { return nil }
         components.scheme = "https"
         return components.url
-    }
-
-    private static func relativePath(of url: URL) -> String {
-        var path = url.path(percentEncoded: true)
-        if let query = url.query(percentEncoded: true) { path += "?" + query }
-        return path
     }
 }
