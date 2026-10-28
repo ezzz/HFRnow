@@ -58,6 +58,8 @@ final class MessageListModel {
     /// The reader of the selected conversation, created once per selection so a view update never refetches the page (E25).
     /// Threads opened since the last load; a load brings HFR's own state back.
     private var openedThreads: Set<String> = []
+    /// Loads started so far; tells a load that is still the newest from one that was superseded.
+    private var loadCount = 0
     @ObservationIgnored private var currentReader: (id: String, model: TopicReaderModel)?
 
     /// Creates the model; `isLoggedIn` is read when a load starts.
@@ -122,12 +124,15 @@ final class MessageListModel {
 
     private func load(page: Int) async {
         requestedPage = page
+        loadCount += 1
+        let mine = loadCount
         let source = source
         let isLoggedIn = isLoggedIn
         await loader.load { () async throws(ListLoadError) -> MessageListContent in
             guard await isLoggedIn() else { return .signedOut }
             return MessageListContent(page: try await source.privateMessages(page: page))
         }
-        if loader.error == nil { openedThreads = [] }
+        // Only the newest load applied the content on screen; a superseded one returning late must not reset the state.
+        if mine == loadCount, loader.error == nil { openedThreads = [] }
     }
 }
