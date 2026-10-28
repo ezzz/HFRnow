@@ -121,7 +121,7 @@ OWN_MESSAGE_ID_RES = tuple(re.compile(rx, re.I) for rx in (
     r"\bnumrep=(\d{5,})", r"\[quotemsg=(\d{5,}),",
     r"\bname=[\"'](?:numreponse|numrep|firstnum)[\"']\s*value=[\"'](\d{5,})",
     r"\bvalue=[\"'](\d{5,})[\"']\s*name=[\"'](?:numreponse|numrep|firstnum)[\"']",
-    r"(?:quoter|edit_in)\('[^']*',\s*'[^']*',\s*'\d+',\s*'(\d{5,})'"))
+    r"(?:quoter|edit_in)\(\s*'[^']*'\s*,\s*'[^']*'\s*,\s*'?\d+'?\s*,\s*'?(\d{5,})'?"))
 OWN_SUBJECT_INPUT_RE = re.compile(
     r"<input\b(?=[^>]*\bname=[\"']sujet[\"'])[^>]*\bvalue=([\"'])(.*?)\1", re.I | re.S)
 OWN_TEXTAREA_RE = re.compile(r"(<textarea\b[^>]*\bname=[\"']content_form[\"'][^>]*>)(.*?)(</textarea>)", re.I | re.S)
@@ -1432,7 +1432,7 @@ _V_OWN_RULES = (
      lambda v: all(x in ("", "Text removed.") for x in re.split(r"\r\n|\n|\r", urllib.parse.unquote_plus(v)))),
     ("own-topic posted subject", re.compile(r"(?:^|&)sujet=([^&\"<>\s]*)"),
      lambda v: urllib.parse.unquote_plus(v) == "Own topic subject"),
-    ("own-topic message id (JS)", re.compile(r"(?:quoter|edit_in)\(\s*'[^']*'\s*,\s*'[^']*'\s*,\s*'\d+'\s*,\s*'(\d+)'"),
+    ("own-topic message id (JS)", re.compile(r"(?:quoter|edit_in)\(\s*'[^']*'\s*,\s*'[^']*'\s*,\s*'?\d+'?\s*,\s*'?(\d+)'?"),
      lambda v: v.startswith("991") and len(v) == 10),
     ("own-topic date", re.compile(r"(\d\d-\d\d-\d\d\d\d)"), lambda v: v == "01-01-2000"),
     ("own-topic time", re.compile(r"à(?:&nbsp;|\s)*(\d\d:\d\d(?::\d\d)?)"), lambda v: set(v) <= set("0:")),

@@ -22,7 +22,9 @@ on a public topic (state restored), the searches, then user1 again with a correc
 fixture thread (`fixture-test-N`) or the MPStorage thread are replaced, whatever their content (digits included).
 Run 3 (follow-up, 11 requests, 115 in total, read-only) added R33a/R33b, R55-p5u1 and R56a/R56b. Run 4 (2026-10-27, P01 approved by the operator that day, 22 requests): user2 replied once in one public topic
 (cat 13), edited and deleted that reply (W30-W33, R61b-R62b; the post is gone, `R61e`), and one empty-body reply was refused;
-user1 also edited the first post of one of its own topics and restored it (R63a-R63e, W34, W35). **Own
+user1 also edited the first post of one of its own topics and restored it (R63a, R63b, R63e, W34, W35; the
+edit forms read back after the edit and after the restore, R63c and R63d, were captured to verify the restore and are
+not published). **Own
 topics** (`own_topics` in the local config) are unlinked by the anonymizer: topic id → `9900001`, message ids →
 `9910000001`… (one table for the batch), subject → `Own topic subject`, slug → `own-topic-subject`, message bodies,
 the form review and the description → `Own topic text removed.`, each line of the edit text → `Text removed.` (line
@@ -163,6 +165,7 @@ gets `Profile field removed.` or, for dates, `01/01/2000`; post count → `100`,
 | Rows | Why |
 |---|---|
 | W02 | Dropped: W01's refusal already gives the failure page; a second failed login was not worth the lockout risk. |
+| R63c, R63d | Captured, not published: the own topic's edit form after the edit and after the restore, read back only to verify the restore byte for byte (R63d equals R63b apart from the connected-users count). |
 | A second throwaway thread | HFR allows one new topic per 60 minutes (W11x); everything ran in one thread. |
 | R34, R51, R58 | Dropped per the checklist (R51 covered by R50b, R58 by R08-2). |
 | R33, poll voted by the account itself without the multipseudo notice | Searched, not found: the poll topics of user1's followed list (`forum1f.php?owntopic=1`, 27 poll topics) were opened page 1 for four of them; one is R33b (with the multipseudo notice, also for user2), the three others still offer the vote form. A plain "already voted" page would need a vote (P05, out of scope): synthetic per checklist §C N06 if a lot needs it. |

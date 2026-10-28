@@ -24,7 +24,8 @@ CASES = (
      '<a href="/message.php?config=hfr.inc&amp;cat=6&amp;post=%s&amp;numreponse=%s">e</a>' % (TOPIC, MSG), [MSG],
      ["numreponse=" + FAKE_MSG]),
     ("message_id_js", "own-topic message id (JS)",
-     "<a onclick=\"quoter('hardwarefr','6','%s','%s')\">q</a>" % (TOPIC, MSG), [MSG], ["'%s')" % FAKE_MSG]),
+     "<a onclick=\"quoter('hardwarefr','6',%s,%s)\">q</a><a onclick=\"edit_in('hfr.inc','6',%s,%s,'')\">e</a>"
+     % (TOPIC, MSG, TOPIC, MSG), [MSG], [",%s)" % FAKE_MSG, ",%s,'')" % FAKE_MSG]),
     ("date", "own-topic date", "<div>Posté le 02-03-2024&nbsp;à&nbsp;21:21:09</div>", ["02-03-2024", "21:21:09"],
      ["01-01-2000&nbsp;à&nbsp;00:00:00"]),
     ("slug", "own-topic slug", '<a href="/hfr/AchatsVentes/Divers/vends-velo-rouge-sujet_%s_1.htm">p</a>' % TOPIC,
