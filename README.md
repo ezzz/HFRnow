@@ -130,6 +130,7 @@ flowchart LR
 | [AGENTS.md](AGENTS.md) | Operating manual for humans and agents: guardrails, conventions, workflow, learnings |
 | [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) · [CREDITS.md](CREDITS.md) | How to contribute · how to report a vulnerability · who to thank |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Modules and dependency rules |
+| [docs/CHANGELOG-LEGACY.md](docs/CHANGELOG-LEGACY.md) | Legacy-app problems fixed by SwiftHFR (FR), base of the v1 changelog |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Phases and their exit criteria |
 | [docs/LOTS.md](docs/LOTS.md) | The migration plan: lots, dependencies, model routing, one issue each |
 | [Issues](https://github.com/ezzz/HFRnow/issues) | The tracker: one issue per lot, capture, bug, chore or feature, claimed with `/claim`; MVP roadmap [#166](https://github.com/ezzz/HFRnow/issues/166) |
