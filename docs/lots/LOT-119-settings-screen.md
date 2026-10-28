@@ -55,6 +55,17 @@ A gear button in the sidebar toolbar (next to the account menu) opens a sheet wi
 | Maintenance: Caches de l’app, Pages HTML, Ouvrir les réglages système | LOT-120 (reads LOT-066) | not built |
 | À propos: Version | LOT-120 | not built |
 
+### Keys missing from LOT-060 (storage audit, legacy `master` @21173e7)
+
+| Key | Legacy | Status |
+|---|---|---|
+| `HFRswiftStartupScreen` | `Common.swift:32-37`, read `MainWindow.swift:1357-1360` | ported here; legacy values (`tab:categories`, `tab:favorites`, `tab:messages`) are read as is, so there is nothing to migrate; unknown or empty = favourites |
+| `open_links_in_default_browser` | `Common.swift:239-241`, `AppSettingsView.swift:95, 402-409`, `HFRplusAppDelegate.m:771` | ported here (key and row); read as is; LOT-137 applies it |
+| `topic_page_swipe_navigation` (default true) | `Common.swift:235-237`, `AppSettingsView.swift:94, 479` | follow-up for LOT-106 (reader swipe pages): add the key to `SettingKey` there |
+| `reply_button_behavior` (`quick` default, `forum`, `hidden`) | `Common.swift:243-263`, `AppSettingsView.swift:106, 481-485` | follow-up for LOT-084 (reply composer): add the key and enum there |
+
+Where settings live (MPStorage, iCloud or device) is decided by a pending ADR: until then every key here is in the device store (`HFRStorage`, `UserDefaults`), nothing is synced.
+
 Settings with no UI in legacy's screen but in `SettingKey` (`embedded_videos`, `display_images`, `rehost_*`, `recherche_categorie`) belong to LOT-107/108, LOT-102 and LOT-115.
 
 ## Edge cases
