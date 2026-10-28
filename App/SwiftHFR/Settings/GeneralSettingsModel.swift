@@ -29,7 +29,7 @@ final class GeneralSettingsModel {
         }
     }
     /// In-app text size in percent, an offset on top of Dynamic Type (below 100 gives a denser display).
-    /// TODO: applying it across the screens is a separate lot (opened by the tracking session); until then it is stored only.
+    /// Follow-up (not applied yet): applying it across the screens is a separate lot (opened by the tracking session); until then it is stored only.
     var textSizePercent: Int {
         didSet {
             let clamped = Self.clamp(textSizePercent)
@@ -38,7 +38,7 @@ final class GeneralSettingsModel {
         }
     }
     /// Minimise the tab bar while scrolling (`tabbar_minimize_on_scroll`, default on). Stored only.
-    /// TODO: applied by the lot that restores the bottom tab bar (Catégories / Favoris / Messages / Plus).
+    /// Follow-up (not applied yet): applied by the lot that restores the bottom tab bar (Catégories / Favoris / Messages / Plus).
     var minimizesTabBarOnScroll: Bool {
         didSet {
             if minimizesTabBarOnScroll != oldValue { store.set(minimizesTabBarOnScroll, for: SettingKey.tabBarMinimizesOnScroll) }
