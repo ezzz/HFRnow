@@ -176,12 +176,12 @@ MPStorage and on-device formats:
 
 ### Real captures
 
-Computed on the LOT-001 corpus (`Fixtures/LOT-004/`, 46 cases (added 2026-10-27: R61b, R62a, R62b, W30-W33 by the public-writes capture, R60a/R60b by the MPStorage capture), read in place through the map's `path`; about 0.7 MB; `errors.json` empty; two full runs byte-identical):
+Computed on the LOT-001 corpus (`Fixtures/LOT-004/`, 49 cases (added 2026-10-27: R61b, R62a, R62b, W30-W33 by the public-writes capture, R63b, W34, W35 by the public first-post edit capture, R60a/R60b by the MPStorage capture), read in place through the map's `path`; about 0.7 MB; `errors.json` empty; two full runs byte-identical):
 
 | Kind | Cases (corpus ids) | Inputs taken from the capture's meta |
 |---|---|---|
-| `form` (20) | R40a, R40b, R61b (reply), R41a, R41b, R47a (quote), R42, R47c (quote with multi-quote cookie), R43a, R43b, R43c, R44, R60b, R62a (edit), R62b (delete), R45a (new topic), R45b (new MP), R46 (alert), R47b, R47u1 (MP reply) | `url` = the meta's `final_url`, `session.pseudo` = the account's alias (`user1` as placeholder for the anonymous R40b); the session hash is the harness's fake 40-hex, so `post.pairs` holds `0123...4567`; `inputData.hash_check` is the corpus `REDACTED` |
-| `response` (22) | W10, W11, W11x, W12, W13b, W13c, W13cx, W14, W14x, W15, W17a, W17b, W17c, W20a, W20b, W30, W31, W33 (`reply` flow), W16a, W16b, W19, W32 (`delete` flow) | `urlQuote` built from the captured POST body (`cat`, `post`, `numreponse`), `status` from the meta |
+| `form` (21) | R40a, R40b, R61b (reply), R41a, R41b, R47a (quote), R42, R47c (quote with multi-quote cookie), R43a, R43b, R43c, R44, R60b, R62a, R63b (edit), R62b (delete), R45a (new topic), R45b (new MP), R46 (alert), R47b, R47u1 (MP reply) | `url` = the meta's `final_url`, `session.pseudo` = the account's alias (`user1` as placeholder for the anonymous R40b); the session hash is the harness's fake 40-hex, so `post.pairs` holds `0123...4567`; `inputData.hash_check` is the corpus `REDACTED` |
+| `response` (24) | W10, W11, W11x, W12, W13b, W13c, W13cx, W14, W14x, W15, W17a, W17b, W17c, W20a, W20b, W30, W31, W33, W34, W35 (`reply` flow), W16a, W16b, W19, W32 (`delete` flow) | `urlQuote` built from the captured POST body (`cat`, `post`, `numreponse`), `status` from the meta |
 | `storage` (4) | `S-find-R13u1`, `S-find-R13u1b` (user1), `S-find-R13a` (user2): `mpstorage-op` `find` over the MP list page (spec files `S-find-*.json` beside the map); R60a (user1): `mpstorage-page` on the storage thread page | `pseudo` = the account's alias |
 
 Not run: the login pages W00/W01/W01b/W03 (not a write response of the classifier), the GET-only flag pages W18 and P03* (`nonlu.php`, `addflag.php`, `delflag.php`), search POSTs R50a/R52, the storage sub-kinds that need a MPStorage **write**
