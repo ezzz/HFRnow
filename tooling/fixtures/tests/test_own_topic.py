@@ -47,7 +47,9 @@ CASES = (
      [">Text removed.\r\n\r\nText removed.</textarea>"]),
     ("list_title", "own-topic list title",
      '<td class="sujetCase3"><a href="/forum2.php?config=hfr.inc&amp;cat=6&amp;post=%s&amp;page=1" class="cCatTopic" '
-     'title="Sujet n°%s">Vends velo Qzwx</a></td>' % (TOPIC, TOPIC), ["Qzwx", TOPIC], [">Own topic subject</a>"]),
+     'title="Sujet n°%s">Vends velo Qzwx Operatorname</a></td><td class="sujetCase4"><a href="/forum2.php?config=hfr.inc'
+     '&amp;cat=6&amp;post=%s&amp;page=2" class="cCatTopic">2</a></td>' % (TOPIC, TOPIC, TOPIC),
+     ["Qzwx", "Operatorname", TOPIC], [">Own topic subject</a>", 'page=2" class="cCatTopic">2</a>']),
     ("related_topics", "related topics not replaced",
      '<table class="main" id="sujetrelatif"><tr><th>Sujets relatifs</th></tr><tr><td>'
      '<a class="cLink" href="/hfr/AchatsVentes/Divers/velo-qzwx-sujet_123450_1.htm">[Vends] velo Qzwx</a></td></tr>'
