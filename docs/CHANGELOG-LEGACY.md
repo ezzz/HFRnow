@@ -1,0 +1,28 @@
+# Changelog SwiftHFR — problèmes de l'app legacy corrigés
+
+Registre des problèmes **présents dans l'app legacy** (HFR+ / HFRnow, branche `master`) que SwiftHFR corrige ou change volontairement. Il sert de base au changelog de la **v1** de SwiftHFR, partagé entre legacy et Swift, en deux sections : **T** = technique, **UX** = expérience utilisateur.
+
+**Règle** ([AGENTS.md §8](../AGENTS.md#8-git-and-pr-workflow)) : une PR qui corrige ou change un comportement legacy ajoute sa ligne ici, dans la même PR — résumé court en français, lot / PR, preuve legacy (fichier:ligne sur `master` ou capture). Les régressions propres au nouveau code n'y vont pas.
+
+| # | Section | Résumé (FR) | Lot / PR | Preuve legacy |
+|---|---|---|---|---|
+| 1 | T | Un post refusé par HFR (jeton de sécurité invalide) pouvait être affiché comme réussi : SwiftHFR ne signale un succès que si HFR le confirme explicitement ("…avec succès" + redirection vers le forum). | LOT-037 #18 | `ReplyService.swift:718-732` (`isSuccessfulPost`), capture W17b |
+| 2 | T | Une phrase négative ("…n'a pas été posté avec succès") ou une page de login/liste vide ne passe plus pour un succès d'écriture. | LOT-037 #18 | même règle legacy |
+| 3 | T | Une connexion ratée ne déconnecte plus le compte : la nouvelle session est validée à part et n'est installée qu'en cas de succès. | LOT-043 #21 | ordre legacy : session vidée avant validation (`LoginService.swift`) |
+| 4 | T | Le rafraîchissement de session ne remplace plus le cookie jar par la réponse : écriture par comparaison, une requête concurrente ne perd plus ses cookies. | LOT-044 #29 | `MultisManager.m:228-293` |
+| 5 | T | La vérification des MP en arrière-plan n'écrase plus les cookies d'une connexion en cours (session sonde, lecture seule). | LOT-047 #35 | `MPBackgroundService.swift:89` (`URLSession.shared`) |
+| 6 | UX | Liste MP : "non lu par moi" et "non lu par l'autre" ne sont plus confondus ; le marqueur `[non lu]` est séparé du titre. | LOT-023 #19 | `MPListView` |
+| 7 | T | Un lien posté dans un message ne peut plus devenir une action (citer, éditer, alerter…) : les actions sont lues uniquement dans la barre d'outils du message, et reconnues par leur chemin exact. | LOT-031 #28 | `ParseMessagesOperation.m:371-390` (recherche dans toute la ligne) |
+| 8 | T | Images des messages : plus aucun chargement vers des adresses du réseau local / privées, ni vers des pages HFR qui ne sont pas des images ; images chargées sans cookies ni Referer. | LOT-071 #27, LOT-083 #257 | `MessagesView.swift:5441-5547`, `AnswerView.swift:1738` (`URLSession.shared`) |
+| 9 | UX | Images tierces : chargement auto en Wi-Fi, au tap en cellulaire (réglage jamais / Wi-Fi / toujours) au lieu de "toujours". | LOT-083, FEAT-011 | legacy : `display_images` forcé |
+| 10 | UX | Vidéos intégrées : une vignette, le lecteur tiers ne se charge qu'au tap (plus de lecteurs auto avec scripts tiers). | LOT-071 D-071-2, LOT-083 | `embedded_videos=yes` (retiré du legacy en d645f52) |
+| 11 | T | Le lecteur de sujet n'exécute aucun script du contenu (CSP stricte, scripts de page désactivés). | LOT-083 #257 | WebView legacy avec JS |
+| 12 | UX | Pagination des listes honnête : plus de faux nombre total de pages. | LOT-022 #55, LOT-082 #32 (issue #104) | legacy `dc93420` (Bybifok) |
+| 13 | UX | Rafraîchir recharge la page courante (pas la page 1) et garde le contenu pendant le chargement. | LOT-082 #32, LOT-083 (#107) | legacy `246a9c7` (Bybifok) |
+| 14 | UX | Un lien vers un post ouvre sa page et son ancre, plus la page 1. | LOT-083 (#106) | legacy `246a9c7` (Bybifok) |
+| 15 | T | Une requête de sujet annulée ne peut plus afficher son résultat à la place du chargement suivant. | LOT-082/083 (#108) | legacy `be196f8` (Bybifok) |
+| 16 | UX | Sous-forums : pagination et ouverture depuis la page d'accueil fiables. | LOT-082 #32 | — |
+| 17 | T | Formulaires : une action de formulaire hors du forum est refusée (pas d'envoi des cookies ailleurs). | LOT-036 #22 | legacy préfixait l'URL du forum (pas de faille legacy ; garde-fou conservé) |
+| 18 | T | Suppression d'un premier post (= tout le sujet) : confirmation obligatoire hors MP. | LOT-048 #36 | legacy : détection par libellé seulement |
+
+Points « non corrigés volontairement » (comportement legacy gardé) : AQ appelé au lancement (D-071-3).
