@@ -332,7 +332,7 @@ Source: [LOT-034](lots/LOT-034-content-normalization.md), `MessageContentNormali
 ### LOT-056 — image hosts
 
 [LOT-056](lots/LOT-056-image-hosts.md), tests `RehostClientTests`, `RehostClientLoopbackTests`, `MultipartBodyTests` and `ImageHostTableTests`. No capture backs
-these facts: they are the **legacy code** (`ReplyService.swift:1958-2093`, `MessagesView.swift:5748-5762` @ `2440d79`) reproduced by tests, not **verified** against HFR or the hosts.
+the upload, answer, `Referer` and thumbnail facts below: they are the **legacy code** (`ReplyService.swift:1958-2093`, `MessagesView.swift:5748-5762` @ `2440d79`) reproduced by tests, not **verified** against HFR or the hosts. Only the plain-HTTP host list comes from captures (as read by LOT-071).
 
 - **Upload** (**code**): `POST <base>/api/1/upload/?key=<key>`, `multipart/form-data` with `imageCaption` (`Some Caption`) then `source` (`image/jpeg`, `snapshot_<random>.jpg`), no cookie, 60 s. The body is reproduced byte for byte (`matchesTheLegacyUploadLayout`).
 - **Answer** (**code**): JSON with `status_code`, `error.message` or `success.message`, `image.url`, `image.width`, `image.height`, `image.medium.url`, `image.thumb.url`; numbers may be strings. No real answer is captured (pending capture).
