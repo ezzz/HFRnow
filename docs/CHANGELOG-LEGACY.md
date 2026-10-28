@@ -24,6 +24,9 @@ Registre des problèmes **présents dans l'app legacy** (HFR+ / HFRnow, branche 
 | 16 | UX | Sous-forums : pagination et ouverture depuis la page d'accueil fiables. | LOT-082 #32 | — |
 | 17 | T | Formulaires : une action de formulaire hors du forum est refusée (pas d'envoi des cookies ailleurs). | LOT-036 #22 | legacy préfixait l'URL du forum (pas de faille legacy ; garde-fou conservé) |
 | 18 | T | Suppression d'un premier post (= tout le sujet) : confirmation obligatoire hors MP. | LOT-048 #36 | legacy : détection par libellé seulement |
-| 19 | UX | Une session non confirmée par le forum (page inconnue, forum injoignable) est revérifiée en silence au retour au premier plan, sans jamais déconnecter le compte ; le legacy ne vérifiait qu'au lancement et ignorait les échecs. | #300 | `HFRplusAppDelegate.m:150`, `MultisManager.m:280-293` (pas de rappel d'échec) |
+| 19 | UX | Liens du forum : chaque forme (sujet, liste, profil, MP, favoris, recherche) ouvre son propre écran ; le legacy ouvrait tout lien `forum2.php` ou `/hfr/…` comme un sujet (listes et profils compris). | LOT-095 #187 | `Common.swift:2473-2479` (`isForumTopicURL`) |
+| 20 | UX | Lien vers un message (signet, permalien `numreponse=M`, lignes de liste) : la page est laissée au serveur au lieu de retomber sur la page 1 (le serveur ignore `page=` quand `numreponse` est présent). | LOT-095 #187, bug #106 | `Common.swift:2693-2727` (`pageNumber`), `BookmarksPlusView.swift:143-146`, `Bookmark.m:17`, capture R25 |
+| 21 | T | Lien interne : un port explicite ou un schéma autre que http(s) n'est plus traité comme un lien du forum (seul l'hôte était comparé). | LOT-095 #187 | `Common.swift:2474` |
+| 22 | UX | Une session non confirmée par le forum (page inconnue, forum injoignable) est revérifiée en silence au retour au premier plan, sans jamais déconnecter le compte ; le legacy ne vérifiait qu'au lancement et ignorait les échecs. | #300 | `HFRplusAppDelegate.m:150`, `MultisManager.m:280-293` (pas de rappel d'échec) |
 
 Points « non corrigés volontairement » (comportement legacy gardé) : AQ appelé au lancement (D-071-3).
