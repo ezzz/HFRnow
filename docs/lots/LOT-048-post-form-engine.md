@@ -153,11 +153,13 @@ Not hand-built (LESSONS 36). None blocks the lot; until captured, each state is 
 as `unconfirmed` unless HFR answers with LOT-037's success shape (link-less `.hop`, "avec succès", refresh to the forum)
 **and** that write's own confirmation sentence (`PostingAction.confirmation`: reply, new thread, edit or delete, captured on
 private messages, HFR-PROTOCOL §7 E15), and every public delete asks for whole-topic confirmation.
-- **Public-topic answers**: a reply, a new topic, an edit and a delete in a forum topic (`cat=<forum>`). Only private-message
-  writes are captured; a public write is a success only with LOT-037's `success` (refresh URL included) and that write's own
-  confirmation sentence (`PostingAction.confirmation`, HFR-PROTOCOL §7 E15); another sentence, or a missing refresh, is reported `unconfirmed`, never success.
-- **Public edit form** of an own message, first post and later post: the `action` (HFR-PROTOCOL §3.1), the subject field and
-  the `delete` label that tell a first post (until then every public delete asks for confirmation).
+- **Public-topic answers**: the reply, edit and delete of a later post are captured (`W30`–`W32`, cat 13): the same
+  sentences as on private messages, each with a refresh, so LOT-037 classifies them `success` and the per-write sentence
+  check confirms them (`HopResponseParserTests`). The public **new-topic** answer is still pending: until captured it is a
+  success only with LOT-037's `success` and its own sentence, otherwise `unconfirmed`.
+- **Public edit form of a first post**: the later post's form is captured (`R62a`, `R62b`: action `/bdd.php?config=hfr.inc`,
+  hidden `sujet`, "Effacer ce message"); the first post's (subject field, `delete` label) is not, so every public delete still
+  asks for whole-topic confirmation.
 - **Delete of a public topic's first post**: what HFR answers, and whether the whole topic goes (rf2 X1).
 - **New-topic answer** in a forum category: sentence and refresh target (E14).
 - **Reply form of a locked topic or of a topic the account may not post in** (already listed for LOT-036/037): reported as

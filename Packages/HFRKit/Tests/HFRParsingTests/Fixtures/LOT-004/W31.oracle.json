@@ -1,0 +1,47 @@
+{
+  "case" : "W31",
+  "exception" : null,
+  "input" : {
+    "bytes" : 1632,
+    "context" : {
+      "charset" : "utf-8",
+      "flow" : "reply",
+      "status" : 200,
+      "urlQuote" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=6510&numreponse=75493617&page=30&p=1&subcat=430&sondage=0&owntopic=0"
+    },
+    "currentURL" : null,
+    "file" : "../captures/W31-public-edit-success.html",
+    "now" : null,
+    "sha256" : "3a1582e2eec7f730ea6dfa8330cf0b4f65542f78a533f9df5e4f7674e6178d43"
+  },
+  "kind" : "response",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "legacy" : {
+      "anchor" : "#t75493617",
+      "anchorMatches" : 1,
+      "classification" : "success",
+      "decoded" : true,
+      "hopFound" : true,
+      "hopHasInput" : false,
+      "hopHasLink" : false,
+      "message" : "Votre message a été édité avec succès !"
+    },
+    "live" : {
+      "ok" : true,
+      "refreshAnchor" : "t75493617",
+      "refreshURL" : "https://forum.hardware.fr/hfr/Discussions/Sports/muscu-gringalets-sujet_6510_30.htm#t75493617",
+      "statusMessage" : "Votre message a été édité avec succès !"
+    }
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}
