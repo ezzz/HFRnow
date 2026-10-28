@@ -117,12 +117,12 @@ public enum MessageActionsParser {
 
     // MARK: - Helpers
 
-    /// `url` when it satisfies `predicate`, else nil.
+    /// Optional has no `filter`; this keeps the field rules one expression each in `actions(of:)`.
     private static func keep(_ url: URL?, if predicate: (URL) -> Bool) -> URL? {
         url.flatMap { predicate($0) ? $0 : nil }
     }
 
-    /// Percent-encoded path of a forum URL, `""` when it has none.
+    /// Compared percent-encoded, as served: a decoded path could turn `%2F` into a `/` and match another action's path.
     private static func path(of url: URL) -> String {
         URLComponents(url: url, resolvingAgainstBaseURL: true)?.percentEncodedPath ?? ""
     }
