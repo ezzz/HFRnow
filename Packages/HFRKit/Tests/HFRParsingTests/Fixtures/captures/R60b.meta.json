@@ -1,0 +1,21 @@
+{
+  "id": "R60b",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/message.php?config=hfr.inc&cat=prive&post={post}&numreponse={numreponse}&page=1&p=1&subcat=0&sondage=0&owntopic=0",
+  "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3157083&numreponse=1980164061&page=1&p=1&subcat=0&sondage=0&owntopic=0",
+  "final_url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3157083&numreponse=1980164061&page=1&p=1&subcat=0&sondage=0&owntopic=0",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Tue, 27 Oct 2026 19:54:44 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "Edit form of the MPStorage first post, URL from the page toolbar (edit-in link of R60a); GET only, never submitted",
+  "file": "R60b-mpstorage-edit-form-first-post.html",
+  "private": true
+}

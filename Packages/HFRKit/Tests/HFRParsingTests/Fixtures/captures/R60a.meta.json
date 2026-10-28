@@ -1,0 +1,21 @@
+{
+  "id": "R60a",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/forum2.php?config=hfr.inc&cat=prive&post={post}&numreponse=0&page=1&p=1&subcat=0&sondage=0&owntopic=0",
+  "url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=prive&post=3157083&numreponse=0&page=1&p=1&subcat=0&sondage=0&owntopic=0",
+  "final_url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=prive&post=3157083&numreponse=0&page=1&p=1&subcat=0&sondage=0&owntopic=0",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Tue, 27 Oct 2026 19:54:24 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "MPStorage thread, first-post page, legacy GETRequest URL (MPStorage.m:766); opening it marks the thread read for user1 (its own storage thread)",
+  "file": "R60a-mpstorage-thread-first-post.html",
+  "private": true
+}
