@@ -134,7 +134,7 @@ Within a priority, match `difficulty` to your model tier (§6). Security issues 
 
 ## 8. Git and PR workflow
 
-- Integration branch: `dev-swift` (ruleset: PR + green checks required, squash only, no force push). `master` is the legacy app.
+- Integration branch: `dev-swift` (ruleset: PR + green checks required, squash only, no force push; `strict` is off, so no up-to-date-with-base requirement; auto-merge is allowed since 2026-10-28). `master` is the legacy app.
 - Issue and PR numbers restart on ezzz/HFRnow: cite the old ones as `francoisgn/ios-app_SwiftHFR#N`.
 - Branch names: `lot/XXX-short-name`, `fix/short-name`, `feat/short-name`, `chore/short-name`, `docs/short-name`.
 - Commits: imperative mood, explain *why*. Reference the lot (`LOT-003`).
