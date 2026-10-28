@@ -2,7 +2,7 @@
 
 - **Module:** HFRParsing
 - **Difficulty / model:** medium (Sonnet → Opus)
-- **Issue:** none (lot tracked in `docs/LOTS.md`; old [#69](https://github.com/francoisgn/ios-app_SwiftHFR/issues/69) is frozen history; audit D1 in [D](../audit/D-posting.md))
+- **Issue:** [#63](https://github.com/ezzz/HFRnow/issues/63) (old [#69](https://github.com/francoisgn/ios-app_SwiftHFR/issues/69) is frozen history; audit D1 in [D](../audit/D-posting.md))
 
 Reads the write forms HFR serves (reply, quote, edit, new topic, MP, moderator alert) into the `ForumForm` of [LOT-012](LOT-012-form-write-models.md).
 It reports what the page contains and decides nothing: which fields are sent, how an unchecked box is encoded and the reply text are `HFRClient` (LOT-048). The answer to a write is LOT-037.
@@ -71,7 +71,7 @@ The differential test compares, per case: `action` with `formAction`; the legacy
 
 ## Pending capture
 Not hand-built (LESSONS 36); each is a parser state or a protocol fact, none blocks this lot:
-- **Edit form of a message in a public topic** (own message, `cat=<forum>`): only the private-message edit forms are captured, `action` is `/bdd.php?config=hfr.inc` there (`R43a`–`R44`); the public one is unverified (HFR-PROTOCOL §3.1 step 4), which is why the action is read, never assumed.
+- **Edit form of a public topic's first post** (own topic, `cat=<forum>`): the later post's form is captured (`R62a`, `R62b`: action `/bdd.php?config=hfr.inc`, as on private messages), the first post's is not in the corpus; the action is read, never assumed.
 - **A new-topic form reached with a sub-category preselected** (`R45a` has no `selected` option, so `selectedValue` on HFR pages is only tested on inline pages).
 - **An edit or quote form whose stored text starts with a newline**: confirms that HFR does not add its own newline (all captures suggest so) and so that a browser would drop a real one.
 - **The reply form of a locked topic and of a topic where the account may not post**, to learn what the page serves instead of the form (LOT-037 reads the message).

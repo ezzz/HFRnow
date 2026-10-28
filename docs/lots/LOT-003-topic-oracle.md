@@ -2,7 +2,7 @@
 
 - **Module:** tooling (legacy app)
 - **Difficulty / model:** medium (Opus → Fable)
-- **Issue:** none (lot tracked in `docs/LOTS.md`; audit item C00 in [C](../audit/C-message-parsing.md))
+- **Issue:** [#40](https://github.com/ezzz/HFRnow/issues/40) (audit item C00 in [C](../audit/C-message-parsing.md))
 
 Harness, patch and run instructions: [`tooling/legacy-oracle/`](../../tooling/legacy-oracle/README.md) (shared with [LOT-002](LOT-002-list-oracle.md)).
 This lot adds the kind `topic`: one topic page through the whole live pipeline, from the response bytes to the HTML the

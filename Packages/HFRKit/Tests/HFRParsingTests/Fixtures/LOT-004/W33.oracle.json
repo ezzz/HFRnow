@@ -1,0 +1,43 @@
+{
+  "case" : "W33",
+  "exception" : null,
+  "input" : {
+    "bytes" : 3160,
+    "context" : {
+      "charset" : "utf-8",
+      "flow" : "reply",
+      "status" : 200,
+      "urlQuote" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=1000&numreponse=1003&page=1&p=1&subcat=&sondage=0&owntopic=0&new=0"
+    },
+    "currentURL" : null,
+    "file" : "../captures/W33-public-reply-empty-body-rejected.html",
+    "now" : null,
+    "sha256" : "9acbf969aa2623eb242caa703e9fe4050d817e832ffb31a40a9da038bcdba393"
+  },
+  "kind" : "response",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "legacy" : {
+      "classification" : "rejected",
+      "decoded" : true,
+      "hopFound" : true,
+      "hopHasInput" : true,
+      "hopHasLink" : false,
+      "message" : "Vous devez remplir tous les champs avant de poster ce message"
+    },
+    "live" : {
+      "error" : "submissionRejected",
+      "message" : "Vous devez remplir tous les champs avant de poster ce message"
+    }
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

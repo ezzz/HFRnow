@@ -8,10 +8,10 @@ It is a living document: when a lot teaches us something, it is written here (se
 
 **Starting a session — in this order:**
 1. Read this file, [ORCHESTRATION](docs/agents/ORCHESTRATION.md), [REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md) and [LESSONS](docs/agents/LESSONS.md).
-2. Look at [`docs/LOTS.md`](docs/LOTS.md) on `dev-swift`, not memory: the lots you own (`in-progress` with your session id), then `todo` lots with no owner (§7). It is the only tracker until Issues are enabled on ezzz/HFRnow ([ADR 0010](docs/adr/0010-hosting-on-ezzz-hfrnow-dev-swift.md)).
-3. Work only under a lot you claimed in `LOTS.md` (§5). Every PR names its lot (`LOT-XXX`) (§8).
+2. Look at the [issues of ezzz/HFRnow](https://github.com/ezzz/HFRnow/issues), not memory: the ones you claimed (a `/claim` comment with your session id), then `status: ready` issues nobody claimed (§7). [`docs/LOTS.md`](docs/LOTS.md) is the plan (scope, dependencies, routing) and links each lot to its issue.
+3. Work only under an issue you claimed (§5). Every PR names its issue (`Closes #N`, or `Refs #N` for partial work; the only exceptions are a `Direct-PR: <reason>` small fix and Dependabot), and a lot PR its lot (`LOT-XXX`) (§8).
 4. Get the PR reviewed by another model and handle bot rounds per REVIEW-ROUNDS. Merging is the operator's call (§0).
-5. Before you stop: say where each lot you own stands (on its PR), and give back what you will not finish (owner `—`, status back to `todo`, by PR).
+5. Before you stop: say where each lot you own stands (on its PR), and give back what you will not finish (`/release` on its issue, §5).
 
 ---
 
@@ -19,7 +19,7 @@ It is a living document: when a lot teaches us something, it is written here (se
 
 The **operator** is the human driving an agent session. Agents act on the operator's behalf and within the operator's permissions on this repository.
 
-- **Routine work needs no extra confirmation**: your own branches, PRs, fixes to your open PRs, replies on your PRs, your claim PRs and your lot's own row in `docs/LOTS.md`.
+- **Routine work needs no extra confirmation**: your own branches, PRs, fixes to your open PRs, replies on your PRs, `/claim` and `/release` comments, and comments on the issues you claimed.
 - **Consequential actions are confirmed by the operator first** (draft, show, wait): merges, releases and tags, anything on another repository, editing or closing what someone else wrote (back up, show the diff, apply, re-read), repository settings, new dependencies, disclosing a security finding, messages outside GitHub.
 - How strictly confirmations apply, and whether they carry over to child sessions, is **the operator's call**. Personal rules belong in an untracked `CLAUDE.local.md` (or your tool's equivalent), not in this file.
 - Merges to `dev-swift` happen through PRs with green checks; who may merge is governed by repository permissions.
@@ -40,7 +40,7 @@ License: [PolyForm Noncommercial 1.0.0](LICENSE) — no commercial use, credit t
 | `App/` | iOS app target (SwiftUI), `App/SwiftHFR.xcodeproj` — see [App/README](App/README.md) and [ADR 0012](docs/adr/0012-app-project-file-strategy.md) |
 | `docs/ARCHITECTURE.md` | Modules, dependency rules, design principles |
 | `docs/ROADMAP.md` | Phases and their exit criteria |
-| `docs/LOTS.md` | Migration lots: scope, dependencies, model routing, owner, status — the **only tracker** until Issues are enabled on ezzz/HFRnow. **Check it before starting work.** |
+| `docs/LOTS.md` | The migration plan: lots with scope, dependencies, model routing, each linked to its issue. Owners and status live on the [issues](https://github.com/ezzz/HFRnow/issues) |
 | `docs/agents/` | [ORCHESTRATION](docs/agents/ORCHESTRATION.md) (parallel sessions), [REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md) (bots & reviews), [LESSONS](docs/agents/LESSONS.md) (self-review table) |
 | `docs/lots/` | One spec file per lot (`LOT-XXX-name.md`) |
 | `docs/FEATURES.md` | App feature backlog (FEAT-XXX, with credit to who proposed it) and status; one spec per feature in `docs/features/FEAT-XXX.md` ([ADR 0011](docs/adr/0011-contribution-model-and-feature-intake.md) §2) |
@@ -55,7 +55,7 @@ License: [PolyForm Noncommercial 1.0.0](LICENSE) — no commercial use, credit t
 **Hosting** ([ADR 0010](docs/adr/0010-hosting-on-ezzz-hfrnow-dev-swift.md)): SwiftHFR lives on the `dev-swift` branch of [ezzz/HFRnow](https://github.com/ezzz/HFRnow).
 The default branch `master` of that repository **is the legacy app**: never branch from it, never target it, never let a session's `CLAUDE.md` from `master` drive work on SwiftHFR.
 
-`francoisgn/ios-app_SwiftHFR` is a read-only mirror of `dev-swift`, synced hourly: never open issues or PRs there. Its issues are frozen history: read them for context (`LOTS.md` links each open lot's old issue), never claim, comment on or close them.
+`francoisgn/ios-app_SwiftHFR` is a read-only mirror of `dev-swift`, synced hourly: never open issues or PRs there. Its issues are frozen history: read them for context (each lot issue links its old one), never claim, comment on or close them.
 
 Legacy codebase (read-only reference): the `master` branch of ezzz/HFRnow. Citations written before the move point to <https://github.com/francoisgn/hfrnow> @ `2440d79` and stay valid.
 When a behaviour is unclear, **read the legacy code** instead of guessing, and cite the file and line in the lot spec.
@@ -68,8 +68,8 @@ When a behaviour is unclear, **read the legacy code** instead of guessing, and c
 4. **Secrets never enter the repository**: no tokens, passwords, cookies, session IDs or signing material — not in code, fixtures, logs, tests or commit messages. Secrets live in GitHub Actions secrets; for local builds only in git-ignored configuration files as defined by [ADR 0007](docs/adr/0007-third-party-api-keys.md). Push protection and gitleaks will block you; never bypass them.
 5. **Fixtures are anonymized before commit** ([FIXTURES](docs/FIXTURES.md)). A real pseudo, cookie or hash in a fixture is a security incident.
 6. **Small, reviewable changes.** One lot or one issue per PR. No drive-by refactors.
-7. **Don't work on something already claimed.** Claim a lot in `docs/LOTS.md` (owner + `in-progress`, by PR) before coding (§5, [ORCHESTRATION](docs/agents/ORCHESTRATION.md#claims)).
-8. **No hidden state.** Claims and status live in `docs/LOTS.md`, progress and blockers in PRs, never only in a session's memory. Saw a problem that belongs to another lot? Say it on that lot's PR, or add it to the lot's spec or the backlog in `LOTS.md` by PR.
+7. **Don't work on something already claimed.** Claim its issue (`/claim <session-id>`) before coding (§5, [ORCHESTRATION](docs/agents/ORCHESTRATION.md#claims)).
+8. **No hidden state.** Claims and status live on the issues, progress and blockers on issues and PRs, never only in a session's memory. Saw a problem that belongs to another lot? Say it on that lot's issue or PR, or add it to the lot's spec by PR; a new problem gets its own issue.
 9. **Measure, don't assume** — performance claims, protocol behaviour, test results.
 
 ## 4. Engineering conventions
@@ -85,17 +85,17 @@ When a behaviour is unclear, **read the legacy code** instead of guessing, and c
 
 ## 5. The migration loop (one lot)
 
-Each lot in `docs/LOTS.md` follows exactly this loop (once Issues are enabled on ezzz/HFRnow, each lot gets an issue and the claim moves to it: [ORCHESTRATION, target process](docs/agents/ORCHESTRATION.md#claims)):
+Each lot of `docs/LOTS.md` has one issue (`type: lot`) and follows exactly this loop ([ORCHESTRATION](docs/agents/ORCHESTRATION.md#claims)):
 
-1. **Claim** — set yourself as owner of the lot's row in `docs/LOTS.md` with status `in-progress`, in a PR on `dev-swift` merged **before** writing code. When an orchestrator session is active, it claims for you instead and you do not edit `LOTS.md`. The owner is a session id `<host>/<name>`, e.g. `cloud/c12-sonnet`, `mac/M1`, `human/<login>`, plus the date; keep it for the whole lot. Check first that the lot is `todo` (every dependency done, inputs available) and has no owner; the first claim merged wins.
-   Stuck or stopping? Say on your PR what is done and what is left, then give the lot back (owner `—`, status `todo`) by PR. A claim that looks abandoned for 24 h: ask the maintainer, never take it over.
+1. **Claim** — comment `/claim <session-id>` on the lot's issue **before** writing code. When an orchestrator session is active, it claims for you instead. The session id is `<host>/<name>`, e.g. `cloud/c12-sonnet`, `mac/M1`, `human/<login>`; keep it for the whole lot. Check first that the issue is `status: ready` (every dependency done, inputs available) and not `status: claimed`; the first claim wins. Until `issue-claims.yml` runs from `master`, the orchestrator or the maintainer sets `status: claimed` by hand (ORCHESTRATION).
+   Stuck or stopping? Say on your PR and the issue what is done and what is left, then comment `/release`. A claim that looks abandoned for 24 h: ask the maintainer, never take it over.
 2. **Spec** — write/complete `docs/lots/LOT-XXX-*.md`: legacy sources (file:line), inputs/outputs, edge cases, intentional differences from legacy, *pending capture* states. Verified protocol facts go to `docs/HFR-PROTOCOL.md` §6c under the lot's own `###` subsection.
-3. **Fixtures** — real pages + legacy parser output (the oracle), anonymized. **Both must exist before you claim a parser lot** (LESSONS 35). A state that was not captured is listed as *pending capture* and added to the capture backlog in `docs/LOTS.md`; never hand-build it in the cloud (LESSONS 36).
+3. **Fixtures** — real pages + legacy parser output (the oracle), anonymized. **Both must exist before you claim a parser lot** (LESSONS 35). A state that was not captured is listed as *pending capture* and opened as a capture issue (`host: mac`, `type: chore`) naming the lots that want it; never hand-build it in the cloud (LESSONS 36).
 4. **Port** — implement in the right module, Swift-native, no ObjC.
 5. **Differential tests** — the new code must reproduce the oracle output on every fixture. Differences must be justified in the spec (legacy bug fixed on purpose = documented).
 6. **CI green** — build, tests, lint, CodeQL, secret scan.
 7. **Review** — self-review against [LESSONS](docs/agents/LESSONS.md), then an **adversarial review** by a different model than the author (§6): the reviewer gets the diff, the lot spec and LESSONS, not the author's conclusions, and returns APPROVE or REQUEST CHANGES with numbered findings (severity, file:line, failing scenario, fix). Fix every finding in one commit per round, re-review until APPROVE. Bot rounds follow [REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md); security findings stay open until the operator decides.
-8. **Close** — the PR (`LOT-XXX`) sets the lot's own row in `docs/LOTS.md` to `done (#PR)`. Learnings go to [LESSONS](docs/agents/LESSONS.md).
+8. **Close** — the PR says `LOT-XXX` and `Closes #N`. Merges into `dev-swift` do not close issues (ADR 0010): whoever merges closes it right after the merge (§8). Learnings go to [LESSONS](docs/agents/LESSONS.md).
 
 ## 6. Model routing (which agent does what)
 
@@ -113,7 +113,7 @@ Sub-agents launched by a session work under the claim they are given, open one P
 
 ## 7. Labels and prioritization
 
-Labels are defined in [`.github/labels.yml`](.github/labels.yml) and synced automatically. Issue forms set them; a workflow applies them — both only from the default branch, so they wait for Issues on ezzz/HFRnow (ADR 0010). Until then the same axes are the columns of `docs/LOTS.md`.
+Labels are defined in [`.github/labels.yml`](.github/labels.yml) and synced automatically. Issue forms and the labelling workflow only run from the default branch (the legacy `master`, ADR 0010), so for now labels are set by hand when an issue is opened.
 Every issue carries one label per axis:
 
 | Axis | Labels | Meaning |
@@ -122,14 +122,14 @@ Every issue carries one label per axis:
 | Priority | `priority: high`, `priority: medium`, `priority: low` | How soon |
 | Difficulty | `difficulty: trivial`, `difficulty: easy`, `difficulty: medium`, `difficulty: difficult` | Effort/risk — drives model routing (§6) |
 | Area | `area: models`, `area: parsing`, `area: network`, `area: storage`, `area: client`, `area: app`, `area: tooling`, `area: ci`, `area: docs` | Where |
-| Status | `status: needs-triage`, `status: blocked`, `status: ready`, `status: claimed` | Workflow state; `status: claimed` is set and removed by the claim workflow only |
+| Status | `status: needs-triage`, `status: blocked`, `status: ready`, `status: claimed` | Workflow state; `status: claimed` follows the active `/claim` (by hand until the claim workflow runs from `master`) |
 | Host | `host: mac` | Needs the maintainer's Mac (Xcode, legacy app, live captures); cloud sessions leave it alone |
 
 Credit labels: `moust4ki aka bybifok finding` marks work found by Bybifok; the fix credits them.
 
 **Writing an issue:** it starts with `### Summary` (user story or two-line executive summary, §8), then scope, sources and acceptance criteria.
 
-**Picking work:** today, `todo` rows of `docs/LOTS.md` with no owner, security first, then the critical path (★) and the lots that unblock others. Once Issues are enabled: `status: ready` issues that are not `status: claimed`, in this order: `type: security` first, then `priority: high` → `low`.
+**Picking work:** `status: ready` issues that are not `status: claimed`, in this order: `type: security` first, then `priority: high` → `low`; among lots, the critical path (★ in `docs/LOTS.md`) and the lots that unblock others first.
 Within a priority, match `difficulty` to your model tier (§6). Security issues are never reported publicly — see [SECURITY.md](SECURITY.md).
 
 ## 8. Git and PR workflow
@@ -138,13 +138,14 @@ Within a priority, match `difficulty` to your model tier (§6). Security issues 
 - Issue and PR numbers restart on ezzz/HFRnow: cite the old ones as `francoisgn/ios-app_SwiftHFR#N`.
 - Branch names: `lot/XXX-short-name`, `fix/short-name`, `feat/short-name`, `chore/short-name`, `docs/short-name`.
 - Commits: imperative mood, explain *why*. Reference the lot (`LOT-003`).
-- **Every issue starts with `### Summary`** (once Issues are enabled): a user story ("As a <who>, I want <what>, so that <why>") or a two-line executive summary, so a human judges the intent at a glance. Scope, sources and acceptance criteria come after. The issue forms ask for it; an issue opened without it gets `status: needs-triage` and a reminder.
-- **Every PR names its lot, claimed by its author** in `docs/LOTS.md` (`LOT-XXX` in the description; partial work says what is left). Work that is not a lot (small fix, CI, docs) says so in the description; anything that takes more than one session gets a row in `LOTS.md` first. Dependabot PRs are exempt.
-- **Target process, once ezzz enables Issues** (ADR 0010 "Later, owner's decision"; the machinery from francoisgn/ios-app_SwiftHFR#100 is on `dev-swift`, inert until then): every PR has an issue claimed by its author, checked by **Issue and claim** — `Closes #N` (or `Refs #N` for partial work) and, on its own line, `Claim: <session-id>` equal to the issue's active claim, with the break-glass `Direct-PR: <reason>` for small fixes, labelled `direct-pr`. Details in [ORCHESTRATION](docs/agents/ORCHESTRATION.md#claims).
-- **Before opening a PR (or, later, an issue), check for duplicates**: synonyms, titles and bodies, open and closed, plus `LOTS.md`. An older issue asking the same thing is the one to keep. A better PR already open → close ours with one sentence and a link.
-- **Right before opening a PR**, search the open PRs that cite the same lot or touch the same files (e.g. `docs/HFR-PROTOCOL.md`, `docs/LOTS.md`): coordinate on their PR, or merge `dev-swift` once they land, instead of discovering the conflict at merge time.
-- **Public actions outside this repository** (a post on the HFR forum, an issue or comment on another project, a message to another maintainer) are confirmed by the operator first (§0), then recorded on the related PR (or, later, issue), in the same work unit: the link, or, for a private channel (e-mail, chat), the channel and the date, never the private content. Other sessions learn our public footprint from there.
-- **PR description**, short, in order: `LOT-XXX` (or what is left, for partial work); the problem; the cause; what changed and why this wide and no wider; the tests (names, what they check, shown to fail without the change).
+- **Every issue starts with `### Summary`**: a user story ("As a <who>, I want <what>, so that <why>") or a two-line executive summary, so a human judges the intent at a glance. Scope, sources and acceptance criteria come after. The issue forms ask for it once they run from `master`; meanwhile open a blank issue titled `[SwiftHFR] …` with one label per axis (§7). An issue without it gets `status: needs-triage` and a reminder.
+- **Every PR has an issue claimed by its author**: `Closes #N` (or `Refs #N` for partial work, saying what is left) and, on its own line, `Claim: <session-id>` equal to the issue's active claim; a lot PR also names its lot (`LOT-XXX`). Break-glass: `Direct-PR: <reason>` for small fixes, labelled `direct-pr`, never for a lot. Anything that takes more than one session gets an issue first (a new lot also gets its row in `LOTS.md`). Dependabot PRs are exempt. The **Issue and claim** check (francoisgn/ios-app_SwiftHFR#100) enforces this once `pr-issue.yml` runs from `master`; until then reviewers check it. Details in [ORCHESTRATION](docs/agents/ORCHESTRATION.md#claims).
+- **A merged PR closes its `Closes #N` issue** (a `Refs #N` issue stays open for the rest of the work). Every PR names its issue (`Closes #N`, or `Refs #N` for partial work), identified before the merge; a PR without one (and without a `Direct-PR:` reason, Dependabot excepted) is still merged, but flagged to the orchestrator as a tracking blind spot (find or open the issue, link and close it, find how the work started without one). Closing keywords do not fire on `dev-swift` (ADR 0010), so whoever merges closes the `Closes #N` issue right after the merge with the comment `Done in #PR (merged as <sha>)` and checks that it is closed: a merge normally means a closed issue. The PR author keeps that closure as a to-do until it is verified, and stays on the CI until it is green. The orchestrator uses a helper that does exactly this.
+- **Before opening a PR or an issue, check for duplicates**: synonyms, titles and bodies, open and closed issues and PRs, plus `LOTS.md`. An older issue asking the same thing is the one to keep. A better PR already open → close ours with one sentence and a link.
+- **Right before opening a PR**, search the open PRs that cite the same lot or touch the same files (e.g. `docs/HFR-PROTOCOL.md`): coordinate on their PR, or merge `dev-swift` once they land, instead of discovering the conflict at merge time.
+- **Public actions outside this repository** (a post on the HFR forum, an issue or comment on another project, a message to another maintainer) are confirmed by the operator first (§0), then recorded on the related issue or PR, in the same work unit: the link, or, for a private channel (e-mail, chat), the channel and the date, never the private content. Other sessions learn our public footprint from there.
+- **Legacy fixes**: a PR that fixes or deliberately changes a behaviour of the legacy app adds one line to [docs/CHANGELOG-LEGACY.md](docs/CHANGELOG-LEGACY.md) (French summary, lot/PR, legacy file:line or capture) — the base of the SwiftHFR v1 changelog.
+- **PR description**, short, in order: `LOT-XXX` (lot PRs only), `Closes #N` (or `Refs #N` and what is left, for partial work; `Direct-PR: <reason>` for a small fix without an issue) and `Claim:`; the problem; the cause; what changed and why this wide and no wider; the tests (names, what they check, shown to fail without the change).
 - Draft while unfinished; ready as soon as CI is green. Answer reviews within a day; handle bot rounds with [REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md).
 - No new PR while one of yours has an unanswered review comment.
 - Commit small, push often: a crash should lose minutes, not hours.
@@ -158,7 +159,7 @@ Within a priority, match `difficulty` to your model tier (§6). Security issues 
 - [ ] Spec / protocol / ADR docs updated
 - [ ] Reviewed by another model or a human
 - [ ] Self-review against [LESSONS](docs/agents/LESSONS.md) done
-- [ ] The lot's row in `docs/LOTS.md` set to `done (#PR)` by the closing PR
+- [ ] The PR says `Closes #N`; the issue is closed by hand, with the PR link, once the PR is merged
 
 ## 10. Environments
 
@@ -183,6 +184,7 @@ Keep entries short and dated. Remove anything that became false.
 - 2026-10-26 — Hosting move to ezzz/HFRnow `dev-swift` (ADR 0010): issue forms, Dependabot, scheduled workflows, `workflow_dispatch` and Scorecard only work from the default branch, which is the legacy app. The Claude and CodeRabbit GitHub apps on a personal-account repository can only be installed by its owner, whatever the collaborator's rights.
 - 2026-10-27 — Hosting move: two sessions designed it in parallel and both wrote an ADR 0010; one branch was never merged and missed the cutover. Before a structural change, run `git fetch --all --prune`, list the branches not merged into the integration branch (`git branch -r --no-merged origin/dev-swift`) and decide the fate of each.
 - 2026-10-26 — LOT-001: a first corpus PR leaked member pseudos on the public repo because the anonymizer's `check` reused the redactor's own selectors. Corpus checks must be independent of the redactor, and every corpus change gets an independent reviewer before it is pushed, not after (FIXTURES.md policy, LESSONS 33–34).
+- 2026-10-27 — LOT-034: HFR nests the `<div style="clear: both;">` and the `div.edited` trailer **inside** `div#para<numreponse>`, between the body and the signature; the LOT-003 oracle's `html` is cut at the signature (`display_sig=no`) and had every `\n` deleted, so its text is compared with all whitespace removed. SwiftSoup 2.14 always writes void elements as `<br />`; Swift Testing takes literal `#expect` labels only (a `Comment` value is ambiguous with SwiftSoup's on Linux). SwiftSoup's `appendChild` walks up to the owner document recursively: build deep trees bottom-up (attach a subtree once complete), never top-down under an attached root.
 - 2026-10-26 — LOT-002..004: the legacy oracle runs real legacy code from a test host via `tooling/legacy-oracle/run-oracle.sh`, with a local patch to hfrnow at 2440d79 (never pushed). Each oracle lot's `hfrnow.patch` is a superset of the previous one, and hfrnow must carry exactly the patch of the branch being run (the script refuses otherwise).
 - 2026-10-27 — LOT-036: read captures as bytes: a text-mode read turns the CRLF HFR stores in an edit or quote prefill into LF. SwiftSoup decodes entities in attributes and in `<textarea>` but keeps `\r\n` and a leading newline (a browser drops one), so the form parser normalises line breaks itself.
 - 2026-10-27 — LOT-024: SwiftSoup `Element.ownerDocument()` is nil for elements of a document nobody retains, and elements of two parses of one page are never identical: keep the `Document` that produced the elements you match against.

@@ -66,7 +66,7 @@ The home page does not link `cat` ids; this table maps each forum's topic-list p
 1. GET the form page (answer URL, edit URL, new-topic URL, MP URL). It contains `<form name="hop">`.
 2. Copy every `<input>` (legacy: checkbox → `"1"`/`"0"`; **rf2: browsers send nothing for an unchecked checkbox or radio** ([research](research/redface2-comparison.md) §4.2 X3, open point §4.4 item 3); radio → value only if checked, others → `value`) and every `<select>` (selected or first option). Values must be HTML-entity-decoded (legacy Swift does not: bug).
 3. Override `content_form` (message, `\n` → `\r\n`), `pseudo`, `hash_check`, `config=hfr.inc`; and `sujet`, `subcat`, `dest` when the form exposes them.
-4. POST `application/x-www-form-urlencoded; charset=utf-8` to the form `action`, resolved against the form URL. The legacy app defaulted to `/bddpost.php` when the form had no usable action; SwiftHFR must not use that fallback: `HopFormParser` returns `ForumForm.action` resolved and restricted to the forum origin ([LOT-036](lots/LOT-036-hop-form-parser.md)), and when it is `nil` (absent, empty or off-origin) [LOT-048](lots/LOT-048-post-form-engine.md) rejects the write (`missingAction`) and substitutes no default. The edit form's action is unverified (`/bdd.php` is established only for MPStorage updates, §3.3) — **always read the action, never hard-code**.
+4. POST `application/x-www-form-urlencoded; charset=utf-8` to the form `action`, resolved against the form URL. The legacy app defaulted to `/bddpost.php` when the form had no usable action; SwiftHFR must not use that fallback: `HopFormParser` returns `ForumForm.action` resolved and restricted to the forum origin ([LOT-036](lots/LOT-036-hop-form-parser.md)), and when it is `nil` (absent, empty or off-origin) [LOT-048](lots/LOT-048-post-form-engine.md) rejects the write (`missingAction`) and substitutes no default. **live**: edit forms post to `/bdd.php?config=hfr.inc`, on private messages (`R43a`–`R44`) and on a later post of a public topic (`R62a`, `R62b`); the public first-post edit form is not in the corpus — **always read the action, never hard-code**.
 5. Classify the response (HTTP 200 even on rejection):
    - success: a `<meta http-equiv="refresh">`, or a `.hop` block without `<a>`/`<input>`; anchor = fragment of the refresh URL;
    - rejected (incl. flood): `.hop` block containing a link or input; message = its text;
@@ -258,42 +258,59 @@ Source: [LOT-027](lots/LOT-027-profile-parser.md), `UserProfileParser`, checked 
 ### LOT-023 — MP list and unread badge
 
 [LOT-023](lots/LOT-023-mp-list.md), tests `PrivateMessageListParserTests`, `PrivateMessageBadgeParserTests`.
-
 - **MP row** (`R13a`, `R13b`, `R13u1`, **verified**): own state is `sujetCase1` (`closedbp.gif` `alt="On"` title "Nouveau message. Message privé pour <others>", `closedp.gif` `alt="Off"`); the `[non lu]` marker is `<span class="red" title="Ce message n'a pas été lu par : <pseudos>">` before the title link in `sujetCase3`, the pseudos joined with `, ` (the group tooltip of `sujetCase6` with `,`). The two states are independent: `R13u1` has read threads marked `[non lu]`. `sujetCase2` holds a message icon and the ignore link `/user/ignore.php?…&auteur=<pseudo>` (`ignore0.gif`).
 - **Group thread** (`R13u1`): `sujetCase6` is `<span title="<pseudos>">Interlocuteurs multiples</span>` with no profile link; one-to-one threads link `profilebdd.php?…&pseudo=`.
 - **Unread count** (`R02`, `R03`, `P03f`, `R08-2`, **verified**): the home page announces it in the `tr.cat` row linking `cat=prive` (`a.cCatTopic.red` "Vous avez 10 nouveaux messages privés"; "Envoyer / lire des messages privés" with no number and no `red` class when none is unread), logged-in forum lists in the middle cell of the 3-cell `table.none` ("Vous avez 1 nouveau message privé" in `a.red`, else "Messages privés"). The MP list, anonymous pages and the topic page have neither.
-
-
 ### LOT-047 — MP unread poll
-
 [LOT-047](lots/LOT-047-mp-unread-poll.md), tests `MPUnreadPollTests`.
-
 - **Poll page** (`R01`, `R02`, `R03`, **verified**): `GET /` carries the unread count in the `cat=prive` row (see LOT-023), 200 for anonymous and logged-in visitors, served at `https://forum.hardware.fr/` (no redirect, meta `final_url`). The poll reads only that page; no topic page, so no flag is marked read (§7, E25). The logged-in answer sets `md_user` and `md_passs` (each twice, R02/R03 metas), so the poll sends from a probe jar and does not write them back.
 - **Pending capture:** the home page answered to a logged-in session with expired cookies; until captured a poll reads it as `nil` (no information) whichever form HFR serves.
-
-
 ### LOT-036 — write forms
-
 Source: [LOT-036](lots/LOT-036-hop-form-parser.md), `HopFormParser`, checked by `HopFormOracleTests` against the LOT-004 oracles and by `HopFormParserTests` on `R40a`, `R40b`, `R41a`, `R41b`, `R42`, `R43a`–`R43c`, `R44`, `R45a`, `R45b`, `R46`, `R47a`–`R47c`, `R47u1`.
-
-- **Form**: `<form name="hop" id="hop" action=… method="post">` holds the inputs, the selects and the `<textarea id="content_form" name="content_form">`. Reply, quote and MP-reply forms post to `/bddpost.php?config=hfr.inc`; the **private-message edit forms** (`R43a`–`R44`) post to `/bdd.php?config=hfr.inc` (public-topic edit not captured, see the lot's "Pending capture"). The `action` is always read from the page.
+- **Form**: `<form name="hop" id="hop" action=… method="post">` holds the inputs, the selects and the `<textarea id="content_form" name="content_form">`. Reply, quote and MP-reply forms post to `/bddpost.php?config=hfr.inc`; the **edit forms** post to `/bdd.php?config=hfr.inc`: private messages (`R43a`–`R44`) and the later post of a public topic (`R62a`, `R62b`); a public first post's edit form is not in the corpus. The public reply composer (`R61b`, cat 13) is the `R40a` form, field for field. The `action` is always read from the page.
 - **Reply form** (`R40a`, logged in, 43 inputs): hidden `hash_check, subcat, parents, post, stickold, new, cat, numreponse, numrep, page, verifrequet (1100), p, sondage, sond, cache, owntopic, config, sujet`; text `pseudo` (the account's), `password` (hidden row), 16 `MsgIcon` radios (the first `checked`), `search_smilies`, hidden `ColorUsedMem` and `wysiwyg`, the `submit` input ("Valider votre message") and three checkboxes `signature`, `smiley`, `emaill` (value `1`, unchecked). No `<select>`.
 - **Anonymous composer** (`R40b`): the same form, with an **empty** `hash_check` and an empty `pseudo`. `hash_check` also sits in the header search form of every page, so its presence says nothing about the session.
-- **Edit form** (`R43a`–`R44`): `stickold` empty, `pseudo` and `sujet`; `sujet` is a visible text input on the first post of a conversation and hidden on a later one; a `delete` checkbox (value `1`, unchecked) except on `R44` (another account's message, served without it); the text is the stored one, with `\r\n` as sent (`R43a`, bytes) or `\n` (`R43b`).
+- **Edit form** (`R43a`–`R44`; public later post `R62a`, `R62b`: the same fields as `R43b`, `stickold` `0`, hidden `sujet` holding the topic title, delete label "Effacer ce message"): `stickold` empty, `pseudo` and `sujet`; `sujet` is a visible text input on the first post of a conversation and hidden on a later one; a `delete` checkbox (value `1`, unchecked) except on `R44` (another account's message, served without it); the text is the stored one, with `\r\n` as sent (`R43a`, bytes) or `\n` (`R43b`).
 - **Quote prefill** (`R41a`, `R41b`, `R47a`): `[quotemsg=<numreponse>,<ref>,<author id>]<text>[/quotemsg]` plus a trailing newline, line breaks `\r\n` in the HTML bytes; `&` of cited links is written `&amp;` and decoded by the parser. A multi-quote cookie gives one block per cited message (`R42`, `R47c`: two).
 - **New topic** (`R45a`): visible `sujet`, `toread1`..`toread5`, `<select name="subcat">` of 16 options, the first `value=""` "Aucune", none `selected`. **New MP** (`R45b`): visible `dest` (prefilled) and `sujet`, no select. **MP reply** (`R47b`, `R47u1`): hidden `sujet`, no `dest`, no `newdest`.
 - **Leading newline**: verified, every captured prefill starts right after the `<textarea>` tag, so HFR adds no newline of its own. **Pending capture**: a stored text that begins with `\n` (a browser's HTML parser would drop one newline after the tag; the parser keeps it, no capture has one).
 - **Favourite smileys** (`R47u1`, user1): `#dynamic_smilies` holds `<img src=".../images/perso/[N/]<name>.gif" alt="[:name[:N]]" title=… onclick="putSmiley(this.alt,this.src)">`, 8 of them; empty or absent for the other accounts (`R40a`, `R47b`).
 - **Moderator alert form** (`R46`): `<form method="post" action="modo.php?cat=13&amp;ref=1&amp;post=…&amp;numreponse=…&amp;page=1&amp;config=hfr.inc">` (relative to `/user/`, not a `hop` form) with `hash_check`, `referer_page` (empty), the `raison` textarea (no id) and `Submit`; the page also has the `#fastsearch` form (`action="/forum1.php"`, its own `hash_check`).
-
 ### LOT-048 — posting
-
 [LOT-048](lots/LOT-048-post-form-engine.md), tests `PostingCaptureTests`, `PostingBodyOracleTests`, `PostingRefusalTests`, `PostingInputTests` and `HopFormLayoutTests`.
-
 - **Body order** (`W10`-`W19` `request_fields`, **verified**): every captured write sends the `hop` form's controls in document order, `content_form` in place between `ColorUsedMem` and `wysiwyg`, the submit input, then the checked boxes; the new-topic `subcat` select sits between `toread5` and the tone radios (`R45a`). The engine rebuilds `W13b`'s body byte for byte from `R47b`, and the other captured bodies once legacy's `"0"` boxes are dropped and line breaks written CRLF.
 - **Fields sent** (`R40a`-`R47u1`, LOT-004 oracle, **verified**): the form's own `hash_check`, `pseudo` and `verifrequet=1100`, every hidden input, the checked tone radio, `submit=Valider votre message`; the same names and values as legacy apart from unchecked boxes.
 - **Composer shapes** (`R40a`-`R47u1`, **verified**): only edit forms carry a non-empty `numreponse`; new-thread forms show `sujet` (`R45a`), with `dest` for a private one (`R45b`); the first post's edit form shows `sujet` and labels its box "Effacer l'intégralité du sujet" (`R43a`), a later post hides `sujet` and says "Effacer ce message" (`R43b`).
 - **Per-write sentences** (`W10`, `W11`, `W15`, `W16a`, `W19`, **verified** on private messages): see §7 E15; `W18` (mark unread) is also a confirmation, of another action. Public-topic answers are not captured (lot's Pending capture).
+### LOT-034 — message content
+Source: [LOT-034](lots/LOT-034-content-normalization.md), `MessageContentNormalizer`, checked by `MessageContentOracleTests`,
+`MessageContentNormalizerTests` and `MessageContentSanitizationTests` on the 20 LOT-003 oracle cases (358 messages).
+- **Content element**: `div#para<numreponse>` holds the message HTML, then HFR's layout trailer `<div style="clear: both;"> </div>`
+  (closed by a stray `</p>`), then the LOT-030 edit trailer `<div class="edited">…</div>` when the message was edited or quoted, then
+  `<br /><span class="signature">…</span>` when the author has one. Measured on the 358 messages: 119 clear only, 92 clear > edited,
+  80 clear > signature, 45 clear > edited > signature, 22 none of them (private threads `RA1`–`RU2`); never another order
+  (`R20` message 1 `para2666682`, 0 `para2666649`, 2 `para2666695`, `para3182834`). 125 messages carry a signature.
+- **Smileys**: `<img src alt title>` on `forum-images.hardware.fr`, standard ones under `/icones/` (`/icones/smilies/ange.gif` with
+  `alt=":ange:"`, `/icones/redface.gif` with `alt=":o"`, `/icones/biggrin.gif` with `alt=":d" title=":D"`), personal ones under
+  `/images/perso/` with `alt="[:<code>]"` (`R20`, `R26`, `R27`); 103 messages hold a personal smiley. Every smiley of the corpus is `https`.
+- **Images**: `<img src alt title onload="md_verif_size(this,'Cliquez pour agrandir','2','250')" style="margin: 5px">`, `alt` and `title`
+  equal to the URL, `style` sometimes with `width`/`height`; bare (`R20`, `R28`) or inside `<a rel="nofollow" href target="_blank"
+  class="cLink">` (16 pairs on `R28`); 36 messages hold an image. Image hosts may stay `http`.
+- **Links**: external `<a rel="nofollow" href="…" target="_blank" class="cLink">`; forum links written `http://forum.hardware.fr/hfr/…`
+  (`R20`); quote headers `<a href="/hfr/<cat>/<slug>-sujet_<post>_<page>.htm#t<numreponse>" class="Topic">` (relative). One `R20` link
+  has raw spaces in its host (`http://G3Ferrari / Optima`): not a URL.
+- **Quotes**: `<div class="container"><table class="citation"><tr class="none"><td><b class="s1"><a class="Topic">…a écrit :</a></b>
+  <br /><br /><p>…</p></td></tr></table></div>` (126 on the corpus), `table.quote` with `<b class="s1">Citation :</b>` for anonymous
+  citations (9); `oldcitation` never seen.
+- **Spoilers** (`R27`, `R28`, 4 blocks): `<table class="spoiler" onclick="javascript:swap_spoiler_states(this)" style="cursor:pointer;">`
+  with `<b class="s1Topic">Spoiler :</b><br /><br /><div class="Topic masque">…</div>`.
+- **Code** (`R27b`): `<table class="code">` (or `fixed`) with `<b class="s1" style="font-family: Verdana, Helvetica, Arial, Sans-serif;">
+  Code :</b><br /><ol id="code1" class="olcode">`, one `<li>` per line (`<li></li>` for blank lines), `<span style="color:blue">`
+  keywords, `<span style="color:green"><i>` comments ending with a raw CR, entities `&#034;`, `&lt;`, `&nbsp;` for indentation.
+- **Formatting seen**: `strong`, `em`, `i`, `strike`, `span.u`, `span[style="color:#0055aa"]` (and `#e2001c`), `ul`/`li`, `br`,
+  `&nbsp;` lines; no `script`, `iframe`, `on*` attribute other than the spoiler's `onclick` and the images' `onload`, no `id` other
+  than `code<N>`.
+- **Not in the corpus**: `hfr-rehost.net` or `reho.st` URLs, the `---------------` separator, `oldcitation`.
 
 ### LOT-056 — image hosts
 
@@ -313,8 +330,8 @@ Facts from the redface2 project documentation, rewritten here; each becomes *ver
 | Topic | Reported fact | Id | Result (LOT-001, 2026-10-26) |
 |---|---|---|---|
 | Write constant | Every `bddpost.php` / `bdd.php` POST carries `verifrequet=1100`; the poll vote does not | X4 | **Settled**: hidden input of every write form (`R40a`, `R43a`, `R45b`, `R47b`) and present in every accepted POST body (`W10`-`W19`); not in the vote form (`R32a`) |
-| Write markers | Distinct success sentences for reply, edit, create and delete; specific texts for empty body, invalid token, flood | E15 | **Settled** (MP, `W10`-`W19`): reply "Votre réponse a été postée avec succès !" (refresh `…#bas`), edit "Votre message a été édité avec succès !" (`…#t<n>`), create "Votre message a été posté avec succès !", delete "Message effacé avec succès !" (also for a post already deleted, `W16b`), empty body "Vous devez remplir tous les champs avant de poster ce message", bad token 99-byte plain text "Une erreur est survenue lors de l'envoi des données. Essayez de vider le cache de votre navigateur", flood "Afin de prevenir les tentatives de flood, vous ne pouvez poster plus de 3 réponses consécutives dans un intervalle de 10 minutes", logged out "Désolé, vous devez être enregistré pour poster sur le forum"; new-topic flood "… plus de 1 nouveaux sujets consécutifs dans un intervalle de 60 minutes" (`W11x`) |
-| First post | Owner can delete it, which deletes the topic (then 404) | X1 | **MP variant settled, differs**: the owner's first-post edit form offers "Effacer l'intégralité du sujet" (`R43a`); the POST answers "Message effacé avec succès !" (`W19`), after which the owner gets 200 + "Ce message ne vous est pas destiné, désolé" (`RA5`, not 404), but the **recipient keeps the whole thread** (`R13u1b`, `RU2`). Public-topic variant not tested |
+| Write markers | Distinct success sentences for reply, edit, create and delete; specific texts for empty body, invalid token, flood | E15 | **Settled** (MP, `W10`-`W19`): reply "Votre réponse a été postée avec succès !" (refresh `…#bas`), edit "Votre message a été édité avec succès !" (`…#t<n>`), create "Votre message a été posté avec succès !", delete "Message effacé avec succès !" (also for a post already deleted, `W16b`), empty body "Vous devez remplir tous les champs avant de poster ce message", bad token 99-byte plain text "Une erreur est survenue lors de l'envoi des données. Essayez de vider le cache de votre navigateur", flood "Afin de prevenir les tentatives de flood, vous ne pouvez poster plus de 3 réponses consécutives dans un intervalle de 10 minutes", logged out "Désolé, vous devez être enregistré pour poster sur le forum"; new-topic flood "… plus de 1 nouveaux sujets consécutifs dans un intervalle de 60 minutes" (`W11x`). **Public topic** (cat 13, `W30`–`W33`): the same reply, edit, delete and empty-body sentences; refreshes: reply → `/hfr/<cat>/<sub>/<slug>-sujet_<post>_1.htm#bas` (page **1**, while the post landed on the last page, `R61d`), edit → `…-sujet_<post>_<page>.htm#t<numreponse>`, delete → `/hfr/<cat>/<sub>/sujet_<post>_<page>.htm` (no slug, no anchor). Public new-topic answer not captured |
+| First post | Owner can delete it, which deletes the topic (then 404) | X1 | **MP variant settled, differs**: the owner's first-post edit form offers "Effacer l'intégralité du sujet" (`R43a`); the POST answers "Message effacé avec succès !" (`W19`), after which the owner gets 200 + "Ce message ne vous est pas destiné, désolé" (`RA5`, not 404), but the **recipient keeps the whole thread** (`R13u1b`, `RU2`). Public topic: deleting a later post answers the same sentence and the post is gone (`W32`, `R61e`); deleting a public first post was not tested (not authorised) |
 | Create topic | Success redirects to the category list; no topic id returned | E14 | Unsettled for topics. MP creation: success refreshes to the MP list, no thread id (`W10`) |
 | Login | Success = `Set-Cookie: md_user` equal to the pseudo; failure and login-flood texts; cookie set may include `md_pass`, `md_forum` | X5, X12 | **Settled in part**: `md_user` = pseudo on success, exact failure text (`W01`, `W03`). **Contradicts** the cookie set: `md_user`, `md_passs`, `md_id`, no `md_pass`/`md_forum`. Login-flood text not observed |
 | CRLF | No `\n` → `\r\n` conversion in rf2; whether HFR needs it is open | X11 | **Settled**: bare LF and CRLF are both accepted and stored as sent (`R43a`, `R43b`); CRLF renders as `\r<br />` (`RA2`); server prefills use CRLF (`R41a`) |

@@ -2,7 +2,7 @@
 
 - **Module:** HFRParsing
 - **Difficulty / model:** medium (Sonnet → Opus)
-- **Issue:** none (lot tracked in `docs/LOTS.md`; audit item C06 in [C](../audit/C-message-parsing.md))
+- **Issue:** [#60](https://github.com/ezzz/HFRnow/issues/60) (audit item C06 in [C](../audit/C-message-parsing.md))
 
 Reads the page-level data of a topic page or private conversation. The messages are LOT-030 (and following), the poll is
 [LOT-026](LOT-026-poll-parser.md); this lot reads neither. The caller (LOT-034/`HFRClient`) assembles `TopicPage` (LOT-011)
