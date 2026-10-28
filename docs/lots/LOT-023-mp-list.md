@@ -2,7 +2,7 @@
 
 - **Module:** HFRParsing (two small HFRModels types)
 - **Difficulty / model:** easy (Sonnet → Opus)
-- **Issue:** none (lot tracked in `docs/LOTS.md`; audit items B6 in [B](../audit/B-list-parsing-models.md) and NET-13 in [A](../audit/A-network-sessions.md); old issue francoisgn/ios-app_SwiftHFR#63)
+- **Issue:** [#51](https://github.com/ezzz/HFRnow/issues/51) (audit items B6 in [B](../audit/B-list-parsing-models.md) and NET-13 in [A](../audit/A-network-sessions.md); old issue francoisgn/ios-app_SwiftHFR#63)
 
 ## Legacy sources
 Legacy repository <https://github.com/francoisgn/hfrnow>, commit `2440d79`.

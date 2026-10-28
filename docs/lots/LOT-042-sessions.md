@@ -2,7 +2,7 @@
 
 - **Module:** HFRNetwork
 - **Difficulty / model:** medium (Opus 5.5 → Fable)
-- **Issue:** none (claimed by the orchestrator in `docs/LOTS.md`)
+- **Issue:** [#68](https://github.com/ezzz/HFRnow/issues/68)
 - **Depends on:** LOT-040 (transport, `URLSessionTransport(session:)`), LOT-013 (`StoredCookie`, HFRModels)
 
 ## Legacy sources

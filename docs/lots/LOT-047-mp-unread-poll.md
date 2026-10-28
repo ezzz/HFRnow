@@ -2,7 +2,7 @@
 
 - **Module:** HFRClient
 - **Difficulty / model:** easy (Sonnet 5.5 → Opus 5.5)
-- **Issue:** none (lot tracked in `docs/LOTS.md`; audit item NET-13 in [A](../audit/A-network-sessions.md); old issue francoisgn/ios-app_SwiftHFR#75)
+- **Issue:** [#73](https://github.com/ezzz/HFRnow/issues/73) (audit item NET-13 in [A](../audit/A-network-sessions.md); old issue francoisgn/ios-app_SwiftHFR#75)
 - **Depends on:** LOT-023 (`PrivateMessageBadgeParser`), LOT-045 (`PageFetcher`)
 
 ## Legacy sources
@@ -47,7 +47,7 @@ None added. Existing captures read in place (`Tests/HFRClientTests/Support/Captu
 **Oracle coverage:** the poll's result on R01-R03 equals the legacy oracle's `nbMP` (`MPUnreadPollTests.homePages`), so there is no difference from the oracle; D1 below is a difference from `MPBackgroundService`'s regex, which the oracle does not run.
 
 **Pending capture:** the home page served to a logged-in session whose cookies have expired (does HFR serve the logged-out home, or a `.hop` page?);
-until captured, the poll says `nil` in both cases (a `.hop` page has no `<body id>` home, so it also reads as `nil`). Added to the capture backlog.
+until captured, the poll says `nil` in both cases (a `.hop` page has no `<body id>` home, so it also reads as `nil`). Capture issue [#168](https://github.com/ezzz/HFRnow/issues/168).
 
 ## Intentional differences from legacy
 | # | Legacy | Port | Why |

@@ -2,7 +2,7 @@
 
 - **Module:** HFRModels (pure value logic, usable by `HFRClient` for LOT-052)
 - **Difficulty / model:** medium (Opus → Fable)
-- **Issue:** none (lot tracked in `docs/LOTS.md`)
+- **Issue:** [#87](https://github.com/ezzz/HFRnow/issues/87)
 
 ## Legacy sources
 Legacy repository <https://github.com/francoisgn/hfrnow> at `2440d79`. Audit: [D §2.10](../audit/D-posting.md), [E §2.6, E-3](../audit/E-storage-vendors.md); [redface2 comparison](../research/redface2-comparison.md) X8, X9, E23, E24; open question Q-6 ([audit README](../audit/README.md)).

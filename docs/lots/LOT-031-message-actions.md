@@ -75,10 +75,10 @@ Checked on the captures (facts in HFR-PROTOCOL §6c "LOT-031"):
 **Pending capture** (implemented from legacy code, positive test on inline blocks only):
 
 - The viewer's own post on a **public** topic: the edit link shape there and which other links (MP, favourite, alert) remain. Every edit
-  link of the corpus is in a private conversation.
+  link of the corpus is in a private conversation. Issue [#273](https://github.com/ezzz/HFRnow/issues/273).
 - A quote or edit link printed in clear instead of `md_noclass_cryptlink`. Legacy, like this parser, reads only the wrapper's `class`, so
   only a path in clear **in the class** is supported (inline test); a wrapper `<a href>` without obfuscated class gives nil in both and
-  would need a capture before being read.
+  would need a capture before being read. Issue [#274](https://github.com/ezzz/HFRnow/issues/274).
 
 ## Fixtures
 
