@@ -258,24 +258,15 @@ Source: [LOT-027](lots/LOT-027-profile-parser.md), `UserProfileParser`, checked 
 ### LOT-023 — MP list and unread badge
 
 [LOT-023](lots/LOT-023-mp-list.md), tests `PrivateMessageListParserTests`, `PrivateMessageBadgeParserTests`.
-
 - **MP row** (`R13a`, `R13b`, `R13u1`, **verified**): own state is `sujetCase1` (`closedbp.gif` `alt="On"` title "Nouveau message. Message privé pour <others>", `closedp.gif` `alt="Off"`); the `[non lu]` marker is `<span class="red" title="Ce message n'a pas été lu par : <pseudos>">` before the title link in `sujetCase3`, the pseudos joined with `, ` (the group tooltip of `sujetCase6` with `,`). The two states are independent: `R13u1` has read threads marked `[non lu]`. `sujetCase2` holds a message icon and the ignore link `/user/ignore.php?…&auteur=<pseudo>` (`ignore0.gif`).
 - **Group thread** (`R13u1`): `sujetCase6` is `<span title="<pseudos>">Interlocuteurs multiples</span>` with no profile link; one-to-one threads link `profilebdd.php?…&pseudo=`.
 - **Unread count** (`R02`, `R03`, `P03f`, `R08-2`, **verified**): the home page announces it in the `tr.cat` row linking `cat=prive` (`a.cCatTopic.red` "Vous avez 10 nouveaux messages privés"; "Envoyer / lire des messages privés" with no number and no `red` class when none is unread), logged-in forum lists in the middle cell of the 3-cell `table.none` ("Vous avez 1 nouveau message privé" in `a.red`, else "Messages privés"). The MP list, anonymous pages and the topic page have neither.
-
-
 ### LOT-047 — MP unread poll
-
 [LOT-047](lots/LOT-047-mp-unread-poll.md), tests `MPUnreadPollTests`.
-
 - **Poll page** (`R01`, `R02`, `R03`, **verified**): `GET /` carries the unread count in the `cat=prive` row (see LOT-023), 200 for anonymous and logged-in visitors, served at `https://forum.hardware.fr/` (no redirect, meta `final_url`). The poll reads only that page; no topic page, so no flag is marked read (§7, E25). The logged-in answer sets `md_user` and `md_passs` (each twice, R02/R03 metas), so the poll sends from a probe jar and does not write them back.
 - **Pending capture:** the home page answered to a logged-in session with expired cookies; until captured a poll reads it as `nil` (no information) whichever form HFR serves.
-
-
 ### LOT-036 — write forms
-
 Source: [LOT-036](lots/LOT-036-hop-form-parser.md), `HopFormParser`, checked by `HopFormOracleTests` against the LOT-004 oracles and by `HopFormParserTests` on `R40a`, `R40b`, `R41a`, `R41b`, `R42`, `R43a`–`R43c`, `R44`, `R45a`, `R45b`, `R46`, `R47a`–`R47c`, `R47u1`.
-
 - **Form**: `<form name="hop" id="hop" action=… method="post">` holds the inputs, the selects and the `<textarea id="content_form" name="content_form">`. Reply, quote and MP-reply forms post to `/bddpost.php?config=hfr.inc`; the **edit forms** post to `/bdd.php?config=hfr.inc`: private messages (`R43a`–`R44`) and public topics, later post (`R62a`, `R62b`) and first post (`R63b`). The public reply composer (`R61b`, cat 13) is the `R40a` form, field for field. The `action` is always read from the page.
 - **Reply form** (`R40a`, logged in, 43 inputs): hidden `hash_check, subcat, parents, post, stickold, new, cat, numreponse, numrep, page, verifrequet (1100), p, sondage, sond, cache, owntopic, config, sujet`; text `pseudo` (the account's), `password` (hidden row), 16 `MsgIcon` radios (the first `checked`), `search_smilies`, hidden `ColorUsedMem` and `wysiwyg`, the `submit` input ("Valider votre message") and three checkboxes `signature`, `smiley`, `emaill` (value `1`, unchecked). No `<select>`.
 - **Anonymous composer** (`R40b`): the same form, with an **empty** `hash_check` and an empty `pseudo`. `hash_check` also sits in the header search form of every page, so its presence says nothing about the session.
@@ -285,15 +276,41 @@ Source: [LOT-036](lots/LOT-036-hop-form-parser.md), `HopFormParser`, checked by 
 - **Leading newline**: verified, every captured prefill starts right after the `<textarea>` tag, so HFR adds no newline of its own. **Pending capture**: a stored text that begins with `\n` (a browser's HTML parser would drop one newline after the tag; the parser keeps it, no capture has one).
 - **Favourite smileys** (`R47u1`, user1): `#dynamic_smilies` holds `<img src=".../images/perso/[N/]<name>.gif" alt="[:name[:N]]" title=… onclick="putSmiley(this.alt,this.src)">`, 8 of them; empty or absent for the other accounts (`R40a`, `R47b`).
 - **Moderator alert form** (`R46`): `<form method="post" action="modo.php?cat=13&amp;ref=1&amp;post=…&amp;numreponse=…&amp;page=1&amp;config=hfr.inc">` (relative to `/user/`, not a `hop` form) with `hash_check`, `referer_page` (empty), the `raison` textarea (no id) and `Submit`; the page also has the `#fastsearch` form (`action="/forum1.php"`, its own `hash_check`).
-
 ### LOT-048 — posting
-
 [LOT-048](lots/LOT-048-post-form-engine.md), tests `PostingCaptureTests`, `PostingBodyOracleTests`, `PostingRefusalTests`, `PostingInputTests` and `HopFormLayoutTests`.
-
 - **Body order** (`W10`-`W19` `request_fields`, **verified**): every captured write sends the `hop` form's controls in document order, `content_form` in place between `ColorUsedMem` and `wysiwyg`, the submit input, then the checked boxes; the new-topic `subcat` select sits between `toread5` and the tone radios (`R45a`). The engine rebuilds `W13b`'s body byte for byte from `R47b`, and the other captured bodies once legacy's `"0"` boxes are dropped and line breaks written CRLF.
 - **Fields sent** (`R40a`-`R47u1`, LOT-004 oracle, **verified**): the form's own `hash_check`, `pseudo` and `verifrequet=1100`, every hidden input, the checked tone radio, `submit=Valider votre message`; the same names and values as legacy apart from unchecked boxes.
 - **Composer shapes** (`R40a`-`R47u1`, **verified**): only edit forms carry a non-empty `numreponse`; new-thread forms show `sujet` (`R45a`), with `dest` for a private one (`R45b`); the first post's edit form shows `sujet` and labels its box "Effacer l'intégralité du sujet" (`R43a`), a later post hides `sujet` and says "Effacer ce message" (`R43b`).
 - **Per-write sentences** (`W10`, `W11`, `W15`, `W16a`, `W19`, **verified** on private messages): see §7 E15; `W18` (mark unread) is also a confirmation, of another action. Public-topic answers are not captured (lot's Pending capture).
+### LOT-034 — message content
+Source: [LOT-034](lots/LOT-034-content-normalization.md), `MessageContentNormalizer`, checked by `MessageContentOracleTests`,
+`MessageContentNormalizerTests` and `MessageContentSanitizationTests` on the 20 LOT-003 oracle cases (358 messages).
+- **Content element**: `div#para<numreponse>` holds the message HTML, then HFR's layout trailer `<div style="clear: both;"> </div>`
+  (closed by a stray `</p>`), then the LOT-030 edit trailer `<div class="edited">…</div>` when the message was edited or quoted, then
+  `<br /><span class="signature">…</span>` when the author has one. Measured on the 358 messages: 119 clear only, 92 clear > edited,
+  80 clear > signature, 45 clear > edited > signature, 22 none of them (private threads `RA1`–`RU2`); never another order
+  (`R20` message 1 `para2666682`, 0 `para2666649`, 2 `para2666695`, `para3182834`). 125 messages carry a signature.
+- **Smileys**: `<img src alt title>` on `forum-images.hardware.fr`, standard ones under `/icones/` (`/icones/smilies/ange.gif` with
+  `alt=":ange:"`, `/icones/redface.gif` with `alt=":o"`, `/icones/biggrin.gif` with `alt=":d" title=":D"`), personal ones under
+  `/images/perso/` with `alt="[:<code>]"` (`R20`, `R26`, `R27`); 103 messages hold a personal smiley. Every smiley of the corpus is `https`.
+- **Images**: `<img src alt title onload="md_verif_size(this,'Cliquez pour agrandir','2','250')" style="margin: 5px">`, `alt` and `title`
+  equal to the URL, `style` sometimes with `width`/`height`; bare (`R20`, `R28`) or inside `<a rel="nofollow" href target="_blank"
+  class="cLink">` (16 pairs on `R28`); 36 messages hold an image. Image hosts may stay `http`.
+- **Links**: external `<a rel="nofollow" href="…" target="_blank" class="cLink">`; forum links written `http://forum.hardware.fr/hfr/…`
+  (`R20`); quote headers `<a href="/hfr/<cat>/<slug>-sujet_<post>_<page>.htm#t<numreponse>" class="Topic">` (relative). One `R20` link
+  has raw spaces in its host (`http://G3Ferrari / Optima`): not a URL.
+- **Quotes**: `<div class="container"><table class="citation"><tr class="none"><td><b class="s1"><a class="Topic">…a écrit :</a></b>
+  <br /><br /><p>…</p></td></tr></table></div>` (126 on the corpus), `table.quote` with `<b class="s1">Citation :</b>` for anonymous
+  citations (9); `oldcitation` never seen.
+- **Spoilers** (`R27`, `R28`, 4 blocks): `<table class="spoiler" onclick="javascript:swap_spoiler_states(this)" style="cursor:pointer;">`
+  with `<b class="s1Topic">Spoiler :</b><br /><br /><div class="Topic masque">…</div>`.
+- **Code** (`R27b`): `<table class="code">` (or `fixed`) with `<b class="s1" style="font-family: Verdana, Helvetica, Arial, Sans-serif;">
+  Code :</b><br /><ol id="code1" class="olcode">`, one `<li>` per line (`<li></li>` for blank lines), `<span style="color:blue">`
+  keywords, `<span style="color:green"><i>` comments ending with a raw CR, entities `&#034;`, `&lt;`, `&nbsp;` for indentation.
+- **Formatting seen**: `strong`, `em`, `i`, `strike`, `span.u`, `span[style="color:#0055aa"]` (and `#e2001c`), `ul`/`li`, `br`,
+  `&nbsp;` lines; no `script`, `iframe`, `on*` attribute other than the spoiler's `onclick` and the images' `onload`, no `id` other
+  than `code<N>`.
+- **Not in the corpus**: `hfr-rehost.net` or `reho.st` URLs, the `---------------` separator, `oldcitation`.
 
 ## 7. Reported by redface2, to verify with our fixtures
 
