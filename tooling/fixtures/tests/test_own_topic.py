@@ -50,6 +50,12 @@ CASES = (
      'title="Sujet n°%s">Vends velo Qzwx Operatorname</a></td><td class="sujetCase4"><a href="/forum2.php?config=hfr.inc'
      '&amp;cat=6&amp;post=%s&amp;page=2" class="cCatTopic">2</a></td>' % (TOPIC, TOPIC, TOPIC),
      ["Qzwx", "Operatorname", TOPIC], [">Own topic subject</a>", 'page=2" class="cCatTopic">2</a>']),
+    ("search_excerpt", "search excerpt not replaced",
+     '<td scope="row" class="sujetCase3" ondblclick="location.href=\'/hfr/AchatsVentes/Divers/velo-sujet_%s_1.htm\'">'
+     '<a href="/hfr/AchatsVentes/Divers/velo-sujet_%s_1.htm" class="cCatTopic" title="Sujet n°%s">Vends velo</a><br />'
+     '<a href="/forum2.php?config=hfr.inc&amp;post=%s&amp;numreponse=%s"><div class="citation"><b class="s1Topic">'
+     'Vends velo</b><br /><span class="s1">Velo Qzwx, prix [...] </span></div></a></td>' % (TOPIC, TOPIC, TOPIC, TOPIC, MSG),
+     ["Qzwx", "prix"], ['<span class="s1">Own topic text removed.</span>']),
     ("related_topics", "related topics not replaced",
      '<table class="main" id="sujetrelatif"><tr><th>Sujets relatifs</th></tr><tr><td>'
      '<a class="cLink" href="/hfr/AchatsVentes/Divers/velo-qzwx-sujet_123450_1.htm">[Vends] velo Qzwx</a></td></tr>'

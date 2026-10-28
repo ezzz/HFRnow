@@ -133,6 +133,8 @@ OWN_RELATED = "Related topic"
 OWN_RELATED_LINK = "/forum1.php?config=hfr.inc"
 OWN_RELATED_RE = re.compile(r"(<table\b[^>]*\bid=[\"']sujetrelatif[\"'][^>]*>)(.*?)(</table>)", re.I | re.S)
 OWN_REVIEW_OPEN_RE = re.compile(r"<td\b[^>]*\bclass=[\"']messCase1bis[\"'][^>]*>[^<]*</td>\s*<(td)\b[^>]*>", re.I)
+OWN_TITLE_CELL_RE = re.compile(
+    r"(<td\b[^>]*\bclass=[\"'][^\"']*\bsujetCase3\b[^\"']*[\"'][^>]*>)((?:(?!</td>).)*)(</td>)", re.I | re.S)
 OWN_DATE_RE = re.compile(r"\b\d{2}-\d{2}-\d{4}\b")
 OWN_TIME_RE = re.compile(r"(à(?:&nbsp;|\s|\u00a0)*)\d{2}:\d{2}(:\d{2})?")
 OWN_BODY_TEXT_RE = re.compile(r"((?:^|&)content_form=)([^&\"<>\s]*)")
@@ -168,6 +170,15 @@ def _own_related(inner):
             last = m.end()
     inner = "".join(out) + inner[last:]
     return head.sub(lambda m: m.group(0), inner)
+
+
+def _own_cell_tail(cell):
+    """A list title cell with every text after its title link (a search hit's excerpt) replaced."""
+    end = cell.find("</a>")
+    if end < 0:
+        return cell
+    head, tail = cell[:end + 4], cell[end + 4:]
+    return head + re.sub(r">([^<>]*\S[^<>]*)<", ">%s<" % OWN_TEXT, tail)
 
 
 def _own_lines(inner):
@@ -941,6 +952,10 @@ class Anonymizer:
         # replaced at that position, before any pseudo rewriting (the page links of `td.sujetCase4` are not titles).
         text = SUBJECT_RE.sub(lambda m: m.group(1) + OWN_SUBJECT + m.group(3) if own_topics_in(m.group(1), topics)
                               else m.group(0), text)
+        # Search results add the matching message under the title, in the same cell (`div.citation`): every text
+        # after the title link of an own topic's cell is replaced.
+        text = OWN_TITLE_CELL_RE.sub(lambda m: m.group(1) + _own_cell_tail(m.group(2)) + m.group(3)
+                                     if own_topics_in(m.group(1) + m.group(2), topics) else m.group(0), text)
         parts, last = [], 0
         for start, end in _find_para_blocks(text):
             if start < last:
@@ -1467,6 +1482,12 @@ def verify_own_topic(text):
     for m in re.finditer(r"<div\b[^>]*\bid=[\"']para\d+[\"'][^>]*>(.*?)</div>", text, re.S):
         if re.sub(r"<[^>]*>", "", m.group(1)).strip() != "Own topic text removed.":
             res.append((line_of(text, m.start()), column_of(text, m.start()), "own-topic check: message text not replaced"))
+    for m in re.finditer(r"sujetCase3[^>]*>((?:(?!</td>).)*)</td>", text, re.S):
+        cell = m.group(1)
+        if re.search(r"(?:post=|sujet_|n°)99000\d\d\D", m.group(0)) and any(
+                x.strip() not in ("", "Own topic text removed.")
+                for x in re.findall(r">([^<>]*)<", cell[cell.find("</a>") + 4:] + "<")):
+            res.append((line_of(text, m.start()), column_of(text, m.start()), "own-topic check: search excerpt not replaced"))
     for m in re.finditer(r"id=.sujetrelatif.(.*?)</table>", text, re.S):
         block = m.group(1)
         if re.search(r"sujet_\d|post=\d", block) or any(
