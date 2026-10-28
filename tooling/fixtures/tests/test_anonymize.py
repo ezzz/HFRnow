@@ -409,6 +409,14 @@ class MPStorageTests(unittest.TestCase):
             anon(page, private=True)
         self.assertIn("MPStorage document copy not vouched for", self.reasons(page))
 
+    def test_tag_shaped_text_in_the_textarea_is_document_text(self):
+        # CodeRabbit on #259: stripping tags from the textarea would drop `<Quuxbar>` and vouch for the rest.
+        bad = self.EMPTY.replace('"sourceName":"iOS"', '"sourceName":"iOS<Quuxbar>"', 1)
+        page = self.form_page(bad, self.EMPTY)
+        with self.assertRaises(A.MPStorageDocumentError):
+            anon(page, private=True)
+        self.assertIn("MPStorage document copy not vouched for", self.reasons(page))
+
     def test_form_of_another_thread_is_not_checked_as_a_document(self):
         page = self.form_page("plain text", "plain text", subject="fixture-test-1")
         self.assertIn("plain text", anon(page, private=True))

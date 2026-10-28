@@ -92,10 +92,14 @@ MPSTORAGE_KEYS = {"data", "version", "blacklist", "mpFlags", "bookmarks", "list"
 MPSTORAGE_STRING_VALUES = {"version": {"0.1"}, "sourceName": {"iOS"}}
 
 
-def mpstorage_document_problem(inner):
-    """None when the first post's HTML is a JSON document with known keys and string values only."""
+def mpstorage_document_problem(inner, markup=True):
+    """None when the body is a JSON document with known keys and string values only.
+
+    markup: the body is HTML (post, review cell), whose tags are dropped; a textarea's text is taken whole,
+    since a `<` there is document text."""
+    text = _strip_tags(inner) if markup else html.unescape(inner).strip()
     try:
-        doc = json.loads(_strip_tags(inner).replace("\u00a0", ""))
+        doc = json.loads(text.replace("\u00a0", ""))
     except ValueError:
         return "not a JSON document"
 
@@ -482,7 +486,8 @@ def mpstorage_form_copies(text):
     """The document copies of an MPStorage thread form page (empty textareas skipped)."""
     if not MPSTORAGE_FORM_RE.search(text):
         return []
-    return [m.group(1) for rx in (CONTENT_FORM_RE, REVIEW_BODY_RE) for m in rx.finditer(text) if m.group(1).strip()]
+    return [(m.group(1), markup) for rx, markup in ((CONTENT_FORM_RE, False), (REVIEW_BODY_RE, True))
+            for m in rx.finditer(text) if m.group(1).strip()]
 
 
 class MPStorageDocumentError(AnonymizeError):
@@ -961,8 +966,8 @@ class Anonymizer:
         if private:
             parts, last = [], 0
             keep_first = bool(MPSTORAGE_HEADER_RE.search(text))
-            for copy in mpstorage_form_copies(text):
-                problem = mpstorage_document_problem(copy)
+            for copy, markup in mpstorage_form_copies(text):
+                problem = mpstorage_document_problem(copy, markup)
                 if problem:
                     raise MPStorageDocumentError("MPStorage document copy in a form: %s; extend the anonymizer" % problem)
             for start, end in _find_para_blocks(text):
@@ -1106,7 +1111,7 @@ class Anonymizer:
             if _V_MPSTORAGE_SUBJECT_TEXT.search(text):
                 for m in _V_MPSTORAGE_COPY.finditer(text):
                     body = m.group(1) if m.group(1) is not None else m.group(2)
-                    if body.strip() and not _v_mpstorage_document_ok(body):
+                    if body.strip() and not _v_mpstorage_document_ok(body, markup=m.group(1) is None):
                         res.append((line_of(text, m.start()), column_of(text, m.start()),
                                     "MPStorage document copy not vouched for"))
         return sorted(set(res))
@@ -1122,13 +1127,13 @@ _V_MPSTORAGE_TITLE = re.compile(r"<title>\s*%s - Messages priv" % MPSTORAGE_SUBJ
 # Its form pages print "Sujet : MP_NAME" (R60a header, R60b review table); there every content_form and every cell
 # after a messCase1bis author cell is a copy of the document.
 _V_MPSTORAGE_SUBJECT_TEXT = re.compile(r"Sujet\s*:\s*(?:<h3>\s*)?%s\b" % MPSTORAGE_SUBJECT)
-_V_MPSTORAGE_COPY = re.compile(r"<textarea\b(?=[^>]*\bname=[\"']content_form[\"'])[^>]*>([^<]*)</textarea|messCase1bis\b[^>]*>[^<]*</td>\s*<td[^>]*>((?:(?!</td>).)*)",
+_V_MPSTORAGE_COPY = re.compile(r"<textarea\b(?=[^>]*\bname=[\"']content_form[\"'])[^>]*>(.*?)</textarea|messCase1bis\b[^>]*>[^<]*</td>\s*<td[^>]*>((?:(?!</td>).)*)",
                                re.I | re.S)
 _V_MPSTORAGE_WORDS = frozenset(("data", "version", "0.1", "blacklist", "mpFlags", "bookmarks", "list",
                                 "sourceName", "iOS", "lastUpdate"))
 
 
-def _v_mpstorage_document_ok(inner):
+def _v_mpstorage_document_ok(inner, markup=True):
     """True when the body's text is JSON whose every key and string value is a known impersonal word."""
     strings, scalars_ok = [], [True]
 
@@ -1140,7 +1145,7 @@ def _v_mpstorage_document_ok(inner):
             if not isinstance(v, (str, dict, list)) and (k != "lastUpdate" or isinstance(v, bool) or v is None):
                 scalars_ok[0] = False
         return dict(items)
-    body = html.unescape(re.sub(r"<[^>]*>", " ", inner)).replace("\u00a0", " ")
+    body = html.unescape(re.sub(r"<[^>]*>", " ", inner) if markup else inner).replace("\u00a0", " ")
     try:
         doc = json.loads(body, object_pairs_hook=pairs)
     except ValueError:
