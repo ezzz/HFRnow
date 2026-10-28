@@ -378,6 +378,13 @@ Source: [LOT-031](lots/LOT-031-message-actions.md), `MessageActionsParser`, chec
 - **Slug segment = forum** (LOT-003 oracle, 20 topic pages): the `<cat>` segment of every canonical permalink maps through `ForumCatalogue` to the same `cat` the message's own quote link carries.
 - **Pending capture**: the AASA file of the site (#127), forums missing from the catalogue (#125), `profilebdd.php?pseudo=`'s redirect target, the pages behind `forum1f.php?owntopic=0|2` and `forum2.php3`.
 
+### LOT-090 — message numbers order a topic
+
+[LOT-090](lots/LOT-090-reading-position-store.md), tests `ReadingPositionOrderTests`.
+
+- **`numreponse` grows in posting order** (measured with a script over the corpus, not a parser test): on each of the 23 topic pages with two messages or more, the `<a name="t<numreponse>">` anchors are strictly ascending; across pages of one topic too (`R20` page 1 ends at 3162221, `R22a` page 1100 starts at 39966395, `R22b` page 2201 at 75482227, topic 28563). `ReadingPosition.isAhead(of:)` relies on it to compare two positions by message rather than by page.
+- **Pending capture**: a topic page after messages were deleted (whether later messages move to an earlier page; the order rule does not depend on it).
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).
