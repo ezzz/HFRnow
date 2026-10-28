@@ -55,10 +55,10 @@ Shown to fail without the change (mutations run locally, each fails its tests): 
 
 ## Pending capture
 
-Added to the capture backlog in `docs/LOTS.md` ("Not an issue yet" table). None blocks the lot; until captured, each case is `unconfirmed` and the session is kept.
-- **Profile page 1 with stale or invalidated cookies** (an old `md_passs`, or cookies of a session closed by `unlog.php`): status, redirect, body and `Set-Cookie`. This is the expiry rule NET-07 asks for; once captured it becomes a `SessionExpiry` case.
-- **`md_user=deleted` from the server**: legacy code reads it as logged out, but no capture shows HFR sending it. Today it is `identityNotConfirmed`.
-- **The two `md_user` / `md_passs` `Set-Cookie` of every logged-in page** (`R55-p1`, `R55-p3`, `R55-p5`, `R03` metas list each name twice): their domains, paths, expiries, and whether one is a removal. The metas record names only. If one of the pair were `deleted` for another domain, every refresh would end `identityNotConfirmed` (safe, but never `valid`); LOT-043's login reads the same pages.
+Each is a capture issue (`host: mac`): #281, #282, #283. None blocks the lot; until captured, each case is `unconfirmed` and the session is kept.
+- **Profile page 1 with stale or invalidated cookies** ([#281](https://github.com/ezzz/HFRnow/issues/281)) (an old `md_passs`, or cookies of a session closed by `unlog.php`): status, redirect, body and `Set-Cookie`. This is the expiry rule NET-07 asks for; once captured it becomes a `SessionExpiry` case.
+- **`md_user=deleted` from the server** ([#283](https://github.com/ezzz/HFRnow/issues/283)): legacy code reads it as logged out, but no capture shows HFR sending it. Today it is `identityNotConfirmed`.
+- **The two `md_user` / `md_passs` `Set-Cookie` of every logged-in page** ([#282](https://github.com/ezzz/HFRnow/issues/282)) (`R55-p1`, `R55-p3`, `R55-p5`, `R03` metas list each name twice): their domains, paths, expiries, and whether one is a removal. The metas record names only. If one of the pair were `deleted` for another domain, every refresh would end `identityNotConfirmed` (safe, but never `valid`); LOT-043's login reads the same pages.
 
 ## Intentional differences from legacy
 

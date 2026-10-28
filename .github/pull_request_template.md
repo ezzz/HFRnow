@@ -16,3 +16,4 @@ LOT-
 - [ ] No secrets; fixtures anonymized
 - [ ] Docs updated (lot spec, HFR-PROTOCOL.md §6c, ADR); if the PR says `Closes #N`, after the merge that issue is closed by hand with `Done in #PR (merged as <sha>)` and checked closed (ORCHESTRATION)
 - [ ] Author model: … / Reviewer model: … (must differ)
+- [ ] Fixes or changes a legacy-app behaviour? One line added to `docs/CHANGELOG-LEGACY.md` (FR summary, legacy file:line or capture).
