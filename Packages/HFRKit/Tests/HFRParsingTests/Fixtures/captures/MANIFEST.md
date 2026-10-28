@@ -22,7 +22,7 @@ on a public topic (state restored), the searches, then user1 again with a correc
 fixture thread (`fixture-test-N`) or the MPStorage thread are replaced, whatever their content (digits included).
 Run 3 (follow-up, 11 requests, 115 in total, read-only) added R33a/R33b, R55-p5u1 and R56a/R56b. Run 4 (2026-10-27, P01 approved by the operator that day, 22 requests): user2 replied once in one public topic
 (cat 13), edited and deleted that reply (W30-W33, R61b-R62b; the post is gone, `R61e`), and one empty-body reply was refused;
-user1 also edited the first post of one of its own Achat/Vente topics and restored it byte for byte (see "Not captured"). Public profile pages
+nothing else of it is in this corpus. Public profile pages
 (R56) keep their structure; the pseudo (title, header, pseudo cell, avatar `alt`, personal smileys, MP and
 "all posts" links) is aliased, every personal row (e-mail, birth date, gender, city, job, hobbies, quote, signature)
 gets `Profile field removed.` or, for dates, `01/01/2000`; post count → `100`, arrival and last-post dates →
@@ -157,6 +157,5 @@ gets `Profile field removed.` or, for dates, `01/01/2000`; post count → `100`,
 | R34, R51, R58 | Dropped per the checklist (R51 covered by R50b, R58 by R08-2). |
 | R33, poll voted by the account itself without the multipseudo notice | Searched, not found: the poll topics of user1's followed list (`forum1f.php?owntopic=1`, 27 poll topics) were opened page 1 for four of them; one is R33b (with the multipseudo notice, also for user2), the three others still offer the vote form. A plain "already voted" page would need a vote (P05, out of scope): synthetic per checklist §C N06 if a lot needs it. |
 | X10 cookie-less multi-quote, poll vote, public posting | Out of the approved scope or not needed. |
-| Public first-post edit form and its edit answer (run 4, user1, own Achat/Vente topic, edited then restored) | Captured raw only: the topic id, message id, subject and text would tie `user1` to the operator's real account, which the anonymizer cannot alias yet. |
 | Public new topic, public first-post delete | Not authorised (run 4): pending capture. |
 | oldcitation, Streamable/Dailymotion/Twitch, reho.st images | Not present on the pages picked; synthetic or a later capture. |
