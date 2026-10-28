@@ -179,7 +179,11 @@ final class ReplyComposerModel: Identifiable {
     /// before the draft was read, which would overwrite it, nor once the sheet closed, which already decided.
     func flushDraft() async {
         guard canEdit else { return }
-        _ = await saveNow()
+        await settleAutosave()
+        // A send or a close may have started while this flush waited: their own writes decide, this one must not land
+        // after them.
+        guard canEdit else { return }
+        _ = await persist()
     }
 
     /// Waits for the scheduled autosave (tests).
