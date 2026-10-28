@@ -33,8 +33,9 @@ final class GeneralSettingsModel {
     /// until then it is stored only.
     var textSizePercent: Int {
         didSet {
+            // Whether or not the nested assignment runs this observer again, the final value is what gets stored.
             let clamped = Self.clamp(textSizePercent)
-            if clamped != textSizePercent { textSizePercent = clamped; return }
+            if clamped != textSizePercent { textSizePercent = clamped }
             if textSizePercent != oldValue { store.set(textSizePercent, for: SettingKey.textSizePercent) }
         }
     }

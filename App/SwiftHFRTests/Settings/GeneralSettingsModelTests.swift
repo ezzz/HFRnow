@@ -86,6 +86,12 @@ struct GeneralSettingsModelTests {
         #expect(store.rawValue(forKey: "text_size_percent") == .int(70))
         model.textSizePercent = 10
         #expect(model.textSizePercent == 70)
+        #expect(store.rawValue(forKey: "text_size_percent") == .int(70))
+        // Out of range from a stored in-range value: the store gets the clamped value, not the old one.
+        model.textSizePercent = 100
+        model.textSizePercent = 500
+        #expect(store.rawValue(forKey: "text_size_percent") == .int(130))
+        model.textSizePercent = 70
         model.textSizePercent = 500
         #expect(model.textSizePercent == 130)
         #expect(store.rawValue(forKey: "text_size_percent") == .int(130))
