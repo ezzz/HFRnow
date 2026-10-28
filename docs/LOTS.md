@@ -250,7 +250,7 @@ Every legacy function and the Phase 4 features, one reviewable PR per lot; each 
 | LOT-138 | Universal links, share and clipboard | App | medium | Sonnet → Opus | 095, 137 | FEAT-020 | high | [#228](https://github.com/ezzz/HFRnow/issues/228) |
 | LOT-145 | State restoration per scene | App | medium | Opus → Fable | 090, 082, 083 | FEAT-015 | medium | [#235](https://github.com/ezzz/HFRnow/issues/235) |
 | LOT-146 | iPad multi-window | App | medium | Sonnet → Opus | 145 | legacy parity | medium | [#236](https://github.com/ezzz/HFRnow/issues/236) |
-| LOT-170 | Root tab bar Catégories / Favoris / Messages / Plus with MP badge (iPhone), legacy sidebar (regular-width iPad), Plus menu, start tab, minimize on scroll; no Drapeaux/Favoris on top of Catégories (operator 2026-10-28) | App | medium | Sonnet → Opus | 080, 081, 082, 083, 119 | legacy parity | high | [#296](https://github.com/ezzz/HFRnow/issues/296) |
+| LOT-170 | Root tab bar Catégories / Favoris / Messages / Plus with MP badge (iPhone), legacy sidebar (regular-width iPad), Plus menu, start tab, minimize on scroll; no Drapeaux/Favoris on top of Catégories (operator 2026-10-28) | App | medium | Sonnet → Opus | 080, 081, 082, 083, 119 | legacy parity · MVP | high | [#296](https://github.com/ezzz/HFRnow/issues/296) |
 
 ### Compliance and release
 
@@ -282,7 +282,7 @@ Pure Swift but app-side, kept here so nothing is lost (each item now has a lot a
 
 ## Wave plan (orchestrator)
 
-**MVP** = the first usable build (LOT-080 to 083 and their engine dependencies) plus login/session (LOT-043, 044) and posting basics (LOT-036, 037, 048, and the reply composer LOT-084), released through TestFlight only (LOT-160, 161; operator 2026-10-27). The App Store update comes later (LOT-157, 158, 159, 164, 165). App lots (080 → 081, 082, 083) run on the Mac session only. The waves, their order and the MVP task list are tracked on the roadmap issue [#166](https://github.com/ezzz/HFRnow/issues/166) (`type: roadmap`), not here.
+**MVP** = the first usable build (LOT-080 to 083 and their engine dependencies) plus login/session (LOT-043, 044) and posting basics (LOT-036, 037, 048, and the reply composer LOT-084), the legacy root tab bar (LOT-170, operator 2026-10-28) and the session wiring [#300](https://github.com/ezzz/HFRnow/issues/300), released through TestFlight only (LOT-160, 161; operator 2026-10-27). The App Store update comes later (LOT-157, 158, 159, 164, 165). App lots (080 → 081, 082, 083) run on the Mac session only. The waves, their order and the MVP task list are tracked on the roadmap issue [#166](https://github.com/ezzz/HFRnow/issues/166) (`type: roadmap`), not here.
 
 ## Other work
 
