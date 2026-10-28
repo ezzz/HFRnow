@@ -96,14 +96,14 @@ struct RehostClientTests {
 
     @Test func aHostEchoingTheURLEncodedKeyIsRedactedToo() async throws {
         let plus = try RehostConfiguration(baseURL: #require(URL(string: "https://img.example")), apiKey: "a+b&c")
-        let json = #"{"status_code":400,"error":{"message":"bad key a%2Bb%26c / a+b&c"}}"#
+        let json = #"{"status_code":400,"error":{"message":"bad key a%2Bb%26c / a%2bb%26c / a+b&c"}}"#
         let transport = MockTransport(replies: [reply(400, json)])
         let client = RehostClient(configuration: plus, transport: transport)
         do {
             _ = try await client.upload(jpeg: Self.jpeg)
             Issue.record("expected a failure")
         } catch {
-            #expect(error == .http(statusCode: 400, message: "bad key [key] / [key]"))
+            #expect(error == .http(statusCode: 400, message: "bad key [key] / [key] / [key]"))
         }
     }
 

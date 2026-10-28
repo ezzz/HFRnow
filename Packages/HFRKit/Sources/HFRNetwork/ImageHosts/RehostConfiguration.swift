@@ -33,8 +33,8 @@ public struct RehostConfiguration: Sendable, Equatable {
 
     /// The key, for redacting it from text a host sends back.
     func redacting(_ text: String) -> String {
-        // The raw key and its query form (`+` is `%2B`): a host may echo either.
-        text.replacingOccurrences(of: QueryEncoding.encode(apiKey), with: "[key]")
+        // The raw key and its query form (`+` is `%2B`, hex digits in either case, RFC 3986): a host may echo either.
+        text.replacingOccurrences(of: QueryEncoding.encode(apiKey), with: "[key]", options: .caseInsensitive)
             .replacingOccurrences(of: apiKey, with: "[key]")
     }
 
