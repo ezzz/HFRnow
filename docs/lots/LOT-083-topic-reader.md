@@ -89,10 +89,17 @@ split view collapses on compact widths).
 
 ## Decisions taken here
 
-- **`http`-only image hosts** (D-071-1 point 4): no App Transport Security exception; `http` images are requested over `https`, and a
-  host that does not answer there shows the image as its URL. Measuring which captured hosts upgrade stays a pending capture.
-- **Default image mode** without a stored value: Wi-Fi only (auto on unmetered Wi-Fi, tap on cellular), per the operator's brief.
-- **Blocked IPv6**: every literal, not only the listed ranges (stricter than D-071-1, no public IPv6 image in the captures).
+Confirmed by the orchestrator on 2026-10-28, consistent with the operator's decisions.
+
+- **`http`-only image hosts** (the decision D-071-1 point 4 left to this lot): **no App Transport Security exception**. `http` images
+  are requested over `https`; a host that does not answer there shows the image as its URL. Measuring which captured hosts upgrade
+  stays a pending capture.
+- **Blocked IPv6**: every IPv6 literal is refused, not only the ranges D-071-1 lists. Deliberately stricter: mapped, NAT64, 6to4 and
+  zone forms embed private addresses, and no capture holds a public IPv6 image.
+- **Default image mode** without a stored value (operator decision): automatic on Wi-Fi, tap on cellular. The reader reads the raw
+  `display_images` key and applies this default itself; no settings change in this lot. **For FEAT-011:** `SettingKey.displayImages`
+  still defaults to `always` (legacy's forced value) and must change to this default in FEAT-011's lot, after which the direct check in
+  `ReaderSettings.autoLoad(store:)` can go.
 
 ## Edge cases
 
