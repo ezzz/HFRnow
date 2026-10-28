@@ -199,7 +199,7 @@ Every legacy function and the Phase 4 features, one reviewable PR per lot; each 
 | LOT-126 | MP list screen and unread badge | App | medium | Sonnet → Opus | 023, 045, 082 | legacy parity | high | [#217](https://github.com/ezzz/HFRnow/issues/217) |
 | LOT-127 | MP actions: mark unread, delete, group members | App | easy | Opus → Fable | 058, 094, 126 | legacy parity | medium | [#218](https://github.com/ezzz/HFRnow/issues/218) |
 | LOT-128 | New MP and MP reply composer | App | medium | Opus → Fable | 048, 084, 126 | legacy parity | high | [#219](https://github.com/ezzz/HFRnow/issues/219) |
-| LOT-171 | One-to-one and group MP lists (setting, default one list; switch MP / MP multiples), group MPs read and answered like topics (operator 2026-10-28) | App | medium | Sonnet → Opus | 126, 119 | legacy parity | medium | [#297](https://github.com/ezzz/HFRnow/issues/297) |
+| LOT-171 | One-to-one and group MP lists (setting, default one list; switch MP / MP multiples), group MPs read and answered like topics (operator 2026-10-28) | App | medium | Sonnet → Opus | 126, 119, 083, 128 | legacy parity | medium | [#297](https://github.com/ezzz/HFRnow/issues/297) |
 
 ### MPStorage sync
 
@@ -215,7 +215,7 @@ Every legacy function and the Phase 4 features, one reviewable PR per lot; each 
 |---|---|---|---|---|---|---|---|---|
 | LOT-118 | Blacklist / whitelist management | App | easy | Sonnet → Opus | 061, 119 | legacy parity | medium | [#209](https://github.com/ezzz/HFRnow/issues/209) |
 | LOT-119 | Settings screen and general settings | App | medium | Sonnet → Opus | 060, 066, 080 | legacy parity | high | [#210](https://github.com/ezzz/HFRnow/issues/210) |
-| LOT-120 | Maintenance, about and static pages; About links to the app's HFR topics, opened in the app | App | easy | Sonnet → Opus | 119, 066, 095 | legacy parity | low | [#211](https://github.com/ezzz/HFRnow/issues/211) |
+| LOT-120 | Maintenance, about and static pages; About links to the app's HFR topics, opened in the app | App | easy | Sonnet → Opus | 119, 066, 083, 095 | legacy parity | low | [#211](https://github.com/ezzz/HFRnow/issues/211) |
 | LOT-121 | Theme parity (auto theme, accent, dark brightness) | App | medium | Sonnet → Opus | 060, 119, 083 | legacy parity | medium | [#212](https://github.com/ezzz/HFRnow/issues/212) |
 | LOT-122 | Appearance: darker dark, OLED black, separators, live preview | App | medium | Sonnet → Opus | 121 | FEAT-010 | medium | [#213](https://github.com/ezzz/HFRnow/issues/213) |
 | LOT-123 | Alternate app icons and haptics | App | easy | Sonnet → Opus | 119 | legacy parity | low | [#214](https://github.com/ezzz/HFRnow/issues/214) |
