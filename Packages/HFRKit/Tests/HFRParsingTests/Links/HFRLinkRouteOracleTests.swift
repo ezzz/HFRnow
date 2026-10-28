@@ -12,10 +12,13 @@ import Testing
 struct HFRLinkRouteOracleTests {
     /// Every oracle file of the two directories, decoded as untyped JSON: the shapes differ by `kind`.
     static func oracles(in subdirectory: String) throws -> [(name: String, json: [String: Any])] {
-        let urls = Bundle.module.urls(forResourcesWithExtension: "json", subdirectory: subdirectory) ?? []
-        return try urls.filter { $0.lastPathComponent.hasSuffix(".oracle.json") }.sorted { $0.path < $1.path }.compactMap { url in
-            let object = try JSONSerialization.jsonObject(with: Data(contentsOf: url))
-            return (url.lastPathComponent, object as? [String: Any] ?? [:])
+        // `contentsOfDirectory` rather than `Bundle.urls(forResourcesWithExtension:)`, whose result types differ on Linux.
+        let directory = try #require(Bundle.module.url(forResource: subdirectory, withExtension: nil, subdirectory: "Fixtures"))
+        let names = try FileManager.default.contentsOfDirectory(atPath: directory.path)
+            .filter { $0.hasSuffix(".oracle.json") }.sorted()
+        return try names.map { name in
+            let data = try Data(contentsOf: directory.appending(path: name))
+            return (name, try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:])
         }
     }
 
@@ -54,7 +57,7 @@ struct HFRLinkRouteOracleTests {
     @Test("Page numbers of list links equal the legacy ones; topic links equal HFRURL, the port of the legacy regexes")
     func listOracles() throws {
         var checked = 0
-        for (name, json) in try Self.oracles(in: "Fixtures/LOT-002") {
+        for (name, json) in try Self.oracles(in: "LOT-002") {
             for dictionary in Self.dictionaries(in: json["result"] ?? [:]) {
                 if let link = dictionary["aURLOfLastPage"] as? String, let max = dictionary["maxTopicPage"] as? Int {
                     try Self.expectPage(max, of: link, "\(name) maxTopicPage")
@@ -86,7 +89,7 @@ struct HFRLinkRouteOracleTests {
     @Test("Every topic link of the list oracles routes to the topic, page and message HFRURL reads from it")
     func topicLinksAgreeWithHFRURL() throws {
         var checked = 0
-        for (name, json) in try Self.oracles(in: "Fixtures/LOT-002") {
+        for (name, json) in try Self.oracles(in: "LOT-002") {
             for dictionary in Self.dictionaries(in: json["result"] ?? [:]) {
                 for key in ["aURL", "aURLOfFirstPage", "aURLOfLastPage", "aURLOfLastPost"] {
                     guard let link = dictionary[key] as? String, !link.isEmpty else { continue }
@@ -121,7 +124,7 @@ struct HFRLinkRouteOracleTests {
     func topicOracles() throws {
         var pages = 0
         var permalinks = 0
-        for (name, json) in try Self.oracles(in: "Fixtures/LOT-003") {
+        for (name, json) in try Self.oracles(in: "LOT-003") {
             let result = json["result"] as? [String: Any] ?? [:]
             if let page = result["page"] as? [String: Any], let link = page["currentURL"] as? String,
                let current = page["currentPage"] as? Int {

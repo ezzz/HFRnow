@@ -9,10 +9,11 @@ struct HFRLinkRouteCorpusTests {
     /// Distinct `href` values of every captured page, resolved against the forum root; in-page anchors, mailto, javascript
     /// and the like are not URLs the router sees. Entities are decoded by `HFRURL.absolute`.
     static func corpusLinks() throws -> [URL] {
-        let pages = Bundle.module.urls(forResourcesWithExtension: "html", subdirectory: "Fixtures/captures") ?? []
+        let directory = try #require(Bundle.module.url(forResource: "captures", withExtension: nil, subdirectory: "Fixtures"))
+        let pages = try FileManager.default.contentsOfDirectory(atPath: directory.path).filter { $0.hasSuffix(".html") }
         var links = Set<String>()
         for page in pages {
-            let html = try String(contentsOf: page, encoding: .utf8)
+            let html = try String(contentsOf: directory.appending(path: page), encoding: .utf8)
             for match in html.matches(of: /href="([^"]*)"/) {
                 // `#bas` and the like point inside the page being read; they have no route of their own.
                 let href = String(match.output.1)
