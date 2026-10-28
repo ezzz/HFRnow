@@ -329,6 +329,14 @@ Source: [LOT-034](lots/LOT-034-content-normalization.md), `MessageContentNormali
   than `code<N>`.
 - **Not in the corpus**: `hfr-rehost.net` or `reho.st` URLs, the `---------------` separator, `oldcitation`.
 
+### LOT-051 — flags and favourites
+
+[LOT-051](lots/LOT-051-flag-writes.md), tests `FlagLinkWriteTests`, `FlagLinkValidationTests` and `FavoriteListAndReadTests`.
+
+- **Flag links** (`R21`, `P03a`, `P03d`, **verified**): every message of a logged-in topic page carries `/user/addflag.php?config=hfr.inc&cat=<cat>&post=<post>&numreponse=<n>&page=<p>&ref=<rank>&p=1&sondage=0&owntopic=0&subcat=<sub>` (40 on `R21`, the first one is `P03a`'s request); the page has one `/user/delflag.php?config=hfr.inc&cat=<cat>&subcat=<sub>&post=<post>&page=<p>&p=1&sondage=0&owntopic=<n>&new=0` (`owntopic=0` on `R21`, `1` on `R33b`). No token in either link.
+- **Flag answers** (`P03a`, `P03b`, `P03d`, **verified**): 200 in place, no redirect, no cookie set; a link-less `.hop` "Favori positionné avec succès" (again on a second `addflag`: idempotent) or "Drapeau effacé avec succès", and a 1 s refresh (sub-forum list after `addflag`, `forum1.php…&owntopic=3` of the category after `delflag`).
+- **Flag action form `form1`** (**verified**), the same shape on the favourites lists and on a forum's flag list: on `forum1f.php` (`P03c` `owntopic=3`, `R10` `owntopic=1`) it posts to `/modo/manageaction.php?config=hfr.inc&cat=0&type_page=forum1f&moderation=0`, on `forum1.php` (`R08-2`, `owntopic=2`) to `/modo/manageaction.php?config=hfr.inc&cat=<cat>&type_page=forum1&moderation=0`; per row a checkbox `topic<i>` (value = topic number) with hidden `valuecat<i>` and `valueforum<i>=hardwarefr`, then `hash_check`, the end marker `topic<N>=-1`, `topic_statusno<N>=-1` with `N` = number of rows, the `action_reaction` select (only option `message_forum_delflags`), hidden `owntopic` and `type_page`. Legacy's body (`FavoritesTableViewController.m:1846-1858`) always writes the marker at index 1. The answer to this POST is **not captured**.
+
 ### LOT-031 — message action links
 
 Source: [LOT-031](lots/LOT-031-message-actions.md), `MessageActionsParser`, checked by `MessageActionsOracleTests` against the legacy actions dictionary of the 20 LOT-003 topic oracles (358 messages) and by `MessageActionsParserTests`.
