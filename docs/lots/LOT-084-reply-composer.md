@@ -26,7 +26,8 @@ Legacy app: `master` of ezzz/HFRnow (read-only), SwiftUI layer `HFRswift/`. Func
 ## Behaviour
 
 **Entry.** `ReaderPage.answerURL` is LOT-033's `answerFormURL` (the first link of `#repondre_form`, `https` on the forum
-host). `TopicReaderModel.replyTarget` is non-nil when the page on screen has that link **and** names its topic
+host; a non-default port is refused too, as `PostingFlow` does). `TopicReaderModel.replyTarget` is non-nil when the page
+on screen has that link **and** names its topic
 (the draft key); `ReaderReplyFlow` shows a "Répondre" toolbar button only then and only with a current account
 (`AppEnvironment.composer`, nil when logged out), and presents the sheet. The link is absent logged out (`R20`, `R31`) and present logged in
 (`R21`, `R61d`). A locked topic seen by a member is pending capture (#131): the button follows the page (legacy rule), and
@@ -85,6 +86,8 @@ focused on open. The sheet's keyboard safe area keeps the caret above the keyboa
 - Another member posts between the reply and the reload: the last message is theirs, the reply just above.
 - The draft cannot be deleted after a confirmed send (disk error): the reply is still reported as sent; the stale draft
   comes back at the next reply in that topic, where the user can discard it.
+  Keeping the sheet open instead would leave Send enabled on a posted text (double post).
+- A latest-post load that fails: "Réessayer" asks the same page again and still opens at its last message.
 - An `unconfirmed` reply that was in fact posted, sent again by the user: a double post. The message says to check first.
 - The page names no topic (a canonical path whose page has no form fields): no "Répondre" (no draft key).
 

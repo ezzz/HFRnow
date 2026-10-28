@@ -62,6 +62,8 @@ final class TopicReaderModel {
 
     /// The page last asked for (shown, or failed): what "Réessayer" asks again.
     private(set) var requested: ReaderTarget
+    /// Where the page last asked for opens, kept so "Réessayer" after a failed latest-post load still opens at the end.
+    private var requestedAnchor = AnchorRule.target
     /// The target of the page on screen (topic and page as served), what a refresh reloads.
     private(set) var shown: ReaderTarget?
 
@@ -97,14 +99,14 @@ final class TopicReaderModel {
     /// First appearance: loads the target once. A view that appears again (rotation, column change) loads nothing.
     func onAppear() async {
         guard page == nil, !isLoading, error == nil else { return }
-        await load(requested, keepsScrollPosition: false)
+        await load(requested, keepsScrollPosition: false, anchor: requestedAnchor)
     }
 
     /// Reloads the page on screen (not page 1, not the page first opened); the content stays while it runs and after a
     /// failure. Before anything is shown, retries the first load.
     func refresh() async {
         guard let shown else {
-            await load(requested, keepsScrollPosition: false)
+            await load(requested, keepsScrollPosition: false, anchor: requestedAnchor)
             return
         }
         await load(ReaderTarget(source: shown.source, page: shown.page), keepsScrollPosition: true)
@@ -112,7 +114,7 @@ final class TopicReaderModel {
 
     /// Asks again for the page that failed.
     func retry() async {
-        await load(requested, keepsScrollPosition: false)
+        await load(requested, keepsScrollPosition: false, anchor: requestedAnchor)
     }
 
     /// Opens page `number` of the topic (clamped to the known pages).
@@ -141,7 +143,9 @@ final class TopicReaderModel {
     /// What the reply composer needs from the page on screen; nil when the page offers no answer form (logged out, locked
     /// topic: `#repondre_form` is absent, LOT-033) or names no topic (the draft is kept per topic).
     var replyTarget: ReplyTarget? {
-        guard let page, let formURL = page.answerURL, let topic = page.topicID else { return nil }
+        // Same origin rule as `PostingFlow`: a link it would refuse (another port) offers no reply.
+        guard let page, let formURL = page.answerURL, formURL.port == nil || formURL.port == 443,
+              let topic = page.topicID else { return nil }
         return ReplyTarget(formURL: formURL, topic: topic, title: title)
     }
 
@@ -217,6 +221,7 @@ final class TopicReaderModel {
         generation += 1
         let mine = generation
         requested = target
+        requestedAnchor = rule
         isLoading = true
         let source = self.source
         let task = Task { [weak self] in

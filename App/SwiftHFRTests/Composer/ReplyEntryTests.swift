@@ -21,6 +21,27 @@ struct ReplyEntryTests {
         #expect(reader.replyTarget == nil)
     }
 
+    @Test func anAnswerLinkOnAnotherPortOffersNoReply() async {
+        let other = url("https://forum.hardware.fr:8443/message.php?config=hfr.inc&cat=13&post=28563")
+        let pages = FakeTopicPages { target in answerPage(target.page, answerURL: other) }
+        let reader = TopicReaderModel(target: ReaderTarget(source: .topic(readerTopic)), title: "", source: pages)
+        await reader.onAppear()
+        #expect(reader.replyTarget == nil)
+    }
+
+    @Test func retryingAFailedLatestPostLoadStillOpensAtTheLastMessage() async {
+        let pages = FakeTopicPages { target in answerPage(min(target.page, 5)) }
+        let reader = TopicReaderModel(target: ReaderTarget(source: .topic(readerTopic), page: 2), title: "", source: pages)
+        await reader.onAppear()
+        pages.handler = { (_) async throws(ListLoadError) -> ReaderPage in throw .offline }
+        await reader.composerDidClose(.sent(replyConfirmed))
+        #expect(reader.error == .offline)
+        pages.handler = { target in answerPage(min(target.page, 5)) }
+        await reader.retry()
+        #expect(pages.requests.map(\.page) == [2, 6, 6])
+        #expect(reader.document?.anchor == 501)
+    }
+
     @Test func aPageThatNamesNoTopicOffersNoReply() async {
         let pages = FakeTopicPages { target in
             var served = answerPage(target.page)
