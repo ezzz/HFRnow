@@ -50,16 +50,30 @@ struct FlagLinkWriteTests {
         #expect(requests.first?.body == nil)
     }
 
-    @Test("delflag answered P03d is confirmed")
-    func removeFlagConfirmed() async throws {
-        let link = try FlagCapture.requestURL("P03d")
-        let (result, requests) = await Self.run(.removeFlag, link: link, reply: try FlagCapture.page("P03d"))
+    @Test(
+        "delflag is confirmed by its sentence whatever owntopic chooses as refresh, and again with no flag left (P03o)",
+        arguments: [
+            ("P03d", "owntopic=3"),
+            ("P03n", "/hfr/Discussions/Cuisine/liste_sujet-1.htm"),
+            ("P03o", "/hfr/Discussions/Cuisine/liste_sujet-1.htm"),
+            ("P03p", "owntopic=1")
+        ]
+    )
+    func removeFlagConfirmed(answer: String, refresh: String) async throws {
+        let link = try FlagCapture.requestURL(answer)
+        let (result, requests) = await Self.run(.removeFlag, link: link, reply: try FlagCapture.page(answer))
         let confirmed = try result.get()
         #expect(confirmed.action == .removeFlag)
-        #expect(confirmed.topic == Self.cuisine)
+        #expect(confirmed.topic == FlagLink(link, path: "/user/delflag.php")?.topic)
         #expect(confirmed.message == "Drapeau effacé avec succès")
-        #expect(confirmed.refreshURL.query?.contains("owntopic=3") == true)
+        #expect(confirmed.refreshURL.absoluteString.contains(refresh))
         #expect(requests.map(\.url) == [link])
+    }
+
+    @Test("A repeated delflag gets the same bytes as the first one: its success means \"no flag left\" (P03o = P03n)")
+    func repeatedRemovalIsTheSameAnswer() throws {
+        #expect(try Capture.page("P03o-delflag-again") == Capture.page("P03n-delflag-owntopic0-success"))
+        #expect(try FlagCapture.requestURL("P03o") == FlagCapture.requestURL("P03n"))
     }
 
     @Test(

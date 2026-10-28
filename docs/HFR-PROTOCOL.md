@@ -331,7 +331,7 @@ Source: [LOT-034](lots/LOT-034-content-normalization.md), `MessageContentNormali
 
 ### LOT-051 — flags and favourites
 
-[LOT-051](lots/LOT-051-flag-writes.md), tests `FlagLinkWriteTests`, `FlagLinkValidationTests` and `FavoriteListAndReadTests`.
+[LOT-051](lots/LOT-051-flag-writes.md), tests `FlagLinkWriteTests`, `FlagLinkValidationTests`, `FavoriteListAndReadTests` and `FlagSessionGateTests`.
 
 - **Flag links** (`R21`, `P03a`, `P03d`, **verified**): every message of a logged-in topic page carries `/user/addflag.php?config=hfr.inc&cat=<cat>&post=<post>&numreponse=<n>&page=<p>&ref=<rank>&p=1&sondage=0&owntopic=0&subcat=<sub>` (40 on `R21`, the first one is `P03a`'s request); the page has one `/user/delflag.php?config=hfr.inc&cat=<cat>&subcat=<sub>&post=<post>&page=<p>&p=1&sondage=0&owntopic=<n>&new=0` (`owntopic=0` on `R21`, `1` on `R33b`). No token in either link.
 - **Flag answers** (`P03a`, `P03b`, `P03d`, **verified**): 200 in place, no redirect, no cookie set; a link-less `.hop` "Favori positionné avec succès" (again on a second `addflag`: idempotent) or "Drapeau effacé avec succès", and a 1 s refresh (sub-forum list after `addflag`, `forum1.php…&owntopic=3` of the category after `delflag`).
