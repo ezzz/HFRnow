@@ -1,4 +1,5 @@
 import HFRNetwork
+import HFRStorage
 
 /// Composition of the engine objects the screens share, built for one session: the current account's, or the logged-out
 /// one. Rebuilt whenever `AccountsModel.currentSessionGeneration` changes (LOT-081), so no screen keeps a previous
@@ -10,11 +11,25 @@ struct AppEnvironment {
     let visibility: ForumVisibility
     /// The current account's key (`md_user` value, `AccountsModel.current?.id`), nil when logged out.
     let currentAccountName: String?
+    /// Topic pages for the reader (LOT-083), fetched with this session.
+    let topicPages: any TopicPageSource
+    /// Image client and settings of the reader.
+    let reader: ReaderServices
 
     /// The environment for `session`.
     static func make(session: HFRSession, accountName: String?) -> AppEnvironment {
-        let source = LiveForumDataSource(fetcher: PageFetcher(session: session), transport: session)
-        return AppEnvironment(session: session, dataSource: source, visibility: ForumVisibility(), currentAccountName: accountName)
+        let fetcher = PageFetcher(session: session)
+        let source = LiveForumDataSource(fetcher: fetcher, transport: session)
+        NetworkMonitor.start()
+        let pages = LiveTopicPageSource(fetcher: fetcher, session: session, normalizer: LiveContentNormalizer())
+        let reader = ReaderServices(
+            imageFetcher: ReaderImageFetcher(),
+            settings: .live(store: UserDefaultsSettingsStore(), isOnWiFi: { NetworkMonitor.shared.isOnWiFi })
+        )
+        return AppEnvironment(
+            session: session, dataSource: source, visibility: ForumVisibility(), currentAccountName: accountName,
+            topicPages: pages, reader: reader
+        )
     }
 
     /// The environment of the current account, or of the logged-out session when there is none.

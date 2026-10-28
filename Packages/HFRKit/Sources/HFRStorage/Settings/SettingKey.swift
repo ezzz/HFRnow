@@ -95,8 +95,10 @@ public enum SettingKey {
         decode: { SettingCoercion.string($0).map { $0 == "yes" } },
         encode: { .string($0 ? "yes" : "no") }
     )
-    /// `display_images`. Legacy forced `yes` at every launch with no UI; here it is an ordinary setting defaulting to `yes`.
-    public static let displayImages = Setting.stringEnum("display_images", default: ImageDisplayMode.always)
+    /// `display_images`. Legacy forced `yes` at every launch with no UI; here it is an ordinary setting whose default is
+    /// `wifi` (operator decision for policy C, LOT-071 D-071-1 and LOT-083): third-party images load by themselves on Wi-Fi
+    /// only. A value stored by the user or imported from legacy is kept.
+    public static let displayImages = Setting.stringEnum("display_images", default: ImageDisplayMode.wifiOnly)
 
     // MARK: Private messages storage
 
