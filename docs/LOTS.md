@@ -5,7 +5,7 @@ Until Issues are enabled on ezzz/HFRnow ([ADR 0010](adr/0010-hosting-on-ezzz-hfr
 Lots come from the [Phase 1 audit](audit/README.md); the "Audit" column maps each lot to the audit proposals it merges.
 
 - **Claim** a lot by setting yourself as owner (`<host>/<name> (date)`) and status `in-progress` in a PR on `dev-swift`, merged **before** writing code (or, for an orchestrator, its claim PR for the lots it hands out). The PR that does the work says `LOT-XXX` (a partial PR says what is left).
-- **Statuses**: `todo` (dependencies done, inputs available) · `blocked` · `in-progress` · `review` · `done (#PR)` · `dropped`. Statuses of open lots were taken from their old issues on 2026-10-27. The PR that finishes a lot sets its own row to `done (#PR)`; nothing else in this file changes during a lot. Lots finished on the old repository keep their historical owner and a bare `done` or `done (#PR)` (old PR numbers, `francoisgn/ios-app_SwiftHFR`).
+- **Statuses**: `todo` (dependencies done, inputs available) · `blocked` · `in-progress` · `review` · `done (#261)` · `dropped`. Statuses of open lots were taken from their old issues on 2026-10-27. The PR that finishes a lot sets its own row to `done (#PR)`; nothing else in this file changes during a lot. Lots finished on the old repository keep their historical owner and a bare `done` or `done (#PR)` (old PR numbers, `francoisgn/ios-app_SwiftHFR`).
 - **New lot**: a PR that adds its row (owner `—`, status `todo` or `blocked`) and its spec stub.
 - **Target process** (once ezzz enables Issues, ADR 0010 "Later, owner's decision"): one issue per lot, claimed with `/claim <session-id>`, PRs checked by **Issue and claim** ([ORCHESTRATION](agents/ORCHESTRATION.md#target-process-once-ezzz-enables-issues)); this file then goes back to being the plan.
 
@@ -72,7 +72,7 @@ Model column: author → reviewer ([AGENTS.md §6](../AGENTS.md#6-model-routing-
 | LOT-041 ✱ | Endpoint catalogue (typed URL builders) | HFRNetwork | easy | Sonnet → Opus | 040, 014 | NET-02 | — | cloud/c2b-sonnet (2026-10-25) | done |
 | LOT-042 ✱ | Per-account session: isolated cookie jar, `hash_check` with `updateHashCheck(_:)`, multi-quote cookie (exact id match), `StoredCookie` import/export | HFRNetwork | medium | Opus → Fable | 040, 013 | NET-03, C16, D4 | — | cloud/c2c-opus (2026-10-25) | done |
 | LOT-045 ✱ | Page fetchers: lists and topic page (final URL after redirects); cookie-less client for prefetch and images, since authenticated topic GETs mark flags read | HFRNetwork | easy | Sonnet → Opus | 041, 042 | NET-08, NET-09 | — | cloud/c2d-sonnet (2026-10-26) | done |
-| LOT-056 | Image hosts: rehost client (key and base URL injected; legacy key reused for now, ADR 0007) + host adapter table (Referer for reho.st, keyless hosts, http-only hosts) | HFRNetwork | easy | Sonnet → Opus | 012 | D10 | medium | — · old [#84](https://github.com/francoisgn/ios-app_SwiftHFR/issues/84) | done (#PR) |
+| LOT-056 | Image hosts: rehost client (key and base URL injected; legacy key reused for now, ADR 0007) + host adapter table (Referer for reho.st, keyless hosts, http-only hosts) | HFRNetwork | easy | Sonnet → Opus | 012 | D10 | medium | — · old [#84](https://github.com/francoisgn/ios-app_SwiftHFR/issues/84) | done (#261) |
 
 ### Flows (`HFRClient`) — fetch → parse → submit → classify ([ADR 0008](adr/0008-hfrclient-orchestration-module.md))
 
