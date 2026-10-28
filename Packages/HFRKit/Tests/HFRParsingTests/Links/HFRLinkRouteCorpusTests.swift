@@ -46,6 +46,8 @@ struct HFRLinkRouteCorpusTests {
     /// favourites page with a filter (`owntopic` 0 and 2) that HFR-PROTOCOL R3 does not document (pending capture).
     static func isKnownUnroutedView(_ url: URL) -> Bool {
         let link = url.absoluteString
+        // `forum1.php` with no `cat` at all: which list it names is not documented, so it is not guessed.
+        if url.path == "/forum1.php", url.query == "config=hfr.inc" { return true }
         if url.path == "/forum2.php" { return link.contains("print=1") || link.contains("quote_only=1") }
         return url.path == "/forum1f.php" && (link.contains("owntopic=0") || link.contains("owntopic=2"))
     }

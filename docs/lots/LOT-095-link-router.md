@@ -90,6 +90,7 @@ Each test was shown to fail with the relevant rule reverted: port check removed,
 ## Pending capture
 - Site `apple-app-site-association` ([#127](https://github.com/ezzz/HFRnow/issues/127)): which App IDs and paths the site names. It does not change this router (it decides from the URL), but LOT-138 must not claim paths the router sends to `.external`, nor miss the ones it routes.
 - Home rows without `id="cat<N>"` and full sub-forum lists ([#125](https://github.com/ezzz/HFRnow/issues/125)): completes the forum list; a forum the catalogue lacks is `.external` today.
+- `forum1.php?config=hfr.inc` (no `cat`, a link of a newer capture: which list it opens);
 - `forum1f.php?owntopic=0|2` (links of the favourites page, `forum1f.php?config=hfr.inc&owntopic=0&new=1`): meaning not captured; `profilebdd.php?pseudo=` redirect target; `/hfr/recherche/pseudo-<name>.htm`; the AQ RSS feed (LOT-028 still pending its capture): AQ links are tested only through the two topic shapes they are documented to use (`AQFeedItem.link`, `AQPlusView.swift:341-375`).
 
 ## Intentional differences from legacy
