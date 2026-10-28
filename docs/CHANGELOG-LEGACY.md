@@ -24,5 +24,7 @@ Registre des problèmes **présents dans l'app legacy** (HFR+ / HFRnow, branche 
 | 16 | UX | Sous-forums : pagination et ouverture depuis la page d'accueil fiables. | LOT-082 #32 | — |
 | 17 | T | Formulaires : une action de formulaire hors du forum est refusée (pas d'envoi des cookies ailleurs). | LOT-036 #22 | legacy préfixait l'URL du forum (pas de faille legacy ; garde-fou conservé) |
 | 18 | T | Suppression d'un premier post (= tout le sujet) : confirmation obligatoire hors MP. | LOT-048 #36 | legacy : détection par libellé seulement |
+| 19 | T | Hébergement d'images : la clé API n'est plus écrite dans le code ; un envoi n'est jamais présenté comme réussi sans la confirmation de l'hébergeur, une redirection n'est pas suivie (elle rejouerait la clé et l'image) et une réponse trop grosse est refusée. | LOT-056 #261 | `ReplyService.swift:1963-2043` @ `2440d79` (clé par défaut, JSON lu avant le statut HTTP) |
+| 20 | T | Images d'hébergeurs : l'hébergeur est reconnu par son nom d'hôte analysé (pas par une sous-chaîne), le `Referer` du forum n'est envoyé qu'à `reho.st` et n'est jamais recopié sur une redirection. | LOT-056 #261 | `MessagesView.swift:5748-5762` @ `2440d79` (`hasSuffix`, jar partagé) |
 
 Points « non corrigés volontairement » (comportement legacy gardé) : AQ appelé au lancement (D-071-3).

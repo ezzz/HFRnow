@@ -52,7 +52,7 @@ Policy: [docs/FIXTURES.md](../../docs/FIXTURES.md). Protocol facts: [docs/HFR-PR
 
 **Member positions** (`DISCOVER` in `anonymize.py`, all seen live in the LOT-001 corpus): post author cell
 (`td.messCase1 b.s2`; a `b.s2` elsewhere, such as a poll question, is not a member), quote headers (`X a écrit :`),
-edit notices, `pseudo=` / `spseudo=` / `dest=` / `auteur=` URL parameters (HFR writes raw spaces and apostrophes in
+edit notices, the recipient row of MP forms (`th.repCase1` "Destinataire", R60b), `pseudo=` / `spseudo=` / `dest=` / `auteur=` URL parameters (HFR writes raw spaces and apostrophes in
 these values, a pseudo may even end with `'`: a value runs to `&`, `"`, `<` or `#`, and to the closing `'` only
 inside a JS single-quoted string) and `pseudo`/`dest` inputs, profile and
 moderator link texts, the MP list titles (`lu par : a, b`, `Message privé pour a, b`, `Interlocuteurs multiples`
@@ -71,7 +71,8 @@ pseudo and id aliased, real values would still single the member out. Signatures
 whole (a multi-word pseudo is never split) and decoded from entities, `%`-escapes and JSON escapes.
 
 **Member ids** go through the id table wherever they appear: `profil-N`, `adduser=N`, `id_user=N`, avatars
-`mesdiscussions-N` (also REST `tns3`) and the third `[quotemsg=…,…,N]` value.
+`mesdiscussions-N` (also REST `tns3`), the third `[quotemsg=…,…,N]` value and the composer's smiley search
+`find_smilies_timer('hfr.inc',N)` (the logged-in member, R60b).
 
 **Free text**: a member name of 3+ characters that is not a function word or site/markup token (`COMMON_WORDS`, kept short on purpose: an ordinary noun used as a pseudo is still replaced in prose) is also replaced in text
 nodes (except the sub-forum labels: `a.cHeader` list links in the list page's `td.padding` bar, where HFR prints
@@ -111,7 +112,11 @@ selections), e-mails, IPv4 addresses (replaced by `192.0.2.1`), operator ids als
 Obfuscated links (`md_noclass_cryptlink`, `md_blank_cryptlink`, `md_cryptlink` class tokens) are decoded (alphabet `0A12B34C56D78E9F`, two characters per byte), redacted, then **re-encoded with the same prefix** so the fixture keeps the real structure. Check mode decodes them too. `--private` replaces the content of every element whose `id` starts with `para` (message body) and every MP subject
 (the `a.cCatTopic` of the title cell `td.sujetCase3`, chosen by position, never by content: a subject may be digits
 only, and the page links of `td.sujetCase4` are not subjects) except the fixture threads `fixture-test-N` and the
-MPStorage title (FIXTURES.md); `check --private` verifies it, in both verifiers.
+MPStorage title (FIXTURES.md); `check --private` verifies it, in both verifiers. On the MPStorage thread page (R60a) the
+first post, the storage JSON document, is kept when the thread header names the thread and the document holds only known
+keys and the strings `0.1` / `iOS`; any other content raises `MPStorageDocumentError` (fail closed). On the storage thread's form pages the copies of the
+document (`content_form`, the review cell after `td.messCase1bis`) must pass the same check, on both sides. `check --private`
+accepts that body only on a page whose `<title>` names the thread and whose JSON keys and strings are all in its own word list.
 
 The CLI runs `check` on its own output and writes nothing if a leak remains. `check` exits non-zero and prints each offending line.
 

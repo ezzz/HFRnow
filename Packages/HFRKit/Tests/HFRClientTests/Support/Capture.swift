@@ -53,12 +53,14 @@ struct CaptureMeta: Decodable {
     let status: Int
     let method: String
     let url: String
+    let finalURL: String?
     let setCookieNames: [String]
     let requestFields: [String]?
     let requestBody: String?
 
     enum CodingKeys: String, CodingKey {
         case status, method, url
+        case finalURL = "final_url"
         case setCookieNames = "set_cookie_names"
         case requestFields = "request_fields"
         case requestBody = "request_body"

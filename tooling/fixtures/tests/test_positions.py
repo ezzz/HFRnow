@@ -74,6 +74,10 @@ CASES = (
      '<td class="catCase3">26-10-2026<br /><b>par %s</b></td>' % N, [N], ["<b>par user1</b>"]),
     ("form_review_author", "form review author",
      '<td class="messCase1bis" width="160">%s</td>' % N, [N], ['">user1</td>']),
+    # Live R60b: the MP edit form prints the recipient, lower case, in the row after "Destinataire".
+    ("mp_form_recipient", "MP form recipient",
+     '<tr class="reponse"><th class="repCase1">Destinataire</th>\n\t\t\t<td class="repCase2">'
+     '<span style="font-size:12px;">%s</span>\t</td></tr>' % N, [N], ['font-size:12px;">user1</span>']),
     ("description_author", "description author",
      '<meta name="Description" content="Sujet - Auteur : %s - Page : 3" />' % N, [N], ["Auteur : user1 - Page"]),
     ("smiley_code", "personal smiley code",
@@ -319,6 +323,7 @@ class CoverageTests(unittest.TestCase):
             "MP correspondents": "mp_correspondents", "ignore list": "ignore_list_title", "MP to": "mp_to_title",
             "contact list": "contact_list_title", "list author": "list_author", "last poster": "last_poster",
             "home last poster": "home_last_poster", "form review author": "form_review_author",
+            "MP form recipient": "mp_form_recipient",
             "description author": "description_author", "personal smiley": "smiley_code",
             "personal smiley in URL": "smiley_code_in_url", "personal smiley image": "smiley_image",
             "REST author": "rest_author", "personal smiley alt": "smiley_alt",

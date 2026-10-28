@@ -29,7 +29,12 @@ topics** (`own_topics` in the local config) are unlinked by the anonymizer: topi
 `9910000001`… (one table for the batch), subject → `Own topic subject`, slug → `own-topic-subject`, message bodies,
 the form review and the description → `Own topic text removed.`, each line of the edit text → `Text removed.` (line
 breaks kept), related-topic links → `Related topic`, dates → `01-01-2000` / `00:00:00`, the meta date →
-`Sat, 01 Jan 2000 00:00:00 GMT`. Public profile pages
+`Sat, 01 Jan 2000 00:00:00 GMT`.
+Run 5 (2026-10-27, LOT-038 inputs, 4 requests: user1 login, MP list page 1 to locate the thread, R60a, R60b; read-only
+on HFR, nothing submitted) opened user1's MPStorage thread, which marked it read for that account (its own storage
+thread). Its first post is the storage JSON document: `--private` keeps that one body (thread header and page title
+name the MPStorage thread, and the document holds only known keys and the strings `0.1` and `iOS`; anything else stops
+the anonymizer), every other body is replaced as usual. Public profile pages
 (R56) keep their structure; the pseudo (title, header, pseudo cell, avatar `alt`, personal smileys, MP and
 "all posts" links) is aliased, every personal row (e-mail, birth date, gender, city, job, hobbies, quote, signature)
 gets `Profile field removed.` or, for dates, `01/01/2000`; post count → `100`, arrival and last-post dates →
@@ -159,6 +164,8 @@ gets `Profile field removed.` or, for dates, `01/01/2000`; post count → `100`,
 | W35 | `W35-public-first-post-restore-success.html` | Same edit sending the original fields back: same answer; the stored text and subject were then byte-identical to the original | P01 | 048 |
 | R63e | `R63e-public-own-topic-after-restore.html` | Page 1 afterwards (same replacements) | P01 | 048 |
 | W33 | `W33-public-reply-empty-body-rejected.html` | Public reply with an empty body: "Vous devez remplir tous les champs avant de poster ce message" (as `W17a`), nothing posted | P01, W17 | 037, 048 |
+| R60a | `R60a-mpstorage-thread-first-post.html` | user1's MPStorage thread (subject `MP_NAME`) opened with the legacy read URL (`MPStorage.m:766`): one post, `div#para<numreponse>` > `p` holding the JSON document (`"` as `&#034;`, a `div` clear inside the `p`); the live document is the empty structure the legacy app creates (three empty sections, `sourceName` `iOS`, 568 bytes); JSON body kept, see Run 5 | R13, X8 | 038, 052 |
+| R60b | `R60b-mpstorage-edit-form-first-post.html` | Edit form of that first post (toolbar `edit-in` link of R60a), GET only: `hop` form to `/bdd.php?config=hfr.inc`, `numreponse` of the first post, `sujet` = `MP_NAME`, `content_form` = the same JSON as R60a's rendered text, recipient row (aliased) | X8, E23 | 038, 052, 036 |
 
 ## Not captured
 
@@ -172,3 +179,4 @@ gets `Profile field removed.` or, for dates, `01/01/2000`; post count → `100`,
 | X10 cookie-less multi-quote, poll vote | Out of the approved scope or not needed. |
 | Public new topic, public first-post delete | Not authorised (run 4): pending capture. |
 | oldcitation, Streamable/Dailymotion/Twitch, reho.st images | Not present on the pages picked; synthetic or a later capture. |
+| MPStorage document with other clients' namespaces, member pseudos (blacklist), near the 64 KiB cap or with a non-BMP character | None exists in the kit's accounts: user1's document is the empty legacy structure (R60a/R60b), user2 has no storage thread (R13a). Producing one needs a write to a document shared with the user's other clients: out of scope (pending capture [#272](https://github.com/ezzz/HFRnow/issues/272)). |
