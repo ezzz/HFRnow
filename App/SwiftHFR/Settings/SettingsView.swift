@@ -39,10 +39,20 @@ struct SettingsView: View {
                 Picker("Écran de démarrage", selection: $general.startupScreen) {
                     ForEach(StartupScreen.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
-                Picker("Taille du texte", selection: $general.textSizeScale) {
-                    ForEach(TextSizeScale.allCases, id: \.self) { Text($0.title).tag($0) }
+                VStack(alignment: .leading, spacing: 4) {
+                    LabeledContent("Taille du texte", value: "\(general.textSizePercent) %")
+                    Slider(
+                        value: Binding(
+                            get: { Double(general.textSizePercent) },
+                            set: { general.textSizePercent = Int($0.rounded()) }
+                        ),
+                        in: Double(SettingKey.textSizePercentRange.lowerBound)...Double(SettingKey.textSizePercentRange.upperBound),
+                        step: Double(SettingKey.textSizePercentStep)
+                    )
+                    .accessibilityLabel("Taille du texte")
+                    .accessibilityValue("\(general.textSizePercent) %")
                 }
-                Toggle("Mode compact", isOn: $general.compactMode)
+                Toggle("Densité compacte", isOn: $general.compactMode)
                 Toggle("Rotation de l’écran", isOn: $general.allowsRotation)
                 Toggle(isOn: $general.opensLinksInDefaultBrowser) {
                     VStack(alignment: .leading, spacing: 2) {

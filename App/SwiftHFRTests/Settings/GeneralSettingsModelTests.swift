@@ -10,20 +10,20 @@ struct GeneralSettingsModelTests {
         #expect(model.startupScreen == .favorites)
         #expect(model.allowsRotation)
         #expect(!model.opensLinksInDefaultBrowser)
-        #expect(model.textSizeScale == .percent100)
+        #expect(model.textSizePercent == 100)
         #expect(!model.compactMode)
     }
 
     @Test func storedLegacyValuesAreShown() {
         let store = InMemorySettingsStore([
             "HFRswiftStartupScreen": .string("tab:categories"), "landscape_mode": .string("none"),
-            "open_links_in_default_browser": .bool(true), "text_size_scale": .int(120), "compact_mode": .bool(true)
+            "open_links_in_default_browser": .bool(true), "text_size_percent": .int(120), "compact_mode": .bool(true)
         ])
         let model = GeneralSettingsModel(store: store)
         #expect(model.startupScreen == .categories)
         #expect(!model.allowsRotation)
         #expect(model.opensLinksInDefaultBrowser)
-        #expect(model.textSizeScale == .percent120)
+        #expect(model.textSizePercent == 120)
         #expect(model.compactMode)
     }
 
@@ -33,12 +33,12 @@ struct GeneralSettingsModelTests {
         model.startupScreen = .messages
         model.allowsRotation = false
         model.opensLinksInDefaultBrowser = true
-        model.textSizeScale = .percent130
+        model.textSizePercent = 85
         model.compactMode = true
         #expect(store.rawValue(forKey: "HFRswiftStartupScreen") == .string("tab:messages"))
         #expect(store.rawValue(forKey: "landscape_mode") == .string("none"))
         #expect(store.rawValue(forKey: "open_links_in_default_browser") == .bool(true))
-        #expect(store.rawValue(forKey: "text_size_scale") == .int(130))
+        #expect(store.rawValue(forKey: "text_size_percent") == .int(85))
         #expect(store.rawValue(forKey: "compact_mode") == .bool(true))
     }
 
@@ -68,10 +68,18 @@ struct GeneralSettingsModelTests {
     @Test func aTextSizeMigratedFromTheLegacyKeyIsShown() {
         let store = InMemorySettingsStore([SettingKey.legacyTopicTextSizeKey: .int(112)])
         _ = LegacySettingsNormalizer.run(on: store)
-        #expect(GeneralSettingsModel(store: store).textSizeScale == .percent110)
+        #expect(GeneralSettingsModel(store: store).textSizePercent == 110)
     }
 
-    @Test func textSizeTitlesFollowLegacy() {
-        #expect(TextSizeScale.allCases.map(\.title) == ["Standard", "+10 %", "+20 %", "+30 %"])
+    @Test func textSizeGoesBelowTheDefaultAndStaysInRange() {
+        let store = InMemorySettingsStore()
+        let model = GeneralSettingsModel(store: store)
+        model.textSizePercent = 70
+        #expect(store.rawValue(forKey: "text_size_percent") == .int(70))
+        model.textSizePercent = 10
+        #expect(model.textSizePercent == 70)
+        model.textSizePercent = 500
+        #expect(model.textSizePercent == 130)
+        #expect(store.rawValue(forKey: "text_size_percent") == .int(130))
     }
 }

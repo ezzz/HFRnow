@@ -25,11 +25,12 @@ A gear button in the sidebar toolbar (next to the account menu) opens a sheet wi
 
 - **`SettingsView`** (shell): a `Form` whose sections are owned by lots (table below). This lot builds "Général" and, under "Apparence", the entry rows "Thème" and "Icône", which lead to a "Ce réglage arrive dans une prochaine version." page (`SettingsDestination`): LOT-121 and LOT-123 replace those pages, no theme and no icon code lives here.
 - **`GeneralSettingsModel`** (`@Observable @MainActor`, tests in `App/SwiftHFRTests/Settings/`): reads each value from a `SettingsStore` at creation and writes it back, under its legacy key and raw shape, on every change. Creating it writes nothing.
-- **"Général" rows:** "Écran de démarrage" (Forums / Favoris / Messages privés), "Taille du texte" (Standard, +10 %, +20 %, +30 %: the entry; the reader applies it in LOT-106), "Mode compact", "Rotation de l’écran", "Navigateur par défaut" (off = in-app browser).
+- **"Général" rows:** "Écran de démarrage" (Forums / Favoris / Messages privés), "Taille du texte" (a slider, 70 % to 130 % in steps of 5, default 100 %; operator decision 2026-10-28), "Densité compacte" (`compact_mode`, compact rows), "Rotation de l’écran", "Navigateur par défaut" (off = in-app browser).
 - **Applied now:** rotation (`OrientationPolicy` through an app delegate adaptor, re-applied when the switch changes: iPhone only, an iPad always rotates) and the start screen (the sidebar selection at launch: favourites open the favourites list, forums open the forum list; on a compact width the content column shows first for favourites). Compact mode applies to the settings form's spacing (legacy applied it to the form and the favourites list).
-- **Stored for their owner lot:** text size (LOT-106 reader), compact mode on lists (LOT-124/125), default browser (LOT-137 link handling reads `SettingKey.opensLinksInDefaultBrowser`).
+- **Text size** is stored in the new key `text_size_percent` (below 100 gives the denser display wanted; stored values are clamped to 70-130). It is an in-app offset on top of Dynamic Type, never a replacement. Absent, the legacy `text_size_scale` (100-130) is the starting value. Applying it across the screens is a separate lot (TODO in `GeneralSettingsModel`); LOT-106 must read `SettingKey.textSizePercent(from:)`.
+- **Stored for their owner lot:** compact mode on lists (LOT-124/125), default browser (LOT-137 link handling reads `SettingKey.opensLinksInDefaultBrowser`).
 - **`LegacySettingsNormalizer.run`** is now called once at launch (LOT-060 expected the app to; nothing did): the text size shown after an update from legacy is the migrated one.
-- **Storage additions:** `SettingKey.startupScreen` (`HFRswiftStartupScreen`, enum `StartupScreen` in HFRModels, unknown value reads as favourites) and `SettingKey.opensLinksInDefaultBrowser`. LOT-060's catalogue left them out because they are not in `registerDefaults` nor in LOT-060's list of 32.
+- **Storage additions:** `SettingKey.startupScreen` (`HFRswiftStartupScreen`, enum `StartupScreen` in HFRModels, unknown value reads as favourites), `SettingKey.opensLinksInDefaultBrowser` and `SettingKey.textSizePercent`. LOT-060's catalogue left them out because they are not in `registerDefaults` nor in LOT-060's list of 32.
 
 ### Every legacy setting of `AppSettingsView.swift`, with its owner
 
@@ -39,7 +40,7 @@ A gear button in the sidebar toolbar (next to the account menu) opens a sheet wi
 | Général: Favoris `vos_sujets`, Favoris triés par catégories `sujets_avec_cat`, Actualisation automatique `favorites_auto_refresh` | LOT-124 | not built |
 | Général: Mode compact (`compact_mode`) | LOT-119 | built |
 | Général: Réduire la tab bar au scroll (`tabbar_minimize_on_scroll`) | none | dropped on purpose (below) |
-| Général: Taille du texte (`text_size_scale`) | LOT-119 entry, LOT-106 effect | built |
+| Général: Taille du texte (`text_size_scale`, now slider `text_size_percent`) | LOT-119 entry, separate lot applies it | built |
 | Général: Retours haptiques (`haptics`), Icône (`icon`) | LOT-123 | not built (Icône: entry row) |
 | Général: Rotation d’écran (`landscape_mode`) | LOT-119 | built |
 | Général: Navigateur par défaut (`open_links_in_default_browser`) | LOT-119 stores, LOT-137 applies | built |

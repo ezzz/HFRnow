@@ -29,11 +29,16 @@ final class GeneralSettingsModel {
             if opensLinksInDefaultBrowser != oldValue { store.set(opensLinksInDefaultBrowser, for: SettingKey.opensLinksInDefaultBrowser) }
         }
     }
-    /// Message text size.
-    var textSizeScale: TextSizeScale {
-        didSet { if textSizeScale != oldValue { store.set(textSizeScale, for: SettingKey.textSizeScale) } }
+    /// In-app text size in percent, an offset on top of Dynamic Type (below 100 gives a denser display).
+    /// TODO: applying it across the screens is a separate lot (opened by the tracking session); until then it is stored only.
+    var textSizePercent: Int {
+        didSet {
+            let clamped = Self.clamp(textSizePercent)
+            if clamped != textSizePercent { textSizePercent = clamped; return }
+            if textSizePercent != oldValue { store.set(textSizePercent, for: SettingKey.textSizePercent) }
+        }
     }
-    /// Denser lists.
+    /// Density: compact rows.
     var compactMode: Bool {
         didSet { if compactMode != oldValue { store.set(compactMode, for: SettingKey.compactMode) } }
     }
@@ -48,19 +53,11 @@ final class GeneralSettingsModel {
         startupScreen = store.value(for: SettingKey.startupScreen)
         allowsRotation = store.value(for: SettingKey.landscapeMode) != .none
         opensLinksInDefaultBrowser = store.value(for: SettingKey.opensLinksInDefaultBrowser)
-        textSizeScale = store.value(for: SettingKey.textSizeScale)
+        textSizePercent = SettingKey.textSizePercent(from: store)
         compactMode = store.value(for: SettingKey.compactMode)
     }
-}
 
-extension TextSizeScale {
-    /// Picker label (legacy `AppTextSizeScale.title`, `Common.swift:275-286`).
-    var title: String {
-        switch self {
-        case .percent100: "Standard"
-        case .percent110: "+10 %"
-        case .percent120: "+20 %"
-        case .percent130: "+30 %"
-        }
+    private static func clamp(_ percent: Int) -> Int {
+        min(max(percent, SettingKey.textSizePercentRange.lowerBound), SettingKey.textSizePercentRange.upperBound)
     }
 }

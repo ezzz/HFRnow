@@ -14,7 +14,7 @@ import Testing
             "blacklist_hide_pseudo", "filter_posts_quotes", "filter_posts_min_quotes", "size_smileys",
             "embedded_videos", "display_sig", "display_images", "mpstorage_active", "mpstorage_last_rw",
             "mp_badge_enabled", "recherche_categorie", "rehost_use_link", "rehost_resize_before_upload",
-            "HFRswiftStartupScreen", "open_links_in_default_browser"
+            "HFRswiftStartupScreen", "open_links_in_default_browser", "text_size_percent"
         ]
         #expect(Set(SettingKey.allKeys) == legacy)
     }

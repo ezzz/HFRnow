@@ -36,4 +36,16 @@ import Testing
         let legacy = InMemorySettingsStore(["open_links_in_default_browser": .int(1)])
         #expect(legacy.value(for: SettingKey.opensLinksInDefaultBrowser))
     }
+
+    @Test func textSizePercentDefaultsClampsAndFallsBackToTheLegacyScale() {
+        #expect(SettingKey.textSizePercent(from: InMemorySettingsStore()) == 100)
+        let legacy = InMemorySettingsStore(["text_size_scale": .int(120)])
+        #expect(SettingKey.textSizePercent(from: legacy) == 120)
+        let stored = InMemorySettingsStore(["text_size_scale": .int(120), "text_size_percent": .int(85)])
+        #expect(SettingKey.textSizePercent(from: stored) == 85)
+        let low = InMemorySettingsStore(["text_size_percent": .int(10)])
+        #expect(SettingKey.textSizePercent(from: low) == 70)
+        let high = InMemorySettingsStore(["text_size_percent": .string("999")])
+        #expect(SettingKey.textSizePercent(from: high) == 130)
+    }
 }
