@@ -434,6 +434,13 @@ class MPStorageTests(unittest.TestCase):
             anon(storage_page(doc), private=True)
         self.assertIn("private message body not replaced", self.reasons(storage_page(doc)))
 
+    def test_duplicate_key_stops_the_run(self):
+        # CodeRabbit on #259: json.loads keeps the last `list`, so a first one holding a pseudo went unchecked.
+        doc = self.EMPTY.replace('"blacklist":{"list":[]', '"blacklist":{"list":["Quuxbar"],"list":[]')
+        with self.assertRaises(A.MPStorageDocumentError):
+            anon(storage_page(doc), private=True)
+        self.assertIn("private message body not replaced", self.reasons(storage_page(doc)))
+
     def test_malformed_document_stops_the_run(self):
         with self.assertRaises(A.MPStorageDocumentError):
             anon(storage_page('{"data":[}'), private=True)

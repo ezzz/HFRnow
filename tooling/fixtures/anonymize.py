@@ -92,6 +92,13 @@ MPSTORAGE_KEYS = {"data", "version", "blacklist", "mpFlags", "bookmarks", "list"
 MPSTORAGE_STRING_VALUES = {"version": {"0.1"}, "sourceName": {"iOS"}}
 
 
+def _unique_pairs(items):
+    """json object hook: a duplicate key would let json.loads drop the first value unchecked."""
+    if len({k for k, _v in items}) != len(items):
+        raise ValueError("duplicate key")
+    return dict(items)
+
+
 def mpstorage_document_problem(inner, markup=True):
     """None when the body is a JSON document with known keys and string values only.
 
@@ -99,7 +106,7 @@ def mpstorage_document_problem(inner, markup=True):
     since a `<` there is document text."""
     text = _strip_tags(inner) if markup else html.unescape(inner).strip()
     try:
-        doc = json.loads(text.replace("\u00a0", ""))
+        doc = json.loads(text.replace("\u00a0", ""), object_pairs_hook=_unique_pairs)
     except ValueError:
         return "not a JSON document"
 
@@ -1138,6 +1145,8 @@ def _v_mpstorage_document_ok(inner, markup=True):
     strings, scalars_ok = [], [True]
 
     def pairs(items):
+        if len(set(k for k, _v in items)) != len(items):  # json.loads would keep only the last value
+            raise ValueError("duplicate key")
         strings.extend(k for k, _v in items)
         strings.extend(v for _k, v in items if isinstance(v, str))
         # Besides strings, only `lastUpdate` numbers (timestamps): ids, booleans and null are never vouched for.
