@@ -6,9 +6,9 @@
 - **Inputs:** [LOT-071](LOT-071-third-party-services.md) (inventory T1–T8, D-071-1/2/3) · [ADR 0012](../adr/0012-app-project-file-strategy.md)
 
 ## Legacy sources
-Read-only, `origin/master`: `HFRswift/Info.plist` (usage strings: camera, photo library, photo library add; background modes `fetch` and
-`processing`; no `ITSAppUsesNonExemptEncryption`, no `NSAppTransportSecurity`), `HFRswift/HFRswift.entitlements` (associated domain
-`webcredentials:forum.hardware.fr`).
+Read-only, `origin/master`: `HFRswift/Info.plist` (usage strings, lines 198-203: camera, photo library, photo library add; background modes `fetch` and
+`processing`, lines 211-215; no `ITSAppUsesNonExemptEncryption`, no `NSAppTransportSecurity`), `HFRswift/HFRswift.entitlements` (associated domain
+`webcredentials:forum.hardware.fr`, line 7).
 
 ## Behaviour
 - `App/SwiftHFR/PrivacyInfo.xcprivacy` (folder-synchronized, copied into the app bundle; `project.pbxproj` needs no resource entry).
