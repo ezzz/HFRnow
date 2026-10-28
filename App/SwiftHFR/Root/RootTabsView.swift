@@ -15,7 +15,7 @@ struct RootTabsView: View {
                 FavoritesTabView(navigation: model.favorites, reader: reader)
             }
             Tab(RootTab.messages.title, systemImage: RootTab.messages.symbol, value: RootTab.messages) {
-                NavigationStack { MessagesPlaceholderView() }
+                NavigationStack { MessagesRootView() }
             }
             .badge(model.unreadPrivateMessages)
             Tab(RootTab.more.title, systemImage: RootTab.more.symbol, value: RootTab.more) {

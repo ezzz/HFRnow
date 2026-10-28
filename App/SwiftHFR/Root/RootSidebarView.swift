@@ -4,9 +4,11 @@ import SwiftUI
 struct RootSidebarView: View {
     @Bindable var model: RootModel
     let reader: ReaderServices
+    /// All columns at launch, as legacy (`MainWindow.swift` iPad split visibility), so the sidebar is not hidden.
+    @State private var visibility = NavigationSplitViewVisibility.all
 
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $visibility) {
             List(selection: selection) {
                 ForEach(Array(SidebarDestination.sections.enumerated()), id: \.offset) { _, section in
                     Section {
@@ -42,7 +44,7 @@ struct RootSidebarView: View {
             TopicsColumn(navigation: model.favorites)
                 .toolbar { ToolbarItem(placement: .secondaryAction) { FavoritesSourceMenu(navigation: model.favorites) } }
         case .tab(.messages):
-            MessagesPlaceholderView()
+            NavigationStack { MessagesRootView() }
         case .tab(.more):
             PlusView()
         case .plus(let entry):
