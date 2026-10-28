@@ -33,11 +33,11 @@ public struct RehostConfiguration: Sendable, Equatable {
 
     /// The key, for redacting it from text a host sends back.
     func redacting(_ text: String) -> String {
-        // The raw key and any percent-encoded spelling of it: `+` is `%2B`, hex digits are case-insensitive and an
-        // unreserved byte may be written either way (RFC 3986). The message is searched, never decoded.
+        // The raw key and any percent-encoded spelling of it: `+` is `%2B`, hex digits are case-insensitive and any
+        // printable byte may be written raw or escaped (a query allows `?`, `/`, `:`... raw). The message is searched, never decoded.
         let pattern = apiKey.utf8.map { byte -> String in
             let escaped = "%" + (byte < 16 ? "0" : "") + String(byte, radix: 16, uppercase: true)
-            guard Self.isUnreserved(byte) else { return escaped }
+            guard Self.isPrintable(byte) else { return escaped }
             return "(?:" + NSRegularExpression.escapedPattern(for: String(Character(UnicodeScalar(byte)))) + "|" + escaped + ")"
         }.joined()
         let encoded = (try? NSRegularExpression(pattern: pattern, options: .caseInsensitive))?.stringByReplacingMatches(
@@ -46,12 +46,7 @@ public struct RehostConfiguration: Sendable, Equatable {
         return encoded.replacingOccurrences(of: apiKey, with: "[key]")
     }
 
-    private static func isUnreserved(_ byte: UInt8) -> Bool {
-        switch byte {
-        case 0x41...0x5A, 0x61...0x7A, 0x30...0x39, 0x2D, 0x2E, 0x5F, 0x7E: true
-        default: false
-        }
-    }
+    private static func isPrintable(_ byte: UInt8) -> Bool { (0x21...0x7E).contains(byte) }
 
     private static func isAcceptable(_ url: URL) -> Bool {
         // No userinfo, query or fragment: the base URL is shown in `description` and the key must be the only secret in the query.

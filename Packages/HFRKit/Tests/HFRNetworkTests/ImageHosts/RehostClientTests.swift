@@ -119,6 +119,18 @@ struct RehostClientTests {
         }
     }
 
+    @Test func reservedBytesWrittenRawOrEscapedAreRedactedToo() async throws {
+        let config = try RehostConfiguration(baseURL: #require(URL(string: "https://img.example")), apiKey: "a?b&c/d")
+        let json = #"{"status_code":400,"error":{"message":"a?b%26c/d | a%3Fb&c%2Fd | a%3fb%26c%2fd"}}"#
+        let client = RehostClient(configuration: config, transport: MockTransport(replies: [reply(400, json)]))
+        do {
+            _ = try await client.upload(jpeg: Self.jpeg)
+            Issue.record("expected a failure")
+        } catch {
+            #expect(error == .http(statusCode: 400, message: "[key] | [key] | [key]"))
+        }
+    }
+
     @Test func aMalformedStatusCodeIsNotConfirmation() async throws {
         let image = #""image":{"url":"https://img.example/a.jpg"}"#
         for status in [#""error""#, "null", "[]", "{}"] {
