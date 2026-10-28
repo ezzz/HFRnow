@@ -72,7 +72,7 @@ Model column: author → reviewer ([AGENTS.md §6](../AGENTS.md#6-model-routing-
 | LOT-041 ✱ | Endpoint catalogue (typed URL builders) | HFRNetwork | easy | Sonnet → Opus | 040, 014 | NET-02 | — | cloud/c2b-sonnet (2026-10-25) | done |
 | LOT-042 ✱ | Per-account session: isolated cookie jar, `hash_check` with `updateHashCheck(_:)`, multi-quote cookie (exact id match), `StoredCookie` import/export | HFRNetwork | medium | Opus → Fable | 040, 013 | NET-03, C16, D4 | — | cloud/c2c-opus (2026-10-25) | done |
 | LOT-045 ✱ | Page fetchers: lists and topic page (final URL after redirects); cookie-less client for prefetch and images, since authenticated topic GETs mark flags read | HFRNetwork | easy | Sonnet → Opus | 041, 042 | NET-08, NET-09 | — | cloud/c2d-sonnet (2026-10-26) | done |
-| LOT-056 | Image hosts: rehost client (key and base URL injected; legacy key reused for now, ADR 0007) + host adapter table (Referer for reho.st, keyless hosts, http-only hosts) | HFRNetwork | easy | Sonnet → Opus | 012 | D10 | medium | — · old [#84](https://github.com/francoisgn/ios-app_SwiftHFR/issues/84) | todo |
+| LOT-056 | Image hosts: rehost client (key and base URL injected; legacy key reused for now, ADR 0007) + host adapter table (Referer for reho.st, keyless hosts, http-only hosts) | HFRNetwork | easy | Sonnet → Opus | 012 | D10 | medium | — · old [#84](https://github.com/francoisgn/ios-app_SwiftHFR/issues/84) | done (#PR) |
 
 ### Flows (`HFRClient`) — fetch → parse → submit → classify ([ADR 0008](adr/0008-hfrclient-orchestration-module.md))
 

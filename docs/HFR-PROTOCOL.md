@@ -295,6 +295,17 @@ Source: [LOT-036](lots/LOT-036-hop-form-parser.md), `HopFormParser`, checked by 
 - **Composer shapes** (`R40a`-`R47u1`, **verified**): only edit forms carry a non-empty `numreponse`; new-thread forms show `sujet` (`R45a`), with `dest` for a private one (`R45b`); the first post's edit form shows `sujet` and labels its box "Effacer l'intégralité du sujet" (`R43a`), a later post hides `sujet` and says "Effacer ce message" (`R43b`).
 - **Per-write sentences** (`W10`, `W11`, `W15`, `W16a`, `W19`, **verified** on private messages): see §7 E15; `W18` (mark unread) is also a confirmation, of another action. Public-topic answers are not captured (lot's Pending capture).
 
+### LOT-056 — image hosts
+
+[LOT-056](lots/LOT-056-image-hosts.md), tests `RehostClientTests`, `RehostClientLoopbackTests`, `MultipartBodyTests` and `ImageHostTableTests`. No capture backs
+these facts: they are the **legacy code** (`ReplyService.swift:1958-2093`, `MessagesView.swift:5748-5762` @ `2440d79`) reproduced by tests, not **verified** against HFR or the hosts.
+
+- **Upload** (**code**): `POST <base>/api/1/upload/?key=<key>`, `multipart/form-data` with `imageCaption` (`Some Caption`) then `source` (`image/jpeg`, `snapshot_<random>.jpg`), no cookie, 60 s. The body is reproduced byte for byte (`matchesTheLegacyUploadLayout`).
+- **Answer** (**code**): JSON with `status_code`, `error.message` or `success.message`, `image.url`, `image.width`, `image.height`, `image.medium.url`, `image.thumb.url`; numbers may be strings. No real answer is captured (pending capture).
+- **`reho.st` `Referer`** (**code**, E26 still unsettled): legacy sends `Referer: https://forum.hardware.fr` (no trailing slash) for `reho.st` and its subdomains only; the table keeps that value as data until the cookie-less capture settles it.
+- **Thumbnails** (**code**): `img3.super-h.fr/images/<name>.th.<ext>` loses `.th.`; `reho.st/thumb/` becomes `reho.st/`; `rehost.diberie.com/Picture/Get/t/` becomes `…/f/`.
+- **Plain-HTTP hosts** (captures `R20`, `R21`, `R22a`, via LOT-071): every reference to `hostingpics.net`, `casimages.com`, `free.fr`, `photorapide.com`, `camif.fr` and `hn.org` images is `http://`; whether `https` works is not measured (pending capture).
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).
