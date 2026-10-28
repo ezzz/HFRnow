@@ -40,6 +40,9 @@ public struct HTTPRequest: Sendable, Equatable {
     public var timeout: Double
     /// Redirect handling for this request.
     public var redirectPolicy: RedirectPolicy
+    /// Largest body accepted, in bytes; nil for no limit. Past it (or on a larger `Content-Length`) the transport stops
+    /// reading and throws `NetworkError.invalidResponse`, so an untrusted host cannot make the app hold an unbounded body.
+    public var maximumBodyBytes: Int?
 
     /// Creates a request; defaults to a followed GET with the standard timeout.
     public init(
@@ -48,8 +51,10 @@ public struct HTTPRequest: Sendable, Equatable {
         headers: HTTPHeaders = [:],
         body: Data? = nil,
         timeout: Double = RequestTimeout.standard,
-        redirectPolicy: RedirectPolicy = .follow
+        redirectPolicy: RedirectPolicy = .follow,
+        maximumBodyBytes: Int? = nil
     ) {
+        self.maximumBodyBytes = maximumBodyBytes
         self.url = url
         self.method = method
         self.headers = headers

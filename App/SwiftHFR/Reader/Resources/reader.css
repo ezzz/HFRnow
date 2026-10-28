@@ -1,0 +1,77 @@
+/* SwiftHFR topic reader (LOT-083). Class names of the content are the LOT-034 contract (ADR 0006); the rules follow the
+   legacy stylesheet (style-liste-light.css) in spirit, rewritten for Dynamic Type and dark mode. */
+:root {
+  color-scheme: light dark;
+  --text: #1c1c1e;
+  --secondary: #6c6c70;
+  --background: #ffffff;
+  --separator: #d1d1d6;
+  --quote-border: #8e8e93;
+  --quote-background: #f2f2f7;
+  --action: #007aff;
+  --placeholder: #e5e5ea;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #f2f2f7;
+    --secondary: #a1a1a6;
+    --background: #000000;
+    --separator: #38383a;
+    --quote-border: #636366;
+    --quote-background: #1c1c1e;
+    --action: #0a84ff;
+    --placeholder: #2c2c2e;
+  }
+}
+
+/* -apple-system-body follows the user's Dynamic Type size inside WKWebView. */
+html { font: -apple-system-body; -webkit-text-size-adjust: 100%; }
+body { margin: 0; padding: 0 0 2em; color: var(--text); background: var(--background); overflow-wrap: anywhere; }
+a { color: var(--action); }
+
+.message { padding: 0.75em 1em; border-bottom: 1px solid var(--separator); }
+.message .header { display: flex; align-items: center; gap: 0.5em; margin-bottom: 0.5em; }
+.message .avatar { width: 2.2em; height: 2.2em; border-radius: 50%; object-fit: cover; }
+.message .author { font-weight: 600; }
+.message .date { color: var(--secondary); font-size: 0.85em; margin-left: auto; }
+.continuation { opacity: 0.75; }
+.continuation-note, .deleted-note, .trailer { color: var(--secondary); font-size: 0.85em; }
+.trailer p { margin: 0.25em 0 0; }
+
+.content img, .signature img { max-width: 100%; height: auto; }
+/* Smileys (every image that is not a posted picture) sit on the text line. */
+.content img:not(.hfrplusimg), .signature img:not(.hfrplusimg) { vertical-align: middle; }
+
+/* Quotes: div.container > table.citation | table.oldcitation | table.quote. */
+table.citation, table.oldcitation, table.quote, table.code, table.fixed {
+  width: 100%; table-layout: fixed; border-collapse: collapse; margin: 0.5em 0;
+  border-left: 3px solid var(--quote-border); background: var(--quote-background);
+}
+table.citation td, table.oldcitation td, table.quote td, table.code td, table.fixed td { padding: 0.4em 0.6em; }
+b.s1 { font-size: 0.85em; color: var(--secondary); }
+b.s1 a { color: var(--text); font-weight: 700; }
+
+/* Code: monospace, scroll sideways instead of widening the page. */
+table.code, table.fixed { font-size: 0.85em; }
+table.code *, table.fixed * { font-family: ui-monospace, Menlo, monospace; }
+table.code td, table.fixed td { overflow-x: auto; }
+ol.olcode { margin: 0; padding-left: 2.5em; white-space: pre; }
+/* Legacy turned the olcode keyword colour "blue" into the action colour (LinkItem.m:265, kept as served by LOT-034). */
+ol.olcode span[style="color:blue"] { color: var(--action) !important; }
+
+/* Spoilers: hidden until tapped (reader.js toggles .open). */
+table.spoiler { width: 100%; cursor: pointer; border: 1px dashed var(--quote-border); margin: 0.5em 0; }
+table.spoiler div.masque { visibility: hidden; }
+table.spoiler.open div.masque { visibility: visible; }
+
+.signature { margin-top: 0.75em; padding-top: 0.5em; border-top: 1px dashed var(--separator); font-size: 0.85em; color: var(--secondary); }
+.signature > br:first-child, .content span.signature { display: none; }
+
+/* Images and videos that wait for a tap, and refused images shown as their URL (LOT-071 D-071-1, D-071-2). */
+button.image-tap, button.video {
+  font: inherit; font-size: 0.85em; color: var(--text); background: var(--placeholder);
+  border: none; border-radius: 8px; padding: 0.6em 0.8em; margin: 0.25em 0; display: inline-block; max-width: 100%;
+}
+.videos { margin-top: 0.5em; }
+.image-link { font-size: 0.85em; color: var(--secondary); word-break: break-all; }
