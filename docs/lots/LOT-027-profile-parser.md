@@ -2,7 +2,7 @@
 
 - **Module:** HFRParsing
 - **Difficulty / model:** medium (Sonnet → Opus)
-- **Issue:** none (lot tracked in `docs/LOTS.md`; audit item F4)
+- **Issue:** [#55](https://github.com/ezzz/HFRnow/issues/55) (audit item F4)
 
 Reads a member's public profile page, `/hfr/profil-<id>.htm` (HFR-PROTOCOL R9): labelled fields in sections, avatar, personal
 smileys and link rows. A pure function, `UserProfileParser.parse(html:) throws(ParsingError) -> UserProfile`. Fetching the page is

@@ -2,7 +2,7 @@
 
 - **Module:** HFRStorage
 - **Difficulty / model:** easy (Sonnet → Opus)
-- **Issue:** none (lot tracked in `docs/LOTS.md`)
+- **Issue:** [#91](https://github.com/ezzz/HFRnow/issues/91)
 
 ## Legacy sources
 Legacy repository <https://github.com/francoisgn/hfrnow> at `2440d79`. Audit: [E §2.4, §7.8-7.10, §8 (E-8)](../audit/E-storage-vendors.md), [C §C17](../audit/C-message-parsing.md).

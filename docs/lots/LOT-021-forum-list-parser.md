@@ -2,7 +2,7 @@
 
 - **Module:** HFRParsing
 - **Difficulty / model:** medium (Sonnet → Opus)
-- **Issue:** none (lot tracked in `docs/LOTS.md`)
+- **Issue:** [#49](https://github.com/ezzz/HFRnow/issues/49)
 
 First list parser tested against **both** inputs ADR 0004 asks for: the captured pages (LOT-001) and the legacy oracle (LOT-002).
 

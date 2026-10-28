@@ -1,17 +1,17 @@
 # Bybifok's proposals — review and credit
 
-Proposals, findings and prototype of **Bybifok** (GitHub [`moust4ki`](https://github.com/moust4ki)), credited to Bybifok wherever they are used. Research record (reference material): the live backlog is [FEATURES.md](../FEATURES.md), the bugs to fix are in [LOTS.md](../LOTS.md) "Issues to open".
+Proposals, findings and prototype of **Bybifok** (GitHub [`moust4ki`](https://github.com/moust4ki)), credited to Bybifok wherever they are used. Research record (reference material): the live backlog is [FEATURES.md](../FEATURES.md), the bugs to fix are issues [#102](https://github.com/ezzz/HFRnow/issues/102)–[#108](https://github.com/ezzz/HFRnow/issues/108).
 Reviewed 2026-10-26 from Bybifok's proposal message, PRs [ezzz/HFRnow#3](https://github.com/ezzz/HFRnow/pull/3)–[#6](https://github.com/ezzz/HFRnow/pull/6) and prototype [moust4ki/ultra-hfr](https://github.com/moust4ki/ultra-hfr). Everything below stays credited to Bybifok, whoever implements it.
 
 ## 1. What is already in the shared docs, with credit
 
 - **Protocol facts** Bybifok found (B1–B10) and **feasibility questions** (B11–B15): [HFR-PROTOCOL.md §7b](../HFR-PROTOCOL.md#7b-reported-by-bybifok-to-verify-with-our-fixtures) ([ezzz/HFRnow#11](https://github.com/ezzz/HFRnow/pull/11)). Settle one with a captured, anonymized page (`docs/FIXTURES.md`): high value, it unblocks lots.
 - **Contribution model**: [ADR 0011](../adr/0011-contribution-model-and-feature-intake.md) — fork, PR into `dev-swift`, idea → spec → lots → PR; no human approval required: the author merges once the [merge criteria](../../CONTRIBUTING.md#2-merge-criteria) hold, including a review by a different model.
-- **Real legacy bugs** from PR #3, as SwiftHFR work to claim (§7): tracked in [LOTS.md](../LOTS.md) "Issues to open" until Issues are enabled on `ezzz/HFRnow`.
+- **Real legacy bugs** from PR #3, as SwiftHFR work to claim (§7): one issue each, [#102](https://github.com/ezzz/HFRnow/issues/102)–[#108](https://github.com/ezzz/HFRnow/issues/108) (label `moust4ki aka bybifok finding`).
 
 ## 2. Features to spec (FEAT-001…021)
 
-Spec one at a time in `docs/features/FEAT-XXX.md` on `dev-swift`: what and why, screens and states (light, dark, Dynamic Type XL, iPad), HFR facts with their source, edge cases, engine lots needed (`docs/LOTS.md`), legacy settings kept. Attach the design boards to the feature spec (or its issue once Issues are enabled). Start with the `high` ones whose engine lots are done or close (FEAT-002, 001, 006, 008, 007, 009). App code waits for the app target (LOT-080) and the lots each feature needs.
+Spec one at a time in `docs/features/FEAT-XXX.md` on `dev-swift`: what and why, screens and states (light, dark, Dynamic Type XL, iPad), HFR facts with their source, edge cases, engine lots needed (`docs/LOTS.md`), legacy settings kept. Attach the design boards to the feature spec (or its issue). Start with the `high` ones whose engine lots are done or close (FEAT-002, 001, 006, 008, 007, 009). App code waits for the app target (LOT-080) and the lots each feature needs.
 
 The list, with engine dependencies, open questions, priority and status, is the backlog [FEATURES.md](../FEATURES.md) (single source).
 
@@ -81,7 +81,7 @@ They target the **shipped Objective-C app**, not SwiftHFR: merging them is ezzz'
 Fixes from #3 are also **non-regression tests to write** in SwiftHFR (LOT-022, 025, 041, 046).
 
 **Backport to `master`** (the shipped app) is Bybifok's call with ezzz: the cherry-pickable commits of #3 are listed above.
-**In SwiftHFR**, the real bugs of #3 are tracked in [LOTS.md](../LOTS.md) "Issues to open" (issues once Issues are enabled on `ezzz/HFRnow`):
+**In SwiftHFR**, the real bugs of #3 are issues [#102](https://github.com/ezzz/HFRnow/issues/102)–[#108](https://github.com/ezzz/HFRnow/issues/108), in this order:
 
 | Legacy commit | SwiftHFR work | Area | Lot |
 |---|---|---|---|
@@ -114,7 +114,7 @@ Setup:
 Task: <ONE item: "spec FEAT-002 page navigator", "settle fact B2 with a capture", "issue: <title>">.
 
 Rules:
-- One item per PR, claimed first in docs/FEATURES.md or docs/LOTS.md (an issue once Issues are enabled). Credit me (Bybifok) in the PR.
+- One item per PR, claimed first on its issue with a /claim comment; the PR says Closes #N and Claim: <id>. Credit me (Bybifok) in the PR.
 - Never guess how HFR behaves: every URL, form field, cookie or selector comes from the legacy code (master) or a captured page.
   If it is not documented, stop and tell me what to capture.
 - Captured pages are anonymized (docs/FIXTURES.md) and checked by someone else before any push. No secrets, cookies or real pseudos.

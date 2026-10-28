@@ -2,7 +2,7 @@
 
 - **Module:** HFRClient
 - **Difficulty / model:** medium (Opus 5.5 → Fable)
-- **Issue:** none (claimed by the orchestrator in `docs/LOTS.md`; old francoisgn/ios-app_SwiftHFR#73)
+- **Issue:** [#70](https://github.com/ezzz/HFRnow/issues/70) (old francoisgn/ios-app_SwiftHFR#73)
 - **Depends on:** LOT-042 (`HFRSession`: jar, `userKey(now:)`, `mergeCookies`, `updateHashCheck`), LOT-013 (`StoredCookie`); uses LOT-025 (`ProfileEditPageParser`), LOT-037 (`HopResponseParser`), LOT-041 (`HFREndpoint.editProfile`)
 
 ## Legacy sources
@@ -55,7 +55,7 @@ Shown to fail without the change (mutations run locally, each fails its tests): 
 
 ## Pending capture
 
-Added to the capture backlog in `docs/LOTS.md`. None blocks the lot; until captured, each case is `unconfirmed` and the session is kept.
+Added to the capture backlog in `docs/LOTS.md` ("Not an issue yet" table). None blocks the lot; until captured, each case is `unconfirmed` and the session is kept.
 - **Profile page 1 with stale or invalidated cookies** (an old `md_passs`, or cookies of a session closed by `unlog.php`): status, redirect, body and `Set-Cookie`. This is the expiry rule NET-07 asks for; once captured it becomes a `SessionExpiry` case.
 - **`md_user=deleted` from the server**: legacy code reads it as logged out, but no capture shows HFR sending it. Today it is `identityNotConfirmed`.
 - **The two `md_user` / `md_passs` `Set-Cookie` of every logged-in page** (`R55-p1`, `R55-p3`, `R55-p5`, `R03` metas list each name twice): their domains, paths, expiries, and whether one is a removal. The metas record names only. If one of the pair were `deleted` for another domain, every refresh would end `identityNotConfirmed` (safe, but never `valid`); LOT-043's login reads the same pages.

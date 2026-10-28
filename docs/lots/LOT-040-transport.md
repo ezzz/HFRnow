@@ -2,7 +2,7 @@
 
 - **Module:** HFRNetwork
 - **Difficulty / model:** easy (Sonnet 5.5 → Opus 5.5)
-- **Issue:** none (claimed in PR #16)
+- **Issue:** [#66](https://github.com/ezzz/HFRnow/issues/66) (claimed in francoisgn/ios-app_SwiftHFR#16)
 
 ## Legacy sources
 Audit [A](../audit/A-network-sessions.md) §3.2–3.5 and lot NET-01 / NET-14; legacy repo <https://github.com/francoisgn/hfrnow>.
