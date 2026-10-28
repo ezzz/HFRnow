@@ -14,8 +14,18 @@ public struct TopicFlagFlow: Sendable {
     /// What a write asks before it leaves: the health of the account session, from one GET of HFR (LOT-044).
     typealias SessionCheck = () async throws(NetworkError) -> SessionHealth
 
+    /// The session check of the public entry points.
+    private let refresh: SessionRefreshFlow
+
     /// Creates the flow.
-    public init() {}
+    public init() {
+        self.init(refresh: SessionRefreshFlow())
+    }
+
+    /// A flow whose session check is `refresh` (tests: a refresh flow with scripted probes).
+    init(refresh: SessionRefreshFlow) {
+        self.refresh = refresh
+    }
 
     /// Puts the topic in the account's favourites by following a message's `addflag.php` link (a state-changing GET).
     ///
@@ -23,7 +33,7 @@ public struct TopicFlagFlow: Sendable {
     /// first (one GET of the profile page), since HFR confirms an `addflag` sent without a session too (`P03q`).
     /// - Throws: `invalidLink`, `sessionNotConfirmed`, `notLoggedIn`, `rejected`, `unconfirmed`, `network`.
     public func addFavorite(link: URL, in session: HFRSession) async throws(TopicFlagError) -> TopicFlagResult {
-        try await follow(.addFavorite, link: link, through: session, after: Self.check(session))
+        try await follow(.addFavorite, link: link, through: session, after: check(session))
     }
 
     /// Removes the topic's flag by following a topic page's `delflag.php` link (a state-changing GET).
@@ -33,7 +43,7 @@ public struct TopicFlagFlow: Sendable {
     /// removed". The session is checked first, as for `addFavorite`.
     /// - Throws: `invalidLink`, `sessionNotConfirmed`, `notLoggedIn`, `rejected`, `unconfirmed`, `network`.
     public func removeFlag(link: URL, in session: HFRSession) async throws(TopicFlagError) -> TopicFlagResult {
-        try await follow(.removeFlag, link: link, through: session, after: Self.check(session))
+        try await follow(.removeFlag, link: link, through: session, after: check(session))
     }
 
     /// Removes `topic` from the favourites the way the favourites list does: POST of `message_forum_delflags` to
@@ -44,7 +54,7 @@ public struct TopicFlagFlow: Sendable {
     /// - Throws: `invalidTopic`, `sessionNotConfirmed`, `missingToken`, `notLoggedIn`, `rejected`, `unconfirmed`, `network`.
     public func removeFavoriteFromList(_ topic: TopicID, in session: HFRSession) async throws(TopicFlagError)
         -> TopicFlagResult {
-        try await removeFavoriteFromList(topic, through: session, after: Self.check(session))
+        try await removeFavoriteFromList(topic, through: session, after: check(session))
     }
 
     /// Marks `topic` read up to `page` by reading that page with the account's session, as legacy did with the last
@@ -127,9 +137,10 @@ public struct TopicFlagFlow: Sendable {
 
     // MARK: - Helpers
 
-    /// The production check: LOT-044's refresh of `session`, which also merges the cookies and token HFR sends back.
-    private static func check(_ session: HFRSession) -> SessionCheck {
-        { () async throws(NetworkError) -> SessionHealth in try await SessionRefreshFlow().refresh(session) }
+    /// The entry points' check: LOT-044's refresh of `session`, which also merges the cookies and token HFR sends back.
+    private func check(_ session: HFRSession) -> SessionCheck {
+        let refresh = self.refresh
+        return { () async throws(NetworkError) -> SessionHealth in try await refresh.refresh(session) }
     }
 
     /// Lets a write leave only after a `valid` session check; a check that could not be done is a `network` failure.

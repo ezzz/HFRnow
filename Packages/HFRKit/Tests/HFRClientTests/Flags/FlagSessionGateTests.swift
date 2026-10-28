@@ -100,6 +100,44 @@ struct FlagSessionGateTests {
     }
 
     @Test(
+        "The public entry points ask HFR: a login form refuses the write, the profile page lets it leave",
+        arguments: [true, false]
+    )
+    func publicEntryPointsAskHFR(profilePageServed: Bool) async throws {
+        // The account holds its identity cookies, but this session may only contact the loopback host: a write that
+        // leaves is refused before the network. The check's probe is the scripted one passed to `init(refresh:)`.
+        let session = HFRSession(
+            cookies: [cookie("md_user", "user2"), cookie("md_passs", "pass")], hashCheck: Self.token, now: now,
+            configuration: .ephemeral, hosts: .exactHost("127.0.0.1")
+        )
+        let reply = try Capture.response(profilePageServed ? "R55-p1-profile-edit-page1" : "W00-login-form-anon")
+        let factory = ProbeFactory(ScriptedProbe.Step(reply: .success(reply), setCookies: [cookie("md_user", "user2")]))
+        let flow = TopicFlagFlow(refresh: SessionRefreshFlow { cookies, now in factory.make(cookies: cookies, now: now) })
+        let addLink = try FlagCapture.requestURL("P03a")
+        let removeLink = try FlagCapture.requestURL("P03n")
+        let errors = [
+            await Self.failure { () async throws(TopicFlagError) in _ = try await flow.addFavorite(link: addLink, in: session) },
+            await Self.failure { () async throws(TopicFlagError) in _ = try await flow.removeFlag(link: removeLink, in: session) },
+            await Self.failure { () async throws(TopicFlagError) in _ = try await flow.removeFavoriteFromList(Self.cuisine, in: session) }
+        ]
+        for error in errors {
+            if profilePageServed {
+                // The write left the gate and was stopped by the loopback-only session.
+                guard case .network(.invalidRequest)? = error else {
+                    Issue.record("expected the write to be attempted, got \(String(describing: error))")
+                    continue
+                }
+            } else {
+                #expect(error == .sessionNotConfirmed(.unconfirmed(.unrecognizedPage)))
+            }
+        }
+        #expect(factory.probes.count == 3)
+        for probe in factory.probes {
+            #expect(await probe.requests.map(\.url) == [Capture.profilePage1])
+        }
+    }
+
+    @Test(
         "A session check that fails is a network failure, and the write is not sent",
         arguments: [NetworkError.timedOut, .offline, .httpStatus(code: 503, url: Capture.profilePage1)]
     )
@@ -147,6 +185,16 @@ struct FlagSessionGateTests {
     }
 
     // MARK: - Helpers
+
+    /// The error `write` throws, nil when it succeeds.
+    private static func failure(_ write: () async throws(TopicFlagError) -> Void) async -> TopicFlagError? {
+        do throws(TopicFlagError) {
+            try await write()
+            return nil
+        } catch {
+            return error
+        }
+    }
 
     private func cookie(_ name: String, _ value: String) -> StoredCookie {
         StoredCookie(name: name, value: value, domain: ".hardware.fr", path: "/", expiresDate: now.addingTimeInterval(86_400))

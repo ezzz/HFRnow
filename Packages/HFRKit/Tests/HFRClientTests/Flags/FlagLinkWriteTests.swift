@@ -53,18 +53,18 @@ struct FlagLinkWriteTests {
     @Test(
         "delflag is confirmed by its sentence whatever owntopic chooses as refresh, and again with no flag left (P03o)",
         arguments: [
-            ("P03d", "owntopic=3"),
-            ("P03n", "/hfr/Discussions/Cuisine/liste_sujet-1.htm"),
-            ("P03o", "/hfr/Discussions/Cuisine/liste_sujet-1.htm"),
-            ("P03p", "owntopic=1")
+            ("P03d", "owntopic=3", cuisine),
+            ("P03n", "/hfr/Discussions/Cuisine/liste_sujet-1.htm", cuisine),
+            ("P03o", "/hfr/Discussions/Cuisine/liste_sujet-1.htm", cuisine),
+            ("P03p", "owntopic=1", TopicID(category: .forum(13), topic: 55038))
         ]
     )
-    func removeFlagConfirmed(answer: String, refresh: String) async throws {
+    func removeFlagConfirmed(answer: String, refresh: String, topic: TopicID) async throws {
         let link = try FlagCapture.requestURL(answer)
         let (result, requests) = await Self.run(.removeFlag, link: link, reply: try FlagCapture.page(answer))
         let confirmed = try result.get()
         #expect(confirmed.action == .removeFlag)
-        #expect(confirmed.topic == FlagLink(link, path: "/user/delflag.php")?.topic)
+        #expect(confirmed.topic == topic)
         #expect(confirmed.message == "Drapeau effacé avec succès")
         #expect(confirmed.refreshURL.absoluteString.contains(refresh))
         #expect(requests.map(\.url) == [link])
