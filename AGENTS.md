@@ -134,7 +134,7 @@ Within a priority, match `difficulty` to your model tier (§6). Security issues 
 
 ## 8. Git and PR workflow
 
-- Integration branch: `dev-swift` (ruleset: PR + green checks required, squash only, no force push). `master` is the legacy app.
+- Integration branch: `dev-swift` (ruleset: PR + green checks required, squash only, no force push; `strict` is off, so no up-to-date-with-base requirement; auto-merge is allowed since 2026-10-28). `master` is the legacy app.
 - Issue and PR numbers restart on ezzz/HFRnow: cite the old ones as `francoisgn/ios-app_SwiftHFR#N`.
 - Branch names: `lot/XXX-short-name`, `fix/short-name`, `feat/short-name`, `chore/short-name`, `docs/short-name`.
 - Commits: imperative mood, explain *why*. Reference the lot (`LOT-003`).
@@ -196,3 +196,4 @@ Keep entries short and dated. Remove anything that became false.
 - 2026-10-27 — LOT-082: Swift typed-throws closures and `do` blocks infer `any Error` unless annotated (`() async throws(E) -> T in`, `do throws(E)`). Models keep content on a failed reload through one `ContentLoader`; reuse it for new list screens.
 - 2026-10-27 — LOT-081: the app owns account sessions in one `AccountsModel` (`currentSession` = the current account's `HFRSession`, nil when logged out); forum screens take their session from it. Engine flows whose test seam is `internal` (`LoginFlow`'s jar) are wrapped by an app-side protocol for view-model tests. `HFRSession` rounds cookie expiries to the second: compare a jar with what it held before, never with the cookies that seeded it.
 - 2026-10-28 — LOT-051: a flag write is confirmed only by its own `.hop` sentence (`addflag` "Favori positionné avec succès", `delflag` "Drapeau effacé avec succès"); `W18` and `P03d` are confirmations of other writes. The `manageaction.php` answer is not captured, so the favourites-list removal stays `unconfirmed` until it is; legacy's body writes the form's end marker at index 1 whatever the list length (`R10` puts it at 2).
+- 2026-10-27 — LOT-031: every per-message action link of a topic page lives in `div.toolbar`; legacy searched the whole message row, so when the toolbar lacked an action, a matching link a member posted in the message became that action, followed with the session. Scope per-message lookups to the toolbar.

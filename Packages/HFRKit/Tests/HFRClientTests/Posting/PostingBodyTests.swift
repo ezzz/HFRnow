@@ -145,7 +145,9 @@ struct PostingBodyOracleTests {
 
     @Test(
         "Same fields and values as legacy on every captured composer",
-        arguments: ["R40a", "R41a", "R41b", "R42", "R43a", "R43b", "R43c", "R44", "R45a", "R45b", "R47a", "R47b", "R47c", "R47u1"]
+        arguments: [
+            "R40a", "R41a", "R41b", "R42", "R43a", "R43b", "R43c", "R44", "R45a", "R45b", "R47a", "R47b", "R47c", "R47u1", "R61b", "R62a"
+        ]
     )
     func legacyPairs(id: String) throws {
         let legacy = try Self.oracle(id).result.legacy

@@ -1,0 +1,47 @@
+{
+  "case" : "W32",
+  "exception" : null,
+  "input" : {
+    "bytes" : 1591,
+    "context" : {
+      "charset" : "utf-8",
+      "flow" : "delete",
+      "status" : 200,
+      "urlQuote" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=6510&numreponse=75493617&page=30&p=1&subcat=430&sondage=0&owntopic=0"
+    },
+    "currentURL" : null,
+    "file" : "../captures/W32-public-delete-post-success.html",
+    "now" : null,
+    "sha256" : "63679f0221f9aa594c4f25caba8df45170caf756bd6979c7fffc8220f48c75e0"
+  },
+  "kind" : "response",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "legacy" : {
+      "anchor" : "75493617",
+      "anchorMatches" : 1,
+      "classification" : "success",
+      "decoded" : true,
+      "hopFound" : true,
+      "hopHasInput" : false,
+      "hopHasLink" : false,
+      "message" : "Message effacé avec succès !"
+    },
+    "live" : {
+      "ok" : true,
+      "refreshAnchor" : "75493617",
+      "refreshURL" : "https://forum.hardware.fr/hfr/Discussions/Sports/sujet_6510_30.htm",
+      "statusMessage" : "Message effacé avec succès !"
+    }
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}
