@@ -16,6 +16,8 @@ struct TopicOracle: Decodable {
         var quotedLINK: String?
         var editedTime: String?
         var urlQuoteDecoded: String?
+        /// `toHTML:isMP:` output (the template filled with the rewritten content), LOT-034's oracle.
+        var html: String?
     }
 
     struct Result: Decodable {
