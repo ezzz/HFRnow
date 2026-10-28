@@ -14,5 +14,5 @@ LOT-
 - [ ] Module boundaries respected (no sibling imports in HFRKit, no UI framework in HFRKit)
 - [ ] Tests added/updated — differential tests for ported logic
 - [ ] No secrets; fixtures anonymized
-- [ ] Docs updated (lot spec, HFR-PROTOCOL.md §6c, ADR); after the merge, the `Closes #N` issue is closed by hand with `Done in #PR (merged as <sha>)` and checked closed (ORCHESTRATION)
+- [ ] Docs updated (lot spec, HFR-PROTOCOL.md §6c, ADR); if the PR says `Closes #N`, after the merge that issue is closed by hand with `Done in #PR (merged as <sha>)` and checked closed (ORCHESTRATION)
 - [ ] Author model: … / Reviewer model: … (must differ)

@@ -4,8 +4,8 @@ The **plan** of the migration: scope, module, dependencies, model routing and pr
 Live state (claim, owner, status, PRs, blockers) is on the issues, never here ([ORCHESTRATION](agents/ORCHESTRATION.md#claims)): [open lot issues](https://github.com/ezzz/HFRnow/issues?q=is%3Aissue+is%3Aopen+label%3A%22type%3A+lot%22). The issues of `francoisgn/ios-app_SwiftHFR` (the mirror) are **frozen history**, linked from each lot issue; never claim, comment on or close them.
 Lots come from the [Phase 1 audit](audit/README.md); the "Audit" column maps each lot to the audit proposals it merges.
 
-- **Claim** a lot with a `/claim <session-id>` comment on its issue, **before** writing code (an orchestrator claims for the sessions it launches). The PR that does the work says `LOT-XXX` and `Closes #N` (a partial PR says `Refs #N` and what is left).
-- **New lot**: an issue (`type: lot`, `### Summary` first), then a PR that adds its row here, linked to that issue, and its spec stub.
+- **Claim** a lot with a `/claim <session-id>` comment on its issue, **before** writing code (an orchestrator claims for the sessions it launches). Check first that the issue is `status: ready` and not `status: claimed`. The PR that does the work says `LOT-XXX`, `Closes #N` (a partial PR: `Refs #N` and what is left) and, on its own line, `Claim: <session-id>` ([AGENTS.md §8](../AGENTS.md#8-git-and-pr-workflow)).
+- **New lot**: an issue (`type: lot`, `### Summary` first, `status: ready` once its dependencies are done, else `status: blocked`), then a PR that adds its row here, linked to that issue, and its spec stub.
 - This file changes only when the plan does (a new lot, a changed scope, dependency or routing). Progress on a lot never edits it.
 
 Model column: author → reviewer ([AGENTS.md §6](../AGENTS.md#6-model-routing-which-agent-does-what)).
