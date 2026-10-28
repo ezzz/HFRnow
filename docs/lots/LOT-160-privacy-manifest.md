@@ -46,7 +46,7 @@ what the MVP and the lots already specified send, so the answers do not need rev
 | User ID | yes | the pseudo, sent to HFR on login and posting, and to AQ on creation (T3) |
 | Other user content | yes | posts, private messages and drafts sent to HFR; the AQ title and comment (T3) |
 | Photos or videos | no | an image uploaded to the Chevereto rehost (T4), no cookie, no account id |
-| Search history | no | search terms sent to Giphy by the GIF picker (T5, LOT-098/155); Giphy is not in the build yet (REST client, no SDK), the declaration is ready for it |
+| Search history | yes | search terms sent to HFR with the session cookies (`HFRNetwork/Endpoints/HFREndpoint+Search.swift`, `TopicSearchQuery`, `GlobalSearchQuery`: engine only, the search screen is a later lot) and, unlinked, to Giphy by the GIF picker (T5, LOT-098/155; not in the build yet, REST client without SDK). Linked because the forum request is authenticated |
 
 Not declared: contact info, location, identifiers (IDFA, device id), diagnostics, usage data, purchases: nothing of the sort is sent (R5).
 Password: sent only to `forum.hardware.fr` over HTTPS to log in, kept in the Keychain, never sent elsewhere (R1); like legacy it is

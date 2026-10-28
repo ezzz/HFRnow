@@ -40,7 +40,7 @@ struct PrivacyManifestTests {
             "NSPrivacyCollectedDataTypeUserID": true,
             "NSPrivacyCollectedDataTypeOtherUserContent": true,
             "NSPrivacyCollectedDataTypePhotosorVideos": false,
-            "NSPrivacyCollectedDataTypeSearchHistory": false
+            "NSPrivacyCollectedDataTypeSearchHistory": true
         ])
         #expect(entries.allSatisfy { $0["NSPrivacyCollectedDataTypeTracking"] as? Bool == false })
         let functionality = ["NSPrivacyCollectedDataTypePurposeAppFunctionality"]
