@@ -123,7 +123,7 @@ import Testing
 
     @Test func aLimitBelowOneKeepsOneTopic() async throws {
         let store = ReadingPositionStore(persistence: InMemoryReadingPositionPersistence(), limitPerAccount: 0)
-        #expect(store.limitPerAccount == 1)
+        #expect(await store.limitPerAccount == 1)
         try await store.advance(Self.cuisine, to: spot(1), account: "user1")
         try await store.advance(Self.thread, to: spot(1, minutes: 1), account: "user1")
         #expect(await store.records(for: "user1").map(\.topic) == [Self.thread])

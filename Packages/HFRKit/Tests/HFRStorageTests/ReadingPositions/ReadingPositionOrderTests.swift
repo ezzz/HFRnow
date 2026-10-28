@@ -44,10 +44,13 @@ import Testing
 
     @Test(
         "Out-of-range numbers are invalid",
-        arguments: [(0, nil, nil), (-1, nil, nil), (1, 0, nil), (1, -5, nil), (1, 10, -1)] as [(Int, Int?, Int?)]
+        arguments: [
+            ReadingPosition(page: 0), ReadingPosition(page: -1), ReadingPosition(page: 1, messageNumber: 0),
+            ReadingPosition(page: 1, messageNumber: -5), ReadingPosition(page: 1, messageNumber: 10, offset: -1)
+        ]
     )
-    func invalidPositions(page: Int, message: Int?, offset: Int?) {
-        #expect(!position(page, message, offset).isValid)
+    func invalidPositions(position: ReadingPosition) {
+        #expect(!position.isValid)
     }
 
     @Test func inRangeNumbersAreValid() {

@@ -20,7 +20,7 @@ public actor ReadingPositionStore {
     public static let defaultLimitPerAccount = 500
 
     /// The number of topics kept per account (at least 1).
-    public nonisolated let limitPerAccount: Int
+    public let limitPerAccount: Int
     private let persistence: any ReadingPositionPersistence
     private var state = State.unloaded
 
