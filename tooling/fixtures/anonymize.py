@@ -133,6 +133,7 @@ OWN_RELATED = "Related topic"
 OWN_RELATED_LINK = "/forum1.php?config=hfr.inc"
 OWN_RELATED_RE = re.compile(r"(<table\b[^>]*\bid=[\"']sujetrelatif[\"'][^>]*>)(.*?)(</table>)", re.I | re.S)
 OWN_REVIEW_OPEN_RE = re.compile(r"<td\b[^>]*\bclass=[\"']messCase1bis[\"'][^>]*>[^<]*</td>\s*<(td)\b[^>]*>", re.I)
+OWN_LIST_TITLE_RE = re.compile(r"<a\b([^>]*\bclass=[\"']cCatTopic[\"'][^>]*)>([^<]*)</a>", re.I)
 OWN_DATE_RE = re.compile(r"\b\d{2}-\d{2}-\d{4}\b")
 OWN_TIME_RE = re.compile(r"(à(?:&nbsp;|\s|\u00a0)*)\d{2}:\d{2}(:\d{2})?")
 OWN_BODY_TEXT_RE = re.compile(r"((?:^|&)content_form=)([^&\"<>\s]*)")
@@ -935,8 +936,12 @@ class Anonymizer:
             msgs.update(rx.findall(text))
         for i, mid in enumerate(sorted(msgs, key=int)):
             self.own_ids.setdefault(mid, str(OWN_MESSAGE_FIRST + i))
-        self.own_subjects = sorted({html.unescape(m.group(2)) for m in OWN_SUBJECT_INPUT_RE.finditer(text)} - {""},
-                                   key=len, reverse=True)
+        subjects = {html.unescape(m.group(2)) for m in OWN_SUBJECT_INPUT_RE.finditer(text)}
+        # A list (forum list, favourites, search results) prints the title in the topic's `a.cCatTopic` link.
+        for m in OWN_LIST_TITLE_RE.finditer(text):
+            if own_topics_in(m.group(1), topics):
+                subjects.add(html.unescape(m.group(2)).strip())
+        self.own_subjects = sorted(subjects - {""}, key=len, reverse=True)
         parts, last = [], 0
         for start, end in _find_para_blocks(text):
             if start < last:
@@ -1442,6 +1447,9 @@ _V_OWN_RULES = (
     ("own-topic subject", re.compile(r"name=.sujet.[^>]*?value=\"([^\"]*)\""), lambda v: v == "Own topic subject"),
     ("own-topic description", re.compile(r"name=.Description.\s+content=\"([^\"]*)\""),
      lambda v: v == "Own topic text removed."),
+    ("own-topic list title", re.compile(
+        r"<a\b(?=[^>]*cCatTopic)(?=[^>]*(?:post=|sujet_|n°)99000\d\d\D)[^>]*>([^<]*)</a>"),
+     lambda v: v.strip() == "Own topic subject"),
     ("own-topic title", re.compile(r"<title>([^<]*)</title>"),
      lambda v: v.startswith(("Own topic subject - ", "FORUM HardWare"))),
 )

@@ -43,7 +43,7 @@ Policy: [docs/FIXTURES.md](../../docs/FIXTURES.md). Protocol facts: [docs/HFR-PR
   words included. The file is local: this list never enters the repository.
 - `own_topics` (optional): public topics started by an operator account (topic id, the `post` value). Anyone can open
   such a topic and read its author, so on its pages the anonymizer also replaces the topic id (`9900001`…), every
-  message id (`9910000001`…, one table for the publish batch), the subject and slug, message bodies, the review under
+  message id (`9910000001`…, one table for the publish batch), the subject (also as the title of the topic's `a.cCatTopic` link on a list page) and slug, message bodies, the review under
   the edit form, the description, each line of the edit text (line breaks kept), the "Sujets relatifs" links and every
   date; `verify_own_topic` checks those positions on any page naming a fake own topic id. **Run `check --config` on such
   a batch**: `check --corpus` (no config) cannot recognise an own-topic page whose topic id was never aliased.
