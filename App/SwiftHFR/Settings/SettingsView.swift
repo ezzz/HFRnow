@@ -53,6 +53,7 @@ struct SettingsView: View {
                     .accessibilityValue("\(general.textSizePercent) %")
                 }
                 Toggle("Densité compacte", isOn: $general.compactMode)
+                Toggle("Réduire la tab bar au scroll", isOn: $general.minimizesTabBarOnScroll)
                 Toggle("Rotation de l’écran", isOn: $general.allowsRotation)
                 Toggle(isOn: $general.opensLinksInDefaultBrowser) {
                     VStack(alignment: .leading, spacing: 2) {

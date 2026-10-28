@@ -42,6 +42,14 @@ struct GeneralSettingsModelTests {
         #expect(store.rawValue(forKey: "compact_mode") == .bool(true))
     }
 
+    @Test func theTabBarOptionIsKeptAndStoredUnderItsLegacyKey() {
+        let store = InMemorySettingsStore()
+        let model = GeneralSettingsModel(store: store)
+        #expect(model.minimizesTabBarOnScroll)
+        model.minimizesTabBarOnScroll = false
+        #expect(store.rawValue(forKey: "tabbar_minimize_on_scroll") == .bool(false))
+    }
+
     @Test func turningRotationBackOnWritesTheLegacyEnabledValue() {
         let store = InMemorySettingsStore(["landscape_mode": .string("none")])
         let model = GeneralSettingsModel(store: store)

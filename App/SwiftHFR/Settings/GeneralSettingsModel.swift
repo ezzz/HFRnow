@@ -6,8 +6,7 @@ import Observation
 /// screen shows is what the store holds (LOT-119).
 ///
 /// Settings of other lots are not here: favourites options (LOT-124), haptics and icon (LOT-123), theme (LOT-121),
-/// blocklists (LOT-118), maintenance and about (LOT-120). The tab-bar option (`tabbar_minimize_on_scroll`) is dropped on
-/// purpose: the split view has no tab bar.
+/// blocklists (LOT-118), maintenance and about (LOT-120).
 @MainActor
 @Observable
 final class GeneralSettingsModel {
@@ -38,6 +37,13 @@ final class GeneralSettingsModel {
             if textSizePercent != oldValue { store.set(textSizePercent, for: SettingKey.textSizePercent) }
         }
     }
+    /// Minimise the tab bar while scrolling (`tabbar_minimize_on_scroll`, default on). Stored only.
+    /// TODO: applied by the lot that restores the bottom tab bar (Catégories / Favoris / Messages / Plus).
+    var minimizesTabBarOnScroll: Bool {
+        didSet {
+            if minimizesTabBarOnScroll != oldValue { store.set(minimizesTabBarOnScroll, for: SettingKey.tabBarMinimizesOnScroll) }
+        }
+    }
     /// Density: compact rows.
     var compactMode: Bool {
         didSet { if compactMode != oldValue { store.set(compactMode, for: SettingKey.compactMode) } }
@@ -55,6 +61,7 @@ final class GeneralSettingsModel {
         opensLinksInDefaultBrowser = store.value(for: SettingKey.opensLinksInDefaultBrowser)
         textSizePercent = SettingKey.textSizePercent(from: store)
         compactMode = store.value(for: SettingKey.compactMode)
+        minimizesTabBarOnScroll = store.value(for: SettingKey.tabBarMinimizesOnScroll)
     }
 
     private static func clamp(_ percent: Int) -> Int {

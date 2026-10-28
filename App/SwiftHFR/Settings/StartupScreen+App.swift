@@ -1,12 +1,12 @@
 import HFRModels
 
 extension StartupScreen {
-    /// Picker label (legacy `startupTabOptions`, `AppSettingsView.swift:134-138`, reworded: there are no tabs any more).
+    /// Picker label (legacy `startupTabOptions`, `AppSettingsView.swift:134-138`, as legacy: the tab bar comes back in its own lot).
     var title: String {
         switch self {
-        case .categories: "Forums"
-        case .favorites: "Favoris"
-        case .messages: "Messages privés"
+        case .categories: "Tab Catégories"
+        case .favorites: "Tab Favoris"
+        case .messages: "Tab Messages"
         }
     }
 

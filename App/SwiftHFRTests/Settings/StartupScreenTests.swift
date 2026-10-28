@@ -19,6 +19,6 @@ struct StartupScreenTests {
     }
 
     @Test func titlesAreFrench() {
-        #expect(StartupScreen.allCases.map(\.title) == ["Forums", "Favoris", "Messages privés"])
+        #expect(StartupScreen.allCases.map(\.title) == ["Tab Catégories", "Tab Favoris", "Tab Messages"])
     }
 }
