@@ -134,7 +134,7 @@ Within a priority, match `difficulty` to your model tier (§6). Security issues 
 
 ## 8. Git and PR workflow
 
-- Integration branch: `dev-swift` (ruleset: PR + green checks required, squash only, no force push). `master` is the legacy app.
+- Integration branch: `dev-swift` (ruleset: PR + green checks required, squash only, no force push; `strict` is off, so no up-to-date-with-base requirement; auto-merge is allowed since 2026-10-28). `master` is the legacy app.
 - Issue and PR numbers restart on ezzz/HFRnow: cite the old ones as `francoisgn/ios-app_SwiftHFR#N`.
 - Branch names: `lot/XXX-short-name`, `fix/short-name`, `feat/short-name`, `chore/short-name`, `docs/short-name`.
 - Commits: imperative mood, explain *why*. Reference the lot (`LOT-003`).
@@ -195,4 +195,5 @@ Keep entries short and dated. Remove anything that became false.
 - 2026-10-27 — LOT-047: the MP poll is one `GET /` in a probe session seeded from the account's cookies (`MPUnreadPoll`; a logged-in home sets cookies, never written back); its `nil` means no information (logged out or another page), never 0 and never proof of expiry: confirm with `SessionRefreshFlow`. The home page is the cheapest page with the entry and cannot mark flags read.
 - 2026-10-27 — LOT-082: Swift typed-throws closures and `do` blocks infer `any Error` unless annotated (`() async throws(E) -> T in`, `do throws(E)`). Models keep content on a failed reload through one `ContentLoader`; reuse it for new list screens.
 - 2026-10-27 — LOT-081: the app owns account sessions in one `AccountsModel` (`currentSession` = the current account's `HFRSession`, nil when logged out); forum screens take their session from it. Engine flows whose test seam is `internal` (`LoginFlow`'s jar) are wrapped by an app-side protocol for view-model tests. `HFRSession` rounds cookie expiries to the second: compare a jar with what it held before, never with the cookies that seeded it.
-- 2026-10-27 — LOT-044: a `.hop` refusal can hold a non-empty `hash_check` in its replay form although the POST carried no cookies (`W17c`); "non-empty token = logged in" only holds for a GET answer without `.hop`. Session refresh runs in a probe jar and writes back by compare-and-set, so it never undoes a concurrent request nor logs an account out on an unknown page.
+- 2026-10-27 — LOT-031: every per-message action link of a topic page lives in `div.toolbar`; legacy searched the whole message row, so when the toolbar lacked an action, a matching link a member posted in the message became that action, followed with the session. Scope per-message lookups to the toolbar.
+- 2026-10-27 — LOT-044: a `.hop` refusal can hold a non-empty `hash_check` in its replay form although the POST carried no cookies (`W17c`); a non-empty token is evidence of a logged-in session only on the expected profile-page GET, after its URL and `.hop` checks. Session refresh runs in a probe jar and writes back by compare-and-set, so it never undoes a concurrent request nor logs an account out on an unknown page.

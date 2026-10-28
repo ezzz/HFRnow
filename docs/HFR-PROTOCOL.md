@@ -312,12 +312,27 @@ Source: [LOT-034](lots/LOT-034-content-normalization.md), `MessageContentNormali
   than `code<N>`.
 - **Not in the corpus**: `hfr-rehost.net` or `reho.st` URLs, the `---------------` separator, `oldcitation`.
 
+### LOT-031 — message action links
+
+Source: [LOT-031](lots/LOT-031-message-actions.md), `MessageActionsParser`, checked by `MessageActionsOracleTests` against the legacy actions dictionary of the 20 LOT-003 topic oracles (358 messages) and by `MessageActionsParserTests`.
+
+- **Where**: every per-message action is inside the block's `div.toolbar`: `div.left` after the date holds profile, `viewbbcode`, edit, quick edit (`edit_in(…)`), quote, multi-quote, MP, contact and favourite links; `div.right` holds the alert link (logged in, public topics). Page-level links sit outside the blocks: the header's `/user/delflag.php?…` (`a.cHeader`, logged in) and a topic-level `/user/modo.php?cat=…&ref=0&post=…` (`R21`, `R32b`).
+- **Quote**: `<span class="md_noclass_cryptlink<hex>"><img … alt="answer" /></span>`, decoding to `/message.php?config=hfr.inc&cat=<cat>&post=<post>&numrep=<n>&ref=<i>&page=<p>&p=1&subcat=<sub>&sondage=0&owntopic=0&new=0#formulaire`; on every block, logged out too (`R20`).
+- **Edit**: `<span class="md_noclass_cryptlink<hex>"><img … alt="edit" /></span>`, decoding, in private conversations (the only edit links of the corpus; the public-topic shape is pending capture), to `/message.php?config=hfr.inc&cat=prive&post=<post>&numreponse=<n>&page=1&p=1&subcat=0&sondage=0&owntopic=0#formulaire`; only on the viewer's own posts (`RA1`–`RA4`, `RU2` message 4; none for the recipient on the other account's posts, `RU1`).
+- **Multi-quote**: `<a rel="nofollow" onclick="quoter('hardwarefr','<cat>',<post>,<numreponse>); return false;" href="/message.php?…&numrep=<n>…">` holding `img alt="answer +"` and `alt="answer -"`; logged in only, `<cat>` is `prive` in conversations; its `numreponse` is the block's own on every message.
+- **Profile**: `<a href="/hfr/profil-<id>.htm" target="_blank" rel="nofollow"><img … alt="profil" /></a>`; absent on some blocks (`R22a`: 3 posts of one member, quote link only).
+- **MP**: `<a rel="nofollow" href="/message.php?config=hfr.inc&cat=prive&sond=&p=1&subcat=&dest=<pseudo>&subcatgroup=0"><img … alt="MP" /></a>`, logged in, on other members' posts only (`R21`, `RA4` message 4, `RU1`, `RU2`).
+- **Favourite**: `<a href="/user/addflag.php?config=hfr.inc&cat=<cat>&post=<post>&numreponse=<n>&page=<p>&ref=<i>&p=1&sondage=0&owntopic=0&subcat=<sub>">` (`img alt="Favoris"`), logged in on public topics only (`R21`, `R32b`).
+- **Alert**: `<a href="/user/modo.php?config=hfr.inc&cat=<cat>&post=<post>&numreponse=<n>&page=<p>&ref=<i>" title="Prévenir les modérateurs en cas d'abus" target="_blank">`, logged in on public topics only.
+- **Not read** (no legacy use): `viewbbcode.php`, `edit_in(…)` quick edit, `/user/contactlist.php?adduser=<id>`.
+- **Pending capture**: the viewer's own post on a public topic (edit link shape and which other links remain), a quote or edit link printed in clear instead of obfuscated.
+
 ### LOT-044 — session refresh
 
 [LOT-044](lots/LOT-044-session-health.md), asserted by the capture-backed flow tests `SessionRefreshFlowTests` (the pages are read by `ProfileEditPageParser` and `HopResponseParser`, already verified above).
 
 - **Profile page 1 logged in** (`R55-p1`, **verified**): `GET /user/editprofil.php?config=hfr.inc&page=1` answers 200 with a non-empty `hash_check`, no `.hop`, and sets `md_user` and `md_passs` (each name twice in the meta; attributes not recorded). A refresh is confirmed only by that shape with the same `md_user` afterwards.
-- **Token echo** (`W17c`, **verified**): a `.hop` refusal can hold a non-empty `hash_check` in its replay form although the POST carried no cookies, so a non-empty token proves a logged-in session only on a GET answer without `.hop`.
+- **Token echo** (`W17c`, **verified**): a `.hop` refusal can hold a non-empty `hash_check` in its replay form although the POST carried no cookies, so a non-empty token is evidence of a logged-in session only on the expected profile-page GET, after its URL and `.hop` checks.
 - Not captured: page 1 with stale cookies, `md_user=deleted` sent by HFR, attributes of the doubled `Set-Cookie` (see the lot's Pending capture).
 
 ## 7. Reported by redface2, to verify with our fixtures

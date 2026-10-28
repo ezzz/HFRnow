@@ -26,9 +26,9 @@ public struct SessionRefreshFlow: Sendable {
 
     /// GETs the profile page 1 with `session`'s cookies and reports what HFR's answer says about the session.
     ///
-    /// `valid` merges the cookies HFR set or removed and the page's `hash_check` into `session`; every other outcome,
-    /// and every thrown error, leaves `session` unchanged. A session without a usable `md_user` is `expired` and nothing
-    /// is sent.
+    /// `valid` merges the cookies HFR set or removed and the page's `hash_check` into `session`; on every other outcome,
+    /// and every thrown error, the flow writes nothing (concurrent requests may still change `session`). A session
+    /// without a usable `md_user` is `expired` and nothing is sent.
     /// - Throws: the transport's `NetworkError` (4xx/5xx, timeout, offline, cancelled).
     public func refresh(_ session: HFRSession, now: Date = Date()) async throws(NetworkError) -> SessionHealth {
         let seed = await session.refreshSeed(now: now)

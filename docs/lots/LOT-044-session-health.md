@@ -30,7 +30,7 @@ Legacy app: `master` of ezzz/HFRnow @ `21173e7` (same lines as francoisgn/hfrnow
 4. The probe's `md_user` after the answer must be the same usable value, else `unconfirmed(.identityNotConfirmed)` (removed, changed or `deleted`).
 5. Diff the probe's cookies with the seed by `jarKey`. In one actor turn on the session (`adoptRefresh`): cancellation check (`NetworkError.cancelled`), identity still the seed's (else `unconfirmed(.sessionChanged)`), then for each changed key write the probe's cookies, or delete the key if HFR removed it, **only when the session still holds the seed's cookies for that key**; same compare-and-set for `hash_check`. Return `valid`.
 
-Whatever is returned other than `valid`, and whenever `refresh` throws, the session's cookies and `hash_check` are unchanged. The flow never clears a session: `expired` describes the jar, it does not empty it; the app decides (prompt a new login, LOT-043).
+For every non-`valid` result and every thrown error, the flow does not write the session's cookies or `hash_check` (concurrent operations may still change them; `sessionChanged` reports one). The flow never clears a session: `expired` describes the jar, it does not empty it; the app decides (prompt a new login, LOT-043).
 
 **When to refresh** (app policy, not engine): at launch for each stored account, as legacy did; and when a flow meets a logged-out-looking answer (LOT-023 `.notAuthenticated`, LOT-024 `.hop` notice, LOT-037 `.loggedOut`), to confirm it before telling the user. The app persists `session.cookies(now:)` and `hashCheck` after a `valid` refresh (LOT-065).
 
@@ -71,4 +71,4 @@ Each is a capture issue (`host: mac`): #281, #282, #283. None blocks the lot; un
 
 ## Learnings
 
-- A `.hop` refusal can hold a non-empty `hash_check` in its replay form although the POST carried no cookies (`W17c`): "non-empty token = logged in" holds only for a GET answer without `.hop`.
+- A `.hop` refusal can hold a non-empty `hash_check` in its replay form although the POST carried no cookies (`W17c`): a non-empty token is evidence of a logged-in session only on the expected profile-page GET, after its URL and `.hop` checks.

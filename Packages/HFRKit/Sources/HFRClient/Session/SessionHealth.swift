@@ -1,13 +1,13 @@
 /// What a session refresh learned about an account session (`SessionRefreshFlow`).
 ///
-/// Only `valid` changes the session. The other outcomes leave its cookies and `hash_check` exactly as they were: a page
+/// Only `valid` writes to the session. The other outcomes write neither cookies nor `hash_check`: a page
 /// that proves nothing must never log an account out (LESSONS 44).
 public enum SessionHealth: Sendable, Equatable {
     /// HFR served the account's own profile page with its token: refreshed cookies and `hash_check` were merged.
     case valid
     /// The session cannot be authenticated; nothing was sent and nothing changed.
     case expired(SessionExpiry)
-    /// HFR's answer proved neither state; the session was left as it was.
+    /// HFR's answer proved neither state; the flow wrote nothing.
     case unconfirmed(UnconfirmedSession)
 }
 
