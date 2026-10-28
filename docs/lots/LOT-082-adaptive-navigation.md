@@ -2,7 +2,7 @@
 
 - **Module:** App (`App/SwiftHFR/Navigation/`)
 - **Difficulty / model:** medium (Sonnet 5.5 → Opus 5.5)
-- **Issue:** none (tracked in [LOTS.md](../LOTS.md)); old francoisgn/ios-app_SwiftHFR#96
+- **Issue:** [#100](https://github.com/ezzz/HFRnow/issues/100); old francoisgn/ios-app_SwiftHFR#96
 - **Depends on:** LOT-080 (target), LOT-021, 022, 024 (parsers), LOT-045 (fetchers)
 
 ## Legacy sources

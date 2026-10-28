@@ -2,7 +2,7 @@
 
 - **Module:** HFRParsing
 - **Difficulty / model:** medium (Sonnet → Opus)
-- **Issue:** none (lot tracked in `docs/LOTS.md`; old [#69](https://github.com/francoisgn/ios-app_SwiftHFR/issues/69) is frozen history; audit D1 in [D](../audit/D-posting.md))
+- **Issue:** [#63](https://github.com/ezzz/HFRnow/issues/63) (old [#69](https://github.com/francoisgn/ios-app_SwiftHFR/issues/69) is frozen history; audit D1 in [D](../audit/D-posting.md))
 
 Reads the write forms HFR serves (reply, quote, edit, new topic, MP, moderator alert) into the `ForumForm` of [LOT-012](LOT-012-form-write-models.md).
 It reports what the page contains and decides nothing: which fields are sent, how an unchecked box is encoded and the reply text are `HFRClient` (LOT-048). The answer to a write is LOT-037.

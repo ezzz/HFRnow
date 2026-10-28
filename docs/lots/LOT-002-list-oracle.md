@@ -2,7 +2,7 @@
 
 - **Module:** tooling (legacy app)
 - **Difficulty / model:** medium (Sonnet → Fable)
-- **Issue:** none (lot tracked in `docs/LOTS.md`; audit item B10 in [B](../audit/B-list-parsing-models.md))
+- **Issue:** [#39](https://github.com/ezzz/HFRnow/issues/39) (audit item B10 in [B](../audit/B-list-parsing-models.md))
 
 Harness, patch and run instructions: [`tooling/legacy-oracle/`](../../tooling/legacy-oracle/README.md).
 This lot covers the **list** parsers. Topic pages are LOT-003; forms, write responses and storage formats are LOT-004.
