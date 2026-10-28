@@ -107,7 +107,8 @@ Obfuscated links (`md_noclass_cryptlink`, `md_blank_cryptlink`, `md_cryptlink` c
 only, and the page links of `td.sujetCase4` are not subjects) except the fixture threads `fixture-test-N` and the
 MPStorage title (FIXTURES.md); `check --private` verifies it, in both verifiers. On the MPStorage thread page (R60a) the
 first post, the storage JSON document, is kept when the thread header names the thread and the document holds only known
-keys and the strings `0.1` / `iOS`; any other content raises `MPStorageDocumentError` (fail closed). `check --private`
+keys and the strings `0.1` / `iOS`; any other content raises `MPStorageDocumentError` (fail closed). On the storage thread's form pages the copies of the
+document (`content_form`, the review cell after `td.messCase1bis`) must pass the same check, on both sides. `check --private`
 accepts that body only on a page whose `<title>` names the thread and whose JSON keys and strings are all in its own word list.
 
 The CLI runs `check` on its own output and writes nothing if a leak remains. `check` exits non-zero and prints each offending line.

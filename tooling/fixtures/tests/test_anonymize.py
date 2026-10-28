@@ -376,6 +376,32 @@ class MPStorageTests(unittest.TestCase):
         other = '<input type="hidden" name="sujet" value="0123456789abcdef0123456789abcdef" />'
         self.assertIn('value="REDACTED"', anon(other))
 
+    def form_page(self, textarea, review, subject=A.MPSTORAGE_SUBJECT):
+        """The storage thread's edit form shaped like live R60b: subject input, content_form, review cell."""
+        return ('<form name="hop"><input type="text" name="sujet" value="%s" />'
+                '<textarea cols="75" name="content_form" id="content_form">%s</textarea></form>'
+                '<table><tr class="reponse"><th colspan="2">Sujet : %s</th></tr><tr class="reponse">'
+                '<td class="messCase1bis" width="160" valign="top">user1</td>\n\t\t\t<td>%s<div style="clear: both;"> </div></td>'
+                '</tr></table>' % (subject, textarea.replace('"', "&#034;"), subject, review.replace('"', "&#034;")))
+
+    def test_form_copies_kept_when_clean(self):
+        out = anon(self.form_page(self.EMPTY, self.EMPTY), private=True)
+        self.assertEqual(out.count("lastUpdate"), 2 * self.EMPTY.count("lastUpdate"))
+        self.assertEqual(leaks(out, private=True), [])
+
+    def test_pseudo_in_form_copies_stops_the_run(self):
+        # CodeRabbit on #259: the textarea and the review cell are copies of the document outside the `para` body.
+        bad = self.EMPTY.replace('"blacklist":{"list":[]', '"blacklist":{"list":["Quuxbar"]')
+        for page in (self.form_page(bad, self.EMPTY), self.form_page(self.EMPTY, bad)):
+            with self.assertRaises(A.MPStorageDocumentError):
+                anon(page, private=True)
+            self.assertIn("MPStorage document copy not vouched for", self.reasons(page))
+
+    def test_form_of_another_thread_is_not_checked_as_a_document(self):
+        page = self.form_page("plain text", "plain text", subject="fixture-test-1")
+        self.assertIn("plain text", anon(page, private=True))
+        self.assertNotIn("MPStorage document copy not vouched for", self.reasons(page))
+
     def test_malformed_document_stops_the_run(self):
         with self.assertRaises(A.MPStorageDocumentError):
             anon(storage_page('{"data":[}'), private=True)
