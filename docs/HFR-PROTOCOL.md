@@ -368,6 +368,18 @@ Source: [LOT-031](lots/LOT-031-message-actions.md), `MessageActionsParser`, chec
 - **Token echo** (`W17c`, **verified**): a `.hop` refusal can hold a non-empty `hash_check` in its replay form although the POST carried no cookies, so a non-empty token is evidence of a logged-in session only on the expected profile-page GET, after its URL and `.hop` checks.
 - Not captured: page 1 with stale cookies, `md_user=deleted` sent by HFR, attributes of the doubled `Set-Cookie` (see the lot's Pending capture).
 
+### LOT-095 — link shapes
+
+[LOT-095](lots/LOT-095-link-router.md), tests `HFRLinkRouteTests`, `HFRLinkRouteCorpusTests`, `HFRLinkRouteOracleTests`.
+
+- **Shapes in the corpus** (all captures, every `href` of a forum page): topic `/hfr/<cat>[/<sub>]/<slug>-sujet_<post>_<page>.htm` with `#t<numreponse>` or `#bas`, absolute `http://` and `https://` as well as relative; `forum2.php?config=hfr.inc&cat&[subcat&]post&page&p&sondage&owntopic&trash&trash_post&print&numreponse&quote_only&new&nojs`; topic lists `/hfr/<cat>[/<sub>]/liste_sujet-<page>.htm` and `forum1.php?config=hfr.inc&cat&page&subcat&sondage&owntopic&trash&trash_post&moderation&new&nojs&subcatgroup`; `forum1f.php?config=hfr.inc&owntopic=<0..3>&new&nojs`; `/hfr/profil-<id>.htm`; `search.php?config=hardwarefr.inc&cat=&subcat=0`; `/hfr/<forum>/nouveau_sujet.htm`, `nouveau_sondage.htm`; `/hfr/recherche/pseudo-<pseudo>.htm`; the old `forum2.php3?post=<n>&cat=<n>` (`R06`, meaning unknown).
+- **`numreponse` overrides `page`** (`R25`, and 50 links of the corpus): the topic list rows and the quote-only links carry `forum2.php?…&page=1&…&numreponse=<message>` with no fragment; `R25` shows the server answering that shape with a 301 to the page that holds the message. The `page=` of such a link is not the message's page. Topic page links (pagers, `numreponse=0`) and permalinks (`#t<message>` on a canonical URL) carry the real page.
+- **Views of a topic** (`R21`): the toolbar links `forum2.php?…&print=1&numreponse=0…` (print view) and `…&numreponse=<m>&quote_only=1…` (single message) are not the topic page; plain topic links have `print=0`, `quote_only=0` or empty values.
+- **Search results pager** (`R50b`): `forum1.php?…&page=2&…&recherches=1&…&search=<TERMS>&…&searchall=0&cat=13…` (first results page: no `page`, parameters `recherches=1&cat&orderSearch&config&pseud&search&…`). It repeats `cat` and `trash`; it is a results page, not the topic list of `cat`.
+- **Favourites page filters** (`R11`): the page links `forum1f.php?config=hfr.inc&owntopic=<n>&new=<0|1>&nojs=0` with `owntopic` 0 and 2 beside the documented 1 and 3; the pages behind 0 and 2 are not captured.
+- **Slug segment = forum** (LOT-003 oracle, 20 topic pages): the `<cat>` segment of every canonical permalink maps through `ForumCatalogue` to the same `cat` the message's own quote link carries.
+- **Pending capture**: the AASA file of the site (#127), forums missing from the catalogue (#125), `profilebdd.php?pseudo=`'s redirect target, the pages behind `forum1f.php?owntopic=0|2` and `forum2.php3`.
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).
