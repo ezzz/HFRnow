@@ -55,6 +55,8 @@ final class TopicReaderModel {
     private(set) var readyToken: Int?
     /// Latest in-page scroll request.
     private(set) var scrollRequest: ScrollRequest?
+    /// HFR's confirmation of the reply just sent, shown until dismissed; set only by a confirmed reply (LOT-084).
+    private(set) var replyConfirmation: String?
     /// Title until the page gives its own.
     let initialTitle: String
 
@@ -136,6 +138,42 @@ final class TopicReaderModel {
         await load(target, keepsScrollPosition: false)
     }
 
+    /// What the reply composer needs from the page on screen; nil when the page offers no answer form (logged out, locked
+    /// topic: `#repondre_form` is absent, LOT-033) or names no topic (the draft is kept per topic).
+    var replyTarget: ReplyTarget? {
+        guard let page, let formURL = page.answerURL, let topic = page.topicID else { return nil }
+        return ReplyTarget(formURL: formURL, topic: topic, title: title)
+    }
+
+    /// The reply sheet closed: after a confirmed reply, shows HFR's sentence and the topic's latest post; after an
+    /// unconfirmed one, the latest post only, so the user sees whether it was posted. Closing with or without the draft
+    /// changes nothing.
+    func composerDidClose(_ reason: ReplyComposerModel.CloseReason) async {
+        switch reason {
+        case .sent(let result):
+            replyConfirmation = result.message
+            await showLatestPost()
+        case .checkTopic:
+            await showLatestPost()
+        case .keptDraft, .discardedDraft:
+            break
+        }
+    }
+
+    /// Hides the reply confirmation.
+    func clearReplyConfirmation() {
+        replyConfirmation = nil
+    }
+
+    /// After a reply: opens the topic's last page at its last message, where HFR appends a reply (`R61d`). The page after
+    /// the last known one is asked for, since the reply may have opened it; past the end HFR redirects to the last page (`R24`,
+    /// on `forum2.php` and on the canonical path alike).
+    /// HFR's own refresh names page 1 (`W30`: `…_1.htm#bas`), so it is not followed.
+    func showLatestPost() async {
+        guard let page, let shown else { return }
+        await load(shown.atPage(page.maxPage + 1), keepsScrollPosition: false, anchor: .lastMessage)
+    }
+
     /// Stops the load in flight; the content stays.
     func cancel() {
         task?.cancel()
@@ -166,7 +204,15 @@ final class TopicReaderModel {
 
     // MARK: - Loading
 
-    private func load(_ target: ReaderTarget, keepsScrollPosition: Bool) async {
+    /// Where a loaded document opens.
+    private enum AnchorRule {
+        /// At the target's own anchor, when the page holds it.
+        case target
+        /// At the page's last message (after a reply).
+        case lastMessage
+    }
+
+    private func load(_ target: ReaderTarget, keepsScrollPosition: Bool, anchor rule: AnchorRule = .target) async {
         task?.cancel()
         generation += 1
         let mine = generation
@@ -180,14 +226,15 @@ final class TopicReaderModel {
             } catch {
                 result = .failure(error)
             }
-            self?.finish(result, target: target, keepsScrollPosition: keepsScrollPosition, generation: mine)
+            self?.finish(result, target: target, keepsScrollPosition: keepsScrollPosition, anchor: rule, generation: mine)
         }
         self.task = task
         await task.value
     }
 
     private func finish(
-        _ result: Result<ReaderPage, ListLoadError>, target: ReaderTarget, keepsScrollPosition: Bool, generation mine: Int
+        _ result: Result<ReaderPage, ListLoadError>, target: ReaderTarget, keepsScrollPosition: Bool, anchor rule: AnchorRule,
+        generation mine: Int
     ) {
         // A superseded or cancelled load never delivers (issue #108).
         guard mine == generation else { return }
@@ -201,8 +248,13 @@ final class TopicReaderModel {
             page = loaded
             error = nil
             nextToken += 1
-            let anchor = target.anchor.flatMap { anchor in
-                loaded.messages.contains { !$0.isContinuation && $0.numreponse == anchor } ? anchor : nil
+            let anchor: Int? = switch rule {
+            case .target:
+                target.anchor.flatMap { anchor in
+                    loaded.messages.contains { !$0.isContinuation && $0.numreponse == anchor } ? anchor : nil
+                }
+            case .lastMessage:
+                loaded.messages.last { !$0.isContinuation }?.numreponse
             }
             document = ReaderDocument(
                 token: nextToken,

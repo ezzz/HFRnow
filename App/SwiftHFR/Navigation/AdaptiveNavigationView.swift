@@ -6,9 +6,11 @@ struct AdaptiveNavigationView: View {
     @State private var navigation: NavigationModel
     @State private var preferredCompactColumn = NavigationSplitViewColumn.sidebar
     private let reader: ReaderServices
+    private let composer: ComposerServices?
 
     init(environment: AppEnvironment) {
         reader = environment.reader
+        composer = environment.composer
         let forums = ForumListModel(
             dataSource: environment.dataSource, visibility: environment.visibility, accountName: environment.accountName
         )
@@ -30,7 +32,7 @@ struct AdaptiveNavigationView: View {
             }
         } detail: {
             if let topic = navigation.selectedTopic, let model = navigation.reader(for: topic) {
-                TopicReaderView(model: model, services: reader)
+                TopicReaderView(model: model, services: reader, composer: composer)
                     .id(topic.id)
             } else {
                 MessagePlaceholderView(topic: navigation.selectedTopic)

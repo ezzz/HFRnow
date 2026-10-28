@@ -88,7 +88,8 @@ struct LiveTopicPageSource: TopicPageSource {
                 title: metadata.title,
                 currentPage: max(1, metadata.currentPage),
                 maxPage: max(1, metadata.maxPage, metadata.currentPage),
-                messages: messages
+                messages: messages,
+                answerURL: metadata.answerFormURL
             )
         } catch {
             throw .unreadable
