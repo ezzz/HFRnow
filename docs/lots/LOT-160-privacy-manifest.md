@@ -34,8 +34,11 @@ SwiftUI/SwiftSoup ship no manifest of their own to merge: SwiftSoup is a pure-Sw
 Apple's list of SDKs that must carry a manifest. A new dependency or API use updates this table in its own PR.
 
 ### Collected data (App Privacy answers, draft for the operator in App Store Connect)
-"Collected" is Apple's sense: data leaving the device, to the developer or to a third party. The project runs no server; the data below goes
-to the services of LOT-071. Never used for tracking, never for advertising; purpose App Functionality only. The manifest declares
+"Collected" is Apple's sense: data transmitted off the device to the developer or a third party and kept longer than it takes to service
+the request (Apple excludes data the recipient discards right after answering). The project runs no server; the data below goes to the
+services of LOT-071, whose retention is not audited (HFR posts and AQ entries are public by nature, an uploaded image is public, Giphy's
+is unknown), so each is declared conservatively. A lot that adds a data flow assesses the recipient's retention before it adds a
+declaration or changes an App Privacy answer. Never used for tracking, never for advertising; purpose App Functionality only. The manifest declares
 what the MVP and the lots already specified send, so the answers do not need revising per lot.
 
 | Manifest type | Linked | Why (LOT-071 row) |

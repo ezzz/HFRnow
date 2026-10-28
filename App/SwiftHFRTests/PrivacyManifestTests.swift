@@ -31,7 +31,17 @@ struct PrivacyManifestTests {
 
     @Test func collectedDataIsNeverUsedForTracking() throws {
         let entries = try #require(try manifest()["NSPrivacyCollectedDataTypes"] as? [[String: Any]])
-        #expect(!entries.isEmpty)
+        var linking: [String: Bool] = [:]
+        for entry in entries {
+            let type = try #require(entry["NSPrivacyCollectedDataType"] as? String)
+            linking[type] = entry["NSPrivacyCollectedDataTypeLinked"] as? Bool
+        }
+        #expect(linking == [
+            "NSPrivacyCollectedDataTypeUserID": true,
+            "NSPrivacyCollectedDataTypeOtherUserContent": true,
+            "NSPrivacyCollectedDataTypePhotosorVideos": false,
+            "NSPrivacyCollectedDataTypeSearchHistory": false
+        ])
         #expect(entries.allSatisfy { $0["NSPrivacyCollectedDataTypeTracking"] as? Bool == false })
         let functionality = ["NSPrivacyCollectedDataTypePurposeAppFunctionality"]
         #expect(entries.allSatisfy { ($0["NSPrivacyCollectedDataTypePurposes"] as? [String]) == functionality })
