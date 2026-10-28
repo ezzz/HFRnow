@@ -111,8 +111,12 @@ def mpstorage_document_problem(inner):
                 problem = "bare value in a list" if not isinstance(v, dict) else walk(v, key)
                 if problem:
                     return problem
-        elif isinstance(node, str) and node not in MPSTORAGE_STRING_VALUES.get(key, ()):
-            return "string value outside the known ones"
+        elif isinstance(node, str):
+            if node not in MPSTORAGE_STRING_VALUES.get(key, ()):
+                return "string value outside the known ones"
+        # Numbers only as timestamps; another number (an id) or a boolean / null is not vouched for.
+        elif isinstance(node, bool) or not isinstance(node, (int, float)) or key != "lastUpdate":
+            return "value outside the known ones"
         return None
     return walk(doc, None)
 
@@ -1124,11 +1128,15 @@ _V_MPSTORAGE_WORDS = frozenset(("data", "version", "0.1", "blacklist", "mpFlags"
 
 def _v_mpstorage_document_ok(inner):
     """True when the body's text is JSON whose every key and string value is a known impersonal word."""
-    strings = []
+    strings, scalars_ok = [], [True]
 
     def pairs(items):
         strings.extend(k for k, _v in items)
         strings.extend(v for _k, v in items if isinstance(v, str))
+        # Besides strings, only `lastUpdate` numbers (timestamps): ids, booleans and null are never vouched for.
+        for k, v in items:
+            if not isinstance(v, (str, dict, list)) and (k != "lastUpdate" or isinstance(v, bool) or v is None):
+                scalars_ok[0] = False
         return dict(items)
     body = html.unescape(re.sub(r"<[^>]*>", " ", inner)).replace("\u00a0", " ")
     try:
@@ -1146,7 +1154,7 @@ def _v_mpstorage_document_ok(inner):
                 stack.append(v)
             elif isinstance(node, list):  # bare values in a list (pseudos, numeric ids) are never vouched for
                 return False
-    return all(w in _V_MPSTORAGE_WORDS for w in strings)
+    return scalars_ok[0] and all(w in _V_MPSTORAGE_WORDS for w in strings)
 
 
 _V_IDS = {label: re.compile(rx) for label, rx in (

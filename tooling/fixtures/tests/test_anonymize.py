@@ -402,6 +402,18 @@ class MPStorageTests(unittest.TestCase):
         self.assertIn("plain text", anon(page, private=True))
         self.assertNotIn("MPStorage document copy not vouched for", self.reasons(page))
 
+    def test_number_bool_or_null_outside_timestamps_stops_the_run(self):
+        # CodeRabbit on #259: a number under another key may be an id; booleans and null are not vouched for either.
+        for value in ("123456", "true", "null"):
+            doc = self.EMPTY.replace('"version":"0.1"', '"version":%s' % value)
+            with self.assertRaises(A.MPStorageDocumentError, msg=value):
+                anon(storage_page(doc), private=True)
+            self.assertIn("private message body not replaced", self.reasons(storage_page(doc)), value)
+        doc = self.EMPTY.replace('"lastUpdate":1700000000001}],', '"lastUpdate":true}],')
+        with self.assertRaises(A.MPStorageDocumentError):
+            anon(storage_page(doc), private=True)
+        self.assertIn("private message body not replaced", self.reasons(storage_page(doc)))
+
     def test_malformed_document_stops_the_run(self):
         with self.assertRaises(A.MPStorageDocumentError):
             anon(storage_page('{"data":[}'), private=True)
