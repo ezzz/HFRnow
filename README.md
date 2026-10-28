@@ -75,9 +75,9 @@ SwiftHFR keeps the spirit and restarts on a clean foundation: **100 % Swift, mod
 | Phase | Scope | Status |
 |---|---|---|
 | 0 · Foundations | Repository, CI, security tooling, agent rules | **done** |
-| 1 · Audit | Legacy engine mapped into [migration lots](docs/LOTS.md) (146 as of 2026-10-28) | **done** — [audit](docs/audit/README.md) |
+| 1 · Audit | Legacy engine mapped into [migration lots](docs/LOTS.md) (147 as of 2026-10-28) | **done** — [audit](docs/audit/README.md) |
 | 2 · Fixtures | Real HFR pages + legacy parser output as test oracle | **done** — capture corpus and oracles LOT-001 to 005 |
-| 3 · Engine | Models, parsing, network, storage, flows | **in progress** — 32 of 64 engine lots done (models, network base, storage, parsing of lists and topic pages, login, `hop` forms, post-form engine); the rest is in review or queued |
+| 3 · Engine | Models, parsing, network, storage, flows | **in progress** — 32 of 65 engine lots done (models, network base, storage, parsing of lists and topic pages, login, `hop` forms, post-form engine); the rest is in review or queued |
 | 4 · App | SwiftUI app on top of `HFRKit` | **in progress** — app target, accounts and login, and navigation merged (LOT-080 to 082); topic reader in review (LOT-083); 76 app lots defined |
 | 5 · iOS 27 experience | Column navigation, large and foldable layouts | planned |
 
