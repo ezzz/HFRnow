@@ -55,3 +55,4 @@ Seeded from a previous multi-agent project, filtered for SwiftHFR.
 | 48 | Background work (draft autosave, MP polling, offline saves) goes through the normal code path, so its side effects run, and never lands in the middle of a user interaction | other project's harness, for Phase 4 |
 | 49 | Code that runs on every frame, render or loop iteration (SwiftUI `body`, scroll and change handlers) skips per-item work and side effects on empty input; the view still shows its empty, loading or error state | other project's harness, for Phase 4 |
 | 50 | A Swift Testing test that cancels its own task is reported as *cancelled*, neither passed nor failed: drive cancellation through a child `Task` and await its value | wave 1 (LOT-043) |
+| 51 | A lot that adds facts legacy never computed differential-tests the legacy-derivable subset from the existing oracle output and checks the new facts against captures; it does not wait for a new exporter | wave 5 (LOT-032) |
