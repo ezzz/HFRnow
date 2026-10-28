@@ -25,7 +25,7 @@ struct PrivacyManifestTests {
         // UserDefaults: HFRStorage settings store. File timestamps: HFRStorage cache eviction (app container).
         #expect(reasons == [
             "NSPrivacyAccessedAPICategoryUserDefaults": ["CA92.1"],
-            "NSPrivacyAccessedAPICategoryFileTimestamp": ["C617.1"],
+            "NSPrivacyAccessedAPICategoryFileTimestamp": ["C617.1"]
         ])
     }
 
@@ -33,7 +33,8 @@ struct PrivacyManifestTests {
         let entries = try #require(try manifest()["NSPrivacyCollectedDataTypes"] as? [[String: Any]])
         #expect(!entries.isEmpty)
         #expect(entries.allSatisfy { $0["NSPrivacyCollectedDataTypeTracking"] as? Bool == false })
-        #expect(entries.allSatisfy { ($0["NSPrivacyCollectedDataTypePurposes"] as? [String]) == ["NSPrivacyCollectedDataTypePurposeAppFunctionality"] })
+        let functionality = ["NSPrivacyCollectedDataTypePurposeAppFunctionality"]
+        #expect(entries.allSatisfy { ($0["NSPrivacyCollectedDataTypePurposes"] as? [String]) == functionality })
     }
 
     @Test func infoPlistHasTheUsageStringsAndExportComplianceAnswer() throws {
