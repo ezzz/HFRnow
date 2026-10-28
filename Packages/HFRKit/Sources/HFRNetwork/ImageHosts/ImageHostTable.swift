@@ -11,7 +11,7 @@ public struct ImageHostTable: Sendable, Equatable {
     public static let standard = ImageHostTable(rules: [
         ImageHostRule(
             host: "reho.st", referer: forumReferer, servesExtensionlessImages: true,
-            thumbnailRewrite: .pathPrefix(from: "/thumb/", to: "/")
+            thumbnailRewrite: .pathPrefix(prefix: "/thumb/", replacement: "/")
         ),
         ImageHostRule(
             host: "img3.super-h.fr", includesSubdomains: false, servesExtensionlessImages: true,
@@ -19,7 +19,7 @@ public struct ImageHostTable: Sendable, Equatable {
         ),
         ImageHostRule(
             host: "rehost.diberie.com", includesSubdomains: false, servesExtensionlessImages: true,
-            thumbnailRewrite: .pathPrefix(from: "/Picture/Get/t/", to: "/Picture/Get/f/")
+            thumbnailRewrite: .pathPrefix(prefix: "/Picture/Get/t/", replacement: "/Picture/Get/f/")
         ),
         // Hosts whose every reference in the captures R20, R21 and R22a is `http://` (LOT-071).
         ImageHostRule(host: "hostingpics.net", observedHTTPOnly: true),
@@ -62,9 +62,9 @@ public struct ImageHostTable: Sendable, Equatable {
               var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
         let path = components.percentEncodedPath
         switch rewrite {
-        case let .pathPrefix(old, new):
+        case let .pathPrefix(old, replacement):
             guard path.hasPrefix(old) else { return url }
-            components.percentEncodedPath = new + path.dropFirst(old.count)
+            components.percentEncodedPath = replacement + path.dropFirst(old.count)
         case let .fileNameMarker(prefix, marker):
             guard path.hasPrefix(prefix), let slash = path.lastIndex(of: "/") else { return url }
             let name = path[path.index(after: slash)...]

@@ -5,8 +5,8 @@ import Foundation
 public struct ImageHostRule: Sendable, Equatable {
     /// How a thumbnail URL of this host maps to the full image.
     public enum ThumbnailRewrite: Sendable, Equatable {
-        /// The path starts with `from` (whole components, for example `/thumb/`): replace that prefix with `to`.
-        case pathPrefix(from: String, to: String)
+        /// The path starts with `prefix` (whole components, for example `/thumb/`): replace that prefix with `replacement`.
+        case pathPrefix(prefix: String, replacement: String)
         /// Under `pathPrefix`, the file name carries `marker` (for example `.th.`): remove it.
         case fileNameMarker(pathPrefix: String, marker: String)
     }

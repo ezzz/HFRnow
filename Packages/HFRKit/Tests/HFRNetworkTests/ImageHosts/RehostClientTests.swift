@@ -32,7 +32,8 @@ struct RehostClientTests {
 
     private static let success = """
     {"status_code":200,"success":{"message":"image uploaded","code":200},"image":{"url":"https://img.example/images/a.jpg",\
-    "width":"640","height":480,"medium":{"url":"https://img.example/images/a.md.jpg"},"thumb":{"url":"https://img.example/images/a.th.jpg"}}}
+    "width":"640","height":480,"medium":{"url":"https://img.example/images/a.md.jpg"},\
+    "thumb":{"url":"https://img.example/images/a.th.jpg"}}}
     """
 
     @Test func uploadsAndReturnsTheRenditions() async throws {

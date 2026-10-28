@@ -1,5 +1,8 @@
 import Foundation
 import HFRModels
+/// Keys of the `image` object; a file-level type keeps `RehostResponse` within the nesting limit.
+private enum RehostImageKey: String, CodingKey { case url, width, height, medium, thumb }
+
 /// The JSON the Chevereto v1 upload endpoint answers, read as legacy did (`ReplyService.swift:2002-2093` @ 2440d79).
 struct RehostResponse: Decodable, Sendable {
     struct Rendition: Decodable, Sendable {
@@ -14,15 +17,13 @@ struct RehostResponse: Decodable, Sendable {
         let thumb: Rendition?
 
         init(from decoder: any Decoder) throws {
-            let container = try decoder.container(keyedBy: CodingKeys.self)
+            let container = try decoder.container(keyedBy: RehostImageKey.self)
             url = try? container.decode(String.self, forKey: .url)
             width = Self.lenientInt(container, .width)
             height = Self.lenientInt(container, .height)
             medium = try? container.decode(Rendition.self, forKey: .medium)
             thumb = try? container.decode(Rendition.self, forKey: .thumb)
         }
-
-        private enum CodingKeys: String, CodingKey { case url, width, height, medium, thumb }
 
         /// A number written as a JSON number or as a string, as legacy accepted both.
         fileprivate static func lenientInt<Key: CodingKey>(_ container: KeyedDecodingContainer<Key>, _ key: Key) -> Int? {
