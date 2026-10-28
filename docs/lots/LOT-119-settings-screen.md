@@ -1,0 +1,75 @@
+# LOT-119 — Settings screen and general settings
+
+- **Module:** App (`App/SwiftHFR/Settings/`); two keys added to HFRStorage and one enum to HFRModels
+- **Difficulty / model:** medium (Sonnet 5.5 → Opus 5.5)
+- **Issue:** [#210](https://github.com/ezzz/HFRnow/issues/210)
+- **Depends on:** LOT-060 (settings store), LOT-066 (caches, used by LOT-120), LOT-080 (target); conventions of LOT-081/082/083
+
+## Legacy sources
+Read-only, `origin/master` of ezzz/HFRnow (line numbers are those of `master`; LOT-060 cites the older `2440d79`).
+
+| Legacy | Used for |
+|---|---|
+| `HFRswift/Swift/AppSettingsView.swift:86-114` | every `@AppStorage` key and default of the screen |
+| `HFRswift/Swift/AppSettingsView.swift:134-138, 376-418` | "Général": rows, options and labels |
+| `HFRswift/Swift/Common.swift:32-53` | `AppStartupScreen`: key `HFRswiftStartupScreen`, values `tab:categories`, `tab:favorites` (default), `tab:messages`; an empty or unknown value is favourites |
+| `HFRswift/Swift/Common.swift:167-225` | `AppScreenRotation` (`landscape_mode`, `galerie_message` / `none`) and `HFRSwiftOrientationPolicy`: iPad always `.all`, iPhone `.allButUpsideDown`, or `.portrait` when locked or while the composer is open |
+| `HFRswift/Swift/Common.swift:227-241` | keys `compact_mode`, `tabbar_minimize_on_scroll`, `topic_page_swipe_navigation`, `open_links_in_default_browser` |
+| `HFRswift/Swift/Common.swift:265-294` | `AppTextSizeScale` (100 / 110 / 120 / 130, labels Standard, +10%, +20%, +30%) |
+| `Classes/HFRplusAppDelegate.m:764-777` | `open_links_in_default_browser`: system browser, otherwise `SFSafariViewController` |
+| `HFRswift/Swift/MainWindow.swift:1357-1363` | the start tab is read once at launch |
+| `HFRswift/Swift/PlusTab.swift` | the legacy "Plus" tab that hosted the settings entry |
+
+## Behaviour
+A gear button in the sidebar toolbar (next to the account menu) opens a sheet with `NavigationStack { SettingsView }`.
+
+- **`SettingsView`** (shell): a `Form` whose sections are owned by lots (table below). This lot builds "Général" and, under "Apparence", the entry rows "Thème" and "Icône", which lead to a "Ce réglage arrive dans une prochaine version." page (`SettingsDestination`): LOT-121 and LOT-123 replace those pages, no theme and no icon code lives here.
+- **`GeneralSettingsModel`** (`@Observable @MainActor`, tests in `App/SwiftHFRTests/Settings/`): reads each value from a `SettingsStore` at creation and writes it back, under its legacy key and raw shape, on every change. Creating it writes nothing.
+- **"Général" rows:** "Écran de démarrage" (Forums / Favoris / Messages privés), "Taille du texte" (Standard, +10 %, +20 %, +30 %: the entry; the reader applies it in LOT-106), "Mode compact", "Rotation de l’écran", "Navigateur par défaut" (off = in-app browser).
+- **Applied now:** rotation (`OrientationPolicy` through an app delegate adaptor, re-applied when the switch changes: iPhone only, an iPad always rotates) and the start screen (the sidebar selection at launch: favourites open the favourites list, forums open the forum list; on a compact width the content column shows first for favourites). Compact mode applies to the settings form's spacing (legacy applied it to the form and the favourites list).
+- **Stored for their owner lot:** text size (LOT-106 reader), compact mode on lists (LOT-124/125), default browser (LOT-137 link handling reads `SettingKey.opensLinksInDefaultBrowser`).
+- **`LegacySettingsNormalizer.run`** is now called once at launch (LOT-060 expected the app to; nothing did): the text size shown after an update from legacy is the migrated one.
+- **Storage additions:** `SettingKey.startupScreen` (`HFRswiftStartupScreen`, enum `StartupScreen` in HFRModels, unknown value reads as favourites) and `SettingKey.opensLinksInDefaultBrowser`. LOT-060's catalogue left them out because they are not in `registerDefaults` nor in LOT-060's list of 32.
+
+### Every legacy setting of `AppSettingsView.swift`, with its owner
+
+| Legacy section / setting (key) | Owner | Here |
+|---|---|---|
+| Général: Écran de démarrage (`HFRswiftStartupScreen`) | LOT-119 (LOT-144 adds the Home value) | built |
+| Général: Favoris `vos_sujets`, Favoris triés par catégories `sujets_avec_cat`, Actualisation automatique `favorites_auto_refresh` | LOT-124 | not built |
+| Général: Mode compact (`compact_mode`) | LOT-119 | built |
+| Général: Réduire la tab bar au scroll (`tabbar_minimize_on_scroll`) | none | dropped on purpose (below) |
+| Général: Taille du texte (`text_size_scale`) | LOT-119 entry, LOT-106 effect | built |
+| Général: Retours haptiques (`haptics`), Icône (`icon`) | LOT-123 | not built (Icône: entry row) |
+| Général: Rotation d’écran (`landscape_mode`) | LOT-119 | built |
+| Général: Navigateur par défaut (`open_links_in_default_browser`) | LOT-119 stores, LOT-137 applies | built |
+| Thème: Changement de thème (`auto_theme`), Luminosité du thème (`theme`), Teinte d'accent (`theme_day_color_action`, `theme_night_color_action`), Luminosité du thème sombre (`theme_night_brightness`) | LOT-121 | not built (entry row) |
+| Sujets: Style des messages (`theme_style`) | LOT-121 | not built |
+| Sujets: Masquer les pseudos blacklistés (`blacklist_hide_pseudo`), Liste noire, Liste blanche | LOT-118 | not built |
+| Sujets: Swipe changement de page (`topic_page_swipe_navigation`), Afficher les signatures (`display_sig`), Taille des smileys (`size_smileys`, commented out in legacy) | LOT-106 | not built |
+| Sujets: Bouton + (`reply_button_behavior`) | LOT-084 | not built |
+| Filtrer les posts: Minimum de citations (`filter_posts_min_quotes`), Inclure les pseudos whitelistés (`filter_posts_quotes`) | LOT-114 | not built |
+| Notifications MP: Badge messages non lus (`mp_badge_enabled`) | LOT-140 | not built |
+| Stockage MP: Activer (`mpstorage_active`), Dernier accès (`mpstorage_last_rw`), Resynchroniser | LOT-130 | not built |
+| Maintenance: Caches de l’app, Pages HTML, Ouvrir les réglages système | LOT-120 (reads LOT-066) | not built |
+| À propos: Version | LOT-120 | not built |
+
+Settings with no UI in legacy's screen but in `SettingKey` (`embedded_videos`, `display_images`, `rehost_*`, `recherche_categorie`) belong to LOT-107/108, LOT-102 and LOT-115.
+
+## Edge cases
+- A stored start screen that is not one of the three legacy values reads as favourites (legacy `rootTab(for:)`), as does an empty string.
+- A rotation value other than `none` (any string) allows rotation; a non-string value reads as the default (LOT-060).
+- `didSet` runs on a real change only, so setting a switch to the value it has writes nothing and does not re-apply the orientation.
+- The private-messages start screen has no screen to open before LOT-126: it opens the forum list, not a guessed destination.
+
+## Fixtures
+None: no HFR page is read. Tests drive the models over `InMemorySettingsStore` with legacy raw values: `GeneralSettingsModelTests`, `OrientationPolicyTests`, `StartupScreenTests` (App), `GeneralSettingsKeyTests` (HFRStorage). No HFR fact is added, so `HFR-PROTOCOL.md` is unchanged. **Pending capture:** none. A real legacy `Library/Preferences/<id>.plist` (LOT-067) would confirm `HFRswiftStartupScreen` values written by the shipped app.
+
+## Intentional differences from legacy
+- **No tab bar:** `tabbar_minimize_on_scroll` has no row (the split view has no tab bar); its stored value is left untouched. The Phase 4 backlog item "tab-bar settings UI" is absorbed here.
+- **Start screen** names destinations, not tabs: "Forums" (legacy "Tab Catégories"), "Favoris", "Messages privés". The legacy values are kept so a choice made in the old app still applies.
+- **Settings reach the app through a sheet** from the sidebar, not the legacy "Plus" tab.
+- Settings no longer re-apply theme or re-sync three size keys on every screen appearance (LOT-060 decision 5).
+
+## Learnings
+- A `@MainActor` default argument (`UIDevice.current`) on a static function makes the whole function main-actor isolated: split the pure part from the one that reads the device.

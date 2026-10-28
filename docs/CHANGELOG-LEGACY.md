@@ -24,5 +24,6 @@ Registre des problèmes **présents dans l'app legacy** (HFR+ / HFRnow, branche 
 | 16 | UX | Sous-forums : pagination et ouverture depuis la page d'accueil fiables. | LOT-082 #32 | — |
 | 17 | T | Formulaires : une action de formulaire hors du forum est refusée (pas d'envoi des cookies ailleurs). | LOT-036 #22 | legacy préfixait l'URL du forum (pas de faille legacy ; garde-fou conservé) |
 | 18 | T | Suppression d'un premier post (= tout le sujet) : confirmation obligatoire hors MP. | LOT-048 #36 | legacy : détection par libellé seulement |
+| 19 | UX | Réglages : plus d’option « Réduire la tab bar au scroll » (pas de tab bar dans la vue scindée) ; l’écran de démarrage nomme une liste (Forums, Favoris, Messages privés) au lieu d’un onglet. | LOT-119 | `AppSettingsView.swift:92, 134-138, 392` |
 
 Points « non corrigés volontairement » (comportement legacy gardé) : AQ appelé au lancement (D-071-3).
