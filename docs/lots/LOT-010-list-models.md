@@ -2,7 +2,7 @@
 
 - **Module:** HFRModels
 - **Difficulty / model:** easy (Sonnet → Opus)
-- **Issue:** none (lot tracked in `docs/LOTS.md`)
+- **Issue:** [#43](https://github.com/ezzz/HFRnow/issues/43)
 
 ## Legacy sources
 Legacy repository <https://github.com/francoisgn/hfrnow> at `2440d79`. Audit: [B §2](../audit/B-list-parsing-models.md) (data models, proposal B1) and [redface2 comparison](../research/redface2-comparison.md) §4.3 E18.

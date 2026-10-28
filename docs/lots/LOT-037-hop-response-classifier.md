@@ -2,7 +2,7 @@
 
 - **Module:** HFRParsing
 - **Difficulty / model:** medium (Sonnet → Opus)
-- **Issue:** none (lot tracked in `docs/LOTS.md`); old issue francoisgn/ios-app_SwiftHFR#70 (frozen history)
+- **Issue:** [#64](https://github.com/ezzz/HFRnow/issues/64); old issue francoisgn/ios-app_SwiftHFR#70 (frozen history)
 
 Turns the page HFR answers after a write into a [`HopResponse`](LOT-012-form-write-models.md). The write flows of `HFRClient`
 (LOT-048 post/edit/delete, LOT-050 alert, LOT-051 flags, LOT-054 poll vote) read the result; none of them may report success
@@ -68,7 +68,7 @@ captured state.
 7. `refreshURL` has `&amp;` decoded (live kept it, quirk 6).
 
 ## Pending capture
-Reported to the orchestrator for the capture backlog in `docs/LOTS.md` (this lot does not edit it). None blocks the lot; until captured, each state is classified conservatively.
+Capture issues: [#135](https://github.com/ezzz/HFRnow/issues/135), [#136](https://github.com/ezzz/HFRnow/issues/136), [#137](https://github.com/ezzz/HFRnow/issues/137), [#138](https://github.com/ezzz/HFRnow/issues/138), [#131](https://github.com/ezzz/HFRnow/issues/131). None blocks the lot; until captured, each state is classified conservatively.
 - **Alert already sent** (`modo.php` GET on a message the account already reported): the page text and whether the shape is really `.hop` + link/input. `alreadyAlerted` rests on the legacy rule alone.
 - **Alert submitted, success**: text and whether a refresh is present. Until captured, the alert write cannot be classified `success` by this parser (a `.hop` without refresh is `unrecognized`).
 - **Logged-out variants of other writes** (flag GET, alert, vote): `loggedOut` is detected only by the `W17c` sentence; a login-form page (legacy `isLoggedOutForm`) is not interpreted.
