@@ -23,6 +23,24 @@ struct HFREndpointTopicPageTests {
         #expect(request.url.absoluteString == "\(Self.host)/forum2.php?config=hfr.inc&cat=13&post=42&page=1")
     }
 
+    @Test("A message of unknown page is the R25 shape: page=1&numreponse=M, the same URL as the captured permalink request")
+    func numreponse() throws {
+        let topic = TopicID(category: .forum(13), topic: 28563)
+        let request = try HFREndpoint.topicPage(topic: topic, page: 1, numreponse: 39971312)
+        #expect(request.url.absoluteString == "\(Self.host)/forum2.php?config=hfr.inc&cat=13&post=28563&page=1&numreponse=39971312")
+        #expect(request.redirectPolicy == .follow)
+        let withAnchor = try HFREndpoint.topicPage(topic: topic, page: 1, anchor: 7, numreponse: 39971312)
+        #expect(withAnchor.url.absoluteString.hasSuffix("&page=1&numreponse=39971312#t7"))
+        let plain = try HFREndpoint.topicPage(topic: topic, page: 2)
+        #expect(!plain.url.absoluteString.contains("numreponse"))
+    }
+
+    @Test func numreponseBelowOneIsRefused() {
+        let topic = TopicID(category: .forum(13), topic: 42)
+        #expect(throws: NetworkError.self) { try HFREndpoint.topicPage(topic: topic, numreponse: 0) }
+        #expect(throws: NetworkError.self) { try HFREndpoint.topicPage(topic: topic, numreponse: -3) }
+    }
+
     @Test func pageBelowOneIsRefused() {
         let topic = TopicID(category: .forum(13), topic: 42)
         #expect(throws: NetworkError.self) { try HFREndpoint.topicPage(topic: topic, page: 0) }
