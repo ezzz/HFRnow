@@ -32,19 +32,51 @@ enum SessionCheckResult: Sendable, Equatable {
     case failed(NetworkError)
 }
 
-/// Checks a restored account session. The forum-backed check is LOT-044's `SessionRefreshFlow`; until it is merged
-/// the app uses `LocalSessionCheck`, which only reads the jar.
+/// Checks a restored account session: `ForumSessionCheck` in the app, a scripted double in tests.
 protocol SessionChecking: Sendable {
     /// Checks `session` and never clears it.
     func check(_ session: HFRSession) async -> SessionCheckResult
 }
 
-/// Local check: a jar without a usable `md_user` (absent, expired, `deleted`) is expired; anything else is
-/// `unconfirmed`, because only the forum can confirm that the cookies still work (LOT-044).
-struct LocalSessionCheck: SessionChecking {
-    /// Reads `HFRSession.isLoggedIn(now:)`; sends nothing.
+/// Runs LOT-044's forum check; `SessionRefreshFlow` in the app, a scripted double in tests (its probe seam is internal
+/// to `HFRClient`).
+protocol SessionRefreshing: Sendable {
+    /// Same contract as `SessionRefreshFlow.refresh`: only `valid` writes to `session`.
+    func refresh(_ session: HFRSession, now: Date) async throws(NetworkError) -> SessionHealth
+}
+
+extension SessionRefreshFlow: SessionRefreshing {}
+
+/// The forum-backed check (LOT-044): GETs the account's profile page 1 with its cookies, and merges what HFR refreshed
+/// only when the page proves the session works. A page that proves nothing, or a failed request, never logs out.
+struct ForumSessionCheck: SessionChecking {
+    private let refresher: any SessionRefreshing
+
+    /// Creates a check on `refresher` (the live flow by default).
+    init(refresher: any SessionRefreshing = SessionRefreshFlow()) {
+        self.refresher = refresher
+    }
+
+    /// Refreshes `session` now and maps the outcome; never throws, never clears the session.
     func check(_ session: HFRSession) async -> SessionCheckResult {
-        await session.isLoggedIn() ? .unconfirmed : .expired
+        do {
+            return Self.result(of: try await refresher.refresh(session, now: Date()))
+        } catch .cancelled {
+            // A cancelled check (the app left the foreground) says nothing about the forum: not an unreachable forum.
+            return .unconfirmed
+        } catch {
+            return .failed(error)
+        }
+    }
+
+    /// `expired` only when the jar itself holds no usable identity (`SessionExpiry`); every `unconfirmed` reason keeps
+    /// the session as it was (LOT-044: an unknown page never logs an account out).
+    static func result(of health: SessionHealth) -> SessionCheckResult {
+        switch health {
+        case .valid: .valid
+        case .expired: .expired
+        case .unconfirmed: .unconfirmed
+        }
     }
 }
 

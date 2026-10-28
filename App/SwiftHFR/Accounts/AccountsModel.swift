@@ -66,6 +66,8 @@ final class AccountsModel {
     private(set) var hasRestored = false
     /// True while a restore (read and session checks) runs; a retry then waits for it instead of starting another.
     private(set) var isRestoring = false
+    /// True while a quiet re-check (`recheckUnconfirmedSessions`) runs; no screen shows it.
+    @ObservationIgnored private(set) var isRechecking = false
     /// Changes whenever `currentSession` becomes another object (select, remove, logout, a known current account
     /// added again). Screens built on the current session are rebuilt on it, never on `current?.id`, which does not
     /// change when the current account's session is replaced.
@@ -79,6 +81,8 @@ final class AccountsModel {
     @ObservationIgnored private var statuses: [String: AccountSessionStatus] = [:]
     @ObservationIgnored private var restoreTask: Task<Void, Never>?
     @ObservationIgnored private var currentSessionID: ObjectIdentifier?
+    /// When the last forum check of the sessions (launch or re-check) ended; nil until one has.
+    @ObservationIgnored private var lastCheckEnd: Date?
     /// Cookie jar for browsing logged out; never holds an account's cookies.
     @ObservationIgnored private let loggedOutSession = HFRSession()
     /// Decoded avatars by account, so views never decode image bytes while rendering (LESSONS 49).
@@ -94,14 +98,15 @@ final class AccountsModel {
         self.avatars = avatars
     }
 
-    /// The model the app runs with: Keychain store keyed by the bundle identifier, `LoginFlow`, local session check.
+    /// The model the app runs with: Keychain store keyed by the bundle identifier, `LoginFlow`, the forum session check
+    /// (LOT-044).
     static func live() -> AccountsModel {
         AccountsModel(
             // An app bundle always has an identifier; the fallback is the project's own (LOT-080), so the item's
             // service never depends on it being missing.
             store: KeychainCredentialStore(service: Bundle.main.bundleIdentifier ?? "hfrplus.red.super"),
             loginService: LoginFlow(),
-            checker: LocalSessionCheck(),
+            checker: ForumSessionCheck(),
             avatars: AnonymousAvatarLoader()
         )
     }
@@ -182,15 +187,46 @@ final class AccountsModel {
         for account in book.accounts where statuses[account.pseudo] == .valid {
             await persistSession(of: account.pseudo)
         }
-        await checkSessions(book.accounts.map(\.pseudo))
+        await checkSessions(book.accounts.map(\.pseudo)) { $0 == .checking }
+        lastCheckEnd = Date()
     }
 
-    /// Checks sessions one after the other, so the forum never sees a burst at launch.
-    private func checkSessions(_ ids: [String]) async {
+    /// Shortest delay between the end of a check and a quiet re-check: the app coming back to the foreground several
+    /// times a minute must not send a request each time.
+    static let recheckInterval: TimeInterval = 5 * 60
+
+    /// Checks again, quietly, the sessions the forum did not confirm (`restored` after an unknown page, `checkFailed`
+    /// after a network error), when the app comes back to the foreground. Sessions already `valid` or `expired` are left
+    /// alone; the rows keep their status until a result arrives, and a check that confirms nothing changes nothing.
+    /// Skipped while another re-check runs, and until `recheckInterval` has passed since the last check. Sessions the
+    /// launch restore is checking are `checking`, so they are not checked twice.
+    func recheckUnconfirmedSessions(now: Date = Date()) async {
+        guard !isRechecking else { return }
+        if let lastCheckEnd, now.timeIntervalSince(lastCheckEnd) < Self.recheckInterval { return }
+        let ids = rows.map(\.id).filter { Self.isUnconfirmed(statuses[$0]) }
+        guard !ids.isEmpty else { return }
+        isRechecking = true
+        await checkSessions(ids, when: Self.isUnconfirmed)
+        lastCheckEnd = Date()
+        isRechecking = false
+    }
+
+    private static func isUnconfirmed(_ status: AccountSessionStatus?) -> Bool {
+        switch status {
+        case .restored, .checkFailed: true
+        case .checking, .valid, .expired, nil: false
+        }
+    }
+
+    /// Checks sessions one after the other, so the forum never sees a burst. Only accounts whose status passes
+    /// `eligible` are checked, and a result is applied only if the account still has the same session and status: a
+    /// login or a removal that landed during the check wins.
+    private func checkSessions(_ ids: [String], when eligible: (AccountSessionStatus?) -> Bool) async {
         for id in ids {
-            guard let session = sessions[id], statuses[id] == .checking else { continue }
+            guard let session = sessions[id], eligible(statuses[id]) else { continue }
+            let before = statuses[id]
             let result = await checker.check(session)
-            guard sessions[id] === session, statuses[id] == .checking else { continue }
+            guard sessions[id] === session, statuses[id] == before else { continue }
             switch result {
             case .valid:
                 statuses[id] = .valid

@@ -141,6 +141,50 @@ final class ScriptedChecker: SessionChecking {
     }
 }
 
+/// Stands in for LOT-044's `SessionRefreshFlow`, whose probe seam is internal to `HFRClient`: answers each account with
+/// the outcomes the flow's capture-backed tests proved (`R55-p1` → `valid`, logged-out or `.hop` pages → `unrecognizedPage`,
+/// an identity the answer did not keep → `identityNotConfirmed`, transport failures thrown). A jar without a usable
+/// identity goes to the real flow, which answers `expired` without sending anything.
+final class ScriptedRefresher: SessionRefreshing {
+    typealias Reply = Result<SessionHealth, NetworkError>
+
+    private let state: Mutex<(scripts: [String: [Reply]], calls: [String])>
+    private let gate: CheckGate?
+    private let gatedCall: Int
+
+    /// `scripts` are consumed in order per account, the last one repeating; an account without a script is
+    /// `unrecognizedPage`. `gate` suspends the call number `gatedCall` (1-based, all accounts) until opened.
+    init(_ scripts: [String: [Reply]], gate: CheckGate? = nil, gatedCall: Int = 1) {
+        state = Mutex((scripts, []))
+        self.gate = gate
+        self.gatedCall = gatedCall
+    }
+
+    /// Accounts refreshed, in call order (identity-less jars excluded: they never reach the forum).
+    var calls: [String] { state.withLock { $0.calls } }
+
+    func refresh(_ session: HFRSession, now: Date) async throws(NetworkError) -> SessionHealth {
+        guard let user = await session.userKey(now: now) else {
+            return try await SessionRefreshFlow().refresh(session, now: now)
+        }
+        let (reply, call): (Reply, Int) = state.withLock { state in
+            state.calls.append(user)
+            var queue = state.scripts[user] ?? [.success(.unconfirmed(.unrecognizedPage))]
+            let reply = queue.count > 1 ? queue.removeFirst() : queue[0]
+            state.scripts[user] = queue
+            return (reply, state.calls.count)
+        }
+        if call == gatedCall { await gate?.wait() }
+        let health = try reply.get()
+        if health == .valid {
+            // As the flow on `R55-p1`: HFR sets `md_passs` again and the page carries a token.
+            await session.mergeCookies(Fake.cookies(user: user, pass: "refreshed-pass"))
+            await session.updateHashCheck("refreshed-hash")
+        }
+        return health
+    }
+}
+
 /// Returns fixed bytes and records the URLs asked.
 final class RecordingAvatars: AvatarLoading {
     private let urls = Mutex<[URL]>([])
@@ -187,7 +231,7 @@ final class FlakyStore: CredentialStore {
 func makeModel(
     store: any CredentialStore,
     login: ScriptedLogin = ScriptedLogin([]),
-    checker: any SessionChecking = LocalSessionCheck(),
+    checker: any SessionChecking = ForumSessionCheck(refresher: ScriptedRefresher([:])),
     avatars: RecordingAvatars = RecordingAvatars()
 ) -> AccountsModel {
     AccountsModel(store: store, loginService: login, checker: checker, avatars: avatars)
