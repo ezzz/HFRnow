@@ -73,6 +73,18 @@ struct HopResponseParserTests {
         #expect(create.refreshAnchor == nil)
     }
 
+    @Test("Public topic writes: the reply refreshes to page 1, the edit to the post, the delete without slug or anchor")
+    func publicRefresh() throws {
+        let base = "https://forum.hardware.fr/hfr/Discussions/Sports/"
+        let reply = try HopResponseParser.classify(html: Fixture.capture("W30-public-reply-success"))
+        #expect(reply.refreshURL?.absoluteString == base + "muscu-gringalets-sujet_6510_1.htm#bas")
+        let edit = try HopResponseParser.classify(html: Fixture.capture("W31-public-edit-success"))
+        #expect(edit.refreshURL?.absoluteString == base + "muscu-gringalets-sujet_6510_30.htm#t75493617")
+        let delete = try HopResponseParser.classify(html: Fixture.capture("W32-public-delete-post-success"))
+        #expect(delete.refreshURL?.absoluteString == base + "sujet_6510_30.htm")
+        #expect(delete.refreshAnchor == nil)
+    }
+
     /// A captured GET write: file, sentence, refresh path (nil when the capture is not asserted on it).
     struct GetWrite: Sendable {
         let name: String
