@@ -9,7 +9,7 @@ import Testing
 struct HopFormOracleTests {
     static let composerCases = [
         "R40a", "R40b", "R41a", "R41b", "R42", "R43a", "R43b", "R43c", "R44", "R45a", "R45b", "R47a", "R47b", "R47c", "R47u1",
-        "R61b", "R62a", "R62b"
+        "R61b", "R62a", "R62b", "R63b"
     ]
 
     @Test("the case lists cover every LOT-004 form case")

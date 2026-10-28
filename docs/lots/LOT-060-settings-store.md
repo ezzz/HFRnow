@@ -54,7 +54,7 @@ None: synthetic raw values in table-driven tests. A real `Library/Preferences/<i
 
 ## Intentional differences from legacy
 - `auto_theme` missing: legacy `integerForKey:` gave `0` (manual, light) while the settings screen displayed `3`; the new default is `3` (follow the system), as the audit's table states.
-- `display_images` is no longer forced to `yes` at every launch; it defaults to `yes` and is stored when set (there is no UI for it yet).
+- `display_images` is no longer forced to `yes` at every launch; it defaults to `wifi` (operator decision for policy C, changed by LOT-083; it defaulted to `yes` before) and is stored when set (there is no UI for it yet).
 - `filter_posts_quotes` and `filter_posts_min_quotes` are defaults, not values written at launch.
 
 ## Learnings

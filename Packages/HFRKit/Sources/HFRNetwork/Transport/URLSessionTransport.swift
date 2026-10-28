@@ -37,8 +37,9 @@ public final class URLSessionTransport: HTTPTransport {
         do {
             let chosen = request.redirectPolicy == .doNotFollow ? noFollowSession : session
             let fallbackURL = request.url
+            let limit = request.maximumBodyBytes
             return try await withDeadline(seconds: request.timeout) {
-                try await Self.exchange(urlRequest, fallbackURL: fallbackURL, on: chosen)
+                try await Self.exchange(urlRequest, fallbackURL: fallbackURL, limit: limit, on: chosen)
             }
         } catch {
             throw Self.map(error)
@@ -56,14 +57,43 @@ public final class URLSessionTransport: HTTPTransport {
     }
 
     /// One URLSession round trip converted to plain values.
-    private static func exchange(_ urlRequest: URLRequest, fallbackURL: URL, on session: URLSession) async throws -> HTTPResponse {
-        let (data, response) = try await session.data(for: urlRequest)
+    private static func exchange(
+        _ urlRequest: URLRequest, fallbackURL: URL, limit: Int?, on session: URLSession
+    ) async throws -> HTTPResponse {
+        let (data, response) = try await body(of: urlRequest, limit: limit, on: session)
         guard let http = response as? HTTPURLResponse else { throw NetworkError.invalidResponse }
         var headers = HTTPHeaders()
         for (name, value) in http.allHeaderFields {
             if let name = name as? String, let value = value as? String { headers[name] = value }
         }
         return HTTPResponse(statusCode: http.statusCode, headers: headers, url: http.url ?? fallbackURL, body: data)
+    }
+
+    /// The body and response; with a `limit`, read as a stream and abandoned as soon as it is known to exceed it.
+    private static func body(of urlRequest: URLRequest, limit: Int?, on session: URLSession) async throws -> (Data, URLResponse) {
+        guard let limit else { return try await session.data(for: urlRequest) }
+        #if canImport(FoundationNetworking)
+        // swift-corelibs-foundation has no byte stream: the limit is checked once the body is in.
+        let (data, response) = try await session.data(for: urlRequest)
+        guard data.count <= limit else { throw NetworkError.invalidResponse }
+        return (data, response)
+        #else
+        let (bytes, response) = try await session.bytes(for: urlRequest)
+        guard response.expectedContentLength <= Int64(limit) else {
+            bytes.task.cancel()
+            throw NetworkError.invalidResponse
+        }
+        var data = Data()
+        data.reserveCapacity(Int(max(0, response.expectedContentLength)))
+        for try await byte in bytes {
+            guard data.count < limit else {
+                bytes.task.cancel()
+                throw NetworkError.invalidResponse
+            }
+            data.append(byte)
+        }
+        return (data, response)
+        #endif
     }
 
     /// Runs `operation`, cancelling it and throwing `URLError.timedOut` once `seconds` have elapsed.

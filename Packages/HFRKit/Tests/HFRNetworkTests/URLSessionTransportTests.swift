@@ -142,4 +142,23 @@ struct URLSessionTransportTests {
             try await makeTransport().send(.get(ftp))
         }
     }
+
+    @Test func aBodyWithinTheLimitIsReturned() async throws {
+        let server = try makeServer { _ in ServerReply(body: Data(count: 1_000), omitsContentLength: true) }
+        defer { server.stop() }
+        var request = HTTPRequest.get(server.baseURL.appending(path: "ok"))
+        request.maximumBodyBytes = 1_000
+        let response = try await makeTransport().send(request)
+        #expect(response.body.count == 1_000)
+    }
+
+    /// An announced size above the limit, and a streamed body that grows past it, are both refused.
+    @Test(arguments: [false, true])
+    func aBodyPastTheLimitIsRefused(streamed: Bool) async throws {
+        let server = try makeServer { _ in ServerReply(body: Data(count: 300_000), omitsContentLength: streamed) }
+        defer { server.stop() }
+        var request = HTTPRequest.get(server.baseURL.appending(path: "big"))
+        request.maximumBodyBytes = 100_000
+        await #expect(throws: NetworkError.invalidResponse) { try await makeTransport().send(request) }
+    }
 }
