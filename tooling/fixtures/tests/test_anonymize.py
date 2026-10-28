@@ -360,6 +360,22 @@ class MPStorageTests(unittest.TestCase):
             anon(storage_page(doc), private=True)
         self.assertIn("private message body not replaced", self.reasons(storage_page(doc)))
 
+    def test_numeric_ids_in_a_list_stop_the_run(self):
+        # Fail closed: a bare number in a list may be a member or topic id, so it is not vouched for.
+        doc = self.EMPTY.replace('"blacklist":{"list":[]', '"blacklist":{"list":[555123]')
+        with self.assertRaises(A.MPStorageDocumentError):
+            anon(storage_page(doc), private=True)
+        self.assertIn("private message body not replaced", self.reasons(storage_page(doc)))
+
+    def test_fast_reply_subject_constant_kept(self):
+        # Live R60a: the fast-reply form repeats MP_NAME in a hidden `sujet`; 32 hex chars, but a public constant.
+        page = storage_page(self.EMPTY) + '<input type="hidden" name="sujet" value="%s" />' % A.MPSTORAGE_SUBJECT
+        out = anon(page, private=True)
+        self.assertIn('name="sujet" value="%s"' % A.MPSTORAGE_SUBJECT, out)
+        self.assertEqual(leaks(out, private=True), [])
+        other = '<input type="hidden" name="sujet" value="0123456789abcdef0123456789abcdef" />'
+        self.assertIn('value="REDACTED"', anon(other))
+
     def test_malformed_document_stops_the_run(self):
         with self.assertRaises(A.MPStorageDocumentError):
             anon(storage_page('{"data":[}'), private=True)

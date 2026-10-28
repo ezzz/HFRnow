@@ -2,7 +2,7 @@
   "case" : "R60a",
   "exception" : null,
   "input" : {
-    "bytes" : 33859,
+    "bytes" : 33883,
     "context" : {
       "charset" : "utf-8",
       "pseudo" : "user1",
@@ -11,7 +11,7 @@
     "currentURL" : null,
     "file" : "../captures/R60a-mpstorage-thread-first-post.html",
     "now" : null,
-    "sha256" : "30eb76b60ff80d22f5fc03d49abedb865d988584f15277af0fd216a2c552c027"
+    "sha256" : "171d6392c03019d3c316201767ed5fcb2489414f80b05dca62117cc6ff77bea0"
   },
   "kind" : "storage",
   "legacyCommit" : "2440d79",

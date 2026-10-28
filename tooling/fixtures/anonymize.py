@@ -107,13 +107,16 @@ def mpstorage_document_problem(inner):
                     return problem
         elif isinstance(node, list):
             for v in node:
-                problem = walk(v, key)
+                # A list holds section objects only: bare values (pseudos, numeric member or topic ids) are rejected.
+                problem = "bare value in a list" if not isinstance(v, dict) else walk(v, key)
                 if problem:
                     return problem
         elif isinstance(node, str) and node not in MPSTORAGE_STRING_VALUES.get(key, ()):
             return "string value outside the known ones"
         return None
     return walk(doc, None)
+
+
 # Signatures and mood statuses are a member's own words (names, handles, links): always replaced.
 PERSONAL_BLOCKS = (
     (re.compile(r"<(span)\b[^>]*\bclass=[\"']signature[\"'][^>]*>", re.I), "Signature removed."),
@@ -378,6 +381,8 @@ def _sensitive_input(tag):
     if name in FIXED_INPUT_NAMES or name in PERSONAL_INPUT_NAMES:
         return True
     if typ == "hidden":
+        if name == "sujet" and value == MPSTORAGE_SUBJECT:  # the public MP_NAME constant (fast reply of R60a)
+            return False
         return bool(TOKEN_NAME_RE.search(name) or TOKEN_VALUE_RE.fullmatch(value))
     return False
 
@@ -1109,8 +1114,8 @@ def _v_mpstorage_document_ok(inner):
         for v in values:
             if isinstance(v, (dict, list)):
                 stack.append(v)
-            elif isinstance(v, str) and isinstance(node, list):
-                strings.append(v)
+            elif isinstance(node, list):  # bare values in a list (pseudos, numeric ids) are never vouched for
+                return False
     return all(w in _V_MPSTORAGE_WORDS for w in strings)
 
 
