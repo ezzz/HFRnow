@@ -29,22 +29,10 @@ struct PrivacyManifestTests {
         ])
     }
 
-    @Test func collectedDataIsNeverUsedForTracking() throws {
-        let entries = try #require(try manifest()["NSPrivacyCollectedDataTypes"] as? [[String: Any]])
-        var linking: [String: Bool] = [:]
-        for entry in entries {
-            let type = try #require(entry["NSPrivacyCollectedDataType"] as? String)
-            linking[type] = entry["NSPrivacyCollectedDataTypeLinked"] as? Bool
-        }
-        #expect(linking == [
-            "NSPrivacyCollectedDataTypeUserID": true,
-            "NSPrivacyCollectedDataTypeOtherUserContent": true,
-            "NSPrivacyCollectedDataTypePhotosorVideos": false,
-            "NSPrivacyCollectedDataTypeSearchHistory": true
-        ])
-        #expect(entries.allSatisfy { $0["NSPrivacyCollectedDataTypeTracking"] as? Bool == false })
-        let functionality = ["NSPrivacyCollectedDataTypePurposeAppFunctionality"]
-        #expect(entries.allSatisfy { ($0["NSPrivacyCollectedDataTypePurposes"] as? [String]) == functionality })
+    @Test func manifestDeclaresNoCollectedData() throws {
+        // Operator decision 2026-10-28 ("Data Not Collected"); re-check when an SDK, analytics or a server lands.
+        let entries = try #require(try manifest()["NSPrivacyCollectedDataTypes"] as? [Any])
+        #expect(entries.isEmpty)
     }
 
     @Test func infoPlistHasTheUsageStringsAndExportComplianceAnswer() throws {

@@ -33,29 +33,24 @@ Read-only, `origin/master`: `HFRswift/Info.plist` (usage strings, lines 198-203:
 SwiftUI/SwiftSoup ship no manifest of their own to merge: SwiftSoup is a pure-Swift package without required-reason calls and is not on
 Apple's list of SDKs that must carry a manifest. A new dependency or API use updates this table in its own PR.
 
-### Collected data (App Privacy answers, draft for the operator in App Store Connect)
-"Collected" is Apple's sense: data transmitted off the device to the developer or a third party and kept longer than it takes to service
-the request (Apple excludes data the recipient discards right after answering). The project runs no server; the data below goes to the
-services of LOT-071, whose retention is not audited (HFR posts and AQ entries are public by nature, an uploaded image is public, Giphy's
-is unknown), so each is declared conservatively. A lot that adds a data flow assesses the recipient's retention before it adds a
-declaration or changes an App Privacy answer. Never used for tracking, never for advertising; purpose App Functionality only. The manifest declares
-what the MVP and the lots already specified send, so the answers do not need revising per lot.
+### Collected data: "Data Not Collected" (operator decision 2026-10-28)
+`NSPrivacyCollectedDataTypes` is empty and the App Privacy answer in App Store Connect is "Data Not Collected".
 
-| Manifest type | Linked | Why (LOT-071 row) |
-|---|---|---|
-| User ID | yes | the pseudo, sent to HFR on login and posting, and to AQ on creation (T3) |
-| Other user content | yes | posts, private messages and drafts sent to HFR; the AQ title and comment (T3) |
-| Photos or videos | no | an image uploaded to the Chevereto rehost (T4), no cookie, no account id |
-| Search history | yes | search terms sent to HFR with the session cookies (`HFRNetwork/Endpoints/HFREndpoint+Search.swift`, `TopicSearchQuery`, `GlobalSearchQuery`: engine only, the search screen is a later lot) and, unlinked, to Giphy by the GIF picker (T5, LOT-098/155; not in the build yet, REST client without SDK). Linked because the forum request is authenticated |
+Reasoning: the app is a client. The project runs no server and embeds no third-party SDK (LOT-071 R5: no analytics, crash reporting or
+advertising; no Giphy SDK, the GIF picker is a REST client, LOT-098/155). What the user types goes to the services of LOT-071 (HFR, AQ,
+the Chevereto rehost, Giphy), which are the user's chosen destinations, not the developer or an SDK acting for the developer.
+A first draft declared User ID, Other user content, Photos or videos and Search history; the Opus review asked whether EXIF/GPS in
+uploaded images and the AQ per-topic check changed that, and the operator chose the minimal label instead.
 
-Not declared: contact info, location, identifiers (IDFA, device id), diagnostics, usage data, purchases: nothing of the sort is sent (R5).
-Password: sent only to `forum.hardware.fr` over HTTPS to log in, kept in the Keychain, never sent elsewhere (R1); like legacy it is
-authentication to the forum, not data collected by the app, and no Apple data type matches it.
+Re-check trigger: reassess the label (and this section) when any of these lands: an embedded SDK (for example a Giphy SDK in LOT-155 or
+LOT-098), analytics or crash reporting, or a server run by the project. A PR that adds one updates the manifest in the same change.
+
+Password: sent only to `forum.hardware.fr` over HTTPS to log in, kept in the Keychain, never sent elsewhere (R1).
 
 ## Edge cases
 - Images from third-party hosts in messages (T6) are requested by the reader on tap (D-071-1): they reveal the reader's IP to the host, which
-  the manifest does not model (no data is *collected by the app*; same position as a browser).
-- If a lot adds a data flow or an SDK (Giphy SDK, analytics), the manifest and this spec change in that lot's PR.
+  the manifest does not model (same position as a browser).
+- See the re-check trigger above.
 
 ## Out of scope / not carried over
 - **Associated domains** (`webcredentials:forum.hardware.fr`): needs the capability on the App ID and an entitlement in the signed
@@ -71,7 +66,7 @@ None.
 
 ## Tests
 `App/SwiftHFRTests/PrivacyManifestTests.swift` (app-hosted, reads `Bundle.main`): manifest present with tracking false; required-reason
-categories and reasons equal the table above; collected data never tracking and App Functionality only; usage strings non-empty and
+categories and reasons equal the table above; no collected data types declared; usage strings non-empty and
 `ITSAppUsesNonExemptEncryption` false. Each fails without the change (no manifest, no keys).
 
 ## Intentional differences from legacy
