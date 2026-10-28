@@ -2,7 +2,7 @@
 
 - **Module:** tooling (legacy app)
 - **Difficulty / model:** medium (Sonnet → Fable)
-- **Issue:** none (lot tracked in `docs/LOTS.md`)
+- **Issue:** [#41](https://github.com/ezzz/HFRnow/issues/41)
 
 Harness, patch and run instructions: [`tooling/legacy-oracle/`](../../tooling/legacy-oracle/README.md) (shared with LOT-002 and [LOT-003](LOT-003-topic-oracle.md)).
 This lot adds three kinds: `form` (the `hop` form extraction and POST body of every write flow), `response` (the classifier of

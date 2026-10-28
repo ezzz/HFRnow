@@ -7,44 +7,47 @@ They coordinate **only through shared, visible state**. Scratchpads, agent memor
 
 | Where | Role |
 |---|---|
-| [`docs/LOTS.md`](../LOTS.md) on `dev-swift` | **The only tracker** until Issues are enabled on ezzz/HFRnow ([ADR 0010](../adr/0010-hosting-on-ezzz-hfrnow-dev-swift.md)): every lot with its owner and status, the capture backlog, the issues to open |
+| [Issues of ezzz/HFRnow](https://github.com/ezzz/HFRnow/issues) | **The tracker** (enabled 2026-10-27, [ADR 0010](../adr/0010-hosting-on-ezzz-hfrnow-dev-swift.md)): one issue per lot, capture, bug, chore or feature, with its claim, status labels and blockers. The MVP roadmap is [#166](https://github.com/ezzz/HFRnow/issues/166) |
+| [`docs/LOTS.md`](../LOTS.md) on `dev-swift` | **The plan**: every lot's scope, module, dependencies and routing, linked to its issue. Never edited for progress |
 | GitHub PRs | Work in review and progress; the PR thread is the record of what was done and why |
-| Issues of `francoisgn/ios-app_SwiftHFR` | **Frozen history** (lot discussions up to 2026-10-27), linked from `LOTS.md` for context. Never claim, comment on or close them |
+| Issues of `francoisgn/ios-app_SwiftHFR` | **Frozen history** (lot discussions up to 2026-10-27), linked from each lot issue for context. Never claim, comment on or close them |
 
 Operators may keep private notes (ledger, handoff lists) outside the repository; they are not shared state.
 
 ## Session start
 1. `git fetch origin dev-swift` and update; read `AGENTS.md`, this file, [REVIEW-ROUNDS](REVIEW-ROUNDS.md) and [LESSONS](LESSONS.md).
-2. List the lots you own in `LOTS.md` (`in-progress` with your session id) and check what changed on your PRs (reviews, CI, merges, new comments) **before starting work**.
-3. New work: a `todo` lot with no owner, not `host: mac` work if you run in the cloud (Mac-only work is marked in its scope or spec). Claim it, then start.
+2. List the issues you claimed (your `/claim` comment) and check what changed on your PRs (reviews, CI, merges, new comments) **before starting work**.
+3. New work: a `status: ready` issue nobody claimed, not `host: mac` if you run in the cloud. Claim it, then start.
 
 ## Claims
-- Claim = a PR on `dev-swift` that sets the lot's row in `LOTS.md` to your session id (`<host>/<name> (date)`) and `in-progress`, merged **before writing code** (AGENTS.md §5). The first claim merged wins; a claim PR touches only the claimed rows.
-- An orchestrator claims for the child sessions it launches (one claim PR for the lots it hands out) and passes the same id to each child; children never edit `LOTS.md` and never claim something else.
-- Every PR names its lot (`LOT-XXX`). Work that is not a lot (small fix, CI, docs) says so in its description; anything bigger than one session gets a row in `LOTS.md` first (a new lot, or the backlog).
-- A lot owned by another session is off limits: don't touch its branch. A problem you see in it goes on its PR, or in the lot's spec by PR.
-- Stopping before done → say the state on your PR, then give the lot back (owner `—`, status `todo`) by PR. Looks abandoned for 24 h → ask the maintainer, never take it over.
-- Done = the closing PR merged, and the lot's row in `LOTS.md` set to `done (#PR)` by that PR. `LOTS.md` changes only for that row, in claim and release PRs, or in the PR that adds a new lot.
+- Claim = a `/claim <session-id>` comment (`<host>/<name>`) on the issue, **before writing code** (AGENTS.md §5). The first claim wins; later claims are refused until `/release`. Only members' comments count.
+- An orchestrator claims for the child sessions it launches (one `/claim` per issue it hands out) and passes the same id to each child; children never claim something else.
+- Every PR states `Closes #N` (or `Refs #N` for partial work) and, on its own line, `Claim: <session-id>` equal to the issue's active claim; a lot PR also names its lot (`LOT-XXX`). Break-glass `Direct-PR: <reason>` (labelled `direct-pr`, counted) is for small fixes and the maintainer's own foundation work, never for a lot. Anything bigger than one session gets an issue first (a new lot also gets its row in `LOTS.md`, by PR).
+- An issue claimed by another session is off limits: don't touch its branch. A problem you see in it goes on its issue or PR, or in the lot's spec by PR.
+- Stopping before done → say the state on your PR and the issue, then comment `/release`. Looks abandoned for 24 h → ask the maintainer, never take it over.
+- Done = the closing PR merged, then the issue closed with its link. `LOTS.md` changes only when the plan does (a new lot, a changed scope, dependency or routing), never for a claim or a status.
 
-### Target process, once ezzz enables Issues
-Agreed in francoisgn/ios-app_SwiftHFR#100; the files are on `dev-swift` and inert until then (`issue-claims.yml`, `pr-issue.yml`, `scripts/issue_claims.py`; ADR 0010 table and "Later, owner's decision"). It needs Issues enabled on ezzz/HFRnow and those files on `master` (or `dev-swift` made the default branch), then **Issue and claim** added to the `dev-swift` ruleset:
-- One issue per lot or task, starting with `### Summary` (a user story or executive summary). Claim = a `/claim <session-id>` comment on it, **before writing code**; the first claim wins, the `Issue claims` workflow labels it `status: claimed` and refuses other claims until `/release`. Only members' comments count.
-- Every PR states `Closes #N` (or `Refs #N` for partial work) and `Claim: <session-id>`; the required check **Issue and claim** fails otherwise. Break-glass `Direct-PR: <reason>` (labelled `direct-pr`, counted) is for small fixes and the maintainer's own foundation work, never for a lot.
-- `LOTS.md` then goes back to being the plan (owner and status columns replaced by the issue link), and live state moves to the issues.
+### Still manual until the workflows are on `master`
+Issues are enabled on ezzz/HFRnow since 2026-10-27, but `issue-claims.yml`, `pr-issue.yml`, `scripts/issue_claims.py` and the issue forms are only on `dev-swift`, and GitHub runs them from the default branch (the legacy `master`; ADR 0010 table, [EZZZ-CUTOVER](../migration/EZZZ-CUTOVER.md) "Later, owner's decision"). Until ezzz puts them on `master`:
+- `/claim` and `/release` are not synced: the orchestrator (or the maintainer) sets and removes `status: claimed` by hand, and answers a refused claim.
+- **Issue and claim** does not run and is not in the `dev-swift` ruleset: reviewers check `Closes #N` (or `Refs #N` with what is left) + `Claim:` by eye. A PR with no issue reference and no `Direct-PR:` reason (Dependabot excepted) is still merged, but flagged to the orchestrator as a tracking blind spot: find or open the issue, link and close it, and find how the work started without one (AGENTS.md §8).
+- Merges into `dev-swift` do not close issues: whoever merges closes the `Closes #N` issue (not a `Refs #N` one) right after the merge with the comment `Done in #PR (merged as <sha>)` and checks that it is closed (AGENTS.md §8); the PR author keeps that closure as a to-do until it is verified. The orchestrator uses a helper that does exactly this.
+- No issue forms: open a blank issue titled `[SwiftHFR] …`, starting with `### Summary`, one label per axis (AGENTS.md §7).
 
 ## Pushing shared state
-Claims are PRs on `LOTS.md`: keep them small and merge them first. Push your branch often; your PR says where the work stands.
-Push refused → another session pushed meanwhile: fetch, merge or rebase on top of theirs (never drop their changes, e.g. another lot's `done` row in `LOTS.md`), push again.
+Push your branch often; your PR says where the work stands.
+Branches need not be up to date with `dev-swift` (requirement removed by the owner on 2026-10-28): merge `dev-swift` into yours only on a real conflict. Auto-merge is enabled; turning it on is a merge decision (AGENTS.md §0).
+Push refused → another session pushed meanwhile: fetch, merge or rebase on top of theirs (never drop their changes), push again.
 
 ## Session end
-`LOTS.md` and your PRs up to date (state, links, a "next" note on every open item you own; give back by PR what you will not finish), then report to the maintainer: what was done (with links to every public action) and where the next session starts.
+Your issues and PRs up to date (state, links, a "next" note on every open item you own; `/release` what you will not finish), then report to the maintainer: what was done (with links to every public action) and where the next session starts.
 
 ## Contributing to another repository
 For work outside SwiftHFR (the legacy app on `master` of ezzz/HFRnow, redface2, hfr-mcp, a future `swift` branch elsewhere):
 - Branch from **that** project's base (the legacy app: `master`; another repository: its default branch), never from `dev-swift`.
 - Before opening the PR, `git diff --stat <their-base>...HEAD` shows only the intended files: none of ours (`AGENTS.md`, `docs/agents/`, `.github/`, fixtures).
 - Never open a PR whose base is `dev-swift` by mistake, nor one against `master` for SwiftHFR work; check the base before creating it.
-- Their rules and templates apply there; the operator confirms the PR before it is opened (AGENTS.md §0), and its link is recorded on our related PR (or, later, issue).
+- Their rules and templates apply there; the operator confirms the PR before it is opened (AGENTS.md §0), and its link is recorded on our related issue or PR.
 
 ## Child sessions (cloud)
 - A session's GitHub access only covers the repositories attached to it.

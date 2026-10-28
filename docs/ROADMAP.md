@@ -1,6 +1,6 @@
 # Roadmap
 
-Each phase has exit criteria. Work items, their owners and status live in [LOTS.md](LOTS.md), the only tracker until Issues are enabled on ezzz/HFRnow (then GitHub issues `type: lot`, `type: roadmap`, claimed with `/claim`; ADR 0010).
+Each phase has exit criteria. Work items are [issues](https://github.com/ezzz/HFRnow/issues) (`type: lot`, `type: roadmap`…, claimed with `/claim`; ADR 0010) with their owner and status; [LOTS.md](LOTS.md) is the plan of the lots, and the MVP is tracked by [#166](https://github.com/ezzz/HFRnow/issues/166).
 
 ## Phase 0 — Foundations *(done — 2026-10-24)*
 - [x] License (PolyForm Noncommercial), credits, README, AGENTS.md
@@ -35,4 +35,4 @@ Reuse and adapt the legacy SwiftUI views on top of `HFRKit`; remove everything u
 Column-based navigation and large/foldable layouts. Design documentation provided by the maintainer.
 
 ## App features (Phases 4–5)
-New app features (Home, page navigator, Shortcuts check, themes…) come from the [feature backlog](FEATURES.md); each goes through a feature issue (its FEATURES.md entry until Issues are enabled), a spec and, when `HFRKit` lacks a capability, engine lots ([ADR 0011](adr/0011-contribution-model-and-feature-intake.md) §2).
+New app features (Home, page navigator, Shortcuts check, themes…) come from the [feature backlog](FEATURES.md); each goes through a feature issue, a spec and, when `HFRKit` lacks a capability, engine lots ([ADR 0011](adr/0011-contribution-model-and-feature-intake.md) §2).

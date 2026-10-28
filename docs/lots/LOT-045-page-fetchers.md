@@ -2,7 +2,7 @@
 
 - **Module:** HFRNetwork
 - **Difficulty / model:** easy (Sonnet 5.5 → Opus 5.5)
-- **Issue:** none (claimed in `docs/LOTS.md`)
+- **Issue:** [#71](https://github.com/ezzz/HFRnow/issues/71)
 - **Depends on:** LOT-041 (`HFREndpoint`), LOT-042 (`HFRSession`, `AnonymousTransport`)
 
 ## Legacy sources
