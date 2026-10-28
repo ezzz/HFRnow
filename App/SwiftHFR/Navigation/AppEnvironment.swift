@@ -15,6 +15,8 @@ struct AppEnvironment {
     let topicPages: any TopicPageSource
     /// Image client and settings of the reader.
     let reader: ReaderServices
+    /// The private message list (LOT-126), fetched with this session.
+    let privateMessages: any PrivateMessageSource
 
     /// The environment for `session`.
     static func make(session: HFRSession, accountName: String?) -> AppEnvironment {
@@ -28,7 +30,7 @@ struct AppEnvironment {
         )
         return AppEnvironment(
             session: session, dataSource: source, visibility: ForumVisibility(), currentAccountName: accountName,
-            topicPages: pages, reader: reader
+            topicPages: pages, reader: reader, privateMessages: LivePrivateMessageSource(fetcher: fetcher)
         )
     }
 
@@ -47,5 +49,15 @@ struct AppEnvironment {
     /// Whether the session holds a usable login cookie (an expired current account reads as logged out).
     var isLoggedIn: @Sendable () async -> Bool {
         { [session] in await session.isLoggedIn() }
+    }
+}
+
+extension AppEnvironment {
+    /// The model of the Messages screen over this session; the reader opens a conversation with the same page source.
+    @MainActor
+    func makeMessageList() -> MessageListModel {
+        MessageListModel(
+            source: privateMessages, isLoggedIn: isLoggedIn, topicPages: topicPages, renderOptions: reader.settings.renderOptions
+        )
     }
 }

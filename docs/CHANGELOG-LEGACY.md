@@ -24,5 +24,7 @@ Registre des problèmes **présents dans l'app legacy** (HFR+ / HFRnow, branche 
 | 16 | UX | Sous-forums : pagination et ouverture depuis la page d'accueil fiables. | LOT-082 #32 | — |
 | 17 | T | Formulaires : une action de formulaire hors du forum est refusée (pas d'envoi des cookies ailleurs). | LOT-036 #22 | legacy préfixait l'URL du forum (pas de faille legacy ; garde-fou conservé) |
 | 18 | T | Suppression d'un premier post (= tout le sujet) : confirmation obligatoire hors MP. | LOT-048 #36 | legacy : détection par libellé seulement |
+| 19 | UX | Liste des MP : toutes les pages sont accessibles (précédente / suivante), pas seulement la première. | LOT-126 | `ObjCMPTopicsLoaderWorker.m:9-21` (page 1 fixe, navigation remise à zéro) |
+| 20 | UX | Liste des MP : le point « non lu » indique que **vous** n'avez pas lu la conversation (icône HFR), plus le marqueur `[non lu]`, qui signifie que l'autre n'a pas lu. | LOT-126 | `MPListView.swift:12-22` (`isUnread` = préfixe `[non lu]` ou `!isViewed`), captures R13u1, R13a |
 
 Points « non corrigés volontairement » (comportement legacy gardé) : AQ appelé au lancement (D-071-3).

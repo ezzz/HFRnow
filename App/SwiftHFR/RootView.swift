@@ -12,8 +12,12 @@ struct RootView: View {
     var body: some View {
         Group {
             if let built {
-                AdaptiveNavigationView(environment: built.environment)
-                    .id(built.generation)
+                // Temporary until LOT-170 (tab bar, #303) lands: it replaces this TabView with the Messages tab and its badge.
+                TabView {
+                    Tab("Forums", systemImage: "list.bullet") { AdaptiveNavigationView(environment: built.environment) }
+                    Tab("Messages", systemImage: "envelope") { MessagesTabView(environment: built.environment) }
+                }
+                .id(built.generation)
             } else {
                 ProgressView()
             }

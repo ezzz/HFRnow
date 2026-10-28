@@ -352,6 +352,11 @@ Source: [LOT-031](lots/LOT-031-message-actions.md), `MessageActionsParser`, chec
 - **Token echo** (`W17c`, **verified**): a `.hop` refusal can hold a non-empty `hash_check` in its replay form although the POST carried no cookies, so a non-empty token is evidence of a logged-in session only on the expected profile-page GET, after its URL and `.hop` checks.
 - Not captured: page 1 with stale cookies, `md_user=deleted` sent by HFR, attributes of the doubled `Set-Cookie` (see the lot's Pending capture).
 
+### LOT-126 — MP list screen
+
+[LOT-126](lots/LOT-126-mp-list.md). No new forum fact: the screen reads the rows `PrivateMessageListParser` already verifies (§6c LOT-023). One thing it relies on, asserted by `LivePrivateMessageSourceTests` on `R13u1`: every MP row's title link is `/forum2.php?config=hfr.inc&cat=prive&post=<id>&page=1&…`, a topic link of category `prive`, which the reader opens as it opens any topic (`ReaderTarget`).
+- **Pending capture**: an MP thread page opened from the list in the reader (`RA1`, `RA2` are the owner's own MP thread pages; a thread of another member and a group thread have none); the list logged out (#121).
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).
