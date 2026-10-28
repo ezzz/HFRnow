@@ -29,7 +29,8 @@ final class GeneralSettingsModel {
         }
     }
     /// In-app text size in percent, an offset on top of Dynamic Type (below 100 gives a denser display).
-    /// Follow-up (not applied yet): applying it across the screens is a separate lot (opened by the tracking session); until then it is stored only.
+    /// Follow-up (not applied yet): applying it across the screens is a separate lot (opened by the tracking session);
+    /// until then it is stored only.
     var textSizePercent: Int {
         didSet {
             let clamped = Self.clamp(textSizePercent)
