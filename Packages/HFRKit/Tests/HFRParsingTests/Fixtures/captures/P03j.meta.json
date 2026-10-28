@@ -1,0 +1,27 @@
+{
+  "id": "P03j",
+  "account": "user2",
+  "method": "POST",
+  "url_template": "/modo/manageaction.php?config=hfr.inc&cat=0&type_page=forum1f&moderation=0",
+  "url": "https://forum.hardware.fr/modo/manageaction.php?config=hfr.inc&cat=0&type_page=forum1f&moderation=0",
+  "final_url": "https://forum.hardware.fr/modo/manageaction.php?config=hfr.inc&cat=0&type_page=forum1f&moderation=0",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Wed, 28 Oct 2026 14:15:23 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "request_fields": [
+    "hash_check",
+    "topic1",
+    "topic_statusno1",
+    "action_reaction",
+    "type_page",
+    "topic0",
+    "valuecat0",
+    "valueforum0"
+  ],
+  "note": "legacy body (FavoritesTableViewController.m:1836-1858 order, no owntopic), one topic",
+  "request_body": "hash_check=REDACTED&topic1=-1&topic_statusno1=-1&action_reaction=message_forum_delflags&type_page=forum1f&topic0=55038&valuecat0=13&valueforum0=hardwarefr",
+  "file": "P03j-manageaction-delflags-legacy-body.html",
+  "private": false
+}

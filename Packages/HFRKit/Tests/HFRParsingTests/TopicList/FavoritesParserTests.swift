@@ -8,7 +8,7 @@ import Testing
 @Suite("Favourites parser, differential against the LOT-002 oracle")
 struct FavoritesDifferentialTests {
     /// Every `favorites` case of `Fixtures/LOT-002/oracle-map.json` that legacy parsed (R12 raised).
-    static let cases = ["R10", "R11", "P03c", "P03e"]
+    static let cases = ["R10", "R11", "P03c", "P03e", "P03g", "P03i", "P03k"]
 
     @Test("The case list covers every favourites oracle of the map")
     func coversEveryFavouritesOracle() throws {
