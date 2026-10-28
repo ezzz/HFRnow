@@ -104,5 +104,5 @@ To copy into AGENTS.md §11 when the lot closes:
 
 - SwiftSoup's `parents()` and `select` recurse per nesting level: a message with a few hundred nested tables crashes a 512 KB cooperative
   thread. Walk the tree with an explicit stack (the walk shipped is checked at 2 000 nested tables, 2 s, the cost being SwiftSoup's own parse).
-- Proposed LESSONS row: a lot that adds facts legacy never computed differential-tests the legacy-derivable subset from the existing oracle
+- LESSONS 52: a lot that adds facts legacy never computed differential-tests the legacy-derivable subset from the existing oracle
   output and checks the new facts against captures; it does not wait for a new exporter.

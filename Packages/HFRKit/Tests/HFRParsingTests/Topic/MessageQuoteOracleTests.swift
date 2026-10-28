@@ -85,4 +85,17 @@ struct MessageQuoteOracleTests {
             #expect(quotes[1] == MessageQuote(author: nil, depth: 2, citedNumreponse: nil), "\(caseID)")
         }
     }
+
+    @Test("The sanitized HTML of LOT-034 gives the same quotes as the raw content")
+    func sameOnSanitizedContent() throws {
+        let map = try TopicOracle.loadMap()
+        for caseID in MessageBlockOracleTests.cases {
+            let blocks = try MessageBlockParser.blocks(in: TopicOracle.capture(for: try #require(map[caseID])))
+            for block in blocks {
+                let raw = try MessageQuoteAnalyzer.quotes(inContentHTML: block.contentHTML)
+                let content = try MessageContentNormalizer.normalize(contentHTML: block.contentHTML)
+                #expect(try MessageQuoteAnalyzer.quotes(inContentHTML: content.html) == raw, "\(caseID) \(block.numreponse)")
+            }
+        }
+    }
 }
