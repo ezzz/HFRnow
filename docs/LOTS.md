@@ -30,6 +30,8 @@ Model column: author → reviewer ([AGENTS.md §6](../AGENTS.md#6-model-routing-
 
 ## Phase 3 — engine
 
+LOT-090 to LOT-098 are engine lots added for the app phase (2026-10-27). They are numbered outside the module-range convention (the free numbers of each range were too few); their Module column is authoritative.
+
 ### Models (`HFRModels`)
 
 | Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Issue |
@@ -39,6 +41,7 @@ Model column: author → reviewer ([AGENTS.md §6](../AGENTS.md#6-model-routing-
 | LOT-012 ✱ | Form & write models (`ForumForm`, `HopResponse`, `RehostedImage`, AQ items), bundled smiley catalogue resource | HFRModels | easy | Sonnet → Opus | — | D1, D2, D10 | — | [#45](https://github.com/ezzz/HFRnow/issues/45) |
 | LOT-013 ✱ | Account, `StoredCookie` (Codable, never `HTTPCookie`), settings enums, MPStorage document types | HFRModels | easy | Sonnet → Opus | — | E-3, E-6 | — | [#46](https://github.com/ezzz/HFRnow/issues/46) |
 | LOT-014 ✱ | Forum catalogue: category id table, URL aliases | HFRModels | trivial | Haiku → Sonnet | 010 | B2 | — | [#47](https://github.com/ezzz/HFRnow/issues/47) |
+| LOT-096 | Emoji → smiley suggestion table | HFRModels | easy | Sonnet → Opus | 012 | FEAT-012 | medium | [#188](https://github.com/ezzz/HFRnow/issues/188) |
 
 ### Parsing (`HFRParsing`)
 
@@ -62,6 +65,8 @@ Model column: author → reviewer ([AGENTS.md §6](../AGENTS.md#6-model-routing-
 | LOT-036 | `hop` form parser (inputs, selects, `content_form` textarea incl. `[quotemsg]` prefill, entity decoding) | HFRParsing | medium | Sonnet → Opus | 012, 020, 004 | D1 | medium | [#63](https://github.com/ezzz/HFRnow/issues/63) |
 | LOT-037 | `hop` response classifier (success, rejected, logged out, already alerted) | HFRParsing | medium | Sonnet → Opus | 012, 004 | D2 | medium | [#64](https://github.com/ezzz/HFRnow/issues/64) |
 | LOT-038 ★ | MPStorage page parsing (locate the storage MP, read its JSON) | HFRParsing | medium | Sonnet → Opus | 023, 030 | D8 | medium | [#65](https://github.com/ezzz/HFRnow/issues/65) |
+| LOT-095 | Inbound link router (HFR URL → route) | HFRParsing | easy | Sonnet → Opus | 020, 014 | FEAT-020 | high | [#187](https://github.com/ezzz/HFRnow/issues/187) |
+| LOT-097 | BBCode preview renderer (ADR first) | HFRParsing | difficult | Fable → Opus | 034, 020 | FEAT-013 | medium | [#189](https://github.com/ezzz/HFRnow/issues/189) |
 
 ### Network (`HFRNetwork`) — transport, endpoints, sessions, raw fetchers
 
@@ -72,6 +77,7 @@ Model column: author → reviewer ([AGENTS.md §6](../AGENTS.md#6-model-routing-
 | LOT-042 ✱ | Per-account session: isolated cookie jar, `hash_check` with `updateHashCheck(_:)`, multi-quote cookie (exact id match), `StoredCookie` import/export | HFRNetwork | medium | Opus → Fable | 040, 013 | NET-03, C16, D4 | — | [#68](https://github.com/ezzz/HFRnow/issues/68) |
 | LOT-045 ✱ | Page fetchers: lists and topic page (final URL after redirects); cookie-less client for prefetch and images, since authenticated topic GETs mark flags read | HFRNetwork | easy | Sonnet → Opus | 041, 042 | NET-08, NET-09 | — | [#71](https://github.com/ezzz/HFRnow/issues/71) |
 | LOT-056 | Image hosts: rehost client (key and base URL injected; legacy key reused for now, ADR 0007) + host adapter table (Referer for reho.st, keyless hosts, http-only hosts) | HFRNetwork | easy | Sonnet → Opus | 012 | D10 | medium | [#82](https://github.com/ezzz/HFRnow/issues/82) |
+| LOT-098 | Giphy client (search, trending; key and base URL injected) | HFRNetwork | easy | Sonnet → Opus | 040, 071 | legacy parity | medium | [#190](https://github.com/ezzz/HFRnow/issues/190) |
 
 ### Flows (`HFRClient`) — fetch → parse → submit → classify ([ADR 0008](adr/0008-hfrclient-orchestration-module.md))
 
@@ -91,6 +97,9 @@ Model column: author → reviewer ([AGENTS.md §6](../AGENTS.md#6-model-routing-
 | LOT-055 | AQ client: per-topic check, create, RSS feed + "new since" badge; returns every item with its category (hiding Apple for reviewers is app policy, Q-7) | HFRClient | easy | Sonnet → Opus | 028, 071 | D6 | low | [#81](https://github.com/ezzz/HFRnow/issues/81) |
 | LOT-057 | REST browsing client (`rest_api.php`: categories, topics, flag buckets) with HTML fallback | HFRClient | medium | Opus → Fable | 040, 041, 010, 021, 022, 024, 001 | redface2 E1 | medium | [#83](https://github.com/ezzz/HFRnow/issues/83) |
 | LOT-058 | MP actions: mark unread, group MP members, MP quote | HFRClient | easy | Sonnet → Opus | 042, 045, 036 | redface2 E6, E8, E9 | low | [#84](https://github.com/ezzz/HFRnow/issues/84) |
+| LOT-092 | Check-updates flow (MPs and flags) | HFRClient | medium | Sonnet → Opus | 047, 024, 037, 045 | FEAT-005, FEAT-001 | medium | [#184](https://github.com/ezzz/HFRnow/issues/184) |
+| LOT-093 | Filtered-posts flow (posts quoted N times, whitelisted authors) | HFRClient | medium | Sonnet → Opus | 030, 032, 045 | legacy parity | medium | [#185](https://github.com/ezzz/HFRnow/issues/185) |
+| LOT-094 | MP thread delete | HFRClient | easy | Opus → Fable | 037, 041, 042 | legacy parity | medium | [#186](https://github.com/ezzz/HFRnow/issues/186) |
 
 ### Storage (`HFRStorage`)
 
@@ -105,6 +114,8 @@ Model column: author → reviewer ([AGENTS.md §6](../AGENTS.md#6-model-routing-
 | LOT-066 ✱ | Caches: avatars, temporary files, eviction | HFRStorage | easy | Sonnet → Opus | — | E-8, C17 | — | [#91](https://github.com/ezzz/HFRnow/issues/91) |
 | LOT-067 | Legacy data import on update (accounts, lists, settings, drafts, smiley favourites, layout), idempotent, never deletes the source; also removes the legacy app caches on first launch (e.g. `Caches/cache/topic-*.htm`) | HFRStorage | difficult | Opus → Fable | 060, 061, 064, 065, 004 | E-7, NET-06 | medium | [#92](https://github.com/ezzz/HFRnow/issues/92) |
 | LOT-068 | Offline reading: save topics/pages for reading without network, list and evict them (Q-5) | HFRStorage | medium | Sonnet → Opus | 011, 066 | E-8, `OfflineStorage.m` | medium | [#93](https://github.com/ezzz/HFRnow/issues/93) |
+| LOT-090 | Reading-position store | HFRStorage | easy | Sonnet → Opus | 013 | FEAT-001, FEAT-007, FEAT-015 | medium | [#182](https://github.com/ezzz/HFRnow/issues/182) |
+| LOT-091 | Notification ledger (already-notified state) | HFRStorage | easy | Sonnet → Opus | 013 | FEAT-005 | medium | [#183](https://github.com/ezzz/HFRnow/issues/183) |
 
 ### Gates
 
@@ -127,13 +138,146 @@ Posting comes next (LOT-036, 037, 048, 031, 049). The app module is `App` (the X
 | LOT-082 | Adaptive navigation: one `NavigationSplitView` app (iPhone, iPad, foldables) forums → topics → messages; forum list, topic list with pagination, flags/favourites; hiding the Apple category for reviewers is applied here (Q-7) | App | medium | Sonnet → Opus | 080, 021, 022, 024, 045 | B1-B7 | high | [#100](https://github.com/ezzz/HFRnow/issues/100) |
 | LOT-083 | Topic reader: page shell and resources, message HTML builder from the normalized `MessageContent` (ADR 0006), WebView without remote scripts, page navigation, images through the cookie-less client; image loading policy C (operator 2026-10-27, recorded by LOT-071): no private/LAN hosts, no non-image `*.hardware.fr` paths, third-party images on tap or per the image setting | App | difficult | Opus → Fable | 080, 030, 033, 034, 045, 071 | C12, C13 | high | [#101](https://github.com/ezzz/HFRnow/issues/101) |
 
+## Phase 4 — app: legacy parity and features
+
+Every legacy function and the Phase 4 features, one reviewable PR per lot; each issue holds the scope, legacy sources, captures and acceptance criteria. The Audit column names the FEAT a lot implements (FEAT issues are umbrellas, see [FEATURES.md](FEATURES.md)) or `legacy parity`; `MVP` marks the lots the operator added to the MVP on 2026-10-27. LOT-164 is the legacy-parity gate, LOT-165 the App Store submission. LOT-129 is unused (folded into LOT-130).
+
+### Posting
+
+| Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Issue |
+|---|---|---|---|---|---|---|---|---|
+| LOT-084 | Reply composer (send, drafts, errors) | App | medium | Opus → Fable | 048, 063, 081, 083 | legacy parity · MVP | high | [#176](https://github.com/ezzz/HFRnow/issues/176) |
+| LOT-085 | Composer formatting toolbar and insertion engine | App | medium | Sonnet → Opus | 084 | legacy parity | medium | [#177](https://github.com/ezzz/HFRnow/issues/177) |
+| LOT-086 | Quote and multi-quote into the composer | App | medium | Opus → Fable | 049, 084, 087 | legacy parity | high | [#178](https://github.com/ezzz/HFRnow/issues/178) |
+| LOT-088 | Edit and delete own messages | App | medium | Opus → Fable | 048, 084, 087 | legacy parity | medium | [#180](https://github.com/ezzz/HFRnow/issues/180) |
+| LOT-089 | New topic composer | App | medium | Opus → Fable | 048, 084, 082 | legacy parity | medium | [#181](https://github.com/ezzz/HFRnow/issues/181) |
+| LOT-100 | Poll creation in a new topic | App | medium | Sonnet → Opus | 089 | legacy parity | low | [#191](https://github.com/ezzz/HFRnow/issues/191) |
+| LOT-101 | Archived drafts picker | App | easy | Sonnet → Opus | 063, 084 | legacy parity | low | [#192](https://github.com/ezzz/HFRnow/issues/192) |
+| LOT-102 | Image upload and insertion (rehost) | App | medium | Opus → Fable | 056, 084, 060, 160 | legacy parity | medium | [#193](https://github.com/ezzz/HFRnow/issues/193) |
+| LOT-103 | Upload history (local) | App | easy | Sonnet → Opus | 102, 064 | FEAT-019 | low | [#194](https://github.com/ezzz/HFRnow/issues/194) |
+| LOT-104 | Smiley picker: catalogue, favourites, insert | App | medium | Sonnet → Opus | 084, 064 | legacy parity | medium | [#195](https://github.com/ezzz/HFRnow/issues/195) |
+| LOT-105 | Smiley search, history and wiki keywords | App | easy | Sonnet → Opus | 104, 053 | legacy parity | low | [#196](https://github.com/ezzz/HFRnow/issues/196) |
+| LOT-151 | Emoji refusal with smiley suggestion | App | easy | Sonnet → Opus | 096, 084, 104 | FEAT-012 | medium | [#241](https://github.com/ezzz/HFRnow/issues/241) |
+| LOT-152 | Preview before send | App | medium | Sonnet → Opus | 097, 084, 083 | FEAT-013 | medium | [#242](https://github.com/ezzz/HFRnow/issues/242) |
+| LOT-153 | Quote tray and quick-reply bar | App | medium | Opus → Fable | 086 | FEAT-006 | high | [#243](https://github.com/ezzz/HFRnow/issues/243) |
+| LOT-155 | GIF picker in the composer (Giphy) | App | easy | Sonnet → Opus | 098, 084, 071 | legacy parity | medium | [#245](https://github.com/ezzz/HFRnow/issues/245) |
+
+### Reader
+
+| Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Issue |
+|---|---|---|---|---|---|---|---|---|
+| LOT-087 | Message actions menu and typed JS bridge | App | medium | Opus → Fable | 083, 031 | legacy parity | high | [#179](https://github.com/ezzz/HFRnow/issues/179) |
+| LOT-106 | Reader display settings (text size, layout, signatures, swipe pages) | App | medium | Sonnet → Opus | 083, 060 | legacy parity | medium | [#197](https://github.com/ezzz/HFRnow/issues/197) |
+| LOT-107 | Image loading setting (never / Wi-Fi / always) | App | easy | Sonnet → Opus | 083, 060 | FEAT-011 | medium | [#198](https://github.com/ezzz/HFRnow/issues/198) |
+| LOT-108 | Video placeholder, player on tap | App | easy | Sonnet → Opus | 035, 083 | legacy parity | low | [#199](https://github.com/ezzz/HFRnow/issues/199) |
+| LOT-109 | Image viewer and HD gallery | App | medium | Sonnet → Opus | 083, 056, 160 | FEAT-014 | medium | [#200](https://github.com/ezzz/HFRnow/issues/200) |
+| LOT-110 | Page navigator | App | easy | Sonnet → Opus | 083, 033 | FEAT-002 | high | [#201](https://github.com/ezzz/HFRnow/issues/201) |
+| LOT-111 | 'Nouveau' banner and first-unread landing | App | medium | Sonnet → Opus | 083, 090 | FEAT-007 | high | [#202](https://github.com/ezzz/HFRnow/issues/202) |
+| LOT-112 | Page scrubber | App | medium | Sonnet → Opus | 110, 111 | FEAT-004 | medium | [#203](https://github.com/ezzz/HFRnow/issues/203) |
+| LOT-113 | Search inside a topic | App | easy | Sonnet → Opus | 046, 083 | legacy parity | medium | [#204](https://github.com/ezzz/HFRnow/issues/204) |
+| LOT-114 | Filter posts view | App | medium | Sonnet → Opus | 093, 083, 061 | legacy parity | medium | [#205](https://github.com/ezzz/HFRnow/issues/205) |
+| LOT-117 | Blacklist / whitelist in the reader (visibility policy) | App | medium | Sonnet → Opus | 061, 083, 032 | legacy parity | medium | [#208](https://github.com/ezzz/HFRnow/issues/208) |
+| LOT-136 | Poll display and vote | App | medium | Opus → Fable | 026, 054, 083 | legacy parity | medium | [#226](https://github.com/ezzz/HFRnow/issues/226) |
+| LOT-137 | Link handling in the reader (internal in app, external in browser) | App | medium | Sonnet → Opus | 095, 083 | legacy parity | high | [#227](https://github.com/ezzz/HFRnow/issues/227) |
+| LOT-139 | Offline reading | App | medium | Sonnet → Opus | 068, 083 | legacy parity | medium | [#229](https://github.com/ezzz/HFRnow/issues/229) |
+
+### Lists
+
+| Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Issue |
+|---|---|---|---|---|---|---|---|---|
+| LOT-124 | Favourites options and super favourites | App | medium | Sonnet → Opus | 064, 082, 119 | legacy parity | medium | [#215](https://github.com/ezzz/HFRnow/issues/215) |
+| LOT-125 | List swipes and topic actions | App | medium | Opus → Fable | 051, 064, 082, 124 | FEAT-008 | high | [#216](https://github.com/ezzz/HFRnow/issues/216) |
+| LOT-143 | Home 'À suivre' (MPs, super favourites, favourites, flags) | App | medium | Sonnet → Opus | 126, 124, 090, 092, 082 | FEAT-001 | high | [#233](https://github.com/ezzz/HFRnow/issues/233) |
+| LOT-144 | Home: AQ section, sidebar entry and start-screen setting | App | easy | Sonnet → Opus | 143, 133, 119 | FEAT-001 | medium | [#234](https://github.com/ezzz/HFRnow/issues/234) |
+
+### Private messages
+
+| Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Issue |
+|---|---|---|---|---|---|---|---|---|
+| LOT-126 | MP list screen and unread badge | App | medium | Sonnet → Opus | 023, 045, 082 | legacy parity | high | [#217](https://github.com/ezzz/HFRnow/issues/217) |
+| LOT-127 | MP actions: mark unread, delete, group members | App | easy | Opus → Fable | 058, 094, 126 | legacy parity | medium | [#218](https://github.com/ezzz/HFRnow/issues/218) |
+| LOT-128 | New MP and MP reply composer | App | medium | Opus → Fable | 048, 084, 126 | legacy parity | high | [#219](https://github.com/ezzz/HFRnow/issues/219) |
+
+### MPStorage sync
+
+| Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Issue |
+|---|---|---|---|---|---|---|---|---|
+| LOT-130 | MPStorage sync service and settings | App | difficult | Opus → Fable | 052, 062, 060, 119, 081, 126 | legacy parity | medium | [#220](https://github.com/ezzz/HFRnow/issues/220) |
+| LOT-131 | Blacklist sync with MPStorage | App | medium | Opus → Fable | 130, 061, 118 | legacy parity | low | [#221](https://github.com/ezzz/HFRnow/issues/221) |
+| LOT-132 | Bookmarks | App | medium | Opus → Fable | 130, 087 | legacy parity | medium | [#222](https://github.com/ezzz/HFRnow/issues/222) |
+
+### Settings and appearance
+
+| Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Issue |
+|---|---|---|---|---|---|---|---|---|
+| LOT-118 | Blacklist / whitelist management | App | easy | Sonnet → Opus | 061, 119 | legacy parity | medium | [#209](https://github.com/ezzz/HFRnow/issues/209) |
+| LOT-119 | Settings screen and general settings | App | medium | Sonnet → Opus | 060, 066, 080 | legacy parity | high | [#210](https://github.com/ezzz/HFRnow/issues/210) |
+| LOT-120 | Maintenance, about and static pages | App | easy | Sonnet → Opus | 119, 066 | legacy parity | low | [#211](https://github.com/ezzz/HFRnow/issues/211) |
+| LOT-121 | Theme parity (auto theme, accent, dark brightness) | App | medium | Sonnet → Opus | 060, 119, 083 | legacy parity | medium | [#212](https://github.com/ezzz/HFRnow/issues/212) |
+| LOT-122 | Appearance: darker dark, OLED black, separators, live preview | App | medium | Sonnet → Opus | 121 | FEAT-010 | medium | [#213](https://github.com/ezzz/HFRnow/issues/213) |
+| LOT-123 | Alternate app icons and haptics | App | easy | Sonnet → Opus | 119 | legacy parity | low | [#214](https://github.com/ezzz/HFRnow/issues/214) |
+| LOT-166 | Seasonal themes and their assets | App | easy | Sonnet → Opus | 122 | FEAT-010 | low | [#256](https://github.com/ezzz/HFRnow/issues/256) |
+
+### Accounts and profile
+
+| Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Issue |
+|---|---|---|---|---|---|---|---|---|
+| LOT-116 | User profile screen | App | medium | Sonnet → Opus | 027, 045, 080 | legacy parity | medium | [#207](https://github.com/ezzz/HFRnow/issues/207) |
+| LOT-142 | Session expiry sheet | App | medium | Opus → Fable | 044, 084, 063, 081 | FEAT-009 | high | [#232](https://github.com/ezzz/HFRnow/issues/232) |
+| LOT-156 | Multi-account consistency | App | medium | Opus → Fable | 081, 084, 130, 140 | legacy parity | medium | [#246](https://github.com/ezzz/HFRnow/issues/246) |
+| LOT-157 | Account deletion screen (HFR procedure) and local data wipe | App | easy | Opus → Fable | 081, 119 | legacy parity | medium | [#247](https://github.com/ezzz/HFRnow/issues/247) |
+| LOT-158 | Legacy data import on first launch | App | medium | Opus → Fable | 067, 081, 119 | legacy parity | high | [#248](https://github.com/ezzz/HFRnow/issues/248) |
+
+### Background and notifications
+
+| Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Issue |
+|---|---|---|---|---|---|---|---|---|
+| LOT-140 | Background MP check, badge and notification | App | medium | Opus → Fable | 047, 044, 065, 126, 119 | legacy parity | high | [#230](https://github.com/ezzz/HFRnow/issues/230) |
+| LOT-141 | 'Vérifier HFR' App Intent | App | medium | Sonnet → Opus | 092, 091, 140 | FEAT-005 | medium | [#231](https://github.com/ezzz/HFRnow/issues/231) |
+
+### Navigation and platform
+
+| Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Issue |
+|---|---|---|---|---|---|---|---|---|
+| LOT-115 | Forum search screen | App | medium | Sonnet → Opus | 046, 082 | legacy parity | medium | [#206](https://github.com/ezzz/HFRnow/issues/206) |
+| LOT-133 | Alertes Qualitaÿ feed and badge | App | easy | Sonnet → Opus | 055, 082, 119 | legacy parity | low | [#223](https://github.com/ezzz/HFRnow/issues/223) |
+| LOT-134 | AQ check and creation from a message | App | easy | Opus → Fable | 055, 087, 071 | legacy parity | low | [#224](https://github.com/ezzz/HFRnow/issues/224) |
+| LOT-135 | Moderator alert screen | App | easy | Opus → Fable | 050, 087 | legacy parity | medium | [#225](https://github.com/ezzz/HFRnow/issues/225) |
+| LOT-138 | Universal links, share and clipboard | App | medium | Sonnet → Opus | 095, 137 | FEAT-020 | high | [#228](https://github.com/ezzz/HFRnow/issues/228) |
+| LOT-145 | State restoration per scene | App | medium | Opus → Fable | 090, 082, 083 | FEAT-015 | medium | [#235](https://github.com/ezzz/HFRnow/issues/235) |
+| LOT-146 | iPad multi-window | App | medium | Sonnet → Opus | 145 | legacy parity | medium | [#236](https://github.com/ezzz/HFRnow/issues/236) |
+
+### Compliance and release
+
+| Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Issue |
+|---|---|---|---|---|---|---|---|---|
+| LOT-159 | App Review policy and UGC compliance | App | medium | Opus → Fable | 082, 115, 133, 135, 118 | legacy parity | high | [#249](https://github.com/ezzz/HFRnow/issues/249) |
+| LOT-160 | Privacy manifest, permissions and entitlements | App | easy | Sonnet → Opus | 080 | legacy parity · MVP | high | [#250](https://github.com/ezzz/HFRnow/issues/250) |
+| LOT-161 | Release pipeline: archive and TestFlight upload | App | medium | Opus → Fable | 080, 160 | legacy parity · MVP | high | [#251](https://github.com/ezzz/HFRnow/issues/251) |
+| LOT-162 | Accessibility pass: lists, navigation, accounts, settings | App | medium | Sonnet → Opus | 119, 125, 126 | legacy parity | medium | [#252](https://github.com/ezzz/HFRnow/issues/252) |
+| LOT-163 | Accessibility pass: reader and composer | App | medium | Sonnet → Opus | 083, 084, 106, 112 | legacy parity | medium | [#253](https://github.com/ezzz/HFRnow/issues/253) |
+| LOT-164 | Legacy parity gate | App | medium | Opus → Fable | 070, 081, 083, 084, 085, 086, 087, 088, 089, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 113, 114, 115, 116, 117, 118, 119, 120, 121, 123, 124, 125, 126, 127, 128, 130, 131, 132, 133, 134, 135, 136, 137, 139, 140, 146, 155, 156, 157, 158 | legacy parity | high | [#254](https://github.com/ezzz/HFRnow/issues/254) |
+| LOT-165 | App Store submission | App | medium | Opus → Fable | 159, 161, 164 | legacy parity | high | [#255](https://github.com/ezzz/HFRnow/issues/255) |
+
+## Phase 5 — app: iOS 27 experience
+
+Column layouts, continuous reading, keyboard and system integration, and the features that wait on a design document or a feasibility capture.
+
+| Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Issue |
+|---|---|---|---|---|---|---|---|---|
+| LOT-147 | iPhone Duo and iPad column layouts | App | difficult | Fable → Opus | 145, 082 | FEAT-016 | high | [#237](https://github.com/ezzz/HFRnow/issues/237) |
+| LOT-148 | Continuous scrolling (option) | App | difficult | Opus → Fable | 083, 045, 106 | FEAT-017 | low | [#238](https://github.com/ezzz/HFRnow/issues/238) |
+| LOT-149 | Keyboard shortcuts | App | easy | Sonnet → Opus | 083, 084, 110 | FEAT-021 | low | [#239](https://github.com/ezzz/HFRnow/issues/239) |
+| LOT-150 | Spotlight for read topics | App | easy | Sonnet → Opus | 090, 137 | FEAT-021 | low | [#240](https://github.com/ezzz/HFRnow/issues/240) |
+| LOT-154 | 'On t'a cité' (posts quoting me) | App | medium | Sonnet → Opus | 143, 141 | FEAT-018 | low | [#244](https://github.com/ezzz/HFRnow/issues/244) |
+
 ## Phase 4 backlog — app side (not engine)
 
-Pure Swift but app-side, kept here so nothing is lost: visibility policy (BL/WL/filters, C10) · filtered-posts use case (C11, candidate for `HFRClient`) · message HTML builder (C12) · page shell & resources (C13) · typed JS bridge (C14) · message action policy (C15) · image/GIF decoding (E-8) · background MP check scheduling (NET-13) · Giphy (E-10) · MP list decoration with `mpFlags` · account deletion mail and other hard-coded addresses (Q-10) · static pages, alternate icons, haptics, tab-bar settings UI · App Review policy: hide the Apple category (cat 25) when logged out or for the configured review account (Q-7) · inbound link router (forum links open the app) · Dynamic Type everywhere · iPad multi-window and favourites side panel · "posts quoting me" view (`quote_only=1`) · reply "+" carries selected quotes, classic post layout option (user feedback, docs/research/user-feedback-p450-510.md).
+Pure Swift but app-side, kept here so nothing is lost (each item now has a lot above, decomposition of 2026-10-27): visibility policy (BL/WL/filters, C10) · filtered-posts use case (C11, candidate for `HFRClient`) · message HTML builder (C12) · page shell & resources (C13) · typed JS bridge (C14) · message action policy (C15) · image/GIF decoding (E-8) · background MP check scheduling (NET-13) · Giphy (E-10) · MP list decoration with `mpFlags` · account deletion mail and other hard-coded addresses (Q-10) · static pages, alternate icons, haptics, tab-bar settings UI · App Review policy: hide the Apple category (cat 25) when logged out or for the configured review account (Q-7) · inbound link router (forum links open the app) · Dynamic Type everywhere · iPad multi-window and favourites side panel · "posts quoting me" view (`quote_only=1`) · reply "+" carries selected quotes, classic post layout option (user feedback, docs/research/user-feedback-p450-510.md).
 
 ## Wave plan (orchestrator)
 
-**MVP** = the first usable build (LOT-080 to 083 and their engine dependencies) plus login/session (LOT-043, 044) and posting basics (LOT-036, 037, 048). App lots (080 → 081, 082, 083) run on the Mac session only. The waves, their order and the MVP task list are tracked on the roadmap issue [#166](https://github.com/ezzz/HFRnow/issues/166) (`type: roadmap`), not here.
+**MVP** = the first usable build (LOT-080 to 083 and their engine dependencies) plus login/session (LOT-043, 044) and posting basics (LOT-036, 037, 048, and the reply composer LOT-084), released through TestFlight only (LOT-160, 161; operator 2026-10-27). The App Store update comes later (LOT-157, 158, 159, 164, 165). App lots (080 → 081, 082, 083) run on the Mac session only. The waves, their order and the MVP task list are tracked on the roadmap issue [#166](https://github.com/ezzz/HFRnow/issues/166) (`type: roadmap`), not here.
 
 ## Other work
 

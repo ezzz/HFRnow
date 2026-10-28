@@ -2,7 +2,7 @@
 
 The **backlog** of app-level features (Phase 4–5), alongside the engine lots of [LOTS.md](LOTS.md); each entry has its issue (`type: feature`). How an entry moves ([ADR 0011](adr/0011-contribution-model-and-feature-intake.md) §2): idea (its issue) → spec `docs/features/FEAT-XXX.md` → engine lots (an issue each, planned in [LOTS.md](LOTS.md)) when `HFRKit` lacks a capability → app PRs, one feature slice each.
 This file holds the list and the stage; the issue holds the claim and the discussion, the spec the detail. An entry names who proposed it; the credit stays with the proposer, whoever implements it (spec, PR and [CREDITS.md](../CREDITS.md)).
-Claim an entry like a lot: `/claim <session-id>` on its issue; the PR that moves its stage edits its Status cell.
+FEAT issues are **umbrellas** and are never claimed: work is claimed on the lot issues derived from a feature ([LOTS.md](LOTS.md), Phases 3–5). Each such lot says "Implements FEAT-xxx (#N)"; its PR says `Closes #<lot issue>` and `Refs #N`, and the PR of the feature's last lot also closes #N. Lots implementing Bybifok's proposals carry the label `moust4ki aka bybifok finding` and credit Bybifok in the spec, the PR and [CREDITS.md](../CREDITS.md). The PR that moves a feature's stage edits its Status cell.
 
 Statuses: `proposed` (idea recorded) · `spec` (spec being written) · `ready` (spec merged into `dev-swift`, engine dependencies done or planned as lots) · `in-progress` · `done` · `dropped` (with the reason).
 Engine dependencies point to [LOTS.md](LOTS.md); `new` means a lot still to create. Priorities follow [AGENTS.md §7](../AGENTS.md#7-labels-and-prioritization).
