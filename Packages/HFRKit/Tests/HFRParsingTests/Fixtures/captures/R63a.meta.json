@@ -1,0 +1,21 @@
+{
+  "id": "R63a",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "GET /hfr/<cat>/<sub>/<slug>-sujet_<post>_1.htm (own topic, page 1)",
+  "url": "https://forum.hardware.fr/hfr/AchatsVentes/Telephonie/own-topic-subject-sujet_9900001_1.htm",
+  "final_url": "https://forum.hardware.fr/hfr/AchatsVentes/Telephonie/own-topic-subject-sujet_9900001_1.htm",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Sat, 01 Jan 2000 00:00:00 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "own public topic page 1, logged in as its author (user1)",
+  "file": "R63a-public-own-topic-first-page.html",
+  "private": false
+}
