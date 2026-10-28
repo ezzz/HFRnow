@@ -49,7 +49,13 @@ final class ScriptedPoster: ReplyPosting {
 
 /// In-memory draft file that counts writes and can be made to fail like a full disk.
 final class CountingDraftPersistence: DraftPersistence {
-    private let state = Mutex<(document: DraftDocument?, saves: Int, failSaves: Bool)>((nil, 0, false))
+    private struct State {
+        var document: DraftDocument?
+        var saves = 0
+        var failSaves = false
+    }
+
+    private let state = Mutex(State())
 
     var saves: Int { state.withLock { $0.saves } }
 
