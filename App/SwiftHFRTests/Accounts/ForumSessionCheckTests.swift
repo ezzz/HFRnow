@@ -117,7 +117,8 @@ struct ForumSessionCheckTests {
         #expect(!model.isRechecking)
     }
 
-    @Test func recheckDuringTheLaunchCheckSendsNothingMore() async throws {
+    // A gate a broken guard never reaches would hang the run: fail instead.
+    @Test(.timeLimit(.minutes(1))) func recheckDuringTheLaunchCheckSendsNothingMore() async throws {
         let store = try InMemoryCredentialStore(accounts: [Fake.account("user1", main: true)])
         let gate = CheckGate()
         let refresher = ScriptedRefresher(["user1": [.failure(.offline)]], gate: gate)
@@ -134,7 +135,8 @@ struct ForumSessionCheckTests {
         #expect(model.rows.map(\.status) == [.checkFailed(.offline)])
     }
 
-    @Test func secondRecheckWhileOneRunsSendsNothing() async throws {
+    // A gate a broken guard never reaches would hang the run: fail instead.
+    @Test(.timeLimit(.minutes(1))) func secondRecheckWhileOneRunsSendsNothing() async throws {
         let store = try InMemoryCredentialStore(accounts: [Fake.account("user1", main: true)])
         let gate = CheckGate()
         let refresher = ScriptedRefresher(["user1": [.failure(.offline), .success(.valid)]], gate: gate, gatedCall: 2)
@@ -154,7 +156,8 @@ struct ForumSessionCheckTests {
         #expect(!model.isRechecking)
     }
 
-    @Test func loginDuringARecheckWinsOverItsResult() async throws {
+    // A gate a broken guard never reaches would hang the run: fail instead.
+    @Test(.timeLimit(.minutes(1))) func loginDuringARecheckWinsOverItsResult() async throws {
         let store = try InMemoryCredentialStore(accounts: [Fake.account("user1", main: true)])
         let gate = CheckGate()
         let refresher = ScriptedRefresher(

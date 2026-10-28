@@ -24,5 +24,6 @@ Registre des problèmes **présents dans l'app legacy** (HFR+ / HFRnow, branche 
 | 16 | UX | Sous-forums : pagination et ouverture depuis la page d'accueil fiables. | LOT-082 #32 | — |
 | 17 | T | Formulaires : une action de formulaire hors du forum est refusée (pas d'envoi des cookies ailleurs). | LOT-036 #22 | legacy préfixait l'URL du forum (pas de faille legacy ; garde-fou conservé) |
 | 18 | T | Suppression d'un premier post (= tout le sujet) : confirmation obligatoire hors MP. | LOT-048 #36 | legacy : détection par libellé seulement |
+| 19 | UX | Une session non confirmée par le forum (page inconnue, forum injoignable) est revérifiée en silence au retour au premier plan, sans jamais déconnecter le compte ; le legacy ne vérifiait qu'au lancement et ignorait les échecs. | #300 | `HFRplusAppDelegate.m:150`, `MultisManager.m:280-293` (pas de rappel d'échec) |
 
 Points « non corrigés volontairement » (comportement legacy gardé) : AQ appelé au lancement (D-071-3).

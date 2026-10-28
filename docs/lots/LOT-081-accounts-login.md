@@ -3,7 +3,7 @@
 - **Module:** App (`App/SwiftHFR/Accounts/`)
 - **Difficulty / model:** medium (Opus 5.5 → Fable)
 - **Issue:** none (claimed in `docs/LOTS.md` by #31; old francoisgn/ios-app_SwiftHFR#95)
-- **Depends on:** LOT-080 (app target), LOT-043 (`LoginFlow`, `LoginError`, `LoginResult`), LOT-065 (`CredentialStore`, `AccountBook`, `KeychainCredentialStore`), LOT-042 (`HFRSession`, `AnonymousTransport`). Designed for LOT-044 (`SessionRefreshFlow`, not merged yet).
+- **Depends on:** LOT-080 (app target), LOT-043 (`LoginFlow`, `LoginError`, `LoginResult`), LOT-065 (`CredentialStore`, `AccountBook`, `KeychainCredentialStore`), LOT-042 (`HFRSession`, `AnonymousTransport`). Uses LOT-044 (`SessionRefreshFlow`), wired by [#300](#300--forum-session-check-wiring).
 
 ## Legacy sources
 
@@ -26,8 +26,7 @@ Legacy app: `master` of ezzz/HFRnow (read-only), SwiftUI layer `HFRswift/`.
 
 - **Mirror of the store.** `rows` (`AccountRow`: id = `Account.pseudo`, display name, main flag, decoded avatar image, session status; no cookie, no token) is always what the credential store holds. An account whose store write failed is never shown.
 - **Restore at launch** (`restore()`, from the root `.task`, once per launch; concurrent calls wait for the first): read the store, build one `HFRSession(cookies:hashCheck:)` per account (LOT-042), then check each session one after the other through `SessionChecking`:
-  - `LocalSessionCheck` (today): no usable `md_user` (absent, expired, `deleted`, `HFRSession.isLoggedIn`) → `expired`; otherwise the session stays `restored` (not confirmed). Nothing is sent.
-  - LOT-044 adapter (once #29 is merged): `SessionRefreshFlow.refresh` mapped to `valid` / `expired` / `unconfirmed` / `failed(NetworkError)`. A `valid` result is persisted (`persistSession(of:)`: cookies and token written back through `AccountBook.add`, which refuses a jar whose `md_user` names another pseudo). Any other result changes neither the session nor the store.
+  - `ForumSessionCheck` ([#300](#300--forum-session-check-wiring)): `SessionRefreshFlow.refresh` (LOT-044) mapped to `valid` / `expired` / `unconfirmed` / `failed(NetworkError)`. A `valid` result is persisted (`persistSession(of:)`: cookies and token written back through `AccountBook.add`, which refuses a jar whose `md_user` names another pseudo). Any other result changes neither the session nor the store.
 - **Store problems at launch** (`storeProblem`): `corrupted` → message + "Effacer les comptes enregistrés" (confirmation, then `removeAll()`; never done silently, LOT-065); `newerVersion` → "update the app", nothing is overwritten (the store itself refuses writes); `unavailable(status:)` (Keychain error with its `OSStatus`, or a storage error without one; device locked) → "Réessayer" (`retryRestore()`). A failed write of refreshed cookies (`persistSession`) is reported the same way.
 - **Add an account** (`logIn(pseudo:password:for: .newAccount)`): `LoginFlow` into a **fresh** `HFRSession`. On success the account is saved as `Account(pseudo: LoginResult.userKey, displayName: LoginResult.displayName, cookies: session.cookies(), hashCheck: session.hashCheck)` with `makeMain: true` (legacy), and only then does the session become the account's session. Typing a known account again refreshes it in place (LOT-065 `add`); its previous session is replaced only once the store accepted the new cookies.
 - **Log in again** (`.existing(id:displayName:)`, offered when a session is `expired`, and from the row's context menu): `LoginFlow` into the account's **own** session with `expectedUserKey = Account.pseudo`, so another account's credentials are refused (`accountMismatch`). The current account does not change.
@@ -45,6 +44,34 @@ Legacy app: `master` of ezzz/HFRnow (read-only), SwiftUI layer `HFRswift/`.
 - The Q-7 rule's account name (`AppEnvironment.accountName`, read by `ForumListModel` and `ForumVisibility`) is `accounts.current?.id`, so the rule and the account menu agree; `isLoggedIn` stays the jar's (an expired current account reads as logged out), and the forum page's own logged-in state still wins in `NavigationModel`.
 - `AccountMenuButton` is in the forum list's toolbar (`ForumListView`); `RootView` has no toolbar of its own.
 - The navigation is shown only once `accounts.hasRestored` (a progress view before), so the first load is not made logged out and then redone.
+
+## #300 — forum session check wiring
+
+[#300](https://github.com/ezzz/HFRnow/issues/300), not a lot: the forum check of LOT-044 replaces the placeholder `LocalSessionCheck` (deleted; previews use a check that sends nothing). Claim `mac/w6-session-wire-opus (2026-10-28)`.
+
+**Legacy.** `Classes/HFRplusAppDelegate.m:150` calls `updateAllAccounts` once, at launch; `Classes/MultisManager.m:280-293` GETs profile page 1 per account and has no failure callback, so a failed refresh was never retried nor reported. `applicationWillEnterForeground` / `applicationDidBecomeActive` (`HFRplusAppDelegate.m:495`, `:623`) do not refresh sessions.
+
+**Mapping** (`ForumSessionCheck`, `App/SwiftHFR/Accounts/AccountServices.swift`), behind an app-side `SessionRefreshing` protocol that `SessionRefreshFlow` conforms to (its probe seam is internal to `HFRClient`, LOT-081 learnings):
+
+| `SessionRefreshFlow.refresh` | `SessionCheckResult` | Row status | UI |
+|---|---|---|---|
+| `valid` | `valid` | `valid` | nothing; refreshed cookies and token persisted |
+| `expired(.noIdentityCookie)` (nothing sent) | `expired` | `expired` | "Session expirée", re-login from the row and from the account menu (LOT-081) |
+| `unconfirmed(.unrecognizedPage / .identityNotConfirmed / .sessionChanged)` | `unconfirmed` | `restored` | nothing; the session is kept |
+| throws `.cancelled` | `unconfirmed` | `restored` | nothing: a cancelled check says nothing about the forum |
+| throws any other `NetworkError` | `failed(error)` | `checkFailed(error)` | "Session non vérifiée (forum injoignable)"; the session is kept |
+
+Nothing but a jar without a usable `md_user` is `expired`: an unknown page or a network error never logs an account out (LOT-044). Stale cookies at the server are not captured yet ([#281](https://github.com/ezzz/HFRnow/issues/281)): today they end `unconfirmed`, so the account stays usable until a page tells the user, and becomes `expired` only once that capture adds a `SessionExpiry` case.
+
+**Quiet re-check** (`AccountsModel.recheckUnconfirmedSessions(now:)`, called by `SwiftHFRApp` when the scene becomes `active`): the accounts whose status is `restored` or `checkFailed` are checked again, one after the other, through the same check; `valid` and `expired` accounts are not (legacy checked at launch only; a `valid` session already proved itself this run, and an `expired` one needs a login). Rows keep their status while it runs (no "Vérification…" text). It is skipped while another re-check runs and until `recheckInterval` (5 min) has passed since the last check (launch or re-check) ended, so switching apps does not send a request each time. A result is applied only if the account still has the same session **and** the same status as when its check started: a login, a removal or the launch check that landed meanwhile wins.
+
+**Edge cases.** The launch check marks its accounts `checking`, so a re-check during it skips them. A `valid` re-check persists like the launch check (`persistSession(of:)`). No new HFR fact: the request, its rules and its pending captures are LOT-044's.
+
+**Tests** (`App/SwiftHFRTests/Accounts/ForumSessionCheckTests.swift`; `ScriptedRefresher` in `AccountTestSupport.swift` answers with the outcomes LOT-044's capture-backed tests proved, and hands identity-less jars to the real flow, which sends nothing):
+`everyFlowOutcomeMapsToItsCheckResult`, `transportFailuresAreFailedAndCancellationIsUnconfirmed` (offline, timeout, HTTP 500, transport), `liveFlowExpiresJarsWithoutIdentityAndKeepsTheirCookies` (live `SessionRefreshFlow`: no `md_user`, lapsed, `deleted`), `launchCheckConfirmsReportsAndNeverLogsOut` (valid persisted; stale, unknown page and offline kept logged in, store untouched; no identity expired), `recheckRetriesOnlyUnconfirmedSessionsAfterTheInterval`, `recheckDuringTheLaunchCheckSendsNothingMore`, `secondRecheckWhileOneRunsSendsNothing`, `loginDuringARecheckWinsOverItsResult`.
+Shown to fail without the change (mutations run locally): `unconfirmed` mapped to `expired`, network errors mapped to `expired`, no `.cancelled` case, no re-check interval, `valid` re-checked, `checking` re-checked, no same-status guard after a check, no running-re-check guard.
+
+**Pending capture:** none new (LOT-044's #281, #282, #283 stay open).
 
 ## Edge cases
 
