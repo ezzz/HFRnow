@@ -1,0 +1,47 @@
+{
+  "case" : "W35",
+  "exception" : null,
+  "input" : {
+    "bytes" : 2038,
+    "context" : {
+      "charset" : "utf-8",
+      "flow" : "reply",
+      "status" : 200,
+      "urlQuote" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=6&post=9900001&numreponse=9910000001&page=1&p=1&subcat=173&sondage=0&owntopic=0"
+    },
+    "currentURL" : null,
+    "file" : "../captures/W35-public-first-post-restore-success.html",
+    "now" : null,
+    "sha256" : "96d698d42edde2ce2bb8c718243becb0597ae60f919a0175d36dc30e37873fa2"
+  },
+  "kind" : "response",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "legacy" : {
+      "anchor" : "#t9910000001",
+      "anchorMatches" : 1,
+      "classification" : "success",
+      "decoded" : true,
+      "hopFound" : true,
+      "hopHasInput" : false,
+      "hopHasLink" : false,
+      "message" : "Votre message a été édité avec succès !"
+    },
+    "live" : {
+      "ok" : true,
+      "refreshAnchor" : "t9910000001",
+      "refreshURL" : "https://forum.hardware.fr/hfr/AchatsVentes/Telephonie/own-topic-subject-sujet_9900001_1.htm#t9910000001",
+      "statusMessage" : "Votre message a été édité avec succès !"
+    }
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}
