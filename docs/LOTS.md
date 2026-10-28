@@ -250,7 +250,7 @@ Every legacy function and the Phase 4 features, one reviewable PR per lot; each 
 | LOT-138 | Universal links, share and clipboard | App | medium | Sonnet → Opus | 095, 137 | FEAT-020 | high | [#228](https://github.com/ezzz/HFRnow/issues/228) |
 | LOT-145 | State restoration per scene | App | medium | Opus → Fable | 090, 082, 083 | FEAT-015 | medium | [#235](https://github.com/ezzz/HFRnow/issues/235) |
 | LOT-146 | iPad multi-window | App | medium | Sonnet → Opus | 145 | legacy parity | medium | [#236](https://github.com/ezzz/HFRnow/issues/236) |
-| LOT-170 | Legacy bottom bar Catégories / Favoris / Messages / Plus (iPhone) and legacy sidebar (iPad); no Drapeaux/Favoris on top of Catégories (operator 2026-10-28) | App | medium | Sonnet → Opus | 082, 119 | legacy parity | high | [#296](https://github.com/ezzz/HFRnow/issues/296) |
+| LOT-170 | Root tab bar Catégories / Favoris / Messages / Plus with MP badge (iPhone), legacy sidebar (regular-width iPad), Plus menu, start tab, minimize on scroll; no Drapeaux/Favoris on top of Catégories (operator 2026-10-28) | App | medium | Sonnet → Opus | 080, 081, 082, 083, 119 | legacy parity | high | [#296](https://github.com/ezzz/HFRnow/issues/296) |
 
 ### Compliance and release
 
