@@ -23,8 +23,8 @@ public enum HFRLinkRoute: Sendable, Hashable {
     case profile(userID: Int)
     /// The search form (`/search.php`).
     case search
-    /// A page of global search results; the forum-relative path (with its query) is requested as is, since the
-    /// search terms live in the query (HFR-PROTOCOL S2).
+    /// A page of global search results; the forum-relative path is rebuilt from the known search parameters only
+    /// (R50b), since the terms live in the query (HFR-PROTOCOL S2).
     case searchResults(path: String)
     /// Anything else: foreign hosts, unknown shapes, links with a value that does not parse.
     case external(URL)
@@ -34,15 +34,24 @@ public enum HFRLinkRoute: Sendable, Hashable {
 public struct HFRTopicLink: Sendable, Hashable {
     /// Category and topic number.
     public var id: TopicID
-    /// One-based page, or `nil` when the link carries none: the server then decides (a bookmark link names a message only).
+    /// One-based page, or `nil` when the link names none or names a message: the server then picks the page.
+    ///
+    /// Request it with page 1 and `numreponse` (`HFREndpoint.topicPage(topic:page:numreponse:)`, R25), never by guessing.
     public var page: Int?
-    /// Message number from `#t<numreponse>` (or `numreponse=`), to scroll to; `nil` when the link names no message.
+    /// Message number of `numreponse=` (non-zero): the server redirects to the page that holds it (R25). Kept apart
+    /// from `anchorPostNumber`, which is what the link's fragment says (`numreponse=8#t9` keeps both).
+    public var numreponse: Int?
+    /// Message number from the `#t<numreponse>` fragment, to scroll to; `nil` when the fragment names none.
     public var anchorPostNumber: Int?
 
+    /// The message to scroll to once the page is shown: the fragment's, else `numreponse`.
+    public var scrollTarget: Int? { anchorPostNumber ?? numreponse }
+
     /// Creates a topic link.
-    public init(id: TopicID, page: Int?, anchorPostNumber: Int?) {
+    public init(id: TopicID, page: Int?, numreponse: Int? = nil, anchorPostNumber: Int?) {
         self.id = id
         self.page = page
+        self.numreponse = numreponse
         self.anchorPostNumber = anchorPostNumber
     }
 }

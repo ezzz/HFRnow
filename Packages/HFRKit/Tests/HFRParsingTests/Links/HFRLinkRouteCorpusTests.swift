@@ -93,7 +93,8 @@ struct HFRLinkRouteCorpusTests {
             // `numreponse=M` makes the server pick the page (R25), so such a link names no page.
             let numreponse = HFRURL.numreponse(in: link)
             #expect(topic.page == (numreponse == nil ? HFRURL.page(in: link) : nil), "page of \(link)")
-            #expect(topic.anchorPostNumber == HFRURL.anchorPostNumber(in: link) ?? numreponse, "message of \(link)")
+            #expect(topic.anchorPostNumber == HFRURL.anchorPostNumber(in: link), "anchor of \(link)")
+            #expect(topic.numreponse == numreponse, "numreponse of \(link)")
             if isCanonical { canonical += 1 } else { forum2 += 1 }
         }
         #expect(canonical > 500 && forum2 > 100, "canonical \(canonical), forum2.php \(forum2)")

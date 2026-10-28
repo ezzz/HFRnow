@@ -26,10 +26,37 @@ extension HFRLinkRoute {
             fragment = components.percentEncodedFragment
         }
 
-        var pathAndQuery: String { query.map { path + "?" + $0 } ?? path }
-
         /// Path, query and fragment as one relative link, the form `HFRURL` reads.
-        private var relative: String { fragment.map { pathAndQuery + "#" + $0 } ?? pathAndQuery }
+        private var relative: String {
+            let pathAndQuery = query.map { path + "?" + $0 } ?? path
+            return fragment.map { pathAndQuery + "#" + $0 } ?? pathAndQuery
+        }
+
+        /// Parameters of a global search results page, as `forum1.php` links carry them (R50b, first page and pager).
+        /// The value says how it is checked: digits only (false), or free text (true: the terms, and `config`, already checked).
+        private static let searchParameters: [String: Bool] = [
+            "config": true, "cat": false, "page": false, "subcat": false, "sondage": false, "owntopic": false, "trash": false,
+            "trash_post": false, "moderation": false, "new": false, "orderSearch": false, "recherches": false, "resSearch": false,
+            "jour": false, "mois": false, "annee": false, "titre": false, "daterange": false, "searchtype": false,
+            "searchall": false, "nojs": false, "subcatgroup": false, "search": true, "pseud": true, "post_cat_list": true
+        ]
+
+        /// A search results link rebuilt from the known search parameters only, so a link written by someone else cannot
+        /// make the account session replay an arbitrary query. Unknown parameters are dropped, repeated ones keep their first
+        /// value (the pager repeats `cat` and `trash`), a numeric one that is not digits refuses the link.
+        func searchResultsPath() throws -> String {
+            var seen = Set<String>()
+            var pairs: [String] = []
+            for item in HFRURL.decodingAmpersands(query ?? "").split(separator: "&") {
+                let pair = item.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+                let name = String(pair[0])
+                guard let isText = Self.searchParameters[name], seen.insert(name).inserted else { continue }
+                let value = pair.count > 1 ? String(pair[1]) : ""
+                guard isText || value.utf8.allSatisfy({ (48...57).contains($0) }) else { throw Refused() }
+                pairs.append(name + "=" + value)
+            }
+            return "/forum1.php?" + pairs.joined(separator: "&")
+        }
 
         private func value(_ name: String) -> String? { HFRURL.queryValue(named: name, in: relative) }
 

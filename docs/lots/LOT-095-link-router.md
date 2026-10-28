@@ -32,14 +32,14 @@ computed a route, so the legacy-derivable subset (page, message, category) is di
 ```swift
 public enum HFRLinkRoute: Sendable, Hashable {
     case home
-    case topic(HFRTopicLink)                  // id: TopicID, page: Int?, anchorPostNumber: Int?
+    case topic(HFRTopicLink)                  // id: TopicID, page: Int?, numreponse: Int?, anchorPostNumber: Int?
     case privateMessageThread(HFRTopicLink)   // forum2.php with cat=prive
     case topicList(HFRTopicListLink)          // category, subcategory: HFRSubcategory?, page, filter: TopicListFilter
     case privateMessageList(page: Int)
     case favorites(filter: TopicListFilter)   // .flagged or .favorites
     case profile(userID: Int)
     case search                               // /search.php
-    case searchResults(path: String)          // forum-relative path with its query
+    case searchResults(path: String)          // forum-relative path, rebuilt from the known search parameters
     case external(URL)
     static func route(for url: URL) -> HFRLinkRoute
 }
@@ -55,7 +55,7 @@ requests it with the account session.
 | `/forum2.php?cat=<n>&post=<p>[&page=<n>][&numreponse=<m>][#t<m>]` | `.topic`; `cat=prive` gives `.privateMessageThread`. The page is read from `page=`, **except** when a message number is present (see below) |
 | `/hfr/<cat>/[<sub>/]liste_sujet-<page>.htm` | `.topicList`, filter `.all`, sub-forum as the path segment |
 | `/forum1.php?cat=<n>[&page=][&subcat=][&owntopic=0..3]` (R2) | `.topicList` (page 1 when absent, `subcat` empty or 0 means the whole forum); `cat=prive` gives `.privateMessageList(page)` (R4) |
-| `/forum1.php?…&recherches=1…&search=…` (R50b) | `.searchResults(path:)`: the terms live in the query, so it is never a topic list |
+| `/forum1.php?…&recherches=1…&search=…` (R50b) | `.searchResults(path:)`: never a topic list. The path is rebuilt from an allowlist of the R50b parameters (`config cat page subcat sondage owntopic trash trash_post moderation new post_cat_list orderSearch recherches resSearch jour mois annee titre search pseud daterange searchtype searchall nojs subcatgroup`): unknown parameters and the fragment are dropped, repeats keep the first value, a numeric one that is not digits makes the link external. The session never replays a query someone else wrote |
 | `/forum1f.php?owntopic=1\|3` (R3) | `.favorites` |
 | `/hfr/profil-<id>.htm` (R9) | `.profile` |
 | `/search.php` | `.search` |
@@ -64,9 +64,10 @@ requests it with the account session.
 Rules shared by all routes:
 - `&amp;` is decoded and the first of a repeated parameter wins, as in `HFRURL`; the path is read percent-encoded, so `%2F` never creates a segment.
 - A numeric value (`page`, `post`, `subcat`, `numreponse`, ids) is a positive ASCII integer. **Present but unusable** (`page=0`, `page=abc`, an overflow) makes the link `.external`; it never falls back to page 1. Absent is allowed where a default is meaningful: lists default to page 1, topics report `page: nil` ("the link names no page").
-- `config` must be absent or `hfr.inc`. `cat=0` is not a forum (moderation links use it).
+- `config` must be absent or `hfr.inc` on `forum1.php`, `forum1f.php` and `forum2.php` (`/search.php` is the exception: its own links carry `config=hardwarefr.inc`). `cat=0` is not a forum (moderation links use it).
 - The anchor is `#t<n>` (`n` positive); other fragments (`#bas`, `#haut`, `#formulaire`) are ignored.
-- `numreponse=M` (non-zero) gives the anchor `M` when the fragment names none (legacy `searchMatchURL`) **and sets `page` to nil**: HFR answers `forum2.php?…&page=1&numreponse=M` with a redirect to the page holding `M` (R25), so the `page=` of such a link is not the message's page. Legacy read it as page 1 (see differences). The app requests the link and reads the page from the redirect, as legacy did for its final URL (`Common.swift:3364`).
+- `numreponse=M` (non-zero) is kept in `HFRTopicLink.numreponse`, apart from the fragment's `anchorPostNumber` (`numreponse=8#t9` keeps 8 and 9; `scrollTarget` is the fragment's, else `numreponse`). It **sets `page` to nil**: HFR answers `forum2.php?…&page=1&numreponse=M` with a redirect to the page holding `M` (R25, whose request URL is exactly that shape), so the `page=` of such a link is not the message's page and keeping it would open page 1 by mistake (legacy did). The app fetches it with `HFREndpoint.topicPage(topic:page: 1, numreponse:)` (this lot extends the endpoint: query `config, cat, post, page, numreponse`) and reads the page from the redirect, as legacy did for its final URL (`Common.swift:3364`). `page=` is validated first: `page=abc` beside a `numreponse` is still external.
+- Paths and shapes match in exact case (`/FORUM2.PHP`, `/HFR/…`, `-SUJET_…HTM`, `LISTE_SUJET` are `.external`): no capture shows them. Only the host is case-insensitive.
 - Print and single-message views of a topic (`print`, `quote_only`, `trash`, `trash_post` other than empty or `0`, captures R21) are not the topic page: `.external`.
 
 ## Edge cases
@@ -99,6 +100,9 @@ Each test was shown to fail with the relevant rule reverted: port check removed,
 - An unusable `page` value is refused, not turned into page 1.
 - Explicit ports and non-`https`/`http` schemes are refused; legacy only compared the host (`Common.swift:2474`), so `https://forum.hardware.fr:8443/…` was opened as a forum link.
 - Print and single-message views are not opened as topic pages.
+
+## Follow-up for the app (LOT-137, [#227](https://github.com/ezzz/HFRnow/issues/227))
+This PR stays engine-only. LOT-083's `ReaderTarget(link:)` (`App/SwiftHFR/Reader/ReaderTarget.swift`) parses links on its own and disagrees with the router: it reads `page=1` on `numreponse` links and opens canonical paths of forums the catalogue does not know. LOT-137 must build `ReaderTarget` from `HFRLinkRoute` (`.topic`, `.privateMessageThread`; page nil plus `numreponse` goes through `topicPage(topic:page:numreponse:)`), so there is one parser.
 
 ## Learnings
 - A forum link's `page=` is not always the page: with `numreponse=M` the server picks the page (R25), and the topic list rows carry `page=1&numreponse=<last message>` links.

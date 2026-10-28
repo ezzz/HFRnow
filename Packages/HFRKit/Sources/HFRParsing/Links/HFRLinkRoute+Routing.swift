@@ -13,7 +13,8 @@ extension HFRLinkRoute {
     }
 
     private static func route(for target: Target) throws -> HFRLinkRoute {
-        switch target.path.lowercased() {
+        // Exact case: no capture shows `/FORUM2.PHP` or `/HFR/…`, so they are not guessed to be the same pages.
+        switch target.path {
         case "", "/":
             guard target.query == nil, target.fragment == nil else { throw Refused() }
             return .home
@@ -33,12 +34,15 @@ extension HFRLinkRoute {
         guard let topic = try target.positive("post") else { throw Refused() }
         let category = try target.category()
         let numreponse = try target.numreponse()
+        // Validated even when it is dropped below: an unusable `page=` makes the link external.
+        let page = try target.positive("page")
         let link = HFRTopicLink(
             id: TopicID(category: category, topic: topic),
-            // With a message number the server picks the page itself and ignores `page=` (R25: `page=1&numreponse=M` answers
-            // a redirect to the page holding M): keeping the link's `page=` would open page 1 by mistake.
-            page: numreponse == nil ? try target.positive("page") : nil,
-            anchorPostNumber: target.anchorPostNumber ?? numreponse
+            // With a message number the server picks the page itself and ignores `page=` (R25: `page=1&numreponse=M`
+            // answers a redirect to the page holding M): keeping the link's `page=` would open page 1 by mistake.
+            page: numreponse == nil ? page : nil,
+            numreponse: numreponse,
+            anchorPostNumber: target.anchorPostNumber
         )
         return category == .privateMessages ? .privateMessageThread(link) : .topic(link)
     }
@@ -49,7 +53,7 @@ extension HFRLinkRoute {
         try target.requireForumConfig()
         let category = try target.category()
         if target.has("recherches") || target.has("search") {
-            return .searchResults(path: target.pathAndQuery)
+            return .searchResults(path: try target.searchResultsPath())
         }
         let page = try target.positive("page") ?? 1
         if category == .privateMessages {
@@ -103,9 +107,9 @@ extension HFRLinkRoute {
     }
 
     // `Regex` is not `Sendable`; these literals capture only `Substring`s (same reasoning as `HFRURL`).
-    nonisolated(unsafe) private static let profilePattern = /\/hfr\/profil-([0-9]+)\.htm/.ignoresCase()
+    nonisolated(unsafe) private static let profilePattern = /\/hfr\/profil-([0-9]+)\.htm/
     nonisolated(unsafe) private static let topicPattern =
-        /\/hfr\/([^\/]+)\/(?:[^\/]+\/)?[^\/]+-sujet_([0-9]+)_([0-9]+)\.htm/.ignoresCase()
+        /\/hfr\/([^\/]+)\/(?:[^\/]+\/)?[^\/]+-sujet_([0-9]+)_([0-9]+)\.htm/
     nonisolated(unsafe) private static let listPattern =
-        /\/hfr\/([^\/]+)\/(?:([^\/]+)\/)?liste_sujet-([0-9]+)\.htm/.ignoresCase()
+        /\/hfr\/([^\/]+)\/(?:([^\/]+)\/)?liste_sujet-([0-9]+)\.htm/
 }
