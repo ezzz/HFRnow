@@ -48,8 +48,9 @@ struct MessageQuoteOracleTests {
             let label = "\(caseID) message \(expected.index)"
             let legacy = try Self.legacyQuotes(inOracleHTML: try #require(expected.dicoHTML, "\(label): dicoHTML"))
             let quotes = try MessageQuoteAnalyzer.quotes(inContentHTML: block.contentHTML)
-            #expect(quotes.compactMap(\.author).map(HFRText.pseudoComparisonKey) == legacy.authors.map(HFRText.pseudoComparisonKey),
-                    "\(label): authors")
+            // Exact: the legacy text keeps U+00A0 and U+200B, which the analyzer normalizes like `MessageBlock.author`.
+            let legacyAuthors = legacy.authors.map { HFRText.normalizedPseudo($0.replacing("\u{00A0}", with: " ")) }
+            #expect(quotes.compactMap(\.author) == legacyAuthors, "\(label): authors")
             #expect(quotes.filter { $0.author == nil }.count == legacy.anonymous, "\(label): anonymous quotes")
         }
     }

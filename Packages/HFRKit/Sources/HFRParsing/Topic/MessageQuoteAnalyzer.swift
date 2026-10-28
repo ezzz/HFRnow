@@ -61,6 +61,8 @@ public enum MessageQuoteAnalyzer {
     private static let authoredClasses: Set<String> = ["citation", "oldcitation"]
     private static let anonymousClass = "quote"
     /// Suffix of the header text, after the author (legacy cut the last 10 characters blindly).
+    // `Regex` is not `Sendable` (its output type could hold non-Sendable captures). This literal has no captures
+    // and the compiled program is initialised atomically by the runtime, so sharing is safe (as in `HFRText`).
     nonisolated(unsafe) private static let headerSuffix = /\s*a\s+écrit\s*:\s*$/
 
     private static func classTokens(of element: Element) -> [Substring] {
