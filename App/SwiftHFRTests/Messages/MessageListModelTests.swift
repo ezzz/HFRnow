@@ -124,7 +124,7 @@ struct MessageListModelTests {
         #expect(model.loader.error == .notAuthenticated("Connexion requise"))
     }
 
-    @Test func openingAThreadShowsItReadUntilTheNextLoad() async throws {
+    @Test func aThreadShownAsOpenedIsReadUntilTheNextLoad() async throws {
         let source = FakePrivateMessages()
         let model = model(source)
         await model.onAppear()
@@ -151,6 +151,15 @@ struct MessageListModelTests {
         model.markOpened(broken)
         #expect(model.isUnread(broken))
         #expect(model.reader(for: broken) == nil)
+    }
+
+    @Test func leavingTheConversationDropsItsReader() {
+        let model = model(FakePrivateMessages())
+        let thread = messageThread(3)
+        model.selected = thread
+        let first = model.reader(for: thread)
+        model.selected = nil
+        #expect(model.reader(for: thread) !== first)
     }
 
     @Test func aThreadOpensInTheReaderAtItsOwnPage() throws {

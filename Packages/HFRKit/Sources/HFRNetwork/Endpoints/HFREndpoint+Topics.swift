@@ -18,12 +18,20 @@ extension HFREndpoint {
     /// Always `forum2.php?config=hfr.inc&cat=..&post=..&page=..`, which HFR redirects (301) to the canonical
     /// `/hfr/<forum>[/<sub-category>]/<slug>-sujet_<post>_<page>.htm` (HFR-PROTOCOL §6). The canonical path is never
     /// rebuilt here because its sub-category segment cannot be derived. Redirects are followed, so the response's
-    /// final URL tells the page. `anchor` is the message number (`numreponse`), added as the `#t<number>` fragment.
-    public static func topicPage(topic: TopicID, page: Int = 1, anchor: Int? = nil) throws -> HTTPRequest {
+    /// final URL tells the page. `anchor` is the message number, added as the `#t<number>` fragment.
+    ///
+    /// `numreponse` is the shape of a link to a message whose page is not known (R25, `page=1&numreponse=M`): the server
+    /// ignores `page` then and redirects to the page holding the message, so pass page 1.
+    public static func topicPage(topic: TopicID, page: Int = 1, anchor: Int? = nil, numreponse: Int? = nil) throws -> HTTPRequest {
         try requirePage(page)
-        var request = try HTTPRequest.get(url(path: "/forum2.php", query: [
+        var query = [
             ("config", config), ("cat", topic.category.queryValue), ("post", String(topic.topic)), ("page", String(page))
-        ]))
+        ]
+        if let numreponse {
+            guard numreponse >= 1 else { throw NetworkError.invalidRequest(reason: "numreponse must be 1 or more") }
+            query.append(("numreponse", String(numreponse)))
+        }
+        var request = try HTTPRequest.get(url(path: "/forum2.php", query: query))
         if let anchor, let withFragment = URL(string: request.url.absoluteString + "#t\(anchor)") {
             request.url = withFragment
         }

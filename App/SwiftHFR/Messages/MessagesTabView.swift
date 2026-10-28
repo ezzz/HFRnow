@@ -19,6 +19,10 @@ struct MessagesTabView: View {
             if let thread = model.selected, let readerModel = model.reader(for: thread) {
                 TopicReaderView(model: readerModel, services: reader)
                     .id(thread.id)
+                    // Read on HFR only once the page was fetched: a failed or abandoned load leaves the row unread.
+                    .onChange(of: readerModel.page != nil, initial: true) { _, loaded in
+                        if loaded { model.markOpened(thread) }
+                    }
             } else {
                 ContentUnavailableView("Choisissez une conversation", systemImage: "envelope")
             }

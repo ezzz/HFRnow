@@ -24,7 +24,10 @@ Registre des problèmes **présents dans l'app legacy** (HFR+ / HFRnow, branche 
 | 16 | UX | Sous-forums : pagination et ouverture depuis la page d'accueil fiables. | LOT-082 #32 | — |
 | 17 | T | Formulaires : une action de formulaire hors du forum est refusée (pas d'envoi des cookies ailleurs). | LOT-036 #22 | legacy préfixait l'URL du forum (pas de faille legacy ; garde-fou conservé) |
 | 18 | T | Suppression d'un premier post (= tout le sujet) : confirmation obligatoire hors MP. | LOT-048 #36 | legacy : détection par libellé seulement |
-| 19 | UX | Liste des MP : toutes les pages sont accessibles (précédente / suivante), pas seulement la première. | LOT-126 | `ObjCMPTopicsLoaderWorker.m:9-21` (page 1 fixe, navigation remise à zéro) |
-| 20 | UX | Liste des MP : le point « non lu » indique que **vous** n'avez pas lu la conversation (icône HFR), plus le marqueur `[non lu]`, qui signifie que l'autre n'a pas lu. | LOT-126 | `MPListView.swift:12-22` (`isUnread` = préfixe `[non lu]` ou `!isViewed`), captures R13u1, R13a |
+| 19 | UX | Liens du forum : chaque forme (sujet, liste, profil, MP, favoris, recherche) ouvre son propre écran ; le legacy ouvrait tout lien `forum2.php` ou `/hfr/…` comme un sujet (listes et profils compris). | LOT-095 #187 | `Common.swift:2473-2479` (`isForumTopicURL`) |
+| 20 | UX | Lien vers un message (signet, permalien `numreponse=M`, lignes de liste) : la page est laissée au serveur au lieu de retomber sur la page 1 (le serveur ignore `page=` quand `numreponse` est présent). | LOT-095 #187, bug #106 | `Common.swift:2693-2727` (`pageNumber`), `BookmarksPlusView.swift:143-146`, `Bookmark.m:17`, capture R25 |
+| 21 | T | Lien interne : un port explicite ou un schéma autre que http(s) n'est plus traité comme un lien du forum (seul l'hôte était comparé). | LOT-095 #187 | `Common.swift:2474` |
+| 22 | UX | Liste des MP : toutes les pages sont accessibles (précédente / suivante), pas seulement la première. | LOT-126 | `ObjCMPTopicsLoaderWorker.m:9-21` (page 1 fixe, navigation remise à zéro) |
+| 23 | UX | Liste des MP : le point « non lu » indique que **vous** n'avez pas lu la conversation (icône HFR), plus le marqueur `[non lu]`, qui signifie que l'autre n'a pas lu. | LOT-126 | `MPListView.swift:12-22` (`isUnread` = préfixe `[non lu]` ou `!isViewed`), captures R13u1, R13a |
 
 Points « non corrigés volontairement » (comportement legacy gardé) : AQ appelé au lancement (D-071-3).

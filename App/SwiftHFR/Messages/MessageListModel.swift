@@ -43,7 +43,10 @@ struct MessageListContent: Sendable, Equatable {
 final class MessageListModel {
     let loader = ContentLoader<MessageListContent>()
     /// Conversation chosen in the list, shown by the reader.
-    var selected: PrivateMessageThread?
+    var selected: PrivateMessageThread? {
+        // Leaving the conversation drops its reader, so opening it again fetches the current messages.
+        didSet { if selected == nil { currentReader = nil } }
+    }
 
     /// Page of the last load that was asked for; a retry after a failure goes back to it.
     private(set) var requestedPage = 1
@@ -110,7 +113,7 @@ final class MessageListModel {
     /// Conversations of this page still unread for the member.
     var unreadCount: Int { loader.value?.threads.filter { isUnread($0) }.count ?? 0 }
 
-    /// Remembers that the member opened `thread`, so its row is shown read at once, without a request.
+    /// Remembers that `thread` was opened and its page is on screen, so its row is shown read without a request.
     /// A row that names no thread page opens nothing, so it stays unread.
     func markOpened(_ thread: PrivateMessageThread) {
         guard ReaderTarget(opening: thread.summary) != nil else { return }

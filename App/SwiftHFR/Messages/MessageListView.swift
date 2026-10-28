@@ -7,7 +7,7 @@ struct MessageListView: View {
 
     var body: some View {
         let loader = model.loader
-        List(selection: Binding(get: { model.selected }, set: select)) {
+        List(selection: Binding(get: { model.selected }, set: { model.selected = $0 })) {
             if let content = loader.value {
                 ForEach(content.threads) { thread in
                     MessageRowView(thread: thread, isUnread: model.isUnread(thread)).tag(thread)
@@ -27,11 +27,6 @@ struct MessageListView: View {
         }
         .refreshable { await model.refresh() }
         .task { await model.onAppear() }
-    }
-
-    private func select(_ thread: PrivateMessageThread?) {
-        model.selected = thread
-        if let thread { model.markOpened(thread) }
     }
 
     @ViewBuilder
