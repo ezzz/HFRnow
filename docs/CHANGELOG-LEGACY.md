@@ -24,5 +24,6 @@ Registre des problèmes **présents dans l'app legacy** (HFR+ / HFRnow, branche 
 | 16 | UX | Sous-forums : pagination et ouverture depuis la page d'accueil fiables. | LOT-082 #32 | — |
 | 17 | T | Formulaires : une action de formulaire hors du forum est refusée (pas d'envoi des cookies ailleurs). | LOT-036 #22 | legacy préfixait l'URL du forum (pas de faille legacy ; garde-fou conservé) |
 | 18 | T | Suppression d'un premier post (= tout le sujet) : confirmation obligatoire hors MP. | LOT-048 #36 | legacy : détection par libellé seulement |
+| 19 | UX | Le nombre de pages d'une liste n'est affirmé que quand HFR le donne vraiment (pager court ou compte du sujet) : "Dernière page" d'une liste n'est plus proposée vers un faux total. | LOT-167 | `ObjCTopicListParser.m:172-252` (dernier lien du pager pris pour le total), captures R04, R05b |
 
 Points « non corrigés volontairement » (comportement legacy gardé) : AQ appelé au lancement (D-071-3).
