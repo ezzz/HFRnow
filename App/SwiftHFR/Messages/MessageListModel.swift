@@ -111,7 +111,11 @@ final class MessageListModel {
     var unreadCount: Int { loader.value?.threads.filter { isUnread($0) }.count ?? 0 }
 
     /// Remembers that the member opened `thread`, so its row is shown read at once, without a request.
-    func markOpened(_ thread: PrivateMessageThread) { openedThreads.insert(thread.id) }
+    /// A row that names no thread page opens nothing, so it stays unread.
+    func markOpened(_ thread: PrivateMessageThread) {
+        guard ReaderTarget(opening: thread.summary) != nil else { return }
+        openedThreads.insert(thread.id)
+    }
 
     private func load(page: Int) async {
         requestedPage = page

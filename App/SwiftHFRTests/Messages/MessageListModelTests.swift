@@ -138,6 +138,21 @@ struct MessageListModelTests {
         #expect(model.isUnread(unread)) // HFR's own state comes back with the next list
     }
 
+    @Test func aRowWithoutAThreadLinkStaysUnread() async throws {
+        let source = FakePrivateMessages()
+        var changed = messageThread(7, unread: true)
+        changed.summary.topicID = nil
+        changed.summary.path = "/not-a-thread"
+        changed.summary.flagPath = nil
+        let broken = changed
+        source.handler = { _ in PrivateMessageListPage(threads: [broken]) }
+        let model = model(source)
+        await model.onAppear()
+        model.markOpened(broken)
+        #expect(model.isUnread(broken))
+        #expect(model.reader(for: broken) == nil)
+    }
+
     @Test func aThreadOpensInTheReaderAtItsOwnPage() throws {
         let model = model(FakePrivateMessages())
         let thread = messageThread(3207033)
