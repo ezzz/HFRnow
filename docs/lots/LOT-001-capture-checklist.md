@@ -1,6 +1,6 @@
 # LOT-001 capture checklist
 
-Approved by the operator on 2026-10-26, including W02, W20 and P03 from §B-2; every other §B-2 row is skipped, except P08 (AQ), moved to the Capture backlog of `docs/LOTS.md` once Q-4 was decided (2026-10-27). Run status and deviations: corpus `MANIFEST.md`.
+Approved by the operator on 2026-10-26, including W02, W20 and P03 from §B-2 (P01 approved on 2026-10-27); every other §B-2 row is skipped, except P08 (AQ), moved to the Capture backlog of `docs/LOTS.md` once Q-4 was decided (2026-10-27). Run status and deviations: corpus `MANIFEST.md`.
 
 ## 0. Rules for every capture
 - Raw bytes + headers + redirect chain are kept for every id (settles charset, audit A §3.2, D Q1; PROTOCOL §6). Anonymized afterwards ([FIXTURES](../FIXTURES.md), LOT-001 anonymizer); the legacy oracle runs on the anonymized file.
@@ -110,7 +110,7 @@ All use two **throwaway MP threads** titled `fixture-test-1`/`-2` created by W10
 
 | Id | Flow | Why it matters | Least intrusive option | Default |
 |---|---|---|---|---|
-| P01 | Reply in a **public** topic | public form differs from MP (`cat`, `sujet`, `subcat`) and success redirect `…#bas` (E13) | rely on R40/R41/R43 (GET forms of public topics) + MP POSTs; or one reply "test" in a topic the operator owns, then edit it, never delete others' content | skip |
+| P01 | Reply in a **public** topic | public form differs from MP (`cat`, `sujet`, `subcat`) and success redirect `…#bas` (E13) | rely on R40/R41/R43 (GET forms of public topics) + MP POSTs; or one reply "test" in a topic the operator owns, then edit it, never delete others' content | **yes**: one reply in an operator-named topic, edited then deleted (user2), approved by the operator on 2026-10-27 and captured (`W30`–`W33`, corpus `MANIFEST.md`) |
 | P02 | Create a public topic and delete it (X1, E14 category redirect, D R10 new topic without subject) | topic creation response, `sujet`/`subcat` | one topic in the least-visited sub-category, neutral title, deleted by the owner right after (W19-like); operator names the category | skip |
 | P03 | Favourite add/remove (`addflag` GET, `delflag` GET, `manageaction.php` POST) | D R12/R13, X6, 4.4#10 (`ref`/`page`/`p` needed?) | flags are private to the account: user2 adds then removes one flag on a public topic and restores the previous state; captures both responses and "already flagged" | **yes**: approved by the operator on 2026-10-26 (line 3) and captured (`P03a`–`P03f`, corpus `MANIFEST.md`) |
 | P04 | Moderator alert POST (sent / duplicate / pending / treated states, E3) | D R11 | none: alerts go to moderators. Cover with synthetic fixtures (§C N04) | skip |

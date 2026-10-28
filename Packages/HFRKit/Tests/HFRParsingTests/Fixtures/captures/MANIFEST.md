@@ -20,7 +20,9 @@ the write flows inside **one** throwaway MP thread `fixture-test-1` (user2 → u
 on a public topic (state restored), the searches, then user1 again with a corrected password (W01b). Private files
 (`"private": true` in the meta) were anonymized with `--private`: MP bodies and the subjects of every MP that is not a
 fixture thread (`fixture-test-N`) or the MPStorage thread are replaced, whatever their content (digits included).
-Run 3 (follow-up, 11 requests, 115 in total, read-only) added R33a/R33b, R55-p5u1 and R56a/R56b. Public profile pages
+Run 3 (follow-up, 11 requests, 115 in total, read-only) added R33a/R33b, R55-p5u1 and R56a/R56b. Run 4 (2026-10-27, P01 approved by the operator that day, 22 requests): user2 replied once in one public topic
+(cat 13), edited and deleted that reply (W30-W33, R61b-R62b; the post is gone, `R61e`), and one empty-body reply was refused;
+nothing else of it is in this corpus. Public profile pages
 (R56) keep their structure; the pseudo (title, header, pseudo cell, avatar `alt`, personal smileys, MP and
 "all posts" links) is aliased, every personal row (e-mail, birth date, gender, city, job, hobbies, quote, signature)
 gets `Profile field removed.` or, for dates, `01/01/2000`; post count → `100`, arrival and last-post dates →
@@ -136,6 +138,15 @@ gets `Profile field removed.` or, for dates, `01/01/2000`; post count → `100`,
 | R13c | `R13c-mp-list-empty-after-delete.html` | Owner's MP list: empty | W19 | 023 |
 | R13u1b | `R13u1b-mp-list-recipient-after-owner-delete.html` | Recipient's list: the thread is **still there** | W19, X1 | 023 |
 | RU2 | `RU2-mp-thread-recipient-after-owner-delete.html` | Recipient can still read the whole thread | W19, X1 | 030, 048 |
+| R61b | `R61b-public-reply-composer.html` | Reply composer of a public topic (cat 13, `#repondre_form` action), user2: same 43-field `hop` form as `R40a`, action `/bddpost.php?config=hfr.inc` | P01 | 036, 048 |
+| W30 | `W30-public-reply-success.html` | Public reply, browser semantics: "Votre réponse a été postée avec succès !", refresh to **page 1** `…sujet_<post>_1.htm#bas` (the post landed on the last page, 30) | P01 | 048, 037 |
+| R61d | `R61d-public-topic-last-page-own-post.html` | Last page with the own reply: edit link `message.php?…&cat=13&…&numreponse=<n>&page=30…`, quote link | P01 | 030, 031, 048 |
+| R62a | `R62a-public-edit-form-later-post.html` | Edit form of the own later post of a public topic: action `/bdd.php?config=hfr.inc`, hidden `sujet`, `stickold` `0`, delete label "Effacer ce message" | P01, R43 | 036, 048 |
+| W31 | `W31-public-edit-success.html` | Public edit (no `delete` sent): "Votre message a été édité avec succès !", refresh `…sujet_<post>_<page>.htm#t<numreponse>` | P01 | 048, 037 |
+| R62b | `R62b-public-edit-form-after-edit.html` | Same edit form after `W31`: stored text with the edit | P01 | 036, 048 |
+| W32 | `W32-public-delete-post-success.html` | Public delete of the later post (`delete=1`): "Message effacé avec succès !", refresh `/hfr/<cat>/<sub>/sujet_<post>_<page>.htm` (no slug, no anchor) | P01 | 048, 037 |
+| R61e | `R61e-public-topic-after-delete.html` | Same last page afterwards: the post is gone | P01 | 048 |
+| W33 | `W33-public-reply-empty-body-rejected.html` | Public reply with an empty body: "Vous devez remplir tous les champs avant de poster ce message" (as `W17a`), nothing posted | P01, W17 | 037, 048 |
 
 ## Not captured
 
@@ -145,5 +156,6 @@ gets `Profile field removed.` or, for dates, `01/01/2000`; post count → `100`,
 | A second throwaway thread | HFR allows one new topic per 60 minutes (W11x); everything ran in one thread. |
 | R34, R51, R58 | Dropped per the checklist (R51 covered by R50b, R58 by R08-2). |
 | R33, poll voted by the account itself without the multipseudo notice | Searched, not found: the poll topics of user1's followed list (`forum1f.php?owntopic=1`, 27 poll topics) were opened page 1 for four of them; one is R33b (with the multipseudo notice, also for user2), the three others still offer the vote form. A plain "already voted" page would need a vote (P05, out of scope): synthetic per checklist §C N06 if a lot needs it. |
-| X10 cookie-less multi-quote, poll vote, public posting | Out of the approved scope or not needed. |
+| X10 cookie-less multi-quote, poll vote | Out of the approved scope or not needed. |
+| Public new topic, public first-post delete | Not authorised (run 4): pending capture. |
 | oldcitation, Streamable/Dailymotion/Twitch, reho.st images | Not present on the pages picked; synthetic or a later capture. |

@@ -107,6 +107,15 @@
     {"raw": "RA5", "id": "RA5", "slug": "mp-thread-after-delete-owner", "ext": "html", "private": false},
     {"raw": "R13c", "id": "R13c", "slug": "mp-list-empty-after-delete", "ext": "html", "private": true},
     {"raw": "R13u1b", "id": "R13u1b", "slug": "mp-list-recipient-after-owner-delete", "ext": "html", "private": true},
-    {"raw": "RU2", "id": "RU2", "slug": "mp-thread-recipient-after-owner-delete", "ext": "html", "private": true}
+    {"raw": "RU2", "id": "RU2", "slug": "mp-thread-recipient-after-owner-delete", "ext": "html", "private": true},
+    {"raw": "R61b", "id": "R61b", "slug": "public-reply-composer", "ext": "html", "private": false},
+    {"raw": "W30", "id": "W30", "slug": "public-reply-success", "ext": "html", "private": false},
+    {"raw": "R61d", "id": "R61d", "slug": "public-topic-last-page-own-post", "ext": "html", "private": false},
+    {"raw": "R62a", "id": "R62a", "slug": "public-edit-form-later-post", "ext": "html", "private": false},
+    {"raw": "W31", "id": "W31", "slug": "public-edit-success", "ext": "html", "private": false},
+    {"raw": "R62b", "id": "R62b", "slug": "public-edit-form-after-edit", "ext": "html", "private": false},
+    {"raw": "W32", "id": "W32", "slug": "public-delete-post-success", "ext": "html", "private": false},
+    {"raw": "R61e", "id": "R61e", "slug": "public-topic-after-delete", "ext": "html", "private": false},
+    {"raw": "W33", "id": "W33", "slug": "public-reply-empty-body-rejected", "ext": "html", "private": false}
   ]
 }

@@ -8,7 +8,7 @@ struct HopResponseParserTests {
     /// Captured write answers whose legacy classification the port keeps, except for the documented differences.
     static let oracleCases = [
         "W10", "W11", "W11x", "W12", "W13b", "W13c", "W13cx", "W14", "W14x", "W15",
-        "W16a", "W16b", "W17a", "W17c", "W19", "W20a", "W20b"
+        "W16a", "W16b", "W17a", "W17c", "W19", "W20a", "W20b", "W30", "W31", "W32", "W33"
     ]
 
     @Test("Differential: kind, message and anchor follow the legacy oracle", arguments: oracleCases)
@@ -73,6 +73,18 @@ struct HopResponseParserTests {
         #expect(create.refreshAnchor == nil)
     }
 
+    @Test("Public topic writes: the reply refreshes to page 1, the edit to the post, the delete without slug or anchor")
+    func publicRefresh() throws {
+        let base = "https://forum.hardware.fr/hfr/Discussions/Sports/"
+        let reply = try HopResponseParser.classify(html: Fixture.capture("W30-public-reply-success"))
+        #expect(reply.refreshURL?.absoluteString == base + "muscu-gringalets-sujet_6510_1.htm#bas")
+        let edit = try HopResponseParser.classify(html: Fixture.capture("W31-public-edit-success"))
+        #expect(edit.refreshURL?.absoluteString == base + "muscu-gringalets-sujet_6510_30.htm#t75493617")
+        let delete = try HopResponseParser.classify(html: Fixture.capture("W32-public-delete-post-success"))
+        #expect(delete.refreshURL?.absoluteString == base + "sujet_6510_30.htm")
+        #expect(delete.refreshAnchor == nil)
+    }
+
     /// A captured GET write: file, sentence, refresh path (nil when the capture is not asserted on it).
     struct GetWrite: Sendable {
         let name: String
@@ -123,7 +135,8 @@ struct HopResponseParserTests {
         "W10-mp-create-crlf-success", "W11-mp-reply-lf-legacy-success", "W12-mp-reply-nonbmp-success",
         "W13b-mp-reply-browser-semantics-success", "W13c-mp-reply-recipient-success", "W14-mp-reply-multiquote-success",
         "W15-mp-edit-success", "W16a-mp-delete-post-success", "W16b-mp-delete-post-again", "W19-mp-delete-first-post-success",
-        "W18-mp-mark-unread-success", "P03a-addflag-success", "P03b-addflag-again", "P03d-delflag-favourite-success"
+        "W18-mp-mark-unread-success", "P03a-addflag-success", "P03b-addflag-again", "P03d-delflag-favourite-success",
+        "W30-public-reply-success", "W31-public-edit-success", "W32-public-delete-post-success"
     ]
 
     @Test("Sweep: across the whole capture corpus only the write confirmations classify as success")
