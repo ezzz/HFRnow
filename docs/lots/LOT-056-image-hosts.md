@@ -35,7 +35,8 @@ All in `Packages/HFRKit/Sources/HFRNetwork/`. Nothing imports another HFRKit mod
   Names of the build settings are the app lot's to wire (LOT-080); suggested: `REHOST_BASE_URL`, `REHOST_API_KEY` in the untracked
   `.xcconfig` of ADR 0007.
 - `RehostClient.upload(jpeg:)` builds `POST <base>/api/1/upload/?key=<percent-encoded key>`: `multipart/form-data` with
-  `imageCaption=Some Caption` then the `source` file (`image/jpeg`, `snapshot_<random>.jpg`), 60 s total timeout, redirects **not** followed.
+  `imageCaption=Some Caption` then the `source` file (`image/jpeg`, `snapshot_<random>.jpg`), 60 s total timeout, redirects **not** followed, response read up to 64 KiB (`maximumResponseBytes`, via `HTTPRequest.maximumBodyBytes`; a longer
+  answer is `network(.invalidResponse)`).
   The default transport is `AnonymousTransport` (cookie-less, LOT-071 R1); no `Cookie` or `Referer` header is set.
 - The app prepares the JPEG (orientation, downscale to `RehostMaxDimension`, re-encode): those need UIKit/ImageIO and stay out of `HFRKit`.
   Whether the re-encode strips EXIF/GPS is unverified (LOT-071 T4, audit D §10 Q9) and is the app lot's.
@@ -65,7 +66,8 @@ No rule carries a key: the table is keyless by construction, only `RehostConfigu
 - `rule(for:)` recognises a host by the **parsed host at a label boundary**, lower-cased, one trailing dot ignored; never by a substring
   (`reho.st.evil.example`, `notreho.st`, `…/reho.st/…` and `?u=reho.st` do not match). Only `http(s)` URLs with a host match.
 - `request(for:)` returns a cookie-less GET (`AnonymousTransport`, LOT-071 R1) with the rule's `Referer` and no other third-party header
-  (R3: no `Referer` for hosts without a rule). It never rewrites the scheme. A non-`http(s)` or host-less URL throws `invalidRequest`.
+  (R3: no `Referer` for hosts without a rule). It never rewrites the scheme and uses `RedirectPolicy.doNotFollow`: the caller reads
+  `redirectLocation` and applies the D-071-1 block rules to every hop itself, and the `Referer` never travels to the next host. A non-`http(s)` or host-less URL throws `invalidRequest`.
 - `observedHTTPOnly` means "every captured reference is `http://`"; whether `https` works is not measured, so the table does not upgrade.
   How the reader loads these hosts is LOT-083's decision (D-071-1 point 4; no ATS exception exists, `Info.plist` has no
   `NSAppTransportSecurity`). This lot only publishes the list.
@@ -81,6 +83,8 @@ No rule carries a key: the table is keyless by construction, only `RehostConfigu
 - 200 with `status_code` other than 200: `rejected`. 200 with a non-JSON body, `[]` or an empty body: `invalidResponse`.
 - `status_code` and `width`/`height` as JSON numbers or numeric strings both read.
 - File name, field name or content type containing `"`, CR or LF cannot start another header (`%22`, `%0D`, `%0A`; CR/LF dropped from the type).
+- An upload answer over 64 KiB is not read (`network(.invalidResponse)`), so an untrusted or hijacked host cannot make the app hold a large body.
+- The key is redacted from host messages in both its raw and its URL-encoded form (`+` is `%2B`).
 - Task cancellation: `RehostError.network(.cancelled)`.
 - Transport errors are wrapped after sanitizing: a `httpStatus` URL loses query and userinfo (the key is in the query), an `invalidRequest`
   reason is replaced by fixed text.
@@ -97,13 +101,15 @@ server (`LoopbackServer`, 127.0.0.1). The wire shape comes from the legacy code 
 Differential: `MultipartBodyTests.matchesTheLegacyUploadLayout` writes legacy's `makeMultipartBody` byte for byte and compares; the response
 tests use the payload shapes legacy reads; `ImageHostTableTests.thumbnailsMapToFullImages` reproduces the three legacy rewrites.
 
-**Pending capture** (the orchestrator opens capture issues; already in the Capture backlog as CAP-reho-st-image-fetched-cookie-less, #134):
+**Pending capture** (issues: [#134](https://github.com/ezzz/HFRnow/issues/134) for 1, [#301](https://github.com/ezzz/HFRnow/issues/301) for 2, [#302](https://github.com/ezzz/HFRnow/issues/302) for 3):
 
 1. A `reho.st` image fetched cookie-less **with and without** `Referer: https://forum.hardware.fr/` (and `https://forum.hardware.fr`):
    settles E26 and the exact value of the table's `referer`. Until then the rule is legacy's value (no trailing slash).
 2. One `http://`-only host (`R20`/`R21`/`R22a`) requested over `https`: does it work or upgrade? Settles `observedHTTPOnly` and LOT-083's ATS choice.
 3. One real upload answer of the Chevereto host (success and an error such as a wrong key), anonymized: needs the key and publishes an image
    publicly, so it is the operator's decision. Until then the response shape is "as legacy reads it", not verified.
+   **The key travels in the query string because legacy does so, and hosts and proxies may log it** (ADR 0007 threat model). Moving it
+   to a POST field is **not assumed**: it waits for capture #302 (whether the host accepts it) and an operator decision.
 
 ## Intentional differences from legacy
 

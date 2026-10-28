@@ -14,6 +14,7 @@ struct ImageHostTableTests {
         let request = try table.request(for: url(text))
         #expect(request.headers["Referer"] == "https://forum.hardware.fr")
         #expect(request.method == .get)
+        #expect(request.redirectPolicy == .doNotFollow)
         #expect(request.headers["Cookie"] == nil)
     }
 

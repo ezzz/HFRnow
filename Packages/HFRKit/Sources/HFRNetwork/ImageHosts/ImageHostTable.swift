@@ -46,14 +46,16 @@ public struct ImageHostTable: Sendable, Equatable {
 
     /// A cookie-less GET for an image URL: the host's `Referer` if its rule has one, none otherwise (LOT-071 R3).
     ///
-    /// Send it through `AnonymousTransport`; nothing here adds a cookie, and the scheme is never rewritten.
+    /// Send it through `AnonymousTransport`; nothing here adds a cookie, and the scheme is never rewritten. Redirects are
+    /// **not** followed: the caller reads `redirectLocation` and checks each hop itself (LOT-071 D-071-1), and the `Referer`
+    /// of a host never travels to the next one.
     public func request(for url: URL, timeout: Double = RequestTimeout.standard) throws(NetworkError) -> HTTPRequest {
         guard Self.normalizedHost(of: url) != nil else {
             throw .invalidRequest(reason: "image URL is not an absolute http(s) URL")
         }
         var headers = HTTPHeaders()
         if let referer = rule(for: url)?.referer { headers["Referer"] = referer }
-        return .get(url, headers: headers, timeout: timeout)
+        return .get(url, headers: headers, timeout: timeout, redirectPolicy: .doNotFollow)
     }
 
     /// The full-size image for a thumbnail URL of a host with a rewrite rule; any other URL is returned unchanged.

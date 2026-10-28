@@ -36,6 +36,18 @@ struct RehostClientLoopbackTests {
         #expect(text.contains("name=\"source\"; filename=\"snapshot_"))
     }
 
+    @Test func anOversizedAnswerIsNotRead() async throws {
+        let server = try LoopbackServer { _ in ServerReply(body: Data(repeating: 0x20, count: RehostClient.maximumResponseBytes + 1)) }
+        defer { server.stop() }
+        let proxyless = URLSessionConfiguration.ephemeral
+        proxyless.connectionProxyDictionary = [:]
+        let client = try RehostClient(
+            configuration: RehostConfiguration(baseURL: server.baseURL, apiKey: "FAKEKEY"),
+            transport: AnonymousTransport(configuration: proxyless)
+        )
+        await #expect(throws: RehostError.network(.invalidResponse)) { try await client.upload(jpeg: Data([1])) }
+    }
+
     @Test func aRedirectingHostIsNotFollowed() async throws {
         let target = try LoopbackServer { _ in ServerReply(body: Data(#"{"status_code":200}"#.utf8)) }
         defer { target.stop() }

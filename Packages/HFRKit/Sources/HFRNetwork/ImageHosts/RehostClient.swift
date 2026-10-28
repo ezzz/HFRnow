@@ -11,6 +11,8 @@ import HFRModels
 public struct RehostClient: Sendable {
     /// Total time limit of an upload, in seconds (legacy `ReplyService.swift:1992` @ 2440d79).
     public static let uploadTimeout: Double = 60
+    /// Largest answer read, in bytes: the host's JSON is a few hundred bytes, so a bigger body is not its answer.
+    public static let maximumResponseBytes = 65_536
     /// Form field that carries a caption; legacy sent this constant with every upload (`ReplyService.swift:2050` @ 2440d79).
     static let captionValue = "Some Caption"
 
@@ -44,7 +46,8 @@ public struct RehostClient: Sendable {
         ])
         let request = HTTPRequest(
             url: try configuration.uploadURL(), method: .post, headers: ["Content-Type": body.contentType],
-            body: body.data, timeout: Self.uploadTimeout, redirectPolicy: .doNotFollow
+            body: body.data, timeout: Self.uploadTimeout, redirectPolicy: .doNotFollow,
+            maximumBodyBytes: Self.maximumResponseBytes
         )
         let response: HTTPResponse
         do {

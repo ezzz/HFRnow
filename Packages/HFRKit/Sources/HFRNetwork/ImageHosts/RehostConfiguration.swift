@@ -33,7 +33,9 @@ public struct RehostConfiguration: Sendable, Equatable {
 
     /// The key, for redacting it from text a host sends back.
     func redacting(_ text: String) -> String {
-        text.replacingOccurrences(of: apiKey, with: "[key]")
+        // The raw key and its query form (`+` is `%2B`): a host may echo either.
+        text.replacingOccurrences(of: QueryEncoding.encode(apiKey), with: "[key]")
+            .replacingOccurrences(of: apiKey, with: "[key]")
     }
 
     private static func isAcceptable(_ url: URL) -> Bool {
