@@ -42,7 +42,7 @@ LOT-090 to LOT-098 are engine lots added for the app phase (2026-10-27). They ar
 | LOT-013 ✱ | Account, `StoredCookie` (Codable, never `HTTPCookie`), settings enums, MPStorage document types | HFRModels | easy | Sonnet → Opus | — | E-3, E-6 | — | [#46](https://github.com/ezzz/HFRnow/issues/46) |
 | LOT-014 ✱ | Forum catalogue: category id table, URL aliases | HFRModels | trivial | Haiku → Sonnet | 010 | B2 | — | [#47](https://github.com/ezzz/HFRnow/issues/47) |
 | LOT-096 | Emoji → smiley suggestion table | HFRModels | easy | Sonnet → Opus | 012 | FEAT-012 | medium | [#188](https://github.com/ezzz/HFRnow/issues/188) |
-| LOT-167 | `PageNavigation` exactness flag (exact page count or lower bound), so lists show "Page N" without a fake total; exact per-row page count kept | HFRModels | easy | Sonnet → Opus | — | FEAT-003 | high | [#279](https://github.com/ezzz/HFRnow/issues/279) |
+| LOT-167 | `PageNavigation` exactness flag (exact page count or lower bound), so lists show "Page N" without a fake total; exact per-row page count kept | HFRModels | easy | Sonnet → Opus | — | FEAT-003, HFR-PROTOCOL §7b B1 | high | [#279](https://github.com/ezzz/HFRnow/issues/279) |
 
 ### Parsing (`HFRParsing`)
 
