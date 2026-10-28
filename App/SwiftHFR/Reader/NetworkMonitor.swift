@@ -9,23 +9,29 @@ final class NetworkMonitor: Sendable {
     static let shared = NetworkMonitor()
 
     private let monitor = NWPathMonitor()
-    private let state = OSAllocatedUnfairLock<Bool?>(initialState: nil)
+    private let state = OSAllocatedUnfairLock(initialState: PathState())
 
     private init() {
         monitor.pathUpdateHandler = { [state] path in
-            state.withLock { $0 = Self.isUnmetered(path) }
+            state.withLock { $0 = PathState(isKnown: true, isUnmetered: Self.isUnmetered(path)) }
         }
         monitor.start(queue: DispatchQueue(label: "SwiftHFR.NetworkMonitor"))
         // Seeded from the path known now unless an update already arrived (updates are asynchronous).
         let current = Self.isUnmetered(monitor.currentPath)
-        state.withLock { $0 = $0 ?? current }
+        state.withLock { if !$0.isKnown { $0 = PathState(isKnown: true, isUnmetered: current) } }
     }
 
     /// Starts the monitor if it is not running yet.
     static func start() { _ = shared }
 
     /// True on an unmetered Wi-Fi or Ethernet path; false on cellular, a hotspot marked expensive, Low Data Mode or offline.
-    var isOnWiFi: Bool { state.withLock { $0 ?? false } }
+    var isOnWiFi: Bool { state.withLock { $0.isUnmetered } }
+
+    /// What the monitor knows: nothing yet, or whether the path is unmetered.
+    private struct PathState {
+        var isKnown = false
+        var isUnmetered = false
+    }
 
     private static func isUnmetered(_ path: NWPath) -> Bool {
         path.status == .satisfied && !path.isExpensive && !path.isConstrained

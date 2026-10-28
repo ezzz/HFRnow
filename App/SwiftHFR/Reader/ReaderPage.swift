@@ -15,7 +15,7 @@ struct ReaderPage: Equatable, Sendable {
     /// Messages in page order.
     var messages: [ReaderMessage]
     /// HFR's own message when it served a notice instead of messages (a `.hop` page); nil otherwise.
-    var notice: String? = nil
+    var notice: String?
 }
 
 /// One message of a `ReaderPage`.

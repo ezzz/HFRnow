@@ -136,26 +136,11 @@ final class ReaderWebController: NSObject {
               let document, token == document.token else { return nil }
         switch type {
         case "images":
-            let urls = (body["urls"] as? [Any] ?? []).prefix(Self.maximumImages)
-            let auto = autoLoadsThirdPartyImages()
-            return urls.map { value -> String in
-                guard let text = value as? String, let url = URL(string: text) else { return ImageDecision.block.rawValue }
-                return ImageDecision(origin: ImagePolicy.classify(url), autoLoadsThirdParty: auto).rawValue
-            }
+            return decisions(for: body["urls"] as? [Any] ?? [])
         case "tap":
-            // The user tapped a placeholder: consent for that exact URL, third-party only, in this document only.
-            guard let text = body["url"] as? String, let url = URL(string: text), ImagePolicy.classify(url) == .thirdParty,
-                  consented.count < Self.maximumImages else { return false }
-            consented.insert(text)
-            return true
+            return recordTap(body["url"] as? String)
         case "ready":
-            if let anchor = document.anchor {
-                scroll(to: anchor)
-            } else if let offset = savedOffset {
-                webView.scrollView.setContentOffset(offset, animated: false)
-            }
-            savedOffset = nil
-            events.ready(token)
+            documentIsReady(document, token: token)
             return nil
         case "video":
             if let post = (body["post"] as? NSNumber)?.intValue, let index = (body["index"] as? NSNumber)?.intValue {
@@ -165,6 +150,33 @@ final class ReaderWebController: NSObject {
         default:
             return nil
         }
+    }
+
+    /// One decision per image `src`, in order.
+    private func decisions(for urls: [Any]) -> [String] {
+        let auto = autoLoadsThirdPartyImages()
+        return urls.prefix(Self.maximumImages).map { value -> String in
+            guard let text = value as? String, let url = URL(string: text) else { return ImageDecision.block.rawValue }
+            return ImageDecision(origin: ImagePolicy.classify(url), autoLoadsThirdParty: auto).rawValue
+        }
+    }
+
+    /// The user tapped a placeholder: consent for that exact URL, third-party only, in this document only.
+    private func recordTap(_ text: String?) -> Bool {
+        guard let text, let url = URL(string: text), ImagePolicy.classify(url) == .thirdParty,
+              consented.count < Self.maximumImages else { return false }
+        consented.insert(text)
+        return true
+    }
+
+    private func documentIsReady(_ document: ReaderDocument, token: Int) {
+        if let anchor = document.anchor {
+            scroll(to: anchor)
+        } else if let offset = savedOffset {
+            webView.scrollView.setContentOffset(offset, animated: false)
+        }
+        savedOffset = nil
+        events.ready(token)
     }
 
     // MARK: - hfrreader: scheme
