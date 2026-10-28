@@ -1,3 +1,4 @@
+import HFRStorage
 import SwiftUI
 
 /// One `NavigationSplitView` for iPhone, iPad and foldables: forums, topics, messages. On a compact width it collapses to a
@@ -9,12 +10,16 @@ struct AdaptiveNavigationView: View {
 
     init(environment: AppEnvironment) {
         reader = environment.reader
+        // The legacy start tab (LOT-119): the app opens on the chosen list, not on the sidebar.
+        let startup = UserDefaultsSettingsStore().value(for: SettingKey.startupScreen).initialSource
+        _preferredCompactColumn = State(initialValue: startup == nil ? .sidebar : .content)
         let forums = ForumListModel(
             dataSource: environment.dataSource, visibility: environment.visibility, accountName: environment.accountName
         )
         _navigation = State(initialValue: NavigationModel(
             dataSource: environment.dataSource, forums: forums, sessionIsLoggedIn: environment.isLoggedIn,
-            topicPages: environment.topicPages, renderOptions: environment.reader.settings.renderOptions
+            topicPages: environment.topicPages, renderOptions: environment.reader.settings.renderOptions,
+            startupSource: startup
         ))
     }
 

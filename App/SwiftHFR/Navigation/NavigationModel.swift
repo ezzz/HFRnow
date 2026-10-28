@@ -28,13 +28,16 @@ final class NavigationModel {
         forums: ForumListModel? = nil,
         sessionIsLoggedIn: @escaping @Sendable () async -> Bool = { false },
         topicPages: any TopicPageSource = UnavailableTopicPages(),
-        renderOptions: @escaping @Sendable () -> ReaderRenderOptions = { ReaderRenderOptions() }
+        renderOptions: @escaping @Sendable () -> ReaderRenderOptions = { ReaderRenderOptions() },
+        startupSource: TopicSource? = nil
     ) {
         self.dataSource = dataSource
         self.topicPages = topicPages
         self.renderOptions = renderOptions
         self.sessionIsLoggedIn = sessionIsLoggedIn
         self.forums = forums ?? ForumListModel(dataSource: dataSource)
+        // `didSet` does not run in `init`; no topic is chosen yet anyway.
+        selectedSource = startupSource
     }
 
     /// Whether the account is signed in: what the last forum list says, else what the session says (a list opened before the
