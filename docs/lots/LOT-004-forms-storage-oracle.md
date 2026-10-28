@@ -2,7 +2,7 @@
 
 - **Module:** tooling (legacy app)
 - **Difficulty / model:** medium (Sonnet → Fable)
-- **Issue:** none (lot tracked in `docs/LOTS.md`)
+- **Issue:** [#41](https://github.com/ezzz/HFRnow/issues/41)
 
 Harness, patch and run instructions: [`tooling/legacy-oracle/`](../../tooling/legacy-oracle/README.md) (shared with LOT-002 and [LOT-003](LOT-003-topic-oracle.md)).
 This lot adds three kinds: `form` (the `hop` form extraction and POST body of every write flow), `response` (the classifier of
@@ -207,7 +207,7 @@ Each item contradicts or refines an assumption above.
 - RC4.7 **MPStorage page and edit form (R60a, R60b).** The page parse reads user1's live document from the rendered first post: `returned true`, `mpstorage_active true`, `sNumRep` = the first post's
   `numreponse`, `dData` = the empty legacy structure (`sourceName` `iOS`, one `lastUpdate` everywhere), no alert, no request; `sPostId` stays `null` (the parse does not set it, `find` does).
   The edit form parses like R43a (`haveTitle true`, `onlyLive: ["delete", "subcat"]`); `contentForm` is the document byte for byte, so the legacy update would post it back unchanged apart from its own edits.
-  Only an empty document was observed: other clients' namespaces, pseudos and the size and non-BMP limits are still pending capture (`docs/LOTS.md`, Capture backlog).
+  Only an empty document was observed: other clients' namespaces, pseudos and the size and non-BMP limits are still pending capture ([#272](https://github.com/ezzz/HFRnow/issues/272)).
 
 ## Fixtures
 `tooling/legacy-oracle/samples/`, all synthetic (fake pseudos `fakeuser1..3`, fake hash). Expected JSON is generated, not committed. Real cases: see "Real captures" above (`Fixtures/LOT-004/`).

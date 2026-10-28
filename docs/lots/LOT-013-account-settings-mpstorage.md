@@ -2,7 +2,7 @@
 
 - **Module:** HFRModels
 - **Difficulty / model:** easy (Sonnet → Opus)
-- **Issue:** none (lot tracked in `docs/LOTS.md`)
+- **Issue:** [#46](https://github.com/ezzz/HFRnow/issues/46)
 
 ## Legacy sources
 Legacy repository <https://github.com/francoisgn/hfrnow> at `2440d79`. Audit: [E §2.1, §2.6, §3.1, §8 (E-3, E-6)](../audit/E-storage-vendors.md) and review finding F2 (network lots need `Account`/`StoredCookie` only), [redface2 comparison](../research/redface2-comparison.md) §4.3 E23, E24.

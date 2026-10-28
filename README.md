@@ -132,6 +132,7 @@ flowchart LR
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Modules and dependency rules |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Phases and their exit criteria |
 | [docs/LOTS.md](docs/LOTS.md) | The migration plan: lots, dependencies, model routing, one issue each |
+| [Issues](https://github.com/ezzz/HFRnow/issues) | The tracker: one issue per lot, capture, bug, chore or feature, claimed with `/claim`; MVP roadmap [#166](https://github.com/ezzz/HFRnow/issues/166) |
 | [docs/lots/](docs/lots/) | One spec per engine lot — the file a lot is built from |
 | [docs/FEATURES.md](docs/FEATURES.md) | The app feature backlog (FEAT-XXX): proposals with credit, status |
 | `docs/features/` | One spec per app feature (`FEAT-XXX.md`), created with the first feature |
@@ -153,13 +154,13 @@ swift test --package-path Packages/HFRKit
 python3 scripts/check-lot-deps.py   # migration plan respects module boundaries
 ```
 
-The iOS app target (Xcode 27) is created before the app phase.
+The iOS app (Xcode 27) is in `App/`: see [App/README](App/README.md). Work to pick up is on the [issues](https://github.com/ezzz/HFRnow/issues) (`status: ready`); the plan of the lots is [LOTS.md](docs/LOTS.md).
 
 ## Contributing
 
 1. Read **[AGENTS.md](AGENTS.md)**, then [CONTRIBUTING.md](CONTRIBUTING.md).
-2. Claim a `todo` [migration lot](docs/LOTS.md) with no owner: a PR that sets you as owner and `in-progress` (the only tracker until Issues are enabled on ezzz/HFRnow).
-3. Open a PR against `dev-swift` naming its lot (`LOT-XXX`). It is merged only when it meets the **[merge criteria](CONTRIBUTING.md#2-merge-criteria)** — 9 required checks green, no conflict, every conversation resolved, and a review by a different model; no human approval is required, the author merges once all of these hold ([ADR 0011](docs/adr/0011-contribution-model-and-feature-intake.md)).
+2. Claim a [`status: ready` issue](https://github.com/ezzz/HFRnow/issues?q=is%3Aissue+is%3Aopen+label%3A%22status%3A+ready%22) nobody claimed, with a `/claim <your-id>` comment; [LOTS.md](docs/LOTS.md) is the plan of the migration lots, each linked to its issue.
+3. Open a PR against `dev-swift` with `Closes #N` (or `Refs #N` for partial work) and `Claim: <your-id>`, naming its lot (`LOT-XXX`) if it is one; a small fix without an issue says `Direct-PR: <reason>`. It is merged only when it meets the **[merge criteria](CONTRIBUTING.md#2-merge-criteria)** — 9 required checks green, no conflict, every conversation resolved, and a review by a different model; no human approval is required, the author merges once all of these hold ([ADR 0011](docs/adr/0011-contribution-model-and-feature-intake.md)).
 
 ### Starting an agent
 
@@ -167,7 +168,7 @@ Paste this at the start of the session (Claude also loads [CLAUDE.md](CLAUDE.md)
 
 ```text
 Read AGENTS.md and follow it. Repository ezzz/HFRnow: create a task branch from dev-swift,
-never work on dev-swift itself, never touch master. Work only on <LOT-XXX>, claimed first in docs/LOTS.md.
+never work on dev-swift itself, never touch master. Work only on issue #<N> (<LOT-XXX>), claimed first with /claim.
 Write the spec and the tests before the code.
 Stop and ask me when an HFR behaviour is not documented. Do not merge: open a PR that meets CONTRIBUTING.md §2.
 ```

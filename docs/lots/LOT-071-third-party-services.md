@@ -2,7 +2,7 @@
 
 - **Module:** docs
 - **Difficulty / model:** easy · Opus → Fable (author → reviewer)
-- **Issue:** old [francoisgn/ios-app_SwiftHFR#91](https://github.com/francoisgn/ios-app_SwiftHFR/issues/91) (frozen history)
+- **Issue:** [#95](https://github.com/ezzz/HFRnow/issues/95); old [francoisgn/ios-app_SwiftHFR#91](https://github.com/francoisgn/ios-app_SwiftHFR/issues/91) (frozen history)
 - **Inputs:** [audit README](../audit/README.md) Q-4, Q-7, Q-10 · [ADR 0007](../adr/0007-third-party-api-keys.md) ·
   [HFR-PROTOCOL §8](../HFR-PROTOCOL.md#8-third-party-services) · audit [D](../audit/D-posting.md) §2.7, §3.2, §5 and
   [E](../audit/E-storage-vendors.md) §5–6 · LOT-034 image hand-off ([PR #23](https://github.com/ezzz/HFRnow/pull/23))
@@ -175,9 +175,9 @@ Already open elsewhere, not reopened here: whether to keep GIF search and how (A
 
 No new fixture. Facts come from the legacy code above and from the topic captures `R20`–`R28`, `RA*`, `RU*` (image hosts, page chrome).
 
-**Pending capture** (added to the Capture backlog in [LOTS.md](../LOTS.md)): a `reho.st` image fetched cookie-less with and without
+**Pending capture** (capture issue [#134](https://github.com/ezzz/HFRnow/issues/134)): a `reho.st` image fetched cookie-less with and without
 `Referer: https://forum.hardware.fr/` (settles HFR-PROTOCOL §7 E26 for the LOT-056 host table), and one `http://`-only image host of
-`R20`/`R21`/`R22a` requested over `https` (does it upgrade?). Plain GETs, no account, no upload. The AQ captures are already in the backlog (LOT-028).
+`R20`/`R21`/`R22a` requested over `https` (does it upgrade?). Plain GETs, no account, no upload. The AQ captures are [#133](https://github.com/ezzz/HFRnow/issues/133) (LOT-028).
 
 ## Intentional differences from legacy
 

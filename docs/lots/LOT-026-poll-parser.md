@@ -2,7 +2,7 @@
 
 - **Module:** HFRParsing (+ one optional field in HFRModels `Poll`)
 - **Difficulty / model:** medium (Sonnet → Opus)
-- **Issue:** none (lot tracked in `docs/LOTS.md`)
+- **Issue:** [#54](https://github.com/ezzz/HFRnow/issues/54)
 
 Scope decided by the orchestrator: only states **proven by a capture** are handled — the voting form (`R32a` logged out, `R32b` logged in, not voted) and
 the results (`R33a` closed poll, `R33b` already voted with the multi-pseudo notice). No hand-built page. Vote responses (N05) belong to LOT-054.
