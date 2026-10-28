@@ -75,6 +75,9 @@ if $REPO_WIDE; then
 {"security_and_analysis":{"secret_scanning":{"status":"enabled"},"secret_scanning_push_protection":{"status":"enabled"}}}
 JSON
 
+  echo "› Merge settings: auto-merge allowed (squash stays the only method, via the ruleset)"
+  gh api -X PATCH "repos/$REPO" -F allow_auto_merge=true >/dev/null
+
   echo "› Workflow token: read-only by default, Actions cannot approve PRs"
   gh api -X PUT "repos/$REPO/actions/permissions/workflow" \
     -f default_workflow_permissions=read -F can_approve_pull_request_reviews=false >/dev/null
