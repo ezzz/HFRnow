@@ -34,7 +34,12 @@ Public forum post content may stay when needed for the test; prefer neutral exce
 - MP subjects of private files are replaced by `Private subject`, except the operator's fixture threads
   (`fixture-test-N`) and `a2bcc09b796b8c6fab77058ff8446c34`. That one is **not** a leak: it is the fixed title of the
   MPStorage thread, a public constant of the legacy app (`Classes/MPStorage.m:23`, `MP_NAME`, the same for every
-  user), kept so LOT-038 can test locating the storage MP.
+  user), kept so LOT-038 can test locating the storage MP (also in the hidden `sujet` of the thread's fast-reply form).
+  The storage MP's recipient `MultiMP` (`MP_SENDTO`, `Classes/MPStorage.m:24`), printed `multimp` in the edit form's
+  recipient row (R60b), is a member position and is aliased on purpose, although it is a constant too.
+- The first post of that thread is the MPStorage JSON document LOT-038 parses: `--private` keeps it, and only it,
+  when the page is the storage thread and the document holds known keys and the strings `0.1` and `iOS` (R60a); any other
+  key or string (a blacklisted pseudo, another client's data) stops the anonymizer until that position gets aliasing.
 A reviewer must check anonymization; `check --corpus` and gitleaks run on every push as safety nets.
 
 ## Capture
