@@ -397,6 +397,18 @@ class MPStorageTests(unittest.TestCase):
                 anon(page, private=True)
             self.assertIn("MPStorage document copy not vouched for", self.reasons(page))
 
+    def test_form_copies_checked_whatever_the_attribute_order_and_quotes(self):
+        # CodeRabbit on #259: `value` before `name`, single-quoted `content_form`.
+        bad = self.EMPTY.replace('"blacklist":{"list":[]', '"blacklist":{"list":["Quuxbar"]')
+        page = (self.form_page(bad, self.EMPTY)
+                .replace('<input type="text" name="sujet" value="%s" />' % A.MPSTORAGE_SUBJECT,
+                         "<input value='%s' type='text' name='sujet' />" % A.MPSTORAGE_SUBJECT)
+                .replace('name="content_form"', "name='content_form'"))
+        self.assertIn("name='content_form'", page)
+        with self.assertRaises(A.MPStorageDocumentError):
+            anon(page, private=True)
+        self.assertIn("MPStorage document copy not vouched for", self.reasons(page))
+
     def test_form_of_another_thread_is_not_checked_as_a_document(self):
         page = self.form_page("plain text", "plain text", subject="fixture-test-1")
         self.assertIn("plain text", anon(page, private=True))

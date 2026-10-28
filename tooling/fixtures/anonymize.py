@@ -471,8 +471,10 @@ class AnonymizeError(Exception):
 # The storage thread's forms (live R60b edit form; R60a fast reply) repeat the document in `content_form` and in the
 # review cells under the form (the `td` after `td.messCase1bis`, "Dernière réponse" and "Vue Rapide"): those copies
 # are not message bodies (`para`), so on such a page each one must pass the same document check.
-MPSTORAGE_FORM_RE = re.compile(r"<input\b[^>]*\bname=[\"']sujet[\"'][^>]*\bvalue=[\"']%s[\"']" % MPSTORAGE_SUBJECT, re.I)
-CONTENT_FORM_RE = re.compile(r"<textarea\b[^>]*\bname=[\"']content_form[\"'][^>]*>(.*?)</textarea>", re.I | re.S)
+# Attribute order and quotes are free in HTML: both are matched by lookahead.
+MPSTORAGE_FORM_RE = re.compile(r"<input\b(?=[^>]*\bname=[\"']sujet[\"'])(?=[^>]*\bvalue=[\"']%s[\"'])[^>]*>"
+                               % MPSTORAGE_SUBJECT, re.I)
+CONTENT_FORM_RE = re.compile(r"<textarea\b(?=[^>]*\bname=[\"']content_form[\"'])[^>]*>(.*?)</textarea>", re.I | re.S)
 REVIEW_BODY_RE = re.compile(r"<td\b[^>]*\bclass=[\"']messCase1bis[\"'][^>]*>.*?</td>\s*<td\b[^>]*>(.*?)</td>", re.I | re.S)
 
 
@@ -1120,7 +1122,7 @@ _V_MPSTORAGE_TITLE = re.compile(r"<title>\s*%s - Messages priv" % MPSTORAGE_SUBJ
 # Its form pages print "Sujet : MP_NAME" (R60a header, R60b review table); there every content_form and every cell
 # after a messCase1bis author cell is a copy of the document.
 _V_MPSTORAGE_SUBJECT_TEXT = re.compile(r"Sujet\s*:\s*(?:<h3>\s*)?%s\b" % MPSTORAGE_SUBJECT)
-_V_MPSTORAGE_COPY = re.compile(r"name=\"content_form\"[^>]*>([^<]*)</textarea|messCase1bis\b[^>]*>[^<]*</td>\s*<td[^>]*>((?:(?!</td>).)*)",
+_V_MPSTORAGE_COPY = re.compile(r"<textarea\b(?=[^>]*\bname=[\"']content_form[\"'])[^>]*>([^<]*)</textarea|messCase1bis\b[^>]*>[^<]*</td>\s*<td[^>]*>((?:(?!</td>).)*)",
                                re.I | re.S)
 _V_MPSTORAGE_WORDS = frozenset(("data", "version", "0.1", "blacklist", "mpFlags", "bookmarks", "list",
                                 "sourceName", "iOS", "lastUpdate"))
