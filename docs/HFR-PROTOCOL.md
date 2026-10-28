@@ -66,7 +66,7 @@ The home page does not link `cat` ids; this table maps each forum's topic-list p
 1. GET the form page (answer URL, edit URL, new-topic URL, MP URL). It contains `<form name="hop">`.
 2. Copy every `<input>` (legacy: checkbox → `"1"`/`"0"`; **rf2: browsers send nothing for an unchecked checkbox or radio** ([research](research/redface2-comparison.md) §4.2 X3, open point §4.4 item 3); radio → value only if checked, others → `value`) and every `<select>` (selected or first option). Values must be HTML-entity-decoded (legacy Swift does not: bug).
 3. Override `content_form` (message, `\n` → `\r\n`), `pseudo`, `hash_check`, `config=hfr.inc`; and `sujet`, `subcat`, `dest` when the form exposes them.
-4. POST `application/x-www-form-urlencoded; charset=utf-8` to the form `action`, resolved against the form URL. Default `/bddpost.php` only when the form has no usable action. The edit form's action is unverified (`/bdd.php` is established only for MPStorage updates, §3.3) — **always read the action, never hard-code**.
+4. POST `application/x-www-form-urlencoded; charset=utf-8` to the form `action`, resolved against the form URL. The legacy app defaulted to `/bddpost.php` when the form had no usable action; SwiftHFR must not use that fallback: `HopFormParser` returns `ForumForm.action` resolved and restricted to the forum origin ([LOT-036](lots/LOT-036-hop-form-parser.md)), and when it is `nil` (absent, empty or off-origin) [LOT-048](lots/LOT-048-post-form-engine.md) rejects the write (`missingAction`) and substitutes no default. The edit form's action is unverified (`/bdd.php` is established only for MPStorage updates, §3.3) — **always read the action, never hard-code**.
 5. Classify the response (HTTP 200 even on rejection):
    - success: a `<meta http-equiv="refresh">`, or a `.hop` block without `<a>`/`<input>`; anchor = fragment of the refresh URL;
    - rejected (incl. flood): `.hop` block containing a link or input; message = its text;
@@ -124,9 +124,9 @@ Source: `Classes/MPStorage.m:21-22, 152-156, 249-355, 536-666, 737-885` · D §2
 - **Topic URL redirect** (**live**, 2026-10-25, request to topic 1711 page 450; rf2 agrees, [research](research/redface2-comparison.md) §4.3 E13): `forum2.php?…&page=N` answers **301** with a relative `Location: /hfr/<cat>[/<sub-category>]/<slug>-sujet_<post>_<N>.htm`; read the page from the `sujet_<post>_<N>` segment.
 - **Topic slug** (**live**, LOT-001 corpus: 341 distinct title/slug pairs of the topic lists `R04`, `R05a`, `R05b`, `R06`, `R07`, `R09`, `R27-list`, `R50b`; no legacy code builds slugs, the server does): the `<slug>` of `<slug>-sujet_<post>_<page>.htm` is made of **at most 3 words** of the title, in title order (no slug has more, including titles of 5+ long words); which words are kept is not predictable (short words usually go, some long ones too). Words are lower case without accents; `_` and non-ASCII punctuation (`’`) are deleted, joining the words around them; any other character separates words. Example `R07`, topic 21064: a 7-word title `[<pseudo>] colo en cours 10-2018` gives a 3-word slug `<one word of the pseudo>-cours-2018`.
 - **Emoji** (**rf2**, [research](research/redface2-comparison.md) §4.2 X9; users report the same, [user feedback](research/user-feedback-p450-510.md) p. 478; decides Q-3): HFR cuts a posted message at the first character outside the Basic Multilingual Plane (most emoji) and still answers success; everything after it is lost silently. Never send such characters. **live** (`W12`, `R43c`): "before 😀 after" answered success and was stored as "before".
-- **Legacy emoji stripping** (**code**, `AddMessageViewController.m:553`, `AlerteModoViewController.m:209`, `-[NSString removeEmoji]` in `SuperHFRplus/Helpers/RangeOfCharacters.m:306`): the legacy client strips some emoji before posting (sample `form-reply-emoji`: 😀 and ☺ removed, ❤ kept); the live Swift path posts the text unchanged. The SwiftHFR policy is decision Q-3 ([audit README](audit/README.md#decisions-needed)), not yet implemented. [LOT-004](lots/LOT-004-forms-storage-oracle.md) quirk 15b.
+- **Legacy emoji stripping** (**code**, `AddMessageViewController.m:553`, `AlerteModoViewController.m:209`, `-[NSString removeEmoji]` in `SuperHFRplus/Helpers/RangeOfCharacters.m:306`): the legacy client strips some emoji before posting (sample `form-reply-emoji`: 😀 and ☺ removed, ❤ kept); the live Swift path posts the text unchanged. The SwiftHFR policy is decision Q-3 ([audit README](audit/README.md#decisions-needed)): [LOT-048](lots/LOT-048-post-form-engine.md) refuses a text, subject or recipient holding a character above U+FFFF before sending, and strips nothing. [LOT-004](lots/LOT-004-forms-storage-oracle.md) quirk 15b.
 - **Dates**: printed as `dd-MM-yyyy à HH:mm` in lists and `dd-MM-yyyy à HH:mm:ss` in message toolbars and edit trailers, French wall-clock time in `Europe/Paris` with no offset; an hour repeated by the October DST change is therefore ambiguous (SwiftHFR takes the first occurrence, LOT-020). `ObjCTopicListParser.m:421-424`, `Favorite.m:119-123`, `ParseMessagesOperation.m:398-401` · B §3.3.5, [user feedback](research/user-feedback-p450-510.md) §4
-- **Form encoding** (decided, [LOT-040](lots/LOT-040-transport.md)): bodies are `application/x-www-form-urlencoded; charset=utf-8`, every non-ASCII byte percent-encoded (legacy global search sent accents raw, `ObjCForumSearchWorker.m:194-199`). Line breaks are sent as typed unless a poster chooses CRLF (open, §7 X11).
+- **Form encoding** (decided, [LOT-040](lots/LOT-040-transport.md)): bodies are `application/x-www-form-urlencoded; charset=utf-8`, every non-ASCII byte percent-encoded (legacy global search sent accents raw, `ObjCForumSearchWorker.m:194-199`). Line breaks: HFR accepts LF and CRLF and stores them as sent (§7 X11, settled); [LOT-048](lots/LOT-048-post-form-engine.md) always sends CRLF, as a browser does.
 - **HTTP status**: legacy ignores it; application errors are detected from content (`.hop`, `login_redirection.php`, missing `id`, `Location`). A §3.4 The new transport throws on 4xx/5xx ([LOT-040](lots/LOT-040-transport.md)).
 - **URL building** ([LOT-041](lots/LOT-041-endpoints.md)): `HFREndpoint` builds every §1–2 request with the query order shown in the tables. Topic pages are always requested through `forum2.php` (the canonical path is never rebuilt, its sub-category segment is not derivable); query values use strict percent-encoding (`%20` for space, `%2B` for `+`). Exception: the REST `uri` value keeps `/` literal (`uri=forums/hardwarefr/categories/`), never `%2F`.
 - **Headers**: no custom User-Agent, Referer or Origin; gzip accepted. Whether HFR checks any is unverified. A §3.3
@@ -255,6 +255,46 @@ Source: [LOT-027](lots/LOT-027-profile-parser.md), `UserProfileParser`, checked 
 - **Profile page 5 after login** (`R55-p5` meta, **verified**): the page sets `md_user` and `md_passs` again (each twice in the answer), so the session cookies are read after it. Its `hash_check` is the token a new session posts with.
 
 
+### LOT-023 — MP list and unread badge
+
+[LOT-023](lots/LOT-023-mp-list.md), tests `PrivateMessageListParserTests`, `PrivateMessageBadgeParserTests`.
+
+- **MP row** (`R13a`, `R13b`, `R13u1`, **verified**): own state is `sujetCase1` (`closedbp.gif` `alt="On"` title "Nouveau message. Message privé pour <others>", `closedp.gif` `alt="Off"`); the `[non lu]` marker is `<span class="red" title="Ce message n'a pas été lu par : <pseudos>">` before the title link in `sujetCase3`, the pseudos joined with `, ` (the group tooltip of `sujetCase6` with `,`). The two states are independent: `R13u1` has read threads marked `[non lu]`. `sujetCase2` holds a message icon and the ignore link `/user/ignore.php?…&auteur=<pseudo>` (`ignore0.gif`).
+- **Group thread** (`R13u1`): `sujetCase6` is `<span title="<pseudos>">Interlocuteurs multiples</span>` with no profile link; one-to-one threads link `profilebdd.php?…&pseudo=`.
+- **Unread count** (`R02`, `R03`, `P03f`, `R08-2`, **verified**): the home page announces it in the `tr.cat` row linking `cat=prive` (`a.cCatTopic.red` "Vous avez 10 nouveaux messages privés"; "Envoyer / lire des messages privés" with no number and no `red` class when none is unread), logged-in forum lists in the middle cell of the 3-cell `table.none` ("Vous avez 1 nouveau message privé" in `a.red`, else "Messages privés"). The MP list, anonymous pages and the topic page have neither.
+
+
+### LOT-047 — MP unread poll
+
+[LOT-047](lots/LOT-047-mp-unread-poll.md), tests `MPUnreadPollTests`.
+
+- **Poll page** (`R01`, `R02`, `R03`, **verified**): `GET /` carries the unread count in the `cat=prive` row (see LOT-023), 200 for anonymous and logged-in visitors, served at `https://forum.hardware.fr/` (no redirect, meta `final_url`). The poll reads only that page; no topic page, so no flag is marked read (§7, E25). The logged-in answer sets `md_user` and `md_passs` (each twice, R02/R03 metas), so the poll sends from a probe jar and does not write them back.
+- **Pending capture:** the home page answered to a logged-in session with expired cookies; until captured a poll reads it as `nil` (no information) whichever form HFR serves.
+
+
+### LOT-036 — write forms
+
+Source: [LOT-036](lots/LOT-036-hop-form-parser.md), `HopFormParser`, checked by `HopFormOracleTests` against the LOT-004 oracles and by `HopFormParserTests` on `R40a`, `R40b`, `R41a`, `R41b`, `R42`, `R43a`–`R43c`, `R44`, `R45a`, `R45b`, `R46`, `R47a`–`R47c`, `R47u1`.
+
+- **Form**: `<form name="hop" id="hop" action=… method="post">` holds the inputs, the selects and the `<textarea id="content_form" name="content_form">`. Reply, quote and MP-reply forms post to `/bddpost.php?config=hfr.inc`; the **private-message edit forms** (`R43a`–`R44`) post to `/bdd.php?config=hfr.inc` (public-topic edit not captured, see the lot's "Pending capture"). The `action` is always read from the page.
+- **Reply form** (`R40a`, logged in, 43 inputs): hidden `hash_check, subcat, parents, post, stickold, new, cat, numreponse, numrep, page, verifrequet (1100), p, sondage, sond, cache, owntopic, config, sujet`; text `pseudo` (the account's), `password` (hidden row), 16 `MsgIcon` radios (the first `checked`), `search_smilies`, hidden `ColorUsedMem` and `wysiwyg`, the `submit` input ("Valider votre message") and three checkboxes `signature`, `smiley`, `emaill` (value `1`, unchecked). No `<select>`.
+- **Anonymous composer** (`R40b`): the same form, with an **empty** `hash_check` and an empty `pseudo`. `hash_check` also sits in the header search form of every page, so its presence says nothing about the session.
+- **Edit form** (`R43a`–`R44`): `stickold` empty, `pseudo` and `sujet`; `sujet` is a visible text input on the first post of a conversation and hidden on a later one; a `delete` checkbox (value `1`, unchecked) except on `R44` (another account's message, served without it); the text is the stored one, with `\r\n` as sent (`R43a`, bytes) or `\n` (`R43b`).
+- **Quote prefill** (`R41a`, `R41b`, `R47a`): `[quotemsg=<numreponse>,<ref>,<author id>]<text>[/quotemsg]` plus a trailing newline, line breaks `\r\n` in the HTML bytes; `&` of cited links is written `&amp;` and decoded by the parser. A multi-quote cookie gives one block per cited message (`R42`, `R47c`: two).
+- **New topic** (`R45a`): visible `sujet`, `toread1`..`toread5`, `<select name="subcat">` of 16 options, the first `value=""` "Aucune", none `selected`. **New MP** (`R45b`): visible `dest` (prefilled) and `sujet`, no select. **MP reply** (`R47b`, `R47u1`): hidden `sujet`, no `dest`, no `newdest`.
+- **Leading newline**: verified, every captured prefill starts right after the `<textarea>` tag, so HFR adds no newline of its own. **Pending capture**: a stored text that begins with `\n` (a browser's HTML parser would drop one newline after the tag; the parser keeps it, no capture has one).
+- **Favourite smileys** (`R47u1`, user1): `#dynamic_smilies` holds `<img src=".../images/perso/[N/]<name>.gif" alt="[:name[:N]]" title=… onclick="putSmiley(this.alt,this.src)">`, 8 of them; empty or absent for the other accounts (`R40a`, `R47b`).
+- **Moderator alert form** (`R46`): `<form method="post" action="modo.php?cat=13&amp;ref=1&amp;post=…&amp;numreponse=…&amp;page=1&amp;config=hfr.inc">` (relative to `/user/`, not a `hop` form) with `hash_check`, `referer_page` (empty), the `raison` textarea (no id) and `Submit`; the page also has the `#fastsearch` form (`action="/forum1.php"`, its own `hash_check`).
+
+### LOT-048 — posting
+
+[LOT-048](lots/LOT-048-post-form-engine.md), tests `PostingCaptureTests`, `PostingBodyOracleTests`, `PostingRefusalTests`, `PostingInputTests` and `HopFormLayoutTests`.
+
+- **Body order** (`W10`-`W19` `request_fields`, **verified**): every captured write sends the `hop` form's controls in document order, `content_form` in place between `ColorUsedMem` and `wysiwyg`, the submit input, then the checked boxes; the new-topic `subcat` select sits between `toread5` and the tone radios (`R45a`). The engine rebuilds `W13b`'s body byte for byte from `R47b`, and the other captured bodies once legacy's `"0"` boxes are dropped and line breaks written CRLF.
+- **Fields sent** (`R40a`-`R47u1`, LOT-004 oracle, **verified**): the form's own `hash_check`, `pseudo` and `verifrequet=1100`, every hidden input, the checked tone radio, `submit=Valider votre message`; the same names and values as legacy apart from unchecked boxes.
+- **Composer shapes** (`R40a`-`R47u1`, **verified**): only edit forms carry a non-empty `numreponse`; new-thread forms show `sujet` (`R45a`), with `dest` for a private one (`R45b`); the first post's edit form shows `sujet` and labels its box "Effacer l'intégralité du sujet" (`R43a`), a later post hides `sujet` and says "Effacer ce message" (`R43b`).
+- **Per-write sentences** (`W10`, `W11`, `W15`, `W16a`, `W19`, **verified** on private messages): see §7 E15; `W18` (mark unread) is also a confirmation, of another action. Public-topic answers are not captured (lot's Pending capture).
+
 ### LOT-031 — message action links
 
 Source: [LOT-031](lots/LOT-031-message-actions.md), `MessageActionsParser`, checked by `MessageActionsOracleTests` against the legacy actions dictionary of the 20 LOT-003 topic oracles (358 messages) and by `MessageActionsParserTests`.
@@ -269,6 +309,7 @@ Source: [LOT-031](lots/LOT-031-message-actions.md), `MessageActionsParser`, chec
 - **Alert**: `<a href="/user/modo.php?config=hfr.inc&cat=<cat>&post=<post>&numreponse=<n>&page=<p>&ref=<i>" title="Prévenir les modérateurs en cas d'abus" target="_blank">`, logged in on public topics only.
 - **Not read** (no legacy use): `viewbbcode.php`, `edit_in(…)` quick edit, `/user/contactlist.php?adduser=<id>`.
 - **Pending capture**: the viewer's own post on a public topic (edit link shape and which other links remain), a quote or edit link printed in clear instead of obfuscated.
+
 
 ## 7. Reported by redface2, to verify with our fixtures
 

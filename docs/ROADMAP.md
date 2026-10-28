@@ -27,8 +27,8 @@ Harness in the legacy app exporting parser output as JSON from real pages; captu
 Lots ported one by one with differential tests (`HFRModels`, `HFRNetwork`, parsers, reply posting, `HFRStorage`).
 **Exit:** all lots `done`; the engine covers every feature of the legacy app.
 
-## Phase 4 — App *(starting — app target LOT-080 on the Mac; first usable build = LOT-080 to 083, see [LOTS.md](LOTS.md))*
-Prerequisite: create the iOS app target on the Mac (Xcode 27), wire it to `HFRKit`, add an app build job to CI, record the project-file strategy in an ADR.
+## Phase 4 — App *(in progress — app target done by LOT-080; first usable build = LOT-080 to 083, see [LOTS.md](LOTS.md))*
+The iOS app target `App/SwiftHFR.xcodeproj` links `HFRKit` and is built and tested in CI ([ADR 0012](adr/0012-app-project-file-strategy.md)).
 Reuse and adapt the legacy SwiftUI views on top of `HFRKit`; remove everything unused.
 
 ## Phase 5 — iOS 27 experience

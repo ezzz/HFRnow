@@ -6,6 +6,8 @@ DerivedData/
 xcuserdata/
 *.xcscmblueprint
 Package.resolved.orig
+# HFRKit pins exactly; the app's Package.resolved is the committed resolution (ADR 0012)
+Packages/HFRKit/Package.resolved
 *.ipa
 *.dSYM.zip
 *.mobileprovision

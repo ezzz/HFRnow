@@ -8,6 +8,7 @@ Editable source: [architecture.excalidraw](architecture/architecture.excalidraw)
 
 ```
 App (SwiftUI, iOS 27)                 composition root, navigation, views, view models
+  │                                  App/SwiftHFR.xcodeproj, links every HFRKit module (ADR 0012)
   │
   ├── Feature modules (later)          Forums, Topic, Composer, PrivateMessages, …
   │
