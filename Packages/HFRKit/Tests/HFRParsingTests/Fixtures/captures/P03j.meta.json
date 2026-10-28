@@ -20,7 +20,7 @@
     "valuecat0",
     "valueforum0"
   ],
-  "note": "legacy body (FavoritesTableViewController.m:1836-1858 order, no owntopic), one topic",
+  "note": "legacy body (FavoritesTableViewController.m:1846-1858 order, no owntopic), one topic",
   "request_body": "hash_check=REDACTED&topic1=-1&topic_statusno1=-1&action_reaction=message_forum_delflags&type_page=forum1f&topic0=55038&valuecat0=13&valueforum0=hardwarefr",
   "file": "P03j-manageaction-delflags-legacy-body.html",
   "private": false
