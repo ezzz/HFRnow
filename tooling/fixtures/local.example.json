@@ -2,5 +2,6 @@
   "pseudos": ["FakePseudoOne", "FakePseudoTwo"],
   "emails": ["operator@example.invalid"],
   "profile_ids": [111111, 222222],
-  "extra_pseudos": ["Other Member Seen In Prose"]
+  "extra_pseudos": ["Other Member Seen In Prose"],
+  "own_topics": [123456]
 }
