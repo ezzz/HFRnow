@@ -157,9 +157,9 @@ private messages, HFR-PROTOCOL §7 E15), and every public delete asks for whole-
   sentences as on private messages, each with a refresh, so LOT-037 classifies them `success` and the per-write sentence
   check confirms them (`HopResponseParserTests`). The public **new-topic** answer is still pending: until captured it is a
   success only with LOT-037's `success` and its own sentence, otherwise `unconfirmed`.
-- **Public edit form of a first post**: the later post's form is captured (`R62a`, `R62b`: action `/bdd.php?config=hfr.inc`,
-  hidden `sujet`, "Effacer ce message"); the first post's (subject field, `delete` label) is not, so every public delete still
-  asks for whole-topic confirmation.
+- **Public edit form of a first post**: now captured (`R63b`, own topic): visible `sujet` and "Effacer l'intégralité du sujet",
+  both first-post signs as on `R43a`, and the edit answer (`W34`, `W35`). The engine still asks for whole-topic
+  confirmation on every public delete; trusting the signs on public forms is a follow-up decision, not this capture.
 - **Delete of a public topic's first post**: what HFR answers, and whether the whole topic goes (rf2 X1).
 - **New-topic answer** in a forum category: sentence and refresh target (E14).
 - **Reply form of a locked topic or of a topic the account may not post in** (already listed for LOT-036/037): reported as

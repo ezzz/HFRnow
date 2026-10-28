@@ -170,6 +170,15 @@
     },
     "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=6510&numreponse=75493617&page=30&p=1&subcat=430&sondage=0&owntopic=0"
   },
+  "R63b.html": {
+    "kind": "form",
+    "mode": "edit",
+    "path": "../captures/R63b-public-edit-form-first-post.html",
+    "session": {
+      "pseudo": "user1"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=6&post=9900001&numreponse=9910000001&page=1&p=1&subcat=173&sondage=0&owntopic=0"
+  },
   "S-find-R13a.json": {
     "kind": "storage",
     "pseudo": "user2",
@@ -301,5 +310,17 @@
     "flow": "reply",
     "kind": "response",
     "path": "../captures/W33-public-reply-empty-body-rejected.html"
+  },
+  "W34.html": {
+    "flow": "reply",
+    "kind": "response",
+    "path": "../captures/W34-public-first-post-edit-success.html",
+    "urlQuote": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=6&post=9900001&numreponse=9910000001&page=1&p=1&subcat=173&sondage=0&owntopic=0"
+  },
+  "W35.html": {
+    "flow": "reply",
+    "kind": "response",
+    "path": "../captures/W35-public-first-post-restore-success.html",
+    "urlQuote": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=6&post=9900001&numreponse=9910000001&page=1&p=1&subcat=173&sondage=0&owntopic=0"
   }
 }

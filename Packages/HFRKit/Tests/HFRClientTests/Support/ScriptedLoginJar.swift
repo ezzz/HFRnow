@@ -6,7 +6,7 @@ import HFRNetwork
 /// A login jar with scripted answers: each step returns its reply and stores the cookies the server would have set.
 ///
 /// The cookies go into a real `HFRSession` that never sends anything, so `userKey(now:)` is the production rule.
-actor ScriptedLoginJar: LoginJar {
+actor ScriptedLoginJar: SessionJar {
     /// One scripted exchange.
     struct Step: Sendable {
         var reply: Result<HTTPResponse, NetworkError>
@@ -59,7 +59,7 @@ final class JarFactory: @unchecked Sendable {
         return made
     }
 
-    func make() -> any LoginJar {
+    func make() -> any SessionJar {
         lock.lock()
         defer { lock.unlock() }
         made += 1

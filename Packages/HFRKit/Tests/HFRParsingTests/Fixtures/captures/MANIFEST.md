@@ -22,7 +22,14 @@ on a public topic (state restored), the searches, then user1 again with a correc
 fixture thread (`fixture-test-N`) or the MPStorage thread are replaced, whatever their content (digits included).
 Run 3 (follow-up, 11 requests, 115 in total, read-only) added R33a/R33b, R55-p5u1 and R56a/R56b. Run 4 (2026-10-27, P01 approved by the operator that day, 22 requests): user2 replied once in one public topic
 (cat 13), edited and deleted that reply (W30-W33, R61b-R62b; the post is gone, `R61e`), and one empty-body reply was refused;
-nothing else of it is in this corpus. Public profile pages
+user1 also edited the first post of one of its own topics and restored it (R63a, R63b, R63e, W34, W35; the
+edit forms read back after the edit and after the restore, R63c and R63d, were captured to verify the restore and are
+not published). **Own
+topics** (`own_topics` in the local config) are unlinked by the anonymizer: topic id → `9900001`, message ids →
+`9910000001`… (one table for the batch), subject → `Own topic subject`, slug → `own-topic-subject`, message bodies,
+the form review and the description → `Own topic text removed.`, each line of the edit text → `Text removed.` (line
+breaks kept), related-topic links → `Related topic`, dates → `01-01-2000` / `00:00:00`, the meta date →
+`Sat, 01 Jan 2000 00:00:00 GMT`. Public profile pages
 (R56) keep their structure; the pseudo (title, header, pseudo cell, avatar `alt`, personal smileys, MP and
 "all posts" links) is aliased, every personal row (e-mail, birth date, gender, city, job, hobbies, quote, signature)
 gets `Profile field removed.` or, for dates, `01/01/2000`; post count → `100`, arrival and last-post dates →
@@ -146,6 +153,11 @@ gets `Profile field removed.` or, for dates, `01/01/2000`; post count → `100`,
 | R62b | `R62b-public-edit-form-after-edit.html` | Same edit form after `W31`: stored text with the edit | P01 | 036, 048 |
 | W32 | `W32-public-delete-post-success.html` | Public delete of the later post (`delete=1`): "Message effacé avec succès !", refresh `/hfr/<cat>/<sub>/sujet_<post>_<page>.htm` (no slug, no anchor) | P01 | 048, 037 |
 | R61e | `R61e-public-topic-after-delete.html` | Same last page afterwards: the post is gone | P01 | 048 |
+| R63a | `R63a-public-own-topic-first-page.html` | Page 1 of a public topic started by user1 (**own topic**: topic and message ids, subject, slug, texts, related topics and dates replaced, see below) | P01 | 030, 048 |
+| R63b | `R63b-public-edit-form-first-post.html` | Edit form of the own topic's first post: action `/bdd.php?config=hfr.inc`, visible `sujet` (maxlength 70), `subcat` select, poll fields, "Effacer l'intégralité du sujet". Never submitted with `delete` | P01, R43 | 036, 048 |
+| W34 | `W34-public-first-post-edit-success.html` | First-post edit (one line appended): "Votre message a été édité avec succès !", refresh `…sujet_<post>_1.htm#t<numreponse>` | P01 | 048, 037 |
+| W35 | `W35-public-first-post-restore-success.html` | Same edit sending the original fields back: same answer; the stored text and subject were then byte-identical to the original | P01 | 048 |
+| R63e | `R63e-public-own-topic-after-restore.html` | Page 1 afterwards (same replacements) | P01 | 048 |
 | W33 | `W33-public-reply-empty-body-rejected.html` | Public reply with an empty body: "Vous devez remplir tous les champs avant de poster ce message" (as `W17a`), nothing posted | P01, W17 | 037, 048 |
 
 ## Not captured
@@ -153,6 +165,7 @@ gets `Profile field removed.` or, for dates, `01/01/2000`; post count → `100`,
 | Rows | Why |
 |---|---|
 | W02 | Dropped: W01's refusal already gives the failure page; a second failed login was not worth the lockout risk. |
+| R63c, R63d | Captured, not published: the own topic's edit form after the edit and after the restore, read back only to verify the restore byte for byte (R63d equals R63b apart from the connected-users count). |
 | A second throwaway thread | HFR allows one new topic per 60 minutes (W11x); everything ran in one thread. |
 | R34, R51, R58 | Dropped per the checklist (R51 covered by R50b, R58 by R08-2). |
 | R33, poll voted by the account itself without the multipseudo notice | Searched, not found: the poll topics of user1's followed list (`forum1f.php?owntopic=1`, 27 poll topics) were opened page 1 for four of them; one is R33b (with the multipseudo notice, also for user2), the three others still offer the vote form. A plain "already voted" page would need a vote (P05, out of scope): synthetic per checklist §C N06 if a lot needs it. |

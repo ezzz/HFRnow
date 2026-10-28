@@ -11,7 +11,7 @@ import HFRParsing
 /// for `hash_check` and the avatar (`LoginService.swift:48-129`). Only then are the target session's cookies replaced
 /// and its `hash_check` set, in one step. Any failure leaves the target session exactly as it was.
 public struct LoginFlow: Sendable {
-    private let makeJar: @Sendable () -> any LoginJar
+    private let makeJar: @Sendable () -> any SessionJar
 
     /// Creates the flow; each attempt runs in its own new `HFRSession`.
     public init() {
@@ -19,7 +19,7 @@ public struct LoginFlow: Sendable {
     }
 
     /// Creates the flow with another jar for the attempts (tests).
-    init(makeJar: @escaping @Sendable () -> any LoginJar) {
+    init(makeJar: @escaping @Sendable () -> any SessionJar) {
         self.makeJar = makeJar
     }
 
@@ -70,7 +70,7 @@ public struct LoginFlow: Sendable {
         return LoginResult(userKey: userKey, displayName: pseudo, avatarURL: page.avatarURL)
     }
 
-    private func send(_ build: () throws -> HTTPRequest, through jar: any LoginJar) async throws(LoginError) -> HTTPResponse {
+    private func send(_ build: () throws -> HTTPRequest, through jar: any SessionJar) async throws(LoginError) -> HTTPResponse {
         let request: HTTPRequest
         do {
             request = try build()

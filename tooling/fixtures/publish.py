@@ -102,7 +102,7 @@ def main(argv=None):
     texts = [A.read_text(os.path.join(args.raw, e["raw"] + ".html"))[0] for e in entries if e["ext"]]
     with _ui.Spinner("collecting member names"):
         known = A.known_member_names(texts)
-    anon = A.Anonymizer(cfg, known_names=known)
+    anon = A.Anonymizer(cfg, known_names=known, own_ids=A.own_message_ids(texts, cfg.own_topics))
     os.makedirs(args.dest, exist_ok=True)
     bad = 0
     for entry in entries:

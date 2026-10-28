@@ -42,7 +42,7 @@ Run on the maintainer's Mac with [`tooling/fixtures/flows.py`](../tooling/fixtur
 invocation, shared 3 s delay and request budget, persistent per-account jars in the work folder outside the repo),
 then [`publish.py`](../tooling/fixtures/publish.py) (anonymizes every capture listed in `corpus.json` into the corpus
 folder, `--private` for MP pages, and refuses a file that still leaks), `anonymize.py check --corpus` (no config
-needed; CI runs it on every push) and `check --config` (operator pseudos and ids). Before committing, also run an
+needed; CI runs it on every push) and `check --config` (operator pseudos and ids; also the only check that finds a page of an operator-owned topic left unaliased, so it is mandatory when a batch holds one: `own_topics`, [kit README](../tooling/fixtures/README.md#local-config-localjson)). Before committing, also run an
 independent grep: collect the member names from the **raw** files' member positions with your own patterns and
 assert none appears in the anonymized set, plus the cookie values, tokens and passwords. Raw captures stay in the
 work folder and are deleted once the anonymized files are merged.
