@@ -82,6 +82,12 @@ No rule carries a key: the table is keyless by construction, only `RehostConfigu
 - `status_code` and `width`/`height` as JSON numbers or numeric strings both read.
 - File name, field name or content type containing `"`, CR or LF cannot start another header (`%22`, `%0D`, `%0A`; CR/LF dropped from the type).
 - Task cancellation: `RehostError.network(.cancelled)`.
+- Transport errors are wrapped after sanitizing: a `httpStatus` URL loses query and userinfo (the key is in the query), an `invalidRequest`
+  reason is replaced by fixed text.
+- `status_code` present but not an integer or numeric string (`"error"`, `null`, an object) is `invalidResponse`: the HTTP-status fallback is
+  only for an absent key.
+- A base URL with userinfo, query or fragment is `invalidBaseURL` (it is printed by `description`).
+- A thumbnail rule that would build an invalid percent-encoded path leaves the URL unchanged (Foundation's setter traps otherwise).
 
 ## Fixtures
 

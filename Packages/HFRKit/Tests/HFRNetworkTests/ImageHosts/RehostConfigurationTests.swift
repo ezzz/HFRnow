@@ -31,6 +31,12 @@ struct RehostConfigurationTests {
         _ = try RehostConfiguration(baseURL: url("http://localhost"), apiKey: "FAKEKEY")
     }
 
+    @Test func refusesCredentialsQueryAndFragmentInTheBaseURL() throws {
+        for text in ["https://user:pw@img.example", "https://user@img.example", "https://img.example?token=1", "https://img.example/#x"] {
+            #expect(throws: RehostError.invalidBaseURL) { try RehostConfiguration(baseURL: url(text), apiKey: "FAKEKEY") }
+        }
+    }
+
     @Test func descriptionsDoNotShowTheKey() throws {
         let configuration = try RehostConfiguration(baseURL: url("https://img.example"), apiKey: "FAKEKEY")
         #expect(!"\(configuration)".contains("FAKEKEY"))

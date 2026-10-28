@@ -49,7 +49,17 @@ struct RehostResponse: Decodable, Sendable {
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        statusCode = Image.lenientInt(container, .statusCode)
+        if container.contains(.statusCode) {
+            // Present but unreadable is a malformed answer, not a reason to fall back to the HTTP status.
+            guard let status = Image.lenientInt(container, .statusCode) else {
+                throw DecodingError.dataCorruptedError(
+                    forKey: .statusCode, in: container, debugDescription: "status_code must be an integer or numeric string"
+                )
+            }
+            statusCode = status
+        } else {
+            statusCode = nil
+        }
         error = try? container.decode(Message.self, forKey: .error)
         success = try? container.decode(Message.self, forKey: .success)
         image = try? container.decode(Image.self, forKey: .image)

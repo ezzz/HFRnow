@@ -81,6 +81,28 @@ struct RehostClientTests {
         await expectFailure(.http(statusCode: 500, message: nil), replies: [reply(500, "<html>oops</html>")])
     }
 
+    @Test func aTransportErrorNeverCarriesTheKeyOrFreeText() async throws {
+        let withKey = try #require(URL(string: "https://img.example/api/1/upload/?key=FAKEKEY"))
+        let leaky: [NetworkError] = [.httpStatus(code: 500, url: withKey), .invalidRequest(reason: "bad url ?key=FAKEKEY")]
+        for error in leaky {
+            let client = client(MockTransport(replies: [.failure(error)]))
+            do {
+                _ = try await client.upload(jpeg: Self.jpeg)
+                Issue.record("expected a failure")
+            } catch {
+                #expect(!String(describing: error).contains("FAKEKEY"), "\(error)")
+            }
+        }
+    }
+
+    @Test func aMalformedStatusCodeIsNotConfirmation() async throws {
+        let image = #""image":{"url":"https://img.example/a.jpg"}"#
+        for status in [#""error""#, "null", "[]", "{}"] {
+            await expectFailure(.invalidResponse, replies: [reply(200, "{\"status_code\":\(status),\(image)}")])
+        }
+        _ = try await client(MockTransport(replies: [reply(200, "{\"status_code\":\"200\",\(image)}")])).upload(jpeg: Self.jpeg)
+    }
+
     @Test func aRedirectIsAFailureNotAFollowedUpload() async throws {
         await expectFailure(.http(statusCode: 302, message: nil), replies: [reply(302, "")])
     }

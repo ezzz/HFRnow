@@ -37,7 +37,10 @@ public struct RehostConfiguration: Sendable, Equatable {
     }
 
     private static func isAcceptable(_ url: URL) -> Bool {
-        guard let host = url.host?.lowercased(), !host.isEmpty, let scheme = url.scheme?.lowercased() else { return false }
+        // No userinfo, query or fragment: the base URL is shown in `description` and the key must be the only secret in the query.
+        guard let parts = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              parts.user == nil, parts.password == nil, parts.query == nil, parts.fragment == nil,
+              let host = parts.host?.lowercased(), !host.isEmpty, let scheme = parts.scheme?.lowercased() else { return false }
         if scheme == "https" { return true }
         return scheme == "http" && ["127.0.0.1", "localhost", "::1"].contains(host)
     }

@@ -61,16 +61,20 @@ public struct ImageHostTable: Sendable, Equatable {
         guard let rewrite = rule(for: url)?.thumbnailRewrite,
               var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
         let path = components.percentEncodedPath
+        let rewritten: String
         switch rewrite {
         case let .pathPrefix(old, replacement):
             guard path.hasPrefix(old) else { return url }
-            components.percentEncodedPath = replacement + path.dropFirst(old.count)
+            rewritten = replacement + path.dropFirst(old.count)
         case let .fileNameMarker(prefix, marker):
             guard path.hasPrefix(prefix), let slash = path.lastIndex(of: "/") else { return url }
             let name = path[path.index(after: slash)...]
             guard name.contains(marker) else { return url }
-            components.percentEncodedPath = String(path[...slash]) + name.replacingOccurrences(of: marker, with: ".")
+            rewritten = String(path[...slash]) + name.replacingOccurrences(of: marker, with: ".")
         }
+        // Foundation's setter traps on a bad percent escape, and a rule is data (a custom one may hold a lone `%`).
+        guard rewritten.removingPercentEncoding != nil else { return url }
+        components.percentEncodedPath = rewritten
         return components.url ?? url
     }
 

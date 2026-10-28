@@ -63,6 +63,16 @@ struct ImageHostTableTests {
         }
     }
 
+    @Test func aRuleThatWouldBuildAnInvalidPathLeavesTheURLAlone() throws {
+        let broken = ImageHostTable(rules: [
+            ImageHostRule(host: "img.example", thumbnailRewrite: .pathPrefix(prefix: "/thumb/", replacement: "/100%/")),
+            ImageHostRule(host: "marker.example", thumbnailRewrite: .fileNameMarker(pathPrefix: "/i/", marker: "2F"))
+        ])
+        for text in ["https://img.example/thumb/a.png", "https://marker.example/i/a%2Fb.png"] {
+            #expect(broken.fullSizeURL(for: try url(text)).absoluteString == text)
+        }
+    }
+
     @Test func extensionlessHostsAreListed() throws {
         for text in ["https://reho.st/abc", "https://img3.super-h.fr/images/x", "https://rehost.diberie.com/Picture/Get/f/1"] {
             #expect(table.servesExtensionlessImages(try url(text)), "\(text)")

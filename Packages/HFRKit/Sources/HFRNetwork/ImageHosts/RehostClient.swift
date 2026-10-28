@@ -50,9 +50,25 @@ public struct RehostClient: Sendable {
         do {
             response = try await transport.perform(request)
         } catch {
-            throw .network(error)
+            throw .network(Self.sanitized(error))
         }
         return try interpret(response)
+    }
+
+    /// The upload URL carries the key in its query and a transport's `reason` is free text: neither may reach the caller.
+    private static func sanitized(_ error: NetworkError) -> NetworkError {
+        switch error {
+        case let .httpStatus(code, url):
+            var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+            components?.query = nil
+            components?.user = nil
+            components?.password = nil
+            return .httpStatus(code: code, url: components?.url ?? url.deletingLastPathComponent())
+        case .invalidRequest:
+            return .invalidRequest(reason: "upload request refused")
+        default:
+            return error
+        }
     }
 
     private func interpret(_ response: HTTPResponse) throws(RehostError) -> RehostedImage {
