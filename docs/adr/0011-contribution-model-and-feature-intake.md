@@ -23,7 +23,7 @@
 - Every required check passes **without secrets** (fork PRs). `pull_request_target` with a checkout of PR code is forbidden.
 
 ### 2. Feature intake
-An idea, a prototype or a mock-up becomes code in this order: feature issue → spec `docs/features/FEAT-XXX.md` (what and why, screens and states, HFR facts with their source, edge cases, engine lots needed, legacy settings kept) → when `HFRKit` lacks a capability, engine lots that follow the migration loop of AGENTS.md §5 (claimed in `docs/LOTS.md`, each specified in `docs/lots/LOT-XXX-*.md`) → app PRs, one feature slice each, meeting the definition of done (AGENTS.md §9).
+An idea, a prototype or a mock-up becomes code in this order: feature issue → spec `docs/features/FEAT-XXX.md` (what and why, screens and states, HFR facts with their source, edge cases, engine lots needed, legacy settings kept) → when `HFRKit` lacks a capability, engine lots that follow the migration loop of AGENTS.md §5 (an issue each, claimed there and planned in `docs/LOTS.md`, each specified in `docs/lots/LOT-XXX-*.md`) → app PRs, one feature slice each, meeting the definition of done (AGENTS.md §9).
 - Prototype code is a reference, like the legacy app ([ADR 0004](0004-legacy-app-as-oracle.md)), not code to merge as is.
 - A feature that reads or writes something new on the forum first gets its facts into `docs/HFR-PROTOCOL.md`, with evidence (AGENTS.md §3).
 - The author of an idea is credited in the spec, in the PR that implements it and in `CREDITS.md`, whoever writes the code.

@@ -1,0 +1,429 @@
+{
+  "case" : "R62b",
+  "exception" : null,
+  "input" : {
+    "bytes" : 33628,
+    "context" : {
+      "message" : null,
+      "mode" : "delete",
+      "overrides" : {
+
+      },
+      "session" : {
+        "hash" : "0123456789abcdef0123456789abcdef01234567",
+        "pseudo" : "user2"
+      },
+      "url" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=6510&numreponse=75493617&page=30&p=1&subcat=430&sondage=0&owntopic=0"
+    },
+    "currentURL" : null,
+    "file" : "../captures/R62b-public-edit-form-after-edit.html",
+    "now" : null,
+    "sha256" : "26a8a8e97893b71ae534d14f410642fc57d063674d48162dd8817ea870fa0aed"
+  },
+  "kind" : "form",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "comparison" : {
+      "comparable" : true,
+      "different" : [
+
+      ],
+      "legacyUrl" : "https://forum.hardware.fr/bdd.php?config=hfr.inc",
+      "liveUrl" : "https://forum.hardware.fr/bdd.php?config=hfr.inc",
+      "onlyLegacy" : [
+
+      ],
+      "onlyLive" : [
+
+      ],
+      "sameUrl" : true
+    },
+    "legacy" : {
+      "contentForm" : "Test technique SwiftHFR (capture de formulaire), message supprimé dans la foulée. (édité)",
+      "contentFormRaw" : "Test technique SwiftHFR (capture de formulaire), message supprimé dans la foulée. (édité)",
+      "fetchURL" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=6510&numreponse=75493617&page=30&p=1&subcat=430&sondage=0&owntopic=0",
+      "formAction" : "/bdd.php?config=hfr.inc",
+      "formSubmit" : "https://forum.hardware.fr/bdd.php?config=hfr.inc",
+      "haveCategory" : false,
+      "haveTitle" : false,
+      "haveTo" : false,
+      "inputData" : {
+        "cache" : "cache",
+        "cat" : "13",
+        "ColorUsedMem" : "",
+        "config" : "hfr.inc",
+        "delete" : "0",
+        "emaill" : "0",
+        "hash_check" : "REDACTED",
+        "MsgIcon" : "1",
+        "new" : "0",
+        "numrep" : "",
+        "numreponse" : "75493617",
+        "owntopic" : "0",
+        "p" : "1",
+        "page" : "30",
+        "parents" : "",
+        "password" : "",
+        "post" : "6510",
+        "pseudo" : "user2",
+        "search_smilies" : "",
+        "signature" : "0",
+        "smiley" : "0",
+        "sond" : "0",
+        "sondage" : "0",
+        "stickold" : "0",
+        "subcat" : "430",
+        "submit" : "Valider votre message",
+        "sujet" : "La muscu, ça pue : le topic des gringalets.",
+        "verifrequet" : "1100",
+        "wysiwyg" : "0"
+      },
+      "isLogged" : true,
+      "loopOrder" : [
+        "hash_check",
+        "subcat",
+        "parents",
+        "post",
+        "stickold",
+        "new",
+        "cat",
+        "numreponse",
+        "numrep",
+        "page",
+        "verifrequet",
+        "p",
+        "sondage",
+        "sond",
+        "cache",
+        "owntopic",
+        "config",
+        "sujet",
+        "pseudo",
+        "password",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "search_smilies",
+        "ColorUsedMem",
+        "wysiwyg",
+        "submit",
+        "signature",
+        "smiley",
+        "emaill",
+        "delete"
+      ],
+      "post" : {
+        "bodyBytes" : 592,
+        "bodySorted" : "ColorUsedMem=&MsgIcon=1&cache=cache&cat=13&config=hfr.inc&content_form=Test%20technique%20SwiftHFR%20%28capture%20de%20formulaire%29%2C%20message%20supprim%C3%A9%20dans%20la%20foul%C3%A9e.%20%28%C3%A9dit%C3%A9%29&delete=1&emaill=0&hash_check=0123456789abcdef0123456789abcdef01234567&new=0&numrep=&numreponse=75493617&owntopic=0&p=1&page=30&parents=&password=&post=6510&pseudo=user2&search_smilies=&signature=0&smiley=0&sond=0&sondage=0&stickold=0&subcat=430&submit=Valider%20votre%20message&sujet=La%20muscu%2C%20%C3%A7a%20pue%20%3A%20le%20topic%20des%20gringalets.&verifrequet=1100&wysiwyg=0",
+        "contentType" : "application/x-www-form-urlencoded; charset=utf-8",
+        "method" : "POST",
+        "pairs" : [
+          [
+            "ColorUsedMem",
+            ""
+          ],
+          [
+            "MsgIcon",
+            "1"
+          ],
+          [
+            "cache",
+            "cache"
+          ],
+          [
+            "cat",
+            "13"
+          ],
+          [
+            "config",
+            "hfr.inc"
+          ],
+          [
+            "content_form",
+            "Test technique SwiftHFR (capture de formulaire), message supprimé dans la foulée. (édité)"
+          ],
+          [
+            "delete",
+            "1"
+          ],
+          [
+            "emaill",
+            "0"
+          ],
+          [
+            "hash_check",
+            "0123456789abcdef0123456789abcdef01234567"
+          ],
+          [
+            "new",
+            "0"
+          ],
+          [
+            "numrep",
+            ""
+          ],
+          [
+            "numreponse",
+            "75493617"
+          ],
+          [
+            "owntopic",
+            "0"
+          ],
+          [
+            "p",
+            "1"
+          ],
+          [
+            "page",
+            "30"
+          ],
+          [
+            "parents",
+            ""
+          ],
+          [
+            "password",
+            ""
+          ],
+          [
+            "post",
+            "6510"
+          ],
+          [
+            "pseudo",
+            "user2"
+          ],
+          [
+            "search_smilies",
+            ""
+          ],
+          [
+            "signature",
+            "0"
+          ],
+          [
+            "smiley",
+            "0"
+          ],
+          [
+            "sond",
+            "0"
+          ],
+          [
+            "sondage",
+            "0"
+          ],
+          [
+            "stickold",
+            "0"
+          ],
+          [
+            "subcat",
+            "430"
+          ],
+          [
+            "submit",
+            "Valider votre message"
+          ],
+          [
+            "sujet",
+            "La muscu, ça pue : le topic des gringalets."
+          ],
+          [
+            "verifrequet",
+            "1100"
+          ],
+          [
+            "wysiwyg",
+            "0"
+          ]
+        ],
+        "url" : "https://forum.hardware.fr/bdd.php?config=hfr.inc"
+      },
+      "postedContent" : "Test technique SwiftHFR (capture de formulaire), message supprimé dans la foulée. (édité)",
+      "raisedInLegacy" : [
+
+      ],
+      "smileys" : [
+
+      ],
+      "subcats" : [
+
+      ],
+      "username" : "user2"
+    },
+    "live" : {
+      "post" : {
+        "bodyBytes" : 536,
+        "bodyOrder" : "unspecified (Swift Dictionary iteration)",
+        "bodySorted" : "ColorUsedMem=&MsgIcon=1&cache=cache&cat=13&config=hfr.inc&content_form=Test+technique+SwiftHFR+(capture+de+formulaire),+message+supprim%C3%A9+dans+la+foul%C3%A9e.+(%C3%A9dit%C3%A9)&delete=1&emaill=0&hash_check=0123456789abcdef0123456789abcdef01234567&new=0&numrep=&numreponse=75493617&owntopic=0&p=1&page=30&parents=&password=&post=6510&pseudo=user2&search_smilies=&signature=0&smiley=0&sond=0&sondage=0&stickold=0&subcat=430&submit=Valider+votre+message&sujet=La+muscu,+%C3%A7a+pue+:+le+topic+des+gringalets.&verifrequet=1100&wysiwyg=0",
+        "contentType" : "application/x-www-form-urlencoded; charset=utf-8",
+        "method" : "POST",
+        "pairs" : [
+          [
+            "ColorUsedMem",
+            ""
+          ],
+          [
+            "MsgIcon",
+            "1"
+          ],
+          [
+            "cache",
+            "cache"
+          ],
+          [
+            "cat",
+            "13"
+          ],
+          [
+            "config",
+            "hfr.inc"
+          ],
+          [
+            "content_form",
+            "Test technique SwiftHFR (capture de formulaire), message supprimé dans la foulée. (édité)"
+          ],
+          [
+            "delete",
+            "1"
+          ],
+          [
+            "emaill",
+            "0"
+          ],
+          [
+            "hash_check",
+            "0123456789abcdef0123456789abcdef01234567"
+          ],
+          [
+            "new",
+            "0"
+          ],
+          [
+            "numrep",
+            ""
+          ],
+          [
+            "numreponse",
+            "75493617"
+          ],
+          [
+            "owntopic",
+            "0"
+          ],
+          [
+            "p",
+            "1"
+          ],
+          [
+            "page",
+            "30"
+          ],
+          [
+            "parents",
+            ""
+          ],
+          [
+            "password",
+            ""
+          ],
+          [
+            "post",
+            "6510"
+          ],
+          [
+            "pseudo",
+            "user2"
+          ],
+          [
+            "search_smilies",
+            ""
+          ],
+          [
+            "signature",
+            "0"
+          ],
+          [
+            "smiley",
+            "0"
+          ],
+          [
+            "sond",
+            "0"
+          ],
+          [
+            "sondage",
+            "0"
+          ],
+          [
+            "stickold",
+            "0"
+          ],
+          [
+            "subcat",
+            "430"
+          ],
+          [
+            "submit",
+            "Valider votre message"
+          ],
+          [
+            "sujet",
+            "La muscu, ça pue : le topic des gringalets."
+          ],
+          [
+            "verifrequet",
+            "1100"
+          ],
+          [
+            "wysiwyg",
+            "0"
+          ]
+        ],
+        "url" : "https://forum.hardware.fr/bdd.php?config=hfr.inc"
+      },
+      "postedContent" : "Test technique SwiftHFR (capture de formulaire), message supprimé dans la foulée. (édité)",
+      "requests" : [
+        {
+          "method" : "GET",
+          "url" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=6510&numreponse=75493617&page=30&p=1&subcat=430&sondage=0&owntopic=0"
+        },
+        {
+          "method" : "POST",
+          "url" : "https://forum.hardware.fr/bdd.php?config=hfr.inc"
+        }
+      ],
+      "result" : {
+        "ok" : true,
+        "refreshAnchor" : "75493617",
+        "refreshURL" : "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=1000&page=1#t1002",
+        "statusMessage" : "Votre message a bien été pris en compte."
+      }
+    }
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

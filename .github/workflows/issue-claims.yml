@@ -2,9 +2,9 @@ name: Issue claims
 
 # `/claim <session-id>` and `/release` comments on issues (AGENTS.md §5): keeps the `status: claimed` label in step with
 # the active claim and answers a refused claim. Runs from the default branch; comment text is only parsed, never run.
-# On ezzz/HFRnow the default branch is the legacy master and Issues are disabled: this copy is inert there (ADR 0010).
-# On the mirror francoisgn/ios-app_SwiftHFR (default branch = dev-swift) it could run, but its issues are frozen history:
-# docs/LOTS.md is the only tracker until Issues are enabled on ezzz/HFRnow.
+# On ezzz/HFRnow the default branch is the legacy master: this copy is inert there until it is copied to master (ADR 0010);
+# meanwhile status: claimed is set by hand (docs/agents/ORCHESTRATION.md). On the mirror francoisgn/ios-app_SwiftHFR
+# (default branch = dev-swift) it could run, but its issues are frozen history.
 # Edited and deleted comments re-sync too, since the claim is replayed from the current text of every comment.
 # After a sync, the latest "Issue and claim" run of each open PR linking the issue is re-run, so it follows the claim.
 # Only repository members' comments start a run (their comments are the only ones that count).

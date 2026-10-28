@@ -1,0 +1,26 @@
+{
+  "id": "R61d",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "GET /forum2.php?config=hfr.inc&cat=<cat>&subcat=<sub>&post=<post>&page=<last> (after the reply)",
+  "url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&subcat=430&post=6510&page=30",
+  "final_url": "https://forum.hardware.fr/hfr/Discussions/Sports/muscu-topic-gringalets-sujet_6510_30.htm",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Tue, 27 Oct 2026 20:00:13 GMT",
+  "redirects": [
+    {
+      "status": 301,
+      "location": "/hfr/Discussions/Sports/muscu-topic-gringalets-sujet_6510_30.htm"
+    }
+  ],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "last page after the reply (user2): own post, edit link",
+  "file": "R61d-public-topic-last-page-own-post.html",
+  "private": false
+}
