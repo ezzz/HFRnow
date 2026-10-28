@@ -58,7 +58,7 @@ Model column: author → reviewer ([AGENTS.md §6](../AGENTS.md#6-model-routing-
 | LOT-031 | Per-message action links (quote, edit, alert, profile, MP, flag, quoteJS) | HFRParsing | medium | Opus → Fable | 030 | C04 | medium | mac/w2-031-opus (2026-10-27) · old [#65](https://github.com/francoisgn/ios-app_SwiftHFR/issues/65) | in-progress |
 | LOT-032 | Quote analysis (authors, nesting) | HFRParsing | medium | Sonnet → Opus | 030 | C05 | medium | — · old [#66](https://github.com/francoisgn/ios-app_SwiftHFR/issues/66) | todo |
 | LOT-033 | Topic page metadata (title, pagination, answer form, hidden fields) | HFRParsing | medium | Sonnet → Opus | 011, 020, 003 | C06 | — | cloud/c9-sonnet (2026-10-26) | done (#52) |
-| LOT-034 | Content normalization (smileys, images, links, signature, code, spoilers) | HFRParsing | difficult | Fable → Opus | 030, ADR 0006 | C08 | high | mac/w1-034-fable (2026-10-27) · old [#67](https://github.com/francoisgn/ios-app_SwiftHFR/issues/67) | in-progress |
+| LOT-034 | Content normalization (smileys, images, links, signature, code, spoilers) | HFRParsing | difficult | Fable → Opus | 030, ADR 0006 | C08 | high | mac/w1-034-fable (2026-10-27) · old [#67](https://github.com/francoisgn/ios-app_SwiftHFR/issues/67) | done (#23) |
 | LOT-035 | Video embed detection (fixes the YouTube hour bug) | HFRParsing | easy | Sonnet → Opus | 034 | C09 | low | — · old [#68](https://github.com/francoisgn/ios-app_SwiftHFR/issues/68) | blocked |
 | LOT-036 | `hop` form parser (inputs, selects, `content_form` textarea incl. `[quotemsg]` prefill, entity decoding) | HFRParsing | medium | Sonnet → Opus | 012, 020, 004 | D1 | medium | mac/w1-036-sonnet (2026-10-27) · old [#69](https://github.com/francoisgn/ios-app_SwiftHFR/issues/69) | done (#22) |
 | LOT-037 | `hop` response classifier (success, rejected, logged out, already alerted) | HFRParsing | medium | Sonnet → Opus | 012, 004 | D2 | medium | mac/w1-037-sonnet (2026-10-27) · old [#70](https://github.com/francoisgn/ios-app_SwiftHFR/issues/70) | done (#18) |
@@ -189,6 +189,9 @@ Page states that merged lots listed as **pending capture** (never hand-built in 
 | Topic list: MP list logged out, cross-category search results, rare row shapes | LOT-022 | see the LOT-022 spec |
 | Locked topic seen logged in; favourite/flagged topic page; checked in-topic search filter (R52a was a 302) | LOT-033 | |
 | Deleted message wrapper `messagetabledel`; in-topic search prefix link | LOT-030 | |
+| Message holding an `hfr-rehost.net` link or image (host rewrite ported from `LinkItem.m:163`) | LOT-034 | no corpus occurrence of `hfr-rehost.net` or `reho.st` |
+| Message holding the `---------------` separator legacy deleted (`LinkItem.m:74`): what it is for | LOT-034 | not ported until a capture shows it |
+| Legacy oracle with `display_sig=yes`, `display_images=no`, `embedded_videos=no`; the deepest nesting HFR serves | LOT-034, LOT-035 | oracle re-run with other settings (LOT-003 tooling), not a page capture |
 | Profile: logged in, banned/deleted member, real birth date and signature, status other than "Membre", smiley file name with apostrophe/space, non-jpg avatar | LOT-027 | anonymize every free-text field |
 | Home row without `id="cat<N>"`; full sub-forum lists | LOT-021 | REST R57a counts 27 sub-forums for Programmation, page + table give 14 |
 | Topic page with `quote_only=1` (LOT-001 checklist R34, dropped as optional): is there any server signal that someone quoted me? | FEAT-018, HFR-PROTOCOL §7b B11 | read-only GET; settles feasibility before FEAT-018 is promised |

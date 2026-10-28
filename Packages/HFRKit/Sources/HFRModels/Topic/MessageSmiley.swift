@@ -10,7 +10,8 @@ public struct MessageSmiley: Sendable, Hashable, Codable {
         case custom
     }
 
-    /// Smiley code, e.g. `:)` (without the surrounding `[` `]` of the `alt` attribute).
+    /// Smiley code as the `alt` attribute serves it: `:)` for a standard smiley, `[:name]` for a personal one
+    /// (the form of `CommonSmiley.code` and `ForumSmiley.code`).
     public var code: String
     /// Image URL.
     public var url: URL
