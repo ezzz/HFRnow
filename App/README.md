@@ -7,6 +7,7 @@ The iOS app target (SwiftUI, iOS 27), `App/SwiftHFR.xcodeproj` ([ADR 0012](../do
 | `SwiftHFR.xcodeproj` | Project and shared scheme `SwiftHFR`; links the local package `../Packages/HFRKit` |
 | `SwiftHFR/` | App sources and assets (folder-synchronized: add files here, the project file does not change) |
 | `SwiftHFR/Accounts/` | Accounts and login ([LOT-081](../docs/lots/LOT-081-accounts-login.md)): `AccountsModel` owns every account `HFRSession`; `currentSession` is the session of the current account; `RootView` rebuilds the navigation (`AppEnvironment`) whenever `currentSessionGeneration` changes |
+| `SwiftHFR/Reader/` | Topic reader ([LOT-083](../docs/lots/LOT-083-topic-reader.md)): `TopicReaderModel` (loads, pages, links), `TopicHTMLBuilder` (document), `ReaderWebController` (`WKWebView`, `hfrreader:` scheme, CSP, no page script), `ImagePolicy` + `ReaderImageFetcher` (policy C, cookie-less images), `Resources/` (`reader.css`, `reader.js`) |
 | `SwiftHFRTests/` | Unit tests (Swift Testing), hosted by the app |
 
 Build and test on the simulator (unsigned, as CI does):

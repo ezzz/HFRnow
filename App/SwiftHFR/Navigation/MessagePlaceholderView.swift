@@ -1,8 +1,7 @@
 import HFRModels
 import SwiftUI
 
-/// The detail column until the topic reader exists: names the chosen topic, fetches nothing (a topic GET with the account
-/// would mark its flags read).
+/// The detail column when no topic can be shown: nothing chosen yet, or a row whose link names no topic page.
 struct MessagePlaceholderView: View {
     let topic: TopicSummary?
 
@@ -11,15 +10,10 @@ struct MessagePlaceholderView: View {
             ContentUnavailableView {
                 Label(topic.title, systemImage: "text.bubble")
             } description: {
-                Text("La lecture des messages arrive bientôt. \(counts(of: topic)).")
+                Text("Ce sujet ne peut pas être ouvert : son lien n'est pas reconnu.")
             }
         } else {
             ContentUnavailableView("Choisissez un sujet", systemImage: "text.bubble")
         }
-    }
-
-    private func counts(of topic: TopicSummary) -> String {
-        let replies = FrenchPlural.count(topic.repliesCount, "réponse", "réponses")
-        return "\(replies) sur \(FrenchPlural.count(topic.pageCount, "page", "pages"))"
     }
 }
