@@ -1,0 +1,112 @@
+{
+  "case" : "P03g",
+  "exception" : null,
+  "input" : {
+    "bytes" : 34548,
+    "currentURL" : null,
+    "file" : "../captures/P03g-favourites-two-rows.html",
+    "now" : "2026-10-28T14:13:13Z",
+    "sha256" : "d9304150200d2a4b5e69cfc762850339dd82dfae594698cdf13e4d6c4aaadf5e"
+  },
+  "kind" : "favorites",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "favorites" : [
+      {
+        "forum" : {
+          "aID" : "13",
+          "aTitle" : "Discussions",
+          "aURL" : "/forum1.php?config=hfr.inc&cat=13&page=1&subcat=&sondage=0&owntopic=3&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0",
+          "subCats" : [
+
+          ]
+        },
+        "order" : 0,
+        "topics" : [
+          {
+            "aAuthorOfLastPost" : "user4​",
+            "aAuthorOrInter" : "",
+            "aDateOfLastPost" : "il y a 15 min",
+            "aDateOfLastPostKind" : "relative",
+            "aRepCount" : 88035,
+            "aTitle" : "Topic pizza maison",
+            "aTypeOfFlag" : "",
+            "aURL" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=28563&page=1&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#t2666649",
+            "aURLOfFirstPage" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=28563&page=1&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+            "aURLOfFlag" : "",
+            "aURLOfLastPage" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=28563&page=2201&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+            "aURLOfLastPost" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=28563&page=2201&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#bas",
+            "catID" : 13,
+            "curTopicPage" : 1,
+            "dDateOfLastPost" : "2026-10-28T13:58:00Z",
+            "isClosed" : false,
+            "isLocallyViewedInApp" : false,
+            "isPoll" : false,
+            "isSticky" : false,
+            "isSuperFavorite" : false,
+            "isViewed" : false,
+            "isViewedFromForumAtLoad" : false,
+            "maxTopicPage" : 2201,
+            "postID" : 28563,
+            "sLastSearchPostContent" : null,
+            "sLastSearchPostURL" : null
+          },
+          {
+            "aAuthorOfLastPost" : "user6",
+            "aAuthorOrInter" : "",
+            "aDateOfLastPost" : "il y a 2 h",
+            "aDateOfLastPostKind" : "relative",
+            "aRepCount" : 30218,
+            "aTitle" : "Cuisinistes - les bons plans | les arnaques",
+            "aTypeOfFlag" : "",
+            "aURL" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=55038&page=1&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#t7567665",
+            "aURLOfFirstPage" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=55038&page=1&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+            "aURLOfFlag" : "",
+            "aURLOfLastPage" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=55038&page=756&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+            "aURLOfLastPost" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=55038&page=756&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#bas",
+            "catID" : 13,
+            "curTopicPage" : 1,
+            "dDateOfLastPost" : "2026-10-28T11:17:00Z",
+            "isClosed" : false,
+            "isLocallyViewedInApp" : false,
+            "isPoll" : false,
+            "isSticky" : false,
+            "isSuperFavorite" : false,
+            "isViewed" : false,
+            "isViewedFromForumAtLoad" : false,
+            "maxTopicPage" : 756,
+            "postID" : 55038,
+            "sLastSearchPostContent" : null,
+            "sLastSearchPostURL" : null
+          }
+        ]
+      }
+    ],
+    "topicsSortedByLastPostDesc" : [
+      {
+        "aTitle" : "Topic pizza maison",
+        "catID" : 13,
+        "postID" : 28563
+      },
+      {
+        "aTitle" : "Cuisinistes - les bons plans | les arnaques",
+        "catID" : 13,
+        "postID" : 55038
+      }
+    ]
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : [
+
+    ],
+    "arrayCategoriesVisibleOrder" : [
+      "13"
+    ],
+    "hashCheck" : "REDACTED",
+    "nbMP" : 0,
+    "statusNotifications" : [
+
+    ]
+  }
+}
