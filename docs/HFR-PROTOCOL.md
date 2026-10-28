@@ -189,6 +189,23 @@ Source: [LOT-030](lots/LOT-030-message-blocks.md), `MessageBlockParser`, on the 
 - **Deleted conversation** (`RA5`): a page without any `messagetable` is an ordinary page (`.hop` notice), not an error.
 - **Pending capture**: the `messagetabledel` wrapper of a deleted post (legacy `ParseMessagesOperation.m:153`; `RA3` shows that a deleted MP post simply disappears) and the in-topic search result shape (a leading `<a>` in `messCase2`, `:365-368`).
 
+### LOT-032 — quote analysis
+
+Source: [LOT-032](lots/LOT-032-quote-analysis.md), `MessageQuoteAnalyzer`, checked by `MessageQuoteOracleTests` and `MessageQuoteAnalyzerTests`
+on the 20 LOT-003 oracle cases (358 messages) and `R33b`.
+
+- **Quote markup**: `div.container > table.citation > tr.none > td > b.s1 > a.Topic` (`<pseudo> a écrit :`), then `<br><br>` and `<p>`; anonymous
+  quotes are `table.quote` with `<b class="s1">Citation :</b>` and no link. Corpus: 126 citations and 9 anonymous quotes in 135 quotes (`R20`,
+  `R26`, `R27`, `R28`), none in `RA5`.
+- **Header link**: `<a href="/hfr/<cat>/<slug>-sujet_<topic>_<page>.htm#t<numreponse>" class="Topic">`: the fragment is the cited message's
+  `numreponse`, whole attribute `class="Topic"` (a spoiler's `div.Topic.masque` is another element). The page number in the path differs from the quote's own page.
+- **Nesting**: depth 2 only once in the corpus, an anonymous quote in an authored one (message 27 of `R28`, `R32a`, `R32b`, citing `75481731`,
+  `26360875`, `26360875`); deeper and authored-in-authored nesting is not captured.
+- **`oldcitation`** (`R33b`, poll page, 11 quotes): `<table class="oldcitation">`, same cells as `citation`, the header link is
+  `/forum2.php?config=hfr.inc&cat=…&numreponse=0&quote_only=0&new=0&nojs=0#t<numreponse>` and an `<hr size="1" />` follows the header. Legacy renamed it to
+  `citation` before reading (`ParseMessagesOperation.m:191-194`).
+- **Pending capture**: nested authored quotes, quotes of a deleted or unknown account, a header whose fragment is not `t<n>`.
+
 ### LOT-033 — topic page metadata
 
 Source: [LOT-033](lots/LOT-033-topic-page-metadata.md), `TopicPageMetadataParser`, checked by `TopicPageMetadataOracleTests` on the 20 LOT-003 oracle cases `R20`, `R21`, `R22a`, `R22b`, `R23`, `R24`, `R26`, `R27`, `R27b`, `R28`, `R31`, `R32a`, `R32b`, `RA1`, `RA2`, `RA3`, `RA4`, `RA5`, `RU1`, `RU2`; `R25` is excluded (no body).
