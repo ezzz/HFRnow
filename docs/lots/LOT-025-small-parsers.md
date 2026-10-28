@@ -2,7 +2,7 @@
 
 - **Module:** HFRParsing
 - **Difficulty / model:** easy (Sonnet → Opus)
-- **Issue:** none (lot tracked in `docs/LOTS.md`)
+- **Issue:** [#53](https://github.com/ezzz/HFRnow/issues/53)
 
 First parsers tested on **real captured pages** (LOT-001 corpus). The oracle exporters (LOT-002..004) are not merged, so the
 expected values come from what the captured HTML shows and from the legacy code (cited `file:line`).

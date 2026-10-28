@@ -2,7 +2,7 @@
 
 - **Module:** App (Xcode target `SwiftHFR`)
 - **Difficulty / model:** medium · Opus 5.5 → Fable 5.1
-- **Issue:** none yet (tracked in [LOTS.md](../LOTS.md)); old francoisgn/ios-app_SwiftHFR#94
+- **Issue:** [#98](https://github.com/ezzz/HFRnow/issues/98); old francoisgn/ios-app_SwiftHFR#94
 
 ## Legacy sources
 Read-only reference on ezzz/HFRnow `master`:

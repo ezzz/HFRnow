@@ -2,7 +2,7 @@
 
 - **Module:** HFRParsing
 - **Difficulty / model:** difficult (Fable → Opus)
-- **Issue:** none (lot tracked in `docs/LOTS.md`; audit item C03 in [C](../audit/C-message-parsing.md) §3.1–3.2, §7.2)
+- **Issue:** [#57](https://github.com/ezzz/HFRnow/issues/57) (audit item C03 in [C](../audit/C-message-parsing.md) §3.1–3.2, §7.2)
 
 Chain: LOT-003 (oracle) → **LOT-030** → LOT-034 (content normalization). Siblings on the same tree: LOT-031 (action links),
 LOT-032 (quotes), LOT-033 (page metadata, done in parallel: nothing page-level is read here), LOT-035 (embeds, after 034).
