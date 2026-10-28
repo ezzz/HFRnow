@@ -20,6 +20,8 @@ struct ServerReply: Sendable {
     var body = Data()
     /// Never answers, to exercise timeouts and cancellation.
     var hangs = false
+    /// Sends no `Content-Length`: the body ends when the connection closes (a streamed answer of unknown size).
+    var omitsContentLength = false
 }
 
 /// Minimal HTTP/1.1 server on 127.0.0.1 (no external network), because swift-corelibs-foundation
@@ -130,7 +132,8 @@ final class LoopbackServer: @unchecked Sendable {
             Thread.sleep(forTimeInterval: 5)
             return
         }
-        var head = "HTTP/1.1 \(reply.status) X\r\nContent-Length: \(reply.body.count)\r\nConnection: close\r\n"
+        let length = reply.omitsContentLength ? "" : "Content-Length: \(reply.body.count)\r\n"
+        var head = "HTTP/1.1 \(reply.status) X\r\n\(length)Connection: close\r\n"
         for (name, value) in reply.headers { head += "\(name): \(value)\r\n" }
         write(client, Data(head.utf8) + Data("\r\n".utf8) + reply.body)
     }

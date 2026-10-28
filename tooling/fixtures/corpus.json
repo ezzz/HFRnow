@@ -117,6 +117,11 @@
     {"raw": "W32", "id": "W32", "slug": "public-delete-post-success", "ext": "html", "private": false},
     {"raw": "R61e", "id": "R61e", "slug": "public-topic-after-delete", "ext": "html", "private": false},
     {"raw": "W33", "id": "W33", "slug": "public-reply-empty-body-rejected", "ext": "html", "private": false},
+    {"raw": "R63a", "id": "R63a", "slug": "public-own-topic-first-page", "ext": "html", "private": false},
+    {"raw": "R63b", "id": "R63b", "slug": "public-edit-form-first-post", "ext": "html", "private": false},
+    {"raw": "W34", "id": "W34", "slug": "public-first-post-edit-success", "ext": "html", "private": false},
+    {"raw": "W35", "id": "W35", "slug": "public-first-post-restore-success", "ext": "html", "private": false},
+    {"raw": "R63e", "id": "R63e", "slug": "public-own-topic-after-restore", "ext": "html", "private": false},
     {"raw": "R60a", "id": "R60a", "slug": "mpstorage-thread-first-post", "ext": "html", "private": true},
     {"raw": "R60b", "id": "R60b", "slug": "mpstorage-edit-form-first-post", "ext": "html", "private": true}
   ]

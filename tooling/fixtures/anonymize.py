@@ -157,6 +157,88 @@ PROFILE_DATE_RE = re.compile(r"\d{1,2}([/-])\d{1,2}\1\d{4}|\d{1,2}:\d{2}(?::\d{2
 PROFILE_PAGE_RE = re.compile(r"<body\b[^>]*\bid=[\"']unique__user_page__view_user_profile[\"']", re.I)
 PROFILE_TRANSACTIONS_RE = re.compile(r"(>\s*Transactions\s*\()(\d+)(\)\s*<)", re.I)
 
+# Operator-owned public topics (`own_topics` in local.json, live R63a-R63e, W34, W35): the topic id, its
+# message ids, subject, slug, texts and dates would tie the operator's alias to the real account (anyone can
+# open the topic and read its author). On a page of such a topic all of them are replaced; the structure,
+# field names and line breaks stay. Ids keep a fixed range, so the verifier knows an own-topic page.
+OWN_TOPIC_FIRST = 9900001
+OWN_MESSAGE_FIRST = 9910000001
+OWN_SUBJECT = "Own topic subject"
+OWN_SLUG = "own-topic-subject"
+OWN_TEXT = "Own topic text removed."
+OWN_LINE = "Text removed."
+OWN_DATE = "01-01-2000"
+OWN_HTTP_DATE = "Sat, 01 Jan 2000 00:00:00 GMT"
+OWN_MESSAGE_ID_RES = tuple(re.compile(rx, re.I) for rx in (
+    r"numreponse=(\d{5,})", r"\bid=[\"']para(\d{5,})", r"<a\s+name=[\"']t(\d{5,})", r"#t(\d{5,})", r"n°(\d{5,})",
+    r"\bnumrep=(\d{5,})", r"\[quotemsg=(\d{5,}),",
+    r"\bname=[\"'](?:numreponse|numrep|firstnum)[\"']\s*value=[\"'](\d{5,})",
+    r"\bvalue=[\"'](\d{5,})[\"']\s*name=[\"'](?:numreponse|numrep|firstnum)[\"']",
+    r"(?:quoter|edit_in)\(\s*'[^']*'\s*,\s*'[^']*'\s*,\s*'?\d+'?\s*,\s*'?(\d{5,})'?"))
+OWN_SUBJECT_INPUT_RE = re.compile(
+    r"<input\b(?=[^>]*\bname=[\"']sujet[\"'])[^>]*\bvalue=([\"'])(.*?)\1", re.I | re.S)
+OWN_TEXTAREA_RE = re.compile(r"(<textarea\b[^>]*\bname=[\"']content_form[\"'][^>]*>)(.*?)(</textarea>)", re.I | re.S)
+OWN_DESCRIPTION_RE = re.compile(r"(<meta\b[^>]*\bname=[\"']Description[\"'][^>]*\bcontent=)([\"'])(.*?)\2", re.I | re.S)
+OWN_TITLE_RE = re.compile(r"(<title>)(?!\s*FORUM HardWare)(.*?)(\s+-\s+)", re.I | re.S)
+# The "Sujets relatifs" table lists topics with similar titles, numbered close to the own topic: its links
+# point nowhere and read OWN_RELATED. The review under an edit form (`td.messCase1bis` + body cell) is text.
+OWN_RELATED = "Related topic"
+OWN_RELATED_LINK = "/forum1.php?config=hfr.inc"
+OWN_RELATED_RE = re.compile(r"(<table\b[^>]*\bid=[\"']sujetrelatif[\"'][^>]*>)(.*?)(</table>)", re.I | re.S)
+OWN_REVIEW_OPEN_RE = re.compile(r"<td\b[^>]*\bclass=[\"']messCase1bis[\"'][^>]*>[^<]*</td>\s*<(td)\b[^>]*>", re.I)
+OWN_TITLE_CELL_RE = re.compile(
+    r"(<td\b[^>]*\bclass=[\"'][^\"']*\bsujetCase3\b[^\"']*[\"'][^>]*>)((?:(?!</td>).)*)(</td>)", re.I | re.S)
+OWN_DATE_RE = re.compile(r"\b\d{2}-\d{2}-\d{4}\b")
+OWN_TIME_RE = re.compile(r"(à(?:&nbsp;|\s|\u00a0)*)\d{2}:\d{2}(:\d{2})?")
+OWN_BODY_TEXT_RE = re.compile(r"((?:^|&)content_form=)([^&\"<>\s]*)")
+OWN_BODY_SUBJECT_RE = re.compile(r"((?:^|&)sujet=)([^&\"<>\s]*)")
+OWN_HTTP_DATE_RE = re.compile(r"\b[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} GMT\b")
+
+
+def own_topics_in(text, topics):
+    """The operator-owned topic ids (strings) this page or URL belongs to."""
+    return [t for t in topics if re.search(r"(?:\bpost=|sujet_|\bname=[\"']post[\"']\s*value=[\"'])%s(?!\d)" % t, text)]
+
+
+def own_message_ids(texts, topics):
+    """Message ids printed on the pages of operator-owned topics (one table for a whole batch)."""
+    ids = set()
+    for text in texts:
+        if own_topics_in(text, topics):
+            for rx in OWN_MESSAGE_ID_RES:
+                ids.update(rx.findall(text))
+    return ids
+
+
+def _own_related(inner):
+    """The related-topics table with every link pointing at the forum list and every link text replaced."""
+    inner = re.sub(r"(\bhref=)([\"'])[^\"']*\2", lambda m: m.group(1) + m.group(2) + OWN_RELATED_LINK + m.group(2), inner)
+    inner = re.sub(r"(?<![\w-])(%s)([0-9A-F]{2,})(?![0-9A-Za-z])" % "|".join(PREFIXES),
+                   lambda m: m.group(1) + encode_payload(OWN_RELATED_LINK), inner)
+    head = re.compile(r"(<th\b[^>]*>)([^<]*)(</th>)", re.I)
+    out, last = [], 0
+    for m in re.finditer(r"(<(?:a|span)\b[^>]*>)([^<]+)(?=</)", inner):
+        if m.group(2).strip():
+            out += [inner[last:m.start()], m.group(1), OWN_RELATED]
+            last = m.end()
+    inner = "".join(out) + inner[last:]
+    return head.sub(lambda m: m.group(0), inner)
+
+
+def _own_cell_tail(cell):
+    """A list title cell with every text after its title link (a search hit's excerpt) replaced."""
+    end = cell.find("</a>")
+    if end < 0:
+        return cell
+    head, tail = cell[:end + 4], cell[end + 4:]
+    return head + re.sub(r">([^<>]*\S[^<>]*)<", ">%s<" % OWN_TEXT, tail)
+
+
+def _own_lines(inner):
+    """The textarea text with each non-empty line replaced, line breaks kept as they are."""
+    return "".join(OWN_LINE if part and part not in ("\r\n", "\n", "\r") else part
+                   for part in re.split(r"(\r\n|\n|\r)", inner))
+
 
 def _profile_number(m):
     if m.group(1):
@@ -649,8 +731,10 @@ def markup_signature(text):
 class Config:
     """Operator-local settings: real pseudos (→ user1…), e-mails and profile ids to hide."""
 
-    def __init__(self, pseudos=(), emails=(), profile_ids=(), extra_pseudos=()):
+    def __init__(self, pseudos=(), emails=(), profile_ids=(), extra_pseudos=(), own_topics=()):
         self.pseudos = [p for p in pseudos if p]
+        # Public topics the operator's accounts started (`own_topics`): their pages are unlinked (OWN_*).
+        self.own_topics = [str(t) for t in own_topics if t]
         # Other members' names the operator listed by hand (seen in public prose or titles): replaced
         # in free text of every file like corpus-wide names, without the length/common-word filter.
         self.extra_pseudos = [p for p in extra_pseudos if p and p.strip()]
@@ -663,19 +747,21 @@ class Config:
         """Load and validate a JSON config file."""
         with open(path, encoding="utf-8") as fh:
             data = json.load(fh)
-        for key in ("pseudos", "emails", "profile_ids", "extra_pseudos"):
+        for key in ("pseudos", "emails", "profile_ids", "extra_pseudos", "own_topics"):
             if key in data and not isinstance(data[key], list):
                 raise ValueError("config key %r must be a list" % key)
         return cls(data.get("pseudos", []), data.get("emails", []), data.get("profile_ids", []),
-                   data.get("extra_pseudos", []))
+                   data.get("extra_pseudos", []), data.get("own_topics", []))
 
 
 class Anonymizer:
     """Stateless across files for the operator's identity, fresh per call for other members."""
 
-    def __init__(self, config, known_names=()):
-        """known_names: member names seen anywhere in the corpus, replaced in free text of every file."""
+    def __init__(self, config, known_names=(), own_ids=()):
+        """known_names: member names seen anywhere in the corpus, replaced in free text of every file.
+        own_ids: message ids of operator-owned topics across the batch, so every file maps them alike."""
         self.config = config
+        self.own_known = set(own_ids)
         self.known = {name_key(n) for n in known_names if _free_text_name(name_key(n))}
         self.known |= {name_key(n) for n in config.extra_pseudos}
         # The operator's pseudos are replaced everywhere by _operators, but a slug spells them differently.
@@ -696,6 +782,8 @@ class Anonymizer:
         self.ids = {pid: str(FAKE_ID_OPERATOR + i) for i, pid in enumerate(self.config.profile_ids) if pid}
         self.stats = {"tokens": 0, "undecoded_tokens": 0, "others": 0, "private_blocks": 0}
         self._free_rx = None
+        self.own_ids = {}       # real id (topic or message) -> fake id, only on an own-topic page
+        self.own_subjects = []  # subjects read from the page's `sujet` inputs
 
     def _rx(self, pseudo):
         if pseudo not in self._regex_cache:
@@ -928,8 +1016,71 @@ class Anonymizer:
             out.append(seg)
         return "".join(out)
 
+    def _own_start(self, text):
+        """On a page of an operator-owned topic: build its id table and replace subject, texts and title."""
+        topics = own_topics_in(text, self.config.own_topics)
+        if not topics:
+            return text
+        for t in topics:
+            self.own_ids[t] = str(OWN_TOPIC_FIRST + self.config.own_topics.index(t))
+        msgs = set(self.own_known)
+        for rx in OWN_MESSAGE_ID_RES:
+            msgs.update(rx.findall(text))
+        for i, mid in enumerate(sorted(msgs, key=int)):
+            self.own_ids.setdefault(mid, str(OWN_MESSAGE_FIRST + i))
+        subjects = {html.unescape(m.group(2)) for m in OWN_SUBJECT_INPUT_RE.finditer(text)}
+        self.own_subjects = sorted(subjects - {""}, key=len, reverse=True)
+        # A list (forum list, favourites, search results) prints the title in the title cell's `a.cCatTopic`; it is
+        # replaced at that position, before any pseudo rewriting (the page links of `td.sujetCase4` are not titles).
+        text = SUBJECT_RE.sub(lambda m: m.group(1) + OWN_SUBJECT + m.group(3) if own_topics_in(m.group(1), topics)
+                              else m.group(0), text)
+        # Search results add the matching message under the title, in the same cell (`div.citation`): every text
+        # after the title link of an own topic's cell is replaced.
+        text = OWN_TITLE_CELL_RE.sub(lambda m: m.group(1) + _own_cell_tail(m.group(2)) + m.group(3)
+                                     if own_topics_in(m.group(1) + m.group(2), topics) else m.group(0), text)
+        parts, last = [], 0
+        for start, end in _find_para_blocks(text):
+            if start < last:
+                continue
+            parts += [text[last:start], OWN_TEXT]
+            last = end
+        text = "".join(parts) + text[last:]
+        parts, last = [], 0
+        for start, end in _find_para_blocks(text, OWN_REVIEW_OPEN_RE):
+            parts += [text[last:start], OWN_TEXT]
+            last = end
+        text = "".join(parts) + text[last:]
+        text = OWN_RELATED_RE.sub(lambda m: m.group(1) + _own_related(m.group(2)) + m.group(3), text)
+        text = OWN_TEXTAREA_RE.sub(lambda m: m.group(1) + _own_lines(m.group(2)) + m.group(3), text)
+        text = OWN_DESCRIPTION_RE.sub(lambda m: m.group(1) + m.group(2) + OWN_TEXT + m.group(2), text)
+        return OWN_TITLE_RE.sub(lambda m: m.group(1) + OWN_SUBJECT + m.group(3), text, count=1)
+
+    def _own(self, s):
+        """Own-topic ids, slugs, subjects and dates (pages, decoded links, URLs and metas of that page)."""
+        if not self.own_ids:
+            return s
+        for t in self.config.own_topics:
+            if t in self.own_ids:
+                s = re.sub(r"(/)[^/\"'<>\s?#]*?-sujet_%s(?=_)" % t, r"\g<1>%s-sujet_%s" % (OWN_SLUG, t), s)
+        # A saved request body (form-encoded): the posted text keeps its line structure only.
+        s = OWN_BODY_TEXT_RE.sub(lambda m: m.group(1) + urllib.parse.quote_plus(
+            _own_lines(urllib.parse.unquote_plus(m.group(2)))), s)
+        s = OWN_BODY_SUBJECT_RE.sub(lambda m: m.group(1) + urllib.parse.quote_plus(OWN_SUBJECT), s)
+        for subject in self.own_subjects:
+            for form, fake in ((subject, OWN_SUBJECT), (html.escape(subject), OWN_SUBJECT),
+                               (html.escape(subject, quote=False), OWN_SUBJECT),
+                               (subject.replace("'", "&#039;"), OWN_SUBJECT),
+                               (urllib.parse.quote_plus(subject), urllib.parse.quote_plus(OWN_SUBJECT))):
+                s = s.replace(form, fake)
+        for real, fake in sorted(self.own_ids.items(), key=lambda kv: -len(kv[0])):
+            s = re.sub(r"(?<!\d)%s(?!\d)" % real, fake, s)
+        s = OWN_DATE_RE.sub(OWN_DATE, s)
+        s = OWN_TIME_RE.sub(lambda m: m.group(1) + "00:00" + (":00" if m.group(2) else ""), s)
+        return OWN_HTTP_DATE_RE.sub(OWN_HTTP_DATE, s)
+
     def _secrets(self, s):
         """Tokens, cookies, e-mails, IPs, member ids and personal profile fields."""
+        s = self._own(s)
         def inp(m):
             tag = m.group(0)
             if not _sensitive_input(tag):
@@ -970,6 +1121,7 @@ class Anonymizer:
     def anonymize(self, text, private=False):
         """Return the anonymized page. Mapping of other members is consistent within this call."""
         self._reset()
+        text = self._own_start(text)
         if private:
             parts, last = [], 0
             keep_first = bool(MPSTORAGE_HEADER_RE.search(text))
@@ -1079,6 +1231,9 @@ class Anonymizer:
                 if len(pid) >= MIN_BARE_ID_DIGITS:
                     for m in re.finditer(r"(?<!\d)%s(?!\d)" % pid, chunk):
                         add(m.start(), "operator profile id (bare number)")
+            for t in self.config.own_topics:
+                for m in re.finditer(r"(?<!\d)%s(?!\d)" % t, chunk):
+                    add(m.start(), "operator-owned topic id")
             for m in PERSONAL_SELECT_RE.finditer(chunk):
                 if SELECTED_RE.search(m.group(2)):
                     add(m.start(), "personal profile field still selected")
@@ -1100,6 +1255,7 @@ class Anonymizer:
                 if kind != "category" and self._free_regex().search(text[start:end]):
                     res.append((line_of(text, start), column_of(text, start), "known member name in a list link text"))
         res += verify_structure(text, private=private)
+        res += verify_own_topic(text)
         for pos, _prefix, _payload, decoded, _m in iter_tokens(text):
             if decoded is not None:
                 scan(decoded, pos, " (in obfuscated link)")
@@ -1445,6 +1601,67 @@ def _verify_json(text):
             v.check_value(o, 1)
     walk(doc)
     return v.found
+
+
+# Own-topic pages, checked apart from the OWN_* rewriting: a page (or meta) naming a fake own topic id must
+# carry no real message id, date, subject, slug or text. Patterns are written again on purpose.
+_V_OWN_PAGE = re.compile(r"(?:post=|sujet_|name=.post.\s*value=.)99000\d\d(?!\d)")
+_V_OWN_RULES = (
+    ("own-topic message id", re.compile(r"(?:numreponse=|para|name=.t|#t|n°|numrep=|quotemsg=)(\d{5,})"),
+     lambda v: (v.startswith("991") and len(v) == 10) or re.fullmatch(r"99000\d\d", v) is not None),
+    ("own-topic posted text", re.compile(r"(?:^|&)content_form=([^&\"<>\s]*)"),
+     lambda v: all(x in ("", "Text removed.") for x in re.split(r"\r\n|\n|\r", urllib.parse.unquote_plus(v)))),
+    ("own-topic posted subject", re.compile(r"(?:^|&)sujet=([^&\"<>\s]*)"),
+     lambda v: urllib.parse.unquote_plus(v) == "Own topic subject"),
+    ("own-topic message id (JS)", re.compile(r"(?:quoter|edit_in)\(\s*'[^']*'\s*,\s*'[^']*'\s*,\s*'?\d+'?\s*,\s*'?(\d+)'?"),
+     lambda v: v.startswith("991") and len(v) == 10),
+    ("own-topic date", re.compile(r"(\d\d-\d\d-\d\d\d\d)"), lambda v: v == "01-01-2000"),
+    ("own-topic time", re.compile(r"à(?:&nbsp;|\s)*(\d\d:\d\d(?::\d\d)?)"), lambda v: set(v) <= set("0:")),
+    ("own-topic HTTP date", re.compile(r"(\w{3}, \d\d \w{3} \d{4} [\d:]{8} GMT)"),
+     lambda v: v == "Sat, 01 Jan 2000 00:00:00 GMT"),
+    ("own-topic slug", re.compile(r"/([^/\"'<>\s?#]*)sujet_99000\d\d_"), lambda v: v in ("", "own-topic-subject-")),
+    ("own-topic subject", re.compile(r"name=.sujet.[^>]*?value=\"([^\"]*)\""), lambda v: v == "Own topic subject"),
+    ("own-topic description", re.compile(r"name=.Description.\s+content=\"([^\"]*)\""),
+     lambda v: v == "Own topic text removed."),
+    ("own-topic list title", re.compile(
+        r"sujetCase3[^>]*>(?:(?!</td>).)*?<a\b(?=[^>]*cCatTopic)(?=[^>]*(?:post=|sujet_|n°)99000\d\d\D)[^>]*>(.*?)</a>",
+        re.S),
+     lambda v: v.strip() == "Own topic subject"),
+    ("own-topic title", re.compile(r"<title>([^<]*)</title>"),
+     lambda v: v.startswith(("Own topic subject - ", "FORUM HardWare"))),
+)
+
+
+def verify_own_topic(text):
+    """[(line, column, reason)] for every own-topic value left real on an own-topic page or meta; [] otherwise."""
+    if not _V_OWN_PAGE.search(text):
+        return []
+    res = []
+    for label, rx, ok in _V_OWN_RULES:
+        for m in rx.finditer(text):
+            if not ok(m.group(1)):
+                res.append((line_of(text, m.start()), column_of(text, m.start()), "own-topic check: %s not replaced" % label))
+    for m in re.finditer(r"<div\b[^>]*\bid=[\"']para\d+[\"'][^>]*>(.*?)</div>", text, re.S):
+        if re.sub(r"<[^>]*>", "", m.group(1)).strip() != "Own topic text removed.":
+            res.append((line_of(text, m.start()), column_of(text, m.start()), "own-topic check: message text not replaced"))
+    for m in re.finditer(r"sujetCase3[^>]*>((?:(?!</td>).)*)</td>", text, re.S):
+        cell = m.group(1)
+        if re.search(r"(?:post=|sujet_|n°)99000\d\d\D", m.group(0)) and any(
+                x.strip() not in ("", "Own topic text removed.")
+                for x in re.findall(r">([^<>]*)<", cell[cell.find("</a>") + 4:] + "<")):
+            res.append((line_of(text, m.start()), column_of(text, m.start()), "own-topic check: search excerpt not replaced"))
+    for m in re.finditer(r"id=.sujetrelatif.(.*?)</table>", text, re.S):
+        block = m.group(1)
+        if re.search(r"sujet_\d|post=\d", block) or any(
+                x.strip() not in ("", "Related topic") for x in re.findall(r"<(?:a|span)\b[^>]*>([^<]*)<", block)):
+            res.append((line_of(text, m.start()), column_of(text, m.start()), "own-topic check: related topics not replaced"))
+    for m in re.finditer(r"messCase1bis[^>]*>[^<]*</td>\s*<td[^>]*>((?:(?!</tr>).)*)</td>", text, re.S):
+        if re.sub(r"<[^>]*>", "", m.group(1)).strip() != "Own topic text removed.":
+            res.append((line_of(text, m.start()), column_of(text, m.start()), "own-topic check: form review text not replaced"))
+    for m in re.finditer(r"<textarea[^>]*content_form[^>]*>(.*?)</textarea>", text, re.S):
+        if any(line not in ("", "Text removed.") for line in re.split(r"\r\n|\n|\r", m.group(1))):
+            res.append((line_of(text, m.start()), column_of(text, m.start()), "own-topic check: text area not replaced"))
+    return res
 
 
 def verify_structure(text, private=False):

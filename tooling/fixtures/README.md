@@ -28,7 +28,8 @@ Policy: [docs/FIXTURES.md](../../docs/FIXTURES.md). Protocol facts: [docs/HFR-PR
   "pseudos": ["FirstRealPseudo", "SecondRealPseudo"],
   "emails": ["operator@example.org"],
   "profile_ids": [111111, 222222],
-  "extra_pseudos": ["Other Member Seen In Prose"]
+  "extra_pseudos": ["Other Member Seen In Prose"],
+  "own_topics": [123456]
 }
 ```
 
@@ -40,6 +41,12 @@ Policy: [docs/FIXTURES.md](../../docs/FIXTURES.md). Protocol facts: [docs/HFR-PR
 - `extra_pseudos` (optional): other members' names spotted in public prose or titles (never in a member position,
   where they are found anyway). Replaced like corpus-wide names in the free text of every file, short or common
   words included. The file is local: this list never enters the repository.
+- `own_topics` (optional): public topics started by an operator account (topic id, the `post` value). Anyone can open
+  such a topic and read its author, so on its pages the anonymizer also replaces the topic id (`9900001`…), every
+  message id (`9910000001`…, one table for the publish batch), the subject (also the title link `a.cCatTopic` of its row's title cell `td.sujetCase3` on a list page, replaced at that position before pseudos, with any search-hit excerpt of that cell) and slug, message bodies, the review under
+  the edit form, the description, each line of the edit text (line breaks kept), the "Sujets relatifs" links and every
+  date; `verify_own_topic` checks those positions on any page naming a fake own topic id. **Run `check --config` on such
+  a batch**: `check --corpus` (no config) cannot recognise an own-topic page whose topic id was never aliased.
 
 ## What is replaced
 
@@ -90,7 +97,7 @@ python3 tooling/fixtures/anonymize.py check --corpus Packages/HFRKit/Tests/HFRPa
 ```
 
 `check` needs no config (CI runs `--corpus` on the committed corpus); with `--config` it also looks for the
-operator's pseudos, e-mails and ids. Findings are printed as `file:line:col: reason`, never with the value or its
+operator's pseudos, e-mails, ids and own topic ids (`own_topics`: required for a batch with own-topic pages). Findings are printed as `file:line:col: reason`, never with the value or its
 neighbourhood (CI logs are public, and a neighbour can be a leak too). It runs two independent verifiers: the `DISCOVER` positions, and
 `StructuralVerifier`, an `html.parser` walk with its own patterns over every position above (plus every
 `profil-`/`adduser=`/avatar/quote id, which must be a fake one). A position the anonymizer misses is therefore
