@@ -36,6 +36,7 @@ Issues are enabled on ezzz/HFRnow since 2026-10-27, but `issue-claims.yml`, `pr-
 
 ## Pushing shared state
 Push your branch often; your PR says where the work stands.
+Branches need not be up to date with `dev-swift` (requirement removed by the owner on 2026-10-28): merge `dev-swift` into yours only on a real conflict. Auto-merge is enabled; turning it on is a merge decision (AGENTS.md §0).
 Push refused → another session pushed meanwhile: fetch, merge or rebase on top of theirs (never drop their changes), push again.
 
 ## Session end

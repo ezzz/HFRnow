@@ -23,6 +23,11 @@ struct ForumListView: View {
         }
         .listStyle(.sidebar)
         .navigationTitle("HFR")
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                AccountMenuButton()
+            }
+        }
         .overlay { overlay(loader) }
         .safeAreaInset(edge: .top) {
             if let error = loader.error, loader.value != nil {
