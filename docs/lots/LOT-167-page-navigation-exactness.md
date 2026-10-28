@@ -12,7 +12,7 @@ None: new behaviour. The legacy app shows the last pager link as the page count;
 
 - **Default `false`**: a caller that sets `last` by hand claims nothing. `PageNavigation()` (one page) is a lower bound until a parser says otherwise.
 - **Codable**: the key is `isExact`; decoding uses `decodeIfPresent`, so a record written before the flag existed decodes as lower bound instead of throwing `keyNotFound`. Encoding is unchanged otherwise.
-- **Parser rule** (`TopicListPager`, shared by forum lists, favourites, search and MP lists): exact when the pager entries are exactly `1, 2, … N` with `N < 10`, or when the page has no pager header (empty or single page list). Any jump (`10 20 30`, `1 10 11 …`), or a pager reaching 10, is a lower bound.
+- **Parser rule** (`TopicListPager`, shared by forum lists, favourites, search and MP lists): exact when the pager entries are exactly `1, 2, … N` with `N < 10`, or when a list body has no pager header and its URL names page 1 or no page (`R13c`); a URL naming a later page without a header stays a lower bound. Any jump (`10 20 30`, `1 10 11 …`), or a pager reaching 10, is a lower bound.
 - **Why `N < 10`**: HFR shows pages 1-10 one by one then only tens (`R04`: `1 … 10 20 30 …`), so a pager that stops before 10 cannot hide pages. A pager `1…10` alone is ambiguous (11 to 19 pages would show the same), hence the strict bound. Short pagers are captured (`R08-2`: 1, `R50b`: 1-2, `R13u1`: 1-7); that nothing hides behind them is an inference from the window shape, not a capture of a topic count: listed as *pending capture* below.
 - **Hop/message pages** (`.hop` result, maintenance): left at the default (not exact); they carry no list.
 - **Topic rows**: the exact page count of a topic stays `TopicSummary.pageCount` (`sujetCase4`, asserted against the legacy oracle by `TopicListDifferentialTests`).
@@ -26,7 +26,7 @@ The app disabling "Dernière page" when `isExact` is false is out of this lot (a
 - Entries that are not numbers are ignored by `pageEntries`, so they cannot make a pager look contiguous.
 
 ## Fixtures
-Existing captures only, no new one: `R04`, `R05a`, `R05b` (lower bound), `R08-2`, `R50b` (exact), `R13u1` (MP, 1-7, exact), `R13c` (no pager, exact). Oracle `R04` `maxTopicPage` for the row count.
+Existing captures only, no new one: `R04`, `R05a`, `R05b` (lower bound), `R08-2`, `R50b` (exact), `R13u1` (MP, 1-7, exact), `R13c` (no pager, exact on page 1). Oracle `R04` `maxTopicPage` for the row count.
 
 ## Pending capture
 - A forum list whose real page count is 2-9 with the **last page** shown (a small sub-forum): would confirm the "stops before 10 means exact" inference on a list that is known to have no more pages. Search results (`R50b`) and the MP list (`R13u1`) are consistent with it but their true totals are not independently known.

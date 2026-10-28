@@ -18,8 +18,10 @@ enum TopicListPager {
     static func navigation(in body: Element, pagePath: String?) -> PageNavigation {
         let urlPage = pagePath.flatMap(pageNumber(inPagePath:))
         guard let header = body.firstDescendant(matching: .classToken("fondForum1PagesHaut")) else {
-            // A list without a pager header is one page: every captured empty or single-row list has none (R08-1, R13c).
-            return PageNavigation(current: urlPage ?? 1, isExact: true)
+            // A list body without a pager header is one page (R13c), but only when the URL does not name a later page:
+            // a missing header then says nothing about the total.
+            let page = urlPage ?? 1
+            return PageNavigation(current: page, isExact: page == 1)
         }
         let entries = header.firstDescendant(matching: .classToken("left")).map(pageEntries(in:)) ?? []
         let current = entries.first { $0.element.tagName() == "b" }?.number ?? urlPage ?? 1

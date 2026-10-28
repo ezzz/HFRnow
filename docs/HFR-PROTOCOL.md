@@ -172,7 +172,7 @@ Facts confirmed by a committed capture **and** asserted by a test of the parser 
 
 - **Window**: from page 1 the pager lists pages 1-10 one by one, then tens (`R04`: `1 … 10 20 30 …`, last `500`); around page 12 it lists `1 10 11 … 20 …` and around 500 `1 100 500 501 …` (`R05a`, `R05b`, last `700`): the last link is a lower bound, while a topic row's `sujetCase4` count is exact (`R04` row 1: 84, row 8: 35634 against a last link of 500).
 - **Short pagers** (`R08-2`: `1`, `R50b`: `1 2`, `R13u1`: `1`-`7`): consecutive from 1, below 10. Treated as the page count; inferred from the window shape, not independently confirmed (spec, pending capture).
-- **No pager**: empty lists and the empty MP list have no `fondForum1PagesHaut` (`R08-1`, `R13c`): one page.
+- **No pager**: the empty MP list has a list body without `fondForum1PagesHaut` (`R13c`): one page, exact when the URL names page 1 (a URL naming a later page leaves it a lower bound). The `.hop` message pages (`R08-1`, `R08-3`) are not lists and keep the default.
 
 ### LOT-024 — favourites page
 

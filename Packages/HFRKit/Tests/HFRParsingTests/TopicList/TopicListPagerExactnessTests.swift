@@ -46,4 +46,13 @@ struct TopicListPagerExactnessTests {
         #expect(!TopicListPager.isExactCount(of: [2, 3]))
         #expect(!TopicListPager.isExactCount(of: []))
     }
+
+    @Test("Without a pager header the count is exact on page 1 only (LOT-167)", arguments: [
+        ("/forum1.php?config=hfr.inc&cat=prive&page=1", true),
+        ("/forum1.php?config=hfr.inc&cat=prive&page=2", false)
+    ])
+    func noPagerHeader(pageURL: String, isExact: Bool) throws {
+        let page = try TopicListParser.parse(Fixture.capture("R13c-mp-list-empty-after-delete"), pageURL: pageURL)
+        #expect(page.navigation.isExact == isExact)
+    }
 }
