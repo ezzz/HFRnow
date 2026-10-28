@@ -1,0 +1,21 @@
+{
+  "id": "R63b",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "GET /message.php?config=hfr.inc&cat=<cat>&post=<post>&numreponse=<first>&page=1&p=1&subcat=<sub>&sondage=0&owntopic=0 (decoded edit link of the own first post)",
+  "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=6&post=9900001&numreponse=9910000001&page=1&p=1&subcat=173&sondage=0&owntopic=0",
+  "final_url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=6&post=9900001&numreponse=9910000001&page=1&p=1&subcat=173&sondage=0&owntopic=0",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Sat, 01 Jan 2000 00:00:00 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "public first-post edit form of an own topic (user1); never submitted with delete",
+  "file": "R63b-public-edit-form-first-post.html",
+  "private": false
+}

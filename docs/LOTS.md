@@ -193,7 +193,6 @@ Page states that merged lots listed as **pending capture** (never hand-built in 
 | Home row without `id="cat<N>"`; full sub-forum lists | LOT-021 | REST R57a counts 27 sub-forums for Programmation, page + table give 14 |
 | Topic page with `quote_only=1` (LOT-001 checklist R34, dropped as optional): is there any server signal that someone quoted me? | FEAT-018, HFR-PROTOCOL §7b B11 | read-only GET; settles feasibility before FEAT-018 is promised |
 | Site `apple-app-site-association` (AASA): which App IDs and paths it names | FEAT-020, Q-1 | reported live 2026-10-26 to name `QMG83DG7YP.hfrplus.red.super` (old format), not captured; plain GET, no account |
-| Edit form of the first post of an own public topic (`cat=<forum>`): `sujet` field, `subcat` select, delete label | LOT-036, LOT-048 | a later post's public edit form is captured (R62a: `/bdd.php`) |
 | New-topic form reached with a sub-category preselected (a `selected` option in `subcat`) | LOT-036 | R45a has none |
 | Edit or quote form of a message whose stored text starts with a newline | LOT-036 | tells whether a browser's dropped leading newline corrupts the round trip |
 | Reply form of a locked topic, and of a topic where the account may not post | LOT-036, LOT-037 | what the page serves instead of the form |
