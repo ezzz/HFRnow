@@ -32,10 +32,15 @@ enum Capture {
         return try JSONDecoder().decode(CaptureMeta.self, from: data)
     }
 
-    /// The page served as HFR served it: status 200, UTF-8 HTML (every capture used here is `text/html; charset=utf-8`).
-    static func response(_ file: String, url: URL) throws -> HTTPResponse {
+    /// Profile page 1, the page a session refresh reads (LOT-044).
+    static let profilePage1 = URL(string: "https://forum.hardware.fr/user/editprofil.php?config=hfr.inc&page=1")
+        ?? URL(fileURLWithPath: "/")
+
+    /// The page served as HFR served it: UTF-8 HTML (every capture used here is `text/html; charset=utf-8`), status 200
+    /// unless a test needs another one.
+    static func response(_ file: String, url: URL = profilePage1, status: Int = 200) throws -> HTTPResponse {
         HTTPResponse(
-            statusCode: 200,
+            statusCode: status,
             headers: ["Content-Type": "text/html; charset=utf-8"],
             url: url,
             body: Data(try page(file).utf8)
@@ -48,12 +53,14 @@ struct CaptureMeta: Decodable {
     let status: Int
     let method: String
     let url: String
+    let finalURL: String?
     let setCookieNames: [String]
     let requestFields: [String]?
     let requestBody: String?
 
     enum CodingKeys: String, CodingKey {
         case status, method, url
+        case finalURL = "final_url"
         case setCookieNames = "set_cookie_names"
         case requestFields = "request_fields"
         case requestBody = "request_body"

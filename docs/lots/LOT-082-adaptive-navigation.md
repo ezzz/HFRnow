@@ -36,6 +36,7 @@ None: the models are tested with a scripted `ForumDataSource`; parsers are cover
 ## Intentional differences from legacy
 - Refresh no longer jumps to page 1; no fake page total.
 - Favourites are grouped by category, not merged and sorted by last post (`topicsByLastPost` stays available).
+- **Reverted on purpose (operator, 2026-10-28):** the split-view-only navigation of this lot (no bottom tab bar, Drapeaux/Favoris at the top of the sidebar) is not kept. The legacy root tabs Catégories / Favoris / Messages / Plus come back with [LOT-170 (#296)](https://github.com/ezzz/HFRnow/issues/296): a tab bar on iPhone, the legacy sidebar on a regular-width iPad (legacy `HFRswift/Swift/MainWindow.swift:1353-1355`, `:1698-1725`, `:2205-2245`). See the UX principles in [FEATURES.md](../FEATURES.md#ux-principles-operator).
 
 ## Learnings
 - Typed-throws closures need an explicit `() async throws(E) -> T in` signature and `do throws(E)`, or the error type is inferred as `any Error`.

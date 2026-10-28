@@ -329,6 +329,14 @@ Source: [LOT-034](lots/LOT-034-content-normalization.md), `MessageContentNormali
   than `code<N>`.
 - **Not in the corpus**: `hfr-rehost.net` or `reho.st` URLs, the `---------------` separator, `oldcitation`.
 
+### LOT-051 — flags and favourites
+
+[LOT-051](lots/LOT-051-flag-writes.md), tests `FlagLinkWriteTests`, `FlagLinkValidationTests` and `FavoriteListAndReadTests`.
+
+- **Flag links** (`R21`, `P03a`, `P03d`, **verified**): every message of a logged-in topic page carries `/user/addflag.php?config=hfr.inc&cat=<cat>&post=<post>&numreponse=<n>&page=<p>&ref=<rank>&p=1&sondage=0&owntopic=0&subcat=<sub>` (40 on `R21`, the first one is `P03a`'s request); the page has one `/user/delflag.php?config=hfr.inc&cat=<cat>&subcat=<sub>&post=<post>&page=<p>&p=1&sondage=0&owntopic=<n>&new=0` (`owntopic=0` on `R21`, `1` on `R33b`). No token in either link.
+- **Flag answers** (`P03a`, `P03b`, `P03d`, **verified**): 200 in place, no redirect, no cookie set; a link-less `.hop` "Favori positionné avec succès" (again on a second `addflag`: idempotent) or "Drapeau effacé avec succès", and a 1 s refresh (sub-forum list after `addflag`, `forum1.php…&owntopic=3` of the category after `delflag`).
+- **Flag action form `form1`** (**verified**), the same shape on the favourites lists and on a forum's flag list: on `forum1f.php` (`P03c` `owntopic=3`, `R10` `owntopic=1`) it posts to `/modo/manageaction.php?config=hfr.inc&cat=0&type_page=forum1f&moderation=0`, on `forum1.php` (`R08-2`, `owntopic=2`) to `/modo/manageaction.php?config=hfr.inc&cat=<cat>&type_page=forum1&moderation=0`; per row a checkbox `topic<i>` (value = topic number) with hidden `valuecat<i>` and `valueforum<i>=hardwarefr`, then `hash_check`, the end marker `topic<N>=-1`, `topic_statusno<N>=-1` with `N` = number of rows, the `action_reaction` select (only option `message_forum_delflags`), hidden `owntopic` and `type_page`. Legacy's body (`FavoritesTableViewController.m:1846-1858`) always writes the marker at index 1. The answer to this POST is **not captured**.
+
 ### LOT-031 — message action links
 
 Source: [LOT-031](lots/LOT-031-message-actions.md), `MessageActionsParser`, checked by `MessageActionsOracleTests` against the legacy actions dictionary of the 20 LOT-003 topic oracles (358 messages) and by `MessageActionsParserTests`.
@@ -343,6 +351,14 @@ Source: [LOT-031](lots/LOT-031-message-actions.md), `MessageActionsParser`, chec
 - **Alert**: `<a href="/user/modo.php?config=hfr.inc&cat=<cat>&post=<post>&numreponse=<n>&page=<p>&ref=<i>" title="Prévenir les modérateurs en cas d'abus" target="_blank">`, logged in on public topics only.
 - **Not read** (no legacy use): `viewbbcode.php`, `edit_in(…)` quick edit, `/user/contactlist.php?adduser=<id>`.
 - **Pending capture**: the viewer's own post on a public topic (edit link shape and which other links remain), a quote or edit link printed in clear instead of obfuscated.
+
+### LOT-044 — session refresh
+
+[LOT-044](lots/LOT-044-session-health.md), asserted by the capture-backed flow tests `SessionRefreshFlowTests` (the pages are read by `ProfileEditPageParser` and `HopResponseParser`, already verified above).
+
+- **Profile page 1 logged in** (`R55-p1`, **verified**): `GET /user/editprofil.php?config=hfr.inc&page=1` answers 200 with a non-empty `hash_check`, no `.hop`, and sets `md_user` and `md_passs` (each name twice in the meta; attributes not recorded). A refresh is confirmed only by that shape with the same `md_user` afterwards.
+- **Token echo** (`W17c`, **verified**): a `.hop` refusal can hold a non-empty `hash_check` in its replay form although the POST carried no cookies, so a non-empty token is evidence of a logged-in session only on the expected profile-page GET, after its URL and `.hop` checks.
+- Not captured: page 1 with stale cookies, `md_user=deleted` sent by HFR, attributes of the doubled `Set-Cookie` (see the lot's Pending capture).
 
 ### LOT-084 — reply composer
 
