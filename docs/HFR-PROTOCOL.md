@@ -312,6 +312,22 @@ Source: [LOT-034](lots/LOT-034-content-normalization.md), `MessageContentNormali
   than `code<N>`.
 - **Not in the corpus**: `hfr-rehost.net` or `reho.st` URLs, the `---------------` separator, `oldcitation`.
 
+### LOT-031 — message action links
+
+Source: [LOT-031](lots/LOT-031-message-actions.md), `MessageActionsParser`, checked by `MessageActionsOracleTests` against the legacy actions dictionary of the 20 LOT-003 topic oracles (358 messages) and by `MessageActionsParserTests`.
+
+- **Where**: every per-message action is inside the block's `div.toolbar`: `div.left` after the date holds profile, `viewbbcode`, edit, quick edit (`edit_in(…)`), quote, multi-quote, MP, contact and favourite links; `div.right` holds the alert link (logged in, public topics). Page-level links sit outside the blocks: the header's `/user/delflag.php?…` (`a.cHeader`, logged in) and a topic-level `/user/modo.php?cat=…&ref=0&post=…` (`R21`, `R32b`).
+- **Quote**: `<span class="md_noclass_cryptlink<hex>"><img … alt="answer" /></span>`, decoding to `/message.php?config=hfr.inc&cat=<cat>&post=<post>&numrep=<n>&ref=<i>&page=<p>&p=1&subcat=<sub>&sondage=0&owntopic=0&new=0#formulaire`; on every block, logged out too (`R20`).
+- **Edit**: `<span class="md_noclass_cryptlink<hex>"><img … alt="edit" /></span>`, decoding, in private conversations (the only edit links of the corpus; the public-topic shape is pending capture), to `/message.php?config=hfr.inc&cat=prive&post=<post>&numreponse=<n>&page=1&p=1&subcat=0&sondage=0&owntopic=0#formulaire`; only on the viewer's own posts (`RA1`–`RA4`, `RU2` message 4; none for the recipient on the other account's posts, `RU1`).
+- **Multi-quote**: `<a rel="nofollow" onclick="quoter('hardwarefr','<cat>',<post>,<numreponse>); return false;" href="/message.php?…&numrep=<n>…">` holding `img alt="answer +"` and `alt="answer -"`; logged in only, `<cat>` is `prive` in conversations; its `numreponse` is the block's own on every message.
+- **Profile**: `<a href="/hfr/profil-<id>.htm" target="_blank" rel="nofollow"><img … alt="profil" /></a>`; absent on some blocks (`R22a`: 3 posts of one member, quote link only).
+- **MP**: `<a rel="nofollow" href="/message.php?config=hfr.inc&cat=prive&sond=&p=1&subcat=&dest=<pseudo>&subcatgroup=0"><img … alt="MP" /></a>`, logged in, on other members' posts only (`R21`, `RA4` message 4, `RU1`, `RU2`).
+- **Favourite**: `<a href="/user/addflag.php?config=hfr.inc&cat=<cat>&post=<post>&numreponse=<n>&page=<p>&ref=<i>&p=1&sondage=0&owntopic=0&subcat=<sub>">` (`img alt="Favoris"`), logged in on public topics only (`R21`, `R32b`).
+- **Alert**: `<a href="/user/modo.php?config=hfr.inc&cat=<cat>&post=<post>&numreponse=<n>&page=<p>&ref=<i>" title="Prévenir les modérateurs en cas d'abus" target="_blank">`, logged in on public topics only.
+- **Not read** (no legacy use): `viewbbcode.php`, `edit_in(…)` quick edit, `/user/contactlist.php?adduser=<id>`.
+- **Pending capture**: the viewer's own post on a public topic (edit link shape and which other links remain), a quote or edit link printed in clear instead of obfuscated.
+
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).
