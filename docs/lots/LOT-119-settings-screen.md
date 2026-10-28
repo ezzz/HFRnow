@@ -39,7 +39,7 @@ A gear button in the sidebar toolbar (next to the account menu) opens a sheet wi
 | Général: Écran de démarrage (`HFRswiftStartupScreen`) | LOT-119 (LOT-144 adds the Home value) | built |
 | Général: Favoris `vos_sujets`, Favoris triés par catégories `sujets_avec_cat`, Actualisation automatique `favorites_auto_refresh` | LOT-124 | not built |
 | Général: Mode compact (`compact_mode`) | LOT-119 | built |
-| Général: Réduire la tab bar au scroll (`tabbar_minimize_on_scroll`) | LOT-119 stores, the tab-bar lot applies | built (stored only) |
+| Général: Réduire la tab bar au scroll (`tabbar_minimize_on_scroll`) | LOT-119 stores, LOT-170 applies | built |
 | Général: Taille du texte (`text_size_scale`, now slider `text_size_percent`) | LOT-119 entry, separate lot applies it | built |
 | Général: Retours haptiques (`haptics`), Icône (`icon`) | LOT-123 | not built (Icône: entry row) |
 | Général: Rotation d’écran (`landscape_mode`) | LOT-119 | built |

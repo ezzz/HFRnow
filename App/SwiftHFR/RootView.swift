@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Root screen: the adaptive navigation, built on the current account's session (LOT-081, LOT-082).
+/// Root screen: the root navigation (tab bar or sidebar), built on the current account's session (LOT-081, LOT-170).
 ///
 /// Shown once the stored accounts are read, so the first load is not made logged out and then redone. The navigation is
 /// rebuilt from scratch whenever the current session becomes another object (`currentSessionGeneration`): lists and
@@ -12,7 +12,7 @@ struct RootView: View {
     var body: some View {
         Group {
             if let built {
-                AdaptiveNavigationView(environment: built.environment)
+                RootNavigationView(environment: built.environment)
                     .id(built.generation)
             } else {
                 ProgressView()
