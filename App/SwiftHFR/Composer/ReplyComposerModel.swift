@@ -110,11 +110,13 @@ final class ReplyComposerModel: Identifiable {
         errorMessage = nil
         mayHavePosted = false
         let sending = text
-        // The exact text sent is on disk before the request leaves: a crash or an unconfirmed answer never loses it.
-        await saveNow()
+        // The exact text sent is on disk before the request leaves: a crash or an unconfirmed answer never loses it. A
+        // failed write does not stop the send; the warning stays on screen.
+        _ = await saveNow()
         do throws(PostingError) {
             let result = try await services.poster.reply(sending, formURL: target.formURL)
-            await discardDraft()
+            // The reply is posted: the sheet closes even if the draft cannot be deleted (spec, edge cases).
+            _ = await discardDraft()
             isSending = false
             closeReason = .sent(result)
         } catch {
@@ -137,27 +139,39 @@ final class ReplyComposerModel: Identifiable {
         }
     }
 
-    /// Closes and keeps the text as the topic's draft.
+    /// Closes and keeps the text as the topic's draft. When the draft cannot be written the sheet stays open with the
+    /// warning: closing would lose the text the user chose to keep.
     func keepDraftAndClose() async {
         guard closeReason == nil, !isSending, !isClosing else { return }
         isClosing = true
-        await saveNow()
+        guard await saveNow() else {
+            isClosing = false
+            return
+        }
         closeReason = .keptDraft
     }
 
-    /// Closes and deletes the topic's draft.
+    /// Closes and deletes the topic's draft. When it cannot be deleted the sheet stays open with the warning: the draft
+    /// the user deleted would come back at the next reply.
     func discardDraftAndClose() async {
         guard closeReason == nil, !isSending, !isClosing else { return }
         isClosing = true
-        await discardDraft()
+        guard await discardDraft() else {
+            isClosing = false
+            return
+        }
         closeReason = .discardedDraft
     }
 
     /// After an unconfirmed send: closes with the draft kept, so the user can look at the topic before sending again.
+    /// Stays open, like `keepDraftAndClose`, when the draft cannot be written.
     func checkTopic() async {
         guard mayHavePosted, closeReason == nil, !isSending, !isClosing else { return }
         isClosing = true
-        await saveNow()
+        guard await saveNow() else {
+            isClosing = false
+            return
+        }
         closeReason = .checkTopic
     }
 
@@ -165,7 +179,7 @@ final class ReplyComposerModel: Identifiable {
     /// before the draft was read, which would overwrite it, nor once the sheet closed, which already decided.
     func flushDraft() async {
         guard canEdit else { return }
-        await saveNow()
+        _ = await saveNow()
     }
 
     /// Waits for the scheduled autosave (tests).
@@ -175,33 +189,42 @@ final class ReplyComposerModel: Identifiable {
 
     // MARK: - Draft writes
 
+    /// Each autosave waits for the one it replaces: a replaced save that already woke up still finishes first, so waiting
+    /// for the latest one (`settleAutosave`) waits for every write in flight.
     private func scheduleAutosave() {
-        autosave?.cancel()
+        let previous = autosave
+        previous?.cancel()
         let delay = autosaveDelay
         autosave = Task { [weak self] in
+            await previous?.value
             do {
                 try await Task.sleep(for: delay)
             } catch {
                 return
             }
-            await self?.persist()
+            // Only narrows the window: `settleAutosave` awaiting the chain is what orders this write before a discard.
+            guard !Task.isCancelled else { return }
+            _ = await self?.persist()
         }
     }
 
-    /// Cancels the pending autosave and waits for a write already running, then saves the text.
-    private func saveNow() async {
+    /// Cancels the pending autosave and waits for a write already running, then saves the text. Returns whether it was
+    /// written.
+    private func saveNow() async -> Bool {
         await settleAutosave()
-        await persist()
+        return await persist()
     }
 
     /// Cancels the pending autosave and waits for a write already running, then deletes the draft. Waiting matters: a
     /// save landing after the discard would bring the draft back.
-    private func discardDraft() async {
+    private func discardDraft() async -> Bool {
         await settleAutosave()
         do {
             try await services.drafts.discard(for: target.draftContext, account: services.account)
+            return true
         } catch {
             draftWarning = Self.draftWarning(for: error)
+            return false
         }
     }
 
@@ -212,13 +235,16 @@ final class ReplyComposerModel: Identifiable {
         await pending?.value
     }
 
-    /// The one write path of the draft: empty text removes it (LOT-063).
-    private func persist() async {
+    /// The one write path of the draft. Blank text removes it (LOT-063 removes an empty one): a whitespace-only draft
+    /// would come back in an editor that looks empty. Returns whether the write succeeded.
+    private func persist() async -> Bool {
         do {
-            try await services.drafts.save(text, for: target.draftContext, account: services.account)
+            try await services.drafts.save(hasText ? text : "", for: target.draftContext, account: services.account)
             draftWarning = nil
+            return true
         } catch {
             draftWarning = Self.draftWarning(for: error)
+            return false
         }
     }
 

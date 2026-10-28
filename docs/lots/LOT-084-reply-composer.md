@@ -65,8 +65,11 @@ per topic). The account is the current one (`md_user` key). `ComposerServices.li
   the draft. Swiping the sheet down is blocked while there is text (user feedback p. 498-506: "sheet swipe-down destroys
   the draft").
 - Discarded only after a confirmed send or on request. A pending autosave is cancelled and a running one awaited before
-  any discard, so it never brings the draft back.
-- A draft file that cannot be read or written shows a warning; the text on screen stays and can be sent.
+  any discard (each autosave waits for the one it replaced), so it never brings the draft back.
+- A blank (whitespace-only) text is stored as no draft.
+- A draft file that cannot be read or written shows a warning; the text on screen stays and can be sent. "Garder le
+  brouillon", "Supprimer le brouillon" and "Voir le sujet" close only once the draft is written or deleted; otherwise the
+  sheet stays open with the warning.
 
 **Editor.** SwiftUI `TextEditor`, `.body` (Dynamic Type), default keyboard (no `asciiCapable`, third-party keyboards work),
 focused on open. The sheet's keyboard safe area keeps the caret above the keyboard; the editor never rewrites its text
@@ -101,7 +104,8 @@ scripted outcomes; the posting itself is LOT-048's, tested on `R61b`, `W30`–`W
   only after `unconfirmed`; typing clears the failure message.
 - `ReplyComposerDraftTests`: restore per topic and account; one write per typing pause; restore after a kill (new store
   on the same file); background flush; nothing written before the restore; Cancel asks and keeps, or discards, or
-  removes an emptied draft without asking; write and read failures reported.
+  removes an emptied draft without asking; a blank text leaves no draft; keep and "Voir le sujet" stay open when the draft
+  cannot be written; write and read failures reported.
 - `ReplyEntryTests`: the reply is offered only with an answer form and a topic; after a confirmed reply the reader asks
   for `maxPage + 1`, opens at the last message (not the continuation block) and shows HFR's sentence, on `forum2.php` and
   canonical paths; after an unconfirmed one the same page without sentence, after a plain close nothing; `R61d`
@@ -112,7 +116,10 @@ Shown to fail without the change (each mutation run locally makes its test fail)
 local non-BMP check, no debounce, no wait for a running autosave before a discard, no save before sending, closing before
 the restore, `maxPage` instead of `maxPage + 1`, the continuation block as last message, no `answerURL` from the page, a
 reply offered without answer link, `mayHavePosted` on every failure, no latest post after a confirmed or an unconfirmed
-reply.
+reply; CodeRabbit round 1: closing on a failed keep, discard or "Voir le sujet" write, whitespace stored as a draft. The autosave
+chaining (a replaced save that already woke up) has no failing test: `DraftStore` is an actor and that save is enqueued
+before any later discard on the main actor, so the race cannot be produced; the chain removes the dependency on that
+order.
 
 ## Pending capture
 

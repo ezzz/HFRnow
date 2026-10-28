@@ -127,6 +127,67 @@ struct ReplyComposerDraftTests {
         #expect(composer.draftWarning == nil)
     }
 
+    @Test func keepingADraftThatCannotBeWrittenLeavesTheSheetOpen() async {
+        let persistence = CountingDraftPersistence()
+        let drafts = DraftStore(persistence: persistence)
+        let composer = ComposerFixture.model(poster: ScriptedPoster([]), drafts: drafts)
+        await composer.start()
+        composer.update(text: "À ne pas perdre")
+        persistence.failSaves(true)
+        await composer.keepDraftAndClose()
+        #expect(composer.closeReason == nil)
+        #expect(composer.draftWarning != nil)
+        #expect(composer.canEdit)
+        persistence.failSaves(false)
+        await composer.keepDraftAndClose()
+        #expect(composer.closeReason == .keptDraft)
+        #expect(await ComposerFixture.storedText(drafts) == "À ne pas perdre")
+    }
+
+    @Test func checkingTheTopicWithADraftThatCannotBeWrittenLeavesTheSheetOpen() async {
+        let persistence = CountingDraftPersistence()
+        let poster = ScriptedPoster([.failure(.unconfirmed(.transport(.timedOut)))])
+        let composer = ComposerFixture.model(poster: poster, drafts: DraftStore(persistence: persistence))
+        await composer.start()
+        composer.update(text: "Peut-être postée")
+        persistence.failSaves(true)
+        await composer.send()
+        #expect(poster.calls.count == 1)
+        await composer.checkTopic()
+        #expect(composer.closeReason == nil)
+        #expect(composer.mayHavePosted)
+        persistence.failSaves(false)
+        await composer.checkTopic()
+        #expect(composer.closeReason == .checkTopic)
+    }
+
+    @Test func discardingADraftThatCannotBeDeletedLeavesTheSheetOpen() async throws {
+        let persistence = CountingDraftPersistence()
+        let drafts = DraftStore(persistence: persistence)
+        try await drafts.save("Ancien", for: replyTarget.draftContext, account: ComposerFixture.account)
+        let composer = ComposerFixture.model(poster: ScriptedPoster([]), drafts: drafts)
+        await composer.start()
+        persistence.failSaves(true)
+        await composer.discardDraftAndClose()
+        #expect(composer.closeReason == nil)
+        #expect(composer.draftWarning != nil)
+        #expect(composer.canEdit)
+        persistence.failSaves(false)
+        await composer.discardDraftAndClose()
+        #expect(composer.closeReason == .discardedDraft)
+        #expect(await ComposerFixture.storedText(drafts) == nil)
+    }
+
+    @Test func aWhitespaceOnlyTextLeavesNoDraft() async throws {
+        let drafts = DraftStore(persistence: InMemoryDraftPersistence())
+        try await drafts.save("Ancien", for: replyTarget.draftContext, account: ComposerFixture.account)
+        let composer = ComposerFixture.model(poster: ScriptedPoster([]), drafts: drafts)
+        await composer.start()
+        composer.update(text: " \n\t ")
+        await composer.flushDraft()
+        #expect(await ComposerFixture.storedText(drafts) == nil)
+    }
+
     @Test func anUnreadableDraftFileIsReportedAndTheEditorStillWorks() async {
         let composer = ComposerFixture.model(poster: ScriptedPoster([]), drafts: DraftStore(persistence: UnreadableDraftPersistence()))
         await composer.start()
