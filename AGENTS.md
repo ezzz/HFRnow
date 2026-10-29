@@ -10,7 +10,7 @@ It is a living document: when a lot teaches us something, it is written here (se
 1. Read this file, [ORCHESTRATION](docs/agents/ORCHESTRATION.md), [REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md) and [LESSONS](docs/agents/LESSONS.md).
 2. Look at the [issues of ezzz/HFRnow](https://github.com/ezzz/HFRnow/issues), not memory: the ones you claimed (a `/claim` comment with your session id), then `status: ready` issues nobody claimed (§7). [`docs/LOTS.md`](docs/LOTS.md) is the plan (scope, dependencies, routing) and links each lot to its issue.
 3. Work only under an issue you claimed (§5). Every PR names its issue (`Closes #N`, or `Refs #N` for partial work; the only exceptions are a `Direct-PR: <reason>` small fix and Dependabot), and a lot PR its lot (`LOT-XXX`) (§8).
-4. Get the PR reviewed by another model and handle bot rounds per REVIEW-ROUNDS. Merging is the operator's call (§0).
+4. Get the PR reviewed by another model and handle bot rounds per REVIEW-ROUNDS. The author merges once the PR is merge-ready; risky flows and PRs whose author has no write access are merged by the core orchestrator or the maintainer (§8).
 5. Before you stop: say where each lot you own stands (on its PR), and give back what you will not finish (`/release` on its issue, §5).
 
 ---
@@ -20,7 +20,7 @@ It is a living document: when a lot teaches us something, it is written here (se
 The **operator** is the human driving an agent session. Agents act on the operator's behalf and within the operator's permissions on this repository.
 
 - **Routine work needs no extra confirmation**: your own branches, PRs, fixes to your open PRs, replies on your PRs, `/claim` and `/release` comments, and comments on the issues you claimed.
-- **Consequential actions are confirmed by the operator first** (draft, show, wait): merges, releases and tags, anything on another repository, editing or closing what someone else wrote (back up, show the diff, apply, re-read), repository settings, new dependencies, disclosing a security finding, messages outside GitHub.
+- **Consequential actions are confirmed by the operator first** (draft, show, wait): merges outside the §8 merge policy, releases and tags, anything on another repository, editing or closing what someone else wrote (back up, show the diff, apply, re-read), repository settings, new dependencies, disclosing a security finding, messages outside GitHub.
 - How strictly confirmations apply, and whether they carry over to child sessions, is **the operator's call**. Personal rules belong in an untracked `CLAUDE.local.md` (or your tool's equivalent), not in this file.
 - Merges to `dev-swift` happen through PRs with green checks; who may merge is governed by repository permissions.
 - A human reviewer's correction overrides an agent's plan: apply it, reply once, update the docs.
@@ -41,7 +41,7 @@ License: [PolyForm Noncommercial 1.0.0](LICENSE) — no commercial use, credit t
 | `docs/ARCHITECTURE.md` | Modules, dependency rules, design principles |
 | `docs/ROADMAP.md` | Phases and their exit criteria |
 | `docs/LOTS.md` | The migration plan: lots with scope, dependencies, model routing, each linked to its issue. Owners and status live on the [issues](https://github.com/ezzz/HFRnow/issues) |
-| `docs/agents/` | [ORCHESTRATION](docs/agents/ORCHESTRATION.md) (parallel sessions), [REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md) (bots & reviews), [LESSONS](docs/agents/LESSONS.md) (self-review table) |
+| `docs/agents/` | [ORCHESTRATION](docs/agents/ORCHESTRATION.md) (parallel sessions), [REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md) (bots & reviews), [LESSONS](docs/agents/LESSONS.md) (self-review table), [EXTERNAL-AGENTS](docs/agents/EXTERNAL-AGENTS.md) (brief for contributors' agents: queues, claims, reviews, model matrix) |
 | `docs/lots/` | One spec file per lot (`LOT-XXX-name.md`) |
 | `docs/FEATURES.md` | App feature backlog (FEAT-XXX, with credit to who proposed it) and status; one spec per feature in `docs/features/FEAT-XXX.md` ([ADR 0011](docs/adr/0011-contribution-model-and-feature-intake.md) §2) |
 | `docs/HFR-PROTOCOL.md` | What we know about HFR: URLs, forms, cookies, HTML structure |
@@ -146,6 +146,7 @@ Within a priority, match `difficulty` to your model tier (§6). Security issues 
 - **Public actions outside this repository** (a post on the HFR forum, an issue or comment on another project, a message to another maintainer) are confirmed by the operator first (§0), then recorded on the related issue or PR, in the same work unit: the link, or, for a private channel (e-mail, chat), the channel and the date, never the private content. Other sessions learn our public footprint from there.
 - **Legacy fixes**: a PR that fixes or deliberately changes a behaviour of the legacy app adds one line to [docs/CHANGELOG-LEGACY.md](docs/CHANGELOG-LEGACY.md) (French summary, lot/PR, legacy file:line or capture) — the base of the SwiftHFR v1 changelog.
 - **PR description**, short, in order: `LOT-XXX` (lot PRs only), `Closes #N` (or `Refs #N` and what is left, for partial work; `Direct-PR: <reason>` for a small fix without an issue) and `Claim:`; the problem; the cause; what changed and why this wide and no wider; the tests (names, what they check, shown to fail without the change).
+- **Merge policy** (operator, 2026-10-29): the author merges (squash) as soon as the PR meets the [merge criteria](CONTRIBUTING.md#2-merge-criteria) and has an adversarial APPROVE on its head; a merge-ready PR is never left open. State-changing flows, sessions, auth, cookies, tokens, security findings, `HFRModels` public types, ADRs and every PR whose author has no write access are merged by the core orchestrator or the maintainer. At most 5 open PRs per contributor id. External contributors' agents follow [EXTERNAL-AGENTS](docs/agents/EXTERNAL-AGENTS.md); work open to them carries the `external: ready` label, reviews open to them a `REVIEW WANTED: <model>` comment.
 - Draft while unfinished; ready as soon as CI is green. Answer reviews within a day; handle bot rounds with [REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md).
 - No new PR while one of yours has an unanswered review comment.
 - Commit small, push often: a crash should lose minutes, not hours.
