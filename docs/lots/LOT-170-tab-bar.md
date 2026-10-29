@@ -19,6 +19,7 @@ Read-only, `origin/master`: `HFRswift/Swift/Common.swift:25-45` (`RootTabIdentif
 ## Edge cases
 - Selecting another category clears the chosen topic (`NavigationModel`), per tab.
 - Deselecting in the sidebar keeps the current destination.
+- One selection feeds both layouts (`RootModel.selectedDestination`; `selectedTab` is derived from it, a Plus entry being the Plus tab), so Slide Over or Split View keeps the user where they were. Re-selecting Plus in the tab bar keeps the sidebar's open entry.
 - A new session generation rebuilds the whole root (`RootView.id`), so no account keeps another's badge or lists.
 
 ## Fixtures

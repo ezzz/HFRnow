@@ -13,10 +13,23 @@ final class RootModel {
     let categories: NavigationModel
     /// Selection and models of the Favoris tab. Its source is the favourites, or the flags the user switches to.
     let favorites: NavigationModel
-    /// Tab shown by the iPhone tab bar.
-    var selectedTab: RootTab
-    /// Destination shown by the iPad sidebar.
+    /// The one selection both layouts read, so a size-class change (Slide Over, Split View) keeps what the user was on.
     var selectedDestination: SidebarDestination
+
+    /// Tab shown by the iPhone tab bar: a Plus entry selected in the sidebar is the Plus tab. Setting it selects that tab,
+    /// except that re-selecting Plus keeps the entry the sidebar had open.
+    var selectedTab: RootTab {
+        get {
+            switch selectedDestination {
+            case .tab(let tab): tab
+            case .plus: .more
+            }
+        }
+        set {
+            guard newValue != selectedTab else { return }
+            selectedDestination = .tab(newValue)
+        }
+    }
 
     @ObservationIgnored private let store: any SettingsStore
 
@@ -26,9 +39,7 @@ final class RootModel {
         self.categories = categories
         self.favorites = favorites
         self.store = store
-        let start = RootTab(startup: store.value(for: SettingKey.startupScreen))
-        selectedTab = start
-        selectedDestination = .tab(start)
+        selectedDestination = .tab(RootTab(startup: store.value(for: SettingKey.startupScreen)))
     }
 
     /// Builds the models over the engine objects of one session.

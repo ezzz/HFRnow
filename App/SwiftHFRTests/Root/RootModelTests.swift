@@ -37,6 +37,20 @@ struct RootModelTests {
         }
     }
 
+    @Test func tabBarAndSidebarShareOneSelection() async {
+        let root = await model()
+        root.selectedDestination = .tab(.messages)
+        #expect(root.selectedTab == .messages)
+        root.selectedTab = .categories
+        #expect(root.selectedDestination == .tab(.categories))
+        root.selectedDestination = .plus(.settings)
+        #expect(root.selectedTab == .more)
+        root.selectedTab = .more
+        #expect(root.selectedDestination == .plus(.settings))
+        root.selectedTab = .favorites
+        #expect(root.selectedDestination == .tab(.favorites))
+    }
+
     @Test func theMessagesBadgeShowsTheUnreadCountFromTheHomePage() async {
         #expect(await model(unread: 3).unreadPrivateMessages == 3)
         #expect(await model(unread: nil, loggedIn: false).unreadPrivateMessages == 0)
