@@ -10,8 +10,6 @@ struct ReplyTarget: Hashable, Sendable {
     let formURL: URL
     /// The topic, which keys the draft.
     let topic: TopicID
-    /// Topic title, for the sheet's title.
-    let title: String
 
     /// The draft of this topic's reply: one per topic and account, whatever the page (legacy kept one per topic,
     /// `HFRswift/Swift/AnswerView.swift:137-190`); LOT-063 asks for a constant page for that.

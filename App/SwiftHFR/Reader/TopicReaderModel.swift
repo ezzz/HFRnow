@@ -1,5 +1,6 @@
 import Foundation
 import HFRModels
+import HFRParsing
 import Observation
 
 /// An HTML document handed to the web view. `token` is unique per model, so an event of an older document is recognised.
@@ -141,12 +142,16 @@ final class TopicReaderModel {
     }
 
     /// What the reply composer needs from the page on screen; nil when the page offers no answer form (logged out, locked
-    /// topic: `#repondre_form` is absent, LOT-033) or names no topic (the draft is kept per topic).
+    /// topic: `#repondre_form` is absent, LOT-033), names no topic (the draft is kept per topic), or its answer link names
+    /// another topic.
     var replyTarget: ReplyTarget? {
         // Same origin rule as `PostingFlow`: a link it would refuse (another port) offers no reply.
         guard let page, let formURL = page.answerURL, formURL.port == nil || formURL.port == 443,
               let topic = page.topicID else { return nil }
-        return ReplyTarget(formURL: formURL, topic: topic, title: title)
+        // `#repondre_form` comes after the messages (`R61d`) and its link carries `cat` and `post`: a link that names
+        // another topic would post there under this topic's draft, so a parser slip offers no reply instead.
+        guard HFRURL.topicID(in: formURL.absoluteString) == topic else { return nil }
+        return ReplyTarget(formURL: formURL, topic: topic)
     }
 
     /// The reply sheet closed: after a confirmed reply, shows HFR's sentence and the topic's latest post; after an
@@ -159,7 +164,7 @@ final class TopicReaderModel {
             await showLatestPost()
         case .checkTopic:
             await showLatestPost()
-        case .keptDraft, .discardedDraft:
+        case .keptDraft, .discardedDraft, .closedWithoutSaving:
             break
         }
     }
@@ -172,7 +177,8 @@ final class TopicReaderModel {
     /// After a reply: opens the topic's last page at its last message, where HFR appends a reply (`R61d`). The page after
     /// the last known one is asked for, since the reply may have opened it; past the end HFR redirects to the last page (`R24`,
     /// on `forum2.php` and on the canonical path alike).
-    /// HFR's own refresh names page 1 (`W30`: `…_1.htm#bas`), so it is not followed.
+    /// HFR's own refresh is not used: after a form fetched at `page=1` it names page 1 (`W30`: `…_1.htm#bas`), and whether
+    /// it echoes another form `page` after a reply is not captured.
     func showLatestPost() async {
         guard let page, let shown else { return }
         await load(shown.atPage(page.maxPage + 1), keepsScrollPosition: false, anchor: .lastMessage)

@@ -178,6 +178,44 @@ struct ReplyComposerDraftTests {
         #expect(await ComposerFixture.storedText(drafts) == nil)
     }
 
+    @Test func aStoreThatRefusesEveryWriteStillLetsTheSheetClose() async {
+        let composer = ComposerFixture.model(poster: ScriptedPoster([]), drafts: DraftStore(persistence: UnreadableDraftPersistence()))
+        await composer.start()
+        composer.update(text: "Sans brouillon")
+        await composer.requestClose()
+        #expect(composer.isAskingClose)
+        await composer.keepDraftAndClose()
+        await composer.discardDraftAndClose()
+        // Both choices write and the store refuses: the sheet is still open, and the warning's exit is the way out.
+        #expect(composer.closeReason == nil)
+        #expect(composer.canCloseWithoutSaving)
+        await composer.closeWithoutSaving()
+        #expect(composer.closeReason == .closedWithoutSaving)
+    }
+
+    @Test func closingWithoutSavingLeavesTheStoredDraftAndWritesNothingAfterwards() async throws {
+        let persistence = CountingDraftPersistence()
+        let drafts = DraftStore(persistence: persistence)
+        try await drafts.save("Ancien", for: replyTarget.draftContext, account: ComposerFixture.account)
+        let composer = ComposerFixture.model(poster: ScriptedPoster([]), drafts: drafts, autosaveDelay: .milliseconds(20))
+        await composer.start()
+        #expect(!composer.canCloseWithoutSaving)
+        persistence.failSaves(true)
+        composer.update(text: "")
+        // Cancel on an emptied text deletes the draft without asking; the store refuses, so the sheet stays open.
+        await composer.requestClose()
+        #expect(!composer.isAskingClose)
+        #expect(composer.closeReason == nil)
+        #expect(composer.canCloseWithoutSaving)
+        composer.update(text: "Nouveau")
+        await composer.closeWithoutSaving()
+        #expect(composer.closeReason == .closedWithoutSaving)
+        // The store works again: the autosave scheduled by the last keystroke must not land after the choice.
+        persistence.failSaves(false)
+        try await Task.sleep(for: .milliseconds(100))
+        #expect(await ComposerFixture.storedText(drafts) == "Ancien")
+    }
+
     @Test func aWhitespaceOnlyTextLeavesNoDraft() async throws {
         let drafts = DraftStore(persistence: InMemoryDraftPersistence())
         try await drafts.save("Ancien", for: replyTarget.draftContext, account: ComposerFixture.account)

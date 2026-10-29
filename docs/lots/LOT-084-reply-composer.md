@@ -27,8 +27,9 @@ Legacy app: `master` of ezzz/HFRnow (read-only), SwiftUI layer `HFRswift/`. Func
 
 **Entry.** `ReaderPage.answerURL` is LOT-033's `answerFormURL` (the first link of `#repondre_form`, `https` on the forum
 host; a non-default port is refused too, as `PostingFlow` does). `TopicReaderModel.replyTarget` is non-nil when the page
-on screen has that link **and** names its topic
-(the draft key); `ReaderReplyFlow` shows a "Répondre" toolbar button only then and only with a current account
+on screen has that link **and** names its topic (the draft key), and the link's own `cat` and `post` name that same
+topic (`HFRURL.topicID(in:)`; `#repondre_form` comes after the messages in `R61d`, so a parser slip never posts to
+another topic); `ReaderReplyFlow` shows a "Répondre" toolbar button only then and only with a current account
 (`AppEnvironment.composer`, nil when logged out), and presents the sheet. The link is absent logged out (`R20`, `R31`) and present logged in
 (`R21`, `R61d`). A locked topic seen by a member is pending capture (#131): the button follows the page (legacy rule), and
 if HFR serves no form, the composer shows HFR's own sentence (`PostingError.formUnavailable(message:)`).
@@ -48,10 +49,13 @@ with LOT-048's `reply`. One send at a time; the editor, Cancel and swipe-to-dism
   sujet", which closes with the draft kept (`.checkTopic`) and opens the latest post, so the user checks before sending
   again. Nothing is ever resent automatically.
 
-**Latest post** (`TopicReaderModel.showLatestPost`). HFR's refresh after a reply names page 1 (`W30`:
-`…sujet_6510_1.htm#bas`) while the reply landed at the end of the last page (`R61d`), so it is not followed: the reader
-asks for page `maxPage + 1` of the topic shown (the reply may have opened a page; past the end HFR redirects to the last
-page, `R24`, on `forum2.php` and on the canonical path) and opens it at its last message (never the continuation block).
+**Latest post** (`TopicReaderModel.showLatestPost`). HFR's refresh after a reply is not used. The only public reply
+captured posted a form fetched at `page=1` (`R61b`, body `page=1`) and refreshes to page 1 (`W30`:
+`…sujet_6510_1.htm#bas`), while the reply landed at the end of the last page (`R61d`). Whether HFR echoes the form's
+`page` is pending capture (an edit posted with `page=30` refreshes to page 30, `W31`; the app's answer link carries the
+page shown, `R61d`). The reader asks for page `maxPage + 1` of the topic shown (the reply may have opened a page; past
+the end HFR redirects to the last page, `R24`, on `forum2.php` and on the canonical path) and opens it at its last
+message (never the continuation block).
 
 **Drafts** (LOT-063). Context `.reply(topic:page: 1)`: one reply draft per topic and account, whatever the page (legacy: one
 per topic). The account is the current one (`md_user` key). `ComposerServices.liveDrafts` is the app's single store,
@@ -70,7 +74,11 @@ per topic). The account is the current one (`md_user` key). `ComposerServices.li
 - A blank (whitespace-only) text is stored as no draft.
 - A draft file that cannot be read or written shows a warning; the text on screen stays and can be sent. "Garder le
   brouillon", "Supprimer le brouillon" and "Voir le sujet" close only once the draft is written or deleted; otherwise the
-  sheet stays open with the warning.
+  sheet stays open with the warning. While the warning is shown, it offers "Fermer sans enregistrer"
+  (`closeWithoutSaving`, `.closedWithoutSaving`): it cancels the pending autosave, writes nothing and leaves a stored
+  draft as it was, so a store that refuses every write (a read failure blocks writes until `reload()`) never traps the
+  user in the sheet. The store is not reloaded on the way: a read that works again would let a write replace a stored
+  draft the editor never showed.
 
 **Editor.** SwiftUI `TextEditor`, `.body` (Dynamic Type), default keyboard (no `asciiCapable`, third-party keyboards work),
 focused on open. The sheet's keyboard safe area keeps the caret above the keyboard; the editor never rewrites its text
@@ -108,8 +116,10 @@ scripted outcomes; the posting itself is LOT-048's, tested on `R61b`, `W30`–`W
 - `ReplyComposerDraftTests`: restore per topic and account; one write per typing pause; restore after a kill (new store
   on the same file); background flush; nothing written before the restore; Cancel asks and keeps, or discards, or
   removes an emptied draft without asking; a blank text leaves no draft; keep and "Voir le sujet" stay open when the draft
-  cannot be written; write and read failures reported.
-- `ReplyEntryTests`: the reply is offered only with an answer form and a topic; after a confirmed reply the reader asks
+  cannot be written; write and read failures reported; a store that refuses every write still lets the sheet close
+  ("Fermer sans enregistrer"), which leaves the stored draft and writes nothing afterwards.
+- `ReplyEntryTests`: the reply is offered only with an answer form and a topic, and not when the answer link names
+  another topic; after a confirmed reply the reader asks
   for `maxPage + 1`, opens at the last message (not the continuation block) and shows HFR's sentence, on `forum2.php` and
   canonical paths; after an unconfirmed one the same page without sentence, after a plain close nothing; `R61d`
   gives its answer link, `R20` and `R31` none; the live poster refuses an off-forum link without a request; HFR's
@@ -119,7 +129,9 @@ Shown to fail without the change (each mutation run locally makes its test fail)
 local non-BMP check, no debounce, no wait for a running autosave before a discard, no save before sending, closing before
 the restore, `maxPage` instead of `maxPage + 1`, the continuation block as last message, no `answerURL` from the page, a
 reply offered without answer link, `mayHavePosted` on every failure, no latest post after a confirmed or an unconfirmed
-reply; CodeRabbit round 1: closing on a failed keep, discard or "Voir le sujet" write, whitespace stored as a draft. The autosave
+reply; CodeRabbit round 1: closing on a failed keep, discard or "Voir le sujet" write, whitespace stored as a draft;
+Fable round (reasoned, not run on a Mac): no exit while the store refuses writes, no autosave cancel on that exit, a reply
+offered on an answer link to another topic. The autosave
 chaining (a replaced save that already woke up) has no failing test: `DraftStore` is an actor and that save is enqueued
 before any later discard on the main actor, so the race cannot be produced; the chain removes the dependency on that
 order.
@@ -129,6 +141,8 @@ order.
 - Reply form of a locked topic, and of a topic where the account may not post (#131): the button follows the page's
   answer link; HFR's sentence is shown if it serves no form.
 - Edit or quote form whose stored text starts with a newline (#130): not used by the reply composer (empty composer).
+- A public reply posted from a form fetched at another page than 1 (the app's case, `R61d`'s link carries the page
+  shown): whether HFR's refresh echoes that `page`. Not needed: the reader does not use the refresh.
 
 ## Intentional differences from legacy
 
@@ -146,7 +160,8 @@ order.
 
 ## Learnings
 
-- HFR's refresh after a reply points to page 1 (`#bas`), not to the page that holds the reply: never follow it to show the
-  new post; ask past the last page instead (`R24` redirects to the last one).
+- A reply form fetched at `page=1` refreshes to page 1 (`#bas`, `W30`), not to the page that holds the reply; whether HFR
+  echoes another form `page` is pending capture. To show the new post, ask past the last page (`R24` redirects to the
+  last one).
 - A debounced save and a discard race: cancel the pending save and await a running one before discarding, or the draft
   comes back after a confirmed send.

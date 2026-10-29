@@ -15,7 +15,7 @@ struct ReplyEntryTests {
         let reader = TopicReaderModel(target: ReaderTarget(source: .topic(readerTopic)), title: "Sujet", source: pages)
         #expect(reader.replyTarget == nil)
         await reader.onAppear()
-        #expect(reader.replyTarget == ReplyTarget(formURL: replyFormURL, topic: readerTopic, title: "Sujet"))
+        #expect(reader.replyTarget == ReplyTarget(formURL: replyFormURL, topic: readerTopic))
         pages.handler = { target in answerPage(target.page, answerURL: nil) }
         await reader.refresh()
         #expect(reader.replyTarget == nil)
@@ -27,6 +27,22 @@ struct ReplyEntryTests {
         let reader = TopicReaderModel(target: ReaderTarget(source: .topic(readerTopic)), title: "", source: pages)
         await reader.onAppear()
         #expect(reader.replyTarget == nil)
+    }
+
+    @Test func anAnswerLinkThatNamesAnotherTopicOffersNoReply() async {
+        // `readerTopic` is 13/28563: another post, another category, no topic at all.
+        let links = [
+            "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=6510&page=5&p=1",
+            "https://forum.hardware.fr/message.php?config=hfr.inc&cat=5&post=28563&page=5&p=1",
+            "https://forum.hardware.fr/message.php?config=hfr.inc&page=5&p=1"
+        ]
+        for link in links {
+            let pages = FakeTopicPages { target in answerPage(target.page, answerURL: url(link)) }
+            let reader = TopicReaderModel(target: ReaderTarget(source: .topic(readerTopic)), title: "", source: pages)
+            await reader.onAppear()
+            #expect(reader.page?.topicID == readerTopic)
+            #expect(reader.replyTarget == nil)
+        }
     }
 
     @Test func retryingAFailedLatestPostLoadStillOpensAtTheLastMessage() async {
@@ -119,6 +135,8 @@ struct ReplyEntryTests {
             + "&sondage=0&owntopic=0&new=0"
         #expect(page.answerURL?.absoluteString == expected)
         #expect(page.topicID == TopicID(category: .forum(13), topic: 6510))
+        // The reader's guard against a link to another topic holds on the real page.
+        #expect(HFRURL.topicID(in: expected) == page.topicID)
     }
 
     @Test(arguments: ["R20-topic-p1-anon.html", "R31-topic-locked-anon.html"])

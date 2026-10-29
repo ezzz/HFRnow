@@ -22,6 +22,8 @@ final class ReplyComposerModel: Identifiable {
         case discardedDraft
         /// The reply may have been posted (`unconfirmed`): the draft is kept and the reader shows the topic's last page.
         case checkTopic
+        /// Closed while the draft store refused writes: nothing was written, a stored draft is left as it was.
+        case closedWithoutSaving
     }
 
     /// The topic the reply goes to.
@@ -72,6 +74,10 @@ final class ReplyComposerModel: Identifiable {
 
     /// The editor accepts typing.
     var canEdit: Bool { hasRestored && !isSending && !isClosing && closeReason == nil }
+
+    /// The draft store refused a write or cannot be read (`draftWarning`): keep, discard and Cancel on an emptied text all
+    /// write, so the sheet offers this exit instead of trapping the user.
+    var canCloseWithoutSaving: Bool { draftWarning != nil && closeReason == nil && !isSending && !isClosing }
 
     /// Reads the topic's draft once; the editor shows it.
     func start() async {
@@ -140,7 +146,7 @@ final class ReplyComposerModel: Identifiable {
     }
 
     /// Closes and keeps the text as the topic's draft. When the draft cannot be written the sheet stays open with the
-    /// warning: closing would lose the text the user chose to keep.
+    /// warning and its `closeWithoutSaving` exit: closing here would lose the text the user chose to keep.
     func keepDraftAndClose() async {
         guard closeReason == nil, !isSending, !isClosing else { return }
         isClosing = true
@@ -151,8 +157,8 @@ final class ReplyComposerModel: Identifiable {
         closeReason = .keptDraft
     }
 
-    /// Closes and deletes the topic's draft. When it cannot be deleted the sheet stays open with the warning: the draft
-    /// the user deleted would come back at the next reply.
+    /// Closes and deletes the topic's draft. When it cannot be deleted the sheet stays open with the warning and its
+    /// `closeWithoutSaving` exit: closing here would bring back the draft the user deleted at the next reply.
     func discardDraftAndClose() async {
         guard closeReason == nil, !isSending, !isClosing else { return }
         isClosing = true
@@ -161,6 +167,16 @@ final class ReplyComposerModel: Identifiable {
             return
         }
         closeReason = .discardedDraft
+    }
+
+    /// Closes without writing the draft, as the warning says, while the store refuses writes. The pending autosave is
+    /// cancelled, so nothing is written after the choice. The store is not reloaded: a read that works again would let
+    /// a later write replace a stored draft the editor never showed.
+    func closeWithoutSaving() async {
+        guard canCloseWithoutSaving else { return }
+        isClosing = true
+        await settleAutosave()
+        closeReason = .closedWithoutSaving
     }
 
     /// After an unconfirmed send: closes with the draft kept, so the user can look at the topic before sending again.

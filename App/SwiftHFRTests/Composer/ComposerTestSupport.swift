@@ -11,7 +11,7 @@ let replyFormURL = url(
     "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=28563&page=5&p=1&subcat=0&sondage=0&owntopic=0&new=0"
 )
 
-let replyTarget = ReplyTarget(formURL: replyFormURL, topic: readerTopic, title: "Sujet")
+let replyTarget = ReplyTarget(formURL: replyFormURL, topic: readerTopic)
 
 /// HFR's confirmation of a reply (`W30`, HFR-PROTOCOL §7 E15).
 let replyConfirmed = PostingResult(
@@ -74,7 +74,8 @@ final class CountingDraftPersistence: DraftPersistence {
     func quarantineUnreadableData() throws {}
 }
 
-/// A draft file that cannot be read (I/O failure, not a format problem).
+/// A draft file that cannot be read (I/O failure, not a format problem): the store then refuses every write until
+/// `reload()`, which the composer never calls.
 struct UnreadableDraftPersistence: DraftPersistence {
     func load() throws -> DraftDocument? { throw CocoaError(.fileReadNoPermission) }
     func save(_ document: DraftDocument) throws {}

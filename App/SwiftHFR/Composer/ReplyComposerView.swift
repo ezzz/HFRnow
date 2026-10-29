@@ -23,7 +23,12 @@ struct ReplyComposerView: View {
                     }
                 }
                 if let warning = model.draftWarning {
-                    ComposerBanner(text: warning, symbol: "externaldrive.badge.exclamationmark", tint: .secondary) {}
+                    ComposerBanner(text: warning, symbol: "externaldrive.badge.exclamationmark", tint: .secondary) {
+                        // Keep and discard cannot close while the store refuses writes: the only exit, as the warning says.
+                        if model.canCloseWithoutSaving {
+                            Button("Fermer sans enregistrer", role: .destructive) { Task { await model.closeWithoutSaving() } }
+                        }
+                    }
                 }
                 editor
             }
