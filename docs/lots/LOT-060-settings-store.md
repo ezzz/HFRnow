@@ -51,7 +51,7 @@ Four preferences were added to the legacy app on `origin/master` after the audit
 | `topic_page_swipe_navigation` | Bool | true | `Common.swift:235-236`, `AppSettingsView.swift:94` | synced |
 | `reply_button_behavior` | String `quick` / `forum` / `hidden` | `quick` | `Common.swift:243-248`, `AppSettingsView.swift:106` | synced |
 
-Every key of the catalogue gets a `scope` (`.synced` or `.device`) from the ADR 0013 matrix (LOT-172); the legacy key names stay the `UserDefaults` names on both scopes.
+Every key of the catalogue gets a `scope` (`.synced` or `.device`) from the ADR 0013 matrix (LOT-172); the legacy key names stay the `UserDefaults` names on both scopes. `embedded_videos` (`SettingKey.embeddedVideos`) has no reader nor writer on `master` since `d645f52`: the ADR 0013 matrix drops it, so its scope is `.device` and it joins the "not ported" list above when a lot next touches `SettingKey`.
 
 ## Edge cases
 - `UserDefaults` booleans and integers are both `NSNumber`: the store tells them apart with `objCType` (`c`/`B` boolean), then every reader is tolerant anyway.
