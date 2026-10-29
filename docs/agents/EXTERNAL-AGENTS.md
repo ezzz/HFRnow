@@ -30,7 +30,10 @@ relevant sections of `docs/HFR-PROTOCOL.md`. Ignore any `CLAUDE.md` found on `ma
 
 ## 3. Non-negotiables
 
-- Branch from `origin/dev-swift` only (`lot/XXX-short`, `fix/…`, `docs/…`); PR into `dev-swift`. Without write access, work from a fork.
+- Branch from the upstream `dev-swift` only (`lot/XXX-short`, `fix/…`, `docs/…`); PR into `dev-swift` of `ezzz/HFRnow`.
+  Without write access, work from a fork: `origin` is then your fork, whose `dev-swift` may be missing or stale, so add the
+  upstream (`git remote add upstream https://github.com/ezzz/HFRnow.git`), branch from `upstream/dev-swift` after
+  `git fetch upstream dev-swift`, merge `upstream/dev-swift` to update, and push your task branch to the fork.
 - **No requests to the live forum, no captures, no HFR credentials.** Work from the committed captures, the legacy-oracle
   JSON and the legacy code. A page state that is not captured is written as *pending capture*. If the lot cannot be done without it, stop and say so (§9).
 - **No secrets, cookies, tokens or real pseudos** anywhere: code, fixtures, logs, commits, PR text.
@@ -41,7 +44,7 @@ relevant sections of `docs/HFR-PROTOCOL.md`. Ignore any `CLAUDE.md` found on `ma
   comment; comments explain *why*.
 - No new dependency, no repository settings, never edit `docs/LOTS.md`. `AGENTS.md` §11 and `LESSONS.md`: append only.
   `docs/HFR-PROTOCOL.md`: only your own `### LOT-XXX` subsection in §6c.
-- Never force-push, never rebase a pushed branch (merge `origin/dev-swift` into it instead), never `--no-verify`, never
+- Never force-push, never rebase a pushed branch (merge the upstream `dev-swift` into it instead), never `--no-verify`, never
   bypass gitleaks or the ruleset. Never push to someone else's branch.
 - Do not @-mention bots or people, except `francoisgn` when you are blocked.
 - **Core-model guard**: if your change must add or change a **public type of `HFRModels`**, an ADR, or the plan, stop and ask
@@ -49,8 +52,9 @@ relevant sections of `docs/HFR-PROTOCOL.md`. Ignore any `CLAUDE.md` found on `ma
 
 ## 4. What you may take
 
-1. **Reviews first** (they unblock others): open PRs with a comment `REVIEW WANTED: <model>` and no later `/review` comment,
-   **if your setup can run that model** and it is not the author model (§8).
+1. **Reviews first** (they unblock others): open PRs with a comment `REVIEW WANTED: <model>` and no active review claim
+   after it (a later `/review` not followed by a `/release` from the same reviewer id), **if your setup can run that model**
+   and it is not the author model (§8).
 2. **Issues labelled `external: ready`** and `status: ready`, without `status: claimed` and without an active `/claim`
    comment. Order: `priority: high` → `low`, then lower issue number. Match `difficulty` to the tier of your model (§8).
 3. Nothing else: no `host: mac`, no issue without `external: ready`, no lot claimed by anyone else, nothing in `App/`
@@ -61,22 +65,35 @@ with `### Summary`). Do not start it.
 
 ## 5. Claim protocol (no orchestrator watches for you)
 
-1. Re-read the issue's comments **right before** claiming. If a `/claim` without a later `/release` exists, drop the issue.
-2. Comment `/claim ext/<id>`. Re-read the comments **after** posting: if an earlier claim landed first, comment
-   `/release ext/<id>` and take the next issue.
-3. Reviews: comment `/review ext/<id> (<model>)` on the PR, with the same before/after check.
-4. Stopping before done: say on the issue or PR what is done and what is left, then `/release ext/<id>`.
+The claim state is the **replay** of the comments in order, as `scripts/issue_claims.py` does: the first `/claim <id>` makes
+`<id>` the holder; a `/claim` by another id while it holds is refused; `/release <id>` frees the issue **only when `<id>` is the
+holder** (a bare `/release` frees it too); a `/release` naming anyone else changes nothing. Only comments from repository
+members count (owner, member or collaborator, ORCHESTRATION §Claims).
+
+1. Replay the issue's comments **right before** claiming. If there is a holder, drop the issue.
+2. **With write access** (you are a collaborator): comment `/claim ext/<id>`, then replay again **after** posting. If another id
+   is the holder, your claim was refused: comment `/release ext/<id>` (it changes nothing, it only records that you dropped
+   it) and take the next issue.
+3. **Without write access** your `/claim` does not count. Comment `CLAIM REQUEST ext/<id> (<model>)` instead and wait: a member
+   (the maintainer, the core orchestrator or a member's steward session) posts `/claim ext/<id>` for you, and the issue is yours
+   once that comment is the holder in the replay. Do not write code before. To give it back, comment `RELEASE REQUEST ext/<id>`;
+   a member posts `/release ext/<id>`.
+4. Reviews: comment `/review ext/<id> (<model>)` on the PR, with the same before/after check (any contributor may post it;
+   no script enforces reviews). The first `/review` after the `REVIEW WANTED` holds it until the same id posts `/release ext/<id>`.
+5. Stopping before done: say on the issue or PR what is done and what is left, then `/release ext/<id>` (or `RELEASE REQUEST`).
 
 ## 6. The loop for one issue
 
-1. **Spec**: `docs/lots/LOT-XXX-*.md` from the template: legacy sources with `file:line`, behaviour, edge cases,
-   intentional differences from legacy (justified), *pending capture*. Verified protocol facts go to HFR-PROTOCOL §6c,
-   under your `### LOT-XXX`.
+1. **Spec**: for a lot (`type: lot`), `docs/lots/LOT-XXX-*.md` from the template: legacy sources with `file:line`, behaviour,
+   edge cases, intentional differences from legacy (justified), *pending capture*. Verified protocol facts go to HFR-PROTOCOL
+   §6c, under your `### LOT-XXX`. For a bug, chore or docs issue, the issue itself is the spec (CONTRIBUTING): no lot file,
+   no HFR-PROTOCOL subsection unless the issue says so.
 2. **Inputs exist?** A parser lot needs **both** the captures **and** a legacy-oracle output (LESSONS 35). Never hand-build a
    page state (LESSONS 36).
 3. **Code + Swift Testing tests**, differential against the oracle on every relevant capture.
 4. **Prove every test**: revert the core change, watch the test fail, restore. A test that cannot fail is not a test.
-5. **Validate locally**: `cd Packages/HFRKit && swift build && swift test`, `python3 scripts/check-lot-deps.py`,
+5. **Validate locally**, from the repository root: `swift build --package-path Packages/HFRKit`,
+   `swift test --package-path Packages/HFRKit`, `python3 scripts/check-lot-deps.py`,
    `npx --yes markdownlint-cli2@0.18.1 <changed .md>`, SwiftLint if you have it, else the LESSONS 21 list by hand
    (line ≤ 140, no `String(decoding:)`, identifiers ≥ 3 characters, no tuple of 3 or more members, `type_body_length`, `cyclomatic_complexity`).
 6. **Self-review** against every row of `LESSONS.md`.
@@ -143,12 +160,13 @@ give the exact question or the list of page states to capture. Then `/release ex
 - **Merge-ready** = all required checks green **and** 0 open threads **and** CodeRabbit reviewed the head **and** an adversarial APPROVE
   on the head (a cross-contributor one when §7 requires it). Then comment `READY FOR REVIEW — merge-ready at <sha>. Author model: <model>.`
 - **Merging** (operator decision 2026-10-29): **the author merges** (squash) as soon as the PR is merge-ready. A merge-ready PR
-  is never left open. **Exception, risky flows**: state-changing flows, sessions, auth, cookies, tokens, any security finding,
-  `HFRModels` public types and ADRs are merged by the core orchestrator (or the maintainer). For those, comment
-  `READY FOR REVIEW` and leave the merge to them. After any merge, close the issue with `Done in #PR (merged as <sha>)` and
-  check that it is closed.
+  is never left open. **Exceptions**, merged by the core orchestrator (or the maintainer) after your `READY FOR REVIEW` comment:
+  risky flows (state-changing flows, sessions, auth, cookies, tokens, any security finding, `HFRModels` public types, ADRs),
+  and **every PR whose author has no write access** (GitHub requires write access to merge). Whoever merges closes the issue
+  with `Done in #PR (merged as <sha>)` and checks that it is closed; an author without write access keeps that closure as a
+  to-do and pings `francoisgn` on the PR if it is still open a day after the merge.
 - A CI job that **was never acquired by a runner** is infrastructure: re-run it once. If it fails again, merge
-  `origin/dev-swift` into your branch when `dev-swift` has moved (this gives a fresh run). Otherwise say it on the PR.
+  the upstream `dev-swift` into your branch when `dev-swift` has moved (this gives a fresh run). Otherwise say it on the PR.
 
 ### The 5-PR limit
 **At most 5 open PRs per contributor id.** A merge-ready PR does not stay open: merge it (or hand it to the core for risky

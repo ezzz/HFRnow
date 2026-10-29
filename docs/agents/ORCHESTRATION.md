@@ -20,7 +20,7 @@ Operators may keep private notes (ledger, handoff lists) outside the repository;
 3. New work: a `status: ready` issue nobody claimed, not `host: mac` if you run in the cloud. Claim it, then start.
 
 ## Claims
-- Claim = a `/claim <session-id>` comment (`<host>/<name>`) on the issue, **before writing code** (AGENTS.md §5). The first claim wins; later claims are refused until `/release`. Only members' comments count.
+- Claim = a `/claim <session-id>` comment (`<host>/<name>`) on the issue, **before writing code** (AGENTS.md §5). The first claim wins; later claims are refused until `/release`. Only members' comments count; a contributor without write access asks a member to claim for them (`CLAIM REQUEST`, [EXTERNAL-AGENTS §5](EXTERNAL-AGENTS.md#5-claim-protocol-no-orchestrator-watches-for-you)).
 - An orchestrator claims for the child sessions it launches (one `/claim` per issue it hands out) and passes the same id to each child; children never claim something else.
 - Every PR states `Closes #N` (or `Refs #N` for partial work) and, on its own line, `Claim: <session-id>` equal to the issue's active claim; a lot PR also names its lot (`LOT-XXX`). Break-glass `Direct-PR: <reason>` (labelled `direct-pr`, counted) is for small fixes and the maintainer's own foundation work, never for a lot. Anything bigger than one session gets an issue first (a new lot also gets its row in `LOTS.md`, by PR).
 - An issue claimed by another session is off limits: don't touch its branch. A problem you see in it goes on its issue or PR, or in the lot's spec by PR.
