@@ -137,6 +137,11 @@ struct HopResponseParserTests {
         "W13b-mp-reply-browser-semantics-success", "W13c-mp-reply-recipient-success", "W14-mp-reply-multiquote-success",
         "W15-mp-edit-success", "W16a-mp-delete-post-success", "W16b-mp-delete-post-again", "W19-mp-delete-first-post-success",
         "W18-mp-mark-unread-success", "P03a-addflag-success", "P03b-addflag-again", "P03d-delflag-favourite-success",
+        "P03h-manageaction-delflags-browser-one-of-two", "P03j-manageaction-delflags-legacy-body",
+        "P03l-manageaction-delflags-browser-three-rows", "P03n-delflag-owntopic0-success", "P03o-delflag-again",
+        "P03p-delflag-owntopic1-success",
+        // Logged out, HFR answers the same bytes as P03a (HFR-PROTOCOL §6c LOT-051): the page cannot tell.
+        "P03q-addflag-logged-out",
         "W30-public-reply-success", "W31-public-edit-success", "W32-public-delete-post-success",
         "W34-public-first-post-edit-success", "W35-public-first-post-restore-success"
     ]
