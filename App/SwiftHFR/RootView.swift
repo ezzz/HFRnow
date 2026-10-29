@@ -8,11 +8,14 @@ import SwiftUI
 struct RootView: View {
     @Environment(AccountsModel.self) private var accounts
     @State private var built: (generation: Int, environment: AppEnvironment)?
+    /// Where the user was: a new session generation rebuilds the navigation but keeps the tab or destination (legacy keeps it,
+    /// `MainWindow.swift:1276-1278`). Nil until the first creation, which applies the start-screen setting.
+    @State private var lastDestination: SidebarDestination?
 
     var body: some View {
         Group {
             if let built {
-                RootNavigationView(environment: built.environment)
+                RootNavigationView(environment: built.environment, lastDestination: $lastDestination)
                     .id(built.generation)
             } else {
                 ProgressView()

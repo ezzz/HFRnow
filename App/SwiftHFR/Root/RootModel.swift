@@ -31,19 +31,42 @@ final class RootModel {
         }
     }
 
+    /// The destination the iPad sidebar shows: the Plus tab has no list there, it opens Réglages (legacy
+    /// `defaultIPadDestination`, `MainWindow.swift:1365-1376`).
+    var sidebarDestination: SidebarDestination {
+        selectedDestination == .tab(.more) ? .plus(.settings) : selectedDestination
+    }
+
+    /// Whether the Messages badge is shown (`mp_badge_enabled`, legacy default on); refreshed by `reloadSettings()`.
+    private(set) var privateMessageBadgeEnabled: Bool
+    /// Whether the tab bar shrinks while a list scrolls (`tabbar_minimize_on_scroll`, legacy default on); refreshed by
+    /// `reloadSettings()`.
+    private(set) var minimizesTabBarOnScroll: Bool
+
     @ObservationIgnored private let store: any SettingsStore
 
-    /// Creates the root state; the start tab is read once from the start-screen setting (`HFRswiftStartupScreen`).
-    init(forums: ForumListModel, categories: NavigationModel, favorites: NavigationModel, store: any SettingsStore) {
+    /// Creates the root state. `initial` is what the user was on before a rebuild (a new session generation); only the first
+    /// creation (nil) reads the start tab from the start-screen setting (`HFRswiftStartupScreen`), as legacy keeps the tab
+    /// it was on (`MainWindow.swift:1276-1278`, `:1357-1362`).
+    init(
+        forums: ForumListModel, categories: NavigationModel, favorites: NavigationModel, store: any SettingsStore,
+        initial: SidebarDestination? = nil
+    ) {
         self.forums = forums
         self.categories = categories
         self.favorites = favorites
         self.store = store
-        selectedDestination = .tab(RootTab(startup: store.value(for: SettingKey.startupScreen)))
+        selectedDestination = initial ?? .tab(RootTab(startup: store.value(for: SettingKey.startupScreen)))
+        privateMessageBadgeEnabled = store.value(for: SettingKey.privateMessageBadge)
+        minimizesTabBarOnScroll = store.value(for: SettingKey.tabBarMinimizesOnScroll)
     }
 
+    /// The source each tab opens on: Catégories none (the user picks a forum), Favoris the favourites.
+    static let categoriesStartupSource: TopicSource? = nil
+    static let favoritesStartupSource: TopicSource? = .favorites
+
     /// Builds the models over the engine objects of one session.
-    convenience init(environment: AppEnvironment, store: any SettingsStore) {
+    convenience init(environment: AppEnvironment, store: any SettingsStore, initial: SidebarDestination? = nil) {
         let forums = ForumListModel(
             dataSource: environment.dataSource, visibility: environment.visibility, accountName: environment.accountName
         )
@@ -54,18 +77,27 @@ final class RootModel {
                 startupSource: startup
             )
         }
-        self.init(forums: forums, categories: navigation(startup: nil), favorites: navigation(startup: .favorites), store: store)
+        self.init(
+            forums: forums, categories: navigation(startup: Self.categoriesStartupSource),
+            favorites: navigation(startup: Self.favoritesStartupSource), store: store, initial: initial
+        )
     }
 
     /// Unread private messages for the Messages badge: 0 hides it, and so does the badge setting (`mp_badge_enabled`, legacy
     /// `MainWindow.swift:1349`). Logged out, the home page gives no count.
     var unreadPrivateMessages: Int {
-        guard store.value(for: SettingKey.privateMessageBadge) else { return 0 }
+        guard privateMessageBadgeEnabled else { return 0 }
         return max(forums.loader.value?.unreadPrivateMessages ?? 0, 0)
     }
 
-    /// Whether the tab bar shrinks while a list scrolls (`tabbar_minimize_on_scroll`, legacy default on).
-    var minimizesTabBarOnScroll: Bool { store.value(for: SettingKey.tabBarMinimizesOnScroll) }
+    /// Reads the badge and minimize settings again, so a change made in Réglages shows without a relaunch. The legacy app-icon
+    /// badge (`MainWindow.swift:1509-1512`) is out of scope.
+    func reloadSettings() {
+        let badge = store.value(for: SettingKey.privateMessageBadge)
+        let minimize = store.value(for: SettingKey.tabBarMinimizesOnScroll)
+        if badge != privateMessageBadgeEnabled { privateMessageBadgeEnabled = badge }
+        if minimize != minimizesTabBarOnScroll { minimizesTabBarOnScroll = minimize }
+    }
 
     /// Sources the Favoris tab can show: the favourites and, where legacy shows them with the favourites, the flags.
     static let favoritesSources: [TopicSource] = [.favorites, .flagged]

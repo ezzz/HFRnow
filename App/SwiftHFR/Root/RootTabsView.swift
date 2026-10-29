@@ -4,18 +4,18 @@ import SwiftUI
 /// opens inside the tab (a collapsed split view is a stack).
 struct RootTabsView: View {
     @Bindable var model: RootModel
-    let reader: ReaderServices
+    let environment: AppEnvironment
 
     var body: some View {
         TabView(selection: $model.selectedTab) {
             Tab(RootTab.categories.title, systemImage: RootTab.categories.symbol, value: RootTab.categories) {
-                CategoriesTabView(navigation: model.categories, reader: reader)
+                CategoriesTabView(navigation: model.categories, reader: environment.reader)
             }
             Tab(RootTab.favorites.title, systemImage: RootTab.favorites.symbol, value: RootTab.favorites) {
-                FavoritesTabView(navigation: model.favorites, reader: reader)
+                FavoritesTabView(navigation: model.favorites, reader: environment.reader)
             }
             Tab(RootTab.messages.title, systemImage: RootTab.messages.symbol, value: RootTab.messages) {
-                NavigationStack { MessagesRootView() }
+                MessagesRootView(environment: environment)
             }
             .badge(model.unreadPrivateMessages)
             Tab(RootTab.more.title, systemImage: RootTab.more.symbol, value: RootTab.more) {
@@ -47,7 +47,7 @@ struct CategoriesTabView: View {
 struct FavoritesTabView: View {
     @Bindable var navigation: NavigationModel
     let reader: ReaderServices
-    @State private var column = NavigationSplitViewColumn.content
+    @State private var column = NavigationSplitViewColumn.sidebar
 
     var body: some View {
         NavigationSplitView(preferredCompactColumn: $column) {
@@ -59,7 +59,7 @@ struct FavoritesTabView: View {
     }
 }
 
-/// Switches the Favoris tab between the favourites and the flags (legacy lists both there, `Favorites.swift:670`).
+/// Switches the Favoris tab between the favourites and the flags (legacy lists both there, setting `AppSettingsView.swift:130-131`).
 struct FavoritesSourceMenu: View {
     @Bindable var navigation: NavigationModel
 

@@ -17,7 +17,7 @@ struct PlusView: View {
     }
 }
 
-/// The screen behind a Plus entry: the built screen, or a placeholder naming the lot that brings it.
+/// The screen behind a Plus entry: the built screen, or a placeholder until the owning lot (`PlusEntry.owningLot`) brings it.
 struct PlusEntryView: View {
     let entry: PlusEntry
 
