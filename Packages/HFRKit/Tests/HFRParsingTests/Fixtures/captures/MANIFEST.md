@@ -77,9 +77,9 @@ gets `Profile field removed.` or, for dates, `01/01/2000`; post count → `100`,
 | R28 | `R28-topic-images-videos-anon.html` | 42 images, quotes, spoiler, YouTube | R28, R29 | 034, 035, 056 |
 | R31 | `R31-topic-locked-anon.html` | Locked, sticky, single-page topic | R31 | 033, 036 |
 | R32a | `R32a-topic-poll-anon.html` | Poll topic logged out: vote form `/user/vote.php?config=hfr.inc` shown, radio `reponse` | R32 | 005, 026, 054 |
-| R32b | `R32b-topic-poll-logged-in-not-voted.html` | Same, logged in, not voted | R32 | 005, 026, 054 |
+| R32b | `R32b-topic-poll-logged-in-not-voted.html` | Same, logged in, not voted | R32 | 005, 026, 033, 054 |
 | R33a | `R33a-topic-poll-closed-anon.html` | Closed poll (locked topic), logged out: results only (bars, `N votes`, `Total`), no form, "Ce sondage est clos, vous ne pouvez plus voter" | R33 | 005, 026, 054 |
-| R33b | `R33b-topic-poll-already-voted.html` | Poll already voted from the operator's accounts, logged in (user1): results only, no form, "(Multipseudo detecté, vous ne pourrez pas voter à ce sondage avec vos autres pseudos)" (user2 sees the same notice; the page does not tell which account voted) | R33 | 005, 026, 054 |
+| R33b | `R33b-topic-poll-already-voted.html` | Poll already voted from the operator's accounts, logged in (user1): results only, no form, "(Multipseudo detecté, vous ne pourrez pas voter à ce sondage avec vos autres pseudos)" (user2 sees the same notice; the page does not tell which account voted) | R33 | 005, 026, 033, 054 |
 | R40a | `R40a-reply-form-logged-in.html` | Reply composer (`message.php`), logged in: `hop` form to `/bddpost.php?config=hfr.inc`, `verifrequet=1100`, pseudo echoed, checkboxes | R40 | 036, 048 |
 | R40b | `R40b-reply-form-anon.html` | Same composer logged out: empty `hash_check`, visible pseudo/password | R40 | 036, 048 |
 | R41a | `R41a-quote-form.html` | Quote form (`numrep=<cited>&ref=1`): prefill `[quotemsg=<numreponse>,1,<author id>]` | R41 | 036, 049 |
@@ -169,17 +169,17 @@ gets `Profile field removed.` or, for dates, `01/01/2000`; post count → `100`,
 | RU2 | `RU2-mp-thread-recipient-after-owner-delete.html` | Recipient can still read the whole thread | W19, X1 | 030, 048 |
 | R61b | `R61b-public-reply-composer.html` | Reply composer of a public topic (cat 13, `#repondre_form` action), user2: same 43-field `hop` form as `R40a`, action `/bddpost.php?config=hfr.inc` | P01 | 036, 048 |
 | W30 | `W30-public-reply-success.html` | Public reply, browser semantics: "Votre réponse a été postée avec succès !", refresh to **page 1** `…sujet_<post>_1.htm#bas` (the post landed on the last page, 30) | P01 | 048, 037 |
-| R61d | `R61d-public-topic-last-page-own-post.html` | Last page with the own reply: edit link `message.php?…&cat=13&…&numreponse=<n>&page=30…`, quote link | P01 | 030, 031, 048 |
+| R61d | `R61d-public-topic-last-page-own-post.html` | Last page with the own reply: edit link `message.php?…&cat=13&…&numreponse=<n>&page=30…`, quote link | P01 | 030, 031, 033, 048 |
 | R62a | `R62a-public-edit-form-later-post.html` | Edit form of the own later post of a public topic: action `/bdd.php?config=hfr.inc`, hidden `sujet`, `stickold` `0`, delete label "Effacer ce message" | P01, R43 | 036, 048 |
 | W31 | `W31-public-edit-success.html` | Public edit (no `delete` sent): "Votre message a été édité avec succès !", refresh `…sujet_<post>_<page>.htm#t<numreponse>` | P01 | 048, 037 |
 | R62b | `R62b-public-edit-form-after-edit.html` | Same edit form after `W31`: stored text with the edit | P01 | 036, 048 |
 | W32 | `W32-public-delete-post-success.html` | Public delete of the later post (`delete=1`): "Message effacé avec succès !", refresh `/hfr/<cat>/<sub>/sujet_<post>_<page>.htm` (no slug, no anchor) | P01 | 048, 037 |
-| R61e | `R61e-public-topic-after-delete.html` | Same last page afterwards: the post is gone | P01 | 048 |
-| R63a | `R63a-public-own-topic-first-page.html` | Page 1 of a public topic started by user1 (**own topic**: topic and message ids, subject, slug, texts, related topics and dates replaced, see below) | P01 | 030, 048 |
+| R61e | `R61e-public-topic-after-delete.html` | Same last page afterwards: the post is gone | P01 | 033, 048 |
+| R63a | `R63a-public-own-topic-first-page.html` | Page 1 of a public topic started by user1 (**own topic**: topic and message ids, subject, slug, texts, related topics and dates replaced, see below) | P01 | 030, 033, 048 |
 | R63b | `R63b-public-edit-form-first-post.html` | Edit form of the own topic's first post: action `/bdd.php?config=hfr.inc`, visible `sujet` (maxlength 70), `subcat` select, poll fields, "Effacer l'intégralité du sujet". Never submitted with `delete` | P01, R43 | 036, 048 |
 | W34 | `W34-public-first-post-edit-success.html` | First-post edit (one line appended): "Votre message a été édité avec succès !", refresh `…sujet_<post>_1.htm#t<numreponse>` | P01 | 048, 037 |
 | W35 | `W35-public-first-post-restore-success.html` | Same edit sending the original fields back: same answer; the stored text and subject were then byte-identical to the original | P01 | 048 |
-| R63e | `R63e-public-own-topic-after-restore.html` | Page 1 afterwards (same replacements) | P01 | 048 |
+| R63e | `R63e-public-own-topic-after-restore.html` | Page 1 afterwards (same replacements) | P01 | 033, 048 |
 | W33 | `W33-public-reply-empty-body-rejected.html` | Public reply with an empty body: "Vous devez remplir tous les champs avant de poster ce message" (as `W17a`), nothing posted | P01, W17 | 037, 048 |
 | R60a | `R60a-mpstorage-thread-first-post.html` | user1's MPStorage thread (subject `MP_NAME`) opened with the legacy read URL (`MPStorage.m:766`): one post, `div#para<numreponse>` > `p` holding the JSON document (`"` as `&#034;`, a `div` clear inside the `p`); the live document is the empty structure the legacy app creates (three empty sections, `sourceName` `iOS`, 568 bytes); JSON body kept, see Run 5 | R13, X8 | 038, 052 |
 | R60b | `R60b-mpstorage-edit-form-first-post.html` | Edit form of that first post (toolbar `edit-in` link of R60a), GET only: `hop` form to `/bdd.php?config=hfr.inc`, `numreponse` of the first post, `sujet` = `MP_NAME`, `content_form` = the same JSON as R60a's rendered text, recipient row (aliased) | X8, E23 | 038, 052, 036 |

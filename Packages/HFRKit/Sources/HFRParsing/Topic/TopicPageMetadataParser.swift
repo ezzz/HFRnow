@@ -3,7 +3,7 @@ import HFRModels
 import SwiftSoup
 
 /// Reads the page-level data of a topic page (`/hfr/<cat>/<slug>-sujet_<post>_<page>.htm` or `forum2.php?…`, also private
-/// conversations): title, pager, answer form, hidden fields, unread link, poll presence, in-topic search form.
+/// conversations): title, pager, answer form, hidden fields, unread link, poll presence, in-topic search form, flag.
 ///
 /// Port of `-[ObjCTopicPageWorker parseMetadataFromBody:parser:]`, `-searchInputDataFromBody:` and the title and pager part of
 /// `-[ParseMessagesOperation parseData:]` (`ObjCTopicPageWorker.m:103-179`, `ParseMessagesOperation.m:488-507`).
@@ -30,7 +30,8 @@ public enum TopicPageMetadataParser {
             answerFormFields: answerFields,
             isUnreadable: body.firstDescendant(attribute: "href", matching: .contains("nonlu")) != nil,
             hasPoll: body.firstDescendant(matching: .exact("sondage")) != nil,
-            searchFormFields: searchFields
+            searchFormFields: searchFields,
+            flag: flag(in: body)
         )
     }
 
@@ -79,6 +80,41 @@ public enum TopicPageMetadataParser {
             url.host(percentEncoded: false) == HFRURL.forumHost
         else { return nil }
         return url
+    }
+
+    /// The `delflag.php` link of the function bar `tr.fondForum2Fonctions` and its icon (#306).
+    ///
+    /// Only that row is searched: legacy took the first `href` containing `delflag` anywhere in the body
+    /// (`HFRswift/Wrapped/MessagesTableViewController.m:1559-1566`), so on a page whose bar has none,
+    /// a link a member posted in a message became the remove-flag action (the LOT-031 learning).
+    /// The session follows this link: `https` on the forum host, port 443, no user info, path exactly
+    /// `/user/delflag.php`, as LOT-051's `FlagLink` requires (LESSONS 37, 43).
+    private static func flag(in body: Element) -> TopicPageFlag? {
+        guard let bar = body.firstDescendant(tag: "tr", matching: .classToken("fondForum2Fonctions")) else { return nil }
+        for link in (try? bar.getElementsByTag("a").array()) ?? [] {
+            guard
+                link.hasAttr("href"),
+                let href = try? link.attr("href"),
+                let url = HFRURL.absolute(href),
+                url.scheme?.lowercased() == "https", url.host(percentEncoded: false)?.lowercased() == HFRURL.forumHost,
+                url.port == nil || url.port == 443, url.user == nil, url.password == nil,
+                url.path(percentEncoded: true) == "/user/delflag.php"
+            else { continue }
+            let icon = (try? link.getElementsByTag("img").first()).flatMap { try? $0.attr("src") }
+            return TopicPageFlag(flag: icon.flatMap(flagKind(iconSource:)), removalURL: url)
+        }
+        return nil
+    }
+
+    /// The flag named by the bar's icon file (`R21` `flagn0.gif`, `R33b` and `R61d` `flagn1.gif`, `P03m` `favorisn.gif`), in
+    /// either theme folder (`images_forum/1/`, `images/defaut/`); the list cells use `flag0.gif`, `flag1.gif`, `favoris.gif`.
+    private static func flagKind(iconSource: String) -> TopicFlag? {
+        switch iconSource.split(separator: "/").last.map({ $0.lowercased() }) {
+        case "flagn0.gif": .red
+        case "flagn1.gif": .blue
+        case "favorisn.gif": .yellow
+        default: nil
+        }
     }
 
     /// Hidden inputs (`name` and `value` both present) of the element named `hop`; a repeated name keeps the last value.

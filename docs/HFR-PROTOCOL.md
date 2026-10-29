@@ -226,6 +226,7 @@ Source: [LOT-033](lots/LOT-033-topic-page-metadata.md), `TopicPageMetadataParser
 - **In-topic search form** `form[action="/transsearch.php"]` exists for visitors too (empty `hash_check`); it carries `cat` and `post` when `hop` does not. Absent on `RA5`.
 - **`nonlu`**: a link whose `href` contains `nonlu` exists on every private conversation page that shows messages (`RA1`–`RA4`, `RU1`, `RU2`; not on the empty `RA5`) and on no public topic page of the corpus.
 - **Poll block**: `div.sondage` exists on `R32a`, `R32b`, `R33a` and `R33b` only.
+- **Flag link** (#306, **verified**): logged in, the function bar `tr.fondForum2Fonctions` (with the in-topic search form, print and e-mail links) holds one `a.cHeader` to `/user/delflag.php?config=hfr.inc&cat=<cat>&subcat=<sub>&post=<post>&page=<p>&p=1&sondage=0&owntopic=<n>&new=0`; its icon is `flagn0.gif` when the account only read the topic (`R21`, `R32b`), `flagn1.gif` when it took part (`R33b`, `R61d`, `R61e`) and `favorisn.gif` for a favourite (`P03m`, `R63a`, `R63e`), from `images_forum/1/` or `images/defaut/`. No other `delflag` link on these pages; none on anonymous pages or private conversations. `P03m`'s link is the request of `P03n`.
 
 ### LOT-026 — poll
 
