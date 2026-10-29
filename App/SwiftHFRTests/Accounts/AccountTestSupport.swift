@@ -144,7 +144,8 @@ final class ScriptedChecker: SessionChecking {
 /// Stands in for LOT-044's `SessionRefreshFlow`, whose probe seam is internal to `HFRClient`: answers each account with
 /// the outcomes the flow's capture-backed tests proved (`R55-p1` → `valid`, logged-out or `.hop` pages → `unrecognizedPage`,
 /// an identity the answer did not keep → `identityNotConfirmed`, transport failures thrown). A jar without a usable
-/// identity goes to the real flow, which answers `expired` without sending anything.
+/// identity is `expired(.noIdentityCookie)` here, as the flow's step 1 (LOT-044); the real flow runs in
+/// `CapturedSessionCheckTests` and in `liveFlowExpiresJarsWithoutIdentityAndKeepsTheirCookies`.
 final class ScriptedRefresher: SessionRefreshing {
     typealias Reply = Result<SessionHealth, NetworkError>
 
