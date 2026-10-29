@@ -102,8 +102,9 @@ members count (owner, member or collaborator, ORCHESTRATION §Claims).
 
 ## 7. Adversarial review by a sub-agent
 
-Spawn a **fresh sub-agent of another model** (§8). Give it only the following and nothing else: the diff, the single spec,
-`AGENTS.md`, `LESSONS.md`, `ARCHITECTURE.md`, the dependency specs and `HFR-PROTOCOL.md`. Do **not** pass your own
+Spawn a **fresh sub-agent of another model** (§8). Give it only the following and nothing else: the diff,
+the PR body as read-only metadata (for its `Closes #N`, `Claim:` and `Author model:` lines), the single spec, `AGENTS.md`,
+`LESSONS.md`, `ARCHITECTURE.md`, the dependency specs and `HFR-PROTOCOL.md`. Do **not** pass your own
 explanations or conclusions. The text below is its brief; pass it verbatim.
 
 > You are an independent adversarial reviewer of SwiftHFR PR #N, head `<sha>`. Read-only: no push, no merge, no comment.
