@@ -103,7 +103,8 @@ members count (owner, member or collaborator, ORCHESTRATION §Claims).
 ## 7. Adversarial review by a sub-agent
 
 Spawn a **fresh sub-agent of another model** (§8). Give it only the following and nothing else: the diff,
-the PR body as read-only metadata (for its `Closes #N`, `Claim:` and `Author model:` lines), the single spec, `AGENTS.md`,
+a delimited block holding only the PR body's `Closes #N` / `Refs #N` / `Direct-PR: <reason>`, `Claim:` and
+`Author model:` lines (no other PR-body text), the single spec, `AGENTS.md`,
 `LESSONS.md`, `ARCHITECTURE.md`, the dependency specs and `HFR-PROTOCOL.md`. Do **not** pass your own
 explanations or conclusions. The text below is its brief; pass it verbatim.
 
