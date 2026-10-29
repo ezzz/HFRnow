@@ -77,9 +77,11 @@ final class RootModel {
         self.categories = categories
         self.favorites = favorites
         self.store = store
-        selectedDestination = initial ?? .tab(RootTab(startup: store.value(for: SettingKey.startupScreen)))
-        // The init accessor skips `didSet`: a rebuilt root on a Plus entry records it here.
-        if case .plus(let entry) = selectedDestination { lastPlusEntry = entry }
+        let destination = initial ?? .tab(RootTab(startup: store.value(for: SettingKey.startupScreen)))
+        selectedDestination = destination
+        // The init accessor skips `didSet`: a rebuilt root on a Plus entry records it here (from the local, as reading the
+        // observed property would use `self` before every stored property is set).
+        if case .plus(let entry) = destination { lastPlusEntry = entry }
         privateMessageBadgeEnabled = store.value(for: SettingKey.privateMessageBadge)
         minimizesTabBarOnScroll = store.value(for: SettingKey.tabBarMinimizesOnScroll)
     }
