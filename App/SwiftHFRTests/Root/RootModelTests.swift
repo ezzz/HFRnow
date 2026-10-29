@@ -85,13 +85,14 @@ struct RootModelTests {
     }
 
     @Test func onlySettingsIsBuiltAndTheOthersNameTheirLot() {
-        let expected: [PlusEntry: String?] = [
-            .settings: nil, .search: "LOT-115", .bookmarks: "LOT-132", .qualityAlerts: "LOT-133",
-            .credits: "LOT-120", .charter: "LOT-120", .deleteAccount: "LOT-157"
+        let expected: [(PlusEntry, String?)] = [
+            (.settings, nil), (.search, "LOT-115"), (.bookmarks, "LOT-132"), (.qualityAlerts, "LOT-133"),
+            (.credits, "LOT-120"), (.charter, "LOT-120"), (.deleteAccount, "LOT-157")
         ]
-        for entry in PlusEntry.allCases {
-            #expect(entry.owningLot == expected[entry]!)
-            #expect(entry.isBuilt == (expected[entry]! == nil))
+        #expect(expected.map(\.0) == PlusEntry.allCases)
+        for (entry, lot) in expected {
+            #expect(entry.owningLot == lot)
+            #expect(entry.isBuilt == (lot == nil))
         }
     }
 
