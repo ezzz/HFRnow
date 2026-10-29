@@ -35,6 +35,9 @@ final class AccountsModel {
     @ObservationIgnored private let avatars: any AvatarLoading
     @ObservationIgnored private var sessions: [String: HFRSession] = [:]
     @ObservationIgnored private var statuses: [String: AccountSessionStatus] = [:]
+    /// Advanced by every login saved for an account: a session write-back whose jar was read before it is stale,
+    /// even when the login renewed the same `HFRSession` object.
+    @ObservationIgnored private var loginSaves: [String: Int] = [:]
     @ObservationIgnored private var restoreTask: Task<Void, Never>?
     @ObservationIgnored private var currentSessionID: ObjectIdentifier?
     /// When the last forum check of the sessions (launch or re-check) ended; nil until one has.
@@ -45,6 +48,8 @@ final class AccountsModel {
     @ObservationIgnored private var avatarImages: [String: (data: Data, image: UIImage)] = [:]
     /// The last avatar download started by a login (tests await it).
     @ObservationIgnored private(set) var avatarTask: Task<Void, Never>?
+    /// Test seam: runs in `persistSession` after the jar is read and before the store is written.
+    @ObservationIgnored var beforePersistWrite: (@MainActor () async -> Void)?
 
     /// Creates the model; nothing is read before `restore()`.
     init(store: any CredentialStore, loginService: any AccountLoggingIn, checker: any SessionChecking, avatars: any AvatarLoading) {
@@ -245,6 +250,7 @@ final class AccountsModel {
             reloadRows()
             throw Self.actionError(error)
         }
+        loginSaves[stored.pseudo, default: 0] += 1
         sessions[stored.pseudo] = session
         statuses[stored.pseudo] = .valid
         storeProblem = nil
@@ -285,12 +291,16 @@ final class AccountsModel {
     /// when the session lost its identity: a logged-out jar never replaces stored cookies. A failed write keeps the
     /// previous cookies and is reported as a store problem (LESSONS 8); the session in memory keeps working.
     func persistSession(of id: String) async {
-        guard let session = sessions[id], await session.isLoggedIn() else { return }
+        guard let session = sessions[id] else { return }
+        let saves = loginSaves[id, default: 0]
+        guard await session.isLoggedIn() else { return }
         let cookies = await session.cookies()
         let hashCheck = await session.hashCheck
+        if let beforePersistWrite { await beforePersistWrite() }
         // Replaced (a new login of the same pseudo) or removed while the jar was read: its cookies must not overwrite
-        // what the store holds now. No suspension point follows before the write.
-        guard sessions[id] === session else { return }
+        // what the store holds now. Nor if a login was saved meanwhile: a re-login renews this same session, so the
+        // jar may have been read before it, and the store already holds the login. No suspension point follows.
+        guard sessions[id] === session, loginSaves[id, default: 0] == saves else { return }
         do {
             try store.update { book in
                 guard var account = book.account(matching: id) else { return }

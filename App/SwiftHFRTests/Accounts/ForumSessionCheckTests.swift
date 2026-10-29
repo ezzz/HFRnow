@@ -201,4 +201,30 @@ struct ForumSessionCheckTests {
         #expect(model.rows.map(\.status) == [.valid])
         #expect(try store.mainAccount()?.hashCheck == "login-hash")
     }
+
+    // A re-login renews the same `HFRSession`, so only the login-save count tells the write-back its jar is stale.
+    @Test(.timeLimit(.minutes(1))) func loginSavedWhileACheckWritesBackWinsOverItsCookies() async throws {
+        let store = try InMemoryCredentialStore(accounts: [Fake.account("user1", main: true)])
+        let refresher = ScriptedRefresher(["user1": [.success(.unconfirmed(.unrecognizedPage)), .success(.valid)]])
+        let login = ScriptedLogin([.success(
+            userKey: "user1", displayName: "user1", cookies: Fake.cookies(user: "user1", pass: "fake-pass-2"),
+            hashCheck: "login-hash", avatarURL: nil
+        )])
+        let model = makeModel(store: store, login: login, checker: ForumSessionCheck(refresher: refresher))
+        await model.restore()
+        let session = try #require(model.session(for: "user1"))
+
+        // The re-check's write-back has read the refreshed jar; the re-login lands and is saved before it writes.
+        model.beforePersistWrite = { [model] in
+            model.beforePersistWrite = nil
+            try? await model.logIn(pseudo: "user1", password: "fake", for: .existing(id: "user1", displayName: "user1"))
+        }
+        await model.recheckUnconfirmedSessions(now: Date().addingTimeInterval(AccountsModel.recheckInterval + 1))
+
+        #expect(login.calls.count == 1)
+        #expect(model.session(for: "user1") === session)
+        #expect(model.rows.map(\.status) == [.valid])
+        #expect(try store.mainAccount()?.hashCheck == "login-hash")
+        #expect(try store.mainAccount()?.cookies.first { $0.name == "md_passs" }?.value == "fake-pass-2")
+    }
 }
