@@ -23,7 +23,7 @@ Output: dependency graph, ordered lots in [LOTS.md](LOTS.md), first version of [
 Harness in the legacy app exporting parser output as JSON from real pages; capture on the maintainer's Mac; anonymization.
 **Exit:** fixtures + oracle output committed for every parsing lot.
 
-## Phase 3 — Engine port *(in progress — 23 of 55 engine lots done on 2026-10-27)*
+## Phase 3 — Engine port *(in progress — 39 of 67 engine lots done on 2026-10-29)*
 Lots ported one by one with differential tests (`HFRModels`, `HFRNetwork`, parsers, reply posting, `HFRStorage`).
 **Exit:** all lots `done`; the engine covers every feature of the legacy app.
 
