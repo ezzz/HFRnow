@@ -16,7 +16,9 @@ struct RootSidebarView: View {
             NavigationSplitView(columnVisibility: $visibility, preferredCompactColumn: $compactColumn) {
                 sidebar
             } detail: {
+                // A new identity per entry, so the stack drops what the previous entry had pushed.
                 NavigationStack { PlusEntryView(entry: entry) }
+                    .id(entry)
             }
         } else {
             NavigationSplitView(columnVisibility: $visibility) {

@@ -19,7 +19,10 @@ struct RootTabsView: View {
             }
             .badge(model.unreadPrivateMessages)
             Tab(RootTab.more.title, systemImage: RootTab.more.symbol, value: RootTab.more) {
-                NavigationStack(path: $model.plusPath) { PlusView() }
+                NavigationStack {
+                    PlusView(model: model)
+                        .navigationDestination(item: $model.plusEntry) { PlusEntryView(entry: $0) }
+                }
             }
         }
         .tabBarMinimizeBehavior(model.minimizesTabBarOnScroll ? .onScrollDown : .never)

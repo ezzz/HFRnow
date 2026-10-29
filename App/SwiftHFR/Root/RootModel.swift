@@ -14,7 +14,14 @@ final class RootModel {
     /// Selection and models of the Favoris tab. Its source is the favourites, or the flags the user switches to.
     let favorites: NavigationModel
     /// The one selection both layouts read, so a size-class change (Slide Over, Split View) keeps what the user was on.
-    var selectedDestination: SidebarDestination
+    var selectedDestination: SidebarDestination {
+        didSet {
+            if case .plus(let entry) = selectedDestination { lastPlusEntry = entry }
+        }
+    }
+    /// The Plus entry left open when the user switched to another tab: coming back to Plus reopens it, as every other tab
+    /// keeps its stack.
+    @ObservationIgnored private var lastPlusEntry: PlusEntry?
 
     /// Tab shown by the iPhone tab bar: a Plus entry selected in the sidebar is the Plus tab. Setting it selects that tab,
     /// except that re-selecting Plus keeps the entry the sidebar had open.
@@ -27,19 +34,21 @@ final class RootModel {
         }
         set {
             guard newValue != selectedTab else { return }
-            selectedDestination = .tab(newValue)
+            selectedDestination = newValue == .more ? lastPlusEntry.map(SidebarDestination.plus) ?? .tab(.more) : .tab(newValue)
         }
     }
 
-    /// Navigation path of the Plus tab's stack, derived from the one selection: a Plus entry opened in the sidebar is still
-    /// open when Slide Over or Split View switches to the tab bar, and Back returns to the Plus menu.
-    var plusPath: [PlusEntry] {
+    /// The Plus entry the Plus tab shows on top of its menu, derived from the one selection: an entry opened in the
+    /// sidebar is still open when Slide Over or Split View switches to the tab bar, and Back returns to the Plus menu. An
+    /// optional item, not a typed path, so the entry's own pushes (Réglages > Icône, Thème) stay in the stack's path.
+    var plusEntry: PlusEntry? {
         get {
-            if case .plus(let entry) = selectedDestination { [entry] } else { [] }
+            if case .plus(let entry) = selectedDestination { entry } else { nil }
         }
         set {
             guard selectedTab == .more else { return }
-            selectedDestination = newValue.last.map { .plus($0) } ?? .tab(.more)
+            if newValue == nil { lastPlusEntry = nil }
+            selectedDestination = newValue.map(SidebarDestination.plus) ?? .tab(.more)
         }
     }
 

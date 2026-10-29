@@ -19,7 +19,7 @@ Read-only, `origin/master`: `HFRswift/Swift/Common.swift:25-45` (`RootTabIdentif
 ## Edge cases
 - Selecting another category clears the chosen topic (`NavigationModel`), per tab.
 - Deselecting in the sidebar keeps the current destination.
-- One selection feeds both layouts (`RootModel.selectedDestination`; `selectedTab` is derived from it, a Plus entry being the Plus tab), so Slide Over or Split View keeps the user where they were. Re-selecting Plus in the tab bar keeps the sidebar's open entry, and the Plus stack shows it (`RootModel.plusPath`): Back returns to the Plus menu.
+- One selection feeds both layouts (`RootModel.selectedDestination`; `selectedTab` is derived from it, a Plus entry being the Plus tab), so Slide Over or Split View keeps the user where they were. Re-selecting Plus in the tab bar keeps the sidebar's open entry, and the Plus stack shows it (`RootModel.plusEntry`, an optional item, not a typed path, so Réglages > Icône and Thème still push): Back returns to the Plus menu. Leaving the Plus tab and coming back reopens the entry left open, as the other tabs keep their stacks.
 - A new session generation rebuilds the whole root (`RootView.id`), so no account keeps another's badge or lists; the selected destination is kept (`RootView` passes it to `RootModel(initial:)`, legacy `MainWindow.swift:1276-1278`, `:1357-1362`) and the start-screen setting applies to the first creation only.
 
 ## Fixtures

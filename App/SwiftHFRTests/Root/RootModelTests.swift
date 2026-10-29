@@ -160,16 +160,31 @@ struct RootModelTests {
     @Test func aPlusEntryOpenInTheSidebarStaysOpenInThePlusTab() async {
         let root = await model()
         root.selectedDestination = .plus(.settings)
-        #expect(root.plusPath == [.settings])
+        #expect(root.plusEntry == .settings)
         // Back in the Plus stack returns to the menu, still on the Plus tab.
-        root.plusPath = []
+        root.plusEntry = nil
         #expect(root.selectedDestination == .tab(.more))
-        root.plusPath = [.credits]
+        root.plusEntry = .credits
         #expect(root.selectedDestination == .plus(.credits))
-        // Another tab has no Plus path, and a stale write from the hidden Plus stack leaves it alone.
+        // Another tab shows no Plus entry, and a stale write from the hidden Plus stack leaves it alone.
         root.selectedTab = .favorites
-        #expect(root.plusPath.isEmpty)
-        root.plusPath = [.search]
+        #expect(root.plusEntry == nil)
+        root.plusEntry = .search
         #expect(root.selectedDestination == .tab(.favorites))
+    }
+
+    // Removing `lastPlusEntry` from `selectedTab`'s setter fails this test.
+    @Test func comingBackToPlusReopensTheEntryLeftOpen() async {
+        let root = await model()
+        root.selectedTab = .more
+        root.plusEntry = .settings
+        root.selectedTab = .favorites
+        root.selectedTab = .more
+        #expect(root.selectedDestination == .plus(.settings))
+        // After Back, the Plus tab opens on its menu.
+        root.plusEntry = nil
+        root.selectedTab = .categories
+        root.selectedTab = .more
+        #expect(root.selectedDestination == .tab(.more))
     }
 }

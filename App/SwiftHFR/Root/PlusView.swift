@@ -2,15 +2,26 @@ import SwiftUI
 
 /// The Plus tab: the legacy menu (`PlusTab.swift:11-60`), one row per entry in legacy order.
 struct PlusView: View {
+    @Bindable var model: RootModel
+
     var body: some View {
+        // A row sets `model.plusEntry` and the tab's stack opens it (RootTabsView), so the open entry is the one selection
+        // both layouts read; a `NavigationLink(value:)` would push onto the stack without updating it.
         List(PlusEntry.allCases, id: \.self) { entry in
-            NavigationLink(value: entry) {
-                Label(entry.title, systemImage: entry.symbol)
-                    .foregroundStyle(entry.isDestructive ? Color.red : Color.primary)
+            Button {
+                model.plusEntry = entry
+            } label: {
+                HStack {
+                    Label(entry.title, systemImage: entry.symbol)
+                        .foregroundStyle(entry.isDestructive ? Color.red : Color.primary)
+                    Spacer()
+                    Image(systemName: "chevron.forward")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
             }
         }
         .navigationTitle("Plus")
-        .navigationDestination(for: PlusEntry.self) { PlusEntryView(entry: $0) }
         .toolbar {
             ToolbarItem(placement: .primaryAction) { AccountMenuButton() }
         }
