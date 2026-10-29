@@ -31,6 +31,18 @@ final class RootModel {
         }
     }
 
+    /// Navigation path of the Plus tab's stack, derived from the one selection: a Plus entry opened in the sidebar is still
+    /// open when Slide Over or Split View switches to the tab bar, and Back returns to the Plus menu.
+    var plusPath: [PlusEntry] {
+        get {
+            if case .plus(let entry) = selectedDestination { [entry] } else { [] }
+        }
+        set {
+            guard selectedTab == .more else { return }
+            selectedDestination = newValue.last.map { .plus($0) } ?? .tab(.more)
+        }
+    }
+
     /// The destination the iPad sidebar shows: the Plus tab has no list there, it opens Réglages (legacy
     /// `defaultIPadDestination`, `MainWindow.swift:1365-1376`).
     var sidebarDestination: SidebarDestination {

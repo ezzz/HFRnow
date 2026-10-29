@@ -156,4 +156,20 @@ struct RootModelTests {
         root.selectedDestination = .tab(.messages)
         #expect(root.sidebarDestination == .tab(.messages))
     }
+
+    @Test func aPlusEntryOpenInTheSidebarStaysOpenInThePlusTab() async {
+        let root = await model()
+        root.selectedDestination = .plus(.settings)
+        #expect(root.plusPath == [.settings])
+        // Back in the Plus stack returns to the menu, still on the Plus tab.
+        root.plusPath = []
+        #expect(root.selectedDestination == .tab(.more))
+        root.plusPath = [.credits]
+        #expect(root.selectedDestination == .plus(.credits))
+        // Another tab has no Plus path, and a stale write from the hidden Plus stack leaves it alone.
+        root.selectedTab = .favorites
+        #expect(root.plusPath.isEmpty)
+        root.plusPath = [.search]
+        #expect(root.selectedDestination == .tab(.favorites))
+    }
 }
