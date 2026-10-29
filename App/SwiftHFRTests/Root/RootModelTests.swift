@@ -51,6 +51,11 @@ struct RootModelTests {
         #expect(root.selectedDestination == .plus(.settings))
         root.selectedTab = .favorites
         #expect(root.selectedDestination == .tab(.favorites))
+        // A Plus entry opened in the sidebar is the one the Plus tab reopens.
+        root.selectedDestination = .plus(.search)
+        root.selectedTab = .categories
+        root.selectedTab = .more
+        #expect(root.selectedDestination == .plus(.search))
     }
 
     @Test func theMessagesBadgeShowsTheUnreadCountFromTheHomePage() async {
@@ -186,5 +191,12 @@ struct RootModelTests {
         root.selectedTab = .categories
         root.selectedTab = .more
         #expect(root.selectedDestination == .tab(.more))
+    }
+
+    @Test func aRebuiltRootOnAPlusEntryReopensItAfterATabSwitch() async {
+        let root = await model(initial: .plus(.credits))
+        root.selectedTab = .favorites
+        root.selectedTab = .more
+        #expect(root.selectedDestination == .plus(.credits))
     }
 }

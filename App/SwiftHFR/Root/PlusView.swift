@@ -2,7 +2,7 @@ import SwiftUI
 
 /// The Plus tab: the legacy menu (`PlusTab.swift:11-60`), one row per entry in legacy order.
 struct PlusView: View {
-    @Bindable var model: RootModel
+    let model: RootModel
 
     var body: some View {
         // A row sets `model.plusEntry` and the tab's stack opens it (RootTabsView), so the open entry is the one selection
@@ -18,6 +18,7 @@ struct PlusView: View {
                     Image(systemName: "chevron.forward")
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(.tertiary)
+                        .accessibilityHidden(true)
                 }
             }
         }

@@ -78,6 +78,8 @@ final class RootModel {
         self.favorites = favorites
         self.store = store
         selectedDestination = initial ?? .tab(RootTab(startup: store.value(for: SettingKey.startupScreen)))
+        // The init accessor skips `didSet`: a rebuilt root on a Plus entry records it here.
+        if case .plus(let entry) = selectedDestination { lastPlusEntry = entry }
         privateMessageBadgeEnabled = store.value(for: SettingKey.privateMessageBadge)
         minimizesTabBarOnScroll = store.value(for: SettingKey.tabBarMinimizesOnScroll)
     }
