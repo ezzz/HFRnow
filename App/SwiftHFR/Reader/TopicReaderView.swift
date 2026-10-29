@@ -3,10 +3,13 @@ import SafariServices
 import SwiftUI
 import WebKit
 
-/// The detail column: one topic page in a web view, page navigation, refresh, links and video players on tap.
+/// The detail column: one topic page in a web view, page navigation, refresh, links, video players on tap and the reply
+/// sheet.
 struct TopicReaderView: View {
     let model: TopicReaderModel
     let services: ReaderServices
+    /// The current account's composer; nil when logged out.
+    var composer: ComposerServices?
     @State private var controller: ReaderWebController?
     @State private var external: ExternalLink?
     @State private var video: VideoItem?
@@ -32,6 +35,7 @@ struct TopicReaderView: View {
         .safeAreaInset(edge: .bottom) {
             if model.page != nil { ReaderPageBar(model: model, askPage: askForPage) }
         }
+        .modifier(ReaderReplyFlow(model: model, composer: composer))
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button { Task { await model.refresh() } } label: { Label("Actualiser", systemImage: "arrow.clockwise") }

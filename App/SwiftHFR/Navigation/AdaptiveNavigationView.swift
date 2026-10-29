@@ -7,9 +7,11 @@ struct AdaptiveNavigationView: View {
     @State private var navigation: NavigationModel
     @State private var preferredCompactColumn = NavigationSplitViewColumn.sidebar
     private let reader: ReaderServices
+    private let composer: ComposerServices?
 
     init(environment: AppEnvironment) {
         reader = environment.reader
+        composer = environment.composer
         // The legacy start tab (LOT-119): the app opens on the chosen list, not on the sidebar.
         let startup = UserDefaultsSettingsStore().value(for: SettingKey.startupScreen).initialSource
         _preferredCompactColumn = State(initialValue: startup == nil ? .sidebar : .content)
@@ -35,7 +37,7 @@ struct AdaptiveNavigationView: View {
             }
         } detail: {
             if let topic = navigation.selectedTopic, let model = navigation.reader(for: topic) {
-                TopicReaderView(model: model, services: reader)
+                TopicReaderView(model: model, services: reader, composer: composer)
                     .id(topic.id)
             } else {
                 MessagePlaceholderView(topic: navigation.selectedTopic)
