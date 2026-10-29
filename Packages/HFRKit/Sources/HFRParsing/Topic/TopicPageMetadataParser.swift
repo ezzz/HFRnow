@@ -85,9 +85,10 @@ public enum TopicPageMetadataParser {
     /// The `delflag.php` link of the function bar `tr.fondForum2Fonctions` and its icon (#306).
     ///
     /// Only that row is searched: legacy took the first `href` containing `delflag` anywhere in the body
-    /// (`MessagesTableViewController.m:1559-1566`), so on a page whose bar has none, a link a member posted in a message became
-    /// the remove-flag action (the LOT-031 learning). The session follows this link: `https` on the forum host, port 443, no
-    /// user info, path exactly `/user/delflag.php`, as LOT-051's `FlagLink` requires (LESSONS 37, 43).
+    /// (`HFRswift/Wrapped/MessagesTableViewController.m:1559-1566`), so on a page whose bar has none,
+    /// a link a member posted in a message became the remove-flag action (the LOT-031 learning).
+    /// The session follows this link: `https` on the forum host, port 443, no user info, path exactly
+    /// `/user/delflag.php`, as LOT-051's `FlagLink` requires (LESSONS 37, 43).
     private static func flag(in body: Element) -> TopicPageFlag? {
         guard let bar = body.firstDescendant(matching: .classToken("fondForum2Fonctions")) else { return nil }
         for link in (try? bar.getElementsByTag("a").array()) ?? [] {

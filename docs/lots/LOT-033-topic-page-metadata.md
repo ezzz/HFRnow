@@ -76,9 +76,8 @@ pages for parser rules that no capture exercises (foreign answer link, trailing 
 checkbox). Those inline pages state our parsing rules, not facts about HFR.
 
 Pending capture (no fixture, nothing hand-built): a topic page with a **checked** `filter` box in the search form (search result page
-of `transsearch.php`; R52a is a 302 without body), a **locked topic seen by a logged-in account** (does it keep `hop`?), a
-a pager whose current page sits between two ellipses with a trailing
-text node, a poll **results** page (R33, LOT-026).
+of `transsearch.php`; R52a is a 302 without body), a **locked topic seen by a logged-in account** (does it keep `hop`?), a pager whose current page sits between two ellipses with a
+trailing text node, a poll **results** page (R33, LOT-026).
 
 ## Intentional differences from legacy
 1. **`maxPage` is the highest number of the pager, not the number in its last child.** Same value on all 20 oracles; a trailing node that
@@ -89,7 +88,7 @@ text node, a poll **results** page (R33, LOT-026).
    and accepted any `http…` link, including another host and clear `http`.
 4. **A checked checkbox is any `checked` attribute and the `type` is case-insensitive** (HTML semantics); legacy compared both as exact text.
 5. **Topic flag state is read from the function bar only** (#306, for LOT-051's `removeFlag`). Legacy's reader took the first `href`
-   containing `delflag` anywhere in the body and set `isRedFlagged` from `flagn0.gif` (`MessagesTableViewController.m:1559-1566`), so on a
+   containing `delflag` anywhere in the body and set `isRedFlagged` from `flagn0.gif` (`HFRswift/Wrapped/MessagesTableViewController.m:1559-1566`), so on a
    page whose bar has no such link a link posted in a message became the remove-flag action (the LOT-031 learning). Here the lookup is
    scoped to `tr.fondForum2Fonctions`, the link must stay on the forum origin, and all three icons are named, not only the red one.
    `isUnreadable` is unchanged, and it is not a "cannot be favourite" rule (LOT-003 RC3.3): that is app policy.
