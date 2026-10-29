@@ -9,10 +9,10 @@ struct RootTabsView: View {
     var body: some View {
         TabView(selection: $model.selectedTab) {
             Tab(RootTab.categories.title, systemImage: RootTab.categories.symbol, value: RootTab.categories) {
-                CategoriesTabView(navigation: model.categories, reader: environment.reader)
+                CategoriesTabView(navigation: model.categories, reader: environment.reader, composer: environment.composer)
             }
             Tab(RootTab.favorites.title, systemImage: RootTab.favorites.symbol, value: RootTab.favorites) {
-                FavoritesTabView(navigation: model.favorites, reader: environment.reader)
+                FavoritesTabView(navigation: model.favorites, reader: environment.reader, composer: environment.composer)
             }
             Tab(RootTab.messages.title, systemImage: RootTab.messages.symbol, value: RootTab.messages) {
                 MessagesRootView(environment: environment)
@@ -30,6 +30,7 @@ struct RootTabsView: View {
 struct CategoriesTabView: View {
     @Bindable var navigation: NavigationModel
     let reader: ReaderServices
+    let composer: ComposerServices?
     @State private var column = NavigationSplitViewColumn.sidebar
 
     var body: some View {
@@ -38,7 +39,7 @@ struct CategoriesTabView: View {
         } content: {
             TopicsColumn(navigation: navigation)
         } detail: {
-            ReaderColumn(navigation: navigation, reader: reader)
+            ReaderColumn(navigation: navigation, reader: reader, composer: composer)
         }
     }
 }
@@ -47,6 +48,7 @@ struct CategoriesTabView: View {
 struct FavoritesTabView: View {
     @Bindable var navigation: NavigationModel
     let reader: ReaderServices
+    let composer: ComposerServices?
     @State private var column = NavigationSplitViewColumn.sidebar
 
     var body: some View {
@@ -54,7 +56,7 @@ struct FavoritesTabView: View {
             TopicsColumn(navigation: navigation)
                 .toolbar { ToolbarItem(placement: .secondaryAction) { FavoritesSourceMenu(navigation: navigation) } }
         } detail: {
-            ReaderColumn(navigation: navigation, reader: reader)
+            ReaderColumn(navigation: navigation, reader: reader, composer: composer)
         }
     }
 }
@@ -90,10 +92,12 @@ struct TopicsColumn: View {
 struct ReaderColumn: View {
     let navigation: NavigationModel
     let reader: ReaderServices
+    /// The reply composer (LOT-084); nil when logged out, which hides "Répondre".
+    let composer: ComposerServices?
 
     var body: some View {
         if let topic = navigation.selectedTopic, let model = navigation.reader(for: topic) {
-            TopicReaderView(model: model, services: reader)
+            TopicReaderView(model: model, services: reader, composer: composer)
                 .id(topic.id)
         } else {
             MessagePlaceholderView(topic: navigation.selectedTopic)

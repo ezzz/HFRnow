@@ -70,8 +70,8 @@ struct RootSidebarView: View {
     @ViewBuilder
     private var detail: some View {
         switch model.sidebarDestination {
-        case .tab(.categories): ReaderColumn(navigation: model.categories, reader: environment.reader)
-        case .tab(.favorites): ReaderColumn(navigation: model.favorites, reader: environment.reader)
+        case .tab(.categories): ReaderColumn(navigation: model.categories, reader: environment.reader, composer: environment.composer)
+        case .tab(.favorites): ReaderColumn(navigation: model.favorites, reader: environment.reader, composer: environment.composer)
         default: ContentUnavailableView("Choisissez un élément", systemImage: "sidebar.left")
         }
     }
