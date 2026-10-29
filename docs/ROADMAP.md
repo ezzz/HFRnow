@@ -10,14 +10,14 @@ Every lot of [LOTS.md](LOTS.md) belongs to one milestone. Each milestone has a l
 
 | Milestone | Scope | Exit criteria |
 |---|---|---|
-| 🚀 M1 · MVP | First usable build: log in, browse forums, topics and flags, read, reply (LOT-080 to 084, 119, 160, 161, 169, 170, 137 and their engine lots) | Every M1 lot done; a TestFlight build installed by the maintainer |
+| 🚀 M1 · MVP | First usable build: log in, browse forums, topics and flags, read, reply (the audit and tooling lots 000–005 and 071, the engine lots the MVP needs, and the app lots 080–084, 119, 137, 160, 161, 169, 170) | Every M1 lot done; the fixes that touch the MVP merged; the #322 light, dark and Dynamic Type XL checks done; a TestFlight build installed by the maintainer |
 | 📖 M2 · Read & reply complete | Every reading and answering feature of the legacy app: quotes, formatting, smileys, images, edit and delete, new topic, polls, search, filters, page tools, MPs | Every M2 lot done; TestFlight beta 2 |
 | ⚙️ M3 · Engine complete | Every `HFRKit` lot not already in M1 | Every M3 lot done; LOT-070 parity gates green |
-| 🏁 M4 · Final version | Everything else: MPStorage sync, notifications, appearance, compliance, accessibility, Phase 5, App Store | LOT-164 parity gate and LOT-165 App Store submission done; every lot done |
+| 🏁 M4 · Final version | Everything else: MPStorage sync, notifications, appearance, compliance, accessibility, Phase 5, App Store | LOT-164 parity gate passed; the LOT-165 App Store submission accepted by App Review; every lot done |
 
 M3 runs in parallel with M2: engine lots run in cloud sessions, while app lots need the maintainer's Mac. Moving a lot to another milestone is an operator decision, recorded on the board.
 
-![SwiftHFR milestones and the life of a lot](assets/roadmap-milestones.svg)
+![SwiftHFR milestones: M1 MVP, then M2 read and reply complete on the Mac lane and M3 engine complete on the cloud lane, both leading to M4 final version; below, the life of a lot from todo (ready, blocked, triage) through ongoing (claimed, draft PR, review wanted, changes requested, approved) to done (merged, issue closed, docs up to date)](assets/roadmap-milestones.svg)
 
 ## Phase 0 — Foundations *(done — 2026-10-24)*
 - [x] License (PolyForm Noncommercial), credits, README, AGENTS.md
