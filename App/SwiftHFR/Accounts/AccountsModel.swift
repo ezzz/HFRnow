@@ -154,10 +154,10 @@ final class AccountsModel {
     /// Checks again, quietly, the sessions the forum did not confirm (`restored` after an unknown page, `checkFailed`
     /// after a network error), when the app comes back to the foreground. Sessions already `valid` or `expired` are left
     /// alone; the rows keep their status until a result arrives, and a check that confirms nothing changes nothing.
-    /// Skipped while another re-check runs, and until `recheckInterval` has passed since the last check. Sessions the
-    /// launch restore is checking are `checking`, so they are not checked twice.
+    /// Skipped while another re-check or a restore runs (its own check may already have marked a session `checkFailed`
+    /// and still be waiting on the next account), and until `recheckInterval` has passed since the last check.
     func recheckUnconfirmedSessions(now: Date = Date()) async {
-        guard !isRechecking else { return }
+        guard !isRechecking, !isRestoring else { return }
         if let lastCheckEnd, now.timeIntervalSince(lastCheckEnd) < Self.recheckInterval { return }
         let ids = rows.map(\.id).filter { Self.isUnconfirmed(statuses[$0]) }
         guard !ids.isEmpty else { return }

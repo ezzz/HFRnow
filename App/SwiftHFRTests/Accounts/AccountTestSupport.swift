@@ -152,8 +152,8 @@ final class ScriptedRefresher: SessionRefreshing {
     private let gate: CheckGate?
     private let gatedCall: Int
 
-    /// `scripts` are consumed in order per account, the last one repeating; an account without a script is
-    /// `unrecognizedPage`. `gate` suspends the call number `gatedCall` (1-based, all accounts) until opened.
+    /// `scripts` are consumed in order per account, the last one repeating; an account without a script (or with an
+    /// empty one) is `unrecognizedPage`. `gate` suspends the call number `gatedCall` (1-based, all accounts) until opened.
     init(_ scripts: [String: [Reply]], gate: CheckGate? = nil, gatedCall: Int = 1) {
         state = Mutex((scripts, []))
         self.gate = gate
@@ -169,8 +169,9 @@ final class ScriptedRefresher: SessionRefreshing {
         }
         let (reply, call): (Reply, Int) = state.withLock { state in
             state.calls.append(user)
-            var queue = state.scripts[user] ?? [.success(.unconfirmed(.unrecognizedPage))]
-            let reply = queue.count > 1 ? queue.removeFirst() : queue[0]
+            let unscripted: Reply = .success(.unconfirmed(.unrecognizedPage))
+            var queue = state.scripts[user] ?? []
+            let reply = queue.count > 1 ? queue.removeFirst() : queue.first ?? unscripted
             state.scripts[user] = queue
             return (reply, state.calls.count)
         }

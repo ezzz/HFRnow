@@ -135,6 +135,27 @@ struct ForumSessionCheckTests {
         #expect(model.rows.map(\.status) == [.checkFailed(.offline)])
     }
 
+    // The launch check has already marked user1 `checkFailed` and waits on user2: a re-check then would send a second
+    // request for user1 while the launch pass still runs.
+    @Test(.timeLimit(.minutes(1))) func recheckWhileTheLaunchCheckWaitsOnAnotherAccountSendsNothing() async throws {
+        let store = try InMemoryCredentialStore(accounts: [Fake.account("user1", main: true), Fake.account("user2")])
+        let gate = CheckGate()
+        let refresher = ScriptedRefresher(
+            ["user1": [.failure(.timedOut)], "user2": [.success(.unconfirmed(.unrecognizedPage))]], gate: gate, gatedCall: 2
+        )
+        let model = makeModel(store: store, checker: ForumSessionCheck(refresher: refresher))
+
+        let restoring = Task { await model.restore() }
+        await gate.entered()
+        #expect(model.rows.map(\.status) == [.checkFailed(.timedOut), .checking])
+        await model.recheckUnconfirmedSessions(now: Date().addingTimeInterval(AccountsModel.recheckInterval + 1))
+        await gate.open()
+        await restoring.value
+
+        #expect(refresher.calls == ["user1", "user2"])
+        #expect(model.rows.map(\.status) == [.checkFailed(.timedOut), .restored])
+    }
+
     // A gate a broken guard never reaches would hang the run: fail instead.
     @Test(.timeLimit(.minutes(1))) func secondRecheckWhileOneRunsSendsNothing() async throws {
         let store = try InMemoryCredentialStore(accounts: [Fake.account("user1", main: true)])
