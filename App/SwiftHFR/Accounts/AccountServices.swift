@@ -62,7 +62,7 @@ struct ForumSessionCheck: SessionChecking {
         do {
             return Self.result(of: try await refresher.refresh(session, now: Date()))
         } catch .cancelled {
-            // A cancelled check (the app left the foreground) says nothing about the forum: not an unreachable forum.
+            // A cancelled check says nothing about the forum: it is not an unreachable forum.
             return .unconfirmed
         } catch {
             return .failed(error)

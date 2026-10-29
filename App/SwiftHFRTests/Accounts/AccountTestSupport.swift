@@ -160,13 +160,12 @@ final class ScriptedRefresher: SessionRefreshing {
         self.gatedCall = gatedCall
     }
 
-    /// Accounts refreshed, in call order (identity-less jars excluded: they never reach the forum).
+    /// Accounts refreshed, in call order (identity-less jars excluded: the flow expires them without a request).
     var calls: [String] { state.withLock { $0.calls } }
 
     func refresh(_ session: HFRSession, now: Date) async throws(NetworkError) -> SessionHealth {
-        guard let user = await session.userKey(now: now) else {
-            return try await SessionRefreshFlow().refresh(session, now: now)
-        }
+        // As the flow's step 1: a jar without a usable `md_user` is `expired` before any request (LOT-044).
+        guard let user = await session.userKey(now: now) else { return .expired(.noIdentityCookie) }
         let (reply, call): (Reply, Int) = state.withLock { state in
             state.calls.append(user)
             let unscripted: Reply = .success(.unconfirmed(.unrecognizedPage))

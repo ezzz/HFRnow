@@ -36,18 +36,21 @@ struct ForumSessionCheckTests {
         #expect(await check(.failure(.cancelled)) == .unconfirmed)
     }
 
-    /// The live flow: a jar without a usable `md_user` is `expired` and nothing is sent (LOT-044 step 1).
+    /// The real flow behind a forum that answers nothing: a jar without a usable `md_user` is `expired` and nothing is
+    /// sent (LOT-044 step 1). A request would get `.unscripted` and show up in `forum.sent`.
     @Test func liveFlowExpiresJarsWithoutIdentityAndKeepsTheirCookies() async {
+        let forum = CapturedForum([:])
         let lapsed = StoredCookie(name: "md_user", value: "user1", domain: ".hardware.fr", expiresDate: Fake.now.addingTimeInterval(-60))
         let deleted = StoredCookie(name: "md_user", value: "deleted", domain: ".hardware.fr", expiresDate: Fake.tomorrow)
         let pass = StoredCookie(name: "md_passs", value: "fake-pass", domain: ".hardware.fr", expiresDate: Fake.tomorrow)
         for cookies in [[pass], [pass, lapsed], [pass, deleted]] {
             let jar = HFRSession(cookies: cookies, hashCheck: "fake-hash")
             let before = await jar.cookies().map(\.value)
-            #expect(await ForumSessionCheck().check(jar) == .expired)
+            #expect(await ForumSessionCheck(refresher: forum.flow).check(jar) == .expired)
             #expect(await jar.cookies().map(\.value) == before)
             #expect(await jar.hashCheck == "fake-hash")
         }
+        #expect(forum.sent.isEmpty)
     }
 
     // MARK: - Launch
