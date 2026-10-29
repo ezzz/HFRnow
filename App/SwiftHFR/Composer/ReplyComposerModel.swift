@@ -20,7 +20,8 @@ final class ReplyComposerModel: Identifiable {
         case keptDraft
         /// Closed with the draft deleted.
         case discardedDraft
-        /// The reply may have been posted (`unconfirmed`): the draft is kept and the reader shows the topic's last page.
+        /// The reply may have been posted (`unconfirmed`): the reader shows the topic's last page; the draft is kept when the
+        /// store accepts it (not after `closeWithoutSaving`).
         case checkTopic
         /// Closed while the draft store refused writes: nothing was written, a stored draft is left as it was.
         case closedWithoutSaving
@@ -171,12 +172,13 @@ final class ReplyComposerModel: Identifiable {
 
     /// Closes without writing the draft, as the warning says, while the store refuses writes. The pending autosave is
     /// cancelled, so nothing is written after the choice. The store is not reloaded: a read that works again would let
-    /// a later write replace a stored draft the editor never showed.
+    /// a later write replace a stored draft the editor never showed. After an unconfirmed send it closes as `.checkTopic`:
+    /// the reply may be on the last page and the text is gone, so the reader must show it before the user types it again.
     func closeWithoutSaving() async {
         guard canCloseWithoutSaving else { return }
         isClosing = true
         await settleAutosave()
-        closeReason = .closedWithoutSaving
+        closeReason = mayHavePosted ? .checkTopic : .closedWithoutSaving
     }
 
     /// After an unconfirmed send: closes with the draft kept, so the user can look at the topic before sending again.

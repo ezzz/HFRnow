@@ -3,6 +3,7 @@ import HFRClient
 import HFRModels
 import HFRNetwork
 import HFRParsing
+import HFRStorage
 @testable import SwiftHFR
 import Testing
 
@@ -93,6 +94,27 @@ struct ReplyEntryTests {
         #expect(pages.requests.map(\.page) == [2])
         await reader.composerDidClose(.checkTopic)
         #expect(pages.requests.map(\.page) == [2, 6])
+        #expect(reader.replyConfirmation == nil)
+    }
+
+    @Test func closingWithoutSavingAfterAnUnconfirmedReplyStillShowsTheLatestPost() async throws {
+        let pages = FakeTopicPages { target in answerPage(min(target.page, 5)) }
+        let reader = TopicReaderModel(target: ReaderTarget(source: .topic(readerTopic), page: 2), title: "", source: pages)
+        await reader.onAppear()
+        let persistence = CountingDraftPersistence()
+        let poster = ScriptedPoster([.failure(.unconfirmed(.transport(.timedOut)))])
+        let composer = ComposerFixture.model(poster: poster, drafts: DraftStore(persistence: persistence))
+        await composer.start()
+        composer.update(text: "Peut-être postée")
+        persistence.failSaves(true)
+        await composer.send()
+        await composer.checkTopic()
+        #expect(composer.closeReason == nil)
+        // The text is not saved and the reply may be on the last page: the reader must still show it.
+        await composer.closeWithoutSaving()
+        await reader.composerDidClose(try #require(composer.closeReason))
+        #expect(pages.requests.map(\.page) == [2, 6])
+        #expect(reader.document?.anchor == 501)
         #expect(reader.replyConfirmation == nil)
     }
 

@@ -77,7 +77,8 @@ per topic). The account is the current one (`md_user` key). `ComposerServices.li
   sheet stays open with the warning. While the warning is shown, it offers "Fermer sans enregistrer"
   (`closeWithoutSaving`, `.closedWithoutSaving`): it cancels the pending autosave, writes nothing and leaves a stored
   draft as it was, so a store that refuses every write (a read failure blocks writes until `reload()`) never traps the
-  user in the sheet. The store is not reloaded on the way: a read that works again would let a write replace a stored
+  user in the sheet; after an unconfirmed send it closes as `.checkTopic`, so the reader still opens the latest post
+  (the text is gone, a retyped reply could post twice). The store is not reloaded on the way: a read that works again would let a write replace a stored
   draft the editor never showed.
 
 **Editor.** SwiftUI `TextEditor`, `.body` (Dynamic Type), default keyboard (no `asciiCapable`, third-party keyboards work),
@@ -131,7 +132,8 @@ the restore, `maxPage` instead of `maxPage + 1`, the continuation block as last 
 reply offered without answer link, `mayHavePosted` on every failure, no latest post after a confirmed or an unconfirmed
 reply; CodeRabbit round 1: closing on a failed keep, discard or "Voir le sujet" write, whitespace stored as a draft;
 Fable round (reasoned, not run on a Mac): no exit while the store refuses writes, no autosave cancel on that exit, a reply
-offered on an answer link to another topic. The autosave
+offered on an answer link to another topic; Fable delta: no latest post after closing without saving an unconfirmed
+reply. The autosave
 chaining (a replaced save that already woke up) has no failing test: `DraftStore` is an actor and that save is enqueued
 before any later discard on the main actor, so the race cannot be produced; the chain removes the dependency on that
 order.
