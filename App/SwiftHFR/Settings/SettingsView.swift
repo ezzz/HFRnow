@@ -39,6 +39,8 @@ struct SettingsView: View {
                 Picker("Écran de démarrage", selection: $general.startupScreen) {
                     ForEach(StartupScreen.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
+                Toggle("Mode compact", isOn: $general.compactMode)
+                Toggle("Réduire la tab bar au scroll", isOn: $general.minimizesTabBarOnScroll)
                 VStack(alignment: .leading, spacing: 4) {
                     LabeledContent("Taille du texte", value: "\(general.textSizePercent) %")
                     Slider(
@@ -52,8 +54,6 @@ struct SettingsView: View {
                     .accessibilityLabel("Taille du texte")
                     .accessibilityValue("\(general.textSizePercent) %")
                 }
-                Toggle("Mode compact", isOn: $general.compactMode)
-                Toggle("Réduire la tab bar au scroll", isOn: $general.minimizesTabBarOnScroll)
                 Toggle("Rotation d’écran", isOn: $general.allowsRotation)
                 Toggle(isOn: $general.opensLinksInDefaultBrowser) {
                     VStack(alignment: .leading, spacing: 2) {
@@ -67,7 +67,7 @@ struct SettingsView: View {
             }
             Section("Thème") {
                 NavigationLink(value: SettingsDestination.theme) {
-                    Label(SettingsDestination.theme.title, systemImage: SettingsDestination.theme.symbol)
+                    Text(SettingsDestination.theme.title)
                 }
             }
         }
