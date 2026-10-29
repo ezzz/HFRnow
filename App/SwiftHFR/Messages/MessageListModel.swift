@@ -133,6 +133,9 @@ final class MessageListModel {
             return MessageListContent(page: try await source.privateMessages(page: page))
         }
         // Only the newest load applied the content on screen; a superseded one returning late must not reset the state.
-        if mine == loadCount, loader.error == nil { openedThreads = [] }
+        guard mine == loadCount, loader.error == nil else { return }
+        openedThreads = []
+        // A session that expired while a conversation was open: the list asks for a login, the reader must not keep showing it.
+        if loader.value == .signedOut { selected = nil }
     }
 }

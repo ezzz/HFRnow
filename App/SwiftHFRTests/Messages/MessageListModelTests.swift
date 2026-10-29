@@ -18,6 +18,16 @@ final class FakePrivateMessages: PrivateMessageSource, @unchecked Sendable {
     }
 }
 
+/// A login state a test flips between loads.
+final class LoginFlag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var flag = true
+    var value: Bool {
+        get { lock.withLock { flag } }
+        set { lock.withLock { flag = newValue } }
+    }
+}
+
 func messageThread(_ number: Int, unread: Bool = false, group: Bool = false) -> PrivateMessageThread {
     let summary = TopicSummary(
         topicID: TopicID(category: .privateMessages, topic: number), title: "Sujet \(number)",
@@ -160,6 +170,30 @@ struct MessageListModelTests {
         let first = model.reader(for: thread)
         model.selected = nil
         #expect(model.reader(for: thread) !== first)
+    }
+
+    @Test func aSessionThatExpiresClosesTheOpenConversation() async {
+        let session = LoginFlag()
+        let model = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { session.value })
+        await model.onAppear()
+        let thread = messageThread(3)
+        model.selected = thread
+        #expect(model.reader(for: thread) != nil)
+        session.value = false
+        await model.refresh()
+        #expect(model.loader.value?.emptyReason == .signInRequired(nil))
+        #expect(model.selected == nil)
+    }
+
+    @Test func aFailedRefreshKeepsTheOpenConversation() async {
+        let source = FakePrivateMessages()
+        let model = model(source)
+        await model.onAppear()
+        let thread = messageThread(3)
+        model.selected = thread
+        source.handler = { _ in throw .offline }
+        await model.refresh()
+        #expect(model.selected == thread)
     }
 
     @Test func aThreadOpensInTheReaderAtItsOwnPage() throws {
