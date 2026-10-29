@@ -75,13 +75,28 @@ SwiftHFR keeps the spirit and restarts on a clean foundation: **100 % Swift, mod
 | Phase | Scope | Status |
 |---|---|---|
 | 0 · Foundations | Repository, CI, security tooling, agent rules | **done** |
-| 1 · Audit | Legacy engine mapped into [migration lots](docs/LOTS.md) (147 as of 2026-10-28) | **done** — [audit](docs/audit/README.md) |
+| 1 · Audit | Legacy engine mapped into [migration lots](docs/LOTS.md) (153 as of 2026-10-29) | **done** — [audit](docs/audit/README.md) |
 | 2 · Fixtures | Real HFR pages + legacy parser output as test oracle | **done** — capture corpus and oracles LOT-001 to 005 |
-| 3 · Engine | Models, parsing, network, storage, flows | **in progress** — 32 of 65 engine lots done (models, network base, storage, parsing of lists and topic pages, login, `hop` forms, post-form engine); the rest is in review or queued |
-| 4 · App | SwiftUI app on top of `HFRKit` | **in progress** — app target, accounts and login, and navigation merged (LOT-080 to 082); topic reader in review (LOT-083); 76 app lots defined |
+| 3 · Engine | Models, parsing, network, storage, flows | **in progress** — 39 of 67 engine lots done as of 2026-10-29 (models, network base, storage, parsing of lists and topic pages, login, `hop` forms, post-form engine); the rest is in review or queued |
+| 4 · App | SwiftUI app on top of `HFRKit` | **in progress** — app target, accounts and login, and navigation merged (LOT-080 to 082); topic reader merged (LOT-083); 6 of 75 app lots done as of 2026-10-29; MVP lots still open: reply composer LOT-084 (in review, PR #294), root tab bar LOT-170 (in review, PR #303), session check at launch #300 (in review, PR #309), TestFlight pipeline LOT-161 (#251, not started) |
 | 5 · iOS 27 experience | Column navigation, large and foldable layouts | planned |
 
 Details and exit criteria: [roadmap](docs/ROADMAP.md).
+
+### Milestones
+
+<p align="center">
+  <img src="docs/assets/roadmap-milestones.svg" alt="SwiftHFR milestones: M1 MVP, then M2 read and reply complete on the Mac lane and M3 engine complete on the cloud lane, both leading to M4 final version; below, the life of a lot from todo (ready, blocked, triage) through ongoing (claimed, draft PR, review wanted, changes requested, approved) to done (merged, issue closed, docs up to date)" width="100%">
+</p>
+
+| Milestone | Live board | Lots done (2026-10-29) |
+|---|---|---|
+| 🚀 M1 · MVP: log in, browse, read, reply, first TestFlight build | [#166](https://github.com/ezzz/HFRnow/issues/166) | 36 of 41 |
+| 📖 M2 · Read & reply complete: every reading and answering feature, topics and MPs, offline reading included | [#324](https://github.com/ezzz/HFRnow/issues/324) | 0 of 38 |
+| ⚙️ M3 · Engine complete: every `HFRKit` lot, parity gates green | [#324](https://github.com/ezzz/HFRnow/issues/324) | 15 of 43 |
+| 🏁 M4 · Final version: full legacy parity, iOS 27 experience, App Store | [#324](https://github.com/ezzz/HFRnow/issues/324) | 0 of 31 |
+
+The boards are kanbans: each lot is one issue with its own definition of done, shown as 🔜 todo, 🔄 ongoing or ✅ done.
 
 ## Architecture
 
@@ -160,8 +175,16 @@ The iOS app (Xcode 27) is in `App/`: see [App/README](App/README.md). Work to pi
 ## Contributing
 
 1. Read **[AGENTS.md](AGENTS.md)**, then [CONTRIBUTING.md](CONTRIBUTING.md).
-2. Claim a [`status: ready` issue](https://github.com/ezzz/HFRnow/issues?q=is%3Aissue+is%3Aopen+label%3A%22status%3A+ready%22) nobody claimed, with a `/claim <your-id>` comment; [LOTS.md](docs/LOTS.md) is the plan of the migration lots, each linked to its issue.
-3. Open a PR against `dev-swift` with `Closes #N` (or `Refs #N` for partial work) and `Claim: <your-id>`, naming its lot (`LOT-XXX`) if it is one; a small fix without an issue says `Direct-PR: <reason>`. It is merged only when it meets the **[merge criteria](CONTRIBUTING.md#2-merge-criteria)** — 9 required checks green, no conflict, every conversation resolved, and a review by a different model; no human approval is required, the author merges once all of these hold ([ADR 0011](docs/adr/0011-contribution-model-and-feature-intake.md)).
+2. Claim a [`status: ready` issue](https://github.com/ezzz/HFRnow/issues?q=is%3Aissue+is%3Aopen+label%3A%22status%3A+ready%22) nobody claimed, with a `/claim <your-id>` comment (without write access, a member claims it for you: [EXTERNAL-AGENTS §5](docs/agents/EXTERNAL-AGENTS.md#5-claim-protocol-no-orchestrator-watches-for-you)); [LOTS.md](docs/LOTS.md) is the plan of the migration lots, each linked to its issue.
+3. Open a PR against `dev-swift` with `Closes #N` (or `Refs #N` for partial work) and `Claim: <your-id>`, naming its lot (`LOT-XXX`) if it is one; a small fix without an issue says `Direct-PR: <reason>`. It is merged only when it meets the **[merge criteria](CONTRIBUTING.md#2-merge-criteria)** — 9 required checks green, no conflict, every conversation resolved, the definition of done met, and an adversarial `APPROVE` by a different model on its head; no human approval is required, the author merges once all of these hold (the core orchestrator or the maintainer merges for an author without write access; risky flows are merged by the core orchestrator or the maintainer, [AGENTS.md §8](AGENTS.md#8-git-and-pr-workflow)) ([ADR 0011](docs/adr/0011-contribution-model-and-feature-intake.md)).
+
+### Lend your agent
+
+You have spare AI quota? Give your agent (Claude, GPT, Gemini, Mistral, DeepSeek, Kimi…) this one line. It picks up the reviews flagged `REVIEW WANTED` and the issues labelled [`external: ready`](https://github.com/ezzz/HFRnow/issues?q=is%3Aissue+is%3Aopen+label%3A%22external%3A+ready%22) by itself:
+
+```text
+Read and follow https://github.com/ezzz/HFRnow/blob/dev-swift/docs/agents/EXTERNAL-AGENTS.md. My contributor id is ext/<yourname>-<model>-<n>.
+```
 
 ### Starting an agent
 
@@ -171,7 +194,8 @@ Paste this at the start of the session (Claude also loads [CLAUDE.md](CLAUDE.md)
 Read AGENTS.md and follow it. Repository ezzz/HFRnow: create a task branch from dev-swift,
 never work on dev-swift itself, never touch master. Work only on issue #<N> (<LOT-XXX>), claimed first with /claim.
 Write the spec and the tests before the code.
-Stop and ask me when an HFR behaviour is not documented. Do not merge: open a PR that meets CONTRIBUTING.md §2.
+Stop and ask me when an HFR behaviour is not documented. Merge only under AGENTS.md §8 (merge policy): a PR that meets
+CONTRIBUTING.md §2 and has an adversarial APPROVE on its head; risky flows are left to the core.
 ```
 
 Found a security issue? Follow [SECURITY.md](SECURITY.md), never a public issue.

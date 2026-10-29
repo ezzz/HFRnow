@@ -40,6 +40,19 @@ Decisions:
 4. **Naming**: Swift names say "blocklist" (`hideBlocklistedPosts`), the key stays `blacklist_hide_pseudo`.
 5. **Not ported on purpose**: the mirroring of `size_text`, `size_text_topics`, `size_text_reply` on every change (legacy compatibility only); the forced `shake_to_refresh = NO`, `theme_noel_disabled = YES`; the `version` registration; the seed-only keys with no reader (`default_tab`, `adv_ssl`, `mpstorage_reset`, `EmptyCacheButton`, `theme_*_adjust`, `theme_*_tintcolor`, `offline_max_pages`).
 
+## Catalogue additions after the audit (ADR 0013, 2026-10-28)
+
+Four preferences were added to the legacy app on `origin/master` after the audit's `2440d79` and are missing from E §3.1. They belong to the catalogue with the legacy key names; two are added by LOT-119 and the other two by the next lot that touches `SettingKey` (LOT-172 at the latest):
+
+| Key | Type / values | Default | Legacy (`origin/master` @ `21173e7`) | Store ([ADR 0013](../adr/0013-storage-tiers.md) scope) |
+|---|---|---|---|---|
+| `HFRswiftStartupScreen` | String `tab:categories` / `tab:favorites` / `tab:messages` | `tab:favorites` | `Common.swift:32-37`, `AppSettingsView.swift:88` | synced (LOT-119) |
+| `open_links_in_default_browser` | Bool | false | `Common.swift:239-240`, `AppSettingsView.swift:95` | synced (LOT-119) |
+| `topic_page_swipe_navigation` | Bool | true | `Common.swift:235-236`, `AppSettingsView.swift:94` | synced |
+| `reply_button_behavior` | String `quick` / `forum` / `hidden` | `quick` | `Common.swift:243-248`, `AppSettingsView.swift:106` | synced |
+
+Every key of the catalogue gets a `scope` (`.synced` or `.device`) from the ADR 0013 matrix (LOT-172); the legacy key names stay the `UserDefaults` names on both scopes. `embedded_videos` (`SettingKey.embeddedVideos`) has no reader nor writer on `master` since `d645f52`: the ADR 0013 matrix drops it, so its scope is `.device` and it joins the "not ported" list above when a lot next touches `SettingKey`.
+
 ## Edge cases
 - `UserDefaults` booleans and integers are both `NSNumber`: the store tells them apart with `objCType` (`c`/`B` boolean), then every reader is tolerant anyway.
 - `Int` conversion of non-finite or huge doubles returns nil (no trap), so the default applies.
