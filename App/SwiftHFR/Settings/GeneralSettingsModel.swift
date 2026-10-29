@@ -40,7 +40,7 @@ final class GeneralSettingsModel {
         }
     }
     /// Minimise the tab bar while scrolling (`tabbar_minimize_on_scroll`, default on). Stored only.
-    /// Follow-up (not applied yet): applied by the lot that restores the bottom tab bar (Catégories / Favoris / Messages / Plus).
+    /// Follow-up (not applied yet): applied by LOT-170 (#296), which restores the bottom tab bar (Catégories / Favoris / Messages / Plus).
     var minimizesTabBarOnScroll: Bool {
         didSet {
             if minimizesTabBarOnScroll != oldValue { store.set(minimizesTabBarOnScroll, for: SettingKey.tabBarMinimizesOnScroll) }

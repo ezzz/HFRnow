@@ -52,9 +52,9 @@ struct SettingsView: View {
                     .accessibilityLabel("Taille du texte")
                     .accessibilityValue("\(general.textSizePercent) %")
                 }
-                Toggle("Densité compacte", isOn: $general.compactMode)
+                Toggle("Mode compact", isOn: $general.compactMode)
                 Toggle("Réduire la tab bar au scroll", isOn: $general.minimizesTabBarOnScroll)
-                Toggle("Rotation de l’écran", isOn: $general.allowsRotation)
+                Toggle("Rotation d’écran", isOn: $general.allowsRotation)
                 Toggle(isOn: $general.opensLinksInDefaultBrowser) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Navigateur par défaut")
@@ -63,10 +63,11 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                NavigationLink(value: SettingsDestination.icon) { Text(SettingsDestination.icon.title) }
             }
-            Section("Apparence") {
-                ForEach([SettingsDestination.theme, .icon], id: \.self) { destination in
-                    NavigationLink(value: destination) { Label(destination.title, systemImage: destination.symbol) }
+            Section("Thème") {
+                NavigationLink(value: SettingsDestination.theme) {
+                    Label(SettingsDestination.theme.title, systemImage: SettingsDestination.theme.symbol)
                 }
             }
         }
