@@ -166,6 +166,14 @@ Facts confirmed by a committed capture **and** asserted by a test of the parser 
 - **Header**: `form#fastsearch` holds a hidden `cat` (`13`, `12`, `10`, `prive`) on every list page, logged in or not; the tabs `div.cadreonglet` `#onglet1`-`#onglet4` and `#onglet9` (search, with `cat=`) appear on logged-in forum lists only, not on anonymous lists nor the MP list (`R04`, `R08-2`, `R13a`). Logged-in forum lists have `table.none` with 3 cells, the middle one "Vous avez N nouveau message privé" or just "Messages privés" (`P03f`, `R08-2`).
 - **Search rows** (`R50b`): `sujetCase3` holds the title link, then a `forum2.php?…&numreponse=<n>` link around `span.s1` (the matching message, ending "[...] ").
 
+### LOT-167 — list pager exactness
+
+[LOT-167](lots/LOT-167-page-navigation-exactness.md), tests `TopicListParserTests` (`windowedPagerIsLowerBound`, `shortPagerIsExact`, `exactnessRule`, `rowCountBeatsThePagerWindow`) and `PrivateMessageListParserTests`.
+
+- **Window**: from page 1 the pager lists pages 1-10 one by one, then tens (`R04`: `1 … 10 20 30 …`, last `500`); around page 12 it lists `1 10 11 … 20 …` and around 500 `1 100 500 501 …` (`R05a`, `R05b`, last `700`): the last link is a lower bound, while a topic row's `sujetCase4` count is exact (`R04` row 1: 84, row 8: 35634 against a last link of 500).
+- **Short pagers** (`R08-2`: `1`, `R50b`: `1 2`, `R13u1`: `1`-`7`): consecutive from 1, below 10. Treated as the page count; inferred from the window shape, not independently confirmed (spec, pending capture).
+- **No pager**: the empty MP list has a list body without `fondForum1PagesHaut` (`R13c`): one page, exact when the URL names page 1 (a URL naming a later page leaves it a lower bound). The `.hop` message pages (`R08-1`, `R08-3`) are not lists and keep the default.
+
 ### LOT-024 — favourites page
 
 [LOT-024](lots/LOT-024-favourites-parser.md), tests `FavoritesDifferentialTests` and `FavoritesParserTests`.
@@ -342,7 +350,7 @@ the upload, answer, `Referer` and thumbnail facts below: they are the **legacy c
 
 ### LOT-051 — flags and favourites
 
-[LOT-051](lots/LOT-051-flag-writes.md), tests `FlagLinkWriteTests`, `FlagLinkValidationTests` and `FavoriteListAndReadTests`.
+[LOT-051](lots/LOT-051-flag-writes.md), tests `FlagLinkWriteTests`, `FlagLinkValidationTests`, `FavoriteListAndReadTests` and `FlagSessionGateTests`.
 
 - **Flag links** (`R21`, `P03a`, `P03d`, **verified**): every message of a logged-in topic page carries `/user/addflag.php?config=hfr.inc&cat=<cat>&post=<post>&numreponse=<n>&page=<p>&ref=<rank>&p=1&sondage=0&owntopic=0&subcat=<sub>` (40 on `R21`, the first one is `P03a`'s request); the page has one `/user/delflag.php?config=hfr.inc&cat=<cat>&subcat=<sub>&post=<post>&page=<p>&p=1&sondage=0&owntopic=<n>&new=0` (`owntopic=0` on `R21`, `1` on `R33b`). No token in either link.
 - **Flag answers** (`P03a`, `P03b`, `P03d`, **verified**): 200 in place, no redirect, no cookie set; a link-less `.hop` "Favori positionné avec succès" (again on a second `addflag`: idempotent) or "Drapeau effacé avec succès", and a 1 s refresh (sub-forum list after `addflag`, `forum1.php…&owntopic=3` of the category after `delflag`).

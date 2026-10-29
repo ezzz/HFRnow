@@ -7,15 +7,16 @@ public enum TopicFlagAction: String, Sendable, Hashable, CaseIterable {
     /// Removes a favourite from the favourites list: POST of the list's `message_forum_delflags` action to `manageaction.php`.
     case removeFavoriteFromList
 
-    /// HFR's confirmation for this write, compared with the whole `.hop` sentence; nil while no answer is captured.
+    /// HFR's confirmations of this write, each compared with the whole `.hop` sentence.
     ///
-    /// A `manageaction.php` answer was never captured (spec "Pending capture"): until it is, that write is reported
-    /// `unconfirmed(.confirmationNotCaptured)` even when HFR says "avec succès", never as a success.
-    var confirmation: String? {
+    /// The list removal has two: the sentence depends on the body, and the captures do not show whether `owntopic` or
+    /// the end marker selects it ("Drapeaux effacés" for legacy's body, `P03j`; "Favoris supprimés" for the browser's,
+    /// `P03h`, `P03l`). Both removed the topic, and neither confirms another write.
+    var confirmations: Set<String> {
         switch self {
-        case .addFavorite: "Favori positionné avec succès"
-        case .removeFlag: "Drapeau effacé avec succès"
-        case .removeFavoriteFromList: nil
+        case .addFavorite: ["Favori positionné avec succès"]
+        case .removeFlag: ["Drapeau effacé avec succès"]
+        case .removeFavoriteFromList: ["Drapeaux effacés avec succès", "Favoris supprimés avec succès"]
         }
     }
 

@@ -16,7 +16,7 @@ App (SwiftUI, iOS 27)                 composition root, navigation, views, view 
         ├── HFRModels                  value types (Forum, Topic, Message, …). No dependencies.
         ├── HFRParsing   → HFRModels   HTML → models. Pure functions. SwiftSoup inside only.
         ├── HFRNetwork   → HFRModels   URLSession client, cookies, session, accounts, typed endpoints
-        ├── HFRStorage   → HFRModels   drafts, blacklist/whitelist, local favorites, caches
+        ├── HFRStorage   → HFRModels   settings, drafts, blacklist/whitelist, local favorites, caches, iCloud KVS mirror (ADR 0013)
         └── HFRClient    → HFRModels, HFRParsing, HFRNetwork
                                        multi-step flows: login, posting, search, MPStorage… (ADR 0008)
 ```
@@ -37,6 +37,7 @@ The engine is tested on Linux CI, so Apple-only APIs are isolated:
 - Cookies cross module boundaries only as the Codable value type `StoredCookie` (HFRModels), never as `HTTPCookie`.
 - Keychain (`Security`) is used only behind a protocol, with the Keychain implementation under `#if canImport(Security)` and in-memory/file implementations for Linux tests.
 - `XMLParser` (RSS) comes from `FoundationXML` on Linux.
+- `NSUbiquitousKeyValueStore` (iCloud key-value store, [ADR 0013](adr/0013-storage-tiers.md)) is not in swift-corelibs-foundation: it is used only behind the `SyncedKeyValueStore` protocol in `HFRStorage`, with the Apple implementation under `#if canImport(Darwin)` and an in-memory implementation for Linux tests. Secrets never go through it.
 
 ## Abstractions
 
