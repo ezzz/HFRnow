@@ -7,7 +7,7 @@ They coordinate **only through shared, visible state**. Scratchpads, agent memor
 
 | Where | Role |
 |---|---|
-| [Issues of ezzz/HFRnow](https://github.com/ezzz/HFRnow/issues) | **The tracker** (enabled 2026-10-27, [ADR 0010](../adr/0010-hosting-on-ezzz-hfrnow-dev-swift.md)): one issue per lot, capture, bug, chore or feature, with its claim, status labels and blockers. The MVP roadmap is [#166](https://github.com/ezzz/HFRnow/issues/166) |
+| [Issues of ezzz/HFRnow](https://github.com/ezzz/HFRnow/issues) | **The tracker** (enabled 2026-10-27, [ADR 0010](../adr/0010-hosting-on-ezzz-hfrnow-dev-swift.md)): one issue per lot, capture, bug, chore or feature, with its claim, status labels and blockers. The milestone boards are [#166](https://github.com/ezzz/HFRnow/issues/166) (M1, MVP) and [#324](https://github.com/ezzz/HFRnow/issues/324) (M2–M4): each lot shows as todo, ongoing or done ([ROADMAP](../ROADMAP.md#milestones)) |
 | [`docs/LOTS.md`](../LOTS.md) on `dev-swift` | **The plan**: every lot's scope, module, dependencies and routing, linked to its issue. Never edited for progress |
 | GitHub PRs | Work in review and progress; the PR thread is the record of what was done and why |
 | Issues of `francoisgn/ios-app_SwiftHFR` | **Frozen history** (lot discussions up to 2026-10-27), linked from each lot issue for context. Never claim, comment on or close them |
@@ -32,6 +32,11 @@ Issues are enabled on ezzz/HFRnow since 2026-10-27, but `issue-claims.yml`, `pr-
 - `/claim` and `/release` are not synced: the orchestrator (or the maintainer) sets and removes `status: claimed` by hand, and answers a refused claim.
 - **Issue and claim** does not run and is not in the `dev-swift` ruleset: reviewers check `Closes #N` (or `Refs #N` with what is left) + `Claim:` by eye. A PR with no issue reference and no `Direct-PR:` reason (Dependabot excepted) is still merged, but flagged to the orchestrator as a tracking blind spot: find or open the issue, link and close it, and find how the work started without one (AGENTS.md §8).
 - Merges into `dev-swift` do not close issues: whoever merges closes the `Closes #N` issue (not a `Refs #N` one) right after the merge with the comment `Done in #PR (merged as <sha>)` and checks that it is closed (AGENTS.md §8); the PR author keeps that closure as a to-do until it is verified. The orchestrator uses a helper that does exactly this.
+- Nothing moves a lot from `status: blocked` to `status: ready` when its dependencies close. A lot issue's label and its `### Blocked by` section are what was true when the issue was written: 23 lots stayed `blocked` after their last dependency merged (fixed on 2026-10-29). So after closing a lot, **whoever merges unblocks its dependents** in the same work unit:
+  1. List the open lots whose `Depends on` cell in `LOTS.md` names the closed lot and whose other dependencies are all closed.
+  2. For each one, check that nothing else blocks it: a pending capture (its issue, the dependency specs, open `host: mac` capture issues naming it), an ADR to write first, or a recorded operator decision.
+  3. If nothing blocks it, swap the label to `status: ready` and rewrite its `### Blocked by` section to `none`, with a comment `Unblocked by #PR`. An engine lot open to outside contributors also gets `external: ready` ([EXTERNAL-AGENTS](EXTERNAL-AGENTS.md)). If something still blocks it, name the real blocker in `### Blocked by` instead.
+  4. Update the lot's line on its milestone board (#166 or #324). A PR delivered by an outside contributor also gets a line in the final Fable audit list ([#326](https://github.com/ezzz/HFRnow/issues/326)).
 - No issue forms: open a blank issue titled `[SwiftHFR] …`, starting with `### Summary`, one label per axis (AGENTS.md §7).
 
 ## Pushing shared state
