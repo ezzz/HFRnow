@@ -27,6 +27,9 @@ struct ForumListView: View {
             ToolbarItem(placement: .primaryAction) {
                 AccountMenuButton()
             }
+            ToolbarItem(placement: .secondaryAction) {
+                SettingsButton()
+            }
         }
         .overlay { overlay(loader) }
         .safeAreaInset(edge: .top) {
