@@ -69,6 +69,19 @@ struct TopicPageFlagTests {
         }
     }
 
+    @Test("Only a table row carries the bar: another element with the bar's class before it is not the bar")
+    func barIsATableRow() throws {
+        var html = try Fixture.capture("R21-topic-p1-logged-in")
+        let decoy = #"<div class="fondForum2Fonctions"><a href="/user/delflag.php?config=hfr.inc&amp;cat=13&amp;post=1&amp;owntopic=0">"#
+            + #"<img src="/images/defaut/flagn1.gif"></a></div>"#
+        let body = try #require(html.firstRange(of: "<body"))
+        let open = try #require(html[body.lowerBound...].firstIndex(of: ">"))
+        html.insert(contentsOf: decoy, at: html.index(after: open))
+        let found = try #require(try flag(html: html))
+        #expect(found.flag == .red)
+        #expect(!found.removalURL.absoluteString.contains("post=1&"))
+    }
+
     @Test("A bar link off the forum origin or to another path is refused", arguments: [
         "https://evil.example/user/delflag.php?", "http://forum.hardware.fr:80/user/delflag.php?",
         "https://forum.hardware.fr:8443/user/delflag.php?", "https://user@forum.hardware.fr/user/delflag.php?",

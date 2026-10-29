@@ -90,7 +90,7 @@ public enum TopicPageMetadataParser {
     /// The session follows this link: `https` on the forum host, port 443, no user info, path exactly
     /// `/user/delflag.php`, as LOT-051's `FlagLink` requires (LESSONS 37, 43).
     private static func flag(in body: Element) -> TopicPageFlag? {
-        guard let bar = body.firstDescendant(matching: .classToken("fondForum2Fonctions")) else { return nil }
+        guard let bar = body.firstDescendant(tag: "tr", matching: .classToken("fondForum2Fonctions")) else { return nil }
         for link in (try? bar.getElementsByTag("a").array()) ?? [] {
             guard
                 link.hasAttr("href"),
