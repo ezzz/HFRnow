@@ -1,0 +1,31 @@
+{
+  "id": "P03h",
+  "account": "user2",
+  "method": "POST",
+  "url_template": "/modo/manageaction.php?config=hfr.inc&cat=0&type_page=forum1f&moderation=0",
+  "url": "https://forum.hardware.fr/modo/manageaction.php?config=hfr.inc&cat=0&type_page=forum1f&moderation=0",
+  "final_url": "https://forum.hardware.fr/modo/manageaction.php?config=hfr.inc&cat=0&type_page=forum1f&moderation=0",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Wed, 28 Oct 2026 14:14:17 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "request_fields": [
+    "hash_check",
+    "topic0",
+    "valuecat0",
+    "valueforum0",
+    "valuecat1",
+    "valueforum1",
+    "hash_check",
+    "topic2",
+    "topic_statusno2",
+    "action_reaction",
+    "owntopic",
+    "type_page"
+  ],
+  "note": "browser-shaped body of form1 of P03g (two rows), first row checked",
+  "request_body": "hash_check=REDACTED&topic0=28563&valuecat0=13&valueforum0=hardwarefr&valuecat1=13&valueforum1=hardwarefr&hash_check=REDACTED&topic2=-1&topic_statusno2=-1&action_reaction=message_forum_delflags&owntopic=3&type_page=forum1f",
+  "file": "P03h-manageaction-delflags-browser-one-of-two.html",
+  "private": false
+}

@@ -72,7 +72,7 @@ struct MessageQuoteOracleTests {
                 #expect(quotes.count == tableOpens, "\(caseID) \(block.numreponse): quote count")
             }
         }
-        #expect(total == 135, "126 citations + 9 anonymous quotes on the corpus (LOT-034 facts)")
+        #expect(total == 150, "126 citations + 9 anonymous quotes on the corpus (LOT-034 facts), plus R21's 15 again in P03m")
     }
 
     @Test("The one nested quote of the corpus: an anonymous quote inside a citation (R28, R32a, R32b message 27)")

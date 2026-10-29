@@ -123,6 +123,17 @@
     {"raw": "W35", "id": "W35", "slug": "public-first-post-restore-success", "ext": "html", "private": false},
     {"raw": "R63e", "id": "R63e", "slug": "public-own-topic-after-restore", "ext": "html", "private": false},
     {"raw": "R60a", "id": "R60a", "slug": "mpstorage-thread-first-post", "ext": "html", "private": true},
-    {"raw": "R60b", "id": "R60b", "slug": "mpstorage-edit-form-first-post", "ext": "html", "private": true}
+    {"raw": "R60b", "id": "R60b", "slug": "mpstorage-edit-form-first-post", "ext": "html", "private": true},
+    {"raw": "F03", "id": "P03g", "slug": "favourites-two-rows", "ext": "html", "private": false},
+    {"raw": "F04", "id": "P03h", "slug": "manageaction-delflags-browser-one-of-two", "ext": "html", "private": false},
+    {"raw": "F05", "id": "P03i", "slug": "favourites-after-browser-delflags", "ext": "html", "private": false},
+    {"raw": "F06", "id": "P03j", "slug": "manageaction-delflags-legacy-body", "ext": "html", "private": false},
+    {"raw": "F11", "id": "P03k", "slug": "favourites-three-rows", "ext": "html", "private": false},
+    {"raw": "F12", "id": "P03l", "slug": "manageaction-delflags-browser-three-rows", "ext": "html", "private": false},
+    {"raw": "F15", "id": "P03m", "slug": "topic-p1-logged-in-favourite", "ext": "html", "private": false},
+    {"raw": "F16", "id": "P03n", "slug": "delflag-owntopic0-success", "ext": "html", "private": false},
+    {"raw": "F17", "id": "P03o", "slug": "delflag-again", "ext": "html", "private": false},
+    {"raw": "F19", "id": "P03p", "slug": "delflag-owntopic1-success", "ext": "html", "private": false},
+    {"raw": "F20", "id": "P03q", "slug": "addflag-logged-out", "ext": "html", "private": false}
   ]
 }

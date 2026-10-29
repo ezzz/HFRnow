@@ -9,7 +9,7 @@ import Testing
 struct MessageBlockOracleTests {
     /// Every case of `Fixtures/LOT-003/oracle-map.json`; `coversEveryOracle` fails when the map gains one.
     static let cases = [
-        "R20", "R21", "R22a", "R22b", "R23", "R24", "R26", "R27", "R27b", "R28", "R31", "R32a", "R32b",
+        "P03m", "R20", "R21", "R22a", "R22b", "R23", "R24", "R26", "R27", "R27b", "R28", "R31", "R32a", "R32b",
         "RA1", "RA2", "RA3", "RA4", "RA5", "RU1", "RU2"
     ]
 

@@ -34,7 +34,13 @@ Run 5 (2026-10-27, LOT-038 inputs, 4 requests: user1 login, MP list page 1 to lo
 on HFR, nothing submitted) opened user1's MPStorage thread, which marked it read for that account (its own storage
 thread). Its first post is the storage JSON document: `--private` keeps that one body (thread header and page title
 name the MPStorage thread, and the document holds only known keys and the strings `0.1` and `iOS`; anything else stops
-the anonymizer), every other body is replaced as usual. Public profile pages
+the anonymizer), every other body is replaced as usual.
+Run 6 (2026-10-28, LOT-051 inputs, ezzz/HFRnow#304 and #305, approved by the operator that day, 37 requests) used user2
+only. It made 13 flag writes, at least 65 s apart: 7 `addflag`, 3 `manageaction.php` delflags and 3 `delflag`. Its
+favourites were three public cat 13 topics that it had no flag on. It also sent one `addflag` GET without cookies. Before
+the first write and after the last one, `forum1f.php?owntopic=0..3` was read (not published). Both reads show the same
+topics with the same flag kinds and positions, so the state was restored. The topics read along the way lost their read
+flag with their favourite. Public profile pages
 (R56) keep their structure; the pseudo (title, header, pseudo cell, avatar `alt`, personal smileys, MP and
 "all posts" links) is aliased, every personal row (e-mail, birth date, gender, city, job, hobbies, quote, signature)
 gets `Profile field removed.` or, for dates, `01/01/2000`; post count → `100`, arrival and last-post dates →
@@ -123,6 +129,17 @@ gets `Profile field removed.` or, for dates, `01/01/2000`; post count → `100`,
 | P03d | `P03d-delflag-favourite-success.html` | `delflag.php?…&owntopic=3`: "Drapeau effacé avec succès" | P03 | 051 |
 | P03e | `P03e-favourites-after-delflag-empty.html` | Favourites empty again (state restored) | P03 | 024 |
 | P03f | `P03f-list-owntopic2-after-delflag.html` | Read list after delflag: the topic's read flag is gone too | P03 | 024, 051 |
+| P03g | `P03g-favourites-two-rows.html` | `forum1f.php?owntopic=3` with two favourites: `form1` with marker index 2 (Run 6) | P03 | 024, 051 |
+| P03h | `P03h-manageaction-delflags-browser-one-of-two.html` | Browser body of `P03g`'s `form1`, first row checked (meta `request_body`): "Favoris supprimés avec succès", refresh `/forum1f.php?config=hfr.inc&owntopic=3&new=0&nojs=0` | P03 | 051, 037 |
+| P03i | `P03i-favourites-after-browser-delflags.html` | The list after `P03h`: only the unchecked row is left | P03 | 024, 051 |
+| P03j | `P03j-manageaction-delflags-legacy-body.html` | Legacy body (no `owntopic`, marker index 1, one topic): "Drapeaux effacés avec succès", refresh `/` | P03 | 051, 037 |
+| P03k | `P03k-favourites-three-rows.html` | Three favourites: `form1` with marker index 3 | P03 | 024, 051 |
+| P03l | `P03l-manageaction-delflags-browser-three-rows.html` | Browser body, all three rows checked: same answer as `P03h` | P03 | 051, 037 |
+| P03m | `P03m-topic-p1-logged-in-favourite.html` | `R21`'s topic page 1, logged in (user2), topic in the favourites: header `delflag` link with `favorisn.gif` | P03 | 030, 033, 051 |
+| P03n | `P03n-delflag-owntopic0-success.html` | `delflag.php` with `owntopic=0` (the `P03m` link): "Drapeau effacé avec succès", refresh to the sub-forum list | P03 | 051, 037 |
+| P03o | `P03o-delflag-again.html` | Same request again, no flag left: the same bytes as `P03n` | P03 | 051, 037 |
+| P03p | `P03p-delflag-owntopic1-success.html` | `delflag.php` with `owntopic=1`: same sentence, refresh to the sub-forum list with `owntopic=1` | P03 | 051, 037 |
+| P03q | `P03q-addflag-logged-out.html` | `addflag.php` GET without cookies: the same bytes as the logged-in success `P03a` | P03 | 051, 037 |
 | R50a | `R50a-search-post-waiting-page.html` | Global search POST: "Votre recherche est en cours…", refresh to `GET /forum1.php?recherches=1&…&config=hfr.inc` | R50 | 005, 025, 046 |
 | R50b | `R50b-search-results-no-cookie.html` | That GET without cookies: 50 rows, `post_cat_list` | R50, R51 | 005, 022, 046 |
 | R50c | `R50c-search-no-result-no-cookie.html` | No result: `.hop` "Désolé, aucune réponse n'a été trouvée !" | R50 | 005, 046 |

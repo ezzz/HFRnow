@@ -1,0 +1,16 @@
+{
+  "id": "P03q",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/user/addflag.php?config=hfr.inc&cat=13&post=28563&numreponse=2666649&page=1&ref=1&p=1&sondage=0&owntopic=0&subcat=433",
+  "url": "https://forum.hardware.fr/user/addflag.php?config=hfr.inc&cat=13&post=28563&numreponse=2666649&page=1&ref=1&p=1&sondage=0&owntopic=0&subcat=433",
+  "final_url": "https://forum.hardware.fr/user/addflag.php?config=hfr.inc&cat=13&post=28563&numreponse=2666649&page=1&ref=1&p=1&sondage=0&owntopic=0&subcat=433",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Wed, 28 Oct 2026 14:26:22 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "addflag link of a logged-in topic page, sent without any cookie",
+  "file": "P03q-addflag-logged-out.html",
+  "private": false
+}
