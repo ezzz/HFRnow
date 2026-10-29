@@ -185,7 +185,7 @@ struct TopicListParserTests {
         #expect(page.topics.isEmpty)
         #expect(page.notice == nil)
         #expect(page.categoryID == .privateMessages)
-        #expect(page.navigation == PageNavigation())
+        #expect(page.navigation == PageNavigation(isExact: true))
     }
 
     @Test("A page that is neither a list nor an HFR message is malformed")
