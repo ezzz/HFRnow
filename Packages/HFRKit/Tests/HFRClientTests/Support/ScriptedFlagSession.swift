@@ -55,6 +55,9 @@ enum FlagCapture {
     /// Capture id → file name, for the pages the flag tests serve.
     static let files: [String: String] = [
         "P03a": "P03a-addflag-success", "P03b": "P03b-addflag-again", "P03d": "P03d-delflag-favourite-success",
+        "P03h": "P03h-manageaction-delflags-browser-one-of-two", "P03j": "P03j-manageaction-delflags-legacy-body",
+        "P03l": "P03l-manageaction-delflags-browser-three-rows", "P03n": "P03n-delflag-owntopic0-success",
+        "P03o": "P03o-delflag-again", "P03p": "P03p-delflag-owntopic1-success", "P03q": "P03q-addflag-logged-out",
         "W18": "W18-mp-mark-unread-success", "W15": "W15-mp-edit-success", "W17b": "W17b-mp-reply-bad-token-rejected",
         "W17c": "W17c-mp-reply-logged-out-rejected", "W20a": "W20a-mp-reply-flood", "W01": "W01-login-failure",
         "R12": "R12-favourites-anon", "R20": "R20-topic-p1-anon", "R21": "R21-topic-p1-logged-in"

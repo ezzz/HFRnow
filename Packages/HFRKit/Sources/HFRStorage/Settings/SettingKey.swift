@@ -29,6 +29,25 @@ public enum SettingKey {
     public static let tabBarMinimizesOnScroll = Setting.bool("tabbar_minimize_on_scroll", default: true)
     /// `text_size_scale`: replaces the three legacy size keys (see `LegacySettingsNormalizer`).
     public static let textSizeScale = Setting.integerEnum("text_size_scale", default: TextSizeScale.percent100)
+    /// `text_size_percent` (LOT-119, operator decision 2026-10-28): in-app text size in percent, an offset on top of Dynamic
+    /// Type. Goes below 100 for a denser display; stored values are clamped to `textSizePercentRange`. Absent, a legacy
+    /// `text_size_scale` is the starting point (`textSizePercent(from:)`).
+    public static let textSizePercent = Setting(
+        key: "text_size_percent",
+        defaultValue: 100,
+        decode: { SettingCoercion.int($0).map { min(max($0, textSizePercentRange.lowerBound), textSizePercentRange.upperBound) } },
+        encode: { .int($0) }
+    )
+    /// Bounds of `textSizePercent`, in steps of `textSizePercentStep`.
+    public static let textSizePercentRange = 70...130
+    /// Slider step of `textSizePercent`.
+    public static let textSizePercentStep = 5
+    /// The text size to show: `text_size_percent` when stored, else the legacy `text_size_scale`, else 100.
+    public static func textSizePercent(from store: any SettingsStore) -> Int {
+        store.rawValue(forKey: textSizePercent.key) == nil
+            ? store.value(for: textSizeScale).rawValue
+            : store.value(for: textSizePercent)
+    }
     /// `haptics`: tolerant of numbers and strings (`AppHaptics.isEnabled`).
     public static let haptics = Setting.bool("haptics", default: true)
     /// `landscape_mode`: any stored string other than `none` allows rotation, like the legacy `rawValue != "none"` test.
@@ -41,6 +60,12 @@ public enum SettingKey {
     public static let appIconName = Setting.string("icon", default: "superblue")
     /// `mp_badge_enabled`.
     public static let privateMessageBadge = Setting.bool("mp_badge_enabled", default: true)
+    /// `HFRswiftStartupScreen` (`Common.swift:32-37`): an unknown value falls back to the favourites default, like
+    /// `AppStartupScreen.rootTab(for:)`. Added by LOT-119, which owns the settings screen.
+    public static let startupScreen = Setting.stringEnum("HFRswiftStartupScreen", default: StartupScreen.favorites)
+    /// `open_links_in_default_browser` (`Common.swift:239-241`): follow external links in the system browser instead of
+    /// the in-app one. Added by LOT-119.
+    public static let opensLinksInDefaultBrowser = Setting.bool("open_links_in_default_browser", default: false)
 
     // MARK: Theme
 
@@ -136,9 +161,9 @@ public enum SettingKey {
     /// Every key of the catalogue, for tests and diagnostics.
     public static let allKeys: [String] = [
         favoritesSource.key, favoritesGroupedByCategory.key, favoritesAutoRefresh.key, compactMode.key,
-        tabBarMinimizesOnScroll.key, textSizeScale.key, haptics.key, landscapeMode.key, appIconName.key,
-        privateMessageBadge.key, autoTheme.key, manualTheme.key, themeStyle.key, dayActionColor.key,
-        nightActionColor.key, dayLoveColor.key, nightLoveColor.key, daySuperFavoriteColor.key,
+        tabBarMinimizesOnScroll.key, textSizeScale.key, textSizePercent.key, haptics.key, landscapeMode.key, appIconName.key,
+        privateMessageBadge.key, startupScreen.key, opensLinksInDefaultBrowser.key, autoTheme.key, manualTheme.key,
+        themeStyle.key, dayActionColor.key, nightActionColor.key, dayLoveColor.key, nightLoveColor.key, daySuperFavoriteColor.key,
         nightSuperFavoriteColor.key, nightBrightness.key, hideBlocklistedPosts.key, quoteFilterExceptions.key,
         quoteFilterMinimumCount.key, doubleSizeSmileys.key, embeddedVideos.key, displaySignatures.key,
         displayImages.key, mpStorageActive.key, mpStorageLastSync.key, searchCategory.key, rehostLinkMode.key,
