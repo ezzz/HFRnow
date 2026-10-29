@@ -1,0 +1,21 @@
+{
+  "id": "P03g",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/forum1f.php?owntopic=3",
+  "url": "https://forum.hardware.fr/forum1f.php?owntopic=3",
+  "final_url": "https://forum.hardware.fr/forum1f.php?owntopic=3",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Wed, 28 Oct 2026 14:13:13 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "favourites list owntopic=3 with two favourites: form1 of P03h",
+  "file": "P03g-favourites-two-rows.html",
+  "private": false
+}

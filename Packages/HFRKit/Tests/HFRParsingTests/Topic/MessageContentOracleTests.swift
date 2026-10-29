@@ -69,13 +69,14 @@ struct MessageContentOracleTests {
                 unresolvable += try LegacyContent(html: #require(expected.html)).unresolvableLinks
             }
         }
-        #expect(signatures == 125)
-        #expect(withCustomSmileys == 103)
-        #expect(withImages == 36)
-        #expect(links == 484)
-        // The `http://G3Ferrari / Optima` link of R20 and R21 message 0 (HFR-PROTOCOL §6c LOT-034): the only legacy link
-        // whose href is not a URL. A regression rejecting a class of real links would raise this count (LESSONS 51).
-        #expect(unresolvable == 2)
+        // P03m is R21's page again (same 40 posts, flag added): it adds exactly R21's share (9, 9, 5, 154, 1).
+        #expect(signatures == 134)
+        #expect(withCustomSmileys == 112)
+        #expect(withImages == 41)
+        #expect(links == 638)
+        // The `http://G3Ferrari / Optima` link of R20, R21 and P03m message 0 (HFR-PROTOCOL §6c LOT-034): the only legacy
+        // link whose href is not a URL. A regression rejecting a class of real links would raise this count (LESSONS 51).
+        #expect(unresolvable == 3)
     }
 
     // MARK: - Keys compared on both sides
