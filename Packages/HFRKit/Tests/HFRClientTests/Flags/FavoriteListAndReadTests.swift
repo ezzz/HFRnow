@@ -83,11 +83,29 @@ struct FavoriteListAndReadTests {
         #expect(await session.requests.isEmpty)
     }
 
-    @Test("Until its answer is captured, an \"avec succès\" page is not reported as the removal's success")
-    func successShapeIsNotCaptured() async throws {
-        // P03d is a delflag answer, served here only to exercise the rule: no manageaction answer is captured.
+    @Test(
+        "Both captured manageaction answers confirm the removal (P03j legacy body, P03h and P03l browser body)",
+        arguments: [
+            ("P03j", "Drapeaux effacés avec succès", "https://forum.hardware.fr/"),
+            ("P03h", "Favoris supprimés avec succès", "https://forum.hardware.fr/forum1f.php?config=hfr.inc&owntopic=3&new=0&nojs=0"),
+            ("P03l", "Favoris supprimés avec succès", "https://forum.hardware.fr/forum1f.php?config=hfr.inc&owntopic=3&new=0&nojs=0")
+        ]
+    )
+    func removalConfirmed(answer: String, sentence: String, refresh: String) async throws {
+        // P03h and P03l answered the browser's body; the flow sends legacy's, whose captured answer is P03j. The
+        // captures do not show which part of the body selects the sentence, so either one confirms this write.
+        let session = ScriptedFlagSession([try FlagCapture.page(answer)], hashCheck: Self.token)
+        let result = try await TopicFlagFlow().removeFavoriteFromList(Self.cuisine, through: session)
+        #expect(result.action == .removeFavoriteFromList)
+        #expect(result.topic == Self.cuisine)
+        #expect(result.message == sentence)
+        #expect(result.refreshURL.absoluteString == refresh)
+    }
+
+    @Test("A delflag answer is not the list removal's confirmation")
+    func flagRemovalIsNotListRemoval() async throws {
         let session = ScriptedFlagSession([try FlagCapture.page("P03d")], hashCheck: Self.token)
-        await #expect(throws: TopicFlagError.unconfirmed(.confirmationNotCaptured(message: "Drapeau effacé avec succès"))) {
+        await #expect(throws: TopicFlagError.unconfirmed(.unexpectedConfirmation(message: "Drapeau effacé avec succès"))) {
             try await TopicFlagFlow().removeFavoriteFromList(Self.cuisine, through: session)
         }
     }
