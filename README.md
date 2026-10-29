@@ -83,6 +83,21 @@ SwiftHFR keeps the spirit and restarts on a clean foundation: **100 % Swift, mod
 
 Details and exit criteria: [roadmap](docs/ROADMAP.md).
 
+### Milestones
+
+<p align="center">
+  <img src="docs/assets/roadmap-milestones.svg" alt="SwiftHFR milestones: M1 MVP, then M2 read and reply complete on the Mac lane and M3 engine complete on the cloud lane, both leading to M4 final version; below, the life of a lot from todo (ready, blocked, triage) through ongoing (claimed, draft PR, review wanted, changes requested, approved) to done (merged, issue closed, docs up to date)" width="100%">
+</p>
+
+| Milestone | Live board | Lots done (2026-10-29) |
+|---|---|---|
+| 🚀 M1 · MVP: log in, browse, read, reply, first TestFlight build | [#166](https://github.com/ezzz/HFRnow/issues/166) | 36 of 41 |
+| 📖 M2 · Read & reply complete: every reading and answering feature, topics and MPs, offline reading included | [#324](https://github.com/ezzz/HFRnow/issues/324) | 0 of 38 |
+| ⚙️ M3 · Engine complete: every `HFRKit` lot, parity gates green | [#324](https://github.com/ezzz/HFRnow/issues/324) | 15 of 43 |
+| 🏁 M4 · Final version: full legacy parity, iOS 27 experience, App Store | [#324](https://github.com/ezzz/HFRnow/issues/324) | 0 of 31 |
+
+The boards are kanbans: each lot is one issue with its own definition of done, shown as 🔜 todo, 🔄 ongoing or ✅ done.
+
 ## Architecture
 
 <p align="center">
