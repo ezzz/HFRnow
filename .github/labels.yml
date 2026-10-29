@@ -26,6 +26,7 @@
 - { name: "status: ready",        color: "0e8a16", description: "Specified and ready to be picked" }
 - { name: "status: blocked",      color: "000000", description: "Waiting on something else" }
 - { name: "status: claimed",      color: "1d76db", description: "A session has claimed it (/claim comment); see the claim rules in AGENTS.md" }
+- { name: "external: ready",      color: "c2e0c6", description: "Standalone work open to external contributors' agents (docs/agents/EXTERNAL-AGENTS.md)" }
 - { name: "host: mac",            color: "6e7781", description: "Needs the maintainer's Mac (Xcode, legacy app, live captures)" }
 - { name: "direct-pr",            color: "d93f0b", description: "Break-glass: PR merged without issue/claim (Direct-PR line); counted for stats" }
 - { name: "dependencies",         color: "0366d6", description: "Dependency update (Dependabot)" }
