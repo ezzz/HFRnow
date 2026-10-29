@@ -170,11 +170,11 @@ give the exact question or the list of page states to capture. Then `/release ex
 - A CI job that **was never acquired by a runner** is infrastructure: re-run it once. If it fails again, merge
   the upstream `dev-swift` into your branch when `dev-swift` has moved (this gives a fresh run). Otherwise say it on the PR.
 
-### The 5-PR limit
-**At most 5 open PRs per contributor id.** Exception: **10 for Bybifok (moust4ki)**, counted across all his `ext/bybifok-*` ids, because his PRs wait both in CI and in adversarial review (operator, 2026-10-29). A merge-ready PR does not stay open: merge it (or hand it to the core for risky
+### The open-PR limit
+**At most 5 open PRs per contributor id.** Exception: **10 for Bybifok (moust4ki)**, counted over every PR they author, whatever the id (`ext/bybifok-*`, `human/moust4ki`) (operator, 2026-10-29). A merge-ready PR does not stay open: merge it (or hand it to the core for risky
 flows), so the slot frees up. When you reach the limit, stop opening PRs and print:
 
-> ⚠️ **PR limit reached** (5, or 10 for Bybifok). GitHub's CI runners (macOS especially) are shared and saturate quickly. I will not open another PR
+> ⚠️ **PR limit reached** (<N> open PRs). GitHub's CI runners (macOS especially) are shared and saturate quickly. I will not open another PR
 > before one of my open PRs is merged or closed. Meanwhile I prepare the next issue (spec, tests, branch pushed without a PR)
 > and leave a handoff comment on it.
 
