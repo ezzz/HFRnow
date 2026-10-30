@@ -74,7 +74,7 @@ struct RootSidebarView: View {
         switch model.sidebarDestination {
         case .tab(.categories): ReaderColumn(navigation: model.categories, reader: environment.reader, composer: environment.composer)
         case .tab(.favorites): ReaderColumn(navigation: model.favorites, reader: environment.reader, composer: environment.composer)
-        case .tab(.messages): MessageReaderColumn(model: model.messages, reader: environment.reader, composer: environment.composer)
+        case .tab(.messages): MessageReaderColumn(model: model.messages, reader: environment.reader, composer: nil)
         default: ContentUnavailableView("Choisissez un élément", systemImage: "sidebar.left")
         }
     }

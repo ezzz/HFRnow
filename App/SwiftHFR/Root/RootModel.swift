@@ -94,6 +94,15 @@ final class RootModel {
     static let categoriesStartupSource: TopicSource? = nil
     static let favoritesStartupSource: TopicSource? = .favorites
 
+    /// The Messages model over this session; the reader opens a conversation with the same page source. Private on purpose:
+    /// the tab and the sidebar must take `messages`, never build a second model that would lose the open conversation.
+    private static func messageList(_ environment: AppEnvironment) -> MessageListModel {
+        MessageListModel(
+            source: environment.privateMessages, isLoggedIn: environment.isLoggedIn, topicPages: environment.topicPages,
+            renderOptions: environment.reader.settings.renderOptions
+        )
+    }
+
     /// Builds the models over the engine objects of one session.
     convenience init(environment: AppEnvironment, store: any SettingsStore, initial: SidebarDestination? = nil) {
         let forums = ForumListModel(
@@ -108,7 +117,7 @@ final class RootModel {
         }
         self.init(
             forums: forums, categories: navigation(startup: Self.categoriesStartupSource),
-            favorites: navigation(startup: Self.favoritesStartupSource), messages: environment.makeMessageList(),
+            favorites: navigation(startup: Self.favoritesStartupSource), messages: Self.messageList(environment),
             store: store, initial: initial
         )
     }

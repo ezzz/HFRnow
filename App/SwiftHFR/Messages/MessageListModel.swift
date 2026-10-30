@@ -124,9 +124,6 @@ final class MessageListModel {
         thread.isUnread && openedThreads[thread.id] == nil
     }
 
-    /// Conversations of this page still unread for the member.
-    var unreadCount: Int { loader.value?.threads.filter { isUnread($0) }.count ?? 0 }
-
     /// Remembers that the reader shows page `page` of `pageCount` of `thread`, so its row is shown read without a request.
     /// Only the last page counts: earlier pages leave newer messages unseen. A row that names no thread page opens nothing,
     /// so it stays unread. What HFR itself does on a thread page fetch is not captured (spec, pending capture), hence this

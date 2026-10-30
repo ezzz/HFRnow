@@ -54,13 +54,3 @@ struct AppEnvironment {
         { [session] in await session.isLoggedIn() }
     }
 }
-
-extension AppEnvironment {
-    /// The model of the Messages screen over this session; the reader opens a conversation with the same page source.
-    @MainActor
-    func makeMessageList() -> MessageListModel {
-        MessageListModel(
-            source: privateMessages, isLoggedIn: isLoggedIn, topicPages: topicPages, renderOptions: reader.settings.renderOptions
-        )
-    }
-}

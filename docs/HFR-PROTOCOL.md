@@ -406,8 +406,8 @@ Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `Li
 
 ### LOT-126 — MP list screen
 
-[LOT-126](lots/LOT-126-mp-list.md). No new forum fact: the screen reads the rows `PrivateMessageListParser` already verifies (§6c LOT-023). One thing it relies on, asserted by `LivePrivateMessageSourceTests` on `R13u1`: every MP row's title link is `/forum2.php?config=hfr.inc&cat=prive&post=<id>&page=1&…`, a topic link of category `prive`, and its `sujetCase9` latest-message link names the thread's last page (`…&page=457&…#bas` on the 457-page thread of `R13u1`; `sujetCase5` has no flag link). The reader opens the latter, as legacy does (`HFRMPViewController.m:255`).
-- **Pending capture**: whether fetching an MP thread page marks it read on HFR, and from which page (no before/after pair of the MP list around a thread page fetch); a thread of another member and a group thread opened in the reader (`RA1`, `RA2` are the owner's own); the list logged out (#121).
+[LOT-126](lots/LOT-126-mp-list.md). No new forum fact: the screen reads the rows `PrivateMessageListParser` already verifies (§6c LOT-023). One thing it relies on, asserted on `R13u1` by `LivePrivateMessageSourceTests` (every row parses to an openable target, `ReaderTarget(opening:) != nil`; the 457-page thread opens the reader on page 457, `theCapturedLongThreadOpensOnItsLastPage`): every MP row's title link is `/forum2.php?config=hfr.inc&cat=prive&post=<id>&page=1&…`, a topic link of category `prive`, and its `sujetCase9` latest-message link names the thread's last page (`…&page=457&…#bas` on the 457-page thread of `R13u1`; `sujetCase5` has no flag link). The reader opens the latter, as legacy does (`HFRMPViewController.m:255`).
+- **Pending capture**: whether fetching an MP thread page marks it read on HFR, and from which page (no before/after pair of the MP list around a thread page fetch); a thread of another member and a group thread opened in the reader (`RA1`-`RA5` exist, all of the owner's own account or threads); the list logged out (#121).
 
 ## 7. Reported by redface2, to verify with our fixtures
 

@@ -11,7 +11,7 @@ struct MessagesRootView: View {
         NavigationSplitView(preferredCompactColumn: $column) {
             MessageListView(model: model)
         } detail: {
-            MessageReaderColumn(model: model, reader: environment.reader, composer: environment.composer)
+            MessageReaderColumn(model: model, reader: environment.reader, composer: nil)
         }
     }
 }
@@ -30,7 +30,8 @@ struct MessagesListColumn: View {
 struct MessageReaderColumn: View {
     let model: MessageListModel
     let reader: ReaderServices
-    /// The reply composer (LOT-084); nil when logged out, which hides "Répondre".
+    /// Callers pass nil until LOT-128: an MP reply is a state-changing flow of its own (RA1-RA5 carry a `cat=prive` answer link,
+    /// but the refresh after posting on such a thread is not captured), so no "Répondre" on a conversation yet.
     let composer: ComposerServices?
 
     var body: some View {

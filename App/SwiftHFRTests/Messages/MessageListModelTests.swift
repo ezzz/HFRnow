@@ -171,10 +171,8 @@ struct MessageListModelTests {
         await model.onAppear()
         let unread = try #require(model.loader.value?.threads.first)
         #expect(model.isUnread(unread))
-        #expect(model.unreadCount == 1)
         model.markOpened(unread, page: 1, of: 1)
         #expect(!model.isUnread(unread))
-        #expect(model.unreadCount == 0)
         await model.refresh()
         #expect(model.isUnread(unread)) // HFR's own state comes back with the next list
     }
@@ -260,6 +258,22 @@ struct MessageListModelTests {
         #expect(!model.isUnread(unread))
     }
 
+    @Test func anOpenedThreadStaysReadAfterAFailedRefreshAndTheNextGoodLoadBringsBackHFRsState() async throws {
+        let source = FakePrivateMessages()
+        let model = model(source)
+        await model.onAppear()
+        let unread = try #require(model.loader.value?.threads.first)
+        model.markOpened(unread, page: 1, of: 1)
+        source.handler = { _ async throws(ListLoadError) -> PrivateMessageListPage in throw .offline }
+        await model.refresh()
+        await model.refresh()
+        #expect(!model.isUnread(unread)) // two failures: nothing was brought back
+        source.handler = { page in messagePage(page: page) }
+        await model.retry()
+        #expect(model.loader.error == nil)
+        #expect(model.isUnread(unread))
+    }
+
     @Test func aRowWithoutAThreadLinkStaysUnread() async throws {
         let source = FakePrivateMessages()
         var changed = messageThread(7, unread: true)
@@ -327,6 +341,7 @@ struct MessageListModelTests {
         let reader = try #require(model.reader(for: thread))
         #expect(reader.requested.source == .topic(TopicID(category: .privateMessages, topic: 3207033)))
         #expect(reader.title == "Sujet 3207033")
+        #expect(reader.requested.page == 1) // a one-page thread: its title link
         #expect(model.reader(for: thread) === reader)
         #expect(model.reader(for: messageThread(5)) !== reader)
     }
