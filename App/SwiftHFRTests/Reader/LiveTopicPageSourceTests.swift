@@ -48,6 +48,25 @@ struct LiveTopicPageSourceTests {
         #expect(!page.title.isEmpty)
     }
 
+    @Test func aMessageLinkAsksHFRForTheMessagesPageWithTheSession() async throws {
+        struct Meta: Decodable { let url: String }
+        let meta = try JSONDecoder().decode(Meta.self, from: try Self.capture("R25.meta.json"))
+        let body = try Self.capture("R20-topic-p1-anon.html")
+        let session = MockTransport { _ in
+            HTTPResponse(statusCode: 200, headers: ["Content-Type": "text/html; charset=utf-8"], url: url(Self.canonical), body: body)
+        }
+        let anonymous = MockTransport(replies: [])
+        let source = LiveTopicPageSource(
+            fetcher: PageFetcher(session: session, anonymous: anonymous), session: session, normalizer: MarkingNormalizer()
+        )
+        let target = try #require(ReaderTarget(link: meta.url))
+        _ = try await source.page(for: target)
+        // Exactly R25's request, through the account session; the page comes from where HFR redirects.
+        #expect(await session.requests.map(\.url.absoluteString) == [meta.url])
+        #expect(await session.requests.first?.method == .get)
+        #expect(await anonymous.requests.isEmpty)
+    }
+
     @Test func aCanonicalPathIsFetchedOnTheForumWithTheSession() async throws {
         let body = try Self.capture("R20-topic-p1-anon.html")
         let session = MockTransport { request in

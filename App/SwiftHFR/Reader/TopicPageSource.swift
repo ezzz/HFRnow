@@ -51,6 +51,11 @@ struct LiveTopicPageSource: TopicPageSource {
         do throws(NetworkError) {
             switch target.source {
             case .topic(let topic):
+                if let numreponse = target.numreponse {
+                    // `forum2.php?…&page=1&numreponse=M`: HFR redirects to the page holding M (R25); the final URL gives it.
+                    if Task.isCancelled { throw .cancelled }
+                    return RawPage(response: try await session.send(try Self.messageRequest(topic: topic, numreponse: numreponse)))
+                }
                 return try await fetcher.topicPage(topic: topic, page: target.page, as: .authenticated).page
             case .path:
                 guard let pathURL else { throw .invalidRequest(reason: "not a forum link") }
@@ -59,6 +64,15 @@ struct LiveTopicPageSource: TopicPageSource {
             }
         } catch {
             throw ListLoadError(error)
+        }
+    }
+
+    /// LOT-095's request for a message whose page is unknown: page 1 plus `numreponse`, exactly the shape of `R25`.
+    static func messageRequest(topic: TopicID, numreponse: Int) throws(NetworkError) -> HTTPRequest {
+        do {
+            return try HFREndpoint.topicPage(topic: topic, page: 1, numreponse: numreponse)
+        } catch {
+            throw .invalidRequest(reason: "message link")
         }
     }
 
