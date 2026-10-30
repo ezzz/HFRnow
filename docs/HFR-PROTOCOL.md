@@ -416,6 +416,14 @@ Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `Li
 [LOT-126](lots/LOT-126-mp-list.md). No new forum fact: the screen reads the rows `PrivateMessageListParser` already verifies (§6c LOT-023). One thing it relies on, asserted on `R13u1` by `LivePrivateMessageSourceTests` (every row parses to an openable target, `ReaderTarget(opening:) != nil`; the 457-page thread opens the reader on page 457, `theCapturedLongThreadOpensOnItsLastPage`): every MP row's title link is `/forum2.php?config=hfr.inc&cat=prive&post=<id>&page=1&…`, a topic link of category `prive`, and its `sujetCase9` latest-message link names the thread's last page (`…&page=457&…#bas` on the 457-page thread of `R13u1`; `sujetCase5` has no flag link). The reader opens the latter, as legacy does (`HFRMPViewController.m:255`).
 - **Pending capture**: whether fetching an MP thread page marks it read on HFR, and from which page (no before/after pair of the MP list around a thread page fetch); a thread of another member and a group thread opened in the reader (`RA1`-`RA5` exist, all of the owner's own account or threads); the list logged out (#121).
 
+### LOT-046 — search flows
+
+[LOT-046](lots/LOT-046-search.md), tests `GlobalSearchFlowTests`, `TopicSearchFlowTests` (HFRClient, scripted transport over the captures).
+
+- **Global search chain** (`R50a` → `R50b`, `R50c`): the URL of the results GET is the LOT-005 oracle's `absoluteURL` for `R50a`, byte for byte; the `R50b` rows read through it have the LOT-002 oracle's 50 paths in order and its next-page path; `R50c` is an empty page with the oracle's notice "Désolé, aucune réponse n'a été trouvée !". The POST body built from legacy's defaults and "pizza napolitaine" equals `R50a`'s `request_body`, field order included.
+- **Intra-topic match** (`R52a`): the `Location` is a forum-relative `/forum2.php?post=<post>&cat=<cat>&…&word=<UPPERCASED>&spseudo=&currentnum=<n>#t<n>` of the searched topic. **No match** (`R52b`): a `.hop` with the sentence "Désolé aucune réponse n'a été trouvée" and a `javascript:history.back(1)` link, without comma (the global search's notice has one).
+- **Pending capture**: the `search.php` POST **without cookies** (`R50a` was sent with user2's session), with an empty `hash_check` and with the account's, so whether HFR checks the token there is not known; a query with accented characters (SwiftHFR sends UTF-8 percent-encoding, legacy sent the letters raw); a results page 2 (`R50b`'s pager link); `transsearch.php` answers to a bad token, to a logged-out session, and to a continued search (`firstnum`/`currentnum`, "Stepping not tested" in §7).
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).
