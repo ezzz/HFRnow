@@ -32,7 +32,7 @@ struct FilteredPostsCriteriaTests {
         #expect(first.block.author == "user3")
         let criteria = FilteredPostsCriteria(minimumQuoteCount: 1_000, pseudo: "USER3\u{200B} ")
         #expect(criteria.keeps(first.block, quotes: first.quotes))
-        let listed = FilteredPostsCriteria(minimumQuoteCount: 1_000, whitelist: ["User3"])
+        let listed = FilteredPostsCriteria(minimumQuoteCount: 1_000, allowlist: ["User3"])
         #expect(listed.keeps(first.block, quotes: first.quotes))
     }
 
@@ -41,13 +41,13 @@ struct FilteredPostsCriteriaTests {
         #expect(try Self.kept(FilteredPostsCriteria(minimumQuoteCount: 1_000, pseudo: pseudo)).isEmpty)
     }
 
-    @Test("Whitelisted authors are kept only when the whitelist is on")
-    func whitelistSwitch() throws {
+    @Test("Allowlisted authors are kept only when the allowlist is on")
+    func allowlistSwitch() throws {
         let author = try #require(try Self.page().dropFirst().first?.block.author)
-        let on = try Self.kept(FilteredPostsCriteria(minimumQuoteCount: 1_000, whitelist: [author]))
-        let off = try Self.kept(FilteredPostsCriteria(minimumQuoteCount: 1_000, whitelist: [author], includesWhitelist: false))
-        #expect(!on.isEmpty)
-        #expect(off.isEmpty)
+        let listed = try Self.kept(FilteredPostsCriteria(minimumQuoteCount: 1_000, allowlist: [author]))
+        let unlisted = try Self.kept(FilteredPostsCriteria(minimumQuoteCount: 1_000, allowlist: [author], includesAllowlist: false))
+        #expect(!listed.isEmpty)
+        #expect(unlisted.isEmpty)
     }
 
     @Test("R20: a personal smiley named after the account (`[:user6]` in message 2666695 by user5) is a mention, as in legacy")
@@ -73,6 +73,6 @@ struct FilteredPostsCriteriaTests {
     func authorKey() {
         let block = MessageBlock(numreponse: 2, author: "Membre", contentHTML: "<p>texte</p>")
         #expect(FilteredPostsCriteria(minimumQuoteCount: 1_000, pseudo: "membre").keeps(block, quotes: []))
-        #expect(FilteredPostsCriteria(minimumQuoteCount: 1_000, whitelist: ["MEM\u{200B}BRE"]).keeps(block, quotes: []))
+        #expect(FilteredPostsCriteria(minimumQuoteCount: 1_000, allowlist: ["MEM\u{200B}BRE"]).keeps(block, quotes: []))
     }
 }

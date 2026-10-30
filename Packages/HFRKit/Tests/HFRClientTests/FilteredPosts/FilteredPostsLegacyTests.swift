@@ -38,10 +38,10 @@ struct FilteredPostsLegacyTests {
     }
 
     /// Legacy's rule on one message, past the first block of the page (`:141-144`).
-    static func legacyKeeps(_ message: LegacyMessage, own: String?, whitelist: [String], minimum: Int) -> Bool {
+    static func legacyKeeps(_ message: LegacyMessage, own: String?, allowlist: [String], minimum: Int) -> Bool {
         let name = message.name.lowercased()
         let own = own?.lowercased()
-        if name == own || whitelist.map({ $0.lowercased() }).contains(name) { return true }   // :181-186
+        if name == own || allowlist.map({ $0.lowercased() }).contains(name) { return true }   // :181-186
         // :196-206: each `citation` header "<author> a écrit :" minus its last 10 characters, nested quotes included.
         let headers = message.html.matches(of: /<a[^>]*class="Topic"[^>]*>(.*?)<\/a>/).map { String($0.output.1) }
         if let own, headers.contains(where: { $0.count > 10 && $0.dropLast(10).lowercased() == own }) { return true }
@@ -50,7 +50,7 @@ struct FilteredPostsLegacyTests {
         return message.quotedNB != nil && count >= (minimum > 0 ? minimum : 3)
     }
 
-    /// Criteria built from the page's own authors: the most frequent one as the account, the next as whitelisted.
+    /// Criteria built from the page's own authors: the most frequent one as the account, the next as allowlisted.
     static func criteriaSets(_ messages: [LegacyMessage]) -> [FilteredPostsCriteria] {
         var counts: [String: Int] = [:]
         for message in messages where !message.name.contains("\u{200B}") { counts[message.name, default: 0] += 1 }
@@ -59,9 +59,9 @@ struct FilteredPostsLegacyTests {
         let listed = Array(authors.dropFirst().prefix(1))
         return [
             FilteredPostsCriteria(minimumQuoteCount: 1),
-            FilteredPostsCriteria(minimumQuoteCount: 2, pseudo: own, whitelist: listed),
-            FilteredPostsCriteria(minimumQuoteCount: 0, pseudo: own, whitelist: listed, includesWhitelist: false),
-            FilteredPostsCriteria(pseudo: listed.first, whitelist: own.map { [$0] } ?? [])
+            FilteredPostsCriteria(minimumQuoteCount: 2, pseudo: own, allowlist: listed),
+            FilteredPostsCriteria(minimumQuoteCount: 0, pseudo: own, allowlist: listed, includesAllowlist: false),
+            FilteredPostsCriteria(pseudo: listed.first, allowlist: own.map { [$0] } ?? [])
         ]
     }
 
@@ -72,11 +72,11 @@ struct FilteredPostsLegacyTests {
         try #require(blocks.map(\.numreponse) == oracle.messages.map(\.number), "\(id): same messages in order")
         var compared = 0
         for criteria in Self.criteriaSets(oracle.messages) {
-            let whitelist = criteria.includesWhitelist ? criteria.whitelist : []
+            let allowlist = criteria.includesAllowlist ? criteria.allowlist : []
             for (block, legacy) in zip(blocks, oracle.messages).dropFirst() {
                 let quotes = try MessageQuoteAnalyzer.quotes(inContentHTML: block.contentHTML)
                 let expected = Self.legacyKeeps(
-                    legacy, own: criteria.pseudo, whitelist: whitelist, minimum: criteria.minimumQuoteCount
+                    legacy, own: criteria.pseudo, allowlist: allowlist, minimum: criteria.minimumQuoteCount
                 )
                 #expect(criteria.keeps(block, quotes: quotes) == expected, "\(id) message \(block.numreponse), \(criteria)")
                 compared += 1
@@ -87,7 +87,7 @@ struct FilteredPostsLegacyTests {
 
     /// How many times each rule kept a message over the comparison, and how many messages no rule kept.
     struct RuleCounts {
-        var byCount = 0, byAuthor = 0, byWhitelist = 0, byQuote = 0, byMention = 0, dropped = 0
+        var byCount = 0, byAuthor = 0, byAllowlist = 0, byQuote = 0, byMention = 0, dropped = 0
     }
 
     @Test("The comparison is not vacuous: each rule keeps messages somewhere in the corpus, and some are left out")
@@ -101,18 +101,18 @@ struct FilteredPostsLegacyTests {
                     let headers = message.html.matches(of: /<a[^>]*class="Topic"[^>]*>(.*?)<\/a>/).map { String($0.output.1) }
                     if Int(message.quotedNB ?? "") ?? 0 >= criteria.effectiveMinimumQuoteCount { kept.byCount += 1 }
                     if message.name.lowercased() == own { kept.byAuthor += 1 }
-                    if criteria.includesWhitelist, criteria.whitelist.contains(message.name) { kept.byWhitelist += 1 }
+                    if criteria.includesAllowlist, criteria.allowlist.contains(message.name) { kept.byAllowlist += 1 }
                     if let own, headers.contains(where: { $0.dropLast(10).lowercased() == own }) { kept.byQuote += 1 }
                     if let own, message.name.lowercased() != own, message.html.lowercased().contains(own) { kept.byMention += 1 }
                     let legacy = Self.legacyKeeps(
-                        message, own: criteria.pseudo, whitelist: criteria.includesWhitelist ? criteria.whitelist : [],
+                        message, own: criteria.pseudo, allowlist: criteria.includesAllowlist ? criteria.allowlist : [],
                         minimum: criteria.minimumQuoteCount
                     )
                     if !legacy { kept.dropped += 1 }
                 }
             }
         }
-        #expect(kept.byCount > 0 && kept.byAuthor > 0 && kept.byWhitelist > 0)
+        #expect(kept.byCount > 0 && kept.byAuthor > 0 && kept.byAllowlist > 0)
         #expect(kept.byQuote > 0 && kept.byMention > 0 && kept.dropped > 0)
     }
 }

@@ -10,7 +10,7 @@ import Testing
 @Suite("Post filter: page walk")
 struct FilteredPostsFlowTests {
     private static let pizza = TopicID(category: .forum(13), topic: 28563)
-    /// Keeps nothing: no account, no whitelist, an unreachable count.
+    /// Keeps nothing: no account, no allowlist, an unreachable count.
     private static let none = FilteredPostsCriteria(minimumQuoteCount: 1_000)
 
     /// The capture `id` as served, at its final URL.
@@ -63,11 +63,11 @@ struct FilteredPostsFlowTests {
         return Outcome(result: result, requests: await transport.requests, progress: await reports.values)
     }
 
-    /// Every author of the capture: a whitelist that keeps every message.
+    /// Every author of the capture: a allowlist that keeps every message.
     private static func everyone(_ id: String) throws -> FilteredPostsCriteria {
         guard let file = Self.pageFiles[id] else { throw Capture.Missing(name: id) }
         let page = try Capture.page(file)
-        return FilteredPostsCriteria(whitelist: try MessageBlockParser.blocks(in: page).map(\.author))
+        return FilteredPostsCriteria(allowlist: try MessageBlockParser.blocks(in: page).map(\.author))
     }
 
     private static let pageFiles = [
@@ -84,7 +84,7 @@ struct FilteredPostsFlowTests {
         #expect(outcome.requests.allSatisfy { $0.method == .get && $0.headers["Cookie"] == nil })
         #expect((batch.startPage, batch.endPage, batch.maxPage, batch.isFinished) == (2201, 2201, 2201, true))
         #expect(batch.resumePage == nil)
-        // The continuation block opening the page is never kept, even when its author is whitelisted.
+        // The continuation block opening the page is never kept, even when its author is allowlisted.
         let blocks = try MessageBlockParser.blocks(in: try Capture.page("R22b-topic-last-page-anon"))
         #expect(blocks.first?.isContinuation == true)
         #expect(batch.posts.map(\.block.numreponse) == blocks.dropFirst().map(\.numreponse))

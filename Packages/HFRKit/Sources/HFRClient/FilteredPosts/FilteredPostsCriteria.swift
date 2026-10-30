@@ -8,7 +8,7 @@ import HFRParsing
 /// - its author is the account's `pseudo`;
 /// - one of its quotes, at any depth, cites `pseudo` (LOT-032 authors, legacy rule `:198-206`);
 /// - its content mentions `pseudo`, as text anywhere in the content HTML, case-insensitive (`:327-331`);
-/// - `includesWhitelist` is on and its author is in `whitelist` (`:183-186`).
+/// - `includesAllowlist` is on and its author is in `allowlist` (`:183-186`).
 /// Pseudos compare like `HFRText.pseudoComparisonKey` (zero-width spaces removed, trimmed, lower-cased).
 public struct FilteredPostsCriteria: Sendable, Hashable {
     /// Legacy's default and floor: a stored value of 0 or less reads as 3 (`ParseMessagesOperation.m:340-343`).
@@ -18,20 +18,20 @@ public struct FilteredPostsCriteria: Sendable, Hashable {
     public var minimumQuoteCount: Int
     /// The account's pseudo; nil (or blank) turns off the rules about the account (own posts, quotes, mentions).
     public var pseudo: String?
-    /// Pseudos whose messages are kept when `includesWhitelist` is on (the app's whitelist).
-    public var whitelist: [String]
-    /// Keeps the messages of whitelisted authors (legacy setting `filter_posts_quotes` containing `wl`, on by default).
-    public var includesWhitelist: Bool
+    /// Pseudos whose messages are kept when `includesAllowlist` is on (the app's allowlist).
+    public var allowlist: [String]
+    /// Keeps the messages of allowlisted authors (legacy setting `filter_posts_quotes` containing `wl`, on by default).
+    public var includesAllowlist: Bool
 
     /// Creates criteria; the defaults are legacy's (`HFRplusAppDelegate.m:108-114`).
     public init(
-        minimumQuoteCount: Int = defaultMinimumQuoteCount, pseudo: String? = nil, whitelist: [String] = [],
-        includesWhitelist: Bool = true
+        minimumQuoteCount: Int = defaultMinimumQuoteCount, pseudo: String? = nil, allowlist: [String] = [],
+        includesAllowlist: Bool = true
     ) {
         self.minimumQuoteCount = minimumQuoteCount
         self.pseudo = pseudo
-        self.whitelist = whitelist
-        self.includesWhitelist = includesWhitelist
+        self.allowlist = allowlist
+        self.includesAllowlist = includesAllowlist
     }
 
     /// The quote count actually required.
@@ -43,7 +43,7 @@ public struct FilteredPostsCriteria: Sendable, Hashable {
     public func keeps(_ block: MessageBlock, quotes: [MessageQuote]) -> Bool {
         if let count = block.quotedByCount, count >= effectiveMinimumQuoteCount { return true }
         let author = HFRText.pseudoComparisonKey(block.author)
-        if includesWhitelist, whitelist.contains(where: { HFRText.pseudoComparisonKey($0) == author }) { return true }
+        if includesAllowlist, allowlist.contains(where: { HFRText.pseudoComparisonKey($0) == author }) { return true }
         let own = HFRText.pseudoComparisonKey(pseudo ?? "")
         guard !own.isEmpty else { return false }
         if author == own { return true }

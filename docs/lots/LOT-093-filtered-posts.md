@@ -28,7 +28,7 @@ Code in `Sources/HFRClient/FilteredPosts/`, tests in `Tests/HFRClientTests/Filte
 
 `keeps(_:quotes:)` keeps a message when any rule holds (legacy: `bFilterCurrentPost = NO`):
 1. HFR's "Message cité N fois" trailer gives `quotedByCount >= effectiveMinimumQuoteCount` (`:336-347`). The minimum is `minimumQuoteCount`, and 0 or less reads as 3 (`:340-343`).
-2. `includesWhitelist` is on and the author is in `whitelist` (`:183-186`, setting `filter_posts_quotes` containing `wl`).
+2. `includesAllowlist` is on and the author is in `allowlist` (`:183-186`, setting `filter_posts_quotes` containing `wl`).
 3. The author is the account's `pseudo` (`:176-182`).
 4. A quote of the message, at any depth, cites `pseudo` (`:196-206`, LOT-032 authors).
 5. The content HTML contains `pseudo`, case-insensitive (`:327-331`). This is legacy's "pseudo" mode, which the Swift app always had on (`AppSettingsView.swift:167-168`).
@@ -60,7 +60,7 @@ Pseudos compare by `HFRText.pseudoComparisonKey`: zero-width spaces removed, tri
 
 - **Page 1's first post** is a message like the others. Legacy dropped the first block of every page (`:141-144`): on pages 2 and later that is the continuation block, but on page 1 it is the topic's opening post (`R20`).
 - **The advertisement** is the second block of anonymous pages (`R20`, `R22a`, `R22b`, `R24`), so legacy's first-block rule never hit it. `MessageBlockParser` skips it.
-- **Long pseudos**: HFR prints them with a zero-width space (`R20`'s first author is `user3` + U+200B). Legacy compared the raw name, so its own posts and whitelisted authors were missed. Here they match.
+- **Long pseudos**: HFR prints them with a zero-width space (`R20`'s first author is `user3` + U+200B). Legacy compared the raw name, so its own posts and allowlisted authors were missed. Here they match.
 - **`after` not on the first page** (a deleted message, a stale favourite): the messages numbered after it are still read, because message numbers grow in posting order (§6c LOT-090). Legacy skipped the whole page when the id was not found.
 - **Rule 5 can over-match**: a pseudo inside a longer one (`user4` in `user45`) or inside markup matches, as in legacy. Kept for parity.
 - Deleted messages (`messagetabledel`, pending capture in LOT-030) get no special rule, as in legacy.
@@ -74,7 +74,7 @@ Captures only, nothing new: the anonymous topic pages `R20`, `R22a`, `R22b`, `R2
 - `FilteredPostsLegacyTests` (differential, LESSONS 52). Legacy's rule is applied to the oracle's fields and compared with `FilteredPostsCriteria` on our reading of the same capture, for every message but the page's first.
   - The fields: `name`, `quotedNB`, the `Topic` headers of `dicoHTML` minus their last 10 characters, and `dicoHTML` lower-cased.
   - The pages: the ten anonymous topic pages.
-  - The criteria, four sets per page, built from the page's own authors: count only; account and whitelist with minimum 2; whitelist off with minimum 0; roles swapped.
+  - The criteria, four sets per page, built from the page's own authors: count only; account and allowlist with minimum 2; allowlist off with minimum 0; roles swapped.
   - A second test checks that each rule keeps messages somewhere and that some messages are left out.
   - No oracle was exported in filter mode (`hfrnow.patch` supports it, never run). The rule is transcribed from `ParseMessagesOperation.m`, the inputs are legacy's.
 - `FilteredPostsFlowTests`:
@@ -87,11 +87,11 @@ Captures only, nothing new: the anonymous topic pages `R20`, `R22a`, `R22b`, `R2
   - `invalidTopic` (four cases, no request), another topic's page, a page without messages, an HTTP error;
   - the public flow's transports are `AnonymousTransport`.
 - `FilteredPostsCriteriaTests`:
-  - on `R20`: the floor of 3, pseudo keys (U+200B, case, spaces), a blank pseudo, the whitelist switch, and a mention through a personal smiley (`[:user6]` in a post by `user5`, as legacy reads it);
+  - on `R20`: the floor of 3, pseudo keys (U+200B, case, spaces), a blank pseudo, the allowlist switch, and a mention through a personal smiley (`[:user6]` in a post by `user5`, as legacy reads it);
   - on small models: a quote of the account at depth 2 whose header does not spell the pseudo as text, and author keys.
 
 Shown to fail with the behaviour removed (each mutation caught):
-- criteria: each of the five rules removed, a count strictly greater, no floor, the whitelist switch ignored, raw author comparison, depth-1 quotes only;
+- criteria: each of the five rules removed, a count strictly greater, no floor, the allowlist switch ignored, raw author comparison, depth-1 quotes only;
 - flow: continuation kept, legacy's first-block drop, `after` ignored, a batch of 41, no batch stop, no topic check, a page past the end read as a page, an empty page accepted, a session reachable from the flow, `prive` accepted, no progress.
 
 Cancellation before a page is `PageFetcher`'s own check (LOT-045), pinned here by the cancellation test. The guard on a blank pseudo has no observable mutant: Foundation's `contains("")` is false.
@@ -107,7 +107,7 @@ Cancellation before a page is `PageFetcher`'s own check (LOT-045), pinned here b
 2. **Long pseudos match** their zero-width-space form (legacy compared raw names). Row 43.
 3. **`after` by message number**, not by the id on the page: a last-read message missing from the page no longer skips the whole page. Row 43.
 4. **The last page comes from each page read**, not from the favourite row given at the start (`topic.maxTopicPage`), so a topic that grew meanwhile is read to its real end; a page past the end is read as the end.
-5. **No settings string**: the whitelist is a switch, the "pseudo" rules are on whenever a pseudo is given (the Swift app always ran in `pseudo` mode). Legacy ObjC without `pseudo` in the setting also skipped the quote-count rule (`:320-322`); that combination is not offered.
+5. **No settings string**: the allowlist is a switch, the "pseudo" rules are on whenever a pseudo is given (the Swift app always ran in `pseudo` mode). Legacy ObjC without `pseudo` in the setting also skipped the quote-count rule (`:320-322`); that combination is not offered.
 
 ## Learnings
 
