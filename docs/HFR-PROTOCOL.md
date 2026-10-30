@@ -416,6 +416,15 @@ Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `Li
 [LOT-126](lots/LOT-126-mp-list.md). No new forum fact: the screen reads the rows `PrivateMessageListParser` already verifies (§6c LOT-023). One thing it relies on, asserted on `R13u1` by `LivePrivateMessageSourceTests` (every row parses to an openable target, `ReaderTarget(opening:) != nil`; the 457-page thread opens the reader on page 457, `theCapturedLongThreadOpensOnItsLastPage`): every MP row's title link is `/forum2.php?config=hfr.inc&cat=prive&post=<id>&page=1&…`, a topic link of category `prive`, and its `sujetCase9` latest-message link names the thread's last page (`…&page=457&…#bas` on the 457-page thread of `R13u1`; `sujetCase5` has no flag link). The reader opens the latter, as legacy does (`HFRMPViewController.m:255`).
 - **Pending capture**: whether fetching an MP thread page marks it read on HFR, and from which page (no before/after pair of the MP list around a thread page fetch); a thread of another member and a group thread opened in the reader (`RA1`-`RA5` exist, all of the owner's own account or threads); the list logged out (#121).
 
+### LOT-049 — quote engine
+
+[LOT-049](lots/LOT-049-quote-engine.md), tests `QuoteCaptureTests` (LOT-004 oracles) and `QuoteFlowTests`.
+
+- **Quote of a quoting post** (`R41b`, **verified**): the prefill holds only the cited post's own text; the quote it contains (`R20`, message 2666695 citing 2666682) is not carried over, so prefills never nest `[quotemsg]`.
+- **Line breaks of a prefill** (`R41a`, `R41b`, `R42`, `R47a`, `R47c`, **verified** on the oracles' `contentFormRaw`): CRLF inside the quoted text, a bare LF after each `[/quotemsg]` (one after a single quote, two after each block of a multi-quote).
+- **Multi-quote composer** (`R42`, `R47c`, **verified**): the topic's answer link (§6c LOT-084, no `numrep`) sent with the cookie `quotes<forum>-<cat>-<post>` gives a reply composer whose hidden `cat` and `post` are the topic's and whose prefill holds one block per selected message. Both captures list the blocks by ascending message number; the cookie's order was not recorded.
+- **After the post** (`W14`, meta): the answer sets a cookie named `quoteshardwarefr-prive-<post>`; its value and expiry were not recorded (#334).
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).
