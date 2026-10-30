@@ -15,7 +15,7 @@ struct RootTabsView: View {
                 FavoritesTabView(navigation: model.favorites, reader: environment.reader, composer: environment.composer)
             }
             Tab(RootTab.messages.title, systemImage: RootTab.messages.symbol, value: RootTab.messages) {
-                MessagesRootView(environment: environment)
+                MessagesRootView(model: model.messages, environment: environment)
             }
             .badge(model.unreadPrivateMessages)
             Tab(RootTab.more.title, systemImage: RootTab.more.symbol, value: RootTab.more) {

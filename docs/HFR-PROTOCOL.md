@@ -411,6 +411,11 @@ Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `Li
 - **`numreponse` grows in posting order** (measured with a script over the corpus, not a parser test): on each of the 23 topic pages with two messages or more, the `<a name="t<numreponse>">` anchors are strictly ascending; across pages of one topic too (`R20` page 1 runs from 2666649 to 3204775 over 40 anchors, `R22a` page 1100 starts at 39966395, `R22b` page 2201 at 75482227, topic 28563). `ReadingPosition.isAhead(of:)` relies on it to compare two positions by message rather than by page.
 - **Pending capture**: a topic page after messages were deleted (whether later messages move to an earlier page; the order rule does not depend on it).
 
+### LOT-126 — MP list screen
+
+[LOT-126](lots/LOT-126-mp-list.md). No new forum fact: the screen reads the rows `PrivateMessageListParser` already verifies (§6c LOT-023). One thing it relies on, asserted on `R13u1` by `LivePrivateMessageSourceTests` (every row parses to an openable target, `ReaderTarget(opening:) != nil`; the 457-page thread opens the reader on page 457, `theCapturedLongThreadOpensOnItsLastPage`): every MP row's title link is `/forum2.php?config=hfr.inc&cat=prive&post=<id>&page=1&…`, a topic link of category `prive`, and its `sujetCase9` latest-message link names the thread's last page (`…&page=457&…#bas` on the 457-page thread of `R13u1`; `sujetCase5` has no flag link). The reader opens the latter, as legacy does (`HFRMPViewController.m:255`).
+- **Pending capture**: whether fetching an MP thread page marks it read on HFR, and from which page (no before/after pair of the MP list around a thread page fetch); a thread of another member and a group thread opened in the reader (`RA1`-`RA5` exist, all of the owner's own account or threads); the list logged out (#121).
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).

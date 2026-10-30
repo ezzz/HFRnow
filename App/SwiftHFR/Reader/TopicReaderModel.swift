@@ -64,7 +64,7 @@ final class TopicReaderModel {
     /// The page last asked for (shown, or failed): what "Réessayer" asks again.
     private(set) var requested: ReaderTarget
     /// Where the page last asked for opens, kept so "Réessayer" after a failed latest-post load still opens at the end.
-    private var requestedAnchor = AnchorRule.target
+    private var requestedAnchor: AnchorRule
     /// The target of the page on screen (topic and page as served), what a refresh reloads.
     private(set) var shown: ReaderTarget?
 
@@ -75,14 +75,18 @@ final class TopicReaderModel {
     private var nextScrollID = 0
     private var task: Task<Void, Never>?
 
-    /// A reader that will open `target`; nothing is fetched before `onAppear()`.
+    /// A reader that will open `target`; nothing is fetched before `onAppear()`. With `opensAtLastMessage` the first load
+    /// (and "Réessayer" after its failure) opens at the page's last message like a reply does, for a link that stands for
+    /// "the latest message" (legacy `#bas`) rather than for a message of its own.
     init(
         target: ReaderTarget,
         title: String = "",
         source: any TopicPageSource,
+        opensAtLastMessage: Bool = false,
         renderOptions: @escaping @Sendable () -> ReaderRenderOptions = { ReaderRenderOptions() }
     ) {
         self.requested = target
+        self.requestedAnchor = opensAtLastMessage ? .lastMessage : .target
         self.initialTitle = title
         self.source = source
         self.renderOptions = renderOptions

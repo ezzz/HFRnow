@@ -16,10 +16,20 @@ struct RootModelTests {
             forums: forums,
             categories: NavigationModel(dataSource: source, forums: forums, startupSource: RootModel.categoriesStartupSource),
             favorites: NavigationModel(dataSource: source, forums: forums, startupSource: RootModel.favoritesStartupSource),
+            messages: MessageListModel(source: FakePrivateMessages()),
             store: store, initial: initial
         )
         await forums.loadIfNeeded()
         return root
+    }
+
+    // Both layouts read `RootModel.messages`: the open conversation survives a switch of tab or of layout.
+    @Test func messagesModelIsSharedAcrossDestinations() async {
+        let root = await model()
+        let list = root.messages
+        root.selectedDestination = .tab(.messages)
+        root.selectedDestination = .tab(.categories)
+        #expect(root.messages === list)
     }
 
     @Test func tabsKeepTheLegacyOrderTitlesAndIcons() {

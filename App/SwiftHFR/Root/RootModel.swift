@@ -13,6 +13,9 @@ final class RootModel {
     let categories: NavigationModel
     /// Selection and models of the Favoris tab. Its source is the favourites, or the flags the user switches to.
     let favorites: NavigationModel
+    /// The private message list and the open conversation of the Messages tab (LOT-126), shared by the tab bar and the
+    /// sidebar so a size-class change keeps the page and the conversation on screen.
+    let messages: MessageListModel
     /// The one selection both layouts read, so a size-class change (Slide Over, Split View) keeps what the user was on.
     var selectedDestination: SidebarDestination {
         didSet {
@@ -70,12 +73,13 @@ final class RootModel {
     /// creation (nil) reads the start tab from the start-screen setting (`HFRswiftStartupScreen`), as legacy keeps the tab
     /// it was on (`MainWindow.swift:1276-1278`, `:1357-1362`).
     init(
-        forums: ForumListModel, categories: NavigationModel, favorites: NavigationModel, store: any SettingsStore,
-        initial: SidebarDestination? = nil
+        forums: ForumListModel, categories: NavigationModel, favorites: NavigationModel, messages: MessageListModel,
+        store: any SettingsStore, initial: SidebarDestination? = nil
     ) {
         self.forums = forums
         self.categories = categories
         self.favorites = favorites
+        self.messages = messages
         self.store = store
         let destination = initial ?? .tab(RootTab(startup: store.value(for: SettingKey.startupScreen)))
         selectedDestination = destination
@@ -89,6 +93,15 @@ final class RootModel {
     /// The source each tab opens on: Catégories none (the user picks a forum), Favoris the favourites.
     static let categoriesStartupSource: TopicSource? = nil
     static let favoritesStartupSource: TopicSource? = .favorites
+
+    /// The Messages model over this session; the reader opens a conversation with the same page source. Private on purpose:
+    /// the tab and the sidebar must take `messages`, never build a second model that would lose the open conversation.
+    private static func messageList(_ environment: AppEnvironment) -> MessageListModel {
+        MessageListModel(
+            source: environment.privateMessages, isLoggedIn: environment.isLoggedIn, topicPages: environment.topicPages,
+            renderOptions: environment.reader.settings.renderOptions
+        )
+    }
 
     /// Builds the models over the engine objects of one session.
     convenience init(environment: AppEnvironment, store: any SettingsStore, initial: SidebarDestination? = nil) {
@@ -104,7 +117,8 @@ final class RootModel {
         }
         self.init(
             forums: forums, categories: navigation(startup: Self.categoriesStartupSource),
-            favorites: navigation(startup: Self.favoritesStartupSource), store: store, initial: initial
+            favorites: navigation(startup: Self.favoritesStartupSource), messages: Self.messageList(environment),
+            store: store, initial: initial
         )
     }
 

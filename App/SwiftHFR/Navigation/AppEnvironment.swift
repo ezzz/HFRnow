@@ -15,6 +15,8 @@ struct AppEnvironment {
     let topicPages: any TopicPageSource
     /// Image client and settings of the reader.
     let reader: ReaderServices
+    /// The private message list (LOT-126), fetched with this session.
+    let privateMessages: any PrivateMessageSource
     /// Reply composer of the current account (LOT-084); nil when logged out.
     let composer: ComposerServices?
 
@@ -30,7 +32,8 @@ struct AppEnvironment {
         )
         return AppEnvironment(
             session: session, dataSource: source, visibility: ForumVisibility(), currentAccountName: accountName,
-            topicPages: pages, reader: reader, composer: .live(session: session, account: accountName)
+            topicPages: pages, reader: reader, privateMessages: LivePrivateMessageSource(fetcher: fetcher),
+            composer: .live(session: session, account: accountName)
         )
     }
 
