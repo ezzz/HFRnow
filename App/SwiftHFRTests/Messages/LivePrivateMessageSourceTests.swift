@@ -53,14 +53,17 @@ struct LivePrivateMessageSourceTests {
         #expect(thread.summary.pageCount == 457)
         let fake = FakePrivateMessages()
         fake.handler = { _ in page }
-        let model = MessageListModel(source: fake, isLoggedIn: { true })
+        let model = MessageListModel(source: fake, isLoggedIn: { true }, topicPages: FakeTopicPages())
         await model.onAppear()
         let reader = try #require(model.reader(for: thread))
         #expect(reader.requested.source == .topic(TopicID(category: .privateMessages, topic: 3197250)))
         #expect(reader.requested.page == 457)
-        let before = model.isUnread(thread)
+        // The link ends in `#bas`: the conversation opens on its latest message, not at the top of the page.
+        await reader.onAppear()
+        #expect(reader.document?.anchor == 45_701)
+        #expect(model.isUnread(thread))
         model.markOpened(thread, page: 1, of: 457)
-        #expect(model.isUnread(thread) == before)
+        #expect(model.isUnread(thread))
         model.markOpened(thread, page: 457, of: 457)
         #expect(!model.isUnread(thread))
     }

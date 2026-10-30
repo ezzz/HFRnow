@@ -102,21 +102,26 @@ final class MessageListModel {
     /// Nil when the row names no thread page.
     func reader(for thread: PrivateMessageThread) -> TopicReaderModel? {
         if let currentReader, currentReader.id == thread.id { return currentReader.model }
-        guard let target = openingTarget(of: thread) else { return nil }
-        let model = TopicReaderModel(target: target, title: thread.summary.title, source: topicPages, renderOptions: renderOptions)
+        guard let opening = openingTarget(of: thread) else { return nil }
+        let model = TopicReaderModel(
+            target: opening.target, title: thread.summary.title, source: topicPages,
+            opensAtLastMessage: opening.fromLatestMessage, renderOptions: renderOptions
+        )
         currentReader = (thread.id, model)
         return model
     }
 
     /// Where a row opens: the page of its latest message (legacy tap, `HFRMPViewController.m:255`), so a conversation with
     /// new messages shows them. MP rows carry no flag link (`sujetCase5` is empty, `R13u1`), so there is no resume position.
-    /// A row without a usable latest-message link opens like any topic row.
-    private func openingTarget(of thread: PrivateMessageThread) -> ReaderTarget? {
+    /// The reader then opens at the page's last message, as the link's `#bas` does in legacy
+    /// (`OnlineMessagesTableViewController.m:1838,2050`). A row without a usable latest-message link opens like any topic row.
+    private func openingTarget(of thread: PrivateMessageThread) -> (target: ReaderTarget, fromLatestMessage: Bool)? {
         if let last = thread.summary.lastPost?.path,
            let target = ReaderTarget(link: last, fallbackTopic: thread.summary.topicID) {
-            return target
+            return (target, true)
         }
-        return ReaderTarget(opening: thread.summary)
+        guard let target = ReaderTarget(opening: thread.summary) else { return nil }
+        return (target, false)
     }
 
     /// Whether the row shows as unread: HFR's state, until the member has seen the conversation's last page.

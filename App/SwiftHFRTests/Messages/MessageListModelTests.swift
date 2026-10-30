@@ -190,15 +190,20 @@ struct MessageListModelTests {
         #expect(!model.isUnread(long))
     }
 
-    @Test func aConversationOpensOnThePageOfItsLatestMessage() throws {
-        let model = model(FakePrivateMessages())
+    @Test func aConversationOpensOnThePageOfItsLatestMessage() async throws {
+        let model = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, topicPages: FakeTopicPages())
         let long = messageThread(41, unread: true, pages: 457)
         let reader = try #require(model.reader(for: long))
         #expect(reader.requested.source == .topic(TopicID(category: .privateMessages, topic: 41)))
         #expect(reader.requested.page == 457)
-        // No latest-message link on the row: its title link, page 1.
+        // Legacy opens the latest-message link (`#bas`): the reader scrolls to the page's last message (45701 of readerPage).
+        await reader.onAppear()
+        #expect(reader.document?.anchor == 45_701)
+        // No latest-message link on the row: its title link, page 1, from the top.
         let plain = try #require(model.reader(for: messageThread(42)))
         #expect(plain.requested.page == 1)
+        await plain.onAppear()
+        #expect(plain.document?.anchor == nil)
     }
 
     @Test func aThreadOpenedWhileTheNewestLoadRunsStaysReadWhenItLands() async throws {
