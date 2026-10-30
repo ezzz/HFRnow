@@ -24,6 +24,7 @@ public struct FileSmallStorePersistence<Document: SmallStoreDocument>: SmallStor
         // The version first: a newer format may not decode as this one, and must still be reported as newer.
         let version = try JSONDecoder().decode(VersionProbe.self, from: data).version
         guard version <= Document.currentVersion else { throw SmallStoreError.unsupportedVersion(version) }
+        guard version >= 1 else { throw SmallStoreError.loadFailed(reason: "invalid version \(version)") }
         return try JSONDecoder().decode(Document.self, from: data)
     }
 

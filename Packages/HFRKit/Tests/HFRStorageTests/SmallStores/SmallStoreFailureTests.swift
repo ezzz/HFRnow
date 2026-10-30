@@ -122,4 +122,15 @@ import Testing
         await #expect(throws: SmallStoreError.unsupportedVersion(2)) { try await store.add(Self.cuisine, account: "user1") }
         #expect(try Data(contentsOf: file) == newer)
     }
+
+    @Test func aVersionBelowOneIsNeverWrittenOver() async throws {
+        let invalid = SmileySearchHistoryDocument(version: 0)
+        let persistence = FailingSmallStorePersistence(invalid)
+        let store = SmileySearchHistoryStore(persistence: persistence)
+        #expect(await store.loadFailure() == .loadFailed(reason: "invalid version 0"))
+        await #expect(throws: SmallStoreError.loadFailed(reason: "invalid version 0")) {
+            try await store.record("chat", resultCount: 1)
+        }
+        #expect(persistence.saveCount == 0)
+    }
 }

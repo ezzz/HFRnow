@@ -72,6 +72,9 @@ struct SmallStoreState<Document: SmallStoreDocument> {
             let stored = try persistence.load() ?? .empty
             if stored.version > Document.currentVersion {
                 phase = .failed(.unsupportedVersion(stored.version))
+            } else if stored.version < 1 {
+                // Every format starts at 1: a lower number is not a document this code or an older one wrote.
+                phase = .failed(.loadFailed(reason: "invalid version \(stored.version)"))
             } else {
                 phase = .loaded(stored)
             }

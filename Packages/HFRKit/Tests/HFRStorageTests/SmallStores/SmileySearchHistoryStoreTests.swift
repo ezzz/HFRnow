@@ -124,4 +124,13 @@ import Testing
         #expect(await store.recent(matching: "zèbre").isEmpty)
         #expect(await store.recent(matching: "").count == 3)
     }
+
+    @Test func aStoredCountAtTheMaximumSaturates() async throws {
+        let stored = SmileySearchHistoryDocument(entries: [
+            SmileySearchHistoryEntry(text: "chat", count: Int.max, lastSearchedAt: Self.date(1))
+        ])
+        let store = SmileySearchHistoryStore(persistence: InMemorySmallStorePersistence(stored))
+        #expect(try await store.record("CHAT", resultCount: 1, at: Self.date(2)))
+        #expect(await store.top(matching: "") == [SmileySearchHistoryEntry(text: "chat", count: Int.max, lastSearchedAt: Self.date(2))])
+    }
 }

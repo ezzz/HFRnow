@@ -51,7 +51,8 @@ public actor SmileySearchHistoryStore {
             var recorded = SmileySearchHistoryEntry(text: text, count: 1, lastSearchedAt: date)
             if let index = document.entries.firstIndex(where: { $0.text.caseInsensitiveCompare(text) == .orderedSame }) {
                 recorded = document.entries.remove(at: index)
-                recorded.count += 1
+                // Saturates: a stored count at `Int.max` (another writer) must not trap.
+                recorded.count = recorded.count < Int.max ? recorded.count + 1 : Int.max
                 recorded.lastSearchedAt = date
             }
             // The entry just recorded is kept even if its date is the oldest (device clock moved back).

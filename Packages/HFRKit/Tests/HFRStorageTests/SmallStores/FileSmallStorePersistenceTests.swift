@@ -54,6 +54,17 @@ import Testing
         #expect(throws: SmallStoreError.unsupportedVersion(2)) { try persistence.load() }
     }
 
+    @Test(arguments: [0, -3])
+    func aVersionBelowOneIsUnreadable(version: Int) throws {
+        let directory = try SmallStoreTestSupport.makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appending(path: "history.json")
+        try Data(#"{"version":\#(version),"entries":[]}"#.utf8).write(to: file)
+        #expect(throws: SmallStoreError.loadFailed(reason: "invalid version \(version)")) {
+            try FileSmallStorePersistence<SmileySearchHistoryDocument>(fileURL: file).load()
+        }
+    }
+
     @Test(arguments: [#"{not json"#, #"{"entries":[]}"#, #"{"version":"1","entries":[]}"#, #"{"version":1}"#])
     func unreadableDataThrows(content: String) throws {
         let directory = try SmallStoreTestSupport.makeDirectory()

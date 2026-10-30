@@ -60,4 +60,14 @@ import Testing
         #expect(try await reopened.remove(id: image.id))
         #expect(await RehostUploadHistoryStore(persistence: FileSmallStorePersistence(fileURL: file)).images().isEmpty)
     }
+
+    @Test func removalRemovesEveryEntryWithThatIdentity() async throws {
+        let image = try Self.image("one", at: 1)
+        let other = try Self.image("two", at: 2)
+        let persistence = InMemorySmallStorePersistence(RehostUploadHistoryDocument(images: [image, other, image]))
+        let store = RehostUploadHistoryStore(persistence: persistence)
+        #expect(try await store.remove(id: image.id))
+        #expect(await store.images() == [other])
+        #expect(try await store.add(image))
+    }
 }

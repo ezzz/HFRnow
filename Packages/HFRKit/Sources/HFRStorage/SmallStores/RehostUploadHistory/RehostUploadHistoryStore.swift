@@ -33,13 +33,14 @@ public actor RehostUploadHistoryStore {
         }
     }
 
-    /// Removes the image whose `RehostedImage.id` is `id`. Returns false when it was not there.
+    /// Removes every image whose `RehostedImage.id` is `id`, as legacy's swipe did (`AnswerView.swift:1909`). Returns
+    /// false when there was none.
     @discardableResult
     public func remove(id: String) throws(SmallStoreError) -> Bool {
         try state.mutate { document in
-            guard let index = document.images.firstIndex(where: { $0.id == id }) else { return false }
-            document.images.remove(at: index)
-            return true
+            let count = document.images.count
+            document.images.removeAll { $0.id == id }
+            return document.images.count != count
         }
     }
 
