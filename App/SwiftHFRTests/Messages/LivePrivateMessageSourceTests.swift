@@ -52,7 +52,7 @@ struct LivePrivateMessageSourceTests {
 
     /// `RA1` is the owner's MP thread page: the reader's parse (`LiveTopicPageSource.parse`) renders it like a topic page.
     @Test func anMPThreadPageRendersThroughTheReaderParser() throws {
-        let html = String(decoding: try LiveTopicPageSourceTests.capture("RA1-mp-thread-after-create.html"), as: UTF8.self)
+        let html = try #require(String(data: try LiveTopicPageSourceTests.capture("RA1-mp-thread-after-create.html"), encoding: .utf8))
         let url = try #require(URL(string: "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=prive&post=3207033&page=1"))
         let page = try LiveTopicPageSource.parse(html, pageURL: url, normalizer: LiveTopicPageSourceTests.MarkingNormalizer())
         let blocks = try MessageBlockParser.blocks(in: html)
