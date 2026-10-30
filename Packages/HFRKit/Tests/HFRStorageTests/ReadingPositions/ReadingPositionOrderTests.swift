@@ -11,7 +11,7 @@ import Testing
     }
 
     @Test func aLaterMessageIsAheadEvenOnAnEarlierPage() {
-        // After deletions, a later message can sit on an earlier page.
+        // Should deletions move a later message to an earlier page (not captured), it stays ahead.
         #expect(position(3, 900).isAhead(of: position(4, 800)))
         #expect(!position(4, 800).isAhead(of: position(3, 900)))
     }

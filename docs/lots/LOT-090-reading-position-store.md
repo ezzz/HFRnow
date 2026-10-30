@@ -22,7 +22,7 @@ Legacy app: `origin/master` of ezzz/HFRnow @ `21173e7`. Legacy never persisted a
 Code in `Sources/HFRStorage/ReadingPositions/`, tests in `Tests/HFRStorageTests/ReadingPositions/`.
 
 - **`ReadingPosition`** (`Codable`, ids and integers only, operator note on #182): `page` (from 1), `messageNumber` (`numreponse` of the topmost message seen, optional), `offset` (inside that message, the app's own unit, optional), `updatedAt` (when recorded; LOT-172's iCloud mirror keeps the newest per topic).
-- **Order** (`isAhead(of:)`): when both positions have a message number, the message number decides, then the offset (nil = 0); otherwise the page decides, and on the same page a known message beats an unknown one. `updatedAt` plays no part. Message numbers grow in posting order (HFR-PROTOCOL §6c LOT-090), and they survive what moves pages (deletions), so a later message on an earlier page is still ahead.
+- **Order** (`isAhead(of:)`): when both positions have a message number, the message number decides, then the offset (nil = 0); otherwise the page decides, and on the same page a known message beats an unknown one. `updatedAt` plays no part. Message numbers grow in posting order (HFR-PROTOCOL §6c LOT-090). If deletions can move a later message to an earlier page (not captured yet, see Pending capture), the message number still orders it, so a later message on an earlier page stays ahead.
 - **`ReadingPositionStore`** (actor), keyed by account identifier and `TopicID` (category **and** topic number):
   - `advance(_:to:account:)` records the position only when it is ahead of the stored one (or none is stored); otherwise it returns false and writes nothing. `reset(_:to:account:)` records it whatever the stored one (explicit backwards move).
   - `position(of:account:)`, `records(for:)` (most recently updated first: what the iCloud mirror will take the head of).
@@ -40,6 +40,7 @@ Code in `Sources/HFRStorage/ReadingPositions/`, tests in `Tests/HFRStorageTests/
 - Removing an account's last topic removes the account's key from the document.
 - Concurrent calls are serialised by the actor; memory never gets ahead of the file.
 - Same message at the same offset on another page (messages deleted before it moved it to an earlier page): not ahead, so the stored page can be stale. A reader restores by message number (`numreponse=`, which lets HFR pick the page, LOT-095), so the page is only a fallback when no message number is stored.
+- A position without a message number (a page reported before its anchors are known) moves forward by page. If the next report on that page has a message number lower than the last one known, it is accepted: the stored message can step back within one page. This needs both an anchorless report and deletions that moved earlier messages to a later page; the reader then reopens a few messages early, never on another topic. A high-water mark would cost a format field for that case, so none is kept.
 - Each write saves the whole document atomically (about 55 KB per account at the 500-topic limit): callers coalesce, recording on a page change or when scrolling ends, never on every scroll event (LESSONS 49).
 
 ## Fixtures
