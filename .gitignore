@@ -28,3 +28,9 @@ docs/architecture/source/architecture.*
 tooling/fixtures/local.json
 tooling/fixtures/captures/
 __pycache__/
+docs/assets/source/roadmap/package/
+docs/assets/source/roadmap/*.tgz
+docs/assets/source/roadmap/excalidraw-utils.min.js
+docs/assets/source/roadmap/Virgil-Regular.woff2
+docs/assets/source/roadmap/preview.png
+docs/assets/source/roadmap/roadmap-milestones.*

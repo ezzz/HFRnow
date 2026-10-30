@@ -166,6 +166,14 @@ Facts confirmed by a committed capture **and** asserted by a test of the parser 
 - **Header**: `form#fastsearch` holds a hidden `cat` (`13`, `12`, `10`, `prive`) on every list page, logged in or not; the tabs `div.cadreonglet` `#onglet1`-`#onglet4` and `#onglet9` (search, with `cat=`) appear on logged-in forum lists only, not on anonymous lists nor the MP list (`R04`, `R08-2`, `R13a`). Logged-in forum lists have `table.none` with 3 cells, the middle one "Vous avez N nouveau message privé" or just "Messages privés" (`P03f`, `R08-2`).
 - **Search rows** (`R50b`): `sujetCase3` holds the title link, then a `forum2.php?…&numreponse=<n>` link around `span.s1` (the matching message, ending "[...] ").
 
+### LOT-167 — list pager exactness
+
+[LOT-167](lots/LOT-167-page-navigation-exactness.md), tests `TopicListParserTests` (`windowedPagerIsLowerBound`, `shortPagerIsExact`, `exactnessRule`, `rowCountBeatsThePagerWindow`) and `PrivateMessageListParserTests`.
+
+- **Window**: from page 1 the pager lists pages 1-10 one by one, then tens (`R04`: `1 … 10 20 30 …`, last `500`); around page 12 it lists `1 10 11 … 20 …` and around 500 `1 100 500 501 …` (`R05a`, `R05b`, last `700`): the last link is a lower bound, while a topic row's `sujetCase4` count is exact (`R04` row 1: 84, row 8: 35634 against a last link of 500).
+- **Short pagers** (`R08-2`: `1`, `R50b`: `1 2`, `R13u1`: `1`-`7`): consecutive from 1, below 10. Treated as the page count; inferred from the window shape, not independently confirmed (spec, pending capture).
+- **No pager**: the empty MP list has a list body without `fondForum1PagesHaut` (`R13c`): one page, exact when the URL names page 1 (a URL naming a later page leaves it a lower bound). The `.hop` message pages (`R08-1`, `R08-3`) are not lists and keep the default.
+
 ### LOT-024 — favourites page
 
 [LOT-024](lots/LOT-024-favourites-parser.md), tests `FavoritesDifferentialTests` and `FavoritesParserTests`.
@@ -298,7 +306,7 @@ Source: [LOT-036](lots/LOT-036-hop-form-parser.md), `HopFormParser`, checked by 
 - **Body order** (`W10`-`W19` `request_fields`, **verified**): every captured write sends the `hop` form's controls in document order, `content_form` in place between `ColorUsedMem` and `wysiwyg`, the submit input, then the checked boxes; the new-topic `subcat` select sits between `toread5` and the tone radios (`R45a`). The engine rebuilds `W13b`'s body byte for byte from `R47b`, and the other captured bodies once legacy's `"0"` boxes are dropped and line breaks written CRLF.
 - **Fields sent** (`R40a`-`R47u1`, LOT-004 oracle, **verified**): the form's own `hash_check`, `pseudo` and `verifrequet=1100`, every hidden input, the checked tone radio, `submit=Valider votre message`; the same names and values as legacy apart from unchecked boxes.
 - **Composer shapes** (`R40a`-`R47u1`, **verified**): only edit forms carry a non-empty `numreponse`; new-thread forms show `sujet` (`R45a`), with `dest` for a private one (`R45b`); the first post's edit form shows `sujet` and labels its box "Effacer l'intégralité du sujet" (`R43a`), a later post hides `sujet` and says "Effacer ce message" (`R43b`).
-- **Per-write sentences** (`W10`, `W11`, `W15`, `W16a`, `W19`, **verified** on private messages): see §7 E15; `W18` (mark unread) is also a confirmation, of another action. Public-topic answers are not captured (lot's Pending capture).
+- **Per-write sentences** (`W10`, `W11`, `W15`, `W16a`, `W19`, **verified** on private messages): see §7 E15; `W18` (mark unread) is also a confirmation, of another action. Public-topic reply, edit and delete answers carry the same sentences (`W30`–`W32`, `W34`, `W35`; §7 E15); the public new-topic answer is not captured (lot's Pending capture).
 ### LOT-034 — message content
 Source: [LOT-034](lots/LOT-034-content-normalization.md), `MessageContentNormalizer`, checked by `MessageContentOracleTests`,
 `MessageContentNormalizerTests` and `MessageContentSanitizationTests` on the 20 LOT-003 oracle cases (358 messages).
@@ -342,7 +350,7 @@ the upload, answer, `Referer` and thumbnail facts below: they are the **legacy c
 
 ### LOT-051 — flags and favourites
 
-[LOT-051](lots/LOT-051-flag-writes.md), tests `FlagLinkWriteTests`, `FlagLinkValidationTests` and `FavoriteListAndReadTests`.
+[LOT-051](lots/LOT-051-flag-writes.md), tests `FlagLinkWriteTests`, `FlagLinkValidationTests`, `FavoriteListAndReadTests` and `FlagSessionGateTests`.
 
 - **Flag links** (`R21`, `P03a`, `P03d`, **verified**): every message of a logged-in topic page carries `/user/addflag.php?config=hfr.inc&cat=<cat>&post=<post>&numreponse=<n>&page=<p>&ref=<rank>&p=1&sondage=0&owntopic=0&subcat=<sub>` (40 on `R21`, the first one is `P03a`'s request); the page has one `/user/delflag.php?config=hfr.inc&cat=<cat>&subcat=<sub>&post=<post>&page=<p>&p=1&sondage=0&owntopic=<n>&new=0` (`owntopic=0` on `R21`, `1` on `R33b`). No token in either link.
 - **Flag answers** (`P03a`, `P03b`, `P03d`, **verified**): 200 in place, no redirect, no cookie set; a link-less `.hop` "Favori positionné avec succès" (again on a second `addflag`: idempotent) or "Drapeau effacé avec succès", and a 1 s refresh (sub-forum list after `addflag`, `forum1.php…&owntopic=3` of the category after `delflag`).
@@ -388,6 +396,13 @@ Source: [LOT-031](lots/LOT-031-message-actions.md), `MessageActionsParser`, chec
 - **Favourites page filters** (`R11`): the page links `forum1f.php?config=hfr.inc&owntopic=<n>&new=<0|1>&nojs=0` with `owntopic` 0 and 2 beside the documented 1 and 3; the pages behind 0 and 2 are not captured.
 - **Slug segment = forum** (LOT-003 oracle, 20 topic pages): the `<cat>` segment of every canonical permalink maps through `ForumCatalogue` to the same `cat` the message's own quote link carries.
 - **Pending capture**: the AASA file of the site (#127), forums missing from the catalogue (#125), `profilebdd.php?pseudo=`'s redirect target, the pages behind `forum1f.php?owntopic=0|2` and `forum2.php3`.
+
+### LOT-084 — reply composer
+
+Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `LiveTopicPageSource.parse` (LOT-033 metadata).
+
+- **Answer link** (`R61d`, **verified**): a logged-in topic page's `#repondre_form` holds one `a` to `/message.php?config=hfr.inc&cat=<cat>&post=<post>&page=<page>&p=1&subcat=<sub>&sondage=0&owntopic=0&new=0` (the page shown, here 30), the reply composer `R61b` serves; none on anonymous pages (`R20`) nor on a locked topic seen anonymously (`R31`). A locked topic seen by a member is pending capture (#131).
+- **Where a reply lands vs HFR's refresh** (`R61b`, `W30`, `R61d`, **verified** for a form at `page=1`): the composer `W30` posted was fetched with `page=1` and its body carries `page=1` (`R61b`); the answer refreshes to page **1** with `#bas` (`…-sujet_6510_1.htm#bas`), while the reply is the last message of the topic's last page (`R61d`, page 30). Every captured reply posted `page=1` (`W11`, `W12`, `W13b`, `W13c` refresh to `page=1`). **Pending capture**: whether HFR echoes the form's `page` (an edit posted with `page=30` refreshes to `_30.htm`, `W31`; `R61d`'s answer link carries `page=30`). The app does not use the refresh either way: it opens `page = max + 1`, which HFR redirects to the last page (`R24`, 302 from the canonical path), at its last message.
 
 ### LOT-126 — MP list screen
 

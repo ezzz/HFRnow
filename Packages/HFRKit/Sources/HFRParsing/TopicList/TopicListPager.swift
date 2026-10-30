@@ -7,7 +7,8 @@ import SwiftSoup
 /// the current page as `<b>N</b>` and the others as `a.cHeader` or `span.md_cryptlink…` (obfuscated from page 2 on);
 /// two `div.pagepresuiv` hold "Page Suivante" and "Page Précédente", disabled as `span.cFondu`.
 /// The window shows pages 1-10, then tens, then hundreds around the current page, so `last` is the last page the pager
-/// links to, not the page count of the forum (LOT-002 RC2.1).
+/// links to, not the page count of the forum (LOT-002 RC2.1). `isExact` is set only when the window cannot hide pages
+/// (LOT-167): see ``windowSize``.
 enum TopicListPager {
     /// Navigation of the page; `pagePath` is the forum-relative URL the page was served from.
     ///
@@ -17,7 +18,10 @@ enum TopicListPager {
     static func navigation(in body: Element, pagePath: String?) -> PageNavigation {
         let urlPage = pagePath.flatMap(pageNumber(inPagePath:))
         guard let header = body.firstDescendant(matching: .classToken("fondForum1PagesHaut")) else {
-            return PageNavigation(current: urlPage ?? 1)
+            // A list body without a pager header is one page (R13c), but only when the URL does not name a later page:
+            // a missing header then says nothing about the total.
+            let page = urlPage ?? 1
+            return PageNavigation(current: page, isExact: page == 1)
         }
         let entries = header.firstDescendant(matching: .classToken("left")).map(pageEntries(in:)) ?? []
         let current = entries.first { $0.element.tagName() == "b" }?.number ?? urlPage ?? 1
@@ -27,6 +31,7 @@ enum TopicListPager {
             navigation.last = last.number
             navigation.firstPath = first.number == current ? pagePath : linkTarget(of: first.element)
             navigation.lastPath = last.number == current ? pagePath : linkTarget(of: last.element)
+            navigation.isExact = isExactCount(of: entries.map(\.number))
         }
         let arrows = header.descendants(matching: .classToken("pagepresuiv"))
         if arrows.count == 2 {
@@ -34,6 +39,19 @@ enum TopicListPager {
             navigation.previousPath = linkTarget(of: arrows[1])
         }
         return navigation
+    }
+
+    /// HFR lists pages 1-10 one by one, then only tens (R04: `1 … 10 20 30`), so a pager that stops before 10 cannot hide
+    /// a page, while one that reaches 10 or skips a number can (R05a, R05b: jumps by tens and hundreds).
+    private static let windowSize = 10
+
+    /// True when the pager entries are 1, 2, … N with N below the window size: its last page is then the page count.
+    ///
+    /// Pager shapes with N < 10 are captured (R08-2: 1, R50b: 1-2, R13u1: 1-7); that nothing hides behind them is inferred
+    /// from the window starting with pages 1-10, hence the strict bound (LOT-167).
+    static func isExactCount(of pageNumbers: [Int]) -> Bool {
+        guard let last = pageNumbers.last, last < windowSize else { return false }
+        return pageNumbers == Array(1...last)
     }
 
     /// Page number named by a list URL: `page=N`, else `liste_sujet-N.htm`; nil otherwise.

@@ -26,7 +26,7 @@ Legacy repository <https://github.com/francoisgn/hfrnow> at `2440d79`. Audit: [E
 Code in `Sources/HFRStorage/Settings/`, tests in `Tests/HFRStorageTests/Settings/`.
 
 - **`Setting<Value>`**: legacy key name, default, and a tolerant codec. Reading never fails: a missing, mistyped or out-of-range value gives the default, or the legacy normalisation of that value.
-- **`SettingKey`**: the 32 preferences of E §3.1 (state and counters of §3.2 belong to their own stores). SwiftUI `@AppStorage` can reuse `key` and `defaultValue`. `allKeys` is used by tests.
+- **`SettingKey`**: the 32 preferences of E §3.1 (LOT-119 added `HFRswiftStartupScreen`, `open_links_in_default_browser` and `text_size_percent`, which `AppSettingsView` reads or replaces) (state and counters of §3.2 belong to their own stores). SwiftUI `@AppStorage` can reuse `key` and `defaultValue`. `allKeys` is used by tests.
 - **`SettingsStore`** (protocol, synchronous): `rawValue`, `setRawValue`, `removeValue` over `SettingRawValue` (`bool`, `int`, `double`, `string`); typed `value(for:)`, `set(_:for:)`, `reset(_:)` in an extension. Implementations: `UserDefaultsSettingsStore` (standard suite = what the legacy app wrote) and `InMemorySettingsStore`.
 - **Coercions** follow `UserDefaults`: `integerForKey:` accepts booleans, doubles (truncated) and numeric strings; `stringForKey:` accepts numbers; booleans additionally accept `1/0/true/false/yes/no/on/off` as `haptics` does.
 - **`LegacySettingsNormalizer.run(on:)`** (called by the app at launch): clamps an unknown `auto_theme` to `3`, removes `force_manual_theme`, `auto_theme_day_time`, `auto_theme_night_time`, migrates `size_text_topics` to the nearest `text_size_scale` once (only while the new key is absent) and then removes the legacy key, so a later reset is not undone.
@@ -39,6 +39,19 @@ Decisions:
 3. **No `register(defaults:)`** and no value written by a read: defaults live in `Setting`, so nothing volatile hides in the process (E §7.1). `mpstorage_last_rw` is persisted for real, as a `dd-MM-yyyy HH:mm:ss` local-time string (`Date.VerbatimFormatStyle`); the legacy `-` reads as "never".
 4. **Naming**: Swift names say "blocklist" (`hideBlocklistedPosts`), the key stays `blacklist_hide_pseudo`.
 5. **Not ported on purpose**: the mirroring of `size_text`, `size_text_topics`, `size_text_reply` on every change (legacy compatibility only); the forced `shake_to_refresh = NO`, `theme_noel_disabled = YES`; the `version` registration; the seed-only keys with no reader (`default_tab`, `adv_ssl`, `mpstorage_reset`, `EmptyCacheButton`, `theme_*_adjust`, `theme_*_tintcolor`, `offline_max_pages`).
+
+## Catalogue additions after the audit (ADR 0013, 2026-10-28)
+
+Four preferences were added to the legacy app on `origin/master` after the audit's `2440d79` and are missing from E §3.1. They belong to the catalogue with the legacy key names; two are added by LOT-119 and the other two by the next lot that touches `SettingKey` (LOT-172 at the latest):
+
+| Key | Type / values | Default | Legacy (`origin/master` @ `21173e7`) | Store ([ADR 0013](../adr/0013-storage-tiers.md) scope) |
+|---|---|---|---|---|
+| `HFRswiftStartupScreen` | String `tab:categories` / `tab:favorites` / `tab:messages` | `tab:favorites` | `Common.swift:32-37`, `AppSettingsView.swift:88` | synced (LOT-119) |
+| `open_links_in_default_browser` | Bool | false | `Common.swift:239-240`, `AppSettingsView.swift:95` | synced (LOT-119) |
+| `topic_page_swipe_navigation` | Bool | true | `Common.swift:235-236`, `AppSettingsView.swift:94` | synced |
+| `reply_button_behavior` | String `quick` / `forum` / `hidden` | `quick` | `Common.swift:243-248`, `AppSettingsView.swift:106` | synced |
+
+Every key of the catalogue gets a `scope` (`.synced` or `.device`) from the ADR 0013 matrix (LOT-172); the legacy key names stay the `UserDefaults` names on both scopes. `embedded_videos` (`SettingKey.embeddedVideos`) has no reader nor writer on `master` since `d645f52`: the ADR 0013 matrix drops it, so its scope is `.device` and it joins the "not ported" list above when a lot next touches `SettingKey`.
 
 ## Edge cases
 - `UserDefaults` booleans and integers are both `NSNumber`: the store tells them apart with `objCType` (`c`/`B` boolean), then every reader is tolerant anyway.

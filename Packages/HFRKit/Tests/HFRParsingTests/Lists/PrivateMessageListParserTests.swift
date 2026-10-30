@@ -94,6 +94,7 @@ struct PrivateMessageListParserTests {
         let page = try PrivateMessageListParser.parse(Fixture.capture("R13u1-mp-list-recipient-unread"), pageURL: Self.listURL)
         #expect(page.navigation.current == 1)
         #expect(page.navigation.last == 7)
+        #expect(page.navigation.isExact)
         #expect(page.navigation.nextPath?.contains("&page=2&") == true)
         #expect(page.newMessagePath == "/message.php?config=hfr.inc&cat=prive&sond=0&p=1&subcat=0&dest=&subcatgroup=0")
     }
