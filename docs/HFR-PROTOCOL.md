@@ -416,6 +416,14 @@ Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `Li
 [LOT-126](lots/LOT-126-mp-list.md). No new forum fact: the screen reads the rows `PrivateMessageListParser` already verifies (§6c LOT-023). One thing it relies on, asserted on `R13u1` by `LivePrivateMessageSourceTests` (every row parses to an openable target, `ReaderTarget(opening:) != nil`; the 457-page thread opens the reader on page 457, `theCapturedLongThreadOpensOnItsLastPage`): every MP row's title link is `/forum2.php?config=hfr.inc&cat=prive&post=<id>&page=1&…`, a topic link of category `prive`, and its `sujetCase9` latest-message link names the thread's last page (`…&page=457&…#bas` on the 457-page thread of `R13u1`; `sujetCase5` has no flag link). The reader opens the latter, as legacy does (`HFRMPViewController.m:255`).
 - **Pending capture**: whether fetching an MP thread page marks it read on HFR, and from which page (no before/after pair of the MP list around a thread page fetch); a thread of another member and a group thread opened in the reader (`RA1`-`RA5` exist, all of the owner's own account or threads); the list logged out (#121).
 
+### LOT-093 — filtered posts
+
+[LOT-093](lots/LOT-093-filtered-posts.md), tests `FilteredPostsLegacyTests` (LOT-003 oracles) and `FilteredPostsFlowTests`.
+
+- **Anonymous pages carry what the filter reads** (`R20`, `R22a`, `R22b`, `R26`-`R28`, `R31`, `R32a`, **verified**): the "Message cité N fois" trailer and the quote headers are served without cookies, so the filter needs no session.
+- **First block of a page** (`R20`, `R22a`, `R22b`, `R24`, **verified**): on page 1 it is the topic's opening post, on later pages the continuation block; on anonymous pages the advertisement block comes second.
+- **Page past the end** (`R24`, **verified**): `forum2.php?…&page=2202` of a 2201-page topic ends, after the canonical redirects, with a 302 to `…_2201.htm`, the last page.
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).
