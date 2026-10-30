@@ -32,8 +32,8 @@ struct AppEnvironment {
         )
         return AppEnvironment(
             session: session, dataSource: source, visibility: ForumVisibility(), currentAccountName: accountName,
-            topicPages: pages, reader: reader, composer: .live(session: session, account: accountName),
-            privateMessages: LivePrivateMessageSource(fetcher: fetcher)
+            topicPages: pages, reader: reader, privateMessages: LivePrivateMessageSource(fetcher: fetcher),
+            composer: .live(session: session, account: accountName)
         )
     }
 
