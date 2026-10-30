@@ -1,5 +1,6 @@
 import Foundation
 import HFRModels
+import HFRParsing
 import Observation
 
 /// An HTML document handed to the web view. `token` is unique per model, so an event of an older document is recognised.
@@ -55,11 +56,15 @@ final class TopicReaderModel {
     private(set) var readyToken: Int?
     /// Latest in-page scroll request.
     private(set) var scrollRequest: ScrollRequest?
+    /// HFR's confirmation of the reply just sent, shown until dismissed; set only by a confirmed reply (LOT-084).
+    private(set) var replyConfirmation: String?
     /// Title until the page gives its own.
     let initialTitle: String
 
     /// The page last asked for (shown, or failed): what "Réessayer" asks again.
     private(set) var requested: ReaderTarget
+    /// Where the page last asked for opens, kept so "Réessayer" after a failed latest-post load still opens at the end.
+    private var requestedAnchor = AnchorRule.target
     /// The target of the page on screen (topic and page as served), what a refresh reloads.
     private(set) var shown: ReaderTarget?
 
@@ -95,14 +100,14 @@ final class TopicReaderModel {
     /// First appearance: loads the target once. A view that appears again (rotation, column change) loads nothing.
     func onAppear() async {
         guard page == nil, !isLoading, error == nil else { return }
-        await load(requested, keepsScrollPosition: false)
+        await load(requested, keepsScrollPosition: false, anchor: requestedAnchor)
     }
 
     /// Reloads the page on screen (not page 1, not the page first opened); the content stays while it runs and after a
     /// failure. Before anything is shown, retries the first load.
     func refresh() async {
         guard let shown else {
-            await load(requested, keepsScrollPosition: false)
+            await load(requested, keepsScrollPosition: false, anchor: requestedAnchor)
             return
         }
         await load(ReaderTarget(source: shown.source, page: shown.page), keepsScrollPosition: true)
@@ -110,7 +115,7 @@ final class TopicReaderModel {
 
     /// Asks again for the page that failed.
     func retry() async {
-        await load(requested, keepsScrollPosition: false)
+        await load(requested, keepsScrollPosition: false, anchor: requestedAnchor)
     }
 
     /// Opens page `number` of the topic (clamped to the known pages).
@@ -134,6 +139,49 @@ final class TopicReaderModel {
             return
         }
         await load(target, keepsScrollPosition: false)
+    }
+
+    /// What the reply composer needs from the page on screen; nil when the page offers no answer form (logged out, locked
+    /// topic: `#repondre_form` is absent, LOT-033), names no topic (the draft is kept per topic), or its answer link names
+    /// another topic.
+    var replyTarget: ReplyTarget? {
+        // Same origin rule as `PostingFlow`: a link it would refuse (another port) offers no reply.
+        guard let page, let formURL = page.answerURL, formURL.port == nil || formURL.port == 443,
+              let topic = page.topicID else { return nil }
+        // `#repondre_form` comes after the messages (`R61d`) and its link carries `cat` and `post`: a link that names
+        // another topic would post there under this topic's draft, so a parser slip offers no reply instead.
+        guard HFRURL.topicID(in: formURL.absoluteString) == topic else { return nil }
+        return ReplyTarget(formURL: formURL, topic: topic)
+    }
+
+    /// The reply sheet closed: after a confirmed reply, shows HFR's sentence and the topic's latest post; after an
+    /// unconfirmed one, the latest post only, so the user sees whether it was posted. Closing with or without the draft
+    /// changes nothing.
+    func composerDidClose(_ reason: ReplyComposerModel.CloseReason) async {
+        switch reason {
+        case .sent(let result):
+            replyConfirmation = result.message
+            await showLatestPost()
+        case .checkTopic:
+            await showLatestPost()
+        case .keptDraft, .discardedDraft, .closedWithoutSaving:
+            break
+        }
+    }
+
+    /// Hides the reply confirmation.
+    func clearReplyConfirmation() {
+        replyConfirmation = nil
+    }
+
+    /// After a reply: opens the topic's last page at its last message, where HFR appends a reply (`R61d`). The page after
+    /// the last known one is asked for, since the reply may have opened it; past the end HFR redirects to the last page (`R24`,
+    /// on `forum2.php` and on the canonical path alike).
+    /// HFR's own refresh is not used: after a form fetched at `page=1` it names page 1 (`W30`: `…_1.htm#bas`), and whether
+    /// it echoes another form `page` after a reply is not captured.
+    func showLatestPost() async {
+        guard let page, let shown else { return }
+        await load(shown.atPage(page.maxPage + 1), keepsScrollPosition: false, anchor: .lastMessage)
     }
 
     /// Stops the load in flight; the content stays.
@@ -166,11 +214,20 @@ final class TopicReaderModel {
 
     // MARK: - Loading
 
-    private func load(_ target: ReaderTarget, keepsScrollPosition: Bool) async {
+    /// Where a loaded document opens.
+    private enum AnchorRule {
+        /// At the target's own anchor, when the page holds it.
+        case target
+        /// At the page's last message (after a reply).
+        case lastMessage
+    }
+
+    private func load(_ target: ReaderTarget, keepsScrollPosition: Bool, anchor rule: AnchorRule = .target) async {
         task?.cancel()
         generation += 1
         let mine = generation
         requested = target
+        requestedAnchor = rule
         isLoading = true
         let source = self.source
         let task = Task { [weak self] in
@@ -180,14 +237,15 @@ final class TopicReaderModel {
             } catch {
                 result = .failure(error)
             }
-            self?.finish(result, target: target, keepsScrollPosition: keepsScrollPosition, generation: mine)
+            self?.finish(result, target: target, keepsScrollPosition: keepsScrollPosition, anchor: rule, generation: mine)
         }
         self.task = task
         await task.value
     }
 
     private func finish(
-        _ result: Result<ReaderPage, ListLoadError>, target: ReaderTarget, keepsScrollPosition: Bool, generation mine: Int
+        _ result: Result<ReaderPage, ListLoadError>, target: ReaderTarget, keepsScrollPosition: Bool, anchor rule: AnchorRule,
+        generation mine: Int
     ) {
         // A superseded or cancelled load never delivers (issue #108).
         guard mine == generation else { return }
@@ -201,8 +259,13 @@ final class TopicReaderModel {
             page = loaded
             error = nil
             nextToken += 1
-            let anchor = target.anchor.flatMap { anchor in
-                loaded.messages.contains { !$0.isContinuation && $0.numreponse == anchor } ? anchor : nil
+            let anchor: Int? = switch rule {
+            case .target:
+                target.anchor.flatMap { anchor in
+                    loaded.messages.contains { !$0.isContinuation && $0.numreponse == anchor } ? anchor : nil
+                }
+            case .lastMessage:
+                loaded.messages.last { !$0.isContinuation }?.numreponse
             }
             document = ReaderDocument(
                 token: nextToken,

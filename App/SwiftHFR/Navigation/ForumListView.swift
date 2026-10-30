@@ -1,16 +1,12 @@
 import SwiftUI
 
-/// The sidebar: flags, favourites, then every forum with its sub-forums.
+/// The Catégories list: every forum with its sub-forums (flags and favourites have their own tab, LOT-170).
 struct ForumListView: View {
     @Bindable var navigation: NavigationModel
 
     var body: some View {
         let loader = navigation.forums.loader
         List(selection: $navigation.selectedSource) {
-            Section {
-                Label("Drapeaux", systemImage: "flag").tag(TopicSource.flagged)
-                Label("Favoris", systemImage: "star").tag(TopicSource.favorites)
-            }
             if let content = loader.value {
                 ForEach(content.sections) { section in
                     Section(section.title, isExpanded: expansion(of: section.id)) {
@@ -22,7 +18,7 @@ struct ForumListView: View {
             }
         }
         .listStyle(.sidebar)
-        .navigationTitle("HFR")
+        .navigationTitle("Catégories")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 AccountMenuButton()

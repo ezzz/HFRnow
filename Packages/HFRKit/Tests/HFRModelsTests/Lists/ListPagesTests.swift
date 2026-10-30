@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import HFRModels
 
@@ -9,6 +10,19 @@ import Testing
         #expect(navigation.last == 1)
         #expect(navigation.nextPath == nil)
         #expect(navigation.previousPath == nil)
+    }
+
+    @Test func paginationIsALowerBoundUnlessSaidExact() throws {
+        #expect(PageNavigation().isExact == false)
+        let exact = PageNavigation(current: 2, last: 3, isExact: true)
+        #expect(try roundTrip(exact) == exact)
+        #expect(try roundTrip(exact).isExact)
+    }
+
+    @Test func recordWrittenBeforeTheFlagDecodesAsLowerBound() throws {
+        let legacyRecord = Data(#"{"current":2,"first":1,"last":7,"nextPath":"/p3"}"#.utf8)
+        let decoded = try JSONDecoder().decode(PageNavigation.self, from: legacyRecord)
+        #expect(decoded == PageNavigation(current: 2, first: 1, last: 7, isExact: false, nextPath: "/p3"))
     }
 
     @Test func topicListPageRoundTrips() throws {
