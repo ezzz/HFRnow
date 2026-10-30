@@ -103,4 +103,34 @@ import Testing
         let reopened = SuperFavoritesStore(persistence: FileSmallStorePersistence(fileURL: file))
         #expect(await reopened.favorites(for: "user1") == [SuperFavorite(topic: Self.cuisine, addedAt: SmallStoreTestSupport.date(0.3))])
     }
+
+    @Test func aListStoredByAnotherWriterIsReadAsLegacyLoadedIt() async throws {
+        let date = SmallStoreTestSupport.date
+        let stored = SuperFavoritesDocument(accounts: ["user1": [
+            SuperFavorite(topic: TopicID(category: .privateMessages, topic: 5), addedAt: date(1)),
+            SuperFavorite(topic: TopicID(category: .forum(13), topic: 500), addedAt: date(2)),
+            SuperFavorite(topic: TopicID(category: .forum(13), topic: 20), addedAt: date(3)),
+            SuperFavorite(topic: TopicID(category: .forum(13), topic: 20), addedAt: date(4)),
+            SuperFavorite(topic: TopicID(category: .forum(13), topic: 0), addedAt: date(5))
+        ]])
+        let persistence = InMemorySmallStorePersistence(stored)
+        let store = SuperFavoritesStore(persistence: persistence)
+        #expect(await store.favorites(for: "user1") == [
+            SuperFavorite(topic: TopicID(category: .forum(13), topic: 20), addedAt: date(3)),
+            SuperFavorite(topic: TopicID(category: .forum(13), topic: 500), addedAt: date(2)),
+            SuperFavorite(topic: TopicID(category: .privateMessages, topic: 5), addedAt: date(1))
+        ])
+        #expect(await !store.contains(TopicID(category: .forum(13), topic: 0), account: "user1"))
+        try await store.add(TopicID(category: .forum(5), topic: 1), account: "user1", at: date(6))
+        #expect(persistence.document?.accounts["user1"]?.map(\.topic) == [
+            TopicID(category: .forum(5), topic: 1),
+            TopicID(category: .forum(13), topic: 20),
+            TopicID(category: .forum(13), topic: 500),
+            TopicID(category: .privateMessages, topic: 5)
+        ])
+        let duplicated = InMemorySmallStorePersistence(stored)
+        let other = SuperFavoritesStore(persistence: duplicated)
+        #expect(try await other.remove(TopicID(category: .forum(13), topic: 20), account: "user1"))
+        #expect(await !other.contains(TopicID(category: .forum(13), topic: 20), account: "user1"))
+    }
 }

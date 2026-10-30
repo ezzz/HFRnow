@@ -18,7 +18,7 @@ public actor AppSmileyFavoritesStore {
 
     /// The account's favourites, oldest first; empty while the stored data is unreadable.
     public func favorites(for account: String) -> [AppSmileyFavorite] {
-        state.document()?.accounts[AccountKey.make(account)] ?? []
+        Self.normalized(state.document()?.accounts[AccountKey.make(account)] ?? [])
     }
 
     /// Whether the smiley `code` is one of the account's favourites (exact comparison).
@@ -42,7 +42,7 @@ public actor AppSmileyFavoritesStore {
         }
         let key = try AccountKey.forWriting(account)
         return try state.mutate { document in
-            var list = document.accounts[key] ?? []
+            var list = Self.normalized(document.accounts[key] ?? [])
             guard !list.contains(where: { $0.code == code }) else { return false }
             // After every favourite of the same date or older: oldest first even if the clock moved back.
             let position = list.firstIndex { $0.addedAt > date } ?? list.endIndex
@@ -57,11 +57,10 @@ public actor AppSmileyFavoritesStore {
     public func remove(code: String, account: String) throws(SmallStoreError) -> Bool {
         let key = try AccountKey.forWriting(account)
         return try state.mutate { document in
-            guard var list = document.accounts[key], let index = list.firstIndex(where: { $0.code == code }) else {
-                return false
-            }
-            list.remove(at: index)
-            document.accounts[key] = list.isEmpty ? nil : list
+            let list = Self.normalized(document.accounts[key] ?? [])
+            guard list.contains(where: { $0.code == code }) else { return false }
+            let kept = list.filter { $0.code != code }
+            document.accounts[key] = kept.isEmpty ? nil : kept
             return true
         }
     }
@@ -78,5 +77,18 @@ public actor AppSmileyFavoritesStore {
     /// Only call it after the user agreed: this is the single way out of a failed load.
     public func discardUnreadableData() throws(SmallStoreError) {
         try state.discardUnreadableData()
+    }
+
+    // MARK: Internals
+
+    /// A list as legacy loaded one: each code once (legacy keyed its dictionary by code; the first entry is kept), oldest
+    /// first (`SmileyCache.m:371-379`), equal dates in stored order. Lists this store writes are in that form already;
+    /// one written by another build or by LOT-067 / LOT-172 may not be.
+    private static func normalized(_ list: [AppSmileyFavorite]) -> [AppSmileyFavorite] {
+        var seen = Set<String>()
+        return list.filter { seen.insert($0.code).inserted }
+            .enumerated()
+            .sorted { ($0.element.addedAt, $0.offset) < ($1.element.addedAt, $1.offset) }
+            .map(\.element)
     }
 }

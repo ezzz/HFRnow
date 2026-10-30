@@ -15,7 +15,7 @@ public actor FavoritesLayoutStore {
 
     /// The collapsed sections; empty (all expanded) while the stored data is unreadable.
     public func collapsedSections() -> Set<String> {
-        Set(state.document()?.collapsedSections ?? [])
+        Self.normalized(state.document()?.collapsedSections ?? [])
     }
 
     /// Whether `section` is collapsed. The identifier is compared trimmed.
@@ -34,7 +34,7 @@ public actor FavoritesLayoutStore {
         let identifier = Self.trimmed(section)
         guard !identifier.isEmpty else { throw .invalidValue(reason: "empty section identifier") }
         return try state.mutate { document in
-            var sections = Set(document.collapsedSections)
+            var sections = Self.normalized(document.collapsedSections)
             let changed = collapsed ? sections.insert(identifier).inserted : sections.remove(identifier) != nil
             document.collapsedSections = sections.sorted()
             return changed
@@ -51,6 +51,12 @@ public actor FavoritesLayoutStore {
     /// expanded. Only call it after the user agreed: this is the single way out of a failed load.
     public func discardUnreadableData() throws(SmallStoreError) {
         try state.discardUnreadableData()
+    }
+
+    /// Identifiers as legacy loaded them (`Favorites.swift:142-150`): trimmed, empty ones dropped. The ones this store
+    /// writes are in that form already; another writer's may not be.
+    private static func normalized(_ sections: [String]) -> Set<String> {
+        Set(sections.map(trimmed).filter { !$0.isEmpty })
     }
 
     private static func trimmed(_ section: String) -> String {

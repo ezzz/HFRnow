@@ -18,7 +18,7 @@ public actor SuperFavoritesStore {
 
     /// The account's super-favourites, by category then topic number; empty while the stored data is unreadable.
     public func favorites(for account: String) -> [SuperFavorite] {
-        state.document()?.accounts[AccountKey.make(account)] ?? []
+        Self.normalized(state.document()?.accounts[AccountKey.make(account)] ?? [])
     }
 
     /// Whether `topic` is one of the account's super-favourites.
@@ -39,10 +39,9 @@ public actor SuperFavoritesStore {
         guard topic.topic > 0 else { throw .invalidValue(reason: "topic number \(topic.topic)") }
         let key = try AccountKey.forWriting(account)
         return try state.mutate { document in
-            var list = document.accounts[key] ?? []
+            let list = Self.normalized(document.accounts[key] ?? [])
             guard !list.contains(where: { $0.topic == topic }) else { return false }
-            list.append(SuperFavorite(topic: topic, addedAt: date))
-            document.accounts[key] = list.sorted { Self.precedes($0.topic, $1.topic) }
+            document.accounts[key] = Self.normalized(list + [SuperFavorite(topic: topic, addedAt: date)])
             return true
         }
     }
@@ -52,11 +51,10 @@ public actor SuperFavoritesStore {
     public func remove(_ topic: TopicID, account: String) throws(SmallStoreError) -> Bool {
         let key = try AccountKey.forWriting(account)
         return try state.mutate { document in
-            guard var list = document.accounts[key], let index = list.firstIndex(where: { $0.topic == topic }) else {
-                return false
-            }
-            list.remove(at: index)
-            document.accounts[key] = list.isEmpty ? nil : list
+            let list = Self.normalized(document.accounts[key] ?? [])
+            guard list.contains(where: { $0.topic == topic }) else { return false }
+            let kept = list.filter { $0.topic != topic }
+            document.accounts[key] = kept.isEmpty ? nil : kept
             return true
         }
     }
@@ -77,8 +75,16 @@ public actor SuperFavoritesStore {
 
     // MARK: Internals
 
+    /// A list as legacy loaded one (`Favorites.swift:115-131`): topic numbers above 0, each topic once (its first entry
+    /// kept), by category then topic number. Lists this store writes are in that form already; one written by another
+    /// build or by LOT-067 / LOT-172 may not be.
+    private static func normalized(_ list: [SuperFavorite]) -> [SuperFavorite] {
+        var seen = Set<TopicID>()
+        return list.filter { $0.topic.topic > 0 && seen.insert($0.topic).inserted }.sorted { precedes($0.topic, $1.topic) }
+    }
+
     /// The saved order: forum categories by number, private messages last, then topic number.
-    static func precedes(_ lhs: TopicID, _ rhs: TopicID) -> Bool {
+    private static func precedes(_ lhs: TopicID, _ rhs: TopicID) -> Bool {
         let left = rank(of: lhs.category)
         let right = rank(of: rhs.category)
         return left == right ? lhs.topic < rhs.topic : left < right

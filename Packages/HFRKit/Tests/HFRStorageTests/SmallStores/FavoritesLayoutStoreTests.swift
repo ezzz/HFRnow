@@ -44,4 +44,13 @@ import Testing
         }
         #expect(persistence.saveCount == 0)
     }
+
+    @Test func identifiersStoredByAnotherWriterAreReadAsLegacyLoadedThem() async throws {
+        let persistence = InMemorySmallStorePersistence(FavoritesLayoutDocument(collapsedSections: [" 13 ", "", "\n", "5", "5"]))
+        let store = FavoritesLayoutStore(persistence: persistence)
+        #expect(await store.collapsedSections() == ["13", "5"])
+        #expect(await store.isCollapsed("13"))
+        #expect(try await store.setCollapsed(false, section: "13"))
+        #expect(persistence.document?.collapsedSections == ["5"])
+    }
 }

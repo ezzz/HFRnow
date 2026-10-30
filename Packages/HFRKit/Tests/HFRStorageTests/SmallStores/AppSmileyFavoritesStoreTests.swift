@@ -73,4 +73,24 @@ import Testing
         await #expect(throws: SmallStoreError.emptyAccount) { try await store.remove(code: "[:exemple]", account: "\u{200B}") }
         #expect(persistence.saveCount == 0)
     }
+
+    @Test func aListStoredByAnotherWriterIsReadAsLegacyLoadedIt() async throws {
+        let url = try Self.url("exemple")
+        let date = SmallStoreTestSupport.date
+        let stored = AppSmileyFavoritesDocument(accounts: ["user1": [
+            AppSmileyFavorite(code: "[:b]", url: url, addedAt: date(2)),
+            AppSmileyFavorite(code: "[:a]", url: url, addedAt: date(1)),
+            AppSmileyFavorite(code: "[:c]", url: url, addedAt: date(3)),
+            AppSmileyFavorite(code: "[:e]", url: url, addedAt: date(2)),
+            AppSmileyFavorite(code: "[:b]", url: url, addedAt: date(0))
+        ]])
+        let persistence = InMemorySmallStorePersistence(stored)
+        let store = AppSmileyFavoritesStore(persistence: persistence)
+        #expect(await store.favorites(for: "user1").map(\.code) == ["[:a]", "[:b]", "[:e]", "[:c]"])
+        try await store.add(code: "[:d]", url: url, account: "user1", at: date(1.5))
+        #expect(persistence.document?.accounts["user1"]?.map(\.code) == ["[:a]", "[:d]", "[:b]", "[:e]", "[:c]"])
+        let other = AppSmileyFavoritesStore(persistence: InMemorySmallStorePersistence(stored))
+        #expect(try await other.remove(code: "[:b]", account: "user1"))
+        #expect(await !other.contains(code: "[:b]", account: "user1"))
+    }
 }

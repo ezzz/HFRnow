@@ -109,4 +109,17 @@ import Testing
         #expect(try Data(contentsOf: directory.appending(path: "store.json.corrupt")) == garbage)
         #expect(try await uploads.add(RehostedImage(fullURL: url, uploadedAt: .now)))
     }
+
+    /// The version is read before the shape, so a newer file that this code cannot decode is still reported as newer.
+    @Test func aNewerFileWithAnotherShapeIsReportedAsNewerByTheStore() async throws {
+        let directory = try SmallStoreTestSupport.makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appending(path: "superfavorites.json")
+        let newer = Data(#"{"version":2,"favorites":{"user1":["13/28563"]}}"#.utf8)
+        try newer.write(to: file)
+        let store = SuperFavoritesStore(persistence: FileSmallStorePersistence(fileURL: file))
+        #expect(await store.loadFailure() == .unsupportedVersion(2))
+        await #expect(throws: SmallStoreError.unsupportedVersion(2)) { try await store.add(Self.cuisine, account: "user1") }
+        #expect(try Data(contentsOf: file) == newer)
+    }
 }
