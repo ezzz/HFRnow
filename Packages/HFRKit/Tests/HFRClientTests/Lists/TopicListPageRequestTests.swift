@@ -4,6 +4,25 @@ import HFRNetwork
 import HFRParsing
 import Testing
 
+/// The parts of a list capture's meta that `TopicListPageRequestTests` reads (file scope: SwiftLint allows one nesting level).
+private struct ListCaptureMeta: Decodable {
+    /// One redirect hop HFR answered.
+    struct Hop: Decodable {
+        let status: Int
+        let location: String
+    }
+
+    let url: String
+    let finalURL: String
+    let redirects: [Hop]
+
+    enum CodingKeys: String, CodingKey {
+        case url
+        case finalURL = "final_url"
+        case redirects
+    }
+}
+
 /// #103: page N of a topic list is requested as `forum1.php?…&page=N`, which HFR redirects to `liste_sujet-N.htm`, and never
 /// as `liste_sujet-1.htm?page=N`. Legacy built that last shape (`TopicPageURLRouting.replacingPage`, `Common.swift:2750-2759`
 /// on `master`: no `page=` and no `_N.htm` in the path, so it appended `?page=N`) and showed page 1 under a "page 11" header.
@@ -11,33 +30,15 @@ import Testing
 /// pending capture, HFR-PROTOCOL §7b B2).
 @Suite("Topic list page N (#103)")
 struct TopicListPageRequestTests {
-    /// The parts of a capture's meta this suite reads.
-    struct Meta: Decodable {
-        struct Hop: Decodable {
-            let status: Int
-            let location: String
-        }
-
-        let url: String
-        let finalURL: String
-        let redirects: [Hop]
-
-        enum CodingKeys: String, CodingKey {
-            case url
-            case finalURL = "final_url"
-            case redirects
-        }
-    }
-
     static let cases = [
         ("R04", "R04-list-cat13-p1-anon", 1),
         ("R05a", "R05a-list-cat13-p12-anon", 12),
         ("R05b", "R05b-list-cat13-p500-anon", 500)
     ]
 
-    private func meta(_ id: String) throws -> Meta {
+    private func meta(_ id: String) throws -> ListCaptureMeta {
         let url = Capture.directory.appendingPathComponent(id + ".meta.json")
-        return try JSONDecoder().decode(Meta.self, from: Data(contentsOf: url))
+        return try JSONDecoder().decode(ListCaptureMeta.self, from: Data(contentsOf: url))
     }
 
     @Test("The endpoint asks for page N exactly as the capture did, and HFR answered page N", arguments: cases)
