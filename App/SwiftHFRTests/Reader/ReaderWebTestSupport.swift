@@ -66,7 +66,11 @@ extension ReaderWebTesting {
         )
     }
 
-    func until(_ condition: () -> Bool, timeout: Duration = .seconds(90)) async -> Bool {
+    /// Polls `condition` until it holds or `timeout` passes. The deadline counts from the call, and the first web test of
+    /// a suite starts while the rest of the app suite runs in parallel: on the CI simulator that start alone has taken
+    /// 70-100 s (dev-swift 0e0f61a), so 90 s failed the first test of each web suite. A passing test returns as soon as
+    /// its condition holds, so only a real failure waits the whole deadline.
+    func until(_ condition: () -> Bool, timeout: Duration = .seconds(240)) async -> Bool {
         let clock = ContinuousClock()
         let deadline = clock.now + timeout
         while !condition() {
@@ -76,7 +80,7 @@ extension ReaderWebTesting {
         return true
     }
 
-    func until(async condition: () async -> Bool, timeout: Duration = .seconds(90)) async -> Bool {
+    func until(async condition: () async -> Bool, timeout: Duration = .seconds(240)) async -> Bool {
         let clock = ContinuousClock()
         let deadline = clock.now + timeout
         while await !condition() {

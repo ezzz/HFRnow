@@ -2,7 +2,7 @@ import Foundation
 import HFRModels
 
 /// One topic page as the reader shows it: page facts (LOT-033), message blocks (LOT-030) and their normalized content
-/// (LOT-034). Holds no form field or token: the reader is read-only.
+/// (LOT-034). Holds no form field or token: the only write entry is the answer link, which the composer fetches (LOT-084).
 struct ReaderPage: Equatable, Sendable {
     /// Category and topic numbers, read from the page; nil when the page does not give them.
     var topicID: TopicID?
@@ -16,6 +16,9 @@ struct ReaderPage: Equatable, Sendable {
     var messages: [ReaderMessage]
     /// HFR's own message when it served a notice instead of messages (a `.hop` page); nil otherwise.
     var notice: String?
+    /// The reply composer's page (`#repondre_form`'s link, `https` on the forum host, LOT-033); nil when the page offers no
+    /// answer form (logged out, locked topic).
+    var answerURL: URL?
 }
 
 /// One message of a `ReaderPage`.

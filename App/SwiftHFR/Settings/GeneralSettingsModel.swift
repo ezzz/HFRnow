@@ -39,8 +39,7 @@ final class GeneralSettingsModel {
             if textSizePercent != oldValue { store.set(textSizePercent, for: SettingKey.textSizePercent) }
         }
     }
-    /// Minimise the tab bar while scrolling (`tabbar_minimize_on_scroll`, default on). Stored only.
-    /// Follow-up (not applied yet): applied by LOT-170 (#296), which restores the bottom tab bar (Catégories / Favoris / Messages / Plus).
+    /// Minimise the tab bar while scrolling (`tabbar_minimize_on_scroll`, default on). Read by the root tab bar (LOT-170).
     var minimizesTabBarOnScroll: Bool {
         didSet {
             if minimizesTabBarOnScroll != oldValue { store.set(minimizesTabBarOnScroll, for: SettingKey.tabBarMinimizesOnScroll) }

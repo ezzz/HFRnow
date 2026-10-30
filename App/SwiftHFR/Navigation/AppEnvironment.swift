@@ -15,6 +15,8 @@ struct AppEnvironment {
     let topicPages: any TopicPageSource
     /// Image client and settings of the reader.
     let reader: ReaderServices
+    /// Reply composer of the current account (LOT-084); nil when logged out.
+    let composer: ComposerServices?
 
     /// The environment for `session`.
     static func make(session: HFRSession, accountName: String?) -> AppEnvironment {
@@ -28,7 +30,7 @@ struct AppEnvironment {
         )
         return AppEnvironment(
             session: session, dataSource: source, visibility: ForumVisibility(), currentAccountName: accountName,
-            topicPages: pages, reader: reader
+            topicPages: pages, reader: reader, composer: .live(session: session, account: accountName)
         )
     }
 
