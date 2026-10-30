@@ -28,13 +28,22 @@ final class LoginFlag: @unchecked Sendable {
     }
 }
 
-func messageThread(_ number: Int, unread: Bool = false, group: Bool = false) -> PrivateMessageThread {
-    let summary = TopicSummary(
+/// A row as `R13u1` has them: the title link opens page 1, the latest-message link (`#bas`) names the last page. `pages` 1
+/// gives a row with no latest-message link.
+func messageThread(_ number: Int, unread: Bool = false, group: Bool = false, pages: Int = 1) -> PrivateMessageThread {
+    func link(page: Int) -> String {
+        "/forum2.php?config=hfr.inc&cat=prive&post=\(number)&page=\(page)&p=1&sondage=0&owntopic=0&trash=0&trash_post=0&print=0"
+            + "&numreponse=0&quote_only=0&new=0&nojs=0"
+    }
+    var summary = TopicSummary(
         topicID: TopicID(category: .privateMessages, topic: number), title: "Sujet \(number)",
-        path: "/forum2.php?config=hfr.inc&cat=prive&post=\(number)&page=1&p=1&sondage=0&owntopic=0&trash=0&trash_post=0&print=0"
-            + "&numreponse=0&quote_only=0&new=0&nojs=0",
-        starterOrInterlocutors: "pseudo\(number)", readState: unread ? .unread : .read
+        path: link(page: 1), starterOrInterlocutors: "pseudo\(number)", readState: unread ? .unread : .read
     )
+    if pages > 1 {
+        summary.pageCount = pages
+        summary.lastPagePath = link(page: pages)
+        summary.lastPost = LastPost(author: "pseudo\(number)", path: link(page: pages) + "#bas")
+    }
     return PrivateMessageThread(summary: summary, interlocutors: ["pseudo\(number)"], isGroup: group)
 }
 
@@ -134,6 +143,28 @@ struct MessageListModelTests {
         #expect(model.loader.error == .notAuthenticated("Connexion requise"))
     }
 
+    /// Parks the calls of a scripted source until the test releases them.
+    actor Gate {
+        private var isOpen = false
+        private var waiters: [CheckedContinuation<Void, Never>] = []
+
+        func wait() async {
+            if isOpen { return }
+            await withCheckedContinuation { waiters.append($0) }
+        }
+
+        func open() {
+            isOpen = true
+            for waiter in waiters { waiter.resume() }
+            waiters = []
+        }
+    }
+
+    /// Waits (bounded) until the source has been asked `count` times.
+    private func waitForRequests(_ source: FakePrivateMessages, _ count: Int) async {
+        for _ in 0..<500 where source.requests.count < count { try? await Task.sleep(for: .milliseconds(5)) }
+    }
+
     @Test func aThreadShownAsOpenedIsReadUntilTheNextLoad() async throws {
         let source = FakePrivateMessages()
         let model = model(source)
@@ -141,11 +172,92 @@ struct MessageListModelTests {
         let unread = try #require(model.loader.value?.threads.first)
         #expect(model.isUnread(unread))
         #expect(model.unreadCount == 1)
-        model.markOpened(unread)
+        model.markOpened(unread, page: 1, of: 1)
         #expect(!model.isUnread(unread))
         #expect(model.unreadCount == 0)
         await model.refresh()
         #expect(model.isUnread(unread)) // HFR's own state comes back with the next list
+    }
+
+    @Test func aThreadWithNewerMessagesOnLaterPagesStaysUnreadUntilItsLastPageIsShown() async throws {
+        let source = FakePrivateMessages()
+        let long = messageThread(40, unread: true, pages: 5)
+        source.handler = { _ in PrivateMessageListPage(threads: [long]) }
+        let model = model(source)
+        await model.onAppear()
+        model.markOpened(long, page: 1, of: 5)
+        model.markOpened(long, page: 4, of: 5)
+        #expect(model.isUnread(long))
+        model.markOpened(long, page: 5, of: 5)
+        #expect(!model.isUnread(long))
+    }
+
+    @Test func aConversationOpensOnThePageOfItsLatestMessage() throws {
+        let model = model(FakePrivateMessages())
+        let long = messageThread(41, unread: true, pages: 457)
+        let reader = try #require(model.reader(for: long))
+        #expect(reader.requested.source == .topic(TopicID(category: .privateMessages, topic: 41)))
+        #expect(reader.requested.page == 457)
+        // No latest-message link on the row: its title link, page 1.
+        let plain = try #require(model.reader(for: messageThread(42)))
+        #expect(plain.requested.page == 1)
+    }
+
+    @Test func aThreadOpenedWhileTheNewestLoadRunsStaysReadWhenItLands() async throws {
+        let source = FakePrivateMessages()
+        let model = model(source)
+        await model.onAppear()
+        let unread = try #require(model.loader.value?.threads.first)
+        let gate = Gate()
+        source.handler = { page async throws(ListLoadError) -> PrivateMessageListPage in
+            await gate.wait()
+            return messagePage(page: page)
+        }
+        let refreshing = Task { await model.refresh() }
+        await waitForRequests(source, 2)
+        model.markOpened(unread, page: 1, of: 1)
+        await gate.open()
+        await refreshing.value
+        #expect(!model.isUnread(unread)) // the answer predates the opening
+        await model.refresh()
+        #expect(model.isUnread(unread)) // a later load brings HFR's state back
+    }
+
+    @Test func aSupersededLoadLandingLateChangesNothing() async throws {
+        let source = FakePrivateMessages()
+        let model = model(source)
+        await model.onAppear()
+        let unread = try #require(model.loader.value?.threads.first)
+        model.markOpened(unread, page: 1, of: 1)
+        let slow = Gate()
+        let slower = Gate()
+        source.handler = { [source] page async throws(ListLoadError) -> PrivateMessageListPage in
+            await (source.requests.count == 2 ? slow : slower).wait()
+            return messagePage(page: page)
+        }
+        let first = Task { await model.refresh() }
+        await waitForRequests(source, 2)
+        let second = Task { await model.refresh() }
+        await waitForRequests(source, 3)
+        await slow.open()
+        await first.value
+        // The newest load is still running: the older one must not have brought HFR's state back.
+        #expect(!model.isUnread(unread))
+        await slower.open()
+        await second.value
+        #expect(model.isUnread(unread))
+    }
+
+    @Test func aFailedLoadKeepsTheOpenedThreadsRead() async throws {
+        let source = FakePrivateMessages()
+        let model = model(source)
+        await model.onAppear()
+        let unread = try #require(model.loader.value?.threads.first)
+        model.markOpened(unread, page: 1, of: 1)
+        source.handler = { _ async throws(ListLoadError) -> PrivateMessageListPage in throw .timedOut }
+        await model.refresh()
+        #expect(model.loader.error == .timedOut)
+        #expect(!model.isUnread(unread))
     }
 
     @Test func aRowWithoutAThreadLinkStaysUnread() async throws {
@@ -158,7 +270,7 @@ struct MessageListModelTests {
         source.handler = { _ in PrivateMessageListPage(threads: [broken]) }
         let model = model(source)
         await model.onAppear()
-        model.markOpened(broken)
+        model.markOpened(broken, page: 1, of: 1)
         #expect(model.isUnread(broken))
         #expect(model.reader(for: broken) == nil)
     }
@@ -183,6 +295,19 @@ struct MessageListModelTests {
         await model.refresh()
         #expect(model.loader.value?.emptyReason == .signInRequired(nil))
         #expect(model.selected == nil)
+    }
+
+    @Test func aRefusedSessionClosesTheOpenConversationEvenWithItsCookie() async {
+        let source = FakePrivateMessages()
+        let model = model(source)
+        await model.onAppear()
+        let thread = messageThread(3)
+        model.selected = thread
+        source.handler = { _ async throws(ListLoadError) -> PrivateMessageListPage in throw .notAuthenticated("Connexion requise") }
+        await model.refresh()
+        #expect(model.loader.error == .notAuthenticated("Connexion requise"))
+        #expect(model.selected == nil)
+        #expect(model.loader.value?.threads.isEmpty == false) // rows kept, as for any failure
     }
 
     @Test func aFailedRefreshKeepsTheOpenConversation() async {

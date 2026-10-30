@@ -50,6 +50,19 @@ struct LivePrivateMessageSourceTests {
         }
     }
 
+    /// `RA1` is the owner's MP thread page: the reader's parse (`LiveTopicPageSource.parse`) renders it like a topic page.
+    @Test func anMPThreadPageRendersThroughTheReaderParser() throws {
+        let html = String(decoding: try LiveTopicPageSourceTests.capture("RA1-mp-thread-after-create.html"), as: UTF8.self)
+        let url = try #require(URL(string: "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=prive&post=3207033&page=1"))
+        let page = try LiveTopicPageSource.parse(html, pageURL: url, normalizer: LiveTopicPageSourceTests.MarkingNormalizer())
+        let blocks = try MessageBlockParser.blocks(in: html)
+        #expect(!page.messages.isEmpty)
+        #expect(page.messages.map(\.numreponse) == blocks.map(\.numreponse))
+        #expect(page.currentPage == 1)
+        #expect(page.maxPage >= 1)
+        #expect(!page.title.isEmpty)
+    }
+
     @Test func aTransportFailureIsMapped() async {
         let session = MockTransport { _ async throws(NetworkError) -> HTTPResponse in throw .offline }
         let rig = rig(replying: Data(), session: session)
