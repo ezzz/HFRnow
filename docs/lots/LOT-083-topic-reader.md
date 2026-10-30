@@ -47,7 +47,8 @@ page than the one asked (past the end, `R24`): the reader follows the page serve
 
 **Links.** The web view never navigates: every link tap is cancelled and handed to the app. A forum topic link opens in the reader at
 its page and post (issue #106). A link naming a message (`numreponse=M`: bookmarks, AQ, permalinks) names no page: the reader sends
-LOT-095's `forum2.php?…&page=1&numreponse=M` and shows the page HFR redirects to (`R25`), at message M. A link to a post of the page
+LOT-095's `forum2.php?…&page=1&numreponse=M` and shows the page HFR redirects to (`R25`), scrolled to the router's
+scroll target (the `#t` fragment, else M). A link to a post of the page
 shown scrolls to it without refetching; any other `http(s)` link opens in
 `SFSafariViewController` (LOT-071 T8); other schemes do nothing. New windows are refused; link previews (which would load the page) are
 off.
