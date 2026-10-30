@@ -58,6 +58,16 @@ import Testing
         #expect(try await store.advance(Self.cuisine, to: ReadingPosition(page: 2), account: "user1"))
     }
 
+    @Test func discardDoesNothingWhenTheDataIsReadable() async throws {
+        let persistence = FailingPersistence()
+        persistence.failsToLoad = false
+        let store = ReadingPositionStore(persistence: persistence)
+        try await store.advance(Self.cuisine, to: ReadingPosition(page: 2), account: "user1")
+        try await store.discardUnreadableData()
+        #expect(persistence.quarantined == false)
+        #expect(await store.position(of: Self.cuisine, account: "user1")?.page == 2)
+    }
+
     @Test func reloadRecoversOnceTheDataIsReadable() async throws {
         let persistence = FailingPersistence()
         let store = ReadingPositionStore(persistence: persistence)

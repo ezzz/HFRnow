@@ -3,7 +3,7 @@
 - **Module:** HFRStorage
 - **Difficulty / model:** easy (Opus 5.5 → Fable; the plan routes Sonnet → Opus, this lot was taken by an Opus helper)
 - **Issue:** [#182](https://github.com/ezzz/HFRnow/issues/182)
-- **Depends on:** LOT-013 (#46): `TopicID`, `CategoryID` (HFRModels)
+- **Depends on:** LOT-013 (#46): `Account.id`, the account key; `TopicID` and `CategoryID` (HFRModels) come from LOT-010 (francoisgn/ios-app_SwiftHFR#18, merged)
 - **Implements:** FEAT-001 (#145), FEAT-007 (#151), FEAT-015 (#159), all proposed by Bybifok ([`moust4ki`](https://github.com/moust4ki)); credit in [CREDITS.md](../../CREDITS.md)
 
 ## Legacy sources
@@ -39,6 +39,8 @@ Code in `Sources/HFRStorage/ReadingPositions/`, tests in `Tests/HFRStorageTests/
 - Same topic number in two categories, or a private-message thread with the number of a forum topic: different topics.
 - Removing an account's last topic removes the account's key from the document.
 - Concurrent calls are serialised by the actor; memory never gets ahead of the file.
+- Same message at the same offset on another page (messages deleted before it moved it to an earlier page): not ahead, so the stored page can be stale. A reader restores by message number (`numreponse=`, which lets HFR pick the page, LOT-095), so the page is only a fallback when no message number is stored.
+- Each write saves the whole document atomically (about 55 KB per account at the 500-topic limit): callers coalesce, recording on a page change or when scrolling ends, never on every scroll event (LESSONS 49).
 
 ## Fixtures
 

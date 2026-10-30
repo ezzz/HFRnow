@@ -408,7 +408,7 @@ Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `Li
 
 [LOT-090](lots/LOT-090-reading-position-store.md), tests `ReadingPositionOrderTests`.
 
-- **`numreponse` grows in posting order** (measured with a script over the corpus, not a parser test): on each of the 23 topic pages with two messages or more, the `<a name="t<numreponse>">` anchors are strictly ascending; across pages of one topic too (`R20` page 1 ends at 3162221, `R22a` page 1100 starts at 39966395, `R22b` page 2201 at 75482227, topic 28563). `ReadingPosition.isAhead(of:)` relies on it to compare two positions by message rather than by page.
+- **`numreponse` grows in posting order** (measured with a script over the corpus, not a parser test): on each of the 23 topic pages with two messages or more, the `<a name="t<numreponse>">` anchors are strictly ascending; across pages of one topic too (`R20` page 1 runs from 2666649 to 3204775 over 40 anchors, `R22a` page 1100 starts at 39966395, `R22b` page 2201 at 75482227, topic 28563). `ReadingPosition.isAhead(of:)` relies on it to compare two positions by message rather than by page.
 - **Pending capture**: a topic page after messages were deleted (whether later messages move to an earlier page; the order rule does not depend on it).
 
 ## 7. Reported by redface2, to verify with our fixtures

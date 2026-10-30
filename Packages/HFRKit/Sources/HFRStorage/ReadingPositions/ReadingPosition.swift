@@ -24,7 +24,9 @@ public struct ReadingPosition: Sendable, Hashable, Codable {
     ///
     /// Message numbers win over pages when both positions have one: HFR numbers messages in posting order, and a page
     /// can hold earlier messages again after deletions. Without both numbers the page decides, then a known message
-    /// beats an unknown one on the same page.
+    /// beats an unknown one on the same page. The same message at the same offset is never ahead, even on another page:
+    /// a reader restores by message number (`numreponse=`, which lets HFR pick the page, LOT-095), so a stale page is
+    /// harmless.
     public func isAhead(of other: ReadingPosition) -> Bool {
         if let mine = messageNumber, let theirs = other.messageNumber {
             if mine != theirs { return mine > theirs }

@@ -19,6 +19,7 @@ import Testing
         #expect(try await store.advance(Self.cuisine, to: spot(2, 500), account: "user1"))
         #expect(await store.position(of: Self.cuisine, account: "user1") == spot(2, 500))
         #expect(persistence.document?.accounts["user1"] == [ReadingPositionRecord(topic: Self.cuisine, position: spot(2, 500))])
+        #expect(persistence.document?.version == ReadingPositionDocument.currentVersion)
     }
 
     @Test func advanceNeverMovesBackwards() async throws {
@@ -55,6 +56,10 @@ import Testing
         let sameNumber = TopicID(category: .forum(5), topic: Self.cuisine.topic)
         try await store.advance(Self.cuisine, to: spot(3), account: "user1")
         #expect(await store.position(of: sameNumber, account: "user1") == nil)
+        // A write to the same number in another category is a new record, not a move of the first one.
+        #expect(try await store.advance(sameNumber, to: spot(1), account: "user1"))
+        #expect(await store.position(of: sameNumber, account: "user1") == spot(1))
+        #expect(await store.position(of: Self.cuisine, account: "user1") == spot(3))
         try await store.advance(Self.thread, to: spot(2), account: "user1")
         #expect(await store.position(of: Self.thread, account: "user1") == spot(2))
     }
