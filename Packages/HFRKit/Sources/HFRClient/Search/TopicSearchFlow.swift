@@ -44,13 +44,19 @@ public struct TopicSearchFlow: Sendable {
         } catch {
             throw .network(error)
         }
+        return try Self.result(of: response, searching: query.topic)
+    }
+
+    /// Reads HFR's answer: a redirect to a page of `topic` is the match, HFR's sentence is "no match", anything else is
+    /// reported through LOT-037's classifier.
+    static func result(of response: HTTPResponse, searching topic: TopicID) throws(TopicSearchError) -> TopicSearchResult {
         if response.isRedirect {
             guard let location = response.redirectLocation else { throw .unrecognizedAnswer(message: nil) }
-            guard Self.isPage(location, of: query.topic) else { throw .invalidLocation(location) }
+            guard isPage(location, of: topic) else { throw .invalidLocation(location) }
             return .match(location)
         }
         let answer = try? HopResponseParser.classify(html: response.decodedText().text, context: .write, requestURL: response.url)
-        if let message = answer?.message, message.contains(Self.noMatchSentence) { return .noMatch }
+        if let message = answer?.message, message.contains(noMatchSentence) { return .noMatch }
         switch answer?.kind {
         case .loggedOut: throw .notLoggedIn(message: answer?.message)
         case .rejected: throw .rejected(message: answer?.message)

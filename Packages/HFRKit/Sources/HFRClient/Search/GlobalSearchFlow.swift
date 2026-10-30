@@ -6,7 +6,8 @@ import HFRParsing
 /// Searches the whole forum (HFR-PROTOCOL S1, S2; audit NET-10): LOT-046.
 ///
 /// One POST of the search form to `search.php`, which answers a waiting page whose refresh names the results (`R50a`),
-/// then one GET of that URL (`R50b`, `R50c`). Everything goes without cookies, as legacy did
+/// then one GET of that URL (`R50b`, `R50c`). The POST, the only request carrying `hash_check`, never follows a redirect;
+/// the results URL is requested only when it is an `https` forum page. Everything goes without cookies, as legacy did
 /// (`ObjCForumSearchWorker.m:125-146`). Legacy sent the second request as a POST of the same body (`:211-240`); HFR serves
 /// the results to a cookie-less GET (`R50b`), so this flow sends a GET.
 ///
@@ -39,7 +40,7 @@ public struct GlobalSearchFlow: Sendable {
     public func search(_ query: GlobalSearchQuery, hashCheck: String) async throws(GlobalSearchError) -> GlobalSearchResult {
         let text = query.text.lowercased()
         if let word = Self.bannedWords.first(where: { text.contains($0) }) { throw .bannedWord(word) }
-        let post: HTTPRequest
+        var post: HTTPRequest
         do {
             post = try HFREndpoint.globalSearch(query, hashCheck: hashCheck)
         } catch let error as NetworkError {
@@ -47,14 +48,10 @@ public struct GlobalSearchFlow: Sendable {
         } catch {
             throw .network(.invalidRequest(reason: "search request could not be built"))
         }
+        // A followed 307 or 308 would send the body, token included, wherever it points.
+        post.redirectPolicy = .doNotFollow
         let waiting = try await fetch(post)
-        let resultsURL: URL
-        do {
-            resultsURL = try SearchRedirectParser.redirectURL(in: waiting.text)
-        } catch {
-            throw .noResultsPage(error)
-        }
-        return try await results(at: resultsURL)
+        return try await results(at: Self.resultsURL(in: waiting))
     }
 
     /// Fetches another results page, from a pager path of a previous result (`TopicListPage.navigation`).
@@ -73,6 +70,20 @@ public struct GlobalSearchFlow: Sendable {
     }
 
     // MARK: - Implementation
+
+    /// The results URL the waiting page refreshes to, when it is an `https` page of the forum.
+    private static func resultsURL(in waiting: RawPage) throws(GlobalSearchError) -> URL {
+        guard !(300..<400).contains(waiting.statusCode) else { throw .noResultsPage(.invalidValue(field: "search answer redirect")) }
+        let url: URL
+        do {
+            url = try SearchRedirectParser.redirectURL(in: waiting.text)
+        } catch {
+            throw .noResultsPage(error)
+        }
+        // The parser checks scheme and host; a port or user info is refused here, before any request.
+        guard PostingFlow.isForumPage(url) else { throw .noResultsPage(.invalidValue(field: "search redirect URL")) }
+        return url
+    }
 
     /// GETs a results page and reads it as a topic list (LOT-022 reads search results and HFR's no-result message).
     private func results(at url: URL) async throws(GlobalSearchError) -> GlobalSearchResult {

@@ -34,6 +34,9 @@ struct TopicSearchFlowTests {
         try #require(try Capture.meta("R52a").redirects?.first?.location)
     }
 
+    /// `R52a` answered the browser's field set (`config`, `sondage`, `owntopic`, `dep=0`, `firstnum`, no `filter`); the flow sends
+    /// LOT-041's legacy body, whose answer is not captured (LOT-046 spec, pending capture). Only `R52a`'s status and
+    /// `Location` are used here.
     @Test("R52a: the match is the Location, resolved on the forum; one POST, redirects not followed")
     func match() async throws {
         let location = try Self.capturedLocation()

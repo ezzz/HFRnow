@@ -35,6 +35,7 @@ struct GlobalSearchFlowTests {
         #expect(requests.count == 2)
         let post = try #require(requests.first)
         #expect(post.method == .post)
+        #expect(post.redirectPolicy == .doNotFollow)
         #expect(post.url.absoluteString == meta.url)
         #expect(SearchCapture.body(of: post) == meta.requestBody)
         let redirect = try SearchCapture.oracle("LOT-005", "R50a")
@@ -107,6 +108,31 @@ struct GlobalSearchFlowTests {
         #expect(requests.count == 1)
         let legacy = try SearchCapture.oracle("LOT-005", "R50c")
         #expect(legacy["hasRedirect"] as? Bool == false)
+    }
+
+    @Test("A redirect answering the POST is not followed and gives no results page")
+    func redirectedPost() async throws {
+        let url = try #require(URL(string: try Capture.meta("R50a").url))
+        let moved = HTTPResponse(statusCode: 307, headers: ["Location": "https://example.com/search.php"], url: url)
+        let (result, requests) = await Self.run(replies: [.success(moved)])
+        #expect(result == .failure(.noResultsPage(.invalidValue(field: "search answer redirect"))))
+        #expect(requests.count == 1)
+    }
+
+    /// `R50a` with its refresh target rewritten: a probe of the guard, not a page HFR served.
+    @Test(
+        "A refresh to the forum host with a port or user info is refused before any GET",
+        arguments: ["https://forum.hardware.fr:8443/forum1.php", "https://user@forum.hardware.fr/forum1.php"]
+    )
+    func refreshTargetCheckedBeforeTheGet(target: String) async throws {
+        let captured = try SearchCapture.answer("R50a-search-post-waiting-page", id: "R50a")
+        let html = try #require(String(bytes: captured.body, encoding: .utf8))
+        #expect(html.contains("url=/forum1.php"))
+        var probe = captured
+        probe.body = Data(html.replacing("url=/forum1.php", with: "url=" + target).utf8)
+        let (result, requests) = await Self.run(replies: [.success(probe)])
+        #expect(result == .failure(.noResultsPage(.invalidValue(field: "search redirect URL"))))
+        #expect(requests.map(\.method) == [.post])
     }
 
     @Test("Results served off the forum are not HFR's")
