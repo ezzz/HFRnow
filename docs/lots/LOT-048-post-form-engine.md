@@ -35,7 +35,7 @@ All in `Packages/HFRKit/Sources/HFRClient/Posting/`, plus `HFRParsing/Forms/HopF
    is parsed twice from the same string: `HopFormParser.parse` (LOT-036) for the fields, `HopFormParser.layout` for the
    document order. No form: the page's `.hop` is classified (LOT-037); the logged-out sentence gives `notLoggedIn`,
    anything else `formUnavailable(message:)` (`RA5`). An empty `hash_check` or `pseudo` (anonymous composer `R40b`) gives
-   `notLoggedIn`. The form's token is recorded in the session (`updateHashCheck`). The returned `PostingForm` keeps the
+   `notLoggedIn`. The form's token is recorded in the session, unless a login was adopted while the page was in flight (#308, LOT-043 edge cases). The returned `PostingForm` keeps the
    session it came from, so it can only be posted through it (Q-8).
 2. **Shape** (`PostingForm.Shape`) — a non-empty `numreponse` is an edit form (`R43a`-`R44`); else a visible `sujet` with a
    `dest` field is a new MP (`R45b`), without one a new topic (`R45a`); else a reply composer (`R40a`, `R41a`, `R41b`, `R42`,

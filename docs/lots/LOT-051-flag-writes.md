@@ -59,7 +59,7 @@ once (the transport never retries). The only other request is a write's session 
    `notLoggedIn`, anything else → `unconfirmed(.unrecognizedAnswer(message:))`.
 5. **Confirmation of a read** — the final URL must be a forum page and `TopicPageMetadataParser` must find the requested
    topic with a non-empty `hash_check` in its answer form (the page of a logged-in account, `R21`); the token is then
-   recorded in the session. An anonymous page (`R20`), another topic, a list or an off-forum host is
+   recorded in the session, unless a login was adopted while the page was in flight (#308, LOT-043 edge cases). An anonymous page (`R20`), another topic, a list or an off-forum host is
    `unconfirmed(.unrecognizedAnswer)`. The result says which page HFR served (it redirects past the last page to it, `R24`).
 6. **Errors** (`TopicFlagError`) — before the request leaves: `invalidLink`, `invalidTopic` (not a forum topic above 0,
    page below 1), `sessionNotConfirmed` (item 7), `missingToken`, `network` (cancelled task, request that cannot be

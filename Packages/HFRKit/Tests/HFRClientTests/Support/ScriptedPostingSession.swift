@@ -8,6 +8,12 @@ actor ScriptedPostingSession: PostingSession {
     private let transport: MockTransport
     /// Tokens passed to `updateHashCheck`, in order.
     private(set) var hashChecks: [String?] = []
+    /// The last token recorded, like `HFRSession.hashCheck`.
+    private(set) var hashCheck: String?
+    /// The `md_user` value the session reports.
+    private(set) var identity: String? = "user1"
+    /// A login installed while the next request is in flight, as `adoptLogin` would do from another task.
+    private var loginDuringNextRequest: ConcurrentLogin?
 
     init(_ replies: [Result<HTTPResponse, NetworkError>]) {
         transport = MockTransport(replies: replies)
@@ -18,11 +24,27 @@ actor ScriptedPostingSession: PostingSession {
     }
 
     func perform(_ request: HTTPRequest) async throws(NetworkError) -> HTTPResponse {
-        try await transport.perform(request)
+        let response = try await transport.perform(request)
+        if let login = loginDuringNextRequest {
+            loginDuringNextRequest = nil
+            identity = login.identity
+            hashCheck = login.hashCheck
+        }
+        return response
     }
 
     func updateHashCheck(_ value: String?) {
         hashChecks.append(value)
+        if let value, !value.isEmpty { hashCheck = value }
+    }
+
+    func userKey(now: Date) -> String? {
+        identity
+    }
+
+    /// Installs `login` while the next request is suspended, after it was sent.
+    func adoptLoginDuringNextRequest(_ login: ConcurrentLogin) {
+        loginDuringNextRequest = login
     }
 
     /// Every request received, in order.
