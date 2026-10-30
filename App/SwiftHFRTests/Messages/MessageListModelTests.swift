@@ -191,7 +191,7 @@ struct MessageListModelTests {
         await model.onAppear()
         let thread = messageThread(3)
         model.selected = thread
-        source.handler = { _ in throw .offline }
+        source.handler = { _ async throws(ListLoadError) -> PrivateMessageListPage in throw .offline }
         await model.refresh()
         #expect(model.selected == thread)
     }
