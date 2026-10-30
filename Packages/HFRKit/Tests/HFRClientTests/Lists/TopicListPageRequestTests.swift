@@ -4,30 +4,11 @@ import HFRNetwork
 import HFRParsing
 import Testing
 
-/// The parts of a list capture's meta that `TopicListPageRequestTests` reads (file scope: SwiftLint allows one nesting level).
-private struct ListCaptureMeta: Decodable {
-    /// One redirect hop HFR answered.
-    struct Hop: Decodable {
-        let status: Int
-        let location: String
-    }
-
-    let url: String
-    let finalURL: String
-    let redirects: [Hop]
-
-    enum CodingKeys: String, CodingKey {
-        case url
-        case finalURL = "final_url"
-        case redirects
-    }
-}
-
 /// #103: page N of a topic list is requested as `forum1.php?…&page=N`, which HFR redirects to `liste_sujet-N.htm`, and never
 /// as `liste_sujet-1.htm?page=N`. Legacy built that last shape (`TopicPageURLRouting.replacingPage`, `Common.swift:2750-2759`
 /// on `master`: no `page=` and no `_N.htm` in the path, so it appended `?page=N`) and showed page 1 under a "page 11" header.
-/// Everything here is read from the captures `R04`, `R05a` and `R05b` (anonymous; the logged-in form of page N ≥ 2 is a
-/// pending capture, HFR-PROTOCOL §7b B2).
+/// Everything here is read from the captures `R04`, `R05a` and `R05b` (anonymous). The logged-in answer to page N ≥ 2 is a
+/// pending capture (#278); HFR-PROTOCOL §7b B2 stays unsettled, and no capture shows HFR's answer to `liste_sujet-1.htm?page=N`.
 @Suite("Topic list page N (#103)")
 struct TopicListPageRequestTests {
     static let cases = [
@@ -36,31 +17,28 @@ struct TopicListPageRequestTests {
         ("R05b", "R05b-list-cat13-p500-anon", 500)
     ]
 
-    private func meta(_ id: String) throws -> ListCaptureMeta {
-        let url = Capture.directory.appendingPathComponent(id + ".meta.json")
-        return try JSONDecoder().decode(ListCaptureMeta.self, from: Data(contentsOf: url))
-    }
-
     @Test("The endpoint asks for page N exactly as the capture did, and HFR answered page N", arguments: cases)
     func endpointRequestsTheCapturedPage(id: String, file: String, page: Int) throws {
-        let meta = try meta(id)
+        let meta = try Capture.meta(id)
+        let finalURL = try #require(meta.finalURL)
         let request = try HFREndpoint.topicList(category: .forum(13), page: page)
         #expect(request.url.absoluteString == meta.url)
         #expect(HFRURL.queryValue(named: "page", in: request.url.absoluteString) == String(page))
         #expect(!request.url.path().contains("liste_sujet"))
         // HFR's own answer: one 301 to the canonical list path of that page, which shows page N as current.
-        #expect(meta.redirects.map(\.status) == [301])
-        #expect(meta.redirects.map(\.location) == ["/hfr/Discussions/liste_sujet-\(page).htm"])
-        #expect(meta.finalURL == "https://forum.hardware.fr/hfr/Discussions/liste_sujet-\(page).htm")
-        let listPage = try TopicListParser.parse(Capture.page(file), pageURL: meta.finalURL)
+        #expect((meta.redirects ?? []).map(\.status) == [301])
+        #expect((meta.redirects ?? []).map(\.location) == ["/hfr/Discussions/liste_sujet-\(page).htm"])
+        #expect(finalURL == "https://forum.hardware.fr/hfr/Discussions/liste_sujet-\(page).htm")
+        let listPage = try TopicListParser.parse(Capture.page(file), pageURL: finalURL)
         #expect(listPage.navigation.current == page)
     }
 
     @Test("The router reads page N from both shapes HFR used for that page", arguments: cases)
     func routerKeepsThePage(id: String, file: String, page: Int) throws {
-        let meta = try meta(id)
+        let meta = try Capture.meta(id)
+        let finalURL = try #require(meta.finalURL)
         let expected = HFRLinkRoute.topicList(HFRTopicListLink(category: .forum(13), subcategory: nil, page: page, filter: .all))
-        for link in [meta.url, meta.finalURL] {
+        for link in [meta.url, finalURL] {
             let url = try #require(URL(string: link))
             #expect(HFRLinkRoute.route(for: url) == expected, "\(link)")
         }
@@ -68,8 +46,9 @@ struct TopicListPageRequestTests {
 
     @Test("Every pager link of the captured pages routes to the page it names", arguments: cases)
     func pagerLinksRouteToTheirPage(id: String, file: String, page: Int) throws {
-        let meta = try meta(id)
-        let navigation = try TopicListParser.parse(Capture.page(file), pageURL: meta.finalURL).navigation
+        let meta = try Capture.meta(id)
+        let finalURL = try #require(meta.finalURL)
+        let navigation = try TopicListParser.parse(Capture.page(file), pageURL: finalURL).navigation
         let links = [
             (navigation.firstPath, navigation.first), (navigation.lastPath, navigation.last),
             (navigation.nextPath, navigation.current + 1), (navigation.previousPath, navigation.current - 1)
