@@ -4,12 +4,16 @@ import HFRNetwork
 @testable import HFRClient
 
 /// A flag session with scripted answers and a preset token: records every request and every token the flow stores.
-actor ScriptedFlagSession: FlagSession {
+actor ScriptedFlagSession: PostingSession {
     private let transport: MockTransport
     /// The token the session starts with; `updateHashCheck` replaces it like `HFRSession` does.
     private(set) var hashCheck: String?
     /// Tokens passed to `updateHashCheck`, in order.
     private(set) var hashChecks: [String?] = []
+    /// The `md_user` value the session reports.
+    private(set) var identity: String? = "user1"
+    /// A login installed while the next request is in flight, as `adoptLogin` would do from another task.
+    private var loginDuringNextRequest: ConcurrentLogin?
 
     init(_ replies: [Result<HTTPResponse, NetworkError>], hashCheck: String? = nil) {
         transport = MockTransport(replies: replies)
@@ -17,7 +21,22 @@ actor ScriptedFlagSession: FlagSession {
     }
 
     func perform(_ request: HTTPRequest) async throws(NetworkError) -> HTTPResponse {
-        try await transport.perform(request)
+        let response = try await transport.perform(request)
+        if let login = loginDuringNextRequest {
+            loginDuringNextRequest = nil
+            identity = login.identity
+            hashCheck = login.hashCheck
+        }
+        return response
+    }
+
+    func userKey(now: Date) -> String? {
+        identity
+    }
+
+    /// Installs `login` while the next request is suspended, after it was sent.
+    func adoptLoginDuringNextRequest(_ login: ConcurrentLogin) {
+        loginDuringNextRequest = login
     }
 
     func updateHashCheck(_ value: String?) {

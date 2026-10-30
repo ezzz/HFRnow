@@ -105,6 +105,7 @@ public struct PostingFlow: Sendable {
     func loadForm(at url: URL, through session: any PostingSession) async throws(PostingError) -> PostingForm {
         guard Self.isForumPage(url) else { throw .invalidFormURL }
         if Task.isCancelled { throw .network(.cancelled) }
+        let seed = await session.hashCheckSeed()
         let response: HTTPResponse
         do {
             response = try await session.send(.get(url))
@@ -127,7 +128,8 @@ public struct PostingFlow: Sendable {
             let token = form.field(named: "hash_check")?.value, !token.isEmpty,
             let pseudo = form.field(named: "pseudo")?.value, !pseudo.isEmpty
         else { throw .notLoggedIn }
-        await session.updateHashCheck(token)
+        // A login adopted meanwhile holds the fresher token (#308): never overwrite it with this page's.
+        await session.updateHashCheck(token, since: seed)
         return PostingForm(form: form, layout: layout, pageURL: response.url, session: session)
     }
 
