@@ -46,7 +46,9 @@ is shown at that moment, not blank before.
 page than the one asked (past the end, `R24`): the reader follows the page served.
 
 **Links.** The web view never navigates: every link tap is cancelled and handed to the app. A forum topic link opens in the reader at
-its page and post (issue #106); a link to a post of the page shown scrolls to it without refetching; any other `http(s)` link opens in
+its page and post (issue #106). A link naming a message (`numreponse=M`: bookmarks, AQ, permalinks) names no page: the reader sends
+LOT-095's `forum2.php?…&page=1&numreponse=M` and shows the page HFR redirects to (`R25`), at message M. A link to a post of the page
+shown scrolls to it without refetching; any other `http(s)` link opens in
 `SFSafariViewController` (LOT-071 T8); other schemes do nothing. New windows are refused; link previews (which would load the page) are
 off.
 
@@ -122,7 +124,7 @@ Confirmed by the orchestrator on 2026-10-28, consistent with the operator's deci
 Captures `R20`, `R21`, `R22a`, `R26`, `R27`, `R27b`, `R28`, `R31` and `R08-1` (a `.hop` notice) through the real LOT-030/033/034 chain (read from `Packages/HFRKit/Tests/HFRParsingTests/Fixtures/captures/`) feed
 `LiveTopicPageSourceTests`. Tests (`App/SwiftHFRTests/Reader/`): `ImagePolicyTests` (every host spelling of LOT-071 and its neighbours),
 `ReaderImageFetcherTests` (cookie-less, redirects, types, size, https upgrade, setting), `ReaderTargetTests` (both URL shapes of #106,
-flag rows), `TopicHTMLBuilderTests` (escaping, context, CSP, signature, anchors, video), `TopicReaderModelTests` (E25 once, #107, #108,
+message links and legacy bookmarks, flag rows), `TopicHTMLBuilderTests` (escaping, context, CSP, signature, anchors, video), `TopicReaderModelTests` (E25 once, #107, #108,
 links, pages), `LiveTopicPageSourceTests` (session vs cookie-less transport; real pages render their normalized content as body markup in the content element only, signatures per `display_sig`, notices) and `ReaderWebControllerTests`, which drive a
 real `WKWebView`: no page script or handler runs, only allowed images reach the client, a tap loads a third-party image, a link tap
 leaves the page to the app, the stylesheet loads and a spoiler opens, only the latest document reports ready, markup cannot forge a

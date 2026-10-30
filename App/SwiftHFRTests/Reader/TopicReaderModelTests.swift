@@ -147,6 +147,26 @@ struct TopicReaderModelTests {
         #expect(reader.document?.anchor == 301)
     }
 
+    @Test func aMessageLinkOpensThePageHFRServesAtTheMessage() async {
+        // HFR answers a message link with the page that holds it (R25: page 1100); the fake serves page 4 here.
+        let pages = FakeTopicPages { target in readerPage(page: target.numreponse == nil ? target.page : 4) }
+        let reader = model(pages)
+        await reader.onAppear()
+        let link = ReaderTarget(source: .topic(readerTopic), anchor: 401, numreponse: 401)
+        await reader.open(link)
+        #expect(pages.requests.last == link)
+        #expect(reader.page?.currentPage == 4)
+        #expect(reader.document?.anchor == 401)
+        #expect(reader.canGoToPrevious)
+        // The same message again, now on screen: it scrolls without asking HFR again.
+        await reader.open(link)
+        #expect(pages.requests.count == 2)
+        #expect(reader.scrollRequest?.anchor == 401)
+        // A refresh reloads page 4 itself, not the message link.
+        await reader.refresh()
+        #expect(pages.requests.last == ReaderTarget(source: .topic(readerTopic), page: 4))
+    }
+
     @Test func thePageServedWinsOverThePageAsked() async {
         let pages = FakeTopicPages { _ in readerPage(page: 5) }
         let reader = model(pages, page: 99)

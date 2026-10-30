@@ -102,7 +102,7 @@ Each test was shown to fail with the relevant rule reverted: port check removed,
 - Print and single-message views are not opened as topic pages.
 
 ## Follow-up for the app (LOT-137, [#227](https://github.com/ezzz/HFRnow/issues/227))
-This PR stays engine-only. LOT-083's `ReaderTarget(link:)` (`App/SwiftHFR/Reader/ReaderTarget.swift`) parses links on its own and disagrees with the router: it reads `page=1` on `numreponse` links and opens canonical paths of forums the catalogue does not know. LOT-137 must build `ReaderTarget` from `HFRLinkRoute` (`.topic`, `.privateMessageThread`; page nil plus `numreponse` goes through `topicPage(topic:page:numreponse:)`), so there is one parser.
+This PR stays engine-only. LOT-083's `ReaderTarget(link:)` (`App/SwiftHFR/Reader/ReaderTarget.swift`) parses links on its own and disagrees with the router: it opens canonical paths of forums the catalogue does not know. (It also read `page=1` on `numreponse` links; #106 fixed that by asking the router for those links.) LOT-137 must build `ReaderTarget` from `HFRLinkRoute` (`.topic`, `.privateMessageThread`; page nil plus `numreponse` goes through `topicPage(topic:page:numreponse:)`), so there is one parser.
 
 ## Learnings
 - A forum link's `page=` is not always the page: with `numreponse=M` the server picks the page (R25), and the topic list rows carry `page=1&numreponse=<last message>` links.
