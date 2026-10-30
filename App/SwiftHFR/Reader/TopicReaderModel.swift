@@ -132,7 +132,9 @@ final class TopicReaderModel {
 
     /// Opens another target in this reader (a link to a topic or a post).
     func open(_ target: ReaderTarget) async {
-        if let shown, let page, let anchor = target.anchor, isSameTopic(target, as: shown), target.page == page.currentPage,
+        // A message link names no page (issue #106): it is on screen when the page shown holds that message.
+        if let shown, let page, let anchor = target.anchor, isSameTopic(target, as: shown),
+           target.numreponse != nil || target.page == page.currentPage,
            let document, page.messages.contains(where: { !$0.isContinuation && $0.numreponse == anchor }) {
             nextScrollID += 1
             scrollRequest = ScrollRequest(id: nextScrollID, token: document.token, anchor: anchor)
