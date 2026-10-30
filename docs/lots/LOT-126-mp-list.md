@@ -16,7 +16,7 @@ Legacy repository <https://github.com/francoisgn/hfrnow> at `2440d79`, and `mast
 | `MPListView.swift` toolbar (refresh, account menu, delete and "marquer non lu" context menu) | refresh by pull and on appear; the account menu is LOT-170's; delete and mark unread are LOT-127 |
 
 ## Behaviour
-Entry point: `MessagesTabView(environment:)`, a `NavigationSplitView` of the list and the reader (collapses to a stack on iPhone). The root navigation plugs it in as the Messages tab (LOT-170, #303).
+Entry point: `MessagesRootView(model:environment:)`, the Messages tab of the LOT-170 root (#303): a `NavigationSplitView` of the list and the reader (collapses to a stack on iPhone). On the regular-width iPad sidebar the same `RootModel.messages` model feeds `MessagesListColumn` (content column) and `MessageReaderColumn` (detail column, like Favoris), so a size-class change keeps the page and the open conversation. The reader gets the reply composer (LOT-084, `environment.composer`); the tab badge stays LOT-170's (home page count).
 
 | Piece | Rule |
 |---|---|

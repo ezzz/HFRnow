@@ -62,7 +62,7 @@ struct RootSidebarView: View {
             TopicsColumn(navigation: model.favorites)
                 .toolbar { ToolbarItem(placement: .secondaryAction) { FavoritesSourceMenu(navigation: model.favorites) } }
         case .tab(.messages):
-            MessagesListColumn(environment: environment)
+            MessagesListColumn(model: model.messages)
         case .tab(.more), .plus:
             // Unreachable: `sidebarDestination` maps Plus to Réglages, and a Plus entry takes the two-column split above.
             EmptyView()
@@ -74,6 +74,7 @@ struct RootSidebarView: View {
         switch model.sidebarDestination {
         case .tab(.categories): ReaderColumn(navigation: model.categories, reader: environment.reader, composer: environment.composer)
         case .tab(.favorites): ReaderColumn(navigation: model.favorites, reader: environment.reader, composer: environment.composer)
+        case .tab(.messages): MessageReaderColumn(model: model.messages, reader: environment.reader, composer: environment.composer)
         default: ContentUnavailableView("Choisissez un élément", systemImage: "sidebar.left")
         }
     }
