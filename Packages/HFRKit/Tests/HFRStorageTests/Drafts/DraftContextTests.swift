@@ -23,10 +23,11 @@ import Testing
         #expect(noisy.storageKey == DraftContext.privateMessage(recipient: "marc").storageKey)
     }
 
-    @Test func privateMessageRecipientIgnoresFormatCharactersAndSurroundingWhiteSpace() {
-        let noisy = DraftContext.privateMessage(recipient: "\u{FEFF} Ma\u{2060}rc\n")
-        #expect(noisy.storageKey == DraftContext.privateMessage(recipient: "marc").storageKey)
-        #expect(DraftContext.privateMessage(recipient: "Ma rc").storageKey != noisy.storageKey)
+    /// Keys stay injective over drafts already saved: no two stored recipients may start sharing a key.
+    @Test func privateMessageRecipientKeepsTheAccountKeyForm() {
+        let recipients = ["Marc", "Marc ", "\u{FEFF}Marc", "Ma\u{2060}rc"]
+        #expect(Set(recipients.map { DraftContext.privateMessage(recipient: $0).storageKey }).count == recipients.count)
+        #expect(DraftContext.privateMessage(recipient: "Ma\u{200B}RC").storageKey == "mp:\(AccountKey.make("marc"))")
     }
 
     @Test func replyAndEditOfTheSameTopicNeverCollide() {

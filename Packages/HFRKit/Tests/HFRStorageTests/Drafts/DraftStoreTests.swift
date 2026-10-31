@@ -69,16 +69,29 @@ private struct Fixture {
 
     /// A draft as stored before LOT-072: account key `marc` (`AccountKey`), recipient kept as typed.
     @Test func aDraftStoredBeforeTheSharedRuleIsStillFound() async throws {
-        let stored = Draft(context: .privateMessage(recipient: "Ma\u{200B}rc "), account: "marc", text: "old", updatedAt: start)
+        let stored = Draft(context: .privateMessage(recipient: "Ma\u{200B}rc"), account: "marc", text: "old", updatedAt: start)
         let persistence = InMemoryDraftPersistence(DraftDocument(drafts: [stored]))
         let store = DraftStore(persistence: persistence, clock: { [start] in start })
-        #expect(await store.draft(for: .privateMessage(recipient: "\u{FEFF}MARC"), account: "Ma\u{200B}rc")?.text == "old")
+        #expect(await store.draft(for: .privateMessage(recipient: "MARC"), account: "Ma\u{200B}rc")?.text == "old")
         #expect(await store.drafts(account: "Marc").count == 1)
         try await store.save("new", for: .privateMessage(recipient: "marc"), account: "Marc")
         #expect(persistence.document?.drafts.map(\.text) == ["new"])
         #expect(persistence.document?.drafts.first?.account == "marc")
         try await store.save("bob", for: .legacyGlobal, account: " Bob\u{FEFF}")
         #expect(persistence.document?.drafts.last?.account == " bob\u{FEFF}")
+    }
+
+    /// Two MP drafts stored under distinct keys stay two drafts: a save to one never drops the other (CodeRabbit).
+    @Test func draftsToRecipientsSpelledApartStayApart() async throws {
+        let drafts = [
+            Draft(context: .privateMessage(recipient: "Marc"), account: "me", text: "first", updatedAt: start),
+            Draft(context: .privateMessage(recipient: "Marc "), account: "me", text: "second", updatedAt: start)
+        ]
+        let persistence = InMemoryDraftPersistence(DraftDocument(drafts: drafts))
+        let store = DraftStore(persistence: persistence, clock: { [start] in start })
+        try await store.save("first, edited", for: .privateMessage(recipient: "marc"), account: "me")
+        #expect(await store.draft(for: .privateMessage(recipient: "Marc "), account: "me")?.text == "second")
+        #expect(Set(persistence.document?.drafts.map(\.text) ?? []) == ["first, edited", "second"])
     }
 
     @Test func draftsAreScopedPerAccount() async throws {

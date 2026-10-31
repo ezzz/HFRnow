@@ -20,7 +20,7 @@
 
 Steps 1-2 alone are `cleaned` (case kept), the form `AccountBook` stores. `String` equality is canonical, so `É` and `E` + U+0301 are equal; diacritics stay significant (`Élodie` ≠ `Elodie`, as LOT-065 decided).
 
-**Stored keys are not comparison forms.** Every key written to disk keeps the frozen account key of ADR 0013 §7 (`AccountKey.make`: U+200B removed, lower-cased, nothing else), so no stored key changes. For a `cleaned` pseudo, which every account pseudo is (`AccountBook.add` cleans it), the account key equals the comparison form (tested over the whole table).
+**Keys are not comparison forms.** Every key written to disk, or recomputed to identify stored data, keeps the frozen account key of ADR 0013 §7 (`AccountKey.make`: U+200B removed, lower-cased, nothing else), so no stored key changes. For a `cleaned` pseudo, which every account pseudo is (`AccountBook.add` cleans it), the account key equals the comparison form (tested over the whole table).
 
 ## Callers
 | Caller | Before | After | Stored data |
@@ -30,7 +30,7 @@ Steps 1-2 alone are `cleaned` (case kept), the form `AccountBook` stores. `Strin
 | `PseudoListStore.unblock` / `disallow` | removed the first match | removes **every** match | a list stored before can hold two spellings the rule now merges (`Marc`, `Marc` + U+FEFF); both go |
 | `PseudoListStore` new entries (`block`, `allow`, `replaceBlocklist`) | stored as typed | stored `cleaned` (case kept) | old entries are not rewritten; a new entry carries no invisible character or stray space into MPStorage (LOT-062), whose legacy readers remove U+200B only |
 | `DraftStore` account key (`Draft.account`) | `DraftNameNormalizer` | `AccountKey.make`: same output | keys unchanged |
-| `DraftContext.privateMessage` recipient (`storageKey`) | U+200B + case | the rule | `storageKey` is never stored: a draft keeps its recipient as typed and the key is recomputed, so an old draft is found under the new rule |
+| `DraftContext.privateMessage` recipient (`storageKey`) | `DraftNameNormalizer` (U+200B + case) | `AccountKey.make`: same output | `storageKey` is recomputed from the recipient each draft keeps as typed, so it must stay injective over stored drafts: under the wider rule, live drafts to `Marc` and `Marc ` would share one key and a save would drop one (CodeRabbit). The recipient keeps the key form |
 | `AccountBook` (`add`, `account(matching:)`, `remove`, `replace`, `init` dedupe, `md_user` check) | private `normalized` + `samePseudo` | `cleaned` + `matches`: same rule | unchanged behaviour |
 | `AccountKey` (LOT-064, LOT-172) | — | untouched (comment only) | frozen |
 
@@ -50,11 +50,10 @@ None: pure logic, synthetic strings and documents (a blocklist and a draft docum
 ## Intentional differences
 1. **Blocklist and allowlist matching** ignore every format character and surrounding white space, not only U+200B and case (legacy `BlackList.m:130-143`): a pseudo copied with a U+FEFF or a trailing space is the same member. CHANGELOG-LEGACY #49.
 2. **`unblock` removes every matching entry**, so no spelling stored under the narrower rule stays blocked.
-3. **MP draft recipients** follow the same rule.
-4. **New list entries are stored cleaned** (case kept), not as typed: legacy stored the typed string.
+3. **New list entries are stored cleaned** (case kept), not as typed: legacy stored the typed string.
 
 ## Tests
-`PseudoNormalizerTests` (table: U+200B, U+FEFF, U+2060, U+200C/U+200D, U+00AD, tabs and newlines, U+00A0, inner space, accents composed and decomposed, empty; account key = comparison form on a cleaned pseudo), `PseudoListStoreTests` (format characters and white space on both lists, new entries stored cleaned, blank pseudos refused, a document stored before this lot found and fully unblocked, keys stored in the frozen form), `DraftContextTests` (recipient), `DraftStoreTests` (a draft stored before this lot found; account keys in the frozen form), and the existing `AccountBookTests`. Nine mutations, each applied and reverted, each failed named tests: the old U+200B-and-case rule, format characters kept, no trimming, new entries stored as typed (review), `unblock` removing the first match only, blocklists or drafts keyed by the comparison form, recipients keyed by the account key, `AccountBook` comparing exactly.
+`PseudoNormalizerTests` (table: U+200B, U+FEFF, U+2060, U+200C/U+200D, U+00AD, tabs and newlines, U+00A0, inner space, accents composed and decomposed, empty; account key = comparison form on a cleaned pseudo), `PseudoListStoreTests` (format characters and white space on both lists, new entries stored cleaned, blank pseudos refused, a document stored before this lot found and fully unblocked, keys stored in the frozen form), `DraftContextTests` (recipients keep the key form), `DraftStoreTests` (a draft stored before this lot found; account keys in the frozen form; two MP drafts to recipients spelled apart stay apart), and the existing `AccountBookTests`. Nine mutations, each applied and reverted, each failed named tests: the old U+200B-and-case rule, format characters kept, no trimming, new entries stored as typed (review), `unblock` removing the first match only, blocklists or drafts keyed by the comparison form, recipients keyed by the comparison form, `AccountBook` comparing exactly.
 
 ## Learnings
 - A key and a comparison are two contracts: freeze the key (it is on disk, possibly on several devices), and let the comparison change only where both sides are recomputed at run time.
