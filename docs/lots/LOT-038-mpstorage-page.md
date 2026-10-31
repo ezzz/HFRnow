@@ -3,6 +3,7 @@
 - **Module:** HFRParsing (`Sources/HFRParsing/MPStorage/`)
 - **Difficulty / model:** medium (Opus 5.5 author → Fable 5.1 reviewer; LOTS.md routes Sonnet → Opus, and the reviewer is never the author model)
 - **Issue:** [#65](https://github.com/ezzz/HFRnow/issues/65) (audit item D8; old issue francoisgn/ios-app_SwiftHFR#71). ★ Critical path: LOT-052 waits for it.
+- **Builds on:** LOT-023 and LOT-030 (the `LOTS.md` row), and also LOT-022 (`PageNavigation`), LOT-033 (`TopicPageMetadataParser.title`, now `internal`) and LOT-062 (`MPStorageCodec`), all done. The `LOTS.md` row lists only the first two; external contributors do not edit `LOTS.md`, so this is reported on #65.
 
 ## Legacy sources
 Legacy repository <https://github.com/francoisgn/hfrnow>, commit `2440d79` (an ancestor of `origin/master`).
@@ -59,14 +60,14 @@ Error payloads never carry page text: the document holds pseudos.
 | `R13a`, `R12` | pages without messages, `R12` with a `.hop` notice that is not the "destiné" one → `.noMessage` |
 
 **Pending capture** (never hand-built, LESSONS 36):
-- A document with other clients' namespaces, member pseudos, near the 64 KiB cap, with a non-BMP character, or with U+00A0 / smiley codes inside strings ([#272](https://github.com/ezzz/HFRnow/issues/272), waits for an operator decision). Until then the U+00A0 removal and `.invalidDocument` are covered by the codec's own tests, not by a page.
+- A document with other clients' namespaces, member pseudos, near the 64 KiB cap, with a non-BMP character, or with U+00A0 / smiley codes inside strings ([#272](https://github.com/ezzz/HFRnow/issues/272), waits for an operator decision). Until it lands, the U+00A0 removal is **untested** (R60a holds none, and the codec leaves it to this reader) and `.invalidDocument` is only the codec's own invalid-JSON behaviour, never reached from a page.
 - A storage thread found on page 2 or later of the MP list, and the "destiné" page answered for the storage thread itself ([#333](https://github.com/ezzz/HFRnow/issues/333)); `RA5` is the same notice on another MP thread.
 - An MP list page past the last page ([#114](https://github.com/ezzz/HFRnow/issues/114)).
 - A storage message without a paragraph (`.missingParagraph`), and a storage thread's page 2 (`.notFirstPage` on the storage thread itself).
 
 ## Intentional differences from legacy
 1. **Pager**: the next page comes from the LOT-022 pager (`navigation.nextPath`), not from the last child of `div.left`, which is a window on long lists (LOT-004 RC4.6).
-2. **"destiné"**: looked for in the `.hop` notice of a page without messages only; legacy searched the whole page, so a stored or quoted text holding the word made it drop its cached thread and search again.
+2. **"destiné"**: looked for in the `.hop` notice of a page without messages only; legacy searched the whole page, so a stored or quoted text holding the word made it drop its cached thread and search again. Unverified: no capture has a message holding the word, so no test tells the two rules apart.
 3. **Subject check**: the thread page must carry the storage subject; legacy read the first message of whatever thread the cached `post` named, and would have written its update over it.
 4. **First page only**: a page starting with the continuation copy is refused; legacy read that copy as the document.
 5. **Malformed JSON** is a typed error; legacy showed an alert and turned the feature off for every account (quirk 18). What to do is the caller's decision (LOT-052, LOT-130).
