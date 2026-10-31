@@ -63,7 +63,7 @@ struct FilteredPostsFlowTests {
         return Outcome(result: result, requests: await transport.requests, progress: await reports.values)
     }
 
-    /// Every author of the capture: a allowlist that keeps every message.
+    /// Every author of the capture: an allowlist that keeps every message.
     private static func everyone(_ id: String) throws -> FilteredPostsCriteria {
         guard let file = Self.pageFiles[id] else { throw Capture.Missing(name: id) }
         let page = try Capture.page(file)

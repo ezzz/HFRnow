@@ -49,7 +49,7 @@ Pseudos compare by `HFRText.pseudoComparisonKey`: zero-width spaces removed, tri
   - after the topic's last page: `isFinished`, no `resumePage`;
   - after the page that brings the batch to `batchSize` (40) messages or more: a whole page is always kept, so a batch can exceed 40, as in legacy. Then `resumePage = endPage + 1`.
   - A page past the end comes back as the last page (`R24`: 302 from `…_2202.htm` to `…_2201.htm`). It ends the batch as finished without reading the page again; `maxPage` is the page HFR served, and `endPage` stays `startPage` when that happened on the first request.
-  - **No page limit** (LESSONS 4): criteria that keep nothing read every page up to the topic's last, one GET at a time (2,201 pages on topic 28563), as legacy did (`FilterPostsQuotes.m:255-303`). Each page is a few hundred kilobytes, decoded and dropped once read; cancellation stops the walk before the next request.
+  - **No page limit** (LESSONS 4): criteria that keep nothing read every page up to the topic's last, one GET at a time (2,201 pages on topic 28563), as legacy did (`FilterPostsQuotes.m:255-303`). Each page is up to a few hundred kilobytes (21–140 KB for the anonymous captures) (21–140 KB for the anonymous captures), decoded and dropped once read; cancellation stops the walk before the next request.
 - **Errors**:
   - `network`: transport failure, HTTP error, or cancellation, which is checked before each page, so a cancelled run requests nothing more;
   - `unexpectedPage`: a page of another topic, a final URL that is not a `sujet_<post>_<page>.htm` page, or a page without any message block;
@@ -104,9 +104,9 @@ Cancellation before a page is `PageFetcher`'s own check (LOT-045), pinned here b
 
 ## Intentional differences from legacy
 
-1. **Page 1's opening post can be kept** (legacy dropped the first block of every page, `ParseMessagesOperation.m:141-144`). [CHANGELOG-LEGACY](../CHANGELOG-LEGACY.md) row 43.
-2. **Long pseudos match** their zero-width-space form for the account's own posts and quotes of it (legacy compared raw names there, `:184`, `:206`). Row 43.
-3. **`after` by message number**, not by the id on the page: a last-read message missing from the page no longer skips the whole page. Row 43.
+1. **Page 1's opening post can be kept** (legacy dropped the first block of every page, `ParseMessagesOperation.m:141-144`). [CHANGELOG-LEGACY](../CHANGELOG-LEGACY.md) row 47.
+2. **Long pseudos match** their zero-width-space form for the account's own posts and quotes of it (legacy compared raw names there, `:184`, `:206`). Row 47.
+3. **`after` by message number**, not by the id on the page: a last-read message missing from the page no longer skips the whole page (legacy skipped every block until it saw the id, `:161-166`). Row 47.
 4. **The last page comes from each page read**, not from the favourite row given at the start (`topic.maxTopicPage`), so a topic that grew meanwhile is read to its real end; a page past the end is read as the end.
 5. **No settings string**: the allowlist is a switch, the "pseudo" rules are on whenever a pseudo is given (the Swift app always ran in `pseudo` mode). Legacy ObjC without `pseudo` in the setting also skipped the quote-count rule (`:320-322`); that combination is not offered.
 
