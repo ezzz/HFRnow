@@ -7,7 +7,8 @@ public enum DraftContext: Sendable, Hashable, Codable {
     case reply(topic: TopicID, page: Int)
     /// A new topic in a forum category.
     case newTopic(forum: CategoryID)
-    /// A new private message to a recipient (case and zero-width spaces ignored, like blocklist matching).
+    /// A new private message to a recipient, compared by `PseudoNormalizer` (case, format characters and surrounding
+    /// white space ignored).
     case privateMessage(recipient: String)
     /// The edit of an existing message (`numreponse`) of a topic.
     case edit(topic: TopicID, post: Int)
@@ -22,7 +23,7 @@ public enum DraftContext: Sendable, Hashable, Codable {
         case .newTopic(let forum):
             "newtopic:\(forum.queryValue)"
         case .privateMessage(let recipient):
-            "mp:\(DraftNameNormalizer.normalize(recipient))"
+            "mp:\(PseudoNormalizer.comparisonForm(recipient))"
         case .edit(let topic, let post):
             "edit:\(topic.category.queryValue):\(topic.topic):\(post)"
         case .legacyGlobal:

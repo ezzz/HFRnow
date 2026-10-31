@@ -23,6 +23,12 @@ import Testing
         #expect(noisy.storageKey == DraftContext.privateMessage(recipient: "marc").storageKey)
     }
 
+    @Test func privateMessageRecipientIgnoresFormatCharactersAndSurroundingWhiteSpace() {
+        let noisy = DraftContext.privateMessage(recipient: "\u{FEFF} Ma\u{2060}rc\n")
+        #expect(noisy.storageKey == DraftContext.privateMessage(recipient: "marc").storageKey)
+        #expect(DraftContext.privateMessage(recipient: "Ma rc").storageKey != noisy.storageKey)
+    }
+
     @Test func replyAndEditOfTheSameTopicNeverCollide() {
         #expect(DraftContext.reply(topic: topic, page: 7).storageKey != DraftContext.edit(topic: topic, post: 7).storageKey)
     }

@@ -25,6 +25,41 @@ import Testing
         #expect(await !store.isBlocked("Marc", account: "me"))
     }
 
+    @Test func matchingIgnoresFormatCharactersAndSurroundingWhiteSpace() async throws {
+        let (store, _) = makeStore()
+        #expect(try await store.block("Marc", account: "me"))
+        #expect(try await !store.block("\u{FEFF}marc ", account: "me"))
+        #expect(await store.isBlocked("Ma\u{2060}rc\u{00A0}", account: "me"))
+        #expect(try await store.allow(" Friend\t"))
+        #expect(try await !store.allow("FRIEND"))
+        #expect(await store.isAllowed("friend\u{200D}", account: "you"))
+        #expect(await store.blocklist(for: "me").map(\.pseudo) == ["Marc"])
+    }
+
+    /// A document as stored before LOT-072: account key `marc` (`AccountKey`), two spellings the rule now merges.
+    @Test func aDocumentStoredBeforeTheSharedRuleIsStillFoundAndFullyUnblocked() async throws {
+        let stored = PseudoListDocument(
+            blocklists: ["marc": [PseudoListEntry(pseudo: "Spammer"), PseudoListEntry(pseudo: "Spammer\u{FEFF}")]],
+            allowlist: [PseudoListEntry(pseudo: " Friend")]
+        )
+        let persistence = InMemoryPseudoListPersistence(stored)
+        let store = PseudoListStore(persistence: persistence)
+        #expect(await store.blocklist(for: "Ma\u{200B}rc").count == 2)
+        #expect(await store.isBlocked("spammer", account: "Marc"))
+        #expect(await store.isAllowed("friend", account: "Marc"))
+        #expect(try await store.unblock("SPAMMER", account: "Marc"))
+        #expect(await !store.isBlocked("Spammer\u{FEFF}", account: "Marc"))
+        #expect(persistence.document?.blocklists["marc"] == nil)
+    }
+
+    /// ADR 0013 §7: lists stay keyed by the frozen account key, whatever the comparison rule.
+    @Test func blocklistsAreStoredUnderTheFrozenAccountKey() async throws {
+        let (store, persistence) = makeStore()
+        try await store.block("Spammer", account: "Ma\u{200B}rc")
+        try await store.block("Spammer", account: " Bob\u{FEFF}")
+        #expect(persistence.document.map { Set($0.blocklists.keys) } == ["marc", " bob\u{FEFF}"])
+    }
+
     @Test func unblockOfAnUnknownPseudoReportsFalseAndDoesNotSave() async throws {
         let (store, persistence) = makeStore()
         #expect(try await !store.unblock("ghost", account: "me"))
@@ -54,7 +89,7 @@ import Testing
         #expect(await store.allowlist().isEmpty)
     }
 
-    @Test(arguments: ["", "\u{200B}", "\u{200B}\u{200B}"])
+    @Test(arguments: ["", "\u{200B}", "\u{200B}\u{200B}", " ", "\u{FEFF}", "\u{200B} \u{2060}\n"])
     func emptyPseudosAreRejectedOnBothLists(pseudo: String) async {
         let (store, persistence) = makeStore()
         await #expect(throws: PseudoListError.emptyPseudo) { try await store.block(pseudo, account: "me") }
