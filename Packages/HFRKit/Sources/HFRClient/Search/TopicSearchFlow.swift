@@ -8,8 +8,8 @@ import HFRParsing
 /// One POST of the topic page's search form to `transsearch.php` in the account session, with the session's token and
 /// redirects not followed (`ObjCTopicSearchWorker.m:33`): a match answers 302 with the topic page holding it in
 /// `Location` (`R52a`), no match answers a `.hop` "Désolé aucune réponse n'a été trouvée" (`R52b`). Legacy read any
-/// answer without `Location` as "no result" (`:46-51`); here only HFR's sentence is, so a refused token or an expired
-/// session is reported instead of hidden. The `Location` is returned only when it is a topic page of the forum for the
+/// answer without `Location` as "no result" (`:46-51`); here only HFR's sentence and a redirect without `Location` are
+/// (issue #72), so a refused token or an expired session is reported instead of hidden. The `Location` is returned only when it is a topic page of the forum for the
 /// searched topic, since the reader then requests it with the session (LESSONS 37, 43). Nothing is retried.
 public struct TopicSearchFlow: Sendable {
     /// HFR's sentence for a search without match (`R52b`).
@@ -51,7 +51,8 @@ public struct TopicSearchFlow: Sendable {
     /// reported through LOT-037's classifier.
     static func result(of response: HTTPResponse, searching topic: TopicID) throws(TopicSearchError) -> TopicSearchResult {
         if response.isRedirect {
-            guard let location = response.redirectLocation else { throw .unrecognizedAnswer(message: nil) }
+            // Issue #72 and legacy (`ObjCTopicSearchWorker.m:46-51`): a redirect without `Location` is no match.
+            guard let location = response.redirectLocation else { return .noMatch }
             guard isPage(location, of: topic) else { throw .invalidLocation(location) }
             return .match(location)
         }

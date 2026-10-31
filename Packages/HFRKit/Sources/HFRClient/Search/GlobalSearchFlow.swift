@@ -6,8 +6,8 @@ import HFRParsing
 /// Searches the whole forum (HFR-PROTOCOL S1, S2; audit NET-10): LOT-046.
 ///
 /// One POST of the search form to `search.php`, which answers a waiting page whose refresh names the results (`R50a`),
-/// then one GET of that URL (`R50b`, `R50c`). The POST, the only request carrying `hash_check`, never follows a redirect;
-/// the results URL is requested only when it is an `https` forum page. Everything goes without cookies, as legacy did
+/// then one GET of that URL (`R50b`, `R50c`). Neither request follows a redirect, and the results URL is requested only
+/// when it is an `https` forum page. Everything goes without cookies, as legacy did
 /// (`ObjCForumSearchWorker.m:125-146`). Legacy sent the second request as a POST of the same body (`:211-240`); HFR serves
 /// the results to a cookie-less GET (`R50b`), so this flow sends a GET.
 ///
@@ -87,9 +87,10 @@ public struct GlobalSearchFlow: Sendable {
 
     /// GETs a results page and reads it as a topic list (LOT-022 reads search results and HFR's no-result message).
     private func results(at url: URL) async throws(GlobalSearchError) -> GlobalSearchResult {
-        let page = try await fetch(.get(url, timeout: RequestTimeout.globalSearch))
-        // The transport follows redirects: a page served from elsewhere is not HFR's answer.
-        guard PostingFlow.isForumPage(page.finalURL) else { throw .page(.malformed("search results served off the forum")) }
+        // Redirects are not followed, so no host but the checked forum page is contacted (operator decision on #346);
+        // HFR serves the results in place (`R50b`, `R50c`: 200, no redirect).
+        let page = try await fetch(.get(url, timeout: RequestTimeout.globalSearch, redirectPolicy: .doNotFollow))
+        guard !(300..<400).contains(page.statusCode) else { throw .page(.malformed("search results redirected")) }
         do {
             return GlobalSearchResult(url: page.finalURL, page: try TopicListParser.parse(page.text, pageURL: page.finalURL.absoluteString))
         } catch {

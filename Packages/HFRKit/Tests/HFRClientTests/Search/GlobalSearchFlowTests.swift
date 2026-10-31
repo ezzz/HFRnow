@@ -41,6 +41,7 @@ struct GlobalSearchFlowTests {
         let redirect = try SearchCapture.oracle("LOT-005", "R50a")
         let get = try #require(requests.last)
         #expect(get.method == .get)
+        #expect(get.redirectPolicy == .doNotFollow)
         #expect(get.url.absoluteString == redirect["absoluteURL"] as? String)
         #expect(get.body == nil)
         #expect(requests.allSatisfy { $0.headers["Cookie"] == nil })
@@ -135,14 +136,16 @@ struct GlobalSearchFlowTests {
         #expect(requests.map(\.method) == [.post])
     }
 
-    @Test("Results served off the forum are not HFR's")
-    func resultsOffTheForum() async throws {
+    @Test("A redirect answering the results GET is not followed: no other host is contacted")
+    func redirectedResults() async throws {
         let waiting = try SearchCapture.answer("R50a-search-post-waiting-page", id: "R50a")
-        let elsewhere = try Capture.response(
-            "R50b-search-results-no-cookie", url: try #require(URL(string: "https://example.com/forum1.php?recherches=1"))
-        )
-        let (result, _) = await Self.run(replies: [.success(waiting), .success(elsewhere)])
-        #expect(result == .failure(.page(.malformed("search results served off the forum"))))
+        let absolute = try #require(try SearchCapture.oracle("LOT-005", "R50a")["absoluteURL"] as? String)
+        let resultsURL = try #require(URL(string: absolute))
+        let moved = HTTPResponse(statusCode: 302, headers: ["Location": "https://example.com/forum1.php?recherches=1"], url: resultsURL)
+        let (result, requests) = await Self.run(replies: [.success(waiting), .success(moved)])
+        #expect(result == .failure(.page(.malformed("search results redirected"))))
+        #expect(requests.count == 2)
+        #expect(requests.last?.redirectPolicy == .doNotFollow)
     }
 
     @Test(
@@ -203,7 +206,7 @@ struct GlobalSearchFlowTests {
         }
         let requests = await transport.requests
         #expect(requests.map(\.url.absoluteString) == ["https://forum.hardware.fr" + path])
-        #expect(requests.allSatisfy { $0.method == .get && $0.headers["Cookie"] == nil })
+        #expect(requests.allSatisfy { $0.method == .get && $0.headers["Cookie"] == nil && $0.redirectPolicy == .doNotFollow })
     }
 
     @Test(

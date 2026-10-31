@@ -13,6 +13,6 @@ public enum GlobalSearchError: Error, Sendable, Equatable {
     case network(NetworkError)
     /// The waiting page names no results page on the forum (legacy: "Aucune page de résultats n'a été trouvée").
     case noResultsPage(ParsingError)
-    /// The results page is not a list (maintenance, unreadable page, page served off the forum).
+    /// The results page is not a list (maintenance, unreadable page, a redirect instead of the results).
     case page(ListPageFailure)
 }

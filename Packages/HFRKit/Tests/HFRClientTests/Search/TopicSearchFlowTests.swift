@@ -80,12 +80,13 @@ struct TopicSearchFlowTests {
         #expect(result == .failure(.invalidLocation(resolved)))
     }
 
-    @Test("A redirect without Location is not an answer")
+    @Test("A redirect without Location is no match (issue #72)")
     func redirectWithoutLocation() async throws {
         var moved = try Self.redirect(to: "")
         moved.headers["Location"] = nil
-        let (result, _) = await Self.run(replies: [.success(moved)])
-        #expect(result == .failure(.unrecognizedAnswer(message: nil)))
+        let (result, requests) = await Self.run(replies: [.success(moved)])
+        #expect(result == .success(.noMatch))
+        #expect(requests.count == 1)
     }
 
     /// Other captured pages, used only to check that nothing but HFR's sentence reads as "no match"; they are not claims

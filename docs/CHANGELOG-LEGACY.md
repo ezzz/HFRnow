@@ -50,6 +50,6 @@ Registre des problèmes **présents dans l'app legacy** (HFR+ / HFRnow, branche 
 | 43 | T | Recherche globale : les résultats sont demandés par un GET sans cookie, au lieu de renvoyer le formulaire en POST à l'adresse des résultats. | LOT-046 #72 | `ObjCForumSearchWorker.m:211-240` ; capture R50b (GET sans cookie) |
 | 44 | T | Recherche globale : les lettres accentuées partent encodées en UTF-8 (`%C3%A9`) au lieu d'être envoyées brutes. | LOT-041 #67, LOT-046 #72 | `ObjCForumSearchWorker.m:194-199` |
 | 45 | UX | Recherche globale : un mot interdit (jailbreak, cydia…) refuse la recherche avec un avertissement, au lieu de chercher en silence un autre texte à la place (Q-7). | LOT-046 #72 | `ObjCForumSearchWorker.m:150-156` |
-| 46 | UX | Recherche dans un sujet : seul le message de HFR « aucune réponse » vaut « aucun résultat » ; un jeton refusé ou une session expirée est signalé, et l'adresse renvoyée n'est suivie que si c'est une page du sujet cherché. | LOT-046 #72 | `ObjCTopicSearchWorker.m:39-52` (toute réponse sans `Location` = aucun résultat) |
+| 46 | UX | Recherche dans un sujet : seuls le message de HFR « aucune réponse » et une redirection sans adresse valent « aucun résultat » ; un jeton refusé ou une session expirée est signalé, et l'adresse renvoyée n'est suivie que si c'est une page du sujet cherché. | LOT-046 #72 | `ObjCTopicSearchWorker.m:39-52` (toute réponse sans `Location` = aucun résultat) |
 
 Points « non corrigés volontairement » (comportement legacy gardé) : AQ appelé au lancement (D-071-3).
