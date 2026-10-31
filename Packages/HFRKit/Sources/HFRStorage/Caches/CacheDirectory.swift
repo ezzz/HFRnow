@@ -3,7 +3,8 @@ import Foundation
 /// The app's cache folder and its areas. Everything here can be deleted by the system or by the user at any time.
 ///
 /// The default root is `Library/Caches/cache`, the same folder the legacy app used, so avatars cached by the old
-/// version are simply pruned by age. The offline-reading feature is not part of it (LOT-068).
+/// version are simply pruned by age. Offline reading keeps its pages in the `offline` area (LOT-068), so the system may
+/// also reclaim them.
 public struct CacheDirectory: Sendable {
     /// The folder holding all areas.
     public let root: URL

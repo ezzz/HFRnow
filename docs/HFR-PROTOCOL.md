@@ -424,6 +424,12 @@ Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `Li
 - **Intra-topic match** (`R52a`): the `Location` is a forum-relative `/forum2.php?post=<post>&cat=<cat>&…&word=<UPPERCASED>&spseudo=&currentnum=<n>#t<n>` of the searched topic. **No match** (`R52b`): a `.hop` with the sentence "Désolé aucune réponse n'a été trouvée" and a `javascript:history.back(1)` link, without comma (the global search's notice has one).
 - **Pending capture**: the `search.php` POST **without cookies** (`R50a` was sent with user2's session), with an empty `hash_check` and with the account's, so whether HFR checks the token there is not known; a query with accented characters (SwiftHFR sends UTF-8 percent-encoding, legacy sent the letters raw); a results page 2 (`R50b`'s pager link); `transsearch.php` answers to LOT-041's legacy body (`R52a`/`R52b` sent the browser's fields: `config, sondage, owntopic, dep=0, firstnum`, no `filter`), to a bad token, to a logged-out session, and to a continued search (`firstnum`/`currentnum`, "Stepping not tested" in §7).
 
+### LOT-068 — offline pages
+
+[LOT-068](lots/LOT-068-offline-reading.md), tests `OfflineTopicStoreTests`.
+
+- **Session token in a topic page** (`R20`, `R22a`, `R28` without cookies; `R21`, `R32b` logged in, **verified**): every `<input … name="hash_check" value="…">` of a page served without cookies is empty (four on each), while a logged-in page carries the token in each of them (six on `R21`, eight on `R32b`). A page without a filled `hash_check` holds no session secret, which is what the offline store requires before writing a page to disk.
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).
