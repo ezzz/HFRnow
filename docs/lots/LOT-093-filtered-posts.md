@@ -49,7 +49,7 @@ Pseudos compare by `HFRText.pseudoComparisonKey`: zero-width spaces removed, tri
   - after the topic's last page: `isFinished`, no `resumePage`;
   - after the page that brings the batch to `batchSize` (40) messages or more: a whole page is always kept, so a batch can exceed 40, as in legacy. Then `resumePage = endPage + 1`.
   - A page past the end comes back as the last page (`R24`: 302 from `…_2202.htm` to `…_2201.htm`). It ends the batch as finished without reading the page again; `maxPage` is the page HFR served, and `endPage` stays `startPage` when that happened on the first request.
-  - **No page limit** (LESSONS 4): criteria that keep nothing read every page up to the topic's last, one GET at a time (2,201 pages on topic 28563), as legacy did (`FilterPostsQuotes.m:255-303`). Each page is up to a few hundred kilobytes (21–140 KB for the anonymous captures) (21–140 KB for the anonymous captures), decoded and dropped once read; cancellation stops the walk before the next request.
+  - **No page limit** (LESSONS 4): criteria that keep nothing read every page up to the topic's last, one GET at a time (2,201 pages on topic 28563), as legacy did (`FilterPostsQuotes.m:255-303`). Each page is up to a few hundred kilobytes (21–140 KB for the anonymous captures), decoded and dropped once read; cancellation stops the walk before the next request.
 - **Errors**:
   - `network`: transport failure, HTTP error, or cancellation, which is checked before each page, so a cancelled run requests nothing more;
   - `unexpectedPage`: a page of another topic, a final URL that is not a `sujet_<post>_<page>.htm` page, or a page without any message block;
