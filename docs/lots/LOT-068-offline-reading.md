@@ -40,7 +40,7 @@ Images are not saved (the commented-out design copied them): the app's image cac
 ### Format and versions
 
 - **One file per page**: `offline/<category>-<topic>/<page>.json`. Numbers are written in decimal with no sign or leading zero, so one page has exactly one file name. The JSON has sorted keys and fields `version`, `category`, `topic`, `page`, `title`, `html` and `savedAt` (the default date strategy, which round-trips a `Date` exactly).
-- **No index file**: the list is read from the folder names and file names, so a file the evictor or the system removed never leaves the other pages unreadable. Each topic's title comes from its highest readable page, and its date from the newest page file. `topics()` decodes one page per topic (about 56 ms for 40 topics of 138 KB pages): the app calls it off the main actor.
+- **No index file**: the list is read from the folder names and file names, so a file the evictor or the system removed never leaves the other pages unreadable. Each topic's title comes from its highest readable page, and its date from the newest page file. `topics()` decodes one page per topic (about 56 ms for 40 topics of 138 KB pages): the app must call it off the main actor (LOT-139).
 - **Regular files only**: a page is a regular `<page>.json` file; a directory or a symbolic link of that name is ignored by the list and never read.
 - **Versions**: `version` is read first. A file of another version gives `unsupportedVersion(n)`, older or newer (version 1 is the first, so nothing migrates yet); a damaged file, or one whose fields name no forum topic or page, gives `unreadable`. In both cases `page(_:of:)` throws, `topics()` still lists the page number, and nothing crashes. Such a file goes with `remove`, `removeAll` or the evictor. A file whose content names another topic or page than its place is `unreadable` too.
 
@@ -85,14 +85,14 @@ Captures only, nothing new: topic pages fetched without cookies `R20`, `R22a`, `
   - a directory named like a page.
 - `TemporaryFileCacheTests`: the area list now includes `offline`.
 
-Shown to fail with the behaviour removed (20 mutations, each caught):
+Shown to fail with the behaviour removed (19 mutations, each caught):
 - no token check, single quotes ignored, a missing value read as no token;
 - any version accepted, record fields not checked, misplaced files accepted;
 - no beyond-limit check, the highest pages removed instead of the lowest;
 - leading zeros accepted, a linked topic folder accepted, `prive` accepted, an empty page accepted, page 0 accepted;
 - an age limit on the area;
 - the oldest topic listed first, the title taken from the lowest page;
-- after the review: the token check not quote-aware, no regular-file check, a linked page file listed, a linked page file read.
+- after the review: the token check not quote-aware, an unclosed quote read as no token, no regular-file check, a linked page file read (listing one needs both the link and the regular-file guard removed, since either excludes it).
 
 ## Pending capture
 

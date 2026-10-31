@@ -59,8 +59,9 @@ struct OfflinePageRecord: Codable {
     /// while every input is empty on a page served without cookies (`R20`, `R22a`, `R28`). An input whose value cannot
     /// be read counts as holding one (fail closed).
     static func holdsSessionToken(_ html: String) -> Bool {
-        // Quote-aware (LESSONS 34): a `>` inside an attribute value does not end the tag.
-        for tag in html.matches(of: /<input\b(?:[^>"']|"[^"]*"|'[^']*')*>/.ignoresCase()) {
+        // Quote-aware (LESSONS 34): a `>` inside an attribute value does not end the tag. A quote left open falls back
+        // to the first `>`, so a malformed input is still read, and fails closed below.
+        for tag in html.matches(of: /<input\b(?:(?:[^>"']|"[^"]*"|'[^']*')*|[^>]*)>/.ignoresCase()) {
             let input = tag.output
             guard input.firstMatch(of: /\bname\s*=\s*["']?hash_check\b/.ignoresCase()) != nil else { continue }
             guard let value = input.firstMatch(of: /\bvalue\s*=\s*(?:"([^"]*)"|'([^']*)')/.ignoresCase()) else { return true }

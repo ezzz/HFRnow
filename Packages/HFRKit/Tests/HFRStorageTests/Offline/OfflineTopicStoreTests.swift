@@ -109,6 +109,8 @@ struct OfflineTopicStoreTests {
         // A `>` inside a quoted attribute does not end the tag (LESSONS 34).
         #expect(OfflinePageRecord.holdsSessionToken(#"<input title="a>b" name="hash_check" value="t0k3n">"#))
         #expect(!OfflinePageRecord.holdsSessionToken(#"<input title='a>b' name="hash_check" value="">"#))
+        // A quote never closed: the tag still counts, and its value cannot be read, so it is a token (fail closed).
+        #expect(OfflinePageRecord.holdsSessionToken(#"<input name="hash_check" value="t0k3n>"#))
     }
 
     @Test("Only forum topics from page 1, with content, are saved", arguments: [
