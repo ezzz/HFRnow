@@ -433,6 +433,14 @@ Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `Li
 - **Not addressed** (`RA5`, **verified**): an MP thread the account cannot see answers 200 with no message and the `.hop` "Ce message ne vous est pas destiné, désolé", the page legacy's `destiné` check targets (`MPStorage.m:837`).
 - **Pending capture**: a non-empty document (#272), the storage row on page 2 or later and the "destiné" answer for the storage thread itself (#333), a list page past the last page (#114).
 
+### LOT-093 — filtered posts
+
+[LOT-093](lots/LOT-093-filtered-posts.md), tests `FilteredPostsLegacyTests` (LOT-003 oracles) and `FilteredPostsFlowTests`.
+
+- **Anonymous pages carry what the filter reads** (`R20`, `R22a`, `R22b`, `R26`-`R28`, `R31`, `R32a`, **verified**): the "Message cité N fois" trailer and the quote headers are served without cookies, so the filter needs no session.
+- **First block of a page** (`R20`, `R22a`, `R22b`, `R24`, **verified**): on page 1 it is the topic's opening post, on later pages the continuation block; on anonymous pages the advertisement block comes second.
+- **Page past the end** (`R24`, **verified**): `forum2.php?…&page=2202` of a 2201-page topic ends, after the canonical redirects, with a 302 to `…_2201.htm`, the last page.
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).
