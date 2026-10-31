@@ -424,6 +424,23 @@ Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `Li
 - **Intra-topic match** (`R52a`): the `Location` is a forum-relative `/forum2.php?post=<post>&cat=<cat>&…&word=<UPPERCASED>&spseudo=&currentnum=<n>#t<n>` of the searched topic. **No match** (`R52b`): a `.hop` with the sentence "Désolé aucune réponse n'a été trouvée" and a `javascript:history.back(1)` link, without comma (the global search's notice has one).
 - **Pending capture**: the `search.php` POST **without cookies** (`R50a` was sent with user2's session), with an empty `hash_check` and with the account's, so whether HFR checks the token there is not known; a query with accented characters (SwiftHFR sends UTF-8 percent-encoding, legacy sent the letters raw); a results page 2 (`R50b`'s pager link); `transsearch.php` answers to LOT-041's legacy body (`R52a`/`R52b` sent the browser's fields: `config, sondage, owntopic, dep=0, firstnum`, no `filter`), to a bad token, to a logged-out session, and to a continued search (`firstnum`/`currentnum`, "Stepping not tested" in §7).
 
+### LOT-038 — MPStorage pages
+
+[LOT-038](lots/LOT-038-mpstorage-page.md), tests `MPStoragePageParserTests`.
+
+- **Storage row** (`R13u1`, `R13u1b`, **verified**): the MP list row whose title link text is the subject `a2bcc09b796b8c6fab77058ff8446c34`, here behind HFR's `[non lu]` marker (`<span class="red" title="…">[non lu]</span> <a href="/forum2.php?config=hfr.inc&cat=prive&post=3157083&…" class="cCatTopic">`); its `post` equals the LOT-004 `find` oracle's `sPostId`. `R13a` has no such row and one page.
+- **Storage thread page** (`R60a`, **verified**): the title row's `h3` is the subject; the first message's `div#para<numreponse>` holds one `<p>` with the stored JSON, its `"` served as `&#034;`, followed by `<div style="clear: both;">`; `numreponse` equals the oracle's `sNumRep`. No U+00A0 in the page text of this (empty) document.
+- **Not addressed** (`RA5`, **verified**): an MP thread the account cannot see answers 200 with no message and the `.hop` "Ce message ne vous est pas destiné, désolé", the page legacy's `destiné` check targets (`MPStorage.m:837`).
+- **Pending capture**: a non-empty document (#272), the storage row on page 2 or later and the "destiné" answer for the storage thread itself (#333), a list page past the last page (#114).
+
+### LOT-093 — filtered posts
+
+[LOT-093](lots/LOT-093-filtered-posts.md), tests `FilteredPostsLegacyTests` (LOT-003 oracles) and `FilteredPostsFlowTests`.
+
+- **Anonymous pages carry what the filter reads** (`R20`, `R22a`, `R22b`, `R26`-`R28`, `R31`, `R32a`, **verified**): the "Message cité N fois" trailer and the quote headers are served without cookies, so the filter needs no session.
+- **First block of a page** (`R20`, `R22a`, `R22b`, `R24`, **verified**): on page 1 it is the topic's opening post, on later pages the continuation block; on anonymous pages the advertisement block comes second.
+- **Page past the end** (`R24`, **verified**): `forum2.php?…&page=2202` of a 2201-page topic ends, after the canonical redirects, with a 302 to `…_2201.htm`, the last page.
+
 ### LOT-035 — video links
 
 [LOT-035](lots/LOT-035-video-embeds.md), tests `MessageContentOracleTests` (LOT-003 iframes) and `MessageEmbedDetectorTests`.
