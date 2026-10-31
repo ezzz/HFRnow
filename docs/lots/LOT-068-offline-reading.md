@@ -34,7 +34,7 @@ Images are not saved (the commented-out design copied them): the app's image cac
 ### Where, and for whom
 
 - In the LOT-066 cache, area `offline` (`Library/Caches/cache/offline/`): device-only and never backed up (ADR 0013). Like every cache, the system may reclaim it; the list shows what is on disk.
-- **Shared by the accounts of the device**. The pages carry no session, so they are the same for every account. `save` refuses a page in which any `hash_check` input has a value (`containsSessionToken`), because such a page was fetched with the session and would put the account's token on disk. A page fetched without cookies has every such input empty (`R20`, `R22a`, `R28`: four inputs); a logged-in page has the token in each (`R21`: six, `R32b`: eight). An input whose value cannot be read counts as a token (fail closed). Fetching without cookies is also what keeps the read flag where it is (HFR-PROTOCOL §7 E25).
+- **Shared by the accounts of the device**. The pages carry no session, so they are the same for every account. `save` refuses a page in which any `hash_check` input has a value (`containsSessionToken`), because such a page was fetched with the session and would put the account's token on disk. A page fetched without cookies has every such input empty (`R20`, `R22a`, `R28`: four inputs); a logged-in page has the token in each (`R21`: six, `R32b`: eight). An input whose value cannot be read counts as a token (fail closed), and so does a matched tag with two `name=` or `value=`, where a broken quote has merged two inputs. Fetching without cookies is also what keeps the read flag where it is (HFR-PROTOCOL §7 E25).
 - Only forum topics: a private conversation cannot be read without the session (`invalidTopic`).
 
 ### Format and versions
@@ -85,14 +85,14 @@ Captures only, nothing new: topic pages fetched without cookies `R20`, `R22a`, `
   - a directory named like a page.
 - `TemporaryFileCacheTests`: the area list now includes `offline`.
 
-Shown to fail with the behaviour removed (19 mutations, each caught):
+Shown to fail with the behaviour removed (each mutation caught):
 - no token check, single quotes ignored, a missing value read as no token;
 - any version accepted, record fields not checked, misplaced files accepted;
 - no beyond-limit check, the highest pages removed instead of the lowest;
 - leading zeros accepted, a linked topic folder accepted, `prive` accepted, an empty page accepted, page 0 accepted;
 - an age limit on the area;
 - the oldest topic listed first, the title taken from the lowest page;
-- after the review: the token check not quote-aware, an unclosed quote read as no token, no regular-file check, a linked page file read (listing one needs both the link and the regular-file guard removed, since either excludes it).
+- after the review: the token check not quote-aware, an unclosed quote read as no token, no regular-file check, a linked page file read (listing one needs both the link and the regular-file guard removed, since either excludes it), a tag with two `value=` or two `name=` read as one input.
 
 ## Pending capture
 

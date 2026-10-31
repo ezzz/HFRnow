@@ -111,6 +111,10 @@ struct OfflineTopicStoreTests {
         #expect(!OfflinePageRecord.holdsSessionToken(#"<input title='a>b' name="hash_check" value="">"#))
         // A quote never closed: the tag still counts, and its value cannot be read, so it is a token (fail closed).
         #expect(OfflinePageRecord.holdsSessionToken(#"<input name="hash_check" value="t0k3n>"#))
+        // An earlier unclosed quote resynchronises on a later one and swallows the input, whose own value is then not the
+        // first `value=` of the tag (two `value=`), or is missing behind the earlier input's empty one (two `name=`).
+        #expect(OfflinePageRecord.holdsSessionToken(#"<input value="" title="oops><input name="hash_check" value="t0k3n"><p>"</p>"#))
+        #expect(OfflinePageRecord.holdsSessionToken(#"<input value="" name="x" title="oops><input name="hash_check" title="t"><p>"</p>"#))
     }
 
     @Test("Only forum topics from page 1, with content, are saved", arguments: [

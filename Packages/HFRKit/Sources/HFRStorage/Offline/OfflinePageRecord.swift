@@ -57,14 +57,19 @@ struct OfflinePageRecord: Codable {
 
     /// True when a `hash_check` input of `html` has a value: the page was served to a logged-in session (`R21`, `R32b`),
     /// while every input is empty on a page served without cookies (`R20`, `R22a`, `R28`). An input whose value cannot
-    /// be read counts as holding one (fail closed).
+    /// be read counts as holding one (fail closed), and so does a matched tag with more than one `name=` or `value=`.
     static func holdsSessionToken(_ html: String) -> Bool {
         // Quote-aware (LESSONS 34): a `>` inside an attribute value does not end the tag. A quote left open falls back
         // to the first `>`, so a malformed input is still read, and fails closed below.
         for tag in html.matches(of: /<input\b(?:(?:[^>"']|"[^"]*"|'[^']*')*|[^>]*)>/.ignoresCase()) {
             let input = tag.output
             guard input.firstMatch(of: /\bname\s*=\s*["']?hash_check\b/.ignoresCase()) != nil else { continue }
-            guard let value = input.firstMatch(of: /\bvalue\s*=\s*(?:"([^"]*)"|'([^']*)')/.ignoresCase()) else { return true }
+            // An unclosed quote in an earlier input can resynchronise on a later quote and swallow this one: the tag then
+            // holds two inputs' attributes, and its first `value=` may be the earlier input's empty one.
+            let names = input.matches(of: /\bname\s*=/.ignoresCase()).count
+            let values = input.matches(of: /\bvalue\s*=/.ignoresCase()).count
+            guard names == 1, values == 1,
+                  let value = input.firstMatch(of: /\bvalue\s*=\s*(?:"([^"]*)"|'([^']*)')/.ignoresCase()) else { return true }
             if !(value.output.1 ?? value.output.2 ?? "").isEmpty { return true }
         }
         return false
