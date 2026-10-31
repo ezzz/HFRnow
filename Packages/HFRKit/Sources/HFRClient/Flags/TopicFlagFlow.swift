@@ -3,8 +3,9 @@ import HFRModels
 import HFRNetwork
 import HFRParsing
 
-/// Topic flags and favourites (LOT-051, audit D7): add a favourite, remove a flag, remove a favourite from the list, and
-/// mark a topic read, each in the selected account's session, reporting success only when HFR confirmed it.
+/// Topic flags and favourites (LOT-051, audit D7): add a favourite, remove a flag, remove a favourite from the list, mark
+/// a topic read, and mark a private conversation unread (LOT-058), each in the selected account's session, reporting
+/// success only when HFR confirmed it.
 ///
 /// Every request is sent once: the transport never retries, and a failure after sending is `unconfirmed`, never a
 /// success nor a plain failure. A followed link must be an `https` page of the forum with the write's exact path.
@@ -57,6 +58,18 @@ public struct TopicFlagFlow: Sendable {
         try await removeFavoriteFromList(topic, through: session, after: check(session))
     }
 
+    /// Marks a private conversation unread by following its page's `nonlu.php` link (`TopicPageMetadata.markUnreadURL`, a
+    /// state-changing GET without `hash_check`; LOT-058, legacy `MessagesTableViewController.m:1250-1272` sent it and never
+    /// read the answer).
+    ///
+    /// Success only with HFR's own sentence for it ("Le message a été marqué comme non lu avec succès", `W18`); the MP list
+    /// then shows the conversation unread (`R13b`). The session is checked first, as for `addFavorite`: what HFR answers
+    /// to this GET without a session is not captured.
+    /// - Throws: `invalidLink`, `sessionNotConfirmed`, `notLoggedIn`, `rejected`, `unconfirmed`, `network`.
+    public func markUnread(link: URL, in session: HFRSession) async throws(TopicFlagError) -> TopicFlagResult {
+        try await follow(.markUnread, link: link, through: session, after: check(session))
+    }
+
     /// Marks `topic` read up to `page` by reading that page with the account's session, as legacy did with the last
     /// page (`Favorites.swift:44-47`, `FavoritesTableViewController.m:1602-1607`; HFR-PROTOCOL §7 E25).
     ///
@@ -73,7 +86,9 @@ public struct TopicFlagFlow: Sendable {
     func follow(
         _ action: TopicFlagAction, link: URL, through session: any PostingSession, after check: SessionCheck
     ) async throws(TopicFlagError) -> TopicFlagResult {
-        guard let path = action.linkPath, FlagLink(link, path: path) != nil else { throw .invalidLink }
+        guard let path = action.linkPath, FlagLink(link, path: path, privateThread: action.actsOnPrivateThread) != nil else {
+            throw .invalidLink
+        }
         try await Self.confirm(check)
         return try await follow(action, link: link, through: session)
     }
@@ -89,7 +104,8 @@ public struct TopicFlagFlow: Sendable {
 
     func follow(_ action: TopicFlagAction, link: URL, through session: any PostingSession) async throws(TopicFlagError)
         -> TopicFlagResult {
-        guard let path = action.linkPath, let flagLink = FlagLink(link, path: path) else { throw .invalidLink }
+        guard let path = action.linkPath, let flagLink = FlagLink(link, path: path, privateThread: action.actsOnPrivateThread)
+        else { throw .invalidLink }
         // A redirect is not followed: HFR answers these GETs in place (`P03a`, `P03d`), anything else is not its confirmation.
         let request = HTTPRequest.get(flagLink.url, redirectPolicy: .doNotFollow)
         let response = try await exchange(request, through: session)
