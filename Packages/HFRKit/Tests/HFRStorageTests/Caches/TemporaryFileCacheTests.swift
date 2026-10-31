@@ -40,7 +40,7 @@ import Testing
     @Test func areasUseSeparateFolders() throws {
         let temp = try TemporaryCache()
         defer { temp.cleanUp() }
-        #expect(Set(CacheArea.allCases.map { temp.cache.url(for: $0).lastPathComponent }) == ["avatars", "pages"])
+        #expect(Set(CacheArea.allCases.map { temp.cache.url(for: $0).lastPathComponent }) == ["avatars", "pages", "offline"])
         #expect(CacheDirectory.standard.root.lastPathComponent == "cache")
     }
 

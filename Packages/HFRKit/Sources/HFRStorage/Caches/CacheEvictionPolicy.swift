@@ -22,4 +22,8 @@ public struct CacheEvictionPolicy: Sendable, Hashable {
     public static let avatars = CacheEvictionPolicy(maximumAge: 25 * 86_400, maximumTotalBytes: 50_000_000)
     /// Topic pages: one day (legacy never removed them, audit E §7.10) and a 20 MB bound.
     public static let topicPages = CacheEvictionPolicy(maximumAge: 86_400, maximumTotalBytes: 20_000_000)
+    /// Offline topic pages: kept whatever their age (the user saved them), the pages saved longest ago go first past 200 MB
+    /// (legacy had no bound, `OfflineStorage.m:146-295`). Each page file is self-contained, so evicting one leaves the rest
+    /// readable (LOT-068).
+    public static let offlineTopics = CacheEvictionPolicy(maximumTotalBytes: 200_000_000)
 }
