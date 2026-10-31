@@ -28,8 +28,8 @@ Code in `Sources/HFRClient/FilteredPosts/`, tests in `Tests/HFRClientTests/Filte
 
 `keeps(_:quotes:)` keeps a message when any rule holds (legacy: `bFilterCurrentPost = NO`):
 1. HFR's "Message cité N fois" trailer gives `quotedByCount >= effectiveMinimumQuoteCount` (`:336-347`). The minimum is `minimumQuoteCount`, and 0 or less reads as 3 (`:340-343`).
-2. `includesAllowlist` is on and the author is in `allowlist` (`:183-186`, setting `filter_posts_quotes` containing `wl`).
-3. The author is the account's `pseudo` (`:176-182`).
+2. `includesAllowlist` is on and the author is in `allowlist` (`:187-189`, setting `filter_posts_quotes` containing `wl`). Legacy's `isWL:` refused a blocklisted pseudo (`BlackList.m:119-122`): the caller passes its allowlist minus its blocklist.
+3. The author is the account's `pseudo` (`:183-186`).
 4. A quote of the message, at any depth, cites `pseudo` (`:196-206`, LOT-032 authors).
 5. The content HTML contains `pseudo`, case-insensitive (`:327-331`). This is legacy's "pseudo" mode, which the Swift app always had on (`AppSettingsView.swift:167-168`).
 
@@ -48,7 +48,8 @@ Pseudos compare by `HFRText.pseudoComparisonKey`: zero-width spaces removed, tri
 - **End of a batch**:
   - after the topic's last page: `isFinished`, no `resumePage`;
   - after the page that brings the batch to `batchSize` (40) messages or more: a whole page is always kept, so a batch can exceed 40, as in legacy. Then `resumePage = endPage + 1`.
-  - A page past the end comes back as the last page (`R24`: 302 from `…_2202.htm` to `…_2201.htm`). It ends the batch as finished without reading the page again, and `maxPage` is the page HFR served.
+  - A page past the end comes back as the last page (`R24`: 302 from `…_2202.htm` to `…_2201.htm`). It ends the batch as finished without reading the page again; `maxPage` is the page HFR served, and `endPage` stays `startPage` when that happened on the first request.
+  - **No page limit** (LESSONS 4): criteria that keep nothing read every page up to the topic's last, one GET at a time (2,201 pages on topic 28563), as legacy did (`FilterPostsQuotes.m:255-303`). Each page is a few hundred kilobytes, decoded and dropped once read; cancellation stops the walk before the next request.
 - **Errors**:
   - `network`: transport failure, HTTP error, or cancellation, which is checked before each page, so a cancelled run requests nothing more;
   - `unexpectedPage`: a page of another topic, a final URL that is not a `sujet_<post>_<page>.htm` page, or a page without any message block;
@@ -60,7 +61,7 @@ Pseudos compare by `HFRText.pseudoComparisonKey`: zero-width spaces removed, tri
 
 - **Page 1's first post** is a message like the others. Legacy dropped the first block of every page (`:141-144`): on pages 2 and later that is the continuation block, but on page 1 it is the topic's opening post (`R20`).
 - **The advertisement** is the second block of anonymous pages (`R20`, `R22a`, `R22b`, `R24`), so legacy's first-block rule never hit it. `MessageBlockParser` skips it.
-- **Long pseudos**: HFR prints them with a zero-width space (`R20`'s first author is `user3` + U+200B). Legacy compared the raw name, so its own posts and allowlisted authors were missed. Here they match.
+- **Long pseudos**: HFR prints them with a zero-width space (`R20`'s first author is `user3` + U+200B). Legacy compared the raw name with the account's pseudo (`:184`) and with quote authors (`:206`), so the account's own posts and quotes of it were missed; its allowlist check already removed U+200B (`BlackList.m:133-135`). Here every comparison uses the pseudo key.
 - **`after` not on the first page** (a deleted message, a stale favourite): the messages numbered after it are still read, because message numbers grow in posting order (§6c LOT-090). Legacy skipped the whole page when the id was not found.
 - **Rule 5 can over-match**: a pseudo inside a longer one (`user4` in `user45`) or inside markup matches, as in legacy. Kept for parity.
 - Deleted messages (`messagetabledel`, pending capture in LOT-030) get no special rule, as in legacy.
@@ -104,7 +105,7 @@ Cancellation before a page is `PageFetcher`'s own check (LOT-045), pinned here b
 ## Intentional differences from legacy
 
 1. **Page 1's opening post can be kept** (legacy dropped the first block of every page, `ParseMessagesOperation.m:141-144`). [CHANGELOG-LEGACY](../CHANGELOG-LEGACY.md) row 43.
-2. **Long pseudos match** their zero-width-space form (legacy compared raw names). Row 43.
+2. **Long pseudos match** their zero-width-space form for the account's own posts and quotes of it (legacy compared raw names there, `:184`, `:206`). Row 43.
 3. **`after` by message number**, not by the id on the page: a last-read message missing from the page no longer skips the whole page. Row 43.
 4. **The last page comes from each page read**, not from the favourite row given at the start (`topic.maxTopicPage`), so a topic that grew meanwhile is read to its real end; a page past the end is read as the end.
 5. **No settings string**: the allowlist is a switch, the "pseudo" rules are on whenever a pseudo is given (the Swift app always ran in `pseudo` mode). Legacy ObjC without `pseudo` in the setting also skipped the quote-count rule (`:320-322`); that combination is not offered.

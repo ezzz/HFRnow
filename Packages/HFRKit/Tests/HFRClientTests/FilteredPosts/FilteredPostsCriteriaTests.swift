@@ -71,8 +71,9 @@ struct FilteredPostsCriteriaTests {
 
     @Test("Authors compare by key: case and zero-width spaces do not matter")
     func authorKey() {
-        let block = MessageBlock(numreponse: 2, author: "Membre", contentHTML: "<p>texte</p>")
+        // Both sides go through the key: the author as given (LOT-030 already drops U+200B, this does not rely on it).
+        let block = MessageBlock(numreponse: 2, author: "MEM\u{200B}BRE ", contentHTML: "<p>texte</p>")
         #expect(FilteredPostsCriteria(minimumQuoteCount: 1_000, pseudo: "membre").keeps(block, quotes: []))
-        #expect(FilteredPostsCriteria(minimumQuoteCount: 1_000, allowlist: ["MEM\u{200B}BRE"]).keeps(block, quotes: []))
+        #expect(FilteredPostsCriteria(minimumQuoteCount: 1_000, allowlist: ["Mem\u{200B}bre"]).keeps(block, quotes: []))
     }
 }

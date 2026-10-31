@@ -4,7 +4,8 @@ public struct FilteredPostsBatch: Sendable, Equatable {
     public let posts: [FilteredPost]
     /// The first page read.
     public let startPage: Int
-    /// The last page read; equal to `startPage` when one page was enough.
+    /// The last page read; equal to `startPage` when one page was enough, or when the first request was already past
+    /// the topic's end (then nothing was read and `maxPage` is below `startPage`).
     public let endPage: Int
     /// The topic's last page, as the last page read shows it.
     public let maxPage: Int

@@ -5,10 +5,10 @@ import HFRParsing
 ///
 /// A message is kept when any rule holds:
 /// - it was quoted at least `minimumQuoteCount` times (HFR's own "Message cité N fois" trailer, `quotedByCount`);
-/// - its author is the account's `pseudo`;
+/// - its author is the account's `pseudo` (`:183-186`);
 /// - one of its quotes, at any depth, cites `pseudo` (LOT-032 authors, legacy rule `:198-206`);
 /// - its content mentions `pseudo`, as text anywhere in the content HTML, case-insensitive (`:327-331`);
-/// - `includesAllowlist` is on and its author is in `allowlist` (`:183-186`).
+/// - `includesAllowlist` is on and its author is in `allowlist` (`:187-189`).
 /// Pseudos compare like `HFRText.pseudoComparisonKey` (zero-width spaces removed, trimmed, lower-cased).
 public struct FilteredPostsCriteria: Sendable, Hashable {
     /// Legacy's default and floor: a stored value of 0 or less reads as 3 (`ParseMessagesOperation.m:340-343`).
@@ -18,7 +18,8 @@ public struct FilteredPostsCriteria: Sendable, Hashable {
     public var minimumQuoteCount: Int
     /// The account's pseudo; nil (or blank) turns off the rules about the account (own posts, quotes, mentions).
     public var pseudo: String?
-    /// Pseudos whose messages are kept when `includesAllowlist` is on (the app's allowlist).
+    /// Pseudos whose messages are kept when `includesAllowlist` is on: the app's allowlist minus its blocklist (legacy's
+    /// `isWL:` refused a blocklisted pseudo, `BlackList.m:119-122`).
     public var allowlist: [String]
     /// Keeps the messages of allowlisted authors (legacy setting `filter_posts_quotes` containing `wl`, on by default).
     public var includesAllowlist: Bool
