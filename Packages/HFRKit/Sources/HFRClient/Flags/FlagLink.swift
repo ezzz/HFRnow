@@ -11,8 +11,9 @@ struct FlagLink: Equatable {
     /// The topic named by `cat` and `post`.
     let topic: TopicID
 
-    /// Nil when `link` is not a link of the write whose path is `path`.
-    init?(_ link: URL, path: String) {
+    /// Nil when `link` is not a link of the write whose path is `path`, on a forum topic or, for `privateThread`, on a
+    /// private conversation (`cat=prive`, `W18`).
+    init?(_ link: URL, path: String, privateThread: Bool = false) {
         guard
             PostingFlow.isForumPage(link),
             var components = URLComponents(url: link, resolvingAgainstBaseURL: false),
@@ -20,13 +21,20 @@ struct FlagLink: Equatable {
             let items = components.queryItems,
             Self.single("config", in: items) == "hfr.inc",
             let category = Self.single("cat", in: items).flatMap(CategoryID.init(queryValue:)),
-            case .forum(let number) = category, number > 0,
+            Self.accepts(category, privateThread: privateThread),
             let post = Self.single("post", in: items).flatMap(Self.positiveInteger)
         else { return nil }
         components.fragment = nil
         guard let url = components.url else { return nil }
         self.url = url
         self.topic = TopicID(category: category, topic: post)
+    }
+
+    private static func accepts(_ category: CategoryID, privateThread: Bool) -> Bool {
+        switch category {
+        case .forum(let number): !privateThread && number > 0
+        case .privateMessages: privateThread
+        }
     }
 
     /// The value of the parameter `name` when it appears exactly once: a repeated one is ambiguous, the server may read

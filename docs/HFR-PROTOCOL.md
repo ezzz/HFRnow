@@ -424,6 +424,14 @@ Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `Li
 - **Intra-topic match** (`R52a`): the `Location` is a forum-relative `/forum2.php?post=<post>&cat=<cat>&…&word=<UPPERCASED>&spseudo=&currentnum=<n>#t<n>` of the searched topic. **No match** (`R52b`): a `.hop` with the sentence "Désolé aucune réponse n'a été trouvée" and a `javascript:history.back(1)` link, without comma (the global search's notice has one).
 - **Pending capture**: the `search.php` POST **without cookies** (`R50a` was sent with user2's session), with an empty `hash_check` and with the account's, so whether HFR checks the token there is not known; a query with accented characters (SwiftHFR sends UTF-8 percent-encoding, legacy sent the letters raw); a results page 2 (`R50b`'s pager link); `transsearch.php` answers to LOT-041's legacy body (`R52a`/`R52b` sent the browser's fields: `config, sondage, owntopic, dep=0, firstnum`, no `filter`), to a bad token, to a logged-out session, and to a continued search (`firstnum`/`currentnum`, "Stepping not tested" in §7).
 
+### LOT-058 — MP mark unread
+
+[LOT-058](lots/LOT-058-mp-actions.md), tests `MarkUnreadLinkTests`, `MarkUnreadTests` and `MPQuoteTests`.
+
+- **The link** (`RA1`-`RA4`, **verified**): the conversation header holds `<a href="/user/nonlu.php?config=hfr.inc&amp;cat=prive&amp;subcat=0&amp;post=<post>&amp;page=1&amp;p=1&amp;sondage=0&amp;owntopic=0&amp;new=0" class="cHeader">` around the `oeil.gif` image ("Marquer le message…"); topic pages (`R20`, `R21`) and a conversation deleted by its owner (`RA5`) have none.
+- **The answer** (`W18`, **verified**): `.hop` "Le message a été marqué comme non lu avec succès", refresh to the MP list (`/forum1.php?config=hfr.inc&cat=prive&page=1&…`), no `Set-Cookie`; the list afterwards shows the conversation unread (`R13b`).
+- **MP quote** (`RA1`-`RA4`, `R47a`, **verified**): the conversations' quote links are `message.php?…&cat=prive&post=<post>&numrep=<n>&ref=<rank>…#formulaire`; `RA4`'s link to message 1980875030 is `R47a`'s request, whose prefill is the LOT-004 oracle's `content_form`.
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).

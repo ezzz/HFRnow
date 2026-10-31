@@ -21,6 +21,9 @@ public struct TopicPageMetadata: Sendable, Hashable, CustomStringConvertible, Cu
     public var answerFormFields: [String: String]
     /// True when the page has a link whose `href` contains `nonlu` (the "mark as unread" link, present on private conversations).
     public var isUnreadable: Bool
+    /// The private conversation's "mark as unread" link (`/user/nonlu.php?…&cat=prive&post=<post>…`, `RA1`-`RA4`), on the
+    /// forum origin; nil when the page has none. A state-changing GET: follow it only through `TopicFlagFlow.markUnread`.
+    public var markUnreadURL: URL?
     /// True when the page has a poll block (`div.sondage`). The poll itself is `PollParser`'s job (LOT-026).
     public var hasPoll: Bool
     /// Inputs of the in-topic search form that legacy kept; nil when the page has no such form. Contains `hash_check`.
@@ -35,6 +38,7 @@ public struct TopicPageMetadata: Sendable, Hashable, CustomStringConvertible, Cu
         answerFormURL: URL? = nil,
         answerFormFields: [String: String] = [:],
         isUnreadable: Bool = false,
+        markUnreadURL: URL? = nil,
         hasPoll: Bool = false,
         searchFormFields: [String: String]? = nil
     ) {
@@ -45,6 +49,7 @@ public struct TopicPageMetadata: Sendable, Hashable, CustomStringConvertible, Cu
         self.answerFormURL = answerFormURL
         self.answerFormFields = answerFormFields
         self.isUnreadable = isUnreadable
+        self.markUnreadURL = markUnreadURL
         self.hasPoll = hasPoll
         self.searchFormFields = searchFormFields
     }
@@ -68,6 +73,7 @@ public struct TopicPageMetadata: Sendable, Hashable, CustomStringConvertible, Cu
             "answerFormURL": answerFormURL as Any,
             "answerFormFields": "\(answerFormFields.count) fields, values redacted",
             "isUnreadable": isUnreadable,
+            "markUnreadURL": markUnreadURL as Any,
             "hasPoll": hasPoll,
             "searchFormFields": searchFormFields.map { "\($0.count) fields, values redacted" } as Any
         ], displayStyle: .struct)

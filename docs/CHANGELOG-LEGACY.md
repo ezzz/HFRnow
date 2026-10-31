@@ -51,5 +51,6 @@ Registre des problèmes **présents dans l'app legacy** (HFR+ / HFRnow, branche 
 | 44 | T | Recherche globale : les lettres accentuées partent encodées en UTF-8 (`%C3%A9`) au lieu d'être envoyées brutes. | LOT-041 #67, LOT-046 #72 | `ObjCForumSearchWorker.m:194-199` |
 | 45 | UX | Recherche globale : un mot interdit (jailbreak, cydia…) refuse la recherche avec un avertissement, au lieu de chercher en silence un autre texte à la place (Q-7). | LOT-046 #72 | `ObjCForumSearchWorker.m:150-156` |
 | 46 | UX | Recherche dans un sujet : seuls le message de HFR « aucune réponse » et une redirection sans adresse valent « aucun résultat » ; un jeton refusé ou une session expirée est signalé, et l'adresse renvoyée n'est suivie que si c'est une page du sujet cherché. | LOT-046 #72 | `ObjCTopicSearchWorker.m:39-52` (toute réponse sans `Location` = aucun résultat) |
+| 49 | T | MP : « marquer non lu » ne se dit réussi que si HFR le confirme avec sa phrase (« Le message a été marqué comme non lu avec succès ») ; le legacy prenait toute réponse pour un succès. Le lien est celui de l'en-tête de la conversation, sur le forum, jamais un lien posté dans un message. | LOT-058 #84 | `MessagesTableViewController.m:1250-1272, 1571-1574` @ `2440d79`, captures RA1, W18 |
 
 Points « non corrigés volontairement » (comportement legacy gardé) : AQ appelé au lancement (D-071-3).

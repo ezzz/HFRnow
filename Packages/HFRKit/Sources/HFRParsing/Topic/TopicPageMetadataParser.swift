@@ -29,12 +29,29 @@ public enum TopicPageMetadataParser {
             answerFormURL: answerFormURL(in: body),
             answerFormFields: answerFields,
             isUnreadable: body.firstDescendant(attribute: "href", matching: .contains("nonlu")) != nil,
+            markUnreadURL: markUnreadURL(in: body),
             hasPoll: body.firstDescendant(matching: .exact("sondage")) != nil,
             searchFormFields: searchFields
         )
     }
 
     // MARK: - Implementation
+
+    /// The first header link (`a.cHeader`, `RA1`-`RA4`) whose path is exactly `/user/nonlu.php`, made absolute on the forum
+    /// origin (LESSONS 37, 43). The session follows it, so a link a member posted in a message (`a.cLink`), or one on
+    /// another host, port or scheme, gives nil (`MessagesTableViewController.m:1571-1574` took any `href` containing `nonlu`).
+    private static func markUnreadURL(in body: Element) -> URL? {
+        for link in body.descendants(attribute: "class", matching: .exact("cHeader")) where link.tagName() == "a" {
+            guard
+                let href = try? link.attr("href"),
+                let path = HFRURL.forumRelativePath(href),
+                let url = HFRURL.absolute(path),
+                url.path() == "/user/nonlu.php"
+            else { continue }
+            return url
+        }
+        return nil
+    }
 
     /// Inputs legacy kept from the in-topic search form (`ObjCTopicPageWorker.m:166-179`).
     private static let searchFieldNames: Set<String> = [

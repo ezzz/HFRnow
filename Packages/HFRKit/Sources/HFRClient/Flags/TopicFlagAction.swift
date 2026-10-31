@@ -6,6 +6,8 @@ public enum TopicFlagAction: String, Sendable, Hashable, CaseIterable {
     case removeFlag
     /// Removes a favourite from the favourites list: POST of the list's `message_forum_delflags` action to `manageaction.php`.
     case removeFavoriteFromList
+    /// Marks a private conversation unread: GET of its page's `nonlu.php` link (`W18`; LOT-058, redface2 E6).
+    case markUnread
 
     /// HFR's confirmations of this write, each compared with the whole `.hop` sentence.
     ///
@@ -17,6 +19,7 @@ public enum TopicFlagAction: String, Sendable, Hashable, CaseIterable {
         case .addFavorite: ["Favori positionné avec succès"]
         case .removeFlag: ["Drapeau effacé avec succès"]
         case .removeFavoriteFromList: ["Drapeaux effacés avec succès", "Favoris supprimés avec succès"]
+        case .markUnread: ["Le message a été marqué comme non lu avec succès"]
         }
     }
 
@@ -26,6 +29,12 @@ public enum TopicFlagAction: String, Sendable, Hashable, CaseIterable {
         case .addFavorite: "/user/addflag.php"
         case .removeFlag: "/user/delflag.php"
         case .removeFavoriteFromList: nil
+        case .markUnread: "/user/nonlu.php"
         }
+    }
+
+    /// True for the write on a private conversation (`cat=prive`); the others act on a forum topic.
+    var actsOnPrivateThread: Bool {
+        self == .markUnread
     }
 }
