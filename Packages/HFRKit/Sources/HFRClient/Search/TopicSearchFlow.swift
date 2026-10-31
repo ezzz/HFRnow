@@ -9,8 +9,9 @@ import HFRParsing
 /// redirects not followed (`ObjCTopicSearchWorker.m:33`): a match answers 302 with the topic page holding it in
 /// `Location` (`R52a`), no match answers a `.hop` "Désolé aucune réponse n'a été trouvée" (`R52b`). Legacy read any
 /// answer without `Location` as "no result" (`:46-51`); here only HFR's sentence and a redirect without `Location` are
-/// (issue #72), so a refused token or an expired session is reported instead of hidden. The `Location` is returned only when it is a topic page of the forum for the
-/// searched topic, since the reader then requests it with the session (LESSONS 37, 43). Nothing is retried.
+/// (issue #72), so a refused token or an expired session is reported instead of hidden. The `Location` is returned only
+/// when it is a topic page of the forum for the searched topic, since the reader then requests it with the session
+/// (LESSONS 37, 43). Nothing is retried.
 public struct TopicSearchFlow: Sendable {
     /// HFR's sentence for a search without match (`R52b`).
     static let noMatchSentence = "aucune réponse n'a été trouvée"
