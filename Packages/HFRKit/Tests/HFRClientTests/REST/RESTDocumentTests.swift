@@ -75,6 +75,21 @@ struct RESTDocumentTests {
         #expect(!pizza.isPoll)
     }
 
+    @Test("Page counts: 40 posts is one page, 41 two, and a count at Int.max decodes without overflow")
+    func pageCountBounds() throws {
+        let cases = [(1, 1), (40, 1), (41, 2), (Int.max, Int.max / 40 + 1)]
+        for (posts, pages) in cases {
+            let data = try Self.editedRows(RESTCapture.lastTopics) { rows in
+                var links = rows[0]["links"] as? [String: Any] ?? [:]
+                links["posts"] = ["count": posts]
+                rows[0]["links"] = links
+            }
+            let row = try #require(try RESTDocument.lastTopics(from: data, category: 13).topics.first)
+            #expect(row.pageCount == pages)
+            #expect(row.repliesCount == posts - 1)
+        }
+    }
+
     @Test("R57c: the topic equals R57b's row of the same topic; its sticky flag, which contradicts the lists, is not read")
     func topicMatchesItsRow() throws {
         let id = TopicID(category: .forum(13), topic: 28563)

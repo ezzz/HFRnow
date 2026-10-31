@@ -81,7 +81,9 @@ enum RESTDocument {
         guard posts >= 1 else { throw .invalidValue(field: "\(path).links.posts.count") }
         guard let date = HFRDate.restDate(from: row.lastPostDate) else { throw .invalidValue(field: "\(path).last_post_date") }
         let topicID = TopicID(category: .forum(category), topic: row.id)
-        let pageCount = (posts + postsPerPage - 1) / postsPerPage
+        // Quotient and remainder: `posts + postsPerPage - 1` would trap on a count near `Int.max`.
+        let (pages, rest) = posts.quotientAndRemainder(dividingBy: postsPerPage)
+        let pageCount = rest == 0 ? pages : pages + 1
         let lastPagePath = try self.path(of: topicID, page: pageCount)
         return TopicSummary(
             topicID: topicID,
