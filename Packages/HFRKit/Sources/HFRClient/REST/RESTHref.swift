@@ -12,6 +12,12 @@ enum RESTHref {
         let uri: String
         let page: Int?
         let resultsPerPage: Int?
+
+        init(uri: String, page: Int? = nil, resultsPerPage: Int? = nil) {
+            self.uri = uri
+            self.page = page
+            self.resultsPerPage = resultsPerPage
+        }
     }
 
     /// The forum's categories (`R57a`).

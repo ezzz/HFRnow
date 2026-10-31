@@ -50,12 +50,14 @@ struct RESTDocumentTests {
             #expect(row.pageCount == other.pageCount)
             #expect(row.isSticky == other.isSticky)
             #expect(row.isClosed == other.isClosed)
-            // Pseudos in titles are anonymised with one map per file; the HTML parser trims the title.
+            // Pseudos in titles are anonymised with one map per file.
             if !Self.holdsPseudo(row.title), !Self.holdsPseudo(other.title) {
-                #expect(row.title.trimmingCharacters(in: .whitespaces) == other.title)
+                #expect(row.title == other.title)
             }
         }
         #expect(compared == 28)
+        // HFR serves this title with a leading space on both sides; both readers trim it.
+        #expect(rest.topics.first { $0.topicID?.topic == 115425 }?.title == "Nos amis les animaux")
     }
 
     @Test("R57b: paths are the forum2.php pages the network layer requests")
@@ -93,7 +95,7 @@ struct RESTDocumentTests {
 
     @Test("A topic list of another category is refused")
     func otherCategoryRefused() throws {
-        #expect(throws: ParsingError.invalidValue(field: "resources.links.category")) {
+        #expect(throws: ParsingError.invalidValue(field: "resource.resources.links.category.href")) {
             try RESTDocument.lastTopics(from: RESTCapture.data(RESTCapture.lastTopics), category: 14)
         }
     }
@@ -110,31 +112,94 @@ struct RESTDocumentTests {
             try RESTDocument.lastTopics(from: RESTCapture.data(RESTCapture.categories), category: 13)
         }
         // R57a without its first category's name.
-        var object = try RESTCapture.object(RESTCapture.categories)
-        var resource = try #require(object["resource"] as? [String: Any])
-        var rows = try #require(resource["resources"] as? [[String: Any]])
-        rows[0]["name"] = nil
-        resource["resources"] = rows
-        object["resource"] = resource
-        let edited = try JSONSerialization.data(withJSONObject: object)
+        let edited = try Self.editedRows(RESTCapture.categories) { $0[0]["name"] = nil }
         #expect(throws: ParsingError.invalidValue(field: "resource.resources.name")) { try RESTDocument.categories(from: edited) }
     }
 
     @Test("A category the catalogue does not know fails the decode, so the home page is read instead")
     func unknownCategoryFails() throws {
-        var object = try RESTCapture.object(RESTCapture.categories)
-        var resource = try #require(object["resource"] as? [String: Any])
-        var rows = try #require(resource["resources"] as? [[String: Any]])
         // Category 7 is in no catalogue row (`ForumCatalogue`); its href follows the id, as HFR's do.
-        rows[0]["id"] = 7
-        rows[0]["href"] = "https://forum.hardware.fr/api/forums/hardwarefr/categories/7/"
-        resource["resources"] = rows
-        object["resource"] = resource
-        let edited = try JSONSerialization.data(withJSONObject: object)
-        #expect(throws: ParsingError.invalidValue(field: "resources.id")) { try RESTDocument.categories(from: edited) }
+        let edited = try Self.editedRows(RESTCapture.categories) { rows in
+            rows[0]["id"] = 7
+            rows[0]["href"] = "https://forum.hardware.fr/api/forums/hardwarefr/categories/7/"
+        }
+        #expect(throws: ParsingError.invalidValue(field: "resource.resources.id")) { try RESTDocument.categories(from: edited) }
+    }
+
+    /// One checked field broken in a capture's rows, and the field the decode must name.
+    private struct Breakage {
+        let field: String
+        let edit: (inout [[String: Any]]) -> Void
+    }
+
+    @Test("Each checked field of an edited R57a or R57b fails the decode, naming the field")
+    func checkedFields() throws {
+        let category = "https://forum.hardware.fr/api/forums/hardwarefr/categories/"
+        let categories = [
+            Breakage(field: "resource.resources.id") { rows in
+                rows[0]["id"] = 0
+                rows[0]["href"] = category + "0/"
+            },
+            Breakage(field: "resource.resources.href") { $0[0]["href"] = category + "2/" },
+            Breakage(field: "resource.resources.name") { $0[0]["name"] = " " },
+            Breakage(field: "resource.resources") { $0.removeAll() }
+        ]
+        for breakage in categories {
+            let data = try Self.editedRows(RESTCapture.categories, breakage.edit)
+            #expect(throws: ParsingError.invalidValue(field: breakage.field)) { try RESTDocument.categories(from: data) }
+        }
+
+        let topics13 = "\(category)13/"
+        let rows = [
+            Breakage(field: "resource.resources") { $0.removeAll() },
+            Breakage(field: "resource.resources.links.posts.count") { rows in
+                var links = rows[0]["links"] as? [String: Any] ?? [:]
+                links["posts"] = ["count": 0]
+                rows[0]["links"] = links
+            },
+            Breakage(field: "resource.resources.links.category.href") { rows in
+                var links = rows[0]["links"] as? [String: Any] ?? [:]
+                links["category"] = ["href": topics13 + "?page=1"]
+                rows[0]["links"] = links
+            },
+            Breakage(field: "resource.resources.href") { $0[0]["href"] = "\(topics13)topics/121557/?page=1" },
+            Breakage(field: "resource.resources.id") { rows in
+                rows[0]["id"] = 0
+                rows[0]["href"] = "\(topics13)topics/0/"
+            },
+            Breakage(field: "resource.resources.last_post_date") { $0[0]["last_post_date"] = "24/10/2026 12:44" }
+        ]
+        for breakage in rows {
+            let data = try Self.editedRows(RESTCapture.lastTopics, breakage.edit)
+            #expect(throws: ParsingError.invalidValue(field: breakage.field)) { try RESTDocument.lastTopics(from: data, category: 13) }
+        }
+
+        let list: [String: Any] = ["list_type": "forum_category", "page": 0, "results_per_page": 0]
+        for (key, value) in list {
+            let data = try Self.editedResource(RESTCapture.lastTopics) { $0[key] = value }
+            #expect(throws: ParsingError.invalidValue(field: "resource.\(key)")) { try RESTDocument.lastTopics(from: data, category: 13) }
+        }
     }
 
     // MARK: - Helpers
+
+    /// A capture with its `resource.resources` rows edited: one checked field broken at a time.
+    private static func editedRows(_ file: String, _ edit: (inout [[String: Any]]) -> Void) throws -> Data {
+        try editedResource(file) { resource in
+            var rows = resource["resources"] as? [[String: Any]] ?? []
+            edit(&rows)
+            resource["resources"] = rows
+        }
+    }
+
+    /// A capture with its `resource` edited.
+    private static func editedResource(_ file: String, _ edit: (inout [String: Any]) -> Void) throws -> Data {
+        var object = try RESTCapture.object(file)
+        var resource = try #require(object["resource"] as? [String: Any])
+        edit(&resource)
+        object["resource"] = resource
+        return try JSONSerialization.data(withJSONObject: object)
+    }
 
     private static func holdsPseudo(_ title: String) -> Bool {
         title.contains(/user[0-9]+/)

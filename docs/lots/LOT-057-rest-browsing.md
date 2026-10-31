@@ -29,7 +29,7 @@ A `Sendable` struct over **one cookie-less transport** (`AnonymousTransport` by 
 - **No fallback** on cancellation, offline or timeout (`.network(.cancelled | .offline | .timedOut)`: the HTML page would meet the same network; nothing more is sent), nor for `topic(_:)`: no HTML page summarises one topic. Its failures throw `.network` or `.response(ParsingError)`. A private or impossible target (`cat` < 1, `cat=prive`, topic < 1) is `.invalidTarget` before any request.
 
 ### JSON → LOT-010 models (internal DTOs, `RESTDocument`)
-Every value is checked; a missing or ill-typed field is `ParsingError.invalidValue(field:)` naming the field, never the value (the JSON holds pseudos).
+Every value is checked; a missing, ill-typed or refused field is `ParsingError.invalidValue(field:)` naming the field by its whole JSON path (`resource.resources.links.posts.count`), never the value (the JSON holds pseudos); a body that is not JSON is `.malformedDocument`.
 
 **Hrefs** (`RESTHref`): an href is accepted only as `https://forum.hardware.fr/api/<uri>` (scheme, host, no port, no user, path under `/api/`); `<uri>` is what `rest_api.php?uri=` takes, and the href's own `page` / `results_per_page` become the request's (E1 reports that the `/api/` URL itself answers 404; not tested, #355). A `posts` resource is refused, href or built uri. Each resource's `href` must name the resource asked for, and a topic's category comes from its `links.category.href` (`…/categories/<cat>/`). A topic's `href` is `…/categories/<cat>/topics/<post>/` (`R57c`, the first `R57b` row) or `…/categories/<cat>/subcategories/<sub>/topics/<post>/` (the 29 other `R57b` rows); the sub-category number is not mapped to a sub-forum (pending #285).
 
@@ -47,7 +47,7 @@ Every value is checked; a missing or ill-typed field is `ParsingError.invalidVal
 | `TopicSummary` | From | Evidence |
 |---|---|---|
 | `topicID` | `.forum(<cat of links.category.href>)`, `id` | `R57b`, `R57c` |
-| `title` | `title`, entities decoded, otherwise as served (HFR serves a leading space on topic 115425; the HTML parser trims it) | `R57b` |
+| `title` | `title`, entities decoded, then trimmed like an HTML list title (topic 115425 comes with a leading space in `R57b` and in `R04`; both readers drop it). A blank title fails the decode | `R57b`, `R04` |
 | `path` | `HFREndpoint.topicPage(topic:page: 1)`, forum-relative: the `forum2.php` URL the network layer sends, which HFR redirects to the canonical page | LOT-041, LOT-045 |
 | `repliesCount` | `links.posts.count` − 1 | equals `R04` on the 28 rows whose last post predates both captures |
 | `pageCount` | ⌈`links.posts.count` / 40⌉ | equals `R04` (anonymous); 40 is the anonymous page size, an account may set another (`topicpp`, E19) |
@@ -59,7 +59,7 @@ Every value is checked; a missing or ill-typed field is `ParsingError.invalidVal
 
 `last_post_date` is `yyyy-MM-dd HH:mm`, French wall-clock time (`HFRDate.restDate`, the `HFRDate` rules: Europe/Paris, a skipped time is nil, a repeated one its first occurrence): `2026-10-26 04:10` is `03:10Z` in `R57b` and `R04`, `2003-01-15 14:53` is `13:53Z`.
 
-**Last topics list** (`R57b`): `resource.list_type` = `topic`, `page` ≥ 1, `results_per_page` ≥ 1, every row of the requested category. `TopicListPage(topics:, navigation: PageNavigation(current: page, last: page), categoryID: .forum(cat))`: the next page is not offered and `isExact` stays false, because no page after the first is captured. `R57b` holds 30 rows for `results_per_page` 25: the 5 sticky topics come on top of the 25.
+**Last topics list** (`R57b`): `resource.list_type` = `topic`, `page` ≥ 1, `results_per_page` ≥ 1, at least one row (an empty answer is read from the HTML page, which tells an empty list from a failure, LESSONS 44; HFR's answer for an unknown category is not captured, #355), every row of the requested category. `TopicListPage(topics:, navigation: PageNavigation(current: page, last: page), categoryID: .forum(cat))`: the next page is not offered and `isExact` stays false, because no page after the first is captured. `R57b` holds 30 rows for `results_per_page` 25: the 5 sticky topics come on top of the 25.
 
 ## Edge cases
 - The REST order of the last topics can differ from the HTML list by the posts of the minutes between two reads (`R57b` and `R04`: topic 101586 moved).
@@ -88,7 +88,7 @@ No legacy code: none from legacy. From the issue text:
 3. **`last_position`** is not read: it is absent from every anonymous answer.
 
 ## Tests
-`RESTDocumentTests` (differential against `R01`, `R04`, the `R01` legacy oracle), `RESTHrefTests`, `RESTBrowsingClientTests` (scripted transport: captured requests, fallbacks, no fallback on cancellation, offline or timeout, invalid targets, the cookie-less transport), `RESTTextTests` (dates across both DST changes, entities). Ten mutations, each applied and reverted, each failed a named test: replies = count, 25 posts per page, sticky read on a single topic, no category check on a list row, no host check, `posts` allowed, redirects followed, fallback on cancellation, no fallback to the home page, a redirect accepted as an answer.
+`RESTDocumentTests` (differential against `R01`, `R04`, the `R01` legacy oracle; one edited capture per checked field), `RESTHrefTests`, `RESTBrowsingClientTests` (scripted transport: captured requests, fallbacks, no fallback on cancellation, offline or timeout, invalid targets, the cookie-less transport), `RESTTextTests` (dates across both DST changes, entities). Nineteen mutations, each applied and reverted, each failed a named test: replies = count, 25 posts per page, sticky read on a single topic, no category check on a list row, no host check, `posts` allowed, redirects followed, fallback on cancellation, no fallback to the home page, a redirect accepted as an answer, and, after the first review, each of `list_type`, `page`, `results_per_page`, `posts` ≥ 1, topic id ≥ 1, the empty list, the title trim and the paging checks of the category and topic hrefs dropped. The category id and the fallback's cancellation need no guard of their own: no id below 1 has a catalogue path, and `PageFetcher` sends nothing for a cancelled task (`cancelledBeforeFallback`).
 
 ## Learnings
 - `R04` and `R57b` were captured six minutes apart: rows whose last post predates both are a free differential oracle between the HTML and REST sides.

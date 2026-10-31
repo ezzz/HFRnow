@@ -129,6 +129,21 @@ struct RESTBrowsingClientTests {
         #expect(await transport.requests.isEmpty)
     }
 
+    @Test("A task cancelled while the REST answer comes back sends no HTML request")
+    func cancelledBeforeFallback() async {
+        // The handler runs in the calling task: cancelling it there leaves the REST failure in hand, then the fallback.
+        let transport = MockTransport { _ async throws(NetworkError) -> HTTPResponse in
+            withUnsafeCurrentTask { $0?.cancel() }
+            throw .httpStatus(code: 500, url: Self.home)
+        }
+        let task = Task { () async throws -> RESTBrowsingResult<[ForumCategory]> in
+            try await RESTBrowsingClient(transport: transport).categories()
+        }
+        let failure = await task.result.failure as? RESTBrowsingError
+        #expect(failure == .network(.cancelled))
+        #expect(await transport.requests.count == 1)
+    }
+
     @Test("topic(_:) has no fallback; a wrong topic is a response error")
     func topicHasNoFallback() async throws {
         let error = NetworkError.httpStatus(code: 404, url: Self.home)

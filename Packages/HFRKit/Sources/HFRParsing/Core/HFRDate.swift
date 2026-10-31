@@ -33,8 +33,6 @@ public enum HFRDate {
 
     // MARK: - Implementation
 
-    nonisolated(unsafe) private static let restPattern = /([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2})/
-
     // `Regex` is not `Sendable` (its output type could hold non-Sendable captures). These literals capture
     // only `Substring`s and the compiled program is initialised atomically by the runtime, so sharing is safe.
     /// `dd-MM-yyyy`, whitespace, `à`, whitespace, `HH:mm[:ss]`; digits are ASCII only, `\s` covers U+00A0.
@@ -43,6 +41,9 @@ public enum HFRDate {
     nonisolated(unsafe) private static let pattern = Regex<AnyRegexOutput>(
         /([0-9]{2})-([0-9]{2})-([0-9]{4})\s+à\s+([0-9]{2}):([0-9]{2})(?::([0-9]{2}))?(?![0-9:])/
     )
+
+    /// `yyyy-MM-dd HH:mm`, ASCII digits, one space (`restDate`).
+    nonisolated(unsafe) private static let restPattern = /([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2})/
 
     /// Calendar validation (31-02, 24:00…) is delegated to a non-lenient `Date.ParseStrategy` reading
     /// the wall-clock time as if it were UTC; the Paris offset is applied afterwards by `resolve`.

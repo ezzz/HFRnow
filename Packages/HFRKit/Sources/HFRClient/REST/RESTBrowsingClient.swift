@@ -130,11 +130,10 @@ public struct RESTBrowsingClient: Sendable {
         }
     }
 
-    /// Fetches an HTML page on the same cookie-less transport (LOT-045), checked for cancellation first.
+    /// Fetches an HTML page on the same cookie-less transport (LOT-045); `PageFetcher` sends nothing for a cancelled task.
     private func html(
         _ fetch: (PageFetcher) async throws(NetworkError) -> RawPage
     ) async throws(RESTBrowsingError) -> RawPage {
-        guard !Task.isCancelled else { throw .network(.cancelled) }
         do {
             return try await fetch(PageFetcher(session: transport, anonymous: transport))
         } catch {

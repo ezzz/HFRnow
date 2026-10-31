@@ -17,12 +17,14 @@ enum RESTDocument {
         guard !list.resources.isEmpty else { throw .invalidValue(field: "resource.resources") }
         var categories: [ForumCategory] = []
         for row in list.resources {
-            guard row.id >= 1, try RESTHref.target(of: row.href) == RESTHref.Target(uri: RESTHref.categoryURI(row.id)) else {
-                throw .invalidValue(field: "resources.href")
+            guard try RESTHref.target(of: row.href) == RESTHref.Target(uri: RESTHref.categoryURI(row.id)) else {
+                throw .invalidValue(field: "resource.resources.href")
             }
-            // The home page's link of the same forum; a forum the catalogue does not know is read from the home page.
-            guard let path = ForumCatalogue.forumPath(for: .forum(row.id)) else { throw .invalidValue(field: "resources.id") }
-            categories.append(ForumCategory(categoryID: .forum(row.id), title: try text(row.name, field: "resources.name"), path: path))
+            // The home page's link of the same forum; a forum the catalogue does not know (an id below 1 included) is read
+            // from the home page.
+            guard let path = ForumCatalogue.forumPath(for: .forum(row.id)) else { throw .invalidValue(field: "resource.resources.id") }
+            let title = try text(row.name, field: "resource.resources.name")
+            categories.append(ForumCategory(categoryID: .forum(row.id), title: title, path: path))
         }
         return categories
     }
@@ -31,11 +33,17 @@ enum RESTDocument {
     static func lastTopics(from data: Data, category: Int) throws(ParsingError) -> TopicListPage {
         let list = try decode(Envelope<TopicList>.self, from: data).resource
         guard list.listType == "topic" else { throw .invalidValue(field: "resource.list_type") }
-        guard list.page >= 1, list.resultsPerPage >= 1 else { throw .invalidValue(field: "resource.page") }
+        guard list.page >= 1 else { throw .invalidValue(field: "resource.page") }
+        guard list.resultsPerPage >= 1 else { throw .invalidValue(field: "resource.results_per_page") }
+        // A list without a row is not an empty forum (every category has topics): it is read from the HTML page, which
+        // tells an empty list from a failure (LESSONS 44). HFR's answer for an unknown category is not captured (#355).
+        guard !list.resources.isEmpty else { throw .invalidValue(field: "resource.resources") }
         var topics: [TopicSummary] = []
         for row in list.resources {
-            let topic = try summary(of: row, readsSticky: true)
-            guard topic.topicID?.category == .forum(category) else { throw .invalidValue(field: "resources.links.category") }
+            let topic = try summary(of: row, at: "resource.resources", readsSticky: true)
+            guard topic.topicID?.category == .forum(category) else {
+                throw .invalidValue(field: "resource.resources.links.category.href")
+            }
             topics.append(topic)
         }
         // No page after the first is captured: the list offers none and claims no page count.
@@ -50,28 +58,35 @@ enum RESTDocument {
     static func topic(from data: Data, expected topic: TopicID) throws(ParsingError) -> TopicSummary {
         // `R57c` calls topic 28563 sticky where `R57b`, `R04` and its sub-forum `R06` do not: the flag of a single topic
         // means something else, not known, so it is not read.
-        let summary = try summary(of: decode(Envelope<Topic>.self, from: data).resource, readsSticky: false)
+        let summary = try summary(of: decode(Envelope<Topic>.self, from: data).resource, at: "resource", readsSticky: false)
         guard summary.topicID == topic else { throw .invalidValue(field: "resource.id") }
         return summary
     }
 
     // MARK: - Implementation
 
-    private static func summary(of row: Topic, readsSticky: Bool) throws(ParsingError) -> TopicSummary {
-        let category = try RESTHref.category(of: row.links.category.href)
-        guard row.id >= 1, try RESTHref.names(topic: row.id, category: category, href: row.href) else {
-            throw .invalidValue(field: "href")
+    /// A topic row; `path` names where it sits in the JSON, for the errors.
+    private static func summary(of row: Topic, at path: String, readsSticky: Bool) throws(ParsingError) -> TopicSummary {
+        let category: Int
+        do {
+            category = try RESTHref.category(of: row.links.category.href)
+        } catch {
+            throw .invalidValue(field: "\(path).links.category.href")
+        }
+        guard row.id >= 1 else { throw .invalidValue(field: "\(path).id") }
+        guard (try? RESTHref.names(topic: row.id, category: category, href: row.href)) == true else {
+            throw .invalidValue(field: "\(path).href")
         }
         let posts = row.links.posts.count
-        guard posts >= 1 else { throw .invalidValue(field: "links.posts.count") }
-        guard let date = HFRDate.restDate(from: row.lastPostDate) else { throw .invalidValue(field: "last_post_date") }
+        guard posts >= 1 else { throw .invalidValue(field: "\(path).links.posts.count") }
+        guard let date = HFRDate.restDate(from: row.lastPostDate) else { throw .invalidValue(field: "\(path).last_post_date") }
         let topicID = TopicID(category: .forum(category), topic: row.id)
         let pageCount = (posts + postsPerPage - 1) / postsPerPage
-        let lastPagePath = try path(of: topicID, page: pageCount)
+        let lastPagePath = try self.path(of: topicID, page: pageCount)
         return TopicSummary(
             topicID: topicID,
-            title: try text(row.title, field: "title"),
-            path: try path(of: topicID, page: 1),
+            title: try text(row.title, field: "\(path).title"),
+            path: try self.path(of: topicID, page: 1),
             repliesCount: posts - 1,
             pageCount: pageCount,
             lastPagePath: lastPagePath,
@@ -92,9 +107,15 @@ enum RESTDocument {
         return "\(url.path(percentEncoded: true))?\(query)"
     }
 
+    /// Entities decoded, then trimmed like an HTML list title (`TopicListParser.trimmed`): `R57b` serves topic 115425
+    /// with a leading space that `R04`'s row loses.
     private static func text(_ raw: String, field: String) throws(ParsingError) -> String {
         guard let decoded = HFRText.decodingHTMLEntities(raw) else { throw .invalidValue(field: field) }
-        return decoded
+        let isSpace = { (character: Character) in character.unicodeScalars.allSatisfy(\.properties.isWhitespace) }
+        guard let first = decoded.firstIndex(where: { !isSpace($0) }), let last = decoded.lastIndex(where: { !isSpace($0) }) else {
+            throw .invalidValue(field: field)
+        }
+        return String(decoded[first...last])
     }
 
     private static func decode<Value: Decodable>(_ type: Value.Type, from data: Data) throws(ParsingError) -> Value {
@@ -167,12 +188,5 @@ enum RESTDocument {
 
     private struct User: Decodable {
         let title: String
-    }
-}
-
-extension RESTHref.Target {
-    /// A target without paging.
-    init(uri: String) {
-        self.init(uri: uri, page: nil, resultsPerPage: nil)
     }
 }
