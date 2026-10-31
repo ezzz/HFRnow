@@ -45,7 +45,9 @@ struct MessageContentOracleTests {
             #expect(links == legacy.links, "\(label): links")
             #expect(embeddedLeft.isEmpty, "\(label): every embedded link was listed")
             #expect((content.signatureHTML != nil) == block.contentHTML.contains("<span class=\"signature\">"), "\(label): signature")
-            #expect(content.embeds.isEmpty, "\(label): embeds are LOT-035")
+            // LOT-035: exactly the links legacy turned into iframes are embeds, with legacy's player (its start aside).
+            #expect(content.embeds.map(\.sourceURL) == embedded, "\(label): embedded links")
+            #expect(content.embeds.map { Self.withoutQuery($0.embedURL.absoluteString) } == legacy.players, "\(label): players")
             for html in [content.html, content.signatureHTML ?? ""] {
                 #expect(!html.contains("javascript:") && !html.contains("<script") && !html.contains(" id="), "\(label): sanitized")
                 #expect(html.firstMatch(of: /\son[a-z]+=/) == nil, "\(label): no event handler")
@@ -112,6 +114,11 @@ struct MessageContentOracleTests {
         return try body.text()
     }
 
+    /// `url` up to its query.
+    static func withoutQuery(_ url: String) -> String {
+        String(url.prefix { $0 != "?" })
+    }
+
     /// The links of a normalized body that legacy turned into iframes (`ParseMessagesOperation.m:241-244, 260-264`,
     /// `LinkItem.m:149`): `a.cLink` two levels under the content element, text-only, on one of the four video hosts.
     static func linksLegacyEmbedded(in html: String) throws -> [URL] {
@@ -141,6 +148,8 @@ struct MessageContentOracleTests {
         var links: [String] = []
         /// Video links legacy replaced by an iframe (`div.embedvideo`).
         var embeds = 0
+        /// The `src` of those iframes, without their query (legacy's `?start=`), in page order.
+        var players: [String] = []
         /// Legacy links whose `href` is not a URL, which the normalizer unwraps to text.
         var unresolvableLinks = 0
 
@@ -149,6 +158,7 @@ struct MessageContentOracleTests {
             let content = try #require(try document.select("div[id^=para]").first(), "oracle content element")
             try content.select("div.edited").remove()
             embeds = try content.select("div.embedvideo").count
+            players = try content.select("div.embedvideo iframe").array().map { MessageContentOracleTests.withoutQuery(try $0.attr("src")) }
             text = MessageContentOracleTests.compact(try content.text())
             for element in try content.getAllElements().array().dropFirst() {
                 switch element.tagName() {

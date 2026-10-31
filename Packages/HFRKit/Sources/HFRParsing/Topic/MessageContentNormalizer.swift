@@ -8,7 +8,8 @@ import SwiftSoup
 ///
 /// Port of the content part of `LinkItem.toHTML:isMP:` (`LinkItem.m:72-74, 96-141, 163-247, 265-269`), which rewrote
 /// libxml2's serialization with regexes and inserted the result unescaped into the web view (audit C §4.2, quirks 1–3).
-/// Policy and display modes (`display_images`, `display_sig`, blacklist quotes) stay app-side; video embeds are LOT-035.
+/// Policy and display modes (`display_images`, `display_sig`, `embedded_videos`, blacklist quotes) stay app-side; the
+/// video embeds come from `MessageEmbedDetector` (LOT-035), whatever the settings.
 public enum MessageContentNormalizer {
     /// Normalizes `MessageBlock.contentHTML`; `page` resolves relative and fragment-only links (the forum root by default).
     /// Only a backend failure throws.
@@ -126,7 +127,10 @@ public enum MessageContentNormalizer {
                 // A signature span without content (or with dropped content only) is no signature.
                 signatureHTML = text.isEmpty ? nil : text
             }
-            return MessageContent(html: html, signatureHTML: signatureHTML, images: images, smileys: smileys, links: links)
+            let embeds = try MessageEmbedDetector.embeds(inNormalizedHTML: html)
+            return MessageContent(
+                html: html, signatureHTML: signatureHTML, images: images, smileys: smileys, links: links, embeds: embeds
+            )
         }
 
         /// Copies every child of `content` under `main`, running the step stack to completion.
