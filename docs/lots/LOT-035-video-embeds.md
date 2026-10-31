@@ -69,8 +69,8 @@ Shown to fail with the behaviour removed (12 mutations, each caught): legacy's h
 
 ## Intentional differences from legacy
 
-1. **Hours are hours**: `t=1h2m3s` starts at 3723 s (legacy 7323, minutes × 3600, `:281`), and `R20`'s `t=1m5s` at 65 s (legacy 3665). [CHANGELOG-LEGACY](../CHANGELOG-LEGACY.md) row 43.
-2. **Plain seconds and a `t` anywhere in the query give a start** (`t=706`, `R28`; legacy needed `t=…s` at the end of the URL, `:275`). Row 43.
+1. **Hours are hours**: `t=1h2m3s` starts at 3723 s (legacy 7323, minutes × 3600, `:281`), and `R20`'s `t=1m5s` at 65 s (legacy 3665). [CHANGELOG-LEGACY](../CHANGELOG-LEGACY.md) row 48.
+2. **Plain seconds and a `t` anywhere in the query give a start** (`t=706`, `R28`; legacy needed `t=…s` at the end of the URL, `:275`). Row 48.
 3. **Host dots are literal** (legacy's `.` matched any character); the difference only concerns look-alike hosts.
 4. **Depth on the normalized tree**: unknown wrappers are unwrapped by LOT-034, so a text link inside one (`<center><p><a class="cLink">`) is a candidate here; legacy counted three real ancestors. No capture has one.
 5. **The link stays in the text**: legacy replaced it by an iframe that loaded at once; here the app shows a placeholder and loads nothing before a tap (LOT-071 D-071-2).
