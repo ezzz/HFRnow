@@ -37,10 +37,9 @@ public enum MessageEmbedDetector {
     public static func embed(for url: URL) -> MessageEmbed? {
         let href = url.absoluteString
         // The four legacy patterns (`:241-244`), with their host dots escaped (legacy's `.` matched any character).
-        if let match = href.firstMatch(of: /^https?:\/\/(?:www\.|m\.|gaming\.)?youtube\.com\/.+v=([\w-]+)\/?/)
-            ?? href.firstMatch(of: /^https?:\/\/youtu\.be\/([\w-]+)\/?/) {
+        if let id = youTubeID(in: url, href: href) {
             let start = startSeconds(in: url)
-            let player = "https://www.youtube.com/embed/" + match.output.1 + (start.map { "?start=\($0)" } ?? "")
+            let player = "https://www.youtube.com/embed/" + id + (start.map { "?start=\($0)" } ?? "")
             return URL(string: player).map { MessageEmbed(provider: .youtube, sourceURL: url, embedURL: $0, startSeconds: start) }
         }
         if let match = href.firstMatch(of: /^https?:\/\/vimeo\.com\/(?:[a-zA-Z]+\/)*([0-9]+)/) {
@@ -52,6 +51,19 @@ public enum MessageEmbedDetector {
                 .map { MessageEmbed(provider: .streamable, sourceURL: url, embedURL: $0) }
         }
         return nil
+    }
+
+    /// The video id of a YouTube link: the `v` query parameter on `youtube.com` (legacy's `.+v=` also took the end of
+    /// `notv=`), or the first path segment on `youtu.be`; an id is letters, digits, `_` and `-` only.
+    private static func youTubeID(in url: URL, href: String) -> Substring? {
+        if href.firstMatch(of: /^https?:\/\/(?:www\.|m\.|gaming\.)?youtube\.com\/./) != nil {
+            let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+            guard let value = items.first(where: { $0.name == "v" })?.value, let id = value.wholeMatch(of: /[\w-]+/) else {
+                return nil
+            }
+            return id.output
+        }
+        return href.firstMatch(of: /^https?:\/\/youtu\.be\/([\w-]+)\/?/)?.output.1
     }
 
     /// The start offset of a YouTube link, from its last `t` query parameter: plain seconds (`t=706`, as YouTube reads

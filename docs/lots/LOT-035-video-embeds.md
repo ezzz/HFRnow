@@ -28,7 +28,7 @@ Legacy app: `francoisgn/hfrnow` at `2440d79` (an ancestor of `origin/master`).
   - So does a link around an image or with formatted text.
   - The signature is outside `html` (LOT-034), so a video link there never becomes an embed (`:263`).
   - The link stays in `html` and `links`, so the text is unchanged; the app adds a player placeholder per embed (LOT-071 D-071-2).
-- **Hosts** (`embed(for:)`): legacy's four patterns, anchored at the start of the absolute URL, with their dots escaped. Any other host, or a look-alike (`youtubeXcom`, `youtube.com.example.org`), stays a link.
+- **Hosts** (`embed(for:)`): legacy's four patterns, anchored at the start of the absolute URL, with their dots escaped. On `youtube.com` the id is the `v` query parameter itself (legacy's `.+v=` also matched the end of `notv=`). Any other host, or a look-alike (`youtubeXcom`, `youtube.com.example.org`), stays a link.
 - **Player URL** built from the extracted id only (`[\w-]+` or digits), never copied from the page: `https://www.youtube.com/embed/<id>`, `https://player.vimeo.com/video/<number>`, `https://streamable.com/s/<id>`.
 - **Start** (YouTube only, as in legacy): the link's last `t` query parameter, appended to the player as `?start=<seconds>` and kept in `startSeconds`.
   - Accepted forms: plain seconds (`t=706`, up to 6 digits) or `[<h>h][<m>m][<s>s]` (`t=1h2m3s` is 3723 s).
@@ -52,7 +52,7 @@ Captures and oracles only, nothing new: the 21 LOT-003 topic oracles (run with `
 
 - `MessageContentOracleTests` (differential, the 21 LOT-003 topic oracles, LESSONS 51): on every message, `embeds` are exactly the links legacy replaced by an iframe (the source links, in order), and their players equal the iframes' `src` once the query is dropped.
 - `MessageEmbedDetectorTests`:
-  - each host form (8 cases) and 11 links that stay links;
+  - each host form (8 cases) and 14 links that stay links, `watch?notv=` among them;
   - starts (7 forms) and no-start cases (7);
   - no start on Vimeo and Streamable;
   - the captured starts: `R20`'s `t=1m5s` gives 65 s where legacy's iframe says 3665, `R28`'s `t=706` gives 706 s;
@@ -71,7 +71,7 @@ Shown to fail with the behaviour removed (12 mutations, each caught): legacy's h
 
 1. **Hours are hours**: `t=1h2m3s` starts at 3723 s (legacy 7323, minutes × 3600, `:281`), and `R20`'s `t=1m5s` at 65 s (legacy 3665). [CHANGELOG-LEGACY](../CHANGELOG-LEGACY.md) row 48.
 2. **Plain seconds and a `t` anywhere in the query give a start** (`t=706`, `R28`; legacy needed `t=…s` at the end of the URL, `:275`). Row 48.
-3. **Host dots are literal** (legacy's `.` matched any character); the difference only concerns look-alike hosts.
+3. **Host dots are literal** (legacy's `.` matched any character), and a `youtube.com` id comes from the `v` parameter only (legacy took any `…v=` suffix, so `notv=abc` gave a player); both only concern look-alike links.
 4. **Depth on the normalized tree**: unknown wrappers are unwrapped by LOT-034, so a text link inside one (`<center><p><a class="cLink">`) is a candidate here; legacy counted three real ancestors. No capture has one.
 5. **The link stays in the text**: legacy replaced it by an iframe that loaded at once; here the app shows a placeholder and loads nothing before a tap (LOT-071 D-071-2).
 

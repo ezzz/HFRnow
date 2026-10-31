@@ -38,7 +38,8 @@ struct MessageEmbedDetectorTests {
             "https://www.dailymotion.com/video/x7tgad0", "https://coub.com/view/1a2b", "https://www.twitch.tv/somechannel",
             "http://streamable.com/abc12", "https://vimeo.com/user/abc", "https://youtube.com.example.org/watch?v=abc",
             "https://youtubeXcom/watch?v=abc", "https://youtuXbe/abc", "https://example.org/?u=https://youtu.be/abc",
-            "https://www.youtube.com/watch", "https://youtu.be/"
+            "https://www.youtube.com/watch", "https://youtu.be/", "https://www.youtube.com/watch?notv=abc",
+            "https://www.youtube.com/watch?v=a%20b", "https://www.youtube.com/watch?v="
         ]
     )
     func notVideos(link: String) throws {
