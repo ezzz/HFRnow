@@ -1,10 +1,12 @@
 import Foundation
 import HFRModels
 
-/// A flag link (`addflag.php`, `delflag.php`) recognised by its parsed path and parameters, never by a substring.
+/// A write link (`addflag.php`, `delflag.php`, and `nonlu.php` of a private conversation) recognised by its parsed path
+/// and parameters, never by a substring.
 ///
 /// The link is followed with the account's cookies, so it must be an `https` page of the forum (LESSONS 37, 43) whose
-/// path is exactly the write's, with `config=hfr.inc` and a single forum `cat` and `post`, as on `R21`, `P03a` and `P03d`.
+/// path is exactly the write's, with `config=hfr.inc`, a single `cat` and `post`, as on `R21`, `P03a` and `P03d`. The
+/// `cat` is a forum for the flag writes and `prive` for `nonlu.php` (`W18`).
 struct FlagLink: Equatable {
     /// The link to request, without its fragment.
     let url: URL

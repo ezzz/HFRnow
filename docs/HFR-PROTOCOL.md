@@ -428,7 +428,7 @@ Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `Li
 
 [LOT-058](lots/LOT-058-mp-actions.md), tests `MarkUnreadLinkTests`, `MarkUnreadTests` and `MPQuoteTests`.
 
-- **The link** (`RA1`-`RA4`, **verified**): the conversation header holds `<a href="/user/nonlu.php?config=hfr.inc&amp;cat=prive&amp;subcat=0&amp;post=<post>&amp;page=1&amp;p=1&amp;sondage=0&amp;owntopic=0&amp;new=0" class="cHeader">` around the `oeil.gif` image ("Marquer le message…"); topic pages (`R20`, `R21`) and a conversation deleted by its owner (`RA5`) have none.
+- **The link** (`RA1`-`RA4` for the owner, `RU1`-`RU2` for the recipient, **verified**): the conversation header holds `<a href="/user/nonlu.php?config=hfr.inc&amp;cat=prive&amp;subcat=0&amp;post=<post>&amp;page=1&amp;p=1&amp;sondage=0&amp;owntopic=0&amp;new=0" class="cHeader">` around the `oeil.gif` image ("Marquer le message…"); topic pages (`R20`, `R21`) and a conversation deleted by its owner (`RA5`) have none.
 - **The answer** (`W18`, **verified**): `.hop` "Le message a été marqué comme non lu avec succès", refresh to the MP list (`/forum1.php?config=hfr.inc&cat=prive&page=1&…`), no `Set-Cookie`; the list afterwards shows the conversation unread (`R13b`).
 - **MP quote** (`RA1`-`RA4`, `R47a`, **verified**): the conversations' quote links are `message.php?…&cat=prive&post=<post>&numrep=<n>&ref=<rank>…#formulaire`; `RA4`'s link to message 1980875030 is `R47a`'s request, whose prefill is the LOT-004 oracle's `content_form`.
 

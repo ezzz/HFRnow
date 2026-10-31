@@ -97,6 +97,7 @@ struct FlagSessionGateTests {
         await #expect(throws: expected) { try await flow.addFavorite(link: try FlagCapture.requestURL("P03a"), in: session) }
         await #expect(throws: expected) { try await flow.removeFlag(link: try FlagCapture.requestURL("P03n"), in: session) }
         await #expect(throws: expected) { try await flow.removeFavoriteFromList(Self.cuisine, in: session) }
+        await #expect(throws: expected) { try await flow.markUnread(link: try FlagCapture.requestURL("W18"), in: session) }
     }
 
     @Test(
@@ -115,10 +116,12 @@ struct FlagSessionGateTests {
         let flow = TopicFlagFlow(refresh: SessionRefreshFlow { cookies, now in factory.make(cookies: cookies, now: now) })
         let addLink = try FlagCapture.requestURL("P03a")
         let removeLink = try FlagCapture.requestURL("P03n")
+        let unreadLink = try FlagCapture.requestURL("W18")
         let errors = [
             await Self.failure { () async throws(TopicFlagError) in _ = try await flow.addFavorite(link: addLink, in: session) },
             await Self.failure { () async throws(TopicFlagError) in _ = try await flow.removeFlag(link: removeLink, in: session) },
-            await Self.failure { () async throws(TopicFlagError) in _ = try await flow.removeFavoriteFromList(Self.cuisine, in: session) }
+            await Self.failure { () async throws(TopicFlagError) in _ = try await flow.removeFavoriteFromList(Self.cuisine, in: session) },
+            await Self.failure { () async throws(TopicFlagError) in _ = try await flow.markUnread(link: unreadLink, in: session) }
         ]
         for error in errors {
             if profilePageServed {
@@ -131,7 +134,7 @@ struct FlagSessionGateTests {
                 #expect(error == .sessionNotConfirmed(.unconfirmed(.unrecognizedPage)))
             }
         }
-        #expect(factory.probes.count == 3)
+        #expect(factory.probes.count == 4)
         for probe in factory.probes {
             #expect(await probe.requests.map(\.url) == [Capture.profilePage1])
         }
@@ -213,7 +216,6 @@ struct FlagSessionGateTests {
         return ({ () async throws(NetworkError) -> SessionHealth in try await flow.refresh(account, now: now) }, factory)
     }
 
-    /// Runs `action` through the gate on the topic of `P03a` and `P03n`, the write answered by the capture `answer`.
     /// The captured answer of each write: what HFR answers without a confirmed session (`P03q` for `addflag`), or its
     /// confirmation (`W18` for `nonlu.php`, LOT-058, whose answer without a session is not captured).
     private static func answers(confirmed: Bool) -> [TopicFlagAction: String] {
@@ -223,6 +225,7 @@ struct FlagSessionGateTests {
     /// The captured request of each link write.
     private static let links: [TopicFlagAction: String] = [.addFavorite: "P03a", .removeFlag: "P03n", .markUnread: "W18"]
 
+    /// Runs `action` through the gate on the topic of its captured link (`links`), the write answered by the capture `answer`.
     private func run(
         _ action: TopicFlagAction, answer: String, loggedIn: Bool, probeReply: Result<HTTPResponse, NetworkError>
     ) async throws -> Run {

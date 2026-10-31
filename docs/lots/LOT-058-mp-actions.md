@@ -24,7 +24,8 @@ Legacy app: `francoisgn/hfrnow` at `2440d79` (an ancestor of `origin/master`).
 
 - **Link** (`TopicPageMetadata.markUnreadURL`, LOT-033's parser). The first header link (`a.cHeader`) whose path, made absolute on the forum origin, is exactly `/user/nonlu.php` (`RA1`-`RA4`: `/user/nonlu.php?config=hfr.inc&cat=prive&subcat=0&post=3207033&page=1&p=1&sondage=0&owntopic=0&new=0`). It is read from the page, not built from `W18`'s URL template, because the meaning of its `page` parameter is not captured.
   - A link a member posted in a message (`a.cLink`), one on another host, port or scheme, or another path gives nil.
-  - Topic pages (`R20`, `R21`) and a deleted conversation (`RA5`) have none. `isUnreadable` is unchanged.
+  - The recipient's view carries the same link (`RU1`, `RU2`). Topic pages (`R20`, `R21`) and a deleted conversation (`RA5`) have none.
+  - `isUnreadable` is unchanged: legacy's rule (any `href` containing `nonlu`, a member's posted link included), kept for the LOT-003 oracles. The app keys the action on `markUnreadURL` only.
 - **Write** (`TopicFlagFlow.markUnread(link:in:)`, a new `TopicFlagAction.markUnread`). It is LOT-051's link-write path:
   - the link must be an `https` forum page, path exactly `/user/nonlu.php`, `config=hfr.inc`, a single `cat=prive` and a single positive `post` (`FlagLink(…, privateThread: true)`). The flag writes still refuse `cat=prive`, and the unread write refuses a forum category;
   - the session is checked first (LOT-044, #314): HFR's answer to this GET without a session is not captured;
@@ -49,11 +50,11 @@ Not done: no group conversation is captured (capture issue [#336](https://github
 
 ## Fixtures
 
-Captures only, nothing new: `RA1`-`RA5`, `R20`, `R21` (link); `W18` (answer), `R13b` (list after it), `P03a`, `P03d`, `W15`, `W17b`, `W17c` (other answers); `R47a` and its LOT-004 oracle (MP quote). The link rule's origin cases are small fragments.
+Captures only, nothing new: `RA1`-`RA5`, `RU1`, `RU2`, `R20`, `R21` (link); `W18` (answer), `R13b` (list after it), `P03a`, `P03d`, `W15`, `W17b`, `W17c` (other answers); `R47a` and its LOT-004 oracle (MP quote). The link rule's origin cases are small fragments.
 
 ## Tests
 
-- `MarkUnreadLinkTests` (HFRParsing): the link on `RA1`-`RA4`; none on `R20`, `R21` or `RA5`; message links, other origins and other paths refused.
+- `MarkUnreadLinkTests` (HFRParsing): the link on `RA1`-`RA4` and `RU1`-`RU2`; none on `R20`, `R21` or `RA5`; message links, other origins and other paths refused.
 - `MarkUnreadTests`: `RA1`'s link is `W18`'s request, and `W18` confirms it after one GET with redirects not followed; `R13b` shows the conversation unread; other confirmations, a refusal, a logged-out page and a transport failure; eight refused links; the flag writes still refuse private links; the session gate.
 - `FlagSessionGateTests`: the gated and confirmed cases now include `markUnread` (answer `W18`).
 - `MPQuoteTests`: every quote link of `RA1`-`RA4` passes the loader's check; `RA4`'s link to message 1980875030 is `R47a`'s request, and its prefill equals the oracle; an off-forum link is refused before any request.

@@ -20,6 +20,8 @@ public struct TopicPageMetadata: Sendable, Hashable, CustomStringConvertible, Cu
     /// Hidden inputs of the quick-answer form `hop`; empty when the page has none. Contains `hash_check`: never log it.
     public var answerFormFields: [String: String]
     /// True when the page has a link whose `href` contains `nonlu` (the "mark as unread" link, present on private conversations).
+    /// Legacy's rule, kept for the LOT-003 oracles: a member's posted link containing `nonlu` sets it too. To show or follow
+    /// the action, use `markUnreadURL`, never this flag.
     public var isUnreadable: Bool
     /// The private conversation's "mark as unread" link (`/user/nonlu.php?…&cat=prive&post=<post>…`, `RA1`-`RA4`), on the
     /// forum origin; nil when the page has none. A state-changing GET: follow it only through `TopicFlagFlow.markUnread`.

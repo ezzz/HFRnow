@@ -2,7 +2,8 @@ import Foundation
 import Testing
 @testable import HFRParsing
 
-/// LOT-058: the "mark as unread" link of a private conversation, read from the page header (`RA1`-`RA4`), never from
+/// LOT-058: the "mark as unread" link of a private conversation, read from the page header (`RA1`-`RA4` for the owner,
+/// `RU1`-`RU2` for the recipient), never from
 /// a message or another origin.
 @Suite("Mark-unread link")
 struct MarkUnreadLinkTests {
@@ -14,8 +15,9 @@ struct MarkUnreadLinkTests {
             .markUnreadURL
     }
 
-    @Test("Each captured conversation page carries the link, as W18 requested it", arguments: [
-        "RA1-mp-thread-after-create", "RA2-mp-thread-crlf-lf-nonbmp", "RA3-mp-thread-before-cleanup", "RA4-mp-thread-both-accounts"
+    @Test("Each captured conversation page carries the link, as W18 requested it, in the owner's and the recipient's view", arguments: [
+        "RA1-mp-thread-after-create", "RA2-mp-thread-crlf-lf-nonbmp", "RA3-mp-thread-before-cleanup", "RA4-mp-thread-both-accounts",
+        "RU1-mp-thread-recipient-view", "RU2-mp-thread-recipient-after-owner-delete"
     ])
     func conversations(file: String) throws {
         #expect(try Self.link(in: try Fixture.capture(file))?.absoluteString == Self.expected)
