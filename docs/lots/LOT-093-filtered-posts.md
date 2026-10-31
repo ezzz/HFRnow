@@ -104,9 +104,9 @@ Cancellation before a page is `PageFetcher`'s own check (LOT-045), pinned here b
 
 ## Intentional differences from legacy
 
-1. **Page 1's opening post can be kept** (legacy dropped the first block of every page, `ParseMessagesOperation.m:141-144`). [CHANGELOG-LEGACY](../CHANGELOG-LEGACY.md) row 47.
-2. **Long pseudos match** their zero-width-space form for the account's own posts and quotes of it (legacy compared raw names there, `:184`, `:206`). Row 47.
-3. **`after` by message number**, not by the id on the page: a last-read message missing from the page no longer skips the whole page (legacy skipped every block until it saw the id, `:161-166`). Row 47.
+1. **Page 1's opening post can be kept** (legacy dropped the first block of every page, `ParseMessagesOperation.m:141-144`). [CHANGELOG-LEGACY](../CHANGELOG-LEGACY.md) row 48.
+2. **Long pseudos match** their zero-width-space form for the account's own posts and quotes of it (legacy compared raw names there, `:184`, `:206`). Row 48.
+3. **`after` by message number**, not by the id on the page: a last-read message missing from the page no longer skips the whole page (legacy skipped every block until it saw the id, `:161-166`). Row 48.
 4. **The last page comes from each page read**, not from the favourite row given at the start (`topic.maxTopicPage`), so a topic that grew meanwhile is read to its real end; a page past the end is read as the end.
 5. **No settings string**: the allowlist is a switch, the "pseudo" rules are on whenever a pseudo is given (the Swift app always ran in `pseudo` mode). Legacy ObjC without `pseudo` in the setting also skipped the quote-count rule (`:320-322`); that combination is not offered.
 
