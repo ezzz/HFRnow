@@ -60,7 +60,7 @@ Captures and oracles only, nothing new: the 21 LOT-003 topic oracles (run with `
   - the candidate rule on fragments;
   - the corpus count: exactly 133 embeds, 6 of them Vimeo.
 
-Shown to fail with the behaviour removed (12 mutations, each caught): legacy's hour bug, plain seconds refused, the first `t` instead of the last, a zero start kept, no start in the player URL, any depth accepted, links with elements accepted, Streamable over `http`, unescaped dots, Vimeo without path segments, the detector not called by `normalize`, a start on Vimeo.
+Shown to fail with the behaviour removed (each mutation caught): legacy's hour bug, plain seconds refused, the first `t` instead of the last, the first `v` instead of the last, a `…v` suffix (`notv=`) read as `v`, a partial id match (`v=a%20b`), a zero start kept, no start in the player URL, any depth accepted, links with elements accepted, an empty link accepted, Streamable over `http`, unescaped dots, Vimeo without path segments, the detector not called by `normalize`, a start on Vimeo.
 
 ## Pending capture
 
@@ -69,9 +69,9 @@ Shown to fail with the behaviour removed (12 mutations, each caught): legacy's h
 
 ## Intentional differences from legacy
 
-1. **Hours are hours**: `t=1h2m3s` starts at 3723 s (legacy 7323, minutes × 3600, `:281`), and `R20`'s `t=1m5s` at 65 s (legacy 3665). [CHANGELOG-LEGACY](../CHANGELOG-LEGACY.md) row 48.
-2. **Plain seconds and a `t` anywhere in the query give a start** (`t=706`, `R28`; legacy needed `t=…s` at the end of the URL, `:275`). Row 48.
-3. **Host dots are literal** (legacy's `.` matched any character), and a `youtube.com` id comes from the `v` parameter only (legacy took any `…v=` suffix, so `notv=abc` gave a player); both only concern look-alike links.
+1. **Hours are hours**: `t=1h2m3s` starts at 3723 s (legacy 7323, minutes × 3600, `:281`), and `R20`'s `t=1m5s` at 65 s (legacy 3665). [CHANGELOG-LEGACY](../CHANGELOG-LEGACY.md) row 49.
+2. **Plain seconds and a `t` anywhere in the query give a start** (`t=706`, `R28`; legacy needed `t=…s` at the end of the URL, `:275`). Row 49.
+3. **Host dots are literal** (legacy's `.` matched any character), and a `youtube.com` id comes from the last `v` parameter only (legacy's greedy `.+v=` took the last `v=` too, but any `…v=` suffix as well, so `notv=abc` gave a player); both only concern look-alike links.
 4. **Depth on the normalized tree**: unknown wrappers are unwrapped by LOT-034, so a text link inside one (`<center><p><a class="cLink">`) is a candidate here; legacy counted three real ancestors. No capture has one.
 5. **The link stays in the text**: legacy replaced it by an iframe that loaded at once; here the app shows a placeholder and loads nothing before a tap (LOT-071 D-071-2).
 

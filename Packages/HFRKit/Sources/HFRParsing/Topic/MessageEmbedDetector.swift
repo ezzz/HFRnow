@@ -53,12 +53,12 @@ public enum MessageEmbedDetector {
         return nil
     }
 
-    /// The video id of a YouTube link: the `v` query parameter on `youtube.com` (legacy's `.+v=` also took the end of
-    /// `notv=`), or the first path segment on `youtu.be`; an id is letters, digits, `_` and `-` only.
+    /// The video id of a YouTube link: the last `v` query parameter on `youtube.com` (legacy's greedy `.+v=` took the last
+    /// `v=`, and also the end of `notv=`), or the first path segment on `youtu.be`; an id is letters, digits, `_` and `-` only.
     private static func youTubeID(in url: URL, href: String) -> Substring? {
         if href.firstMatch(of: /^https?:\/\/(?:www\.|m\.|gaming\.)?youtube\.com\/./) != nil {
             let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
-            guard let value = items.first(where: { $0.name == "v" })?.value, let id = value.wholeMatch(of: /[\w-]+/) else {
+            guard let value = items.last(where: { $0.name == "v" })?.value, let id = value.wholeMatch(of: /[\w-]+/) else {
                 return nil
             }
             return id.output

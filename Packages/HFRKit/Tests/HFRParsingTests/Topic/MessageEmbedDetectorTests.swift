@@ -19,6 +19,7 @@ struct MessageEmbedDetectorTests {
             ("http://youtube.com/watch?v=dQw4w9WgXcQ", .youtube, "https://www.youtube.com/embed/dQw4w9WgXcQ"),
             ("https://m.youtube.com/watch?feature=share&v=a-b_c", .youtube, "https://www.youtube.com/embed/a-b_c"),
             ("https://gaming.youtube.com/watch?v=abc123", .youtube, "https://www.youtube.com/embed/abc123"),
+            ("https://www.youtube.com/watch?v=first&v=last", .youtube, "https://www.youtube.com/embed/last"),
             ("https://youtu.be/dQw4w9WgXcQ", .youtube, "https://www.youtube.com/embed/dQw4w9WgXcQ"),
             ("https://vimeo.com/123456", .vimeo, "https://player.vimeo.com/video/123456"),
             ("https://vimeo.com/channels/staffpicks/123456", .vimeo, "https://player.vimeo.com/video/123456"),
