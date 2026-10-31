@@ -57,7 +57,8 @@ public struct QuoteFlow: Sendable {
     func multiQuote(
         _ token: QuoteSelectionToken, answerFormURL: URL, through session: any QuotingSession
     ) async throws(QuoteError) -> QuoteComposer {
-        // The markers the composer's request carries: HFR prefills these messages, so these are unselected after posting.
+        // The selection read before the request: HFR prefills these messages, so these are unselected after posting. A
+        // message toggled between this read and the GET stays as the user left it (as in legacy).
         let numbers = await session.multiQuote(for: token, now: Date()).selectedNumbers
         guard !numbers.isEmpty else { throw .emptySelection }
         let form = try await load(answerFormURL, through: session)

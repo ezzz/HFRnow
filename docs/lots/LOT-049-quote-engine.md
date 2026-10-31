@@ -34,7 +34,7 @@ Code in `Sources/HFRClient/Quote/`, tests in `Tests/HFRClientTests/Quote/`.
   - The served form must name the token's topic in its hidden `cat` and `post` (`R42`: `13`, `28563`; `R47c`: `prive`, `3207033`), else `otherTopic`: the selection the composer would unselect after posting is the posted topic's, never another one.
 - **Prefill**: `QuoteComposer.prefill` is the form's `content_form` as LOT-036 reads it (`ForumForm.textareaContent`): entities decoded, line breaks `\n`. The `[quotemsg=…]` blocks are HFR's, never rebuilt (HFR-PROTOCOL §4). A form that is not a reply composer (edit, new topic, new MP) or whose textarea is empty is `noQuote`.
 - `reply(_:options:with:)`: LOT-048's `reply` through the composer's form, so its session, checks, single POST and confirmation rules. Then:
-  - **after HFR's confirmation** (`success` with the reply sentence), the messages the multi-quote composer's request carried are unselected, in one actor turn (`QuotingSession.unselect`, LESSONS 55). A message selected after the composer was loaded stays selected; a message the user unselected meanwhile is not selected again; the cookie is deleted when nothing is left (LOT-042). Other topics' selections are untouched.
+  - **after HFR's confirmation** (`success` with the reply sentence), the messages of the selection read before the multi-quote composer's request are unselected, in one actor turn (`QuotingSession.unselect`, LESSONS 55). A message selected after the composer was loaded stays selected; a message the user unselected meanwhile is not selected again; the cookie is deleted when nothing is left (LOT-042). Other topics' selections are untouched.
   - **on any error** (`rejected`, `notLoggedIn`, `unconfirmed`, a local refusal, `network`), the selection is kept: nothing was posted, or the user has to check the topic, and a retry needs the same quotes.
   - a **single quote** never touches the selection, whatever the outcome.
 
@@ -70,7 +70,7 @@ Shown to fail with the behaviour removed (each mutation caught): no unselect aft
 
 ## Pending capture
 
-- **Whether HFR clears the selection itself** after a post (#334): `W14`'s answer sets a cookie named `quoteshardwarefr-prive-<post>` (its meta), value and expiry not recorded. The client unselects the posted messages either way; if HFR deletes the cookie, a message selected while the reply was in flight is lost by HFR's doing.
+- **Whether HFR clears the selection itself** after a post (#334): `W14`'s answer sets a cookie named `quoteshardwarefr-prive-<post>` (its meta), value and expiry not recorded. The client unselects the posted messages either way; if HFR deletes the cookie, a message selected while the reply was in flight is lost by HFR's doing. The capture must also record the cookie's domain and path: the selection is stored for `.hardware.fr` (`storedQuoteCookie`), so if HFR sets this one host-only (`forum.hardware.fr`), `unselect` neither sees nor deletes it, and the next composer request quotes the posted messages again (CHANGELOG row 43 defeated by HFR).
 - A **quote link loaded while the topic has a selection**: whether HFR adds the selected blocks to the single prefill. Until captured, a single quote leaves the selection alone.
 - The **order of the blocks** of a multi-quote prefill: both captures list them by ascending message number, and the selection order was not recorded (`|a|b` in the metas).
 - The **cookie-less multi-quote route** (one quote form per message, prefills concatenated, HFR-PROTOCOL §7 X10): not used.
