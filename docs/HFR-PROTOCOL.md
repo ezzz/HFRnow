@@ -441,6 +441,14 @@ Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `Li
 - **First block of a page** (`R20`, `R22a`, `R22b`, `R24`, **verified**): on page 1 it is the topic's opening post, on later pages the continuation block; on anonymous pages the advertisement block comes second.
 - **Page past the end** (`R24`, **verified**): `forum2.php?…&page=2202` of a 2201-page topic ends, after the canonical redirects, with a 302 to `…_2201.htm`, the last page.
 
+### LOT-057 — REST API (anonymous)
+- **Requests** (`R57a`-`R57c`): `GET /webservices/rest_api.php?uri=forums/hardwarefr/categories/` (categories), `…?uri=forums/hardwarefr/categories/<cat>/topics/last/` (last topics), `…?uri=forums/hardwarefr/categories/<cat>/topics/<post>/` (one topic); anonymous, 200 `application/json`, no redirect, no `Set-Cookie`. The JSON writes non-ASCII as `\u` escapes and names with HTML entities (`&amp;`).
+- **Categories** (`R57a`): the home page's 20 forums (`R01`), same order and titles; each with `number_of_subcategories`, `force_subcat` and `/api/` hrefs (`subcategories/`, `topics/last/?page=1&results_per_page=25`).
+- **Last topics** (`R57b`): `page` 1, `results_per_page` 25, `results_count`, `list_type` `topic`; 30 rows: the 5 sticky topics, then 25. Row fields: `id`, `title`, `last_post_date` (`yyyy-MM-dd HH:mm`, Paris time), `is_closed`, `is_sticky`, `href`, `links.category`, `links.posts` (`count`, href with `results_per_page=40`), `links.author` and `links.last_author` (`title` = pseudo, `href` null). No poll, flag, read state or view count.
+- **Against the HTML list** captured six minutes earlier (`R04`): replies = `links.posts.count` − 1 and pages = ⌈count / 40⌉ on the 28 rows without a newer post; dates equal.
+- **Hrefs**: a topic's `href` names its sub-category for most rows (`…/categories/13/subcategories/433/topics/28563/`) but not in `R57c` (`…/categories/13/topics/28563/`). `R57c` says `is_sticky` true for topic 28563, which no list shows sticky (`R57b`, `R04`, `R06`).
+- **Not captured**: a page 2, `results_per_page`, an `/api/` href requested as is, an error answer, any answer to a session (flag buckets #335), sub-categories (#285); the anonymous ones are #355.
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).
