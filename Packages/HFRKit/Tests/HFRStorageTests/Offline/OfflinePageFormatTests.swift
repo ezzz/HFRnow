@@ -89,9 +89,11 @@ struct OfflinePageFormatTests {
                 try FileManager.default.createDirectory(at: stray, withIntermediateDirectories: true)
                 try Data("x".utf8).write(to: stray.appending(path: "1.json"))
             }
+            try FileManager.default.createDirectory(at: folder.appending(path: "3.json"), withIntermediateDirectories: true)
             let topics = try store.topics()
             #expect(topics.map(\.topic) == [Self.pizza])
             #expect(topics.first?.pages == [2])
+            #expect(try store.page(3, of: Self.pizza) == nil)
         }
     }
 
@@ -109,5 +111,16 @@ struct OfflinePageFormatTests {
         #expect(throws: OfflineStoreError.unsafeFolder) { try store.page(1, of: Self.pizza) }
         #expect(try store.topics().isEmpty)
         #expect(try FileManager.default.contentsOfDirectory(atPath: outside.path()).isEmpty)
+    }
+
+    @Test("A page file that is a symbolic link is neither listed nor read")
+    func linkedPageFile() throws {
+        try Self.withPages { store, folder, temp in
+            let target = temp.base.appending(path: "elsewhere.json")
+            try Self.json(version: 1).write(to: target)
+            try FileManager.default.createSymbolicLink(at: folder.appending(path: "1.json"), withDestinationURL: target)
+            #expect(try store.topics().first?.pages == [2])
+            #expect(throws: OfflineStoreError.unsafeFolder) { try store.page(1, of: Self.pizza) }
+        }
     }
 }

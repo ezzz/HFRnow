@@ -8,15 +8,14 @@
 
 ## Legacy sources
 
-Legacy app: `francoisgn/hfrnow` at `2440d79` (an ancestor of `origin/master`).
+Legacy app: `francoisgn/hfrnow` at `2440d79` (an ancestor of `origin/master`). **Legacy had no working offline reading**: the download method is inside a `/* … */` block (`OfflineStorage.m:145-294`), and nothing outside the file calls the list toggles (audit E §2, `docs/audit/E-storage-vendors.md:72`: "compiled, effectively unused"; no HFRswift UI). The rows below describe the shipped list code and the intended design the commented-out method shows.
 
 | Legacy | What it gives this lot |
 |---|---|
-| `Classes/OfflineStorage.m:41-82` | a set of offline topics keyed by the topic number alone (`postID`), toggled from the topic list |
-| `OfflineStorage.m:88-143` | the set archived with `NSKeyedArchiver` in `Documents/offlineTopicsDico.plist` (backed up), read back without any version or error handling |
-| `OfflineStorage.m:146-295` | download into `Documents/cache/<post>/<post>-<page>/index.html`: up to `offline_max_pages` pages from the current one; pages already saved are skipped, except the topic's last page, which is deleted and fetched again; requests without cookies (`:213-214`); images rewritten to local copies |
-| `OfflineStorage.m:163` | `offline_max_pages`, read with `integerForKey:` and written nowhere in the app, so it was 0 and nothing was downloaded |
-| `OfflineStorage.m:336-437` | erase all, an integrity pass that walks pages until the first missing one, and reading a saved page back |
+| `Classes/OfflineStorage.m:41-82` | compiled, never called: a set of offline topics keyed by the topic number alone (`postID`) |
+| `OfflineStorage.m:88-143` | compiled: the set archived with `NSKeyedArchiver` in `Documents/offlineTopicsDico.plist` (backed up), read back without any version or error handling |
+| `OfflineStorage.m:145-294` | **commented out**: the intended download into `Documents/cache/<post>/<post>-<page>/index.html`, up to `offline_max_pages` pages (a key written nowhere) from the current one, the topic's last page fetched again, images rewritten to local copies |
+| `OfflineStorage.m:336-437` | compiled, never reached from the app: erase all, an integrity pass that walks pages until the first missing one, reading a saved page back |
 | `Classes/Topic.m:101-157` | the archived topic fields (title, URLs, pages loaded) |
 
 ## Behaviour
@@ -28,9 +27,9 @@ Code in `Sources/HFRStorage/Offline/`, plus the `offline` area in `Sources/HFRSt
 The page's **HTML as HFR served it to a visitor** (decoded text), with its topic, page number, the title the caller read, and the save date (`OfflinePage`). A parsed `TopicPage` is not stored, for three reasons:
 - the current parser reads the HTML at display time, so a parser fix also applies to pages saved earlier;
 - the stored format does not follow the HFRModels types, which change with the core;
-- legacy also kept HTML.
+- legacy's commented-out design kept HTML too.
 
-Images are not saved (legacy copied them, `:230-245`, `:296-330`): the app's image cache or a later lot decides.
+Images are not saved (the commented-out design copied them): the app's image cache or a later lot decides.
 
 ### Where, and for whom
 
@@ -41,15 +40,16 @@ Images are not saved (legacy copied them, `:230-245`, `:296-330`): the app's ima
 ### Format and versions
 
 - **One file per page**: `offline/<category>-<topic>/<page>.json`. Numbers are written in decimal with no sign or leading zero, so one page has exactly one file name. The JSON has sorted keys and fields `version`, `category`, `topic`, `page`, `title`, `html` and `savedAt` (the default date strategy, which round-trips a `Date` exactly).
-- **No index file**: the list is read from the folder names and file names, so a file the evictor or the system removed never leaves the other pages unreadable. Each topic's title comes from its highest readable page, and its date from the newest page file.
+- **No index file**: the list is read from the folder names and file names, so a file the evictor or the system removed never leaves the other pages unreadable. Each topic's title comes from its highest readable page, and its date from the newest page file. `topics()` decodes one page per topic (about 56 ms for 40 topics of 138 KB pages): the app calls it off the main actor.
+- **Regular files only**: a page is a regular `<page>.json` file; a directory or a symbolic link of that name is ignored by the list and never read.
 - **Versions**: `version` is read first. A file of another version gives `unsupportedVersion(n)`, older or newer (version 1 is the first, so nothing migrates yet); a damaged file, or one whose fields name no forum topic or page, gives `unreadable`. In both cases `page(_:of:)` throws, `topics()` still lists the page number, and nothing crashes. Such a file goes with `remove`, `removeAll` or the evictor. A file whose content names another topic or page than its place is `unreadable` too.
 
 ### Pages per topic, last page, eviction
 
-- **Per-topic limit**: `maximumPagesPerTopic`, 50 by default (2,000 messages, a few megabytes). Legacy's limit was 0 in practice (`:163`).
+- **Per-topic limit**: `maximumPagesPerTopic`, 50 by default (2,000 messages, a few megabytes). Legacy had no limit in use: the commented-out design read `offline_max_pages`, a key nothing writes.
   - Saving one more page removes the topic's lowest-numbered pages, because the reader moves forward.
   - A page lower than every page of a full topic is refused (`beyondPageLimit`), since it would be the one removed.
-- **Last page**: saving a page that exists replaces it atomically. The topic's last page grows, so the app saves it again on each refresh, as legacy fetched it again (`:195-198`). `OfflineTopic.lastSavedAt` and the per-page `savedAt` tell how old the copy is.
+- **Last page**: saving a page that exists replaces it atomically. The topic's last page grows, so the app saves it again on each refresh, as the commented-out legacy design intended. `OfflineTopic.lastSavedAt` and the per-page `savedAt` tell how old the copy is.
 - **Eviction**: the `offline` area's policy (`CacheEvictionPolicy.offlineTopics`) keeps pages whatever their age, because the user chose to save them. Past 200 MB, the pages saved longest ago go first. It is applied by LOT-066's `CacheDirectory.evictAll()` at launch, with LOT-066's guards (no symbolic links, files only). `removeAll()` is LOT-066's `clear`.
 - **Folder safety**: every path goes through `CacheDirectory.safeURL(for: .offlineTopics)`. A topic folder that is a symbolic link is refused (`unsafeFolder`), and linked page files are ignored.
 
@@ -81,16 +81,18 @@ Captures only, nothing new: topic pages fetched without cookies `R20`, `R22a`, `
   - six damaged files;
   - misplaced content and records with no topic or page;
   - stray files and folders;
-  - a linked topic folder.
+  - a linked topic folder and a linked page file;
+  - a directory named like a page.
 - `TemporaryFileCacheTests`: the area list now includes `offline`.
 
-Shown to fail with the behaviour removed (16 mutations, each caught):
+Shown to fail with the behaviour removed (20 mutations, each caught):
 - no token check, single quotes ignored, a missing value read as no token;
 - any version accepted, record fields not checked, misplaced files accepted;
 - no beyond-limit check, the highest pages removed instead of the lowest;
 - leading zeros accepted, a linked topic folder accepted, `prive` accepted, an empty page accepted, page 0 accepted;
 - an age limit on the area;
-- the oldest topic listed first, the title taken from the lowest page.
+- the oldest topic listed first, the title taken from the lowest page;
+- after the review: the token check not quote-aware, no regular-file check, a linked page file listed, a linked page file read.
 
 ## Pending capture
 
@@ -98,12 +100,13 @@ Shown to fail with the behaviour removed (16 mutations, each caught):
 
 ## Intentional differences from legacy
 
-1. **Caches instead of Documents**: device-only, not backed up, reclaimable (ADR 0013); legacy kept offline pages and their list in `Documents/`, backed up.
-2. **No session token on disk**: a page fetched with the session is refused.
-3. **Topics by category and number** (legacy keyed them by the number alone, `:41-82`, as for super-favourites, CHANGELOG row 41).
-4. **No separate list file**: the list is read from the files, so an evicted or damaged page never breaks the others; legacy's archive could hold topics whose pages were gone, which its integrity pass then repaired (`:375-406`).
-5. **A real page limit** (50, legacy 0) and a 200 MB budget (legacy unbounded).
-6. **No images and no copied resources**: the parser and the app's caches handle them.
+1. **Offline reading works**: the legacy app had none in use (download commented out, list never called).
+2. **Caches instead of Documents**: device-only, not backed up, reclaimable (ADR 0013); legacy's list code archived to `Documents/`, backed up.
+3. **No session token on disk**: a page fetched with the session is refused.
+4. **Topics by category and number** (legacy keyed them by the number alone, `:41-82`, as for super-favourites, CHANGELOG row 41).
+5. **No separate list file**: the list is read from the files, so an evicted or damaged page never breaks the others; legacy's list design could hold topics whose pages were gone, which its integrity pass then repaired (`:375-406`).
+6. **A page limit** (50) and a 200 MB budget; legacy's design had neither in use.
+7. **No images and no copied resources**: the parser and the app's caches handle them.
 
 Recorded in [CHANGELOG-LEGACY](../CHANGELOG-LEGACY.md) row 47.
 

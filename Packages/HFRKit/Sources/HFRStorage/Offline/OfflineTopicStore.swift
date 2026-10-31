@@ -12,8 +12,8 @@ import HFRModels
 public struct OfflineTopicStore: Sendable {
     /// The page file format this build writes and reads.
     public static let currentVersion = 1
-    /// Pages kept per topic. Legacy read `offline_max_pages`, a key nothing ever wrote, so it got 0
-    /// (`OfflineStorage.m:163`); 50 pages is 2,000 messages, at most a few megabytes per topic.
+    /// Pages kept per topic: 50 pages is 2,000 messages, at most a few megabytes per topic. Legacy had no offline reading
+    /// in use (its download method is commented out, `OfflineStorage.m:145-294`), so no limit to keep.
     public static let defaultMaximumPagesPerTopic = 50
 
     /// The cache holding the `offline` area.
@@ -133,7 +133,7 @@ public struct OfflineTopicStore: Sendable {
     private func pageNumbers(in folder: URL) -> [Int] {
         let files = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
         return files.compactMap { file in
-            guard file.pathExtension == "json", !Self.isSymbolicLink(file) else { return nil }
+            guard file.pathExtension == "json", !Self.isSymbolicLink(file), Self.isRegularFile(file) else { return nil }
             return Self.positiveNumber(file.deletingPathExtension().lastPathComponent)
         }.sorted()
     }
@@ -152,6 +152,10 @@ public struct OfflineTopicStore: Sendable {
     private static func positiveNumber(_ text: some StringProtocol) -> Int? {
         guard !text.isEmpty, text.utf8.allSatisfy({ (48...57).contains($0) }), text.first != "0" else { return nil }
         return Int(text)
+    }
+
+    private static func isRegularFile(_ url: URL) -> Bool {
+        (try? url.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true
     }
 
     private static func isSymbolicLink(_ url: URL) -> Bool {

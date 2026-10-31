@@ -61,16 +61,18 @@ struct OfflineTopicStoreTests {
             let middle = try Self.capture("R22a-topic-middle-page-anon")
             try store.save(OfflinePage(topic: Self.pizza, page: 1100, title: "Ancien titre", html: middle, savedAt: Self.now))
             try store.save(Self.page(Self.tequila, 1, "R23-topic-single-page-anon"))
+            // Whole seconds: some file systems keep no sub-second modification dates.
+            let base = Date(timeIntervalSinceReferenceDate: 815_000_000)
             for (topic, page, age) in [(Self.pizza, 1100, 300.0), (Self.pizza, 2201, 200), (Self.tequila, 1, 100)] {
                 try FileManager.default.setAttributes(
-                    [.modificationDate: Self.now.addingTimeInterval(-age)], ofItemAtPath: Self.file(topic, page, in: temp).path()
+                    [.modificationDate: base.addingTimeInterval(-age)], ofItemAtPath: Self.file(topic, page, in: temp).path()
                 )
             }
             let topics = try store.topics()
             #expect(topics.map(\.topic) == [Self.tequila, Self.pizza])
             #expect(topics.last?.pages == [1100, 2201])
             #expect(topics.last?.title == "Pizza maison")
-            #expect(topics.last?.lastSavedAt == Self.now.addingTimeInterval(-200))
+            #expect(topics.last?.lastSavedAt == base.addingTimeInterval(-200))
         }
     }
 
@@ -104,6 +106,9 @@ struct OfflineTopicStoreTests {
         #expect(OfflinePageRecord.holdsSessionToken(#"<input value="" name="x"><INPUT NAME='hash_check' VALUE='t0k3n'>"#))
         #expect(OfflinePageRecord.holdsSessionToken(#"<input type="hidden" name="hash_check">"#))
         #expect(OfflinePageRecord.holdsSessionToken(#"<input name="hash_check" value="" /><input name="hash_check" value="a">"#))
+        // A `>` inside a quoted attribute does not end the tag (LESSONS 34).
+        #expect(OfflinePageRecord.holdsSessionToken(#"<input title="a>b" name="hash_check" value="t0k3n">"#))
+        #expect(!OfflinePageRecord.holdsSessionToken(#"<input title='a>b' name="hash_check" value="">"#))
     }
 
     @Test("Only forum topics from page 1, with content, are saved", arguments: [
