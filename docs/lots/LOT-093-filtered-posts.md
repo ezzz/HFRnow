@@ -99,7 +99,7 @@ Cancellation before a page is `PageFetcher`'s own check (LOT-045), pinned here b
 
 ## Pending capture
 
-- Two **consecutive pages** of one topic, anonymous: the walk from one page to the next is tested with page 1 (`R20`) followed by a failure, a cancellation or nothing. No captured pair shows a batch spanning two read pages.
+- Two **consecutive pages** of one topic, anonymous (capture issue [#353](https://github.com/ezzz/HFRnow/issues/353)): the walk from one page to the next is tested with page 1 (`R20`) followed by a failure, a cancellation or nothing. No captured pair shows a batch spanning two read pages.
 - A **filter-mode legacy oracle** (`tooling/legacy-oracle`, `filter` input), to replace the transcribed rule in the differential test.
 
 ## Intentional differences from legacy
