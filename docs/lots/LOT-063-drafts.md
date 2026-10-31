@@ -39,7 +39,7 @@ None (synthetic). Cursor position and attachment metadata (E-4 "optional") are n
 ## Intentional differences from legacy
 - The global draft is replaced by per-context drafts; the new-topic draft now survives a kill; edit and MP composers get drafts instead of none.
 - The "ephemeral composers never touch the reply draft" rule holds by construction (separate contexts) and is tested.
-- The pseudo comparison form is duplicated in a private helper (`DraftNameNormalizer`) so that this lot does not depend on LOT-061; the two can be unified later.
+- The pseudo comparison form was duplicated in a private helper (`DraftNameNormalizer`) so that this lot did not depend on LOT-061; [LOT-072](LOT-072-pseudo-normaliser.md) removed it (account keys by `AccountKey`, recipients by `PseudoNormalizer`).
 
 ## Learnings
 To copy into AGENTS.md §11 when the lot closes.

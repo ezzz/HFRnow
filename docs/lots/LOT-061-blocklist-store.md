@@ -21,8 +21,8 @@ Legacy repository <https://github.com/francoisgn/hfrnow> at `2440d79`. Audit: [E
 ## Behaviour
 Code in `Sources/HFRStorage/PseudoLists/`, tests in `Tests/HFRStorageTests/PseudoLists/`. Swift names say "blocklist"/"allowlist" (SwiftLint `inclusive_language`).
 
-- **`PseudoNormalizer`**: `normalize` removes U+200B and lower-cases; `matches` compares normal forms. No trimming (legacy did not; MPStorage's `dicMPStorage_postid` key additionally trims and is a different store).
-- **`PseudoListStore`** (actor): `block`, `unblock`, `replaceBlocklist(with:account:)`, `allow`, `disallow`, `blocklist(for:)`, `allowlist()`, `isBlocked`, `isAllowed`. Entries keep insertion order and the pseudo as the user typed it; adding an existing pseudo (any case, any ZWSP) returns false and does not save. `isAllowed` is false for a blocked pseudo, as in legacy.
+- **`PseudoNormalizer`**: `normalize` removed U+200B and lower-cased; `matches` compared normal forms; no trimming (legacy did not; MPStorage's `dicMPStorage_postid` key additionally trims and is a different store). Since LOT-072 entries are matched by the shared rule (every format character, surrounding white space, case) and lists are keyed by `AccountKey`: [LOT-072](LOT-072-pseudo-normaliser.md).
+- **`PseudoListStore`** (actor): `block`, `unblock`, `replaceBlocklist(with:account:)`, `allow`, `disallow`, `blocklist(for:)`, `allowlist()`, `isBlocked`, `isAllowed`. Entries keep insertion order and the pseudo as the user typed it (cleaned since LOT-072, case kept); adding an existing pseudo (any case, any ZWSP; since LOT-072 any format character or surrounding white space) returns false and does not save. `isAllowed` is false for a blocked pseudo, as in legacy.
 - **Accounts**: blocklists are keyed by the account identifier passed by the caller (`Account.id`, the `md_user` pseudo), normalised so `Alice` and `alice` share a list. The caller always passes the account the list belongs to: no "current account" state lives here, which removes legacy E §7.4 and the load-before-login order dependence.
 - **One document, one atomic file**: `PseudoListDocument { version, blocklists, allowlist }`, encoded as JSON, written with `Data.write(options: .atomic)`. Entries keep the legacy plist keys (`word`, `alias`, `mode`) so the LOT-067 importer is a plain mapping.
 - **Persistence protocol** `PseudoListPersistence` (`load`, `save`, `quarantineUnreadableData`): `FilePseudoListPersistence` and `InMemoryPseudoListPersistence`.
@@ -30,7 +30,7 @@ Code in `Sources/HFRStorage/PseudoLists/`, tests in `Tests/HFRStorageTests/Pseud
 - **Memory never gets ahead of the disk**: a mutation is applied to a copy, persisted, then published; a failed save throws `saveFailed` and leaves state unchanged.
 
 ## Edge cases
-- Pseudos that are empty once zero-width spaces are removed are rejected (`emptyPseudo`) on both lists; `replaceBlocklist` drops them silently (the list comes from a remote document).
+- Pseudos that are empty once zero-width spaces are removed (since LOT-072: once cleaned) are rejected (`emptyPseudo`) on both lists; `replaceBlocklist` drops them silently (the list comes from a remote document).
 - A missing file is a normal first launch (empty lists), not a failure.
 - Several concurrent `block` calls are serialised by the actor; all are kept.
 - Removing the last entry of an account removes its key from the document.

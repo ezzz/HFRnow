@@ -5,7 +5,7 @@ public struct PseudoListDocument: Sendable, Hashable, Codable {
 
     /// Format version.
     public var version: Int
-    /// Blocklists keyed by the normalised account identifier.
+    /// Blocklists keyed by the account key (`AccountKey`, ADR 0013 §7).
     public var blocklists: [String: [PseudoListEntry]]
     /// The allowlist, shared by all accounts (legacy `whiteList.plist` is global).
     public var allowlist: [PseudoListEntry]
