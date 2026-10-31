@@ -26,7 +26,7 @@ Steps 1-2 alone are `cleaned` (case kept), the form `AccountBook` stores. `Strin
 | Caller | Before | After | Stored data |
 |---|---|---|---|
 | `PseudoListStore` account key (`blocklists[…]`) | `PseudoNormalizer.normalize` | `AccountKey.make`: same output | keys unchanged |
-| `PseudoListStore` entry matching (`block`, `unblock`, `allow`, `disallow`, `isBlocked`, `isAllowed`, `replaceBlocklist`, empty check) | U+200B + case | the rule | entries are stored as typed and compared at run time: every old entry is still found |
+| `PseudoListStore` entry matching (`block`, `unblock`, `allow`, `disallow`, `isBlocked`, `isAllowed`, `replaceBlocklist`, empty check) | U+200B + case | the rule | old entries stay as stored and are compared at run time: every old entry is still found |
 | `PseudoListStore.unblock` / `disallow` | removed the first match | removes **every** match | a list stored before can hold two spellings the rule now merges (`Marc`, `Marc` + U+FEFF); both go |
 | `PseudoListStore` new entries (`block`, `allow`, `replaceBlocklist`) | stored as typed | stored `cleaned` (case kept) | old entries are not rewritten; a new entry carries no invisible character or stray space into MPStorage (LOT-062), whose legacy readers remove U+200B only |
 | `DraftStore` account key (`Draft.account`) | `DraftNameNormalizer` | `AccountKey.make`: same output | keys unchanged |
