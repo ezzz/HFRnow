@@ -169,7 +169,9 @@ public actor PseudoListStore {
     private static func insert(_ pseudo: String, into list: inout [PseudoListEntry]) throws -> Bool {
         guard !PseudoNormalizer.comparisonForm(pseudo).isEmpty else { throw PseudoListError.emptyPseudo }
         guard index(of: pseudo, in: list) == nil else { return false }
-        list.append(PseudoListEntry(pseudo: pseudo))
+        // Cleaned, case kept: an invisible character or a stray space would follow the entry into MPStorage, where
+        // legacy clients (`BlackList.m:130-143`) remove U+200B only.
+        list.append(PseudoListEntry(pseudo: PseudoNormalizer.cleaned(pseudo)))
         return true
     }
 

@@ -34,6 +34,9 @@ import Testing
         #expect(try await !store.allow("FRIEND"))
         #expect(await store.isAllowed("friend\u{200D}", account: "you"))
         #expect(await store.blocklist(for: "me").map(\.pseudo) == ["Marc"])
+        #expect(try await store.block("\u{FEFF} Ma\u{200B}x\n", account: "me"))
+        #expect(await store.blocklist(for: "me").map(\.pseudo) == ["Marc", "Max"])
+        #expect(await store.allowlist().map(\.pseudo) == ["Friend"])
     }
 
     /// A document as stored before LOT-072: account key `marc` (`AccountKey`), two spellings the rule now merges.
