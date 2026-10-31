@@ -19,7 +19,7 @@ struct OfflinePageFormatTests {
 
     private static func json(version: Int, page: Int = 1, category: Int = 13, topic: Int = 28563) -> Data {
         let fields = #""html":"<p>un</p>","page":\#(page),"savedAt":0,"title":"t","topic":\#(topic),"version":\#(version)"#
-        return Data(#"{"category":\#(category),"#.utf8 + Data(fields.utf8) + Data("}".utf8))
+        return Data((#"{"category":\#(category),"# + fields + "}").utf8)
     }
 
     @Test("A file is versioned JSON with sorted keys and the exact save date")
