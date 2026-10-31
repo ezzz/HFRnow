@@ -4,8 +4,8 @@ import Testing
 @testable import HFRParsing
 
 /// LOT-035: legacy's four video patterns as unit cases (`ParseMessagesOperation.m:241-244`), the start time, the candidate
-/// rule on small content fragments, and the one captured link with a start (`R28`). The differential test against every
-/// LOT-003 oracle is in `MessageContentOracleTests`.
+/// rule on small content fragments, and the two captured links with a start (`R20` `t=1m5s`, `R28` `t=706`). The
+/// differential test against every LOT-003 oracle is in `MessageContentOracleTests`.
 @Suite("Video embed detector")
 struct MessageEmbedDetectorTests {
     private static func embed(_ link: String) throws -> MessageEmbed? {
@@ -106,16 +106,35 @@ struct MessageEmbedDetectorTests {
         let quoted = "<div class=\"container\"><table class=\"citation\"><tr class=\"none\"><td><p>\(link)</p></td></tr></table></div>"
         #expect(try Self.embeds(inContent: quoted).isEmpty)
         #expect(try Self.embeds(inContent: "<p>texte</p><span class=\"signature\"><p>\(link)</p></span>").isEmpty)
+        #expect(try Self.embeds(inContent: "<p><a href=\"\(Self.video)\" class=\"cLink\"></a></p>").isEmpty)
     }
 
-    @Test("The corpus has embeds to compare: the LOT-003 oracles hold 16 iframes over 8 pages")
+    @Test("The corpus has embeds to compare: the LOT-003 oracles hold 133 iframes over 8 pages, Vimeo included")
     func corpusHasEmbeds() throws {
         var total = 0
+        var vimeo = 0
+        let map = try TopicOracle.loadMap()
         for caseID in MessageContentOracleTests.cases {
-            let map = try TopicOracle.loadMap()
             let blocks = try MessageBlockParser.blocks(in: TopicOracle.capture(for: try #require(map[caseID])))
-            total += try blocks.reduce(0) { $0 + (try MessageContentNormalizer.normalize(contentHTML: $1.contentHTML)).embeds.count }
+            for block in blocks {
+                let embeds = try MessageContentNormalizer.normalize(contentHTML: block.contentHTML).embeds
+                total += embeds.count
+                vimeo += embeds.filter { $0.provider == .vimeo }.count
+            }
         }
-        #expect(total >= 16)
+        #expect(total == 133)
+        #expect(vimeo == 6)
+    }
+
+    @Test("R20: `youtu.be/…?t=1m5s` starts at 65 s; legacy's iframe on the same capture says 3665 (minutes × 3600)")
+    func capturedHourBug() throws {
+        let page = try Fixture.capture("R20-topic-p1-anon")
+        let block = try #require(try MessageBlockParser.blocks(in: page).first { $0.numreponse == 2666649 })
+        let embeds = try MessageContentNormalizer.normalize(contentHTML: block.contentHTML).embeds
+        let embed = try #require(embeds.first { $0.sourceURL.absoluteString == "https://youtu.be/RrGdyybzPVA?t=1m5s" })
+        #expect(embed.startSeconds == 65)
+        #expect(embed.embedURL.absoluteString == "https://www.youtube.com/embed/RrGdyybzPVA?start=65")
+        let legacy = try #require(try TopicOracle.load("R20").result.messages.first?.html)
+        #expect(legacy.contains("https://www.youtube.com/embed/RrGdyybzPVA?start=3665"))
     }
 }

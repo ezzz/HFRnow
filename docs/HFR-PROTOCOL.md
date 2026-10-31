@@ -420,8 +420,8 @@ Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `Li
 
 [LOT-035](lots/LOT-035-video-embeds.md), tests `MessageContentOracleTests` (LOT-003 iframes) and `MessageEmbedDetectorTests`.
 
-- **A posted video link** (`R20`, `R22a`, `R22b`, `R27`, `R28`, **verified**): `<a rel="nofollow" href="<url>" target="_blank" class="cLink">` with the URL or a title as text (`R20`: "Impasto a mano pizza napoletana"), usually straight in a paragraph of the message; HFR adds no player. Both `http://www.youtube.com/watch?v=` and `https://www.youtube.com/watch?v=` (`R20`, `R22a`) and `https://youtu.be/<id>?t=<seconds>` (`R28`) occur.
-- **Start time** (`R28`): the captured `youtu.be` link carries its start as plain seconds, `t=706`.
+- **A posted video link** (`R20`, `R22a`, `R22b`, `R27`, `R28`, **verified**): `<a rel="nofollow" href="<url>" target="_blank" class="cLink">` with the URL or a title as text (`R20`: "Impasto a mano pizza napoletana"), usually straight in a paragraph of the message; HFR adds no player. The corpus has `http://` and `https://www.youtube.com/watch?v=` (`R20`, `R22a`), `https://youtu.be/<id>` with `t=1m5s` (`R20`) or `t=706` (`R28`), and `vimeo.com/<number>` (`R20`); the LOT-003 oracles turn 133 of them into iframes over 8 pages.
+- **Start time** (`R20`, `R28`): the captured `youtu.be` links carry their start as `t=1m5s` and as plain seconds, `t=706`.
 
 ## 7. Reported by redface2, to verify with our fixtures
 

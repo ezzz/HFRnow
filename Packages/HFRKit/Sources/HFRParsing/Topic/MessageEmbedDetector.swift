@@ -6,10 +6,12 @@ import SwiftSoup
 /// (`ParseMessagesOperation.m:238-317`), on the normalized content of LOT-034.
 ///
 /// A candidate is an `a.cLink` that is a child of a top-level element of the content (legacy: the link's third ancestor
-/// is `td.messCase2`, `:260-264`) and holds only text: a link in a quote, a spoiler or a list, or around an image, is
-/// left as a link. The signature is not part of `MessageContent.html`, so its links never are (`:263`). The link must
-/// match one of legacy's four hosts (`:241-244`); Dailymotion, Coub and Twitch stay links, as legacy had them commented
-/// out (`:247-257`). The player URL is built from the extracted id, never copied from the page.
+/// is `td.messCase2`, `:260-264`) and holds text only (`LinkItem.m:149`): a link in a quote, a spoiler or a list, or
+/// around an image, is left as a link. Depth is read on the normalized tree, where unknown wrappers (`center`) are
+/// already unwrapped, so a link one such wrapper deeper is still a candidate. The signature is not part of
+/// `MessageContent.html`, so its links never are (`:263`). The link must match one of legacy's four hosts (`:241-244`);
+/// Dailymotion, Coub and Twitch stay links, as legacy had them commented out (`:247-257`). The player URL is built from
+/// the extracted id, never copied from the page.
 public enum MessageEmbedDetector {
     /// The embeds of a normalized `MessageContent.html`, in page order.
     public static func embeds(inNormalizedHTML html: String) throws(ParsingError) -> [MessageEmbed] {
@@ -18,7 +20,8 @@ public enum MessageEmbedDetector {
         guard let body = (try? SwiftSoup.parseBodyFragment(html))?.body() else { throw .malformedDocument }
         let links = (try? body.select("a.cLink").array()) ?? []
         return links.compactMap { link in
-            guard link.parent()?.parent() === body, link.children().isEmpty,
+            // Text only, and some: legacy's rewrite matched `>([^<]+)</a>` (`LinkItem.m:149`).
+            guard link.parent()?.parent() === body, link.children().isEmpty, link.childNodeSize() > 0,
                   let href = try? link.attr("href"), let url = URL(string: href)
             else { return nil }
             return embed(for: url)
