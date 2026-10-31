@@ -22,7 +22,18 @@ public enum HFRDate {
         return nil
     }
 
+    /// Parses the REST API's `last_post_date`, exactly `yyyy-MM-dd HH:mm` (`R57b`, LOT-057), with the same Paris rules.
+    public static func restDate(from text: String) -> Date? {
+        guard let match = text.wholeMatch(of: restPattern) else { return nil }
+        let (_, year, month, day, hour, minute) = match.output
+        let canonical = "\(day)-\(month)-\(year) \(hour):\(minute):00"
+        guard let zone = timeZone, let wallClock = try? Date(canonical, strategy: wallClockStrategy) else { return nil }
+        return resolve(wallClock: wallClock, in: zone)
+    }
+
     // MARK: - Implementation
+
+    nonisolated(unsafe) private static let restPattern = /([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2})/
 
     // `Regex` is not `Sendable` (its output type could hold non-Sendable captures). These literals capture
     // only `Substring`s and the compiled program is initialised atomically by the runtime, so sharing is safe.
