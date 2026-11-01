@@ -53,7 +53,8 @@ def build(issues, pulls, lots):
     for i in issues:
         n, lb = i['number'], labels(i)
         if i['state'].lower() == 'closed':
-            closed.add(n)
+            if i.get('state_reason') in (None, 'completed'):  # not planned / duplicate is not done
+                closed.add(n)
             continue
         if 'status: ready' in lb:
             ready.add(n)

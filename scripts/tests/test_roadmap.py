@@ -88,9 +88,10 @@ class Hygiene(unittest.TestCase):
         issues = [issue(1, "open"), issue(2, labels=["status: blocked"]), issue(4, labels=["status: blocked", "host: mac"])]
         issues[0]["state"] = "closed"
         pulls = [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z")]
-        actions, _ = self.run_sweep(issues, pulls)
-        self.assertEqual([(a["kind"], a["issue"], a["pr"], a["external"]) for a in actions],
-                         [("unblock", 2, 10, True), ("unblock", 4, 10, False)])
+        actions, reports = self.run_sweep(issues, pulls)
+        self.assertEqual([(a["kind"], a["issue"], a["pr"]) for a in actions], [("unblock", 2, 10), ("unblock", 4, 10)])
+        self.assertTrue(any("#2 LOT-002 unblocked engine lot" in r for r in reports))  # external: ready is the operator's call
+        self.assertFalse(any("#4 LOT-004 unblocked engine lot" in r for r in reports))  # an App lot is not
 
     def test_no_unblock_when_a_dependency_is_open_or_a_capture_waits_or_claimed(self):
         issues = [issue(1, "closed"), issue(2, labels=["status: blocked"]),
@@ -134,7 +135,37 @@ class Hygiene(unittest.TestCase):
         _, reports = self.run_sweep(issues, [], {3: [{"created_at": "2026-10-31T12:00:00Z"}]})
         self.assertFalse(any("silent" in r for r in reports))
 
+    def test_closes_keyword_only_at_line_start(self):
+        issues = [issue(1), issue(2), issue(3)]
+        body = "This does not close #1.\nStacked on #9, which closes #2.\nCloses #3\n"
+        actions, _ = self.run_sweep(issues, [pr(10, body=body, merged_at="2026-10-30T00:00:00Z")])
+        self.assertEqual([a["issue"] for a in actions], [3])
+
+    def test_dependency_closed_not_planned_blocks_the_unblock(self):
+        issues = [issue(1, "closed"), issue(2, labels=["status: blocked"])]
+        issues[0]["state_reason"] = "not_planned"
+        actions, reports = self.run_sweep(issues, [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z")])
+        self.assertEqual(actions, [])
+        self.assertTrue(any("not planned" in r and "#1" in r for r in reports))
+        self.assertEqual(sync_state.build(issues, [], self.lots)["closed"], [])
+
+    def test_blocked_by_naming_an_open_issue_and_needs_triage_are_left_alone(self):
+        issues = [issue(1, "closed"), issue(2, labels=["status: blocked"], body="### Blocked by\n\nADR #77\n\n### Model\n"),
+                  issue(3, labels=["status: needs-triage"]), issue(77)]
+        actions, reports = self.run_sweep(issues, [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z")])
+        self.assertEqual(actions, [])
+        self.assertTrue(any("#2 LOT-002" in r and "#77" in r for r in reports))
+
+    def test_a_reopened_issue_is_not_closed_again(self):
+        issues = [issue(1)]
+        actions, reports = self.run_sweep(issues, [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z")],
+                                          {1: [{"body": "Done in #10 (merged as abc)", "created_at": "2026-10-30T01:00:00Z"}]})
+        self.assertEqual(actions, [])
+        self.assertTrue(any("reopened" in r for r in reports))
+
     def test_dependency_cell_parsing(self):
+        self.assertEqual(hygiene.numeric_deps("030, ADR 0006"), None)
+        self.assertEqual(hygiene.numeric_deps("#123"), None)
         self.assertEqual(hygiene.numeric_deps("—"), [])
         self.assertEqual(hygiene.numeric_deps("080, 043"), ["LOT-080", "LOT-043"])
         self.assertIsNone(hygiene.numeric_deps("all parsing lots"))

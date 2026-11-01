@@ -197,7 +197,7 @@ _Snapshot {DATE}._
 
 ### Owner / session
 
-The orchestrator `mac/orch-opus` (2026-10-27) is away until its quota resets. Meanwhile the merge steward is `ext/opus-helper1` (operator, 2026-10-29). Mac captures wait for the maintainer's quota reset. The live steward state is the "Steward state" comment below.
+The core orchestrator is `cloud/orch`; its live state and directive are on [#368](https://github.com/ezzz/HFRnow/issues/368). The board is rendered by `cloud/docs-steward` with `tooling/roadmap/render.py`. Mac captures and checks wait for the maintainer's Mac.
 '''
 (OUT/'m1-166.md').write_text(m1)
 print(len(post),len(m1))

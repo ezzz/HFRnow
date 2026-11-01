@@ -12,7 +12,7 @@ the milestone boards without an LLM re-deriving them ([#368](https://github.com/
 | `generate.py` | Milestone membership (M1–M4) and the state of each lot; writes `milestones.json` |
 | `render.py` | Renders the board comments for #166 and #324 |
 | `unblocked.py` | After a merge: the lots whose dependencies are now all done |
-| `hygiene.py` | Tracker sweep, dry-run by default (`--apply` does the routine part): unblocks, missing "Done in" closures, reports |
+| `hygiene.py` | Tracker sweep, dry-run by default (`--apply` does the routine part): unblocks (`status: blocked` only), missing "Done in" closures, reports |
 | `weekly/` | The weekly 16:9 visual (Playwright, 2880×1620 JPEG) |
 
 Tests: `scripts/tests/test_roadmap.py` (run by CI with the other `scripts/tests`).
