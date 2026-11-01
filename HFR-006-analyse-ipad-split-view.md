@@ -1,6 +1,6 @@
 # HFR-006 - iPad split view
 
-Dernière vérification : 27 juillet 2026, branche `beta`, base version 4.0.2 build 28.
+Dernière vérification : 27 juillet 2026, branche `beta`, base version 4.0.2 build 28. Complément iPhone Duo : novembre 2026, version 4.0.3 (non vérifié sur appareil).
 
 ## Statut
 

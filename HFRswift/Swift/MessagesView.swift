@@ -6509,7 +6509,7 @@ private struct MessageAnimatedGIFImageView: UIViewRepresentable {
 
             var frames: [UIImage] = []
             var totalDuration: Double = 0
-            let scale = displayScale > 0 ? displayScale : 1
+            let scale = displayScale > 0 ? displayScale : UITraitCollection.current.displayScale
 
             for index in 0..<frameCount {
                 guard let cgImage = CGImageSourceCreateImageAtIndex(source, index, nil) else {
@@ -6897,7 +6897,7 @@ private struct ZoomableRemoteAnimatedImageView: UIViewRepresentable {
 
             var frames: [UIImage] = []
             var totalDuration: Double = 0
-            let scale = displayScale > 0 ? displayScale : 1
+            let scale = displayScale > 0 ? displayScale : UITraitCollection.current.displayScale
 
             for index in 0..<frameCount {
                 guard let cgImage = CGImageSourceCreateImageAtIndex(source, index, nil) else {

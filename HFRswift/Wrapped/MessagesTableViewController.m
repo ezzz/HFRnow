@@ -2208,8 +2208,9 @@ API_AVAILABLE(ios(16.0)) {
 
     int xpos = 38;
     if (!bClickAvatar) {
-        CGRect screenRect = [[UIScreen mainScreen] bounds];
-        CGFloat screenWidth = screenRect.size.width;
+        // View width, not the screen: in a split view column (iPad, unfolded iPhone Duo)
+        // the screen is wider than the view and the menu anchor fell outside it.
+        CGFloat screenWidth = self.view.bounds.size.width;
         xpos = screenWidth - 15;
     }
     

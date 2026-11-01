@@ -1665,6 +1665,8 @@ struct RootTabView: View {
                     )
                 )
                 ensureVisibleIPadListIfNeeded()
+                // Fold/unfold: re-apply the phone orientation locks (rotation setting, composer).
+                HFRSwiftOrientationPolicy.refreshSupportedOrientations()
             }
             .onChange(of: iPadSidebarVisibilityRawValue) { oldValue, newValue in
                 RootTabAudit.log(

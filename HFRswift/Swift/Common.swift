@@ -185,8 +185,13 @@ final class HFRSwiftOrientationPolicy: NSObject {
     private static var answerViewLockCount = 0
 
     @objc static func supportedInterfaceOrientations() -> UIInterfaceOrientationMask {
-        guard UIDevice.current.userInterfaceIdiom == .phone, !isShowingExpandedPhoneLayout else {
+        guard UIDevice.current.userInterfaceIdiom == .phone else {
             return .all
+        }
+        // Unfolded iPhone Duo: every orientation except upside down (not in the iPhone
+        // Info.plist list), whatever the rotation setting, like the iPad.
+        guard !isShowingExpandedPhoneLayout else {
+            return .allButUpsideDown
         }
         guard AppScreenRotation.isEnabled else {
             return .portrait
@@ -331,8 +336,8 @@ extension View {
 
     /// Workaround for an iOS 27.1 hang on the iPhone Duo inner display: once a large title has
     /// collapsed on scroll, the next push loops forever in `UINavigationController` layout.
-    /// Applied to each tab's root view and to the split view columns; pushed views inherit the
-    /// inline mode.
+    /// Applied to each tab's root view (inside its own `NavigationStack`) and to the split view
+    /// columns that have no stack of their own; pushed views inherit the inline mode.
     func expandedPhoneInlineNavigationTitle() -> some View {
         modifier(ExpandedPhoneInlineNavigationTitle())
     }
