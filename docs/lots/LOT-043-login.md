@@ -25,7 +25,7 @@ Legacy app: `master` of ezzz/HFRnow @ `21173e7` (same lines as francoisgn/hfrnow
 `LoginFlow.login(pseudo:password:into:expectedUserKey:now:) async throws(LoginError) -> LoginResult`, in `Packages/HFRKit/Sources/HFRClient/Login/`.
 
 1. Trim the pseudo (whitespace and newlines); an empty pseudo or an empty password throws `missingCredentials` and sends nothing. The password is sent as typed.
-2. Create a **new, empty** `HFRSession` for this attempt (the jar). Nothing of the target session (`into:`) is read or sent; the jar only keeps its host policy (`session.probe(cookies: [], now:)`, [#365](https://github.com/ezzz/HFRnow/issues/365)), so a test session restricted to the loopback host never logs in against the forum.
+2. Create a **new, empty** `HFRSession` for this attempt (the jar). Nothing of the target session (`into:`) is read or sent; the jar only keeps its host policy and network settings (`session.probe(cookies: [], now:)`, [#365](https://github.com/ezzz/HFRnow/issues/365)), so a test session restricted to the loopback host never logs in against the forum.
 3. POST the credentials through the jar (`HFREndpoint.login`, legacy fields in the order of the captured requests `W01`/`W01b`/`W03`; legacy's dictionary had no fixed order). Classify the decoded answer:
    - contains `login_redirection.php` → accepted (legacy rule; `W03`, `W01b`);
    - else contains "Votre mot de passe ou nom d'utilisateur n'est pas valide" → `invalidCredentials` (`W01`);

@@ -24,7 +24,7 @@ public struct LoginFlow: Sendable {
     }
 
     /// The jar an attempt runs in: the test factory's, else a fresh, empty session that keeps `session`'s host policy
-    /// (#365, as `SessionRefreshFlow`).
+    /// and network settings, nothing else (#365, as `SessionRefreshFlow`).
     func jar(for session: HFRSession, now: Date) -> any SessionJar {
         makeJar?() ?? session.probe(cookies: [], now: now)
     }
