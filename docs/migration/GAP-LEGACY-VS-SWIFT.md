@@ -94,7 +94,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-081 | Quote | Fetches the quote template and replaces the composer text. | MessagesView.swift:3486-3492, 3549-3560 | Quote inserted through the quote engine. | LOT-086, LOT-049 | ported with changes | port: ezzz Swift layer |
 | GAP-082 | Quote a selection | "Citer extrait" and "Citer gras" on selected text. | MessagesView.swift:554-555, 574-575 | `[quotemsg]` selection formatter; the reader entry is not named. | LOT-049, LOT-086 | ported with changes | port: ezzz Swift layer |
 | GAP-083 | Multi-quote | Per-message toggle (cookie), no count, no tray. | MessagesView.swift:1637-1644, 1852-1877 | Tray with a count; reply takes quotes in topic order; emptied after a confirmed send. | LOT-086, LOT-153, FEAT-006 | UX change | new UX: Bybifok (FEAT-006) |
-| GAP-084 | Quote splitting | "Fractionner la citation" cuts at the cursor. | ReplyComposer.swift:141-175 | Not named; likely part of the insertion engine. | LOT-085 | ported with changes | port: ezzz Swift layer |
+| GAP-084 | Quote splitting | "Fractionner la citation" cuts at the cursor. | ReplyComposer.swift:141-175 | No lot names it (LOT-085, the insertion engine, is the likely home). | — | not planned | — |
 | GAP-085 | Formatting | Edit-menu BBCode actions (b, i, u, s, spoiler, quote, url, img, fixed). | ReplyComposer.swift:59-70, 99-139 | Formatting toolbar and insertion engine. | LOT-085 | UX change | port: ezzz Swift layer |
 | GAP-086 | Clear / undo / redo | Three toolbar buttons. | AnswerView.swift:500-511 | Not in any lot scope. | — | not planned | — |
 | GAP-087 | Smileys | Panel: default, forum favourites, app favourites. | AnswerView.swift:1061-1064; ReplySmileyCatalog.swift:110-153 | Catalogue, favourites (synced) and insert. | LOT-104, LOT-064 | ported with changes | port: ezzz Swift layer |
@@ -230,11 +230,11 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | Gap | Rows |
 |---|---|
 | same | 36 |
-| ported with changes | 42 |
+| ported with changes | 41 |
 | UX change | 39 |
 | new | 29 |
 | dropped | 1 |
-| not planned | 8 |
+| not planned | 9 |
 | **Total** | **155** |
 
 ## Convergence notes
@@ -244,14 +244,14 @@ Decisions the UX review (H.1) has to make; each names its rows.
 1. **Oracle revision.** Specs LOT-119 and LOT-170 cite `origin/master`, which has features `2440d79` lacks (start screen, default browser, sectioned iPad sidebar). Pick one revision as the legacy oracle (GAP-002, 150, 211).
 2. **Topic row.** LOT-169 makes the legacy Favoris row the density reference, but LOT-082's row drops the "⚑ cur / max" footer, the unread-pages capsule and the flag tints (GAP-026, 027).
 3. **Catégories.** A flat list with a sub-forum picker becomes collapsible sections; check it against the "preserve what works" principle (GAP-020, 022, 023).
-4. **Reader message header.** The grey band with a "+" button becomes a one-line header with a menu; decide whether the legacy band stays the default and the new one an option (GAP-051, 064, 145).
+4. **Reader message header.** The grey band with a "+" button becomes a one-line header with a menu; decide whether the legacy band stays the default and the new one an option (GAP-051, 064).
 5. **Reader chrome.** Legacy hides the tab bar and has ‹ › Actualiser New; the final reader keeps the tab, adds a page bar, a scrubber and a quick-reply bar. Decide what is default and what is opt-in (GAP-008, 060, 062, 073).
 6. **Swipes and "Lu".** One uniform swipe set, a local "Lu" turned into one with "Annuler"; the legacy context-menu page jumps are not named (GAP-028, 029, 034).
 7. **Images and videos.** Image policy C (Wi-Fi auto, cellular on tap) and tap-to-play videos replace "always load" (GAP-056, 058).
 8. **Text size and Dynamic Type.** A 4-step picker becomes a slider on Dynamic Type; map the legacy values (GAP-053, 200).
 9. **Composer behaviour.** Per-topic drafts that block swipe-down, emoji refused at send rather than at typing, first-post delete, a quote tray (GAP-083, 092, 095, 097).
 10. **Duo and wide layouts.** The rail, the column widths and the portrait behaviour on the Duo inner screen wait for the Phase 5 design document; LOT-147 cannot start before it (GAP-212, 214, 215, 216).
-11. **Uncovered legacy features.** Tab reselect to refresh, quick actions, clear / undo / redo, "+" modes, time-based theme: keep (new lot) or drop on record (GAP-007, 010, 086, 102, 143).
+11. **Uncovered legacy features.** Tab reselect to refresh, quick actions, clear / undo / redo, "+" modes, time-based theme: keep (new lot) or drop on record (GAP-007, 010, 084, 086, 102, 143).
 12. **"Legacy parity" labels that are new.** MP mark unread, delete, members, poll creation, multi-window and archived drafts are not in `2440d79`; relabel or find their legacy source (GAP-093, 099, 116-118, 219).
 
 ### Open questions
