@@ -1,0 +1,15 @@
+{
+  "id": "R71a",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/user/editprofil.php?config=hfr.inc&page=5",
+  "url": "https://forum.hardware.fr/user/editprofil.php?config=hfr.inc&page=5",
+  "final_url": "https://forum.hardware.fr/user/editprofil.php?config=hfr.inc&page=5",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Sun, 01 Nov 2026 23:52:49 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "file": "R71a-profile-edit-page5-anon.html",
+  "private": false
+}

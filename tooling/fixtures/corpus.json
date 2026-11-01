@@ -134,6 +134,17 @@
     {"raw": "F16", "id": "P03n", "slug": "delflag-owntopic0-success", "ext": "html", "private": false},
     {"raw": "F17", "id": "P03o", "slug": "delflag-again", "ext": "html", "private": false},
     {"raw": "F19", "id": "P03p", "slug": "delflag-owntopic1-success", "ext": "html", "private": false},
-    {"raw": "F20", "id": "P03q", "slug": "addflag-logged-out", "ext": "html", "private": false}
+    {"raw": "F20", "id": "P03q", "slug": "addflag-logged-out", "ext": "html", "private": false},
+    {"raw": "S10-home-stale-passs", "id": "R70a", "slug": "home-stale-session", "ext": "html", "private": false},
+    {"raw": "S11-favourites-owntopic1-stale-passs", "id": "R70b", "slug": "favourites-owntopic1-stale-session", "ext": "html", "private": false},
+    {"raw": "S12-profile-p1-stale-passs", "id": "R70c", "slug": "profile-edit-page1-stale-session", "ext": "html", "private": false},
+    {"raw": "S13-profile-p5-stale-passs", "id": "R70d", "slug": "profile-edit-page5-stale-session", "ext": "html", "private": false},
+    {"raw": "S14-profile-p5-anon", "id": "R71a", "slug": "profile-edit-page5-anon", "ext": "html", "private": false},
+    {"raw": "S15-profile-p1-anon", "id": "R71b", "slug": "profile-edit-page1-anon", "ext": "html", "private": false},
+    {"raw": "S20-unlog-user2", "id": "R72a", "slug": "unlog-without-token", "ext": null, "private": false},
+    {"raw": "S21-home-after-unlog", "id": "R72b", "slug": "home-after-unlog-without-token", "ext": "html", "private": false},
+    {"raw": "S04-favourites-owntopic1-user2", "id": "R73a", "slug": "favourites-owntopic1-two-categories", "ext": "html", "private": false},
+    {"raw": "S06-favourites-owntopic1-user1", "id": "R73b", "slug": "favourites-owntopic1-thirteen-categories", "ext": "html", "private": false},
+    {"raw": "S03-profile-p1-user2", "id": "R74", "slug": "profile-edit-page1-set-cookie-pairs", "ext": null, "private": false}
   ]
 }

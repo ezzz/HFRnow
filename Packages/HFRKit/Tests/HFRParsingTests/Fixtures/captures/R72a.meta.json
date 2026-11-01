@@ -1,0 +1,15 @@
+{
+  "id": "R72a",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/unlog.php?config=hfr.inc",
+  "url": "https://forum.hardware.fr/unlog.php?config=hfr.inc",
+  "final_url": "https://forum.hardware.fr/unlog.php?config=hfr.inc",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Sun, 01 Nov 2026 23:53:13 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "the refresh target of the stale-session .hop (S10), requested with a valid user2 jar; unlog.php without codehex, valid user2 jar: 200, empty body, no Set-Cookie; the session stays valid (next capture)",
+  "private": false
+}
