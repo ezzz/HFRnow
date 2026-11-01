@@ -5,7 +5,7 @@
 - **Issue:** [#45](https://github.com/ezzz/HFRnow/issues/45)
 
 ## Legacy sources
-Legacy repository <https://github.com/francoisgn/hfrnow> at `2440d79`. Audit: [D §2.1, §2.5-2.7, §3, §8 (D1, D2, D9, D10)](../audit/D-posting.md), [HFR-PROTOCOL §3](../HFR-PROTOCOL.md).
+Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79`. Audit: [D §2.1, §2.5-2.7, §3, §8 (D1, D2, D9, D10)](../audit/D-posting.md), [HFR-PROTOCOL §3](../HFR-PROTOCOL.md).
 
 | Legacy | What it gives the models |
 |---|---|

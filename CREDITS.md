@@ -8,7 +8,7 @@ Code and knowledge from these projects are reused with gratitude.
 | Project | Repository | Notes |
 |---|---|---|
 | HFR+ / SuperHFR+ | <https://github.com/FLKone/SuperHFRplus> | Original app by FLKone and contributors |
-| HFRnow | <https://github.com/francoisgn/hfrnow> | Continuation; introduced the SwiftUI layer reused here |
+| HFRnow | <https://github.com/ezzz/HFRnow> | Continuation; introduced the SwiftUI layer reused here |
 | SwiftHFR | this repository | Full Swift rewrite |
 
 > Maintainers: complete this table with every fork in the chain and the names of their main contributors.

@@ -8,7 +8,7 @@ Chain: LOT-003 (oracle) → LOT-030 (blocks) → LOT-034 (content) → **LOT-032
 the quote engine (LOT-049) and "posts quoting me" (app-side, C10/C11).
 
 ## Legacy sources
-Legacy repository <https://github.com/francoisgn/hfrnow> at `2440d79`.
+Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79`.
 
 | Legacy | Replaced by |
 |---|---|

@@ -5,7 +5,7 @@
 - **Issue:** #…
 
 ## Legacy sources
-Files and line ranges in <https://github.com/francoisgn/hfrnow> this lot replaces.
+Files and line ranges in <https://github.com/ezzz/HFRnow> this lot replaces.
 
 ## Behaviour
 Inputs, outputs, rules. Every HFR fact also goes to `docs/HFR-PROTOCOL.md`.

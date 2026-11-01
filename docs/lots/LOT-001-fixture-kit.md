@@ -5,7 +5,7 @@
 - **Owner:** mac/opus M1 (2026-10-26)
 
 ## Legacy sources
-Repo <https://github.com/francoisgn/hfrnow> @ `2440d79` (read-only for the lot; local-only edits are allowed for build fixes and exporter patches, never committed or pushed there).
+Repo <https://github.com/ezzz/HFRnow> @ `2440d79` (read-only for the lot; local-only edits are allowed for build fixes and exporter patches, never committed or pushed there).
 
 | Subject | Legacy `file:line` |
 |---|---|

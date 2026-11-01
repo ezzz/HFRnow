@@ -8,7 +8,7 @@ Reads the write forms HFR serves (reply, quote, edit, new topic, MP, moderator a
 It reports what the page contains and decides nothing: which fields are sent, how an unchecked box is encoded and the reply text are `HFRClient` (LOT-048). The answer to a write is LOT-037.
 
 ## Legacy sources
-Legacy repository <https://github.com/francoisgn/hfrnow> at `2440d79` (`origin/master` of ezzz/HFRnow). Oracle: [LOT-004](LOT-004-forms-storage-oracle.md), kind `form`.
+Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79` (`origin/master` of ezzz/HFRnow). Oracle: [LOT-004](LOT-004-forms-storage-oracle.md), kind `form`.
 
 | Legacy | Replaced by |
 |---|---|

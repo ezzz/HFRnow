@@ -9,7 +9,7 @@ This lot adds the kind `topic`: one topic page through the whole live pipeline, 
 `WKWebView` loads, plus the per-message actions Swift reads. Forms, write responses and storage formats are LOT-004.
 
 ## Legacy sources
-Legacy repository <https://github.com/francoisgn/hfrnow>, commit `2440d79`. Paths from the repository root.
+Legacy repository <https://github.com/ezzz/HFRnow>, commit `2440d79`. Paths from the repository root.
 
 | Step | Legacy code the exporter runs | Source |
 |---|---|---|

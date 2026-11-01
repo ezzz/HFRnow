@@ -7,7 +7,7 @@
 - **Merge:** adds HFRModels public types, so the steward or the maintainer merges it (AGENTS.md §8).
 
 ## Sources
-- **Legacy** (`francoisgn/hfrnow` at `2440d79`): no table. The ObjC composer removed emoji without a word before posting: `-[NSString removeEmoji]` (`SuperHFRplus/Helpers/RangeOfCharacters.m:306-328`) drops U+1D000-1F77F (non-BMP) and U+2100-26FF (BMP), called by `Classes/AddMessageViewController.m:553`; audit D B2, HFR-PROTOCOL §6 "Legacy emoji stripping".
+- **Legacy** (ezzz/HFRnow at `2440d79`): no table. The ObjC composer removed emoji without a word before posting: `-[NSString removeEmoji]` (`SuperHFRplus/Helpers/RangeOfCharacters.m:306-328`) drops U+1D000-1F77F (non-BMP) and U+2100-26FF (BMP), called by `Classes/AddMessageViewController.m:553`; audit D B2, HFR-PROTOCOL §6 "Legacy emoji stripping".
 - **HFR**: a post is cut at its first non-BMP character while HFR answers success (Q-3, capture `W12`, HFR-PROTOCOL §6); what happens to a BMP emoji or U+FE0F is not captured (CAP-N3, [#171](https://github.com/ezzz/HFRnow/issues/171); HFR-PROTOCOL §7b B13).
 - **Catalogue**: the 59 standard smileys of `CommonSmileys.json` (LOT-012, legacy `commonsmile.plist`).
 

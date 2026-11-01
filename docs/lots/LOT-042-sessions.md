@@ -6,7 +6,7 @@
 - **Depends on:** LOT-040 (transport, `URLSessionTransport(session:)`), LOT-013 (`StoredCookie`, HFRModels)
 
 ## Legacy sources
-Audit [A](../audit/A-network-sessions.md) §4 and lot NET-03; audit [D](../audit/D-posting.md) §2.2; legacy repo <https://github.com/francoisgn/hfrnow>.
+Audit [A](../audit/A-network-sessions.md) §4 and lot NET-03; audit [D](../audit/D-posting.md) §2.2; legacy repo <https://github.com/ezzz/HFRnow>.
 
 | Concern | Legacy |
 |---|---|

@@ -1,6 +1,6 @@
 # Legacy oracle exporter
 
-Runs the **real** Objective-C parsers of the legacy app ([hfrnow](https://github.com/francoisgn/hfrnow),
+Runs the **real** Objective-C parsers of the legacy app ([hfrnow](https://github.com/ezzz/HFRnow),
 pinned at `2440d79`) offline on saved HTML pages and writes one `<case>.oracle.json` per page. These files
 are the expected values of the differential tests in `HFRParsing` (AGENTS.md §5 step 5).
 Specs: list parsers [LOT-002](../../docs/lots/LOT-002-list-oracle.md), topic pages [LOT-003](../../docs/lots/LOT-003-topic-oracle.md),

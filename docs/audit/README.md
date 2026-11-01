@@ -1,7 +1,7 @@
 # Phase 1 — Legacy engine audit (LOT-000)
 
 Audit of the legacy app's engine to plan its migration into `HFRKit`.
-Legacy reference: <https://github.com/francoisgn/hfrnow> at commit `2440d79`. Audit by five parallel agents (Sonnet), synthesis by Opus, independent review by Fable ([REVIEW-fable.md](REVIEW-fable.md), resolved in the same PR).
+Legacy reference: <https://github.com/ezzz/HFRnow> at commit `2440d79`. Audit by five parallel agents (Sonnet), synthesis by Opus, independent review by Fable ([REVIEW-fable.md](REVIEW-fable.md), resolved in the same PR).
 
 | Report | Area |
 |---|---|
