@@ -1,4 +1,4 @@
-// Renders gap.html into docs/assets/gap-legacy-vs-swift-{1,2}.png at device scale 3.
+// Renders gap.html into docs/assets/gap-legacy-vs-swift-1-iphone.png and gap-legacy-vs-swift-2-duo.png at device scale 3.
 // Usage (repo root): node docs/assets/gap/render.js   — needs Playwright with Chromium.
 const { chromium } = require('playwright');
 const path = require('path');
