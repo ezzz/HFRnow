@@ -25,6 +25,26 @@ struct HFREndpointLookupTests {
         #expect(throws: NetworkError.self) { try HFREndpoint.smileySearch(text) }
     }
 
+    /// `R54` asked for `[:user3]` as `%5B%3Auser3%5D`; legacy's `URLPathAllowedCharacterSet` left the `:` raw.
+    @Test(arguments: [
+        ("[:user3]", "%5B%3Auser3%5D"),
+        (" [:user3]\n", "%5B%3Auser3%5D"),
+        ("[:user5:1]", "%5B%3Auser5%3A1%5D"),
+        ("[:jean pierre]", "%5B%3Ajean%20pierre%5D"),
+        ("[:l'ami]", "%5B%3Al%27ami%5D"),
+        (":o", "%3Ao")
+    ])
+    func smileyWiki(code: String, encoded: String) throws {
+        let request = try HFREndpoint.smileyWiki(code: code)
+        #expect(request.url.absoluteString == "https://forum.hardware.fr/wikismilies.php?config=hfr.inc&detail=" + encoded)
+        #expect(request.method == .get)
+    }
+
+    @Test(arguments: ["", " ", "\n"])
+    func smileyWikiRefusesABlankCode(code: String) {
+        #expect(throws: NetworkError.self) { try HFREndpoint.smileyWiki(code: code) }
+    }
+
     @Test(arguments: [
         ("forums/hardwarefr/categories/", nil as Int?, nil as Int?,
          "uri=forums/hardwarefr/categories/"),
