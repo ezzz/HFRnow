@@ -70,15 +70,15 @@ Shown to fail with the behaviour removed (each mutation caught): no unselect aft
 
 ## Pending capture
 
-- **Whether HFR clears the selection itself** after a post (#334): `W14`'s answer sets a cookie named `quoteshardwarefr-prive-<post>` (its meta), value and expiry not recorded. The client unselects the posted messages either way; if HFR deletes the cookie, a message selected while the reply was in flight is lost by HFR's doing. The capture must also record the cookie's domain and path: the selection is stored for `.hardware.fr` (`storedQuoteCookie`), so if HFR sets this one host-only (`forum.hardware.fr`), `unselect` neither sees nor deletes it, and the next composer request quotes the posted messages again (CHANGELOG row 43 defeated by HFR).
+- **Whether HFR clears the selection itself** after a post (#334): `W14`'s answer sets a cookie named `quoteshardwarefr-prive-<post>` (its meta), value and expiry not recorded. The client unselects the posted messages either way; if HFR deletes the cookie, a message selected while the reply was in flight is lost by HFR's doing. The capture must also record the cookie's domain and path: the selection is stored for `.hardware.fr` (`storedQuoteCookie`), so if HFR sets this one host-only (`forum.hardware.fr`), `unselect` neither sees nor deletes it, and the next composer request quotes the posted messages again (CHANGELOG row 55 defeated by HFR).
 - A **quote link loaded while the topic has a selection**: whether HFR adds the selected blocks to the single prefill. Until captured, a single quote leaves the selection alone.
 - The **order of the blocks** of a multi-quote prefill: both captures list them by ascending message number, and the selection order was not recorded (`|a|b` in the metas).
 - The **cookie-less multi-quote route** (one quote form per message, prefills concatenated, HFR-PROTOCOL §7 X10): not used.
 
 ## Intentional differences from legacy
 
-1. **The posted messages are unselected** once HFR confirmed the reply (legacy left the cookie for its hour, and the next composer quoted them again). Only those: later selections and other topics stay; on any error nothing changes. [CHANGELOG-LEGACY](../CHANGELOG-LEGACY.md) row 43.
-2. **Selection looked for in the quoted text only, tags kept as served** (legacy Swift searched and rebuilt the tags, ObjC through `int`; a selection matching a tag could bold inside it). Row 44.
+1. **The posted messages are unselected** once HFR confirmed the reply (legacy left the cookie for its hour, and the next composer quoted them again). Only those: later selections and other topics stay; on any error nothing changes. [CHANGELOG-LEGACY](../CHANGELOG-LEGACY.md) row 55.
+2. **Selection looked for in the quoted text only, tags kept as served** (legacy Swift searched and rebuilt the tags, ObjC through `int`; a selection matching a tag could bold inside it). Row 56.
 3. **Line breaks**: the prefill keeps LOT-036's `\n`, as legacy did (`ReplyService.swift:788-790`); HFR serves CRLF inside the quoted text and bare LF after the blocks (oracle `contentFormRaw`), and the reply is posted with CRLF either way (`W14`'s body). The issue asked for CRLF kept as served: the differential test compares both oracle fields, and the selection formatter needs `\n` to match a selection over several lines.
 4. **The selected account's session** loads the composer and posts the reply (legacy Swift used the main account's cookies, `AccountSessionService.swift:77-105`): LOT-048's decision Q-8.
 

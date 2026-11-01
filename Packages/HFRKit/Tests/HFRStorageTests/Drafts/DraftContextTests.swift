@@ -23,6 +23,13 @@ import Testing
         #expect(noisy.storageKey == DraftContext.privateMessage(recipient: "marc").storageKey)
     }
 
+    /// Keys stay injective over drafts already saved: no two stored recipients may start sharing a key.
+    @Test func privateMessageRecipientKeepsTheAccountKeyForm() {
+        let recipients = ["Marc", "Marc ", "\u{FEFF}Marc", "Ma\u{2060}rc"]
+        #expect(Set(recipients.map { DraftContext.privateMessage(recipient: $0).storageKey }).count == recipients.count)
+        #expect(DraftContext.privateMessage(recipient: "Ma\u{200B}RC").storageKey == "mp:\(AccountKey.make("marc"))")
+    }
+
     @Test func replyAndEditOfTheSameTopicNeverCollide() {
         #expect(DraftContext.reply(topic: topic, page: 7).storageKey != DraftContext.edit(topic: topic, post: 7).storageKey)
     }
