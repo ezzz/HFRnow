@@ -98,8 +98,29 @@ import Testing
         ledger.record(NotificationSummary(flaggedTopics: stamps))
         #expect(ledger.flaggedTopics?.count == NotificationLedger.topicLimit)
         #expect(ledger.flaggedTopics?.first == stamps.last)
-        // The dropped topic is news again; the kept ones are not.
-        #expect(ledger.diff(summary: NotificationSummary(flaggedTopics: [stamps[0], stamps[1]])).topics == [stamps[0]])
+        #expect(ledger.flagWatermark == stamps[0].lastPost)
+        // Listed again unchanged, the dropped topic is not news (it would be at every check otherwise); a later post is.
+        #expect(ledger.diff(summary: NotificationSummary(flaggedTopics: [stamps[0], stamps[1]])).isEmpty)
+        let later = Self.stamp(stamps[0].topic, 0.5 + 1)
+        #expect(ledger.diff(summary: NotificationSummary(flaggedTopics: [later])).topics == [later])
+        // A topic never recorded is news only after the watermark.
+        #expect(ledger.diff(summary: NotificationSummary(flaggedTopics: [Self.stamp(Self.hardware, 1)])).isEmpty)
+        #expect(ledger.diff(summary: NotificationSummary(flaggedTopics: [Self.stamp(Self.hardware, 1.5)])).topics.count == 1)
+    }
+
+    @Test func anInvalidSummaryIsNeitherNewsNorRecorded() {
+        var ledger = NotificationLedger()
+        let invalid = NotificationSummary(unreadPrivateMessages: -2, unreadThreads: [4])
+        #expect(ledger.diff(summary: invalid).isEmpty)
+        let recorded = ledger.record(invalid)
+        #expect(!recorded)
+        #expect(ledger == NotificationLedger())
+    }
+
+    @Test func conversationsAreStoredSorted() {
+        var ledger = NotificationLedger()
+        ledger.record(NotificationSummary(unreadThreads: [9, 2, 5]))
+        #expect(ledger.unreadThreads == [2, 5, 9])
     }
 
     /// A last check (seconds, nil for never), the time of the question, the minimum interval, the answer.

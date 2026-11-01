@@ -10,7 +10,10 @@ public struct NotificationSummary: Sendable, Hashable {
     public var unreadPrivateMessages: Int?
     /// The topic numbers of the unread private conversations, when the check read the list.
     public var unreadThreads: Set<Int>?
-    /// The flagged topics the check listed, each with the date of its last post.
+    /// The flagged topics with unread posts for the member, each with the date of its last post. The caller passes
+    /// only rows LOT-024 reads as unread (`readState == .unread`): a read row has nothing to notify, and the ledger
+    /// cannot tell one from the other. A row whose last post has no date is left out, so it is
+    /// never notified.
     public var flaggedTopics: [FlaggedTopicStamp]?
 
     /// Creates a summary; leave a part nil when the check learned nothing about it.

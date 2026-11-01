@@ -15,21 +15,25 @@ public struct NotificationLedger: Sendable, Hashable, Codable {
 
     /// The unread count last recorded; nil when none was.
     public private(set) var unreadPrivateMessages: Int?
-    /// The unread conversations last recorded; nil when none were.
-    public private(set) var unreadThreads: Set<Int>?
+    /// The unread conversations last recorded, sorted; nil when none were.
+    public private(set) var unreadThreads: [Int]?
     /// The latest last post recorded per flagged topic, latest first; nil when no flags list was recorded.
     public private(set) var flaggedTopics: [FlaggedTopicStamp]?
+    /// The latest last post among the topics dropped by `topicLimit`: a topic not recorded is news only after it, so a
+    /// dropped topic listed again unchanged is not notified again. Nil while none was dropped.
+    public private(set) var flagWatermark: Date?
     /// When the account was last checked; nil when it never was.
     public private(set) var lastCheck: Date?
 
     /// An empty ledger: nothing notified, never checked.
     public init() {}
 
-    /// What `summary` holds that this ledger has not recorded.
+    /// What `summary` holds that this ledger has not recorded. An invalid summary (see `record`) is no news.
     public func diff(summary: NotificationSummary) -> NotificationNews {
         var news = NotificationNews()
+        guard summary.invalidReason == nil else { return news }
         if let count = summary.unreadPrivateMessages {
-            news.newPrivateMessages = max(0, count - (unreadPrivateMessages ?? 0))
+            news.newPrivateMessages = max(0, count - max(0, unreadPrivateMessages ?? 0))
         }
         if let threads = summary.unreadThreads, let known = unreadThreads {
             news.newThreads = threads.subtracting(known).sorted()
@@ -37,7 +41,8 @@ public struct NotificationLedger: Sendable, Hashable, Codable {
         if let stamps = summary.flaggedTopics, let known = flaggedTopics {
             let notified = Self.latest(known)
             news.topics = Self.latestPerTopic(stamps).filter { stamp in
-                notified[stamp.topic].map { stamp.lastPost > $0 } ?? true
+                if let recorded = notified[stamp.topic] { return stamp.lastPost > recorded }
+                return flagWatermark.map { stamp.lastPost > $0 } ?? true
             }
         }
         return news
@@ -45,22 +50,28 @@ public struct NotificationLedger: Sendable, Hashable, Codable {
 
     /// Records `summary` as notified: its count and conversations replace the stored ones (a count that went down is
     /// the new baseline, as legacy stored every count it read), each flagged topic keeps its latest last post. Parts
-    /// the summary leaves nil are kept. Idempotent; returns false when nothing changed.
+    /// the summary leaves nil are kept. Idempotent; returns false when nothing changed. A summary with a negative count
+    /// or a topic number not positive is not recorded (`NotificationLedgerStore` throws for it).
     @discardableResult
     public mutating func record(_ summary: NotificationSummary) -> Bool {
+        guard summary.invalidReason == nil else { return false }
         let before = self
         if let count = summary.unreadPrivateMessages {
             unreadPrivateMessages = count
         }
         if let threads = summary.unreadThreads {
-            unreadThreads = threads
+            unreadThreads = threads.sorted()
         }
         if let stamps = summary.flaggedTopics {
             var latest = Self.latest(flaggedTopics ?? [])
             for stamp in stamps {
                 latest[stamp.topic] = max(latest[stamp.topic] ?? stamp.lastPost, stamp.lastPost)
             }
-            flaggedTopics = Self.kept(latest)
+            let ordered = latest.map { FlaggedTopicStamp(topic: $0.key, lastPost: $0.value) }.sorted(by: Self.latestFirst)
+            flaggedTopics = Array(ordered.prefix(Self.topicLimit))
+            if let dropped = ordered.dropFirst(Self.topicLimit).first?.lastPost {
+                flagWatermark = max(flagWatermark ?? dropped, dropped)
+            }
         }
         return self != before
     }
@@ -99,21 +110,8 @@ public struct NotificationLedger: Sendable, Hashable, Codable {
         }
     }
 
-    /// The `topicLimit` latest stamps, latest first, ties by category then topic number so the order is stable.
-    private static func kept(_ latest: [TopicID: Date]) -> [FlaggedTopicStamp] {
-        let stamps = latest.map { FlaggedTopicStamp(topic: $0.key, lastPost: $0.value) }.sorted { lhs, rhs in
-            if lhs.lastPost != rhs.lastPost { return lhs.lastPost > rhs.lastPost }
-            let left = rank(of: lhs.topic.category)
-            let right = rank(of: rhs.topic.category)
-            return left == right ? lhs.topic.topic < rhs.topic.topic : left < right
-        }
-        return Array(stamps.prefix(topicLimit))
-    }
-
-    private static func rank(of category: CategoryID) -> (Int, Int) {
-        switch category {
-        case .forum(let number): (0, number)
-        case .privateMessages: (1, 0)
-        }
+    /// Latest last post first, ties in the small stores' topic order so the saved order is stable.
+    private static func latestFirst(_ lhs: FlaggedTopicStamp, _ rhs: FlaggedTopicStamp) -> Bool {
+        lhs.lastPost == rhs.lastPost ? TopicOrder.precedes(lhs.topic, rhs.topic) : lhs.lastPost > rhs.lastPost
     }
 }

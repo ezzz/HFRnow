@@ -22,6 +22,38 @@ import Testing
         #expect(await store.ledger(for: "bob").diff(summary: NotificationSummary(unreadPrivateMessages: 2)).newPrivateMessages == 2)
     }
 
+    @Test func recordNewsReturnsEachNewsOnce() async throws {
+        let (store, _) = Self.makeStore()
+        let summary = NotificationSummary(unreadPrivateMessages: 2)
+        #expect(try await store.recordNews(summary, account: "user1").newPrivateMessages == 2)
+        #expect(try await store.recordNews(summary, account: "User1").isEmpty)
+        #expect(try await store.recordNews(NotificationSummary(unreadPrivateMessages: 3), account: "user1").newPrivateMessages == 1)
+        await #expect(throws: SmallStoreError.self) {
+            try await store.recordNews(NotificationSummary(unreadPrivateMessages: -1), account: "user1")
+        }
+    }
+
+    @Test func overlappingChecksGetTheNewsAndTheTurnOnce() async throws {
+        let (store, _) = Self.makeStore()
+        let summary = NotificationSummary(unreadPrivateMessages: 1)
+        async let first = store.recordNews(summary, account: "user1")
+        async let second = store.recordNews(summary, account: "user1")
+        #expect(try await [first, second].map(\.newPrivateMessages).sorted() == [0, 1])
+        let now = SmallStoreTestSupport.date(0)
+        async let turnA = store.markCheckedIfDue(account: "user1", now: now, minimumInterval: 600)
+        async let turnB = store.markCheckedIfDue(account: "user1", now: now, minimumInterval: 600)
+        #expect(try await [turnA, turnB].sorted { !$0 && $1 } == [false, true])
+    }
+
+    @Test func markCheckedIfDueRespectsTheInterval() async throws {
+        let (store, persistence) = Self.makeStore()
+        #expect(try await store.markCheckedIfDue(account: "user1", now: SmallStoreTestSupport.date(0), minimumInterval: 600))
+        #expect(try await !store.markCheckedIfDue(account: "user1", now: SmallStoreTestSupport.date(599), minimumInterval: 600))
+        #expect(await store.ledger(for: "user1").lastCheck == SmallStoreTestSupport.date(0))
+        #expect(try await store.markCheckedIfDue(account: "user1", now: SmallStoreTestSupport.date(600), minimumInterval: 600))
+        #expect(persistence.document?.accounts["user1"]?.lastCheck == SmallStoreTestSupport.date(600))
+    }
+
     @Test func aSecondRecordOfTheSameSummarySavesNothing() async throws {
         let persistence = FailingSmallStorePersistence<NotificationLedgerDocument>()
         let store = NotificationLedgerStore(persistence: persistence)

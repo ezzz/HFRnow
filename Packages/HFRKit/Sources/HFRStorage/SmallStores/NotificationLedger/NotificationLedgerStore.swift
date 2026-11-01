@@ -2,9 +2,10 @@ import Foundation
 
 /// The notification ledger of each HFR account, on this device only (LOT-091, ADR 0013: notifications are per device).
 ///
-/// A background check reads `ledger(for:)` to know whether it is due and what is new (`NotificationLedger.diff`),
-/// notifies, then records what it notified; the app records what it showed too, so a count seen in the app is not
-/// notified later (legacy reset `nb_mp` from the tab badge, `HFRplusAppDelegate.m:706`). Ledgers are keyed by account
+/// A background check claims its turn with `markCheckedIfDue`, then takes what to notify with `recordNews`, which
+/// records it in the same step: two checks that overlap (the App Intent and a Home refresh, or two intent runs) never
+/// both get the same news. The app records what it showed too (`record`), so a count seen in the app is not notified
+/// later (legacy reset `nb_mp` from the tab badge, `HFRplusAppDelegate.m:706`). Ledgers are keyed by account
 /// key (ADR 0013 §7), so `Alice` and `alice` share one; removing an account drops its ledger.
 public actor NotificationLedgerStore {
     private var state: SmallStoreState<NotificationLedgerDocument>
@@ -28,7 +29,33 @@ public actor NotificationLedgerStore {
 
     // MARK: Writing
 
-    /// Records `summary` as notified for the account (`NotificationLedger.record`). Returns false when nothing changed.
+    /// Returns what `summary` holds that the account was not notified of, and records it, in one step: a second call
+    /// with the same summary, even from an overlapping check, returns no news.
+    public func recordNews(_ summary: NotificationSummary, account: String) throws(SmallStoreError) -> NotificationNews {
+        if let reason = summary.invalidReason { throw .invalidValue(reason: reason) }
+        var news = NotificationNews()
+        try update(account) { ledger in
+            news = ledger.diff(summary: summary)
+            return ledger.record(summary)
+        }
+        return news
+    }
+
+    /// Records a check at `now` when one is due (`NotificationLedger.isDue`), in one step: of two overlapping callers,
+    /// one gets true. Returns false, and records nothing, when the last check is too recent.
+    public func markCheckedIfDue(
+        account: String, now: Date = .now, minimumInterval: TimeInterval
+    ) throws(SmallStoreError) -> Bool {
+        var due = false
+        try update(account) { ledger in
+            due = ledger.isDue(now: now, minimumInterval: minimumInterval)
+            return due && ledger.markChecked(at: now)
+        }
+        return due
+    }
+
+    /// Records `summary` as notified for the account (`NotificationLedger.record`), for what the app showed itself.
+    /// Returns false when nothing changed.
     @discardableResult
     public func record(_ summary: NotificationSummary, account: String) throws(SmallStoreError) -> Bool {
         if let reason = summary.invalidReason { throw .invalidValue(reason: reason) }
