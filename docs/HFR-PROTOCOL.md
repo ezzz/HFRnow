@@ -449,6 +449,13 @@ Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `Li
 - **Hrefs**: a topic's `href` names its sub-category for most rows (`…/categories/13/subcategories/433/topics/28563/`) but not in `R57c` (`…/categories/13/topics/28563/`). `R57c` says `is_sticky` true for topic 28563, which no list shows sticky (`R57b`, `R04`, `R06`).
 - **Not captured**: a page 2, `results_per_page`, an `/api/` href requested as is, an error answer, any answer to a session (flag buckets #335), sub-categories (#285); the anonymous ones are #355.
 
+### LOT-053 — smiley search and wiki
+
+Source: [LOT-053](lots/LOT-053-smiley-search-wiki.md), `SmileyLookupFlow`, checked against the LOT-005 oracles of `R53a`-`R53c` and `R54`.
+
+- **Wiki request** (`R54`, **verified**): `GET /wikismilies.php?config=hfr.inc&detail=%5B%3Auser3%5D`, the code fully percent-encoded (`:` as `%3A`), answers the entry logged out, 200 in place, no cookie set.
+- **Search request encoding** (**not verified**): `R53a`-`R53c` were sent with raw `+` separators (`findsmilies=+chat+noir`); the app sends legacy's encoding (`findsmilies=chat%20noir`, and `%2Bchat%20%2Bnoir` for "all keywords"). Whether HFR reads them alike, and what a literal `+` does, is pending capture; `R53c` only shows that its two words were OR-ed.
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).
