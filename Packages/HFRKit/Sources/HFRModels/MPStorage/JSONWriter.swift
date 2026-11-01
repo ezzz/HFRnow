@@ -7,56 +7,58 @@
 enum JSONWriter {
     /// The text of `value`.
     static func write(_ value: JSONValue) -> String {
-        var output: [UInt8] = []
+        var output = ""
         append(value, to: &output)
-        // Strings' own UTF-8 and ASCII punctuation: always valid.
-        return String(validating: output, as: UTF8.self) ?? ""
+        return output
     }
 
-    private static func append(_ value: JSONValue, to output: inout [UInt8]) {
+    private static func append(_ value: JSONValue, to output: inout String) {
         switch value {
         case .null:
-            output.append(contentsOf: Array("null".utf8))
+            output += "null"
         case .bool(let flag):
-            output.append(contentsOf: Array((flag ? "true" : "false").utf8))
+            output += flag ? "true" : "false"
         case .number(let number):
-            output.append(contentsOf: Array(number.lexeme.utf8))
+            output += number.lexeme
         case .string(let text):
             appendString(text, to: &output)
         case .array(let items):
-            output.append(0x5B)
+            output += "["
             for (index, item) in items.enumerated() {
-                if index > 0 { output.append(0x2C) }
+                if index > 0 { output += "," }
                 append(item, to: &output)
             }
-            output.append(0x5D)
+            output += "]"
         case .object(let members):
-            output.append(0x7B)
+            output += "{"
             for (index, member) in members.sorted(by: { $0.key.utf8.lexicographicallyPrecedes($1.key.utf8) }).enumerated() {
-                if index > 0 { output.append(0x2C) }
+                if index > 0 { output += "," }
                 appendString(member.key, to: &output)
-                output.append(0x3A)
+                output += ":"
                 append(member.value, to: &output)
             }
-            output.append(0x7D)
+            output += "}"
         }
     }
 
-    private static func appendString(_ text: String, to output: inout [UInt8]) {
-        output.append(0x22)
-        for byte in text.utf8 {
-            if let letter = shortEscapes[byte] {
-                output.append(contentsOf: [0x5C, letter])
-            } else if byte < 0x20 {
-                output.append(contentsOf: [0x5C, 0x75, 0x30, 0x30, hexDigits[Int(byte >> 4)], hexDigits[Int(byte & 0x0F)]])
+    /// The string's scalars as they are, apart from the escapes: no normalization, so the bytes are the string's own.
+    private static func appendString(_ text: String, to output: inout String) {
+        output += "\""
+        for scalar in text.unicodeScalars {
+            if let escape = shortEscapes[scalar] {
+                output += escape
+            } else if scalar.value < 0x20 {
+                output += "\\u00" + String(hexDigits[Int(scalar.value >> 4)]) + String(hexDigits[Int(scalar.value & 0x0F)])
             } else {
-                output.append(byte)
+                output.unicodeScalars.append(scalar)
             }
         }
-        output.append(0x22)
+        output += "\""
     }
 
     /// `"`, `\` and the five controls `JSONEncoder` writes as a backslash and a letter.
-    private static let shortEscapes: [UInt8: UInt8] = [0x22: 0x22, 0x5C: 0x5C, 0x08: 0x62, 0x09: 0x74, 0x0A: 0x6E, 0x0C: 0x66, 0x0D: 0x72]
-    private static let hexDigits = Array("0123456789abcdef".utf8)
+    private static let shortEscapes: [Unicode.Scalar: String] = [
+        "\"": "\\\"", "\\": "\\\\", "\u{08}": "\\b", "\t": "\\t", "\n": "\\n", "\u{0C}": "\\f", "\r": "\\r"
+    ]
+    private static let hexDigits = Array("0123456789abcdef")
 }

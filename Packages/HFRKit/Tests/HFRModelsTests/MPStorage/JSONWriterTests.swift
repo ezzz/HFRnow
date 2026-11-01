@@ -60,6 +60,18 @@ struct JSONWriterTests {
         #expect(JSONWriter.write(try JSONTokenizer.parse(text)) == text)
     }
 
+    @Test("A nested value that encodes nothing is written {}, as JSONEncoder writes it, in an object and in an array")
+    func nestedNothing() throws {
+        struct Silent: Encodable { func encode(to encoder: any Encoder) throws {} }
+        struct Holder: Encodable {
+            let inner = Silent()
+            let list = [Silent()]
+        }
+        let text = JSONWriter.write(try JSONTreeEncoder.encode(Holder()))
+        #expect(text == #"{"inner":{},"list":[{}]}"#)
+        #expect(text == (try Self.foundation(Holder())))
+    }
+
     @Test("The tree coder refuses what JSONEncoder refuses: a non-finite double, a value that encodes nothing")
     func refusals() {
         #expect(throws: EncodingError.self) { try JSONTreeEncoder.encode(Double.infinity) }

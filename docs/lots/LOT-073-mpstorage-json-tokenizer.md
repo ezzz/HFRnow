@@ -28,9 +28,12 @@ All in `Sources/HFRModels/MPStorage/`, internal types.
    - A `\u` escape of an unpaired UTF-16 surrogate throws `MPStorageError.unpairedSurrogate(byteOffset:)` at the escape,
      in a key or a value. Any other malformed text throws `DecodingError.dataCorrupted`, as before.
 2. **`JSONTreeDecoder`** decodes the models from that tree with `JSONDecoder`'s conversions:
-   - a number decodes as an integer when its value is one (`1.0`, `1e2`), and as a floating-point value only when finite;
+   - a number decodes as an integer when its value is one (`1.0`, `1e2`; `1e-400` rounds to 0 and decodes 0);
+   - it decodes as a floating-point value only when finite and not a non-zero number rounded to zero (`1e400`, `1e-400`,
+     `1e-50` for `Float` are `dataCorrupted`);
    - a string never decodes from a number, nor the reverse;
-   - a missing key is `keyNotFound`, a wrong kind is `typeMismatch` with the coding path;
+   - a missing key is `keyNotFound`; `null` is `valueNotFound` (`typeMismatch` for `Bool`, as Foundation reports it);
+     another wrong kind is `typeMismatch`; all with the coding path;
    - a `JSONValue` is taken whole (its `init(from:)` reads the decoder's value), so the unmodelled parts keep their lexemes.
 3. **`JSONTreeEncoder`** builds the tree from the models: integers in decimal, a non-finite floating-point value refused,
    a value that encodes nothing written `{}` (refused at the top). A `JSONValue` is stored whole after checking that every
@@ -96,16 +99,20 @@ No capture needed: pure logic on a shared format, plus `R60a`'s stored document.
   - escapes;
   - unpaired surrogates and their offsets;
   - depth.
-- `JSONTreeDecoderTests`: 17 values × 10 types decode as with `JSONDecoder`; errors and coding paths.
+- `JSONTreeDecoderTests`: 21 values × 10 types give the same value as `JSONDecoder`, or the same kind of error; coding
+  paths.
 - `JSONWriterTests`:
   - escapes, key order and a nested document equal `JSONEncoder`'s output;
   - lexemes are written as is;
+  - a nested value that encodes nothing is `{}`, in an object and in an array;
   - a text round-trips;
   - the encoder's refusals.
 
 Shown to fail with the behaviour removed (each mutation caught):
 - trailing commas refused, last duplicate kept, BOM refused, wrong surrogate offset, no depth limit;
 - keys sorted as Swift strings, uppercase hex, `/` escaped;
-- `1.0` refused as an integer;
+- `1.0` refused as an integer, a non-zero number rounded to zero accepted as a `Double`, `null` reported as a type
+  mismatch;
+- a nested value that encodes nothing written `null`;
 - `JSONValue` not read whole, or not written whole;
 - the lenient string reader using the lexeme instead of the `Double` description.

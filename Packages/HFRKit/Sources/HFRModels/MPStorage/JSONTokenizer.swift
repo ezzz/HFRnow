@@ -6,7 +6,8 @@
 /// `MPStorageError.unpairedSurrogate` at the escape's byte offset; any other malformed text throws
 /// `DecodingError.dataCorrupted`.
 enum JSONTokenizer {
-    /// Deepest nesting read, as `JSONDecoder` (512 levels read, 513 refused).
+    /// Deepest nesting read, as `JSONDecoder` (512 levels read, 513 refused). It also bounds the recursion: on a 512 KiB
+    /// thread stack (a Swift Testing or concurrency thread) a debug build overflows at about 1 000 levels.
     static let maximumDepth = 512
 
     /// The value `text` holds.

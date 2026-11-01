@@ -29,7 +29,11 @@ final class JSONTreeDecoder: Decoder {
         Single(value: value, codingPath: codingPath)
     }
 
+    /// `valueNotFound` for `null`, `typeMismatch` for another kind of value, as `JSONDecoder` reports them.
     static func mismatch(_ type: Any.Type, found value: JSONValue, path: [any CodingKey]) -> DecodingError {
+        if value == .null {
+            return .valueNotFound(type, .init(codingPath: path, debugDescription: "Expected \(type) value but found null instead."))
+        }
         let found = switch value {
         case .null: "null"
         case .bool: "a boolean"
@@ -51,7 +55,12 @@ final class JSONTreeDecoder: Decoder {
         func decodeNil() -> Bool { value == .null }
 
         func decode(_ type: Bool.Type) throws -> Bool {
-            guard case .bool(let flag) = value else { throw JSONTreeDecoder.mismatch(type, found: value, path: codingPath) }
+            guard case .bool(let flag) = value else {
+                // `JSONDecoder` reports `null` as a type mismatch for `Bool` alone (`valueNotFound` for the other types).
+                guard value == .null else { throw JSONTreeDecoder.mismatch(type, found: value, path: codingPath) }
+                let context = DecodingError.Context(codingPath: codingPath, debugDescription: "Expected Bool but found null instead.")
+                throw DecodingError.typeMismatch(type, context)
+            }
             return flag
         }
 
@@ -77,17 +86,26 @@ final class JSONTreeDecoder: Decoder {
             try T(from: JSONTreeDecoder(value, codingPath: codingPath))
         }
 
-        /// A finite value; `1e400` is not representable, as with `JSONDecoder`.
+        /// A finite value that does not round a non-zero number to zero: `1e400` and `1e-400` are not representable,
+        /// as with `JSONDecoder`.
         private func floatingPoint<T: BinaryFloatingPoint>(_ make: (String) -> T?) throws -> T {
             guard case .number(let number) = value else { throw JSONTreeDecoder.mismatch(T.self, found: value, path: codingPath) }
-            guard let result = make(number.lexeme), result.isFinite else { throw notRepresentable(number, as: T.self) }
+            guard let result = make(number.lexeme), result.isFinite, result != 0 || !Self.isNonZero(number) else {
+                throw notRepresentable(number, as: T.self)
+            }
             return result
+        }
+
+        /// True when a digit of the number's significand is not 0.
+        private static func isNonZero(_ number: JSONNumber) -> Bool {
+            number.lexeme.prefix { $0 != "e" && $0 != "E" }.contains { $0 >= "1" && $0 <= "9" }
         }
 
         /// The integer the number's value is: its text when it is a plain integer, else its exact whole value.
         private func integer<T: FixedWidthInteger>() throws -> T {
             guard case .number(let number) = value else { throw JSONTreeDecoder.mismatch(T.self, found: value, path: codingPath) }
             if let result = T(number.lexeme) { return result }
+            // As `JSONDecoder`: `1e-400` rounds to 0 and decodes 0 here, unlike for a floating-point type.
             guard let double = Double(number.lexeme), double.isFinite, double.rounded() == double, let result = T(exactly: double)
             else { throw notRepresentable(number, as: T.self) }
             return result

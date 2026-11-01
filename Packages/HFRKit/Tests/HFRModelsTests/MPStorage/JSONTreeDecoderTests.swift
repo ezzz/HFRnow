@@ -10,20 +10,42 @@ struct JSONTreeDecoderTests {
         let value: Value
     }
 
-    /// Both decoders give the same value, or both refuse.
+    /// What a decoder gave: the value, or the kind of `DecodingError`.
+    private enum Outcome<Value: Equatable>: Equatable {
+        case value(Value)
+        case failure(String)
+
+        init(_ body: () throws -> Value) {
+            do {
+                self = .value(try body())
+            } catch let error as DecodingError {
+                self = switch error {
+                case .typeMismatch: .failure("typeMismatch")
+                case .valueNotFound: .failure("valueNotFound")
+                case .keyNotFound: .failure("keyNotFound")
+                case .dataCorrupted: .failure("dataCorrupted")
+                @unknown default: .failure("unknown")
+                }
+            } catch {
+                self = .failure("\(type(of: error))")
+            }
+        }
+    }
+
+    /// Both decoders give the same value, or the same kind of error.
     private static func agree<Value: Decodable & Equatable>(_ type: Value.Type, _ json: String) -> Bool {
         let text = "{\"value\":\(json)}"
-        let foundation = try? JSONDecoder().decode(Box<Value>.self, from: Data(text.utf8))
-        let tree = try? Box<Value>(from: JSONTreeDecoder(JSONTokenizer.parse(text)))
+        let foundation = Outcome { try JSONDecoder().decode(Box<Value>.self, from: Data(text.utf8)) }
+        let tree = Outcome { try Box<Value>(from: JSONTreeDecoder(JSONTokenizer.parse(text))) }
         return foundation == tree
     }
 
     private static let samples = [
         "1", "1.0", "1e2", "1.5", "-0", "-1", "300", "70000", "1e400", "9007199254740993", "1E-2", "\"1\"", "true", "null",
-        "[1]", "{}", "\"text\""
+        "[1]", "{}", "\"text\"", "1e-400", "-1e-400", "1e-50", "0e-400"
     ]
 
-    @Test("Integers, floating point, strings and booleans convert as with JSONDecoder", arguments: samples)
+    @Test("Integers, floating point, strings and booleans convert as with JSONDecoder, errors of the same kind", arguments: samples)
     func conversions(json: String) {
         #expect(Self.agree(Int.self, json), "Int \(json)")
         #expect(Self.agree(Int8.self, json), "Int8 \(json)")
