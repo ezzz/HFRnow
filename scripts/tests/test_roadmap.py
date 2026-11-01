@@ -82,6 +82,14 @@ class SyncState(unittest.TestCase):
         st = sync_state.build(issues, [], lots)
         self.assertEqual((st["ready"], st["capture"]), ([1], {}))
 
+    def test_capture_closed_not_planned_or_duplicate_still_blocks_for_triage(self):
+        lots = lots_of(md_row("001", 1))
+        for reason in ("not_planned", "duplicate"):
+            cap = issue(50, "closed", labels=["host: mac"])
+            cap["state_reason"] = reason
+            issues = [issue(1, labels=["status: ready"], body="### Captures needed\n\n- #50\n"), cap]
+            self.assertEqual(sync_state.build(issues, [], lots)["capture"], {"1": "#50"}, reason)
+
     def test_capture_blocked_lot_is_not_ready_and_state_has_a_snapshot_time(self):
         lots = lots_of(md_row("001", 1))
         issues = [issue(1, labels=["status: ready"], body="### Captures needed\n\n- #50\n"), issue(50, labels=["host: mac"])]
