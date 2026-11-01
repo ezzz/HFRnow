@@ -42,7 +42,7 @@ public enum TopicPageMetadataParser {
     ]
 
     /// Text of the first `h3` of the title row, trimmed (`ParseMessagesOperation.m:491-495`, `Common.swift:1814-1819`).
-    private static func title(in body: Element) -> String {
+    static func title(in body: Element) -> String {
         guard
             let row = body.firstDescendant(matching: .contains("fondForum2Title")),
             let heading = try? row.getElementsByTag("h3").first(),

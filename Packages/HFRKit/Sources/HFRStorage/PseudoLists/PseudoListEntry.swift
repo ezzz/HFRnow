@@ -3,7 +3,7 @@
 /// The persisted keys (`word`, `alias`, `mode`) are the legacy plist ones (`BlackList.m:43`), so importing the old
 /// files is a plain mapping. `alias` and `mode` are not used by the UI (`mode` 0 is the legacy `kTerminator`) but kept.
 public struct PseudoListEntry: Sendable, Hashable, Codable {
-    /// The pseudo as the user added it (comparison goes through `PseudoNormalizer`).
+    /// The pseudo as the user added it, cleaned (`PseudoNormalizer.cleaned`, case kept; LOT-072).
     public var pseudo: String
     /// Legacy alias, empty today.
     public var alias: String

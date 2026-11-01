@@ -25,7 +25,7 @@ public actor PseudoListStore {
 
     /// The blocklist of an account, in the order entries were added. Empty while the stored data is unreadable.
     public func blocklist(for account: String) -> [PseudoListEntry] {
-        document?.blocklists[PseudoNormalizer.normalize(account)] ?? []
+        document?.blocklists[AccountKey.make(account)] ?? []
     }
 
     /// The global allowlist, in the order entries were added.
@@ -55,7 +55,7 @@ public actor PseudoListStore {
     @discardableResult
     public func block(_ pseudo: String, account: String) throws -> Bool {
         try mutate { document in
-            try Self.insert(pseudo, into: &document.blocklists[PseudoNormalizer.normalize(account), default: []])
+            try Self.insert(pseudo, into: &document.blocklists[AccountKey.make(account), default: []])
         }
     }
 
@@ -63,7 +63,7 @@ public actor PseudoListStore {
     @discardableResult
     public func unblock(_ pseudo: String, account: String) throws -> Bool {
         try mutate { document in
-            let key = PseudoNormalizer.normalize(account)
+            let key = AccountKey.make(account)
             guard var list = document.blocklists[key] else { return false }
             let removed = Self.remove(pseudo, from: &list)
             document.blocklists[key] = list.isEmpty ? nil : list
@@ -78,7 +78,7 @@ public actor PseudoListStore {
         try mutate { document in
             var list: [PseudoListEntry] = []
             for pseudo in pseudos { _ = try? Self.insert(pseudo, into: &list) }
-            let key = PseudoNormalizer.normalize(account)
+            let key = AccountKey.make(account)
             guard list != (document.blocklists[key] ?? []) else { return false }
             document.blocklists[key] = list.isEmpty ? nil : list
             return true
@@ -162,20 +162,24 @@ public actor PseudoListStore {
     }
 
     private static func index(of pseudo: String, in list: [PseudoListEntry]) -> Int? {
-        let target = PseudoNormalizer.normalize(pseudo)
-        return list.firstIndex { PseudoNormalizer.normalize($0.pseudo) == target }
+        let target = PseudoNormalizer.comparisonForm(pseudo)
+        return list.firstIndex { PseudoNormalizer.comparisonForm($0.pseudo) == target }
     }
 
     private static func insert(_ pseudo: String, into list: inout [PseudoListEntry]) throws -> Bool {
-        guard !PseudoNormalizer.normalize(pseudo).isEmpty else { throw PseudoListError.emptyPseudo }
+        guard !PseudoNormalizer.comparisonForm(pseudo).isEmpty else { throw PseudoListError.emptyPseudo }
         guard index(of: pseudo, in: list) == nil else { return false }
-        list.append(PseudoListEntry(pseudo: pseudo))
+        // Cleaned, case kept: an invisible character or a stray space would follow the entry into MPStorage, where
+        // legacy clients (`BlackList.m:130-143`) remove U+200B only.
+        list.append(PseudoListEntry(pseudo: PseudoNormalizer.cleaned(pseudo)))
         return true
     }
 
+    /// Removes every matching entry: a list stored before LOT-072 can hold two spellings the rule now merges.
     private static func remove(_ pseudo: String, from list: inout [PseudoListEntry]) -> Bool {
-        guard let position = index(of: pseudo, in: list) else { return false }
-        list.remove(at: position)
-        return true
+        let target = PseudoNormalizer.comparisonForm(pseudo)
+        let before = list.count
+        list.removeAll { PseudoNormalizer.comparisonForm($0.pseudo) == target }
+        return list.count != before
     }
 }
