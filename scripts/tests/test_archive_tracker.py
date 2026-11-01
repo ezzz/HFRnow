@@ -48,5 +48,19 @@ class ArchiveTrackerTests(unittest.TestCase):
         self.assertLess(text.index("first"), text.index("second"))
 
 
+    def test_render_survives_deleted_accounts(self):
+        issue = {"number": 9, "title": "T", "state": "open", "user": None, "created_at": "c",
+                 "updated_at": "u", "labels": [], "html_url": "h", "body": None}
+        reviews = [{"user": None, "state": "COMMENTED", "submitted_at": None, "commit_id": None, "body": None}]
+        text = at.render(issue, [{"user": None, "created_at": "x", "body": "hi"}], reviews, [])
+        self.assertIn("ghost", text)
+        self.assertIn("# Issue #9: T", text)
+
+    def test_reviews_merge_keeps_dismissed(self):
+        old = [{"id": 1, "submitted_at": "a", "state": "APPROVED"}]
+        new = [{"id": 2, "submitted_at": "b", "state": "COMMENTED"}]
+        self.assertEqual([r["id"] for r in at.merge_by_id(old, new, key="submitted_at")], [1, 2])
+
+
 if __name__ == "__main__":
     unittest.main()

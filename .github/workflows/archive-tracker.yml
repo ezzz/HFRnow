@@ -2,8 +2,11 @@ name: Archive ezzz/HFRnow tracker
 
 # francoisgn/ios-app_SwiftHFR keeps a full copy of the SwiftHFR project (ADR 0010):
 # - master: the commits of ezzz/HFRnow dev-swift (mirror-from-ezzz.yml);
-# - tracker-archive: every issue and every dev-swift PR, with comments and reviews (JSON + Markdown);
-# - refs/tags/archive/pr-N: the head commit of each dev-swift PR, so forks' commits survive.
+# - tracker-archive (orphan branch, no workflows in it): every issue and every dev-swift PR, with
+#   comments and reviews (JSON + Markdown), and the head commits of each PR as git bundles
+#   (heads/pr-NNNN-<sha>.bundle), so fork commits survive.
+# PR commits are never pushed as refs: a pushed branch or tag would run the workflows of
+# untrusted fork commits in the mirror, with its secrets.
 # The job only runs in the mirror; on ezzz/HFRnow it is skipped.
 on:
   schedule:
@@ -23,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      # The deploy key of mirror-from-ezzz.yml: it can push branches and tags to this mirror only.
+      # The deploy key of mirror-from-ezzz.yml: it can push to this mirror only.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: master
@@ -35,9 +38,9 @@ jobs:
         run: |
           git config user.name "swifthfr-archive"
           git config user.email "swifthfr-archive@users.noreply.github.com"
-          if git fetch --depth 1 origin tracker-archive; then
-            git worktree add ../archive FETCH_HEAD
-            git -C ../archive switch -c tracker-archive
+          if git ls-remote --exit-code --heads origin tracker-archive >/dev/null; then
+            git fetch origin tracker-archive
+            git worktree add -B tracker-archive ../archive FETCH_HEAD
           else
             git worktree add --orphan -b tracker-archive ../archive
           fi
@@ -45,17 +48,31 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python3 src/scripts/archive_tracker.py --repo ezzz/HFRnow --out archive
+      - name: Keep the head commits of each dev-swift PR as a git bundle
+        working-directory: src
+        run: |
+          mkdir -p ../archive/heads
+          git ls-remote https://github.com/ezzz/HFRnow.git 'refs/pull/*/head' > ../pr-heads.txt
+          while read -r sha ref; do
+            n=${ref#refs/pull/}; n=${n%/head}
+            grep -qx "$n" ../archive/pulls.txt || continue
+            out="../archive/heads/pr-$(printf %04d "$n")-${sha}.bundle"
+            [ -f "$out" ] && continue
+            if ! git fetch -q --no-tags https://github.com/ezzz/HFRnow.git "$ref"; then
+              echo "::warning::PR #$n: head not fetchable, skipped"; continue
+            fi
+            git update-ref refs/archive/tmp FETCH_HEAD
+            if git merge-base --is-ancestor refs/archive/tmp origin/master; then
+              echo "PR #$n: head already in master"; continue
+            fi
+            git bundle create -q "$out" refs/archive/tmp ^origin/master
+          done < ../pr-heads.txt
+          git update-ref -d refs/archive/tmp || true
       - name: Commit and push the archive
         working-directory: archive
         run: |
           git add -A
-          if git diff --cached --quiet; then echo "nothing new"; exit 0; fi
+          # state.json changes on every run: commit only when an item or a bundle changed.
+          if git diff --cached --quiet -- . ':!state.json'; then echo "nothing new"; exit 0; fi
           git commit -q -m "Tracker archive $(date -u +%Y-%m-%dT%H:%MZ)"
           git push origin HEAD:tracker-archive
-      - name: Keep the head commit of every dev-swift PR as a tag
-        working-directory: src
-        run: |
-          refs=$(sed 's#.*#+refs/pull/&/head:refs/tags/archive/pr-&#' ../archive/pulls.txt)
-          # shellcheck disable=SC2086
-          git fetch --no-tags https://github.com/ezzz/HFRnow.git $refs
-          git push --force origin 'refs/tags/archive/pr-*:refs/tags/archive/pr-*'

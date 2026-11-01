@@ -41,10 +41,14 @@ def request(url: str, token: str | None) -> tuple[object, str | None]:
             with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=60) as resp:
                 return json.load(resp), next_link(resp.headers.get("Link"))
         except urllib.error.HTTPError as err:
+            if attempt == 4:
+                raise
             if err.code in (403, 429) and err.headers.get("X-RateLimit-Remaining") == "0":
                 reset = int(err.headers.get("X-RateLimit-Reset", time.time() + 60))
-                time.sleep(max(1, min(900, reset - time.time() + 1)))
-            elif err.code >= 500 and attempt < 4:
+                time.sleep(max(1, min(900, reset - time.time() + 1)))  # primary limit
+            elif err.code in (403, 429) and (err.headers.get("Retry-After") or err.code == 429):
+                time.sleep(min(300, int(err.headers.get("Retry-After") or 60) * (attempt + 1)))  # secondary limit
+            elif err.code >= 500:
                 time.sleep(2 ** attempt)
             else:
                 raise
@@ -76,24 +80,29 @@ def owner_path(url: str, repo_prefix: str) -> str:
     return re.sub(r"^https://api\.github\.com/repositories/\d+(?=/)", f"{API}{repo_prefix}", url)
 
 
+def login(entry: dict) -> str:
+    """The author's login; deleted accounts and some apps have no user."""
+    return (entry.get("user") or {}).get("login", "ghost")
+
+
 def render(item: dict, comments: list, reviews: list, review_comments: list) -> str:
     """One issue or pull request as Markdown, events in time order."""
     kind = "PR" if "base" in item else "Issue"
     head = [f"# {kind} #{item['number']}: {item['title']}", "",
             f"- State: {item['state']}" + (" (merged)" if item.get("merged_at") else ""),
-            f"- Author: {item['user']['login']} · created {item['created_at']} · updated {item['updated_at']}",
+            f"- Author: {login(item)} · created {item['created_at']} · updated {item['updated_at']}",
             f"- Labels: {', '.join(label['name'] for label in item.get('labels', [])) or '—'}",
             f"- Source: {item['html_url']}"]
     if kind == "PR":
         head.append(f"- Branch: {item['head']['label']} → {item['base']['ref']} · head {item['head']['sha']}")
         if item.get("merge_commit_sha") and item.get("merged_at"):
             head.append(f"- Merged as {item['merge_commit_sha']} on {item['merged_at']}")
-    events = [(c["created_at"], f"## {c['user']['login']} · {c['created_at']}", c.get("body") or "")
+    events = [(c["created_at"], f"## {login(c)} · {c['created_at']}", c.get("body") or "")
               for c in comments]
-    events += [(r.get("submitted_at") or "", f"## Review {r['state']} by {r['user']['login']} · "
-                f"{r.get('submitted_at')} · on {r.get('commit_id', '')[:7]}", r.get("body") or "")
+    events += [(r.get("submitted_at") or "", f"## Review {r['state']} by {login(r)} · "
+                f"{r.get('submitted_at')} · on {(r.get('commit_id') or '')[:7]}", r.get("body") or "")
                for r in reviews]
-    events += [(c["created_at"], f"## Review comment by {c['user']['login']} · {c['created_at']} · "
+    events += [(c["created_at"], f"## Review comment by {login(c)} · {c['created_at']} · "
                 f"`{c.get('path')}`:{c.get('line') or c.get('original_line')}", c.get("body") or "")
                for c in review_comments]
     parts = ["\n".join(head), item.get("body") or ""]
@@ -119,7 +128,9 @@ def main() -> int:
     state_file = args.out / "state.json"
     state = json.loads(state_file.read_text()) if state_file.exists() else {}
     since = state.get("since")
-    started = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    # The next run looks back 10 minutes before this one started: an update made while this run
+    # was fetching is caught next time; merge_by_id removes the duplicates.
+    started = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 600))
     window = {"since": since} if since else {}
 
     pulls = {p["number"]: p for p in paginate(f"{repo}/pulls", token, state="all", base=BASE_BRANCH)}
@@ -148,7 +159,7 @@ def main() -> int:
         merged = {
             "item": item,
             "comments": merge_by_id(old.get("comments", []), comments.get(number, [])),
-            "reviews": reviews or old.get("reviews", []),
+            "reviews": merge_by_id(old.get("reviews", []), reviews, key="submitted_at"),
             "review_comments": merge_by_id(old.get("review_comments", []), review_comments.get(number, [])),
         }
         stem.with_suffix(".json").write_text(json.dumps(merged, indent=1, ensure_ascii=False) + "\n")
@@ -162,11 +173,11 @@ def main() -> int:
     return 0
 
 
-def merge_by_id(old: list, new: list) -> list:
-    """Old entries updated by new ones (same id), in creation order. Deleted comments are kept."""
+def merge_by_id(old: list, new: list, key: str = "created_at") -> list:
+    """Old entries updated by new ones (same id), in time order. Deleted entries are kept."""
     by_id = {c["id"]: c for c in old}
     by_id.update({c["id"]: c for c in new})
-    return sorted(by_id.values(), key=lambda c: c["created_at"])
+    return sorted(by_id.values(), key=lambda c: c.get(key) or "")
 
 
 if __name__ == "__main__":

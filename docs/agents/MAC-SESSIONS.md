@@ -55,7 +55,7 @@ You are `mac/capture-batch`, an unattended Mac session for SwiftHFR (repo ezzz/H
 8. Decouple the code. If the result means a merged lot, a spec or a parser must change, open a NEW issue `[SwiftHFR] Follow-up of capture #N: <what to change>` with `### Summary`, the facts, the files to touch and `Refs #N`. Labels: `type: bug` or `type: chore`, one priority, one difficulty, one area, `status: ready`, and NO `host: mac` (cloud sessions and outside contributors take it). Add `external: ready` when it is an engine change. Do not write that code on the Mac.
 
 ## 4. Merging capture PRs
-A capture PR is merge-ready when CI is green, CodeRabbit has reviewed the head and every thread is answered, and the independent leak check passed (say so in the PR). Merge it yourself as a squash with the expected head SHA (operator rule: merge as soon as green). Then, in the same work unit:
+A capture PR is merge-ready when CI is green, CodeRabbit has reviewed the head and every thread is answered, the independent leak check passed (say so in the PR), and an adversarial APPROVE by another model (a Sonnet sub-agent given the diff, FIXTURES.md and LESSONS.md, not your conclusions) names the current head SHA (AGENTS.md §8). Merge it yourself as a squash with the expected head SHA (operator rule: merge as soon as green). Then, in the same work unit:
 - close each `Closes #N` issue with `Done in #PR (merged as <sha>)`;
 - run the unblock procedure of ORCHESTRATION.md for the lots each capture blocked (relabel `status: ready`, comment `Unblocked by #PR`, mark the boards #166 or #324);
 - tick the row in #337;
@@ -66,7 +66,7 @@ While captures wait (CI, review, delay budget), run up to 2 Mac lots in parallel
 1. #366 (flaky ForumSessionCheckTests on the simulator CI): it slows every app PR;
 2. LOT-161 #251 (TestFlight pipeline; #344 must pass first, see the mac/verify-merges prompt), LOT-137 #227, LOT-169 #295, then #322;
 3. the M2 lots with `status: ready` and `host: mac`, by priority.
-Each sub-agent claims its issue (`/claim mac/lot-<NNN>`), works per AGENTS.md, and gets an adversarial review from another model: a Fable sub-agent for a risky flow (session, cookies, posting, deletion), Sonnet otherwise. Each one opens one PR, handles the review rounds once and completely (REVIEW-ROUNDS), and merges when the merge criteria are met, except a risky flow, which it leaves for the orchestrator. App code that ports a legacy view cites the legacy file and symbol it comes from, in a short comment (ezzz's code is the reference; see #368 H.2).
+Each sub-agent claims its issue (`/claim mac/lot-<NNN>`), works per AGENTS.md, and gets an adversarial review from another model: a Fable sub-agent for a risky flow (session, cookies, posting, deletion), Sonnet otherwise. Each one opens one PR, handles the review rounds once and completely (REVIEW-ROUNDS), and merges when the merge criteria of AGENTS.md §8 are met (an adversarial APPROVE naming the current head, green CI, no open thread), except a risky flow, which it leaves for the orchestrator. App code that ports a legacy view cites the legacy file and symbol it comes from, in a short comment (ezzz's code is the reference; see #368 H.2).
 
 ## 6. Watchdog and housekeeping
 - A sub-agent that has made no commit and no comment for 30 minutes, or repeats the same failing command 3 times, is stopped. Note its state on its issue and `/release` it.
@@ -104,17 +104,18 @@ Goal: quickly prove that what cloud sessions merged without a Mac check is not f
 3. Claim each one (`/claim mac/verify-merges` + label `status: claimed`).
 
 ## 2. Run the checks (the app on the iOS 27 simulator, then a device if one is connected)
-- Build once (Debug, simulator), install, then run every check that uses this build in a row. Group checks by screen to save launches.
+- Build once from the current dev-swift head (Debug, simulator), install, then run every check that uses this build in a row; that is what will ship. Group checks by screen to save launches. Record the build SHA and, for each check, the merge commit it covers.
+- A check that fails on the head is reproduced on a build at the SHA of the merge it covers before anything is blamed or reverted: if it passes there, a later merge broke it, so find that merge (`git bisect` between the two) and name it instead.
 - For each check: the steps from the issue, what you saw, and a screenshot saved under `docs/assets/checks/<issue>-<n>.png` (light mode; dark mode and Dynamic Type XL too when the issue asks). Never commit a screenshot that shows a real pseudo, a private message or a cookie. Use the operator's fixture accounts and fixture MP threads only.
 - A check that needs a real HFR session uses the operator's own accounts, read-only. A check that would post publicly is skipped and listed.
 
 ## 3. Results
 - Pass: comment "Mac check passed" on the issue, with the steps, the build SHA and the screenshots (link the files of the PR below). Close the issue once that PR is merged, or at once if there are no files to commit.
 - Fail: decide where the fix belongs.
-  - Small and app-side (one view, under about 30 lines): fix it now on a branch `fix/<issue>-<slug>`. Write a test where one is possible, open the PR, get an adversarial review by a Sonnet sub-agent (Fable if the flow is risky: session, cookies, posting, deletion), and merge it when green. A risky flow is left for the orchestrator.
+  - Small and app-side (one view, under about 30 lines): fix it now on a branch `fix/<issue>-<slug>`. Write a test where one is possible, open the PR, get an adversarial review by a Sonnet sub-agent (Fable if the flow is risky: session, cookies, posting, deletion), and merge it once that review APPROVEs the current head, CI is green and no thread is open. A risky flow is left for the orchestrator.
   - Larger, or engine-side (HFRKit): open a NEW issue `[SwiftHFR] Fix: <symptom> (found by the Mac check of #N)`, without `host: mac`, with the reproduction steps, the expected and actual results, the screenshot and the suspected file. A cloud session or an outside contributor fixes it. Do not bounce between the Mac and the cloud for a small fix.
   - Severe (a crash, data loss, a security or privacy leak, a forum write that is wrong): also open a revert PR of the faulty merge at once, labelled `priority: high`, and say so first in the report.
-- Screenshots and check notes go in ONE PR (`Mac checks: #a, #b, …`), merged when green.
+- Screenshots and check notes go in ONE PR (`Mac checks: #a, #b, …`), merged under the same rule (an adversarial APPROVE on the head, green CI, no open thread).
 
 ## 4. Housekeeping and report
 - Erase the simulator content you created (`xcrun simctl erase` on clones only), remove worktrees and DerivedData you made, and leave the checkout on dev-swift, clean.
