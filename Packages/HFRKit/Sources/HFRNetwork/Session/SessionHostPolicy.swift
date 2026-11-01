@@ -8,7 +8,7 @@ import FoundationNetworking
 /// An account session only talks to the forum: requests elsewhere are refused, so the jar only ever receives
 /// `hardware.fr` cookies, and a redirect leaving the forum is not followed, because swift-corelibs-foundation copies
 /// the account's `Cookie` header onto the redirected request whatever its host.
-enum SessionHostPolicy: Sendable {
+enum SessionHostPolicy: Sendable, Equatable {
     /// `hardware.fr` and its subdomains (production).
     case forum
     /// One exact host (tests against the loopback server).
