@@ -756,6 +756,7 @@ struct FavoritesListView: View {
             }
             .navigationTitle("Favoris")
             .expandedPhoneInlineNavigationTitle()
+            .foldHandoffDestination()
             .safeAreaInset(edge: .bottom) {
                 if favoritePostFilterProgress != nil || favoritePostFilterStatusMessage != nil {
                     FavoritePostFilterProgressBanner(

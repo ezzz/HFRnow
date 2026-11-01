@@ -3058,6 +3058,8 @@ struct MessagesView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @Environment(\.foldHandoffScope) private var foldHandoffScope
+    @State private var foldHandoffToken: UUID?
     @ObservedObject private var appTheme = AppThemeStore.shared
     @AppStorage(AppTextSizeScale.key) private var textSizeScaleRawValue = AppTextSizeScale.standard.rawValue
     @AppStorage(AppTopicPageSwipeNavigation.key) private var topicPageSwipeNavigation = true
@@ -3174,6 +3176,29 @@ struct MessagesView: View {
                 }
             }
         )
+    }
+
+    /// Fold continuity: the root topic view of a tab (not the topics pushed from its links)
+    /// tells `FoldHandoffStore` what it shows, so `RootTabView` can reopen it on the same page
+    /// after the root switches between the tab bar and the split view.
+    private func registerFoldHandoffReading() {
+        guard navigationDepth == 0, let foldHandoffScope else { return }
+        foldHandoffToken = FoldHandoffStore.shared.register(
+            tab: foldHandoffScope.tab,
+            topic: topic,
+            page: page,
+            maxPage: availableMaxPage
+        )
+    }
+
+    private func updateFoldHandoffReading() {
+        guard let foldHandoffToken else { return }
+        FoldHandoffStore.shared.update(token: foldHandoffToken, page: page, maxPage: availableMaxPage)
+    }
+
+    private func scheduleFoldHandoffClear() {
+        guard let foldHandoffToken else { return }
+        FoldHandoffStore.shared.scheduleClear(token: foldHandoffToken)
     }
 
     /// Size class only, no idiom check: iPhone Duo is a `.phone` whose inner display is regular/regular.
@@ -5885,6 +5910,14 @@ struct MessagesView: View {
         }
 
         return content
+            .onAppear(perform: registerFoldHandoffReading)
+            .onDisappear(perform: scheduleFoldHandoffClear)
+            .onChange(of: page) {
+                updateFoldHandoffReading()
+            }
+            .onChange(of: availableMaxPage) {
+                updateFoldHandoffReading()
+            }
             .navigationDestination(isPresented: linkedTopicNavigationBinding) {
                 if let linkedTopicDestination {
                     linkedTopicDestination

@@ -193,6 +193,7 @@ struct CategoriesListView: View {
             .background(themePalette.listBackgroundColor)
             .navigationTitle("Categories")
             .expandedPhoneInlineNavigationTitle()
+            .foldHandoffDestination()
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Menu {
@@ -1330,6 +1331,7 @@ struct RootTabView: View {
     @State private var messagesNavigationResetToken = UUID()
     @State private var detailNavigationResetToken = UUID()
     @State private var preferredCompactColumn = NavigationSplitViewColumn.content
+    @State private var isPortraitLayout = false
     @State private var iPadDirectSidebarVisibility = NavigationSplitViewVisibility.all
     @State private var categoriesSelectedForum: Forum?
     @State private var categoriesInitialFlagOverride: TopicListFlag?
@@ -1352,6 +1354,12 @@ struct RootTabView: View {
     private var usesSidebarRoot: Bool {
         guard horizontalSizeClass == .regular else { return false }
         return verticalSizeClass == .regular || UIDevice.current.userInterfaceIdiom == .pad
+    }
+
+    /// iPhone Duo inner display in portrait: topic at full width, lists over it (decision of
+    /// 2026-11-01). iPad and the landscape inner display keep the balanced split.
+    private var usesProminentDetail: Bool {
+        usesSidebarRoot && UIDevice.current.userInterfaceIdiom == .phone && isPortraitLayout
     }
 
     init() {
@@ -1614,6 +1622,11 @@ struct RootTabView: View {
 
     var body: some View {
         rootContainer
+            .onGeometryChange(for: Bool.self) { proxy in
+                proxy.size.height > proxy.size.width
+            } action: { isPortrait in
+                isPortraitLayout = isPortrait
+            }
             .environment(\.hfrIsExpandedPhoneRoot, usesSidebarRoot && UIDevice.current.userInterfaceIdiom == .phone)
             .preferredColorScheme(appTheme.preferredColorScheme)
             .tint(appTheme.actionTintColor)
@@ -1668,6 +1681,9 @@ struct RootTabView: View {
                 // Fold/unfold: re-apply the phone orientation locks (rotation setting, composer).
                 HFRSwiftOrientationPolicy.refreshSupportedOrientations()
             }
+            .onChange(of: usesSidebarRoot) { _, newValue in
+                handleRootSwap(toSidebar: newValue)
+            }
             .onChange(of: iPadSidebarVisibilityRawValue) { oldValue, newValue in
                 RootTabAudit.log(
                     "splitVisibility.storedChanged",
@@ -1700,6 +1716,7 @@ struct RootTabView: View {
     private var rootContainer: some View {
         if usesSidebarRoot {
             iPadSidebarRoot
+                .environment(\.foldHandoffScope, FoldHandoffScope(tab: selectedTab, isCompactRoot: false))
         } else {
             compactTabRoot
         }
@@ -1713,6 +1730,7 @@ struct RootTabView: View {
     private var rootTabs: some View {
         TabView(selection: tabSelectionBinding) {
             CategoriesListView(accountsStore: accountsStore)
+                .environment(\.foldHandoffScope, FoldHandoffScope(tab: .categories, isCompactRoot: true))
                 .onAppear { auditTabContentAppear(.categories, source: "TabView.categories") }
                 .tabItem { Label("Catégories", systemImage: "folder.fill") }
                 .tag(RootTabIdentifier.categories)
@@ -1722,6 +1740,7 @@ struct RootTabView: View {
                 viewModel: favoritesViewModel,
                 accountsStore: accountsStore
             )
+            .environment(\.foldHandoffScope, FoldHandoffScope(tab: .favorites, isCompactRoot: true))
             .onAppear { auditTabContentAppear(.favorites, source: "TabView.favorites") }
             .tabItem { Label("Favoris", systemImage: "star.fill") }
             .tag(RootTabIdentifier.favorites)
@@ -1732,6 +1751,7 @@ struct RootTabView: View {
                 isActive: selectedTab == .messages,
                 navigationResetToken: messagesNavigationResetToken
             )
+            .environment(\.foldHandoffScope, FoldHandoffScope(tab: .messages, isCompactRoot: true))
             .onAppear { auditTabContentAppear(.messages, source: "TabView.messages") }
             .tabItem { Label("Messages", systemImage: "envelope") }
             .tag(RootTabIdentifier.messages)
@@ -1739,7 +1759,9 @@ struct RootTabView: View {
 
             NavigationStack {
                 PlusHomeView()
+                    .foldHandoffDestination()
             }
+            .environment(\.foldHandoffScope, FoldHandoffScope(tab: .more, isCompactRoot: true))
             .onAppear { auditTabContentAppear(.more, source: "TabView.more") }
             .tabItem { Label("Plus", systemImage: "ellipsis") }
             .tag(RootTabIdentifier.more)
@@ -1762,7 +1784,7 @@ struct RootTabView: View {
             } detail: {
                 selectedIPadDetail
             }
-            .navigationSplitViewStyle(.balanced)
+            .hfrSplitViewStyle(prominentDetail: usesProminentDetail)
         } else {
             NavigationSplitView(
                 columnVisibility: $iPadDirectSidebarVisibility,
@@ -1772,7 +1794,7 @@ struct RootTabView: View {
             } detail: {
                 selectedIPadDetail
             }
-            .navigationSplitViewStyle(.balanced)
+            .hfrSplitViewStyle(prominentDetail: usesProminentDetail)
         }
     }
 
@@ -2036,6 +2058,64 @@ struct RootTabView: View {
         }
     }
 
+    /// Fold/unfold (or iPad Split View resize) swaps the tab bar root and the split view root.
+    /// Replays the topic being read in the selected tab into the new root, on the same page.
+    /// Only the root topic of the selected tab is carried; the Plus tab is carried only towards
+    /// Bookmarks / Alertes Qualitay when one of them is the current sidebar destination.
+    private func handleRootSwap(toSidebar: Bool) {
+        let reading = FoldHandoffStore.shared.beginRootSwap(selectedTab: selectedTab)
+        let readingNote = reading.map { "page \($0.page)/\($0.maxPage)" } ?? "nil"
+        RootTabAudit.log(
+            "foldHandoff.rootSwap",
+            source: "RootTabView.usesSidebarRoot",
+            current: selectedTab,
+            runtime: RuntimeState.selectedTab,
+            mode: rootModeAuditName,
+            note: "toSidebar=\(toSidebar) reading=\(readingNote)"
+        )
+
+        if toSidebar {
+            guard let reading else { return }
+            let destination: IPadSidebarDestination
+            if iPadSidebarDestination.rootTab == reading.tab {
+                destination = iPadSidebarDestination
+            } else {
+                destination = Self.defaultIPadDestination(for: reading.tab)
+            }
+            guard destination.usesTopicList else { return }
+            if destination != iPadSidebarDestination {
+                setIPadSidebarDestination(destination, source: "foldHandoff")
+            }
+            selectTopic(reading.navigationTarget, for: destination)
+        } else {
+            // The split selection must not outlive the fold: if the user closes the topic on the
+            // cover screen, unfolding must not bring it back.
+            let target = reading?.navigationTarget ?? activeTopicTarget
+            clearActiveTopicTarget()
+            if let target {
+                FoldHandoffStore.shared.requestCompactPush(tab: selectedTab, target: target)
+            }
+        }
+    }
+
+    private func clearActiveTopicTarget() {
+        switch iPadSidebarDestination {
+        case .categories:
+            categoriesTopicTarget = nil
+        case .favorites:
+            favoritesTopicTarget = nil
+        case .messages:
+            messagesTopicTarget = nil
+        case .bookmarks:
+            bookmarksTopicTarget = nil
+        case .qualityAlerts:
+            qualityAlertsTopicTarget = nil
+        case .settings, .search, .credits, .charter, .deleteAccount:
+            return
+        }
+        detailNavigationResetToken = UUID()
+    }
+
     private func selectTopic(
         _ target: TopicNavigationTarget,
         for destination: IPadSidebarDestination
@@ -2056,6 +2136,10 @@ struct RootTabView: View {
         }
         detailNavigationResetToken = UUID()
         preferredCompactColumn = .detail
+        if usesProminentDetail {
+            // The list sits over the topic in this style: get it out of the way once chosen.
+            iPadSidebarVisibilityRawValue = SidebarVisibilityStorage.detailOnly
+        }
     }
 
     private func showTopicsForForum(
@@ -2623,6 +2707,18 @@ private struct TabBarReselectionObserver: UIViewControllerRepresentable {
 }
 
 private extension View {
+    @ViewBuilder
+    /// `.prominentDetail` keeps the topic at full width and shows the lists over it; used on
+    /// the iPhone Duo inner display in portrait, too narrow for list + topic side by side.
+    @ViewBuilder
+    func hfrSplitViewStyle(prominentDetail: Bool) -> some View {
+        if prominentDetail {
+            self.navigationSplitViewStyle(.prominentDetail)
+        } else {
+            self.navigationSplitViewStyle(.balanced)
+        }
+    }
+
     @ViewBuilder
     func hfrTabBarMinimizeBehavior(tabBarMinimizeOnScroll: Bool) -> some View {
         if #available(iOS 26.0, *) {

@@ -56,11 +56,11 @@ Ces points regroupent les feedbacks de confort et de finition. Ils ne sont pas t
 
 ## Historique des issues livrees
 
-### Livrees 4.0.3
+### Livrees 4.0.4
 
 | ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| HFR-093 | Hors analyse initiale | iPhone Duo: interface iPad sur l'ecran interieur, ecran exterieur plein ecran | Fonction / UI | Fort | Moyenne | Ecran interieur (regular/regular, portrait et paysage): racine split view iPad (barre laterale + liste + sujet). Ecran exterieur: barre d'onglets iPhone, pleine largeur. Reprend la PR #4 de moust4ki (orientation, GIF, boutons Actualiser, titres compacts). | Corrige, a tester sur Duo |
+| HFR-093 | Hors analyse initiale | iPhone Duo: interface iPad sur l'ecran interieur, ecran exterieur plein ecran | Fonction / UI | Fort | Moyenne | Ecran interieur (regular/regular, portrait et paysage): racine split view iPad (barre laterale + liste + sujet), sujet en pleine largeur en portrait. Ecran exterieur: barre d'onglets iPhone, pleine largeur. Plier/deplier rouvre le sujet en cours sur la meme page (aussi lors d'un redimensionnement Split View iPad). Reprend la PR #4 de moust4ki (orientation, GIF, boutons Actualiser, titres compacts). | Corrige, a tester sur Duo |
 | HFR-094 | Hors analyse initiale | confirmation que TWO est un clown | Note | Faible | Faible | Ligne de changelog demandee par l'operateur. | Livre |
 
 ### Livrees 4.0.2
