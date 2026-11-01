@@ -1,5 +1,4 @@
-/// The one rule by which HFRStorage compares pseudos: blocklist and allowlist entries, draft recipients, accounts
-/// (LOT-072).
+/// The one rule by which HFRStorage compares pseudos: blocklist and allowlist entries, accounts (LOT-072).
 ///
 /// Two pseudos designate the same member when their comparison forms are equal: every Unicode format character
 /// removed (category Cf: U+200B, which HFR inserts to prevent impersonation and the MPStorage list stores raw, audit

@@ -17,7 +17,7 @@ Legacy repository <https://github.com/francoisgn/hfrnow> at `2440d79`. Audit: [D
 ## Behaviour
 Code in `Sources/HFRStorage/Drafts/`, tests in `Tests/HFRStorageTests/Drafts/`.
 
-- **`DraftContext`**: `reply(topic:page:)`, `newTopic(forum:)`, `privateMessage(recipient:)`, `edit(topic:post:)` and `legacyGlobal` (the old single draft, filled by LOT-067). `storageKey` is the identity; the recipient is compared without case and zero-width spaces.
+- **`DraftContext`**: `reply(topic:page:)`, `newTopic(forum:)`, `privateMessage(recipient:)`, `edit(topic:post:)` and `legacyGlobal` (the old single draft, filled by LOT-067). `storageKey` is the identity; the recipient is compared without case and zero-width spaces (the account key form, `AccountKey`).
 - **`Draft`**: context, account, text, optional subject (new topics and MPs), `updatedAt`.
 - **`DraftStore`** (actor): `draft(for:account:)`, `drafts(account:)` (newest first), `save(_:subject:for:account:)`, `discard(for:account:)` (after a successful post), `discardAll(account:)` (logout), `purgeExpired()`, `reload()`. Drafts are scoped per account (normalised like pseudos).
 - **Saving empty text and empty subject removes the draft**; nothing empty is stored, and no write happens when nothing changed.
@@ -39,7 +39,7 @@ None (synthetic). Cursor position and attachment metadata (E-4 "optional") are n
 ## Intentional differences from legacy
 - The global draft is replaced by per-context drafts; the new-topic draft now survives a kill; edit and MP composers get drafts instead of none.
 - The "ephemeral composers never touch the reply draft" rule holds by construction (separate contexts) and is tested.
-- The pseudo comparison form was duplicated in a private helper (`DraftNameNormalizer`) so that this lot did not depend on LOT-061; [LOT-072](LOT-072-pseudo-normaliser.md) removed it (account keys by `AccountKey`, recipients by `PseudoNormalizer`).
+- The pseudo comparison form was duplicated in a private helper (`DraftNameNormalizer`) so that this lot did not depend on LOT-061; [LOT-072](LOT-072-pseudo-normaliser.md) removed it (account keys and recipients by `AccountKey`, the same U+200B-and-case form).
 
 ## Learnings
 To copy into AGENTS.md §11 when the lot closes.
