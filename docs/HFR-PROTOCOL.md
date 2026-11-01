@@ -449,6 +449,12 @@ Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `Li
 - **Hrefs**: a topic's `href` names its sub-category for most rows (`…/categories/13/subcategories/433/topics/28563/`) but not in `R57c` (`…/categories/13/topics/28563/`). `R57c` says `is_sticky` true for topic 28563, which no list shows sticky (`R57b`, `R04`, `R06`).
 - **Not captured**: a page 2, `results_per_page`, an `/api/` href requested as is, an error answer, any answer to a session (flag buckets #335), sub-categories (#285); the anonymous ones are #355.
 
+### LOT-073 — MPStorage JSON tokenizer
+
+[LOT-073](lots/LOT-073-mpstorage-json-tokenizer.md), tests `JSONTokenizerTests`, `JSONTreeDecoderTests`, `JSONWriterTests` and `MPStoragePageParserTests.writtenAsBefore`.
+
+- **The stored document** (`R60a`, **verified**): it reads through the tokenizer to the document LOT-038 read, and is written back byte for byte as `JSONEncoder` wrote it (integers only, keys sorted, slashes unescaped). No new forum fact: what other clients write beyond `R60a` is still the pending capture of LOT-038 (#272).
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).

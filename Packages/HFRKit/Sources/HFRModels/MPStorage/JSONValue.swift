@@ -15,8 +15,12 @@ public enum JSONValue: Sendable, Hashable, Codable {
     /// An object.
     case object([String: JSONValue])
 
-    /// Decodes whatever JSON value is next.
+    /// Decodes whatever JSON value is next. Through `MPStorageCodec` it is the value as read, numbers with their text.
     public init(from decoder: any Decoder) throws {
+        if let tree = decoder as? JSONTreeDecoder {
+            self = tree.value
+            return
+        }
         let container = try decoder.singleValueContainer()
         if container.decodeNil() {
             self = .null
@@ -27,7 +31,7 @@ public enum JSONValue: Sendable, Hashable, Codable {
         } else if let value = try? container.decode(Double.self) {
             self = .number(JSONNumber(value))
         } else if let value = try? container.decode(String.self) {
-            self = JSONNumberBox.unbox(value).map(JSONValue.number) ?? .string(value)
+            self = .string(value)
         } else if let value = try? container.decode([JSONValue].self) {
             self = .array(value)
         } else {
@@ -35,8 +39,12 @@ public enum JSONValue: Sendable, Hashable, Codable {
         }
     }
 
-    /// Encodes the value back as the same JSON.
+    /// Encodes the value back as the same JSON. Through `MPStorageCodec` numbers are written with their exact text.
     public func encode(to encoder: any Encoder) throws {
+        if let tree = encoder as? JSONTreeEncoder {
+            try tree.store(self)
+            return
+        }
         var container = encoder.singleValueContainer()
         switch self {
         case .null: try container.encodeNil()
@@ -46,9 +54,7 @@ public enum JSONValue: Sendable, Hashable, Codable {
                 // Only `JSONNumber(Double)` with a non-finite value can get here.
                 throw EncodingError.invalidValue(value.lexeme, .init(codingPath: encoder.codingPath, debugDescription: "Not a JSON number"))
             }
-            if encoder.userInfo[JSONNumberBox.userInfoKey] as? Bool == true {
-                try container.encode(JSONNumberBox.box(value))
-            } else if let integer = value.int64Value {
+            if let integer = value.int64Value {
                 try container.encode(integer)
             } else {
                 try container.encode(value.doubleValue ?? 0)
