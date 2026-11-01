@@ -1,9 +1,9 @@
 import HFRModels
 import SwiftUI
 
-// Port of HFRswift/Swift/Favorites.swift (TopicRowView) @ 2440d79. Differences: legacy "author - date" becomes "author · replies ·
-// relative date" (replies added); no "⚑ cur / max" footer; an unread dot instead of the unread capsule; the flag colour tints the
-// icon, not the row (GAP-026, 027; UXD).
+// Port of HFRswift/Swift/Favorites.swift (TopicRowView) @ 2440d79. Differences: legacy "last-post author - date" becomes
+// "starter or interlocutors · replies · relative date of the last post" (replies added, starter instead of the last poster); no
+// "⚑ cur / max" footer; an unread dot instead of the unread capsule; the flag colour tints the icon, not the row (GAP-026, 027; UXD).
 /// One topic row: title, flag, counters and last post. Pure display.
 struct TopicRowView: View {
     let topic: TopicSummary
