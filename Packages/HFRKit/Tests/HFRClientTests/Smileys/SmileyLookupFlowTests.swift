@@ -34,8 +34,13 @@ struct SmileyLookupFlowTests {
     private static func flow(
         probe: [Result<HTTPResponse, NetworkError>] = [], anonymous: [Result<HTTPResponse, NetworkError>] = []
     ) -> Ready {
-        let account = HFRSession(cookies: cookies)
-        let probeTransport = MockTransport(replies: probe)
+        flow(probe: MockTransport(replies: probe), anonymous: anonymous)
+    }
+
+    private static func flow(
+        probe probeTransport: MockTransport, anonymous: [Result<HTTPResponse, NetworkError>] = [],
+        account: HFRSession = HFRSession(cookies: SmileyLookupFlowTests.cookies)
+    ) -> Ready {
         let anonymousTransport = MockTransport(replies: anonymous)
         let seeds = Seeds()
         let flow = SmileyLookupFlow(
@@ -44,11 +49,9 @@ struct SmileyLookupFlowTests {
         return Ready(flow: flow, probe: probeTransport, anonymous: anonymousTransport, seeds: seeds, account: account)
     }
 
-    /// The capture `file` served with Set-Cookie, so a write-back would show.
+    /// The capture `file` as HFR served it.
     private static func served(_ file: String, url: URL = searchURL) throws -> Result<HTTPResponse, NetworkError> {
-        var response = try Capture.response(file, url: url)
-        response.headers["Set-Cookie"] = "md_passs=changed; path=/; domain=.hardware.fr"
-        return .success(response)
+        .success(try Capture.response(file, url: url))
     }
 
     @Test(
@@ -89,8 +92,8 @@ struct SmileyLookupFlowTests {
         #expect(await ready.probe.requests.isEmpty)
     }
 
-    @Test("The search reads the account's cookies through a probe and writes nothing back")
-    func searchLeavesTheAccountUnchanged() async throws {
+    @Test("The search goes through a probe seeded with exactly the account's cookies")
+    func searchIsSeededWithTheAccountCookies() async throws {
         let ready = Self.flow(probe: [try Self.served("R53b-smiley-search-one-word")])
         let before = await ready.account.cookies()
         _ = try await ready.flow.search("chat")
@@ -98,7 +101,38 @@ struct SmileyLookupFlowTests {
         #expect(await ready.account.cookies() == before)
     }
 
-    @Test("R54: the oracle's code and keywords; the captured URL; no cookie, on the cookie-less transport")
+    @Test("Cookies the answer sets stay in the probe, even when a login lands while the search is in flight")
+    func searchWritesNothingBack() async throws {
+        let account = HFRSession(cookies: Self.cookies)
+        let expiry = Date().addingTimeInterval(86_400)
+        let fresh = StoredCookie(name: "md_passs", value: "freshpass", domain: ".hardware.fr", path: "/", expiresDate: expiry)
+        let stale = StoredCookie(name: "md_passs", value: "stalepass", domain: ".hardware.fr", path: "/", expiresDate: expiry)
+        let reply = try Capture.response("R53b-smiley-search-one-word", url: Self.searchURL)
+        // A stateful probe: like HFRSession, it stores the cookies the answer sets.
+        let probeJar = HFRSession(cookies: Self.cookies)
+        let probe = MockTransport { _ async throws(NetworkError) -> HTTPResponse in
+            await account.mergeCookies([fresh])
+            await probeJar.mergeCookies([stale])
+            return reply
+        }
+        let ready = Self.flow(probe: probe, account: account)
+        #expect(try await ready.flow.search("chat").count == 657)
+        #expect(await account.cookies().first { $0.name == "md_passs" }?.value == "freshpass")
+        #expect(await probeJar.cookies().first { $0.name == "md_passs" }?.value == "stalepass")
+    }
+
+    @Test("Without an account the search probe starts empty and the wiki is read the same way")
+    func noAccount() async throws {
+        let probe = MockTransport(replies: [try Self.served("R53b-smiley-search-one-word")])
+        let anonymous = MockTransport(replies: [try Self.served("R54-smiley-wiki-detail-anon")])
+        let seeds = Seeds()
+        let flow = SmileyLookupFlow(session: nil, makeProbe: { seeds.add($0); return probe }, anonymous: anonymous)
+        #expect(try await flow.search("chat").count == 657)
+        #expect(seeds.values == [[]])
+        #expect(try await flow.wiki(code: "[:user3]").code == "[:user3]")
+    }
+
+    @Test("R54: the oracle's code and keywords; the captured URL, on the cookie-less transport, never the probe")
     func wikiMatchesTheOracle() async throws {
         let meta = try Capture.meta("R54")
         let url = try #require(URL(string: meta.url))
@@ -109,7 +143,6 @@ struct SmileyLookupFlowTests {
         #expect(detail.keywords == oracle.keywords)
         let requests = await ready.anonymous.requests
         #expect(requests.map(\.url.absoluteString) == [meta.url])
-        #expect(requests.allSatisfy { $0.headers["Cookie"] == nil })
         #expect(await ready.probe.requests.isEmpty)
         #expect(ready.seeds.values.isEmpty)
     }
@@ -118,6 +151,10 @@ struct SmileyLookupFlowTests {
     func failures() async throws {
         let other = Self.flow(anonymous: [try Self.served("R54-smiley-wiki-detail-anon")])
         await #expect(throws: SmileyLookupError.page(.invalidValue(field: "smiley0"))) { try await other.flow.wiki(code: "[:user4]") }
+
+        let padded = Self.flow(anonymous: [try Self.served("R54-smiley-wiki-detail-anon")])
+        #expect(try await padded.flow.wiki(code: " [:user3]\n").code == "[:user3]")
+        #expect(await padded.anonymous.requests.map(\.url.absoluteString) == [try Capture.meta("R54").url])
 
         let blank = Self.flow()
         await #expect(throws: SmileyLookupError.invalidCode) { try await blank.flow.wiki(code: "  ") }

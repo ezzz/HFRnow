@@ -26,12 +26,11 @@ extension HFREndpoint {
     /// R54: the wiki entry of a smiley, `wikismilies.php?config=hfr.inc&detail=<code>` (`SmileyAlertView.m:150-152`).
     ///
     /// The code is percent-encoded like every query value, `[:name]` → `%5B%3Aname%5D` as in `R54`; legacy encoded it
-    /// with `URLPathAllowedCharacterSet`, which leaves `:` raw. A blank code is refused.
+    /// with `URLPathAllowedCharacterSet`, which leaves `:` raw. Surrounding white space is dropped; a blank code is refused.
     public static func smileyWiki(code: String) throws -> HTTPRequest {
-        guard !code.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw NetworkError.invalidRequest(reason: "smiley wiki needs a code")
-        }
-        return try .get(url(path: "/wikismilies.php", query: [("config", config), ("detail", code)]))
+        let trimmed = code.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { throw NetworkError.invalidRequest(reason: "smiley wiki needs a code") }
+        return try .get(url(path: "/wikismilies.php", query: [("config", config), ("detail", trimmed)]))
     }
 
     /// E1: the JSON REST API (`/webservices/rest_api.php?uri=…`), reported by redface2 and still to verify (HFR-PROTOCOL §7).

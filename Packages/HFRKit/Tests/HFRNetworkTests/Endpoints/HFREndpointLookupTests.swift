@@ -28,6 +28,7 @@ struct HFREndpointLookupTests {
     /// `R54` asked for `[:user3]` as `%5B%3Auser3%5D`; legacy's `URLPathAllowedCharacterSet` left the `:` raw.
     @Test(arguments: [
         ("[:user3]", "%5B%3Auser3%5D"),
+        (" [:user3]\n", "%5B%3Auser3%5D"),
         ("[:user5:1]", "%5B%3Auser5%3A1%5D"),
         ("[:jean pierre]", "%5B%3Ajean%20pierre%5D"),
         ("[:l'ami]", "%5B%3Al%27ami%5D"),

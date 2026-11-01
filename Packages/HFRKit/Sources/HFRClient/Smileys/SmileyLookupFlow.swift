@@ -7,22 +7,25 @@ import HFRParsing
 /// Two read-only GETs over existing pieces: the search (`HFREndpoint.smileySearch`, `SmileySearchParser`) and the wiki
 /// entry (`HFREndpoint.smileyWiki`, `SmileyWikiDetailParser`). The search was captured logged in (`R53a`-`R53c`) and legacy
 /// sent it with the shared cookies (`SmileySearchService.swift:25`), so it runs in an ephemeral probe `HFRSession` seeded
-/// with the account's cookies, as `MPUnreadPoll` does: whatever HFR sets is written back nowhere. The wiki is served
-/// logged out (`R54`) and is read without cookies. Answers are decoded as UTF-8 first (`TextDecoding`, Q-2); legacy tried
-/// Latin-1 first (`:32-34`). Nothing is retried, and a cancelled task sends nothing.
+/// with the account's cookies, as `MPUnreadPoll` does: whatever HFR sets is written back nowhere. Without an account the
+/// probe starts empty (a logged-out search is not captured). The wiki is served logged out (`R54`) and is read without
+/// cookies, logged in or not; legacy sent the shared cookies there too (`AnswerView.swift:775`). Answers are decoded as
+/// UTF-8 first (`TextDecoding`, Q-2); legacy tried Latin-1 first (`SmileySearchService.swift:32-34`). Nothing is retried,
+/// and a cancelled task sends nothing.
 public struct SmileyLookupFlow: Sendable {
-    private let account: HFRSession
+    private let account: HFRSession?
     private let makeProbe: @Sendable ([StoredCookie]) -> any HTTPTransport
     private let anonymous: any HTTPTransport
 
-    /// Creates a flow that searches with the cookies of `session`, without ever changing it.
-    public init(session: HFRSession) {
+    /// Creates a flow that searches with the cookies of `session`, without ever changing it; nil when no account is
+    /// logged in (the wiki needs none).
+    public init(session: HFRSession? = nil) {
         self.init(session: session, makeProbe: { HFRSession(cookies: $0) }, anonymous: AnonymousTransport())
     }
 
     /// Creates a flow with another probe factory and cookie-less transport (tests).
     init(
-        session: HFRSession,
+        session: HFRSession?,
         makeProbe: @escaping @Sendable ([StoredCookie]) -> any HTTPTransport,
         anonymous: any HTTPTransport
     ) {
@@ -41,7 +44,7 @@ public struct SmileyLookupFlow: Sendable {
     public func search(_ text: String, requireAll: Bool = false) async throws(SmileyLookupError) -> [ForumSmiley] {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= HFREndpoint.smileySearchMinimumLength else { throw .queryTooShort }
-        let probe = makeProbe(await account.cookies())
+        let probe = makeProbe(await account?.cookies() ?? [])
         let fetcher = PageFetcher(session: probe, anonymous: anonymous)
         let page = try await Self.fetch { () async throws(NetworkError) in try await fetcher.smileySearch(text, requireAll: requireAll) }
         do {
@@ -51,12 +54,13 @@ public struct SmileyLookupFlow: Sendable {
         }
     }
 
-    /// The wiki entry of `code`: its code, image and keywords.
+    /// The wiki entry of `code` (surrounding white space dropped): its code, image and keywords.
     /// - Throws: `invalidCode` before any request for a blank code, `network`, or `page` when the answer is not the
     ///   entry of `code` (`invalidValue(field: "smiley0")` for another smiley's entry). The page of a code unknown to the
     ///   wiki is not captured.
     public func wiki(code: String) async throws(SmileyLookupError) -> SmileyWikiDetail {
-        guard !code.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw .invalidCode }
+        let code = code.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !code.isEmpty else { throw .invalidCode }
         let fetcher = PageFetcher(session: anonymous, anonymous: anonymous)
         let page = try await Self.fetch { () async throws(NetworkError) in try await fetcher.smileyWiki(code: code) }
         let detail: SmileyWikiDetail
