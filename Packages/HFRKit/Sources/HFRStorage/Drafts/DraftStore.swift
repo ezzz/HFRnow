@@ -48,7 +48,7 @@ public actor DraftStore {
 
     /// Every live draft of an account, most recently saved first.
     public func drafts(account: String) -> [Draft] {
-        let key = DraftNameNormalizer.normalize(account)
+        let key = AccountKey.make(account)
         return liveDrafts(now: clock()).filter { $0.account == key }.sorted { $0.updatedAt > $1.updatedAt }
     }
 
@@ -69,7 +69,7 @@ public actor DraftStore {
     /// Saves the draft of a context. Empty text and subject remove the draft instead of storing nothing.
     public func save(_ text: String, subject: String? = nil, for context: DraftContext, account: String) throws {
         let now = clock()
-        let key = DraftNameNormalizer.normalize(account)
+        let key = AccountKey.make(account)
         let hasContent = !text.isEmpty || !(subject ?? "").isEmpty
         try mutate { drafts in
             let original = drafts
@@ -99,7 +99,7 @@ public actor DraftStore {
     /// Removes every draft of an account (logout). Returns how many were removed.
     @discardableResult
     public func discardAll(account: String) throws -> Int {
-        let key = DraftNameNormalizer.normalize(account)
+        let key = AccountKey.make(account)
         var removed = 0
         try mutate { drafts in
             let before = drafts.count
@@ -143,7 +143,7 @@ public actor DraftStore {
     }
 
     private static func matches(_ draft: Draft, _ context: DraftContext, _ account: String) -> Bool {
-        draft.account == DraftNameNormalizer.normalize(account) && draft.context.storageKey == context.storageKey
+        draft.account == AccountKey.make(account) && draft.context.storageKey == context.storageKey
     }
 
     private func loadedState() -> State {

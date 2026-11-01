@@ -7,7 +7,9 @@ public enum DraftContext: Sendable, Hashable, Codable {
     case reply(topic: TopicID, page: Int)
     /// A new topic in a forum category.
     case newTopic(forum: CategoryID)
-    /// A new private message to a recipient (case and zero-width spaces ignored, like blocklist matching).
+    /// A new private message to a recipient, keyed by its `AccountKey` (case and U+200B ignored). Not the wider
+    /// `PseudoNormalizer` rule: two live drafts saved under distinct keys would then share one, and a save would drop
+    /// the other (LOT-072).
     case privateMessage(recipient: String)
     /// The edit of an existing message (`numreponse`) of a topic.
     case edit(topic: TopicID, post: Int)
@@ -22,7 +24,7 @@ public enum DraftContext: Sendable, Hashable, Codable {
         case .newTopic(let forum):
             "newtopic:\(forum.queryValue)"
         case .privateMessage(let recipient):
-            "mp:\(DraftNameNormalizer.normalize(recipient))"
+            "mp:\(AccountKey.make(recipient))"
         case .edit(let topic, let post):
             "edit:\(topic.category.queryValue):\(topic.topic):\(post)"
         case .legacyGlobal:

@@ -23,7 +23,7 @@ Legacy repository <https://github.com/francoisgn/hfrnow> at `2440d79` (the code 
 | `:265` (`<span style="color:blue">` → `color:var( --color-action)`) | **not ported**: `style="color:blue"` kept; a theme concern of the app's stylesheet (LOT-083) |
 | `:271-279` (template, `\n` removed from the whole message) | newlines kept (Intentional differences 6) |
 | `ParseMessagesOperation.m:191-194` (`oldcitation` → `citation`) | **not ported**: both class names are kept and are part of the contract (ADR 0006); LOT-032 reads the quotes |
-| `:238-317` (video links marked `embedvideo`) | LOT-035; `embeds` stays empty here |
+| `:238-317` (video links marked `embedvideo`) | LOT-035 (`MessageEmbedDetector`, called at the end of `normalize`) |
 | `ObjCTopicHTMLRenderer.m:40` (`swap_spoiler_states`), `style-liste-light.css:130` (`div.masque { visibility: hidden }`) | spoiler markup kept (`table.spoiler`, `div.Topic.masque`), its `onclick` and `style` dropped: the toggle belongs to the app (LOT-083) |
 | `ObjCTopicHTMLRenderer.m:10,32` (`nosig` class), `style-liste-light.css:99` (`.nosig span.signature, div.edited { display: none }`) | `div.edited` removed from the content (its facts are `MessageBlock.editNote`, `quotedByCount`, `quotedByURL`, LOT-030) |
 
@@ -78,14 +78,14 @@ copied into an allow-listed element with allow-listed attributes, unwrapped (its
 8. Spoilers and code: `table.spoiler` (with `div.Topic.masque`), `table.code`, `table.fixed`, `ol.olcode`, `li`, `span[style=color]`
    keep their structure and classes; the spoiler's `onclick`/`style` and the code header's `font-family` go with the attribute rules.
 9. Quotes: `table.citation`, `table.oldcitation`, `table.quote`, `div.container`, `tr.none`, `b.s1`, `a.Topic` are kept as served.
-10. `embeds` is always empty (LOT-035).
+10. `embeds` is filled by LOT-035's `MessageEmbedDetector` from the normalized `html`.
 11. The walk is iterative and the tree is assembled bottom-up (an element joins its parent once its children are copied): nesting depth
     is bounded by memory, not by the stack. Checked at 10 000 nested elements on a cooperative-pool thread (512 KB stack), where a
     recursive copy, or SwiftSoup's own `appendChild` on an attached deep node, overflows at about 5 000.
 
 ### What the following lots build on
 
-- **LOT-035**: `links` (not in the signature) are the candidates; `embeds` is filled from them.
+- **LOT-035**: `embeds` is filled from the normalized `html` (the signature is outside it); `links` keeps every link, video links included.
 - **LOT-032**: works on `ExtractedMessageBlock.content`, the untouched source tree.
 - **LOT-083** (app builder): `html` + `signatureHTML` go into the template; display modes are applied from the lists (image mode from
   `images`, signature visibility by choosing to append `signatureHTML`, bundled smileys from `smileys`); it must provide the spoiler toggle
@@ -172,7 +172,7 @@ Captures (`Fixtures/captures/`, LOT-001) and the LOT-003 oracles, through `oracl
 | signature cut | `signatureHTML != nil` ⇔ the capture block holds `span.signature`; the text comparison proves the cut point | the oracle holds no signature text |
 | totals | 125 signatures, 103 messages with personal smileys, 36 with images (LOT-003 RC3.9), 484 links, 2 legacy links whose `href` is not a URL (the `G3Ferrari` one, R20 and R21 message 0) | guards against a vacuous comparison; a regression rejecting a class of real links would raise the last count (LESSONS 51) |
 
-Plus, on every message: no `on*` attribute, `id`, `script` or `javascript:` in `html` and `signatureHTML`; `embeds` empty.
+Plus, on every message: no `on*` attribute, `id`, `script` or `javascript:` in `html` and `signatureHTML`; `embeds` exactly the links legacy turned into iframes (LOT-035).
 `MessageContentNormalizerTests` checks the capture facts above, `MessageContentSanitizationTests` the error paths on inline snippets.
 
 ## Intentional differences from legacy

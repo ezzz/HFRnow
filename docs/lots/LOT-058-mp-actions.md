@@ -69,8 +69,8 @@ Shown to fail with the behaviour removed (9 mutations, each caught): any `nonlu`
 
 ## Intentional differences from legacy
 
-1. **The answer is read**: only HFR's own sentence is a success (legacy took any answer with a body, `:1250-1272`). [CHANGELOG-LEGACY](../CHANGELOG-LEGACY.md) row 49.
-2. **The link is the header's, on the forum origin** (legacy took the first `href` containing `nonlu`, a member's link included, `:1571-1574`). Row 49.
+1. **The answer is read**: only HFR's own sentence is a success (legacy took any answer with a body, `:1250-1272`). [CHANGELOG-LEGACY](../CHANGELOG-LEGACY.md) row 54.
+2. **The link is the header's, on the forum origin** (legacy took the first `href` containing `nonlu`, a member's link included, `:1571-1574`). Row 54.
 3. **The session is checked before the write**, as for the flags (#314).
 
 ## Learnings

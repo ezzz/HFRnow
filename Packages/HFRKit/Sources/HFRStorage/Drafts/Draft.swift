@@ -4,7 +4,7 @@ import Foundation
 public struct Draft: Sendable, Hashable, Codable {
     /// Where the draft belongs.
     public var context: DraftContext
-    /// Normalised identifier of the account that was writing.
+    /// Account key (`AccountKey`, ADR 0013 §7) of the account that was writing.
     public var account: String
     /// Message body.
     public var text: String
