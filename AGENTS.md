@@ -42,6 +42,7 @@ License: [PolyForm Noncommercial 1.0.0](LICENSE) — no commercial use, credit t
 | `docs/ROADMAP.md` | Phases and their exit criteria |
 | `docs/LOTS.md` | The migration plan: lots with scope, dependencies, model routing, each linked to its issue. Owners and status live on the [issues](https://github.com/ezzz/HFRnow/issues) |
 | `docs/agents/` | [ORCHESTRATION](docs/agents/ORCHESTRATION.md) (parallel sessions), [REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md) (bots & reviews), [LESSONS](docs/agents/LESSONS.md) (self-review table), [EXTERNAL-AGENTS](docs/agents/EXTERNAL-AGENTS.md) (brief for contributors' agents: queues, claims, reviews, model matrix) |
+| `tooling/roadmap/` | Board generator and tracker sweep: `lots.json` from `docs/LOTS.md`, `state.json` from the tracker, the boards of #166 and #324, `hygiene.py` (daily, dry-run by default); [README](tooling/roadmap/README.md) has the routine |
 | `docs/lots/` | One spec file per lot (`LOT-XXX-name.md`) |
 | `docs/FEATURES.md` | App feature backlog (FEAT-XXX, with credit to who proposed it) and status; one spec per feature in `docs/features/FEAT-XXX.md` ([ADR 0011](docs/adr/0011-contribution-model-and-feature-intake.md) §2) |
 | `docs/HFR-PROTOCOL.md` | What we know about HFR: URLs, forms, cookies, HTML structure |
