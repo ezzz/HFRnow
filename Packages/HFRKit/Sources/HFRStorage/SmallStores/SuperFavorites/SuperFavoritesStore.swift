@@ -80,20 +80,6 @@ public actor SuperFavoritesStore {
     /// build or by LOT-067 / LOT-172 may not be.
     private static func normalized(_ list: [SuperFavorite]) -> [SuperFavorite] {
         var seen = Set<TopicID>()
-        return list.filter { $0.topic.topic > 0 && seen.insert($0.topic).inserted }.sorted { precedes($0.topic, $1.topic) }
-    }
-
-    /// The saved order: forum categories by number, private messages last, then topic number.
-    private static func precedes(_ lhs: TopicID, _ rhs: TopicID) -> Bool {
-        let left = rank(of: lhs.category)
-        let right = rank(of: rhs.category)
-        return left == right ? lhs.topic < rhs.topic : left < right
-    }
-
-    private static func rank(of category: CategoryID) -> (Int, Int) {
-        switch category {
-        case .forum(let number): (0, number)
-        case .privateMessages: (1, 0)
-        }
+        return list.filter { $0.topic.topic > 0 && seen.insert($0.topic).inserted }.sorted { TopicOrder.precedes($0.topic, $1.topic) }
     }
 }

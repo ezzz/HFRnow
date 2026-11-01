@@ -449,6 +449,13 @@ Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `Li
 - **Hrefs**: a topic's `href` names its sub-category for most rows (`…/categories/13/subcategories/433/topics/28563/`) but not in `R57c` (`…/categories/13/topics/28563/`). `R57c` says `is_sticky` true for topic 28563, which no list shows sticky (`R57b`, `R04`, `R06`).
 - **Not captured**: a page 2, `results_per_page`, an `/api/` href requested as is, an error answer, any answer to a session (flag buckets #335), sub-categories (#285); the anonymous ones are #355.
 
+### LOT-035 — video links
+
+[LOT-035](lots/LOT-035-video-embeds.md), tests `MessageContentOracleTests` (LOT-003 iframes) and `MessageEmbedDetectorTests`.
+
+- **A posted video link** (`R20`, `R22a`, `R22b`, `R27`, `R28`, **verified**): `<a rel="nofollow" href="<url>" target="_blank" class="cLink">` with the URL or a title as text (`R20`: "Impasto a mano pizza napoletana"), usually straight in a paragraph of the message; HFR adds no player. The corpus has `http://` and `https://www.youtube.com/watch?v=` (`R20`, `R22a`), `https://youtu.be/<id>` with `t=1m5s` (`R20`) or `t=706` (`R28`), and `vimeo.com/<number>` (`R20`); the LOT-003 oracles turn 133 of them into iframes over 8 pages.
+- **Start time** (`R20`, `R28`): the captured `youtu.be` links carry their start as `t=1m5s` and as plain seconds, `t=706`.
+
 ### LOT-050 — moderator alert
 
 [LOT-050](lots/LOT-050-moderator-alert.md), tests `ModeratorAlertPrepareTests`, `ModeratorAlertSubmitTests` and `HopFormParserTests.moderationLayout`.
