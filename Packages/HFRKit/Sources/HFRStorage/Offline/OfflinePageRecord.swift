@@ -58,7 +58,10 @@ struct OfflinePageRecord: Codable {
     /// True when a `hash_check` input of `html` has a value: the page was served to a logged-in session (`R21`, `R32b`),
     /// while every input is empty on a page served without cookies (`R20`, `R22a`, `R28`). An input whose value cannot
     /// be read counts as holding one (fail closed), and so does a matched tag with more than one `name=` or `value=`.
+    /// A `codehex=` with a value anywhere is a token too: the per-session secret of the logged-in links (`unlog.php`,
+    /// `suppressflag.php`, `clearimage.php`; HFR-PROTOCOL §5, §6b), never on a page served without cookies.
     static func holdsSessionToken(_ html: String) -> Bool {
+        if html.firstMatch(of: /\bcodehex=[^&"'\s<>]+/.ignoresCase()) != nil { return true }
         // Quote-aware (LESSONS 34): a `>` inside an attribute value does not end the tag. A quote left open falls back
         // to the first `>`, so a malformed input is still read, and fails closed below.
         for tag in html.matches(of: /<input\b(?:(?:[^>"']|"[^"]*"|'[^']*')*|[^>]*)>/.ignoresCase()) {

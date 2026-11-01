@@ -467,7 +467,7 @@ Source: [LOT-053](lots/LOT-053-smiley-search-wiki.md), `SmileyLookupFlow`, check
 
 [LOT-068](lots/LOT-068-offline-reading.md), tests `OfflineTopicStoreTests`.
 
-- **Session token in a topic page** (`R20`, `R22a`, `R28` without cookies; `R21`, `R32b` logged in, **verified**): every `<input … name="hash_check" value="…">` of a page served without cookies is empty (four on each), while a logged-in page carries the token in each of them (six on `R21`, eight on `R32b`). A page without a filled `hash_check` holds no session secret, which is what the offline store requires before writing a page to disk.
+- **Session token in a topic page** (`R20`, `R22a`, `R28` without cookies; `R21`, `R32b` logged in, **verified**): every `<input … name="hash_check" value="…">` of a page served without cookies is empty (four on each), while a logged-in page carries the token in each of them (six on `R21`, eight on `R32b`). The logged-in header also carries the `codehex` secret of the logout link (§5), which a page served without cookies does not have. The offline store refuses a page with a filled `hash_check` or a `codehex` value before writing it to disk.
 
 ## 7. Reported by redface2, to verify with our fixtures
 

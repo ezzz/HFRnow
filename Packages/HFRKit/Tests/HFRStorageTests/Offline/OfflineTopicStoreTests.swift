@@ -117,6 +117,15 @@ struct OfflineTopicStoreTests {
         #expect(OfflinePageRecord.holdsSessionToken(#"<input value="" name="x" title="oops><input name="hash_check" title="t"><p>"</p>"#))
     }
 
+    @Test("A codehex token is refused even without a filled hash_check: the logged-in links carry it (HFR-PROTOCOL §5)")
+    func codehexForms() {
+        // Small fragments: the captures carry no codehex value (the anonymizer replaces it), so the rule's inputs are written here.
+        #expect(OfflinePageRecord.holdsSessionToken(#"<a href="/unlog.php?config=hardwarefr.inc&amp;codehex=0123456789abcdef">x</a>"#))
+        #expect(OfflinePageRecord.holdsSessionToken(#"<a href="/user/suppressflag.php?cat=13&CODEHEX=abc">x</a>"#))
+        #expect(!OfflinePageRecord.holdsSessionToken(#"<a href="/unlog.php?config=hardwarefr.inc&amp;codehex=">x</a>"#))
+        #expect(!OfflinePageRecord.holdsSessionToken(#"<p>no codehexes here</p>"#))
+    }
+
     @Test("Only forum topics from page 1, with content, are saved", arguments: [
         (TopicID(category: .privateMessages, topic: 3207033), 1), (TopicID(category: .forum(0), topic: 1), 1),
         (TopicID(category: .forum(13), topic: 0), 1), (TopicID(category: .forum(13), topic: 28563), 0)
