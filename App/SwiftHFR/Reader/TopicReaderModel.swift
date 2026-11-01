@@ -3,8 +3,8 @@ import HFRModels
 import HFRParsing
 import Observation
 
-// Port of HFRswift/Swift/MessagesView.swift (MessagesView.loadPage, WebView.ScrollRequest) @ 2440d79. Differences: the page HFR served
-// is followed (LOT-167).
+// Port of HFRswift/Swift/MessagesView.swift (MessagesView.loadPage, WebView.ScrollRequest) @ 2440d79. Differences: when HFR serves
+// another page than the one asked (past the end, R24), the shown target takes the served page number (LOT-167).
 /// An HTML document handed to the web view. `token` is unique per model, so an event of an older document is recognised.
 struct ReaderDocument: Equatable, Sendable {
     /// Identity of this document; grows with every new document.
