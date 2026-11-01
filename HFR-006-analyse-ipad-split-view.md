@@ -14,6 +14,8 @@ Sur iPad en taille régulière, `RootTabView` coordonne deux présentations excl
 
 Sur iPhone et lorsque l'iPad passe en taille compacte, le `TabView` et le flux liste puis push restent inchangés.
 
+iPhone Duo (novembre 2026) : la même racine split view est utilisée sur tout iPhone dont la scène est regular/regular, c'est-à-dire l'écran intérieur du Duo, en portrait comme en paysage. L'écran extérieur (compact) garde le `TabView`. La règle iPad (largeur regular seule) est inchangée. Plier ou déplier bascule entre les deux racines, comme un redimensionnement Split View sur iPad.
+
 ## Architecture retenue
 
 ### Un coordinateur unique, deux géométries

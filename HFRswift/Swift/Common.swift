@@ -331,18 +331,35 @@ extension View {
 
     /// Workaround for an iOS 27.1 hang on the iPhone Duo inner display: once a large title has
     /// collapsed on scroll, the next push loops forever in `UINavigationController` layout.
-    /// Applied to each tab's root view; pushed views inherit the inline mode.
+    /// Applied to each tab's root view and to the split view columns; pushed views inherit the
+    /// inline mode.
     func expandedPhoneInlineNavigationTitle() -> some View {
         modifier(ExpandedPhoneInlineNavigationTitle())
+    }
+}
+
+private struct ExpandedPhoneRootKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// Set by `RootTabView` when a `.phone` scene shows the split view root (iPhone Duo inner
+    /// display). Needed because split view columns report a compact width of their own, so the
+    /// size classes read inside a column no longer describe the whole screen.
+    var hfrIsExpandedPhoneRoot: Bool {
+        get { self[ExpandedPhoneRootKey.self] }
+        set { self[ExpandedPhoneRootKey.self] = newValue }
     }
 }
 
 private struct ExpandedPhoneInlineNavigationTitle: ViewModifier {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @Environment(\.hfrIsExpandedPhoneRoot) private var isExpandedPhoneRoot
 
     private var isExpandedPhoneLayout: Bool {
-        UIDevice.current.userInterfaceIdiom == .phone && horizontalSizeClass == .regular && verticalSizeClass == .regular
+        guard UIDevice.current.userInterfaceIdiom == .phone else { return false }
+        return isExpandedPhoneRoot || (horizontalSizeClass == .regular && verticalSizeClass == .regular)
     }
 
     func body(content: Content) -> some View {

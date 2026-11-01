@@ -1320,6 +1320,7 @@ struct RootTabView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) private var systemColorScheme
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @State private var selectedTab: RootTabIdentifier
     @State private var iPadSidebarDestination: IPadSidebarDestination
     @State private var hasScheduledColdLaunchPrefetch = false
@@ -1343,8 +1344,14 @@ struct RootTabView: View {
     @AppStorage(AppTabBarMinimizeOnScroll.key) private var tabBarMinimizeOnScroll = true
     @AppStorage(SidebarVisibilityStorage.key) private var iPadSidebarVisibilityRawValue = SidebarVisibilityStorage.doubleColumn
 
+    /// Split view root (sidebar + list + detail) whenever the scene is regular in both
+    /// dimensions: iPad full screen, and the iPhone Duo inner display (a `.phone` idiom that
+    /// reports regular/regular when unfolded, in portrait and in landscape). The cover screen,
+    /// regular iPhones and the landscape Pro Max (regular width, compact height) keep the tab bar.
+    /// iPad keeps its existing rule (regular width only) so no iPad configuration changes.
     private var usesSidebarRoot: Bool {
-        UIDevice.current.userInterfaceIdiom == .pad && horizontalSizeClass == .regular
+        guard horizontalSizeClass == .regular else { return false }
+        return verticalSizeClass == .regular || UIDevice.current.userInterfaceIdiom == .pad
     }
 
     init() {
@@ -1576,7 +1583,7 @@ struct RootTabView: View {
         messagesTopicTarget = nil
         detailNavigationResetToken = UUID()
         preferredCompactColumn = .content
-        if UIDevice.current.userInterfaceIdiom == .pad {
+        if usesSidebarRoot || UIDevice.current.userInterfaceIdiom == .pad {
             iPadSidebarVisibilityRawValue = SidebarVisibilityStorage.doubleColumn
             setIPadSidebarDestination(.messages, source: "showMessagesList")
         } else {
@@ -1607,6 +1614,7 @@ struct RootTabView: View {
 
     var body: some View {
         rootContainer
+            .environment(\.hfrIsExpandedPhoneRoot, usesSidebarRoot && UIDevice.current.userInterfaceIdiom == .phone)
             .preferredColorScheme(appTheme.preferredColorScheme)
             .tint(appTheme.actionTintColor)
             .environment(\.appThemePalette, appTheme.palette)
@@ -1638,6 +1646,22 @@ struct RootTabView: View {
                     scenePhase: String(describing: scenePhase),
                     note: splitVisibilityAuditNote(
                         extra: "previousSizeClass=\(Self.sizeClassAuditName(oldValue)) newSizeClass=\(Self.sizeClassAuditName(newValue))"
+                    )
+                )
+                ensureVisibleIPadListIfNeeded()
+            }
+            .onChange(of: verticalSizeClass) { oldValue, newValue in
+                // iPhone Duo and large iPhones: rotation or fold can flip only the height class,
+                // which also switches between the tab bar and the split view root.
+                RootTabAudit.log(
+                    "splitVisibility.verticalSizeClassChanged",
+                    source: "SwiftUI.verticalSizeClass",
+                    current: selectedTab,
+                    runtime: RuntimeState.selectedTab,
+                    mode: rootModeAuditName,
+                    scenePhase: String(describing: scenePhase),
+                    note: splitVisibilityAuditNote(
+                        extra: "previousVerticalSizeClass=\(Self.sizeClassAuditName(oldValue)) newVerticalSizeClass=\(Self.sizeClassAuditName(newValue))"
                     )
                 )
                 ensureVisibleIPadListIfNeeded()
@@ -1731,6 +1755,7 @@ struct RootTabView: View {
                 iPadSidebarNavigationList
             } content: {
                 selectedIPadListContent
+                    .expandedPhoneInlineNavigationTitle()
                     .navigationSplitViewColumnWidth(min: 300, ideal: 380, max: 480)
             } detail: {
                 selectedIPadDetail
@@ -1774,6 +1799,7 @@ struct RootTabView: View {
             }
         }
         .navigationTitle("Hardware.fr")
+        .expandedPhoneInlineNavigationTitle()
         .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 280)
     }
 
