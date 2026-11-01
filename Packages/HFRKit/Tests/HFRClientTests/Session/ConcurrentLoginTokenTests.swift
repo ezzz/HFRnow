@@ -49,6 +49,22 @@ struct ConcurrentLoginTokenTests {
         #expect(await session.hashChecks.isEmpty)
     }
 
+    @Test(
+        "An alert form keeps the token of a login adopted during its GET (R46, LOT-050)",
+        arguments: [ConcurrentLogin(identity: "user1", hashCheck: fresher), ConcurrentLogin(identity: "user2", hashCheck: fresher)]
+    )
+    func alertFormKeepsFresherToken(login: ConcurrentLogin) async throws {
+        let session = ScriptedPostingSession([try ModeratorAlertHarness.formPage()])
+        await session.adoptLoginDuringNextRequest(login)
+        let page = try await ModeratorAlertFlow().prepare(link: ModeratorAlertHarness.link, through: session)
+        guard case .form = page else {
+            Issue.record("expected the form, got \(page)")
+            return
+        }
+        #expect(await session.hashCheck == Self.fresher)
+        #expect(await session.hashChecks.isEmpty)
+    }
+
     @Test("Without a concurrent login, the form's token is recorded (R40a)")
     func loadFormRecordsToken() async throws {
         let session = ScriptedPostingSession([try PostingCapture.form("R40a")])

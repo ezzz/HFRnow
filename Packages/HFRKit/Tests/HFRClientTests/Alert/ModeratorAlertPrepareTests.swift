@@ -101,7 +101,9 @@ struct ModeratorAlertPrepareTests {
         "modo.php?cat=13&amp;ref=1&amp;post=28563&amp;numreponse=2666650&amp;page=1&amp;config=hfr.inc",
         "modo.php?cat=13&amp;ref=1&amp;post=28564&amp;numreponse=2666649&amp;page=1&amp;config=hfr.inc",
         "https://example.org/user/modo.php?cat=13&amp;post=28563&amp;numreponse=2666649&amp;config=hfr.inc",
-        "/user/modo.php.bak?cat=13&amp;post=28563&amp;numreponse=2666649&amp;config=hfr.inc"
+        "/user/modo.php.bak?cat=13&amp;post=28563&amp;numreponse=2666649&amp;config=hfr.inc",
+        "/modo.php?cat=13&amp;post=28563&amp;numreponse=2666649&amp;config=hfr.inc",
+        "/x/user/modo.php?cat=13&amp;post=28563&amp;numreponse=2666649&amp;config=hfr.inc"
     ])
     func otherAction(action: String) async {
         let outcome = await ModeratorAlertHarness.run(page: ModeratorAlertHarness.fragment(Self.alertForm(action: action)))
@@ -111,7 +113,7 @@ struct ModeratorAlertPrepareTests {
 
     // MARK: - Links
 
-    @Test("Only the alert page of a forum message on https forum.hardware.fr is requested", arguments: [
+    @Test("Only the alert page of a forum message on https forum.hardware.fr is requested, at its exact path", arguments: [
         "http://forum.hardware.fr/user/modo.php?config=hfr.inc&cat=13&post=28563&numreponse=2666649",
         "https://example.org/user/modo.php?config=hfr.inc&cat=13&post=28563&numreponse=2666649",
         "https://forum.hardware.fr:8443/user/modo.php?config=hfr.inc&cat=13&post=28563&numreponse=2666649",
@@ -120,7 +122,11 @@ struct ModeratorAlertPrepareTests {
         "https://forum.hardware.fr/user/modo.php?config=hfr.inc&cat=13&post=28563&ref=0&page=1",
         "https://forum.hardware.fr/user/modo.php?config=hfr.inc&cat=13&cat=14&post=28563&numreponse=2666649",
         "https://forum.hardware.fr/user/modo.php?cat=13&post=28563&numreponse=2666649",
-        "https://forum.hardware.fr/user/modo.php?config=hfr.inc&cat=0&post=28563&numreponse=2666649"
+        "https://forum.hardware.fr/user/modo.php?config=hfr.inc&cat=0&post=28563&numreponse=2666649",
+        "https://forum.hardware.fr/user/modo.php?config=hfr.inc&cat=13&post=0&numreponse=2666649",
+        "https://forum.hardware.fr/user/modo.php?config=hfr.inc&cat=13&post=28563&numreponse=0",
+        "https://forum.hardware.fr/modo.php?config=hfr.inc&cat=13&post=28563&numreponse=2666649",
+        "https://forum.hardware.fr/x/user/modo.php?config=hfr.inc&cat=13&post=28563&numreponse=2666649"
     ])
     func refusedLinks(raw: String) async throws {
         let outcome = await ModeratorAlertHarness.run(link: try #require(URL(string: raw)), page: try ModeratorAlertHarness.formPage())

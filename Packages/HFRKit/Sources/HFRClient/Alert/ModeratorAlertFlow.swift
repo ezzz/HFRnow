@@ -44,6 +44,7 @@ public struct ModeratorAlertFlow: Sendable {
         } catch .unsupportedForm(let cause) {
             throw .unsupportedForm(reason: cause)
         } catch {
+            // Not reached: `PostingBody.make` throws only `unsupportedForm`; the typed catch must still be exhaustive.
             throw .unsupportedForm(reason: "body")
         }
         // Nothing has left the device yet: a cancellation here is a plain failure, not an unknown outcome.
@@ -122,5 +123,6 @@ public struct ModeratorAlertFlow: Sendable {
 
     /// The textarea holding the user's reason (`R46`).
     static let reasonField = "raison"
+    /// The form's token, sent back with the reason and recorded in the session when the form is read.
     static let tokenField = "hash_check"
 }
