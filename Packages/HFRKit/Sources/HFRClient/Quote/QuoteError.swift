@@ -1,6 +1,7 @@
 /// Why a quote composer could not be opened. No case carries a token, a cookie or the quoted text.
 public enum QuoteError: Error, Sendable, Equatable {
-    /// The message has no quote link (LOT-031 found none on the forum): nothing was requested.
+    /// The message has no quote link (LOT-031 found none on the forum), or the link given is not one (`/message.php` with
+    /// one positive `numrep`): nothing was requested.
     case noQuoteLink
     /// No message of the topic is selected for a multi-quote: nothing was requested.
     case emptySelection

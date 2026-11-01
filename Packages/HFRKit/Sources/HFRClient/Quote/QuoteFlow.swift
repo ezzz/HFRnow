@@ -35,13 +35,15 @@ public struct QuoteFlow: Sendable {
     }
 
     /// Posts `text` through `composer` (LOT-048's `reply`). Once HFR confirmed the reply, the messages of a multi-quote
-    /// composer are unselected; on any error, `unconfirmed` included, the selection is kept.
+    /// composer that `text` still quotes are unselected: a block the user removed, or narrowed away with
+    /// `QuoteSelectionFormatter`, leaves its message selected. On any error, `unconfirmed` included, the selection is kept.
     public func reply(
         _ text: String, options: [PostOption: Bool] = [:], with composer: QuoteComposer
     ) async throws(PostingError) -> PostingResult {
         let result = try await posting.reply(text, options: options, with: composer.form)
         if let selection = composer.selection {
-            await composer.session.unselect(selection.numbers, of: selection.token)
+            let quoted = Self.quotedNumbers(in: text)
+            await composer.session.unselect(selection.numbers.filter(quoted.contains), of: selection.token)
         }
         return result
     }
@@ -49,7 +51,7 @@ public struct QuoteFlow: Sendable {
     // MARK: - Steps
 
     func quote(_ message: MessageActions, through session: any QuotingSession) async throws(QuoteError) -> QuoteComposer {
-        guard let url = message.quoteURL else { throw .noQuoteLink }
+        guard let url = message.quoteURL, Self.isQuoteLink(url) else { throw .noQuoteLink }
         let form = try await load(url, through: session)
         return QuoteComposer(form: form, prefill: try Self.prefill(of: form), selection: nil, session: session)
     }
@@ -67,6 +69,24 @@ public struct QuoteFlow: Sendable {
               form.form.field(named: "post")?.value == String(token.topic.topic)
         else { throw .otherTopic }
         return QuoteComposer(form: form, prefill: try Self.prefill(of: form), selection: (token, numbers), session: session)
+    }
+
+    /// A LOT-031 quote link: path `/message.php` with one positive `numrep` (`R41a`, `R47a`). The topic's answer link has
+    /// the same path and no `numrep` (`R40a`): with a multi-quote cookie it serves the selection's prefill (`R42`), which
+    /// a single quote must not take. The origin is the loader's check.
+    static func isQuoteLink(_ url: URL) -> Bool {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false), components.percentEncodedPath == "/message.php"
+        else { return false }
+        let values = (components.queryItems ?? []).filter { $0.name == "numrep" }.compactMap(\.value)
+        guard values.count == 1, let value = values.first, value.first != "0", value.utf8.allSatisfy({ (48...57).contains($0) }) else {
+            return false
+        }
+        return !value.isEmpty
+    }
+
+    /// The messages a reply quotes: the first number of each `[quotemsg=<numreponse>,<ref>,<author>]` tag (`R47a`, `R47c`).
+    static func quotedNumbers(in text: String) -> Set<Int> {
+        Set(text.matches(of: /\[quotemsg=([0-9]+),[0-9]+,[0-9]+\]/.ignoresCase()).compactMap { Int($0.output.1) })
     }
 
     private func load(_ url: URL, through session: any QuotingSession) async throws(QuoteError) -> PostingForm {

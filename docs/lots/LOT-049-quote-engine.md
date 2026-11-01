@@ -28,13 +28,13 @@ Code in `Sources/HFRClient/Quote/`, tests in `Tests/HFRClientTests/Quote/`.
 
 ### `QuoteFlow`
 
-- `quote(_:in:)`: the composer of one message, from its LOT-031 `quoteURL` (`noQuoteLink` when there is none, before any request), loaded by LOT-048's `PostingFlow.loadForm` through the given account session (forum URL check, token recorded, `notLoggedIn`, `formUnavailable`…: `QuoteError.form`). Returns a `QuoteComposer`.
+- `quote(_:in:)`: the composer of one message, from its LOT-031 `quoteURL` (`noQuoteLink`, before any request, when there is none or it is not a quote link: path `/message.php` with one positive `numrep`; the topic's answer link has no `numrep` and would serve a multi-quote prefill, `R42`), loaded by LOT-048's `PostingFlow.loadForm` through the given account session (forum URL check, token recorded, `notLoggedIn`, `formUnavailable`…: `QuoteError.form`). Returns a `QuoteComposer`.
 - `multiQuote(_:answerFormURL:in:)`: the topic's reply composer (`TopicPage.answerFormURL`, `R42`/`R47c`'s URL, no `numrep`) loaded while the session holds the topic's `quotes…` cookie. The session sends it with the GET like a browser, together with the cookies of other topics; HFR prefills one block per selected message. `token` is any `quoteSelection` of the topic: it names the cookie (`MultiQuoteCookie.name(for:)`).
   - The selected messages are read from the session first; none selected is `emptySelection`, before any request.
   - The served form must name the token's topic in its hidden `cat` and `post` (`R42`: `13`, `28563`; `R47c`: `prive`, `3207033`), else `otherTopic`: the selection the composer would unselect after posting is the posted topic's, never another one.
 - **Prefill**: `QuoteComposer.prefill` is the form's `content_form` as LOT-036 reads it (`ForumForm.textareaContent`): entities decoded, line breaks `\n`. The `[quotemsg=…]` blocks are HFR's, never rebuilt (HFR-PROTOCOL §4). A form that is not a reply composer (edit, new topic, new MP) or whose textarea is empty is `noQuote`.
 - `reply(_:options:with:)`: LOT-048's `reply` through the composer's form, so its session, checks, single POST and confirmation rules. Then:
-  - **after HFR's confirmation** (`success` with the reply sentence), the messages of the selection read before the multi-quote composer's request are unselected, in one actor turn (`QuotingSession.unselect`, LESSONS 55). A message selected after the composer was loaded stays selected; a message the user unselected meanwhile is not selected again; the cookie is deleted when nothing is left (LOT-042). Other topics' selections are untouched.
+  - **after HFR's confirmation** (`success` with the reply sentence), the messages of the selection read before the multi-quote composer's request that the posted text still quotes (the first number of each `[quotemsg=<numreponse>,<ref>,<author>]`) are unselected, in one actor turn (`QuotingSession.unselect`, LESSONS 55). A message selected after the composer was loaded stays selected; a message the user unselected meanwhile is not selected again; the cookie is deleted when nothing is left (LOT-042). Other topics' selections are untouched.
   - **on any error** (`rejected`, `notLoggedIn`, `unconfirmed`, a local refusal, `network`), the selection is kept: nothing was posted, or the user has to check the topic, and a retry needs the same quotes.
   - a **single quote** never touches the selection, whatever the outcome.
 
@@ -48,11 +48,11 @@ Code in `Sources/HFRClient/Quote/`, tests in `Tests/HFRClientTests/Quote/`.
 
 ## Edge cases
 
-- A message without quote link (`MessageActions()`), an off-forum quote link (`https://forum.hardware.fr:8443/…`): nothing is requested.
+- A message without quote link (`MessageActions()`), an answer link or another path given as the quote link, an off-forum quote link (`https://forum.hardware.fr:8443/…`): nothing is requested.
 - An anonymous composer (`R40b`) is LOT-048's `notLoggedIn`.
 - The answer link served without the prefill (`R47b` standing for a composer whose cookie HFR did not use): `noQuote`, selection kept.
 - Another topic's token with `R47c`'s form: another conversation number, the same number in a forum category, another forum topic: `otherTopic`, nothing unselected.
-- A quote of a post that itself quotes (`R41b`): HFR's prefill holds only that post's own text, so nested quotes never reach the formatter.
+- A quote of a post that itself quotes (`R41b`): in that capture HFR's prefill holds only that post's own text; whether HFR ever nests `[quotemsg]` is not captured, and the formatter looks for the selection in each block's text as served.
 - Selecting a digit or an author number that only a tag holds (`900002` in `R47c`'s tags) bolds nothing (legacy matched the tag).
 - Large message numbers stay as served (legacy ObjC rebuilt the tag with `%d`).
 
@@ -66,7 +66,7 @@ Captures only, nothing new: composers `R41a`, `R41b`, `R42`, `R47a`, `R47c`, ans
 - `QuoteFlowTests`: `noQuoteLink`, `emptySelection` (no request), `noQuote` on five other composers, `noQuote` for a multi-quote without prefill (selection kept), `otherTopic` for three other topics, LOT-048 errors; after the reply: later selections stay and an unselected message is not selected again, the selection kept on `W17b`, `W20a`, `W14x`, `W17c`, `W15`, a timeout and HTTP 500, kept on a local refusal, untouched by a single quote whose message is selected; on a real `HFRSession` (no request): the topic's cookie is one the jar sends to the answer link, `unselect` removes only the given messages and deletes the cookie once empty, another topic's cookie stays.
 - `QuoteSelectionFormatterTests`: legacy's three cases; empty and untrimmed selections; case; selection not found (one block narrowed anyway, bold unchanged, several blocks unchanged); a selection over two blocks; a selection over two lines of `R47c`'s first block; tags never searched; tags kept as served (upper case, large numbers); surroundings kept when bolding; first occurrence only; prefills without a well-formed block.
 
-Shown to fail with the behaviour removed (each mutation caught): no unselect after success, unselect before posting, the whole selection cleared, toggles without re-reading, a single quote unselecting its message, no empty-selection check, no topic check, topic check on `post` only and on `cat` only, no shape check, an empty prefill accepted, a missing quote link replaced by a URL; formatter: tags searched, tags rebuilt, selection not trimmed, case-sensitive matching, several blocks bolded in place, one block narrowed only when found, no final `\n`, every occurrence bolded, greedy blocks, bold-not-found narrowing.
+Shown to fail with the behaviour removed (each mutation caught): no unselect after success, unselect before posting, the whole selection cleared, messages no longer quoted in the posted text unselected, an answer link accepted as a quote link, toggles without re-reading, a single quote unselecting its message, no empty-selection check, no topic check, topic check on `post` only and on `cat` only, no shape check, an empty prefill accepted, a missing quote link replaced by a URL; formatter: tags searched, tags rebuilt, selection not trimmed, case-sensitive matching, several blocks bolded in place, one block narrowed only when found, no final `\n`, every occurrence bolded, greedy blocks, bold-not-found narrowing.
 
 ## Pending capture
 

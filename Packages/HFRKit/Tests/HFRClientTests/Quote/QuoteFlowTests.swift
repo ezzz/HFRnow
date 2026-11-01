@@ -97,12 +97,31 @@ struct QuoteFlowTests {
         #expect(await session.selection(of: topic) == "|1")
     }
 
+    @Test("An answer link, or another path, is not a quote link: nothing is requested", arguments: [
+        "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=28563&page=1&p=1&subcat=433&sondage=0&owntopic=0&new=0",
+        "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=28563&numrep=0&ref=1",
+        "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=28563&numrep=1&numrep=2",
+        "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=28563&numrep=-2",
+        "https://forum.hardware.fr/bddpost.php?config=hfr.inc&cat=13&post=28563&numrep=2666649"
+    ])
+    func notAQuoteLink(raw: String) async throws {
+        // The first one is R40a's request, the topic's answer link: with a multi-quote cookie it serves R42's prefill.
+        let session = ScriptedQuoteSession([try PostingCapture.form("R42")])
+        let link = try #require(URL(string: raw))
+        let error = await Self.failure { () async throws(QuoteError) in
+            try await QuoteFlow().quote(MessageActions(quoteURL: link), through: session)
+        }
+        #expect(error == .noQuoteLink)
+        #expect(await session.requests.isEmpty)
+    }
+
     @Test("LOT-048's refusals come through: an anonymous composer, an off-forum link")
     func formErrors() async throws {
-        let anonymous = ScriptedQuoteSession([try PostingCapture.form("R40b")])
-        let anonymousLink = try PostingCapture.pageURL("R40b")
+        // R40b is the anonymous answer composer: a multi-quote's request.
+        let anonymous = await Self.conversationSession([try PostingCapture.form("R40b")])
+        let answerLink = try PostingCapture.pageURL("R40b")
         let loggedOut = await Self.failure { () async throws(QuoteError) in
-            try await QuoteFlow().quote(MessageActions(quoteURL: anonymousLink), through: anonymous)
+            try await QuoteFlow().multiQuote(Self.token(Self.conversation), answerFormURL: answerLink, through: anonymous)
         }
         #expect(loggedOut == .form(.notLoggedIn))
         let offForum = ScriptedQuoteSession([])
@@ -127,6 +146,22 @@ struct QuoteFlowTests {
         await session.select([Self.posted[0]], in: Self.conversation) // unselected meanwhile: must not come back
         _ = try await flow.reply(composer.prefill, with: composer)
         #expect(await session.selection(of: Self.conversation) == "|1980875031")
+    }
+
+    @Test("Only the messages the posted text still quotes are unselected: a narrowed or emptied quote keeps the others")
+    func onlyQuotedMessagesGo() async throws {
+        for (keep, expected) in [(Self.posted[1], "|1980875029"), (nil, "|1980875029|1980875030")] {
+            let session = await Self.conversationSession([try PostingCapture.form("R47c"), try PostingCapture.answer("W14")])
+            let flow = QuoteFlow()
+            let composer = try await flow.multiQuote(
+                Self.token(Self.conversation), answerFormURL: try PostingCapture.pageURL("R47c"), through: session
+            )
+            // Narrowed with the formatter to the second message's block, or every block removed.
+            let text = keep == nil ? "Sans citation" : QuoteSelectionFormatter.format(composer.prefill, selection: "edited", bold: false)
+            #expect(keep == nil || text.hasPrefix("[quotemsg=1980875030,"))
+            _ = try await flow.reply(text, with: composer)
+            #expect(await session.selection(of: Self.conversation) == expected)
+        }
     }
 
     @Test(

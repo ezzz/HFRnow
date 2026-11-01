@@ -467,7 +467,7 @@ Source: [LOT-053](lots/LOT-053-smiley-search-wiki.md), `SmileyLookupFlow`, check
 
 [LOT-049](lots/LOT-049-quote-engine.md), tests `QuoteCaptureTests` (LOT-004 oracles) and `QuoteFlowTests`.
 
-- **Quote of a quoting post** (`R41b`, **verified**): the prefill holds only the cited post's own text; the quote it contains (`R20`, message 2666695 citing 2666682) is not carried over, so prefills never nest `[quotemsg]`.
+- **Quote of a quoting post** (`R41b`, **verified**): the prefill holds only the cited post's own text; the quote it contains (`R20`, message 2666695 citing 2666682) is not carried over. This one capture does not show whether HFR ever nests `[quotemsg]` in a prefill.
 - **Line breaks of a prefill** (`R41a`, `R41b`, `R42`, `R47a`, `R47c`, **verified** on the oracles' `contentFormRaw`): CRLF inside the quoted text, a bare LF after each `[/quotemsg]` (one after a single quote, two after each block of a multi-quote).
 - **Multi-quote composer** (`R42`, `R47c`, **verified**): the topic's answer link (§6c LOT-084, no `numrep`) sent with the cookie `quotes<forum>-<cat>-<post>` gives a reply composer whose hidden `cat` and `post` are the topic's and whose prefill holds one block per selected message. Both captures list the blocks by ascending message number; the cookie's order was not recorded.
 - **After the post** (`W14`, meta): the answer sets a cookie named `quoteshardwarefr-prive-<post>`; its value and expiry were not recorded (#334).
