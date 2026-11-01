@@ -18,8 +18,8 @@ public actor HFRSession: HTTPTransport {
     /// Value of `md_user` with which the server says the session is logged out (`MultisManager.m:55`).
     public static let loggedOutMarker = "deleted"
 
-    private let urlSession: URLSession
-    private let cookieStorage: HTTPCookieStorage
+    let urlSession: URLSession
+    let cookieStorage: HTTPCookieStorage
     private let transport: URLSessionTransport
     /// Where requests may go: the forum in production, one host in tests.
     let hosts: SessionHostPolicy
@@ -36,8 +36,13 @@ public actor HFRSession: HTTPTransport {
     /// cookie settings are always overridden.
     init(
         cookies: [StoredCookie], hashCheck: String?, now: Date,
-        configuration: URLSessionConfiguration, hosts: SessionHostPolicy
+        configuration base: URLSessionConfiguration, hosts: SessionHostPolicy
     ) {
+        // `URLSession.configuration` is one stored object on Linux (a copy per read on Darwin): write a copy, so the
+        // configuration a caller passes, another session's included (`probe`), is never changed.
+        guard let configuration = base.copy() as? URLSessionConfiguration else {
+            preconditionFailure("URLSessionConfiguration.copy() returned another type")
+        }
         // A fresh ephemeral configuration gets its own in-memory jar on every platform (never `.shared`), and it is the
         // only public way to obtain one: corelibs has no public `HTTPCookieStorage` initializer.
         guard let storage = URLSessionConfiguration.ephemeral.httpCookieStorage else {
@@ -63,6 +68,11 @@ public actor HFRSession: HTTPTransport {
 
     deinit {
         urlSession.finishTasksAndInvalidate()
+    }
+
+    /// Whether this session's configuration still names its own jar (tests: a probe must not change it, #320).
+    func configurationHoldsItsOwnJar() -> Bool {
+        urlSession.configuration.httpCookieStorage === cookieStorage
     }
 
     /// A fresh session holding `cookies`, with this session's host policy and network settings but its own jar and no

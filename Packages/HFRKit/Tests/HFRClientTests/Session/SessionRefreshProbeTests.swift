@@ -12,7 +12,9 @@ struct SessionRefreshProbeTests {
         let restricted = HFRSession(
             cookies: [], hashCheck: nil, now: now, configuration: .ephemeral, hosts: .exactHost("127.0.0.1")
         )
-        #expect(await SessionRefreshFlow.defaultProbe(for: restricted, cookies: [], now: now).hosts == .exactHost("127.0.0.1"))
-        #expect(await SessionRefreshFlow.defaultProbe(for: HFRSession(), cookies: [], now: now).hosts == .forum)
+        let probe = SessionRefreshFlow().probe(for: restricted, cookies: [], now: now) as? HFRSession
+        #expect(await probe?.hosts == .exactHost("127.0.0.1"))
+        let production = SessionRefreshFlow().probe(for: HFRSession(), cookies: [], now: now) as? HFRSession
+        #expect(await production?.hosts == .forum)
     }
 }

@@ -23,4 +23,12 @@ struct HFRSessionProbeTests {
         #expect(await restricted.cookies(now: Self.now).isEmpty)
         #expect(await HFRSession().probe(cookies: [], now: Self.now).hosts == .forum)
     }
+
+    /// On Linux `URLSession.configuration` is one stored object: a probe must not write the source's jar into it.
+    @Test func aProbeLeavesTheSourceConfigurationAlone() async {
+        let source = HFRSession(cookies: [], hashCheck: nil, now: Self.now, configuration: .ephemeral, hosts: .forum)
+        let probe = source.probe(cookies: [Self.cookie], now: Self.now)
+        #expect(await source.configurationHoldsItsOwnJar())
+        #expect(await probe.configurationHoldsItsOwnJar())
+    }
 }
