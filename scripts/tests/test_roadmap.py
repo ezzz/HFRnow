@@ -76,6 +76,12 @@ class SyncState(unittest.TestCase):
         self.assertEqual(st["capture"], {"3": "#50", "4": "#52"})  # #51 is closed: no longer a blocker
 
 
+    def test_capture_references_to_prs_or_unknown_numbers_do_not_block(self):
+        lots = lots_of(md_row("001", 1))
+        issues = [issue(1, labels=["status: ready"], body="### Captures needed\n\n- #77 (a PR)\n- #999\n")]
+        st = sync_state.build(issues, [], lots)
+        self.assertEqual((st["ready"], st["capture"]), ([1], {}))
+
     def test_capture_blocked_lot_is_not_ready_and_state_has_a_snapshot_time(self):
         lots = lots_of(md_row("001", 1))
         issues = [issue(1, labels=["status: ready"], body="### Captures needed\n\n- #50\n"), issue(50, labels=["host: mac"])]
@@ -170,6 +176,13 @@ class Hygiene(unittest.TestCase):
                                           {1: [{"body": "Done in #10 (merged as abc)", "created_at": "2026-10-30T01:00:00Z"}]})
         self.assertEqual(actions, [])
         self.assertTrue(any("reopened" in r for r in reports))
+
+    def test_dependency_missing_from_the_plan_keeps_the_lot_blocked(self):
+        lots = lots_of(md_row("001", 1), md_row("002", 2, deps="001, 999"))
+        issues = [issue(1, "closed"), issue(2, labels=["status: blocked"])]
+        actions, reports = hygiene.analyze(issues, [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z")], lots, {}, NOW)
+        self.assertEqual(actions, [])
+        self.assertTrue(any("LOT-999" in r for r in reports))
 
     def test_dependency_cell_parsing(self):
         self.assertEqual(hygiene.numeric_deps("030, ADR 0006"), None)

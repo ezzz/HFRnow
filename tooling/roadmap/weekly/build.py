@@ -231,10 +231,10 @@ def slides(D):
         v = milestone_view({'M1': G.M1, 'M2': G.M2, 'M3': G.M3, 'M4': G.M4}[m], D)
         li = lambda items, f: ''.join(f(*x) for x in items) or '<p>Rien en attente.</p>'
         blockers = (f'<li><u>{v["waiting_cap"]}</u> lots attendent une capture sur le Mac</li>' if v['waiting_cap'] else '') + (f'<li><u>{v["blocked"]}</u> lots attendent d\'autres lots</li>' if v['blocked'] else '')
-        caps = ''.join(f'<li><u>{c}</u>{html.escape(ti)}<em>{n} lot{'s' if n > 1 else ''}</em></li>' for c, n, ti in v['caps'])
+        caps = ''.join(f'<li><u>{c}</u>{html.escape(ti)}<em>{n} lot{"s" if n > 1 else ""}</em></li>' for c, n, ti in v['caps'])
         cloud = li(v['cloud'], lambda l, s, u: f'<li><u>{l}</u>{html.escape(s)}<em>débloque {u}</em></li>') if v['cloud'] else '<p>Aucun lot moteur prêt dans ce jalon.</p>'
         extra = ''.join(f'<li><u>#{n}</u>{html.escape(re.sub(r"^Capture \(Mac\):\s*", "", D["titles"][n])[:52])}<em>vérification</em></li>' for n in EXTRA_MAC.get(m, []) if n in D['titles'])
-        mac = extra + li(v['mac'], lambda l, s, u: f'<li><u>{l}</u>{html.escape(s)}<em>débloque {u}</em></li>') if v['mac'] else '<p>Aucun lot écran prêt dans ce jalon.</p>'
+        mac = extra + (li(v['mac'], lambda l, s, u: f'<li><u>{l}</u>{html.escape(s)}<em>débloque {u}</em></li>') if v['mac'] else '<p>Aucun lot écran prêt dans ce jalon.</p>')
         return f"""<div class="card"><div class="hd"><b>{names[m][0]}</b><span>{pct(a, t)} %</span></div><div class="bar"><i class="now" style="width:{100 * a / t}%"></i></div>
 <p class="goal" style="margin-top:14px">{goals[m]} · {a} / {t} lots</p>
 <div class="sec b"><h4>Blocages</h4><ul>{blockers}{caps}</ul></div>

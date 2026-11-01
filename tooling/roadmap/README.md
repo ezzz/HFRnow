@@ -29,7 +29,7 @@ Inputs: `docs/LOTS.md` (plan), the tracker through `gh` with `GH_TOKEN` (or the 
 ```bash
 python3 tooling/roadmap/lots_from_md.py        # only when LOTS.md changed
 python3 tooling/roadmap/sync_state.py --fetch  # refresh state.json from the tracker
-python3 tooling/roadmap/generate.py && python3 tooling/roadmap/render.py   # boards for #166 and #324
+python3 tooling/roadmap/generate.py && python3 tooling/roadmap/render.py 324 OUTDIR   # boards for #166 and #324 (OUTDIR defaults to tooling/roadmap/out, git-ignored)
 python3 tooling/roadmap/hygiene.py             # daily sweep (add --apply for the routine part)
 ```
 

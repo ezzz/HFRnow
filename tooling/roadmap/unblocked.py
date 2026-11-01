@@ -1,5 +1,5 @@
 """After a merge: which lots just became unblocked?
-Usage: python3 unblocked.py LOT-084 [LOT-126 ...]   (lots just closed; update state.py CLOSED first)"""
+Usage: python3 unblocked.py LOT-084 [LOT-126 ...]   (lots just closed; run `sync_state.py --fetch` first so that state.json knows the closure)"""
 import sys
 from generate import rows, deps, done, M1, M2, M3, M4
 just = set(sys.argv[1:])

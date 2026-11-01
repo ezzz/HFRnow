@@ -79,6 +79,7 @@ def analyze(issues, pulls, lots, comments, now):
         lb = labels(i)
         deps = numeric_deps(r['deps'])
         dep_issues = [by_lot[d]['issue'] for d in (deps or []) if d in by_lot]
+        unknown = [d for d in (deps or []) if d not in by_lot]
         open_deps = [d for d in dep_issues if d not in closed]
         if dropped & set(dep_issues):
             reports.append(f"#{n} {r['lot']}: a dependency was closed not planned/duplicate, fix the plan first: " + ', '.join(f'#{d}' for d in sorted(dropped & set(dep_issues))))
@@ -87,6 +88,9 @@ def analyze(issues, pulls, lots, comments, now):
             reports.append(f"#{n} {r['lot']} is `status: ready` but depends on open " + ', '.join(f'#{d}' for d in open_deps))
         if deps is None and 'status: blocked' in lb and n not in capture:
             gate.append(f"{r['lot']} #{n}")
+        if unknown and 'status: blocked' in lb:
+            reports.append(f"#{n} {r['lot']}: dependency missing from lots.json (" + ', '.join(unknown) + '), left blocked')
+            continue
         if deps is None or 'status: ready' in lb or 'status: claimed' in lb or open_deps or n in capture or n in pending_close:
             continue
         if 'status: blocked' not in lb:

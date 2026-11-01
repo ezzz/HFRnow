@@ -64,12 +64,13 @@ def build(issues, pulls, lots):
         if 'external: ready' in lb:
             external.add(n)
     capture = {}
+    known_open = {i['number'] for i in issues if i['state'].lower() == 'open'}
     for i in issues:
         if i['state'].lower() != 'open' or i['number'] not in lot_issues:
             continue
         sec = re.search(r'### Captures needed\s*\n(.*?)(?=\n###|\Z)', i.get('body') or '', re.S)
         for m in re.findall(r'#(\d+)', sec.group(1) if sec else ''):
-            if int(m) not in closed and int(m) != i['number']:
+            if int(m) in known_open and int(m) != i['number']:  # an open issue: a PR or unknown #N never blocks
                 capture.setdefault(i['number'], set()).add(f'#{m}')
     for i in issues:  # the other direction: an open capture issue's `### Wanted by` names the lots it blocks
         if i['state'].lower() != 'open' or 'host: mac' not in labels(i) or i['number'] in lot_issues:
