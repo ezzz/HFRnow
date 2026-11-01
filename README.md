@@ -75,10 +75,10 @@ SwiftHFR keeps the spirit and restarts on a clean foundation: **100 % Swift, mod
 | Phase | Scope | Status |
 |---|---|---|
 | 0 · Foundations | Repository, CI, security tooling, agent rules | **done** |
-| 1 · Audit | Legacy engine mapped into [migration lots](docs/LOTS.md) (153 as of 2026-10-29) | **done** — [audit](docs/audit/README.md) |
+| 1 · Audit | Legacy engine mapped into [migration lots](docs/LOTS.md) (153 as of 2026-11-01) | **done** — [audit](docs/audit/README.md) |
 | 2 · Fixtures | Real HFR pages + legacy parser output as test oracle | **done** — capture corpus and oracles LOT-001 to 005 |
-| 3 · Engine | Models, parsing, network, storage, flows | **in progress** — 39 of 67 engine lots done as of 2026-10-29 (models, network base, storage, parsing of lists and topic pages, login, `hop` forms, post-form engine); the rest is in review or queued |
-| 4 · App | SwiftUI app on top of `HFRKit` | **in progress** — app target, accounts and login, and navigation merged (LOT-080 to 082); topic reader merged (LOT-083); 6 of 75 app lots done as of 2026-10-29; MVP lots still open: reply composer LOT-084 (in review, PR #294), root tab bar LOT-170 (in review, PR #303), session check at launch #300 (in review, PR #309), TestFlight pipeline LOT-161 (#251, not started) |
+| 3 · Engine | Models, parsing, network, storage, flows | **in progress** — 49 of 67 engine lots done as of 2026-11-01 (models, network base, storage, parsing of lists and topic pages, login, `hop` forms, post-form engine); the rest is in review or queued |
+| 4 · App | SwiftUI app on top of `HFRKit` | **in progress** — app target, accounts and login, and navigation merged (LOT-080 to 082); topic reader merged (LOT-083); reply composer (LOT-084), root tab bar (LOT-170) and the session check at launch (#300) merged; 9 of 80 app lots done as of 2026-11-01; MVP lots still open: link handling LOT-137 (#227), text size slider LOT-169 (#295), TestFlight pipeline LOT-161 (#251), plus the Mac checks #344 and #322 |
 | 5 · iOS 27 experience | Column navigation, large and foldable layouts | planned |
 
 Details and exit criteria: [roadmap](docs/ROADMAP.md).
@@ -89,11 +89,11 @@ Details and exit criteria: [roadmap](docs/ROADMAP.md).
   <img src="docs/assets/roadmap-milestones.svg" alt="SwiftHFR milestones: M1 MVP, then M2 read and reply complete on the Mac lane and M3 engine complete on the cloud lane, both leading to M4 final version; below, the life of a lot from todo (ready, blocked, triage) through ongoing (claimed, draft PR, review wanted, changes requested, approved) to done (merged, issue closed, docs up to date)" width="100%">
 </p>
 
-| Milestone | Live board | Lots done (2026-10-29) |
+| Milestone | Live board | Lots done (2026-11-01) |
 |---|---|---|
-| 🚀 M1 · MVP: log in, browse, read, reply, first TestFlight build | [#166](https://github.com/ezzz/HFRnow/issues/166) | 36 of 41 |
-| 📖 M2 · Read & reply complete: every reading and answering feature, topics and MPs, offline reading included | [#324](https://github.com/ezzz/HFRnow/issues/324) | 0 of 38 |
-| ⚙️ M3 · Engine complete: every `HFRKit` lot, parity gates green | [#324](https://github.com/ezzz/HFRnow/issues/324) | 15 of 43 |
+| 🚀 M1 · MVP: log in, browse, read, reply, first TestFlight build | [#166](https://github.com/ezzz/HFRnow/issues/166) | 38 of 41 |
+| 📖 M2 · Read & reply complete: every reading and answering feature, topics and MPs, offline reading included | [#324](https://github.com/ezzz/HFRnow/issues/324) | 1 of 38 |
+| ⚙️ M3 · Engine complete: every `HFRKit` lot, parity gates green | [#324](https://github.com/ezzz/HFRnow/issues/324) | 25 of 43 |
 | 🏁 M4 · Final version: full legacy parity, iOS 27 experience, App Store | [#324](https://github.com/ezzz/HFRnow/issues/324) | 0 of 31 |
 
 The boards are kanbans: each lot is one issue with its own definition of done, shown as 🔜 todo, 🔄 ongoing or ✅ done.
