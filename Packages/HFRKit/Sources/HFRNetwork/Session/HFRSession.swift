@@ -21,7 +21,8 @@ public actor HFRSession: HTTPTransport {
     private let urlSession: URLSession
     private let cookieStorage: HTTPCookieStorage
     private let transport: URLSessionTransport
-    private let hosts: SessionHostPolicy
+    /// Where requests may go: the forum in production, one host in tests.
+    let hosts: SessionHostPolicy
 
     /// The anti-CSRF token every POST needs (HFR-PROTOCOL §5); nil until known.
     public private(set) var hashCheck: String?
@@ -35,8 +36,13 @@ public actor HFRSession: HTTPTransport {
     /// cookie settings are always overridden.
     init(
         cookies: [StoredCookie], hashCheck: String?, now: Date,
-        configuration: URLSessionConfiguration, hosts: SessionHostPolicy
+        configuration base: URLSessionConfiguration, hosts: SessionHostPolicy
     ) {
+        // `URLSession.configuration` is one stored object on Linux (a copy per read on Darwin): write a copy, so the
+        // configuration a caller passes, another session's included (`probe`), is never changed.
+        guard let configuration = base.copy() as? URLSessionConfiguration else {
+            preconditionFailure("URLSessionConfiguration.copy() returned another type")
+        }
         // A fresh ephemeral configuration gets its own in-memory jar on every platform (never `.shared`), and it is the
         // only public way to obtain one: corelibs has no public `HTTPCookieStorage` initializer.
         guard let storage = URLSessionConfiguration.ephemeral.httpCookieStorage else {
@@ -62,6 +68,18 @@ public actor HFRSession: HTTPTransport {
 
     deinit {
         urlSession.finishTasksAndInvalidate()
+    }
+
+    /// Whether this session's configuration still names its own jar (tests: a probe must not change it, #320).
+    func configurationHoldsItsOwnJar() -> Bool {
+        urlSession.configuration.httpCookieStorage === cookieStorage
+    }
+
+    /// A fresh session holding `cookies`, with this session's host policy and network settings but its own jar and no
+    /// `hash_check`: what a session check sends its request through, so a test session restricted to the loopback host
+    /// never yields a probe that may reach the forum (#320).
+    package nonisolated func probe(cookies: [StoredCookie], now: Date) -> HFRSession {
+        HFRSession(cookies: cookies, hashCheck: nil, now: now, configuration: urlSession.configuration, hosts: hosts)
     }
 
     // MARK: - Transport
