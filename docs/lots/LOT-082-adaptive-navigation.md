@@ -38,5 +38,13 @@ None: the models are tested with a scripted `ForumDataSource`; parsers are cover
 - Favourites are grouped by category, not merged and sorted by last post (`topicsByLastPost` stays available).
 - **Reverted on purpose (operator, 2026-10-28):** the split-view-only navigation of this lot (no bottom tab bar, Drapeaux/Favoris at the top of the sidebar) is not kept. The legacy root tabs Catégories / Favoris / Messages / Plus come back with [LOT-170 (#296)](https://github.com/ezzz/HFRnow/issues/296): a tab bar on iPhone, the legacy sidebar on a regular-width iPad (legacy `HFRswift/Swift/MainWindow.swift:1353-1355`, `:1698-1725`, `:2205-2245`). See the UX principles in [FEATURES.md](../FEATURES.md#ux-principles-operator).
 
+## UX evolutions (H.1)
+Classification of directive H.1 (2026-11-01): the `H.1` column of [GAP-LEGACY-VS-SWIFT.md](../migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1). The open choices are in [UX-DECISIONS-PENDING.md](../migration/UX-DECISIONS-PENDING.md). The code names its legacy counterparts in `// Port of …` comments (AGENTS.md §4).
+- GAP-020, 021, 022 Catégories as collapsible sections with sub-forum rows, no icons, no sub-forum picker: `b`, shipped, pending **UXD-05** (recommendation: A, restore the legacy list).
+- GAP-023 no Tous / Favoris / Suivis / Lus filter: not planned, pending **UXD-06**.
+- GAP-026, 027 topic row "author · replies · date", no "⚑ cur / max", capsule or tint: `b`, shipped, pending **UXD-07** (inside LOT-169).
+- GAP-212, 214 detail column on every regular width: `b`, pending **UXD-24**.
+- GAP-024 "Page N" without a fake total: `b·needed` (HFR gives no reliable total, LOT-167). GAP-025, 038: `a`.
+
 ## Learnings
 - Typed-throws closures need an explicit `() async throws(E) -> T in` signature and `do throws(E)`, or the error type is inferred as `any Error`.

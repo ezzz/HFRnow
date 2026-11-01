@@ -154,8 +154,8 @@ Every legacy function and the Phase 4 features, one reviewable PR per lot; each 
 | LOT-086 | Quote and multi-quote into the composer | App | medium | Opus → Fable | 049, 084, 087 | legacy parity | high | [#178](https://github.com/ezzz/HFRnow/issues/178) |
 | LOT-088 | Edit and delete own messages | App | medium | Opus → Fable | 048, 084, 087 | legacy parity | medium | [#180](https://github.com/ezzz/HFRnow/issues/180) |
 | LOT-089 | New topic composer | App | medium | Opus → Fable | 048, 084, 082 | legacy parity | medium | [#181](https://github.com/ezzz/HFRnow/issues/181) |
-| LOT-100 | Poll creation in a new topic | App | medium | Sonnet → Opus | 089 | legacy parity | low | [#191](https://github.com/ezzz/HFRnow/issues/191) |
-| LOT-101 | Archived drafts picker | App | easy | Sonnet → Opus | 063, 084 | legacy parity | low | [#192](https://github.com/ezzz/HFRnow/issues/192) |
+| LOT-100 | Poll creation in a new topic | App | medium | Sonnet → Opus | 089 | new (H.1: no source at 2440d79, only `have_sondage` is read) | low | [#191](https://github.com/ezzz/HFRnow/issues/191) |
+| LOT-101 | Archived drafts picker | App | easy | Sonnet → Opus | 063, 084 | new (H.1: `master` only, not at 2440d79) | low | [#192](https://github.com/ezzz/HFRnow/issues/192) |
 | LOT-102 | Image upload and insertion (rehost) | App | medium | Opus → Fable | 056, 084, 060, 160 | legacy parity | medium | [#193](https://github.com/ezzz/HFRnow/issues/193) |
 | LOT-103 | Upload history (local) | App | easy | Sonnet → Opus | 102, 064 | FEAT-019 | low | [#194](https://github.com/ezzz/HFRnow/issues/194) |
 | LOT-104 | Smiley picker: catalogue, favourites, insert | App | medium | Sonnet → Opus | 084, 064 | legacy parity | medium | [#195](https://github.com/ezzz/HFRnow/issues/195) |
@@ -172,7 +172,7 @@ Every legacy function and the Phase 4 features, one reviewable PR per lot; each 
 | LOT-087 | Message actions menu and typed JS bridge | App | medium | Opus → Fable | 083, 031 | legacy parity | high | [#179](https://github.com/ezzz/HFRnow/issues/179) |
 | LOT-106 | Reader display settings (layout, signatures, swipe pages; text size moved to LOT-169) | App | medium | Sonnet → Opus | 083, 060 | legacy parity | medium | [#197](https://github.com/ezzz/HFRnow/issues/197) |
 | LOT-107 | Image loading setting (never / Wi-Fi / always) | App | easy | Sonnet → Opus | 083, 060 | FEAT-011 | medium | [#198](https://github.com/ezzz/HFRnow/issues/198) |
-| LOT-108 | Video placeholder, player on tap | App | easy | Sonnet → Opus | 035, 083 | legacy parity | low | [#199](https://github.com/ezzz/HFRnow/issues/199) |
+| LOT-108 | Video placeholder, player on tap | App | easy | Sonnet → Opus | 035, 083 | legacy parity (H.1: the placeholder is new, LOT-071 D-071-2) | low | [#199](https://github.com/ezzz/HFRnow/issues/199) |
 | LOT-109 | Image viewer and HD gallery | App | medium | Sonnet → Opus | 083, 056, 160 | FEAT-014 | medium | [#200](https://github.com/ezzz/HFRnow/issues/200) |
 | LOT-110 | Page navigator | App | easy | Sonnet → Opus | 083, 033 | FEAT-002 | high | [#201](https://github.com/ezzz/HFRnow/issues/201) |
 | LOT-111 | 'Nouveau' banner and first-unread landing | App | medium | Sonnet → Opus | 083, 090 | FEAT-007 | high | [#202](https://github.com/ezzz/HFRnow/issues/202) |
@@ -198,7 +198,7 @@ Every legacy function and the Phase 4 features, one reviewable PR per lot; each 
 | Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Issue |
 |---|---|---|---|---|---|---|---|---|
 | LOT-126 | MP list screen and unread badge | App | medium | Sonnet → Opus | 023, 045, 082 | legacy parity | high | [#217](https://github.com/ezzz/HFRnow/issues/217) |
-| LOT-127 | MP actions: mark unread, delete, group members | App | easy | Opus → Fable | 058, 094, 126 | legacy parity | medium | [#218](https://github.com/ezzz/HFRnow/issues/218) |
+| LOT-127 | MP actions: mark unread, delete, group members | App | easy | Opus → Fable | 058, 094, 126 | legacy parity (H.1: mark unread only; delete and members are new) | medium | [#218](https://github.com/ezzz/HFRnow/issues/218) |
 | LOT-128 | New MP and MP reply composer | App | medium | Opus → Fable | 048, 084, 126 | legacy parity | high | [#219](https://github.com/ezzz/HFRnow/issues/219) |
 | LOT-171 | One-to-one and group MP lists (setting, default one list; switch MP / MP multiples), group MPs read and answered like topics (operator 2026-10-28) | App | medium | Sonnet → Opus | 126, 119, 083, 128 | legacy parity | medium | [#297](https://github.com/ezzz/HFRnow/issues/297) |
 
@@ -251,7 +251,7 @@ Every legacy function and the Phase 4 features, one reviewable PR per lot; each 
 | LOT-135 | Moderator alert screen | App | easy | Opus → Fable | 050, 087 | legacy parity | medium | [#225](https://github.com/ezzz/HFRnow/issues/225) |
 | LOT-138 | Universal links, share and clipboard | App | medium | Sonnet → Opus | 095, 137 | FEAT-020 | high | [#228](https://github.com/ezzz/HFRnow/issues/228) |
 | LOT-145 | State restoration per scene | App | medium | Opus → Fable | 090, 082, 083 | FEAT-015 | medium | [#235](https://github.com/ezzz/HFRnow/issues/235) |
-| LOT-146 | iPad multi-window | App | medium | Sonnet → Opus | 145 | legacy parity | medium | [#236](https://github.com/ezzz/HFRnow/issues/236) |
+| LOT-146 | iPad multi-window | App | medium | Sonnet → Opus | 145 | new (H.1: `UIApplicationSupportsMultipleScenes` false at 2440d79) | medium | [#236](https://github.com/ezzz/HFRnow/issues/236) |
 | LOT-170 | Root tab bar Catégories / Favoris / Messages / Plus with MP badge (iPhone), legacy sidebar (regular-width iPad), Plus menu, start tab, minimize on scroll; no Drapeaux/Favoris on top of Catégories (operator 2026-10-28) | App | medium | Sonnet → Opus | 080, 081, 082, 083, 119 | legacy parity · MVP | high | [#296](https://github.com/ezzz/HFRnow/issues/296) |
 
 ### Compliance and release
@@ -277,6 +277,28 @@ Column layouts, continuous reading, keyboard and system integration, and the fea
 | LOT-149 | Keyboard shortcuts | App | easy | Sonnet → Opus | 083, 084, 110 | FEAT-021 | low | [#239](https://github.com/ezzz/HFRnow/issues/239) |
 | LOT-150 | Spotlight for read topics | App | easy | Sonnet → Opus | 090, 137 | FEAT-021 | low | [#240](https://github.com/ezzz/HFRnow/issues/240) |
 | LOT-154 | 'On t'a cité' (posts quoting me) | App | medium | Sonnet → Opus | 143, 141 | FEAT-018 | low | [#244](https://github.com/ezzz/HFRnow/issues/244) |
+
+## Proposed: M5 · UX evolutions (needs the contributors' agreement)
+
+Proposal of directive H.1 ([#368](https://github.com/ezzz/HFRnow/issues/368)), tracked on [#379](https://github.com/ezzz/HFRnow/issues/379) (`status: blocked`). **Nothing below is applied**: the lots keep their milestone until the agreement is recorded on #379. The classification is in [GAP-LEGACY-VS-SWIFT.md](migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1), and the open choices are in [UX-DECISIONS-PENDING.md](migration/UX-DECISIONS-PENDING.md).
+
+**Whole lots proposed for M5** (UX evolutions that parity does not need; the legacy behaviour stays the M1–M4 baseline):
+- from M2: LOT-100, 101, 110, 112, 125, 138, 142, 143, 152, 153 (and LOT-151 if UXD-16 picks A);
+- from M4: LOT-141, 144, 145, 146, 147, 148, 149, 150, 154.
+
+**Proposed splits.** The (a) part keeps the lot id, issue and milestone. The (b) part becomes a new lot in M5 once agreed. These rows are not lots yet and have no issue:
+
+| Part | From | Stays in the lot (a) | Proposed for M5 (b) | GAP | UXD |
+|---|---|---|---|---|---|
+| 085b | LOT-085 | insertion engine and Edit-menu BBCode actions, plus the legacy clear / undo / redo and quote splitting (`AnswerView.swift:500-511`, `ReplyComposer.swift:141-175` @ 2440d79) | visible formatting toolbar | 084, 085, 086 | 18 |
+| 088b | LOT-088 | edit, delete with confirmation, never on the first post | delete on the first post | 097 | 14 |
+| 109b | LOT-109 | full-screen viewer, save, copy link | HD gallery with swipe | 057 | — |
+| 111b | LOT-111 | first-unread landing and legacy separator | "Nouveau" banner | 063 | 11 |
+| 120b | LOT-120 | system-settings shortcut, version, static pages, About links in the app | cache sizes and clearing | 152 | — |
+| 122b | LOT-122 | darker dark, OLED black, separators (themes, defaults unchanged) | single accent, live preview | 145, 146 | 22 |
+| 127b | LOT-127 | mark unread (`OnlineMessagesTableViewController.m` `markUnread` @ 2440d79) | thread delete, group members | 116, 117, 118 | 20 |
+| 128b | LOT-128 | new MP to one recipient from a message, MP reply | several recipients, entries from the list and profiles | 114 | 20 |
+| 134b | LOT-134 | "already signalled" check and creation | first-use notice, unless Q-4 proves an App Review need | — | — |
 
 ## Phase 4 backlog — app side (not engine)
 
