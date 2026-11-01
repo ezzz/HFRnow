@@ -2,7 +2,8 @@ import HFRModels
 import HFRStorage
 import UIKit
 
-// Port of HFRswift/Swift/Common.swift (AppScreenRotation, HFRSwiftOrientationPolicy) @ 2440d79. Differences: applied live.
+// Port of HFRswift/Swift/Common.swift (AppScreenRotation, HFRSwiftOrientationPolicy) @ 2440d79. Differences: the rule (idiom +
+// setting → orientation mask) is a pure function apart from the device read; the portrait lock while composing is not ported yet.
 /// Which orientations the app supports, from the rotation setting (`landscape_mode`).
 ///
 /// Ported from `HFRSwiftOrientationPolicy.supportedInterfaceOrientations` (legacy `Common.swift:187-195`): an iPad always
