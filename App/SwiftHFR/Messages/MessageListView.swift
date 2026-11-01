@@ -1,6 +1,8 @@
 import HFRModels
 import SwiftUI
 
+// Port of HFRswift/Swift/MPListView.swift (MPListView) @ 2440d79. Differences: paged (legacy shows page 1 only); the conversation opens
+// in the reader column (GAP-110).
 /// The Messages list: the member's conversations, paged, with pull to refresh. A tap selects a row; the reader shows it.
 struct MessageListView: View {
     let model: MessageListModel

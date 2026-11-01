@@ -1,6 +1,8 @@
 import HFRModels
 import SwiftUI
 
+// Port of HFRswift/Swift/Favorites.swift (TopicRowView) @ 2440d79. Differences: shows author, replies and relative date; no "⚑ cur /
+// max" footer, unread capsule or flag tint yet (GAP-026, 027; UXD).
 /// One topic row: title, flag, counters and last post. Pure display.
 struct TopicRowView: View {
     let topic: TopicSummary

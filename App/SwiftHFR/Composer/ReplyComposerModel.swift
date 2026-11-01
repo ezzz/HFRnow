@@ -3,6 +3,9 @@ import HFRClient
 import HFRStorage
 import Observation
 
+// Port of HFRswift/Swift/AnswerView.swift (AnswerView.postMessage, ComposerDraftPersistence) and HFRswift/Swift/ReplyService.swift
+// (ForumReplyPostingService) @ 2440d79. Differences: draft per topic and account, autosaved, instead of one global draft (GAP-092, UXD);
+// never resent after an uncertain send (GAP-100).
 /// State of the reply sheet (LOT-084): the text, its draft, sending and the outcome.
 ///
 /// The draft is the topic's (`ReplyTarget.draftContext`) for the current account. It is restored when the sheet opens,

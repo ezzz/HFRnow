@@ -2,6 +2,8 @@ import HFRStorage
 import SwiftUI
 import UIKit
 
+// Port of HFRswift/Swift/MPListView.swift (MPAvatarView, MPAvatarImageStore) @ 2440d79. Differences: reads the avatar cache only, never
+// downloads.
 /// The interlocutor's avatar from the avatar cache (LOT-066), a generic one when the cache has none, a group icon for a
 /// group thread. It only reads the cache: HFR's list rows carry no avatar link, and nothing here downloads one.
 struct MessageAvatarView: View {

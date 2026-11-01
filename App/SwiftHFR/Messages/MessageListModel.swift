@@ -1,6 +1,7 @@
 import HFRModels
 import Observation
 
+// Port of HFRswift/Swift/MPListView.swift (MPListViewModel) @ 2440d79. Differences: one page at a time through LOT-023 and LOT-045.
 /// A private message list page ready to display.
 struct MessageListContent: Sendable, Equatable {
     /// Conversations in page order. Each row keeps its own unread state and group flag, so a later lot can split or count

@@ -1,5 +1,7 @@
 import SwiftUI
 
+// Port of HFRswift/Swift/AnswerView.swift (AnswerView, reply mode) @ 2440d79. Differences: no formatting, smiley, GIF or upload panel
+// yet (LOT-085, 102, 104, 155); errors say whether anything was posted instead of the toast (GAP-100); draft per topic (GAP-092, UXD).
 /// The reply sheet: a plain text editor, Send and Cancel. Thin: every rule is in `ReplyComposerModel`.
 ///
 /// The editor is SwiftUI's own `TextEditor` with the system keyboard type, so third-party keyboards work (legacy backlog

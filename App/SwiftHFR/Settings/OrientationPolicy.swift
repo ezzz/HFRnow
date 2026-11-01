@@ -2,6 +2,7 @@ import HFRModels
 import HFRStorage
 import UIKit
 
+// Port of HFRswift/Swift/Common.swift (AppScreenRotation, HFRSwiftOrientationPolicy) @ 2440d79. Differences: applied live.
 /// Which orientations the app supports, from the rotation setting (`landscape_mode`).
 ///
 /// Ported from `HFRSwiftOrientationPolicy.supportedInterfaceOrientations` (legacy `Common.swift:187-195`): an iPad always
