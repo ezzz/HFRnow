@@ -449,6 +449,13 @@ Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `Li
 - **Hrefs**: a topic's `href` names its sub-category for most rows (`…/categories/13/subcategories/433/topics/28563/`) but not in `R57c` (`…/categories/13/topics/28563/`). `R57c` says `is_sticky` true for topic 28563, which no list shows sticky (`R57b`, `R04`, `R06`).
 - **Not captured**: a page 2, `results_per_page`, an `/api/` href requested as is, an error answer, any answer to a session (flag buckets #335), sub-categories (#285); the anonymous ones are #355.
 
+### LOT-050 — moderator alert
+
+[LOT-050](lots/LOT-050-moderator-alert.md), tests `ModeratorAlertPrepareTests`, `ModeratorAlertSubmitTests` and `HopFormParserTests.moderationLayout`.
+
+- **The link and the page** (`R21`, `R46`, **verified**): `R21`'s alert link of message 2666649 (`/user/modo.php?config=hfr.inc&cat=13&post=28563&numreponse=2666649&page=1&ref=1`) is `R46`'s request; HFR serves the form at that URL, 200, no redirect, and sends back `md_user` and `md_passs`. The form (§6b) is posted in document order: `hash_check`, `referer_page` (empty), `raison`, `Submit`.
+- **Pending capture**: the page of a message already reported (#135), the answer to a submitted alert (#136), the alert page without a session (no issue yet).
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).
