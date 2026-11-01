@@ -8,7 +8,7 @@
 
 ## Legacy sources
 
-Legacy app: `francoisgn/hfrnow` at `2440d79` (an ancestor of `origin/master`). On-device data only: no HFR request, no HFR fact, so no HFR-PROTOCOL subsection.
+Legacy app: ezzz/HFRnow at `2440d79` (an ancestor of `origin/master`). On-device data only: no HFR request, no HFR fact, so no HFR-PROTOCOL subsection.
 
 | Legacy | What it gives this lot |
 |---|---|

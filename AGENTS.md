@@ -41,7 +41,7 @@ License: [PolyForm Noncommercial 1.0.0](LICENSE) — no commercial use, credit t
 | `docs/ARCHITECTURE.md` | Modules, dependency rules, design principles |
 | `docs/ROADMAP.md` | Phases and their exit criteria |
 | `docs/LOTS.md` | The migration plan: lots with scope, dependencies, model routing, each linked to its issue. Owners and status live on the [issues](https://github.com/ezzz/HFRnow/issues) |
-| `docs/agents/` | [ORCHESTRATION](docs/agents/ORCHESTRATION.md) (parallel sessions), [REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md) (bots & reviews), [LESSONS](docs/agents/LESSONS.md) (self-review table), [EXTERNAL-AGENTS](docs/agents/EXTERNAL-AGENTS.md) (brief for contributors' agents: queues, claims, reviews, model matrix) |
+| `docs/agents/` | [ORCHESTRATION](docs/agents/ORCHESTRATION.md) (parallel sessions), [REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md) (bots & reviews), [LESSONS](docs/agents/LESSONS.md) (self-review table), [EXTERNAL-AGENTS](docs/agents/EXTERNAL-AGENTS.md) (brief for contributors' agents: queues, claims, reviews, model matrix), [MAC-SESSIONS](docs/agents/MAC-SESSIONS.md) (ready-to-paste prompts for the unattended Mac sessions: captures, hand checks) |
 | `tooling/roadmap/` | Board generator and tracker sweep: `lots.json` from `docs/LOTS.md`, `state.json` from the tracker, the boards of #166 and #324, `hygiene.py` (daily, dry-run by default); [README](tooling/roadmap/README.md) has the routine |
 | `docs/lots/` | One spec file per lot (`LOT-XXX-name.md`) |
 | `docs/FEATURES.md` | App feature backlog (FEAT-XXX, with credit to who proposed it) and status; one spec per feature in `docs/features/FEAT-XXX.md` ([ADR 0011](docs/adr/0011-contribution-model-and-feature-intake.md) §2) |
@@ -58,7 +58,7 @@ The default branch `master` of that repository **is the legacy app**: never bran
 
 `francoisgn/ios-app_SwiftHFR` is a read-only mirror of `dev-swift`, synced hourly: never open issues or PRs there. Its issues are frozen history: read them for context (each lot issue links its old one), never claim, comment on or close them.
 
-Legacy codebase (read-only reference): the `master` branch of ezzz/HFRnow. Citations written before the move point to <https://github.com/francoisgn/hfrnow> @ `2440d79` and stay valid.
+Legacy codebase (read-only reference): the `master` branch of ezzz/HFRnow. Legacy citations name commit `2440d79` of <https://github.com/ezzz/HFRnow> (an ancestor of its `master`).
 When a behaviour is unclear, **read the legacy code** instead of guessing, and cite the file and line in the lot spec.
 
 ## 3. Ground rules

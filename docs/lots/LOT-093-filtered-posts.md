@@ -8,7 +8,7 @@
 
 ## Legacy sources
 
-Legacy app: `francoisgn/hfrnow` at `2440d79` (an ancestor of `origin/master`).
+Legacy app: ezzz/HFRnow at `2440d79` (an ancestor of `origin/master`).
 
 | Legacy | What it gives this lot |
 |---|---|

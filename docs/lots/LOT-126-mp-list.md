@@ -5,7 +5,7 @@
 - **Issue:** [#217](https://github.com/ezzz/HFRnow/issues/217)
 
 ## Legacy sources
-Legacy repository <https://github.com/francoisgn/hfrnow> at `2440d79`, and `master` of ezzz/HFRnow for the Swift files.
+Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79`, and `master` of ezzz/HFRnow for the Swift files.
 
 | Legacy | Replaced by |
 |---|---|

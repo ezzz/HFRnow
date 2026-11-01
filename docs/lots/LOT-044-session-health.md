@@ -7,7 +7,7 @@
 
 ## Legacy sources
 
-Legacy app: `master` of ezzz/HFRnow @ `21173e7` (same lines as francoisgn/hfrnow @ `2440d79`). Audit [A](../audit/A-network-sessions.md) §4.5 and lot NET-07.
+Legacy app: `master` of ezzz/HFRnow @ `21173e7` (same lines as ezzz/HFRnow @ `2440d79`). Audit [A](../audit/A-network-sessions.md) §4.5 and lot NET-07.
 
 | Legacy | Replaced by |
 |---|---|

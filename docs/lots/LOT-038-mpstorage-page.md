@@ -6,7 +6,7 @@
 - **Builds on:** LOT-023 and LOT-030 (the `LOTS.md` row), and also LOT-022 (`PageNavigation`), LOT-033 (`TopicPageMetadataParser.title`, now `internal`) and LOT-062 (`MPStorageCodec`), all done. The `LOTS.md` row lists only the first two; external contributors do not edit `LOTS.md`, so this is reported on #65.
 
 ## Legacy sources
-Legacy repository <https://github.com/francoisgn/hfrnow>, commit `2440d79` (an ancestor of `origin/master`).
+Legacy repository <https://github.com/ezzz/HFRnow>, commit `2440d79` (an ancestor of `origin/master`).
 
 | Legacy | Replaced by |
 |---|---|

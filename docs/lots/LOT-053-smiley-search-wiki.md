@@ -6,7 +6,7 @@
 - **Builds on:** LOT-025 (`SmileySearchParser`, `SmileyWikiDetailParser`), LOT-041 (`HFREndpoint.smileySearch`), LOT-045 (`PageFetcher`), LOT-042 (`HFRSession`, `AnonymousTransport`), LOT-047 (the probe-session pattern of `MPUnreadPoll`), all done.
 
 ## Legacy sources
-`francoisgn/hfrnow` at `2440d79` (an ancestor of `origin/master`).
+ezzz/HFRnow at `2440d79` (an ancestor of `origin/master`).
 
 | Legacy | What it gives this lot |
 |---|---|
