@@ -85,7 +85,7 @@ None: no HFR page is read. Tests drive the models over `InMemorySettingsStore` w
 - Settings no longer re-apply theme or re-sync three size keys on every screen appearance (LOT-060 decision 5).
 
 ## UX evolutions (H.1)
-Classification of directive H.1 (2026-11-01): the `H.1` column of [GAP-LEGACY-VS-SWIFT.md](../migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1). The open choices are in [UX-DECISIONS-PENDING.md](../migration/UX-DECISIONS-PENDING.md). The code names its legacy counterparts in `// Port of …` comments (AGENTS.md §4).
+Classification of directive H.1 (2026-11-01): the `H.1` column of [GAP-LEGACY-VS-SWIFT.md](../migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1). The open choices are in [UX-DECISIONS-PENDING.md](../migration/UX-DECISIONS-PENDING.md). The code names its legacy counterparts in `// Port of …` comments (AGENTS.md §4), added by [#378](https://github.com/ezzz/HFRnow/pull/378).
 - GAP-002 start-screen setting and GAP-150 default-browser toggle exist only on `master`, not at `2440d79`: `a·master`, pending **UXD-01** (recommendation: keep, defaults unchanged).
 - GAP-200 text-size slider: `b·operator`, owned by LOT-169 (**UXD-13**). GAP-201 compact mode, GAP-213 rotation: `a`.
 

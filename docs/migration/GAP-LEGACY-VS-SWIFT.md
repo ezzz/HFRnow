@@ -305,9 +305,9 @@ The (b) rows include the ones the merged code already ships: 008, 009, 020, 022,
 | (b) evolution | 100, 101, 107, 108, 110, 112, 138, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 173 | 22 |
 
 - **Mixed lots whose (b) part stays in M1–M4.**
-  - Needed: LOT-083 (policy C), LOT-115 (banned words refused), LOT-130 (per-account MPStorage, merge), LOT-157 (account deletion), LOT-159 (App Review).
+  - Needed: LOT-083 (policy C), LOT-115 (banned words refused), LOT-130 (per-account MPStorage, merge), LOT-159 (App Review).
   - Decided by the operator: LOT-137 (HFR links routed in the app), LOT-169 (slider), LOT-171 (two MP lists as an option).
-  - Pending a decision: LOT-081, 082, 084, 087, 106, 119, 170, 083 (UXD-01 to 10, 15, 21, 24).
+  - Pending a decision: LOT-081, 082, 083, 084, 087, 106, 119, 170 (UXD-01 to 10, 15, 21, 24), and LOT-157 (UXD-21: legacy mail composer or the in-app HFR procedure).
 - **Mixed lots with a (b) part proposed for M5:** LOT-085, 088, 109, 111, 120, 122, 125, 127, 128, 134 (splits in [LOTS.md](../LOTS.md#proposed-m5--ux-evolutions-needs-the-contributors-agreement)).
 - **(b) lots that stay:**
   - needed: LOT-107 (the setting that gates policy C), LOT-108 (players on tap, LOT-071 D-071-2);

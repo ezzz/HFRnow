@@ -121,10 +121,10 @@ None new. The login's pending captures (flood answer, case and encoding of `md_u
 - Account deletion mail (Q-10) is out of scope.
 
 ## UX evolutions (H.1)
-Classification of directive H.1 (2026-11-01): the `H.1` column of [GAP-LEGACY-VS-SWIFT.md](../migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1). The open choices are in [UX-DECISIONS-PENDING.md](../migration/UX-DECISIONS-PENDING.md). The code names its legacy counterparts in `// Port of …` comments (AGENTS.md §4).
-- GAP-162 manage screen, GAP-163 removal from the manage list instead of the "Déconnexion" item: `b`, pending **UXD-21** (recommendation: restore "Déconnexion" next to the manage screen).
+Classification of directive H.1 (2026-11-01): the `H.1` column of [GAP-LEGACY-VS-SWIFT.md](../migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1). The open choices are in [UX-DECISIONS-PENDING.md](../migration/UX-DECISIONS-PENDING.md). The code names its legacy counterparts in `// Port of …` comments (AGENTS.md §4), added by [#378](https://github.com/ezzz/HFRnow/pull/378).
+- GAP-163: the manage screen, where an account is removed instead of through the "Déconnexion" item, is `b`, pending **UXD-21** (recommendation: restore "Déconnexion" next to the manage screen).
 - GAP-009 account menu in the Plus and Catégories toolbars only: `b`, pending **UXD-03**.
-- GAP-160, 161, 164, 165 (store, login in a fresh session, Keychain envelope, session checks): `a`.
+- GAP-160, 161, 162, 164, 165 (store, login in a fresh session, account switch menu, Keychain envelope, session checks): `a`.
 
 ## Learnings
 

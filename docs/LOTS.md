@@ -286,6 +286,13 @@ Proposal of directive H.1 ([#368](https://github.com/ezzz/HFRnow/issues/368)), t
 - from M2: LOT-100, 101, 110, 112, 138, 142, 143, 152, 153, and LOT-151 if UXD-16 picks A;
 - from M4: LOT-141, 144, 145, 146, 147, 148, 149, 150, 154.
 
+**Dependencies to change when the moves are applied**, so that M4 does not wait on M5:
+- LOT-164 (parity gate) drops 100, 101, 110 and 146 from its Depends column;
+- LOT-163 drops 112 (it keeps the reader and composer passes; the scrubber's adjustable action goes with LOT-112);
+- LOT-151 leaves LOT-164's list only if it moves (UXD-16).
+
+The moved lots depend only on each other or on M1–M4 lots. LOT-162, which depends on 125, is unaffected because LOT-125 is split, not moved.
+
 **Proposed splits.** The (a) part keeps the lot id, issue and milestone. The (b) part becomes a new lot in M5 once agreed. These rows are not lots yet and have no issue:
 
 | Part | From | Stays in the lot (a) | Proposed for M5 (b) | GAP | UXD |

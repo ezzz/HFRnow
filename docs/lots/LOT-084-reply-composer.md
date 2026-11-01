@@ -161,7 +161,7 @@ order.
 6. Every failure message says whether something may have been posted (legacy: `localizedDescription` or "Ooops").
 
 ## UX evolutions (H.1)
-Classification of directive H.1 (2026-11-01): the `H.1` column of [GAP-LEGACY-VS-SWIFT.md](../migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1). The open choices are in [UX-DECISIONS-PENDING.md](../migration/UX-DECISIONS-PENDING.md). The code names its legacy counterparts in `// Port of …` comments (AGENTS.md §4).
+Classification of directive H.1 (2026-11-01): the `H.1` column of [GAP-LEGACY-VS-SWIFT.md](../migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1). The open choices are in [UX-DECISIONS-PENDING.md](../migration/UX-DECISIONS-PENDING.md). The code names its legacy counterparts in `// Port of …` comments (AGENTS.md §4), added by [#378](https://github.com/ezzz/HFRnow/pull/378).
 - GAP-092 draft per topic and account, autosaved: kept (no lost text; `master` has per-topic drafts). Swipe-down blocked while text is present: `b`, shipped, pending **UXD-15** (recommendation: dismiss saves the draft, as legacy).
 - GAP-100 errors that say whether anything was posted, never resent: `a` (safety; same toast flow, better wording).
 - GAP-095 emoji refused at send (LOT-151): `b`, pending **UXD-16**.

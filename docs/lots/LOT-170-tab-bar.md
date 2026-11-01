@@ -37,7 +37,7 @@ None: view-model logic only (`RootModelTests`: tab order, titles, icons; start t
 - Home-screen quick actions (Catégories, Favoris, Messages; legacy `SuperHFRplus-Info.plist:235-255`, `HFRplusAppDelegate.m:314`): not trivial (needs Info.plist items and a delegate), left for a separate lot.
 
 ## UX evolutions (H.1)
-Classification of directive H.1 (2026-11-01): the `H.1` column of [GAP-LEGACY-VS-SWIFT.md](../migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1). The open choices are in [UX-DECISIONS-PENDING.md](../migration/UX-DECISIONS-PENDING.md). The code names its legacy counterparts in `// Port of …` comments (AGENTS.md §4).
+Classification of directive H.1 (2026-11-01): the `H.1` column of [GAP-LEGACY-VS-SWIFT.md](../migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1). The open choices are in [UX-DECISIONS-PENDING.md](../migration/UX-DECISIONS-PENDING.md). The code names its legacy counterparts in `// Port of …` comments (AGENTS.md §4), added by [#378](https://github.com/ezzz/HFRnow/pull/378).
 - GAP-211, 218 sectioned iPad sidebar and Plus opening Réglages come from `master`, not `2440d79` (four plain tabs there): `a·master` / `b`, pending **UXD-01** and **UXD-24**.
 - GAP-002 start tab: `a·master` (**UXD-01**). GAP-004 MP badge from the home-page count: `a`.
 - GAP-007 tab reselect refreshes: not ported, pending **UXD-04**. GAP-009 account menu placement: **UXD-03**.
