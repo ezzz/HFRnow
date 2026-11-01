@@ -9,7 +9,8 @@ enum JSONWriter {
     static func write(_ value: JSONValue) -> String {
         var output: [UInt8] = []
         append(value, to: &output)
-        return String(decoding: output, as: UTF8.self)
+        // Strings' own UTF-8 and ASCII punctuation: always valid.
+        return String(validating: output, as: UTF8.self) ?? ""
     }
 
     private static func append(_ value: JSONValue, to output: inout [UInt8]) {

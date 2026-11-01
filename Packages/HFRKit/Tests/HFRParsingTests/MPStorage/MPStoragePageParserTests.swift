@@ -89,7 +89,8 @@ struct MPStoragePageParserTests {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         let plain = try JSONDecoder().decode(MPStorageDocument.self, from: Data(message.text.utf8))
-        #expect(try MPStorageCodec.encodeForWriting(message.document) == String(decoding: try encoder.encode(plain), as: UTF8.self))
+        let reference = try #require(String(validating: try encoder.encode(plain), as: UTF8.self))
+        #expect(try MPStorageCodec.encodeForWriting(message.document) == reference)
         #expect(plain == message.document)
     }
 

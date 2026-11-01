@@ -10,7 +10,7 @@ struct JSONWriterTests {
     private static func foundation(_ value: some Encodable) throws -> String {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
-        return String(decoding: try encoder.encode(value), as: UTF8.self)
+        return try #require(String(validating: try encoder.encode(value), as: UTF8.self))
     }
 
     /// Every character below U+0020, then the characters `JSONEncoder` leaves as they are.

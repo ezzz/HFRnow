@@ -116,9 +116,8 @@ enum JSONTokenizer {
                 if current == 0x2B || current == 0x2D { index += 1 }
                 try requireDigits()
             }
-            guard let number = JSONNumber(lexeme: String(decoding: bytes[start..<index], as: UTF8.self)) else {
-                throw corrupted("Malformed number")
-            }
+            guard let lexeme = String(validating: bytes[start..<index], as: UTF8.self), let number = JSONNumber(lexeme: lexeme)
+            else { throw corrupted("Malformed number") }
             return number
         }
 
@@ -136,7 +135,9 @@ enum JSONTokenizer {
                 switch byte {
                 case 0x22:
                     index += 1
-                    return String(decoding: output, as: UTF8.self)
+                    // The bytes come from a Swift string and from encoded scalars: always valid UTF-8.
+                    guard let text = String(validating: output, as: UTF8.self) else { throw corrupted("Invalid UTF-8") }
+                    return text
                 case 0x5C:
                     try escape(into: &output)
                 case 0x00..<0x20:
