@@ -20,7 +20,7 @@
 
 Steps 1-2 alone are `cleaned` (case kept), the form `AccountBook` stores. `String` equality is canonical, so `É` and `E` + U+0301 are equal; diacritics stay significant (`Élodie` ≠ `Elodie`, as LOT-065 decided).
 
-**Keys are not comparison forms.** Every key written to disk, or recomputed to identify stored data, keeps the frozen account key of ADR 0013 §7 (`AccountKey.make`: U+200B removed, lower-cased, nothing else), so no stored key changes. For a `cleaned` pseudo, which every account pseudo is (`AccountBook.add` cleans it), the account key equals the comparison form (tested over the whole table).
+**Keys are not comparison forms.** Every key written to disk, or recomputed to identify stored data, keeps the frozen account key of ADR 0013 §7 (`AccountKey.make`: U+200B removed, lower-cased, nothing else), so no stored key changes. For a `cleaned` pseudo the account key equals the comparison form (tested over the whole table). `AccountBook.add` cleans the pseudo it stores and `replace` keeps the stored one, but `AccountBook.init(accounts:)` takes a loaded book as it is: an account written before LOT-065 cleaned pseudos, or by another path, keeps its own key, as below.
 
 ## Callers
 | Caller | Before | After | Stored data |
@@ -38,7 +38,7 @@ Steps 1-2 alone are `cleaned` (case kept), the form `AccountBook` stores. `Strin
 
 ## Edge cases
 - A pseudo that is empty once cleaned (`" "`, U+FEFF alone) is now refused by both lists (`emptyPseudo`); before, a blank pseudo was accepted.
-- An account string that is not cleaned (`" Bob"` + U+FEFF) keeps its old account key (`" bob"` + U+FEFF): keys never change, so its lists and drafts stay where they were. The app passes `AccountBook` pseudos, which are cleaned.
+- An account string that is not cleaned (`" Bob"` + U+FEFF) keeps its old account key (`" bob"` + U+FEFF): keys never change, so its lists and drafts stay where they were. The app passes `AccountBook` pseudos, cleaned when `add` stored them.
 - Inner white space is significant (`Ma rc` ≠ `Marc`): HFR's pseudo rules are not captured, so only what surrounds a pseudo is dropped.
 - `AvatarCache.fileName(forPseudo:)` (LOT-066) also removes U+200B and lower-cases: it is a file-name key, so it stays frozen like `AccountKey` (a change would orphan every cached avatar) and is not unified.
 - ADR 0013 §7 still says the account key "coincides with LOT-061's `PseudoNormalizer.normalize`": true when written, and that function is now gone; the ADR is not edited by this lot, `AccountKey` is the key.
