@@ -52,20 +52,29 @@ jobs:
         working-directory: src
         run: |
           mkdir -p ../archive/heads
+          touch ../archive/heads/in-master.txt
           git ls-remote https://github.com/ezzz/HFRnow.git 'refs/pull/*/head' > ../pr-heads.txt
           while read -r sha ref; do
             n=${ref#refs/pull/}; n=${n%/head}
             grep -qx "$n" ../archive/pulls.txt || continue
-            out="../archive/heads/pr-$(printf %04d "$n")-${sha}.bundle"
-            [ -f "$out" ] && continue
+            # Known heads: already bundled, or already part of master (listed in in-master.txt).
+            ls ../archive/heads/pr-*-"${sha}".bundle >/dev/null 2>&1 && continue
+            grep -qx "$sha" ../archive/heads/in-master.txt && continue
             if ! git fetch -q --no-tags https://github.com/ezzz/HFRnow.git "$ref"; then
               echo "::warning::PR #$n: head not fetchable, skipped"; continue
             fi
+            sha=$(git rev-parse FETCH_HEAD)  # the PR may have moved since ls-remote
             git update-ref refs/archive/tmp FETCH_HEAD
             if git merge-base --is-ancestor refs/archive/tmp origin/master; then
-              echo "PR #$n: head already in master"; continue
+              echo "$sha" >> ../archive/heads/in-master.txt; continue
             fi
+            out="../archive/heads/pr-$(printf %04d "$n")-${sha}.bundle"
+            [ -f "$out" ] && continue
             git bundle create -q "$out" refs/archive/tmp ^origin/master
+            # GitHub refuses files over 100 MB, which would break every later push.
+            if [ "$(stat -c %s "$out")" -gt 94371840 ]; then
+              rm -f "$out"; echo "::warning::PR #$n: bundle over 90 MB, not kept"
+            fi
           done < ../pr-heads.txt
           git update-ref -d refs/archive/tmp || true
       - name: Commit and push the archive
