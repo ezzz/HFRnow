@@ -104,6 +104,10 @@ import Testing
         #expect(await uploads.images().isEmpty)
         await #expect(throws: SmallStoreError.self) { try await uploads.add(RehostedImage(fullURL: url, uploadedAt: .now)) }
 
+        let ledgers = NotificationLedgerStore(persistence: FileSmallStorePersistence(fileURL: file))
+        #expect(await ledgers.ledger(for: "user1") == NotificationLedger())
+        await #expect(throws: SmallStoreError.self) { try await ledgers.markChecked(account: "user1", at: .now) }
+
         #expect(try Data(contentsOf: file) == garbage)
         try await uploads.discardUnreadableData()
         #expect(try Data(contentsOf: directory.appending(path: "store.json.corrupt")) == garbage)
