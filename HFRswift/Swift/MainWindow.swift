@@ -1356,9 +1356,11 @@ struct RootTabView: View {
         return verticalSizeClass == .regular || UIDevice.current.userInterfaceIdiom == .pad
     }
 
-    /// iPhone Duo inner display in portrait: topic at full width, lists over it (decision of
-    /// 2026-11-01). iPad and the landscape inner display keep the balanced split.
-    private var usesProminentDetail: Bool {
+    /// iPhone Duo inner display in portrait: too narrow for list + topic side by side, so the
+    /// topic goes full width (`detailOnly`) once chosen (decision of 2026-11-01). iPad and the
+    /// landscape inner display keep list + topic. The split style stays `.balanced`: switching
+    /// style types would rebuild the whole split view (and the topic being read) on rotation.
+    private var prefersDetailOnlyTopic: Bool {
         usesSidebarRoot && UIDevice.current.userInterfaceIdiom == .phone && isPortraitLayout
     }
 
@@ -1684,6 +1686,14 @@ struct RootTabView: View {
             .onChange(of: usesSidebarRoot) { _, newValue in
                 handleRootSwap(toSidebar: newValue)
             }
+            .onChange(of: prefersDetailOnlyTopic) { _, detailOnly in
+                // Unfolded Duo rotation with a topic open: full-width topic in portrait,
+                // list + topic again in landscape.
+                guard usesSidebarRoot, activeTopicTarget != nil else { return }
+                iPadSidebarVisibilityRawValue = detailOnly
+                    ? SidebarVisibilityStorage.detailOnly
+                    : SidebarVisibilityStorage.doubleColumn
+            }
             .onChange(of: iPadSidebarVisibilityRawValue) { oldValue, newValue in
                 RootTabAudit.log(
                     "splitVisibility.storedChanged",
@@ -1784,7 +1794,7 @@ struct RootTabView: View {
             } detail: {
                 selectedIPadDetail
             }
-            .hfrSplitViewStyle(prominentDetail: usesProminentDetail)
+            .navigationSplitViewStyle(.balanced)
         } else {
             NavigationSplitView(
                 columnVisibility: $iPadDirectSidebarVisibility,
@@ -1794,7 +1804,7 @@ struct RootTabView: View {
             } detail: {
                 selectedIPadDetail
             }
-            .hfrSplitViewStyle(prominentDetail: usesProminentDetail)
+            .navigationSplitViewStyle(.balanced)
         }
     }
 
@@ -2136,8 +2146,7 @@ struct RootTabView: View {
         }
         detailNavigationResetToken = UUID()
         preferredCompactColumn = .detail
-        if usesProminentDetail {
-            // The list sits over the topic in this style: get it out of the way once chosen.
+        if prefersDetailOnlyTopic {
             iPadSidebarVisibilityRawValue = SidebarVisibilityStorage.detailOnly
         }
     }
@@ -2707,18 +2716,6 @@ private struct TabBarReselectionObserver: UIViewControllerRepresentable {
 }
 
 private extension View {
-    @ViewBuilder
-    /// `.prominentDetail` keeps the topic at full width and shows the lists over it; used on
-    /// the iPhone Duo inner display in portrait, too narrow for list + topic side by side.
-    @ViewBuilder
-    func hfrSplitViewStyle(prominentDetail: Bool) -> some View {
-        if prominentDetail {
-            self.navigationSplitViewStyle(.prominentDetail)
-        } else {
-            self.navigationSplitViewStyle(.balanced)
-        }
-    }
-
     @ViewBuilder
     func hfrTabBarMinimizeBehavior(tabBarMinimizeOnScroll: Bool) -> some View {
         if #available(iOS 26.0, *) {

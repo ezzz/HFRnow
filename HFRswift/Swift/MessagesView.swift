@@ -3198,6 +3198,12 @@ struct MessagesView: View {
 
     private func scheduleFoldHandoffClear() {
         guard let foldHandoffToken else { return }
+        // Covered by its own push or full-screen viewer: the topic is still on the stack.
+        guard linkedTopicDestination == nil,
+              searchResultDestination == nil,
+              photoViewerDestination == nil else {
+            return
+        }
         FoldHandoffStore.shared.scheduleClear(token: foldHandoffToken)
     }
 

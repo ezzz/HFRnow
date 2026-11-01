@@ -6,9 +6,7 @@ final class FoldHandoffStoreTests: XCTestCase {
     private let store = FoldHandoffStore.shared
 
     override func setUp() async throws {
-        // Reset shared state: a swap drops any pending push, consuming clears it.
-        _ = store.beginRootSwap(selectedTab: .categories)
-        _ = store.consumePendingPush(for: .categories)
+        store.resetForTesting()
     }
 
     func testRootSwapReplaysReadingOfSelectedTabOnLatestPage() {
@@ -38,6 +36,25 @@ final class FoldHandoffStoreTests: XCTestCase {
         store.update(token: oldToken, page: 2, maxPage: 2)
 
         XCTAssertEqual(store.beginRootSwap(selectedTab: .categories)?.page, 7)
+    }
+
+    func testScheduledClearRemovesReadingWithoutRootSwap() async {
+        let token = store.register(tab: .favorites, topic: Topic(), page: 2, maxPage: 2)
+
+        await store.scheduleClear(token: token, after: .milliseconds(10)).value
+
+        XCTAssertNil(store.beginRootSwap(selectedTab: .favorites))
+    }
+
+    func testScheduledClearIsCancelledByRootSwap() async {
+        let token = store.register(tab: .favorites, topic: Topic(), page: 2, maxPage: 2)
+        let clear = store.scheduleClear(token: token, after: .milliseconds(10))
+        let reading = store.beginRootSwap(selectedTab: .favorites)
+
+        await clear.value
+
+        XCTAssertEqual(reading?.page, 2)
+        XCTAssertNotNil(store.beginRootSwap(selectedTab: .favorites))
     }
 
     func testPendingPushIsConsumedOnceByItsTab() {

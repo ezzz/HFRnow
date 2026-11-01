@@ -35,6 +35,15 @@ final class FoldHandoffStore {
 
     private init() {}
 
+    #if DEBUG
+    /// Unit tests only: the store is a process-wide singleton.
+    func resetForTesting() {
+        reading = nil
+        pendingPush = nil
+        rootGeneration = 0
+    }
+    #endif
+
     func register(tab: RootTabIdentifier, topic: Topic, page: Int, maxPage: Int) -> UUID {
         let token = UUID()
         reading = Reading(token: token, tab: tab, topic: topic, page: page, maxPage: maxPage)
@@ -49,10 +58,11 @@ final class FoldHandoffStore {
 
     /// Called when a root `MessagesView` disappears. The clear is deferred so that a root swap
     /// happening in the same update (fold/unfold) wins over the teardown of the old hierarchy.
-    func scheduleClear(token: UUID) {
+    @discardableResult
+    func scheduleClear(token: UUID, after delay: Duration = .milliseconds(400)) -> Task<Void, Never> {
         let generation = rootGeneration
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(400))
+        return Task { @MainActor in
+            try? await Task.sleep(for: delay)
             guard self.rootGeneration == generation, self.reading?.token == token else { return }
             self.reading = nil
         }
