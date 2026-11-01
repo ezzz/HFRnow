@@ -5,12 +5,27 @@ the milestone boards without an LLM re-deriving them ([#368](https://github.com/
 
 | File | Role |
 |---|---|
-| `lots.json` | The lots of [LOTS.md](../../docs/LOTS.md) as data (scope, module, deps, routing, issue) |
-| `state.py` | **Snapshot** of the tracker state (closed, ready, external issues, PRs). Stale by design: to be replaced by a sync from the GitHub API |
+| `lots_from_md.py` | Derives `lots.json` from [LOTS.md](../../docs/LOTS.md) (the plan): `python3 tooling/roadmap/lots_from_md.py` |
+| `lots.json` | Generated: the lots as data (scope, module, deps, routing, issue). Never edited by hand |
+| `sync_state.py` | Builds `state.json` from the tracker (`--fetch` uses `gh api`, or give it the saved JSON of `list_issues` and `list_pull_requests`) |
+| `state.json` | Generated: closed, ready, claimed, external issues, open and merged lot PRs, capture blockers |
 | `generate.py` | Milestone membership (M1–M4) and the state of each lot; writes `milestones.json` |
 | `render.py` | Renders the board comments for #166 and #324 |
 | `unblocked.py` | After a merge: the lots whose dependencies are now all done |
-| `weekly/progress.html`, `weekly/shot.js` | The weekly 16:9 visual (Playwright screenshot at 1.5×, 2880×1620 JPEG) |
+| `hygiene.py` | Tracker sweep, dry-run by default (`--apply` does the routine part): unblocks, missing "Done in" closures, reports |
+| `weekly/` | The weekly 16:9 visual (Playwright, 2880×1620 JPEG) |
 
-Owner: `cloud/docs-steward` (see #368), which turns `state.py` into a GitHub sync, derives `lots.json` from `LOTS.md`
-and adds tests.
+Tests: `scripts/tests/test_roadmap.py` (run by CI with the other `scripts/tests`).
+
+## Routine
+
+```bash
+python3 tooling/roadmap/lots_from_md.py        # only when LOTS.md changed
+python3 tooling/roadmap/sync_state.py --fetch  # refresh state.json from the tracker
+python3 tooling/roadmap/generate.py && python3 tooling/roadmap/render.py   # boards for #166 and #324
+python3 tooling/roadmap/hygiene.py             # daily sweep (add --apply for the routine part)
+```
+
+M1/M2 membership is the only hand-kept data (`generate.py`); M3 is Phase 3 minus M1, M4 the rest.
+
+Owner: `cloud/docs-steward` (see #368).
