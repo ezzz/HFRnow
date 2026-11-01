@@ -76,6 +76,14 @@ class SyncState(unittest.TestCase):
         self.assertEqual(st["capture"], {"3": "#50", "4": "#52"})  # #51 is closed: no longer a blocker
 
 
+    def test_capture_blocked_lot_is_not_ready_and_state_has_a_snapshot_time(self):
+        lots = lots_of(md_row("001", 1))
+        issues = [issue(1, labels=["status: ready"], body="### Captures needed\n\n- #50\n"), issue(50, labels=["host: mac"])]
+        st = sync_state.build(issues, [], lots)
+        self.assertEqual((st["ready"], st["capture"]), ([], {"1": "#50"}))
+        self.assertRegex(st["generated_at"], r"^\d{4}-\d\d-\d\d \d\d:\d\d UTC$")
+
+
 class Hygiene(unittest.TestCase):
     def setUp(self):
         self.lots = lots_of(md_row("001", 1), md_row("002", 2, deps="001"), md_row("003", 3, deps="001, 002"),

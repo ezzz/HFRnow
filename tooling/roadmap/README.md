@@ -17,6 +17,13 @@ the milestone boards without an LLM re-deriving them ([#368](https://github.com/
 
 Tests: `scripts/tests/test_roadmap.py` (run by CI with the other `scripts/tests`).
 
+## Where to run, what it reads
+
+All paths resolve from the script's own directory, so any working directory works; the commands below are written from the repository root.
+Inputs: `docs/LOTS.md` (plan), the tracker through `gh` with `GH_TOKEN` (or the saved JSON of `list_issues` and
+`list_pull_requests`), and for the deck the full git history (`git fetch --unshallow` in a shallow clone). Python 3 standard library only;
+`weekly/shot.js` needs Playwright (pre-installed in cloud sessions). `render.py` takes the snapshot date from `state.json`.
+
 ## Routine
 
 ```bash

@@ -15,6 +15,7 @@ import json
 import re
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -41,7 +42,7 @@ def gh_pages(path):
 
 
 def load(p):
-    d = json.load(open(p, encoding='utf-8'))
+    d = json.loads(Path(p).read_text(encoding='utf-8'))
     return d.get('issues') or d.get('pull_requests') or d.get('items') or [] if isinstance(d, dict) else d
 
 
@@ -95,14 +96,16 @@ def build(issues, pulls, lots):
                 rev = by_lot[lot]['model'].split('→')[-1].strip()
                 prs[lot] = [p['number'], 'draft' if p.get('draft') else 'review', rev]
     return {
-        'closed': sorted(closed), 'ready': sorted(ready), 'claimed': sorted(claimed), 'external': sorted(external),
+        # a lot waiting on an open capture is not ready on the board, whatever its label says
+        'closed': sorted(closed), 'ready': sorted(ready - set(capture)), 'claimed': sorted(claimed), 'external': sorted(external),
+        'generated_at': datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC'),
         'prs': prs, 'merged_pr': merged,
         'capture': {str(k): ', '.join(sorted(v, key=lambda x: int(x[1:]))) for k, v in sorted(capture.items())},
     }
 
 
 if __name__ == '__main__':
-    lots = json.load(open(HERE / 'lots.json', encoding='utf-8'))
+    lots = json.loads((HERE / 'lots.json').read_text(encoding='utf-8'))
     if sys.argv[1:] == ['--fetch']:
         issues, pulls = gh_pages(f'repos/{REPO}/issues?state=all'), gh_pages(f'repos/{REPO}/pulls?state=all&base=dev-swift')
     elif len(sys.argv) == 3:

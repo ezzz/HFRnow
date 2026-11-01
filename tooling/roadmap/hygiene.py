@@ -173,7 +173,7 @@ def apply(actions):
 
 if __name__ == '__main__':
     do_apply = '--apply' in sys.argv[1:]
-    lots = json.load(open(HERE / 'lots.json', encoding='utf-8'))
+    lots = json.loads((HERE / 'lots.json').read_text(encoding='utf-8'))
     issues = gh_pages(f'repos/{REPO}/issues?state=all')
     pulls = gh_pages(f'repos/{REPO}/pulls?state=all&base=dev-swift')
     cache = {}

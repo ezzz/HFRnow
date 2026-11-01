@@ -1,11 +1,12 @@
 import json,re
 from pathlib import Path
 _H=Path(__file__).resolve().parent
-_S=json.load(open(_H/'state.json'))  # built by sync_state.py from the tracker
+_S=json.loads((_H/'state.json').read_text(encoding='utf-8'))  # built by sync_state.py from the tracker
 CLOSED=set(_S['closed']); READY=set(_S['ready']); CLAIMED=set(_S['claimed']); EXTERNAL=set(_S['external'])
 PRS={k:tuple(v) for k,v in _S['prs'].items()}; MERGED_PR=_S['merged_pr']
 CAPTURE={int(k):v for k,v in _S['capture'].items()}
-rows={r['lot']:r for r in json.load(open(_H/'lots.json'))}
+GENERATED_AT=_S.get('generated_at','')  # snapshot time of state.json
+rows={r['lot']:r for r in json.loads((_H/'lots.json').read_text(encoding='utf-8'))}
 def n(l): return int(l.split('-')[1])
 def L(*nums): return ['LOT-%03d'%x for x in nums]
 M1=set(L(0,1,2,3,4,5,10,11,12,13,14,20,21,22,24,25,30,33,34,36,37,40,41,42,43,44,45,48,65,71,80,81,82,83,84,119,160,161,169,170,137))
@@ -57,4 +58,4 @@ def bar(d,t,w=20):
 if __name__=='__main__':
     for name,ms in (('M1',M1),('M2',M2),('M3',M3),('M4',M4)):
         d,o,t,tot=counts(ms); print(name,tot,'done',d,'ongoing',o,'todo',t)
-    json.dump({k:sorted(v,key=n) for k,v in dict(M1=M1,M2=M2,M3=M3,M4=M4).items()},open(_H/'milestones.json','w'))
+    (_H/'milestones.json').write_text(json.dumps({k:sorted(v,key=n) for k,v in dict(M1=M1,M2=M2,M3=M3,M4=M4).items()}),encoding='utf-8')
