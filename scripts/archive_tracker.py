@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
@@ -60,11 +61,19 @@ def next_link(header: str | None) -> str | None:
 
 def paginate(path: str, token: str | None, **params: str) -> list:
     url: str | None = f"{API}{path}?{urllib.parse.urlencode({'per_page': '100', **params})}"
+    repo_prefix = "/".join(path.split("/")[:4])  # /repos/<owner>/<name>
     items: list = []
     while url:
         page, url = request(url, token)
         items.extend(page)  # type: ignore[arg-type]
+        if url:
+            url = owner_path(url, repo_prefix)
     return items
+
+
+def owner_path(url: str, repo_prefix: str) -> str:
+    """GitHub's next links may use /repositories/<id>/; some proxies only allow /repos/<owner>/<name>/."""
+    return re.sub(r"^https://api\.github\.com/repositories/\d+(?=/)", f"{API}{repo_prefix}", url)
 
 
 def render(item: dict, comments: list, reviews: list, review_comments: list) -> str:

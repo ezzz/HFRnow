@@ -16,6 +16,13 @@ class ArchiveTrackerTests(unittest.TestCase):
         self.assertIsNone(at.next_link('<https://api.github.com/x?page=1>; rel="prev"'))
         self.assertIsNone(at.next_link(None))
 
+    def test_owner_path(self):
+        url = "https://api.github.com/repositories/150941685/issues?per_page=100&page=2"
+        self.assertEqual(at.owner_path(url, "/repos/ezzz/HFRnow"),
+                         "https://api.github.com/repos/ezzz/HFRnow/issues?per_page=100&page=2")
+        same = "https://api.github.com/repos/ezzz/HFRnow/pulls?page=3"
+        self.assertEqual(at.owner_path(same, "/repos/ezzz/HFRnow"), same)
+
     def test_group_by_number(self):
         items = [{"issue_url": "https://api.github.com/repos/o/r/issues/12"},
                  {"issue_url": "https://api.github.com/repos/o/r/issues/7"},
