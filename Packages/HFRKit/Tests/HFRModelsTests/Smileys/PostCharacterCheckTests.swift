@@ -13,7 +13,7 @@ import Testing
 
     @Test(
         "An emoji inside the BMP, or with U+FE0F, is untested: not refused",
-        arguments: ["❤", "❤\u{FE0F}", "☺", "☹", "✌", "1\u{FE0F}\u{20E3}", "™"] as [Character]
+        arguments: ["❤", "❤\u{FE0F}", "☺", "☹", "✌", "1\u{FE0F}\u{20E3}", "1\u{20E3}", "#\u{20E3}", "™", "♥", "↔", "⚠"] as [Character]
     )
     func untested(character: Character) {
         #expect(PostCharacterCheck.risk(of: character) == .untested)

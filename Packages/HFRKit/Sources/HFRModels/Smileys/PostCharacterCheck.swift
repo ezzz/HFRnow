@@ -2,7 +2,9 @@
 public enum PostCharacterRisk: Sendable, Hashable {
     /// HFR cuts the post at it: the character holds a scalar above U+FFFF (Q-3, `W12`). LOT-048 refuses it.
     case truncates
-    /// An emoji inside the BMP (`❤`, `☺`, a keycap): kept, replaced or cut is not captured (CAP-N3, #171). Never refused.
+    /// A character with the Unicode `Emoji` property inside the BMP (`❤`, `☺`, a keycap), text-default symbols included
+    /// (`™`, `♥`, `↔`, `✔`, `⚠`…): kept, replaced or cut is not captured (CAP-N3, #171). Never refused; warn only where
+    /// `EmojiSmileyTable` has a suggestion, until CAP-N3 answers.
     case untested
 }
 
@@ -23,12 +25,13 @@ public struct RiskyCharacter: Sendable, Hashable {
 /// Finds the characters of a post HFR cuts, or might cut (LOT-096). `PostingFlow` (LOT-048) refuses `truncates` ones.
 public enum PostCharacterCheck {
     /// The risk of `character`, nil when there is none known: a scalar above U+FFFF truncates; otherwise a variation
-    /// selector U+FE0F or an emoji scalar beyond Latin-1 (`isEmoji`; `#`, digits, `©` and `®`, which Unicode also counts,
-    /// stay plain text) is untested.
+    /// selector U+FE0F, a keycap mark U+20E3 or an emoji scalar beyond Latin-1 (`isEmoji`; `#`, digits, `©` and `®`,
+    /// which Unicode also counts, stay plain text) is untested.
     public static func risk(of character: Character) -> PostCharacterRisk? {
         let scalars = character.unicodeScalars
         if scalars.contains(where: { $0.value > 0xFFFF }) { return .truncates }
-        if scalars.contains(where: { $0.value == 0xFE0F || ($0.value > 0xFF && $0.properties.isEmoji) }) { return .untested }
+        let marks: Set<UInt32> = [0xFE0F, 0x20E3]
+        if scalars.contains(where: { marks.contains($0.value) || ($0.value > 0xFF && $0.properties.isEmoji) }) { return .untested }
         return nil
     }
 
