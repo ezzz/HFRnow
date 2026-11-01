@@ -1,0 +1,61 @@
+name: Issue auto-labelling
+
+# `issues` events run the copy of this workflow on the default branch only: this copy on master is the one that runs on ezzz/HFRnow (ADR 0010).
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  contents: read
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Map issue form answers to labels
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            // Deterministic triage: reads the issue-form dropdowns and applies one label per axis (AGENTS.md §7).
+            const body = context.payload.issue.body || "";
+            const field = (heading) => {
+              const match = body.match(new RegExp("### " + heading + "\\s*\\n+([^\\n]+)"));
+              return match ? match[1].trim().toLowerCase() : null;
+            };
+            const allowed = {
+              Type: ["lot", "roadmap", "chore", "docs", "security"],
+              Priority: ["high", "medium", "low"],
+              Difficulty: ["trivial", "easy", "medium", "difficult"],
+              Area: ["models", "parsing", "network", "storage", "client", "app", "tooling", "ci", "docs"],
+            };
+            const prefixes = { Type: "type", Priority: "priority", Difficulty: "difficulty", Area: "area" };
+            const current = context.payload.issue.labels.map((l) => l.name);
+            const add = [];
+            const remove = [];
+            for (const [heading, values] of Object.entries(allowed)) {
+              const value = field(heading);
+              if (!value || !values.includes(value)) continue;
+              const prefix = prefixes[heading] + ": ";
+              const wanted = prefix + value;
+              if (!current.includes(wanted)) add.push(wanted);
+              for (const name of current) {
+                if (name.startsWith(prefix) && name !== wanted && heading !== "Type") remove.push(name);
+              }
+            }
+            const issue = { owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number };
+            for (const name of remove) {
+              await github.rest.issues.removeLabel({ ...issue, name }).catch(() => {});
+            }
+            if (add.length) await github.rest.issues.addLabels({ ...issue, labels: add });
+            core.info("added: " + add.join(", ") + " | removed: " + remove.join(", "));
+            // Every issue opens with a "### Summary" (user story or executive summary, AGENTS.md §8).
+            const summary = body.match(/^###[ \t]*Summary[ \t]*\r?\n(?:[ \t]*\r?\n)*[ \t]*(?!#{1,6}[ \t])(\S[^\r\n]*)/im);
+            if (context.payload.action === "opened" && !summary) {
+              await github.rest.issues.addLabels({ ...issue, labels: ["status: needs-triage"] });
+              await github.rest.issues.removeLabel({ ...issue, name: "status: ready" }).catch(() => {});
+              await github.rest.issues.createComment({ ...issue, body:
+                "Please start the description with a `### Summary` section: a user story (\"As a …, I want …, so that …\") " +
+                "or a two-line executive summary, so the intent is clear at a glance (AGENTS.md §8)." });
+            }
