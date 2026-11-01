@@ -22,7 +22,7 @@ Legacy app: `master` of ezzz/HFRnow @ `21173e7` (same lines as francoisgn/hfrnow
 `SessionRefreshFlow().refresh(_ session: HFRSession, now:) async throws(NetworkError) -> SessionHealth`, in `Packages/HFRKit/Sources/HFRClient/Session/`.
 
 1. Read the session's identity (`userKey`), cookies and `hash_check` in one actor turn. No usable `md_user` (absent, past its expiry, or `deleted`) → `expired(.noIdentityCookie)`, nothing sent.
-2. Create a **probe** `HFRSession` seeded with those cookies (internal `SessionJar` protocol, shared with LOT-043's login) and GET profile page 1 through it without following redirects (`send`: 4xx/5xx throw).
+2. Create a **probe** `HFRSession` seeded with those cookies (internal `SessionJar` protocol, shared with LOT-043's login) and GET profile page 1 through it without following redirects (`send`: 4xx/5xx throw). Without a test factory the probe is `session.probe(cookies:now:)`, which keeps the refreshed session's host policy, so a test session restricted to the loopback host never yields a probe that may reach the forum ([#320](https://github.com/ezzz/HFRnow/issues/320), `SessionRefreshProbeTests`, `HFRSessionProbeTests`).
 3. The answer confirms the session only if all hold, else `unconfirmed(.unrecognizedPage)`:
    - 2xx, served at exactly the requested page-1 URL on `https://forum.hardware.fr` (port absent or 443, LESSONS 37); a 3xx (to page 5, to a login page) or a page from another origin is something else;
    - no `.hop` block (`HopResponseParser` finds none): `W17c` shows a `.hop` refusal holding a non-empty `hash_check` in its replay form although the POST carried no cookies;

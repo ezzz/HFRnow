@@ -21,7 +21,8 @@ public actor HFRSession: HTTPTransport {
     private let urlSession: URLSession
     private let cookieStorage: HTTPCookieStorage
     private let transport: URLSessionTransport
-    private let hosts: SessionHostPolicy
+    /// Where requests may go: the forum in production, one host in tests.
+    let hosts: SessionHostPolicy
 
     /// The anti-CSRF token every POST needs (HFR-PROTOCOL §5); nil until known.
     public private(set) var hashCheck: String?
@@ -62,6 +63,13 @@ public actor HFRSession: HTTPTransport {
 
     deinit {
         urlSession.finishTasksAndInvalidate()
+    }
+
+    /// A fresh session holding `cookies`, with this session's host policy and network settings but its own jar and no
+    /// `hash_check`: what a session check sends its request through, so a test session restricted to the loopback host
+    /// never yields a probe that may reach the forum (#320).
+    package nonisolated func probe(cookies: [StoredCookie], now: Date) -> HFRSession {
+        HFRSession(cookies: cookies, hashCheck: nil, now: now, configuration: urlSession.configuration, hosts: hosts)
     }
 
     // MARK: - Transport
