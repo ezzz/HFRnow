@@ -34,7 +34,7 @@ public struct ModeratorAlertFlow: Sendable {
     ///   could not be sent; `notLoggedIn`; `unconfirmed` when the request may have left and no sentence was read.
     public func submit(reason: String, with form: ModeratorAlertForm) async throws(ModeratorAlertError) -> ModeratorAlertAnswer {
         guard !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw .emptyReason }
-        let refused = PostingFlow.unsupportedCharacters(in: reason)
+        let refused = PostCharacterCheck.truncatingCharacters(in: reason)
         guard refused.isEmpty else { throw .unsupportedCharacters(refused) }
         let body: FormBody
         do throws(PostingError) {

@@ -195,18 +195,8 @@ public struct PostingFlow: Sendable {
     /// Refuses an empty input, and characters HFR would cut the text at (Q-3): telling the user beats a silent loss.
     private func checkInput(_ value: String, as input: PostingInput) throws(PostingError) {
         guard !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw .emptyInput(input) }
-        let refused = Self.unsupportedCharacters(in: value)
+        let refused = PostCharacterCheck.truncatingCharacters(in: value)
         guard refused.isEmpty else { throw .unsupportedCharacters(input, refused) }
-    }
-
-    /// The distinct characters of `value` outside the Basic Multilingual Plane, in order: HFR cuts a text at the first one
-    /// (`W12`, decision Q-3).
-    static func unsupportedCharacters(in value: String) -> [Character] {
-        var refused: [Character] = []
-        for character in value where character.unicodeScalars.contains(where: { $0.value > 0xFFFF }) {
-            if !refused.contains(character) { refused.append(character) }
-        }
-        return refused
     }
 
     // MARK: - Helpers

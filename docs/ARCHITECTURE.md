@@ -29,6 +29,7 @@ App (SwiftUI, iOS 27)                 composition root, navigation, views, view 
 3. `HFRClient` sits above Parsing and Network to compose multi-step flows; it never depends on `HFRStorage` ([ADR 0008](adr/0008-hfrclient-orchestration-module.md)).
 4. Nothing in `HFRKit` imports SwiftUI, UIKit or WebKit. The engine must build and test on Linux.
 5. Third-party code is confined: SwiftSoup is visible only inside `HFRParsing` ([ADR 0002](adr/0002-swiftsoup-html-parser.md)).
+6. `package` access is for seams between HFRKit modules that the app must not use (`HFRSession.probe(cookies:now:)`, #320); `internal` stays per module and `public` is the app's API.
 
 ## Linux rules
 

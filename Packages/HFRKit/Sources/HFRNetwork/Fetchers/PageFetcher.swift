@@ -63,6 +63,11 @@ public struct PageFetcher: Sendable {
         try await fetch({ try HFREndpoint.smileySearch(text, requireAll: requireAll) }, identity)
     }
 
+    /// R54: the wiki entry of a smiley. Anonymous by default: HFR serves it logged out (`R54`).
+    public func smileyWiki(code: String, as identity: FetchIdentity = .anonymous) async throws(NetworkError) -> RawPage {
+        try await fetch({ try HFREndpoint.smileyWiki(code: code) }, identity)
+    }
+
     private func fetch(_ build: () throws -> HTTPRequest, _ identity: FetchIdentity) async throws(NetworkError) -> RawPage {
         let request: HTTPRequest
         do {
