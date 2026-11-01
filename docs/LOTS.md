@@ -283,7 +283,7 @@ Column layouts, continuous reading, keyboard and system integration, and the fea
 Proposal of directive H.1 ([#368](https://github.com/ezzz/HFRnow/issues/368)), tracked on [#379](https://github.com/ezzz/HFRnow/issues/379) (`status: blocked`). **Nothing below is applied**: the lots keep their milestone until the agreement is recorded on #379. The classification is in [GAP-LEGACY-VS-SWIFT.md](migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1), and the open choices are in [UX-DECISIONS-PENDING.md](migration/UX-DECISIONS-PENDING.md).
 
 **Whole lots proposed for M5** (UX evolutions that parity does not need; the legacy behaviour stays the M1–M4 baseline):
-- from M2: LOT-100, 101, 110, 112, 125, 138, 142, 143, 152, 153 (and LOT-151 if UXD-16 picks A);
+- from M2: LOT-100, 101, 110, 112, 138, 142, 143, 152, 153, and LOT-151 if UXD-16 picks A;
 - from M4: LOT-141, 144, 145, 146, 147, 148, 149, 150, 154.
 
 **Proposed splits.** The (a) part keeps the lot id, issue and milestone. The (b) part becomes a new lot in M5 once agreed. These rows are not lots yet and have no issue:
@@ -293,6 +293,7 @@ Proposal of directive H.1 ([#368](https://github.com/ezzz/HFRnow/issues/368)), t
 | 085b | LOT-085 | insertion engine and Edit-menu BBCode actions, plus the legacy clear / undo / redo and quote splitting (`AnswerView.swift:500-511`, `ReplyComposer.swift:141-175` @ 2440d79) | visible formatting toolbar | 084, 085, 086 | 18 |
 | 088b | LOT-088 | edit, delete with confirmation, never on the first post | delete on the first post | 097 | 14 |
 | 109b | LOT-109 | full-screen viewer, save, copy link | HD gallery with swipe | 057 | — |
+| 125b | LOT-125 | legacy swipes (leading Lu, trailing Supprimer) and the legacy context menu: Première page, Dernière page, Dernière réponse, Page numéro…, Copier le lien (`Favorites.swift:1073-1097`, `Common.swift:3050-3093` @ 2440d79) | uniform swipe set in every list, Lu with "Annuler", Super favori and Retirer swipes (FEAT-008) | 028, 029, 034 | 08 |
 | 111b | LOT-111 | first-unread landing and legacy separator | "Nouveau" banner | 063 | 11 |
 | 120b | LOT-120 | system-settings shortcut, version, static pages, About links in the app | cache sizes and clearing | 152 | — |
 | 122b | LOT-122 | darker dark, OLED black, separators (themes, defaults unchanged) | single accent, live preview | 145, 146 | 22 |

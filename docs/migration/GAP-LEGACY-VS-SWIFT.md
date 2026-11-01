@@ -51,7 +51,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-025 | Refresh | Pull and toolbar refresh reload the list. | MainWindow.swift:712-723 | Reloads the page on screen, rows kept, retry banner on failure. | LOT-082 | ported with changes | new UX: spec | a |
 | GAP-026 | Topic row layout | Title 14.3 pt, unread capsule, footer "⚑ cur / max" and "author - date". | Favorites.swift:988-1006, 1014; Common.swift:3095-3160 | Legacy Favoris density is the reference, but the LOT-082 row shows "author · replies · relative date". | LOT-082, LOT-169 | UX change | new UX: spec | b |
 | GAP-027 | Flag row tint | Row tinted by flag colour (yellow, blue, red). | MainWindow.swift:408-424; Common.swift:702-722 | Not specified. | — | not planned | — | — |
-| GAP-028 | Topic context menu | Première page, Dernière page, Dernière réponse, Page numéro…, Copier le lien. | Common.swift:3050-3093 | Uniform swipes and menus; only Lu, Dernière page, Super favori, Retirer are named. | LOT-125, FEAT-008 | ported with changes | port: ezzz Swift layer | a |
+| GAP-028 | Topic context menu | Première page, Dernière page, Dernière réponse, Page numéro…, Copier le lien. | Common.swift:3050-3093 | Uniform swipes and menus; only Lu, Dernière page, Super favori, Retirer are named. | LOT-125, FEAT-008 | ported with changes | port: ezzz Swift layer | b |
 | GAP-029 | Swipes | Leading "Lu", trailing "Supprimer"; super favourite in the menu only. | Favorites.swift:1073-1097 | One set in every list: Lu with "Annuler", Dernière page, Super favori, Retirer. | LOT-125, FEAT-008 | UX change | new UX: Bybifok (FEAT-008) | b |
 | GAP-030 | Favourites grouping | Grouped by forum with a count, or flat by last post. | Favorites.swift:293-396 | Grouped by category, sort by last post kept as an option. | LOT-124, LOT-082 | same | port: ezzz Swift layer | a |
 | GAP-031 | Collapsible sections | Chevron per section, persisted; toolbar toggle. | Favorites.swift:139-155, 725-735 | Collapsed sections kept. | LOT-124 | same | port: ezzz Swift layer | a |
@@ -111,7 +111,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-090 | Image upload | Rehost with resize cap and three BBCode modes. | ReplyService.swift:1735-1810 | Rehost client with a host table, upload and insertion panel. | LOT-056, LOT-102 | ported with changes | port: ezzz Swift layer | a |
 | GAP-091 | Upload history | Local history, re-insert in four sizes. | ReplyService.swift:1812-1918 | Local upload history. | LOT-103, FEAT-019 | same | port: ezzz Swift layer | a |
 | GAP-092 | Drafts | One global draft (`composerDraftText`) for replies, saved on dismiss. | MessagesView.swift:2668; AnswerView.swift:30-37 | Draft per topic and account, autosaved, 30-day expiry; swipe-down blocked with text. | LOT-084, LOT-063 | UX change | new UX: spec | b |
-| GAP-093 | Archived drafts | None at `2440d79`. | — | Picker in LOT-101, but LOT-084 says not ported (conflict). | LOT-101 | new | new UX: spec | a·master |
+| GAP-093 | Archived drafts | None at `2440d79`. | — | Picker in LOT-101, but LOT-084 says not ported (conflict). | LOT-101 | new | new UX: spec | b |
 | GAP-094 | Preview before send | None. | — | Exact BBCode rendering before send. | LOT-152, LOT-097, FEAT-013 | new | new UX: Bybifok (FEAT-013) | b |
 | GAP-095 | Emoji | Keyboard emoji silently blocked while typing. | AnswerView.swift:2236-2240, 2277-2281 | Free typing; non-BMP refused at send with a smiley suggestion. | LOT-084, LOT-151, FEAT-012 | UX change | new UX: Bybifok (FEAT-012) | b |
 | GAP-096 | Edit own message | Prefilled composer, no draft. | MessagesView.swift:3526-3532 | Edit with a draft per topic and post. | LOT-088, LOT-063 | ported with changes | port: ezzz Swift layer | a |
@@ -132,7 +132,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-113 | Group MP reading | Opened like any MP; flag "⚑ page/max" with MPStorage. | MPListView.swift:154-165 | Read and answered like topics. | LOT-171, LOT-130 | UX change | new UX: operator | b |
 | GAP-114 | New MP | From a message's menu: one read-only recipient, subject, no draft. | MessagesView.swift:3533-3547 | One or several recipients, from the list and profiles, draft per recipient. | LOT-128, LOT-063 | UX change | new UX: spec | b |
 | GAP-115 | MP reply | No separate entry in the Swift layer. | — | MP reply composer through the post engine. | LOT-128 | ported with changes | port: legacy ObjC | a |
-| GAP-116 | Mark unread | None found. | — | Mark-unread action. | LOT-058, LOT-127 | new | new UX: spec | a |
+| GAP-116 | Mark unread | "Marquer comme non lu" in the thread's message menu (ObjC, shared by MP threads); not in the MP list. | OnlineMessagesTableViewController.m:807, 888 | Mark-unread action. | LOT-058, LOT-127 | ported with changes | port: legacy ObjC | a |
 | GAP-117 | Delete MP thread | None found. | — | Thread delete. | LOT-094, LOT-127 | new | new UX: spec | b |
 | GAP-118 | Group members | Only the tooltip names in the HTML. | MPListView.swift:171-173 | Members action. | LOT-058, LOT-127 | new | new UX: spec | b |
 | GAP-119 | MPStorage flags on MP rows | Group rows show the stored flag page. | MPListView.swift:150-165 | `mpFlags` decoration, per-account sync. | LOT-062, LOT-130 | ported with changes | port: ezzz Swift layer | a |
@@ -194,7 +194,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-182 | Blacklist sync | Through the MPStorage thread. | MPStorage.m:202, 230, 271 | Three-way merge, never overwritten by an empty list. | LOT-131, LOT-062 | ported with changes | port: legacy ObjC | a |
 | GAP-183 | Bookmarks sync | Written synchronously to MPStorage. | MPStorage.m:313, 359 | Local first, merged on next sync. | LOT-132, LOT-062 | ported with changes | port: legacy ObjC | a |
 | GAP-184 | iCloud KVS | None. | — | Super favourites, smiley favourites and synced settings follow the Apple ID. | LOT-172 | new | new UX: operator | b·operator |
-| GAP-185 | Reading position | Scroll position in memory only. | MessagesView.swift:796-801 | Per-topic store, mirrored to iCloud KVS. | LOT-090, LOT-145 | new | new UX: Bybifok (FEAT-015) | a |
+| GAP-185 | Reading position | Scroll position in memory only. | MessagesView.swift:796-801 | Per-topic store, mirrored to iCloud KVS. | LOT-090, LOT-145 | new | new UX: Bybifok (FEAT-015) | b·operator |
 | GAP-186 | Caches | Image and smiley caches; clear action commented out. | AppSettingsView.swift:264-280 | Caches with eviction; legacy caches removed at first launch. | LOT-066, LOT-067 | ported with changes | port: ezzz Swift layer | a |
 
 ## Notifications
@@ -238,9 +238,9 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | Gap | Rows |
 |---|---|
 | same | 36 |
-| ported with changes | 41 |
+| ported with changes | 42 |
 | UX change | 39 |
-| new | 29 |
+| new | 28 |
 | dropped | 1 |
 | not planned | 9 |
 | **Total** | **155** |
@@ -278,31 +278,41 @@ Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-co
 
 | H.1 | Rows | Count |
 |---|---|---|
-| a | 004, 011, 025, 028, 032, 033, 038, 050, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 147, 151, 153, 160, 164, 165, 170, 180, 182, 183, 185, 186, 190, 191, 201, 216 | 44 |
-| a·master | 002, 093, 150, 211 | 4 |
+| a | 004, 011, 025, 032, 033, 038, 050, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 147, 151, 160, 164, 165, 170, 180, 182, 183, 186, 190, 191, 201, 216 | 42 |
+| a·master | 002, 150, 211 | 3 |
 | b·needed | 024, 056, 058, 133, 181 | 5 |
-| b·operator | 013, 016, 053, 065, 112, 141, 168, 169, 184, 200 | 10 |
-| b | 008, 009, 012, 014, 015, 020, 022, 026, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 094, 095, 097, 099, 101, 113, 114, 117, 118, 146, 152, 163, 166, 193, 194, 195, 202, 203, 204, 212, 214, 215, 217, 218, 219 | 46 |
+| b·operator | 013, 016, 053, 065, 112, 141, 168, 169, 184, 185, 200 | 11 |
+| b | 008, 009, 012, 014, 015, 020, 022, 026, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 093, 094, 095, 097, 099, 101, 113, 114, 117, 118, 146, 152, 163, 166, 193, 194, 195, 202, 203, 204, 212, 214, 215, 217, 218, 219 | 48 |
 
-The (b) rows include the ones the merged code already ships: 008, 009, 020, 022, 026, 051, 060, 092, 163, 212, 214. The `same` rows (36) are (a).
+The (b) rows include the ones the merged code already ships: 008, 009, 020, 022, 026, 051, 060, 092, 163, 212, 214. The `same` rows are (a).
+
+- The Source column says where a behaviour comes from; H.1 says whether the user sees a difference. So a row can be `b` with source `port: ezzz Swift layer`: GAP-060 and GAP-085 port the feature but change its controls.
+- Rows that are `a` although their source says "new UX" are invisible or robustness changes:
+  - refresh keeps the page on screen (025);
+  - App Review rule (038);
+  - errors that say whether anything was posted (100);
+  - extra themes with defaults unchanged (145, 147);
+  - legacy data import (170);
+  - compact density on more screens (201);
+  - the cover-screen fix (216). Its lot, LOT-147, is proposed for M5, so the fix needs a small M4 item (UXD-25).
 
 ### App lots (80) and features
 
 | Class | Lots | Count |
 |---|---|---|
 | (a) port | 080, 086, 089, 102, 103, 104, 105, 113, 114, 116, 117, 118, 121, 123, 124, 126, 131, 132, 133, 135, 136, 139, 140, 155, 156, 158, 160, 161, 162, 163, 164, 165, 166 | 33 |
-| mixed | 081, 082, 083, 084, 085, 087, 088, 106, 109, 111, 115, 119, 120, 122, 127, 128, 130, 134, 137, 157, 159, 169, 170, 171 | 24 |
-| (b) evolution | 100, 101, 107, 108, 110, 112, 125, 138, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 173 | 23 |
+| mixed | 081, 082, 083, 084, 085, 087, 088, 106, 109, 111, 115, 119, 120, 122, 125, 127, 128, 130, 134, 137, 157, 159, 169, 170, 171 | 25 |
+| (b) evolution | 100, 101, 107, 108, 110, 112, 138, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 173 | 22 |
 
 - **Mixed lots whose (b) part stays in M1–M4.**
   - Needed: LOT-083 (policy C), LOT-115 (banned words refused), LOT-130 (per-account MPStorage, merge), LOT-157 (account deletion), LOT-159 (App Review).
   - Decided by the operator: LOT-137 (HFR links routed in the app), LOT-169 (slider), LOT-171 (two MP lists as an option).
   - Pending a decision: LOT-081, 082, 084, 087, 106, 119, 170, 083 (UXD-01 to 10, 15, 21, 24).
-- **Mixed lots with a (b) part proposed for M5:** LOT-085, 088, 109, 111, 120, 122, 127, 128, 134 (splits in [LOTS.md](../LOTS.md#proposed-m5--ux-evolutions-needs-the-contributors-agreement)).
+- **Mixed lots with a (b) part proposed for M5:** LOT-085, 088, 109, 111, 120, 122, 125, 127, 128, 134 (splits in [LOTS.md](../LOTS.md#proposed-m5--ux-evolutions-needs-the-contributors-agreement)).
 - **(b) lots that stay:**
   - needed: LOT-107 (the setting that gates policy C), LOT-108 (players on tap, LOT-071 D-071-2);
   - decided by the operator: LOT-173.
-- **(b) lots proposed for M5:** LOT-100, 101, 110, 112, 125, 138, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154 ([#379](https://github.com/ezzz/HFRnow/issues/379)).
+- **(b) lots proposed for M5:** LOT-100, 101, 110, 112, 138, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 152, 153, 154, and LOT-151 if UXD-16 picks A ([#379](https://github.com/ezzz/HFRnow/issues/379)).
 - **Features:**
   - All FEAT items are (b) by origin.
   - FEAT-003 (honest paging) is (b) needed.
