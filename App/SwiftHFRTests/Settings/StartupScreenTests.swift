@@ -4,13 +4,6 @@ import Testing
 
 @MainActor
 struct StartupScreenTests {
-    @Test func favouritesOpenTheFavouritesAndOtherScreensTheForumList() {
-        #expect(StartupScreen.favorites.initialSource == .favorites)
-        #expect(StartupScreen.categories.initialSource == nil)
-        // No private-message screen yet (LOT-126): the forum list, not a guessed destination.
-        #expect(StartupScreen.messages.initialSource == nil)
-    }
-
     @Test func theNavigationOpensOnTheStartupSource() {
         let model = NavigationModel(dataSource: FakeDataSource(), startupSource: .favorites)
         #expect(model.selectedSource == .favorites)

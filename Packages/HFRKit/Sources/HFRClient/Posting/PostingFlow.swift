@@ -105,6 +105,7 @@ public struct PostingFlow: Sendable {
     func loadForm(at url: URL, through session: any PostingSession) async throws(PostingError) -> PostingForm {
         guard Self.isForumPage(url) else { throw .invalidFormURL }
         if Task.isCancelled { throw .network(.cancelled) }
+        let seed = await session.hashCheckSeed()
         let response: HTTPResponse
         do {
             response = try await session.send(.get(url))
@@ -127,7 +128,8 @@ public struct PostingFlow: Sendable {
             let token = form.field(named: "hash_check")?.value, !token.isEmpty,
             let pseudo = form.field(named: "pseudo")?.value, !pseudo.isEmpty
         else { throw .notLoggedIn }
-        await session.updateHashCheck(token)
+        // A login adopted meanwhile holds the fresher token (#308): never overwrite it with this page's.
+        await session.updateHashCheck(token, since: seed)
         return PostingForm(form: form, layout: layout, pageURL: response.url, session: session)
     }
 
@@ -193,10 +195,7 @@ public struct PostingFlow: Sendable {
     /// Refuses an empty input, and characters HFR would cut the text at (Q-3): telling the user beats a silent loss.
     private func checkInput(_ value: String, as input: PostingInput) throws(PostingError) {
         guard !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw .emptyInput(input) }
-        var refused: [Character] = []
-        for character in value where character.unicodeScalars.contains(where: { $0.value > 0xFFFF }) {
-            if !refused.contains(character) { refused.append(character) }
-        }
+        let refused = PostCharacterCheck.truncatingCharacters(in: value)
         guard refused.isEmpty else { throw .unsupportedCharacters(input, refused) }
     }
 

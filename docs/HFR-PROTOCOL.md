@@ -1,7 +1,7 @@
 # HFR protocol reference
 
 Everything we know about how forum.hardware.fr works: URLs, parameters, forms, cookies, tokens, HTML signals.
-**Every entry cites its source**: a legacy `file:line` (repo <https://github.com/francoisgn/hfrnow> @ `2440d79`) and/or an audit section.
+**Every entry cites its source**: a legacy `file:line` (repo <https://github.com/ezzz/HFRnow> @ `2440d79`) and/or an audit section.
 Status per fact: **code** = read from legacy code only · **live** = observed by us on the live forum (a fixture id such as `R21` points to the LOT-001 capture corpus, [`captures/MANIFEST.md`](../Packages/HFRKit/Tests/HFRParsingTests/Fixtures/captures/MANIFEST.md)) · **rf2** = reported by the redface2 Android client's documentation (rewritten in our words, not copied; GPL project) · **verified** = confirmed by a committed fixture. Until Phase 2 delivers fixtures, nothing is *verified*; §7 lists the open points to settle with fixtures.
 
 This document and the test fixtures are licensed under [CC BY 4.0](../LICENSE-docs.md) ([ADR 0009](adr/0009-open-protocol-docs-license.md)), unlike the code.
@@ -18,7 +18,7 @@ Host: `https://forum.hardware.fr` (`Classes/k.m:37-40`). Forum config `config=hf
 | R4 | Private messages list | GET | `/forum1.php?config=hfr.inc&cat=prive&page=1` | legacy list shows page 1 only; multi-page scan (`page=N` + long query) exists only in MPStorage | `ObjCMPTopicsLoaderWorker.m:9`, `MPStorage.m:692-736` · A E4, E §2.6 |
 | R5 | Topic page | GET | `/forum2.php?config=hfr.inc&cat=..&post=..&page=..`, which redirects (301) to the canonical `/hfr/<cat>[/<sub-category>]/<slug>-sujet_<post>_<page>.htm`; the path may carry a sub-category segment, e.g. `/hfr/Programmation/Divers-6/hfr-android-sujet_148745_1.htm` (**live**, 2026-10-25, §6) | Follow redirects; the **final URL** gives the page: read it from the `sujet_<post>_<page>` segment. The legacy regex `_(\d+)\.htm` matches the same form; the older `/hfr/<cat>/<sub>/<slug>_<id>_<page>.htm` shape cited by legacy code is unverified. **live**: two 301 hops when the topic has a sub-category (`…/<cat>/<slug>-sujet_…` then `…/<cat>/<sub>/<slug>-sujet_…`), plus a 302 to the last page when `page` is past it (`R20`, `R24`) | `ObjCTopicPageWorker.m:14-43, 86-94` · A E5, §3.4 |
 | R6 | Profile page | GET | `/user/editprofil.php?config=hfr.inc&page={5\|1}` | page 5: `hash_check` + avatar after login; page 1: cookie refresh. **live**: page 5 form holds `hash_check` and `page` only; page 3 holds the display settings incl. `topicpp` (posts per page); `/editprofil.php` (root) answers **500** (`R55-*`) | `LoginService.swift:87-113`, `MultisManager.m:281` · A E10 |
-| R7 | Smiley search | GET | `/message-smi-mp-aj.php?config=hfr.inc&findsmilies=+w1+w2` | ≥ 3 chars. **live**: several words are OR-ed (2 words gave more results than 1); no result = 40-character text "Désolé, aucune réponse n'a été trouvée !" (`R53a-c`) | `SmileySearchService.swift:12-42` · A E11 |
+| R7 | Smiley search | GET | `/message-smi-mp-aj.php?config=hfr.inc&findsmilies=+w1+w2` | ≥ 3 chars. **live**: several words are OR-ed (2 words gave more results than 1); no result = 40-character text "Désolé, aucune réponse n'a été trouvée !" (`R53a-c`, sent with raw `+`: what `%20` and a literal `+` do is open, see §6c LOT-053) | `SmileySearchService.swift:12-42` · A E11 |
 | R8 | MP unread count | GET | `/` | first integer in `.cCatTopic.red`. **live**: with no unread MP the home row "Envoyer / lire des messages privés" carries no number and no `red` class (`R03`); with unread MPs it reads "Vous avez N nouveaux messages privés" in `a.cCatTopic.red`, N = unread conversations (`R02`, §6b) | `MPBackgroundService.swift:80-135` · A E12 |
 | R9 | Public profile page | GET | `/hfr/profil-{id}.htm` | `table.main` rows `profilCase2/3`, avatar, personal smileys. **live** (`R56a`, `R56b`, logged out): `body#unique__user_page__view_user_profile`, `<title>` "X - FORUM HardWare.fr", `h4` "Informations sur : X", rows label `td.profilCase2` → value `td.profilCase3` (Pseudo, Email "Vous n'avez pas accès à cette information", Date de naissance, Sexe, Ville, Profession, Loisirs, Statut, Nombre de messages postés, Date d'arrivée `dd/mm/yyyy`, Date du dernier message `dd-mm-yyyy à hh:mm`, Citation personnelle, Signature, optional Configuration matérielle); avatar `div.avatar_center img` (`mesdiscussions-<id>.jpg`, `alt` = pseudo) and personal smileys `[:code] <img …/images/perso/[N/]code.gif alt="code:N">` in `td.profilCase4`; transactions per category `transactions_reports.php?…&id_user=<id>`; links `message.php?…&dest=X` and `/hfr/recherche/pseudo-X.htm` | `UserProfileView.swift:113-430` · review F4 |
 
@@ -250,7 +250,7 @@ Source: [LOT-027](lots/LOT-027-profile-parser.md), `UserProfileParser`, checked 
 
 - **Search waiting page** (`R50a`, **verified**, [LOT-025](lots/LOT-025-small-parsers.md)): the `POST /search.php?config=hardwarefr.inc` answer is an HTML page with several `<meta http-equiv>` (Pragma, Cache-Control, Expires, Imagetoolbar, Refresh); the redirect is `<meta http-equiv="Refresh" content="1; url=/forum1.php?recherches=1&amp;cat=…&amp;config=hfr.inc&amp;…">`, a **relative** URL with `&amp;`, delay 1 s. The results page `R50c` carries no refresh.
 - **Profile edit pages** (`R55-p1`, `R55-p3`, `R55-p5`, `R55-p5u1`, **verified**): each page holds `hash_check` **twice** (header search form `#fastsearch` and `form[name=ONSENFOU]`, `action="editprofil_validation.php?config=hfr.inc"`), and a hidden `page` field equal to the page number. Page 5 rows are `tr.profil` with `profilCase2` labels "Avatar", "Smilies persos", "Smilies favoris"; an account without avatar only shows the link `upload.php?config=hfr.inc` "Créer un avatar" (no `<img>`). With an avatar (`R55-p5u1`, user1) the cell holds `<img src="https://forum-images.hardware.fr/images/mesdiscussions-<id>.jpg" alt="" />` followed by "Modifier votre avatar" (`upload.php`) and "Effacer votre avatar" (`clearimage.php?…&codehex=<token>`); the "Smilies persos" row then lists the personal smileys as `<img src="/images/perso/[N/]name.gif" alt="name[:N]">` followed by their code. The legacy avatar regex returned another image on every other page (an icon on p1/p3, a tracking pixel on p5). Page 3 holds the text input `topicpp`.
-- **Smiley search** (`R53a-c`, **verified**): the answer is a bare fragment (no `<html>`), one `<img src alt title onclick="putSmiley(this.alt,this.src)" />` per smiley, all personal smileys: code `[:name]` with image `/images/perso/name.gif`, or `[:name:N]` with image `/images/perso/N/name.gif` (the suffix `N` is the folder). Counts: one word 657, two words 1010 (OR); the same smiley can be served twice (`R53c`). No result: the 40-character text "Désolé, aucune réponse n'a été trouvée !" with no markup.
+- **Smiley search** (`R53a-c`, **verified**): the answer is a bare fragment (no `<html>`), one `<img src alt title onclick="putSmiley(this.alt,this.src)" />` per smiley, all personal smileys: code `[:name]` with image `/images/perso/name.gif`, or `[:name:N]` with image `/images/perso/N/name.gif` (the suffix `N` is the folder). Counts: one word 657, two words 1010 (OR, sent as `+chat+noir` with raw `+`, see `### LOT-053`); the same smiley can be served twice (`R53c`). No result: the 40-character text "Désolé, aucune réponse n'a été trouvée !" with no markup.
 - **Smiley wiki detail** (`R54`, **verified**): `GET /wikismilies.php?config=hfr.inc&detail=%5B%3Aname%5D` (the code percent-encoded) works logged out. The entry row holds `<img src alt title>` with `<input type="hidden" name="smiley0" value="[:name]">` and `<input type="text" name="keywords0" value="word word word">` (space-separated keywords), followed by the contribution history (member profile link, date `dd-MM-yyyy à HH:mm`, keywords).
 
 ### LOT-037 — write responses
@@ -307,7 +307,7 @@ Source: [LOT-036](lots/LOT-036-hop-form-parser.md), `HopFormParser`, checked by 
 - **Body order** (`W10`-`W19` `request_fields`, **verified**): every captured write sends the `hop` form's controls in document order, `content_form` in place between `ColorUsedMem` and `wysiwyg`, the submit input, then the checked boxes; the new-topic `subcat` select sits between `toread5` and the tone radios (`R45a`). The engine rebuilds `W13b`'s body byte for byte from `R47b`, and the other captured bodies once legacy's `"0"` boxes are dropped and line breaks written CRLF.
 - **Fields sent** (`R40a`-`R47u1`, LOT-004 oracle, **verified**): the form's own `hash_check`, `pseudo` and `verifrequet=1100`, every hidden input, the checked tone radio, `submit=Valider votre message`; the same names and values as legacy apart from unchecked boxes.
 - **Composer shapes** (`R40a`-`R47u1`, **verified**): only edit forms carry a non-empty `numreponse`; new-thread forms show `sujet` (`R45a`), with `dest` for a private one (`R45b`); the first post's edit form shows `sujet` and labels its box "Effacer l'intégralité du sujet" (`R43a`), a later post hides `sujet` and says "Effacer ce message" (`R43b`).
-- **Per-write sentences** (`W10`, `W11`, `W15`, `W16a`, `W19`, **verified** on private messages): see §7 E15; `W18` (mark unread) is also a confirmation, of another action. Public-topic answers are not captured (lot's Pending capture).
+- **Per-write sentences** (`W10`, `W11`, `W15`, `W16a`, `W19`, **verified** on private messages): see §7 E15; `W18` (mark unread) is also a confirmation, of another action. Public-topic reply, edit and delete answers carry the same sentences (`W30`–`W32`, `W34`, `W35`; §7 E15); the public new-topic answer is not captured (lot's Pending capture).
 ### LOT-034 — message content
 Source: [LOT-034](lots/LOT-034-content-normalization.md), `MessageContentNormalizer`, checked by `MessageContentOracleTests`,
 `MessageContentNormalizerTests` and `MessageContentSanitizationTests` on the 20 LOT-003 oracle cases (358 messages).
@@ -397,6 +397,72 @@ Source: [LOT-031](lots/LOT-031-message-actions.md), `MessageActionsParser`, chec
 - **Favourites page filters** (`R11`): the page links `forum1f.php?config=hfr.inc&owntopic=<n>&new=<0|1>&nojs=0` with `owntopic` 0 and 2 beside the documented 1 and 3; the pages behind 0 and 2 are not captured.
 - **Slug segment = forum** (LOT-003 oracle, 20 topic pages): the `<cat>` segment of every canonical permalink maps through `ForumCatalogue` to the same `cat` the message's own quote link carries.
 - **Pending capture**: the AASA file of the site (#127), forums missing from the catalogue (#125), `profilebdd.php?pseudo=`'s redirect target, the pages behind `forum1f.php?owntopic=0|2` and `forum2.php3`.
+
+### LOT-084 — reply composer
+
+Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `LiveTopicPageSource.parse` (LOT-033 metadata).
+
+- **Answer link** (`R61d`, **verified**): a logged-in topic page's `#repondre_form` holds one `a` to `/message.php?config=hfr.inc&cat=<cat>&post=<post>&page=<page>&p=1&subcat=<sub>&sondage=0&owntopic=0&new=0` (the page shown, here 30), the reply composer `R61b` serves; none on anonymous pages (`R20`) nor on a locked topic seen anonymously (`R31`). A locked topic seen by a member is pending capture (#131).
+- **Where a reply lands vs HFR's refresh** (`R61b`, `W30`, `R61d`, **verified** for a form at `page=1`): the composer `W30` posted was fetched with `page=1` and its body carries `page=1` (`R61b`); the answer refreshes to page **1** with `#bas` (`…-sujet_6510_1.htm#bas`), while the reply is the last message of the topic's last page (`R61d`, page 30). Every captured reply posted `page=1` (`W11`, `W12`, `W13b`, `W13c` refresh to `page=1`). **Pending capture**: whether HFR echoes the form's `page` (an edit posted with `page=30` refreshes to `_30.htm`, `W31`; `R61d`'s answer link carries `page=30`). The app does not use the refresh either way: it opens `page = max + 1`, which HFR redirects to the last page (`R24`, 302 from the canonical path), at its last message.
+
+### LOT-090 — message numbers order a topic
+
+[LOT-090](lots/LOT-090-reading-position-store.md), tests `ReadingPositionOrderTests`.
+
+- **`numreponse` grows in posting order** (measured with a script over the corpus, not a parser test): on each of the 23 topic pages with two messages or more, the `<a name="t<numreponse>">` anchors are strictly ascending; across pages of one topic too (`R20` page 1 runs from 2666649 to 3204775 over 40 anchors, `R22a` page 1100 starts at 39966395, `R22b` page 2201 at 75482227, topic 28563). `ReadingPosition.isAhead(of:)` relies on it to compare two positions by message rather than by page.
+- **Pending capture**: a topic page after messages were deleted (whether later messages move to an earlier page; the order rule does not depend on it).
+
+### LOT-126 — MP list screen
+
+[LOT-126](lots/LOT-126-mp-list.md). No new forum fact: the screen reads the rows `PrivateMessageListParser` already verifies (§6c LOT-023). One thing it relies on, asserted on `R13u1` by `LivePrivateMessageSourceTests` (every row parses to an openable target, `ReaderTarget(opening:) != nil`; the 457-page thread opens the reader on page 457, `theCapturedLongThreadOpensOnItsLastPage`): every MP row's title link is `/forum2.php?config=hfr.inc&cat=prive&post=<id>&page=1&…`, a topic link of category `prive`, and its `sujetCase9` latest-message link names the thread's last page (`…&page=457&…#bas` on the 457-page thread of `R13u1`; `sujetCase5` has no flag link). The reader opens the latter, as legacy does (`HFRMPViewController.m:255`).
+- **Pending capture**: whether fetching an MP thread page marks it read on HFR, and from which page (no before/after pair of the MP list around a thread page fetch); a thread of another member and a group thread opened in the reader (`RA1`-`RA5` exist, all of the owner's own account or threads); the list logged out (#121).
+
+### LOT-046 — search flows
+
+[LOT-046](lots/LOT-046-search.md), tests `GlobalSearchFlowTests`, `TopicSearchFlowTests` (HFRClient, scripted transport over the captures).
+
+- **Global search chain** (`R50a` → `R50b`, `R50c`): the URL of the results GET is the LOT-005 oracle's `absoluteURL` for `R50a`, byte for byte; the `R50b` rows read through it have the LOT-002 oracle's 50 paths in order and its next-page path; `R50c` is an empty page with the oracle's notice "Désolé, aucune réponse n'a été trouvée !". The POST body built from legacy's defaults and "pizza napolitaine" equals `R50a`'s `request_body`, field order included. The S2 row's "POST (same body)" is legacy's request; `R50b` shows the results are also served to a cookie-less GET, which this flow sends.
+- **Intra-topic match** (`R52a`): the `Location` is a forum-relative `/forum2.php?post=<post>&cat=<cat>&…&word=<UPPERCASED>&spseudo=&currentnum=<n>#t<n>` of the searched topic. **No match** (`R52b`): a `.hop` with the sentence "Désolé aucune réponse n'a été trouvée" and a `javascript:history.back(1)` link, without comma (the global search's notice has one).
+- **Pending capture**: the `search.php` POST **without cookies** (`R50a` was sent with user2's session), with an empty `hash_check` and with the account's, so whether HFR checks the token there is not known; a query with accented characters (SwiftHFR sends UTF-8 percent-encoding, legacy sent the letters raw); a results page 2 (`R50b`'s pager link); `transsearch.php` answers to LOT-041's legacy body (`R52a`/`R52b` sent the browser's fields: `config, sondage, owntopic, dep=0, firstnum`, no `filter`), to a bad token, to a logged-out session, and to a continued search (`firstnum`/`currentnum`, "Stepping not tested" in §7).
+
+### LOT-038 — MPStorage pages
+
+[LOT-038](lots/LOT-038-mpstorage-page.md), tests `MPStoragePageParserTests`.
+
+- **Storage row** (`R13u1`, `R13u1b`, **verified**): the MP list row whose title link text is the subject `a2bcc09b796b8c6fab77058ff8446c34`, here behind HFR's `[non lu]` marker (`<span class="red" title="…">[non lu]</span> <a href="/forum2.php?config=hfr.inc&cat=prive&post=3157083&…" class="cCatTopic">`); its `post` equals the LOT-004 `find` oracle's `sPostId`. `R13a` has no such row and one page.
+- **Storage thread page** (`R60a`, **verified**): the title row's `h3` is the subject; the first message's `div#para<numreponse>` holds one `<p>` with the stored JSON, its `"` served as `&#034;`, followed by `<div style="clear: both;">`; `numreponse` equals the oracle's `sNumRep`. No U+00A0 in the page text of this (empty) document.
+- **Not addressed** (`RA5`, **verified**): an MP thread the account cannot see answers 200 with no message and the `.hop` "Ce message ne vous est pas destiné, désolé", the page legacy's `destiné` check targets (`MPStorage.m:837`).
+- **Pending capture**: a non-empty document (#272), the storage row on page 2 or later and the "destiné" answer for the storage thread itself (#333), a list page past the last page (#114).
+
+### LOT-093 — filtered posts
+
+[LOT-093](lots/LOT-093-filtered-posts.md), tests `FilteredPostsLegacyTests` (LOT-003 oracles) and `FilteredPostsFlowTests`.
+
+- **Anonymous pages carry what the filter reads** (`R20`, `R22a`, `R22b`, `R26`-`R28`, `R31`, `R32a`, **verified**): the "Message cité N fois" trailer and the quote headers are served without cookies, so the filter needs no session.
+- **First block of a page** (`R20`, `R22a`, `R22b`, `R24`, **verified**): on page 1 it is the topic's opening post, on later pages the continuation block; on anonymous pages the advertisement block comes second.
+- **Page past the end** (`R24`, **verified**): `forum2.php?…&page=2202` of a 2201-page topic ends, after the canonical redirects, with a 302 to `…_2201.htm`, the last page.
+
+### LOT-057 — REST API (anonymous)
+- **Requests** (`R57a`-`R57c`): `GET /webservices/rest_api.php?uri=forums/hardwarefr/categories/` (categories), `…?uri=forums/hardwarefr/categories/<cat>/topics/last/` (last topics), `…?uri=forums/hardwarefr/categories/<cat>/topics/<post>/` (one topic); anonymous, 200 `application/json`, no redirect, no `Set-Cookie`. The JSON writes non-ASCII as `\u` escapes and names with HTML entities (`&amp;`).
+- **Categories** (`R57a`): the home page's 20 forums (`R01`), same order and titles; each with `number_of_subcategories`, `force_subcat` and `/api/` hrefs (`subcategories/`, `topics/last/?page=1&results_per_page=25`).
+- **Last topics** (`R57b`): `page` 1, `results_per_page` 25, `results_count`, `list_type` `topic`; 30 rows: the 5 sticky topics, then 25. Row fields: `id`, `title`, `last_post_date` (`yyyy-MM-dd HH:mm`, Paris time), `is_closed`, `is_sticky`, `href`, `links.category`, `links.posts` (`count`, href with `results_per_page=40`), `links.author` and `links.last_author` (`title` = pseudo, `href` null). No poll, flag, read state or view count.
+- **Against the HTML list** captured six minutes earlier (`R04`): replies = `links.posts.count` − 1 and pages = ⌈count / 40⌉ on the 28 rows without a newer post; dates equal.
+- **Hrefs**: a topic's `href` names its sub-category for most rows (`…/categories/13/subcategories/433/topics/28563/`) but not in `R57c` (`…/categories/13/topics/28563/`). `R57c` says `is_sticky` true for topic 28563, which no list shows sticky (`R57b`, `R04`, `R06`).
+- **Not captured**: a page 2, `results_per_page`, an `/api/` href requested as is, an error answer, any answer to a session (flag buckets #335), sub-categories (#285); the anonymous ones are #355.
+
+### LOT-035 — video links
+
+[LOT-035](lots/LOT-035-video-embeds.md), tests `MessageContentOracleTests` (LOT-003 iframes) and `MessageEmbedDetectorTests`.
+
+- **A posted video link** (`R20`, `R22a`, `R22b`, `R27`, `R28`, **verified**): `<a rel="nofollow" href="<url>" target="_blank" class="cLink">` with the URL or a title as text (`R20`: "Impasto a mano pizza napoletana"), usually straight in a paragraph of the message; HFR adds no player. The corpus has `http://` and `https://www.youtube.com/watch?v=` (`R20`, `R22a`), `https://youtu.be/<id>` with `t=1m5s` (`R20`) or `t=706` (`R28`), and `vimeo.com/<number>` (`R20`); the LOT-003 oracles turn 133 of them into iframes over 8 pages.
+- **Start time** (`R20`, `R28`): the captured `youtu.be` links carry their start as `t=1m5s` and as plain seconds, `t=706`.
+
+### LOT-053 — smiley search and wiki
+
+Source: [LOT-053](lots/LOT-053-smiley-search-wiki.md), `SmileyLookupFlow`, checked against the LOT-005 oracles of `R53a`-`R53c` and `R54`.
+
+- **Wiki request** (`R54`, **verified**): `GET /wikismilies.php?config=hfr.inc&detail=%5B%3Auser3%5D`, the code fully percent-encoded (`:` as `%3A`), answers the entry logged out, 200 in place, no cookie set.
+- **Search request encoding** (**not verified**): `R53a`-`R53c` were sent with raw `+` separators (`findsmilies=+chat+noir`); the app sends legacy's encoding (`findsmilies=chat%20noir`, and `%2Bchat%20%2Bnoir` for "all keywords"). Whether HFR reads them alike, and what a literal `+` does, is pending capture; `R53c` only shows that its two words were OR-ed.
 
 ## 7. Reported by redface2, to verify with our fixtures
 

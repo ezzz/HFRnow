@@ -8,7 +8,7 @@ Harness, patch and run instructions: [`tooling/legacy-oracle/`](../../tooling/le
 This lot covers the **list** parsers. Topic pages are LOT-003; forms, write responses and storage formats are LOT-004.
 
 ## Legacy sources
-Legacy repository <https://github.com/francoisgn/hfrnow>, commit `2440d79`. All line numbers are `Classes/`.
+Legacy repository <https://github.com/ezzz/HFRnow>, commit `2440d79`. All line numbers are `Classes/`.
 
 | Kind | Parser entry point (what the loader workers call) | Source |
 |---|---|---|

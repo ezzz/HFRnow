@@ -6,7 +6,7 @@
 - **Depends on:** LOT-041 (`HFREndpoint`), LOT-042 (`HFRSession`, `AnonymousTransport`)
 
 ## Legacy sources
-Audit [A](../audit/A-network-sessions.md) lots NET-08 and NET-09; protocol [R1–R5, R7, R9, §7 E25](../HFR-PROTOCOL.md); legacy repo <https://github.com/francoisgn/hfrnow>.
+Audit [A](../audit/A-network-sessions.md) lots NET-08 and NET-09; protocol [R1–R5, R7, R9, §7 E25](../HFR-PROTOCOL.md); legacy repo <https://github.com/ezzz/HFRnow>.
 
 | Concern | Legacy |
 |---|---|

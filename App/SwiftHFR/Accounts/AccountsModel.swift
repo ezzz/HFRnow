@@ -6,50 +6,6 @@ import HFRStorage
 import Observation
 import UIKit
 
-/// What the app knows about an account's session.
-enum AccountSessionStatus: Sendable, Equatable {
-    /// Restored from the store; the forum has not confirmed it (yet).
-    case restored
-    /// Being checked.
-    case checking
-    /// Confirmed by a login or a session check.
-    case valid
-    /// No usable identity: the account must log in again.
-    case expired
-    /// The check could not reach the forum; the session is kept.
-    case checkFailed(NetworkError)
-}
-
-/// An account as the screens show it: no cookie, no token.
-struct AccountRow: Sendable, Equatable, Identifiable {
-    /// The account's key (`Account.pseudo`, the `md_user` value).
-    let id: String
-    /// Name shown in lists and menus.
-    let displayName: String
-    /// The current account, whose session the app uses.
-    let isMain: Bool
-    /// Avatar, decoded once by the model.
-    let avatar: UIImage?
-    /// Session state.
-    let status: AccountSessionStatus
-}
-
-/// Which account a login is for.
-enum LoginTarget: Sendable, Equatable, Identifiable {
-    /// A new account, or a known one typed again (it is refreshed in place).
-    case newAccount
-    /// A known account whose session must be renewed; credentials of another account are refused.
-    case existing(id: String, displayName: String)
-
-    /// Identity for sheet presentation.
-    var id: String {
-        switch self {
-        case .newAccount: "new"
-        case .existing(let id, _): "existing:\(id)"
-        }
-    }
-}
-
 /// The accounts and their sessions: the single owner of `HFRSession`s in the app (LOT-081).
 ///
 /// Mirrors the credential store (LOT-065): the account list is always what the store holds, and an account whose
@@ -66,6 +22,8 @@ final class AccountsModel {
     private(set) var hasRestored = false
     /// True while a restore (read and session checks) runs; a retry then waits for it instead of starting another.
     private(set) var isRestoring = false
+    /// True while a quiet re-check (`recheckUnconfirmedSessions`) runs; no screen shows it.
+    @ObservationIgnored private(set) var isRechecking = false
     /// Changes whenever `currentSession` becomes another object (select, remove, logout, a known current account
     /// added again). Screens built on the current session are rebuilt on it, never on `current?.id`, which does not
     /// change when the current account's session is replaced.
@@ -77,14 +35,21 @@ final class AccountsModel {
     @ObservationIgnored private let avatars: any AvatarLoading
     @ObservationIgnored private var sessions: [String: HFRSession] = [:]
     @ObservationIgnored private var statuses: [String: AccountSessionStatus] = [:]
+    /// Advanced by every login saved for an account: a session write-back whose jar was read before it is stale,
+    /// even when the login renewed the same `HFRSession` object.
+    @ObservationIgnored private var loginSaves: [String: Int] = [:]
     @ObservationIgnored private var restoreTask: Task<Void, Never>?
     @ObservationIgnored private var currentSessionID: ObjectIdentifier?
+    /// When the last forum check of the sessions (launch or re-check) ended; nil until one has.
+    @ObservationIgnored private var lastCheckEnd: Date?
     /// Cookie jar for browsing logged out; never holds an account's cookies.
     @ObservationIgnored private let loggedOutSession = HFRSession()
     /// Decoded avatars by account, so views never decode image bytes while rendering (LESSONS 49).
     @ObservationIgnored private var avatarImages: [String: (data: Data, image: UIImage)] = [:]
     /// The last avatar download started by a login (tests await it).
     @ObservationIgnored private(set) var avatarTask: Task<Void, Never>?
+    /// Test seam: runs in `persistSession` after the jar is read and before the store is written.
+    @ObservationIgnored var beforePersistWrite: (@MainActor () async -> Void)?
 
     /// Creates the model; nothing is read before `restore()`.
     init(store: any CredentialStore, loginService: any AccountLoggingIn, checker: any SessionChecking, avatars: any AvatarLoading) {
@@ -94,14 +59,15 @@ final class AccountsModel {
         self.avatars = avatars
     }
 
-    /// The model the app runs with: Keychain store keyed by the bundle identifier, `LoginFlow`, local session check.
+    /// The model the app runs with: Keychain store keyed by the bundle identifier, `LoginFlow`, the forum session check
+    /// (LOT-044).
     static func live() -> AccountsModel {
         AccountsModel(
             // An app bundle always has an identifier; the fallback is the project's own (LOT-080), so the item's
             // service never depends on it being missing.
             store: KeychainCredentialStore(service: Bundle.main.bundleIdentifier ?? "hfrplus.red.super"),
             loginService: LoginFlow(),
-            checker: LocalSessionCheck(),
+            checker: ForumSessionCheck(),
             avatars: AnonymousAvatarLoader()
         )
     }
@@ -182,15 +148,46 @@ final class AccountsModel {
         for account in book.accounts where statuses[account.pseudo] == .valid {
             await persistSession(of: account.pseudo)
         }
-        await checkSessions(book.accounts.map(\.pseudo))
+        await checkSessions(book.accounts.map(\.pseudo)) { $0 == .checking }
+        lastCheckEnd = Date()
     }
 
-    /// Checks sessions one after the other, so the forum never sees a burst at launch.
-    private func checkSessions(_ ids: [String]) async {
+    /// Shortest delay between the end of a check and a quiet re-check: the app coming back to the foreground several
+    /// times a minute must not send a request each time.
+    static let recheckInterval: TimeInterval = 5 * 60
+
+    /// Checks again, quietly, the sessions the forum did not confirm (`restored` after an unknown page, `checkFailed`
+    /// after a network error), when the app comes back to the foreground. Sessions already `valid` or `expired` are left
+    /// alone; the rows keep their status until a result arrives, and a check that confirms nothing changes nothing.
+    /// Skipped while another re-check or a restore runs (its own check may already have marked a session `checkFailed`
+    /// and still be waiting on the next account), and until `recheckInterval` has passed since the last check.
+    func recheckUnconfirmedSessions(now: Date = Date()) async {
+        guard !isRechecking, !isRestoring else { return }
+        if let lastCheckEnd, now.timeIntervalSince(lastCheckEnd) < Self.recheckInterval { return }
+        let ids = rows.map(\.id).filter { Self.isUnconfirmed(statuses[$0]) }
+        guard !ids.isEmpty else { return }
+        isRechecking = true
+        await checkSessions(ids, when: Self.isUnconfirmed)
+        lastCheckEnd = Date()
+        isRechecking = false
+    }
+
+    private static func isUnconfirmed(_ status: AccountSessionStatus?) -> Bool {
+        switch status {
+        case .restored, .checkFailed: true
+        case .checking, .valid, .expired, nil: false
+        }
+    }
+
+    /// Checks sessions one after the other, so the forum never sees a burst. Only accounts whose status passes
+    /// `eligible` are checked, and a result is applied only if the account still has the same session and status: a
+    /// login or a removal that landed during the check wins.
+    private func checkSessions(_ ids: [String], when eligible: (AccountSessionStatus?) -> Bool) async {
         for id in ids {
-            guard let session = sessions[id], statuses[id] == .checking else { continue }
+            guard let session = sessions[id], eligible(statuses[id]) else { continue }
+            let before = statuses[id]
             let result = await checker.check(session)
-            guard sessions[id] === session, statuses[id] == .checking else { continue }
+            guard sessions[id] === session, statuses[id] == before else { continue }
             switch result {
             case .valid:
                 statuses[id] = .valid
@@ -253,6 +250,7 @@ final class AccountsModel {
             reloadRows()
             throw Self.actionError(error)
         }
+        loginSaves[stored.pseudo, default: 0] += 1
         sessions[stored.pseudo] = session
         statuses[stored.pseudo] = .valid
         storeProblem = nil
@@ -293,12 +291,16 @@ final class AccountsModel {
     /// when the session lost its identity: a logged-out jar never replaces stored cookies. A failed write keeps the
     /// previous cookies and is reported as a store problem (LESSONS 8); the session in memory keeps working.
     func persistSession(of id: String) async {
-        guard let session = sessions[id], await session.isLoggedIn() else { return }
+        guard let session = sessions[id] else { return }
+        let saves = loginSaves[id, default: 0]
+        guard await session.isLoggedIn() else { return }
         let cookies = await session.cookies()
         let hashCheck = await session.hashCheck
+        if let beforePersistWrite { await beforePersistWrite() }
         // Replaced (a new login of the same pseudo) or removed while the jar was read: its cookies must not overwrite
-        // what the store holds now. No suspension point follows before the write.
-        guard sessions[id] === session else { return }
+        // what the store holds now. Nor if a login was saved meanwhile: a re-login renews this same session, so the
+        // jar may have been read before it, and the store already holds the login. No suspension point follows.
+        guard sessions[id] === session, loginSaves[id, default: 0] == saves else { return }
         do {
             try store.update { book in
                 guard var account = book.account(matching: id) else { return }

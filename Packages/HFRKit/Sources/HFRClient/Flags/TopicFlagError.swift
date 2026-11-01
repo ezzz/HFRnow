@@ -3,9 +3,9 @@ import HFRNetwork
 /// Why a flag write or a read mark did not end with HFR's confirmation.
 ///
 /// `invalidLink`, `invalidTopic`, `sessionNotConfirmed`, `missingToken` and `network` mean the write was not sent.
-/// `notLoggedIn` and `rejected` mean HFR answered and refused the write, so nothing changed and the user may try again.
-/// `unconfirmed` means the request may have reached HFR: the app reloads the list or the topic to see the state instead
-/// of resending on its own.
+/// `notLoggedIn` and `rejected` mean HFR answered with a refusal by LOT-037's shape rule (no `addflag` or `delflag`
+/// refusal is captured), so the user may try again. `unconfirmed` means the request may have reached HFR: the app reloads
+/// the list or the topic to see the state instead of resending on its own.
 /// No case carries a token or a cookie; `rejected` carries HFR's own sentence.
 public enum TopicFlagError: Error, Sendable, Equatable {
     /// The link is not an `https` `forum.hardware.fr` link of this write (path, `config=hfr.inc`, one forum `cat`, one

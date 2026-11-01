@@ -71,7 +71,7 @@ public struct TopicFlagFlow: Sendable {
 
     /// `follow`, sent only when `check` says the account session is valid; an invalid link asks nothing.
     func follow(
-        _ action: TopicFlagAction, link: URL, through session: any FlagSession, after check: SessionCheck
+        _ action: TopicFlagAction, link: URL, through session: any PostingSession, after check: SessionCheck
     ) async throws(TopicFlagError) -> TopicFlagResult {
         guard let path = action.linkPath, FlagLink(link, path: path) != nil else { throw .invalidLink }
         try await Self.confirm(check)
@@ -80,14 +80,14 @@ public struct TopicFlagFlow: Sendable {
 
     /// `removeFavoriteFromList`, sent only when `check` says the account session is valid; an invalid topic asks nothing.
     func removeFavoriteFromList(
-        _ topic: TopicID, through session: any FlagSession, after check: SessionCheck
+        _ topic: TopicID, through session: any PostingSession, after check: SessionCheck
     ) async throws(TopicFlagError) -> TopicFlagResult {
         guard case .forum(let category) = topic.category, category > 0, topic.topic > 0 else { throw .invalidTopic }
         try await Self.confirm(check)
         return try await removeFavoriteFromList(topic, through: session)
     }
 
-    func follow(_ action: TopicFlagAction, link: URL, through session: any FlagSession) async throws(TopicFlagError)
+    func follow(_ action: TopicFlagAction, link: URL, through session: any PostingSession) async throws(TopicFlagError)
         -> TopicFlagResult {
         guard let path = action.linkPath, let flagLink = FlagLink(link, path: path) else { throw .invalidLink }
         // A redirect is not followed: HFR answers these GETs in place (`P03a`, `P03d`), anything else is not its confirmation.
@@ -96,7 +96,7 @@ public struct TopicFlagFlow: Sendable {
         return try Self.confirmation(of: action, topic: flagLink.topic, in: response, requestURL: flagLink.url)
     }
 
-    func removeFavoriteFromList(_ topic: TopicID, through session: any FlagSession) async throws(TopicFlagError)
+    func removeFavoriteFromList(_ topic: TopicID, through session: any PostingSession) async throws(TopicFlagError)
         -> TopicFlagResult {
         guard case .forum(let category) = topic.category, category > 0, topic.topic > 0 else { throw .invalidTopic }
         guard let token = await session.hashCheck else { throw .missingToken }
@@ -108,7 +108,7 @@ public struct TopicFlagFlow: Sendable {
         return try Self.confirmation(of: .removeFavoriteFromList, topic: topic, in: response, requestURL: Self.manageActionURL)
     }
 
-    func markRead(_ topic: TopicID, page: Int, through session: any FlagSession) async throws(TopicFlagError)
+    func markRead(_ topic: TopicID, page: Int, through session: any PostingSession) async throws(TopicFlagError)
         -> TopicReadMark {
         guard case .forum(let category) = topic.category, category > 0, topic.topic > 0, page >= 1 else {
             throw .invalidTopic
@@ -119,6 +119,7 @@ public struct TopicFlagFlow: Sendable {
         } catch {
             throw .invalidTopic
         }
+        let seed = await session.hashCheckSeed()
         let response = try await exchange(request, through: session)
         // The session follows redirects to any `hardware.fr` host (LOT-042): only a forum page can be this topic's.
         guard PostingFlow.isForumPage(response.url) else { throw .unconfirmed(.unrecognizedAnswer(message: nil)) }
@@ -131,7 +132,8 @@ public struct TopicFlagFlow: Sendable {
             // An anonymous page (`R20`), another topic or a message page: the account's flag was not moved.
             throw .unconfirmed(.unrecognizedAnswer(message: Self.hopMessage(in: html, requestURL: response.url)))
         }
-        await session.updateHashCheck(token)
+        // A login adopted meanwhile holds the fresher token (#308): the mark stands, the page's token is dropped.
+        await session.updateHashCheck(token, since: seed)
         return TopicReadMark(topic: topic, page: metadata.currentPage, pageCount: metadata.maxPage, pageURL: response.url)
     }
 
@@ -156,7 +158,7 @@ public struct TopicFlagFlow: Sendable {
     }
 
     /// Sends `request` once. Before it leaves the device a failure is `network`; after, HFR may have acted: `unconfirmed`.
-    private func exchange(_ request: HTTPRequest, through session: any FlagSession) async throws(TopicFlagError)
+    private func exchange(_ request: HTTPRequest, through session: any PostingSession) async throws(TopicFlagError)
         -> HTTPResponse {
         if Task.isCancelled { throw .network(.cancelled) }
         do {

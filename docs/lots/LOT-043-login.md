@@ -7,7 +7,7 @@
 
 ## Legacy sources
 
-Legacy app: `master` of ezzz/HFRnow @ `21173e7` (same lines as francoisgn/hfrnow @ `2440d79`). Audit [A](../audit/A-network-sessions.md) §4.2 and lot NET-04.
+Legacy app: `master` of ezzz/HFRnow @ `21173e7` (same lines as ezzz/HFRnow @ `2440d79`). Audit [A](../audit/A-network-sessions.md) §4.2 and lot NET-04.
 
 | Legacy | Replaced by |
 |---|---|
@@ -25,7 +25,7 @@ Legacy app: `master` of ezzz/HFRnow @ `21173e7` (same lines as francoisgn/hfrnow
 `LoginFlow.login(pseudo:password:into:expectedUserKey:now:) async throws(LoginError) -> LoginResult`, in `Packages/HFRKit/Sources/HFRClient/Login/`.
 
 1. Trim the pseudo (whitespace and newlines); an empty pseudo or an empty password throws `missingCredentials` and sends nothing. The password is sent as typed.
-2. Create a **new, empty** `HFRSession` for this attempt (the jar). Nothing of the target session (`into:`) is read or sent.
+2. Create a **new, empty** `HFRSession` for this attempt (the jar). Nothing of the target session (`into:`) is read or sent; the jar only keeps its host policy and network settings (`session.probe(cookies: [], now:)`, [#365](https://github.com/ezzz/HFRnow/issues/365)), so a test session restricted to the loopback host never logs in against the forum.
 3. POST the credentials through the jar (`HFREndpoint.login`, legacy fields in the order of the captured requests `W01`/`W01b`/`W03`; legacy's dictionary had no fixed order). Classify the decoded answer:
    - contains `login_redirection.php` → accepted (legacy rule; `W03`, `W01b`);
    - else contains "Votre mot de passe ou nom d'utilisateur n'est pas valide" → `invalidCredentials` (`W01`);
@@ -49,6 +49,7 @@ Errors (`LoginError`) carry no pseudo, password or page text. Transport failures
 - Network failure, HTTP error or cancellation at either step: session untouched.
 - Re-login replaces the whole jar: cookies the session held before (an expired identity, `md_data`, multi-quote `quotes*` selections) are dropped, as legacy's wipe did.
 - Two logins into the same session at once: each runs in its own jar; the last one to finish is installed.
+- A login adopted while another flow's page is in flight (`PostingFlow.loadForm`, `TopicFlagFlow.markRead`): the page's `hash_check` belongs to the cookies its request was sent with, so the flow records it only when the session still holds the identity (`userKey`) and the token it held when the request left (`HashCheckSeed`, compare-and-set in one actor turn, the rule of LOT-044's `adoptRefresh`); otherwise the login's fresher token is kept ([#308](https://github.com/ezzz/HFRnow/issues/308)). Chosen over an app rule of one flow at a time per session, which nothing in the engine would enforce.
 - The avatar URL comes from a page of the forum but points to `forum-images.hardware.fr`: the app fetches it with `AnonymousTransport` (HFR-PROTOCOL §7 E26), never with the account session.
 
 ## Fixtures

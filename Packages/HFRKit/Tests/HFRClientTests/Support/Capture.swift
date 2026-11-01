@@ -57,14 +57,22 @@ struct CaptureMeta: Decodable {
     let setCookieNames: [String]
     let requestFields: [String]?
     let requestBody: String?
+    /// The redirect hops HFR answered before `finalURL`, in order.
+    let redirects: [CaptureRedirect]?
 
     enum CodingKeys: String, CodingKey {
-        case status, method, url
+        case status, method, url, redirects
         case finalURL = "final_url"
         case setCookieNames = "set_cookie_names"
         case requestFields = "request_fields"
         case requestBody = "request_body"
     }
+}
+
+/// One redirect hop of a capture's meta.
+struct CaptureRedirect: Decodable {
+    let status: Int
+    let location: String
 }
 
 extension Capture {

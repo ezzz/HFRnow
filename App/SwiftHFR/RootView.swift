@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Root screen: the adaptive navigation, built on the current account's session (LOT-081, LOT-082).
+/// Root screen: the root navigation (tab bar or sidebar), built on the current account's session (LOT-081, LOT-170).
 ///
 /// Shown once the stored accounts are read, so the first load is not made logged out and then redone. The navigation is
 /// rebuilt from scratch whenever the current session becomes another object (`currentSessionGeneration`): lists and
@@ -8,11 +8,14 @@ import SwiftUI
 struct RootView: View {
     @Environment(AccountsModel.self) private var accounts
     @State private var built: (generation: Int, environment: AppEnvironment)?
+    /// Where the user was: a new session generation rebuilds the navigation but keeps the tab or destination (legacy keeps it,
+    /// `MainWindow.swift:1276-1278`). Nil until the first creation, which applies the start-screen setting.
+    @State private var lastDestination: SidebarDestination?
 
     var body: some View {
         Group {
             if let built {
-                AdaptiveNavigationView(environment: built.environment)
+                RootNavigationView(environment: built.environment, lastDestination: $lastDestination)
                     .id(built.generation)
             } else {
                 ProgressView()

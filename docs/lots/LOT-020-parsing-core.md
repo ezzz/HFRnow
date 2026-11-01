@@ -6,7 +6,7 @@
 
 ## Legacy sources
 
-Legacy repository <https://github.com/francoisgn/hfrnow> at `2440d79`. Audit: [B §3.3.3–3.3.5, B3](../audit/B-list-parsing-models.md), [C §3.4, C02](../audit/C-message-parsing.md), D4 (decoder part only); [redface2 comparison](../research/redface2-comparison.md) §4.3 E7, E13, E20; [user feedback](../research/user-feedback-p450-510.md) §4.
+Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79`. Audit: [B §3.3.3–3.3.5, B3](../audit/B-list-parsing-models.md), [C §3.4, C02](../audit/C-message-parsing.md), D4 (decoder part only); [redface2 comparison](../research/redface2-comparison.md) §4.3 E7, E13, E20; [user feedback](../research/user-feedback-p450-510.md) §4.
 
 | Legacy | Replaced by |
 |---|---|

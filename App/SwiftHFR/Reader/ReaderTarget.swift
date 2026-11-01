@@ -17,12 +17,16 @@ struct ReaderTarget: Hashable, Sendable {
     var page: Int
     /// Message number to scroll to once the page is shown (the `#t<numreponse>` anchor), nil for the top.
     var anchor: Int?
+    /// The message of a `numreponse=M` link (bookmarks, AQ, permalinks): HFR picks the page that holds it and redirects
+    /// there (`R25`), so the link's `page=` is not that page and `page` is only a placeholder (issue #106).
+    var numreponse: Int?
 
     /// Creates a target; pages below 1 become 1.
-    init(source: Source, page: Int = 1, anchor: Int? = nil) {
+    init(source: Source, page: Int = 1, anchor: Int? = nil, numreponse: Int? = nil) {
         self.source = source
         self.page = max(1, page)
         self.anchor = anchor
+        self.numreponse = numreponse
     }
 
     /// The page a topic row opens: the flag link (last read position, with its anchor) when the row has one, else the
@@ -46,7 +50,12 @@ struct ReaderTarget: Hashable, Sendable {
         let text = url.absoluteString
         let anchor = HFRURL.anchorPostNumber(in: text)
         if let topicID = HFRURL.topicID(in: text) {
-            self.init(source: .topic(topicID), page: HFRURL.page(in: text) ?? 1, anchor: anchor)
+            // LOT-095's router drops `page=` when the link names a message: HFR then serves the message's page (R25).
+            if case .topic(let routed) = HFRLinkRoute.route(for: url), routed.id == topicID, let message = routed.numreponse {
+                self.init(source: .topic(topicID), anchor: routed.scrollTarget, numreponse: message)
+            } else {
+                self.init(source: .topic(topicID), page: HFRURL.page(in: text) ?? 1, anchor: anchor)
+            }
         } else if let canonical = HFRURL.canonicalTopicPath(in: text) {
             if let fallbackTopic, fallbackTopic.topic == canonical.topic {
                 self.init(source: .topic(fallbackTopic), page: canonical.page, anchor: anchor)

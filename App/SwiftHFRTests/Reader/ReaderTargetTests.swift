@@ -16,6 +16,31 @@ struct ReaderTargetTests {
         #expect(target.anchor == 2666649)
     }
 
+    /// `R25`'s request: page 1 plus the message, which HFR answers with a 301 to `…sujet_28563_1100.htm#t39971312`.
+    private static let messageLink = "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=28563&page=1&numreponse=39971312"
+
+    @Test(arguments: [
+        messageLink,
+        // A legacy bookmark (`Classes/Bookmark.m:17`): no `page=`, the message both as `numreponse` and as anchor.
+        "/forum2.php?config=hfr.inc&cat=13&post=28563&numreponse=39971312#t39971312"
+    ])
+    func aMessageLinkLetsHFRPickThePage(_ link: String) throws {
+        let target = try #require(ReaderTarget(link: link))
+        #expect(target.source == .topic(readerTopic))
+        #expect(target.numreponse == 39971312)
+        #expect(target.anchor == 39971312)
+        // Another page of the topic is an ordinary page again.
+        #expect(target.atPage(3) == ReaderTarget(source: .topic(readerTopic), page: 3))
+    }
+
+    @Test func aFlagLinkNamesNoMessage() throws {
+        // `numreponse=0` means none (LOT-095): the flag link keeps its page and anchor.
+        let target = try #require(ReaderTarget(link: flagLink))
+        #expect(target.numreponse == nil)
+        #expect(target.page == 1)
+        #expect(target.anchor == 2666649)
+    }
+
     @Test func aCanonicalLinkKeepsPageAndPost() throws {
         let link = "http://forum.hardware.fr/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1353.htm#t44795902"
         let target = try #require(ReaderTarget(link: link))

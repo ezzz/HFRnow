@@ -9,7 +9,7 @@ extension AccountsModel {
         AccountsModel(
             store: InMemoryCredentialStore(),
             loginService: OfflineLogin(),
-            checker: LocalSessionCheck(),
+            checker: NoSessionCheck(),
             avatars: NoAvatars()
         )
     }
@@ -22,6 +22,11 @@ private struct OfflineLogin: AccountLoggingIn {
     ) async throws(LoginError) -> LoginResult {
         throw .network(.offline)
     }
+}
+
+/// Confirms nothing and sends nothing, so a preview never contacts the forum.
+private struct NoSessionCheck: SessionChecking {
+    func check(_ session: HFRSession) async -> SessionCheckResult { .unconfirmed }
 }
 
 /// Never downloads anything.

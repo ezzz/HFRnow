@@ -12,16 +12,23 @@ import HFRParsing
 /// flows that meet such a notice (LOT-023 `.notAuthenticated`, LOT-037 `.loggedOut`) re-check it here instead of
 /// clearing the session; a `valid` clears the doubt, anything else leaves the session alone.
 public struct SessionRefreshFlow: Sendable {
-    private let makeProbe: @Sendable ([StoredCookie], Date) -> any SessionJar
+    private let makeProbe: (@Sendable ([StoredCookie], Date) -> any SessionJar)?
 
-    /// A flow whose probes are fresh `HFRSession`s.
+    /// A flow whose probes are fresh `HFRSession`s with the refreshed session's host policy (`probe(for:cookies:now:)`).
     public init() {
-        self.init { cookies, now in HFRSession(cookies: cookies, now: now) }
+        makeProbe = nil
     }
 
     /// A flow with another probe factory (tests).
     init(makeProbe: @escaping @Sendable ([StoredCookie], Date) -> any SessionJar) {
         self.makeProbe = makeProbe
+    }
+
+    /// The jar `refresh` sends its request through: the test factory's, else a fresh session seeded with `cookies` that
+    /// keeps `session`'s host policy, so refreshing a test session restricted to the loopback host can never reach the
+    /// forum (#320).
+    func probe(for session: HFRSession, cookies: [StoredCookie], now: Date) -> any SessionJar {
+        makeProbe?(cookies, now) ?? session.probe(cookies: cookies, now: now)
     }
 
     /// GETs the profile page 1 with `session`'s cookies and reports what HFR's answer says about the session.
@@ -36,7 +43,7 @@ public struct SessionRefreshFlow: Sendable {
         var request = try Self.profilePageRequest()
         // A redirect (to page 5, to the login page) is not page 1: return it and let the URL check refuse it.
         request.redirectPolicy = .doNotFollow
-        let probe = makeProbe(seed.cookies, now)
+        let probe = probe(for: session, cookies: seed.cookies, now: now)
         let response = try await probe.send(request)
         guard let token = Self.accountToken(in: response, expectedURL: request.url) else {
             return .unconfirmed(.unrecognizedPage)

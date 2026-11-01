@@ -22,6 +22,15 @@ public enum HFRDate {
         return nil
     }
 
+    /// Parses the REST API's `last_post_date`, exactly `yyyy-MM-dd HH:mm` (`R57b`, LOT-057), with the same Paris rules.
+    public static func restDate(from text: String) -> Date? {
+        guard let match = text.wholeMatch(of: restPattern) else { return nil }
+        let (_, year, month, day, hour, minute) = match.output
+        let canonical = "\(day)-\(month)-\(year) \(hour):\(minute):00"
+        guard let zone = timeZone, let wallClock = try? Date(canonical, strategy: wallClockStrategy) else { return nil }
+        return resolve(wallClock: wallClock, in: zone)
+    }
+
     // MARK: - Implementation
 
     // `Regex` is not `Sendable` (its output type could hold non-Sendable captures). These literals capture
@@ -32,6 +41,9 @@ public enum HFRDate {
     nonisolated(unsafe) private static let pattern = Regex<AnyRegexOutput>(
         /([0-9]{2})-([0-9]{2})-([0-9]{4})\s+à\s+([0-9]{2}):([0-9]{2})(?::([0-9]{2}))?(?![0-9:])/
     )
+
+    /// `yyyy-MM-dd HH:mm`, ASCII digits, one space (`restDate`).
+    nonisolated(unsafe) private static let restPattern = /([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2})/
 
     /// Calendar validation (31-02, 24:00…) is delegated to a non-lenient `Date.ParseStrategy` reading
     /// the wall-clock time as if it were UTC; the Paris offset is applied afterwards by `resolve`.

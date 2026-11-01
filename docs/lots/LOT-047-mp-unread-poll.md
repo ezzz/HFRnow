@@ -6,7 +6,7 @@
 - **Depends on:** LOT-023 (`PrivateMessageBadgeParser`), LOT-045 (`PageFetcher`)
 
 ## Legacy sources
-Legacy app: `master` of ezzz/HFRnow (same lines as francoisgn/hfrnow @ `2440d79`).
+Legacy app: `master` of ezzz/HFRnow (same lines as ezzz/HFRnow @ `2440d79`).
 
 | Legacy | Replaced by |
 |---|---|
@@ -29,7 +29,7 @@ The app owns scheduling (`BGAppRefreshTask`, foreground timer), comparing with t
 
 **Session:** a logged-in `GET /` sets `md_user` x2 and `md_passs` x2 (R02, R03 metas), which `HFRSession.perform` would store. The poll
 therefore snapshots `account.cookies()` into an ephemeral probe `HFRSession`, sends there, and writes nothing back: a poll that started before a login
-(LOT-043) or refresh (LOT-044) cannot overwrite the cookies they installed. The account session is only read. Cookie refresh is LOT-044's job.
+(LOT-043) or refresh (LOT-044) cannot overwrite the cookies they installed. The account session is only read. Cookie refresh is LOT-044's job. The probe keeps the account session's host policy (`account.probe(cookies:now:)`, [#365](https://github.com/ezzz/HFRnow/issues/365)).
 
 **No flag is marked read:** the only request is `GET /` (a home page with no topic). HFR marks flags read on an authenticated topic page (HFR-PROTOCOL §7,
 E25), which the poll never requests; the cookie-less transport is not used. The test asserts one request, to `/`, through the probe only.
