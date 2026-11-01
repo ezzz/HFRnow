@@ -9,7 +9,7 @@ Reads the page-level data of a topic page or private conversation. The messages 
 from this value, the messages and the poll.
 
 ## Legacy sources
-Legacy repository <https://github.com/francoisgn/hfrnow> at `2440d79`. Oracle: [LOT-003](LOT-003-topic-oracle.md), `result.page` and `result.parser`.
+Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79`. Oracle: [LOT-003](LOT-003-topic-oracle.md), `result.page` and `result.parser`.
 
 | Legacy | Replaced by |
 |---|---|

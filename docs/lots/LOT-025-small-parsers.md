@@ -9,7 +9,7 @@ expected values come from what the captured HTML shows and from the legacy code 
 
 ## Legacy sources
 
-Legacy repository <https://github.com/francoisgn/hfrnow> at `2440d79`. Audit: [B8](../audit/B-list-parsing-models.md), [D §3.1](../audit/D-posting.md), D9.
+Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79`. Audit: [B8](../audit/B-list-parsing-models.md), [D §3.1](../audit/D-posting.md), D9.
 
 | Legacy | Replaced by |
 |---|---|

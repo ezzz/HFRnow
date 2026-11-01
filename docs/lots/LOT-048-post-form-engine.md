@@ -12,7 +12,7 @@ report success only when HFR confirmed this very write. Quote prefill building (
 
 ## Legacy sources
 
-Legacy app: `master` of ezzz/HFRnow (same lines as francoisgn/hfrnow @ `2440d79`).
+Legacy app: `master` of ezzz/HFRnow (same lines as ezzz/HFRnow @ `2440d79`).
 
 | Legacy | Replaced by |
 |---|---|

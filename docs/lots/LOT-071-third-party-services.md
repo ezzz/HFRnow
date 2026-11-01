@@ -13,7 +13,7 @@ the rules below; a PR that makes the app contact a new third-party host adds its
 
 ## Legacy sources
 
-Legacy citations are files of <https://github.com/francoisgn/hfrnow> @ `2440d79`, relative to `HFRswift/` unless they start with
+Legacy citations are files of <https://github.com/ezzz/HFRnow> @ `2440d79`, relative to `HFRswift/` unless they start with
 `Classes/`, `SuperHFRplus` or `HFRplus/`. A path's folder does not tell its target: each row says when a file is **not** compiled into the
 live Swift app (target HFRswift); `Classes/HFRplusAppDelegate.m`, `Wrapped/LinkItem.m` and `Wrapped/ParseMessagesOperation.m` are, while
 `Wrapped/MessagesTableViewController.m` and `Classes/OnlineMessagesTableViewController.m` are not. Grep of every `http(s)://` literal of

@@ -8,7 +8,7 @@ Chain: LOT-003 (oracle) → LOT-030 (blocks) → **LOT-034** → LOT-035 (embeds
 Siblings on the same tree, untouched here: LOT-031 (action links, outside the content element), LOT-032 (quote analysis).
 
 ## Legacy sources
-Legacy repository <https://github.com/francoisgn/hfrnow> at `2440d79` (the code the LOT-003 oracle ran).
+Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79` (the code the LOT-003 oracle ran).
 
 | Legacy | Replaced by |
 |---|---|
