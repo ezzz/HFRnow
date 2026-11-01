@@ -1,3 +1,4 @@
+import Foundation
 import HFRModels
 import HFRNetwork
 import HFRParsing
@@ -19,11 +20,12 @@ import HFRParsing
 /// expired.
 public struct MPUnreadPoll: Sendable {
     private let account: HFRSession
-    private let makeProbe: @Sendable ([StoredCookie]) -> any HTTPTransport
+    private let makeProbe: (@Sendable ([StoredCookie]) -> any HTTPTransport)?
 
     /// Creates a poll that reads the home page with the cookies of `session`, without ever changing it.
     public init(session: HFRSession) {
-        self.init(session: session, makeProbe: { HFRSession(cookies: $0) })
+        self.account = session
+        self.makeProbe = nil
     }
 
     /// Creates a poll with another probe factory (tests).
@@ -32,11 +34,17 @@ public struct MPUnreadPoll: Sendable {
         self.makeProbe = makeProbe
     }
 
+    /// The transport the poll sends through: the test factory's, else a fresh session seeded with `cookies` that keeps
+    /// the account session's host policy (#365, as `SessionRefreshFlow`).
+    func probe(cookies: [StoredCookie]) -> any HTTPTransport {
+        makeProbe?(cookies) ?? account.probe(cookies: cookies, now: Date())
+    }
+
     /// Fetches the home page and returns the unread private messages count it announces.
     /// - Throws: `MPUnreadPollError.network` when the page could not be fetched, `.page` on maintenance or an unreadable page.
     public func unreadCount() async throws(MPUnreadPollError) -> Int? {
         let page: RawPage
-        let probe = makeProbe(await account.cookies())
+        let probe = probe(cookies: await account.cookies())
         do {
             // The 5 s background timeout of the legacy check (`MPBackgroundService.swift:86`), not the page default.
             let request = try HFREndpoint.privateMessageCheck()
