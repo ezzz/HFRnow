@@ -69,8 +69,8 @@ Shown to fail with the behaviour removed (each mutation caught): legacy's hour b
 
 ## Intentional differences from legacy
 
-1. **Hours are hours**: `t=1h2m3s` starts at 3723 s (legacy 7323, minutes × 3600, `:281`), and `R20`'s `t=1m5s` at 65 s (legacy 3665). [CHANGELOG-LEGACY](../CHANGELOG-LEGACY.md) row 50.
-2. **Plain seconds and a `t` anywhere in the query give a start** (`t=706`, `R28`; legacy needed `t=…s` at the end of the URL, `:275`). Row 50.
+1. **Hours are hours**: `t=1h2m3s` starts at 3723 s (legacy 7323, minutes × 3600, `:281`), and `R20`'s `t=1m5s` at 65 s (legacy 3665). [CHANGELOG-LEGACY](../CHANGELOG-LEGACY.md) row 51.
+2. **Plain seconds and a `t` anywhere in the query give a start** (`t=706`, `R28`; legacy needed `t=…s` at the end of the URL, `:275`). Row 51.
 3. **Host dots are literal** (legacy's `.` matched any character), and a `youtube.com` id comes from the last `v` parameter only (legacy's greedy `.+v=` took the last `v=` too, but any `…v=` suffix as well, so `notv=abc` gave a player); both only concern look-alike links.
 4. **Depth on the normalized tree**: unknown wrappers are unwrapped by LOT-034, so a text link inside one (`<center><p><a class="cLink">`) is a candidate here; legacy counted three real ancestors. No capture has one.
 5. **The link stays in the text**: legacy replaced it by an iframe that loaded at once; here the app shows a placeholder and loads nothing before a tap (LOT-071 D-071-2).
