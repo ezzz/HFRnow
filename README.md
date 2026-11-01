@@ -157,6 +157,7 @@ flowchart LR
 | [docs/adr/](docs/adr/) | Architecture decisions |
 | [docs/agents/](docs/agents/) | Agent process: parallel sessions, review rounds, lessons |
 | [docs/audit/](docs/audit/README.md) · [docs/research/](docs/research/) | Reference material: the legacy audit and its open questions, external comparisons |
+| [docs/migration/GAP-LEGACY-VS-SWIFT.md](docs/migration/GAP-LEGACY-VS-SWIFT.md) | Gap report legacy app vs SwiftHFR final form (M1–M4), one row per feature, input of the UI convergence; images in `docs/assets/gap-legacy-vs-swift-*.png` |
 | [docs/migration/EZZZ-CUTOVER.md](docs/migration/EZZZ-CUTOVER.md) | One-off runbook of the move to `ezzz/HFRnow`; deleted once its outcome is recorded in ADR 0010 |
 
 ## Getting started
