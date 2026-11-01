@@ -2,8 +2,8 @@ import HFRModels
 import HFRStorage
 import SwiftUI
 
-/// What a settings row leads to. Later lots add their cases here (theme: LOT-121, icon: LOT-123) and replace the
-/// placeholder of their case, so the shell does not change again.
+/// What a settings row leads to. Later lots add their cases here (theme: LOT-121, icon: LOT-123) and replace their
+/// case's placeholder in `SettingsDestinationView`, so the shell does not change again.
 enum SettingsDestination: Hashable {
     case theme
     case icon
@@ -63,7 +63,9 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                NavigationLink { SettingsDestinationView(destination: .icon) } label: { Text(SettingsDestination.icon.title) }
+                NavigationLink { SettingsDestinationView(destination: .icon) } label: {
+                    Text(SettingsDestination.icon.title)
+                }
             }
             Section("Thème") {
                 NavigationLink { SettingsDestinationView(destination: .theme) } label: {
@@ -77,9 +79,8 @@ struct SettingsView: View {
     }
 }
 
-/// The screen behind a settings row. The rows link to it directly, not by value: on iPhone the settings screen is pushed
-/// by the Plus stack's `navigationDestination(item:)`, and a value pushed from there never appeared (the row highlighted
-/// and nothing opened; Mac check of #344, 2026-11-02).
+/// The screen behind a settings row. Rows link to it directly, not by value: on iPhone the settings screen is presented by
+/// the Plus stack's `navigationDestination(item:)`, and a value pushed from such a screen never resolves.
 struct SettingsDestinationView: View {
     let destination: SettingsDestination
 
