@@ -11,7 +11,7 @@ import HFRParsing
 /// probe starts empty (a logged-out search is not captured). The wiki is served logged out (`R54`) and is read without
 /// cookies, logged in or not; legacy sent the shared cookies there too (`AnswerView.swift:775`). Answers are decoded as
 /// UTF-8 first (`TextDecoding`, Q-2); legacy tried Latin-1 first (`SmileySearchService.swift:32-34`). Nothing is retried,
-/// and a cancelled task sends nothing.
+/// and a task cancelled before the request goes out sends nothing.
 public struct SmileyLookupFlow: Sendable {
     private let account: HFRSession?
     private let makeProbe: @Sendable ([StoredCookie]) -> any HTTPTransport
