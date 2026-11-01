@@ -18,8 +18,8 @@ public actor HFRSession: HTTPTransport {
     /// Value of `md_user` with which the server says the session is logged out (`MultisManager.m:55`).
     public static let loggedOutMarker = "deleted"
 
-    let urlSession: URLSession
-    let cookieStorage: HTTPCookieStorage
+    private let urlSession: URLSession
+    private let cookieStorage: HTTPCookieStorage
     private let transport: URLSessionTransport
     /// Where requests may go: the forum in production, one host in tests.
     let hosts: SessionHostPolicy
