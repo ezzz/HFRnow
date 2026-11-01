@@ -11,16 +11,22 @@ import HFRParsing
 /// for `hash_check` and the avatar (`LoginService.swift:48-129`). Only then are the target session's cookies replaced
 /// and its `hash_check` set, in one step. Any failure leaves the target session exactly as it was.
 public struct LoginFlow: Sendable {
-    private let makeJar: @Sendable () -> any SessionJar
+    private let makeJar: (@Sendable () -> any SessionJar)?
 
-    /// Creates the flow; each attempt runs in its own new `HFRSession`.
+    /// Creates the flow; each attempt runs in its own new, empty `HFRSession`.
     public init() {
-        self.init(makeJar: { HFRSession() })
+        makeJar = nil
     }
 
     /// Creates the flow with another jar for the attempts (tests).
     init(makeJar: @escaping @Sendable () -> any SessionJar) {
         self.makeJar = makeJar
+    }
+
+    /// The jar an attempt runs in: the test factory's, else a fresh, empty session that keeps `session`'s host policy
+    /// (#365, as `SessionRefreshFlow`).
+    func jar(for session: HFRSession, now: Date) -> any SessionJar {
+        makeJar?() ?? session.probe(cookies: [], now: now)
     }
 
     /// Logs `pseudo` in and, once validated, installs the new session cookies and `hash_check` in `session`.
@@ -42,7 +48,7 @@ public struct LoginFlow: Sendable {
     ) async throws(LoginError) -> LoginResult {
         let pseudo = pseudo.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !pseudo.isEmpty, !password.isEmpty else { throw .missingCredentials }
-        let jar = makeJar()
+        let jar = jar(for: session, now: now)
 
         let answer = try await send({ try HFREndpoint.login(pseudo: pseudo, password: password) }, through: jar)
         switch LoginResponse.classify(answer.decodedText().text) {

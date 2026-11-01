@@ -1,3 +1,4 @@
+import Foundation
 import HFRModels
 import HFRNetwork
 import HFRParsing
@@ -14,13 +15,15 @@ import HFRParsing
 /// and a task cancelled before the request goes out sends nothing.
 public struct SmileyLookupFlow: Sendable {
     private let account: HFRSession?
-    private let makeProbe: @Sendable ([StoredCookie]) -> any HTTPTransport
+    private let makeProbe: (@Sendable ([StoredCookie]) -> any HTTPTransport)?
     private let anonymous: any HTTPTransport
 
     /// Creates a flow that searches with the cookies of `session`, without ever changing it; nil when no account is
     /// logged in (the wiki needs none).
     public init(session: HFRSession? = nil) {
-        self.init(session: session, makeProbe: { HFRSession(cookies: $0) }, anonymous: AnonymousTransport())
+        self.account = session
+        self.makeProbe = nil
+        self.anonymous = AnonymousTransport()
     }
 
     /// Creates a flow with another probe factory and cookie-less transport (tests).
@@ -34,6 +37,13 @@ public struct SmileyLookupFlow: Sendable {
         self.anonymous = anonymous
     }
 
+    /// The transport the search sends through: the test factory's, else a fresh session seeded with `cookies` that keeps
+    /// the account session's host policy (#365), or a forum session when no account is logged in.
+    func probe(cookies: [StoredCookie]) -> any HTTPTransport {
+        if let makeProbe { return makeProbe(cookies) }
+        return account?.probe(cookies: cookies, now: Date()) ?? HFRSession(cookies: cookies)
+    }
+
     /// The smileys HFR finds for `text`, in the order served, duplicates kept (`R53c` repeats one); empty when HFR finds
     /// none (`R53a`).
     ///
@@ -44,7 +54,7 @@ public struct SmileyLookupFlow: Sendable {
     public func search(_ text: String, requireAll: Bool = false) async throws(SmileyLookupError) -> [ForumSmiley] {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= HFREndpoint.smileySearchMinimumLength else { throw .queryTooShort }
-        let probe = makeProbe(await account?.cookies() ?? [])
+        let probe = probe(cookies: await account?.cookies() ?? [])
         let fetcher = PageFetcher(session: probe, anonymous: anonymous)
         let page = try await Self.fetch { () async throws(NetworkError) in try await fetcher.smileySearch(text, requireAll: requireAll) }
         do {
