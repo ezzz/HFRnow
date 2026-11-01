@@ -63,10 +63,10 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                NavigationLink(value: SettingsDestination.icon) { Text(SettingsDestination.icon.title) }
+                NavigationLink { SettingsDestinationView(destination: .icon) } label: { Text(SettingsDestination.icon.title) }
             }
             Section("Thème") {
-                NavigationLink(value: SettingsDestination.theme) {
+                NavigationLink { SettingsDestinationView(destination: .theme) } label: {
                     Text(SettingsDestination.theme.title)
                 }
             }
@@ -74,13 +74,21 @@ struct SettingsView: View {
         .listSectionSpacing(general.compactMode ? .custom(8) : .default)
         .navigationTitle("Réglages")
         .navigationBarTitleDisplayMode(.inline)
-        .navigationDestination(for: SettingsDestination.self) { destination in
-            ContentUnavailableView(
-                destination.title, systemImage: destination.symbol,
-                description: Text("Ce réglage arrive dans une prochaine version.")
-            )
-            .navigationTitle(destination.title)
-        }
+    }
+}
+
+/// The screen behind a settings row. The rows link to it directly, not by value: on iPhone the settings screen is pushed
+/// by the Plus stack's `navigationDestination(item:)`, and a value pushed from there never appeared (the row highlighted
+/// and nothing opened; Mac check of #344, 2026-11-02).
+struct SettingsDestinationView: View {
+    let destination: SettingsDestination
+
+    var body: some View {
+        ContentUnavailableView(
+            destination.title, systemImage: destination.symbol,
+            description: Text("Ce réglage arrive dans une prochaine version.")
+        )
+        .navigationTitle(destination.title)
     }
 }
 
