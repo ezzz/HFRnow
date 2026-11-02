@@ -1,6 +1,6 @@
 # Audit D — Writing to the forum (replies, quotes, edits, deletes, new topics, MPs, alerts, AQ, bookmarks, flags, smileys, image rehosting)
 
-Legacy reference: <https://github.com/francoisgn/hfrnow> at `2440d79` (checked out read-only at `/home/user/HFRnow`).
+Legacy reference: <https://github.com/ezzz/HFRnow> at `2440d79` (checked out read-only at `/home/user/HFRnow`).
 Author: audit agent D (LOT-000, Phase 1). All paths below are relative to the legacy repo unless prefixed `new:`.
 Convention: `file:line`. "unverified" = not provable from the legacy code or its tests alone (needs a captured fixture or a live check).
 

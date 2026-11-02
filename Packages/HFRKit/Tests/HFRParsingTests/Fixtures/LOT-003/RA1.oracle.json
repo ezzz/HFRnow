@@ -57,6 +57,11 @@
         "topicTitle" : "fixture-test-1"
       }
     ],
+    "fastAnswer" : {
+      "isFavoritesOrRead" : "/user/nonlu.php?config=hfr.inc&cat=prive&subcat=0&post=3207033&page=1&p=1&sondage=0&owntopic=0&new=0",
+      "isRedFlagged" : false,
+      "isUnreadable" : true
+    },
     "messages" : [
       {
         "addFlagUrl" : null,

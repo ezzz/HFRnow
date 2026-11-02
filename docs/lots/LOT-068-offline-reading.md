@@ -34,7 +34,7 @@ Images are not saved (the commented-out design copied them): the app's image cac
 ### Where, and for whom
 
 - In the LOT-066 cache, area `offline` (`Library/Caches/cache/offline/`): device-only and never backed up (ADR 0013). Like every cache, the system may reclaim it; the list shows what is on disk.
-- **Shared by the accounts of the device**. The pages carry no session, so they are the same for every account. `save` refuses a page in which any `hash_check` input has a value (`containsSessionToken`), because such a page was fetched with the session and would put the account's token on disk. A page fetched without cookies has every such input empty (`R20`, `R22a`, `R28`: four inputs); a logged-in page has the token in each (`R21`: six, `R32b`: eight). An input whose value cannot be read counts as a token (fail closed), and so does a matched tag with two `name=` or `value=`, where a broken quote has merged two inputs. A `codehex=` with a value anywhere in the page is refused too: it is the per-session secret of the logged-in links (`suppressflag.php` on `R02`, `R03`, `R08-2`, `R10`; `clearimage.php` on `R55-p5u1`; the logout link `unlog.php`, HFR-PROTOCOL §5), absent from a page served without cookies. No topic capture holds one, logged in or not, so this rule is defence in depth. It is tested on small fragments because the captures carry `codehex=REDACTED`, which is also refused. A member who posts the text `codehex=…` in a message makes the page unsavable: fail closed, by design. Fetching without cookies is also what keeps the read flag where it is (HFR-PROTOCOL §7 E25).
+- **Shared by the accounts of the device**. The pages carry no session, so they are the same for every account. `save` refuses a page in which any `hash_check` input has a value (`containsSessionToken`), because such a page was fetched with the session and would put the account's token on disk. A page fetched without cookies has every such input empty (`R20`, `R22a`, `R28`: four inputs); a logged-in page has the token in each (`R21`: six, `R32b`: eight). An input whose value cannot be read counts as a token (fail closed), and so does a matched tag with two `name=` or `value=`, where a broken quote has merged two inputs. A `codehex=` with a value anywhere in the page is refused too: it is the per-session secret of the logged-in links (`suppressflag.php` on `R02`, `R03`, `R08-2`, `R10`, among others; `clearimage.php` on `R55-p5u1`; the logout link `unlog.php`, HFR-PROTOCOL §5), absent from a page served without cookies. No topic capture holds one, logged in or not, so this rule is defence in depth. It is tested on small fragments because the captures carry `codehex=REDACTED`, which is also refused. A member who posts the text `codehex=…` in a message makes the page unsavable: fail closed, by design. Fetching without cookies is also what keeps the read flag where it is (HFR-PROTOCOL §7 E25).
 - Only forum topics: a private conversation cannot be read without the session (`invalidTopic`).
 
 ### Format and versions
@@ -108,7 +108,7 @@ Shown to fail with the behaviour removed (each mutation caught):
 6. **A page limit** (50) and a 200 MB budget; legacy's design had neither in use.
 7. **No images and no copied resources**: the parser and the app's caches handle them.
 
-Recorded in [CHANGELOG-LEGACY](../CHANGELOG-LEGACY.md) row 53.
+Recorded in [CHANGELOG-LEGACY](../CHANGELOG-LEGACY.md) row 59.
 
 ## Learnings
 

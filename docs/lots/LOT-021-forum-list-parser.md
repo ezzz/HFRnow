@@ -8,7 +8,7 @@ First list parser tested against **both** inputs ADR 0004 asks for: the captured
 
 ## Legacy sources
 
-Legacy repository <https://github.com/francoisgn/hfrnow> at `2440d79`. Audit: [B §3.1](../audit/B-list-parsing-models.md), proposal B4.
+Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79`. Audit: [B §3.1](../audit/B-list-parsing-models.md), proposal B4.
 
 | Legacy | Replaced by |
 |---|---|

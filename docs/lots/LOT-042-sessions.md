@@ -6,7 +6,7 @@
 - **Depends on:** LOT-040 (transport, `URLSessionTransport(session:)`), LOT-013 (`StoredCookie`, HFRModels)
 
 ## Legacy sources
-Audit [A](../audit/A-network-sessions.md) §4 and lot NET-03; audit [D](../audit/D-posting.md) §2.2; legacy repo <https://github.com/francoisgn/hfrnow>.
+Audit [A](../audit/A-network-sessions.md) §4 and lot NET-03; audit [D](../audit/D-posting.md) §2.2; legacy repo <https://github.com/ezzz/HFRnow>.
 
 | Concern | Legacy |
 |---|---|
@@ -27,6 +27,7 @@ All in `Packages/HFRKit/Sources/HFRNetwork/Session/`.
 - **`StoredCookie` ↔ `HTTPCookie`**: `StoredCookie(_ cookie: HTTPCookie)` and `makeHTTPCookie()`. Name, value, domain (leading dot kept), path (empty → `/`), expiry (nil = session cookie; rounded to the second on the way back, because Darwin returns it with sub-second float noise), `Secure`, `HttpOnly` survive the round trip; `SameSite`, port, comment and version are dropped (HFR does not use them, audit A §4.1). Empty name or domain → nil.
 - **Identity**: `userKey(now:)` = value of `md_user`; nil when absent, empty, expired or `deleted`. `isLoggedIn(now:)`. When the jar holds several `md_user` (different domain or path), a `deleted` one wins: it is the server's explicit logout.
 - **`hash_check`**: `hashCheck` (read-only) and `updateHashCheck(_:)`; nil, empty or blank values are ignored and the previous token kept (a page without the hidden input must not erase it). Per session: no global fallback. `HFRClient` refreshes it from parse results (HFR-PROTOCOL §5).
+- **Login generation**: `loginGeneration` (read-only) and `advanceLoginGeneration()`, called by LOT-043's `adoptLogin` after cookies and token; token writes compare it with their seed, so a re-login of the same account with the same token still fences them ([#340](https://github.com/ezzz/HFRnow/issues/340)).
 - **Multi-quote**: `MultiQuoteCookie` (pure value) and, on the session, `multiQuote(for:now:)`, `isQuoteSelected(_:now:)`, `toggleQuote(_:now:)`, `clearQuotes(for:)`, all keyed by `QuoteSelectionToken` (LOT-011). Name `quotes<forum>-<cat>-<post>` (`cat` as its query value, `prive` for MP); value `|<numreponse>` repeated in selection order; domain `.hardware.fr`, path `/`, expiry one hour after each write; the cookie is deleted when the selection becomes empty. Markers compare **exactly**. An expired cookie reads as an empty selection.
 - **Anonymous transport**: `AnonymousTransport` (wraps `URLSessionTransport`): ephemeral, no cookie storage, `httpShouldSetCookies = false`, accept policy `.never`, no cache or credential store, and an explicit `Cookie` header on the request is dropped, whatever its case or surrounding whitespace (`HTTPHeaders` trims names). For prefetch (an authenticated topic GET marks flags read, HFR-PROTOCOL §7 E25) and images (E26).
 - Logging: none. `StoredCookie` descriptions hide the value (LOT-013); errors are the transport's `NetworkError`.

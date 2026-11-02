@@ -10,6 +10,8 @@ actor ScriptedPostingSession: PostingSession {
     private(set) var hashChecks: [String?] = []
     /// The last token recorded, like `HFRSession.hashCheck`.
     private(set) var hashCheck: String?
+    /// Moves on every login installed, like `HFRSession.loginGeneration`.
+    private(set) var loginGeneration = 0
     /// The `md_user` value the session reports.
     private(set) var identity: String? = "user1"
     /// A login installed while the next request is in flight, as `adoptLogin` would do from another task.
@@ -27,8 +29,7 @@ actor ScriptedPostingSession: PostingSession {
         let response = try await transport.perform(request)
         if let login = loginDuringNextRequest {
             loginDuringNextRequest = nil
-            identity = login.identity
-            hashCheck = login.hashCheck
+            adoptLogin(login)
         }
         return response
     }
@@ -39,7 +40,25 @@ actor ScriptedPostingSession: PostingSession {
     }
 
     func userKey(now: Date) -> String? {
-        identity
+        if cancelOnIdentityRead { withUnsafeCurrentTask { $0?.cancel() } }
+        return identity
+    }
+
+    /// When set, reading the identity cancels the calling task, as a cancellation landing during that suspension would.
+    private(set) var cancelOnIdentityRead = false
+
+    /// Makes the next identity reads cancel the caller (see `cancelOnIdentityRead`).
+    func cancelCallerOnIdentityRead() {
+        cancelOnIdentityRead = true
+    }
+
+    /// Installs `login` now, as `adoptLogin` (or a logout, with a nil identity) would between two requests.
+    func adoptLogin(_ login: ConcurrentLogin) {
+        identity = login.identity
+        // Like `HFRSession`: a logout keeps the token, and an empty one is never recorded.
+        if !login.hashCheck.isEmpty { hashCheck = login.hashCheck }
+        // A login advances the generation (`advanceLoginGeneration`); a logout only empties the jar.
+        if login.identity != nil { loginGeneration += 1 }
     }
 
     /// Installs `login` while the next request is suspended, after it was sent.
@@ -74,7 +93,9 @@ enum PostingCapture {
         "W14": "W14-mp-reply-multiquote-success", "W14x": "W14x-mp-reply-flood-fourth-consecutive", "W15": "W15-mp-edit-success",
         "W16a": "W16a-mp-delete-post-success", "W16b": "W16b-mp-delete-post-again", "W17a": "W17a-mp-reply-empty-body-rejected",
         "W17b": "W17b-mp-reply-bad-token-rejected", "W17c": "W17c-mp-reply-logged-out-rejected",
-        "W19": "W19-mp-delete-first-post-success", "W20a": "W20a-mp-reply-flood", "W20b": "W20b-mp-reply-flood-again"
+        "W19": "W19-mp-delete-first-post-success", "W20a": "W20a-mp-reply-flood", "W20b": "W20b-mp-reply-flood-again",
+        "W32": "W32-public-delete-post-success", "W40": "W40-public-new-topic-success",
+        "W41": "W41-public-first-post-edit-add-poll-success", "W49": "W49-public-first-post-delete-topic-success"
     ]
 
     static func url(_ raw: String) -> URL {
