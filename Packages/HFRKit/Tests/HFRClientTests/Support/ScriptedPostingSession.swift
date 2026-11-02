@@ -42,6 +42,12 @@ actor ScriptedPostingSession: PostingSession {
         identity
     }
 
+    /// Installs `login` now, as `adoptLogin` (or a logout, with a nil identity) would between two requests.
+    func adoptLogin(_ login: ConcurrentLogin) {
+        identity = login.identity
+        hashCheck = login.hashCheck
+    }
+
     /// Installs `login` while the next request is suspended, after it was sent.
     func adoptLoginDuringNextRequest(_ login: ConcurrentLogin) {
         loginDuringNextRequest = login

@@ -6,6 +6,8 @@ import HFRParsing
 ///
 /// It keeps the session that fetched it, so the form's `hash_check` and `pseudo` (the selected account's, echoed by
 /// HFR) always travel with that account's cookies: a form cannot be submitted as another account (decision Q-8).
+/// It also keeps the identity the session had when the form was fetched, so a form loaded before a logout or a login
+/// of another account in that same session is refused locally (`PostingError.sessionChanged`, issue #342).
 public struct PostingForm: Sendable {
     /// Which composer HFR served, read from the form itself.
     public enum Shape: String, Sendable, Hashable {
@@ -27,12 +29,15 @@ public struct PostingForm: Sendable {
     public let pageURL: URL
     let layout: HopFormLayout
     let session: any PostingSession
+    /// The session's identity and token as the form request left (`PostingFlow.loadForm`).
+    let seed: HashCheckSeed
 
-    init(form: ForumForm, layout: HopFormLayout, pageURL: URL, session: any PostingSession) {
+    init(form: ForumForm, layout: HopFormLayout, pageURL: URL, session: any PostingSession, seed: HashCheckSeed) {
         self.form = form
         self.layout = layout
         self.pageURL = pageURL
         self.session = session
+        self.seed = seed
         self.shape = Self.shape(of: form)
     }
 

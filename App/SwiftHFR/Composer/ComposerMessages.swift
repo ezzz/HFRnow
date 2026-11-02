@@ -11,6 +11,8 @@ enum ComposerMessages {
             message ?? "Le forum ne propose pas de répondre à ce sujet (sujet fermé ?). Rien n’a été envoyé."
         case .notLoggedIn:
             "Votre session a expiré : rien n’a été envoyé. Reconnectez-vous depuis le menu Comptes, puis renvoyez la réponse."
+        case .sessionChanged:
+            "Le compte connecté a changé depuis l’ouverture du formulaire : rien n’a été envoyé. Renvoyez la réponse."
         case .rejected(let message):
             message ?? "Le forum a refusé la réponse : rien n’a été envoyé. Réessayez."
         case .unconfirmed(let uncertainty):

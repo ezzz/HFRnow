@@ -130,7 +130,7 @@ public struct PostingFlow: Sendable {
         else { throw .notLoggedIn }
         // A login adopted meanwhile holds the fresher token (#308): never overwrite it with this page's.
         await session.updateHashCheck(token, since: seed)
-        return PostingForm(form: form, layout: layout, pageURL: response.url, session: session)
+        return PostingForm(form: form, layout: layout, pageURL: response.url, session: session, seed: seed)
     }
 
     func submit(
@@ -160,6 +160,12 @@ public struct PostingFlow: Sendable {
         )
         // Nothing has left the device yet: a cancellation here is a plain failure, not an unknown outcome.
         if Task.isCancelled { throw .network(.cancelled) }
+        // The form's `hash_check` and `pseudo` belong to the account it was fetched with: after a logout or a login of
+        // another account in this session, HFR would refuse them (`W17b`); say so before sending (#342). A re-login of
+        // the same account keeps the form usable: its refreshed token is HFR's to judge (#315).
+        guard let identity = form.seed.identity, await form.session.userKey(now: Date()) == identity else {
+            throw .sessionChanged
+        }
         let request = HTTPRequest.post(url, form: body, timeout: Self.postTimeout, redirectPolicy: .doNotFollow)
         let response: HTTPResponse
         do {
