@@ -159,6 +159,23 @@
     {"raw": "W49", "id": "W49", "slug": "public-first-post-delete-topic-success", "ext": "html", "private": false},
     {"raw": "R92", "id": "R92", "slug": "topic-after-first-post-delete-404", "ext": "html", "private": false},
     {"raw": "U01", "id": "U01", "slug": "rehost-upload-success", "ext": "json", "private": false},
-    {"raw": "U02", "id": "U02", "slug": "rehost-upload-wrong-key", "ext": "json", "private": false}
+    {"raw": "U02", "id": "U02", "slug": "rehost-upload-wrong-key", "ext": "json", "private": false},
+    {"raw": "W61", "id": "W61", "slug": "mp-create-bbcode-success", "ext": "html", "private": false},
+    {"raw": "R95c", "id": "R95c", "slug": "mp-edit-form-bbcode-source", "ext": "html", "private": true},
+    {"raw": "R95d", "id": "R95d", "slug": "apercu-bbcode-preview", "ext": "html", "private": false},
+    {"raw": "W62", "id": "W62", "slug": "mp-reply-bmp-emoji-success", "ext": "html", "private": false},
+    {"raw": "R95f", "id": "R95f", "slug": "mp-edit-form-bmp-emoji-source", "ext": "html", "private": true},
+    {"raw": "R95h", "id": "R95h", "slug": "apercu-bmp-emoji-preview", "ext": "html", "private": false},
+    {"raw": "R95g", "id": "R95g", "slug": "mp-composer-multiquote-cookie-escaped", "ext": "html", "private": true},
+    {"raw": "W63", "id": "W63", "slug": "mp-reply-multiquote-cookie-deleted", "ext": "html", "private": false},
+    {"raw": "W64x", "id": "W64x", "slug": "mp-thread-delete-bad-token-rejected", "ext": "html", "private": false},
+    {"raw": "W64", "id": "W64", "slug": "mp-thread-delete-owner-success", "ext": "html", "private": false},
+    {"raw": "R95j", "id": "R95j", "slug": "mp-list-owner-after-thread-delete", "ext": "html", "private": true},
+    {"raw": "R95k", "id": "R95k", "slug": "mp-list-recipient-after-thread-delete", "ext": "html", "private": true},
+    {"raw": "R96c", "id": "R96c", "slug": "mp-thread-owner-after-thread-delete", "ext": "html", "private": false},
+    {"raw": "W65", "id": "W65", "slug": "mp-thread-delete-recipient-success", "ext": "html", "private": false},
+    {"raw": "R96d", "id": "R96d", "slug": "mp-thread-recipient-after-thread-delete", "ext": "html", "private": false},
+    {"raw": "R96a", "id": "R96a", "slug": "mp-list-past-last-page", "ext": "html", "private": true},
+    {"raw": "R96b", "id": "R96b", "slug": "mpstorage-thread-other-account-not-addressed", "ext": "html", "private": false}
   ]
 }
