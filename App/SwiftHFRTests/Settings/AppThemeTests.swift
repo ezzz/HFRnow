@@ -35,7 +35,11 @@ struct AppThemeTests {
 
     @Test func aManualThemeOverridesIOSThenAutomaticFollowsItAgainLive() async throws {
         let scene = try #require(UIApplication.shared.connectedScenes.first { $0 is UIWindowScene } as? UIWindowScene)
-        let model = ThemeSettingsModel(store: InMemorySettingsStore())
+        // Distinct accents: red in light, blue in dark.
+        let model = ThemeSettingsModel(store: InMemorySettingsStore([
+            "theme_day_color_action": .string("{1.000, 0.000, 0.000, 1.000}"),
+            "theme_night_color_action": .string("{0.000, 0.000, 1.000, 1.000}")
+        ]))
         let probe = Probe()
         let window = UIWindow(windowScene: scene)
         window.frame = CGRect(x: 0, y: 0, width: 300, height: 300)
@@ -47,11 +51,16 @@ struct AppThemeTests {
         let otherStyle: UIUserInterfaceStyle = other == .dark ? .dark : .light
 
         #expect(await until { probe.window != nil && probe.traitCollection.userInterfaceStyle == system })
-        // UIKit chrome (alerts) reads the window's tint: the accent.
-        let tint = UIColor(model.appearance.accentColor).resolvedColor(with: window.traitCollection)
-        #expect(await until { window.tintColor?.resolvedColor(with: window.traitCollection) == tint })
+        // UIKit chrome (alerts) reads the window's tint: the accent of the variant shown.
+        func tintIsAccent() -> Bool {
+            let dark = window.traitCollection.userInterfaceStyle == .dark
+            let accent = UIColor(red: dark ? 0 : 1, green: 0, blue: dark ? 1 : 0, alpha: 1)
+            return window.tintColor?.resolvedColor(with: window.traitCollection).isEqual(accent) == true
+        }
+        #expect(await until { tintIsAccent() }, "tint at the system style")
         model.mode = other
         #expect(await until { probe.traitCollection.userInterfaceStyle == otherStyle }, "manual theme not applied")
+        #expect(await until { tintIsAccent() }, "tint after the switch")
         model.mode = .system
         #expect(await until { probe.traitCollection.userInterfaceStyle == system }, "automatic theme did not follow iOS again")
     }

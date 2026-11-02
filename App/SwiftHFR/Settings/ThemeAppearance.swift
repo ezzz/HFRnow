@@ -31,10 +31,13 @@ struct ThemeAppearance: Equatable, Sendable {
     static func nightTint(hue: Double) -> ThemeColor { ThemeColor(hue: hue, saturation: 0.70, brightness: 0.95) }
 
     /// The accent of the current variant: the light accent in light mode, the dark one in dark mode.
-    var accentColor: Color {
+    var accentColor: Color { Color(uiColor: accentUIColor) }
+
+    /// `accentColor` as a dynamic UIKit colour (the window's tint), resolved per trait collection.
+    var accentUIColor: UIColor {
         let day = dayAccent.uiColor
         let night = nightAccent.uiColor
-        return Color(uiColor: UIColor { $0.userInterfaceStyle == .dark ? night : day })
+        return UIColor { $0.userInterfaceStyle == .dark ? night : day }
     }
 
     /// `color` with its brightness scaled by `darkBrightness` above `minimumWhiteLevel` (0...255), as legacy scaled every

@@ -119,7 +119,7 @@ extension View {
         environment(theme)
             .environment(\.themeAppearance, theme.appearance)
             .tint(theme.appearance.accentColor)
-            .background(WindowStyle(scheme: theme.preferredColorScheme, tint: theme.appearance.accentColor))
+            .background(WindowStyle(scheme: theme.preferredColorScheme, tint: theme.appearance.accentUIColor))
     }
 }
 
@@ -127,7 +127,7 @@ extension View {
 /// chrome such as alerts reads, as legacy's app delegate did (`HFRplusAppDelegate.m:368, 392`).
 private struct WindowStyle: UIViewRepresentable {
     let scheme: ColorScheme?
-    let tint: Color
+    let tint: UIColor
 
     final class Anchor: UIView {
         var style = UIUserInterfaceStyle.unspecified {
@@ -156,7 +156,7 @@ private struct WindowStyle: UIViewRepresentable {
     }
 
     func updateUIView(_ anchor: Anchor, context: Context) {
-        anchor.accent = UIColor(tint)
+        anchor.accent = tint
         anchor.style = switch scheme {
         case .dark: .dark
         case .light: .light
