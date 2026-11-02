@@ -1,4 +1,5 @@
 import Foundation
+import HFRModels
 import Testing
 @testable import HFRParsing
 
@@ -86,6 +87,8 @@ struct HFRBBCodeWriterTests {
             == "<p><a href=\"http://G3Ferrari / Optima \" class=\"cLink\">G3Ferrari / Optima</a>")
         #expect(Self.html("[url=www.a.example/x]t[/url]") == "<p><a href=\"http://www.a.example/x\" class=\"cLink\">t</a>")
         #expect(Self.html("[url]tel:0123[/url]") == "<p><a href=\"tel:0123\" class=\"cLink\">tel:0123</a>")
+        #expect(Self.html("[url]www.a.example:8080/x[/url]")
+            == "<p><a href=\"www.a.example:8080/x\" class=\"cLink\">www.a.example:8080/x</a>")
         #expect(Self.html("a\nb\rc") == "<p>a\r<br />b\r<br />c")
         #expect(Self.html("") == "<p>")
     }
@@ -123,8 +126,8 @@ struct HFRBBCodeWriterTests {
             == "<p><a href=\"https://a.example/?a=1&amp;b=&#034;\" class=\"cLink\">x &amp; &#034;y&#034;</a>")
     }
 
-    @Test("Every pass is one scan: 64 KB of each nesting, unclosed or smiley shape is written in about a second")
-    func linearWork() {
+    @Test("Every pass is one scan: 64 KB of each nesting, unclosed, rejected or smiley shape, with the whole catalogue")
+    func linearWork() throws {
         let count = 8_000
         // Each shape made one pass rescan to the end per tag before the next close was remembered: 30 s at 64 KB.
         let sources = [
@@ -141,15 +144,19 @@ struct HFRBBCodeWriterTests {
             String(repeating: ":)", count: count * 2),
             "https://x/" + String(repeating: ":)", count: count * 2),
             (0..<count).map { String(format: "[#%06x]x", $0) }.joined(),
-            String(repeating: "[url=", count: count) + "]x[/url]"
+            String(repeating: "[url=", count: count) + "]x[/url]",
+            String(repeating: "[img][", count: count) + "[/img]",
+            String(repeating: "Bonjour à tous, voici ma pizza :) et mon four :D !\r\n", count: count / 8)
         ]
-        let url = URL(string: "https://forum-images.hardware.fr/icones/smile.gif")
-        let writer = HFRBBCodeWriter(smileysEnabled: true, smileys: url.map { [":)": $0, ":D": $0] } ?? [:])
+        // The bundled catalogue (59 codes) plus a personal smiley: the pass is one scan whatever the table size.
+        var smileys = try Dictionary(CommonSmileyCatalog.bundled().map { ($0.code, $0.url) }, uniquingKeysWith: { first, _ in first })
+        smileys["[:user]"] = try #require(URL(string: "https://forum-images.hardware.fr/images/perso/user.gif"))
+        let writer = HFRBBCodeWriter(smileysEnabled: true, smileys: smileys)
         let start = ContinuousClock.now
         for source in sources {
             #expect(!writer.html(for: source).isEmpty)
         }
-        // Measured at about a second for the fourteen on a debug build; one quadratic pass alone takes 30 s at this size.
+        // Measured at about two seconds for the sixteen on a debug build; one quadratic pass alone took 30 s at this size.
         #expect(ContinuousClock.now - start < .seconds(15))
     }
 

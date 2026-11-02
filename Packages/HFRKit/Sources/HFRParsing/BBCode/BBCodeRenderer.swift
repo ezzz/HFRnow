@@ -41,9 +41,10 @@ public enum BBCodeRenderer {
         return try MessageContentNormalizer.normalize(contentHTML: contentHTML(for: writer.html(for: source)), relativeTo: page)
     }
 
-    /// `html` parsed where a posted message sits on the thread page, serialized back as `MessageBlockParser` does: the
-    /// HTML5 tree builder repairs crossed tags by their context (a body fragment repairs `<span><strong>x</span></strong>`
-    /// otherwise than a table cell does), and the preview must get the reader's repair.
+    /// `html` parsed where a posted message sits on the thread page and serialized back as `MessageBlockParser` does,
+    /// so the normalizer parses it a second time as it parses a posted message: the first serialization of a crossed
+    /// `<span><strong>x</span></strong>` loses a `</strong>` that the second parse reopens, and the preview must get the
+    /// reader's repair (one parse, or a string ending with an explicit `</p>`, gives another tree).
     static func contentHTML(for html: String) throws(ParsingError) -> String {
         let page = "<html><body><table><tr><td><div id=\"para0\">" + html
             + "<div style=\"clear: both;\"> </div></div></td></tr></table></body></html>"

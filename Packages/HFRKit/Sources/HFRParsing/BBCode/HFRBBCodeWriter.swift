@@ -82,16 +82,15 @@ struct HFRBBCodeWriter {
         }
     }
 
-    /// Every smiley code of the table, longest first, as `img` with `alt` as typed and `title` the table's code (`R20`).
+    /// Every smiley code of the table, in one scan, as `img` with `alt` as typed and `title` the table's code (`R20`).
     private func holdingSmileys(in text: Scalars, hold: (Scalars) -> Scalars) -> Scalars {
-        var text = text
-        for (code, url) in smileys.sorted(by: { ($1.key.count, $0.key) < ($0.key.count, $1.key) }) {
-            let source = Self.escape(Self.scalars(url.absoluteString)), title = Self.escape(Self.scalars(code))
-            text = Self.replacingSmiley(Self.scalars(code), in: text) {
-                hold(Self.scalars("<img src=\"") + source + Self.scalars("\" alt=\"") + Self.escape($0) + Self.scalars("\" title=\"")
-                    + title + Self.scalars("\" />"))
-            }
+        let codes = smileys.map { code, url in
+            let scalars = Self.scalars(code)
+            let image = Self.scalars("<img src=\"") + Self.escape(Self.scalars(url.absoluteString)) + Self.scalars("\" alt=\"")
+            return Self.SmileyCode(code: scalars, folded: scalars.map(Self.asciiLowercased), image: image)
         }
-        return text
+        return Self.replacingSmileys(codes, in: text) { code, typed in
+            hold(code.image + Self.escape(typed) + Self.scalars("\" title=\"") + Self.escape(code.code) + Self.scalars("\" />"))
+        }
     }
 }

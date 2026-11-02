@@ -21,22 +21,22 @@ extension HFRBBCodeWriter {
                 nextClose = find(close, in: text, from: contentStart)
             }
             guard let closeIndex = nextClose else { break }
-            let content = Array(text[contentStart..<closeIndex])
-            if argumentIsURL, !isURLArgument(content) {
+            if argumentIsURL, !isURLArgument(text[contentStart..<closeIndex]) {
                 result += text[cursor..<contentStart]
                 cursor = contentStart
                 continue
             }
             result += text[cursor..<openIndex]
-            result += body(content)
+            result += body(Array(text[contentStart..<closeIndex]))
             cursor = closeIndex + close.count
         }
         result += text[cursor...]
         return result
     }
 
-    /// A URL as a tag argument: not empty, no bracket, no line break, no held fragment.
-    private static func isURLArgument(_ argument: Scalars) -> Bool {
+    /// A URL as a tag argument: not empty, no bracket, no line break, no held fragment. Checked on the slice, before
+    /// any copy, so a rejected argument costs its own length only.
+    private static func isURLArgument(_ argument: ArraySlice<Unicode.Scalar>) -> Bool {
         !argument.isEmpty && !argument.contains { $0 == "[" || $0 == "]" || $0 == lineBreakMarker || $0 == placeholderMarker }
     }
 
@@ -54,19 +54,18 @@ extension HFRBBCodeWriter {
                 nextBracket = find("]", in: text, from: argumentStart)
             }
             guard let argumentEnd = nextBracket else { break }
-            let argument = Array(text[argumentStart..<argumentEnd])
             let contentStart = argumentEnd + 1
             if nextClose.map({ $0 < contentStart }) ?? true {
                 nextClose = find(close, in: text, from: contentStart)
             }
             guard let closeIndex = nextClose else { break }
-            guard isURLArgument(argument) else {
+            guard isURLArgument(text[argumentStart..<argumentEnd]) else {
                 result += text[cursor..<argumentStart]
                 cursor = argumentStart
                 continue
             }
             result += text[cursor..<openIndex]
-            result += body(argument, Array(text[contentStart..<closeIndex]))
+            result += body(Array(text[argumentStart..<argumentEnd]), Array(text[contentStart..<closeIndex]))
             cursor = closeIndex + close.count
         }
         result += text[cursor...]
@@ -174,37 +173,55 @@ extension HFRBBCodeWriter {
         return result
     }
 
-    /// Every occurrence of a smiley code, ASCII letters matched whatever their case (`R20`: `:d` typed, `:D` in the
-    /// catalogue), except inside a word that starts with `http://`, `https://` or `www.` (a bare URL in text; what
-    /// HFR does with it is pending capture).
-    static func replacingSmiley(_ code: Scalars, in text: Scalars, with body: (Scalars) -> Scalars) -> Scalars {
-        guard !code.isEmpty else { return text }
-        let folded = code.map(asciiLowercased)
+    /// A smiley code of the table, folded for the match, with the start of its image.
+    struct SmileyCode {
+        let code: Scalars, folded: Scalars, image: Scalars
+    }
+
+    /// Every occurrence of a code of the table, in one scan, the longest code first at each position, ASCII letters
+    /// matched whatever their case (`R20`: `:d` typed, `:D` in the catalogue), except inside a word that starts with
+    /// `http://`, `https://` or `www.` (a bare URL in text; what HFR does with it is pending capture). `body` gets the
+    /// code and the text as typed.
+    static func replacingSmileys(_ codes: [SmileyCode], in text: Scalars, with body: (SmileyCode, Scalars) -> Scalars) -> Scalars {
+        var byFirst: [Unicode.Scalar: [SmileyCode]] = [:]
+        for code in codes where !code.folded.isEmpty {
+            byFirst[code.folded[0], default: []].append(code)
+        }
+        for key in byFirst.keys {
+            byFirst[key]?.sort { ($1.folded.count, string($0.code)) < ($0.folded.count, string($1.code)) }
+        }
         var result: Scalars = []
         result.reserveCapacity(text.count)
         var cursor = 0
         var index = 0
         /// The word being scanned (space, no-break space and line break bound it) and whether it starts like a URL.
         var wordEnd = 0, wordIsURL = false
-        let last = text.count - code.count
-        while index <= last {
+        while index < text.count {
             if index >= wordEnd {
                 (wordEnd, wordIsURL) = word(at: index, in: text)
             }
-            var offset = 0
-            while offset < code.count, asciiLowercased(text[index + offset]) == folded[offset] { offset += 1 }
-            if offset == code.count {
-                result += text[cursor..<index]
-                let match = Array(text[index..<index + code.count])
-                result += wordIsURL ? match : body(match)
-                index += code.count
-                cursor = index
-            } else {
+            guard let candidates = byFirst[asciiLowercased(text[index])], let match = firstMatch(of: candidates, at: index, in: text) else {
                 index += 1
+                continue
             }
+            result += text[cursor..<index]
+            let typed = Array(text[index..<index + match.folded.count])
+            result += wordIsURL ? typed : body(match, typed)
+            index += match.folded.count
+            cursor = index
         }
         result += text[cursor...]
         return result
+    }
+
+    /// The first of `candidates` (longest first) whose folded code is at `index`.
+    private static func firstMatch(of candidates: [SmileyCode], at index: Int, in text: Scalars) -> SmileyCode? {
+        for candidate in candidates where index + candidate.folded.count <= text.count {
+            var offset = 0
+            while offset < candidate.folded.count, asciiLowercased(text[index + offset]) == candidate.folded[offset] { offset += 1 }
+            if offset == candidate.folded.count { return candidate }
+        }
+        return nil
     }
 
     /// The end of the word that starts at `start` (the next space, no-break space or line break, or the end of the

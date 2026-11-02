@@ -122,13 +122,15 @@ struct BBCodeRendererOracleTests {
 
     @Test("R41a (quote prefill of message 2666649) renders as the thread page R20: colour, crossed tags, blank lines, smileys")
     func recipeMessage() throws {
-        // The thread page holds 37 `<strong>` and 37 `</strong>` for the 37 `[b]` / `[/b]` of the prefill; the in-page
-        // parse of a crossed `</span></strong>` followed by `&nbsp;` reopens a `<strong>` (`contentHTML` serializes
-        // 37 opens for 36 closes, the normalizer 38 for 38), which the renderer reproduces by writing the entity and
-        // parsing its string in the same context (`BBCodeRenderer.contentHTML`).
+        // The thread page holds 37 `<strong>` and 37 `</strong>` for the 37 `[b]` / `[/b]` of the prefill. The reader
+        // parses twice: the page parse serializes a crossed `</span></strong>` as 37 opens for 36 closes, and the
+        // normalizer's parse reopens the `<strong>` (38 for 38). The renderer gets the same tree by parsing its string
+        // twice as well (`BBCodeRenderer.contentHTML`, then the normalizer); one parse, or a string ending with an
+        // explicit `</p>` where HFR leaves the paragraph open, gives 37 for 37.
         let thread = try Self.threadBody("R20-topic-p1-anon", numreponse: 2_666_649)
         #expect(thread.matches(of: /<strong>/).count == 37 && thread.matches(of: /<\/strong>/).count == 36)
         let expected = try Self.oracle(contentHTML: thread)
+        #expect(expected.html.matches(of: /<strong>/).count == 38 && expected.html.matches(of: /<\/strong>/).count == 38)
         // The prefill writes every image of the message as `[url]`: given back to the URLs the thread shows as images.
         let source = try Self.prefillSource("R41a-quote-form", numreponse: 2_666_649, imageURLs: expected.images.map(\.url))
         #expect(expected.images.count == 11)
@@ -137,6 +139,13 @@ struct BBCodeRendererOracleTests {
         let page = try #require(URL(string: "https://forum.hardware.fr/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm"))
         let actual = try BBCodeRenderer.render(source, options: BBCodeRenderOptions(smileys: Self.smileys()), relativeTo: page)
         Self.expectEqual(actual, expected)
+        // The same string parsed once, or closed with `</p>`, is another tree: the two parses are the reader's path.
+        let writer = HFRBBCodeWriter(smileysEnabled: true, smileys: try Self.smileys())
+        let string = writer.html(for: source)
+        let once = try MessageContentNormalizer.normalize(contentHTML: string, relativeTo: page)
+        #expect(once.html.matches(of: /<\/strong>/).count == 37 && once.html != expected.html)
+        let closed = try MessageContentNormalizer.normalize(contentHTML: BBCodeRenderer.contentHTML(for: string + "</p>"), relativeTo: page)
+        #expect(closed.html.matches(of: /<\/strong>/).count == 37 && closed.html != expected.html)
         #expect(expected.smileys.map(\.code).contains(":ange:") && expected.links.count > 10)
         let crossed = "<span style=\"color:#0055aa\"> <span class=\"u\"><strong>La pizza Napolitaine</strong></span></span>"
         #expect(expected.html.contains(crossed))
