@@ -118,7 +118,7 @@ extension HFRBBCodeWriter {
     /// closing tags are indexed once per colour, so every open finds its close without rescanning.
     static func replacingColours(in text: Scalars) -> Scalars {
         let open = scalars("[#"), close = scalars("[/#")
-        var closes: [String: [Int]] = [:]
+        var closes: [String: [Int]] = [:], heads: [String: Int] = [:]
         var closeCursor = 0
         while let closeIndex = find(close, in: text, from: closeCursor) {
             let digitsStart = closeIndex + close.count, digitsEnd = digitsStart + 6
@@ -139,9 +139,12 @@ extension HFRBBCodeWriter {
             }
             let colour = string(Array(text[digitsStart..<digitsEnd]))
             let contentStart = digitsEnd + 1
-            // Closes before the content are consumed or stale: the list only ever loses its head.
-            while let first = closes[colour]?.first, first < contentStart { closes[colour]?.removeFirst() }
-            guard let closeIndex = closes[colour]?.first else {
+            // Closes before the content are consumed or stale: a head index per colour only ever moves forward.
+            let list = closes[colour] ?? []
+            var head = heads[colour] ?? 0
+            while head < list.count, list[head] < contentStart { head += 1 }
+            heads[colour] = head
+            guard head < list.count, case let closeIndex = list[head] else {
                 result += text[cursor..<digitsStart]
                 cursor = digitsStart
                 continue
@@ -178,18 +181,49 @@ extension HFRBBCodeWriter {
         let code: Scalars, folded: Scalars, image: Scalars
     }
 
+    /// The codes of a table as a trie over their folded scalars: at a position, the walk costs at most the longest
+    /// code, whatever the number of codes (a thousand personal `[:name]` share their first scalars).
+    struct SmileyTrie {
+        private var children: [[Unicode.Scalar: Int]] = [[:]]
+        private var terminal: [Int?] = [nil]
+
+        init(_ codes: [SmileyCode]) {
+            for (index, code) in codes.enumerated() where !code.folded.isEmpty {
+                var node = 0
+                for scalar in code.folded {
+                    if let next = children[node][scalar] {
+                        node = next
+                    } else {
+                        children.append([:])
+                        terminal.append(nil)
+                        children[node][scalar] = children.count - 1
+                        node = children.count - 1
+                    }
+                }
+                // Two codes equal once folded: the first in the table's order wins.
+                if terminal[node] == nil { terminal[node] = index }
+            }
+        }
+
+        /// The longest code starting at `index`, as an index into the table.
+        func longestMatch(at index: Int, in text: Scalars) -> Int? {
+            var node = 0, position = index, match: Int?
+            while position < text.count, let next = children[node][HFRBBCodeWriter.asciiLowercased(text[position])] {
+                node = next
+                position += 1
+                if let found = terminal[node] { match = found }
+            }
+            return match
+        }
+    }
+
     /// Every occurrence of a code of the table, in one scan, the longest code first at each position, ASCII letters
     /// matched whatever their case (`R20`: `:d` typed, `:D` in the catalogue), except inside a word that starts with
     /// `http://`, `https://` or `www.` (a bare URL in text; what HFR does with it is pending capture). `body` gets the
     /// code and the text as typed.
     static func replacingSmileys(_ codes: [SmileyCode], in text: Scalars, with body: (SmileyCode, Scalars) -> Scalars) -> Scalars {
-        var byFirst: [Unicode.Scalar: [SmileyCode]] = [:]
-        for code in codes where !code.folded.isEmpty {
-            byFirst[code.folded[0], default: []].append(code)
-        }
-        for key in byFirst.keys {
-            byFirst[key]?.sort { ($1.folded.count, string($0.code)) < ($0.folded.count, string($1.code)) }
-        }
+        let sorted = codes.sorted { string($0.code) < string($1.code) }
+        let trie = SmileyTrie(sorted)
         var result: Scalars = []
         result.reserveCapacity(text.count)
         var cursor = 0
@@ -200,10 +234,11 @@ extension HFRBBCodeWriter {
             if index >= wordEnd {
                 (wordEnd, wordIsURL) = word(at: index, in: text)
             }
-            guard let candidates = byFirst[asciiLowercased(text[index])], let match = firstMatch(of: candidates, at: index, in: text) else {
+            guard let found = trie.longestMatch(at: index, in: text) else {
                 index += 1
                 continue
             }
+            let match = sorted[found]
             result += text[cursor..<index]
             let typed = Array(text[index..<index + match.folded.count])
             result += wordIsURL ? typed : body(match, typed)
@@ -212,16 +247,6 @@ extension HFRBBCodeWriter {
         }
         result += text[cursor...]
         return result
-    }
-
-    /// The first of `candidates` (longest first) whose folded code is at `index`.
-    private static func firstMatch(of candidates: [SmileyCode], at index: Int, in text: Scalars) -> SmileyCode? {
-        for candidate in candidates where index + candidate.folded.count <= text.count {
-            var offset = 0
-            while offset < candidate.folded.count, asciiLowercased(text[index + offset]) == candidate.folded[offset] { offset += 1 }
-            if offset == candidate.folded.count { return candidate }
-        }
-        return nil
     }
 
     /// The end of the word that starts at `start` (the next space, no-break space or line break, or the end of the

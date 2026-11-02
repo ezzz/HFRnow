@@ -143,10 +143,12 @@ struct BBCodeRendererOracleTests {
         let writer = HFRBBCodeWriter(smileysEnabled: true, smileys: try Self.smileys())
         let string = writer.html(for: source)
         let once = try MessageContentNormalizer.normalize(contentHTML: string, relativeTo: page)
-        #expect(once.html.matches(of: /<\/strong>/).count == 37 && once.html != expected.html)
+        #expect(once.html.matches(of: /<strong>/).count == 37 && once.html.matches(of: /<\/strong>/).count == 37)
+        #expect(once.html != expected.html)
         let closed = try MessageContentNormalizer.normalize(contentHTML: BBCodeRenderer.contentHTML(for: string + "</p>"), relativeTo: page)
-        #expect(closed.html.matches(of: /<\/strong>/).count == 37 && closed.html != expected.html)
-        #expect(expected.smileys.map(\.code).contains(":ange:") && expected.links.count > 10)
+        #expect(closed.html.matches(of: /<strong>/).count == 37 && closed.html.matches(of: /<\/strong>/).count == 37)
+        #expect(closed.html != expected.html)
+        #expect(expected.smileys.map(\.code).contains(":ange:") && expected.links.count == 131)
         let crossed = "<span style=\"color:#0055aa\"> <span class=\"u\"><strong>La pizza Napolitaine</strong></span></span>"
         #expect(expected.html.contains(crossed))
     }

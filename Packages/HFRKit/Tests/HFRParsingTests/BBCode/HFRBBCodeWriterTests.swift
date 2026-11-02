@@ -126,7 +126,7 @@ struct HFRBBCodeWriterTests {
             == "<p><a href=\"https://a.example/?a=1&amp;b=&#034;\" class=\"cLink\">x &amp; &#034;y&#034;</a>")
     }
 
-    @Test("Every pass is one scan: 64 KB of each nesting, unclosed, rejected or smiley shape, with the whole catalogue")
+    @Test("Every pass is one scan: 32 to 112 KB of each nesting, unclosed, rejected or smiley shape, with a 1 059-code table")
     func linearWork() throws {
         let count = 8_000
         // Each shape made one pass rescan to the end per tag before the next close was remembered: 30 s at 64 KB.
@@ -146,17 +146,21 @@ struct HFRBBCodeWriterTests {
             (0..<count).map { String(format: "[#%06x]x", $0) }.joined(),
             String(repeating: "[url=", count: count) + "]x[/url]",
             String(repeating: "[img][", count: count) + "[/img]",
-            String(repeating: "Bonjour à tous, voici ma pizza :) et mon four :D !\r\n", count: count / 8)
+            String(repeating: "Bonjour à tous, voici ma pizza :) et mon four :D !\r\n", count: count / 8),
+            String(repeating: "[:perso", count: count),
+            String(repeating: "[/#000000]", count: count) + "[#000000]x"
         ]
-        // The bundled catalogue (59 codes) plus a personal smiley: the pass is one scan whatever the table size.
+        // The bundled catalogue (59 codes) plus a thousand personal smileys: the trie walk costs the longest code,
+        // not the table.
         var smileys = try Dictionary(CommonSmileyCatalog.bundled().map { ($0.code, $0.url) }, uniquingKeysWith: { first, _ in first })
-        smileys["[:user]"] = try #require(URL(string: "https://forum-images.hardware.fr/images/perso/user.gif"))
+        let perso = try #require(URL(string: "https://forum-images.hardware.fr/images/perso/user.gif"))
+        for number in 0..<1_000 { smileys["[:user\(number)]"] = perso }
         let writer = HFRBBCodeWriter(smileysEnabled: true, smileys: smileys)
         let start = ContinuousClock.now
         for source in sources {
             #expect(!writer.html(for: source).isEmpty)
         }
-        // Measured at about two seconds for the sixteen on a debug build; one quadratic pass alone took 30 s at this size.
+        // Measured at about three seconds for the eighteen on a debug build; one quadratic pass alone took 30 s at this size.
         #expect(ContinuousClock.now - start < .seconds(15))
     }
 
