@@ -175,7 +175,7 @@ public enum SettingKey {
     /// The keys that sync through the iCloud key-value store (ADR 0013 matrix E).
     public static let syncedKeys: Set<String> = Set(all.filter { $0.scope == .synced }.map(\.key))
 
-    /// The 7 theme keys sync unchanged (ADR 0013 §8, theme parity).
+    /// The 6 theme colours sync unchanged (ADR 0013 §8, theme parity), like `theme_night_brightness`, the seventh key.
     private static func colorSetting(_ key: String) -> Setting<ThemeColor?> {
         Setting(
             key: key,

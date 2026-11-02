@@ -1,5 +1,4 @@
 #if canImport(Darwin)
-import CryptoKit
 import Foundation
 
 /// The iCloud key-value store (`NSUbiquitousKeyValueStore.default`), Apple platforms only: the class is not in
@@ -47,13 +46,26 @@ public final class UbiquitousKeyValueStore: SyncedKeyValueStore, @unchecked Send
         store.synchronize()
     }
 
-    /// A SHA-256 of the archived `ubiquityIdentityToken`: stable per iCloud account, and never the token itself.
+    /// The archived `ubiquityIdentityToken`, base64: Apple's way to remember the account across launches. Nil without an
+    /// account, or when the token cannot be archived (then an account change is seen as a sign-out).
     public func accountIdentity() -> String? {
-        guard
-            let token = FileManager.default.ubiquityIdentityToken,
-            let archived = try? NSKeyedArchiver.archivedData(withRootObject: token, requiringSecureCoding: true)
-        else { return nil }
-        return SHA256.hash(data: archived).map { String(format: "%02x", $0) }.joined()
+        FileManager.default.ubiquityIdentityToken.flatMap(Self.archive)?.base64EncodedString()
+    }
+
+    /// Compares the stored token with the current one with `isEqual(_:)`, as Apple asks, falling back to the archives'
+    /// bytes when the stored one cannot be decoded.
+    public func isCurrentAccount(_ identity: String?) -> Bool {
+        let current = FileManager.default.ubiquityIdentityToken
+        guard let identity, let data = Data(base64Encoded: identity) else { return identity == nil && current == nil }
+        guard let current else { return false }
+        if let stored = try? NSKeyedUnarchiver.unarchivedObject(ofClasses: [NSObject.self], from: data) as? NSObject {
+            return stored.isEqual(current)
+        }
+        return Self.archive(current) == data
+    }
+
+    private static func archive(_ token: any NSCoding & NSCopying & NSObjectProtocol) -> Data? {
+        try? NSKeyedArchiver.archivedData(withRootObject: token, requiringSecureCoding: true)
     }
 
     public func changes() -> AsyncStream<SyncedStoreChange> {

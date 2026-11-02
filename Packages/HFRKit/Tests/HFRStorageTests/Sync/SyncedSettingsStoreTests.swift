@@ -21,23 +21,32 @@ import Testing
         let store: SyncedSettingsStore
         let local: InMemorySettingsStore
         let cloud: InMemorySyncedKeyValueStore
-        let quarantine: InMemorySmallStorePersistence<SyncQuarantineDocument>
+        let deviceState: InMemorySmallStorePersistence<SyncDeviceStateDocument>
         let clock: Clock
+
+        /// The store the app would build at its next launch, over the same local store, cloud and device file.
+        func relaunched() -> SyncedSettingsStore {
+            SyncedSettingsStore(local: local, cloud: cloud, deviceState: deviceState, clock: { clock.now })
+        }
+
+        /// Plays an account change: the system replaces the store's content, then the store is told.
+        func switchAccount(to identity: String?, cloudValues: [String: SyncedValue?] = [:]) {
+            cloud.receive(SyncedStoreChange(reason: .accountChange), updates: cloudValues, identity: .some(identity))
+            store.apply(SyncedStoreChange(reason: .accountChange))
+        }
     }
 
     private static func make(
         local: [String: SettingRawValue] = [:],
         cloud: [String: SyncedValue] = [:],
         identity: String? = "account-1",
-        quarantine: InMemorySmallStorePersistence<SyncQuarantineDocument> = InMemorySmallStorePersistence()
+        deviceState: InMemorySmallStorePersistence<SyncDeviceStateDocument> = InMemorySmallStorePersistence()
     ) -> Fixture {
         let localStore = InMemorySettingsStore(local)
         let cloudStore = InMemorySyncedKeyValueStore(cloud, identity: identity)
         let clock = Clock()
-        let store = SyncedSettingsStore(
-            local: localStore, cloud: cloudStore, quarantine: quarantine, clock: { clock.now }
-        )
-        return Fixture(store: store, local: localStore, cloud: cloudStore, quarantine: quarantine, clock: clock)
+        let store = SyncedSettingsStore(local: localStore, cloud: cloudStore, deviceState: deviceState, clock: { clock.now })
+        return Fixture(store: store, local: localStore, cloud: cloudStore, deviceState: deviceState, clock: clock)
     }
 
     @Test func aSyncedWriteGoesToBothAndStampsTheSchemaADeviceWriteStaysLocal() {
@@ -61,7 +70,6 @@ import Testing
 
     @Test func aServerChangeReplacesTheMirrorKeyByKeyLastWriterWins() {
         let fixture = Self.make(local: [Self.synced: .string("no"), Self.other: .string("0"), Self.device: .bool(false)])
-        fixture.store.setRawValue(.string("no"), forKey: Self.synced)
         fixture.cloud.receive(SyncedStoreChange(reason: .serverChange), updates: [Self.synced: .string("yes"), Self.other: nil])
         fixture.store.apply(SyncedStoreChange(reason: .serverChange, keys: [Self.synced, Self.other, Self.device]))
         #expect(fixture.local.rawValue(forKey: Self.synced) == .string("yes"))
@@ -81,88 +89,112 @@ import Testing
         #expect(fixture.cloud.value(forKey: SyncedSettingsStore.schemaVersionKey) == .int(1))
     }
 
-    @Test func anAccountChangeQuarantinesBlocksAndNeverUploadsThePreviousValues() throws {
+    @Test func anAccountChangeQuarantinesAndTakesTheNewAccountsValuesAtOnce() throws {
         let fixture = Self.make(local: [Self.synced: .string("yes"), Self.device: .bool(true)], cloud: [Self.synced: .string("yes")])
-        // Another Apple ID: the store now holds that account's values.
-        fixture.cloud.receive(SyncedStoreChange(reason: .accountChange), updates: [Self.other: .string("1")], identity: "account-2")
-        fixture.store.apply(SyncedStoreChange(reason: .accountChange))
-        let entry = try #require(fixture.quarantine.document?.entries["account-1"])
+        fixture.switchAccount(to: "account-2", cloudValues: [Self.other: .string("1")])
+        let entry = try #require(fixture.deviceState.document?.quarantine["account-1"])
         #expect(entry.values == [Self.synced: .string("yes")])
         #expect(entry.savedAt == Self.start)
+        // The mirror holds the new account's values only, without waiting for an initial sync that may never come.
         #expect(fixture.local.rawValue(forKey: Self.synced) == nil)
-        #expect(fixture.local.rawValue(forKey: Self.device) == .bool(true))
-        #expect(fixture.store.waitsForInitialSync)
-
-        // Blocked: writes stay local, server changes are not applied.
-        fixture.store.setRawValue(.string("no"), forKey: Self.synced)
-        #expect(fixture.cloud.value(forKey: Self.synced) == nil)
-        fixture.store.apply(SyncedStoreChange(reason: .serverChange, keys: [Self.other]))
-        #expect(fixture.local.rawValue(forKey: Self.other) == nil)
-
-        // The new account's initial sync: its values win, what it lacks is pushed (only what was written meanwhile).
-        fixture.store.apply(SyncedStoreChange(reason: .initialSync))
-        #expect(!fixture.store.waitsForInitialSync)
         #expect(fixture.local.rawValue(forKey: Self.other) == .string("1"))
+        #expect(fixture.local.rawValue(forKey: Self.device) == .bool(true))
+        #expect(fixture.cloud.value(forKey: Self.synced) == nil)
+        #expect(fixture.deviceState.document?.knownIdentity == "account-2")
+        // A write now belongs to the new account.
+        fixture.store.setRawValue(.string("no"), forKey: Self.synced)
         #expect(fixture.cloud.value(forKey: Self.synced) == .string("no"))
-        // The previous account's values stay quarantined: never restored into another account.
-        #expect(fixture.quarantine.document?.entries["account-1"] != nil)
     }
 
     @Test func quarantinedValuesComeBackWhenTheirAccountIsActiveAgain() {
         let fixture = Self.make(local: [Self.synced: .string("yes"), Self.other: .string("1")])
-        fixture.cloud.receive(SyncedStoreChange(reason: .accountChange), identity: "account-2")
-        fixture.store.apply(SyncedStoreChange(reason: .accountChange))
-        fixture.store.apply(SyncedStoreChange(reason: .initialSync))
-        // Back to the first account, whose cloud now has another `display_sig`.
-        fixture.cloud.receive(SyncedStoreChange(reason: .accountChange), updates: [Self.synced: .string("no")], identity: "account-1")
-        fixture.store.apply(SyncedStoreChange(reason: .accountChange))
-        fixture.store.apply(SyncedStoreChange(reason: .initialSync))
+        fixture.switchAccount(to: "account-2")
+        #expect(fixture.local.rawValue(forKey: Self.other) == nil)
+        // Back to the first account, whose cloud now has another `display_sig` and lost `vos_sujets`.
+        fixture.switchAccount(to: "account-1", cloudValues: [Self.synced: .string("no")])
         #expect(fixture.local.rawValue(forKey: Self.synced) == .string("no"))
         #expect(fixture.local.rawValue(forKey: Self.other) == .string("1"))
         #expect(fixture.cloud.value(forKey: Self.other) == .string("1"))
-        #expect(fixture.quarantine.document?.entries["account-1"] == nil)
+        #expect(fixture.deviceState.document?.quarantine["account-1"] == nil)
+        // The second account's quarantine stays for it.
+        #expect(fixture.deviceState.document?.quarantine["account-2"] != nil)
+    }
+
+    /// The account changed while the app was not running: the next launch sees it (Apple: compare the stored token).
+    @Test func anAccountChangeWhileNotRunningIsHandledAtLaunch() throws {
+        let fixture = Self.make(local: [Self.synced: .string("yes"), Self.other: .string("1")])
+        fixture.switchAccount(to: "account-2", cloudValues: [Self.synced: .string("no")])
+        #expect(fixture.local.rawValue(forKey: Self.synced) == .string("no"))
+        // App killed; back to the first account in Settings; relaunch.
+        fixture.cloud.receive(SyncedStoreChange(reason: .accountChange), updates: [Self.synced: .string("yes")], identity: "account-1")
+        _ = fixture.relaunched()
+        let second = try #require(fixture.deviceState.document?.quarantine["account-2"])
+        #expect(second.values == [Self.synced: .string("no")])
+        #expect(fixture.local.rawValue(forKey: Self.synced) == .string("yes"))
+        #expect(fixture.local.rawValue(forKey: Self.other) == .string("1"))
+        #expect(fixture.cloud.value(forKey: Self.other) == .string("1"))
+        #expect(fixture.deviceState.document?.knownIdentity == "account-1")
+    }
+
+    @Test func aSignOutWhileNotRunningQuarantinesAtLaunch() {
+        let fixture = Self.make(local: [Self.synced: .string("yes")])
+        fixture.cloud.receive(SyncedStoreChange(reason: .accountChange), identity: .some(nil))
+        _ = fixture.relaunched()
+        #expect(fixture.local.rawValue(forKey: Self.synced) == nil)
+        #expect(fixture.deviceState.document?.quarantine["account-1"]?.values == [Self.synced: .string("yes")])
+        #expect(fixture.deviceState.document?.identityRecorded == true)
+        #expect(fixture.deviceState.document?.knownIdentity == nil)
+    }
+
+    @Test func aFirstLaunchRecordsTheAccountAndQuarantinesNothing() {
+        let fixture = Self.make(local: [Self.synced: .string("yes")])
+        #expect(fixture.deviceState.document?.identityRecorded == true)
+        #expect(fixture.deviceState.document?.knownIdentity == "account-1")
+        #expect(fixture.deviceState.document?.quarantine.isEmpty == true)
+        #expect(fixture.local.rawValue(forKey: Self.synced) == .string("yes"))
+        _ = fixture.relaunched()
+        #expect(fixture.local.rawValue(forKey: Self.synced) == .string("yes"))
     }
 
     /// A first sign-in: values written without an Apple ID belong to none, so they stay and meet the cloud's.
     @Test func signingInKeepsTheValuesWrittenWithoutAnAccount() {
         let fixture = Self.make(local: [Self.synced: .string("yes"), Self.other: .string("1")], identity: nil)
-        fixture.cloud.receive(SyncedStoreChange(reason: .accountChange), updates: [Self.other: .string("0")], identity: "account-2")
-        fixture.store.apply(SyncedStoreChange(reason: .accountChange))
+        fixture.switchAccount(to: "account-2", cloudValues: [Self.other: .string("0")])
         #expect(fixture.local.rawValue(forKey: Self.synced) == .string("yes"))
-        #expect(fixture.store.waitsForInitialSync)
-        #expect(fixture.quarantine.document == nil)
-        fixture.store.apply(SyncedStoreChange(reason: .initialSync))
         #expect(fixture.local.rawValue(forKey: Self.other) == .string("0"))
         #expect(fixture.cloud.value(forKey: Self.synced) == .string("yes"))
+        #expect(fixture.deviceState.document?.quarantine.isEmpty == true)
     }
 
     @Test func aQuarantineIsDeletedAfterNinetyDays() {
         let old = SyncQuarantineEntry(savedAt: Self.start.addingTimeInterval(-91 * 86_400), values: [Self.synced: .string("yes")])
         let recent = SyncQuarantineEntry(savedAt: Self.start.addingTimeInterval(-89 * 86_400), values: [Self.synced: .string("no")])
-        let persistence = InMemorySmallStorePersistence(SyncQuarantineDocument(entries: ["old": old, "recent": recent]))
-        let fixture = Self.make(quarantine: persistence)
-        #expect(fixture.quarantine.document?.entries.keys.sorted() == ["recent"])
+        let document = SyncDeviceStateDocument(
+            identityRecorded: true, knownIdentity: "account-1", quarantine: ["old": old, "recent": recent]
+        )
+        let fixture = Self.make(deviceState: InMemorySmallStorePersistence(document))
+        #expect(fixture.deviceState.document?.quarantine.keys.sorted() == ["recent"])
         fixture.clock.advance(days: 2)
         fixture.store.apply(SyncedStoreChange(reason: .initialSync))
-        #expect(fixture.quarantine.document?.entries.isEmpty == true)
+        #expect(fixture.deviceState.document?.quarantine.isEmpty == true)
     }
 
     @Test func aQuarantineThatCannotBeSavedStaysInMemoryAndIsNeverUploaded() {
-        let persistence = FailingSmallStorePersistence<SyncQuarantineDocument>()
+        let persistence = FailingSmallStorePersistence<SyncDeviceStateDocument>(
+            SyncDeviceStateDocument(identityRecorded: true, knownIdentity: "account-1")
+        )
         persistence.failsToSave = true
         let local = InMemorySettingsStore([Self.synced: .string("yes")])
         let cloud = InMemorySyncedKeyValueStore()
-        let store = SyncedSettingsStore(local: local, cloud: cloud, quarantine: persistence)
+        let store = SyncedSettingsStore(local: local, cloud: cloud, deviceState: persistence)
         cloud.receive(SyncedStoreChange(reason: .accountChange), identity: "account-2")
         store.apply(SyncedStoreChange(reason: .accountChange))
-        #expect(store.quarantineFailure != nil)
+        #expect(store.deviceStateFailure != nil)
         #expect(local.rawValue(forKey: Self.synced) == nil)
-        store.apply(SyncedStoreChange(reason: .initialSync))
         #expect(cloud.value(forKey: Self.synced) == nil)
-        // Back to the first account: the values kept in memory come back.
+        // Back to the first account during the same run: the values kept in memory come back.
         cloud.receive(SyncedStoreChange(reason: .accountChange), identity: "account-1")
         store.apply(SyncedStoreChange(reason: .accountChange))
-        store.apply(SyncedStoreChange(reason: .initialSync))
         #expect(local.rawValue(forKey: Self.synced) == .string("yes"))
     }
 
@@ -189,6 +221,42 @@ import Testing
         #expect(fixture.cloud.value(forKey: SyncedSettingsStore.schemaVersionKey) == .int(2))
     }
 
+    /// A local store that, during a write, lets another thread apply a server change, and waits up to 0.5 s for it.
+    final class RacingSettingsStore: SettingsStore, @unchecked Sendable {
+        // Only the first write races; the test drives one write.
+        let inner = InMemorySettingsStore()
+        var duringFirstWrite: (@Sendable () -> Void)?
+
+        func rawValue(forKey key: String) -> SettingRawValue? { inner.rawValue(forKey: key) }
+        func removeValue(forKey key: String) { inner.removeValue(forKey: key) }
+        func setRawValue(_ value: SettingRawValue, forKey key: String) {
+            inner.setRawValue(value, forKey: key)
+            if let race = duringFirstWrite {
+                duringFirstWrite = nil
+                race()
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1))) func aWriteAndAServerChangeNeverInterleave() {
+        let local = RacingSettingsStore()
+        let cloud = InMemorySyncedKeyValueStore()
+        let store = SyncedSettingsStore(local: local, cloud: cloud, deviceState: InMemorySmallStorePersistence())
+        let applied = DispatchSemaphore(value: 0)
+        local.duringFirstWrite = {
+            Thread.detachNewThread {
+                cloud.receive(SyncedStoreChange(reason: .serverChange), updates: [Self.synced: .string("no")])
+                store.apply(SyncedStoreChange(reason: .serverChange, keys: [Self.synced]))
+                applied.signal()
+            }
+            // With one critical section per operation the change cannot run now: this wait times out.
+            _ = applied.wait(timeout: .now() + 0.5)
+        }
+        store.setRawValue(.string("yes"), forKey: Self.synced)
+        _ = applied.wait(timeout: .now() + 5)
+        #expect(local.rawValue(forKey: Self.synced) == cloud.value(forKey: Self.synced)?.settingRawValue)
+    }
+
     @Test(.timeLimit(.minutes(1))) func runAppliesTheStoreChangesAsTheyCome() async throws {
         let fixture = Self.make()
         let running = Task { await fixture.store.run() }
@@ -202,16 +270,18 @@ import Testing
         #expect(fixture.local.rawValue(forKey: Self.synced) == .string("yes"))
     }
 
-    @Test func aQuarantineSurvivesAReopenedFile() async throws {
+    @Test func theDeviceStateSurvivesAReopenedFile() throws {
         let directory = try SmallStoreTestSupport.makeDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
-        let file = directory.appending(path: "sync-quarantine.json")
+        let file = directory.appending(path: "sync-device-state.json")
         let local = InMemorySettingsStore([Self.synced: .string("yes"), "theme_night_brightness": .double(0.5)])
         let cloud = InMemorySyncedKeyValueStore()
-        let store = SyncedSettingsStore(local: local, cloud: cloud, quarantine: FileSmallStorePersistence(fileURL: file))
-        cloud.receive(SyncedStoreChange(reason: .accountChange), identity: nil)
+        let store = SyncedSettingsStore(local: local, cloud: cloud, deviceState: FileSmallStorePersistence(fileURL: file))
+        cloud.receive(SyncedStoreChange(reason: .accountChange), identity: .some(nil))
         store.apply(SyncedStoreChange(reason: .accountChange))
-        let reopened = try FileSmallStorePersistence<SyncQuarantineDocument>(fileURL: file).load()
-        #expect(reopened?.entries["account-1"]?.values == [Self.synced: .string("yes"), "theme_night_brightness": .double(0.5)])
+        let reopened = try FileSmallStorePersistence<SyncDeviceStateDocument>(fileURL: file).load()
+        #expect(reopened?.quarantine["account-1"]?.values == [Self.synced: .string("yes"), "theme_night_brightness": .double(0.5)])
+        #expect(reopened?.identityRecorded == true)
+        #expect(reopened?.knownIdentity == nil)
     }
 }

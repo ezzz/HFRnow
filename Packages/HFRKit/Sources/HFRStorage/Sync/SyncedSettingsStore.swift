@@ -3,22 +3,25 @@ import Synchronization
 
 /// The settings store of the app once iCloud sync is on (LOT-172, ADR 0013 §2-4): every read comes from the local store
 /// (the `UserDefaults` mirror that `@AppStorage` also reads), every write goes to it, and the keys of `syncedKeys` are
-/// also written to the iCloud key-value store, whose external changes `apply` (or `run`) copies back into the mirror.
+/// also written to the iCloud key-value store, whose changes `apply` (or `run`) copies back into the mirror.
 ///
 /// The rules of ADR 0013 §3:
 /// - **Server change**: the cloud value replaces the mirror's, key by key (last writer wins, as the store does).
 /// - **Initial sync**: for each synced key, the cloud value wins; a key the cloud lacks is pushed from the mirror (a
 ///   first device, or values imported from legacy, LOT-067).
-/// - **Account change** (another Apple ID, or signed out): the mirror's synced values are moved into a device-only
-///   quarantine under the previous account's identity, never uploaded under the new one (values written while no
-///   account was signed in belong to none and stay in the mirror); synced writes stay local and
-///   nothing is applied or pushed until the new account's initial sync. Quarantined values come back only when their
-///   account is active again (they then count as the mirror's values for the initial-sync rule), and are deleted after
-///   `quarantineLifetime`.
+/// - **Account change** (another Apple ID, or signed out), seen as it happens or, when it happened while the app was
+///   not running, at the next launch (the last account seen is kept on the device): the mirror's synced values are
+///   moved into a device-only quarantine under the previous account, so they are never uploaded under the new one; the
+///   new account's own quarantine, if any, comes back; then the initial-sync rule applies to the store's content, which
+///   the system has already replaced. Values written while no account was signed in belong to none and stay. A
+///   quarantine is deleted after `quarantineLifetime`.
 /// - **Quota violation**: the local value is kept; the keys are reported in `quotaViolations`.
 /// - **Schema version**: `schemaVersionKey` holds the newest format any device wrote; while it is above
 ///   `schemaVersion`, this build neither applies nor writes cloud values (it keeps working locally).
-/// Device-scoped settings are never touched by any of this.
+///
+/// Each write and each change runs as one critical section, so a write and a change never interleave. The local
+/// store must not call back into this store synchronously (a `UserDefaults` observer writing a setting). Device-scoped
+/// settings are never touched by any of this.
 public final class SyncedSettingsStore: SettingsStore {
     /// The format of the synced values this build writes.
     public static let schemaVersion = 1
@@ -28,13 +31,12 @@ public final class SyncedSettingsStore: SettingsStore {
     public static let quarantineLifetime: TimeInterval = 90 * 86_400
 
     private struct State {
-        var quarantine: SmallStoreState<SyncQuarantineDocument>
-        /// Entries the quarantine could not save: kept in memory rather than left in the mirror.
+        var device: SmallStoreState<SyncDeviceStateDocument>
+        /// Quarantine entries the device file could not save: kept in memory rather than left in the mirror.
         var unsaved: [String: SyncQuarantineEntry] = [:]
         var identity: String?
-        var waitsForInitialSync = false
         var quotaViolations: Set<String> = []
-        var quarantineFailure: SmallStoreError?
+        var deviceStateFailure: SmallStoreError?
     }
 
     private let local: any SettingsStore
@@ -43,12 +45,12 @@ public final class SyncedSettingsStore: SettingsStore {
     private let clock: @Sendable () -> Date
     private let state: Mutex<State>
 
-    /// Creates the store over the local mirror, the cloud store and the quarantine file; nothing is exchanged until a
-    /// write or a change. Quarantined values past their lifetime are deleted now.
+    /// Creates the store over the local mirror, the cloud store and the device-only state file. An account change made
+    /// while the app was not running is handled now; quarantined values past their lifetime are deleted.
     public init(
         local: any SettingsStore,
         cloud: any SyncedKeyValueStore,
-        quarantine: any SmallStorePersistence<SyncQuarantineDocument>,
+        deviceState: any SmallStorePersistence<SyncDeviceStateDocument>,
         syncedKeys: Set<String> = SettingKey.syncedKeys,
         clock: @escaping @Sendable () -> Date = { Date() }
     ) {
@@ -56,8 +58,17 @@ public final class SyncedSettingsStore: SettingsStore {
         self.cloud = cloud
         self.syncedKeys = syncedKeys
         self.clock = clock
-        state = Mutex(State(quarantine: SmallStoreState(persistence: quarantine), identity: cloud.accountIdentity()))
-        state.withLock { Self.purge(&$0, now: clock()) }
+        state = Mutex(State(device: SmallStoreState(persistence: deviceState)))
+        state.withLock { state in
+            purge(&state)
+            guard let document = state.device.document(), document.identityRecorded else {
+                state.identity = cloud.accountIdentity()
+                record(&state)
+                return
+            }
+            state.identity = document.knownIdentity
+            if !cloud.isCurrentAccount(document.knownIdentity) { accountChanged(&state) }
+        }
     }
 
     // MARK: SettingsStore
@@ -67,33 +78,32 @@ public final class SyncedSettingsStore: SettingsStore {
     }
 
     public func setRawValue(_ value: SettingRawValue, forKey key: String) {
-        local.setRawValue(value, forKey: key)
-        guard syncedKeys.contains(key), canWriteCloud else { return }
-        cloud.set(SyncedValue(value), forKey: key)
-        stampSchema()
+        state.withLock { _ in
+            local.setRawValue(value, forKey: key)
+            guard syncedKeys.contains(key), cloudSchemaIsReadable else { return }
+            cloud.set(SyncedValue(value), forKey: key)
+            stampSchema()
+        }
     }
 
     public func removeValue(forKey key: String) {
-        local.removeValue(forKey: key)
-        guard syncedKeys.contains(key), canWriteCloud else { return }
-        cloud.removeValue(forKey: key)
+        state.withLock { _ in
+            local.removeValue(forKey: key)
+            guard syncedKeys.contains(key), cloudSchemaIsReadable else { return }
+            cloud.removeValue(forKey: key)
+        }
     }
 
     // MARK: Changes
-
-    /// Whether synced writes stay local until the active account's initial sync (after an account change).
-    public var waitsForInitialSync: Bool {
-        state.withLock { $0.waitsForInitialSync }
-    }
 
     /// The keys the cloud refused for quota since the store was created; their local values are kept.
     public var quotaViolations: Set<String> {
         state.withLock { $0.quotaViolations }
     }
 
-    /// Why the last quarantine could not be saved (its values are then kept in memory), or nil.
-    public var quarantineFailure: SmallStoreError? {
-        state.withLock { $0.quarantineFailure }
+    /// Why the device state file could not be read or written, or nil. Quarantined values are then kept in memory.
+    public var deviceStateFailure: SmallStoreError? {
+        state.withLock { $0.deviceStateFailure }
     }
 
     /// Applies the store's changes as they come; returns when the stream ends.
@@ -105,26 +115,25 @@ public final class SyncedSettingsStore: SettingsStore {
 
     /// Applies one change of the cloud store (see the type's rules).
     public func apply(_ change: SyncedStoreChange) {
-        switch change.reason {
-        case .serverChange:
-            guard !waitsForInitialSync, cloudSchemaIsReadable else { return }
-            for key in change.keys where syncedKeys.contains(key) {
-                copyCloudValue(forKey: key)
+        state.withLock { state in
+            switch change.reason {
+            case .serverChange:
+                guard cloudSchemaIsReadable else { return }
+                for key in change.keys where syncedKeys.contains(key) {
+                    copyCloudValue(forKey: key)
+                }
+            case .initialSync:
+                purge(&state)
+                merge()
+            case .quotaViolation:
+                state.quotaViolations.formUnion(change.keys.filter(syncedKeys.contains))
+            case .accountChange:
+                accountChanged(&state)
             }
-        case .initialSync:
-            initialSync()
-        case .quotaViolation:
-            state.withLock { $0.quotaViolations.formUnion(change.keys.filter(syncedKeys.contains)) }
-        case .accountChange:
-            accountChanged()
         }
     }
 
-    // MARK: Internals
-
-    private var canWriteCloud: Bool {
-        !waitsForInitialSync && cloudSchemaIsReadable
-    }
+    // MARK: Internals (called inside the critical section)
 
     private var cloudSchemaIsReadable: Bool {
         guard case .int(let version)? = cloud.value(forKey: Self.schemaVersionKey) else { return true }
@@ -138,24 +147,14 @@ public final class SyncedSettingsStore: SettingsStore {
     }
 
     private func copyCloudValue(forKey key: String) {
-        if let raw = cloud.value(forKey: key)?.settingRawValue {
-            local.setRawValue(raw, forKey: key)
-        } else if cloud.value(forKey: key) == nil {
-            local.removeValue(forKey: key)
+        switch cloud.value(forKey: key) {
+        case .none: local.removeValue(forKey: key)
+        case .some(let value): if let raw = value.settingRawValue { local.setRawValue(raw, forKey: key) }
         }
     }
 
-    private func initialSync() {
-        let identity = cloud.accountIdentity()
-        let restored = state.withLock { state -> [String: SyncedValue] in
-            state.identity = identity
-            state.waitsForInitialSync = false
-            Self.purge(&state, now: clock())
-            return Self.takeQuarantine(for: identity, from: &state)
-        }
-        for (key, value) in restored where local.rawValue(forKey: key) == nil {
-            if let raw = value.settingRawValue { local.setRawValue(raw, forKey: key) }
-        }
+    /// The initial-sync rule: the cloud wins where it has a value, the mirror's value is pushed where it has none.
+    private func merge() {
         guard cloudSchemaIsReadable else { return }
         var pushed = false
         for key in syncedKeys.sorted() {
@@ -169,61 +168,79 @@ public final class SyncedSettingsStore: SettingsStore {
         if pushed { stampSchema() }
     }
 
-    private func accountChanged() {
-        let now = clock()
-        let newIdentity = cloud.accountIdentity()
-        // Values written while no Apple ID was signed in belong to none: they stay in the mirror, and the next initial
-        // sync lets the cloud win and pushes the rest, as for a first device.
-        let hadAccount = state.withLock { state -> Bool in
-            guard state.identity == nil else { return true }
-            state.identity = newIdentity
-            state.waitsForInitialSync = true
-            return false
-        }
-        guard hadAccount else { return }
-        var values: [String: SyncedValue] = [:]
-        for key in syncedKeys {
-            if let raw = local.rawValue(forKey: key) { values[key] = SyncedValue(raw) }
-        }
-        state.withLock { state in
-            let owner = state.identity ?? ""
-            let entry = SyncQuarantineEntry(savedAt: now, values: values)
-            do throws(SmallStoreError) {
-                _ = try state.quarantine.mutate { document throws(SmallStoreError) in
-                    document.entries[owner] = entry
-                    return true
-                }
-                state.quarantineFailure = nil
-            } catch {
-                state.unsaved[owner] = entry
-                state.quarantineFailure = error
+    private func accountChanged(_ state: inout State) {
+        let previous = state.identity
+        let current = cloud.accountIdentity()
+        if let previous, !cloud.isCurrentAccount(previous) {
+            var values: [String: SyncedValue] = [:]
+            for key in syncedKeys {
+                if let raw = local.rawValue(forKey: key) { values[key] = SyncedValue(raw) }
+                local.removeValue(forKey: key)
             }
-            state.identity = newIdentity
-            state.waitsForInitialSync = true
-            Self.purge(&state, now: now)
+            quarantine(values, for: previous, in: &state)
         }
-        for key in syncedKeys { local.removeValue(forKey: key) }
+        for (key, value) in takeQuarantine(for: current, from: &state) where local.rawValue(forKey: key) == nil {
+            if let raw = value.settingRawValue { local.setRawValue(raw, forKey: key) }
+        }
+        state.identity = current
+        record(&state)
+        purge(&state)
+        merge()
     }
 
-    /// Removes and returns the quarantined values of `identity`.
-    private static func takeQuarantine(for identity: String?, from state: inout State) -> [String: SyncedValue] {
-        guard let owner = identity else { return [:] }
-        var values = state.unsaved.removeValue(forKey: owner)?.values ?? [:]
-        let saved = state.quarantine.document()?.entries[owner]
-        if let saved {
-            values.merge(saved.values) { unsaved, _ in unsaved }
-            _ = try? state.quarantine.mutate { document in document.entries.removeValue(forKey: owner) != nil }
+    private func quarantine(_ values: [String: SyncedValue], for owner: String, in state: inout State) {
+        let entry = SyncQuarantineEntry(savedAt: clock(), values: values)
+        do throws(SmallStoreError) {
+            _ = try state.device.mutate { document throws(SmallStoreError) in
+                document.quarantine[owner] = entry
+                return true
+            }
+        } catch {
+            state.unsaved[owner] = entry
+            state.deviceStateFailure = error
+        }
+    }
+
+    /// Removes and returns the quarantined values of the account `identity` (none for no account).
+    private func takeQuarantine(for identity: String?, from state: inout State) -> [String: SyncedValue] {
+        guard identity != nil else { return [:] }
+        var values: [String: SyncedValue] = [:]
+        for owner in state.unsaved.keys.sorted() where cloud.isCurrentAccount(owner) {
+            values.merge(state.unsaved.removeValue(forKey: owner)?.values ?? [:]) { kept, _ in kept }
+        }
+        let saved = (state.device.document()?.quarantine ?? [:]).filter { cloud.isCurrentAccount($0.key) }
+        guard !saved.isEmpty else { return values }
+        for entry in saved.values { values.merge(entry.values) { kept, _ in kept } }
+        _ = try? state.device.mutate { document throws(SmallStoreError) in
+            for owner in saved.keys { document.quarantine.removeValue(forKey: owner) }
+            return true
         }
         return values
     }
 
+    /// Keeps the identity just seen, so the next launch can tell whether the account changed meanwhile.
+    private func record(_ state: inout State) {
+        let identity = state.identity
+        do throws(SmallStoreError) {
+            _ = try state.device.mutate { document throws(SmallStoreError) in
+                guard !document.identityRecorded || document.knownIdentity != identity else { return false }
+                document.identityRecorded = true
+                document.knownIdentity = identity
+                return true
+            }
+        } catch {
+            state.deviceStateFailure = error
+        }
+    }
+
     /// Deletes quarantined entries older than `quarantineLifetime`.
-    private static func purge(_ state: inout State, now: Date) {
-        let limit = now.addingTimeInterval(-quarantineLifetime)
+    private func purge(_ state: inout State) {
+        let limit = clock().addingTimeInterval(-Self.quarantineLifetime)
         state.unsaved = state.unsaved.filter { $0.value.savedAt > limit }
-        guard let entries = state.quarantine.document()?.entries, entries.values.contains(where: { $0.savedAt <= limit }) else { return }
-        _ = try? state.quarantine.mutate { document in
-            document.entries = document.entries.filter { $0.value.savedAt > limit }
+        guard let quarantine = state.device.document()?.quarantine, quarantine.values.contains(where: { $0.savedAt <= limit })
+        else { return }
+        _ = try? state.device.mutate { document throws(SmallStoreError) in
+            document.quarantine = document.quarantine.filter { $0.value.savedAt > limit }
             return true
         }
     }

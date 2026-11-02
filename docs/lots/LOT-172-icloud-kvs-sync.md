@@ -27,21 +27,23 @@ No legacy code: the legacy app has no iCloud (audit E §2, "No App Group, no iCl
 `topic_page_swipe_navigation` and `reply_button_behavior` (synced in the matrix) are not in the LOT-060 catalogue yet; the lot that adds them gives them `.synced`.
 
 ### `SyncedSettingsStore` (the mirror)
-A `SettingsStore` over the local store (the `UserDefaults` mirror `@AppStorage` reads), the cloud store and a device-only quarantine file (`SyncQuarantineDocument`, LOT-064's `SmallStorePersistence`). Reads always come from the local store: the engine never reads iCloud on the hot path (ADR 0013 §2). A write goes to the local store, and, for a synced key, to the cloud store too, stamping `schemaVersion`.
+A `SettingsStore` over the local store (the `UserDefaults` mirror `@AppStorage` reads), the cloud store and a device-only state file (`SyncDeviceStateDocument`, LOT-064's `SmallStorePersistence`): the last iCloud account seen and the quarantine. Reads always come from the local store: the engine never reads iCloud on the hot path (ADR 0013 §2). A write goes to the local store, and, for a synced key, to the cloud store too, stamping `schemaVersion`. Each write and each change runs as one critical section, so a write and a change never interleave; the local store must not call back synchronously.
 
 | Change (`apply`, or `run()` over `changes()`) | Rule (ADR 0013 §3) |
 |---|---|
 | server change | each synced key of the change takes the cloud value in the mirror (removed when the cloud removed it): last writer wins per key |
 | initial sync | for every synced key, the cloud value wins; a key the cloud lacks is pushed from the mirror (a first device, or values imported from legacy, ADR 0013 §5 step 2) |
-| account change (another Apple ID, or signed out) | the mirror's synced values are moved to the quarantine under the previous account's identity and removed from the mirror; until the new account's initial sync, synced writes stay local and server changes are ignored, so nothing of the previous account reaches the new one; device-scoped settings are untouched |
-| initial sync after an account change | as above; if the now-active account has a quarantine, its values come back first (for the keys the mirror lacks), then the cloud wins where it has a value; the entry is removed. Another account's quarantine is never restored |
+| account change (another Apple ID, or signed out) | the mirror's synced values move to the quarantine under the previous account and leave the mirror, so nothing of that account is ever uploaded under the new one; the new account's own quarantine comes back for the keys the mirror lacks; then the initial-sync rule runs on the store's content, which the system has already replaced. No wait for an initial-sync notification: Apple does not guarantee one after an account change. Device-scoped settings are untouched |
+| account change while the app was not running | the device file keeps the last account seen (Apple's archived `ubiquityIdentityToken`, compared with `isEqual(_:)`); at launch a different account runs the account-change rule. A first launch records the account and changes nothing |
 | quota violation | the local value is kept; the keys are reported in `quotaViolations` (the app logs them) |
 
 - **Quarantine lifetime**: entries older than 90 days are deleted at creation of the store, at every account change and initial sync.
-- **A quarantine that cannot be saved** (unreadable file, failed write) keeps its values in memory, never in the mirror: they are not uploaded, come back if their account returns during the process's life, and `quarantineFailure` says so.
+- **A device file that cannot be written** keeps a quarantine in memory, never in the mirror: it is not uploaded, comes back if its account returns during the process's life, and `deviceStateFailure` says so.
 - **Schema version**: while the cloud's `schemaVersion` is above this build's (1), the store neither applies cloud values nor writes to the cloud; it keeps working locally.
-- **No account**: values written while no Apple ID is signed in belong to none: at the first sign-in they stay in the mirror, synced writes wait for the initial sync, then the cloud wins and the rest is pushed (as for a first device). Signing out quarantines the signed-out account's values; while signed out, synced writes stay local (no initial sync comes), which is the device-only behaviour ADR 0013 §4 asks for.
+- **No account**: values written while no Apple ID is signed in belong to none: at the first sign-in they stay in the mirror and meet the new account's values (cloud wins, the rest is pushed). Signing out quarantines the signed-out account's values; while signed out, writes go to the store's device-local copy, which the system replaces at the next sign-in.
+- **Identity**: `UbiquitousKeyValueStore.accountIdentity()` is the archived token, base64; a token that cannot be archived reads as "no account" (the change is then handled as a sign-out). The in-memory store compares identities as strings.
 - **Pending writes**: a write the system has not uploaded yet is also in the mirror, so it is quarantined with it; the system's own upload queue cannot be cancelled from the app.
+- **App wiring** (building this store instead of `UserDefaultsSettingsStore`, running `run()`, calling `synchronize()` at launch and on foreground, the device-state file location) needs the iCloud entitlement (LOT-160, ADR 0013 §9) and is [#447](https://github.com/ezzz/HFRnow/issues/447).
 
 ### Not secrets
 No synced key holds a cookie, a token or a draft (test over `syncedKeys`); accounts and cookies stay in the Keychain (LOT-065, ADR 0013 §6).
@@ -51,7 +53,7 @@ The per-account suffix of part 2's keys is `AccountKey.make` (LOT-064, ADR 0013 
 
 ## Edge cases
 - A synced key the cloud holds as `data` (a newer format) is not a setting value: the mirror keeps its own value.
-- `run()` ends when the store's stream ends; the app starts it once and calls `synchronize()` at launch and on foreground (ADR 0013 §4).
+- `run()` ends when the store's stream ends; the app starts it once and calls `synchronize()` at launch and on foreground (ADR 0013 §4, #447).
 - Without the iCloud entitlement (LOT-160) or an iCloud account, `NSUbiquitousKeyValueStore` keeps values on the device; the mirror behaves the same.
 
 ## Fixtures
@@ -61,7 +63,7 @@ None: no HFR page; synthetic values.
 Legacy had no sync at all: every synced key now follows the Apple ID (ADR 0013). `mpstorage_active` is never synced (its replacement is per account, §7).
 
 ## Tests (part 1)
-`SettingScopeTests` (every catalogue key against the matrix, the theme keys, no secret or draft key, `synced` keeps codec and default) and `SyncedSettingsStoreTests` (synced and device writes, reads from the mirror only, server change, initial sync cloud-wins and push, account change quarantine and block, restore to the same account only, 90-day purge, unsaved quarantine kept in memory and never uploaded, quota violation, newer schema, first sign-in keeping values written without an account, `run()`, quarantine file round trip). Mutations are listed in the PR.
+`SettingScopeTests` (every catalogue key against the matrix, the theme keys, no secret or draft key, `synced` keeps codec and default) and `SyncedSettingsStoreTests` (synced and device writes, reads from the mirror only, server change, initial sync cloud-wins and push, account change quarantine with the new account's values at once, restore to the same account only, an account change or a sign-out while the app was not running, first launch, first sign-in keeping values written without an account, 90-day purge, an unsavable quarantine kept in memory and never uploaded, quota violation, newer schema, a write and a server change never interleaving, `run()`, device-state file round trip). Mutations are listed in the PR.
 
 ## Learnings
-- A rule "never upload account A's values under account B" is easiest to hold by emptying the mirror at the change and blocking writes until the new initial sync, rather than by filtering every write.
+- "Never upload account A's values under account B" holds by emptying the mirror at the change and taking the new account's content at once; waiting for an initial-sync notification is not safe, the system does not promise one. An account can change while the app is not running: keep the last one seen on the device.

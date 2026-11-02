@@ -12,8 +12,18 @@ public protocol SyncedKeyValueStore: Sendable {
     /// Asks the system to exchange with iCloud now (launch, foreground). Returns false when it could not.
     @discardableResult
     func synchronize() -> Bool
-    /// An opaque, stable identity of the iCloud account whose values the store holds; nil without an account.
+    /// An opaque identity of the iCloud account whose values the store holds, to keep on the device; nil without an
+    /// account.
     func accountIdentity() -> String?
+    /// Whether `identity`, as returned by `accountIdentity()` at some point, is the account active now (nil: no account).
+    func isCurrentAccount(_ identity: String?) -> Bool
     /// The external changes, in the order the system reports them. Each call returns its own stream.
     func changes() -> AsyncStream<SyncedStoreChange>
+}
+
+extension SyncedKeyValueStore {
+    /// Compares identities as strings, for stores whose identity is stable as a string (the in-memory one).
+    public func isCurrentAccount(_ identity: String?) -> Bool {
+        accountIdentity() == identity
+    }
 }
