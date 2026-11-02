@@ -97,6 +97,16 @@ struct FavoritesDifferentialTests {
         #expect(page.topicsByLastPost.map { "\($0.topicID?.category.queryValue ?? "?")-\($0.topicID?.topic ?? 0)" } == expected)
     }
 
+    @Test("A stale-session page is an empty page carrying HFR's message, where legacy raised (R70b)")
+    func staleSessionPage() throws {
+        let oracle = try FavoritesOracle.load("R70b")
+        #expect(oracle.exception == "FavoritesLoadError: Identifiants invalides !")
+        #expect(oracle.result == nil)
+        let page = try FavoritesParser.parse(oracle.capture())
+        #expect(page.notice == "Identifiants invalides !")
+        #expect(page.sections.isEmpty)
+    }
+
     @Test("A message page is an empty page carrying HFR's message (R12)")
     func messagePage() throws {
         let oracle = try FavoritesOracle.load("R12")

@@ -72,7 +72,7 @@ struct SmallParsersOracleTests {
         let oracle = try Lot005Oracle.load(id)
         #expect(oracle.result["outcome"] as? String == "error")
         #expect(oracle.result["error"] as? String == "missingHash")
-        #expect(throws: ParsingError.self) { try ProfileEditPageParser.parse(oracle.html) }
+        #expect(throws: ParsingError.missingElement("input name=hash_check")) { try ProfileEditPageParser.parse(oracle.html) }
     }
 
     // MARK: - Smiley search
