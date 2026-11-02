@@ -6,9 +6,10 @@ import Observation
 // Port of HFRswift/Swift/AnswerView.swift (AnswerView.postMessage, ComposerDraftPersistence) and HFRswift/Swift/ReplyService.swift
 // (ForumReplyPostingService) @ 2440d79. Differences: draft per topic and account, autosaved, instead of one global draft (GAP-092, UXD);
 // never resent after an uncertain send (GAP-100).
-/// State of the reply sheet (LOT-084): the text, its draft, sending and the outcome.
+/// State of the composer sheet: a reply (LOT-084) or a new private message (LOT-128, with a recipient and a subject); the
+/// text, its draft, sending and the outcome.
 ///
-/// The draft is the topic's (`ReplyTarget.draftContext`) for the current account. It is restored when the sheet opens,
+/// The draft is the target's (`ComposerTarget.draftContext`) for the current account. It is restored when the sheet opens,
 /// saved while typing (debounced, through the same `persist` as every other save, LESSONS 48), kept or discarded on
 /// close as the user chooses, and discarded only after HFR confirmed the reply. Any other outcome keeps the text and
 /// says what happened.
@@ -23,17 +24,21 @@ final class ReplyComposerModel: Identifiable {
         case keptDraft
         /// Closed with the draft deleted.
         case discardedDraft
-        /// The reply may have been posted (`unconfirmed`): the reader shows the topic's last page; the draft is kept when the
-        /// store accepts it (not after `closeWithoutSaving`).
+        /// The write may have been posted (`unconfirmed`): the reader shows the topic's last page, the Messages list reloads;
+        /// the draft is kept when the store accepts it (not after `closeWithoutSaving`).
         case checkTopic
         /// Closed while the draft store refused writes: nothing was written, a stored draft is left as it was.
         case closedWithoutSaving
     }
 
-    /// The topic the reply goes to.
-    let target: ReplyTarget
+    /// What is written: a reply to a topic or a new private message.
+    let target: ComposerTarget
     /// The text being written.
     private(set) var text = ""
+    /// Recipient of a new private message: the link's `dest`, editable; empty for a reply.
+    private(set) var recipient = ""
+    /// Subject of a new private message, kept in its draft; empty for a reply.
+    private(set) var subject = ""
     /// The stored draft is being read; the editor waits for it, so typing never races the restore.
     private(set) var isRestoring = false
     /// A reply is being sent.
@@ -61,20 +66,35 @@ final class ReplyComposerModel: Identifiable {
 
     /// A composer for `target`; nothing is read before `start()`. `autosaveDelay` debounces draft writes (LOT-063: every
     /// save rewrites the file).
-    init(target: ReplyTarget, services: ComposerServices, autosaveDelay: Duration = .seconds(1)) {
+    init(composing target: ComposerTarget, services: ComposerServices, autosaveDelay: Duration = .seconds(1)) {
         self.target = target
         self.services = services
         self.autosaveDelay = autosaveDelay
+        if case .newPrivateMessage(let message) = target { recipient = message.recipient }
+    }
+
+    /// A reply composer for `target`.
+    convenience init(target: ReplyTarget, services: ComposerServices, autosaveDelay: Duration = .seconds(1)) {
+        self.init(composing: .reply(target), services: services, autosaveDelay: autosaveDelay)
+    }
+
+    /// A new private message: the sheet shows the recipient and subject fields.
+    var isNewMessage: Bool {
+        if case .newPrivateMessage = target { true } else { false }
     }
 
     /// The text holds something to send.
     var hasText: Bool { !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
-    /// Send is offered: some text, the draft read, nothing running, not closed.
-    var canSend: Bool { hasText && canEdit }
+    /// Send is offered: some text (and, for a new private message, a recipient and a subject), the draft read, nothing
+    /// running, not closed. HFR refuses a blank field (`W17a`); the engine checks it again.
+    var canSend: Bool {
+        guard hasText, canEdit else { return false }
+        return !isNewMessage || (!Self.isBlank(recipient) && !Self.isBlank(subject))
+    }
 
     /// Closing asks whether to keep the draft (swiping the sheet down is blocked meanwhile, so it never loses the text).
-    var closeNeedsChoice: Bool { hasText }
+    var closeNeedsChoice: Bool { hasText || !Self.isBlank(subject) }
 
     /// The editor accepts typing.
     var canEdit: Bool { hasRestored && !isSending && !isClosing && closeReason == nil }
@@ -95,6 +115,7 @@ final class ReplyComposerModel: Identifiable {
             draftWarning = Self.draftWarning(for: failure)
         }
         text = draft?.text ?? ""
+        if isNewMessage { subject = draft?.subject ?? "" }
         isRestoring = false
         hasRestored = true
     }
@@ -103,15 +124,35 @@ final class ReplyComposerModel: Identifiable {
     func update(text newText: String) {
         guard canEdit, newText != text else { return }
         text = newText
+        didEdit()
+    }
+
+    /// The user edited the subject of a new private message: saved with the text.
+    func update(subject newSubject: String) {
+        guard isNewMessage, canEdit, newSubject != subject else { return }
+        subject = newSubject
+        didEdit()
+    }
+
+    /// The user edited the recipient of a new private message. Not part of the draft (LOT-063 keys it, stores no field).
+    func update(recipient newRecipient: String) {
+        guard isNewMessage, canEdit, newRecipient != recipient else { return }
+        recipient = newRecipient
+        errorMessage = nil
+        mayHavePosted = false
+    }
+
+    private func didEdit() {
         errorMessage = nil
         mayHavePosted = false
         scheduleAutosave()
     }
 
-    /// Sends the reply. Characters HFR would cut the message at are refused first (Q-3), with nothing requested.
+    /// Sends the reply or the new private message. Characters HFR would cut the message at are refused first (Q-3), in
+    /// every field, with nothing requested.
     func send() async {
         guard canSend else { return }
-        let refused = Self.unsupportedCharacters(in: text)
+        let refused = Self.unsupportedCharacters(in: isNewMessage ? recipient + subject + text : text)
         guard refused.isEmpty else {
             errorMessage = ComposerMessages.unsupported(refused)
             return
@@ -119,20 +160,34 @@ final class ReplyComposerModel: Identifiable {
         isSending = true
         errorMessage = nil
         mayHavePosted = false
-        let sending = text
         // The exact text sent is on disk before the request leaves: a crash or an unconfirmed answer never loses it. A
         // failed write does not stop the send; the warning stays on screen.
         _ = await saveNow()
         do throws(PostingError) {
-            let result = try await services.poster.reply(sending, formURL: target.formURL)
+            let result = try await post()
             // The reply is posted: the sheet closes even if the draft cannot be deleted (spec, edge cases).
             _ = await discardDraft()
             isSending = false
             closeReason = .sent(result)
         } catch {
             isSending = false
-            errorMessage = ComposerMessages.message(for: error)
+            errorMessage = ComposerMessages.message(for: error, newMessage: isNewMessage)
             if case .unconfirmed = error { mayHavePosted = true }
+        }
+    }
+
+    /// One write through the poster, with the fields as they are now. Recipient and subject are trimmed, as legacy Swift did
+    /// (`AnswerView.swift:1474`, `MessagesView.swift:4213` @ 21173e77); a line break inside one is refused by the engine.
+    private func post() async throws(PostingError) -> PostingResult {
+        switch target {
+        case .reply(let reply):
+            return try await services.poster.reply(text, formURL: reply.formURL)
+        case .newPrivateMessage(let message):
+            return try await services.poster.newPrivateMessage(
+                to: recipient.trimmingCharacters(in: .whitespacesAndNewlines),
+                subject: subject.trimmingCharacters(in: .whitespacesAndNewlines),
+                text: text, formURL: message.formURL
+            )
         }
     }
 
@@ -264,7 +319,8 @@ final class ReplyComposerModel: Identifiable {
     /// would come back in an editor that looks empty. Returns whether the write succeeded.
     private func persist() async -> Bool {
         do {
-            try await services.drafts.save(hasText ? text : "", for: target.draftContext, account: services.account)
+            let kept = isNewMessage && !Self.isBlank(subject) ? subject : nil
+            try await services.drafts.save(hasText ? text : "", subject: kept, for: target.draftContext, account: services.account)
             draftWarning = nil
             return true
         } catch {
@@ -274,6 +330,10 @@ final class ReplyComposerModel: Identifiable {
     }
 
     // MARK: - Rules
+
+    private static func isBlank(_ value: String) -> Bool {
+        value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 
     /// Distinct characters with a scalar above U+FFFF, in order: HFR cuts the message at the first one (Q-3, `W12`).
     static func unsupportedCharacters(in text: String) -> [Character] {

@@ -209,9 +209,22 @@ final class TopicReaderModel {
     /// on `forum2.php` and on the canonical path alike).
     /// HFR's own refresh is not used: after a form fetched at `page=1` it names page 1 (`W30`: `…_1.htm#bas`), and whether
     /// it echoes another form `page` after a reply is not captured.
+    ///
+    /// A private thread (LOT-128) never asks past its end: what HFR serves for a page after the last one of a `cat=prive`
+    /// thread is not captured (`R24` is a public topic). Its last known page is asked for; when that page's pager says
+    /// the reply opened a new one, that page is asked for next.
     func showLatestPost() async {
         guard let page, let shown else { return }
-        await load(shown.atPage(page.maxPage + 1), keepsScrollPosition: false, anchor: .lastMessage)
+        guard page.topicID?.category == .privateMessages else {
+            await load(shown.atPage(page.maxPage + 1), keepsScrollPosition: false, anchor: .lastMessage)
+            return
+        }
+        let mine = generation + 1
+        await load(shown.atPage(page.maxPage), keepsScrollPosition: false, anchor: .lastMessage)
+        // Only when that load delivered (no other load started since, no failure) and its pager names a later page.
+        guard generation == mine, error == nil, let served = self.page, let servedTarget = self.shown,
+              served.maxPage > served.currentPage else { return }
+        await load(servedTarget.atPage(served.maxPage), keepsScrollPosition: false, anchor: .lastMessage)
     }
 
     /// Stops the load in flight; the content stays.
