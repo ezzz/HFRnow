@@ -121,8 +121,8 @@ struct AccountsModelRestoreTests {
         let checker = ScriptedChecker([:], gate: gate)
         let model = makeModel(store: store, checker: checker)
 
-        let restoring = Task { await model.restore() }
-        await gate.entered()
+        let restoring = gate.run { await model.restore() }
+        try #require(await gate.entered(), "the launch check never reached the gate")
         #expect(model.isRestoring)
         let retrying = Task { await model.retryRestore() }
         // Give a second restore every chance to reach the checker before the first one is released.

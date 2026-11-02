@@ -120,15 +120,14 @@ struct ForumSessionCheckTests {
         #expect(!model.isRechecking)
     }
 
-    // A gate a broken guard never reaches would hang the run: fail instead.
-    @Test(.timeLimit(.minutes(1))) func recheckDuringTheLaunchCheckSendsNothingMore() async throws {
+    @Test func recheckDuringTheLaunchCheckSendsNothingMore() async throws {
         let store = try InMemoryCredentialStore(accounts: [Fake.account("user1", main: true)])
         let gate = CheckGate()
         let refresher = ScriptedRefresher(["user1": [.failure(.offline)]], gate: gate)
         let model = makeModel(store: store, checker: ForumSessionCheck(refresher: refresher))
 
-        let restoring = Task { await model.restore() }
-        await gate.entered()
+        let restoring = gate.run { await model.restore() }
+        try #require(await gate.entered(), "the launch check never reached the gate")
         // The launch check is running: the session is `checking`, not re-checked.
         await model.recheckUnconfirmedSessions(now: Date().addingTimeInterval(AccountsModel.recheckInterval + 1))
         await gate.open()
@@ -140,7 +139,7 @@ struct ForumSessionCheckTests {
 
     // The launch check has already marked user1 `checkFailed` and waits on user2: a re-check then would send a second
     // request for user1 while the launch pass still runs.
-    @Test(.timeLimit(.minutes(1))) func recheckWhileTheLaunchCheckWaitsOnAnotherAccountSendsNothing() async throws {
+    @Test func recheckWhileTheLaunchCheckWaitsOnAnotherAccountSendsNothing() async throws {
         let store = try InMemoryCredentialStore(accounts: [Fake.account("user1", main: true), Fake.account("user2")])
         let gate = CheckGate()
         let refresher = ScriptedRefresher(
@@ -148,8 +147,8 @@ struct ForumSessionCheckTests {
         )
         let model = makeModel(store: store, checker: ForumSessionCheck(refresher: refresher))
 
-        let restoring = Task { await model.restore() }
-        await gate.entered()
+        let restoring = gate.run { await model.restore() }
+        try #require(await gate.entered(), "the launch check never reached the gate")
         #expect(model.rows.map(\.status) == [.checkFailed(.timedOut), .checking])
         await model.recheckUnconfirmedSessions(now: Date().addingTimeInterval(AccountsModel.recheckInterval + 1))
         await gate.open()
@@ -159,8 +158,7 @@ struct ForumSessionCheckTests {
         #expect(model.rows.map(\.status) == [.checkFailed(.timedOut), .restored])
     }
 
-    // A gate a broken guard never reaches would hang the run: fail instead.
-    @Test(.timeLimit(.minutes(1))) func secondRecheckWhileOneRunsSendsNothing() async throws {
+    @Test func secondRecheckWhileOneRunsSendsNothing() async throws {
         let store = try InMemoryCredentialStore(accounts: [Fake.account("user1", main: true)])
         let gate = CheckGate()
         let refresher = ScriptedRefresher(["user1": [.failure(.offline), .success(.valid)]], gate: gate, gatedCall: 2)
@@ -168,8 +166,8 @@ struct ForumSessionCheckTests {
         await model.restore()
         let later = Date().addingTimeInterval(AccountsModel.recheckInterval + 1)
 
-        let first = Task { await model.recheckUnconfirmedSessions(now: later) }
-        await gate.entered()
+        let first = gate.run { await model.recheckUnconfirmedSessions(now: later) }
+        try #require(await gate.entered(), "the re-check never reached the gate")
         #expect(model.isRechecking)
         await model.recheckUnconfirmedSessions(now: later)
         await gate.open()
@@ -180,8 +178,7 @@ struct ForumSessionCheckTests {
         #expect(!model.isRechecking)
     }
 
-    // A gate a broken guard never reaches would hang the run: fail instead.
-    @Test(.timeLimit(.minutes(1))) func loginDuringARecheckWinsOverItsResult() async throws {
+    @Test func loginDuringARecheckWinsOverItsResult() async throws {
         let store = try InMemoryCredentialStore(accounts: [Fake.account("user1", main: true)])
         let gate = CheckGate()
         let refresher = ScriptedRefresher(
@@ -195,8 +192,8 @@ struct ForumSessionCheckTests {
         await model.restore()
 
         let later = Date().addingTimeInterval(AccountsModel.recheckInterval + 1)
-        let rechecking = Task { await model.recheckUnconfirmedSessions(now: later) }
-        await gate.entered()
+        let rechecking = gate.run { await model.recheckUnconfirmedSessions(now: later) }
+        try #require(await gate.entered(), "the re-check never reached the gate")
         try await model.logIn(pseudo: "user1", password: "fake", for: .existing(id: "user1", displayName: "user1"))
         await gate.open()
         await rechecking.value
@@ -206,7 +203,7 @@ struct ForumSessionCheckTests {
     }
 
     // A re-login renews the same `HFRSession`, so only the login-save count tells the write-back its jar is stale.
-    @Test(.timeLimit(.minutes(1))) func loginSavedWhileACheckWritesBackWinsOverItsCookies() async throws {
+    @Test func loginSavedWhileACheckWritesBackWinsOverItsCookies() async throws {
         let store = try InMemoryCredentialStore(accounts: [Fake.account("user1", main: true)])
         let refresher = ScriptedRefresher(["user1": [.success(.unconfirmed(.unrecognizedPage)), .success(.valid)]])
         let login = ScriptedLogin([.success(
