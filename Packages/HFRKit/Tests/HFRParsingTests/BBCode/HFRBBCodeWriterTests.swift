@@ -147,7 +147,8 @@ struct HFRBBCodeWriterTests {
             + "<img src=\"https://forum-images.hardware.fr/images/perso/user6.gif\" alt=\"[:user]\" title=\"[:user]\" /> [:use]")
         // Two codes equal once folded and typed in a third case: the first in code-point order of the code (`:AB:` < `:ab:`).
         let tie = HFRBBCodeWriter(smileysEnabled: true, smileys: [":ab:": smile, ":AB:": url])
-        #expect(tie.html(for: ":Ab:") == "<p><img src=\"https://forum-images.hardware.fr/icones/biggrin.gif\" alt=\":Ab:\" title=\":AB:\" />")
+        #expect(tie.html(for: ":Ab:")
+            == "<p><img src=\"https://forum-images.hardware.fr/icones/biggrin.gif\" alt=\":Ab:\" title=\":AB:\" />")
         // A code longer than the trie takes (64 scalars) is left out: a position's walk is bounded whatever the table.
         let longCode = String(repeating: "a", count: 65), longestCode = String(repeating: "b", count: 64)
         let long = HFRBBCodeWriter(smileysEnabled: true, smileys: [longCode: url, longestCode: url])
