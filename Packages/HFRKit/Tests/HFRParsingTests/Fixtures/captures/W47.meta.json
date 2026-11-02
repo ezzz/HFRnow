@@ -1,0 +1,23 @@
+{
+  "id": "W47",
+  "account": "anon",
+  "method": "POST",
+  "url_template": "/user/modo.php?cat=10&ref=1&post=9900002&numreponse=9910000001&page=1&config=hfr.inc",
+  "url": "https://forum.hardware.fr/user/modo.php?cat=10&ref=1&post=9900002&numreponse=9910000001&page=1&config=hfr.inc",
+  "final_url": "https://forum.hardware.fr/user/modo.php?cat=10&ref=1&post=9900002&numreponse=9910000001&page=1&config=hfr.inc",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Sat, 01 Jan 2000 00:00:00 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "request_fields": [
+    "hash_check",
+    "referer_page",
+    "raison",
+    "Submit"
+  ],
+  "note": "moderator alert body without cookies and with an empty hash_check (#137)",
+  "request_body": "hash_check=&referer_page=&raison=Test+des+d%C3%A9veloppeurs+de+l%27application+SwiftHFR+%28envoi+sans+session%29%2C+sur+leur+propre+sujet+de+test.+Rien+%C3%A0+mod%C3%A9rer%2C+cette+alerte+peut+%C3%AAtre+ignor%C3%A9e.&Submit=Valider+votre+message",
+  "file": "W47-modo-alert-logged-out-rejected.html",
+  "private": false
+}

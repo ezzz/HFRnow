@@ -44,9 +44,9 @@ None: no HFR page is read and no HFR fact is added (`HFR-PROTOCOL.md` unchanged)
 
 ## Intentional differences from legacy
 
-- One "Thème" picker (Automatique (iOS) / Clair / Sombre) instead of "Changement de thème" + "Luminosité du thème" (ADR 0013 §8; CHANGELOG-LEGACY 56). Same keys, same values.
+- One "Thème" picker (Automatique (iOS) / Clair / Sombre) instead of "Changement de thème" + "Luminosité du thème" (ADR 0013 §8; CHANGELOG-LEGACY 57). Same keys, same values.
 - The settings sit on the screen behind the "Thème" row (LOT-119 shell), not inline in the form.
-- Native screens keep the system's dark surfaces: the brightness slider applies to the reader. Legacy's Swift layer also scaled grouped-list rows and the editor background (`AppThemePalette`); those native surfaces belong to LOT-122 (darker dark, OLED, separators), which redraws them (CHANGELOG-LEGACY 56).
+- Native screens keep the system's dark surfaces: the brightness slider applies to the reader. Legacy's Swift layer also scaled grouped-list rows and the editor background (`AppThemePalette`); those native surfaces belong to LOT-122 (darker dark, OLED, separators), which redraws them (CHANGELOG-LEGACY 57).
 - Creating the model writes nothing; legacy wrote the brightness default on its first read.
 - Not ported: the seasonal red accent (`theme_noel_disabled`, LOT-166), the camera luminosity handler (dead code), the time-based theme (UXD-23, dropped on record).
 
