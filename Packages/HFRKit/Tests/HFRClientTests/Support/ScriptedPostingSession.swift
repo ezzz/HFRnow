@@ -29,9 +29,7 @@ actor ScriptedPostingSession: PostingSession {
         let response = try await transport.perform(request)
         if let login = loginDuringNextRequest {
             loginDuringNextRequest = nil
-            identity = login.identity
-            hashCheck = login.hashCheck
-            loginGeneration += 1
+            adoptLogin(login)
         }
         return response
     }

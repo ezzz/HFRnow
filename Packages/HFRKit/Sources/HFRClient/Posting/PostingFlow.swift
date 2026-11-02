@@ -158,16 +158,16 @@ public struct PostingFlow: Sendable {
         let body = try PostingBody.make(
             form: form.form, layout: form.layout, text: text, overrides: overrides, checkboxes: boxes
         )
+        // Nothing has left the device yet: a cancellation here is a plain failure, not an unknown outcome. It wins over a
+        // changed session, and is checked again after the identity lookup's suspension, last before sending.
+        if Task.isCancelled { throw .network(.cancelled) }
+        let current = await form.session.userKey(now: Date())
+        if Task.isCancelled { throw .network(.cancelled) }
         // The form's `hash_check` and `pseudo` belong to the account it was fetched with: after a logout or a login of
         // another account in this session, HFR would refuse them (`W17b`); say so before sending (#342). A re-login of
         // the same account keeps the form usable: its refreshed token is HFR's to judge (#315), so the seed's identity is
         // compared, not its `loginGeneration`, which every login moves (#340).
-        guard let identity = form.seed.identity, await form.session.userKey(now: Date()) == identity else {
-            throw .sessionChanged
-        }
-        // Checked last, after the identity lookup's suspension. Nothing has left the device yet: a cancellation here is a
-        // plain failure, not an unknown outcome.
-        if Task.isCancelled { throw .network(.cancelled) }
+        guard let identity = form.seed.identity, current == identity else { throw .sessionChanged }
         let request = HTTPRequest.post(url, form: body, timeout: Self.postTimeout, redirectPolicy: .doNotFollow)
         let response: HTTPResponse
         do {

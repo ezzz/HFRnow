@@ -105,11 +105,15 @@ struct PostingSessionChangeTests {
         }
     }
 
-    @Test("A cancellation during the identity lookup sends nothing and is a plain cancellation (R40a)")
-    func cancelledDuringIdentityLookup() async throws {
+    @Test(
+        "A cancellation during the identity lookup sends nothing and is a plain cancellation, even after a switch (R40a)",
+        arguments: [false, true]
+    )
+    func cancelledDuringIdentityLookup(switched: Bool) async throws {
         let session = ScriptedPostingSession([try PostingCapture.form("R40a"), try PostingCapture.answer("W17b")])
         let flow = PostingFlow()
         let form = try await flow.loadForm(at: try PostingCapture.pageURL("R40a"), through: session)
+        if switched { await session.adoptLogin(ConcurrentLogin(identity: "user2", hashCheck: Self.fresher)) }
         await session.cancelCallerOnIdentityRead()
         let result = await Task { () async -> Result<PostingResult, PostingError> in
             do throws(PostingError) {
