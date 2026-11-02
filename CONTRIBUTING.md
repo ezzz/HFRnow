@@ -48,3 +48,9 @@ Tool documentation: [CodeRabbit](https://docs.coderabbit.ai/) · [CodeQL](https:
 ## 3. License
 
 By contributing you agree that your contribution is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE), except contributions to `docs/HFR-PROTOCOL.md` and to fixtures under `Packages/HFRKit/Tests/**/Fixtures/`, which are licensed under [CC BY 4.0](LICENSE-docs.md).
+
+## 4. Pre-commit and ShellCheck
+
+[`.pre-commit-config.yaml`](.pre-commit-config.yaml) holds the syntax, secret and shell hooks; the **Pre-commit** CI job replays `pre-commit run --all-files` on every PR. Run it locally with `pip install pre-commit==4.7.0 && pre-commit run --all-files` (optionally `pre-commit install`).
+
+Pinned versions (update by hand, Dependabot does not read this file; hook repos are frozen to commit SHAs with the tag in a comment, as the workflow actions are): `pre-commit` 4.7.0 (CI), [`pre-commit-hooks`](https://github.com/pre-commit/pre-commit-hooks) v6.0.0, [`shellcheck-py`](https://github.com/shellcheck-py/shellcheck-py) v0.11.0.1 (ShellCheck 0.11.0). ShellCheck covers every `*.sh` and every executable file with a sh/bash shebang; a finding is fixed, or silenced with an inline `# shellcheck disable=SCxxxx # reason`. The hooks never reformat files, so captured fixtures stay byte-exact.
