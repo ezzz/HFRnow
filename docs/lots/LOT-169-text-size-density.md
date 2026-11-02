@@ -59,3 +59,9 @@ Before this lot the default topic row measured 66.7 pt (9 rows): the default is 
 ## Not in this lot
 
 - Side-by-side screenshots against the running legacy app (#295 acceptance criterion, left open): the legacy row above is rebuilt from its code and measured in the same harness.
+
+### Decisions of 2026-11-02 (UXD)
+
+Operator decisions on [#379](https://github.com/ezzz/HFRnow/issues/379): every UXD row takes its recommendation.
+- **UXD-07: A.** The topic row is the legacy one: title, unread capsule, "⚑ cur / max", flag tint (the legacy Favoris row is the reference). It is built inside this lot.
+- **UXD-13: B.** The slider on Dynamic Type, below and above the default; the legacy picker values 100 / 110 / 120 / 130 % map to the same percentages.

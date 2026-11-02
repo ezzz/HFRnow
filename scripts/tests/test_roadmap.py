@@ -1,13 +1,16 @@
 """Tests for tooling/roadmap: LOTS.md -> lots.json, tracker JSON -> state, hygiene sweep (no network)."""
 import sys
 import unittest
+from unittest import mock
 from datetime import datetime, timezone
 from pathlib import Path
 
 ROADMAP = Path(__file__).resolve().parents[2] / "tooling" / "roadmap"
 sys.path.insert(0, str(ROADMAP))
 
+import generate  # noqa: E402
 import hygiene  # noqa: E402
+import m5  # noqa: E402
 import lots_from_md  # noqa: E402
 import sync_state  # noqa: E402
 
@@ -96,6 +99,58 @@ class SyncState(unittest.TestCase):
         st = sync_state.build(issues, [], lots)
         self.assertEqual((st["ready"], st["capture"]), ([], {"1": "#50"}))
         self.assertRegex(st["generated_at"], r"^\d{4}-\d\d-\d\d \d\d:\d\d UTC$")
+
+
+class Milestones(unittest.TestCase):
+    def test_m5_membership_is_disjoint_and_complete(self):
+        m = {"M1": generate.M1, "M2": generate.M2, "M3": generate.M3, "M4": generate.M4}
+        for name, ids in m.items():
+            self.assertFalse(ids & generate.M5, name)
+        self.assertIn("LOT-100", generate.M5)  # a whole lot moved out of M2
+        self.assertIn("LOT-147", generate.M5)  # a whole lot moved out of M4
+        self.assertTrue(any(l in generate.M5 for l in ("LOT-174", "LOT-182")))  # the (b) halves of the splits
+        self.assertEqual(len(generate.M1 | generate.M2 | generate.M3 | generate.M4 | generate.M5), len(generate.rows))
+
+    def test_no_lot_of_m1_to_m4_depends_on_an_m5_lot(self):
+        outside = generate.M1 | generate.M2 | generate.M3 | generate.M4
+        bad = [(l, d) for l in outside for d in generate.deps(generate.rows[l]) if d in generate.M5]
+        self.assertEqual(bad, [])
+
+
+class Boards(unittest.TestCase):
+    def test_closed_m5_lots_show_as_not_opened_and_followups_belong_to_a_milestone(self):
+        with mock.patch.object(m5, "M5_OPEN", False):
+            self._closed_m5_assertions()
+
+    def test_an_open_m5_lot_with_dependencies_done_goes_to_triage_like_any_lot(self):
+        with mock.patch.object(m5, "M5_OPEN", True):
+            states = [generate.state(l)[1] for l in generate.M5 if not generate.done(l)]
+        self.assertFalse(any(x.startswith("⏸️") for x in states))
+
+    def test_closed_m5_lot_labelled_ready_is_not_advertised_as_ready(self):
+        lot = "LOT-175"
+        issue = generate.rows[lot]["issue"]
+        closed = {generate.rows[d]["issue"] for d in generate.deps(generate.rows[lot]) if d in generate.rows}
+        with mock.patch.object(m5, "M5_OPEN", False), mock.patch.object(generate, "READY", {issue}), \
+                mock.patch.object(generate, "PRS", {}), mock.patch.object(generate, "CLAIMED", set()), \
+                mock.patch.object(generate, "CLOSED", closed):
+            self.assertTrue(generate.state(lot)[1].startswith("⏸️"))
+
+    def test_unblocked_helper_knows_m5_and_skips_it_while_closed(self):
+        import subprocess, sys, pathlib
+        root = pathlib.Path(generate.__file__).parent
+        out = subprocess.run([sys.executable, str(root / "unblocked.py"), "LOT-084"], capture_output=True, text=True, cwd=root)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertNotIn("[M5]", out.stdout)
+
+    def _closed_m5_assertions(self):
+        self.assertTrue(all(m in ("M1", "M2", "M3", "M4") for m, _ in m5.FOLLOWUPS.values()))  # not lots: never M5-only
+        self.assertEqual(m5.FOLLOWUPS[432][0], "M4")
+        text = generate.followups_block("M4")
+        self.assertIn("#432", text)
+        self.assertNotIn("#424", text)
+        waiting = [l for l in generate.M5 if generate.state(l)[1].startswith("⏸️")]
+        self.assertTrue(all(not generate.done(l) for l in waiting))
 
 
 class Hygiene(unittest.TestCase):
@@ -195,6 +250,36 @@ class Hygiene(unittest.TestCase):
         own = {2: [{"body": "Unblocked by #10", "created_at": "2026-10-31T00:00:00Z"}]}
         actions, _ = self.run_sweep(issues, pulls, own)
         self.assertEqual([a["issue"] for a in actions], [2])
+
+    @mock.patch.object(m5, "M5_OPEN", True)
+    def test_once_m5_is_open_its_lots_follow_the_ordinary_sweep_rules(self):
+        lots = lots_from_md.parse("## M5 · UX evolutions\n\n" + HEAD + md_row("001", 1) + md_row("002", 2, deps="001", module="App"))
+        issues = [issue(1, "closed"), issue(2, labels=["status: blocked"])]
+        actions, _ = hygiene.analyze(issues, [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z")], lots, {}, NOW)
+        self.assertEqual([a["issue"] for a in actions], [2])
+
+    @mock.patch.object(m5, "M5_OPEN", False)
+    def test_an_m5_lot_is_never_unblocked_by_the_sweep(self):
+        lots = lots_from_md.parse("## M5 · UX evolutions\n\n" + HEAD + md_row("001", 1) + md_row("002", 2, deps="001", module="App"))
+        issues = [issue(1, "closed"), issue(2, labels=["status: blocked"])]
+        actions, reports = hygiene.analyze(issues, [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z")], lots, {}, NOW)
+        self.assertEqual(actions, [])
+        self.assertTrue(any("M5 lots with every dependency done" in r and "#2" in r for r in reports))
+
+    @mock.patch.object(m5, "M5_OPEN", False)
+    def test_an_m5_lot_labelled_ready_is_reported(self):
+        lots = lots_from_md.parse("## M5 · UX evolutions\n\n" + HEAD + md_row("001", 1, module="App"))
+        issues = [issue(1, labels=["status: ready"])]
+        _, reports = hygiene.analyze(issues, [], lots, {}, NOW)
+        self.assertTrue(any("M5 lot labelled `status: ready`" in r and "#1" in r for r in reports))
+
+    @mock.patch.object(m5, "M5_OPEN", False)
+    def test_an_m5_lot_without_a_credited_pr_is_not_offered_for_a_hand_unblock(self):
+        lots = lots_from_md.parse("## Phase 3 — engine\n\n" + HEAD + md_row("001", 1) + md_row("100", 2, deps="001", module="App"))
+        issues = [issue(1, "closed"), issue(2, labels=["status: blocked"])]  # LOT-100 is a moved M5 lot; no merged PR credited
+        _, reports = hygiene.analyze(issues, [], lots, {}, NOW)
+        self.assertFalse(any("unblock by hand" in r for r in reports))
+        self.assertTrue(any("M5 lots with every dependency done" in r for r in reports))
 
     def test_a_reopened_issue_is_not_closed_again(self):
         issues = [issue(1)]
