@@ -102,7 +102,8 @@ struct HFRBBCodeWriter {
     /// is typed exactly), a code holding a marker or longer than `longestCode` left out, the start of each image prepared.
     static func trie(for smileys: [String: URL]) -> SmileyTrie {
         let markers: Set<Unicode.Scalar> = [placeholderMarker, lineBreakMarker, noBreakSpaceMarker]
-        let codes = smileys.sorted { $0.key < $1.key }.compactMap { code, url -> SmileyCode? in
+        let byScalars = smileys.sorted { $0.key.unicodeScalars.lexicographicallyPrecedes($1.key.unicodeScalars) }
+        let codes = byScalars.compactMap { code, url -> SmileyCode? in
             let scalars = Self.scalars(code)
             guard !scalars.contains(where: markers.contains), scalars.count <= longestCode else { return nil }
             let image = Self.scalars("<img src=\"") + escape(Self.scalars(url.absoluteString)) + Self.scalars("\" alt=\"")

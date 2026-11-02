@@ -111,6 +111,18 @@ struct BBCodeRendererSanitizationTests {
         #expect(unclosedContent.links.isEmpty)
     }
 
+    @Test("Options keep their prepared table in step with the public one, and compare by the public values")
+    func optionsTable() throws {
+        let url = try #require(URL(string: "https://forum-images.hardware.fr/icones/biggrin.gif"))
+        var options = BBCodeRenderOptions()
+        #expect(try BBCodeRenderer.render(":D", options: options).smileys.isEmpty)
+        options.smileys[":D"] = url
+        #expect(try BBCodeRenderer.render(":D", options: options).smileys.map(\.code) == [":D"])
+        let fresh = BBCodeRenderOptions(smileys: [":D": url])
+        #expect(options == fresh && options.hashValue == fresh.hashValue)
+        #expect(options != BBCodeRenderOptions(smileysEnabled: false, smileys: [":D": url]))
+    }
+
     /// The visible text of normalized HTML.
     static func text(of html: String) throws -> String {
         try SwiftSoup.parseBodyFragment(html).body()?.text(trimAndNormaliseWhitespace: false) ?? ""

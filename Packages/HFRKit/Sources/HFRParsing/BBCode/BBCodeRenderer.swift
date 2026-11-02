@@ -15,8 +15,8 @@ public struct BBCodeRenderOptions: Sendable, Hashable {
     public var smileys: [String: URL] {
         didSet { trie = HFRBBCodeWriter.trie(for: smileys) }
     }
-    /// The table prepared for the writer, once per table rather than once per preview.
-    var trie: HFRBBCodeWriter.SmileyTrie
+    /// The table prepared for the writer, once per table rather than once per preview; always derived from `smileys`.
+    private(set) var trie: HFRBBCodeWriter.SmileyTrie
 
     /// Creates the options; by default smileys are on, as in a fresh composer, and no code is known.
     public init(smileysEnabled: Bool = true, smileys: [String: URL] = [:]) {

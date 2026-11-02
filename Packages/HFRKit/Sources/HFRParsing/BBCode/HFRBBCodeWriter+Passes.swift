@@ -263,6 +263,9 @@ extension HFRBBCodeWriter {
         return result
     }
 
+    /// The starts of a URL in a word, matched on the word folded to lower case.
+    private static let urlPrefixes = ["http://", "https://", "www."].map(scalars)
+
     /// The end of the word that starts at `start` (the next space, no-break space or line break, or the end of the
     /// text; one past a boundary scalar) and the first position in it where `http://`, `https://` or `www.` starts
     /// (`Int.max` when none): from there to the word's end, no smiley is matched (`(http://a.example/x)`, `"https://…"`).
@@ -273,8 +276,7 @@ extension HFRBBCodeWriter {
         var end = start
         while end < text.count, !isBoundary(text[end]) { end += 1 }
         let word = text[start..<end].map(asciiLowercased)
-        let prefixes = ["http://", "https://", "www."].map(scalars)
-        let urlStart = word.indices.first { position in prefixes.contains { word[position...].starts(with: $0) } }
+        let urlStart = word.indices.first { position in urlPrefixes.contains { word[position...].starts(with: $0) } }
         return (end == start ? start + 1 : end, urlStart.map { $0 + start } ?? Int.max)
     }
 
