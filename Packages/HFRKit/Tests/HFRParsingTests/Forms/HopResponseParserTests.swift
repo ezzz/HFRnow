@@ -145,7 +145,10 @@ struct HopResponseParserTests {
         "W30-public-reply-success", "W31-public-edit-success", "W32-public-delete-post-success",
         "W34-public-first-post-edit-success", "W35-public-first-post-restore-success",
         "W40-public-new-topic-success", "W41-public-first-post-edit-add-poll-success",
-        "W49-public-first-post-delete-topic-success"
+        "W49-public-first-post-delete-topic-success",
+        "W61-mp-create-bbcode-success", "W62-mp-reply-bmp-emoji-success", "W63-mp-reply-multiquote-cookie-deleted",
+        // The MP thread delete (manageaction.php, LOT-094): a link-less `.hop` "Action effectuée avec succès".
+        "W64-mp-thread-delete-owner-success", "W65-mp-thread-delete-recipient-success"
         // Not here although HFR accepted them: W42 (poll vote, no "avec succès") is a success under `.pollVote` only
         // (`HopResponsePollVoteTests`); W46 (moderator alert, back link and no refresh) needs its own rule (LOT-050).
     ]
