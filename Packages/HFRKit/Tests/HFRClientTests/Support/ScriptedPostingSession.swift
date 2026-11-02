@@ -29,9 +29,7 @@ actor ScriptedPostingSession: PostingSession {
         let response = try await transport.perform(request)
         if let login = loginDuringNextRequest {
             loginDuringNextRequest = nil
-            identity = login.identity
-            hashCheck = login.hashCheck
-            loginGeneration += 1
+            adoptLogin(login)
         }
         return response
     }
@@ -42,7 +40,25 @@ actor ScriptedPostingSession: PostingSession {
     }
 
     func userKey(now: Date) -> String? {
-        identity
+        if cancelOnIdentityRead { withUnsafeCurrentTask { $0?.cancel() } }
+        return identity
+    }
+
+    /// When set, reading the identity cancels the calling task, as a cancellation landing during that suspension would.
+    private(set) var cancelOnIdentityRead = false
+
+    /// Makes the next identity reads cancel the caller (see `cancelOnIdentityRead`).
+    func cancelCallerOnIdentityRead() {
+        cancelOnIdentityRead = true
+    }
+
+    /// Installs `login` now, as `adoptLogin` (or a logout, with a nil identity) would between two requests.
+    func adoptLogin(_ login: ConcurrentLogin) {
+        identity = login.identity
+        // Like `HFRSession`: a logout keeps the token, and an empty one is never recorded.
+        if !login.hashCheck.isEmpty { hashCheck = login.hashCheck }
+        // A login advances the generation (`advanceLoginGeneration`); a logout only empties the jar.
+        if login.identity != nil { loginGeneration += 1 }
     }
 
     /// Installs `login` while the next request is suspended, after it was sent.

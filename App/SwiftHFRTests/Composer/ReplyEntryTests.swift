@@ -181,7 +181,7 @@ struct ReplyEntryTests {
     @Test func onlyUnconfirmedSaysTheReplyMayHaveBeenPosted() {
         let notPosted: [PostingError] = [
             .rejected(message: nil), .notLoggedIn, .formUnavailable(message: nil), .network(.offline), .network(.cancelled),
-            .invalidFormURL, .missingAction, .unsupportedForm(reason: "x"), .emptyInput(.text)
+            .invalidFormURL, .missingAction, .unsupportedForm(reason: "x"), .emptyInput(.text), .sessionChanged
         ]
         for error in notPosted {
             #expect(!ComposerMessages.message(for: error).contains("peut-être"))

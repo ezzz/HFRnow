@@ -82,7 +82,7 @@ Sources: `ReplyService.swift:145-183, 294-365, 579-719` · `AddMessageViewContro
 | New topic | `href` of `#md_btn_new_topic` on the topic list | `sujet` (text), `subcat` (select) | `ObjCTopicListParser.m:134-135` · D §2.5 |
 | New MP | author block link `/message.php?config=hfr.inc&cat=prive&…&dest=` | `dest`, `sujet` | `ParseMessagesOperation.m:389-390` · D §2.5 |
 | Moderator alert | first `href` containing `/user/modo.php` in the message | form `action~modo.php`, field `raison`; `.hop` with a link = **already alerted** (inverse of reply) | `ReplyService.swift:1400-1531` · D §2.6 |
-| Delete MP thread | the MP list's `form1` (`R95k`): action `/modo/manageaction.php?config=hfr.inc&cat=prive&type_page=forum1&moderation=0`, checkbox `topic<i>` = thread `post` | legacy body `hash_check, topic0=<post>, valuecat0=prive, valueforum0=hardwarefr, topic1=-1, topic_statusno1=-1, action_reaction=valid_eff_prive, type_page=forum1`; the site form has no `type_page` and a second `hash_check` before `topic1`. Answers: **verified** 2026-11-02, see §6b "MP thread delete" | `MPListView.swift:131-150` |
+| Delete MP thread | the MP list's `form1` (`R95k`): action `/modo/manageaction.php?config=hfr.inc&cat=prive&type_page=forum1&moderation=0`, checkbox `topic<i>` = thread `post` | legacy body `hash_check, topic0=<post>, valuecat0=prive, valueforum0=hardwarefr, topic1=-1, topic_statusno1=-1, action_reaction=valid_eff_prive, type_page=forum1`; the site form has no `type_page` and a second `hash_check` before `topic1`. Answers: **verified** 2026-11-02, see §6b "MP thread delete" | `MPListView.swift:127-154` @ 03e5e22 |
 | Poll vote | poll block in the topic page | POST `/user/vote.php?config=hfr.inc`, the form's controls in document order + `reponse=<1-based position>` + `sondage_submit=Voter` (`W42`, §6c LOT-054) | `PollData.swift:45-99` @ 2440d79 · D §2.9 |
 
 ### 3.2 Topic flags
@@ -473,6 +473,14 @@ Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `Li
 - **Anonymous pages carry what the filter reads** (`R20`, `R22a`, `R22b`, `R26`-`R28`, `R31`, `R32a`, **verified**): the "Message cité N fois" trailer and the quote headers are served without cookies, so the filter needs no session.
 - **First block of a page** (`R20`, `R22a`, `R22b`, `R24`, **verified**): on page 1 it is the topic's opening post, on later pages the continuation block; on anonymous pages the advertisement block comes second.
 - **Page past the end** (`R24`, **verified**): `forum2.php?…&page=2202` of a 2201-page topic ends, after the canonical redirects, with a 302 to `…_2201.htm`, the last page.
+
+### LOT-094 — MP thread delete
+
+[LOT-094](lots/LOT-094-mp-thread-delete.md), tests `DeletePrivateMessageFlowTests`.
+
+- **Request** (`W64`, `W65`, `R95k`, **verified**): legacy's body, in `W64`'s order, byte for byte: `hash_check, topic0=<post>, valuecat0=prive, valueforum0=hardwarefr, topic1=-1, topic_statusno1=-1, action_reaction=valid_eff_prive, type_page=forum1`, to `R95k`'s `form1` action `/modo/manageaction.php?config=hfr.inc&cat=prive&type_page=forum1&moderation=0`. All fields but `type_page` and `topic_statusno1` are controls of that form (a 50-row list has `topic_statusno50`), whose only action is `valid_eff_prive`.
+- **Answers** (`W64`, `W65`, `W64x`, **verified**): the owner's and the recipient's success are the same link-less `.hop` "Action effectuée avec succès" with a refresh to `/forum1.php?config=hfr.inc&cat=prive&page=1&subcat=&sondage=0&owntopic=0&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0`; the sentence names no action, so the refresh to the MP list is part of the confirmation. A wrong `hash_check` gets the plain-text refusal of `W17b` (`W64x`), status 200.
+- **Not captured**: the delete without cookies or with expired cookies, a repeated delete, a thread the account does not take part in.
 
 ### LOT-057 — REST API (anonymous)
 - **Requests** (`R57a`-`R57c`): `GET /webservices/rest_api.php?uri=forums/hardwarefr/categories/` (categories), `…?uri=forums/hardwarefr/categories/<cat>/topics/last/` (last topics), `…?uri=forums/hardwarefr/categories/<cat>/topics/<post>/` (one topic); anonymous, 200 `application/json`, no redirect, no `Set-Cookie`. The JSON writes non-ASCII as `\u` escapes and names with HTML entities (`&amp;`).
