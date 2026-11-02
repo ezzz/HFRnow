@@ -2284,11 +2284,11 @@
 {
 "lot": "LOT-184",
 "star": false,
-"scope": "On-demand « aperçu HFR »: `POST /apercu.php` flow (session check, `hash_check`, one POST), its answer through the LOT-034 normalizer and the reader path; the composer action is LOT-152's screen ([ADR 0014](adr/0014-bbcode-preview-renderer.md) O-1 = (b), operator decision 2026-11-02 on #189)",
+"scope": "On-demand « aperçu HFR »: `POST /apercu.php` flow (session check, `hash_check`, one POST), its answer through the LOT-034 normalizer and the reader path; engine only: LOT-152 adds the « aperçu HFR » action to its screen once this flow is merged, no dependency between them ([ADR 0014](adr/0014-bbcode-preview-renderer.md) O-1 = (b), operator decision 2026-11-02 on #189)",
 "module": "HFRClient",
 "diff": "medium",
 "model": "Opus → Fable",
-"deps": "097, 044, 036, 152",
+"deps": "097, 044, 036",
 "audit": "none · GAP none · FEAT-013",
 "prio": "low",
 "issue": 449,
