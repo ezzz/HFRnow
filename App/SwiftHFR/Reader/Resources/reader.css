@@ -8,7 +8,7 @@
   --separator: #d1d1d6;
   --quote-border: #8e8e93;
   --quote-background: #f2f2f7;
-  --action: #007aff;
+  --action: var(--app-action-light, #007aff);
   --placeholder: #e5e5ea;
 }
 
@@ -16,14 +16,17 @@
   :root {
     --text: #f2f2f7;
     --secondary: #a1a1a6;
-    --background: #000000;
-    --separator: #38383a;
+    --background: var(--app-dark-background, #000000);
+    --separator: var(--app-dark-separator, #38383a);
     --quote-border: #636366;
-    --quote-background: #1c1c1e;
-    --action: #0a84ff;
-    --placeholder: #2c2c2e;
+    --quote-background: var(--app-dark-quote-background, #1c1c1e);
+    --action: var(--app-action-dark, #0a84ff);
+    --placeholder: var(--app-dark-placeholder, #2c2c2e);
   }
 }
+
+/* --app-* are the "Thème" settings (LOT-121): both accents and the dark surfaces at the chosen brightness, set on <html> by the
+   app (ReaderWebController.theme), live; the fallbacks are the defaults before the app sets them. */
 
 /* -apple-system-body follows the user's Dynamic Type size inside WKWebView; --text-scale is the in-app text size (LOT-169),
    set on <html> by the app (ReaderWebController.textScale), live. Everything below sizes in em, so it all follows. */

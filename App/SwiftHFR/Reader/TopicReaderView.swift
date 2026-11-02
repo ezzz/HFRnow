@@ -180,6 +180,7 @@ private struct ReaderWebView: UIViewRepresentable {
 
     func updateUIView(_ webView: WKWebView, context: Context) {
         controller.textScale = context.environment.textScale
+        controller.theme = context.environment.themeAppearance
         controller.show(document)
         controller.apply(scrollRequest)
     }
