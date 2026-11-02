@@ -54,6 +54,17 @@ repository, nothing was sent to HFR beyond these GETs) to the home, `forum1f.php
 `md_passs` was identical after a second login of user2 (compared locally, never printed). The `Set-Cookie` attributes
 of `R74` are written in its meta `note` (values are never kept).
 
+Run 8 (2026-11-02, `mac/capture-batch` public writes, ezzz/HFRnow#275, #265, #138, #135, #136, #137 and #302, approved by
+the operator that day on #337, 27 HFR requests and 2 image-host uploads, one attempt per state): user1 created one
+throwaway topic `fixture-test` in Programmation › iOS (`W40`), added a two-answer poll to it by editing its first post
+(`W41`), voted (`W42`), voted again (`W43`); user2 sent the same vote (`W44`) and a moderator alert on the topic's first
+post whose text says it is a test of the app's developers to ignore (`W46`), then reopened the alert page (`R88`); the
+alert was also sent and opened without cookies (`W47`, `R89`). user1 then deleted the first post, which deleted the
+topic (`W49`, `R92`). The topic is an **own topic** for the anonymizer (aliased as above); `publish.py` now also takes
+the own topic from the request (URL, body, `numeropost=`) when a `.hop` answer does not name it. `U01`/`U02` are the
+`img3.super-h.fr` upload answers (a 16×16 grey JPEG, legacy multipart layout, the legacy key and a wrong one): the
+key, `delete_hash`, delete token and image id are redacted, the random file number is `1234567890`.
+
 | Id | File | Covers | Row | Lots |
 |---|---|---|---|---|
 | R01 | `R01-home-anon.html` | Home, logged out: 19 categories (incl. `apple`, `ia`), moderator MP links, empty `hash_check` in `#fastsearch` | R01 | 021, 045 |
@@ -201,6 +212,20 @@ of `R74` are written in its meta `note` (values are never kept).
 | R73a | `R73a-favourites-owntopic1-two-categories.html` | user2's followed list: two categories, two rows, a closed topic (`lock.gif`) and a poll (`sondage.gif`), `flag1.gif` | R10 | 024, 092 |
 | R73b | `R73b-favourites-owntopic1-thirteen-categories.html` | user1's followed list: 13 categories, 88 rows (27 polls), `favoris.gif` on 84 rows and `flag1.gif` on 4, theme images under `images/defaut/` | R10 | 024, 092 |
 | R74 | (meta only) | Profile page 1 logged in (as `R55-p1`): `md_user` and `md_passs` each set twice, a value for `.hardware.fr` (+30 days) and `deleted` for `.forum.hardware.fr` (expired 1970), see its `note` | R55 | 043, 044 |
+| W40 | `W40-public-new-topic-success.html` | New topic (Programmation › iOS, browser semantics): "Votre message a été posté avec succès !", refresh to the **category** list `/hfr/<cat>/liste_sujet-1.htm`, no topic id; sets `md_data` | E14 | 048, 037 |
+| W41 | `W41-public-first-post-edit-add-poll-success.html` | First-post edit adding a poll (`have_sondage=1`, `textreponse0..2`, legacy semantics): "Votre message a été édité avec succès !", refresh `…sujet_<post>_1.htm#t<numreponse>` | E11, P01 | 048, 054 |
+| R83 | `R83-public-own-topic-poll-form-logged-in.html` | The own topic after `W41`, user1, not voted: vote form as `R32b` (`sondage=2`), the author's own first post | R32 | 026, 054 |
+| W42 | `W42-poll-vote-success.html` | Vote (`reponse=1`, `sondage_submit=Voter`, form order): link-less `.hop` "Votre vote a bien été pris en compte !", refresh `/hfr/<cat>/<sub>/sujet_<post>_1.htm` (no slug), no "avec succès" | E10 | 037, 054 |
+| W43 | `W43-poll-vote-already-voted.html` | Same body again: `.hop` "Désolé, vous avez déjà voté !" + back link, no refresh | E10 | 037, 054 |
+| W44 | `W44-poll-vote-linked-account-already-voted.html` | Same body from user2 (linked account, multipseudo notice on its page): the same sentence | E10 | 037, 054 |
+| W46 | `W46-modo-alert-success.html` | Moderator alert submitted (user2, browser semantics): `.hop` "Un message a été envoyé avec succès aux modérateurs" **+ back link**, no refresh | R46 | 037, 050 |
+| R88 | `R88-modo-alert-already-reported.html` | Alert page of the message just reported: `.hop` "Votre demande de modération sur ce message n'est pas encore traitée." + back link, no form | R46 | 037, 050 |
+| W47 | `W47-modo-alert-logged-out-rejected.html` | Alert body without cookies, empty `hash_check`: `.hop` "Vous devez être identifié pour prévenir les modérateurs" + back link | R46, W17 | 037, 050 |
+| R89 | `R89-modo-alert-page-logged-out.html` | Alert page without cookies: the same `.hop` as `W47` | R46 | 037, 050 |
+| W49 | `W49-public-first-post-delete-topic-success.html` | First-post delete (`delete=1`, legacy semantics): "Message effacé avec succès !", refresh to the **sub-category** list `/hfr/<cat>/<sub>/liste_sujet-1.htm` | P01, X1 | 048, 037 |
+| R92 | `R92-topic-after-first-post-delete-404.html` | The topic URL afterwards: **404**, `.hop` "Désolé, ce sujet n'existe pas" + back link | R20 | 030, 048 |
+| U01 | `U01-rehost-upload-success.json` | `img3.super-h.fr` upload, legacy key: 200 JSON "file uploaded", `image.url`, `image.thumb.url` (`.th.`), `image.medium` all `null`, numbers as numbers; delete fields redacted | — | 056 |
+| U02 | `U02-rehost-upload-wrong-key.json` | Same upload with a wrong key: 400 JSON "Invalid API key." code 100 | — | 056 |
 
 ## Not captured
 
@@ -211,7 +236,8 @@ of `R74` are written in its meta `note` (values are never kept).
 | A second throwaway thread | HFR allows one new topic per 60 minutes (W11x); everything ran in one thread. |
 | R34, R51, R58 | Dropped per the checklist (R51 covered by R50b, R58 by R08-2). |
 | R33, poll voted by the account itself without the multipseudo notice | Searched, not found: the poll topics of user1's followed list (`forum1f.php?owntopic=1`, 27 poll topics) were opened page 1 for four of them; one is R33b (with the multipseudo notice, also for user2), the three others still offer the vote form. A plain "already voted" page would need a vote (P05, out of scope): synthetic per checklist §C N06 if a lot needs it. |
-| X10 cookie-less multi-quote, poll vote | Out of the approved scope or not needed. |
-| Public new topic, public first-post delete | Not authorised (run 4): pending capture. |
+| X10 cookie-less multi-quote | Out of the approved scope or not needed. |
+| A cookie-less poll vote and the poll author's results view (run 8) | Captured, not published: held for an operator decision (see the run 8 PR). |
+| A reply to a locked topic, a ban refusal (run 8) | The locked topic's composer is served (200) but its POST was not sent (not an operator topic); no banned account. |
 | oldcitation, Streamable/Dailymotion/Twitch, reho.st images | Not present on the pages picked; synthetic or a later capture. |
 | MPStorage document with other clients' namespaces, member pseudos (blacklist), near the 64 KiB cap or with a non-BMP character | None exists in the kit's accounts: user1's document is the empty legacy structure (R60a/R60b), user2 has no storage thread (R13a). Producing one needs a write to a document shared with the user's other clients: out of scope (pending capture [#272](https://github.com/ezzz/HFRnow/issues/272)). |

@@ -92,6 +92,29 @@ class PublishTests(unittest.TestCase):
         self.assertEqual(w1["request_body"], "pseudo=user1&dest=user2&hash_check=REDACTED")
         self.assertEqual(A.main(["check", "--quiet", "--corpus", self.dest]), 0)
 
+    def test_own_topic_named_only_by_the_request_is_aliased_in_the_meta(self):
+        # A `.hop` answer of a write on an own topic: the page never names the topic, its URL and body do.
+        with open(self.cfg, "w") as fh:
+            json.dump({"pseudos": [OPERATOR], "own_topics": [424242]}, fh)
+        caps = [{"raw": "H1", "id": "H1", "slug": "hop", "ext": "html", "private": False},
+                {"raw": "H2", "id": "H2", "slug": "vote", "ext": "html", "private": False}]
+        with open(self.manifest, "w") as fh:
+            json.dump({"captures": caps}, fh)
+        self.capture("H1", '<div class="hop"> Message envoy\u00e9 </div>',
+                     {"method": "POST", "url": "/user/modo.php?cat=10&post=424242&numreponse=777&config=hfr.inc"})
+        with open(os.path.join(self.raw, "H1.request.txt"), "w") as fh:
+            fh.write("POST /bdd.php\n\npost=424242&numreponse=777&sujet=Velo+rouge\n")
+        self.capture("H2", '<div class="hop"> D\u00e9sol\u00e9 </div>', {"method": "POST", "url": "/user/vote.php"})
+        with open(os.path.join(self.raw, "H2.request.txt"), "w") as fh:
+            fh.write("POST /user/vote.php\n\ncat=10&numeropost=424242&reponse=1\n")
+        rc, out = self.run_publish()
+        self.assertEqual(rc, 0, out)
+        meta = self.read("H1.meta.json")
+        self.assertNotIn("424242", meta)
+        self.assertIn("post=%d" % A.OWN_TOPIC_FIRST, meta)
+        self.assertNotIn("Velo", meta)
+        self.assertIn("numeropost=%d" % A.OWN_TOPIC_FIRST, self.read("H2.meta.json"))
+
     def test_publish_subset_and_unknown_id(self):
         rc, _out = self.run_publish("L1")
         self.assertEqual(rc, 0)

@@ -56,9 +56,13 @@ def publish_one(anon, raw_dir, dest, entry):
         page = anon.anonymize(text, private=entry["private"])
     else:
         anon._reset()
+    body = request_body(raw_dir, raw_id)
+    # A write answer (`.hop` page) or a meta-only capture rarely names its topic, while its URL or request body does:
+    # take the own-topic ids from the request too, so they are aliased in the meta like on the topic's own pages.
+    if not anon.own_ids:
+        anon._own_start(json.dumps(raw_meta, ensure_ascii=False) + "\n" + (body or ""))
     meta = {"id": entry["id"]}
     meta.update(anon.anonymize_meta({k: raw_meta[k] for k in META_KEYS if k in raw_meta}))
-    body = request_body(raw_dir, raw_id)
     if body is not None:
         meta["request_body"] = anon.redact_text(body)
     name = None

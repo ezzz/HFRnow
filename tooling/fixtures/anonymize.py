@@ -197,7 +197,8 @@ OWN_HTTP_DATE_RE = re.compile(r"\b[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}
 
 def own_topics_in(text, topics):
     """The operator-owned topic ids (strings) this page or URL belongs to."""
-    return [t for t in topics if re.search(r"(?:\bpost=|sujet_|\bname=[\"']post[\"']\s*value=[\"'])%s(?!\d)" % t, text)]
+    # `numeropost=` is the poll vote body's topic field (R32a).
+    return [t for t in topics if re.search(r"(?:\b(?:numero)?post=|sujet_|\bname=[\"']post[\"']\s*value=[\"'])%s(?!\d)" % t, text)]
 
 
 def own_message_ids(texts, topics):
