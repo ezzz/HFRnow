@@ -44,6 +44,15 @@ final class ReaderWebController: NSObject {
         }
     }
 
+    /// The theme colours (LOT-121): applied like `textScale`, live and from each next document's start.
+    var theme = ThemeAppearance.standard {
+        didSet {
+            guard theme != oldValue else { return }
+            installUserScripts()
+            applyTheme()
+        }
+    }
+
     private let imageFetcher: ReaderImageFetcher
     private let autoLoadsThirdPartyImages: @Sendable () -> Bool
     private var document: ReaderDocument?
@@ -126,13 +135,16 @@ final class ReaderWebController: NSObject {
         return try? Data(contentsOf: url)
     }()
 
-    /// The script that sets the text size of a document before it renders, then `reader.js`; both in the reader's world.
+    /// The scripts that set the text size and the theme colours of a document before it renders, then `reader.js`; all in
+    /// the reader's world.
     private func installUserScripts() {
         let controller = webView.configuration.userContentController
         controller.removeAllUserScripts()
-        controller.addUserScript(WKUserScript(
-            source: Self.textScaleScript(textScale), injectionTime: .atDocumentStart, forMainFrameOnly: true, in: Self.world
-        ))
+        for source in [Self.textScaleScript(textScale), theme.readerScript] {
+            controller.addUserScript(
+                WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: true, in: Self.world)
+            )
+        }
         if let script = Self.readerScript {
             controller.addUserScript(
                 WKUserScript(source: script, injectionTime: .atDocumentEnd, forMainFrameOnly: true, in: Self.world)
@@ -144,6 +156,13 @@ final class ReaderWebController: NSObject {
     private func applyTextScale() {
         guard document != nil else { return }
         let script = Self.textScaleScript(textScale)
+        Task { _ = try? await webView.callAsyncJavaScript(script, arguments: [:], in: nil, contentWorld: Self.world) }
+    }
+
+    /// Sets the theme's CSS variables (read by `reader.css`) on the shown document's root element.
+    private func applyTheme() {
+        guard document != nil else { return }
+        let script = theme.readerScript
         Task { _ = try? await webView.callAsyncJavaScript(script, arguments: [:], in: nil, contentWorld: Self.world) }
     }
 
@@ -203,8 +222,9 @@ final class ReaderWebController: NSObject {
     }
 
     private func documentIsReady(_ document: ReaderDocument, token: Int) {
-        // A size changed while this document was loading reached the previous one: set it again.
+        // A size or a colour changed while this document was loading reached the previous one: set them again.
         applyTextScale()
+        applyTheme()
         if let anchor = document.anchor {
             scroll(to: anchor)
         } else if let offset = savedOffset {
