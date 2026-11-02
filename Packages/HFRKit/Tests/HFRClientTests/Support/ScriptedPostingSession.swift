@@ -10,6 +10,8 @@ actor ScriptedPostingSession: PostingSession {
     private(set) var hashChecks: [String?] = []
     /// The last token recorded, like `HFRSession.hashCheck`.
     private(set) var hashCheck: String?
+    /// Moves on every login installed, like `HFRSession.loginGeneration`.
+    private(set) var loginGeneration = 0
     /// The `md_user` value the session reports.
     private(set) var identity: String? = "user1"
     /// A login installed while the next request is in flight, as `adoptLogin` would do from another task.
@@ -29,6 +31,7 @@ actor ScriptedPostingSession: PostingSession {
             loginDuringNextRequest = nil
             identity = login.identity
             hashCheck = login.hashCheck
+            loginGeneration += 1
         }
         return response
     }
@@ -74,7 +77,9 @@ enum PostingCapture {
         "W14": "W14-mp-reply-multiquote-success", "W14x": "W14x-mp-reply-flood-fourth-consecutive", "W15": "W15-mp-edit-success",
         "W16a": "W16a-mp-delete-post-success", "W16b": "W16b-mp-delete-post-again", "W17a": "W17a-mp-reply-empty-body-rejected",
         "W17b": "W17b-mp-reply-bad-token-rejected", "W17c": "W17c-mp-reply-logged-out-rejected",
-        "W19": "W19-mp-delete-first-post-success", "W20a": "W20a-mp-reply-flood", "W20b": "W20b-mp-reply-flood-again"
+        "W19": "W19-mp-delete-first-post-success", "W20a": "W20a-mp-reply-flood", "W20b": "W20b-mp-reply-flood-again",
+        "W32": "W32-public-delete-post-success", "W40": "W40-public-new-topic-success",
+        "W41": "W41-public-first-post-edit-add-poll-success", "W49": "W49-public-first-post-delete-topic-success"
     ]
 
     static func url(_ raw: String) -> URL {

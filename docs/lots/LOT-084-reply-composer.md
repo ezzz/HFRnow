@@ -161,10 +161,17 @@ order.
 6. Every failure message says whether something may have been posted (legacy: `localizedDescription` or "Ooops").
 
 ## UX evolutions (H.1)
-Classification of directive H.1 (2026-11-01): the `H.1` column of [GAP-LEGACY-VS-SWIFT.md](../migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1). The open choices are in [UX-DECISIONS-PENDING.md](../migration/UX-DECISIONS-PENDING.md). The code names its legacy counterparts in `// Port of …` comments (AGENTS.md §4), added by [#378](https://github.com/ezzz/HFRnow/pull/378).
-- GAP-092 draft per topic and account, autosaved: kept (no lost text; `master` has per-topic drafts). Swipe-down blocked while text is present: `b`, shipped, pending **UXD-15** (recommendation: dismiss saves the draft, as legacy).
+Classification of directive H.1 (2026-11-01): the `H.1` column of [GAP-LEGACY-VS-SWIFT.md](../migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1). The decision of each UXD row (2026-11-02) is in [the decisions table](../migration/GAP-LEGACY-VS-SWIFT.md#ux-decisions-of-2026-11-02). The code names its legacy counterparts in `// Port of …` comments (AGENTS.md §4), added by [#378](https://github.com/ezzz/HFRnow/pull/378).
+- GAP-092 draft per topic and account, autosaved: kept (no lost text; `master` has per-topic drafts). Swipe-down blocked while text is present: `b`, shipped, decided 2026-11-02, **UXD-15** (recommendation: dismiss saves the draft, as legacy).
 - GAP-100 errors that say whether anything was posted, never resent: `a` (safety; same toast flow, better wording).
-- GAP-095 emoji refused at send (LOT-151): `b`, pending **UXD-16**.
+- GAP-095 emoji refused at send (LOT-151): `b`, decided 2026-11-02, **UXD-16**.
+
+### Decisions of 2026-11-02 (UXD)
+
+Operator decisions on [#379](https://github.com/ezzz/HFRnow/issues/379): every UXD row takes its recommendation. M4 is the validated legacy parity, M5 the evolutions.
+- **UXD-15:** per-topic and per-account drafts are kept (an operator exception to "defaults keep the legacy UX": no lost text, and `master` has them). **A** for swipe-down: dismissing saves the draft ([#429](https://github.com/ezzz/HFRnow/issues/429), M2).
+- **UXD-16: A.** Keyboard emoji are silently blocked while typing, as in the legacy app: this lot shipped the opposite (free typing, refusal at send), so the port is a follow-up ([#437](https://github.com/ezzz/HFRnow/issues/437), M2); the send-time refusal stays as the safety net for pasted text. The refusal with a smiley suggestion (LOT-151) moves to M5.
+- **UXD-19: A.** Session expired while composing: the "Session expirée" toast keeps the text and nothing is ever resent automatically (already here). The re-login sheet (LOT-142) moves to M5.
 
 ## Learnings
 

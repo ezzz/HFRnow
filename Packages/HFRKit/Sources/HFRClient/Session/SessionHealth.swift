@@ -26,6 +26,6 @@ public enum UnconfirmedSession: Sendable, Equatable {
     case unrecognizedPage
     /// After the answer, the probe no longer held the same usable `md_user` (removed, changed or `deleted`).
     case identityNotConfirmed
-    /// The account session changed identity while the refresh ran (logout, another login).
+    /// The account session was logged out, or a login was adopted (another account or the same one), while the refresh ran.
     case sessionChanged
 }

@@ -89,14 +89,15 @@ Details and exit criteria: [roadmap](docs/ROADMAP.md).
   <img src="docs/assets/roadmap-milestones.svg" alt="SwiftHFR milestones: M1 MVP, then M2 read and reply complete on the Mac lane and M3 engine complete on the cloud lane, both leading to M4 final version; below, the life of a lot from todo (ready, blocked, triage) through ongoing (claimed, draft PR, review wanted, changes requested, approved) to done (merged, issue closed, docs up to date)" width="100%">
 </p>
 
-| Milestone | Live board | Lots done (2026-11-01) |
+| Milestone | Live board | Lots done (2026-11-02) |
 |---|---|---|
-| 🚀 M1 · MVP: log in, browse, read, reply, first TestFlight build | [#166](https://github.com/ezzz/HFRnow/issues/166) | 38 of 41 |
-| 📖 M2 · Read & reply complete: every reading and answering feature, topics and MPs, offline reading included | [#324](https://github.com/ezzz/HFRnow/issues/324) | 1 of 38 |
+| 🚀 M1 · MVP: log in, browse, read, reply, first TestFlight build | [#166](https://github.com/ezzz/HFRnow/issues/166) | 39 of 41 |
+| 📖 M2 · Read & reply complete: every reading and answering feature, topics and MPs, offline reading included | [#324](https://github.com/ezzz/HFRnow/issues/324) | 2 of 28 |
 | ⚙️ M3 · Engine complete: every `HFRKit` lot, parity gates green | [#324](https://github.com/ezzz/HFRnow/issues/324) | 25 of 43 |
-| 🏁 M4 · Final version: full legacy parity, iOS 27 experience, App Store | [#324](https://github.com/ezzz/HFRnow/issues/324) | 0 of 31 |
+| 🏁 M4 · Final version: validated legacy parity, compliance, App Store | [#324](https://github.com/ezzz/HFRnow/issues/324) | 0 of 22 |
+| 🧪 M5 · UX evolutions: every change from the plan or the legacy that parity does not need (deferred options, FEAT items, split halves) | [#324](https://github.com/ezzz/HFRnow/issues/324) | 0 of 29 |
 
-A fifth milestone, **🧪 M5 · UX evolutions**, is only a proposal ([#379](https://github.com/ezzz/HFRnow/issues/379), blocked until the contributors agree). It would gather the UX changes that parity does not need, so that M1–M4 ship the legacy UX.
+**🧪 M5 · UX evolutions** was agreed on 2026-11-02 ([#379](https://github.com/ezzz/HFRnow/issues/379)): M4 is the validated legacy parity, and any change from the initial plan or from the legacy app goes to M5 and is never dropped. M1–M4 therefore ship the legacy UX.
 
 The boards are kanbans: each lot is one issue with its own definition of done, shown as 🔜 todo, 🔄 ongoing or ✅ done.
 
@@ -160,7 +161,6 @@ flowchart LR
 | [docs/agents/](docs/agents/) | Agent process: parallel sessions, review rounds, lessons |
 | [docs/audit/](docs/audit/README.md) · [docs/research/](docs/research/) | Reference material: the legacy audit and its open questions, external comparisons |
 | [docs/migration/GAP-LEGACY-VS-SWIFT.md](docs/migration/GAP-LEGACY-VS-SWIFT.md) | Gap report legacy app vs SwiftHFR final form (M1–M4), one row per feature, input of the UI convergence; images in `docs/assets/gap-legacy-vs-swift-*.png` |
-| [docs/migration/UX-DECISIONS-PENDING.md](docs/migration/UX-DECISIONS-PENDING.md) | The A/B UX decisions (UXD-NN) the operator and contributors must make (directive H.3); deleted once they are recorded |
 | [docs/migration/EZZZ-CUTOVER.md](docs/migration/EZZZ-CUTOVER.md) | One-off runbook of the move to `ezzz/HFRnow`; deleted once its outcome is recorded in ADR 0010 |
 
 ## Getting started

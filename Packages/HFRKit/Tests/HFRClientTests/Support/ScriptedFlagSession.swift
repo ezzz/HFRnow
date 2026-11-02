@@ -8,6 +8,8 @@ actor ScriptedFlagSession: PostingSession {
     private let transport: MockTransport
     /// The token the session starts with; `updateHashCheck` replaces it like `HFRSession` does.
     private(set) var hashCheck: String?
+    /// Moves on every login installed, like `HFRSession.loginGeneration`.
+    private(set) var loginGeneration = 0
     /// Tokens passed to `updateHashCheck`, in order.
     private(set) var hashChecks: [String?] = []
     /// The `md_user` value the session reports.
@@ -26,6 +28,7 @@ actor ScriptedFlagSession: PostingSession {
             loginDuringNextRequest = nil
             identity = login.identity
             hashCheck = login.hashCheck
+            loginGeneration += 1
         }
         return response
     }
