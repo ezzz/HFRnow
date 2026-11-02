@@ -8,7 +8,8 @@ final class NavigationModel {
     let forums: ForumListModel
     /// Forum, flags or favourites chosen in the sidebar.
     var selectedSource: TopicSource? {
-        didSet { if selectedSource != oldValue { selectedTopic = nil } }
+        // Another source starts from a fresh reader: a cached one could still hold a followed link's reader (CodeRabbit, #389).
+        didSet { if selectedSource != oldValue { selectedTopic = nil; currentReader = nil } }
     }
     /// Topic chosen in the middle column, shown by the reader in the detail column.
     var selectedTopic: TopicSummary?
