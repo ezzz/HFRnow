@@ -273,6 +273,32 @@ def profile_field_value(label, value):
     return PROFILE_PLACEHOLDER
 
 
+# Alertes Qualitaÿ free text, written by members: the alert title (`nom`, RSS item `<title>`) and each
+# reporter's comment. Every word becomes `x`; entities and punctuation stay, so a parser still meets
+# the encodings HFR-PROTOCOL §7b B4 is about (#105). The topic title in the RSS description is the
+# public HFR subject and is kept like any list page's.
+AQ_TEXT_RES = tuple(re.compile(rx, re.I | re.S) for rx in (
+    r"(<alerte\b[^>]*?\bnom=\")([^\"]*)(\")",
+    r"(<item>\s*<title>)(.*?)(</title>)",
+    r"(<li>\s*\[[^\]<>]*\]\s*<b>[^<>]*</b>\s*:)([^<]*)(</li>)"))
+AQ_WORD = "x"
+
+
+def mask_aq_text(value):
+    """`value` with every word replaced by AQ_WORD, entities and punctuation kept."""
+    # Zero-width characters go too: inside a word they would split it into several `x`.
+    value = re.sub("[%s]" % ZERO_WIDTH, "", value)
+    return "".join(part if re.fullmatch(r"&#?\w+;", part) else re.sub(r"\w+", AQ_WORD, part)
+                   for part in re.split(r"(&#?\w+;)", value))
+
+
+def anonymize_aq_text(text):
+    """Mask the member-written free text of an Alertes Qualitaÿ feed or list."""
+    for rx in AQ_TEXT_RES:
+        text = rx.sub(lambda m: m.group(1) + mask_aq_text(m.group(2)) + m.group(3), text)
+    return text
+
+
 def anonymize_profile_fields(text):
     """Replace the public-profile value cells (personal rows, dates, counters, transaction counts)."""
     if not PROFILE_PAGE_RE.search(text):
@@ -354,6 +380,10 @@ DISCOVER = tuple((label, re.compile(rx, re.I | re.S), group, mode) for label, rx
     ("posts by pseudo path", r"/hfr/recherche/pseudo-([^\"'<>/?#\s]{1,240}?)\.htm\b", 1, "path"),
     # REST API (R57*): author objects.
     ("REST author", r"\"(?:last_)?author\"\s*:\s*\{[^{}]*?\"title\"\s*:\s*\"((?:[^\"\\]|\\.)*)\"", 1, "json"),
+    # Alertes Qualitaÿ (aq.super-h.fr, T01/T02; legacy AQPlusView.swift, MessagesView.swift): the initiator
+    # attribute of the per-topic list, and every reporting member of an RSS item ("[le …] <b>X (initiateur)</b>").
+    ("AQ initiator", r"<alerte\b[^>]*?\bpseudoInitiateur=\"([^\"<>]*)\"", 1, "name"),
+    ("AQ RSS member", r"<li>\s*\[[^\]<>]*\]\s*<b>\s*([^<>]{1,80}?)(?:\s+\(initiateur\))?\s*</b>", 1, "name"),
 ))
 SMILEY_MODES = {"smiley", "smileypath", "smileyparam"}
 # "smilie perso": the fixed alt of the first personal smiley on a public profile (live raw R56c = corpus R56b).
@@ -1219,6 +1249,7 @@ class Anonymizer:
                 last = end
             text = "".join(parts) + text[last:]
         text = anonymize_profile_fields(text)
+        text = anonymize_aq_text(text)
         # Dropping `selected` from personal fields is an intended markup change too: do it first.
         text = PERSONAL_SELECT_RE.sub(lambda m: m.group(1) + SELECTED_RE.sub("", m.group(2)) + m.group(3), text)
         before = markup_signature(text)
@@ -1322,6 +1353,7 @@ class Anonymizer:
                     res.append((line_of(text, start), column_of(text, start), "known member name in a list link text"))
         res += verify_structure(text, private=private)
         res += verify_own_topic(text)
+        res += verify_aq(text)
         for pos, _prefix, _payload, decoded, _m in iter_tokens(text):
             if decoded is not None:
                 scan(decoded, pos, " (in obfuscated link)")
@@ -1762,6 +1794,46 @@ def verify_own_topic(text):
     for m in re.finditer(r"<textarea[^>]*content_form[^>]*>(.*?)</textarea>", text, re.S):
         if any(line not in ("", "Text removed.") for line in re.split(r"\r\n|\n|\r", m.group(1))):
             res.append((line_of(text, m.start()), column_of(text, m.start()), "own-topic check: text area not replaced"))
+    return res
+
+
+# Alertes Qualitaÿ, checked apart from DISCOVER / AQ_TEXT_RES: an XML parse of the document, then the
+# HTML of each RSS description scanned with this verifier's own patterns.
+_V_AQ_MASKED = re.compile(r"(?:x|&#?[0-9A-Za-z]+;|[^\w&])*")
+_V_AQ_REPORTER = re.compile(r"<li>(?:(?!</li>).)*?\]\s*<b>([^<]*)</b>\s*:([^<]*)</li>", re.S)
+
+
+def _v_aq_alias(name):
+    return FAKE_NAME_RE.fullmatch(re.sub(r"\s+\(initiateur\)$", "", html.unescape(name).strip())) is not None
+
+
+def verify_aq(text):
+    """[(line, column, reason)] for every Alertes Qualitaÿ member or free-text value left real; [] for other files."""
+    import xml.etree.ElementTree as ET  # noqa: PLC0415 (only AQ files need it)
+    head = text.lstrip()[:400]
+    if not head.startswith("<?xml") or not re.search(r"<alertes\b|Alertes Qualita", head):
+        return []
+    res = []
+
+    def bad(reason):
+        res.append((1, 1, "AQ check: " + reason))
+    try:
+        root = ET.fromstring(text.encode("utf-8"))
+    except ET.ParseError:
+        return [(1, 1, "AQ check: not well-formed XML")]
+    for alert in root.iter("alerte"):
+        if not FAKE_NAME_RE.fullmatch(alert.get("pseudoInitiateur", "")):
+            bad("initiator not aliased (alert %s)" % alert.get("id", "?"))
+        if not _V_AQ_MASKED.fullmatch(html.escape(alert.get("nom", ""), quote=False)):
+            bad("alert title not masked (alert %s)" % alert.get("id", "?"))
+    for n, item in enumerate(root.iter("item"), 1):
+        if not _V_AQ_MASKED.fullmatch(html.escape(item.findtext("title", ""), quote=False)):
+            bad("RSS item %d title not masked" % n)
+        for who, comment in _V_AQ_REPORTER.findall(item.findtext("description", "")):
+            if not _v_aq_alias(who):
+                bad("RSS item %d reporter not aliased" % n)
+            if not _V_AQ_MASKED.fullmatch(comment.strip()):
+                bad("RSS item %d comment not masked" % n)
     return res
 
 

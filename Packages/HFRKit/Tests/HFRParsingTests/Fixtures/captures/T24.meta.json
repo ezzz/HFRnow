@@ -1,0 +1,15 @@
+{
+  "id": "T24",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/",
+  "url": "https://reho.st/",
+  "final_url": "https://reho.st/",
+  "status": 200,
+  "content_type": "text/html; charset=UTF-8",
+  "date": "Mon, 02 Nov 2026 09:37:46 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "reho.st home with the legacy Referer value (no trailing slash, SimplePhotoViewController.m:123) (#134); Referer: https://forum.hardware.fr",
+  "private": false
+}

@@ -16,7 +16,12 @@ Inputs: the `getAlertesByTopic` response and the RSS feed. Outputs: the AQ item 
 HTML entities in titles, authors and comments (HFR-PROTOCOL §7b B4, Bybifok; legacy fix `a817498`; [#105](https://github.com/ezzz/HFRnow/issues/105)).
 
 ## Fixtures
-Pending capture.
+Captured 2026-11-02 (#133, run 10 of the corpus): `T01` (`rss.php`, 25 items) and `T02` (`api/getAlertesByTopic.php`,
+123 alerts of one topic), anonymized by position (members → `userN`, member-written alert titles and comments → `x` per
+word with entities and punctuation kept, public topic titles kept; MANIFEST run 10). Oracle of the legacy RSS parser:
+`Fixtures/LOT-028/T01.oracle.json` (kind `aq-rss` of `tooling/legacy-oracle`, `AQRSSParserDelegate` of `AQPlusView.swift`
+@ `2440d79`; `relativeDate` is not exported, it reads Swift `Date()`). Legacy has no parser for `T02`: it only checks
+that the answer contains the message id (`MessagesView.swift` `isAQAlreadySignaled`, `content.contains(postID)`).
 
 ## Intentional differences from legacy
 To write with the fixtures.
