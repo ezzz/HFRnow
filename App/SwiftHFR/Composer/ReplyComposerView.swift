@@ -92,7 +92,7 @@ struct ReplyComposerView: View {
     private var editor: some View {
         TextEditor(text: Binding(get: { model.text }, set: { model.update(text: $0) }))
             .focused($focused, equals: .text)
-            .font(.body)
+            .scaledFont(.body)
             .disabled(!model.canEdit)
             .padding(.horizontal, 12)
             .overlay {
@@ -120,7 +120,7 @@ struct ReplyComposerView: View {
                 .padding(.vertical, 10)
             Divider()
         }
-        .font(.body)
+        .scaledFont(.body)
         .disabled(!model.canEdit)
         .padding(.horizontal, 16)
     }
@@ -153,7 +153,7 @@ private struct ComposerBanner<Actions: View>: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: symbol).foregroundStyle(tint).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 8) {
-                Text(text).font(.callout).fixedSize(horizontal: false, vertical: true)
+                Text(text).scaledFont(.callout).fixedSize(horizontal: false, vertical: true)
                 actions()
             }
             Spacer(minLength: 0)

@@ -79,7 +79,7 @@ private struct MessageSentBanner: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityHidden(true)
-            Text(text).font(.subheadline)
+            Text(text).scaledFont(.subheadline)
             Spacer()
             Button(action: close) { Image(systemName: "xmark") }
                 .accessibilityLabel("Masquer")

@@ -25,9 +25,13 @@
   }
 }
 
-/* -apple-system-body follows the user's Dynamic Type size inside WKWebView. */
+/* -apple-system-body follows the user's Dynamic Type size inside WKWebView; --text-scale is the in-app text size (LOT-169),
+   set on <html> by the app (ReaderWebController.textScale), live. Everything below sizes in em, so it all follows. */
 html { font: -apple-system-body; -webkit-text-size-adjust: 100%; }
-body { margin: 0; padding: 0 0 2em; color: var(--text); background: var(--background); overflow-wrap: anywhere; }
+body {
+  font-size: calc(var(--text-scale, 1) * 1rem);
+  margin: 0; padding: 0 0 2em; color: var(--text); background: var(--background); overflow-wrap: anywhere;
+}
 a { color: var(--action); }
 
 .message { padding: 0.75em 1em; border-bottom: 1px solid var(--separator); }
