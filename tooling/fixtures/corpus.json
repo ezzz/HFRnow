@@ -145,6 +145,20 @@
     {"raw": "S21-home-after-unlog", "id": "R72b", "slug": "home-after-unlog-without-token", "ext": "html", "private": false},
     {"raw": "S04-favourites-owntopic1-user2", "id": "R73a", "slug": "favourites-owntopic1-two-categories", "ext": "html", "private": false},
     {"raw": "S06-favourites-owntopic1-user1", "id": "R73b", "slug": "favourites-owntopic1-thirteen-categories", "ext": "html", "private": false},
-    {"raw": "S03-profile-p1-user2", "id": "R74", "slug": "profile-edit-page1-set-cookie-pairs", "ext": null, "private": false}
+    {"raw": "S03-profile-p1-user2", "id": "R74", "slug": "profile-edit-page1-set-cookie-pairs", "ext": null, "private": false},
+    {"raw": "W40", "id": "W40", "slug": "public-new-topic-success", "ext": "html", "private": false},
+    {"raw": "W41", "id": "W41", "slug": "public-first-post-edit-add-poll-success", "ext": "html", "private": false},
+    {"raw": "R83", "id": "R83", "slug": "public-own-topic-poll-form-logged-in", "ext": "html", "private": false},
+    {"raw": "W42", "id": "W42", "slug": "poll-vote-success", "ext": "html", "private": false},
+    {"raw": "W43", "id": "W43", "slug": "poll-vote-already-voted", "ext": "html", "private": false},
+    {"raw": "W44", "id": "W44", "slug": "poll-vote-linked-account-already-voted", "ext": "html", "private": false},
+    {"raw": "W46", "id": "W46", "slug": "modo-alert-success", "ext": "html", "private": false},
+    {"raw": "R88", "id": "R88", "slug": "modo-alert-already-reported", "ext": "html", "private": false},
+    {"raw": "W47", "id": "W47", "slug": "modo-alert-logged-out-rejected", "ext": "html", "private": false},
+    {"raw": "R89", "id": "R89", "slug": "modo-alert-page-logged-out", "ext": "html", "private": false},
+    {"raw": "W49", "id": "W49", "slug": "public-first-post-delete-topic-success", "ext": "html", "private": false},
+    {"raw": "R92", "id": "R92", "slug": "topic-after-first-post-delete-404", "ext": "html", "private": false},
+    {"raw": "U01", "id": "U01", "slug": "rehost-upload-success", "ext": "json", "private": false},
+    {"raw": "U02", "id": "U02", "slug": "rehost-upload-wrong-key", "ext": "json", "private": false}
   ]
 }

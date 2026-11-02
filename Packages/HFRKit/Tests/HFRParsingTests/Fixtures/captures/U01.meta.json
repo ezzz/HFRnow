@@ -1,0 +1,22 @@
+{
+  "id": "U01",
+  "account": "anon",
+  "method": "POST",
+  "url_template": "https://img3.super-h.fr/api/1/upload/?key=<key>",
+  "url": "https://img3.super-h.fr/api/1/upload/?key=<KEY>",
+  "final_url": "https://img3.super-h.fr/api/1/upload/?key=<KEY>",
+  "status": 200,
+  "content_type": "application/json; charset=UTF-8",
+  "date": "2026-11-02T05:39:24Z",
+  "redirects": [],
+  "set_cookie_names": [
+    "PHPSESSID"
+  ],
+  "request_fields": [
+    "imageCaption",
+    "source"
+  ],
+  "note": "Chevereto upload, legacy multipart layout (imageCaption \"Some Caption\", source snapshot_<n>.jpg image/jpeg), 16x16 grey JPEG, legacy key; delete_hash, delete token and image id redacted",
+  "file": "U01-rehost-upload-success.json",
+  "private": false
+}
