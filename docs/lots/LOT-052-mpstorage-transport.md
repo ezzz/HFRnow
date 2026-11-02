@@ -77,7 +77,7 @@ edit form), `R45b` (new-MP form) → `W10` (create answer), `W15` (edit answer),
 stored copy after a write serve `R60b` with its `content_form` replaced by the text sent: HFR stores an edit's text as
 sent (`R43a`, X11). One test renames `R60b`'s `sujet` to reach the subject check alone.
 
-**Pending capture** (never hand-built, LESSONS 36):
+**Pending capture** (never hand-built, LESSONS 36; the last two items are tracked in [#440](https://github.com/ezzz/HFRnow/issues/440)):
 - An MP list with the storage thread on page 2 or later (#333, not reachable with the kit's accounts): the walk is
   tested with pager values (`MPStorageListWalkTests`), not with pages.
 - A non-empty document from other clients, near the 64 KiB cap, with U+00A0 or smiley codes (#272).
