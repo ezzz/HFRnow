@@ -47,6 +47,9 @@ struct AppThemeTests {
         let otherStyle: UIUserInterfaceStyle = other == .dark ? .dark : .light
 
         #expect(await until { probe.window != nil && probe.traitCollection.userInterfaceStyle == system })
+        // UIKit chrome (alerts) reads the window's tint: the accent.
+        let tint = UIColor(model.appearance.accentColor).resolvedColor(with: window.traitCollection)
+        #expect(await until { window.tintColor?.resolvedColor(with: window.traitCollection) == tint })
         model.mode = other
         #expect(await until { probe.traitCollection.userInterfaceStyle == otherStyle }, "manual theme not applied")
         model.mode = .system

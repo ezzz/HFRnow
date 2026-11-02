@@ -59,10 +59,12 @@ struct ThemeAppearanceTests {
 
     @Test func theReaderScriptOnlyEverWritesFormattedColours() {
         let script = ThemeAppearance.standard.readerScript
-        #expect(script.hasPrefix("const s = document.documentElement.style; "))
+        // A function run at once: nothing declared at the top level of the shared reader world.
+        #expect(script.hasPrefix("(() => { const s = document.documentElement.style; "))
+        #expect(script.hasSuffix(" })();"))
         #expect(script.contains("s.setProperty('--app-action-light', 'rgb(89, 227, 255)');"))
-        // Nothing but the six setters after the prefix: no page text can reach it.
-        let setters = script.split(separator: ";").dropFirst().filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        // Nothing but the six setters between the prefix and the closing: no page text can reach it.
+        let setters = script.split(separator: ";").dropFirst().dropLast()
         #expect(setters.count == 6)
         #expect(setters.allSatisfy { $0.contains("s.setProperty('--app-") && $0.contains("'rgb(") })
     }

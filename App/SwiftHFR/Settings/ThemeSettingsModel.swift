@@ -119,22 +119,33 @@ extension View {
         environment(theme)
             .environment(\.themeAppearance, theme.appearance)
             .tint(theme.appearance.accentColor)
-            .background(WindowStyle(scheme: theme.preferredColorScheme))
+            .background(WindowStyle(scheme: theme.preferredColorScheme, tint: theme.appearance.accentColor))
     }
 }
 
-/// Sets the hosting window's `overrideUserInterfaceStyle`: `.unspecified` follows iOS.
+/// Sets the hosting window's `overrideUserInterfaceStyle` (`.unspecified` follows iOS) and its `tintColor`, which UIKit
+/// chrome such as alerts reads, as legacy's app delegate did (`HFRplusAppDelegate.m:368, 392`).
 private struct WindowStyle: UIViewRepresentable {
     let scheme: ColorScheme?
+    let tint: Color
 
     final class Anchor: UIView {
         var style = UIUserInterfaceStyle.unspecified {
-            didSet { window?.overrideUserInterfaceStyle = style }
+            didSet { apply() }
+        }
+        var accent: UIColor? {
+            didSet { apply() }
         }
 
         override func didMoveToWindow() {
             super.didMoveToWindow()
-            window?.overrideUserInterfaceStyle = style
+            apply()
+        }
+
+        private func apply() {
+            guard let window else { return }
+            window.overrideUserInterfaceStyle = style
+            window.tintColor = accent
         }
     }
 
@@ -145,6 +156,7 @@ private struct WindowStyle: UIViewRepresentable {
     }
 
     func updateUIView(_ anchor: Anchor, context: Context) {
+        anchor.accent = UIColor(tint)
         anchor.style = switch scheme {
         case .dark: .dark
         case .light: .light

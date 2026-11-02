@@ -64,8 +64,9 @@ struct ThemeAppearance: Equatable, Sendable {
     /// The script that sets `readerVariables` on the document's root element; every value is an `rgb()` the app formats from
     /// numbers, never page text.
     var readerScript: String {
+        // Inside a function: the reader's world is shared by every user script, so nothing is declared at its top level.
         let lines = readerVariables.map { "s.setProperty('\($0.name)', '\($0.value)');" }
-        return (["const s = document.documentElement.style;"] + lines).joined(separator: " ")
+        return (["(() => { const s = document.documentElement.style;"] + lines + ["})();"]).joined(separator: " ")
     }
 }
 
