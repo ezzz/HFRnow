@@ -74,8 +74,8 @@ site's `forum2.js` `quoter()` writes it (`escape()`d value, host-only, path `/`)
 rendered HTML is HFR's own preview `POST /apercu.php` (`R95d`, `R95h`, the `apercu_form` of the composer, fields as
 `editPost.js` `apercevoir()` sets them), because `--private` replaces the bodies of the thread pages. On the raw thread
 pages, the preview equals the message body once whitespace is removed, apart from the opening `<p>` the preview lacks
-(compared locally, not published). user2 then deleted the thread with legacy's `manageaction.php` body
-(`MPListView.swift:131-150`) and a wrong `hash_check` (`W64x`), then the right one (`W64`); user1 deleted it too
+(compared locally, not published). user2 then sent legacy's `manageaction.php` delete body (`MPListView.swift:131-150`) with a
+wrong `hash_check`, which HFR refused (`W64x`), then deleted the thread with the right one (`W64`); user1 deleted it too
 (`W65`, clean-up). Nothing of the thread is left on HFR. `flows.py form` gained `--cookie` (sent with the POST only).
 
 | Id | File | Covers | Row | Lots |
@@ -240,7 +240,7 @@ pages, the preview equals the message body once whitespace is removed, apart fro
 | U01 | `U01-rehost-upload-success.json` | `img3.super-h.fr` upload, legacy key: 200 JSON "file uploaded", `image.url`, `image.thumb.url` (`.th.`), `image.medium` all `null`, numbers as numbers; delete fields redacted | — | 056 |
 | U02 | `U02-rehost-upload-wrong-key.json` | Same upload with a wrong key: 400 JSON "Invalid API key." code 100 | — | 056 |
 | W61 | `W61-mp-create-bbcode-success.html` | New MP `fixture-test-2` (user2 → user1) whose first post holds b, i, u, strike, spoiler, quote, url (both forms), img, fixed, code, cpp, color, list, nested and unclosed tags, and raw `<b>`/`&`/`"`: "Votre message a été posté avec succès !", refresh to the MP list | W10 | 048, 097 |
-| R95c | `R95c-mp-edit-form-bbcode-source.html` | Edit form of `W61` (owner): `content_form` = the CRLF source sent, byte for byte; the "Vue Rapide" review below holds the rendered post | R43 | 097, 036 |
+| R95c | `R95c-mp-edit-form-bbcode-source.html` | Edit form of `W61` (owner): `content_form` = the CRLF source sent, byte for byte; the "Vue Rapide" review below holds the rendered post, `[img]` written as a link there | R43 | 097, 036 |
 | R95d | `R95d-apercu-bbcode-preview.html` | `POST /apercu.php` (`hash_check`, `apercu_contenu` = the `W61` source, `apercu_smiley=0`, `config`): 200, the rendered BBCode in `body.reponse`, line breaks written `\r<br />` (the CR kept) | — | 097, 152 |
 | W62 | `W62-mp-reply-bmp-emoji-success.html` | Reply (user1) with U+2764, U+2764 U+FE0F, U+2714, U+2605 and a lone U+FE0F: success | W12 | 048, 096, 151 |
 | R95f | `R95f-mp-edit-form-bmp-emoji-source.html` | Edit form of `W62` (user1): `content_form` keeps every BMP emoji and both U+FE0F unchanged | R43, X9 | 096, 151, 036 |

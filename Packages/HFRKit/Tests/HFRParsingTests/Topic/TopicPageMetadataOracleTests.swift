@@ -9,7 +9,7 @@ struct TopicPageMetadataOracleTests {
     /// Every case of `Fixtures/LOT-003/oracle-map.json` (R25 has no body; RA5 is a deleted conversation).
     static let cases = [
         "P03m", "R20", "R21", "R22a", "R22b", "R23", "R24", "R26", "R27", "R27b", "R28", "R31", "R32a", "R32b",
-        "RA1", "RA2", "RA3", "RA4", "RA5", "RU1", "RU2"
+        "RA1", "RA2", "RA3", "RA4", "RA5", "RU1", "RU2", "R96c", "R96d"
     ]
 
     @Test("the case list covers the oracle map")
