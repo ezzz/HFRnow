@@ -12,6 +12,17 @@ struct NavigationModelTests {
         #expect(model.selectedTopic == nil)
     }
 
+    @Test func changingTheSourceDropsTheReaderSoTheTopicReopensFresh() {
+        let model = NavigationModel(dataSource: FakeDataSource())
+        model.selectedSource = .favorites
+        let topic = topicSummary(1)
+        let first = model.reader(for: topic)
+        #expect(first != nil)
+        #expect(model.reader(for: topic) === first)
+        model.selectedSource = .flagged
+        #expect(model.reader(for: topic) !== first)
+    }
+
     @Test func reselectingTheSameSourceKeepsTheTopic() {
         let model = NavigationModel(dataSource: FakeDataSource())
         model.selectedSource = .favorites
