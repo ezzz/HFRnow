@@ -3,8 +3,8 @@ import HFRModels
 import Testing
 @testable import HFRParsing
 
-/// #306: the function bar's `delflag.php` link and its icon. Expectations are read from the raw captures: the LOT-003 oracle
-/// does not export legacy's `isFavoritesOrRead` (LESSONS 52). Scope and origin rules use in-memory edits of captures.
+/// #306: the function bar's `delflag.php` link and its icon. Expectations are read from the raw captures; the comparison with
+/// legacy's `isFavoritesOrRead` is `TopicPageFlagOracleTests` (#268). Scope and origin rules use in-memory edits of captures.
 @Suite("Topic page flag (#306)")
 struct TopicPageFlagTests {
     private static let removal = "https://forum.hardware.fr/user/delflag.php?config=hfr.inc&"

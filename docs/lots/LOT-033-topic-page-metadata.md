@@ -70,8 +70,11 @@ Captures (`Fixtures/captures/`) with their oracles (`Fixtures/LOT-003/`), all 20
 | RA5 | conversation deleted by its owner: no title, no forms |
 
 `TopicPageFlagTests` (#306) checks the flag on every capture that has the link and on anonymous and private pages without
-it, against the raw pages (the LOT-003 oracle does not export `isFavoritesOrRead`, LESSONS 52), plus in-memory edits for the
-scope and origin rules. `TopicPageMetadataParserTests` adds expectations written from reading the captures (not from the oracle) and a few small inline
+it, against the raw pages, plus in-memory edits for the scope and origin rules. `TopicPageFlagOracleTests` compares it with the
+legacy reader (`result.fastAnswer` of the LOT-003 oracle, #268) on every topic oracle of `Fixtures/LOT-003/` and `Fixtures/LOT-003-flag/`:
+where the bar link is also the first `delflag` href of the page (P03m, R21, R32b, R33b, R61d, R61e, R63a, R63e), `removalURL` equals
+legacy's `isFavoritesOrRead` and `flag == .red` equals `isRedFlagged`; on the 12 pages without a `delflag` or `nonlu` link both give
+nothing; the 6 private conversations are difference 5 below. `TopicPageMetadataParserTests` adds expectations written from reading the captures (not from the oracle) and a few small inline
 pages for parser rules that no capture exercises (foreign answer link, trailing text in the pager, duplicated hidden names, checked
 checkbox). Those inline pages state our parsing rules, not facts about HFR.
 
@@ -92,6 +95,10 @@ trailing text node, a poll **results** page (R33, LOT-026).
    page whose bar has no such link a link posted in a message became the remove-flag action (the LOT-031 learning). Here the lookup is
    scoped to `tr.fondForum2Fonctions`, the link must stay on the forum origin, and all three icons are named, not only the red one.
    `isUnreadable` is unchanged, and it is not a "cannot be favourite" rule (LOT-003 RC3.3): that is app policy.
+   Against the oracle (#268): no capture has a `delflag` link outside the bar, so the captures differ from legacy only where legacy
+   falls back to the `nonlu` link (RA1, RA2, RA3, RA4, RU1, RU2: `isFavoritesOrRead` is the mark-unread link, the flag here is nil;
+   the unread link is `TopicPageMetadata`'s). A message link taking over and the yellow and blue icons (legacy `isRedFlagged` false)
+   are pinned by the in-memory edits and the capture tests of `TopicPageFlagTests`.
 6. **`topicID` is new**: legacy had the category from `hop` only (RC3.4); here the search form and the page URL are fallbacks.
 7. **`hasPoll` only.** Legacy's `isNewVote` (a poll `input` exists) is a poll-parser concern; `PollParser` returns the votable or results kind.
 8. Typed values instead of `NSDictionary`; `[:]` and nil are distinct for the search form (legacy: always a dictionary).
