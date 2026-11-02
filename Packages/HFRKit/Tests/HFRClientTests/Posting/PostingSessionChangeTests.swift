@@ -35,6 +35,13 @@ struct PostingSessionChangeTests {
         Entry(name: "delete", formID: "R43b") { flow, form async throws(PostingError) in try await flow.delete(with: form) }
     ]
 
+    /// What a run left: the write's error, every request, the session's login generation.
+    struct Outcome {
+        let error: PostingError?
+        let requests: [HTTPRequest]
+        let generation: Int
+    }
+
     /// Loads `formID`, runs `between` on the session, then `write`; `answer` is served to a POST.
     private func run(
         formID: String,
@@ -42,7 +49,7 @@ struct PostingSessionChangeTests {
         duringLoad: ConcurrentLogin? = nil,
         between: ConcurrentLogin? = nil,
         write: Write
-    ) async throws -> (error: PostingError?, requests: [HTTPRequest]) {
+    ) async throws -> Outcome {
         let replies = [try PostingCapture.form(formID)] + (try answer.map { [try PostingCapture.answer($0)] } ?? [])
         let session = ScriptedPostingSession(replies)
         if let duringLoad { await session.adoptLoginDuringNextRequest(duringLoad) }
@@ -55,7 +62,7 @@ struct PostingSessionChangeTests {
         } catch let thrown {
             error = thrown
         }
-        return (error, await session.requests)
+        return Outcome(error: error, requests: await session.requests, generation: await session.loginGeneration)
     }
 
     @Test(
@@ -89,6 +96,7 @@ struct PostingSessionChangeTests {
             formID: "R40a", answer: "W17b", duringLoad: duringLoad ? relogin : nil, between: duringLoad ? nil : relogin,
             write: Self.writes[0].write
         )
+        #expect(outcome.generation == 1)
         #expect(outcome.requests.count == 2)
         #expect(outcome.requests.last?.method == .post)
         guard case .rejected = outcome.error else {

@@ -59,6 +59,8 @@ actor ScriptedPostingSession: PostingSession {
         identity = login.identity
         // Like `HFRSession`: a logout keeps the token, and an empty one is never recorded.
         if !login.hashCheck.isEmpty { hashCheck = login.hashCheck }
+        // A login advances the generation (`advanceLoginGeneration`); a logout only empties the jar.
+        if login.identity != nil { loginGeneration += 1 }
     }
 
     /// Installs `login` while the next request is suspended, after it was sent.

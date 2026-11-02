@@ -160,7 +160,8 @@ public struct PostingFlow: Sendable {
         )
         // The form's `hash_check` and `pseudo` belong to the account it was fetched with: after a logout or a login of
         // another account in this session, HFR would refuse them (`W17b`); say so before sending (#342). A re-login of
-        // the same account keeps the form usable: its refreshed token is HFR's to judge (#315).
+        // the same account keeps the form usable: its refreshed token is HFR's to judge (#315), so the seed's identity is
+        // compared, not its `loginGeneration`, which every login moves (#340).
         guard let identity = form.seed.identity, await form.session.userKey(now: Date()) == identity else {
             throw .sessionChanged
         }
