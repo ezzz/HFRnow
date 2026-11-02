@@ -99,6 +99,27 @@ struct PollVoteFlowTests {
         }
     }
 
+    @Test("W42 answering a vote on another topic (R32b's) is not that vote's confirmation: its refresh names 9900002")
+    func confirmationOfAnotherTopic() async throws {
+        let session = ScriptedFlagSession([try Self.answer("W42")], hashCheck: Self.token)
+        let form = try Self.form("R32b-topic-poll-logged-in-not-voted", choice: 1)
+        let result = await Self.result { try await PollVoteFlow().vote(form, through: session) }
+        #expect(result == .failure(.unconfirmed(.unrecognizedAnswer(message: "Votre vote a bien été pris en compte !"))))
+    }
+
+    @Test("The refresh is a page of the topic only by its sujet_<post>_<page>.htm name", arguments: [
+        ("https://forum.hardware.fr/hfr/Programmation/iOS/sujet_9900002_1.htm", true),
+        ("https://forum.hardware.fr/hfr/Programmation/iOS/sujet_9900002_12.htm", true),
+        ("https://forum.hardware.fr/hfr/Programmation/iOS/sujet_99000021_1.htm", false),
+        ("https://forum.hardware.fr/hfr/Programmation/iOS/sujet_9900002_.htm", false),
+        ("https://forum.hardware.fr/hfr/Programmation/iOS/sujet_9900002_1.html", false),
+        ("https://forum.hardware.fr/hfr/Programmation/iOS/liste_sujet-1.htm", false)
+    ])
+    func refreshNamesTheTopic(raw: String, expected: Bool) throws {
+        let url = try #require(URL(string: raw))
+        #expect(PollVoteFlow.isPage(of: Self.ownTopic, url) == expected)
+    }
+
     @Test("A redirect is not HFR's confirmation, even with the confirmation body")
     func redirectIsUnconfirmed() async throws {
         var moved = try Capture.response("W42-poll-vote-success", url: PollVoteFlow.voteURL)

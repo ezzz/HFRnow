@@ -94,7 +94,7 @@ LOT-090 to LOT-098 (2026-10-27) and LOT-172 (2026-10-28, [ADR 0013](adr/0013-sto
 | LOT-051 | Topic flags & favourites writes | HFRClient | medium | Opus → Fable | 037, 042 | D7 | medium | [#77](https://github.com/ezzz/HFRnow/issues/77) |
 | LOT-052 ★ | MPStorage transport (find, read, create, update; conflict-aware) | HFRClient | difficult | Opus → Fable | 038, 048, 062 | D8 | medium | [#78](https://github.com/ezzz/HFRnow/issues/78) |
 | LOT-053 | Smileys: search, wiki | HFRClient | easy | Sonnet → Opus | 025 | NET-12, D9 | low | [#79](https://github.com/ezzz/HFRnow/issues/79) |
-| LOT-054 | Poll vote | HFRClient | medium | Sonnet → Opus | 026, 037 | D11 | medium | [#80](https://github.com/ezzz/HFRnow/issues/80) |
+| LOT-054 | Poll vote | HFRClient | medium | Opus → Fable | 026, 037 | D11 | medium | [#80](https://github.com/ezzz/HFRnow/issues/80) |
 | LOT-055 | AQ client: per-topic check, create, RSS feed + "new since" badge; returns every item with its category (hiding Apple for reviewers is app policy, Q-7) | HFRClient | easy | Sonnet → Opus | 028, 071 | D6 | low | [#81](https://github.com/ezzz/HFRnow/issues/81) |
 | LOT-057 | REST browsing client (`rest_api.php`: categories, topics, flag buckets) with HTML fallback | HFRClient | medium | Opus → Fable | 040, 041, 010, 021, 022, 024, 001 | redface2 E1 | medium | [#83](https://github.com/ezzz/HFRnow/issues/83) |
 | LOT-168 | Forum list completeness: every HFR sub-forum from the REST sub-forum list, home page first, injection table checked against the capture | HFRClient | easy | Sonnet → Opus | 057, 021 | B4 (completeness) | low | [#286](https://github.com/ezzz/HFRnow/issues/286) |

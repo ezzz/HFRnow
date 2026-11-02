@@ -9,7 +9,7 @@ import HFRParsing
 /// The vote is sent once: the transport never retries, and a failure after sending is `unconfirmed`, never a success
 /// nor a plain failure. It leaves only once LOT-044 confirmed the session just before it, as every flag write (#314).
 /// Legacy posted the form's hidden fields from an unordered dictionary, without `sondage_submit`, and called any answer
-/// without a `.hop` link a success (`PollData.swift:47-100` @ 2440d79); this flow sends the captured body and reads
+/// without a `.hop` link a success (`PollData.swift:45-99` @ 2440d79); this flow sends the captured body and reads
 /// HFR's own sentence.
 public struct PollVoteFlow: Sendable {
     /// What the vote asks before it leaves: the health of the account session, from one GET of HFR (LOT-044).
@@ -120,6 +120,8 @@ public struct PollVoteFlow: Sendable {
             guard let message = answer.message, let refreshURL = answer.refreshURL else {
                 throw .unconfirmed(.unrecognizedAnswer(message: answer.message))
             }
+            // The sentence names no poll; the refresh to the topic page is HFR's only tie to this vote (`W42`).
+            guard isPage(of: form.topic, refreshURL) else { throw .unconfirmed(.unrecognizedAnswer(message: message)) }
             return PollVoteResult(topic: form.topic, choice: form.choice, message: message, refreshURL: refreshURL)
         case .rejected:
             if answer.message == alreadyVotedSentence { throw .alreadyVoted }
@@ -129,6 +131,17 @@ public struct PollVoteFlow: Sendable {
         case .alreadyAlerted, .unrecognized:
             throw .unconfirmed(.unrecognizedAnswer(message: answer.message))
         }
+    }
+}
+
+extension PollVoteFlow {
+    /// `url` is a page of `topic` as `W42` refreshes to it: `/hfr/<cat>/<sub>/sujet_<post>_<page>.htm`, read only for
+    /// its `sujet_<post>_` file name (the category is a slug, not the form's `cat`).
+    static func isPage(of topic: TopicID, _ url: URL) -> Bool {
+        let name = url.lastPathComponent
+        guard name.hasPrefix("sujet_\(topic.topic)_"), name.hasSuffix(".htm") else { return false }
+        let page = name.dropFirst("sujet_\(topic.topic)_".count).dropLast(".htm".count)
+        return FlagLink.positiveInteger(String(page)) != nil
     }
 }
 

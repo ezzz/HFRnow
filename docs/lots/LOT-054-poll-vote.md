@@ -5,7 +5,7 @@
 - **Issue:** #80 (and the poll-vote part of #395)
 
 ## Legacy sources
-- `HFRswift/Swift/PollData.swift:44-100` @ 2440d79 (`PollVoteSubmitter.submit`, `parseVoteResponse`): posts the poll's hidden fields from a `[String: String]` dictionary (random order, one `hash_check`) plus the chosen `reponse`, without `sondage_submit`, through `URLSession.shared`; any answer whose `.hop` has no `<a`/`<input`, **or with no `.hop` at all**, is a success.
+- `HFRswift/Swift/PollData.swift:45-99` @ 2440d79 (`PollVoteSubmitter.submit`, `parseVoteResponse`): posts the poll's hidden fields from a `[String: String]` dictionary (random order, one `hash_check`) plus the chosen `reponse`, without `sondage_submit`, through `URLSession.shared`; any answer whose `.hop` has no `<a`/`<input`, **or with no `.hop` at all**, is a success.
 - Poll form parsing: LOT-026 (`PollParser`, `docs/lots/LOT-026-poll-parser.md`).
 
 ## Behaviour
@@ -15,7 +15,7 @@
 2. **Session check**: LOT-044 `SessionRefreshFlow` must say `.valid` (else `sessionNotConfirmed`; a failed check is `network`), as every flag write since #314. It also records a fresh token.
 3. **One POST** to `https://forum.hardware.fr/user/vote.php?config=hfr.inc` (the form action), redirects not followed, body exactly `W42`'s: `hash_check, cat, p, page, sondage, owntopic, subcat, numeropost, hash_check, reponse=<choice>, sondage_submit=Voter`. Both `hash_check` copies are the **session's** token (per-account, HFR-PROTOCOL §5), not the page's, so a poll read in another account's page or a stale page still posts this account's token. No token → `missingToken`, nothing sent.
 4. **Answer** (LOT-037 `HopResponseParser`, new `Context.pollVote`):
-   - success = link-less `.hop` whose whole text is "Votre vote a bien été pris en compte !" **and** a refresh to an `https` forum URL (`W42`: `/hfr/<cat>/<sub>/sujet_<post>_1.htm`) → `PollVoteResult(topic, choice, message, refreshURL)`; the app reloads `refreshURL` to show the results.
+   - success = link-less `.hop` whose whole text is "Votre vote a bien été pris en compte !" **and** a refresh to an `https` forum URL (`W42`: `/hfr/<cat>/<sub>/sujet_<post>_1.htm`) whose file name is `sujet_<the form's numeropost>_<page>.htm` (the sentence names no poll: the refresh is HFR's only tie to this vote) → `PollVoteResult(topic, choice, message, refreshURL)`; the app reloads `refreshURL` to show the results. A confirmation refreshing to another topic is `unconfirmed`.
    - `.hop` + back link "Désolé, vous avez déjà voté !" (`W43` same account, `W44` linked account) → `alreadyVoted`.
    - logged-out sentence → `notLoggedIn`; other link/input `.hop` or `W17b` plain text → `rejected(message)`.
    - a redirect, another write's "avec succès" confirmation, any other page → `unconfirmed(.unrecognizedAnswer)`; transport failure after sending (incl. HTTP status) → `unconfirmed(.transport)`; a request refused before leaving → `network`.
@@ -28,6 +28,8 @@ The vote sentence is a success under `.pollVote` only; under `.write` `W42` stay
 - Multi-choice polls: not captured; refused as `unsupportedPoll` (LOT-026 never produces `maxChoices > 1`).
 
 ## Pending capture
+- The refresh page after a vote from a form whose `page` is not 1: `W42`'s form had `page=1` and refreshed to page 1; whether HFR echoes the form's page is not known, so the app reloads `refreshURL` as given and never assumes page 1.
+- **Guest votes**: `R83` prints "Les invités peuvent voter" and `R32a` shows the form logged out with an empty `hash_check`, so HFR offers guest voting on some polls. A guest vote body was never sent, so the flow does not offer it: without a confirmed account session the vote is `sessionNotConfirmed` (or `missingToken`). Not a bug: a later lot adds it once a capture shows the answer.
 - The vote answer without cookies (not published by #394) and to a bad token: classified by shape (`notLoggedIn` / `rejected`), never success.
 - A vote on a closed poll by a stale form, a body without `sondage_submit`, another field order: not tried; the flow sends only `W42`'s body.
 
