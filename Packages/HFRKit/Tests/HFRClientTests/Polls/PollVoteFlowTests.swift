@@ -113,7 +113,12 @@ struct PollVoteFlowTests {
         ("https://forum.hardware.fr/hfr/Programmation/iOS/sujet_99000021_1.htm", false),
         ("https://forum.hardware.fr/hfr/Programmation/iOS/sujet_9900002_.htm", false),
         ("https://forum.hardware.fr/hfr/Programmation/iOS/sujet_9900002_1.html", false),
-        ("https://forum.hardware.fr/hfr/Programmation/iOS/liste_sujet-1.htm", false)
+        ("https://forum.hardware.fr/hfr/Programmation/iOS/liste_sujet-1.htm", false),
+        // The same topic number in another category (Discussions = 13) is another topic.
+        ("https://forum.hardware.fr/hfr/Discussions/iOS/sujet_9900002_1.htm", false),
+        ("https://forum.hardware.fr/hfr/Inconnu/iOS/sujet_9900002_1.htm", false),
+        ("https://forum.hardware.fr/hfr/Programmation/sujet_9900002_1.htm", false),
+        ("https://forum.hardware.fr/forum/Programmation/iOS/sujet_9900002_1.htm", false)
     ])
     func refreshNamesTheTopic(raw: String, expected: Bool) throws {
         let url = try #require(URL(string: raw))
