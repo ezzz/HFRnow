@@ -1,6 +1,8 @@
 import HFRModels
 import Observation
 
+// Port of HFRswift/Swift/MainWindow.swift (ForumTopicsListViewModel) and HFRswift/Swift/Favorites.swift (FavoritesViewModel) @ 2440d79.
+// Differences: the page on screen is kept on refresh, with a retry banner (GAP-025).
 /// A group of rows under an optional heading (a favourites category); a forum list has one headless group.
 struct TopicGroup: Identifiable, Hashable, Sendable {
     let id: String

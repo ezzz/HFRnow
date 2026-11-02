@@ -1,0 +1,49 @@
+{
+  "case" : "R71a",
+  "exception" : null,
+  "input" : {
+    "bytes" : 1571,
+    "context" : {
+      "password" : "FAKE_PASSWORD",
+      "pseudo" : "user2",
+      "servedAs" : "GET /user/editprofil.php?config=hfr.inc&page=5"
+    },
+    "currentURL" : null,
+    "file" : "../captures/R71a-profile-edit-page5-anon.html",
+    "now" : null,
+    "sha256" : "afbedaf298611f709f8bf45e5438f8d172903b93c2fd6acd0a2bee40520dcf62"
+  },
+  "kind" : "profile-edit",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "error" : "missingHash",
+    "message" : "Impossible de récupérer le hash du compte.",
+    "outcome" : "error",
+    "requests" : [
+      {
+        "bodyFields" : [
+          "action",
+          "login",
+          "password",
+          "pseudo"
+        ],
+        "method" : "POST",
+        "url" : "https://forum.hardware.fr/login_validation.php?config=hfr.inc"
+      },
+      {
+        "method" : "GET",
+        "url" : "https://forum.hardware.fr/user/editprofil.php?config=hfr.inc&page=5"
+      }
+    ]
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

@@ -7,7 +7,7 @@
 - **Partial:** this PR ships the anonymous part (`Refs #83`). Left: the flag buckets ([#335](https://github.com/ezzz/HFRnow/issues/335)), the sub-categories ([#285](https://github.com/ezzz/HFRnow/issues/285)), list pages after the first, `results_per_page` and the error answers ([#355](https://github.com/ezzz/HFRnow/issues/355)).
 
 ## Sources
-The legacy app never called the REST API: there is no `rest_api` in francoisgn/hfrnow at `2440d79` nor on `origin/master`, so there is no legacy oracle for the JSON side. The facts come from:
+The legacy app never called the REST API: there is no `rest_api` in ezzz/HFRnow at `2440d79` nor on `origin/master`, so there is no legacy oracle for the JSON side. The facts come from:
 
 - redface2 finding E1 (`docs/research/redface2-comparison.md:289`): the URL shape, `/api/…` hrefs answering 404 and rewritten to `rest_api.php?uri=…`, `total_pages` = ceil(posts count / per page), `/posts/` always 500, auth by the normal session cookies;
 - HFR-PROTOCOL §7 (REST API row) and the captures `R57a` (categories), `R57b` (last topics of category 13) and `R57c` (one topic), anonymous GETs of 2026-10-26;

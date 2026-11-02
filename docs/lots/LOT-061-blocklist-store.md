@@ -5,7 +5,7 @@
 - **Issue:** [#86](https://github.com/ezzz/HFRnow/issues/86)
 
 ## Legacy sources
-Legacy repository <https://github.com/francoisgn/hfrnow> at `2440d79`. Audit: [E §2.3, §7.2-7.6, §8 (E-2)](../audit/E-storage-vendors.md).
+Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79`. Audit: [E §2.3, §7.2-7.6, §8 (E-2)](../audit/E-storage-vendors.md).
 
 | Legacy | What it gives the store |
 |---|---|

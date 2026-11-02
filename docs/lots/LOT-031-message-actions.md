@@ -8,7 +8,7 @@ Chain: LOT-030 (message blocks) → **LOT-031** → LOT-049 (quote engine). Outp
 
 ## Legacy sources
 
-Legacy repository <https://github.com/francoisgn/hfrnow> at `2440d79`.
+Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79`.
 
 | Legacy | Replaced by |
 |---|---|

@@ -30,6 +30,9 @@ public struct TopicPageMetadata: Sendable, Hashable, CustomStringConvertible, Cu
     public var hasPoll: Bool
     /// Inputs of the in-topic search form that legacy kept; nil when the page has no such form. Contains `hash_check`.
     public var searchFormFields: [String: String]?
+    /// The account's flag and the link that removes it, from the function bar; nil when the bar has no such link (logged
+    /// out, private conversation).
+    public var flag: TopicPageFlag?
 
     /// Creates a value; used by the parser and by tests.
     public init(
@@ -42,7 +45,8 @@ public struct TopicPageMetadata: Sendable, Hashable, CustomStringConvertible, Cu
         isUnreadable: Bool = false,
         markUnreadURL: URL? = nil,
         hasPoll: Bool = false,
-        searchFormFields: [String: String]? = nil
+        searchFormFields: [String: String]? = nil,
+        flag: TopicPageFlag? = nil
     ) {
         self.topicID = topicID
         self.title = title
@@ -54,6 +58,7 @@ public struct TopicPageMetadata: Sendable, Hashable, CustomStringConvertible, Cu
         self.markUnreadURL = markUnreadURL
         self.hasPoll = hasPoll
         self.searchFormFields = searchFormFields
+        self.flag = flag
     }
 
     /// Summary that never prints the form fields (they hold the `hash_check` token).
@@ -77,7 +82,8 @@ public struct TopicPageMetadata: Sendable, Hashable, CustomStringConvertible, Cu
             "isUnreadable": isUnreadable,
             "markUnreadURL": markUnreadURL as Any,
             "hasPoll": hasPoll,
-            "searchFormFields": searchFormFields.map { "\($0.count) fields, values redacted" } as Any
+            "searchFormFields": searchFormFields.map { "\($0.count) fields, values redacted" } as Any,
+            "flag": flag as Any
         ], displayStyle: .struct)
     }
 }

@@ -1,5 +1,7 @@
 import SwiftUI
 
+// Port of HFRswift/Swift/AddAccountView.swift (AddAccountView) @ 2440d79. Differences: AutoFill; the login is validated in a fresh
+// session first (LOT-043, GAP-161).
 /// The login sheet: pseudo and password, adapted from legacy `HFRswift/Swift/AddAccountView.swift`.
 struct LoginView: View {
     @Environment(\.dismiss) private var dismiss

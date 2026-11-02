@@ -164,5 +164,46 @@
     "kind": "search",
     "now": "2026-10-26T03:44:00Z",
     "path": "../captures/R50c-search-no-result-no-cookie.html"
+  },
+  "R70a.html": {
+    "kind": "forums",
+    "path": "../captures/R70a-home-stale-session.html"
+  },
+  "R70b.html": {
+    "kind": "favorites",
+    "now": "2026-11-01T23:52:35Z",
+    "path": "../captures/R70b-favourites-owntopic1-stale-session.html"
+  },
+  "R72b.html": {
+    "kind": "forums",
+    "path": "../captures/R72b-home-after-unlog-without-token.html"
+  },
+  "R73a.html": {
+    "kind": "favorites",
+    "now": "2026-11-01T23:51:00Z",
+    "path": "../captures/R73a-favourites-owntopic1-two-categories.html"
+  },
+  "R73b.html": {
+    "kind": "favorites",
+    "now": "2026-11-01T23:51:23Z",
+    "path": "../captures/R73b-favourites-owntopic1-thirteen-categories.html"
+  },
+  "R95j.html": {
+    "currentURL": "/forum1.php?config=hfr.inc&cat=prive&page=1",
+    "kind": "mp",
+    "now": "2026-11-02T07:42:55Z",
+    "path": "../captures/R95j-mp-list-owner-after-thread-delete.html"
+  },
+  "R95k.html": {
+    "currentURL": "/forum1.php?config=hfr.inc&cat=prive&page=1",
+    "kind": "mp",
+    "now": "2026-11-02T07:43:01Z",
+    "path": "../captures/R95k-mp-list-recipient-after-thread-delete.html"
+  },
+  "R96a.html": {
+    "currentURL": "/forum1.php?config=hfr.inc&cat=prive&page=8&subcat=&sondage=0&owntopic=0&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0",
+    "kind": "mp",
+    "now": "2026-11-02T07:43:24Z",
+    "path": "../captures/R96a-mp-list-past-last-page.html"
   }
 }

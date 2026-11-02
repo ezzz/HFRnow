@@ -1,0 +1,20 @@
+{
+  "id": "R74",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/user/editprofil.php?config=hfr.inc&page=1",
+  "url": "https://forum.hardware.fr/user/editprofil.php?config=hfr.inc&page=1",
+  "final_url": "https://forum.hardware.fr/user/editprofil.php?config=hfr.inc&page=1",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Sun, 01 Nov 2026 23:50:55 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "Set-Cookie attributes (values not kept): md_user and md_passs are each sent twice: a value with expires +30 days, path=/, domain=.hardware.fr; then the value 'deleted' with expires=Thu, 01-Jan-1970 00:00:01 GMT, path=/, domain=.forum.hardware.fr. Same pairs on the logged-in home and favourites pages of this run",
+  "private": false
+}

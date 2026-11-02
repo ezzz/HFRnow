@@ -5,7 +5,7 @@
 - **Issue:** [#52](https://github.com/ezzz/HFRnow/issues/52); old issue `francoisgn/ios-app_SwiftHFR#64` (read-only history)
 
 ## Legacy sources
-Legacy repository <https://github.com/francoisgn/hfrnow>, `master` (the file paths are those of commit `2440d79`).
+Legacy repository <https://github.com/ezzz/HFRnow>, `master` (the file paths are those of commit `2440d79`).
 
 | Legacy | Replaced by |
 |---|---|
