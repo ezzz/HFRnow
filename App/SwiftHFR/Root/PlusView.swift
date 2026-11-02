@@ -17,7 +17,7 @@ struct PlusView: View {
                         .foregroundStyle(entry.isDestructive ? Color.red : Color.primary)
                     Spacer()
                     Image(systemName: "chevron.forward")
-                        .font(.footnote.weight(.semibold))
+                        .scaledFont(.footnote).fontWeight(.semibold)
                         .foregroundStyle(.tertiary)
                         .accessibilityHidden(true)
                 }
@@ -36,7 +36,7 @@ struct PlusEntryView: View {
 
     var body: some View {
         if entry.isBuilt {
-            SettingsView(rotationChanged: { OrientationPolicy.refresh() })
+            SettingsView()
         } else {
             ContentUnavailableView(
                 entry.title, systemImage: entry.symbol,

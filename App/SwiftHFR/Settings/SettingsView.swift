@@ -28,14 +28,11 @@ enum SettingsDestination: Hashable {
 
 /// The settings screen (LOT-119): the "Général" section and the entry points of the sections other lots fill in.
 struct SettingsView: View {
-    @State private var general: GeneralSettingsModel
-
-    /// Reads the settings from `store`; the live app re-applies the orientation when the rotation switch changes.
-    init(store: any SettingsStore = UserDefaultsSettingsStore(), rotationChanged: @escaping @MainActor () -> Void = {}) {
-        _general = State(initialValue: GeneralSettingsModel(store: store, rotationChanged: rotationChanged))
-    }
+    /// The app's one settings model: a change here re-renders every screen at once (LOT-169).
+    @Environment(GeneralSettingsModel.self) private var general
 
     var body: some View {
+        @Bindable var general = general
         Form {
             Section("Général") {
                 Picker("Écran de démarrage", selection: $general.startupScreen) {
@@ -61,7 +58,7 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Navigateur par défaut")
                         Text("Désactivé : navigateur intégré")
-                            .font(.footnote)
+                            .scaledFont(.footnote)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -75,6 +72,7 @@ struct SettingsView: View {
                 }
             }
         }
+        // Legacy settings spacing in compact mode (`AppSettingsView.swift:597` at 21173e77).
         .listSectionSpacing(general.compactMode ? .custom(8) : .default)
         .navigationTitle("Réglages")
         .navigationBarTitleDisplayMode(.inline)
@@ -96,5 +94,6 @@ struct SettingsDestinationView: View {
 }
 
 #Preview("Réglages") {
-    NavigationStack { SettingsView(store: InMemorySettingsStore()) }
+    NavigationStack { SettingsView() }
+        .environment(GeneralSettingsModel(store: InMemorySettingsStore()))
 }

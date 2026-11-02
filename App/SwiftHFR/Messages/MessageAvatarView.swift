@@ -5,7 +5,8 @@ import UIKit
 // Port of HFRswift/Swift/MPListView.swift (MPAvatarView, MPAvatarImageStore) @ 2440d79. Differences: reads the avatar cache only, never
 // downloads.
 /// The interlocutor's avatar from the avatar cache (LOT-066), a generic one when the cache has none, a group icon for a
-/// group thread. It only reads the cache: HFR's list rows carry no avatar link, and nothing here downloads one.
+/// group thread; the row sets its size (LOT-169 density). It only reads the cache: HFR's list rows carry no avatar link,
+/// and nothing here downloads one.
 struct MessageAvatarView: View {
     let pseudo: String?
     let isGroup: Bool
@@ -21,7 +22,8 @@ struct MessageAvatarView: View {
                 placeholder("person.crop.circle.fill")
             }
         }
-        .frame(width: 40, height: 40)
+        .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+        .aspectRatio(1, contentMode: .fit)
         .clipShape(Circle())
         .overlay { Circle().stroke(.tertiary, lineWidth: 1) }
         .accessibilityHidden(true)

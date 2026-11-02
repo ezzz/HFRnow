@@ -7,17 +7,26 @@ import SwiftUI
 struct SwiftHFRApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var accounts = AccountsModel.live()
+    /// The "Général" settings, shared by the settings screen and every screen that reads the type scale and density.
+    @State private var general: GeneralSettingsModel
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
         // Settings keep their legacy keys: clamp an unknown theme mode and migrate the old text size once (LOT-060).
         _ = LegacySettingsNormalizer.run(on: UserDefaultsSettingsStore())
+        // Created after the migration, so it reads the migrated text size.
+        _general = State(initialValue: GeneralSettingsModel(
+            store: UserDefaultsSettingsStore(), rotationChanged: { OrientationPolicy.refresh() }
+        ))
     }
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environment(accounts)
+                .environment(general)
+                // One type scale and one list density for every screen, live (LOT-169).
+                .appTypography(general.textScale, density: general.listDensity)
                 // Restores the stored accounts and their sessions once per launch (LOT-081).
                 .task { await accounts.restore() }
                 // Back in the foreground: sessions the forum did not confirm are checked again, quietly (#300).
