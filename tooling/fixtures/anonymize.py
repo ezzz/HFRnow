@@ -292,8 +292,16 @@ def mask_aq_text(value):
                    for part in re.split(r"(&#?\w+;)", value))
 
 
+def is_aq_document(text):
+    """An Alertes Qualitaÿ feed (RSS) or per-topic list (XML): only those get the AQ text masking."""
+    head = text.lstrip("\ufeff \t\r\n")[:400]
+    return head.startswith("<?xml") and bool(re.search(r"<alertes\b|Alertes Qualita", head))
+
+
 def anonymize_aq_text(text):
-    """Mask the member-written free text of an Alertes Qualitaÿ feed or list."""
+    """Mask the member-written free text of an Alertes Qualitaÿ feed or list (no-op on other files)."""
+    if not is_aq_document(text):
+        return text
     for rx in AQ_TEXT_RES:
         text = rx.sub(lambda m: m.group(1) + mask_aq_text(m.group(2)) + m.group(3), text)
     return text
@@ -1801,6 +1809,7 @@ def verify_own_topic(text):
 # HTML of each RSS description scanned with this verifier's own patterns.
 _V_AQ_MASKED = re.compile(r"(?:x|&#?[0-9A-Za-z]+;|[^\w&])*")
 _V_AQ_REPORTER = re.compile(r"<li>(?:(?!</li>).)*?\]\s*<b>([^<]*)</b>\s*:([^<]*)</li>", re.S)
+_V_AQ_LI = re.compile(r"<li\b.*?</li>|<li\b.*", re.S | re.I)
 
 
 def _v_aq_alias(name):
@@ -1810,7 +1819,7 @@ def _v_aq_alias(name):
 def verify_aq(text):
     """[(line, column, reason)] for every Alertes Qualitaÿ member or free-text value left real; [] for other files."""
     import xml.etree.ElementTree as ET  # noqa: PLC0415 (only AQ files need it)
-    head = text.lstrip()[:400]
+    head = text.lstrip("\ufeff \t\r\n")[:400]
     if not head.startswith("<?xml") or not re.search(r"<alertes\b|Alertes Qualita", head):
         return []
     res = []
@@ -1818,7 +1827,7 @@ def verify_aq(text):
     def bad(reason):
         res.append((1, 1, "AQ check: " + reason))
     try:
-        root = ET.fromstring(text.encode("utf-8"))
+        root = ET.fromstring(text.lstrip("\ufeff").encode("utf-8"))
     except ET.ParseError:
         return [(1, 1, "AQ check: not well-formed XML")]
     for alert in root.iter("alerte"):
@@ -1829,7 +1838,11 @@ def verify_aq(text):
     for n, item in enumerate(root.iter("item"), 1):
         if not _V_AQ_MASKED.fullmatch(html.escape(item.findtext("title", ""), quote=False)):
             bad("RSS item %d title not masked" % n)
-        for who, comment in _V_AQ_REPORTER.findall(item.findtext("description", "")):
+        description = item.findtext("description", "")
+        # Fail closed: a reporter line of any other shape is neither masked nor checked by the rules above.
+        if any(not _V_AQ_REPORTER.fullmatch(li) for li in _V_AQ_LI.findall(description)):
+            bad("RSS item %d reporter line of an unknown shape" % n)
+        for who, comment in _V_AQ_REPORTER.findall(description):
             if not _v_aq_alias(who):
                 bad("RSS item %d reporter not aliased" % n)
             if not _V_AQ_MASKED.fullmatch(comment.strip()):

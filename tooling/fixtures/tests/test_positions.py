@@ -350,6 +350,17 @@ class AQTests(unittest.TestCase):
 
     def test_other_files_are_not_aq(self):
         self.assertEqual(A.verify_aq('<html><item><title>Real words</title></item></html>'), [])
+        page = '<ul><li>[le 1] <b>Real words</b> : more real words</li></ul><item><title>Real title</title></item>'
+        self.assertEqual(A.anonymize_aq_text(page), page)
+
+    def test_bom_does_not_skip_the_check(self):
+        self.assertTrue(A.verify_aq("\ufeff" + AQ_LIST))
+        self.assertIn('nom="x', A.anonymize_aq_text("\ufeff" + AQ_LIST))
+
+    def test_reporter_line_of_another_shape_fails_closed(self):
+        page = AQ_RSS.replace("<b>Efgh</b> : idem</li>", "<b>Efgh</b> : <i>Ijkl</i> &lt;b&gt;</li>")
+        out = A.Anonymizer(A.Config()).anonymize(page)
+        self.assertIn("AQ check: RSS item 1 reporter line of an unknown shape", {r for _l, _c, r in A.verify_aq(out)})
 
 
 class CoverageTests(unittest.TestCase):

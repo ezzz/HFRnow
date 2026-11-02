@@ -294,5 +294,7 @@ are not published (none found).
 | A cookie-less poll vote and the poll author's results view (run 8) | Captured, not published: held for an operator decision (see the run 8 PR). |
 | A reply to a locked topic, a ban refusal (run 8) | The locked topic's composer is served (200) but its POST was not sent (not an operator topic); no banned account. |
 | oldcitation, Streamable/Dailymotion/Twitch, reho.st images | Not present on the pages picked; synthetic or a later capture. Run 10 looked for a `reho.st` image on three recent public topic pages and found none (`rehost.diberie.com` instead): the `Referer` gate is captured on `/` and on a path naming no image (`T20`-`T24`). |
+| AQ comment with an entity (#438) | None in the live feed of run 10 (`T01`); an entity in a pseudo cannot survive the alias. |
+| A real `reho.st` image (#134) | None found (see above); the `Referer` gate is captured on `/` and on a path naming no image. |
 | Giphy `search` / `trending` (#175) | Not captured: legacy uses the Giphy SDK (no traceable REST request) and no REST key is configured; decision asked on the issue. |
 | MPStorage document with other clients' namespaces, member pseudos (blacklist), near the 64 KiB cap or with a non-BMP character | None exists in the kit's accounts: user1's document is the empty legacy structure (R60a/R60b), user2 has no storage thread (R13a). Producing one needs a write to a document shared with the user's other clients: out of scope (pending capture [#272](https://github.com/ezzz/HFRnow/issues/272)). |
