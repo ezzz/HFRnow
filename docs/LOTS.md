@@ -152,7 +152,7 @@ Every legacy function and the Phase 4 features, one reviewable PR per lot; each 
 | LOT-084 | Reply composer (send, drafts, errors) | App | medium | Opus → Fable | 048, 063, 081, 083 | legacy parity · MVP | high | [#176](https://github.com/ezzz/HFRnow/issues/176) |
 | LOT-085 | Composer insertion engine and Edit-menu BBCode actions, plus the legacy clear / undo / redo and quote splitting (the visible toolbar is LOT-174, M5) | App | medium | Sonnet → Opus | 084 | legacy parity | medium | [#177](https://github.com/ezzz/HFRnow/issues/177) |
 | LOT-086 | Quote and multi-quote into the composer | App | medium | Opus → Fable | 049, 084, 087 | legacy parity | high | [#178](https://github.com/ezzz/HFRnow/issues/178) |
-| LOT-088 | Edit and delete own messages, never on the first post (deleting the first post is LOT-175, M5) | App | medium | Opus → Fable | 048, 084, 087 | legacy parity | medium | [#180](https://github.com/ezzz/HFRnow/issues/180) |
+| LOT-088 | Edit own messages (the first post too, with its title and subcategory) and delete them, except the first post (deleting the first post is LOT-175, M5) | App | medium | Opus → Fable | 048, 084, 087 | legacy parity | medium | [#180](https://github.com/ezzz/HFRnow/issues/180) |
 | LOT-089 | New topic composer | App | medium | Opus → Fable | 048, 084, 082 | legacy parity | medium | [#181](https://github.com/ezzz/HFRnow/issues/181) |
 | LOT-100 | Poll creation in a new topic | App | medium | Sonnet → Opus | 089 | new (H.1: no source at 2440d79, only `have_sondage` is read) | low | [#191](https://github.com/ezzz/HFRnow/issues/191) |
 | LOT-101 | Archived drafts picker | App | easy | Sonnet → Opus | 063, 084 | new (H.1: `master` only, not at 2440d79) | low | [#192](https://github.com/ezzz/HFRnow/issues/192) |
@@ -293,7 +293,7 @@ Applied on 2026-11-02 (operator decisions on [#379](https://github.com/ezzz/HFRn
 | Split | Lot (a) → new lot (b) | Stays in the lot (a) | New M5 lot (b) | GAP | UXD |
 |---|---|---|---|---|---|
 | 085b | LOT-085 → LOT-174 | insertion engine and Edit-menu BBCode actions, plus the legacy clear / undo / redo and quote splitting (`AnswerView.swift:500-511`, `ReplyComposer.swift:141-175` @ 2440d79) | Visible formatting toolbar in the composer | 084, 085, 086 | 18 |
-| 088b | LOT-088 → LOT-175 | edit, delete with confirmation, never on the first post | Delete the first post of a topic, which deletes the topic, with a confirmation | 097 | 14 |
+| 088b | LOT-088 → LOT-175 | edit own messages (the first post too), delete with confirmation except on the first post | Delete the first post of a topic, which deletes the topic, with a confirmation | 097 | 14 |
 | 109b | LOT-109 → LOT-176 | full-screen viewer, save, copy link | HD image gallery with swipe between the images of a topic | 057 | — |
 | 125b | LOT-125 → LOT-177 | legacy swipes (leading Lu, trailing Supprimer) and the legacy context menu: Première page, Dernière page, Dernière réponse, Page numéro…, Copier le lien (`Favorites.swift:1073-1097`, `Common.swift:3050-3093` @ 2440d79) | Uniform swipe set in every list: Lu with "Annuler", Super favori and Retirer swipes, FEAT-008 | 028, 029, 034 | 08 |
 | 111b | LOT-111 → LOT-178 | first-unread landing and legacy separator | "Nouveau" banner at the first unread message | 063 | 11 |

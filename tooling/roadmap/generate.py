@@ -14,7 +14,8 @@ M2=set(L(87,106,107,108,109,110,111,112,113,114,117,136,  85,86,88,89,100,101,10
 APP=lambda r:r['module']=='App'
 # M5 = UX evolutions (operator decisions 2026-11-02, #379): whole lots moved out of M2 and M4, plus the lots of the
 # `## M5 · UX evolutions` section of LOTS.md (the (b) halves of the splits). M4 = validated legacy parity.
-from m5 import is_m5, M5_OPEN, FOLLOWUPS
+import m5
+from m5 import is_m5, FOLLOWUPS
 M5=set(l for l,r in rows.items() if is_m5(r))
 M2-=M5
 M3=set(l for l,r in rows.items() if r['sec'].startswith('Phase 3') and l not in M1)
@@ -42,7 +43,7 @@ def state(l):
     if r['issue'] in READY: return 'todo','🟦 ready'
     if r['issue'] in CAPTURE: return 'todo','📸 waits on capture '+CAPTURE[r['issue']]
     miss=[d for d in deps(r) if d in rows and not done(d)]
-    if not miss and l in M5 and not M5_OPEN: return 'todo','⏸️ M5 not opened yet (the orchestrator opens it)'
+    if not miss and l in M5 and not m5.M5_OPEN: return 'todo','⏸️ M5 not opened yet (the orchestrator opens it)'
     if not miss: return 'todo','🟨 deps done, still `blocked` → triage'
     if len(miss)>6: return 'todo',f'⛔ waits on {len(miss)} lots'
     return 'todo','⛔ waits on '+', '.join(x[4:] for x in miss)

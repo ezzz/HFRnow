@@ -1,6 +1,7 @@
 import sys
 from datetime import datetime,timezone
 from pathlib import Path
+import m5
 from generate import *
 # usage: render.py [post-mvp issue number, default 324] [output dir, default tooling/roadmap/out]
 POST=sys.argv[1] if len(sys.argv)>1 else '324'
@@ -94,7 +95,7 @@ M3 runs **in parallel** with M2 (☁️ cloud sessions). M2, M4 and M5 mostly ne
 '''
 def triage():
     out=[]
-    for ms in (M1,M2,M3,M4):  # M5 lots are opened by the orchestrator, never by this instruction
+    for ms in (M1,M2,M3,M4)+((M5,) if m5.M5_OPEN else ()):  # a closed M5 is opened by the orchestrator, never by this instruction
         for l in sorted(ms,key=n):
             if state(l)[1].startswith('🟨') and l!='LOT-070': out.append(f"{l} #{rows[l]['issue']}")
     return out

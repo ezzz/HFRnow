@@ -1122,7 +1122,7 @@
 {
 "lot": "LOT-088",
 "star": false,
-"scope": "Edit and delete own messages, never on the first post (deleting the first post is LOT-175, M5)",
+"scope": "Edit own messages (the first post too, with its title and subcategory) and delete them, except the first post (deleting the first post is LOT-175, M5)",
 "module": "App",
 "diff": "medium",
 "model": "Opus → Fable",

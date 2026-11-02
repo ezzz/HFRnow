@@ -1,6 +1,7 @@
 """Tests for tooling/roadmap: LOTS.md -> lots.json, tracker JSON -> state, hygiene sweep (no network)."""
 import sys
 import unittest
+from unittest import mock
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -9,6 +10,7 @@ sys.path.insert(0, str(ROADMAP))
 
 import generate  # noqa: E402
 import hygiene  # noqa: E402
+import m5  # noqa: E402
 import lots_from_md  # noqa: E402
 import sync_state  # noqa: E402
 
@@ -117,8 +119,15 @@ class Milestones(unittest.TestCase):
 
 class Boards(unittest.TestCase):
     def test_closed_m5_lots_show_as_not_opened_and_followups_belong_to_a_milestone(self):
-        import m5
-        self.assertFalse(m5.M5_OPEN)
+        with mock.patch.object(m5, "M5_OPEN", False):
+            self._closed_m5_assertions()
+
+    def test_an_open_m5_lot_with_dependencies_done_goes_to_triage_like_any_lot(self):
+        with mock.patch.object(m5, "M5_OPEN", True):
+            states = [generate.state(l)[1] for l in generate.M5 if not generate.done(l)]
+        self.assertFalse(any(x.startswith("⏸️") for x in states))
+
+    def _closed_m5_assertions(self):
         self.assertTrue(all(m in ("M1", "M2", "M3", "M4") for m, _ in m5.FOLLOWUPS.values()))  # not lots: never M5-only
         self.assertEqual(m5.FOLLOWUPS[432][0], "M4")
         text = generate.followups_block("M4")
@@ -226,6 +235,14 @@ class Hygiene(unittest.TestCase):
         actions, _ = self.run_sweep(issues, pulls, own)
         self.assertEqual([a["issue"] for a in actions], [2])
 
+    @mock.patch.object(m5, "M5_OPEN", True)
+    def test_once_m5_is_open_its_lots_follow_the_ordinary_sweep_rules(self):
+        lots = lots_from_md.parse("## M5 · UX evolutions\n\n" + HEAD + md_row("001", 1) + md_row("002", 2, deps="001", module="App"))
+        issues = [issue(1, "closed"), issue(2, labels=["status: blocked"])]
+        actions, _ = hygiene.analyze(issues, [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z")], lots, {}, NOW)
+        self.assertEqual([a["issue"] for a in actions], [2])
+
+    @mock.patch.object(m5, "M5_OPEN", False)
     def test_an_m5_lot_is_never_unblocked_by_the_sweep(self):
         lots = lots_from_md.parse("## M5 · UX evolutions\n\n" + HEAD + md_row("001", 1) + md_row("002", 2, deps="001", module="App"))
         issues = [issue(1, "closed"), issue(2, labels=["status: blocked"])]
@@ -233,12 +250,14 @@ class Hygiene(unittest.TestCase):
         self.assertEqual(actions, [])
         self.assertTrue(any("M5 lots with every dependency done" in r and "#2" in r for r in reports))
 
+    @mock.patch.object(m5, "M5_OPEN", False)
     def test_an_m5_lot_labelled_ready_is_reported(self):
         lots = lots_from_md.parse("## M5 · UX evolutions\n\n" + HEAD + md_row("001", 1, module="App"))
         issues = [issue(1, labels=["status: ready"])]
         _, reports = hygiene.analyze(issues, [], lots, {}, NOW)
         self.assertTrue(any("M5 lot labelled `status: ready`" in r and "#1" in r for r in reports))
 
+    @mock.patch.object(m5, "M5_OPEN", False)
     def test_an_m5_lot_without_a_credited_pr_is_not_offered_for_a_hand_unblock(self):
         lots = lots_from_md.parse("## Phase 3 — engine\n\n" + HEAD + md_row("001", 1) + md_row("100", 2, deps="001", module="App"))
         issues = [issue(1, "closed"), issue(2, labels=["status: blocked"])]  # LOT-100 is a moved M5 lot; no merged PR credited
