@@ -75,21 +75,25 @@ extension HFRBBCodeWriter {
     static func replacingNested(_ tag: String, in text: Scalars, open openHTML: String, close closeHTML: String) -> Scalars {
         let open = scalars("[\(tag)]"), close = scalars("[/\(tag)]")
         guard find(close, in: text, from: 0) != nil else { return text }
-        /// The tags, in order: position, length, open or close, matched.
-        var tags: [(index: Int, length: Int, isOpen: Bool, matched: Bool)] = []
+        /// A block tag of the text: where it is, whether it opens, whether its match was found.
+        struct BlockTag {
+            let index: Int, length: Int, isOpen: Bool
+            var matched: Bool
+        }
+        var tags: [BlockTag] = []
         var waiting: [Int] = []
         var nextOpen = find(open, in: text, from: 0), nextClose = find(close, in: text, from: 0)
         while let next = [nextOpen, nextClose].compactMap({ $0 }).min() {
             if next == nextOpen {
-                tags.append((next, open.count, true, false))
+                tags.append(BlockTag(index: next, length: open.count, isOpen: true, matched: false))
                 waiting.append(tags.count - 1)
                 nextOpen = find(open, in: text, from: next + open.count)
             } else {
                 if let openEntry = waiting.popLast() {
                     tags[openEntry].matched = true
-                    tags.append((next, close.count, false, true))
+                    tags.append(BlockTag(index: next, length: close.count, isOpen: false, matched: true))
                 } else {
-                    tags.append((next, close.count, false, false))
+                    tags.append(BlockTag(index: next, length: close.count, isOpen: false, matched: false))
                 }
                 nextClose = find(close, in: text, from: next + close.count)
             }

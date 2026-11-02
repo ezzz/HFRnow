@@ -53,8 +53,8 @@ struct HFRBBCodeWriter {
                 + "<br /><br /><div class=\"Topic masque\"><p>",
             close: "</p></div></td></tr></table></div><p>")
         text = Self.replacingColours(in: text)
-        for (tag, open, close) in Self.inlineTags {
-            text = Self.replacingPairs(tag, in: text) { Self.scalars(open) + $0 + Self.scalars(close) }
+        for inline in Self.inlineTags {
+            text = Self.replacingPairs(inline.tag, in: text) { Self.scalars(inline.open) + $0 + Self.scalars(inline.close) }
         }
         // 9. Bullets: the first `[*]` of a line opens `ul > li` for the rest of the line, whose break is consumed (`R95d`).
         text = Self.replacingBullets(in: text)

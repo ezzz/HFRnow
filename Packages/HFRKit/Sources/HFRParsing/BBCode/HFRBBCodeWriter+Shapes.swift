@@ -38,9 +38,14 @@ extension HFRBBCodeWriter {
         }
     }
 
+    /// An inline tag and the HTML HFR writes around its content.
+    struct InlineTag {
+        let tag: String, open: String, close: String
+    }
+
     /// `b` → `strong`, `i` → `em`, `u` → `span.u`, `strike` → `strike` (`R95d`).
-    static let inlineTags: [(tag: String, open: String, close: String)] = [
-        ("b", "<strong>", "</strong>"), ("i", "<em>", "</em>"), ("u", "<span class=\"u\">", "</span>"),
-        ("strike", "<strike>", "</strike>")
+    static let inlineTags: [InlineTag] = [
+        InlineTag(tag: "b", open: "<strong>", close: "</strong>"), InlineTag(tag: "i", open: "<em>", close: "</em>"),
+        InlineTag(tag: "u", open: "<span class=\"u\">", close: "</span>"), InlineTag(tag: "strike", open: "<strike>", close: "</strike>")
     ]
 }
