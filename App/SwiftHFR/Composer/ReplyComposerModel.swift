@@ -87,7 +87,8 @@ final class ReplyComposerModel: Identifiable {
     var hasText: Bool { !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
     /// Send is offered: some text (and, for a new private message, a recipient and a subject), the draft read, nothing
-    /// running, not closed. HFR refuses a blank field (`W17a`); the engine checks it again.
+    /// running, not closed. HFR refuses an empty text (`W17a`); a blank recipient or subject is refused here and by the engine
+    /// (HFR's answer to one is not captured).
     var canSend: Bool {
         guard hasText, canEdit else { return false }
         return !isNewMessage || (!Self.isBlank(recipient) && !Self.isBlank(subject))

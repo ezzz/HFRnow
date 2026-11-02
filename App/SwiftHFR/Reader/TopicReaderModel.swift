@@ -219,10 +219,9 @@ final class TopicReaderModel {
             await load(shown.atPage(page.maxPage + 1), keepsScrollPosition: false, anchor: .lastMessage)
             return
         }
-        let mine = generation + 1
-        await load(shown.atPage(page.maxPage), keepsScrollPosition: false, anchor: .lastMessage)
-        // Only when that load delivered (no other load started since, no failure) and its pager names a later page.
-        guard generation == mine, error == nil, let served = self.page, let servedTarget = self.shown,
+        let delivered = await load(shown.atPage(page.maxPage), keepsScrollPosition: false, anchor: .lastMessage)
+        // Only when that load delivered (not superseded, no failure) and its pager names a later page.
+        guard delivered, error == nil, let served = self.page, let servedTarget = self.shown,
               served.maxPage > served.currentPage else { return }
         await load(servedTarget.atPage(served.maxPage), keepsScrollPosition: false, anchor: .lastMessage)
     }
@@ -268,7 +267,9 @@ final class TopicReaderModel {
         case lastMessage
     }
 
-    private func load(_ target: ReaderTarget, keepsScrollPosition: Bool, anchor rule: AnchorRule = .target) async {
+    /// Returns whether this load delivered its result (false when a newer load or `cancel()` superseded it).
+    @discardableResult
+    private func load(_ target: ReaderTarget, keepsScrollPosition: Bool, anchor rule: AnchorRule = .target) async -> Bool {
         task?.cancel()
         generation += 1
         let mine = generation
@@ -287,6 +288,7 @@ final class TopicReaderModel {
         }
         self.task = task
         await task.value
+        return generation == mine
     }
 
     private func finish(

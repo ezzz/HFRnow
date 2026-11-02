@@ -24,10 +24,14 @@ struct MessageListView: View {
         .navigationBarTitleDisplayMode(.inline)
         .overlay { overlay(loader) }
         .safeAreaInset(edge: .top) {
-            if let error = loader.error, loader.value != nil {
-                LoadFailureBanner(error: error, retry: model.retry)
-            } else if let confirmation = model.sentConfirmation {
-                MessageSentBanner(text: confirmation, close: model.clearSentConfirmation)
+            // Both can show: a message HFR confirmed stays confirmed when the reload after it fails.
+            VStack(spacing: 8) {
+                if let confirmation = model.sentConfirmation {
+                    MessageSentBanner(text: confirmation, close: model.clearSentConfirmation)
+                }
+                if let error = loader.error, loader.value != nil {
+                    LoadFailureBanner(error: error, retry: model.retry)
+                }
             }
         }
         .task(id: model.sentConfirmation) {

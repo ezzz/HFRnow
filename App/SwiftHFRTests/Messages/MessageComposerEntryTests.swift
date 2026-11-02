@@ -15,7 +15,6 @@ struct MessageComposerEntryTests {
         MessageListModel(source: source, isLoggedIn: { loggedIn })
     }
 
-
     // MARK: New message from the list
 
     @Test func theCapturedListLinksToTheNewMessageForm() throws {

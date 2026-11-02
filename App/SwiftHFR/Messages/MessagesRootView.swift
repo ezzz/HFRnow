@@ -15,6 +15,10 @@ struct MessagesRootView: View {
         } detail: {
             MessageReaderColumn(model: model, reader: environment.reader, composer: environment.composer)
         }
+        // A conversation selected by the model (the thread of a new MP) is shown on a compact width too, as a tap would.
+        .onChange(of: model.selected) { _, selected in
+            if selected != nil { column = .detail }
+        }
     }
 }
 

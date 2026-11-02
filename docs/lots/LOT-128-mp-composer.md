@@ -43,7 +43,8 @@ A failed or superseded load asks nothing more.
 
 The sheet is LOT-084's `ReplyComposerView` with two one-line fields above the editor: "Destinataire" (no autocorrection,
 no capitalisation) and "Sujet", focused on the first empty one. `ReplyComposerModel(composing: .newPrivateMessage(_))`:
-- **Send** is offered with a non-blank recipient, subject and text (HFR refuses an empty field, `W17a`). Characters above
+- **Send** is offered with a non-blank recipient, subject and text (HFR refuses an empty text, `W17a` on an MP reply; a blank
+  recipient or subject is refused locally, HFR's answer to one is not captured). Characters above
   U+FFFF in any of the three are refused before any request, listed (Q-3, `W12`). Recipient and subject are sent trimmed,
   as legacy Swift did; the text as typed. `LiveReplyPoster.newPrivateMessage` fetches the form at send time through the
   current account's session and posts LOT-048 `newPrivateMessage(to:subject:text:)`, which checks again (blank, line
@@ -68,7 +69,10 @@ no capitalisation) and "Sujet", focused on the first empty one. `ReplyComposerMo
 - Account switch while the sheet is open: as LOT-084, the sheet goes away and keeps the draft under the previous account.
 - The list page changes while the sheet is open: the sheet keeps the target it was opened with.
 - Two threads with the subject sent on page 1 (an older one and the new one): none is opened.
-- The list reload after a confirmed MP fails: the sentence is shown, the failure banner too, nothing opens.
+- The list reload after a confirmed MP fails: the sentence is shown above the failure banner, nothing opens.
+- A thread opened by the model (after a new MP) shows the conversation on an iPhone too: `MessagesRootView` moves the
+  compact column to the detail when `selected` is set, as a tap does. Not run with a logged-in account (an agent sends no
+  real MP): the operator checks it on the first real new MP.
 - A conversation whose last page grew while reading (another member answered): the pager of the page asked names the new
   last page, which is asked next, like a page the reply opened.
 
@@ -86,7 +90,7 @@ is its differential test).
   `http` and public links are no target; a confirmed MP sends recipient, subject (trimmed) and text once and clears the
   draft; Send needs the three fields; a non-BMP character in the recipient or the subject is refused before any request;
   an unconfirmed MP says to check the private messages and closes as `.checkTopic`; refusals name the field; subject and
-  text are kept per recipient and restored, the typed recipient is not; a reply has no subject nor recipient; the live
+  text are kept per recipient and restored, the typed recipient is not; a subject-only draft is kept; a reply has no subject nor recipient; the live
   poster refuses an off-forum link without a request.
 - `Messages/MessageComposerEntryTests`: `R13a` gives the new-MP link; the button follows the loaded page and is absent
   logged out; a confirmed MP reloads page 1 and opens the one thread with its subject (also on `R13a` with `W10`'s subject);
@@ -98,7 +102,7 @@ Shown to fail without the change (each mutation run on the simulator makes its t
 conversation, no follow-up page, a follow-up after a failed load, the first of several matching rows opened, no thread
 opened, no new-MP link kept from the page, no reload after an unconfirmed MP, Send without recipient or subject, the
 non-BMP check on the text only, the subject not saved, not restored, not counted for the close choice, the recipient not
-trimmed, the reply's "unconfirmed" text on an MP.
+trimmed, the reply's "unconfirmed" text on an MP; after the Fable round: a subject-only draft dropped.
 
 ## Pending capture
 
@@ -106,6 +110,7 @@ trimmed, the reply's "unconfirmed" text on an MP.
 - Several recipients in `dest`: the separator HFR accepts, and its answer to an unknown pseudo (the sentence is shown
   through `rejected` or `unconfirmed` either way); a pseudo with a space or a `+` in a `dest=` link (`HFRURL.queryValue`
   keeps `+`).
+- HFR's answer to a new MP with a blank recipient or subject (the app never sends one).
 - The answer to a new MP from an account that may not send one, and a flood refusal on MP creation (`W11x` is a second
   new thread in a row, refused: its sentence is shown).
 - The sender's list when several threads share a subject: the app opens none.

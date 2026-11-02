@@ -124,6 +124,7 @@ struct NewMessageComposerTests {
         #expect(ComposerMessages.message(for: .emptyInput(.recipient), newMessage: true).contains("destinataire"))
         #expect(ComposerMessages.message(for: .notLoggedIn, newMessage: true).hasSuffix("renvoyez le message."))
         #expect(!ComposerMessages.message(for: .tooLong(.subject, maximum: 70), newMessage: true).contains("peut-être"))
+        #expect(ComposerMessages.message(for: .formUnavailable(message: nil), newMessage: true).contains("message privé"))
     }
 
     // MARK: Draft
@@ -147,6 +148,19 @@ struct NewMessageComposerTests {
         #expect(second.text == "Texte gardé")
         // The link's recipient, not the one typed: a draft keeps no recipient (LOT-063).
         #expect(second.recipient == "user1")
+    }
+
+    @Test func aSubjectWithoutTextIsKeptAsADraft() async {
+        let drafts = DraftStore(persistence: InMemoryDraftPersistence())
+        let first = composer(ScriptedPoster([]), drafts: drafts)
+        await first.start()
+        first.update(subject: "Sujet seul")
+        await first.keepDraftAndClose()
+        #expect(first.closeReason == .keptDraft)
+        let second = composer(ScriptedPoster([]), drafts: drafts)
+        await second.start()
+        #expect(second.subject == "Sujet seul")
+        #expect(second.text.isEmpty)
     }
 
     @Test func aReplyHasNoSubjectNorRecipient() async {
