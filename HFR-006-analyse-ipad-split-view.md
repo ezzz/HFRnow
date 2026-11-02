@@ -1,6 +1,6 @@
 # HFR-006 - iPad split view
 
-Dernière vérification : 27 juillet 2026, branche `beta`, base version 4.0.2 build 28.
+Dernière vérification : 27 juillet 2026, branche `beta`, base version 4.0.2 build 28. Complément iPhone Duo : novembre 2026, version 4.0.4 build 37 (non vérifié sur appareil).
 
 ## Statut
 
@@ -13,6 +13,8 @@ Sur iPad en taille régulière, `RootTabView` coordonne deux présentations excl
 - les pages directes utilisent seulement sidebar + page, sans panel intermédiaire vide.
 
 Sur iPhone et lorsque l'iPad passe en taille compacte, le `TabView` et le flux liste puis push restent inchangés.
+
+iPhone Duo (novembre 2026) : la même racine split view est utilisée sur tout iPhone dont la scène est regular/regular, c'est-à-dire l'écran intérieur du Duo, en portrait comme en paysage. L'écran extérieur (compact) garde le `TabView`. La règle iPad (largeur regular seule) est inchangée. Plier ou déplier bascule entre les deux racines, comme un redimensionnement Split View sur iPad. Le sujet en cours suit la bascule (`FoldHandoffStore`) : la `MessagesView` racine de l'onglet sélectionné enregistre sujet et page ; au dépliage, `RootTabView` le sélectionne dans le split ; au pliage, il est poussé sur la pile de l'onglet compact (`foldHandoffDestination()`). Seul le sujet racine de l'onglet sélectionné est transporté ; les vues empilées depuis ses liens ne le sont pas. Sur l'écran intérieur en portrait, la liste se replie au choix d'un sujet (`detailOnly`) et revient en paysage ; le style reste `.balanced` (changer de type de style reconstruirait tout le split à chaque rotation).
 
 ## Architecture retenue
 
@@ -68,7 +70,7 @@ Une liste recréée après refresh peut ainsi retrouver le topic sélectionné e
 
 ### Synchronisation des rubriques
 
-- Catégories, Favoris, Messages, Bookmarks et Alertes Qualitay possèdent chacun leur sélection indépendante.
+- Catégories, Favoris, Messages, Bookmarks et Alertes Qualitay possèdent chacun leur sélection indépendante. Un changement de racine (pliage du Duo, redimensionnement iPad sous le seuil compact) remet toutes ces sélections à zéro ; seul le sujet transporté par `FoldHandoffStore` est restauré.
 - Un changement de rubrique remplace immédiatement la liste et le détail par le contexte de cette rubrique.
 - Le passage d'une page directe à une liste, ou d'une liste à une autre, restaure l'affichage liste + détail.
 - Un ancien topic ne peut donc plus rester visible face à une liste appartenant à une autre rubrique.
@@ -82,7 +84,7 @@ Une liste recréée après refresh peut ainsi retrouver le topic sélectionné e
 - Le fond sélectionné s'étend presque sur toute la ligne avec un rayon de 6 points, afin de ne pas ressembler aux teintes de type de topic.
 - Une nouvelle sélection remplace le topic racine et réinitialise la pile interne du détail.
 - Les liens internes et résultats de recherche de `MessagesView` continuent à s'empiler dans cette pile.
-- La suppression du MP ou du bookmark affiché ferme le détail correspondant.
+- La suppression du MP ou du bookmark affiché ferme le détail correspondant ; si la liste était masquée, elle est réaffichée (aucune sélection vidée ne laisse un détail vide sans liste).
 - Un changement de compte ou une déconnexion efface toutes les sélections.
 
 ### Affichage plein topic

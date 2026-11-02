@@ -633,6 +633,8 @@ struct MPListView: View {
                 }
             }
             .navigationTitle("Messages")
+            .expandedPhoneInlineNavigationTitle()
+            .foldHandoffDestination()
             .onAppear {
                 if isActive {
                     refreshContentOnVisibility()
