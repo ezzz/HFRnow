@@ -65,6 +65,19 @@ the own topic from the request (URL, body, `numeropost=`) when a `.hop` answer d
 `img3.super-h.fr` upload answers (a 16×16 grey JPEG, legacy multipart layout, the legacy key and a wrong one): the
 key, `delete_hash`, delete token and image id are redacted, the random file number is `1234567890`.
 
+Run 9 (2026-11-02, `mac/capture-batch` batch 2, ezzz/HFRnow#169, #114, #333, #334, #172 and #171, private MP writes
+between the operator's two accounts, 28 HFR requests including 3 static scripts of `forum-images.hardware.fr`, one attempt
+per state): user2 opened a throwaway thread `fixture-test-2` to user1 whose first post holds every composer toolbar tag
+(`W61`); user1 answered with BMP emoji (`W62`); user2 sent a multi-quote reply with the selection cookie written as the
+site's `forum2.js` `quoter()` writes it (`escape()`d value, host-only, path `/`) on both the composer GET and the POST
+(`R95g`, `W63`). The stored sources are the edit forms (`R95c`, `R95f`, `content_form` byte for byte what was sent); the
+rendered HTML is HFR's own preview `POST /apercu.php` (`R95d`, `R95h`, the `apercu_form` of the composer, fields as
+`editPost.js` `apercevoir()` sets them), because `--private` replaces the bodies of the thread pages. On the raw thread
+pages, the preview equals the message body once whitespace is removed, apart from the opening `<p>` the preview lacks
+(compared locally, not published). user2 then sent legacy's `manageaction.php` delete body (`MPListView.swift:131-150`) with a
+wrong `hash_check`, which HFR refused (`W64x`), then deleted the thread with the right one (`W64`); user1 deleted it too
+(`W65`, clean-up). Nothing of the thread is left on HFR. `flows.py form` gained `--cookie` (sent with the POST only).
+
 | Id | File | Covers | Row | Lots |
 |---|---|---|---|---|
 | R01 | `R01-home-anon.html` | Home, logged out: 19 categories (incl. `apple`, `ia`), moderator MP links, empty `hash_check` in `#fastsearch` | R01 | 021, 045 |
@@ -226,11 +239,30 @@ key, `delete_hash`, delete token and image id are redacted, the random file numb
 | R92 | `R92-topic-after-first-post-delete-404.html` | The topic URL afterwards: **404**, `.hop` "Désolé, ce sujet n'existe pas" + back link | R20 | 030, 048 |
 | U01 | `U01-rehost-upload-success.json` | `img3.super-h.fr` upload, legacy key: 200 JSON "file uploaded", `image.url`, `image.thumb.url` (`.th.`), `image.medium` all `null`, numbers as numbers; delete fields redacted | — | 056 |
 | U02 | `U02-rehost-upload-wrong-key.json` | Same upload with a wrong key: 400 JSON "Invalid API key." code 100 | — | 056 |
+| W61 | `W61-mp-create-bbcode-success.html` | New MP `fixture-test-2` (user2 → user1) whose first post holds b, i, u, strike, spoiler, quote, url (both forms), img, fixed, code, cpp, color, list, nested and unclosed tags, and raw `<b>`/`&`/`"`: "Votre message a été posté avec succès !", refresh to the MP list | W10 | 048, 097 |
+| R95c | `R95c-mp-edit-form-bbcode-source.html` | Edit form of `W61` (owner): `content_form` = the CRLF source sent, byte for byte; the "Vue Rapide" review below holds the rendered post, `[img]` written as a link there | R43 | 097, 036 |
+| R95d | `R95d-apercu-bbcode-preview.html` | `POST /apercu.php` (`hash_check`, `apercu_contenu` = the `W61` source, `apercu_smiley=0`, `config`): 200, the rendered BBCode in `body.reponse`, line breaks written `\r<br />` (the CR kept) | — | 097, 152 |
+| W62 | `W62-mp-reply-bmp-emoji-success.html` | Reply (user1) with U+2764, U+2764 U+FE0F, U+2714, U+2605 and a lone U+FE0F: success | W12 | 048, 096, 151 |
+| R95f | `R95f-mp-edit-form-bmp-emoji-source.html` | Edit form of `W62` (user1): `content_form` keeps every BMP emoji and both U+FE0F unchanged | R43, X9 | 096, 151, 036 |
+| R95h | `R95h-apercu-bmp-emoji-preview.html` | Preview of the `W62` source: the emoji and U+FE0F written as UTF-8 characters, no `<img>` | — | 096, 151, 097 |
+| R95g | `R95g-mp-composer-multiquote-cookie-escaped.html` | MP composer (user2) with `quoteshardwarefr-prive-<post>=%7C<a>%7C<b>` (the site JS's `escape()`d form): two `[quotemsg=<n>,1,<id>]` blocks prefilled, as `R47c` with the raw `\|` form | W14 | 049, 086 |
+| W63 | `W63-mp-reply-multiquote-cookie-deleted.html` | Reply posted with that prefill and the cookie sent: success; the answer sets `quoteshardwarefr-prive-<post>=deleted; expires=Thu, 01-Jan-1970 00:00:01 GMT; path=/`, **no `Domain`** (host-only); `W62`, sent without the cookie, carries the same header | W14 | 049, 086 |
+| W64x | `W64x-mp-thread-delete-bad-token-rejected.html` | Thread delete, legacy body, wrong `hash_check`: the 99-byte plain text of `W17b`, nothing deleted | X1 | 094, 037 |
+| W64 | `W64-mp-thread-delete-owner-success.html` | Thread delete by the owner (`topic0=<post>`, `valuecat0=prive`, `valueforum0=hardwarefr`, `topic1=-1`, `topic_statusno1=-1`, `action_reaction=valid_eff_prive`, `type_page=forum1`): link-less `.hop` "Action effectuée avec succès", refresh 1 s to `/forum1.php?config=hfr.inc&cat=prive&page=1&subcat=&…`, no cookie set | X1 | 094, 037 |
+| R95j | `R95j-mp-list-owner-after-thread-delete.html` | Owner's MP list afterwards: no row, no pager | R13 | 094, 023 |
+| R95k | `R95k-mp-list-recipient-after-thread-delete.html` | Recipient's list (user1) afterwards: the thread is still there (row 1); 50 rows, 7 pages; the MPStorage row is row 42 of page 1 | R13, R14 | 094, 023, 038 |
+| R96c | `R96c-mp-thread-owner-after-thread-delete.html` | Thread URL for the owner afterwards: 200, `.hop` "Ce message ne vous est pas destiné, désolé" (as `RA5`) | X1 | 094, 030 |
+| W65 | `W65-mp-thread-delete-recipient-success.html` | The recipient deletes it too (same body, its own `hash_check`): the same `.hop` | X1 | 094, 037 |
+| R96d | `R96d-mp-thread-recipient-after-thread-delete.html` | Thread URL for the recipient afterwards: the same "pas destiné" `.hop` | X1 | 094, 030 |
+| R96a | `R96a-mp-list-past-last-page.html` | user1's MP list `page=8` of 7, with `MPStorage.m:694`'s query: 200, no redirect, no `.hop`, header row and no topic row; title "… - Page : 8"; the pager lists pages 1 to 7 as links (no current page), "Page Précédente" links page 7, no "Page Suivante" link | R14 | 023, 038, 047, 126 |
+| R96b | `R96b-mpstorage-thread-other-account-not-addressed.html` | user2 opens user1's MPStorage thread with legacy's read URL (`MPStorage.m:766`, as `R60a`): 200, the "pas destiné" `.hop` legacy's `parseMPStorage` checks (`MPStorage.m:837`) | R60 | 038 |
 
 ## Not captured
 
 | Rows | Why |
 |---|---|
+| MPStorage row on page 2 or later (#333) | Not reachable on the kit's accounts: user1's storage row is row 42 of 50 on page 1 (`R95k`); pushing it down takes about 9 newer conversations, and HFR allows one new MP per account per 60 minutes (`W11x`). user2 has no storage thread. |
+| Thread pages of `fixture-test-2` (run 9) | Captured, not published: `--private` replaces their bodies; the render is published as the `/apercu.php` previews `R95d`, `R95h`. The site scripts read for the cookie and preview code (`forum2.js`, `editPost.js`, `message.js`) are not committed. |
 | W02 | Dropped: W01's refusal already gives the failure page; a second failed login was not worth the lockout risk. |
 | R63c, R63d | Captured, not published: the own topic's edit form after the edit and after the restore, read back only to verify the restore byte for byte (R63d equals R63b apart from the connected-users count). |
 | A second throwaway thread | HFR allows one new topic per 60 minutes (W11x); everything ran in one thread. |

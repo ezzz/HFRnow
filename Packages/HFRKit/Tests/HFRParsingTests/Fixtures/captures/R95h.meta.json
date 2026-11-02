@@ -1,0 +1,23 @@
+{
+  "id": "R95h",
+  "account": "user1",
+  "method": "POST",
+  "url_template": "POST /apercu.php (form apercu_form of R95f, as editPost.js apercevoir())",
+  "url": "https://forum.hardware.fr/apercu.php",
+  "final_url": "https://forum.hardware.fr/apercu.php",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 02 Nov 2026 07:42:09 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "request_fields": [
+    "hash_check",
+    "apercu_contenu",
+    "apercu_smiley",
+    "config"
+  ],
+  "note": "preview of the W62 source, no write (#171)",
+  "request_body": "hash_check=REDACTED&apercu_contenu=fixture-test+2%2C+emoji%3A+heart+%E2%9D%A4+%28U%2B2764%29+%7C+heart+and+VS16+%E2%9D%A4%EF%B8%8F+%28U%2B2764+U%2BFE0F%29+%7C+check+%E2%9C%94+%28U%2B2714%29+%7C+star+%E2%98%85+%28U%2B2605%29+%7C+VS16+alone+%EF%B8%8F+after+a+letter+%7C+end&apercu_smiley=0&config=hfr.inc",
+  "file": "R95h-apercu-bmp-emoji-preview.html",
+  "private": false
+}
