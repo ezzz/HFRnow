@@ -176,7 +176,7 @@
   384,
   402
  ],
- "generated_at": "2026-11-02 09:46 UTC",
+ "generated_at": "2026-11-02 09:50 UTC",
  "merged_pr": {
   "LOT-003": 387,
   "LOT-023": 19,
@@ -326,6 +326,16 @@
    "draft",
    "Fable"
   ],
+  "LOT-081": [
+   433,
+   "review",
+   "Fable"
+  ],
+  "LOT-085": [
+   433,
+   "review",
+   "Opus"
+  ],
   "LOT-087": [
    409,
    "review",
@@ -378,6 +388,16 @@
   ],
   "LOT-130": [
    411,
+   "review",
+   "Fable"
+  ],
+  "LOT-163": [
+   433,
+   "review",
+   "Opus"
+  ],
+  "LOT-164": [
+   433,
    "review",
    "Fable"
   ],

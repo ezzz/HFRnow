@@ -162,9 +162,9 @@ order.
 
 ## UX evolutions (H.1)
 Classification of directive H.1 (2026-11-01): the `H.1` column of [GAP-LEGACY-VS-SWIFT.md](../migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1). The decision of each UXD row (2026-11-02) is in [the decisions table](../migration/GAP-LEGACY-VS-SWIFT.md#ux-decisions-of-2026-11-02). The code names its legacy counterparts in `// Port of …` comments (AGENTS.md §4), added by [#378](https://github.com/ezzz/HFRnow/pull/378).
-- GAP-092 draft per topic and account, autosaved: kept (no lost text; `master` has per-topic drafts). Swipe-down blocked while text is present: `b`, shipped, pending **UXD-15** (recommendation: dismiss saves the draft, as legacy).
+- GAP-092 draft per topic and account, autosaved: kept (no lost text; `master` has per-topic drafts). Swipe-down blocked while text is present: `b`, shipped, decided 2026-11-02, **UXD-15** (recommendation: dismiss saves the draft, as legacy).
 - GAP-100 errors that say whether anything was posted, never resent: `a` (safety; same toast flow, better wording).
-- GAP-095 emoji refused at send (LOT-151): `b`, pending **UXD-16**.
+- GAP-095 emoji refused at send (LOT-151): `b`, decided 2026-11-02, **UXD-16**.
 
 ### Decisions of 2026-11-02 (UXD)
 

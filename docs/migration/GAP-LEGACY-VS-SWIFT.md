@@ -339,7 +339,7 @@ The (b) rows include the ones the merged code already ships: 008, 009, 020, 022,
 
 ## UX decisions of 2026-11-02
 
-Operator decisions on [#379](https://github.com/ezzz/HFRnow/issues/379): **every UXD row takes its recommendation**; M4 is the validated legacy parity and M5 gathers the evolutions ([LOTS.md](../LOTS.md#m5--ux-evolutions)). The file that listed the open choices is deleted. A decision is recorded where it acts: the lot spec when the lot has one, else the lot issue, plus the follow-up issue of an (a) item. Tracked on [#413](https://github.com/ezzz/HFRnow/issues/413).
+Operator decisions on [#379](https://github.com/ezzz/HFRnow/issues/379): **every UXD row takes its recommendation**; M4 is the validated legacy parity and M5 gathers the evolutions ([LOTS.md](../LOTS.md#m5--ux-evolutions)). The file that listed the open choices is deleted. A decision is recorded where it acts: the lot spec when the lot has one, else the lot issue, plus the follow-up issue of an (a) item. Tracked on [#413](https://github.com/ezzz/HFRnow/issues/413). The recommendations gave no milestone for the small (a) follow-ups of UXD-10, 15, 21 and 24: they are set to M2 by `cloud/docs-steward` (not by the operator), and the orchestrator can move them to M1.
 
 | UXD | Decision | Recorded in |
 |---|---|---|
@@ -347,7 +347,7 @@ Operator decisions on [#379](https://github.com/ezzz/HFRnow/issues/379): **every
 | 02 | A: tab bar hidden while a topic is open (M1) | [#424](https://github.com/ezzz/HFRnow/issues/424); LOT-083 and LOT-170 specs |
 | 03 | A: avatar menu in every list toolbar (M2) | [#425](https://github.com/ezzz/HFRnow/issues/425); LOT-170 spec |
 | 04 | A: reselecting a tab refreshes it, with a haptic (M2) | [#426](https://github.com/ezzz/HFRnow/issues/426); LOT-170 spec |
-| 05, 06 | A: legacy Catégories list and Tous / Favoris / Suivis / Lus filter (restore lot, M2) | [#427](https://github.com/ezzz/HFRnow/issues/427); LOT-082 spec |
+| 05, 06 | A: legacy Catégories list and Tous / Favoris / Suivis / Lus filter (restore lot, M2; M1 if TestFlight testers must find their list there, the orchestrator decides) | [#427](https://github.com/ezzz/HFRnow/issues/427); LOT-082 spec |
 | 07 | A: legacy topic row | LOT-169 (#295) and LOT-169 spec |
 | 08 | A in M2; the uniform swipe set (FEAT-008) goes to M5 | LOT-177 ([#417](https://github.com/ezzz/HFRnow/issues/417)); LOT-125 (#216) |
 | 09 | A by default; B as a value of "Style des messages" | LOT-106 (#197), LOT-087 (#179); LOT-083 spec |

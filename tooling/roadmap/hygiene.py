@@ -85,6 +85,8 @@ def analyze(issues, pulls, lots, comments, now):
         if dropped & set(dep_issues):
             reports.append(f"#{n} {r['lot']}: a dependency was closed not planned/duplicate, fix the plan first: " + ', '.join(f'#{d}' for d in sorted(dropped & set(dep_issues))))
             continue
+        if 'status: ready' in lb and is_m5(r):
+            reports.append(f"#{n} {r['lot']}: M5 lot labelled `status: ready` (M5 opens by the orchestrator), relabel `status: blocked`")
         if 'status: ready' in lb and open_deps:
             reports.append(f"#{n} {r['lot']} is `status: ready` but depends on open " + ', '.join(f'#{d}' for d in open_deps))
         if deps is None and 'status: blocked' in lb and n not in capture:
@@ -101,14 +103,14 @@ def analyze(issues, pulls, lots, comments, now):
         if extra:
             reports.append(f"#{n} {r['lot']}: dependencies done but `### Blocked by` still names open " + ', '.join(f'#{x}' for x in extra))
             continue
+        if is_m5(r):  # M5 opens by the orchestrator's decision, never by the sweep
+            m5_ready.append(f"{r['lot']} #{n}")
+            continue
         pr = max((closer[d] for d in dep_issues if d in closer), key=lambda p: p['merged_at'], default=None)
         if not dep_issues:
             continue  # no dependency to credit: a plain blocked lot with no cause, left to triage
         if pr is None:
             reports.append(f"#{n} {r['lot']}: dependencies done but no merged PR found to credit, unblock by hand")
-            continue
-        if is_m5(r):  # M5 opens by the orchestrator's decision, never by the sweep
-            m5_ready.append(f"{r['lot']} #{n}")
             continue
         # a later comment that says the lot is blocked (a decision, signing assets...) outranks the dependency check
         since = pr['merged_at']

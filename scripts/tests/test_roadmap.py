@@ -220,6 +220,19 @@ class Hygiene(unittest.TestCase):
         self.assertEqual(actions, [])
         self.assertTrue(any("M5 lots with every dependency done" in r and "#2" in r for r in reports))
 
+    def test_an_m5_lot_labelled_ready_is_reported(self):
+        lots = lots_from_md.parse("## M5 · UX evolutions\n\n" + HEAD + md_row("001", 1, module="App"))
+        issues = [issue(1, labels=["status: ready"])]
+        _, reports = hygiene.analyze(issues, [], lots, {}, NOW)
+        self.assertTrue(any("M5 lot labelled `status: ready`" in r and "#1" in r for r in reports))
+
+    def test_an_m5_lot_without_a_credited_pr_is_not_offered_for_a_hand_unblock(self):
+        lots = lots_from_md.parse("## Phase 3 — engine\n\n" + HEAD + md_row("001", 1) + md_row("100", 2, deps="001", module="App"))
+        issues = [issue(1, "closed"), issue(2, labels=["status: blocked"])]  # LOT-100 is a moved M5 lot; no merged PR credited
+        _, reports = hygiene.analyze(issues, [], lots, {}, NOW)
+        self.assertFalse(any("unblock by hand" in r for r in reports))
+        self.assertTrue(any("M5 lots with every dependency done" in r for r in reports))
+
     def test_a_reopened_issue_is_not_closed_again(self):
         issues = [issue(1)]
         actions, reports = self.run_sweep(issues, [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z")],
