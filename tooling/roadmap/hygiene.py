@@ -109,7 +109,7 @@ def analyze(issues, pulls, lots, comments, now):
         # a later comment that says the lot is blocked (a decision, signing assets...) outranks the dependency check
         since = pr['merged_at']
         note = [c for c in (comments(n) if callable(comments) else comments.get(n, []))
-                if c['created_at'] > since and re.search(r'blocked (on|by|until|pending)|status: blocked', c.get('body') or '', re.I)]
+                if c['created_at'] > since and re.search(r'\bblocked\s+(?:on|by|until|pending)\b|\bstatus:\s*blocked\b', c.get('body') or '', re.I)]
         if note:
             reports.append(f"#{n} {r['lot']}: dependencies done but a comment since #{pr['number']} says it is blocked, left as is")
             continue

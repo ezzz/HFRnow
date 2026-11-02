@@ -189,6 +189,13 @@ class Hygiene(unittest.TestCase):
         actions, _ = self.run_sweep(issues, pulls, early)
         self.assertEqual([a["issue"] for a in actions], [2])  # the note predates the merge: stale
 
+    def test_our_own_unblocked_by_comment_is_not_a_block_note(self):
+        issues = [issue(1, "closed"), issue(2, labels=["status: blocked"])]
+        pulls = [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z")]
+        own = {2: [{"body": "Unblocked by #10", "created_at": "2026-10-31T00:00:00Z"}]}
+        actions, _ = self.run_sweep(issues, pulls, own)
+        self.assertEqual([a["issue"] for a in actions], [2])
+
     def test_a_reopened_issue_is_not_closed_again(self):
         issues = [issue(1)]
         actions, reports = self.run_sweep(issues, [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z")],
