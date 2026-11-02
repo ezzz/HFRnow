@@ -10,6 +10,8 @@ actor ScriptedPostingSession: PostingSession {
     private(set) var hashChecks: [String?] = []
     /// The last token recorded, like `HFRSession.hashCheck`.
     private(set) var hashCheck: String?
+    /// Moves on every login installed, like `HFRSession.loginGeneration`.
+    private(set) var loginGeneration = 0
     /// The `md_user` value the session reports.
     private(set) var identity: String? = "user1"
     /// A login installed while the next request is in flight, as `adoptLogin` would do from another task.
@@ -29,6 +31,7 @@ actor ScriptedPostingSession: PostingSession {
             loginDuringNextRequest = nil
             identity = login.identity
             hashCheck = login.hashCheck
+            loginGeneration += 1
         }
         return response
     }
