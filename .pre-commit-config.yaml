@@ -1,9 +1,9 @@
 # Replayed in CI by the "Pre-commit" job (.github/workflows/ci.yml): `pre-commit run --all-files`.
-# Versions are pinned to tags; Dependabot does not bump them, update by hand (CONTRIBUTING.md §4).
+# Versions are frozen to commit SHAs; Dependabot does not bump them, update by hand (CONTRIBUTING.md §4).
 # Syntax, secrets and shell lint only: no formatting hook, so captured fixtures are never rewritten.
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
     hooks:
       - id: check-yaml
       - id: check-json
@@ -13,8 +13,7 @@ repos:
         args: [--maxkb=2048]
       - id: detect-private-key
   - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.11.0.1
+    rev: 745eface02aef23e168a8afb6b5737818efbea95  # frozen: v0.11.0.1
     hooks:
-      # `types: [shell]` covers *.sh and any file with a sh/bash/ksh shebang.
+      # Covers *.sh and executable files with a sh/bash/ksh shebang (pre-commit reads shebangs of executable files only).
       - id: shellcheck
-        args: [--severity=style]

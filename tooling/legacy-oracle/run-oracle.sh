@@ -141,7 +141,7 @@ fi
 # The exporter writes to a staging folder; OUT_DIR is only touched once the export completed (errors.json written),
 # so a failed build or test run never removes oracles, and oracles of cases outside this run are kept.
 STAGE=$WORK/export
-rm -rf "$STAGE"
+rm -rf "$STAGE" || die "cannot clear $STAGE"
 mkdir -p "$STAGE" || die "cannot create $STAGE"
 status=0
 spin "$HFRNOW" "xcodebuild test (OracleExport)" "$WORK/xcodebuild.log" \
