@@ -4950,8 +4950,9 @@ struct MessagesView: View {
                 .font(.system(size: 14, weight: .semibold))
         }
         .disabled(page >= currentMaxPage)
-        // Not prominent: Répondre is the only prominent button (TopicBottomBarEmphasis). The
-        // end-of-page cue (HFR-008) is the button's appearance transition and its label.
+        // Not prominent: Répondre is the only prominent button (TopicBottomBarEmphasis). What is
+        // left of the end-of-page cue (HFR-008) is the replay transition, the accessibility label
+        // and, before iOS 26, the bordered circle; on iOS 26 it looks like the plain chevron.
         .topicBottomBarCircularIconButtonStyle(isProminent: false)
         .legacyPageButtonSpacing(edge: .leading)
         .bottomBarStableHitTarget()
