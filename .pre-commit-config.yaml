@@ -1,0 +1,20 @@
+# Replayed in CI by the "Pre-commit" job (.github/workflows/ci.yml): `pre-commit run --all-files`.
+# Versions are pinned to tags; Dependabot does not bump them, update by hand (CONTRIBUTING.md §4).
+# Syntax, secrets and shell lint only: no formatting hook, so captured fixtures are never rewritten.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-yaml
+      - id: check-json
+        exclude: ^Packages/HFRKit/Tests/.*/Fixtures/
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=2048]
+      - id: detect-private-key
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      # `types: [shell]` covers *.sh and any file with a sh/bash/ksh shebang.
+      - id: shellcheck
+        args: [--severity=style]
