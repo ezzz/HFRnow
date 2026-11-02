@@ -37,7 +37,8 @@ public struct MPStorageTransport: Sendable {
     /// Writes `ours` (the last read copy `base` plus local edits) merged with the copy stored now, when the merge
     /// changes it, then reads it back. `base` nil merges without history (LOT-062: divergent items keep the forum's).
     /// - Throws: `document` (merge or write guards: nothing sent), `posting` (`.unconfirmed`: may be stored),
-    ///   `notVerified` (confirmed, but the copy read back differs), and the errors of reading the edit form.
+    ///   `notVerified` (confirmed, but the copy read back differs or could not be read), and the errors of reading the edit
+    ///   form; a stale location (thread deleted) is `posting(.formUnavailable)`: find the thread again.
     public func save(
         _ ours: MPStorageDocument, base: MPStorageDocument?, at location: MPStorageLocation, stamp: MPStorageStamp,
         in session: HFRSession
@@ -101,22 +102,19 @@ extension MPStorageTransport {
         let request = try Self.endpoint { () throws -> HTTPRequest in try HFREndpoint.privateThreadFirstPage(post: post) }
         let response = try await Self.get(request, through: session)
         // Not followed: a redirect answer is somewhere else than the thread asked for.
-        guard !(300..<400).contains(response.statusCode) else { throw .unexpectedPage }
-        let html = response.decodedText().text
-        let page: MPStorageThreadPage
+        guard PostingFlow.isForumPage(response.url), !(300..<400).contains(response.statusCode) else {
+            throw .unexpectedPage
+        }
+        // Locate only: the document comes from the edit form, so a page HFR renders unlike the stored text still reads.
+        let located: MPStorageMessageLocation
         do {
-            page = try MPStoragePageParser.readDocument(in: html)
+            located = try MPStoragePageParser.locateMessage(in: response.decodedText().text)
         } catch {
             throw .threadPage(error)
         }
-        guard case .storage(let message) = page else { throw .notAddressed }
-        // The same blocks as `readDocument`, in the same order: the first is the message it read.
-        let actions = (try? MessageActionsParser.actions(in: html)) ?? []
-        guard
-            let editURL = actions.first?.editURL,
-            Self.isEditLink(editURL, post: post, numreponse: message.numreponse)
-        else { throw .editLinkMissing }
-        let location = MPStorageLocation(post: post, numreponse: message.numreponse, editURL: editURL)
+        guard case .message(let numreponse, let link) = located else { throw .notAddressed }
+        guard let editURL = link, Self.isEditLink(editURL, post: post, numreponse: numreponse) else { throw .editLinkMissing }
+        let location = MPStorageLocation(post: post, numreponse: numreponse, editURL: editURL)
         return try await storedCopy(at: location, through: session).snapshot
     }
 
@@ -142,9 +140,9 @@ extension MPStorageTransport {
         do {
             stored = try await storedCopy(at: location, through: session).snapshot
         } catch {
-            throw .notVerified(stored: nil)
+            throw .notVerified(readBack: error)
         }
-        guard stored.text == text else { throw .notVerified(stored: stored) }
+        guard stored.text == text else { throw .notVerified(readBack: nil) }
         return MPStorageSaveResult(snapshot: stored, conflicts: merged.conflicts, wrote: true)
     }
 

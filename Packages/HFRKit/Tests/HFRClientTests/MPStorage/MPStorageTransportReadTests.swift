@@ -69,6 +69,34 @@ struct MPStorageTransportReadTests {
         #expect(outcome.posts.isEmpty)
     }
 
+    @Test func aRenderedTextThatIsNotJSONStillReadsFromTheForm() async throws {
+        // Structural edge: `R60a` with its paragraph text broken, as HFR would render a stored block tag (not captured,
+        // #272). The document comes from the edit form, so the page only has to locate the message.
+        let page = try Capture.page("R60a-mpstorage-thread-first-post")
+            .replacing("{&#034;data&#034;:", with: "<b>rendered</b>:")
+        let url = try HFREndpoint.privateThreadFirstPage(post: MPStorageCapture.post).url
+        let thread = HTTPResponse(
+            statusCode: 200, headers: ["Content-Type": "text/html; charset=utf-8"], url: url, body: Data(page.utf8)
+        )
+        #expect(throws: MPStoragePageError.invalidDocument) { try MPStoragePageParser.readDocument(in: page) }
+        let outcome = await MPStorageHarness.run(
+            [.success(thread), try MPStorageCapture.editForm()]
+        ) { transport, session throws(MPStorageTransportError) in
+            try await transport.read(post: MPStorageCapture.post, through: session)
+        }
+        #expect(outcome.value?.text == MPStorageCapture.storedText)
+    }
+
+    @Test func aThreadPageAnsweredFromAnotherHostIsRefused() async throws {
+        let elsewhere = try #require(URL(string: "https://www.hardware.fr/forum2.php"))
+        let page = try Capture.response("R60a-mpstorage-thread-first-post", url: elsewhere)
+        let outcome = await MPStorageHarness.run([.success(page)]) { transport, session throws(MPStorageTransportError) in
+            try await transport.read(post: MPStorageCapture.post, through: session)
+        }
+        #expect(outcome.error == .unexpectedPage)
+        #expect(outcome.requests.count == 1)
+    }
+
     @Test func aThreadNotForThisAccountIsStale() async throws {
         let page = try Capture.response("RA5-mp-thread-after-delete-owner", url: try HFREndpoint.privateThreadFirstPage(post: 1).url)
         let outcome = await MPStorageHarness.run([.success(page)]) { transport, session throws(MPStorageTransportError) in

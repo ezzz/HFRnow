@@ -4,7 +4,7 @@ import HFRModels
 extension HFREndpoint {
     /// R60a: the first page of a private thread with its first message, the URL legacy reads the MPStorage thread with
     /// (`MPStorage.m:769-777` @ 2440d79). HFR answers it 200 without redirect (`R60a`), so a redirect is not followed:
-    /// legacy did not follow one either (`setShouldRedirect:NO`).
+    /// legacy's callers did not follow one either (`setShouldRedirect:NO`, `MPStorage.m:841, 943`).
     public static func privateThreadFirstPage(post: Int) throws -> HTTPRequest {
         guard post >= 1 else { throw NetworkError.invalidRequest(reason: "post must be 1 or more") }
         return try .get(

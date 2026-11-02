@@ -110,11 +110,8 @@ struct MPStorageTransportWriteTests {
         ) { transport, session throws(MPStorageTransportError) in
             try await transport.save(ours, base: base, at: Self.location, stamp: Self.stamp, through: session)
         }
-        guard case .notVerified(let stored?) = outcome.error else {
-            Issue.record("expected notVerified with the stored copy, got \(String(describing: outcome.result))")
-            return
-        }
-        #expect(stored.text == MPStorageCapture.storedText)
+        #expect(outcome.error == .notVerified(readBack: nil))
+        #expect(outcome.posts.count == 1)
     }
 
     @Test func anUnreadableReadBackIsNotVerified() async throws {
@@ -125,7 +122,7 @@ struct MPStorageTransportWriteTests {
         ) { transport, session throws(MPStorageTransportError) in
             try await transport.save(ours, base: base, at: Self.location, stamp: Self.stamp, through: session)
         }
-        #expect(outcome.error == .notVerified(stored: nil))
+        #expect(outcome.error == .notVerified(readBack: .posting(.network(.offline))))
     }
 
     @Test func aLostAnswerIsUnconfirmed() async throws {
@@ -184,6 +181,8 @@ struct MPStorageTransportWriteTests {
             return
         }
         #expect(snapshot.location.post == MPStorageCapture.post)
+        // Search, form, POST, search again, thread page, edit form: never a POST before the first search.
+        #expect(outcome.requests.map(\.method) == [.get, .get, .post, .get, .get, .get])
         #expect(outcome.requests[1].url == (try HFREndpoint.newPrivateMessageForm(to: MPStorageDocument.recipient).url))
         #expect(outcome.posts.first?.url.absoluteString == "https://forum.hardware.fr/bddpost.php?config=hfr.inc")
         #expect(outcome.postField("dest") == MPStorageDocument.recipient)

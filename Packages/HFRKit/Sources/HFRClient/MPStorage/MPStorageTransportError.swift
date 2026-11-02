@@ -35,7 +35,7 @@ public enum MPStorageTransportError: Error, Sendable, Equatable {
     case posting(PostingError)
     /// HFR confirmed the new thread but the MP list does not show it.
     case notFoundAfterCreation
-    /// HFR confirmed the write but the stored copy read back is not the text sent (a concurrent write, or HFR changed
-    /// it); `stored` is that copy when it could be read. Read again and merge before writing again.
-    case notVerified(stored: MPStorageSnapshot?)
+    /// HFR confirmed the write but the copy read back is not the text sent (`readBack` nil: a concurrent write, or HFR
+    /// changed it), or could not be read (`readBack`: why). Save again: `save` re-reads the stored copy and merges.
+    indirect case notVerified(readBack: MPStorageTransportError?)
 }
