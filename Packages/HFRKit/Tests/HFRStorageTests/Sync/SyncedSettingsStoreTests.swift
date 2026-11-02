@@ -189,13 +189,14 @@ import Testing
         #expect(fixture.cloud.value(forKey: SyncedSettingsStore.schemaVersionKey) == .int(2))
     }
 
-    @Test func runAppliesTheStoreChangesAsTheyCome() async {
+    @Test(.timeLimit(.minutes(1))) func runAppliesTheStoreChangesAsTheyCome() async throws {
         let fixture = Self.make()
         let running = Task { await fixture.store.run() }
-        // Let `run` subscribe before the change is played.
-        while fixture.local.rawValue(forKey: Self.synced) == nil {
+        // `run` subscribes asynchronously: replay the change until it lands, a bounded number of times (a change that is
+        // never applied must fail the test, not hang it).
+        for _ in 0..<1_000 where fixture.local.rawValue(forKey: Self.synced) == nil {
             fixture.cloud.receive(SyncedStoreChange(reason: .serverChange, keys: [Self.synced]), updates: [Self.synced: .string("yes")])
-            await Task.yield()
+            try await Task.sleep(for: .milliseconds(1))
         }
         running.cancel()
         #expect(fixture.local.rawValue(forKey: Self.synced) == .string("yes"))
