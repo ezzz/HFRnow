@@ -194,7 +194,7 @@ struct HFRBBCodeWriterTests {
         ]
     }
 
-    @Test("Every pass is one scan: each 32 to 172 KB adversarial shape costs at most about four times more at four times the size")
+    @Test("Every pass is one scan: each 32-172 KB shape costs about 4x more at 4x the size (asserted under 6x plus half a second)")
     func linearWork() throws {
         // The bundled catalogue (59 codes) plus a thousand personal smileys: the trie walk costs the longest code,
         // not the table.
@@ -263,6 +263,11 @@ struct HFRBBCodeWriterTests {
             + "<ol class=\"olcode\"><li>int x;</li></ol></td></tr></table><p> b[/fixed] end")
         #expect(!Self.html("[code]a[cpp]x[/cpp]b[/code]").contains("\u{FFFF}"))
         #expect(!Self.html("[fixed][code]x[/code][/fixed]").contains("\u{FFFF}"))
+        // When the outer tag's pass runs first (cpp, then code, then fixed), the outer block takes the inner tags as text,
+        // and a tag inside itself closes at the first close.
+        let codeHead = "<p></p><table class=\"code\"><tr class=\"none\"><td><b class=\"s1\">Code :</b><br /><ol class=\"olcode\">"
+        #expect(Self.html("[cpp][code]x[/code][/cpp]") == codeHead + "<li>[code]x[/code]</li></ol></td></tr></table><p>")
+        #expect(Self.html("[code][code]x[/code][/code]") == codeHead + "<li>[code]x</li></ol></td></tr></table><p>[/code]")
         // A code made of digits never rewrites a held fragment.
         let digits = HFRBBCodeWriter(smileysEnabled: true, smileys: ["0": try #require(URL(string: "https://a.example/0.gif"))])
         #expect(digits.html(for: "[url]https://a.example/[/url] 0")
