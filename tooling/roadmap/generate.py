@@ -34,16 +34,17 @@ def flavor(r):
 def short(s,k=70):
     s=re.sub(r'\[([^\]]+)\]\([^)]+\)',r'\1',s); s=s.replace('|','/')
     return s if len(s)<=k else s[:k-1].rsplit(' ',1)[0]+'…'
+def miss0(r): return [d for d in deps(r) if d in rows and not done(d)]
 def state(l):
     r=rows[l]
     if done(l): return 'done',('✅ merged'+(f' (#{MERGED_PR[l]})' if l in MERGED_PR else ''))
     if l in PRS:
         pr,st,rev=PRS[l]; return 'ongoing',(f'🛠️ draft · PR #{pr}' if st=='draft' else f'🔍 review wanted ({rev}) · PR #{pr}')
     if r['issue'] in CLAIMED: return 'ongoing','🙋 claimed'
+    if l in M5 and not m5.M5_OPEN and not miss0(r): return 'todo','⏸️ M5 not opened yet (the orchestrator opens it)'
     if r['issue'] in READY: return 'todo','🟦 ready'
     if r['issue'] in CAPTURE: return 'todo','📸 waits on capture '+CAPTURE[r['issue']]
     miss=[d for d in deps(r) if d in rows and not done(d)]
-    if not miss and l in M5 and not m5.M5_OPEN: return 'todo','⏸️ M5 not opened yet (the orchestrator opens it)'
     if not miss: return 'todo','🟨 deps done, still `blocked` → triage'
     if len(miss)>6: return 'todo',f'⛔ waits on {len(miss)} lots'
     return 'todo','⛔ waits on '+', '.join(x[4:] for x in miss)

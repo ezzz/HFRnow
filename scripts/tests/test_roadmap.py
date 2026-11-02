@@ -127,6 +127,22 @@ class Boards(unittest.TestCase):
             states = [generate.state(l)[1] for l in generate.M5 if not generate.done(l)]
         self.assertFalse(any(x.startswith("⏸️") for x in states))
 
+    def test_closed_m5_lot_labelled_ready_is_not_advertised_as_ready(self):
+        lot = "LOT-175"
+        issue = generate.rows[lot]["issue"]
+        closed = {generate.rows[d]["issue"] for d in generate.deps(generate.rows[lot]) if d in generate.rows}
+        with mock.patch.object(m5, "M5_OPEN", False), mock.patch.object(generate, "READY", {issue}), \
+                mock.patch.object(generate, "PRS", {}), mock.patch.object(generate, "CLAIMED", set()), \
+                mock.patch.object(generate, "CLOSED", closed):
+            self.assertTrue(generate.state(lot)[1].startswith("⏸️"))
+
+    def test_unblocked_helper_knows_m5_and_skips_it_while_closed(self):
+        import subprocess, sys, pathlib
+        root = pathlib.Path(generate.__file__).parent
+        out = subprocess.run([sys.executable, str(root / "unblocked.py"), "LOT-084"], capture_output=True, text=True, cwd=root)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertNotIn("[M5]", out.stdout)
+
     def _closed_m5_assertions(self):
         self.assertTrue(all(m in ("M1", "M2", "M3", "M4") for m, _ in m5.FOLLOWUPS.values()))  # not lots: never M5-only
         self.assertEqual(m5.FOLLOWUPS[432][0], "M4")

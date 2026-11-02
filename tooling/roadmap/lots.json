@@ -2158,7 +2158,7 @@
 {
 "lot": "LOT-175",
 "star": false,
-"scope": "Delete the first post of a topic, which deletes the topic, with a confirmation (the (b) half of LOT-088)",
+"scope": "Delete the first post of a public topic, which deletes the whole topic, with a confirmation (the (b) half of LOT-088; in a private message the recipient keeps the thread, [HFR-PROTOCOL](HFR-PROTOCOL.md) §7 X1)",
 "module": "App",
 "diff": "medium",
 "model": "Opus → Fable",

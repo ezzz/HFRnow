@@ -306,7 +306,7 @@ Applied on 2026-11-02 (operator decisions on [#379](https://github.com/ezzz/HFRn
 | Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Issue |
 |---|---|---|---|---|---|---|---|---|
 | LOT-174 | Visible formatting toolbar in the composer (the (b) half of LOT-085; the Edit-menu actions stay there) | App | medium | Sonnet → Opus | 085 | UXD-18 · GAP 084, 085, 086 | low | [#414](https://github.com/ezzz/HFRnow/issues/414) |
-| LOT-175 | Delete the first post of a topic, which deletes the topic, with a confirmation (the (b) half of LOT-088) | App | medium | Opus → Fable | 088 | UXD-14 · GAP 097 | low | [#415](https://github.com/ezzz/HFRnow/issues/415) |
+| LOT-175 | Delete the first post of a public topic, which deletes the whole topic, with a confirmation (the (b) half of LOT-088; in a private message the recipient keeps the thread, [HFR-PROTOCOL](HFR-PROTOCOL.md) §7 X1) | App | medium | Opus → Fable | 088 | UXD-14 · GAP 097 | low | [#415](https://github.com/ezzz/HFRnow/issues/415) |
 | LOT-176 | HD image gallery with swipe between the images of a topic (the (b) half of LOT-109) | App | medium | Sonnet → Opus | 109 | none · GAP 057 · FEAT-014 | low | [#416](https://github.com/ezzz/HFRnow/issues/416) |
 | LOT-177 | Uniform swipe set in every list: Lu with "Annuler", Super favori and Retirer swipes, FEAT-008 (the (b) half of LOT-125) | App | medium | Opus → Fable | 125 | UXD-08 · GAP 028, 029, 034 · FEAT-008 | low | [#417](https://github.com/ezzz/HFRnow/issues/417) |
 | LOT-178 | "Nouveau" banner at the first unread message (the (b) half of LOT-111; the legacy separator stays there) | App | medium | Sonnet → Opus | 111 | UXD-11 · GAP 063 · FEAT-007 | low | [#418](https://github.com/ezzz/HFRnow/issues/418) |
