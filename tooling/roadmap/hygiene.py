@@ -19,6 +19,7 @@ import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from m5 import is_m5
 from sync_state import REPO, build, gh_pages, labels
 
 HERE = Path(__file__).resolve().parent
@@ -69,7 +70,7 @@ def analyze(issues, pulls, lots, comments, now):
                 continue
             actions.append({'kind': 'close', 'issue': n, 'pr': p['number'], 'sha': (p.get('merge_commit_sha') or '')[:7]})
 
-    gate = []
+    gate, m5_ready = [], []
     pending_close = {a['issue'] for a in actions if a['kind'] == 'close'}
     for r in lots:
         n = r['issue']
@@ -106,6 +107,9 @@ def analyze(issues, pulls, lots, comments, now):
         if pr is None:
             reports.append(f"#{n} {r['lot']}: dependencies done but no merged PR found to credit, unblock by hand")
             continue
+        if is_m5(r):  # M5 opens by the orchestrator's decision, never by the sweep
+            m5_ready.append(f"{r['lot']} #{n}")
+            continue
         # a later comment that says the lot is blocked (a decision, signing assets...) outranks the dependency check
         since = pr['merged_at']
         note = [c for c in (comments(n) if callable(comments) else comments.get(n, []))
@@ -117,6 +121,8 @@ def analyze(issues, pulls, lots, comments, now):
         if ENGINE.match(r['module']) and 'host: mac' not in lb:
             reports.append(f"#{n} {r['lot']} unblocked engine lot: the operator decides on `external: ready` and the pickup comment")
 
+    if m5_ready:
+        reports.append('M5 lots with every dependency done, left blocked (M5 opens by the orchestrator): ' + ', '.join(m5_ready))
     if gate:
         reports.append('blocked lots with a gate sentence as dependency (resolve by hand): ' + ', '.join(gate))
     for i in real:

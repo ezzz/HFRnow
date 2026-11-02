@@ -86,12 +86,13 @@ M_TABLE=f'''| Milestone | Goal | Exit criteria | Progress |
 | 📖 **M2 · Read & reply complete** | Every reading and answering feature of the legacy app (topics and MPs): quotes, formatting, smileys, images, edit/delete, new topic, polls, search, filters, page tools, offline reading, MPs | M2 lots ✅, TestFlight beta 2 | {bar(pct(M2)[0],pct(M2)[3],10)} {pct(M2)[4]} % |
 | ⚙️ **M3 · Engine complete** | Every `HFRKit` lot (models, parsing, network, flows, storage) | M3 lots ✅, LOT-070 parity gates green | {bar(pct(M3)[0],pct(M3)[3],10)} {pct(M3)[4]} % |
 | 🏁 **M4 · Final version** | Full legacy parity, MPStorage sync, notifications, compliance, accessibility, iOS 27 experience, App Store | LOT-164 parity gate ✅, LOT-165 App Store submission accepted, every lot of `LOTS.md` ✅ | {bar(pct(M4)[0],pct(M4)[3],10)} {pct(M4)[4]} % |
+| 🧪 **M5 · UX evolutions** | The evolutions: every change from the plan or from the legacy that parity does not need (deferred option B of the UXD decisions, FEAT items, the (b) halves of split lots), never dropped (operator, 2026-11-02, [#379](https://github.com/ezzz/HFRnow/issues/379)) | after the M4 parity is validated; each lot ✅ | {bar(pct(M5)[0],pct(M5)[3],10)} {pct(M5)[4]} % |
 
-M3 runs **in parallel** with M2 (☁️ cloud sessions). M2 and M4 mostly need the Mac (🍎). M2 pulls the engine lots it needs from M3 first.
+M3 runs **in parallel** with M2 (☁️ cloud sessions). M2, M4 and M5 mostly need the Mac (🍎). M2 pulls the engine lots it needs from M3 first. M4 is the validated legacy parity; M5 gathers the evolutions.
 '''
 def triage():
     out=[]
-    for ms in (M1,M2,M3,M4):
+    for ms in (M1,M2,M3,M4,M5):
         for l in sorted(ms,key=n):
             if state(l)[1].startswith('🟨') and l!='LOT-070': out.append(f"{l} #{rows[l]['issue']}")
     return out
@@ -118,7 +119,9 @@ _Snapshot {DATE}, rebuilt by the steward from `docs/LOTS.md` and the issue and P
 
 Also engine-side, not in LOTS.md yet: #306 (parser: the topic page's delflag link for LOT-051 `removeFlag`) · 🟦 ready · ☁️ cloud.
 
-{board(M4,'M4 · Final version','🏁')}
+{board(M4,'M4 · Final version (validated legacy parity)','🏁')}
+
+{board(M5,'M5 · UX evolutions','🧪')}
 
 After M4, not a lot: #338 (return to a standard contribution process; removes the M1–M4 delegation rules) · ⛔ waits on LOT-165.
 

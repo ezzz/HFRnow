@@ -7,6 +7,7 @@ from pathlib import Path
 ROADMAP = Path(__file__).resolve().parents[2] / "tooling" / "roadmap"
 sys.path.insert(0, str(ROADMAP))
 
+import generate  # noqa: E402
 import hygiene  # noqa: E402
 import lots_from_md  # noqa: E402
 import sync_state  # noqa: E402
@@ -96,6 +97,22 @@ class SyncState(unittest.TestCase):
         st = sync_state.build(issues, [], lots)
         self.assertEqual((st["ready"], st["capture"]), ([], {"1": "#50"}))
         self.assertRegex(st["generated_at"], r"^\d{4}-\d\d-\d\d \d\d:\d\d UTC$")
+
+
+class Milestones(unittest.TestCase):
+    def test_m5_membership_is_disjoint_and_complete(self):
+        m = {"M1": generate.M1, "M2": generate.M2, "M3": generate.M3, "M4": generate.M4}
+        for name, ids in m.items():
+            self.assertFalse(ids & generate.M5, name)
+        self.assertIn("LOT-100", generate.M5)  # a whole lot moved out of M2
+        self.assertIn("LOT-147", generate.M5)  # a whole lot moved out of M4
+        self.assertTrue(any(l in generate.M5 for l in ("LOT-174", "LOT-182")))  # the (b) halves of the splits
+        self.assertEqual(len(generate.M1 | generate.M2 | generate.M3 | generate.M4 | generate.M5), len(generate.rows))
+
+    def test_no_lot_of_m1_to_m4_depends_on_an_m5_lot(self):
+        outside = generate.M1 | generate.M2 | generate.M3 | generate.M4
+        bad = [(l, d) for l in outside for d in generate.deps(generate.rows[l]) if d in generate.M5]
+        self.assertEqual(bad, [])
 
 
 class Hygiene(unittest.TestCase):
@@ -195,6 +212,13 @@ class Hygiene(unittest.TestCase):
         own = {2: [{"body": "Unblocked by #10", "created_at": "2026-10-31T00:00:00Z"}]}
         actions, _ = self.run_sweep(issues, pulls, own)
         self.assertEqual([a["issue"] for a in actions], [2])
+
+    def test_an_m5_lot_is_never_unblocked_by_the_sweep(self):
+        lots = lots_from_md.parse("## M5 · UX evolutions\n\n" + HEAD + md_row("001", 1) + md_row("002", 2, deps="001", module="App"))
+        issues = [issue(1, "closed"), issue(2, labels=["status: blocked"])]
+        actions, reports = hygiene.analyze(issues, [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z")], lots, {}, NOW)
+        self.assertEqual(actions, [])
+        self.assertTrue(any("M5 lots with every dependency done" in r and "#2" in r for r in reports))
 
     def test_a_reopened_issue_is_not_closed_again(self):
         issues = [issue(1)]

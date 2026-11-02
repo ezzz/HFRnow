@@ -9,11 +9,11 @@
 - **H.1** (convergence classification, directive H.1):
   - `a`: a port of ezzz's Swift layer at `2440d79`, or of the ObjC app where the Swift layer had nothing. Technical changes only (new engine, iOS 27 APIs, robustness, added themes with unchanged defaults).
   - `a·master`: a port of ezzz's later Swift layer on `master`, absent at `2440d79` (UXD-01).
-  - `b`: a UX evolution, proposed for M5 ([#379](https://github.com/ezzz/HFRnow/issues/379)) unless a pending decision keeps it.
+  - `b`: a UX evolution, in M5 ([#379](https://github.com/ezzz/HFRnow/issues/379), decided 2026-11-02) unless a decision keeps it in M1–M4.
   - `b·needed`: an evolution that parity needs (security, privacy, App Review, an HFR fact).
   - `b·operator`: an evolution the operator already decided.
   - `—`: not planned or dropped.
-  - The open choices are in [UX-DECISIONS-PENDING.md](UX-DECISIONS-PENDING.md).
+  - The decision of each UXD row is in [UX decisions of 2026-11-02](#ux-decisions-of-2026-11-02).
 - Row ids `GAP-NNN` are stable: a later revision edits a row in place or appends a new id, never renumbers. Rows were extracted per area by Sonnet sub-agents and merged; duplicates across areas keep one row. A second Sonnet agent checked a sample of 20 legacy citations: 10 exact, 9 imprecise ranges and 1 wrong (all 10 corrected). Expect line ranges elsewhere to be approximate: check a ref before quoting it in a spec.
 
 Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets/gap-legacy-vs-swift-1-iphone.png) · [iPhone Duo](../assets/gap-legacy-vs-swift-2-duo.png), source [`docs/assets/gap/`](../assets/gap/gap.html) (`node docs/assets/gap/render.js`).
@@ -294,7 +294,7 @@ The (b) rows include the ones the merged code already ships: 008, 009, 020, 022,
   - extra themes with defaults unchanged (145, 147);
   - legacy data import (170);
   - compact density on more screens (201);
-  - the cover-screen fix (216). Its lot, LOT-147, is proposed for M5, so the fix needs a small M4 item (UXD-25).
+  - the cover-screen fix (216). Its lot, LOT-147, is in M5, so the fix is a small M4 item ([#432](https://github.com/ezzz/HFRnow/issues/432), UXD-25).
 
 ### App lots (80) and features
 
@@ -307,12 +307,12 @@ The (b) rows include the ones the merged code already ships: 008, 009, 020, 022,
 - **Mixed lots whose (b) part stays in M1–M4.**
   - Needed: LOT-083 (policy C), LOT-115 (banned words refused), LOT-130 (per-account MPStorage, merge), LOT-159 (App Review).
   - Decided by the operator: LOT-137 (HFR links routed in the app), LOT-169 (slider), LOT-171 (two MP lists as an option).
-  - Pending a decision: LOT-081, 082, 083, 084, 087, 106, 119, 170 (UXD-01 to 10, 15, 21, 24), and LOT-157 (UXD-21: legacy mail composer or the in-app HFR procedure).
-- **Mixed lots with a (b) part proposed for M5:** LOT-085, 088, 109, 111, 120, 122, 125, 127, 128, 134 (splits in [LOTS.md](../LOTS.md#proposed-m5--ux-evolutions-needs-the-contributors-agreement)).
+  - Decided 2026-11-02 (recommendation of each UXD row, table below): LOT-081, 082, 083, 084, 087, 106, 119, 170 (UXD-01 to 10, 15, 21, 24), and LOT-157 (UXD-21: the legacy mail composer stays unless App Review asks).
+- **Mixed lots with a (b) part in M5:** LOT-085, 088, 109, 111, 120, 122, 125, 127, 128, 134 (splits in [LOTS.md](../LOTS.md#m5--ux-evolutions), new lots 174 to 183).
 - **(b) lots that stay:**
   - needed: LOT-107 (the setting that gates policy C), LOT-108 (players on tap, LOT-071 D-071-2);
   - decided by the operator: LOT-173.
-- **(b) lots proposed for M5:** LOT-100, 101, 110, 112, 138, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 152, 153, 154, and LOT-151 if UXD-16 picks A ([#379](https://github.com/ezzz/HFRnow/issues/379)).
+- **(b) lots in M5:** LOT-100, 101, 110, 112, 138, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151 (UXD-16 picked A), 152, 153, 154 ([#379](https://github.com/ezzz/HFRnow/issues/379)).
 - **Features:**
   - All FEAT items are (b) by origin.
   - FEAT-003 (honest paging) is (b) needed.
@@ -336,3 +336,34 @@ The (b) rows include the ones the merged code already ships: 008, 009, 020, 022,
 - Legacy iPhone landscape is shown with "Rotation d'écran" on (off by default: portrait lock).
 - SwiftHFR Duo layouts follow FEAT-016's one-line summary (two columns, tab rail); the Phase 5 design document does not exist yet.
 - Fonts: Inter stands in for SF Pro, drawn icons for SF Symbols. Light theme on both sides; pseudos `user1`…`user6`; topic titles are illustrative.
+
+## UX decisions of 2026-11-02
+
+Operator decisions on [#379](https://github.com/ezzz/HFRnow/issues/379): **every UXD row takes its recommendation**; M4 is the validated legacy parity and M5 gathers the evolutions ([LOTS.md](../LOTS.md#m5--ux-evolutions)). The file that listed the open choices is deleted. A decision is recorded where it acts: the lot spec when the lot has one, else the lot issue, plus the follow-up issue of an (a) item. Tracked on [#413](https://github.com/ezzz/HFRnow/issues/413).
+
+| UXD | Decision | Recorded in |
+|---|---|---|
+| 01 | B for start screen, browser and sidebar (`master` counts as ezzz's Swift layer, defaults unchanged); archived drafts go to M5 | LOT-119 and LOT-170 specs; LOT-101 (#192) in M5 |
+| 02 | A: tab bar hidden while a topic is open (M1) | [#424](https://github.com/ezzz/HFRnow/issues/424); LOT-083 and LOT-170 specs |
+| 03 | A: avatar menu in every list toolbar (M2) | [#425](https://github.com/ezzz/HFRnow/issues/425); LOT-170 spec |
+| 04 | A: reselecting a tab refreshes it, with a haptic (M2) | [#426](https://github.com/ezzz/HFRnow/issues/426); LOT-170 spec |
+| 05, 06 | A: legacy Catégories list and Tous / Favoris / Suivis / Lus filter (restore lot, M2) | [#427](https://github.com/ezzz/HFRnow/issues/427); LOT-082 spec |
+| 07 | A: legacy topic row | LOT-169 (#295) and LOT-169 spec |
+| 08 | A in M2; the uniform swipe set (FEAT-008) goes to M5 | LOT-177 ([#417](https://github.com/ezzz/HFRnow/issues/417)); LOT-125 (#216) |
+| 09 | A by default; B as a value of "Style des messages" | LOT-106 (#197), LOT-087 (#179); LOT-083 spec |
+| 10 | A layout keeping "follow HFR's served page" (M2); the navigator goes to M5 | [#428](https://github.com/ezzz/HFRnow/issues/428); LOT-110 (#201) in M5 |
+| 11 | A in M2; the "Nouveau" banner goes to M5 | LOT-178 ([#418](https://github.com/ezzz/HFRnow/issues/418)); LOT-111 (#202) |
+| 12 | B: policy C, decided 2026-10-27 (default Wi-Fi) | LOT-083 spec "Decisions taken here" |
+| 13 | B: slider; 100 / 110 / 120 / 130 % map to the same percentages | LOT-169 spec |
+| 14 | A; deleting the first post goes to M5 | LOT-175 ([#415](https://github.com/ezzz/HFRnow/issues/415)); LOT-088 (#180) |
+| 15 | Per-topic drafts kept (exception); A for swipe-down: dismiss saves the draft (M2) | [#429](https://github.com/ezzz/HFRnow/issues/429); LOT-084 spec |
+| 16 | A (silently blocked while typing) in M2; the refusal at send goes to M5 | LOT-151 (#241) moved to M5; LOT-084 spec |
+| 17 | A (per-message toggle) in M2; the tray goes to M5 | LOT-153 (#243) moved to M5; LOT-086 (#178) keeps the toggle |
+| 18 | A: clear / undo / redo and "Fractionner la citation" join LOT-085; the toolbar goes to M5 | LOT-174 ([#414](https://github.com/ezzz/HFRnow/issues/414)); LOT-085 (#177) |
+| 19 | A in M2 (toast, text kept, never auto-resent); the sheet goes to M5 | LOT-142 (#232) moved to M5; LOT-084 spec |
+| 20 | Mark unread and one recipient kept; the "Nouveau message" list button kept (legacy, #398); the rest to M5 | LOT-181 ([#421](https://github.com/ezzz/HFRnow/issues/421)), LOT-182 ([#422](https://github.com/ezzz/HFRnow/issues/422)); LOT-128 spec |
+| 21 | A: restore "Déconnexion"; deletion by mail composer unless App Review asks (M2) | [#430](https://github.com/ezzz/HFRnow/issues/430); LOT-157 (#247) shrinks; LOT-081 spec |
+| 22 | A (LOT-121); the single accent goes to M5 | LOT-180 ([#420](https://github.com/ezzz/HFRnow/issues/420)); LOT-122 (#213) |
+| 23 | Dropped on record: neither works in legacy | GAP-010 and GAP-143 stay `—` |
+| 24 | B on iPad, A on a large iPhone in landscape (M2) | [#431](https://github.com/ezzz/HFRnow/issues/431); LOT-082 spec |
+| 25 | Layouts and continuity go to M5; filling the cover screen is an (a) fix in M4 | LOT-147 (#237) and LOT-145 (#235) in M5; [#432](https://github.com/ezzz/HFRnow/issues/432); legacy #372, #373 |
