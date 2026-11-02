@@ -46,17 +46,41 @@ public struct PollVoteFlow: Sendable {
         _ choice: Int, in poll: Poll, through session: any PostingSession, after check: SessionCheck
     ) async throws(PollVoteError) -> PollVoteResult {
         let form = try PollVoteForm(poll: poll, choice: choice)
+        // The login the check is about: the vote leaves only while the session still holds it (#340, CodeRabbit on #412).
+        let seed = await session.hashCheckSeed()
         try await Self.confirm(check)
-        return try await vote(form, through: session)
+        return try await vote(form, through: session, since: seed)
     }
 
     /// Sends `form` with the session's token, without any session check.
     func vote(_ form: PollVoteForm, through session: any PostingSession) async throws(PollVoteError) -> PollVoteResult {
-        guard let token = await session.hashCheck, !token.isEmpty else { throw .missingToken }
-        // A redirect is not followed: HFR answers the vote in place (`W42`-`W44`), anything else is not its confirmation.
-        let request = HTTPRequest.post(Self.voteURL, form: form.body(token: token), redirectPolicy: .doNotFollow)
-        let response = try await exchange(request, through: session)
-        return try Self.confirmation(of: form, in: response)
+        try await vote(form, through: session, since: await session.hashCheckSeed())
+    }
+
+    /// Sends `form` once, only while `session` holds `seed`'s login (identity and login generation; the token may have
+    /// been refreshed by the check): a login adopted after the check would send the vote as that login.
+    func vote(
+        _ form: PollVoteForm, through session: any PostingSession, since seed: HashCheckSeed
+    ) async throws(PollVoteError) -> PollVoteResult {
+        if Task.isCancelled { throw .network(.cancelled) }
+        let outcome: FencedSend
+        do {
+            outcome = try await session.send(since: seed) { token in
+                // A redirect is not followed: HFR answers the vote in place (`W42`-`W44`), anything else is not its
+                // confirmation.
+                HTTPRequest.post(Self.voteURL, form: form.body(token: token), redirectPolicy: .doNotFollow)
+            }
+        } catch .invalidRequest(let reason) {
+            throw .network(.invalidRequest(reason: reason))
+        } catch {
+            throw .unconfirmed(.transport(error))
+        }
+        switch outcome {
+        case .sent(let response): return try Self.confirmation(of: form, in: response)
+        case .missingToken: throw .missingToken
+        case .loginChanged: throw .loginChanged
+        case .cancelled: throw .network(.cancelled)
+        }
     }
 
     // MARK: - Helpers
@@ -88,19 +112,6 @@ public struct PollVoteFlow: Sendable {
             throw .network(error)
         }
         guard health == .valid else { throw .sessionNotConfirmed(health) }
-    }
-
-    /// Sends `request` once. Before it leaves the device a failure is `network`; after, HFR may have counted it.
-    private func exchange(_ request: HTTPRequest, through session: any PostingSession) async throws(PollVoteError)
-        -> HTTPResponse {
-        if Task.isCancelled { throw .network(.cancelled) }
-        do {
-            return try await session.send(request)
-        } catch .invalidRequest(let reason) {
-            throw .network(.invalidRequest(reason: reason))
-        } catch {
-            throw .unconfirmed(.transport(error))
-        }
     }
 
     /// Success needs LOT-037's vote confirmation (`Context.pollVote`): a link-less `.hop` with exactly HFR's vote
@@ -149,6 +160,28 @@ extension PollVoteFlow {
         guard name.hasPrefix("sujet_\(topic.topic)_"), name.hasSuffix(".htm") else { return false }
         let page = name.dropFirst("sujet_\(topic.topic)_".count).dropLast(".htm".count)
         return FlagLink.positiveInteger(String(page)) != nil
+    }
+}
+
+/// What a fenced send did: sent (HFR's answer), or nothing sent and why.
+enum FencedSend: Sendable {
+    case sent(HTTPResponse)
+    case missingToken
+    case loginChanged
+    case cancelled
+}
+
+extension PostingSession {
+    /// Builds the request from the session's token and hands it to the transport in the actor turn that checks the
+    /// session still holds `seed`'s identity and login generation, so no login can be adopted in between (`adoptLogin`
+    /// runs on this actor). Cancellation is checked in that turn too. A failure of the exchange itself is thrown.
+    func send(
+        since seed: HashCheckSeed, now: Date = Date(), _ make: @Sendable (String) -> HTTPRequest
+    ) async throws(NetworkError) -> FencedSend {
+        if Task.isCancelled { return .cancelled }
+        guard userKey(now: now) == seed.identity, loginGeneration == seed.loginGeneration else { return .loginChanged }
+        guard let token = hashCheck, !token.isEmpty else { return .missingToken }
+        return .sent(try await send(make(token)))
     }
 }
 

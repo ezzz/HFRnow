@@ -104,4 +104,39 @@ extension PollVoteFlowTests {
             #expect(await probe.requests.map(\.url) == [Capture.profilePage1])
         }
     }
+
+    @Test(
+        "A login adopted after the check, of the same account or another, stops the vote: nothing is sent (#340)",
+        arguments: ["user1", "user2"]
+    )
+    func loginAfterTheCheckSendsNothing(identity: String) async throws {
+        let session = ScriptedFlagSession([try Self.answer("W42")], hashCheck: Self.token)
+        let poll = try Self.poll("R83-public-own-topic-poll-form-logged-in")
+        // The same token too: only the login generation tells the logins apart.
+        let login = ConcurrentLogin(identity: identity, hashCheck: Self.token)
+        let result = await Self.result {
+            try await PollVoteFlow().vote(1, in: poll, through: session, after: {
+                await session.adoptLogin(login)
+                return .valid
+            })
+        }
+        #expect(result == .failure(.loginChanged))
+        #expect(await session.requests.isEmpty)
+    }
+
+    @Test("A token the check refreshed, in the same login, is the one the vote sends")
+    func tokenRefreshedByTheCheckIsSent() async throws {
+        let session = ScriptedFlagSession([try Self.answer("W42")], hashCheck: "old-token")
+        let poll = try Self.poll("R83-public-own-topic-poll-form-logged-in")
+        let result = await Self.result {
+            try await PollVoteFlow().vote(1, in: poll, through: session, after: {
+                await session.updateHashCheck("new-token")
+                return .valid
+            })
+        }
+        #expect(result.map(\.topic) == .success(Self.ownTopic))
+        let body = try #require(await session.requests.first?.body.flatMap { String(bytes: $0, encoding: .utf8) })
+        #expect(body.hasPrefix("hash_check=new-token&") && body.contains("&hash_check=new-token&"))
+        #expect(!body.contains("old-token"))
+    }
 }

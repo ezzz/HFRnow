@@ -37,6 +37,13 @@ actor ScriptedFlagSession: PostingSession {
         identity
     }
 
+    /// Installs `login` now, as `adoptLogin` does: identity, token and a new login generation.
+    func adoptLogin(_ login: ConcurrentLogin) {
+        identity = login.identity
+        hashCheck = login.hashCheck
+        loginGeneration += 1
+    }
+
     /// Installs `login` while the next request is suspended, after it was sent.
     func adoptLoginDuringNextRequest(_ login: ConcurrentLogin) {
         loginDuringNextRequest = login

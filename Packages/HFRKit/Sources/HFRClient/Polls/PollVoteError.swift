@@ -2,7 +2,8 @@ import HFRNetwork
 
 /// Why a poll vote did not end with HFR's confirmation.
 ///
-/// `notVotable`, `unsupportedPoll`, `invalidChoice`, `sessionNotConfirmed`, `missingToken` and `network` mean the vote
+/// `notVotable`, `unsupportedPoll`, `invalidChoice`, `sessionNotConfirmed`, `loginChanged`, `missingToken` and `network` mean
+/// the vote
 /// was not sent. `alreadyVoted`, `notLoggedIn` and `rejected` mean HFR refused it. `unconfirmed` means the vote may have
 /// reached HFR: the app reloads the topic page to see the poll instead of voting again on its own.
 /// No case carries a token or a cookie; `rejected` carries HFR's own sentence.
@@ -17,6 +18,9 @@ public enum PollVoteError: Error, Sendable, Equatable {
     /// The account session was not confirmed logged in just before the vote (LOT-044 `SessionRefreshFlow`, never
     /// `.valid` here); the vote was not sent.
     case sessionNotConfirmed(SessionHealth)
+    /// A login was adopted in the session after its check (another account, or the same one again): the vote was not
+    /// sent, so it cannot leave as a login nobody checked (#340). The app may vote again.
+    case loginChanged
     /// The session holds no `hash_check`; nothing was sent.
     case missingToken
     /// HFR answered "Désolé, vous avez déjà voté !": this account, or a linked account of the same person, voted
