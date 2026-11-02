@@ -167,6 +167,7 @@ import Testing
         fixture.cloud.removeValue(forKey: Self.other)
         _ = fixture.relaunched()
         #expect(fixture.local.rawValue(forKey: Self.other) == .string("0"))
+        #expect(fixture.cloud.value(forKey: Self.other) == nil)
     }
 
     /// A first sign-in: values written without an Apple ID belong to none, so they stay and meet the cloud's.
