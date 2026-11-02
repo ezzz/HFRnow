@@ -130,6 +130,20 @@ struct MessageComposerEntryTests {
         #expect(reader.document?.anchor == 601)
     }
 
+    @Test func retryingAFailedLatestPageStillFollowsItsPager() async {
+        let pages = FakeTopicPages { target in privatePage(target.page) }
+        let reader = TopicReaderModel(target: ReaderTarget(source: .topic(privateTopic), page: 2), title: "", source: pages)
+        await reader.onAppear()
+        pages.handler = { (_) async throws(ListLoadError) -> ReaderPage in throw .offline }
+        await reader.composerDidClose(.sent(replyConfirmed))
+        // The reply opened page 6: the retried page 5 names it.
+        pages.handler = { target in privatePage(target.page, maxPage: 6) }
+        await reader.retry()
+        #expect(pages.requests.map(\.page) == [2, 5, 5, 6])
+        #expect(reader.page?.currentPage == 6)
+        #expect(reader.document?.anchor == 601)
+    }
+
     @Test func aFailedLatestPageLoadAsksNothingMore() async {
         let pages = FakeTopicPages { target in privatePage(target.page) }
         let reader = TopicReaderModel(target: ReaderTarget(source: .topic(privateTopic), page: 2), title: "", source: pages)

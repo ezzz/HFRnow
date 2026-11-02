@@ -32,7 +32,8 @@ only with an answer link naming the conversation, draft `.reply(topic:page: 1)` 
 **latest post** (`TopicReaderModel.showLatestPost`): a public topic asks `maxPage + 1`, which HFR redirects to the last page
 (`R24`); what HFR serves past the end of a `cat=prive` thread is not captured, so a conversation asks its last known page,
 and when that page's pager names a later one (the reply opened it) asks that page next, both opened at the last message.
-A failed or superseded load asks nothing more.
+A failed or superseded load asks nothing more; "Réessayer" after a failure asks the same page and still follows its
+pager.
 
 **New MP.** `NewMessageTarget(link:)` takes a new-MP composer link: `https` on the forum host, default port, no user info,
 `cat=prive`; its `dest` value is the starting recipient (`R45b`: `dest=user1` gives `value="user1"`; the list's
@@ -96,10 +97,10 @@ is its differential test).
   logged out; a confirmed MP reloads page 1 and opens the one thread with its subject (also on `R13a` with `W10`'s subject);
   none opens with no match or two; an unconfirmed one reloads, closing does nothing; `RA1` carries the `R47b` answer link
   naming the conversation; after an MP reply the reader asks the last known page, never past it, then the page the reply
-  opened; a failed load asks nothing more.
+  opened; a failed load asks nothing more, and its retry still follows the pager.
 
 Shown to fail without the change (each mutation run on the simulator makes its tests fail): `maxPage + 1` on a
-conversation, no follow-up page, a follow-up after a failed load, the first of several matching rows opened, no thread
+conversation, no follow-up page, a follow-up after a failed load, (CodeRabbit) a retry that drops the follow-up, the first of several matching rows opened, no thread
 opened, no new-MP link kept from the page, no reload after an unconfirmed MP, Send without recipient or subject, the
 non-BMP check on the text only, the subject not saved, not restored, not counted for the close choice, the recipient not
 trimmed, the reply's "unconfirmed" text on an MP; after the Fable round: a subject-only draft dropped.

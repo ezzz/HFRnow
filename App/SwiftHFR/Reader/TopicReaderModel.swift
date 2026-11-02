@@ -72,6 +72,8 @@ final class TopicReaderModel {
     private(set) var requested: ReaderTarget
     /// Where the page last asked for opens, kept so "Réessayer" after a failed latest-post load still opens at the end.
     private var requestedAnchor: AnchorRule
+    /// The page last asked for is a conversation's latest page whose pager is followed (LOT-128), kept for "Réessayer".
+    private var requestedFollowsPager = false
     /// The target of the page on screen (topic and page as served), what a refresh reloads.
     private(set) var shown: ReaderTarget?
 
@@ -124,9 +126,13 @@ final class TopicReaderModel {
         await load(ReaderTarget(source: shown.source, page: shown.page), keepsScrollPosition: true)
     }
 
-    /// Asks again for the page that failed.
+    /// Asks again for the page that failed; a conversation's latest page still follows its pager (`showLatestPost`).
     func retry() async {
-        await load(requested, keepsScrollPosition: false, anchor: requestedAnchor)
+        if requestedFollowsPager {
+            await loadLatestPage(requested)
+        } else {
+            await load(requested, keepsScrollPosition: false, anchor: requestedAnchor)
+        }
     }
 
     /// Opens page `number` of the topic (clamped to the known pages).
@@ -219,9 +225,15 @@ final class TopicReaderModel {
             await load(shown.atPage(page.maxPage + 1), keepsScrollPosition: false, anchor: .lastMessage)
             return
         }
-        let delivered = await load(shown.atPage(page.maxPage), keepsScrollPosition: false, anchor: .lastMessage)
+        await loadLatestPage(shown.atPage(page.maxPage))
+    }
+
+    /// Loads `target` at its last message, then the page its pager names when it is later (a reply opened it). "Réessayer"
+    /// after a failure comes back here, so the follow-up is not lost.
+    private func loadLatestPage(_ target: ReaderTarget) async {
+        let delivered = await load(target, keepsScrollPosition: false, anchor: .lastMessage, followsPager: true)
         // Only when that load delivered (not superseded, no failure) and its pager names a later page.
-        guard delivered, error == nil, let served = self.page, let servedTarget = self.shown,
+        guard delivered, error == nil, let served = page, let servedTarget = shown,
               served.maxPage > served.currentPage else { return }
         await load(servedTarget.atPage(served.maxPage), keepsScrollPosition: false, anchor: .lastMessage)
     }
@@ -269,12 +281,15 @@ final class TopicReaderModel {
 
     /// Returns whether this load delivered its result (false when a newer load or `cancel()` superseded it).
     @discardableResult
-    private func load(_ target: ReaderTarget, keepsScrollPosition: Bool, anchor rule: AnchorRule = .target) async -> Bool {
+    private func load(
+        _ target: ReaderTarget, keepsScrollPosition: Bool, anchor rule: AnchorRule = .target, followsPager: Bool = false
+    ) async -> Bool {
         task?.cancel()
         generation += 1
         let mine = generation
         requested = target
         requestedAnchor = rule
+        requestedFollowsPager = followsPager
         isLoading = true
         let source = self.source
         let task = Task { [weak self] in
