@@ -52,7 +52,8 @@ struct BBCodeRendererOracleTests {
         let open = try #require(page[start.upperBound...].firstRange(of: "]"))
         let end = try #require(page[open.upperBound...].firstRange(of: "[/quotemsg]"))
         var source = String(page[open.upperBound..<end.lowerBound])
-        #expect(!source.contains("&amp;") || capture.hasPrefix("R41a"))
+        // The `textarea` escapes the source: 12 `&amp;` in the prefill of 2666649 (cited links), none in the others.
+        #expect(source.matches(of: /&amp;/).count == (capture.hasPrefix("R41a") ? 12 : 0))
         source = source.replacing("&lt;", with: "<").replacing("&gt;", with: ">").replacing("&#034;", with: "\"")
             .replacing("&quot;", with: "\"").replacing("&amp;", with: "&")
         for (old, new) in renames {

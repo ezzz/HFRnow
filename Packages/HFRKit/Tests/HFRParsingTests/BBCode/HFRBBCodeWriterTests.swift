@@ -116,14 +116,14 @@ struct HFRBBCodeWriterTests {
     @Test("Escaping: the four characters HFR escapes, and nothing else, once (R95d)")
     func escaping() {
         #expect(Self.html("plain <b>html</b> & \"quotes\" 'x'") == "<p>plain &lt;b&gt;html&lt;/b&gt; &amp; &#034;quotes&#034; 'x'")
-        #expect(Self.html("a\u{FFFF}b\u{FFFE}c") == "<p>abc")
+        #expect(Self.html("a\u{FFFF}b\u{FFFE}c" + String(HFRBBCodeWriter.noBreakSpaceMarker) + "d") == "<p>abcd")
         #expect(Self.html("\u{FFFF}0\u{FFFF} [url]https://a.example/[/url]")
             == "<p>0 <a href=\"https://a.example/\" class=\"cLink\">https://a.example/</a>")
         #expect(Self.html("[url=https://a.example/?a=1&b=\"]x & \"y\"[/url]")
             == "<p><a href=\"https://a.example/?a=1&amp;b=&#034;\" class=\"cLink\">x &amp; &#034;y&#034;</a>")
     }
 
-    @Test("Every pass is one scan: 64 KB of each nesting or unclosed shape is written in well under a second")
+    @Test("Every pass is one scan: 64 KB of each nesting, unclosed or smiley shape is written in about a second")
     func linearWork() {
         let count = 8_000
         // Each shape made one pass rescan to the end per tag before the next close was remembered: 30 s at 64 KB.
@@ -137,13 +137,19 @@ struct HFRBBCodeWriterTests {
             String(repeating: "[#000000]x", count: count),
             String(repeating: "[url]x[/url][img][/img][#ff0000]a[/#00ff00]", count: count / 2) + "[/url]",
             String(repeating: "[*]a\n", count: count * 2),
-            String(repeating: ":D :) [:user] ", count: count)
+            String(repeating: ":D :) [:user] ", count: count),
+            String(repeating: ":)", count: count * 2),
+            "https://x/" + String(repeating: ":)", count: count * 2),
+            (0..<count).map { String(format: "[#%06x]x", $0) }.joined(),
+            String(repeating: "[url=", count: count) + "]x[/url]"
         ]
+        let url = URL(string: "https://forum-images.hardware.fr/icones/smile.gif")
+        let writer = HFRBBCodeWriter(smileysEnabled: true, smileys: url.map { [":)": $0, ":D": $0] } ?? [:])
         let start = ContinuousClock.now
         for source in sources {
-            #expect(!Self.html(source).isEmpty)
+            #expect(!writer.html(for: source).isEmpty)
         }
-        // Measured at under a second for the ten on a debug build; one quadratic pass alone takes 30 s at this size.
+        // Measured at about a second for the fourteen on a debug build; one quadratic pass alone takes 30 s at this size.
         #expect(ContinuousClock.now - start < .seconds(15))
     }
 

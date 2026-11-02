@@ -11,7 +11,7 @@ import Foundation
 ///
 /// Member text never becomes markup: every text run is escaped by one function (`escape`) before the HTML tags are
 /// written around it, and the fragments that later passes must not touch (URLs, images, smileys, raw blocks) are held
-/// in placeholders built from U+FFFF; a line break is held as U+FFFE and a no-break space as U+E000 until the end, all
+/// in placeholders built from U+FFFF; a line break is held as U+FFFE and a no-break space as U+FDD0 until the end, all
 /// three stripped from the source first. Every pass works on **Unicode scalars**, never on `Character`s: a combining
 /// mark after a `"` or a `]` must not hide it from the escaping or the tag syntax. Every pass is one scan of the text
 /// (the next closing tag is searched once and remembered), so the work is linear in the source length.

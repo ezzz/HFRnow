@@ -43,9 +43,12 @@ extension HFRBBCodeWriter {
     static let placeholderMarker: Unicode.Scalar = "\u{FFFF}"
     /// Stands for a LF until the tags are written (a `<br />` in the text would be escaped by step 5).
     static let lineBreakMarker: Unicode.Scalar = "\u{FFFE}"
-    /// Stands for the `&nbsp;` HFR writes until the text is escaped. The entity is written, not U+00A0: SwiftSoup's tree
-    /// builder repairs a crossed formatting element otherwise after the raw character (`R20` `para2666649`).
-    static let noBreakSpaceMarker: Unicode.Scalar = "\u{E000}"
+    /// Stands for the `&nbsp;` HFR writes (the entity, as in HFR's bytes) until the text is escaped. U+FDD0 is a
+    /// noncharacter, like the two others; Swift takes it from its value, not from a literal.
+    static let noBreakSpaceMarker: Unicode.Scalar = {
+        guard let scalar = Unicode.Scalar(UInt32(0xFDD0)) else { preconditionFailure("U+FDD0 is a Unicode scalar") }
+        return scalar
+    }()
     static let noBreakSpace = "&nbsp;"
 
     static func placeholder(_ index: Int) -> Scalars {

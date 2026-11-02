@@ -47,10 +47,13 @@ extension HFRBBCodeWriter {
         var result: Scalars = []
         result.reserveCapacity(text.count)
         var cursor = 0
-        var nextClose: Int?
+        var nextClose: Int?, nextBracket: Int?
         while let openIndex = find(open, in: text, from: cursor) {
             let argumentStart = openIndex + open.count
-            guard let argumentEnd = find("]", in: text, from: argumentStart) else { break }
+            if nextBracket.map({ $0 < argumentStart }) ?? true {
+                nextBracket = find("]", in: text, from: argumentStart)
+            }
+            guard let argumentEnd = nextBracket else { break }
             let argument = Array(text[argumentStart..<argumentEnd])
             let contentStart = argumentEnd + 1
             if nextClose.map({ $0 < contentStart }) ?? true {
@@ -112,14 +115,22 @@ extension HFRBBCodeWriter {
     }
 
     /// `[#RRGGBB]text[/#RRGGBB]`, the toolbar's own colour syntax (`R40a` `TAinsert('['+bgColor+']', …)`, `R41a` → `R20`:
-    /// `<span style="color:#0055aa">`), six ASCII hex digits, non-greedy, the closing tag naming the same colour. A
-    /// colour whose close was not found ahead is remembered, so an unclosed one is scanned once.
+    /// `<span style="color:#0055aa">`), six ASCII hex digits, non-greedy, the closing tag naming the same colour. The
+    /// closing tags are indexed once per colour, so every open finds its close without rescanning.
     static func replacingColours(in text: Scalars) -> Scalars {
-        let open = scalars("[#")
+        let open = scalars("[#"), close = scalars("[/#")
+        var closes: [String: [Int]] = [:]
+        var closeCursor = 0
+        while let closeIndex = find(close, in: text, from: closeCursor) {
+            let digitsStart = closeIndex + close.count, digitsEnd = digitsStart + 6
+            if digitsEnd < text.count, text[digitsEnd] == "]", text[digitsStart..<digitsEnd].allSatisfy(isASCIIHexDigit) {
+                closes[string(Array(text[digitsStart..<digitsEnd])), default: []].append(closeIndex)
+            }
+            closeCursor = digitsStart
+        }
         var result: Scalars = []
         result.reserveCapacity(text.count)
         var cursor = 0
-        var unclosed: Set<String> = []
         while let openIndex = find(open, in: text, from: cursor) {
             let digitsStart = openIndex + open.count, digitsEnd = digitsStart + 6
             guard digitsEnd < text.count, text[digitsEnd] == "]", text[digitsStart..<digitsEnd].allSatisfy(isASCIIHexDigit) else {
@@ -129,8 +140,9 @@ extension HFRBBCodeWriter {
             }
             let colour = string(Array(text[digitsStart..<digitsEnd]))
             let contentStart = digitsEnd + 1
-            guard !unclosed.contains(colour), let closeIndex = find(scalars("[/#\(colour)]"), in: text, from: contentStart) else {
-                unclosed.insert(colour)
+            // Closes before the content are consumed or stale: the list only ever loses its head.
+            while let first = closes[colour]?.first, first < contentStart { closes[colour]?.removeFirst() }
+            guard let closeIndex = closes[colour]?.first else {
                 result += text[cursor..<digitsStart]
                 cursor = digitsStart
                 continue
@@ -172,14 +184,19 @@ extension HFRBBCodeWriter {
         result.reserveCapacity(text.count)
         var cursor = 0
         var index = 0
+        /// The word being scanned (space, no-break space and line break bound it) and whether it starts like a URL.
+        var wordEnd = 0, wordIsURL = false
         let last = text.count - code.count
         while index <= last {
+            if index >= wordEnd {
+                (wordEnd, wordIsURL) = word(at: index, in: text)
+            }
             var offset = 0
             while offset < code.count, asciiLowercased(text[index + offset]) == folded[offset] { offset += 1 }
             if offset == code.count {
                 result += text[cursor..<index]
                 let match = Array(text[index..<index + code.count])
-                result += isInsideURLWord(index, in: text) ? match : body(match)
+                result += wordIsURL ? match : body(match)
                 index += code.count
                 cursor = index
             } else {
@@ -190,18 +207,17 @@ extension HFRBBCodeWriter {
         return result
     }
 
-    /// Whether the word (no space, no line break) that holds `position` starts like a URL.
-    private static func isInsideURLWord(_ position: Int, in text: Scalars) -> Bool {
+    /// The end of the word that starts at `start` (the next space, no-break space or line break, or the end of the
+    /// text; one past a boundary scalar) and whether that word starts with `http://`, `https://` or `www.`.
+    private static func word(at start: Int, in text: Scalars) -> (end: Int, isURL: Bool) {
         func isBoundary(_ scalar: Unicode.Scalar) -> Bool {
             scalar == " " || scalar == noBreakSpaceMarker || scalar == lineBreakMarker
         }
-        var start = position
-        while start > 0, !isBoundary(text[start - 1]) { start -= 1 }
-        var end = position
+        var end = start
         while end < text.count, !isBoundary(text[end]) { end += 1 }
-        let word = text[start..<end].map(asciiLowercased)
-        for prefix in ["http://", "https://", "www."] where word.starts(with: scalars(prefix)) { return true }
-        return false
+        let head = text[start..<min(end, start + 8)].map(asciiLowercased)
+        let isURL = ["http://", "https://", "www."].contains { head.starts(with: scalars($0)) }
+        return (end == start ? start + 1 : end, isURL)
     }
 
     /// The line-break and no-break-space markers written as HFR writes them.
