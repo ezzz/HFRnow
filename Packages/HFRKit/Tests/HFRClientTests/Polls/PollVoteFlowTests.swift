@@ -117,7 +117,9 @@ struct PollVoteFlowTests {
         // The same topic number in another category (Discussions = 13) is another topic.
         ("https://forum.hardware.fr/hfr/Discussions/iOS/sujet_9900002_1.htm", false),
         ("https://forum.hardware.fr/hfr/Inconnu/iOS/sujet_9900002_1.htm", false),
-        ("https://forum.hardware.fr/hfr/Programmation/sujet_9900002_1.htm", false),
+        // A topic at the category's root has no sub-forum directory (list links of R04, R27).
+        ("https://forum.hardware.fr/hfr/Programmation/sujet_9900002_1.htm", true),
+        ("https://forum.hardware.fr/hfr/Programmation/iOS/x/sujet_9900002_1.htm", false),
         ("https://forum.hardware.fr/forum/Programmation/iOS/sujet_9900002_1.htm", false)
     ])
     func refreshNamesTheTopic(raw: String, expected: Bool) throws {

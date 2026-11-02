@@ -135,16 +135,17 @@ public struct PollVoteFlow: Sendable {
 }
 
 extension PollVoteFlow {
-    /// `url` is a page of `topic` as `W42` refreshes to it: `/hfr/<cat>/<sub>/sujet_<post>_<page>.htm`. A topic number
-    /// is one category's, so both count: the category slug must be the forum `ForumCatalogue` maps to the form's `cat`
+    /// `url` is a page of `topic` as `W42` refreshes to it: `/hfr/<cat>/<sub>/sujet_<post>_<page>.htm`, or without the
+    /// sub-forum directory for a topic at a category's root (the list links of `R04`, `R27`). A topic number is one
+    /// category's, so both count: the category slug must be the forum `ForumCatalogue` maps to the form's `cat`
     /// (`Programmation` = 10 on `W42`/`R83`), the file name `sujet_<post>_<page>.htm`.
     static func isPage(of topic: TopicID, _ url: URL) -> Bool {
         let parts = url.pathComponents
         guard
-            parts.count == 5, parts[0] == "/", parts[1] == "hfr",
-            ForumCatalogue.categoryID(forPath: "/hfr/\(parts[2])/liste_sujet-1.htm") == topic.category
+            parts.count == 4 || parts.count == 5, parts[0] == "/", parts[1] == "hfr",
+            ForumCatalogue.categoryID(forPath: "/hfr/\(parts[2])/liste_sujet-1.htm") == topic.category,
+            let name = parts.last
         else { return false }
-        let name = parts[4]
         guard name.hasPrefix("sujet_\(topic.topic)_"), name.hasSuffix(".htm") else { return false }
         let page = name.dropFirst("sujet_\(topic.topic)_".count).dropLast(".htm".count)
         return FlagLink.positiveInteger(String(page)) != nil
