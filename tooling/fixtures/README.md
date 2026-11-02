@@ -116,8 +116,8 @@ MPStorage title (FIXTURES.md); `check --private` verifies it, in both verifiers.
 first post, the storage JSON document, is kept when the thread header names the thread and the document holds only known
 keys and the strings `0.1` / `iOS`; any other content raises `MPStorageDocumentError` (fail closed). On the storage thread's form pages the copies of the
 document (`content_form`, the review cell after `td.messCase1bis`) must pass the same check, on both sides. `check --private`
-On every other form page (composer, edit, quote prefill), `--private` also replaces the `content_form` textarea and the review cell after `td.messCase1bis` by the placeholder, unless the page names only fixture threads (`fixture-test-N` in every `sujet` input and "Sujet :" header); a page naming no thread fails closed. `check --private` flags both positions, in both verifiers (#401).
 accepts that body only on a page whose `<title>` names the thread and whose JSON keys and strings are all in its own word list.
+On every other form page (composer, edit, quote prefill), `--private` also replaces the `content_form` textarea and the review cell after `td.messCase1bis` by the placeholder, unless the page names only fixture threads (`fixture-test-N` in every `sujet` input and "Sujet :" header); a page naming no thread fails closed. `check --private` flags both positions, in both verifiers (#401).
 
 The CLI runs `check` on its own output and writes nothing if a leak remains. `check` exits non-zero and prints each offending line.
 
