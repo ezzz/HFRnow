@@ -99,7 +99,8 @@ struct BBCodeRendererSanitizationTests {
         let quotes = String(repeating: "[quote]", count: depth / 10) + "y" + String(repeating: "[/quote]", count: depth / 10)
         let unclosed = String(repeating: "[b][i][quote][url=https://a.example/]", count: depth / 4) + "z"
         // No wall-clock bound: the suite runs in parallel and a bound was flaky at 12 s alone, 51 s under load.
-        // The writer is linear by construction (every pass is one scan), the parses are not (ADR 0014 §4); the three renders complete here instead of hanging.
+        // The writer is linear by construction (every pass is one scan), the parses are not (ADR 0014 §4); the three
+        // renders complete here instead of hanging.
         let (boldContent, quoteContent, unclosedContent) = try await Task.detached {
             (try BBCodeRenderer.render(bold), try BBCodeRenderer.render(quotes), try BBCodeRenderer.render(unclosed))
         }.value
