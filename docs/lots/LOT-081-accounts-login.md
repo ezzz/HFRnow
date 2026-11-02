@@ -120,6 +120,12 @@ None new. The login's pending captures (flood answer, case and encoding of `md_u
 - The avatar comes from the forum image host only, without cookies, with a size limit (legacy downloaded whatever URL the regex found, with `try?`).
 - Account deletion mail (Q-10) is out of scope.
 
+## UX evolutions (H.1)
+Classification of directive H.1 (2026-11-01): the `H.1` column of [GAP-LEGACY-VS-SWIFT.md](../migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1). The open choices are in [UX-DECISIONS-PENDING.md](../migration/UX-DECISIONS-PENDING.md). The code names its legacy counterparts in `// Port of …` comments (AGENTS.md §4), added by [#378](https://github.com/ezzz/HFRnow/pull/378).
+- GAP-163: the manage screen, where an account is removed instead of through the "Déconnexion" item, is `b`, pending **UXD-21** (recommendation: restore "Déconnexion" next to the manage screen).
+- GAP-009 account menu in the Plus and Catégories toolbars only: `b`, pending **UXD-03**.
+- GAP-160, 161, 162, 164, 165 (store, login in a fresh session, account switch menu, Keychain envelope, session checks): `a`.
+
 ## Learnings
 
 - `HFRSession` rounds cookie expiries to the second on the way back (LOT-042): compare a jar with what it held before, not with the `StoredCookie`s that seeded it.

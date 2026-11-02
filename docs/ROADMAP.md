@@ -14,8 +14,11 @@ Every lot of [LOTS.md](LOTS.md) belongs to one milestone. Each milestone has a l
 | 📖 M2 · Read & reply complete | Every reading and answering feature of the legacy app: quotes, formatting, smileys, images, edit and delete, new topic, polls, search, filters, page tools, offline reading, MPs | Every M2 lot done; TestFlight beta 2 |
 | ⚙️ M3 · Engine complete | Every `HFRKit` lot not already in M1 | Every M3 lot done; LOT-070 parity gates green |
 | 🏁 M4 · Final version | Everything else: MPStorage sync, notifications, appearance, compliance, accessibility, Phase 5, App Store | LOT-164 parity gate passed; the LOT-165 App Store submission accepted by App Review; every lot done |
+| 🧪 M5 · UX evolutions *(proposal, blocked)* | The UX changes parity does not need, taken out of M1–M4 so that those ship the legacy UX: Home, swipes, scrubber, navigator, quote tray, preview, Duo and iPad columns, state restoration… ([#379](https://github.com/ezzz/HFRnow/issues/379), list in [LOTS.md](LOTS.md#proposed-m5--ux-evolutions-needs-the-contributors-agreement)) | Exists only once the contributors' agreement is recorded on #379; until then every lot keeps its M1–M4 milestone |
 
 M3 runs in parallel with M2: engine lots run in cloud sessions, while app lots need the maintainer's Mac. Moving a lot to another milestone is an operator decision, recorded on the board.
+
+**Port first, evolutions apart** (directive H, 2026-11-01): M1–M4 port ezzz's Swift layer with the legacy UX. Every UX change is classified in [GAP-LEGACY-VS-SWIFT.md](migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1): it stays in M1–M4 only when parity needs it or the operator decided it, and the rest is proposed for M5. The open A/B choices are in [UX-DECISIONS-PENDING.md](migration/UX-DECISIONS-PENDING.md).
 
 ![SwiftHFR milestones: M1 MVP, then M2 read and reply complete on the Mac lane and M3 engine complete on the cloud lane, both leading to M4 final version; below, the life of a lot from todo (ready, blocked, triage) through ongoing (claimed, draft PR, review wanted, changes requested, approved) to done (merged, issue closed, docs up to date)](assets/roadmap-milestones.svg)
 

@@ -83,6 +83,7 @@ When a behaviour is unclear, **read the legacy code** instead of guessing, and c
 - Protocols only where a second implementation is realistic (transport, HTML backend, storage). No speculative abstractions.
 - Comments explain *why*, never *what*. Public API gets a one-line doc comment.
 - SwiftLint must pass (`.swiftlint.yml`). Do not disable rules inline without a justification comment.
+- **Legacy pointers in app code** (directive H.2, 2026-11-01): every app view or view model that ports legacy code starts with one comment above its main type: `// Port of HFRswift/Swift/<File>.swift (<Symbol>) @ 2440d79. Differences: …`, naming the GAP row and `UXD` when a difference waits on [a decision](docs/migration/UX-DECISIONS-PENDING.md). An app-lot spec has a "Legacy counterpart" section ([TEMPLATE](docs/lots/TEMPLATE.md)). This lets ezzz find his structure again and gives every parity check its starting point. A UX change no parity need justifies is not ported silently: it is a (b) item, explicit in the spec and optional ([ROADMAP](docs/ROADMAP.md) M5).
 
 ## 5. The migration loop (one lot)
 

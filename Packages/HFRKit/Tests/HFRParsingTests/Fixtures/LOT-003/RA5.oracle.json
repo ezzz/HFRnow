@@ -39,6 +39,11 @@
     "actions" : [
 
     ],
+    "fastAnswer" : {
+      "isFavoritesOrRead" : "",
+      "isRedFlagged" : false,
+      "isUnreadable" : false
+    },
     "messages" : [
 
     ],
