@@ -59,8 +59,7 @@ public struct MPStorageTransport: Sendable {
 extension MPStorageTransport {
     func findThread(through session: any PostingSession) async throws(MPStorageTransportError) -> Int? {
         let first = try Self.endpoint { () throws -> HTTPRequest in try HFREndpoint.privateMessages(page: 1) }
-        return try await Self.walk(from: first.url, maximumPages: Self.maximumListPages) {
-            (url: URL) async throws(MPStorageTransportError) -> MPStorageThreadSearch in
+        func fetch(_ url: URL) async throws(MPStorageTransportError) -> MPStorageThreadSearch {
             let response = try await Self.get(.get(url), through: session)
             guard PostingFlow.isForumPage(response.url) else { throw .unexpectedPage }
             do throws(ListPageFailure) {
@@ -69,6 +68,7 @@ extension MPStorageTransport {
                 throw .list(error)
             }
         }
+        return try await Self.walk(from: first.url, maximumPages: Self.maximumListPages, fetch: fetch)
     }
 
     /// Walks the MP list from `first`, following each page's `nextPath`, until a page shows the thread or has no next
