@@ -55,7 +55,7 @@ Console: `[ok]` green, `[warn]` yellow, `[ko]` red, off without a TTY or with `N
 | `HFR_ASC_KEY_PATH` | path of `AuthKey_<id>.p8`, outside the repository (the script refuses a path inside it) | upload |
 | `HFR_SIGNING_STYLE` | `manual` (default, legacy habit) or `automatic` | export |
 | `HFR_SIGNING_CERTIFICATE` | certificate for manual signing; empty lets Xcode pick a valid distribution certificate (legacy used "iPhone Distribution") | export (optional) |
-| `HFR_PROFILE_NAME` | App Store provisioning profile for `hfrplus.red.super` (manual), installed with a distribution certificate in the login keychain (see `HFR_SIGNING_CERTIFICATE`) | export |
+| `HFR_PROFILE_NAME` | name of the App Store provisioning profile for `hfrplus.red.super` (manual), installed in Xcode; its distribution certificate and private key are in the login keychain (see `HFR_SIGNING_CERTIFICATE`) | export |
 | `HFR_TEAM_ID` | team id, when the archive's team is not the one to export with | export (optional) |
 | `HFR_ALLOW_PROVISIONING_UPDATES` | `1` lets xcodebuild create or update profiles with the API key (`-allowProvisioningUpdates`, needed by `automatic`), on archive and export, so a signed dry run then contacts Apple too (signing only, no upload). Operator opt-in only: agents and CI never set it (AGENTS.md §11, LOT-080) | export (automatic) |
 | `HFR_INTERNAL_ONLY` | `1` marks the build "TestFlight internal testing only" | optional |
