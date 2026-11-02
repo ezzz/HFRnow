@@ -4,7 +4,7 @@
 - **Difficulty / model:** difficult (Fable → Opus)
 - **Issue:** [#189](https://github.com/ezzz/HFRnow/issues/189) · implements FEAT-013 ([#157](https://github.com/ezzz/HFRnow/issues/157), proposed by Bybifok, credit in CREDITS.md); the app half is LOT-152 ([#242](https://github.com/ezzz/HFRnow/issues/242)); captures wanted: CAP-N4 ([#172](https://github.com/ezzz/HFRnow/issues/172), done in #400: `W61` / `R95d`, `W62` / `R95h`) and the batch 2 of [#443](https://github.com/ezzz/HFRnow/issues/443)
 - **Depends on:** LOT-034 (`MessageContentNormalizer`), LOT-020 (`HFRURL`)
-- **Decision:** [ADR 0014](../adr/0014-bbcode-preview-renderer.md) — HFR's own rendering model in `HFRParsing` (text escaped once, rewritten tag by tag into HFR's HTML string), output through the LOT-034 normalizer and the reader's own path, as for the posted message (exact parity is a claim per captured pair, never a property of the type); the operator's choice O-1 (local preview, on-demand server preview, or both) is recorded on #189.
+- **Decision:** [ADR 0014](../adr/0014-bbcode-preview-renderer.md) — HFR's own rendering model in `HFRParsing` (text escaped once, rewritten tag by tag into HFR's HTML string), output through the LOT-034 normalizer and the reader's own path, as for the posted message (exact parity is a claim per captured pair, never a property of the type); O-1 decided 2026-11-02 on #189: **(b)**, this local preview plus an on-demand « aperçu HFR » through `/apercu.php` (LOT-184, [#449](https://github.com/ezzz/HFRnow/issues/449), M5).
 
 As a poster, I want to preview my message as HFR will render it, so that I fix formatting before sending.
 
