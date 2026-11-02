@@ -94,13 +94,17 @@ struct HFRBBCodeWriter {
         }
     }
 
-    /// The table as a trie: codes in their text order (the first of two codes equal once folded wins unless the other
-    /// is typed exactly), a code holding a marker left out, the start of each image prepared.
+    /// The longest code the trie takes: a position's walk is bounded by it, whatever the table (HFR's own limit on a
+    /// personal smiley's name is pending capture; `[:name:N]` codes are a few dozen scalars).
+    static let longestCode = 64
+
+    /// The table as a trie: codes in code-point order (the first of two codes equal once folded wins unless the other
+    /// is typed exactly), a code holding a marker or longer than `longestCode` left out, the start of each image prepared.
     static func trie(for smileys: [String: URL]) -> SmileyTrie {
         let markers: Set<Unicode.Scalar> = [placeholderMarker, lineBreakMarker, noBreakSpaceMarker]
         let codes = smileys.sorted { $0.key < $1.key }.compactMap { code, url -> SmileyCode? in
             let scalars = Self.scalars(code)
-            guard !scalars.contains(where: markers.contains) else { return nil }
+            guard !scalars.contains(where: markers.contains), scalars.count <= longestCode else { return nil }
             let image = Self.scalars("<img src=\"") + escape(Self.scalars(url.absoluteString)) + Self.scalars("\" alt=\"")
             return SmileyCode(code: scalars, folded: scalars.map(asciiLowercased), image: image)
         }

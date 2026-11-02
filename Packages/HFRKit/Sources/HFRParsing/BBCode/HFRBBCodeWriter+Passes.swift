@@ -7,8 +7,8 @@ extension HFRBBCodeWriter {
     /// Every `[tag]…[/tag]` pair, non-greedy, left to right: a pair closes at the first `[/tag]` after its `[tag]`, so
     /// a crossed pair comes out crossed and a tag without its close stays text. With `argumentIsURL`, the content must
     /// be a URL: not empty, no bracket, no line break, no placeholder. With `rawContent`, a content holding a placeholder
-    /// (a raw block already held) leaves the tags as text, so no held fragment ever holds another. The next close is
-    /// searched once and remembered.
+    /// (a raw block already held) leaves the tags as text, so no held fragment ever holds another. The next close and
+    /// the next placeholder are searched once and remembered.
     static func replacingPairs(
         _ tag: String, in text: Scalars, argumentIsURL: Bool = false, rawContent: Bool = false, with body: (Scalars) -> Scalars
     ) -> Scalars {
@@ -16,15 +16,17 @@ extension HFRBBCodeWriter {
         var result: Scalars = []
         result.reserveCapacity(text.count)
         var cursor = 0
-        var nextClose: Int?
+        var nextClose: Int?, nextMarker: Int?
         while let openIndex = find(open, in: text, from: cursor) {
             let contentStart = openIndex + open.count
             if nextClose.map({ $0 < contentStart }) ?? true {
                 nextClose = find(close, in: text, from: contentStart)
             }
             guard let closeIndex = nextClose else { break }
-            if argumentIsURL && !isURLArgument(text[contentStart..<closeIndex])
-                || rawContent && text[contentStart..<closeIndex].contains(placeholderMarker) {
+            if rawContent, nextMarker.map({ $0 < contentStart }) ?? true {
+                nextMarker = find(placeholderMarker, in: text, from: contentStart) ?? Int.max
+            }
+            if argumentIsURL && !isURLArgument(text[contentStart..<closeIndex]) || rawContent && (nextMarker ?? Int.max) < closeIndex {
                 result += text[cursor..<contentStart]
                 cursor = contentStart
                 continue
@@ -228,9 +230,9 @@ extension HFRBBCodeWriter {
     }
 
     /// Every occurrence of a code of the table, in one scan, the longest code first at each position, ASCII letters
-    /// matched whatever their case (`R20`: `:d` typed, `:D` in the catalogue), except inside a word that starts with
-    /// `http://`, `https://` or `www.` (a bare URL in text; what HFR does with it is pending capture). `body` gets the
-    /// code and the text as typed.
+    /// matched whatever their case (`R20`: `:d` typed, `:D` in the catalogue), except from `http://`, `https://` or
+    /// `www.` to the end of its word (a bare URL in text; what HFR does with it is pending capture) and inside a held
+    /// fragment. `body` gets the code and the text as typed.
     static func replacingSmileys(_ trie: SmileyTrie, in text: Scalars, with body: (SmileyCode, Scalars) -> Scalars) -> Scalars {
         var result: Scalars = []
         result.reserveCapacity(text.count)
@@ -272,14 +274,8 @@ extension HFRBBCodeWriter {
         while end < text.count, !isBoundary(text[end]) { end += 1 }
         let word = text[start..<end].map(asciiLowercased)
         let prefixes = ["http://", "https://", "www."].map(scalars)
-        var urlStart = Int.max
-        for position in word.indices {
-            if prefixes.contains(where: { word[position...].starts(with: $0) }) {
-                urlStart = position + start
-                break
-            }
-        }
-        return (end == start ? start + 1 : end, urlStart)
+        let urlStart = word.indices.first { position in prefixes.contains { word[position...].starts(with: $0) } }
+        return (end == start ? start + 1 : end, urlStart.map { $0 + start } ?? Int.max)
     }
 
     /// The line-break and no-break-space markers written as HFR writes them.

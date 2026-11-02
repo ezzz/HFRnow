@@ -24,6 +24,17 @@ public struct BBCodeRenderOptions: Sendable, Hashable {
         self.smileys = smileys
         trie = HFRBBCodeWriter.trie(for: smileys)
     }
+
+    // The trie is derived from `smileys`: equality and hashing read the two public values only, so a comparison per
+    // keystroke costs the table, not the trie.
+    public static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.smileysEnabled == rhs.smileysEnabled && lhs.smileys == rhs.smileys
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(smileysEnabled)
+        hasher.combine(smileys)
+    }
 }
 
 /// Renders a message source (BBCode, as the composer sends it) into the `MessageContent` the reader will show once the

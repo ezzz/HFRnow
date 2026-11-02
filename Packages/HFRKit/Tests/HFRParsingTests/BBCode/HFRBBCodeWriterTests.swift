@@ -129,16 +129,30 @@ struct HFRBBCodeWriterTests {
             == "<p><img src=\"https://forum-images.hardware.fr/icones/smile.gif\" alt=\":d\" title=\":d\" /> "
             + "<img src=\"https://forum-images.hardware.fr/icones/biggrin.gif\" alt=\":D\" title=\":D\" /> "
             + "<img src=\"https://forum-images.hardware.fr/icones/smile.gif\" alt=\":d\" title=\":d\" />d")
-        // The longest code wins at a position (`:ouch:` over `:o`, `[:user:1]` over `[:user]`); a bare prefix matches nothing.
+        // The longest code wins at a position (`:ouch:` over `:o`, `:pfff:` over `:p`; `R32a` renders `:pt1cable:` whole
+        // while `:p` is a code); a partial longer code falls back to the shorter (`:ou` → `:o` + `u`); a bare prefix of
+        // every code (`[:use]`) matches nothing; codes sharing a prefix (`[:user]`, `[:user:1]`) each match whole.
         let ouch = try #require(URL(string: "https://forum-images.hardware.fr/icones/smilies/ouch.gif"))
         let perso1 = try #require(URL(string: "https://forum-images.hardware.fr/images/perso/1/user.gif"))
-        let longest = HFRBBCodeWriter(smileysEnabled: true, smileys: [":o": url, ":ouch:": ouch, "[:user]": perso, "[:user:1]": perso1])
-        #expect(longest.html(for: ":ouch: :o :ou [:user:1] [:user] [:use]")
+        let longest = HFRBBCodeWriter(
+            smileysEnabled: true,
+            smileys: [":o": url, ":ouch:": ouch, ":p": url, ":pfff:": ouch, "[:user]": perso, "[:user:1]": perso1]
+        )
+        #expect(longest.html(for: ":ouch: :o :ou :pfff: [:user:1] [:user] [:use]")
             == "<p><img src=\"https://forum-images.hardware.fr/icones/smilies/ouch.gif\" alt=\":ouch:\" title=\":ouch:\" /> "
             + "<img src=\"https://forum-images.hardware.fr/icones/biggrin.gif\" alt=\":o\" title=\":o\" /> "
             + "<img src=\"https://forum-images.hardware.fr/icones/biggrin.gif\" alt=\":o\" title=\":o\" />u "
+            + "<img src=\"https://forum-images.hardware.fr/icones/smilies/ouch.gif\" alt=\":pfff:\" title=\":pfff:\" /> "
             + "<img src=\"https://forum-images.hardware.fr/images/perso/1/user.gif\" alt=\"[:user:1]\" title=\"[:user:1]\" /> "
             + "<img src=\"https://forum-images.hardware.fr/images/perso/user6.gif\" alt=\"[:user]\" title=\"[:user]\" /> [:use]")
+        // Two codes equal once folded and typed in a third case: the first in code-point order of the code (`:AB:` < `:ab:`).
+        let tie = HFRBBCodeWriter(smileysEnabled: true, smileys: [":ab:": smile, ":AB:": url])
+        #expect(tie.html(for: ":Ab:") == "<p><img src=\"https://forum-images.hardware.fr/icones/biggrin.gif\" alt=\":Ab:\" title=\":AB:\" />")
+        // A code longer than the trie takes (64 scalars) is left out: a position's walk is bounded whatever the table.
+        let longCode = String(repeating: "a", count: 65), longestCode = String(repeating: "b", count: 64)
+        let long = HFRBBCodeWriter(smileysEnabled: true, smileys: [longCode: url, longestCode: url])
+        #expect(long.html(for: longCode) == "<p>" + longCode)
+        #expect(long.html(for: longestCode).contains("<img"))
         let dOnly = HFRBBCodeWriter(smileysEnabled: true, smileys: [":D": url])
         #expect(dOnly.html(for: ":d") == "<p><img src=\"https://forum-images.hardware.fr/icones/biggrin.gif\" alt=\":d\" title=\":D\" />")
     }
@@ -174,7 +188,8 @@ struct HFRBBCodeWriterTests {
             String(repeating: "Bonjour à tous, voici ma pizza :) et mon four :D !\r\n", count: count / 8),
             String(repeating: "[:perso", count: count),
             String(repeating: "[/#000000]", count: count) + "[#000000]x",
-            String(repeating: "[u][b]x[/u][/b]\r\n", count: count)
+            String(repeating: "[u][b]x[/u][/b]\r\n", count: count),
+            String(repeating: "[fixed]", count: count) + "[code]x[/code][/fixed]"
         ]
     }
 
@@ -186,10 +201,15 @@ struct HFRBBCodeWriterTests {
         let perso = try #require(URL(string: "https://forum-images.hardware.fr/images/perso/user.gif"))
         for number in 0..<1_000 { smileys["[:user\(number)]"] = perso }
         let writer = HFRBBCodeWriter(smileysEnabled: true, smileys: smileys)
+        /// The faster of two runs, so a stall of the runner during one of them does not count.
         func time(_ source: String) -> (Duration, String) {
-            let start = ContinuousClock.now
-            let html = writer.html(for: source)
-            return (ContinuousClock.now - start, html)
+            var best = Duration.seconds(1_000), html = ""
+            for _ in 0..<2 {
+                let start = ContinuousClock.now
+                html = writer.html(for: source)
+                best = min(best, ContinuousClock.now - start)
+            }
+            return (best, html)
         }
         for (small, large) in zip(Self.shapes(2_000), Self.shapes(8_000)) {
             let (smallTime, smallHTML) = time(small), (largeTime, largeHTML) = time(large)
@@ -198,7 +218,7 @@ struct HFRBBCodeWriterTests {
             #expect(smallHTML.unicodeScalars.count >= small.unicodeScalars.count)
             #expect(!largeHTML.unicodeScalars.contains { $0 == "\u{FFFF}" || $0 == "\u{FFFE}" || $0 == HFRBBCodeWriter.noBreakSpaceMarker })
             // Four times the size, at most about four times the time (a quadratic pass gives sixteen); the half second
-            // absorbs the noise of the small runs. Measured on a debug build: 2 to 300 ms per shape at 8 000.
+            // absorbs the noise of the small runs. Measured on debug builds: tens to hundreds of ms per shape at 8 000.
             #expect(largeTime < smallTime * 6 + .milliseconds(500), "\(large.prefix(30)): \(smallTime) → \(largeTime)")
         }
     }
