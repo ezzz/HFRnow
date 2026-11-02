@@ -15,6 +15,7 @@ import argparse
 import json
 import os
 import sys
+import urllib.parse
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _ui  # noqa: E402
@@ -24,6 +25,12 @@ AQ_HOST = "aq.super-h.fr"
 DEFAULT_MANIFEST = os.path.join(os.path.dirname(os.path.abspath(__file__)), "corpus.json")
 META_KEYS = ("account", "method", "url_template", "url", "final_url", "status", "content_type", "date",
              "redirects", "set_cookie_names", "request_fields", "note")
+
+
+def is_aq_host(url):
+    """True when url is on the AQ host (hostnames compare case-insensitively)."""
+    host = (urllib.parse.urlsplit(str(url or "")).hostname or "").rstrip(".").casefold()
+    return host == AQ_HOST or host.endswith("." + AQ_HOST)
 
 
 def load_manifest(path):
@@ -59,7 +66,7 @@ def publish_one(anon, raw_dir, dest, entry):
     if entry["ext"]:
         text, enc = A.read_text(os.path.join(raw_dir, raw_id + ".html"))
         # An AQ answer the AQ gate does not recognise would skip the masking of member-written text: refuse it.
-        if any(AQ_HOST in str(raw_meta.get(k) or "") for k in ("url", "final_url")) and not A.is_aq_document(text):
+        if any(is_aq_host(raw_meta.get(k)) for k in ("url", "final_url")) and not A.is_aq_document(text):
             return [(entry["id"], 1, 1, "AQ capture not recognized as an AQ feed or list: extend the anonymizer")]
         page = anon.anonymize(text, private=entry["private"])
     else:
