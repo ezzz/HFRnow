@@ -49,7 +49,8 @@ public struct MPStorageTransport: Sendable {
     /// Creates the storage thread with an empty document (legacy template, `MPStorage.m:738-767`), unless the MP list
     /// already has one, then reads it. Creating is a write the user agreed to (LOT-130 asks); a retry after an
     /// unconfirmed creation finds the thread instead of posting a second one.
-    /// - Throws: the errors of `findThread`, `read` and posting, and `notFoundAfterCreation`.
+    /// - Throws: the errors of `findThread`, `read` and posting, and `notFoundAfterCreation`. An error of the search or
+    ///   read after the confirmed POST means the thread exists: calling `create` again returns it as `.existing`.
     public func create(stamp: MPStorageStamp, in session: HFRSession) async throws(MPStorageTransportError) -> MPStorageCreation {
         try await create(stamp: stamp, through: session)
     }

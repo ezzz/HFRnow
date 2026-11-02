@@ -55,7 +55,9 @@ storage it is; legacy used the main account's cookies, `:696-698, 772-774`).
    with legacy's empty document (`:740`: one `0.1` entry, three empty sections, every level stamped with `stamp`).
    HFR's answer names no thread (`W10`): find again, then read (`.created`); not found is `notFoundAfterCreation`.
 
-Errors (`MPStorageTransportError`) never carry the document text: it holds pseudos.
+Errors (`MPStorageTransportError`) never carry the document text: it holds pseudos. In `findThread`, `read` and `save`, only
+`posting(.unconfirmed)` and `notVerified` may follow a write. In `create`, an error of the search or read after HFR
+confirmed the thread (and `notFoundAfterCreation`) leaves a thread on the forum; calling `create` again finds it.
 
 ## Edge cases
 - **Concurrent writer** between our form read and our POST: the merge cannot see it; the read-back detects it

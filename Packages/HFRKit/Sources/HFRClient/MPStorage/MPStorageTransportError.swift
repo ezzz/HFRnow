@@ -5,8 +5,10 @@ import HFRParsing
 
 /// Why an MPStorage operation failed (LOT-052).
 ///
-/// Every case but `posting(.unconfirmed)` and `notVerified` means nothing was written. No case carries the document
-/// text: it holds member pseudos.
+/// In `findThread`, `read` and `save`, every case but `posting(.unconfirmed)` and `notVerified` means nothing was
+/// written. In `create`, any error thrown after HFR confirmed the new thread (the search and read that follow it, and
+/// `notFoundAfterCreation`) leaves a thread on the forum: call `create` again, which finds it instead of posting again.
+/// No case carries the document text: it holds member pseudos.
 public enum MPStorageTransportError: Error, Sendable, Equatable {
     /// A read request failed before any answer was read (offline, timeout, cancelled, HTTP refused by the session).
     case network(NetworkError)
