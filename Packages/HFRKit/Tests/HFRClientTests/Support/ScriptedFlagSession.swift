@@ -37,6 +37,18 @@ actor ScriptedFlagSession: PostingSession {
         identity
     }
 
+    /// Installs `login` now, as `adoptLogin` would from another task while the flow is suspended (in its session check).
+    func adoptLogin(_ login: ConcurrentLogin) {
+        identity = login.identity
+        hashCheck = login.hashCheck
+        loginGeneration += 1
+    }
+
+    /// Records `value` as a refresh does (`adoptRefresh`): a new token, the login generation unchanged.
+    func adoptRefreshedToken(_ value: String) {
+        hashCheck = value
+    }
+
     /// Installs `login` while the next request is suspended, after it was sent.
     func adoptLoginDuringNextRequest(_ login: ConcurrentLogin) {
         loginDuringNextRequest = login
@@ -62,7 +74,10 @@ enum FlagCapture {
         "P03l": "P03l-manageaction-delflags-browser-three-rows", "P03n": "P03n-delflag-owntopic0-success",
         "P03o": "P03o-delflag-again", "P03p": "P03p-delflag-owntopic1-success", "P03q": "P03q-addflag-logged-out",
         "W18": "W18-mp-mark-unread-success", "W15": "W15-mp-edit-success", "W17b": "W17b-mp-reply-bad-token-rejected",
-        "W17c": "W17c-mp-reply-logged-out-rejected", "W20a": "W20a-mp-reply-flood", "W01": "W01-login-failure",
+        "W17c": "W17c-mp-reply-logged-out-rejected",
+        "W64": "W64-mp-thread-delete-owner-success", "W64x": "W64x-mp-thread-delete-bad-token-rejected",
+        "W65": "W65-mp-thread-delete-recipient-success", "R95j": "R95j-mp-list-owner-after-thread-delete",
+        "W20a": "W20a-mp-reply-flood", "W01": "W01-login-failure",
         "R12": "R12-favourites-anon", "R20": "R20-topic-p1-anon", "R21": "R21-topic-p1-logged-in"
     ]
 
