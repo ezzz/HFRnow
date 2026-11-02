@@ -54,10 +54,11 @@ struct ReaderTarget: Hashable, Sendable {
         case .topic(let routed), .privateMessageThread(let routed):
             self.init(routed)
         default:
-            let text = url.absoluteString
-            guard let fallbackTopic, let canonical = HFRURL.canonicalTopicPath(in: text), canonical.topic == fallbackTopic.topic
+            // The path alone is read: a `-sujet_N_P.htm` in the query or fragment never names a page.
+            guard let fallbackTopic, let canonical = HFRURL.canonicalTopicPath(in: url.path(percentEncoded: true)),
+                  canonical.topic == fallbackTopic.topic
             else { return nil }
-            self.init(source: .topic(fallbackTopic), page: canonical.page, anchor: HFRURL.anchorPostNumber(in: text))
+            self.init(source: .topic(fallbackTopic), page: canonical.page, anchor: HFRURL.anchorPostNumber(in: url.absoluteString))
         }
     }
 

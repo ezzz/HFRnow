@@ -162,6 +162,9 @@ struct TopicReaderModelTests {
         let other = TopicID(category: .forum(5), topic: 77)
         reader.follow(ReaderTarget(source: .topic(other), page: 9, anchor: 901))
         let linked = try #require(reader.linkedReader)
+        // A second tap before the push lands keeps the first reader.
+        reader.follow(ReaderTarget(source: .topic(other), page: 3))
+        #expect(reader.linkedReader === linked)
         #expect(linked.requested == ReaderTarget(source: .topic(other), page: 9, anchor: 901))
         #expect(linked.title.isEmpty)
         await linked.onAppear()

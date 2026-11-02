@@ -59,6 +59,8 @@ struct ReaderTargetTests {
         let known = TopicID(category: .forum(99), topic: 28563)
         #expect(ReaderTarget(link: link, fallbackTopic: known) == ReaderTarget(source: .topic(known), page: 7, anchor: 701))
         #expect(ReaderTarget(link: link, fallbackTopic: TopicID(category: .forum(99), topic: 1)) == nil)
+        // A canonical-looking name outside the path is not a page.
+        #expect(ReaderTarget(link: "/hfr/NotAForum/x.htm?a=pizza-sujet_28563_7.htm", fallbackTopic: known) == nil)
     }
 
     /// LOT-095 follow-up: links the router does not route as a topic page are not opened in the reader with the session.

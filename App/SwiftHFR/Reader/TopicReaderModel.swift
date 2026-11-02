@@ -142,6 +142,8 @@ final class TopicReaderModel {
     /// Follows a forum link: a post of the page shown is scrolled to without a request; anything else opens in a new reader
     /// above this one (`linkedReader`), so going back returns to this page at the position it was left.
     func follow(_ target: ReaderTarget) {
+        // A second tap while the pushed reader is on its way: the first link wins.
+        guard linkedReader == nil else { return }
         // A message link names no page (issue #106): it is on screen when the page shown holds that message.
         if let shown, let page, let anchor = target.anchor, target.source == shown.source,
            target.numreponse != nil || target.page == page.currentPage,
