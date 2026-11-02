@@ -33,6 +33,7 @@ Principe de mise a jour:
 | P2 | HFR-006 | p.495, p.496 | Perte du panneau lateral iPad liste topics/favoris + topic | Regression UX | Fort | Elevee | Gros impact pour les utilisateurs iPad en paysage. Correction probablement structurelle si la navigation SwiftUI a ete revue. A planifier apres la prochaine release. | Planifie 4.1 |
 | P2 | HFR-040 | Hors analyse initiale | MessagesView: refaire fonctionner les previews de videos intra-topic | Regression UX | Moyen a fort | Moyenne | Les previews video dans la vue intra-topic ameliorent fortement la lecture des messages avec contenus multimedia. A auditer cote parsing/HTML embarque/WebView et compatibilite des providers video. | Planifie 4.1 |
 | P5 | HFR-089 | Hors analyse initiale | iOS 27 beta: audit compatibilite et regressions UI | Compatibilite | A determiner | A auditer | Ticket de suivi a ouvrir au demarrage des betas iOS 27: verifier navigation, WebView, toolbars, Liquid Glass, saisie, partage media et comportements iPad. | Planifie 4.1 |
+| P3 | HFR-096 | Retour UI Bybifok (moust4ki) | Sections dans une barre d'onglets toujours visible, aussi sur l'ecran interieur du Duo et sur iPad (`TabView` `sidebarAdaptable`, liste + sujet cote a cote dans chaque onglet) | UX / Navigation | Moyen a fort | Elevee | Recommande par la HIG (barre d'onglets d'abord, meme organisation plie et deplie) mais revient sur le choix de #372 (split view iPad sur le Duo ouvert, HFR-006/HFR-007). A decider par ezzz; demande iOS 18 minimum pour `sidebarAdaptable` (cible actuelle iOS 17), une reprise du contournement iOS 27 de la barre d'onglets (HFR-092) et un test sur Duo physique. | A decider |
 
 ## Ameliorations UX
 
@@ -55,6 +56,12 @@ Ces points regroupent les feedbacks de confort et de finition. Ils ne sont pas t
 5. Traiter les ameliorations fonctionnelles non bloquantes: HFR-025, HFR-027 a HFR-029.
 
 ## Historique des issues livrees
+
+### Livrees 4.0.5
+
+| ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| HFR-095 | Retour UI Bybifok (moust4ki) | Boutons: une seule action mise en avant, symboles distincts selon le role | UX | Moyen | Faible | Merci a Bybifok (moust4ki) pour le retour UI. Sujet: Repondre devient le bouton mis en avant en bas de la derniere page, Actualiser ne l'est plus; la page suivante reste mise en avant en bas d'une page intermediaire (HFR-008), `Resultat suivant` en mode recherche (`TopicBottomBarEmphasis`, tests). Symboles: Nouveau sujet `plus.bubble` (le `+` reste au bouton Repondre du sujet), Repondre mode forum et menu `...` `arrowshape.turn.up.left` (distinct d'Editer). Split: `Masquer la liste` n'utilise plus un symbole de barre laterale. Favoris: le bouton d'affichage des sections devient un menu systeme (tap: basculer, appui long: Tout replier / Tout deplier) avec un symbole sans bordure et un titre explicite. | Corrige, a tester |
 
 ### Livrees 4.0.4
 
