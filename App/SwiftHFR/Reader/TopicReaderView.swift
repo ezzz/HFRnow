@@ -198,11 +198,16 @@ private struct VideoItem: Identifiable {
     var id: String { embed.embedURL.absoluteString }
 }
 
-/// A web link opened outside the reader, in Safari's own view (LOT-071 T8): Safari's data, not the app's.
+/// A web link opened outside the reader, in Safari's own view (LOT-071 T8): Safari's data, not the app's. Legacy
+/// `SafariInAppView` (`MessagesView.swift:2874-2885` at `21173e77`).
 private struct SafariView: UIViewControllerRepresentable {
     let url: URL
 
-    func makeUIViewController(context: Context) -> SFSafariViewController { SFSafariViewController(url: url) }
+    func makeUIViewController(context: Context) -> SFSafariViewController {
+        let controller = SFSafariViewController(url: url)
+        controller.dismissButtonStyle = .close
+        return controller
+    }
 
     func updateUIViewController(_ controller: SFSafariViewController, context: Context) {}
 }
