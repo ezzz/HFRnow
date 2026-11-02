@@ -14,7 +14,7 @@ No legacy code: the legacy app has no iCloud (audit E §2, "No App Group, no iCl
 ### `SyncedKeyValueStore` (protocol) and its two implementations
 `value(forKey:)`, `set(_:forKey:)`, `removeValue(forKey:)`, `synchronize()`, `accountIdentity()`, `changes() -> AsyncStream<SyncedStoreChange>` (each call its own stream). Values are `SyncedValue`: the four settings shapes plus `data` for part 2's JSON documents.
 
-- `UbiquitousKeyValueStore` wraps `NSUbiquitousKeyValueStore.default`, under `#if canImport(Darwin)` (not in swift-corelibs-foundation, ARCHITECTURE "Linux rules"); it compiles in the macOS and iOS CI jobs. Its `accountIdentity()` is a SHA-256 of the archived `ubiquityIdentityToken`: stable per Apple ID, never the token itself. The change reasons map one to one.
+- `UbiquitousKeyValueStore` wraps `NSUbiquitousKeyValueStore.default`, under `#if canImport(Darwin)` (not in swift-corelibs-foundation, ARCHITECTURE "Linux rules"); it compiles in the macOS and iOS CI jobs. Its `accountIdentity()` is the archived `ubiquityIdentityToken`, base64 (Apple's way to remember the account across launches), and `isCurrentAccount(_:)` compares it with the current token with `isEqual(_:)`. The change reasons map one to one.
 - `InMemorySyncedKeyValueStore`: tests, Linux, previews; `receive(_:updates:identity:)` plays what the system reports, an account switch included.
 
 ### `Setting.scope`
