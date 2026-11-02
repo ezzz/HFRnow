@@ -7,7 +7,7 @@
 
 ## Legacy sources
 
-Legacy app: `master` of ezzz/HFRnow @ `21173e7` (same lines as francoisgn/hfrnow @ `2440d79`). Audit [A](../audit/A-network-sessions.md) §4.5 and lot NET-07.
+Legacy app: `master` of ezzz/HFRnow @ `21173e7` (same lines as ezzz/HFRnow @ `2440d79`). Audit [A](../audit/A-network-sessions.md) §4.5 and lot NET-07.
 
 | Legacy | Replaced by |
 |---|---|
@@ -28,7 +28,7 @@ Legacy app: `master` of ezzz/HFRnow @ `21173e7` (same lines as francoisgn/hfrnow
    - no `.hop` block (`HopResponseParser` finds none): `W17c` shows a `.hop` refusal holding a non-empty `hash_check` in its replay form although the POST carried no cookies;
    - `ProfileEditPageParser` finds a non-empty `hash_check` (`R55-p1`). HFR prints an empty token to a logged-out visitor (`R01`, `W00`, `R40b`), and a GET carries no token to echo.
 4. The probe's `md_user` after the answer must be the same usable value, else `unconfirmed(.identityNotConfirmed)` (removed, changed or `deleted`).
-5. Diff the probe's cookies with the seed by `jarKey`. In one actor turn on the session (`adoptRefresh`): cancellation check (`NetworkError.cancelled`), identity still the seed's (else `unconfirmed(.sessionChanged)`), then for each changed key write the probe's cookies, or delete the key if HFR removed it, **only when the session still holds the seed's cookies for that key**; same compare-and-set for `hash_check`. Return `valid`.
+5. Diff the probe's cookies with the seed by `jarKey`. In one actor turn on the session (`adoptRefresh`): cancellation check (`NetworkError.cancelled`), identity and login generation still the seed's (else `unconfirmed(.sessionChanged)`, nothing written), then for each changed key write the probe's cookies, or delete the key if HFR removed it, **only when the session still holds the seed's cookies for that key**; same compare-and-set for `hash_check`. Return `valid`.
 
 For every non-`valid` result and every thrown error, the flow does not write the session's cookies or `hash_check` (concurrent operations may still change them; `sessionChanged` reports one). The flow never clears a session: `expired` describes the jar, it does not empty it; the app decides (prompt a new login, LOT-043).
 
@@ -36,8 +36,9 @@ For every non-`valid` result and every thrown error, the flow does not write the
 
 ## Edge cases
 
-- A request of the account (a write setting `md_data`, a re-login of the same account) lands while the probe is in flight: its cookies and token win; only keys nobody touched get the probe's values.
+- A request of the account (a write setting `md_data`) lands while the probe is in flight: its cookies and token win; only keys nobody touched get the probe's values.
 - The session is logged out or switched to another identity meanwhile: nothing is written (`sessionChanged`), so a refresh never revives an identity.
+- A login of the **same** account is adopted meanwhile, even one that installs the seed's own token: identity and token cannot tell it, so the seed carries `HFRSession.loginGeneration`, which `adoptLogin` advances; a moved generation writes nothing (`sessionChanged`) and the login's cookies and token stay. Without it, the probe's token (read with the old cookies) would be paired with the re-login's cookies and the next POST refused (`W17b`) ([#340](https://github.com/ezzz/HFRnow/issues/340)).
 - HFR removes a cookie on a valid answer (an expired `Set-Cookie`): it is removed from the session too, as a direct request would have done.
 - One key set for both `.hardware.fr` and `hardware.fr`: the session keeps one (LOT-042 "one key, one value").
 - The answer to stale cookies is not captured (below): today it ends as `unrecognizedPage` or `identityNotConfirmed`, never as `expired`.
@@ -49,9 +50,9 @@ Shared corpus only, no new file, read in place (`Tests/HFRClientTests/Support/Ca
 ## Tests
 
 `SessionRefreshFlowTests` (scripted probe on the captures, real `HFRSession` as the account session):
-`captureMetaShapesTheScript`, `validRefreshMergesWhatHFRSetAndTheToken`, `probeStartsFromTheSessionCookies`, `cookieRemovedByHFRIsRemovedOnAValidRefresh`, `concurrentChangesWinOverTheProbeCopy`, `noUsableIdentityIsExpiredWithoutSending` (absent, expired, `deleted`), `pagesWithoutTheAccountTokenAreUnconfirmed` (5 pages), `profilePageServedElsewhereOrRedirectedIsUnconfirmed`, `profilePageFromAnotherOriginIsUnconfirmed` (other host, look-alike host, `http`, port 8443), `identityNotKeptByTheAnswerIsUnconfirmed` (`deleted`, other user, removed), `sessionLoggedOutDuringTheRefreshIsNotRevived`, `transportFailuresThrowAndChangeNothing` (timeout, offline, HTTP 500), `cancellationChangesNothing`.
+`captureMetaShapesTheScript`, `validRefreshMergesWhatHFRSetAndTheToken`, `probeStartsFromTheSessionCookies`, `cookieRemovedByHFRIsRemovedOnAValidRefresh`, `concurrentChangesWinOverTheProbeCopy`, `sameAccountReloginWithTheSameTokenDuringTheRefreshWins` (#340), `noUsableIdentityIsExpiredWithoutSending` (absent, expired, `deleted`), `pagesWithoutTheAccountTokenAreUnconfirmed` (5 pages), `profilePageServedElsewhereOrRedirectedIsUnconfirmed`, `profilePageFromAnotherOriginIsUnconfirmed` (other host, look-alike host, `http`, port 8443), `identityNotKeptByTheAnswerIsUnconfirmed` (`deleted`, other user, removed), `sessionLoggedOutDuringTheRefreshIsNotRevived`, `transportFailuresThrowAndChangeNothing` (timeout, offline, HTTP 500), `cancellationChangesNothing`.
 
-Shown to fail without the change (mutations run locally, each fails its tests): dropping the `.hop` check, the URL path check, the exact-URL check with `doNotFollow`, the origin check (scheme, host, port), the identity check after the answer, the identity check at adoption, the cookie or token compare-and-set, the cancellation check, the no-identity shortcut, and replacing the jar with the answer's cookies (legacy `updateCookies`).
+Shown to fail without the change (mutations run locally, each fails its tests): dropping the `.hop` check, the URL path check, the exact-URL check with `doNotFollow`, the origin check (scheme, host, port), the identity check after the answer, the identity check at adoption, the login-generation check at adoption (#340), the cookie or token compare-and-set, the cancellation check, the no-identity shortcut, and replacing the jar with the answer's cookies (legacy `updateCookies`).
 
 ## Pending capture
 

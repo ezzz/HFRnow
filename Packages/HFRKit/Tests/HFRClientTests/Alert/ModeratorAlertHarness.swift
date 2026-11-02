@@ -47,13 +47,17 @@ enum ModeratorAlertHarness {
     }
 
     /// Prepares `link` against `page`; when it gives the form and `reason` is set, submits it, answered by `answer`.
+    /// `duringPrepare` is installed while the alert page is in flight, `between` after it was read.
     static func run(
         link: URL = link,
         page: Result<HTTPResponse, NetworkError>,
         reason: String? = nil,
-        answer: Result<HTTPResponse, NetworkError>? = nil
+        answer: Result<HTTPResponse, NetworkError>? = nil,
+        duringPrepare: ConcurrentLogin? = nil,
+        between: ConcurrentLogin? = nil
     ) async -> Outcome {
         let session = ScriptedPostingSession([page] + (answer.map { [$0] } ?? []))
+        if let duringPrepare { await session.adoptLoginDuringNextRequest(duringPrepare) }
         let flow = ModeratorAlertFlow()
         let prepared: Result<ModeratorAlertPage, ModeratorAlertError>
         do {
@@ -61,6 +65,7 @@ enum ModeratorAlertHarness {
         } catch {
             prepared = .failure(error)
         }
+        if let between { await session.adoptLogin(between) }
         var submitted: Result<ModeratorAlertAnswer, ModeratorAlertError>?
         if let reason, case let .success(.form(form)) = prepared {
             do {

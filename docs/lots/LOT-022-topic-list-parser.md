@@ -5,7 +5,7 @@
 - **Issue:** [#50](https://github.com/ezzz/HFRnow/issues/50) (audit item B5 in [B](../audit/B-list-parsing-models.md))
 
 ## Legacy sources
-Legacy repository <https://github.com/francoisgn/hfrnow>, commit `2440d79`.
+Legacy repository <https://github.com/ezzz/HFRnow>, commit `2440d79`.
 
 | Legacy | Replaced by |
 |---|---|

@@ -13,7 +13,7 @@ message unread (`nonlu.php`, `W18`) is LOT-058.
 
 ## Legacy sources
 
-Legacy app: `master` of ezzz/HFRnow (same lines as francoisgn/hfrnow @ `2440d79`).
+Legacy app: `master` of ezzz/HFRnow (same lines as ezzz/HFRnow @ `2440d79`).
 
 | Legacy | Replaced by |
 |---|---|

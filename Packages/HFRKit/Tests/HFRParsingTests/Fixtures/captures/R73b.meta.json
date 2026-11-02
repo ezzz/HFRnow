@@ -1,0 +1,20 @@
+{
+  "id": "R73b",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/forum1f.php?config=hfr.inc&owntopic=1",
+  "url": "https://forum.hardware.fr/forum1f.php?config=hfr.inc&owntopic=1",
+  "final_url": "https://forum.hardware.fr/forum1f.php?config=hfr.inc&owntopic=1",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Sun, 01 Nov 2026 23:51:23 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "file": "R73b-favourites-owntopic1-thirteen-categories.html",
+  "private": false
+}

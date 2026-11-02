@@ -1,0 +1,16 @@
+{
+  "id": "R89",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/user/modo.php?config=hfr.inc&cat=10&post=9900002&numreponse=9910000001&page=1&ref=1",
+  "url": "https://forum.hardware.fr/user/modo.php?config=hfr.inc&cat=10&post=9900002&numreponse=9910000001&page=1&ref=1",
+  "final_url": "https://forum.hardware.fr/user/modo.php?config=hfr.inc&cat=10&post=9900002&numreponse=9910000001&page=1&ref=1",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Sat, 01 Jan 2000 00:00:00 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "moderator alert page logged out",
+  "file": "R89-modo-alert-page-logged-out.html",
+  "private": false
+}

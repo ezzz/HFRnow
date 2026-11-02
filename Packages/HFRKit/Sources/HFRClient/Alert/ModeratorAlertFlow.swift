@@ -7,7 +7,7 @@ import HFRParsing
 /// audit D5).
 ///
 /// `prepare` reads the message's alert link (LOT-031): HFR either says the message was already reported or serves the
-/// form (`R46`). `submit` posts the form like a browser, once, never retried. HFR's answer to it is not captured (#136),
+/// form (`R46`). `submit` posts the form like a browser, once, never retried. HFR's answer to it is not read until #395,
 /// so it is never reported as a success: the app shows HFR's own sentence. The mailto fallback is the app's (LOT-135).
 public struct ModeratorAlertFlow: Sendable {
     /// Creates the flow.
@@ -28,9 +28,9 @@ public struct ModeratorAlertFlow: Sendable {
     /// `AlerteModoViewController.m:210`).
     ///
     /// Every answer HFR gives with a sentence comes back as `ModeratorAlertAnswer`, whether LOT-037 would read it as a
-    /// refusal or not: until #136 is captured, an unseen success page with a link would otherwise read as a refusal and
-    /// invite a second alert. Only HFR's logged-out sentence (`W17c`) is read: it is `notLoggedIn`.
-    /// - Throws: `emptyReason`, `unsupportedCharacters`, `unsupportedForm` before sending; `network` when the request
+    /// refusal or not: HFR's success page has a back link (`W46`), so it would otherwise read as a refusal and invite a
+    /// second alert (its reading is #395). Only HFR's logged-out sentence (`W17c`) is read: it is `notLoggedIn`.
+    /// - Throws: `emptyReason`, `unsupportedCharacters`, `unsupportedForm`, `sessionChanged` before sending; `network` when the request
     ///   could not be sent; `notLoggedIn`; `unconfirmed` when the request may have left and no sentence was read.
     public func submit(reason: String, with form: ModeratorAlertForm) async throws(ModeratorAlertError) -> ModeratorAlertAnswer {
         guard !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw .emptyReason }
@@ -47,8 +47,7 @@ public struct ModeratorAlertFlow: Sendable {
             // Not reached: `PostingBody.make` throws only `unsupportedForm`; the typed catch must still be exhaustive.
             throw .unsupportedForm(reason: "body")
         }
-        // Nothing has left the device yet: a cancellation here is a plain failure, not an unknown outcome.
-        if Task.isCancelled { throw .network(.cancelled) }
+        try await Self.checkBeforeSending(form)
         let request = HTTPRequest.post(form.submitURL, form: body, timeout: PostingFlow.postTimeout, redirectPolicy: .doNotFollow)
         let response: HTTPResponse
         do {
@@ -62,6 +61,19 @@ public struct ModeratorAlertFlow: Sendable {
     }
 
     // MARK: - Steps
+
+    /// Last check before the POST: nothing has left the device yet, so a cancellation is a plain failure, not an unknown
+    /// outcome. It wins over a changed session, and is checked again after the identity lookup's suspension.
+    ///
+    /// The form's token belongs to the account it was read with: after a logout or a login of another account in this
+    /// session, say so before sending (#342). A re-login of the same account keeps the form usable, as for posts: the
+    /// seed's identity is compared, not its login generation.
+    private static func checkBeforeSending(_ form: ModeratorAlertForm) async throws(ModeratorAlertError) {
+        if Task.isCancelled { throw .network(.cancelled) }
+        let current = await form.session.userKey(now: Date())
+        if Task.isCancelled { throw .network(.cancelled) }
+        guard let identity = form.seed.identity, current == identity else { throw .sessionChanged }
+    }
 
     func prepare(link: URL, through session: any PostingSession) async throws(ModeratorAlertError) -> ModeratorAlertPage {
         guard let target = ModeratorAlertTarget(link) else { throw .invalidLink }
@@ -82,7 +94,9 @@ public struct ModeratorAlertFlow: Sendable {
         case .loggedOut?: throw .notLoggedIn
         default: break
         }
-        let alert = try Self.alertForm(in: html, pageURL: response.url, target: target, notice: page?.message, session: session)
+        let alert = try Self.alertForm(
+            in: html, pageURL: response.url, target: target, notice: page?.message, session: session, seed: seed
+        )
         guard let token = alert.form.field(named: Self.tokenField)?.value, !token.isEmpty else { throw .notLoggedIn }
         // A login adopted meanwhile holds the fresher token (#308): never overwrite it with this page's.
         await session.updateHashCheck(token, since: seed)
@@ -91,7 +105,12 @@ public struct ModeratorAlertFlow: Sendable {
 
     /// The alert form of `html`; `notice` is the page's `.hop` text, reported when there is no form.
     private static func alertForm(
-        in html: String, pageURL: URL, target: ModeratorAlertTarget, notice: String?, session: any PostingSession
+        in html: String,
+        pageURL: URL,
+        target: ModeratorAlertTarget,
+        notice: String?,
+        session: any PostingSession,
+        seed: HashCheckSeed
     ) throws(ModeratorAlertError) -> ModeratorAlertForm {
         let form: ForumForm
         let layout: HopFormLayout
@@ -110,7 +129,7 @@ public struct ModeratorAlertFlow: Sendable {
             let submitURL = URL(string: action, relativeTo: HFRURL.base)?.absoluteURL,
             ModeratorAlertTarget(submitURL) == target
         else { throw .invalidLink }
-        return ModeratorAlertForm(form: form, target: target, submitURL: submitURL, layout: layout, session: session)
+        return ModeratorAlertForm(form: form, target: target, submitURL: submitURL, layout: layout, session: session, seed: seed)
     }
 
     /// HFR's sentence, or why there is none to show.

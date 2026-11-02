@@ -653,6 +653,11 @@
         "topicTitle" : "[Topic Insomniaks] Il est entre 1h et 7h du mat' et tu erres? Entre..."
       }
     ],
+    "fastAnswer" : {
+      "isFavoritesOrRead" : "",
+      "isRedFlagged" : false,
+      "isUnreadable" : false
+    },
     "messages" : [
       {
         "addFlagUrl" : null,

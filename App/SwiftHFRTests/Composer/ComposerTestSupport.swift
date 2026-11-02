@@ -24,6 +24,9 @@ final class ScriptedPoster: ReplyPosting {
     struct Call: Equatable, Sendable {
         let text: String
         let formURL: URL
+        /// Recipient and subject of a new private message; nil for a reply.
+        var recipient: String?
+        var subject: String?
     }
 
     private let state: Mutex<(outcomes: [Result<PostingResult, PostingError>], calls: [Call])>
@@ -38,8 +41,17 @@ final class ScriptedPoster: ReplyPosting {
     var calls: [Call] { state.withLock { $0.calls } }
 
     func reply(_ text: String, formURL: URL) async throws(PostingError) -> PostingResult {
+        try await answer(Call(text: text, formURL: formURL))
+    }
+
+    func newPrivateMessage(to recipient: String, subject: String, text: String, formURL: URL)
+        async throws(PostingError) -> PostingResult {
+        try await answer(Call(text: text, formURL: formURL, recipient: recipient, subject: subject))
+    }
+
+    private func answer(_ call: Call) async throws(PostingError) -> PostingResult {
         let outcome = state.withLock { state in
-            state.calls.append(Call(text: text, formURL: formURL))
+            state.calls.append(call)
             return state.outcomes.isEmpty ? .failure(.network(.unscripted)) : state.outcomes.removeFirst()
         }
         await gate?.wait()

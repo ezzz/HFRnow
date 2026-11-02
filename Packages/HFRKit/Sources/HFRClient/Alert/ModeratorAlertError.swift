@@ -14,6 +14,9 @@ public enum ModeratorAlertError: Error, Sendable, Equatable {
     /// The session is not logged in: the form came with an empty `hash_check`, or HFR answered with its "vous devez être
     /// enregistré" sentence (`W17c`).
     case notLoggedIn
+    /// The session logged out, or logged in as another account, since the alert page was read: the form's `hash_check`
+    /// is no longer the session's. Nothing was sent; prepare the alert again.
+    case sessionChanged
     /// The form holds something that cannot be sent like a browser; `reason` names it.
     case unsupportedForm(reason: String)
     /// The reason is empty after trimming whitespace and newlines (legacy Swift refused it too, `ReplyService.swift:1468-1471`).

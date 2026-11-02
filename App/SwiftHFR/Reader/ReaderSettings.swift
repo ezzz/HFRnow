@@ -9,6 +9,8 @@ struct ReaderSettings: Sendable {
     let autoLoadsThirdPartyImages: @Sendable () -> Bool
     /// Display choices for the next document.
     let renderOptions: @Sendable () -> ReaderRenderOptions
+    /// "Navigateur par défaut" (LOT-119): web links open in the system browser rather than in Safari's view in the app.
+    var opensLinksInDefaultBrowser: @Sendable () -> Bool = { false }
 
     /// Settings read from `store`, with `isOnWiFi` for the Wi-Fi only mode.
     static func live(store: any SettingsStore, isOnWiFi: @escaping @Sendable () -> Bool) -> ReaderSettings {
@@ -18,7 +20,8 @@ struct ReaderSettings: Sendable {
             },
             renderOptions: {
                 ReaderRenderOptions(showsSignatures: store.value(for: SettingKey.displaySignatures))
-            }
+            },
+            opensLinksInDefaultBrowser: { store.value(for: SettingKey.opensLinksInDefaultBrowser) }
         )
     }
 

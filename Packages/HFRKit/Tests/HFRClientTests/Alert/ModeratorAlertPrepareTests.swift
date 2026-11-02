@@ -6,7 +6,7 @@ import Testing
 @testable import HFRClient
 
 /// LOT-050 `prepare`: the alert link of `R21` loads `R46`, whose form equals its LOT-004 oracle; "already alerted" is
-/// LOT-037's reading of captured `.hop` pages (the real page is pending capture #135); links and actions stay on the
+/// LOT-037's reading of captured `.hop` pages (`R88`, the real one, and the same shape); links and actions stay on the
 /// alert page of the same forum message.
 @Suite("Moderator alert: prepare")
 struct ModeratorAlertPrepareTests {
@@ -42,8 +42,11 @@ struct ModeratorAlertPrepareTests {
     }
 
     @Test(
-        "A captured .hop page with a link or an input is 'already alerted', with HFR's own sentence (#135 pending)",
-        arguments: ["W17a-mp-reply-empty-body-rejected", "W20a-mp-reply-flood", "RA5-mp-thread-after-delete-owner"]
+        "A .hop page with a link or an input is 'already alerted', with HFR's own sentence (R88, and the same shape elsewhere)",
+        arguments: [
+            "R88-modo-alert-already-reported", "W17a-mp-reply-empty-body-rejected", "W20a-mp-reply-flood",
+            "RA5-mp-thread-after-delete-owner"
+        ]
     )
     func alreadyAlerted(file: String) async throws {
         let page = Result<HTTPResponse, NetworkError>.success(try Capture.response(file, url: ModeratorAlertHarness.link))

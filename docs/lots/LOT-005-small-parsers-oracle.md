@@ -10,7 +10,7 @@ output on every fixture; LOT-002..004 did not cover the parsers of LOT-025, LOT-
 `Packages/HFRKit/Tests/HFRParsingTests/Fixtures/LOT-005/` (`oracle-map.json`, `<case>.oracle.json`, `errors.json`); pages stay in `../captures/`.
 
 ## Legacy sources
-Legacy repository <https://github.com/francoisgn/hfrnow>, commit `2440d79`. Paths from the repository root.
+Legacy repository <https://github.com/ezzz/HFRnow>, commit `2440d79`. Paths from the repository root.
 
 | Kind | Cases | Legacy code | How it runs |
 |---|---|---|---|
