@@ -44,8 +44,8 @@ Réglages is an entry of the LOT-170 root navigation: the first row of the Plus 
 | Général: Retours haptiques (`haptics`), Icône (`icon`) | LOT-123 | not built (Icône: entry row) | Keep: LOT-123 rebuilds both; the Icône picker keeps its place in "Général" (entry row here). |
 | Général: Rotation d’écran (`landscape_mode`) | LOT-119 | built | Keep: needed on iPhone; applied now (`OrientationPolicy`). |
 | Général: Navigateur par défaut (`open_links_in_default_browser`) | LOT-119 stores, LOT-137 applies | built | Keep: users choose between system and in-app browser; LOT-137 applies it. |
-| Thème: Changement de thème (`auto_theme`), Luminosité du thème (`theme`), Teinte d'accent (`theme_day_color_action`, `theme_night_color_action`), Luminosité du thème sombre (`theme_night_brightness`) | LOT-121 | not built (entry row) | Keep: the four rows live in the "Thème" section (entry row here), LOT-121 builds them. |
-| Sujets: Style des messages (`theme_style`) | LOT-121 | not built | Keep: LOT-121 rebuilds the message style choice. |
+| Thème: Changement de thème (`auto_theme`), Luminosité du thème (`theme`), Teinte d'accent (`theme_day_color_action`, `theme_night_color_action`), Luminosité du thème sombre (`theme_night_brightness`) | LOT-121 | built by LOT-121 (screen behind the entry row) | Keep: LOT-121 builds them, the two appearance pickers merged into one (ADR 0013 §8). |
+| Sujets: Style des messages (`theme_style`) | LOT-106 | not built | Keep: LOT-106 rebuilds the message style choice (GAP-052, UXD-09). |
 | Sujets: Masquer les pseudos blacklistés (`blacklist_hide_pseudo`), Liste noire, Liste blanche | LOT-118 | not built | Keep: blacklist features stay; LOT-118 owns the lists and the toggle. |
 | Sujets: Swipe changement de page (`topic_page_swipe_navigation`), Afficher les signatures (`display_sig`), Taille des smileys (`size_smileys`, commented out in legacy) | LOT-106 | not built | Keep: LOT-106 owns the reader; the smiley size is dropped (commented out in legacy, no effect). |
 | Sujets: Bouton + (`reply_button_behavior`) | LOT-084 | not built | Keep: LOT-084 owns the reply button. |
