@@ -12,6 +12,7 @@ public struct BBCodeRenderOptions: Sendable, Hashable {
     /// `CommonSmileyCatalog` plus the member's personal smileys, built by the app. ASCII letters of a code are matched
     /// whatever their case, anywhere but from a URL (`http://`, `https://`, `www.`) to the end of its word; the image's
     /// `alt` is the text as typed and its `title` the code of the table (`R42` → `R20`: `alt=":d" title=":D"`).
+    /// Assign the whole table at once: every mutation rebuilds the prepared table.
     public var smileys: [String: URL] {
         didSet { trie = HFRBBCodeWriter.trie(for: smileys) }
     }
