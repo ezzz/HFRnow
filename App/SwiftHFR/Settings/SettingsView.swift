@@ -85,15 +85,21 @@ struct SettingsDestinationView: View {
     let destination: SettingsDestination
 
     var body: some View {
-        ContentUnavailableView(
-            destination.title, systemImage: destination.symbol,
-            description: Text("Ce réglage arrive dans une prochaine version.")
-        )
-        .navigationTitle(destination.title)
+        switch destination {
+        case .theme:
+            ThemeSettingsView()
+        case .icon:
+            ContentUnavailableView(
+                destination.title, systemImage: destination.symbol,
+                description: Text("Ce réglage arrive dans une prochaine version.")
+            )
+            .navigationTitle(destination.title)
+        }
     }
 }
 
 #Preview("Réglages") {
     NavigationStack { SettingsView() }
         .environment(GeneralSettingsModel(store: InMemorySettingsStore()))
+        .environment(ThemeSettingsModel(store: InMemorySettingsStore()))
 }
