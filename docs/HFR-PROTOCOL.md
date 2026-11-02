@@ -83,7 +83,7 @@ Sources: `ReplyService.swift:145-183, 294-365, 579-719` · `AddMessageViewContro
 | New MP | author block link `/message.php?config=hfr.inc&cat=prive&…&dest=` | `dest`, `sujet` | `ParseMessagesOperation.m:389-390` · D §2.5 |
 | Moderator alert | first `href` containing `/user/modo.php` in the message | form `action~modo.php`, field `raison`; `.hop` with a link = **already alerted** (inverse of reply) | `ReplyService.swift:1400-1531` · D §2.6 |
 | Delete MP thread | the MP list's `form1` (`R95k`): action `/modo/manageaction.php?config=hfr.inc&cat=prive&type_page=forum1&moderation=0`, checkbox `topic<i>` = thread `post` | legacy body `hash_check, topic0=<post>, valuecat0=prive, valueforum0=hardwarefr, topic1=-1, topic_statusno1=-1, action_reaction=valid_eff_prive, type_page=forum1`; the site form has no `type_page` and a second `hash_check` before `topic1`. Answers: **verified** 2026-11-02, see §6b "MP thread delete" | `MPListView.swift:127-154` @ 03e5e22 |
-| Poll vote | poll block in the topic page | POST `/user/vote.php?config=hfr.inc`, hidden inputs + chosen options; radio value semantics unverified | `PollData.swift:44-100` · D §2.9 |
+| Poll vote | poll block in the topic page | POST `/user/vote.php?config=hfr.inc`, the form's controls in document order + `reponse=<1-based position>` + `sondage_submit=Voter` (`W42`, §6c LOT-054) | `PollData.swift:45-99` @ 2440d79 · D §2.9 |
 
 ### 3.2 Topic flags
 - Add to favourites: **state-changing GET** of the message's `addflag` link; toast text from `<div class="hop">`. `ParseMessagesOperation.m:383-384` · D §2.8
@@ -269,7 +269,7 @@ Source: [LOT-027](lots/LOT-027-profile-parser.md), `UserProfileParser`, checked 
 - **Refusals**: flood, empty body and logged out are `.hop` + link/input (`W11x`, `W13cx`, `W14x`, `W17a`, `W17c`, `W20a`, `W20b`); invalid `hash_check` is **plain text without any HTML** (`W17b`, 99 bytes). A write refusal carries no refresh (`W11x`-`W20b`); other refusals do (`W01` refresh to `/`).
 - **Read pages with a `.hop`**: `R12` (empty favourites) and `RA5` (message not addressed to the account) have the back link and no refresh; the empty lists `R08-1`/`R08-3` refresh to the forum list with a link-less `.hop`. None is a write answer and none classifies as success (corpus sweep test).
 - **Moderator alert** (`W46`, `R88`, `W47`, `R89`, **verified**, 2026-11-02): the submit answers `.hop` "Un message a été envoyé avec succès aux modérateurs" **with the back link and no refresh** (`W46`), so the success rule above does not fit it: an alert is confirmed by its own sentence, in the alert context. The alert page of a message the account already reported answers `.hop` "Votre demande de modération sur ce message n'est pas encore traitée." + back link, no form (`R88`). Without cookies both the page and the POST answer `.hop` "Vous devez être identifié pour prévenir les modérateurs" + back link (`R89`, `W47`).
-- **Poll vote** (`W42`-`W44`, **verified**, 2026-11-02): success is a link-less `.hop` "Votre vote a bien été pris en compte !" with `Refresh: 1; url=/hfr/<cat>/<sub>/sujet_<post>_1.htm` (no slug), **without** "avec succès" (`W42`); a second vote, and a vote from a linked account of the same person, answer `.hop` "Désolé, vous avez déjà voté !" + back link, no refresh (`W43`, `W44`). The cookie-less vote answer is not published (see the capture PR).
+- **Poll vote** (`W42`-`W44`, **verified**, 2026-11-02): success is a link-less `.hop` "Votre vote a bien été pris en compte !" with `Refresh: 1; url=/hfr/<cat>/<sub>/sujet_<post>_1.htm` (no slug; page 1 from a form with `page=1`, another form page pending capture), **without** "avec succès" (`W42`); a second vote, and a vote from a linked account of the same person, answer `.hop` "Désolé, vous avez déjà voté !" + back link, no refresh (`W43`, `W44`). The cookie-less vote answer is not published (see the capture PR).
 - Not captured: a ban refusal, a reply refused because the topic is locked (the composer of a locked topic is served, `message.php` 200, but its POST was not sent: not an operator topic).
 
 ### LOT-021 — forum list
@@ -496,6 +496,13 @@ Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `Li
 
 - **A posted video link** (`R20`, `R22a`, `R22b`, `R27`, `R28`, **verified**): `<a rel="nofollow" href="<url>" target="_blank" class="cLink">` with the URL or a title as text (`R20`: "Impasto a mano pizza napoletana"), usually straight in a paragraph of the message; HFR adds no player. The corpus has `http://` and `https://www.youtube.com/watch?v=` (`R20`, `R22a`), `https://youtu.be/<id>` with `t=1m5s` (`R20`) or `t=706` (`R28`), and `vimeo.com/<number>` (`R20`); the LOT-003 oracles turn 133 of them into iframes over 8 pages.
 - **Start time** (`R20`, `R28`): the captured `youtu.be` links carry their start as `t=1m5s` and as plain seconds, `t=706`.
+
+### LOT-054 — poll vote
+
+[LOT-054](lots/LOT-054-poll-vote.md), `PollVoteFlow`, tests `PollVoteFlowTests`, `HopResponsePollVoteTests`.
+
+- **Body** (`R83`, `W42`-`W44`, **verified**): the flow builds from `R83`'s form, answer 1, exactly the body `W42`-`W44` sent: `hash_check, cat, p, page, sondage, owntopic, subcat, numeropost, hash_check, reponse, sondage_submit=Voter`. `sondage` differs between polls (`1` on `R32b`, `2` on `R83`): it is read from the form, never written as a constant.
+- **Answers**: see the LOT-037 subsection (`W42` success, `W43`/`W44` already voted). The classifier reads them under `Context.pollVote`, the only context where the vote sentence is a confirmation.
 
 ### LOT-053 — smiley search and wiki
 
