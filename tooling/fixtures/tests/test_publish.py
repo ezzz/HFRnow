@@ -101,12 +101,12 @@ class PublishTests(unittest.TestCase):
         with open(self.manifest, "w") as fh:
             json.dump({"captures": caps}, fh)
         self.capture("H1", '<div class="hop"> Message envoy\u00e9 </div>',
-                     {"method": "POST", "url": "/user/modo.php?cat=10&post=424242&numreponse=777&config=hfr.inc"})
+                     {"method": "POST", "url": "/user/modo.php?cat=10&post=424242&numreponse=7770001&config=hfr.inc"})
         with open(os.path.join(self.raw, "H1.request.txt"), "w") as fh:
-            fh.write("POST /bdd.php\n\npost=424242&numreponse=777&sujet=Velo+rouge\n")
+            fh.write("POST /bdd.php\n\npost=424242&numreponse=7770001&sujet=Velo+rouge\n")
         self.capture("H2", '<div class="hop"> D\u00e9sol\u00e9 </div>', {"method": "POST", "url": "/user/vote.php"})
         with open(os.path.join(self.raw, "H2.request.txt"), "w") as fh:
-            fh.write("POST /user/vote.php\n\ncat=10&numeropost=424242&reponse=1\n")
+            fh.write("POST /user/vote.php\n\ncat=10&numeropost=424242&numreponse=8880001&reponse=1\n")
         rc, out = self.run_publish()
         self.assertEqual(rc, 0, out)
         meta = self.read("H1.meta.json")
@@ -114,6 +114,12 @@ class PublishTests(unittest.TestCase):
         self.assertIn("post=%d" % A.OWN_TOPIC_FIRST, meta)
         self.assertNotIn("Velo", meta)
         self.assertIn("numeropost=%d" % A.OWN_TOPIC_FIRST, self.read("H2.meta.json"))
+        # Message ids named only by requests get distinct aliases from one batch-wide table.
+        vote = self.read("H2.meta.json")
+        self.assertNotIn("7770001", meta)
+        self.assertNotIn("8880001", vote)
+        alias = lambda text: __import__("re").search(r"numreponse=(\d+)", text).group(1)
+        self.assertNotEqual(alias(meta), alias(vote))
 
     def test_publish_subset_and_unknown_id(self):
         rc, _out = self.run_publish("L1")

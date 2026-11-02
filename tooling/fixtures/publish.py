@@ -45,11 +45,15 @@ def request_body(raw_dir, raw_id):
         return fh.read().split("\n\n")[1].strip()
 
 
+def _raw_meta(raw_dir, raw_id):
+    with open(os.path.join(raw_dir, raw_id + ".meta.json"), encoding="utf-8") as fh:
+        return json.load(fh)
+
+
 def publish_one(anon, raw_dir, dest, entry):
     """Anonymize one capture; return the list of findings (empty = written)."""
     raw_id = entry["raw"]
-    with open(os.path.join(raw_dir, raw_id + ".meta.json"), encoding="utf-8") as fh:
-        raw_meta = json.load(fh)
+    raw_meta = _raw_meta(raw_dir, raw_id)
     page = enc = None
     if entry["ext"]:
         text, enc = A.read_text(os.path.join(raw_dir, raw_id + ".html"))
@@ -106,7 +110,10 @@ def main(argv=None):
     texts = [A.read_text(os.path.join(args.raw, e["raw"] + ".html"))[0] for e in entries if e["ext"]]
     with _ui.Spinner("collecting member names"):
         known = A.known_member_names(texts)
-    anon = A.Anonymizer(cfg, known_names=known, own_ids=A.own_message_ids(texts, cfg.own_topics))
+    # Requests name message ids too (a `.hop` answer often names none): they join the batch-wide alias table.
+    requests = [json.dumps(_raw_meta(args.raw, e["raw"]), ensure_ascii=False) + "\n" + (request_body(args.raw, e["raw"]) or "")
+                for e in entries if not args.ids or e["raw"] in args.ids]
+    anon = A.Anonymizer(cfg, known_names=known, own_ids=A.own_message_ids(texts + requests, cfg.own_topics))
     os.makedirs(args.dest, exist_ok=True)
     bad = 0
     for entry in entries:
