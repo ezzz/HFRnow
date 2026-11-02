@@ -856,5 +856,54 @@ class CliTests(unittest.TestCase):
             self.assertIn('href="/hfr/A/B/user2-photos-sujet_2_1.htm">user2 photos<', out)
 
 
+class PrivateFormCopyTests(unittest.TestCase):
+    """Composer and edit-form pages repeat MP text in `content_form` and in the review cell (#401)."""
+    SECRET = "Secret words of a real conversation"
+
+    @staticmethod
+    def page(subject, text, header=True):
+        head = ('<table><tr><th class="padding">Sujet : <h3>%s</h3></th></tr></table>' % subject) if header else ""
+        return ('<html><body>%s<form><input type="hidden" name="sujet" value="%s" />'
+                '<textarea name="content_form" rows="1">%s</textarea></form>'
+                '<table><tr><td class="messCase1bis">user1</td><td class="messCase2"><div>%s<br />more</div></td></tr>'
+                '</table></body></html>' % (head, subject, text, text))
+
+    def reasons(self, html):
+        return [r for _l, _c, r in leaks(html, private=True)]
+
+    def test_real_thread_composer_leaks_without_the_change_and_is_replaced_with_it(self):
+        page = self.page("Real conversation", self.SECRET)
+        self.assertIn("private form copy not replaced", self.reasons(page))
+        out = anon(page, private=True)
+        self.assertNotIn(self.SECRET, out)
+        self.assertEqual(out.count(A.PRIVATE_PLACEHOLDER), 2)
+        self.assertEqual(self.reasons(out), [])
+
+    def test_fixture_thread_is_left_unchanged_and_not_flagged(self):
+        page = self.page("fixture-test-3", self.SECRET)
+        self.assertEqual(anon(page, private=True), page)
+        self.assertEqual(self.reasons(page), [])
+
+    def test_mixed_names_are_not_a_fixture_thread(self):
+        page = self.page("fixture-test-3", self.SECRET).replace("Sujet : <h3>fixture-test-3", "Sujet : <h3>Real")
+        self.assertNotIn(self.SECRET, anon(page, private=True))
+        self.assertIn("private form copy not replaced", self.reasons(page))
+
+    def test_page_without_thread_name_fails_closed(self):
+        page = self.page("x", self.SECRET, header=False).replace('<input type="hidden" name="sujet" value="x" />', "")
+        self.assertNotIn(self.SECRET, anon(page, private=True))
+        self.assertIn("private form copy not replaced", self.reasons(page))
+
+    def test_quote_attribute_order_and_empty_textarea(self):
+        page = self.page("Real", "").replace('type="hidden" name="sujet" value="Real"', 'value="Real" name="sujet"')
+        out = anon(page, private=True)
+        self.assertIn('<textarea name="content_form" rows="1"></textarea>', out)
+        self.assertEqual(self.reasons(out), [])
+
+    def test_not_private_mode_keeps_copies(self):
+        page = self.page("Real conversation", self.SECRET)
+        self.assertEqual(anon(page), page)
+
+
 if __name__ == "__main__":
     unittest.main()

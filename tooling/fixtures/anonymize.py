@@ -579,6 +579,45 @@ def mpstorage_form_copies(text):
             for m in rx.finditer(text) if m.group(1).strip()]
 
 
+# A composer or edit-form page repeats the thread's text twice outside `para` blocks: the `content_form` textarea
+# (an edit's stored text, a quote prefill) and the review cell after `td.messCase1bis` ("Vue Rapide"). In private
+# mode both are replaced unless the page is the operator's own fixture thread (`fixture-test-N` in the hidden
+# `sujet` input or in the visible "Sujet :" header) or the MPStorage thread (checked document by document above).
+_SUJET_INPUT_RE = re.compile(r"<input\b(?=[^>]*\bname=[\"']sujet[\"'])[^>]*>", re.I)
+_SUJET_VALUE_RE = re.compile(r"\bvalue=([\"'])(.*?)\1", re.I | re.S)
+_SUJET_VISIBLE_RE = re.compile(r"<th\b[^>]*\bclass=[\"'][^\"']*\bpadding\b[^\"']*[\"'][^>]*>(?:\s|&nbsp;)*Sujet\s*:\s*(?:<h3>)?([^<]*)", re.I)
+
+
+def is_fixture_thread(text):
+    """True when every thread name the page prints (hidden `sujet` input, visible header) is a fixture thread; False if none."""
+    names = [html.unescape(m.group(2)) for tag in _SUJET_INPUT_RE.findall(text)
+             for m in [_SUJET_VALUE_RE.search(tag)] if m]
+    names += [html.unescape(m.group(1)) for m in _SUJET_VISIBLE_RE.finditer(text)]
+    return bool(names) and all(re.fullmatch(r"\s*fixture-test-\d+\s*", n) for n in names)
+
+
+def private_form_copies(text):
+    """Replace the content_form textarea and the review cell of a form page that is not a fixture thread."""
+    if not (CONTENT_FORM_RE.search(text) or REVIEW_BODY_RE.search(text)) or is_fixture_thread(text) \
+            or MPSTORAGE_FORM_RE.search(text):
+        return text, 0
+    count = [0]
+
+    def area(m):
+        if not m.group(1).strip():
+            return m.group(0)
+        count[0] += 1
+        return m.group(0)[:m.start(1) - m.start()] + PRIVATE_PLACEHOLDER + m.group(0)[m.end(1) - m.start():]
+
+    def review(m):
+        if not m.group(1).strip() or _strip_tags(m.group(1)).strip() == PRIVATE_PLACEHOLDER:
+            return m.group(0)
+        count[0] += 1
+        return m.group(0)[:m.start(1) - m.start()] + PRIVATE_PLACEHOLDER + m.group(0)[m.end(1) - m.start():]
+    text = CONTENT_FORM_RE.sub(area, text)
+    return REVIEW_BODY_RE.sub(review, text), count[0]
+
+
 class MPStorageDocumentError(AnonymizeError):
     """The MPStorage document holds a key or value the anonymizer cannot vouch for."""
 
@@ -1142,6 +1181,8 @@ class Anonymizer:
                 last = end
                 self.stats["private_blocks"] += 1
             text = "".join(parts) + text[last:]
+            text, copies = private_form_copies(text)
+            self.stats["private_blocks"] += copies
             text = SUBJECT_RE.sub(lambda m: m.group(0) if KEEP_SUBJECT_RE.match(_strip_tags(m.group(2)))
                                   else m.group(1) + PRIVATE_SUBJECT + m.group(3), text)
         for open_re, placeholder in PERSONAL_BLOCKS:
@@ -1271,6 +1312,12 @@ class Anonymizer:
                         continue
                 if _strip_tags(text[start:end]) != PRIVATE_PLACEHOLDER:
                     res.append((line_of(text, start), column_of(text, start), "private message body not replaced"))
+            if not _V_MPSTORAGE_SUBJECT_TEXT.search(text) and not _v_fixture_thread(text):
+                for m in _V_MPSTORAGE_COPY.finditer(text):
+                    body = m.group(1) if m.group(1) is not None else m.group(2)
+                    if _v_text(body, markup=m.group(1) is None) not in ("", PRIVATE_PLACEHOLDER):
+                        res.append((line_of(text, m.start()), column_of(text, m.start()),
+                                    "private form copy not replaced"))
             if _V_MPSTORAGE_SUBJECT_TEXT.search(text):
                 for m in _V_MPSTORAGE_COPY.finditer(text):
                     body = m.group(1) if m.group(1) is not None else m.group(2)
@@ -1292,6 +1339,22 @@ _V_MPSTORAGE_TITLE = re.compile(r"<title>\s*%s - Messages priv" % MPSTORAGE_SUBJ
 _V_MPSTORAGE_SUBJECT_TEXT = re.compile(r"Sujet\s*:\s*(?:<h3>\s*)?%s\b" % MPSTORAGE_SUBJECT)
 _V_MPSTORAGE_COPY = re.compile(r"<textarea\b(?=[^>]*\bname=[\"']content_form[\"'])[^>]*>(.*?)</textarea|messCase1bis\b[^>]*>[^<]*</td>\s*<td[^>]*>((?:(?!</td>).)*)",
                                re.I | re.S)
+# Fixture threads, apart from is_fixture_thread: every `sujet` input and "Sujet :" header must name fixture-test-N.
+_V_SUJET_INPUT = re.compile(r"<input\b[^>]*\bname=[\"']sujet[\"'][^>]*>", re.I)
+_V_SUJET_VALUE = re.compile(r"value=[\"']([^\"']*)", re.I)
+_V_SUJET_HEADER = re.compile(r"Sujet\s*:\s*(?:<h3>\s*)?([^<\s][^<]*)", re.I)
+
+
+def _v_fixture_thread(text):
+    names = [m.group(1) for tag in _V_SUJET_INPUT.findall(text) for m in [_V_SUJET_VALUE.search(tag)] if m]
+    names += [m.group(1) for m in _V_SUJET_HEADER.finditer(text)]
+    return bool(names) and all(re.fullmatch(r"\s*fixture-test-\d+\s*", html.unescape(n)) for n in names)
+
+
+def _v_text(inner, markup):
+    return html.unescape(re.sub(r"<[^>]*>", " ", inner) if markup else inner).replace("\u00a0", " ").strip()
+
+
 _V_MPSTORAGE_WORDS = frozenset(("data", "version", "0.1", "blacklist", "mpFlags", "bookmarks", "list",
                                 "sourceName", "iOS", "lastUpdate"))
 
