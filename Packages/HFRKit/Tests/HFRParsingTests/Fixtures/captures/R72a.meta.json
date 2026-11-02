@@ -10,6 +10,6 @@
   "date": "Sun, 01 Nov 2026 23:53:13 GMT",
   "redirects": [],
   "set_cookie_names": [],
-  "note": "the refresh target of the stale-session .hop (S10), requested with a valid user2 jar; unlog.php without codehex, valid user2 jar: 200, empty body, no Set-Cookie; the session stays valid (next capture)",
+  "note": "the refresh target of the stale-session .hop (S10), requested with a valid user2 jar; unlog.php without codehex, valid user2 jar: 200, empty body, no Set-Cookie; the session stays valid (R72b)",
   "private": false
 }
