@@ -6,7 +6,7 @@
 - **Depends on:** LOT-060 (theme keys in `SettingKey`, `ThemeColor`, the `auto_theme` clamp), LOT-119 (settings shell, "Thème" row), LOT-083 (reader, CSP), LOT-169 (CSS variable path into the reader)
 
 ## Legacy sources
-Read-only, `origin/master` of ezzz/HFRnow at `21173e77` (the same theme code is at `2440d79`, a few lines higher in `AppSettingsView.swift`).
+Read-only, `origin/master` of ezzz/HFRnow at `21173e77`, like LOT-119 and LOT-169 (every range names its revision, AGENTS.md learnings 2026-10-28). At `2440d79` the Swift layer already has the two appearance pickers, the hue slider and `AppThemeResolver` (`AppSettingsView.swift:372-394`, `Common.swift:267`), but the dark brightness lives only in the ObjC layer (`Classes/ThemeColors.m:30, 116, 1138` at `2440d79`, the same formula); its Swift slider and `adjustedDarkThemeColor` are `master`-only (GAP-144).
 
 | Legacy | Used for |
 |---|---|
