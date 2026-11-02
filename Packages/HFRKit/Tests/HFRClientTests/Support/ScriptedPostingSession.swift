@@ -45,7 +45,8 @@ actor ScriptedPostingSession: PostingSession {
     /// Installs `login` now, as `adoptLogin` (or a logout, with a nil identity) would between two requests.
     func adoptLogin(_ login: ConcurrentLogin) {
         identity = login.identity
-        hashCheck = login.hashCheck
+        // Like `HFRSession`: a logout keeps the token, and an empty one is never recorded.
+        if !login.hashCheck.isEmpty { hashCheck = login.hashCheck }
     }
 
     /// Installs `login` while the next request is suspended, after it was sent.

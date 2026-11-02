@@ -14,10 +14,12 @@ struct PostingSessionChangeTests {
     static let fresher = "fresher-token-0456"
 
     /// One write entry point and a captured form it accepts.
-    struct Entry: Sendable {
+    struct Entry: Sendable, CustomTestStringConvertible {
         let name: String
         let formID: String
         let write: Write
+
+        var testDescription: String { "\(name) (\(formID))" }
     }
 
     /// Every write entry point; each one ends in `submit`.
@@ -59,10 +61,9 @@ struct PostingSessionChangeTests {
     @Test(
         "A login of another account or a logout after the form was loaded refuses every write, nothing sent",
         arguments: [ConcurrentLogin(identity: "user2", hashCheck: fresher), ConcurrentLogin(identity: nil, hashCheck: "")],
-        0..<writes.count
+        writes
     )
-    func changeAfterLoad(change: ConcurrentLogin, index: Int) async throws {
-        let entry = Self.writes[index]
+    func changeAfterLoad(change: ConcurrentLogin, entry: Entry) async throws {
         let outcome = try await run(formID: entry.formID, between: change, write: entry.write)
         #expect(outcome.error == .sessionChanged, "\(entry.name)")
         #expect(outcome.requests.count == 1)
