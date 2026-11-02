@@ -115,6 +115,19 @@ class Milestones(unittest.TestCase):
         self.assertEqual(bad, [])
 
 
+class Boards(unittest.TestCase):
+    def test_closed_m5_lots_show_as_not_opened_and_followups_belong_to_a_milestone(self):
+        import m5
+        self.assertFalse(m5.M5_OPEN)
+        self.assertTrue(all(m in ("M1", "M2", "M3", "M4") for m, _ in m5.FOLLOWUPS.values()))  # not lots: never M5-only
+        self.assertEqual(m5.FOLLOWUPS[432][0], "M4")
+        text = generate.followups_block("M4")
+        self.assertIn("#432", text)
+        self.assertNotIn("#424", text)
+        waiting = [l for l in generate.M5 if generate.state(l)[1].startswith("⏸️")]
+        self.assertTrue(all(not generate.done(l) for l in waiting))
+
+
 class Hygiene(unittest.TestCase):
     def setUp(self):
         self.lots = lots_of(md_row("001", 1), md_row("002", 2, deps="001"), md_row("003", 3, deps="001, 002"),

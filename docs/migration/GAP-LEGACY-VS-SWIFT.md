@@ -357,7 +357,7 @@ Operator decisions on [#379](https://github.com/ezzz/HFRnow/issues/379): **every
 | 13 | B: slider; 100 / 110 / 120 / 130 % map to the same percentages | LOT-169 spec |
 | 14 | A; deleting the first post goes to M5 | LOT-175 ([#415](https://github.com/ezzz/HFRnow/issues/415)); LOT-088 (#180) |
 | 15 | Per-topic drafts kept (exception); A for swipe-down: dismiss saves the draft (M2) | [#429](https://github.com/ezzz/HFRnow/issues/429); LOT-084 spec |
-| 16 | A (silently blocked while typing) in M2; the refusal at send goes to M5 | LOT-151 (#241) moved to M5; LOT-084 spec |
+| 16 | A (silently blocked while typing) in M2 ([#437](https://github.com/ezzz/HFRnow/issues/437)); the refusal at send with a suggestion goes to M5 | LOT-151 (#241) moved to M5; LOT-084 spec |
 | 17 | A (per-message toggle) in M2; the tray goes to M5 | LOT-153 (#243) moved to M5; LOT-086 (#178) keeps the toggle |
 | 18 | A: clear / undo / redo and "Fractionner la citation" join LOT-085; the toolbar goes to M5 | LOT-174 ([#414](https://github.com/ezzz/HFRnow/issues/414)); LOT-085 (#177) |
 | 19 | A in M2 (toast, text kept, never auto-resent); the sheet goes to M5 | LOT-142 (#232) moved to M5; LOT-084 spec |

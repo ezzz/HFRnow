@@ -1094,7 +1094,7 @@
 {
 "lot": "LOT-085",
 "star": false,
-"scope": "Composer formatting toolbar and insertion engine",
+"scope": "Composer insertion engine and Edit-menu BBCode actions, plus the legacy clear / undo / redo and quote splitting (the visible toolbar is LOT-174, M5)",
 "module": "App",
 "diff": "medium",
 "model": "Sonnet → Opus",
@@ -1122,7 +1122,7 @@
 {
 "lot": "LOT-088",
 "star": false,
-"scope": "Edit and delete own messages",
+"scope": "Edit and delete own messages, never on the first post (deleting the first post is LOT-175, M5)",
 "module": "App",
 "diff": "medium",
 "model": "Opus → Fable",
@@ -1346,7 +1346,7 @@
 {
 "lot": "LOT-109",
 "star": false,
-"scope": "Image viewer and HD gallery",
+"scope": "Image viewer: full screen, save, copy link (the HD gallery with swipe is LOT-176, M5)",
 "module": "App",
 "diff": "medium",
 "model": "Sonnet → Opus",
@@ -1374,7 +1374,7 @@
 {
 "lot": "LOT-111",
 "star": false,
-"scope": "'Nouveau' banner and first-unread landing",
+"scope": "First-unread landing and the legacy separator (the 'Nouveau' banner is LOT-178, M5)",
 "module": "App",
 "diff": "medium",
 "model": "Sonnet → Opus",
@@ -1500,7 +1500,7 @@
 {
 "lot": "LOT-125",
 "star": false,
-"scope": "List swipes and topic actions",
+"scope": "List swipes and topic actions: the legacy swipes (Lu, Supprimer) and the legacy context menu (the uniform swipe set, FEAT-008, is LOT-177, M5)",
 "module": "App",
 "diff": "medium",
 "model": "Opus → Fable",
@@ -1556,7 +1556,7 @@
 {
 "lot": "LOT-127",
 "star": false,
-"scope": "MP actions: mark unread, delete, group members",
+"scope": "MP actions: mark unread (thread deletion and group members are LOT-181, M5)",
 "module": "App",
 "diff": "easy",
 "model": "Opus → Fable",
@@ -1570,7 +1570,7 @@
 {
 "lot": "LOT-128",
 "star": false,
-"scope": "New MP and MP reply composer",
+"scope": "New MP to one recipient from a message and from the list button, MP reply composer (several recipients and entries from profiles are LOT-182, M5)",
 "module": "App",
 "diff": "medium",
 "model": "Opus → Fable",
@@ -1668,7 +1668,7 @@
 {
 "lot": "LOT-120",
 "star": false,
-"scope": "Maintenance, about and static pages; About links to the app's HFR topics, opened in the app",
+"scope": "System-settings shortcut, version, static pages; About links to the app's HFR topics, opened in the app (cache sizes and clearing are LOT-179, M5)",
 "module": "App",
 "diff": "easy",
 "model": "Sonnet → Opus",
@@ -1696,7 +1696,7 @@
 {
 "lot": "LOT-122",
 "star": false,
-"scope": "Appearance: darker dark, OLED black, separators, live preview",
+"scope": "Appearance: darker dark, OLED black, separators, themes with defaults unchanged (the single accent with a live preview is LOT-180, M5)",
 "module": "App",
 "diff": "medium",
 "model": "Sonnet → Opus",
@@ -1892,7 +1892,7 @@
 {
 "lot": "LOT-134",
 "star": false,
-"scope": "AQ check and creation from a message",
+"scope": "AQ check and creation from a message, 'already signalled' check (the first-use notice is LOT-183, M5)",
 "module": "App",
 "diff": "easy",
 "model": "Opus → Fable",

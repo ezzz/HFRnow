@@ -27,7 +27,7 @@ def by_theme(ls):
         r=rows[l]; t=(r['sub'] or r['sec'].split('—')[-1]).split('(')[0].replace('app: ','').strip()
         g.setdefault(t,[]).append(l)
     return g
-def board(ms,title,emoji):
+def board(ms,title,emoji,key=None):
     b={'todo':[],'ongoing':[],'done':[]}
     for l in ms: b[state(l)[0]].append(l)
     d,o,t,tot,p=pct(ms)
@@ -42,12 +42,14 @@ def board(ms,title,emoji):
         s.append(', '.join(f"{l} #{rows[l]['issue']}" for l in sorted(b['done'],key=n)))
         s.append('\n</details>\n')
     else: s.append('### ✅ Done (0)\n')
+    if key: s.append(followups_block(key))
     return '\n'.join(s)
 LEGEND='''### Legend
 
 | Column | Emoji | Meaning |
 |---|---|---|
 | 🔜 Todo | 🟦 ready | `status: ready`: every dependency merged, inputs available, nobody claimed it. Claim it with `/claim <id>`. |
+| | ⏸️ M5 not opened | An M5 lot whose dependencies are merged. M5 opens by the orchestrator's decision: do not set `status: ready`. |
 | | ⛔ waits on … | Dependencies not merged yet (lot numbers listed). |
 | | 📸 waits on capture | Every dependency is merged, but a capture (issue linked, `host: mac`) must land first. |
 | | 🟨 triage | Every listed dependency is merged but the issue is still `status: blocked`: either a pending capture blocks it (say which on the issue) or it is ready. |
@@ -92,7 +94,7 @@ M3 runs **in parallel** with M2 (☁️ cloud sessions). M2, M4 and M5 mostly ne
 '''
 def triage():
     out=[]
-    for ms in (M1,M2,M3,M4,M5):
+    for ms in (M1,M2,M3,M4):  # M5 lots are opened by the orchestrator, never by this instruction
         for l in sorted(ms,key=n):
             if state(l)[1].startswith('🟨') and l!='LOT-070': out.append(f"{l} #{rows[l]['issue']}")
     return out
@@ -113,15 +115,15 @@ _Snapshot {DATE}, rebuilt by the steward from `docs/LOTS.md` and the issue and P
 ![SwiftHFR milestones](https://raw.githubusercontent.com/ezzz/HFRnow/dev-swift/docs/assets/roadmap-milestones.svg)
 
 {LEGEND}
-{board(M2,'M2 · Read & reply complete','📖')}
+{board(M2,'M2 · Read & reply complete','📖','M2')}
 
-{board(M3,'M3 · Engine complete','⚙️')}
+{board(M3,'M3 · Engine complete','⚙️','M3')}
 
 Also engine-side, not in LOTS.md yet: #306 (parser: the topic page's delflag link for LOT-051 `removeFlag`) · 🟦 ready · ☁️ cloud.
 
-{board(M4,'M4 · Final version (validated legacy parity)','🏁')}
+{board(M4,'M4 · Final version (validated legacy parity)','🏁','M4')}
 
-{board(M5,'M5 · UX evolutions','🧪')}
+{board(M5,'M5 · UX evolutions','🧪','M5')}
 
 After M4, not a lot: #338 (return to a standard contribution process; removes the M1–M4 delegation rules) · ⛔ waits on LOT-165.
 
@@ -175,6 +177,7 @@ _Snapshot {DATE}._
 - LOT-169 and LOT-137 come before the first beta (operator decision on #292).
 - LOT-170 (PR #303) landed before LOT-161, as the maintainer asked on #251 (merged 2026-10-29).
 
+{followups_block('M1')}
 ### 🩹 Fixes that touch the MVP
 
 | Issue | What | State |

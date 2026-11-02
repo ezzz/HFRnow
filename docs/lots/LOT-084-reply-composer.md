@@ -170,7 +170,7 @@ Classification of directive H.1 (2026-11-01): the `H.1` column of [GAP-LEGACY-VS
 
 Operator decisions on [#379](https://github.com/ezzz/HFRnow/issues/379): every UXD row takes its recommendation. M4 is the validated legacy parity, M5 the evolutions.
 - **UXD-15:** per-topic and per-account drafts are kept (an operator exception to "defaults keep the legacy UX": no lost text, and `master` has them). **A** for swipe-down: dismissing saves the draft ([#429](https://github.com/ezzz/HFRnow/issues/429), M2).
-- **UXD-16: A.** Keyboard emoji stay silently blocked while typing (legacy). The refusal at send with a smiley suggestion (LOT-151) moves to M5.
+- **UXD-16: A.** Keyboard emoji are silently blocked while typing, as in the legacy app: this lot shipped the opposite (free typing, refusal at send), so the port is a follow-up ([#437](https://github.com/ezzz/HFRnow/issues/437), M2); the send-time refusal stays as the safety net for pasted text. The refusal with a smiley suggestion (LOT-151) moves to M5.
 - **UXD-19: A.** Session expired while composing: the "Session expirée" toast keeps the text and nothing is ever resent automatically (already here). The re-login sheet (LOT-142) moves to M5.
 
 ## Learnings
