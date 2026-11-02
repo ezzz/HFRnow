@@ -175,8 +175,8 @@ extension PostingSession {
     /// Checks cancellation, that the session still holds `seed`'s identity and login generation, reads the token and
     /// builds the request in one turn of the session actor, the actor `adoptLogin` runs on: no login lands between the
     /// check and the request built with the checked token. `URLSession` attaches the cookies later, when the task
-    /// starts; a login adopted in that window sends the checked token with the new cookies, which HFR refuses for
-    /// another account (`W17b`, the token is per account, HFR-PROTOCOL §5) and which is the same account otherwise.
+    /// starts; a login adopted in that window sends the checked token with the new cookies. The vote endpoint's
+    /// response to that cross-account pairing is not captured, so the outcome is unverified.
     /// A failure of the exchange itself is thrown.
     func send(
         since seed: HashCheckSeed, now: Date = Date(), _ make: @Sendable (String) -> HTTPRequest
