@@ -120,5 +120,9 @@ struct PostingTopicCaptureTests {
         #expect(outcome.requests.count == 1)
         #expect(outcome.post == nil)
         #expect(outcome.hashChecks.isEmpty)
+        // The page itself: HFR's own "no such topic" sentence with a back link.
+        let hop = try HopResponseParser.classify(html: try Capture.page("R92-topic-after-first-post-delete-404"))
+        #expect(hop.message == "Désolé, ce sujet n'existe pas")
+        #expect(hop.kind != .success)
     }
 }

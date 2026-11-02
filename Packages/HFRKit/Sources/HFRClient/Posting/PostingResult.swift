@@ -30,8 +30,9 @@ public struct PostingResult: Sendable, Equatable {
         HFRLinkRoute.route(for: refreshURL)
     }
 
-    /// True when HFR's answer to a delete says the whole topic went: it refreshes to a topic list (`W19` private,
-    /// `W49` public, after which the topic is a 404, `R92`) instead of the topic (`W16a`, `W32`).
+    /// True when HFR's answer to a delete says the whole topic went for this account: it refreshes to a topic list
+    /// (`W49` public, after which the topic is a 404, `R92`; `W19` private, whose recipient keeps the thread, X1) instead
+    /// of the topic (`W16a`, `W32`). A list path the router does not know reads as a message delete (`.external`).
     public var deletedWholeTopic: Bool {
         guard action == .delete else { return false }
         switch refreshRoute {
