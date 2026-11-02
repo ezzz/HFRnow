@@ -596,26 +596,50 @@ def is_fixture_thread(text):
     return bool(names) and all(re.fullmatch(r"\s*fixture-test-\d+\s*", n) for n in names)
 
 
+_TD_TAG_RE = re.compile(r"<(/?)td\b[^>]*>", re.I)
+_REVIEW_AUTHOR_RE = re.compile(r"<td\b[^>]*\bclass=[\"']messCase1bis[\"'][^>]*>", re.I)
+
+
+def _td_end(text, pos):
+    """Index of the `</td>` closing the cell whose content starts at pos (nested cells, e.g. a quote table, balanced)."""
+    depth = 1
+    for m in _TD_TAG_RE.finditer(text, pos):
+        depth += -1 if m.group(1) else 1
+        if depth == 0:
+            return m.start()
+    return None
+
+
+def review_cells(text):
+    """(start, end) of the content of every cell after a `td.messCase1bis` cell; both cells may hold markup and quotes."""
+    spans = []
+    for m in _REVIEW_AUTHOR_RE.finditer(text):
+        author_end = _td_end(text, m.end())
+        if author_end is None:
+            continue
+        after = text.index(">", author_end) + 1
+        nxt = _TD_TAG_RE.search(text, after)
+        if nxt is None or nxt.group(1) or text[after:nxt.start()].strip():
+            continue
+        end = _td_end(text, nxt.end())
+        if end is not None:
+            spans.append((nxt.end(), end))
+    return spans
+
+
 def private_form_copies(text):
     """Replace the content_form textarea and the review cell of a form page that is not a fixture thread."""
-    if not (CONTENT_FORM_RE.search(text) or REVIEW_BODY_RE.search(text)) or is_fixture_thread(text) \
-            or MPSTORAGE_FORM_RE.search(text):
+    if is_fixture_thread(text) or MPSTORAGE_FORM_RE.search(text):
         return text, 0
-    count = [0]
-
-    def area(m):
-        if not m.group(1).strip():
-            return m.group(0)
-        count[0] += 1
-        return m.group(0)[:m.start(1) - m.start()] + PRIVATE_PLACEHOLDER + m.group(0)[m.end(1) - m.start():]
-
-    def review(m):
-        if not m.group(1).strip() or _strip_tags(m.group(1)).strip() == PRIVATE_PLACEHOLDER:
-            return m.group(0)
-        count[0] += 1
-        return m.group(0)[:m.start(1) - m.start()] + PRIVATE_PLACEHOLDER + m.group(0)[m.end(1) - m.start():]
-    text = CONTENT_FORM_RE.sub(area, text)
-    return REVIEW_BODY_RE.sub(review, text), count[0]
+    spans = [(m.start(1), m.end(1)) for m in CONTENT_FORM_RE.finditer(text)] + review_cells(text)
+    parts, last, count = [], 0, 0
+    for start, end in sorted(spans):
+        inner = text[start:end]
+        if start < last or not inner.strip() or _strip_tags(inner).strip() == PRIVATE_PLACEHOLDER:
+            continue
+        parts += [text[last:start], PRIVATE_PLACEHOLDER]
+        last, count = end, count + 1
+    return "".join(parts) + text[last:], count
 
 
 class MPStorageDocumentError(AnonymizeError):
@@ -1437,11 +1461,13 @@ def allowed_name(name):
 class StructuralVerifier(html.parser.HTMLParser):
     """Collects (line, column, reason) for every non-aliased name or real id in member positions."""
 
-    def __init__(self, private=False):
+    def __init__(self, private=False, copies_ok=True):
         super().__init__(convert_charrefs=True)
         self.found = []
         self.stack = []
         self.private = private
+        self.copies_ok = copies_ok  # fixture or storage thread: form copies are not this verifier's business
+        self.review_next = False    # the next td is the review cell after a td.messCase1bis
         self.title = None          # page <title> text, checked once the body says it is a profile page
         self.profile_label = None  # text of the last td.profilCase2 (public profile row label)
         self.form_label = None  # text of the last th.repCase1 (reply / edit form row label)
@@ -1528,7 +1554,13 @@ class StructuralVerifier(html.parser.HTMLParser):
             return
         where = None
         href = a.get("href", "")
-        if tag == "b" and "s2" in cls and self._ctx("td", "messCase1"):
+        review = self.review_next and tag == "td"
+        if tag == "td":
+            self.review_next = False
+        if self.private and not self.copies_ok and (review or (
+                tag == "textarea" and a.get("name") == "content_form")):
+            where = "private form copy"
+        elif tag == "b" and "s2" in cls and self._ctx("td", "messCase1"):
             where = "post author"
         elif tag == "td" and cls & {"sujetCase6", "messCase1bis"}:
             where = "list author" if "sujetCase6" in cls else "form review author"
@@ -1587,6 +1619,8 @@ class StructuralVerifier(html.parser.HTMLParser):
                 return
 
     def _close(self, e):
+        if e["where"] == "form review author":
+            self.review_next = True
         if e.get("params"):
             text = name_key("".join(e["text"]).strip())
             aliases = [m.group(0) for m in (re.match(r"user\d+", p) for p in e["params"]) if m]
@@ -1615,6 +1649,9 @@ class StructuralVerifier(html.parser.HTMLParser):
             elif e["where"] == "signature or mood":
                 if text not in ("", "Signature removed.", "Mood removed."):
                     self._bad("signature or mood text", text, e["line"])
+            elif e["where"] == "private form copy":
+                if text not in ("", PRIVATE_PLACEHOLDER):
+                    self._bad("private form copy", text, e["line"])
             elif e["where"] == "private MP subject":
                 # Any text but the placeholder, a fixture thread or the MPStorage title (digits too).
                 if text and not (text in (PRIVATE_SUBJECT, MPSTORAGE_SUBJECT) or _V_FIXTURE_SUBJECT.fullmatch(text)):
@@ -1731,7 +1768,7 @@ def verify_structure(text, private=False):
     """Independent check of every member position (HTML or JSON), and of MP subjects when private; [] when clean."""
     if looks_json(text):
         return _verify_json(text)
-    v = StructuralVerifier(private=private)
+    v = StructuralVerifier(private=private, copies_ok=bool(_V_MPSTORAGE_SUBJECT_TEXT.search(text)) or _v_fixture_thread(text))
     v.feed(text)
     v.close()
     return v.found

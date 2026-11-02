@@ -900,6 +900,35 @@ class PrivateFormCopyTests(unittest.TestCase):
         self.assertIn('<textarea name="content_form" rows="1"></textarea>', out)
         self.assertEqual(self.reasons(out), [])
 
+    QUOTED = ('<table class="citation"><tr class="none"><td><p>quoted</p></td></tr></table><p>TAILSECRET</p>')
+
+    def quote_page(self, author):
+        return ('<html><body><input type="hidden" name="sujet" value="Real" /><table><tr><td class="messCase1bis">%s</td>'
+                '<td class="messCase2"><div>%s</div></td></tr></table></body></html>' % (author, self.QUOTED))
+
+    def test_quote_table_in_review_cell_is_replaced_to_the_end(self):
+        out = anon(self.quote_page("user1"), private=True)
+        self.assertNotIn("TAILSECRET", out)
+        self.assertNotIn("quoted", out)
+        self.assertEqual(self.reasons(out), [])
+
+    def test_dom_verifier_flags_quote_tail_and_markup_author(self):
+        for author in ("user1", "<b>user1</b>"):
+            found = A.verify_structure(self.quote_page(author), private=True)
+            self.assertTrue([f for f in found if "private form copy" in f[2]], author)
+            out = anon(self.quote_page(author), private=True)
+            self.assertNotIn("TAILSECRET", out)
+            self.assertEqual(A.verify_structure(out, private=True), [])
+
+    def test_dom_verifier_skips_fixture_thread(self):
+        page = self.quote_page("user1").replace('value="Real"', 'value="fixture-test-2"')
+        self.assertEqual(A.verify_structure(page, private=True), [])
+
+    def test_unquoted_sujet_attributes_fail_closed(self):
+        page = self.page("fixture-test-3", self.SECRET, header=False).replace(
+            'type="hidden" name="sujet" value="fixture-test-3"', 'type=hidden name=sujet value=fixture-test-3')
+        self.assertNotIn(self.SECRET, anon(page, private=True))
+
     def test_not_private_mode_keeps_copies(self):
         page = self.page("Real conversation", self.SECRET)
         self.assertEqual(anon(page), page)
