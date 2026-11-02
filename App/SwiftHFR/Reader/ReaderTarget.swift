@@ -6,10 +6,10 @@ import HFRParsing
 struct ReaderTarget: Hashable, Sendable {
     /// How the page is requested.
     enum Source: Hashable, Sendable {
-        /// `forum2.php` with the topic's category and number (HFR redirects it to the canonical page).
+        /// `forum2.php` with the topic's category and number (HFR redirects it to the canonical page). The only source since
+        /// LOT-137: a canonical path is read by LOT-095's router, which knows its category, and is never fetched as the
+        /// link wrote it.
         case topic(TopicID)
-        /// A forum-relative link without a category (a canonical `…-sujet_<post>_<page>.htm` path), fetched as is.
-        case path(String)
     }
 
     var source: Source
@@ -43,41 +43,36 @@ struct ReaderTarget: Hashable, Sendable {
         }
     }
 
-    /// The target of a forum link (`/forum2.php?…&post=…&page=…#t…`, or a canonical topic path), nil when the link is not
-    /// a topic page of the forum. Page and anchor are kept, so a post link opens its page at the post (issue #106).
+    /// The target of a forum link, nil when the link is not a topic or private message page of the forum. LOT-095's router
+    /// is the only link parser (LOT-137): page and anchor are kept, so a post link opens its page at the post (issue #106),
+    /// and a link naming a message lets HFR pick its page (R25). `fallbackTopic` is the topic the caller already knows (a
+    /// list row): a canonical path of that same topic number opens it even when its forum segment is not in the catalogue
+    /// (#125), because the request is then built from the known topic, never from the link.
     init?(link: String, fallbackTopic: TopicID? = nil) {
         guard let url = Self.forumURL(link) else { return nil }
-        let text = url.absoluteString
-        let anchor = HFRURL.anchorPostNumber(in: text)
-        if let topicID = HFRURL.topicID(in: text) {
-            // LOT-095's router drops `page=` when the link names a message: HFR then serves the message's page (R25).
-            if case .topic(let routed) = HFRLinkRoute.route(for: url), routed.id == topicID, let message = routed.numreponse {
-                self.init(source: .topic(topicID), anchor: routed.scrollTarget, numreponse: message)
-            } else {
-                self.init(source: .topic(topicID), page: HFRURL.page(in: text) ?? 1, anchor: anchor)
-            }
-        } else if let canonical = HFRURL.canonicalTopicPath(in: text) {
-            if let fallbackTopic, fallbackTopic.topic == canonical.topic {
-                self.init(source: .topic(fallbackTopic), page: canonical.page, anchor: anchor)
-            } else {
-                // Only the path is kept: a canonical topic URL needs no query, and the session GET must not carry one the
-                // link's author chose.
-                self.init(source: .path(url.path(percentEncoded: true)), page: canonical.page, anchor: anchor)
-            }
+        switch HFRLinkRoute.route(for: url) {
+        case .topic(let routed), .privateMessageThread(let routed):
+            self.init(routed)
+        default:
+            let text = url.absoluteString
+            guard let fallbackTopic, let canonical = HFRURL.canonicalTopicPath(in: text), canonical.topic == fallbackTopic.topic
+            else { return nil }
+            self.init(source: .topic(fallbackTopic), page: canonical.page, anchor: HFRURL.anchorPostNumber(in: text))
+        }
+    }
+
+    /// The target of a routed topic link: its page, or, when it names a message, no page (HFR serves the message's page).
+    init(_ link: HFRTopicLink) {
+        if let message = link.numreponse {
+            self.init(source: .topic(link.id), anchor: link.scrollTarget, numreponse: message)
         } else {
-            return nil
+            self.init(source: .topic(link.id), page: link.page ?? 1, anchor: link.anchorPostNumber)
         }
     }
 
     /// The same topic at another page, anchor dropped.
     func atPage(_ page: Int) -> ReaderTarget {
-        switch source {
-        case .topic:
-            return ReaderTarget(source: source, page: page)
-        case .path(let path):
-            let moved = HFRURL.replacingPage(in: path, with: page) ?? path
-            return ReaderTarget(source: .path(moved), page: page)
-        }
+        ReaderTarget(source: source, page: page)
     }
 
     /// `link` as an `https` URL of the forum host on the default port; nil for anything else (another host, an explicit

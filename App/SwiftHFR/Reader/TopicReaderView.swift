@@ -4,7 +4,8 @@ import SwiftUI
 import WebKit
 
 /// The detail column: one topic page in a web view, page navigation, refresh, links, video players on tap and the reply
-/// sheet.
+/// sheet. A followed forum link pushes another reader (legacy `MessagesView.openInternalTopic`); its host wraps it in a
+/// `NavigationStack` (`ReaderColumn`, `MessageReaderColumn`).
 struct TopicReaderView: View {
     let model: TopicReaderModel
     let services: ReaderServices
@@ -15,6 +16,7 @@ struct TopicReaderView: View {
     @State private var video: VideoItem?
     @State private var askingPage = false
     @State private var pageText = ""
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         ZStack {
@@ -53,9 +55,14 @@ struct TopicReaderView: View {
         }
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
+        .navigationDestination(item: linkedReader) { linked in
+            TopicReaderView(model: linked.model, services: services, composer: composer)
+        }
         .onAppear(perform: makeController)
         .task { await model.onAppear() }
         .onDisappear {
+            // Covered by the reader of a followed link: this page stays as it is, for the way back.
+            guard model.linkedReader == nil else { return }
             model.cancel()
             controller?.stopLoading()
         }
@@ -82,6 +89,13 @@ struct TopicReaderView: View {
         }
     }
 
+    private var linkedReader: Binding<LinkedReader?> {
+        Binding(
+            get: { model.linkedReader.map(LinkedReader.init) },
+            set: { if $0 == nil { model.closeLinkedReader() } }
+        )
+    }
+
     private func askForPage() {
         pageText = ""
         askingPage = true
@@ -95,9 +109,10 @@ struct TopicReaderView: View {
         controller.events = ReaderWebController.Events(
             ready: { [model] token in model.documentDidBecomeReady(token: token) },
             link: { [model] url in
-                switch model.action(forLink: url) {
-                case .reader(let target): Task { await model.open(target) }
-                case .external(let url): external = ExternalLink(url: url)
+                switch model.action(forLink: url, defaultBrowser: services.settings.opensLinksInDefaultBrowser()) {
+                case .reader(let target): model.follow(target)
+                case .inAppBrowser(let url): external = ExternalLink(url: url)
+                case .defaultBrowser(let url): openURL(url)
                 case .ignored: break
                 }
             },
@@ -163,6 +178,14 @@ private struct ReaderWebView: UIViewRepresentable {
         controller.show(document)
         controller.apply(scrollRequest)
     }
+}
+
+/// The reader a link pushed, identified by its model.
+private struct LinkedReader: Hashable {
+    let model: TopicReaderModel
+
+    static func == (lhs: LinkedReader, rhs: LinkedReader) -> Bool { lhs.model === rhs.model }
+    func hash(into hasher: inout Hasher) { hasher.combine(ObjectIdentifier(model)) }
 }
 
 private struct ExternalLink: Identifiable {

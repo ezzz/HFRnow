@@ -100,7 +100,8 @@ struct ReaderColumn: View {
 
     var body: some View {
         if let topic = navigation.selectedTopic, let model = navigation.reader(for: topic) {
-            TopicReaderView(model: model, services: reader, composer: composer)
+            // Its own stack, for the readers a followed link pushes (LOT-137); a new topic starts a new stack.
+            NavigationStack { TopicReaderView(model: model, services: reader, composer: composer) }
                 .id(topic.id)
         } else {
             MessagePlaceholderView(topic: navigation.selectedTopic)

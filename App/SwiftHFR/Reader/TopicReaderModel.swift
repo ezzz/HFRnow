@@ -25,12 +25,14 @@ struct ScrollRequest: Equatable, Sendable {
     let anchor: Int
 }
 
-/// What the reader does with a link the user tapped.
+/// What the reader does with a link the user tapped (LOT-137).
 enum ReaderLinkAction: Equatable, Sendable {
-    /// A topic page of the forum: opened in the reader, at its page and post.
+    /// A topic or private message page of the forum: opened in the app, at its page and post (`TopicReaderModel.follow`).
     case reader(ReaderTarget)
-    /// Anything else on the web: opened outside the reader (`SFSafariViewController`, LOT-071 T8).
-    case external(URL)
+    /// Anything else on the web, in Safari's view inside the app (`SFSafariViewController`, LOT-071 T8).
+    case inAppBrowser(URL)
+    /// Anything else on the web, in the system's default browser ("Navigateur par défaut", LOT-119).
+    case defaultBrowser(URL)
     /// Not an `http(s)` link: nothing happens.
     case ignored
 }
@@ -56,6 +58,9 @@ final class TopicReaderModel {
     private(set) var readyToken: Int?
     /// Latest in-page scroll request.
     private(set) var scrollRequest: ScrollRequest?
+    /// The reader a followed link opened, shown above this one; going back clears it and finds this page as it was left
+    /// (LOT-137, legacy pushes a reader per link: `MessagesView.swift:3896-3927` at `21173e77`).
+    private(set) var linkedReader: TopicReaderModel?
     /// HFR's confirmation of the reply just sent, shown until dismissed; set only by a confirmed reply (LOT-084).
     private(set) var replyConfirmation: String?
     /// Title until the page gives its own.
@@ -134,17 +139,25 @@ final class TopicReaderModel {
     /// Whether a next page exists.
     var canGoToNext: Bool { page.map { $0.currentPage < $0.maxPage } ?? false }
 
-    /// Opens another target in this reader (a link to a topic or a post).
-    func open(_ target: ReaderTarget) async {
+    /// Follows a forum link: a post of the page shown is scrolled to without a request; anything else opens in a new reader
+    /// above this one (`linkedReader`), so going back returns to this page at the position it was left.
+    func follow(_ target: ReaderTarget) {
         // A message link names no page (issue #106): it is on screen when the page shown holds that message.
-        if let shown, let page, let anchor = target.anchor, isSameTopic(target, as: shown),
+        if let shown, let page, let anchor = target.anchor, target.source == shown.source,
            target.numreponse != nil || target.page == page.currentPage,
            let document, page.messages.contains(where: { !$0.isContinuation && $0.numreponse == anchor }) {
             nextScrollID += 1
             scrollRequest = ScrollRequest(id: nextScrollID, token: document.token, anchor: anchor)
             return
         }
-        await load(target, keepsScrollPosition: false)
+        linkedReader = TopicReaderModel(
+            target: target, title: target.source == shown?.source ? title : "", source: source, renderOptions: renderOptions
+        )
+    }
+
+    /// The reader opened by a link was closed (back).
+    func closeLinkedReader() {
+        linkedReader = nil
     }
 
     /// What the reply composer needs from the page on screen; nil when the page offers no answer form (logged out, locked
@@ -204,11 +217,14 @@ final class TopicReaderModel {
         readyToken = token
     }
 
-    /// What tapping `url` does. Forum topic links open in the reader, keeping page and post (issue #106).
-    func action(forLink url: URL) -> ReaderLinkAction {
+    /// What tapping `url` does. Topic and private message links of the forum, as LOT-095's router reads them, open in the
+    /// app at their page and post (issue #106); other web links open in the browser `defaultBrowser` names (legacy
+    /// `MessagesView.swift:3963-3968` at `21173e77`). A forum page the router sends elsewhere (a list, a profile, a page
+    /// view it does not own) opens in the browser too, never in the reader with the session.
+    func action(forLink url: URL, defaultBrowser: Bool) -> ReaderLinkAction {
         guard let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http" else { return .ignored }
-        if let target = ReaderTarget(link: url.absoluteString, fallbackTopic: page?.topicID) { return .reader(target) }
-        return .external(url)
+        if let target = ReaderTarget(link: url.absoluteString) { return .reader(target) }
+        return defaultBrowser ? .defaultBrowser(url) : .inAppBrowser(url)
     }
 
     /// The video `index` of message `post` on the page shown, for the player opened on tap (D-071-2).
@@ -283,13 +299,6 @@ final class TopicReaderModel {
             break
         case .failure(let failure):
             error = failure
-        }
-    }
-
-    private func isSameTopic(_ target: ReaderTarget, as shown: ReaderTarget) -> Bool {
-        switch (target.source, shown.source) {
-        case (.topic(let lhs), .topic(let rhs)): lhs == rhs
-        default: false
         }
     }
 }

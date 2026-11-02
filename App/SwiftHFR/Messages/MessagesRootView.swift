@@ -36,7 +36,8 @@ struct MessageReaderColumn: View {
 
     var body: some View {
         if let thread = model.selected, let readerModel = model.reader(for: thread) {
-            TopicReaderView(model: readerModel, services: reader, composer: composer)
+            // Its own stack, for the readers a followed link pushes (LOT-137); a new conversation starts a new stack.
+            NavigationStack { TopicReaderView(model: readerModel, services: reader, composer: composer) }
                 .id(thread.id)
                 // Shown read only once the conversation's last page was fetched: a failed or abandoned load, or an earlier page
                 // with newer messages unseen, leaves the row unread.

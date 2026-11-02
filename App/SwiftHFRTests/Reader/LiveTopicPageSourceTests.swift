@@ -67,30 +67,25 @@ struct LiveTopicPageSourceTests {
         #expect(await anonymous.requests.isEmpty)
     }
 
-    @Test func aCanonicalPathIsFetchedOnTheForumWithTheSession() async throws {
+    /// LOT-137: a canonical link is read by the router; the session asks for the topic page itself (`forum2.php` with
+    /// the catalogue's category), never for the path and query the link's author wrote.
+    @Test func aCanonicalLinkIsFetchedAsItsTopicNeverAsWritten() async throws {
         let body = try Self.capture("R20-topic-p1-anon.html")
         let session = MockTransport { request in
-            HTTPResponse(statusCode: 200, headers: ["Content-Type": "text/html; charset=utf-8"], url: request.url, body: body)
+            HTTPResponse(statusCode: 200, headers: ["Content-Type": "text/html; charset=utf-8"], url: url(Self.canonical), body: body)
         }
         let source = LiveTopicPageSource(
             fetcher: PageFetcher(session: session, anonymous: MockTransport(replies: [])), session: session,
             normalizer: MarkingNormalizer()
         )
-        let path = "/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm?logout=1#t5"
-        let page = try await source.page(for: ReaderTarget(source: .path(path)))
-        #expect(await session.requests.map(\.url.absoluteString) == [Self.canonical])
+        let target = try #require(ReaderTarget(link: "/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm?logout=1#t5"))
+        let page = try await source.page(for: target)
+        let sent = try #require(await session.requests.first?.url)
+        #expect(await session.requests.count == 1)
+        #expect(sent.host() == "forum.hardware.fr")
+        #expect(sent.path() == "/forum2.php")
+        #expect(!sent.absoluteString.contains("logout"))
         #expect(page.topicID == readerTopic)
-    }
-
-    @Test func aPathOffTheForumIsNeverRequested() async {
-        let session = MockTransport(replies: [])
-        let source = LiveTopicPageSource(
-            fetcher: PageFetcher(session: session, anonymous: session), session: session, normalizer: MarkingNormalizer()
-        )
-        await #expect(throws: ListLoadError.other) {
-            try await source.page(for: ReaderTarget(source: .path("https://evil.example/hfr/a/b-sujet_1_1.htm")))
-        }
-        #expect(await session.requests.isEmpty)
     }
 
     /// A page that carries HFR's message instead of messages (a `.hop` notice, `R08-1`) shows that message.

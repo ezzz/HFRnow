@@ -42,18 +42,52 @@ struct ReaderTargetTests {
     }
 
     @Test func aCanonicalLinkKeepsPageAndPost() throws {
+        // LOT-137: the router reads the forum segment, so the link opens its topic (`forum2.php`), not the path it wrote.
         let link = "http://forum.hardware.fr/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1353.htm#t44795902"
         let target = try #require(ReaderTarget(link: link))
-        #expect(target.source == .path("/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1353.htm"))
-        #expect(target.page == 1353)
-        #expect(target.anchor == 44795902)
-        let known = try #require(ReaderTarget(link: link, fallbackTopic: readerTopic))
-        #expect(known.source == .topic(readerTopic))
-        #expect(known.page == 1353)
-        #expect(known.anchor == 44795902)
-        // The same number in another category is another topic: the category is not borrowed.
+        #expect(target == ReaderTarget(source: .topic(readerTopic), page: 1353, anchor: 44795902))
+        // A known topic does not change what the router read.
         let other = try #require(ReaderTarget(link: link, fallbackTopic: TopicID(category: .forum(5), topic: 1)))
-        #expect(other.source == .path("/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1353.htm"))
+        #expect(other == target)
+    }
+
+    /// A forum the catalogue lacks (#125): the router leaves the link alone, but a row of that very topic still opens it,
+    /// from the topic the row names.
+    @Test func anUncataloguedForumOpensOnlyAsTheKnownTopic() throws {
+        let link = "/hfr/NotAForum/pizza-maison-sujet_28563_7.htm#t701"
+        #expect(ReaderTarget(link: link) == nil)
+        let known = TopicID(category: .forum(99), topic: 28563)
+        #expect(ReaderTarget(link: link, fallbackTopic: known) == ReaderTarget(source: .topic(known), page: 7, anchor: 701))
+        #expect(ReaderTarget(link: link, fallbackTopic: TopicID(category: .forum(99), topic: 1)) == nil)
+    }
+
+    /// LOT-095 follow-up: links the router does not route as a topic page are not opened in the reader with the session.
+    @Test(arguments: [
+        // An answer link of the composer.
+        "/message.php?config=hfr.inc&cat=13&post=28563&page=2#formulaire",
+        // A single-message view and a print view.
+        "/forum2.php?config=hfr.inc&cat=13&post=28563&page=2&quote_only=1",
+        "/forum2.php?config=hfr.inc&cat=13&post=28563&page=2&print=1",
+        // An unusable page is refused, never read as page 1.
+        "/forum2.php?config=hfr.inc&cat=13&post=28563&page=abc",
+        "/forum2.php?config=hfr.inc&cat=13&post=28563&page=0",
+        // A list and a profile are not topic pages.
+        "/forum1.php?config=hfr.inc&cat=13",
+        "/hfr/profil-12345.htm"
+    ])
+    func linksTheRouterDoesNotOpenAsATopicAreRefused(_ link: String) {
+        #expect(ReaderTarget(link: link) == nil)
+        #expect(ReaderTarget(link: link, fallbackTopic: readerTopic) == nil)
+    }
+
+    /// A private message link keeps its page; with a message number HFR picks the page (the router's rule for every
+    /// `forum2.php` link).
+    @Test func aPrivateMessageLinkOpensItsThread() throws {
+        let thread = TopicID(category: .privateMessages, topic: 4242)
+        let page = try #require(ReaderTarget(link: "/forum2.php?config=hfr.inc&cat=prive&post=4242&page=3&p=1#bas"))
+        #expect(page == ReaderTarget(source: .topic(thread), page: 3))
+        let message = try #require(ReaderTarget(link: "/forum2.php?config=hfr.inc&cat=prive&post=4242&page=3&numreponse=77#t77"))
+        #expect(message == ReaderTarget(source: .topic(thread), anchor: 77, numreponse: 77))
     }
 
     @Test(arguments: [
@@ -68,9 +102,7 @@ struct ReaderTargetTests {
     @Test func aCanonicalLinkDropsItsQuery() throws {
         let link = "https://forum.hardware.fr/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_3.htm?logout=1&x=2#t301"
         let target = try #require(ReaderTarget(link: link))
-        #expect(target.source == .path("/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_3.htm"))
-        #expect(target.page == 3)
-        #expect(target.anchor == 301)
+        #expect(target == ReaderTarget(source: .topic(readerTopic), page: 3, anchor: 301))
     }
 
     @Test func anHTTPForumLinkIsFetchedOverHTTPS() throws {
@@ -100,7 +132,5 @@ struct ReaderTargetTests {
     @Test func movingToAnotherPageDropsTheAnchor() {
         let target = ReaderTarget(source: .topic(readerTopic), page: 2, anchor: 5)
         #expect(target.atPage(4) == ReaderTarget(source: .topic(readerTopic), page: 4))
-        let path = ReaderTarget(source: .path("/hfr/a/b-sujet_1_2.htm"), page: 2, anchor: 5)
-        #expect(path.atPage(9) == ReaderTarget(source: .path("/hfr/a/b-sujet_1_9.htm"), page: 9))
     }
 }
