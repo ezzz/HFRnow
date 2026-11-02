@@ -31,6 +31,9 @@ struct ScrollRequest: Equatable, Sendable {
 enum ReaderLinkAction: Equatable, Sendable {
     /// A topic or private message page of the forum: opened in the app, at its page and post (`TopicReaderModel.follow`).
     case reader(ReaderTarget)
+    /// A member's public profile (`/hfr/profil-<id>.htm`): the profile sheet (LOT-116), as legacy
+    /// `OnlineMessagesTableViewController.m:1953-1964` at `21173e77` opened `ProfilViewController`.
+    case profile(memberID: Int)
     /// Anything else on the web, in Safari's view inside the app (`SFSafariViewController`, LOT-071 T8).
     case inAppBrowser(URL)
     /// Anything else on the web, in the system's default browser ("Navigateur par défaut", LOT-119).
@@ -231,10 +234,12 @@ final class TopicReaderModel {
     /// What tapping `url` does. Topic and private message links of the forum, as LOT-095's router reads them, open in the
     /// app at their page and post (issue #106); other web links open in the browser `defaultBrowser` names (legacy
     /// `MessagesView.swift:3963-3968` at `21173e77`). A forum page the router sends elsewhere (a list, a profile, a page
-    /// view it does not own) opens in the browser too, never in the reader with the session.
+    /// view it does not own) opens in the browser too, never in the reader with the session; a profile opens the profile
+    /// sheet (LOT-116), which fetches it without cookies.
     func action(forLink url: URL, defaultBrowser: Bool) -> ReaderLinkAction {
         guard let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http" else { return .ignored }
         if let target = ReaderTarget(link: url.absoluteString) { return .reader(target) }
+        if case .profile(let memberID) = HFRLinkRoute.route(for: url) { return .profile(memberID: memberID) }
         return defaultBrowser ? .defaultBrowser(url) : .inAppBrowser(url)
     }
 

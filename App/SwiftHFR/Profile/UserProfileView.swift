@@ -1,0 +1,248 @@
+import HFRParsing
+import SwiftUI
+
+// Port of HFRswift/Swift/UserProfileView.swift (UserProfileView, UserProfileHeaderView, UserProfileQuickActionsView,
+// UserProfileSectionView, UserProfileFieldRow, UserProfileSmiliesView, UserProfileActionsView) @ 21173e77. Differences: images
+// through the reader's cookie-less fetcher and image policy, not `AsyncImage`; no smiley favourite toggle (LOT-104); a
+// list instead of cards (LOT-116 spec).
+/// A member's public profile in a sheet (LOT-116): header (avatar, pseudo, status, figures), the page's sections, personal
+/// smileys and the page's link rows. Every text the member wrote is shown verbatim, never read as Markdown or HTML.
+struct UserProfileView: View {
+    let model: UserProfileModel
+    let services: ReaderServices
+    @State private var external: ProfileExternalLink?
+    @Environment(\.openURL) private var openURL
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            content
+                .navigationTitle(model.title)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) { Button("Fermer") { dismiss() } }
+                    ToolbarItem(placement: .primaryAction) {
+                        Button { Task { await model.reload() } } label: { Label("Actualiser", systemImage: "arrow.clockwise") }
+                            .disabled(model.isLoading)
+                    }
+                }
+                .task { await model.onAppear() }
+                .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
+        }
+    }
+
+    @ViewBuilder private var content: some View {
+        if let profile = model.profile {
+            List {
+                if let error = model.error {
+                    LoadFailureBanner(error: error, retry: model.reload).listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
+                }
+                ProfileHeaderSection(profile: profile, fetcher: services.imageFetcher, model: model)
+                ForEach(profile.sections) { section in
+                    Section(section.title) {
+                        ForEach(section.fields) { field in ProfileFieldRow(field: field, open: open) }
+                    }
+                }
+                if !profile.personalSmilies.isEmpty {
+                    ProfileSmileysSection(smileys: profile.personalSmilies, fetcher: services.imageFetcher)
+                }
+                if !profile.actions.isEmpty {
+                    Section("Liens") {
+                        ForEach(profile.actions) { action in ProfileActionRow(action: action, open: open) }
+                    }
+                }
+            }
+            .listStyle(.insetGrouped)
+            .refreshable { await model.reload() }
+        } else if let error = model.error {
+            LoadFailureView(error: error, retry: model.reload)
+        } else {
+            ProgressView("Chargement du profil…").frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
+    private func open(_ url: URL) {
+        switch model.action(forLink: url, defaultBrowser: services.settings.opensLinksInDefaultBrowser()) {
+        case .inAppBrowser(let url): external = ProfileExternalLink(url: url)
+        case .defaultBrowser(let url): openURL(url)
+        case .ignored: break
+        }
+    }
+}
+
+private struct ProfileExternalLink: Identifiable {
+    let url: URL
+    var id: String { url.absoluteString }
+}
+
+/// Avatar, pseudo, status, the three figures and the quick actions.
+private struct ProfileHeaderSection: View {
+    let profile: UserProfile
+    let fetcher: ReaderImageFetcher
+    let model: UserProfileModel
+
+    var body: some View {
+        Section {
+            HStack(spacing: 16) {
+                ProfileImage(url: profile.avatarURL, fetcher: fetcher, placeholder: "person.crop.circle.fill")
+                    .frame(width: 98, height: 70)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(verbatim: profile.pseudo).scaledFont(.title2).bold().textSelection(.enabled)
+                    if let status = profile.status {
+                        Label { Text(verbatim: status) } icon: { Image(systemName: "person.text.rectangle") }
+                            .scaledFont(.subheadline).foregroundStyle(.secondary)
+                    }
+                }
+            }
+            ForEach(profile.summary) { item in
+                LabeledContent {
+                    Text(verbatim: item.value).textSelection(.enabled)
+                } label: {
+                    Label(item.kind.shortTitle, systemImage: item.kind.symbol)
+                }
+                .scaledFont(.body)
+            }
+            if let recipient = model.privateMessageRecipient {
+                Button { model.writePrivateMessage() } label: { Label("Écrire un MP", systemImage: "message") }
+                    .accessibilityHint("Message privé à \(recipient)")
+            }
+        }
+    }
+}
+
+/// One labelled field; a member's link opens in a browser.
+private struct ProfileFieldRow: View {
+    let field: UserProfileField
+    let open: (URL) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(verbatim: field.title).scaledFont(.subheadline).foregroundStyle(.secondary)
+            if let url = field.url {
+                Button { open(url) } label: {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text(verbatim: field.value.isEmpty ? url.absoluteString : field.value).multilineTextAlignment(.leading)
+                        Image(systemName: "arrow.up.forward").scaledFont(.caption2).accessibilityHidden(true)
+                    }
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.tint)
+            } else if field.isPlaceholder {
+                Text("Non renseigné").foregroundStyle(.tertiary)
+            } else {
+                Text(verbatim: field.value).textSelection(.enabled)
+            }
+        }
+        .scaledFont(.body)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// The member's personal smileys with their codes.
+private struct ProfileSmileysSection: View {
+    let smileys: [UserProfileSmiley]
+    let fetcher: ReaderImageFetcher
+
+    var body: some View {
+        Section {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 112), spacing: 10)], spacing: 10) {
+                ForEach(smileys) { smiley in
+                    VStack(spacing: 8) {
+                        ProfileImage(url: smiley.imageURL, fetcher: fetcher, placeholder: "photo")
+                            .frame(height: 42)
+                            .accessibilityHidden(true)
+                        Text(verbatim: smiley.code)
+                            .scaledFont(.caption2).monospaced().lineLimit(1).minimumScaleFactor(0.75).textSelection(.enabled)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
+                }
+            }
+        } header: {
+            Text("Smilies persos (\(smileys.count))")
+        }
+    }
+}
+
+/// A link row of the page (MP, all messages, transactions, configuration), opened in a browser as legacy did.
+private struct ProfileActionRow: View {
+    let action: UserProfileAction
+    let open: (URL) -> Void
+
+    var body: some View {
+        Button { open(action.url) } label: {
+            Label {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(verbatim: action.title)
+                    if let subtitle = action.subtitle, !subtitle.isEmpty {
+                        Text(verbatim: subtitle).scaledFont(.caption).foregroundStyle(.secondary)
+                    }
+                }
+            } icon: {
+                Image(systemName: action.kind.symbol)
+            }
+        }
+        .scaledFont(.body)
+    }
+}
+
+/// An image of the profile (avatar, smiley) through the reader's cookie-less fetcher: forum hosts only, no third party
+/// (LOT-071 policy); the placeholder stays when the policy refuses it or the download fails.
+private struct ProfileImage: View {
+    let url: URL?
+    let fetcher: ReaderImageFetcher
+    let placeholder: String
+    @State private var image: UIImage?
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(uiImage: image).resizable().scaledToFit()
+            } else {
+                Image(systemName: placeholder).resizable().scaledToFit().foregroundStyle(.secondary).padding(8)
+            }
+        }
+        .task(id: url) { image = await Self.load(url, fetcher: fetcher) }
+    }
+
+    private static func load(_ url: URL?, fetcher: ReaderImageFetcher) async -> UIImage? {
+        guard let url, let data = try? await fetcher.image(at: url, allowsThirdParty: false).data else { return nil }
+        return await Task.detached { UIImage(data: data) }.value
+    }
+}
+
+extension UserProfileSummaryItem.Kind {
+    /// Short label of a figure (legacy `UserProfileSummaryItem` titles: Messages, Arrivée, Dernier).
+    var shortTitle: String {
+        switch self {
+        case .messageCount: "Messages"
+        case .joinDate: "Arrivée"
+        case .lastMessageDate: "Dernier message"
+        }
+    }
+
+    /// SF Symbol of a figure (legacy `text.bubble`, `calendar`, `clock`).
+    var symbol: String {
+        switch self {
+        case .messageCount: "text.bubble"
+        case .joinDate: "calendar"
+        case .lastMessageDate: "clock"
+        }
+    }
+}
+
+extension UserProfileAction.Kind {
+    /// SF Symbol of a link row (legacy `UserProfileAction.systemImage`).
+    var symbol: String {
+        switch self {
+        case .privateMessage: "message"
+        case .allMessages: "text.bubble"
+        case .addContact: "person.badge.plus"
+        case .transaction: "arrow.left.arrow.right"
+        case .configuration: "desktopcomputer"
+        case .link: "link"
+        }
+    }
+}
