@@ -172,9 +172,12 @@ enum FencedSend: Sendable {
 }
 
 extension PostingSession {
-    /// Builds the request from the session's token and hands it to the transport in the actor turn that checks the
-    /// session still holds `seed`'s identity and login generation, so no login can be adopted in between (`adoptLogin`
-    /// runs on this actor). Cancellation is checked in that turn too. A failure of the exchange itself is thrown.
+    /// Checks cancellation, that the session still holds `seed`'s identity and login generation, reads the token and
+    /// builds the request in one turn of the session actor, the actor `adoptLogin` runs on: no login lands between the
+    /// check and the request built with the checked token. `URLSession` attaches the cookies later, when the task
+    /// starts; a login adopted in that window sends the checked token with the new cookies, which HFR refuses for
+    /// another account (`W17b`, the token is per account, HFR-PROTOCOL §5) and which is the same account otherwise.
+    /// A failure of the exchange itself is thrown.
     func send(
         since seed: HashCheckSeed, now: Date = Date(), _ make: @Sendable (String) -> HTTPRequest
     ) async throws(NetworkError) -> FencedSend {

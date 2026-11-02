@@ -3,8 +3,7 @@ import HFRNetwork
 /// Why a poll vote did not end with HFR's confirmation.
 ///
 /// `notVotable`, `unsupportedPoll`, `invalidChoice`, `sessionNotConfirmed`, `loginChanged`, `missingToken` and `network` mean
-/// the vote
-/// was not sent. `alreadyVoted`, `notLoggedIn` and `rejected` mean HFR refused it. `unconfirmed` means the vote may have
+/// the vote was not sent. `alreadyVoted`, `notLoggedIn` and `rejected` mean HFR refused it. `unconfirmed` means the vote may have
 /// reached HFR: the app reloads the topic page to see the poll instead of voting again on its own.
 /// No case carries a token or a cookie; `rejected` carries HFR's own sentence.
 public enum PollVoteError: Error, Sendable, Equatable {
