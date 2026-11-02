@@ -499,7 +499,7 @@ Source: [LOT-053](lots/LOT-053-smiley-search-wiki.md), `SmileyLookupFlow`, check
 
 ### LOT-097 — BBCode rendering
 
-Source: [LOT-097](lots/LOT-097-bbcode-preview-renderer.md), `BBCodeRenderer`, checked by `BBCodeRendererOracleTests` against HFR's own rendering: `POST /apercu.php` of `W61` (`R95d`) and `W62` (`R95h`), and the quote prefills `R41a`, `R42`, `R41b` against the thread page `R20` (messages 2666649, 2666682, 2666695); the round-trip facts are in §6b "BBCode round trip".
+Source: [LOT-097](lots/LOT-097-bbcode-preview-renderer.md), `BBCodeRenderer` (the lot's renderer PR, [#444](https://github.com/ezzz/HFRnow/pull/444)), checked by its `BBCodeRendererOracleTests` against HFR's own rendering: `POST /apercu.php` of `W61` (`R95d`) and `W62` (`R95h`), and the quote prefills `R41a`, `R42`, `R41b` against the thread page `R20` (messages 2666649, 2666682, 2666695); the round-trip facts are in §6b "BBCode round trip".
 
 - **Quote prefill as a source** (`R41a`, `R42`, `R41b` → `R20`, **verified**): `[quotemsg=…]<source>[/quotemsg]` holds the message's stored source, HTML-escaped in the `textarea` (`&amp;` for `&`), with every `[img]U[/img]` rewritten `[url]U[/url]` and the citation the message starts with dropped.
 - **Colour** (`R41a` → `R20`, **verified**): the toolbar's `[#0055aa]x[/#0055aa]` renders `<span style="color:#0055aa">x</span>`; `[color=#FF0000]` is text (`R95d`).
