@@ -30,19 +30,19 @@ Steps, in order (each failure stops the script):
 |---|---|---|---|
 | 1 | Arguments: `--version` and `--build` are required (no default), numeric, version strictly above the legacy floor `4.0.3` | checked | checked |
 | 2 | Local settings: environment variables, then `~/.config/swifthfr/release.env` (or `--config`, `HFR_RELEASE_CONFIG`), parsed for known keys, never sourced; warns when group/other can read it | loaded | loaded |
-| 3 | Preflight: Xcode ≥ 27; on `dev-swift`; clean tree; `HEAD` = freshly fetched `origin/dev-swift`; API key id, issuer and `.p8` present **and outside the repository**; manual signing names a profile | warnings | hard failures |
+| 3 | Preflight: Xcode ≥ 27; on `dev-swift`; clean tree; `HEAD` = freshly fetched `origin/dev-swift`; API key id, issuer and `.p8` present **and outside the repository**; manual signing names a profile, automatic signing has the provisioning opt-in, `--since` ref exists | warnings (a key file inside the repository, an unknown `--since` ref: hard failures) | hard failures |
 | 4 | `xcodebuild archive` (scheme `SwiftHFR`, Release, `generic/platform=iOS`) with `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` passed as overrides; `--unsigned` adds `CODE_SIGNING_ALLOWED=NO` | yes | yes (signed) |
 | 5 | Archive checks: `CFBundleShortVersionString`/`CFBundleVersion` equal the parameters, `ITSAppUsesNonExemptEncryption` false and `PrivacyInfo.xcprivacy` present (LOT-160), `codesign --verify` when signed | yes | yes |
-| 6 | `ExportOptions.plist`: `method` `app-store-connect`, `destination` `export`, `manageAppVersionAndBuildNumber` NO (the build number is ours), `uploadSymbols` YES, `signingStyle`, optional `teamID`, `testFlightInternalTestingOnly`, and for manual signing `signingCertificate` "Apple Distribution" + `provisioningProfiles` {bundle id → profile name}; `plutil -lint` | yes | yes |
+| 6 | `ExportOptions.plist`: `method` `app-store-connect`, `destination` `export`, `manageAppVersionAndBuildNumber` NO (the build number is ours), `uploadSymbols` YES, `signingStyle`, optional `teamID`, `testFlightInternalTestingOnly`, and for manual signing `provisioningProfiles` {bundle id → profile name} plus `signingCertificate` when `HFR_SIGNING_CERTIFICATE` is set (unset: Xcode's selector picks a distribution certificate); `plutil -lint` | yes | yes |
 | 7 | `xcodebuild -exportArchive` → `.ipa` | signed only | yes |
 | 8 | Release notes draft from `scripts/release-notes.template.md` (below) | yes | yes |
-| 9 | Confirmation on `/dev/tty`: the operator types `upload <version> (<build>)`; no TTY → refused | — | yes |
+| 9 | Confirmation on `/dev/tty`: the operator types `upload <version> (<build>)`; `/dev/tty` cannot be opened → refused | — | yes |
 | 10 | `xcrun altool --upload-package <ipa> --api-key <id> --api-issuer <issuer> --p8-file-path <p8>` | never | after step 9 |
 
 Flags checked against the local Xcode 27.2 (`xcrun altool --help`, altool 27.10.4; `xcodebuild -help`, export option keys), not
 guessed. `altool --upload-app` is the older form; `--upload-package` is the documented one for an `.ipa`.
 
-Output: `build/release/<version>-<build>/` (git-ignored `/build/`) or `--output DIR`: archive, `ExportOptions.plist`, `export/`,
+Output: `build/release/<version>-<build>/` (git-ignored `/build/`) or `--output DIR` (relative to the current directory, like `--config`): archive, `ExportOptions.plist`, `export/`,
 release notes, and one log per long step (`archive.log`, `export.log`, `upload.log`); the console shows `error:` lines only.
 Console: `[ok]` green, `[warn]` yellow, `[ko]` red, off without a TTY or with `NO_COLOR`; a spinner while a step runs on a TTY.
 
@@ -54,12 +54,17 @@ Console: `[ok]` green, `[warn]` yellow, `[ko]` red, off without a TTY or with `N
 | `HFR_ASC_KEY_ID`, `HFR_ASC_ISSUER_ID` | App Store Connect API key id and issuer id (Users and Access → Integrations), role App Manager or higher | upload |
 | `HFR_ASC_KEY_PATH` | path of `AuthKey_<id>.p8`, outside the repository (the script refuses a path inside it) | upload |
 | `HFR_SIGNING_STYLE` | `manual` (default, legacy habit) or `automatic` | export |
+| `HFR_SIGNING_CERTIFICATE` | certificate for manual signing; empty lets Xcode pick a valid distribution certificate (legacy used "iPhone Distribution") | export (optional) |
 | `HFR_PROFILE_NAME` | App Store provisioning profile for `hfrplus.red.super` (manual), installed with an "Apple Distribution" certificate in the login keychain | export |
 | `HFR_TEAM_ID` | team id, when the archive's team is not the one to export with | export (optional) |
-| `HFR_ALLOW_PROVISIONING_UPDATES` | `1` lets xcodebuild create or update profiles with the API key (`-allowProvisioningUpdates`, needed by `automatic`). Operator opt-in only: agents and CI never set it (AGENTS.md §11, LOT-080) | export (automatic) |
+| `HFR_ALLOW_PROVISIONING_UPDATES` | `1` lets xcodebuild create or update profiles with the API key (`-allowProvisioningUpdates`, needed by `automatic`), on archive and export, so a signed dry run then contacts Apple too (signing only, no upload). Operator opt-in only: agents and CI never set it (AGENTS.md §11, LOT-080) | export (automatic) |
 | `HFR_INTERNAL_ONLY` | `1` marks the build "TestFlight internal testing only" | optional |
 
 The archive itself signs with the project's settings (automatic, team of `App/README.md`); the export re-signs for distribution.
+Measured 2026-11-02 on the maintainer's Mac: a signed archive without the opt-in fails at once with "No profiles for
+'hfrplus.red.super' were found … Automatic signing is disabled and unable to generate a profile" (no iOS App Development profile for
+that bundle id is installed; nothing is sent to Apple). Before the first signed run the operator either installs one (open the
+project in Xcode once with the team's account, or download it from the developer portal) or sets `HFR_ALLOW_PROVISIONING_UPDATES=1`.
 The script never edits `project.pbxproj` nor the operator's signing settings: the version and build exist only in the archive.
 
 ### Version and build rule — OPEN QUESTION (operator)
@@ -89,7 +94,7 @@ et stabilité, Recherche/favoris/messages, À tester en priorité), filled by th
 | Action | Who |
 |---|---|
 | Dry run, unsigned (`--dry-run --unsigned`) | anyone, agents included |
-| Dry run, signed (uses the keychain identity and installed profiles) | operator |
+| Dry run, signed (uses the keychain identity and installed profiles; contacts Apple only with `HFR_ALLOW_PROVISIONING_UPDATES=1`) | operator |
 | `HFR_ALLOW_PROVISIONING_UPDATES=1` | operator |
 | Upload (`--upload` + typed confirmation) | operator only (AGENTS.md §0) |
 | Tag push, recording the build | operator-confirmed |

@@ -74,13 +74,13 @@ Required:
 Options:
   --unsigned          archive with CODE_SIGNING_ALLOWED=NO and skip the export (dry run only)
   --since REF         first commit (exclusive) of the release notes' change list (default: last swifthfr-* tag)
-  --output DIR        output folder (default: <repo>/build/release/<version>-<build>, git-ignored)
+  --output DIR        output folder, relative to the current directory (default: <repo>/build/release/<version>-<build>, git-ignored)
   --config FILE       local settings file (default: ${XDG_CONFIG_HOME:-~/.config}/swifthfr/release.env)
   -h, --help          this help
 
 Settings (environment variables win over the config file; see scripts/release.env.example):
   HFR_ASC_KEY_ID, HFR_ASC_ISSUER_ID, HFR_ASC_KEY_PATH   App Store Connect API key (upload; path outside the repo)
-  HFR_SIGNING_STYLE (manual|automatic), HFR_PROFILE_NAME, HFR_TEAM_ID                export signing
+  HFR_SIGNING_STYLE (manual|automatic), HFR_PROFILE_NAME, HFR_SIGNING_CERTIFICATE, HFR_TEAM_ID   export signing
   HFR_ALLOW_PROVISIONING_UPDATES (0|1)  operator opt-in for automatic export signing; agents and CI never set it
   HFR_INTERNAL_ONLY (0|1)               mark the build "TestFlight internal testing only"
 EOF
@@ -109,6 +109,9 @@ done
 [ -n "$VERSION" ] || die "--version is required (no default: the operator chooses it on #251)."
 [ -n "$BUILD" ] || die "--build is required (no default: the operator chooses it on #251)."
 [ "$MODE" = dry-run ] || [ "$UNSIGNED" -eq 0 ] || die "--unsigned is for --dry-run only: an unsigned archive cannot be uploaded."
+# Relative paths are relative to where the script was called from, for --config and --output alike.
+case "$CONFIG" in /*) ;; *) CONFIG="$PWD/$CONFIG" ;; esac
+case "$OUTPUT" in ""|/*) ;; *) OUTPUT="$PWD/$OUTPUT" ;; esac
 
 # ---------------------------------------------------------------- version rules
 is_version() { printf '%s' "$1" | grep -Eq '^[0-9]+(\.[0-9]+){0,2}$'; }
@@ -138,11 +141,11 @@ load_config() {
     warn "$file is readable by group or others: chmod 600 it."
   fi
   while IFS= read -r line || [ -n "$line" ]; do
-    case "$line" in ''|'#'*) continue ;; esac
+    case "$line" in ''|'#'*) continue ;; *=*) ;; *) warn "Ignoring a line without '=' in $file."; continue ;; esac
     key="${line%%=*}"; val="${line#*=}"
     val="${val%\"}"; val="${val#\"}"; val="${val%\'}"; val="${val#\'}"
     case "$key" in
-      HFR_ASC_KEY_ID|HFR_ASC_ISSUER_ID|HFR_ASC_KEY_PATH|HFR_SIGNING_STYLE|HFR_PROFILE_NAME|HFR_TEAM_ID|HFR_ALLOW_PROVISIONING_UPDATES|HFR_INTERNAL_ONLY)
+      HFR_ASC_KEY_ID|HFR_ASC_ISSUER_ID|HFR_ASC_KEY_PATH|HFR_SIGNING_STYLE|HFR_SIGNING_CERTIFICATE|HFR_PROFILE_NAME|HFR_TEAM_ID|HFR_ALLOW_PROVISIONING_UPDATES|HFR_INTERNAL_ONLY)
         if [ -z "${!key:-}" ]; then printf -v "$key" '%s' "$val"; fi ;;
       *) warn "Ignoring unknown key '$key' in $file." ;;
     esac
@@ -151,7 +154,7 @@ load_config() {
 }
 load_config "$CONFIG"
 HFR_ASC_KEY_ID="${HFR_ASC_KEY_ID:-}"; HFR_ASC_ISSUER_ID="${HFR_ASC_ISSUER_ID:-}"; HFR_ASC_KEY_PATH="${HFR_ASC_KEY_PATH:-}"
-HFR_SIGNING_STYLE="${HFR_SIGNING_STYLE:-manual}"; HFR_PROFILE_NAME="${HFR_PROFILE_NAME:-}"; HFR_TEAM_ID="${HFR_TEAM_ID:-}"
+HFR_SIGNING_STYLE="${HFR_SIGNING_STYLE:-manual}"; HFR_SIGNING_CERTIFICATE="${HFR_SIGNING_CERTIFICATE:-}"; HFR_PROFILE_NAME="${HFR_PROFILE_NAME:-}"; HFR_TEAM_ID="${HFR_TEAM_ID:-}"
 HFR_ALLOW_PROVISIONING_UPDATES="${HFR_ALLOW_PROVISIONING_UPDATES:-0}"; HFR_INTERNAL_ONLY="${HFR_INTERNAL_ONLY:-0}"
 # A literal "~/" from the config file (the file is not sourced, so the shell did not expand it).
 # shellcheck disable=SC2088
@@ -162,11 +165,12 @@ case "$HFR_INTERNAL_ONLY" in 0|1) ;; *) die "HFR_INTERNAL_ONLY must be 0 or 1." 
 
 # ---------------------------------------------------------------- preflight
 command -v xcodebuild >/dev/null || die "xcodebuild not found: run on the maintainer's Mac with Xcode installed."
-REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || die "Run from inside the SwiftHFR repository."
+REPO_ROOT="$(git -C "$(dirname "$0")" rev-parse --show-toplevel 2>/dev/null)" || die "The script must stay inside the SwiftHFR repository (scripts/)."
 cd "$REPO_ROOT"
 [ -d App/SwiftHFR.xcodeproj ] || die "App/SwiftHFR.xcodeproj not found: is this the dev-swift tree?"
 
-XCODE_VERSION="$(xcodebuild -version | awk 'NR==1 {print $2}')"
+XCODE_VERSION="$(xcodebuild -version 2>/dev/null | awk 'NR==1 {print $2}')" \
+  || die "xcodebuild -version failed: select a full Xcode with xcode-select."
 XCODE_MAJOR="${XCODE_VERSION%%.*}"
 [ "${XCODE_MAJOR:-0}" -ge "$MIN_XCODE_MAJOR" ] 2>/dev/null \
   || die "Xcode $XCODE_VERSION found; the iOS 27 target needs Xcode $MIN_XCODE_MAJOR or later."
@@ -197,6 +201,9 @@ else
   precondition "Could not fetch origin/$INTEGRATION_BRANCH to compare with HEAD."
 fi
 COMMIT="$(git rev-parse --short HEAD)"
+if [ -n "$SINCE" ]; then
+  git rev-parse --verify --quiet "$SINCE^{commit}" >/dev/null || die "--since: unknown ref '$SINCE'."
+fi
 
 # Upload credentials: required for --upload, reported in a dry run.
 inside_repo() {
@@ -218,6 +225,9 @@ if [ "$CREDS_OK" -eq 1 ]; then ok "App Store Connect API key settings present (k
 if [ "$HFR_SIGNING_STYLE" = manual ] && [ -z "$HFR_PROFILE_NAME" ] && [ "$UNSIGNED" -eq 0 ]; then
   precondition "HFR_SIGNING_STYLE=manual needs HFR_PROFILE_NAME (the App Store provisioning profile for the app)."
 fi
+if [ "$HFR_SIGNING_STYLE" = automatic ] && [ "$HFR_ALLOW_PROVISIONING_UPDATES" != 1 ] && [ "$UNSIGNED" -eq 0 ]; then
+  precondition "HFR_SIGNING_STYLE=automatic needs HFR_ALLOW_PROVISIONING_UPDATES=1 to re-sign for distribution."
+fi
 
 OUTPUT="${OUTPUT:-$REPO_ROOT/build/release/$VERSION-$BUILD}"
 mkdir -p "$OUTPUT"
@@ -235,7 +245,8 @@ if [ "$HFR_ALLOW_PROVISIONING_UPDATES" = 1 ]; then
   [ "$CREDS_OK" -eq 1 ] || die "HFR_ALLOW_PROVISIONING_UPDATES=1 needs the App Store Connect API key settings."
   AUTH_ARGS=(-allowProvisioningUpdates -authenticationKeyPath "$HFR_ASC_KEY_PATH"
     -authenticationKeyID "$HFR_ASC_KEY_ID" -authenticationKeyIssuerID "$HFR_ASC_ISSUER_ID")
-  warn "Provisioning updates allowed (operator opt-in): xcodebuild may create or update profiles."
+  warn "Provisioning updates allowed (operator opt-in): xcodebuild contacts Apple with the API key to create or update"
+  warn "profiles, in a signed dry run too (signing only, never an upload)."
 fi
 
 # ---------------------------------------------------------------- archive
@@ -280,7 +291,10 @@ plutil -insert signingStyle -string "$HFR_SIGNING_STYLE" "$EXPORT_PLIST"
 if [ "$HFR_INTERNAL_ONLY" = 1 ]; then plutil -insert testFlightInternalTestingOnly -bool YES "$EXPORT_PLIST"; fi
 if [ -n "$HFR_TEAM_ID" ]; then plutil -insert teamID -string "$HFR_TEAM_ID" "$EXPORT_PLIST"; fi
 if [ "$HFR_SIGNING_STYLE" = manual ] && [ -n "$HFR_PROFILE_NAME" ]; then
-  plutil -insert signingCertificate -string "Apple Distribution" "$EXPORT_PLIST"
+  # Unset: Xcode's own selector picks a valid distribution certificate (legacy used "iPhone Distribution").
+  if [ -n "$HFR_SIGNING_CERTIFICATE" ]; then
+    plutil -insert signingCertificate -string "$HFR_SIGNING_CERTIFICATE" "$EXPORT_PLIST"
+  fi
   plutil -insert provisioningProfiles -dictionary "$EXPORT_PLIST"
   plutil -insert "provisioningProfiles.${BUNDLE_ID//./\\.}" -string "$HFR_PROFILE_NAME" "$EXPORT_PLIST"
 fi
@@ -333,10 +347,11 @@ if [ "$MODE" = dry-run ]; then
 fi
 
 [ -n "$IPA" ] || die "No IPA to upload."
-[ -r /dev/tty ] || die "The upload needs an interactive terminal for its confirmation."
+{ exec 3</dev/tty; } 2>/dev/null || die "The upload needs an interactive terminal for its confirmation."
 printf '\n%sAbout to upload%s %s %s (%s), commit %s, to App Store Connect.\n' "$C_WARN" "$C_OFF" "$BUNDLE_ID" "$VERSION" "$BUILD" "$COMMIT"
 printf 'A build number can be uploaded only once. Type "upload %s (%s)" to confirm: ' "$VERSION" "$BUILD"
-read -r answer </dev/tty
+read -r answer <&3 || answer=""
+exec 3<&-
 [ "$answer" = "upload $VERSION ($BUILD)" ] || die "Not confirmed: nothing uploaded."
 
 run_step "Upload to App Store Connect" "$OUTPUT/upload.log" \
