@@ -89,6 +89,10 @@ struct HFRBBCodeWriterTests {
         #expect(Self.html("[url]tel:0123[/url]") == "<p><a href=\"tel:0123\" class=\"cLink\">tel:0123</a>")
         #expect(Self.html("[url]www.a.example:8080/x[/url]")
             == "<p><a href=\"www.a.example:8080/x\" class=\"cLink\">www.a.example:8080/x</a>")
+        // A run of spaces inside a URL or a link text is written `&nbsp;` as everywhere, never a marker.
+        #expect(Self.html("[url]a  b[/url] [url=a  b]t  u[/url] [img]a  b[/img]")
+            == "<p><a href=\"http://a &nbsp;b\" class=\"cLink\">a &nbsp;b</a> <a href=\"http://a &nbsp;b\" class=\"cLink\">t &nbsp;u</a> "
+            + "<img src=\"a &nbsp;b\" alt=\"a &nbsp;b\" title=\"a &nbsp;b\" />")
         #expect(Self.html("a\nb\rc") == "<p>a\r<br />b\r<br />c")
         #expect(Self.html("") == "<p>")
     }
@@ -114,6 +118,29 @@ struct HFRBBCodeWriterTests {
             + "<img src=\"https://forum-images.hardware.fr/icones/biggrin.gif\" alt=\";)\" title=\";)\" />")
         #expect(wink.html(for: "oui:p")
             == "<p>oui<img src=\"https://forum-images.hardware.fr/icones/biggrin.gif\" alt=\":p\" title=\":p\" />")
+        // A URL anywhere in a word protects the rest of the word: after a bracket, a quote, a tag or a glued smiley.
+        #expect(wink.html(for: "voir (http://a.example/:/x) ou \"https://b.example/:p\" [b]https://c.example/:/[/b]")
+            == "<p>voir (http://a.example/:/x) ou &#034;https://b.example/:p&#034; <strong>https://c.example/:/</strong>")
+        #expect(wink.html(for: "b;)http://y.example/:p")
+            == "<p>b<img src=\"https://forum-images.hardware.fr/icones/biggrin.gif\" alt=\";)\" title=\";)\" />http://y.example/:p")
+        // Two codes equal once folded: the one typed exactly wins, else the first of the table.
+        let both = HFRBBCodeWriter(smileysEnabled: true, smileys: [":d": smile, ":D": url])
+        #expect(both.html(for: ":d :D :dd")
+            == "<p><img src=\"https://forum-images.hardware.fr/icones/smile.gif\" alt=\":d\" title=\":d\" /> "
+            + "<img src=\"https://forum-images.hardware.fr/icones/biggrin.gif\" alt=\":D\" title=\":D\" /> "
+            + "<img src=\"https://forum-images.hardware.fr/icones/smile.gif\" alt=\":d\" title=\":d\" />d")
+        // The longest code wins at a position (`:ouch:` over `:o`, `[:user:1]` over `[:user]`); a bare prefix matches nothing.
+        let ouch = try #require(URL(string: "https://forum-images.hardware.fr/icones/smilies/ouch.gif"))
+        let perso1 = try #require(URL(string: "https://forum-images.hardware.fr/images/perso/1/user.gif"))
+        let longest = HFRBBCodeWriter(smileysEnabled: true, smileys: [":o": url, ":ouch:": ouch, "[:user]": perso, "[:user:1]": perso1])
+        #expect(longest.html(for: ":ouch: :o :ou [:user:1] [:user] [:use]")
+            == "<p><img src=\"https://forum-images.hardware.fr/icones/smilies/ouch.gif\" alt=\":ouch:\" title=\":ouch:\" /> "
+            + "<img src=\"https://forum-images.hardware.fr/icones/biggrin.gif\" alt=\":o\" title=\":o\" /> "
+            + "<img src=\"https://forum-images.hardware.fr/icones/biggrin.gif\" alt=\":o\" title=\":o\" />u "
+            + "<img src=\"https://forum-images.hardware.fr/images/perso/1/user.gif\" alt=\"[:user:1]\" title=\"[:user:1]\" /> "
+            + "<img src=\"https://forum-images.hardware.fr/images/perso/user6.gif\" alt=\"[:user]\" title=\"[:user]\" /> [:use]")
+        let dOnly = HFRBBCodeWriter(smileysEnabled: true, smileys: [":D": url])
+        #expect(dOnly.html(for: ":d") == "<p><img src=\"https://forum-images.hardware.fr/icones/biggrin.gif\" alt=\":d\" title=\":D\" />")
     }
 
     @Test("Escaping: the four characters HFR escapes, and nothing else, once (R95d)")
@@ -126,42 +153,54 @@ struct HFRBBCodeWriterTests {
             == "<p><a href=\"https://a.example/?a=1&amp;b=&#034;\" class=\"cLink\">x &amp; &#034;y&#034;</a>")
     }
 
-    @Test("Every pass is one scan: 32 to 112 KB of each nesting, unclosed, rejected or smiley shape, with a 1 059-code table")
-    func linearWork() throws {
-        let count = 8_000
-        // Each shape made one pass rescan to the end per tag before the next close was remembered: 30 s at 64 KB.
-        let sources = [
+    /// The adversarial shapes, each a function of a repeat count: nesting, unclosed tags and colours, rejected URL
+    /// arguments, bullets, glued smileys and prose, a `[:perso` wall, stray colour closes.
+    static func shapes(_ count: Int) -> [String] {
+        [
             String(repeating: "[b]", count: count * 2) + "x" + String(repeating: "[/b]", count: count * 2),
             String(repeating: "[quote]", count: count) + "y" + String(repeating: "[/quote]", count: count),
             "[quote]" + String(repeating: "[/quote]", count: count),
             String(repeating: "[b][i][quote][url=https://a.example/][#ff0000][img]", count: count / 4) + "z",
             String(repeating: "[url]\n", count: count) + "[/url]",
             String(repeating: "[url=a]x", count: count),
-            String(repeating: "[#000000]x", count: count),
+            (0..<count).map { String(format: "[#%06x]x", $0) }.joined(),
             String(repeating: "[url]x[/url][img][/img][#ff0000]a[/#00ff00]", count: count / 2) + "[/url]",
             String(repeating: "[*]a\n", count: count * 2),
             String(repeating: ":D :) [:user] ", count: count),
             String(repeating: ":)", count: count * 2),
             "https://x/" + String(repeating: ":)", count: count * 2),
-            (0..<count).map { String(format: "[#%06x]x", $0) }.joined(),
             String(repeating: "[url=", count: count) + "]x[/url]",
             String(repeating: "[img][", count: count) + "[/img]",
             String(repeating: "Bonjour à tous, voici ma pizza :) et mon four :D !\r\n", count: count / 8),
             String(repeating: "[:perso", count: count),
-            String(repeating: "[/#000000]", count: count) + "[#000000]x"
+            String(repeating: "[/#000000]", count: count) + "[#000000]x",
+            String(repeating: "[u][b]x[/u][/b]\r\n", count: count)
         ]
+    }
+
+    @Test("Every pass is one scan: each 32 to 172 KB adversarial shape costs at most about four times more at four times the size")
+    func linearWork() throws {
         // The bundled catalogue (59 codes) plus a thousand personal smileys: the trie walk costs the longest code,
         // not the table.
         var smileys = try Dictionary(CommonSmileyCatalog.bundled().map { ($0.code, $0.url) }, uniquingKeysWith: { first, _ in first })
         let perso = try #require(URL(string: "https://forum-images.hardware.fr/images/perso/user.gif"))
         for number in 0..<1_000 { smileys["[:user\(number)]"] = perso }
         let writer = HFRBBCodeWriter(smileysEnabled: true, smileys: smileys)
-        let start = ContinuousClock.now
-        for source in sources {
-            #expect(!writer.html(for: source).isEmpty)
+        func time(_ source: String) -> (Duration, String) {
+            let start = ContinuousClock.now
+            let html = writer.html(for: source)
+            return (ContinuousClock.now - start, html)
         }
-        // Measured at about three seconds for the eighteen on a debug build; one quadratic pass alone took 30 s at this size.
-        #expect(ContinuousClock.now - start < .seconds(15))
+        for (small, large) in zip(Self.shapes(2_000), Self.shapes(8_000)) {
+            let (smallTime, smallHTML) = time(small), (largeTime, largeHTML) = time(large)
+            // The output holds every scalar of the source (text or markup) and no marker.
+            #expect(largeHTML.unicodeScalars.count >= large.unicodeScalars.count)
+            #expect(smallHTML.unicodeScalars.count >= small.unicodeScalars.count)
+            #expect(!largeHTML.unicodeScalars.contains { $0 == "\u{FFFF}" || $0 == "\u{FFFE}" || $0 == HFRBBCodeWriter.noBreakSpaceMarker })
+            // Four times the size, at most about four times the time (a quadratic pass gives sixteen); the half second
+            // absorbs the noise of the small runs. Measured on a debug build: 2 to 300 ms per shape at 8 000.
+            #expect(largeTime < smallTime * 6 + .milliseconds(500), "\(large.prefix(30)): \(smallTime) → \(largeTime)")
+        }
     }
 
     @Test("Passes work on scalars: a combining mark after a quote, a bracket or a marker hides nothing")
@@ -197,6 +236,17 @@ struct HFRBBCodeWriterTests {
         #expect(Self.html("[url=[code]x[/code]]t[/url]").hasPrefix("<p>[url=</p><table class=\"code\">"))
         #expect(Self.html("[img][fixed]x[/fixed][/img]").hasSuffix("</td></tr></table><p>[/img]"))
         #expect(!Self.html("[url][fixed]x[/fixed][/url] \u{FFFF}1\u{FFFF}").contains("\u{FFFF}"))
+        // A raw block inside a raw block: the outer tags are text, the inner block is rendered, nothing leaks.
+        let nested = Self.html("[fixed]a [cpp]int x;[/cpp] b[/fixed] end")
+        #expect(nested == "<p>[fixed]a </p><table class=\"code\"><tr class=\"none\"><td><b class=\"s1\">Code :</b><br />"
+            + "<ol class=\"olcode\"><li>int x;</li></ol></td></tr></table><p> b[/fixed] end")
+        #expect(!Self.html("[code]a[cpp]x[/cpp]b[/code]").contains("\u{FFFF}"))
+        #expect(!Self.html("[fixed][code]x[/code][/fixed]").contains("\u{FFFF}"))
+        // A code made of digits never rewrites a held fragment.
+        let digits = HFRBBCodeWriter(smileysEnabled: true, smileys: ["0": try #require(URL(string: "https://a.example/0.gif"))])
+        #expect(digits.html(for: "[url]https://a.example/[/url] 0")
+            == "<p><a href=\"https://a.example/\" class=\"cLink\">https://a.example/</a> "
+            + "<img src=\"https://a.example/0.gif\" alt=\"0\" title=\"0\" />")
     }
 
     @Test("A bullet consumes its own line break, never a break the writer wrote in a block header")

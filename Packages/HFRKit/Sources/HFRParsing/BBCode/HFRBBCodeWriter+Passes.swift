@@ -6,9 +6,11 @@ extension HFRBBCodeWriter {
 
     /// Every `[tag]…[/tag]` pair, non-greedy, left to right: a pair closes at the first `[/tag]` after its `[tag]`, so
     /// a crossed pair comes out crossed and a tag without its close stays text. With `argumentIsURL`, the content must
-    /// be a URL: not empty, no bracket, no line break, no placeholder. The next close is searched once and remembered.
+    /// be a URL: not empty, no bracket, no line break, no placeholder. With `rawContent`, a content holding a placeholder
+    /// (a raw block already held) leaves the tags as text, so no held fragment ever holds another. The next close is
+    /// searched once and remembered.
     static func replacingPairs(
-        _ tag: String, in text: Scalars, argumentIsURL: Bool = false, with body: (Scalars) -> Scalars
+        _ tag: String, in text: Scalars, argumentIsURL: Bool = false, rawContent: Bool = false, with body: (Scalars) -> Scalars
     ) -> Scalars {
         let open = scalars("[\(tag)]"), close = scalars("[/\(tag)]")
         var result: Scalars = []
@@ -21,7 +23,8 @@ extension HFRBBCodeWriter {
                 nextClose = find(close, in: text, from: contentStart)
             }
             guard let closeIndex = nextClose else { break }
-            if argumentIsURL, !isURLArgument(text[contentStart..<closeIndex]) {
+            if argumentIsURL && !isURLArgument(text[contentStart..<closeIndex])
+                || rawContent && text[contentStart..<closeIndex].contains(placeholderMarker) {
                 result += text[cursor..<contentStart]
                 cursor = contentStart
                 continue
@@ -177,17 +180,20 @@ extension HFRBBCodeWriter {
     }
 
     /// A smiley code of the table, folded for the match, with the start of its image.
-    struct SmileyCode {
+    struct SmileyCode: Hashable, Sendable {
         let code: Scalars, folded: Scalars, image: Scalars
     }
 
     /// The codes of a table as a trie over their folded scalars: at a position, the walk costs at most the longest
     /// code, whatever the number of codes (a thousand personal `[:name]` share their first scalars).
-    struct SmileyTrie {
+    struct SmileyTrie: Hashable, Sendable {
         private var children: [[Unicode.Scalar: Int]] = [[:]]
-        private var terminal: [Int?] = [nil]
+        /// The codes (indices into the table) whose folded form ends at the node, in the table's order.
+        private var terminal: [[Int]] = [[]]
+        private let codes: [SmileyCode]
 
         init(_ codes: [SmileyCode]) {
+            self.codes = codes
             for (index, code) in codes.enumerated() where !code.folded.isEmpty {
                 var node = 0
                 for scalar in code.folded {
@@ -195,23 +201,27 @@ extension HFRBBCodeWriter {
                         node = next
                     } else {
                         children.append([:])
-                        terminal.append(nil)
+                        terminal.append([])
                         children[node][scalar] = children.count - 1
                         node = children.count - 1
                     }
                 }
-                // Two codes equal once folded: the first in the table's order wins.
-                if terminal[node] == nil { terminal[node] = index }
+                terminal[node].append(index)
             }
         }
 
-        /// The longest code starting at `index`, as an index into the table.
-        func longestMatch(at index: Int, in text: Scalars) -> Int? {
-            var node = 0, position = index, match: Int?
+        /// The longest code starting at `index`; among codes equal once folded, the one typed exactly, else the first
+        /// of the table.
+        func longestMatch(at index: Int, in text: Scalars) -> SmileyCode? {
+            var node = 0, position = index, match: SmileyCode?
             while position < text.count, let next = children[node][HFRBBCodeWriter.asciiLowercased(text[position])] {
                 node = next
                 position += 1
-                if let found = terminal[node] { match = found }
+                let candidates = terminal[node]
+                if let first = candidates.first {
+                    let typed = text[index..<position]
+                    match = candidates.lazy.map { codes[$0] }.first { $0.code.elementsEqual(typed) } ?? codes[first]
+                }
             }
             return match
         }
@@ -221,27 +231,29 @@ extension HFRBBCodeWriter {
     /// matched whatever their case (`R20`: `:d` typed, `:D` in the catalogue), except inside a word that starts with
     /// `http://`, `https://` or `www.` (a bare URL in text; what HFR does with it is pending capture). `body` gets the
     /// code and the text as typed.
-    static func replacingSmileys(_ codes: [SmileyCode], in text: Scalars, with body: (SmileyCode, Scalars) -> Scalars) -> Scalars {
-        let sorted = codes.sorted { string($0.code) < string($1.code) }
-        let trie = SmileyTrie(sorted)
+    static func replacingSmileys(_ trie: SmileyTrie, in text: Scalars, with body: (SmileyCode, Scalars) -> Scalars) -> Scalars {
         var result: Scalars = []
         result.reserveCapacity(text.count)
         var cursor = 0
         var index = 0
-        /// The word being scanned (space, no-break space and line break bound it) and whether it starts like a URL.
-        var wordEnd = 0, wordIsURL = false
+        /// The word being scanned (space, no-break space and line break bound it) and where a URL starts in it, if any.
+        var wordEnd = 0, urlStart = Int.max
         while index < text.count {
             if index >= wordEnd {
-                (wordEnd, wordIsURL) = word(at: index, in: text)
+                (wordEnd, urlStart) = word(at: index, in: text)
             }
-            guard let found = trie.longestMatch(at: index, in: text) else {
+            // A held fragment (a URL, an image, a raw block) is never matched into.
+            if text[index] == placeholderMarker, let end = find(placeholderMarker, in: text, from: index + 1) {
+                index = end + 1
+                continue
+            }
+            guard index < urlStart, let match = trie.longestMatch(at: index, in: text) else {
                 index += 1
                 continue
             }
-            let match = sorted[found]
             result += text[cursor..<index]
             let typed = Array(text[index..<index + match.folded.count])
-            result += wordIsURL ? typed : body(match, typed)
+            result += body(match, typed)
             index += match.folded.count
             cursor = index
         }
@@ -250,16 +262,24 @@ extension HFRBBCodeWriter {
     }
 
     /// The end of the word that starts at `start` (the next space, no-break space or line break, or the end of the
-    /// text; one past a boundary scalar) and whether that word starts with `http://`, `https://` or `www.`.
-    private static func word(at start: Int, in text: Scalars) -> (end: Int, isURL: Bool) {
+    /// text; one past a boundary scalar) and the first position in it where `http://`, `https://` or `www.` starts
+    /// (`Int.max` when none): from there to the word's end, no smiley is matched (`(http://a.example/x)`, `"https://…"`).
+    private static func word(at start: Int, in text: Scalars) -> (end: Int, urlStart: Int) {
         func isBoundary(_ scalar: Unicode.Scalar) -> Bool {
             scalar == " " || scalar == noBreakSpaceMarker || scalar == lineBreakMarker
         }
         var end = start
         while end < text.count, !isBoundary(text[end]) { end += 1 }
-        let head = text[start..<min(end, start + 8)].map(asciiLowercased)
-        let isURL = ["http://", "https://", "www."].contains { head.starts(with: scalars($0)) }
-        return (end == start ? start + 1 : end, isURL)
+        let word = text[start..<end].map(asciiLowercased)
+        let prefixes = ["http://", "https://", "www."].map(scalars)
+        var urlStart = Int.max
+        for position in word.indices {
+            if prefixes.contains(where: { word[position...].starts(with: $0) }) {
+                urlStart = position + start
+                break
+            }
+        }
+        return (end == start ? start + 1 : end, urlStart)
     }
 
     /// The line-break and no-break-space markers written as HFR writes them.

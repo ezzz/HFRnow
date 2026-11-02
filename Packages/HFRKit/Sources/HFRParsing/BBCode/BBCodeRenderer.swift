@@ -9,15 +9,20 @@ public struct BBCodeRenderOptions: Sendable, Hashable {
     /// HFR-PROTOCOL §6b "Checkbox values"), sent to HFR's preview as `apercu_smiley`.
     public var smileysEnabled: Bool
     /// Smiley codes as typed (`:)`, `:ange:`, `[:user]`, `[:user:1]`) and their image URLs: the catalogue of
-    /// `CommonSmileyCatalog` plus the member's personal smileys, built by the app. A code is matched whatever its case,
-    /// anywhere but inside a word starting like a URL; the image's `alt` is the text as typed and its `title` the code
-    /// of the table (`R42` → `R20`: `alt=":d" title=":D"`).
-    public var smileys: [String: URL]
+    /// `CommonSmileyCatalog` plus the member's personal smileys, built by the app. ASCII letters of a code are matched
+    /// whatever their case, anywhere but from a URL (`http://`, `https://`, `www.`) to the end of its word; the image's
+    /// `alt` is the text as typed and its `title` the code of the table (`R42` → `R20`: `alt=":d" title=":D"`).
+    public var smileys: [String: URL] {
+        didSet { trie = HFRBBCodeWriter.trie(for: smileys) }
+    }
+    /// The table prepared for the writer, once per table rather than once per preview.
+    var trie: HFRBBCodeWriter.SmileyTrie
 
     /// Creates the options; by default smileys are on, as in a fresh composer, and no code is known.
     public init(smileysEnabled: Bool = true, smileys: [String: URL] = [:]) {
         self.smileysEnabled = smileysEnabled
         self.smileys = smileys
+        trie = HFRBBCodeWriter.trie(for: smileys)
     }
 }
 
@@ -37,7 +42,7 @@ public enum BBCodeRenderer {
     public static func render(
         _ source: String, options: BBCodeRenderOptions = BBCodeRenderOptions(), relativeTo page: URL = HFRURL.base
     ) throws(ParsingError) -> MessageContent {
-        let writer = HFRBBCodeWriter(smileysEnabled: options.smileysEnabled, smileys: options.smileys)
+        let writer = HFRBBCodeWriter(smileysEnabled: options.smileysEnabled, smileys: options.trie)
         return try MessageContentNormalizer.normalize(contentHTML: contentHTML(for: writer.html(for: source)), relativeTo: page)
     }
 
