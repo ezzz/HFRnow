@@ -21,13 +21,13 @@ struct MessageRowView: View {
                 Text(thread.summary.title)
                     .scaledFont(density.titleStyle)
                     .fontWeight(isUnread ? .semibold : .regular)
-                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : density.titleLineLimit)
                 if density.mergesMetaLines {
                     Text(MessageRowView.metaLine(who: who, lastPost: lastPost))
-                        .scaledFont(.caption).foregroundStyle(.secondary).lineLimit(1)
+                        .scaledFont(.caption).foregroundStyle(.secondary).lineLimit(metaLineLimit)
                 } else {
-                    Text(who).scaledFont(.subheadline).foregroundStyle(.secondary).lineLimit(1)
-                    if let last = lastPost { Text(last).scaledFont(.caption).foregroundStyle(.secondary).lineLimit(1) }
+                    Text(who).scaledFont(.subheadline).foregroundStyle(.secondary).lineLimit(metaLineLimit)
+                    if let last = lastPost { Text(last).scaledFont(.caption).foregroundStyle(.secondary).lineLimit(metaLineLimit) }
                 }
             }
             Spacer(minLength: 0)
@@ -40,11 +40,16 @@ struct MessageRowView: View {
         .listRowInsets(density.rowInsets)
     }
 
-    private var avatarSide: CGFloat { scale.scaled(dynamicType * density.avatarSize) }
+    /// Capped, so an accessibility size leaves the text its room.
+    private var avatarSide: CGFloat { min(scale.scaled(dynamicType * density.avatarSize), 64) }
 
-    /// The compact row's single meta line: who, then the last post when there is one.
+    /// One line per meta line, except at accessibility sizes, where nothing truncates.
+    private var metaLineLimit: Int? { dynamicTypeSize.isAccessibilitySize ? nil : 1 }
+
+    /// The compact row's single meta line: who, then the last post when there is one; a last post by `who` names them once.
     static func metaLine(who: String, lastPost: String?) -> String {
         guard let lastPost, !lastPost.isEmpty else { return who }
+        if lastPost == who || lastPost.hasPrefix("\(who) · ") { return lastPost }
         return "\(who) · \(lastPost)"
     }
 

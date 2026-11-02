@@ -75,7 +75,9 @@ struct TextScaleTests {
     }
 
     @Test func theCompactConversationRowHasOneMetaLine() {
-        #expect(MessageRowView.metaLine(who: "membre", lastPost: "membre · hier") == "membre · membre · hier")
+        #expect(MessageRowView.metaLine(who: "membre", lastPost: "autre · hier") == "membre · autre · hier")
+        #expect(MessageRowView.metaLine(who: "membre", lastPost: "membre · hier") == "membre · hier")
+        #expect(MessageRowView.metaLine(who: "membre", lastPost: "membre") == "membre")
         #expect(MessageRowView.metaLine(who: "Interlocuteurs multiples", lastPost: nil) == "Interlocuteurs multiples")
         #expect(MessageRowView.metaLine(who: "membre", lastPost: "") == "membre")
     }
