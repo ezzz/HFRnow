@@ -35,6 +35,6 @@ The vote sentence is a success under `.pollVote` only; under `.write` `W42` stay
 `R83` (own topic, vote form, logged in), `R32b` (other poll, 10 answers), `R33a`/`R33b` (results), `W42` (vote accepted), `W43`/`W44` (already voted), `W17b`, `W17c`, `W20a`, `W30` (other answers), `R55-p1`/`W00` (session check). Tests: `PollVoteFlowTests`, `PollVoteSessionGateTests` (extension), `HopResponsePollVoteTests`.
 
 ## Intentional differences from legacy
-- The body is `W42`'s (document order, both tokens, `sondage_submit=Voter`) instead of a dictionary without the button.
+- The body is `W42`'s (document order, both tokens, the "Voter" button `sondage_submit`) instead of a dictionary without the button.
 - No `.hop`, a `.hop` without the vote sentence or without a forum refresh is no longer a success.
 - "Déjà voté" is its own error; the session is checked before the vote; the session's transport (account cookies, `*.hardware.fr` only) replaces `URLSession.shared`.
