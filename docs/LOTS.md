@@ -315,6 +315,7 @@ Applied on 2026-11-02 (operator decisions on [#379](https://github.com/ezzz/HFRn
 | LOT-181 | MP thread deletion and group members (the (b) half of LOT-127; mark unread stays there) | App | easy | Opus → Fable | 127 | UXD-20 · GAP 116, 117, 118 | low | [#421](https://github.com/ezzz/HFRnow/issues/421) |
 | LOT-182 | MP to several recipients and entry from profiles (the (b) half of LOT-128; the list button stays there, shipped in #398) | App | medium | Opus → Fable | 128 | UXD-20 · GAP 114 | low | [#422](https://github.com/ezzz/HFRnow/issues/422) |
 | LOT-183 | First-use notice of the "already signalled" check, unless Q-4 proves an App Review need (the (b) half of LOT-134) | App | easy | Opus → Fable | 134 | none · GAP none | low | [#423](https://github.com/ezzz/HFRnow/issues/423) |
+| LOT-184 | On-demand « aperçu HFR »: `POST /apercu.php` flow (session check, `hash_check`, one POST), its answer through the LOT-034 normalizer and the reader path; engine only: LOT-152 adds the « aperçu HFR » action to its screen once this flow is merged, no dependency between them ([ADR 0014](adr/0014-bbcode-preview-renderer.md) O-1 = (b), operator decision 2026-11-02 on #189) | HFRClient | medium | Opus → Fable | 097, 044, 036 | none · GAP none · FEAT-013 | low | [#449](https://github.com/ezzz/HFRnow/issues/449) |
 
 ## Phase 4 backlog — app side (not engine)
 

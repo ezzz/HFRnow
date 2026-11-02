@@ -504,6 +504,19 @@ Source: [LOT-053](lots/LOT-053-smiley-search-wiki.md), `SmileyLookupFlow`, check
 - **Wiki request** (`R54`, **verified**): `GET /wikismilies.php?config=hfr.inc&detail=%5B%3Auser3%5D`, the code fully percent-encoded (`:` as `%3A`), answers the entry logged out, 200 in place, no cookie set.
 - **Search request encoding** (**not verified**): `R53a`-`R53c` were sent with raw `+` separators (`findsmilies=+chat+noir`); the app sends legacy's encoding (`findsmilies=chat%20noir`, and `%2Bchat%20%2Bnoir` for "all keywords"). Whether HFR reads them alike, and what a literal `+` does, is pending capture; `R53c` only shows that its two words were OR-ed.
 
+
+### LOT-097 — BBCode rendering
+
+Source: [LOT-097](lots/LOT-097-bbcode-preview-renderer.md), `BBCodeRenderer` (the lot's renderer PR, [#444](https://github.com/ezzz/HFRnow/pull/444)), checked by its `BBCodeRendererOracleTests` against HFR's own rendering: `POST /apercu.php` of `W61` (`R95d`) and `W62` (`R95h`), and the quote prefills `R41a`, `R42`, `R41b` against the thread page `R20` (messages 2666649, 2666682, 2666695); the round-trip facts are in §6b "BBCode round trip".
+
+- **Quote prefill as a source** (`R41a`, `R42`, `R41b` → `R20`, **verified**): `[quotemsg=…]<source>[/quotemsg]` holds the message's stored source, HTML-escaped in the `textarea` (`&amp;` for `&`), with every `[img]U[/img]` rewritten `[url]U[/url]` and the citation the message starts with dropped.
+- **Colour** (`R41a` → `R20`, **verified**): the toolbar's `[#0055aa]x[/#0055aa]` renders `<span style="color:#0055aa">x</span>`; `[color=#FF0000]` is text (`R95d`).
+- **Crossed tags** (`R41a` → `R20`, **verified**, 13 occurrences; 3 other `[u][b]` pairs close nested): `[u][b]x[/u][/b]` renders `<span class="u"><strong>x</span></strong>`, crossed as typed; the browser repairs it.
+- **Smileys** (`R41a`, `R42`, `R41b` → `R20`, **verified**): `:ange:` → `<img src="https://forum-images.hardware.fr/icones/smilies/ange.gif" alt=":ange:" title=":ange:" />`; a code typed in another case keeps it in `alt` and gets the catalogue's in `title` (`:d` → `alt=":d" title=":D"`, `biggrin.gif`); a personal `[:name]` → `/images/perso/name.gif` with the code in `alt` and `title`.
+- **Links** (`R41a` → `R20`, **verified**): the text of `[url=U]x[/url]` and `[url]U[/url]` is trimmed of its leading and trailing spaces; a `U` without a scheme gets `http://` (`[url]G3Ferrari / Optima [/url]` → `href="http://G3Ferrari / Optima "`); external links carry `rel="nofollow" target="_blank"`.
+- **Whitespace** (`R41a` → `R20`, `R27b`, `R95d`, **verified**): in a run of spaces and CRs, the first becomes `&nbsp;` at a line start, then every second one; a LF becomes `<br />` and the CR before it stays in the text (`\r<br />`); in `code`, every run of two or more starts with `&nbsp;` (`code   text` → `code&nbsp; &nbsp;text`, four leading spaces → `&nbsp; &nbsp; `), an empty line is `<li></li>`. `€` is written `&euro;`.
+- **Paragraph** (`R20`, **verified**): the message's `<p>` is opened by HFR and never closed; the `<div style="clear: both;"> </div>` trailer that follows closes it.
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).
