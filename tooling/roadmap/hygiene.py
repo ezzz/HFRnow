@@ -106,6 +106,13 @@ def analyze(issues, pulls, lots, comments, now):
         if pr is None:
             reports.append(f"#{n} {r['lot']}: dependencies done but no merged PR found to credit, unblock by hand")
             continue
+        # a later comment that says the lot is blocked (a decision, signing assets...) outranks the dependency check
+        since = pr['merged_at']
+        note = [c for c in (comments(n) if callable(comments) else comments.get(n, []))
+                if c['created_at'] > since and re.search(r'\bblocked\s+(?:on|by|until|pending)\b|\bstatus:\s*blocked\b', c.get('body') or '', re.I)]
+        if note:
+            reports.append(f"#{n} {r['lot']}: dependencies done but a comment since #{pr['number']} says it is blocked, left as is")
+            continue
         actions.append({'kind': 'unblock', 'issue': n, 'lot': r['lot'], 'pr': pr['number']})
         if ENGINE.match(r['module']) and 'host: mac' not in lb:
             reports.append(f"#{n} {r['lot']} unblocked engine lot: the operator decides on `external: ready` and the pickup comment")
