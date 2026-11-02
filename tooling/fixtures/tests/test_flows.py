@@ -213,6 +213,17 @@ class FlowTests(unittest.TestCase):
         self.run_cli("get", "--account", "user1", "--id", "Q2", "--url", "/q")
         self.assertNotIn("quotesx", self.raw("Q2.html"))
 
+    def test_form_temp_cookie_sent_with_post_only(self):
+        self.run_cli("login", "--account", "user1", "--id", "W01")
+        rc, _o = self.run_cli("form", "--account", "user1", "--id", "QF", "--form-url", "/form/q",
+                              "--cookie", "quotesx-1-2=|5|6")
+        self.assertEqual(rc, 0)
+        self.assertIn("quotesx-1-2=|5|6", Handler.posts[-1][3])
+        self.assertNotIn("quotesx", self.raw("QF.form.html"))
+        self.assertIn("quotesx-1-2", json.loads(self.raw("QF.meta.json"))["note"])
+        self.run_cli("get", "--account", "user1", "--id", "Q3", "--url", "/q")
+        self.assertNotIn("quotesx", self.raw("Q3.html"))
+
     def test_stops_on_5xx_budget_and_block_page(self):
         rc, _o = self.run_cli("get", "--account", "anon", "--id", "L", "--url", "/limited")
         self.assertEqual(rc, 1)
