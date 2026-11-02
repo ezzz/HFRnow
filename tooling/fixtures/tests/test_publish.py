@@ -120,6 +120,10 @@ class PublishTests(unittest.TestCase):
         self.assertNotIn("8880001", vote)
         alias = lambda text: __import__("re").search(r"numreponse=(\d+)", text).group(1)
         self.assertNotEqual(alias(meta), alias(vote))
+        # Publishing one of them alone gives it the same alias as the batch publish did.
+        rc, out = self.run_publish("H2")
+        self.assertEqual(rc, 0, out)
+        self.assertEqual(alias(self.read("H2.meta.json")), alias(vote))
 
     def test_publish_subset_and_unknown_id(self):
         rc, _out = self.run_publish("L1")

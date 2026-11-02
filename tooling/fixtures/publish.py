@@ -112,7 +112,7 @@ def main(argv=None):
         known = A.known_member_names(texts)
     # Requests name message ids too (a `.hop` answer often names none): they join the batch-wide alias table.
     requests = [json.dumps(_raw_meta(args.raw, e["raw"]), ensure_ascii=False) + "\n" + (request_body(args.raw, e["raw"]) or "")
-                for e in entries if not args.ids or e["raw"] in args.ids]
+                for e in entries]  # every entry, like the pages: a subset publish keeps the same aliases
     anon = A.Anonymizer(cfg, known_names=known, own_ids=A.own_message_ids(texts + requests, cfg.own_topics))
     os.makedirs(args.dest, exist_ok=True)
     bad = 0
