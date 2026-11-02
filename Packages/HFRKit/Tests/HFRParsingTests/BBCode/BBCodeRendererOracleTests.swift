@@ -6,8 +6,8 @@ import Testing
 /// ADR 0014 §2: for every captured pair, the renderer's output equals the LOT-034 normalization of HFR's own rendering,
 /// field by field. Two kinds of pair exist in the corpus: HFR's preview (`POST /apercu.php`, `R95d`, `R95h`) of a
 /// posted source (`W61`, `W62`), and the quote prefill of a message (`R41a`, `R42`: the stored source, as HFR gives it
-/// back) against its rendering on the thread page (`R20`). The reductions are listed on each helper; every one is
-/// counted (LESSONS 51).
+/// back, HTML-escaped in the textarea) against its rendering on the thread page (`R20`). The reductions are listed on
+/// each helper; every one is counted (LESSONS 51). The `\r` HFR leaves in the text is compared like any character.
 @Suite("BBCode renderer against HFR's own rendering")
 struct BBCodeRendererOracleTests {
     /// The `content_form` value of a captured write, form-decoded (CRLF line breaks, as the browser sent them).
@@ -39,9 +39,10 @@ struct BBCodeRendererOracleTests {
     }
 
     /// The source of a message as its quote form gives it back, without the `[quotemsg=…]` wrapper and the trailing
-    /// line break HFR adds (`R41a`, HFR-PROTOCOL §6b "Quote prefill"). The prefill writes an image as `[url]` (`R41a`
-    /// byte 58565 against `R20` byte 14838), so `imageURLs` names the URLs to give back to `[img]`; the per-fixture
-    /// pseudonyms of the anonymizer (FIXTURES.md: consistent within a fixture) are mapped with `renames`.
+    /// line break HFR adds, its textarea entities decoded (`&amp;` of cited links, HFR-PROTOCOL §6b "Quote prefill";
+    /// `R95c` shows `&amp; &#034;` for a source `& "`). The prefill writes an image as `[url]` (`R41a` byte 58565
+    /// against `R20` byte 14838), so `imageURLs` names the URLs to give back to `[img]`; the per-fixture pseudonyms of
+    /// the anonymizer (FIXTURES.md: consistent within a fixture) are mapped with `renames`.
     static func prefillSource(
         _ capture: String, numreponse: Int, imageURLs: [URL], renames: [String: String] = [:]
     ) throws -> String {
@@ -51,6 +52,9 @@ struct BBCodeRendererOracleTests {
         let open = try #require(page[start.upperBound...].firstRange(of: "]"))
         let end = try #require(page[open.upperBound...].firstRange(of: "[/quotemsg]"))
         var source = String(page[open.upperBound..<end.lowerBound])
+        #expect(!source.contains("&amp;") || capture.hasPrefix("R41a"))
+        source = source.replacing("&lt;", with: "<").replacing("&gt;", with: ">").replacing("&#034;", with: "\"")
+            .replacing("&quot;", with: "\"").replacing("&amp;", with: "&")
         for (old, new) in renames {
             #expect(source.contains(old))
             source = source.replacing(old, with: new)
@@ -63,12 +67,10 @@ struct BBCodeRendererOracleTests {
         return source
     }
 
-    /// HFR's rendering normalized, every `\r` removed (HFR leaves one before each `<br />` and inside a bullet's `li`;
-    /// the renderer writes none). `colourSpans` counts the `[cpp]` syntax-colour spans unwrapped from it: the renderer
+    /// HFR's rendering normalized. `colourSpans` counts the `[cpp]` syntax-colour spans unwrapped from it: the renderer
     /// writes a plain code block (LOT-097 spec, intentional difference 3).
     static func oracle(contentHTML: String, colourSpans: Int = 0) throws -> MessageContent {
         var content = try MessageContentNormalizer.normalize(contentHTML: contentHTML)
-        content.html = content.html.replacing("\r", with: "")
         let spans = content.html.matches(of: /<span style="color:[a-z]+">([^<]*)<\/span>/)
         #expect(spans.count == colourSpans)
         for span in spans.reversed() {
@@ -86,11 +88,9 @@ struct BBCodeRendererOracleTests {
         return table
     }
 
-    /// Field by field; `html` without the `\r` HFR leaves in the text on both sides (the renderer writes it where HFR
-    /// does, so the tree builder repairs crossed tags alike, but HFR's preview and its "Vue Rapide" differ on the one
-    /// inside a bullet's `li`, `R95c` against `R95d`).
+    /// Field by field, `\r` included.
     static func expectEqual(_ actual: MessageContent, _ expected: MessageContent) {
-        #expect(actual.html.replacing("\r", with: "") == expected.html)
+        #expect(actual.html == expected.html)
         #expect(actual.links == expected.links)
         #expect(actual.images == expected.images)
         #expect(actual.smileys == expected.smileys)
@@ -121,14 +121,12 @@ struct BBCodeRendererOracleTests {
 
     @Test("R41a (quote prefill of message 2666649) renders as the thread page R20: colour, crossed tags, blank lines, smileys")
     func recipeMessage() throws {
-        // One `[/b]` of the prefill has no `</strong>` on the thread page (`R20`: `ambiante </span>\r<br />`, 37 `<strong>`
-        // for 36 `</strong>`), the only tag of the message HFR did not render; its cause is unknown (pending capture),
-        // so the test gives the thread that one `</strong>` back, where the prefill has the tag.
-        var thread = try Self.threadBody("R20-topic-p1-anon", numreponse: 2_666_649)
-        let missing = "température ambiante </span>\r<br />"
+        // The thread page holds 37 `<strong>` and 37 `</strong>` for the 37 `[b]` / `[/b]` of the prefill; the in-page
+        // parse of a crossed `</span></strong>` followed by `&nbsp;` reopens a `<strong>` (`contentHTML` serializes
+        // 37 opens for 36 closes, the normalizer 38 for 38), which the renderer reproduces by writing the entity and
+        // parsing its string in the same context (`BBCodeRenderer.contentHTML`).
+        let thread = try Self.threadBody("R20-topic-p1-anon", numreponse: 2_666_649)
         #expect(thread.matches(of: /<strong>/).count == 37 && thread.matches(of: /<\/strong>/).count == 36)
-        #expect(thread.contains(missing))
-        thread = thread.replacing(missing, with: "température ambiante </span></strong>\r<br />")
         let expected = try Self.oracle(contentHTML: thread)
         // The prefill writes every image of the message as `[url]`: given back to the URLs the thread shows as images.
         let source = try Self.prefillSource("R41a-quote-form", numreponse: 2_666_649, imageURLs: expected.images.map(\.url))

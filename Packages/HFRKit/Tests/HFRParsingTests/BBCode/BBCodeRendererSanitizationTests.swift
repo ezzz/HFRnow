@@ -14,7 +14,7 @@ struct BBCodeRendererSanitizationTests {
         arguments: [
             "javascript:alert(1)", "JaVaScRiPt:alert(1)", "java\tscript:alert(1)", " javascript:alert(1)", "data:text/html,x",
             "file:///etc/passwd", "blob:https://x/y", "vbscript:x", "https://forum.hardware.fr@evil.example/",
-            "%6Aavascript:alert(1)"
+            "%6Aavascript:alert(1)", "tel:0123", "mailto:a@b.c"
         ]
     )
     func rejectedLinkSchemes(url: String) throws {
@@ -60,6 +60,14 @@ struct BBCodeRendererSanitizationTests {
         // The quotes are percent-encoded inside the one `href` value: no second attribute appears.
         #expect(content.html == "<p><a href=\"https://a.example/x%22onclick=%22alert(1)\" class=\"cLink\">t</a></p>")
         #expect(content.links.map(\.url.absoluteString) == ["https://a.example/x%22onclick=%22alert(1)"])
+        // A combining mark after the quote does not hide it from the escaping (scalar-based passes).
+        let marked = try BBCodeRenderer.render("[url=https://a.example/\"\u{301} class=spoiler title=injected]t[/url]")
+        // The whole argument stays one `href` value (percent-encoded); no `title` or `class` attribute of the member's.
+        #expect(!marked.html.contains(" title=\"") && !marked.html.contains(" class=\"spoiler\""))
+        #expect(marked.links.map(\.url.absoluteString) == ["https://a.example/%22%CC%81%20class=spoiler%20title=injected"])
+        let markedImage = try BBCodeRenderer.render("[img]https://a.example/i.png\"\u{301} class=smileycustom title=injected[/img]")
+        #expect(!markedImage.html.contains("title=\"injected\"") && !markedImage.html.contains(" class=\"smileycustom\""))
+        #expect(markedImage.smileys.isEmpty && markedImage.images.count == 1)
         let image = try BBCodeRenderer.render("[img]https://a.example/i.png\"><script>x</script>[/img]")
         #expect(!image.html.contains("<script"))
         #expect(image.images.count <= 1)
