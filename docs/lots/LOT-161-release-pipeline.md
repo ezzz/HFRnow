@@ -36,7 +36,7 @@ Steps, in order (each failure stops the script):
 | 6 | `ExportOptions.plist`: `method` `app-store-connect`, `destination` `export`, `manageAppVersionAndBuildNumber` NO (the build number is ours), `uploadSymbols` YES, `signingStyle`, optional `teamID`, `testFlightInternalTestingOnly`, and for manual signing `provisioningProfiles` {bundle id → profile name} plus `signingCertificate` when `HFR_SIGNING_CERTIFICATE` is set (unset: Xcode's selector picks a distribution certificate); `plutil -lint` | yes | yes |
 | 7 | `xcodebuild -exportArchive` → `.ipa` | signed only | yes |
 | 8 | Release notes draft from `scripts/release-notes.template.md` (below) | yes | yes |
-| 9 | Confirmation on `/dev/tty`: the operator types `upload <version> (<build>)`; `/dev/tty` cannot be opened → refused | — | yes |
+| 9 | Confirmation on `/dev/tty` (prompt and answer): the operator types `upload <version> (<build>)`; `/dev/tty` cannot be opened → refused at step 1, before any fetch or build | — | yes |
 | 10 | `xcrun altool --upload-package <ipa> --api-key <id> --api-issuer <issuer> --p8-file-path <p8>` | never | after step 9 |
 
 Flags checked against the local Xcode 27.2 (`xcrun altool --help`, altool 27.10.4; `xcodebuild -help`, export option keys), not
@@ -55,7 +55,7 @@ Console: `[ok]` green, `[warn]` yellow, `[ko]` red, off without a TTY or with `N
 | `HFR_ASC_KEY_PATH` | path of `AuthKey_<id>.p8`, outside the repository (the script refuses a path inside it) | upload |
 | `HFR_SIGNING_STYLE` | `manual` (default, legacy habit) or `automatic` | export |
 | `HFR_SIGNING_CERTIFICATE` | certificate for manual signing; empty lets Xcode pick a valid distribution certificate (legacy used "iPhone Distribution") | export (optional) |
-| `HFR_PROFILE_NAME` | App Store provisioning profile for `hfrplus.red.super` (manual), installed with an "Apple Distribution" certificate in the login keychain | export |
+| `HFR_PROFILE_NAME` | App Store provisioning profile for `hfrplus.red.super` (manual), installed with a distribution certificate in the login keychain (see `HFR_SIGNING_CERTIFICATE`) | export |
 | `HFR_TEAM_ID` | team id, when the archive's team is not the one to export with | export (optional) |
 | `HFR_ALLOW_PROVISIONING_UPDATES` | `1` lets xcodebuild create or update profiles with the API key (`-allowProvisioningUpdates`, needed by `automatic`), on archive and export, so a signed dry run then contacts Apple too (signing only, no upload). Operator opt-in only: agents and CI never set it (AGENTS.md §11, LOT-080) | export (automatic) |
 | `HFR_INTERNAL_ONLY` | `1` marks the build "TestFlight internal testing only" | optional |

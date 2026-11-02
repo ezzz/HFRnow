@@ -40,7 +40,7 @@ trap 'cleanup; ko "Interrupted."; exit 130' INT TERM
 run_step() {
   local label="$1" log="$2" rc=0 i=0 frames='|/-+'
   shift 2
-  "$@" >"$log" 2>&1 &
+  "$@" 3>&- >"$log" 2>&1 &
   BG_PID=$!
   if [ -t 1 ]; then
     while kill -0 "$BG_PID" 2>/dev/null; do
@@ -109,6 +109,11 @@ done
 [ -n "$VERSION" ] || die "--version is required (no default: the operator chooses it on #251)."
 [ -n "$BUILD" ] || die "--build is required (no default: the operator chooses it on #251)."
 [ "$MODE" = dry-run ] || [ "$UNSIGNED" -eq 0 ] || die "--unsigned is for --dry-run only: an unsigned archive cannot be uploaded."
+# The upload's confirmation needs a terminal: check it before any fetch or build, and keep it open on fd 3 for the
+# prompt and the answer (stdout may be redirected to a log).
+if [ "$MODE" = upload ]; then
+  { exec 3<>/dev/tty; } 2>/dev/null || die "--upload needs an interactive terminal for its confirmation."
+fi
 # Relative paths are relative to where the script was called from, for --config and --output alike.
 case "$CONFIG" in /*) ;; *) CONFIG="$PWD/$CONFIG" ;; esac
 case "$OUTPUT" in ""|/*) ;; *) OUTPUT="$PWD/$OUTPUT" ;; esac
@@ -165,7 +170,7 @@ case "$HFR_INTERNAL_ONLY" in 0|1) ;; *) die "HFR_INTERNAL_ONLY must be 0 or 1." 
 
 # ---------------------------------------------------------------- preflight
 command -v xcodebuild >/dev/null || die "xcodebuild not found: run on the maintainer's Mac with Xcode installed."
-REPO_ROOT="$(git -C "$(dirname "$0")" rev-parse --show-toplevel 2>/dev/null)" || die "The script must stay inside the SwiftHFR repository (scripts/)."
+REPO_ROOT="$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel 2>/dev/null)" || die "The script must stay inside the SwiftHFR repository (scripts/)."
 cd "$REPO_ROOT"
 [ -d App/SwiftHFR.xcodeproj ] || die "App/SwiftHFR.xcodeproj not found: is this the dev-swift tree?"
 
@@ -342,14 +347,17 @@ ok "Release notes draft: $NOTES (edit the French sections before pasting them in
 # ---------------------------------------------------------------- upload (operator only)
 TAG="swifthfr-$VERSION-$BUILD"
 if [ "$MODE" = dry-run ]; then
-  ok "Dry run complete: stopped before the upload. Nothing was sent to Apple."
+  if [ "$UNSIGNED" -eq 0 ] && [ "$HFR_ALLOW_PROVISIONING_UPDATES" = 1 ]; then
+    ok "Dry run complete: stopped before the upload. Nothing was uploaded (xcodebuild may have contacted Apple for signing)."
+  else
+    ok "Dry run complete: stopped before the upload. Nothing was sent to Apple."
+  fi
   exit 0
 fi
 
 [ -n "$IPA" ] || die "No IPA to upload."
-{ exec 3</dev/tty; } 2>/dev/null || die "The upload needs an interactive terminal for its confirmation."
-printf '\n%sAbout to upload%s %s %s (%s), commit %s, to App Store Connect.\n' "$C_WARN" "$C_OFF" "$BUNDLE_ID" "$VERSION" "$BUILD" "$COMMIT"
-printf 'A build number can be uploaded only once. Type "upload %s (%s)" to confirm: ' "$VERSION" "$BUILD"
+printf '\n%sAbout to upload%s %s %s (%s), commit %s, to App Store Connect.\n' "$C_WARN" "$C_OFF" "$BUNDLE_ID" "$VERSION" "$BUILD" "$COMMIT" >&3
+printf 'A build number can be uploaded only once. Type "upload %s (%s)" to confirm: ' "$VERSION" "$BUILD" >&3
 read -r answer <&3 || answer=""
 exec 3<&-
 [ "$answer" = "upload $VERSION ($BUILD)" ] || die "Not confirmed: nothing uploaded."
