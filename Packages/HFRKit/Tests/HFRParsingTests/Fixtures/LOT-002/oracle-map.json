@@ -187,5 +187,23 @@
     "kind": "favorites",
     "now": "2026-11-01T23:51:23Z",
     "path": "../captures/R73b-favourites-owntopic1-thirteen-categories.html"
+  },
+  "R95j.html": {
+    "currentURL": "/forum1.php?config=hfr.inc&cat=prive&page=1",
+    "kind": "mp",
+    "now": "2026-11-02T07:42:55Z",
+    "path": "../captures/R95j-mp-list-owner-after-thread-delete.html"
+  },
+  "R95k.html": {
+    "currentURL": "/forum1.php?config=hfr.inc&cat=prive&page=1",
+    "kind": "mp",
+    "now": "2026-11-02T07:43:01Z",
+    "path": "../captures/R95k-mp-list-recipient-after-thread-delete.html"
+  },
+  "R96a.html": {
+    "currentURL": "/forum1.php?config=hfr.inc&cat=prive&page=8&subcat=&sondage=0&owntopic=0&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0",
+    "kind": "mp",
+    "now": "2026-11-02T07:43:24Z",
+    "path": "../captures/R96a-mp-list-past-last-page.html"
   }
 }

@@ -1,0 +1,16 @@
+{
+  "id": "R96b",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "GET /forum2.php?config=hfr.inc&cat=prive&post={post}&numreponse=0&page=1&p=1&subcat=0&sondage=0&owntopic=0 (MPStorage.m GETRequest URL, as R60a)",
+  "url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=prive&post=3157083&numreponse=0&page=1&p=1&subcat=0&sondage=0&owntopic=0",
+  "final_url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=prive&post=3157083&numreponse=0&page=1&p=1&subcat=0&sondage=0&owntopic=0",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 02 Nov 2026 07:43:40 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "user2 opens user1's MPStorage thread id (a cached storage id that is not the account's): the destiné answer legacy checks (MPStorage.m parseMPStorage) (#333)",
+  "file": "R96b-mpstorage-thread-other-account-not-addressed.html",
+  "private": false
+}

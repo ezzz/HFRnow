@@ -11,9 +11,13 @@ struct MessagesRootView: View {
 
     var body: some View {
         NavigationSplitView(preferredCompactColumn: $column) {
-            MessageListView(model: model)
+            MessageListView(model: model, composer: environment.composer)
         } detail: {
-            MessageReaderColumn(model: model, reader: environment.reader, composer: nil)
+            MessageReaderColumn(model: model, reader: environment.reader, composer: environment.composer)
+        }
+        // A conversation selected by the model (the thread of a new MP) is shown on a compact width too, as a tap would.
+        .onChange(of: model.selected) { _, selected in
+            if selected != nil { column = .detail }
         }
     }
 }
@@ -22,9 +26,11 @@ struct MessagesRootView: View {
 /// (`MessageReaderColumn`), the Favoris shape. It owns its navigation stack.
 struct MessagesListColumn: View {
     let model: MessageListModel
+    /// The current account's composer (new private message); nil when logged out.
+    let composer: ComposerServices?
 
     var body: some View {
-        NavigationStack { MessageListView(model: model) }
+        NavigationStack { MessageListView(model: model, composer: composer) }
     }
 }
 
@@ -32,8 +38,8 @@ struct MessagesListColumn: View {
 struct MessageReaderColumn: View {
     let model: MessageListModel
     let reader: ReaderServices
-    /// Callers pass nil until LOT-128: an MP reply is a state-changing flow of its own (RA1-RA5 carry a `cat=prive` answer link,
-    /// but the refresh after posting on such a thread is not captured), so no "Répondre" on a conversation yet.
+    /// The current account's composer: "Répondre" on a conversation (LOT-128) through its `cat=prive` answer link (`RA1`-`RA4`,
+    /// reply form `R47b`, answer `W11`); nil when logged out.
     let composer: ComposerServices?
 
     var body: some View {

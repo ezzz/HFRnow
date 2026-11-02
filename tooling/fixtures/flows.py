@@ -85,12 +85,14 @@ class _Recorder(urllib.request.HTTPRedirectHandler):
     """Records every redirect hop; refuses to follow when follow is False."""
 
     def __init__(self):
-        self.chain, self.follow = [], True
+        self.chain, self.follow, self.on_redirect = [], True, None
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         self.chain.append({"status": code, "location": headers.get("Location", "")})
         if not self.follow:
             return None
+        if self.on_redirect:
+            self.on_redirect()
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
@@ -540,8 +542,30 @@ def cmd_form(ctx, a):
         _ui.ok("would POST %d fields to %s" % (len(fields), ctx.safe(target)))
         return 0
     poster = ctx.client(a.post_account) if a.post_account else cl
-    res = poster.request(target, fields, follow=not a.no_redirect)
-    ctx.done(a.id, res, a.post_account or a.account, "POST", a.template, a.note)
+    # A browser posting a multi-quote reply still carries the selection cookie (HFR-PROTOCOL §4):
+    # send it with the POST only, never persist it.
+    extra = _pairs(a.cookie)
+    held = {c.name for c in poster.jar}
+    for k, _v in extra:
+        if k in held:
+            # The jar's own cookie (a session cookie) would be overwritten, then dropped with the temporary one.
+            raise C.CaptureError("--cookie %s: the jar already holds a cookie of that name" % k)
+    temp = [(k, poster.set_temp_cookie(k, v)) for k, v in extra]
+
+    def drop_temp():
+        for k, dom in temp:
+            poster.drop_cookie(k, dom)
+    poster.recorder.on_redirect = drop_temp  # POST only: a followed redirect never carries it
+    try:
+        res = poster.request(target, fields, follow=not a.no_redirect)
+    finally:
+        poster.recorder.on_redirect = None
+        drop_temp()
+        poster.save_jar()
+    note = a.note
+    if temp:
+        note = ((note + "; ") if note else "") + "extra cookies: " + ", ".join(k for k, _d in temp)
+    ctx.done(a.id, res, a.post_account or a.account, "POST", a.template, note)
     return 0
 
 
@@ -656,6 +680,7 @@ def build_parser():
     p.add_argument("--set-json", action="append", help="name=<JSON string> (controls \\r\\n exactly)")
     p.add_argument("--drop", action="append")
     p.add_argument("--post-account", help="send the POST with another account's jar (anon = logged out)")
+    p.add_argument("--cookie", action="append", help="extra cookie name=value sent with the POST only")
     p.add_argument("--template")
     p.add_argument("--note")
     p.add_argument("--no-redirect", action="store_true")
