@@ -3,6 +3,9 @@ import SafariServices
 import SwiftUI
 import WebKit
 
+// Port of HFRswift/Swift/MessagesView.swift (MessagesView: bottom page toolbar, Safari view, composer sheet) @ 2440d79. Differences:
+// page bar first / previous / page / next / last instead of ‹ › and the "…" menu; the tab bar stays visible; videos on tap (GAP-008,
+// 058, 060; UXD).
 /// The detail column: one topic page in a web view, page navigation, refresh, links, video players on tap and the reply
 /// sheet.
 struct TopicReaderView: View {

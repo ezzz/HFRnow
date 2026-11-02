@@ -4,6 +4,8 @@ import HFRModels
 import HFRNetwork
 import HFRStorage
 
+// Port of HFRswift/Swift/ReplyService.swift (ForumReplyPostingService, ReplyComposerContext) @ 2440d79. Differences: posting goes
+// through HFRClient (LOT-048); success only on HFR's own sentence.
 /// The topic a reply goes to, read from the page on screen.
 struct ReplyTarget: Hashable, Sendable {
     /// The reply composer's page (`#repondre_form`'s link, LOT-033): `https` on the forum host.

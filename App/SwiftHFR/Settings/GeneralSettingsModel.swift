@@ -2,6 +2,8 @@ import HFRModels
 import HFRStorage
 import Observation
 
+// Port of HFRswift/Swift/AppSettingsView.swift (AppSettingsView, "Général" section) @ 2440d79. Differences: the start-screen and
+// default-browser rows come from master; neither exists at 2440d79 (GAP-002, 150; UXD).
 /// The "Général" settings: each property reads its legacy key at creation and writes it back on every change, so what the
 /// screen shows is what the store holds (LOT-119).
 ///

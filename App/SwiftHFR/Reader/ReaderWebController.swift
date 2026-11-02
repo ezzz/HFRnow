@@ -2,6 +2,8 @@ import Foundation
 import UIKit
 import WebKit
 
+// Port of HFRswift/Swift/MessagesView.swift (WebView, MessageWebView, WebView.Coordinator) @ 2440d79. Differences: no page script,
+// strict CSP, everything served by the app's `hfrreader:` scheme, images through policy C and the cookie-less client (GAP-050, 056).
 /// Owns the reader's `WKWebView` and enforces what the page may do (LOT-083):
 ///
 /// - nothing remote: the page, its stylesheet and every image come from the app's `hfrreader:` scheme; the Content Security

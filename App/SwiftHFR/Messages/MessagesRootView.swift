@@ -1,5 +1,7 @@
 import SwiftUI
 
+// Port of HFRswift/Swift/MainWindow.swift (RootTabView, Messages tab) and HFRswift/Swift/MPListView.swift (MPListView) @ 2440d79.
+// Differences: a split view on a regular width (GAP-212, UXD).
 /// The Messages tab of the iPhone tab bar: the conversation list, then the reader of the chosen conversation. It owns its
 /// navigation container (a split view that collapses to a stack on a compact width), so a call site adds none.
 struct MessagesRootView: View {

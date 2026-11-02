@@ -2,6 +2,8 @@ import HFRModels
 import HFRStorage
 import SwiftUI
 
+// Port of HFRswift/Swift/AppSettingsView.swift (AppSettingsView) @ 2440d79. Differences: each section comes with its lot; only "Général"
+// for now.
 /// What a settings row leads to. Later lots add their cases here (theme: LOT-121, icon: LOT-123) and replace their
 /// case's placeholder in `SettingsDestinationView`, so the shell does not change again.
 enum SettingsDestination: Hashable {

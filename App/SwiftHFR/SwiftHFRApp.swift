@@ -1,6 +1,7 @@
 import HFRStorage
 import SwiftUI
 
+// Port of HFRswift/Swift/HFRswiftApp.swift (HFRswiftApp) @ 2440d79. Differences: no ObjC app delegate; HFRKit is the engine.
 /// Entry point of the SwiftHFR iOS app; the composition root for every screen.
 @main
 struct SwiftHFRApp: App {
