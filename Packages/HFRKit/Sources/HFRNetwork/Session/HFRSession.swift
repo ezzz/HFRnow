@@ -27,6 +27,10 @@ public actor HFRSession: HTTPTransport {
     /// The anti-CSRF token every POST needs (HFR-PROTOCOL §5); nil until known.
     public private(set) var hashCheck: String?
 
+    /// How many logins this session installed; a request that reads it before and after knows whether a login landed
+    /// in between, even one of the same account with the same token (issue #340).
+    public private(set) var loginGeneration = 0
+
     /// Creates a session with its own jar holding `cookies` (expired ones skipped) and the last known `hashCheck`.
     public init(cookies: [StoredCookie] = [], hashCheck: String? = nil, now: Date = Date()) {
         self.init(cookies: cookies, hashCheck: hashCheck, now: now, configuration: .ephemeral, hosts: .forum)
@@ -101,6 +105,13 @@ public actor HFRSession: HTTPTransport {
     /// Records the latest `hash_check` read from a page; an empty or blank value is ignored and the previous one kept.
     public func updateHashCheck(_ value: String?) {
         if let normalized = Self.normalizedHashCheck(value) { hashCheck = normalized }
+    }
+
+    // MARK: - Login generation
+
+    /// Records that a login was installed: called once per login, after its cookies and token (`adoptLogin`).
+    public func advanceLoginGeneration() {
+        loginGeneration &+= 1
     }
 
     // MARK: - Cookies
