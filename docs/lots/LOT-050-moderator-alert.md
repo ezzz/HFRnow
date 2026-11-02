@@ -78,9 +78,9 @@ Code in `Sources/HFRClient/Alert/`, tests in `Tests/HFRClientTests/Alert/`.
 1. **No success claimed**: legacy showed any `.hop` text as a success (`AlerteModoViewController.m:229-236`,
    `ReplyService.swift:1495-1499`); here it is HFR's text, uninterpreted, until #395. CHANGELOG-LEGACY row 60.
 2. **Emoji refused, not removed**: Objective-C legacy removed them silently (`:209`), the Swift service sent them; the
-   reason is refused with the characters listed, as for posts (Q-3). Row 54.
+   reason is refused with the characters listed, as for posts (Q-3). Row 60.
 3. **No default action**: legacy Swift posted to `defaultSubmitURL()` when the action could not be read (`:1455`);
-   here the action must be the alert page of the same message, on the forum origin. Row 54.
+   here the action must be the alert page of the same message, on the forum origin. Row 60.
 4. **Browser order**: legacy sent its dictionary's order (oracle `bodyOrder`); here the document order. The fields and
    values are the oracle's.
 5. **No fixed "already alerted" text**: legacy Swift fell back to "Alerte déjà envoyée."; the sentence here is HFR's or nil.
