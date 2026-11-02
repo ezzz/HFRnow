@@ -20,6 +20,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _ui  # noqa: E402
 import anonymize as A  # noqa: E402
 
+AQ_HOST = "aq.super-h.fr"
 DEFAULT_MANIFEST = os.path.join(os.path.dirname(os.path.abspath(__file__)), "corpus.json")
 META_KEYS = ("account", "method", "url_template", "url", "final_url", "status", "content_type", "date",
              "redirects", "set_cookie_names", "request_fields", "note")
@@ -57,6 +58,9 @@ def publish_one(anon, raw_dir, dest, entry):
     page = enc = None
     if entry["ext"]:
         text, enc = A.read_text(os.path.join(raw_dir, raw_id + ".html"))
+        # An AQ answer the AQ gate does not recognise would skip the masking of member-written text: refuse it.
+        if any(AQ_HOST in str(raw_meta.get(k) or "") for k in ("url", "final_url")) and not A.is_aq_document(text):
+            return [(entry["id"], 1, 1, "AQ capture not recognized as an AQ feed or list: extend the anonymizer")]
         page = anon.anonymize(text, private=entry["private"])
     else:
         anon._reset()

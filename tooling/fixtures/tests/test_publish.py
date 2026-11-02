@@ -145,6 +145,17 @@ class PublishTests(unittest.TestCase):
         self.assertNotIn("Bravo", out)
         self.assertFalse(os.path.exists(os.path.join(self.dest, "L1-list.html")))
 
+    def test_publish_refuses_an_aq_answer_the_aq_gate_does_not_recognise(self):
+        with open(self.manifest, "w") as fh:
+            json.dump({"captures": [{"raw": "Q1", "id": "Q1", "slug": "aq", "ext": "xml", "private": False}]}, fh)
+        # No XML declaration: the AQ masking would not run, so member-written text would be published as is.
+        self.capture("Q1", '<alertes><alerte id="1" nom="Real words" pseudoInitiateur="user1"/></alertes>',
+                     {"url": "https://aq.super-h.fr/api/getAlertesByTopic.php?topic_id=1"})
+        rc, out = self.run_publish("Q1")
+        self.assertEqual(rc, 1)
+        self.assertIn("AQ capture not recognized", out)
+        self.assertFalse(os.path.exists(os.path.join(self.dest, "Q1-aq.xml")))
+
 
 if __name__ == "__main__":
     unittest.main()
