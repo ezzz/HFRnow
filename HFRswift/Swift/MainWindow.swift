@@ -207,7 +207,11 @@ struct CategoriesListView: View {
                         AppHaptics.refreshStarted()
                         viewModel.load(shouldTriggerHaptic: true)
                     } label: {
-                        ToolbarRefreshIcon(isLoading: viewModel.isLoading)
+                        Label {
+                            Text("Actualiser")
+                        } icon: {
+                            ToolbarRefreshIcon(isLoading: viewModel.isLoading)
+                        }
                     }
                     .disabled(viewModel.isLoading)
                 }
@@ -812,7 +816,7 @@ struct ForumTopicsListView: View {
                     AppHaptics.impact(.light)
                     isNewTopicComposerPresented = true
                 } label: {
-                    Image(systemName: "plus")
+                    Label("Nouveau sujet", systemImage: "plus")
                 }
                 .disabled(!isLoggedIn || viewModel.newTopicURL == nil)
 
@@ -820,7 +824,11 @@ struct ForumTopicsListView: View {
                     AppHaptics.refreshStarted()
                     viewModel.load(shouldTriggerHaptic: true)
                 } label: {
-                    ToolbarRefreshIcon(isLoading: viewModel.isLoading)
+                    Label {
+                        Text("Actualiser")
+                    } icon: {
+                        ToolbarRefreshIcon(isLoading: viewModel.isLoading)
+                    }
                 }
                 .disabled(viewModel.isLoading)
             }
@@ -1686,6 +1694,11 @@ struct RootTabView: View {
             .onChange(of: usesSidebarRoot) { _, newValue in
                 handleRootSwap(toSidebar: newValue)
             }
+            .onChange(of: activeTopicTarget?.id) {
+                // Any path that clears the topic shown (deletion of the MP or bookmark, account
+                // change, forum change) must not leave an empty detail with the list hidden.
+                ensureVisibleIPadListIfNeeded()
+            }
             .onChange(of: prefersDetailOnlyTopic) { _, detailOnly in
                 // Unfolded Duo rotation with a topic open: full-width topic in portrait,
                 // list + topic again in landscape.
@@ -2060,7 +2073,10 @@ struct RootTabView: View {
         detailNavigationResetToken = UUID()
 
         if destination.usesTopicList {
-            iPadSidebarVisibilityRawValue = SidebarVisibilityStorage.doubleColumn
+            // Duo portrait: a destination that still holds a topic shows it at full width.
+            iPadSidebarVisibilityRawValue = prefersDetailOnlyTopic && activeTopicTarget != nil
+                ? SidebarVisibilityStorage.detailOnly
+                : SidebarVisibilityStorage.doubleColumn
             preferredCompactColumn = activeTopicTarget == nil ? .content : .detail
         } else {
             iPadDirectSidebarVisibility = .all
@@ -2085,7 +2101,11 @@ struct RootTabView: View {
         )
 
         if toSidebar {
-            guard let reading else { return }
+            guard let reading else {
+                // Nothing open on the cover screen: no older split selection may come back.
+                clearAllTopicTargets()
+                return
+            }
             let destination: IPadSidebarDestination
             if iPadSidebarDestination.rootTab == reading.tab {
                 destination = iPadSidebarDestination
@@ -2101,28 +2121,21 @@ struct RootTabView: View {
             // The split selection must not outlive the fold: if the user closes the topic on the
             // cover screen, unfolding must not bring it back.
             let target = reading?.navigationTarget ?? activeTopicTarget
-            clearActiveTopicTarget()
+            clearAllTopicTargets()
             if let target {
                 FoldHandoffStore.shared.requestCompactPush(tab: selectedTab, target: target)
             }
         }
     }
 
-    private func clearActiveTopicTarget() {
-        switch iPadSidebarDestination {
-        case .categories:
-            categoriesTopicTarget = nil
-        case .favorites:
-            favoritesTopicTarget = nil
-        case .messages:
-            messagesTopicTarget = nil
-        case .bookmarks:
-            bookmarksTopicTarget = nil
-        case .qualityAlerts:
-            qualityAlertsTopicTarget = nil
-        case .settings, .search, .credits, .charter, .deleteAccount:
-            return
-        }
+    /// The compact root keeps no split selection, so after a swap every destination starts
+    /// empty; only the topic carried by `FoldHandoffStore` is restored.
+    private func clearAllTopicTargets() {
+        categoriesTopicTarget = nil
+        favoritesTopicTarget = nil
+        messagesTopicTarget = nil
+        bookmarksTopicTarget = nil
+        qualityAlertsTopicTarget = nil
         detailNavigationResetToken = UUID()
     }
 

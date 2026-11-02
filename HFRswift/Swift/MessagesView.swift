@@ -3207,9 +3207,11 @@ struct MessagesView: View {
         FoldHandoffStore.shared.scheduleClear(token: foldHandoffToken)
     }
 
-    /// Size class only, no idiom check: iPhone Duo is a `.phone` whose inner display is regular/regular.
+    /// Phones in compact height (landscape) only: the iPhone Duo is a `.phone` whose inner display
+    /// is regular/regular, so it keeps the button; iPad windows keep it whatever their height.
     private var shouldHideReplyComposerButton: Bool {
-        replyButtonMode == .hidden || verticalSizeClass == .compact
+        replyButtonMode == .hidden
+            || (UIDevice.current.userInterfaceIdiom == .phone && verticalSizeClass == .compact)
     }
 
     private var replyButtonMode: AppReplyButtonBehavior {

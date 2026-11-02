@@ -811,8 +811,11 @@ struct FavoritesListView: View {
                                 showsCategoriesOnDemand.toggle()
                             }
                         } label: {
-                            Image(systemName: showsAllFavoriteSections ? "list.bullet.circle.fill" : "list.bullet.circle")
-                                .foregroundStyle(.primary)
+                            Label(
+                                showsAllFavoriteSections ? "Masquer les catégories" : "Afficher les catégories",
+                                systemImage: showsAllFavoriteSections ? "list.bullet.circle.fill" : "list.bullet.circle"
+                            )
+                            .foregroundStyle(.primary)
                         }
                         .contextMenu {
                             Button {

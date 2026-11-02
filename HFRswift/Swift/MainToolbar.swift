@@ -44,8 +44,12 @@ struct MainToolbarContent<MenuItems: View>: ToolbarContent {
                 AppHaptics.refreshStarted()
                 onRefresh()
             } label: {
-                ToolbarRefreshIcon(isLoading: isLoading)
-                    .foregroundStyle(.primary)
+                Label {
+                    Text("Actualiser")
+                } icon: {
+                    ToolbarRefreshIcon(isLoading: isLoading)
+                }
+                .foregroundStyle(.primary)
             }
             .disabled(isLoading)
         }

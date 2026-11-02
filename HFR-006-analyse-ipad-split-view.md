@@ -1,6 +1,6 @@
 # HFR-006 - iPad split view
 
-Dernière vérification : 27 juillet 2026, branche `beta`, base version 4.0.2 build 28. Complément iPhone Duo : novembre 2026, version 4.0.3 (non vérifié sur appareil).
+Dernière vérification : 27 juillet 2026, branche `beta`, base version 4.0.2 build 28. Complément iPhone Duo : novembre 2026, version 4.0.4 build 37 (non vérifié sur appareil).
 
 ## Statut
 
@@ -70,7 +70,7 @@ Une liste recréée après refresh peut ainsi retrouver le topic sélectionné e
 
 ### Synchronisation des rubriques
 
-- Catégories, Favoris, Messages, Bookmarks et Alertes Qualitay possèdent chacun leur sélection indépendante.
+- Catégories, Favoris, Messages, Bookmarks et Alertes Qualitay possèdent chacun leur sélection indépendante. Un changement de racine (pliage du Duo, redimensionnement iPad sous le seuil compact) remet toutes ces sélections à zéro ; seul le sujet transporté par `FoldHandoffStore` est restauré.
 - Un changement de rubrique remplace immédiatement la liste et le détail par le contexte de cette rubrique.
 - Le passage d'une page directe à une liste, ou d'une liste à une autre, restaure l'affichage liste + détail.
 - Un ancien topic ne peut donc plus rester visible face à une liste appartenant à une autre rubrique.
@@ -84,7 +84,7 @@ Une liste recréée après refresh peut ainsi retrouver le topic sélectionné e
 - Le fond sélectionné s'étend presque sur toute la ligne avec un rayon de 6 points, afin de ne pas ressembler aux teintes de type de topic.
 - Une nouvelle sélection remplace le topic racine et réinitialise la pile interne du détail.
 - Les liens internes et résultats de recherche de `MessagesView` continuent à s'empiler dans cette pile.
-- La suppression du MP ou du bookmark affiché ferme le détail correspondant.
+- La suppression du MP ou du bookmark affiché ferme le détail correspondant ; si la liste était masquée, elle est réaffichée (aucune sélection vidée ne laisse un détail vide sans liste).
 - Un changement de compte ou une déconnexion efface toutes les sélections.
 
 ### Affichage plein topic
