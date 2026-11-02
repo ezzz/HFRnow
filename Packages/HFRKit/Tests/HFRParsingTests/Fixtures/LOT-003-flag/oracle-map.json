@@ -1,0 +1,32 @@
+{
+  "R33b.html": {
+    "currentURL": "/forum2.php?config=hfr.inc&cat=25&subcat=525&post=8900&page=1&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+    "kind": "topic",
+    "ownPseudo": "user1",
+    "path": "../captures/R33b-topic-poll-already-voted.html"
+  },
+  "R61d.html": {
+    "currentURL": "/hfr/Discussions/Sports/muscu-topic-gringalets-sujet_6510_30.htm",
+    "kind": "topic",
+    "ownPseudo": "user2",
+    "path": "../captures/R61d-public-topic-last-page-own-post.html"
+  },
+  "R61e.html": {
+    "currentURL": "/hfr/Discussions/Sports/muscu-topic-gringalets-sujet_6510_30.htm",
+    "kind": "topic",
+    "ownPseudo": "user2",
+    "path": "../captures/R61e-public-topic-after-delete.html"
+  },
+  "R63a.html": {
+    "currentURL": "/hfr/AchatsVentes/Telephonie/own-topic-subject-sujet_9900001_1.htm",
+    "kind": "topic",
+    "ownPseudo": "user1",
+    "path": "../captures/R63a-public-own-topic-first-page.html"
+  },
+  "R63e.html": {
+    "currentURL": "/hfr/AchatsVentes/Telephonie/own-topic-subject-sujet_9900001_1.htm",
+    "kind": "topic",
+    "ownPseudo": "user1",
+    "path": "../captures/R63e-public-own-topic-after-restore.html"
+  }
+}

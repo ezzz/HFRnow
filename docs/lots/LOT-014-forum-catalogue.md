@@ -5,7 +5,7 @@
 - **Issue:** [#47](https://github.com/ezzz/HFRnow/issues/47)
 
 ## Legacy sources
-Legacy repository <https://github.com/francoisgn/hfrnow>. Audit: [B §5 B2](../audit/B-list-parsing-models.md).
+Legacy repository <https://github.com/ezzz/HFRnow>. Audit: [B §5 B2](../audit/B-list-parsing-models.md).
 
 | Legacy | What it gives the catalogue |
 |---|---|

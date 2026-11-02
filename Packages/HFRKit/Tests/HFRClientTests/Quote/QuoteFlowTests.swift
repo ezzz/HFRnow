@@ -148,6 +148,12 @@ struct QuoteFlowTests {
         #expect(await session.selection(of: Self.conversation) == "|1980875031")
     }
 
+    @Test("The quoted messages are the first number of each well-formed quotemsg tag, whatever its case")
+    func quotedNumbersOfText() {
+        let text = "[QUOTEMSG=11,1,2]a[/QUOTEMSG] [Quotemsg=12,3,4]b[/quotemsg] [quotemsg=13]c [quotemsg=x,1,2] [quote=14,1,2]"
+        #expect(QuoteFlow.quotedNumbers(in: text) == [11, 12])
+    }
+
     @Test("Only the messages the posted text still quotes are unselected: a narrowed or emptied quote keeps the others")
     func onlyQuotedMessagesGo() async throws {
         for (keep, expected) in [(Self.posted[1], "|1980875029"), (nil, "|1980875029|1980875030")] {

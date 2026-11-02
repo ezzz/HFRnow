@@ -12,6 +12,8 @@ protocol PostingSession: Actor, HTTPTransport {
     func userKey(now: Date) -> String?
     /// Records the `hash_check` read from a form page (HFR-PROTOCOL §5: refreshed from parse results by `HFRClient`).
     func updateHashCheck(_ value: String?)
+    /// Moves on every adopted login (see `HFRSession.loginGeneration`).
+    var loginGeneration: Int { get }
 }
 
 extension HFRSession: PostingSession {}

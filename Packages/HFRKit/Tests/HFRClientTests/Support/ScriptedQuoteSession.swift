@@ -10,6 +10,8 @@ actor ScriptedQuoteSession: QuotingSession {
     private var quoteCookies: [String: MultiQuoteCookie] = [:]
     /// The last token recorded, like `HFRSession.hashCheck`.
     private(set) var hashCheck: String?
+    /// No login is adopted in these tests, so the generation stays put (`HFRSession.loginGeneration`).
+    let loginGeneration = 0
     /// The quote cookies (`name=value`, sorted) the session held when each request left, in order.
     private(set) var carried: [[String]] = []
 

@@ -5,7 +5,7 @@
 - **Issue:** [#90](https://github.com/ezzz/HFRnow/issues/90)
 
 ## Legacy sources
-Legacy repository <https://github.com/francoisgn/hfrnow> at `2440d79`. Audit: [A §4.2–4.3, NET-05](../audit/A-network-sessions.md), [E §2.1, §5, E-6](../audit/E-storage-vendors.md); decision Q-9 ([audit README](../audit/README.md)).
+Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79`. Audit: [A §4.2–4.3, NET-05](../audit/A-network-sessions.md), [E §2.1, §5, E-6](../audit/E-storage-vendors.md); decision Q-9 ([audit README](../audit/README.md)).
 
 | Legacy | Behaviour |
 |---|---|

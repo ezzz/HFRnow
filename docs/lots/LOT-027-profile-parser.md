@@ -9,7 +9,7 @@ smileys and link rows. A pure function, `UserProfileParser.parse(html:) throws(P
 LOT-045 and later; the avatar of the **logged-in account** (edit-profile page 5) is not this page and not this lot.
 
 ## Legacy sources
-Legacy repository <https://github.com/francoisgn/hfrnow> at `2440d79`. Oracle: [LOT-005](LOT-005-small-parsers-oracle.md), kind `profile`
+Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79`. Oracle: [LOT-005](LOT-005-small-parsers-oracle.md), kind `profile`
 (cases R56a, R56b).
 
 | Legacy | Replaced by |
