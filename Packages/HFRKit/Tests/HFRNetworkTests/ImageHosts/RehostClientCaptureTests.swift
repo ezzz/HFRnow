@@ -41,8 +41,7 @@ struct RehostClientCaptureTests {
         #expect(image.mediumURL == nil)
         #expect(image.width == 16)  // a JSON number in the capture
         #expect(image.height == 16)
-        #expect(image.availableVariants.contains(.full))
-        #expect(!image.availableVariants.contains(.medium))
+        #expect(image.availableVariants == [.full, .mini])
     }
 
     @Test func theCapturedWrongKeyAnswerSurfacesTheHostMessage() async throws {
