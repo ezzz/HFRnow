@@ -113,6 +113,39 @@ struct MPStoragePageParserTests {
     func otherPagesThrow(_ name: String, _ expected: MPStoragePageError) throws {
         let html = try Fixture.capture(name)
         #expect(throws: expected) { try MPStoragePageParser.readDocument(in: html) }
+        #expect(throws: expected) { try MPStoragePageParser.locateMessage(in: html) }
+    }
+
+    @Test("R60a: locate gives the oracle's numreponse and the toolbar edit link R60b was captured from")
+    func locateMatchesOracle() throws {
+        let oracle = try StorageOracle.load("R60a")
+        let html = try Fixture.capture("R60a-mpstorage-thread-first-post")
+        guard case .message(let numreponse, let editURL?) = try MPStoragePageParser.locateMessage(in: html) else {
+            Issue.record("R60a is the storage thread, with an edit link")
+            return
+        }
+        #expect(numreponse == Int(try #require(oracle.numreponse)))
+        let link = try #require(URLComponents(url: editURL, resolvingAgainstBaseURL: false))
+        #expect(link.path == "/message.php")
+        #expect(link.queryItems?.first { $0.name == "post" }?.value == "3157083")
+        #expect(link.queryItems?.first { $0.name == "numreponse" }?.value == String(numreponse))
+    }
+
+    @Test("Locate does not read the message text: a paragraph that is not JSON still has a location")
+    func locateIgnoresText() throws {
+        // Structural edge: R60a with its paragraph broken, as a stored block tag would render (not captured, #272).
+        let html = try Fixture.capture("R60a-mpstorage-thread-first-post").replacing("{&#034;data&#034;:", with: "<b>x</b>:")
+        #expect(throws: MPStoragePageError.invalidDocument) { try MPStoragePageParser.readDocument(in: html) }
+        guard case .message = try MPStoragePageParser.locateMessage(in: html) else {
+            Issue.record("expected a location")
+            return
+        }
+    }
+
+    @Test("RA5 is notAddressed for locate too")
+    func locateNotAddressed() throws {
+        let html = try Fixture.capture("RA5-mp-thread-after-delete-owner")
+        #expect(try MPStoragePageParser.locateMessage(in: html) == .notAddressed)
     }
 }
 

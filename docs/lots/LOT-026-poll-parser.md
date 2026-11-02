@@ -9,7 +9,7 @@ the results (`R33a` closed poll, `R33b` already voted with the multi-pseudo noti
 
 ## Legacy sources
 
-Legacy repository <https://github.com/francoisgn/hfrnow> at `2440d79`. Audit: [B9](../audit/B-list-parsing-models.md), [C07](../audit/C-message-parsing.md), [D §2.9](../audit/D-posting.md). Oracles: [LOT-005](LOT-005-small-parsers-oracle.md) kind `poll`.
+Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79`. Audit: [B9](../audit/B-list-parsing-models.md), [C07](../audit/C-message-parsing.md), [D §2.9](../audit/D-posting.md). Oracles: [LOT-005](LOT-005-small-parsers-oracle.md) kind `poll`.
 
 | Legacy | Replaced by |
 |---|---|

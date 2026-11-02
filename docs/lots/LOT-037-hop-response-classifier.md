@@ -9,7 +9,7 @@ Turns the page HFR answers after a write into a [`HopResponse`](LOT-012-form-wri
 unless this classifier did.
 
 ## Legacy sources
-Legacy repository <https://github.com/francoisgn/hfrnow> at `2440d79` (same paths on `origin/master`).
+Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79` (same paths on `origin/master`).
 
 | Legacy | What it gives |
 |---|---|

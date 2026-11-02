@@ -10,7 +10,7 @@ write responses) and `storage` (MPStorage and the legacy on-device formats). The
 flows in `HFRClient`, LOT-067, LOT-062 and LOT-065.
 
 ## Legacy sources
-Legacy repository <https://github.com/francoisgn/hfrnow>, commit `2440d79`. Paths from the repository root.
+Legacy repository <https://github.com/ezzz/HFRnow>, commit `2440d79`. Paths from the repository root.
 
 The composer view controllers (`QuoteMessageViewController`, `AddMessageViewController`, `AlerteModoViewController`) are compiled
 only into the old SuperHFRplus target, not the test host. Their steps are **transliterated line by line** into Objective-C

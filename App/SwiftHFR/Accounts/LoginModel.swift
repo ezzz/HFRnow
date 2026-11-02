@@ -1,6 +1,8 @@
 import Foundation
 import Observation
 
+// Port of HFRswift/Swift/AddAccountView.swift (AddAccountView state) and HFRswift/Swift/LoginService.swift (LoginService) @ 2440d79.
+// Differences: state moved out of the view; typed errors.
 /// State of the login form: fields, submission, error text. The view only binds to it.
 @MainActor
 @Observable

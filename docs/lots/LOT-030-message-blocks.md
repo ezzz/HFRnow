@@ -8,7 +8,7 @@ Chain: LOT-003 (oracle) → **LOT-030** → LOT-034 (content normalization). Sib
 LOT-032 (quotes), LOT-033 (page metadata, done in parallel: nothing page-level is read here), LOT-035 (embeds, after 034).
 
 ## Legacy sources
-Legacy repository <https://github.com/francoisgn/hfrnow> at `2440d79`.
+Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79`.
 
 | Legacy | Replaced by |
 |---|---|

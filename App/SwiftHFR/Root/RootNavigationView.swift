@@ -2,7 +2,8 @@ import Foundation
 import HFRStorage
 import SwiftUI
 
-/// The root navigation: the legacy bottom tab bar, or the legacy sidebar on a regular-width iPad (`MainWindow.swift:1353-1355`,
+// Port of HFRswift/Swift/MainWindow.swift (RootTabView.usesSidebarRoot) @ 2440d79. Differences: none in the condition.
+/// The root navigation: the legacy bottom tab bar, or the legacy sidebar on a regular-width iPad (`MainWindow.swift:1132-1134` @ 2440d79,
 /// `usesSidebarRoot`). A compact-width iPad (Slide Over, Split View) gets the tab bar, as legacy.
 struct RootNavigationView: View {
     @Environment(\.horizontalSizeClass) private var sizeClass

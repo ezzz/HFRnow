@@ -1,0 +1,430 @@
+{
+  "case" : "R95c",
+  "exception" : null,
+  "input" : {
+    "bytes" : 46825,
+    "context" : {
+      "message" : null,
+      "mode" : "edit",
+      "overrides" : {
+
+      },
+      "session" : {
+        "hash" : "0123456789abcdef0123456789abcdef01234567",
+        "pseudo" : "user2"
+      },
+      "url" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207675&numreponse=1980885616&page=1&p=1&subcat=0&sondage=0&owntopic=0"
+    },
+    "currentURL" : null,
+    "file" : "../captures/R95c-mp-edit-form-bbcode-source.html",
+    "now" : null,
+    "sha256" : "3f6e30ac9a6350218e66719a13245842a6b4f2d1bef2b336a6313a0e563e091a"
+  },
+  "kind" : "form",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "comparison" : {
+      "comparable" : true,
+      "different" : [
+
+      ],
+      "legacyUrl" : "https://forum.hardware.fr/bdd.php?config=hfr.inc",
+      "liveUrl" : "https://forum.hardware.fr/bdd.php?config=hfr.inc",
+      "onlyLegacy" : [
+
+      ],
+      "onlyLive" : [
+        "delete",
+        "subcat"
+      ],
+      "sameUrl" : true
+    },
+    "legacy" : {
+      "contentForm" : "fixture-test 2, BBCode round trip\n[b]bold[/b]\n[i]italic[/i]\n[u]underline[/u]\n[strike]strike[/strike]\n[spoiler]spoiler text[/spoiler]\n[quote]quoted text[/quote]\n[url]https://forum.hardware.fr/[/url]\n[url=https://forum.hardware.fr/]link text[/url]\n[img]https://forum-images.hardware.fr/icones/smilies/jap.gif[/img]\n[fixed]fixed   text  <tag> & amp[/fixed]\n[code]code   text[/code]\n[cpp]int x = 1;[/cpp]\n[color=#FF0000]red[/color]\n[list][*]item one[*]item two[/list]\n[b][i]nested[/i][/b]\nplain <b>html</b> & \"quotes\"\n[b]unclosed bold",
+      "contentFormRaw" : "fixture-test 2, BBCode round trip\r\n[b]bold[/b]\r\n[i]italic[/i]\r\n[u]underline[/u]\r\n[strike]strike[/strike]\r\n[spoiler]spoiler text[/spoiler]\r\n[quote]quoted text[/quote]\r\n[url]https://forum.hardware.fr/[/url]\r\n[url=https://forum.hardware.fr/]link text[/url]\r\n[img]https://forum-images.hardware.fr/icones/smilies/jap.gif[/img]\r\n[fixed]fixed   text  <tag> & amp[/fixed]\r\n[code]code   text[/code]\r\n[cpp]int x = 1;[/cpp]\r\n[color=#FF0000]red[/color]\r\n[list][*]item one[*]item two[/list]\r\n[b][i]nested[/i][/b]\r\nplain <b>html</b> & \"quotes\"\r\n[b]unclosed bold",
+      "fetchURL" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207675&numreponse=1980885616&page=1&p=1&subcat=0&sondage=0&owntopic=0",
+      "formAction" : "/bdd.php?config=hfr.inc",
+      "formSubmit" : "https://forum.hardware.fr/bdd.php?config=hfr.inc",
+      "haveCategory" : false,
+      "haveTitle" : true,
+      "haveTo" : false,
+      "inputData" : {
+        "cache" : "",
+        "cat" : "prive",
+        "ColorUsedMem" : "",
+        "config" : "hfr.inc",
+        "delete" : "0",
+        "emaill" : "0",
+        "hash_check" : "REDACTED",
+        "MsgIcon" : "1",
+        "new" : "0",
+        "numrep" : "",
+        "numreponse" : "1980885616",
+        "owntopic" : "0",
+        "p" : "1",
+        "page" : "1",
+        "parents" : "",
+        "password" : "",
+        "post" : "3207675",
+        "pseudo" : "user2",
+        "search_smilies" : "",
+        "signature" : "0",
+        "smiley" : "0",
+        "sond" : "0",
+        "sondage" : "0",
+        "stickold" : "",
+        "submit" : "Valider votre message",
+        "sujet" : "fixture-test-2",
+        "verifrequet" : "1100",
+        "wysiwyg" : "0"
+      },
+      "isLogged" : true,
+      "loopOrder" : [
+        "hash_check",
+        "parents",
+        "post",
+        "stickold",
+        "new",
+        "cat",
+        "numreponse",
+        "numrep",
+        "page",
+        "verifrequet",
+        "p",
+        "sondage",
+        "sond",
+        "cache",
+        "owntopic",
+        "config",
+        "pseudo",
+        "password",
+        "sujet",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "search_smilies",
+        "ColorUsedMem",
+        "wysiwyg",
+        "submit",
+        "signature",
+        "smiley",
+        "emaill",
+        "delete"
+      ],
+      "post" : {
+        "bodyBytes" : 1283,
+        "bodySorted" : "ColorUsedMem=&MsgIcon=1&cache=&cat=prive&config=hfr.inc&content_form=fixture-test%202%2C%20BBCode%20round%20trip%0D%0A%5Bb%5Dbold%5B%2Fb%5D%0D%0A%5Bi%5Ditalic%5B%2Fi%5D%0D%0A%5Bu%5Dunderline%5B%2Fu%5D%0D%0A%5Bstrike%5Dstrike%5B%2Fstrike%5D%0D%0A%5Bspoiler%5Dspoiler%20text%5B%2Fspoiler%5D%0D%0A%5Bquote%5Dquoted%20text%5B%2Fquote%5D%0D%0A%5Burl%5Dhttps%3A%2F%2Fforum.hardware.fr%2F%5B%2Furl%5D%0D%0A%5Burl%3Dhttps%3A%2F%2Fforum.hardware.fr%2F%5Dlink%20text%5B%2Furl%5D%0D%0A%5Bimg%5Dhttps%3A%2F%2Fforum-images.hardware.fr%2Ficones%2Fsmilies%2Fjap.gif%5B%2Fimg%5D%0D%0A%5Bfixed%5Dfixed%20%20%20text%20%20%3Ctag%3E%20%26%20amp%5B%2Ffixed%5D%0D%0A%5Bcode%5Dcode%20%20%20text%5B%2Fcode%5D%0D%0A%5Bcpp%5Dint%20x%20%3D%201%3B%5B%2Fcpp%5D%0D%0A%5Bcolor%3D%23FF0000%5Dred%5B%2Fcolor%5D%0D%0A%5Blist%5D%5B%2A%5Ditem%20one%5B%2A%5Ditem%20two%5B%2Flist%5D%0D%0A%5Bb%5D%5Bi%5Dnested%5B%2Fi%5D%5B%2Fb%5D%0D%0Aplain%20%3Cb%3Ehtml%3C%2Fb%3E%20%26%20%22quotes%22%0D%0A%5Bb%5Dunclosed%20bold&emaill=0&hash_check=0123456789abcdef0123456789abcdef01234567&new=0&numrep=&numreponse=1980885616&owntopic=0&p=1&page=1&parents=&password=&post=3207675&pseudo=user2&search_smilies=&signature=0&smiley=0&sond=0&sondage=0&stickold=&submit=Valider%20votre%20message&sujet=fixture-test-2&verifrequet=1100&wysiwyg=0",
+        "contentType" : "application/x-www-form-urlencoded; charset=utf-8",
+        "method" : "POST",
+        "pairs" : [
+          [
+            "ColorUsedMem",
+            ""
+          ],
+          [
+            "MsgIcon",
+            "1"
+          ],
+          [
+            "cache",
+            ""
+          ],
+          [
+            "cat",
+            "prive"
+          ],
+          [
+            "config",
+            "hfr.inc"
+          ],
+          [
+            "content_form",
+            "fixture-test 2, BBCode round trip\r\n[b]bold[/b]\r\n[i]italic[/i]\r\n[u]underline[/u]\r\n[strike]strike[/strike]\r\n[spoiler]spoiler text[/spoiler]\r\n[quote]quoted text[/quote]\r\n[url]https://forum.hardware.fr/[/url]\r\n[url=https://forum.hardware.fr/]link text[/url]\r\n[img]https://forum-images.hardware.fr/icones/smilies/jap.gif[/img]\r\n[fixed]fixed   text  <tag> & amp[/fixed]\r\n[code]code   text[/code]\r\n[cpp]int x = 1;[/cpp]\r\n[color=#FF0000]red[/color]\r\n[list][*]item one[*]item two[/list]\r\n[b][i]nested[/i][/b]\r\nplain <b>html</b> & \"quotes\"\r\n[b]unclosed bold"
+          ],
+          [
+            "emaill",
+            "0"
+          ],
+          [
+            "hash_check",
+            "0123456789abcdef0123456789abcdef01234567"
+          ],
+          [
+            "new",
+            "0"
+          ],
+          [
+            "numrep",
+            ""
+          ],
+          [
+            "numreponse",
+            "1980885616"
+          ],
+          [
+            "owntopic",
+            "0"
+          ],
+          [
+            "p",
+            "1"
+          ],
+          [
+            "page",
+            "1"
+          ],
+          [
+            "parents",
+            ""
+          ],
+          [
+            "password",
+            ""
+          ],
+          [
+            "post",
+            "3207675"
+          ],
+          [
+            "pseudo",
+            "user2"
+          ],
+          [
+            "search_smilies",
+            ""
+          ],
+          [
+            "signature",
+            "0"
+          ],
+          [
+            "smiley",
+            "0"
+          ],
+          [
+            "sond",
+            "0"
+          ],
+          [
+            "sondage",
+            "0"
+          ],
+          [
+            "stickold",
+            ""
+          ],
+          [
+            "submit",
+            "Valider votre message"
+          ],
+          [
+            "sujet",
+            "fixture-test-2"
+          ],
+          [
+            "verifrequet",
+            "1100"
+          ],
+          [
+            "wysiwyg",
+            "0"
+          ]
+        ],
+        "url" : "https://forum.hardware.fr/bdd.php?config=hfr.inc"
+      },
+      "postedContent" : "fixture-test 2, BBCode round trip\n[b]bold[/b]\n[i]italic[/i]\n[u]underline[/u]\n[strike]strike[/strike]\n[spoiler]spoiler text[/spoiler]\n[quote]quoted text[/quote]\n[url]https://forum.hardware.fr/[/url]\n[url=https://forum.hardware.fr/]link text[/url]\n[img]https://forum-images.hardware.fr/icones/smilies/jap.gif[/img]\n[fixed]fixed   text  <tag> & amp[/fixed]\n[code]code   text[/code]\n[cpp]int x = 1;[/cpp]\n[color=#FF0000]red[/color]\n[list][*]item one[*]item two[/list]\n[b][i]nested[/i][/b]\nplain <b>html</b> & \"quotes\"\n[b]unclosed bold",
+      "raisedInLegacy" : [
+
+      ],
+      "smileys" : [
+
+      ],
+      "subcats" : [
+
+      ],
+      "username" : "user2"
+    },
+    "live" : {
+      "composerContext" : {
+        "isSubcategoryEditable" : false,
+        "isSubjectEditable" : true,
+        "recipient" : null,
+        "selectedSubcategoryID" : null,
+        "subcategoryOptions" : [
+
+        ],
+        "subject" : "fixture-test-2"
+      },
+      "post" : {
+        "bodyBytes" : 1175,
+        "bodyOrder" : "unspecified (Swift Dictionary iteration)",
+        "bodySorted" : "ColorUsedMem=&MsgIcon=1&cache=&cat=prive&config=hfr.inc&content_form=fixture-test+2,+BBCode+round+trip%0D%0A%5Bb%5Dbold%5B/b%5D%0D%0A%5Bi%5Ditalic%5B/i%5D%0D%0A%5Bu%5Dunderline%5B/u%5D%0D%0A%5Bstrike%5Dstrike%5B/strike%5D%0D%0A%5Bspoiler%5Dspoiler+text%5B/spoiler%5D%0D%0A%5Bquote%5Dquoted+text%5B/quote%5D%0D%0A%5Burl%5Dhttps://forum.hardware.fr/%5B/url%5D%0D%0A%5Burl%3Dhttps://forum.hardware.fr/%5Dlink+text%5B/url%5D%0D%0A%5Bimg%5Dhttps://forum-images.hardware.fr/icones/smilies/jap.gif%5B/img%5D%0D%0A%5Bfixed%5Dfixed+++text++%3Ctag%3E+%26+amp%5B/fixed%5D%0D%0A%5Bcode%5Dcode+++text%5B/code%5D%0D%0A%5Bcpp%5Dint+x+%3D+1;%5B/cpp%5D%0D%0A%5Bcolor%3D%23FF0000%5Dred%5B/color%5D%0D%0A%5Blist%5D%5B*%5Ditem+one%5B*%5Ditem+two%5B/list%5D%0D%0A%5Bb%5D%5Bi%5Dnested%5B/i%5D%5B/b%5D%0D%0Aplain+%3Cb%3Ehtml%3C/b%3E+%26+%22quotes%22%0D%0A%5Bb%5Dunclosed+bold&delete=0&emaill=0&hash_check=0123456789abcdef0123456789abcdef01234567&new=0&numrep=&numreponse=1980885616&owntopic=0&p=1&page=1&parents=&password=&post=3207675&pseudo=user2&search_smilies=&signature=0&smiley=0&sond=0&sondage=0&stickold=&subcat=0&submit=Valider+votre+message&sujet=fixture-test-2&verifrequet=1100&wysiwyg=0",
+        "contentType" : "application/x-www-form-urlencoded; charset=utf-8",
+        "method" : "POST",
+        "pairs" : [
+          [
+            "ColorUsedMem",
+            ""
+          ],
+          [
+            "MsgIcon",
+            "1"
+          ],
+          [
+            "cache",
+            ""
+          ],
+          [
+            "cat",
+            "prive"
+          ],
+          [
+            "config",
+            "hfr.inc"
+          ],
+          [
+            "content_form",
+            "fixture-test 2, BBCode round trip\r\n[b]bold[/b]\r\n[i]italic[/i]\r\n[u]underline[/u]\r\n[strike]strike[/strike]\r\n[spoiler]spoiler text[/spoiler]\r\n[quote]quoted text[/quote]\r\n[url]https://forum.hardware.fr/[/url]\r\n[url=https://forum.hardware.fr/]link text[/url]\r\n[img]https://forum-images.hardware.fr/icones/smilies/jap.gif[/img]\r\n[fixed]fixed   text  <tag> & amp[/fixed]\r\n[code]code   text[/code]\r\n[cpp]int x = 1;[/cpp]\r\n[color=#FF0000]red[/color]\r\n[list][*]item one[*]item two[/list]\r\n[b][i]nested[/i][/b]\r\nplain <b>html</b> & \"quotes\"\r\n[b]unclosed bold"
+          ],
+          [
+            "delete",
+            "0"
+          ],
+          [
+            "emaill",
+            "0"
+          ],
+          [
+            "hash_check",
+            "0123456789abcdef0123456789abcdef01234567"
+          ],
+          [
+            "new",
+            "0"
+          ],
+          [
+            "numrep",
+            ""
+          ],
+          [
+            "numreponse",
+            "1980885616"
+          ],
+          [
+            "owntopic",
+            "0"
+          ],
+          [
+            "p",
+            "1"
+          ],
+          [
+            "page",
+            "1"
+          ],
+          [
+            "parents",
+            ""
+          ],
+          [
+            "password",
+            ""
+          ],
+          [
+            "post",
+            "3207675"
+          ],
+          [
+            "pseudo",
+            "user2"
+          ],
+          [
+            "search_smilies",
+            ""
+          ],
+          [
+            "signature",
+            "0"
+          ],
+          [
+            "smiley",
+            "0"
+          ],
+          [
+            "sond",
+            "0"
+          ],
+          [
+            "sondage",
+            "0"
+          ],
+          [
+            "stickold",
+            ""
+          ],
+          [
+            "subcat",
+            "0"
+          ],
+          [
+            "submit",
+            "Valider votre message"
+          ],
+          [
+            "sujet",
+            "fixture-test-2"
+          ],
+          [
+            "verifrequet",
+            "1100"
+          ],
+          [
+            "wysiwyg",
+            "0"
+          ]
+        ],
+        "url" : "https://forum.hardware.fr/bdd.php?config=hfr.inc"
+      },
+      "postedContent" : "fixture-test 2, BBCode round trip\n[b]bold[/b]\n[i]italic[/i]\n[u]underline[/u]\n[strike]strike[/strike]\n[spoiler]spoiler text[/spoiler]\n[quote]quoted text[/quote]\n[url]https://forum.hardware.fr/[/url]\n[url=https://forum.hardware.fr/]link text[/url]\n[img]https://forum-images.hardware.fr/icones/smilies/jap.gif[/img]\n[fixed]fixed   text  <tag> & amp[/fixed]\n[code]code   text[/code]\n[cpp]int x = 1;[/cpp]\n[color=#FF0000]red[/color]\n[list][*]item one[*]item two[/list]\n[b][i]nested[/i][/b]\nplain <b>html</b> & \"quotes\"\n[b]unclosed bold",
+      "requests" : [
+        {
+          "method" : "GET",
+          "url" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207675&numreponse=1980885616&page=1&p=1&subcat=0&sondage=0&owntopic=0"
+        },
+        {
+          "method" : "POST",
+          "url" : "https://forum.hardware.fr/bdd.php?config=hfr.inc"
+        }
+      ],
+      "result" : {
+        "ok" : true,
+        "refreshAnchor" : "t1002",
+        "refreshURL" : "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=1000&page=1#t1002",
+        "statusMessage" : "Votre message a bien été pris en compte."
+      }
+    }
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

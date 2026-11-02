@@ -6,7 +6,7 @@
 - **Builds on:** LOT-061 (blocklist), LOT-063 (drafts), LOT-065 (accounts), LOT-064 (`AccountKey`), all done; ADR 0013 §7 (frozen account key).
 
 ## Sources
-- Legacy francoisgn/hfrnow at `2440d79`: `Classes/BlackList.m:130-143` (`findIndexFor:`: U+200B removed, lower-cased, exact compare). No other legacy code compares pseudos for these stores.
+- Legacy ezzz/HFRnow at `2440d79`: `Classes/BlackList.m:130-143` (`findIndexFor:`: U+200B removed, lower-cased, exact compare). No other legacy code compares pseudos for these stores.
 - The three copies this lot replaces: `PseudoNormalizer` (LOT-061: U+200B removed, lower-cased), `DraftNameNormalizer` (LOT-063: the same), `AccountBook.normalized` + `samePseudo` (LOT-065: every format character removed, white space trimmed, compared lower-cased).
 - ADR 0013 §7: the account key is frozen at "U+200B removed, then lower-cased, nothing else"; LOT-064's `AccountKey.make` is that function and stays as is.
 - No HFR page is involved: no capture, no protocol fact (nothing for HFR-PROTOCOL §6c).
