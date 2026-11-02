@@ -4910,6 +4910,15 @@ struct MessagesView: View {
         page < currentMaxPage && isWebContentAtBottom
     }
 
+    /// One prominent bottom-bar button per topic view (HIG Toolbars); see `TopicBottomBarEmphasis`.
+    private var bottomBarEmphasis: TopicBottomBarEmphasis {
+        TopicBottomBarEmphasis.resolve(
+            isInSearchMode: isInSearchMode,
+            isNextPagePromoted: shouldPromoteBottomNextPageButton,
+            isReplyButtonVisible: !shouldHideReplyComposerButton
+        )
+    }
+
     private var bottomPreviousPageButton: some View {
         Button {
             navigateToPreviousPageFromBottomButton()
@@ -4942,7 +4951,7 @@ struct MessagesView: View {
                 .font(.system(size: 14, weight: .semibold))
         }
         .disabled(page >= currentMaxPage)
-        .topicBottomBarCircularIconButtonStyle(isProminent: true)
+        .topicBottomBarCircularIconButtonStyle(isProminent: bottomBarEmphasis == .nextPage)
         .legacyPageButtonSpacing(edge: .leading)
         .bottomBarStableHitTarget()
         .accessibilityLabel("Page suivante")
@@ -5581,7 +5590,7 @@ struct MessagesView: View {
                                     } label: {
                                         Image(systemName: "arrow.forward")
                                     }
-                                    .topicBottomBarButtonStyle(isProminent: true)
+                                    .topicBottomBarButtonStyle(isProminent: bottomBarEmphasis == .searchNext)
                                     .disabled(isAdvancingSearchResults || lastSearchFormSnapshot.isEmpty)
                                     .accessibilityLabel("Résultat suivant")
                                 }
@@ -5599,7 +5608,7 @@ struct MessagesView: View {
                                         Image(systemName: "arrow.clockwise")
                                             .font(.system(size: 14, weight: .semibold))
                                     }
-                                    .topicBottomBarCircularIconButtonStyle(isProminent: true)
+                                    .topicBottomBarCircularIconButtonStyle(isProminent: false)
                                     .bottomBarStableHitTarget()
                                     .accessibilityLabel("Actualiser")
                                     .transition(.opacity.combined(with: .scale))
@@ -5614,7 +5623,7 @@ struct MessagesView: View {
                                         Image(systemName: replyButtonSystemImage)
                                             .font(.system(size: 14, weight: .semibold))
                                     }
-                                    .topicBottomBarButtonStyle(isProminent: false)
+                                    .topicBottomBarButtonStyle(isProminent: bottomBarEmphasis == .reply)
                                     .bottomBarStableHitTarget()
                                     .accessibilityLabel("Répondre")
                                 }
@@ -5806,7 +5815,7 @@ struct MessagesView: View {
                             } label: {
                                 Image(systemName: "arrow.forward")
                             }
-                            .topicBottomBarButtonStyle(isProminent: true)
+                            .topicBottomBarButtonStyle(isProminent: bottomBarEmphasis == .searchNext)
                             .disabled(isAdvancingSearchResults || lastSearchFormSnapshot.isEmpty)
                             .accessibilityLabel("Résultat suivant")
                         }
@@ -5819,7 +5828,7 @@ struct MessagesView: View {
                                 Image(systemName: replyButtonSystemImage)
                                     .font(.system(size: 14, weight: .semibold))
                             }
-                            .topicBottomBarButtonStyle(isProminent: false)
+                            .topicBottomBarButtonStyle(isProminent: bottomBarEmphasis == .reply)
                             .bottomBarStableHitTarget()
                             .accessibilityLabel("Répondre")
                         }
