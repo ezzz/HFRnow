@@ -4,8 +4,8 @@ import SwiftUI
 
 // Port of HFRswift/Swift/AppSettingsView.swift (AppSettingsView) @ 2440d79. Differences: each section comes with its lot; only "Général"
 // for now.
-/// What a settings row leads to. Later lots add their cases here (theme: LOT-121, icon: LOT-123) and replace the
-/// placeholder of their case, so the shell does not change again.
+/// What a settings row leads to. Later lots add their cases here (theme: LOT-121, icon: LOT-123) and replace their
+/// case's placeholder in `SettingsDestinationView`, so the shell does not change again.
 enum SettingsDestination: Hashable {
     case theme
     case icon
@@ -65,10 +65,12 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                NavigationLink(value: SettingsDestination.icon) { Text(SettingsDestination.icon.title) }
+                NavigationLink { SettingsDestinationView(destination: .icon) } label: {
+                    Text(SettingsDestination.icon.title)
+                }
             }
             Section("Thème") {
-                NavigationLink(value: SettingsDestination.theme) {
+                NavigationLink { SettingsDestinationView(destination: .theme) } label: {
                     Text(SettingsDestination.theme.title)
                 }
             }
@@ -76,13 +78,20 @@ struct SettingsView: View {
         .listSectionSpacing(general.compactMode ? .custom(8) : .default)
         .navigationTitle("Réglages")
         .navigationBarTitleDisplayMode(.inline)
-        .navigationDestination(for: SettingsDestination.self) { destination in
-            ContentUnavailableView(
-                destination.title, systemImage: destination.symbol,
-                description: Text("Ce réglage arrive dans une prochaine version.")
-            )
-            .navigationTitle(destination.title)
-        }
+    }
+}
+
+/// The screen behind a settings row. Rows link to it directly, not by value: on iPhone the settings screen is presented by
+/// the Plus stack's `navigationDestination(item:)`, and a value pushed from such a screen never resolves.
+struct SettingsDestinationView: View {
+    let destination: SettingsDestination
+
+    var body: some View {
+        ContentUnavailableView(
+            destination.title, systemImage: destination.symbol,
+            description: Text("Ce réglage arrive dans une prochaine version.")
+        )
+        .navigationTitle(destination.title)
     }
 }
 
