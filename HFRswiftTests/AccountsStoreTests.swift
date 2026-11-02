@@ -179,7 +179,7 @@ final class CategoriesFlowViewModelTests: XCTestCase {
         XCTAssertTrue(loader.requests[0].forum === forum)
         XCTAssertEqual(loader.requests[0].flag, .tracked)
 
-        loader.requests[0].completion(ForumTopicsLoadResult(topics: [expectedTopic], newTopicURL: nil), nil)
+        loader.requests[0].completion(ForumTopicsLoadResult(topics: [expectedTopic], newTopicURL: nil, pageInfo: .empty), nil)
         flushMainQueue()
 
         XCTAssertFalse(viewModel.isLoading)
@@ -203,7 +203,7 @@ final class CategoriesFlowViewModelTests: XCTestCase {
 
         let cancellation = NSError(domain: NSURLErrorDomain, code: NSURLErrorCancelled)
         loader.requests[0].completion(nil, cancellation)
-        loader.requests[1].completion(ForumTopicsLoadResult(topics: [expectedTopic], newTopicURL: nil), nil)
+        loader.requests[1].completion(ForumTopicsLoadResult(topics: [expectedTopic], newTopicURL: nil, pageInfo: .empty), nil)
         flushMainQueue()
 
         XCTAssertFalse(viewModel.isLoading)
@@ -220,7 +220,7 @@ final class CategoriesFlowViewModelTests: XCTestCase {
 
         viewModel.load()
         XCTAssertEqual(loader.requests.count, 1)
-        loader.requests[0].completion(ForumTopicsLoadResult(topics: [initialTopic], newTopicURL: nil), nil)
+        loader.requests[0].completion(ForumTopicsLoadResult(topics: [initialTopic], newTopicURL: nil, pageInfo: .empty), nil)
         flushMainQueue()
         XCTAssertEqual(viewModel.topics.count, 1)
 
@@ -271,12 +271,13 @@ private final class ForumTopicsLoaderSpy: ForumTopicsLoading {
     struct Request {
         let forum: Forum
         let flag: TopicListFlag
+        let pageURL: String?
         let completion: ForumTopicsLoadCompletion
     }
 
     private(set) var requests: [Request] = []
 
-    func fetchTopics(for forum: Forum, flag: TopicListFlag, completion: @escaping ForumTopicsLoadCompletion) {
-        requests.append(Request(forum: forum, flag: flag, completion: completion))
+    func fetchTopics(for forum: Forum, flag: TopicListFlag, pageURL: String?, completion: @escaping ForumTopicsLoadCompletion) {
+        requests.append(Request(forum: forum, flag: flag, pageURL: pageURL, completion: completion))
     }
 }
