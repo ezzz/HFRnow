@@ -39,7 +39,16 @@ actor ScriptedPostingSession: PostingSession {
     }
 
     func userKey(now: Date) -> String? {
-        identity
+        if cancelOnIdentityRead { withUnsafeCurrentTask { $0?.cancel() } }
+        return identity
+    }
+
+    /// When set, reading the identity cancels the calling task, as a cancellation landing during that suspension would.
+    private(set) var cancelOnIdentityRead = false
+
+    /// Makes the next identity reads cancel the caller (see `cancelOnIdentityRead`).
+    func cancelCallerOnIdentityRead() {
+        cancelOnIdentityRead = true
     }
 
     /// Installs `login` now, as `adoptLogin` (or a logout, with a nil identity) would between two requests.
