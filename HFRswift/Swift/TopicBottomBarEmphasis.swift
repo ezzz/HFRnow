@@ -8,7 +8,8 @@
 /// Apple HIG, Toolbars: "Only specify one primary action". Before 4.0.5 the topic bottom bar
 /// could show several prominent buttons at once, and at the bottom of the last page the most
 /// visible one was Actualiser rather than Répondre (feedback from Bybifok / moust4ki).
-/// Actualiser is never prominent: pull-to-refresh and the plain button stay available.
+/// Actualiser is never prominent; it stays available as a plain button at the bottom of the
+/// last page (the topic web view has no pull-to-refresh).
 enum TopicBottomBarEmphasis: Equatable {
     /// "Résultat suivant" while browsing search results inside a topic.
     case searchNext
