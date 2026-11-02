@@ -27,6 +27,9 @@ struct TopicListDifferentialTests {
         DifferentialCase("R13c", category: "prive"),
         DifferentialCase("R13u1", category: "prive"),
         DifferentialCase("R13u1b", category: "prive"),
+        DifferentialCase("R95j", category: "prive"),
+        DifferentialCase("R95k", category: "prive"),
+        DifferentialCase("R96a", category: "prive"),
         DifferentialCase("R50b", category: "13"),
         DifferentialCase("R50c", category: nil)
     ]

@@ -70,14 +70,14 @@ Errors (`MPStorageTransportError`) never carry the document text: it holds pseud
 
 ## Fixtures
 Shared corpus, no new file: `R13a`, `R13u1` (list without / with the thread), `R60a` (thread page), `R60b` (edit form,
-its content = the LOT-004 oracle's `contentForm`), `RA5` (not addressed), `RA1` (another thread), `R43a` (another
+its content = the LOT-004 oracle's `contentForm`), `RA5` and `R96b` (not addressed; `R96b` is another account's storage thread at the URL this lot sends), `RA1` (another thread), `R43a` (another
 edit form), `R45b` (new-MP form) → `W10` (create answer), `W15` (edit answer), `W17a` (refusal). Tests that need the
 stored copy after a write serve `R60b` with its `content_form` replaced by the text sent: HFR stores an edit's text as
 sent (`R43a`, X11). One test renames `R60b`'s `sujet` to reach the subject check alone.
 
 **Pending capture** (never hand-built, LESSONS 36):
-- An MP list with the storage thread on page 2 or later, and the "destiné" page for the storage thread itself (#333):
-  the walk is tested with pager values (`MPStorageListWalkTests`), not with pages.
+- An MP list with the storage thread on page 2 or later (#333, not reachable with the kit's accounts): the walk is
+  tested with pager values (`MPStorageListWalkTests`), not with pages.
 - A non-empty document from other clients, near the 64 KiB cap, with U+00A0 or smiley codes (#272).
 - A storage write (`bdd.php` on the storage message) and a storage creation answer: the transport relies on the MP edit
   (`W15`) and MP creation (`W10`) answers of ordinary threads.
@@ -87,7 +87,7 @@ sent (`R43a`, X11). One test renames `R60b`'s `sujet` to reach the subject check
 `MPStorageTransportReadTests`, `MPStorageTransportWriteTests`, `MPStorageListWalkTests` (HFRClientTests),
 `HFREndpointReadTests` (HFRNetworkTests): find on page 1 / not found in one GET / a non-list page / a list served
 from another host; `locateMessage` on `R60a` (oracle `numreponse`, edit link), `RA5`, other pages, a broken paragraph; read through page and form (URLs, no-redirect policy, edit link = `R60b`'s URL, no POST); `RA5`
-stale; another thread; a redirect; a page answered from another host; a rendered text that is not JSON read from the form; another edit form; another subject; an unreadable stored document; a timeout;
+stale; `R96b` (another account's storage thread) stale; another thread; a redirect; a page answered from another host; a rendered text that is not JSON read from the form; another edit form; another subject; an unreadable stored document; a timeout;
 edit-link checks (other message, thread, category, path, `http`, a repeated `post`); save with nothing to write (no
 POST), with an edit (body fields, `bdd.php`, GET-POST-GET), with a concurrent write merged, with a non-BMP value
 refused before the POST, with a read-back that differs or fails, a lost answer (one POST, unconfirmed) and a refusal;

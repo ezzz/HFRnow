@@ -106,6 +106,18 @@ struct MPStorageTransportReadTests {
         #expect(outcome.requests.count == 1)
     }
 
+    @Test func anotherAccountsStorageThreadIsStale() async throws {
+        // `R96b`: user2 opening user1's storage thread with legacy's read URL, the URL this transport sends.
+        let url = try HFREndpoint.privateThreadFirstPage(post: MPStorageCapture.post).url
+        #expect(url.absoluteString == (try Capture.meta("R96b").url))
+        let page = try Capture.response("R96b-mpstorage-thread-other-account-not-addressed", url: url)
+        let outcome = await MPStorageHarness.run([.success(page)]) { transport, session throws(MPStorageTransportError) in
+            try await transport.read(post: MPStorageCapture.post, through: session)
+        }
+        #expect(outcome.error == .notAddressed)
+        #expect(outcome.requests.count == 1)
+    }
+
     @Test func anotherThreadIsNotTheStorage() async throws {
         let page = try Capture.response("RA1-mp-thread-after-create", url: try HFREndpoint.privateThreadFirstPage(post: 1).url)
         let outcome = await MPStorageHarness.run([.success(page)]) { transport, session throws(MPStorageTransportError) in

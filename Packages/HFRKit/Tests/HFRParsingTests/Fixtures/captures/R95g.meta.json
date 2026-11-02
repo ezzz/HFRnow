@@ -1,0 +1,21 @@
+{
+  "id": "R95g",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "GET /message.php?config=hfr.inc&cat=prive&post={post}&page={page}&p=1&subcat=0&sondage=0&owntopic=0&new=0 + Cookie quoteshardwarefr-prive-{post}=%7C<a>%7C<b> (escape()d, as forum2.js quoter() writes it)",
+  "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207675&page=1&p=1&subcat=0&sondage=0&owntopic=0&new=0",
+  "final_url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207675&page=1&p=1&subcat=0&sondage=0&owntopic=0&new=0",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 02 Nov 2026 07:41:45 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "MP composer with the multi-quote cookie in the site JS form (#334); extra cookies: quoteshardwarefr-prive-3207675",
+  "file": "R95g-mp-composer-multiquote-cookie-escaped.html",
+  "private": true
+}
