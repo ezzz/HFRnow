@@ -56,7 +56,8 @@ struct TopicReaderView: View {
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
         .navigationDestination(item: linkedReader) { linked in
-            TopicReaderView(model: linked.model, services: services, composer: composer)
+            // A private conversation reached from a topic offers no reply: MP replies are LOT-128's (no composer in Messages).
+            TopicReaderView(model: linked.model, services: services, composer: linked.model.isPrivateConversation ? nil : composer)
         }
         .onAppear(perform: makeController)
         .task { await model.onAppear() }

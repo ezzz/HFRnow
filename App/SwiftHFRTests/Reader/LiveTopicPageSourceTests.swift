@@ -71,7 +71,7 @@ struct LiveTopicPageSourceTests {
     /// the catalogue's category), never for the path and query the link's author wrote.
     @Test func aCanonicalLinkIsFetchedAsItsTopicNeverAsWritten() async throws {
         let body = try Self.capture("R20-topic-p1-anon.html")
-        let session = MockTransport { request in
+        let session = MockTransport { _ in
             HTTPResponse(statusCode: 200, headers: ["Content-Type": "text/html; charset=utf-8"], url: url(Self.canonical), body: body)
         }
         let source = LiveTopicPageSource(

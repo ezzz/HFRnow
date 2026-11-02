@@ -237,6 +237,19 @@ struct TopicReaderModelTests {
         #expect(reader.action(forLink: url("mailto:someone@example.com"), defaultBrowser: true) == .ignored)
     }
 
+    /// A private conversation linked from a public topic is known as one, so the view gives it no composer (LOT-128).
+    @Test func aPrivateConversationLinkIsKnownAsOne() throws {
+        let reader = model(FakeTopicPages())
+        #expect(!reader.isPrivateConversation)
+        let link = url("https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=prive&post=4242&page=2")
+        guard case .reader(let target) = reader.action(forLink: link, defaultBrowser: false) else {
+            Issue.record("A private conversation link opens in the app")
+            return
+        }
+        reader.follow(target)
+        #expect(try #require(reader.linkedReader).isPrivateConversation)
+    }
+
     /// "Navigateur par défaut" (LOT-119 stores it, LOT-137 applies it): web links go to the system browser; forum topic
     /// links stay in the app either way.
     @Test func theDefaultBrowserSettingSendsWebLinksToTheSystemBrowser() {

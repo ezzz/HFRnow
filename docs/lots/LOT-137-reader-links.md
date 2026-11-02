@@ -62,7 +62,7 @@ Read-only, ezzz/HFRnow `origin/master` at `21173e77` (the default-browser settin
   unusable pages, unknown forums). `SFSafariViewController` and the system browser have their own cookie stores; the app's
   session is never handed to them.
 - A private message link posted in a public topic opens in the reader with the session, as legacy did (`isForumTopicURL`); HFR
-  serves it only to a participant.
+  serves it only to a participant. That reader gets no reply composer (`isPrivateConversation`): MP replies are LOT-128's, the Messages tab has none either.
 
 ## Edge cases
 - A link to the page on screen without an anchor pushes a reader of that page (legacy pushed too); the page bar, refresh and

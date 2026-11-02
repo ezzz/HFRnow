@@ -157,6 +157,13 @@ final class TopicReaderModel {
         )
     }
 
+    /// Whether this reader shows a private conversation (`cat=prive`).
+    var isPrivateConversation: Bool {
+        switch requested.source {
+        case .topic(let topic): topic.category == .privateMessages
+        }
+    }
+
     /// The reader opened by a link was closed (back).
     func closeLinkedReader() {
         linkedReader = nil
