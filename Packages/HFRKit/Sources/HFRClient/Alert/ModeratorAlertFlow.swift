@@ -15,6 +15,9 @@ public struct ModeratorAlertFlow: Sendable {
 
     /// Fetches the alert page at `link` (`MessageActions.alertURL`) through `session`.
     ///
+    /// A session without a usable identity (logged out, or its `md_user` expired) is `notLoggedIn` before any request:
+    /// HFR's alert page without a session (`R89`) would otherwise read as already alerted until #395.
+    ///
     /// LOT-037's `.alertPrepare` classification comes first: a `.hop` with a link or an input is "already alerted"
     /// (legacy rule, `AlerteModoViewController.m:154-160`). Otherwise the page must hold the alert form (LOT-036) with a
     /// `raison` textarea, a non-empty `hash_check`, which is recorded in the session, and an action naming the same
@@ -79,6 +82,8 @@ public struct ModeratorAlertFlow: Sendable {
         guard let target = ModeratorAlertTarget(link) else { throw .invalidLink }
         if Task.isCancelled { throw .network(.cancelled) }
         let seed = await session.hashCheckSeed()
+        // The form would be refused at submit anyway (`checkBeforeSending` needs the seed's identity).
+        guard seed.identity != nil else { throw .notLoggedIn }
         let response: HTTPResponse
         do {
             response = try await session.send(.get(link))

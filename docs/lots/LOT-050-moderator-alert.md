@@ -35,8 +35,10 @@ Code in `Sources/HFRClient/Alert/`, tests in `Tests/HFRClientTests/Alert/`.
    `R21`). A repeated parameter is refused (the server may read either copy). Anything else is `invalidLink`, nothing
    sent. The topic-level `modo.php?…&ref=0` link of `R21` has no `numreponse` and is refused: its page is not captured.
    A private conversation has no alert link (`RA1`-`RA4`), so `cat=prive` is refused too.
-2. **Prepare** — `prepare(link:in:)` GETs the link through the account's session (redirects followed, as for
-   LOT-048's form pages). The final URL must still be a forum page (`invalidLink`). Then, in legacy's order:
+2. **Prepare** — a session without a usable identity (logged out, or its `md_user` expired) is `notLoggedIn` before
+   any request: its form would be refused at submit, and HFR's alert page without a session (`R89`) reads as already
+   alerted until #395. Otherwise `prepare(link:in:)` GETs the link through the account's session (redirects followed, as
+   for LOT-048's form pages). The final URL must still be a forum page (`invalidLink`). Then, in legacy's order:
    - LOT-037 `.alertPrepare`: `alreadyAlerted` gives `ModeratorAlertPage.alreadyAlerted(message:)` with HFR's own sentence,
      never a fixed text; `loggedOut` (`W17c`'s sentence) is `notLoggedIn`;
    - otherwise the page must hold the alert form (LOT-036 `parseModerationForm` and `moderationLayout`) with a `raison`
@@ -93,7 +95,7 @@ Captures only: `R46` and its LOT-004 oracle (form, POST), `R21` (link); `R88` (a
 Small fragments give the form rules' inputs (empty token, no `raison`, another action).
 
 - `ModeratorAlertPrepareTests`: `R21`'s link of message 2666649 is `R46`'s request; the prepared form equals the oracle
-  (inputs, submit URL), one GET, token recorded; already alerted with HFR's sentence (`R88` and three pages of the same
+  (inputs, submit URL), one GET, token recorded; a logged-out session refused before any request; already alerted with HFR's sentence (`R88` and three pages of the same
   shape); logged out; no form; empty token;
   no `raison`; four actions refused; nine links refused before any request; an off-forum redirect refused for a form and
   for a `.hop` page; the public entry point sends through the account's session.
@@ -110,7 +112,7 @@ Shown to fail with the behaviour removed (each mutation caught): no already-aler
 accepted, the action of another message accepted, an empty token accepted, LOT-037's refusal read on the answer,
 non-BMP characters sent, redirects followed on the POST, any `cat` accepted, no `raison` check, the logged-out page read
 as already alerted, line breaks sent as LF, a blank reason sent, no identity check before the POST, no cancellation
-check after it, the login generation compared instead of the identity.
+check after it, the login generation compared instead of the identity, no identity check before the GET.
 
 ## Captured since, read by #395
 
@@ -119,5 +121,6 @@ is tested above. The rest is #395's (LOT-037's classifier), and this lot keeps i
 - `W46`, HFR's answer to a submitted alert ("Un message a été envoyé avec succès aux modérateurs" with a back link, no
   refresh), is returned as HFR's text, not as a success.
 - `R89`, the alert page without a session, and `W47`, an alert sent without one, say "Vous devez être identifié pour
-  prévenir les modérateurs", which is not `W17c`'s sentence: `R89` reads as already alerted and `W47` as HFR's text, both
-  with that sentence, instead of `notLoggedIn`.
+  prévenir les modérateurs", which is not `W17c`'s sentence. A session known to be logged out never requests the page
+  (step 2); if HFR dropped the session anyway, `R89` reads as already alerted and `W47` as HFR's text, both with that
+  sentence, instead of `notLoggedIn`.

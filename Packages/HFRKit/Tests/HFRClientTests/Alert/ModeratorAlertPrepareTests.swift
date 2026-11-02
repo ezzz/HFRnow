@@ -70,6 +70,16 @@ struct ModeratorAlertPrepareTests {
         #expect(outcome.error == .notLoggedIn)
     }
 
+    @Test("A logged-out session is notLoggedIn before any request (R89 would read as already alerted until #395)")
+    func loggedOutSession() async throws {
+        let session = ScriptedPostingSession([try ModeratorAlertHarness.formPage()])
+        await session.adoptLogin(ConcurrentLogin(identity: nil, hashCheck: ""))
+        await #expect(throws: ModeratorAlertError.notLoggedIn) {
+            try await ModeratorAlertFlow().prepare(link: ModeratorAlertHarness.link, through: session)
+        }
+        #expect(await session.requests.isEmpty)
+    }
+
     @Test("A page with neither the form nor a .hop (R20) is formUnavailable")
     func noForm() async throws {
         let page = Result<HTTPResponse, NetworkError>.success(try Capture.response("R20-topic-p1-anon", url: ModeratorAlertHarness.link))
@@ -151,8 +161,13 @@ struct ModeratorAlertPrepareTests {
 
     @Test("The public entry point requests through the account's session: a loopback-only session sends nothing out")
     func publicEntryPoint() async {
+        // The account holds its identity cookie, but this session may only contact the loopback host.
+        let now = Date()
+        let identity = StoredCookie(
+            name: "md_user", value: "user2", domain: ".hardware.fr", path: "/", expiresDate: now.addingTimeInterval(86_400)
+        )
         let session = HFRSession(
-            cookies: [], hashCheck: "token", now: Date(), configuration: .ephemeral, hosts: .exactHost("127.0.0.1")
+            cookies: [identity], hashCheck: "token", now: now, configuration: .ephemeral, hosts: .exactHost("127.0.0.1")
         )
         do throws(ModeratorAlertError) {
             _ = try await ModeratorAlertFlow().prepare(link: ModeratorAlertHarness.link, in: session)
