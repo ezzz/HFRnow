@@ -96,6 +96,8 @@ Details and exit criteria: [roadmap](docs/ROADMAP.md).
 | ⚙️ M3 · Engine complete: every `HFRKit` lot, parity gates green | [#324](https://github.com/ezzz/HFRnow/issues/324) | 25 of 43 |
 | 🏁 M4 · Final version: full legacy parity, iOS 27 experience, App Store | [#324](https://github.com/ezzz/HFRnow/issues/324) | 0 of 31 |
 
+A fifth milestone, **🧪 M5 · UX evolutions**, is only a proposal ([#379](https://github.com/ezzz/HFRnow/issues/379), blocked until the contributors agree). It would gather the UX changes that parity does not need, so that M1–M4 ship the legacy UX.
+
 The boards are kanbans: each lot is one issue with its own definition of done, shown as 🔜 todo, 🔄 ongoing or ✅ done.
 
 ## Architecture
@@ -158,6 +160,7 @@ flowchart LR
 | [docs/agents/](docs/agents/) | Agent process: parallel sessions, review rounds, lessons |
 | [docs/audit/](docs/audit/README.md) · [docs/research/](docs/research/) | Reference material: the legacy audit and its open questions, external comparisons |
 | [docs/migration/GAP-LEGACY-VS-SWIFT.md](docs/migration/GAP-LEGACY-VS-SWIFT.md) | Gap report legacy app vs SwiftHFR final form (M1–M4), one row per feature, input of the UI convergence; images in `docs/assets/gap-legacy-vs-swift-*.png` |
+| [docs/migration/UX-DECISIONS-PENDING.md](docs/migration/UX-DECISIONS-PENDING.md) | The A/B UX decisions (UXD-NN) the operator and contributors must make (directive H.3); deleted once they are recorded |
 | [docs/migration/EZZZ-CUTOVER.md](docs/migration/EZZZ-CUTOVER.md) | One-off runbook of the move to `ezzz/HFRnow`; deleted once its outcome is recorded in ADR 0010 |
 
 ## Getting started

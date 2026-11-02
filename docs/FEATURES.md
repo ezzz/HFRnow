@@ -16,6 +16,8 @@ Every feature and lot follows these; a proposal that breaks one needs the operat
 - **Defaults keep the legacy UX; changes are opt-in settings** (operator, 2026-10-28). Example: one-to-one and group MPs in one list by default, two lists with a switch as a setting ([LOT-171, #297](https://github.com/ezzz/HFRnow/issues/297)).
 - **HFR links stay in the app** (operator, 2026-10-28). A link to a forum page, including the app's own topics in About, opens in the app's reader, not in Safari ([LOT-095, #187](https://github.com/ezzz/HFRnow/issues/187) routes the link, [LOT-137, #227](https://github.com/ezzz/HFRnow/issues/227) opens it in the reader; About: [LOT-120, #211](https://github.com/ezzz/HFRnow/issues/211)).
 
+**Classification (directive H.1, 2026-11-01).** Every FEAT is a UX evolution (b). Those that parity does not need are proposed for the conditional milestone M5 ([#379](https://github.com/ezzz/HFRnow/issues/379)), and the A/B choices are in [UX-DECISIONS-PENDING.md](migration/UX-DECISIONS-PENDING.md). The Phase and Status columns below do not change until that agreement is recorded.
+
 ## Proposed by Bybifok (2026-10-26)
 
 Source: Bybifok's proposal message, PRs [ezzz/HFRnow#3–#6](https://github.com/ezzz/HFRnow/pulls) and prototype [moust4ki/ultra-hfr](https://github.com/moust4ki/ultra-hfr). Inventory and evidence: [research/bybifok-proposals.md](research/bybifok-proposals.md).

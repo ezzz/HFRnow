@@ -146,6 +146,14 @@ real page (`R28`) requests only forum images before a tap.
    (Bybifok's findings #5–#7).
 5. No prefetch: legacy loaded neighbouring pages with the shared jar and marked flags read.
 
+## UX evolutions (H.1)
+Classification of directive H.1 (2026-11-01): the `H.1` column of [GAP-LEGACY-VS-SWIFT.md](../migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1). The open choices are in [UX-DECISIONS-PENDING.md](../migration/UX-DECISIONS-PENDING.md). The code names its legacy counterparts in `// Port of …` comments (AGENTS.md §4), added by [#378](https://github.com/ezzz/HFRnow/pull/378).
+- GAP-056 policy C, GAP-058 videos on tap: `b·needed` (operator 2026-10-27, LOT-071), **UXD-12** only confirms the image-setting default.
+- GAP-051 one-line message header instead of the grey band with "+": `b`, shipped, pending **UXD-09** (recommendation: legacy band by default, the new one as a "Style des messages" value).
+- GAP-008 tab bar visible in the reader: `b`, shipped, pending **UXD-02** (recommendation: hide it, as legacy).
+- GAP-060 page bar instead of ‹ › and the "…" menu: `b`, shipped, pending **UXD-10**.
+- GAP-053 body on `-apple-system-body`: `b·operator` (LOT-169, **UXD-13**). GAP-050, 055, 064: `a`.
+
 ## Learnings
 
 - `WKWebpagePreferences.allowsContentJavaScript = false` keeps user scripts of another `WKContentWorld` and their message channel
