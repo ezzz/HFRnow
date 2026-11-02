@@ -129,13 +129,13 @@ trimmed, the reply's "unconfirmed" text on an MP; after the Fable round: a subje
 
 ## UX evolutions (H.1)
 
-Rows of [GAP-LEGACY-VS-SWIFT.md](../migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1); open choices in
-[UX-DECISIONS-PENDING.md](../migration/UX-DECISIONS-PENDING.md).
+Rows of [GAP-LEGACY-VS-SWIFT.md](../migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1); the decision of each UXD row
+(2026-11-02) is in [the decisions table](../migration/GAP-LEGACY-VS-SWIFT.md#ux-decisions-of-2026-11-02).
 - GAP-115 MP reply: `a`, the LOT-084 composer on a conversation.
-- GAP-114 new MP: pending **UXD-20**, whose recommendation keeps one recipient from a message and moves the list and
-  profile entries to M5 (split `128b` in `docs/LOTS.md`). The list button is ObjC parity (`HFRMPViewController.m:511,537`,
-  table above), not a new entry; several recipients are not a feature here, the field is HFR's own one-line `dest`. The
-  operator decides on #219 whether the list button stays in this lot.
+- GAP-114 new MP: **UXD-20, decided 2026-11-02**: the "Nouveau message" button of the MP list stays in this lot (legacy
+  `HFRMPViewController.m:511,537`, table above; it shipped in #398) and the recipient stays one, from a message. Several
+  recipients and the entry from profiles go to M5 (LOT-182, #422); mark unread stays in LOT-127, thread deletion and
+  group members go to LOT-181 (#421).
 
 ## Learnings
 
