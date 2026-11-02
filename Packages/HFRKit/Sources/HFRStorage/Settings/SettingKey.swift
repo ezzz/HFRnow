@@ -15,11 +15,11 @@ public enum SettingKey {
         decode: { SettingCoercion.int($0).map(FavoritesSource.legacyDecode) },
         // The legacy seed and `@AppStorage` hold a string; `integerForKey:` coerces it.
         encode: { .string(String($0.rawValue)) }
-    )
+    ).synced
     /// `sujets_avec_cat`: group favorites by category.
-    public static let favoritesGroupedByCategory = Setting.bool("sujets_avec_cat", default: true)
+    public static let favoritesGroupedByCategory = Setting.bool("sujets_avec_cat", default: true).synced
     /// `favorites_auto_refresh`.
-    public static let favoritesAutoRefresh = Setting.bool("favorites_auto_refresh", default: false)
+    public static let favoritesAutoRefresh = Setting.bool("favorites_auto_refresh", default: false).synced
 
     // MARK: Interface
 
@@ -62,20 +62,20 @@ public enum SettingKey {
     public static let privateMessageBadge = Setting.bool("mp_badge_enabled", default: true)
     /// `HFRswiftStartupScreen` (`Common.swift:32-37`): an unknown value falls back to the favourites default, like
     /// `AppStartupScreen.rootTab(for:)`. Added by LOT-119, which owns the settings screen.
-    public static let startupScreen = Setting.stringEnum("HFRswiftStartupScreen", default: StartupScreen.favorites)
+    public static let startupScreen = Setting.stringEnum("HFRswiftStartupScreen", default: StartupScreen.favorites).synced
     /// `open_links_in_default_browser` (`Common.swift:239-241`): follow external links in the system browser instead of
     /// the in-app one. Added by LOT-119.
-    public static let opensLinksInDefaultBrowser = Setting.bool("open_links_in_default_browser", default: false)
+    public static let opensLinksInDefaultBrowser = Setting.bool("open_links_in_default_browser", default: false).synced
 
     // MARK: Theme
 
     /// `auto_theme`: 0 manual, 3 follow the system; any other stored value is normalised to the system mode
     /// (`normalizeThemeDefaultsIfNeeded`, `Common.swift:276-283`).
-    public static let autoTheme = Setting.integerEnum("auto_theme", default: AutoThemeMode.system, fallback: { _ in .system })
+    public static let autoTheme = Setting.integerEnum("auto_theme", default: AutoThemeMode.system, fallback: { _ in .system }).synced
     /// `theme`: the manual variant; legacy treats anything but 1 as light (`Common.swift:316-318`).
-    public static let manualTheme = Setting.integerEnum("theme", default: ThemeVariant.light, fallback: { _ in .light })
+    public static let manualTheme = Setting.integerEnum("theme", default: ThemeVariant.light, fallback: { _ in .light }).synced
     /// `theme_style`.
-    public static let themeStyle = Setting.integerEnum("theme_style", default: ThemeStyle.modern)
+    public static let themeStyle = Setting.integerEnum("theme_style", default: ThemeStyle.modern).synced
     /// `theme_day_color_action`: nil means the computed default.
     public static let dayActionColor = colorSetting("theme_day_color_action")
     /// `theme_night_color_action`.
@@ -89,21 +89,21 @@ public enum SettingKey {
     /// `theme_night_color_superfavori`.
     public static let nightSuperFavoriteColor = colorSetting("theme_night_color_superfavori")
     /// `theme_night_brightness`: nil means the computed default.
-    public static let nightBrightness = Setting.optionalDouble("theme_night_brightness")
+    public static let nightBrightness = Setting.optionalDouble("theme_night_brightness").synced
 
     // MARK: Messages
 
     /// `blacklist_hide_pseudo`: hide blocklisted posts entirely (wire key keeps the legacy name).
-    public static let hideBlocklistedPosts = Setting.bool("blacklist_hide_pseudo", default: false)
+    public static let hideBlocklistedPosts = Setting.bool("blacklist_hide_pseudo", default: false).synced
     /// `filter_posts_quotes`.
     public static let quoteFilterExceptions = Setting(
         key: "filter_posts_quotes",
         defaultValue: QuoteFilterExceptions.standard,
         decode: { SettingCoercion.string($0).map(QuoteFilterExceptions.init(storedString:)) },
         encode: { .string($0.storedString) }
-    )
+    ).synced
     /// `filter_posts_min_quotes`: a value <= 0 reads as 3 (`ParseMessagesOperation.m:341-343`).
-    public static let quoteFilterMinimumCount = Setting.int("filter_posts_min_quotes", default: 3, isValid: { $0 > 0 })
+    public static let quoteFilterMinimumCount = Setting.int("filter_posts_min_quotes", default: 3, isValid: { $0 > 0 }).synced
     /// `size_smileys`: `double` (default) or `default`; the legacy test is `isEqualToString:@"double"`.
     public static let doubleSizeSmileys = Setting(
         key: "size_smileys",
@@ -119,7 +119,7 @@ public enum SettingKey {
         defaultValue: false,
         decode: { SettingCoercion.string($0).map { $0 == "yes" } },
         encode: { .string($0 ? "yes" : "no") }
-    )
+    ).synced
     /// `display_images`. Legacy forced `yes` at every launch with no UI; here it is an ordinary setting whose default is
     /// `wifi` (operator decision for policy C, LOT-071 D-071-1 and LOT-083): third-party images load by themselves on Wi-Fi
     /// only. A value stored by the user or imported from legacy is kept.
@@ -147,9 +147,9 @@ public enum SettingKey {
         encode: { .string($0.queryValue) }
     )
     /// `rehost_use_link`.
-    public static let rehostLinkMode = Setting.integerEnum("rehost_use_link", default: RehostLinkMode.imageWithLink)
+    public static let rehostLinkMode = Setting.integerEnum("rehost_use_link", default: RehostLinkMode.imageWithLink).synced
     /// `rehost_resize_before_upload`.
-    public static let rehostMaxDimension = Setting.integerEnum("rehost_resize_before_upload", default: RehostMaxDimension.px1200)
+    public static let rehostMaxDimension = Setting.integerEnum("rehost_resize_before_upload", default: RehostMaxDimension.px1200).synced
 
     // MARK: Legacy keys
 
@@ -158,22 +158,29 @@ public enum SettingKey {
     /// Pre-`text_size_scale` topic size, read once by the migration (`AppSettingsView.swift:325-335`).
     public static let legacyTopicTextSizeKey = "size_text_topics"
 
-    /// Every key of the catalogue, for tests and diagnostics.
-    public static let allKeys: [String] = [
-        favoritesSource.key, favoritesGroupedByCategory.key, favoritesAutoRefresh.key, compactMode.key,
-        tabBarMinimizesOnScroll.key, textSizeScale.key, textSizePercent.key, haptics.key, landscapeMode.key, appIconName.key,
-        privateMessageBadge.key, startupScreen.key, opensLinksInDefaultBrowser.key, autoTheme.key, manualTheme.key,
-        themeStyle.key, dayActionColor.key, nightActionColor.key, dayLoveColor.key, nightLoveColor.key, daySuperFavoriteColor.key,
-        nightSuperFavoriteColor.key, nightBrightness.key, hideBlocklistedPosts.key, quoteFilterExceptions.key,
-        quoteFilterMinimumCount.key, doubleSizeSmileys.key, embeddedVideos.key, displaySignatures.key,
-        displayImages.key, mpStorageActive.key, mpStorageLastSync.key, searchCategory.key, rehostLinkMode.key,
-        rehostMaxDimension.key
+    /// Every setting of the catalogue with its scope, in catalogue order.
+    public static let all: [any CatalogueSetting] = [
+        favoritesSource, favoritesGroupedByCategory, favoritesAutoRefresh, compactMode,
+        tabBarMinimizesOnScroll, textSizeScale, textSizePercent, haptics, landscapeMode, appIconName,
+        privateMessageBadge, startupScreen, opensLinksInDefaultBrowser, autoTheme, manualTheme, themeStyle,
+        dayActionColor, nightActionColor, dayLoveColor, nightLoveColor, daySuperFavoriteColor,
+        nightSuperFavoriteColor, nightBrightness, hideBlocklistedPosts, quoteFilterExceptions,
+        quoteFilterMinimumCount, doubleSizeSmileys, embeddedVideos, displaySignatures, displayImages, mpStorageActive,
+        mpStorageLastSync, searchCategory, rehostLinkMode, rehostMaxDimension
     ]
 
+    /// Every key of the catalogue, for tests and diagnostics.
+    public static let allKeys: [String] = all.map(\.key)
+
+    /// The keys that sync through the iCloud key-value store (ADR 0013 matrix E).
+    public static let syncedKeys: Set<String> = Set(all.filter { $0.scope == .synced }.map(\.key))
+
+    /// The 7 theme keys sync unchanged (ADR 0013 §8, theme parity).
     private static func colorSetting(_ key: String) -> Setting<ThemeColor?> {
         Setting(
             key: key,
             defaultValue: nil,
+            scope: .synced,
             decode: { SettingCoercion.string($0).flatMap { ThemeColor(serialized: $0) } },
             encode: { $0.map { .string($0.serialized) } }
         )
