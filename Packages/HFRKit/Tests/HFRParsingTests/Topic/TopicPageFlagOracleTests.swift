@@ -47,13 +47,24 @@ struct TopicPageFlagOracleTests {
         html.matches(of: #/href="([^"]*)"/#).map { String($0.output.1).replacing("&amp;", with: "&") }.filter { $0.contains(needle) }
     }
 
+    /// The raw text of the first `tr` whose `class` holds `fondForum2Fonctions`, up to its first `</tr>` (the bar holds no
+    /// nested row on the captures), read without either parser.
+    private func barRow(in html: String) -> String? {
+        guard let open = html.firstMatch(of: #/<tr[^>]*fondForum2Fonctions[^>]*>/#),
+              let close = html[open.range.upperBound...].firstRange(of: "</tr>") else { return nil }
+        return String(html[open.range.lowerBound..<close.lowerBound])
+    }
+
     @Test("Overlap: the removal URL is legacy's isFavoritesOrRead and the red flag is legacy's isRedFlagged", arguments: overlap)
     func sameLinkSameFlag(caseID: String) throws {
         let (oracle, html) = try load(caseID)
         #expect(oracle.exception == nil)
         let legacy = oracle.result.fastAnswer
-        // The precondition of the overlap, checked on the raw page: legacy's link is the first delflag href of the page.
+        // The precondition of the overlap, checked on the raw page: legacy's link is the first delflag href of the page,
+        // and it is also the first delflag href of the function bar, the only place #306 reads.
         #expect(hrefs(containing: "delflag", in: html).first == legacy.isFavoritesOrRead)
+        let bar = try #require(barRow(in: html))
+        #expect(hrefs(containing: "delflag", in: bar).first == legacy.isFavoritesOrRead)
         #expect(!legacy.isUnreadable)
 
         let found = try #require(try TopicPageMetadataParser.parse(html: html, pageURL: oracle.input.currentURL).flag)
@@ -67,6 +78,7 @@ struct TopicPageFlagOracleTests {
         let (oracle, html) = try load(caseID)
         #expect(oracle.result.fastAnswer.isFavoritesOrRead.isEmpty)
         #expect(!oracle.result.fastAnswer.isRedFlagged)
+        #expect(hrefs(containing: "delflag", in: html).isEmpty && hrefs(containing: "nonlu", in: html).isEmpty)
         #expect(try TopicPageMetadataParser.parse(html: html, pageURL: oracle.input.currentURL).flag == nil)
     }
 

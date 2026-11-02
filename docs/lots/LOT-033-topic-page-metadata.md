@@ -54,7 +54,7 @@ a failure is the job of the layer that also sees the messages (LOT-030: no `mess
   A client that keeps the requested URL gets `currentPage > maxPage`; callers clamp if they need to.
 
 ## Fixtures
-Captures (`Fixtures/captures/`) with their oracles (`Fixtures/LOT-003/`), all 20, compared field by field in
+Captures (`Fixtures/captures/`) with their oracles (`Fixtures/LOT-003/`), all 21, compared field by field in
 `TopicPageMetadataOracleTests` (the first test fails when `oracle-map.json` gains a case that is not in the list):
 
 | Ids | Covers |
