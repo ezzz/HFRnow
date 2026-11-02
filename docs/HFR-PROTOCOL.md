@@ -458,6 +458,14 @@ Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `Li
 - **Storage thread of another account** (`R96b`, 2026-11-02): legacy's read URL with a storage `post` the account cannot see (user2 opening user1's) answers 200 with the same "Ce message ne vous est pas destiné, désolé" `.hop` as `RA5`, which `parseMPStorage` treats as "not found". A list page past the last page is an empty list page (`R96a`, §6b).
 - **Pending capture**: a non-empty document (#272); the storage row on page 2 or later (#333: user1's row is row 42 of 50 on page 1 in `R95k`, not reachable with the kit's accounts).
 
+### LOT-052 — MPStorage transport
+
+[LOT-052](lots/LOT-052-mpstorage-transport.md), tests `MPStorageTransportReadTests`, `MPStorageTransportWriteTests`; `R96b` (another account's storage thread, the URL this lot sends) is `notAddressed`, as `RA5`.
+
+- **Edit link** (`R60a` → `R60b`, **verified**): the storage message's toolbar edit link decodes to `R60b`'s URL, `/message.php?config=hfr.inc&cat=prive&post=<post>&numreponse=<first message>&page=1&p=1&subcat=0&sondage=0&owntopic=0`; the form holds `post`, `numreponse`, a visible `sujet` equal to the subject, the boxes as stored (`signature` checked here) and the document in `content_form`, equal to the LOT-004 oracle's `contentForm`.
+- **Empty document** (`R60b`, **verified**): legacy's creation template (`MPStorage.m:740`) decodes to the same document as the one `R60b` holds, every level stamped `iOS` at one instant.
+- **Not captured**: a storage write or creation answer (the MP edit `W15` and creation `W10` answers are used), the edit POST of another account's message (`R44`), and the edit form of a deleted storage message: all pending capture in [#440](https://github.com/ezzz/HFRnow/issues/440).
+
 ### LOT-093 — filtered posts
 
 [LOT-093](lots/LOT-093-filtered-posts.md), tests `FilteredPostsLegacyTests` (LOT-003 oracles) and `FilteredPostsFlowTests`.
