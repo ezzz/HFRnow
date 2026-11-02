@@ -130,7 +130,7 @@ struct AccountRowView: View {
                             .foregroundStyle(.primary)
                         if let status = AccountRowView.statusText(row.status) {
                             Text(status)
-                                .font(.footnote)
+                                .scaledFont(.footnote)
                                 .foregroundStyle(row.status == .expired ? .red : .secondary)
                         }
                     }

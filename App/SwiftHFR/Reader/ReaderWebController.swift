@@ -35,6 +35,14 @@ final class ReaderWebController: NSObject {
 
     let webView: WKWebView
     var events = Events()
+    /// The in-app text size: applied to the shown document at once (no reload) and to every next one from its start (LOT-169).
+    var textScale = TextScale.standard {
+        didSet {
+            guard textScale != oldValue else { return }
+            installUserScripts()
+            applyTextScale()
+        }
+    }
 
     private let imageFetcher: ReaderImageFetcher
     private let autoLoadsThirdPartyImages: @Sendable () -> Bool
@@ -66,13 +74,9 @@ final class ReaderWebController: NSObject {
         configuration.setURLSchemeHandler(proxy, forURLScheme: TopicHTMLBuilder.scheme)
         let messages = MessageProxy()
         configuration.userContentController.addScriptMessageHandler(messages, contentWorld: Self.world, name: Self.channel)
-        if let script = Self.readerScript {
-            configuration.userContentController.addUserScript(
-                WKUserScript(source: script, injectionTime: .atDocumentEnd, forMainFrameOnly: true, in: Self.world)
-            )
-        }
         webView = WKWebView(frame: .zero, configuration: configuration)
         super.init()
+        installUserScripts()
         proxy.owner = self
         messages.owner = self
         webView.navigationDelegate = self
@@ -121,6 +125,33 @@ final class ReaderWebController: NSObject {
         guard let url = Bundle.main.url(forResource: "reader", withExtension: "css") else { return nil }
         return try? Data(contentsOf: url)
     }()
+
+    /// The script that sets the text size of a document before it renders, then `reader.js`; both in the reader's world.
+    private func installUserScripts() {
+        let controller = webView.configuration.userContentController
+        controller.removeAllUserScripts()
+        controller.addUserScript(WKUserScript(
+            source: Self.textScaleScript(textScale), injectionTime: .atDocumentStart, forMainFrameOnly: true, in: Self.world
+        ))
+        if let script = Self.readerScript {
+            controller.addUserScript(
+                WKUserScript(source: script, injectionTime: .atDocumentEnd, forMainFrameOnly: true, in: Self.world)
+            )
+        }
+    }
+
+    /// Sets `--text-scale` (read by `reader.css`) on the shown document's root element.
+    private func applyTextScale() {
+        guard document != nil else { return }
+        let script = Self.textScaleScript(textScale)
+        Task { _ = try? await webView.callAsyncJavaScript(script, arguments: [:], in: nil, contentWorld: Self.world) }
+    }
+
+    /// The script that sets `--text-scale` to `scale`'s factor; a number the app formats, never page text.
+    static func textScaleScript(_ scale: TextScale) -> String {
+        let factor = String(format: "%.2f", locale: Locale(identifier: "en_US_POSIX"), Double(scale.factor))
+        return "document.documentElement.style.setProperty('--text-scale', '\(factor)');"
+    }
 
     private func scroll(to anchor: Int) {
         Task {
@@ -172,6 +203,8 @@ final class ReaderWebController: NSObject {
     }
 
     private func documentIsReady(_ document: ReaderDocument, token: Int) {
+        // A size changed while this document was loading reached the previous one: set it again.
+        applyTextScale()
         if let anchor = document.anchor {
             scroll(to: anchor)
         } else if let offset = savedOffset {
