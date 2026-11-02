@@ -85,9 +85,15 @@ None: no HFR page is read. Tests drive the models over `InMemorySettingsStore` w
 - Settings no longer re-apply theme or re-sync three size keys on every screen appearance (LOT-060 decision 5).
 
 ## UX evolutions (H.1)
-Classification of directive H.1 (2026-11-01): the `H.1` column of [GAP-LEGACY-VS-SWIFT.md](../migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1). The open choices are in [UX-DECISIONS-PENDING.md](../migration/UX-DECISIONS-PENDING.md). The code names its legacy counterparts in `// Port of …` comments (AGENTS.md §4), added by [#378](https://github.com/ezzz/HFRnow/pull/378).
-- GAP-002 start-screen setting and GAP-150 default-browser toggle exist only on `master`, not at `2440d79`: `a·master`, pending **UXD-01** (recommendation: keep, defaults unchanged).
+Classification of directive H.1 (2026-11-01): the `H.1` column of [GAP-LEGACY-VS-SWIFT.md](../migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1). The decision of each UXD row (2026-11-02) is in [the decisions table](../migration/GAP-LEGACY-VS-SWIFT.md#ux-decisions-of-2026-11-02). The code names its legacy counterparts in `// Port of …` comments (AGENTS.md §4), added by [#378](https://github.com/ezzz/HFRnow/pull/378).
+- GAP-002 start-screen setting and GAP-150 default-browser toggle exist only on `master`, not at `2440d79`: `a·master`, decided 2026-11-02, **UXD-01** (recommendation: keep, defaults unchanged).
 - GAP-200 text-size slider: `b·operator`, owned by LOT-169 (**UXD-13**). GAP-201 compact mode, GAP-213 rotation: `a`.
+
+### Decisions of 2026-11-02 (UXD)
+
+Operator decisions on [#379](https://github.com/ezzz/HFRnow/issues/379): every UXD row takes its recommendation. M4 is the validated legacy parity, M5 the evolutions.
+- **UXD-01: B.** The start-screen setting and the default-browser toggle (ezzz's `master`, not `2440d79`) are kept as `a·master`, defaults unchanged.
+- **UXD-13: B.** The text-size slider (LOT-169); 100 / 110 / 120 / 130 % map to the same percentages.
 
 ## Learnings
 - A `@MainActor` default argument (`UIDevice.current`) on a static function makes the whole function main-actor isolated: split the pure part from the one that reads the device.
