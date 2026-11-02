@@ -76,7 +76,11 @@ All in `Packages/HFRKit/Sources/HFRClient/Posting/`, plus `HFRParsing/Forms/HopF
    message a été posté avec succès !", edit "Votre message a été édité avec succès !", delete "Message effacé avec succès !".
    Another confirmation is `unconfirmed(.unexpectedConfirmation)`; `rejected` is `rejected(message:)`; `loggedOut` is
    `notLoggedIn`; anything else (or an unreadable page) `unconfirmed(.unrecognizedAnswer)`. Success returns
-   `PostingResult` (sentence, refresh URL and anchor, `numreponse` of an edited or deleted message).
+   `PostingResult` (sentence, refresh URL and anchor, `numreponse` of an edited or deleted message). Its `refreshRoute`
+   (LOT-095 router) says where HFR sends the user: a new topic refreshes to the **category** list with no topic id
+   (`W40`), so the app opens that list; `deletedWholeTopic` is true for a delete whose answer refreshes to a topic list
+   (`W19` private, `W49` public, whose topic then answers 404, `R92`), false when it refreshes to the topic (a later post,
+   `W16a`, `W32`).
 
 Errors carry no user text, token or cookie; `rejected` and `formUnavailable` carry HFR's sentence, `unsupportedCharacters`
 the refused characters. Every case except `unconfirmed` means nothing was posted.
@@ -108,6 +112,10 @@ state.
   (delete), `W19` (whole thread, confirmed); the body equals the captured `request_body` once legacy's `"0"` boxes are
   dropped and line breaks written CRLF; URL, content type, timeout, no-redirect policy, recorded token, result sentence,
   anchor and `numreponse`. New topic from `R45a`: field order with the select in place.
+- `PostingTopicCaptureTests` (public topic writes, #396): `W40` new topic from `R45a` (field names equal `W40`'s in order,
+  category-list refresh, no topic id), `W41` first-post edit from `R63b` (poll fields sent as served, in `W41`'s order),
+  `W49` first-post delete from `R63b` (refused without the whole-topic confirmation, then confirmed and reported as a
+  topic delete), `deletedWholeTopic` on `W19`/`W49` vs `W16a`/`W32`, and `R92` (the deleted topic's 404) as a form page.
 - `PostingBodyOracleTests` (in `PostingBodyTests.swift`, differential, LOT-004): on the 14 logged-in composers, the fields and values equal legacy's
   `post.pairs` except the unchecked boxes and the token.
 - `PostingRefusalTests`: captured refusals (`W17b`, `W20a`, `W20b`, `W14x`, `W13cx`, `W11x`), `W17c` logged out, another write's
@@ -152,16 +160,18 @@ Not hand-built (LESSONS 36). None blocks the lot; until captured, each state is 
 **MVP priority** in the capture backlog: until they are captured, every public reply, new topic, edit and delete surfaces
 as `unconfirmed` unless HFR answers with LOT-037's success shape (link-less `.hop`, "avec succès", refresh to the forum)
 **and** that write's own confirmation sentence (`PostingAction.confirmation`: reply, new thread, edit or delete, captured on
-private messages, HFR-PROTOCOL §7 E15), and every public delete asks for whole-topic confirmation.
+private messages and public topics, HFR-PROTOCOL §7 E14, E15), and every public delete asks for whole-topic confirmation.
 - **Public-topic answers**: the reply, edit and delete of a later post are captured (`W30`–`W32`, cat 13): the same
   sentences as on private messages, each with a refresh, so LOT-037 classifies them `success` and the per-write sentence
-  check confirms them (`HopResponseParserTests`). The public **new-topic** answer is still pending: until captured it is a
-  success only with LOT-037's `success` and its own sentence, otherwise `unconfirmed`.
+  check confirms them (`HopResponseParserTests`). The public **new-topic** answer is captured too (`W40`, E14): same
+  sentence as a new MP, refresh to the category list, no topic id (`PostingTopicCaptureTests`).
 - **Public edit form of a first post**: now captured (`R63b`, own topic): visible `sujet` and "Effacer l'intégralité du sujet",
   both first-post signs as on `R43a`, and the edit answer (`W34`, `W35`). The engine still asks for whole-topic
   confirmation on every public delete; trusting the signs on public forms is a follow-up decision, not this capture.
-- **Delete of a public topic's first post**: what HFR answers, and whether the whole topic goes (rf2 X1).
-- **New-topic answer** in a forum category: sentence and refresh target (E14).
+- **Delete of a public topic's first post**: captured (`W49`, `R92`, X1): "Message effacé avec succès !", refresh to the
+  sub-category list, the topic is gone (404). Confirmed and reported as `deletedWholeTopic`.
+- **Public first-post forms as served before `W40`'s, `W41`'s and `W49`'s writes**: not captured; their bodies are compared
+  by field names with the closest captured forms (`R45a`, `R63b`), not byte for byte.
 - **Reply form of a locked topic or of a topic the account may not post in** (already listed for LOT-036/037): reported as
   `formUnavailable` with the page's sentence.
 
