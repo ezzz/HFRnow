@@ -24,19 +24,10 @@ struct TopicPageFlagOracleTests {
     private static let folders = ["R33b": "LOT-003-flag", "R61d": "LOT-003-flag", "R61e": "LOT-003-flag",
                                   "R63a": "LOT-003-flag", "R63e": "LOT-003-flag"]
 
-    private struct Oracle: Decodable {
-        struct Input: Decodable { var currentURL: String; var file: String }
-        struct FastAnswer: Decodable { var isFavoritesOrRead: String; var isRedFlagged: Bool; var isUnreadable: Bool }
-        struct Result: Decodable { var fastAnswer: FastAnswer }
-        var exception: String?
-        var input: Input
-        var result: Result
-    }
-
-    private func load(_ caseID: String) throws -> (oracle: Oracle, html: String) {
+    private func load(_ caseID: String) throws -> (oracle: FlagOracle, html: String) {
         let folder = "Fixtures/" + (Self.folders[caseID] ?? "LOT-003")
         let json = try Fixture.text("\(caseID).oracle", extension: "json", subdirectory: folder)
-        let oracle = try JSONDecoder().decode(Oracle.self, from: Data(json.utf8))
+        let oracle = try JSONDecoder().decode(FlagOracle.self, from: Data(json.utf8))
         // `input.file` is `../captures/<name>.html`, relative to the oracle folder.
         let name = try #require(oracle.input.file.split(separator: "/").last).dropLast(".html".count)
         return (oracle, try Fixture.capture(String(name)))
@@ -104,4 +95,27 @@ struct TopicPageFlagOracleTests {
         }
         #expect(Set(lists) == mapped)
     }
+}
+
+/// The part of a LOT-003 oracle these tests read; every field is required, so an `{exception}` or `null` export fails to decode.
+private struct FlagOracle: Decodable {
+    var exception: String?
+    var input: FlagOracleInput
+    var result: FlagOracleResult
+}
+
+private struct FlagOracleInput: Decodable {
+    var currentURL: String
+    var file: String
+}
+
+private struct FlagOracleResult: Decodable {
+    var fastAnswer: FlagOracleFastAnswer
+}
+
+/// `result.fastAnswer`: what legacy's `setupFastAnswer:` set.
+private struct FlagOracleFastAnswer: Decodable {
+    var isFavoritesOrRead: String
+    var isRedFlagged: Bool
+    var isUnreadable: Bool
 }
