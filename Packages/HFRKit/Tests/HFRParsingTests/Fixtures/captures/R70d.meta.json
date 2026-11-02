@@ -1,0 +1,16 @@
+{
+  "id": "R70d",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/user/editprofil.php?config=hfr.inc&page=5",
+  "url": "https://forum.hardware.fr/user/editprofil.php?config=hfr.inc&page=5",
+  "final_url": "https://forum.hardware.fr/user/editprofil.php?config=hfr.inc&page=5",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Sun, 01 Nov 2026 23:52:41 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "jar with md_user and md_id of user2 and a wrong md_passs (stale session)",
+  "file": "R70d-profile-edit-page5-stale-session.html",
+  "private": false
+}

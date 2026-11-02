@@ -7,15 +7,17 @@ import Testing
 /// Deliberate deviations are listed in `docs/lots/LOT-024-favourites-parser.md`.
 @Suite("Favourites parser, differential against the LOT-002 oracle")
 struct FavoritesDifferentialTests {
-    /// Every `favorites` case of `Fixtures/LOT-002/oracle-map.json` that legacy parsed (R12 raised).
-    static let cases = ["R10", "R11", "P03c", "P03e", "P03g", "P03i", "P03k"]
+    /// Every `favorites` case of `Fixtures/LOT-002/oracle-map.json` that legacy parsed (R12 and the stale-session R70b raised).
+    static let cases = ["R10", "R11", "P03c", "P03e", "P03g", "P03i", "P03k", "R73a"]
+    /// Parsed by legacy, not yet compared: on the `defaut` theme legacy misses the 27 poll icons (R73b), see ezzz/HFRnow#384.
+    static let pendingCases = ["R73b"]
 
     @Test("The case list covers every favourites oracle of the map")
     func coversEveryFavouritesOracle() throws {
         let json = try Fixture.text("oracle-map", extension: "json", subdirectory: "Fixtures/LOT-002")
         let map = try JSONDecoder().decode([String: MapEntry].self, from: Data(json.utf8))
         let names = map.filter { $0.value.kind == "favorites" }.map { String($0.key.dropLast(".html".count)) }
-        #expect(Set(Self.cases + ["R12"]) == Set(names))
+        #expect(Set(Self.cases + Self.pendingCases + ["R12", "R70b"]) == Set(names))
     }
 
     @Test("Page facts and sections match the oracle", arguments: cases)
@@ -93,6 +95,16 @@ struct FavoritesDifferentialTests {
         let page = try FavoritesParser.parse(oracle.capture())
         let expected = try #require(oracle.result).topicsSortedByLastPostDesc.map { "\($0.catID)-\($0.postID)" }
         #expect(page.topicsByLastPost.map { "\($0.topicID?.category.queryValue ?? "?")-\($0.topicID?.topic ?? 0)" } == expected)
+    }
+
+    @Test("A stale-session page is an empty page carrying HFR's message, where legacy raised (R70b)")
+    func staleSessionPage() throws {
+        let oracle = try FavoritesOracle.load("R70b")
+        #expect(oracle.exception == "FavoritesLoadError: Identifiants invalides !")
+        #expect(oracle.result == nil)
+        let page = try FavoritesParser.parse(oracle.capture())
+        #expect(page.notice == "Identifiants invalides !")
+        #expect(page.sections.isEmpty)
     }
 
     @Test("A message page is an empty page carrying HFR's message (R12)")

@@ -164,5 +164,28 @@
     "kind": "search",
     "now": "2026-10-26T03:44:00Z",
     "path": "../captures/R50c-search-no-result-no-cookie.html"
+  },
+  "R70a.html": {
+    "kind": "forums",
+    "path": "../captures/R70a-home-stale-session.html"
+  },
+  "R70b.html": {
+    "kind": "favorites",
+    "now": "2026-11-01T23:52:35Z",
+    "path": "../captures/R70b-favourites-owntopic1-stale-session.html"
+  },
+  "R72b.html": {
+    "kind": "forums",
+    "path": "../captures/R72b-home-after-unlog-without-token.html"
+  },
+  "R73a.html": {
+    "kind": "favorites",
+    "now": "2026-11-01T23:51:00Z",
+    "path": "../captures/R73a-favourites-owntopic1-two-categories.html"
+  },
+  "R73b.html": {
+    "kind": "favorites",
+    "now": "2026-11-01T23:51:23Z",
+    "path": "../captures/R73b-favourites-owntopic1-thirteen-categories.html"
   }
 }

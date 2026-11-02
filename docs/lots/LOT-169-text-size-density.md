@@ -52,8 +52,8 @@ Before this lot the default topic row measured 66.7 pt (9 rows): the default is 
 
 ## Intentional differences from legacy
 
-- A percentage from 70 % (below the default), not four steps from 100 %; it applies to every screen, not only the lists and the message body (CHANGELOG-LEGACY 53).
-- Compact mode applies to every list and also shortens titles, merges the MP meta lines and shrinks markers; legacy only tightened insets and spacing of the favourites and settings (CHANGELOG-LEGACY 54).
+- A percentage from 70 % (below the default), not four steps from 100 %; it applies to every screen, not only the lists and the message body (CHANGELOG-LEGACY 54).
+- Compact mode applies to the topic, favourites, flags and MP lists and also shortens titles, merges the MP meta lines and shrinks markers; legacy only tightened insets and spacing of the favourites and settings (CHANGELOG-LEGACY 55).
 - The reader's size goes through a CSS variable set from the app's content world, not a `<style>` element injected into the page (the reader's CSP refuses `<style>` elements, LOT-083).
 
 ## Not in this lot

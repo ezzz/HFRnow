@@ -47,6 +47,13 @@ gets `Profile field removed.` or, for dates, `01/01/2000`; post count → `100`,
 `01/01/2000` / `01-01-2000 à 00:00`, transaction counts → `0`. Category link texts (`liste_sujet-N.htm`,
 `forum1.php?…cat=`) are never rewritten, so a member named like a word of a category name leaves the category alone.
 
+Run 7 (2026-11-02, `mac/capture-batch` batch 1, ezzz/HFRnow#168, #173, #109, #141, #281, #282, #283, 16 requests,
+read-only apart from one tokenless `unlog.php` GET) logged user1 and user2 in and read their followed lists, then sent
+user2's jar with its own `md_user`/`md_id` and a wrong 32-hex `md_passs` (a stale session; the jar was edited outside the
+repository, nothing was sent to HFR beyond these GETs) to the home, `forum1f.php?owntopic=1` and profile pages 1 and 5.
+`md_passs` was identical after a second login of user2 (compared locally, never printed). The `Set-Cookie` attributes
+of `R74` are written in its meta `note` (values are never kept).
+
 | Id | File | Covers | Row | Lots |
 |---|---|---|---|---|
 | R01 | `R01-home-anon.html` | Home, logged out: 19 categories (incl. `apple`, `ia`), moderator MP links, empty `hash_check` in `#fastsearch` | R01 | 021, 045 |
@@ -183,6 +190,17 @@ gets `Profile field removed.` or, for dates, `01/01/2000`; post count → `100`,
 | W33 | `W33-public-reply-empty-body-rejected.html` | Public reply with an empty body: "Vous devez remplir tous les champs avant de poster ce message" (as `W17a`), nothing posted | P01, W17 | 037, 048 |
 | R60a | `R60a-mpstorage-thread-first-post.html` | user1's MPStorage thread (subject `MP_NAME`) opened with the legacy read URL (`MPStorage.m:766`): one post, `div#para<numreponse>` > `p` holding the JSON document (`"` as `&#034;`, a `div` clear inside the `p`); the live document is the empty structure the legacy app creates (three empty sections, `sourceName` `iOS`, 568 bytes); JSON body kept, see Run 5 | R13, X8 | 038, 052 |
 | R60b | `R60b-mpstorage-edit-form-first-post.html` | Edit form of that first post (toolbar `edit-in` link of R60a), GET only: `hop` form to `/bdd.php?config=hfr.inc`, `numreponse` of the first post, `sujet` = `MP_NAME`, `content_form` = the same JSON as R60a's rendered text, recipient row (aliased) | X8, E23 | 038, 052, 036 |
+| R70a | `R70a-home-stale-session.html` | Home with a stale session (user2's `md_user`/`md_id`, wrong `md_passs`): 200, 1569 bytes (anonymized), `.hop` "Identifiants invalides !", `Refresh: 1; url=/unlog.php?config=hfr.inc`, no `Set-Cookie` | R01 | 044, 047, 092 |
+| R70b | `R70b-favourites-owntopic1-stale-session.html` | `forum1f.php?owntopic=1`, same stale jar: the same bytes as `R70a` | R10 | 024, 092 |
+| R70c | `R70c-profile-edit-page1-stale-session.html` | `editprofil.php?page=1`, same stale jar: the same bytes as `R70a` (no redirect, no `Set-Cookie`) | R55 | 044 |
+| R70d | `R70d-profile-edit-page5-stale-session.html` | Page 5, same stale jar: the same bytes as `R70a` | R55 | 043, 044 |
+| R71a | `R71a-profile-edit-page5-anon.html` | Page 5 without cookies: 200, `.hop` "Mot de passe incorrect !", `Refresh: 1; url=../login.php?config=hfr.inc` | R55 | 043, 044 |
+| R71b | `R71b-profile-edit-page1-anon.html` | Page 1 without cookies: the same `.hop` as `R71a` | R55 | 044 |
+| R72a | (meta only) | `GET /unlog.php?config=hfr.inc` (the `R70a` refresh target, no `codehex`) with a valid jar: 200, empty body, no `Set-Cookie` | — | 044 |
+| R72b | `R72b-home-after-unlog-without-token.html` | Home with the same jar right after `R72a`: still logged in, the same cookie values | R03 | 044 |
+| R73a | `R73a-favourites-owntopic1-two-categories.html` | user2's followed list: two categories, two rows, a closed topic (`lock.gif`) and a poll (`sondage.gif`), `flag1.gif` | R10 | 024, 092 |
+| R73b | `R73b-favourites-owntopic1-thirteen-categories.html` | user1's followed list: 13 categories, 88 rows (27 polls), `favoris.gif` on 84 rows and `flag1.gif` on 4, theme images under `images/defaut/` | R10 | 024, 092 |
+| R74 | (meta only) | Profile page 1 logged in (as `R55-p1`): `md_user` and `md_passs` each set twice, a value for `.hardware.fr` (+30 days) and `deleted` for `.forum.hardware.fr` (expired 1970), see its `note` | R55 | 043, 044 |
 
 ## Not captured
 
