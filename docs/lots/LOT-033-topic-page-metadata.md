@@ -83,10 +83,10 @@ of `transsearch.php`; R52a is a 302 without body), a **locked topic seen by a lo
 trailing text node, a poll **results** page (R33, LOT-026).
 
 ## Intentional differences from legacy
-1. **`maxPage` is the highest number of the pager, not the number in its last child.** Same value on all 20 oracles; a trailing node that
+1. **`maxPage` is the highest number of the pager, not the number in its last child.** Same value on all 21 oracles; a trailing node that
    is not a number (legacy: `intValue` of text = 0, so `maxPage` 1) no longer resets the pager.
 2. **Title whitespace** is HTML-normalised (`Element.text()` collapses runs of spaces and newlines); legacy used the raw text content.
-   Identical on the 20 captures.
+   Identical on the 21 captures.
 3. **The answer URL is restricted to `https://forum.hardware.fr`.** Legacy prefixed any value not starting with `http` with the forum URL
    and accepted any `http…` link, including another host and clear `http`.
 4. **A checked checkbox is any `checked` attribute and the `type` is case-insensitive** (HTML semantics); legacy compared both as exact text.
