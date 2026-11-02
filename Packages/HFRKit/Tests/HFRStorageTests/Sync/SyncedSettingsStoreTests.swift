@@ -40,8 +40,11 @@ import Testing
         local: [String: SettingRawValue] = [:],
         cloud: [String: SyncedValue] = [:],
         identity: String? = "account-1",
-        deviceState: InMemorySmallStorePersistence<SyncDeviceStateDocument> = InMemorySmallStorePersistence()
+        deviceState: InMemorySmallStorePersistence<SyncDeviceStateDocument>? = nil
     ) -> Fixture {
+        // A device that already ran the store for this account, unless the test gives another state.
+        let deviceState = deviceState
+            ?? InMemorySmallStorePersistence(SyncDeviceStateDocument(identityRecorded: true, knownIdentity: identity))
         let localStore = InMemorySettingsStore(local)
         let cloudStore = InMemorySyncedKeyValueStore(cloud, identity: identity)
         let clock = Clock()
@@ -146,14 +149,24 @@ import Testing
         #expect(fixture.deviceState.document?.knownIdentity == nil)
     }
 
-    @Test func aFirstLaunchRecordsTheAccountAndQuarantinesNothing() {
-        let fixture = Self.make(local: [Self.synced: .string("yes")])
+    /// ADR 0013 §5 step 2: the values on the device (a legacy import) meet the cloud's at the first launch.
+    @Test func aFirstLaunchRecordsTheAccountAndRunsTheInitialSyncRule() {
+        let fixture = Self.make(
+            local: [Self.synced: .string("yes"), Self.other: .string("1")],
+            cloud: [Self.other: .string("0")],
+            deviceState: InMemorySmallStorePersistence()
+        )
         #expect(fixture.deviceState.document?.identityRecorded == true)
         #expect(fixture.deviceState.document?.knownIdentity == "account-1")
         #expect(fixture.deviceState.document?.quarantine.isEmpty == true)
         #expect(fixture.local.rawValue(forKey: Self.synced) == .string("yes"))
+        #expect(fixture.cloud.value(forKey: Self.synced) == .string("yes"))
+        #expect(fixture.local.rawValue(forKey: Self.other) == .string("0"))
+        // The next launch changes nothing.
+        fixture.store.setRawValue(.string("no"), forKey: Self.synced)
+        fixture.cloud.removeValue(forKey: Self.other)
         _ = fixture.relaunched()
-        #expect(fixture.local.rawValue(forKey: Self.synced) == .string("yes"))
+        #expect(fixture.local.rawValue(forKey: Self.other) == .string("0"))
     }
 
     /// A first sign-in: values written without an Apple ID belong to none, so they stay and meet the cloud's.

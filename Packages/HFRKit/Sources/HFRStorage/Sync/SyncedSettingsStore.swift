@@ -9,6 +9,8 @@ import Synchronization
 /// - **Server change**: the cloud value replaces the mirror's, key by key (last writer wins, as the store does).
 /// - **Initial sync**: for each synced key, the cloud value wins; a key the cloud lacks is pushed from the mirror (a
 ///   first device, or values imported from legacy, LOT-067).
+/// - **First launch**: the account is recorded and the initial-sync rule runs (ADR 0013 §5 step 2: device values first,
+///   then the cloud).
 /// - **Account change** (another Apple ID, or signed out), seen as it happens or, when it happened while the app was
 ///   not running, at the next launch (the last account seen is kept on the device): the mirror's synced values are
 ///   moved into a device-only quarantine under the previous account, so they are never uploaded under the new one; the
@@ -62,8 +64,11 @@ public final class SyncedSettingsStore: SettingsStore {
         state.withLock { state in
             purge(&state)
             guard let document = state.device.document(), document.identityRecorded else {
+                // A first launch: the values already on the device (defaults set, a legacy import) meet the cloud's,
+                // as at an initial sync (ADR 0013 §5 step 2).
                 state.identity = cloud.accountIdentity()
                 record(&state)
+                merge()
                 return
             }
             state.identity = document.knownIdentity
