@@ -3,7 +3,7 @@ import HFRModels
 import HFRNetwork
 @testable import HFRClient
 
-/// A flag session with scripted answers and a preset token: records every request and every token the flow stores.
+/// A posting session for the flag flows, with scripted answers and a preset token: records every request and every token the flow stores.
 actor ScriptedFlagSession: PostingSession {
     private let transport: MockTransport
     /// The token the session starts with; `updateHashCheck` replaces it like `HFRSession` does.
