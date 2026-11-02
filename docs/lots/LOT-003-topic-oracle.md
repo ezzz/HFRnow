@@ -110,7 +110,8 @@ container changes per install).
 the first `a` of the body whose `href` contains `delflag`, else of the first containing `nonlu`, else `""`), `isRedFlagged` (that `delflag`
 link holds an element whose `src` contains `flagn0.gif`) and `isUnreadable` (true only on the `nonlu` branch). That controller is compiled
 into the `SuperHFRplus` target only, not into the `HFRswift` test host, so its lines are transliterated in `OracleObjCSafe.m` on the real
-`HTMLParser`/`HTMLNode` calls (as `OracleLegacyWrite.m` does for the composers). `{exception}` if the parse raised; `null` in filter mode.
+`HTMLParser`/`HTMLNode` calls (as `OracleLegacyWrite.m` does for the composers). `{exception}` if the parse raised. It always comes from
+the normal parse, also when the case has a `filter`: the filtered parse (`result.filterMode`) has no `fastAnswer`.
 
 `result.messages[]` (one per `LinkItem`, in order; `index` = DOM id `%%ID%%`): strings `postID` (with the `t`), `name`, `messageDate`,
 `dicoHTML` (libxml2 serialization of the `para` node), `imageUI`, `urlQuote`, `urlEdit` (the obfuscated `class` values), `urlProfil`,
