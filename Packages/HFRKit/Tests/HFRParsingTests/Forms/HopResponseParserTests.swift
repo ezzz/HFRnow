@@ -146,8 +146,8 @@ struct HopResponseParserTests {
         "W34-public-first-post-edit-success", "W35-public-first-post-restore-success",
         "W40-public-new-topic-success", "W41-public-first-post-edit-add-poll-success",
         "W49-public-first-post-delete-topic-success"
-        // Not here although HFR accepted them: W42 (poll vote, no "avec succès") and W46 (moderator alert, back
-        // link and no refresh) need their own confirmation rule (HFR-PROTOCOL §6c LOT-037).
+        // Not here although HFR accepted them: W42 (poll vote, no "avec succès") is a success under `.pollVote` only
+        // (`HopResponsePollVoteTests`); W46 (moderator alert, back link and no refresh) needs its own rule (LOT-050).
     ]
 
     @Test("Sweep: across the whole capture corpus only the write confirmations classify as success")

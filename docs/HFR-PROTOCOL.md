@@ -82,7 +82,7 @@ Sources: `ReplyService.swift:145-183, 294-365, 579-719` · `AddMessageViewContro
 | New topic | `href` of `#md_btn_new_topic` on the topic list | `sujet` (text), `subcat` (select) | `ObjCTopicListParser.m:134-135` · D §2.5 |
 | New MP | author block link `/message.php?config=hfr.inc&cat=prive&…&dest=` | `dest`, `sujet` | `ParseMessagesOperation.m:389-390` · D §2.5 |
 | Moderator alert | first `href` containing `/user/modo.php` in the message | form `action~modo.php`, field `raison`; `.hop` with a link = **already alerted** (inverse of reply) | `ReplyService.swift:1400-1531` · D §2.6 |
-| Poll vote | poll block in the topic page | POST `/user/vote.php?config=hfr.inc`, hidden inputs + chosen options; radio value semantics unverified | `PollData.swift:44-100` · D §2.9 |
+| Poll vote | poll block in the topic page | POST `/user/vote.php?config=hfr.inc`, the form's controls in document order + `reponse=<1-based position>` + `sondage_submit=Voter` (`W42`, §6c LOT-054) | `PollData.swift:44-100` · D §2.9 |
 
 ### 3.2 Topic flags
 - Add to favourites: **state-changing GET** of the message's `addflag` link; toast text from `<div class="hop">`. `ParseMessagesOperation.m:383-384` · D §2.8
@@ -464,6 +464,13 @@ Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `Li
 
 - **A posted video link** (`R20`, `R22a`, `R22b`, `R27`, `R28`, **verified**): `<a rel="nofollow" href="<url>" target="_blank" class="cLink">` with the URL or a title as text (`R20`: "Impasto a mano pizza napoletana"), usually straight in a paragraph of the message; HFR adds no player. The corpus has `http://` and `https://www.youtube.com/watch?v=` (`R20`, `R22a`), `https://youtu.be/<id>` with `t=1m5s` (`R20`) or `t=706` (`R28`), and `vimeo.com/<number>` (`R20`); the LOT-003 oracles turn 133 of them into iframes over 8 pages.
 - **Start time** (`R20`, `R28`): the captured `youtu.be` links carry their start as `t=1m5s` and as plain seconds, `t=706`.
+
+### LOT-054 — poll vote
+
+[LOT-054](lots/LOT-054-poll-vote.md), `PollVoteFlow`, tests `PollVoteFlowTests`, `HopResponsePollVoteTests`.
+
+- **Body** (`R83`, `W42`-`W44`, **verified**): the flow builds from `R83`'s form, answer 1, exactly the body `W42`-`W44` sent: `hash_check, cat, p, page, sondage, owntopic, subcat, numeropost, hash_check, reponse, sondage_submit=Voter`. `sondage` differs between polls (`1` on `R32b`, `2` on `R83`): it is read from the form, never written as a constant.
+- **Answers**: see the LOT-037 subsection (`W42` success, `W43`/`W44` already voted). The classifier reads them under `Context.pollVote`, the only context where the vote sentence is a confirmation.
 
 ### LOT-053 — smiley search and wiki
 
