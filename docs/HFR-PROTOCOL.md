@@ -508,6 +508,7 @@ Source: [LOT-097](lots/LOT-097-bbcode-preview-renderer.md), `BBCodeRenderer`, ch
 - **Links** (`R41a` → `R20`, **verified**): the text of `[url=U]x[/url]` and `[url]U[/url]` is trimmed of its leading and trailing spaces; a `U` without a scheme gets `http://` (`[url]G3Ferrari / Optima [/url]` → `href="http://G3Ferrari / Optima "`); external links carry `rel="nofollow" target="_blank"`.
 - **Whitespace** (`R41a` → `R20`, `R27b`, `R95d`, **verified**): in a run of spaces and CRs, the first becomes `&nbsp;` at a line start, then every second one; a LF becomes `<br />` and the CR before it stays in the text (`\r<br />`); in `code`, every run of two or more starts with `&nbsp;` (`code   text` → `code&nbsp; &nbsp;text`, four leading spaces → `&nbsp; &nbsp; `), an empty line is `<li></li>`. `€` is written `&euro;`.
 - **Paragraph** (`R20`, **verified**): the message's `<p>` is opened by HFR and never closed; the `<div style="clear: both;"> </div>` trailer that follows closes it.
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).
