@@ -4914,7 +4914,6 @@ struct MessagesView: View {
     private var bottomBarEmphasis: TopicBottomBarEmphasis {
         TopicBottomBarEmphasis.resolve(
             isInSearchMode: isInSearchMode,
-            isNextPagePromoted: shouldPromoteBottomNextPageButton,
             isReplyButtonVisible: !shouldHideReplyComposerButton
         )
     }
@@ -4951,7 +4950,9 @@ struct MessagesView: View {
                 .font(.system(size: 14, weight: .semibold))
         }
         .disabled(page >= currentMaxPage)
-        .topicBottomBarCircularIconButtonStyle(isProminent: bottomBarEmphasis == .nextPage)
+        // Not prominent: Répondre is the only prominent button (TopicBottomBarEmphasis). The
+        // end-of-page cue (HFR-008) is the button's appearance transition and its label.
+        .topicBottomBarCircularIconButtonStyle(isProminent: false)
         .legacyPageButtonSpacing(edge: .leading)
         .bottomBarStableHitTarget()
         .accessibilityLabel("Page suivante")

@@ -814,7 +814,8 @@ struct FavoritesListView: View {
                     leadingRefreshItem: AnyView(
                         // Tap toggles the sections, long press offers « Tout replier / déplier ».
                         // System Menu with a primary action instead of a contextMenu hack, and a
-                        // borderless filter symbol whose title says what it does (Bybifok feedback).
+                        // borderless sections symbol (not the filter glyph used by « Filtrer les
+                        // posts ») whose title says what it does.
                         Menu {
                             Button {
                                 collapseAllSections()
@@ -830,7 +831,7 @@ struct FavoritesListView: View {
                             }
                             .disabled(!usesCategorizedFavoritesList || collapsedSectionIDs.isEmpty)
                         } label: {
-                            Label(favoriteSectionsToggleTitle, systemImage: "line.3.horizontal.decrease")
+                            Label(favoriteSectionsToggleTitle, systemImage: "list.bullet.indent")
                                 .foregroundStyle(.primary)
                         } primaryAction: {
                             AppHaptics.impact(.light)

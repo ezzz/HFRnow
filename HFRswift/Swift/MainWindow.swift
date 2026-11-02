@@ -1982,7 +1982,7 @@ struct RootTabView: View {
                !isTopicListHidden {
                 ToolbarItem(placement: .topBarLeading) {
                     // Not a sidebar symbol: the system sidebar toggle of the list column opens
-                    // the sidebar, this one gives the topic the full width (Bybifok feedback).
+                    // the sidebar, this one gives the topic the full width.
                     Button(
                         "Masquer la liste",
                         systemImage: "arrow.up.left.and.arrow.down.right",
