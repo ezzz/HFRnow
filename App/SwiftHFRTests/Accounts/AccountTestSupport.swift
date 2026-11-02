@@ -48,7 +48,15 @@ actor CheckGate {
         return await withCheckedContinuation { arrivals.append($0) }
     }
 
-    /// Called by the test when the gated work returns, reached or not.
+    /// Runs the gated work in a task that calls `finish()` when it returns, so no test can forget it.
+    nonisolated func run(_ work: @escaping @Sendable @MainActor () async -> Void) -> Task<Void, Never> {
+        Task { @MainActor in
+            await work()
+            await self.finish()
+        }
+    }
+
+    /// Ends the wait of `entered()` once the gated work has returned, reached or not.
     func finish() {
         finished = true
         settleArrivals()

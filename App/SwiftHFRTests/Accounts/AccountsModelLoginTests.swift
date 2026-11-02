@@ -194,10 +194,7 @@ struct AccountsModelLoginTests {
         )])
         let model = makeModel(store: store, login: login, checker: ScriptedChecker(["user1": .expired], gate: gate))
 
-        let restoring = Task {
-            await model.restore()
-            await gate.finish()
-        }
+        let restoring = gate.run { await model.restore() }
         try #require(await gate.entered(), "the launch check never reached the gate")
         #expect(model.current?.status == .checking)
         try await model.logIn(pseudo: "user1", password: "fake-password", for: .existing(id: "user1", displayName: "user1"))

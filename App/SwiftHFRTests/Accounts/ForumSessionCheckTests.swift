@@ -126,10 +126,7 @@ struct ForumSessionCheckTests {
         let refresher = ScriptedRefresher(["user1": [.failure(.offline)]], gate: gate)
         let model = makeModel(store: store, checker: ForumSessionCheck(refresher: refresher))
 
-        let restoring = Task {
-            await model.restore()
-            await gate.finish()
-        }
+        let restoring = gate.run { await model.restore() }
         try #require(await gate.entered(), "the launch check never reached the gate")
         // The launch check is running: the session is `checking`, not re-checked.
         await model.recheckUnconfirmedSessions(now: Date().addingTimeInterval(AccountsModel.recheckInterval + 1))
@@ -150,10 +147,7 @@ struct ForumSessionCheckTests {
         )
         let model = makeModel(store: store, checker: ForumSessionCheck(refresher: refresher))
 
-        let restoring = Task {
-            await model.restore()
-            await gate.finish()
-        }
+        let restoring = gate.run { await model.restore() }
         try #require(await gate.entered(), "the launch check never reached the gate")
         #expect(model.rows.map(\.status) == [.checkFailed(.timedOut), .checking])
         await model.recheckUnconfirmedSessions(now: Date().addingTimeInterval(AccountsModel.recheckInterval + 1))
@@ -172,10 +166,7 @@ struct ForumSessionCheckTests {
         await model.restore()
         let later = Date().addingTimeInterval(AccountsModel.recheckInterval + 1)
 
-        let first = Task {
-            await model.recheckUnconfirmedSessions(now: later)
-            await gate.finish()
-        }
+        let first = gate.run { await model.recheckUnconfirmedSessions(now: later) }
         try #require(await gate.entered(), "the re-check never reached the gate")
         #expect(model.isRechecking)
         await model.recheckUnconfirmedSessions(now: later)
@@ -201,10 +192,7 @@ struct ForumSessionCheckTests {
         await model.restore()
 
         let later = Date().addingTimeInterval(AccountsModel.recheckInterval + 1)
-        let rechecking = Task {
-            await model.recheckUnconfirmedSessions(now: later)
-            await gate.finish()
-        }
+        let rechecking = gate.run { await model.recheckUnconfirmedSessions(now: later) }
         try #require(await gate.entered(), "the re-check never reached the gate")
         try await model.logIn(pseudo: "user1", password: "fake", for: .existing(id: "user1", displayName: "user1"))
         await gate.open()
