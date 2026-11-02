@@ -1981,12 +1981,13 @@ struct RootTabView: View {
                activeTopicTarget != nil,
                !isTopicListHidden {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        toggleTopicListVisibility()
-                    } label: {
-                        Image(systemName: "rectangle.leadinghalf.inset.filled")
-                    }
-                    .accessibilityLabel("Masquer la liste")
+                    // Not a sidebar symbol: the system sidebar toggle of the list column opens
+                    // the sidebar, this one gives the topic the full width (Bybifok feedback).
+                    Button(
+                        "Masquer la liste",
+                        systemImage: "arrow.up.left.and.arrow.down.right",
+                        action: toggleTopicListVisibility
+                    )
                 }
             }
         }
