@@ -24,30 +24,45 @@ enum Fake {
     }
 }
 
-/// A one-shot barrier: `wait()` suspends until `open()`; `entered()` waits until someone is suspended in `wait()`.
+/// A one-shot barrier: `wait()` suspends until `open()`; `entered()` waits until someone is suspended in `wait()`, or
+/// until the gated work calls `finish()` without having reached it. A guard that skips the gated call then fails the
+/// test at once instead of hanging it, without a wall-clock limit: on a loaded simulator the main actor is shared by
+/// every app test, so a `.timeLimit` measured that queue rather than this test (#366).
 actor CheckGate {
     private var isOpen = false
     private var waiters: [CheckedContinuation<Void, Never>] = []
-    private var arrivals: [CheckedContinuation<Void, Never>] = []
+    private var arrivals: [CheckedContinuation<Bool, Never>] = []
     private var arrived = false
+    private var finished = false
 
     func wait() async {
         arrived = true
-        arrivals.forEach { $0.resume() }
-        arrivals = []
+        settleArrivals()
         if isOpen { return }
         await withCheckedContinuation { waiters.append($0) }
     }
 
-    func entered() async {
-        if arrived { return }
-        await withCheckedContinuation { arrivals.append($0) }
+    /// Whether the gate was reached; `false` once the gated work finished without reaching it.
+    func entered() async -> Bool {
+        if arrived || finished { return arrived }
+        return await withCheckedContinuation { arrivals.append($0) }
+    }
+
+    /// Called by the test when the gated work returns, reached or not.
+    func finish() {
+        finished = true
+        settleArrivals()
     }
 
     func open() {
         isOpen = true
         waiters.forEach { $0.resume() }
         waiters = []
+    }
+
+    private func settleArrivals() {
+        arrivals.forEach { $0.resume(returning: arrived) }
+        arrivals = []
     }
 }
 
