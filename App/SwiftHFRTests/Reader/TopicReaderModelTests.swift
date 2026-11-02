@@ -220,7 +220,10 @@ struct TopicReaderModelTests {
         await reader.goToPage(-3)
         #expect(pages.requests.map(\.page) == [1, 5, 1])
     }
+}
 
+/// Where the reader sends a link (LOT-137): kept apart so each type body stays under SwiftLint's limit.
+extension TopicReaderModelTests {
     @Test func linksOpenInTheReaderOrOutside() async {
         let pages = FakeTopicPages()
         let reader = model(pages)
