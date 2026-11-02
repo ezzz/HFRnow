@@ -18,4 +18,4 @@ Format: Context → Decision → Consequences. Never rewrite an accepted ADR; su
 | [0011](0011-contribution-model-and-feature-intake.md) | Contribution model, feature intake and legacy archive | Proposed |
 | [0012](0012-app-project-file-strategy.md) | App project file: plain Xcode project with folder-synchronized groups | Accepted |
 | [0013](0013-storage-tiers.md) | Where persisted data lives: MPStorage, iCloud key-value store, or the device (with the matrix of persisted items) | Accepted |
-| [0014](0014-bbcode-preview-renderer.md) | BBCode preview renderer: a local renderer in `HFRParsing`, output through the LOT-034 normalizer | Proposed |
+| [0014](0014-bbcode-preview-renderer.md) | BBCode preview renderer: HFR's own rendering model in `HFRParsing`, output through the LOT-034 normalizer | Proposed |
