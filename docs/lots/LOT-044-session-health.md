@@ -36,7 +36,7 @@ For every non-`valid` result and every thrown error, the flow does not write the
 
 ## Edge cases
 
-- A request of the account (a write setting `md_data`, a re-login of the same account) lands while the probe is in flight: its cookies and token win; only keys nobody touched get the probe's values.
+- A request of the account (a write setting `md_data`) lands while the probe is in flight: its cookies and token win; only keys nobody touched get the probe's values.
 - The session is logged out or switched to another identity meanwhile: nothing is written (`sessionChanged`), so a refresh never revives an identity.
 - A login of the **same** account is adopted meanwhile, even one that installs the seed's own token: identity and token cannot tell it, so the seed carries `HFRSession.loginGeneration`, which `adoptLogin` advances; a moved generation writes nothing (`sessionChanged`) and the login's cookies and token stay. Without it, the probe's token (read with the old cookies) would be paired with the re-login's cookies and the next POST refused (`W17b`) ([#340](https://github.com/ezzz/HFRnow/issues/340)).
 - HFR removes a cookie on a valid answer (an expired `Set-Cookie`): it is removed from the session too, as a direct request would have done.
@@ -50,7 +50,7 @@ Shared corpus only, no new file, read in place (`Tests/HFRClientTests/Support/Ca
 ## Tests
 
 `SessionRefreshFlowTests` (scripted probe on the captures, real `HFRSession` as the account session):
-`captureMetaShapesTheScript`, `validRefreshMergesWhatHFRSetAndTheToken`, `probeStartsFromTheSessionCookies`, `cookieRemovedByHFRIsRemovedOnAValidRefresh`, `concurrentChangesWinOverTheProbeCopy`, `noUsableIdentityIsExpiredWithoutSending` (absent, expired, `deleted`), `pagesWithoutTheAccountTokenAreUnconfirmed` (5 pages), `profilePageServedElsewhereOrRedirectedIsUnconfirmed`, `profilePageFromAnotherOriginIsUnconfirmed` (other host, look-alike host, `http`, port 8443), `identityNotKeptByTheAnswerIsUnconfirmed` (`deleted`, other user, removed), `sessionLoggedOutDuringTheRefreshIsNotRevived`, `transportFailuresThrowAndChangeNothing` (timeout, offline, HTTP 500), `cancellationChangesNothing`.
+`captureMetaShapesTheScript`, `validRefreshMergesWhatHFRSetAndTheToken`, `probeStartsFromTheSessionCookies`, `cookieRemovedByHFRIsRemovedOnAValidRefresh`, `concurrentChangesWinOverTheProbeCopy`, `sameAccountReloginWithTheSameTokenDuringTheRefreshWins` (#340), `noUsableIdentityIsExpiredWithoutSending` (absent, expired, `deleted`), `pagesWithoutTheAccountTokenAreUnconfirmed` (5 pages), `profilePageServedElsewhereOrRedirectedIsUnconfirmed`, `profilePageFromAnotherOriginIsUnconfirmed` (other host, look-alike host, `http`, port 8443), `identityNotKeptByTheAnswerIsUnconfirmed` (`deleted`, other user, removed), `sessionLoggedOutDuringTheRefreshIsNotRevived`, `transportFailuresThrowAndChangeNothing` (timeout, offline, HTTP 500), `cancellationChangesNothing`.
 
 Shown to fail without the change (mutations run locally, each fails its tests): dropping the `.hop` check, the URL path check, the exact-URL check with `doNotFollow`, the origin check (scheme, host, port), the identity check after the answer, the identity check at adoption, the login-generation check at adoption (#340), the cookie or token compare-and-set, the cancellation check, the no-identity shortcut, and replacing the jar with the answer's cookies (legacy `updateCookies`).
 

@@ -27,7 +27,7 @@ public actor HFRSession: HTTPTransport {
     /// The anti-CSRF token every POST needs (HFR-PROTOCOL §5); nil until known.
     public private(set) var hashCheck: String?
 
-    /// How many logins this session installed; a request that reads it before and after knows whether a login landed
+    /// Moves once per login this session installed; a request that reads it before and after knows whether a login landed
     /// in between, even one of the same account with the same token (issue #340).
     public private(set) var loginGeneration = 0
 
@@ -111,6 +111,7 @@ public actor HFRSession: HTTPTransport {
 
     /// Records that a login was installed: called once per login, after its cookies and token (`adoptLogin`).
     public func advanceLoginGeneration() {
+        // Wrapping: the fences only compare generations for equality, the count itself is never used.
         loginGeneration &+= 1
     }
 
