@@ -3223,7 +3223,7 @@ struct MessagesView: View {
         case .quick:
             return "plus"
         case .forum:
-            return "square.and.pencil"
+            return "arrowshape.turn.up.left"
         case .hidden:
             return "plus"
         }
@@ -5528,7 +5528,7 @@ struct MessagesView: View {
                                 } label: {
                                     MenuActionLabel(
                                         "Répondre",
-                                        systemImage: "square.and.pencil",
+                                        systemImage: "arrowshape.turn.up.left",
                                         tintColor: themePalette.actionTintColor,
                                         iconTintUIColor: themePalette.actionTintUIColor
                                     )
@@ -5772,7 +5772,7 @@ struct MessagesView: View {
                             } label: {
                                 MenuActionLabel(
                                     "Répondre",
-                                    systemImage: "square.and.pencil",
+                                    systemImage: "arrowshape.turn.up.left",
                                     tintColor: themePalette.actionTintColor,
                                     iconTintUIColor: themePalette.actionTintUIColor
                                 )

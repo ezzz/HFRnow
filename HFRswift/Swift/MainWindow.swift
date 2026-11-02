@@ -816,7 +816,7 @@ struct ForumTopicsListView: View {
                     AppHaptics.impact(.light)
                     isNewTopicComposerPresented = true
                 } label: {
-                    Label("Nouveau sujet", systemImage: "plus")
+                    Label("Nouveau sujet", systemImage: "plus.bubble")
                 }
                 .disabled(!isLoggedIn || viewModel.newTopicURL == nil)
 
