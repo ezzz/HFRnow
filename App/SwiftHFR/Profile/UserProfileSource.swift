@@ -39,8 +39,3 @@ struct LiveUserProfileSource: UserProfileSource {
             && url.user == nil && url.path(percentEncoded: true) == "/hfr/profil-\(memberID).htm"
     }
 }
-
-/// A source with no forum behind it (previews and tests that never open a profile).
-struct UnavailableUserProfiles: UserProfileSource {
-    func profile(memberID: Int) async throws(ListLoadError) -> UserProfile { throw .other }
-}

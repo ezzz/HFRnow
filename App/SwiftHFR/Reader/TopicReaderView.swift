@@ -138,7 +138,7 @@ struct ReaderServices: Sendable {
     /// Image mode and display choices.
     let settings: ReaderSettings
     /// Public profiles opened from a link (LOT-116), fetched without cookies.
-    var profiles: any UserProfileSource = UnavailableUserProfiles()
+    let profiles: any UserProfileSource
 }
 
 /// Previous / next page, first / last, and "page N / M" which asks for a page number.

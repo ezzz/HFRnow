@@ -204,7 +204,10 @@ private struct ProfileImage: View {
                 Image(systemName: placeholder).resizable().scaledToFit().foregroundStyle(.secondary).padding(8)
             }
         }
-        .task(id: url) { image = await Self.load(url, fetcher: fetcher) }
+        .task(id: url) {
+            image = nil
+            image = await Self.load(url, fetcher: fetcher)
+        }
     }
 
     private static func load(_ url: URL?, fetcher: ReaderImageFetcher) async -> UIImage? {
