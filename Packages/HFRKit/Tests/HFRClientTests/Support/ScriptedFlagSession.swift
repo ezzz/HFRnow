@@ -17,9 +17,10 @@ actor ScriptedFlagSession: PostingSession {
     /// A login installed while the next request is in flight, as `adoptLogin` would do from another task.
     private var loginDuringNextRequest: ConcurrentLogin?
 
-    init(_ replies: [Result<HTTPResponse, NetworkError>], hashCheck: String? = nil) {
+    init(_ replies: [Result<HTTPResponse, NetworkError>], hashCheck: String? = nil, identity: String? = "user1") {
         transport = MockTransport(replies: replies)
         self.hashCheck = hashCheck
+        self.identity = identity
     }
 
     func perform(_ request: HTTPRequest) async throws(NetworkError) -> HTTPResponse {
@@ -42,6 +43,12 @@ actor ScriptedFlagSession: PostingSession {
         identity = login.identity
         hashCheck = login.hashCheck
         loginGeneration += 1
+    }
+
+    /// Sets the `md_user` value the session reports, the login generation unchanged (a cookie expiring, an identity
+    /// the session gains without a login).
+    func setIdentity(_ value: String?) {
+        identity = value
     }
 
     /// Records `value` as a refresh does (`adoptRefresh`): a new token, the login generation unchanged.

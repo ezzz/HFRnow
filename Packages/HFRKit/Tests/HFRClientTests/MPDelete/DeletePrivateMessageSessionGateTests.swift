@@ -62,6 +62,21 @@ struct DeletePrivateMessageSessionGateTests {
         #expect(await session.requests.isEmpty)
     }
 
+    @Test(
+        "An identity that changes during the check without a login (md_user expiring, or appearing) sends nothing",
+        arguments: [("user1", nil), (nil, "user1"), ("user1", "user2")] as [(String?, String?)]
+    )
+    func identityChangeDuringTheCheckSendsNothing(before: String?, after: String?) async throws {
+        let session = ScriptedFlagSession([try FlagCapture.page("W64")], hashCheck: Self.token, identity: before)
+        let error = await Self.gated(Self.thread, session) { () async throws(NetworkError) in
+            await session.setIdentity(after)
+            return .valid
+        }
+        #expect(error == .sessionChanged)
+        #expect(await session.loginGeneration == 0)
+        #expect(await session.requests.isEmpty)
+    }
+
     @Test("A confirmed session without a token sends nothing")
     func missingTokenSendsNothing() async throws {
         let session = ScriptedFlagSession([try FlagCapture.page("W64")])
@@ -93,6 +108,7 @@ struct DeletePrivateMessageSessionGateTests {
         let session = HFRSession(
             cookies: [], hashCheck: Self.token, now: now, configuration: .ephemeral, hosts: .exactHost("127.0.0.1")
         )
+        #expect(await session.hosts == .exactHost("127.0.0.1"))
         await #expect(throws: MPThreadDeleteError.sessionNotConfirmed(.expired(.noIdentityCookie))) {
             try await DeletePrivateMessageFlow().delete(Self.thread, in: session)
         }
@@ -106,6 +122,7 @@ struct DeletePrivateMessageSessionGateTests {
             cookies: [cookie("md_user", "user2"), cookie("md_passs", "pass")], hashCheck: Self.token, now: now,
             configuration: .ephemeral, hosts: .exactHost("127.0.0.1")
         )
+        #expect(await session.hosts == .exactHost("127.0.0.1"))
         let reply = try Capture.response(profilePageServed ? "R55-p1-profile-edit-page1" : "W00-login-form-anon")
         let factory = ProbeFactory(ScriptedProbe.Step(reply: .success(reply), setCookies: [cookie("md_user", "user2")]))
         let flow = DeletePrivateMessageFlow(refresh: SessionRefreshFlow { cookies, now in factory.make(cookies: cookies, now: now) })
