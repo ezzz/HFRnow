@@ -29,6 +29,35 @@ final class FoldHandoffStoreTests: XCTestCase {
         XCTAssertNil(store.beginRootSwap(selectedTab: .categories))
     }
 
+    func testReadingOfAnotherTabDoesNotReplaceSelectedTabReading() {
+        let categoriesTopic = Topic()
+        _ = store.register(tab: .categories, topic: categoriesTopic, page: 3, maxPage: 4)
+        let favoritesToken = store.register(tab: .favorites, topic: Topic(), page: 1, maxPage: 1)
+        store.update(token: favoritesToken, page: 1, maxPage: 2)
+
+        let reading = store.beginRootSwap(selectedTab: .categories)
+
+        XCTAssertTrue(reading?.topic === categoriesTopic)
+        XCTAssertEqual(reading?.page, 3)
+    }
+
+    func testScheduledClearOnlyRemovesItsOwnTab() async {
+        _ = store.register(tab: .categories, topic: Topic(), page: 5, maxPage: 5)
+        let favoritesToken = store.register(tab: .favorites, topic: Topic(), page: 2, maxPage: 2)
+
+        await store.scheduleClear(token: favoritesToken, after: .milliseconds(10)).value
+
+        XCTAssertNil(store.readings[.favorites])
+        XCTAssertEqual(store.readings[.categories]?.page, 5)
+    }
+
+    func testRootSwapDropsReadingsOfOtherTabs() {
+        _ = store.register(tab: .favorites, topic: Topic(), page: 2, maxPage: 2)
+
+        XCTAssertNil(store.beginRootSwap(selectedTab: .categories))
+        XCTAssertNil(store.beginRootSwap(selectedTab: .favorites))
+    }
+
     func testStaleTokenDoesNotOverwriteNewerReading() {
         let oldToken = store.register(tab: .categories, topic: Topic(), page: 1, maxPage: 1)
         _ = store.register(tab: .categories, topic: Topic(), page: 7, maxPage: 9)

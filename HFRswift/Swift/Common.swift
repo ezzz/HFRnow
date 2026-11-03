@@ -3698,7 +3698,7 @@ struct TopicListRowView: View {
                     .onAppear {
                         onDidOpen?(navigationTarget.openedURL)
                     }
-                    .toolbar(.hidden, for: .tabBar)
+                    .hfrPushedTopicTabBarVisibility()
                 } else {
                     EmptyView()
                 }
