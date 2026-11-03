@@ -18,8 +18,8 @@ struct DeletePrivateMessageFlowTests {
     @Test("The delete POSTs W64's body, byte for byte and in its order, to W64's URL, once, without following redirects")
     func requestIsW64s() async throws {
         let meta = try Capture.meta("W64")
-        let session = ScriptedFlagSession([try FlagCapture.page("W64")])
-        _ = try await DeletePrivateMessageFlow().send(Self.thread, token: "REDACTED", through: session)
+        let session = ScriptedFlagSession([try FlagCapture.page("W64")], hashCheck: "REDACTED")
+        _ = try await DeletePrivateMessageFlow().send(Self.thread, through: session, since: await session.hashCheckSeed())
         let requests = await session.requests
         #expect(requests.count == 1)
         let post = try #require(requests.first)
@@ -59,7 +59,7 @@ struct DeletePrivateMessageFlowTests {
     func invalidThread(thread: TopicID) async throws {
         let session = ScriptedFlagSession([try FlagCapture.page("W64")], hashCheck: Self.token)
         await #expect(throws: MPThreadDeleteError.invalidThread) {
-            try await DeletePrivateMessageFlow().send(thread, token: Self.token, through: session)
+            try await DeletePrivateMessageFlow().send(thread, through: session, since: await session.hashCheckSeed())
         }
         var checked = false
         await #expect(throws: MPThreadDeleteError.invalidThread) {
@@ -76,8 +76,10 @@ struct DeletePrivateMessageFlowTests {
 
     @Test("The owner's (W64) and the recipient's (W65) answers confirm the delete, with the MP list refresh", arguments: ["W64", "W65"])
     func capturedSuccess(id: String) async throws {
-        let session = ScriptedFlagSession([try FlagCapture.page(id)])
-        let result = try await DeletePrivateMessageFlow().send(Self.thread, token: Self.token, through: session)
+        let session = ScriptedFlagSession([try FlagCapture.page(id)], hashCheck: Self.token)
+        let result = try await DeletePrivateMessageFlow().send(
+            Self.thread, through: session, since: await session.hashCheckSeed()
+        )
         #expect(result.thread == Self.thread)
         #expect(result.message == "Action effectuée avec succès")
         #expect(
@@ -88,7 +90,7 @@ struct DeletePrivateMessageFlowTests {
 
     @Test("The bad-token answer (W64x, nothing deleted) is a refusal with HFR's sentence")
     func badTokenIsRejected() async throws {
-        let session = ScriptedFlagSession([try FlagCapture.page("W64x")])
+        let session = ScriptedFlagSession([try FlagCapture.page("W64x")], hashCheck: Self.token)
         let error = await Self.failure(Self.thread, session)
         guard case .rejected(let message)? = error else {
             Issue.record("expected a refusal, got \(String(describing: error))")
@@ -99,7 +101,7 @@ struct DeletePrivateMessageFlowTests {
 
     @Test("A logged-out refusal (W17c's shape) is notLoggedIn")
     func loggedOutIsNotLoggedIn() async throws {
-        let session = ScriptedFlagSession([try FlagCapture.page("W17c")])
+        let session = ScriptedFlagSession([try FlagCapture.page("W17c")], hashCheck: Self.token)
         #expect(await Self.failure(Self.thread, session) == .notLoggedIn)
     }
 
@@ -111,7 +113,7 @@ struct DeletePrivateMessageFlowTests {
         ]
     )
     func otherConfirmations(id: String, sentence: String) async throws {
-        let session = ScriptedFlagSession([try FlagCapture.page(id)])
+        let session = ScriptedFlagSession([try FlagCapture.page(id)], hashCheck: Self.token)
         let error = await Self.failure(Self.thread, session)
         guard case .unconfirmed(.unexpectedConfirmation(let message))? = error else {
             Issue.record("expected an unexpected confirmation, got \(String(describing: error))")
@@ -136,14 +138,14 @@ struct DeletePrivateMessageFlowTests {
             statusCode: 200, headers: ["Content-Type": "text/html; charset=utf-8"],
             url: DeletePrivateMessageFlow.manageActionURL, body: Data(page.utf8)
         )
-        let session = ScriptedFlagSession([.success(response)])
+        let session = ScriptedFlagSession([.success(response)], hashCheck: Self.token)
         let expected = MPThreadDeleteError.unconfirmed(.unexpectedConfirmation(message: "Action effectuée avec succès"))
         #expect(await Self.failure(Self.thread, session) == expected)
     }
 
     @Test("A page that is neither a confirmation nor a refusal (the MP list R95j) is unconfirmed, never a success")
     func otherPageIsUnconfirmed() async throws {
-        let session = ScriptedFlagSession([try FlagCapture.page("R95j")])
+        let session = ScriptedFlagSession([try FlagCapture.page("R95j")], hashCheck: Self.token)
         guard case .unconfirmed(.unrecognizedAnswer)? = await Self.failure(Self.thread, session) else {
             Issue.record("expected an unrecognized answer")
             return
@@ -157,7 +159,7 @@ struct DeletePrivateMessageFlowTests {
             url: DeletePrivateMessageFlow.manageActionURL,
             body: Data(try Capture.page("W64-mp-thread-delete-owner-success").utf8)
         )
-        let session = ScriptedFlagSession([.success(response)])
+        let session = ScriptedFlagSession([.success(response)], hashCheck: Self.token)
         #expect(await Self.failure(Self.thread, session) == .unconfirmed(.unrecognizedAnswer(message: nil)))
     }
 
@@ -171,17 +173,17 @@ struct DeletePrivateMessageFlowTests {
         ]
     )
     func transportFailures(failure: NetworkError, expected: MPThreadDeleteError) async throws {
-        let session = ScriptedFlagSession([.failure(failure)])
+        let session = ScriptedFlagSession([.failure(failure)], hashCheck: Self.token)
         #expect(await Self.failure(Self.thread, session) == expected)
         #expect(await session.requests.count == 1)
     }
 
     // MARK: - Helpers
 
-    /// The error the ungated send throws, nil when it succeeds.
+    /// The error the fenced send throws with the session's own seed (no login change), nil when it succeeds.
     private static func failure(_ thread: TopicID, _ session: ScriptedFlagSession) async -> MPThreadDeleteError? {
         do throws(MPThreadDeleteError) {
-            _ = try await DeletePrivateMessageFlow().send(thread, token: token, through: session)
+            _ = try await DeletePrivateMessageFlow().send(thread, through: session, since: await session.hashCheckSeed())
             return nil
         } catch {
             return error

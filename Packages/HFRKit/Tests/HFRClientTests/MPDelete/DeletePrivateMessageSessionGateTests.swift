@@ -147,6 +147,59 @@ struct DeletePrivateMessageSessionGateTests {
         }
     }
 
+    @Test(
+        "A login adopted after the check, in the hop before the POST, sends nothing (#448): the fence is in the session's turn",
+        arguments: [
+            ConcurrentLogin(identity: "user2", hashCheck: "fake-token-other"),
+            ConcurrentLogin(identity: "user1", hashCheck: "fake-token-0123"),
+            ConcurrentLogin(identity: nil, hashCheck: "fake-token-0123")
+        ]
+    )
+    func loginChangedBeforeThePostSendsNothing(login: ConcurrentLogin) async throws {
+        let session = ScriptedFlagSession([try FlagCapture.page("W64")], hashCheck: Self.token)
+        // The seed the flow takes before the check; the check passed; the login lands before the POST.
+        let seed = await session.hashCheckSeed()
+        await session.adoptLogin(login)
+        var error: MPThreadDeleteError?
+        do throws(MPThreadDeleteError) {
+            _ = try await DeletePrivateMessageFlow().send(Self.thread, through: session, since: seed)
+        } catch let caught {
+            error = caught
+        }
+        #expect(error == .sessionChanged)
+        #expect(await session.requests.isEmpty)
+    }
+
+    @Test(
+        "On a real session, a login installed after the seed sends nothing; the same login lets the delete leave",
+        arguments: [true, false]
+    )
+    func loginChangedOnHFRSession(loginLanded: Bool) async throws {
+        // This session may only contact the loopback host: a delete that leaves is refused before the network.
+        let session = HFRSession(
+            cookies: [cookie("md_user", "user2"), cookie("md_passs", "pass")], hashCheck: Self.token, now: now,
+            configuration: .ephemeral, hosts: .exactHost("127.0.0.1")
+        )
+        #expect(await session.hosts == .exactHost("127.0.0.1"))
+        let seed = await session.hashCheckSeed()
+        if loginLanded { await session.advanceLoginGeneration() }
+        var error: MPThreadDeleteError?
+        do throws(MPThreadDeleteError) {
+            _ = try await DeletePrivateMessageFlow().send(Self.thread, through: session, since: seed)
+        } catch let caught {
+            error = caught
+        }
+        if loginLanded {
+            #expect(error == .sessionChanged)
+        } else {
+            // The delete passed the fence and was stopped by the loopback-only session.
+            guard case .network(.invalidRequest)? = error else {
+                Issue.record("expected the delete to be attempted, got \(String(describing: error))")
+                return
+            }
+        }
+    }
+
     // MARK: - Helpers
 
     /// The error the gated delete throws after `check`, nil when it succeeds.
