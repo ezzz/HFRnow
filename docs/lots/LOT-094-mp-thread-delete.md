@@ -29,7 +29,7 @@ The delete removes the thread **from the deleting account's list only**: the rec
 
 ## Edge cases
 
-- **Login after the request is built**: `URLSession` attaches the cookies when the task starts, outside the session actor's turn. A login adopted in that window sends this account's token with the new cookies, which HFR refuses with its bad-token answer (`W64x`): nothing is deleted. The actor hop between the check and the POST is closed (#448).
+- **Login after the request is built**: `URLSession` attaches the cookies when the task starts, outside the session actor's turn. A login adopted in that window sends this account's token with the new cookies. That pairing is not captured: it is expected to be refused like `W64x` (a wrong token with the same account's cookies), which deleted nothing. The actor hop between the check and the POST is closed (#448).
 - **Generic sentence**: "Action effectuée avec succès" names no action, hence the refresh check.
 - **Several threads at once**: the list form can check several rows (`topic<i>` per row); legacy sends one, and so does this lot.
 

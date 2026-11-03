@@ -63,7 +63,7 @@ public struct DeletePrivateMessageFlow: Sendable {
     }
 
     /// The POST, sent only while `session` still holds `seed`'s login (identity and login generation), with the token
-    /// it holds then: the check, the token read and the request are one turn of the session actor (#448,
+    /// it holds then: the seed comparison, the token read and the request are one turn of the session actor (#448,
     /// `PostingSession.send(since:)`), so a login adopted at any point after `seed` was taken sends nothing.
     func send(_ thread: TopicID, through session: any PostingSession, since seed: HashCheckSeed)
         async throws(MPThreadDeleteError) -> MPThreadDeletion {
@@ -82,22 +82,6 @@ public struct DeletePrivateMessageFlow: Sendable {
         case .missingToken: throw .missingToken
         case .cancelled: throw .network(.cancelled)
         }
-    }
-
-    /// The POST itself with `token`, unfenced: tests of the request and of the answers only.
-    func send(_ thread: TopicID, token: String, through session: any PostingSession) async throws(MPThreadDeleteError)
-        -> MPThreadDeletion {
-        guard Self.isThread(thread) else { throw .invalidThread }
-        if Task.isCancelled { throw .network(.cancelled) }
-        let response: HTTPResponse
-        do {
-            response = try await session.send(Self.request(thread: thread.topic, token: token))
-        } catch .invalidRequest(let reason) {
-            throw .network(.invalidRequest(reason: reason))
-        } catch {
-            throw .unconfirmed(.transport(error))
-        }
-        return try Self.confirmation(for: thread, in: response)
     }
 
     // MARK: - Request

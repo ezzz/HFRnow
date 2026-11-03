@@ -151,7 +151,8 @@ struct DeletePrivateMessageSessionGateTests {
         "A login adopted after the check, in the hop before the POST, sends nothing (#448): the fence is in the session's turn",
         arguments: [
             ConcurrentLogin(identity: "user2", hashCheck: "fake-token-other"),
-            ConcurrentLogin(identity: "user1", hashCheck: "fake-token-0123")
+            ConcurrentLogin(identity: "user1", hashCheck: "fake-token-0123"),
+            ConcurrentLogin(identity: nil, hashCheck: "fake-token-0123")
         ]
     )
     func loginChangedBeforeThePostSendsNothing(login: ConcurrentLogin) async throws {
