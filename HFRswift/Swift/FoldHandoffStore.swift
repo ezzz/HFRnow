@@ -11,7 +11,7 @@ import SwiftUI
 final class FoldHandoffStore {
     static let shared = FoldHandoffStore()
 
-    /// What the root `MessagesView` of the selected tab currently shows.
+    /// What the root `MessagesView` of a tab currently shows.
     struct Reading {
         let token: UUID
         let tab: RootTabIdentifier
@@ -27,7 +27,10 @@ final class FoldHandoffStore {
         let target: TopicNavigationTarget
     }
 
-    private(set) var reading: Reading?
+    /// One reading per tab. Tabs keep their stacks while another tab is selected, and a root
+    /// topic covered by its own linked topic stays registered: a single slot would let the
+    /// reading of another tab overwrite it.
+    private(set) var readings: [RootTabIdentifier: Reading] = [:]
     private(set) var pendingPush: PendingPush?
     /// Bumped on every root swap. A `MessagesView` torn down by the swap must not clear the
     /// reading the swap is about to replay.
@@ -38,7 +41,7 @@ final class FoldHandoffStore {
     #if DEBUG
     /// Unit tests only: the store is a process-wide singleton.
     func resetForTesting() {
-        reading = nil
+        readings = [:]
         pendingPush = nil
         rootGeneration = 0
     }
@@ -46,14 +49,14 @@ final class FoldHandoffStore {
 
     func register(tab: RootTabIdentifier, topic: Topic, page: Int, maxPage: Int) -> UUID {
         let token = UUID()
-        reading = Reading(token: token, tab: tab, topic: topic, page: page, maxPage: maxPage)
+        readings[tab] = Reading(token: token, tab: tab, topic: topic, page: page, maxPage: maxPage)
         return token
     }
 
     func update(token: UUID, page: Int, maxPage: Int) {
-        guard reading?.token == token else { return }
-        reading?.page = page
-        reading?.maxPage = max(maxPage, page)
+        guard let tab = tab(of: token) else { return }
+        readings[tab]?.page = page
+        readings[tab]?.maxPage = max(maxPage, page)
     }
 
     /// Called when a root `MessagesView` disappears. The clear is deferred so that a root swap
@@ -63,8 +66,8 @@ final class FoldHandoffStore {
         let generation = rootGeneration
         return Task { @MainActor in
             try? await Task.sleep(for: delay)
-            guard self.rootGeneration == generation, self.reading?.token == token else { return }
-            self.reading = nil
+            guard self.rootGeneration == generation, let tab = self.tab(of: token) else { return }
+            self.readings[tab] = nil
         }
     }
 
@@ -72,8 +75,11 @@ final class FoldHandoffStore {
     func beginRootSwap(selectedTab tab: RootTabIdentifier) -> Reading? {
         rootGeneration += 1
         pendingPush = nil
-        guard let reading, reading.tab == tab else { return nil }
-        return reading
+        return readings[tab]
+    }
+
+    private func tab(of token: UUID) -> RootTabIdentifier? {
+        readings.first { $0.value.token == token }?.key
     }
 
     func requestCompactPush(tab: RootTabIdentifier, target: TopicNavigationTarget) {

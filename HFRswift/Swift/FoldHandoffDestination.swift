@@ -40,7 +40,7 @@ private struct FoldHandoffDestination: ViewModifier {
                         initialLoadScroll: target.initialScroll,
                         initialFavoritePostFilterResult: target.initialFavoritePostFilterResult
                     )
-                    .toolbar(.hidden, for: .tabBar)
+                    .hfrPushedTopicTabBarVisibility()
                 } else {
                     EmptyView()
                 }

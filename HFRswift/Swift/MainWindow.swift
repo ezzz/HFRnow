@@ -1436,6 +1436,10 @@ struct RootTabView: View {
             // No detail reset here: each tab keeps its own split detail (HIG Tab bars: switch
             // sections "while preserving the current navigation state within each section").
             preferredCompactColumn = activeTopicTarget == nil ? .content : .detail
+            // The four splits share one column visibility: re-derive it for the tab shown.
+            if usesSidebarRoot, iPadSidebarDestination.usesTopicList {
+                applyListVisibility(for: iPadSidebarDestination)
+            }
         }
         syncRuntimeSelectedTab(tab, source: "\(source).runtime")
     }
@@ -2127,10 +2131,7 @@ struct RootTabView: View {
         resetDetailNavigation(for: destination)
 
         if destination.usesTopicList {
-            // Duo portrait: a destination that still holds a topic shows it at full width.
-            iPadSidebarVisibilityRawValue = prefersDetailOnlyTopic && activeTopicTarget != nil
-                ? SidebarVisibilityStorage.detailOnly
-                : SidebarVisibilityStorage.doubleColumn
+            applyListVisibility(for: destination)
             preferredCompactColumn = activeTopicTarget == nil ? .content : .detail
         } else {
             iPadDirectSidebarVisibility = .all
@@ -2299,6 +2300,14 @@ struct RootTabView: View {
         detailNavigationResetTokens = Dictionary(
             uniqueKeysWithValues: IPadSidebarDestination.allCases.map { ($0, UUID()) }
         )
+    }
+
+    /// Duo portrait: a destination that holds a topic shows it at full width (decision of
+    /// 2026-11-01); otherwise list + topic. Used whenever the shown list destination changes.
+    private func applyListVisibility(for destination: IPadSidebarDestination) {
+        iPadSidebarVisibilityRawValue = prefersDetailOnlyTopic && topicTarget(for: destination) != nil
+            ? SidebarVisibilityStorage.detailOnly
+            : SidebarVisibilityStorage.doubleColumn
     }
 
     /// Destination a tab shows in regular/regular; the Plus tab returns to its last choice.
@@ -2570,6 +2579,12 @@ struct RootTabView: View {
         messagesTopicTarget = nil
         bookmarksTopicTarget = nil
         qualityAlertsTopicTarget = nil
+        // A new account starts the Plus tab on Réglages, not on the last page of the old one
+        // (e.g. « Supprimer mon compte »).
+        lastMoreDestination = .settings
+        if iPadSidebarDestination.rootTab == .more {
+            iPadSidebarDestination = .settings
+        }
         resetAllDetailNavigation()
         preferredCompactColumn = .content
     }
