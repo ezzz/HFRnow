@@ -1279,7 +1279,7 @@ struct RootTabView: View {
         static var selectedTab: RootTabIdentifier?
     }
 
-    private enum IPadSidebarDestination: String, Hashable {
+    private enum IPadSidebarDestination: String, Hashable, CaseIterable {
         case categories
         case favorites
         case messages
@@ -1337,7 +1337,10 @@ struct RootTabView: View {
     @State private var hasScheduledAQBadgeCheck = false
     @State private var aqBadgeCheckTask: Task<Void, Never>?
     @State private var messagesNavigationResetToken = UUID()
-    @State private var detailNavigationResetToken = UUID()
+    /// Navigation identity of each split detail; a new value rebuilds that detail only.
+    @State private var detailNavigationResetTokens: [IPadSidebarDestination: UUID] = [:]
+    /// Last destination chosen in the Plus tab, shown again when the tab is reselected.
+    @State private var lastMoreDestination = IPadSidebarDestination.settings
     @State private var preferredCompactColumn = NavigationSplitViewColumn.content
     @State private var isPortraitLayout = false
     @State private var iPadDirectSidebarVisibility = NavigationSplitViewVisibility.all
@@ -1354,11 +1357,12 @@ struct RootTabView: View {
     @AppStorage(AppTabBarMinimizeOnScroll.key) private var tabBarMinimizeOnScroll = true
     @AppStorage(SidebarVisibilityStorage.key) private var iPadSidebarVisibilityRawValue = SidebarVisibilityStorage.doubleColumn
 
-    /// Split view root (sidebar + list + detail) whenever the scene is regular in both
+    /// Split views inside the tabs (list + topic) whenever the scene is regular in both
     /// dimensions: iPad full screen, and the iPhone Duo inner display (a `.phone` idiom that
     /// reports regular/regular when unfolded, in portrait and in landscape). The cover screen,
-    /// regular iPhones and the landscape Pro Max (regular width, compact height) keep the tab bar.
-    /// iPad keeps its existing rule (regular width only) so no iPad configuration changes.
+    /// regular iPhones and the landscape Pro Max (regular width, compact height) keep push
+    /// navigation. The tab bar is there in every case. iPad keeps its existing rule (regular
+    /// width only). The name is kept from #372, where this flag chose a sidebar root.
     private var usesSidebarRoot: Bool {
         guard horizontalSizeClass == .regular else { return false }
         return verticalSizeClass == .regular || UIDevice.current.userInterfaceIdiom == .pad
@@ -1402,7 +1406,7 @@ struct RootTabView: View {
     }
 
     private var rootModeAuditName: String {
-        usesSidebarRoot ? "sidebar" : "tabbar"
+        usesSidebarRoot ? "splitTabs" : "tabbar"
     }
 
     private var tabSelectionBinding: Binding<RootTabIdentifier> {
@@ -1427,9 +1431,10 @@ struct RootTabView: View {
         if previous != tab {
             selectedTab = tab
             if iPadSidebarDestination.rootTab != tab {
-                iPadSidebarDestination = Self.defaultIPadDestination(for: tab)
+                iPadSidebarDestination = destination(forTab: tab)
             }
-            detailNavigationResetToken = UUID()
+            // No detail reset here: each tab keeps its own split detail (HIG Tab bars: switch
+            // sections "while preserving the current navigation state within each section").
             preferredCompactColumn = activeTopicTarget == nil ? .content : .detail
         }
         syncRuntimeSelectedTab(tab, source: "\(source).runtime")
@@ -1599,7 +1604,7 @@ struct RootTabView: View {
         )
         messagesNavigationResetToken = UUID()
         messagesTopicTarget = nil
-        detailNavigationResetToken = UUID()
+        resetDetailNavigation(for: .messages)
         preferredCompactColumn = .content
         if usesSidebarRoot || UIDevice.current.userInterfaceIdiom == .pad {
             iPadSidebarVisibilityRawValue = SidebarVisibilityStorage.doubleColumn
@@ -1675,7 +1680,7 @@ struct RootTabView: View {
             }
             .onChange(of: verticalSizeClass) { oldValue, newValue in
                 // iPhone Duo and large iPhones: rotation or fold can flip only the height class,
-                // which also switches between the tab bar and the split view root.
+                // which also switches the tab contents between push navigation and split views.
                 RootTabAudit.log(
                     "splitVisibility.verticalSizeClassChanged",
                     source: "SwiftUI.verticalSizeClass",
@@ -1735,56 +1740,74 @@ struct RootTabView: View {
             }
     }
 
-    @ViewBuilder
+    /// One `TabView` for every size class, so the sections stay in the tab bar folded and
+    /// unfolded (HIG Sidebars: "Consider using a tab bar first"; HIG iPhone Duo: "Keep controls
+    /// consistent across device poses"). Same 4 tabs, same order and indexes as before: the
+    /// UIKit observer of HFR-092 keeps working. Only the content of each tab changes with the
+    /// size class: push navigation in compact, a split view (list + topic) in regular/regular.
     private var rootContainer: some View {
-        if usesSidebarRoot {
-            iPadSidebarRoot
-                .environment(\.foldHandoffScope, FoldHandoffScope(tab: selectedTab, isCompactRoot: false))
-        } else {
-            compactTabRoot
-        }
-    }
-
-    private var compactTabRoot: some View {
         rootTabs
             .hfrTabBarMinimizeBehavior(tabBarMinimizeOnScroll: tabBarMinimizeOnScroll)
     }
 
     private var rootTabs: some View {
         TabView(selection: tabSelectionBinding) {
-            CategoriesListView(accountsStore: accountsStore)
-                .environment(\.foldHandoffScope, FoldHandoffScope(tab: .categories, isCompactRoot: true))
-                .onAppear { auditTabContentAppear(.categories, source: "TabView.categories") }
-                .tabItem { Label("Catégories", systemImage: "folder.fill") }
-                .tag(RootTabIdentifier.categories)
+            Group {
+                if usesSidebarRoot {
+                    listTabSplit(for: .categories)
+                } else {
+                    CategoriesListView(accountsStore: accountsStore)
+                }
+            }
+            .environment(\.foldHandoffScope, FoldHandoffScope(tab: .categories, isCompactRoot: !usesSidebarRoot))
+            .onAppear { auditTabContentAppear(.categories, source: "TabView.categories") }
+            .tabItem { Label("Catégories", systemImage: "folder.fill") }
+            .tag(RootTabIdentifier.categories)
 
-            //FeedView()
-            FavoritesListView(
-                viewModel: favoritesViewModel,
-                accountsStore: accountsStore
-            )
-            .environment(\.foldHandoffScope, FoldHandoffScope(tab: .favorites, isCompactRoot: true))
+            Group {
+                if usesSidebarRoot {
+                    listTabSplit(for: .favorites)
+                } else {
+                    FavoritesListView(
+                        viewModel: favoritesViewModel,
+                        accountsStore: accountsStore
+                    )
+                }
+            }
+            .environment(\.foldHandoffScope, FoldHandoffScope(tab: .favorites, isCompactRoot: !usesSidebarRoot))
             .onAppear { auditTabContentAppear(.favorites, source: "TabView.favorites") }
             .tabItem { Label("Favoris", systemImage: "star.fill") }
             .tag(RootTabIdentifier.favorites)
 
-            MPListView(
-                viewModel: messagesViewModel,
-                accountsStore: accountsStore,
-                isActive: selectedTab == .messages,
-                navigationResetToken: messagesNavigationResetToken
-            )
-            .environment(\.foldHandoffScope, FoldHandoffScope(tab: .messages, isCompactRoot: true))
+            Group {
+                if usesSidebarRoot {
+                    listTabSplit(for: .messages)
+                } else {
+                    MPListView(
+                        viewModel: messagesViewModel,
+                        accountsStore: accountsStore,
+                        isActive: selectedTab == .messages,
+                        navigationResetToken: messagesNavigationResetToken
+                    )
+                }
+            }
+            .environment(\.foldHandoffScope, FoldHandoffScope(tab: .messages, isCompactRoot: !usesSidebarRoot))
             .onAppear { auditTabContentAppear(.messages, source: "TabView.messages") }
             .tabItem { Label("Messages", systemImage: "envelope") }
             .tag(RootTabIdentifier.messages)
             .badge(mpBadgeEnabled && unreadMPCount > 0 ? unreadMPCount : 0)
 
-            NavigationStack {
-                PlusHomeView()
-                    .foldHandoffDestination()
+            Group {
+                if usesSidebarRoot {
+                    moreTabSplit
+                } else {
+                    NavigationStack {
+                        PlusHomeView()
+                            .foldHandoffDestination()
+                    }
+                }
             }
-            .environment(\.foldHandoffScope, FoldHandoffScope(tab: .more, isCompactRoot: true))
+            .environment(\.foldHandoffScope, FoldHandoffScope(tab: .more, isCompactRoot: !usesSidebarRoot))
             .onAppear { auditTabContentAppear(.more, source: "TabView.more") }
             .tabItem { Label("Plus", systemImage: "ellipsis") }
             .tag(RootTabIdentifier.more)
@@ -1792,20 +1815,38 @@ struct RootTabView: View {
         }
     }
 
+    /// Catégories, Favoris and Messages in regular/regular: list and topic side by side inside
+    /// the tab (HIG iPhone Duo: Mail "shows both side by side" when open). The system sidebar
+    /// toggle of this two-column split hides or shows the list.
+    private func listTabSplit(for destination: IPadSidebarDestination) -> some View {
+        NavigationSplitView(columnVisibility: iPadSidebarColumnVisibility) {
+            iPadListContent(for: destination)
+                .expandedPhoneInlineNavigationTitle()
+                .navigationSplitViewColumnWidth(min: 300, ideal: 380, max: 480)
+        } detail: {
+            iPadDetail(for: destination)
+        }
+        .navigationSplitViewStyle(.balanced)
+    }
+
+    /// The Plus tab in regular/regular keeps a sidebar of its own destinations (HIG Sidebars:
+    /// "consider using a sidebar within a tab"): Bookmarks / Alertes Qualitay with list + topic,
+    /// the other destinations in two columns. Selecting a row never changes the selected tab.
     @ViewBuilder
-    private var iPadSidebarRoot: some View {
-        if iPadSidebarDestination.usesTopicList {
+    private var moreTabSplit: some View {
+        let destination = moreTabDestination
+        if destination.usesTopicList {
             NavigationSplitView(
                 columnVisibility: iPadSidebarColumnVisibility,
                 preferredCompactColumn: $preferredCompactColumn
             ) {
                 iPadSidebarNavigationList
             } content: {
-                selectedIPadListContent
+                iPadListContent(for: destination)
                     .expandedPhoneInlineNavigationTitle()
                     .navigationSplitViewColumnWidth(min: 300, ideal: 380, max: 480)
             } detail: {
-                selectedIPadDetail
+                iPadDetail(for: destination)
             }
             .navigationSplitViewStyle(.balanced)
         } else {
@@ -1815,21 +1856,20 @@ struct RootTabView: View {
             ) {
                 iPadSidebarNavigationList
             } detail: {
-                selectedIPadDetail
+                iPadDetail(for: destination)
             }
             .navigationSplitViewStyle(.balanced)
         }
     }
 
+    /// Destination shown by the Plus tab: the current one when the Plus tab is selected,
+    /// otherwise the last one chosen there.
+    private var moreTabDestination: IPadSidebarDestination {
+        iPadSidebarDestination.rootTab == .more ? iPadSidebarDestination : lastMoreDestination
+    }
+
     private var iPadSidebarNavigationList: some View {
         List(selection: iPadSidebarSelection) {
-            Section("Forum") {
-                ForEach(Self.forumSidebarDestinations, id: \.self) { destination in
-                    NavigationLink(value: destination) {
-                        iPadSidebarRow(for: destination)
-                    }
-                }
-            }
             Section("Outils") {
                 ForEach(Self.toolsSidebarDestinations, id: \.self) { destination in
                     NavigationLink(value: destination) {
@@ -1845,14 +1885,14 @@ struct RootTabView: View {
                 }
             }
         }
-        .navigationTitle("Hardware.fr")
+        .navigationTitle("Plus")
         .expandedPhoneInlineNavigationTitle()
         .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 280)
     }
 
     private var iPadSidebarSelection: Binding<IPadSidebarDestination?> {
         Binding {
-            iPadSidebarDestination
+            moreTabDestination
         } set: { newValue in
             guard let newValue else {
                 RootTabAudit.log(
@@ -1872,8 +1912,8 @@ struct RootTabView: View {
     }
 
     @ViewBuilder
-    private var selectedIPadListContent: some View {
-        switch iPadSidebarDestination {
+    private func iPadListContent(for destination: IPadSidebarDestination) -> some View {
+        switch destination {
         case .categories:
             if let categoriesSelectedForum {
                 ForumTopicsListView(
@@ -1886,7 +1926,7 @@ struct RootTabView: View {
                     onContentContextChange: clearCategoriesTopicSelection
                 )
                 .id(iPadForumIdentity(for: categoriesSelectedForum))
-                .onAppear { auditTabContentAppear(.categories, source: "Sidebar.categories.topics") }
+                .onAppear { auditTabContentAppear(.categories, source: "Split.categories.topics") }
             } else {
                 CategoriesListView(
                     accountsStore: accountsStore,
@@ -1896,7 +1936,7 @@ struct RootTabView: View {
                         showTopicsForForum($0, initialFlagOverride: nil)
                     }
                 )
-                .onAppear { auditTabContentAppear(.categories, source: "Sidebar.categories") }
+                .onAppear { auditTabContentAppear(.categories, source: "Split.categories") }
             }
         case .favorites:
             FavoritesListView(
@@ -1908,7 +1948,7 @@ struct RootTabView: View {
                     showTopicsForForum($0, initialFlagOverride: .favorites)
                 }
             )
-            .onAppear { auditTabContentAppear(.favorites, source: "Sidebar.favorites") }
+            .onAppear { auditTabContentAppear(.favorites, source: "Split.favorites") }
         case .messages:
             MPListView(
                 viewModel: messagesViewModel,
@@ -1919,29 +1959,30 @@ struct RootTabView: View {
                 onSelectTopic: { selectTopic($0, for: .messages) },
                 onDeleteTopic: handleDeletedMessageTopic
             )
-            .onAppear { auditTabContentAppear(.messages, source: "Sidebar.messages") }
+            .onAppear { auditTabContentAppear(.messages, source: "Split.messages") }
         case .bookmarks:
             BookmarksPlusView(
                 selectedTopicID: bookmarksTopicTarget?.id,
                 onSelectTopic: { selectTopic($0, for: .bookmarks) },
                 onDeleteTopic: handleDeletedBookmarkTopic
             )
-            .onAppear { auditTabContentAppear(.more, source: "Sidebar.bookmarks") }
+            .onAppear { auditTabContentAppear(.more, source: "Split.bookmarks") }
         case .qualityAlerts:
             AQPlusView(
                 selectedTopicID: qualityAlertsTopicTarget?.id,
                 onSelectTopic: { selectTopic($0, for: .qualityAlerts) }
             )
-            .onAppear { auditTabContentAppear(.more, source: "Sidebar.qualityAlerts") }
+            .onAppear { auditTabContentAppear(.more, source: "Split.qualityAlerts") }
         case .settings, .search, .credits, .charter, .deleteAccount:
             EmptyView()
         }
     }
 
-    @ViewBuilder
-    private var selectedIPadDetail: some View {
+    /// Detail column of a split. Each destination keeps its own navigation identity, so
+    /// switching tabs keeps the topic and the links opened from it in every other tab.
+    private func iPadDetail(for destination: IPadSidebarDestination) -> some View {
         NavigationStack {
-            if let target = activeTopicTarget {
+            if let target = topicTarget(for: destination) {
                 MessagesView(
                     topic: target.topic,
                     curPage: target.page,
@@ -1949,10 +1990,10 @@ struct RootTabView: View {
                     separatorNewMessages: target.separatorNewMessages,
                     initialLoadScroll: target.initialScroll,
                     initialFavoritePostFilterResult: target.initialFavoritePostFilterResult,
-                    resetMessagesStackToRootAction: resetDetailNavigation
+                    resetMessagesStackToRootAction: { resetDetailNavigation(for: destination) }
                 )
             } else {
-                switch iPadSidebarDestination {
+                switch destination {
                 case .settings:
                     AppSettingsView()
                 case .search:
@@ -1966,19 +2007,23 @@ struct RootTabView: View {
                 case .categories, .favorites, .messages, .bookmarks, .qualityAlerts:
                     ContentUnavailableView {
                         Label(
-                            detailPlaceholderTitle,
-                            systemImage: detailPlaceholderSystemImage
+                            detailPlaceholderTitle(for: destination),
+                            systemImage: detailPlaceholderSystemImage(for: destination)
                         )
                     } description: {
-                        Text(detailPlaceholderDescription)
+                        Text(detailPlaceholderDescription(for: destination))
                     }
                 }
             }
         }
-        .id(detailNavigationResetToken)
+        .id(detailNavigationResetTokens[destination])
         .toolbar {
-            if iPadSidebarDestination.usesTopicList,
-               activeTopicTarget != nil,
+            // Three-column split of the Plus tab only: there the system toggle opens the Plus
+            // sidebar, so hiding the list needs its own button. The two-column splits of the
+            // other tabs use the system toggle, which already hides or shows the list.
+            if destination.rootTab == .more,
+               destination.usesTopicList,
+               topicTarget(for: destination) != nil,
                !isTopicListHidden {
                 ToolbarItem(placement: .topBarLeading) {
                     // Not a sidebar symbol: the system sidebar toggle of the list column opens
@@ -1993,8 +2038,8 @@ struct RootTabView: View {
         }
     }
 
-    private var detailPlaceholderTitle: String {
-        switch iPadSidebarDestination {
+    private func detailPlaceholderTitle(for destination: IPadSidebarDestination) -> String {
+        switch destination {
         case .bookmarks:
             "Aucun bookmark sélectionné"
         case .qualityAlerts:
@@ -2006,8 +2051,8 @@ struct RootTabView: View {
         }
     }
 
-    private var detailPlaceholderSystemImage: String {
-        switch iPadSidebarDestination {
+    private func detailPlaceholderSystemImage(for destination: IPadSidebarDestination) -> String {
+        switch destination {
         case .bookmarks:
             "pin"
         case .qualityAlerts:
@@ -2019,8 +2064,8 @@ struct RootTabView: View {
         }
     }
 
-    private var detailPlaceholderDescription: String {
-        switch iPadSidebarDestination {
+    private func detailPlaceholderDescription(for destination: IPadSidebarDestination) -> String {
+        switch destination {
         case .categories:
             categoriesSelectedForum == nil
                 ? "Choisissez une catégorie dans la liste."
@@ -2038,8 +2083,13 @@ struct RootTabView: View {
         }
     }
 
+    /// Topic shown by the selected tab's split (or the current Plus destination).
     private var activeTopicTarget: TopicNavigationTarget? {
-        switch iPadSidebarDestination {
+        topicTarget(for: iPadSidebarDestination)
+    }
+
+    private func topicTarget(for destination: IPadSidebarDestination) -> TopicNavigationTarget? {
+        switch destination {
         case .categories:
             categoriesTopicTarget
         case .favorites:
@@ -2070,8 +2120,11 @@ struct RootTabView: View {
         }
 
         iPadSidebarDestination = destination
+        if destination.rootTab == .more {
+            lastMoreDestination = destination
+        }
         setSelectedTab(destination.rootTab, source: source)
-        detailNavigationResetToken = UUID()
+        resetDetailNavigation(for: destination)
 
         if destination.usesTopicList {
             // Duo portrait: a destination that still holds a topic shows it at full width.
@@ -2085,10 +2138,11 @@ struct RootTabView: View {
         }
     }
 
-    /// Fold/unfold (or iPad Split View resize) swaps the tab bar root and the split view root.
-    /// Replays the topic being read in the selected tab into the new root, on the same page.
-    /// Only the root topic of the selected tab is carried; the Plus tab is carried only towards
-    /// Bookmarks / Alertes Qualitay when one of them is the current sidebar destination.
+    /// Fold/unfold (or iPad Split View resize) swaps each tab's content between push navigation
+    /// and a split view; the tab bar itself stays. Replays the topic being read in the selected
+    /// tab into the new content, on the same page. Only the root topic of the selected tab is
+    /// carried; the Plus tab is carried only towards Bookmarks / Alertes Qualitay when one of
+    /// them is the Plus tab's current destination.
     private func handleRootSwap(toSidebar: Bool) {
         let reading = FoldHandoffStore.shared.beginRootSwap(selectedTab: selectedTab)
         let readingNote = reading.map { "page \($0.page)/\($0.maxPage)" } ?? "nil"
@@ -2111,7 +2165,7 @@ struct RootTabView: View {
             if iPadSidebarDestination.rootTab == reading.tab {
                 destination = iPadSidebarDestination
             } else {
-                destination = Self.defaultIPadDestination(for: reading.tab)
+                destination = self.destination(forTab: reading.tab)
             }
             guard destination.usesTopicList else { return }
             if destination != iPadSidebarDestination {
@@ -2137,7 +2191,7 @@ struct RootTabView: View {
         messagesTopicTarget = nil
         bookmarksTopicTarget = nil
         qualityAlertsTopicTarget = nil
-        detailNavigationResetToken = UUID()
+        resetAllDetailNavigation()
     }
 
     private func selectTopic(
@@ -2158,7 +2212,7 @@ struct RootTabView: View {
         case .settings, .search, .credits, .charter, .deleteAccount:
             return
         }
-        detailNavigationResetToken = UUID()
+        resetDetailNavigation(for: destination)
         preferredCompactColumn = .detail
         if prefersDetailOnlyTopic {
             iPadSidebarVisibilityRawValue = SidebarVisibilityStorage.detailOnly
@@ -2175,7 +2229,7 @@ struct RootTabView: View {
         setIPadSidebarDestination(.categories, source: "showTopicsForForum")
         iPadSidebarVisibilityRawValue = SidebarVisibilityStorage.doubleColumn
         preferredCompactColumn = .content
-        detailNavigationResetToken = UUID()
+        resetDetailNavigation(for: .categories)
     }
 
     private func showCategoriesRoot() {
@@ -2188,8 +2242,8 @@ struct RootTabView: View {
 
     private func clearCategoriesTopicSelection() {
         categoriesTopicTarget = nil
+        resetDetailNavigation(for: .categories)
         if iPadSidebarDestination == .categories {
-            detailNavigationResetToken = UUID()
             preferredCompactColumn = .content
         }
     }
@@ -2205,8 +2259,8 @@ struct RootTabView: View {
     private func handleDeletedMessageTopic(_ deletedTopicID: TopicNavigationID) {
         guard messagesTopicTarget?.id == deletedTopicID else { return }
         messagesTopicTarget = nil
+        resetDetailNavigation(for: .messages)
         if iPadSidebarDestination == .messages {
-            detailNavigationResetToken = UUID()
             preferredCompactColumn = .content
         }
     }
@@ -2214,8 +2268,8 @@ struct RootTabView: View {
     private func handleDeletedBookmarkTopic(_ deletedTopicID: TopicNavigationID) {
         guard bookmarksTopicTarget?.id == deletedTopicID else { return }
         bookmarksTopicTarget = nil
+        resetDetailNavigation(for: .bookmarks)
         if iPadSidebarDestination == .bookmarks {
-            detailNavigationResetToken = UUID()
             preferredCompactColumn = .content
         }
     }
@@ -2237,8 +2291,19 @@ struct RootTabView: View {
         preferredCompactColumn = .content
     }
 
-    private func resetDetailNavigation() {
-        detailNavigationResetToken = UUID()
+    private func resetDetailNavigation(for destination: IPadSidebarDestination) {
+        detailNavigationResetTokens[destination] = UUID()
+    }
+
+    private func resetAllDetailNavigation() {
+        detailNavigationResetTokens = Dictionary(
+            uniqueKeysWithValues: IPadSidebarDestination.allCases.map { ($0, UUID()) }
+        )
+    }
+
+    /// Destination a tab shows in regular/regular; the Plus tab returns to its last choice.
+    private func destination(forTab tab: RootTabIdentifier) -> IPadSidebarDestination {
+        tab == .more ? lastMoreDestination : Self.defaultIPadDestination(for: tab)
     }
 
     private func auditTabContentAppear(_ tab: RootTabIdentifier, source: String) {
@@ -2266,7 +2331,7 @@ struct RootTabView: View {
         tabBarSnapshot: (selectedIndex: Int, viewControllerCount: Int)?
     ) {
         guard #available(iOS 27.0, *) else { return }
-        guard !usesSidebarRoot else { return }
+        // The regular/regular root is the same TabView now, so the HFR-092 resync applies to it too.
         guard appearedTab != selectedTab else { return }
 
         guard let tabBarSnapshot else {
@@ -2328,12 +2393,6 @@ struct RootTabView: View {
             }
         }
     }
-
-    private static let forumSidebarDestinations: [IPadSidebarDestination] = [
-        .categories,
-        .favorites,
-        .messages
-    ]
 
     private static let toolsSidebarDestinations: [IPadSidebarDestination] = [
         .bookmarks,
@@ -2511,7 +2570,7 @@ struct RootTabView: View {
         messagesTopicTarget = nil
         bookmarksTopicTarget = nil
         qualityAlertsTopicTarget = nil
-        detailNavigationResetToken = UUID()
+        resetAllDetailNavigation()
         preferredCompactColumn = .content
     }
 
