@@ -884,7 +884,7 @@ struct FavoritesListView: View {
                             separatorNewMessages: false,
                             initialFavoritePostFilterResult: favoritePostFilterTarget.result
                         )
-                        .toolbar(.hidden, for: .tabBar)
+                        .hfrPushedTopicTabBarVisibility()
                     } else {
                         EmptyView()
                     }

@@ -3955,7 +3955,7 @@ struct MessagesView: View {
                 navigationDepth: navigationDepth + 1,
                 resetMessagesStackToRootAction: effectiveResetMessagesStackToRootAction
             )
-            .toolbar(.hidden, for: .tabBar)
+            .hfrPushedTopicTabBarVisibility()
         )
         navigateToLinkedTopic = true
     }
@@ -4661,7 +4661,7 @@ struct MessagesView: View {
                     initialSearchContext: newContext,
                     resetMessagesStackToRootAction: effectiveResetMessagesStackToRootAction
                 )
-                .toolbar(.hidden, for: .tabBar)
+                .hfrPushedTopicTabBarVisibility()
             )
             navigateToSearchResult = true
         }
