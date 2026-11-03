@@ -11,6 +11,8 @@ import MessageUI
 struct PlusHomeView: View {
     @State private var showDeleteAccountComposer = false
     @State private var showMailUnavailableAlert = false
+    /// Informational page opened from the « … » menu.
+    @State private var infoPage: StaticInfoPageKind?
     @AppStorage(AQUnreadCounter.storageKey) private var unreadAQCount = 0
 
     var body: some View {
@@ -40,18 +42,6 @@ struct PlusHomeView: View {
                     PlusRow(title: "Alertes Qualitay", systemImage: "bell", badgeCount: unreadAQCount)
                 }
 
-                NavigationLink {
-                    StaticInfoPageView(kind: .credits)
-                } label: {
-                    PlusRow(title: "Crédits", systemImage: "info.circle")
-                }
-
-                NavigationLink {
-                    StaticInfoPageView(kind: .charter)
-                } label: {
-                    PlusRow(title: "Charte du forum", systemImage: "doc.text")
-                }
-
                 Button(role: .destructive) {
                     if MFMailComposeViewController.canSendMail() {
                         showDeleteAccountComposer = true
@@ -65,6 +55,24 @@ struct PlusHomeView: View {
         }
         .navigationTitle("Plus")
         .expandedPhoneInlineNavigationTitle()
+        .toolbar {
+            // Same « … » menu as the Plus sidebar in regular/regular: Crédits and Charte.
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button("Crédits", systemImage: "info.circle") {
+                        infoPage = .credits
+                    }
+                    Button("Charte du forum", systemImage: "doc.text") {
+                        infoPage = .charter
+                    }
+                } label: {
+                    Label("Informations", systemImage: "ellipsis")
+                }
+            }
+        }
+        .navigationDestination(item: $infoPage) { kind in
+            StaticInfoPageView(kind: kind)
+        }
         .sheet(isPresented: $showDeleteAccountComposer) {
             DeleteAccountMailComposeView()
         }

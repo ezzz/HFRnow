@@ -1892,6 +1892,23 @@ struct RootTabView: View {
         .navigationTitle("Plus")
         .expandedPhoneInlineNavigationTitle()
         .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 280)
+        .toolbar {
+            // Informational pages only: they stay one tap away without taking sidebar rows.
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    ForEach(Self.infoMenuDestinations, id: \.self) { destination in
+                        Button(
+                            iPadSidebarTitle(for: destination),
+                            systemImage: iPadSidebarSystemImage(for: destination)
+                        ) {
+                            setIPadSidebarDestination(destination, source: "PlusInfoMenu")
+                        }
+                    }
+                } label: {
+                    Label("Informations", systemImage: "ellipsis")
+                }
+            }
+        }
     }
 
     private var iPadSidebarSelection: Binding<IPadSidebarDestination?> {
@@ -2411,9 +2428,13 @@ struct RootTabView: View {
     private static let moreSidebarDestinations: [IPadSidebarDestination] = [
         .settings,
         .search,
-        .credits,
-        .charter,
         .deleteAccount
+    ]
+
+    /// Purely informational pages, in the « … » menu of the Plus sidebar instead of rows.
+    private static let infoMenuDestinations: [IPadSidebarDestination] = [
+        .credits,
+        .charter
     ]
 
     private func iPadSidebarTitle(for destination: IPadSidebarDestination) -> String {
