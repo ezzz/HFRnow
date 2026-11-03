@@ -75,7 +75,11 @@ final class FoldHandoffStore {
     func beginRootSwap(selectedTab tab: RootTabIdentifier) -> Reading? {
         rootGeneration += 1
         pendingPush = nil
-        return readings[tab]
+        // Only the selected tab is replayed. The readings of the other tabs belong to views the
+        // swap tears down: dropping them keeps an old topic from coming back on a later swap.
+        let reading = readings[tab]
+        readings = reading.map { [tab: $0] } ?? [:]
+        return reading
     }
 
     private func tab(of token: UUID) -> RootTabIdentifier? {

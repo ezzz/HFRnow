@@ -51,6 +51,13 @@ final class FoldHandoffStoreTests: XCTestCase {
         XCTAssertEqual(store.readings[.categories]?.page, 5)
     }
 
+    func testRootSwapDropsReadingsOfOtherTabs() {
+        _ = store.register(tab: .favorites, topic: Topic(), page: 2, maxPage: 2)
+
+        XCTAssertNil(store.beginRootSwap(selectedTab: .categories))
+        XCTAssertNil(store.beginRootSwap(selectedTab: .favorites))
+    }
+
     func testStaleTokenDoesNotOverwriteNewerReading() {
         let oldToken = store.register(tab: .categories, topic: Topic(), page: 1, maxPage: 1)
         _ = store.register(tab: .categories, topic: Topic(), page: 7, maxPage: 9)
