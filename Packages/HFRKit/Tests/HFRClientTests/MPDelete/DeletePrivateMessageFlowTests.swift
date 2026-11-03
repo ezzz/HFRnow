@@ -180,7 +180,7 @@ struct DeletePrivateMessageFlowTests {
 
     // MARK: - Helpers
 
-    /// The error the ungated send throws, nil when it succeeds.
+    /// The error the fenced send throws with the session's own seed (no login change), nil when it succeeds.
     private static func failure(_ thread: TopicID, _ session: ScriptedFlagSession) async -> MPThreadDeleteError? {
         do throws(MPThreadDeleteError) {
             _ = try await DeletePrivateMessageFlow().send(thread, through: session, since: await session.hashCheckSeed())

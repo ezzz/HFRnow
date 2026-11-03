@@ -9,7 +9,8 @@ import HFRParsing
 /// HFR removes the thread from the deleting account's list only: the other participants keep it until they delete it
 /// too (`R95k`, `W65`). Success is reported only on HFR's own confirmation (`W64`, `W65`). The request is sent once and
 /// never retried; a failure after sending is `unconfirmed`. The write leaves only once LOT-044 confirmed the session just
-/// before it (#314) and no login landed in this session from before the check until the POST (#340, #342, #448).
+/// before it (#314) and no login landed in this session from before the check until the request was built (#340,
+/// #342, #448); a login adopted after that, before `URLSession` attaches the cookies, is not fenced.
 public struct DeletePrivateMessageFlow: Sendable {
     /// What the delete asks before it leaves: the health of the account session, from one GET of HFR (LOT-044).
     typealias SessionCheck = () async throws(NetworkError) -> SessionHealth
@@ -64,7 +65,8 @@ public struct DeletePrivateMessageFlow: Sendable {
 
     /// The POST, sent only while `session` still holds `seed`'s login (identity and login generation), with the token
     /// it holds then: the seed comparison, the token read and the request are one turn of the session actor (#448,
-    /// `PostingSession.send(since:)`), so a login adopted at any point after `seed` was taken sends nothing.
+    /// `PostingSession.send(since:)`): a login adopted after `seed` was taken and before the request is built sends nothing.
+    /// The cookies are attached later, when `URLSession` starts the task: a login adopted in that window is not fenced.
     func send(_ thread: TopicID, through session: any PostingSession, since seed: HashCheckSeed)
         async throws(MPThreadDeleteError) -> MPThreadDeletion {
         guard Self.isThread(thread) else { throw .invalidThread }
