@@ -9,7 +9,7 @@ import HFRParsing
 /// HFR removes the thread from the deleting account's list only: the other participants keep it until they delete it
 /// too (`R95k`, `W65`). Success is reported only on HFR's own confirmation (`W64`, `W65`). The request is sent once and
 /// never retried; a failure after sending is `unconfirmed`. The write leaves only once LOT-044 confirmed the session just
-/// before it (#314) and no login landed in this session meanwhile (#340, #342).
+/// before it (#314) and no login landed in this session from before the check until the POST (#340, #342, #448).
 public struct DeletePrivateMessageFlow: Sendable {
     /// What the delete asks before it leaves: the health of the account session, from one GET of HFR (LOT-044).
     typealias SessionCheck = () async throws(NetworkError) -> SessionHealth
@@ -58,27 +58,40 @@ public struct DeletePrivateMessageFlow: Sendable {
         }
         guard health == .valid else { throw .sessionNotConfirmed(health) }
         if Task.isCancelled { throw .network(.cancelled) }
-        // Identity, generation and token in one actor turn: the token sent is the one of the account the check confirmed.
-        // A login landing after this read and before the POST leaves (one actor hop) would send this account's token with
-        // the other cookies, which HFR refuses with its bad-token answer (`W64x`): nothing is deleted then.
-        let after = await session.hashCheckSeed()
-        guard let identity = before.identity, after.identity == identity, after.loginGeneration == before.loginGeneration
-        else { throw .sessionChanged }
-        guard let token = after.hashCheck else { throw .missingToken }
-        return try await send(thread, token: token, through: session)
+        guard before.identity != nil else { throw .sessionChanged }
+        return try await send(thread, through: session, since: before)
     }
 
-    /// The POST itself, with `token`; no session check (tests of the request and of the answers).
+    /// The POST, sent only while `session` still holds `seed`'s login (identity and login generation), with the token
+    /// it holds then: the check, the token read and the request are one turn of the session actor (#448,
+    /// `PostingSession.send(since:)`), so a login adopted at any point after `seed` was taken sends nothing.
+    func send(_ thread: TopicID, through session: any PostingSession, since seed: HashCheckSeed)
+        async throws(MPThreadDeleteError) -> MPThreadDeletion {
+        guard Self.isThread(thread) else { throw .invalidThread }
+        let outcome: FencedSend
+        do {
+            outcome = try await session.send(since: seed) { token in Self.request(thread: thread.topic, token: token) }
+        } catch .invalidRequest(let reason) {
+            throw .network(.invalidRequest(reason: reason))
+        } catch {
+            throw .unconfirmed(.transport(error))
+        }
+        switch outcome {
+        case .sent(let response): return try Self.confirmation(for: thread, in: response)
+        case .loginChanged: throw .sessionChanged
+        case .missingToken: throw .missingToken
+        case .cancelled: throw .network(.cancelled)
+        }
+    }
+
+    /// The POST itself with `token`, unfenced: tests of the request and of the answers only.
     func send(_ thread: TopicID, token: String, through session: any PostingSession) async throws(MPThreadDeleteError)
         -> MPThreadDeletion {
         guard Self.isThread(thread) else { throw .invalidThread }
         if Task.isCancelled { throw .network(.cancelled) }
-        let request = HTTPRequest.post(
-            Self.manageActionURL, form: Self.body(thread: thread.topic, token: token), redirectPolicy: .doNotFollow
-        )
         let response: HTTPResponse
         do {
-            response = try await session.send(request)
+            response = try await session.send(Self.request(thread: thread.topic, token: token))
         } catch .invalidRequest(let reason) {
             throw .network(.invalidRequest(reason: reason))
         } catch {
@@ -96,6 +109,11 @@ public struct DeletePrivateMessageFlow: Sendable {
         else { preconditionFailure("The manageaction URL literal is valid") }
         return url
     }()
+
+    /// The delete's POST: `body` to the list's form action, redirects not followed.
+    static func request(thread: Int, token: String) -> HTTPRequest {
+        HTTPRequest.post(manageActionURL, form: body(thread: thread, token: token), redirectPolicy: .doNotFollow)
+    }
 
     /// Legacy's fields (`MPListView.swift:145-154` @ 03e5e22) in the order `W64` and `W65` sent them: one thread at
     /// index 0, the end marker at index 1. Legacy encoded a Swift dictionary, whose order is not fixed.
