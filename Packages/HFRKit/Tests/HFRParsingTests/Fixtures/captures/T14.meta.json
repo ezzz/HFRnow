@@ -1,0 +1,15 @@
+{
+  "id": "T14",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "https://www.camif.fr/<path>.jpg",
+  "url": "https://www.camif.fr/wwwSurf/images/loupes/1/2/C030100_639_10.jpg",
+  "final_url": "https://www.camif.fr/wwwSurf/images/loupes/1/2/C030100_639_10.jpg",
+  "status": 404,
+  "content_type": "text/html",
+  "date": "Mon, 02 Nov 2026 09:35:51 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "http-only host of R20 requested over https, cookie-less, no Referer (#301)",
+  "private": false
+}

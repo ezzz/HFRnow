@@ -30,7 +30,9 @@ struct AppEnvironment {
         let pages = LiveTopicPageSource(fetcher: fetcher, session: session, normalizer: LiveContentNormalizer())
         let reader = ReaderServices(
             imageFetcher: ReaderImageFetcher(),
-            settings: .live(store: UserDefaultsSettingsStore(), isOnWiFi: { NetworkMonitor.shared.isOnWiFi })
+            settings: .live(store: UserDefaultsSettingsStore(), isOnWiFi: { NetworkMonitor.shared.isOnWiFi }),
+            profiles: LiveUserProfileSource(fetcher: fetcher),
+            positions: LiveReaderPositionRecorder.live(account: accountName)
         )
         return AppEnvironment(
             session: session, dataSource: source, visibility: ForumVisibility(), currentAccountName: accountName,

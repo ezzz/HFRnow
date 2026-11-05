@@ -1,0 +1,16 @@
+{
+  "id": "T01",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/rss.php",
+  "url": "https://aq.super-h.fr/rss.php",
+  "final_url": "https://aq.super-h.fr/rss.php",
+  "status": 200,
+  "content_type": "application/rss+xml;charset=utf-8",
+  "date": "Mon, 02 Nov 2026 09:32:18 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "aq.super-h.fr RSS feed, legacy AQPlusView.swift AQSupport.feedURL",
+  "file": "T01-aq-rss-feed.xml",
+  "private": false
+}
