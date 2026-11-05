@@ -21,6 +21,7 @@ struct TopicReaderView: View {
     @State private var controller: ReaderWebController?
     @State private var external: ExternalLink?
     @State private var video: VideoItem?
+    @State private var profile: UserProfileModel?
     @State private var askingPage = false
     @State private var pageText = ""
     /// `topic_page_swipe_navigation`: with it off no gesture is attached to the web view, as legacy's `including: .none`.
@@ -86,6 +87,7 @@ struct TopicReaderView: View {
         .overlay(alignment: .bottom) { menuFeedbackBanner }
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
+        .sheet(item: $profile) { profile in UserProfileView(model: profile, services: services) }
         .navigationDestination(item: linkedReader) { linked in
             // A private conversation reached from a topic offers no reply: MP replies are LOT-128's (no composer in Messages).
             TopicReaderView(model: linked.model, services: services, composer: linked.model.isPrivateConversation ? nil : composer)
@@ -201,6 +203,7 @@ struct TopicReaderView: View {
             link: { [model] url in
                 switch model.action(forLink: url, defaultBrowser: services.settings.opensLinksInDefaultBrowser()) {
                 case .reader(let target): model.follow(target)
+                case .profile(let memberID): profile = UserProfileModel(memberID: memberID, source: services.profiles)
                 case .inAppBrowser(let url): external = ExternalLink(url: url)
                 case .defaultBrowser(let url): openURL(url)
                 case .ignored: break
@@ -223,6 +226,8 @@ struct ReaderServices: Sendable {
     let imageFetcher: ReaderImageFetcher
     /// Image mode and display choices.
     let settings: ReaderSettings
+    /// Public profiles opened from a link (LOT-116), fetched without cookies.
+    let profiles: any UserProfileSource
     /// Records the reading position of the current account (LOT-111); nil when logged out.
     var positions: (any ReaderPositionRecording)?
 }

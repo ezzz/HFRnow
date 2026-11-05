@@ -5,6 +5,7 @@ import io
 import json
 import os
 import shutil
+import socket
 import subprocess
 import sys
 import tempfile
@@ -38,6 +39,7 @@ FORM_PAGE = """<html><body>
 class Handler(http.server.BaseHTTPRequestHandler):
     posts = []
     gets = []
+    referers = []
 
     def log_message(self, *a):
         pass
@@ -51,6 +53,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self):
         Handler.gets.append((self.path, self.headers.get("Cookie", "")))
+        Handler.referers.append(self.headers.get("Referer"))
         if self.path.startswith("/form"):
             self._send(200, FORM_PAGE)
         elif self.path.startswith("/redir"):
@@ -104,6 +107,7 @@ class FlowTests(unittest.TestCase):
     def setUp(self):
         Handler.posts = []
         Handler.gets = []
+        Handler.referers = []
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.work = os.path.join(self.tmp.name, "work")
@@ -130,6 +134,30 @@ class FlowTests(unittest.TestCase):
     def raw(self, name):
         with open(os.path.join(self.work, "captures-raw", name), encoding="utf-8") as fh:
             return fh.read()
+
+    def test_get_sends_referer_only_when_asked_and_notes_it(self):
+        rc, _o = self.run_cli("get", "--account", "anon", "--id", "I01", "--url", "/img.png")
+        self.assertEqual(rc, 0)
+        rc, _o = self.run_cli("get", "--account", "anon", "--id", "I02", "--url", "/img.png",
+                              "--referer", "https://forum.example/")
+        self.assertEqual(rc, 0)
+        self.assertEqual(Handler.referers, [None, "https://forum.example/"])
+        self.assertNotIn("note", json.loads(self.raw("I01.meta.json")))
+        self.assertIn("Referer: https://forum.example/", json.loads(self.raw("I02.meta.json"))["note"])
+
+    def test_get_records_a_network_error_only_when_asked(self):
+        closed = socket.socket()
+        closed.bind(("127.0.0.1", 0))
+        url = "http://127.0.0.1:%d/img.png" % closed.getsockname()[1]
+        closed.close()
+        rc, out = self.run_cli("get", "--account", "anon", "--id", "N01", "--url", url)
+        self.assertNotEqual(rc, 0)
+        self.assertFalse(os.path.exists(os.path.join(self.work, "captures-raw", "N01.meta.json")))
+        rc, _o = self.run_cli("get", "--account", "anon", "--id", "N02", "--url", url, "--record-network-error")
+        self.assertEqual(rc, 0)
+        meta = json.loads(self.raw("N02.meta.json"))
+        self.assertEqual(meta["status"], 0)
+        self.assertIn("network error", meta["note"])
 
     def test_login_keeps_jar_only_on_success(self):
         rc, _o = self.run_cli("login", "--account", "user1", "--id", "W02", "--wrong-password")

@@ -204,23 +204,24 @@ struct VisibilityWebTests: ReaderWebTesting {
         #expect((quote?[5] as? NSNumber)?.intValue == 0)
     }
 
-    @Test func aBlockedMessageIsOneClosedLineAndOwnAndAllowlistedMessagesAreTinted() async throws {
-        let policy = VisibilityPolicy(ownPseudo: "moi", blocklist: ["Troll"], allowlist: ["Ami"])
-        let (controller, _) = await show(
-            [
-                plain("Troll", 1, "<p>message masqué</p>"), plain("moi", 2, avatar: true), plain("Ami", 3, avatar: true),
-                plain("Inconnu", 4)
-            ],
-            policy: policy
-        )
+    @Test func aBlockedMessageIsOneClosedLineUntilItsSummaryIsTapped() async throws {
+        let policy = VisibilityPolicy(blocklist: ["Troll"])
+        let (controller, _) = await show([plain("Troll", 1, "<p>message masqué</p>"), plain("Inconnu", 2)], policy: policy)
         let hidden = "return document.querySelector('article.blocked .content').checkVisibility();"
         #expect(try await evaluate(hidden, controller) as? Bool == false)
         let summary = try await evaluate("return document.querySelector('article.blocked summary').textContent;", controller) as? String
         #expect(summary == "TrollMessage masqué")
         _ = try await evaluate("document.querySelector('article.blocked summary').click(); return true;", controller)
         #expect(try await evaluate(hidden, controller) as? Bool == true)
-        #expect(await settled(controller))
         #expect((try await evaluate("return document.querySelectorAll('details').length;", controller) as? NSNumber)?.intValue == 1)
+    }
+
+    @Test func ownAndAllowlistedMessagesAreTintedBarredAndRingedWithTheirColours() async throws {
+        let policy = VisibilityPolicy(ownPseudo: "moi", allowlist: ["Ami"])
+        let (controller, _) = await show(
+            [plain("moi", 2, avatar: true), plain("Ami", 3, avatar: true), plain("Inconnu", 4)], policy: policy
+        )
+        #expect(await settled(controller))
         let tints = try await evaluate(
             """
             const probe = (value) => { const span = document.createElement('span'); span.style.color = value;

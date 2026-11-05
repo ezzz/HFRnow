@@ -37,6 +37,7 @@ struct AppEnvironment {
                 store: UserDefaultsSettingsStore(), isOnWiFi: { NetworkMonitor.shared.isOnWiFi }, pseudo: accountName,
                 pseudoLists: { lists.current }
             ),
+            profiles: LiveUserProfileSource(fetcher: fetcher),
             positions: LiveReaderPositionRecorder.live(account: accountName)
         )
         return AppEnvironment(
