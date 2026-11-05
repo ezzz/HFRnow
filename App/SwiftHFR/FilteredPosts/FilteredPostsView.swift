@@ -12,10 +12,6 @@ private struct FilteredPostsPresentation: ViewModifier {
     @Bindable var model: FilteredPostsModel
     let reader: ReaderServices
 
-    private var errorShown: Binding<Bool> {
-        Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.dismissError() } })
-    }
-
     func body(content: Content) -> some View {
         content
             .safeAreaInset(edge: .bottom) {
@@ -27,15 +23,24 @@ private struct FilteredPostsPresentation: ViewModifier {
             .sheet(isPresented: Binding(get: { model.result != nil }, set: { if !$0 { model.closeResult() } })) {
                 NavigationStack { FilteredPostsView(model: model, services: reader) }
             }
-            .alert("Filtre impossible", isPresented: errorShown) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(model.errorMessage ?? "Erreur inconnue.")
-            }
+            // With the sheet open the alert is presented by the sheet's content (a view cannot present both).
+            .filteredPostsAlert(model, shown: model.result == nil)
     }
 }
 
 extension View {
+    /// The "Filtre impossible" alert of `model`, when `shown`.
+    fileprivate func filteredPostsAlert(_ model: FilteredPostsModel, shown: Bool) -> some View {
+        alert(
+            "Filtre impossible",
+            isPresented: Binding(get: { shown && model.errorMessage != nil }, set: { if !$0 { model.dismissError() } })
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(model.errorMessage ?? "Erreur inconnue.")
+        }
+    }
+
     /// Adds the post filter's banner, result sheet and error alert, driven by `model`.
     func filteredPosts(_ model: FilteredPostsModel, reader: ReaderServices) -> some View {
         modifier(FilteredPostsPresentation(model: model, reader: reader))
@@ -108,6 +113,7 @@ struct FilteredPostsView: View {
         .safeAreaInset(edge: .bottom) {
             if let result = model.result { NextBatchBar(model: model, result: result) }
         }
+        .filteredPostsAlert(model, shown: model.result != nil)
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
         .onAppear(perform: makeController)

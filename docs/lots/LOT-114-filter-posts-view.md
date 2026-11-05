@@ -30,6 +30,10 @@ Read-only, `2440d79`.
 - **"Résultats suivants":** reads from `endPage + 1` and **replaces** the batch (legacy). The button says what it does ("Lit les pages suivantes à partir de la page N et affiche les prochains posts retenus."). While it runs the bar shows "Filtrage des pages suivantes…" with "Annuler"; **cancelling or failing leaves the batch shown** and the button usable. A batch that keeps nothing marks the topic finished ("Aucun autre post trouvé", the button is replaced by "Fin du sujet"). `isFinished` from the engine also ends it.
 - **Settings** ("Filtrer les posts" section of Réglages): minimum quotes (legacy choices plus a migrated stored value), "Inclure les pseudos whitelistés". Read when a run starts, so a change applies to the next run. Keys and shapes are legacy's (`filter_posts_min_quotes`, `filter_posts_quotes` `wl_pseudo` / `pseudo`).
 
+- **Where the reader entry starts:** both entries start from the topic row's resume position (page and message of its flag link), as legacy's favourites entry. Started from the reader after reading further, it lists again what lies between the resume position and the page on screen; starting from the page on screen is an option for the Mac check.
+- **Links in kept messages** are resolved against the forum root, not the page they came from (the batch spans pages); a fragment-only link is not followed from the sheet anyway.
+- **Off the main actor:** the normalisation of the kept messages (up to 40) runs in a `@concurrent` function.
+
 ## Edge cases
 - A private conversation or a row without a `TopicID`: no menu entry on the list; the model answers "Ce sujet ne peut pas être filtré." if started anyway; the engine refuses a non-forum topic before any request.
 - A stale run (cancelled, or superseded by `closeResult`) never delivers.

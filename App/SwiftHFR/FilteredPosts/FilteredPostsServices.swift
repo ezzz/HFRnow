@@ -1,5 +1,6 @@
 import HFRClient
 import HFRModels
+import HFRNetwork
 import HFRParsing
 import HFRStorage
 

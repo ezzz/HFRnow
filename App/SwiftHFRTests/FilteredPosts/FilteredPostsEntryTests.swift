@@ -4,7 +4,7 @@ import HFRStorage
 @testable import SwiftHFR
 import Testing
 
-@MainActor
+@MainActor @Suite(.timeLimit(.minutes(1)))
 struct FilteredPostsEntryTests {
     private func model(_ source: FakeFilteredSource) -> FilteredPostsModel {
         FilteredPostsModel(

@@ -54,7 +54,7 @@ func filteredBatch(start: Int, end: Int, posts: Int = 2, maxPage: Int = 9, finis
     return FilteredPostsBatch(posts: kept, startPage: start, endPage: end, maxPage: maxPage, isFinished: finished)
 }
 
-@MainActor
+@MainActor @Suite(.timeLimit(.minutes(1)))
 struct FilteredPostsModelTests {
     private struct PassNormalizer: MessageContentNormalizing {
         func normalize(contentHTML: String, pageURL: URL) throws(ParsingError) -> MessageContent {
@@ -129,8 +129,9 @@ struct FilteredPostsModelTests {
         model.start(topic: filterTopic, title: "Sujet", page: 1, after: nil)
         await gate.untilArrived()
         model.cancel()
+        let stale = model.lastRun
         await gate.open()
-        await Task.yield()
+        await stale?.value
         #expect(!model.isRunning)
         #expect(model.result == nil)
         #expect(model.errorMessage == nil)
@@ -221,8 +222,9 @@ struct FilteredPostsModelTests {
         model.showNextBatch()
         await gate.untilArrived()
         model.cancel()
+        let stale = model.lastRun
         await gate.open()
-        await Task.yield()
+        await stale?.value
         #expect(!model.isAdvancing)
         #expect(model.result == shown)
         #expect(model.errorMessage == nil)
@@ -261,8 +263,9 @@ struct FilteredPostsModelTests {
         model.showNextBatch()
         await gate.untilArrived()
         model.closeResult()
+        let stale = model.lastRun
         await gate.open()
-        await Task.yield()
+        await stale?.value
         #expect(model.result == nil)
         #expect(!model.isAdvancing)
     }

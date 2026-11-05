@@ -1,6 +1,7 @@
 import Foundation
 import HFRClient
 import HFRModels
+import HFRNetwork
 import HFRParsing
 import Observation
 
@@ -62,6 +63,8 @@ final class FilteredPostsModel {
 
     private let services: FilteredPostsServices
     private var task: Task<Void, Never>?
+    /// The latest run's task, kept after it ends or is cancelled so a test can wait for a stale run (test seam).
+    private(set) var lastRun: Task<Void, Never>?
     private var generation = 0
 
     /// Creates a model over `services`.
@@ -70,12 +73,12 @@ final class FilteredPostsModel {
     }
 
     /// Legacy's "N post(s)".
-    static func countText(_ count: Int) -> String {
+    nonisolated static func countText(_ count: Int) -> String {
         count <= 1 ? "\(count) post" : "\(count) posts"
     }
 
     /// Legacy's progress line: "N posts | page X/Y" (`FavoritePostFilterService.swift:10-19`).
-    static func statusText(_ progress: FilteredPostsProgress) -> String {
+    nonisolated static func statusText(_ progress: FilteredPostsProgress) -> String {
         "\(countText(progress.resultCount)) | page \(progress.page)/\(max(progress.maxPage, 1))"
     }
 
@@ -103,17 +106,17 @@ final class FilteredPostsModel {
         }
         // A `numreponse` link names no page (issue #106): the row's own page is the best start.
         let page = target.numreponse == nil ? target.page : max(topic.currentPage ?? 1, 1)
-        start(topic: id, title: topic.title, page: page, after: target.anchor ?? target.numreponse)
+        start(topic: id, title: topic.title, page: page, after: target.anchor ?? target.numreponse, knownMaxPage: topic.pageCount)
     }
 
     /// Filters `topic` from `page`, skipping the messages up to `message` on that page.
-    func start(topic: TopicID, title: String, page: Int, after message: Int?) {
+    func start(topic: TopicID, title: String, page: Int, after message: Int?, knownMaxPage: Int? = nil) {
         guard !isRunning, !isAdvancing else { return }
         statusMessage = nil
         errorMessage = nil
         self.title = title
         isRunning = true
-        progress = FilteredPostsProgress(page: max(page, 1), maxPage: max(page, 1), resultCount: 0)
+        progress = FilteredPostsProgress(page: max(page, 1), maxPage: max(knownMaxPage ?? page, page, 1), resultCount: 0)
         run { [self] id in
             let outcome = await read(topic: topic, page: page, after: message, run: id)
             guard id == generation else { return }
@@ -176,6 +179,7 @@ final class FilteredPostsModel {
     func closeResult() {
         cancel()
         result = nil
+        statusMessage = nil
     }
 
     /// Hides the information line.
@@ -194,7 +198,9 @@ final class FilteredPostsModel {
         task?.cancel()
         generation += 1
         let mine = generation
-        task = Task { await body(mine) }
+        let run = Task { await body(mine) }
+        task = run
+        lastRun = run
     }
 
     private func report(_ progress: FilteredPostsProgress, run id: Int) {
@@ -214,7 +220,7 @@ final class FilteredPostsModel {
                 await self?.report(progress, run: id)
             }
             if Task.isCancelled { return .success(nil) }
-            return .success(try Self.result(of: batch, topic: topic, title: title, normalizer: services.normalizer))
+            return .success(try await Self.result(of: batch, topic: topic, title: title, normalizer: services.normalizer))
         } catch {
             // A cancelled run is not an error to show.
             if case .network(.cancelled) = error { return .success(nil) }
@@ -223,9 +229,9 @@ final class FilteredPostsModel {
     }
 
     /// The batch as a reader page: every kept message normalized like the reader's (ADR 0006), in page order.
-    static func result(
+    @concurrent static func result(
         of batch: FilteredPostsBatch, topic: TopicID, title: String, normalizer: any MessageContentNormalizing
-    ) throws(FilteredPostsError) -> FilteredPostsResult {
+    ) async throws(FilteredPostsError) -> FilteredPostsResult {
         let base = HFRURL.base
         var messages: [ReaderMessage] = []
         messages.reserveCapacity(batch.posts.count)
@@ -259,7 +265,7 @@ final class FilteredPostsModel {
     }
 
     /// French text of a failure (legacy alert "Filtre impossible").
-    static func message(for error: FilteredPostsError) -> String {
+    nonisolated static func message(for error: FilteredPostsError) -> String {
         switch error {
         case .invalidTopic: "Ce sujet ne peut pas être filtré."
         case .network(.offline): "Pas de connexion. Réessayez une fois connecté."
