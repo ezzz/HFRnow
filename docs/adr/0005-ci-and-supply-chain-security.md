@@ -22,4 +22,4 @@
 macOS runners are the scarce resource: on 2026-11-05 the required `Analyze (swift)` was cancelled for lack of a runner on every PR for hours, while the app build, the check that caught the day's bugs, was not required.
 - CodeQL Swift (SAST) stays, but runs on every push to `dev-swift` and on a PR only when it carries the `codeql` label (session, cookies, tokens, posting). It is no longer a required PR check; a finding on `dev-swift` is handled like any other.
 - `App build + tests (iOS 27 simulator)` becomes a required check (skipped, and passed, when the app is untouched).
-- The macOS jobs of CI skip draft PRs and run on `ready_for_review`; Linux jobs run on every push.
+- The macOS jobs of CI do not run on draft PRs (a Linux gate fails them at once, so a draft run can never report them green) and run on `ready_for_review`; Linux jobs run on every push.
