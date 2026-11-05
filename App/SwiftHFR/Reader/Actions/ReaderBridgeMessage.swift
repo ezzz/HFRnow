@@ -5,7 +5,7 @@ import Foundation
 // untyped values and ignored bad shapes silently.
 
 /// A message of `reader.js`, decoded into a closed set of cases (LOT-087, audit C14). The page never supplies code or a
-/// selector: the decoder knows five names and takes only numbers and strings of the shape each one needs; anything else
+/// selector: the decoder knows six names and takes only numbers and strings of the shape each one needs; anything else
 /// is rejected, never partly read.
 enum ReaderBridgeMessage: Equatable, Sendable {
     /// `src` of every image of the document, in order; an entry that is not a string is kept as nil (blocked).
@@ -18,6 +18,10 @@ enum ReaderBridgeMessage: Equatable, Sendable {
     case video(post: Int, index: Int)
     /// The user tapped the menu button (`message`) or the author (`avatar`) of message `post`.
     case menu(post: Int, source: MessageMenuSource)
+
+    /// The user tapped a posted picture: the `src` of the pictures the page shows (in order) and the tapped one's position
+    /// among them (LOT-109). The app re-checks every entry; the page's list is a claim.
+    case image(urls: [String], index: Int)
 
     /// Why a body was rejected.
     enum Failure: Error, Equatable, Sendable {
@@ -58,17 +62,32 @@ enum ReaderBridgeMessage: Equatable, Sendable {
         case "ready":
             return .ready
         case "video":
-            guard let post = integer(object["post"]), let index = integer(object["index"]), post > 0, index >= 0 else {
-                throw .invalidPayload
-            }
-            return .video(post: post, index: index)
+            return try video(in: object)
         case "menu":
             guard let post = integer(object["post"]), post > 0, let name = object["source"] as? String,
                   let source = MessageMenuSource(rawValue: name) else { throw .invalidPayload }
             return .menu(post: post, source: source)
+        case "image":
+            return try image(in: object)
         default:
             throw .unknownType
         }
+    }
+
+    private static func video(in object: [String: Any]) throws(Failure) -> ReaderBridgeMessage {
+        guard let post = integer(object["post"]), let index = integer(object["index"]), post > 0, index >= 0 else {
+            throw .invalidPayload
+        }
+        return .video(post: post, index: index)
+    }
+
+    private static func image(in object: [String: Any]) throws(Failure) -> ReaderBridgeMessage {
+        guard let list = object["urls"] as? [Any], list.count <= maximumImages, let index = integer(object["index"]),
+              index >= 0, index < list.count else { throw .invalidPayload }
+        // One entry that is not a string rejects the whole message: the index must keep pointing at the same picture.
+        let urls = list.compactMap { $0 as? String }
+        guard urls.count == list.count else { throw .invalidPayload }
+        return .image(urls: urls, index: index)
     }
 
     /// A whole number from WebKit's bridge: an `NSNumber` that is not a boolean and has no fraction; nothing else.

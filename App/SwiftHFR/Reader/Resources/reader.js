@@ -24,6 +24,8 @@
 
   const load = (img, src) => {
     img.addEventListener("error", () => replaceWithLink(img, src), { once: true });
+    // The viewer's list is the original `src` of the pictures this script loaded (the attribute itself is the proxied URL).
+    img.dataset.viewerSrc = src;
     img.setAttribute("src", proxied(src));
   };
 
@@ -60,6 +62,18 @@
       event.preventDefault();
       channel.postMessage({ type: "video", token, post: Number(video.dataset.post), index: Number(video.dataset.video) });
       return;
+    }
+    // A loaded posted picture opens the viewer (LOT-109). Smileys and avatars have no `hfrplusimg` class; a picture that is
+    // still a placeholder or became a link is no longer an `img`, so it is not in the list the app receives.
+    const picture = target.closest("img.hfrplusimg");
+    if (picture && picture.closest(".content, .signature")) {
+      const pictures = Array.from(document.querySelectorAll(".content img.hfrplusimg[data-viewer-src], .signature img.hfrplusimg[data-viewer-src]"));
+      const index = pictures.indexOf(picture);
+      if (index >= 0) {
+        event.preventDefault();
+        channel.postMessage({ type: "image", token, urls: pictures.map((img) => img.dataset.viewerSrc), index });
+        return;
+      }
     }
     const menu = target.closest("button[data-menu]");
     if (menu) {

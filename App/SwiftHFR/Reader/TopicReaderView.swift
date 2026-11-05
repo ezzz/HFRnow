@@ -21,6 +21,8 @@ struct TopicReaderView: View {
     @State private var controller: ReaderWebController?
     @State private var external: ExternalLink?
     @State private var video: VideoItem?
+    /// The open image viewer (LOT-109); a fresh model per tap.
+    @State private var viewer: ImageViewerModel?
     @State private var askingPage = false
     @State private var pageText = ""
     /// `topic_page_swipe_navigation`: with it off no gesture is attached to the web view, as legacy's `including: .none`.
@@ -86,6 +88,7 @@ struct TopicReaderView: View {
         .overlay(alignment: .bottom) { menuFeedbackBanner }
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
+        .fullScreenCover(item: $viewer) { ImageViewerView(model: $0) }
         .navigationDestination(item: linkedReader) { linked in
             // A private conversation reached from a topic offers no reply: MP replies are LOT-128's (no composer in Messages).
             TopicReaderView(model: linked.model, services: services, composer: linked.model.isPrivateConversation ? nil : composer)
@@ -209,7 +212,11 @@ struct TopicReaderView: View {
             video: { [model] post, index, token in
                 if let embed = model.video(post: post, index: index, token: token) { video = VideoItem(embed: embed) }
             },
-            menu: { [model] post, source, token in model.requestMenu(post: post, source: source, token: token) }
+            menu: { [model] post, source, token in model.requestMenu(post: post, source: source, token: token) },
+            image: { images, index, _ in
+                // The controller already checked the document token (a stale page's tap never gets here).
+                viewer = ImageViewerModel(images: images, index: index, services: .live(fetcher: services.imageFetcher))
+            }
         )
         self.controller = controller
     }

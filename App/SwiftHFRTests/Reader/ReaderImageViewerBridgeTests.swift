@@ -1,0 +1,91 @@
+import Foundation
+import HFRNetwork
+@testable import SwiftHFR
+import Testing
+
+private struct OpenedViewer {
+    let images: [GalleryImage]
+    let index: Int
+    let token: Int
+}
+
+/// The `image` message of `reader.js` (LOT-109): decoded into a typed case, then filtered by policy C in the controller.
+@MainActor
+struct ReaderImageViewerBridgeTests: ReaderWebTesting {
+    private func decode(_ body: Any) -> Result<ReaderBridgeMessage.Decoded, ReaderBridgeMessage.Failure> {
+        do throws(ReaderBridgeMessage.Failure) { return .success(try ReaderBridgeMessage.decode(body)) } catch { return .failure(error) }
+    }
+
+    @Test func anImageMessageDecodes() {
+        #expect(decode(["type": "image", "token": 3, "urls": ["a", "b"] as [Any], "index": 1])
+            == .success(.init(token: 3, message: .image(urls: ["a", "b"], index: 1))))
+    }
+
+    @Test func aBadImageMessageIsRejectedWhole() {
+        let base: [String: Any] = ["type": "image", "token": 1]
+        #expect(decode(base) == .failure(.invalidPayload))
+        #expect(decode(base.merging(["urls": ["a"] as [Any], "index": 1]) { $1 }) == .failure(.invalidPayload))
+        #expect(decode(base.merging(["urls": ["a"] as [Any], "index": -1]) { $1 }) == .failure(.invalidPayload))
+        #expect(decode(base.merging(["urls": ["a"] as [Any], "index": "0"]) { $1 }) == .failure(.invalidPayload))
+        #expect(decode(base.merging(["urls": ["a"] as [Any], "index": true]) { $1 }) == .failure(.invalidPayload))
+        #expect(decode(base.merging(["urls": "a", "index": 0]) { $1 }) == .failure(.invalidPayload))
+        #expect(decode(base.merging(["urls": [] as [Any], "index": 0]) { $1 }) == .failure(.invalidPayload))
+        // An entry that is not a string must not shift the index onto another picture.
+        #expect(decode(base.merging(["urls": ["a", 5, "c"] as [Any], "index": 2]) { $1 }) == .failure(.invalidPayload))
+    }
+
+    @Test func theListIsBounded() {
+        let urls = Array(repeating: "https://forum-images.hardware.fr/images/a.png", count: ReaderBridgeMessage.maximumImages + 1)
+        #expect(decode(["type": "image", "token": 1, "urls": urls as [Any], "index": 0]) == .failure(.invalidPayload))
+    }
+
+    @Test func theControllerOpensTheViewerOnlyOnAllowedPictures() {
+        let (controller, _) = makeController(transport: imageTransport())
+        var opened: [OpenedViewer] = []
+        controller.events.image = { opened.append(OpenedViewer(images: $0, index: $1, token: $2)) }
+        let shown = document(token: 4)
+        let thirdParty = ["https://i.imgur.com/a.jpg", "https://i.imgur.com/b.jpg"]
+
+        // Neither picture was allowed: nothing opens.
+        _ = controller.handle(.image(urls: thirdParty, index: 0), in: shown)
+        #expect(opened.isEmpty)
+
+        // The user allowed the first one by tapping its placeholder; the neighbour stays out.
+        _ = controller.handle(.tap(url: thirdParty[0]), in: shown)
+        _ = controller.handle(.image(urls: thirdParty, index: 0), in: shown)
+        #expect(opened.count == 1)
+        #expect(opened.first?.images.map(\.shown.absoluteString) == [thirdParty[0]])
+        #expect(opened.first?.token == 4)
+
+        // A blocked address never opens, even when the page names it and the tap consent was asked for it.
+        _ = controller.handle(.tap(url: "http://192.168.1.1/a.png"), in: shown)
+        _ = controller.handle(.image(urls: ["http://192.168.1.1/a.png"], index: 0), in: shown)
+        #expect(opened.count == 1)
+    }
+
+    @Test func theViewerRequestsCarryTheHostRefererAndNoCookie() async throws {
+        let transport = MockTransport { request in
+            HTTPResponse(statusCode: 200, headers: ["Content-Type": "image/png"], url: request.url, body: Data([1]))
+        }
+        let fetcher = ReaderImageFetcher(transport: transport)
+        _ = try await fetcher.image(at: URL(string: "https://reho.st/self/a.jpg")!, allowsThirdParty: true, hostTable: .standard)
+        _ = try await fetcher.image(at: URL(string: "https://i.imgur.com/a.jpg")!, allowsThirdParty: true, hostTable: .standard)
+        _ = try await fetcher.image(at: URL(string: "https://reho.st/self/b.jpg")!, allowsThirdParty: true)
+        let requests = await transport.requests
+        #expect(requests.map { $0.headers["Referer"] } == ["https://forum.hardware.fr", nil, nil])
+        #expect(requests.allSatisfy { $0.headers["Cookie"] == nil && $0.redirectPolicy == .doNotFollow })
+    }
+
+    @Test func aRefererNeverTravelsToTheNextHost() async throws {
+        let transport = MockTransport { request in
+            if request.url.host() == "reho.st" {
+                return HTTPResponse(statusCode: 302, headers: ["Location": "https://cdn.example.org/a.jpg"], url: request.url)
+            }
+            return HTTPResponse(statusCode: 200, headers: ["Content-Type": "image/jpeg"], url: request.url, body: Data([1]))
+        }
+        let fetcher = ReaderImageFetcher(transport: transport)
+        _ = try await fetcher.image(at: URL(string: "https://reho.st/self/a.jpg")!, allowsThirdParty: true, hostTable: .standard)
+        let requests = await transport.requests
+        #expect(requests.map { $0.headers["Referer"] } == ["https://forum.hardware.fr", nil])
+    }
+}
