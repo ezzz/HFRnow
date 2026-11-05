@@ -83,6 +83,8 @@ final class TopicReaderModel {
 
     private let source: any TopicPageSource
     private let renderOptions: @Sendable () -> ReaderRenderOptions
+    /// The options the document on screen was built with, to spot a setting that changed since.
+    private var appliedOptions: ReaderRenderOptions?
     private var generation = 0
     private var nextToken = 0
     private var nextScrollID = 0
@@ -144,6 +146,36 @@ final class TopicReaderModel {
         guard let shown, let page else { return }
         let clamped = min(max(1, number), page.maxPage)
         await load(shown.atPage(clamped), keepsScrollPosition: false)
+    }
+
+    /// Rebuilds the page on screen when a display setting (layout, signatures) changed since it was built, without a
+    /// request: the typed page is kept, so only the document changes and the scroll position stays. A no-op when nothing
+    /// changed or nothing is shown, so it is cheap to call on every settings notification.
+    func applyDisplaySettings() {
+        guard let page, let appliedOptions, !isLoading else { return }
+        let options = renderOptions()
+        guard options != appliedOptions else { return }
+        self.appliedOptions = options
+        nextToken += 1
+        document = ReaderDocument(
+            token: nextToken,
+            html: TopicHTMLBuilder.document(for: page, token: nextToken, options: options),
+            anchor: nil,
+            keepsScrollPosition: true
+        )
+    }
+
+    /// Follows a page swipe (legacy `DragGesture`): the next page opens at its top, the previous one at its last message.
+    func swipe(_ swipe: PageSwipe) async {
+        // Not while the web view still shows the previous document: the page on screen would be the wrong starting point.
+        guard let shown, let page, !isLoading, readyToken == document?.token else { return }
+        switch swipe {
+        case .next where page.currentPage < page.maxPage:
+            await load(shown.atPage(page.currentPage + 1), keepsScrollPosition: false)
+        case .previous where page.currentPage > 1:
+            await load(shown.atPage(page.currentPage - 1), keepsScrollPosition: false, anchor: .lastMessage)
+        default: break
+        }
     }
 
     /// Whether a previous page exists.
@@ -258,10 +290,12 @@ final class TopicReaderModel {
 
     /// Stops the load in flight; the content stays.
     func cancel() {
+        let interrupted = task != nil
         task?.cancel()
         task = nil
         generation += 1
         isLoading = false
+        if interrupted { applyDisplaySettings() } // a setting changed during the load that never delivered
     }
 
     /// The web view reports a document as ready; an older document's report is ignored.
@@ -349,9 +383,11 @@ final class TopicReaderModel {
             case .lastMessage:
                 loaded.messages.last { !$0.isContinuation }?.numreponse
             }
+            let options = renderOptions()
+            appliedOptions = options
             document = ReaderDocument(
                 token: nextToken,
-                html: TopicHTMLBuilder.document(for: loaded, token: nextToken, options: renderOptions()),
+                html: TopicHTMLBuilder.document(for: loaded, token: nextToken, options: options),
                 anchor: anchor,
                 keepsScrollPosition: keepsScrollPosition && anchor == nil
             )
@@ -360,5 +396,6 @@ final class TopicReaderModel {
         case .failure(let failure):
             error = failure
         }
+        applyDisplaySettings() // a setting changed while this load ran and did not deliver a page
     }
 }

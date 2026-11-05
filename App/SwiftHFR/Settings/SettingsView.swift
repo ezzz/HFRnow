@@ -41,6 +41,13 @@ extension ImageDisplayMode {
 struct SettingsView: View {
     /// The app's one settings model: a change here re-renders every screen at once (LOT-169).
     @Environment(GeneralSettingsModel.self) private var general
+    /// The reader display rows of "Sujets" (LOT-106); the open reader follows the store, not this model.
+    @State private var topics: TopicsSettingsModel
+
+    /// Reads the "Sujets" values from `store`.
+    init(store: any SettingsStore = UserDefaultsSettingsStore()) {
+        _topics = State(initialValue: TopicsSettingsModel(store: store))
+    }
 
     var body: some View {
         @Bindable var general = general
@@ -84,6 +91,13 @@ struct SettingsView: View {
                 NavigationLink { SettingsDestinationView(destination: .theme) } label: {
                     Text(SettingsDestination.theme.title)
                 }
+            }
+            Section("Sujets") {
+                Picker("Style des messages", selection: $topics.messageStyle) {
+                    ForEach(ThemeStyle.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
+                Toggle("Afficher les signatures", isOn: $topics.showsSignatures)
+                Toggle("Swipe changement de page", isOn: $topics.swipesPages)
             }
         }
         // Legacy settings spacing in compact mode (`AppSettingsView.swift:597` at 21173e77).
