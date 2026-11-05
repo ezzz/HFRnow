@@ -43,18 +43,53 @@ struct NewMessageTarget: Hashable, Sendable {
     var draftContext: DraftContext { .privateMessage(recipient: recipient) }
 }
 
-/// What a composer writes: a reply in a topic or private thread (LOT-084), or a new private message (LOT-128).
+// Port of HFRswift/Swift/MainWindow.swift:745-757,812-835 (the "+" button and the `AnswerView(requiresSubject:requiresSubcategory:)` sheet)
+// and HFRswift/Swift/ReplyService.swift:96-113,392-412 (`ReplyComposerSubcategoryOption`) @ 2440d79. Differences: drafts are kept per forum
+// (legacy kept one global text); the sub-category list is read from the form before the user writes.
+/// A new topic (LOT-089): the forum's new-topic composer and the category that keys its draft.
+struct NewTopicTarget: Hashable, Sendable {
+    /// The new-topic composer (`/hfr/<cat>/nouveau_sujet.htm`, `R45a`; the list's `md_btn_new_topic`): `https` on the forum host.
+    let formURL: URL
+    /// The forum category, which keys the draft (LOT-063 `newTopic`).
+    let forum: CategoryID
+
+    /// The target of the list page's `md_btn_new_topic` link (`newTopicPath`) in `forum`; nil without a link, for the private
+    /// messages pseudo-category (its button is the new-MP composer, LOT-128) or for a link that leaves the forum origin.
+    init?(path: String?, forum: CategoryID?) {
+        guard let path, let forum, case .forum = forum, let url = HFREndpoint.absoluteURL(href: path),
+              url.scheme == "https", url.host == HFRURL.forumHost, url.port == nil, url.user == nil else { return nil }
+        formURL = url
+        self.forum = forum
+    }
+
+    /// One draft per forum and account: subject and text are kept; the sub-category is not (a draft has no such field).
+    var draftContext: DraftContext { .newTopic(forum: forum) }
+}
+
+/// The sub-categories a new-topic form offers.
+struct NewTopicOptions: Equatable, Sendable {
+    /// Options in the form's order (`R45a`: 16, the first `value=""` "Aucune").
+    let subcategories: [FormOption]
+    /// What a browser would send: the option marked selected, else the first (`FormSelect.effectiveValue`).
+    let preselected: String?
+}
+
+/// What a composer writes: a reply in a topic or private thread (LOT-084), a new private message (LOT-128) or a new topic
+/// (LOT-089).
 enum ComposerTarget: Hashable, Sendable {
     /// A reply through the page's answer link.
     case reply(ReplyTarget)
     /// A new private message through the new-MP composer.
     case newPrivateMessage(NewMessageTarget)
+    /// A new topic through the forum's new-topic composer.
+    case newTopic(NewTopicTarget)
 
     /// The draft this composer restores and saves.
     var draftContext: DraftContext {
         switch self {
         case .reply(let target): target.draftContext
         case .newPrivateMessage(let target): target.draftContext
+        case .newTopic(let target): target.draftContext
         }
     }
 }
@@ -68,6 +103,13 @@ protocol ReplyPosting: Sendable {
     /// Fetches the new-MP composer at `formURL`, then starts a thread with `recipient`. Same contract as `reply`.
     func newPrivateMessage(to recipient: String, subject: String, text: String, formURL: URL)
         async throws(PostingError) -> PostingResult
+
+    /// Fetches the new-topic composer at `formURL` and reads its sub-category select.
+    func newTopicOptions(formURL: URL) async throws(PostingError) -> NewTopicOptions
+
+    /// Fetches the new-topic composer at `formURL` again (fresh token), then starts a topic. `subcategory` is one of the
+    /// options' values. Same contract as `reply`.
+    func newTopic(subject: String, subcategory: String?, text: String, formURL: URL) async throws(PostingError) -> PostingResult
 }
 
 /// LOT-048's flow in the current account's session: the form is fetched when the user sends, so its `hash_check` is
@@ -91,6 +133,18 @@ struct LiveReplyPoster: ReplyPosting {
         async throws(PostingError) -> PostingResult {
         let form = try await flow.loadForm(at: formURL, in: session)
         return try await flow.newPrivateMessage(to: recipient, subject: subject, text: text, with: form)
+    }
+
+    func newTopicOptions(formURL: URL) async throws(PostingError) -> NewTopicOptions {
+        let form = try await flow.loadForm(at: formURL, in: session)
+        guard form.shape == .newTopic else { throw .formMismatch(expected: .newTopic, actual: form.shape) }
+        let select = form.form.select(named: "subcat")
+        return NewTopicOptions(subcategories: form.form.subcategories, preselected: select?.effectiveValue)
+    }
+
+    func newTopic(subject: String, subcategory: String?, text: String, formURL: URL) async throws(PostingError) -> PostingResult {
+        let form = try await flow.loadForm(at: formURL, in: session)
+        return try await flow.newTopic(subject: subject, subcategory: subcategory, text: text, with: form)
     }
 }
 

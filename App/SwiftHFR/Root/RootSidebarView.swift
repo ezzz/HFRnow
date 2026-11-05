@@ -66,9 +66,9 @@ struct RootSidebarView: View {
     private var content: some View {
         switch model.sidebarDestination {
         case .tab(.categories):
-            CategoriesSidebarColumn(navigation: model.categories)
+            CategoriesSidebarColumn(navigation: model.categories, composer: environment.composer)
         case .tab(.favorites):
-            TopicsColumn(navigation: model.favorites)
+            TopicsColumn(navigation: model.favorites, composer: environment.composer)
                 .toolbar { ToolbarItem(placement: .secondaryAction) { FavoritesSourceMenu(navigation: model.favorites) } }
         case .tab(.messages):
             MessagesListColumn(model: model.messages, composer: environment.composer)
@@ -92,13 +92,15 @@ struct RootSidebarView: View {
 /// The category list opening its topics in the same column, so the reader keeps the detail column.
 private struct CategoriesSidebarColumn: View {
     @Bindable var navigation: NavigationModel
+    let composer: ComposerServices?
 
     var body: some View {
         NavigationStack {
             ForumListView(navigation: navigation)
                 .navigationDestination(item: $navigation.selectedSource) { source in
                     TopicListView(
-                        model: navigation.topicList(for: source), selection: $navigation.selectedTopic, filtering: navigation.filtering
+                        model: navigation.topicList(for: source), selection: $navigation.selectedTopic, filtering: navigation.filtering,
+                        composer: composer
                     )
                 }
         }

@@ -136,3 +136,72 @@ struct TopicListModelTests {
         #expect(source.requests == ["topics:13:1"])
     }
 }
+
+/// The "Nouveau sujet" entry of a forum list (LOT-089).
+@MainActor
+struct TopicListNewTopicTests {
+    private func listPage(path: String?, category: CategoryID?) -> TopicListPage {
+        var page = topicPage(page: 1)
+        page.newTopicPath = path
+        page.categoryID = category
+        return page
+    }
+
+    private func model(_ page: TopicListPage, source: FakeDataSource = FakeDataSource()) -> TopicListModel {
+        source.topicHandler = { _, _ in page }
+        return TopicListModel(source: .forum(.forum(13), title: "Discussions"), dataSource: source, isLoggedIn: { true })
+    }
+
+    @Test func theListsLinkAndCategoryGiveTheTargetOnlyOnceLoaded() async {
+        let list = model(listPage(path: "/hfr/Discussions/nouveau_sujet.htm", category: .forum(13)))
+        #expect(list.newTopicTarget == nil)
+        await list.loadIfNeeded()
+        #expect(list.newTopicTarget?.draftContext == .newTopic(forum: .forum(13)))
+    }
+
+    @Test func noLinkOrNoCategoryOffersNothing() async {
+        let withoutLink = model(listPage(path: nil, category: .forum(13)))
+        await withoutLink.loadIfNeeded()
+        #expect(withoutLink.newTopicTarget == nil)
+        let withoutCategory = model(listPage(path: "/hfr/Discussions/nouveau_sujet.htm", category: nil))
+        await withoutCategory.loadIfNeeded()
+        #expect(withoutCategory.newTopicTarget == nil)
+    }
+
+    @Test func favouritesOfferNoNewTopic() async {
+        let list = TopicListModel(source: .favorites, dataSource: FakeDataSource(), isLoggedIn: { true })
+        await list.loadIfNeeded()
+        #expect(list.newTopicTarget == nil)
+    }
+
+    @Test func aConfirmedTopicReloadsPageOneAndShowsHFRsSentence() async {
+        let source = FakeDataSource()
+        let list = model(listPage(path: "/hfr/Discussions/nouveau_sujet.htm", category: .forum(13)), source: source)
+        await list.loadIfNeeded()
+        await list.newTopicDidClose(.sent(newTopicConfirmed))
+        #expect(source.requests == ["topics:13:1", "topics:13:1"])
+        #expect(list.sentConfirmation == "Votre message a été posté avec succès !")
+        list.clearSentConfirmation()
+        #expect(list.sentConfirmation == nil)
+    }
+
+    @Test func anUnconfirmedTopicReloadsWithoutASentence() async {
+        let source = FakeDataSource()
+        let list = model(listPage(path: "/hfr/Discussions/nouveau_sujet.htm", category: .forum(13)), source: source)
+        await list.loadIfNeeded()
+        await list.newTopicDidClose(.checkTopic)
+        #expect(source.requests.count == 2)
+        #expect(list.sentConfirmation == nil)
+    }
+
+    @Test func closingWithOrWithoutTheDraftChangesNothing() async {
+        let source = FakeDataSource()
+        let list = model(listPage(path: "/hfr/Discussions/nouveau_sujet.htm", category: .forum(13)), source: source)
+        await list.loadIfNeeded()
+        for reason in [ReplyComposerModel.CloseReason.keptDraft, .discardedDraft, .closedWithoutSaving] {
+            await list.newTopicDidClose(reason)
+        }
+        #expect(source.requests.count == 1)
+        #expect(list.sentConfirmation == nil)
+    }
+}

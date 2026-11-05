@@ -10,6 +10,9 @@ struct TopicListView: View {
     @Binding var selection: TopicSummary?
     /// The post filter, offered on a favourite's context menu (LOT-114); nil hides the entry.
     var filtering: FilteredPostsModel?
+    /// The current account's composer (LOT-089); nil when logged out, which hides "Nouveau sujet".
+    var composer: ComposerServices?
+    @State private var newTopic: ReplyComposerModel?
 
     var body: some View {
         let loader = model.loader
@@ -28,12 +31,37 @@ struct TopicListView: View {
         .navigationBarTitleDisplayMode(.inline)
         .overlay { overlay(loader) }
         .safeAreaInset(edge: .top) {
-            if let error = loader.error, loader.value != nil {
-                LoadFailureBanner(error: error, retry: model.retry)
+            VStack(spacing: 8) {
+                if let confirmation = model.sentConfirmation {
+                    TopicSentBanner(text: confirmation, close: model.clearSentConfirmation)
+                }
+                if let error = loader.error, loader.value != nil {
+                    LoadFailureBanner(error: error, retry: model.retry)
+                }
             }
         }
         .safeAreaInset(edge: .bottom) {
             if model.source.isPaged, loader.value != nil { PageBar(model: model) }
+        }
+        .toolbar {
+            if let composer, let target = model.newTopicTarget {
+                ToolbarItem(placement: .primaryAction) {
+                    Button { newTopic = ReplyComposerModel(composing: .newTopic(target), services: composer) } label: {
+                        Label("Nouveau sujet", systemImage: "square.and.pencil")
+                    }
+                }
+            }
+        }
+        .sheet(item: $newTopic) { composer in
+            ReplyComposerView(model: composer) { reason in
+                Task { await model.newTopicDidClose(reason) }
+            }
+        }
+        .task(id: model.sentConfirmation) {
+            guard model.sentConfirmation != nil else { return }
+            // Long enough to read, like the reply banner (LOT-084); cancelled when another confirmation replaces it.
+            guard (try? await Task.sleep(for: .seconds(4))) != nil else { return }
+            model.clearSentConfirmation()
         }
         .refreshable { await model.refresh() }
         .task { await model.onAppear() }
@@ -118,5 +146,24 @@ private struct PageBar: View {
         .padding(.horizontal)
         .padding(.vertical, 8)
         .background(.bar)
+    }
+}
+
+/// HFR's confirmation of a new topic, above the list.
+private struct TopicSentBanner: View {
+    let text: String
+    let close: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityHidden(true)
+            Text(text).font(.subheadline)
+            Spacer()
+            Button(action: close) { Image(systemName: "xmark") }
+                .accessibilityLabel("Masquer")
+        }
+        .padding(12)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .padding(.horizontal)
     }
 }
