@@ -12,9 +12,9 @@ struct SmileyInsertionTests {
         #expect(result == SmileyInsertion.Result(text: "Salut  :) toi", caretUTF16Offset: 9))
     }
 
-    @Test func aSelectionIsReplaced() {
+    @Test func aSelectionIsReplaced() throws {
         let text = "un deux trois"
-        let range = text.range(of: "deux")!
+        let range = try #require(text.range(of: "deux"))
         let result = SmileyInsertion.insert(":o", into: text, replacing: range)
         #expect(result.text == "un  :o  trois")
         #expect(result.caretUTF16Offset == 7)

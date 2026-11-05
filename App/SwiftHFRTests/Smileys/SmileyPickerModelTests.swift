@@ -11,11 +11,11 @@ struct SmileyPickerModelTests {
     private static let base = "https://forum-images.hardware.fr/icones/"
 
     private func entry(_ code: String, editor: Bool) -> CommonSmiley {
-        CommonSmiley(code: code, url: URL(string: Self.base + "x.gif")!, resourceName: "x.gif", isEditorSmiley: editor)
+        CommonSmiley(code: code, url: url(Self.base + "x.gif"), resourceName: "x.gif", isEditorSmiley: editor)
     }
 
     private func favorite(_ code: String) -> PickerSmiley {
-        PickerSmiley(code: code, imageURL: URL(string: Self.base + "fav.gif")!)
+        PickerSmiley(code: code, imageURL: url(Self.base + "fav.gif"))
     }
 
     private func picker(
@@ -53,6 +53,7 @@ struct SmileyPickerModelTests {
         #expect(model.chosen == nil)
         model.insertPresented()
         #expect(model.chosen == smiley)
+        #expect(model.presented == nil)
     }
 
     @Test func addingAFavouriteStoresItForTheAccountAndSaysSo() async {
@@ -80,8 +81,8 @@ struct SmileyPickerModelTests {
 
     @Test func favouritesAreReadWhenThePanelOpens() async {
         let store = AppSmileyFavoritesStore(persistence: InMemorySmallStorePersistence())
-        try? await store.add(code: "[:a]", url: URL(string: Self.base + "a.gif")!, account: "user1", at: Date(timeIntervalSince1970: 1))
-        try? await store.add(code: "[:b]", url: URL(string: Self.base + "b.gif")!, account: "user1", at: Date(timeIntervalSince1970: 2))
+        _ = try? await store.add(code: "[:a]", url: url(Self.base + "a.gif"), account: "user1", at: Date(timeIntervalSince1970: 1))
+        _ = try? await store.add(code: "[:b]", url: url(Self.base + "b.gif"), account: "user1", at: Date(timeIntervalSince1970: 2))
         let model = picker(store: store)
         #expect(model.favorites.isEmpty)
         await model.loadFavorites()

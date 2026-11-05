@@ -45,9 +45,9 @@ final class SmileyPickerModel: Identifiable {
     }
 
     /// Reads the bundled catalogue; empty if the resource cannot be decoded (the panel then says it is unavailable).
-    static func bundledCatalogue() -> [CommonSmiley] {
-        (try? CommonSmileyCatalog.bundled()) ?? []
-    }
+    static func bundledCatalogue() -> [CommonSmiley] { bundled }
+
+    private static let bundled: [CommonSmiley] = (try? CommonSmileyCatalog.bundled()) ?? []
 
     /// Reads the favourites of the account from the store.
     func loadFavorites() async {
@@ -75,6 +75,8 @@ final class SmileyPickerModel: Identifiable {
     /// The detail's "Insérer": the smiley goes to the composer.
     func insertPresented() {
         chosen = presented
+        // The detail goes away with the choice, so the panel never closes under a presented sheet.
+        presented = nil
     }
 
     /// Adds or removes `smiley` from the favourites, with legacy's messages (`AnswerView.swift:737-760`).

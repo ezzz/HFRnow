@@ -13,12 +13,6 @@ struct SmileyThumbnailView: UIViewRepresentable {
     /// Set once an image is shown; stays false while loading or when it cannot be had.
     var hasImage: Binding<Bool> = .constant(true)
 
-    init(url: URL, contentMode: UIView.ContentMode = .center, hasImage: Binding<Bool> = .constant(true)) {
-        self.url = url
-        self.contentMode = contentMode
-        self.hasImage = hasImage
-    }
-
     func makeUIView(context: Context) -> UIImageView {
         let view = UIImageView()
         view.contentMode = contentMode
@@ -57,7 +51,11 @@ struct SmileyThumbnailView: UIViewRepresentable {
             }
             Task { hasImage.wrappedValue = false }
             task = Task { [weak view, loader] in
-                guard let image = await loader.image(at: url), !Task.isCancelled else { return }
+                guard let image = await loader.image(at: url), !Task.isCancelled else {
+                    // Not remembered as shown: the next update (scroll, reopen) tries again.
+                    if self.current == url { self.current = nil }
+                    return
+                }
                 guard let view, self.current == url else { return }
                 view.image = image
                 view.startAnimating()

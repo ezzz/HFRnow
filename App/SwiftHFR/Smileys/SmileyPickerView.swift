@@ -53,7 +53,8 @@ struct SmileyPickerView: View {
         }
         .task { await model.loadFavorites() }
         .task(id: model.notice) {
-            guard model.notice != nil else { return }
+            guard let notice = model.notice else { return }
+            AccessibilityNotification.Announcement(notice).post()
             try? await Task.sleep(for: .seconds(2.5))
             model.clearNotice()
         }
@@ -72,7 +73,6 @@ struct SmileyPickerView: View {
                 .padding(10)
                 .background(.regularMaterial, in: Capsule())
                 .padding(.bottom, 12)
-                .accessibilityAddTraits(.updatesFrequently)
         }
     }
 
