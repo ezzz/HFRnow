@@ -1,7 +1,7 @@
 import SwiftUI
 
 // Port of HFRswift/Swift/AnswerView.swift (AnswerView, reply mode; new topic: sub-category `Picker`, :395-420, GAP-098) @ 2440d79.
-// Differences: formatting toolbar (LOT-085, GAP-085); no GIF or upload panel yet (LOT-102, 155), smiley picker as a sheet from
+// Differences: formatting toolbar (LOT-085, GAP-085); image panel (LOT-102, GAP-155), no GIF panel yet (155), smiley picker as a sheet from
 // the toolbar (LOT-104, GAP-087);
 // errors say whether anything was posted instead of the toast (GAP-100); draft per topic (GAP-092, UXD).
 /// The composer sheet: a plain text editor, Send and Cancel; a new topic adds its subject and sub-category (LOT-089); a new
@@ -30,11 +30,17 @@ struct ReplyComposerView: View {
     }
 
     @State private var formatting: ComposerFormattingModel
+    /// Lives as long as the composer, so an upload finishing after the panel closed still lands in the list.
+    @State private var imageUpload: ImageUploadModel
+    @State private var isShowingImages = false
+    /// A snippet was inserted by the closed panel: focus goes back to the editor.
+    @State private var imageInserted = false
 
     init(model: ReplyComposerModel, onClose: @escaping (ReplyComposerModel.CloseReason) -> Void) {
         self.model = model
         self.onClose = onClose
         _formatting = State(initialValue: ComposerFormattingModel(composer: model, clipboard: SystemClipboard()))
+        _imageUpload = State(initialValue: ImageUploadModel(services: model.imageUploadServices))
     }
 
     var body: some View {
@@ -85,6 +91,11 @@ struct ReplyComposerView: View {
         .sheet(item: $picker, onDismiss: { if smileyInserted { focused = .text } }, content: { picker in
             SmileyPickerView(model: picker) { insertSmiley($0) }
         })
+        .imageUploadSheet(
+            isPresented: $isShowingImages, model: imageUpload,
+            onDismiss: { if imageInserted { focused = .text } },
+            onInsert: { formatting.insert($0); imageInserted = true }
+        )
         // Swiping down would close without the choice: blocked while there is text or a send runs.
         .interactiveDismissDisabled(model.closeNeedsChoice || model.isSending)
         .task {
@@ -267,6 +278,10 @@ struct ReplyComposerView: View {
     private var toolbar: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
             Button("Smileys", systemImage: "face.smiling", action: openSmileys)
+                .disabled(!model.canEdit)
+        }
+        ToolbarItem(placement: .primaryAction) {
+            Button("Image", systemImage: "photo") { imageInserted = false; isShowingImages = true }
                 .disabled(!model.canEdit)
         }
         ToolbarItem(placement: .cancellationAction) {

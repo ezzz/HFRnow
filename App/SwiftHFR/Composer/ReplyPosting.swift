@@ -160,6 +160,8 @@ struct ComposerServices: Sendable {
     var pollVoter: (any PollVoting)?
     /// The smiley favourites of every account (LOT-064), read by the smiley picker (LOT-104); not touched until it opens.
     var smileyFavorites: AppSmileyFavoritesStore = liveSmileyFavorites
+    /// The image panel's services (LOT-102); not touched until the panel opens.
+    var imageUpload: ImageUploadServices = .live()
 
     /// The single store of the app's smiley favourites (one actor per file), `Application Support/SmileyFavorites/`.
     static let liveSmileyFavorites = AppSmileyFavoritesStore(
