@@ -12,6 +12,15 @@ public struct FilteredPostsBatch: Sendable, Equatable {
     /// True when `endPage` is the topic's last page: there is nothing left to filter.
     public let isFinished: Bool
 
+    /// Creates a batch.
+    public init(posts: [FilteredPost], startPage: Int, endPage: Int, maxPage: Int, isFinished: Bool) {
+        self.posts = posts
+        self.startPage = startPage
+        self.endPage = endPage
+        self.maxPage = maxPage
+        self.isFinished = isFinished
+    }
+
     /// Where the next batch starts (legacy "Résultats suivants": `endPage + 1`); nil once the topic is finished.
     public var resumePage: Int? {
         isFinished ? nil : endPage + 1

@@ -82,8 +82,8 @@ Sources: `ReplyService.swift:145-183, 294-365, 579-719` · `AddMessageViewContro
 | New topic | `href` of `#md_btn_new_topic` on the topic list | `sujet` (text), `subcat` (select) | `ObjCTopicListParser.m:134-135` · D §2.5 |
 | New MP | author block link `/message.php?config=hfr.inc&cat=prive&…&dest=` | `dest`, `sujet` | `ParseMessagesOperation.m:389-390` · D §2.5 |
 | Moderator alert | first `href` containing `/user/modo.php` in the message | form `action~modo.php`, field `raison`; `.hop` with a link = **already alerted** (inverse of reply) | `ReplyService.swift:1400-1531` · D §2.6 |
-| Delete MP thread | the MP list's `form1` (`R95k`): action `/modo/manageaction.php?config=hfr.inc&cat=prive&type_page=forum1&moderation=0`, checkbox `topic<i>` = thread `post` | legacy body `hash_check, topic0=<post>, valuecat0=prive, valueforum0=hardwarefr, topic1=-1, topic_statusno1=-1, action_reaction=valid_eff_prive, type_page=forum1`; the site form has no `type_page` and a second `hash_check` before `topic1`. Answers: **verified** 2026-11-02, see §6b "MP thread delete" | `MPListView.swift:131-150` |
-| Poll vote | poll block in the topic page | POST `/user/vote.php?config=hfr.inc`, hidden inputs + chosen options; radio value semantics unverified | `PollData.swift:44-100` · D §2.9 |
+| Delete MP thread | the MP list's `form1` (`R95k`): action `/modo/manageaction.php?config=hfr.inc&cat=prive&type_page=forum1&moderation=0`, checkbox `topic<i>` = thread `post` | legacy body `hash_check, topic0=<post>, valuecat0=prive, valueforum0=hardwarefr, topic1=-1, topic_statusno1=-1, action_reaction=valid_eff_prive, type_page=forum1`; the site form has no `type_page` and a second `hash_check` before `topic1`. Answers: **verified** 2026-11-02, see §6b "MP thread delete" | `MPListView.swift:127-154` @ 03e5e22 |
+| Poll vote | poll block in the topic page | POST `/user/vote.php?config=hfr.inc`, the form's controls in document order + `reponse=<1-based position>` + `sondage_submit=Voter` (`W42`, §6c LOT-054) | `PollData.swift:45-99` @ 2440d79 · D §2.9 |
 
 ### 3.2 Topic flags
 - Add to favourites: **state-changing GET** of the message's `addflag` link; toast text from `<div class="hop">`. `ParseMessagesOperation.m:383-384` · D §2.8
@@ -269,7 +269,7 @@ Source: [LOT-027](lots/LOT-027-profile-parser.md), `UserProfileParser`, checked 
 - **Refusals**: flood, empty body and logged out are `.hop` + link/input (`W11x`, `W13cx`, `W14x`, `W17a`, `W17c`, `W20a`, `W20b`); invalid `hash_check` is **plain text without any HTML** (`W17b`, 99 bytes). A write refusal carries no refresh (`W11x`-`W20b`); other refusals do (`W01` refresh to `/`).
 - **Read pages with a `.hop`**: `R12` (empty favourites) and `RA5` (message not addressed to the account) have the back link and no refresh; the empty lists `R08-1`/`R08-3` refresh to the forum list with a link-less `.hop`. None is a write answer and none classifies as success (corpus sweep test).
 - **Moderator alert** (`W46`, `R88`, `W47`, `R89`, **verified**, 2026-11-02): the submit answers `.hop` "Un message a été envoyé avec succès aux modérateurs" **with the back link and no refresh** (`W46`), so the success rule above does not fit it: an alert is confirmed by its own sentence, in the alert context. The alert page of a message the account already reported answers `.hop` "Votre demande de modération sur ce message n'est pas encore traitée." + back link, no form (`R88`). Without cookies both the page and the POST answer `.hop` "Vous devez être identifié pour prévenir les modérateurs" + back link (`R89`, `W47`).
-- **Poll vote** (`W42`-`W44`, **verified**, 2026-11-02): success is a link-less `.hop` "Votre vote a bien été pris en compte !" with `Refresh: 1; url=/hfr/<cat>/<sub>/sujet_<post>_1.htm` (no slug), **without** "avec succès" (`W42`); a second vote, and a vote from a linked account of the same person, answer `.hop` "Désolé, vous avez déjà voté !" + back link, no refresh (`W43`, `W44`). The cookie-less vote answer is not published (see the capture PR).
+- **Poll vote** (`W42`-`W44`, **verified**, 2026-11-02): success is a link-less `.hop` "Votre vote a bien été pris en compte !" with `Refresh: 1; url=/hfr/<cat>/<sub>/sujet_<post>_1.htm` (no slug; page 1 from a form with `page=1`, another form page pending capture), **without** "avec succès" (`W42`); a second vote, and a vote from a linked account of the same person, answer `.hop` "Désolé, vous avez déjà voté !" + back link, no refresh (`W43`, `W44`). The cookie-less vote answer is not published (see the capture PR).
 - Not captured: a ban refusal, a reply refused because the topic is locked (the composer of a locked topic is served, `message.php` 200, but its POST was not sent: not an operator topic).
 
 ### LOT-021 — forum list
@@ -474,6 +474,14 @@ Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `Li
 - **First block of a page** (`R20`, `R22a`, `R22b`, `R24`, **verified**): on page 1 it is the topic's opening post, on later pages the continuation block; on anonymous pages the advertisement block comes second.
 - **Page past the end** (`R24`, **verified**): `forum2.php?…&page=2202` of a 2201-page topic ends, after the canonical redirects, with a 302 to `…_2201.htm`, the last page.
 
+### LOT-094 — MP thread delete
+
+[LOT-094](lots/LOT-094-mp-thread-delete.md), tests `DeletePrivateMessageFlowTests`.
+
+- **Request** (`W64`, `W65`, `R95k`, **verified**): legacy's body, in `W64`'s order, byte for byte: `hash_check, topic0=<post>, valuecat0=prive, valueforum0=hardwarefr, topic1=-1, topic_statusno1=-1, action_reaction=valid_eff_prive, type_page=forum1`, to `R95k`'s `form1` action `/modo/manageaction.php?config=hfr.inc&cat=prive&type_page=forum1&moderation=0`. All fields but `type_page` and `topic_statusno1` are controls of that form (a 50-row list has `topic_statusno50`), whose only action is `valid_eff_prive`.
+- **Answers** (`W64`, `W65`, `W64x`, **verified**): the owner's and the recipient's success are the same link-less `.hop` "Action effectuée avec succès" with a refresh to `/forum1.php?config=hfr.inc&cat=prive&page=1&subcat=&sondage=0&owntopic=0&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0`; the sentence names no action, so the refresh to the MP list is part of the confirmation. A wrong `hash_check` gets the plain-text refusal of `W17b` (`W64x`), status 200.
+- **Not captured**: the delete without cookies or with expired cookies, a repeated delete, a thread the account does not take part in.
+
 ### LOT-057 — REST API (anonymous)
 - **Requests** (`R57a`-`R57c`): `GET /webservices/rest_api.php?uri=forums/hardwarefr/categories/` (categories), `…?uri=forums/hardwarefr/categories/<cat>/topics/last/` (last topics), `…?uri=forums/hardwarefr/categories/<cat>/topics/<post>/` (one topic); anonymous, 200 `application/json`, no redirect, no `Set-Cookie`. The JSON writes non-ASCII as `\u` escapes and names with HTML entities (`&amp;`).
 - **Categories** (`R57a`): the home page's 20 forums (`R01`), same order and titles; each with `number_of_subcategories`, `force_subcat` and `/api/` hrefs (`subcategories/`, `topics/last/?page=1&results_per_page=25`).
@@ -489,12 +497,31 @@ Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `Li
 - **A posted video link** (`R20`, `R22a`, `R22b`, `R27`, `R28`, **verified**): `<a rel="nofollow" href="<url>" target="_blank" class="cLink">` with the URL or a title as text (`R20`: "Impasto a mano pizza napoletana"), usually straight in a paragraph of the message; HFR adds no player. The corpus has `http://` and `https://www.youtube.com/watch?v=` (`R20`, `R22a`), `https://youtu.be/<id>` with `t=1m5s` (`R20`) or `t=706` (`R28`), and `vimeo.com/<number>` (`R20`); the LOT-003 oracles turn 133 of them into iframes over 8 pages.
 - **Start time** (`R20`, `R28`): the captured `youtu.be` links carry their start as `t=1m5s` and as plain seconds, `t=706`.
 
+### LOT-054 — poll vote
+
+[LOT-054](lots/LOT-054-poll-vote.md), `PollVoteFlow`, tests `PollVoteFlowTests`, `HopResponsePollVoteTests`.
+
+- **Body** (`R83`, `W42`-`W44`, **verified**): the flow builds from `R83`'s form, answer 1, exactly the body `W42`-`W44` sent: `hash_check, cat, p, page, sondage, owntopic, subcat, numeropost, hash_check, reponse, sondage_submit=Voter`. `sondage` differs between polls (`1` on `R32b`, `2` on `R83`): it is read from the form, never written as a constant.
+- **Answers**: see the LOT-037 subsection (`W42` success, `W43`/`W44` already voted). The classifier reads them under `Context.pollVote`, the only context where the vote sentence is a confirmation.
+
 ### LOT-053 — smiley search and wiki
 
 Source: [LOT-053](lots/LOT-053-smiley-search-wiki.md), `SmileyLookupFlow`, checked against the LOT-005 oracles of `R53a`-`R53c` and `R54`.
 
 - **Wiki request** (`R54`, **verified**): `GET /wikismilies.php?config=hfr.inc&detail=%5B%3Auser3%5D`, the code fully percent-encoded (`:` as `%3A`), answers the entry logged out, 200 in place, no cookie set.
 - **Search request encoding** (**not verified**): `R53a`-`R53c` were sent with raw `+` separators (`findsmilies=+chat+noir`); the app sends legacy's encoding (`findsmilies=chat%20noir`, and `%2Bchat%20%2Bnoir` for "all keywords"). Whether HFR reads them alike, and what a literal `+` does, is pending capture; `R53c` only shows that its two words were OR-ed.
+
+### LOT-097 — BBCode rendering
+
+Source: [LOT-097](lots/LOT-097-bbcode-preview-renderer.md), `BBCodeRenderer` (the lot's renderer PR, [#444](https://github.com/ezzz/HFRnow/pull/444)), checked by its `BBCodeRendererOracleTests` against HFR's own rendering: `POST /apercu.php` of `W61` (`R95d`) and `W62` (`R95h`), and the quote prefills `R41a`, `R42`, `R41b` against the thread page `R20` (messages 2666649, 2666682, 2666695); the round-trip facts are in §6b "BBCode round trip".
+
+- **Quote prefill as a source** (`R41a`, `R42`, `R41b` → `R20`, **verified**): `[quotemsg=…]<source>[/quotemsg]` holds the message's stored source, HTML-escaped in the `textarea` (`&amp;` for `&`), with every `[img]U[/img]` rewritten `[url]U[/url]` and the citation the message starts with dropped.
+- **Colour** (`R41a` → `R20`, **verified**): the toolbar's `[#0055aa]x[/#0055aa]` renders `<span style="color:#0055aa">x</span>`; `[color=#FF0000]` is text (`R95d`).
+- **Crossed tags** (`R41a` → `R20`, **verified**, 13 occurrences; 3 other `[u][b]` pairs close nested): `[u][b]x[/u][/b]` renders `<span class="u"><strong>x</span></strong>`, crossed as typed; the browser repairs it.
+- **Smileys** (`R41a`, `R42`, `R41b` → `R20`, **verified**): `:ange:` → `<img src="https://forum-images.hardware.fr/icones/smilies/ange.gif" alt=":ange:" title=":ange:" />`; a code typed in another case keeps it in `alt` and gets the catalogue's in `title` (`:d` → `alt=":d" title=":D"`, `biggrin.gif`); a personal `[:name]` → `/images/perso/name.gif` with the code in `alt` and `title`.
+- **Links** (`R41a` → `R20`, **verified**): the text of `[url=U]x[/url]` and `[url]U[/url]` is trimmed of its leading and trailing spaces; a `U` without a scheme gets `http://` (`[url]G3Ferrari / Optima [/url]` → `href="http://G3Ferrari / Optima "`); external links carry `rel="nofollow" target="_blank"`.
+- **Whitespace** (`R41a` → `R20`, `R27b`, `R95d`, **verified**): in a run of spaces and CRs, the first becomes `&nbsp;` at a line start, then every second one; a LF becomes `<br />` and the CR before it stays in the text (`\r<br />`); in `code`, every run of two or more starts with `&nbsp;` (`code   text` → `code&nbsp; &nbsp;text`, four leading spaces → `&nbsp; &nbsp; `), an empty line is `<li></li>`. `€` is written `&euro;`.
+- **Paragraph** (`R20`, **verified**): the message's `<p>` is opened by HFR and never closed; the `<div style="clear: both;"> </div>` trailer that follows closes it.
 
 ### LOT-068 — offline pages
 

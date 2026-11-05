@@ -108,7 +108,7 @@ Shown to fail with the behaviour removed (each mutation caught):
 6. **A page limit** (50) and a 200 MB budget; legacy's design had neither in use.
 7. **No images and no copied resources**: the parser and the app's caches handle them.
 
-Recorded in [CHANGELOG-LEGACY](../CHANGELOG-LEGACY.md) row 59.
+Recorded in [CHANGELOG-LEGACY](../CHANGELOG-LEGACY.md) row 65.
 
 ## Learnings
 
