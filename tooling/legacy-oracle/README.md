@@ -12,7 +12,7 @@ Local tooling for the maintainer's Mac. It is not part of CI (Xcode 27 + Carthag
 
 | File | Use |
 |---|---|
-| `hfrnow.patch` | Local edits to hfrnow: the `OracleExport` test class (`OracleExport.swift`, topic kind in `OracleExportTopic.swift`, `form`/`response`/`storage` kinds in `OracleExportWrite.swift` and `OracleLegacyWrite.m`, the LOT-005 kinds in `OracleExportSmall.swift` and `OracleLegacySmall.m`) and its Objective-C helper in `HFRswiftTests`, plus the spy-signature fix in `AccountsStoreTests.swift` that the tests need to compile |
+| `hfrnow.patch` | Local edits to hfrnow: the `OracleExport` test class (`OracleExport.swift`, topic kind in `OracleExportTopic.swift` with the reader's topic flag transliterated in `OracleObjCSafe.m`, `form`/`response`/`storage` kinds in `OracleExportWrite.swift` and `OracleLegacyWrite.m`, the LOT-005 kinds in `OracleExportSmall.swift` and `OracleLegacySmall.m`) and its Objective-C helper in `HFRswiftTests`, plus the spy-signature fix in `AccountsStoreTests.swift` that the tests need to compile |
 | `run-oracle.sh` | Checks the legacy commit, applies the patch, bootstraps Carthage, creates or reuses the simulator, runs the export, reports counts |
 | `carthage-xcode27.xcconfig` | Build settings Carthage needs on Xcode 27 (see below) |
 | `samples/` | Synthetic pages (fake pseudos, fake hash) and their `oracle-map.json`, to prove the harness end to end (`topic-*` for LOT-003, `form-*`, `response-*`, `storage-*` for LOT-004; all hand-written, no capture) |

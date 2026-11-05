@@ -1,0 +1,470 @@
+{
+  "case" : "R95f",
+  "exception" : null,
+  "input" : {
+    "bytes" : 52617,
+    "context" : {
+      "message" : null,
+      "mode" : "edit",
+      "overrides" : {
+
+      },
+      "session" : {
+        "hash" : "0123456789abcdef0123456789abcdef01234567",
+        "pseudo" : "user1"
+      },
+      "url" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207675&numreponse=1980885619&page=1&p=1&subcat=0&sondage=0&owntopic=0"
+    },
+    "currentURL" : null,
+    "file" : "../captures/R95f-mp-edit-form-bmp-emoji-source.html",
+    "now" : null,
+    "sha256" : "9c7445531a6da90b648d13701d5037e0cb608a57501b4af6d04fb9b4fd24e13f"
+  },
+  "kind" : "form",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "comparison" : {
+      "comparable" : true,
+      "different" : [
+        {
+          "legacy" : "fixture-test 2, emoji: heart ❤ (U+2764) | heart and VS16 ❤️ (U+2764 U+FE0F) | check ✔ (U+2714) | star  (U+2605) | VS16 alone ️ after a letter | end",
+          "live" : "fixture-test 2, emoji: heart ❤ (U+2764) | heart and VS16 ❤️ (U+2764 U+FE0F) | check ✔ (U+2714) | star ★ (U+2605) | VS16 alone ️ after a letter | end",
+          "name" : "content_form"
+        }
+      ],
+      "legacyUrl" : "https://forum.hardware.fr/bdd.php?config=hfr.inc",
+      "liveUrl" : "https://forum.hardware.fr/bdd.php?config=hfr.inc",
+      "onlyLegacy" : [
+
+      ],
+      "onlyLive" : [
+        "delete"
+      ],
+      "sameUrl" : true
+    },
+    "legacy" : {
+      "contentForm" : "fixture-test 2, emoji: heart ❤ (U+2764) | heart and VS16 ❤️ (U+2764 U+FE0F) | check ✔ (U+2714) | star ★ (U+2605) | VS16 alone ️ after a letter | end",
+      "contentFormRaw" : "fixture-test 2, emoji: heart ❤ (U+2764) | heart and VS16 ❤️ (U+2764 U+FE0F) | check ✔ (U+2714) | star ★ (U+2605) | VS16 alone ️ after a letter | end",
+      "fetchURL" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207675&numreponse=1980885619&page=1&p=1&subcat=0&sondage=0&owntopic=0",
+      "formAction" : "/bdd.php?config=hfr.inc",
+      "formSubmit" : "https://forum.hardware.fr/bdd.php?config=hfr.inc",
+      "haveCategory" : false,
+      "haveTitle" : false,
+      "haveTo" : false,
+      "inputData" : {
+        "cache" : "",
+        "cat" : "prive",
+        "ColorUsedMem" : "",
+        "config" : "hfr.inc",
+        "delete" : "0",
+        "emaill" : "0",
+        "hash_check" : "REDACTED",
+        "MsgIcon" : "1",
+        "new" : "0",
+        "numrep" : "",
+        "numreponse" : "1980885619",
+        "owntopic" : "0",
+        "p" : "1",
+        "page" : "1",
+        "parents" : "",
+        "password" : "",
+        "post" : "3207675",
+        "pseudo" : "user1",
+        "search_smilies" : "",
+        "signature" : "1",
+        "smiley" : "0",
+        "sond" : "0",
+        "sondage" : "0",
+        "stickold" : "",
+        "subcat" : "0",
+        "submit" : "Valider votre message",
+        "sujet" : "fixture-test-2",
+        "verifrequet" : "1100",
+        "wysiwyg" : "0"
+      },
+      "isLogged" : true,
+      "loopOrder" : [
+        "hash_check",
+        "subcat",
+        "parents",
+        "post",
+        "stickold",
+        "new",
+        "cat",
+        "numreponse",
+        "numrep",
+        "page",
+        "verifrequet",
+        "p",
+        "sondage",
+        "sond",
+        "cache",
+        "owntopic",
+        "config",
+        "sujet",
+        "pseudo",
+        "password",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "MsgIcon",
+        "search_smilies",
+        "ColorUsedMem",
+        "wysiwyg",
+        "submit",
+        "signature",
+        "smiley",
+        "emaill",
+        "delete"
+      ],
+      "post" : {
+        "bodyBytes" : 672,
+        "bodySorted" : "ColorUsedMem=&MsgIcon=1&cache=&cat=prive&config=hfr.inc&content_form=fixture-test%202%2C%20emoji%3A%20heart%20%E2%9D%A4%20%28U%2B2764%29%20%7C%20heart%20and%20VS16%20%E2%9D%A4%EF%B8%8F%20%28U%2B2764%20U%2BFE0F%29%20%7C%20check%20%E2%9C%94%20%28U%2B2714%29%20%7C%20star%20%20%28U%2B2605%29%20%7C%20VS16%20alone%20%EF%B8%8F%20after%20a%20letter%20%7C%20end&emaill=0&hash_check=0123456789abcdef0123456789abcdef01234567&new=0&numrep=&numreponse=1980885619&owntopic=0&p=1&page=1&parents=&password=&post=3207675&pseudo=user1&search_smilies=&signature=1&smiley=0&sond=0&sondage=0&stickold=&subcat=0&submit=Valider%20votre%20message&sujet=fixture-test-2&verifrequet=1100&wysiwyg=0",
+        "contentType" : "application/x-www-form-urlencoded; charset=utf-8",
+        "method" : "POST",
+        "pairs" : [
+          [
+            "ColorUsedMem",
+            ""
+          ],
+          [
+            "MsgIcon",
+            "1"
+          ],
+          [
+            "cache",
+            ""
+          ],
+          [
+            "cat",
+            "prive"
+          ],
+          [
+            "config",
+            "hfr.inc"
+          ],
+          [
+            "content_form",
+            "fixture-test 2, emoji: heart ❤ (U+2764) | heart and VS16 ❤️ (U+2764 U+FE0F) | check ✔ (U+2714) | star  (U+2605) | VS16 alone ️ after a letter | end"
+          ],
+          [
+            "emaill",
+            "0"
+          ],
+          [
+            "hash_check",
+            "0123456789abcdef0123456789abcdef01234567"
+          ],
+          [
+            "new",
+            "0"
+          ],
+          [
+            "numrep",
+            ""
+          ],
+          [
+            "numreponse",
+            "1980885619"
+          ],
+          [
+            "owntopic",
+            "0"
+          ],
+          [
+            "p",
+            "1"
+          ],
+          [
+            "page",
+            "1"
+          ],
+          [
+            "parents",
+            ""
+          ],
+          [
+            "password",
+            ""
+          ],
+          [
+            "post",
+            "3207675"
+          ],
+          [
+            "pseudo",
+            "user1"
+          ],
+          [
+            "search_smilies",
+            ""
+          ],
+          [
+            "signature",
+            "1"
+          ],
+          [
+            "smiley",
+            "0"
+          ],
+          [
+            "sond",
+            "0"
+          ],
+          [
+            "sondage",
+            "0"
+          ],
+          [
+            "stickold",
+            ""
+          ],
+          [
+            "subcat",
+            "0"
+          ],
+          [
+            "submit",
+            "Valider votre message"
+          ],
+          [
+            "sujet",
+            "fixture-test-2"
+          ],
+          [
+            "verifrequet",
+            "1100"
+          ],
+          [
+            "wysiwyg",
+            "0"
+          ]
+        ],
+        "url" : "https://forum.hardware.fr/bdd.php?config=hfr.inc"
+      },
+      "postedContent" : "fixture-test 2, emoji: heart ❤ (U+2764) | heart and VS16 ❤️ (U+2764 U+FE0F) | check ✔ (U+2714) | star  (U+2605) | VS16 alone ️ after a letter | end",
+      "raisedInLegacy" : [
+
+      ],
+      "smileys" : [
+        {
+          "alt" : "[:user3]",
+          "src" : "https://forum-images.hardware.fr/images/perso/user3.gif"
+        },
+        {
+          "alt" : "[:user4]",
+          "src" : "https://forum-images.hardware.fr/images/perso/user4.gif"
+        },
+        {
+          "alt" : "[:user1]",
+          "src" : "https://forum-images.hardware.fr/images/perso/user1.gif"
+        },
+        {
+          "alt" : "[:user1:1]",
+          "src" : "https://forum-images.hardware.fr/images/perso/1/user1.gif"
+        },
+        {
+          "alt" : "[:user1:2]",
+          "src" : "https://forum-images.hardware.fr/images/perso/2/user1.gif"
+        },
+        {
+          "alt" : "[:user1:3]",
+          "src" : "https://forum-images.hardware.fr/images/perso/3/user1.gif"
+        },
+        {
+          "alt" : "[:user1:4]",
+          "src" : "https://forum-images.hardware.fr/images/perso/4/user1.gif"
+        },
+        {
+          "alt" : "[:user1:5]",
+          "src" : "https://forum-images.hardware.fr/images/perso/5/user1.gif"
+        }
+      ],
+      "subcats" : [
+
+      ],
+      "username" : "user1"
+    },
+    "live" : {
+      "composerContext" : {
+        "isSubcategoryEditable" : false,
+        "isSubjectEditable" : false,
+        "recipient" : null,
+        "selectedSubcategoryID" : "0",
+        "subcategoryOptions" : [
+
+        ],
+        "subject" : "fixture-test-2"
+      },
+      "post" : {
+        "bodyBytes" : 608,
+        "bodyOrder" : "unspecified (Swift Dictionary iteration)",
+        "bodySorted" : "ColorUsedMem=&MsgIcon=1&cache=&cat=prive&config=hfr.inc&content_form=fixture-test+2,+emoji:+heart+%E2%9D%A4+(U%2B2764)+%7C+heart+and+VS16+%E2%9D%A4%EF%B8%8F+(U%2B2764+U%2BFE0F)+%7C+check+%E2%9C%94+(U%2B2714)+%7C+star+%E2%98%85+(U%2B2605)+%7C+VS16+alone+%EF%B8%8F+after+a+letter+%7C+end&delete=0&emaill=0&hash_check=0123456789abcdef0123456789abcdef01234567&new=0&numrep=&numreponse=1980885619&owntopic=0&p=1&page=1&parents=&password=&post=3207675&pseudo=user1&search_smilies=&signature=1&smiley=0&sond=0&sondage=0&stickold=&subcat=0&submit=Valider+votre+message&sujet=fixture-test-2&verifrequet=1100&wysiwyg=0",
+        "contentType" : "application/x-www-form-urlencoded; charset=utf-8",
+        "method" : "POST",
+        "pairs" : [
+          [
+            "ColorUsedMem",
+            ""
+          ],
+          [
+            "MsgIcon",
+            "1"
+          ],
+          [
+            "cache",
+            ""
+          ],
+          [
+            "cat",
+            "prive"
+          ],
+          [
+            "config",
+            "hfr.inc"
+          ],
+          [
+            "content_form",
+            "fixture-test 2, emoji: heart ❤ (U+2764) | heart and VS16 ❤️ (U+2764 U+FE0F) | check ✔ (U+2714) | star ★ (U+2605) | VS16 alone ️ after a letter | end"
+          ],
+          [
+            "delete",
+            "0"
+          ],
+          [
+            "emaill",
+            "0"
+          ],
+          [
+            "hash_check",
+            "0123456789abcdef0123456789abcdef01234567"
+          ],
+          [
+            "new",
+            "0"
+          ],
+          [
+            "numrep",
+            ""
+          ],
+          [
+            "numreponse",
+            "1980885619"
+          ],
+          [
+            "owntopic",
+            "0"
+          ],
+          [
+            "p",
+            "1"
+          ],
+          [
+            "page",
+            "1"
+          ],
+          [
+            "parents",
+            ""
+          ],
+          [
+            "password",
+            ""
+          ],
+          [
+            "post",
+            "3207675"
+          ],
+          [
+            "pseudo",
+            "user1"
+          ],
+          [
+            "search_smilies",
+            ""
+          ],
+          [
+            "signature",
+            "1"
+          ],
+          [
+            "smiley",
+            "0"
+          ],
+          [
+            "sond",
+            "0"
+          ],
+          [
+            "sondage",
+            "0"
+          ],
+          [
+            "stickold",
+            ""
+          ],
+          [
+            "subcat",
+            "0"
+          ],
+          [
+            "submit",
+            "Valider votre message"
+          ],
+          [
+            "sujet",
+            "fixture-test-2"
+          ],
+          [
+            "verifrequet",
+            "1100"
+          ],
+          [
+            "wysiwyg",
+            "0"
+          ]
+        ],
+        "url" : "https://forum.hardware.fr/bdd.php?config=hfr.inc"
+      },
+      "postedContent" : "fixture-test 2, emoji: heart ❤ (U+2764) | heart and VS16 ❤️ (U+2764 U+FE0F) | check ✔ (U+2714) | star ★ (U+2605) | VS16 alone ️ after a letter | end",
+      "requests" : [
+        {
+          "method" : "GET",
+          "url" : "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207675&numreponse=1980885619&page=1&p=1&subcat=0&sondage=0&owntopic=0"
+        },
+        {
+          "method" : "POST",
+          "url" : "https://forum.hardware.fr/bdd.php?config=hfr.inc"
+        }
+      ],
+      "result" : {
+        "ok" : true,
+        "refreshAnchor" : "t1002",
+        "refreshURL" : "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=1000&page=1#t1002",
+        "statusMessage" : "Votre message a bien été pris en compte."
+      }
+    }
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

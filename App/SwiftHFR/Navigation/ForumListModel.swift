@@ -1,6 +1,7 @@
 import HFRModels
 import Observation
 
+// Port of HFRswift/Swift/MainWindow.swift (CategoriesListViewModel) @ 2440d79. Differences: forums from LOT-021, sub-forums as sections.
 /// One forum entry of the sidebar.
 struct ForumRow: Identifiable, Hashable, Sendable {
     let id: String

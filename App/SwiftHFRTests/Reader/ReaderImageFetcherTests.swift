@@ -133,4 +133,13 @@ struct ReaderImageFetcherTests {
         store.set(true, for: SettingKey.displaySignatures)
         #expect(settings.renderOptions().showsSignatures)
     }
+
+    /// LOT-137 applies "Navigateur par défaut" (LOT-119): read at each tap, off by default (in-app browser).
+    @Test func theBrowserChoiceIsTheStoredSetting() {
+        let store = InMemorySettingsStore()
+        let settings = ReaderSettings.live(store: store, isOnWiFi: { true })
+        #expect(!settings.opensLinksInDefaultBrowser())
+        store.set(true, for: SettingKey.opensLinksInDefaultBrowser)
+        #expect(settings.opensLinksInDefaultBrowser())
+    }
 }

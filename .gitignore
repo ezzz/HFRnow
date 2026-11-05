@@ -35,3 +35,6 @@ docs/assets/source/roadmap/Virgil-Regular.woff2
 docs/assets/source/roadmap/preview.png
 docs/assets/source/roadmap/roadmap-milestones.*
 tooling/roadmap/out/
+
+# Release pipeline output (scripts/release-testflight.sh, LOT-161): archives, IPAs, logs
+/build/

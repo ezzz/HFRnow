@@ -1,0 +1,26 @@
+{
+  "case" : "R70a",
+  "exception" : null,
+  "input" : {
+    "bytes" : 1569,
+    "currentURL" : null,
+    "file" : "../captures/R70a-home-stale-session.html",
+    "now" : null,
+    "sha256" : "8619793908b4a274d4222ee17f00d41001a368c8556807caee5f91c94407604b"
+  },
+  "kind" : "forums",
+  "legacyCommit" : "2440d79",
+  "result" : [
+
+  ],
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

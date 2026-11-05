@@ -68,6 +68,11 @@
         "topicTitle" : "[C++] Affichage uptime - Améliorations possibles ?"
       }
     ],
+    "fastAnswer" : {
+      "isFavoritesOrRead" : "",
+      "isRedFlagged" : false,
+      "isUnreadable" : false
+    },
     "messages" : [
       {
         "addFlagUrl" : null,

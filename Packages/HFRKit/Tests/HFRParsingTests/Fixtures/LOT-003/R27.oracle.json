@@ -653,6 +653,11 @@
         "topicTitle" : "Les films et séries de Science-Fiction"
       }
     ],
+    "fastAnswer" : {
+      "isFavoritesOrRead" : "",
+      "isRedFlagged" : false,
+      "isUnreadable" : false
+    },
     "messages" : [
       {
         "addFlagUrl" : null,
