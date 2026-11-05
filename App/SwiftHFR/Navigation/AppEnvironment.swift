@@ -19,6 +19,8 @@ struct AppEnvironment {
     let privateMessages: any PrivateMessageSource
     /// Reply composer of the current account (LOT-084); nil when logged out.
     let composer: ComposerServices?
+    /// The post filter (LOT-114): cookie-less page reads and the criteria from the settings.
+    let filteredPosts: FilteredPostsServices
 
     /// The environment for `session`.
     static func make(session: HFRSession, accountName: String?) -> AppEnvironment {
@@ -33,7 +35,9 @@ struct AppEnvironment {
         return AppEnvironment(
             session: session, dataSource: source, visibility: ForumVisibility(), currentAccountName: accountName,
             topicPages: pages, reader: reader, privateMessages: LivePrivateMessageSource(fetcher: fetcher),
-            composer: .live(session: session, account: accountName)
+            composer: .live(session: session, account: accountName),
+            // The allowlist stays empty until the pseudo lists reach the app (LOT-118).
+            filteredPosts: .live(store: UserDefaultsSettingsStore(), pseudo: accountName)
         )
     }
 

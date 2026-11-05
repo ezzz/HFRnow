@@ -5,6 +5,8 @@ import HFRModels
 import SwiftUI
 import WebKit
 
+// Port of HFRswift/Wrapped/LinkItem.m (video embeds) @ 2440d79. Differences: a placeholder, the player loads only on tap (GAP-058,
+// LOT-071 D-071-2).
 /// The third-party video player, loaded only after the user tapped its placeholder (LOT-071 D-071-2).
 ///
 /// It runs in its own web view, never in the reader's: the reader keeps content JavaScript off and allows no frame,

@@ -1,0 +1,30 @@
+{
+  "id": "W42",
+  "account": "user1",
+  "method": "POST",
+  "url_template": "/user/vote.php?config=hfr.inc",
+  "url": "https://forum.hardware.fr/user/vote.php?config=hfr.inc",
+  "final_url": "https://forum.hardware.fr/user/vote.php?config=hfr.inc",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Sat, 01 Jan 2000 00:00:00 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "request_fields": [
+    "hash_check",
+    "cat",
+    "p",
+    "page",
+    "sondage",
+    "owntopic",
+    "subcat",
+    "numeropost",
+    "hash_check",
+    "reponse",
+    "sondage_submit"
+  ],
+  "note": "poll vote, user1, answer 1 (own topic)",
+  "request_body": "hash_check=REDACTED&cat=10&p=1&page=1&sondage=2&owntopic=0&subcat=563&numeropost=9900002&hash_check=REDACTED&reponse=1&sondage_submit=Voter",
+  "file": "W42-poll-vote-success.html",
+  "private": false
+}

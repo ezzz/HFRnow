@@ -1,5 +1,7 @@
 import SwiftUI
 
+// Port of HFRswift/Swift/MainWindow.swift (RootTabView, tab bar branch) @ 2440d79. Differences: the reader opens inside the tab's split
+// and the tab bar stays visible; a Favoris / Drapeaux source menu (GAP-008, 032; UXD).
 /// The iPhone root: a tab bar Catégories / Favoris / Messages / Plus. Each tab keeps its own navigation, and the reader
 /// opens inside the tab (a collapsed split view is a stack).
 struct RootTabsView: View {
@@ -44,6 +46,7 @@ struct CategoriesTabView: View {
         } detail: {
             ReaderColumn(navigation: navigation, reader: reader, composer: composer)
         }
+        .filteredPosts(navigation.filtering, reader: reader)
     }
 }
 
@@ -61,6 +64,7 @@ struct FavoritesTabView: View {
         } detail: {
             ReaderColumn(navigation: navigation, reader: reader, composer: composer)
         }
+        .filteredPosts(navigation.filtering, reader: reader)
     }
 }
 
@@ -83,7 +87,7 @@ struct TopicsColumn: View {
 
     var body: some View {
         if let source = navigation.selectedSource {
-            TopicListView(model: navigation.topicList(for: source), selection: $navigation.selectedTopic)
+            TopicListView(model: navigation.topicList(for: source), selection: $navigation.selectedTopic, filtering: navigation.filtering)
                 .id(source)
         } else {
             ContentUnavailableView("Choisissez un forum", systemImage: "list.bullet")
@@ -100,8 +104,15 @@ struct ReaderColumn: View {
 
     var body: some View {
         if let topic = navigation.selectedTopic, let model = navigation.reader(for: topic) {
-            TopicReaderView(model: model, services: reader, composer: composer)
-                .id(topic.id)
+            // Its own stack, for the readers a followed link pushes (LOT-137); a new topic starts a new stack.
+            NavigationStack {
+                TopicReaderView(
+                    model: model, services: reader, composer: composer,
+                    onFilterPosts: topic.topicID == nil ? nil : { navigation.filtering.start(opening: topic) },
+                    filterIsBusy: navigation.filtering.isBusy
+                )
+            }
+            .id(topic.id)
         } else {
             MessagePlaceholderView(topic: navigation.selectedTopic)
         }

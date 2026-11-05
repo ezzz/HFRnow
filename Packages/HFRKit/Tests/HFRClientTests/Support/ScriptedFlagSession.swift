@@ -3,11 +3,13 @@ import HFRModels
 import HFRNetwork
 @testable import HFRClient
 
-/// A flag session with scripted answers and a preset token: records every request and every token the flow stores.
+/// A posting session for the flag flows, with scripted answers and a preset token: records every request and every token the flow stores.
 actor ScriptedFlagSession: PostingSession {
     private let transport: MockTransport
     /// The token the session starts with; `updateHashCheck` replaces it like `HFRSession` does.
     private(set) var hashCheck: String?
+    /// Moves on every login installed, like `HFRSession.loginGeneration`.
+    private(set) var loginGeneration = 0
     /// Tokens passed to `updateHashCheck`, in order.
     private(set) var hashChecks: [String?] = []
     /// The `md_user` value the session reports.
@@ -15,9 +17,10 @@ actor ScriptedFlagSession: PostingSession {
     /// A login installed while the next request is in flight, as `adoptLogin` would do from another task.
     private var loginDuringNextRequest: ConcurrentLogin?
 
-    init(_ replies: [Result<HTTPResponse, NetworkError>], hashCheck: String? = nil) {
+    init(_ replies: [Result<HTTPResponse, NetworkError>], hashCheck: String? = nil, identity: String? = "user1") {
         transport = MockTransport(replies: replies)
         self.hashCheck = hashCheck
+        self.identity = identity
     }
 
     func perform(_ request: HTTPRequest) async throws(NetworkError) -> HTTPResponse {
@@ -26,12 +29,31 @@ actor ScriptedFlagSession: PostingSession {
             loginDuringNextRequest = nil
             identity = login.identity
             hashCheck = login.hashCheck
+            loginGeneration += 1
         }
         return response
     }
 
     func userKey(now: Date) -> String? {
         identity
+    }
+
+    /// Installs `login` now, as `adoptLogin` would from another task while the flow is suspended (in its session check).
+    func adoptLogin(_ login: ConcurrentLogin) {
+        identity = login.identity
+        hashCheck = login.hashCheck
+        loginGeneration += 1
+    }
+
+    /// Sets the `md_user` value the session reports, the login generation unchanged (a cookie expiring, an identity
+    /// the session gains without a login).
+    func setIdentity(_ value: String?) {
+        identity = value
+    }
+
+    /// Records `value` as a refresh does (`adoptRefresh`): a new token, the login generation unchanged.
+    func adoptRefreshedToken(_ value: String) {
+        hashCheck = value
     }
 
     /// Installs `login` while the next request is suspended, after it was sent.
@@ -59,7 +81,10 @@ enum FlagCapture {
         "P03l": "P03l-manageaction-delflags-browser-three-rows", "P03n": "P03n-delflag-owntopic0-success",
         "P03o": "P03o-delflag-again", "P03p": "P03p-delflag-owntopic1-success", "P03q": "P03q-addflag-logged-out",
         "W18": "W18-mp-mark-unread-success", "W15": "W15-mp-edit-success", "W17b": "W17b-mp-reply-bad-token-rejected",
-        "W17c": "W17c-mp-reply-logged-out-rejected", "W20a": "W20a-mp-reply-flood", "W01": "W01-login-failure",
+        "W17c": "W17c-mp-reply-logged-out-rejected",
+        "W64": "W64-mp-thread-delete-owner-success", "W64x": "W64x-mp-thread-delete-bad-token-rejected",
+        "W65": "W65-mp-thread-delete-recipient-success", "R95j": "R95j-mp-list-owner-after-thread-delete",
+        "W20a": "W20a-mp-reply-flood", "W01": "W01-login-failure",
         "R12": "R12-favourites-anon", "R20": "R20-topic-p1-anon", "R21": "R21-topic-p1-logged-in"
     ]
 

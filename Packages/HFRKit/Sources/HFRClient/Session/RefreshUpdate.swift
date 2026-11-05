@@ -10,6 +10,8 @@ struct RefreshSeed: Sendable {
     let cookies: [StoredCookie]
     /// The token the session held.
     let hashCheck: String?
+    /// The session's login generation: a login adopted during the refresh moves it, whatever its account and token.
+    let loginGeneration: Int
 }
 
 /// What a confirmed refresh changes: cookies HFR set or removed, compared with the seed, and the page's token.
@@ -42,17 +44,24 @@ struct RefreshUpdate: Sendable {
 extension HFRSession {
     /// Identity, cookies and token in one actor turn, so the three describe the same moment.
     func refreshSeed(now: Date) -> RefreshSeed {
-        RefreshSeed(identity: userKey(now: now), cookies: cookies(now: now), hashCheck: hashCheck)
+        RefreshSeed(
+            identity: userKey(now: now), cookies: cookies(now: now), hashCheck: hashCheck,
+            loginGeneration: loginGeneration
+        )
     }
 
     /// Installs a confirmed refresh in one actor turn, without undoing what other requests did meanwhile.
     ///
     /// A cookie is written only when the session still holds, for its key, what the refresh started from: a newer
     /// value set by a concurrent request wins over the probe's copy. Same rule for `hash_check`. Checks cancellation on
-    /// the actor itself, so a task cancelled on its way here changes nothing.
+    /// the actor itself, so a task cancelled on its way here changes nothing. A login adopted during the refresh
+    /// (`adoptLogin`) makes it write nothing at all: identity and token cannot tell a re-login of the same account with
+    /// the same token, and the probe's token belongs to the old cookies (issue #340).
     func adoptRefresh(_ update: RefreshUpdate, seed: RefreshSeed, now: Date) throws(NetworkError) -> SessionHealth {
         if Task.isCancelled { throw .cancelled }
-        guard let identity = seed.identity, userKey(now: now) == identity else { return .unconfirmed(.sessionChanged) }
+        guard let identity = seed.identity, userKey(now: now) == identity, loginGeneration == seed.loginGeneration else {
+            return .unconfirmed(.sessionChanged)
+        }
         let current = Dictionary(grouping: cookies(now: now), by: \.jarKey)
         var writes: [StoredCookie] = []
         for change in update.changes where Set(current[change.key] ?? []) == Set(change.seed) {

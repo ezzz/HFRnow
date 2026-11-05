@@ -65,6 +65,23 @@ struct HFREndpointReadTests {
         #expect(throws: NetworkError.self) { try HFREndpoint.privateMessages(page: 0) }
     }
 
+    /// `R60a`'s URL, the legacy MPStorage read (`MPStorage.m:769-777`), never following a redirect.
+    @Test func privateThreadFirstPage() throws {
+        let request = try HFREndpoint.privateThreadFirstPage(post: 3_157_083)
+        #expect(request.url.absoluteString == "\(Self.host)/forum2.php?config=hfr.inc&cat=prive&post=3157083&numreponse=0&page=1"
+            + "&p=1&subcat=0&sondage=0&owntopic=0")
+        #expect(request.redirectPolicy == .doNotFollow)
+        #expect(throws: NetworkError.self) { try HFREndpoint.privateThreadFirstPage(post: 0) }
+    }
+
+    /// `R45b`'s URL template, the recipient percent-encoded.
+    @Test func newPrivateMessageForm() throws {
+        #expect(try HFREndpoint.newPrivateMessageForm(to: "MultiMP").url.absoluteString
+            == "\(Self.host)/message.php?config=hfr.inc&cat=prive&sond=&p=1&subcat=&dest=MultiMP&subcatgroup=0")
+        #expect(try HFREndpoint.newPrivateMessageForm(to: "a b&c").url.absoluteString.contains("dest=a%20b%26c&"))
+        #expect(throws: NetworkError.self) { try HFREndpoint.newPrivateMessageForm(to: " ") }
+    }
+
     @Test(arguments: [
         (EditProfilePage.hashAndAvatar, "/user/editprofil.php?config=hfr.inc&page=5"),
         (EditProfilePage.cookieRefresh, "/user/editprofil.php?config=hfr.inc&page=1")

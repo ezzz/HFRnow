@@ -1,5 +1,7 @@
 import SwiftUI
 
+// Port of HFRswift/Swift/MainWindow.swift (RootTabView.iPadSidebarRoot) @ 2440d79. Differences: sectioned sidebar taken from master, not
+// 2440d79 (four plain tabs there; GAP-211, 218; UXD).
 /// The regular-width iPad root: the legacy sidebar (lists, tools, Plus entries), with the topic list and the reader beside it.
 struct RootSidebarView: View {
     @Bindable var model: RootModel
@@ -10,6 +12,13 @@ struct RootSidebarView: View {
     @State private var compactColumn = NavigationSplitViewColumn.sidebar
 
     var body: some View {
+        layout
+            .filteredPosts(model.categories.filtering, reader: environment.reader)
+            .filteredPosts(model.favorites.filtering, reader: environment.reader)
+    }
+
+    @ViewBuilder
+    private var layout: some View {
         if case .plus(let entry) = model.sidebarDestination {
             // Legacy: the Plus entries have no list, so a two-column split with the entry in a stack in the detail column
             // (`MainWindow.swift:1305-1311`, `:1744-1755`, `:1876-1891`).
@@ -62,7 +71,7 @@ struct RootSidebarView: View {
             TopicsColumn(navigation: model.favorites)
                 .toolbar { ToolbarItem(placement: .secondaryAction) { FavoritesSourceMenu(navigation: model.favorites) } }
         case .tab(.messages):
-            MessagesListColumn(model: model.messages)
+            MessagesListColumn(model: model.messages, composer: environment.composer)
         case .tab(.more), .plus:
             // Unreachable: `sidebarDestination` maps Plus to Réglages, and a Plus entry takes the two-column split above.
             EmptyView()
@@ -74,7 +83,7 @@ struct RootSidebarView: View {
         switch model.sidebarDestination {
         case .tab(.categories): ReaderColumn(navigation: model.categories, reader: environment.reader, composer: environment.composer)
         case .tab(.favorites): ReaderColumn(navigation: model.favorites, reader: environment.reader, composer: environment.composer)
-        case .tab(.messages): MessageReaderColumn(model: model.messages, reader: environment.reader, composer: nil)
+        case .tab(.messages): MessageReaderColumn(model: model.messages, reader: environment.reader, composer: environment.composer)
         default: ContentUnavailableView("Choisissez un élément", systemImage: "sidebar.left")
         }
     }
@@ -88,7 +97,9 @@ private struct CategoriesSidebarColumn: View {
         NavigationStack {
             ForumListView(navigation: navigation)
                 .navigationDestination(item: $navigation.selectedSource) { source in
-                    TopicListView(model: navigation.topicList(for: source), selection: $navigation.selectedTopic)
+                    TopicListView(
+                        model: navigation.topicList(for: source), selection: $navigation.selectedTopic, filtering: navigation.filtering
+                    )
                 }
         }
     }

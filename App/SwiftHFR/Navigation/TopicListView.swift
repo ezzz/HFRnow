@@ -1,10 +1,15 @@
 import HFRModels
 import SwiftUI
 
+// Port of HFRswift/Swift/MainWindow.swift (ForumTopicsListView, ForumTopicsPaginationBar) and HFRswift/Swift/Favorites.swift
+// (FavoritesListView) @ 2440d79. Differences: no Tous / Favoris / Suivis / Lus filter; "Page N" without a fake total (GAP-023, 024;
+// UXD).
 /// The middle column: the topics of the selected source, with pagination for forums.
 struct TopicListView: View {
     let model: TopicListModel
     @Binding var selection: TopicSummary?
+    /// The post filter, offered on a favourite's context menu (LOT-114); nil hides the entry.
+    var filtering: FilteredPostsModel?
 
     var body: some View {
         let loader = model.loader
@@ -37,6 +42,14 @@ struct TopicListView: View {
     private func rows(_ topics: [TopicSummary]) -> some View {
         ForEach(topics) { topic in
             TopicRowView(topic: topic).tag(topic)
+                .contextMenu {
+                    if model.source == .favorites, let filtering, topic.topicID != nil {
+                        Button { filtering.start(opening: topic) } label: {
+                            Label("Filtrer les posts", systemImage: "line.3.horizontal.decrease.circle")
+                        }
+                        .disabled(filtering.isBusy)
+                    }
+                }
         }
     }
 
