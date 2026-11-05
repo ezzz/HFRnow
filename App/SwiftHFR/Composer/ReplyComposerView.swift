@@ -1,7 +1,8 @@
 import SwiftUI
 
 // Port of HFRswift/Swift/AnswerView.swift (AnswerView, reply mode) @ 2440d79. Differences: no formatting, GIF or upload panel yet
-// (LOT-085, 102, 155), smiley picker as a sheet from the toolbar (LOT-104, GAP-087); errors say whether anything was posted instead of the toast (GAP-100); draft per topic (GAP-092, UXD).
+// (LOT-085, 102, 155), smiley picker as a sheet from the toolbar (LOT-104, GAP-087);
+// errors say whether anything was posted instead of the toast (GAP-100); draft per topic (GAP-092, UXD).
 /// The composer sheet: a plain text editor, Send and Cancel; a new private message adds its recipient and subject
 /// (LOT-128, legacy "À :" field, `QuoteMessageViewController.m:306-330` @ 21173e77). Thin: every rule is in
 /// `ReplyComposerModel`.
