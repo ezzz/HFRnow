@@ -35,7 +35,7 @@ actor ReaderGate {
     private var arrived = false
     private var arrival: CheckedContinuation<Void, Never>?
 
-    /// Returns once `wait()` has been entered; resumed by that call, never by polling.
+    /// Returns once `wait()` has been entered; resumed by that call, never by polling. One waiter at a time.
     func untilArrived() async {
         if arrived { return }
         await withCheckedContinuation { arrival = $0 }

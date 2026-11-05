@@ -54,8 +54,9 @@ func filteredBatch(start: Int, end: Int, posts: Int = 2, maxPage: Int = 9, finis
     return FilteredPostsBatch(posts: kept, startPage: start, endPage: end, maxPage: maxPage, isFinished: finished)
 }
 
-/// A normalizer that cancels the run it is called from while it normalizes the first message, so the cancellation
-/// always lands mid-batch and no thread waits for a signal (`Task.cancel()` is the call `FilteredPostsModel.cancel()` makes).
+/// A normalizer that cancels the run's task while it normalizes the first message, so the cancellation always lands
+/// mid-batch and no thread waits for a signal. It checks that normalization stops (`result(of:)`'s own cancellation check);
+/// the generation guard of `cancel()` is covered by the gated tests.
 final class CancellingNormalizer: MessageContentNormalizing, @unchecked Sendable {
     private let lock = NSLock()
     private var run: Task<Void, Never>?
