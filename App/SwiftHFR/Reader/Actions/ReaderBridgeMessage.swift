@@ -18,6 +18,8 @@ enum ReaderBridgeMessage: Equatable, Sendable {
     case video(post: Int, index: Int)
     /// The user tapped the menu button (`message`) or the author (`avatar`) of message `post`.
     case menu(post: Int, source: MessageMenuSource)
+    /// Scrolling paused with message `post` topmost (LOT-111: recorded as the reading position).
+    case position(post: Int)
 
     /// The user tapped a posted picture: the `src` of the pictures the page shows (in order) and the tapped one's position
     /// among them (LOT-109). The app re-checks every entry; the page's list is a claim.
@@ -61,21 +63,32 @@ enum ReaderBridgeMessage: Equatable, Sendable {
             return .tap(url: url)
         case "ready":
             return .ready
+        default:
+            return try messageAboutAPost(ofType: type, in: object)
+        }
+    }
+
+    /// The names whose payload starts with a message number.
+    private static func messageAboutAPost(ofType type: String, in object: [String: Any]) throws(Failure) -> ReaderBridgeMessage {
+        switch type {
         case "video":
             return try video(in: object)
         case "menu":
-            guard let post = integer(object["post"]), post > 0, let name = object["source"] as? String,
+            guard let post = positivePost(in: object), let name = object["source"] as? String,
                   let source = MessageMenuSource(rawValue: name) else { throw .invalidPayload }
             return .menu(post: post, source: source)
         case "image":
             return try image(in: object)
+        case "position":
+            guard let post = positivePost(in: object) else { throw .invalidPayload }
+            return .position(post: post)
         default:
             throw .unknownType
         }
     }
 
     private static func video(in object: [String: Any]) throws(Failure) -> ReaderBridgeMessage {
-        guard let post = integer(object["post"]), let index = integer(object["index"]), post > 0, index >= 0 else {
+        guard let post = positivePost(in: object), let index = integer(object["index"]), index >= 0 else {
             throw .invalidPayload
         }
         return .video(post: post, index: index)
@@ -88,6 +101,11 @@ enum ReaderBridgeMessage: Equatable, Sendable {
         let urls = list.compactMap { $0 as? String }
         guard urls.count == list.count else { throw .invalidPayload }
         return .image(urls: urls, index: index)
+    }
+
+    /// The message number a body names: a whole number above zero, nothing else.
+    private static func positivePost(in object: [String: Any]) -> Int? {
+        integer(object["post"]).flatMap { $0 > 0 ? $0 : nil }
     }
 
     /// A whole number from WebKit's bridge: an `NSNumber` that is not a boolean and has no fraction; nothing else.

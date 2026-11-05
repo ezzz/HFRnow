@@ -2,7 +2,7 @@ import Foundation
 @testable import SwiftHFR
 import Testing
 
-/// The typed bridge: five known names, exact shapes, everything else rejected (LOT-087, audit C14).
+/// The typed bridge: six known names, exact shapes, everything else rejected (LOT-087, audit C14).
 struct ReaderBridgeMessageTests {
     private func decode(_ body: Any) -> Result<ReaderBridgeMessage.Decoded, ReaderBridgeMessage.Failure> {
         do throws(ReaderBridgeMessage.Failure) { return .success(try ReaderBridgeMessage.decode(body)) } catch { return .failure(error) }
@@ -18,6 +18,8 @@ struct ReaderBridgeMessageTests {
             == .success(.init(token: 3, message: .menu(post: 42, source: .message))))
         #expect(decode(["type": "menu", "token": 3, "post": 42, "source": "avatar"])
             == .success(.init(token: 3, message: .menu(post: 42, source: .avatar))))
+        #expect(decode(["type": "position", "token": 3, "post": 42])
+            == .success(.init(token: 3, message: .position(post: 42))))
         #expect(decode(["type": "images", "token": 3, "urls": ["a", 7, "b"] as [Any]])
             == .success(.init(token: 3, message: .images(["a", nil, "b"]))))
     }
@@ -52,6 +54,9 @@ struct ReaderBridgeMessageTests {
         #expect(decode(base.merging(["post": true, "source": "message"]) { $1 }) == .failure(.invalidPayload))
         #expect(decode(["type": "video", "token": 1, "post": 42, "index": -1]) == .failure(.invalidPayload))
         #expect(decode(["type": "video", "token": 1, "post": 42]) == .failure(.invalidPayload))
+        #expect(decode(["type": "position", "token": 1]) == .failure(.invalidPayload))
+        #expect(decode(["type": "position", "token": 1, "post": 0]) == .failure(.invalidPayload))
+        #expect(decode(["type": "position", "token": 1, "post": "42"]) == .failure(.invalidPayload))
         #expect(decode(["type": "tap", "token": 1]) == .failure(.invalidPayload))
         #expect(decode(["type": "tap", "token": 1, "url": 5]) == .failure(.invalidPayload))
         #expect(decode(["type": "images", "token": 1, "urls": "a"]) == .failure(.invalidPayload))

@@ -37,7 +37,12 @@ enum ViewerImageCheck {
               let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
               let width = properties[kCGImagePropertyPixelWidth] as? Int, let height = properties[kCGImagePropertyPixelHeight] as? Int,
               width > 0, height > 0 else { return false }
-        return width <= maximumPixels / height
+        return fitsBudget(width: width, height: height)
+    }
+
+    /// True when `width` x `height` stays within `maximumPixels` (division, so no overflow).
+    static func fitsBudget(width: Int, height: Int) -> Bool {
+        width > 0 && height > 0 && width <= maximumPixels / height
     }
 
     /// The image sampled down to `displayMaximumSide`, never decoded at full size.

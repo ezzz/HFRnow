@@ -1,5 +1,4 @@
 import Foundation
-import ImageIO
 @testable import SwiftHFR
 import Testing
 
@@ -16,13 +15,19 @@ struct ImageViewerCheckTests {
         #expect(ViewerImageCheck.isShowable(Data()) == false)
     }
 
-    @Test func anImageClaimingTooManyPixelsIsRefused() throws {
-        // A well-formed PNG (IHDR with its CRC, IEND) that says 20000 x 20000 = 400 million pixels, with no pixel data.
+    @Test func thePixelBudgetRefusesAnImageThatClaimsTooMany() {
+        #expect(ViewerImageCheck.fitsBudget(width: 10_000, height: 10_000)) // exactly the budget
+        #expect(ViewerImageCheck.fitsBudget(width: 10_001, height: 10_000) == false)
+        #expect(ViewerImageCheck.fitsBudget(width: 20_000, height: 20_000) == false)
+        #expect(ViewerImageCheck.fitsBudget(width: Int.max, height: Int.max) == false)
+        #expect(ViewerImageCheck.fitsBudget(width: 0, height: 10) == false)
+        #expect(ViewerImageCheck.fitsBudget(width: 10, height: 0) == false)
+    }
+
+    @Test func aHeaderOnlyPNGClaimingTooManyPixelsIsRefused() throws {
+        // A well-formed PNG (IHDR with its CRC, IEND) that says 20000 x 20000 and holds no pixel data. Whether ImageIO reports
+        // its size or refuses it first, it must never be showable.
         let png = try #require(Data(base64Encoded: "iVBORw0KGgoAAAANSUhEUgAATiAAAE4gCAIAAABsEtFuAAAAAElFTkSuQmCC"))
-        let source = try #require(CGImageSourceCreateWithData(png as CFData, nil))
-        let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
-        // ImageIO reads the size, so it is the pixel budget that refuses it.
-        #expect(properties?[kCGImagePropertyPixelWidth] as? Int == 20_000)
         #expect(ViewerImageCheck.isShowable(png) == false)
     }
 }
