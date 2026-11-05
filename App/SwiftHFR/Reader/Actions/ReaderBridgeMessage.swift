@@ -1,5 +1,9 @@
 import Foundation
 
+// Port of HFRswift/Swift/MessagesView.swift (`Coordinator.userContentController(_:didReceive:)`, `:1169-1235`) @ 2440d79.
+// Differences: GAP-064; the body is decoded into a closed enum and rejected whole when it does not fit, where legacy read
+// untyped values and ignored bad shapes silently.
+
 /// A message of `reader.js`, decoded into a closed set of cases (LOT-087, audit C14). The page never supplies code or a
 /// selector: the decoder knows five names and takes only numbers and strings of the shape each one needs; anything else
 /// is rejected, never partly read.

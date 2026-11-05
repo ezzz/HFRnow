@@ -106,8 +106,7 @@ struct TopicReaderView: View {
                 .padding(.vertical, 8)
                 .background(.thinMaterial, in: Capsule())
                 .padding(.bottom, 56)
-                .accessibilityAddTraits(.updatesFrequently)
-                .task {
+                .task(id: model.menuFeedbackSerial) {
                     try? await Task.sleep(for: .seconds(2))
                     model.clearMenuFeedback()
                 }
@@ -124,7 +123,11 @@ struct TopicReaderView: View {
         model.install(MessageActionRegistry([
             LinkActionHandler(
                 copy: { UIPasteboard.general.string = $0.absoluteString },
-                confirm: { [model] in model.showMenuFeedback($0) }
+                // Weak: the model stores this registry, a strong capture would keep every reader alive.
+                confirm: { [weak model] text in
+                    model?.showMenuFeedback(text)
+                    AccessibilityNotification.Announcement(text).post()
+                }
             )
         ]))
     }

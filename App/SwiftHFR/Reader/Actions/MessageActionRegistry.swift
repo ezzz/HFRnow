@@ -1,5 +1,9 @@
 import Foundation
 
+// Port of HFRswift/Swift/MessagesView.swift (the per-action entries built in the popup, `:1722-1775`) @ 2440d79.
+// Differences: GAP-064; each action goes to a handler registered by its own lot instead of a `parent.on…Request` closure,
+// and an action without a handler is hidden.
+
 /// What a lot implements to plug one action into the message menu (alert, AQ, bookmark, BL/WL, flag, edit, delete, quote,
 /// profile, MP). Registering a handler is the only change: the policy is not edited.
 @MainActor
@@ -26,8 +30,13 @@ struct MessageActionRegistry {
         for handler in handlers { self.handlers[handler.kind] = handler }
     }
 
-    /// Whether any action is implemented (no menu button otherwise).
-    var isEmpty: Bool { handlers.isEmpty }
+    /// The actions of the author menu (legacy avatar popup); every other action belongs to the message menu.
+    private static let authorKinds: Set<MessageMenuAction.Kind> = [.profile, .privateMessage, .blocklist, .allowlist]
+
+    /// Whether any action of `source`'s menu is implemented (no button for a menu that could never open).
+    func offers(_ source: MessageMenuSource) -> Bool {
+        handlers.keys.contains { Self.authorKinds.contains($0) == (source == .avatar) }
+    }
 
     /// The entries the menu shows for `context`: the policy's, minus those without a handler or that the handler declines.
     func entries(for context: MessageMenuContext, source: MessageMenuSource) -> [MessageMenuAction] {

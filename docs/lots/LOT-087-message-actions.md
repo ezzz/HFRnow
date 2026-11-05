@@ -2,7 +2,7 @@
 
 - **Module:** App (`App/SwiftHFR/Reader/Actions/`)
 - **Difficulty / model:** medium (Opus → Fable; coded by a cloud child, reviewed by Opus)
-- **Issue:** [#179](https://github.com/ezzz/HFRnow/issues/179) (old [francoisgn/ios-app_SwiftHFR#](https://github.com/francoisgn/ios-app_SwiftHFR) lot issue linked from it)
+- **Issue:** [#179](https://github.com/ezzz/HFRnow/issues/179) (its old lot issue is linked from there)
 - **Depends on:** LOT-083 (reader), LOT-031 (`MessageActions`). Absorbs Phase 4 backlog C14 (typed JS bridge) and C15 (message action policy).
 
 ## Legacy counterpart
@@ -23,8 +23,9 @@ Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79`.
 - **Bridge.** `reader.js` posts `{type, token, …}`. The app decodes five names (`images`, `tap`, `ready`, `video`, `menu`) into
   `ReaderBridgeMessage`; an unknown name, a body that is not an object, a non-integer or boolean number, a missing field, a post
   below 1 or an unknown `source` is rejected whole (nothing is partly read). The page never supplies code or a selector.
-- **Menu button.** When a handler is registered, each non-continuation message draws a `⋯` button (`data-menu="message"`) and
-  its author becomes a button (`data-menu="avatar"`, legacy: the avatar tap). The page sends `menu` with the number and one of those
+- **Menu button.** Each non-continuation message draws a `⋯` button (`data-menu="message"`) when an action of the message menu has
+  a handler, and its author becomes a button (`data-menu="avatar"`, legacy: the avatar tap) when an action of the author menu
+  (profile, MP, BL, WL) has one; a menu that could never open draws nothing. The `⋯` instead of the legacy "+" is GAP-051's UX change. The page sends `menu` with the number and one of those
   two names; the model checks the document token and that the page holds the message, then asks the registry.
 - **Policy** (pure, `MessageMenuPolicy`): ported from legacy, same order and titles (`Link` stays `Link`). `isOwnMessage`,
   `canBeFavorite` and `canDelete` are derived from `MessageActions` as LOT-031 decides (edit link ⇒ own; flag link ⇒ favourite; edit
@@ -34,7 +35,7 @@ Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79`.
   its handler in `TopicReaderView.installMenuActions()`; the policy is untouched.
 - **Link.** `LinkActionHandler` copies the permalink and shows "Lien copié". Permalink = the page's final URL (forum `https`,
   fragment dropped) + `#t<numreponse>` (HFR-PROTOCOL §6c: permalinks are `#t<message>` on a canonical URL); nil when the page URL is unknown.
-- Only **Link** has a handler in this lot, so the avatar menu is empty and opens nothing until profile / MP / BL / WL land.
+- Only **Link** has a handler in this lot, so authors stay plain text until profile / MP / BL / WL land.
 
 ## Edge cases
 
@@ -58,7 +59,14 @@ session check of LOT-044 and `TopicFlagFlow`; no handler yet, so hidden).
 1. The bridge decodes into a closed enum (legacy read untyped `Any` bodies, silently ignoring bad shapes).
 2. Actions without a merged handler are hidden, never shown and ignored.
 3. "Link" copies to the pasteboard (issue scope); legacy opened the share sheet.
-4. A message's `page=` / `delete` rules come from LOT-031's derived fields, not from legacy `ObjCMessageActionsBuilder` flags.
+4. "Supprimer" is hidden on the first message of the topic (first block of page 1); legacy hid it on the first message of every
+   page (`messageIndex != 0`, `MessagesView.swift:255`; `ObjCMessageActionsBuilder.m:43`). Deleting a topic's first post deletes the
+   whole topic (HFR-PROTOCOL §3.1, `R63b`); legacy never offered it. Own-message, favourite and delete flags derive from LOT-031's
+   `MessageActions`, not from the legacy builder's flags.
+
+Known cost: `LiveTopicPageSource.parse` reads the page once more for `MessageActionsParser.actions(in:)` (the engine has no entry
+point returning blocks and actions from one document); an engine change is out of this lot. If the counts of blocks and action sets
+ever differ, no message offers an action.
 
 ## Learnings
 

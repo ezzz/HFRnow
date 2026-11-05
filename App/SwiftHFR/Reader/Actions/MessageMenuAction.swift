@@ -2,7 +2,7 @@ import Foundation
 import HFRModels
 
 // Port of HFRswift/Swift/MessagesView.swift (MessagePopupMenuActionKind, MessagePopupMenuPolicy) @ 2440d79.
-// Differences: GAP row "message actions"; the legacy `TopicPageMessageActions` flags that LOT-031 does not port
+// Differences: GAP-064 (and GAP-051 for the header: a "⋯" button instead of the legacy "+", a UX change to confirm, UXD-09); the legacy `TopicPageMessageActions` flags that LOT-031 does not port
 // (`isOwnMessage`, `canBeFavorite`, `canDelete`) are derived in `MessageMenuContext`; `canQualityAlert` and `canBookmark` are
 // offered by the handler of their own lot (docs/lots/LOT-087-message-actions.md).
 
@@ -99,7 +99,7 @@ struct MessageMenuContext: Equatable, Sendable {
     var actions: MessageActions
     /// Link to the message on its page (`<page URL>#t<numreponse>`); nil when the page URL is unknown.
     var permalinkURL: URL?
-    /// The topic's first message: HFR does not delete it with the edit form (LOT-031, HFR-PROTOCOL §3.1).
+    /// The topic's first message: legacy never offers its deletion, and on HFR it deletes the whole topic (HFR-PROTOCOL §3.1).
     var isFirstPostOfTopic = false
     /// Multi-quote state of the message (legacy cookie `quotes…`): LOT-086 owns it, false until then.
     var isQuoteSelectionEnabled = false
@@ -107,7 +107,7 @@ struct MessageMenuContext: Equatable, Sendable {
     var isOwnMessage: Bool { actions.editURL != nil }
     /// The flag link of the topic is present (legacy `canBeFavorite`, derived: LOT-031 drops the flag).
     var canBeFavorite: Bool { actions.favoriteURL != nil }
-    /// Deleting is the edit form with `delete=1`: needs the edit link, never on the topic's first message.
+    /// Deleting is the edit form with `delete=1`: needs the edit link, never offered on the topic's first message.
     var canDelete: Bool { actions.editURL != nil && !isFirstPostOfTopic }
     /// Set by the AQ handler (LOT-134); false without one.
     var canQualityAlert = false

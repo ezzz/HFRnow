@@ -76,6 +76,8 @@ final class TopicReaderModel {
     private(set) var presentedMenu: MessageMenu?
     /// Short confirmation of the last menu action ("Lien copié"), shown until cleared.
     private(set) var menuFeedback: String?
+    /// Grows with every confirmation, so the view restarts its timer when the same text comes twice.
+    private(set) var menuFeedbackSerial = 0
     /// Title until the page gives its own.
     let initialTitle: String
 
@@ -116,8 +118,11 @@ final class TopicReaderModel {
         self.registry = registry
     }
 
-    /// Whether the document should draw menu buttons: at least one action is implemented.
-    var hasMessageMenus: Bool { !registry.isEmpty }
+    /// Whether the document draws the `⋯` button: an action of the message menu is implemented.
+    var hasMessageMenus: Bool { registry.offers(.message) }
+
+    /// Whether the document makes authors tappable: an action of the author menu is implemented.
+    var hasAuthorMenus: Bool { registry.offers(.avatar) }
 
     /// Navigation title.
     var title: String {
@@ -243,7 +248,8 @@ final class TopicReaderModel {
         guard let page, let index = page.messages.firstIndex(where: { !$0.isContinuation && $0.numreponse == post })
         else { return nil }
         let message = page.messages[index]
-        // The first message of a topic is the first block of page 1 (a continuation copy opens the later pages).
+        // The first message of a topic is the first block of page 1 (a continuation copy opens the later pages). Legacy hid
+        // the deletion on the first message of every page (`messageIndex != 0`): see the spec, difference 4.
         let isFirst = page.currentPage == 1 && !page.messages[..<index].contains { !$0.isContinuation }
         return MessageMenuContext(
             numreponse: post, author: message.author, actions: message.actions,
@@ -282,6 +288,7 @@ final class TopicReaderModel {
     /// Shows `text` as the confirmation of the last action.
     func showMenuFeedback(_ text: String) {
         menuFeedback = text
+        menuFeedbackSerial += 1
     }
 
     /// Hides the confirmation.
@@ -346,6 +353,7 @@ final class TopicReaderModel {
             presentedMenu = nil
             var options = renderOptions()
             options.showsMessageMenus = hasMessageMenus
+            options.showsAuthorMenus = hasAuthorMenus
             let anchor: Int? = switch rule {
             case .target:
                 target.anchor.flatMap { anchor in

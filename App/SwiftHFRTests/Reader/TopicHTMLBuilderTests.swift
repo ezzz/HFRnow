@@ -117,7 +117,7 @@ struct TopicHTMLBuilderMenuTests {
     }
 
     @Test func eachMessageGetsAMenuButtonAndATappableAuthorWithEscapedText() {
-        let html = TopicHTMLBuilder.document(for: page(), token: 1, options: ReaderRenderOptions(showsMessageMenus: true))
+        let html = TopicHTMLBuilder.document(for: page(), token: 1, options: ReaderRenderOptions(showsMessageMenus: true, showsAuthorMenus: true))
         #expect(html.contains("data-menu=\"message\" data-post=\"42\""))
         #expect(html.contains("data-menu=\"avatar\" data-post=\"42\""))
         #expect(html.contains("&lt;b&gt;x&lt;/b&gt;"))
@@ -125,7 +125,16 @@ struct TopicHTMLBuilderMenuTests {
     }
 
     @Test func theContinuationCopyHasNoMenu() {
-        let html = TopicHTMLBuilder.document(for: page(continuation: true), token: 1, options: ReaderRenderOptions(showsMessageMenus: true))
+        let options = ReaderRenderOptions(showsMessageMenus: true, showsAuthorMenus: true)
+        let html = TopicHTMLBuilder.document(for: page(continuation: true), token: 1, options: options)
         #expect(!html.contains("data-menu"))
+    }
+
+    @Test func theTwoMenusAreDrawnIndependently() {
+        let messageOnly = TopicHTMLBuilder.document(for: page(), token: 1, options: ReaderRenderOptions(showsMessageMenus: true))
+        #expect(messageOnly.contains("data-menu=\"message\"") && !messageOnly.contains("data-menu=\"avatar\""))
+        #expect(messageOnly.contains("<span class=\"author\">"))
+        let authorOnly = TopicHTMLBuilder.document(for: page(), token: 1, options: ReaderRenderOptions(showsAuthorMenus: true))
+        #expect(authorOnly.contains("data-menu=\"avatar\"") && !authorOnly.contains("data-menu=\"message\""))
     }
 }

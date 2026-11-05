@@ -70,9 +70,19 @@ struct TopicReaderMenuTests {
         let reader = await loaded()
         let token = try #require(reader.document?.token)
         reader.requestMenu(post: 101, source: .message, token: token + 1)
+        #expect(reader.presentedMenu == nil, "stale document")
         reader.requestMenu(post: 999, source: .message, token: token)
+        #expect(reader.presentedMenu == nil, "not on the page")
         reader.requestMenu(post: 101, source: .avatar, token: token) // no avatar handler registered
-        #expect(reader.presentedMenu == nil)
+        #expect(reader.presentedMenu == nil, "no entry")
+        // A refused request leaves an open menu as it is.
+        reader.requestMenu(post: 101, source: .message, token: token)
+        let open = reader.presentedMenu
+        #expect(open != nil)
+        reader.requestMenu(post: 999, source: .message, token: token)
+        reader.requestMenu(post: 101, source: .message, token: token + 1)
+        #expect(reader.presentedMenu == open)
+        reader.dismissMenu()
         let bare = await loaded(registry: MessageActionRegistry())
         #expect(!bare.hasMessageMenus)
         bare.requestMenu(post: 101, source: .message, token: try #require(bare.document?.token))
@@ -106,6 +116,36 @@ struct TopicReaderMenuTests {
         await reader.refresh()
         #expect(reader.presentedMenu == nil)
         #expect(reader.document?.html.contains("data-menu=\"message\"") == true)
+    }
+
+    @Test func onlyTheMenusThatCanOpenAreDrawn() async {
+        let reader = await loaded()
+        let html = reader.document?.html ?? ""
+        #expect(html.contains("data-menu=\"message\"") && !html.contains("data-menu=\"avatar\""))
+    }
+
+    @Test func installingTheHandlersDoesNotKeepTheModelAlive() async {
+        weak var weakReader: TopicReaderModel?
+        do {
+            let reader = TopicReaderModel(target: ReaderTarget(source: .topic(readerTopic)), source: FakeTopicPages())
+            weakReader = reader
+            // The same wiring as `TopicReaderView.installMenuActions()`: the registry the model stores points back to it.
+            reader.install(MessageActionRegistry([
+                LinkActionHandler(copy: { _ in }, confirm: { [weak reader] in reader?.showMenuFeedback($0) })
+            ]))
+            await reader.onAppear()
+        }
+        #expect(weakReader == nil)
+    }
+
+    @Test func feedbackRestartsItsTimerWhenTheSameTextComesTwice() {
+        let reader = TopicReaderModel(target: ReaderTarget(source: .topic(readerTopic)), source: FakeTopicPages())
+        reader.showMenuFeedback("Lien copié")
+        let first = reader.menuFeedbackSerial
+        reader.showMenuFeedback("Lien copié")
+        #expect(reader.menuFeedbackSerial == first + 1)
+        reader.clearMenuFeedback()
+        #expect(reader.menuFeedback == nil)
     }
 
     @Test func theDocumentHasNoButtonsWithoutAHandler() async {

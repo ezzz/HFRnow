@@ -34,7 +34,14 @@ struct MessageActionRegistryTests {
         let actions = MessageActions(editURL: url("https://forum.hardware.fr/message.php?e=1"))
         #expect(registry.entries(for: context(actions), source: .message) == [.link])
         #expect(MessageActionRegistry().entries(for: context(actions), source: .message) == [])
-        #expect(MessageActionRegistry().isEmpty)
+        #expect(!MessageActionRegistry().offers(.message) && !MessageActionRegistry().offers(.avatar))
+    }
+
+    @Test func eachMenuIsOfferedOnlyWhenOneOfItsActionsHasAHandler() {
+        let linkOnly = MessageActionRegistry([RecordingHandler(.link)])
+        #expect(linkOnly.offers(.message) && !linkOnly.offers(.avatar))
+        let withProfile = MessageActionRegistry([RecordingHandler(.profile)])
+        #expect(!withProfile.offers(.message) && withProfile.offers(.avatar))
     }
 
     @Test func aLaterLotPlugsInWithoutTheMenuPolicyChanging() {

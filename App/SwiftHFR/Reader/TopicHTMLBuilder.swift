@@ -25,8 +25,10 @@ enum HTMLEscaping {
 struct ReaderRenderOptions: Equatable, Sendable {
     /// Append each message's `signatureHTML` (`display_sig`, off by default as in legacy).
     var showsSignatures = false
-    /// Give each message a menu button and make its author tappable (LOT-087). Off until a handler is registered.
+    /// Give each message a `⋯` button (LOT-087). Off until a message-menu handler is registered.
     var showsMessageMenus = false
+    /// Make each author tappable (legacy avatar popup). Off until an author-menu handler is registered.
+    var showsAuthorMenus = false
 }
 
 /// Builds the reader's HTML document from a `ReaderPage` (LOT-083, audit C12).
@@ -94,8 +96,8 @@ enum TopicHTMLBuilder {
         if let avatar = message.avatarURL {
             html += "<img class=\"avatar\" src=\"\(HTMLEscaping.text(avatar.absoluteString))\" alt=\"\">"
         }
-        let menus = options.showsMessageMenus && !message.isContinuation
-        if menus {
+        let showsMessageMenu = options.showsMessageMenus && !message.isContinuation
+        if options.showsAuthorMenus, !message.isContinuation {
             // The author opens the author's menu (legacy: the avatar tap); the numbers are ours, never page text.
             html += "<button type=\"button\" class=\"author menu-author\" data-menu=\"avatar\" data-post=\"\(message.numreponse)\">"
             html += "\(author)</button>"
@@ -103,7 +105,7 @@ enum TopicHTMLBuilder {
             html += "<span class=\"author\">\(author)</span>"
         }
         if !message.dateText.isEmpty { html += "<span class=\"date\">\(date)</span>" }
-        if menus {
+        if showsMessageMenu {
             html += "<button type=\"button\" class=\"menu-button\" data-menu=\"message\" data-post=\"\(message.numreponse)\""
             html += " aria-label=\"Actions du message de \(author)\">⋯</button>"
         }
