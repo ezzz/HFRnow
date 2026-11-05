@@ -9,6 +9,16 @@ private final class FakeClipboard: ClipboardReading {
     var string: String?
 }
 
+@MainActor
+private func accept(_ model: ComposerFormattingModel) {
+    if let pending = model.pending { model.acceptPending(pending) }
+}
+
+@MainActor
+private func decline(_ model: ComposerFormattingModel) {
+    if let pending = model.pending { model.declinePending(pending) }
+}
+
 /// The toolbar model: edits through the composer, the caret request, the clipboard confirmations (HFR-010).
 @MainActor
 struct ComposerFormattingModelTests {
@@ -62,7 +72,7 @@ struct ComposerFormattingModelTests {
         let model = ComposerFormattingModel(composer: composer, clipboard: clipboard)
         model.selectedRange = NSRange(location: 5, length: 3)
         model.tap(.bbCode(.url))
-        model.acceptPending(model.pending!)
+        accept(model)
         #expect(composer.text == "voir [url=https://example.org/]ici[/url]")
         model.selectedRange = NSRange(location: 0, length: 4)
         model.tap(.bbCode(.url))
@@ -77,7 +87,7 @@ struct ComposerFormattingModelTests {
         let model = ComposerFormattingModel(composer: composer, clipboard: clipboard)
         model.selectedRange = NSRange(location: 0, length: 3)
         model.tap(.bbCode(.url))
-        model.declinePending(model.pending!)
+        decline(model)
         #expect(composer.text == "[url]ici[/url]")
     }
 
@@ -100,7 +110,7 @@ struct ComposerFormattingModelTests {
         model.selectedRange = NSRange(location: 1, length: 0)
         model.tap(.bbCode(.quote))
         #expect(model.pending?.message == "Insérer « extrait sur deux lignes » avec Citation ?")
-        model.acceptPending(model.pending!)
+        accept(model)
         #expect(composer.text == "x[quote]extrait\nsur deux lignes[/quote]")
         #expect(model.selectedRange.location == composer.text.utf16.count)
     }
@@ -111,7 +121,7 @@ struct ComposerFormattingModelTests {
         let (composer, _) = await make("")
         let model = ComposerFormattingModel(composer: composer, clipboard: clipboard)
         model.tap(.bbCode(.bold))
-        model.acceptPending(model.pending!)
+        accept(model)
         model.tap(.bbCode(.bold))
         #expect(model.pending == nil)
         clipboard.changeCount += 1
@@ -146,7 +156,7 @@ struct ComposerFormattingModelTests {
         clipboard.string = "a"
         let (_, model) = await make("", clipboard: clipboard)
         model.tap(.bbCode(.bold))
-        model.declinePending(model.pending!)
+        decline(model)
         model.tap(.bbCode(.bold))
         #expect(model.pending != nil)
     }
