@@ -256,6 +256,16 @@ wrong `hash_check`, which HFR refused (`W64x`), then deleted the thread with the
 | R96d | `R96d-mp-thread-recipient-after-thread-delete.html` | Thread URL for the recipient afterwards: the same "pas destiné" `.hop` | X1 | 094, 030 |
 | R96a | `R96a-mp-list-past-last-page.html` | user1's MP list `page=8` of 7, with `MPStorage.m:694`'s query: 200, no redirect, no `.hop`, header row and no topic row; title "… - Page : 8"; the pager lists pages 1 to 7 as links (no current page), "Page Précédente" links page 7, no "Page Suivante" link | R14 | 023, 038, 047, 126 |
 | R96b | `R96b-mpstorage-thread-other-account-not-addressed.html` | user2 opens user1's MPStorage thread with legacy's read URL (`MPStorage.m:766`, as `R60a`): 200, the "pas destiné" `.hop` legacy's `parseMPStorage` checks (`MPStorage.m:837`) | R60 | 038 |
+| W70 | `W70-mp-create-group-success.html` | New MP to two recipients (#336, 2026-11-05): user1 posts `dest=<user2>,<third member>` (comma, no space), a neutral subject and body, to `bddpost.php`: "Votre message a été posté avec succès !", refresh to the MP list | N07 | 058 |
+| R123k | `R123k-new-mp-form-recipients-comma-hint.html` | The new-MP form as the list link opens it (`dest=` empty, user1): the `dest` hint reads "Entrez le(s) pseudo(s) du ou des destinataires, séparés par des virgules." | R45 | 058, 036 |
+| R123a | `R123a-mp-list-group-owner.html` | user1's MP list right after `W70`: the group row (`Interlocuteurs multiples` span with the roster as `title`, `[non lu]` "pas été lu par" with lower-cased names) and 12 older group threads (13 group rows in all) | N07, R13 | 058, 023, 171 |
+| R123b | `R123b-mp-thread-group-owner.html` | The group thread seen by its owner (one message, no roster on the page) | N07 | 058, 030 |
+| R123c | `R123c-mp-reply-composer-group-owner-newdest.html` | The owner's `message.php` reply form: the extra "Destinataires" row with `newdest` ("a, b", the members other than the owner) | N07, R47 | 058, 036 |
+| R123d | `R123d-mp-thread-group-member.html` | The same thread seen by user2, a non-owner member (no roster) | N07 | 058, 030 |
+| R123e | `R123e-mp-reply-composer-group-member-no-roster.html` | The member's reply form: no "Destinataires" row, no `newdest` (the roster is not read-only text here) | N07, R47 | 058, 036 |
+| R123f | `R123f-mp-list-group-member.html` | user2's MP list with the group row (roster in the span `title`, only the third member left in "pas été lu par") | N07, R13 | 058, 023, 171 |
+| R123g | `R123g-favourites-owntopic1-empty-after-delflag.html` | user2's `forum1f.php?owntopic=1` with nothing flagged (operator-run capture, #109): the list body with title "Vos sujets", no `.hop`, no topic row, marker `topic0`, the "Discussions" header and the placeholder row "Aucun nouveau message" | R73a, R12 | 024, 092 |
+| (oracles) | `../M2-writes/` | Legacy oracles of `R123a`-`R123g` and `R123k` (`run-oracle.sh`, legacy `2440d79`): `mp` for the lists, `favorites` (`R123g`), `topic` for `R123b`/`R123d`, `form` (`reply`, `mp`) for `R123c`/`R123e`/`R123k`; own folder and map |
 
 ## Not captured
 

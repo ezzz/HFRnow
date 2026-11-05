@@ -176,6 +176,15 @@
     {"raw": "W65", "id": "W65", "slug": "mp-thread-delete-recipient-success", "ext": "html", "private": false},
     {"raw": "R96d", "id": "R96d", "slug": "mp-thread-recipient-after-thread-delete", "ext": "html", "private": false},
     {"raw": "R96a", "id": "R96a", "slug": "mp-list-past-last-page", "ext": "html", "private": true},
-    {"raw": "R96b", "id": "R96b", "slug": "mpstorage-thread-other-account-not-addressed", "ext": "html", "private": false}
+    {"raw": "R96b", "id": "R96b", "slug": "mpstorage-thread-other-account-not-addressed", "ext": "html", "private": false},
+    {"raw": "W70", "id": "W70", "slug": "mp-create-group-success", "ext": "html", "private": false},
+    {"raw": "R123a", "id": "R123a", "slug": "mp-list-group-owner", "ext": "html", "private": true},
+    {"raw": "R123b", "id": "R123b", "slug": "mp-thread-group-owner", "ext": "html", "private": true},
+    {"raw": "R123c", "id": "R123c", "slug": "mp-reply-composer-group-owner-newdest", "ext": "html", "private": true},
+    {"raw": "R123d", "id": "R123d", "slug": "mp-thread-group-member", "ext": "html", "private": true},
+    {"raw": "R123e", "id": "R123e", "slug": "mp-reply-composer-group-member-no-roster", "ext": "html", "private": true},
+    {"raw": "R123f", "id": "R123f", "slug": "mp-list-group-member", "ext": "html", "private": true},
+    {"raw": "N1form", "id": "R123k", "slug": "new-mp-form-recipients-comma-hint", "ext": "html", "private": true},
+    {"raw": "R123g", "id": "R123g", "slug": "favourites-owntopic1-empty-after-delflag", "ext": "html", "private": false}
   ]
 }

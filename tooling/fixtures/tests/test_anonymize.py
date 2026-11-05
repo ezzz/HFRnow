@@ -936,3 +936,181 @@ class PrivateFormCopyTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def thread_page(subject):
+    """A thread page and a reply form page printing the thread subject in every header position (live R123b-R123e)."""
+    return ('<html><head><title>%(s)s - Messages privés - FORUM HardWare.fr</title></head><body>'
+            '<h1 id="md_arbo_tree_2"><img src="/open.gif" alt="" />&nbsp;&nbsp;Messages privés</h1><h1 id="md_arbo_tree_3"><img src="/tline3.gif" alt="" /><img src="/open.gif" alt="" />&nbsp;&nbsp;%(s)s</h1>'
+            '<h1 id="md_arbo_tree_b_3"><img src="/open.gif" alt="" />&nbsp;&nbsp;<a href="/f" class="Ext">%(s)s</a></h1>'
+            '<table><tr><th scope="col" class="padding">&nbsp;Sujet : <h3>%(s)s</h3></th></tr></table>'
+            '<table><tr class="reponse"><th colspan="2">\n\t\tSujet : %(s)s</th></tr></table></body></html>' % {"s": subject})
+
+
+class ThreadSubjectTests(unittest.TestCase):
+    """--private replaces the thread subject in the header positions of thread and form pages, for any subject."""
+
+    def test_any_subject_is_replaced_in_every_position(self):
+        for subject in ("Weekend chez Paul", "12345", "fixture-test-group-1", "R&amp;D"):
+            out = anon(thread_page(subject), private=True)
+            self.assertNotIn(subject, out)
+            self.assertEqual(out.count(A.PRIVATE_SUBJECT), 5)
+            self.assertEqual(leaks(out, private=True), [])
+
+    def test_kept_subjects_stay(self):
+        for subject in ("fixture-test-1", A.MPSTORAGE_SUBJECT):
+            page = thread_page(subject)
+            self.assertEqual(anon(page, private=True).count(subject), 5)
+            self.assertEqual(leaks(page, private=True), [])
+
+    def test_check_flags_each_position_alone(self):
+        keep = thread_page(A.PRIVATE_SUBJECT)
+        bad = thread_page("Weekend chez Paul")
+        positions = [
+            ("<title>", "<title>Weekend chez Paul - Messages privés - FORUM HardWare.fr</title>"),
+            ("open.gif\" alt=\"\" />&nbsp;&nbsp;%s</h1>" % A.PRIVATE_SUBJECT,
+             "open.gif\" alt=\"\" />&nbsp;&nbsp;Weekend chez Paul</h1>"),
+            ("class=\"Ext\">%s</a>" % A.PRIVATE_SUBJECT, "class=\"Ext\">Weekend chez Paul</a>"),
+            ("<h3>%s</h3>" % A.PRIVATE_SUBJECT, "<h3>Weekend chez Paul</h3>"),
+            ("Sujet : %s</th></tr></table></body>" % A.PRIVATE_SUBJECT, "Sujet : Weekend chez Paul</th></tr></table></body>")]
+        self.assertEqual(leaks(keep, private=True), [])
+        self.assertTrue(any("private" in r for _l, _c, r in leaks(bad, private=True)))
+        for clean, dirty in positions:
+            if clean.startswith("<title>"):
+                page = keep.replace("<title>%s - Messages" % A.PRIVATE_SUBJECT, dirty[:-len("</title>")].replace(
+                    " - Messages privés - FORUM HardWare.fr", " - Messages"), 1)
+            else:
+                self.assertIn(clean, keep)
+                page = keep.replace(clean, dirty, 1)
+            self.assertNotEqual(page, keep)
+            self.assertTrue(any("private" in r for _l, _c, r in leaks(page, private=True)), dirty)
+
+
+class DestListTests(unittest.TestCase):
+    """`dest` holds several recipients separated by commas: each one is aliased on its own."""
+
+    def test_request_body_dest_is_split(self):
+        body = "a=1&dest=%s%%2C%s%%2C+%s&sujet=x" % (REAL2, OTHER, "Third One")
+        anonymizer = A.Anonymizer(CFG)
+        anonymizer._reset()
+        out = anonymizer.redact_text(body)
+        self.assertEqual(out.split("&")[1].count("%2C"), 2)
+        self.assertTrue(out.split("&")[1].startswith("dest=user2%2C"))
+        for real in (REAL2, OTHER, "Third One"):
+            self.assertNotIn(real, out)
+        self.assertEqual(leaks(out), [])
+
+    def test_dest_input_and_link_with_commas(self):
+        page = ('<input name="dest" value="%s, %s" />' % (REAL1, OTHER))
+        out = anon(page)
+        self.assertRegex(out, r'value="user1, user\d+"')
+        self.assertNotIn(OTHER, out)
+        self.assertEqual(leaks(out), [])
+        self.assertTrue(leaks(page))
+
+
+class RequestSubjectTests(unittest.TestCase):
+    def test_body_subject_replaced_unless_kept(self):
+        self.assertEqual(A.private_request_subject("a=1&sujet=Weekend+chez+Paul&b=2"), "a=1&sujet=Private+subject&b=2")
+        self.assertEqual(A.private_request_subject("sujet=fixture-test-1&b=2"), "sujet=fixture-test-1&b=2")
+        self.assertEqual(A.private_request_subject("a=1&sujet=fixture-test-group-1"), "a=1&sujet=Private+subject")
+        self.assertEqual(A.private_request_subject("a=1&xsujet=Weekend"), "a=1&xsujet=Weekend")
+
+
+class SubjectPositionTests(unittest.TestCase):
+    """Isolated positions: the `sujet` input, an h1 with another icon, the meta request body, `cat=prive` pages."""
+    SUBJECTS = ("Weekend chez Marie", "98765", "R&amp;D d'été", 'a "b" c')
+
+    def test_sujet_input_shapes_are_replaced(self):
+        for subject in self.SUBJECTS:
+            for page in ('<input type="hidden" name="sujet" value="%s" />' % subject.replace('"', "&quot;"),
+                         '<input value="%s" name="sujet" type="text" />' % subject.replace('"', "&quot;"),
+                         "<input type='hidden' name='sujet' value='%s' />" % subject.replace("'", "&#039;")):
+                out = anon(page, private=True)
+                self.assertIn(A.PRIVATE_SUBJECT, out, page)
+                self.assertEqual(leaks(out, private=True), [], page)
+                self.assertTrue(any("subject" in r for _l, _c, r in leaks(page, private=True)), page)
+
+    def test_sujet_input_kept_or_empty(self):
+        for value in ("", A.PRIVATE_SUBJECT, "fixture-test-3", A.MPSTORAGE_SUBJECT):
+            page = '<input type="hidden" name="sujet" value="%s" />' % value
+            self.assertEqual(leaks(page, private=True), [], value)
+            self.assertEqual(anon(page, private=True), page)
+
+    def test_h1_without_open_icon_is_checked_and_replaced(self):
+        page = ('<h1 id="md_arbo_tree_3"><img src="/other.gif" alt="" />&nbsp;&nbsp;Weekend chez Marie</h1>'
+                '<h1 id="md_arbo_tree_b_3">Weekend chez Marie</h1>')
+        self.assertTrue(any("subject" in r for _l, _c, r in leaks(page, private=True)))
+        out = anon(page, private=True)
+        self.assertNotIn("Marie", out)
+        self.assertEqual(leaks(out, private=True), [])
+
+    def test_meta_request_body_subject_is_checked(self):
+        import json
+        meta = {"url": "https://forum.hardware.fr/bddpost.php?config=hfr.inc", "private": False,
+                "request_body": "cat=prive&sujet=Weekend+chez+Marie&dest=user2"}
+        self.assertTrue(any("subject" in r for _l, _c, r in leaks(json.dumps(meta, indent=2))))
+        meta["request_body"] = "cat=prive&sujet=Private+subject&dest=user2"
+        self.assertEqual(leaks(json.dumps(meta, indent=2)), [])
+        meta["request_body"] = "cat=13&sujet=Public+topic+title"  # a public topic's title is public
+        self.assertEqual(leaks(json.dumps(meta, indent=2)), [])
+
+    def test_cat_prive_url_makes_a_capture_private_whatever_the_flag(self):
+        import json
+        with tempfile.TemporaryDirectory() as d:
+            page = ('<html><head><title>Weekend chez Marie - Messages privés - FORUM HardWare.fr</title></head>'
+                    '<body><div id="para1"><p>secret</p></div></body></html>')
+            with open(os.path.join(d, "X-a.html"), "w", encoding="utf-8") as fh:
+                fh.write(page)
+            with open(os.path.join(d, "X.meta.json"), "w", encoding="utf-8") as fh:
+                json.dump({"id": "X", "file": "X-a.html", "private": False,
+                           "url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=prive&post=1"}, fh)
+            self.assertEqual([p for _f, p in A.corpus_entries(d) if _f.endswith(".html")], [True])
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(A.main(["check", "--corpus", d]), 1)
+
+
+class MPWriteSignalTests(unittest.TestCase):
+    REPLAY = ('<div class="hop"><form><input type="hidden" name="cat" value="prive" />'
+              '<input type="hidden" name="sujet" value="Weekend chez Marie" />'
+              '<textarea name="content_form">words of Marie</textarea></form></div>')
+
+    def test_page_with_hidden_cat_prive_is_private_whatever_the_flag(self):
+        out = anon(self.REPLAY)  # private=False
+        self.assertNotIn("Marie", out)
+        self.assertIn(A.PRIVATE_SUBJECT, out)
+        self.assertIn(A.PRIVATE_PLACEHOLDER, out)
+        self.assertEqual(leaks(out), [])
+        reasons = [r for _l, _c, r in leaks(self.REPLAY)]  # the verifier derives it from the page too
+        self.assertTrue(any("subject" in r for r in reasons), reasons)
+        self.assertTrue(any("private form copy" in r for r in reasons), reasons)
+
+    def test_page_without_cat_prive_is_not_private(self):
+        public = self.REPLAY.replace('value="prive"', 'value="13"')
+        self.assertIn("Marie", anon(public))
+        self.assertEqual(leaks(public), [])
+
+    def test_mp_body_signals(self):
+        for body in ("cat=prive&x=1", "CAT=Prive", "a=1&dest=Bravo", "Dest=a%2Cb"):
+            self.assertTrue(A.body_is_mp(body), body)
+            self.assertTrue(A.meta_is_private({"request_body": body}), body)
+        for body in ("cat=13&sujet=x", "pseudo=a", "", None):
+            self.assertFalse(A.body_is_mp(body), body)
+
+    def test_meta_subject_checked_for_dest_only_and_mixed_case_body(self):
+        import json
+        for body in ("dest=user2&sujet=Weekend+chez+Marie", "CAT=Prive&Sujet=Weekend+chez+Marie"):
+            meta = {"url": "https://forum.hardware.fr/bddpost.php?config=hfr.inc", "private": False,
+                    "request_body": body}
+            self.assertTrue(any("subject" in r for _l, _c, r in leaks(json.dumps(meta, indent=2))), body)
+
+    def test_committed_style_mp_meta_is_classed_private_in_a_corpus(self):
+        import json
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, "X-a.html"), "w", encoding="utf-8") as fh:
+                fh.write("<html></html>")
+            with open(os.path.join(d, "X.meta.json"), "w", encoding="utf-8") as fh:
+                json.dump({"id": "X", "file": "X-a.html", "private": False,
+                           "url": "https://forum.hardware.fr/bddpost.php?config=hfr.inc",
+                           "request_body": "cat=prive&sujet=fixture-test-1"}, fh)
+            self.assertEqual([p for f, p in A.corpus_entries(d) if f.endswith(".html")], [True])
