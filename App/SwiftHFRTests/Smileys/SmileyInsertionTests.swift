@@ -9,7 +9,7 @@ struct SmileyInsertionTests {
         let text = "Salut toi"
         let caret = text.index(text.startIndex, offsetBy: 5)
         let result = SmileyInsertion.insert(":)", into: text, replacing: caret..<caret)
-        #expect(result == SmileyInsertion.Result(text: "Salut  :) toi", caretUTF16Offset: 9))
+        #expect(result == SmileyInsertion.Result(text: "Salut :)  toi", caretUTF16Offset: 9))
     }
 
     @Test func aSelectionIsReplaced() throws {

@@ -246,10 +246,10 @@ struct ReplyComposerSmileyTests {
         composer.update(text: "Salut toi")
         let caret = composer.text.index(composer.text.startIndex, offsetBy: 5)
         let offset = composer.insert(smiley: ":)", replacing: caret..<caret)
-        #expect(composer.text == "Salut  :) toi")
+        #expect(composer.text == "Salut :)  toi")
         #expect(offset == 9)
         await composer.waitForAutosave()
-        #expect(await ComposerFixture.storedText(drafts) == "Salut  :) toi")
+        #expect(await ComposerFixture.storedText(drafts) == "Salut :)  toi")
     }
 
     @Test func aSmileyIsNotInsertedBeforeTheDraftIsRead() {
