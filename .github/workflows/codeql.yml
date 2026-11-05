@@ -53,8 +53,6 @@ jobs:
 
   analyze-actions:
     name: Analyze (actions)
-    # A label event carries no new code: the analysis of this head already ran on its push.
-    if: ${{ github.event.action != 'labeled' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
