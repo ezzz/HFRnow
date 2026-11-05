@@ -15,7 +15,7 @@ The reader chooses when third-party images load: always, on Wi-Fi only, or never
 - Light, dark, Dynamic Type XL, iPad: a standard `Picker` row, no custom layout.
 
 ## HFR facts
-None new. Policy C is [LOT-071](../lots/LOT-071-image-hosts.md)/LOT-056; legacy values are `display_images` = `yes` / `no` / `wifi`.
+None new. Policy C is [LOT-071](../lots/LOT-071-third-party-services.md)/LOT-056; legacy values are `display_images` = `yes` / `no` / `wifi`.
 
 ## Edge cases
 No stored value: `wifi`. A legacy value is read as is (same key, same raw values); legacy forced `yes` at launch without a UI, SwiftHFR does not.
