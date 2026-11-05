@@ -12,16 +12,16 @@
     "currentURL": "/forum1.php?config=hfr.inc&cat=14&post_cat_list=|14*hfr|5*hfr|10*hfr|6*hfr|8*hfr|13*hfr|&trash=0&orderSearch=0&recherches=1&resSearch=200&jour=0&mois=0&annee=0&titre=3&search=PIZZA+NAPOLITAINE&pseud=&daterange=2&searchtype=1&searchall=1"
   },
   "R121c.html": {
+    "currentURL": "/forum1.php?config=hfr.inc&cat=5&post_cat_list=|14*hfr|5*hfr|10*hfr|6*hfr|8*hfr|13*hfr|&trash=0&orderSearch=0&recherches=1&resSearch=200&jour=0&mois=0&annee=0&titre=3&search=PIZZA+NAPOLITAINE&pseud=&daterange=2&searchtype=1&searchall=1",
     "kind": "search",
-    "now": "2026-11-05T18:13:45Z",
-    "path": "../captures/R121c-search-all-categories-pivot-category-13.html",
-    "currentURL": "/forum1.php?config=hfr.inc&cat=13&post_cat_list=|14*hfr|5*hfr|10*hfr|6*hfr|8*hfr|13*hfr|&trash=0&orderSearch=0&recherches=1&resSearch=200&jour=0&mois=0&annee=0&titre=3&search=PIZZA+NAPOLITAINE&pseud=&daterange=2&searchtype=1&searchall=1"
+    "now": "2026-11-05T22:14:13Z",
+    "path": "../captures/R121c-search-all-categories-pivot-category-5.html"
   },
   "R121e.html": {
+    "currentURL": "/hfr/reseauxpersosoho/liste_sujet-1.htm",
     "kind": "topics",
-    "now": "2026-11-05T18:14:25Z",
-    "path": "../captures/R121e-list-cat13-p1-logged-in.html",
-    "currentURL": "/hfr/Discussions/liste_sujet-1.htm"
+    "now": "2026-11-05T22:13:38Z",
+    "path": "../captures/R121e-list-cat22-p1-logged-in.html"
   },
   "R121f.html": {
     "kind": "topics",
@@ -36,10 +36,10 @@
     "path": "../captures/R122a-topic-locked-logged-in.html"
   },
   "R122b.html": {
-    "currentURL": "/forum2.php?config=hfr.inc&cat=8&subcat=233&post=8081&page=1&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+    "currentURL": "/forum2.php?config=hfr.inc&cat=8&subcat=235&post=14197&page=1533&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
     "kind": "topic",
-    "ownPseudo": "user2",
-    "path": "../captures/R122b-topic-p1-logged-in-flagged-owntopic1.html"
+    "ownPseudo": "user1",
+    "path": "../captures/R122b-topic-logged-in-favourite-owntopic1.html"
   },
   "R122c.html": {
     "currentURL": "/forum2.php?post=28563&cat=13&config=hfr.inc&cache=&page=1&sondage=0&owntopic=0&word=MASCARPONE&spseudo=&filter=1&currentnum=2666649",
