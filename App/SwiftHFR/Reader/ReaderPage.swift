@@ -19,6 +19,9 @@ struct ReaderPage: Equatable, Sendable {
     /// The reply composer's page (`#repondre_form`'s link, `https` on the forum host, LOT-033); nil when the page offers no
     /// answer form (logged out, locked topic).
     var answerURL: URL?
+    /// Final URL of the page after HFR's redirects, forum origin only (the permalink of a message is this plus `#t<n>`);
+    /// nil when it is not a forum `https` URL.
+    var pageURL: URL?
 }
 
 /// One message of a `ReaderPage`.
@@ -41,6 +44,8 @@ struct ReaderMessage: Equatable, Sendable, Identifiable {
     var quotedByCount: Int?
     /// Sanitized content and typed lists (ADR 0006).
     var content: MessageContent
+    /// The action links of the message's toolbar (LOT-031); nothing offered when HFR gave none (logged out).
+    var actions = MessageActions()
 
     /// Unique on a page: the continuation block repeats the previous page's last number.
     var id: String { isContinuation ? "continuation-\(numreponse)" : "t\(numreponse)" }

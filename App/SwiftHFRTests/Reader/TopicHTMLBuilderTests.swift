@@ -95,3 +95,37 @@ struct TopicHTMLBuilderTests {
         #expect(!html.contains("<iframe"))
     }
 }
+
+/// The message menu buttons of LOT-087.
+struct TopicHTMLBuilderMenuTests {
+    private func page(continuation: Bool = false) -> ReaderPage {
+        ReaderPage(
+            topicID: readerTopic, title: "Sujet", currentPage: 2, maxPage: 2,
+            messages: [
+                ReaderMessage(
+                    numreponse: 42, author: "<b>x</b>", isDeleted: false, isContinuation: continuation, avatarURL: nil,
+                    dateText: "27-10-2026 10:00:00", editNote: nil, quotedByCount: nil, content: MessageContent(html: "<p>a</p>")
+                )
+            ]
+        )
+    }
+
+    @Test func buttonsAreOffByDefault() {
+        let html = TopicHTMLBuilder.document(for: page(), token: 1)
+        #expect(!html.contains("data-menu"))
+        #expect(html.contains("<span class=\"author\">"))
+    }
+
+    @Test func eachMessageGetsAMenuButtonAndATappableAuthorWithEscapedText() {
+        let html = TopicHTMLBuilder.document(for: page(), token: 1, options: ReaderRenderOptions(showsMessageMenus: true))
+        #expect(html.contains("data-menu=\"message\" data-post=\"42\""))
+        #expect(html.contains("data-menu=\"avatar\" data-post=\"42\""))
+        #expect(html.contains("&lt;b&gt;x&lt;/b&gt;"))
+        #expect(!html.contains("<b>x</b>"))
+    }
+
+    @Test func theContinuationCopyHasNoMenu() {
+        let html = TopicHTMLBuilder.document(for: page(continuation: true), token: 1, options: ReaderRenderOptions(showsMessageMenus: true))
+        #expect(!html.contains("data-menu"))
+    }
+}

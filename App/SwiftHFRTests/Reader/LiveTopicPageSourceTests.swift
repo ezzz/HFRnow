@@ -117,6 +117,17 @@ struct LiveTopicPageSourceTests {
         return try LiveTopicPageSource.parse(html, pageURL: url(canonical), normalizer: LiveContentNormalizer())
     }
 
+    /// The action links of LOT-031 reach the reader's messages, one set per block (R21 is logged in, R20 is not).
+    @Test func messagesCarryTheirToolbarActions() throws {
+        let loggedIn = try Self.readerPage(of: "R21-topic-p1-logged-in.html")
+        #expect(loggedIn.messages.count == 40)
+        #expect(loggedIn.messages.allSatisfy { $0.actions.quoteURL != nil })
+        #expect(loggedIn.messages.contains { $0.actions.favoriteURL != nil })
+        let visitor = try Self.readerPage(of: "R20-topic-p1-anon.html")
+        #expect(visitor.messages.allSatisfy { $0.actions.quoteURL != nil && $0.actions.editURL == nil && $0.actions.alertURL == nil })
+        #expect(visitor.pageURL == url(Self.canonical))
+    }
+
     /// Real pages render their normalized content as body markup, inside the message's content element and nowhere else.
     @Test(arguments: [
         ("R22a-topic-middle-page-anon.html", nil), ("R26-topic-quotes-smileys-anon.html", "table class=\"citation\""),

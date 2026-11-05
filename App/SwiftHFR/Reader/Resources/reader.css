@@ -75,3 +75,7 @@ button.image-tap, button.video {
 }
 .videos { margin-top: 0.5em; }
 .image-link { font-size: 0.85em; color: var(--secondary); word-break: break-all; }
+
+/* Message menu (LOT-087): the author and the "⋯" button are buttons that look like text. */
+.message button.menu-author { background: none; border: 0; padding: 0; color: inherit; font: inherit; font-weight: 600; text-align: start; }
+.message button.menu-button { background: none; border: 0; padding: 0 0.4em; color: var(--secondary); font: inherit; font-size: 1.4em; line-height: 1; }

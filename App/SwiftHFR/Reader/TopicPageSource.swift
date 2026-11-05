@@ -82,9 +82,13 @@ struct LiveTopicPageSource: TopicPageSource {
         do throws(ParsingError) {
             let metadata = try TopicPageMetadataParser.parse(html: html, pageURL: pageURL.absoluteString)
             let blocks = try MessageBlockParser.blocks(in: html)
+            // One action set per block, in the blocks' order (LOT-031); a count that differs would mismatch messages and
+            // links, so no message then offers an action.
+            let actionSets = try MessageActionsParser.actions(in: html)
+            let hasActions = actionSets.count == blocks.count
             var messages: [ReaderMessage] = []
             messages.reserveCapacity(blocks.count)
-            for block in blocks {
+            for (index, block) in blocks.enumerated() {
                 messages.append(ReaderMessage(
                     numreponse: block.numreponse,
                     author: block.author,
@@ -94,7 +98,8 @@ struct LiveTopicPageSource: TopicPageSource {
                     dateText: block.dateText,
                     editNote: block.editNote,
                     quotedByCount: block.quotedByCount,
-                    content: try normalizer.normalize(contentHTML: block.contentHTML, pageURL: pageURL)
+                    content: try normalizer.normalize(contentHTML: block.contentHTML, pageURL: pageURL),
+                    actions: hasActions ? actionSets[index] : MessageActions()
                 ))
             }
             page = ReaderPage(
@@ -103,7 +108,8 @@ struct LiveTopicPageSource: TopicPageSource {
                 currentPage: max(1, metadata.currentPage),
                 maxPage: max(1, metadata.maxPage, metadata.currentPage),
                 messages: messages,
-                answerURL: metadata.answerFormURL
+                answerURL: metadata.answerFormURL,
+                pageURL: ReaderTarget.forumURL(pageURL.absoluteString)
             )
         } catch {
             throw .unreadable

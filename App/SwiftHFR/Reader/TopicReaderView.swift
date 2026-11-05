@@ -51,10 +51,25 @@ struct TopicReaderView: View {
         } message: {
             if let page = model.page { Text("Entre 1 et \(page.maxPage)") }
         }
+        .confirmationDialog(
+            "Actions du message", isPresented: Binding(get: { model.presentedMenu != nil }, set: { if !$0 { model.dismissMenu() } }),
+            titleVisibility: .hidden, presenting: model.presentedMenu
+        ) { menu in
+            ForEach(menu.entries, id: \.kind) { action in
+                Button(role: action.isDestructive ? .destructive : nil) {
+                    Task { await model.perform(action, in: menu) }
+                } label: { Label(action.title, systemImage: action.systemImageName) }
+            }
+            Button("Annuler", role: .cancel) {}
+        }
+        .overlay(alignment: .bottom) { menuFeedbackBanner }
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
         .onAppear(perform: makeController)
-        .task { await model.onAppear() }
+        .task {
+            installMenuActions()
+            await model.onAppear()
+        }
         .onDisappear {
             model.cancel()
             controller?.stopLoading()
@@ -82,9 +97,36 @@ struct TopicReaderView: View {
         }
     }
 
+    @ViewBuilder
+    private var menuFeedbackBanner: some View {
+        if let feedback = model.menuFeedback {
+            Text(feedback)
+                .font(.callout)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(.thinMaterial, in: Capsule())
+                .padding(.bottom, 56)
+                .accessibilityAddTraits(.updatesFrequently)
+                .task {
+                    try? await Task.sleep(for: .seconds(2))
+                    model.clearMenuFeedback()
+                }
+        }
+    }
+
     private func askForPage() {
         pageText = ""
         askingPage = true
+    }
+
+    /// The handlers of the merged lots; today only "Link". A later lot adds its handler here, the policy is untouched.
+    private func installMenuActions() {
+        model.install(MessageActionRegistry([
+            LinkActionHandler(
+                copy: { UIPasteboard.general.string = $0.absoluteString },
+                confirm: { [model] in model.showMenuFeedback($0) }
+            )
+        ]))
     }
 
     private func makeController() {
@@ -103,7 +145,8 @@ struct TopicReaderView: View {
             },
             video: { [model] post, index, token in
                 if let embed = model.video(post: post, index: index, token: token) { video = VideoItem(embed: embed) }
-            }
+            },
+            menu: { [model] post, source, token in model.requestMenu(post: post, source: source, token: token) }
         )
         self.controller = controller
     }

@@ -61,6 +61,13 @@
       channel.postMessage({ type: "video", token, post: Number(video.dataset.post), index: Number(video.dataset.video) });
       return;
     }
+    const menu = target.closest("button[data-menu]");
+    if (menu) {
+      event.preventDefault();
+      // Only a number and one of two names leave the page: the app decodes them and ignores anything else.
+      channel.postMessage({ type: "menu", token, post: Number(menu.dataset.post), source: menu.dataset.menu });
+      return;
+    }
     const spoiler = target.closest("table.spoiler");
     if (spoiler && !target.closest("a")) { spoiler.classList.toggle("open"); }
   });
