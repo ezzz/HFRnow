@@ -1,7 +1,7 @@
 import HFRParsing
 import SwiftUI
 
-// Port of HFRswift/Swift/UserProfileView.swift (UserProfileView, UserProfileHeaderView, UserProfileQuickActionsView,
+// Port of HFRswift/Swift/UserProfileView.swift (GAP-167: UserProfileView, UserProfileHeaderView, UserProfileQuickActionsView,
 // UserProfileSectionView, UserProfileFieldRow, UserProfileSmiliesView, UserProfileActionsView) @ 2440d79. Differences: images
 // through the reader's cookie-less fetcher and image policy, not `AsyncImage`; no smiley favourite toggle (LOT-104); a
 // list instead of cards (LOT-116 spec).
@@ -213,19 +213,20 @@ private struct ProfileImage: View {
     let placeholder: String
     /// `UserProfileModel.loadGeneration`: part of the task identity, so a reload retries an image that failed.
     let generation: Int
-    @State private var image: UIImage?
+    @State private var state = ProfileImageState<UIImage>()
 
     var body: some View {
         Group {
-            if let image {
+            if let image = state.image {
                 Image(uiImage: image).resizable().scaledToFit()
             } else {
                 Image(systemName: placeholder).resizable().scaledToFit().foregroundStyle(.secondary).padding(8)
             }
         }
         .task(id: ImageTaskID(url: url, generation: generation)) {
-            image = nil
-            image = await Self.load(url, fetcher: fetcher)
+            guard state.begin(url: url), let url else { return }
+            let loaded = await Self.load(url, fetcher: fetcher)
+            state.finish(url: url, loaded: loaded, cancelled: Task.isCancelled)
         }
     }
 
@@ -234,8 +235,8 @@ private struct ProfileImage: View {
         let generation: Int
     }
 
-    private static func load(_ url: URL?, fetcher: ReaderImageFetcher) async -> UIImage? {
-        guard let url, let data = try? await fetcher.image(at: url, allowsThirdParty: false).data else { return nil }
+    private static func load(_ url: URL, fetcher: ReaderImageFetcher) async -> UIImage? {
+        guard let data = try? await fetcher.image(at: url, allowsThirdParty: false).data else { return nil }
         return await Task.detached { UIImage(data: data) }.value
     }
 }

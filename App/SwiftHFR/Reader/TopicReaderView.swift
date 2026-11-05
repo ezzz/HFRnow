@@ -212,13 +212,15 @@ struct TopicReaderView: View {
             video: { [model] post, index, token in
                 if let embed = model.video(post: post, index: index, token: token) { video = VideoItem(embed: embed) }
             },
+            position: { [model] post, token in Task { await model.recordPosition(post: post, token: token) } },
             menu: { [model] post, source, token in model.requestMenu(post: post, source: source, token: token) }
         )
+        model.positions = services.positions
         self.controller = controller
     }
 }
 
-/// What the reader shares across pages: the image client and the settings it reads.
+/// What the reader shares across pages: the image client, the settings it reads and the position recorder.
 struct ReaderServices: Sendable {
     /// Images through the cookie-less client.
     let imageFetcher: ReaderImageFetcher
@@ -226,6 +228,8 @@ struct ReaderServices: Sendable {
     let settings: ReaderSettings
     /// Public profiles opened from a link (LOT-116), fetched without cookies.
     let profiles: any UserProfileSource
+    /// Records the reading position of the current account (LOT-111); nil when logged out.
+    var positions: (any ReaderPositionRecording)?
 }
 
 /// Previous / next page, first / last, and "page N / M" which asks for a page number.

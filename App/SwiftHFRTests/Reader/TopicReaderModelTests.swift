@@ -136,6 +136,22 @@ struct TopicReaderModelTests {
         #expect(linked.document?.anchor == nil)
     }
 
+    @Test func aDeletedFlagMessageLandsOnTheNextOneWithoutSeparator() async {
+        let reader = model(FakeTopicPages(), page: 2, anchor: 150)
+        await reader.onAppear()
+        #expect(reader.document?.anchor == 200)
+        #expect(reader.document?.html.contains("separator1") == false)
+    }
+
+    @Test func aTargetWithAnAnchorDrawsTheSeparatorAfterIt() async {
+        let withAnchor = model(FakeTopicPages(), page: 2, anchor: 200)
+        await withAnchor.onAppear()
+        #expect(withAnchor.document?.html.contains("separator1") == true)
+        let without = model(FakeTopicPages(), page: 2)
+        await without.onAppear()
+        #expect(without.document?.html.contains("separator1") == false)
+    }
+
     @Test func aPostLinkOnThePageShownScrollsWithoutRefetching() async throws {
         let pages = FakeTopicPages()
         let reader = model(pages, page: 2)

@@ -73,7 +73,7 @@ CodeRabbit needs nothing else: its configuration is `.coderabbit.yaml` in the br
 | SwiftLint | Lint | ✅ |
 | HFRKit tests (Linux), HFRKit tests (macOS) + iOS 27 build | Build and tests (`xcode-27` runner) | ✅ |
 | Docs consistency, Fixture tooling tests | Lot rules, markdown, fixture anonymization | ✅ |
-| Analyze (actions), Analyze (swift) | **SAST** (CodeQL) | ✅ — if the upload fails with "default setup is enabled", ezzz turns CodeQL default setup off (step 9) |
+| Analyze (actions), Analyze (swift) | **SAST** (CodeQL) | ✅ — if the upload fails with "default setup is enabled", ezzz turns CodeQL default setup off (step 9). Since #477, `Analyze (swift)` is no longer required on PRs (it runs on `dev-swift` and on PRs labelled `codeql`) |
 | gitleaks | **AppSec**: secrets in the history | ✅ |
 | review | **SCA**: dependency review | ✅ |
 | CodeRabbit | Review of **this diff only** | A review comment. If it says the review is skipped because the base is not the default branch, ezzz adds `dev-swift` under CodeRabbit → HFRnow → Settings → Reviews → Auto review → Base branches; then comment `@coderabbitai review` |

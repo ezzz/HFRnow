@@ -21,7 +21,7 @@ sections and fields, personal smileys and the page's link rows. Legacy parity, n
 | `UserProfileView.swift:782-805` (`UserProfileActionsView`, opened by `openLink`) | `ProfileActionRow`, section "Liens" |
 | `UserProfileView.swift:807-892` (`UserProfileSmiliesView`, with a favourite toggle) | `ProfileSmileysSection`, no toggle (difference 4) |
 | `UserProfileView.swift:894-958` (`UserProfileSectionView`, `UserProfileFieldRow`: "Non renseigné" for an empty value, a field link opens outside) | `ProfileFieldRow` |
-| `UserProfileView.swift:26-31, 54-86` (`UserProfileAction.systemImage`, summary titles and symbols) | `UserProfileAction.Kind.symbol`, `UserProfileSummaryItem.Kind.shortTitle` / `.symbol` (LOT-027 difference 2) |
+| `UserProfileView.swift:54-86` (`UserProfileAction.systemImage`), `:245-252` (summary titles and symbols) | `UserProfileAction.Kind.symbol`, `UserProfileSummaryItem.Kind.shortTitle` / `.symbol` (LOT-027 difference 2) |
 | `HFRswift/Swift/MessagesView.swift:3578-3608, 4352-4354` (`openProfile`, `userProfileQuickActions`: sheet from the avatar / message actions, MP hidden for one's own message) | entry from a reader link (below); the avatar and message menu entry is LOT-087's |
 | `Classes/OnlineMessagesTableViewController.m:1917-1918, 1953-1964` (a tapped `forum.hardware.fr/hfr/profil-<n>.htm` link opens `ProfilViewController` as a form sheet) | `ReaderLinkAction.profile(memberID:)` → `UserProfileView` sheet |
 | `Classes/ProfilViewController.m` (the older Objective-C screen, same page) | replaced by the same screen |
@@ -32,7 +32,7 @@ sections and fields, personal smileys and the page's link rows. Legacy parity, n
 |---|---|
 | Entry | In the topic reader, a link that LOT-095's router reads as `.profile(userID:)` (`https`/`http` `forum.hardware.fr/hfr/profil-<n>.htm`) gives `ReaderLinkAction.profile(memberID:)`, whatever the browser setting; `TopicReaderView` presents `UserProfileView` in a sheet. A look-alike on another host, or a path the router does not know, stays a web link. Other entries (avatar tap, message menu) are LOT-087's and reuse `UserProfileModel(memberID:source:)` |
 | Source | `LiveUserProfileSource`: `PageFetcher.profile(memberID:as: .anonymous)`, then `UserProfileParser.parse`. The page must be served at `https://forum.hardware.fr/hfr/profil-<memberID>.htm` (no port, no user info), else `.unreadable`; a parser failure is `.unreadable`; transport failures map through `ListLoadError`. Built once in `AppEnvironment` and carried by `ReaderServices.profiles` |
-| Model | `UserProfileModel`, `@Observable @MainActor`, `ContentLoader` rules: `onAppear` loads once; "Actualiser", pull to refresh and "Réessayer" reload; the profile stays on screen while a reload runs and after it fails (banner) |
+| Model | `UserProfileModel`, `@Observable @MainActor`, `ContentLoader` rules: `onAppear` loads once; "Actualiser", pull to refresh and "Réessayer" reload; the profile stays on screen while a reload runs and after it fails (banner). `loadGeneration` counts finished loads; the images' task restarts with it, and `ProfileImageState` keeps an image that loaded (a failed or cancelled retry never blanks it, an unchanged URL is not downloaded again) while retrying one that did not |
 | Title | the pseudo once loaded, "Profil" before |
 | Header | avatar (placeholder without one), pseudo, status, then the figures as printed by HFR (Messages, Arrivée, Dernier message) |
 | Fields | one section per page section; an empty value reads "Non renseigné" (legacy); a field link (a member's website) opens in a browser |
@@ -69,10 +69,11 @@ Nothing is inferred for these; the screen shows what the parser returns, or "Pag
 
 ## Tests
 `App/SwiftHFRTests/Profile/`:
+- `ProfileImageStateTests`: an image that loaded is kept when a reload fails or is cancelled and is not fetched again for the same URL; a failed image is retried; another URL drops the old image.
 - `UserProfileSourceTests`: `R56b` is fetched once through the cookie-less client only (the session mock gets no request) and equals the
   parser's output; a page served at another member's, the home, another host, `http` or another port is `.unreadable`; a topic page
   (`R20`) is `.unreadable`; `offline` maps.
-- `UserProfileModelTests`: one load on repeated appearances, title; a failed load then "Réessayer"; a failed reload keeps the profile;
+- `UserProfileModelTests`: one load on repeated appearances, title; a failed load then "Réessayer"; a failed reload keeps the profile; every finished load bumps `loadGeneration`;
   the MP button exists only with a hook and after load, and hands the pseudo; links open in a browser, `javascript:` does nothing.
 - `TopicReaderModelTests.aProfileLinkOpensTheProfileSheet`: `https` and `http` profile links give `.profile(memberID:)` with either
   browser setting; another host and a non-numeric id stay web links.
