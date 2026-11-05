@@ -21,9 +21,11 @@ non-persistent store, `https` on the provider's hosts only, main frame kept on t
   (`playerURL` nil), where the sheet now explains it. The button deliberately goes straight to the system `openURL`, not through
   the reader's "open links in the default browser" setting: it is an explicit tap on a video, and "open in app" is the system's
   choice (a YouTube link goes to the installed app by universal link, else Safari). No provider-specific scheme is built.
-- **Tests**: `VideoPlayerSheetTests` (player URL and fallback rules); `ReaderWebControllerTests` drives the real web view: with embeds
-  the page holds no `iframe` and its serialized HTML names no provider URL, the transport and image policy saw no provider host, the web view stays on its reader page, and
-  a tap reports exactly `(post, index, token)`.
+- **Tests**: `VideoPlayerSheetTests` (player URL and fallback rules); `ReaderWebControllerTests` drives the real web view. A loopback
+  `ConnectionCounter` stands for the provider (the embed and source URLs of one video point at it, as in `noRemoteRequestLeavesThePage`):
+  before and after the tap it counts no connection from WebKit itself, the page holds no `iframe` and names no provider URL, the web
+  view stays on its reader page, and a tap reports exactly `(post, index, token)`. A positive control loads that server in a plain
+  `WKWebView` and must see a connection, so the zero is not a blind spot.
 
 ## Edge cases
 - Embed whose player URL fails the host check: unavailable view + browser fallback.

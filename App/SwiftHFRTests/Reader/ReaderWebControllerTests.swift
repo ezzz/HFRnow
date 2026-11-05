@@ -40,29 +40,56 @@ struct ReaderWebControllerTests: ReaderWebTesting {
         #expect(controller.webView.url == ReaderWebController.pageURL(token: 1))
     }
 
+    /// A loopback server stands for the provider: the embed and source URLs of one video point at it, so any request WebKit
+    /// itself makes for them (frame, preload, prefetch, link) is a connection it counts. A second video names the real
+    /// providers, for the page text.
     @Test func aVideoPlaceholderRequestsNothingFromTheProviderUntilTapped() async throws {
-        let source = try #require(URL(string: "https://www.youtube.com/watch?v=abc"))
-        let player = try #require(URL(string: "https://www.youtube.com/embed/abc"))
-        let embed = MessageEmbed(provider: .youtube, sourceURL: source, embedURL: player)
+        let server = try ConnectionCounter()
+        defer { server.stop() }
+        try await server.ready()
+        let remote = "http://127.0.0.1:\(server.port)"
+        let local = MessageEmbed(
+            provider: .streamable, sourceURL: try #require(URL(string: "\(remote)/watch")),
+            embedURL: try #require(URL(string: "\(remote)/embed/abc"))
+        )
+        let youtube = MessageEmbed(
+            provider: .youtube, sourceURL: try #require(URL(string: "https://www.youtube.com/watch?v=abc")),
+            embedURL: try #require(URL(string: "https://www.youtube.com/embed/abc"))
+        )
         let transport = imageTransport()
         let (controller, recorder) = makeController(transport: transport)
-        controller.show(document(token: 1, content: "<p>vidéo</p>", embeds: [embed]))
+        let content = "<p>vidéo <a href=\"\(remote)/watch\">lien</a></p>"
+        controller.show(document(token: 1, content: content, embeds: [local, youtube]))
         #expect(await until { recorder.ready == [1] }, "ready: \(recorder.ready)")
         #expect(await settled(controller))
+        try await Task.sleep(for: .seconds(1)) // absence cannot be polled: give a late request time to arrive
         let frames = try await evaluate("return document.querySelectorAll('iframe').length;", in: controller)
         #expect((frames as? NSNumber)?.intValue == 0)
-        let hosts = await transport.requests.compactMap { $0.url.host() } + controller.imageRequests.compactMap { $0.requested.host() }
-        #expect(!hosts.contains { $0.contains("youtube") })
-        // Neither the embed nor the source URL is in the page: nothing could load them, not even a preconnect.
+        #expect(server.connections == 0, "WebKit contacted the provider stand-in before the tap")
         let page = try await evaluate("return document.documentElement.outerHTML;", in: controller) as? String
-        #expect(page?.contains("button") == true && page?.contains("youtube") == false)
+        #expect(page?.contains("button.video") == false && page?.contains("class=\"video\"") == true)
+        #expect(page?.contains("youtube") == false && page?.contains("ytimg") == false && page?.contains("/embed/") == false)
+        let hosts = await transport.requests.compactMap { $0.url.host() } + controller.imageRequests.compactMap { $0.requested.host() }
+        #expect(!hosts.contains { $0.contains("youtube") || $0.contains("ytimg") || $0 == "127.0.0.1" })
         #expect(controller.webView.url == ReaderWebController.pageURL(token: 1))
         #expect(recorder.videos.isEmpty)
 
         _ = try await evaluate("document.querySelector('button.video').click(); return true;", in: controller)
         #expect(await until { recorder.videos == [[7, 0, 1]] }, "videos: \(recorder.videos)")
         // The tap only reports the video: the reader itself still loads no provider page.
+        try await Task.sleep(for: .milliseconds(500))
+        #expect(server.connections == 0)
         #expect(controller.webView.url == ReaderWebController.pageURL(token: 1))
+    }
+
+    /// Positive control: a load WebKit does make reaches the same recorder, so the zero above is not a blind spot.
+    @Test func theProviderStandInRecorderSeesAWebKitLoad() async throws {
+        let server = try ConnectionCounter()
+        defer { server.stop() }
+        try await server.ready()
+        let webView = WKWebView(frame: .zero, configuration: WKWebViewConfiguration())
+        webView.load(URLRequest(url: try #require(URL(string: "http://127.0.0.1:\(server.port)/probe"))))
+        #expect(await until { server.connections >= 1 }, "connections: \(server.connections)")
     }
 
     @Test func theStylesheetLoadsAndASpoilerOpensOnTap() async throws {
