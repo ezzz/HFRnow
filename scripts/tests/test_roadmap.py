@@ -179,6 +179,12 @@ class Hygiene(unittest.TestCase):
         self.assertEqual(actions, [])  # 2 waits on capture #60, 3 on open #2, 4 is claimed, 5 is a gate sentence
         self.assertTrue(any("gate sentence" in r and "#5" in r for r in reports))
 
+    def test_blocked_lot_with_every_dependency_done_but_a_capture_open_is_reported(self):
+        issues = [issue(1, "closed"), issue(2, labels=["status: blocked"]), issue(60, labels=["host: mac"], body="### Wanted by\n\n#2\n")]
+        actions, reports = self.run_sweep(issues, [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z")])
+        self.assertEqual(actions, [])  # the capture still gates it, so nothing is unblocked
+        self.assertTrue(any("gated only by an open capture" in r and "LOT-002 #2" in r and "#60" in r for r in reports))
+
     def test_unblock_without_a_known_pr_is_only_reported(self):
         issues = [issue(1, "closed"), issue(2, labels=["status: blocked"])]
         actions, reports = self.run_sweep(issues, [])
