@@ -125,7 +125,7 @@ final class FilteredPostsModel {
             switch outcome {
             case .success(let batch):
                 guard let batch else { return }
-                if batch.posts.isEmpty {
+                if batch.count == 0 {
                     statusMessage = "Aucun post n'a été trouvé"
                 } else {
                     result = batch
@@ -151,7 +151,7 @@ final class FilteredPostsModel {
             switch outcome {
             case .success(let batch):
                 guard let batch else { return }
-                if batch.posts.isEmpty {
+                if batch.count == 0 {
                     result = shown.markingFinished()
                     statusMessage = "Aucun autre post trouvé"
                 } else {
@@ -229,7 +229,7 @@ final class FilteredPostsModel {
     }
 
     /// The batch as a reader page: every kept message normalized like the reader's (ADR 0006), in page order.
-    @concurrent static func result(
+    nonisolated @concurrent static func result(
         of batch: FilteredPostsBatch, topic: TopicID, title: String, normalizer: any MessageContentNormalizing
     ) async throws(FilteredPostsError) -> FilteredPostsResult {
         let base = HFRURL.base
@@ -238,7 +238,7 @@ final class FilteredPostsModel {
         for post in batch.posts {
             let block = post.block
             let content: MessageContent
-            do {
+            do throws(ParsingError) {
                 content = try normalizer.normalize(contentHTML: block.contentHTML, pageURL: base)
             } catch {
                 throw .page(error)

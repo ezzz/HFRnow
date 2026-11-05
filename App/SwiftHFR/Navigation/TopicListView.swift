@@ -47,7 +47,7 @@ struct TopicListView: View {
                         Button { filtering.start(opening: topic) } label: {
                             Label("Filtrer les posts", systemImage: "line.3.horizontal.decrease.circle")
                         }
-                        .disabled(filtering.isRunning)
+                        .disabled(filtering.isBusy)
                     }
                 }
         }
