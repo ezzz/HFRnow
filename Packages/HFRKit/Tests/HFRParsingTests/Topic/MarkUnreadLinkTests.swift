@@ -3,8 +3,7 @@ import Testing
 @testable import HFRParsing
 
 /// LOT-058: the "mark as unread" link of a private conversation, read from the page header (`RA1`-`RA4` for the owner,
-/// `RU1`-`RU2` for the recipient), never from
-/// a message or another origin.
+/// `RU1`-`RU2` for the recipient), never from a message or another origin.
 @Suite("Mark-unread link")
 struct MarkUnreadLinkTests {
     private static let expected = "https://forum.hardware.fr/user/nonlu.php?config=hfr.inc&cat=prive&subcat=0&post=3207033"
@@ -40,5 +39,9 @@ struct MarkUnreadLinkTests {
         #expect(try Self.link(in: "<span href=\"\(path)\" class=\"cHeader\">x</span>") == nil)
         let link = try #require(try Self.link(in: "<a href=\"\(path)\" class=\"cHeader\">x</a>"))
         #expect(link.absoluteString == "https://forum.hardware.fr/user/nonlu.php?config=hfr.inc&cat=prive&post=3207033")
+        // `cHeader` is a class token: HFR also writes it beside another class (`cBackHeader cHeader`, `P03c`).
+        let multiClass = try #require(try Self.link(in: "<a href=\"\(path)\" class=\"cBackHeader cHeader\">x</a>"))
+        #expect(multiClass.absoluteString == link.absoluteString)
+        #expect(try Self.link(in: "<a href=\"\(path)\" class=\"cHeaderX\">x</a>") == nil)
     }
 }
