@@ -223,11 +223,12 @@ final class TopicReaderModel {
 
     /// Stops the load in flight; the content stays.
     func cancel() {
+        let interrupted = task != nil
         task?.cancel()
         task = nil
         generation += 1
         isLoading = false
-        applyDisplaySettings() // a setting changed during the load that never delivered
+        if interrupted { applyDisplaySettings() } // a setting changed during the load that never delivered
     }
 
     /// The web view reports a document as ready; an older document's report is ignored.

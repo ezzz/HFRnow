@@ -69,7 +69,7 @@ struct ReaderDisplaySettingsTests {
         let model = reader(store, pages)
         await model.onAppear()
         let gate = ReaderGate()
-        pages.handler = { _ in await gate.wait(); throw .cancelled }
+        pages.handler = { (_) async throws(ListLoadError) -> ReaderPage in await gate.wait(); throw .cancelled }
         let load = Task { await model.refresh() }
         await gate.untilArrived()
         store.set(ThemeStyle.classic, for: SettingKey.themeStyle)
