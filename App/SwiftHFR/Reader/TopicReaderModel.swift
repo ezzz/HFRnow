@@ -77,6 +77,10 @@ final class TopicReaderModel {
     /// The target of the page on screen (topic and page as served), what a refresh reloads.
     private(set) var shown: ReaderTarget?
 
+    /// The poll sheet's model, kept here (not in a view) so it outlives the view: a vote in flight or possibly counted is
+    /// never offered again from a fresh form when the topic is reopened (LOT-136).
+    private var heldPoll: PollModel?
+
     private let source: any TopicPageSource
     private let renderOptions: @Sendable () -> ReaderRenderOptions
     private var generation = 0
@@ -205,6 +209,20 @@ final class TopicReaderModel {
         }
     }
 
+    /// The model of the page's poll for the sheet; nil when the page has none. The held model is reused for this account
+    /// while it holds a vote (sending, counted, or possibly counted); otherwise a fresh one starts from the page's poll.
+    /// Re-voting after an unconfirmed vote needs leaving the topic reader.
+    func pollModel(voter: (any PollVoting)?, account: String?) -> PollModel? {
+        guard let poll = page?.poll else { return nil }
+        if let held = heldPoll, held.account == account, held.holdsVote {
+            held.pageDidReload(poll)
+            return held
+        }
+        let fresh = PollModel(poll: poll, voter: voter, account: account, reload: { [weak self] in await self?.refresh() })
+        heldPoll = fresh
+        return fresh
+    }
+
     /// Hides the reply confirmation.
     func clearReplyConfirmation() {
         replyConfirmation = nil
@@ -320,6 +338,7 @@ final class TopicReaderModel {
             // HFR may serve another page than the one asked (past the end): the target follows the page served.
             shown = ReaderTarget(source: source).atPage(loaded.currentPage)
             page = loaded
+            heldPoll?.pageDidReload(loaded.poll)
             error = nil
             nextToken += 1
             let anchor: Int? = switch rule {

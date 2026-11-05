@@ -29,11 +29,11 @@ GAP-059 (port, ezzz Swift layer).
 - Vote = `PollVoting.vote` = engine `PollVoteFlow.vote(_:in:session:)` in the current account's session (`LivePollVoter`, from `ComposerServices.pollVoter`; nil logged out: answers shown, no button, "Connectez-vous pour voter.").
 - Outcomes: `PollVoteResult` → "voted" with HFR's sentence, topic reloaded. `unconfirmed`, `alreadyVoted` → "settled", topic reloaded, no new vote. Everything else (`network`, `sessionNotConfirmed`, `loginChanged`, `missingToken`, `rejected`, `notLoggedIn`, `unsupportedPoll`, `invalidChoice`) → "failed", sheet stays, another try allowed; HFR's own sentence is shown for `rejected`.
 - The reload is the reader's `refresh()` of the page on screen, not HFR's refresh URL (`PollVoteResult.refreshURL`, page 1 in `W42`; whether it echoes another form page is pending capture, LOT-054 spec).
-- The sheet follows `model.page.poll` (`PollModel.pageDidReload`): after the reload it shows the results. The sheet cannot be closed while sending; a reopened sheet reuses the model while it holds a vote (`sending`, `voted`, `settled`), so a possibly-counted vote is never offered from a fresh form.
+- The held model follows every loaded page's poll (`TopicReaderModel` → `PollModel.pageDidReload`): after the reload it shows the results. The sheet cannot be closed while sending; a reopened sheet reuses the held model while it holds a vote (`sending`, `voted`, `settled`), so a possibly-counted vote is never offered from a fresh form.
 - Cost: when the page has a poll, `PollParser` parses the page a second time (whether HFR prints the poll beyond page 1 is not asserted, so no page-1 shortcut); polls are rare, measured: not.
 
 ## Edge cases
-Poll absent on later pages (the poll is read from each page; whether HFR prints it beyond page 1 is not asserted); poll on a page that fails to parse it; logged out; closed poll; poll voted with a linked pseudo (`R33b` notice); double tap on "Voter" (`sending` blocks it); a result arriving after the sheet closed (the model is dropped with the sheet; the reload still ran).
+Poll absent on later pages (the poll is read from each page; whether HFR prints it beyond page 1 is not asserted); poll on a page that fails to parse it; logged out; closed poll; poll voted with a linked pseudo (`R33b` notice); double tap on "Voter" (`sending` blocks it); a vote in flight (the sheet cannot be closed), a sheet reopened or a topic reselected after a vote that may have been counted (the model is held by `TopicReaderModel.pollModel`, keyed on the account: it is reused while it holds a vote, so no fresh form is offered; re-voting after an unconfirmed vote needs leaving the topic reader), another account (fresh model).
 
 ## Pending capture
 - Multi-choice polls (#111): not offered; the sheet says to vote on the site. The engine refuses them (`unsupportedPoll`).
@@ -44,7 +44,7 @@ Poll absent on later pages (the poll is read from each page; whether HFR prints 
 Reused: `R32b` (voting form, logged in), `R33a` (closed), `R20` (no poll), read in `LiveTopicPageSourceTests`. Vote answers are engine fixtures (`W42`, `W43`, `W44`).
 
 ## Tests
-`App/SwiftHFRTests/Polls/PollModelTests.swift` (every `PollVoteError` case (and the session-health variants), reload counts; reopen keeps a vote in flight or possibly counted (`holdsVote`, kept by `ReaderPollFlow`), one send, reload counts, no account, results/multi-choice), `LiveTopicPageSourceTests` (poll reaches `ReaderPage`; none on `R20`).
+`App/SwiftHFRTests/Polls/PollModelTests.swift` (every `PollVoteError` case (and the session-health variants), reload counts; reopen keeps a vote in flight or possibly counted (`holdsVote`, `TopicReaderModel.pollModel`), one send, reload counts, no account, results/multi-choice), `LiveTopicPageSourceTests` (poll reaches `ReaderPage`; none on `R20`).
 
 ## Intentional differences from legacy
 Success only on HFR's confirmation and a body that is the captured one (LOT-054); no multi-choice checkboxes (legacy offered up to `maxChoices`, never captured).

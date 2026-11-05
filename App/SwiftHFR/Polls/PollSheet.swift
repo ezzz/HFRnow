@@ -10,35 +10,19 @@ struct ReaderPollFlow: ViewModifier {
     /// The current account's services; its voter is nil when logged out, which shows the poll without a vote button.
     let composer: ComposerServices?
     @State private var sheet: PollModel?
-    /// The latest model, kept after the sheet closes so a vote in flight or possibly counted is not offered again.
-    @State private var latest: PollModel?
 
     func body(content: Content) -> some View {
         content
             .toolbar {
-                if let poll = model.page?.poll {
+                if model.page?.poll != nil {
                     ToolbarItem(placement: .primaryAction) {
-                        Button { open(poll) } label: { Label("Sondage", systemImage: "chart.bar.doc.horizontal") }
+                        Button { sheet = model.pollModel(voter: composer?.pollVoter, account: composer?.account) } label: {
+                            Label("Sondage", systemImage: "chart.bar.doc.horizontal")
+                        }
                     }
                 }
             }
             .sheet(item: $sheet) { poll in PollSheet(model: poll) }
-            .onChange(of: model.page?.poll) { _, reloaded in
-                // The reloaded page after a vote carries the results.
-                latest?.pageDidReload(reloaded)
-            }
-    }
-
-    private func open(_ poll: Poll) {
-        if let latest, latest.holdsVote {
-            latest.pageDidReload(poll)
-            sheet = latest
-            return
-        }
-        let reader = model
-        let fresh = PollModel(poll: poll, voter: composer?.pollVoter, reload: { await reader.refresh() })
-        latest = fresh
-        sheet = fresh
     }
 }
 

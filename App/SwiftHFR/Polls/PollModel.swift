@@ -32,14 +32,17 @@ final class PollModel: Identifiable {
     /// What to tell the user about the outcome; nil before any.
     private(set) var message: String?
 
+    /// The account the model votes as (`ComposerServices.account`); nil without one.
+    let account: String?
     private let voter: (any PollVoting)?
     /// Reloads the topic page, which shows the poll's results; called after a vote that may have been counted.
     private let reload: @MainActor () async -> Void
 
     /// A model for `poll`; `voter` is nil when no account is current. `reload` refreshes the page the poll came from.
-    init(poll: Poll, voter: (any PollVoting)?, reload: @escaping @MainActor () async -> Void) {
+    init(poll: Poll, voter: (any PollVoting)?, account: String? = nil, reload: @escaping @MainActor () async -> Void) {
         self.poll = poll
         self.voter = voter
+        self.account = account
         self.reload = reload
     }
 

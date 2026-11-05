@@ -2,7 +2,8 @@ import Foundation
 import HFRModels
 
 /// One topic page as the reader shows it: page facts (LOT-033), message blocks (LOT-030) and their normalized content
-/// (LOT-034). Holds no form field or token: the only write entry is the answer link, which the composer fetches (LOT-084).
+/// (LOT-034). Holds no reply form field or token: the only reply entry is the answer link, which the composer fetches (LOT-084).
+/// The poll's voting form (LOT-136) carries its hidden fields, `hash_check` included; only `PollVoteFlow` reads them.
 struct ReaderPage: Equatable, Sendable {
     /// Category and topic numbers, read from the page; nil when the page does not give them.
     var topicID: TopicID?

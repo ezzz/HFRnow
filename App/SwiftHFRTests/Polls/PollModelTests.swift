@@ -162,4 +162,58 @@ struct PollModelTests {
         await failed.vote()
         #expect(!failed.holdsVote)
     }
+
+    @Test func aVoteInFlightIsHeldAndANewVoteIsRefused() async {
+        let gate = ReaderGate()
+        let voter = GatedVoter(gate: gate, result: Self.confirmation)
+        let model = PollModel(poll: Self.votable, voter: voter, reload: {})
+        model.toggle(1)
+        let sending = Task { await model.vote() }
+        await gate.untilArrived()
+        #expect(model.phase == .sending)
+        #expect(model.holdsVote)
+        #expect(!model.canVote)
+        await gate.open()
+        await sending.value
+        #expect(model.phase == .voted)
+        #expect(model.holdsVote)
+    }
+
+    @Test func theReaderKeepsTheVoteModelForTheSameAccountOnly() async {
+        let pages = FakeTopicPages { target in
+            var page = readerPage(page: target.page)
+            page.poll = Self.votable
+            return page
+        }
+        let reader = TopicReaderModel(target: ReaderTarget(source: .topic(readerTopic)), source: pages)
+        await reader.onAppear()
+        let voter = ScriptedVoter(.failure(.unconfirmed(.unrecognizedAnswer(message: nil))))
+        let first = try? #require(reader.pollModel(voter: voter, account: "user1"))
+        first?.toggle(1)
+        await first?.vote()
+        #expect(reader.pollModel(voter: voter, account: "user1") === first)
+        #expect(reader.pollModel(voter: voter, account: "user2") !== first)
+    }
+
+    @Test func aPageWithoutPollHasNoPollModel() async {
+        let reader = TopicReaderModel(target: ReaderTarget(source: .topic(readerTopic)), source: FakeTopicPages())
+        await reader.onAppear()
+        #expect(reader.pollModel(voter: nil, account: nil) == nil)
+    }
+}
+
+/// A voter that holds its answer until the gate opens.
+private final class GatedVoter: PollVoting, @unchecked Sendable {
+    let gate: ReaderGate
+    let result: PollVoteResult
+
+    init(gate: ReaderGate, result: PollVoteResult) {
+        self.gate = gate
+        self.result = result
+    }
+
+    func vote(_ choice: Int, in poll: Poll) async throws(PollVoteError) -> PollVoteResult {
+        await gate.wait()
+        return result
+    }
 }

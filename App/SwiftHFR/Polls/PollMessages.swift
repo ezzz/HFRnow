@@ -31,7 +31,7 @@ enum PollMessages {
             message ?? "Le forum a refusé le vote : rien n’a été compté. Actualisez le sujet puis réessayez."
         case .unconfirmed:
             "Le forum n’a pas confirmé le vote : il a peut-être été compté. "
-                + "Le sujet est actualisé : regardez le sondage avant de voter à nouveau."
+                + "Actualisez le sujet pour voir le sondage ; ne votez pas à nouveau avant de l’avoir vu."
         case .network(let error):
             network(error)
         }
