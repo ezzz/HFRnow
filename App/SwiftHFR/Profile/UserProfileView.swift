@@ -44,7 +44,9 @@ struct UserProfileView: View {
                     }
                 }
                 if !profile.personalSmilies.isEmpty {
-                    ProfileSmileysSection(smileys: profile.personalSmilies, fetcher: services.imageFetcher, generation: model.loadGeneration)
+                    ProfileSmileysSection(
+                        smileys: profile.personalSmilies, fetcher: services.imageFetcher, generation: model.loadGeneration
+                    )
                 }
                 if !profile.actions.isEmpty {
                     Section("Liens") {
@@ -84,7 +86,9 @@ private struct ProfileHeaderSection: View {
     var body: some View {
         Section {
             HStack(spacing: 16) {
-                ProfileImage(url: profile.avatarURL, fetcher: fetcher, placeholder: "person.crop.circle.fill", generation: model.loadGeneration)
+                ProfileImage(
+                    url: profile.avatarURL, fetcher: fetcher, placeholder: "person.crop.circle.fill", generation: model.loadGeneration
+                )
                     .frame(width: 98, height: 70)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .accessibilityHidden(true)
@@ -166,7 +170,8 @@ private struct ProfileSmileysSection: View {
                             .frame(height: 42)
                             .accessibilityHidden(true)
                         Text(verbatim: smiley.code)
-                            .scaledFont(.caption2).monospaced().multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
+                            .scaledFont(.caption2).monospaced().multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)

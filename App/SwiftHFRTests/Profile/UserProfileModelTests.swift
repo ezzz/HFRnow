@@ -60,7 +60,8 @@ struct UserProfileModelTests {
     /// Every finished load, failed or not, bumps the generation the images key their task on: a reload retries a failed image.
     @Test func everyFinishedLoadBumpsTheImageGeneration() async throws {
         let profile = try Self.captured("R56a-profile-operator-anon.html")
-        let model = UserProfileModel(memberID: 910_001, source: FakeUserProfiles([.success(profile), .failure(.offline), .success(profile)]))
+        let source = FakeUserProfiles([.success(profile), .failure(.offline), .success(profile)])
+        let model = UserProfileModel(memberID: 910_001, source: source)
         #expect(model.loadGeneration == 0)
         await model.onAppear()
         #expect(model.loadGeneration == 1)
