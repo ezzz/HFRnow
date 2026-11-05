@@ -74,6 +74,8 @@ struct ReaderImageViewerBridgeTests: ReaderWebTesting {
         let requests = await transport.requests
         #expect(requests.map { $0.headers["Referer"] } == ["https://forum.hardware.fr", nil, nil])
         #expect(requests.allSatisfy { $0.redirectPolicy == .doNotFollow })
+        let names = requests.flatMap { $0.headers.fields.keys }.map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
+        #expect(!names.contains("cookie"))
     }
 
     @Test func aRefererNeverTravelsToTheNextHost() async throws {
@@ -87,5 +89,42 @@ struct ReaderImageViewerBridgeTests: ReaderWebTesting {
         _ = try await fetcher.image(at: URL(string: "https://reho.st/self/a.jpg")!, allowsThirdParty: true, hostTable: .standard)
         let requests = await transport.requests
         #expect(requests.map { $0.headers["Referer"] } == ["https://forum.hardware.fr", nil])
+    }
+
+    /// `reader.js` in a real web view: which pictures a tap lists, and which taps open nothing.
+    @Test func aTapInThePageListsTheLoadedPicturesAndSkipsSmileysAndClosedSpoilers() async throws {
+        let content = """
+            <p><img class="hfrplusimg" src="https://forum-images.hardware.fr/images/a.png" alt="a"></p>
+            <p><img src="https://forum-images.hardware.fr/icones/smile.gif" alt=":)"></p>
+            <p><img class="hfrplusimg" src="https://forum-images.hardware.fr/images/b.png" alt="b"></p>
+            <table class="spoiler"><tr><td><b class="s1Topic">Spoiler :</b><br><div class="Topic masque">
+            <img class="hfrplusimg" src="https://forum-images.hardware.fr/images/hidden.png" alt="h"></div></td></tr></table>
+            """
+        let (controller, recorder) = makeController(transport: imageTransport())
+        var opened: [OpenedViewer] = []
+        controller.events.image = { opened.append(OpenedViewer(images: $0, index: $1, token: $2)) }
+        controller.show(document(token: 1, content: content))
+        #expect(await until { recorder.ready == [1] })
+        #expect(await settled(controller))
+
+        let pictures = "document.querySelectorAll('img.hfrplusimg')"
+        // The original address is kept for the viewer, the attribute holds the proxied one.
+        let kept = try await evaluate("return Array.from(\(pictures)).map(i => i.dataset.viewerSrc);", in: controller) as? [String]
+        #expect(kept == [
+            "https://forum-images.hardware.fr/images/a.png", "https://forum-images.hardware.fr/images/b.png",
+            "https://forum-images.hardware.fr/images/hidden.png"
+        ])
+        _ = try await evaluate("\(pictures)[1].click(); return true;", in: controller)
+        #expect(await until { opened.count == 1 })
+        #expect(opened.first?.images.map(\.shown.lastPathComponent) == ["a.png", "b.png"])
+        #expect(opened.first?.index == 1)
+
+        _ = try await evaluate("document.querySelector('img:not(.hfrplusimg):not(.avatar)').click(); return true;", in: controller)
+        _ = try await evaluate("document.querySelector('img.avatar')?.click(); return true;", in: controller)
+        // A later tap that must be heard proves the earlier ones were not queued behind it.
+        _ = try await evaluate("document.querySelector('table.spoiler td').click(); \(pictures)[2].click(); return true;", in: controller)
+        #expect(await until { opened.count == 2 })
+        #expect(opened.last?.images.map(\.shown.lastPathComponent) == ["a.png", "b.png", "hidden.png"])
+        #expect(opened.last?.index == 2)
     }
 }

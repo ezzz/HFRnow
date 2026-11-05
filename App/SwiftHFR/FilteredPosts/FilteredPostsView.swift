@@ -122,7 +122,11 @@ struct FilteredPostsView: View {
         .onAppear(perform: makeController)
         // Only a new page of posts reloads the document: marking the topic finished keeps the scroll position.
         .onChange(of: model.result?.page, initial: true) { _, _ in show(model.result) }
-        .onDisappear { controller?.stopLoading() }
+        .onDisappear {
+            // The viewer covers this screen: the page stays as it is, or its pending pictures would turn into links.
+            guard viewer == nil else { return }
+            controller?.stopLoading()
+        }
     }
 
     private func show(_ result: FilteredPostsResult?) {

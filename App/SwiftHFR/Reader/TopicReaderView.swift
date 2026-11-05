@@ -109,7 +109,8 @@ struct TopicReaderView: View {
         }
         .onDisappear {
             // Covered by the reader of a followed link: this page stays as it is, for the way back.
-            guard model.linkedReader == nil else { return }
+            // Same for the image viewer (a full-screen cover calls it): stopping would turn the pending pictures into links.
+            guard model.linkedReader == nil, viewer == nil else { return }
             model.cancel()
             controller?.stopLoading()
         }

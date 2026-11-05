@@ -24,15 +24,18 @@ Repository <https://github.com/ezzz/HFRnow> at `2440d79`.
 ## Intentional differences from legacy
 1. Swipe between the pictures of the page (legacy: one picture).
 2. Downloads go through the cookie-less client with redirect-by-redirect policy (legacy: `URLSession.shared`, default cookies and redirects).
-3. A visible **Fermer** button and no drag-to-dismiss of our own (the legacy toggled the button on tap and dismissed by dragging).
+3. A visible **Fermer** button, always shown, and no drag-to-dismiss (a full-screen cover has none; the legacy toggled the button on tap and dismissed by dragging).
 4. Share (bytes) added; "Enregistrer dans Photos" in French.
 5. Animated images are still in this lot (pending Mac check).
 
 ## Scope note
 `docs/LOTS.md` listed the swipe gallery as LOT-176 (M5); issue #200 (the single description of this lot) includes it, so it is here. LOT-176 (#416) is to be closed or reduced by the orchestrator.
 
+## Decoding
+The viewer decodes in the app, not in WebKit's process: `ViewerImageCheck` refuses bytes that are not an image or that claim more than 100 million pixels, and the bitmap is sampled to 4096 px on its longest side.
+
 ## Tests (`App/SwiftHFRTests/Reader/`)
-`ImageGalleryTests`, `ImageViewerModelTests`, `ReaderImageViewerBridgeTests` (decoder, controller filtering by consent, `Referer` per host and per hop).
+`ImageViewerCheckTests`, a real-`WKWebView` test of the `reader.js` tap, `ImageGalleryTests`, `ImageViewerModelTests`, `ReaderImageViewerBridgeTests` (decoder, controller filtering by consent, `Referer` per host and per hop).
 
 ## Pending capture / Mac check
 #134 (see FEAT-014); device look and behaviour: see the PR's "Mac check needed".

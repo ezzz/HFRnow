@@ -1,9 +1,10 @@
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 
 // Port of HFRswift/Swift/MessagesView.swift (`FullScreenPhotoViewer` `:5643`, `ZoomableRemoteAnimatedImageView` `:5790`) and
 // Classes/SimplePhotoViewController.m @ 2440d79. Differences: GAP-057 / FEAT-014: swipe between the page's images, a visible close
-// button (reachable on iPad), share, save and copy link in one menu; no drag-to-dismiss, the sheet's own gesture does it.
+// button (reachable on iPad), share, save and copy link in one menu; no drag-to-dismiss (a full-screen cover has none): Fermer closes.
 /// The full-screen image viewer: a pager of zoomable images over black, with a toolbar for close, share, save and copy link.
 struct ImageViewerView: View {
     @Bindable var model: ImageViewerModel
@@ -54,7 +55,7 @@ struct ImageViewerView: View {
             if let image = model.currentImage {
                 // The downloaded bytes, never the address: the system would fetch an address itself (previews, redirects)
                 // outside policy C.
-                ShareLink(item: SharedImage(data: image.data), preview: SharePreview("Image")) {
+                ShareLink(item: SharedImage(image), preview: SharePreview("Image")) {
                     Label("Partager", systemImage: "square.and.arrow.up")
                 }
                 Button { Task { await model.saveToPhotos() } } label: {
@@ -84,11 +85,22 @@ struct ImageViewerView: View {
     }
 }
 
-/// The image bytes handed to the share sheet.
+/// The image bytes handed to the share sheet, under their concrete type (an abstract `public.image` is refused by some targets).
 private struct SharedImage: Transferable {
     let data: Data
+    let type: UTType
+
+    init(_ image: ViewerImage) {
+        data = image.data
+        type = UTType(mimeType: image.mimeType) ?? .image
+    }
 
     static var transferRepresentation: some TransferRepresentation {
+        DataRepresentation(exportedContentType: .png) { $0.data }.exportingCondition { $0.type.conforms(to: .png) }
+        DataRepresentation(exportedContentType: .jpeg) { $0.data }.exportingCondition { $0.type.conforms(to: .jpeg) }
+        DataRepresentation(exportedContentType: .gif) { $0.data }.exportingCondition { $0.type.conforms(to: .gif) }
+        DataRepresentation(exportedContentType: .webP) { $0.data }.exportingCondition { $0.type.conforms(to: .webP) }
+        DataRepresentation(exportedContentType: .heic) { $0.data }.exportingCondition { $0.type.conforms(to: .heic) }
         DataRepresentation(exportedContentType: .image) { $0.data }
     }
 }
@@ -130,9 +142,9 @@ private final class ZoomScrollView: UIScrollView, UIScrollViewDelegate {
     @available(*, unavailable) required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
 
     func show(_ data: Data) {
-        guard data != shownData else { return }
+        guard data.count != shownData?.count || data != shownData else { return }
         shownData = data
-        imageView.image = UIImage(data: data)
+        imageView.image = ViewerImageCheck.displayImage(data)
         zoomScale = 1
         laidOutSize = .zero
         setNeedsLayout()
@@ -146,8 +158,12 @@ private final class ZoomScrollView: UIScrollView, UIScrollViewDelegate {
             zoomScale = 1
             imageView.frame = CGRect(origin: .zero, size: fittedSize())
             contentSize = imageView.frame.size
+            centre()
+            // At zoom 1 the only valid offset is the one that shows the insets: without it a wide picture sits at the top.
+            contentOffset = CGPoint(x: -contentInset.left, y: -contentInset.top)
+        } else {
+            centre()
         }
-        centre()
     }
 
     func viewForZooming(in scrollView: UIScrollView) -> UIView? { imageView }

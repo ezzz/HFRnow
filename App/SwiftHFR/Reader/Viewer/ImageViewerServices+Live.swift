@@ -10,20 +10,48 @@ extension ImageViewerServices {
         ImageViewerServices(
             load: { url, allowsThirdParty in
                 let result = try await fetcher.image(at: url, allowsThirdParty: allowsThirdParty, hostTable: .standard)
+                // Decoded in the app, not in WebKit's process: refuse what cannot be shown or would blow the memory.
+                guard ViewerImageCheck.isShowable(result.data) else { throw ImageSaveError.invalidImage }
                 return ViewerImage(data: result.data, mimeType: result.mimeType)
             },
             save: { image async throws(ImageSaveError) in try await PhotoLibrarySaver.save(image.data) },
-            copy: { UIPasteboard.general.url = $0 }
+            copy: { UIPasteboard.general.string = $0.absoluteString }
         )
+    }
+}
+
+/// What the viewer accepts to decode: bytes that name an image type, hold an image and stay under a pixel budget.
+enum ViewerImageCheck {
+    /// Most pixels an image may hold: a few megabytes of PNG can claim billions.
+    static let maximumPixels = 100_000_000
+    /// Longest side of the bitmap the viewer builds: the source is sampled down to it, never decoded at full size.
+    static let displayMaximumSide = 4096
+
+    /// True when `data` is a decodable image within the pixel budget.
+    static func isShowable(_ data: Data) -> Bool {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil), CGImageSourceGetType(source) != nil,
+              CGImageSourceGetCount(source) > 0,
+              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+              let width = properties[kCGImagePropertyPixelWidth] as? Int, let height = properties[kCGImagePropertyPixelHeight] as? Int,
+              width > 0, height > 0 else { return false }
+        return width <= maximumPixels / height
+    }
+
+    /// The image sampled down to `displayMaximumSide`, never decoded at full size.
+    static func displayImage(_ data: Data) -> UIImage? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true, kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: displayMaximumSide
+        ]
+        return CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary).map { UIImage(cgImage: $0) }
     }
 }
 
 /// Writes image bytes to the photo library, asking for add-only access the first time (legacy `MessagesView.swift:2430-2490`).
 enum PhotoLibrarySaver {
     static func save(_ data: Data) async throws(ImageSaveError) {
-        // A source exists for almost any bytes: it must name an image type and hold at least one image (an SVG does not).
-        guard let source = CGImageSourceCreateWithData(data as CFData, nil), CGImageSourceGetType(source) != nil,
-              CGImageSourceGetCount(source) > 0 else { throw .invalidImage }
+        guard ViewerImageCheck.isShowable(data) else { throw .invalidImage }
         var status = PHPhotoLibrary.authorizationStatus(for: .addOnly)
         if status == .notDetermined { status = await PHPhotoLibrary.requestAuthorization(for: .addOnly) }
         guard status == .authorized || status == .limited else { throw .permissionDenied }

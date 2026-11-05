@@ -97,6 +97,8 @@ final class ImageViewerModel: Identifiable {
             tasks.removeValue(forKey: position)?.cancel()
             states[position] = .idle
         }
+        // The selected image asks again when an earlier attempt failed (a neighbour that failed on a network drop).
+        if states.indices.contains(index), states[index] == .failed { start(index) }
         for position in [index, index + 1, index - 1] where images.indices.contains(position) && states[position] == .idle {
             start(position)
         }
@@ -137,12 +139,12 @@ final class ImageViewerModel: Identifiable {
         do throws(ImageSaveError) {
             try await services.save(image)
             feedback = "Photo enregistrée"
-        } catch .permissionDenied {
-            feedback = "Autorise l'accès aux Photos pour enregistrer l'image."
-        } catch .invalidImage {
-            feedback = "Impossible d'enregistrer cette image."
-        } catch .system {
-            feedback = "L'enregistrement dans Photos a échoué."
+        } catch {
+            switch error {
+            case .permissionDenied: feedback = "Autorise l'accès aux Photos pour enregistrer l'image."
+            case .invalidImage: feedback = "Impossible d'enregistrer cette image."
+            case .system: feedback = "L'enregistrement dans Photos a échoué."
+            }
         }
     }
 
