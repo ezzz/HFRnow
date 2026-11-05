@@ -26,10 +26,28 @@ enum SettingsDestination: Hashable {
     }
 }
 
+extension ImageDisplayMode {
+    /// Picker label. "Jamais" keeps images behind a tap (the reader's placeholder), it never fetches them by itself.
+    var title: String {
+        switch self {
+        case .always: "Toujours"
+        case .wifiOnly: "Wi-Fi uniquement"
+        case .never: "Jamais (au toucher)"
+        }
+    }
+}
+
 /// The settings screen (LOT-119): the "Général" section and the entry points of the sections other lots fill in.
 struct SettingsView: View {
     /// The app's one settings model: a change here re-renders every screen at once (LOT-169).
     @Environment(GeneralSettingsModel.self) private var general
+    /// The reader display rows of "Sujets" (LOT-106); the open reader follows the store, not this model.
+    @State private var topics: TopicsSettingsModel
+
+    /// Reads the "Sujets" values from `store`.
+    init(store: any SettingsStore = UserDefaultsSettingsStore()) {
+        _topics = State(initialValue: TopicsSettingsModel(store: store))
+    }
 
     var body: some View {
         @Bindable var general = general
@@ -53,6 +71,9 @@ struct SettingsView: View {
                     .accessibilityLabel("Taille du texte")
                     .accessibilityValue("\(general.textSizePercent) %")
                 }
+                Picker("Images externes", selection: $general.imageLoading) {
+                    ForEach(ImageDisplayMode.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
                 Toggle("Rotation d’écran", isOn: $general.allowsRotation)
                 Toggle(isOn: $general.opensLinksInDefaultBrowser) {
                     VStack(alignment: .leading, spacing: 2) {
@@ -66,10 +87,23 @@ struct SettingsView: View {
                     Text(SettingsDestination.icon.title)
                 }
             }
+            Section("Filtrer les posts") {
+                Picker("Minimum de citations", selection: $general.filterMinimumQuotes) {
+                    ForEach(general.filterMinimumQuoteOptions, id: \.self) { Text("\($0)").tag($0) }
+                }
+                Toggle("Inclure les pseudos whitelistés", isOn: $general.filterIncludesAllowlist)
+            }
             Section("Thème") {
                 NavigationLink { SettingsDestinationView(destination: .theme) } label: {
                     Text(SettingsDestination.theme.title)
                 }
+            }
+            Section("Sujets") {
+                Picker("Style des messages", selection: $topics.messageStyle) {
+                    ForEach(ThemeStyle.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
+                Toggle("Afficher les signatures", isOn: $topics.showsSignatures)
+                Toggle("Swipe changement de page", isOn: $topics.swipesPages)
             }
         }
         // Legacy settings spacing in compact mode (`AppSettingsView.swift:597` at 21173e77).
@@ -85,15 +119,21 @@ struct SettingsDestinationView: View {
     let destination: SettingsDestination
 
     var body: some View {
-        ContentUnavailableView(
-            destination.title, systemImage: destination.symbol,
-            description: Text("Ce réglage arrive dans une prochaine version.")
-        )
-        .navigationTitle(destination.title)
+        switch destination {
+        case .theme:
+            ThemeSettingsView()
+        case .icon:
+            ContentUnavailableView(
+                destination.title, systemImage: destination.symbol,
+                description: Text("Ce réglage arrive dans une prochaine version.")
+            )
+            .navigationTitle(destination.title)
+        }
     }
 }
 
 #Preview("Réglages") {
     NavigationStack { SettingsView() }
         .environment(GeneralSettingsModel(store: InMemorySettingsStore()))
+        .environment(ThemeSettingsModel(store: InMemorySettingsStore()))
 }

@@ -13,8 +13,8 @@ public enum PostingAction: String, Sendable, Hashable, CaseIterable {
 
     /// HFR's confirmation for this write, compared with the whole `.hop` sentence (HFR-PROTOCOL §7 E15).
     ///
-    /// Captured on private messages only (`W10`, `W11`, `W15`, `W16a`, `W19`): a public-topic answer with another sentence
-    /// is reported as unconfirmed, never as a success (spec "Pending capture").
+    /// Captured on private messages (`W10`, `W11`, `W15`, `W16a`, `W19`) and public topics (`W30`-`W32`, `W40`, `W41`,
+    /// `W49`): an answer with another sentence is reported as unconfirmed, never as a success.
     var confirmation: String {
         switch self {
         case .reply: "Votre réponse a été postée avec succès !"
