@@ -10,6 +10,12 @@
   --quote-background: #f2f2f7;
   --action: var(--app-action-light, #007aff);
   --placeholder: #e5e5ea;
+  /* Visibility (LOT-117): legacy defaults of the "love" colour, `theme_day_color_love` hsb(0.9, 0.1, 1) and
+     `theme_night_color_love` hsb(0.9, 0.9, 0.3) (Common.swift:438-441 @ 2440d79); the border is the same colour at full
+     saturation and brightness (`MessagesView.swift:2403`); the moderation background is `messageModoBackgroundColor`. */
+  --love: #ffe6f5;
+  --love-border: #ff0099;
+  --modo: #ffeeee;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,6 +28,8 @@
     --quote-background: var(--app-dark-quote-background, #1c1c1e);
     --action: var(--app-action-dark, #0a84ff);
     --placeholder: var(--app-dark-placeholder, #2c2c2e);
+    --love: #4d0831;
+    --modo: #4a2e3c;
   }
 }
 
@@ -93,3 +101,31 @@ button.image-tap, button.video {
    (about 44 pt with the header's line height) and the negative margin gives it back, so the header keeps its height. */
 .message button.menu-author { background: none; border: 0; padding: 0.7em 0.4em; margin: -0.7em -0.4em; color: inherit; font: inherit; font-weight: 600; text-align: start; }
 .message button.menu-button { background: none; border: 0; min-width: 2.2em; padding: 0.5em 0.4em; margin: -0.5em 0; color: var(--secondary); font: inherit; font-size: 1.4em; line-height: 1; }
+
+/* Visibility (LOT-117; legacy style-liste-light.css:314-325, 359-390). Own messages and whitelisted authors are tinted on the
+   content, with a 2 px bar on the left; the quote of me, of a whitelisted author and of a blocklisted one are tinted tables. */
+.message.me .content { background: color-mix(in srgb, var(--action) 3%, transparent); border-left: 2px solid var(--action); padding-left: 0.6em; }
+.message.whitelist .content { background: color-mix(in srgb, var(--love) 40%, transparent); border-left: 2px solid var(--love-border); padding-left: 0.6em; }
+.style-classic .message.whitelist .content { background: var(--love); }
+.message.mode .content { background: var(--modo); }
+table.quote-me { background: color-mix(in srgb, var(--action) 3%, transparent); border-left: 2px solid var(--action); }
+table.quote-allowed { background: color-mix(in srgb, var(--love) 30%, transparent); border-left: 2px solid var(--love-border); }
+table.quote-blocked { background: color-mix(in srgb, var(--text) 5%, transparent); }
+
+/* A blocklisted author's message is a one-line summary until opened (native <details>, no script). */
+.message.blocked { padding: 0; }
+.message.blocked .blocked-post > .header, .message.blocked .blocked-post > .content,
+.message.blocked .blocked-post > .trailer { margin-left: 1em; margin-right: 1em; }
+.blocked-summary { display: flex; align-items: center; gap: 0.5em; padding: 0.5em 1em; color: var(--secondary); font-size: 0.85em; cursor: pointer; }
+.blocked-author { font-weight: 600; }
+.blocked-note { margin-left: auto; }
+.blocked-post[open] > .blocked-summary { border-bottom: 1px solid var(--separator); margin-bottom: 0.5em; }
+
+/* A blocklisted author's quote shows its header line only, until tapped (reader.js toggles .open). The arrow is drawn here, so
+   the header link stays a link once the quote is open. */
+table.quote-blocked { cursor: pointer; }
+table.quote-blocked:not(.open) tr:not(:first-child) { display: none; }
+table.quote-blocked b.s1::after { content: " \25BC"; }
+table.quote-blocked.open b.s1::after { content: " \25B2"; }
+table.quote-blocked.quote-hide-author:not(.open) b.s1 > a { display: none; }
+table.quote-blocked.quote-hide-author:not(.open) b.s1::before { content: "Citation masquée"; }

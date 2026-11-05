@@ -251,7 +251,7 @@ final class FilteredPostsModel {
             messages.append(ReaderMessage(
                 numreponse: block.numreponse, author: block.author, isDeleted: block.isDeleted, isContinuation: false,
                 avatarURL: block.avatarURL, dateText: block.dateText, editNote: block.editNote,
-                quotedByCount: block.quotedByCount, content: content
+                quotedByCount: block.quotedByCount, content: content, quotes: ReaderMessage.quotes(of: content)
             ))
         }
         let page = ReaderPage(

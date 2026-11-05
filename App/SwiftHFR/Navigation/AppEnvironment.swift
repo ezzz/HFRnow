@@ -30,7 +30,10 @@ struct AppEnvironment {
         let pages = LiveTopicPageSource(fetcher: fetcher, session: session, normalizer: LiveContentNormalizer())
         let reader = ReaderServices(
             imageFetcher: ReaderImageFetcher(),
-            settings: .live(store: UserDefaultsSettingsStore(), isOnWiFi: { NetworkMonitor.shared.isOnWiFi })
+            settings: .live(
+                store: UserDefaultsSettingsStore(), isOnWiFi: { NetworkMonitor.shared.isOnWiFi }, pseudo: accountName
+                // The lists stay empty until they reach the app (LOT-118): own and quoted-me highlights work without them.
+            )
         )
         return AppEnvironment(
             session: session, dataSource: source, visibility: ForumVisibility(), currentAccountName: accountName,

@@ -33,6 +33,8 @@ struct ReaderRenderOptions: Equatable, Sendable {
     var showsAuthorMenus = false
     /// Message layout (`theme_style`): the legacy default is modern (`AppSettingsView.swift:98` @ 2440d79 reads 1).
     var style = ThemeStyle.modern
+    /// Who is highlighted, collapsed or allowlisted (LOT-117); nothing by default.
+    var visibility = VisibilityPolicy.none
 }
 
 /// Builds the reader's HTML document from a `ReaderPage` (LOT-083, audit C12).
@@ -60,6 +62,9 @@ enum TopicHTMLBuilder {
 
     /// The full document for `page`. `token` identifies this document so a late event of an older one is ignored.
     static func document(for page: ReaderPage, token: Int, options: ReaderRenderOptions = ReaderRenderOptions()) -> String {
+        var options = options
+        // "Ego" highlights are not applied on private messages (legacy comment, `MessagesTableViewController.m:1401`).
+        if page.topicID?.category == .privateMessages { options.visibility = options.visibility.withoutOwnHighlights() }
         var html = """
         <!DOCTYPE html>
         <html lang="fr" data-token="\(token)">
@@ -92,10 +97,26 @@ enum TopicHTMLBuilder {
         var classes = ["message"]
         if message.isContinuation { classes.append("continuation") }
         if message.isDeleted { classes.append("deleted") }
+        let visibility = options.visibility.post(by: message.author)
+        switch visibility {
+        case .moderation: classes.append("mode")
+        case .own: classes.append("me")
+        case .allowlisted: classes.append("whitelist")
+        case .blocked: classes.append("blocked")
+        case .normal: break
+        }
+        let hidesAuthor = visibility == .blocked && options.visibility.hidesBlockedPseudo
         let anchor = message.isContinuation ? "" : " id=\"t\(message.numreponse)\""
-        let label = message.dateText.isEmpty ? "Message de \(author)" : "Message de \(author), \(date)"
+        var label = message.dateText.isEmpty ? "Message de \(author)" : "Message de \(author), \(date)"
+        if hidesAuthor { label = "Message masqué" }
         var html = "<article class=\"\(classes.joined(separator: " "))\"\(anchor) data-post=\"\(message.numreponse)\""
         html += " aria-label=\"\(label)\">\n"
+        if visibility == .blocked {
+            // A native disclosure: no script is needed to read it, and the message menu (alert included) stays in the body.
+            html += "<details class=\"blocked-post\"><summary class=\"blocked-summary\">"
+            if !hidesAuthor { html += "<span class=\"blocked-author\">\(author)</span>" }
+            html += "<span class=\"blocked-note\">Message masqué</span></summary>\n"
+        }
         html += "<header class=\"header\">"
         if let avatar = message.avatarURL {
             html += "<img class=\"avatar\" src=\"\(HTMLEscaping.text(avatar.absoluteString))\" alt=\"\">"
@@ -117,12 +138,14 @@ enum TopicHTMLBuilder {
         if message.isContinuation { html += "<p class=\"continuation-note\">Reprise du message précédent</p>\n" }
         if message.isDeleted { html += "<p class=\"deleted-note\">Message supprimé</p>\n" }
         // Body markup context only (LOT-034 contract).
-        html += "<div class=\"content\">\(message.content.html)</div>\n"
+        let content = QuoteMarkup.annotate(message.content.html, quotes: message.quotes, policy: options.visibility)
+        html += "<div class=\"content\">\(content)</div>\n"
         html += videos(of: message)
         if options.showsSignatures, let signature = message.content.signatureHTML {
             html += "<div class=\"signature\">\(signature)</div>\n"
         }
         html += trailer(of: message)
+        if visibility == .blocked { html += "</details>\n" }
         html += "</article>\n"
         return html
     }
