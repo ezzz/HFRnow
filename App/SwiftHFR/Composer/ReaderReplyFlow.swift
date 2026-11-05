@@ -1,5 +1,7 @@
 import SwiftUI
 
+// Port of HFRswift/Swift/MessagesView.swift (MessagesView: reply action, composer sheet) and HFRswift/Swift/AnswerView.swift
+// (AnswerView, "Répondre" title) @ 2440d79. Differences: HFR's own confirmation shown above the page.
 /// The reader's reply entry (LOT-084): the "Répondre" button when the page offers an answer form and an account is
 /// current, the composer sheet, and HFR's confirmation above the page once a reply is confirmed.
 struct ReaderReplyFlow: ViewModifier {
@@ -46,7 +48,7 @@ private struct ReplySentBanner: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityHidden(true)
-            Text(text).font(.subheadline)
+            Text(text).scaledFont(.subheadline)
             Spacer()
             Button(action: close) { Image(systemName: "xmark") }
                 .accessibilityLabel("Masquer")

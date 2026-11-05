@@ -90,5 +90,33 @@
     "kind": "profile",
     "path": "../captures/R56b-profile-other-member-anon.html",
     "url": "https://forum.hardware.fr/hfr/profil-910001.htm"
+  },
+  "R70c.html": {
+    "kind": "profile-edit",
+    "path": "../captures/R70c-profile-edit-page1-stale-session.html",
+    "session": {
+      "pseudo": "user2"
+    }
+  },
+  "R70d.html": {
+    "kind": "profile-edit",
+    "path": "../captures/R70d-profile-edit-page5-stale-session.html",
+    "session": {
+      "pseudo": "user2"
+    }
+  },
+  "R71a.html": {
+    "kind": "profile-edit",
+    "path": "../captures/R71a-profile-edit-page5-anon.html",
+    "session": {
+      "pseudo": "user2"
+    }
+  },
+  "R71b.html": {
+    "kind": "profile-edit",
+    "path": "../captures/R71b-profile-edit-page1-anon.html",
+    "session": {
+      "pseudo": "user2"
+    }
   }
 }

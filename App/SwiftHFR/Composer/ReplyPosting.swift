@@ -2,8 +2,11 @@ import Foundation
 import HFRClient
 import HFRModels
 import HFRNetwork
+import HFRParsing
 import HFRStorage
 
+// Port of HFRswift/Swift/ReplyService.swift (ForumReplyPostingService, ReplyComposerContext) @ 2440d79. Differences: posting goes
+// through HFRClient (LOT-048); success only on HFR's own sentence.
 /// The topic a reply goes to, read from the page on screen.
 struct ReplyTarget: Hashable, Sendable {
     /// The reply composer's page (`#repondre_form`'s link, LOT-033): `https` on the forum host.
@@ -16,11 +19,55 @@ struct ReplyTarget: Hashable, Sendable {
     var draftContext: DraftContext { .reply(topic: topic, page: 1) }
 }
 
-/// Sends a reply as the selected account (decision Q-8); `LiveReplyPoster` in the app, a scripted double in tests.
+// Port of HFRswift/Swift/MessagesView.swift:4208-4224 (openPrivateMessageComposer) and Classes/QuoteMessageViewController.m:254-256,
+// 306-330 (the "À :" field filled with the form's `dest`) @ 21173e77. Differences: the recipient stays editable (legacy Swift showed
+// it read-only); drafts are kept (legacy Swift: `composerPersistsDraft = false`).
+/// A new private message (LOT-128): the new-MP composer's link and the recipient it names.
+struct NewMessageTarget: Hashable, Sendable {
+    /// The new-MP composer (`/message.php?…cat=prive…&dest=<pseudo>`, `R45b`; the MP list's `md_btn_new_topic`, `R13a`).
+    let formURL: URL
+    /// The link's `dest` value, empty when it names nobody (the MP list's button, `R13a`). HFR fills the form's `dest`
+    /// with it (`R45b`: `dest=user1` gives `value="user1"`), so the composer starts with it.
+    let recipient: String
+
+    /// The link's target, or nil unless it is an `https` page of the forum (default port) for a private message.
+    init?(link: URL) {
+        guard link.scheme == "https", link.host == HFRURL.forumHost, link.port == nil || link.port == 443,
+              link.user == nil, HFRURL.category(in: link.absoluteString) == .privateMessages else { return nil }
+        formURL = link
+        recipient = HFRURL.queryValue(named: "dest", in: link.absoluteString) ?? ""
+    }
+
+    /// One draft per recipient named by the link and account (LOT-063 `privateMessage`): the subject and the text are
+    /// kept, a recipient typed in the composer is not (a draft has no recipient field).
+    var draftContext: DraftContext { .privateMessage(recipient: recipient) }
+}
+
+/// What a composer writes: a reply in a topic or private thread (LOT-084), or a new private message (LOT-128).
+enum ComposerTarget: Hashable, Sendable {
+    /// A reply through the page's answer link.
+    case reply(ReplyTarget)
+    /// A new private message through the new-MP composer.
+    case newPrivateMessage(NewMessageTarget)
+
+    /// The draft this composer restores and saves.
+    var draftContext: DraftContext {
+        switch self {
+        case .reply(let target): target.draftContext
+        case .newPrivateMessage(let target): target.draftContext
+        }
+    }
+}
+
+/// Sends as the selected account (decision Q-8); `LiveReplyPoster` in the app, a scripted double in tests.
 protocol ReplyPosting: Sendable {
     /// Fetches the composer at `formURL`, then posts `text` through it. Same contract as `PostingFlow`: a result only
     /// when HFR confirmed this reply; `unconfirmed` when it may have been posted.
     func reply(_ text: String, formURL: URL) async throws(PostingError) -> PostingResult
+
+    /// Fetches the new-MP composer at `formURL`, then starts a thread with `recipient`. Same contract as `reply`.
+    func newPrivateMessage(to recipient: String, subject: String, text: String, formURL: URL)
+        async throws(PostingError) -> PostingResult
 }
 
 /// LOT-048's flow in the current account's session: the form is fetched when the user sends, so its `hash_check` is
@@ -38,6 +85,12 @@ struct LiveReplyPoster: ReplyPosting {
     func reply(_ text: String, formURL: URL) async throws(PostingError) -> PostingResult {
         let form = try await flow.loadForm(at: formURL, in: session)
         return try await flow.reply(text, with: form)
+    }
+
+    func newPrivateMessage(to recipient: String, subject: String, text: String, formURL: URL)
+        async throws(PostingError) -> PostingResult {
+        let form = try await flow.loadForm(at: formURL, in: session)
+        return try await flow.newPrivateMessage(to: recipient, subject: subject, text: text, with: form)
     }
 }
 

@@ -120,6 +120,18 @@ None new. The login's pending captures (flood answer, case and encoding of `md_u
 - The avatar comes from the forum image host only, without cookies, with a size limit (legacy downloaded whatever URL the regex found, with `try?`).
 - Account deletion mail (Q-10) is out of scope.
 
+## UX evolutions (H.1)
+Classification of directive H.1 (2026-11-01): the `H.1` column of [GAP-LEGACY-VS-SWIFT.md](../migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1). The decision of each UXD row (2026-11-02) is in [the decisions table](../migration/GAP-LEGACY-VS-SWIFT.md#ux-decisions-of-2026-11-02). The code names its legacy counterparts in `// Port of …` comments (AGENTS.md §4), added by [#378](https://github.com/ezzz/HFRnow/pull/378).
+- GAP-163: the manage screen, where an account is removed instead of through the "Déconnexion" item, is `b`, decided 2026-11-02, **UXD-21** (recommendation: restore "Déconnexion" next to the manage screen).
+- GAP-009 account menu in the Plus and Catégories toolbars only: `b`, decided 2026-11-02, **UXD-03**.
+- GAP-160, 161, 162, 164, 165 (store, login in a fresh session, account switch menu, Keychain envelope, session checks): `a`.
+
+### Decisions of 2026-11-02 (UXD)
+
+Operator decisions on [#379](https://github.com/ezzz/HFRnow/issues/379): every UXD row takes its recommendation. M4 is the validated legacy parity, M5 the evolutions.
+- **UXD-21: A.** Restore "Déconnexion" in the account menu next to the manage screen ([#430](https://github.com/ezzz/HFRnow/issues/430), M2). Account deletion stays the legacy mail composer unless App Review asks (accounts are created on the website): LOT-157 shrinks.
+- **UXD-03: A.** The avatar account menu in every list toolbar ([#425](https://github.com/ezzz/HFRnow/issues/425), M2).
+
 ## Learnings
 
 - `HFRSession` rounds cookie expiries to the second on the way back (LOT-042): compare a jar with what it held before, not with the `StoredCookie`s that seeded it.

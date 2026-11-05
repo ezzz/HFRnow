@@ -1,6 +1,10 @@
 import SwiftUI
 
-/// The reply sheet: a plain text editor, Send and Cancel. Thin: every rule is in `ReplyComposerModel`.
+// Port of HFRswift/Swift/AnswerView.swift (AnswerView, reply mode) @ 2440d79. Differences: no formatting, smiley, GIF or upload panel
+// yet (LOT-085, 102, 104, 155); errors say whether anything was posted instead of the toast (GAP-100); draft per topic (GAP-092, UXD).
+/// The composer sheet: a plain text editor, Send and Cancel; a new private message adds its recipient and subject
+/// (LOT-128, legacy "À :" field, `QuoteMessageViewController.m:306-330` @ 21173e77). Thin: every rule is in
+/// `ReplyComposerModel`.
 ///
 /// The editor is SwiftUI's own `TextEditor` with the system keyboard type, so third-party keyboards work (legacy backlog
 /// HFR-001) and the text is never rewritten under the cursor; the sheet's keyboard safe area keeps the caret visible.
@@ -10,11 +14,15 @@ struct ReplyComposerView: View {
     let onClose: (ReplyComposerModel.CloseReason) -> Void
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
-    @FocusState private var editorFocused: Bool
+    @FocusState private var focused: Field?
     @State private var selection: TextSelection?
     @State private var picker: SmileyPickerModel?
     /// The editor's selection when the picker opened: the sheet takes focus, so the live binding is not trusted.
     @State private var rangeForSmiley: Range<String.Index>?
+
+    private enum Field: Hashable {
+        case recipient, subject, text
+    }
 
     var body: some View {
         NavigationStack {
@@ -22,7 +30,7 @@ struct ReplyComposerView: View {
                 if let message = model.errorMessage {
                     ComposerBanner(text: message, symbol: "exclamationmark.triangle.fill", tint: .orange) {
                         if model.mayHavePosted {
-                            Button("Voir le sujet") { Task { await model.checkTopic() } }
+                            Button(model.isNewMessage ? "Voir les messages" : "Voir le sujet") { Task { await model.checkTopic() } }
                         }
                     }
                 }
@@ -34,9 +42,10 @@ struct ReplyComposerView: View {
                         }
                     }
                 }
+                if model.isNewMessage { messageFields }
                 editor
             }
-            .navigationTitle("Répondre")
+            .navigationTitle(model.isNewMessage ? "Nouveau message" : "Répondre")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbar }
             .confirmationDialog("Garder ce texte ?", isPresented: askingClose, titleVisibility: .visible) {
@@ -44,17 +53,17 @@ struct ReplyComposerView: View {
                 Button("Supprimer le brouillon", role: .destructive) { Task { await model.discardDraftAndClose() } }
                 Button("Continuer la saisie", role: .cancel) {}
             } message: {
-                Text("Le brouillon est retrouvé à la prochaine réponse dans ce sujet.")
+                Text(keepDraftNote)
             }
         }
-        .sheet(item: $picker, onDismiss: { editorFocused = true }) { picker in
+        .sheet(item: $picker, onDismiss: { focused = .text }) { picker in
             SmileyPickerView(model: picker) { insertSmiley($0) }
         }
         // Swiping down would close without the choice: blocked while there is text or a send runs.
         .interactiveDismissDisabled(model.closeNeedsChoice || model.isSending)
         .task {
             await model.start()
-            editorFocused = true
+            focused = firstEmptyField
         }
         .onChange(of: scenePhase) { _, phase in
             if phase != .active { Task { await model.flushDraft() } }
@@ -68,6 +77,19 @@ struct ReplyComposerView: View {
             // Closed without a choice (account switch rebuilt the screens): keep what was typed.
             Task { await model.flushDraft() }
         }
+    }
+
+    /// Where typing starts: the first field of a new private message still empty, else the text.
+    private var firstEmptyField: Field {
+        guard model.isNewMessage else { return .text }
+        if model.recipient.isEmpty { return .recipient }
+        return model.subject.isEmpty ? .subject : .text
+    }
+
+    private var keepDraftNote: String {
+        model.isNewMessage
+            ? "Le brouillon est retrouvé au prochain message à ce destinataire."
+            : "Le brouillon est retrouvé à la prochaine réponse dans ce sujet."
     }
 
     private var askingClose: Binding<Bool> {
@@ -95,14 +117,38 @@ struct ReplyComposerView: View {
 
     private var editor: some View {
         TextEditor(text: Binding(get: { model.text }, set: { model.update(text: $0) }), selection: $selection)
-            .focused($editorFocused)
-            .font(.body)
+            .focused($focused, equals: .text)
+            .scaledFont(.body)
             .disabled(!model.canEdit)
             .padding(.horizontal, 12)
             .overlay {
                 if model.isRestoring { ProgressView() }
             }
-            .accessibilityLabel("Texte de la réponse")
+            .accessibilityLabel(model.isNewMessage ? "Texte du message" : "Texte de la réponse")
+    }
+
+    /// Recipient and subject of a new private message, one line each, like HFR's own form (`R45b`).
+    private var messageFields: some View {
+        VStack(spacing: 0) {
+            TextField("Destinataire", text: Binding(get: { model.recipient }, set: { model.update(recipient: $0) }))
+                .focused($focused, equals: .recipient)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .submitLabel(.next)
+                .onSubmit { focused = .subject }
+                .accessibilityLabel("Pseudo du destinataire")
+                .padding(.vertical, 10)
+            Divider()
+            TextField("Sujet", text: Binding(get: { model.subject }, set: { model.update(subject: $0) }))
+                .focused($focused, equals: .subject)
+                .submitLabel(.next)
+                .onSubmit { focused = .text }
+                .padding(.vertical, 10)
+            Divider()
+        }
+        .scaledFont(.body)
+        .disabled(!model.canEdit)
+        .padding(.horizontal, 16)
     }
 
     @ToolbarContentBuilder
@@ -137,7 +183,7 @@ private struct ComposerBanner<Actions: View>: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: symbol).foregroundStyle(tint).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 8) {
-                Text(text).font(.callout).fixedSize(horizontal: false, vertical: true)
+                Text(text).scaledFont(.callout).fixedSize(horizontal: false, vertical: true)
                 actions()
             }
             Spacer(minLength: 0)

@@ -34,7 +34,20 @@ None: view-model logic only (`RootModelTests`: tab order, titles, icons; start t
 - iPad: Catégories opens topics in a pushed list in the content column (legacy used a forum picker).
 
 ## Follow-ups (not in this lot)
-- Home-screen quick actions (Catégories, Favoris, Messages; legacy `SuperHFRplus-Info.plist:235-255`, `HFRplusAppDelegate.m:314`): not trivial (needs Info.plist items and a delegate), left for a separate lot.
+- Home-screen quick actions (Catégories, Favoris, Messages; legacy `SuperHFRplus-Info.plist:235-255`, `HFRplusAppDelegate.m:314`): **dropped on record** (UXD-23, 2026-11-02): they are declared in the legacy Info.plist but the handler is commented out, so they never worked.
+
+## UX evolutions (H.1)
+Classification of directive H.1 (2026-11-01): the `H.1` column of [GAP-LEGACY-VS-SWIFT.md](../migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1). The decision of each UXD row (2026-11-02) is in [the decisions table](../migration/GAP-LEGACY-VS-SWIFT.md#ux-decisions-of-2026-11-02). The code names its legacy counterparts in `// Port of …` comments (AGENTS.md §4), added by [#378](https://github.com/ezzz/HFRnow/pull/378).
+- GAP-211, 218 sectioned iPad sidebar and Plus opening Réglages come from `master`, not `2440d79` (four plain tabs there): `a·master` / `b`, decided 2026-11-02, **UXD-01** and **UXD-24**.
+- GAP-002 start tab: `a·master` (**UXD-01**). GAP-004 MP badge from the home-page count: `a`.
+- GAP-007 tab reselect refreshes: not ported, decided 2026-11-02, **UXD-04**. GAP-009 account menu placement: **UXD-03**.
+
+### Decisions of 2026-11-02 (UXD)
+
+Operator decisions on [#379](https://github.com/ezzz/HFRnow/issues/379): every UXD row takes its recommendation. M4 is the validated legacy parity, M5 the evolutions.
+- **UXD-01: B.** The start tab, the sectioned iPad sidebar and the default browser come from `master` and count as ezzz's Swift layer (`a·master`), defaults unchanged.
+- **UXD-02: A** ([#424](https://github.com/ezzz/HFRnow/issues/424), M1): the tab bar is hidden in the reader. **UXD-03: A** ([#425](https://github.com/ezzz/HFRnow/issues/425), M2): the avatar menu in every list toolbar. **UXD-04: A** ([#426](https://github.com/ezzz/HFRnow/issues/426), M2): reselecting a tab refreshes it, with a haptic.
+- **UXD-24:** see LOT-082 (#431).
 
 ## Learnings
 - `List(selection:)` in a sidebar needs an optional selection on iOS; wrap a non-optional model value in a binding that ignores nil.

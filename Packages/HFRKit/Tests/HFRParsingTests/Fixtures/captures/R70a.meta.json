@@ -1,0 +1,16 @@
+{
+  "id": "R70a",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/",
+  "url": "https://forum.hardware.fr/",
+  "final_url": "https://forum.hardware.fr/",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Sun, 01 Nov 2026 23:52:22 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "jar with md_user and md_id of user2 and a wrong md_passs (stale session)",
+  "file": "R70a-home-stale-session.html",
+  "private": false
+}

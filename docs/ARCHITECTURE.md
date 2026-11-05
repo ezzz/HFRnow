@@ -14,7 +14,7 @@ App (SwiftUI, iOS 27)                 composition root, navigation, views, view 
   │
   └── HFRKit (Packages/HFRKit)         UI-free engine, Foundation-only
         ├── HFRModels                  value types (Forum, Topic, Message, …). No dependencies.
-        ├── HFRParsing   → HFRModels   HTML → models. Pure functions. SwiftSoup inside only.
+        ├── HFRParsing   → HFRModels   HTML → models; BBCode → models for the preview (ADR 0014). Pure functions. SwiftSoup inside only.
         ├── HFRNetwork   → HFRModels   URLSession client, cookies, session, accounts, typed endpoints
         ├── HFRStorage   → HFRModels   settings, drafts, blacklist/whitelist, local favorites, caches, iCloud KVS mirror (ADR 0013)
         └── HFRClient    → HFRModels, HFRParsing, HFRNetwork

@@ -194,6 +194,39 @@
     },
     "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=6&post=9900001&numreponse=9910000001&page=1&p=1&subcat=173&sondage=0&owntopic=0"
   },
+  "R95c.html": {
+    "kind": "form",
+    "mode": "edit",
+    "path": "../captures/R95c-mp-edit-form-bbcode-source.html",
+    "session": {
+      "pseudo": "user2"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207675&numreponse=1980885616&page=1&p=1&subcat=0&sondage=0&owntopic=0"
+  },
+  "R95f.html": {
+    "kind": "form",
+    "mode": "edit",
+    "path": "../captures/R95f-mp-edit-form-bmp-emoji-source.html",
+    "session": {
+      "pseudo": "user1"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207675&numreponse=1980885619&page=1&p=1&subcat=0&sondage=0&owntopic=0"
+  },
+  "R95g.html": {
+    "kind": "form",
+    "mode": "quote",
+    "path": "../captures/R95g-mp-composer-multiquote-cookie-escaped.html",
+    "session": {
+      "pseudo": "user2"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207675&page=1&p=1&subcat=0&sondage=0&owntopic=0&new=0"
+  },
+  "R96b.html": {
+    "kind": "storage",
+    "path": "../captures/R96b-mpstorage-thread-other-account-not-addressed.html",
+    "pseudo": "user2",
+    "storage": "mpstorage-page"
+  },
   "S-find-R13a.json": {
     "kind": "storage",
     "pseudo": "user2",
@@ -337,5 +370,20 @@
     "kind": "response",
     "path": "../captures/W35-public-first-post-restore-success.html",
     "urlQuote": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=6&post=9900001&numreponse=9910000001&page=1&p=1&subcat=173&sondage=0&owntopic=0"
+  },
+  "W61.html": {
+    "flow": "reply",
+    "kind": "response",
+    "path": "../captures/W61-mp-create-bbcode-success.html"
+  },
+  "W62.html": {
+    "flow": "reply",
+    "kind": "response",
+    "path": "../captures/W62-mp-reply-bmp-emoji-success.html"
+  },
+  "W63.html": {
+    "flow": "reply",
+    "kind": "response",
+    "path": "../captures/W63-mp-reply-multiquote-cookie-deleted.html"
   }
 }
