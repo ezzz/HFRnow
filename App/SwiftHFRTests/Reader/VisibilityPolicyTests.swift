@@ -57,10 +57,11 @@ struct VisibilityPolicyTests {
 
     // MARK: Quote markup
 
+    /// A quote as HFR writes it (R26): one row, one cell, the header then the body.
     private func quote(_ author: String?, tag: String = "citation", inner: String = "") -> String {
         let header = author.map { "<a href=\"https://forum.hardware.fr/x#t1\" class=\"Topic\">\($0) a écrit :</a>" } ?? "Citation :"
-        return "<table class=\"\(tag)\"><tr class=\"none\"><td><b class=\"s1\">\(header)</b></td></tr>"
-            + "<tr class=\"cite_\"><td><div class=\"container\">corps\(inner)</div></td></tr></table>"
+        return "<table class=\"\(tag)\"><tr class=\"none\"><td><b class=\"s1\">\(header)</b><br /><br />"
+            + "<p>corps\(inner)</p></td></tr></table>"
     }
 
     private func quotes(_ authors: [String?], depths: [Int]? = nil) -> [MessageQuote] {

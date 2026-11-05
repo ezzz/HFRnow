@@ -2,8 +2,9 @@ import Foundation
 import HFRModels
 import HFRStorage
 
-// Port of the visibility rules of HFRswift/Wrapped/LinkItem.m:26-55, 80-93, 277-296 and HFRswift/Wrapped/ParseMessagesOperation.m:205-224
-// @ 2440d79. Differences: one pure policy instead of string replacement on a template (ADR 0006); pseudos compare with the store's
+// Port of the visibility rules of HFRswift/Wrapped/LinkItem.m (toHTML:isMP:, :26-55, 80-93, 277-296) and
+// HFRswift/Wrapped/ParseMessagesOperation.m:205-224 @ 2440d79, GAP-066.
+// Differences: one pure policy instead of string replacement on a template (ADR 0006); pseudos compare with the store's
 // rule (`PseudoNormalizer`, LOT-072); the author's own message is never collapsed; own highlights are off on private messages.
 /// What the reader does with a message or a quote, from who wrote it: pure, so every case is tested without a web view.
 ///
@@ -12,13 +13,13 @@ import HFRStorage
 struct VisibilityPolicy: Equatable, Sendable {
     /// How a message is shown.
     enum Post: Equatable, Sendable {
-        /// Written by the moderation (`message mode`, `LinkItem.m:44`).
+        /// Written by the moderation (`message mode`, `LinkItem.m:45`).
         case moderation
-        /// Written by the current account (`message me`, `LinkItem.m:46`, "Egopost").
+        /// Written by the current account (`message me`, `LinkItem.m:47`, "Egopost").
         case own
-        /// By an allowlisted author (`message whitelist`, `LinkItem.m:48`).
+        /// By an allowlisted author (`message whitelist`, `LinkItem.m:49`).
         case allowlisted
-        /// By a blocklisted author: collapsed until the reader asks (`message bl`, `LinkItem.m:50`).
+        /// By a blocklisted author: collapsed until the reader asks (`message bl`, `LinkItem.m:51`).
         case blocked
         /// Anything else.
         case normal
@@ -92,7 +93,7 @@ struct VisibilityPolicy: Equatable, Sendable {
 }
 
 /// The two pseudo lists as the reader reads them (the account's blocklist, the global allowlist), in the store's entries'
-/// spelling. Filled by the lists' owner (LOT-118); empty until then.
+/// spelling. Read from the store by `PseudoListsSnapshot`; the editors are LOT-118's.
 struct PseudoLists: Equatable, Sendable {
     var blocklist: [String] = []
     var allowlist: [String] = []

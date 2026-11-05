@@ -27,12 +27,15 @@ struct AppEnvironment {
         let fetcher = PageFetcher(session: session)
         let source = LiveForumDataSource(fetcher: fetcher, transport: session)
         NetworkMonitor.start()
-        let pages = LiveTopicPageSource(fetcher: fetcher, session: session, normalizer: LiveContentNormalizer())
+        let lists = PseudoListsSnapshot(store: PseudoListsSnapshot.liveStore, account: accountName)
+        let pages = RefreshingTopicPageSource(
+            base: LiveTopicPageSource(fetcher: fetcher, session: session, normalizer: LiveContentNormalizer()), lists: lists
+        )
         let reader = ReaderServices(
             imageFetcher: ReaderImageFetcher(),
             settings: .live(
-                store: UserDefaultsSettingsStore(), isOnWiFi: { NetworkMonitor.shared.isOnWiFi }, pseudo: accountName
-                // The lists stay empty until they reach the app (LOT-118): own and quoted-me highlights work without them.
+                store: UserDefaultsSettingsStore(), isOnWiFi: { NetworkMonitor.shared.isOnWiFi }, pseudo: accountName,
+                pseudoLists: { lists.current }
             )
         )
         return AppEnvironment(

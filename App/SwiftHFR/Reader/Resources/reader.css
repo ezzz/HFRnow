@@ -12,7 +12,7 @@
   --placeholder: #e5e5ea;
   /* Visibility (LOT-117): legacy defaults of the "love" colour, `theme_day_color_love` hsb(0.9, 0.1, 1) and
      `theme_night_color_love` hsb(0.9, 0.9, 0.3) (Common.swift:438-441 @ 2440d79); the border is the same colour at full
-     saturation and brightness (`MessagesView.swift:2403`); the moderation background is `messageModoBackgroundColor`. */
+     saturation and brightness (`MessagesView.swift:2402`); the moderation background is `messageModoBackgroundColor`. */
   --love: #ffe6f5;
   --love-border: #ff0099;
   --modo: #ffeeee;
@@ -102,9 +102,18 @@ button.image-tap, button.video {
 .message button.menu-author { background: none; border: 0; padding: 0.7em 0.4em; margin: -0.7em -0.4em; color: inherit; font: inherit; font-weight: 600; text-align: start; }
 .message button.menu-button { background: none; border: 0; min-width: 2.2em; padding: 0.5em 0.4em; margin: -0.5em 0; color: var(--secondary); font: inherit; font-size: 1.4em; line-height: 1; }
 
-/* Visibility (LOT-117; legacy style-liste-light.css:314-325, 359-390). Own messages and whitelisted authors are tinted on the
-   content, with a 2 px bar on the left; the quote of me, of a whitelisted author and of a blocklisted one are tinted tables. */
+/* Visibility (LOT-117). Legacy style-liste-light.css:177-199, 314-325, 359-390, 606-619 and MessagesView.swift:2397-2410: own
+   messages and whitelisted authors get a 2 px bar on the header and on the content, a tint, and a coloured avatar ring; the
+   quote of me, of a whitelisted author and of a blocklisted one are tinted tables. Modern tints the love header at 40 %,
+   classic at 100 %. */
+.message.me .header, .message.whitelist .header { border-left: 2px solid var(--action); padding-left: 0.5em; }
+.message.me .header { background: color-mix(in srgb, var(--action) 3%, transparent); }
+.style-classic .message.me .header { background: color-mix(in srgb, var(--action) 15%, transparent); }
+.message.me .avatar { box-sizing: border-box; border: 2px solid var(--action); }
 .message.me .content { background: color-mix(in srgb, var(--action) 3%, transparent); border-left: 2px solid var(--action); padding-left: 0.6em; }
+.message.whitelist .header { background: color-mix(in srgb, var(--love) 40%, transparent); border-left-color: var(--love-border); }
+.style-classic .message.whitelist .header { background: var(--love); }
+.message.whitelist .avatar { box-sizing: border-box; border: 2px solid var(--love-border); }
 .message.whitelist .content { background: color-mix(in srgb, var(--love) 40%, transparent); border-left: 2px solid var(--love-border); padding-left: 0.6em; }
 .style-classic .message.whitelist .content { background: var(--love); }
 .message.mode .content { background: var(--modo); }
@@ -114,18 +123,22 @@ table.quote-blocked { background: color-mix(in srgb, var(--text) 5%, transparent
 
 /* A blocklisted author's message is a one-line summary until opened (native <details>, no script). */
 .message.blocked { padding: 0; }
-.message.blocked .blocked-post > .header, .message.blocked .blocked-post > .content,
-.message.blocked .blocked-post > .trailer { margin-left: 1em; margin-right: 1em; }
+.message.blocked .blocked-post > :not(summary) { margin-left: 1em; margin-right: 1em; }
+.message.blocked .blocked-post[open] { padding-bottom: 0.75em; }
 .blocked-summary { display: flex; align-items: center; gap: 0.5em; padding: 0.5em 1em; color: var(--secondary); font-size: 0.85em; cursor: pointer; }
 .blocked-author { font-weight: 600; }
 .blocked-note { margin-left: auto; }
 .blocked-post[open] > .blocked-summary { border-bottom: 1px solid var(--separator); margin-bottom: 0.5em; }
 
-/* A blocklisted author's quote shows its header line only, until tapped (reader.js toggles .open). The arrow is drawn here, so
-   the header link stays a link once the quote is open. */
+/* A blocklisted author's quote shows its header only, until tapped (reader.js toggles .open). HFR writes a quote as one row, one
+   cell: `<td><b class="s1">header</b><br><br><p>…</p></td>` (legacy injected `</td></tr><tr>` after the header, LinkItem.m:89-93), so
+   the cell's other children are hidden, and its loose text is given no size. The arrow is drawn here, so the header link stays a
+   link once the quote is open. Every rule names the quote's own header (`td > b.s1`): a quote nested in it is not touched. */
 table.quote-blocked { cursor: pointer; }
-table.quote-blocked:not(.open) > * > tr:not(:first-child) { display: none; }
-table.quote-blocked > * > tr:first-child b.s1::after { content: " \25BC"; }
-table.quote-blocked.open > * > tr:first-child b.s1::after { content: " \25B2"; }
-table.quote-blocked.quote-hide-author:not(.open) > * > tr:first-child b.s1 > a { display: none; }
-table.quote-blocked.quote-hide-author:not(.open) > * > tr:first-child b.s1::before { content: "Citation masquée"; }
+table.quote-blocked:not(.open) > * > tr > td { font-size: 0; }
+table.quote-blocked:not(.open) > * > tr > td > :not(b.s1) { display: none; }
+table.quote-blocked:not(.open) > * > tr > td > b.s1 { font-size: calc(var(--text-scale, 1) * 0.85rem); }
+table.quote-blocked > * > tr > td > b.s1::after { content: " \25BC"; }
+table.quote-blocked.open > * > tr > td > b.s1::after { content: " \25B2"; }
+table.quote-blocked.quote-hide-author:not(.open) > * > tr > td > b.s1 > a { display: none; }
+table.quote-blocked.quote-hide-author:not(.open) > * > tr > td > b.s1::before { content: "Citation masquée"; }
