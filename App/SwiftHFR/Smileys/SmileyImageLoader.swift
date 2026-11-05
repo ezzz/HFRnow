@@ -53,7 +53,7 @@ struct SmileyImageLoader: Sendable {
     static func decode(_ data: Data) -> UIImage? {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return UIImage(data: data) }
         let count = CGImageSourceGetCount(source)
-        guard count > 1, pixelCount(of: source) * count <= maximumAnimationPixels else { return UIImage(data: data) }
+        guard count > 1, pixelCount(of: source) <= maximumAnimationPixels / count else { return UIImage(data: data) }
         var frames: [UIImage] = []
         var duration = 0.0
         for index in 0..<count {
@@ -66,11 +66,11 @@ struct SmileyImageLoader: Sendable {
         return UIImage.animatedImage(with: frames, duration: duration)
     }
 
-    /// Pixels of the first frame (0 when unreadable, which keeps the animation out: callers compare a product).
+    /// Pixels of the first frame (`Int.max` when unreadable, which keeps the animation out).
     private static func pixelCount(of source: CGImageSource) -> Int {
         guard let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
               let width = properties[kCGImagePropertyPixelWidth] as? Int,
-              let height = properties[kCGImagePropertyPixelHeight] as? Int else { return Int.max / 4096 }
+              let height = properties[kCGImagePropertyPixelHeight] as? Int else { return Int.max }
         return width * height
     }
 
