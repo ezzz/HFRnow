@@ -9,7 +9,7 @@ Absorbs feedback 'BBCode toolbar' (p. 505), 'link paste helper' (p. 497) and cur
 
 ## Legacy counterpart
 
-`BBCodeTag`, `wrapWithBBCode`, `splitQuote` and `insert` exist at `2440d79` (`ReplyComposer.swift:59-139`, GAP-085); `textForEmptySelection`, `wrapSelectionWithURL`, the colours, the toolbar and the clipboard helper are newer: `origin/master` @ 21173e7.
+`BBCodeTag` (`ReplyComposer.swift:59-97`), `wrapWithBBCode` (`:103-135`), `splitQuote` (`:141-172`) and `insert` (`:176-196`) exist at `2440d79` (GAP-085; quote splitting: GAP-084); `textForEmptySelection`, `wrapSelectionWithURL`, the colours, the toolbar and the clipboard helper are newer: `origin/master` @ 21173e7.
 
 | Legacy | Here |
 |---|---|
