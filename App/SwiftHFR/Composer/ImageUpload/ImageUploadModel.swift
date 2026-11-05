@@ -33,6 +33,7 @@ final class ImageUploadModel {
     /// Longest side after downscaling (legacy `rehost_resize_before_upload`).
     var maxDimension: RehostMaxDimension { didSet { services.settings.set(maxDimension, for: SettingKey.rehostMaxDimension) } }
 
+    private var didLoad = false
     private let services: ImageUploadServices
     private let now: @Sendable () -> Date
 
@@ -62,13 +63,14 @@ final class ImageUploadModel {
             + "Les conditions de l'hébergeur s'appliquent."
     }
 
-    /// Reads the remembered uploads (once, when the panel opens).
-    func load() {
-        do {
-            history = try services.history.load()
-        } catch {
-            history = []
-            historyWarning = "L'historique des images est illisible : les nouvelles images ne seront pas enregistrées avant sa réparation."
+    /// Reads the remembered uploads, once per model: reopening the panel keeps what is in memory. Unreadable data is never overwritten.
+    func load() async {
+        guard !didLoad else { return }
+        didLoad = true
+        let stored = await services.history.load()
+        history = stored.images + history
+        if stored.isUnreadable {
+            historyWarning = "L'historique des images est illisible : les nouvelles images ne seront pas enregistrées."
         }
     }
 
@@ -117,9 +119,9 @@ final class ImageUploadModel {
     }
 
     /// Forgets an image of the history (the host keeps it).
-    func remove(_ image: RehostedImage) {
+    func remove(_ image: RehostedImage) async {
         history.removeAll { $0.id == image.id }
-        persistHistory()
+        await persist { try await $0.remove(id: image.id) }
     }
 
     private func upload(_ source: Data) async {
@@ -132,7 +134,7 @@ final class ImageUploadModel {
             let jpeg = try await Task.detached { try preparer.prepare(source, maxDimension: dimension) }.value
             let image = try await uploader.upload(jpeg: jpeg)
             history.insert(image, at: 0)
-            persistHistory()
+            await persist { try await $0.add(image) }
         } catch let error as RehostError {
             errorMessage = Self.message(for: error)
         } catch {
@@ -140,14 +142,17 @@ final class ImageUploadModel {
         }
     }
 
-    private func persistHistory() {
+    /// Runs one write of the store; a refusal leaves the list in memory and says so.
+    private func persist(_ write: (any ImageUploadHistoryStoring) async throws -> Void) async {
         do {
-            try services.history.save(history)
-            historyWarning = nil
+            try await write(services.history)
+            if historyWarning == Self.saveWarning { historyWarning = nil }
         } catch {
-            historyWarning = "L'historique des images n'a pas pu être enregistré."
+            historyWarning = Self.saveWarning
         }
     }
+
+    private static let saveWarning = "L'historique des images n'a pas pu être enregistré."
 
     private static func mode(_ mode: RehostLinkMode) -> RehostBBCodeMode {
         RehostBBCodeMode(rawValue: mode.rawValue) ?? .imageWithLink

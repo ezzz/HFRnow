@@ -11,39 +11,36 @@ protocol ImageUploading: Sendable {
 
 extension RehostClient: ImageUploading {}
 
-/// Where the uploaded images of the composer are remembered (legacy `RehostUploadHistoryStore`, `ReplyService.swift:1895` @ 2440d79).
+/// Where the uploaded images of the composer are remembered (LOT-064, legacy `RehostUploadHistoryStore`, `ReplyService.swift:1895`
+/// @ 2440d79).
 protocol ImageUploadHistoryStoring: Sendable {
-    /// The remembered uploads, newest first; empty when nothing was saved. Throws when the file exists but cannot be read.
-    func load() throws -> [RehostedImage]
-    /// Replaces the remembered uploads.
-    func save(_ images: [RehostedImage]) throws
+    /// The remembered uploads, newest first, and whether the stored data is unreadable (writes are then refused, never overwritten).
+    func load() async -> (images: [RehostedImage], isUnreadable: Bool)
+    /// Remembers an upload at the top.
+    func add(_ image: RehostedImage) async throws
+    /// Forgets the upload with this `RehostedImage.id`.
+    func remove(id: String) async throws
 }
 
-/// The history as one JSON file, written atomically.
-struct FileImageUploadHistory: ImageUploadHistoryStoring {
-    let fileURL: URL
+/// The history over the engine's `RehostUploadHistoryStore` (versioned file, unreadable data kept aside, never overwritten).
+struct LiveImageUploadHistory: ImageUploadHistoryStoring {
+    let store: RehostUploadHistoryStore
 
-    func load() throws -> [RehostedImage] {
-        guard FileManager.default.fileExists(atPath: fileURL.path) else { return [] }
-        return try Self.decoder.decode([RehostedImage].self, from: Data(contentsOf: fileURL))
+    /// The file under Application Support.
+    static func live() -> LiveImageUploadHistory {
+        LiveImageUploadHistory(store: RehostUploadHistoryStore(
+            persistence: FileSmallStorePersistence(fileURL: URL.applicationSupportDirectory.appending(path: "RehostHistory/uploads.json"))
+        ))
     }
 
-    func save(_ images: [RehostedImage]) throws {
-        try FileManager.default.createDirectory(at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try Self.encoder.encode(images).write(to: fileURL, options: .atomic)
+    func load() async -> (images: [RehostedImage], isUnreadable: Bool) {
+        let failure = await store.loadFailure()
+        return (await store.images(), failure != nil)
     }
 
-    private static var encoder: JSONEncoder {
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        return encoder
-    }
+    func add(_ image: RehostedImage) async throws { try await store.add(image) }
 
-    private static var decoder: JSONDecoder {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        return decoder
-    }
+    func remove(id: String) async throws { try await store.remove(id: id) }
 }
 
 /// What the image panel needs: the uploader (nil when this build has no key), its settings and its notice.
@@ -68,7 +65,7 @@ struct ImageUploadServices: Sendable {
             uploader: configuration.map { RehostClient(configuration: $0) },
             hostName: configuration?.baseURL.host,
             preparer: ImageIOPreparer(),
-            history: FileImageUploadHistory(fileURL: URL.applicationSupportDirectory.appending(path: "RehostHistory/uploads.json")),
+            history: LiveImageUploadHistory.live(),
             settings: UserDefaultsSettingsStore()
         )
     }

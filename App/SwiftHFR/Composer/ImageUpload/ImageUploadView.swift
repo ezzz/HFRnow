@@ -52,7 +52,7 @@ struct ImageUploadView: View {
                 Task { await submit(try? await item.loadTransferable(type: Data.self)) }
             }
         }
-        .task { model.load() }
+        .task { await model.load() }
         .presentationDetents([.large])
     }
 
@@ -62,7 +62,8 @@ struct ImageUploadView: View {
     }
 
     private var askingNotice: Binding<Bool> {
-        Binding(get: { model.isAskingNotice }, set: { if !$0, model.isAskingNotice { model.declineNotice() } })
+        // The alert's buttons decide: SwiftUI also sets this to false on "Continuer", before the accept runs.
+        Binding(get: { model.isAskingNotice }, set: { _ in })
     }
 
     private var canUseCamera: Bool { UIImagePickerController.isSourceTypeAvailable(.camera) }
@@ -112,7 +113,7 @@ struct ImageUploadView: View {
             }
             ForEach(model.history) { image in
                 UploadedImageRow(image: image) { variant in onInsert(model.snippet(for: image, variant: variant)) }
-                    .swipeActions { Button("Supprimer", systemImage: "trash", role: .destructive) { model.remove(image) } }
+                    .swipeActions { Button("Supprimer", systemImage: "trash", role: .destructive) { Task { await model.remove(image) } } }
             }
         }
     }

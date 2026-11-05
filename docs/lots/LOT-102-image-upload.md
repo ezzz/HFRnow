@@ -4,7 +4,7 @@
 - **Difficulty / model:** medium (Opus → Fable; this PR coded by Sonnet 5.5 in the cloud, reviewed by Opus)
 - **Issue:** [#193](https://github.com/ezzz/HFRnow/issues/193) (host: mac, coded in the cloud, Mac check list in the PR)
 - **Inputs:** [LOT-056](LOT-056-image-hosts.md) (`RehostClient`, `RehostedImage`) · [LOT-071](LOT-071-third-party-services.md) (T4, N1) ·
-  [ADR 0007](../adr/0007-third-party-api-keys.md) · LOT-085 (`ReplyTextInsertionEngine`, `ComposerFormattingModel`) · LOT-060 (settings keys)
+  [ADR 0007](../adr/0007-third-party-api-keys.md) · LOT-085 (`ReplyTextInsertionEngine`, `ComposerFormattingModel`) · LOT-060 (settings keys) · LOT-064 (upload history store)
 
 ## Legacy sources
 
@@ -57,9 +57,10 @@ Lines of <https://github.com/ezzz/HFRnow> @ `2440d79`.
   client's already redacted ones.
 - **Errors** (French, the host's message kept): offline, timeout and other transport failures say the image may have been sent without the app knowing (the
   POST is never retried); HTTP and payload refusals show `Erreur de l'hébergeur (code) : message`. The composer text is never touched by a failure.
-- **History**: newest first, JSON file `Application Support/RehostHistory/uploads.json` (ISO-8601 dates), saved after each change. An unreadable file
-  gives a warning and an empty list; a failed write warns and keeps the list in memory. Legacy's `rehostImagesSwiftUI.json` is not read (other
-  schema, other app container).
+- **History**: the engine's `RehostUploadHistoryStore` (LOT-064: versioned file, `Application Support/RehostHistory/uploads.json`, newest first,
+  no duplicate id), read once per model (reopening the panel keeps what is in memory). Unreadable data is never overwritten: the store refuses writes,
+  the panel warns, new images stay in memory for the session. Setting the unreadable file aside (`discardUnreadableData`) is not offered here. A failed
+  write warns and keeps the list in memory. Legacy's `rehostImagesSwiftUI.json` is not read (other schema, other app container).
 - **Insert**: tapping a rendition builds `RehostedImage.snippet(variant:mode:)` (LOT-056 / LOT-012: `[url=FULL][img]URL[/img][/url]\n`,
   `[img]URL[/img]\n` or the bare URL; a missing rendition falls back to the next larger one) and `ComposerFormattingModel.insert` puts it at the caret
   through `ReplyTextInsertionEngine.insert`, replacing the selection, caret after. The sheet closes and the editor takes focus.
@@ -90,6 +91,7 @@ See "UX evolutions". Also: the JPEG goes through ImageIO instead of a UIKit redr
 
 ## Left for later
 
+- Offering to set an unreadable history file aside.
 - Reset of notice N1 in Settings (LOT-071 N1 asks for it): the key is `rehost_notice_accepted`.
 - Wiring `REHOST_BASE_URL` and `REHOST_API_KEY` from the untracked `.xcconfig` into `Info.plist` (ADR 0007, LOT-080), and the GitHub Actions secret for the app job.
 

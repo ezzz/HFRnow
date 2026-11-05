@@ -30,26 +30,41 @@ private final class ScriptedUploader: ImageUploading {
     }
 }
 
-/// A history kept in memory; `failure` makes both calls throw.
+/// A history kept in memory; `unreadable` makes `load` say so and every write throw, as the engine store does.
 private final class MemoryHistory: ImageUploadHistoryStoring {
     private let state: Mutex<[RehostedImage]>
-    private let failure: Bool
+    private let unreadable: Bool
+    private let failWrites: Bool
 
-    init(_ images: [RehostedImage] = [], failure: Bool = false) {
+    init(_ images: [RehostedImage] = [], unreadable: Bool = false, failWrites: Bool = false) {
         state = Mutex(images)
-        self.failure = failure
+        self.unreadable = unreadable
+        self.failWrites = failWrites
     }
 
     var stored: [RehostedImage] { state.withLock { $0 } }
 
-    func load() throws -> [RehostedImage] {
-        if failure { throw CocoaError(.fileReadCorruptFile) }
-        return stored
+    func load() async -> (images: [RehostedImage], isUnreadable: Bool) { (unreadable ? [] : stored, unreadable) }
+
+    func add(_ image: RehostedImage) async throws {
+        if unreadable || failWrites { throw CocoaError(.fileWriteOutOfSpace) }
+        state.withLock { $0.insert(image, at: 0) }
     }
 
-    func save(_ images: [RehostedImage]) throws {
-        if failure { throw CocoaError(.fileWriteOutOfSpace) }
-        state.withLock { $0 = images }
+    func remove(id: String) async throws {
+        if unreadable || failWrites { throw CocoaError(.fileWriteOutOfSpace) }
+        state.withLock { $0.removeAll { $0.id == id } }
+    }
+}
+
+/// Counts what it is asked to prepare.
+private final class RecordingPreparer: ImagePreparing {
+    private let calls = Mutex(0)
+    var callCount: Int { calls.withLock { $0 } }
+
+    func prepare(_ source: Data, maxDimension: Int) throws(ImagePreparationError) -> Data {
+        calls.withLock { $0 += 1 }
+        return source
     }
 }
 
@@ -90,13 +105,16 @@ private func make(
 struct ImageUploadModelTests {
     @Test func nothingIsPreparedOrSentBeforeTheNoticeIsAccepted() async {
         let uploader = ScriptedUploader([.success(hosted("a"))])
-        let (model, settings) = make(uploader: uploader)
+        let preparer = RecordingPreparer()
+        let (model, settings) = make(uploader: uploader, preparer: preparer)
         await model.submit(Data([1, 2, 3]))
         #expect(model.isAskingNotice)
         #expect(uploader.received.isEmpty)
+        #expect(preparer.callCount == 0)
         model.declineNotice()
         #expect(!model.isAskingNotice)
         #expect(uploader.received.isEmpty)
+        #expect(preparer.callCount == 0)
         #expect(settings.rawValue(forKey: ImageUploadModel.noticeKey) == nil)
         await model.submit(Data([1, 2, 3]))
         #expect(model.isAskingNotice)
@@ -124,16 +142,15 @@ struct ImageUploadModelTests {
         #expect(!model.canUpload)
     }
 
-    @Test func aRefusalShowsTheHostsMessageAndKeepsTheComposerText() async {
+    @Test func aRefusalShowsTheHostsMessageAndRemembersNothing() async {
         let uploader = ScriptedUploader([.failure(.http(statusCode: 400, message: "Fichier trop lourd"))])
-        let composer = ComposerFixture.model(poster: ScriptedPoster([]))
-        await composer.start()
-        composer.update(text: "mon message")
-        let (model, _) = make(uploader: uploader, accepted: true)
+        let history = MemoryHistory()
+        let (model, _) = make(uploader: uploader, history: history, accepted: true)
         await model.submit(Data([1]))
         #expect(model.errorMessage == "Erreur de l'hébergeur (400) : Fichier trop lourd")
         #expect(model.history.isEmpty)
-        #expect(composer.text == "mon message")
+        #expect(history.stored.isEmpty)
+        #expect(!model.isUploading)
     }
 
     @Test func aLostAnswerIsNotRetriedAndAdmitsTheImageMayBeThere() async {
@@ -161,23 +178,33 @@ struct ImageUploadModelTests {
     @Test func theHistoryIsSavedAndReadBackNewestFirst() async {
         let history = MemoryHistory([hosted("old", at: 1)])
         let (model, _) = make(uploader: ScriptedUploader([.success(hosted("new", at: 2))]), history: history, accepted: true)
-        model.load()
+        await model.load()
         #expect(model.history.map(\.fullURL.lastPathComponent) == ["old.jpg"])
         await model.submit(Data([1]))
         #expect(history.stored.map(\.fullURL.lastPathComponent) == ["new.jpg", "old.jpg"])
-        model.remove(model.history[0])
+        await model.remove(model.history[0])
         #expect(history.stored.map(\.fullURL.lastPathComponent) == ["old.jpg"])
     }
 
-    @Test func anUnreadableHistoryWarnsButUploadsStillWork() async {
-        let (model, _) = make(
-            uploader: ScriptedUploader([.success(hosted("a"))]), history: MemoryHistory(failure: true), accepted: true
-        )
-        model.load()
-        #expect(model.historyWarning != nil)
+    @Test func anUnreadableHistoryIsNeverOverwrittenAndUploadsStillWork() async {
+        let history = MemoryHistory([hosted("precious")], unreadable: true)
+        let (model, _) = make(uploader: ScriptedUploader([.success(hosted("a"))]), history: history, accepted: true)
+        await model.load()
+        #expect(model.historyWarning?.contains("illisible") == true)
         await model.submit(Data([1]))
-        #expect(model.history.count == 1)
+        #expect(model.history.map(\.fullURL.lastPathComponent) == ["a.jpg"])
+        #expect(history.stored.map(\.fullURL.lastPathComponent) == ["precious.jpg"])
         #expect(model.historyWarning == "L'historique des images n'a pas pu être enregistré.")
+    }
+
+    @Test func reopeningThePanelKeepsImagesThatCouldNotBeSaved() async {
+        let (model, _) = make(
+            uploader: ScriptedUploader([.success(hosted("a"))]), history: MemoryHistory(failWrites: true), accepted: true
+        )
+        await model.load()
+        await model.submit(Data([1]))
+        await model.load()
+        #expect(model.history.map(\.fullURL.lastPathComponent) == ["a.jpg"])
     }
 
     @Test func settingsKeepTheirLegacyKeysAndDefaults() {
