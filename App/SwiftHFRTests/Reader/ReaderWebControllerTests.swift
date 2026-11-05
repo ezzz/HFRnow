@@ -168,3 +168,42 @@ struct ReaderWebControllerTests: ReaderWebTesting {
         #expect(title == page.title)
     }
 }
+
+/// LOT-111: landing on a message and reporting the topmost one, in the real web view.
+@MainActor
+@Suite(.serialized)
+struct ReaderLandingWebTests: ReaderWebTesting {
+    private func landingDocument(anchor: Int) -> ReaderDocument {
+        func message(_ number: Int, height: Int) -> ReaderMessage {
+            ReaderMessage(
+                numreponse: number, author: "auteur", isDeleted: false, isContinuation: false, avatarURL: nil,
+                dateText: "", editNote: nil, quotedByCount: nil,
+                content: MessageContent(html: "<div style=\"height:\(height)px\">m\(number)</div>")
+            )
+        }
+        let page = ReaderPage(
+            topicID: readerTopic, title: "T", currentPage: 1, maxPage: 1, messages: [message(1, height: 3000), message(2, height: 3000)]
+        )
+        return ReaderDocument(
+            token: 1, html: TopicHTMLBuilder.document(for: page, token: 1), anchor: anchor, keepsScrollPosition: false
+        )
+    }
+
+    @Test func aDocumentLandsOnItsAnchorAndReportsTheTopmostMessageOnceScrollingStops() async throws {
+        let (controller, recorder) = makeController(transport: imageTransport())
+        let reports = PositionReports()
+        controller.events.position = { post, _ in reports.posts.append(post) }
+        controller.show(landingDocument(anchor: 2))
+        #expect(await until { recorder.ready == [1] })
+        let top = "return Math.round(document.getElementById('t2').getBoundingClientRect().top);"
+        #expect(await until(async: { (try? await self.evaluate(top, in: controller) as? Int) == 0 }))
+        _ = try await evaluate("window.scrollTo(0, 0); return true;", in: controller)
+        #expect(await until { reports.posts.contains(1) }, "reported: \(reports.posts)")
+    }
+}
+
+/// The messages the web view reported as topmost.
+@MainActor
+final class PositionReports {
+    var posts: [Int] = []
+}

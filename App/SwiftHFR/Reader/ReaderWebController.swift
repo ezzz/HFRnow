@@ -22,6 +22,8 @@ final class ReaderWebController: NSObject {
         var link: @MainActor (URL) -> Void = { _ in }
         /// The user tapped the placeholder of video `index` of message `post` in document `token`.
         var video: @MainActor (_ post: Int, _ index: Int, _ token: Int) -> Void = { _, _, _ in }
+        /// Scrolling paused with message `post` topmost in document `token` (LOT-111, recorded as the reading position).
+        var position: @MainActor (_ post: Int, _ token: Int) -> Void = { _, _ in }
         /// The user tapped the menu button or the author of message `post` in document `token`.
         var menu: @MainActor (_ post: Int, _ source: MessageMenuSource, _ token: Int) -> Void = { _, _, _ in }
     }
@@ -174,12 +176,11 @@ final class ReaderWebController: NSObject {
         return "document.documentElement.style.setProperty('--text-scale', '\(factor)');"
     }
 
-    private func scroll(to anchor: Int) {
-        Task {
-            _ = try? await webView.callAsyncJavaScript(
-                "return window.hfrReader.scrollToPost(n);", arguments: ["n": anchor], in: nil, contentWorld: Self.world
-            )
-        }
+    /// `landing` keeps the message at the top while late images load (a document's own anchor); a request inside the shown
+    /// document scrolls once.
+    private func scroll(to anchor: Int, landing: Bool = false) {
+        let script = "return window.hfrReader.\(landing ? "landOnPost" : "scrollToPost")(n);"
+        Task { _ = try? await webView.callAsyncJavaScript(script, arguments: ["n": anchor], in: nil, contentWorld: Self.world) }
     }
 
     // MARK: - Messages from reader.js
@@ -200,6 +201,9 @@ final class ReaderWebController: NSObject {
             return recordTap(url)
         case .ready:
             documentIsReady(document, token: document.token)
+            return nil
+        case .position(let post):
+            events.position(post, document.token)
             return nil
         case .video(let post, let index):
             events.video(post, index, document.token)
@@ -232,7 +236,7 @@ final class ReaderWebController: NSObject {
         applyTextScale()
         applyTheme()
         if let anchor = document.anchor {
-            scroll(to: anchor)
+            scroll(to: anchor, landing: true)
         } else if let offset = savedOffset {
             webView.scrollView.setContentOffset(offset, animated: false)
         }
