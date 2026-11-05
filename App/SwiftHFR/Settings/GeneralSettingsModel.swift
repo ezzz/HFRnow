@@ -45,6 +45,11 @@ final class GeneralSettingsModel {
             if minimizesTabBarOnScroll != oldValue { store.set(minimizesTabBarOnScroll, for: SettingKey.tabBarMinimizesOnScroll) }
         }
     }
+    /// When third-party images load (`display_images`, FEAT-011): the reader reads the store on every page, so a change
+    /// applies to the next page opened. HFR's own images and the always-blocked hosts are unaffected (policy C).
+    var imageLoading: ImageDisplayMode {
+        didSet { if imageLoading != oldValue { store.set(imageLoading, for: SettingKey.displayImages) } }
+    }
     /// Density: compact rows.
     var compactMode: Bool {
         didSet { if compactMode != oldValue { store.set(compactMode, for: SettingKey.compactMode) } }
@@ -62,6 +67,7 @@ final class GeneralSettingsModel {
         opensLinksInDefaultBrowser = store.value(for: SettingKey.opensLinksInDefaultBrowser)
         textSizePercent = SettingKey.textSizePercent(from: store)
         compactMode = store.value(for: SettingKey.compactMode)
+        imageLoading = store.value(for: SettingKey.displayImages)
         minimizesTabBarOnScroll = store.value(for: SettingKey.tabBarMinimizesOnScroll)
     }
 
