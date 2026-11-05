@@ -16,7 +16,7 @@ Opening a flagged topic lands on the first unread message and stays there while 
 Flag link and `numreponse` rules: HFR-PROTOCOL §6c LOT-095 and `R25` (HFR picks the page of a `numreponse` link, so `page=` is never read alone). No new fact.
 
 ## Edge cases
-Anchor not on the page served: top of the page. Continuation block: never recorded. Logged out: nothing recorded.
+Flag message deleted: the first message after it (no separator); anchor past the end of the page: top of the page. A refresh reloads without the anchor, so the separator goes with it (as the scroll position is kept instead). Continuation block: never recorded. Logged out: nothing recorded.
 
 ## Engine lots needed
 LOT-090 (done). App side: LOT-111.
