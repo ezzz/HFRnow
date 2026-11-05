@@ -14,6 +14,10 @@ struct TopicReaderView: View {
     let services: ReaderServices
     /// The current account's composer; nil when logged out.
     var composer: ComposerServices?
+    /// Starts the post filter on this topic (LOT-114); nil hides the menu entry.
+    var onFilterPosts: (() -> Void)?
+    /// A filter run is reading pages: the menu entry is disabled meanwhile.
+    var filterIsBusy = false
     @State private var controller: ReaderWebController?
     @State private var external: ExternalLink?
     @State private var video: VideoItem?
@@ -48,6 +52,14 @@ struct TopicReaderView: View {
             ToolbarItem(placement: .primaryAction) {
                 Button { Task { await model.refresh() } } label: { Label("Actualiser", systemImage: "arrow.clockwise") }
                     .disabled(model.isLoading)
+            }
+            if let onFilterPosts {
+                ToolbarItem(placement: .secondaryAction) {
+                    Button(action: onFilterPosts) {
+                        Label("Filtrer les posts", systemImage: "line.3.horizontal.decrease.circle")
+                    }
+                    .disabled(filterIsBusy)
+                }
             }
         }
         .alert("Aller à la page", isPresented: $askingPage) {
@@ -196,7 +208,7 @@ private struct ReaderPageBar: View {
 }
 
 /// Hosts the controller's web view and hands it the model's document and scroll requests.
-private struct ReaderWebView: UIViewRepresentable {
+struct ReaderWebView: UIViewRepresentable {
     let controller: ReaderWebController
     let document: ReaderDocument?
     let scrollRequest: ScrollRequest?
@@ -219,19 +231,19 @@ private struct LinkedReader: Hashable {
     func hash(into hasher: inout Hasher) { hasher.combine(ObjectIdentifier(model)) }
 }
 
-private struct ExternalLink: Identifiable {
+struct ExternalLink: Identifiable {
     let url: URL
     var id: String { url.absoluteString }
 }
 
-private struct VideoItem: Identifiable {
+struct VideoItem: Identifiable {
     let embed: MessageEmbed
     var id: String { embed.embedURL.absoluteString }
 }
 
 /// A web link opened outside the reader, in Safari's own view (LOT-071 T8): Safari's data, not the app's. Legacy
 /// `SafariInAppView` (`MessagesView.swift:2874-2885` at `21173e77`).
-private struct SafariView: UIViewControllerRepresentable {
+struct SafariView: UIViewControllerRepresentable {
     let url: URL
 
     func makeUIViewController(context: Context) -> SFSafariViewController {

@@ -8,6 +8,8 @@ import SwiftUI
 struct TopicListView: View {
     let model: TopicListModel
     @Binding var selection: TopicSummary?
+    /// The post filter, offered on a favourite's context menu (LOT-114); nil hides the entry.
+    var filtering: FilteredPostsModel?
 
     var body: some View {
         let loader = model.loader
@@ -40,6 +42,14 @@ struct TopicListView: View {
     private func rows(_ topics: [TopicSummary]) -> some View {
         ForEach(topics) { topic in
             TopicRowView(topic: topic).tag(topic)
+                .contextMenu {
+                    if model.source == .favorites, let filtering, topic.topicID != nil {
+                        Button { filtering.start(opening: topic) } label: {
+                            Label("Filtrer les posts", systemImage: "line.3.horizontal.decrease.circle")
+                        }
+                        .disabled(filtering.isBusy)
+                    }
+                }
         }
     }
 
