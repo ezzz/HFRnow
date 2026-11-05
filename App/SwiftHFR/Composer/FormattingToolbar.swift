@@ -47,6 +47,8 @@ struct FormattingToolbar: View {
             content().frame(minWidth: 44, minHeight: 44).contentShape(.rect)
         }
         .buttonStyle(.plain)
+        .disabled(!model.isEnabled)
+        .opacity(model.isEnabled ? 1 : 0.4)
         .accessibilityLabel(label)
     }
 

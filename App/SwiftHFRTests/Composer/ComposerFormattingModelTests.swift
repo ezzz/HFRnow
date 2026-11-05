@@ -62,7 +62,7 @@ struct ComposerFormattingModelTests {
         let model = ComposerFormattingModel(composer: composer, clipboard: clipboard)
         model.selectedRange = NSRange(location: 5, length: 3)
         model.tap(.bbCode(.url))
-        model.acceptPending()
+        model.acceptPending(model.pending!)
         #expect(composer.text == "voir [url=https://example.org/]ici[/url]")
         model.selectedRange = NSRange(location: 0, length: 4)
         model.tap(.bbCode(.url))
@@ -77,7 +77,7 @@ struct ComposerFormattingModelTests {
         let model = ComposerFormattingModel(composer: composer, clipboard: clipboard)
         model.selectedRange = NSRange(location: 0, length: 3)
         model.tap(.bbCode(.url))
-        model.declinePending()
+        model.declinePending(model.pending!)
         #expect(composer.text == "[url]ici[/url]")
     }
 
@@ -100,7 +100,7 @@ struct ComposerFormattingModelTests {
         model.selectedRange = NSRange(location: 1, length: 0)
         model.tap(.bbCode(.quote))
         #expect(model.pending?.message == "Insérer « extrait sur deux lignes » avec Citation ?")
-        model.acceptPending()
+        model.acceptPending(model.pending!)
         #expect(composer.text == "x[quote]extrait\nsur deux lignes[/quote]")
         #expect(model.selectedRange.location == composer.text.utf16.count)
     }
@@ -111,7 +111,7 @@ struct ComposerFormattingModelTests {
         let (composer, _) = await make("")
         let model = ComposerFormattingModel(composer: composer, clipboard: clipboard)
         model.tap(.bbCode(.bold))
-        model.acceptPending()
+        model.acceptPending(model.pending!)
         model.tap(.bbCode(.bold))
         #expect(model.pending == nil)
         clipboard.changeCount += 1
@@ -132,9 +132,41 @@ struct ComposerFormattingModelTests {
 
     @Test func nothingHappensWhileTheComposerCannotEdit() async {
         let composer = ComposerFixture.model(poster: ScriptedPoster([]))
-        let model = ComposerFormattingModel(composer: composer, clipboard: FakeClipboard())
+        let clipboard = FakeClipboard()
+        clipboard.string = "a"
+        let model = ComposerFormattingModel(composer: composer, clipboard: clipboard)
         model.tap(.bbCode(.bold))
-        #expect(composer.text.isEmpty)
+        #expect(model.pending == nil)
+        #expect(model.cursorRevision == 0)
+        #expect(!model.isEnabled)
+    }
+
+    @Test func decliningDoesNotMarkTheClipboardUsed() async {
+        let clipboard = FakeClipboard()
+        clipboard.string = "a"
+        let (_, model) = await make("", clipboard: clipboard)
+        model.tap(.bbCode(.bold))
+        model.declinePending(model.pending!)
+        model.tap(.bbCode(.bold))
+        #expect(model.pending != nil)
+    }
+
+    @Test func theCaretGoesToTheEndAfterARestore() async {
+        let (composer, model) = await make("abc")
+        model.placeCaretAtEnd()
+        #expect(model.selectedRange == NSRange(location: 3, length: 0))
+        model.tap(.bbCode(.bold))
+        #expect(composer.text == "abc[b][/b]")
+    }
+
+    @Test func aColourTapClosesThePaletteEvenWithAClipboardAlert() async {
+        let clipboard = FakeClipboard()
+        clipboard.string = "a"
+        let (_, model) = await make("", clipboard: clipboard)
+        model.isPaletteShown = true
+        model.tap(.color(ReplyTextColor.palette[0]))
+        #expect(model.pending != nil)
+        #expect(!model.isPaletteShown)
     }
 
     @Test func splitQuoteWorksFromTheCaret() async {

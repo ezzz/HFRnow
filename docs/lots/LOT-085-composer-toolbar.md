@@ -9,7 +9,7 @@ Absorbs feedback 'BBCode toolbar' (p. 505), 'link paste helper' (p. 497) and cur
 
 ## Legacy counterpart
 
-Legacy `origin/master` @ 21173e7 (the toolbar and the clipboard helper postdate `2440d79`; they are not in it).
+`BBCodeTag`, `wrapWithBBCode`, `splitQuote` and `insert` exist at `2440d79` (`ReplyComposer.swift:59-139`, GAP-085); `textForEmptySelection`, `wrapSelectionWithURL`, the colours, the toolbar and the clipboard helper are newer: `origin/master` @ 21173e7.
 
 | Legacy | Here |
 |---|---|
@@ -32,6 +32,7 @@ Legacy `origin/master` @ 21173e7 (the toolbar and the clipboard helper postdate 
 
 - Ranges are clamped in the engine (legacy: in the view). The caret is set from the engine's result after every edit
   (`cursorRevision`) through `TextEditor(text:selection:)`: the editor never jumps to the end.
+- Buttons show SF Symbols for every tag (legacy: letters "G", "I", "S", "IMG", "CODE") and the colour label is "Couleur <nom>" (legacy adds the hex): a (b) item for M5 if parity is wanted. Buttons are dimmed and disabled while the composer cannot edit. The caret goes to the end after the draft restore (legacy on appear). GAP-084's quote splitting now points here (engine only).
 - Toolbar is a bar under the editor, above the keyboard, not the legacy floating capsule: layout only, no behaviour change.
 - `insert` (smiley codes) is in the engine and model, not wired to a button here.
 

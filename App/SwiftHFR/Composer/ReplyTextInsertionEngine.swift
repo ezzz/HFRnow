@@ -6,7 +6,7 @@ struct ReplyTextInsertionResult: Equatable {
     let cursorLocationUTF16: Int
 }
 
-// Port of HFRswift/Swift/ReplyComposer.swift (BBCodeTag) @ origin/master 21173e7. Differences: none.
+// Port of HFRswift/Swift/ReplyComposer.swift (BBCodeTag) @ origin/master 21173e7 (GAP-085). Differences: none.
 /// The BBCode tags of the toolbar, in legacy order.
 enum BBCodeTag: String, CaseIterable, Sendable {
     case bold = "b"
@@ -50,7 +50,7 @@ enum BBCodeTag: String, CaseIterable, Sendable {
     }
 }
 
-// Port of HFRswift/Swift/AnswerView.swift (ReplyTextColor) @ origin/master 21173e7. Differences: none.
+// Port of HFRswift/Swift/AnswerView.swift (ReplyTextColor) @ origin/master 21173e7 (GAP-085). Differences: none.
 /// One colour of the palette; `[<hex>]…[/<hex>]` is HFR's colour tag as the legacy composer writes it.
 struct ReplyTextColor: Identifiable, Hashable, Sendable {
     let name: String
@@ -101,7 +101,7 @@ enum ReplyFormattingTarget: Equatable, Sendable {
     }
 }
 
-// Port of HFRswift/Swift/ReplyComposer.swift (ReplyTextInsertionEngine) @ origin/master 21173e7. Differences: the
+// Port of HFRswift/Swift/ReplyComposer.swift (ReplyTextInsertionEngine) @ origin/master 21173e7 (GAP-085). Differences: the
 // legacy `wrapWithBBCode(_ tag:)` overload is folded into `wrapWithBBCode(rawTag:)`; ranges are clamped here (legacy
 // clamped in the view).
 /// Pure text edits of the composer: wrap, insert, split a quote. UTF-16 ranges in and out; the caret is always returned

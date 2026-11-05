@@ -47,11 +47,11 @@ struct ReplyComposerView: View {
             .alert("Utiliser le presse-papiers ?", isPresented: askingClipboard, presenting: formatting.pending) { pending in
                 switch pending {
                 case .link:
-                    Button("Non", role: .cancel) { formatting.declinePending() }
-                    Button("Oui") { formatting.acceptPending() }
+                    Button("Non", role: .cancel) { formatting.declinePending(pending) }
+                    Button("Oui") { formatting.acceptPending(pending) }
                 case .formatting:
-                    Button("Sans le presse-papiers", role: .cancel) { formatting.declinePending() }
-                    Button("Insérer") { formatting.acceptPending() }
+                    Button("Sans le presse-papiers", role: .cancel) { formatting.declinePending(pending) }
+                    Button("Insérer") { formatting.acceptPending(pending) }
                 }
             } message: { pending in
                 Text(pending.message)
@@ -68,6 +68,7 @@ struct ReplyComposerView: View {
         .interactiveDismissDisabled(model.closeNeedsChoice || model.isSending)
         .task {
             await model.start()
+            formatting.placeCaretAtEnd()
             editorFocused = true
         }
         .onChange(of: scenePhase) { _, phase in
@@ -118,12 +119,16 @@ struct ReplyComposerView: View {
             }
     }
 
+    private static func end(of text: String) -> NSRange { NSRange(location: text.utf16.count, length: 0) }
+
     /// The first selected range as a UTF-16 `NSRange`.
     private static func range(of selection: TextSelection, in text: String) -> NSRange {
         switch selection.indices {
-        case .selection(let range): NSRange(range, in: text)
-        case .multiSelection(let set): set.ranges.first.map { NSRange($0, in: text) } ?? NSRange(location: text.utf16.count, length: 0)
-        @unknown default: NSRange(location: text.utf16.count, length: 0)
+        case .selection(let range) where range.upperBound <= text.endIndex: NSRange(range, in: text)
+        case .multiSelection(let set):
+            // A stale index (the text changed meanwhile) falls back to the end instead of trapping.
+            if let first = set.ranges.first, first.upperBound <= text.endIndex { NSRange(first, in: text) } else { end(of: text) }
+        default: end(of: text)
         }
     }
 

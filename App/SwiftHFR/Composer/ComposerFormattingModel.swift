@@ -13,7 +13,7 @@ protocol ClipboardReading {
 }
 
 // Port of HFRswift/Swift/AnswerView.swift (performFormatting, PendingClipboardInsertion, clipboard*Candidate)
-// @ origin/master 21173e7. Differences: a model instead of view @State, the pasteboard behind `ClipboardReading`.
+// @ origin/master 21173e7 (GAP-085). Differences: a model instead of view @State, the pasteboard behind `ClipboardReading`.
 /// State of the formatting toolbar (LOT-085): the caret, the colour palette and the clipboard confirmation.
 ///
 /// It edits the text of a `ReplyComposerModel` through `ReplyTextInsertionEngine` and always says where the caret goes
@@ -60,6 +60,8 @@ final class ComposerFormattingModel {
     func tap(_ target: ReplyFormattingTarget) {
         guard composer.canEdit else { return }
         let range = ReplyTextInsertionEngine.clamped(selectedRange, in: composer.text)
+        // Legacy closes the palette on the colour tap, even when the clipboard alert follows.
+        if case .color = target { isPaletteShown = false }
         if case .bbCode(.url) = target, range.length > 0, let candidate = urlCandidate() {
             pending = .link(url: candidate.text, range: range, changeCount: candidate.changeCount)
             return
@@ -72,8 +74,7 @@ final class ComposerFormattingModel {
     }
 
     /// The user accepted the clipboard (Oui / Insérer).
-    func acceptPending() {
-        guard let current = pending else { return }
+    func acceptPending(_ current: Pending) {
         pending = nil
         switch current {
         case .link(let url, let range, let changeCount):
@@ -86,8 +87,7 @@ final class ComposerFormattingModel {
     }
 
     /// The user refused the clipboard (Non / Sans le presse-papiers): the plain tags go in.
-    func declinePending() {
-        guard let current = pending else { return }
+    func declinePending(_ current: Pending) {
         pending = nil
         switch current {
         case .link(_, let range, _): apply(.bbCode(.url), range: range)
@@ -97,6 +97,15 @@ final class ComposerFormattingModel {
 
     /// The alert was dismissed without a choice: nothing is inserted.
     func dismissPending() { pending = nil }
+
+    /// Puts the caret at the end of the text (after a draft was restored, as legacy does on appear).
+    func placeCaretAtEnd() {
+        selectedRange = NSRange(location: composer.text.utf16.count, length: 0)
+        cursorRevision += 1
+    }
+
+    /// Whether the buttons act (the composer can edit).
+    var isEnabled: Bool { composer.canEdit }
 
     /// Inserts `snippet` (a smiley code) at the caret.
     func insert(_ snippet: String) {
