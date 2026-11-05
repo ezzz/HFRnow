@@ -37,6 +37,7 @@ body {
 }
 a { color: var(--action); }
 
+.separator1 { border-top: 1px dashed var(--separator); }
 .message { padding: 0.75em 1em; border-bottom: 1px solid var(--separator); }
 .message .header { display: flex; align-items: center; gap: 0.5em; margin-bottom: 0.5em; }
 .message .avatar { width: 2.2em; height: 2.2em; border-radius: 50%; object-fit: cover; }

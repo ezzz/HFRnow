@@ -118,6 +118,9 @@ final class ReplyComposerModel: Identifiable {
         (services.smileyFavorites, services.account)
     }
 
+    /// What the image panel needs (LOT-102).
+    var imageUploadServices: ImageUploadServices { services.imageUpload }
+
     /// The editor accepts typing.
     var canEdit: Bool { hasRestored && !isSending && !isClosing && closeReason == nil }
 
