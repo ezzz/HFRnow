@@ -115,7 +115,7 @@ def body_is_mp(body):
     """True for a recorded POST body that writes an MP: `cat=prive` (any case) or a `dest` field."""
     if not isinstance(body, str):
         return False
-    return any((k.lower() == "cat" and v.strip().lower() == "prive") or k.lower() == "dest"
+    return any((k.lower() == "cat" and v.strip().lower() == "prive") or k.lower() in ("dest", "newdest")
                for k, v in urllib.parse.parse_qsl(body, keep_blank_values=True))
 
 
@@ -154,10 +154,33 @@ def meta_subject_findings(text):
     # Only MP writes: the subject of a public topic is public (its body says `cat=<number>`).
     if not meta_is_private(doc):
         return []
-    return [(line, 0, "request body subject not replaced")
+    subject = next((v.strip() for k, v in fields if k.lower() == "sujet"), None)
+    kept_thread = subject is not None and subject != PRIVATE_SUBJECT and (
+        _V_FIXTURE_SUBJECT.fullmatch(subject) or subject == MPSTORAGE_SUBJECT)
+    content = [(line, 0, "request body message text not replaced")
+               for k, v in fields if k.lower() == "content_form" and v.strip() and v.strip() != PRIVATE_PLACEHOLDER
+               and not kept_thread]
+    return content + [(line, 0, "request body subject not replaced")
             for k, v in fields
             if k.lower() == "sujet" and v.strip() and not (
                 v.strip() in (PRIVATE_SUBJECT, MPSTORAGE_SUBJECT, OWN_SUBJECT) or _V_FIXTURE_SUBJECT.fullmatch(v.strip()))]
+
+
+def _subject_kept(value):
+    return bool(KEEP_SUBJECT_RE.match(value))
+
+
+def private_request_body(body):
+    """Recorded POST body of an MP write: the message text (`content_form`) is replaced unless the write goes to a
+    kept thread (fixture thread or MPStorage, whose bodies are the operator's own neutral text), then the subject."""
+    if body_is_mp(body):
+        fields = urllib.parse.parse_qsl(body, keep_blank_values=True)
+        subject = next((v for k, v in fields if k.lower() == "sujet"), None)
+        if subject is None or not _subject_kept(urllib.parse.unquote_plus(subject).strip()) or subject.strip() == PRIVATE_SUBJECT:
+            body = re.sub(r"((?:^|&)content_form=)([^&]*)",
+                          lambda m: m.group(1) + urllib.parse.quote_plus(PRIVATE_PLACEHOLDER), body, flags=re.I)
+        return private_request_subject(body)
+    return body
 
 
 REQUEST_SUBJECT_RE = re.compile(r"((?:^|&)sujet=)([^&]*)", re.I)
@@ -385,7 +408,7 @@ PARA_OPEN_RE = re.compile(r"<(\w+)\b[^>]*\bid=([\"'])para[^\"']*\2[^>]*>", re.I)
 _E = r"(?:é|&eacute;|&#0*233;)"
 _AGRAVE = r"(?:à|&agrave;|&#0*224;)"
 _Q = r"[\"']"
-_PARAMS = r"(?:spseudo|pseudo|dest|auteur)"
+_PARAMS = r"(?:spseudo|pseudo|newdest|dest|auteur)"
 DISCOVER = tuple((label, re.compile(rx, re.I | re.S), group, mode) for label, rx, group, mode in (
     # Topic and MP pages: the author cell; `b.s2` elsewhere (poll question) is not a member.
     ("post author", r"<td\b[^>]*\bclass=%smessCase1%s[^>]*>(?:(?!</td>).)*?<b\b[^>]*\bclass=%ss2%s[^>]*>(.*?)</b>"
@@ -983,7 +1006,7 @@ class Anonymizer:
                     raw = param_value(raw, text[max(0, m.start(group) - 400):m.start(group)])
                 # `dest` lists several recipients separated by commas: each one is a name.
                 if (mode == "param" and text[:m.start(group)].lower().endswith("dest=")) or (
-                        mode == "name" and re.search(r"\bname=[\"']dest[\"']", m.group(0), re.I)):
+                        mode == "name" and re.search(r"\bname=[\"'](?:new)?dest[\"']", m.group(0), re.I)):
                     for item in decode_name(raw, mode).split(","):
                         found.append((item.strip(), base + m.start(group), mode))
                     continue
@@ -1064,7 +1087,7 @@ class Anonymizer:
                     end = start + len(raw)
                     if m.group(0)[:start].lower().endswith("dest="):
                         return m.group(0)[:start] + self._rewrite_dest(raw) + m.group(0)[end:]
-                elif mode == "name" and re.search(r"\bname=[\"']dest[\"']", m.group(0), re.I):
+                elif mode == "name" and re.search(r"\bname=[\"'](?:new)?dest[\"']", m.group(0), re.I):
                     return m.group(0)[:start] + self._rewrite(raw, "list") + m.group(0)[end:]
                 return m.group(0)[:start] + self._rewrite(raw, mode) + m.group(0)[end:]
             s = rx.sub(sub, s)
@@ -1538,7 +1561,7 @@ _V_IDS = {label: re.compile(rx) for label, rx in (
     ("member id id_user=", r"id_user=(\d+)"), ("member id avatar", r"mesdiscussions-(\d+)"),
     ("member id quotemsg", r"quotemsg=\d+,\d+,(\d+)\]"),
     ("member id smiley search", r"find_smilies_timer\([^,)]*,\s*(\d+)"))}
-_V_PARAM = re.compile(r"(?:^|[?&;/])(pseudo|spseudo|dest|auteur)=([^&#\"<>\n]{0,120})", re.I)
+_V_PARAM = re.compile(r"(?:^|[?&;/])(pseudo|spseudo|newdest|dest|auteur)=([^&#\"<>\n]{0,120})", re.I)
 _V_POSTS_PATH = re.compile(r"/hfr/recherche/pseudo-([^/?#\"'<>\s]+)\.htm")
 # Public profile rows (R56), matched on the label cell's text: the value must be a placeholder or a fixed value.
 _V_PROFILE_PERSONAL = re.compile(r"(?:Email|Date de naissance|Sexe|Ville|Profession|Loisirs|Site\b.*|Homepage|"
@@ -1611,7 +1634,7 @@ class StructuralVerifier(html.parser.HTMLParser):
                 value = value.split("'")[0]
             value = html.unescape(urllib.parse.unquote_plus(value))
             # `dest` lists several recipients separated by commas.
-            for item in (value.split(",") if m.group(1).lower() == "dest" else [value]):
+            for item in (value.split(",") if m.group(1).lower() in ("dest", "newdest") else [value]):
                 if item.strip():
                     self._name("URL parameter %s=" % m.group(1).lower(), item, line)
         for m in _V_SMILEY.finditer(s):
@@ -1656,8 +1679,8 @@ class StructuralVerifier(html.parser.HTMLParser):
                     decoded = decode_payload(c[len(prefix):])
                     if decoded:
                         self.check_value(decoded)
-        if tag == "input" and a.get("name", "").lower() in ("pseudo", "spseudo", "dest", "auteur") and a.get("value"):
-            for item in (a["value"].split(",") if a.get("name", "").lower() == "dest" else [a["value"]]):
+        if tag == "input" and a.get("name", "").lower() in ("pseudo", "spseudo", "newdest", "dest", "auteur") and a.get("value"):
+            for item in (a["value"].split(",") if a.get("name", "").lower() in ("dest", "newdest") else [a["value"]]):
                 if item.strip():
                     self._name("pseudo input", item)
         if tag == "img" and "/images/perso/" in a.get("src", ""):

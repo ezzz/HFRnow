@@ -46,7 +46,7 @@
     "smiley",
     "emaill"
   ],
-  "request_body": "hash_check=REDACTED&parents=&post=&stickold=&new=0&cat=prive&numreponse=&numrep=&page=1&verifrequet=1100&p=1&sondage=0&sond=0&cache=&owntopic=0&config=hfr.inc&pseudo=user1&password=&dest=user2%2Cuser3&sujet=Private+subject&MsgIcon=1&search_smilies=&ColorUsedMem=&content_form=SwiftHFR+test+fixture+for+the+group+message+screen%2C+sent+by+the+operator%27s+accounts.+No+reply+needed.&wysiwyg=0&submit=Valider+votre+message&signature=1&smiley=0&emaill=0",
+  "request_body": "hash_check=REDACTED&parents=&post=&stickold=&new=0&cat=prive&numreponse=&numrep=&page=1&verifrequet=1100&p=1&sondage=0&sond=0&cache=&owntopic=0&config=hfr.inc&pseudo=user1&password=&dest=user2%2Cuser3&sujet=Private+subject&MsgIcon=1&search_smilies=&ColorUsedMem=&content_form=Private+message+content+removed.&wysiwyg=0&submit=Valider+votre+message&signature=1&smiley=0&emaill=0",
   "file": "W70-mp-create-group-success.html",
-  "private": false
+  "private": true
 }

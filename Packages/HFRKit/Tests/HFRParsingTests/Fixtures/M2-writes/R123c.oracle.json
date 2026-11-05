@@ -18,7 +18,7 @@
     "currentURL" : null,
     "file" : "../captures/R123c-mp-reply-composer-group-owner-newdest.html",
     "now" : null,
-    "sha256" : "4d055732deaaa658c2a646b0d73ad8edb4ac831fb18a07462cf9d3772932d946"
+    "sha256" : "efe17f2ef01e858d1cfc51bf0b25d02ee0cf29480f43dc2db2f29035dbfd8804"
   },
   "kind" : "form",
   "legacyCommit" : "2440d79",
@@ -56,7 +56,7 @@
         "hash_check" : "REDACTED",
         "MsgIcon" : "1",
         "new" : "0",
-        "newdest" : "user5, user2",
+        "newdest" : "user3, user2",
         "numrep" : "",
         "numreponse" : "",
         "owntopic" : "0",
@@ -127,7 +127,7 @@
       ],
       "post" : {
         "bodyBytes" : 480,
-        "bodySorted" : "ColorUsedMem=&MsgIcon=1&cache=&cat=prive&config=hfr.inc&content_form=Test%20message%0D%0Aline%20two%3A%20%C3%A9%20%26%20%2B%20%3D%20%25%20100%25&emaill=0&hash_check=0123456789abcdef0123456789abcdef01234567&new=0&newdest=user5%2C%20user2&numrep=&numreponse=&owntopic=0&p=1&page=1&parents=&password=&post=3207958&pseudo=user1&search_smilies=&signature=1&smiley=0&sond=0&sondage=0&stickold=&subcat=0&submit=Valider%20votre%20message&sujet=Private%20subject&verifrequet=1100&wysiwyg=0",
+        "bodySorted" : "ColorUsedMem=&MsgIcon=1&cache=&cat=prive&config=hfr.inc&content_form=Test%20message%0D%0Aline%20two%3A%20%C3%A9%20%26%20%2B%20%3D%20%25%20100%25&emaill=0&hash_check=0123456789abcdef0123456789abcdef01234567&new=0&newdest=user3%2C%20user2&numrep=&numreponse=&owntopic=0&p=1&page=1&parents=&password=&post=3207958&pseudo=user1&search_smilies=&signature=1&smiley=0&sond=0&sondage=0&stickold=&subcat=0&submit=Valider%20votre%20message&sujet=Private%20subject&verifrequet=1100&wysiwyg=0",
         "contentType" : "application/x-www-form-urlencoded; charset=utf-8",
         "method" : "POST",
         "pairs" : [
@@ -169,7 +169,7 @@
           ],
           [
             "newdest",
-            "user5, user2"
+            "user3, user2"
           ],
           [
             "numrep",
@@ -260,12 +260,12 @@
       ],
       "smileys" : [
         {
-          "alt" : "[:user3]",
-          "src" : "https://forum-images.hardware.fr/images/perso/user3.gif"
-        },
-        {
           "alt" : "[:user4]",
           "src" : "https://forum-images.hardware.fr/images/perso/user4.gif"
+        },
+        {
+          "alt" : "[:user5]",
+          "src" : "https://forum-images.hardware.fr/images/perso/user5.gif"
         },
         {
           "alt" : "[:user1]",
@@ -311,7 +311,7 @@
       "post" : {
         "bodyBytes" : 452,
         "bodyOrder" : "unspecified (Swift Dictionary iteration)",
-        "bodySorted" : "ColorUsedMem=&MsgIcon=1&cache=&cat=prive&config=hfr.inc&content_form=Test+message%0D%0Aline+two:+%C3%A9+%26+%2B+%3D+%25+100%25&emaill=0&hash_check=0123456789abcdef0123456789abcdef01234567&new=0&newdest=user5,+user2&numrep=&numreponse=&owntopic=0&p=1&page=1&parents=&password=&post=3207958&pseudo=user1&search_smilies=&signature=1&smiley=0&sond=0&sondage=0&stickold=&subcat=0&submit=Valider+votre+message&sujet=Private+subject&verifrequet=1100&wysiwyg=0",
+        "bodySorted" : "ColorUsedMem=&MsgIcon=1&cache=&cat=prive&config=hfr.inc&content_form=Test+message%0D%0Aline+two:+%C3%A9+%26+%2B+%3D+%25+100%25&emaill=0&hash_check=0123456789abcdef0123456789abcdef01234567&new=0&newdest=user3,+user2&numrep=&numreponse=&owntopic=0&p=1&page=1&parents=&password=&post=3207958&pseudo=user1&search_smilies=&signature=1&smiley=0&sond=0&sondage=0&stickold=&subcat=0&submit=Valider+votre+message&sujet=Private+subject&verifrequet=1100&wysiwyg=0",
         "contentType" : "application/x-www-form-urlencoded; charset=utf-8",
         "method" : "POST",
         "pairs" : [
@@ -353,7 +353,7 @@
           ],
           [
             "newdest",
-            "user5, user2"
+            "user3, user2"
           ],
           [
             "numrep",

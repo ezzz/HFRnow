@@ -1114,3 +1114,37 @@ class MPWriteSignalTests(unittest.TestCase):
                            "url": "https://forum.hardware.fr/bddpost.php?config=hfr.inc",
                            "request_body": "cat=prive&sujet=fixture-test-1"}, fh)
             self.assertEqual([p for f, p in A.corpus_entries(d) if f.endswith(".html")], [True])
+
+
+class NewDestTests(unittest.TestCase):
+    """`newdest` (the owner's recipient list of a group MP reply form) is a recipient position, comma-separated."""
+
+    def test_input_url_and_body_are_aliased_for_unconfigured_names(self):
+        page = ('<input size="25" name="newdest" value="%s, %s" id="newdest" />'
+                '<a href="/x?newdest=%s%%2C%s&amp;a=1">l</a>' % (OTHER, "Thirdy", OTHER, "Thirdy"))
+        out = anon(page)
+        for real in (OTHER, "Thirdy"):
+            self.assertNotIn(real, out)
+        self.assertRegex(out, r'value="user\d+, user\d+"')
+        self.assertEqual(leaks(out), [])
+        reasons = [r for _l, _c, r in leaks(page)]
+        self.assertTrue(reasons, "the verifier must see an un-aliased newdest")
+
+    def test_body_with_newdest_is_an_mp_write(self):
+        self.assertTrue(A.body_is_mp("newdest=a%2Cb&x=1"))
+
+    def test_request_body_message_text(self):
+        import json
+        real = "cat=prive&sujet=Weekend+chez+Marie&content_form=words+of+Marie&dest=a"
+        out = A.private_request_body(real)
+        self.assertNotIn("Marie", out)
+        self.assertIn("content_form=Private+message+content+removed.", out)
+        kept = "cat=prive&sujet=fixture-test-1&content_form=fixture-test+1%2C+text"
+        self.assertEqual(A.private_request_body(kept), kept)
+        public = "cat=13&sujet=Public+title&content_form=public+words"
+        self.assertEqual(A.private_request_body(public), public)
+        for body, bad in ((real, True), (out, False), (kept, False), ("cat=prive&sujet=Private+subject&content_form=neutral", True),
+                          ("CAT=prive&SUJET=Weekend&Content_Form=x", True)):
+            meta = {"url": "https://forum.hardware.fr/bddpost.php?config=hfr.inc", "request_body": body}
+            found = [r for _l, _c, r in leaks(json.dumps(meta, indent=2)) if "message text" in r]
+            self.assertEqual(bool(found), bad, body)

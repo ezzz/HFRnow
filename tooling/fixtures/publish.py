@@ -69,7 +69,7 @@ def publish_one(anon, raw_dir, dest, entry):
     meta = {"id": entry["id"]}
     meta.update(anon.anonymize_meta({k: raw_meta[k] for k in META_KEYS if k in raw_meta}))
     if body is not None:
-        meta["request_body"] = A.private_request_subject(anon.redact_text(body))
+        meta["request_body"] = A.private_request_body(anon.redact_text(body))
     name = None
     if page is not None:
         name = "%s-%s.%s" % (entry["id"], entry["slug"], entry["ext"])
