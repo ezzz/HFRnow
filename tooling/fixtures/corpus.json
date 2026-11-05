@@ -185,6 +185,23 @@
     {"raw": "R123e", "id": "R123e", "slug": "mp-reply-composer-group-member-no-roster", "ext": "html", "private": true},
     {"raw": "R123f", "id": "R123f", "slug": "mp-list-group-member", "ext": "html", "private": true},
     {"raw": "N1form", "id": "R123k", "slug": "new-mp-form-recipients-comma-hint", "ext": "html", "private": true},
-    {"raw": "R123g", "id": "R123g", "slug": "favourites-owntopic1-empty-after-delflag", "ext": "html", "private": false}
+    {"raw": "R123g", "id": "R123g", "slug": "favourites-owntopic1-empty-after-delflag", "ext": "html", "private": false},
+    {"raw": "T01", "id": "T01", "slug": "aq-rss-feed", "ext": "xml", "private": false},
+    {"raw": "T02", "id": "T02", "slug": "aq-alerts-by-topic", "ext": "xml", "private": false},
+    {"raw": "R97a", "id": "R97a", "slug": "apple-app-site-association", "ext": "json", "private": false},
+    {"raw": "R98a", "id": "R98a", "slug": "hardware-fr-personal-data-page", "ext": "html", "private": false},
+    {"raw": "T10", "id": "T10", "slug": "https-casimages-dns-failure", "ext": "", "private": false},
+    {"raw": "T11", "id": "T11", "slug": "https-free-fr-connection-refused", "ext": "", "private": false},
+    {"raw": "T11h", "id": "T11h", "slug": "http-free-fr-image", "ext": "", "private": false},
+    {"raw": "T12", "id": "T12", "slug": "https-hostingpics-dns-failure", "ext": "", "private": false},
+    {"raw": "T13", "id": "T13", "slug": "https-photorapide-image", "ext": "", "private": false},
+    {"raw": "T14", "id": "T14", "slug": "https-camif-not-found", "ext": "", "private": false},
+    {"raw": "T14h", "id": "T14h", "slug": "http-camif-redirect-to-https", "ext": "", "private": false},
+    {"raw": "T15", "id": "T15", "slug": "https-hn-org-dns-failure", "ext": "", "private": false},
+    {"raw": "T20", "id": "T20", "slug": "rehost-home-no-referer-403", "ext": "", "private": false},
+    {"raw": "T21", "id": "T21", "slug": "rehost-home-forum-referer", "ext": "", "private": false},
+    {"raw": "T22", "id": "T22", "slug": "rehost-image-path-no-referer-403", "ext": "", "private": false},
+    {"raw": "T23", "id": "T23", "slug": "rehost-image-path-forum-referer", "ext": "", "private": false},
+    {"raw": "T24", "id": "T24", "slug": "rehost-home-legacy-referer-no-slash", "ext": "", "private": false}
   ]
 }
