@@ -197,7 +197,8 @@ OWN_HTTP_DATE_RE = re.compile(r"\b[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}
 
 def own_topics_in(text, topics):
     """The operator-owned topic ids (strings) this page or URL belongs to."""
-    return [t for t in topics if re.search(r"(?:\bpost=|sujet_|\bname=[\"']post[\"']\s*value=[\"'])%s(?!\d)" % t, text)]
+    # `numeropost=` is the poll vote body's topic field (R32a).
+    return [t for t in topics if re.search(r"(?:\b(?:numero)?post=|sujet_|\bname=[\"']post[\"']\s*value=[\"'])%s(?!\d)" % t, text)]
 
 
 def own_message_ids(texts, topics):
@@ -577,6 +578,69 @@ def mpstorage_form_copies(text):
         return []
     return [(m.group(1), markup) for rx, markup in ((CONTENT_FORM_RE, False), (REVIEW_BODY_RE, True))
             for m in rx.finditer(text) if m.group(1).strip()]
+
+
+# A composer or edit-form page repeats the thread's text twice outside `para` blocks: the `content_form` textarea
+# (an edit's stored text, a quote prefill) and the review cell after `td.messCase1bis` ("Vue Rapide"). In private
+# mode both are replaced unless the page is the operator's own fixture thread (`fixture-test-N` in the hidden
+# `sujet` input or in the visible "Sujet :" header) or the MPStorage thread (checked document by document above).
+_SUJET_INPUT_RE = re.compile(r"<input\b(?=[^>]*\bname=[\"']sujet[\"'])[^>]*>", re.I)
+_SUJET_VALUE_RE = re.compile(r"\bvalue=([\"'])(.*?)\1", re.I | re.S)
+_SUJET_VISIBLE_RE = re.compile(r"<th\b[^>]*\bclass=[\"'][^\"']*\bpadding\b[^\"']*[\"'][^>]*>(?:\s|&nbsp;)*Sujet\s*:\s*(?:<h3>)?([^<]*)", re.I)
+
+
+def is_fixture_thread(text):
+    """True when every thread name the page prints (hidden `sujet` input, visible header) is a fixture thread; False if none."""
+    names = [html.unescape(m.group(2)) for tag in _SUJET_INPUT_RE.findall(text)
+             for m in [_SUJET_VALUE_RE.search(tag)] if m]
+    names += [html.unescape(m.group(1)) for m in _SUJET_VISIBLE_RE.finditer(text)]
+    return bool(names) and all(re.fullmatch(r"\s*fixture-test-\d+\s*", n) for n in names)
+
+
+_TD_TAG_RE = re.compile(r"<(/?)td\b[^>]*>", re.I)
+_REVIEW_AUTHOR_RE = re.compile(r"<td\b[^>]*\bclass=[\"']messCase1bis[\"'][^>]*>", re.I)
+
+
+def _td_end(text, pos):
+    """Index of the `</td>` closing the cell whose content starts at pos (nested cells, e.g. a quote table, balanced)."""
+    depth = 1
+    for m in _TD_TAG_RE.finditer(text, pos):
+        depth += -1 if m.group(1) else 1
+        if depth == 0:
+            return m.start()
+    return None
+
+
+def review_cells(text):
+    """(start, end) of the content of every cell after a `td.messCase1bis` cell; both cells may hold markup and quotes."""
+    spans = []
+    for m in _REVIEW_AUTHOR_RE.finditer(text):
+        author_end = _td_end(text, m.end())
+        if author_end is None:
+            continue
+        after = text.index(">", author_end) + 1
+        nxt = _TD_TAG_RE.search(text, after)
+        if nxt is None or nxt.group(1) or text[after:nxt.start()].strip():
+            continue
+        end = _td_end(text, nxt.end())
+        if end is not None:
+            spans.append((nxt.end(), end))
+    return spans
+
+
+def private_form_copies(text):
+    """Replace the content_form textarea and the review cell of a form page that is not a fixture thread."""
+    if is_fixture_thread(text) or MPSTORAGE_FORM_RE.search(text):
+        return text, 0
+    spans = [(m.start(1), m.end(1)) for m in CONTENT_FORM_RE.finditer(text)] + review_cells(text)
+    parts, last, count = [], 0, 0
+    for start, end in sorted(spans):
+        inner = text[start:end]
+        if start < last or not inner.strip() or _strip_tags(inner).strip() == PRIVATE_PLACEHOLDER:
+            continue
+        parts += [text[last:start], PRIVATE_PLACEHOLDER]
+        last, count = end, count + 1
+    return "".join(parts) + text[last:], count
 
 
 class MPStorageDocumentError(AnonymizeError):
@@ -1142,6 +1206,8 @@ class Anonymizer:
                 last = end
                 self.stats["private_blocks"] += 1
             text = "".join(parts) + text[last:]
+            text, copies = private_form_copies(text)
+            self.stats["private_blocks"] += copies
             text = SUBJECT_RE.sub(lambda m: m.group(0) if KEEP_SUBJECT_RE.match(_strip_tags(m.group(2)))
                                   else m.group(1) + PRIVATE_SUBJECT + m.group(3), text)
         for open_re, placeholder in PERSONAL_BLOCKS:
@@ -1271,6 +1337,12 @@ class Anonymizer:
                         continue
                 if _strip_tags(text[start:end]) != PRIVATE_PLACEHOLDER:
                     res.append((line_of(text, start), column_of(text, start), "private message body not replaced"))
+            if not _V_MPSTORAGE_SUBJECT_TEXT.search(text) and not _v_fixture_thread(text):
+                for m in _V_MPSTORAGE_COPY.finditer(text):
+                    body = m.group(1) if m.group(1) is not None else m.group(2)
+                    if _v_text(body, markup=m.group(1) is None) not in ("", PRIVATE_PLACEHOLDER):
+                        res.append((line_of(text, m.start()), column_of(text, m.start()),
+                                    "private form copy not replaced"))
             if _V_MPSTORAGE_SUBJECT_TEXT.search(text):
                 for m in _V_MPSTORAGE_COPY.finditer(text):
                     body = m.group(1) if m.group(1) is not None else m.group(2)
@@ -1292,6 +1364,22 @@ _V_MPSTORAGE_TITLE = re.compile(r"<title>\s*%s - Messages priv" % MPSTORAGE_SUBJ
 _V_MPSTORAGE_SUBJECT_TEXT = re.compile(r"Sujet\s*:\s*(?:<h3>\s*)?%s\b" % MPSTORAGE_SUBJECT)
 _V_MPSTORAGE_COPY = re.compile(r"<textarea\b(?=[^>]*\bname=[\"']content_form[\"'])[^>]*>(.*?)</textarea|messCase1bis\b[^>]*>[^<]*</td>\s*<td[^>]*>((?:(?!</td>).)*)",
                                re.I | re.S)
+# Fixture threads, apart from is_fixture_thread: every `sujet` input and "Sujet :" header must name fixture-test-N.
+_V_SUJET_INPUT = re.compile(r"<input\b[^>]*\bname=[\"']sujet[\"'][^>]*>", re.I)
+_V_SUJET_VALUE = re.compile(r"value=[\"']([^\"']*)", re.I)
+_V_SUJET_HEADER = re.compile(r"Sujet\s*:\s*(?:<h3>\s*)?([^<\s][^<]*)", re.I)
+
+
+def _v_fixture_thread(text):
+    names = [m.group(1) for tag in _V_SUJET_INPUT.findall(text) for m in [_V_SUJET_VALUE.search(tag)] if m]
+    names += [m.group(1) for m in _V_SUJET_HEADER.finditer(text)]
+    return bool(names) and all(re.fullmatch(r"\s*fixture-test-\d+\s*", html.unescape(n)) for n in names)
+
+
+def _v_text(inner, markup):
+    return html.unescape(re.sub(r"<[^>]*>", " ", inner) if markup else inner).replace("\u00a0", " ").strip()
+
+
 _V_MPSTORAGE_WORDS = frozenset(("data", "version", "0.1", "blacklist", "mpFlags", "bookmarks", "list",
                                 "sourceName", "iOS", "lastUpdate"))
 
@@ -1374,11 +1462,13 @@ def allowed_name(name):
 class StructuralVerifier(html.parser.HTMLParser):
     """Collects (line, column, reason) for every non-aliased name or real id in member positions."""
 
-    def __init__(self, private=False):
+    def __init__(self, private=False, copies_ok=True):
         super().__init__(convert_charrefs=True)
         self.found = []
         self.stack = []
         self.private = private
+        self.copies_ok = copies_ok  # fixture or storage thread: form copies are not this verifier's business
+        self.review_next = False    # the next td is the review cell after a td.messCase1bis
         self.title = None          # page <title> text, checked once the body says it is a profile page
         self.profile_label = None  # text of the last td.profilCase2 (public profile row label)
         self.form_label = None  # text of the last th.repCase1 (reply / edit form row label)
@@ -1465,7 +1555,13 @@ class StructuralVerifier(html.parser.HTMLParser):
             return
         where = None
         href = a.get("href", "")
-        if tag == "b" and "s2" in cls and self._ctx("td", "messCase1"):
+        review = self.review_next and tag == "td"
+        if tag == "td":
+            self.review_next = False
+        if self.private and not self.copies_ok and (review or (
+                tag == "textarea" and a.get("name") == "content_form")):
+            where = "private form copy"
+        elif tag == "b" and "s2" in cls and self._ctx("td", "messCase1"):
             where = "post author"
         elif tag == "td" and cls & {"sujetCase6", "messCase1bis"}:
             where = "list author" if "sujetCase6" in cls else "form review author"
@@ -1524,6 +1620,8 @@ class StructuralVerifier(html.parser.HTMLParser):
                 return
 
     def _close(self, e):
+        if e["where"] == "form review author":
+            self.review_next = True
         if e.get("params"):
             text = name_key("".join(e["text"]).strip())
             aliases = [m.group(0) for m in (re.match(r"user\d+", p) for p in e["params"]) if m]
@@ -1552,6 +1650,9 @@ class StructuralVerifier(html.parser.HTMLParser):
             elif e["where"] == "signature or mood":
                 if text not in ("", "Signature removed.", "Mood removed."):
                     self._bad("signature or mood text", text, e["line"])
+            elif e["where"] == "private form copy":
+                if text not in ("", PRIVATE_PLACEHOLDER):
+                    self._bad("private form copy", text, e["line"])
             elif e["where"] == "private MP subject":
                 # Any text but the placeholder, a fixture thread or the MPStorage title (digits too).
                 if text and not (text in (PRIVATE_SUBJECT, MPSTORAGE_SUBJECT) or _V_FIXTURE_SUBJECT.fullmatch(text)):
@@ -1668,7 +1769,7 @@ def verify_structure(text, private=False):
     """Independent check of every member position (HTML or JSON), and of MP subjects when private; [] when clean."""
     if looks_json(text):
         return _verify_json(text)
-    v = StructuralVerifier(private=private)
+    v = StructuralVerifier(private=private, copies_ok=bool(_V_MPSTORAGE_SUBJECT_TEXT.search(text)) or _v_fixture_thread(text))
     v.feed(text)
     v.close()
     return v.found

@@ -2,8 +2,10 @@ import HFRModels
 import HFRStorage
 import SwiftUI
 
-/// What a settings row leads to. Later lots add their cases here (theme: LOT-121, icon: LOT-123) and replace the
-/// placeholder of their case, so the shell does not change again.
+// Port of HFRswift/Swift/AppSettingsView.swift (AppSettingsView) @ 2440d79. Differences: each section comes with its lot; only "Général"
+// for now.
+/// What a settings row leads to. Later lots add their cases here (theme: LOT-121, icon: LOT-123) and replace their
+/// case's placeholder in `SettingsDestinationView`, so the shell does not change again.
 enum SettingsDestination: Hashable {
     case theme
     case icon
@@ -24,16 +26,24 @@ enum SettingsDestination: Hashable {
     }
 }
 
+extension ImageDisplayMode {
+    /// Picker label. "Jamais" keeps images behind a tap (the reader's placeholder), it never fetches them by itself.
+    var title: String {
+        switch self {
+        case .always: "Toujours"
+        case .wifiOnly: "Wi-Fi uniquement"
+        case .never: "Jamais (au toucher)"
+        }
+    }
+}
+
 /// The settings screen (LOT-119): the "Général" section and the entry points of the sections other lots fill in.
 struct SettingsView: View {
-    @State private var general: GeneralSettingsModel
-
-    /// Reads the settings from `store`; the live app re-applies the orientation when the rotation switch changes.
-    init(store: any SettingsStore = UserDefaultsSettingsStore(), rotationChanged: @escaping @MainActor () -> Void = {}) {
-        _general = State(initialValue: GeneralSettingsModel(store: store, rotationChanged: rotationChanged))
-    }
+    /// The app's one settings model: a change here re-renders every screen at once (LOT-169).
+    @Environment(GeneralSettingsModel.self) private var general
 
     var body: some View {
+        @Bindable var general = general
         Form {
             Section("Général") {
                 Picker("Écran de démarrage", selection: $general.startupScreen) {
@@ -54,27 +64,45 @@ struct SettingsView: View {
                     .accessibilityLabel("Taille du texte")
                     .accessibilityValue("\(general.textSizePercent) %")
                 }
+                Picker("Images externes", selection: $general.imageLoading) {
+                    ForEach(ImageDisplayMode.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
                 Toggle("Rotation d’écran", isOn: $general.allowsRotation)
                 Toggle(isOn: $general.opensLinksInDefaultBrowser) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Navigateur par défaut")
                         Text("Désactivé : navigateur intégré")
-                            .font(.footnote)
+                            .scaledFont(.footnote)
                             .foregroundStyle(.secondary)
                     }
                 }
-                NavigationLink(value: SettingsDestination.icon) { Text(SettingsDestination.icon.title) }
+                NavigationLink { SettingsDestinationView(destination: .icon) } label: {
+                    Text(SettingsDestination.icon.title)
+                }
             }
             Section("Thème") {
-                NavigationLink(value: SettingsDestination.theme) {
+                NavigationLink { SettingsDestinationView(destination: .theme) } label: {
                     Text(SettingsDestination.theme.title)
                 }
             }
         }
+        // Legacy settings spacing in compact mode (`AppSettingsView.swift:597` at 21173e77).
         .listSectionSpacing(general.compactMode ? .custom(8) : .default)
         .navigationTitle("Réglages")
         .navigationBarTitleDisplayMode(.inline)
-        .navigationDestination(for: SettingsDestination.self) { destination in
+    }
+}
+
+/// The screen behind a settings row. Rows link to it directly, not by value: on iPhone the settings screen is presented by
+/// the Plus stack's `navigationDestination(item:)`, and a value pushed from such a screen never resolves.
+struct SettingsDestinationView: View {
+    let destination: SettingsDestination
+
+    var body: some View {
+        switch destination {
+        case .theme:
+            ThemeSettingsView()
+        case .icon:
             ContentUnavailableView(
                 destination.title, systemImage: destination.symbol,
                 description: Text("Ce réglage arrive dans une prochaine version.")
@@ -85,5 +113,7 @@ struct SettingsView: View {
 }
 
 #Preview("Réglages") {
-    NavigationStack { SettingsView(store: InMemorySettingsStore()) }
+    NavigationStack { SettingsView() }
+        .environment(GeneralSettingsModel(store: InMemorySettingsStore()))
+        .environment(ThemeSettingsModel(store: InMemorySettingsStore()))
 }

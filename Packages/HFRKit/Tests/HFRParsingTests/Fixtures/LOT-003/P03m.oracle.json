@@ -878,6 +878,11 @@
         "topicTitle" : "Topic pizza maison"
       }
     ],
+    "fastAnswer" : {
+      "isFavoritesOrRead" : "/user/delflag.php?config=hfr.inc&cat=13&subcat=433&post=28563&page=1&p=1&sondage=0&owntopic=0&new=0",
+      "isRedFlagged" : false,
+      "isUnreadable" : false
+    },
     "messages" : [
       {
         "addFlagUrl" : "/user/addflag.php?config=hfr.inc&cat=13&post=28563&numreponse=2666649&page=1&ref=1&p=1&sondage=0&owntopic=0&subcat=433",

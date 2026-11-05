@@ -26,8 +26,8 @@ struct LoadFailureBanner: View {
         HStack(spacing: 12) {
             Image(systemName: error.symbol).foregroundStyle(.orange).accessibilityHidden(true)
             VStack(alignment: .leading) {
-                Text(error.title).font(.subheadline).bold()
-                Text(error.detail).font(.caption).foregroundStyle(.secondary)
+                Text(error.title).scaledFont(.subheadline).bold()
+                Text(error.detail).scaledFont(.caption).foregroundStyle(.secondary)
             }
             Spacer()
             Button("Réessayer") { Task { await retry() } }

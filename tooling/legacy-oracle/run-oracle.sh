@@ -48,6 +48,7 @@ ko()   { printf '%s[ko]%s   %s\n' "$C_KO" "$C_OFF" "$*" >&2; }
 die()  { ko "$*"; exit 1; }
 
 SPIN_PID=
+# shellcheck disable=SC2329 # invoked indirectly by `trap on_signal INT TERM` below
 on_signal() {
   if [ -n "$SPIN_PID" ]; then
     kill "$SPIN_PID" 2>/dev/null
@@ -61,6 +62,7 @@ trap on_signal INT TERM
 # Called from the main shell (not a subshell) so the signal trap sees SPIN_PID; the background job ignores
 # SIGINT (non-interactive shell), so the trap stops it with SIGTERM.
 spin() {
+  # shellcheck disable=SC1003 # the trailing backslash is a literal spinner frame, not an escaped quote
   local dir=$1 label=$2 log=$3 i=0 rc frames='|/-\'
   shift 3
   (cd "$dir" && exec "$@") >"$log" 2>&1 &
@@ -139,7 +141,8 @@ fi
 # The exporter writes to a staging folder; OUT_DIR is only touched once the export completed (errors.json written),
 # so a failed build or test run never removes oracles, and oracles of cases outside this run are kept.
 STAGE=$WORK/export
-rm -rf "$STAGE" && mkdir -p "$STAGE" || die "cannot create $STAGE"
+rm -rf "$STAGE" || die "cannot clear $STAGE"
+mkdir -p "$STAGE" || die "cannot create $STAGE"
 status=0
 spin "$HFRNOW" "xcodebuild test (OracleExport)" "$WORK/xcodebuild.log" \
   env TEST_RUNNER_HFR_ORACLE_IN="$IN_DIR" TEST_RUNNER_HFR_ORACLE_OUT="$STAGE" \

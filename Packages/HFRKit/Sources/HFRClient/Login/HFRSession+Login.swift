@@ -10,5 +10,7 @@ extension HFRSession {
         if Task.isCancelled { throw .network(.cancelled) }
         replaceCookies(with: cookies, now: now)
         updateHashCheck(hashCheck)
+        // Fences token writes from requests that left before this login, same account and token included (#340).
+        advanceLoginGeneration()
     }
 }

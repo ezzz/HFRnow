@@ -1,0 +1,21 @@
+{
+  "id": "R95c",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "GET /message.php?config=hfr.inc&cat=prive&post={post}&numreponse={numreponse}&page={page}&p=1&subcat=0&sondage=0&owntopic=0 (edit link)",
+  "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207675&numreponse=1980885616&page=1&p=1&subcat=0&sondage=0&owntopic=0",
+  "final_url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207675&numreponse=1980885616&page=1&p=1&subcat=0&sondage=0&owntopic=0",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 02 Nov 2026 07:40:20 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "edit form of W61 (stored BBCode source, #172)",
+  "file": "R95c-mp-edit-form-bbcode-source.html",
+  "private": true
+}

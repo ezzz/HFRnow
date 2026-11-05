@@ -42,9 +42,14 @@ Pure. The storage thread's first page, in this order:
 
 Error payloads never carry page text: the document holds pseudos.
 
+### `MPStoragePageParser.locateMessage(in:) throws(MPStoragePageError) -> MPStorageMessageLocation`
+Added by [LOT-052](LOT-052-mpstorage-transport.md). Steps 1-4 above, without reading the message text: `.notAddressed`, or
+`.message(numreponse:editURL:)` with the first message's toolbar edit link (LOT-031, nil when the toolbar has none).
+LOT-052 reads the document from the edit form, so a page HFR renders unlike the stored text still has a location.
+
 ## Edge cases
 - Several rows with the subject (two storage threads): the first in page order wins, as legacy. Which one other clients write to is not known.
-- HFR renders the stored text as a message: a smiley code, an auto-linked URL or BBCode inside a JSON string would be rewritten in the page, and the page text would no longer be the stored text. The edit form (`R60b`) holds the document byte for byte (RC4.7). Not observed: the only captured document is empty (pending capture below). LOT-052 may prefer the edit form's `content_form` for the text it writes back.
+- HFR renders the stored text as a message: a smiley code, an auto-linked URL or BBCode inside a JSON string would be rewritten in the page, and the page text would no longer be the stored text. The edit form (`R60b`) holds the document byte for byte (RC4.7). Not observed: the only captured document is empty (pending capture below). LOT-052 reads the edit form's `content_form` and uses this page only to locate the message (`locateMessage`).
 - U+00A0 is removed everywhere, inside strings too, as legacy: a stored non-breaking space is lost on read. Not observed (R60a holds none).
 - The JSON paragraph in `R60a` is followed by `<div style="clear: both;">`, which the HTML parser moves out of the `<p>`: the text ends at the JSON's closing brace.
 

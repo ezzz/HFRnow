@@ -125,45 +125,80 @@ struct TopicReaderModelTests {
         #expect(reader.readyToken == 2)
     }
 
-    @Test func theDocumentScrollsToTheAnchorOnlyWhenThePostIsOnThePage() async {
+    @Test func theDocumentScrollsToTheAnchorOnlyWhenThePostIsOnThePage() async throws {
         let pages = FakeTopicPages()
         let reader = model(pages, page: 2, anchor: 201)
         await reader.onAppear()
         #expect(reader.document?.anchor == 201)
-        await reader.open(ReaderTarget(source: .topic(readerTopic), page: 4, anchor: 999))
-        #expect(reader.document?.anchor == nil)
+        reader.follow(ReaderTarget(source: .topic(readerTopic), page: 4, anchor: 999))
+        let linked = try #require(reader.linkedReader)
+        await linked.onAppear()
+        #expect(linked.document?.anchor == nil)
     }
 
-    @Test func aPostLinkOnThePageShownScrollsWithoutRefetching() async {
+    @Test func aPostLinkOnThePageShownScrollsWithoutRefetching() async throws {
         let pages = FakeTopicPages()
         let reader = model(pages, page: 2)
         await reader.onAppear()
-        await reader.open(ReaderTarget(source: .topic(readerTopic), page: 2, anchor: 201))
+        reader.follow(ReaderTarget(source: .topic(readerTopic), page: 2, anchor: 201))
         #expect(pages.requests.count == 1)
+        #expect(reader.linkedReader == nil)
         #expect(reader.scrollRequest?.anchor == 201)
         #expect(reader.scrollRequest?.token == reader.document?.token)
-        await reader.open(ReaderTarget(source: .topic(readerTopic), page: 3, anchor: 301))
+        reader.follow(ReaderTarget(source: .topic(readerTopic), page: 3, anchor: 301))
+        let linked = try #require(reader.linkedReader)
+        await linked.onAppear()
         #expect(pages.requests.last == ReaderTarget(source: .topic(readerTopic), page: 3, anchor: 301))
-        #expect(reader.document?.anchor == 301)
+        #expect(linked.document?.anchor == 301)
     }
 
-    @Test func aMessageLinkOpensThePageHFRServesAtTheMessage() async {
+    /// LOT-137: a followed link opens another reader above this one; going back finds this page untouched, at the same
+    /// document (so the web view keeps its scroll position), with nothing fetched again.
+    @Test func aFollowedLinkKeepsThePageItLeftForTheWayBack() async throws {
+        let pages = FakeTopicPages()
+        let reader = model(pages, page: 2, anchor: 201)
+        await reader.onAppear()
+        let left = (page: reader.page, document: reader.document, shown: reader.shown)
+        let other = TopicID(category: .forum(5), topic: 77)
+        reader.follow(ReaderTarget(source: .topic(other), page: 9, anchor: 901))
+        let linked = try #require(reader.linkedReader)
+        // A second tap before the push lands keeps the first reader.
+        reader.follow(ReaderTarget(source: .topic(other), page: 3))
+        #expect(reader.linkedReader === linked)
+        #expect(linked.requested == ReaderTarget(source: .topic(other), page: 9, anchor: 901))
+        #expect(linked.title.isEmpty)
+        await linked.onAppear()
+        #expect(pages.requests.count == 2)
+        reader.closeLinkedReader()
+        #expect(reader.linkedReader == nil)
+        #expect(reader.page == left.page)
+        #expect(reader.document == left.document)
+        #expect(reader.shown == left.shown)
+        await reader.onAppear()
+        #expect(pages.requests.count == 2)
+    }
+
+    @Test func aMessageLinkOpensThePageHFRServesAtTheMessage() async throws {
         // HFR answers a message link with the page that holds it (R25: page 1100); the fake serves page 4 here.
         let pages = FakeTopicPages { target in readerPage(page: target.numreponse == nil ? target.page : 4) }
         let reader = model(pages)
         await reader.onAppear()
         let link = ReaderTarget(source: .topic(readerTopic), anchor: 401, numreponse: 401)
-        await reader.open(link)
+        reader.follow(link)
+        let linked = try #require(reader.linkedReader)
+        #expect(linked.title == "Sujet")
+        await linked.onAppear()
         #expect(pages.requests.last == link)
-        #expect(reader.page?.currentPage == 4)
-        #expect(reader.document?.anchor == 401)
-        #expect(reader.canGoToPrevious)
+        #expect(linked.page?.currentPage == 4)
+        #expect(linked.document?.anchor == 401)
+        #expect(linked.canGoToPrevious)
         // The same message again, now on screen: it scrolls without asking HFR again.
-        await reader.open(link)
+        linked.follow(link)
         #expect(pages.requests.count == 2)
-        #expect(reader.scrollRequest?.anchor == 401)
+        #expect(linked.linkedReader == nil)
+        #expect(linked.scrollRequest?.anchor == 401)
         // A refresh reloads page 4 itself, not the message link.
-        await reader.refresh()
+        await linked.refresh()
         #expect(pages.requests.last == ReaderTarget(source: .topic(readerTopic), page: 4))
     }
 
@@ -185,17 +220,59 @@ struct TopicReaderModelTests {
         await reader.goToPage(-3)
         #expect(pages.requests.map(\.page) == [1, 5, 1])
     }
+}
 
+/// Where the reader sends a link (LOT-137): kept apart so each type body stays under SwiftLint's limit.
+extension TopicReaderModelTests {
     @Test func linksOpenInTheReaderOrOutside() async {
         let pages = FakeTopicPages()
         let reader = model(pages)
         await reader.onAppear()
         let post = url("https://forum.hardware.fr/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_4.htm#t401")
-        #expect(reader.action(forLink: post) == .reader(ReaderTarget(source: .topic(readerTopic), page: 4, anchor: 401)))
-        #expect(reader.action(forLink: url("https://example.com/a")) == .external(url("https://example.com/a")))
+        let opened = ReaderTarget(source: .topic(readerTopic), page: 4, anchor: 401)
+        #expect(reader.action(forLink: post, defaultBrowser: false) == .reader(opened))
+        #expect(reader.action(forLink: post, defaultBrowser: true) == .reader(opened))
+        let web = url("https://example.com/a")
+        #expect(reader.action(forLink: web, defaultBrowser: false) == .inAppBrowser(web))
         let logout = url("https://forum.hardware.fr/user/logout.php")
-        #expect(reader.action(forLink: logout) == .external(logout))
-        #expect(reader.action(forLink: url("mailto:someone@example.com")) == .ignored)
+        #expect(reader.action(forLink: logout, defaultBrowser: false) == .inAppBrowser(logout))
+        #expect(reader.action(forLink: url("mailto:someone@example.com"), defaultBrowser: false) == .ignored)
+        #expect(reader.action(forLink: url("mailto:someone@example.com"), defaultBrowser: true) == .ignored)
+    }
+
+    /// A private conversation linked from a public topic is known as one, so the view gives it no composer (LOT-128).
+    @Test func aPrivateConversationLinkIsKnownAsOne() throws {
+        let reader = model(FakeTopicPages())
+        #expect(!reader.isPrivateConversation)
+        let link = url("https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=prive&post=4242&page=2")
+        guard case .reader(let target) = reader.action(forLink: link, defaultBrowser: false) else {
+            Issue.record("A private conversation link opens in the app")
+            return
+        }
+        reader.follow(target)
+        #expect(try #require(reader.linkedReader).isPrivateConversation)
+    }
+
+    /// "Navigateur par défaut" (LOT-119 stores it, LOT-137 applies it): web links go to the system browser; forum topic
+    /// links stay in the app either way.
+    @Test func theDefaultBrowserSettingSendsWebLinksToTheSystemBrowser() {
+        let reader = model(FakeTopicPages())
+        let web = url("https://example.com/a")
+        #expect(reader.action(forLink: web, defaultBrowser: true) == .defaultBrowser(web))
+        // A forum page the router does not open as a topic (a profile) is a web link too.
+        let profile = url("https://forum.hardware.fr/hfr/profil-12345.htm")
+        #expect(reader.action(forLink: profile, defaultBrowser: true) == .defaultBrowser(profile))
+        #expect(reader.action(forLink: profile, defaultBrowser: false) == .inAppBrowser(profile))
+    }
+
+    /// LOT-095 follow-up: a link carrying `cat` and `post` that the router does not route as a topic page (an answer link, a
+    /// single-message view) is opened outside, never in the reader with the session.
+    @Test func aForumLinkTheRouterRefusesIsNotOpenedWithTheSession() {
+        let reader = model(FakeTopicPages())
+        let answer = url("https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=28563&page=2#formulaire")
+        #expect(reader.action(forLink: answer, defaultBrowser: false) == .inAppBrowser(answer))
+        let quoteOnly = url("https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=28563&page=2&quote_only=1")
+        #expect(reader.action(forLink: quoteOnly, defaultBrowser: false) == .inAppBrowser(quoteOnly))
     }
 
     @Test func aVideoIsFoundOnlyInTheCurrentDocument() async {
