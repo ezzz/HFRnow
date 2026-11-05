@@ -84,9 +84,13 @@ struct ReaderDisplaySettingsTests {
         let pages = FakeTopicPages { target in readerPage(page: target.page, maxPage: 5) }
         let model = reader(InMemorySettingsStore(), pages, page: 3)
         await model.onAppear()
+        await model.swipe(.next) // the first document is not ready yet: a swipe on the old page is ignored
+        #expect(pages.requests.map(\.page) == [3])
+        model.documentDidBecomeReady(token: model.document?.token ?? 0)
         await model.swipe(.next)
         #expect(pages.requests.map(\.page) == [3, 4])
         #expect(model.document?.anchor == nil)
+        model.documentDidBecomeReady(token: model.document?.token ?? 0)
         await model.swipe(.previous)
         #expect(pages.requests.map(\.page) == [3, 4, 3])
         let last = model.page?.messages.last { !$0.isContinuation }?.numreponse
@@ -98,6 +102,7 @@ struct ReaderDisplaySettingsTests {
         let pages = FakeTopicPages { target in readerPage(page: target.page, maxPage: 1) }
         let model = reader(InMemorySettingsStore(), pages, page: 1)
         await model.onAppear()
+        model.documentDidBecomeReady(token: model.document?.token ?? 0)
         await model.swipe(.next)
         await model.swipe(.previous)
         #expect(pages.requests.count == 1)

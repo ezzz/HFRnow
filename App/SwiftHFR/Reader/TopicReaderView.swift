@@ -69,6 +69,7 @@ struct TopicReaderView: View {
         .task {
             // The settings screen writes `UserDefaults`: a display setting changed there reaches the open reader at once.
             swipeEnabled = services.settings.swipesPages()
+            model.applyDisplaySettings() // a change made while this reader was away
             for await _ in NotificationCenter.default.notifications(named: UserDefaults.didChangeNotification) {
                 swipeEnabled = services.settings.swipesPages()
                 model.applyDisplaySettings()

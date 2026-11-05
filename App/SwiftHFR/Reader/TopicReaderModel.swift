@@ -163,7 +163,8 @@ final class TopicReaderModel {
 
     /// Follows a page swipe (legacy `DragGesture`): the next page opens at its top, the previous one at its last message.
     func swipe(_ swipe: PageSwipe) async {
-        guard let shown, let page, !isLoading else { return }
+        // Not while the web view still shows the previous document: the page on screen would be the wrong starting point.
+        guard let shown, let page, !isLoading, readyToken == document?.token else { return }
         switch swipe {
         case .next where page.currentPage < page.maxPage:
             await load(shown.atPage(page.currentPage + 1), keepsScrollPosition: false)
