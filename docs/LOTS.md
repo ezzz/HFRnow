@@ -260,7 +260,7 @@ Every legacy function and the Phase 4 features, one reviewable PR per lot; each 
 |---|---|---|---|---|---|---|---|---|
 | LOT-159 | App Review policy and UGC compliance | App | medium | Opus → Fable | 082, 115, 133, 135, 118 | legacy parity | high | [#249](https://github.com/ezzz/HFRnow/issues/249) |
 | LOT-160 | Privacy manifest, permissions and entitlements | App | easy | Sonnet → Opus | 080 | legacy parity · MVP | high | [#250](https://github.com/ezzz/HFRnow/issues/250) |
-| LOT-161 | Release pipeline: archive and TestFlight upload | App | medium | Opus → Fable | 080, 160 | legacy parity · MVP | high | [#251](https://github.com/ezzz/HFRnow/issues/251) |
+| LOT-161 | Release pipeline: archive and TestFlight upload | App | medium | Opus → Fable | 080, 160 | legacy parity | high | [#251](https://github.com/ezzz/HFRnow/issues/251) |
 | LOT-162 | Accessibility pass: lists, navigation, accounts, settings | App | medium | Sonnet → Opus | 119, 125, 126 | legacy parity | medium | [#252](https://github.com/ezzz/HFRnow/issues/252) |
 | LOT-163 | Accessibility pass: reader and composer | App | medium | Sonnet → Opus | 083, 084, 106 | legacy parity | medium | [#253](https://github.com/ezzz/HFRnow/issues/253) |
 | LOT-164 | Legacy parity gate | App | medium | Opus → Fable | 070, 081, 083, 084, 085, 086, 087, 088, 089, 102, 103, 104, 105, 106, 107, 108, 109, 113, 114, 115, 116, 117, 118, 119, 120, 121, 123, 124, 125, 126, 127, 128, 130, 131, 132, 133, 134, 135, 136, 137, 139, 140, 155, 156, 157, 158, 169, 170 | legacy parity | high | [#254](https://github.com/ezzz/HFRnow/issues/254) |
@@ -323,7 +323,7 @@ Pure Swift but app-side, kept here so nothing is lost (each item now has a lot a
 
 ## Wave plan (orchestrator)
 
-**MVP** = the first usable build (LOT-080 to 083 and their engine dependencies) plus login/session (LOT-043, 044) and posting basics (LOT-036, 037, 048, and the reply composer LOT-084), the legacy root tab bar (LOT-170, operator 2026-10-28) and the session wiring [#300](https://github.com/ezzz/HFRnow/issues/300), released through TestFlight only (LOT-160, 161; operator 2026-10-27). The App Store update comes later (LOT-157, 158, 159, 164, 165). App lots (080 → 081, 082, 083) run on the Mac session only. The waves, their order and the MVP task list are tracked on the roadmap issue [#166](https://github.com/ezzz/HFRnow/issues/166) (`type: roadmap`), not here.
+**MVP** = the first usable build (LOT-080 to 083 and their engine dependencies) plus login/session (LOT-043, 044) and posting basics (LOT-036, 037, 048, and the reply composer LOT-084), the legacy root tab bar (LOT-170, operator 2026-10-28) and the session wiring [#300](https://github.com/ezzz/HFRnow/issues/300), released through TestFlight only (LOT-160 in the MVP; LOT-161, the release pipeline, moved to M4: the first beta ships at M4 close, operator 2026-11-05; operator 2026-10-27). The App Store update comes later (LOT-157, 158, 159, 164, 165). App lots (080 → 081, 082, 083) run on the Mac session only. The waves, their order and the MVP task list are tracked on the roadmap issue [#166](https://github.com/ezzz/HFRnow/issues/166) (`type: roadmap`), not here.
 
 ## Other work
 
