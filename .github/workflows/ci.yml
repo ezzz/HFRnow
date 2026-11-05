@@ -4,6 +4,8 @@ on:
   push:
     branches: [dev-swift]
   pull_request:
+    # `ready_for_review`: the macOS jobs skip drafts and start when the PR is marked ready (#477).
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
 permissions:
@@ -76,7 +78,11 @@ jobs:
     needs: app-changes
     # Skipped when a PR leaves the engine alone (a skipped job satisfies the required check);
     # runs anyway if change detection failed, so a broken detector never waves a PR through.
-    if: ${{ !cancelled() && (needs.app-changes.result != 'success' || needs.app-changes.outputs.engine == 'true') }}
+    # Skipped on a draft PR (#477): GitHub never merges a draft, and `ready_for_review` runs it before the merge.
+    if: >-
+      ${{ !cancelled()
+      && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
+      && (needs.app-changes.result != 'success' || needs.app-changes.outputs.engine == 'true') }}
     runs-on: xcode-27
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -128,9 +134,12 @@ jobs:
   app:
     name: App build + tests (iOS 27 simulator)
     needs: app-changes
-    # A job skipped by this condition reports "skipped", which satisfies a required check;
-    # it runs anyway if change detection failed.
-    if: ${{ !cancelled() && (needs.app-changes.result != 'success' || needs.app-changes.outputs.app == 'true') }}
+    # A required check since #477. A job skipped by this condition reports "skipped", which satisfies it;
+    # it runs anyway if change detection failed. Skipped on a draft PR, run again on `ready_for_review`.
+    if: >-
+      ${{ !cancelled()
+      && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
+      && (needs.app-changes.result != 'success' || needs.app-changes.outputs.app == 'true') }}
     runs-on: xcode-27
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

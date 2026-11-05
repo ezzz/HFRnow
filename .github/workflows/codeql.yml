@@ -4,6 +4,8 @@ on:
   push:
     branches: [dev-swift]
   pull_request:
+    # `labeled`: adding the `codeql` label to a PR starts its Swift analysis (#477).
+    types: [opened, synchronize, reopened, labeled]
   schedule:
     # Scheduled runs only fire from the default branch (ADR 0010).
     - cron: "27 4 * * 1"
@@ -33,8 +35,8 @@ jobs:
           EVENT: ${{ github.event_name }}
           BASE_REF: ${{ github.base_ref }}
         run: |
-          # Swift analysis takes ~10 min; on PRs it only runs when Swift sources or the package manifest change.
-          # Pushes to dev-swift and the weekly schedule always analyze.
+          # Swift analysis takes ~15 min on a macOS runner; on PRs it only runs when the PR carries the `codeql` label
+          # and Swift sources or the package manifest change (#477). Pushes to dev-swift and the schedule always analyze.
           if [ "$EVENT" != "pull_request" ]; then echo "swift=true" >> "$GITHUB_OUTPUT"; exit 0; fi
           # No pipe into grep -q: on a large diff the writer gets SIGPIPE and pipefail turns a match into a miss.
           changed=$(git diff --name-only "origin/$BASE_REF...HEAD")
@@ -66,9 +68,13 @@ jobs:
   analyze-swift:
     name: Analyze (swift)
     needs: changes
-    # A job skipped by this condition reports "skipped", which satisfies the required check;
-    # it runs anyway if change detection failed, so a broken detector never waves a PR through.
-    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.swift == 'true') }}
+    # Not a required check since #477: every push to dev-swift is analyzed, and a PR only when it carries the `codeql`
+    # label (session, cookies, posting, or any change worth a pre-merge SAST pass). With the label, a failed change
+    # detection still runs it.
+    if: >-
+      ${{ !cancelled()
+      && (github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'codeql'))
+      && (needs.changes.result != 'success' || needs.changes.outputs.swift == 'true') }}
     # CodeQL's Swift extractor lags behind preview toolchains: analyze with the stable Xcode on macos-26.
     runs-on: macos-26
     permissions:
