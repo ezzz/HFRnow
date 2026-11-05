@@ -40,7 +40,7 @@ Read-only, `2440d79`.
 - Closing the sheet stops a running "Résultats suivants".
 
 ## Pending
-- **Allowlist source:** `PseudoListStore` is not wired in the app yet (LOT-118 owns the lists screen and the store location). Until then `FilteredPostsServices.live(allowlist:)` receives an empty list: the toggle is stored and honoured by the criteria, but no pseudo is allowlisted. LOT-118 passes the store's allowlist minus the blocklist.
+- **Allowlist source:** since LOT-117 the app reads the stored lists through `PseudoListsSnapshot` (one `PseudoListStore` over `Application Support/PseudoLists/lists.json`): `AppEnvironment` passes `FilteredPostsServices.live(allowlist:)` the allowlist minus the blocklist (`PseudoLists.allowlistWithoutBlocked`) and a `prepare` hook that refreshes the snapshot at the start of every run (`FilteredPostsModel.read`), since a run can start from a topic list row with no reader load before it. The lists are empty until LOT-118 (editors) or LOT-067 (import) write them.
 - **Links inside the filtered view** open in the in-app or default browser (setting `open_links_in_default_browser`); a forum link does not open a reader from there (no `ReaderTarget` stack in a sheet). Follow-up if the Mac check finds it needed.
 - **Dynamic Type XL, light/dark, iPad layouts:** Mac check (see the PR).
 

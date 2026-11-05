@@ -68,6 +68,16 @@
       channel.postMessage({ type: "menu", token, post: Number(menu.dataset.post), source: menu.dataset.menu });
       return;
     }
+    const blocked = target.closest("table.quote-blocked");
+    if (blocked) {
+      // Collapsed: any tap opens it, even on the header link. Open: only its own header (not a nested quote's, not its body) closes it, and its link still works.
+      const onHeader = target.closest("b.s1")?.closest("table") === blocked;
+      if (!blocked.classList.contains("open") || (onHeader && !target.closest("a"))) {
+        event.preventDefault();
+        blocked.classList.toggle("open");
+        return;
+      }
+    }
     const spoiler = target.closest("table.spoiler");
     if (spoiler && !target.closest("a")) { spoiler.classList.toggle("open"); }
   });
