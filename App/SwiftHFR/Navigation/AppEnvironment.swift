@@ -36,7 +36,8 @@ struct AppEnvironment {
             settings: .live(
                 store: UserDefaultsSettingsStore(), isOnWiFi: { NetworkMonitor.shared.isOnWiFi }, pseudo: accountName,
                 pseudoLists: { lists.current }
-            )
+            ),
+            positions: LiveReaderPositionRecorder.live(account: accountName)
         )
         return AppEnvironment(
             session: session, dataSource: source, visibility: ForumVisibility(), currentAccountName: accountName,

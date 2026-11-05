@@ -45,6 +45,7 @@ body {
 }
 a { color: var(--action); }
 
+.separator1 { border-top: 1px dashed var(--separator); }
 .message { padding: 0.75em 1em; border-bottom: 1px solid var(--separator); }
 .message .header { display: flex; align-items: center; gap: 0.5em; margin-bottom: 0.5em; }
 .message .avatar { width: 2.2em; height: 2.2em; border-radius: 50%; object-fit: cover; }
@@ -139,6 +140,8 @@ table.quote-blocked:not(.open) > * > tr > td { font-size: 0; padding: calc(var(-
 table.quote-blocked:not(.open) > * > tr > td > :not(b.s1) { display: none; }
 table.quote-blocked:not(.open) > * > tr > td > b.s1 { font-size: calc(var(--text-scale, 1) * 0.85rem); }
 table.quote-blocked > * > tr > td > b.s1 { display: flex; justify-content: space-between; gap: 0.5em; }
+/* The header is a block line now, so the `<br>` that ended it would add a blank line: hide it. */
+table.quote-blocked > * > tr > td > b.s1 + br { display: none; }
 table.quote-blocked > * > tr > td > b.s1::after { content: "\25BC"; }
 table.quote-blocked.open > * > tr > td > b.s1::after { content: "\25B2"; }
 table.quote-blocked.quote-hide-author:not(.open) > * > tr > td > b.s1 > a { display: none; }

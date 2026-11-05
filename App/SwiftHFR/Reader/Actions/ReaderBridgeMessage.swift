@@ -5,7 +5,7 @@ import Foundation
 // untyped values and ignored bad shapes silently.
 
 /// A message of `reader.js`, decoded into a closed set of cases (LOT-087, audit C14). The page never supplies code or a
-/// selector: the decoder knows five names and takes only numbers and strings of the shape each one needs; anything else
+/// selector: the decoder knows six names and takes only numbers and strings of the shape each one needs; anything else
 /// is rejected, never partly read.
 enum ReaderBridgeMessage: Equatable, Sendable {
     /// `src` of every image of the document, in order; an entry that is not a string is kept as nil (blocked).
@@ -18,6 +18,8 @@ enum ReaderBridgeMessage: Equatable, Sendable {
     case video(post: Int, index: Int)
     /// The user tapped the menu button (`message`) or the author (`avatar`) of message `post`.
     case menu(post: Int, source: MessageMenuSource)
+    /// Scrolling paused with message `post` topmost (LOT-111: recorded as the reading position).
+    case position(post: Int)
 
     /// Why a body was rejected.
     enum Failure: Error, Equatable, Sendable {
@@ -57,18 +59,34 @@ enum ReaderBridgeMessage: Equatable, Sendable {
             return .tap(url: url)
         case "ready":
             return .ready
+        default:
+            return try messageAboutAPost(ofType: type, in: object)
+        }
+    }
+
+    /// The names whose payload starts with a message number.
+    private static func messageAboutAPost(ofType type: String, in object: [String: Any]) throws(Failure) -> ReaderBridgeMessage {
+        switch type {
         case "video":
-            guard let post = integer(object["post"]), let index = integer(object["index"]), post > 0, index >= 0 else {
+            guard let post = positivePost(in: object), let index = integer(object["index"]), index >= 0 else {
                 throw .invalidPayload
             }
             return .video(post: post, index: index)
         case "menu":
-            guard let post = integer(object["post"]), post > 0, let name = object["source"] as? String,
+            guard let post = positivePost(in: object), let name = object["source"] as? String,
                   let source = MessageMenuSource(rawValue: name) else { throw .invalidPayload }
             return .menu(post: post, source: source)
+        case "position":
+            guard let post = positivePost(in: object) else { throw .invalidPayload }
+            return .position(post: post)
         default:
             throw .unknownType
         }
+    }
+
+    /// The message number a body names: a whole number above zero, nothing else.
+    private static func positivePost(in object: [String: Any]) -> Int? {
+        integer(object["post"]).flatMap { $0 > 0 ? $0 : nil }
     }
 
     /// A whole number from WebKit's bridge: an `NSNumber` that is not a boolean and has no fraction; nothing else.

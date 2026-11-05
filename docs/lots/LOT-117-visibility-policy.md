@@ -10,7 +10,7 @@
 - `App/SwiftHFR/Reader/PseudoListsSnapshot.swift`: none @ 2440d79 (legacy read `BlackList.shared` synchronously).
 
 ## UX evolutions
-GAP-066 is "same". Differences, all `b` (never a setting): a collapsed message and quote use a native disclosure and a CSS arrow instead of legacy's inline script buttons (same gesture, the page runs no script); the author's own message is never collapsed; own highlights are off on private messages (CHANGELOG-LEGACY 64). None other: same UX as legacy.
+GAP-066 is "same". Differences, all `b` (never a setting): a collapsed message and quote use a native disclosure and a CSS arrow instead of legacy's inline script buttons (same gesture, the page runs no script); the author's own message is never collapsed; own highlights are off on private messages (CHANGELOG-LEGACY 66). None other: same UX as legacy.
 
 ## Legacy sources
 Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79`, read only.
