@@ -12,6 +12,13 @@ struct RootSidebarView: View {
     @State private var compactColumn = NavigationSplitViewColumn.sidebar
 
     var body: some View {
+        layout
+            .filteredPosts(model.categories.filtering, reader: environment.reader)
+            .filteredPosts(model.favorites.filtering, reader: environment.reader)
+    }
+
+    @ViewBuilder
+    private var layout: some View {
         if case .plus(let entry) = model.sidebarDestination {
             // Legacy: the Plus entries have no list, so a two-column split with the entry in a stack in the detail column
             // (`MainWindow.swift:1305-1311`, `:1744-1755`, `:1876-1891`).
@@ -59,9 +66,9 @@ struct RootSidebarView: View {
     private var content: some View {
         switch model.sidebarDestination {
         case .tab(.categories):
-            CategoriesSidebarColumn(navigation: model.categories)
+            CategoriesSidebarColumn(navigation: model.categories, composer: environment.composer)
         case .tab(.favorites):
-            TopicsColumn(navigation: model.favorites)
+            TopicsColumn(navigation: model.favorites, composer: environment.composer)
                 .toolbar { ToolbarItem(placement: .secondaryAction) { FavoritesSourceMenu(navigation: model.favorites) } }
         case .tab(.messages):
             MessagesListColumn(model: model.messages, composer: environment.composer)
@@ -85,12 +92,16 @@ struct RootSidebarView: View {
 /// The category list opening its topics in the same column, so the reader keeps the detail column.
 private struct CategoriesSidebarColumn: View {
     @Bindable var navigation: NavigationModel
+    let composer: ComposerServices?
 
     var body: some View {
         NavigationStack {
             ForumListView(navigation: navigation)
                 .navigationDestination(item: $navigation.selectedSource) { source in
-                    TopicListView(model: navigation.topicList(for: source), selection: $navigation.selectedTopic)
+                    TopicListView(
+                        model: navigation.topicList(for: source), selection: $navigation.selectedTopic, filtering: navigation.filtering,
+                        composer: composer
+                    )
                 }
         }
     }

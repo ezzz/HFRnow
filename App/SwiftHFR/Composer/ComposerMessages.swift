@@ -6,13 +6,11 @@ import HFRNetwork
 enum ComposerMessages {
     /// What to tell the user about a failed reply, or a failed new private message when `newMessage` is set. The text is
     /// always kept in the composer and its draft.
-    static func message(for error: PostingError, newMessage: Bool = false) -> String {
-        let what = newMessage ? "le message" : "la réponse"
+    static func message(for error: PostingError, newMessage: Bool = false, newTopic: Bool = false) -> String {
+        let what = newTopic ? "le sujet" : newMessage ? "le message" : "la réponse"
         switch error {
         case .formUnavailable(let message):
-            return message ?? (newMessage
-                ? "Le forum ne propose pas d’écrire ce message privé. Rien n’a été envoyé."
-                : "Le forum ne propose pas de répondre à ce sujet (sujet fermé ?). Rien n’a été envoyé.")
+            return message ?? unavailable(newMessage: newMessage, newTopic: newTopic)
         case .notLoggedIn:
             return "Votre session a expiré : rien n’a été envoyé. Reconnectez-vous depuis le menu Comptes, puis renvoyez \(what)."
         case .sessionChanged:
@@ -20,19 +18,50 @@ enum ComposerMessages {
         case .rejected(let message):
             return message ?? "Le forum a refusé \(what) : rien n’a été envoyé. Réessayez."
         case .unconfirmed(let uncertainty):
-            return unconfirmed(uncertainty, newMessage: newMessage)
+            return unconfirmed(uncertainty, newMessage: newMessage, newTopic: newTopic)
         case .network(let error):
             return network(error)
         case .emptyInput, .lineBreak, .tooLong:
             return field(error)
         case .unsupportedCharacters(_, let characters):
             return unsupported(characters)
+        case .unknownSubcategory where newTopic:
+            return "Le forum n’offre plus cette sous-catégorie : choisissez-la à nouveau. Rien n’a été envoyé."
         case .invalidFormURL, .missingAction, .unsupportedForm, .formMismatch, .unknownSubcategory, .subjectNotEditable,
              .optionNotOffered, .deleteNotOffered, .wholeTopicDeletionNotConfirmed:
-            return newMessage
-                ? "Le formulaire de message privé du forum n’est pas pris en charge : rien n’a été envoyé. Réessayez plus tard."
-                : "Le formulaire de réponse du forum n’est pas pris en charge : rien n’a été envoyé. "
-                    + "Actualisez le sujet puis réessayez."
+            return unsupportedForm(newMessage: newMessage, newTopic: newTopic)
+        }
+    }
+
+    /// HFR served no composer and said nothing: what the user can expect.
+    private static func unavailable(newMessage: Bool, newTopic: Bool) -> String {
+        if newTopic { return "Le forum ne propose pas de créer un sujet ici. Rien n’a été envoyé." }
+        if newMessage { return "Le forum ne propose pas d’écrire ce message privé. Rien n’a été envoyé." }
+        return "Le forum ne propose pas de répondre à ce sujet (sujet fermé ?). Rien n’a été envoyé."
+    }
+
+    /// The composer's form has a shape the engine refuses.
+    private static func unsupportedForm(newMessage: Bool, newTopic: Bool) -> String {
+        if newTopic {
+            return "Le formulaire de nouveau sujet du forum n’est pas pris en charge : rien n’a été envoyé. Réessayez plus tard."
+        }
+        if newMessage {
+            return "Le formulaire de message privé du forum n’est pas pris en charge : rien n’a été envoyé. Réessayez plus tard."
+        }
+        return "Le formulaire de réponse du forum n’est pas pris en charge : rien n’a été envoyé. Actualisez le sujet puis réessayez."
+    }
+
+    /// The new-topic form could not be read for its sub-categories; nothing is lost, the topic can still be sent.
+    static func subcategoriesUnavailable(_ error: PostingError) -> String {
+        switch error {
+        case .notLoggedIn:
+            "Votre session a expiré : reconnectez-vous depuis le menu Comptes pour envoyer ce sujet."
+        case .formUnavailable(let message?):
+            message
+        case .formUnavailable, .formMismatch, .invalidFormURL, .missingAction, .unsupportedForm:
+            unsupportedForm(newMessage: false, newTopic: true)
+        default:
+            "La liste des sous-catégories n’a pas pu être chargée : le forum appliquera son choix par défaut. Vous pouvez réessayer."
         }
     }
 
@@ -67,8 +96,11 @@ enum ComposerMessages {
 
     /// The write may have been posted: the user checks the topic, or the private messages, before sending again (never
     /// resent on its own).
-    private static func unconfirmed(_ uncertainty: PostingUncertainty, newMessage: Bool) -> String {
-        let base = newMessage
+    private static func unconfirmed(_ uncertainty: PostingUncertainty, newMessage: Bool, newTopic: Bool = false) -> String {
+        let base = newTopic
+            ? "Le forum n’a pas confirmé l’envoi : votre sujet a peut-être été créé. "
+                + "Vérifiez la liste des sujets avant de renvoyer ; le texte est gardé."
+            : newMessage
             ? "Le forum n’a pas confirmé l’envoi : votre message a peut-être été envoyé. "
                 + "Vérifiez vos messages privés avant de renvoyer ; le texte est gardé."
             : "Le forum n’a pas confirmé l’envoi : votre réponse a peut-être été postée. "

@@ -48,6 +48,25 @@ struct LiveTopicPageSourceTests {
         #expect(!page.title.isEmpty)
     }
 
+    @Test func aPollOnThePageReachesTheReaderPage() async throws {
+        for (name, votable) in [("R32b-topic-poll-logged-in-not-voted.html", true), ("R33a-topic-poll-closed-anon.html", false)] {
+            let body = try Self.capture(name)
+            let page = try LiveTopicPageSource.parse(
+                try #require(String(data: body, encoding: .utf8)), pageURL: url(Self.canonical), normalizer: MarkingNormalizer()
+            )
+            let poll = try #require(page.poll)
+            if case .votable = poll.kind { #expect(votable) } else { #expect(!votable) }
+        }
+    }
+
+    @Test func aPageWithoutPollHasNone() throws {
+        let body = try Self.capture("R20-topic-p1-anon.html")
+        let page = try LiveTopicPageSource.parse(
+            try #require(String(data: body, encoding: .utf8)), pageURL: url(Self.canonical), normalizer: MarkingNormalizer()
+        )
+        #expect(page.poll == nil)
+    }
+
     @Test func aMessageLinkAsksHFRForTheMessagesPageWithTheSession() async throws {
         struct Meta: Decodable { let url: String }
         let meta = try JSONDecoder().decode(Meta.self, from: try Self.capture("R25.meta.json"))
@@ -110,6 +129,17 @@ struct LiveTopicPageSourceTests {
     static func readerPage(of name: String) throws -> ReaderPage {
         let html = try #require(String(data: try capture(name), encoding: .utf8))
         return try LiveTopicPageSource.parse(html, pageURL: url(canonical), normalizer: LiveContentNormalizer())
+    }
+
+    /// The action links of LOT-031 reach the reader's messages, one set per block (R21 is logged in, R20 is not).
+    @Test func messagesCarryTheirToolbarActions() throws {
+        let loggedIn = try Self.readerPage(of: "R21-topic-p1-logged-in.html")
+        #expect(loggedIn.messages.count == 40)
+        #expect(loggedIn.messages.allSatisfy { $0.actions.quoteURL != nil })
+        #expect(loggedIn.messages.contains { $0.actions.favoriteURL != nil })
+        let visitor = try Self.readerPage(of: "R20-topic-p1-anon.html")
+        #expect(visitor.messages.allSatisfy { $0.actions.quoteURL != nil && $0.actions.editURL == nil && $0.actions.alertURL == nil })
+        #expect(visitor.pageURL == url(Self.canonical))
     }
 
     /// Real pages render their normalized content as body markup, inside the message's content element and nowhere else.

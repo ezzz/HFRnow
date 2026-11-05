@@ -4,41 +4,8 @@ import HFRParsing
 import Observation
 
 // Port of HFRswift/Swift/MessagesView.swift (MessagesView.loadPage, WebView.ScrollRequest) @ 2440d79. Differences: when HFR serves
-// another page than the one asked (past the end, R24), the shown target takes the served page number (LOT-167).
-/// An HTML document handed to the web view. `token` is unique per model, so an event of an older document is recognised.
-struct ReaderDocument: Equatable, Sendable {
-    /// Identity of this document; grows with every new document.
-    let token: Int
-    /// The full page (TopicHTMLBuilder).
-    let html: String
-    /// Message to scroll to once shown.
-    let anchor: Int?
-    /// Keep the scroll position of the previous document (a refresh of the same page).
-    let keepsScrollPosition: Bool
-}
-
-/// A request to scroll the shown document to a message, without reloading it (a link to a post of the same page).
-struct ScrollRequest: Equatable, Sendable {
-    /// Unique per request, so asking twice for the same message scrolls twice.
-    let id: Int
-    /// The document the request is for.
-    let token: Int
-    /// Message number.
-    let anchor: Int
-}
-
-/// What the reader does with a link the user tapped (LOT-137).
-enum ReaderLinkAction: Equatable, Sendable {
-    /// A topic or private message page of the forum: opened in the app, at its page and post (`TopicReaderModel.follow`).
-    case reader(ReaderTarget)
-    /// Anything else on the web, in Safari's view inside the app (`SFSafariViewController`, LOT-071 T8).
-    case inAppBrowser(URL)
-    /// Anything else on the web, in the system's default browser ("Navigateur par défaut", LOT-119).
-    case defaultBrowser(URL)
-    /// Not an `http(s)` link: nothing happens.
-    case ignored
-}
-
+// another page than the one asked (past the end, R24), the shown target takes the served page number (LOT-167);
+// the reading position is recorded per account and the flag message is followed by the legacy separator (LOT-111, GAP-063, UXD-11).
 /// State of the topic reader (LOT-083): one page at a time, page navigation, refresh, links.
 ///
 /// Loading rules (LOTS "Issues to open" #6 and #7, issues #107 and #108): one load at a time, a newer load or `cancel()`
@@ -65,6 +32,12 @@ final class TopicReaderModel {
     private(set) var linkedReader: TopicReaderModel?
     /// HFR's confirmation of the reply just sent, shown until dismissed; set only by a confirmed reply (LOT-084).
     private(set) var replyConfirmation: String?
+    /// The message menu on screen; nil when none.
+    var presentedMenu: MessageMenu?
+    /// Short confirmation of the last menu action ("Lien copié"), shown until cleared.
+    var menuFeedback: String?
+    /// Grows with every confirmation, so the view restarts its timer when the same text comes twice.
+    var menuFeedbackSerial = 0
     /// Title until the page gives its own.
     let initialTitle: String
 
@@ -77,8 +50,20 @@ final class TopicReaderModel {
     /// The target of the page on screen (topic and page as served), what a refresh reloads.
     private(set) var shown: ReaderTarget?
 
+    /// Where reading positions go (LOT-111); nil when logged out or in a preview.
+    @ObservationIgnored var positions: (any ReaderPositionRecording)?
+
+    /// The poll sheet's model, kept here (not in a view) so it outlives the view: a vote in flight or possibly counted is
+    /// never offered again from a fresh form when the topic is reopened (LOT-136).
+    private var heldPoll: PollModel?
+
     private let source: any TopicPageSource
-    private let renderOptions: @Sendable () -> ReaderRenderOptions
+    var registry = MessageActionRegistry()
+    let renderOptions: @Sendable () -> ReaderRenderOptions
+    /// The options the document on screen was built with, to spot a setting that changed since.
+    private var appliedOptions: ReaderRenderOptions?
+    /// The flag message the document draws a line after (legacy separator, LOT-111).
+    private var separatorAfter: Int?
     private var generation = 0
     private var nextToken = 0
     private var nextScrollID = 0
@@ -140,6 +125,36 @@ final class TopicReaderModel {
         guard let shown, let page else { return }
         let clamped = min(max(1, number), page.maxPage)
         await load(shown.atPage(clamped), keepsScrollPosition: false)
+    }
+
+    /// Rebuilds the page on screen when a display setting (layout, signatures) changed since it was built, without a
+    /// request: the typed page is kept, so only the document changes and the scroll position stays. A no-op when nothing
+    /// changed or nothing is shown, so it is cheap to call on every settings notification.
+    func applyDisplaySettings() {
+        guard let page, let appliedOptions, !isLoading else { return }
+        let options = currentRenderOptions()
+        guard options != appliedOptions else { return }
+        self.appliedOptions = options
+        nextToken += 1
+        document = ReaderDocument(
+            token: nextToken,
+            html: TopicHTMLBuilder.document(for: page, token: nextToken, options: options, separatorAfter: separatorAfter),
+            anchor: nil,
+            keepsScrollPosition: true
+        )
+    }
+
+    /// Follows a page swipe (legacy `DragGesture`): the next page opens at its top, the previous one at its last message.
+    func swipe(_ swipe: PageSwipe) async {
+        // Not while the web view still shows the previous document: the page on screen would be the wrong starting point.
+        guard let shown, let page, !isLoading, readyToken == document?.token else { return }
+        switch swipe {
+        case .next where page.currentPage < page.maxPage:
+            await load(shown.atPage(page.currentPage + 1), keepsScrollPosition: false)
+        case .previous where page.currentPage > 1:
+            await load(shown.atPage(page.currentPage - 1), keepsScrollPosition: false, anchor: .lastMessage)
+        default: break
+        }
     }
 
     /// Whether a previous page exists.
@@ -205,6 +220,19 @@ final class TopicReaderModel {
         }
     }
 
+    /// The model of the page's poll for the sheet; nil when the page has none. The held model is reused for this account
+    /// while it holds a vote (sending, counted or possibly counted); otherwise a fresh one starts from the page's poll.
+    func pollModel(voter: (any PollVoting)?, account: String?) -> PollModel? {
+        guard let poll = page?.poll else { return nil }
+        if let held = heldPoll, held.account == account, held.holdsVote {
+            held.pageDidReload(poll)
+            return held
+        }
+        let fresh = PollModel(poll: poll, voter: voter, account: account, reload: { [weak self] in await self?.refresh() })
+        heldPoll = fresh
+        return fresh
+    }
+
     /// Hides the reply confirmation.
     func clearReplyConfirmation() {
         replyConfirmation = nil
@@ -240,10 +268,12 @@ final class TopicReaderModel {
 
     /// Stops the load in flight; the content stays.
     func cancel() {
+        let interrupted = task != nil
         task?.cancel()
         task = nil
         generation += 1
         isLoading = false
+        if interrupted { applyDisplaySettings() } // a setting changed during the load that never delivered
     }
 
     /// The web view reports a document as ready; an older document's report is ignored.
@@ -255,10 +285,12 @@ final class TopicReaderModel {
     /// What tapping `url` does. Topic and private message links of the forum, as LOT-095's router reads them, open in the
     /// app at their page and post (issue #106); other web links open in the browser `defaultBrowser` names (legacy
     /// `MessagesView.swift:3963-3968` at `21173e77`). A forum page the router sends elsewhere (a list, a profile, a page
-    /// view it does not own) opens in the browser too, never in the reader with the session.
+    /// view it does not own) opens in the browser too, never in the reader with the session; a profile opens the profile
+    /// sheet (LOT-116), which fetches it without cookies.
     func action(forLink url: URL, defaultBrowser: Bool) -> ReaderLinkAction {
         guard let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http" else { return .ignored }
         if let target = ReaderTarget(link: url.absoluteString) { return .reader(target) }
+        if case .profile(let memberID) = HFRLinkRoute.route(for: url) { return .profile(memberID: memberID) }
         return defaultBrowser ? .defaultBrowser(url) : .inAppBrowser(url)
     }
 
@@ -320,19 +352,25 @@ final class TopicReaderModel {
             // HFR may serve another page than the one asked (past the end): the target follows the page served.
             shown = ReaderTarget(source: source).atPage(loaded.currentPage)
             page = loaded
+            heldPoll?.pageDidReload(loaded.poll)
             error = nil
             nextToken += 1
+            presentedMenu = nil
             let anchor: Int? = switch rule {
             case .target:
+                // The flag message, or the first one after it when it was deleted (legacy `closePostID`, LOT-111).
                 target.anchor.flatMap { anchor in
-                    loaded.messages.contains { !$0.isContinuation && $0.numreponse == anchor } ? anchor : nil
+                    loaded.messages.first { !$0.isContinuation && $0.numreponse >= anchor }?.numreponse
                 }
             case .lastMessage:
                 loaded.messages.last { !$0.isContinuation }?.numreponse
             }
+            let options = currentRenderOptions()
+            appliedOptions = options
+            separatorAfter = rule == .target ? target.anchor : nil
             document = ReaderDocument(
                 token: nextToken,
-                html: TopicHTMLBuilder.document(for: loaded, token: nextToken, options: renderOptions()),
+                html: TopicHTMLBuilder.document(for: loaded, token: nextToken, options: options, separatorAfter: separatorAfter),
                 anchor: anchor,
                 keepsScrollPosition: keepsScrollPosition && anchor == nil
             )
@@ -341,5 +379,6 @@ final class TopicReaderModel {
         case .failure(let failure):
             error = failure
         }
+        applyDisplaySettings() // a setting changed while this load ran and did not deliver a page
     }
 }
