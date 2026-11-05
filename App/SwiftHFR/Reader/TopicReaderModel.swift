@@ -27,20 +27,6 @@ struct ScrollRequest: Equatable, Sendable {
     let anchor: Int
 }
 
-/// The menu of one message, presented to the user.
-struct MessageMenu: Equatable, Identifiable, Sendable {
-    /// Message number.
-    let post: Int
-    /// Where the menu was opened.
-    let source: MessageMenuSource
-    /// What the context says, kept so the picked action runs on what the user saw.
-    let context: MessageMenuContext
-    /// The entries to show, in menu order; never empty.
-    let entries: [MessageMenuAction]
-
-    var id: String { "\(source.rawValue)-\(post)" }
-}
-
 /// What the reader does with a link the user tapped (LOT-137).
 enum ReaderLinkAction: Equatable, Sendable {
     /// A topic or private message page of the forum: opened in the app, at its page and post (`TopicReaderModel.follow`).
@@ -80,11 +66,11 @@ final class TopicReaderModel {
     /// HFR's confirmation of the reply just sent, shown until dismissed; set only by a confirmed reply (LOT-084).
     private(set) var replyConfirmation: String?
     /// The message menu on screen; nil when none.
-    private(set) var presentedMenu: MessageMenu?
+    var presentedMenu: MessageMenu?
     /// Short confirmation of the last menu action ("Lien copié"), shown until cleared.
-    private(set) var menuFeedback: String?
+    var menuFeedback: String?
     /// Grows with every confirmation, so the view restarts its timer when the same text comes twice.
-    private(set) var menuFeedbackSerial = 0
+    var menuFeedbackSerial = 0
     /// Title until the page gives its own.
     let initialTitle: String
 
@@ -98,7 +84,7 @@ final class TopicReaderModel {
     private(set) var shown: ReaderTarget?
 
     private let source: any TopicPageSource
-    private var registry = MessageActionRegistry()
+    var registry = MessageActionRegistry()
     private let renderOptions: @Sendable () -> ReaderRenderOptions
     private var generation = 0
     private var nextToken = 0
@@ -121,17 +107,6 @@ final class TopicReaderModel {
         self.source = source
         self.renderOptions = renderOptions
     }
-
-    /// Plugs the handlers of the merged lots into the message menu (LOT-087); none leaves the reader without menu.
-    func install(_ registry: MessageActionRegistry) {
-        self.registry = registry
-    }
-
-    /// Whether the document draws the `⋯` button: an action of the message menu is implemented.
-    var hasMessageMenus: Bool { registry.offers(.message) }
-
-    /// Whether the document makes authors tappable: an action of the author menu is implemented.
-    var hasAuthorMenus: Bool { registry.offers(.avatar) }
 
     /// Navigation title.
     var title: String {
@@ -292,59 +267,6 @@ final class TopicReaderModel {
         guard let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http" else { return .ignored }
         if let target = ReaderTarget(link: url.absoluteString) { return .reader(target) }
         return defaultBrowser ? .defaultBrowser(url) : .inAppBrowser(url)
-    }
-
-    /// What the menu policy reads about message `post` of the page on screen; nil when the page does not hold it.
-    func menuContext(post: Int) -> MessageMenuContext? {
-        guard let page, let index = page.messages.firstIndex(where: { !$0.isContinuation && $0.numreponse == post })
-        else { return nil }
-        let message = page.messages[index]
-        // The first message of a topic is the first block of page 1 (a continuation copy opens the later pages). Legacy hid
-        // the deletion on the first message of every page (`messageIndex != 0`): see the spec, difference 4.
-        let isFirst = page.currentPage == 1 && !page.messages[..<index].contains { !$0.isContinuation }
-        return MessageMenuContext(
-            numreponse: post, author: message.author, actions: message.actions,
-            permalinkURL: Self.permalink(of: post, on: page), isFirstPostOfTopic: isFirst
-        )
-    }
-
-    /// The page's URL without fragment plus `#t<numreponse>` (legacy `permalinkURLForPostID`, anchors of HFR-PROTOCOL §6c).
-    static func permalink(of post: Int, on page: ReaderPage) -> URL? {
-        guard let base = page.pageURL, var components = URLComponents(url: base, resolvingAgainstBaseURL: false) else { return nil }
-        components.fragment = "t\(post)"
-        return components.url
-    }
-
-    /// The web view reports a tap on a message's menu button or author. A menu is shown only for a message of the document
-    /// on screen and only when it has entries, so a late or forged request opens nothing.
-    func requestMenu(post: Int, source: MessageMenuSource, token: Int) {
-        guard token == document?.token, let context = menuContext(post: post) else { return }
-        let entries = registry.entries(for: context, source: source)
-        presentedMenu = entries.isEmpty ? nil : MessageMenu(post: post, source: source, context: context, entries: entries)
-    }
-
-    /// Closes the menu without choosing.
-    func dismissMenu() {
-        presentedMenu = nil
-    }
-
-    /// Runs `action` of `menu` through its handler and closes the menu. The menu comes from the caller because the dialog
-    /// closes (and clears `presentedMenu`) before the action runs; an action the menu did not offer does nothing.
-    func perform(_ action: MessageMenuAction, in menu: MessageMenu) async {
-        presentedMenu = nil
-        guard menu.entries.contains(action) else { return }
-        await registry.perform(action, with: menu.context)
-    }
-
-    /// Shows `text` as the confirmation of the last action.
-    func showMenuFeedback(_ text: String) {
-        menuFeedback = text
-        menuFeedbackSerial += 1
-    }
-
-    /// Hides the confirmation.
-    func clearMenuFeedback() {
-        menuFeedback = nil
     }
 
     /// The video `index` of message `post` on the page shown, for the player opened on tap (D-071-2).
