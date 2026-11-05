@@ -1,12 +1,14 @@
 import Foundation
 import HFRClient
+import HFRModels
 import HFRStorage
 import Observation
 
 // Port of HFRswift/Swift/AnswerView.swift (AnswerView.postMessage, ComposerDraftPersistence) and HFRswift/Swift/ReplyService.swift
 // (ForumReplyPostingService) @ 2440d79. Differences: draft per topic and account, autosaved, instead of one global draft (GAP-092, UXD);
 // never resent after an uncertain send (GAP-100).
-/// State of the composer sheet: a reply (LOT-084) or a new private message (LOT-128, with a recipient and a subject); the
+/// State of the composer sheet: a reply (LOT-084), a new private message (LOT-128, with a recipient and a subject) or a new topic
+/// (LOT-089, with a subject and a sub-category read from the form); the
 /// text, its draft, sending and the outcome.
 ///
 /// The draft is the target's (`ComposerTarget.draftContext`) for the current account. It is restored when the sheet opens,
@@ -31,7 +33,7 @@ final class ReplyComposerModel: Identifiable {
         case closedWithoutSaving
     }
 
-    /// What is written: a reply to a topic or a new private message.
+    /// What is written: a reply to a topic, a new private message or a new topic.
     let target: ComposerTarget
     /// The text being written.
     private(set) var text = ""
@@ -78,20 +80,34 @@ final class ReplyComposerModel: Identifiable {
         self.init(composing: .reply(target), services: services, autosaveDelay: autosaveDelay)
     }
 
+    /// The new-topic form's sub-category select (LOT-089): options, choice, loading and warning.
+    private(set) var picker = NewTopicSubcategories()
+
     /// A new private message: the sheet shows the recipient and subject fields.
     var isNewMessage: Bool {
         if case .newPrivateMessage = target { true } else { false }
     }
 
+    /// A new topic: the sheet shows the subject field and the sub-category picker.
+    var isNewTopic: Bool {
+        if case .newTopic = target { true } else { false }
+    }
+
+    /// The sheet shows a subject (a new private message or a new topic) and keeps it in the draft.
+    var hasSubjectField: Bool { isNewMessage || isNewTopic }
+
     /// The text holds something to send.
     var hasText: Bool { !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
-    /// Send is offered: some text (and, for a new private message, a recipient and a subject), the draft read, nothing
-    /// running, not closed. HFR refuses an empty text (`W17a`); a blank recipient or subject is refused here and by the engine
+    /// Send is offered (a new topic waits for its sub-category list, so HFR's default never overrides a choice):
+    /// some text (and a subject for a new topic, a recipient and a subject for a new private message), the
+    /// draft read, nothing running, not closed. HFR refuses an empty text (`W17a`); a blank recipient or subject is refused here
+    /// and by the engine
     /// (HFR's answer to one is not captured).
     var canSend: Bool {
-        guard hasText, canEdit else { return false }
-        return !isNewMessage || (!Self.isBlank(recipient) && !Self.isBlank(subject))
+        guard hasText, canEdit, !(isNewTopic && picker.isLoading) else { return false }
+        if isNewMessage { return !Self.isBlank(recipient) && !Self.isBlank(subject) }
+        return !isNewTopic || !Self.isBlank(subject)
     }
 
     /// Closing asks whether to keep the draft (swiping the sheet down is blocked meanwhile, so it never loses the text).
@@ -121,9 +137,29 @@ final class ReplyComposerModel: Identifiable {
             draftWarning = Self.draftWarning(for: failure)
         }
         text = draft?.text ?? ""
-        if isNewMessage { subject = draft?.subject ?? "" }
+        if hasSubjectField { subject = draft?.subject ?? "" }
         isRestoring = false
         hasRestored = true
+    }
+
+    /// Reads the new-topic form's sub-category select; the sheet runs it beside `start()` so the editor never waits for the
+    /// network (legacy loaded it when the sheet opened, `AnswerView.swift:625-640` @ 2440d79). A failure leaves the picker
+    /// empty and the topic sendable: the engine then sends the form's own choice.
+    func loadSubcategories() async {
+        guard case .newTopic(let topic) = target, !picker.isLoading else { return }
+        picker.beginLoading()
+        do throws(PostingError) {
+            picker.apply(try await services.poster.newTopicOptions(formURL: topic.formURL))
+        } catch {
+            picker.fail(ComposerMessages.subcategoriesUnavailable(error))
+        }
+    }
+
+    /// The user chose a sub-category of the form's list.
+    func select(subcategory value: String) {
+        guard isNewTopic, canEdit, picker.select(value) else { return }
+        // Choosing does not answer an uncertain send: its warning stays until the text or subject changes.
+        if !mayHavePosted { errorMessage = nil }
     }
 
     /// The user typed: the draft is saved after a pause.
@@ -135,7 +171,7 @@ final class ReplyComposerModel: Identifiable {
 
     /// The user edited the subject of a new private message: saved with the text.
     func update(subject newSubject: String) {
-        guard isNewMessage, canEdit, newSubject != subject else { return }
+        guard hasSubjectField, canEdit, newSubject != subject else { return }
         subject = newSubject
         didEdit()
     }
@@ -167,7 +203,7 @@ final class ReplyComposerModel: Identifiable {
     /// every field, with nothing requested.
     func send() async {
         guard canSend else { return }
-        let refused = Self.unsupportedCharacters(in: isNewMessage ? recipient + subject + text : text)
+        let refused = Self.unsupportedCharacters(in: hasSubjectField ? recipient + subject + text : text)
         guard refused.isEmpty else {
             errorMessage = ComposerMessages.unsupported(refused)
             return
@@ -186,8 +222,13 @@ final class ReplyComposerModel: Identifiable {
             closeReason = .sent(result)
         } catch {
             isSending = false
-            errorMessage = ComposerMessages.message(for: error, newMessage: isNewMessage)
+            errorMessage = ComposerMessages.message(for: error, newMessage: isNewMessage, newTopic: isNewTopic)
             if case .unconfirmed = error { mayHavePosted = true }
+            if case .unknownSubcategory = error, isNewTopic {
+                // The list changed since it was read: every retry would fail the same way, so read it again.
+                picker.reset()
+                await loadSubcategories()
+            }
         }
     }
 
@@ -202,6 +243,11 @@ final class ReplyComposerModel: Identifiable {
                 to: recipient.trimmingCharacters(in: .whitespacesAndNewlines),
                 subject: subject.trimmingCharacters(in: .whitespacesAndNewlines),
                 text: text, formURL: message.formURL
+            )
+        case .newTopic(let topic):
+            return try await services.poster.newTopic(
+                subject: subject.trimmingCharacters(in: .whitespacesAndNewlines), subcategory: picker.selected,
+                text: text, formURL: topic.formURL
             )
         }
     }
@@ -334,7 +380,7 @@ final class ReplyComposerModel: Identifiable {
     /// would come back in an editor that looks empty. Returns whether the write succeeded.
     private func persist() async -> Bool {
         do {
-            let kept = isNewMessage && !Self.isBlank(subject) ? subject : nil
+            let kept = hasSubjectField && !Self.isBlank(subject) ? subject : nil
             try await services.drafts.save(hasText ? text : "", subject: kept, for: target.draftContext, account: services.account)
             draftWarning = nil
             return true
@@ -342,27 +388,5 @@ final class ReplyComposerModel: Identifiable {
             draftWarning = Self.draftWarning(for: error)
             return false
         }
-    }
-
-    // MARK: - Rules
-
-    private static func isBlank(_ value: String) -> Bool {
-        value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    /// Distinct characters with a scalar above U+FFFF, in order: HFR cuts the message at the first one (Q-3, `W12`).
-    static func unsupportedCharacters(in text: String) -> [Character] {
-        var refused: [Character] = []
-        for character in text where character.unicodeScalars.contains(where: { $0.value > 0xFFFF }) {
-            if !refused.contains(character) { refused.append(character) }
-        }
-        return refused
-    }
-
-    private static func draftWarning(for error: any Error) -> String {
-        if case .loadFailed = error as? DraftError {
-            return "Les brouillons sont illisibles pour le moment : ce texte ne sera pas sauvegardé si vous fermez."
-        }
-        return "Le brouillon n’a pas pu être enregistré. Le texte reste affiché ; copiez-le si vous fermez."
     }
 }
