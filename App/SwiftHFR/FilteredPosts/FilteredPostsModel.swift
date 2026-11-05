@@ -239,6 +239,8 @@ final class FilteredPostsModel {
         var messages: [ReaderMessage] = []
         messages.reserveCapacity(batch.posts.count)
         for post in batch.posts {
+            // A cancelled run stops sanitizing; `read` turns this into "nothing to show".
+            if Task.isCancelled { throw .network(.cancelled) }
             let block = post.block
             let content: MessageContent
             do throws(ParsingError) {

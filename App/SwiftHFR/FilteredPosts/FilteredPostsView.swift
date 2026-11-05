@@ -117,7 +117,8 @@ struct FilteredPostsView: View {
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
         .onAppear(perform: makeController)
-        .onChange(of: model.result, initial: true) { _, result in show(result) }
+        // Only a new page of posts reloads the document: marking the topic finished keeps the scroll position.
+        .onChange(of: model.result?.page, initial: true) { _, _ in show(model.result) }
         .onDisappear { controller?.stopLoading() }
     }
 

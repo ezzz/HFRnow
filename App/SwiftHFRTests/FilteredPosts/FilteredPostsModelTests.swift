@@ -153,13 +153,18 @@ struct FilteredPostsModelTests {
     @Test func aRunCancelledWhileItsBatchIsBeingNormalizedNeverDelivers() async {
         let blocking = BlockingNormalizer()
         let services = FilteredPostsServices(
-            source: FakeFilteredSource { _, _, _ in filteredBatch(start: 1, end: 1) },
+            source: FakeFilteredSource { _, _, _ in filteredBatch(start: 1, end: 1, posts: 1) },
             criteria: { FilteredPostsCriteria() }, normalizer: blocking
         )
         let model = FilteredPostsModel(services: services)
         model.start(topic: filterTopic, title: "Sujet", page: 1, after: nil)
-        // The normalizer runs off the main actor, so waiting for it here cannot deadlock.
-        blocking.entered.wait()
+        // The run needs the main actor to start: wait for the normalizer from another thread, not this one.
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global().async {
+                blocking.entered.wait()
+                continuation.resume()
+            }
+        }
         let stale = model.lastRun
         model.cancel()
         blocking.release.signal()
