@@ -70,11 +70,12 @@ Shown to fail with the behaviour removed (each mutation caught): no unselect aft
 
 ## Captured since
 
-- **HFR does not clear the selection** after a post (#334, `W62`, `W63`, `R95g`, HFR-PROTOCOL §4). After every reply it
-  answers `Set-Cookie: quoteshardwarefr-prive-<post>=deleted` with an expiry in 1970, path `/` and no `Domain`: an
-  expired deletion of the host-only cookie the site's own `forum2.js` writes. It never creates a live host-only
-  selection, so the posted messages are not quoted again by HFR's doing, and it never clears the `.hardware.fr` cookie
-  this client stores (`storedQuoteCookie`), so the client's own unselect after a confirmed reply stays required.
+- **HFR does not clear the selection** after a post (#334, `W62`, `W63`, `R95g`, HFR-PROTOCOL §4). After each captured
+  reply (`W62`, `W63`) it answers `Set-Cookie: quoteshardwarefr-prive-<post>=deleted` with an expiry in 1970, path `/`
+  and no `Domain`: an expired deletion of the host-only cookie the site's own `forum2.js` writes. In those replies it
+  creates no live host-only selection, so the posted messages are not quoted again by HFR's doing, and it never clears
+  the `.hardware.fr` cookie this client stores (`storedQuoteCookie`), so the client's own unselect after a confirmed
+  reply stays required.
 
 ## Pending capture
 
