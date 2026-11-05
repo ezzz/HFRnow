@@ -44,8 +44,8 @@ struct NewMessageTarget: Hashable, Sendable {
 }
 
 // Port of HFRswift/Swift/MainWindow.swift:745-757,812-835 (the "+" button and the `AnswerView(requiresSubject:requiresSubcategory:)` sheet)
-// (GAP-098) and HFRswift/Swift/ReplyService.swift:96-113,392-412 (`ReplyComposerSubcategoryOption`) @ 2440d79. Differences: drafts are kept per forum
-// (legacy kept one global text); the sub-category list is read from the form before the user writes.
+// (GAP-098) and HFRswift/Swift/ReplyService.swift:96-113,392-412 (`ReplyComposerSubcategoryOption`) @ 2440d79.
+// Differences: drafts are kept per forum (legacy kept one global text); the sub-category list is read from the form before the user writes.
 /// A new topic (LOT-089): the forum's new-topic composer and the category that keys its draft.
 struct NewTopicTarget: Hashable, Sendable {
     /// The new-topic composer (`/hfr/<cat>/nouveau_sujet.htm`, `R45a`; the list's `md_btn_new_topic`): `https` on the forum host.
