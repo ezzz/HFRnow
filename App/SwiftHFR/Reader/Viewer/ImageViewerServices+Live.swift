@@ -11,7 +11,10 @@ extension ImageViewerServices {
             load: { url, allowsThirdParty in
                 let result = try await fetcher.image(at: url, allowsThirdParty: allowsThirdParty, hostTable: .standard)
                 // Decoded in the app, not in WebKit's process: refuse what cannot be shown or would blow the memory.
-                guard ViewerImageCheck.isShowable(result.data) else { throw ImageSaveError.invalidImage }
+                // The same bounded decode the viewer does, here and off the main actor: a truncated image never becomes `.loaded`.
+                guard ViewerImageCheck.isShowable(result.data), ViewerImageCheck.displayImage(result.data) != nil else {
+                    throw ImageSaveError.invalidImage
+                }
                 return ViewerImage(data: result.data, mimeType: result.mimeType)
             },
             save: { image async throws(ImageSaveError) in try await PhotoLibrarySaver.save(image.data) },
