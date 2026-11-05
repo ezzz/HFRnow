@@ -8,7 +8,7 @@
 
 ## Legacy sources
 
-Legacy app: `francoisgn/hfrnow` at `2440d79` (an ancestor of `origin/master`). **Legacy had no working offline reading**: the download method is inside a `/* … */` block (`OfflineStorage.m:145-294`), and nothing outside the file calls the list toggles (audit E §2, `docs/audit/E-storage-vendors.md:72`: "compiled, effectively unused"; no HFRswift UI). The rows below describe the shipped list code and the intended design the commented-out method shows.
+Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79` (an ancestor of `origin/master`). **Legacy had no working offline reading**: the download method is inside a `/* … */` block (`OfflineStorage.m:145-294`), and nothing outside the file calls the list toggles (audit E §2, `docs/audit/E-storage-vendors.md:72`: "compiled, effectively unused"; no HFRswift UI). The rows below describe the shipped list code and the intended design the commented-out method shows.
 
 | Legacy | What it gives this lot |
 |---|---|
