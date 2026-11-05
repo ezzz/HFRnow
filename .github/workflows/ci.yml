@@ -4,8 +4,9 @@ on:
   push:
     branches: [dev-swift]
   pull_request:
-    # `ready_for_review`: the macOS jobs skip drafts and start when the PR is marked ready (#477).
-    types: [opened, synchronize, reopened, ready_for_review]
+    # `ready_for_review` starts the macOS jobs when a draft is marked ready; `converted_to_draft` cancels a running
+    # macOS run (same concurrency group) and swaps it for the fast draft gate (#477).
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
   workflow_dispatch:
 
 permissions:
