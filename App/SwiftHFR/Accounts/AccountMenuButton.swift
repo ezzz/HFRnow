@@ -1,5 +1,8 @@
 import SwiftUI
 
+// Port of HFRswift/Swift/MainWindow.swift (CategoriesListView.accountMenuItems) and HFRswift/Swift/AccountMenuViews.swift
+// (AccountMenuRow) @ 2440d79. Differences: shown in the Plus and Catégories toolbars only, plus a "manage accounts" entry (GAP-009,
+// GAP-162).
 /// Toolbar entry to the accounts, as legacy's account menu (`HFRswift/Swift/MainWindow.swift:267-290`): switch account,
 /// add one, manage them. Logged out, it offers to log in.
 struct AccountMenuButton: View {

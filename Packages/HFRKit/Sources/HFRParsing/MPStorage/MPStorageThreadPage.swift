@@ -1,3 +1,4 @@
+import Foundation
 import HFRModels
 
 /// The storage thread page, read (LOT-038).
@@ -24,4 +25,12 @@ public struct MPStorageMessage: Sendable, Hashable {
         self.text = text
         self.document = document
     }
+}
+
+/// Where the storage message sits on the thread's first page, without its text (`MPStoragePageParser.locateMessage`).
+public enum MPStorageMessageLocation: Sendable, Hashable {
+    /// The first message: its number and the edit link of its toolbar, nil when the toolbar has none.
+    case message(numreponse: Int, editURL: URL?)
+    /// HFR's "Ce message ne vous est pas destiné" page (`RA5`): the thread is not this account's.
+    case notAddressed
 }

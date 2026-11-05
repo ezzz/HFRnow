@@ -105,6 +105,14 @@ container changes per install).
 
 `result.parser`: `iLastPageNumber`, `iFirstPageNumber` (never set: always 0), `topicName` (raw, `null` if none), `itemCount`.
 
+`result.fastAnswer` (#268): the topic flag the reader controller sets in `-[MessagesTableViewController setupFastAnswer:]`
+(`HFRswift/Wrapped/MessagesTableViewController.m:1556-1583` at `2440d79`), on the body of the second parse: `isFavoritesOrRead` (raw `href` of
+the first `a` of the body whose `href` contains `delflag`, else of the first containing `nonlu`, else `""`), `isRedFlagged` (that `delflag`
+link holds an element whose `src` contains `flagn0.gif`) and `isUnreadable` (true only on the `nonlu` branch). That controller is compiled
+into the `SuperHFRplus` target only, not into the `HFRswift` test host, so its lines are transliterated in `OracleObjCSafe.m` on the real
+`HTMLParser`/`HTMLNode` calls (as `OracleLegacyWrite.m` does for the composers). `{exception}` if the parse raised. It always comes from
+the normal parse, also when the case has a `filter`: the filtered parse (`result.filterMode`) has no `fastAnswer`.
+
 `result.messages[]` (one per `LinkItem`, in order; `index` = DOM id `%%ID%%`): strings `postID` (with the `t`), `name`, `messageDate`,
 `dicoHTML` (libxml2 serialization of the `para` node), `imageUI`, `urlQuote`, `urlEdit` (the obfuscated `class` values), `urlProfil`,
 `urlAlert`, `addFlagUrl`, `quoteJS`, `MPUrl`, `quotedNB`, `quotedLINK`, `editedTime`, `url`; `isDel`; `iPage`; `urlQuoteDecoded` /
@@ -264,6 +272,16 @@ About 2.0 MB in total (the page HTML is tokenized, the messages part is stored o
 | RU1, RU2 | user1 | MP thread, recipient view; after the owner's delete (no reply form, one avatar) |
 
 R25 (permalink, 301 with empty body) has no page to export.
+
+Two more folders use the same map format and exporter, so the case lists of the LOT-030..034 differential tests stay as they are (#268):
+
+| Folder | Cases | Covers |
+|---|---|---|
+| `Fixtures/LOT-003-flag/` | R33b (user1), R61d, R61e (user2), R63a, R63e (user1) | the logged-in topic pages with a function-bar `delflag` link that are not in `LOT-003/` (`fastAnswer` for #306); default settings |
+| `Fixtures/LOT-003-settings/` | R21-sig-noimg-novid (`display_sig: yes`, `display_images: no`, `embedded_videos: no`), R26-sig (`display_sig: yes`), R28-noimg-novid (`display_images: no`, `embedded_videos: no`) | the other settings values, on the same captures as `R21`, `R26`, `R28` (wanted by LOT-034, LOT-035) |
+
+Re-run each folder like `LOT-003/` (`-i <folder> -o <folder>`). The deepest quote/tag nesting HFR serves is not measured here: it needs a
+new capture (#268).
 
 ## Intentional differences from legacy
 Not applicable: the exporter records legacy behaviour. Its departures, all for reproducibility: no network (avatars per `avatarFetch`),

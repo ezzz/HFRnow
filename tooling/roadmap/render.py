@@ -1,6 +1,7 @@
 import sys
 from datetime import datetime,timezone
 from pathlib import Path
+import m5
 from generate import *
 # usage: render.py [post-mvp issue number, default 324] [output dir, default tooling/roadmap/out]
 POST=sys.argv[1] if len(sys.argv)>1 else '324'
@@ -27,7 +28,7 @@ def by_theme(ls):
         r=rows[l]; t=(r['sub'] or r['sec'].split('—')[-1]).split('(')[0].replace('app: ','').strip()
         g.setdefault(t,[]).append(l)
     return g
-def board(ms,title,emoji):
+def board(ms,title,emoji,key=None):
     b={'todo':[],'ongoing':[],'done':[]}
     for l in ms: b[state(l)[0]].append(l)
     d,o,t,tot,p=pct(ms)
@@ -42,12 +43,14 @@ def board(ms,title,emoji):
         s.append(', '.join(f"{l} #{rows[l]['issue']}" for l in sorted(b['done'],key=n)))
         s.append('\n</details>\n')
     else: s.append('### ✅ Done (0)\n')
+    if key: s.append(followups_block(key))
     return '\n'.join(s)
 LEGEND='''### Legend
 
 | Column | Emoji | Meaning |
 |---|---|---|
 | 🔜 Todo | 🟦 ready | `status: ready`: every dependency merged, inputs available, nobody claimed it. Claim it with `/claim <id>`. |
+| | ⏸️ M5 not opened | An M5 lot whose dependencies are merged. M5 opens by the orchestrator's decision: do not set `status: ready`. |
 | | ⛔ waits on … | Dependencies not merged yet (lot numbers listed). |
 | | 📸 waits on capture | Every dependency is merged, but a capture (issue linked, `host: mac`) must land first. |
 | | 🟨 triage | Every listed dependency is merged but the issue is still `status: blocked`: either a pending capture blocks it (say which on the issue) or it is ready. |
@@ -85,13 +88,14 @@ M_TABLE=f'''| Milestone | Goal | Exit criteria | Progress |
 | 🚀 **M1 · MVP** ([#166](https://github.com/ezzz/HFRnow/issues/166)) | Log in, browse, read, reply; first TestFlight build | M1 lots ✅, LOT-161 TestFlight build installed, #322 and #344 checks done | {bar(*[pct(M1)[0],pct(M1)[3]],10)} {pct(M1)[4]} % |
 | 📖 **M2 · Read & reply complete** | Every reading and answering feature of the legacy app (topics and MPs): quotes, formatting, smileys, images, edit/delete, new topic, polls, search, filters, page tools, offline reading, MPs | M2 lots ✅, TestFlight beta 2 | {bar(pct(M2)[0],pct(M2)[3],10)} {pct(M2)[4]} % |
 | ⚙️ **M3 · Engine complete** | Every `HFRKit` lot (models, parsing, network, flows, storage) | M3 lots ✅, LOT-070 parity gates green | {bar(pct(M3)[0],pct(M3)[3],10)} {pct(M3)[4]} % |
-| 🏁 **M4 · Final version** | Full legacy parity, MPStorage sync, notifications, compliance, accessibility, iOS 27 experience, App Store | LOT-164 parity gate ✅, LOT-165 App Store submission accepted, every lot of `LOTS.md` ✅ | {bar(pct(M4)[0],pct(M4)[3],10)} {pct(M4)[4]} % |
+| 🏁 **M4 · Final version** | The validated legacy parity: MPStorage sync, notifications, compliance, accessibility, App Store | LOT-164 parity gate ✅, LOT-165 App Store submission accepted, every M4 lot ✅ | {bar(pct(M4)[0],pct(M4)[3],10)} {pct(M4)[4]} % |
+| 🧪 **M5 · UX evolutions** | The evolutions: every change from the plan or from the legacy that parity does not need (deferred option B of the UXD decisions, FEAT items, the (b) halves of split lots), never dropped (operator, 2026-11-02, [#379](https://github.com/ezzz/HFRnow/issues/379)) | after the M4 parity is validated; each lot ✅ | {bar(pct(M5)[0],pct(M5)[3],10)} {pct(M5)[4]} % |
 
-M3 runs **in parallel** with M2 (☁️ cloud sessions). M2 and M4 mostly need the Mac (🍎). M2 pulls the engine lots it needs from M3 first.
+M3 runs **in parallel** with M2 (☁️ cloud sessions). M2, M4 and M5 mostly need the Mac (🍎). M2 pulls the engine lots it needs from M3 first. M4 is the validated legacy parity; M5 gathers the evolutions.
 '''
 def triage():
     out=[]
-    for ms in (M1,M2,M3,M4):
+    for ms in (M1,M2,M3,M4)+((M5,) if m5.M5_OPEN else ()):  # a closed M5 is opened by the orchestrator, never by this instruction
         for l in sorted(ms,key=n):
             if state(l)[1].startswith('🟨') and l!='LOT-070': out.append(f"{l} #{rows[l]['issue']}")
     return out
@@ -112,13 +116,15 @@ _Snapshot {DATE}, rebuilt by the steward from `docs/LOTS.md` and the issue and P
 ![SwiftHFR milestones](https://raw.githubusercontent.com/ezzz/HFRnow/dev-swift/docs/assets/roadmap-milestones.svg)
 
 {LEGEND}
-{board(M2,'M2 · Read & reply complete','📖')}
+{board(M2,'M2 · Read & reply complete','📖','M2')}
 
-{board(M3,'M3 · Engine complete','⚙️')}
+{board(M3,'M3 · Engine complete','⚙️','M3')}
 
 Also engine-side, not in LOTS.md yet: #306 (parser: the topic page's delflag link for LOT-051 `removeFlag`) · 🟦 ready · ☁️ cloud.
 
-{board(M4,'M4 · Final version','🏁')}
+{board(M4,'M4 · Final version (validated legacy parity)','🏁','M4')}
+
+{board(M5,'M5 · UX evolutions','🧪','M5')}
 
 After M4, not a lot: #338 (return to a standard contribution process; removes the M1–M4 delegation rules) · ⛔ waits on LOT-165.
 
@@ -172,6 +178,7 @@ _Snapshot {DATE}._
 - LOT-169 and LOT-137 come before the first beta (operator decision on #292).
 - LOT-170 (PR #303) landed before LOT-161, as the maintainer asked on #251 (merged 2026-10-29).
 
+{followups_block('M1')}
 ### 🩹 Fixes that touch the MVP
 
 | Issue | What | State |

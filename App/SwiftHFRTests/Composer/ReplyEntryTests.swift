@@ -65,7 +65,7 @@ struct ReplyEntryTests {
             served.topicID = nil
             return served
         }
-        let reader = TopicReaderModel(target: ReaderTarget(source: .path("/hfr/a/b-sujet_1_1.htm")), title: "", source: pages)
+        let reader = TopicReaderModel(target: ReaderTarget(source: .topic(readerTopic)), title: "", source: pages)
         await reader.onAppear()
         #expect(reader.replyTarget == nil)
     }
@@ -131,19 +131,6 @@ struct ReplyEntryTests {
         #expect(reader.document?.anchor == nil)
     }
 
-    @Test func aCanonicalPathTopicMovesPastItsLastPageToo() async {
-        let path = "/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_3.htm"
-        let pages = FakeTopicPages { target in
-            var served = answerPage(target.page)
-            served.topicID = nil
-            return served
-        }
-        let reader = TopicReaderModel(target: ReaderTarget(source: .path(path), page: 3), title: "", source: pages)
-        await reader.onAppear()
-        await reader.showLatestPost()
-        #expect(pages.requests.last?.source == .path("/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_6.htm"))
-    }
-
     // MARK: Captured pages
 
     @Test func aLoggedInTopicPageGivesItsAnswerLink() throws {
@@ -194,7 +181,7 @@ struct ReplyEntryTests {
     @Test func onlyUnconfirmedSaysTheReplyMayHaveBeenPosted() {
         let notPosted: [PostingError] = [
             .rejected(message: nil), .notLoggedIn, .formUnavailable(message: nil), .network(.offline), .network(.cancelled),
-            .invalidFormURL, .missingAction, .unsupportedForm(reason: "x"), .emptyInput(.text)
+            .invalidFormURL, .missingAction, .unsupportedForm(reason: "x"), .emptyInput(.text), .sessionChanged
         ]
         for error in notPosted {
             #expect(!ComposerMessages.message(for: error).contains("peut-être"))

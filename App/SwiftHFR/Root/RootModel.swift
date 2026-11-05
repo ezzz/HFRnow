@@ -2,6 +2,8 @@ import HFRModels
 import HFRStorage
 import Observation
 
+// Port of HFRswift/Swift/MainWindow.swift (RootTabView: selectedTab, mp_badge_enabled, tabbar_minimize_on_scroll) @ 2440d79.
+// Differences: the MP badge comes from the home-page count (GAP-004); the start tab is a setting taken from master (GAP-002, UXD).
 /// State shared by the root navigation, whether it is the iPhone tab bar or the iPad sidebar: the selected tab or
 /// destination, the unread private-message badge and the tab-bar setting (LOT-170).
 @MainActor
@@ -112,7 +114,7 @@ final class RootModel {
             NavigationModel(
                 dataSource: environment.dataSource, forums: forums, sessionIsLoggedIn: environment.isLoggedIn,
                 topicPages: environment.topicPages, renderOptions: environment.reader.settings.renderOptions,
-                startupSource: startup
+                filteredPosts: environment.filteredPosts, startupSource: startup
             )
         }
         self.init(

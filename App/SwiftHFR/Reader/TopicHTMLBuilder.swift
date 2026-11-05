@@ -1,6 +1,8 @@
 import Foundation
 import HFRModels
 
+// Port of Classes/ObjCTopicMessageContentBuilder.m and SuperHFRplus/Assets/HTML/templatev2.htm @ 2440d79. Differences: built from the
+// typed MessageContent (ADR 0006); a one-line header instead of the grey band with "+" (GAP-051, UXD).
 /// Escapes untrusted text for the two HTML contexts the builder writes: element content and double-quoted attributes.
 enum HTMLEscaping {
     /// `&`, `<`, `>`, `"` and `'` replaced by entities: safe as element content and inside a double-quoted attribute.
@@ -25,6 +27,8 @@ enum HTMLEscaping {
 struct ReaderRenderOptions: Equatable, Sendable {
     /// Append each message's `signatureHTML` (`display_sig`, off by default as in legacy).
     var showsSignatures = false
+    /// Message layout (`theme_style`): the legacy default is modern (`AppSettingsView.swift:98` @ 2440d79 reads 1).
+    var style = ThemeStyle.modern
 }
 
 /// Builds the reader's HTML document from a `ReaderPage` (LOT-083, audit C12).
@@ -65,7 +69,7 @@ enum TopicHTMLBuilder {
         <link rel="stylesheet" href="\(scheme)://resource/reader.css">
         <title>\(HTMLEscaping.text(page.title))</title>
         </head>
-        <body class="\(options.showsSignatures ? "signatures" : "nosig")">
+        <body class="\(options.showsSignatures ? "signatures" : "nosig") \(options.style == .classic ? "style-classic" : "style-modern")">
         <main>
 
         """

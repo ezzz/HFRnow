@@ -653,6 +653,11 @@
         "topicTitle" : "Le topic des images étonnantes [faites pas les cons]"
       }
     ],
+    "fastAnswer" : {
+      "isFavoritesOrRead" : "",
+      "isRedFlagged" : false,
+      "isUnreadable" : false
+    },
     "messages" : [
       {
         "addFlagUrl" : null,

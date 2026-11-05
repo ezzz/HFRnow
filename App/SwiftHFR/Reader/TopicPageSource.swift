@@ -28,7 +28,7 @@ struct LiveContentNormalizer: MessageContentNormalizing {
 /// `nonisolated` async functions of a `Sendable` struct run off the main actor, so parsing a long page never blocks the UI.
 struct LiveTopicPageSource: TopicPageSource {
     let fetcher: PageFetcher
-    /// The account session, for canonical paths that carry no category (`PageFetcher` needs a `TopicID`).
+    /// The account session, for a message link (`PageFetcher` asks for a page, R25 needs page 1 plus the message).
     let session: any HTTPTransport
     let normalizer: any MessageContentNormalizing
 
@@ -38,16 +38,6 @@ struct LiveTopicPageSource: TopicPageSource {
     }
 
     private func fetch(_ target: ReaderTarget) async throws(ListLoadError) -> RawPage {
-        var pathURL: URL?
-        if case .path(let path) = target.source {
-            // The path only: no query or fragment reaches the session GET.
-            guard var components = ReaderTarget.forumURL(path).flatMap({ URLComponents(url: $0, resolvingAgainstBaseURL: false) })
-            else { throw .other }
-            components.query = nil
-            components.fragment = nil
-            guard let url = components.url else { throw .other }
-            pathURL = url
-        }
         do throws(NetworkError) {
             switch target.source {
             case .topic(let topic):
@@ -57,10 +47,6 @@ struct LiveTopicPageSource: TopicPageSource {
                     return RawPage(response: try await session.send(try Self.messageRequest(topic: topic, numreponse: numreponse)))
                 }
                 return try await fetcher.topicPage(topic: topic, page: target.page, as: .authenticated).page
-            case .path:
-                guard let pathURL else { throw .invalidRequest(reason: "not a forum link") }
-                if Task.isCancelled { throw .cancelled }
-                return RawPage(response: try await session.send(.get(pathURL)))
             }
         } catch {
             throw ListLoadError(error)
@@ -103,7 +89,8 @@ struct LiveTopicPageSource: TopicPageSource {
                 currentPage: max(1, metadata.currentPage),
                 maxPage: max(1, metadata.maxPage, metadata.currentPage),
                 messages: messages,
-                answerURL: metadata.answerFormURL
+                answerURL: metadata.answerFormURL,
+                poll: metadata.hasPoll ? try? PollParser.poll(in: html) : nil
             )
         } catch {
             throw .unreadable
