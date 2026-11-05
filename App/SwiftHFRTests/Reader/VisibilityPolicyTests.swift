@@ -223,17 +223,28 @@ struct VisibilityPolicyTests {
         let data = try LiveTopicPageSourceTests.capture(capture)
         let pageURL = url("https://forum.hardware.fr/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm")
         let page = try LiveTopicPageSource.parse(
-            String(data: data, encoding: .utf8) ?? "", pageURL: pageURL, normalizer: LiveContentNormalizer()
+            try #require(String(data: data, encoding: .utf8)), pageURL: pageURL, normalizer: LiveContentNormalizer()
         )
         let authored = page.messages.flatMap(\.quotes).compactMap(\.author)
         #expect(!authored.isEmpty)
-        let everyone = VisibilityPolicy(blocklist: authored)
-        var classed = 0
+        // Different outcomes per author, so a table given another author's class is caught.
+        let distinct = authored.reduce(into: [String]()) { if !$0.contains($1) { $0.append($1) } }
+        let mixed = VisibilityPolicy(blocklist: Array(distinct.prefix(1)), allowlist: Array(distinct.dropFirst().prefix(1)))
+        var checked = 0
         for message in page.messages {
-            let result = QuoteMarkup.annotate(message.content.html, quotes: message.quotes, policy: everyone)
-            classed += result.matches(of: /quote-blocked/).count
+            let result = QuoteMarkup.annotate(message.content.html, quotes: message.quotes, policy: mixed)
+            let tables = result.matches(of: /<table class="([^"]*)">/).map { String($0.1) }
+                .filter { $0.split(separator: " ").contains { ["citation", "oldcitation", "quote"].contains(String($0)) } }
+            #expect(tables.count == message.quotes.count)
+            for (table, quote) in zip(tables, message.quotes) {
+                switch mixed.quote(by: quote.author) {
+                case .blocked: #expect(table.hasSuffix(" quote-blocked"))
+                case .allowlisted: #expect(table.hasSuffix(" quote-allowed"))
+                default: #expect(!table.contains("quote-"))
+                }
+                checked += 1
+            }
         }
-        // Every authored quote of the page was found by position: none fell back to "untouched" on a count mismatch.
-        #expect(classed == authored.count)
+        #expect(checked >= authored.count)
     }
 }

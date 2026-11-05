@@ -11,16 +11,19 @@ import WebKit
 struct VisibilityWebTests: ReaderWebTesting {
     private static let policy = VisibilityPolicy(ownPseudo: "moi", blocklist: ["Troll"], allowlist: ["Ami"])
 
-    private static func quote(_ author: String) -> String {
+    private static func quote(_ author: String, inner: String = "") -> String {
         "<table class=\"citation\"><tr class=\"none\"><td><b class=\"s1\"><a href=\"https://forum.hardware.fr/hfr/x-sujet_1_1.htm#t9\" "
             + "class=\"Topic\">\(author) a écrit :</a></b></td></tr>"
-            + "<tr><td><div class=\"container\"><p>propos de \(author)</p></div></td></tr></table>"
+            + "<tr><td><div class=\"container\"><p>propos de \(author)</p>\(inner)</div></td></tr></table>"
     }
 
     private func shown(hidesPseudo: Bool = false) async -> (ReaderWebController, ReaderWebRecorder) {
         let (controller, recorder) = makeController(transport: imageTransport())
-        let html = Self.quote("Troll") + Self.quote("moi") + Self.quote("Ami")
-        let quotes = [MessageQuote(author: "Troll", depth: 1), MessageQuote(author: "moi", depth: 1), MessageQuote(author: "Ami", depth: 1)]
+        let html = Self.quote("Troll", inner: Self.quote("Inconnu")) + Self.quote("moi") + Self.quote("Ami")
+        let quotes = [
+            MessageQuote(author: "Troll", depth: 1), MessageQuote(author: "Inconnu", depth: 2),
+            MessageQuote(author: "moi", depth: 1), MessageQuote(author: "Ami", depth: 1)
+        ]
         func message(_ author: String, _ number: Int, _ body: String, _ quotes: [MessageQuote] = []) -> ReaderMessage {
             ReaderMessage(
                 numreponse: number, author: author, isDeleted: false, isContinuation: false, avatarURL: nil,
@@ -58,6 +61,20 @@ struct VisibilityWebTests: ReaderWebTesting {
         // Open: a tap on the header line (not on its link) closes it again.
         _ = try await evaluate("document.querySelector('table.quote-blocked b.s1').click(); return true;", in: controller)
         #expect(try await evaluate(body, in: controller) as? String == "none")
+    }
+
+    @Test func onlyTheHeaderOfABlockedQuoteDrawsAnArrow() async throws {
+        let (controller, _) = await shown()
+        _ = try await evaluate("document.querySelector('table.quote-blocked a.Topic').click(); return true;", in: controller)
+        let content = try await evaluate(
+            """
+            const after = (element) => getComputedStyle(element, '::after').content;
+            const blocked = document.querySelector('table.quote-blocked');
+            return [after(blocked.querySelector('b.s1')), after(blocked.querySelectorAll('b.s1')[1])];
+            """, in: controller
+        ) as? [String]
+        #expect(content?.first?.contains("\u{25B2}") == true)
+        #expect(content?.last == "none")
     }
 
     @Test func theQuoteOfMeAndOfAnAllowlistedAuthorStayOpenAndTinted() async throws {

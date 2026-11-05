@@ -124,8 +124,8 @@ table.quote-blocked { background: color-mix(in srgb, var(--text) 5%, transparent
 /* A blocklisted author's quote shows its header line only, until tapped (reader.js toggles .open). The arrow is drawn here, so
    the header link stays a link once the quote is open. */
 table.quote-blocked { cursor: pointer; }
-table.quote-blocked:not(.open) tr:not(:first-child) { display: none; }
-table.quote-blocked b.s1::after { content: " \25BC"; }
-table.quote-blocked.open b.s1::after { content: " \25B2"; }
-table.quote-blocked.quote-hide-author:not(.open) b.s1 > a { display: none; }
-table.quote-blocked.quote-hide-author:not(.open) b.s1::before { content: "Citation masquée"; }
+table.quote-blocked:not(.open) > * > tr:not(:first-child) { display: none; }
+table.quote-blocked > * > tr:first-child b.s1::after { content: " \25BC"; }
+table.quote-blocked.open > * > tr:first-child b.s1::after { content: " \25B2"; }
+table.quote-blocked.quote-hide-author:not(.open) > * > tr:first-child b.s1 > a { display: none; }
+table.quote-blocked.quote-hide-author:not(.open) > * > tr:first-child b.s1::before { content: "Citation masquée"; }
