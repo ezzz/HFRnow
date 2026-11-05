@@ -104,9 +104,9 @@ struct ReaderDisplaySettingsTests {
     }
 
     @Test func theSwipeRuleIsTheLegacyOne() {
-        func swipe(_ dx: CGFloat, dy: CGFloat = 0, predicted: CGFloat, page: Int = 2, max: Int = 5) -> PageSwipe? {
+        func swipe(_ across: CGFloat, down: CGFloat = 0, predicted: CGFloat, page: Int = 2, max: Int = 5) -> PageSwipe? {
             PageSwipe.of(
-                translation: CGSize(width: dx, height: dy), predictedEnd: CGSize(width: predicted, height: dy),
+                translation: CGSize(width: across, height: down), predictedEnd: CGSize(width: predicted, height: down),
                 page: page, maxPage: max
             )
         }
@@ -115,13 +115,13 @@ struct ReaderDisplaySettingsTests {
         #expect(swipe(-100, predicted: -300) == nil) // under 120 pt
         #expect(swipe(-150, predicted: -200) == nil) // impulse 50 < 70
         #expect(swipe(-150, predicted: -100) == nil) // impulse against the drag
-        #expect(swipe(-150, dy: 90, predicted: -300) == nil) // vertical 90 >= 75
-        #expect(swipe(-150, dy: 70, predicted: -300) == .next)
+        #expect(swipe(-150, down: 90, predicted: -300) == nil) // vertical 90 >= 75
+        #expect(swipe(-150, down: 70, predicted: -300) == .next)
         #expect(swipe(-150, predicted: -300, page: 5) == nil) // no next page
         #expect(swipe(150, predicted: 300, page: 1) == nil) // no previous page
         #expect(swipe(-120, predicted: -300) == nil) // exactly 120 pt is not enough (legacy `>`)
         #expect(swipe(-121, predicted: -191) == nil) // impulse exactly 70
         #expect(swipe(-121, predicted: -192) == .next)
-        #expect(swipe(-200, dy: 100, predicted: -400) == nil) // vertical exactly 0.5 x horizontal
+        #expect(swipe(-200, down: 100, predicted: -400) == nil) // vertical exactly 0.5 x horizontal
     }
 }
