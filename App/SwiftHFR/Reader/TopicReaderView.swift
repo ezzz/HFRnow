@@ -72,6 +72,18 @@ struct TopicReaderView: View {
         } message: {
             if let page = model.page { Text("Entre 1 et \(page.maxPage)") }
         }
+        .confirmationDialog(
+            "Actions du message", isPresented: Binding(get: { model.presentedMenu != nil }, set: { if !$0 { model.dismissMenu() } }),
+            titleVisibility: .hidden, presenting: model.presentedMenu
+        ) { menu in
+            ForEach(menu.entries, id: \.kind) { action in
+                Button(role: action.isDestructive ? .destructive : nil) {
+                    Task { await model.perform(action, in: menu) }
+                } label: { Label(action.title, systemImage: action.systemImageName) }
+            }
+            Button("Annuler", role: .cancel) {}
+        }
+        .overlay(alignment: .bottom) { menuFeedbackBanner }
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
         .navigationDestination(item: linkedReader) { linked in
@@ -88,7 +100,10 @@ struct TopicReaderView: View {
                 model.applyDisplaySettings()
             }
         }
-        .task { await model.onAppear() }
+        .task {
+            installMenuActions()
+            await model.onAppear()
+        }
         .onDisappear {
             // Covered by the reader of a followed link: this page stays as it is, for the way back.
             guard model.linkedReader == nil else { return }
@@ -118,6 +133,25 @@ struct TopicReaderView: View {
         }
     }
 
+    @ViewBuilder
+    private var menuFeedbackBanner: some View {
+        if let feedback = model.menuFeedback {
+            Text(feedback)
+                .font(.callout)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(.thinMaterial, in: Capsule())
+                .padding(.bottom, 56)
+                .task(id: model.menuFeedbackSerial) { [serial = model.menuFeedbackSerial] in
+                    // A cancelled sleep (a newer confirmation, the view going away) must not clear anything.
+                    do {
+                        try await Task.sleep(for: .seconds(2))
+                        model.clearMenuFeedback(serial: serial)
+                    } catch {}
+                }
+        }
+    }
+
     /// The legacy horizontal drag that changes the page, when the setting is on (read at the end of each drag).
     private var pageSwipe: some Gesture {
         DragGesture().onEnded { value in
@@ -143,6 +177,20 @@ struct TopicReaderView: View {
         askingPage = true
     }
 
+    /// The handlers of the merged lots; today only "Link". A later lot adds its handler here, the policy is untouched.
+    private func installMenuActions() {
+        model.install(MessageActionRegistry([
+            LinkActionHandler(
+                copy: { UIPasteboard.general.string = $0.absoluteString },
+                // Weak: the model stores this registry, a strong capture would keep every reader alive.
+                confirm: { [weak model] text in
+                    model?.showMenuFeedback(text)
+                    AccessibilityNotification.Announcement(text).post()
+                }
+            )
+        ]))
+    }
+
     private func makeController() {
         guard controller == nil else { return }
         let controller = ReaderWebController(
@@ -161,7 +209,8 @@ struct TopicReaderView: View {
             video: { [model] post, index, token in
                 if let embed = model.video(post: post, index: index, token: token) { video = VideoItem(embed: embed) }
             },
-            position: { [model] post, token in Task { await model.recordPosition(post: post, token: token) } }
+            position: { [model] post, token in Task { await model.recordPosition(post: post, token: token) } },
+            menu: { [model] post, source, token in model.requestMenu(post: post, source: source, token: token) }
         )
         model.positions = services.positions
         self.controller = controller

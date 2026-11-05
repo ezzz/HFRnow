@@ -89,3 +89,8 @@ button.image-tap, button.video {
 }
 .videos { margin-top: 0.5em; }
 .image-link { font-size: 0.85em; color: var(--secondary); word-break: break-all; }
+
+/* Message menu (LOT-087): the author and the "⋯" button are buttons that look like text. The padding grows the touch target
+   (about 44 pt with the header's line height) and the negative margin gives it back, so the header keeps its height. */
+.message button.menu-author { background: none; border: 0; padding: 0.7em 0.4em; margin: -0.7em -0.4em; color: inherit; font: inherit; font-weight: 600; text-align: start; }
+.message button.menu-button { background: none; border: 0; min-width: 2.2em; padding: 0.5em 0.4em; margin: -0.5em 0; color: var(--secondary); font: inherit; font-size: 1.4em; line-height: 1; }

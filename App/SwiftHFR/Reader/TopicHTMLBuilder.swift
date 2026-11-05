@@ -27,6 +27,10 @@ enum HTMLEscaping {
 struct ReaderRenderOptions: Equatable, Sendable {
     /// Append each message's `signatureHTML` (`display_sig`, off by default as in legacy).
     var showsSignatures = false
+    /// Give each message a `⋯` button (LOT-087). Off until a message-menu handler is registered.
+    var showsMessageMenus = false
+    /// Make each author tappable (legacy avatar popup). Off until an author-menu handler is registered.
+    var showsAuthorMenus = false
     /// Message layout (`theme_style`): the legacy default is modern (`AppSettingsView.swift:98` @ 2440d79 reads 1).
     var style = ThemeStyle.modern
 }
@@ -103,8 +107,19 @@ enum TopicHTMLBuilder {
         if let avatar = message.avatarURL {
             html += "<img class=\"avatar\" src=\"\(HTMLEscaping.text(avatar.absoluteString))\" alt=\"\">"
         }
-        html += "<span class=\"author\">\(author)</span>"
+        let showsMessageMenu = options.showsMessageMenus && !message.isContinuation
+        if options.showsAuthorMenus, !message.isContinuation {
+            // The author opens the author's menu (legacy: the avatar tap); the numbers are ours, never page text.
+            html += "<button type=\"button\" class=\"author menu-author\" data-menu=\"avatar\" data-post=\"\(message.numreponse)\">"
+            html += "\(author)</button>"
+        } else {
+            html += "<span class=\"author\">\(author)</span>"
+        }
         if !message.dateText.isEmpty { html += "<span class=\"date\">\(date)</span>" }
+        if showsMessageMenu {
+            html += "<button type=\"button\" class=\"menu-button\" data-menu=\"message\" data-post=\"\(message.numreponse)\""
+            html += " aria-label=\"Actions du message de \(author)\">⋯</button>"
+        }
         html += "</header>\n"
         if message.isContinuation { html += "<p class=\"continuation-note\">Reprise du message précédent</p>\n" }
         if message.isDeleted { html += "<p class=\"deleted-note\">Message supprimé</p>\n" }
