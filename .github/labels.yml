@@ -21,8 +21,8 @@
 - { name: "area: tooling",        color: "ededed", description: "Legacy-app tooling, fixtures, oracles" }
 - { name: "area: app",            color: "ededed", description: "iOS app / UI" }
 - { name: "area: ci",             color: "ededed", description: "CI, security tooling, repository settings" }
-- { name: "codeql",               color: "1d76db", description: "Run CodeQL Swift analysis on this PR before merge (#477)" }
 - { name: "area: docs",           color: "ededed", description: "Documentation" }
+- { name: "codeql",               color: "1d76db", description: "Run CodeQL Swift analysis on this PR before merge (#477)" }
 - { name: "status: needs-triage", color: "ffffff", description: "Not yet reviewed by a maintainer" }
 - { name: "status: ready",        color: "0e8a16", description: "Specified and ready to be picked" }
 - { name: "status: blocked",      color: "000000", description: "Waiting on something else" }

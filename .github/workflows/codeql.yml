@@ -14,8 +14,13 @@ permissions:
   contents: read
 
 # A new push to a PR cancels its running analysis; pushes to dev-swift and scheduled runs are never cancelled.
+# Any other label added to a PR gets a group of its own (run id), so relabelling never cancels a running analysis (#477).
+# A re-run reuses the original event's labels: to start a Swift analysis, add `codeql`, do not re-run.
 concurrency:
-  group: codeql-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  group: >-
+    codeql-${{ github.event_name == 'pull_request'
+    && !(github.event.action == 'labeled' && github.event.label.name != 'codeql')
+    && github.ref || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -48,6 +53,8 @@ jobs:
 
   analyze-actions:
     name: Analyze (actions)
+    # A label event carries no new code: the analysis of this head already ran on its push.
+    if: ${{ github.event.action != 'labeled' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -74,6 +81,7 @@ jobs:
     if: >-
       ${{ !cancelled()
       && (github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'codeql'))
+      && (github.event.action != 'labeled' || github.event.label.name == 'codeql')
       && (needs.changes.result != 'success' || needs.changes.outputs.swift == 'true') }}
     # CodeQL's Swift extractor lags behind preview toolchains: analyze with the stable Xcode on macos-26.
     runs-on: macos-26
