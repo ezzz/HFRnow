@@ -44,7 +44,8 @@ struct MessageMenuOwnPostCaptureTests {
                         .map { ($0.name, $0.value ?? "") }
                 )
                 #expect(edit.path == "/message.php" && edit.fragment == "formulaire", "edit path of \(context.numreponse)")
-                #expect(items["cat"] == "6" && items["post"] == "9900001" && items["subcat"] == "173", "edit topic of \(context.numreponse)")
+                let topic = [items["cat"], items["post"], items["subcat"]]
+                #expect(topic == ["6", "9900001", "173"], "edit topic of \(context.numreponse)")
                 #expect(items["numreponse"] == String(context.numreponse), "edit message of \(context.numreponse)")
             }
             #expect((links.privateMessageURL == nil) == own, "MP link of \(context.numreponse)")
