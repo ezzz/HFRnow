@@ -76,7 +76,7 @@ struct ImageViewerView: View {
                 .padding(.horizontal, 14).padding(.vertical, 8)
                 .background(.thinMaterial, in: Capsule())
                 .padding(.bottom, 24)
-                .task(id: text) {
+                .task(id: model.feedbackID) {
                     AccessibilityNotification.Announcement(text).post()
                     try? await Task.sleep(for: .seconds(2.5))
                     model.dismissFeedback()

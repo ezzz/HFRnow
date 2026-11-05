@@ -74,6 +74,8 @@ struct ImageViewerModelTests {
         await model.settle()
         #expect(await recorder.loads == ["https://reho.st/0.jpg", "https://reho.st/thumb/0.jpg"])
         #expect(model.states[0] == .loaded(Self.bytes))
+        // The link copied is the one that answered, not the dead full-size address.
+        #expect(model.currentLink?.absoluteString == "https://reho.st/thumb/0.jpg")
     }
 
     @Test func anImageWhoseEveryURLFailsCanBeRetried() async {
@@ -143,7 +145,10 @@ struct ImageViewerModelTests {
             (.system, "L'enregistrement dans Photos a échoué.")
         ]
         for (error, text) in cases {
-            let model = ImageViewerModel(images: images(1), index: 0, services: services(save: { _ in throw error }))
+            let failing: @Sendable (ViewerImage) async throws(ImageSaveError) -> Void = { _ async throws(ImageSaveError) in
+                throw error
+            }
+            let model = ImageViewerModel(images: images(1), index: 0, services: services(save: failing))
             model.prefetch()
             await model.settle()
             await model.saveToPhotos()

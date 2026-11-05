@@ -63,6 +63,10 @@ final class ImageViewerModel: Identifiable {
     private(set) var states: [ViewerImageState]
     /// A short message for the viewer's banner (saved, error), in French.
     private(set) var feedback: String?
+    /// Changes with every message, so the banner's timer restarts when the same text comes twice.
+    private(set) var feedbackID = 0
+    /// The address that answered for each loaded position (the thumbnail when the full-size URL failed).
+    private var answered: [Int: URL] = [:]
     @ObservationIgnored private let services: ImageViewerServices
     @ObservationIgnored private var tasks: [Int: Task<Void, Never>] = [:]
 
@@ -85,9 +89,10 @@ final class ImageViewerModel: Identifiable {
         return image
     }
 
-    /// The address saved by "Copier le lien": the full-size URL of the selected image, never the thumbnail.
+    /// The address copied by "Copier le lien": the one that answered (the full-size URL, or the thumbnail when only that worked).
     var currentLink: URL? {
-        images.indices.contains(index) ? images[index].full : nil
+        guard images.indices.contains(index) else { return nil }
+        return answered[index] ?? images[index].full
     }
 
     /// Requests the selected image and its neighbours that were not requested yet, and drops the ones further away: a photo
@@ -127,25 +132,30 @@ final class ImageViewerModel: Identifiable {
     func copyLink() {
         guard let url = currentLink else { return }
         services.copy(url)
-        feedback = "Lien copié"
+        say("Lien copié")
     }
 
     /// Saves the selected image to Photos; says so when it is not downloaded yet.
     func saveToPhotos() async {
         guard let image = currentImage else {
-            feedback = "Image pas encore chargée"
+            say("Image pas encore chargée")
             return
         }
         do throws(ImageSaveError) {
             try await services.save(image)
-            feedback = "Photo enregistrée"
+            say("Photo enregistrée")
         } catch {
             switch error {
-            case .permissionDenied: feedback = "Autorise l'accès aux Photos pour enregistrer l'image."
-            case .invalidImage: feedback = "Impossible d'enregistrer cette image."
-            case .system: feedback = "L'enregistrement dans Photos a échoué."
+            case .permissionDenied: say("Autorise l'accès aux Photos pour enregistrer l'image.")
+            case .invalidImage: say("Impossible d'enregistrer cette image.")
+            case .system: say("L'enregistrement dans Photos a échoué.")
             }
         }
+    }
+
+    private func say(_ text: String) {
+        feedback = text
+        feedbackID += 1
     }
 
     /// Clears the banner.
@@ -161,14 +171,20 @@ final class ImageViewerModel: Identifiable {
             let result = await Self.download(item, services: services)
             guard !Task.isCancelled, let self else { return }
             self.tasks[position] = nil
-            if let image = result { self.states[position] = .loaded(image) } else { self.states[position] = .failed }
+            if let result {
+                self.answered[position] = result.url
+                self.states[position] = .loaded(result.image)
+            } else {
+                self.states[position] = .failed
+            }
         }
     }
 
     /// The full-size image, or the thumbnail the page showed when the host does not serve the full-size one.
-    private static func download(_ item: GalleryImage, services: ImageViewerServices) async -> ViewerImage? {
-        if let image = try? await services.load(item.full, item.allowsThirdParty) { return image }
-        guard item.full != item.shown, !Task.isCancelled else { return nil }
-        return try? await services.load(item.shown, item.allowsThirdParty)
+    private static func download(_ item: GalleryImage, services: ImageViewerServices) async -> (image: ViewerImage, url: URL)? {
+        if let image = try? await services.load(item.full, item.allowsThirdParty) { return (image, item.full) }
+        guard item.full != item.shown, !Task.isCancelled,
+              let image = try? await services.load(item.shown, item.allowsThirdParty) else { return nil }
+        return (image, item.shown)
     }
 }

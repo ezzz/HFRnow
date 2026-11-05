@@ -1,4 +1,5 @@
 import Foundation
+import ImageIO
 @testable import SwiftHFR
 import Testing
 
@@ -15,10 +16,13 @@ struct ImageViewerCheckTests {
         #expect(ViewerImageCheck.isShowable(Data()) == false)
     }
 
-    @Test func anImageClaimingTooManyPixelsIsRefused() {
-        // A PNG header whose IHDR says 20000 x 20000 (400 million pixels), with no pixel data: refused on its size, not decoded.
-        var png = Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52])
-        png += Data([0, 0, 0x4E, 0x20, 0, 0, 0x4E, 0x20, 8, 2, 0, 0, 0])
+    @Test func anImageClaimingTooManyPixelsIsRefused() throws {
+        // A well-formed PNG (IHDR with its CRC, IEND) that says 20000 x 20000 = 400 million pixels, with no pixel data.
+        let png = try #require(Data(base64Encoded: "iVBORw0KGgoAAAANSUhEUgAATiAAAE4gCAIAAABsEtFuAAAAAElFTkSuQmCC"))
+        let source = try #require(CGImageSourceCreateWithData(png as CFData, nil))
+        let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
+        // ImageIO reads the size, so it is the pixel budget that refuses it.
+        #expect(properties?[kCGImagePropertyPixelWidth] as? Int == 20_000)
         #expect(ViewerImageCheck.isShowable(png) == false)
     }
 }
