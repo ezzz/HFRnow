@@ -513,7 +513,6 @@ Source: [LOT-053](lots/LOT-053-smiley-search-wiki.md), `SmileyLookupFlow`, check
 - **Wiki request** (`R54`, **verified**): `GET /wikismilies.php?config=hfr.inc&detail=%5B%3Auser3%5D`, the code fully percent-encoded (`:` as `%3A`), answers the entry logged out, 200 in place, no cookie set.
 - **Search request encoding** (**not verified**): `R53a`-`R53c` were sent with raw `+` separators (`findsmilies=+chat+noir`); the app sends legacy's encoding (`findsmilies=chat%20noir`, and `%2Bchat%20%2Bnoir` for "all keywords"). Whether HFR reads them alike, and what a literal `+` does, is pending capture; `R53c` only shows that its two words were OR-ed.
 
-
 ### LOT-097 — BBCode rendering
 
 Source: [LOT-097](lots/LOT-097-bbcode-preview-renderer.md), `BBCodeRenderer` (the lot's renderer PR, [#444](https://github.com/ezzz/HFRnow/pull/444)), checked by its `BBCodeRendererOracleTests` against HFR's own rendering: `POST /apercu.php` of `W61` (`R95d`) and `W62` (`R95h`), and the quote prefills `R41a`, `R42`, `R41b` against the thread page `R20` (messages 2666649, 2666682, 2666695); the round-trip facts are in §6b "BBCode round trip".
@@ -525,6 +524,13 @@ Source: [LOT-097](lots/LOT-097-bbcode-preview-renderer.md), `BBCodeRenderer` (th
 - **Links** (`R41a` → `R20`, **verified**): the text of `[url=U]x[/url]` and `[url]U[/url]` is trimmed of its leading and trailing spaces; a `U` without a scheme gets `http://` (`[url]G3Ferrari / Optima [/url]` → `href="http://G3Ferrari / Optima "`); external links carry `rel="nofollow" target="_blank"`.
 - **Whitespace** (`R41a` → `R20`, `R27b`, `R95d`, **verified**): in a run of spaces and CRs, the first becomes `&nbsp;` at a line start, then every second one; a LF becomes `<br />` and the CR before it stays in the text (`\r<br />`); in `code`, every run of two or more starts with `&nbsp;` (`code   text` → `code&nbsp; &nbsp;text`, four leading spaces → `&nbsp; &nbsp; `), an empty line is `<li></li>`. `€` is written `&euro;`.
 - **Paragraph** (`R20`, **verified**): the message's `<p>` is opened by HFR and never closed; the `<div style="clear: both;"> </div>` trailer that follows closes it.
+
+### LOT-050 — moderator alert
+
+[LOT-050](lots/LOT-050-moderator-alert.md), tests `ModeratorAlertPrepareTests`, `ModeratorAlertSubmitTests` and `HopFormParserTests.moderationLayout`.
+
+- **The link and the page** (`R21`, `R46`, **verified**): `R21`'s alert link of message 2666649 (`/user/modo.php?config=hfr.inc&cat=13&post=28563&numreponse=2666649&page=1&ref=1`) is `R46`'s request; HFR serves the form at that URL, 200, no redirect, and sends back `md_user` and `md_passs`. The form (§6b) is posted in document order: `hash_check`, `referer_page` (empty), `raison`, `Submit`.
+- **Captured since** (PR #394): the page of a message already reported (`R88`, the shape LOT-050 reads as already alerted), the answer to a submitted alert (`W46`, a `.hop` with a back link, returned as HFR's text) and the alert page and answer without a session (`R89`, `W47`, "Vous devez être identifié…", not `W17c`'s sentence). Their reading by LOT-037 is #395.
 
 ## 7. Reported by redface2, to verify with our fixtures
 
