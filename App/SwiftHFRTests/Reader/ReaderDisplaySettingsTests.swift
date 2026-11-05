@@ -63,6 +63,23 @@ struct ReaderDisplaySettingsTests {
         #expect(model.document == nil)
     }
 
+    @Test func aSettingChangedDuringALoadThatFailsIsAppliedWhenItEnds() async {
+        let store = InMemorySettingsStore()
+        let pages = FakeTopicPages()
+        let model = reader(store, pages)
+        await model.onAppear()
+        let gate = ReaderGate()
+        pages.handler = { _ in await gate.wait(); throw .cancelled }
+        let load = Task { await model.refresh() }
+        await gate.untilArrived()
+        store.set(ThemeStyle.classic, for: SettingKey.themeStyle)
+        model.applyDisplaySettings() // loading: ignored
+        #expect(model.document?.html.contains("style-classic") == false)
+        await gate.open()
+        await load.value
+        #expect(model.document?.html.contains("style-classic") == true)
+    }
+
     @Test func swipingOpensTheNextPageFromItsTopAndThePreviousFromItsEnd() async {
         let pages = FakeTopicPages { target in readerPage(page: target.page, maxPage: 5) }
         let model = reader(InMemorySettingsStore(), pages, page: 3)
@@ -102,5 +119,9 @@ struct ReaderDisplaySettingsTests {
         #expect(swipe(-150, dy: 70, predicted: -300) == .next)
         #expect(swipe(-150, predicted: -300, page: 5) == nil) // no next page
         #expect(swipe(150, predicted: 300, page: 1) == nil) // no previous page
+        #expect(swipe(-120, predicted: -300) == nil) // exactly 120 pt is not enough (legacy `>`)
+        #expect(swipe(-121, predicted: -191) == nil) // impulse exactly 70
+        #expect(swipe(-121, predicted: -192) == .next)
+        #expect(swipe(-200, dy: 100, predicted: -400) == nil) // vertical exactly 0.5 x horizontal
     }
 }

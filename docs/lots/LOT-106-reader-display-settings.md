@@ -27,6 +27,7 @@ Read-only. `2440d79` unless noted; `master` @21173e7 for what is newer.
 
 ## Edge cases
 - Changing a setting while a page loads: the new options apply to that load (`renderOptions()` is read when the document is built); `applyDisplaySettings()` does nothing while loading or before a page is shown.
+- A setting changed during a load that fails or is cancelled is applied when the load ends.
 - A swipe while loading, on the first page (previous) or last page (next), does nothing.
 
 ## Fixtures
@@ -35,7 +36,12 @@ None: HTML structure and tests use the typed `ReaderPage` of the existing reader
 ## Intentional differences from legacy
 - Legacy ignored the swipe during a text selection (`isMessageTextInteractionActive`) and in its post-filter mode: neither exists in this reader (selection hand-check pending, GAP-071).
 - Header colours use the accent colour; legacy's me / love header variants (`--color-message-header-me-background`, love colours) are not ported (they need the theme colours of LOT-121 and the own-message detection; GAP-052 follow-up).
+- With the swipe setting off no gesture is attached to the web view (legacy `including: .none`).
+- A rebuild after a setting change resets the images tapped to load (the web controller clears consent per document) and the scroll offset may drift by the header padding change; accepted for M2, to be refined if the hand check finds it annoying.
 - "Bottom" of the previous page is the last message anchor, not the exact scroll end.
 
 ## Learnings
 - `UserDefaults.didChangeNotification` is the cheap channel between the settings screen and an open reader, as both go through `UserDefaultsSettingsStore`.
+
+## Hand check (host: mac, `mac/m2-lead`)
+The drag gesture on the web view, its interplay with vertical scroll, text selection and LOT-137's pushed readers, and the classic / modern look are checked on a device: PR #460 checklist.

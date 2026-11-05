@@ -2,7 +2,7 @@ import HFRModels
 import HFRStorage
 import Observation
 
-// Port of HFRswift/Swift/AppSettingsView.swift ("Sujets" section: `theme_style`, `display_sig`; `topic_page_swipe_navigation`
+// Port of HFRswift/Swift/AppSettingsView.swift ("Sujets" section, GAP-052/054/071: `theme_style`, `display_sig`; `topic_page_swipe_navigation`
 // from `master` @21173e7:479) @ 2440d79. Differences: the swipe key is newer than 2440d79; the other "Sujets" rows belong to
 // LOT-118 (blacklist) and LOT-084 (reply button); the smiley size stays dropped (commented out in legacy, LOT-119 table).
 

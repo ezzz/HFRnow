@@ -227,6 +227,7 @@ final class TopicReaderModel {
         task = nil
         generation += 1
         isLoading = false
+        applyDisplaySettings() // a setting changed during the load that never delivered
     }
 
     /// The web view reports a document as ready; an older document's report is ignored.
@@ -317,6 +318,7 @@ final class TopicReaderModel {
         case .failure(let failure):
             error = failure
         }
+        applyDisplaySettings() // a setting changed while this load ran and did not deliver a page
     }
 
     private func isSameTopic(_ target: ReaderTarget, as shown: ReaderTarget) -> Bool {

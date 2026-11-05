@@ -25,7 +25,7 @@ enum HTMLEscaping {
 struct ReaderRenderOptions: Equatable, Sendable {
     /// Append each message's `signatureHTML` (`display_sig`, off by default as in legacy).
     var showsSignatures = false
-    /// Message layout (`theme_style`): the legacy default is modern (`AppSettingsView.swift:103` @ 2440d79 reads 1).
+    /// Message layout (`theme_style`): the legacy default is modern (`AppSettingsView.swift:98` @ 2440d79 reads 1).
     var style = ThemeStyle.modern
 }
 

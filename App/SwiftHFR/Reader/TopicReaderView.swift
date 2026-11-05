@@ -1,4 +1,3 @@
-import Combine
 import HFRModels
 import SafariServices
 import SwiftUI
@@ -16,6 +15,8 @@ struct TopicReaderView: View {
     @State private var video: VideoItem?
     @State private var askingPage = false
     @State private var pageText = ""
+    /// `topic_page_swipe_navigation`: with it off no gesture is attached to the web view, as legacy's `including: .none`.
+    @State private var swipeEnabled = true
 
     var body: some View {
         ZStack {
@@ -23,7 +24,7 @@ struct TopicReaderView: View {
                 ReaderWebView(controller: controller, document: model.document, scrollRequest: model.scrollRequest)
                     .opacity(model.hasShownDocument ? 1 : 0)
                     .accessibilityHidden(!model.hasShownDocument)
-                    .simultaneousGesture(pageSwipe)
+                    .simultaneousGesture(pageSwipe, including: swipeEnabled ? .all : .none)
             }
             overlay
         }
@@ -56,9 +57,13 @@ struct TopicReaderView: View {
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
         .onAppear(perform: makeController)
-        // The settings screen writes `UserDefaults`: a display setting changed there reaches the open reader at once.
-        .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification).receive(on: RunLoop.main)) { _ in
-            model.applyDisplaySettings()
+        .task {
+            // The settings screen writes `UserDefaults`: a display setting changed there reaches the open reader at once.
+            swipeEnabled = services.settings.swipesPages()
+            for await _ in NotificationCenter.default.notifications(named: UserDefaults.didChangeNotification) {
+                swipeEnabled = services.settings.swipesPages()
+                model.applyDisplaySettings()
+            }
         }
         .task { await model.onAppear() }
         .onDisappear {
