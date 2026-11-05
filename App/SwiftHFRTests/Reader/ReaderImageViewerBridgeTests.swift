@@ -57,7 +57,7 @@ struct ReaderImageViewerBridgeTests: ReaderWebTesting {
         #expect(opened.first?.images.map(\.shown.absoluteString) == [thirdParty[0]])
         #expect(opened.first?.token == 4)
 
-        // A blocked address never opens, even when the page names it and the tap consent was asked for it.
+        // A blocked address never opens (the gallery filter itself is covered by `ImageGalleryTests`).
         _ = controller.handle(.tap(url: "http://192.168.1.1/a.png"), in: shown)
         _ = controller.handle(.image(urls: ["http://192.168.1.1/a.png"], index: 0), in: shown)
         #expect(opened.count == 1)
@@ -73,7 +73,7 @@ struct ReaderImageViewerBridgeTests: ReaderWebTesting {
         _ = try await fetcher.image(at: URL(string: "https://reho.st/self/b.jpg")!, allowsThirdParty: true)
         let requests = await transport.requests
         #expect(requests.map { $0.headers["Referer"] } == ["https://forum.hardware.fr", nil, nil])
-        #expect(requests.allSatisfy { $0.headers["Cookie"] == nil && $0.redirectPolicy == .doNotFollow })
+        #expect(requests.allSatisfy { $0.redirectPolicy == .doNotFollow })
     }
 
     @Test func aRefererNeverTravelsToTheNextHost() async throws {

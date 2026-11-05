@@ -67,7 +67,9 @@
     // still a placeholder or became a link is no longer an `img`, so it is not in the list the app receives.
     const picture = target.closest("img.hfrplusimg");
     if (picture && picture.closest(".content, .signature")) {
-      const pictures = Array.from(document.querySelectorAll(".content img.hfrplusimg[data-viewer-src], .signature img.hfrplusimg[data-viewer-src]"));
+      // A picture inside a closed spoiler is loaded but hidden: a swipe must not show it.
+      const pictures = Array.from(document.querySelectorAll(".content img.hfrplusimg[data-viewer-src], .signature img.hfrplusimg[data-viewer-src]"))
+        .filter((img) => !img.closest("table.spoiler:not(.open)"));
       const index = pictures.indexOf(picture);
       if (index >= 0) {
         event.preventDefault();

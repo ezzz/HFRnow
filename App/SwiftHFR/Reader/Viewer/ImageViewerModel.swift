@@ -2,10 +2,6 @@ import Foundation
 import HFRNetwork
 import Observation
 
-// Port of HFRswift/Classes/SimplePhotoViewController.m and MessagesView.swift (`FullScreenPhotoViewer` `:5643`,
-// `MessageImagePhotoLibrarySaver` `:2430`) @ 2440d79. Differences: GAP-057 / FEAT-014: swipe between the images of the page,
-// every request through the cookie-less client (legacy used `URLSession.shared`), a failed full-size URL falls back to the thumbnail.
-
 /// A downloaded image of the viewer.
 struct ViewerImage: Equatable, Sendable {
     /// The bytes as received (what is saved and shared).
@@ -46,6 +42,9 @@ enum ViewerImageState: Equatable, Sendable {
     case failed
 }
 
+// Port of HFRswift/Classes/SimplePhotoViewController.m and MessagesView.swift (`FullScreenPhotoViewer` `:5643`,
+// `MessageImagePhotoLibrarySaver` `:2430`) @ 2440d79. Differences: GAP-057 / FEAT-014: swipe between the images of the page,
+// every request through the cookie-less client (legacy used `URLSession.shared`), a failed full-size URL falls back to the thumbnail.
 /// The full-screen viewer's state (LOT-109): the images, the selected one, their download states and the feedback line.
 ///
 /// Only the selected image and its direct neighbours are requested, so a page with many pictures does not download them all.
@@ -64,8 +63,8 @@ final class ImageViewerModel: Identifiable {
     private(set) var states: [ViewerImageState]
     /// A short message for the viewer's banner (saved, error), in French.
     private(set) var feedback: String?
-    private let services: ImageViewerServices
-    private var tasks: [Int: Task<Void, Never>] = [:]
+    @ObservationIgnored private let services: ImageViewerServices
+    @ObservationIgnored private var tasks: [Int: Task<Void, Never>] = [:]
 
     /// Creates the viewer of `images` opened on `index` (clamped).
     init(images: [GalleryImage], index: Int, services: ImageViewerServices) {
@@ -91,8 +90,13 @@ final class ImageViewerModel: Identifiable {
         images.indices.contains(index) ? images[index].full : nil
     }
 
-    /// Requests the selected image and its neighbours that were not requested yet.
+    /// Requests the selected image and its neighbours that were not requested yet, and drops the ones further away: a photo
+    /// topic swiped through must not hold hundreds of megabytes (an image is up to `ReaderImageFetcher.maximumBytes`).
     func prefetch() {
+        for position in states.indices where abs(position - index) > 1 && states[position] != .idle {
+            tasks.removeValue(forKey: position)?.cancel()
+            states[position] = .idle
+        }
         for position in [index, index + 1, index - 1] where images.indices.contains(position) && states[position] == .idle {
             start(position)
         }
@@ -113,6 +117,8 @@ final class ImageViewerModel: Identifiable {
     func cancel() {
         for task in tasks.values { task.cancel() }
         tasks.removeAll()
+        // A cancelled download never answers: its image is asked for again by the next `prefetch`.
+        for position in states.indices where states[position] == .loading { states[position] = .idle }
     }
 
     /// Copies the full-size address of the selected image.

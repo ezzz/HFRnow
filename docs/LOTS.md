@@ -173,7 +173,7 @@ Every legacy function and the Phase 4 features, one reviewable PR per lot; each 
 | LOT-106 | Reader display settings (layout, signatures, swipe pages; text size moved to LOT-169) | App | medium | Sonnet → Opus | 083, 060 | legacy parity | medium | [#197](https://github.com/ezzz/HFRnow/issues/197) |
 | LOT-107 | Image loading setting (never / Wi-Fi / always) | App | easy | Sonnet → Opus | 083, 060 | FEAT-011 | medium | [#198](https://github.com/ezzz/HFRnow/issues/198) |
 | LOT-108 | Video placeholder, player on tap | App | easy | Sonnet → Opus | 035, 083 | legacy parity (H.1: the placeholder is new, LOT-071 D-071-2) | low | [#199](https://github.com/ezzz/HFRnow/issues/199) |
-| LOT-109 | Image viewer: full screen, save, copy link (the HD gallery with swipe is LOT-176, M5) | App | medium | Sonnet → Opus | 083, 056, 160 | FEAT-014 | medium | [#200](https://github.com/ezzz/HFRnow/issues/200) |
+| LOT-109 | Image viewer and HD gallery: full screen, swipe between the page's images, save, share, copy link (swipe moved here from LOT-176 by issue #200) | App | medium | Sonnet → Opus | 083, 056, 160 | FEAT-014 | medium | [#200](https://github.com/ezzz/HFRnow/issues/200) |
 | LOT-110 | Page navigator | App | easy | Sonnet → Opus | 083, 033 | FEAT-002 | high | [#201](https://github.com/ezzz/HFRnow/issues/201) |
 | LOT-111 | First-unread landing and the legacy separator (the 'Nouveau' banner is LOT-178, M5) | App | medium | Sonnet → Opus | 083, 090 | FEAT-007 | high | [#202](https://github.com/ezzz/HFRnow/issues/202) |
 | LOT-112 | Page scrubber | App | medium | Sonnet → Opus | 110, 111 | FEAT-004 | medium | [#203](https://github.com/ezzz/HFRnow/issues/203) |

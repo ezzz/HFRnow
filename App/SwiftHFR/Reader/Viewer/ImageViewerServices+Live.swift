@@ -21,7 +21,9 @@ extension ImageViewerServices {
 /// Writes image bytes to the photo library, asking for add-only access the first time (legacy `MessagesView.swift:2430-2490`).
 enum PhotoLibrarySaver {
     static func save(_ data: Data) async throws(ImageSaveError) {
-        guard CGImageSourceCreateWithData(data as CFData, nil) != nil else { throw .invalidImage }
+        // A source exists for almost any bytes: it must name an image type and hold at least one image (an SVG does not).
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil), CGImageSourceGetType(source) != nil,
+              CGImageSourceGetCount(source) > 0 else { throw .invalidImage }
         var status = PHPhotoLibrary.authorizationStatus(for: .addOnly)
         if status == .notDetermined { status = await PHPhotoLibrary.requestAuthorization(for: .addOnly) }
         guard status == .authorized || status == .limited else { throw .permissionDenied }

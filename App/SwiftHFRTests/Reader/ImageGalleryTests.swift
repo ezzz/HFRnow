@@ -60,6 +60,11 @@ struct ImageGalleryTests {
     @Test func theGalleryIsBounded() {
         let sources = (0..<(ImageGallery.maximumImages + 50)).map { "https://forum-images.hardware.fr/images/\($0).png" }
         #expect(build(sources, selected: 0)?.images.count == ImageGallery.maximumImages)
-        #expect(build(sources, selected: ImageGallery.maximumImages + 1) == nil)
+        // A picture late on the page still opens, with its neighbours around it.
+        let late = ImageGallery.maximumImages + 40
+        let gallery = build(sources, selected: late)
+        #expect(gallery?.images.count == ImageGallery.maximumImages)
+        #expect(gallery.map { $0.images[$0.index].shown.absoluteString } == sources[late])
+        #expect(build(sources, selected: sources.count) == nil)
     }
 }

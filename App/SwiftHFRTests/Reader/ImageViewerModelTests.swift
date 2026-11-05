@@ -90,6 +90,29 @@ struct ImageViewerModelTests {
         #expect(model.states[0] == .failed)
     }
 
+    @Test func imagesFarFromTheSelectedOneAreDroppedFromMemory() async {
+        let model = ImageViewerModel(images: images(6), index: 0, services: services())
+        model.prefetch()
+        await model.settle()
+        for position in 1...4 {
+            model.index = position
+            await model.settle()
+        }
+        #expect(model.states[0] == .idle)
+        #expect(model.states[1] == .idle)
+        #expect(model.states[3] == .loaded(Self.bytes))
+        #expect(model.states[4] == .loaded(Self.bytes))
+        #expect(model.states[5] == .loaded(Self.bytes))
+    }
+
+    @Test func closingTheViewerLeavesNoImageStuckOnTheSpinner() {
+        let model = ImageViewerModel(images: images(2), index: 0, services: services())
+        model.prefetch()
+        #expect(model.states == [.loading, .loading])
+        model.cancel()
+        #expect(model.states == [.idle, .idle])
+    }
+
     @Test func copyLinkCopiesTheFullSizeAddress() {
         let log = CopyLog()
         let model = ImageViewerModel(images: images(2), index: 1, services: services(copy: { log.urls.append($0) }))

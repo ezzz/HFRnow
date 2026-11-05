@@ -19,13 +19,13 @@ Repository <https://github.com/ezzz/HFRnow> at `2440d79`.
 - `reader.js` posts `image` (`urls`: the original `src` of the loaded `img.hfrplusimg`, `index`) on a tap; `ReaderBridgeMessage.image` decodes it whole or not at all (entry that is not a string, index outside the list, more than 5 000 entries: rejected).
 - `ReaderWebController.openViewer` builds the gallery with `ImageGallery.build`: policy C and the consent set decide, not the page. `TopicReaderView` presents `ImageViewerView` full screen.
 - `ImageViewerModel` (`@Observable @MainActor`) holds the states, downloads the selected image and its neighbours, falls back to the thumbnail, and runs save / copy / retry through `ImageViewerServices` (stubbed in tests).
-- Save needs `NSPhotoLibraryAddUsageDescription` (already in the build settings); share is a `ShareLink` on the full-size URL.
+- Save needs `NSPhotoLibraryAddUsageDescription` (already in the build settings); share is a `ShareLink` on the downloaded bytes (never the URL, which the system would fetch outside policy C). `FilteredPostsView` wires the same viewer.
 
 ## Intentional differences from legacy
 1. Swipe between the pictures of the page (legacy: one picture).
 2. Downloads go through the cookie-less client with redirect-by-redirect policy (legacy: `URLSession.shared`, default cookies and redirects).
 3. A visible **Fermer** button and no drag-to-dismiss of our own (the legacy toggled the button on tap and dismissed by dragging).
-4. Share added; "Enregistrer dans Photos" in French.
+4. Share (bytes) added; "Enregistrer dans Photos" in French.
 5. Animated images are still in this lot (pending Mac check).
 
 ## Scope note

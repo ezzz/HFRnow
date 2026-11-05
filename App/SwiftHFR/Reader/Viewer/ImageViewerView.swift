@@ -51,8 +51,12 @@ struct ImageViewerView: View {
 
     private var actionsMenu: some View {
         Menu {
-            if model.currentImage != nil, let link = model.currentLink {
-                ShareLink(item: link) { Label("Partager", systemImage: "square.and.arrow.up") }
+            if let image = model.currentImage {
+                // The downloaded bytes, never the address: the system would fetch an address itself (previews, redirects)
+                // outside policy C.
+                ShareLink(item: SharedImage(data: image.data), preview: SharePreview("Image")) {
+                    Label("Partager", systemImage: "square.and.arrow.up")
+                }
                 Button { Task { await model.saveToPhotos() } } label: {
                     Label("Enregistrer dans Photos", systemImage: "square.and.arrow.down")
                 }
@@ -71,12 +75,21 @@ struct ImageViewerView: View {
                 .padding(.horizontal, 14).padding(.vertical, 8)
                 .background(.thinMaterial, in: Capsule())
                 .padding(.bottom, 24)
-                .task {
+                .task(id: text) {
                     AccessibilityNotification.Announcement(text).post()
                     try? await Task.sleep(for: .seconds(2.5))
                     model.dismissFeedback()
                 }
         }
+    }
+}
+
+/// The image bytes handed to the share sheet.
+private struct SharedImage: Transferable {
+    let data: Data
+
+    static var transferRepresentation: some TransferRepresentation {
+        DataRepresentation(exportedContentType: .image) { $0.data }
     }
 }
 
@@ -90,10 +103,12 @@ private struct ZoomableImage: UIViewRepresentable {
     func updateUIView(_ view: ZoomScrollView, context: Context) { view.show(data) }
 }
 
-/// The scroll view behind `ZoomableImage`.
+/// The scroll view behind `ZoomableImage`: the image view is sized to the image's aspect ratio and centred with insets, so
+/// the letterbox bars neither zoom nor pan.
 private final class ZoomScrollView: UIScrollView, UIScrollViewDelegate {
     private let imageView = UIImageView()
     private var shownData: Data?
+    private var laidOutSize = CGSize.zero
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -103,7 +118,7 @@ private final class ZoomScrollView: UIScrollView, UIScrollViewDelegate {
         showsHorizontalScrollIndicator = false
         showsVerticalScrollIndicator = false
         contentInsetAdjustmentBehavior = .never
-        imageView.contentMode = .scaleAspectFit
+        imageView.contentMode = .scaleToFill
         imageView.isAccessibilityElement = true
         imageView.accessibilityLabel = "Image"
         addSubview(imageView)
@@ -119,21 +134,47 @@ private final class ZoomScrollView: UIScrollView, UIScrollViewDelegate {
         shownData = data
         imageView.image = UIImage(data: data)
         zoomScale = 1
+        laidOutSize = .zero
         setNeedsLayout()
     }
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        if zoomScale == 1 { imageView.frame = bounds }
-        contentSize = imageView.frame.size
+        // A new size (rotation, split view) starts again from the fitted image.
+        if bounds.size != laidOutSize {
+            laidOutSize = bounds.size
+            zoomScale = 1
+            imageView.frame = CGRect(origin: .zero, size: fittedSize())
+            contentSize = imageView.frame.size
+        }
+        centre()
     }
 
     func viewForZooming(in scrollView: UIScrollView) -> UIView? { imageView }
 
+    func scrollViewDidZoom(_ scrollView: UIScrollView) { centre() }
+
+    /// The image scaled to fit the bounds.
+    private func fittedSize() -> CGSize {
+        guard let size = imageView.image?.size, size.width > 0, size.height > 0, bounds.width > 0, bounds.height > 0 else {
+            return bounds.size
+        }
+        let scale = min(bounds.width / size.width, bounds.height / size.height)
+        return CGSize(width: size.width * scale, height: size.height * scale)
+    }
+
+    /// Centres what is smaller than the screen on each axis.
+    private func centre() {
+        let horizontal = max(0, (bounds.width - contentSize.width) / 2)
+        let vertical = max(0, (bounds.height - contentSize.height) / 2)
+        let insets = UIEdgeInsets(top: vertical, left: horizontal, bottom: vertical, right: horizontal)
+        if contentInset != insets { contentInset = insets }
+    }
+
     @objc private func toggleZoom(_ gesture: UITapGestureRecognizer) {
         guard zoomScale == 1 else { return setZoomScale(1, animated: true) }
         let point = gesture.location(in: imageView)
-        let size = CGSize(width: bounds.width / 3, height: bounds.height / 3)
+        let size = CGSize(width: imageView.bounds.width / 3, height: imageView.bounds.height / 3)
         zoom(to: CGRect(x: point.x - size.width / 2, y: point.y - size.height / 2, width: size.width, height: size.height), animated: true)
     }
 }

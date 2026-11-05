@@ -2,7 +2,8 @@ import Foundation
 import HFRNetwork
 
 /// Downloads the images of the reader through the cookie-less client (LOT-045 `AnonymousTransport`), never the account
-/// session: no forum cookie and no `Referer` leave the app with an image request (LOT-071 rules R1, R3).
+/// session: no forum cookie leaves the app with an image request and no `Referer` either, except the host table's own rule for the
+/// image viewer (LOT-109, `reho.st`) (LOT-071 rules R1, R3).
 ///
 /// Redirects are followed one hop at a time so the policy applies to every hop (LOT-071 edge cases): a public host that
 /// redirects to a private address, or a forum image that redirects to a third party not allowed yet, stops there.

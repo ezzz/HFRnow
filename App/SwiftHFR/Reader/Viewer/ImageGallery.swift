@@ -33,9 +33,12 @@ enum ImageGallery {
         hosts: ImageHostTable = .standard
     ) -> (images: [GalleryImage], index: Int)? {
         guard sources.indices.contains(selected) else { return nil }
+        // A window of at most `maximumImages` around the tapped picture, so a picture late on a huge page still opens.
+        let lower = max(0, min(selected - maximumImages / 2, sources.count - maximumImages))
         var images: [GalleryImage] = []
         var index: Int?
-        for (position, text) in sources.prefix(maximumImages).enumerated() {
+        for position in lower..<min(sources.count, lower + maximumImages) {
+            let text = sources[position]
             let isSelected = position == selected
             guard let url = URL(string: text) else { continue }
             let origin = ImagePolicy.classify(url)
@@ -45,8 +48,8 @@ enum ImageGallery {
             case .forum, .thirdParty: break
             }
             let full = hosts.fullSizeURL(for: url)
-            // The rewritten URL is a new host path: it must pass the policy too, or the selected image falls back to its own.
-            let usable = ImagePolicy.classify(full) == origin ? full : url
+            // The consent the user gave covers the picture's own host: a rewrite that changes the host or the origin is ignored.
+            let usable = ImagePolicy.classify(full) == origin && full.host()?.lowercased() == url.host()?.lowercased() ? full : url
             if isSelected { index = images.count }
             images.append(GalleryImage(shown: url, full: usable, allowsThirdParty: origin == .thirdParty || autoLoadsThirdParty))
         }
