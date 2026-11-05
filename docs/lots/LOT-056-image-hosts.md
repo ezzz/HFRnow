@@ -9,7 +9,7 @@
 
 ## Legacy sources
 
-Lines are those of <https://github.com/francoisgn/hfrnow> @ `2440d79`, the revision LOT-071 and the brief cite (`master` of ezzz/HFRnow has
+Lines are those of <https://github.com/ezzz/HFRnow> @ `2440d79`, the revision LOT-071 and the brief cite (`master` of ezzz/HFRnow has
 drifted: its `ReplyService.swift` is about 40 lines longer). Only the `Referer` rule is also quoted at its `master` position.
 
 | Concern | Legacy |

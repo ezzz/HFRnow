@@ -1,0 +1,23 @@
+{
+  "id": "W46",
+  "account": "user2",
+  "method": "POST",
+  "url_template": "/user/modo.php?cat=10&ref=1&post=9900002&numreponse=9910000001&page=1&config=hfr.inc",
+  "url": "https://forum.hardware.fr/user/modo.php?cat=10&ref=1&post=9900002&numreponse=9910000001&page=1&config=hfr.inc",
+  "final_url": "https://forum.hardware.fr/user/modo.php?cat=10&ref=1&post=9900002&numreponse=9910000001&page=1&config=hfr.inc",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Sat, 01 Jan 2000 00:00:00 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "request_fields": [
+    "hash_check",
+    "referer_page",
+    "raison",
+    "Submit"
+  ],
+  "note": "moderator alert submit on the own topic's first post, user2 (test text)",
+  "request_body": "hash_check=REDACTED&referer_page=&raison=Test+des+d%C3%A9veloppeurs+de+l%27application+SwiftHFR+%28capture+de+la+r%C3%A9ponse+du+forum+%C3%A0+une+alerte%29%2C+sur+un+sujet+de+test+de+leurs+propres+comptes.+Rien+%C3%A0+mod%C3%A9rer%2C+cette+alerte+peut+%C3%AAtre+ignor%C3%A9e.+Merci+%21&Submit=Valider+votre+message",
+  "file": "W46-modo-alert-success.html",
+  "private": false
+}

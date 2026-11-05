@@ -12,7 +12,7 @@ report success only when HFR confirmed this very write. Quote prefill building (
 
 ## Legacy sources
 
-Legacy app: `master` of ezzz/HFRnow (same lines as francoisgn/hfrnow @ `2440d79`).
+Legacy app: `master` of ezzz/HFRnow (same lines as ezzz/HFRnow @ `2440d79`).
 
 | Legacy | Replaced by |
 |---|---|
@@ -36,7 +36,7 @@ All in `Packages/HFRKit/Sources/HFRClient/Posting/`, plus `HFRParsing/Forms/HopF
    document order. No form: the page's `.hop` is classified (LOT-037); the logged-out sentence gives `notLoggedIn`,
    anything else `formUnavailable(message:)` (`RA5`). An empty `hash_check` or `pseudo` (anonymous composer `R40b`) gives
    `notLoggedIn`. The form's token is recorded in the session, unless a login was adopted while the page was in flight (#308, LOT-043 edge cases). The returned `PostingForm` keeps the
-   session it came from, so it can only be posted through it (Q-8).
+   session it came from, so it can only be posted through it (Q-8), and the identity that session had: after a logout or a login of another account in that session, every write through it is refused right before the POST (`sessionChanged`, #342; a logout or an `md_user` expired meanwhile reads as a change too, and reloading the form then gives `notLoggedIn`); a change landing after that check is not caught locally and HFR's answer decides: `W17b` if the new cookies left with the old form, the write's own answer if the form's account's cookies did. A re-login of the same account still sends it, HFR judges the token (#315): the identity is compared, not #340's login generation, which every login moves (LOT-043 edge cases). A cancellation wins over a changed session (`network(.cancelled)`).
 2. **Shape** (`PostingForm.Shape`) — a non-empty `numreponse` is an edit form (`R43a`-`R44`); else a visible `sujet` with a
    `dest` field is a new MP (`R45b`), without one a new topic (`R45a`); else a reply composer (`R40a`, `R41a`, `R41b`, `R42`,
    `R47a`-`R47u1`). Each write requires its shape (`formMismatch`): `reply` ↔ reply, `newTopic` ↔ new topic,
@@ -76,7 +76,11 @@ All in `Packages/HFRKit/Sources/HFRClient/Posting/`, plus `HFRParsing/Forms/HopF
    message a été posté avec succès !", edit "Votre message a été édité avec succès !", delete "Message effacé avec succès !".
    Another confirmation is `unconfirmed(.unexpectedConfirmation)`; `rejected` is `rejected(message:)`; `loggedOut` is
    `notLoggedIn`; anything else (or an unreadable page) `unconfirmed(.unrecognizedAnswer)`. Success returns
-   `PostingResult` (sentence, refresh URL and anchor, `numreponse` of an edited or deleted message).
+   `PostingResult` (sentence, refresh URL and anchor, `numreponse` of an edited or deleted message). Its `refreshRoute`
+   (LOT-095 router) says where HFR sends the user: a new topic refreshes to the **category** list with no topic id
+   (`W40`), so the app opens that list; `deletedWholeTopic` is true for a delete whose answer refreshes to a topic list
+   (`W19` private, `W49` public, whose topic then answers 404, `R92`), false when it refreshes to the topic (a later post,
+   `W16a`, `W32`).
 
 Errors carry no user text, token or cookie; `rejected` and `formUnavailable` carry HFR's sentence, `unsupportedCharacters`
 the refused characters. Every case except `unconfirmed` means nothing was posted.
@@ -96,7 +100,8 @@ the refused characters. Every case except `unconfirmed` means nothing was posted
 ## Fixtures
 
 Shared corpus only, no new file. Forms `R40a`, `R40b`, `R41a`, `R41b`, `R42`, `R43a`-`R43c`, `R44`, `R45a`, `R45b`, `R47a`-`R47u1`;
-answers `W10`-`W20b` and their metas (`request_body`, `request_fields`, `url`); `RA5`, `W01`, `W18`, `R08-1` as other pages;
+public `R63b` (first-post edit form), `R92` (the deleted topic's 404); answers `W10`-`W20b`, `W30`-`W32`, `W40`, `W41`,
+`W49` and their metas (`request_body`, `request_fields`, `url`); `RA5`, `W01`, `W18`, `R08-1` as other pages;
 LOT-004 `form` oracles (`legacy.post.pairs`, `legacy.postedContent`). A few tests edit one attribute of a captured page
 (remove the action, check `delete`, hide the subject, rename a box) to reach a structural edge; none stands for a captured
 state.
@@ -108,6 +113,10 @@ state.
   (delete), `W19` (whole thread, confirmed); the body equals the captured `request_body` once legacy's `"0"` boxes are
   dropped and line breaks written CRLF; URL, content type, timeout, no-redirect policy, recorded token, result sentence,
   anchor and `numreponse`. New topic from `R45a`: field order with the select in place.
+- `PostingTopicCaptureTests` (public topic writes, #396): `W40` new topic from `R45a` (field names equal `W40`'s in order,
+  category-list refresh, no topic id), `W41` first-post edit from `R63b` (poll fields sent as served, in `W41`'s order),
+  `W49` first-post delete from `R63b` (refused without the whole-topic confirmation, then confirmed and reported as a
+  topic delete), `deletedWholeTopic` on `W19`/`W49` vs `W16a`/`W32`, and `R92` (the deleted topic's 404) as a form page.
 - `PostingBodyOracleTests` (in `PostingBodyTests.swift`, differential, LOT-004): on the 14 logged-in composers, the fields and values equal legacy's
   `post.pairs` except the unchecked boxes and the token.
 - `PostingRefusalTests`: captured refusals (`W17b`, `W20a`, `W20b`, `W14x`, `W13cx`, `W11x`), `W17c` logged out, another write's
@@ -148,20 +157,17 @@ preserved, no shape distinction, no `invalidRequest` mapping, no `verifrequet` c
 
 ## Pending capture
 
-Not hand-built (LESSONS 36). None blocks the lot; until captured, each state is handled conservatively. The first two are
-**MVP priority** in the capture backlog: until they are captured, every public reply, new topic, edit and delete surfaces
-as `unconfirmed` unless HFR answers with LOT-037's success shape (link-less `.hop`, "avec succès", refresh to the forum)
-**and** that write's own confirmation sentence (`PostingAction.confirmation`: reply, new thread, edit or delete, captured on
-private messages, HFR-PROTOCOL §7 E15), and every public delete asks for whole-topic confirmation.
-- **Public-topic answers**: the reply, edit and delete of a later post are captured (`W30`–`W32`, cat 13): the same
-  sentences as on private messages, each with a refresh, so LOT-037 classifies them `success` and the per-write sentence
-  check confirms them (`HopResponseParserTests`). The public **new-topic** answer is still pending: until captured it is a
-  success only with LOT-037's `success` and its own sentence, otherwise `unconfirmed`.
-- **Public edit form of a first post**: now captured (`R63b`, own topic): visible `sujet` and "Effacer l'intégralité du sujet",
-  both first-post signs as on `R43a`, and the edit answer (`W34`, `W35`). The engine still asks for whole-topic
-  confirmation on every public delete; trusting the signs on public forms is a follow-up decision, not this capture.
-- **Delete of a public topic's first post**: what HFR answers, and whether the whole topic goes (rf2 X1).
-- **New-topic answer** in a forum category: sentence and refresh target (E14).
+Not hand-built (LESSONS 36). None blocks the lot; until captured, each state is handled conservatively.
+
+Captured since (no longer pending): public reply, edit and delete of a later post (`W30`–`W32`), new topic (`W40`, E14:
+same sentence as a new MP, refresh to the category list, no topic id), first-post edit form and edit (`R63b`, `W34`,
+`W35`, `W41`) and first-post delete (`W49`, then `R92` 404, X1). Each is confirmed by LOT-037's success shape **and** its
+own sentence (`PostingAction.confirmation`, HFR-PROTOCOL §7 E14, E15). Every public delete still asks for whole-topic
+confirmation: trusting `R63b`'s first-post signs on public forms is a follow-up decision.
+
+Still pending:
+- **Public first-post forms as served before `W40`'s, `W41`'s and `W49`'s writes**: not captured; their bodies are compared
+  by field names with the closest captured forms (`R45a`, `R63b`), not byte for byte.
 - **Reply form of a locked topic or of a topic the account may not post in** (already listed for LOT-036/037): reported as
   `formUnavailable` with the page's sentence.
 

@@ -5,7 +5,7 @@
 - **Issue:** [#67](https://github.com/ezzz/HFRnow/issues/67)
 
 ## Legacy sources
-Audit [A](../audit/A-network-sessions.md) §3.1 and lot NET-02; protocol [R1–R9, S1–S3](../HFR-PROTOCOL.md#1-read-endpoints) and §7 E1; legacy repo <https://github.com/francoisgn/hfrnow>.
+Audit [A](../audit/A-network-sessions.md) §3.1 and lot NET-02; protocol [R1–R9, S1–S3](../HFR-PROTOCOL.md#1-read-endpoints) and §7 E1; legacy repo <https://github.com/ezzz/HFRnow>.
 
 | Endpoint | Legacy |
 |---|---|

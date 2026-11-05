@@ -1,10 +1,24 @@
 #!/usr/bin/env bash
 # Setup script for Claude Code cloud environments (Ubuntu 24.04, x86_64 or aarch64).
-# Installs the Swift toolchain used by the Linux CI so agents can run `swift test` locally.
-# Paste into the environment settings → Setup script. Needs download.swift.org in Allowed domains.
+# Installs the Swift toolchain and SwiftLint used by the Linux CI so agents can run `swift test` and lint locally.
+# Paste into the environment settings → Setup script. Needs download.swift.org, www.swift.org, github.com and
+# release-assets.githubusercontent.com in Allowed domains.
 set -euo pipefail
 
 SWIFT_VERSION="6.2.4"
+SWIFTLINT_VERSION="0.65.1"  # the version CI runs (ci.yml, ghcr.io/realm/swiftlint)
+
+# SwiftLint, so agents lint before pushing (needs github.com and release-assets.githubusercontent.com).
+if ! swiftlint version 2>/dev/null | grep -qx "${SWIFTLINT_VERSION}"; then
+  case "$(uname -m)" in x86_64) SL_ARCH="amd64" ;; aarch64) SL_ARCH="arm64" ;; *) SL_ARCH="" ;; esac
+  if [ -n "${SL_ARCH}" ]; then
+    SL_TMP="$(mktemp -d)"
+    curl -fsSL "https://github.com/realm/SwiftLint/releases/download/${SWIFTLINT_VERSION}/swiftlint_linux_${SL_ARCH}.zip" -o "${SL_TMP}/sl.zip"
+    unzip -o -q "${SL_TMP}/sl.zip" swiftlint -d "${SL_TMP}"
+    install -m 755 "${SL_TMP}/swiftlint" /usr/local/bin/swiftlint
+    rm -rf "${SL_TMP}"
+  fi
+fi
 
 if command -v swift >/dev/null 2>&1 && swift --version 2>/dev/null | grep -q "Swift version ${SWIFT_VERSION}"; then
   echo "Swift ${SWIFT_VERSION} already installed"
@@ -36,6 +50,8 @@ curl -fsSL "${BASE}.tar.gz.sig" -o "${WORK}/swift.tar.gz.sig"
 export GNUPGHOME="${WORK}/gnupg"
 mkdir -m 700 "$GNUPGHOME"
 curl -fsSL https://www.swift.org/keys/all-keys.asc -o "${WORK}/keys.asc"
+# swift.org may serve the key file gzip-compressed without saying so: unpack it when it is.
+if gzip -t "${WORK}/keys.asc" 2>/dev/null; then gunzip -c "${WORK}/keys.asc" > "${WORK}/keys.txt" && mv "${WORK}/keys.txt" "${WORK}/keys.asc"; fi
 # gpg 2.4 rejects the whole concatenated file because some old blocks do not import:
 # import block by block, then require a valid signature anyway.
 awk -v dir="${WORK}" '/BEGIN PGP PUBLIC KEY BLOCK/ { n++ } { print > (dir "/key-" n ".asc") }' "${WORK}/keys.asc"

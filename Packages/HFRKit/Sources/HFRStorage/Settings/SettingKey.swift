@@ -48,6 +48,9 @@ public enum SettingKey {
             ? store.value(for: textSizeScale).rawValue
             : store.value(for: textSizePercent)
     }
+    /// `topic_page_swipe_navigation` (default on): a horizontal swipe changes the reader's page (`Common.swift:235-237` of
+    /// legacy `master` @21173e7, absent from `2440d79`).
+    public static let topicPageSwipe = Setting.bool("topic_page_swipe_navigation", default: true).synced
     /// `haptics`: tolerant of numbers and strings (`AppHaptics.isEnabled`).
     public static let haptics = Setting.bool("haptics", default: true)
     /// `landscape_mode`: any stored string other than `none` allows rotation, like the legacy `rawValue != "none"` test.
@@ -162,8 +165,8 @@ public enum SettingKey {
     public static let all: [any CatalogueSetting] = [
         favoritesSource, favoritesGroupedByCategory, favoritesAutoRefresh, compactMode,
         tabBarMinimizesOnScroll, textSizeScale, textSizePercent, haptics, landscapeMode, appIconName,
-        privateMessageBadge, startupScreen, opensLinksInDefaultBrowser, autoTheme, manualTheme, themeStyle,
-        dayActionColor, nightActionColor, dayLoveColor, nightLoveColor, daySuperFavoriteColor,
+        privateMessageBadge, startupScreen, opensLinksInDefaultBrowser, topicPageSwipe, autoTheme, manualTheme,
+        themeStyle, dayActionColor, nightActionColor, dayLoveColor, nightLoveColor, daySuperFavoriteColor,
         nightSuperFavoriteColor, nightBrightness, hideBlocklistedPosts, quoteFilterExceptions,
         quoteFilterMinimumCount, doubleSizeSmileys, embeddedVideos, displaySignatures, displayImages, mpStorageActive,
         mpStorageLastSync, searchCategory, rehostLinkMode, rehostMaxDimension

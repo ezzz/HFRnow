@@ -593,6 +593,11 @@
         "topicTitle" : "[E85] le topic des rouleurs à l'essence alcoolisée !"
       }
     ],
+    "fastAnswer" : {
+      "isFavoritesOrRead" : "",
+      "isRedFlagged" : false,
+      "isUnreadable" : false
+    },
     "messages" : [
       {
         "addFlagUrl" : null,

@@ -110,6 +110,22 @@ struct SessionRefreshFlowTests {
         #expect(await session.hashCheck == "concurrenthash")
     }
 
+    /// Issue #340: a re-login of the same account that installs the seed's own token lands during the refresh. Identity
+    /// and token match the seed; only the login generation tells the refresh's token (read with the old cookies) apart.
+    @Test func sameAccountReloginWithTheSameTokenDuringTheRefreshWins() async throws {
+        let session = accountSession()
+        var step = try validStep()
+        let login = [forumCookie("md_user", "user2"), forumCookie("md_passs", "loginpass"), forumCookie("md_id", "900002")]
+        step.during = { [now] in
+            try? await session.adoptLogin(cookies: login, hashCheck: "oldhash", now: now)
+        }
+
+        #expect(try await run(step, on: session).0 == .unconfirmed(.sessionChanged))
+        #expect(await pairs(session) == ["md_id=900002", "md_passs=loginpass", "md_user=user2"])
+        #expect(await session.hashCheck == "oldhash")
+        #expect(await session.loginGeneration == 1)
+    }
+
     // MARK: - Expired: nothing sent
 
     @Test(arguments: ["none", "expired", "deleted"])

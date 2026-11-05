@@ -53,6 +53,11 @@
         "topicTitle" : "Rappel sur les droits d'auteurs et le copier coller d'articles"
       }
     ],
+    "fastAnswer" : {
+      "isFavoritesOrRead" : "",
+      "isRedFlagged" : false,
+      "isUnreadable" : false
+    },
     "messages" : [
       {
         "addFlagUrl" : null,

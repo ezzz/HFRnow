@@ -8,7 +8,7 @@
   --separator: #d1d1d6;
   --quote-border: #8e8e93;
   --quote-background: #f2f2f7;
-  --action: #007aff;
+  --action: var(--app-action-light, #007aff);
   --placeholder: #e5e5ea;
 }
 
@@ -16,18 +16,25 @@
   :root {
     --text: #f2f2f7;
     --secondary: #a1a1a6;
-    --background: #000000;
-    --separator: #38383a;
+    --background: var(--app-dark-background, #000000);
+    --separator: var(--app-dark-separator, #38383a);
     --quote-border: #636366;
-    --quote-background: #1c1c1e;
-    --action: #0a84ff;
-    --placeholder: #2c2c2e;
+    --quote-background: var(--app-dark-quote-background, #1c1c1e);
+    --action: var(--app-action-dark, #0a84ff);
+    --placeholder: var(--app-dark-placeholder, #2c2c2e);
   }
 }
 
-/* -apple-system-body follows the user's Dynamic Type size inside WKWebView. */
+/* --app-* are the "Thème" settings (LOT-121): both accents and the dark surfaces at the chosen brightness, set on <html> by the
+   app (ReaderWebController.theme), live; the fallbacks are the defaults before the app sets them. */
+
+/* -apple-system-body follows the user's Dynamic Type size inside WKWebView; --text-scale is the in-app text size (LOT-169),
+   set on <html> by the app (ReaderWebController.textScale), live. Everything below sizes in em, so it all follows. */
 html { font: -apple-system-body; -webkit-text-size-adjust: 100%; }
-body { margin: 0; padding: 0 0 2em; color: var(--text); background: var(--background); overflow-wrap: anywhere; }
+body {
+  font-size: calc(var(--text-scale, 1) * 1rem);
+  margin: 0; padding: 0 0 2em; color: var(--text); background: var(--background); overflow-wrap: anywhere;
+}
 a { color: var(--action); }
 
 .message { padding: 0.75em 1em; border-bottom: 1px solid var(--separator); }
@@ -35,6 +42,12 @@ a { color: var(--action); }
 .message .avatar { width: 2.2em; height: 2.2em; border-radius: 50%; object-fit: cover; }
 .message .author { font-weight: 600; }
 .message .date { color: var(--secondary); font-size: 0.85em; margin-left: auto; }
+/* Message style (`theme_style`, LOT-106; legacy MessagesView.swift:1363-1400 @ 2440d79, ObjCTopicHTMLRenderer.m:83): modern
+   (default) tints the header with the accent at 3 %, classic at 15 % and adds the 8 px content padding legacy gave it. */
+.style-modern .message .header { background: color-mix(in srgb, var(--action) 3%, transparent); }
+.style-classic .message .header { background: color-mix(in srgb, var(--action) 15%, transparent); }
+.style-modern .message .content { padding-top: 0; }
+.style-classic .message .content { padding-top: 8px; }
 .continuation { opacity: 0.75; }
 .continuation-note, .deleted-note, .trailer { color: var(--secondary); font-size: 0.85em; }
 .trailer p { margin: 0.25em 0 0; }
@@ -75,3 +88,8 @@ button.image-tap, button.video {
 }
 .videos { margin-top: 0.5em; }
 .image-link { font-size: 0.85em; color: var(--secondary); word-break: break-all; }
+
+/* Message menu (LOT-087): the author and the "⋯" button are buttons that look like text. The padding grows the touch target
+   (about 44 pt with the header's line height) and the negative margin gives it back, so the header keeps its height. */
+.message button.menu-author { background: none; border: 0; padding: 0.7em 0.4em; margin: -0.7em -0.4em; color: inherit; font: inherit; font-weight: 600; text-align: start; }
+.message button.menu-button { background: none; border: 0; min-width: 2.2em; padding: 0.5em 0.4em; margin: -0.5em 0; color: var(--secondary); font: inherit; font-size: 1.4em; line-height: 1; }

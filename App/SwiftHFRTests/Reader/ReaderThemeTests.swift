@@ -1,0 +1,59 @@
+import Foundation
+import HFRStorage
+@testable import SwiftHFR
+import Testing
+import UIKit
+
+/// The "Thème" colours in the real reader (LOT-121): the window's scheme picks the variant, the app's accent and dark
+/// brightness reach the page from the first render, then live without a reload.
+@MainActor
+@Suite(.serialized)
+struct ReaderThemeTests: ReaderWebTesting {
+    /// Computed colours of a link and of a quote added to the shown page.
+    private let probe = """
+        const link = document.createElement('a'); link.href = '#'; document.body.appendChild(link);
+        const quote = document.createElement('table'); quote.className = 'quote'; document.body.appendChild(quote);
+        const result = [getComputedStyle(link).color, getComputedStyle(quote).backgroundColor];
+        link.remove(); quote.remove();
+        return result.join('|');
+        """
+
+    private func colours(in controller: ReaderWebController) async -> String {
+        ((try? await evaluate(probe, in: controller)) as? String) ?? ""
+    }
+
+    private let red = ThemeColor(red: 1, green: 0, blue: 0)
+    private let blue = ThemeColor(red: 0, green: 0, blue: 1)
+
+    @Test func theDarkVariantGetsTheNightAccentAndTheScaledSurfacesThenFollowsAChangeLive() async {
+        let (controller, recorder) = makeController(transport: imageTransport())
+        recorder.window?.overrideUserInterfaceStyle = .dark
+        controller.theme = ThemeAppearance(dayAccent: red, nightAccent: blue, darkBrightness: 1.5)
+        controller.show(document(token: 1))
+        #expect(await until { recorder.ready == [1] }, "ready: \(recorder.ready)")
+        // 0x1C1C1E at 150 %: rgb(42, 42, 45) (ThemeAppearanceTests).
+        let expected = "rgb(0, 0, 255)|rgb(42, 42, 45)"
+        let first = await until(async: { await colours(in: controller) == expected })
+        let seen = await colours(in: controller)
+        #expect(first, "colours: \(seen)")
+
+        controller.theme = ThemeAppearance(dayAccent: blue, nightAccent: red, darkBrightness: 1)
+        let live = await until(async: { await colours(in: controller) == "rgb(255, 0, 0)|rgb(28, 28, 30)" })
+        let seenLive = await colours(in: controller)
+        #expect(live, "colours: \(seenLive)")
+        #expect(recorder.ready == [1])
+        #expect(controller.webView.url == ReaderWebController.pageURL(token: 1))
+    }
+
+    @Test func theLightVariantGetsTheDayAccent() async {
+        let (controller, recorder) = makeController(transport: imageTransport())
+        recorder.window?.overrideUserInterfaceStyle = .light
+        controller.theme = ThemeAppearance(dayAccent: red, nightAccent: blue, darkBrightness: 0)
+        controller.show(document(token: 2))
+        #expect(await until { recorder.ready == [2] }, "ready: \(recorder.ready)")
+        // Light quotes keep their light colour whatever the dark brightness.
+        let light = await until(async: { await colours(in: controller) == "rgb(255, 0, 0)|rgb(242, 242, 247)" })
+        let seen = await colours(in: controller)
+        #expect(light, "colours: \(seen)")
+    }
+}

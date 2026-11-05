@@ -41,7 +41,8 @@ License: [PolyForm Noncommercial 1.0.0](LICENSE) — no commercial use, credit t
 | `docs/ARCHITECTURE.md` | Modules, dependency rules, design principles |
 | `docs/ROADMAP.md` | Phases and their exit criteria |
 | `docs/LOTS.md` | The migration plan: lots with scope, dependencies, model routing, each linked to its issue. Owners and status live on the [issues](https://github.com/ezzz/HFRnow/issues) |
-| `docs/agents/` | [ORCHESTRATION](docs/agents/ORCHESTRATION.md) (parallel sessions), [REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md) (bots & reviews), [LESSONS](docs/agents/LESSONS.md) (self-review table), [EXTERNAL-AGENTS](docs/agents/EXTERNAL-AGENTS.md) (brief for contributors' agents: queues, claims, reviews, model matrix) |
+| `docs/agents/` | [ORCHESTRATION](docs/agents/ORCHESTRATION.md) (parallel sessions), [REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md) (bots & reviews), [LESSONS](docs/agents/LESSONS.md) (self-review table), [EXTERNAL-AGENTS](docs/agents/EXTERNAL-AGENTS.md) (brief for contributors' agents: queues, claims, reviews, model matrix), [MAC-SESSIONS](docs/agents/MAC-SESSIONS.md) (ready-to-paste prompts for the unattended Mac sessions: captures, hand checks) |
+| `tooling/roadmap/` | Board generator and tracker sweep: `lots.json` from `docs/LOTS.md`, `state.json` from the tracker, the boards of #166 and #324, `hygiene.py` (daily, dry-run by default); [README](tooling/roadmap/README.md) has the routine |
 | `docs/lots/` | One spec file per lot (`LOT-XXX-name.md`) |
 | `docs/FEATURES.md` | App feature backlog (FEAT-XXX, with credit to who proposed it) and status; one spec per feature in `docs/features/FEAT-XXX.md` ([ADR 0011](docs/adr/0011-contribution-model-and-feature-intake.md) §2) |
 | `docs/HFR-PROTOCOL.md` | What we know about HFR: URLs, forms, cookies, HTML structure |
@@ -57,7 +58,7 @@ The default branch `master` of that repository **is the legacy app**: never bran
 
 `francoisgn/ios-app_SwiftHFR` is a read-only mirror of `dev-swift`, synced hourly: never open issues or PRs there. Its issues are frozen history: read them for context (each lot issue links its old one), never claim, comment on or close them.
 
-Legacy codebase (read-only reference): the `master` branch of ezzz/HFRnow. Citations written before the move point to <https://github.com/francoisgn/hfrnow> @ `2440d79` and stay valid.
+Legacy codebase (read-only reference): the `master` branch of ezzz/HFRnow. Legacy citations name commit `2440d79` of <https://github.com/ezzz/HFRnow> (an ancestor of its `master`).
 When a behaviour is unclear, **read the legacy code** instead of guessing, and cite the file and line in the lot spec.
 
 ## 3. Ground rules
@@ -82,6 +83,7 @@ When a behaviour is unclear, **read the legacy code** instead of guessing, and c
 - Protocols only where a second implementation is realistic (transport, HTML backend, storage). No speculative abstractions.
 - Comments explain *why*, never *what*. Public API gets a one-line doc comment.
 - SwiftLint must pass (`.swiftlint.yml`). Do not disable rules inline without a justification comment.
+- **Legacy pointers in app code** (directive H.2, 2026-11-01): every app view or view model that ports legacy code starts with one comment above its main type: `// Port of HFRswift/Swift/<File>.swift (<Symbol>) @ 2440d79. Differences: …`, naming the GAP row and, when a decision applies, its `UXD` ([decisions of 2026-11-02](docs/migration/GAP-LEGACY-VS-SWIFT.md#ux-decisions-of-2026-11-02)). An app-lot spec has a "Legacy counterpart" section ([TEMPLATE](docs/lots/TEMPLATE.md)). This lets ezzz find his structure again and gives every parity check its starting point. A UX change no parity need justifies is not ported silently: it is a (b) item, explicit in the spec and optional ([ROADMAP](docs/ROADMAP.md) M5).
 
 ## 5. The migration loop (one lot)
 
@@ -206,3 +208,5 @@ Keep entries short and dated. Remove anything that became false.
 - 2026-10-27 — LOT-044: a `.hop` refusal can hold a non-empty `hash_check` in its replay form although the POST carried no cookies (`W17c`); a non-empty token is evidence of a logged-in session only on the expected profile-page GET, after its URL and `.hop` checks. Session refresh runs in a probe jar and writes back by compare-and-set, so it never undoes a concurrent request nor logs an account out on an unknown page.
 - 2026-10-28 — #314: HFR answers a cookie-less `addflag` with the logged-in success bytes (`P03q` = `P03a`) and a repeated `delflag` with the same success (`P03o` = `P03n`). A write whose answer carries no token proves nothing about the session: check the session (LOT-044) before sending it. Test the public entry points with a scripted check (`TopicFlagFlow(refresh:)`) and a session that may only contact the loopback host (`hosts: .exactHost`), so the write itself can never reach HFR. The `manageaction.php` answer is captured now (`P03h`, `P03j`, `P03l`) and confirms the list removal: this supersedes the 2026-10-28 LOT-051 entry above on that point.
 - 2026-10-28 — LOT-084: HFR's refresh after a reply posted from a form at `page=1` names page 1 (`…_1.htm#bas`, `W30`; whether it echoes another form `page` is pending capture) while the reply sits at the end of the last page (`R61d`): to show it, ask for page `max + 1` (HFR redirects past the end to the last page, `R24`) and open at the last message. A debounced draft save and a discard race: cancel the pending save and await a running one before discarding.
+- 2026-11-02 — LOT-137: reader links go through `HFRLinkRoute` only (`ReaderTarget(link:)`; `ReaderTarget.Source.path` is gone, a canonical path is fetched as its `TopicID`). A followed link pushes a new reader (`TopicReaderModel.linkedReader`, legacy `openInternalTopic`) inside the column's `NavigationStack`; a covered reader must not cancel or stop its web view on `onDisappear`, or the way back finds a half-loaded page.
+- 2026-11-05 — LOT-087: a SwiftUI `confirmationDialog` clears its presenting state before the button's action runs: give the action the item it was shown for. A handler registered in a model that captures that model strongly leaks every reader: capture it weakly. WebKit's bridge hands booleans as `NSNumber`: reject `CFBoolean` before reading an integer.

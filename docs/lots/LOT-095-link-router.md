@@ -8,7 +8,7 @@
 message. Pure function, no request, no page parsing. The app turns the route into navigation; a route never fetches anything by itself.
 
 ## Legacy sources
-Legacy repository <https://github.com/francoisgn/hfrnow> at `2440d79` (same paths on `origin/master`). Legacy has no router: each screen decides for itself.
+Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79` (same paths on `origin/master`). Legacy has no router: each screen decides for itself.
 
 | Legacy | What it gives |
 |---|---|

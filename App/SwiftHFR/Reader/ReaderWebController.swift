@@ -2,6 +2,8 @@ import Foundation
 import UIKit
 import WebKit
 
+// Port of HFRswift/Swift/MessagesView.swift (WebView, MessageWebView, WebView.Coordinator) @ 2440d79. Differences: no page script,
+// strict CSP, everything served by the app's `hfrreader:` scheme, images through policy C and the cookie-less client (GAP-050, 056).
 /// Owns the reader's `WKWebView` and enforces what the page may do (LOT-083):
 ///
 /// - nothing remote: the page, its stylesheet and every image come from the app's `hfrreader:` scheme; the Content Security
@@ -20,6 +22,8 @@ final class ReaderWebController: NSObject {
         var link: @MainActor (URL) -> Void = { _ in }
         /// The user tapped the placeholder of video `index` of message `post` in document `token`.
         var video: @MainActor (_ post: Int, _ index: Int, _ token: Int) -> Void = { _, _, _ in }
+        /// The user tapped the menu button or the author of message `post` in document `token`.
+        var menu: @MainActor (_ post: Int, _ source: MessageMenuSource, _ token: Int) -> Void = { _, _, _ in }
     }
 
     /// The content world of `reader.js` and of its message channel; the page's own world cannot see either.
@@ -33,6 +37,23 @@ final class ReaderWebController: NSObject {
 
     let webView: WKWebView
     var events = Events()
+    /// The in-app text size: applied to the shown document at once (no reload) and to every next one from its start (LOT-169).
+    var textScale = TextScale.standard {
+        didSet {
+            guard textScale != oldValue else { return }
+            installUserScripts()
+            applyTextScale()
+        }
+    }
+
+    /// The theme colours (LOT-121): applied like `textScale`, live and from each next document's start.
+    var theme = ThemeAppearance.standard {
+        didSet {
+            guard theme != oldValue else { return }
+            installUserScripts()
+            applyTheme()
+        }
+    }
 
     private let imageFetcher: ReaderImageFetcher
     private let autoLoadsThirdPartyImages: @Sendable () -> Bool
@@ -64,13 +85,9 @@ final class ReaderWebController: NSObject {
         configuration.setURLSchemeHandler(proxy, forURLScheme: TopicHTMLBuilder.scheme)
         let messages = MessageProxy()
         configuration.userContentController.addScriptMessageHandler(messages, contentWorld: Self.world, name: Self.channel)
-        if let script = Self.readerScript {
-            configuration.userContentController.addUserScript(
-                WKUserScript(source: script, injectionTime: .atDocumentEnd, forMainFrameOnly: true, in: Self.world)
-            )
-        }
         webView = WKWebView(frame: .zero, configuration: configuration)
         super.init()
+        installUserScripts()
         proxy.owner = self
         messages.owner = self
         webView.navigationDelegate = self
@@ -120,6 +137,43 @@ final class ReaderWebController: NSObject {
         return try? Data(contentsOf: url)
     }()
 
+    /// The scripts that set the text size and the theme colours of a document before it renders, then `reader.js`; all in
+    /// the reader's world.
+    private func installUserScripts() {
+        let controller = webView.configuration.userContentController
+        controller.removeAllUserScripts()
+        for source in [Self.textScaleScript(textScale), theme.readerScript] {
+            controller.addUserScript(
+                WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: true, in: Self.world)
+            )
+        }
+        if let script = Self.readerScript {
+            controller.addUserScript(
+                WKUserScript(source: script, injectionTime: .atDocumentEnd, forMainFrameOnly: true, in: Self.world)
+            )
+        }
+    }
+
+    /// Sets `--text-scale` (read by `reader.css`) on the shown document's root element.
+    private func applyTextScale() {
+        guard document != nil else { return }
+        let script = Self.textScaleScript(textScale)
+        Task { _ = try? await webView.callAsyncJavaScript(script, arguments: [:], in: nil, contentWorld: Self.world) }
+    }
+
+    /// Sets the theme's CSS variables (read by `reader.css`) on the shown document's root element.
+    private func applyTheme() {
+        guard document != nil else { return }
+        let script = theme.readerScript
+        Task { _ = try? await webView.callAsyncJavaScript(script, arguments: [:], in: nil, contentWorld: Self.world) }
+    }
+
+    /// The script that sets `--text-scale` to `scale`'s factor; a number the app formats, never page text.
+    static func textScaleScript(_ scale: TextScale) -> String {
+        let factor = String(format: "%.2f", locale: Locale(identifier: "en_US_POSIX"), Double(scale.factor))
+        return "document.documentElement.style.setProperty('--text-scale', '\(factor)');"
+    }
+
     private func scroll(to anchor: Int) {
         Task {
             _ = try? await webView.callAsyncJavaScript(
@@ -131,32 +185,36 @@ final class ReaderWebController: NSObject {
     // MARK: - Messages from reader.js
 
     fileprivate func receive(_ message: WKScriptMessage) -> Any? {
-        guard message.frameInfo.isMainFrame, let body = message.body as? [String: Any],
-              let type = body["type"] as? String, let token = (body["token"] as? NSNumber)?.intValue,
-              let document, token == document.token else { return nil }
-        switch type {
-        case "images":
-            return decisions(for: body["urls"] as? [Any] ?? [])
-        case "tap":
-            return recordTap(body["url"] as? String)
-        case "ready":
-            documentIsReady(document, token: token)
+        guard message.frameInfo.isMainFrame, let decoded = try? ReaderBridgeMessage.decode(message.body),
+              let document, decoded.token == document.token else { return nil }
+        return handle(decoded.message, in: document)
+    }
+
+    /// Acts on a decoded message of the shown document. `receive` is the entry point of the page (main frame and token checked
+    /// first); this one is internal only so tests can drive the actions without a web view round trip.
+    func handle(_ message: ReaderBridgeMessage, in document: ReaderDocument) -> Any? {
+        switch message {
+        case .images(let urls):
+            return decisions(for: urls)
+        case .tap(let url):
+            return recordTap(url)
+        case .ready:
+            documentIsReady(document, token: document.token)
             return nil
-        case "video":
-            if let post = (body["post"] as? NSNumber)?.intValue, let index = (body["index"] as? NSNumber)?.intValue {
-                events.video(post, index, token)
-            }
+        case .video(let post, let index):
+            events.video(post, index, document.token)
             return nil
-        default:
+        case .menu(let post, let source):
+            events.menu(post, source, document.token)
             return nil
         }
     }
 
     /// One decision per image `src`, in order.
-    private func decisions(for urls: [Any]) -> [String] {
+    private func decisions(for urls: [String?]) -> [String] {
         let auto = autoLoadsThirdPartyImages()
         return urls.prefix(Self.maximumImages).map { value -> String in
-            guard let text = value as? String, let url = URL(string: text) else { return ImageDecision.block.rawValue }
+            guard let text = value, let url = URL(string: text) else { return ImageDecision.block.rawValue }
             return ImageDecision(origin: ImagePolicy.classify(url), autoLoadsThirdParty: auto).rawValue
         }
     }
@@ -170,6 +228,9 @@ final class ReaderWebController: NSObject {
     }
 
     private func documentIsReady(_ document: ReaderDocument, token: Int) {
+        // A size or a colour changed while this document was loading reached the previous one: set them again.
+        applyTextScale()
+        applyTheme()
         if let anchor = document.anchor {
             scroll(to: anchor)
         } else if let offset = savedOffset {

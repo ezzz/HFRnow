@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Écarts legacy / SwiftHFR</title>
+<!--
+  Source of docs/assets/gap-legacy-vs-swift-*.png (G.3, issue #368). Re-render with:
+    node docs/assets/gap/render.js
+  Mock-ups only: 1 CSS px = 1 iOS point; the PNG is taken at device scale 3.
+  Legacy look: master @ 2440d79 (HFRswift/Swift/*.swift, SuperHFRplus/Assets/HTML/style-liste-light.css).
+  SwiftHFR look: dev-swift App/SwiftHFR (TopicRowView, TopicListView, TopicReaderView, Reader/Resources/reader.css)
+  plus the specs of the final form (LOT-110, 111, 112, 124, 147, 153, 169, 170). Sources per element: GAP-LEGACY-VS-SWIFT.md.
+  Pseudos are anonymized (user1..user6); topic titles are illustrative.
+-->
+<style>
+  :root {
+    --page: #e6e6eb; --ink: #1c1c1e; --muted: #5b5b60;
+    /* Legacy (light theme) */
+    --l-bg: #f6f6f6;          /* ThemeColors.m cell/nav background */
+    --l-text: #000000;
+    --l-sec: #8a8a8e;
+    --l-accent: #59e3ff;      /* hue 190°, HSB(0.528,0.65,1.0): Common.swift:461-466 */
+    --l-accent-ink: #1590b0;  /* same hue, readable on white, for text glyphs */
+    --l-msg-header: #f4f4f4;  /* messageClassicHeaderBackgroundCSS, Common.swift:669-677 */
+    --l-msg-text: #202020;    /* style-liste-light.css --color-text */
+    --l-quote: silver;
+    --l-superfav: rgba(250,189,115,0.18);
+    /* SwiftHFR (light) */
+    --s-bg: #ffffff; --s-grouped: #f2f2f7; --s-text: #1c1c1e; --s-sec: #6c6c70;
+    --s-sep: #d1d1d6; --s-quote-b: #8e8e93; --s-quote-bg: #f2f2f7; --s-action: #007aff;
+    --s-sel: #dfe9fb;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--page); color: var(--ink);
+    font-family: Inter, "Liberation Sans", sans-serif; -webkit-font-smoothing: antialiased; }
+  svg { display: block; }
+
+  .part { padding: 36px 40px 44px; background: var(--page); width: max-content; }
+  .part h1 { font-size: 30px; margin: 0 0 4px; font-weight: 800; letter-spacing: -0.3px; }
+  .part .sub { font-size: 15px; color: var(--muted); margin: 0 0 24px; max-width: 1900px; line-height: 1.4; }
+  .grid { display: grid; grid-template-columns: 250px var(--colw) var(--colw); column-gap: 28px; row-gap: 34px; align-items: start; }
+  .colhead { font-size: 22px; font-weight: 800; padding: 12px 18px; border-radius: 14px; color: #fff; }
+  .colhead small { display: block; font-size: 13px; font-weight: 500; opacity: .9; margin-top: 3px; }
+  .colhead.legacy { background: #3d4a57; }
+  .colhead.swift { background: #e8590c; }
+  .rowlabel { padding-top: 6px; }
+  .rowlabel .n { font-size: 13px; font-weight: 700; color: #fff; background: var(--ink); border-radius: 6px; padding: 2px 8px; display: inline-block; }
+  .rowlabel h2 { font-size: 21px; margin: 8px 0 4px; line-height: 1.2; }
+  .rowlabel .dim { font-size: 14px; color: var(--muted); line-height: 1.45; }
+  .rowlabel .shown { font-size: 14px; margin-top: 10px; line-height: 1.45; }
+  .cell { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .caption { font-size: 13.5px; line-height: 1.45; color: var(--ink); max-width: calc(var(--colw) - 10px); background: #fff; border-radius: 10px; padding: 8px 12px; border: 1px solid #d4d4da; }
+  .caption b { font-weight: 700; }
+  .tag { display: inline-block; font-size: 11.5px; font-weight: 700; border-radius: 5px; padding: 1px 6px; margin-right: 4px; color: #fff; }
+  .tag.ux { background: #c2410c; } .tag.new { background: #15803d; } .tag.same { background: #6b7280; } .tag.chg { background: #1d4ed8; }
+
+  /* Device */
+  .device { position: relative; background: #111; padding: 9px; border-radius: 58px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+  .device.duo { border-radius: 34px; }
+  .screen { position: relative; overflow: hidden; border-radius: 50px; background: #fff; }
+  .device.duo .screen { border-radius: 26px; }
+  .island { position: absolute; z-index: 50; background: #000; border-radius: 20px; }
+  .punch { position: absolute; z-index: 50; background: #000; border-radius: 50%; width: 11px; height: 11px; }
+  .crease { position: absolute; z-index: 49; background: linear-gradient(90deg, rgba(0,0,0,0), rgba(0,0,0,.10), rgba(0,0,0,0)); pointer-events: none; }
+  .status { position: absolute; left: 0; right: 0; top: 0; height: 54px; display: flex; align-items: center; justify-content: space-between; padding: 6px 34px 0 40px; font-weight: 600; font-size: 16px; z-index: 40; color: #000; }
+  .status .r { display: flex; gap: 6px; align-items: center; }
+  .homebar { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 140px; height: 5px; border-radius: 3px; background: #111; z-index: 60; }
+  .band { position: absolute; left: 0; right: 0; background: #000; z-index: 45; color: #888; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+
+  /* Shared bits */
+  .glass { background: rgba(255,255,255,.72); border: 1px solid rgba(0,0,0,.08); box-shadow: 0 2px 10px rgba(0,0,0,.10); backdrop-filter: blur(8px); }
+  .circ { width: 38px; height: 38px; border-radius: 19px; display: flex; align-items: center; justify-content: center; }
+  .av { border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; flex: none; }
+  .tabbar { position: absolute; left: 50%; transform: translateX(-50%); bottom: 22px; height: 62px; border-radius: 31px; display: flex; align-items: center; padding: 0 8px; gap: 2px; z-index: 30; }
+  .tab { width: 82px; height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 10.5px; font-weight: 600; border-radius: 26px; color: #1c1c1e; position: relative; }
+  .tab.sel { background: rgba(0,0,0,.07); }
+  .tab .badge { position: absolute; top: 3px; left: 46px; background: #ff3b30; color: #fff; border-radius: 9px; font-size: 11px; padding: 0 5px; line-height: 17px; font-weight: 700; }
+
+  /* ---------- Legacy list ---------- */
+  .l-app { position: absolute; inset: 0; background: var(--l-bg); color: var(--l-text); display: flex; flex-direction: column; }
+  .l-top { padding: 56px 16px 4px; display: flex; justify-content: space-between; align-items: center; }
+  .l-top .grp { display: flex; gap: 8px; }
+  .l-large { font-size: 32px; font-weight: 800; padding: 2px 18px 8px; letter-spacing: -0.4px; }
+  .l-list { flex: 1; overflow: hidden; padding: 0 16px; }
+  .l-sec { display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 600; padding: 12px 6px 6px; }
+  .l-sec .c { font-size: 13px; color: var(--l-sec); display: flex; gap: 10px; align-items: center; font-weight: 400; }
+  .l-card { background: #fff; border-radius: 22px; padding: 2px 12px; }
+  .l-row { padding: 6px 2px 6px 6px; border-bottom: 0.5px solid #e2e2e6; position: relative; }
+  .l-row:last-child { border-bottom: none; }
+  .l-row.sf::before { content: ""; position: absolute; inset: 3px -6px 1px -6px; background: var(--l-superfav); border-radius: 12px; z-index: 0; }
+  .l-row > * { position: relative; z-index: 1; }
+  .l-row .t { display: flex; gap: 6px; align-items: baseline; }
+  .l-row .t span.title { font-size: 14.3px; font-weight: 600; line-height: 1.3; flex: 1; }
+  .l-row.v .t span.title { font-weight: 400; color: var(--l-sec); }
+  .l-badge { font-size: 11px; font-weight: 700; color: #fff; background: #8a8a8e; border-radius: 9px; min-width: 20px; text-align: center; padding: 1px 4px; }
+  .l-row.v .l-badge { background: #c4c4c7; }
+  .l-row .f { display: flex; justify-content: space-between; font-size: 13px; color: var(--l-sec); margin-top: 3px; }
+
+  /* ---------- Legacy reader ---------- */
+  .l-rtop { position: absolute; top: 0; left: 0; right: 0; padding: 54px 12px 8px; display: flex; align-items: center; justify-content: space-between; z-index: 20; background: linear-gradient(#fff 70%, rgba(255,255,255,0)); }
+  .l-rtitle { text-align: center; font-size: 11px; line-height: 1.3; max-width: 70%; }
+  .l-rtitle b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 700; }
+  .l-rtitle span { opacity: .72; }
+  .l-web { position: absolute; inset: 0; background: #fff; padding-top: 104px; overflow: hidden; font-family: Inter, sans-serif; }
+  .l-msg .hd { background: var(--l-msg-header); display: flex; align-items: center; padding: 5px 6px 4px 8px; height: 40px; }
+  .l-msg .hd .ava { width: 30px; height: 30px; border: 2px solid #717d85; font-size: 12px; }
+  .l-msg .hd .ps { margin-left: 10px; font-size: 13px; font-weight: 800; color: var(--l-msg-text); flex: 1; }
+  .l-msg .hd .dt { font-size: 9px; color: var(--l-msg-text); margin-right: 16px; }
+  .l-msg .hd .plus { font-size: 28px; color: var(--l-accent-ink); font-weight: 700; width: 26px; text-align: center; line-height: 1; }
+  .l-msg.me .hd { border-left: 2px solid var(--l-accent); }
+  .l-msg .ct { padding: 8px 10px 10px 10px; font-size: 15px; line-height: 1.38; color: var(--l-msg-text); }
+  .l-quote { border-left: 2px solid var(--l-quote); padding: 4px 8px; margin: 2px 0 6px; }
+  .l-quote .w { font-size: 11px; font-weight: 700; }
+  .l-newsep { height: 1px; background: rgba(0,0,0,.4); }
+  .l-rbottom { position: absolute; left: 0; right: 0; bottom: 0; height: 92px; padding: 0 16px 28px; display: flex; align-items: center; gap: 10px; z-index: 20; background: linear-gradient(rgba(255,255,255,0), #fff 40%); }
+  .l-pill { height: 44px; border-radius: 22px; display: flex; align-items: center; padding: 0 6px; gap: 2px; }
+  .l-pill .b { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
+  .l-prom { background: var(--l-accent); color: #003845; border-radius: 22px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; }
+
+  /* ---------- SwiftHFR list ---------- */
+  .s-app { position: absolute; inset: 0; background: var(--s-grouped); color: var(--s-text); display: flex; flex-direction: column; }
+  .s-nav { padding: 54px 14px 6px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .s-nav .title { font-size: 17px; font-weight: 600; text-align: center; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .seg { margin: 4px 16px 6px; height: 32px; background: rgba(118,118,128,.14); border-radius: 16px; display: flex; padding: 2px; font-size: 13px; font-weight: 600; }
+  .seg div { flex: 1; display: flex; align-items: center; justify-content: center; border-radius: 14px; }
+  .seg .on { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+  .s-list { flex: 1; overflow: hidden; padding: 0 14px; }
+  .s-sec { font-size: 13px; color: var(--s-sec); text-transform: none; padding: 10px 6px 5px; font-weight: 600; display: flex; justify-content: space-between; }
+  .s-card { background: #fff; border-radius: 22px; overflow: hidden; }
+  .s-row { display: flex; gap: 7px; align-items: flex-start; padding: 7px 12px 7px 10px; border-bottom: 0.5px solid var(--s-sep); position: relative; }
+  .s-row:last-child { border-bottom: none; }
+  .s-row.sf { background: rgba(250,189,115,.20); }
+  .s-row.sel { background: var(--s-sel); }
+  .s-row .dot { width: 8px; height: 8px; border-radius: 4px; background: var(--s-action); margin-top: 6px; flex: none; }
+  .s-row .nodot { width: 8px; flex: none; }
+  .s-row .ic { margin-top: 1px; flex: none; }
+  .s-row .tx { flex: 1; min-width: 0; }
+  .s-row .tt { font-size: 15px; line-height: 1.3; font-weight: 600; }
+  .s-row.read .tt { font-weight: 400; }
+  .s-row .cp { font-size: 12px; color: var(--s-sec); margin-top: 2px; display: flex; gap: 5px; align-items: center; }
+
+  /* ---------- SwiftHFR reader ---------- */
+  .s-rnav { position: absolute; top: 0; left: 0; right: 0; padding: 52px 10px 6px; display: flex; align-items: center; gap: 8px; z-index: 20; background: linear-gradient(#fff 75%, rgba(255,255,255,0)); }
+  .s-rnav .ttl { flex: 1; text-align: center; min-width: 0; }
+  .s-rnav .ttl b { display: block; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .s-rnav .ttl span { font-size: 12px; color: var(--s-action); font-weight: 600; }
+  .s-web { position: absolute; inset: 0; background: #fff; padding-top: 104px; overflow: hidden; }
+  .s-msg { padding: 10px 16px 11px; border-bottom: 1px solid var(--s-sep); }
+  .s-msg .hd { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .s-msg .hd .ava { width: 34px; height: 34px; font-size: 13px; }
+  .s-msg .hd .au { font-weight: 600; font-size: 15px; }
+  .s-msg .hd .dt { margin-left: auto; color: var(--s-sec); font-size: 12.5px; }
+  .s-msg .hd .more { color: var(--s-sec); margin-left: 4px; }
+  .s-msg .ct { font-size: 15px; line-height: 1.42; }
+  .s-quote { border-left: 3px solid var(--s-quote-b); background: var(--s-quote-bg); padding: 6px 9px; margin: 4px 0 7px; }
+  .s-quote .w { font-size: 12.5px; color: var(--s-sec); } .s-quote .w b { color: var(--s-text); }
+  .s-new { display: flex; align-items: center; gap: 8px; padding: 6px 16px; font-size: 12px; font-weight: 700; color: var(--s-action); background: #eef5ff; }
+  .s-new::before, .s-new::after { content: ""; flex: 1; height: 1.5px; background: var(--s-action); opacity: .55; }
+  .scrub { position: absolute; right: 3px; width: 5px; border-radius: 3px; background: rgba(0,0,0,.10); z-index: 15; }
+  .scrub .knob { position: absolute; left: -2px; width: 9px; height: 30px; border-radius: 5px; background: rgba(0,0,0,.38); }
+  .scrub .bub { position: absolute; right: 14px; font-size: 12px; font-weight: 700; background: #1c1c1e; color: #fff; border-radius: 10px; padding: 3px 8px; white-space: nowrap; }
+  .scrub .mark { position: absolute; left: -1px; width: 7px; height: 7px; border-radius: 4px; background: var(--s-action); }
+  .s-rbottom { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 12px 24px; z-index: 20; display: flex; flex-direction: column; gap: 8px; background: linear-gradient(rgba(255,255,255,0), #fff 30%); }
+  .pagebar { height: 40px; border-radius: 20px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; color: var(--s-action); font-size: 14px; font-weight: 600; }
+  .pagebar .pg { color: var(--s-text); font-variant-numeric: tabular-nums; }
+  .qrbar { height: 46px; border-radius: 23px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 8px; }
+  .qrbar .chip { font-size: 12px; font-weight: 700; color: #fff; background: var(--s-action); border-radius: 14px; padding: 4px 9px; white-space: nowrap; display: flex; gap: 4px; align-items: center; }
+  .qrbar .field { flex: 1; font-size: 14px; color: #8e8e93; }
+  .qrbar .send { width: 34px; height: 34px; border-radius: 17px; background: var(--s-action); color: #fff; display: flex; align-items: center; justify-content: center; }
+  .mini-tab { position: absolute; z-index: 30; bottom: 24px; left: 14px; width: 50px; height: 50px; border-radius: 25px; display: flex; align-items: center; justify-content: center; }
+
+  /* Split / rail */
+  .split { position: absolute; inset: 0; display: flex; background: #fff; }
+  .split .col { position: relative; height: 100%; overflow: hidden; }
+  .split .col.list { border-right: 0.5px solid var(--s-sep); }
+  .rail { width: 66px; flex: none; background: var(--s-grouped); border-right: 0.5px solid var(--s-sep); display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 58px; }
+  .rail .ri { width: 54px; height: 50px; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 9.5px; font-weight: 600; position: relative; color: #1c1c1e; }
+  .rail .ri.sel { background: rgba(0,122,255,.12); color: var(--s-action); }
+  .rail .ri .badge { position: absolute; top: 2px; right: 6px; background: #ff3b30; color: #fff; border-radius: 8px; font-size: 10px; padding: 0 4px; line-height: 15px; font-weight: 700; }
+  .note-in { position: absolute; z-index: 70; font-size: 11px; background: rgba(28,28,30,.85); color: #fff; padding: 3px 8px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+/* ---------------- Icons (SF Symbols stand-ins) ---------------- */
+const I = {
+  folder: c => `<svg width="24" height="24" viewBox="0 0 24 24"><path d="M3 7.5a2 2 0 0 1 2-2h4.2l2 2H19a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="${c}"/></svg>`,
+  star: c => `<svg width="24" height="24" viewBox="0 0 24 24"><path d="M12 3.2l2.6 5.5 6 .8-4.4 4.1 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.5l6-.8z" fill="${c}"/></svg>`,
+  starS: (c,s=14) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24"><path d="M12 3.2l2.6 5.5 6 .8-4.4 4.1 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.5l6-.8z" fill="${c}"/></svg>`,
+  env: c => `<svg width="24" height="24" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2" fill="none" stroke="${c}" stroke-width="1.8"/><path d="M3.8 7l8.2 6 8.2-6" fill="none" stroke="${c}" stroke-width="1.8"/></svg>`,
+  dots: c => `<svg width="24" height="24" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="2" fill="${c}"/><circle cx="12" cy="12" r="2" fill="${c}"/><circle cx="18.5" cy="12" r="2" fill="${c}"/></svg>`,
+  back: c => `<svg width="20" height="20" viewBox="0 0 24 24"><path d="M15 4l-8 8 8 8" fill="none" stroke="${c}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  fwd: c => `<svg width="20" height="20" viewBox="0 0 24 24"><path d="M9 4l8 8-8 8" fill="none" stroke="${c}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  plus: c => `<svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 4v16M4 12h16" stroke="${c}" stroke-width="2.6" stroke-linecap="round"/></svg>`,
+  refresh: c => `<svg width="20" height="20" viewBox="0 0 24 24"><path d="M19 12a7 7 0 1 1-2.1-5" fill="none" stroke="${c}" stroke-width="2.4" stroke-linecap="round"/><path d="M17.5 3v4.5H13" fill="none" stroke="${c}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  listc: c => `<svg width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="${c}" stroke-width="1.8"/><path d="M8 9h8M8 12h8M8 15h8" stroke="${c}" stroke-width="1.6"/></svg>`,
+  flag: (c,s=14) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24"><path d="M5 21V4M5 4h12l-2.5 4L17 12H5" fill="${c}" stroke="${c}" stroke-width="2" stroke-linejoin="round"/></svg>`,
+  first: c => `<svg width="18" height="18" viewBox="0 0 24 24"><path d="M6 5v14M18 5l-8 7 8 7z" fill="${c}" stroke="${c}" stroke-width="2" stroke-linejoin="round"/></svg>`,
+  last: c => `<svg width="18" height="18" viewBox="0 0 24 24"><path d="M18 5v14M6 5l8 7-8 7z" fill="${c}" stroke="${c}" stroke-width="2" stroke-linejoin="round"/></svg>`,
+  up: c => `<svg width="18" height="18" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="${c}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  quote: c => `<svg width="13" height="13" viewBox="0 0 24 24"><path d="M4 18v-5c0-4 2-7 6-8v3c-2 1-3 2-3 4h3v6zm10 0v-5c0-4 2-7 6-8v3c-2 1-3 2-3 4h3v6z" fill="${c}"/></svg>`,
+  sidebar: c => `<svg width="22" height="22" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5" fill="none" stroke="${c}" stroke-width="1.8"/><path d="M9 5v14" stroke="${c}" stroke-width="1.8"/></svg>`,
+  chev: c => `<svg width="12" height="12" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="${c}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  pin: c => `<svg width="12" height="12" viewBox="0 0 24 24"><path d="M9 3h6l-1 6 3 3H7l3-3zM12 12v9" fill="${c}" stroke="${c}" stroke-width="2"/></svg>`,
+  person: c => `<svg width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="${c}"/><circle cx="12" cy="10" r="3.6" fill="#fff"/><path d="M5.5 18.5c1.6-2.6 4-3.6 6.5-3.6s4.9 1 6.5 3.6" fill="#fff"/></svg>`,
+};
+
+/* ---------------- Data (anonymized) ---------------- */
+const AV = { user1: "#5b8def", user2: "#e0784a", user3: "#4caf7d", user4: "#a46ad6", user5: "#d4a017", user6: "#d9547a" };
+const FAVS = [
+  { cat: "Apple", topics: [
+    { t: "[TU] iPhone Duo - Le premier iPhone pliable !", n: 4, cur: 508, max: 512, last: "user2 - 01-11-2026 à 21:34", rel: "il y a 6 min", rep: "12 794", by: "user6", sf: true, sel: true },
+    { t: "[Topic Unique] macOS 27 : nouveautés, bugs et astuces", n: 1, cur: 87, max: 88, last: "user3 - 01-11-2026 à 20:58", rel: "il y a 42 min", rep: "2 187", by: "user4" },
+    { t: "[TU] HFRnow, l'appli iOS du forum", n: 0, cur: 61, max: 61, last: "user1 - 01-11-2026 à 18:02", rel: "il y a 3 h", rep: "1 519", by: "user1", v: true },
+  ]},
+  { cat: "Hardware", topics: [
+    { t: "[TU] NVIDIA GeForce RTX 6090 : le monstre est là", n: 12, cur: 1204, max: 1216, last: "user4 - 01-11-2026 à 21:40", rel: "il y a 1 min", rep: "30 388", by: "user3" },
+    { t: "[TU] Écrans OLED 27 pouces : retours et conseils", n: 0, cur: 33, max: 33, last: "user5 - 31-10-2026 à 23:11", rel: "hier", rep: "812", by: "user5", v: true },
+  ]},
+  { cat: "Discussions", topics: [
+    { t: "Le topic des photographes amateurs", n: 2, cur: 640, max: 642, last: "user6 - 01-11-2026 à 21:05", rel: "il y a 35 min", rep: "16 040", by: "user2" },
+    { t: "[Actu] Fibre optique : la fin du cuivre en 2030", n: 0, cur: 19, max: 19, last: "user1 - 01-11-2026 à 12:47", rel: "il y a 9 h", rep: "471", by: "user6", v: true },
+    { t: "Vos derniers achats high-tech", n: 1, cur: 2210, max: 2211, last: "user3 - 01-11-2026 à 21:22", rel: "il y a 18 min", rep: "55 262", by: "user4" },
+  ]},
+  { cat: "Technologies Mobiles", topics: [
+    { t: "[TU] Free Mobile : forfaits, réseau et 5G", n: 3, cur: 911, max: 914, last: "user5 - 01-11-2026 à 21:31", rel: "il y a 9 min", rep: "22 840", by: "user1" },
+  ]},
+];
+const TOPIC = "[TU] iPhone Duo - Le premier iPhone pliable !";
+const MSGS = [
+  { u: "user2", d: "01-11-2026 à 21:12", body: "Reçu le mien ce matin. Le pli est quasiment invisible avec le traitement nano-texture, franchement bluffant." },
+  { u: "user5", d: "01-11-2026 à 21:15", q: { u: "user2", t: "Le pli est quasiment invisible avec le traitement nano-texture" }, body: "Chez moi on le voit encore en lumière rasante, mais à l'usage on l'oublie vite. L'écran extérieur est enfin utilisable." },
+  { u: "user1", d: "01-11-2026 à 21:20", me: true, isNew: true, body: "Quelqu'un a testé l'appli du forum déplié ? Chez moi elle reste en mode iPhone, avec une bande noire sur l'écran extérieur." },
+  { u: "user3", d: "01-11-2026 à 21:26", body: "Une version adaptée au Duo est en préparation, il faut patienter un peu. En attendant, la rotation marche sur l'écran intérieur." },
+  { u: "user6", d: "01-11-2026 à 21:31", body: "Pareil ici. Je lis le forum déplié en double colonne dans Safari, ça change la vie pour suivre les gros topics." },
+  { u: "user4", d: "01-11-2026 à 21:34", body: "Quelqu'un a pris la coque officielle ? Elle a l'air de bien protéger la charnière sans trop ajouter d'épaisseur." },
+  { u: "user2", d: "01-11-2026 à 21:36", body: "Oui, elle est très bien. Seul défaut : l'aimant MagSafe est un peu faible quand l'appareil est déplié." },
+];
+const av = (u, s, extra="") => `<div class="av ${extra}" style="width:${s}px;height:${s}px;background:${AV[u]}">${u.slice(-1)}</div>`;
+
+/* ---------------- Legacy screens ---------------- */
+function legacyTabbar(sel) {
+  const T = [["Catégories", I.folder], ["Favoris", I.star], ["Messages", I.env], ["Plus", I.dots]];
+  return `<div class="tabbar glass">${T.map(([n, f]) => `<div class="tab ${n === sel ? "sel" : ""}" style="color:${n === sel ? "#1590b0" : "#1c1c1e"}">${f(n === sel ? "#1aa9cc" : "#1c1c1e")}${n}${n === "Messages" ? '<span class="badge">2</span>' : ""}</div>`).join("")}</div>`;
+}
+function legacyList({ withTabbar = true } = {}) {
+  const sections = FAVS.map(s => `
+    <div class="l-sec"><span>${s.cat}</span><span class="c">${s.topics.length}${I.chev("#8a8a8e")}</span></div>
+    <div class="l-card">${s.topics.map(t => `
+      <div class="l-row ${t.v ? "v" : ""} ${t.sf ? "sf" : ""}">
+        <div class="t"><span class="title">${t.t}</span>${t.n > 0 ? `<span class="l-badge">${t.n}</span>` : ""}</div>
+        <div class="f"><span>⚑ ${t.cur} / ${t.max}</span><span>${t.last}</span></div>
+      </div>`).join("")}</div>`).join("");
+  return `<div class="l-app">
+    <div class="l-top"><div class="glass circ">${I.person("#9aa3ad")}</div>
+      <div class="l-top grp" style="padding:0"><div class="glass circ">${I.listc("#1c1c1e")}</div><div class="glass circ">${I.refresh("#1c1c1e")}</div></div></div>
+    <div class="l-large">Favoris</div>
+    <div class="l-list">${sections}</div>
+    ${withTabbar ? legacyTabbar("Favoris") : ""}
+  </div>`;
+}
+function legacyReader({ top = 104, bottomPad = 28, statusTop = 54 } = {}) {
+  const msgs = MSGS.map(m => `
+    ${m.isNew ? '<div class="l-newsep"></div>' : ""}
+    <div class="l-msg ${m.me ? "me" : ""}">
+      <div class="hd">${av(m.u, 30, "ava")}<span class="ps">${m.u}</span><span class="dt">${m.d}</span><span class="plus">+</span></div>
+      <div class="ct">${m.q ? `<div class="l-quote"><div class="w">${m.q.u} a écrit :</div>${m.q.t}</div>` : ""}${m.body}</div>
+    </div>`).join("");
+  return `<div class="l-app" style="background:#fff">
+    <div class="l-web" style="padding-top:${top}px">${msgs}</div>
+    <div class="l-rtop" style="padding-top:${statusTop}px">
+      <div class="glass circ">${I.back("#1c1c1e")}</div>
+      <div class="l-rtitle"><b>${TOPIC}</b><span>508 / 512</span></div>
+      <div class="glass circ">${I.dots("#1c1c1e")}</div>
+    </div>
+    <div class="l-rbottom" style="padding-bottom:${bottomPad}px">
+      <div class="l-pill glass"><div class="b">${I.back("#1590b0")}</div><div class="b">${I.fwd("#1590b0")}</div></div>
+      <div style="flex:1"></div>
+      <div class="l-prom">${I.refresh("#003845")}</div>
+      <div class="l-pill glass" style="padding:0 14px;gap:6px;font-weight:600;font-size:15px">${I.plus("#1c1c1e")}New</div>
+    </div>
+  </div>`;
+}
+
+/* ---------------- SwiftHFR screens ---------------- */
+function swiftTabbar(sel, w) {
+  const T = [["Catégories", I.folder], ["Favoris", I.star], ["Messages", I.env], ["Plus", I.dots]];
+  return `<div class="tabbar glass">${T.map(([n, f]) => `<div class="tab ${n === sel ? "sel" : ""}" style="color:${n === sel ? "#007aff" : "#1c1c1e"}">${f(n === sel ? "#007aff" : "#1c1c1e")}${n}${n === "Messages" ? '<span class="badge">2</span>' : ""}</div>`).join("")}</div>`;
+}
+function swiftRows(s, { selected = false } = {}) {
+  return s.topics.map(t => `
+    <div class="s-row ${t.v ? "read" : ""} ${t.sf ? "sf" : ""} ${selected && t.sel ? "sel" : ""}">
+      ${t.v ? '<div class="nodot"></div>' : '<div class="dot"></div>'}
+      <div class="ic">${I.starS("#f5b400", 15)}</div>
+      <div class="tx"><div class="tt">${t.t}</div>
+        <div class="cp">${t.by} · ${t.rep} réponses · ${t.rel}</div></div>
+    </div>`).join("");
+}
+function swiftList({ withTabbar = true, selected = false, nav = true, top = 54 } = {}) {
+  return `<div class="s-app">
+    ${nav ? `<div class="s-nav" style="padding-top:${top}px"><div class="glass circ">${I.refresh("#1c1c1e")}</div><div class="title">Favoris</div><div class="glass circ">${I.dots("#1c1c1e")}</div></div>` : ""}
+    <div class="seg"><div class="on">Favoris</div><div>Drapeaux</div></div>
+    <div class="s-list">${FAVS.map(s => `<div class="s-sec"><span>${s.cat}</span><span>${s.topics.length}</span></div><div class="s-card">${swiftRows(s, { selected })}</div>`).join("")}</div>
+    ${withTabbar ? swiftTabbar("Favoris") : ""}
+  </div>`;
+}
+function swiftReader({ top = 104, navTop = 52, bottomPad = 24, back = true, scrub = { top: 120, h: 300, pos: 0.95, mark: 0.93 }, tabMini = true, sidebarBtn = false } = {}) {
+  const msgs = MSGS.map(m => `
+    ${m.isNew ? '<div class="s-new">Nouveau</div>' : ""}
+    <div class="s-msg">
+      <div class="hd">${av(m.u, 34, "ava")}<span class="au">${m.u}</span><span class="dt">${m.d}</span><span class="more">${I.dots("#8e8e93").replace('width="24" height="24"', 'width="18" height="18"')}</span></div>
+      <div class="ct">${m.q ? `<div class="s-quote"><div class="w"><b>${m.q.u}</b> a écrit :</div>${m.q.t}</div>` : ""}${m.body}</div>
+    </div>`).join("");
+  const sc = scrub ? `<div class="scrub" style="top:${scrub.top}px;height:${scrub.h}px">
+      <div class="mark" style="top:${scrub.h * scrub.mark}px"></div>
+      <div class="knob" style="top:${scrub.h * scrub.pos - 15}px"></div>
+      <div class="bub" style="top:${scrub.h * scrub.pos - 12}px">p. 508</div></div>` : "";
+  return `<div class="s-app" style="background:#fff">
+    <div class="s-web" style="padding-top:${top}px">${msgs}</div>
+    ${sc}
+    <div class="s-rnav" style="padding-top:${navTop}px">
+      ${sidebarBtn ? `<div class="glass circ">${I.sidebar("#1c1c1e")}</div>` : ""}
+      ${back ? `<div class="glass circ">${I.back("#1c1c1e")}</div>` : ""}
+      <div class="ttl"><b>${TOPIC}</b><span>Page 508 / 512 ▾</span></div>
+      <div class="glass circ">${I.refresh("#1c1c1e")}</div>
+    </div>
+    <div class="s-rbottom" style="padding-bottom:${bottomPad}px">
+      <div class="pagebar glass" style="${tabMini ? "margin-left:58px" : ""}">${I.first("#007aff")}${I.back("#007aff")}<span class="pg">Page 508 / 512</span>${I.fwd("#007aff")}${I.last("#007aff")}</div>
+      <div class="qrbar glass" style="${tabMini ? "margin-left:58px" : ""}"><span class="chip">${I.quote("#fff")}2 citations</span><span class="field">Réponse rapide…</span><span class="send">${I.up("#fff")}</span></div>
+    </div>
+    ${tabMini ? `<div class="mini-tab glass" style="bottom:${bottomPad + 2}px">${I.star("#007aff")}</div>` : ""}
+  </div>`;
+}
+function swiftSplit({ listW, rail = false, tabbar = false, topList = 54, topReader = 104, navTop = 52, bottomPad = 24, scrub }) {
+  return `<div class="split">
+    ${rail ? `<div class="rail">
+       <div class="ri">${I.folder("#1c1c1e")}Catégories</div>
+       <div class="ri sel">${I.star("#007aff")}Favoris</div>
+       <div class="ri">${I.env("#1c1c1e")}Messages<span class="badge">2</span></div>
+       <div class="ri">${I.dots("#1c1c1e")}Plus</div></div>` : ""}
+    <div class="col list" style="width:${listW}px;flex:none">${swiftList({ withTabbar: false, selected: true, top: topList })}</div>
+    <div class="col" style="flex:1">${swiftReader({ top: topReader, navTop, back: false, bottomPad, scrub, tabMini: false, sidebarBtn: !rail && !tabbar })}</div>
+    ${tabbar ? swiftTabbar("Favoris") : ""}
+  </div>`;
+}
+
+/* ---------------- Device frames ---------------- */
+function statusBar(land) {
+  if (land) return "";
+  return `<div class="status"><span>21:40</span><span class="r"><svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg><svg width="27" height="13" viewBox="0 0 27 13"><rect x="0.5" y="0.5" width="23" height="12" rx="3.5" fill="none" stroke="#000" opacity=".4"/><rect x="2" y="2" width="17" height="9" rx="2.2"/><rect x="24.5" y="4" width="1.8" height="5" rx="1" opacity=".4"/></svg></span></div>`;
+}
+function device({ w, h, kind, land = false, content, overlays = "" }) {
+  let deco = "";
+  if (kind === "iphone") {
+    deco = land
+      ? `<div class="island" style="left:12px;top:${h / 2 - 62}px;width:36px;height:124px"></div>`
+      : `<div class="island" style="top:11px;left:${w / 2 - 62}px;width:124px;height:36px"></div>`;
+  } else if (kind === "duo-cover") {
+    deco = `<div class="punch" style="top:16px;left:${w / 2 - 5.5}px"></div>`;
+  } else if (kind === "duo-open") {
+    deco = land
+      ? `<div class="punch" style="top:14px;left:${w * 0.75}px"></div><div class="crease" style="top:0;bottom:0;left:${w / 2 - 14}px;width:28px"></div>`
+      : `<div class="punch" style="left:${w - 140}px;top:20px"></div><div class="crease" style="left:0;right:0;top:${h / 2 - 14}px;height:28px;background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.10),rgba(0,0,0,0))"></div>`;
+  }
+  return `<div class="device ${kind.startsWith("duo") ? "duo" : ""}"><div class="screen" style="width:${w}px;height:${h}px">
+    ${kind === "iphone" && land ? `<div style="position:absolute;top:0;bottom:0;left:58px;right:58px">${content}</div>` : content}${statusBar(land && kind === "iphone")}${deco}${overlays}<div class="homebar" style="${land ? "width:200px" : ""}"></div></div></div>`;
+}
+
+/* ---------------- Rows ---------------- */
+const ROWS = [
+  { part: 1, n: 1, name: "iPhone 16", dim: "393 × 852 pt · @3x<br>6,1 po · 2556 × 1179 px", shown: "Écran de démarrage : <b>Favoris</b> (onglet par défaut des deux apps).",
+    L: () => device({ w: 393, h: 852, kind: "iphone", content: legacyList() }),
+    S: () => device({ w: 393, h: 852, kind: "iphone", content: swiftList() }),
+    Lc: `<span class="tag same">legacy</span>4 onglets en bas, sections par catégorie repliables, ligne « ⚑ page / max » + dernier posteur, pastille de pages non lues. <i>Favorites.swift:293-398, 965-1098</i>`,
+    Sc: `<span class="tag ux">UX change</span>Mêmes onglets (LOT-170). Sélecteur Favoris / Drapeaux en barre d'outils. Ligne : point non lu, titre, « auteur · réponses · date relative » ; super favori teinté (LOT-082, 124, 169).` },
+  { part: 1, n: 2, name: "iPhone 18 Pro Max", dim: "440 × 956 pt · @3x<br>6,9 po · 2868 × 1320 px", shown: "Lecteur d'un sujet, page 508 / 512.",
+    L: () => device({ w: 440, h: 956, kind: "iphone", content: legacyReader() }),
+    S: () => device({ w: 440, h: 956, kind: "iphone", content: swiftReader({ scrub: { top: 130, h: 640, pos: 0.96, mark: 0.9 } }) }),
+    Lc: `<span class="tag same">legacy</span>Barre d'onglets masquée. Titre sur 2 lignes « page / max », en-têtes gris avec avatar 30 px, date 9 px, « + » d'actions. En bas : ‹ ›, Actualiser, « New ». <i>MessagesView.swift:4659-4800, templatev2.htm</i>`,
+    Sc: `<span class="tag ux">UX change</span>Texte en Dynamic Type, en-tête sur une ligne. Bandeau « Nouveau » (LOT-111), curseur de pages à droite (LOT-112), barre de pages, réponse rapide avec bac à citations (LOT-153), onglets réduits au défilement (LOT-170).` },
+  { part: 1, n: 3, name: "iPhone 18 Pro Max", dim: "956 × 440 pt (paysage) · @3x", shown: "Lecteur (legacy) / colonnes liste + lecteur (SwiftHFR).",
+    L: () => device({ w: 956, h: 440, kind: "iphone", land: true, content: legacyReader({ top: 64, statusTop: 10, bottomPad: 14 }),
+      overlays: `<div class="note-in" style="right:120px;top:12px">réglage « Rotation d'écran » activé</div>` }),
+    S: () => device({ w: 956, h: 440, kind: "iphone", land: true, content: swiftSplit({ listW: 340, tabbar: true, topList: 10, topReader: 62, navTop: 8, bottomPad: 90, scrub: { top: 70, h: 210, pos: 0.95, mark: 0.88 } }) }),
+    Lc: `<span class="tag same">legacy</span>Portrait verrouillé par défaut ; avec le réglage, la pile iPhone s'étire, une seule colonne. <i>Common.swift:144-172</i>`,
+    Sc: `<span class="tag ux">UX change</span>Chaque onglet est un <code>NavigationSplitView</code> : en largeur régulière, liste et lecteur côte à côte (LOT-082, 170). Rotation toujours permise.` },
+  { part: 2, n: 4, name: "iPhone Duo fermé", dim: "466 × 678 pt · @3x (hypothèse)<br>écran extérieur 5,4 po · 1398 × 2034 px", shown: "Lecteur d'un sujet sur l'écran extérieur.",
+    L: () => device({ w: 466, h: 678, kind: "duo-cover", content: legacyReader({ top: 100, statusTop: 50, bottomPad: 72 }),
+      overlays: `<div class="band" style="bottom:0;height:52px">bande noire (signalée, #368 G.1)</div>` }),
+    S: () => device({ w: 466, h: 678, kind: "duo-cover", content: swiftReader({ top: 100, scrub: { top: 120, h: 360, pos: 0.95, mark: 0.88 } }) }),
+    Lc: `<span class="tag ux">défaut connu</span>Mise en page iPhone ; une bande noire est signalée sur l'écran extérieur. Sa position exacte est supposée (capture à faire).`,
+    Sc: `<span class="tag chg">ported with changes</span>Mise en page compacte, onglets en bas, plein écran (LOT-147, LOT-170). Même lecteur que sur iPhone.` },
+  { part: 2, n: 5, name: "iPhone Duo ouvert", dim: "890 × 626 pt (paysage) · @3x (hypothèse)<br>écran intérieur 7,6 po · 2670 × 1878 px", shown: "Lecteur (legacy) / rail + liste + lecteur (SwiftHFR).",
+    L: () => device({ w: 890, h: 626, kind: "duo-open", land: true, content: legacyReader({ top: 100, statusTop: 50 }) }),
+    S: () => device({ w: 890, h: 626, kind: "duo-open", land: true, content: swiftSplit({ listW: 330, rail: true, topList: 50, topReader: 104, navTop: 50, bottomPad: 22, scrub: { top: 120, h: 300, pos: 0.95, mark: 0.88 } }) }),
+    Lc: `<span class="tag ux">défaut connu</span>Idiome <code>.phone</code> : barre d'onglets et pile iPhone étirée, pas de barre latérale (<code>usesSidebarRoot</code> = iPad seulement). <i>MainWindow.swift:1132-1134</i>`,
+    Sc: `<span class="tag new">new</span>Deux colonnes déplié, onglets en rail, barre latérale à la demande (LOT-147, FEAT-016). Gabarit supposé : le document de design Phase 5 manque.` },
+  { part: 2, n: 6, name: "iPhone Duo ouvert", dim: "626 × 890 pt (portrait) · @3x (hypothèse)", shown: "Lecteur (legacy) / rail + liste + lecteur (SwiftHFR).",
+    L: () => device({ w: 626, h: 890, kind: "duo-open", content: legacyReader({ top: 104 }) }),
+    S: () => device({ w: 626, h: 890, kind: "duo-open", content: swiftSplit({ listW: 236, rail: true, topList: 54, topReader: 104, navTop: 52, bottomPad: 24, scrub: { top: 130, h: 560, pos: 0.95, mark: 0.9 } }) }),
+    Lc: `<span class="tag ux">défaut connu</span>Même pile iPhone étirée ; l'écran intérieur ignore le verrou portrait. <i>PR #4 (non fusionnée)</i>`,
+    Sc: `<span class="tag new">new</span>Même logique en portrait : rail, liste étroite, lecteur. Largeur de colonne à confirmer par le design Phase 5 (LOT-147).` },
+];
+
+function part(p, title, sub, colw) {
+  const rows = ROWS.filter(r => r.part === p);
+  return `<section class="part" id="part${p}" style="--colw:${colw}px">
+    <h1>${title}</h1><p class="sub">${sub}</p>
+    <div class="grid">
+      <div></div>
+      <div class="colhead legacy">HFR+ / HFRnow (legacy)<small>master @ 2440d79 · Swift de ezzz + ObjC · thème clair par défaut</small></div>
+      <div class="colhead swift">SwiftHFR, forme finale<small>dev-swift · lots M1 à M4 livrés selon leurs specs · thème clair</small></div>
+      ${rows.map(r => `
+        <div class="rowlabel"><span class="n">${r.n} / 6</span><h2>${r.name}</h2><div class="dim">${r.dim}</div><div class="shown">${r.shown}</div></div>
+        <div class="cell">${r.L()}<div class="caption">${r.Lc}</div></div>
+        <div class="cell">${r.S()}<div class="caption">${r.Sc}</div></div>`).join("")}
+    </div></section>`;
+}
+const SUB = "Maquettes, pas des captures : 1 px CSS = 1 point iOS, rendu à l'échelle 3. Pseudos anonymisés (user1 à user6), titres de sujets illustratifs. Détails et sources : docs/migration/GAP-LEGACY-VS-SWIFT.md.";
+document.getElementById("root").innerHTML =
+  part(1, "Legacy vs SwiftHFR final : iPhone (1/2)", SUB, 1000) +
+  part(2, "Legacy vs SwiftHFR final : iPhone Duo (2/2)", SUB + " Tailles du Duo : hypothèses (voir le .md).", 930);
+</script>
+</body>
+</html>
