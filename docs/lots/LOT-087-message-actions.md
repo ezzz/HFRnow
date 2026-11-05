@@ -15,7 +15,7 @@ Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79`.
 | `:196-275` (`MessagePopupMenuPolicy.orderedActionKinds`, `priority`) | `MessageMenuPolicy.orderedActions` |
 | `:1169-1235` (`Coordinator` `WKScriptMessageHandler`, `scrollState` / `textInteractionState`, bodies read as `Any`) | `ReaderBridgeMessage.decode` (closed set, typed) |
 | `:1722-1775` (entries built per action, each calling a `parent.on…Request` closure) | `MessageActionHandler` registry |
-| `Classes/ObjCMessageActionsBuilder.m:91-104` (`permalinkURLForPostID`: page URL without fragment + `#<post>`) | `TopicReaderModel.permalink(of:on:)` |
+| `Classes/ObjCMessageActionsBuilder.m:91-104` (`permalinkURLForPostID`: page URL without fragment + `#` + the post id, which is the anchor name `t<n>`) | `TopicReaderModel.permalink(of:on:)` |
 | `HFRswiftTests/MessagePopupMenuPolicyTests.swift` | `MessageMenuPolicyTests` (same cases) |
 
 ## Behaviour
@@ -61,7 +61,7 @@ session check of LOT-044 and `TopicFlagFlow`; no handler yet, so hidden).
 3. "Link" copies to the pasteboard (issue scope); legacy opened the share sheet.
 4. "Supprimer" is hidden on the first message of the topic (first block of page 1); legacy hid it on the first message of every
    page (`messageIndex != 0`, `MessagesView.swift:255`; `ObjCMessageActionsBuilder.m:43`). Deleting a topic's first post deletes the
-   whole topic (HFR-PROTOCOL §3.1, `R63b`); legacy never offered it. Own-message, favourite and delete flags derive from LOT-031's
+   whole topic (HFR-PROTOCOL §3.1, `W49`, `R92`); legacy never offered it. Own-message, favourite and delete flags derive from LOT-031's
    `MessageActions`, not from the legacy builder's flags.
 5. The author menu opens from the pseudo (a button); legacy opened it from the avatar image, which stays inert here (a blocked or
    missing avatar would otherwise leave no way in).
@@ -69,6 +69,10 @@ session check of LOT-044 and `TopicFlagFlow`; no handler yet, so hidden).
 Known cost: `LiveTopicPageSource.parse` reads the page once more for `MessageActionsParser.actions(in:)` (the engine has no entry
 point returning blocks and actions from one document); an engine change is out of this lot. If the counts of blocks and action sets
 ever differ, no message offers an action.
+
+Known limits left open (review round 3, minor): when a page has no usable final URL, the `⋯` buttons are drawn but Link (the only
+handler) has nothing to copy and the tap opens nothing; the bridge caps images at 5 000 like `ReaderWebController.maximumImages`
+(two constants); the leak test copies the view's wiring.
 
 ## Learnings
 
