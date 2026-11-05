@@ -42,7 +42,7 @@ struct ReaderPositionTests {
         let (reader, recorder) = await loadedReader()
         let token = try #require(reader.document?.token)
         await reader.goToPage(3)
-        await reader.recordPosition(post: 201, token: token)
+        await reader.recordPosition(post: 300, token: token)
         #expect(await recorder.records.isEmpty)
     }
 
@@ -55,8 +55,9 @@ struct ReaderPositionTests {
 
     @Test func aContinuationBlockIsNeverRecorded() async throws {
         let recorder = RecordingPositions()
-        var page = readerPage(page: 2)
-        page.messages[0].isContinuation = true
+        var built = readerPage(page: 2)
+        built.messages[0].isContinuation = true
+        let page = built
         let reader = TopicReaderModel(
             target: ReaderTarget(source: .topic(readerTopic), page: 2), title: "Sujet",
             source: FakeTopicPages { _ in page }

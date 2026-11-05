@@ -370,15 +370,16 @@ final class TopicReaderModel {
             nextToken += 1
             let anchor: Int? = switch rule {
             case .target:
+                // The flag message, or the first one after it when it was deleted (legacy `closePostID`, LOT-111).
                 target.anchor.flatMap { anchor in
-                    loaded.messages.contains { !$0.isContinuation && $0.numreponse == anchor } ? anchor : nil
+                    loaded.messages.first { !$0.isContinuation && $0.numreponse >= anchor }?.numreponse
                 }
             case .lastMessage:
                 loaded.messages.last { !$0.isContinuation }?.numreponse
             }
             let options = renderOptions()
             appliedOptions = options
-            separatorAfter = anchor.flatMap { rule == .target ? $0 : nil }
+            separatorAfter = rule == .target ? target.anchor : nil
             document = ReaderDocument(
                 token: nextToken,
                 html: TopicHTMLBuilder.document(for: loaded, token: nextToken, options: options, separatorAfter: separatorAfter),

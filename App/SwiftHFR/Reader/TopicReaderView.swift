@@ -168,7 +168,7 @@ struct TopicReaderView: View {
     }
 }
 
-/// What the reader shares across pages: the image client and the settings it reads.
+/// What the reader shares across pages: the image client, the settings it reads and the position recorder.
 struct ReaderServices: Sendable {
     /// Images through the cookie-less client.
     let imageFetcher: ReaderImageFetcher
