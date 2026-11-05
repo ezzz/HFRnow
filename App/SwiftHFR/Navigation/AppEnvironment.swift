@@ -31,6 +31,7 @@ struct AppEnvironment {
         let reader = ReaderServices(
             imageFetcher: ReaderImageFetcher(),
             settings: .live(store: UserDefaultsSettingsStore(), isOnWiFi: { NetworkMonitor.shared.isOnWiFi }),
+            profiles: LiveUserProfileSource(fetcher: fetcher),
             positions: LiveReaderPositionRecorder.live(account: accountName)
         )
         return AppEnvironment(
