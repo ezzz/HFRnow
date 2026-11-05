@@ -36,7 +36,7 @@ struct ReplyComposerView: View {
     /// A snippet was inserted by the closed panel: focus goes back to the editor.
     @State private var imageInserted = false
     /// The caret when "Image" was tapped: the sheet takes focus, so the live selection is not trusted (as for smileys).
-    @State private var rangeForImage = NSRange(location: 0, length: 0)
+    @State private var rangeImage = NSRange(location: 0, length: 0)
 
     init(model: ReplyComposerModel, onClose: @escaping (ReplyComposerModel.CloseReason) -> Void) {
         self.model = model
@@ -96,7 +96,7 @@ struct ReplyComposerView: View {
         .imageUploadSheet(
             isPresented: $isShowingImages, model: imageUpload,
             onDismiss: { if imageInserted { focused = .text } },
-            onInsert: { formatting.selectedRange = rangeForImage; formatting.insert($0); imageInserted = true }
+            onInsert: { formatting.selectedRange = rangeImage; formatting.insert($0); imageInserted = true }
         )
         // Swiping down would close without the choice: blocked while there is text or a send runs.
         .interactiveDismissDisabled(model.closeNeedsChoice || model.isSending)
@@ -283,7 +283,7 @@ struct ReplyComposerView: View {
                 .disabled(!model.canEdit)
         }
         ToolbarItem(placement: .primaryAction) {
-            Button("Image", systemImage: "photo") { imageInserted = false; rangeForImage = formatting.selectedRange; isShowingImages = true }
+            Button("Image", systemImage: "photo") { imageInserted = false; rangeImage = formatting.selectedRange; isShowingImages = true }
                 .disabled(!model.canEdit)
         }
         ToolbarItem(placement: .cancellationAction) {
