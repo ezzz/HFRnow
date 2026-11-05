@@ -89,7 +89,8 @@ struct LiveTopicPageSource: TopicPageSource {
                 currentPage: max(1, metadata.currentPage),
                 maxPage: max(1, metadata.maxPage, metadata.currentPage),
                 messages: messages,
-                answerURL: metadata.answerFormURL
+                answerURL: metadata.answerFormURL,
+                poll: metadata.hasPoll ? try? PollParser.poll(in: html) : nil
             )
         } catch {
             throw .unreadable
