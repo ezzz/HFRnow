@@ -71,10 +71,10 @@ jobs:
           category: "/language:actions"
 
   analyze-swift:
-    # A run started by any other label skips under its own name, so it never shows next to a real analysis (#477).
-    name: >-
-      ${{ github.event.action == 'labeled' && github.event.label.name != 'codeql'
-      && 'Analyze (swift) — not requested' || 'Analyze (swift)' }}
+    # Fixed name: a skipped job with an expression name reports the raw expression, never the required check (#477).
+    # A run started by any other label therefore shows a skipped "Analyze (swift)" next to a real one; it is not a
+    # required check, so read the latest non-skipped run.
+    name: Analyze (swift)
     needs: changes
     # Not a required check since #477: every push to dev-swift is analyzed, and a PR only when it carries the `codeql`
     # label (session, cookies, posting, or any change worth a pre-merge SAST pass). With the label, a failed change
