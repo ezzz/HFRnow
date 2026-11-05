@@ -62,6 +62,33 @@ final class GeneralSettingsModel {
     /// The list density of `compactMode`.
     var listDensity: ListDensity { ListDensity(compactMode: compactMode) }
 
+    /// Filtrer les posts: how many times a post must be quoted to be kept (`filter_posts_min_quotes`, legacy choices 3, 4, 5,
+    /// 7 and 10; a stored value of 0 or less reads as 3, as the filter does).
+    var filterMinimumQuotes: Int {
+        didSet {
+            if filterMinimumQuotes != oldValue { store.set(filterMinimumQuotes, for: SettingKey.quoteFilterMinimumCount) }
+        }
+    }
+    /// Filtrer les posts: keep the posts of allowlisted pseudos (`filter_posts_quotes` containing `wl`). Legacy writes
+    /// `wl_pseudo` or `pseudo` (`AppSettingsView.swift:165-169`).
+    var filterIncludesAllowlist: Bool {
+        didSet {
+            guard filterIncludesAllowlist != oldValue else { return }
+            let stored: QuoteFilterExceptions = filterIncludesAllowlist ? .standard : [.mentionsOwnPseudo]
+            store.set(stored, for: SettingKey.quoteFilterExceptions)
+        }
+    }
+
+    /// The minimums the picker offers (legacy `filterPostsMinimumQuoteOptions`, `AppSettingsView.swift:157-163`).
+    static let filterMinimumQuoteChoices = [3, 4, 5, 7, 10]
+
+    /// The picker's choices, plus the stored value when it is none of them (a migrated setting), so the picker never shows
+    /// a blank selection.
+    var filterMinimumQuoteOptions: [Int] {
+        Self.filterMinimumQuoteChoices.contains(filterMinimumQuotes)
+            ? Self.filterMinimumQuoteChoices : (Self.filterMinimumQuoteChoices + [filterMinimumQuotes]).sorted()
+    }
+
     @ObservationIgnored private let store: any SettingsStore
     @ObservationIgnored private let rotationChanged: @MainActor () -> Void
 
@@ -76,6 +103,8 @@ final class GeneralSettingsModel {
         compactMode = store.value(for: SettingKey.compactMode)
         imageLoading = store.value(for: SettingKey.displayImages)
         minimizesTabBarOnScroll = store.value(for: SettingKey.tabBarMinimizesOnScroll)
+        filterMinimumQuotes = store.value(for: SettingKey.quoteFilterMinimumCount)
+        filterIncludesAllowlist = store.value(for: SettingKey.quoteFilterExceptions).contains(.allowlistedAuthors)
     }
 
     private static func clamp(_ percent: Int) -> Int {

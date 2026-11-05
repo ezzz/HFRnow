@@ -46,6 +46,7 @@ struct CategoriesTabView: View {
         } detail: {
             ReaderColumn(navigation: navigation, reader: reader, composer: composer)
         }
+        .filteredPosts(navigation.filtering, reader: reader)
     }
 }
 
@@ -63,6 +64,7 @@ struct FavoritesTabView: View {
         } detail: {
             ReaderColumn(navigation: navigation, reader: reader, composer: composer)
         }
+        .filteredPosts(navigation.filtering, reader: reader)
     }
 }
 
@@ -85,7 +87,7 @@ struct TopicsColumn: View {
 
     var body: some View {
         if let source = navigation.selectedSource {
-            TopicListView(model: navigation.topicList(for: source), selection: $navigation.selectedTopic)
+            TopicListView(model: navigation.topicList(for: source), selection: $navigation.selectedTopic, filtering: navigation.filtering)
                 .id(source)
         } else {
             ContentUnavailableView("Choisissez un forum", systemImage: "list.bullet")
@@ -103,8 +105,13 @@ struct ReaderColumn: View {
     var body: some View {
         if let topic = navigation.selectedTopic, let model = navigation.reader(for: topic) {
             // Its own stack, for the readers a followed link pushes (LOT-137); a new topic starts a new stack.
-            NavigationStack { TopicReaderView(model: model, services: reader, composer: composer) }
-                .id(topic.id)
+            NavigationStack {
+                TopicReaderView(
+                    model: model, services: reader, composer: composer,
+                    onFilterPosts: topic.topicID == nil ? nil : { navigation.filtering.start(opening: topic) }
+                )
+            }
+            .id(topic.id)
         } else {
             MessagePlaceholderView(topic: navigation.selectedTopic)
         }

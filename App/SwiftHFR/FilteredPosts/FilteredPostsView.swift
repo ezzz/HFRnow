@@ -1,0 +1,181 @@
+import HFRModels
+import SwiftUI
+
+// Port of HFRswift/Swift/Favorites.swift (FavoritePostFilterProgressBanner, FavoritePostFilterNavigationTarget) and of
+// HFRswift/Swift/MessagesView.swift (the filter mode: subtitle, "Résultats suivants" bottom bar) @ 2440d79.
+// Differences: the filtered posts open in a sheet over the list or the reader, not pushed on the list's stack (the entry
+// points are two, and a sheet works in every layout); "Résultats suivants" can be cancelled and says what it reads; links
+// open in the in-app browser (a forum link does not open a reader from here yet).
+
+/// Shows the progress banner, the filtered posts sheet and the failure alert of `model` over its content.
+private struct FilteredPostsPresentation: ViewModifier {
+    @Bindable var model: FilteredPostsModel
+    let reader: ReaderServices
+
+    private var errorShown: Binding<Bool> {
+        Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.dismissError() } })
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .safeAreaInset(edge: .bottom) {
+                // With the sheet open the banner lives in the sheet.
+                if model.result == nil, model.bannerText != nil {
+                    FilteredPostsBanner(model: model).padding(.horizontal).padding(.bottom, 4)
+                }
+            }
+            .sheet(isPresented: Binding(get: { model.result != nil }, set: { if !$0 { model.closeResult() } })) {
+                NavigationStack { FilteredPostsView(model: model, services: reader) }
+            }
+            .alert("Filtre impossible", isPresented: errorShown) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(model.errorMessage ?? "Erreur inconnue.")
+            }
+    }
+}
+
+extension View {
+    /// Adds the post filter's banner, result sheet and error alert, driven by `model`.
+    func filteredPosts(_ model: FilteredPostsModel, reader: ReaderServices) -> some View {
+        modifier(FilteredPostsPresentation(model: model, reader: reader))
+    }
+}
+
+/// "N posts | page X/Y" with a cancel button while a run reads pages, or an information with "OK" (legacy
+/// `FavoritePostFilterProgressBanner`, `Favorites.swift:1099-1135`).
+struct FilteredPostsBanner: View {
+    let model: FilteredPostsModel
+
+    var body: some View {
+        HStack(spacing: 10) {
+            if model.statusMessage == nil {
+                ProgressView().controlSize(.small)
+            } else {
+                Image(systemName: "info.circle").font(.footnote).foregroundStyle(.secondary)
+            }
+            Text(model.bannerText ?? "").font(.footnote).lineLimit(1).monospacedDigit()
+            Spacer(minLength: 8)
+            if model.statusMessage == nil {
+                Button("Annuler") { model.cancel() }.font(.footnote.weight(.semibold))
+            } else {
+                Button("OK") { model.dismissStatus() }.font(.footnote.weight(.semibold))
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.bar, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .accessibilityElement(children: .combine)
+        // Legacy hid an information after 3 seconds.
+        .task(id: model.statusMessage) {
+            guard model.statusMessage != nil else { return }
+            try? await Task.sleep(for: .seconds(3))
+            if !Task.isCancelled { model.dismissStatus() }
+        }
+    }
+}
+
+/// The kept posts of one batch, read-only, with "Résultats suivants" at the bottom.
+struct FilteredPostsView: View {
+    let model: FilteredPostsModel
+    let services: ReaderServices
+    @State private var controller: ReaderWebController?
+    @State private var document: ReaderDocument?
+    @State private var readyToken: Int?
+    @State private var nextToken = 0
+    @State private var external: ExternalLink?
+    @State private var video: VideoItem?
+    @Environment(\.openURL) private var openURL
+
+    var body: some View {
+        ZStack {
+            if let controller {
+                ReaderWebView(controller: controller, document: document, scrollRequest: nil)
+                    .opacity(readyToken == nil ? 0 : 1)
+                    .accessibilityHidden(readyToken == nil)
+            }
+            if readyToken == nil { ProgressView("Chargement des messages") }
+        }
+        .navigationTitle(model.title)
+        .navigationSubtitle(model.result?.subtitle ?? "")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) { Button("Fermer") { model.closeResult() } }
+        }
+        .safeAreaInset(edge: .top) {
+            if model.bannerText != nil { FilteredPostsBanner(model: model).padding(.horizontal).padding(.top, 4) }
+        }
+        .safeAreaInset(edge: .bottom) {
+            if let result = model.result { NextBatchBar(model: model, result: result) }
+        }
+        .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
+        .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
+        .onAppear(perform: makeController)
+        .onChange(of: model.result, initial: true) { _, result in show(result) }
+        .onDisappear { controller?.stopLoading() }
+    }
+
+    private func show(_ result: FilteredPostsResult?) {
+        guard let result else { return }
+        nextToken += 1
+        readyToken = nil
+        document = ReaderDocument(
+            token: nextToken,
+            html: TopicHTMLBuilder.document(for: result.page, token: nextToken, options: services.settings.renderOptions()),
+            anchor: nil, keepsScrollPosition: false
+        )
+    }
+
+    private func makeController() {
+        guard controller == nil else { return }
+        let controller = ReaderWebController(
+            imageFetcher: services.imageFetcher, autoLoadsThirdPartyImages: services.settings.autoLoadsThirdPartyImages
+        )
+        controller.events = ReaderWebController.Events(
+            ready: { token in if token == document?.token { readyToken = token } },
+            link: { url in
+                guard let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http" else { return }
+                if services.settings.opensLinksInDefaultBrowser() { openURL(url) } else { external = ExternalLink(url: url) }
+            },
+            video: { post, index, token in
+                guard token == document?.token,
+                      let message = model.result?.page.messages.first(where: { $0.numreponse == post }),
+                      message.content.embeds.indices.contains(index) else { return }
+                video = VideoItem(embed: message.content.embeds[index])
+            }
+        )
+        self.controller = controller
+    }
+}
+
+/// "Résultats suivants": says what it reads, and can be cancelled while it runs (the batch shown stays).
+private struct NextBatchBar: View {
+    let model: FilteredPostsModel
+    let result: FilteredPostsResult
+
+    var body: some View {
+        VStack(spacing: 6) {
+            if model.isAdvancing {
+                HStack(spacing: 10) {
+                    ProgressView()
+                    Text("Filtrage des pages suivantes…").font(.footnote)
+                    Spacer()
+                    Button("Annuler") { model.cancel() }
+                }
+            } else if result.isFinished {
+                Text("Fin du sujet : plus aucun post à afficher.").font(.footnote).foregroundStyle(.secondary)
+            } else {
+                Button { model.showNextBatch() } label: {
+                    Label("Résultats suivants", systemImage: "arrow.forward").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                if let hint = model.nextBatchHint {
+                    Text(hint).font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                }
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        .background(.bar)
+    }
+}

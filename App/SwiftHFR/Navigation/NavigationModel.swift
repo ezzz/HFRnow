@@ -13,6 +13,9 @@ final class NavigationModel {
     }
     /// Topic chosen in the middle column, shown by the reader in the detail column.
     var selectedTopic: TopicSummary?
+    /// The post filter (LOT-114), started from a favourite or the reader menu; one per navigation, so a run survives a
+    /// change of column.
+    let filtering: FilteredPostsModel
 
     private let dataSource: any ForumDataSource
     private let topicPages: any TopicPageSource
@@ -30,8 +33,10 @@ final class NavigationModel {
         sessionIsLoggedIn: @escaping @Sendable () async -> Bool = { false },
         topicPages: any TopicPageSource = UnavailableTopicPages(),
         renderOptions: @escaping @Sendable () -> ReaderRenderOptions = { ReaderRenderOptions() },
+        filteredPosts: FilteredPostsServices = .unavailable,
         startupSource: TopicSource? = nil
     ) {
+        filtering = FilteredPostsModel(services: filteredPosts)
         self.dataSource = dataSource
         self.topicPages = topicPages
         self.renderOptions = renderOptions

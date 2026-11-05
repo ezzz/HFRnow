@@ -12,6 +12,13 @@ struct RootSidebarView: View {
     @State private var compactColumn = NavigationSplitViewColumn.sidebar
 
     var body: some View {
+        layout
+            .filteredPosts(model.categories.filtering, reader: environment.reader)
+            .filteredPosts(model.favorites.filtering, reader: environment.reader)
+    }
+
+    @ViewBuilder
+    private var layout: some View {
         if case .plus(let entry) = model.sidebarDestination {
             // Legacy: the Plus entries have no list, so a two-column split with the entry in a stack in the detail column
             // (`MainWindow.swift:1305-1311`, `:1744-1755`, `:1876-1891`).
@@ -90,7 +97,9 @@ private struct CategoriesSidebarColumn: View {
         NavigationStack {
             ForumListView(navigation: navigation)
                 .navigationDestination(item: $navigation.selectedSource) { source in
-                    TopicListView(model: navigation.topicList(for: source), selection: $navigation.selectedTopic)
+                    TopicListView(
+                        model: navigation.topicList(for: source), selection: $navigation.selectedTopic, filtering: navigation.filtering
+                    )
                 }
         }
     }
