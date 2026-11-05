@@ -232,7 +232,7 @@ final class FilteredPostsModel {
     }
 
     /// The batch as a reader page: every kept message normalized like the reader's (ADR 0006), in page order.
-    nonisolated @concurrent static func result(
+    @concurrent static func result(
         of batch: FilteredPostsBatch, topic: TopicID, title: String, normalizer: any MessageContentNormalizing
     ) async throws(FilteredPostsError) -> FilteredPostsResult {
         let base = HFRURL.base
