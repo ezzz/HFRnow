@@ -1,5 +1,6 @@
 import HFRModels
 
+// Port of HFRswift/Swift/AnswerView.swift:395-420,625-640 (picker state, options and preselection) @ 2440d79 (GAP-098).
 /// The sub-category picker of a new topic (LOT-089): the form's options, the choice, and whether they are being read.
 struct NewTopicSubcategories: Equatable, Sendable {
     /// Options in the form's order, empty until read.
@@ -16,10 +17,12 @@ struct NewTopicSubcategories: Equatable, Sendable {
         warning = nil
     }
 
-    /// Takes the form's options, with the preselected option, else the first (`R45a`: none is selected, so "Aucune").
+    /// Takes the form's options. A choice the form still offers is kept (a second read never overrides the user); otherwise the
+    /// preselected option, else the first (`R45a`: none is selected, so "Aucune").
     mutating func apply(_ form: NewTopicOptions) {
         isLoading = false
         options = form.subcategories
+        if let chosen = selected, form.subcategories.contains(where: { $0.value == chosen }) { return }
         selected = form.preselected
     }
 

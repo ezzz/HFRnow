@@ -43,7 +43,8 @@ button is the new-MP composer, LOT-128). `TopicListView` shows "Nouveau sujet" (
 **Sub-categories.** When the sheet opens, in parallel with the draft restore, `ReplyPosting.newTopicOptions` fetches the composer
 through the current session and reads its `subcat` select (`form.subcategories`) and preselection (`FormSelect.effectiveValue`: the
 option marked `selected`, else the first; `R45a` marks none, so "Aucune", `value=""`). The picker is a menu. A failed read shows a
-warning with "Réessayer"; the topic stays sendable (the engine then sends the form's own choice, LOT-048 §6). Only an offered value can be chosen. If HFR
+warning with "Réessayer"; the topic stays sendable (the engine then sends the form's own choice, LOT-048 §6). Send waits for the read (a failed read ends the wait), so HFR's default never overrides the
+user's choice; a second read keeps a choice the form still offers. Only an offered value can be chosen. If HFR
 refuses the choice at send (`unknownSubcategory`: the list changed), the picker is read again and the user chooses again.
 
 **Sending** (`ReplyComposerModel.send`, same path as the MP composer). Send needs a non-blank subject and text. Refused locally,
@@ -59,8 +60,9 @@ LOT-084 rule) and posted with `PostingFlow.newTopic(subject:subcategory:text:wit
 
 **Opening the new topic.** Not possible: HFR's public new-topic answer (`W40`, HFR-PROTOCOL §7 E14) says "Votre message a été posté
 avec succès !" and refreshes to the **category** list `/hfr/<cat>/liste_sujet-1.htm` (even when a sub-category was chosen), with no
-topic id. #181's "on success open the new topic" is therefore met as far as HFR allows: the app reloads page 1, where the new row
-appears (observed on `W40`'s list), and shows HFR's sentence.
+topic id. #181's "on success open the new topic" is therefore met as far as HFR allows: the app reloads page 1 of the list on screen
+and shows HFR's sentence. The new row appears there (observed on `W40`'s category list); on a sub-category list only if it was posted
+in that sub-category.
 
 **Drafts.** Context `.newTopic(forum:)`, same autosave, close choices, warnings and "Fermer sans enregistrer" as the reply composer
 (LOT-084). Subject and text are kept; the sub-category is not (a draft has no such field). A subject alone is a draft.
@@ -102,6 +104,6 @@ PR's "Mac check needed".
 ## Intentional differences from legacy
 
 - Draft per forum (legacy: one global text, shared with nothing else but cleared on success).
-- No "Chargement…" blocker: the editor is usable while the options load; a failure does not block sending.
+- No "Chargement…" screen: the editor is usable while the options load (only Send waits for them); a failure does not block sending.
 - Errors say whether anything was posted (GAP-100); never resent after an uncertain send.
 - The 70-character limit is enforced by the engine at send (`tooLong`), not by truncating while typing.

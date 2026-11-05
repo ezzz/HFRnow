@@ -99,7 +99,8 @@ final class ReplyComposerModel: Identifiable {
     /// The text holds something to send.
     var hasText: Bool { !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
-    /// Send is offered: some text (and a subject for a new topic, a recipient and a subject for a new private message), the
+    /// Send is offered (a new topic waits for its sub-category list, so HFR's default never overrides a choice):
+    /// some text (and a subject for a new topic, a recipient and a subject for a new private message), the
     /// draft read, nothing running, not closed. HFR refuses an empty text (`W17a`); a blank recipient or subject is refused here
     /// and by the engine
     /// (HFR's answer to one is not captured).

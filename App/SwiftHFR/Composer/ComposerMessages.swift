@@ -58,6 +58,8 @@ enum ComposerMessages {
             "Votre session a expiré : reconnectez-vous depuis le menu Comptes pour envoyer ce sujet."
         case .formUnavailable(let message?):
             message
+        case .formUnavailable, .formMismatch, .invalidFormURL, .missingAction, .unsupportedForm:
+            unsupportedForm(newMessage: false, newTopic: true)
         default:
             "La liste des sous-catégories n’a pas pu être chargée : le forum appliquera son choix par défaut. Vous pouvez réessayer."
         }
