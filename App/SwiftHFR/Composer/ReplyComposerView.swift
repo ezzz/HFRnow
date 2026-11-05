@@ -11,6 +11,14 @@ struct ReplyComposerView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @FocusState private var editorFocused: Bool
+    @State private var formatting: ComposerFormattingModel
+    @State private var selection: TextSelection?
+
+    init(model: ReplyComposerModel, onClose: @escaping (ReplyComposerModel.CloseReason) -> Void) {
+        self.model = model
+        self.onClose = onClose
+        _formatting = State(initialValue: ComposerFormattingModel(composer: model, clipboard: SystemClipboard()))
+    }
 
     var body: some View {
         NavigationStack {
@@ -31,10 +39,23 @@ struct ReplyComposerView: View {
                     }
                 }
                 editor
+                FormattingToolbar(model: formatting) { editorFocused = true }
             }
             .navigationTitle("Répondre")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbar }
+            .alert("Utiliser le presse-papiers ?", isPresented: askingClipboard, presenting: formatting.pending) { pending in
+                switch pending {
+                case .link:
+                    Button("Non", role: .cancel) { formatting.declinePending() }
+                    Button("Oui") { formatting.acceptPending() }
+                case .formatting:
+                    Button("Sans le presse-papiers", role: .cancel) { formatting.declinePending() }
+                    Button("Insérer") { formatting.acceptPending() }
+                }
+            } message: { pending in
+                Text(pending.message)
+            }
             .confirmationDialog("Garder ce texte ?", isPresented: askingClose, titleVisibility: .visible) {
                 Button("Garder le brouillon") { Task { await model.keepDraftAndClose() } }
                 Button("Supprimer le brouillon", role: .destructive) { Task { await model.discardDraftAndClose() } }
@@ -67,8 +88,15 @@ struct ReplyComposerView: View {
         Binding(get: { model.isAskingClose }, set: { model.isAskingClose = $0 })
     }
 
+    private var askingClipboard: Binding<Bool> {
+        Binding(
+            get: { formatting.pending != nil },
+            set: { if !$0 { formatting.dismissPending(); editorFocused = true } }
+        )
+    }
+
     private var editor: some View {
-        TextEditor(text: Binding(get: { model.text }, set: { model.update(text: $0) }))
+        TextEditor(text: Binding(get: { model.text }, set: { model.update(text: $0) }), selection: $selection)
             .focused($editorFocused)
             .font(.body)
             .disabled(!model.canEdit)
@@ -77,6 +105,26 @@ struct ReplyComposerView: View {
                 if model.isRestoring { ProgressView() }
             }
             .accessibilityLabel("Texte de la réponse")
+            .onChange(of: selection) { _, newValue in
+                guard let newValue else { return }
+                formatting.selectedRange = Self.range(of: newValue, in: model.text)
+            }
+            .onChange(of: formatting.cursorRevision) {
+                // The edit already changed the text: place the caret where the engine says, never at the end.
+                let text = model.text
+                let offset = min(formatting.selectedRange.location, text.utf16.count)
+                selection = TextSelection(insertionPoint: String.Index(utf16Offset: offset, in: text))
+                editorFocused = true
+            }
+    }
+
+    /// The first selected range as a UTF-16 `NSRange`.
+    private static func range(of selection: TextSelection, in text: String) -> NSRange {
+        switch selection.indices {
+        case .selection(let range): NSRange(range, in: text)
+        case .multiSelection(let set): set.ranges.first.map { NSRange($0, in: text) } ?? NSRange(location: text.utf16.count, length: 0)
+        @unknown default: NSRange(location: text.utf16.count, length: 0)
+        }
     }
 
     @ToolbarContentBuilder
