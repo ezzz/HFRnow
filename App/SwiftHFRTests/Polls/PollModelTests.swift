@@ -97,7 +97,9 @@ struct PollModelTests {
     }
 
     @Test(arguments: [
-        PollVoteError.network(.offline), .sessionNotConfirmed(.valid), .loginChanged, .missingToken, .invalidChoice,
+        PollVoteError.network(.offline), .sessionNotConfirmed(.expired(.noIdentityCookie)),
+        .sessionNotConfirmed(.unconfirmed(.unrecognizedPage)), .sessionNotConfirmed(.unconfirmed(.sessionChanged)), .notVotable,
+        .loginChanged, .missingToken, .invalidChoice,
         .unsupportedPoll, .notLoggedIn, .rejected(message: nil), .rejected(message: "Refus du forum")
     ])
     func aVoteThatDidNotCountKeepsTheSheetOpenForAnotherTry(error: PollVoteError) async {
@@ -138,11 +140,26 @@ struct PollModelTests {
         #expect(!make(multi, voter: voter).0.offersVote)
     }
 
-    @Test func theReloadedPollReplacesTheOneShown() {
+    @Test func theReloadedPollReplacesTheOneShownAndAnUnreadablePageKeepsIt() {
         let (model, _) = make(voter: ScriptedVoter(.success(Self.confirmation)))
         let results = Poll(question: "Q ?", kind: .results([PollResult(id: 1, label: "Oui", percentage: 100, voteCount: 1)]))
-        model.poll = results
+        model.pageDidReload(nil)
+        #expect(model.poll == Self.votable)
+        model.pageDidReload(results)
         #expect(model.poll == results)
         #expect(!model.offersVote)
+    }
+
+    @Test func aVoteInFlightOrPossiblyCountedIsKeptForAReopenedSheet() async {
+        let (idle, _) = make(voter: ScriptedVoter(.success(Self.confirmation)))
+        #expect(!idle.holdsVote)
+        let (unconfirmed, _) = make(voter: ScriptedVoter(.failure(.unconfirmed(.unrecognizedAnswer(message: nil)))))
+        unconfirmed.toggle(1)
+        await unconfirmed.vote()
+        #expect(unconfirmed.holdsVote)
+        let (failed, _) = make(voter: ScriptedVoter(.failure(.network(.offline))))
+        failed.toggle(1)
+        await failed.vote()
+        #expect(!failed.holdsVote)
     }
 }

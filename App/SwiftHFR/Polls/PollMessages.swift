@@ -19,10 +19,12 @@ enum PollMessages {
             "Ce type de sondage n’est pas encore pris en charge : votez depuis le site. Rien n’a été envoyé."
         case .invalidChoice:
             "Choisissez une réponse du sondage. Rien n’a été envoyé."
-        case .sessionNotConfirmed, .notLoggedIn:
-            "Votre session a expiré : rien n’a été envoyé. Reconnectez-vous depuis le menu Comptes, puis votez."
+        case .sessionNotConfirmed(let health):
+            session(health)
         case .loginChanged:
             "Le compte connecté a changé : rien n’a été envoyé. Votez à nouveau."
+        case .notLoggedIn:
+            "Le forum vous considère comme déconnecté : le vote n’a pas été compté. Reconnectez-vous depuis le menu Comptes, puis votez."
         case .missingToken:
             "La session n’est pas prête : rien n’a été envoyé. Actualisez le sujet puis réessayez."
         case .alreadyVoted:
@@ -34,6 +36,18 @@ enum PollMessages {
                 + "Le sujet est actualisé : regardez le sondage avant de voter à nouveau."
         case .network(let error):
             network(error)
+        }
+    }
+
+    /// The session check before the vote did not say `valid`: expired, another login adopted, or HFR proved nothing.
+    private static func session(_ health: SessionHealth) -> String {
+        switch health {
+        case .expired:
+            "Votre session a expiré : rien n’a été envoyé. Reconnectez-vous depuis le menu Comptes, puis votez."
+        case .unconfirmed(.sessionChanged):
+            "Le compte connecté a changé : rien n’a été envoyé. Votez à nouveau."
+        case .valid, .unconfirmed:
+            "Impossible de vérifier votre session : rien n’a été envoyé. Réessayez dans quelques instants."
         }
     }
 

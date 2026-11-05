@@ -10,6 +10,8 @@ struct ReaderPollFlow: ViewModifier {
     /// The current account's services; its voter is nil when logged out, which shows the poll without a vote button.
     let composer: ComposerServices?
     @State private var sheet: PollModel?
+    /// The latest model, kept after the sheet closes so a vote in flight or possibly counted is not offered again.
+    @State private var latest: PollModel?
 
     func body(content: Content) -> some View {
         content
@@ -23,13 +25,20 @@ struct ReaderPollFlow: ViewModifier {
             .sheet(item: $sheet) { poll in PollSheet(model: poll) }
             .onChange(of: model.page?.poll) { _, reloaded in
                 // The reloaded page after a vote carries the results.
-                if let reloaded { sheet?.poll = reloaded }
+                latest?.pageDidReload(reloaded)
             }
     }
 
     private func open(_ poll: Poll) {
+        if let latest, latest.holdsVote {
+            latest.pageDidReload(poll)
+            sheet = latest
+            return
+        }
         let reader = model
-        sheet = PollModel(poll: poll, voter: composer?.pollVoter, reload: { await reader.refresh() })
+        let fresh = PollModel(poll: poll, voter: composer?.pollVoter, reload: { await reader.refresh() })
+        latest = fresh
+        sheet = fresh
     }
 }
 
@@ -56,13 +65,14 @@ struct PollSheet: View {
             .navigationTitle("Sondage")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Fermer") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button("Fermer") { dismiss() }.disabled(model.phase == .sending) }
                 if model.offersVote {
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Voter") { Task { await model.vote() } }.disabled(!model.canVote)
                     }
                 }
             }
+            .interactiveDismissDisabled(model.phase == .sending)
             .overlay { if model.phase == .sending { ProgressView().controlSize(.large) } }
         }
     }

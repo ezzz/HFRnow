@@ -24,7 +24,7 @@ final class PollModel: Identifiable {
     }
 
     /// The poll on screen; replaced by the reloaded page's poll after a vote.
-    var poll: Poll
+    private(set) var poll: Poll
     /// The chosen answer's `PollOption.id`.
     private(set) var selected: Int?
     /// Where the vote stands.
@@ -57,6 +57,16 @@ final class PollModel: Identifiable {
 
     /// The "Voter" button is enabled.
     var canVote: Bool { offersVote && selected != nil && phase != .sending }
+
+    /// The page was reloaded: the sheet shows the poll it now carries (the results after a vote); a page without a readable
+    /// poll leaves the one shown.
+    func pageDidReload(_ reloaded: Poll?) {
+        if let reloaded { poll = reloaded }
+    }
+
+    /// A vote is on its way, was counted, or may have been: a sheet opened again must keep this model, never start from a
+    /// fresh form over a vote that may have been counted.
+    var holdsVote: Bool { phase == .sending || phase == .voted || phase == .settled }
 
     /// Chooses `id`; choosing the chosen answer again clears it (legacy). Ignored while sending, after a vote, or for an
     /// id that is not an answer of the poll.
