@@ -2,9 +2,10 @@ import Foundation
 import HFRModels
 
 // Port of HFRswift/Swift/MessagesView.swift (MessagePopupMenuActionKind, MessagePopupMenuPolicy) @ 2440d79.
-// Differences: GAP-064 (and GAP-051 for the header: a "⋯" button instead of the legacy "+", a UX change to confirm, UXD-09); the legacy `TopicPageMessageActions` flags that LOT-031 does not port
-// (`isOwnMessage`, `canBeFavorite`, `canDelete`) are derived in `MessageMenuContext`; `canQualityAlert` and `canBookmark` are
-// offered by the handler of their own lot (docs/lots/LOT-087-message-actions.md).
+// Differences: GAP-064 (and GAP-051 for the header: a "⋯" button instead of the legacy "+", a UX change to confirm);
+// the legacy `TopicPageMessageActions` flags that LOT-031 does not port (`isOwnMessage`, `canBeFavorite`, `canDelete`)
+// are derived in `MessageMenuContext`; `canQualityAlert` and `canBookmark` are offered by the handler of their own lot
+// (docs/lots/LOT-087-message-actions.md).
 
 /// Where on a message the user opened the menu: the message itself or its author (avatar and pseudo).
 enum MessageMenuSource: String, Equatable, Sendable {
