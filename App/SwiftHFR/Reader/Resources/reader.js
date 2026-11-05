@@ -126,11 +126,13 @@
   // The topmost message on screen, reported when scrolling pauses (the app records it as the reading position).
   const topPost = () => {
     const posts = document.querySelectorAll("article[data-post]:not(.continuation)");
-    let top = null;
     for (const post of posts) {
-      if (post.getBoundingClientRect().bottom > 1) { top = post; break; }
+      const box = post.getBoundingClientRect();
+      if (box.bottom <= 1) { continue; }
+      // The first message below the top edge counts only when it is on screen: one entirely below the viewport is unread.
+      return box.top < window.innerHeight ? Number(post.dataset.post) : null;
     }
-    return top === null ? null : Number(top.dataset.post);
+    return null;
   };
   let reported = null;
   let timer = null;
