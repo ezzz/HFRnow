@@ -41,6 +41,8 @@ public struct ModeratorAlertFlow: Sendable {
         guard refused.isEmpty else { throw .unsupportedCharacters(refused) }
         let body: FormBody
         do throws(PostingError) {
+            // `prepare` already refuses a form without a token; requiring it here again is defence in depth for a form
+            // built by another path.
             body = try PostingBody.make(
                 form: form.form, layout: form.layout, text: reason, textField: Self.reasonField, requiredFields: [Self.tokenField]
             )
@@ -99,8 +101,9 @@ public struct ModeratorAlertFlow: Sendable {
         case .loggedOut?: throw .notLoggedIn
         default: break
         }
-        let alert = try Self.alertForm(
-            in: html, pageURL: response.url, target: target, notice: page?.message, session: session, seed: seed
+        let parsed = try Self.alertForm(in: html, pageURL: response.url, target: target, notice: page?.message)
+        let alert = ModeratorAlertForm(
+            form: parsed.form, target: target, submitURL: parsed.submitURL, layout: parsed.layout, session: session, seed: seed
         )
         guard let token = alert.form.field(named: Self.tokenField)?.value, !token.isEmpty else { throw .notLoggedIn }
         // A login adopted meanwhile holds the fresher token (#308): never overwrite it with this page's.
@@ -108,15 +111,20 @@ public struct ModeratorAlertFlow: Sendable {
         return .form(alert)
     }
 
+    /// The parts of the alert page's form that `prepare` checks before keeping it.
+    private struct ParsedAlertForm {
+        let form: ForumForm
+        let layout: HopFormLayout
+        let submitURL: URL
+    }
+
     /// The alert form of `html`; `notice` is the page's `.hop` text, reported when there is no form.
     private static func alertForm(
         in html: String,
         pageURL: URL,
         target: ModeratorAlertTarget,
-        notice: String?,
-        session: any PostingSession,
-        seed: HashCheckSeed
-    ) throws(ModeratorAlertError) -> ModeratorAlertForm {
+        notice: String?
+    ) throws(ModeratorAlertError) -> ParsedAlertForm {
         let form: ForumForm
         let layout: HopFormLayout
         do {
@@ -134,7 +142,7 @@ public struct ModeratorAlertFlow: Sendable {
             let submitURL = URL(string: action, relativeTo: HFRURL.base)?.absoluteURL,
             ModeratorAlertTarget(submitURL) == target
         else { throw .invalidLink }
-        return ModeratorAlertForm(form: form, target: target, submitURL: submitURL, layout: layout, session: session, seed: seed)
+        return ParsedAlertForm(form: form, layout: layout, submitURL: submitURL)
     }
 
     /// HFR's sentence, or why there is none to show.
