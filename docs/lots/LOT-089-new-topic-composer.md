@@ -20,10 +20,21 @@ Legacy app: `master` of ezzz/HFRnow (read-only), citations `2440d79`.
 | `HFRswift/Swift/ReplyService.swift:96-113,392-412` (`ReplyComposerSubcategoryOption`, options parsed from `<select name="subcat">`), `AnswerView.swift:395-420` (picker, "Chargement…" while loading), `:625-640` (options and preselection read from the form at open: `selectedSubcategoryID ?? first`), `:685-695` (`overrides["subcat"]`) | `NewTopicSubcategories`, `ReplyPosting.newTopicOptions`, `ReplyComposerModel.loadSubcategories` |
 | `MainWindow.swift:277,826-831` (one global `newTopicDraftText`, cleared on success) | `DraftContext.newTopic(forum:)`: subject and text kept per forum and account (LOT-063) |
 
+## Legacy counterpart (app lots)
+
+`HFRswift/Swift/MainWindow.swift` ("+" button, new-topic sheet) and `AnswerView.swift` (composer, sub-category `Picker`) @ 2440d79; GAP-098
+(`a`, ported with changes).
+
+## UX evolutions (H.1)
+
+- GAP-098 new topic: `a`, persistent draft per forum (was lost on relaunch). No UXD row applies; no other UX change.
+
 ## Behaviour
 
 **Entry.** `TopicListPage.newTopicPath` is the list's `#md_btn_new_topic` link (LOT-022), a **category** path
-(`/hfr/Discussions/nouveau_sujet.htm`, `R05a`; HFR-PROTOCOL §6c: the sub-category path answers 404), also present on a logged-out
+on a category list (`/hfr/Discussions/nouveau_sujet.htm`, `R05a`; HFR-PROTOCOL §6c: the sub-category path answers 404); a sub-category
+list (`R06`) links `/message.php?config=hfr.inc&cat=13&sond=0&p=1&subcat=433&dest=&subcatgroup=0` instead, which the app also follows
+as given (its form is pending capture). The link is also present on a logged-out
 page (`R50b`). `NewTopicTarget(path:forum:)` resolves it to an `https` URL of the forum host (default port, no user info) and keys the
 draft with the page's `categoryID`; it is nil without a link, without category, or for the private messages pseudo-category (its
 button is the new-MP composer, LOT-128). `TopicListView` shows "Nouveau sujet" (toolbar, primary action) only when the target exists
@@ -32,8 +43,8 @@ button is the new-MP composer, LOT-128). `TopicListView` shows "Nouveau sujet" (
 **Sub-categories.** When the sheet opens, in parallel with the draft restore, `ReplyPosting.newTopicOptions` fetches the composer
 through the current session and reads its `subcat` select (`form.subcategories`) and preselection (`FormSelect.effectiveValue`: the
 option marked `selected`, else the first; `R45a` marks none, so "Aucune", `value=""`). The picker is a menu. A failed read shows a
-warning with "Réessayer"; the topic stays sendable (the engine then sends the form's own choice, LOT-048 §6). A choice already made
-survives a retry when the form offers it again. Only an offered value can be chosen.
+warning with "Réessayer"; the topic stays sendable (the engine then sends the form's own choice, LOT-048 §6). Only an offered value can be chosen. If HFR
+refuses the choice at send (`unknownSubcategory`: the list changed), the picker is read again and the user chooses again.
 
 **Sending** (`ReplyComposerModel.send`, same path as the MP composer). Send needs a non-blank subject and text. Refused locally,
 nothing requested: a scalar above U+FFFF in the subject or the text (Q-3). The subject is trimmed; its 70-code-unit limit and line
@@ -84,6 +95,8 @@ PR's "Mac check needed".
 
 - A public new-topic answer (`PostingResult.refreshURL` after a new topic in a forum): does it name the created topic? Only then can
   the app open it (acceptance criterion "on success open the new topic" of #181). `W10` is a private message.
+- New-topic form served at a sub-category list's `message.php` link (`R06`): its shape and preselected `subcat` (the sheet reads
+  both from the form, so only the capture is missing).
 - Forum where the account may not create a topic (#131): the button follows the page's link; HFR's sentence is shown if it serves no
   form.
 

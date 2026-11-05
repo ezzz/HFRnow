@@ -148,7 +148,11 @@ struct TopicListNewTopicTests {
     }
 
     private func model(_ page: TopicListPage, source: FakeDataSource = FakeDataSource()) -> TopicListModel {
-        source.topicHandler = { _, _ in page }
+        source.topicHandler = { _, number in
+            var served = page
+            served.navigation = topicPage(page: number).navigation
+            return served
+        }
         return TopicListModel(source: .forum(.forum(13), title: "Discussions"), dataSource: source, isLoggedIn: { true })
     }
 
@@ -178,8 +182,10 @@ struct TopicListNewTopicTests {
         let source = FakeDataSource()
         let list = model(listPage(path: "/hfr/Discussions/nouveau_sujet.htm", category: .forum(13)), source: source)
         await list.loadIfNeeded()
+        await list.goToNextPage()
         await list.newTopicDidClose(.sent(newTopicConfirmed))
-        #expect(source.requests == ["topics:13:1", "topics:13:1"])
+        #expect(source.requests == ["topics:13:1", "topics:13:2", "topics:13:1"])
+        #expect(list.currentPage == 1)
         #expect(list.sentConfirmation == "Votre message a été posté avec succès !")
         list.clearSentConfirmation()
         #expect(list.sentConfirmation == nil)
@@ -189,8 +195,9 @@ struct TopicListNewTopicTests {
         let source = FakeDataSource()
         let list = model(listPage(path: "/hfr/Discussions/nouveau_sujet.htm", category: .forum(13)), source: source)
         await list.loadIfNeeded()
+        await list.goToNextPage()
         await list.newTopicDidClose(.checkTopic)
-        #expect(source.requests.count == 2)
+        #expect(source.requests == ["topics:13:1", "topics:13:2", "topics:13:1"])
         #expect(list.sentConfirmation == nil)
     }
 

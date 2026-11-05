@@ -222,6 +222,11 @@ final class ReplyComposerModel: Identifiable {
             isSending = false
             errorMessage = ComposerMessages.message(for: error, newMessage: isNewMessage, newTopic: isNewTopic)
             if case .unconfirmed = error { mayHavePosted = true }
+            if case .unknownSubcategory = error, isNewTopic {
+                // The list changed since it was read: every retry would fail the same way, so read it again.
+                picker.reset()
+                await loadSubcategories()
+            }
         }
     }
 

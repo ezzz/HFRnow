@@ -97,7 +97,7 @@ struct NewTopicComposerTests {
         #expect(poster.calls == [.init(text: "Bonjour", formURL: newTopicTarget.formURL, subject: "Mon sujet", subcategory: "1")])
     }
 
-    @Test func aFailedReadWarnsLetsSendAndRetryKeepsTheChoice() async {
+    @Test func aFailedReadWarnsLetsSendAndRetryReadsTheOptions() async {
         let poster = ScriptedPoster([.success(newTopicConfirmed)])
         poster.scriptOptions([.failure(.network(.offline)), .success(newTopicOptions)])
         let model = composer(poster)
@@ -115,6 +115,25 @@ struct NewTopicComposerTests {
         // The form was read twice for the options (fail, retry), the write reads it again itself.
         #expect(poster.optionRequests.count == 2)
         #expect(poster.calls.first?.subcategory == "")
+    }
+
+    @Test func aChoiceHFRNoLongerOffersIsReadAgainAndNothingIsResent() async {
+        let poster = ScriptedPoster([.failure(.unknownSubcategory)])
+        let changed = NewTopicOptions(subcategories: [FormOption(value: "", label: "Aucune")], preselected: "")
+        poster.scriptOptions([.success(newTopicOptions), .success(changed)])
+        let model = composer(poster)
+        await model.start()
+        await model.loadSubcategories()
+        model.select(subcategory: "2")
+        model.update(subject: "Sujet")
+        model.update(text: "Texte")
+        await model.send()
+        #expect(model.errorMessage?.contains("choisissez-la à nouveau") == true)
+        #expect(model.picker.options.count == 1)
+        #expect(model.picker.selected == "")
+        #expect(poster.optionRequests.count == 2)
+        #expect(poster.calls.count == 1)
+        #expect(!model.mayHavePosted)
     }
 
     // MARK: Sending

@@ -16,13 +16,17 @@ struct NewTopicSubcategories: Equatable, Sendable {
         warning = nil
     }
 
-    /// Takes the form's options. A choice already made is kept when the form offers it again; otherwise the preselected
-    /// option, else the first (`R45a`: none is selected, so "Aucune").
+    /// Takes the form's options, with the preselected option, else the first (`R45a`: none is selected, so "Aucune").
     mutating func apply(_ form: NewTopicOptions) {
         isLoading = false
         options = form.subcategories
-        if let chosen = selected, form.subcategories.contains(where: { $0.value == chosen }) { return }
         selected = form.preselected
+    }
+
+    /// Forgets the options, after the form no longer offers the chosen one.
+    mutating func reset() {
+        options = []
+        selected = nil
     }
 
     mutating func fail(_ message: String) {

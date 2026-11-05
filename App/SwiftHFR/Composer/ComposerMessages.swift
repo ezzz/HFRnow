@@ -25,6 +25,8 @@ enum ComposerMessages {
             return field(error)
         case .unsupportedCharacters(_, let characters):
             return unsupported(characters)
+        case .unknownSubcategory where newTopic:
+            return "Le forum n’offre plus cette sous-catégorie : choisissez-la à nouveau. Rien n’a été envoyé."
         case .invalidFormURL, .missingAction, .unsupportedForm, .formMismatch, .unknownSubcategory, .subjectNotEditable,
              .optionNotOffered, .deleteNotOffered, .wholeTopicDeletionNotConfirmed:
             return unsupportedForm(newMessage: newMessage, newTopic: newTopic)
@@ -57,7 +59,7 @@ enum ComposerMessages {
         case .formUnavailable(let message?):
             message
         default:
-            "La liste des sous-catégories n’a pas pu être chargée : le forum choisira « Aucune » par défaut. Vous pouvez réessayer."
+            "La liste des sous-catégories n’a pas pu être chargée : le forum appliquera son choix par défaut. Vous pouvez réessayer."
         }
     }
 

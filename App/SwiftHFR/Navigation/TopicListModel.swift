@@ -88,7 +88,7 @@ final class TopicListModel {
     var canGoToNext: Bool { source.isPaged && (loader.value?.hasNext ?? false) && !loader.isLoading }
 
     /// The new-topic composer the page on screen links to (legacy "+" button, `MainWindow.swift:748-757` @ 2440d79, enabled
-    /// when `newTopicURL`, read from `md_btn_new_topic`, exists); nil before a load, on flags and favourites, in the private
+    /// when `newTopicURL`, GAP-098, read from `md_btn_new_topic`, exists); nil before a load, on flags and favourites, in the private
     /// messages category, or without that link (logged out pages carry it too: the screen offers it to a current account only).
     var newTopicTarget: NewTopicTarget? {
         guard let content = loader.value else { return nil }

@@ -1,6 +1,6 @@
 import SwiftUI
 
-// Port of HFRswift/Swift/AnswerView.swift (AnswerView, reply mode; new topic: sub-category `Picker`, :395-420) @ 2440d79.
+// Port of HFRswift/Swift/AnswerView.swift (AnswerView, reply mode; new topic: sub-category `Picker`, :395-420, GAP-098) @ 2440d79.
 // Differences: no formatting, GIF or upload panel yet (LOT-085, 102, 155), smiley picker as a sheet from the toolbar (LOT-104, GAP-087);
 // errors say whether anything was posted instead of the toast (GAP-100); draft per topic (GAP-092, UXD).
 /// The composer sheet: a plain text editor, Send and Cancel; a new topic adds its subject and sub-category (LOT-089); a new
@@ -157,7 +157,7 @@ struct ReplyComposerView: View {
                     .padding(.vertical, 10)
                 Divider()
             }
-            if model.isNewTopic {
+            if model.isNewTopic, showsSubcategoryRow {
                 subcategoryRow
                 Divider()
             }
@@ -171,6 +171,11 @@ struct ReplyComposerView: View {
         .scaledFont(.body)
         .disabled(!model.canEdit)
         .padding(.horizontal, 16)
+    }
+
+    /// The row has something to show: loading, the options or a failed read (a form without the select shows nothing).
+    private var showsSubcategoryRow: Bool {
+        model.picker.isLoading || !model.picker.options.isEmpty || model.picker.warning != nil
     }
 
     /// The form's sub-categories as a menu (legacy `Picker`, `AnswerView.swift:411`); a failed read says so and offers a retry.
@@ -192,6 +197,7 @@ struct ReplyComposerView: View {
                 }
             }
             .pickerStyle(.menu)
+            .disabled(!model.canEdit)
             .padding(.vertical, 2)
         } else if let warning = model.picker.warning {
             VStack(alignment: .leading, spacing: 6) {
