@@ -45,7 +45,7 @@ struct SmileyImageLoader: Sendable {
         if let cached = Self.cached(url) { return cached }
         guard let (data, _) = try? await fetcher.image(at: url, allowsThirdParty: false),
               !Task.isCancelled, let image = Self.decode(data) else { return nil }
-        Self.shared.storage.setObject(image, forKey: url as NSURL, cost: cost(of: image))
+        Self.shared.storage.setObject(image, forKey: url as NSURL, cost: Self.cost(of: image))
         return image
     }
 
