@@ -62,16 +62,17 @@ def publish_one(anon, raw_dir, dest, entry):
     """Anonymize one capture; return the list of findings (empty = written)."""
     raw_id = entry["raw"]
     raw_meta = _raw_meta(raw_dir, raw_id)
+    body = request_body(raw_dir, raw_id)
+    private = bool(entry["private"]) or A.meta_is_private(raw_meta) or A.body_is_mp(body)
     page = enc = None
     if entry["ext"]:
         text, enc = A.read_text(os.path.join(raw_dir, raw_id + ".html"))
         # An AQ answer the AQ gate does not recognise would skip the masking of member-written text: refuse it.
         if any(is_aq_host(raw_meta.get(k)) for k in ("url", "final_url")) and not A.is_aq_document(text):
             return [(entry["id"], 1, 1, "AQ capture not recognized as an AQ feed or list: extend the anonymizer")]
-        page = anon.anonymize(text, private=entry["private"])
+        page = anon.anonymize(text, private=private)
     else:
         anon._reset()
-    body = request_body(raw_dir, raw_id)
     # A write answer (`.hop` page) or a meta-only capture rarely names its topic, while its URL or request body does:
     # take the own-topic ids from the request too, so they are aliased in the meta like on the topic's own pages.
     if not anon.own_ids:
@@ -79,16 +80,16 @@ def publish_one(anon, raw_dir, dest, entry):
     meta = {"id": entry["id"]}
     meta.update(anon.anonymize_meta({k: raw_meta[k] for k in META_KEYS if k in raw_meta}))
     if body is not None:
-        meta["request_body"] = anon.redact_text(body)
+        meta["request_body"] = A.private_request_body(anon.redact_text(body))
     name = None
     if page is not None:
         name = "%s-%s.%s" % (entry["id"], entry["slug"], entry["ext"])
         meta["file"] = name
-    meta["private"] = entry["private"]
+    meta["private"] = private
     mtext = json.dumps(meta, indent=2, ensure_ascii=False) + "\n"
     leaks = [(entry["id"] + ".meta.json",) + f for f in anon.findings(mtext)]
     if page is not None:
-        leaks += [(name,) + f for f in anon.findings(page, private=entry["private"])]
+        leaks += [(name,) + f for f in anon.findings(page, private=private)]
     if leaks:
         return leaks
     if page is not None:

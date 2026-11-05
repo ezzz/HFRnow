@@ -79,6 +79,121 @@ PRIVATE_SUBJECT = "Private subject"
 # LOT-038 needs to locate the storage MP.
 MPSTORAGE_SUBJECT = "a2bcc09b796b8c6fab77058ff8446c34"
 KEEP_SUBJECT_RE = re.compile(r"\s*(?:fixture-test-\d+|%s|%s)\s*$" % (MPSTORAGE_SUBJECT, re.escape(PRIVATE_SUBJECT)))
+# The thread's own subject is printed again in the header of its thread page and of its reply/edit form:
+# the page `<title>`, the `h1` breadcrumb (`open.gif`, then the subject, plain or as the `a.Ext` link), the
+# `th` "Sujet : <h3>…</h3>" and the form's "Sujet : …" row. `--private` replaces each one, whatever the
+# subject, unless it is a kept subject (KEEP_SUBJECT_RE). Positions, never content (LESSONS 39).
+_H1_THREAD = r"<h1\b[^>]*\bid=[\"']md_arbo_tree_(?:b_)?3[\"'][^>]*>"
+THREAD_SUBJECT_RES = tuple(re.compile(rx, re.I | re.S) for rx in (
+    r"(<title>)([^<]*?)( - Messages priv(?:é|&eacute;|&#0*233;)s - FORUM HardWare\.fr</title>)",
+    # The level-3 h1: the subject is its text, plain (after any icons) or the text of its `a.Ext` link.
+    r"(%s(?:\s|&nbsp;|<[^>]*>)*?)([^<>]+?)(\s*</h1>)" % _H1_THREAD,
+    r"(%s(?:(?!</h1>).)*?<a\b[^>]*\bclass=[\"']Ext[\"'][^>]*>)([^<]*)(</a>\s*</h1>)" % _H1_THREAD,
+    r"(Sujet\s*:\s*<h3>)([^<]*)(</h3>)",
+    r"(<th\b[^>]*>\s*Sujet\s*:\s*)([^<]+?)(\s*</th>)",
+    # The hidden (or visible) `sujet` input of a reply, edit or new-MP form; empty stays empty.
+    r"(<input\b(?=[^>]*\bname=[\"']sujet[\"'])[^>]*?\bvalue=\")([^\"]+)(\")",
+    r"(<input\b(?=[^>]*\bname=[\"']sujet[\"'])[^>]*?\bvalue=')([^']+)(')"))
+
+
+def private_thread_subjects(text):
+    """Replace the thread subject in every header position of a thread or form page; returns (text, count)."""
+    count = 0
+
+    def sub(m):
+        nonlocal count
+        if KEEP_SUBJECT_RE.match(_strip_tags(html.unescape(m.group(2)))):
+            return m.group(0)
+        count += 1
+        return m.group(1) + PRIVATE_SUBJECT + m.group(3)
+    for rx in THREAD_SUBJECT_RES:
+        text = rx.sub(sub, text)
+    return text, count
+
+
+def body_is_mp(body):
+    """True for a recorded POST body that writes an MP: `cat=prive` (any case) or a `dest` field."""
+    if not isinstance(body, str):
+        return False
+    return any((k.lower() == "cat" and v.strip().lower() == "prive") or k.lower() in ("dest", "newdest")
+               for k, v in urllib.parse.parse_qsl(body, keep_blank_values=True))
+
+
+def meta_is_private(meta):
+    """A capture is private when its meta says so, its URL is in the MP category (`cat=prive`) or its request
+    body writes an MP: the manifest flag alone is not trusted, a thread page or a refused write marked public
+    must not escape the private checks."""
+    return bool(meta.get("private")) or body_is_mp(meta.get("request_body")) or any(
+        "cat=prive" in str(meta.get(k) or "").lower() for k in ("url", "final_url", "url_template"))
+
+
+# A refused write answers with a replay form that carries the MP's category as a hidden `cat` input.
+_PAGE_MP_RE = re.compile(
+    r"<input\b(?=[^>]*\bname=[\"']cat[\"'])(?=[^>]*\bvalue=[\"']prive[\"'])[^>]*>", re.I)
+
+
+def page_is_private(text):
+    """True when the page itself says it belongs to the MP category (hidden `cat` input = prive)."""
+    return bool(_PAGE_MP_RE.search(text))
+
+
+def meta_subject_findings(text):
+    """[(line, col, reason)] for a `sujet` field of a meta's `request_body` that is not kept. Independent of
+    REQUEST_SUBJECT_RE: the body is parsed as a query string."""
+    if not looks_json(text):
+        return []
+    try:
+        doc = json.loads(text)
+    except ValueError:
+        return []
+    body = doc.get("request_body") if isinstance(doc, dict) else None
+    if not isinstance(body, str):
+        return []
+    line = next((i + 1 for i, l in enumerate(text.split("\n")) if '"request_body"' in l), 1)
+    fields = urllib.parse.parse_qsl(body, keep_blank_values=True)
+    # Only MP writes: the subject of a public topic is public (its body says `cat=<number>`).
+    if not meta_is_private(doc):
+        return []
+    subject = next((v.strip() for k, v in fields if k.lower() == "sujet"), None)
+    kept_thread = subject is not None and subject != PRIVATE_SUBJECT and (
+        _V_FIXTURE_SUBJECT.fullmatch(subject) or subject == MPSTORAGE_SUBJECT)
+    content = [(line, 0, "request body message text not replaced")
+               for k, v in fields if k.lower() == "content_form" and v.strip() and v.strip() != PRIVATE_PLACEHOLDER
+               and not kept_thread]
+    return content + [(line, 0, "request body subject not replaced")
+            for k, v in fields
+            if k.lower() == "sujet" and v.strip() and not (
+                v.strip() in (PRIVATE_SUBJECT, MPSTORAGE_SUBJECT, OWN_SUBJECT) or _V_FIXTURE_SUBJECT.fullmatch(v.strip()))]
+
+
+def _subject_kept(value):
+    return bool(KEEP_SUBJECT_RE.match(value))
+
+
+def private_request_body(body):
+    """Recorded POST body of an MP write: the message text (`content_form`) is replaced unless the write goes to a
+    kept thread (fixture thread or MPStorage, whose bodies are the operator's own neutral text), then the subject."""
+    if body_is_mp(body):
+        fields = urllib.parse.parse_qsl(body, keep_blank_values=True)
+        subject = next((v for k, v in fields if k.lower() == "sujet"), None)
+        if subject is None or not _subject_kept(urllib.parse.unquote_plus(subject).strip()) or subject.strip() == PRIVATE_SUBJECT:
+            body = re.sub(r"((?:^|&)content_form=)([^&]*)",
+                          lambda m: m.group(1) + urllib.parse.quote_plus(PRIVATE_PLACEHOLDER), body, flags=re.I)
+        return private_request_subject(body)
+    return body
+
+
+REQUEST_SUBJECT_RE = re.compile(r"((?:^|&)sujet=)([^&]*)", re.I)
+
+
+def private_request_subject(body):
+    """The `sujet` field of a recorded POST body, replaced unless it is a kept subject (see KEEP_SUBJECT_RE)."""
+    return REQUEST_SUBJECT_RE.sub(
+        lambda m: m.group(0) if (KEEP_SUBJECT_RE.match(urllib.parse.unquote_plus(m.group(2)))
+                                 or urllib.parse.unquote_plus(m.group(2)) == OWN_SUBJECT)
+        else m.group(1) + urllib.parse.quote_plus(PRIVATE_SUBJECT), body)
+
+
 # The MPStorage thread page (live R60a): its first post is the storage JSON document LOT-038 parses, so
 # --private keeps that one body when the thread header (`th.padding` "Sujet : <h3>MP_NAME</h3>") says it
 # is the storage thread and the document only holds what is known to be impersonal. Fail closed: a
@@ -327,7 +442,7 @@ PARA_OPEN_RE = re.compile(r"<(\w+)\b[^>]*\bid=([\"'])para[^\"']*\2[^>]*>", re.I)
 _E = r"(?:é|&eacute;|&#0*233;)"
 _AGRAVE = r"(?:à|&agrave;|&#0*224;)"
 _Q = r"[\"']"
-_PARAMS = r"(?:spseudo|pseudo|dest|auteur)"
+_PARAMS = r"(?:spseudo|pseudo|newdest|dest|auteur)"
 DISCOVER = tuple((label, re.compile(rx, re.I | re.S), group, mode) for label, rx, group, mode in (
     # Topic and MP pages: the author cell; `b.s2` elsewhere (poll question) is not a member.
     ("post author", r"<td\b[^>]*\bclass=%smessCase1%s[^>]*>(?:(?!</td>).)*?<b\b[^>]*\bclass=%ss2%s[^>]*>(.*?)</b>"
@@ -927,6 +1042,12 @@ class Anonymizer:
                     mode = "name"
                 if mode == "param":
                     raw = param_value(raw, text[max(0, m.start(group) - 400):m.start(group)])
+                # `dest` lists several recipients separated by commas: each one is a name.
+                if (mode == "param" and text[:m.start(group)].lower().endswith("dest=")) or (
+                        mode == "name" and re.search(r"\bname=[\"'](?:new)?dest[\"']", m.group(0), re.I)):
+                    for item in decode_name(raw, mode).split(","):
+                        found.append((item.strip(), base + m.start(group), mode))
+                    continue
                 found.append((decode_name(raw, mode), base + m.start(group), mode))
         return sorted((f for f in found if f[0]), key=lambda f: f[1])
 
@@ -977,6 +1098,17 @@ class Anonymizer:
             return alias + "".join(ZW_TOKEN_RE.findall(raw))
         return alias
 
+    def _rewrite_dest(self, raw):
+        """A `dest` URL value holds several recipients separated by a comma (`,` or `%2C`): alias each one."""
+        out = []
+        for part in re.split(r"(%2C|,)", raw, flags=re.I):
+            m = re.fullmatch(r"((?:\+|%20|\s)*)(.*?)((?:\+|%20|\s)*)", part, re.S | re.I)
+            if part.lower() in ("%2c", ",") or not m.group(2):
+                out.append(part)
+            else:
+                out.append(m.group(1) + self._rewrite(m.group(2), "param") + m.group(3))
+        return "".join(out)
+
     def _structural(self, s):
         """Replace the names of every DISCOVER position."""
         for _label, rx, group, mode in DISCOVER:
@@ -991,6 +1123,10 @@ class Anonymizer:
                 if mode == "param":
                     raw = param_value(raw, m.string[max(0, m.start(group) - 400):m.start(group)])
                     end = start + len(raw)
+                    if m.group(0)[:start].lower().endswith("dest="):
+                        return m.group(0)[:start] + self._rewrite_dest(raw) + m.group(0)[end:]
+                elif mode == "name" and re.search(r"\bname=[\"'](?:new)?dest[\"']", m.group(0), re.I):
+                    return m.group(0)[:start] + self._rewrite(raw, "list") + m.group(0)[end:]
                 return m.group(0)[:start] + self._rewrite(raw, mode) + m.group(0)[end:]
             s = rx.sub(sub, s)
         return s
@@ -1224,6 +1360,7 @@ class Anonymizer:
         """Return the anonymized page. Mapping of other members is consistent within this call."""
         self._reset()
         text = self._own_start(text)
+        private = private or page_is_private(text)
         if private:
             parts, last = [], 0
             keep_first = bool(MPSTORAGE_HEADER_RE.search(text))
@@ -1248,6 +1385,7 @@ class Anonymizer:
             self.stats["private_blocks"] += copies
             text = SUBJECT_RE.sub(lambda m: m.group(0) if KEEP_SUBJECT_RE.match(_strip_tags(m.group(2)))
                                   else m.group(1) + PRIVATE_SUBJECT + m.group(3), text)
+            text, _n = private_thread_subjects(text)
         for open_re, placeholder in PERSONAL_BLOCKS:
             parts, last = [], 0
             for start, end in _find_para_blocks(text, open_re):
@@ -1302,7 +1440,8 @@ class Anonymizer:
 
         Never the offending value or its neighbourhood: CI logs are public and a neighbour may leak too."""
         self._reset()
-        res = []
+        private = private or page_is_private(text)
+        res = meta_subject_findings(text)
 
         def scan(chunk, base, where):
             def add(pos, reason, length=0):
@@ -1462,7 +1601,7 @@ _V_IDS = {label: re.compile(rx) for label, rx in (
     ("member id id_user=", r"id_user=(\d+)"), ("member id avatar", r"mesdiscussions-(\d+)"),
     ("member id quotemsg", r"quotemsg=\d+,\d+,(\d+)\]"),
     ("member id smiley search", r"find_smilies_timer\([^,)]*,\s*(\d+)"))}
-_V_PARAM = re.compile(r"(?:^|[?&;/])(pseudo|spseudo|dest|auteur)=([^&#\"<>\n]{0,120})", re.I)
+_V_PARAM = re.compile(r"(?:^|[?&;/])(pseudo|spseudo|newdest|dest|auteur)=([^&#\"<>\n]{0,120})", re.I)
 _V_POSTS_PATH = re.compile(r"/hfr/recherche/pseudo-([^/?#\"'<>\s]+)\.htm")
 # Public profile rows (R56), matched on the label cell's text: the value must be a placeholder or a fixed value.
 _V_PROFILE_PERSONAL = re.compile(r"(?:Email|Date de naissance|Sexe|Ville|Profession|Loisirs|Site\b.*|Homepage|"
@@ -1534,8 +1673,10 @@ class StructuralVerifier(html.parser.HTMLParser):
             if s[:m.start(2)].count("'") % 2:  # inside a JS single-quoted string
                 value = value.split("'")[0]
             value = html.unescape(urllib.parse.unquote_plus(value))
-            if value:
-                self._name("URL parameter %s=" % m.group(1).lower(), value, line)
+            # `dest` lists several recipients separated by commas.
+            for item in (value.split(",") if m.group(1).lower() in ("dest", "newdest") else [value]):
+                if item.strip():
+                    self._name("URL parameter %s=" % m.group(1).lower(), item, line)
         for m in _V_SMILEY.finditer(s):
             self._name("personal smiley code", m.group(1), line)
         if "%5B%3A" in s.upper():
@@ -1578,8 +1719,10 @@ class StructuralVerifier(html.parser.HTMLParser):
                     decoded = decode_payload(c[len(prefix):])
                     if decoded:
                         self.check_value(decoded)
-        if tag == "input" and a.get("name", "").lower() in ("pseudo", "spseudo", "dest", "auteur") and a.get("value"):
-            self._name("pseudo input", a["value"])
+        if tag == "input" and a.get("name", "").lower() in ("pseudo", "spseudo", "newdest", "dest", "auteur") and a.get("value"):
+            for item in (a["value"].split(",") if a.get("name", "").lower() in ("dest", "newdest") else [a["value"]]):
+                if item.strip():
+                    self._name("pseudo input", item)
         if tag == "img" and "/images/perso/" in a.get("src", ""):
             for k in ("alt", "title"):
                 v = a.get(k, "")
@@ -1591,6 +1734,12 @@ class StructuralVerifier(html.parser.HTMLParser):
             self.profile_page = True
         if self.profile_page and tag == "body" and self.title is not None:
             self._name("profile page title", re.sub(r"\s+-\s+FORUM HardWare\.fr\s*$", "", self.title.strip()))
+        if self.private and tag == "input" and a.get("name", "").lower() == "sujet":
+            # The subject field of a reply, edit or new-MP form: empty, the placeholder, a fixture subject or the title
+            # of the MPStorage thread, whatever the input type.
+            value = html.unescape(a.get("value", "")).strip()
+            if value and not (value in (PRIVATE_SUBJECT, MPSTORAGE_SUBJECT) or _V_FIXTURE_SUBJECT.fullmatch(value)):
+                self._bad("private MP subject input", value)
         if tag in _V_VOID:
             return
         where = None
@@ -1638,6 +1787,8 @@ class StructuralVerifier(html.parser.HTMLParser):
             for item in a["title"].split(","):
                 if item.strip():
                     self._name("MP correspondents", item)
+        elif self.private and (tag == "th" or (tag == "h1" and re.fullmatch(r"md_arbo_tree_(?:b_)?3", a.get("id", "")))):
+            where = "thread header"
         params = []
         if tag == "a":
             # A link to a member (profile, MP) whose text is an alias must carry the same alias.
@@ -1673,6 +1824,10 @@ class StructuralVerifier(html.parser.HTMLParser):
                 text = re.sub(r"^par\s+", "", text)
             if e["where"] == "page title":
                 self.title = text
+                m = re.match(r"(.+) - Messages privés - FORUM HardWare\.fr$", text, re.S)
+                subject = m.group(1).strip() if m and self.private else None
+                if subject and not (subject in (PRIVATE_SUBJECT, MPSTORAGE_SUBJECT) or _V_FIXTURE_SUBJECT.fullmatch(subject)):
+                    self._bad("private MP thread subject", subject, e["line"])
             elif e["where"] == "form label":
                 self.form_label = text.lower()
             elif e["where"] == "MP form recipient":
@@ -1693,6 +1848,12 @@ class StructuralVerifier(html.parser.HTMLParser):
             elif e["where"] == "private form copy":
                 if text not in ("", PRIVATE_PLACEHOLDER):
                     self._bad("private form copy", text, e["line"])
+            elif e["where"] == "thread header":
+                # The thread's own subject in the h1 breadcrumb (after open.gif) or a "Sujet : …" th.
+                m = re.match(r"Sujet\s*:\s*(.+)$", text, re.S) if e["tag"] == "th" else re.match(r"(.+)$", text, re.S)
+                if m and not (m.group(1).strip() in (PRIVATE_SUBJECT, MPSTORAGE_SUBJECT)
+                              or _V_FIXTURE_SUBJECT.fullmatch(m.group(1).strip())):
+                    self._bad("private MP thread subject", m.group(1), e["line"])
             elif e["where"] == "private MP subject":
                 # Any text but the placeholder, a fixture thread or the MPStorage title (digits too).
                 if text and not (text in (PRIVATE_SUBJECT, MPSTORAGE_SUBJECT) or _V_FIXTURE_SUBJECT.fullmatch(text)):
@@ -1912,7 +2073,7 @@ def corpus_entries(folder):
             path = os.path.join(folder, meta["file"])
             if not os.path.isfile(path):
                 raise ValueError("%s: file %s is missing" % (name, meta["file"]))
-            entries.append((path, bool(meta.get("private"))))
+            entries.append((path, meta_is_private(meta)))
             described.add(meta["file"])
     orphans = [n for n in sorted(os.listdir(folder)) if n not in described and not n.endswith(".md")]
     if orphans:
