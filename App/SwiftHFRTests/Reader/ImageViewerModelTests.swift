@@ -17,7 +17,7 @@ private final class CopyLog {
 /// The viewer's state: what it downloads, falls back to, saves and copies (LOT-109). No test waits on a clock: `settle()` is the signal.
 @MainActor
 struct ImageViewerModelTests {
-    private static let bytes = ViewerImage(data: Data([1, 2, 3]), mimeType: "image/png")
+    nonisolated private static let bytes = ViewerImage(data: Data([1, 2, 3]), mimeType: "image/png")
 
     private func images(_ count: Int) -> [GalleryImage] {
         (0..<count).compactMap { number in
