@@ -1,0 +1,15 @@
+{
+  "id": "T32",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/self/<hash>.jpg",
+  "url": "http://reho.st/self/0bf17014d321b99c4a93e2e72d98b822b208889e.jpg",
+  "final_url": "http://reho.st/self/0bf17014d321b99c4a93e2e72d98b822b208889e.jpg",
+  "status": 403,
+  "content_type": "text/html",
+  "date": "Thu, 05 Nov 2026 18:17:07 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "reho.st http image, no Referer (#134)",
+  "private": false
+}

@@ -202,6 +202,20 @@
     {"raw": "T21", "id": "T21", "slug": "rehost-home-forum-referer", "ext": "", "private": false},
     {"raw": "T22", "id": "T22", "slug": "rehost-image-path-no-referer-403", "ext": "", "private": false},
     {"raw": "T23", "id": "T23", "slug": "rehost-image-path-forum-referer", "ext": "", "private": false},
-    {"raw": "T24", "id": "T24", "slug": "rehost-home-legacy-referer-no-slash", "ext": "", "private": false}
+    {"raw": "T24", "id": "T24", "slug": "rehost-home-legacy-referer-no-slash", "ext": "", "private": false},
+    {"raw": "M2-R31u", "id": "R122a", "slug": "topic-locked-logged-in", "ext": "html", "private": false},
+    {"raw": "M2-R122n", "id": "R122b", "slug": "topic-logged-in-favourite-owntopic1", "ext": "html", "private": false},
+    {"raw": "M2-F-MASCARPONE", "id": "R122c", "slug": "topic-search-filter-checked", "ext": "html", "private": false},
+    {"raw": "M2-F3", "id": "R122d", "slug": "topic-search-word-no-filter", "ext": "html", "private": false},
+    {"raw": "M2-R13o", "id": "R121a", "slug": "mp-list-logged-out", "ext": "html", "private": false},
+    {"raw": "M2-S2", "id": "R121b", "slug": "search-all-categories-first-category", "ext": "html", "private": false},
+    {"raw": "M2-S3c5", "id": "R121c", "slug": "search-all-categories-pivot-category-5", "ext": "html", "private": false},
+    {"raw": "M2-S1", "id": "R121d", "slug": "search-form-page", "ext": "html", "private": false},
+    {"raw": "M2-L22u1", "id": "R121e", "slug": "list-cat22-p1-logged-in", "ext": "html", "private": false},
+    {"raw": "M2-L32", "id": "R121f", "slug": "list-cat32-single-page-anon", "ext": "html", "private": false},
+    {"raw": "M2-T30", "id": "T30", "slug": "rehost-image-no-referer-403", "ext": "", "private": false},
+    {"raw": "M2-T31", "id": "T31", "slug": "rehost-image-forum-referer-200", "ext": "", "private": false},
+    {"raw": "M2-T32", "id": "T32", "slug": "rehost-http-image-no-referer-403", "ext": "", "private": false},
+    {"raw": "M2-T33", "id": "T33", "slug": "rehost-http-image-forum-referer-200", "ext": "", "private": false}
   ]
 }

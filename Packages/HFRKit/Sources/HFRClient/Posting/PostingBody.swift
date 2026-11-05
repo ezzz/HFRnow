@@ -16,19 +16,23 @@ enum PostingBody {
     ///   - text: the message, written into `content_form`; line breaks are sent as CRLF, like a browser.
     ///   - overrides: new values of text, hidden or password inputs and of selects, by name (`sujet`, `dest`, `subcat`).
     ///   - checkboxes: boxes to check or uncheck, by name; the others keep the form's state.
+    ///   - textField: the one textarea the form may hold, which receives `text` (`raison` for the moderator alert, LOT-050).
+    ///   - requiredFields: inputs the form must hold.
     /// - Throws: `unsupportedForm` when the form holds a control that cannot be sent like a browser, when it has no
-    ///   `content_form` textarea or no `verifrequet` (every write carries it, HFR-PROTOCOL §7 X4), or when the layout
-    ///   does not match the parsed form.
+    ///   `textField` textarea or misses a required field (`verifrequet`: every write carries it, HFR-PROTOCOL §7 X4), or
+    ///   when the layout does not match the parsed form.
     static func make(
         form: ForumForm,
         layout: HopFormLayout,
         text: String,
         overrides: [String: String] = [:],
-        checkboxes: [String: Bool] = [:]
+        checkboxes: [String: Bool] = [:],
+        textField: String = contentField,
+        requiredFields: [String] = [requestCheckField]
     ) throws(PostingError) -> FormBody {
-        try check(form: form, layout: layout)
+        try check(form: form, layout: layout, textField: textField, requiredFields: requiredFields)
         var body = FormBody(newlines: .crlf)
-        let values = Values(text: text, overrides: overrides, checkboxes: checkboxes)
+        let values = Values(text: text, textField: textField, overrides: overrides, checkboxes: checkboxes)
         var submitted = false
         for control in layout.controls {
             if let entry = try entry(for: control, form: form, values: values, submitted: &submitted) {
@@ -41,6 +45,7 @@ enum PostingBody {
     /// What the write puts into the form.
     private struct Values {
         let text: String
+        let textField: String
         let overrides: [String: String]
         let checkboxes: [String: Bool]
     }
@@ -67,7 +72,7 @@ enum PostingBody {
             return (values.overrides[name] ?? form.selects[index].effectiveValue).map { (name, $0) }
         case let .textarea(name, isDisabled):
             guard !isDisabled, !name.isEmpty else { return nil }
-            guard name == contentField else { throw .unsupportedForm(reason: "textarea \(name)") }
+            guard name == values.textField else { throw .unsupportedForm(reason: "textarea \(name)") }
             return (name, values.text)
         case .button:
             return nil
@@ -100,7 +105,9 @@ enum PostingBody {
 
     /// The layout must describe the same inputs and selects as the parsed form, in the same order, and the form must
     /// hold the fields every captured write carries.
-    private static func check(form: ForumForm, layout: HopFormLayout) throws(PostingError) {
+    private static func check(
+        form: ForumForm, layout: HopFormLayout, textField: String, requiredFields: [String]
+    ) throws(PostingError) {
         var inputs: [(index: Int, name: String)] = []
         var selects: [(index: Int, name: String)] = []
         for control in layout.controls {
@@ -114,9 +121,9 @@ enum PostingBody {
             inputs.map(\.index) == Array(inputs.indices), inputs.map(\.name) == form.fields.map(\.name),
             selects.map(\.index) == Array(selects.indices), selects.map(\.name) == form.selects.map(\.name)
         else { throw .unsupportedForm(reason: "layout") }
-        guard layout.controls.contains(.textarea(name: contentField, isDisabled: false)) else {
-            throw .unsupportedForm(reason: "no \(contentField)")
+        guard layout.controls.contains(.textarea(name: textField, isDisabled: false)) else {
+            throw .unsupportedForm(reason: "no \(textField)")
         }
-        guard form.field(named: requestCheckField) != nil else { throw .unsupportedForm(reason: "no \(requestCheckField)") }
+        for field in requiredFields where form.field(named: field) == nil { throw .unsupportedForm(reason: "no \(field)") }
     }
 }

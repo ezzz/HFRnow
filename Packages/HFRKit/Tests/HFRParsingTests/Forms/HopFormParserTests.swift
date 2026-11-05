@@ -161,6 +161,19 @@ struct HopFormParserTests {
         #expect(throws: ParsingError.missingElement("form action*=modo.php")) {
             try HopFormParser.parseModerationForm(Fixture.capture("R40a-reply-form-logged-in"))
         }
+        #expect(throws: ParsingError.missingElement("form action*=modo.php")) {
+            try HopFormParser.moderationLayout(Fixture.capture("R40a-reply-form-logged-in"))
+        }
+    }
+
+    @Test("R46: the moderation form's layout puts raison between the hidden inputs and the button, as a browser sends it")
+    func moderationLayout() throws {
+        let layout = try HopFormParser.moderationLayout(Fixture.capture("R46-modo-alert-form"))
+        #expect(layout.controls == [
+            .input(index: 0, name: "hash_check", isDisabled: false), .input(index: 1, name: "referer_page", isDisabled: false),
+            .textarea(name: "raison", isDisabled: false), .input(index: 2, name: "Submit", isDisabled: false)
+        ])
+        #expect(layout.checkboxLabels.isEmpty)
     }
 
     @Test("pages without the form: a topic list, an empty body", arguments: ["R04-list-cat13-p1-anon", ""])
