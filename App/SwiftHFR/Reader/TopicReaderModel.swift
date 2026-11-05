@@ -5,40 +5,6 @@ import Observation
 
 // Port of HFRswift/Swift/MessagesView.swift (MessagesView.loadPage, WebView.ScrollRequest) @ 2440d79. Differences: when HFR serves
 // another page than the one asked (past the end, R24), the shown target takes the served page number (LOT-167).
-/// An HTML document handed to the web view. `token` is unique per model, so an event of an older document is recognised.
-struct ReaderDocument: Equatable, Sendable {
-    /// Identity of this document; grows with every new document.
-    let token: Int
-    /// The full page (TopicHTMLBuilder).
-    let html: String
-    /// Message to scroll to once shown.
-    let anchor: Int?
-    /// Keep the scroll position of the previous document (a refresh of the same page).
-    let keepsScrollPosition: Bool
-}
-
-/// A request to scroll the shown document to a message, without reloading it (a link to a post of the same page).
-struct ScrollRequest: Equatable, Sendable {
-    /// Unique per request, so asking twice for the same message scrolls twice.
-    let id: Int
-    /// The document the request is for.
-    let token: Int
-    /// Message number.
-    let anchor: Int
-}
-
-/// What the reader does with a link the user tapped (LOT-137).
-enum ReaderLinkAction: Equatable, Sendable {
-    /// A topic or private message page of the forum: opened in the app, at its page and post (`TopicReaderModel.follow`).
-    case reader(ReaderTarget)
-    /// Anything else on the web, in Safari's view inside the app (`SFSafariViewController`, LOT-071 T8).
-    case inAppBrowser(URL)
-    /// Anything else on the web, in the system's default browser ("Navigateur par défaut", LOT-119).
-    case defaultBrowser(URL)
-    /// Not an `http(s)` link: nothing happens.
-    case ignored
-}
-
 /// State of the topic reader (LOT-083): one page at a time, page navigation, refresh, links.
 ///
 /// Loading rules (LOTS "Issues to open" #6 and #7, issues #107 and #108): one load at a time, a newer load or `cancel()`
