@@ -29,11 +29,11 @@ private final class Reloads {
 
 @MainActor
 struct PollModelTests {
-    private static let options = [
+    nonisolated private static let options = [
         PollOption(id: 1, text: "Oui", fieldName: "reponse"), PollOption(id: 2, text: "Non", fieldName: "reponse")
     ]
     nonisolated private static let votable = Poll(question: "Q ?", kind: .votable(options: options, hiddenFields: ["cat": "13"]))
-    private static let confirmation = PollVoteResult(
+    nonisolated private static let confirmation = PollVoteResult(
         topic: readerTopic, choice: 2, message: "Votre vote a bien été pris en compte !",
         refreshURL: url("https://forum.hardware.fr/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm")
     )
