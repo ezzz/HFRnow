@@ -87,6 +87,12 @@ struct SettingsView: View {
                     Text(SettingsDestination.icon.title)
                 }
             }
+            Section("Filtrer les posts") {
+                Picker("Minimum de citations", selection: $general.filterMinimumQuotes) {
+                    ForEach(general.filterMinimumQuoteOptions, id: \.self) { Text("\($0)").tag($0) }
+                }
+                Toggle("Inclure les pseudos whitelistés", isOn: $general.filterIncludesAllowlist)
+            }
             Section("Thème") {
                 NavigationLink { SettingsDestinationView(destination: .theme) } label: {
                     Text(SettingsDestination.theme.title)

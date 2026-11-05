@@ -1,9 +1,11 @@
 import SwiftUI
 
-// Port of HFRswift/Swift/AnswerView.swift (AnswerView, reply mode) @ 2440d79. Differences: no formatting, GIF or upload panel yet
-// (LOT-085, 102, 155), smiley picker as a sheet from the toolbar (LOT-104, GAP-087);
+// Port of HFRswift/Swift/AnswerView.swift (AnswerView, reply mode; new topic: sub-category `Picker`, :395-420, GAP-098) @ 2440d79.
+// Differences: formatting toolbar (LOT-085, GAP-085); no GIF or upload panel yet (LOT-102, 155), smiley picker as a sheet from
+// the toolbar (LOT-104, GAP-087);
 // errors say whether anything was posted instead of the toast (GAP-100); draft per topic (GAP-092, UXD).
-/// The composer sheet: a plain text editor, Send and Cancel; a new private message adds its recipient and subject
+/// The composer sheet: a plain text editor, Send and Cancel; a new topic adds its subject and sub-category (LOT-089); a new
+/// private message adds its recipient and subject
 /// (LOT-128, legacy "À :" field, `QuoteMessageViewController.m:306-330` @ 21173e77). Thin: every rule is in
 /// `ReplyComposerModel`.
 ///
@@ -27,13 +29,21 @@ struct ReplyComposerView: View {
         case recipient, subject, text
     }
 
+    @State private var formatting: ComposerFormattingModel
+
+    init(model: ReplyComposerModel, onClose: @escaping (ReplyComposerModel.CloseReason) -> Void) {
+        self.model = model
+        self.onClose = onClose
+        _formatting = State(initialValue: ComposerFormattingModel(composer: model, clipboard: SystemClipboard()))
+    }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 if let message = model.errorMessage {
                     ComposerBanner(text: message, symbol: "exclamationmark.triangle.fill", tint: .orange) {
                         if model.mayHavePosted {
-                            Button(model.isNewMessage ? "Voir les messages" : "Voir le sujet") { Task { await model.checkTopic() } }
+                            Button(checkTitle) { Task { await model.checkTopic() } }
                         }
                     }
                 }
@@ -45,12 +55,25 @@ struct ReplyComposerView: View {
                         }
                     }
                 }
-                if model.isNewMessage { messageFields }
+                if model.hasSubjectField { messageFields }
                 editor
+                FormattingToolbar(model: formatting) { focused = .text }
             }
-            .navigationTitle(model.isNewMessage ? "Nouveau message" : "Répondre")
+            .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbar }
+            .alert("Utiliser le presse-papiers ?", isPresented: askingClipboard, presenting: formatting.pending) { pending in
+                switch pending {
+                case .link:
+                    Button("Non", role: .cancel) { formatting.declinePending(pending); focused = .text }
+                    Button("Oui") { formatting.acceptPending(pending); focused = .text }
+                case .formatting:
+                    Button("Sans le presse-papiers", role: .cancel) { formatting.declinePending(pending); focused = .text }
+                    Button("Insérer") { formatting.acceptPending(pending); focused = .text }
+                }
+            } message: { pending in
+                Text(pending.message)
+            }
             .confirmationDialog("Garder ce texte ?", isPresented: askingClose, titleVisibility: .visible) {
                 Button("Garder le brouillon") { Task { await model.keepDraftAndClose() } }
                 Button("Supprimer le brouillon", role: .destructive) { Task { await model.discardDraftAndClose() } }
@@ -66,8 +89,10 @@ struct ReplyComposerView: View {
         .interactiveDismissDisabled(model.closeNeedsChoice || model.isSending)
         .task {
             await model.start()
+            formatting.placeCaretAtEnd()
             focused = firstEmptyField
         }
+        .task { await model.loadSubcategories() }
         .onChange(of: scenePhase) { _, phase in
             if phase != .active { Task { await model.flushDraft() } }
         }
@@ -84,19 +109,35 @@ struct ReplyComposerView: View {
 
     /// Where typing starts: the first field of a new private message still empty, else the text.
     private var firstEmptyField: Field {
-        guard model.isNewMessage else { return .text }
-        if model.recipient.isEmpty { return .recipient }
+        guard model.hasSubjectField else { return .text }
+        if model.isNewMessage, model.recipient.isEmpty { return .recipient }
         return model.subject.isEmpty ? .subject : .text
     }
 
+    private var title: String {
+        model.isNewTopic ? "Nouveau sujet" : model.isNewMessage ? "Nouveau message" : "Répondre"
+    }
+
+    private var checkTitle: String {
+        model.isNewTopic ? "Voir les sujets" : model.isNewMessage ? "Voir les messages" : "Voir le sujet"
+    }
+
     private var keepDraftNote: String {
-        model.isNewMessage
+        if model.isNewTopic { return "Le brouillon est retrouvé au prochain nouveau sujet dans ce forum." }
+        return model.isNewMessage
             ? "Le brouillon est retrouvé au prochain message à ce destinataire."
             : "Le brouillon est retrouvé à la prochaine réponse dans ce sujet."
     }
 
     private var askingClose: Binding<Bool> {
         Binding(get: { model.isAskingClose }, set: { model.isAskingClose = $0 })
+    }
+
+    private var askingClipboard: Binding<Bool> {
+        Binding(
+            get: { formatting.pending != nil },
+            set: { if !$0 { formatting.dismissPending(); focused = .text } }
+        )
     }
 
     /// The selected range of the editor, nil without a selection or with several (multi-selection is not used here).
@@ -129,21 +170,51 @@ struct ReplyComposerView: View {
             .overlay {
                 if model.isRestoring { ProgressView() }
             }
-            .accessibilityLabel(model.isNewMessage ? "Texte du message" : "Texte de la réponse")
+            .accessibilityLabel(model.isNewMessage || model.isNewTopic ? "Texte du message" : "Texte de la réponse")
+            .onChange(of: selection) { _, newValue in
+                guard let newValue else { return }
+                formatting.selectedRange = Self.range(of: newValue, in: model.text)
+            }
+            .onChange(of: formatting.cursorRevision) {
+                // The edit already changed the text: place the caret where the engine says, never at the end.
+                let text = model.text
+                let offset = min(formatting.selectedRange.location, text.utf16.count)
+                // Focus is not taken here: `start()` places the caret too, and a new message opens on its recipient field.
+                selection = TextSelection(insertionPoint: String.Index(utf16Offset: offset, in: text))
+            }
     }
 
-    /// Recipient and subject of a new private message, one line each, like HFR's own form (`R45b`).
+    private static func end(of text: String) -> NSRange { NSRange(location: text.utf16.count, length: 0) }
+
+    /// The first selected range as a UTF-16 `NSRange`.
+    private static func range(of selection: TextSelection, in text: String) -> NSRange {
+        switch selection.indices {
+        case .selection(let range) where range.upperBound <= text.endIndex: NSRange(range, in: text)
+        case .multiSelection(let set):
+            // A stale index (the text changed meanwhile) falls back to the end instead of trapping.
+            if let first = set.ranges.first, first.upperBound <= text.endIndex { NSRange(first, in: text) } else { end(of: text) }
+        default: end(of: text)
+        }
+    }
+
+    /// Recipient (private message) or sub-category (topic) and subject, one line each, like HFR's own forms (`R45a`, `R45b`).
     private var messageFields: some View {
         VStack(spacing: 0) {
-            TextField("Destinataire", text: Binding(get: { model.recipient }, set: { model.update(recipient: $0) }))
-                .focused($focused, equals: .recipient)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .submitLabel(.next)
-                .onSubmit { focused = .subject }
-                .accessibilityLabel("Pseudo du destinataire")
-                .padding(.vertical, 10)
-            Divider()
+            if model.isNewMessage {
+                TextField("Destinataire", text: Binding(get: { model.recipient }, set: { model.update(recipient: $0) }))
+                    .focused($focused, equals: .recipient)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .submitLabel(.next)
+                    .onSubmit { focused = .subject }
+                    .accessibilityLabel("Pseudo du destinataire")
+                    .padding(.vertical, 10)
+                Divider()
+            }
+            if model.isNewTopic, showsSubcategoryRow {
+                subcategoryRow
+                Divider()
+            }
             TextField("Sujet", text: Binding(get: { model.subject }, set: { model.update(subject: $0) }))
                 .focused($focused, equals: .subject)
                 .submitLabel(.next)
@@ -154,6 +225,42 @@ struct ReplyComposerView: View {
         .scaledFont(.body)
         .disabled(!model.canEdit)
         .padding(.horizontal, 16)
+    }
+
+    /// The row has something to show: loading, the options or a failed read (a form without the select shows nothing).
+    private var showsSubcategoryRow: Bool {
+        model.picker.isLoading || !model.picker.options.isEmpty || model.picker.warning != nil
+    }
+
+    /// The form's sub-categories as a menu (legacy `Picker`, `AnswerView.swift:411`); a failed read says so and offers a retry.
+    @ViewBuilder
+    private var subcategoryRow: some View {
+        if model.picker.isLoading {
+            HStack {
+                Text("Sous-catégorie")
+                Spacer()
+                ProgressView().accessibilityLabel("Chargement des sous-catégories")
+            }
+            .padding(.vertical, 10)
+        } else if !model.picker.options.isEmpty {
+            Picker("Sous-catégorie", selection: Binding(
+                get: { model.picker.selected ?? "" }, set: { model.select(subcategory: $0) }
+            )) {
+                ForEach(model.picker.options, id: \.value) { option in
+                    Text(option.label).tag(option.value)
+                }
+            }
+            .pickerStyle(.menu)
+            .disabled(!model.canEdit)
+            .padding(.vertical, 2)
+        } else if let warning = model.picker.warning {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(warning).scaledFont(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                Button("Réessayer") { Task { await model.loadSubcategories() } }
+            }
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 
     @ToolbarContentBuilder

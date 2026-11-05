@@ -95,7 +95,8 @@ struct LiveTopicPageSource: TopicPageSource {
                 maxPage: max(1, metadata.maxPage, metadata.currentPage),
                 messages: messages,
                 answerURL: metadata.answerFormURL,
-                pageURL: ReaderTarget.forumURL(pageURL.absoluteString)
+                pageURL: ReaderTarget.forumURL(pageURL.absoluteString),
+                poll: metadata.hasPoll ? try? PollParser.poll(in: html) : nil
             )
         } catch {
             throw .unreadable

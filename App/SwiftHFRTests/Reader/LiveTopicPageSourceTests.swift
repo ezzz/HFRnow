@@ -48,6 +48,25 @@ struct LiveTopicPageSourceTests {
         #expect(!page.title.isEmpty)
     }
 
+    @Test func aPollOnThePageReachesTheReaderPage() async throws {
+        for (name, votable) in [("R32b-topic-poll-logged-in-not-voted.html", true), ("R33a-topic-poll-closed-anon.html", false)] {
+            let body = try Self.capture(name)
+            let page = try LiveTopicPageSource.parse(
+                try #require(String(data: body, encoding: .utf8)), pageURL: url(Self.canonical), normalizer: MarkingNormalizer()
+            )
+            let poll = try #require(page.poll)
+            if case .votable = poll.kind { #expect(votable) } else { #expect(!votable) }
+        }
+    }
+
+    @Test func aPageWithoutPollHasNone() throws {
+        let body = try Self.capture("R20-topic-p1-anon.html")
+        let page = try LiveTopicPageSource.parse(
+            try #require(String(data: body, encoding: .utf8)), pageURL: url(Self.canonical), normalizer: MarkingNormalizer()
+        )
+        #expect(page.poll == nil)
+    }
+
     @Test func aMessageLinkAsksHFRForTheMessagesPageWithTheSession() async throws {
         struct Meta: Decodable { let url: String }
         let meta = try JSONDecoder().decode(Meta.self, from: try Self.capture("R25.meta.json"))

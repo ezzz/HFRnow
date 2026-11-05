@@ -42,10 +42,11 @@ struct CategoriesTabView: View {
         NavigationSplitView(preferredCompactColumn: $column) {
             ForumListView(navigation: navigation)
         } content: {
-            TopicsColumn(navigation: navigation)
+            TopicsColumn(navigation: navigation, composer: composer)
         } detail: {
             ReaderColumn(navigation: navigation, reader: reader, composer: composer)
         }
+        .filteredPosts(navigation.filtering, reader: reader)
     }
 }
 
@@ -58,11 +59,12 @@ struct FavoritesTabView: View {
 
     var body: some View {
         NavigationSplitView(preferredCompactColumn: $column) {
-            TopicsColumn(navigation: navigation)
+            TopicsColumn(navigation: navigation, composer: composer)
                 .toolbar { ToolbarItem(placement: .secondaryAction) { FavoritesSourceMenu(navigation: navigation) } }
         } detail: {
             ReaderColumn(navigation: navigation, reader: reader, composer: composer)
         }
+        .filteredPosts(navigation.filtering, reader: reader)
     }
 }
 
@@ -82,10 +84,13 @@ struct FavoritesSourceMenu: View {
 /// The topics of the chosen source.
 struct TopicsColumn: View {
     @Bindable var navigation: NavigationModel
+    /// The current account's composer (LOT-089); nil when logged out.
+    let composer: ComposerServices?
 
     var body: some View {
         if let source = navigation.selectedSource {
-            TopicListView(model: navigation.topicList(for: source), selection: $navigation.selectedTopic)
+            TopicListView(model: navigation.topicList(for: source), selection: $navigation.selectedTopic, filtering: navigation.filtering,
+                          composer: composer)
                 .id(source)
         } else {
             ContentUnavailableView("Choisissez un forum", systemImage: "list.bullet")
@@ -103,8 +108,14 @@ struct ReaderColumn: View {
     var body: some View {
         if let topic = navigation.selectedTopic, let model = navigation.reader(for: topic) {
             // Its own stack, for the readers a followed link pushes (LOT-137); a new topic starts a new stack.
-            NavigationStack { TopicReaderView(model: model, services: reader, composer: composer) }
-                .id(topic.id)
+            NavigationStack {
+                TopicReaderView(
+                    model: model, services: reader, composer: composer,
+                    onFilterPosts: topic.topicID == nil ? nil : { navigation.filtering.start(opening: topic) },
+                    filterIsBusy: navigation.filtering.isBusy
+                )
+            }
+            .id(topic.id)
         } else {
             MessagePlaceholderView(topic: navigation.selectedTopic)
         }

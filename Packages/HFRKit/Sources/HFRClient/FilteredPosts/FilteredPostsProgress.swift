@@ -6,4 +6,11 @@ public struct FilteredPostsProgress: Sendable, Equatable {
     public let maxPage: Int
     /// Messages kept so far in this batch.
     public let resultCount: Int
+
+    /// Creates a progress report.
+    public init(page: Int, maxPage: Int, resultCount: Int) {
+        self.page = page
+        self.maxPage = maxPage
+        self.resultCount = resultCount
+    }
 }
