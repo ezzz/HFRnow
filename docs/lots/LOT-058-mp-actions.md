@@ -1,7 +1,7 @@
 # LOT-058 — MP actions: mark unread, MP quote, group members
 
 - **Module:** HFRClient (plus the mark-unread link in HFRParsing's topic page metadata)
-- **Difficulty / model:** easy (the plan routes Sonnet → Opus; taken by an Opus contributor, `ext/bybifok-opus-1`, so the self-spawned reviewer is Fable)
+- **Difficulty / model:** easy (the plan routes Sonnet → Opus; written by an Opus contributor, `ext/bybifok-opus-1`, and taken over by `ext/francoisgn-opus-1` in #484, so the self-spawned reviewer is Fable)
 - **Issue:** [#84](https://github.com/ezzz/HFRnow/issues/84)
 - **Depends on:** LOT-042 (#68): `HFRSession`; LOT-045 (#71); LOT-036 (#63); the conventions of LOT-031 (#58, quote links), LOT-048 (#74, `PostingFlow.loadForm`) and LOT-051 (#77, `TopicFlagFlow`, the session check of #314).
 - **Audit:** redface2 E6, E8, E9 (`docs/research/redface2-comparison.md:294, 296, 297`).
@@ -69,8 +69,8 @@ Shown to fail with the behaviour removed (9 mutations, each caught): any `nonlu`
 
 ## Intentional differences from legacy
 
-1. **The answer is read**: only HFR's own sentence is a success (legacy took any answer with a body, `:1250-1272`). [CHANGELOG-LEGACY](../CHANGELOG-LEGACY.md) row 67.
-2. **The link is the header's, on the forum origin** (legacy took the first `href` containing `nonlu`, a member's link included, `:1571-1574`). Row 67.
+1. **The answer is read**: only HFR's own sentence is a success (legacy took any answer with a body, `:1250-1272`). [CHANGELOG-LEGACY](../CHANGELOG-LEGACY.md) row 68.
+2. **The link is the header's, on the forum origin** (legacy took the first `href` containing `nonlu`, a member's link included, `:1571-1574`). Row 68.
 3. **The session is checked before the write**, as for the flags (#314).
 
 ## Learnings

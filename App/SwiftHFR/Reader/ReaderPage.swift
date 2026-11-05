@@ -1,5 +1,6 @@
 import Foundation
 import HFRModels
+import HFRParsing
 
 /// One topic page as the reader shows it: page facts (LOT-033), message blocks (LOT-030) and their normalized content
 /// (LOT-034). Holds no reply form field or token: the only reply entry is the answer link, which the composer fetches (LOT-084).
@@ -49,9 +50,18 @@ struct ReaderMessage: Equatable, Sendable, Identifiable {
     var quotedByCount: Int?
     /// Sanitized content and typed lists (ADR 0006).
     var content: MessageContent
+    /// The quote blocks of `content`, in document order (LOT-032): the visibility policy classes them by author (LOT-117).
+    var quotes: [MessageQuote] = []
     /// The action links of the message's toolbar (LOT-031); nothing offered when HFR gave none (logged out).
     var actions = MessageActions()
 
     /// Unique on a page: the continuation block repeats the previous page's last number.
     var id: String { isContinuation ? "continuation-\(numreponse)" : "t\(numreponse)" }
+
+    /// The quotes of `content`, read once when the page is built so the builder stays string work. Only a backend failure
+    /// throws; the message is then shown without quote styling rather than failing the page.
+    static func quotes(of content: MessageContent) -> [MessageQuote] {
+        guard content.html.contains("<table") else { return [] }
+        return (try? MessageQuoteAnalyzer.quotes(inContentHTML: content.html)) ?? []
+    }
 }

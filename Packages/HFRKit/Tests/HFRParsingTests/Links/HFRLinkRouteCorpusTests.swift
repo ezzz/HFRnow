@@ -63,6 +63,11 @@ struct HFRLinkRouteCorpusTests {
         // `forum1.php` with no `cat` at all: which list it names is not documented, so it is not guessed.
         if url.path == "/forum1.php", url.query == "config=hfr.inc" { return true }
         if url.path == "/forum2.php" { return link.contains("print=1") || link.contains("quote_only=1") }
+        // Real shapes from R121c, R121e; routed by #482, which removes this.
+        let path = url.path
+        if path.wholeMatch(of: #/\/hfr\/[\w-]+(\/[\w-]+)?\/sujet_[0-9]+_[0-9]+\.htm/#) != nil { return true }
+        if path.wholeMatch(of: #/\/hardwarefr\/[\w-]+\/sujet-[0-9]+-[0-9]+\.htm/#) != nil { return true }
+        if path.wholeMatch(of: #/\/hfr\/[\w-]+\/liste_sujet_filtre-[0-9]+-[0-9]+\.htm/#) != nil { return true }
         return url.path == "/forum1f.php" && (link.contains("owntopic=0") || link.contains("owntopic=2"))
     }
 
