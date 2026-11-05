@@ -42,6 +42,8 @@ final class UserProfileModel: Identifiable {
     var profile: UserProfile? { loader.value }
     /// A load is running.
     var isLoading: Bool { loader.isLoading }
+    /// Counts finished loads; the profile's images load again when it changes, so a failed image is retried by a reload.
+    private(set) var loadGeneration = 0
     /// Failure of the latest load; cleared by the next success.
     var error: ListLoadError? { loader.error }
 
@@ -70,6 +72,7 @@ final class UserProfileModel: Identifiable {
         await loader.load { () async throws(ListLoadError) -> UserProfile in
             try await source.profile(memberID: memberID)
         }
+        loadGeneration += 1
     }
 
     /// Hands the member's pseudo to the MP composer.

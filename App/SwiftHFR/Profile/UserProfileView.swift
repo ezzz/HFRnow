@@ -44,7 +44,7 @@ struct UserProfileView: View {
                     }
                 }
                 if !profile.personalSmilies.isEmpty {
-                    ProfileSmileysSection(smileys: profile.personalSmilies, fetcher: services.imageFetcher)
+                    ProfileSmileysSection(smileys: profile.personalSmilies, fetcher: services.imageFetcher, generation: model.loadGeneration)
                 }
                 if !profile.actions.isEmpty {
                     Section("Liens") {
@@ -84,7 +84,7 @@ private struct ProfileHeaderSection: View {
     var body: some View {
         Section {
             HStack(spacing: 16) {
-                ProfileImage(url: profile.avatarURL, fetcher: fetcher, placeholder: "person.crop.circle.fill")
+                ProfileImage(url: profile.avatarURL, fetcher: fetcher, placeholder: "person.crop.circle.fill", generation: model.loadGeneration)
                     .frame(width: 98, height: 70)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .accessibilityHidden(true)
@@ -118,25 +118,36 @@ private struct ProfileFieldRow: View {
     let open: (URL) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(verbatim: field.title).scaledFont(.subheadline).foregroundStyle(.secondary)
-            if let url = field.url {
-                Button { open(url) } label: {
+        if let url = field.url {
+            // The row itself is the button, labelled with its title and value, so VoiceOver activates the link directly.
+            let value = field.value.isEmpty ? url.absoluteString : field.value
+            Button { open(url) } label: {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(verbatim: field.title).scaledFont(.subheadline).foregroundStyle(.secondary)
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(verbatim: field.value.isEmpty ? url.absoluteString : field.value).multilineTextAlignment(.leading)
+                        Text(verbatim: value).multilineTextAlignment(.leading)
                         Image(systemName: "arrow.up.forward").scaledFont(.caption2).accessibilityHidden(true)
                     }
+                    .foregroundStyle(.tint)
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(.tint)
-            } else if field.isPlaceholder {
-                Text("Non renseigné").foregroundStyle(.tertiary)
-            } else {
-                Text(verbatim: field.value).textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .scaledFont(.body)
+            .accessibilityLabel(Text(verbatim: "\(field.title), \(value)"))
+        } else {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(verbatim: field.title).scaledFont(.subheadline).foregroundStyle(.secondary)
+                if field.isPlaceholder {
+                    Text("Non renseigné").foregroundStyle(.tertiary)
+                } else {
+                    Text(verbatim: field.value).textSelection(.enabled)
+                }
+            }
+            .scaledFont(.body)
+            .accessibilityElement(children: .combine)
         }
-        .scaledFont(.body)
-        .accessibilityElement(children: .combine)
     }
 }
 
@@ -144,17 +155,18 @@ private struct ProfileFieldRow: View {
 private struct ProfileSmileysSection: View {
     let smileys: [UserProfileSmiley]
     let fetcher: ReaderImageFetcher
+    let generation: Int
 
     var body: some View {
         Section {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 112), spacing: 10)], spacing: 10) {
                 ForEach(smileys) { smiley in
                     VStack(spacing: 8) {
-                        ProfileImage(url: smiley.imageURL, fetcher: fetcher, placeholder: "photo")
+                        ProfileImage(url: smiley.imageURL, fetcher: fetcher, placeholder: "photo", generation: generation)
                             .frame(height: 42)
                             .accessibilityHidden(true)
                         Text(verbatim: smiley.code)
-                            .scaledFont(.caption2).monospaced().lineLimit(1).minimumScaleFactor(0.75).textSelection(.enabled)
+                            .scaledFont(.caption2).monospaced().multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)
@@ -194,6 +206,8 @@ private struct ProfileImage: View {
     let url: URL?
     let fetcher: ReaderImageFetcher
     let placeholder: String
+    /// `UserProfileModel.loadGeneration`: part of the task identity, so a reload retries an image that failed.
+    let generation: Int
     @State private var image: UIImage?
 
     var body: some View {
@@ -204,10 +218,15 @@ private struct ProfileImage: View {
                 Image(systemName: placeholder).resizable().scaledToFit().foregroundStyle(.secondary).padding(8)
             }
         }
-        .task(id: url) {
+        .task(id: ImageTaskID(url: url, generation: generation)) {
             image = nil
             image = await Self.load(url, fetcher: fetcher)
         }
+    }
+
+    private struct ImageTaskID: Equatable {
+        let url: URL?
+        let generation: Int
     }
 
     private static func load(_ url: URL?, fetcher: ReaderImageFetcher) async -> UIImage? {

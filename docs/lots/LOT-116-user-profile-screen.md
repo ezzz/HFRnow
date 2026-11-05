@@ -9,20 +9,20 @@ Shows a member's public profile (`/hfr/profil-<id>.htm`, HFR-PROTOCOL R9) in a s
 sections and fields, personal smileys and the page's link rows. Legacy parity, no FEAT.
 
 ## Legacy sources
-`master` of ezzz/HFRnow at `21173e77`.
+`master` of ezzz/HFRnow at `2440d79` (line ranges re-checked there).
 
 | Legacy | Replaced by |
 |---|---|
 | `HFRswift/Swift/UserProfileView.swift:113-135` (`UserProfileService.fetchProfile`: `URLSession.shared`, so the shared cookies) | `LiveUserProfileSource` (cookie-less, difference 1) |
 | `UserProfileView.swift:464-490` (`UserProfileViewModel`: load, `isLoading`, `errorMessage`) | `UserProfileModel` over `ContentLoader` |
-| `UserProfileView.swift:492-621` (`UserProfileView`: sheet, "Fermer", "Actualiser", loading and error views, `openLink` by the default-browser setting) | `UserProfileView`, `UserProfileModel.action(forLink:defaultBrowser:)` |
-| `UserProfileView.swift:636-741` (`UserProfileHeaderView`, `UserProfileQuickActionsView`: avatar, pseudo, status, figures, MP / WL / BL buttons) | `ProfileHeaderSection`; MP through `UserProfileModel.onPrivateMessage` (hook) |
-| `UserProfileView.swift:743-785` (`UserProfileAvatarView`, `AsyncImage`) | `ProfileImage` through `ReaderImageFetcher` (difference 3) |
-| `UserProfileView.swift:787-810` (`UserProfileActionsView`, opened by `openLink`) | `ProfileActionRow`, section "Liens" |
-| `UserProfileView.swift:812-897` (`UserProfileSmiliesView`, with a favourite toggle) | `ProfileSmileysSection`, no toggle (difference 4) |
-| `UserProfileView.swift:899-963` (`UserProfileSectionView`, `UserProfileFieldRow`: "Non renseigné" for an empty value, a field link opens outside) | `ProfileFieldRow` |
-| `UserProfileView.swift:21-95` (`UserProfileAction.systemImage`, summary titles and symbols) | `UserProfileAction.Kind.symbol`, `UserProfileSummaryItem.Kind.shortTitle` / `.symbol` (LOT-027 difference 2) |
-| `HFRswift/Swift/MessagesView.swift:4283-4313, 5122-5127` (`openProfile`, `userProfileQuickActions`: sheet from the avatar / message actions, MP hidden for one's own message) | entry from a reader link (below); the avatar and message menu entry is LOT-087's |
+| `UserProfileView.swift:492-616` (`UserProfileView`: sheet, "Fermer", "Actualiser", loading and error views, `openLink` by the default-browser setting) | `UserProfileView`, `UserProfileModel.action(forLink:defaultBrowser:)` |
+| `UserProfileView.swift:631-736` (`UserProfileHeaderView`, `UserProfileQuickActionsView`: avatar, pseudo, status, figures, MP / WL / BL buttons) | `ProfileHeaderSection`; MP through `UserProfileModel.onPrivateMessage` (hook) |
+| `UserProfileView.swift:738-780` (`UserProfileAvatarView`, `AsyncImage`) | `ProfileImage` through `ReaderImageFetcher` (difference 3) |
+| `UserProfileView.swift:782-805` (`UserProfileActionsView`, opened by `openLink`) | `ProfileActionRow`, section "Liens" |
+| `UserProfileView.swift:807-892` (`UserProfileSmiliesView`, with a favourite toggle) | `ProfileSmileysSection`, no toggle (difference 4) |
+| `UserProfileView.swift:894-958` (`UserProfileSectionView`, `UserProfileFieldRow`: "Non renseigné" for an empty value, a field link opens outside) | `ProfileFieldRow` |
+| `UserProfileView.swift:26-31, 54-86` (`UserProfileAction.systemImage`, summary titles and symbols) | `UserProfileAction.Kind.symbol`, `UserProfileSummaryItem.Kind.shortTitle` / `.symbol` (LOT-027 difference 2) |
+| `HFRswift/Swift/MessagesView.swift:3578-3608, 4352-4354` (`openProfile`, `userProfileQuickActions`: sheet from the avatar / message actions, MP hidden for one's own message) | entry from a reader link (below); the avatar and message menu entry is LOT-087's |
 | `Classes/OnlineMessagesTableViewController.m:1917-1918, 1953-1964` (a tapped `forum.hardware.fr/hfr/profil-<n>.htm` link opens `ProfilViewController` as a form sheet) | `ReaderLinkAction.profile(memberID:)` → `UserProfileView` sheet |
 | `Classes/ProfilViewController.m` (the older Objective-C screen, same page) | replaced by the same screen |
 

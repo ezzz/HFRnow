@@ -57,6 +57,19 @@ struct UserProfileModelTests {
         #expect(source.requests == [910_001, 910_001])
     }
 
+    /// Every finished load, failed or not, bumps the generation the images key their task on: a reload retries a failed image.
+    @Test func everyFinishedLoadBumpsTheImageGeneration() async throws {
+        let profile = try Self.captured("R56a-profile-operator-anon.html")
+        let model = UserProfileModel(memberID: 910_001, source: FakeUserProfiles([.success(profile), .failure(.offline), .success(profile)]))
+        #expect(model.loadGeneration == 0)
+        await model.onAppear()
+        #expect(model.loadGeneration == 1)
+        await model.reload()
+        #expect(model.loadGeneration == 2)
+        await model.reload()
+        #expect(model.loadGeneration == 3)
+    }
+
     /// A failed reload keeps the profile on screen with the error (banner).
     @Test func aFailedReloadKeepsTheProfile() async throws {
         let profile = try Self.captured("R56a-profile-operator-anon.html")
