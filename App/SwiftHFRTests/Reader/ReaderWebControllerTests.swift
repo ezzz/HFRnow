@@ -40,6 +40,28 @@ struct ReaderWebControllerTests: ReaderWebTesting {
         #expect(controller.webView.url == ReaderWebController.pageURL(token: 1))
     }
 
+    @Test func aVideoPlaceholderRequestsNothingFromTheProviderUntilTapped() async throws {
+        let source = try #require(URL(string: "https://www.youtube.com/watch?v=abc"))
+        let player = try #require(URL(string: "https://www.youtube.com/embed/abc"))
+        let embed = MessageEmbed(provider: .youtube, sourceURL: source, embedURL: player)
+        let transport = imageTransport()
+        let (controller, recorder) = makeController(transport: transport)
+        controller.show(document(token: 1, content: "<p>vidéo</p>", embeds: [embed]))
+        #expect(await until { recorder.ready == [1] }, "ready: \(recorder.ready)")
+        #expect(await settled(controller))
+        let frames = try await evaluate("return document.querySelectorAll('iframe').length;", in: controller)
+        #expect((frames as? NSNumber)?.intValue == 0)
+        let hosts = await transport.requests.compactMap { $0.url.host() } + controller.imageRequests.compactMap { $0.requested.host() }
+        #expect(!hosts.contains { $0.contains("youtube") })
+        #expect(controller.webView.url == ReaderWebController.pageURL(token: 1))
+        #expect(recorder.videos.isEmpty)
+
+        _ = try await evaluate("document.querySelector('button.video').click(); return true;", in: controller)
+        #expect(await until { recorder.videos == [[7, 0, 1]] }, "videos: \(recorder.videos)")
+        // The tap only reports the video: the reader itself still loads no provider page.
+        #expect(controller.webView.url == ReaderWebController.pageURL(token: 1))
+    }
+
     @Test func theStylesheetLoadsAndASpoilerOpensOnTap() async throws {
         let (controller, recorder) = makeController(transport: imageTransport())
         controller.show(document(token: 1))

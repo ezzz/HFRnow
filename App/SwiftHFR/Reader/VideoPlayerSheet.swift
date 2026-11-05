@@ -1,3 +1,6 @@
+// Port of HFRswift/Wrapped/LinkItem.m (iframe builder, :148-158) and Wrapped/ParseMessagesOperation.m (:238-300) @ 2440d79.
+// Differences: no auto-loaded iframe, a placeholder opens this sheet on tap (GAP-058, LOT-071 D-071-2, LOT-108); the
+// "open in browser" fallback is new, on the original link (LOT-108).
 import HFRModels
 import SwiftUI
 import WebKit
@@ -10,6 +13,7 @@ import WebKit
 struct VideoPlayerSheet: View {
     let embed: MessageEmbed
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         NavigationStack {
@@ -17,13 +21,21 @@ struct VideoPlayerSheet: View {
                 if let url = VideoPlayerSheet.playerURL(for: embed) {
                     PlayerWebView(url: url)
                 } else {
-                    ContentUnavailableView("Vidéo indisponible", systemImage: "play.slash")
+                    ContentUnavailableView(
+                        "Vidéo indisponible", systemImage: "play.slash",
+                        description: Text("Le lecteur ne peut pas être chargé ici. Ouvrez la vidéo dans le navigateur.")
+                    )
                 }
             }
             .navigationTitle("Vidéo \(TopicHTMLBuilder.providerName(embed.provider))")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Fermer") { dismiss() } }
+                if let link = VideoPlayerSheet.fallbackURL(for: embed) {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button("Ouvrir dans le navigateur", systemImage: "safari") { openURL(link) }
+                    }
+                }
             }
         }
     }
@@ -35,6 +47,13 @@ struct VideoPlayerSheet: View {
         case .vimeo: ["player.vimeo.com"]
         case .streamable: ["streamable.com"]
         }
+    }
+
+    /// The original link the member posted, for "open in browser": `http` or `https` only, nothing else goes to the system.
+    static func fallbackURL(for embed: MessageEmbed) -> URL? {
+        guard let scheme = embed.sourceURL.scheme?.lowercased(), scheme == "https" || scheme == "http",
+              embed.sourceURL.host() != nil else { return nil }
+        return embed.sourceURL
     }
 
     /// The embed URL when it is `https` on one of its provider's hosts; nil otherwise.
