@@ -17,16 +17,14 @@ enum PollMessages {
             "Ce sondage n’accepte plus de vote."
         case .unsupportedPoll:
             "Ce type de sondage n’est pas encore pris en charge : votez depuis le site. Rien n’a été envoyé."
-        case .invalidChoice:
-            "Choisissez une réponse du sondage. Rien n’a été envoyé."
+        case .invalidChoice, .missingToken:
+            "Choisissez une réponse ou actualisez le sujet, puis réessayez. Rien n’a été envoyé."
         case .sessionNotConfirmed(let health):
             session(health)
         case .loginChanged:
-            "Le compte connecté a changé : rien n’a été envoyé. Votez à nouveau."
+            session(.unconfirmed(.sessionChanged))
         case .notLoggedIn:
             "Le forum vous considère comme déconnecté : le vote n’a pas été compté. Reconnectez-vous depuis le menu Comptes, puis votez."
-        case .missingToken:
-            "La session n’est pas prête : rien n’a été envoyé. Actualisez le sujet puis réessayez."
         case .alreadyVoted:
             "Vous avez déjà voté à ce sondage (ou un de vos pseudos liés)."
         case .rejected(let message):
