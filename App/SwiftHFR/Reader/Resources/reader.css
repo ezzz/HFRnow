@@ -35,6 +35,12 @@ a { color: var(--action); }
 .message .avatar { width: 2.2em; height: 2.2em; border-radius: 50%; object-fit: cover; }
 .message .author { font-weight: 600; }
 .message .date { color: var(--secondary); font-size: 0.85em; margin-left: auto; }
+/* Message style (`theme_style`, LOT-106; legacy MessagesView.swift:1363-1400 @ 2440d79, ObjCTopicHTMLRenderer.m:83): modern
+   (default) tints the header with the accent at 3 %, classic at 15 % and adds the 8 px content padding legacy gave it. */
+.style-modern .message .header { background: color-mix(in srgb, var(--action) 3%, transparent); }
+.style-classic .message .header { background: color-mix(in srgb, var(--action) 15%, transparent); }
+.style-modern .message .content { padding-top: 0; }
+.style-classic .message .content { padding-top: 8px; }
 .continuation { opacity: 0.75; }
 .continuation-note, .deleted-note, .trailer { color: var(--secondary); font-size: 0.85em; }
 .trailer p { margin: 0.25em 0 0; }

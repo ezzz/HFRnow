@@ -1,3 +1,4 @@
+import Combine
 import HFRModels
 import SafariServices
 import SwiftUI
@@ -22,6 +23,7 @@ struct TopicReaderView: View {
                 ReaderWebView(controller: controller, document: model.document, scrollRequest: model.scrollRequest)
                     .opacity(model.hasShownDocument ? 1 : 0)
                     .accessibilityHidden(!model.hasShownDocument)
+                    .simultaneousGesture(pageSwipe)
             }
             overlay
         }
@@ -54,6 +56,10 @@ struct TopicReaderView: View {
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
         .onAppear(perform: makeController)
+        // The settings screen writes `UserDefaults`: a display setting changed there reaches the open reader at once.
+        .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification).receive(on: RunLoop.main)) { _ in
+            model.applyDisplaySettings()
+        }
         .task { await model.onAppear() }
         .onDisappear {
             model.cancel()
@@ -79,6 +85,19 @@ struct TopicReaderView: View {
             }
         } else if !model.hasShownDocument {
             ProgressView("Chargement des messages")
+        }
+    }
+
+    /// The legacy horizontal drag that changes the page, when the setting is on (read at the end of each drag).
+    private var pageSwipe: some Gesture {
+        DragGesture().onEnded { value in
+            guard services.settings.swipesPages(), let page = model.page,
+                  let swipe = PageSwipe.of(
+                      translation: value.translation, predictedEnd: value.predictedEndTranslation,
+                      page: page.currentPage, maxPage: page.maxPage
+                  )
+            else { return }
+            Task { await model.swipe(swipe) }
         }
     }
 

@@ -27,10 +27,12 @@ enum SettingsDestination: Hashable {
 /// The settings screen (LOT-119): the "Général" section and the entry points of the sections other lots fill in.
 struct SettingsView: View {
     @State private var general: GeneralSettingsModel
+    @State private var topics: TopicsSettingsModel
 
     /// Reads the settings from `store`; the live app re-applies the orientation when the rotation switch changes.
     init(store: any SettingsStore = UserDefaultsSettingsStore(), rotationChanged: @escaping @MainActor () -> Void = {}) {
         _general = State(initialValue: GeneralSettingsModel(store: store, rotationChanged: rotationChanged))
+        _topics = State(initialValue: TopicsSettingsModel(store: store))
     }
 
     var body: some View {
@@ -69,6 +71,13 @@ struct SettingsView: View {
                 NavigationLink(value: SettingsDestination.theme) {
                     Text(SettingsDestination.theme.title)
                 }
+            }
+            Section("Sujets") {
+                Picker("Style des messages", selection: $topics.messageStyle) {
+                    ForEach(ThemeStyle.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
+                Toggle("Afficher les signatures", isOn: $topics.showsSignatures)
+                Toggle("Swipe changement de page", isOn: $topics.swipesPages)
             }
         }
         .listSectionSpacing(general.compactMode ? .custom(8) : .default)
