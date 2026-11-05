@@ -73,6 +73,11 @@ final class ReplyComposerModel: Identifiable {
     /// Closing asks whether to keep the draft (swiping the sheet down is blocked meanwhile, so it never loses the text).
     var closeNeedsChoice: Bool { hasText }
 
+    /// What the smiley picker needs: the favourites store and the account key.
+    var smileyServices: (store: AppSmileyFavoritesStore, account: String)? {
+        (services.smileyFavorites, services.account)
+    }
+
     /// The editor accepts typing.
     var canEdit: Bool { hasRestored && !isSending && !isClosing && closeReason == nil }
 
@@ -103,6 +108,15 @@ final class ReplyComposerModel: Identifiable {
         errorMessage = nil
         mayHavePosted = false
         scheduleAutosave()
+    }
+
+    /// Inserts the smiley `code` over `selection` (the end of the text when nil), as legacy did (LOT-104). Returns the
+    /// caret's UTF-16 offset in the new text, nil when the editor does not accept typing (nothing changed).
+    func insert(smiley code: String, replacing selection: Range<String.Index>?) -> Int? {
+        guard canEdit else { return nil }
+        let result = SmileyInsertion.insert(code, into: text, replacing: selection)
+        update(text: result.text)
+        return result.caretUTF16Offset
     }
 
     /// Sends the reply. Characters HFR would cut the message at are refused first (Q-3), with nothing requested.

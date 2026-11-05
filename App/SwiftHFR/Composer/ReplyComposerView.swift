@@ -11,6 +11,8 @@ struct ReplyComposerView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @FocusState private var editorFocused: Bool
+    @State private var selection: TextSelection?
+    @State private var picker: SmileyPickerModel?
 
     var body: some View {
         NavigationStack {
@@ -44,6 +46,9 @@ struct ReplyComposerView: View {
             }
         }
         // Swiping down would close without the choice: blocked while there is text or a send runs.
+        .sheet(item: $picker, onDismiss: { editorFocused = true }) { picker in
+            SmileyPickerView(model: picker) { insertSmiley($0) }
+        }
         .interactiveDismissDisabled(model.closeNeedsChoice || model.isSending)
         .task {
             await model.start()
@@ -67,8 +72,26 @@ struct ReplyComposerView: View {
         Binding(get: { model.isAskingClose }, set: { model.isAskingClose = $0 })
     }
 
+    /// The selected range of the editor, nil without a selection or with several (multi-selection is not used here).
+    private var selectedRange: Range<String.Index>? {
+        guard case .selection(let range)? = selection?.indices else { return nil }
+        return range
+    }
+
+    private func openSmileys() {
+        guard let services = model.smileyServices else { return }
+        picker = SmileyPickerModel(
+            catalogue: SmileyPickerModel.bundledCatalogue(), store: services.store, account: services.account
+        )
+    }
+
+    private func insertSmiley(_ code: String) {
+        guard let caret = model.insert(smiley: code, replacing: selectedRange) else { return }
+        selection = TextSelection(insertionPoint: String.Index(utf16Offset: caret, in: model.text))
+    }
+
     private var editor: some View {
-        TextEditor(text: Binding(get: { model.text }, set: { model.update(text: $0) }))
+        TextEditor(text: Binding(get: { model.text }, set: { model.update(text: $0) }), selection: $selection)
             .focused($editorFocused)
             .font(.body)
             .disabled(!model.canEdit)
@@ -81,6 +104,11 @@ struct ReplyComposerView: View {
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
+        ToolbarItemGroup(placement: .keyboard) {
+            Button("Smileys", systemImage: "face.smiling", action: openSmileys)
+                .disabled(!model.canEdit)
+            Spacer()
+        }
         ToolbarItem(placement: .cancellationAction) {
             Button("Annuler") { Task { await model.requestClose() } }
             .disabled(model.isSending)

@@ -49,6 +49,15 @@ struct ComposerServices: Sendable {
     let drafts: DraftStore
     /// The current account's key (`md_user` value), which scopes its drafts.
     let account: String
+    /// The smiley favourites of every account (LOT-064), read by the smiley picker (LOT-104); not touched until it opens.
+    var smileyFavorites: AppSmileyFavoritesStore = liveSmileyFavorites
+
+    /// The single store of the app's smiley favourites (one actor per file), `Application Support/SmileyFavorites/`.
+    static let liveSmileyFavorites = AppSmileyFavoritesStore(
+        persistence: FileSmallStorePersistence(
+            fileURL: URL.applicationSupportDirectory.appending(path: "SmileyFavorites/favorites.json")
+        )
+    )
 
     /// The single draft store of the app: one actor per file, so two stores never write it at once.
     static let liveDrafts = DraftStore(

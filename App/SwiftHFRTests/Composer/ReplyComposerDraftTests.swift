@@ -235,3 +235,26 @@ struct ReplyComposerDraftTests {
         #expect(composer.canSend)
     }
 }
+
+/// A smiley chosen in the picker goes into the text like typing (LOT-104): draft saved, refused while the editor is not ready.
+@MainActor
+struct ReplyComposerSmileyTests {
+    @Test func aSmileyIsInsertedOverTheSelectionAndSavedAsDraft() async {
+        let drafts = DraftStore(persistence: InMemoryDraftPersistence())
+        let composer = ComposerFixture.model(poster: ScriptedPoster([]), drafts: drafts, autosaveDelay: .milliseconds(1))
+        await composer.start()
+        composer.update(text: "Salut toi")
+        let caret = composer.text.index(composer.text.startIndex, offsetBy: 5)
+        let offset = composer.insert(smiley: ":)", replacing: caret..<caret)
+        #expect(composer.text == "Salut  :) toi")
+        #expect(offset == 9)
+        await composer.waitForAutosave()
+        #expect(await ComposerFixture.storedText(drafts) == "Salut  :) toi")
+    }
+
+    @Test func aSmileyIsNotInsertedBeforeTheDraftIsRead() {
+        let composer = ComposerFixture.model(poster: ScriptedPoster([]))
+        #expect(composer.insert(smiley: ":)", replacing: nil) == nil)
+        #expect(composer.text.isEmpty)
+    }
+}
