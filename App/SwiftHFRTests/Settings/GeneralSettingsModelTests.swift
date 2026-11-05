@@ -122,7 +122,11 @@ struct GeneralSettingsModelTests {
 
     @Test func privateHostsStayBlockedWhateverTheSetting() throws {
         let url = try #require(URL(string: "http://192.168.1.1/a.png"))
-        for auto in [true, false] {
+        let store = InMemorySettingsStore()
+        let model = GeneralSettingsModel(store: store)
+        for mode in ImageDisplayMode.allCases {
+            model.imageLoading = mode
+            let auto = ReaderSettings.live(store: store, isOnWiFi: { true }).autoLoadsThirdPartyImages()
             #expect(ImageDecision(origin: ImagePolicy.classify(url), autoLoadsThirdParty: auto, tapped: true) == .block)
         }
     }

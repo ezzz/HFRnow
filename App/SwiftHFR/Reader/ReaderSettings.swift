@@ -2,8 +2,8 @@ import Foundation
 import HFRModels
 import HFRStorage
 
-/// The settings the reader reads, each time it needs them (no settings screen yet: FEAT-011 and the signature switch
-/// come later; a value stored by them, or migrated from legacy, is honoured).
+/// The settings the reader reads, each time it needs them (the image mode is set in Réglages by
+/// `GeneralSettingsModel.imageLoading`, LOT-107; a value stored there, or migrated from legacy, is honoured).
 struct ReaderSettings: Sendable {
     /// Whether third-party images load without a tap right now.
     let autoLoadsThirdPartyImages: @Sendable () -> Bool

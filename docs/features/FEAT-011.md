@@ -11,7 +11,7 @@ The reader chooses when third-party images load: always, on Wi-Fi only, or never
 - Wi-Fi uniquement: automatic on unmetered Wi-Fi or Ethernet; on tap on cellular, expensive or Low Data Mode paths, or offline.
 - Jamais: nothing third-party is requested before a tap on the placeholder (legacy `no`, kept as tap-to-load by LOT-083).
 - HFR's own images (smileys, avatars, `forum-images.hardware.fr`) always load. Private/LAN/malformed hosts stay blocked whatever the setting or a tap (policy C, D-071-1 point 1).
-- A change applies to the next page opened (the reader reads the store per page and per image request).
+- A change applies to the next page opened; images of an already open page that are not requested yet follow the new value (the reader reads the store per page and per image request).
 - Light, dark, Dynamic Type XL, iPad: a standard `Picker` row, no custom layout.
 
 ## HFR facts

@@ -45,8 +45,8 @@ final class GeneralSettingsModel {
             if minimizesTabBarOnScroll != oldValue { store.set(minimizesTabBarOnScroll, for: SettingKey.tabBarMinimizesOnScroll) }
         }
     }
-    /// When third-party images load (`display_images`, FEAT-011): the reader reads the store on every page, so a change
-    /// applies to the next page opened. HFR's own images and the always-blocked hosts are unaffected (policy C).
+    /// When third-party images load (`display_images`, FEAT-011): the reader reads the store on every page and image
+    /// request, so a change applies to the next page (images of an open page not yet requested follow it). HFR's own images and the always-blocked hosts are unaffected (policy C).
     var imageLoading: ImageDisplayMode {
         didSet { if imageLoading != oldValue { store.set(imageLoading, for: SettingKey.displayImages) } }
     }
