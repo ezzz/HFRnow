@@ -62,7 +62,9 @@ struct ReplyTextInsertionEngineTests {
     }
 
     @Test func urlWithoutSelectionFallsBackToEmptyTags() {
-        let result = ReplyTextInsertionEngine.wrapSelectionWithURL("https://e.org", in: "a", selectedUTF16Range: NSRange(location: 1, length: 0))
+        let result = ReplyTextInsertionEngine.wrapSelectionWithURL(
+            "https://e.org", in: "a", selectedUTF16Range: NSRange(location: 1, length: 0)
+        )
         #expect(result.text == "a[url][/url]")
         #expect(result.cursorLocationUTF16 == 6)
     }

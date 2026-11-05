@@ -12,12 +12,12 @@ protocol ClipboardReading {
     var string: String? { get }
 }
 
+// Port of HFRswift/Swift/AnswerView.swift (performFormatting, PendingClipboardInsertion, clipboard*Candidate)
+// @ origin/master 21173e7. Differences: a model instead of view @State, the pasteboard behind `ClipboardReading`.
 /// State of the formatting toolbar (LOT-085): the caret, the colour palette and the clipboard confirmation.
 ///
 /// It edits the text of a `ReplyComposerModel` through `ReplyTextInsertionEngine` and always says where the caret goes
 /// (`cursorRevision` changes on every edit), so the editor never jumps to the end.
-// Port of HFRswift/Swift/AnswerView.swift (performFormatting, PendingClipboardInsertion, clipboard*Candidate)
-// @ origin/master 21173e7. Differences: a model instead of view @State, the pasteboard behind `ClipboardReading`.
 @MainActor
 @Observable
 final class ComposerFormattingModel {
