@@ -217,6 +217,7 @@ final class FilteredPostsModel {
         topic: TopicID, page: Int, after message: Int?, run id: Int
     ) async -> Result<FilteredPostsResult?, FilteredPostsError> {
         let services = self.services
+        await services.prepare()
         let criteria = services.criteria()
         do throws(FilteredPostsError) {
             let batch = try await services.source.batch(in: topic, from: page, after: message, criteria: criteria) { [weak self] progress in

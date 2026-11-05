@@ -97,6 +97,13 @@ struct VisibilityPolicy: Equatable, Sendable {
 struct PseudoLists: Equatable, Sendable {
     var blocklist: [String] = []
     var allowlist: [String] = []
+
+    /// The allowlist without the pseudos that are blocklisted: legacy's `isWL:` refuses a blocklisted pseudo
+    /// (`BlackList.m:119-122`); what the post filter's criteria take (`FilteredPostsCriteria.allowlist`).
+    var allowlistWithoutBlocked: [String] {
+        let blocked = Set(blocklist.map(PseudoNormalizer.comparisonForm))
+        return allowlist.filter { !blocked.contains(PseudoNormalizer.comparisonForm($0)) }
+    }
 }
 
 /// Adds the visibility class tokens to the quote tables of a message's content.

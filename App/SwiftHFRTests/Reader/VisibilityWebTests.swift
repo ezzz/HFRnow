@@ -29,11 +29,11 @@ struct VisibilityWebTests: ReaderWebTesting {
     }
 
     private func show(
-        _ messages: [ReaderMessage], policy: VisibilityPolicy
+        _ messages: [ReaderMessage], policy: VisibilityPolicy, showsSignatures: Bool = false
     ) async -> (ReaderWebController, ReaderWebRecorder) {
         let (controller, recorder) = makeController(transport: imageTransport())
         let page = ReaderPage(topicID: readerTopic, title: "Titre", currentPage: 1, maxPage: 1, messages: messages)
-        let options = ReaderRenderOptions(visibility: policy)
+        let options = ReaderRenderOptions(showsSignatures: showsSignatures, visibility: policy)
         controller.show(ReaderDocument(
             token: 1, html: TopicHTMLBuilder.document(for: page, token: 1, options: options), anchor: nil, keepsScrollPosition: false
         ))
@@ -80,6 +80,17 @@ struct VisibilityWebTests: ReaderWebTesting {
         #expect(stillOpen as? Bool == true)
         _ = try await evaluate("document.querySelector('table.quote-blocked b.s1').click(); return true;", controller)
         #expect(try await evaluate(state, controller) as? [Bool] == [true, false, false, false])
+        // The header line is the control: a tap at its right end, away from the link and the arrow glyph, opens and closes it.
+        let hit = """
+            const quote = document.querySelector('table.quote-blocked');
+            const rect = quote.querySelector('b.s1').getBoundingClientRect();
+            const target = document.elementFromPoint(rect.right - 3, rect.top + rect.height / 2);
+            const isHeader = target === quote.querySelector('b.s1');
+            target.click();
+            return [isHeader, quote.classList.contains('open')];
+            """
+        #expect(try await evaluate(hit, controller) as? [Bool] == [true, true])
+        #expect(try await evaluate(hit, controller) as? [Bool] == [true, false])
     }
 
     @Test func aQuoteInsideABlockedQuoteHasNoArrowAndKeepsItsOwnHeader() async throws {
@@ -114,6 +125,34 @@ struct VisibilityWebTests: ReaderWebTesting {
         #expect((nested?[4] as? String)?.contains("\u{25B2}") == true)
     }
 
+    /// A quote of R26's shape (one row, one cell) with text outside any element after the header, which no selector can hide.
+    @Test func looseTextOfACollapsedQuoteTakesNoSpaceAndTheCellKeepsItsPadding() async throws {
+        let quote = "<table class=\"citation\"><tr class=\"none\"><td><b class=\"s1\">"
+            + "<a class=\"Topic\" href=\"/x#t1\">user4 a écrit :</a></b>"
+            + "<br /><br />texte libre <i>en italique</i><p>paragraphe</p> et la suite du texte libre</td></tr></table>"
+        let message = ReaderMessage(
+            numreponse: 1, author: "auteur", isDeleted: false, isContinuation: false, avatarURL: nil, dateText: "27-10-2026 10:00:00",
+            editNote: nil, quotedByCount: nil, content: MessageContent(html: quote), quotes: [MessageQuote(author: "user4", depth: 1)]
+        )
+        let (controller, _) = await show([message], policy: VisibilityPolicy(blocklist: ["user4"]))
+        let measure = """
+            const cell = document.querySelector('table.quote-blocked td');
+            const header = cell.querySelector('b.s1');
+            const padding = parseFloat(getComputedStyle(cell).paddingTop);
+            return [cell.getBoundingClientRect().height - header.getBoundingClientRect().height - 2 * padding, padding,
+                    header.getBoundingClientRect().top - cell.getBoundingClientRect().top];
+            """
+        let collapsed = try #require(try await evaluate(measure, controller) as? [Double])
+        #expect(abs(collapsed[0]) < 2) // nothing but the header and the padding: the loose text takes no line
+        #expect(collapsed[1] > 4)
+        _ = try await evaluate("document.querySelector('table.quote-blocked b.s1').click(); return true;", controller)
+        let open = try #require(try await evaluate(measure, controller) as? [Double])
+        #expect(open[0] > 20) // the loose text and the paragraph are there again
+        // No jump: same padding, and the header stays where it was.
+        #expect(abs(open[1] - collapsed[1]) < 1)
+        #expect(abs(open[2] - collapsed[2]) < 1)
+    }
+
     // MARK: Messages
 
     @Test func theQuoteOfMeAndOfAnAllowlistedAuthorStayOpenAndTinted() async throws {
@@ -125,12 +164,16 @@ struct VisibilityWebTests: ReaderWebTesting {
             const probe = document.createElement('span');
             probe.style.color = 'var(--action)';
             document.body.append(probe);
+            const mix = document.createElement('span');
+            mix.style.backgroundColor = 'color-mix(in srgb, var(--action) 3%, transparent)';
+            document.body.append(mix);
             const style = getComputedStyle(document.querySelector('table.quote-me'));
-            return [style.backgroundColor, style.borderLeftWidth, style.borderLeftColor, getComputedStyle(probe).color,
+            return [style.backgroundColor === getComputedStyle(mix).backgroundColor, style.borderLeftWidth,
+                    style.borderLeftColor, getComputedStyle(probe).color,
                     document.querySelector('table.quote-me p').checkVisibility()];
             """, controller
         ) as? [Any]
-        #expect((quote?[0] as? String)?.contains("0.03") == true, "\(String(describing: quote?[0]))")
+        #expect(quote?[0] as? Bool == true)
         #expect(quote?[1] as? String == "2px")
         #expect(quote?[2] as? String == quote?[3] as? String)
         #expect(quote?[4] as? Bool == true)
@@ -144,13 +187,17 @@ struct VisibilityWebTests: ReaderWebTesting {
             const probe = document.createElement('span');
             probe.style.color = 'var(--love-border)';
             document.body.append(probe);
+            const mix = document.createElement('span');
+            mix.style.backgroundColor = 'color-mix(in srgb, var(--love) 30%, transparent)';
+            document.body.append(mix);
             const style = getComputedStyle(document.querySelector('table.quote-allowed'));
-            return [style.backgroundColor, style.borderLeftWidth, style.borderLeftColor, getComputedStyle(probe).color,
+            return [style.backgroundColor === getComputedStyle(mix).backgroundColor, style.borderLeftWidth,
+                    style.borderLeftColor, getComputedStyle(probe).color,
                     document.querySelector('table.quote-allowed p').checkVisibility(),
                     document.querySelectorAll('table.quote-me, table.quote-blocked').length];
             """, controller
         ) as? [Any]
-        #expect((quote?[0] as? String)?.contains("0.3") == true, "\(String(describing: quote?[0]))")
+        #expect(quote?[0] as? Bool == true)
         #expect(quote?[1] as? String == "2px")
         #expect(quote?[2] as? String == quote?[3] as? String)
         #expect(quote?[4] as? Bool == true)
@@ -178,28 +225,35 @@ struct VisibilityWebTests: ReaderWebTesting {
             """
             const probe = (value) => { const span = document.createElement('span'); span.style.color = value;
               document.body.append(span); return getComputedStyle(span).color; };
+            const mixed = (name, percent) => { const span = document.createElement('span');
+              span.style.backgroundColor = `color-mix(in srgb, var(${name}) ${percent}%, transparent)`;
+              document.body.append(span); return getComputedStyle(span).backgroundColor; };
             const style = (selector, part) => getComputedStyle(document.querySelector('article' + selector + ' ' + part));
             return {
               actionColor: probe('var(--action)'), loveBorder: probe('var(--love-border)'),
-              meContent: [style('.me', '.content').backgroundColor, style('.me', '.content').borderLeftColor],
+              meContent: [style('.me', '.content').backgroundColor === mixed('--action', 3), style('.me', '.content').borderLeftColor],
               meHeader: [style('.me', '.header').borderLeftWidth, style('.me', '.header').borderLeftColor],
               meAvatar: [style('.me', '.avatar').borderLeftWidth, style('.me', '.avatar').borderLeftColor],
               loveAvatar: [style('.whitelist', '.avatar').borderLeftWidth, style('.whitelist', '.avatar').borderLeftColor],
-              loveContent: [style('.whitelist', '.content').backgroundColor, style('.whitelist', '.content').borderLeftColor],
-              loveHeader: [style('.whitelist', '.header').backgroundColor, style('.whitelist', '.header').borderLeftColor],
+              loveContent: [style('.whitelist', '.content').backgroundColor === mixed('--love', 40),
+                style('.whitelist', '.content').borderLeftColor],
+              loveHeader: [style('.whitelist', '.header').backgroundColor === mixed('--love', 40),
+                style('.whitelist', '.header').borderLeftColor],
+              meHeaderTint: style('.me', '.header').backgroundColor === mixed('--action', 3),
               plainContent: style(':not(.me):not(.whitelist):not(.blocked)', '.content').borderLeftWidth
             };
             """, controller
         ) as? [String: Any]
         let action = tints?["actionColor"] as? String
         let love = tints?["loveBorder"] as? String
-        #expect((tints?["meContent"] as? [String])?.first?.contains("0.03") == true)
-        #expect((tints?["meContent"] as? [String])?.last == action)
+        #expect((tints?["meContent"] as? [Any])?.first as? Bool == true)
+        #expect((tints?["meContent"] as? [Any])?.last as? String == action)
+        #expect(tints?["meHeaderTint"] as? Bool == true)
         #expect((tints?["meHeader"] as? [String]) == ["2px", action ?? ""])
-        #expect((tints?["loveContent"] as? [String])?.first?.contains("0.4") == true)
-        #expect((tints?["loveContent"] as? [String])?.last == love)
-        #expect((tints?["loveHeader"] as? [String])?.first?.contains("0.4") == true)
-        #expect((tints?["loveHeader"] as? [String])?.last == love)
+        #expect((tints?["loveContent"] as? [Any])?.first as? Bool == true)
+        #expect((tints?["loveContent"] as? [Any])?.last as? String == love)
+        #expect((tints?["loveHeader"] as? [Any])?.first as? Bool == true)
+        #expect((tints?["loveHeader"] as? [Any])?.last as? String == love)
         #expect((tints?["meAvatar"] as? [String]) == ["2px", action ?? ""])
         #expect((tints?["loveAvatar"] as? [String]) == ["2px", love ?? ""])
         #expect(tints?["plainContent"] as? String == "0px")
@@ -209,19 +263,21 @@ struct VisibilityWebTests: ReaderWebTesting {
         let policy = VisibilityPolicy(blocklist: ["Troll"])
         var message = plain("Troll", 1)
         message.editNote = "Troll le 27-10-2026"
-        let (controller, _) = await show([message], policy: policy)
+        message.content.signatureHTML = "<i>signature</i>"
+        let (controller, _) = await show([message], policy: policy, showsSignatures: true)
         _ = try await evaluate("document.querySelector('article.blocked summary').click(); return true;", controller)
         let layout = try await evaluate(
             """
             const open = document.querySelector('.blocked-post');
             const left = (element) => element.getBoundingClientRect().left - open.getBoundingClientRect().left;
-            return [left(open.querySelector('.header')), left(open.querySelector('.content')), left(open.querySelector('.trailer')),
+            return [left(open.querySelector('.header')), left(open.querySelector('.content')),
+                    left(open.querySelector('.trailer')), left(open.querySelector('.signature')),
                     parseFloat(getComputedStyle(open).paddingBottom)];
             """, controller
         ) as? [Double]
         let measured = try #require(layout)
-        #expect(measured.prefix(3).allSatisfy { $0 > 8 })
-        #expect(measured[3] > 4)
+        #expect(measured.prefix(4).allSatisfy { $0 > 8 })
+        #expect(measured[4] > 4)
     }
 
     @Test func hidingThePseudoRemovesItFromTheCollapsedLine() async throws {
