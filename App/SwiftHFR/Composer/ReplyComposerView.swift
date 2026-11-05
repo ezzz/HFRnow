@@ -63,11 +63,11 @@ struct ReplyComposerView: View {
             .alert("Utiliser le presse-papiers ?", isPresented: askingClipboard, presenting: formatting.pending) { pending in
                 switch pending {
                 case .link:
-                    Button("Non", role: .cancel) { formatting.declinePending(pending) }
-                    Button("Oui") { formatting.acceptPending(pending) }
+                    Button("Non", role: .cancel) { formatting.declinePending(pending); focused = .text }
+                    Button("Oui") { formatting.acceptPending(pending); focused = .text }
                 case .formatting:
-                    Button("Sans le presse-papiers", role: .cancel) { formatting.declinePending(pending) }
-                    Button("Insérer") { formatting.acceptPending(pending) }
+                    Button("Sans le presse-papiers", role: .cancel) { formatting.declinePending(pending); focused = .text }
+                    Button("Insérer") { formatting.acceptPending(pending); focused = .text }
                 }
             } message: { pending in
                 Text(pending.message)
@@ -167,8 +167,8 @@ struct ReplyComposerView: View {
                 // The edit already changed the text: place the caret where the engine says, never at the end.
                 let text = model.text
                 let offset = min(formatting.selectedRange.location, text.utf16.count)
+                // Focus is not taken here: `start()` places the caret too, and a new message opens on its recipient field.
                 selection = TextSelection(insertionPoint: String.Index(utf16Offset: offset, in: text))
-                focused = .text
             }
     }
 
