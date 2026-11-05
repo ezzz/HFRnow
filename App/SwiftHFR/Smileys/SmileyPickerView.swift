@@ -55,7 +55,12 @@ struct SmileyPickerView: View {
         .task(id: model.notice) {
             guard let notice = model.notice else { return }
             AccessibilityNotification.Announcement(notice).post()
-            try? await Task.sleep(for: .seconds(2.5))
+            do {
+                try await Task.sleep(for: .seconds(2.5))
+            } catch {
+                // A newer notice replaced this one: its own timer clears it.
+                return
+            }
             model.clearNotice()
         }
         .onChange(of: model.chosen) { _, chosen in

@@ -15,9 +15,16 @@ struct SmileyImageLoader: Sendable {
         let storage: NSCache<NSURL, UIImage> = {
             let cache = NSCache<NSURL, UIImage>()
             cache.countLimit = 400
+            cache.totalCostLimit = maximumCacheBytes
             return cache
         }()
     }
+
+    /// Decoded memory the cache may hold; each entry costs its frames' pixels, not one count.
+    private static let maximumCacheBytes = 48 * 1024 * 1024
+    /// Most decoded pixels (all frames) one animation may take: a larger GIF is shown as its first frame only, so a
+    /// download within the fetcher's size cap cannot expand into hundreds of MB of frames.
+    static let maximumAnimationPixels = 4_000_000
 
     private static let shared = Cache()
 
@@ -38,7 +45,7 @@ struct SmileyImageLoader: Sendable {
         if let cached = Self.cached(url) { return cached }
         guard let (data, _) = try? await fetcher.image(at: url, allowsThirdParty: false),
               !Task.isCancelled, let image = Self.decode(data) else { return nil }
-        Self.shared.storage.setObject(image, forKey: url as NSURL)
+        Self.shared.storage.setObject(image, forKey: url as NSURL, cost: cost(of: image))
         return image
     }
 
@@ -46,7 +53,7 @@ struct SmileyImageLoader: Sendable {
     static func decode(_ data: Data) -> UIImage? {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return UIImage(data: data) }
         let count = CGImageSourceGetCount(source)
-        guard count > 1 else { return UIImage(data: data) }
+        guard count > 1, pixelCount(of: source) * count <= maximumAnimationPixels else { return UIImage(data: data) }
         var frames: [UIImage] = []
         var duration = 0.0
         for index in 0..<count {
@@ -57,6 +64,20 @@ struct SmileyImageLoader: Sendable {
         guard !frames.isEmpty else { return UIImage(data: data) }
         if duration <= 0 { duration = Double(frames.count) * 0.1 }
         return UIImage.animatedImage(with: frames, duration: duration)
+    }
+
+    /// Pixels of the first frame (0 when unreadable, which keeps the animation out: callers compare a product).
+    private static func pixelCount(of source: CGImageSource) -> Int {
+        guard let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+              let width = properties[kCGImagePropertyPixelWidth] as? Int,
+              let height = properties[kCGImagePropertyPixelHeight] as? Int else { return Int.max / 4096 }
+        return width * height
+    }
+
+    /// Bytes an image holds once decoded (4 per pixel, every frame).
+    private static func cost(of image: UIImage) -> Int {
+        let frames = max(image.images?.count ?? 1, 1)
+        return Int(image.size.width * image.scale * image.size.height * image.scale) * 4 * frames
     }
 
     /// A frame's delay in seconds; 0.1 s when missing or under 0.011 s, as browsers and legacy do.
