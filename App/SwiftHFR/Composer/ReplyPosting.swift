@@ -102,6 +102,8 @@ struct ComposerServices: Sendable {
     let drafts: DraftStore
     /// The current account's key (`md_user` value), which scopes its drafts.
     let account: String
+    /// Votes in the current account's polls (LOT-136); nil in tests that do not vote.
+    var pollVoter: (any PollVoting)?
     /// The smiley favourites of every account (LOT-064), read by the smiley picker (LOT-104); not touched until it opens.
     var smileyFavorites: AppSmileyFavoritesStore = liveSmileyFavorites
 
@@ -120,6 +122,8 @@ struct ComposerServices: Sendable {
     /// The live services of `session`, nil without an account.
     static func live(session: HFRSession, account: String?) -> ComposerServices? {
         guard let account else { return nil }
-        return ComposerServices(poster: LiveReplyPoster(session: session), drafts: liveDrafts, account: account)
+        return ComposerServices(
+            poster: LiveReplyPoster(session: session), drafts: liveDrafts, account: account, pollVoter: LivePollVoter(session: session)
+        )
     }
 }
