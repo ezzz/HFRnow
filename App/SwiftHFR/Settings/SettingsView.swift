@@ -26,6 +26,17 @@ enum SettingsDestination: Hashable {
     }
 }
 
+extension ImageDisplayMode {
+    /// Picker label. "Jamais" keeps images behind a tap (the reader's placeholder), it never fetches them by itself.
+    var title: String {
+        switch self {
+        case .always: "Toujours"
+        case .wifiOnly: "Wi-Fi uniquement"
+        case .never: "Jamais (au toucher)"
+        }
+    }
+}
+
 /// The settings screen (LOT-119): the "Général" section and the entry points of the sections other lots fill in.
 struct SettingsView: View {
     /// The app's one settings model: a change here re-renders every screen at once (LOT-169).
@@ -52,6 +63,9 @@ struct SettingsView: View {
                     )
                     .accessibilityLabel("Taille du texte")
                     .accessibilityValue("\(general.textSizePercent) %")
+                }
+                Picker("Images externes", selection: $general.imageLoading) {
+                    ForEach(ImageDisplayMode.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
                 Toggle("Rotation d’écran", isOn: $general.allowsRotation)
                 Toggle(isOn: $general.opensLinksInDefaultBrowser) {
