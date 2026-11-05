@@ -81,6 +81,7 @@ struct TopicReaderMenuTests {
         #expect(open != nil)
         reader.requestMenu(post: 999, source: .message, token: token)
         reader.requestMenu(post: 101, source: .message, token: token + 1)
+        reader.requestMenu(post: 101, source: .avatar, token: token) // valid, but offers nothing
         #expect(reader.presentedMenu == open)
         reader.dismissMenu()
         let bare = await loaded(registry: MessageActionRegistry())
@@ -144,7 +145,9 @@ struct TopicReaderMenuTests {
         let first = reader.menuFeedbackSerial
         reader.showMenuFeedback("Lien copié")
         #expect(reader.menuFeedbackSerial == first + 1)
-        reader.clearMenuFeedback()
+        reader.clearMenuFeedback(serial: first) // the first confirmation's timer ends: the second stays
+        #expect(reader.menuFeedback == "Lien copié")
+        reader.clearMenuFeedback(serial: first + 1)
         #expect(reader.menuFeedback == nil)
     }
 

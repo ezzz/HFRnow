@@ -190,7 +190,8 @@ final class ReaderWebController: NSObject {
         return handle(decoded.message, in: document)
     }
 
-    /// Acts on a decoded message of the shown document (tests drive it without a web view round trip).
+    /// Acts on a decoded message of the shown document. `receive` is the entry point of the page (main frame and token checked
+    /// first); this one is internal only so tests can drive the actions without a web view round trip.
     func handle(_ message: ReaderBridgeMessage, in document: ReaderDocument) -> Any? {
         switch message {
         case .images(let urls):

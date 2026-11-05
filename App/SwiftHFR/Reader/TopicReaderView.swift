@@ -117,9 +117,12 @@ struct TopicReaderView: View {
                 .padding(.vertical, 8)
                 .background(.thinMaterial, in: Capsule())
                 .padding(.bottom, 56)
-                .task(id: model.menuFeedbackSerial) {
-                    try? await Task.sleep(for: .seconds(2))
-                    model.clearMenuFeedback()
+                .task(id: model.menuFeedbackSerial) { [serial = model.menuFeedbackSerial] in
+                    // A cancelled sleep (a newer confirmation, the view going away) must not clear anything.
+                    do {
+                        try await Task.sleep(for: .seconds(2))
+                        model.clearMenuFeedback(serial: serial)
+                    } catch {}
                 }
         }
     }

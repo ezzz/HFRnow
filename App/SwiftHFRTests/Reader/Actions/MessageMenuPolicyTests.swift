@@ -104,7 +104,7 @@ struct MessageMenuPolicyTests {
         for kind in MessageMenuAction.Kind.allCases {
             let action = Self.action(of: kind)
             #expect(action.kind == kind)
-            #expect(!action.systemImageName.isEmpty)
+            #expect(action.systemImageName != "questionmark" && !action.title.isEmpty && action.priority != Int.max)
             #expect(action.isDestructive == (kind == .delete))
         }
     }

@@ -63,6 +63,8 @@ session check of LOT-044 and `TopicFlagFlow`; no handler yet, so hidden).
    page (`messageIndex != 0`, `MessagesView.swift:255`; `ObjCMessageActionsBuilder.m:43`). Deleting a topic's first post deletes the
    whole topic (HFR-PROTOCOL §3.1, `R63b`); legacy never offered it. Own-message, favourite and delete flags derive from LOT-031's
    `MessageActions`, not from the legacy builder's flags.
+5. The author menu opens from the pseudo (a button); legacy opened it from the avatar image, which stays inert here (a blocked or
+   missing avatar would otherwise leave no way in).
 
 Known cost: `LiveTopicPageSource.parse` reads the page once more for `MessageActionsParser.actions(in:)` (the engine has no entry
 point returning blocks and actions from one document); an engine change is out of this lot. If the counts of blocks and action sets

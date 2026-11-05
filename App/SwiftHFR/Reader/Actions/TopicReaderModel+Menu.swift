@@ -15,8 +15,12 @@ struct MessageMenu: Equatable, Identifiable, Sendable {
     var id: String { "\(source.rawValue)-\(post)" }
 }
 
+// Port of HFRswift/Swift/MessagesView.swift (the message popup: `presentPopupMenu`, entries per action) and of
+// Classes/ObjCMessageActionsBuilder.m:91-104 (`permalinkURLForPostID`) @ 2440d79. Differences: GAP-064, spec differences 1-5.
 /// The message menu of the reader (LOT-087): what a tap on the web view's button opens and what picking an entry runs.
-/// Its state lives on `TopicReaderModel` (`presentedMenu`, `registry`, `menuFeedback`), set only through these methods.
+/// Its state lives on `TopicReaderModel` (`presentedMenu`, `registry`, `menuFeedback`); it is internal rather than
+/// `private(set)` only so this file can hold the logic (the model file is at its length limit): by convention these methods
+/// are the only writers.
 extension TopicReaderModel {
     /// Plugs the handlers of the merged lots into the message menu (LOT-087); none leaves the reader without menu.
     func install(_ registry: MessageActionRegistry) {
@@ -55,7 +59,9 @@ extension TopicReaderModel {
     func requestMenu(post: Int, source: MessageMenuSource, token: Int) {
         guard token == document?.token, let context = menuContext(post: post) else { return }
         let entries = registry.entries(for: context, source: source)
-        presentedMenu = entries.isEmpty ? nil : MessageMenu(post: post, source: source, context: context, entries: entries)
+        // A request that offers nothing leaves an open menu alone, like a refused one (the popover keeps the page tappable).
+        guard !entries.isEmpty else { return }
+        presentedMenu = MessageMenu(post: post, source: source, context: context, entries: entries)
     }
 
     /// Closes the menu without choosing.
@@ -77,8 +83,9 @@ extension TopicReaderModel {
         menuFeedbackSerial += 1
     }
 
-    /// Hides the confirmation.
-    func clearMenuFeedback() {
+    /// Hides the confirmation `serial` stands for; a newer confirmation (same text, later serial) stays on screen.
+    func clearMenuFeedback(serial: Int) {
+        guard serial == menuFeedbackSerial else { return }
         menuFeedback = nil
     }
 }
