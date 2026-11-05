@@ -555,6 +555,14 @@ Source: [LOT-097](lots/LOT-097-bbcode-preview-renderer.md), `BBCodeRenderer` (th
 - **The link and the page** (`R21`, `R46`, **verified**): `R21`'s alert link of message 2666649 (`/user/modo.php?config=hfr.inc&cat=13&post=28563&numreponse=2666649&page=1&ref=1`) is `R46`'s request; HFR serves the form at that URL, 200, no redirect, and sends back `md_user` and `md_passs`. The form (§6b) is posted in document order: `hash_check`, `referer_page` (empty), `raison`, `Submit`.
 - **Captured since** (PR #394): the page of a message already reported (`R88`, the shape LOT-050 reads as already alerted), the answer to a submitted alert (`W46`, a `.hop` with a back link, returned as HFR's text) and the alert page and answer without a session (`R89`, `W47`, "Vous devez être identifié…", not `W17c`'s sentence). Their reading by LOT-037 is #395.
 
+### LOT-058 — MP mark unread
+
+[LOT-058](lots/LOT-058-mp-actions.md), tests `MarkUnreadLinkTests`, `MarkUnreadTests` and `MPQuoteTests`.
+
+- **The link** (`RA1`-`RA4` for the owner, `RU1`-`RU2` for the recipient, **verified**): the conversation header holds `<a href="/user/nonlu.php?config=hfr.inc&amp;cat=prive&amp;subcat=0&amp;post=<post>&amp;page=1&amp;p=1&amp;sondage=0&amp;owntopic=0&amp;new=0" class="cHeader">` around the `oeil.gif` image ("Marquer le message…"); topic pages (`R20`, `R21`) and a conversation deleted by its owner (`RA5`) have none. Every captured conversation has one page, so what `page` holds on a later page is pending capture.
+- **The answer** (`W18`, **verified**): `.hop` "Le message a été marqué comme non lu avec succès", refresh to the MP list (`/forum1.php?config=hfr.inc&cat=prive&page=1&…`), no `Set-Cookie`; the list afterwards shows the conversation unread (`R13b`).
+- **MP quote** (`RA1`-`RA4`, `R47a`, **verified**): the conversations' quote links are `message.php?…&cat=prive&post=<post>&numrep=<n>&ref=<rank>…#formulaire`; `RA4`'s link to message 1980875030 is `R47a`'s request, whose prefill is the LOT-004 oracle's `content_form`.
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).
