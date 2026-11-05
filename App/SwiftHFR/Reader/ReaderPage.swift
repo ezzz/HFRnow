@@ -20,6 +20,9 @@ struct ReaderPage: Equatable, Sendable {
     /// The reply composer's page (`#repondre_form`'s link, `https` on the forum host, LOT-033); nil when the page offers no
     /// answer form (logged out, locked topic).
     var answerURL: URL?
+    /// Final URL of the page after HFR's redirects, forum origin only (the permalink of a message is this plus `#t<n>`);
+    /// nil when it is not a forum `https` URL.
+    var pageURL: URL?
     /// The topic's poll (LOT-026) when the page has one that `PollParser` reads; nil otherwise, also when the poll's shape is
     /// not one it handles (a poll that cannot be read never fails the page). Holds the voting form's hidden fields, token
     /// included: only `PollVoteFlow` reads them.
@@ -46,6 +49,8 @@ struct ReaderMessage: Equatable, Sendable, Identifiable {
     var quotedByCount: Int?
     /// Sanitized content and typed lists (ADR 0006).
     var content: MessageContent
+    /// The action links of the message's toolbar (LOT-031); nothing offered when HFR gave none (logged out).
+    var actions = MessageActions()
 
     /// Unique on a page: the continuation block repeats the previous page's last number.
     var id: String { isContinuation ? "continuation-\(numreponse)" : "t\(numreponse)" }
