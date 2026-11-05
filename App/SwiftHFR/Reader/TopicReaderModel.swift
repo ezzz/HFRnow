@@ -1,6 +1,7 @@
 import Foundation
 import HFRModels
 import HFRParsing
+import HFRStorage
 import Observation
 
 /// An HTML document handed to the web view. `token` is unique per model, so an event of an older document is recognised.
@@ -35,6 +36,8 @@ enum ReaderLinkAction: Equatable, Sendable {
     case ignored
 }
 
+// Port of HFRswift/Swift/MessagesView.swift (anchors, `WebView.ScrollPosition`) @ 2440d79. Differences: one page at a time, position
+// recorded per account (LOT-111, GAP-063, UXD-11).
 /// State of the topic reader (LOT-083): one page at a time, page navigation, refresh, links.
 ///
 /// Loading rules (LOTS "Issues to open" #6 and #7, issues #107 and #108): one load at a time, a newer load or `cancel()`
@@ -67,6 +70,9 @@ final class TopicReaderModel {
     private var requestedAnchor: AnchorRule
     /// The target of the page on screen (topic and page as served), what a refresh reloads.
     private(set) var shown: ReaderTarget?
+
+    /// Where reading positions go (LOT-111); nil when logged out or in a preview.
+    @ObservationIgnored var positions: (any ReaderPositionRecording)?
 
     private let source: any TopicPageSource
     private let renderOptions: @Sendable () -> ReaderRenderOptions
@@ -202,6 +208,14 @@ final class TopicReaderModel {
     func documentDidBecomeReady(token: Int) {
         guard token == document?.token else { return }
         readyToken = token
+    }
+
+    /// The web view reports `post` as the topmost message of document `token`: recorded as the reading position. A report
+    /// of an older document, of a message the page on screen does not hold, or of a continuation block is ignored.
+    func recordPosition(post: Int, token: Int) async {
+        guard token == document?.token, let page, let topic = page.topicID, let positions,
+              page.messages.contains(where: { !$0.isContinuation && $0.numreponse == post }) else { return }
+        await positions.record(ReadingPosition(page: page.currentPage, messageNumber: post), in: topic)
     }
 
     /// What tapping `url` does. Forum topic links open in the reader, keeping page and post (issue #106).

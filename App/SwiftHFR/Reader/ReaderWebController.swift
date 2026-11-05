@@ -20,6 +20,8 @@ final class ReaderWebController: NSObject {
         var link: @MainActor (URL) -> Void = { _ in }
         /// The user tapped the placeholder of video `index` of message `post` in document `token`.
         var video: @MainActor (_ post: Int, _ index: Int, _ token: Int) -> Void = { _, _, _ in }
+        /// Scrolling paused with message `post` topmost in document `token` (LOT-111, recorded as the reading position).
+        var position: @MainActor (_ post: Int, _ token: Int) -> Void = { _, _ in }
     }
 
     /// The content world of `reader.js` and of its message channel; the page's own world cannot see either.
@@ -120,10 +122,13 @@ final class ReaderWebController: NSObject {
         return try? Data(contentsOf: url)
     }()
 
-    private func scroll(to anchor: Int) {
+    /// `landing` keeps the message at the top while late images load (a document's own anchor); a request inside the shown
+    /// document scrolls once.
+    private func scroll(to anchor: Int, landing: Bool = false) {
+        let call = landing ? "landOnPost" : "scrollToPost"
         Task {
             _ = try? await webView.callAsyncJavaScript(
-                "return window.hfrReader.scrollToPost(n);", arguments: ["n": anchor], in: nil, contentWorld: Self.world
+                "return window.hfrReader.\(call)(n);", arguments: ["n": anchor], in: nil, contentWorld: Self.world
             )
         }
     }
@@ -141,6 +146,9 @@ final class ReaderWebController: NSObject {
             return recordTap(body["url"] as? String)
         case "ready":
             documentIsReady(document, token: token)
+            return nil
+        case "position":
+            if let post = (body["post"] as? NSNumber)?.intValue { events.position(post, token) }
             return nil
         case "video":
             if let post = (body["post"] as? NSNumber)?.intValue, let index = (body["index"] as? NSNumber)?.intValue {
@@ -171,7 +179,7 @@ final class ReaderWebController: NSObject {
 
     private func documentIsReady(_ document: ReaderDocument, token: Int) {
         if let anchor = document.anchor {
-            scroll(to: anchor)
+            scroll(to: anchor, landing: true)
         } else if let offset = savedOffset {
             webView.scrollView.setContentOffset(offset, animated: false)
         }

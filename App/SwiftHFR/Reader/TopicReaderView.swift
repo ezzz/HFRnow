@@ -103,8 +103,10 @@ struct TopicReaderView: View {
             },
             video: { [model] post, index, token in
                 if let embed = model.video(post: post, index: index, token: token) { video = VideoItem(embed: embed) }
-            }
+            },
+            position: { [model] post, token in Task { await model.recordPosition(post: post, token: token) } }
         )
+        model.positions = services.positions
         self.controller = controller
     }
 }
@@ -115,6 +117,8 @@ struct ReaderServices: Sendable {
     let imageFetcher: ReaderImageFetcher
     /// Image mode and display choices.
     let settings: ReaderSettings
+    /// Records the reading position of the current account (LOT-111); nil when logged out.
+    var positions: (any ReaderPositionRecording)?
 }
 
 /// Previous / next page, first / last, and "page N / M" which asks for a page number.

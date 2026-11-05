@@ -65,13 +65,58 @@
     if (spoiler && !target.closest("a")) { spoiler.classList.toggle("open"); }
   });
 
+  // Landing on a message (LOT-111): images that load after the first scroll push the message down, so the document keeps
+  // it at the top until the user touches the page or every image has settled. WebKit has no scroll anchoring.
+  let pinned = null;
+  const releasePin = () => { pinned = null; };
+  const settled = () => Array.from(document.images).every((img) => img.complete);
+  const repin = () => {
+    if (pinned === null) { return; }
+    if (pinned.scrollIntoView) { pinned.scrollIntoView({ block: "start" }); }
+    if (settled()) { releasePin(); }
+  };
+  ["touchstart", "wheel", "keydown", "mousedown"].forEach((name) =>
+    window.addEventListener(name, releasePin, { passive: true, capture: true }));
+  document.addEventListener("load", repin, true);
+  document.addEventListener("error", repin, true);
+  new ResizeObserver(repin).observe(document.documentElement);
+
   window.hfrReader = {
     scrollToPost: (number) => {
       const element = document.getElementById("t" + number);
       if (element) { element.scrollIntoView({ block: "start" }); }
       return element !== null;
+    },
+    // Scrolls to the message and keeps it there while the page settles.
+    landOnPost: (number) => {
+      const element = document.getElementById("t" + number);
+      if (element) { element.scrollIntoView({ block: "start" }); pinned = settled() ? null : element; }
+      return element !== null;
     }
   };
+
+  // The topmost message on screen, reported when scrolling pauses (the app records it as the reading position).
+  const topPost = () => {
+    const posts = document.querySelectorAll("article[data-post]:not(.continuation)");
+    let top = null;
+    for (const post of posts) {
+      if (post.getBoundingClientRect().bottom > 1) { top = post; break; }
+    }
+    return top === null ? null : Number(top.dataset.post);
+  };
+  let reported = null;
+  let timer = null;
+  window.addEventListener("scroll", () => {
+    if (pinned !== null) { return; }
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      const post = topPost();
+      if (post !== null && post !== reported) {
+        reported = post;
+        channel.postMessage({ type: "position", token, post });
+      }
+    }, 500);
+  }, { passive: true });
 
   const images = Array.from(document.querySelectorAll("img[src]"));
   const sources = images.map((img) => img.getAttribute("src"));
